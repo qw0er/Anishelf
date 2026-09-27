@@ -2,6 +2,8 @@
 
 **Current version: V1.**
 
+Architecture and implementation decisions are described in [Current Version — Overall Design](current-version-design.md).
+
 This document defines the active release scope. Deferred capabilities are maintained in [Future Requirements](future-requirements.md). Together, these two documents form the requirements set; when planning a new version, move selected requirements here and update the version label.
 
 ## 1. Goal
