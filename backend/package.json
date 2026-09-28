@@ -15,6 +15,10 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@types/node": "^26.6.3",
     "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "smol-toml": "^1.9.0"
   }
 }

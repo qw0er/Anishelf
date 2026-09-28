@@ -1,9 +1,10 @@
 # Development foundation
 
-The backend currently provides a minimal executable entry point and contracts only.
-Configuration loading, structured logging, HTTP routes, scanning, and playback are
-not implemented. The entry point prints its status and exits; it does not listen
-on a port.
+The backend currently provides deployment TOML loading, startup validation, and
+module contracts. Persistent JSON settings, structured logging, HTTP routes,
+scanning, and playback are not implemented. The entry point validates deployment
+configuration, prepares the dynamic data directory, prints its status, and exits;
+it does not listen on a port.
 
 Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 `npm ci`.
@@ -23,8 +24,8 @@ Backend contracts are in `backend/src/contracts`: validated configuration shapes
 internal library records and scan states, and JSON API DTOs. `errors.ts` defines
 HTTP-independent error codes and `DomainError`; later HTTP handlers must map these
 to safe public messages and status codes instead of serializing internal errors.
-Types do not validate TOML, JSON, or HTTP input at runtime. Runtime validation
-belongs to the corresponding later modules.
+The deployment loader validates TOML at runtime. Persistent JSON and HTTP input
+validation will be implemented in their corresponding modules.
 
 API DTOs omit internal relative paths. Diagnostic errors may retain a cause for
 local logging. No shared frontend/backend runtime package is introduced; frontend
@@ -39,3 +40,31 @@ unchanged in this foundation step; dependency/tooling consolidation is separate.
 
 Vitest is the project test framework. Backend tests run in the Node environment;
 compile-time contract assertions remain part of the TypeScript checks.
+
+## Deployment configuration
+
+Copy `anishelf.example.toml` to a deployment-specific file and set `dataDir` to an
+absolute path. Select the file through an absolute `ANISHELF_CONFIG` path:
+
+```sh
+ANISHELF_CONFIG=/absolute/path/to/anishelf.toml npm start
+```
+
+Build first with `npm run build`. The same environment variable is required for
+`npm run dev`. Changes are loaded on process restart.
+
+`dataDir` is required. Defaults are `host = "127.0.0.1"`, `port = 3000`,
+`logging.level = "info"`, and `logging.destination = "stdout"`. V1 accepts loopback
+IP addresses (`127.x.x.x` or `::1`) only; use an IP rather than a hostname. Ports
+must be integers from 1 to 65535. Paths must be absolute and cannot contain NUL.
+Unknown settings are rejected to catch typos and misplaced persistent settings.
+
+For file logging, set `logging.destination = "file"` and an absolute
+`logging.path`. A path with stdout output is rejected. This step validates logging
+settings only; log-file preparation and output belong to the logging module.
+
+Missing/unreadable deployment files, malformed TOML, invalid parameters, and
+unusable dynamic data directories fail startup with exit code 1 and a terminal
+diagnostic. TOML parser source excerpts and error stacks are not printed. The
+loader creates `dataDir` if needed and checks that it is a writable directory;
+it never rewrites the deployment TOML or creates `settings.json`.
