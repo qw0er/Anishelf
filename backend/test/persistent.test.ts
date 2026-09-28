@@ -106,6 +106,35 @@ test("rejects overlap through a symlink", async () => {
 	);
 });
 
+test("rejects missing nested roots under a symlink to the data directory", async () => {
+	const alias = join(fixture, "alias");
+	await symlink(dataDir, alias, "dir");
+	await settings(join(alias, "missing", "media"));
+	await expect(loadPersistentSettings(dataDir)).rejects.toThrow(
+		"separate directories",
+	);
+	await settings();
+	const manager = await PersistentConfiguration.load(dataDir);
+	await expect(
+		manager.update({ resourceRoot: join(alias, "missing", "media") }),
+	).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+	expect(manager.settings).toEqual({ resourceRoot });
+	expect(await loadPersistentSettings(dataDir)).toEqual({ resourceRoot });
+});
+
+test("a missing nested root under a separate symlink remains recoverable", async () => {
+	const separate = join(fixture, "separate");
+	const alias = join(fixture, "alias");
+	await mkdir(separate);
+	await symlink(separate, alias, "dir");
+	const root = join(alias, "missing", "media");
+	await settings(root);
+	expect(await loadPersistentSettings(dataDir)).toEqual({ resourceRoot: root });
+	expect(await checkResourceRoot({ resourceRoot: root })).toMatchObject({
+		code: "RESOURCE_ROOT_UNAVAILABLE",
+	});
+});
+
 test("missing root is recoverable and availability can be rechecked", async () => {
 	await settings();
 	const loaded = await loadPersistentSettings(dataDir);

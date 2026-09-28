@@ -9,7 +9,15 @@ import {
 	stat,
 	writeFile,
 } from "node:fs/promises";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import {
+	basename,
+	dirname,
+	isAbsolute,
+	join,
+	relative,
+	resolve,
+	sep,
+} from "node:path";
 import type { PersistentSettings } from "../contracts/config.js";
 import type { LibraryIssue } from "../contracts/library.js";
 import { DomainError } from "../errors.js";
@@ -84,13 +92,31 @@ async function loadPersistentSettings(
 	return settings;
 }
 
+/** Resolve existing ancestors even when the configured directory is unavailable. */
+async function canonicalSettingsPath(path: string): Promise<string> {
+	const absolute = resolve(path);
+	let candidate = absolute;
+	const suffix: string[] = [];
+	while (true) {
+		try {
+			return join(await realpath(candidate), ...suffix);
+		} catch {
+			const parent = dirname(candidate);
+			if (parent === candidate) return absolute;
+			suffix.unshift(basename(candidate));
+			candidate = parent;
+		}
+	}
+}
+
 async function checkDirectorySeparation(
 	dataDir: string,
 	resourceRoot: string,
 ): Promise<void> {
-	// Resolve existing symlinks for separation; unavailable roots remain recoverable.
-	const data = await realpath(dataDir).catch(() => resolve(dataDir));
-	const root = await realpath(resourceRoot).catch(() => resolve(resourceRoot));
+	const [data, root] = await Promise.all([
+		canonicalSettingsPath(dataDir),
+		canonicalSettingsPath(resourceRoot),
+	]);
 	if (contains(data, root) || contains(root, data)) {
 		throw new DomainError(
 			"CONFIG_INVALID",
