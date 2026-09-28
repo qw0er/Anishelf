@@ -63,8 +63,8 @@ must be integers from 1 to 65535. Paths must be absolute and cannot contain NUL.
 Unknown settings are rejected to catch typos and misplaced persistent settings.
 
 For file logging, set `logging.destination = "file"` and an absolute
-`logging.path`. A path with stdout output is rejected. File output creates parent directories and checks that the destination is a
-writable regular file before initializing Pino. Existing files are appended to.
+`logging.path`. A path with stdout output is rejected. File output ensures its parent directory exists, then delegates file opening
+and append writes to Pino.
 
 Missing/unreadable deployment files, malformed TOML, invalid parameters, and
 unusable dynamic data directories fail startup with exit code 1 and a terminal
@@ -76,19 +76,20 @@ it never rewrites the deployment TOML or creates `settings.json`.
 
 `ApplicationLogging.create` synchronously creates a Pino logger with one fixed
 stdout or file destination. Pino writes directly to that destination. Business
-modules receive `.logger`; child loggers add context. The application owner calls
-idempotent `close()` on shutdown. Log writes complete synchronously; closing waits
-only for descriptor release, not for an application log queue.
+modules receive `.logger`; child loggers add context. The logger is created once
+and lives until process exit. Log writes are synchronous; no application-level
+flush or close interface is provided. The operating system releases file
+descriptors when the process exits.
 
 Logs use ISO UTC timestamps, numeric Pino levels, the `anishelf` service field,
 and newline-delimited JSON. Call sites supply event names. Common secret fields,
 authorization/cookie headers, bodies, and config/settings objects are redacted;
 callers must still avoid secrets under other keys or inside message strings.
 
-Destination creation and output-error reporting live in `logging/output.ts`.
-Runtime output errors produce a one-time stderr diagnostic without redirecting
-logs. Initialization failures prevent startup. No application buffer, timeout
-machinery, or public flush interface is required for the current log volume.
+Destination selection lives in `logging/index.ts`. Deployment loading validates
+logging configuration; the logger selects stdout or the configured file path and
+ensures the file's parent directory exists. Pino handles opening and writing to
+the destination. There is no custom file-descriptor management or error listener.
 
 Asynchronous logging, rotation, retention, file reopening, signal handling, and automatic output
 fallback are deferred to [Future Requirements](future-requirements.md#logging-maintenance-o11o13).
@@ -96,5 +97,5 @@ fallback are deferred to [Future Requirements](future-requirements.md#logging-ma
 Biome respects `.gitignore` through `biome.json`; dependencies and build outputs
 are excluded. `npm run biome:fix` does not apply unsafe fixes.
 
-`ApplicationLogging` owns the single output stream. Low-level file preparation
-and error reporting live in `logging/output.ts`.
+`ApplicationLogging` creates and exposes the Pino logger. All logging setup lives
+in `logging/index.ts`.

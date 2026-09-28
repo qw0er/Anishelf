@@ -1,22 +1,25 @@
 {
-  "name": "anishelf",
-  "private": true,
-  "workspaces": [
-    "backend",
-    "web"
-  ],
-  "devDependencies": {
-    "@biomejs/biome": "^2.5.14",
-    "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
-  },
-  "scripts": {
-    "dev": "npm run dev --workspace @anishelf/backend",
-    "dev:web": "npm run dev --workspace @anishelf/web",
-    "typecheck": "npm run typecheck --workspaces",
-    "check": "npm run typecheck && npm test",
-    "test": "npm run test --workspace @anishelf/backend",
-    "build": "npm run build --workspaces",
-    "start": "npm run start --workspace @anishelf/backend"
-  }
+	"name": "anishelf",
+	"private": true,
+	"workspaces": [
+		"backend",
+		"web"
+	],
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.14",
+		"tsx": "^4.23.15",
+		"typescript": "^7.0.2"
+	},
+	"scripts": {
+		"dev": "npm run dev --workspace @anishelf/backend",
+		"dev:web": "npm run dev --workspace @anishelf/web",
+		"typecheck": "npm run typecheck --workspaces",
+		"check": "npm run biome:check && npm run typecheck && npm test",
+		"test": "npm run test --workspace @anishelf/backend",
+		"build": "npm run build --workspaces",
+		"start": "npm run start --workspace @anishelf/backend",
+		"biome:check": "biome check .",
+		"biome:fix": "biome check --write .",
+		"lint": "biome lint ."
+	}
 }

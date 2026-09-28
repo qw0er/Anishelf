@@ -182,7 +182,7 @@ Automatic whole-library conversion, idle-time scheduling, playback during conver
 - Acceptance: asynchronous output avoids synchronous destination writes on the application path, buffers remain bounded under a slow destination, and normal shutdown writes pending records; timeout or overflow reports any potential record loss.
 - Acceptance: rotation directs subsequent logs to the new file without restarting the application; destination failure triggers the defined fallback without replacing existing business-module loggers.
 
-The current release uses one fixed stdout or file destination. It supports configured levels, synchronous writes, and closing the destination on shutdown. Asynchronous logging, rotation, reopening, signal handling, and automatic destination switching are outside the current release.
+The current release uses one fixed stdout or file destination. It supports configured levels and synchronous writes through a process-lifetime logger. Asynchronous logging, rotation, reopening, signal handling, and automatic destination switching are outside the current release.
 
 ## 3. Rules for Future Features
 
