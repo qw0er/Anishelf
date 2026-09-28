@@ -1,18 +1,18 @@
 # Development foundation
 
-The backend currently provides deployment TOML loading, startup validation, and
-module contracts, persistent JSON settings, and Pino structured logging. HTTP routes,
-scanning, and playback are not implemented. The entry point validates deployment
-configuration, prepares the dynamic data directory, logs startup/shutdown, and exits;
-it does not listen on a port.
+The backend provides deployment TOML loading, startup validation, module contracts,
+persistent JSON settings, Pino logging, and a Fastify HTTP application skeleton.
+The entry point loads configuration and listens on the configured loopback address.
+Only the health endpoint is implemented; library routes, scanning, playback, and
+production UI asset serving follow in later modules.
 
 Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 `npm ci`.
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Watch the backend foundation entry point |
-| `npm run dev:web` | Start the existing Vite frontend scaffold |
+| `npm run dev` | Watch the backend HTTP entry point in development mode |
+| `npm run dev:web` | Start Vite on 127.0.0.1:5173 with an API proxy |
 | `npm run typecheck` | Check both workspaces, including backend tests |
 | `npm test` | Run backend tests once with Vitest |
 | `npm run test:watch --workspace @anishelf/backend` | Watch backend tests with Vitest |
@@ -25,33 +25,41 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 
 Backend contracts are in `backend/src/contracts`: validated configuration shapes,
 internal library records and scan states, and JSON API DTOs. `errors.ts` defines
-HTTP-independent error codes and `DomainError`; later HTTP handlers must map these
-to safe public messages and status codes instead of serializing internal errors.
-The deployment loader validates TOML at runtime. Persistent JSON is validated by its loader; HTTP input validation follows in the
-HTTP module.
+HTTP-independent error codes and `DomainError`. HTTP handlers map errors to safe
+public messages and status codes instead of serializing internal errors.
+Deployment TOML and persistent JSON are validated at runtime. HTTP routes use
+Fastify JSON Schemas, with type coercion and removal of unknown fields disabled.
 
 API DTOs omit internal relative paths. Diagnostic errors may retain a cause for
 local logging. No shared frontend/backend runtime package is introduced; frontend
-API integration and contract validation will follow when the HTTP module exists.
+API integration will follow with the library routes and frontend modules.
 
 `scan: null` means no scan has run. Partial traversal is represented by a completed
 scan with warnings; failed root traversal uses a failed scan while preserving the
 previous snapshot. `scannedAt: null` identifies the initial empty snapshot.
 
-The existing compiler versions, Node type versions, and frontend lint setup remain
-unchanged in this foundation step; dependency/tooling consolidation is separate.
+Compiler and Node type versions remain unchanged. Both the root and frontend lint
+commands use Biome; broader dependency/tooling consolidation is separate.
 
 Vitest is the project test framework. Backend tests run in the Node environment;
 compile-time contract assertions remain part of the TypeScript checks.
 
 ## Deployment configuration
 
-Copy `anishelf.example.toml` to a deployment-specific file and set `dataDir` to an
+Copy `exapmle/anishelf.example.toml` to a deployment-specific file and set `dataDir` to an
 absolute path. Select the file through an absolute `ANISHELF_CONFIG` path:
 
 ```sh
 ANISHELF_CONFIG=/absolute/path/to/anishelf.toml npm start
 ```
+
+### Environment variables
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `ANISHELF_CONFIG` | Yes, for backend startup | Absolute path to the deployment TOML. |
+| `ANISHELF_API_TARGET` | No | Vite proxy target; defaults to `http://127.0.0.1:3000`. |
+| `NODE_ENV` | No | `npm run dev` sets this to `development` to enable the local Vite Origin allowlist. |
 
 Build first with `npm run build`. The same environment variable is required for
 `npm run dev`. Changes are loaded on process restart.
@@ -118,8 +126,8 @@ contain one another; existing symlinks are resolved for this check.
 A valid path pointing to a missing, unreadable, or non-directory resource produces
 `RESOURCE_ROOT_UNAVAILABLE` and a warning instead of failing startup. The
 `checkResourceRoot` function can be called again after the directory is repaired.
-Its user-facing error excludes filesystem paths. HTTP error presentation will be
-connected in the HTTP module. Manual file edits require restart; updates through the manager take effect in its
+Its user-facing error excludes filesystem paths. The HTTP error mapper provides
+the corresponding safe response. Manual file edits require restart; updates through the manager take effect in its
 in-memory settings after the file is saved.
 
 `PersistentConfiguration.load(dataDir)` loads the manager. `.settings` returns a
@@ -133,3 +141,36 @@ per application; cross-process coordination is outside the current scope.
 The manager does not monitor manual file edits or automatically rescan the library.
 Resource availability can be rechecked after updates. HTTP/settings UI integration
 will use this interface when those modules are implemented.
+
+## HTTP application skeleton
+
+`createHttpApp` in `backend/src/http/app.ts` creates the Fastify instance without
+starting a listener. It accepts the application Pino logger and deployment host/port,
+so tests and future modules can register routes before startup.
+
+`GET /api/health` returns `200` with `{"status":"ok"}`. This reports HTTP service
+availability, not library readiness. A missing resource directory still allows the
+server to start; invalid configuration prevents startup.
+
+Every request gets a server-generated UUID, returned in `x-request-id` and used by
+Pino request logs. Client request IDs are ignored. Errors, including unknown routes,
+use `{ "error": { "code", "message", "requestId" } }`. Unexpected errors are logged
+internally and return a generic 500 response without paths or stacks. JSON request
+bodies are limited to 64 KiB. Future media responses are not subject to that limit.
+
+Host must match the configured loopback IP or `localhost` with the listener port.
+Forwarded headers are not trusted. State-changing requests reject foreign Origin
+values and cross-site browser metadata; command-line clients without Origin are
+allowed. No CORS plugin is enabled.
+
+Run the backend and Vite in separate terminals with `npm run dev` and
+`npm run dev:web`. Vite uses port 5173 and proxies `/api` to
+`http://127.0.0.1:3000`. If the backend uses another address or port, set
+`ANISHELF_API_TARGET=http://127.0.0.1:4000` when starting Vite. Development mode
+allows mutation origins `http://127.0.0.1:5173` and `http://localhost:5173` through
+the proxy. Production mode requires same-origin mutations. Vite refuses to silently
+switch ports, keeping the allowed development origins fixed.
+
+SIGINT and SIGTERM stop accepting requests and close the HTTP application.
+Shutdown has a five-second limit; failures set a nonzero exit code. This closes the
+HTTP server, not the synchronous Pino destination.

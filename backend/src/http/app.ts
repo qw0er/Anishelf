@@ -1,0 +1,55 @@
+import { randomUUID } from "node:crypto";
+import Fastify from "fastify";
+import type { Logger } from "pino";
+import type { DeploymentConfig } from "../contracts/config.js";
+import { apiError, classifyHttpError } from "./errors.js";
+import { checkRequestOrigin } from "./security.js";
+
+export function createHttpApp(options: {
+	config: Pick<DeploymentConfig, "host" | "port">;
+	logger: Logger;
+	development?: boolean;
+}) {
+	const app = Fastify({
+		loggerInstance: options.logger,
+		genReqId: () => randomUUID(),
+		requestIdHeader: false,
+		trustProxy: false,
+		bodyLimit: 64 * 1024,
+		forceCloseConnections: "idle",
+		ajv: { customOptions: { removeAdditional: false, coerceTypes: false } },
+	});
+	app.addHook("onRequest", async (request, reply) => {
+		reply.header("x-request-id", request.id);
+		checkRequestOrigin(request, options.config, options.development ?? false);
+	});
+	app.setErrorHandler((error, request, reply) => {
+		const { code, status } = classifyHttpError(error);
+		if (status >= 500)
+			request.log.error(
+				{ event: "http.request_failed", err: error },
+				"HTTP request failed.",
+			);
+		return reply.code(status).send(apiError(code, request.id));
+	});
+	app.setNotFoundHandler((request, reply) =>
+		reply.code(404).send(apiError("ROUTE_NOT_FOUND", request.id)),
+	);
+	app.get(
+		"/api/health",
+		{
+			schema: {
+				response: {
+					200: {
+						type: "object",
+						additionalProperties: false,
+						required: ["status"],
+						properties: { status: { type: "string", const: "ok" } },
+					},
+				},
+			},
+		},
+		async () => ({ status: "ok" }),
+	);
+	return app;
+}

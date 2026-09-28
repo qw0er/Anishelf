@@ -8,6 +8,8 @@ export type ErrorCode =
 	| "RESOURCE_ACCESS_DENIED"
 	| "SCAN_FAILED"
 	| "INVALID_REQUEST"
+	| "REQUEST_FORBIDDEN"
+	| "ROUTE_NOT_FOUND"
 	| "INTERNAL_ERROR";
 
 /** Internal details/cause must never be serialized directly into API responses. */

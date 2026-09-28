@@ -7,7 +7,7 @@
 	"type": "module",
 	"main": "dist/index.js",
 	"scripts": {
-		"dev": "tsx watch src/index.ts",
+		"dev": "NODE_ENV=development tsx watch src/index.ts",
 		"typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
 		"test": "vitest run",
 		"build": "tsc",
@@ -19,6 +19,7 @@
 		"vitest": "^5.0.2"
 	},
 	"dependencies": {
+		"fastify": "^5.12.5",
 		"pino": "^10.3.1",
 		"smol-toml": "^1.9.0"
 	}

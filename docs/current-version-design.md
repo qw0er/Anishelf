@@ -187,6 +187,7 @@ List folders before files. Apply a fixed numeric-aware collator to names and an 
 
 | Method and path | Purpose | Main results |
 | --- | --- | --- |
+| `GET /api/health` | HTTP service availability, independent of library readiness | `200` with `{"status":"ok"}` |
 | `GET /api/library` | Configuration readiness, index revision, and latest scan state | `200`, including recoverable library errors in the body |
 | `POST /api/library/scan` | Start a scan or return the currently running scan | `202`; `503` if the root is unavailable before work starts |
 | `GET /api/directories/:id` | Directory metadata, parent reference, and direct children | `200`, `404` |
@@ -206,7 +207,7 @@ Request validation failures use `400`; unexpected failures use `500`. A disappea
 }
 ```
 
-Do not expose stack traces or absolute paths in responses. Detailed local logs may contain the paths needed to diagnose a failure.
+Return the server-generated request ID in `x-request-id` on every response. Do not trust client-supplied IDs or expose stack traces or absolute paths in responses. Detailed local logs may contain the paths needed to diagnose a failure. Unknown endpoints return `404 ROUTE_NOT_FOUND`; untrusted state-changing requests return `403 REQUEST_FORBIDDEN`.
 
 ### Media response behavior
 

@@ -14,10 +14,13 @@ import { join } from "node:path";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import {
 	checkResourceRoot,
-	loadPersistentSettings,
 	PersistentConfiguration,
 	parsePersistentSettings,
 } from "../src/config/persistent.js";
+
+async function loadPersistentSettings(dataDir: string) {
+	return (await PersistentConfiguration.load(dataDir)).settings;
+}
 
 let fixture: string;
 let dataDir: string;
