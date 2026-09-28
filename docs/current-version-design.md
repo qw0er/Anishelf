@@ -137,7 +137,7 @@ Example persistent `settings.json`:
 }
 ```
 
-Require `ANISHELF_CONFIG` to identify the deployment file. Use absolute paths for that file, the dynamic data directory, the resource root, and any log file. Bind to loopback; broad network exposure is not a supported V1 setting. Configuration changes require restart; no settings page or hot reload is required.
+Require `ANISHELF_CONFIG` to identify the deployment file. Use absolute paths for that file, the dynamic data directory, the resource root, and any log file. Bind to loopback; broad network exposure is not a supported V1 setting. Deployment TOML changes and manual JSON file edits require restart. Runtime updates through the persistent configuration manager validate and atomically save settings before publishing them in memory; no settings page or file watcher is required.
 
 Missing, malformed, or invalid configuration fails startup with an actionable terminal message. Create the dynamic data directory if needed and verify that it is writable. A missing `settings.json` reports the expected location and required resource-root setting. A syntactically valid but missing/unreadable media root leaves the HTTP UI available with a library error; the user can fix the directory and retry scanning.
 

@@ -1,4 +1,8 @@
 import { loadDeploymentConfig } from "./config/deployment.js";
+import {
+	checkResourceRoot,
+	PersistentConfiguration,
+} from "./config/persistent.js";
 import { DomainError } from "./errors.js";
 import { ApplicationLogging } from "./logging/index.js";
 
@@ -6,9 +10,17 @@ let logging: ApplicationLogging | undefined;
 try {
 	const config = await loadDeploymentConfig();
 	logging = ApplicationLogging.create(config.logging);
+	const persistentConfig = await PersistentConfiguration.load(config.dataDir);
+	const libraryError = await checkResourceRoot(persistentConfig.settings);
+	if (libraryError) {
+		logging.logger.warn(
+			{ event: "library.root_unavailable", ...libraryError },
+			libraryError.message,
+		);
+	}
 	logging.logger.info(
 		{ event: "application.started" },
-		"Deployment configuration loaded. HTTP server is not implemented yet.",
+		"Deployment configuration and persistent settings loaded. HTTP server is not implemented yet.",
 	);
 } catch (error) {
 	const message =

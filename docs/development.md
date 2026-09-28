@@ -1,7 +1,7 @@
 # Development foundation
 
 The backend currently provides deployment TOML loading, startup validation, and
-module contracts. Pino structured logging is implemented. Persistent JSON settings, HTTP routes,
+module contracts, persistent JSON settings, and Pino structured logging. HTTP routes,
 scanning, and playback are not implemented. The entry point validates deployment
 configuration, prepares the dynamic data directory, logs startup/shutdown, and exits;
 it does not listen on a port.
@@ -27,8 +27,8 @@ Backend contracts are in `backend/src/contracts`: validated configuration shapes
 internal library records and scan states, and JSON API DTOs. `errors.ts` defines
 HTTP-independent error codes and `DomainError`; later HTTP handlers must map these
 to safe public messages and status codes instead of serializing internal errors.
-The deployment loader validates TOML at runtime. Persistent JSON and HTTP input
-validation will be implemented in their corresponding modules.
+The deployment loader validates TOML at runtime. Persistent JSON is validated by its loader; HTTP input validation follows in the
+HTTP module.
 
 API DTOs omit internal relative paths. Diagnostic errors may retain a cause for
 local logging. No shared frontend/backend runtime package is introduced; frontend
@@ -99,3 +99,37 @@ are excluded. `npm run biome:fix` does not apply unsafe fixes.
 
 `ApplicationLogging` creates and exposes the Pino logger. All logging setup lives
 in `logging/index.ts`.
+
+## Persistent settings
+
+Create `settings.json` inside the deployment `dataDir`:
+
+```json
+{
+  "resourceRoot": "/absolute/path/to/media"
+}
+```
+
+The startup loader reads this file without rewriting it. Missing/unreadable files,
+malformed JSON, unknown fields, and missing/invalid paths fail startup. Deployment
+parameters belong in TOML, not in this JSON. `dataDir` and `resourceRoot` must not
+contain one another; existing symlinks are resolved for this check.
+
+A valid path pointing to a missing, unreadable, or non-directory resource produces
+`RESOURCE_ROOT_UNAVAILABLE` and a warning instead of failing startup. The
+`checkResourceRoot` function can be called again after the directory is repaired.
+Its user-facing error excludes filesystem paths. HTTP error presentation will be
+connected in the HTTP module. Manual file edits require restart; updates through the manager take effect in its
+in-memory settings after the file is saved.
+
+`PersistentConfiguration.load(dataDir)` loads the manager. `.settings` returns a
+read-only copy; `await manager.update({ resourceRoot: newPath })` validates and
+replaces the complete settings. Writes use a temporary file and atomic rename.
+Only a successful save publishes the new in-memory value. Failed saves preserve
+the old value and use `CONFIG_WRITE_FAILED`; queued updates continue after failures.
+Updates are serialized in call order within one manager instance. Use one manager
+per application; cross-process coordination is outside the current scope.
+
+The manager does not monitor manual file edits or automatically rescan the library.
+Resource availability can be rechecked after updates. HTTP/settings UI integration
+will use this interface when those modules are implemented.
