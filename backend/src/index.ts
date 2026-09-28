@@ -5,6 +5,8 @@ import {
 } from "./config/persistent.js";
 import { DomainError } from "./errors.js";
 import { createHttpApp } from "./http/app.js";
+import { LibraryIndex } from "./library/index.js";
+import { LibraryScanner } from "./library/scanner.js";
 import { ApplicationLogging } from "./logging/index.js";
 
 let logging: ApplicationLogging | undefined;
@@ -21,9 +23,13 @@ try {
 		);
 	}
 	const logger = logging.logger;
+	const index = new LibraryIndex();
+	const settings = () => persistentConfig.settings;
+	const scanner = new LibraryScanner({ index, settings, logger });
 	const server = createHttpApp({
 		config,
 		logger,
+		library: { index, scanner, settings },
 		development: process.env.NODE_ENV === "development",
 	});
 	app = server;

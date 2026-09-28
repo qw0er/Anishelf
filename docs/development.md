@@ -4,8 +4,8 @@ The backend provides deployment TOML loading, startup validation, module contrac
 persistent JSON settings, Pino logging, a Fastify HTTP application skeleton,
 resource access, an in-memory index, and a manual scanner.
 The entry point loads configuration and listens on the configured loopback address.
-Only the health endpoint is implemented; library routes, playback, and
-production UI asset serving follow in later modules.
+Health and library browsing endpoints are implemented. Playback and production
+UI asset serving follow in later modules.
 
 Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 `npm ci`.
@@ -206,7 +206,7 @@ read failures use `RESOURCE_UNREADABLE`, and policy violations use
 
 These checks reduce replacement races; they do not guarantee confinement against
 hostile concurrent directory replacement. V1 assumes the local user controls the
-media tree. No resource HTTP endpoints are implemented yet.
+media tree. Browsing endpoints query the index; media delivery follows later.
 
 ## In-memory library index
 
@@ -274,5 +274,37 @@ discards the candidate. `close()` also refuses future starts. Already-running
 filesystem calls are allowed to settle; cancellation does not forcibly interrupt
 them. Completed, failed, and cancelled scans are logged with scan ID and duration;
 completion also records counts. Scans run only when requested, and scan state is
-not persisted. Application shutdown and HTTP scan routes will integrate these
-interfaces in the following modules.
+not persisted. The HTTP application closes its scanner during shutdown and exposes manual
+scanning through the routes below.
+
+## Library browsing HTTP endpoints
+
+The entry point creates one shared `LibraryIndex` and `LibraryScanner` and passes
+them with the settings getter to `createHttpApp({ library: ... })`. No automatic
+scan runs at startup. Closing the application also closes and cancels the scanner.
+
+| Endpoint | Response |
+| --- | --- |
+| `GET /api/library` | `200` with `ready`, `revision`, `scan`, `error`, and `stale` |
+| `POST /api/library/scan` | `202` with `{ scan }`; unavailable root before scanning returns `503 RESOURCE_ROOT_UNAVAILABLE` |
+| `GET /api/directories/:id` | `200` with `{ directory, children }`; unknown or file IDs return `404 RESOURCE_NOT_FOUND` |
+
+`ready` reports current root availability, independently of whether a scan has
+completed. `revision: 0` and `scan: null` identify the initial library. Recoverable
+root errors and the latest failed scan are returned in the library response;
+`stale` is true when an existing published snapshot accompanies such an error.
+The previous snapshot remains browsable during scans and after failures. A
+successful rescan clears the failed state and publishes a new revision.
+
+Scan requests accept no body or an empty JSON object. Concurrent requests reuse
+the root availability check and active scan. Extra query parameters are ignored.
+Nonempty scan bodies and malformed directory IDs return `400 INVALID_REQUEST`. Directory
+IDs are opaque lookup keys, never filesystem paths. The root ID is `root`.
+Listings include only direct children, directories first and naturally sorted,
+with parent IDs for navigation. DTOs omit internal relative paths and index maps.
+
+While a scan is running, poll `/api/library`; after completion fetch the current
+directory again. A deleted directory returns 404 after publication, allowing the
+client to return to `root`. HTTP tests cover temporary real filesystem trees,
+concurrent scans, repeat/add/remove scans, navigation, root recovery, failed and
+partial scans, request validation, safe errors, and scanner cleanup.

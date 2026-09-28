@@ -3,12 +3,14 @@ import Fastify from "fastify";
 import type { Logger } from "pino";
 import type { DeploymentConfig } from "../contracts/config.js";
 import { apiError, classifyHttpError } from "./errors.js";
+import { type LibraryRoutesOptions, registerLibraryRoutes } from "./library.js";
 import { checkRequestOrigin } from "./security.js";
 
 export function createHttpApp(options: {
 	config: Pick<DeploymentConfig, "host" | "port">;
 	logger: Logger;
 	development?: boolean;
+	library?: LibraryRoutesOptions;
 }) {
 	const app = Fastify({
 		loggerInstance: options.logger,
@@ -51,5 +53,6 @@ export function createHttpApp(options: {
 		},
 		async () => ({ status: "ok" }),
 	);
+	if (options.library) registerLibraryRoutes(app, options.library);
 	return app;
 }
