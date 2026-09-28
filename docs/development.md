@@ -1,9 +1,10 @@
 # Development foundation
 
 The backend provides deployment TOML loading, startup validation, module contracts,
-persistent JSON settings, Pino logging, and a Fastify HTTP application skeleton.
+persistent JSON settings, Pino logging, a Fastify HTTP application skeleton,
+resource access, an in-memory index, and a manual scanner.
 The entry point loads configuration and listens on the configured loopback address.
-Only the health endpoint is implemented; library routes, scanning, playback, and
+Only the health endpoint is implemented; library routes, playback, and
 production UI asset serving follow in later modules.
 
 Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
@@ -178,7 +179,7 @@ HTTP server, not the synchronous Pino destination.
 ## Resource access
 
 `ResourceAccess` in `backend/src/resources/access.ts` provides the shared read-only
-filesystem policy for future scanning and media delivery. Create it with
+filesystem policy for scanning and future media delivery. Create it with
 `await ResourceAccess.create(persistentConfig.settings)`. Creation resolves and
 checks the resource root; an unavailable root raises `RESOURCE_ROOT_UNAVAILABLE`.
 Create a new instance after changing the root configuration.
@@ -205,4 +206,73 @@ read failures use `RESOURCE_UNREADABLE`, and policy violations use
 
 These checks reduce replacement races; they do not guarantee confinement against
 hostile concurrent directory replacement. V1 assumes the local user controls the
-media tree. No resource HTTP endpoints or scanner are implemented yet.
+media tree. No resource HTTP endpoints are implemented yet.
+
+## In-memory library index
+
+`LibraryIndex` in `backend/src/library/index.ts` stores a complete library snapshot.
+`new LibraryIndex(rootName)` starts with the `root` directory, revision 0, and
+`scannedAt: null`. It has no filesystem or HTTP dependency.
+
+- `createResourceId(kind, relativePath)` creates stable opaque IDs. The root
+  directory uses `root`; unchanged kinds and paths retain their IDs between scans.
+- `replace(entries, scannedAt?)` builds and validates a complete candidate before
+  publishing it and incrementing the revision. Entries must include the root;
+  duplicate IDs/paths and invalid parent relationships fail with `SCAN_FAILED`,
+  preserving the previous snapshot. Omitted old entries disappear on replacement.
+- `getEntry`, `getDirectory`, and `getFile` resolve IDs. Unknown IDs and wrong-kind
+  lookups raise `RESOURCE_NOT_FOUND`.
+- `listChildren(directoryId)` returns immediate children, directories first, then
+  numeric-aware name ordering with an exact-name tie-breaker. The collator uses
+  the fixed `en` locale; input traversal order does not determine the listing.
+- `revision`, `scannedAt`, and `snapshot` expose the current index state. Query
+  records and snapshot maps are detached copies, so consumers cannot mutate the
+  active index. Whole-snapshot access copies the index; directory queries only
+  copy the requested children.
+
+The scanner builds candidates separately and publishes successful scans through
+`replace`. The index retains internal relative paths; future HTTP handlers must
+convert records to the path-free API DTOs. Scan state, filesystem revalidation,
+and HTTP integration belong to their respective modules.
+
+## Manual library scanner
+
+`LibraryScanner` in `backend/src/library/scanner.ts` receives the shared index, a
+function returning the current persistent settings, and the application Pino logger:
+
+```ts
+const scanner = new LibraryScanner({
+  index,
+  settings: () => persistentConfig.settings,
+  logger,
+});
+const scan = scanner.start();
+```
+
+`start()` returns a `running` state immediately. Repeated calls during an active
+scan return the same scan ID without starting another traversal. `.state` returns
+a detached copy of the latest scan state, or `null` before the first scan.
+`waitForCompletion()` waits for active work and returns its terminal state.
+
+Traversal uses batches of at most eight concurrent resource-access tasks. It
+discovers real directories and MP4, M4V, WebM, and MKV files through `ResourceAccess`,
+without reading video contents. Symbolic links and other file types are skipped.
+`visitedCount` counts encountered directory entries, including skipped entries but
+excluding the root itself; `matchedCount` counts successfully inspected videos.
+
+The scanner publishes a complete candidate only after traversal finishes. Child
+directory/file failures produce a completed partial scan with warnings; unavailable
+subtrees are omitted. Warning counts include each failure, while distinct public
+summary messages are bounded to five and exclude paths. Detailed Pino warnings
+retain local diagnostic context. Losing the root fails the scan and preserves the
+previous index, including when the root disappears during traversal. Changing the
+configured root during a scan also prevents publication; the next scan reads the
+new settings.
+
+`cancel()` stops scheduling work, waits for outstanding filesystem operations, and
+discards the candidate. `close()` also refuses future starts. Already-running
+filesystem calls are allowed to settle; cancellation does not forcibly interrupt
+them. Completed, failed, and cancelled scans are logged with scan ID and duration;
+completion also records counts. Scans run only when requested, and scan state is
+not persisted. Application shutdown and HTTP scan routes will integrate these
+interfaces in the following modules.
