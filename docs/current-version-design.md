@@ -72,7 +72,7 @@ Proposed defaults are `127.0.0.1:3000` for the backend and the existing Vite dev
 | UI state | React component state and a small fetch wrapper | Two screens do not justify a separate global-state or server-cache framework. |
 | UI styling | Existing CSS, split by component as needed | No component library is required by V1. |
 | Configuration and persistence | Deployment TOML plus persistent JSON settings; in-memory file index | Startup parameters are separate from application settings; a manual scan rebuilds the index. |
-| Validation | Type checking, focused backend tests, browser acceptance tests | Test file access and HTTP behavior, then verify real media in the selected browser. |
+| Validation | Type checking, Vitest backend tests, browser acceptance tests | Test file access and HTTP behavior, then verify real media in the selected browser. |
 
 Node 24 is an LTS line in the official [release listing](https://nodejs.org/en/about/previous-releases). Node provides asynchronous [filesystem and stream access](https://nodejs.org/api/fs.html); Fastify accepts [stream replies](https://fastify.dev/docs/latest/Reference/Reply/#streams). Vite supports the frontend development/build workflow described in its [guide](https://vite.dev/guide/).
 

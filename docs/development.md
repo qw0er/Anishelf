@@ -13,7 +13,8 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm run dev` | Watch the backend foundation entry point |
 | `npm run dev:web` | Start the existing Vite frontend scaffold |
 | `npm run typecheck` | Check both workspaces, including backend tests |
-| `npm test` | Run backend tests with Node's test runner through tsx |
+| `npm test` | Run backend tests once with Vitest |
+| `npm run test:watch --workspace @anishelf/backend` | Watch backend tests with Vitest |
 | `npm run check` | Run type checks and backend tests |
 | `npm run build` | Build backend and frontend |
 | `npm start` | Run the built backend entry point after building |
@@ -35,3 +36,6 @@ previous snapshot. `scannedAt: null` identifies the initial empty snapshot.
 
 The existing compiler versions, Node type versions, and frontend lint setup remain
 unchanged in this foundation step; dependency/tooling consolidation is separate.
+
+Vitest is the project test framework. Backend tests run in the Node environment;
+compile-time contract assertions remain part of the TypeScript checks.
