@@ -1,7 +1,7 @@
 # Development foundation
 
 The backend currently provides deployment TOML loading, startup validation, and
-module contracts. Persistent JSON settings, structured logging, HTTP routes,
+module contracts. Persistent JSON settings, Pino logging, HTTP routes,
 scanning, and playback are not implemented. The entry point validates deployment
 configuration, prepares the dynamic data directory, prints its status, and exits;
 it does not listen on a port.
@@ -61,10 +61,22 @@ Unknown settings are rejected to catch typos and misplaced persistent settings.
 
 For file logging, set `logging.destination = "file"` and an absolute
 `logging.path`. A path with stdout output is rejected. This step validates logging
-settings only; log-file preparation and output belong to the logging module.
+settings only; log-file preparation and Pino output belong to the logging module.
 
 Missing/unreadable deployment files, malformed TOML, invalid parameters, and
 unusable dynamic data directories fail startup with exit code 1 and a terminal
 diagnostic. TOML parser source excerpts and error stacks are not printed. The
 loader creates `dataDir` if needed and checks that it is a writable directory;
 it never rewrites the deployment TOML or creates `settings.json`.
+
+## Logging choice
+
+Pino is the selected backend logging library. The logging module will initialize a
+single application logger from deployment settings, use child loggers for context,
+and pass the same logger to Fastify through `loggerInstance`. Production logs use
+newline-delimited JSON and asynchronous stdout/file destinations; file reopening
+and shutdown flushing remain required by the overall design.
+
+The deployment configuration fields and supported levels remain unchanged. Pino
+integration is planned; the current startup entry point still uses terminal output
+until the logging module is implemented.

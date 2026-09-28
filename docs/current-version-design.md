@@ -63,7 +63,8 @@ Proposed defaults are `127.0.0.1:3000` for the backend and the existing Vite dev
 | --- | --- | --- |
 | Runtime | Node.js 24 LTS | Matches the repository's `.nvmrc`; file and network I/O are the primary backend workload. |
 | Language | TypeScript, strict mode, ESM | Matches the existing packages; type-check both workspaces independently. |
-| Backend framework | Fastify | Proposed addition for routes, validation, structured logging, and streamed responses. |
+| Backend framework | Fastify | Routes, validation, streamed responses, and integration with the application Pino logger. |
+| Logging | Pino | Structured JSON logs; one application logger shared by backend modules and Fastify. |
 | Frontend | Existing React + Vite setup | Retain the existing scaffold; no SSR is needed for a local resource browser. |
 | Playback | Native HTML `<video controls>` | Supplies the basic controls; browser decoding determines actual codec support. No player SDK or streaming protocol layer is needed. |
 | File access | Node.js asynchronous filesystem APIs and readable streams | Enumerate without synchronous bulk traversal and stream without whole-file buffering. |
@@ -143,6 +144,10 @@ Missing, malformed, or invalid configuration fails startup with an actionable te
 Any application write to persistent settings must use a temporary file followed by atomic replacement, preserving the previous file on failure. Deployment configuration is never rewritten by the application. The dynamic data directory must remain separate from the read-only media directory and must not be served as static assets.
 
 ### Logging
+
+Use [Pino](https://github.com/pinojs/pino/blob/main/docs/api.md) as the backend logging library. Initialize one application logger from validated deployment settings and pass it to Fastify through [`loggerInstance`](https://fastify.dev/docs/latest/Reference/Logging/#using-custom-loggers). Use child loggers for module and request context instead of maintaining separate logging implementations.
+
+Map `logging.level` to Pino's level option. Use an asynchronous Pino destination for stdout or file output, with destination flush and reopen support. Keep production output as newline-delimited JSON; a pretty-printing dependency is not required. Before logger initialization, deployment configuration failures still use a concise stderr diagnostic.
 
 - Use structured backend logs with timestamp, level, event, and request ID where applicable. Record startup/shutdown, configuration failures, scan start/completion/failure with counts and duration, HTTP outcomes, and media I/O failures.
 - Configure `logging.level` in deployment TOML: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`; default to `info`. Emit only events at or above the selected level; `silent` disables normal logging.
@@ -261,7 +266,7 @@ Before implementation, select the acceptance browser and representative media fi
 
 ## 11. Implementation Order
 
-1. Align existing workspace tooling and establish the Fastify application, two configuration loaders, logging, and frontend proxy.
+1. Align existing workspace tooling and establish the Fastify application, two configuration loaders, Pino logging, and frontend proxy.
 2. Implement resource access and scanner/index behavior; connect the resource-browser screen.
 3. Implement and test HTTP media delivery, then connect native playback.
 4. Complete error states, production static serving, cleanup, and the A01–A07 acceptance run.
