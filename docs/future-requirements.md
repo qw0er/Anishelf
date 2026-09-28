@@ -173,6 +173,16 @@ Automatic whole-library conversion, idle-time scheduling, playback during conver
 | O11 | Log rotation, retention, and reopening files without restarting the application | Later |
 | O12 | Automatic log-output fallback after destination failure | Later |
 | O13 | Asynchronous log output with bounded buffering and shutdown flushing | Later |
+| O14 | Interface localization and language preferences | Later |
+
+#### Interface Localization (O14)
+
+- Introduce translation resources for interface labels, status messages, and user-facing errors, with English as the default and fallback language.
+- Allow users to select a supported language and persist that preference.
+- Keep API field names, error codes, resource IDs, and original filenames unchanged across languages.
+- Acceptance: changing the language updates supported interface text and error feedback; missing translations fall back to English; browsing and playback state remain intact.
+
+The current release uses English only and does not include translation resources or a language selector.
 
 #### Logging Maintenance (O11–O13)
 

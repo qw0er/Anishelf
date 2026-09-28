@@ -21,6 +21,7 @@ This release validates resource access and playback. It does not require online 
 - Acceptance testing covers local use and one explicitly selected desktop browser. Listen on localhost by default; LAN access and authentication are later extensions.
 - Validate one active playback session; client coordination is outside this release.
 - A configuration file is sufficient for the resource path. A setup wizard or settings page is not required.
+- Use English for application UI, messages, and metadata. Localization is deferred to O14 in the future requirements. Preserve original resource filenames.
 
 ## 3. Minimum Feature List
 

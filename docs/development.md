@@ -364,3 +364,30 @@ Tests mock the global `fetch` and restore it after each test.
 The root `npm test` and `npm run check` run both workspace suites. The client does
 not yet wire the React page to browsing, navigation, or polling; those are the
 following implementation-plan steps.
+
+## Frontend UI foundation
+
+Use Tailwind CSS 4 with the `@tailwindcss/vite` plugin and shadcn/ui components.
+The setup follows the official [Tailwind Vite guide](https://tailwindcss.com/docs/installation/using-vite)
+and [shadcn Vite guide](https://ui.shadcn.com/docs/installation/vite).
+`web/src/index.css` imports Tailwind and animation utilities and defines semantic
+light/dark theme tokens. Biome enables its Tailwind CSS directive parser so these
+styles remain part of the normal check and lint commands.
+
+`web/components.json` configures shadcn for React, TypeScript, CSS variables, and
+local `components/ui` source files. The `@/` alias is defined in tsconfig paths.
+Vite uses its native `resolve.tsconfigPaths: true` option to read these mappings
+without a separate Vite alias or alias plugin. The initial Card component was added with the official CLI;
+class merging uses shadcn's `cn` package. Add future components from the root:
+
+```sh
+npx shadcn@latest add button --cwd web
+```
+
+The Vite welcome page, counter, sample logos, hero image, icon sprite, and
+`App.css` have been removed. The current page is a minimal Anishelf brand
+placeholder. The active UI, client error messages, and browser metadata use English.
+Localization is deferred to [O14 in Future Requirements](future-requirements.md#interface-localization-o14).
+`web/public/favicon.svg` is the flat television-on-a-shelf application icon, reused
+in the page and browser tab; it contains editable vector shapes and no external
+images, fonts, gradients, or scripts.

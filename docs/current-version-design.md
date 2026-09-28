@@ -71,7 +71,7 @@ Proposed defaults are `127.0.0.1:3000` for the backend and the existing Vite dev
 | API | HTTP JSON plus HTTP media requests | Poll scan status only while a scan is active; no WebSocket or SSE requirement. |
 | Request validation | Fastify route JSON Schemas | Validate IDs and request shapes at the server boundary; TypeScript alone does not validate incoming data. |
 | UI state | React component state and a small fetch wrapper | Two screens do not justify a separate global-state or server-cache framework. |
-| UI styling | Existing CSS, split by component as needed | No component library is required by V1. |
+| UI styling | Tailwind CSS 4 + shadcn/ui | Tailwind utilities and semantic theme tokens; shadcn components are owned in `web/src/components/ui`. |
 | Configuration and persistence | Deployment TOML plus persistent JSON settings; in-memory file index | Startup parameters are separate from application settings; a manual scan rebuilds the index. |
 | Validation | Type checking, Vitest backend tests, browser acceptance tests | Test file access and HTTP behavior, then verify real media in the selected browser. |
 

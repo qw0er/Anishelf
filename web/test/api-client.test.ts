@@ -79,9 +79,9 @@ test("typed methods use the browsing endpoints and same-origin uncached requests
 
 test("directory IDs are encoded as one URL segment", async () => {
 	fetcher.mockResolvedValue(json(directory));
-	await getDirectory("folder/name?#中文");
+	await getDirectory("folder/name?#café");
 	expect(fetcher.mock.calls[0]?.[0]).toBe(
-		"/api/directories/folder%2Fname%3F%23%E4%B8%AD%E6%96%87",
+		"/api/directories/folder%2Fname%3F%23caf%C3%A9",
 	);
 });
 

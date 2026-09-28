@@ -45,7 +45,7 @@ function throwIfCancelled(signal: AbortSignal | undefined): void {
 	if (!signal?.aborted) return;
 	throw isRequestCancelled(signal.reason)
 		? signal.reason
-		: new DOMException("请求已取消。", "AbortError");
+		: new DOMException("Request cancelled.", "AbortError");
 }
 
 type PublicApiError = {
@@ -89,7 +89,8 @@ async function request<T>(
 		if (isRequestCancelled(cause)) throw cause;
 		throw new ApiClientError({
 			kind: "network",
-			message: "无法连接服务器，请检查网络后重试。",
+			message:
+				"Cannot connect to the server. Check your connection and try again.",
 			cause,
 		});
 	}
@@ -104,8 +105,8 @@ async function request<T>(
 		throw new ApiClientError({
 			kind: response.ok ? "invalid_response" : "http",
 			message: response.ok
-				? "服务器返回的数据无法解析，请重试。"
-				: `请求失败（HTTP ${response.status}），请重试。`,
+				? "The server returned an invalid response. Please try again."
+				: `Request failed (HTTP ${response.status}). Please try again.`,
 			status: response.status,
 			requestId,
 			cause,
@@ -123,7 +124,7 @@ async function request<T>(
 			});
 		throw new ApiClientError({
 			kind: "http",
-			message: `请求失败（HTTP ${response.status}），请重试。`,
+			message: `Request failed (HTTP ${response.status}). Please try again.`,
 			status: response.status,
 			requestId,
 		});
