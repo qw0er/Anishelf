@@ -15,7 +15,7 @@
 		"dev:web": "npm run dev --workspace @anishelf/web",
 		"typecheck": "npm run typecheck --workspaces",
 		"check": "npm run biome:check && npm run typecheck && npm test",
-		"test": "npm run test --workspace @anishelf/backend",
+		"test": "npm run test --workspaces --if-present",
 		"build": "npm run build --workspaces",
 		"start": "npm run start --workspace @anishelf/backend",
 		"biome:check": "biome check .",

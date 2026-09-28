@@ -14,13 +14,13 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | --- | --- |
 | `npm run dev` | Watch the backend HTTP entry point in development mode |
 | `npm run dev:web` | Start Vite on 127.0.0.1:5173 with an API proxy |
-| `npm run typecheck` | Check both workspaces, including backend tests |
-| `npm test` | Run backend tests once with Vitest |
+| `npm run typecheck` | Check both workspaces, including their tests |
+| `npm test` | Run backend and frontend API client tests once with Vitest |
 | `npm run test:watch --workspace @anishelf/backend` | Watch backend tests with Vitest |
 | `npm run biome:check` | Check formatting, lint rules, and import organization with Biome |
 | `npm run biome:fix` | Apply safe Biome fixes |
 | `npm run lint` | Run Biome lint rules only |
-| `npm run check` | Run Biome checks, type checks, and backend tests |
+| `npm run check` | Run Biome checks, type checks, and both workspace test suites |
 | `npm run build` | Build backend and frontend |
 | `npm start` | Run the built backend entry point after building |
 
@@ -32,8 +32,8 @@ Deployment TOML and persistent JSON are validated at runtime. HTTP routes use
 Fastify JSON Schemas, with type coercion and removal of unknown fields disabled.
 
 API DTOs omit internal relative paths. Diagnostic errors may retain a cause for
-local logging. No shared frontend/backend runtime package is introduced; frontend
-API integration will follow with the library routes and frontend modules.
+local logging. The frontend API client re-exports these contracts through type-only
+imports; backend runtime code is not bundled into the frontend.
 
 `scan: null` means no scan has run. Partial traversal is represented by a completed
 scan with warnings; failed root traversal uses a failed scan while preserving the
@@ -42,7 +42,7 @@ previous snapshot. `scannedAt: null` identifies the initial empty snapshot.
 Compiler and Node type versions remain unchanged. Both the root and frontend lint
 commands use Biome; broader dependency/tooling consolidation is separate.
 
-Vitest is the project test framework. Backend tests run in the Node environment;
+Vitest is the project test framework. Backend and API client tests run in the Node environment;
 compile-time contract assertions remain part of the TypeScript checks.
 
 ## Deployment configuration
@@ -308,3 +308,59 @@ directory again. A deleted directory returns 404 after publication, allowing the
 client to return to `root`. HTTP tests cover temporary real filesystem trees,
 concurrent scans, repeat/add/remove scans, navigation, root recovery, failed and
 partial scans, request validation, safe errors, and scanner cleanup.
+
+## Frontend API client
+
+`web/src/api/client.ts` directly exports `getLibrary(options?)`,
+`startScan(options?)`, and `getDirectory(id, options?)`, each returning the
+corresponding typed response. IDs are URL-encoded. Requests use same-origin `/api`
+paths, same-origin credentials, and `cache: "no-store"` so polling and directory
+refreshes do not reuse stale browser cache entries. Scan requests send no body.
+
+`web/src/api/contracts.ts` re-exports the existing backend contracts with
+`export type` from the npm workspace package subpaths
+`@anishelf/backend/contracts/api` and `@anishelf/backend/contracts/library`. The
+web workspace declares the backend as a development dependency; its type-only
+exports resolve directly to source and do not require a backend build first.
+Success responses use those TypeScript contracts; there is no
+additional runtime validation of every successful response field. JSON parsing
+and public error envelopes are checked at runtime.
+
+All methods accept `{ signal: AbortSignal }`. Abort the old controller when a
+view changes directory or unmounts; use a new controller for the next request.
+Cancellation is checked before fetching, after headers, and after JSON parsing.
+It rejects with an `AbortError`, including when the controller has a custom
+abort reason. `isRequestCancelled(error)` identifies cancellation that the UI
+should silently ignore. Cancelling a scan HTTP request does not cancel the
+server's scan; its progress remains available from `getLibrary`.
+
+```ts
+import { getDirectory, ApiClientError, isRequestCancelled } from "./api/client.js";
+
+const controller = new AbortController();
+try {
+  const listing = await getDirectory("root", { signal: controller.signal });
+  // Render listing.directory and listing.children.
+} catch (error) {
+  if (!isRequestCancelled(error)) {
+    if (error instanceof ApiClientError) {
+      // Display error.message; retain error.code/status/requestId for diagnostics.
+    } else {
+      throw error;
+    }
+  }
+}
+// On navigation or unmount: controller.abort().
+```
+
+`ApiClientError` distinguishes `http`, `network`, and `invalid_response`. Valid
+server errors preserve their public message, code, HTTP status, and request ID.
+Network failures and malformed error responses use displayable fallback messages
+without exposing raw response bodies. A recoverable library error inside a 200
+response remains a normal `LibraryResponse`, not a rejected request.
+
+Run client tests independently with `npm run test --workspace @anishelf/web`.
+Tests mock the global `fetch` and restore it after each test.
+The root `npm test` and `npm run check` run both workspace suites. The client does
+not yet wire the React page to browsing, navigation, or polling; those are the
+following implementation-plan steps.

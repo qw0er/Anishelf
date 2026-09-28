@@ -8,13 +8,15 @@
 		"build": "tsc -b && vite build",
 		"lint": "biome lint .",
 		"preview": "vite preview",
-		"typecheck": "tsc -b"
+		"typecheck": "tsc -b && tsc -p tsconfig.test.json",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"react": "^19.2.8",
 		"react-dom": "^19.2.8"
 	},
 	"devDependencies": {
+		"@anishelf/backend": "0.0.0",
 		"@babel/core": "^7.29.7",
 		"@eslint/js": "^10.0.1",
 		"@rolldown/plugin-babel": "^0.2.3",
@@ -30,6 +32,7 @@
 		"globals": "^17.12.0",
 		"typescript": "~6.0.2",
 		"typescript-eslint": "^8.69.0",
-		"vite": "^8.3.0"
+		"vite": "^8.3.0",
+		"vitest": "^5.0.2"
 	}
 }

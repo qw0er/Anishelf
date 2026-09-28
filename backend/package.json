@@ -22,5 +22,14 @@
 		"fastify": "^5.12.5",
 		"pino": "^10.3.1",
 		"smol-toml": "^1.9.0"
+	},
+	"exports": {
+		".": "./dist/index.js",
+		"./contracts/api": {
+			"types": "./src/contracts/api.ts"
+		},
+		"./contracts/library": {
+			"types": "./src/contracts/library.ts"
+		}
 	}
 }
