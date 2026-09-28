@@ -174,3 +174,35 @@ switch ports, keeping the allowed development origins fixed.
 SIGINT and SIGTERM stop accepting requests and close the HTTP application.
 Shutdown has a five-second limit; failures set a nonzero exit code. This closes the
 HTTP server, not the synchronous Pino destination.
+
+## Resource access
+
+`ResourceAccess` in `backend/src/resources/access.ts` provides the shared read-only
+filesystem policy for future scanning and media delivery. Create it with
+`await ResourceAccess.create(persistentConfig.settings)`. Creation resolves and
+checks the resource root; an unavailable root raises `RESOURCE_ROOT_UNAVAILABLE`.
+Create a new instance after changing the root configuration.
+
+- `readDirectory(relativePath = "")` lists directory entries; an empty path denotes
+  the root. Entries include symlinks so the scanner can identify and skip them.
+- `inspectFile(relativePath)` returns size, modification time, and MIME type after
+  checking readability; it closes its temporary handle.
+- `openFile(relativePath)` returns the same metadata and a read-only file handle.
+  The caller must call `release()` after use, including on stream failure or
+  cancellation. Releasing more than once is safe.
+- `getVideoMimeType(path)` is the case-insensitive extension policy: MP4/M4V use
+  `video/mp4`, WebM uses `video/webm`, and MKV uses `video/x-matroska`. Other types
+  return `null`. Discovery does not guarantee codec compatibility.
+
+Inputs are internal relative paths from scanning or the index, never arbitrary
+HTTP paths. Access rejects absolute paths, traversal, symlink components, and
+non-regular media files. The configured root may itself be a symlink; its canonical
+target becomes the access boundary. Each operation rechecks path components and
+canonical containment. Opening also checks the handle's file identity before
+returning it and closes rejected handles. Missing resources use `RESOURCE_MISSING`,
+read failures use `RESOURCE_UNREADABLE`, and policy violations use
+`RESOURCE_ACCESS_DENIED`. Public messages exclude filesystem paths.
+
+These checks reduce replacement races; they do not guarantee confinement against
+hostile concurrent directory replacement. V1 assumes the local user controls the
+media tree. No resource HTTP endpoints or scanner are implemented yet.
