@@ -1,9 +1,9 @@
 # Development foundation
 
 The backend currently provides deployment TOML loading, startup validation, and
-module contracts. Persistent JSON settings, Pino logging, HTTP routes,
+module contracts. Pino structured logging is implemented. Persistent JSON settings, HTTP routes,
 scanning, and playback are not implemented. The entry point validates deployment
-configuration, prepares the dynamic data directory, prints its status, and exits;
+configuration, prepares the dynamic data directory, logs startup/shutdown, and exits;
 it does not listen on a port.
 
 Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
@@ -16,7 +16,10 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm run typecheck` | Check both workspaces, including backend tests |
 | `npm test` | Run backend tests once with Vitest |
 | `npm run test:watch --workspace @anishelf/backend` | Watch backend tests with Vitest |
-| `npm run check` | Run type checks and backend tests |
+| `npm run biome:check` | Check formatting, lint rules, and import organization with Biome |
+| `npm run biome:fix` | Apply safe Biome fixes |
+| `npm run lint` | Run Biome lint rules only |
+| `npm run check` | Run Biome checks, type checks, and backend tests |
 | `npm run build` | Build backend and frontend |
 | `npm start` | Run the built backend entry point after building |
 
@@ -60,8 +63,8 @@ must be integers from 1 to 65535. Paths must be absolute and cannot contain NUL.
 Unknown settings are rejected to catch typos and misplaced persistent settings.
 
 For file logging, set `logging.destination = "file"` and an absolute
-`logging.path`. A path with stdout output is rejected. This step validates logging
-settings only; log-file preparation and Pino output belong to the logging module.
+`logging.path`. A path with stdout output is rejected. File output creates parent directories and checks that the destination is a
+writable regular file before initializing Pino. Existing files are appended to.
 
 Missing/unreadable deployment files, malformed TOML, invalid parameters, and
 unusable dynamic data directories fail startup with exit code 1 and a terminal
@@ -71,12 +74,27 @@ it never rewrites the deployment TOML or creates `settings.json`.
 
 ## Logging choice
 
-Pino is the selected backend logging library. The logging module will initialize a
-single application logger from deployment settings, use child loggers for context,
-and pass the same logger to Fastify through `loggerInstance`. Production logs use
-newline-delimited JSON and asynchronous stdout/file destinations; file reopening
-and shutdown flushing remain required by the overall design.
+`ApplicationLogging.create` synchronously creates a Pino logger with one fixed
+stdout or file destination. Pino writes directly to that destination. Business
+modules receive `.logger`; child loggers add context. The application owner calls
+idempotent `close()` on shutdown. Log writes complete synchronously; closing waits
+only for descriptor release, not for an application log queue.
 
-The deployment configuration fields and supported levels remain unchanged. Pino
-integration is planned; the current startup entry point still uses terminal output
-until the logging module is implemented.
+Logs use ISO UTC timestamps, numeric Pino levels, the `anishelf` service field,
+and newline-delimited JSON. Call sites supply event names. Common secret fields,
+authorization/cookie headers, bodies, and config/settings objects are redacted;
+callers must still avoid secrets under other keys or inside message strings.
+
+Destination creation and output-error reporting live in `logging/output.ts`.
+Runtime output errors produce a one-time stderr diagnostic without redirecting
+logs. Initialization failures prevent startup. No application buffer, timeout
+machinery, or public flush interface is required for the current log volume.
+
+Asynchronous logging, rotation, retention, file reopening, signal handling, and automatic output
+fallback are deferred to [Future Requirements](future-requirements.md#logging-maintenance-o11o13).
+
+Biome respects `.gitignore` through `biome.json`; dependencies and build outputs
+are excluded. `npm run biome:fix` does not apply unsafe fixes.
+
+`ApplicationLogging` owns the single output stream. Low-level file preparation
+and error reporting live in `logging/output.ts`.

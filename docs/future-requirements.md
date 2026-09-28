@@ -170,6 +170,19 @@ Automatic whole-library conversion, idle-time scheduling, playback during conver
 | O08 | Completion and failure notifications with notification preferences | Later |
 | O09 | Multiple users, permissions, public deployment support, and remote access | Optional |
 | O10 | Plugin extensions and public integration APIs | Optional |
+| O11 | Log rotation, retention, and reopening files without restarting the application | Later |
+| O12 | Automatic log-output fallback after destination failure | Later |
+| O13 | Asynchronous log output with bounded buffering and shutdown flushing | Later |
+
+#### Logging Maintenance (O11–O13)
+
+- O11: Define rotation and retention policies using external deployment tooling or a suitable Pino transport. If rotation renames the active file, support reopening the configured path and a deployment trigger such as a Unix signal.
+- O12: Switch subsequent log records to a fallback destination after runtime output failure. Specify buffered-record loss, failure reporting, and whether/how the original destination is restored; cover errors handled internally by Pino as well as emitted stream errors.
+- O13: Introduce asynchronous Pino output when measured log volume or write latency affects application responsiveness. Bound buffered memory, define backpressure or overflow behavior, and flush pending records within a bounded shutdown period.
+- Acceptance: asynchronous output avoids synchronous destination writes on the application path, buffers remain bounded under a slow destination, and normal shutdown writes pending records; timeout or overflow reports any potential record loss.
+- Acceptance: rotation directs subsequent logs to the new file without restarting the application; destination failure triggers the defined fallback without replacing existing business-module loggers.
+
+The current release uses one fixed stdout or file destination. It supports configured levels, synchronous writes, and closing the destination on shutdown. Asynchronous logging, rotation, reopening, signal handling, and automatic destination switching are outside the current release.
 
 ## 3. Rules for Future Features
 

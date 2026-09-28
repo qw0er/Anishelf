@@ -147,15 +147,15 @@ Any application write to persistent settings must use a temporary file followed 
 
 Use [Pino](https://github.com/pinojs/pino/blob/main/docs/api.md) as the backend logging library. Initialize one application logger from validated deployment settings and pass it to Fastify through [`loggerInstance`](https://fastify.dev/docs/latest/Reference/Logging/#using-custom-loggers). Use child loggers for module and request context instead of maintaining separate logging implementations.
 
-Map `logging.level` to Pino's level option. Use an asynchronous Pino destination for stdout or file output, with destination flush and reopen support. Keep production output as newline-delimited JSON; a pretty-printing dependency is not required. Before logger initialization, deployment configuration failures still use a concise stderr diagnostic.
+Map `logging.level` to Pino's level option. Use a synchronous Pino destination for stdout or file output; the current application has low log volume. Keep production output as newline-delimited JSON; a pretty-printing dependency is not required. Before logger initialization, deployment configuration failures still use a concise stderr diagnostic.
 
 - Use structured backend logs with timestamp, level, event, and request ID where applicable. Record startup/shutdown, configuration failures, scan start/completion/failure with counts and duration, HTTP outcomes, and media I/O failures.
 - Configure `logging.level` in deployment TOML: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`; default to `info`. Emit only events at or above the selected level; `silent` disables normal logging.
 - Configure the save location through `logging.destination`: `stdout` by default, or `file` with a required absolute `logging.path`. File output appends to the selected file; create its parent directory if needed and check writability before accepting requests. An invalid level, destination, or unusable file location fails startup with a terminal diagnostic.
 - Use `info` for normal lifecycle and completed scans, `warn` for recoverable scan/access problems, and `error` for failed operations or unexpected failures. Routine requests and client cancellations should not flood warning/error logs; do not log each media chunk or each scanned entry at `info`.
 - Do not log media contents, complete configuration files, secrets, or request/response bodies by default. Absolute paths may appear in local diagnostic logs but must not be exposed in API errors.
-- Log writing must not synchronously block scanning or media streaming. Flush buffered logs within the shutdown grace period. If file logging fails at runtime, report the failure to stderr and continue diagnostics there.
-- File-log rotation and retention are managed by deployment tooling; support reopening the configured log file after rotation without restarting playback. Do not let an unbounded in-memory log queue consume application memory.
+- Log writes are synchronous; avoid high-volume per-entry or per-chunk logs. Close the output destination during application shutdown. If log output fails at runtime, report a terminal diagnostic to stderr; the logger keeps its configured destination. Automatic output fallback is deferred.
+- No application-managed asynchronous log queue is required. Asynchronous logging, log rotation, retention, file reopening, signal handling, and automatic output fallback are deferred to [Future Requirements](future-requirements.md#logging-maintenance-o11o13).
 
 ### Data model
 
