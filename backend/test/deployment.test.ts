@@ -1,12 +1,5 @@
-import {
-	chmod,
-	mkdtemp,
-	readFile,
-	rm,
-	stat,
-	writeFile,
-} from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { chmod, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import {
@@ -22,153 +15,158 @@ afterEach(async () => {
 	await rm(fixture, { recursive: true, force: true });
 });
 
-function toml(extra = ""): string {
-	return `dataDir = ${JSON.stringify(join(fixture, "data"))}\n${extra}`;
-}
-
-test("applies deployment defaults without requiring a logging table", () => {
-	expect(parseDeploymentConfig(toml())).toEqual({
+test("starts with defaults without application environment variables", () => {
+	expect(parseDeploymentConfig({})).toEqual({
 		host: "127.0.0.1",
 		port: 3000,
-		dataDir: join(fixture, "data"),
+		dataDir: join(homedir(), ".local", "share", "anishelf"),
 		logging: { level: "info", destination: "stdout" },
 	});
 });
 
-test("supports IPv6 loopback, port boundaries and file logging settings", () => {
-	const config = parseDeploymentConfig(
-		toml(
-			'host = "::1"\nport = 65535\n[logging]\nlevel = "debug"\ndestination = "file"\npath = "/tmp/anishelf.log"',
-		),
+test.each([undefined, "", "relative/data"])(
+	"uses HOME/.local/share when XDG_DATA_HOME is %s",
+	(XDG_DATA_HOME) => {
+		expect(
+			parseDeploymentConfig({ HOME: fixture, XDG_DATA_HOME }).dataDir,
+		).toBe(join(fixture, ".local", "share", "anishelf"));
+	},
+);
+
+test("uses XDG_DATA_HOME and allows an explicit data directory to override it", () => {
+	const env = { XDG_DATA_HOME: join(fixture, "xdg") };
+	expect(parseDeploymentConfig(env).dataDir).toBe(
+		join(fixture, "xdg", "anishelf"),
 	);
+	expect(
+		parseDeploymentConfig({
+			...env,
+			ANISHELF_DATA_DIR: join(fixture, "custom"),
+		}).dataDir,
+	).toBe(join(fixture, "custom"));
+});
+
+test("supports IPv6 loopback, port boundaries and file logging", () => {
+	const config = parseDeploymentConfig({
+		ANISHELF_HOST: "::1",
+		ANISHELF_PORT: "65535",
+		ANISHELF_LOG_LEVEL: "debug",
+		ANISHELF_LOG_DESTINATION: "file",
+		ANISHELF_LOG_PATH: join(fixture, "anishelf.log"),
+	});
 	expect(config.host).toBe("::1");
 	expect(config.port).toBe(65535);
 	expect(config.logging).toEqual({
 		level: "debug",
 		destination: "file",
-		path: "/tmp/anishelf.log",
+		path: join(fixture, "anishelf.log"),
 	});
-	expect(parseDeploymentConfig(toml("port = 1")).port).toBe(1);
+	expect(parseDeploymentConfig({ ANISHELF_PORT: "1" }).port).toBe(1);
 });
 
 test.each(["trace", "debug", "info", "warn", "error", "fatal", "silent"])(
 	"accepts log level %s",
 	(level) => {
 		expect(
-			parseDeploymentConfig(toml(`[logging]\nlevel = "${level}"`)).logging
-				.level,
+			parseDeploymentConfig({ ANISHELF_LOG_LEVEL: level }).logging.level,
 		).toBe(level);
 	},
 );
 
 test.each([
-	['host = "0.0.0.0"', "host"],
-	['host = "192.168.1.2"', "host"],
-	['host = "::"', "host"],
-	['host = "127.invalid"', "host"],
-	["host = 123", "host"],
-	["port = 0", "port"],
-	["port = 65536", "port"],
-	["port = 3000.5", "port"],
-	['port = "3000"', "port"],
-	['resourceRoot = "/media"', "Unknown deployment"],
-	['logging = "debug"', "logging"],
-	['[logging]\nlevel = "verbose"', "logging.level"],
-	['[logging]\ndestination = "stderr"', "logging.destination"],
-	['[logging]\ndestination = "file"', "logging.path"],
-	['[logging]\ndestination = "file"\npath = "relative.log"', "logging.path"],
-	['[logging]\npath = "/tmp/log"', "logging.path"],
-	['[logging]\nlevle = "info"', "Unknown logging"],
-])("rejects invalid setting %s", (extra, message) => {
-	expect(() => parseDeploymentConfig(toml(extra))).toThrow(message);
+	["ANISHELF_HOST", "0.0.0.0"],
+	["ANISHELF_HOST", "192.168.1.2"],
+	["ANISHELF_HOST", "::"],
+	["ANISHELF_HOST", "127.invalid"],
+	["ANISHELF_HOST", ""],
+	["ANISHELF_PORT", "0"],
+	["ANISHELF_PORT", "65536"],
+	["ANISHELF_PORT", "3000.5"],
+	["ANISHELF_PORT", "3e3"],
+	["ANISHELF_PORT", "0xbb8"],
+	["ANISHELF_PORT", "3000abc"],
+	["ANISHELF_PORT", " 3000 "],
+	["ANISHELF_PORT", ""],
+	["ANISHELF_DATA_DIR", "relative"],
+	["ANISHELF_DATA_DIR", ""],
+	["ANISHELF_DATA_DIR", "/tmp/\0"],
+	["ANISHELF_LOG_LEVEL", "verbose"],
+	["ANISHELF_LOG_LEVEL", ""],
+	["ANISHELF_LOG_DESTINATION", "stderr"],
+	["ANISHELF_LOG_DESTINATION", ""],
+	["ANISHELF_LOG_PATH", "/tmp/log"],
+	["XDG_DATA_HOME", "/tmp/\0"],
+	["HOME", "relative"],
+	["HOME", ""],
+])("rejects invalid %s=%s", (name, value) => {
+	expect(() => parseDeploymentConfig({ [name]: value })).toThrow(name);
 });
 
-test.each([
-	"",
-	'dataDir = "relative"',
-	"dataDir = 123",
-	'dataDir = ""',
-	'dataDir = "\\u0000"',
-])("rejects missing or invalid dataDir: %s", (source) => {
-	expect(() => parseDeploymentConfig(source)).toThrow("dataDir");
-});
-
-test("malformed TOML does not expose configuration contents", () => {
-	expect(() => parseDeploymentConfig('private_value = "secret-value')).toThrow(
-		"not valid TOML",
-	);
-	try {
-		parseDeploymentConfig('private_value = "secret-value');
-	} catch (error) {
-		expect((error as Error).message).not.toContain("secret-value");
-	}
-});
-
-test.each([undefined, "", "relative.toml"])(
-	"rejects invalid ANISHELF_CONFIG: %s",
-	async (path) => {
-		await expect(
-			loadDeploymentConfig({ ANISHELF_CONFIG: path }),
-		).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+test.each([undefined, "", "relative.log", "/tmp/\0"])(
+	"rejects missing or invalid file log path %s",
+	(ANISHELF_LOG_PATH) => {
+		expect(() =>
+			parseDeploymentConfig({
+				ANISHELF_LOG_DESTINATION: "file",
+				ANISHELF_LOG_PATH,
+			}),
+		).toThrow("ANISHELF_LOG_PATH");
 	},
 );
 
-test("reports missing deployment file", async () => {
+test("reports how to migrate the removed TOML entry point without reading it", async () => {
 	await expect(
 		loadDeploymentConfig({ ANISHELF_CONFIG: join(fixture, "missing.toml") }),
-	).rejects.toThrow("Cannot read deployment");
+	).rejects.toThrow("Set ANISHELF_DATA_DIR to your existing data directory");
 });
 
-test("loads read-only TOML, creates the dynamic directory, and leaves TOML unchanged", async () => {
-	const path = join(fixture, "deployment.toml");
-	const source = toml();
-	await writeFile(path, source);
-	await chmod(path, 0o400);
-	const config = await loadDeploymentConfig({ ANISHELF_CONFIG: path });
+test("creates the default XDG data directory and retains existing settings", async () => {
+	const env = { XDG_DATA_HOME: join(fixture, "xdg") };
+	const config = await loadDeploymentConfig(env);
 	expect((await stat(config.dataDir)).isDirectory()).toBe(true);
-	expect(await readFile(path, "utf8")).toBe(source);
-	expect(await loadDeploymentConfig({ ANISHELF_CONFIG: path })).toEqual(config);
+	await writeFile(
+		join(config.dataDir, "settings.json"),
+		'{"resourceRoot":null}',
+	);
+	expect(await loadDeploymentConfig(env)).toEqual(config);
+	const { PersistentConfiguration } = await import(
+		"../src/config/persistent.js"
+	);
+	expect((await PersistentConfiguration.load(config.dataDir)).settings).toEqual(
+		{
+			resourceRoot: null,
+		},
+	);
 });
 
 test("rejects a dataDir occupied by a file", async () => {
-	await writeFile(join(fixture, "data"), "occupied");
-	const path = join(fixture, "deployment.toml");
-	await writeFile(path, toml());
-	await expect(loadDeploymentConfig({ ANISHELF_CONFIG: path })).rejects.toThrow(
+	const ANISHELF_DATA_DIR = join(fixture, "data");
+	await writeFile(ANISHELF_DATA_DIR, "occupied");
+	await expect(loadDeploymentConfig({ ANISHELF_DATA_DIR })).rejects.toThrow(
 		"Cannot prepare writable dataDir",
 	);
 });
 
 test("validation fails before creating the dynamic directory", async () => {
-	const path = join(fixture, "deployment.toml");
-	await writeFile(path, toml("port = 0"));
-	await expect(loadDeploymentConfig({ ANISHELF_CONFIG: path })).rejects.toThrow(
-		"port",
-	);
-	await expect(stat(join(fixture, "data"))).rejects.toMatchObject({
+	const ANISHELF_DATA_DIR = join(fixture, "data");
+	await expect(
+		loadDeploymentConfig({ ANISHELF_DATA_DIR, ANISHELF_PORT: "0" }),
+	).rejects.toThrow("ANISHELF_PORT");
+	await expect(stat(ANISHELF_DATA_DIR)).rejects.toMatchObject({
 		code: "ENOENT",
 	});
 });
 
 test.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
-	"rejects unreadable deployment files and unwritable data directories",
+	"rejects unwritable data directories",
 	async () => {
-		const path = join(fixture, "deployment.toml");
-		await writeFile(path, toml());
-		await chmod(path, 0o000);
-		try {
-			await expect(
-				loadDeploymentConfig({ ANISHELF_CONFIG: path }),
-			).rejects.toThrow("Cannot read deployment");
-		} finally {
-			await chmod(path, 0o600);
-		}
-		const config = await loadDeploymentConfig({ ANISHELF_CONFIG: path });
+		const env = { ANISHELF_DATA_DIR: join(fixture, "data") };
+		const config = await loadDeploymentConfig(env);
 		await chmod(config.dataDir, 0o500);
 		try {
-			await expect(
-				loadDeploymentConfig({ ANISHELF_CONFIG: path }),
-			).rejects.toThrow("Cannot prepare writable dataDir");
+			await expect(loadDeploymentConfig(env)).rejects.toThrow(
+				"Cannot prepare writable dataDir",
+			);
 		} finally {
 			await chmod(config.dataDir, 0o700);
 		}

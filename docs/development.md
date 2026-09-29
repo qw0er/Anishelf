@@ -1,6 +1,6 @@
 # Development foundation
 
-The backend provides deployment TOML loading, startup validation, module contracts,
+The backend provides environment-based startup configuration, startup validation, module contracts,
 persistent JSON settings, Pino logging, a Fastify HTTP application skeleton,
 resource access, an in-memory index, a traversal worker, and library application use cases.
 The entry point loads configuration and listens on the configured loopback address.
@@ -33,7 +33,7 @@ public scan states and JSON API DTOs. Internal entries and snapshots live in
 `backend/src/library/model.ts`. `errors.ts` defines
 HTTP-independent error codes and `DomainError`. HTTP handlers map errors to safe
 public messages and status codes instead of serializing internal errors.
-Deployment TOML and persistent JSON are validated at runtime. HTTP routes use
+Startup environment variables and persistent JSON are validated at runtime. HTTP routes use
 Fastify JSON Schemas, with type coercion and removal of unknown fields disabled.
 
 API DTOs explicitly define their public fields; application projections exclude
@@ -53,40 +53,48 @@ compile-time contract assertions remain part of the TypeScript checks.
 
 ## Deployment configuration
 
-Copy `exapmle/anishelf.example.toml` to a deployment-specific file and set `dataDir` to an
-absolute path. Select the file through an absolute `ANISHELF_CONFIG` path:
+Startup requires no deployment file or application environment variables:
 
 ```sh
-ANISHELF_CONFIG=/absolute/path/to/anishelf.toml npm start
+npm run build
+npm start
 ```
 
 ### Environment variables
 
-| Variable | Required | Purpose |
+| Variable | Default | Purpose |
 | --- | --- | --- |
-| `ANISHELF_CONFIG` | Yes, for backend startup | Absolute path to the deployment TOML. |
-| `ANISHELF_API_TARGET` | No | Vite proxy target; defaults to `http://127.0.0.1:3000`. |
-| `NODE_ENV` | No | `development` enables the local Vite Origin allowlist and optional built-page hosting. Other values, including unset, provide only APIs and media. |
+| `ANISHELF_HOST` | `127.0.0.1` | Loopback IP address (`127.x.x.x` or `::1`); hostnames are not accepted. |
+| `ANISHELF_PORT` | `3000` | Decimal integer listener port from 1 to 65535. |
+| `ANISHELF_DATA_DIR` | XDG application data directory | Absolute directory; overrides XDG resolution. |
+| `XDG_DATA_HOME` | `$HOME/.local/share` | Absolute base directory; append `anishelf`. Empty or relative values are ignored. |
+| `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
+| `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout` or `file`. |
+| `ANISHELF_LOG_PATH` | Unset | Absolute log path; required with `file`, rejected with `stdout`. |
+| `ANISHELF_API_TARGET` | `http://127.0.0.1:3000` | Vite proxy target; match any custom backend listener. |
+| `NODE_ENV` | Unset | `development` enables the local Vite Origin allowlist and optional built-page hosting. Other values provide only APIs and media. |
 
-Build first with `npm run build`. The same environment variable is required for
-`npm run dev`. Changes are loaded on process restart.
+The same options apply to development and production; changes require restart.
+Without an explicit data directory, use `$XDG_DATA_HOME/anishelf`, falling back to
+`$HOME/.local/share/anishelf` according to the [XDG specification](https://specifications.freedesktop.org/basedir/latest/).
+If HOME is unavailable, use the operating system's user home directory. This rule also
+applies on macOS. Data is independent of the working directory. Paths must be absolute,
+cannot contain NUL, and do not receive application-level tilde expansion. Explicitly
+empty Anishelf variables are invalid rather than treated as defaults.
 
-`dataDir` is required. Defaults are `host = "127.0.0.1"`, `port = 3000`,
-`logging.level = "info"`, and `logging.destination = "stdout"`. V1 accepts loopback
-IP addresses (`127.x.x.x` or `::1`) only; use an IP rather than a hostname. Ports
-must be integers from 1 to 65535. Paths must be absolute and cannot contain NUL.
-Unknown settings are rejected to catch typos and misplaced persistent settings.
+For file logging, set `ANISHELF_LOG_DESTINATION=file` and `ANISHELF_LOG_PATH`.
+The logger ensures the parent directory exists, then delegates append writes to Pino.
+Invalid startup parameters or unusable data directories fail startup with exit code 1
+and a terminal diagnostic. All options are validated before creating the data directory.
+The loader creates a missing directory with mode 0700 (subject to umask), preserves
+permissions of existing directories, and checks writability. The persistent settings
+manager creates `settings.json` when the user first saves a resource directory.
 
-For file logging, set `logging.destination = "file"` and an absolute
-`logging.path`. A path with stdout output is rejected. File output ensures its parent directory exists, then delegates file opening
-and append writes to Pino.
-
-Missing/unreadable deployment files, malformed TOML, invalid parameters, and
-unusable dynamic data directories fail startup with exit code 1 and a terminal
-diagnostic. TOML parser source excerpts and error stacks are not printed. The
-loader creates `dataDir` if needed and checks that it is a writable directory;
-it never rewrites the deployment TOML. The persistent settings manager creates
-`settings.json` when the user first saves a resource directory in the UI.
+TOML loading and its parser dependency have been removed. To migrate, unset
+`ANISHELF_CONFIG`, set `ANISHELF_DATA_DIR` to the old TOML `dataDir`, and translate
+custom listener/logging values to the variables above. The loader rejects a remaining
+`ANISHELF_CONFIG` with migration guidance rather than silently selecting a new data
+directory. It does not read TOML or relocate existing data.
 
 ## Logging choice
 
@@ -123,7 +131,7 @@ in `logging/index.ts`.
 
 ## Persistent settings
 
-Start the backend with `ANISHELF_CONFIG` and start the frontend with `npm run dev:web`
+Start the backend with `npm run dev:backend` and start the frontend with `npm run dev:web`
 in another terminal. Open `http://127.0.0.1:5173`, enter the server's absolute media
 directory path in **Resource directory**, and choose **Save directory**. The backend
 creates `settings.json` inside `dataDir` on the first successful save:
@@ -138,7 +146,7 @@ A missing `settings.json` enters setup mode with `resourceRoot: null`; HTTP rema
 available and scanning is disabled until a directory is configured. No manual JSON
 creation is required. Existing unreadable files, malformed JSON, unknown fields,
 and invalid paths still fail startup without overwriting the file. `null` is the
-explicit unconfigured value. Deployment parameters belong in TOML. `dataDir` and
+explicit unconfigured value. Deployment parameters come from defaults and environment variables. `dataDir` and
 `resourceRoot` must not contain one another; existing symlinks are resolved for this
 check.
 

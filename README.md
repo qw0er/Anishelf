@@ -17,27 +17,27 @@ Run these commands from the project root:
 ```sh
 npm ci
 npm run build
-cp exapmle/anishelf.example.toml /tmp/anishelf.toml
 ```
 
-Edit the configuration and set `dataDir` to an actual absolute path:
+No deployment configuration file is required. Startup uses defaults with optional environment overrides:
 
-```toml
-host = "127.0.0.1"
-port = 3000
-dataDir = "/absolute/path/to/anishelf-data"
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `ANISHELF_HOST` | `127.0.0.1` | Loopback listener IP (`127.x.x.x` or `::1`). |
+| `ANISHELF_PORT` | `3000` | Listener port, from 1 to 65535. |
+| `ANISHELF_DATA_DIR` | `$XDG_DATA_HOME/anishelf` or `~/.local/share/anishelf` | Absolute writable application data directory. |
+| `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
+| `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout` or `file`. |
+| `ANISHELF_LOG_PATH` | Unset | Absolute log path, required only for file output. |
 
-[logging]
-level = "info"
-destination = "stdout"
-```
+The data directory follows the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir/latest/), including on macOS. Unset, empty or relative `XDG_DATA_HOME` falls back to `$HOME/.local/share`; `anishelf` is appended to that base. `ANISHELF_DATA_DIR` overrides this choice. The directory is created at startup if needed. Paths are resolved independently of the working directory; `~` in an environment value is not expanded by the application.
 
-The `/tmp` configuration is for a quick local trial. For a persistent deployment, use a location such as `/etc/anishelf/anishelf.toml` and a persistent data directory such as `/var/lib/anishelf`.
+**Migrating from TOML:** remove `ANISHELF_CONFIG` and set `ANISHELF_DATA_DIR` to the previous `dataDir` to retain existing settings. Convert any custom listener/logging settings to the variables above. TOML is no longer read; a remaining `ANISHELF_CONFIG` fails startup with migration guidance. Existing data is not moved or deleted.
 
 ## Production startup
 
 ```sh
-NODE_ENV=production ANISHELF_CONFIG=/etc/anishelf/anishelf.toml npm start
+NODE_ENV=production npm start
 ```
 
 The production backend provides APIs and media only. It does not serve pages or require a frontend build to start. When `NODE_ENV` is unset, the backend also provides only APIs and media.
@@ -46,7 +46,7 @@ The production backend provides APIs and media only. It does not serve pages or 
 
 After starting the backend and Caddy as described below, open <http://127.0.0.1:8080>. Save the absolute server-side media directory in the page, then click **Scan library**. The first successful save creates `settings.json` in `dataDir`. Restarting preserves the directory setting, but requires a new manual scan. Rescan after adding or removing media.
 
-Deployment TOML changes and manual JSON edits require a restart. Keep the writable application data directory separate from the media directory. Serve only the frontend build as static content.
+Environment variable changes and manual JSON edits require a restart. Keep the writable application data directory separate from the media directory. Serve only the frontend build as static content.
 
 ### Manage the backend with systemd
 
@@ -63,7 +63,7 @@ User=anishelf
 Group=anishelf
 WorkingDirectory=/opt/anishelf
 Environment=NODE_ENV=production
-Environment=ANISHELF_CONFIG=/etc/anishelf/anishelf.toml
+Environment=ANISHELF_DATA_DIR=/var/lib/anishelf
 ExecStart=/usr/bin/node /opt/anishelf/backend/dist/index.js
 Restart=on-failure
 RestartSec=3
@@ -79,7 +79,7 @@ sudo systemctl status anishelf
 journalctl -u anishelf -f
 ```
 
-Set `dataDir` in the deployment TOML to your prepared persistent directory. stdout logs are collected by systemd. After updating the code, rebuild and run `sudo systemctl restart anishelf`.
+Set `ANISHELF_DATA_DIR` in the service environment to your prepared persistent directory. stdout logs are collected by systemd. After updating the code, rebuild and run `sudo systemctl restart anishelf`.
 
 ### Serve pages and proxy APIs with Caddy
 
@@ -131,17 +131,17 @@ This example stays local. For a remote deployment, run `ssh -L 8080:127.0.0.1:80
 For frontend hot reload, start both the backend and Vite with one command:
 
 ```sh
-ANISHELF_CONFIG=/absolute/path/to/anishelf.toml npm run dev
+npm run dev
 ```
 
 Open <http://127.0.0.1:5173>. The command runs the backend watcher and Vite together; Vite proxies `/api` to port 3000. Set `ANISHELF_API_TARGET` if the backend uses another port. No frontend build is required for this workflow. Use `npm run dev:backend` or `npm run dev:web` to start only one service.
 
-For LAN development, run `ANISHELF_CONFIG=/absolute/path/to/anishelf.toml npm run dev:host`. Vite listens on `0.0.0.0:5173`; open `http://<server-lan-ip>:5173` from another device. The backend still listens on its configured loopback address. Vite forwards same-origin API mutations using the backend origin. This development server has no authentication; use it on a trusted network.
+For LAN development, run `npm run dev:host`. Vite listens on `0.0.0.0:5173`; open `http://<server-lan-ip>:5173` from another device. The backend still listens on its configured loopback address. Vite forwards same-origin API mutations using the backend origin. This development server has no authentication; use it on a trusted network.
 
 To build the frontend and backend, then serve the page directly from the backend, run:
 
 ```sh
-ANISHELF_CONFIG=/tmp/anishelf.toml npm run start:web
+npm run start:web
 ```
 
 Open <http://127.0.0.1:3000>. `start:web` builds both workspaces before starting the backend in development mode, so it serves the newly built `web/dist` at the backend address. Page hosting is available only when `web/dist/index.html` exists. Built pages do not hot reload; rerun `npm run start:web` after changes to rebuild and restart. If a build fails, the backend will not start through this command; use `npm run dev` for frontend hot reload.

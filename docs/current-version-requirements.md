@@ -6,6 +6,8 @@ This overview keeps the complete release scope, feature inventory, quality bound
 
 “Implemented in” means acceptance passed; “Target version” means planned delivery. V1 completion and manual browser acceptance are user-reported. V2 stays planned until its criteria pass. Maintain stable feature IDs, inherited behavior, partial-delivery boundaries and release history across iterations.
 
+Startup must work with defaults and no deployment configuration file. Environment variables override listener, logging and data-directory defaults. The default application data directory is `$XDG_DATA_HOME/anishelf`, falling back to `$HOME/.local/share/anishelf`; an explicit `ANISHELF_DATA_DIR` takes precedence. TOML startup loading is removed. Existing deployments retain settings by selecting their previous data directory explicitly. This supersedes startup TOML requirements in the historical records; planned V2 policy files remain part of O17.
+
 ## 1. Goal and Operating Scope
 
 Extend the existing file browser into an everyday Web viewing workflow:

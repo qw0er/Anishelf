@@ -85,11 +85,13 @@ HTTP calls application use cases. Application modules do not depend on Fastify o
 
 ## 3. Configuration, Storage and Identity
 
+Startup uses built-in defaults and environment variables, with no TOML file. `ANISHELF_DATA_DIR` overrides `$XDG_DATA_HOME/anishelf`, whose fallback is `$HOME/.local/share/anishelf`. Listener and logging overrides use the variables documented in [Development configuration](development.md#deployment-configuration). Existing deployments must remove `ANISHELF_CONFIG` and explicitly retain their old data directory. This current decision supersedes the startup TOML/bootstrap wording in the archived V1/V2 records; their planned policy files remain separate from startup parameters.
+
 A unified typed configuration service creates missing files from packaged defaults, validates their contents and references, and supplies immutable views to application modules. Existing custom files are preserved. Administrator policy applies on restart; UI preferences use atomic writes. Policy values and format choices live in configuration files, while access/security invariants remain enforced by the program.
 
 | Storage/file | Responsibility |
 | --- | --- |
-| Deployment TOML | Host, port, data/config directories, logging and optional FFmpeg/FFprobe executable overrides |
+| Startup defaults and environment variables | Implemented host, port, XDG data directory and logging; optional tool/config-directory overrides remain planned |
 | `settings.json` | User resource root, Web playback preference and cache budget |
 | `media-formats.json` | Discovery extensions, MIME mappings and container/codec policy |
 | `transcode-profiles.json` | Versioned prepared/real-time output formats and encoding parameters |

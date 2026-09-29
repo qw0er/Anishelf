@@ -1,8 +1,8 @@
 import { constants } from "node:fs";
-import { access, mkdir, readFile, stat } from "node:fs/promises";
+import { access, mkdir, stat } from "node:fs/promises";
 import { isIP } from "node:net";
-import { isAbsolute } from "node:path";
-import { parse } from "smol-toml";
+import { homedir } from "node:os";
+import { isAbsolute, join } from "node:path";
 import type {
 	DeploymentConfig,
 	LoggingConfig,
@@ -20,118 +20,87 @@ const levels: readonly string[] = [
 	"silent",
 ];
 
+type Environment = Readonly<Record<string, string | undefined>>;
+
 function invalid(message: string, cause?: unknown): never {
 	throw new DomainError("CONFIG_INVALID", message, { cause });
 }
 
-function table(value: unknown, name: string): Record<string, unknown> {
-	if (
-		typeof value !== "object" ||
-		value === null ||
-		Array.isArray(value) ||
-		value instanceof Date
-	) {
-		invalid(`${name} must be a TOML table.`);
-	}
-	return value as Record<string, unknown>;
-}
-
-function allowedKeys(
-	value: Record<string, unknown>,
-	keys: readonly string[],
-	name: string,
-): void {
-	for (const key of Object.keys(value)) {
-		if (!keys.includes(key)) invalid(`Unknown ${name} setting: ${key}.`);
-	}
-}
-
-function absolutePath(value: unknown, name: string): string {
-	if (
-		typeof value !== "string" ||
-		value.trim() === "" ||
-		value.includes("\0") ||
-		!isAbsolute(value)
-	) {
+function absolutePath(value: string, name: string): string {
+	if (value.trim() === "" || value.includes("\0") || !isAbsolute(value)) {
 		invalid(`${name} must be an absolute filesystem path.`);
 	}
 	return value;
 }
 
-/** Parse untrusted TOML into validated settings, without filesystem side effects. */
-export function parseDeploymentConfig(source: string): DeploymentConfig {
-	let parsed: unknown;
-	try {
-		parsed = parse(source, { unsafeKeyBehaviour: "throw" });
-	} catch (cause) {
-		// Parser errors can contain source lines; retain them only as an internal cause.
+function defaultDataDir(env: Environment): string {
+	const xdgDataHome = env.XDG_DATA_HOME;
+	// XDG specifies that empty or relative base directories are ignored.
+	const base =
+		xdgDataHome && isAbsolute(xdgDataHome)
+			? absolutePath(xdgDataHome, "XDG_DATA_HOME")
+			: join(absolutePath(env.HOME ?? homedir(), "HOME"), ".local", "share");
+	return join(base, "anishelf");
+}
+
+/** Resolve and validate startup environment variables without filesystem effects. */
+export function parseDeploymentConfig(
+	env: Environment = process.env,
+): DeploymentConfig {
+	if (env.ANISHELF_CONFIG !== undefined) {
 		invalid(
-			"Deployment configuration is not valid TOML. Check its syntax.",
-			cause,
+			"ANISHELF_CONFIG is no longer supported. Set ANISHELF_DATA_DIR to your existing data directory and migrate other TOML settings to environment variables.",
 		);
 	}
-	const config = table(parsed, "Deployment configuration");
-	allowedKeys(config, ["host", "port", "dataDir", "logging"], "deployment");
-
-	const host = config.host ?? "127.0.0.1";
-	if (
-		typeof host !== "string" ||
-		!((isIP(host) === 4 && host.startsWith("127.")) || host === "::1")
-	) {
-		invalid("host must be a loopback IP address (127.x.x.x or ::1).");
+	const host = env.ANISHELF_HOST ?? "127.0.0.1";
+	if (!((isIP(host) === 4 && host.startsWith("127.")) || host === "::1")) {
+		invalid("ANISHELF_HOST must be a loopback IP address (127.x.x.x or ::1).");
 	}
-	const port = config.port ?? 3000;
+	const rawPort = env.ANISHELF_PORT ?? "3000";
+	const port = Number(rawPort);
 	if (
-		typeof port !== "number" ||
+		!/^\d+$/.test(rawPort) ||
 		!Number.isInteger(port) ||
 		port < 1 ||
 		port > 65535
 	) {
-		invalid("port must be an integer between 1 and 65535.");
+		invalid("ANISHELF_PORT must be an integer between 1 and 65535.");
 	}
-	const dataDir = absolutePath(config.dataDir, "dataDir");
-	const logging =
-		config.logging === undefined ? {} : table(config.logging, "logging");
-	allowedKeys(logging, ["level", "destination", "path"], "logging");
-	const level = logging.level ?? "info";
-	if (typeof level !== "string" || !levels.includes(level)) {
-		invalid(`logging.level must be one of: ${levels.join(", ")}.`);
+	const dataDir =
+		env.ANISHELF_DATA_DIR === undefined
+			? defaultDataDir(env)
+			: absolutePath(env.ANISHELF_DATA_DIR, "ANISHELF_DATA_DIR");
+	const level = env.ANISHELF_LOG_LEVEL ?? "info";
+	if (!levels.includes(level)) {
+		invalid(`ANISHELF_LOG_LEVEL must be one of: ${levels.join(", ")}.`);
 	}
-	const destination = logging.destination ?? "stdout";
-	let validatedLogging: LoggingConfig;
+	const destination = env.ANISHELF_LOG_DESTINATION ?? "stdout";
+	let logging: LoggingConfig;
 	if (destination === "stdout") {
-		if (logging.path !== undefined)
-			invalid("logging.path is only supported with destination = 'file'.");
-		validatedLogging = { level: level as LogLevel, destination };
+		if (env.ANISHELF_LOG_PATH !== undefined)
+			invalid("ANISHELF_LOG_PATH requires ANISHELF_LOG_DESTINATION=file.");
+		logging = { level: level as LogLevel, destination };
 	} else if (destination === "file") {
-		validatedLogging = {
+		if (env.ANISHELF_LOG_PATH === undefined)
+			invalid("ANISHELF_LOG_PATH is required for file logging.");
+		logging = {
 			level: level as LogLevel,
 			destination,
-			path: absolutePath(logging.path, "logging.path"),
+			path: absolutePath(env.ANISHELF_LOG_PATH, "ANISHELF_LOG_PATH"),
 		};
 	} else {
-		invalid("logging.destination must be 'stdout' or 'file'.");
+		invalid("ANISHELF_LOG_DESTINATION must be 'stdout' or 'file'.");
 	}
-	return { host, port, dataDir, logging: validatedLogging };
+	return { host, port, dataDir, logging };
 }
 
-/** Deployment TOML is read-only; only the dynamic data directory is prepared. */
+/** Prepare the writable data directory after validating all startup options. */
 export async function loadDeploymentConfig(
-	env: Readonly<Record<string, string | undefined>> = process.env,
+	env: Environment = process.env,
 ): Promise<DeploymentConfig> {
-	const configPath = absolutePath(env.ANISHELF_CONFIG, "ANISHELF_CONFIG");
-	let source: string;
+	const config = parseDeploymentConfig(env);
 	try {
-		source = await readFile(configPath, "utf8");
-	} catch (cause) {
-		invalid(
-			`Cannot read deployment configuration at ${configPath}. Check that the file exists and is readable.`,
-			cause,
-		);
-	}
-	const config = parseDeploymentConfig(source);
-	try {
-		await mkdir(config.dataDir, { recursive: true });
+		await mkdir(config.dataDir, { recursive: true, mode: 0o700 });
 		if (!(await stat(config.dataDir)).isDirectory())
 			throw new Error("Not a directory");
 		await access(config.dataDir, constants.W_OK);

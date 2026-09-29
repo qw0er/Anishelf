@@ -1,4 +1,4 @@
-/** Validated deployment settings, not the untrusted TOML input shape. */
+/** Validated startup settings resolved from defaults and environment variables. */
 export type LogLevel =
 	| "trace"
 	| "debug"
