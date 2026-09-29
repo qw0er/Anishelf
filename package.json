@@ -23,6 +23,8 @@
 		"start:web": "npm run build && NODE_ENV=development npm run start --workspace @anishelf/backend",
 		"dev:backend": "npm run dev --workspace @anishelf/backend",
 		"dev:web": "npm run dev --workspace @anishelf/web",
-		"dev": "concurrently \"npm run dev:backend\" \"npm run dev:web\""
+		"dev": "concurrently \"npm run dev:backend\" \"npm run dev:web\"",
+		"dev:host": "concurrently \"npm run dev:backend\" \"npm run dev --workspace @anishelf/web -- --host 0.0.0.0\"",
+		"package_source": " mkdir -p ./dist && git archive --format=tar --prefix=anishelf/ HEAD | zstd -f -o ./dist/anishelf.tar.zst"
 	}
 }

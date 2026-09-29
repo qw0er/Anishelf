@@ -14,6 +14,7 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` | Start the backend watcher and Vite together; stop both with Ctrl+C |
+| `npm run dev:host` | Start both services with Vite listening on 0.0.0.0:5173 for LAN development |
 | `npm run dev:backend` | Watch only the backend HTTP entry point with readable, colored pino-pretty terminal logs |
 | `npm run start:web` | Build both workspaces, then start the backend in development mode to serve `web/dist` |
 | `npm run dev:web` | Start Vite on 127.0.0.1:5173 with an API proxy |
@@ -193,6 +194,13 @@ Run `npm run dev` to launch the backend watcher and Vite together. Vite uses por
 allows mutation origins `http://127.0.0.1:5173` and `http://localhost:5173` through
 the proxy. Production mode requires same-origin mutations. Vite refuses to silently
 switch ports, keeping the allowed development origins fixed.
+
+For LAN development, `npm run dev:host` starts both services with Vite listening
+on `0.0.0.0:5173`. Access `http://<server-lan-ip>:5173`. The backend remains on
+its configured loopback address. The Vite proxy rewrites an Origin only when it
+exactly matches the incoming HTTP Host, using the backend target origin;
+unrelated origins are preserved for backend validation. Use this unauthenticated
+development server only on a trusted network.
 
 SIGINT and SIGTERM stop accepting requests and close the HTTP application.
 Shutdown has a five-second limit; failures set a nonzero exit code. This closes the

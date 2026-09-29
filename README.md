@@ -136,6 +136,8 @@ ANISHELF_CONFIG=/absolute/path/to/anishelf.toml npm run dev
 
 Open <http://127.0.0.1:5173>. The command runs the backend watcher and Vite together; Vite proxies `/api` to port 3000. Set `ANISHELF_API_TARGET` if the backend uses another port. No frontend build is required for this workflow. Use `npm run dev:backend` or `npm run dev:web` to start only one service.
 
+For LAN development, run `ANISHELF_CONFIG=/absolute/path/to/anishelf.toml npm run dev:host`. Vite listens on `0.0.0.0:5173`; open `http://<server-lan-ip>:5173` from another device. The backend still listens on its configured loopback address. Vite forwards same-origin API mutations using the backend origin. This development server has no authentication; use it on a trusted network.
+
 To build the frontend and backend, then serve the page directly from the backend, run:
 
 ```sh
