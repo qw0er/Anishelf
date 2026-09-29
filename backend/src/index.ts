@@ -1,15 +1,12 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { LibraryApplication } from "./application/library.js";
 import { loadDeploymentConfig } from "./config/deployment.js";
-import {
-	checkResourceRoot,
-	PersistentConfiguration,
-} from "./config/persistent.js";
+import { PersistentConfiguration } from "./config/persistent.js";
 import { DomainError } from "./errors.js";
 import { createHttpApp } from "./http/app.js";
 import { LibraryIndex } from "./library/index.js";
-import { LibraryScanner } from "./library/scanner.js";
 import { ApplicationLogging } from "./logging/index.js";
 
 let logging: ApplicationLogging | undefined;
@@ -18,7 +15,12 @@ try {
 	const config = await loadDeploymentConfig();
 	logging = ApplicationLogging.create(config.logging);
 	const persistentConfig = await PersistentConfiguration.load(config.dataDir);
-	const libraryError = await checkResourceRoot(persistentConfig.settings);
+	const library = new LibraryApplication({
+		configuration: persistentConfig,
+		index: new LibraryIndex(),
+		logger: logging.logger,
+	});
+	const libraryError = (await library.getStatus()).error;
 	if (libraryError) {
 		const setupRequired = libraryError.code === "RESOURCE_ROOT_NOT_CONFIGURED";
 		logging.logger[setupRequired ? "info" : "warn"](
@@ -32,9 +34,6 @@ try {
 		);
 	}
 	const logger = logging.logger;
-	const index = new LibraryIndex();
-	const settings = () => persistentConfig.settings;
-	const scanner = new LibraryScanner({ index, settings, logger });
 	const development = process.env.NODE_ENV === "development";
 	const frontendRoot = fileURLToPath(
 		new URL("../../web/dist/", import.meta.url),
@@ -42,8 +41,7 @@ try {
 	const server = createHttpApp({
 		config,
 		logger,
-		library: { index, scanner, settings },
-		configuration: persistentConfig,
+		library,
 		development,
 		...(development && existsSync(join(frontendRoot, "index.html"))
 			? { frontendRoot }

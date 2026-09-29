@@ -2,7 +2,7 @@
 
 The backend provides deployment TOML loading, startup validation, module contracts,
 persistent JSON settings, Pino logging, a Fastify HTTP application skeleton,
-resource access, an in-memory index, and a manual scanner.
+resource access, an in-memory index, a traversal worker, and library application use cases.
 The entry point loads configuration and listens on the configured loopback address.
 Health, resource settings, library browsing, file metadata, and media delivery endpoints are
 implemented. The frontend includes resource directory setup, browsing, and playback;
@@ -29,13 +29,15 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm start` | Run the built backend entry point after building |
 
 Backend contracts are in `backend/src/contracts`: validated configuration shapes,
-internal library records and scan states, and JSON API DTOs. `errors.ts` defines
+public scan states and JSON API DTOs. Internal entries and snapshots live in
+`backend/src/library/model.ts`. `errors.ts` defines
 HTTP-independent error codes and `DomainError`. HTTP handlers map errors to safe
 public messages and status codes instead of serializing internal errors.
 Deployment TOML and persistent JSON are validated at runtime. HTTP routes use
 Fastify JSON Schemas, with type coercion and removal of unknown fields disabled.
 
-API DTOs omit internal relative paths. Diagnostic errors may retain a cause for
+API DTOs explicitly define their public fields; application projections exclude
+internal relative paths and future internal fields. Diagnostic errors may retain a cause for
 local logging. The frontend API client re-exports these contracts through type-only
 imports; backend runtime code is not bundled into the frontend.
 
@@ -165,7 +167,10 @@ per application; cross-process coordination is outside the current scope.
 
 The manager does not monitor manual file edits or automatically rescan the library.
 Resource availability can be rechecked after updates. The settings HTTP routes use
-the manager through the scanner coordinator to exclude simultaneous scans and saves.
+`LibraryApplication.updateSettings` to exclude simultaneous scans and saves, including
+the asynchronous scan preflight. Successful root changes clear the index and latest
+scan state; failed saves and unchanged roots preserve both. Runtime callers must use
+the application use case rather than writing directly through the manager.
 
 ## HTTP application skeleton
 
@@ -245,7 +250,7 @@ recheck current filesystem access.
 `new LibraryIndex(rootName)` starts with the `root` directory, revision 0, and
 `scannedAt: null`. It has no filesystem or HTTP dependency.
 
-- `createResourceId(kind, relativePath)` creates stable opaque IDs. The root
+- `createResourceId(kind, relativePath)` in `library/model.ts` creates stable opaque IDs. The root
   directory uses `root`; unchanged kinds and paths retain their IDs between scans.
 - `replace(entries, scannedAt?)` builds and validates a complete candidate before
   publishing it and incrementing the revision. Entries must include the root;
@@ -261,58 +266,81 @@ recheck current filesystem access.
   active index. Whole-snapshot access copies the index; directory queries only
   copy the requested children.
 
-The scanner builds candidates separately and publishes successful scans through
-`replace`. The index retains internal relative paths; future HTTP handlers must
-convert records to the path-free API DTOs. Scan state, filesystem revalidation,
-and HTTP integration belong to their respective modules.
+The scanner builds candidates separately. `LibraryApplication` publishes successful
+candidates through `replace`; failure or cancellation keeps the previous index.
+The index retains internal relative paths. Application query results explicitly
+project public DTO fields before HTTP serialization.
 
-## Manual library scanner
+## Library application and traversal
 
-`LibraryScanner` in `backend/src/library/scanner.ts` receives the shared index, a
-function returning the current persistent settings, and the application Pino logger:
+`LibraryApplication` in `backend/src/application/library.ts` owns library use cases
+and task state. Assemble it with one index, persistent settings store, and logger:
 
 ```ts
-const scanner = new LibraryScanner({
-  index,
-  settings: () => persistentConfig.settings,
+const library = new LibraryApplication({
+  index: new LibraryIndex(),
+  configuration: persistentConfig,
   logger,
 });
-const scan = scanner.start();
+const app = createHttpApp({ config, logger, library });
+const scan = await library.startScan();
+await library.waitForCompletion();
 ```
 
-`start()` returns a `running` state immediately. Repeated calls during an active
-scan return the same scan ID without starting another traversal. `.state` returns
-a detached copy of the latest scan state, or `null` before the first scan.
-`waitForCompletion()` waits for active work and returns its terminal state.
+- `getSettings()` returns a settings copy; `updateSettings(input)` commits settings
+  before clearing the previous root's snapshot and scan state when needed.
+- `startScan()` shares asynchronous root preflight across concurrent callers,
+  rejects an unconfigured/unavailable root before starting, and returns the scan
+  state once traversal has been scheduled. While a scan runs, starts reuse its ID.
+- `.state` returns a detached copy of the latest scan state;
+  `waitForCompletion()` waits for pending preflight and traversal.
+- `getStatus()`, `getDirectory(id)`, and `getFile(id)` return public read models.
+  Status captures settings, revision, and task state together before checking
+  current root availability. File metadata is rechecked on disk.
+- `openMedia(id)` resolves an indexed entry and captures its root before yielding,
+  then opens a read-only handle. The caller owns that handle and must release it.
+  HEAD, ranges, streaming, and disconnect cleanup belong to the HTTP media module.
+- `cancelScan()` cancels pending preflight/traversal and waits for outstanding work.
+  `close()` also rejects new operations and waits for settings saves to settle.
 
+Settings saves are excluded from both scan preflight and traversal. Scans are
+excluded while settings are being saved. This rule applies to direct application
+calls as well as HTTP requests. An in-flight media lookup uses its captured root;
+an existing stream keeps its file handle across a root change. A new lookup uses
+the current index, which is cleared after a changed root is committed.
+
+`LibraryScanner` in `backend/src/library/scanner.ts` is a traversal worker. Its
+`scan(resources, rootName, progress, signal)` method returns candidate entries, or
+`null` on cancellation. It has no settings store, index instance, or task state.
+The application provides a fixed `ResourceAccess`, progress record, and abort signal.
 Traversal uses batches of at most eight concurrent resource-access tasks. It
-discovers real directories and MP4, M4V, WebM, and MKV files through `ResourceAccess`,
-without reading video contents. Symbolic links and other file types are skipped.
-`visitedCount` counts encountered directory entries, including skipped entries but
-excluding the root itself; `matchedCount` counts successfully inspected videos.
+identifies real directories and MP4, M4V, WebM, and MKV files without reading video
+contents. Symbolic links and other file types are skipped. `visitedCount` counts
+encountered entries excluding the root; `matchedCount` counts inspected videos.
 
-The scanner publishes a complete candidate only after traversal finishes. Child
-directory/file failures produce a completed partial scan with warnings; unavailable
-subtrees are omitted. Warning counts include each failure, while distinct public
-summary messages are bounded to five and exclude paths. Detailed Pino warnings
-retain local diagnostic context. Losing the root fails the scan and preserves the
-previous index, including when the root disappears during traversal. Changing the
-configured root during a scan also prevents publication; the next scan reads the
-new settings.
+Child failures produce a partial candidate with warnings. Counts include each
+failure, while distinct public messages are bounded to five and omit paths.
+Detailed Pino warnings retain local context. Losing the root fails traversal;
+changing settings outside the application during a scan also prevents publication.
+Cancelled traversal waits for outstanding filesystem calls and discards its candidate.
+The application logs scan start, completion, failure, and cancellation with scan ID,
+duration, and counts. Scans run only on request and are not persisted.
 
-`cancel()` stops scheduling work, waits for outstanding filesystem operations, and
-discards the candidate. `close()` also refuses future starts. Already-running
-filesystem calls are allowed to settle; cancellation does not forcibly interrupt
-them. Completed, failed, and cancelled scans are logged with scan ID and duration;
-completion also records counts. Scans run only when requested, and scan state is
-not persisted. The HTTP application closes its scanner during shutdown and exposes manual
-scanning through the routes below.
+`checkResourceRoot` in `resources/access.ts` uses the same root-resolution policy
+as `ResourceAccess.create`. Persistent configuration handles settings validation
+and persistence; it does not probe runtime library availability.
+
+Biome import restrictions enforce these boundaries: HTTP modules call the application
+and use public contracts; the application cannot import HTTP/Fastify; lower-level
+modules cannot import application/HTTP; public contracts cannot import backend
+implementation modules. Keep changes within those directions and run both
+`npm run biome:check` and `npm run lint`.
 
 ## Library browsing HTTP endpoints
 
-The entry point creates one shared `LibraryIndex` and `LibraryScanner` and passes
-them with the settings getter to `createHttpApp({ library: ... })`. No automatic
-scan runs at startup. Closing the application also closes and cancels the scanner.
+The entry point passes the shared application to `createHttpApp({ library })`.
+No automatic scan runs at startup. Closing the HTTP application closes the library
+application, which cancels scanning and waits for outstanding library operations.
 
 | Endpoint | Response |
 | --- | --- |
@@ -340,7 +368,7 @@ While a scan is running, poll `/api/library`; after completion fetch the current
 directory again. A deleted directory returns 404 after publication, allowing the
 client to return to `root`. HTTP tests cover temporary real filesystem trees,
 concurrent scans, repeat/add/remove scans, navigation, root recovery, failed and
-partial scans, request validation, safe errors, and scanner cleanup.
+partial scans, request validation, safe errors, and application shutdown.
 
 ## File metadata and media delivery
 

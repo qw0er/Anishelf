@@ -1,9 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { FastifyInstance, RawServerDefault } from "fastify";
 import type { Logger } from "pino";
+import type { LibraryApplication } from "../application/library.js";
 import type { FileResponse } from "../contracts/api.js";
-import { ResourceAccess } from "../resources/access.js";
-import type { LibraryRoutesOptions } from "./library.js";
 
 const schema = {
 	params: {
@@ -53,18 +52,16 @@ export function registerMediaRoutes(
 		ServerResponse,
 		Logger
 	>,
-	{ index, settings }: Pick<LibraryRoutesOptions, "index" | "settings">,
+	library: LibraryApplication,
 ): void {
 	app.get<{ Params: { id: string } }>(
 		"/api/files/:id",
 		{ schema },
 		async (request, reply): Promise<FileResponse> => {
-			const { relativePath, ...file } = index.getFile(request.params.id);
-			const access = await ResourceAccess.create(settings());
-			const current = await access.inspectFile(relativePath);
+			const file = await library.getFile(request.params.id);
 			reply.header("Cache-Control", "no-store");
 			return {
-				file: { ...file, ...current },
+				file,
 				playbackUrl: `/api/media/${encodeURIComponent(file.id)}`,
 			};
 		},
@@ -74,9 +71,7 @@ export function registerMediaRoutes(
 		url: "/api/media/:id",
 		schema,
 		handler: async (request, reply) => {
-			const entry = index.getFile(request.params.id);
-			const access = await ResourceAccess.create(settings());
-			const file = await access.openFile(entry.relativePath);
+			const file = await library.openMedia(request.params.id);
 			let streaming = false;
 			try {
 				const range =

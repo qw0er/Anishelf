@@ -9,5 +9,108 @@
 		"parser": {
 			"tailwindDirectives": true
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["backend/src/http/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"../library/**",
+											"../resources/**",
+											"../config/**"
+										],
+										"message": "HTTP routes must call the application layer; use contracts for configuration types."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["backend/src/application/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["../http/**", "fastify", "@fastify/**"],
+										"message": "Application use cases must be independent of HTTP and Fastify."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"backend/src/library/**",
+				"backend/src/resources/**",
+				"backend/src/config/**"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"../application/**",
+											"../http/**",
+											"fastify",
+											"@fastify/**"
+										],
+										"message": "Lower-level modules must not depend on application coordination or HTTP."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["backend/src/contracts/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"../application/**",
+											"../http/**",
+											"../library/**",
+											"../resources/**",
+											"../config/**",
+											"fastify",
+											"@fastify/**"
+										],
+										"message": "Public contracts must not depend on backend implementation modules."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		}
+	]
 }

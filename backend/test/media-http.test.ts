@@ -11,12 +11,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { LibraryApplication } from "../src/application/library.js";
 import type { FileResponse } from "../src/contracts/api.js";
 import { DomainError } from "../src/errors.js";
 import { createHttpApp } from "../src/http/app.js";
 import { LibraryIndex } from "../src/library/index.js";
-import { LibraryScanner } from "../src/library/scanner.js";
 import { ResourceAccess } from "../src/resources/access.js";
+import { settingsStore } from "./settings-store.js";
 
 const headers = { host: "127.0.0.1:3000" };
 let fixture: string;
@@ -31,11 +32,11 @@ beforeEach(async () => {
 	path = join(root, "中文 folder", "episode 01.MP4");
 	await writeFile(path, "0123456789");
 	const index = new LibraryIndex();
-	const settings = () => ({ resourceRoot: root });
+	const configuration = settingsStore(root);
 	const logger = pino({ enabled: false });
-	const scanner = new LibraryScanner({ index, settings, logger });
-	scanner.start();
-	await scanner.waitForCompletion();
+	const libraryApp = new LibraryApplication({ index, configuration, logger });
+	await libraryApp.startScan();
+	await libraryApp.waitForCompletion();
 	const entry = [...index.snapshot.entriesById.values()].find(
 		(entry) => entry.kind === "file",
 	);
@@ -44,7 +45,7 @@ beforeEach(async () => {
 	app = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger,
-		library: { index, scanner, settings },
+		library: libraryApp,
 	});
 });
 

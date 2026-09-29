@@ -1,14 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { constants } from "node:fs";
-import {
-	access,
-	readFile,
-	realpath,
-	rename,
-	rm,
-	stat,
-	writeFile,
-} from "node:fs/promises";
+import { readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import {
 	basename,
 	dirname,
@@ -19,7 +10,6 @@ import {
 	sep,
 } from "node:path";
 import type { PersistentSettings } from "../contracts/config.js";
-import type { LibraryIssue } from "../contracts/library.js";
 import { DomainError } from "../errors.js";
 
 export function parsePersistentSettings(source: string): PersistentSettings {
@@ -195,28 +185,5 @@ async function writePersistentSettings(
 	} finally {
 		// Best-effort cleanup must not hide the original write error.
 		await rm(temporary, { force: true }).catch(() => {});
-	}
-}
-
-/** Root availability is recoverable and must be checked again before scanning. */
-export async function checkResourceRoot(
-	settings: PersistentSettings,
-): Promise<LibraryIssue | null> {
-	if (settings.resourceRoot === null)
-		return {
-			code: "RESOURCE_ROOT_NOT_CONFIGURED",
-			message: "Set a resource directory to start using the library.",
-		};
-	try {
-		if (!(await stat(settings.resourceRoot)).isDirectory())
-			throw new Error("Not a directory");
-		await access(settings.resourceRoot, constants.R_OK | constants.X_OK);
-		return null;
-	} catch {
-		return {
-			code: "RESOURCE_ROOT_UNAVAILABLE",
-			message:
-				"The configured resource directory is missing or unreadable. Fix the directory and scan again.",
-		};
 	}
 }

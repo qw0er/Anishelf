@@ -1,7 +1,7 @@
 # Anishelf Current Version — Overall Design
 
 **Version: V1**  
-**Status: Proposed design; not an implementation or compatibility certification.**  
+**Status: Design with implemented backend module boundaries; end-to-end acceptance and browser compatibility are not certified.**
 **Scope authority:** [Current Version Requirements](current-version-requirements.md).
 
 This document describes only the active release: configure an existing resource directory, scan it, browse files, and play supported files in a browser. The two requirements documents remain the requirements sources; this document explains how to implement the current one.
@@ -26,20 +26,18 @@ flowchart LR
         Browse --> Player
     end
     subgraph Server[Single Node.js process]
-        HTTP[HTTP routes and validation]
-        Scan[Scan service]
+        HTTP[HTTP routes and media transport]
+        App[Library application use cases]
+        Scan[Bounded traversal]
         Index[In-memory library index]
-        Media[Media delivery]
         Access[Resource access policy]
-        Config[Configuration]
-        HTTP --> Scan
-        HTTP --> Index
-        HTTP --> Media
-        Scan --> Index
+        Settings[Persistent settings store]
+        HTTP --> App
+        App --> Scan
+        App --> Index
+        App --> Access
+        App --> Settings
         Scan --> Access
-        Media --> Index
-        Media --> Access
-        Config --> Access
     end
     Client -->|HTTP JSON| HTTP
     Player -->|HTTP GET / HEAD and byte ranges| HTTP
@@ -84,14 +82,42 @@ Node 24 is an LTS line in the official [release listing](https://nodejs.org/en/a
 
 | Module | Responsibilities | Inputs and outputs | Requirement |
 | --- | --- | --- | --- |
-| Configuration | Load and validate deployment parameters and persistent settings; retain diagnostic state for unavailable roots | Deployment TOML and persistent JSON → validated settings or configuration error | V01 |
-| Resource access | Centralize root confinement, file-type policy, readable regular-file checks, and safe opening | Internal relative path → validated directory/file access or typed error | V01, V04, V06 |
-| Scanner | Run one bounded asynchronous traversal, collect warnings, and build a replacement index | Scan request → scan state and candidate snapshot | V02 |
-| Library index | Hold the active snapshot, resolve resource IDs, and list direct children in stable natural order | Directory/file ID → metadata or not-found | V02, V03 |
-| Media delivery | Open validated files, handle HEAD and byte ranges, stream data, and release resources | File ID and HTTP headers → media response | V04, V05 |
-| HTTP application | Register schemas/routes, map errors, serve UI assets, and log request outcomes | HTTP requests → JSON, media, or UI assets | V01–V06 |
+| Deployment configuration | Load and validate startup parameters | Deployment TOML → validated deployment settings | V01 |
+| Persistent settings store | Validate application settings and directory separation; load and atomically save JSON before publishing settings in memory | Persistent JSON and replacement settings → committed settings or configuration error | V01 |
+| Library application | Own use cases, operation exclusion, latest scan state, cancellation, root changes, and snapshot publication | Settings/scan/query requests → application results; file ID → safely opened media handle | V01–V06 |
+| Resource access | Centralize root availability, confinement, file-type policy, regular-file checks, and safe opening | Captured resource root and internal relative path → validated access or typed error | V01, V04, V06 |
+| Scanner | Traverse one fixed root with bounded concurrency; collect progress and warnings; return candidate entries | Resource-access instance, root name, progress, abort signal → candidate entries or cancellation | V02 |
+| Library index | Hold the active snapshot, validate replacements, resolve IDs, and list direct children in stable natural order | Candidate entries or resource ID → snapshot or metadata | V02, V03 |
+| HTTP application and media transport | Register schemas/routes, map errors, serialize responses, handle HEAD/Range, stream media, and release handles | HTTP requests → JSON, media, or UI assets | V01–V06 |
 
-Dependencies flow from HTTP handlers into services. Scanner and media delivery share the resource-access policy. The resource-access module does not depend on HTTP, React, or the index; it receives internal paths and validated configuration.
+`LibraryApplication` is the public entry point for library operations. HTTP handlers
+call its use cases rather than combining the scanner, index, filesystem, and settings
+store themselves. Application and lower-level modules have no Fastify dependency.
+The entry point assembles the persistent store, index, application, logger, and HTTP
+server; `createHttpApp` receives the application as its library dependency.
+
+The application reserves the scan operation before asynchronous root preflight.
+Concurrent starts share that preflight and the running scan. Settings changes are
+excluded throughout preflight and traversal, and scans are excluded while saving.
+The application captures settings for each scan, publishes only successful candidates,
+retains the old snapshot on failure, and clears the index and latest scan only after
+a changed root has been saved successfully. Saving the same root preserves both.
+Shutdown rejects new operations, cancels traversal, and waits for pending preflight,
+filesystem work, and settings saves to settle.
+
+The scanner receives a fixed resource-access instance and returns candidate entries;
+it does not read mutable settings, save configuration, own task lifecycle, or publish
+the index. The index has no filesystem dependency. Root availability and safe opening
+share the resource-access policy. File metadata and media opening capture the entry
+and its matching root before asynchronous access; an overlapping settings change
+cannot redirect the lookup into the new root. An already opened stream retains its
+handle until completion or disconnect.
+
+HTTP owns transport behavior: schemas, playback URLs, status codes, HEAD, byte ranges,
+and stream cleanup. Application results explicitly select public fields. Internal
+entries and snapshot maps live in the library model; public API contracts define
+serializable DTOs independently. Biome import restrictions enforce the HTTP,
+application, lower-level, and public-contract dependency boundaries.
 
 ### Frontend
 

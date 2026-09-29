@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import Fastify from "fastify";
 import type { Logger } from "pino";
-import type { PersistentConfiguration } from "../config/persistent.js";
+import type { LibraryApplication } from "../application/library.js";
 import type { DeploymentConfig } from "../contracts/config.js";
 import { apiError, classifyHttpError } from "./errors.js";
-import { type LibraryRoutesOptions, registerLibraryRoutes } from "./library.js";
+import { registerLibraryRoutes } from "./library.js";
 import { registerMediaRoutes } from "./media.js";
 import { checkRequestOrigin } from "./security.js";
 import { registerSettingsRoutes } from "./settings.js";
@@ -14,8 +14,7 @@ export function createHttpApp(options: {
 	config: Pick<DeploymentConfig, "host" | "port">;
 	logger: Logger;
 	development?: boolean;
-	library?: LibraryRoutesOptions;
-	configuration?: PersistentConfiguration;
+	library?: LibraryApplication;
 	frontendRoot?: string;
 }) {
 	const app = Fastify({
@@ -60,15 +59,13 @@ export function createHttpApp(options: {
 		async () => ({ status: "ok" }),
 	);
 	if (options.library) {
-		registerLibraryRoutes(app, options.library);
-		registerMediaRoutes(app, options.library);
-		if (options.configuration)
-			registerSettingsRoutes(
-				app,
-				options.configuration,
-				options.library.scanner,
-			);
+		const library = options.library;
+		app.addHook("onClose", async () => library.close());
+		registerLibraryRoutes(app, library);
+		registerMediaRoutes(app, library);
+		registerSettingsRoutes(app, library);
 	}
+
 	const frontendRoot = options.frontendRoot;
 	if (options.development && frontendRoot)
 		app.register(async (scope) => registerFrontend(scope, frontendRoot));

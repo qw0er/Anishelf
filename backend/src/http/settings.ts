@@ -1,12 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { FastifyInstance, RawServerDefault } from "fastify";
 import type { Logger } from "pino";
-import type { PersistentConfiguration } from "../config/persistent.js";
+import type { LibraryApplication } from "../application/library.js";
 import type {
 	SettingsResponse,
 	UpdateSettingsRequest,
 } from "../contracts/api.js";
-import type { LibraryScanner } from "../library/scanner.js";
 
 const settingsSchema = {
 	type: "object",
@@ -22,15 +21,14 @@ export function registerSettingsRoutes(
 		ServerResponse,
 		Logger
 	>,
-	configuration: PersistentConfiguration,
-	scanner: LibraryScanner,
+	library: LibraryApplication,
 ): void {
 	app.get(
 		"/api/settings",
 		{
 			schema: { response: { 200: settingsSchema } },
 		},
-		async (): Promise<SettingsResponse> => configuration.settings,
+		async (): Promise<SettingsResponse> => library.getSettings(),
 	);
 
 	app.put<{ Body: UpdateSettingsRequest }>(
@@ -47,6 +45,6 @@ export function registerSettingsRoutes(
 			},
 		},
 		async (request): Promise<SettingsResponse> =>
-			scanner.updateSettings(() => configuration.update(request.body)),
+			library.updateSettings(request.body),
 	);
 }

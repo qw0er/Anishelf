@@ -1,28 +1,17 @@
-import { createHash } from "node:crypto";
 import { dirname, isAbsolute, sep, win32 } from "node:path";
+import type { ResourceId, Timestamp } from "../contracts/library.js";
+import { DomainError } from "../errors.js";
 import type {
 	DirectoryEntry,
 	FileEntry,
 	LibraryEntry,
 	LibrarySnapshot,
-	ResourceId,
-	Timestamp,
-} from "../contracts/library.js";
-import { DomainError } from "../errors.js";
+} from "./model.js";
 
 const nameCollator = new Intl.Collator("en", {
 	numeric: true,
 	sensitivity: "base",
 });
-
-/** Stable lookup key for an unchanged kind and root-relative path. */
-export function createResourceId(
-	kind: LibraryEntry["kind"],
-	relativePath: string,
-): ResourceId {
-	if (kind === "directory" && relativePath === "") return "root";
-	return `${kind}_${createHash("sha256").update(kind).update("\0").update(relativePath).digest("base64url")}`;
-}
 
 function invalidSnapshot(): never {
 	throw new DomainError(

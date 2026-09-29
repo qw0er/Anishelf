@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { LibraryApplication } from "../src/application/library.js";
 import type {
 	DirectoryResponse,
 	LibraryResponse,
@@ -11,14 +12,14 @@ import type {
 import { DomainError } from "../src/errors.js";
 import { createHttpApp } from "../src/http/app.js";
 import { LibraryIndex } from "../src/library/index.js";
-import { LibraryScanner } from "../src/library/scanner.js";
 import { ResourceAccess } from "../src/resources/access.js";
+import { settingsStore } from "./settings-store.js";
 
 const headers = { host: "127.0.0.1:3000" };
 let fixture: string;
 let root: string;
 let index: LibraryIndex;
-let scanner: LibraryScanner;
+let libraryApp: LibraryApplication;
 let app: ReturnType<typeof createHttpApp>;
 beforeEach(async () => {
 	fixture = await mkdtemp(join(tmpdir(), "anishelf-library-http-"));
@@ -26,12 +27,12 @@ beforeEach(async () => {
 	await mkdir(root);
 	index = new LibraryIndex();
 	const logger = pino({ enabled: false });
-	const settings = () => ({ resourceRoot: root });
-	scanner = new LibraryScanner({ index, settings, logger });
+	const configuration = settingsStore(root);
+	libraryApp = new LibraryApplication({ index, configuration, logger });
 	app = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger,
-		library: { index, scanner, settings },
+		library: libraryApp,
 	});
 });
 afterEach(async () => {
@@ -85,7 +86,7 @@ test("scans, navigates direct children, and reflects repeat/add/remove scans", a
 	await writeFile(join(root, "notes.txt"), "excluded");
 	const started = await scan();
 	expect(started.scan.status).toBe("running");
-	await scanner.waitForCompletion();
+	await libraryApp.waitForCompletion();
 	expect(await library()).toMatchObject({
 		ready: true,
 		revision: 1,
@@ -117,13 +118,13 @@ test("scans, navigates direct children, and reflects repeat/add/remove scans", a
 	]);
 	expect((await directory(listing.children[0]?.id)).children).toEqual([]);
 	await scan();
-	await scanner.waitForCompletion();
+	await libraryApp.waitForCompletion();
 	expect((await directory()).children).toEqual(listing.children);
 	await rm(join(root, "episode 10.mp4"));
 	await rm(join(root, "中文 folder"), { recursive: true });
 	await writeFile(join(root, "new.webm"), "new");
 	await scan();
-	await scanner.waitForCompletion();
+	await libraryApp.waitForCompletion();
 	const updated = await directory();
 	expect(updated.children.map((entry) => entry.name)).toEqual([
 		"empty",
@@ -143,7 +144,7 @@ test("scans, navigates direct children, and reflects repeat/add/remove scans", a
 test("concurrent HTTP requests reuse one running scan and preserve the old listing", async () => {
 	await writeFile(join(root, "old.mp4"), "old");
 	await scan();
-	await scanner.waitForCompletion();
+	await libraryApp.waitForCompletion();
 	const old = await directory();
 	await rm(join(root, "old.mp4"));
 	await writeFile(join(root, "new.mp4"), "new");
@@ -170,7 +171,7 @@ test("concurrent HTTP requests reuse one running scan and preserve the old listi
 	} finally {
 		release();
 	}
-	await scanner.waitForCompletion();
+	await libraryApp.waitForCompletion();
 	expect((await library()).revision).toBe(2);
 	expect((await directory()).children.map((entry) => entry.name)).toEqual([
 		"new.mp4",
@@ -197,13 +198,13 @@ test("unavailable roots keep HTTP available, reject scan before work, and recove
 		requestId: rejected.headers["x-request-id"],
 	});
 	expect(rejected.body).not.toContain(fixture);
-	expect(scanner.state).toBeNull();
+	expect(libraryApp.state).toBeNull();
 	expect((await app.inject({ url: "/api/health", headers })).statusCode).toBe(
 		200,
 	);
 	await mkdir(root);
 	await scan();
-	await scanner.waitForCompletion();
+	await libraryApp.waitForCompletion();
 	expect(await library()).toMatchObject({
 		ready: true,
 		revision: 1,
@@ -214,7 +215,7 @@ test("unavailable roots keep HTTP available, reject scan before work, and recove
 test("failed rescans preserve a stale snapshot and expose safe errors until recovery", async () => {
 	await writeFile(join(root, "kept.mp4"), "kept");
 	await scan();
-	await scanner.waitForCompletion();
+	await libraryApp.waitForCompletion();
 	const old = await directory();
 	const create = vi
 		.spyOn(ResourceAccess, "create")
@@ -222,7 +223,7 @@ test("failed rescans preserve a stale snapshot and expose safe errors until reco
 			new DomainError("RESOURCE_ROOT_UNAVAILABLE", `secret ${fixture}`),
 		);
 	await scan();
-	await scanner.waitForCompletion();
+	await libraryApp.waitForCompletion();
 	expect(await library()).toMatchObject({
 		revision: 1,
 		scan: { status: "failed", error: { code: "RESOURCE_ROOT_UNAVAILABLE" } },
@@ -236,7 +237,7 @@ test("failed rescans preserve a stale snapshot and expose safe errors until reco
 	expect(await library()).toMatchObject({ ready: false, stale: true });
 	await rename(join(fixture, "backup"), root);
 	await scan();
-	await scanner.waitForCompletion();
+	await libraryApp.waitForCompletion();
 	expect(await library()).toMatchObject({
 		revision: 2,
 		error: null,
@@ -254,7 +255,7 @@ test("partial scans return safe warning summaries through HTTP", async () => {
 		return read(path);
 	});
 	await scan();
-	await scanner.waitForCompletion();
+	await libraryApp.waitForCompletion();
 	expect(await library()).toMatchObject({
 		revision: 1,
 		scan: {
@@ -293,13 +294,13 @@ test.each([
 	expect(response.json().error.requestId).toBe(
 		response.headers["x-request-id"],
 	);
-	expect(scanner.state).toBeNull();
+	expect(libraryApp.state).toBeNull();
 });
 
 test("unknown and file IDs are not directories; foreign Origin cannot start scans", async () => {
 	await writeFile(join(root, "video.mp4"), "video");
 	await scan();
-	await scanner.waitForCompletion();
+	await libraryApp.waitForCompletion();
 	for (const id of ["unknown", (await directory()).children[0]?.id]) {
 		const response = await app.inject({
 			url: `/api/directories/${id}`,
@@ -318,9 +319,9 @@ test("unknown and file IDs are not directories; foreign Origin cannot start scan
 	expect(index.revision).toBe(1);
 });
 
-test("closing the HTTP application closes its scanner", async () => {
+test("closing the HTTP application closes its libraryApp", async () => {
 	await app.close();
-	expect(() => scanner.start()).toThrow("shutting down");
+	await expect(libraryApp.startScan()).rejects.toThrow("shutting down");
 });
 
 test("accepts an empty JSON scan body", async () => {
@@ -332,7 +333,7 @@ test("accepts an empty JSON scan body", async () => {
 	});
 	expect(response.statusCode).toBe(202);
 	expect(response.json().scan.status).toBe("running");
-	await scanner.waitForCompletion();
+	await libraryApp.waitForCompletion();
 	expect((await library()).revision).toBe(1);
 });
 
@@ -341,7 +342,7 @@ test("unexpected scan failures are reported without publishing or leaking detail
 		new Error(`secret ${fixture}`),
 	);
 	await scan();
-	await scanner.waitForCompletion();
+	await libraryApp.waitForCompletion();
 	const response = await library();
 	expect(response).toMatchObject({
 		revision: 0,
@@ -369,14 +370,15 @@ test("HTTP shutdown cancels active scanning and waits for pending access", async
 		stopped = true;
 	});
 	try {
-		await vi.waitFor(() =>
-			expect(() => scanner.start()).toThrow("shutting down"),
+		await vi.waitFor(
+			async () =>
+				await expect(libraryApp.startScan()).rejects.toThrow("shutting down"),
 		);
 		expect(stopped).toBe(false);
 	} finally {
 		release();
 		await closing;
 	}
-	expect(scanner.state?.status).toBe("cancelled");
+	expect(libraryApp.state?.status).toBe("cancelled");
 	expect(index.revision).toBe(0);
 });

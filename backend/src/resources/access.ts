@@ -10,6 +10,7 @@ import {
 } from "node:fs/promises";
 import { extname, isAbsolute, join, relative, sep, win32 } from "node:path";
 import type { PersistentSettings } from "../contracts/config.js";
+import type { LibraryIssue } from "../contracts/library.js";
 import { DomainError } from "../errors.js";
 
 const videoTypes: ReadonlyMap<string, string> = new Map([
@@ -83,6 +84,46 @@ function metadata(info: Stats, mimeType: string): ResourceFileMetadata {
 	};
 }
 
+async function resolveResourceRoot(
+	settings: Readonly<PersistentSettings>,
+): Promise<string> {
+	if (settings.resourceRoot === null)
+		throw new DomainError(
+			"RESOURCE_ROOT_NOT_CONFIGURED",
+			"Set a resource directory before accessing the library.",
+		);
+	try {
+		const root = await realpath(settings.resourceRoot);
+		if (!(await stat(root)).isDirectory()) throw new Error("Not a directory");
+		await access(root, constants.R_OK | constants.X_OK);
+		return root;
+	} catch (cause) {
+		throw new DomainError(
+			"RESOURCE_ROOT_UNAVAILABLE",
+			"The resource directory is missing or unreadable.",
+			{ cause },
+		);
+	}
+}
+
+/** Uses the same root policy as scanning and media access. */
+export async function checkResourceRoot(
+	settings: Readonly<PersistentSettings>,
+): Promise<LibraryIssue | null> {
+	try {
+		await resolveResourceRoot(settings);
+		return null;
+	} catch (error) {
+		if (
+			!(error instanceof DomainError) ||
+			(error.code !== "RESOURCE_ROOT_NOT_CONFIGURED" &&
+				error.code !== "RESOURCE_ROOT_UNAVAILABLE")
+		)
+			throw error;
+		return { code: error.code, message: error.message };
+	}
+}
+
 /** Shared read-only filesystem policy for the scanner and media delivery. */
 export class ResourceAccess {
 	private constructor(private readonly root: string) {}
@@ -90,23 +131,7 @@ export class ResourceAccess {
 	static async create(
 		settings: Readonly<PersistentSettings>,
 	): Promise<ResourceAccess> {
-		if (settings.resourceRoot === null)
-			throw new DomainError(
-				"RESOURCE_ROOT_NOT_CONFIGURED",
-				"Set a resource directory before accessing the library.",
-			);
-		try {
-			const root = await realpath(settings.resourceRoot);
-			if (!(await stat(root)).isDirectory()) throw new Error("Not a directory");
-			await access(root, constants.R_OK | constants.X_OK);
-			return new ResourceAccess(root);
-		} catch (cause) {
-			throw new DomainError(
-				"RESOURCE_ROOT_UNAVAILABLE",
-				"The resource directory is missing or unreadable.",
-				{ cause },
-			);
-		}
+		return new ResourceAccess(await resolveResourceRoot(settings));
 	}
 
 	/** An empty relative path denotes the root directory. Symlink entries are not followed. */

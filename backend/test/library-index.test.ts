@@ -1,11 +1,12 @@
 import { join } from "node:path";
 import { expect, test } from "vitest";
+import { LibraryIndex } from "../src/library/index.js";
 import type {
 	DirectoryEntry,
 	FileEntry,
 	LibraryEntry,
-} from "../src/contracts/library.js";
-import { createResourceId, LibraryIndex } from "../src/library/index.js";
+} from "../src/library/model.js";
+import { createResourceId } from "../src/library/model.js";
 
 const root: DirectoryEntry = {
 	kind: "directory",

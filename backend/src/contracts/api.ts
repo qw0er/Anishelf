@@ -1,15 +1,27 @@
 import type { ErrorCode } from "../errors.js";
 import type { PersistentSettings } from "./config.js";
 import type {
-	DirectoryEntry,
-	FileEntry,
 	LibraryIssue,
+	ResourceId,
 	ScanState,
+	Timestamp,
 } from "./library.js";
 
-// Browsing DTOs exclude internal filesystem paths and index maps.
-export type DirectoryDto = Omit<DirectoryEntry, "relativePath">;
-export type FileDto = Omit<FileEntry, "relativePath">;
+export interface DirectoryDto {
+	kind: "directory";
+	id: ResourceId;
+	parentId: ResourceId | null;
+	name: string;
+}
+export interface FileDto {
+	kind: "file";
+	id: ResourceId;
+	parentId: ResourceId;
+	name: string;
+	sizeBytes: number;
+	modifiedAt: Timestamp;
+	mimeType: string;
+}
 export type ResourceDto = DirectoryDto | FileDto;
 
 export interface LibraryResponse {
