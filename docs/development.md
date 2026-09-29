@@ -4,8 +4,9 @@ The backend provides deployment TOML loading, startup validation, module contrac
 persistent JSON settings, Pino logging, a Fastify HTTP application skeleton,
 resource access, an in-memory index, and a manual scanner.
 The entry point loads configuration and listens on the configured loopback address.
-Health and library browsing endpoints are implemented. Playback and production
-UI asset serving follow in later modules.
+Health, library browsing, file metadata, and media delivery endpoints are
+implemented. The frontend player and production UI asset serving follow in later
+modules. Browser codec compatibility has not yet been certified.
 
 Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 `npm ci`.
@@ -179,7 +180,7 @@ HTTP server, not the synchronous Pino destination.
 ## Resource access
 
 `ResourceAccess` in `backend/src/resources/access.ts` provides the shared read-only
-filesystem policy for scanning and future media delivery. Create it with
+filesystem policy for scanning and media delivery. Create it with
 `await ResourceAccess.create(persistentConfig.settings)`. Creation resolves and
 checks the resource root; an unavailable root raises `RESOURCE_ROOT_UNAVAILABLE`.
 Create a new instance after changing the root configuration.
@@ -206,7 +207,8 @@ read failures use `RESOURCE_UNREADABLE`, and policy violations use
 
 These checks reduce replacement races; they do not guarantee confinement against
 hostile concurrent directory replacement. V1 assumes the local user controls the
-media tree. Browsing endpoints query the index; media delivery follows later.
+media tree. Browsing endpoints query the index; file metadata and media endpoints
+recheck current filesystem access.
 
 ## In-memory library index
 
@@ -308,6 +310,41 @@ directory again. A deleted directory returns 404 after publication, allowing the
 client to return to `root`. HTTP tests cover temporary real filesystem trees,
 concurrent scans, repeat/add/remove scans, navigation, root recovery, failed and
 partial scans, request validation, safe errors, and scanner cleanup.
+
+## File metadata and media delivery
+
+After scanning, use a file ID from a directory listing to request
+`GET /api/files/:id`. It returns `{ file, playbackUrl }`; `file` contains the same
+public fields as a directory file entry, with size, modification time, and MIME
+type refreshed from the currently opened file. Internal filesystem paths are
+omitted. The relative, same-origin `playbackUrl` is `/api/media/:id` and can be
+assigned directly to a video element's `src`. It does not certify that the browser
+supports the file's codecs. No conversion or codec probing is performed.
+
+`GET /api/media/:id` streams from a read-only file handle without loading the full
+file into memory. Full responses use `200`; satisfiable single byte ranges use
+`206` with `Content-Range` and the selected `Content-Length`. Open-ended and suffix
+ranges are supported. Unsatisfiable ranges return an empty `416` response with
+`Content-Range: bytes */<size>`. Malformed and multipart ranges are ignored, as is
+Range when `If-Range` is present without a verifiable validator.
+
+`HEAD /api/media/:id` returns full-file headers without a body and ignores Range.
+Media responses include the extension-mapped `Content-Type`, `Accept-Ranges:
+bytes`, and `Cache-Control: no-store`; metadata responses also disable caching.
+Empty files return an empty `200` for full requests and `416` for valid ranges.
+Handles are released on metadata checks, HEAD, range rejection, completed
+streams, and client disconnects. Stream errors are logged; Fastify terminates
+already-started responses rather than appending JSON to media bytes.
+
+Both routes validate opaque IDs and use the existing root confinement policy.
+Unknown IDs or directory IDs return `404 RESOURCE_NOT_FOUND`; deleted indexed
+files return `404 RESOURCE_MISSING`; unreadable files and symlink replacements
+return `403`. An unavailable resource root returns `503`. These checks are made
+again for media requests because a file may change after its URL is obtained.
+HTTP tests cover response bytes and headers, ranges, special-character filenames,
+current metadata, safe errors, and handle cleanup including a real HTTP disconnect.
+Real browser playback and codec compatibility still require representative media
+acceptance samples.
 
 ## Frontend API client
 

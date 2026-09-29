@@ -4,6 +4,7 @@ import type { Logger } from "pino";
 import type { DeploymentConfig } from "../contracts/config.js";
 import { apiError, classifyHttpError } from "./errors.js";
 import { type LibraryRoutesOptions, registerLibraryRoutes } from "./library.js";
+import { registerMediaRoutes } from "./media.js";
 import { checkRequestOrigin } from "./security.js";
 
 export function createHttpApp(options: {
@@ -53,6 +54,9 @@ export function createHttpApp(options: {
 		},
 		async () => ({ status: "ok" }),
 	);
-	if (options.library) registerLibraryRoutes(app, options.library);
+	if (options.library) {
+		registerLibraryRoutes(app, options.library);
+		registerMediaRoutes(app, options.library);
+	}
 	return app;
 }
