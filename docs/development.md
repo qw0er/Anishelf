@@ -113,7 +113,7 @@ ensures the file's parent directory exists. Pino handles opening and writing to
 the destination. There is no custom file-descriptor management or error listener.
 
 Asynchronous logging, rotation, retention, file reopening, signal handling, and automatic output
-fallback are deferred to [Future Requirements](future-requirements.md#logging-maintenance-o11o13).
+fallback are deferred to [Overall Requirements](requirements.md#logging-maintenance-o11o13).
 
 Biome respects `.gitignore` through `biome.json`; dependencies and build outputs
 are excluded. `npm run biome:fix` does not apply unsafe fixes.
@@ -546,7 +546,7 @@ npx shadcn@latest add button --cwd web
 The Vite welcome page, counter, sample logos, hero image, icon sprite, and
 `App.css` have been removed. The current page is the functional test UI described
 above. The active UI, client error messages, and browser metadata use English.
-Localization is deferred to [O14 in Future Requirements](future-requirements.md#interface-localization-o14).
+Localization is deferred to [O14 in Overall Requirements](requirements.md#interface-localization-o14).
 `web/public/favicon.svg` is the flat television-on-a-shelf application icon used
 in the browser tab; it contains editable vector shapes and no external
 images, fonts, gradients, or scripts.

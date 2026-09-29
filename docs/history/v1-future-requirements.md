@@ -1,4 +1,5 @@
 # Anishelf Future Requirements
+**Historical V1 snapshot. Source:** commit `45962af7675ff904c5b62c00dafea9d104d01422` (`Bump version`), original path `docs/future-requirements.md`. Original wording and version/status statements are preserved; only relative document links are adjusted for this archive. The [version index](../historical-design.md) links current and historical records.
 
 ## 1. Product Goal and Document Scope
 
@@ -8,7 +9,7 @@ Anishelf is a personal animation media library intended to connect:
 
 Its core value is better Web playback, shared client state, and coordination between tracking and automatic downloading.
 
-This document contains only capabilities deferred beyond the active release. [Current Version Requirements](current-version-requirements.md) defines the current scope, presently V1. Together, the two documents cover the current product direction without duplicating active requirements. Future features are not all committed; subsequent releases should follow actual usage needs. Move selected requirements into the current-version document when planning a new release.
+This document contains only capabilities deferred beyond the active release. [Current Version Requirements](v1-requirements.md) defines the current scope, presently V1. Together, the two documents cover the current product direction without duplicating active requirements. Future features are not all committed; subsequent releases should follow actual usage needs. Move selected requirements into the current-version document when planning a new release.
 
 ## 2. Future Feature Inventory
 

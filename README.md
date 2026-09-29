@@ -2,7 +2,7 @@
 
 Anishelf is a personal animation library browser and player. Configure an existing server-side media directory, scan it manually, browse the actual directory hierarchy, and play files in a browser.
 
-V1 supports one resource root, recursive manual scanning, natural sorting, native playback controls, and failure feedback. Original media is read-only. Scanning includes `.mp4`, `.m4v`, `.webm`, and `.mkv`, case-insensitively; playback depends on the browser and media codecs. Subtitles, transcoding, playback history, accounts, and download management are deferred.
+V1 supports one resource root, recursive manual scanning, natural sorting, native playback controls, and failure feedback. Original media is read-only. Scanning includes `.mp4`, `.m4v`, `.webm`, and `.mkv`, case-insensitively; playback depends on the browser and media codecs. V2 plans an ArtPlayer-based Web player, saved progress and resume, external VTT/SRT/ASS/SSA subtitles and embedded subtitle extraction, FFmpeg pre-transcoding and real-time transcoding of necessary streams only, optional local desktop player launch, and a complete everyday-use interface. Web playback remains the default and primary experience. V2 keeps user settings in `settings.json`, adds SQLite + Drizzle for records/cache metadata, and discovers FFmpeg/FFprobe from PATH unless optional paths are configured. These additions are not yet implemented. Accounts and download management remain unassigned.
 
 ## Requirements
 
@@ -153,9 +153,10 @@ npm run check   # Biome, type checks, backend and frontend tests
 npm run lint    # Biome lint
 ```
 
-- [V1 requirements and acceptance criteria](docs/current-version-requirements.md)
-- [Overall design](docs/current-version-design.md)
+- [Current requirements overview](docs/current-version-requirements.md)
+- [Current architecture and module overview](docs/current-version-design.md)
+- [Version details and historical designs](docs/historical-design.md)
 - [Development, configuration, and API details](docs/development.md)
-- [Future requirements](docs/future-requirements.md)
+- [Overall requirements](docs/requirements.md)
 
 The user has reported completing manual browser acceptance. Automated tests cover configuration, scanning, navigation, media delivery, access boundaries, frontend interactions, and development-only page hosting. Actual media decoding is validated by manual browser acceptance.

@@ -1,97 +1,108 @@
 # Anishelf Current Version Requirements
 
-**Current version: V1.**
+**Active iteration: V2 (planned, not implemented). Latest implemented version: V1.**
 
-Architecture and implementation decisions are described in [Current Version — Overall Design](current-version-design.md).
+This overview keeps the complete release scope, feature inventory, quality boundaries and acceptance coverage visible together. Detailed behavior and all individual acceptance scenarios are retained in the [V2 requirements record](history/v2-requirements.md). The [current design](current-version-design.md) explains the architecture, and the [overall requirements](requirements.md) lists the complete product roadmap.
 
-This document defines the active release scope. Deferred capabilities are maintained in [Future Requirements](future-requirements.md). Together, these two documents form the requirements set; when planning a new version, move selected requirements here and update the version label.
+“Implemented in” means acceptance passed; “Target version” means planned delivery. V1 completion and manual browser acceptance are user-reported. V2 stays planned until its criteria pass. Maintain stable feature IDs, inherited behavior, partial-delivery boundaries and release history across iterations.
 
-## 1. Goal
+## 1. Goal and Operating Scope
 
-Allow the user to browse existing animation files on the server through a Web interface and select a file to play.
+Extend the existing file browser into an everyday Web viewing workflow:
 
-Core workflow: **configure an existing resource directory → scan manually → browse directories and files → play in the browser**.
+**configure a resource directory → scan manually → select a file → play directly, use a prepared copy, or transcode in real time as needed → select subtitles → watch → save progress → return and resume**, with an option to generate and copy a media link for opening manually in an external player.
 
-This release validates resource access and playback. It does not require online anime metadata, episode mapping, tracking records, or a download workflow. The user supplies the existing files.
+- Web playback is the default and primary experience. Selecting a file or continue-watching entry opens the Web player. Generating a transferable media link is a secondary action; invoking a player from the browser is deferred.
+- Personal use, one server, one resource root with nested directories, and one active playback session.
+- Keep original media read-only. Store viewing records, extracted/converted subtitles, and prepared copies separately from the resource root.
+- Retain local/loopback operation and the existing deployment boundary. LAN authentication, public deployment, and client coordination remain unassigned.
+- Use English for UI, user-facing messages, and documentation; preserve original filenames.
+- Choose and record the target desktop browser/version and representative real media samples for V2 acceptance. File extensions alone do not prove compatibility.
+- Continue using directories and files as organizational and playback units. Anime identification and episode associations are not prerequisites.
 
-## 2. Operating Scope
+## 2. Complete Feature Inventory
 
-- Personal use, one server, and one resource root with nested directories.
-- Read-only access to original media: no uploading, moving, renaming, or deleting files.
-- Acceptance testing covers local use and one explicitly selected desktop browser. Listen on localhost by default; LAN access and authentication are later extensions.
-- Validate one active playback session; client coordination is outside this release.
-- Configure the resource directory through a simple UI form. A missing persistent settings file must allow startup; the application generates it on the first successful save. A multi-step setup wizard is not required.
-- Use English for application UI, messages, and metadata. Localization is deferred to O14 in the future requirements. Preserve original resource filenames.
+| ID | Requirement | Iteration scope | Implemented in | Target version |
+| --- | --- | --- | --- | --- |
+| V01 | Resource directory configuration | Configure and persist one root; allow startup before setup; expose existence/readability errors | V1 | V1 |
+| V02 | Manual scanning | Recursively discover supported video extensions; avoid duplicate paths; reflect additions/removals | V1 | V1 |
+| V03 | Resource browsing | Actual hierarchy, original names, stable natural sorting, and parent navigation | V1 | V1 |
+| V04 | Web playback | Stream original compatible files without downloading the whole file first; support seeking | V1 | V1 |
+| V05 | Basic playback controls | Play, pause, seek, volume, fullscreen, and return to the original directory | V1 | V1 |
+| V06 | Failure feedback | Distinguish missing/unreadable resources and unsupported media or playback failures | V1 | V1 |
+| W01 | Saved progress and resume | Persist position, duration, and last viewing time on the server; restore position when reopening a file | — | V2 |
+| W02 | Continue watching | Show available files with saved unfinished progress and open them for resume | — | V2 |
+| P03 | External subtitles | ArtPlayer VTT/SRT/ASS/SSA discovery, selection and off | — | V2 |
+| P08 | Embedded subtitle extraction | FFmpeg extraction from MKV/other containers; text tracks, fonts and supported bitmap assets; other formats unassigned | — | V2 (partial) |
+| P09 | Styled subtitles and fonts | ASS/SSA rendering and extracted fonts; bitmap Web rendering remains unassigned | — | V2 (partial) |
+| P05 | Playback strategy | Use original compatible media; choose the required preparation path for the target browser | — | V2 |
+| P06 | Container-only preparation | Remux compatible audio/video when only the container is incompatible | — | V2 |
+| P07 | FFmpeg pre-transcoding and real-time transcoding | Necessary streams only; reusable completed copies or segmented playback during processing; seeking, cleanup and recovery | — | V2 |
+| C01 | External-player media link | Generate and copy a client-reachable original-media URL for the user to paste into a player | — | V2 |
+| C02 | Browser invocation of an external player | Ask the browser/OS to open a player protocol or otherwise invoke a native player | — | Later |
+| C03 | External-player state reading | Read position, playing/paused state and playback end when a future integration exposes them | — | Later |
+| O14 | Multilingual foundation | English message catalog, stable keys and fallback; translated locales/selector deferred | — | V2 (partial) |
+| O17 | External configuration | Separate default files and unified validated access | — | V2 |
+| O16 | Complete everyday-use Web interface | Finished application navigation, resource browsing, continue watching, Web player, preparation feedback, and V2 settings with responsive and accessible states | — | V2 |
 
-## 3. Minimum Feature List
+External configuration covers supported containers/MIME mappings, target transcode formats/profiles, subtitle policy and runtime limits in separate default files accessed through one layer. Multilingual readiness keeps English message resources and stable keys; future program titles, aliases and descriptions retain language tags and original language independently of IDs. [Expanded configuration and multilingual requirements](history/v2-requirements.md#external-configuration-and-multilingual-foundation-o17-partial-o14).
 
-| ID | Feature | Current requirement |
+## 3. Viewing Workflow and Interface
+
+Web viewing follows three paths: play a compatible original, prepare and reuse a completed Web copy, or process only incompatible streams while watching. Compatible streams are copied, and subtitles are handled independently. Progress and subtitle timing follow the original source across all three paths. The secondary external-player action generates and copies an original-media URL for manual opening.
+
+| Area | Complete experience |
+| --- | --- |
+| Application shell | Library, Media tasks and Settings; clear navigation, current location and return context |
+| Library | Real directory hierarchy, natural sorting, original filenames, manual scan/status, continue watching and recent viewing |
+| Web player | ArtPlayer controls, resume/start over, subtitles/off, direct/prepared/real-time status and processing reasons, return to directory |
+| Media tasks | Preparation and real-time states, useful progress/error feedback, retry/cancel/stop, play ready copy and delete cached copy |
+| Settings | Resource root, Web playback preference and cache budget; validated saves and useful feedback |
+| External-player link | Generate/copy a client-reachable original-media URL with selectable-text fallback |
+| All screens | Finished English UI, responsive desktop/mobile layouts, keyboard access, visible focus, long/CJK filenames, and loading/empty/error/retry states |
+
+[Detailed workflows, processing branches, subtitles and interface rules](history/v2-requirements.md#2-requirements-and-implementation-versions) retain the complete behavior; [interface acceptance](history/v2-requirements.md#3-complete-web-interface-o16) covers 1280 px and 390 px layouts and real API-backed actions.
+
+## 4. Acceptance Coverage
+
+V2 must pass all retained V1 scenarios and all planned V2 scenarios. This table covers every acceptance ID; the [version record](history/v2-requirements.md#4-acceptance-criteria-and-versions) retains each scenario and its exact passing result.
+
+| Coverage | Acceptance IDs | Required outcome |
 | --- | --- | --- |
-| V01 | Resource directory configuration | Configure and persist one server-accessible root through the UI; allow startup before setup; check existence and readability on startup or scan and expose errors |
-| V02 | Manual scanning | Recursively discover agreed video file types; repeated scans do not duplicate paths; rescanning reflects additions and removals |
-| V03 | Resource browsing | Show the actual directory hierarchy and original filenames with stable natural sorting; support parent-directory navigation |
-| V04 | Web playback | Open a selected file in the player and serve its media from the server without requiring a full download before playback |
-| V05 | Basic playback controls | Play, pause, seek, volume, fullscreen, and return to the original directory |
-| V06 | Failure feedback | Distinguish missing files, unreadable files, and unsupported media or playback failures; provide understandable feedback |
+| Inherited configuration, scans, browsing, streaming, controls, errors and confinement | A01–A07 | Preserve the implemented V1 foundation |
+| History, resume, lists and update ordering | A08–A10 | Durable source-scoped progress without stale updates or accidental resets |
+| External/embedded/styled subtitles and fonts | A11–A12, A24 | Selection, styling and timing work within declared format boundaries |
+| Preparation and real-time playback | A13–A15, A22–A23 | Minimum necessary processing, source-time seeking, reuse, cleanup and restart recovery |
+| External-player media links | A16–A18 | Correct reachable URL, copy/selectable fallback, safe access and unchanged Web history |
+| Complete Web interface | A19–A21 | Web-first actions, finished workflows, responsive and accessible presentation |
+| Tool discovery and persistence | A25–A26 | Optional PATH discovery, safe durable storage and asset reconciliation |
+| Unified external configuration | A27 | Defaults, validation, custom-value preservation and profile-sensitive cache reuse |
+| Multilingual foundation | A28 | English message keys/fallback and language-independent identity contracts |
 
-Directories are the organizational unit and files are the playback unit. Anime identification, manual title linking, episode parsing, posters, and detail pages are unnecessary. Natural sorting helps users select files whose names contain episode numbers.
+Record actual browser/OS/tool versions and representative media before acceptance. Automated transport/UI checks do not certify decoding. Update implemented-version fields in both requirement documents only after acceptance, including partial P08/P09 and O14 boundaries.
 
-## 4. Playback Compatibility Boundary
+## 5. Essential Quality Requirements
 
-Version 1 starts with browser direct playback. **Server-side transcoding and remuxing are not required for this release.**
+- Preserve V1 root confinement, bounded media streams, seeking, atomic scan publication, persistent settings, and read-only originals.
+- Persist progress durably without requiring the in-memory index to survive restart; do not mix viewing records into rebuildable scan state.
+- Restrict generated-asset access to known cache entries. Separate writable application data/cache from original media and frontend static assets.
+- Bound shared pre-transcode/real-time concurrency and clean up children, leases and partial output during failure/shutdown.
+- External-player support in V2 generates a transferable media URL only. Browser/OS invocation (C02) and native-state reading (C03) remain later requirements.
+- External services and unassigned integrations must not become playback dependencies.
+- FFmpeg/FFprobe executable overrides are optional; default discovery uses the server process PATH. Missing tools disable dependent features with actionable feedback.
+- Keep user preferences in settings.json and administrator policy in separate configuration files accessed through the unified layer. Use SQLite through Drizzle ORM for application records and cache metadata; store media/subtitle/font payloads as files. Cache cleanup must not erase durable viewing records or user settings.
 
-Manual on-demand preparation of reusable Web-compatible copies is assigned to a later release; see [On-demand Web Preparation](future-requirements.md#on-demand-web-preparation-p05p07).
+## 6. Deferred Product Scope
 
-- Select the target browser and version before implementation, then collect representative files from the user's existing library.
-- MP4 with H.264 video and AAC audio is the initial validation candidate. Actual browser and file testing determines support; an extension alone does not guarantee playback.
-- Document the file types included in scanning. Discovery does not imply that the browser supports the contained codecs.
-- Subtitle discovery, loading, rendering, selection, and controls are outside this release, including external WebVTT. Subtitles already burned into the video image require no separate support. Audio-track selection is also deferred.
-- If files such as MKV or HEVC media cannot play directly in the target browser, display an unsupported-media message. Do not automatically convert them or launch an external player.
+C02 browser invocation and C03 external-player state reading are later requirements. Other deferred items remain in the [Overall Requirements](requirements.md): anime metadata/episode mapping, next-episode automation, watched markers/tracking statuses, subscriptions/RSS, qBittorrent ingestion, external trackers, remote control/saved-position handoff, multi-client coordination, automatic scans, file management, dedicated original downloads, additional locale packs/language selection, and frontend query-library migration. Bitmap subtitle Web rendering/OCR/burn-in, unsupported extraction formats, hardware acceleration and HDR guarantees remain unassigned.
 
-**Scope validation prerequisite:** check whether representative files from the user's actual library can play directly. If the primary library requires conversion, this minimum release validates infrastructure but does not yet satisfy everyday viewing needs. In that case, explicitly revise the scope to add only the compatibility path required by those samples, rather than expanding into general format support.
+## 7. Release History and Document Navigation
 
-## 5. Minimum Interface
-
-Only two screens are required:
-
-1. **Resource browser:** current directory, subdirectories and files, scan action, scan status, and errors.
-2. **Player:** filename, video player, back action, and playback errors.
-
-A dashboard, anime detail page, task center, tracking page, and integration settings are outside this release.
-
-## 6. Explicit Exclusions
-
-- Online metadata search, cover fetching, anime recognition, and episode mapping.
-- Persistent playback progress, resume playback, watched markers, a continue-watching list, and automatic next-episode playback.
-- Tracking status, subscriptions, RSS, resource search, download clients, and automatic ingestion.
-- A dedicated Web action to download existing library files to the user's device; media delivery for playback remains included.
-- AniList accounts or other external synchronization.
-- Desktop player bridges, remote control, cross-client handoff, and native apps.
-- Server-side transcoding, remuxing, all subtitle support, audio-track selection, and universal format support.
-- Multiple users, multiple libraries, public access, file management, and automatic filesystem monitoring.
-
-These belong to [Future Requirements](future-requirements.md) and must not become hidden Version 1 dependencies.
-
-## 7. Acceptance Criteria
-
-| ID | Scenario | Passing result |
+| Version | State | Delivered or planned scope |
 | --- | --- | --- |
-| A01 | Configure and scan a directory containing nested folders and video files | The Web interface shows the hierarchy and allows navigation |
-| A02 | Repeat a scan, then add or remove a file and rescan | No duplicate entries; the listing reflects the changes |
-| A03 | Select a validated supported sample | Playback starts in the target browser with working audio and video before the entire file is downloaded |
-| A04 | Pause, resume, seek to an unplayed position, adjust volume, and enter fullscreen | Controls work and playback resumes from the requested position |
-| A05 | Use an unreadable directory, remove a file after scanning, or open unplayable media | An appropriate error appears; the interface remains usable and allows returning to the listing |
-| A06 | Exit the player | The original directory is restored and another file can be selected |
-| A07 | Use paths containing Chinese characters and spaces, then attempt to access a file outside the configured root | Valid resources play; outside-root access is rejected, including escapes through symbolic links |
+| V1 | Implemented; manual browser acceptance user-reported | V01–V06 and A01–A07: configuration, manual scans, browsing, direct playback, controls, and failure feedback |
+| V2 | Active plan; not implemented | W01–W02, P03, partial P08/P09, P05–P07 (including real-time transcoding), C01, partial O14, O16–O17, and A08–A28 |
 
-Record the browser version and media codecs for the acceptance samples. Passing these scenarios completes Version 1 without waiting for future features.
+For each subsequent iteration, preserve this history, advance the active-version label, retain first implementation versions on inherited requirements, and add explicit target versions and acceptance criteria for newly selected requirements.
 
-## 8. Essential Quality Requirements
-
-- Scanning and playback never modify original media.
-- Media access is restricted to the configured root; endpoints cannot read arbitrary system paths.
-- Scanning exposes running and completion states; an error does not make the resource browser unusable.
-- Media delivery supports the partial reads required for seeking and does not load an entire video into server memory.
-- Persist the resource-directory configuration. The file index may be rebuilt on startup; a comprehensive database model for future features is unnecessary.
-
-Language, framework, and database choices are not prescribed by this document.
+Use this page for the overall release picture. Expand the [V2 requirements record](history/v2-requirements.md) for exact rules and scenarios, the [V2 design record](history/v2-design.md) for technical details, and [version/historical documentation](historical-design.md) for previous decisions. When requirements change during V2, update both the overview and the corresponding detailed rule; preserve version records when selecting the next release.
