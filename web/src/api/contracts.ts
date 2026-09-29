@@ -4,6 +4,7 @@ export type {
 	DirectoryDto,
 	DirectoryResponse,
 	FileDto,
+	FileResponse,
 	LibraryResponse,
 	ResourceDto,
 	ScanResponse,

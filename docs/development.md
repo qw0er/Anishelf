@@ -349,10 +349,14 @@ acceptance samples.
 ## Frontend API client
 
 `web/src/api/client.ts` directly exports `getLibrary(options?)`,
-`startScan(options?)`, and `getDirectory(id, options?)`, each returning the
+`startScan(options?)`, `getDirectory(id, options?)`, and `getFile(id, options?)`, each returning the
 corresponding typed response. IDs are URL-encoded. Requests use same-origin `/api`
 paths, same-origin credentials, and `cache: "no-store"` so polling and directory
 refreshes do not reuse stale browser cache entries. Scan requests send no body.
+
+`getFile` returns `{ file, playbackUrl }` after the backend checks current file
+accessibility. Assign `playbackUrl` directly to the video element's `src`; the
+JSON client does not fetch media bytes.
 
 `web/src/api/contracts.ts` re-exports the existing backend contracts with
 `export type` from the npm workspace package subpaths

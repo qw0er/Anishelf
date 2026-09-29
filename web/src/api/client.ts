@@ -1,6 +1,7 @@
 import type {
 	ApiErrorResponse,
 	DirectoryResponse,
+	FileResponse,
 	LibraryResponse,
 	ResourceId,
 	ScanResponse,
@@ -146,6 +147,17 @@ export function getDirectory(
 ): Promise<DirectoryResponse> {
 	return request<DirectoryResponse>(
 		`/api/directories/${encodeURIComponent(id)}`,
+		"GET",
+		options,
+	);
+}
+
+export function getFile(
+	id: ResourceId,
+	options?: RequestOptions,
+): Promise<FileResponse> {
+	return request<FileResponse>(
+		`/api/files/${encodeURIComponent(id)}`,
 		"GET",
 		options,
 	);
