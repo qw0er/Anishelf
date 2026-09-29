@@ -17,8 +17,14 @@ try {
 	const persistentConfig = await PersistentConfiguration.load(config.dataDir);
 	const libraryError = await checkResourceRoot(persistentConfig.settings);
 	if (libraryError) {
-		logging.logger.warn(
-			{ event: "library.root_unavailable", ...libraryError },
+		const setupRequired = libraryError.code === "RESOURCE_ROOT_NOT_CONFIGURED";
+		logging.logger[setupRequired ? "info" : "warn"](
+			{
+				event: setupRequired
+					? "library.setup_required"
+					: "library.root_unavailable",
+				...libraryError,
+			},
 			libraryError.message,
 		);
 	}
@@ -30,6 +36,7 @@ try {
 		config,
 		logger,
 		library: { index, scanner, settings },
+		configuration: persistentConfig,
 		development: process.env.NODE_ENV === "development",
 	});
 	app = server;

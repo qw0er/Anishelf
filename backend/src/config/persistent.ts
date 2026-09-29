@@ -51,6 +51,7 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 			);
 	}
 	const root = settings.resourceRoot;
+	if (root === null) return { resourceRoot: null };
 	if (
 		typeof root !== "string" ||
 		root.trim() === "" ||
@@ -73,7 +74,7 @@ function contains(parent: string, child: string): boolean {
 	);
 }
 
-/** Read-only; missing settings require the user to supply the resource root. */
+/** Missing settings enter setup mode; the first UI save creates the file. */
 async function loadPersistentSettings(
 	dataDir: string,
 ): Promise<PersistentSettings> {
@@ -81,14 +82,17 @@ async function loadPersistentSettings(
 	let source: string;
 	try {
 		source = await readFile(path, "utf8");
-	} catch {
+	} catch (cause) {
+		if ((cause as NodeJS.ErrnoException).code === "ENOENT")
+			return { resourceRoot: null };
 		throw new DomainError(
 			"CONFIG_INVALID",
-			`Cannot read ${path}. Create a readable settings.json containing an absolute resourceRoot.`,
+			`Cannot read ${path}. Check the file permissions.`,
 		);
 	}
 	const settings = parsePersistentSettings(source);
-	await checkDirectorySeparation(dataDir, settings.resourceRoot);
+	if (settings.resourceRoot !== null)
+		await checkDirectorySeparation(dataDir, settings.resourceRoot);
 	return settings;
 }
 
@@ -156,7 +160,8 @@ export class PersistentConfiguration {
 			return Promise.reject(error);
 		}
 		const result = this.pendingWrite.then(async () => {
-			await checkDirectorySeparation(this.dataDir, next.resourceRoot);
+			if (next.resourceRoot !== null)
+				await checkDirectorySeparation(this.dataDir, next.resourceRoot);
 			await writePersistentSettings(this.dataDir, next);
 			this.current = next;
 			return this.settings;
@@ -197,6 +202,11 @@ async function writePersistentSettings(
 export async function checkResourceRoot(
 	settings: PersistentSettings,
 ): Promise<LibraryIssue | null> {
+	if (settings.resourceRoot === null)
+		return {
+			code: "RESOURCE_ROOT_NOT_CONFIGURED",
+			message: "Set a resource directory to start using the library.",
+		};
 	try {
 		if (!(await stat(settings.resourceRoot)).isDirectory())
 			throw new Error("Not a directory");

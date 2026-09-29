@@ -37,6 +37,7 @@ export class LibraryScanner {
 	private active: Promise<void> | undefined;
 	private controller: AbortController | undefined;
 	private closed = false;
+	private updatingSettings = false;
 	private readonly logger: Logger;
 
 	constructor(
@@ -55,6 +56,8 @@ export class LibraryScanner {
 
 	/** Returns immediately; another start during a scan reuses its ID and progress. */
 	start(): ScanState {
+		if (this.updatingSettings)
+			throw new DomainError("SETTINGS_BUSY", "Settings are being saved.");
 		if (this.closed)
 			throw new DomainError("SCAN_FAILED", "The scanner is shutting down.");
 		if (this.active && this.latest) return copyState(this.latest);
@@ -84,6 +87,26 @@ export class LibraryScanner {
 		return this.state;
 	}
 
+	/** Serialize settings changes against scans and discard the old root's snapshot. */
+	async updateSettings(
+		save: () => Promise<Readonly<PersistentSettings>>,
+	): Promise<Readonly<PersistentSettings>> {
+		if (this.active || this.updatingSettings || this.closed)
+			throw new DomainError("SETTINGS_BUSY", "The library is busy.");
+		this.updatingSettings = true;
+		const previousRoot = this.options.settings().resourceRoot;
+		try {
+			const settings = await save();
+			if (settings.resourceRoot !== previousRoot) {
+				this.options.index.reset();
+				this.latest = null;
+			}
+			return settings;
+		} finally {
+			this.updatingSettings = false;
+		}
+	}
+
 	/** Stop scheduling work and wait for outstanding filesystem operations to settle. */
 	async cancel(): Promise<void> {
 		this.controller?.abort();
@@ -109,7 +132,7 @@ export class LibraryScanner {
 				kind: "directory",
 				id: "root",
 				parentId: null,
-				name: basename(settings.resourceRoot) || "root",
+				name: basename(settings.resourceRoot ?? "") || "root",
 				relativePath: "",
 			};
 			const entries: LibraryEntry[] = [];

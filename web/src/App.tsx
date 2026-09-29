@@ -9,6 +9,7 @@ import {
 	useNavigation,
 	useRevalidator,
 } from "react-router";
+import ResourceSettings from "./components/resource-settings.js";
 import type { libraryLoader, scanAction } from "./routes/loaders.js";
 
 export interface LibraryContext {
@@ -17,8 +18,11 @@ export interface LibraryContext {
 }
 
 function App() {
-	const { library, error: libraryError } =
-		useLoaderData<typeof libraryLoader>();
+	const {
+		library,
+		settings,
+		error: libraryError,
+	} = useLoaderData<typeof libraryLoader>();
 	const scanFetcher = useFetcher<typeof scanAction>();
 	const { revalidate, state: revalidationState } = useRevalidator();
 	const navigation = useNavigation();
@@ -43,6 +47,13 @@ function App() {
 	return (
 		<main className="space-y-4 p-4">
 			<h1 className="text-2xl font-semibold">Anishelf</h1>
+			{settings && (
+				<ResourceSettings
+					key={settings.resourceRoot}
+					settings={settings}
+					disabled={scanning || scanPending}
+				/>
+			)}
 			<div className="flex gap-2">
 				<scanFetcher.Form method="post" action="/">
 					<button

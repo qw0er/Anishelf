@@ -5,6 +5,8 @@ import type {
 	LibraryResponse,
 	ResourceId,
 	ScanResponse,
+	SettingsResponse,
+	UpdateSettingsRequest,
 } from "./contracts.js";
 
 export type ApiClientErrorKind = "http" | "network" | "invalid_response";
@@ -72,15 +74,20 @@ function isApiError(value: unknown): value is PublicApiError {
 /** Uses same-origin /api URLs through the Vite proxy or production server. */
 async function request<T>(
 	path: string,
-	method: "GET" | "POST",
+	method: "GET" | "POST" | "PUT",
 	{ signal }: RequestOptions = {},
+	payload?: UpdateSettingsRequest,
 ): Promise<T> {
 	throwIfCancelled(signal);
 	let response: Response;
 	try {
 		response = await fetch(path, {
 			method,
-			headers: { Accept: "application/json" },
+			headers: {
+				Accept: "application/json",
+				...(payload ? { "Content-Type": "application/json" } : {}),
+			},
+			...(payload ? { body: JSON.stringify(payload) } : {}),
 			credentials: "same-origin",
 			cache: "no-store",
 			...(signal ? { signal } : {}),
@@ -135,6 +142,19 @@ async function request<T>(
 
 export function getLibrary(options?: RequestOptions): Promise<LibraryResponse> {
 	return request<LibraryResponse>("/api/library", "GET", options);
+}
+
+export function getSettings(
+	options?: RequestOptions,
+): Promise<SettingsResponse> {
+	return request<SettingsResponse>("/api/settings", "GET", options);
+}
+
+export function saveSettings(
+	settings: UpdateSettingsRequest,
+	options?: RequestOptions,
+): Promise<SettingsResponse> {
+	return request<SettingsResponse>("/api/settings", "PUT", options, settings);
 }
 
 export function startScan(options?: RequestOptions): Promise<ScanResponse> {

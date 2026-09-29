@@ -20,14 +20,14 @@ This release validates resource access and playback. It does not require online 
 - Read-only access to original media: no uploading, moving, renaming, or deleting files.
 - Acceptance testing covers local use and one explicitly selected desktop browser. Listen on localhost by default; LAN access and authentication are later extensions.
 - Validate one active playback session; client coordination is outside this release.
-- A configuration file is sufficient for the resource path. A setup wizard or settings page is not required.
+- Configure the resource directory through a simple UI form. A missing persistent settings file must allow startup; the application generates it on the first successful save. A multi-step setup wizard is not required.
 - Use English for application UI, messages, and metadata. Localization is deferred to O14 in the future requirements. Preserve original resource filenames.
 
 ## 3. Minimum Feature List
 
 | ID | Feature | Current requirement |
 | --- | --- | --- |
-| V01 | Resource directory configuration | Configure one server-accessible root; check its existence and readability on startup or scan and expose errors |
+| V01 | Resource directory configuration | Configure and persist one server-accessible root through the UI; allow startup before setup; check existence and readability on startup or scan and expose errors |
 | V02 | Manual scanning | Recursively discover agreed video file types; repeated scans do not duplicate paths; rescanning reflects additions and removals |
 | V03 | Resource browsing | Show the actual directory hierarchy and original filenames with stable natural sorting; support parent-directory navigation |
 | V04 | Web playback | Open a selected file in the player and serve its media from the server without requiring a full download before playback |

@@ -21,5 +21,5 @@ export interface DeploymentConfig {
 
 /** Stored in settings.json; deployment parameters never belong here. */
 export interface PersistentSettings {
-	resourceRoot: string;
+	resourceRoot: string | null;
 }

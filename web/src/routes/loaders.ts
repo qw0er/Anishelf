@@ -1,27 +1,58 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import {
+	type ActionFunctionArgs,
+	type LoaderFunctionArgs,
+	redirect,
+} from "react-router";
 import {
 	ApiClientError,
 	getDirectory,
 	getFile,
 	getLibrary,
+	getSettings,
 	isRequestCancelled,
+	saveSettings,
 	startScan,
 } from "../api/client.js";
 
 export async function libraryLoader({ request }: LoaderFunctionArgs) {
 	try {
+		const [library, settings] = await Promise.all([
+			getLibrary({ signal: request.signal }),
+			getSettings({ signal: request.signal }),
+		]);
 		return {
-			library: await getLibrary({ signal: request.signal }),
+			library,
+			settings,
 			error: null,
 		};
 	} catch (error) {
 		if (request.signal.aborted || isRequestCancelled(error)) throw error;
 		return {
 			library: null,
+			settings: null,
 			error:
 				error instanceof ApiClientError
 					? error.message
 					: "Could not load library status.",
+		};
+	}
+}
+
+export async function settingsAction({ request }: ActionFunctionArgs) {
+	const form = await request.formData();
+	const resourceRoot = form.get("resourceRoot");
+	if (typeof resourceRoot !== "string" || resourceRoot.trim() === "")
+		return { error: "Enter an absolute resource directory path." };
+	try {
+		await saveSettings({ resourceRoot }, { signal: request.signal });
+		return redirect("/");
+	} catch (error) {
+		if (request.signal.aborted || isRequestCancelled(error)) throw error;
+		return {
+			error:
+				error instanceof ApiClientError
+					? error.message
+					: "Could not save settings.",
 		};
 	}
 }

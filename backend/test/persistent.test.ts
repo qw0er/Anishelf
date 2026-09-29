@@ -68,11 +68,23 @@ test("loads read-only settings and handles valid paths with spaces and Chinese",
 	expect(await readFile(path, "utf8")).toBe(original);
 });
 
-test("missing settings names the expected location and setting", async () => {
-	await expect(loadPersistentSettings(dataDir)).rejects.toThrow(
-		join(dataDir, "settings.json"),
-	);
-	await expect(loadPersistentSettings(dataDir)).rejects.toThrow("resourceRoot");
+test("missing settings enter setup mode and the first save creates the file", async () => {
+	const manager = await PersistentConfiguration.load(dataDir);
+	expect(manager.settings).toEqual({ resourceRoot: null });
+	expect(await checkResourceRoot(manager.settings)).toMatchObject({
+		code: "RESOURCE_ROOT_NOT_CONFIGURED",
+	});
+	expect(await readdir(dataDir)).toEqual([]);
+	await manager.update({ resourceRoot });
+	expect(
+		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),
+	).toEqual({ resourceRoot });
+	expect(await loadPersistentSettings(dataDir)).toEqual({ resourceRoot });
+});
+
+test("an explicitly unconfigured file survives restart", async () => {
+	await writeFile(join(dataDir, "settings.json"), '{"resourceRoot":null}');
+	expect(await loadPersistentSettings(dataDir)).toEqual({ resourceRoot: null });
 });
 
 test("malformed JSON does not put its contents in diagnostics", () => {

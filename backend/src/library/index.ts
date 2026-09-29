@@ -118,6 +118,23 @@ export class LibraryIndex {
 		return this.current.revision;
 	}
 
+	/** Discard entries belonging to a previous resource root. */
+	reset(): void {
+		this.current = buildSnapshot(
+			[
+				{
+					kind: "directory",
+					id: "root",
+					parentId: null,
+					name: "root",
+					relativePath: "",
+				},
+			],
+			this.current.revision + 1,
+			null,
+		);
+	}
+
 	get scannedAt(): Timestamp | null {
 		return this.current.scannedAt;
 	}

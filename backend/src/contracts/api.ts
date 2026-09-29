@@ -1,4 +1,5 @@
 import type { ErrorCode } from "../errors.js";
+import type { PersistentSettings } from "./config.js";
 import type {
 	DirectoryEntry,
 	FileEntry,
@@ -6,7 +7,7 @@ import type {
 	ScanState,
 } from "./library.js";
 
-// Explicit DTOs exclude internal filesystem paths and index maps.
+// Browsing DTOs exclude internal filesystem paths and index maps.
 export type DirectoryDto = Omit<DirectoryEntry, "relativePath">;
 export type FileDto = Omit<FileEntry, "relativePath">;
 export type ResourceDto = DirectoryDto | FileDto;
@@ -22,6 +23,12 @@ export interface LibraryResponse {
 
 export interface ScanResponse {
 	scan: ScanState;
+}
+
+export type SettingsResponse = PersistentSettings;
+
+export interface UpdateSettingsRequest {
+	resourceRoot: string;
 }
 
 export interface DirectoryResponse {

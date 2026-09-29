@@ -4,9 +4,9 @@ The backend provides deployment TOML loading, startup validation, module contrac
 persistent JSON settings, Pino logging, a Fastify HTTP application skeleton,
 resource access, an in-memory index, and a manual scanner.
 The entry point loads configuration and listens on the configured loopback address.
-Health, library browsing, file metadata, and media delivery endpoints are
-implemented. The frontend player and production UI asset serving follow in later
-modules. Browser codec compatibility has not yet been certified.
+Health, resource settings, library browsing, file metadata, and media delivery endpoints are
+implemented. The frontend includes resource directory setup, browsing, and playback;
+production UI asset serving follows in a later module. Browser codec compatibility has not yet been certified.
 
 Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 `npm ci`.
@@ -80,7 +80,8 @@ Missing/unreadable deployment files, malformed TOML, invalid parameters, and
 unusable dynamic data directories fail startup with exit code 1 and a terminal
 diagnostic. TOML parser source excerpts and error stacks are not printed. The
 loader creates `dataDir` if needed and checks that it is a writable directory;
-it never rewrites the deployment TOML or creates `settings.json`.
+it never rewrites the deployment TOML. The persistent settings manager creates
+`settings.json` when the user first saves a resource directory in the UI.
 
 ## Logging choice
 
@@ -112,7 +113,10 @@ in `logging/index.ts`.
 
 ## Persistent settings
 
-Create `settings.json` inside the deployment `dataDir`:
+Start the backend with `ANISHELF_CONFIG` and start the frontend with `npm run dev:web`
+in another terminal. Open `http://127.0.0.1:5173`, enter the server's absolute media
+directory path in **Resource directory**, and choose **Save directory**. The backend
+creates `settings.json` inside `dataDir` on the first successful save:
 
 ```json
 {
@@ -120,17 +124,28 @@ Create `settings.json` inside the deployment `dataDir`:
 }
 ```
 
-The startup loader reads this file without rewriting it. Missing/unreadable files,
-malformed JSON, unknown fields, and missing/invalid paths fail startup. Deployment
-parameters belong in TOML, not in this JSON. `dataDir` and `resourceRoot` must not
-contain one another; existing symlinks are resolved for this check.
+A missing `settings.json` enters setup mode with `resourceRoot: null`; HTTP remains
+available and scanning is disabled until a directory is configured. No manual JSON
+creation is required. Existing unreadable files, malformed JSON, unknown fields,
+and invalid paths still fail startup without overwriting the file. `null` is the
+explicit unconfigured value. Deployment parameters belong in TOML. `dataDir` and
+`resourceRoot` must not contain one another; existing symlinks are resolved for this
+check.
+
+`GET /api/settings` returns the current `{ resourceRoot: string | null }`.
+`PUT /api/settings` accepts `{ resourceRoot: string }`, validates the absolute path
+and directory separation, and atomically persists it before changing memory.
+Mutations use the same Host/Origin checks as scanning. Invalid input returns 400,
+a scan or another save in progress returns 409, and a disk write failure returns
+500 while retaining the prior settings and index. Changing the root clears the old
+index and scan state; a successful UI save returns to the root page and unloads
+previous media. Choose **Scan library** to discover files in the new directory.
+Saving the same path preserves the existing scan results.
 
 A valid path pointing to a missing, unreadable, or non-directory resource produces
-`RESOURCE_ROOT_UNAVAILABLE` and a warning instead of failing startup. The
-`checkResourceRoot` function can be called again after the directory is repaired.
-Its user-facing error excludes filesystem paths. The HTTP error mapper provides
-the corresponding safe response. Manual file edits require restart; updates through the manager take effect in its
-in-memory settings after the file is saved.
+`RESOURCE_ROOT_UNAVAILABLE`; settings are saved but scanning remains disabled. Fix
+the directory and refresh or update the path in the UI. Manual JSON edits require
+restart; UI updates take effect immediately after a successful save.
 
 `PersistentConfiguration.load(dataDir)` loads the manager. `.settings` returns a
 read-only copy; `await manager.update({ resourceRoot: newPath })` validates and
@@ -141,8 +156,8 @@ Updates are serialized in call order within one manager instance. Use one manage
 per application; cross-process coordination is outside the current scope.
 
 The manager does not monitor manual file edits or automatically rescan the library.
-Resource availability can be rechecked after updates. HTTP/settings UI integration
-will use this interface when those modules are implemented.
+Resource availability can be rechecked after updates. The settings HTTP routes use
+the manager through the scanner coordinator to exclude simultaneous scans and saves.
 
 ## HTTP application skeleton
 
@@ -287,8 +302,10 @@ scan runs at startup. Closing the application also closes and cancels the scanne
 
 | Endpoint | Response |
 | --- | --- |
+| `GET /api/settings` | `200` with `{ resourceRoot: string \| null }` |
+| `PUT /api/settings` | `200` with saved settings; `400` invalid input, `409` busy, `500` write failure |
 | `GET /api/library` | `200` with `ready`, `revision`, `scan`, `error`, and `stale` |
-| `POST /api/library/scan` | `202` with `{ scan }`; unavailable root before scanning returns `503 RESOURCE_ROOT_UNAVAILABLE` |
+| `POST /api/library/scan` | `202` with `{ scan }`; `409` before setup or during save; unavailable root before scanning returns `503 RESOURCE_ROOT_UNAVAILABLE` |
 | `GET /api/directories/:id` | `200` with `{ directory, children }`; unknown or file IDs return `404 RESOURCE_NOT_FOUND` |
 
 `ready` reports current root availability, independently of whether a scan has

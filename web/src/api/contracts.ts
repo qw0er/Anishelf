@@ -8,6 +8,8 @@ export type {
 	LibraryResponse,
 	ResourceDto,
 	ScanResponse,
+	SettingsResponse,
+	UpdateSettingsRequest,
 } from "@anishelf/backend/contracts/api";
 export type {
 	LibraryIssue,

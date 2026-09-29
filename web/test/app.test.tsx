@@ -17,6 +17,7 @@ import type {
 	FileResponse,
 	LibraryResponse,
 	ScanState,
+	SettingsResponse,
 } from "../src/api/contracts.js";
 import { libraryRoute } from "../src/routes/library.js";
 
@@ -52,6 +53,7 @@ const routers: ReturnType<typeof createMemoryRouter>[] = [];
 let library: LibraryResponse;
 let directories: Map<string, DirectoryResponse>;
 let fileError: boolean;
+let settings: SettingsResponse;
 
 function json(value: unknown, status = 200) {
 	return new Response(JSON.stringify(value), {
@@ -102,9 +104,26 @@ beforeEach(() => {
 		],
 	]);
 	fileError = false;
+	settings = { resourceRoot: "/media" };
 	fetcher.mockReset();
-	fetcher.mockImplementation(async (input) => {
+	fetcher.mockImplementation(async (input, init) => {
 		const path = String(input);
+		if (path === "/api/settings") {
+			if (init?.method === "PUT") {
+				settings = JSON.parse(String(init.body)) as SettingsResponse;
+				library = {
+					...library,
+					ready: true,
+					scan: null,
+					error: null,
+					stale: false,
+					revision: library.revision + 1,
+				};
+				const root = directories.get("root");
+				if (root) directories.set("root", { ...root, children: [] });
+			}
+			return json(settings);
+		}
 		if (path === "/api/library") return json(library);
 		if (path === "/api/library/scan") {
 			library = { ...library, scan: runningScan };
@@ -198,6 +217,109 @@ async function openFile() {
 	fireEvent.click(await screen.findByRole("link", { name: "Season 1" }));
 	fireEvent.click(await screen.findByRole("link", { name: "Episode 01.mp4" }));
 }
+
+test("first-run setup saves the server directory and enables a manual scan", async () => {
+	settings = { resourceRoot: null };
+	library = {
+		...library,
+		ready: false,
+		scan: null,
+		error: {
+			code: "RESOURCE_ROOT_NOT_CONFIGURED",
+			message: "Set a resource directory to start using the library.",
+		},
+	};
+	renderApp();
+	const input = (await screen.findByLabelText(
+		"Resource directory path",
+	)) as HTMLInputElement;
+	expect(input.value).toBe("");
+	expect(
+		(screen.getByRole("button", { name: "Scan library" }) as HTMLButtonElement)
+			.disabled,
+	).toBe(true);
+	fireEvent.change(input, { target: { value: "/media/中文 videos" } });
+	fireEvent.submit(input.closest("form") as HTMLFormElement);
+	await screen.findByText("Saved resource directory: /media/中文 videos");
+	expect(
+		screen.queryByText("Set a resource directory to start using the library."),
+	).toBeNull();
+	expect(
+		(screen.getByRole("button", { name: "Scan library" }) as HTMLButtonElement)
+			.disabled,
+	).toBe(false);
+	expect(
+		fetcher.mock.calls.some(
+			([path, init]) =>
+				path === "/api/settings" &&
+				init?.method === "PUT" &&
+				init.body === JSON.stringify({ resourceRoot: "/media/中文 videos" }),
+		),
+	).toBe(true);
+	expect(
+		fetcher.mock.calls.some(([path]) => path === "/api/library/scan"),
+	).toBe(false);
+	fireEvent.click(screen.getByRole("button", { name: "Scan library" }));
+	await screen.findByText("Scan: running");
+	expect(
+		(
+			screen.getByRole("button", {
+				name: "Save directory",
+			}) as HTMLButtonElement
+		).disabled,
+	).toBe(true);
+});
+
+test("saving a new directory returns from the player and unloads old media", async () => {
+	renderApp();
+	await openFile();
+	const video = await screen.findByLabelText("Video: Episode 01.mp4");
+	const input = screen.getByLabelText("Resource directory path");
+	fireEvent.change(input, { target: { value: "/new/media" } });
+	fireEvent.submit(input.closest("form") as HTMLFormElement);
+	await screen.findByText("Saved resource directory: /new/media");
+	await waitFor(() =>
+		expect(screen.getByTestId("location").textContent).toBe("/"),
+	);
+	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
+	expect(video.getAttribute("src")).toBeNull();
+	expect(screen.queryByRole("link", { name: "Season 1" })).toBeNull();
+});
+
+test("a failed settings save retains the input and supports a retry", async () => {
+	const implementation = fetcher.getMockImplementation();
+	let rejectSave = true;
+	fetcher.mockImplementation((input, init) => {
+		if (input === "/api/settings" && init?.method === "PUT" && rejectSave)
+			return Promise.resolve(
+				json(
+					{
+						error: {
+							code: "CONFIG_WRITE_FAILED",
+							message: "Settings could not be saved.",
+							requestId: "settings-error",
+						},
+					},
+					500,
+				),
+			);
+		if (!implementation) throw new Error("Missing mock");
+		return implementation(input, init);
+	});
+	renderApp();
+	const input = (await screen.findByLabelText(
+		"Resource directory path",
+	)) as HTMLInputElement;
+	fireEvent.change(input, { target: { value: "/new/media" } });
+	fireEvent.submit(input.closest("form") as HTMLFormElement);
+	await screen.findByText("Settings could not be saved.");
+	expect(input.value).toBe("/new/media");
+	expect(screen.getByRole("link", { name: "Season 1" })).toBeTruthy();
+	rejectSave = false;
+	fireEvent.submit(input.closest("form") as HTMLFormElement);
+	await screen.findByText("Saved resource directory: /new/media");
+	expect(screen.queryByText("Settings could not be saved.")).toBeNull();
+});
 
 test("navigates directories, opens media, and returns to the original directory with media unloaded", async () => {
 	renderApp("/", true);

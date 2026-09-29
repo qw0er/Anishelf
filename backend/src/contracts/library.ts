@@ -57,6 +57,9 @@ export type ScanState =
 	| (ScanProgress & { status: "cancelled"; finishedAt: Timestamp });
 
 export interface LibraryIssue {
-	code: "RESOURCE_ROOT_UNAVAILABLE" | "SCAN_FAILED";
+	code:
+		| "RESOURCE_ROOT_NOT_CONFIGURED"
+		| "RESOURCE_ROOT_UNAVAILABLE"
+		| "SCAN_FAILED";
 	message: string;
 }

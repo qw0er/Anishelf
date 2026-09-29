@@ -138,9 +138,9 @@ Example persistent `settings.json`:
 }
 ```
 
-Require `ANISHELF_CONFIG` to identify the deployment file. Use absolute paths for that file, the dynamic data directory, the resource root, and any log file. Bind to loopback; broad network exposure is not a supported V1 setting. Deployment TOML changes and manual JSON file edits require restart. Runtime updates through the persistent configuration manager validate and atomically save settings before publishing them in memory; no settings page or file watcher is required.
+Require `ANISHELF_CONFIG` to identify the deployment file. Use absolute paths for that file, the dynamic data directory, the resource root, and any log file. Bind to loopback; broad network exposure is not a supported V1 setting. Deployment TOML changes and manual JSON file edits require restart. Runtime updates through the persistent configuration manager validate and atomically save settings before publishing them in memory; the UI provides a resource directory form backed by GET/PUT `/api/settings`. No file watcher is required.
 
-Missing, malformed, or invalid configuration fails startup with an actionable terminal message. Create the dynamic data directory if needed and verify that it is writable. A missing `settings.json` reports the expected location and required resource-root setting. A syntactically valid but missing/unreadable media root leaves the HTTP UI available with a library error; the user can fix the directory and retry scanning.
+Missing or invalid deployment configuration, and malformed or unreadable existing persistent settings, fail startup with an actionable terminal message. The application prepares the writable dynamic data directory. A missing `settings.json` enters setup mode with `resourceRoot: null` while HTTP stays available. The user enters an absolute server resource directory in the UI; the first successful save generates `settings.json`. Scanning is disabled until a directory is configured. Saves are excluded while scanning; a changed root clears the previous index and scan state, returns the UI to the root page, and requires a new manual scan. A syntactically valid but missing/unreadable media root leaves the HTTP UI available with a library error; the user can fix the directory and retry scanning.
 
 Any application write to persistent settings must use a temporary file followed by atomic replacement, preserving the previous file on failure. Deployment configuration is never rewritten by the application. The dynamic data directory must remain separate from the read-only media directory and must not be served as static assets.
 
@@ -173,7 +173,7 @@ Do not return absolute filesystem paths. Responses contain IDs, display names, p
 
 ## 6. Scan and Browse Workflow
 
-1. Startup loads deployment configuration and persistent settings and creates an empty index with `revision: 0`. The page shows **Scan to load files**; no automatic scan is required.
+1. Startup loads deployment configuration and optional persistent settings and creates an empty index with `revision: 0`. Without a saved resource root, the page prompts for directory setup; otherwise it shows **Scan to load files**. No automatic scan is required.
 2. A manual request starts one asynchronous scan. A second request returns the existing active scan instead of launching duplicate work.
 3. Traverse the canonical root with bounded concurrency, initially eight filesystem operations. Skip symbolic links and non-regular media entries. Gather real subdirectories and matching files without reading video contents.
 4. Initial extension allowlist: `.mp4`, `.m4v`, `.webm`, `.mkv`, case-insensitive. This is a discovery policy, not a codec-support promise. Keep one server-side allowlist and MIME mapping.
@@ -189,8 +189,10 @@ List folders before files. Apply a fixed numeric-aware collator to names and an 
 | Method and path | Purpose | Main results |
 | --- | --- | --- |
 | `GET /api/health` | HTTP service availability, independent of library readiness | `200` with `{"status":"ok"}` |
+| `GET /api/settings` | Read the configured resource directory or setup state | `200` with `{ resourceRoot: string \| null }` |
+| `PUT /api/settings` | Validate and persist `{ resourceRoot: string }` | `200`; `400` invalid path/overlap, `409` scan/save in progress, `500` write failure |
 | `GET /api/library` | Configuration readiness, index revision, and latest scan state | `200`, including recoverable library errors in the body |
-| `POST /api/library/scan` | Start a scan or return the currently running scan | `202`; `503` if the root is unavailable before work starts |
+| `POST /api/library/scan` | Start a scan or return the currently running scan | `202`; `409` before setup or during settings save; `503` if the root is unavailable before work starts |
 | `GET /api/directories/:id` | Directory metadata, parent reference, and direct children | `200`, `404` |
 | `GET /api/files/:id` | File metadata, current readability, and playback URL | `200`, `404`, `403` |
 | `GET /api/media/:id` | Stream all or part of a file | `200`, `206`, `404`, `403`, `416` |

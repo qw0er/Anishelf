@@ -90,6 +90,11 @@ export class ResourceAccess {
 	static async create(
 		settings: Readonly<PersistentSettings>,
 	): Promise<ResourceAccess> {
+		if (settings.resourceRoot === null)
+			throw new DomainError(
+				"RESOURCE_ROOT_NOT_CONFIGURED",
+				"Set a resource directory before accessing the library.",
+			);
 		try {
 			const root = await realpath(settings.resourceRoot);
 			if (!(await stat(root)).isDirectory()) throw new Error("Not a directory");

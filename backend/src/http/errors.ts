@@ -2,8 +2,21 @@ import type { ApiErrorResponse } from "../contracts/api.js";
 import { DomainError, type ErrorCode } from "../errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
-	CONFIG_INVALID: { status: 400, message: "Configuration is invalid." },
+	CONFIG_INVALID: {
+		status: 400,
+		message:
+			"Use an absolute resource directory separate from the application data directory.",
+	},
 	CONFIG_WRITE_FAILED: { status: 500, message: "Settings could not be saved." },
+	SETTINGS_BUSY: {
+		status: 409,
+		message:
+			"Wait for the current scan or settings save to finish and try again.",
+	},
+	RESOURCE_ROOT_NOT_CONFIGURED: {
+		status: 409,
+		message: "Set a resource directory before scanning the library.",
+	},
 	RESOURCE_ROOT_UNAVAILABLE: {
 		status: 503,
 		message: "The resource directory is unavailable.",

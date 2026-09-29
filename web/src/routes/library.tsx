@@ -14,6 +14,7 @@ import {
 	fileLoader,
 	libraryLoader,
 	scanAction,
+	settingsAction,
 } from "./loaders.js";
 
 function DirectoryPage() {
@@ -44,6 +45,10 @@ export const libraryRoute: RouteObject = {
 	errorElement: <RouteError kind="page" />,
 	hydrateFallbackElement: <p role="status">Loading library…</p>,
 	children: [
+		{
+			path: "settings",
+			action: settingsAction,
+		},
 		{
 			index: true,
 			loader: directoryLoader,
