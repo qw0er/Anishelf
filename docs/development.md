@@ -13,7 +13,7 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Watch the backend HTTP entry point in development mode |
+| `npm run dev` | Watch the backend HTTP entry point with readable, colored pino-pretty terminal logs |
 | `npm run dev:web` | Start Vite on 127.0.0.1:5173 with an API proxy |
 | `npm run typecheck` | Check both workspaces, including their tests |
 | `npm test` | Run backend and frontend API client tests once with Vitest |
@@ -84,6 +84,11 @@ it never rewrites the deployment TOML. The persistent settings manager creates
 `settings.json` when the user first saves a resource directory in the UI.
 
 ## Logging choice
+
+The backend development script pipes stdout through `pino-pretty`, installed as a
+backend development dependency. `npm run dev` displays colored level names,
+timestamps in the system time zone, and readable structured context and errors.
+Production startup and configured log files use the original JSON output.
 
 `ApplicationLogging.create` synchronously creates a Pino logger with one fixed
 stdout or file destination. Pino writes directly to that destination. Business
