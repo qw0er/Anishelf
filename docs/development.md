@@ -402,9 +402,64 @@ response remains a normal `LibraryResponse`, not a rejected request.
 
 Run client tests independently with `npm run test --workspace @anishelf/web`.
 Tests mock the global `fetch` and restore it after each test.
-The root `npm test` and `npm run check` run both workspace suites. The client does
-not yet wire the React page to browsing, navigation, or polling; those are the
-following implementation-plan steps.
+The root `npm test` and `npm run check` run both workspace suites. UI interaction
+tests use React Testing Library in Happy DOM; API client tests remain in Node.
+
+## Functional frontend page
+
+`web/src/App.tsx` renders the shared functional test layout with an `Outlet`.
+React Router Data Mode uses `createBrowserRouter` and `RouterProvider`, with route
+definitions in `web/src/routes/library.tsx`. Loaders in `routes/loaders.ts` fetch
+library status, directory listings, and file metadata without automatically
+scanning, forwarding `request.signal` to the API client.
+
+The scan button submits a route action through `useFetcher` and is disabled while
+starting, running, or when the root is unavailable. Action completion revalidates
+the active loaders. During scanning, `useRevalidator` refreshes status and the
+current view once per second and stops after a terminal status. The page shows
+visited and matched counts, scan warnings, errors, and whether the previous index
+is stale. Refresh retries status and the current view after a failure. Scan action
+errors remain visible in the layout without replacing the current page.
+
+`components/library-browser.tsx` shows directories, original filenames, and file
+sizes. Folder clicks enter a directory; parent navigation returns one level.
+Empty, loading, and error states have feedback, and a removed directory offers a
+return to the root. The component renders directory loader data.
+Routes in `web/src/routes/library.tsx` map `/` to the root listing,
+`/directories/:id` to a directory, and `/files/:id` to the player. Links encode
+resource IDs as path segments; file links append `?directory=<id>` to preserve
+the originating directory. A file URL without that query returns to the parent
+reported by file metadata, or the root while metadata is unavailable. Unknown
+page paths show a not-found message and a root link.
+
+Directory/file selection is derived from the URL, so direct links, reloads, and
+browser back/forward navigation restore the selected view. Playback position is
+still transient and is not restored after navigation or reload. App-level scan
+state and polling remain mounted across route changes. Vite development and
+preview servers provide the SPA fallback for direct route requests; production
+UI asset serving is still pending and must provide that fallback outside `/api`.
+
+`components/file-player.tsx` receives file loader metadata and playback URL and
+passes the URL directly to a native `<video controls preload="metadata">`.
+The user starts playback with the browser controls. Errors trigger an access
+recheck to distinguish unavailable files from generic browser playback failures.
+Back returns to the selected directory and pauses/unloads the video; Retry file
+reloads metadata and the media element. Scanning does not reset an open player.
+The router cancels obsolete metadata/list requests. Pending navigation shows a
+loading message and a cancellation link while retaining the current view.
+Route error elements provide error messages, retries, and return links. Polling
+timers are cleaned up when scanning stops or the layout unmounts. Playback cleanup
+also restores the source correctly when React
+StrictMode replays effects during development.
+
+Icons are named imports from `lucide-react`, following the
+[Lucide React guide](https://lucide.dev/guide/react/getting-started). Buttons retain
+visible text labels and decorative icons are hidden from assistive technology.
+The page has only basic spacing, button borders, and video size limits; it is
+intended for functional testing. Interaction tests cover scan publication,
+navigation, direct route entry, history back/forward, playback setup/cleanup,
+retries, access errors, and stale request cancellation. These DOM tests do not
+validate actual media decoding.
 
 ## Frontend UI foundation
 
@@ -426,9 +481,9 @@ npx shadcn@latest add button --cwd web
 ```
 
 The Vite welcome page, counter, sample logos, hero image, icon sprite, and
-`App.css` have been removed. The current page is a minimal Anishelf brand
-placeholder. The active UI, client error messages, and browser metadata use English.
+`App.css` have been removed. The current page is the functional test UI described
+above. The active UI, client error messages, and browser metadata use English.
 Localization is deferred to [O14 in Future Requirements](future-requirements.md#interface-localization-o14).
-`web/public/favicon.svg` is the flat television-on-a-shelf application icon, reused
-in the page and browser tab; it contains editable vector shapes and no external
+`web/public/favicon.svg` is the flat television-on-a-shelf application icon used
+in the browser tab; it contains editable vector shapes and no external
 images, fonts, gradients, or scripts.

@@ -66,11 +66,12 @@ Proposed defaults are `127.0.0.1:3000` for the backend and the existing Vite dev
 | Backend framework | Fastify | Routes, validation, streamed responses, and integration with the application Pino logger. |
 | Logging | Pino | Structured JSON logs; one application logger shared by backend modules and Fastify. |
 | Frontend | Existing React + Vite setup | Retain the existing scaffold; no SSR is needed for a local resource browser. |
+| Navigation | React Router in Data Mode | URL routes identify directories and files; loaders, actions, and revalidation manage server data. |
 | Playback | Native HTML `<video controls>` | Supplies the basic controls; browser decoding determines actual codec support. No player SDK or streaming protocol layer is needed. |
 | File access | Node.js asynchronous filesystem APIs and readable streams | Enumerate without synchronous bulk traversal and stream without whole-file buffering. |
 | API | HTTP JSON plus HTTP media requests | Poll scan status only while a scan is active; no WebSocket or SSE requirement. |
 | Request validation | Fastify route JSON Schemas | Validate IDs and request shapes at the server boundary; TypeScript alone does not validate incoming data. |
-| UI state | React component state and a small fetch wrapper | Two screens do not justify a separate global-state or server-cache framework. |
+| UI state | Router loader/action data and local React state | The router owns server data; component state handles media errors and explicit player resets. |
 | UI styling | Tailwind CSS 4 + shadcn/ui | Tailwind utilities and semantic theme tokens; shadcn components are owned in `web/src/components/ui`. |
 | Configuration and persistence | Deployment TOML plus persistent JSON settings; in-memory file index | Startup parameters are separate from application settings; a manual scan rebuilds the index. |
 | Validation | Type checking, Vitest backend tests, browser acceptance tests | Test file access and HTTP behavior, then verify real media in the selected browser. |
@@ -102,7 +103,7 @@ Dependencies flow from HTTP handlers into services. Scanner and media delivery s
 | Player | Resolve file metadata, set the media URL, expose native controls and a return action, translate playback failures |
 | API client | Typed JSON requests, request cancellation, and a common error shape |
 
-Use URL query state such as `?directory=<id>&file=<id>` with the History API. The file parameter selects the player; removing it returns to the directory. No routing package is necessary for these two views. Abort obsolete list requests so a delayed response cannot replace the newly selected folder.
+Use React Router's Data Mode with `createBrowserRouter` and `RouterProvider`: `/` displays the root, `/directories/:id` displays a folder, and `/files/:id` selects the player. The shared layout renders an `Outlet`; loaders fetch library status, directory listings, and file metadata using the router request's abort signal. A scan action is submitted with `useFetcher`, and `useRevalidator` refreshes active loaders once per second during scanning. Child error boundaries provide retries while keeping the scan controls available. File links retain `?directory=<id>` for returning to the original listing. For direct file links without that query, use the parent ID from file metadata, with the root as a fallback. Selection is derived from the URL so reloads and browser back/forward restore the view. Unload video when leaving the player; scan revalidation preserves playback. Production static serving must return the SPA entry for page routes while keeping `/api` responses separate.
 
 ## 5. Configuration and In-Memory Data
 
