@@ -53,9 +53,9 @@ The JSON API returns directory and scan information. The video element requests 
 | Environment | Arrangement |
 | --- | --- |
 | Development | Vite serves the UI; its `/api` proxy forwards JSON and media requests to the backend. Bind both servers to loopback. |
-| Production | One Node.js process serves the built `web/dist` assets and `/api` endpoints on the same origin. |
+| Production | Caddy or another Web server serves `web/dist` and proxies `/api` to the Node.js backend on the same browser origin. |
 
-Proposed defaults are `127.0.0.1:3000` for the backend and the existing Vite development port for the UI. Production serves only the explicit frontend build directory as static assets. Unknown API paths return API errors, never the SPA HTML fallback.
+Proposed defaults are `127.0.0.1:3000` for the backend and the existing Vite development port for the UI. The backend offers built-page hosting only in development mode. In production, the Web server serves only the explicit frontend build directory as static assets. Unknown API paths return API errors, never the SPA HTML fallback.
 
 ## 3. Technology Decisions
 
@@ -103,7 +103,7 @@ Dependencies flow from HTTP handlers into services. Scanner and media delivery s
 | Player | Resolve file metadata, set the media URL, expose native controls and a return action, translate playback failures |
 | API client | Typed JSON requests, request cancellation, and a common error shape |
 
-Use React Router's Data Mode with `createBrowserRouter` and `RouterProvider`: `/` displays the root, `/directories/:id` displays a folder, and `/files/:id` selects the player. The shared layout renders an `Outlet`; loaders fetch library status, directory listings, and file metadata using the router request's abort signal. A scan action is submitted with `useFetcher`, and `useRevalidator` refreshes active loaders once per second during scanning. Child error boundaries provide retries while keeping the scan controls available. File links retain `?directory=<id>` for returning to the original listing. For direct file links without that query, use the parent ID from file metadata, with the root as a fallback. Selection is derived from the URL so reloads and browser back/forward restore the view. Unload video when leaving the player; scan revalidation preserves playback. Production static serving must return the SPA entry for page routes while keeping `/api` responses separate.
+Use React Router's Data Mode with `createBrowserRouter` and `RouterProvider`: `/` displays the root, `/directories/:id` displays a folder, and `/files/:id` selects the player. The shared layout renders an `Outlet`; loaders fetch library status, directory listings, and file metadata using the router request's abort signal. A scan action is submitted with `useFetcher`, and `useRevalidator` refreshes active loaders once per second during scanning. Child error boundaries provide retries while keeping the scan controls available. File links retain `?directory=<id>` for returning to the original listing. For direct file links without that query, use the parent ID from file metadata, with the root as a fallback. Selection is derived from the URL so reloads and browser back/forward restore the view. Unload video when leaving the player; scan revalidation preserves playback. Production Web server configuration must return the SPA entry for page routes while keeping proxied `/api` responses separate.
 
 ## 5. Configuration and In-Memory Data
 
@@ -273,6 +273,6 @@ Before implementation, select the acceptance browser and representative media fi
 1. Align existing workspace tooling and establish the Fastify application, two configuration loaders, Pino logging, and frontend proxy.
 2. Implement resource access and scanner/index behavior; connect the resource-browser screen.
 3. Implement and test HTTP media delivery, then connect native playback.
-4. Complete error states, production static serving, cleanup, and the A01–A07 acceptance run.
+4. Complete error states, cleanup, production Web server guidance, and the A01–A07 acceptance run.
 
 Completion is the validated current workflow. This design creates no dependency on future media conversion, subtitles, downloads, tracking, or external integrations.

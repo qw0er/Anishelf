@@ -1,3 +1,5 @@
 # Anishelf
 
-- Changes must pass the Biome check and lint.
+- Code changes must pass the Biome check and lint.
+
+- The document is in English.

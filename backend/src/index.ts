@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadDeploymentConfig } from "./config/deployment.js";
 import {
 	checkResourceRoot,
@@ -32,12 +35,19 @@ try {
 	const index = new LibraryIndex();
 	const settings = () => persistentConfig.settings;
 	const scanner = new LibraryScanner({ index, settings, logger });
+	const development = process.env.NODE_ENV === "development";
+	const frontendRoot = fileURLToPath(
+		new URL("../../web/dist/", import.meta.url),
+	);
 	const server = createHttpApp({
 		config,
 		logger,
 		library: { index, scanner, settings },
 		configuration: persistentConfig,
-		development: process.env.NODE_ENV === "development",
+		development,
+		...(development && existsSync(join(frontendRoot, "index.html"))
+			? { frontendRoot }
+			: {}),
 	});
 	app = server;
 	await server.listen({ host: config.host, port: config.port });

@@ -6,14 +6,16 @@ resource access, an in-memory index, and a manual scanner.
 The entry point loads configuration and listens on the configured loopback address.
 Health, resource settings, library browsing, file metadata, and media delivery endpoints are
 implemented. The frontend includes resource directory setup, browsing, and playback;
-production UI asset serving follows in a later module. Browser codec compatibility has not yet been certified.
+Frontend hosting in the backend is available only in development mode when `web/dist/index.html` exists. Production serves only APIs and media; use Caddy or another Web server for `web/dist`. The user has reported completing manual browser acceptance; browser and sample codec details are not recorded here. See the root README for deployment and the recommended Caddy setup.
 
 Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 `npm ci`.
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Watch the backend HTTP entry point with readable, colored pino-pretty terminal logs |
+| `npm run dev` | Start the backend watcher and Vite together; stop both with Ctrl+C |
+| `npm run dev:backend` | Watch only the backend HTTP entry point with readable, colored pino-pretty terminal logs |
+| `npm run start:web` | Build both workspaces, then start the backend in development mode to serve `web/dist` |
 | `npm run dev:web` | Start Vite on 127.0.0.1:5173 with an API proxy |
 | `npm run typecheck` | Check both workspaces, including their tests |
 | `npm test` | Run backend and frontend API client tests once with Vitest |
@@ -61,7 +63,7 @@ ANISHELF_CONFIG=/absolute/path/to/anishelf.toml npm start
 | --- | --- | --- |
 | `ANISHELF_CONFIG` | Yes, for backend startup | Absolute path to the deployment TOML. |
 | `ANISHELF_API_TARGET` | No | Vite proxy target; defaults to `http://127.0.0.1:3000`. |
-| `NODE_ENV` | No | `npm run dev` sets this to `development` to enable the local Vite Origin allowlist. |
+| `NODE_ENV` | No | `development` enables the local Vite Origin allowlist and optional built-page hosting. Other values, including unset, provide only APIs and media. |
 
 Build first with `npm run build`. The same environment variable is required for
 `npm run dev`. Changes are loaded on process restart.
@@ -185,8 +187,7 @@ Forwarded headers are not trusted. State-changing requests reject foreign Origin
 values and cross-site browser metadata; command-line clients without Origin are
 allowed. No CORS plugin is enabled.
 
-Run the backend and Vite in separate terminals with `npm run dev` and
-`npm run dev:web`. Vite uses port 5173 and proxies `/api` to
+Run `npm run dev` to launch the backend watcher and Vite together. Vite uses port 5173 and proxies `/api` to
 `http://127.0.0.1:3000`. If the backend uses another address or port, set
 `ANISHELF_API_TARGET=http://127.0.0.1:4000` when starting Vite. Development mode
 allows mutation origins `http://127.0.0.1:5173` and `http://localhost:5173` through
@@ -365,8 +366,9 @@ return `403`. An unavailable resource root returns `503`. These checks are made
 again for media requests because a file may change after its URL is obtained.
 HTTP tests cover response bytes and headers, ranges, special-character filenames,
 current metadata, safe errors, and handle cleanup including a real HTTP disconnect.
-Real browser playback and codec compatibility still require representative media
-acceptance samples.
+Real browser playback and codec compatibility are checked with representative media
+acceptance samples. The user has reported completing browser acceptance; these HTTP
+tests validate delivery rather than decoding.
 
 ## Frontend API client
 
@@ -458,8 +460,11 @@ Directory/file selection is derived from the URL, so direct links, reloads, and
 browser back/forward navigation restore the selected view. Playback position is
 still transient and is not restored after navigation or reload. App-level scan
 state and polling remain mounted across route changes. Vite development and
-preview servers provide the SPA fallback for direct route requests; production
-UI asset serving is still pending and must provide that fallback outside `/api`.
+preview servers provide the SPA fallback for direct route requests. The backend can
+serve `web/dist` with the same fallback in development mode when a build exists;
+without one, Vite development remains available. Production page hosting and SPA
+fallback belong to Caddy or another Web server. Unknown API paths retain JSON
+errors; missing assets return HTTP errors.
 
 `components/file-player.tsx` receives file loader metadata and playback URL and
 passes the URL directly to a native `<video controls preload="metadata">`.

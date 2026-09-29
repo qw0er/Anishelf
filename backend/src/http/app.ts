@@ -8,6 +8,7 @@ import { type LibraryRoutesOptions, registerLibraryRoutes } from "./library.js";
 import { registerMediaRoutes } from "./media.js";
 import { checkRequestOrigin } from "./security.js";
 import { registerSettingsRoutes } from "./settings.js";
+import { registerFrontend } from "./static.js";
 
 export function createHttpApp(options: {
 	config: Pick<DeploymentConfig, "host" | "port">;
@@ -15,6 +16,7 @@ export function createHttpApp(options: {
 	development?: boolean;
 	library?: LibraryRoutesOptions;
 	configuration?: PersistentConfiguration;
+	frontendRoot?: string;
 }) {
 	const app = Fastify({
 		loggerInstance: options.logger,
@@ -67,5 +69,8 @@ export function createHttpApp(options: {
 				options.library.scanner,
 			);
 	}
+	const frontendRoot = options.frontendRoot;
+	if (options.development && frontendRoot)
+		app.register(async (scope) => registerFrontend(scope, frontendRoot));
 	return app;
 }

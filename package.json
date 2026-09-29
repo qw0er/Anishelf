@@ -7,19 +7,22 @@
 	],
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.14",
+		"concurrently": "^10.0.5",
 		"tsx": "^4.23.15",
 		"typescript": "^7.0.2"
 	},
 	"scripts": {
-		"dev": "npm run dev --workspace @anishelf/backend",
-		"dev:web": "npm run dev --workspace @anishelf/web",
 		"typecheck": "npm run typecheck --workspaces",
+		"biome:check": "biome check .",
+		"biome:fix": "biome check --write .",
+		"lint": "biome lint .",
 		"check": "npm run biome:check && npm run typecheck && npm test",
 		"test": "npm run test --workspaces --if-present",
 		"build": "npm run build --workspaces",
 		"start": "npm run start --workspace @anishelf/backend",
-		"biome:check": "biome check .",
-		"biome:fix": "biome check --write .",
-		"lint": "biome lint ."
+		"start:web": "npm run build && NODE_ENV=development npm run start --workspace @anishelf/backend",
+		"dev:backend": "npm run dev --workspace @anishelf/backend",
+		"dev:web": "npm run dev --workspace @anishelf/web",
+		"dev": "concurrently \"npm run dev:backend\" \"npm run dev:web\""
 	}
 }
