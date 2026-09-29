@@ -174,6 +174,7 @@ Automatic whole-library conversion, idle-time scheduling, playback during conver
 | O12 | Automatic log-output fallback after destination failure | Later |
 | O13 | Asynchronous log output with bounded buffering and shutdown flushing | Later |
 | O14 | Interface localization and language preferences | Later |
+| O15 | Manage API-backed frontend state and caching with TanStack Query | Later |
 
 #### Interface Localization (O14)
 
@@ -183,6 +184,17 @@ Automatic whole-library conversion, idle-time scheduling, playback during conver
 - Acceptance: changing the language updates supported interface text and error feedback; missing translations fall back to English; browsing and playback state remain intact.
 
 The current release uses English only and does not include translation resources or a language selector.
+
+#### Frontend State and Caching (O15)
+
+- Use TanStack Query to manage API-backed server state in the Web interface, including resource listings, scan status, and saved settings.
+- Define stable query keys and suitable freshness and retention policies for each kind of data. Reuse fresh results and deduplicate concurrent requests for the same data.
+- After a successful scan or settings change, update or invalidate the affected queries so subsequent views reflect the server's latest state.
+- Keep loading, refresh, and error feedback visible; a failed refresh must not silently present cached data as current.
+- Limit this cache to API-backed data. Media playback streams and local-only interface or player state are outside its scope.
+- Acceptance: revisiting a still-fresh resource listing reuses cached data; concurrent requests for the same listing do not trigger duplicate fetches; a completed scan or settings change is reflected on the next affected view; and a refresh failure is distinguishable from a successful current result.
+
+This frontend caching improvement is deferred beyond the current release. It does not require the V1 interface to use TanStack Query.
 
 #### Logging Maintenance (O11–O13)
 
