@@ -7,16 +7,10 @@ import {
 } from "react-router";
 import App, { type LibraryContext } from "../App.js";
 import FilePlayer from "../components/file-player.js";
+import InitialLoading from "../components/initial-loading.js";
 import LibraryBrowser from "../components/library-browser.js";
 import ResourceSettings from "../components/resource-settings.js";
 import { buttonStyles } from "../components/ui/button.js";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "../components/ui/card.js";
-import { Skeleton } from "../components/ui/skeleton.js";
 import RouteError from "./errors.js";
 import {
 	directoryLoader,
@@ -62,38 +56,6 @@ function SettingsPage() {
 	);
 }
 
-function LibraryLoading() {
-	return (
-		<main
-			className="mx-auto max-w-6xl space-y-6 px-4 py-6"
-			role="status"
-			aria-label="Loading library"
-		>
-			<Card>
-				<CardHeader className="gap-4 sm:grid-cols-[1fr_auto]">
-					<div className="space-y-2">
-						<CardTitle>Library scan</CardTitle>
-						<Skeleton className="h-4 w-40" />
-					</div>
-					<div className="flex gap-2">
-						<Skeleton className="h-9 w-32" />
-						<Skeleton className="h-9 w-24" />
-					</div>
-				</CardHeader>
-			</Card>
-			<Skeleton className="h-8 w-56" />
-			<Card>
-				<CardContent className="space-y-4">
-					{[0, 1, 2].map((row) => (
-						<Skeleton key={row} className="h-10 w-full" />
-					))}
-				</CardContent>
-			</Card>
-			<span className="sr-only">Loading library…</span>
-		</main>
-	);
-}
-
 export const libraryRoute: RouteObject = {
 	id: "library",
 	path: "/",
@@ -101,7 +63,7 @@ export const libraryRoute: RouteObject = {
 	loader: libraryLoader,
 	action: scanAction,
 	errorElement: <RouteError kind="page" />,
-	hydrateFallbackElement: <LibraryLoading />,
+	hydrateFallbackElement: <InitialLoading />,
 	children: [
 		{
 			path: "settings",

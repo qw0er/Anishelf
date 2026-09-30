@@ -8,6 +8,7 @@ import {
 import { ApiClientError } from "../api/client.js";
 import { Button, buttonStyles } from "../components/ui/button.js";
 import { Spinner } from "../components/ui/spinner.js";
+import { useDelayedPending } from "../hooks/use-delayed-pending.js";
 import { directoryPath } from "./paths.js";
 
 export default function RouteError({
@@ -18,6 +19,8 @@ export default function RouteError({
 	const error = useRouteError();
 	const revalidator = useRevalidator();
 	const [searchParams] = useSearchParams();
+	const retrying = revalidator.state !== "idle";
+	const showRetrying = useDelayedPending(retrying);
 	return (
 		<section className="space-y-4" aria-label="Page error">
 			<p role="alert">
@@ -28,20 +31,16 @@ export default function RouteError({
 			<Button
 				type="button"
 				variant="outline"
-				disabled={revalidator.state !== "idle"}
+				disabled={retrying}
+				aria-busy={retrying}
 				onClick={() => void revalidator.revalidate()}
 			>
-				{revalidator.state !== "idle" ? (
-					<>
-						<Spinner />
-						Retrying…
-					</>
+				{showRetrying ? (
+					<Spinner />
 				) : (
-					<>
-						<RefreshCw size={16} aria-hidden="true" />{" "}
-						{kind === "file" ? "Retry file" : "Retry"}
-					</>
+					<RefreshCw size={16} aria-hidden="true" />
 				)}
+				{kind === "file" ? "Retry file" : "Retry"}
 			</Button>{" "}
 			<Link
 				className={buttonStyles("outline")}

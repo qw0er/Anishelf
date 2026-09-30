@@ -1,6 +1,7 @@
 import { RefreshCw, ScanLine } from "lucide-react";
 import { Link } from "react-router";
 import type { LibraryContext } from "../App.js";
+import { useDelayedPending } from "../hooks/use-delayed-pending.js";
 import { Button } from "./ui/button.js";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.js";
 import { Spinner } from "./ui/spinner.js";
@@ -33,6 +34,9 @@ export default function LibraryScan({
 }: LibraryScanProps) {
 	const scan = library?.scan;
 	const setupRequired = settings?.resourceRoot === null;
+	const showScanning = useDelayedPending(scanning);
+	const showSubmitting = useDelayedPending(scanSubmitting);
+	const showRefreshing = useDelayedPending(refreshing);
 
 	return (
 		<Card>
@@ -45,7 +49,9 @@ export default function LibraryScan({
 						aria-live="polite"
 					>
 						<p className="inline-flex items-center gap-2">
-							{scanning && <Spinner />}
+							<span className="inline-flex size-4 shrink-0">
+								{showScanning && <Spinner />}
+							</span>
 							Scan: {scan?.status ?? "not started"}
 						</p>
 						{scan && (
@@ -60,37 +66,29 @@ export default function LibraryScan({
 					<Button
 						type="button"
 						disabled={scanPending || scanning || !library?.ready}
+						aria-busy={scanPending}
 						onClick={startScan}
 					>
-						{scanSubmitting ? (
-							<>
-								<Spinner />
-								Starting scan…
-							</>
+						{showSubmitting ? (
+							<Spinner />
 						) : (
-							<>
-								<ScanLine size={16} aria-hidden="true" />
-								Scan library
-							</>
+							<ScanLine size={16} aria-hidden="true" />
 						)}
+						Scan library
 					</Button>
 					<Button
 						type="button"
 						variant="outline"
 						disabled={refreshing}
+						aria-busy={refreshing}
 						onClick={reload}
 					>
-						{refreshing ? (
-							<>
-								<Spinner />
-								Refreshing…
-							</>
+						{showRefreshing ? (
+							<Spinner />
 						) : (
-							<>
-								<RefreshCw size={16} aria-hidden="true" />
-								Refresh
-							</>
+							<RefreshCw size={16} aria-hidden="true" />
 						)}
+						Refresh
 					</Button>
 				</div>
 			</CardHeader>

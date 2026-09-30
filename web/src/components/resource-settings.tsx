@@ -1,5 +1,6 @@
 import { useFetcher } from "react-router";
 import type { SettingsResponse } from "../api/contracts.js";
+import { useDelayedPending } from "../hooks/use-delayed-pending.js";
 import type { settingsAction } from "../routes/loaders.js";
 import { Button } from "./ui/button.js";
 import {
@@ -21,6 +22,7 @@ export default function ResourceSettings({
 }) {
 	const fetcher = useFetcher<typeof settingsAction>();
 	const saving = fetcher.state !== "idle";
+	const showSaving = useDelayedPending(saving);
 	return (
 		<section className="space-y-6" aria-label="Resource settings">
 			<div>
@@ -52,15 +54,15 @@ export default function ResourceSettings({
 								disabled={disabled || saving}
 							/>
 						</div>
-						<Button type="submit" disabled={disabled || saving}>
-							{saving ? (
-								<>
-									<Spinner />
-									Saving…
-								</>
-							) : (
-								"Save directory"
-							)}
+						<Button
+							type="submit"
+							disabled={disabled || saving}
+							aria-busy={saving}
+						>
+							<span className="inline-flex size-4 shrink-0">
+								{showSaving && <Spinner />}
+							</span>
+							Save directory
 						</Button>
 					</fetcher.Form>
 					{settings.resourceRoot !== null && (

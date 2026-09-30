@@ -319,8 +319,7 @@ test("a failed settings save retains the input and supports a retry", async () =
 		if (!implementation) throw new Error("Missing mock");
 		return implementation(input, init);
 	});
-	renderApp();
-	fireEvent.click(await screen.findByRole("link", { name: "Settings" }));
+	renderApp("/settings");
 	const input = (await screen.findByLabelText(
 		"Resource directory path",
 	)) as HTMLInputElement;
@@ -487,6 +486,41 @@ test("scan status updates do not unload a playing file", async () => {
 	expect(HTMLMediaElement.prototype.pause).not.toHaveBeenCalled();
 });
 
+test("a slow background scan poll does not turn the Refresh button into a manual loading state", async () => {
+	vi.useFakeTimers();
+	library = { ...library, scan: runningScan };
+	const implementation = fetcher.getMockImplementation();
+	let delayPoll = false;
+	let resolvePoll: ((response: Response) => void) | undefined;
+	fetcher.mockImplementation((input, init) => {
+		if (String(input) === "/api/library" && delayPoll) {
+			return new Promise<Response>((resolve) => {
+				resolvePoll = resolve;
+			});
+		}
+		if (!implementation) throw new Error("Missing mock");
+		return implementation(input, init);
+	});
+	await act(async () => {
+		renderApp();
+	});
+	delayPoll = true;
+	await act(async () => {
+		await vi.advanceTimersByTimeAsync(1500);
+	});
+	expect(resolvePoll).toBeTypeOf("function");
+	const refresh = screen.getByRole("button", {
+		name: "Refresh",
+	}) as HTMLButtonElement;
+	expect(refresh.disabled).toBe(false);
+	expect(refresh.getAttribute("aria-busy")).toBe("false");
+	expect(refresh.querySelector(".animate-spin")).toBeNull();
+	await act(async () => {
+		resolvePoll?.(json({ ...library, scan: completedScan }));
+	});
+	expect(screen.getByText("Scan: completed")).toBeTruthy();
+});
+
 test("a failed scan action keeps the current directory usable and supports another submission", async () => {
 	const implementation = fetcher.getMockImplementation();
 	let rejectScan = true;
@@ -591,6 +625,7 @@ test("returning while file metadata is pending aborts and discards the old respo
 	});
 	renderApp();
 	await openFile();
+	expect(screen.queryByText("Loading file…")).toBeNull();
 	await screen.findByText("Loading file…");
 	fireEvent.click(screen.getByRole("link", { name: "Cancel navigation" }));
 	await screen.findByRole("link", { name: "Episode 01.mp4" });

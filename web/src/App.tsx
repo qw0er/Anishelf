@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
 	Link,
-	NavLink,
 	Outlet,
 	useFetcher,
 	useLoaderData,
@@ -10,8 +9,10 @@ import {
 	useRevalidator,
 } from "react-router";
 import type { LibraryResponse, SettingsResponse } from "./api/contracts.js";
+import AppHeader from "./components/app-header.js";
 import { buttonStyles } from "./components/ui/button.js";
 import { Spinner } from "./components/ui/spinner.js";
+import { useDelayedPending } from "./hooks/use-delayed-pending.js";
 import type { libraryLoader, scanAction } from "./routes/loaders.js";
 
 export interface LibraryContext {
@@ -42,18 +43,31 @@ function App() {
 	const scanning = library?.scan?.status === "running";
 	const scanSubmitting = scanFetcher.state === "submitting";
 	const scanPending = scanFetcher.state !== "idle";
-	const browsing =
-		location.pathname === "/" || location.pathname.startsWith("/directories/");
+	const [manualRefreshing, setManualRefreshing] = useState(false);
+	const showNavigation = useDelayedPending(
+		navigation.state !== "idle",
+		navigation.location?.key,
+	);
 
 	useEffect(() => {
-		if (!scanning || revalidationState !== "idle") return;
+		if (
+			library?.scan?.status !== "running" ||
+			manualRefreshing ||
+			revalidationState !== "idle"
+		)
+			return;
 		const timer = setTimeout(() => void revalidate(), 1000);
 		return () => clearTimeout(timer);
-	}, [revalidate, revalidationState, scanning]);
+	}, [library, revalidate, revalidationState, manualRefreshing]);
 
-	function reload() {
+	async function reload() {
+		setManualRefreshing(true);
 		setPlayerVersion((value) => value + 1);
-		void revalidate();
+		try {
+			await revalidate();
+		} finally {
+			setManualRefreshing(false);
+		}
 	}
 
 	function startScan() {
@@ -62,37 +76,16 @@ function App() {
 
 	return (
 		<div className="min-h-screen bg-background">
-			<header className="border-b bg-card">
-				<div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-					<Link className="text-lg font-semibold" to="/">
-						Anishelf
-					</Link>
-					<nav
-						aria-label="Primary navigation"
-						className="flex items-center gap-1"
+			<AppHeader />
+			<main
+				className="mx-auto max-w-6xl px-4 py-6"
+				aria-busy={navigation.state !== "idle"}
+			>
+				{showNavigation && navigation.location && (
+					<div
+						className="fixed right-4 bottom-4 z-50 flex max-w-[calc(100%-2rem)] flex-wrap items-center gap-3 rounded-md border bg-card p-3 shadow-sm"
+						role="status"
 					>
-						<NavLink
-							to="/"
-							className={({ isActive }) =>
-								buttonStyles(isActive && browsing ? "secondary" : "ghost")
-							}
-						>
-							Library
-						</NavLink>
-						<NavLink
-							to="/settings"
-							className={({ isActive }) =>
-								buttonStyles(isActive ? "secondary" : "ghost")
-							}
-						>
-							Settings
-						</NavLink>
-					</nav>
-				</div>
-			</header>
-			<main className="mx-auto max-w-6xl space-y-6 px-4 py-6">
-				{navigation.state !== "idle" && (
-					<div className="flex flex-wrap items-center gap-3" role="status">
 						<Spinner />
 						<p>
 							{navigation.location.pathname.startsWith("/files/")
@@ -119,7 +112,7 @@ function App() {
 							scanPending,
 							scanSubmitting,
 							scanError: scanFetcher.data?.error ?? null,
-							refreshing: revalidationState !== "idle",
+							refreshing: manualRefreshing,
 							startScan,
 						} satisfies LibraryContext
 					}
