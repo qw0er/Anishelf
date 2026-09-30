@@ -19,7 +19,7 @@ npm ci
 npm run build
 ```
 
-No deployment configuration file is required. Startup uses defaults with optional environment overrides:
+Startup options can be set with environment variables:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -32,15 +32,9 @@ No deployment configuration file is required. Startup uses defaults with optiona
 
 The data directory follows the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir/latest/), including on macOS. Unset, empty or relative `XDG_DATA_HOME` falls back to `$HOME/.local/share`; `anishelf` is appended to that base. `ANISHELF_DATA_DIR` overrides this choice. The directory is created at startup if needed. Paths are resolved independently of the working directory; `~` in an environment value is not expanded by the application.
 
-**Migrating from TOML:** remove `ANISHELF_CONFIG` and set `ANISHELF_DATA_DIR` to the previous `dataDir` to retain existing settings. Convert any custom listener/logging settings to the variables above. TOML is no longer read; a remaining `ANISHELF_CONFIG` fails startup with migration guidance. Existing data is not moved or deleted.
+## Start the backend
 
-## Production startup
-
-```sh
-NODE_ENV=production npm start
-```
-
-The production backend provides APIs and media only. It does not serve pages or require a frontend build to start. When `NODE_ENV` is unset, the backend also provides only APIs and media.
+The backend provides APIs and media only. It does not serve pages or require a frontend build to start.
 
 **Use Caddy or another Web server to serve `web/dist` and reverse-proxy `/api`.** Use systemd or another process manager to start, restart, and collect logs from Node.js. The build outputs are `backend/dist` and `web/dist`; keep the backend runtime dependencies available, and deploy the frontend build to the Web server's static root.
 
@@ -62,7 +56,6 @@ Type=simple
 User=anishelf
 Group=anishelf
 WorkingDirectory=/opt/anishelf
-Environment=NODE_ENV=production
 Environment=ANISHELF_DATA_DIR=/var/lib/anishelf
 ExecStart=/usr/bin/node /opt/anishelf/backend/dist/index.js
 Restart=on-failure
@@ -153,9 +146,9 @@ npm run check   # Biome, type checks, backend and frontend tests
 npm run lint    # Biome lint
 ```
 
-- [Current requirements overview](docs/current-version-requirements.md)
-- [Current architecture and module overview](docs/current-version-design.md)
-- [Version details and historical designs](docs/historical-design.md)
+- [Current requirements](docs/current-version-requirements.md)
+- [Current design](docs/current-version-design.md)
+- [Historical designs](docs/historical-design.md)
 - [Development, configuration, and API details](docs/development.md)
 - [Overall requirements](docs/requirements.md)
 

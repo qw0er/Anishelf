@@ -1,17 +1,15 @@
 # Anishelf Version Details and Historical Designs
 
-The [current requirements](current-version-requirements.md) and [current design](current-version-design.md) are the overview entry points. They keep the entire project scope and architecture visible; version-specific records hold expanded rules.
+The [current requirements](current-version-requirements.md) and [current design](current-version-design.md) contain the V2 plan. This page links historical records.
 
 | Version record | Status and use |
 | --- | --- |
-| [V2 requirements and all A01–A28 scenarios](history/v2-requirements.md) | Active planned specification; complete workflow, quality, scope and acceptance details |
-| [V2 technical design](history/v2-design.md) | Active planned specification; full contracts, algorithms, configuration defaults, persistence and failure rules |
 | [V1 requirements](history/v1-requirements.md) | Historical release scope and acceptance criteria restored from `45962af` |
 | [V1 design](history/v1-design.md) | Historical technical design restored from `45962af` |
 | [V1 deferred requirements](history/v1-future-requirements.md) | Historical roadmap restored from the same release commit |
 | [Superseded V2 bridge proposal](#superseded-v2-bridge-proposal) | Historical unimplemented alternative; outside the current scope |
 
-A version record for the active release remains applicable. Completed-version bodies and superseded proposals are historical reference and do not imply current support. Maintain active records with their overview, and preserve completed records when advancing releases.
+Completed-version bodies and superseded proposals are historical reference and do not imply current support.
 
 ## V1 Source Snapshot
 
