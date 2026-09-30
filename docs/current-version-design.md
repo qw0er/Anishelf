@@ -25,7 +25,7 @@
 | Browser invocation of an external player (C02) | — | Later | Protocol launch or other native-app invocation |
 | Everyday Web interface (O16) | — | V2 | Library, player, tasks, settings; responsive and accessible |
 | Multilingual foundation (O14, partial) | — | V2 | English catalog and locale-independent contracts; translated UI deferred |
-| External configuration (O17) | — | V2 | Separate default files and unified typed access |
+| Unified configuration (O17) | — | V2 | Built-in defaults, user settings and validated typed access |
 | External-player state reading (C03) | — | Later | Read native state when a future integration exposes it |
 | All other requirements | — | Unassigned | No implied V3 commitment; see Section 12 |
 
@@ -53,7 +53,8 @@ flowchart LR
     Library --> Config[Unified configuration service]
     Playback --> Config
     Worker --> Config
-    Config --> Files[(Separate configuration files)]
+    Config --> Defaults[Built-in policy and English catalog]
+    Config --> Settings[(settings.json)]
     UI --> Locale[Locale resource adapter]
     Library --> Scanner[Scanner and in-memory index]
 ```
@@ -63,7 +64,7 @@ The external player runs on the browser user's computer and fetches the original
 | Module | Version | Responsibility |
 | --- | --- | --- |
 | Startup options and logging | V1; V2 extension | Load startup options, resolve media tools, configure shared Pino logger |
-| Unified configuration service | V2, extending V1 settings | Initialize separate default files, validate schemas/references, expose typed snapshots and commit settings |
+| Unified configuration service | V2, extending V1 settings | Merge built-in defaults with user settings, validate effective values and commit settings |
 | Library application, scanner, index | V1 retained | Own scans, settings exclusion, publication, browsing |
 | Resource access | V1; V2 extension | Confined regular-file access, including subtitle sources |
 | HTTP transport | V1; V2 extension | Validation, DTOs, typed errors, HEAD/Range and handle cleanup |
@@ -86,32 +87,29 @@ Startup uses defaults and environment variables for the listener, data directory
 
 Missing tools do not prevent V1 browsing, direct media delivery, or already usable external subtitles. Disable dependent probing/extraction/transcoding with a precise capability error. The administrator controls executable paths; Web requests never supply executables or arbitrary flags.
 
-`settings.json` contains **user-configurable values only**: the resource root and V2's Web playback preference (`auto`, `direct`, or `pretranscoded`) and total generated-cache budget (default 10 GiB). `auto` tries supported original playback, then a valid prepared copy, then necessary real-time processing. `direct` does not start processing; `pretranscoded` offers preparation and waits for a ready copy if the original is incompatible. Per-file preparation remains explicit. Validate and atomically replace settings before publishing them in memory. Retain the existing `{ resourceRoot }` shape on upgrade by supplying defaults for newly absent keys. Do not move user settings into the database or turn settings into a history/job journal.
+`settings.json` contains **user-configurable values only**: the resource root and V2's Web playback preference (`auto`, `direct`, or `pretranscoded`), total generated-cache budget (default 10 GiB) and selected profile IDs where exposed. `auto` tries supported original playback, then a valid prepared copy, then necessary real-time processing. `direct` does not start processing; `pretranscoded` offers preparation and waits for a ready copy if the original is incompatible. Per-file preparation remains explicit. If custom profile editing is exposed, store only validated user-defined profiles or parameter overrides here. Do not store built-in profile copies or viewing history in settings.
 
 The cache budget applies to generated files, not the database or original media. Reserve capacity for active sessions and remove least-recently-used, unleased regenerable assets when necessary; never delete viewing history, originals, or active output. If capacity cannot be made available, return a storage error. Lowering the budget schedules cleanup rather than removing in-use assets.
 
 Originals, writable data, and frontend static assets remain separate and non-overlapping. Use a single process-lifetime Pino logger, configured level and fixed stdout/file destination, synchronous writes and flush on shutdown; add structured job/session IDs and redact credentials. Deferred log rotation/fallback requirements remain unchanged.
 
-### Separate files and unified access (O17)
+### Built-in defaults and user settings (O17)
 
-Treat every numeric tuning value and format choice below as a shipped default in the appropriate file, not a constant embedded in business modules. Configuration files live under `dataDir/config`; `dataDir/settings.json` stores user preferences.
+Startup uses environment variables. Program policy ships in code or read-only bundled resources; it is not copied into `dataDir` on startup. `dataDir/settings.json` stores only user choices and explicit overrides.
 
-| File | Owned values and initial defaults | Application policy |
+| Owner | Values | Update rule |
 | --- | --- | --- |
-| `settings.json` | Resource root, Web mode, 10 GiB cache budget | Validated atomic API writes; existing root-only files migrate without losing values |
-| `media-formats.json` | Discovery extensions and MIME mapping: MP4/M4V, WebM, MKV; container/codec capability rules | Administrator edited; restart and rescan for discovery changes |
-| `transcode-profiles.json` | Versioned preparation and real-time profiles: output container/delivery, codecs, pixel format, CRF, preset, bitrate, segment target | Administrator edited; restart; validate against implemented delivery adapters and detected tools |
-| `subtitles.json` | External extensions, extractable codecs, renderer mapping, font types and 10/20/100 MiB text/font/total-font limits | Administrator edited; restart |
-| `runtime-policy.json` | Scan concurrency 8; media/probe/extraction slots 1 each; queue 20; progress interval 5 s; near-end 30 s/5%; HLS segment target belongs only to profiles; lease renewal/expiry 10/30 s; paused stop 30 s; cleanup grace, probe/startup/stall/job/shutdown timeouts and diagnostic bounds | Administrator edited; restart; validate bounded values and timing relationships |
-| `localization.json` and separate `locales/en.json` | Default/fallback locale `en`, available catalogs and English messages | Administrator edited; restart; other locales and selector deferred |
+| Program | Discovery extensions and MIME mappings for MP4/M4V, WebM and MKV; container/codec capabilities; supported subtitle codecs/renderers/font types; 10/20/100 MiB text/font/total-font limits | Updated with the program; enabling discovery does not guarantee browser decoding |
+| Program | Prepared MP4 profile: H.264/yuv420p CRF 20/medium and AAC 192 kbit/s; real-time HLS/fMP4 profile: CRF 23/veryfast and AAC 192 kbit/s | Updated with the program; validate against delivery adapters and detected tools |
+| Program | Scan concurrency 8; media/probe/extraction slots 1 each; queue 20; progress interval 5 s; near-end 30 s/5%; lease renewal/expiry 10/30 s; paused stop 30 s; bounded cleanup and job timeouts | Updated with the program; define finite values and valid timing relationships |
+| Program | English message catalog and fallback `en` | Bundled read-only; additional locales and selection deferred |
+| User | Resource root, Web mode, 10 GiB default cache budget, selected profile IDs; optional custom profile definitions or parameter overrides only if editing is exposed | Validated atomic writes to `settings.json`; explicit values persist |
 
-The implementation must supply documented, finite defaults for the named timeouts and bounds before acceptance; they must not be scattered magic numbers. Keep one authoritative owner for each field. User preferences select profile IDs where exposed, without duplicating definitions. Initial profiles are prepared MP4 with required H.264/yuv420p CRF 20/medium and AAC 192 kbit/s, and real-time HLS/fMP4 with CRF 23/veryfast and AAC 192 kbit/s. Adding a container extension enables discovery, not guaranteed decoding; changing a profile cannot add a muxer, encoder or delivery adapter that does not exist.
+The effective configuration is the current built-in defaults merged with explicit user settings. Missing settings keys use current defaults, so new program defaults apply without rewriting a generated policy file. Existing root-only settings remain valid. Reject malformed or unsupported explicit values with file/key diagnostics; perform an explicit migration only when the settings schema changes. Custom profiles cannot add a muxer, encoder or delivery adapter that the program lacks.
 
-The entry point constructs a typed `ConfigurationService`. Only this layer and its file adapters read environment variables, parse configuration files or write settings. Library, resource access/MIME resolution, playback planner, workers, subtitle service and HTTP composition receive immutable typed views through injection. The Web API projects only safe client preferences, locale resources and supported capability data; never server paths or credentials. The frontend uses a matching configuration/locale client instead of duplicating policy constants. Add a read-only `GET /api/client-config` projection; retain validated `GET/PUT /api/settings` for writable preferences.
+The entry point constructs a typed `ConfigurationService`. Only this layer reads environment variables, resolves built-in policy, validates user settings and writes `settings.json`. Library, resource access/MIME resolution, playback planner, workers, subtitle service and HTTP composition receive immutable typed views through injection. The Web API projects only safe client preferences, English messages and supported capabilities; never server paths or credentials. Add read-only `GET /api/client-config` and retain validated `GET/PUT /api/settings` for writable preferences.
 
-On first initialization, create each missing file from versioned packaged default templates, then read and validate the files through the normal path. Use exclusive creation so concurrent starts cannot overwrite a file. Never overwrite an existing custom file, silently replace invalid JSON, or fall back to defaults after an explicit invalid value. Validate schema versions, unknown keys, ranges, references and cross-file consistency before publishing a complete snapshot. Invalid configuration or failed creation reports file/key diagnostics and prevents startup with a partial configuration. This differs from missing optional media binaries, which only disable dependent capabilities.
-
-Additive upgrades supply documented defaults for missing keys through this layer; preserve custom values and back up files before an explicit atomic migration. Unsupported future schema versions require corrective action. Administrator files are restart-only in V2; UI settings commit to disk before replacing the in-memory snapshot. Running scans/jobs capture their effective configuration and profile hash; altered profile content invalidates derived-cache reuse even if its human-readable ID is unchanged. Do not expose arbitrary file editing through HTTP. Validation schemas and path confinement remain code invariants, not configurable bypasses.
+Settings commit to disk atomically before replacing the in-memory snapshot. Running scans/jobs capture their effective settings and profile hash; any change to effective profile content invalidates derived-cache reuse, even when its ID stays the same. Validation schemas and path confinement remain program invariants.
 
 ### Multilingual readiness (O14 foundation; future M07)
 

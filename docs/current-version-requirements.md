@@ -40,7 +40,7 @@ Extend the existing file browser into an everyday Web viewing workflow:
 | C02 | Browser invocation of an external player | Ask the browser/OS to open a player protocol or otherwise invoke a native player | — | Later |
 | C03 | External-player state reading | Read position, playing/paused state and playback end when a future integration exposes them | — | Later |
 | O14 | Multilingual foundation | English message catalog, stable keys and fallback; translated locales/selector deferred | — | V2 (partial) |
-| O17 | External configuration | Separate default files and unified validated access | — | V2 |
+| O17 | Unified configuration | Built-in defaults, validated user overrides and typed access | — | V2 |
 | O16 | Complete everyday-use Web interface | Finished application navigation, resource browsing, continue watching, Web player, preparation feedback, and V2 settings with responsive and accessible states | — | V2 |
 
 ### Saved Progress and Resume (W01, W02)
@@ -95,11 +95,11 @@ V2 offers a secondary **Copy media link** action for users who want to open the 
 - External playback is **playback only**. V2 does not read or synchronize position, pause, completion or watched state; it does not update Web history or transfer saved position. C03 reserves optional future external-player state reading. The copy-link action does not require an Anishelf bridge.
 - Web playback remains usable regardless of whether the user opens the copied link. External subtitle transfer, desktop control, and device management remain outside scope.
 
-### External Configuration and Multilingual Foundation (O17, Partial O14)
+### Configuration and Multilingual Foundation (O17, Partial O14)
 
-- Create missing separate configuration files from packaged defaults, then read them through one typed configuration layer. Keep supported containers/extensions/MIME mappings, target preparation/real-time formats and encoding profiles, subtitle policy, runtime limits/timers and locale resources in their own files. Keep writable user preferences in `settings.json`; startup options use environment variables.
-- Validate files and cross-file references before publishing configuration. Never overwrite custom files or silently replace malformed values. Define upgrade defaults, startup diagnostics, atomic settings writes and restart requirements. Profile-content changes invalidate cached outputs. Configuring a format cannot add unsupported browser, renderer or FFmpeg capabilities.
-- Application modules consume validated configuration views rather than opening files or embedding policy constants. Expose only safe client configuration through the API. Access confinement and no-shell rules cannot be disabled through configuration.
+- Use environment variables for startup options. Ship media-format capabilities, subtitle support and limits, runtime defaults, built-in transcode profiles and the English catalog with the program; do not copy these defaults into persistent policy files.
+- Store only user choices in `settings.json`: resource root, Web playback mode, cache budget and selected profile IDs. Save custom profile definitions or parameter overrides only if V2 exposes editing them. Merge explicit user values with the current built-in defaults, validate the result and write settings atomically. Missing fields receive current defaults; explicit choices survive upgrades. Reject invalid settings with actionable diagnostics.
+- Application modules consume one validated typed configuration view. Profile-content changes invalidate cached outputs. Configuration cannot bypass access checks or create unsupported browser, renderer or FFmpeg capabilities. Expose only safe client preferences and capabilities through the API.
 - Reserve multilingual support using stable UI/error keys, a separate English catalog and English fallback. V2 ships English only; additional translations and a language selector remain unassigned.
 - Future program metadata must preserve language-tagged titles/aliases/descriptions and original language independently of stable program IDs. Do not add metadata acquisition, program pages or new metadata storage to V2 merely for this reservation. Preserve original filenames.
 
@@ -164,7 +164,7 @@ These scenarios passed in V1 according to the user's manual acceptance report an
 | A24 | P03, P08, P09 | MKV with multiple text tracks and fonts extracts/selects correctly; external and extracted ASS/SSA styles/CJK text render; supported bitmap tracks extract but display explicit unsupported-Web feedback | — | V2 |
 | A25 | Configuration | With no tool paths configured, FFmpeg/FFprobe resolve independently from process PATH; valid overrides work, missing/invalid binaries show dependent-feature errors while direct playback remains usable | — | V2 |
 | A26 | Persistence | User settings remain in settings.json; Drizzle migrations/transactions preserve history and enforce deduplication; restart reconciles SQLite and asset files; cache cleanup never removes durable records | — | V2 |
-| A27 | O17 | First initialization creates missing default files without overwriting custom values; restart applies edited media/profile policy; invalid files/references fail clearly; consumers share validated values and profile changes invalidate cached outputs | — | V2 |
+| A27 | O17 | Startup uses current built-in defaults for unset choices, preserves explicit settings across upgrades, rejects invalid overrides, supplies one validated view and invalidates cached output when the effective profile changes | — | V2 |
 | A28 | O14 | English UI, player labels and errors resolve through message keys with fallback; language-independent IDs/filenames remain stable; future multilingual metadata contract is documented without introducing metadata features | — | V2 |
 
 Record browser/OS versions for Web playback, representative external-player URL checks, source codecs, subtitle formats, pre-transcode and real-time profiles, styled subtitle/font samples, and real-sample results. Automated tests do not certify browser decoding. V2 completion requires the new acceptance scenarios and retained V1 regression behavior; then update implemented-version fields, including the partial P08/P09 boundaries.
@@ -178,7 +178,7 @@ Record browser/OS versions for Web playback, representative external-player URL 
 - External-player support in V2 generates a transferable media URL only. Browser/OS invocation (C02) and native-state reading (C03) remain later requirements.
 - External services and unassigned integrations must not become playback dependencies.
 - FFmpeg/FFprobe executable overrides are optional; default discovery uses the server process PATH. Missing tools disable dependent features with actionable feedback.
-- Keep user preferences in settings.json and administrator policy in separate configuration files accessed through the unified layer. Use SQLite through Drizzle ORM for application records and cache metadata; store media/subtitle/font payloads as files. Cache cleanup must not erase durable viewing records or user settings.
+- Keep user preferences in `settings.json` and program policy in code or bundled resources. Use SQLite through Drizzle ORM for application records and cache metadata; store media/subtitle/font payloads as files. Cache cleanup must not erase durable viewing records or user settings.
 
 ## 6. Deferred Scope
 
