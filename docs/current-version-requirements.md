@@ -40,7 +40,7 @@ Extend the existing file browser into an everyday Web viewing workflow:
 | C02 | Browser invocation of an external player | Ask the browser/OS to open a player protocol or otherwise invoke a native player | — | Later |
 | C03 | External-player state reading | Read position, playing/paused state and playback end when a future integration exposes them | — | Later |
 | O14 | Multilingual foundation | English message catalog, stable keys and fallback; translated locales/selector deferred | — | V2 (partial) |
-| O17 | Unified configuration | Built-in defaults, validated user overrides and typed access | — | V2 |
+| O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access | — | V2 |
 | O16 | Complete everyday-use Web interface | Finished application navigation, resource browsing, continue watching, Web player, preparation feedback, and V2 settings with responsive and accessible states | — | V2 |
 
 ### Saved Progress and Resume (W01, W02)
@@ -97,7 +97,7 @@ V2 offers a secondary **Copy media link** action for users who want to open the 
 
 ### Configuration and Multilingual Foundation (O17, Partial O14)
 
-- Use environment variables for startup options. Ship media-format capabilities, subtitle support and limits, runtime defaults, built-in transcode profiles and the English catalog with the program; do not copy these defaults into persistent policy files.
+- Use environment variables for startup options. Define media-format capabilities, subtitle support and limits, runtime defaults and built-in transcode profiles in TypeScript. Bundle the English catalog as a read-only resource. Do not copy these defaults into persistent policy files.
 - Store only user choices in `settings.json`: resource root, Web playback mode, cache budget and selected profile IDs. Save custom profile definitions or parameter overrides only if V2 exposes editing them. Merge explicit user values with the current built-in defaults, validate the result and write settings atomically. Missing fields receive current defaults; explicit choices survive upgrades. Reject invalid settings with actionable diagnostics.
 - Application modules consume one validated typed configuration view. Profile-content changes invalidate cached outputs. Configuration cannot bypass access checks or create unsupported browser, renderer or FFmpeg capabilities. Expose only safe client preferences and capabilities through the API.
 - Reserve multilingual support using stable UI/error keys, a separate English catalog and English fallback. V2 ships English only; additional translations and a language selector remain unassigned.
@@ -178,7 +178,7 @@ Record browser/OS versions for Web playback, representative external-player URL 
 - External-player support in V2 generates a transferable media URL only. Browser/OS invocation (C02) and native-state reading (C03) remain later requirements.
 - External services and unassigned integrations must not become playback dependencies.
 - FFmpeg/FFprobe executable overrides are optional; default discovery uses the server process PATH. Missing tools disable dependent features with actionable feedback.
-- Keep user preferences in `settings.json` and program policy in code or bundled resources. Use SQLite through Drizzle ORM for application records and cache metadata; store media/subtitle/font payloads as files. Cache cleanup must not erase durable viewing records or user settings.
+- Keep user preferences in `settings.json`, program policy in TypeScript and the English catalog in a bundled resource. Use SQLite through Drizzle ORM for application records and cache metadata; store media/subtitle/font payloads as files. Cache cleanup must not erase durable viewing records or user settings.
 
 ## 6. Deferred Scope
 

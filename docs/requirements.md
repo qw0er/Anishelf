@@ -117,7 +117,7 @@ V2 implements both **Prepare for Web → wait for a reusable completed copy → 
 
 #### Configuration and Storage Boundary (V2)
 
-FFmpeg/FFprobe executable paths are optional startup overrides; otherwise find each executable through the server process PATH. Ship media-format, transcode, subtitle, runtime and English-language defaults with the program. Keep user choices and explicit overrides in `settings.json`; combine them through one validated typed configuration service (O17). V2 selects SQLite with Drizzle ORM for history, source identity, jobs and cache metadata, while generated media/subtitles/fonts remain separate files. Durable records are not disposable cache. These choices are planned, not implemented.
+FFmpeg/FFprobe executable paths are optional startup overrides; otherwise find each executable through the server process PATH. Define media-format, transcode, subtitle and runtime defaults in TypeScript; bundle the English catalog as a read-only resource. Keep user choices and explicit overrides in `settings.json`; combine them through one validated typed configuration service (O17). V2 selects SQLite with Drizzle ORM for history, source identity, jobs and cache metadata, while generated media/subtitles/fonts remain separate files. Durable records are not disposable cache. These choices are planned, not implemented.
 
 ### 2.4 Viewing History and Tracking
 
@@ -203,11 +203,11 @@ V2 supports generating and copying an origin-aware original-media URL for the us
 | O14 | Interface localization and language preferences | V2 English catalog/keys/fallback foundation; additional locales and selection later | — | V2 (partial) |
 | O15 | Manage API-backed frontend state and caching with TanStack Query | Later | — | Unassigned |
 | O16 | Complete everyday-use Web interface | Finished UI for V2 library, continue watching, primary Web playback, pre-transcode/real-time tasks, and scoped settings | — | V2 |
-| O17 | Unified configuration | Built-in defaults, validated user overrides and typed access | — | V2 |
+| O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access | — | V2 |
 
 #### Unified Configuration (O17)
 
-Use environment variables for startup options and program-owned defaults for container/MIME capabilities, transcode profiles, subtitle handling, resource limits/timers and English messages. Save user choices and any exposed custom profile overrides in `settings.json`. Merge only explicit user values with current defaults, validate the effective result and write settings atomically. Unset choices adopt new defaults on update; explicit choices remain. Cache keys include effective profile content. Configuration cannot bypass access checks or create unsupported codec/delivery capabilities. See the current design for ownership and upgrade rules.
+Use environment variables for startup options. Define container/MIME capabilities, transcode profiles, subtitle handling and resource limits/timers in TypeScript; bundle English messages as a read-only resource. Save user choices and any exposed custom profile overrides in `settings.json`. Merge only explicit user values with current defaults, validate the effective result and write settings atomically. Unset choices adopt new defaults on update; explicit choices remain. Cache keys include effective profile content. Configuration cannot bypass access checks or create unsupported codec/delivery capabilities. See the current design for ownership and upgrade rules.
 
 #### Complete Web Interface (O16)
 

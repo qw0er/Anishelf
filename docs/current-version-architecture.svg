@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
+  <title id="title">Anishelf module architecture</title>
+  <desc id="description">The Web client calls HTTP transport, which delegates to library and playback applications. The applications coordinate supporting modules and adapters.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1280" height="640" fill="#ffffff" />
+  <text x="28" y="46" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700">Anishelf module architecture</text>
+  <text x="28" y="73" fill="#475569" font-family="Arial, Helvetica, sans-serif" font-size="15">Primary dependency flow from the Web client to supporting modules</text>
+
+  <rect x="28" y="104" width="245" height="506" rx="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="2" />
+  <text x="48" y="134" fill="#1e3a8a" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Web client</text>
+  <rect x="48" y="150" width="205" height="58" rx="8" fill="#ffffff" stroke="#bfdbfe" />
+  <text x="150.5" y="185" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">App shell and routes</text>
+  <rect x="48" y="222" width="205" height="58" rx="8" fill="#ffffff" stroke="#bfdbfe" />
+  <text x="150.5" y="257" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Library and settings UI</text>
+  <rect x="48" y="294" width="205" height="58" rx="8" fill="#ffffff" stroke="#bfdbfe" />
+  <text x="150.5" y="329" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Playback UI</text>
+  <rect x="48" y="366" width="205" height="58" rx="8" fill="#ffffff" stroke="#bfdbfe" />
+  <text x="150.5" y="401" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Player adapter</text>
+  <rect x="48" y="438" width="205" height="58" rx="8" fill="#ffffff" stroke="#bfdbfe" />
+  <text x="150.5" y="473" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Media-link generator</text>
+  <rect x="48" y="510" width="205" height="58" rx="8" fill="#ffffff" stroke="#bfdbfe" />
+  <text x="150.5" y="545" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">API client</text>
+
+  <path d="M 273 358 H 296" fill="none" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)" />
+  <rect x="301" y="104" width="165" height="506" rx="14" fill="#f0fdfa" stroke="#5eead4" stroke-width="2" />
+  <text x="321" y="134" fill="#115e59" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Transport</text>
+  <rect x="321" y="306" width="125" height="104" rx="8" fill="#ffffff" stroke="#99f6e4" />
+  <text x="383.5" y="349" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">HTTP</text>
+  <text x="383.5" y="373" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">transport</text>
+
+  <path d="M 466 358 H 489" fill="none" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)" />
+  <rect x="494" y="104" width="248" height="506" rx="14" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="2" />
+  <text x="514" y="134" fill="#5b21b6" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Applications</text>
+  <rect x="514" y="213" width="208" height="90" rx="8" fill="#ffffff" stroke="#ddd6fe" />
+  <text x="618" y="252" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Library</text>
+  <text x="618" y="276" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">application</text>
+  <rect x="514" y="372" width="208" height="90" rx="8" fill="#ffffff" stroke="#ddd6fe" />
+  <text x="618" y="411" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Playback</text>
+  <text x="618" y="435" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">application</text>
+
+  <path d="M 742 358 H 765" fill="none" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)" />
+  <rect x="770" y="104" width="482" height="506" rx="14" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2" />
+  <text x="790" y="134" fill="#334155" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Supporting modules and adapters</text>
+  <rect x="790" y="150" width="210" height="62" rx="8" fill="#ffffff" stroke="#cbd5e1" />
+  <text x="895" y="187" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Scanner and index</text>
+  <rect x="1018" y="150" width="214" height="62" rx="8" fill="#ffffff" stroke="#cbd5e1" />
+  <text x="1125" y="187" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Resource access</text>
+  <rect x="790" y="239" width="210" height="62" rx="8" fill="#ffffff" stroke="#cbd5e1" />
+  <text x="895" y="276" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Media processing</text>
+  <rect x="1018" y="239" width="214" height="62" rx="8" fill="#ffffff" stroke="#cbd5e1" />
+  <text x="1125" y="276" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Subtitle service</text>
+  <rect x="790" y="328" width="210" height="62" rx="8" fill="#ffffff" stroke="#cbd5e1" />
+  <text x="895" y="365" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Configuration</text>
+  <rect x="1018" y="328" width="214" height="62" rx="8" fill="#ffffff" stroke="#cbd5e1" />
+  <text x="1125" y="365" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Record repositories</text>
+  <rect x="790" y="417" width="210" height="62" rx="8" fill="#ffffff" stroke="#cbd5e1" />
+  <text x="895" y="454" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Asset store</text>
+  <rect x="1018" y="417" width="214" height="62" rx="8" fill="#ffffff" stroke="#cbd5e1" />
+  <text x="1125" y="454" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Locale resources</text>
+  <rect x="790" y="506" width="210" height="62" rx="8" fill="#ffffff" stroke="#cbd5e1" />
+  <text x="895" y="543" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Startup and logging</text>
+  <rect x="1018" y="506" width="214" height="62" rx="8" fill="#ffffff" stroke="#cbd5e1" />
+  <text x="1125" y="543" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="16">Media inspector</text>
+</svg>

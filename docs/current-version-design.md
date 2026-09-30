@@ -2,69 +2,16 @@
 
 **V2 is planned; V1 is implemented.** The [current requirements](current-version-requirements.md) define scope and acceptance.
 
-## 1. Feature Versions
+## 1. Architecture and Modules
 
-“Implemented in” records delivered behavior; “Target” records planned changes. V2 rows remain unimplemented until acceptance passes.
+The client calls the HTTP transport, which delegates to application modules. Application modules coordinate supporting services and adapters. The diagram shows module boundaries and primary dependencies; the workflows and technology choices are described below.
 
-| Feature / requirement | Implemented in | Target | Design boundary |
-| --- | --- | --- | --- |
-| Root configuration (V01) | V1 | V1, retained in V2 | One read-only resource root; persistent settings |
-| Manual scans (V02) | V1 | V1, retained in V2 | Bounded traversal and atomic in-memory snapshots |
-| Directory browsing (V03) | V1 | V2 presentation update | Real hierarchy, original names, stable natural ordering |
-| Direct playback and controls (V04–V05) | V1, native video | V2 ArtPlayer replacement | Keep direct media streams and seeking; replace player UI |
-| Failure feedback (V06) | V1 | V2 extensions | Add progress, subtitle, preparation, and media-link failures |
-| Progress and resume (W01) | — | V2 | Server records, ordered writes, start over |
-| Continue watching and recent viewing (W02) | — | V2 | File-based lists; no episode watched status |
-| External subtitles (P03) | — | V2 | VTT/SRT/ASS/SSA matching, selection, off |
-| Subtitle discovery and extraction (P08) | — | V2, partial | Extract MKV/container text and supported bitmap tracks; browser rendering follows the format matrix |
-| Styled subtitles (P09) | — | V2, partial | ASS/SSA rendering and embedded fonts; image-subtitle rendering remains unassigned |
-| Strategy selection (P05) | — | V2 | Validated browser profile and source probe |
-| Remuxing (P06) | — | V2 | Preserve compatible audio and video streams |
-| FFmpeg pre-transcoding and real-time transcoding (P07) | — | V2 | Reusable MP4 copies or session HLS; re-encode only necessary streams |
-| External-player media link (C01) | — | V2 | Generate/copy an origin-relative original-media link; manual player open |
-| Browser invocation of an external player (C02) | — | Later | Protocol launch or other native-app invocation |
-| Everyday Web interface (O16) | — | V2 | Library, player, tasks, settings; responsive and accessible |
-| Multilingual foundation (O14, partial) | — | V2 | English catalog and locale-independent contracts; translated UI deferred |
-| Unified configuration (O17) | — | V2 | Built-in defaults, user settings and validated typed access |
-| External-player state reading (C03) | — | Later | Read native state when a future integration exposes it |
-| All other requirements | — | Unassigned | No implied V3 commitment; see Section 12 |
-
-## 2. Architecture and Technology
-
-Retain a modular Node.js/TypeScript backend with Fastify, Pino, and asynchronous filesystem access. Retain React, Vite, React Router Data Mode, Tailwind CSS, shadcn/ui, Vitest, and Biome. V2 adds ArtPlayer, FFprobe/FFmpeg child processes, SQLite with Drizzle ORM, hls.js for real-time HLS, JASSUB for styled subtitles, and generation of transferable external-player media links. Browser invocation of a player is deferred. TanStack Query remains unassigned.
-
-```mermaid
-flowchart LR
-    UI[React screens and router] --> API[Fastify HTTP API]
-    UI --> Player[ArtPlayer]
-    Player -->|Original / prepared MP4 / session HLS| API
-    API --> Library[Library application]
-    API --> Playback[Playback application]
-    Playback --> Records[SQLite and Drizzle stores]
-    Playback --> Worker[Media scheduler: pre-transcode or real-time]
-    Worker --> FF[FFprobe / FFmpeg]
-    Library --> Access[Resource access policy]
-    Playback --> Access
-    Access --> Originals[(Read-only originals)]
-    FF --> Cache[(Private application cache)]
-    UI --> Link[External-player media-link generator]
-    Link -->|Copy original-media URL| Clipboard[User pastes URL into player]
-    Clipboard -.->|HTTP media request| API
-    Library --> Config[Unified configuration service]
-    Playback --> Config
-    Worker --> Config
-    Config --> Defaults[Built-in policy and English catalog]
-    Config --> Settings[(settings.json)]
-    UI --> Locale[Locale resource adapter]
-    Library --> Scanner[Scanner and in-memory index]
-```
-
-The external player runs on the browser user's computer and fetches the original media URL itself. With a remote server, resolve the media route against the browser's SSH-forwarded application origin. The browser hands over a URL; it does not proxy media bytes or execute desktop commands.
+![Anishelf module architecture: Web client, HTTP transport, application modules, and supporting modules](current-version-architecture.svg)
 
 | Module | Version | Responsibility |
 | --- | --- | --- |
 | Startup options and logging | V1; V2 extension | Load startup options, resolve media tools, configure shared Pino logger |
-| Unified configuration service | V2, extending V1 settings | Merge built-in defaults with user settings, validate effective values and commit settings |
+| Unified configuration service | V2, extending V1 settings | Merge TypeScript defaults with user settings, validate effective values and commit settings |
 | Library application, scanner, index | V1 retained | Own scans, settings exclusion, publication, browsing |
 | Resource access | V1; V2 extension | Confined regular-file access, including subtitle sources |
 | HTTP transport | V1; V2 extension | Validation, DTOs, typed errors, HEAD/Range and handle cleanup |
@@ -77,9 +24,11 @@ The external player runs on the browser user's computer and fetches the original
 | App shell, library browser, scan feedback and API client | V1; V2 extension | Routing, directory context, polling, errors and accessible settings/tasks/history screens |
 | ArtPlayer adapter | V2 | Player lifecycle, media events, subtitle selection and resume |
 
+Retain a modular Node.js/TypeScript backend with Fastify, Pino, and asynchronous filesystem access. Retain React, Vite, React Router Data Mode, Tailwind CSS, shadcn/ui, Vitest, and Biome. V2 adds ArtPlayer, FFprobe/FFmpeg child processes, SQLite with Drizzle ORM, hls.js for real-time HLS, JASSUB for styled subtitles, and generation of transferable external-player media links. Browser invocation of a player is deferred. TanStack Query remains unassigned.
+
 HTTP calls application use cases. Application modules do not depend on Fastify or React; storage, inspection, and processing adapters do not own HTTP contracts. Keep existing import boundaries. The entry point assembles dependencies; avoid putting the new workflow inside route handlers or the scanner.
 
-## 3. Configuration, Persistence, and Identity
+## 2. Configuration, Persistence, and Identity
 
 ### Configuration (V1 retained; V2 additions)
 
@@ -95,14 +44,14 @@ Originals, writable data, and frontend static assets remain separate and non-ove
 
 ### Built-in defaults and user settings (O17)
 
-Startup uses environment variables. Program policy ships in code or read-only bundled resources; it is not copied into `dataDir` on startup. `dataDir/settings.json` stores only user choices and explicit overrides.
+Startup uses environment variables. Media capabilities, transcode profiles, subtitle rules and runtime policy are defined in TypeScript. The English message catalog is a bundled read-only resource. None of these defaults is copied into `dataDir`; `dataDir/settings.json` stores only user choices and explicit overrides.
 
 | Owner | Values | Update rule |
 | --- | --- | --- |
-| Program | Discovery extensions and MIME mappings for MP4/M4V, WebM and MKV; container/codec capabilities; supported subtitle codecs/renderers/font types; 10/20/100 MiB text/font/total-font limits | Updated with the program; enabling discovery does not guarantee browser decoding |
-| Program | Prepared MP4 profile: H.264/yuv420p CRF 20/medium and AAC 192 kbit/s; real-time HLS/fMP4 profile: CRF 23/veryfast and AAC 192 kbit/s | Updated with the program; validate against delivery adapters and detected tools |
-| Program | Scan concurrency 8; media/probe/extraction slots 1 each; queue 20; progress interval 5 s; near-end 30 s/5%; lease renewal/expiry 10/30 s; paused stop 30 s; bounded cleanup and job timeouts | Updated with the program; define finite values and valid timing relationships |
-| Program | English message catalog and fallback `en` | Bundled read-only; additional locales and selection deferred |
+| TypeScript | Discovery extensions and MIME mappings for MP4/M4V, WebM and MKV; container/codec capabilities; supported subtitle codecs/renderers/font types; 10/20/100 MiB text/font/total-font limits | Updated with the program; enabling discovery does not guarantee browser decoding |
+| TypeScript | Prepared MP4 profile: H.264/yuv420p CRF 20/medium and AAC 192 kbit/s; real-time HLS/fMP4 profile: CRF 23/veryfast and AAC 192 kbit/s | Updated with the program; validate against delivery adapters and detected tools |
+| TypeScript | Scan concurrency 8; media/probe/extraction slots 1 each; queue 20; progress interval 5 s; near-end 30 s/5%; lease renewal/expiry 10/30 s; paused stop 30 s; bounded cleanup and job timeouts | Updated with the program; define finite values and valid timing relationships |
+| Bundled resource | English message catalog and fallback `en` | Updated with the program; additional locales and selection deferred |
 | User | Resource root, Web mode, 10 GiB default cache budget, selected profile IDs; optional custom profile definitions or parameter overrides only if editing is exposed | Validated atomic writes to `settings.json`; explicit values persist |
 
 The effective configuration is the current built-in defaults merged with explicit user settings. Missing settings keys use current defaults, so new program defaults apply without rewriting a generated policy file. Existing root-only settings remain valid. Reject malformed or unsupported explicit values with file/key diagnostics; perform an explicit migration only when the settings schema changes. Custom profiles cannot add a muxer, encoder or delivery adapter that the program lacks.
@@ -146,7 +95,7 @@ V1 file IDs hash kind and relative path and are not globally unique across roots
 
 The library index stays in memory and still requires a manual scan after restart. History survives independently. Until scanned, lists explain that availability is unknown; do not expose playable links merely because a history record exists. Partial scan omissions never erase history. Switching roots clears the active listing and playback session but retains records under their original root keys.
 
-## 4. Inherited Library and Media Behavior (V1 → V2)
+## 3. Inherited Library and Media Behavior (V1 → V2)
 
 Preserve one scan with bounded traversal, shared concurrent scan starts, settings/scan exclusion, directories-first natural sorting, and atomic snapshot publication. Retain the prior snapshot on root failure; report partial child failures. Scan only recognized video extensions; inspect subtitles on file selection rather than adding them as playable library entries.
 
@@ -154,7 +103,7 @@ Keep original media read-only and IDs opaque. Recheck canonical containment, pat
 
 Retain bounded streaming, `HEAD`, single bounded/open/suffix byte ranges, `206`, and unsatisfiable `416`. Malformed/multipart ranges and unverifiable `If-Range` fall back to full `200`; HEAD ignores Range. Close handles on completion, errors, and disconnect. Never buffer the whole media file into a browser Blob. Prepared-media delivery uses the same transport behavior, resolved through a separate private asset registry.
 
-## 5. ArtPlayer Web Playback (V2; V04–V06, O16)
+## 4. ArtPlayer Web Playback (V2; V04–V06, O16)
 
 Replace the native controls with an ArtPlayer instance owned by a React adapter. ArtPlayer controls the underlying browser video element; it does not provide missing codecs or replace server preparation. Use a bundled npm dependency pinned during implementation, not a runtime CDN dependency. Its [options](https://artplayer.org/document/en/start/option), [events](https://artplayer.org/document/en/advanced/event), and [instance lifecycle](https://artplayer.org/document/en/advanced/property) document the integration surface.
 
@@ -162,13 +111,13 @@ Replace the native controls with an ArtPlayer instance owned by a React adapter.
 2. Mount one player per selected source. Provide the original, ready-copy, or real-time HLS URL, English controls, metadata preload, play/pause, seeking, volume, and fullscreen. Playback starts from user input; do not require audible autoplay.
 3. Load history before enabling automatic progress writes. Restore a finite saved position after media metadata arrives, clamped to actual duration; then enable event-driven saving. If history loading fails, playback remains available with a retry action and saving disabled.
 4. Map underlying media metadata, pause, seek completion, time updates, ended, and error events into application actions. Keep the adapter independent of route revalidation; scan polling must not recreate the player.
-5. On explicit source/copy switch, capture position, pause saving during setup, load the new URL, restore position once ready, and reapply the selected subtitle. Original, copy, and real-time playback use the same history key. HLS uses the source-time mapping in Section 8.
+5. On explicit source/copy switch, capture position, pause saving during setup, load the new URL, restore position once ready, and reapply the selected subtitle. Original, copy, and real-time playback use the same history key. HLS uses the source-time mapping in Section 7.
 6. On normal exit, await a bounded final save or show the failure, then destroy the instance and release the media source. Tab termination only permits best-effort flushing. Destroy hls.js/JASSUB workers, release real-time sessions, remove timers/listeners, and abort obsolete subtitle/metadata requests. Verify React StrictMode setup/cleanup and repeat navigation.
 7. On playback error, recheck accessibility before reporting a missing/unreadable source. If decoding remains uncertain, show a generic playback failure with retry, pre-transcoding, real-time playback, and a Copy media link option. Automatic Web mode may select real-time transcoding for a known incompatibility; a generic error alone must not trigger repeated conversion attempts or launch a native player.
 
 Keep subtitle labels and filenames as text, and subtitle HTML escaping enabled. Do not enable library-provided download, speed, offset, quality menus, extra shortcuts, or unrelated plugin features merely because they exist. Basic keyboard accessibility is required; P10's additional playback tools remain unassigned. Disable any built-in independent resume store so server history is authoritative.
 
-## 6. Progress, Resume, and Lists (V2; W01–W02)
+## 5. Progress, Resume, and Lists (V2; W01–W02)
 
 Create a server-issued playback session only after a successful history read. Atomically increment its generation for that source. Each update includes source version, generation, monotonically increasing sequence, position, and duration. Reject an older generation or sequence; retrying an identical accepted update is idempotent. Check finite nonnegative times and clamp to the validated duration. Use server timestamps for ordering, never client clock order or maximum playback position.
 
@@ -176,7 +125,7 @@ Save approximately every five seconds while playing, and on pause, completed see
 
 Continue watching includes available records with positive position that are not near the end, ordered by `lastViewedAt` descending with source ID as a stable tie-breaker. Define near-end as remaining time no greater than `min(30 seconds, 5% of duration)` for a finite positive duration. An ended event stores duration as position. This only controls list membership; it does not mark an episode watched. A compact Recently watched list includes finished records as well, under the same availability checks. Missing files may be shown disabled with rescan feedback; do not delete their records. Unknown/nonfinite duration does not qualify for completion and is not persisted as a fabricated value.
 
-## 7. Subtitles (V2; P03, Partial P08–P09)
+## 6. Subtitles (V2; P03, Partial P08–P09)
 
 ArtPlayer documents native subtitle inputs for VTT, SRT, and ASS, but format parsing alone is not a guarantee of ASS typography or effects. Use its normal text-subtitle path for VTT/SRT and the documented [JASSUB integration](https://artplayer.org/?example=jassub&libs=./uncompiled/artplayer-plugin-jassub/index.js) for styled ASS/SSA. Package worker/WASM assets with the application; record and validate pinned versions. The supported V2 matrix is explicit:
 
@@ -197,7 +146,7 @@ Resolve track and attachment IDs on the server, never accept paths or FFmpeg sel
 
 Keep cue time on the original source timeline. When real-time playback restarts at a source-time offset, map both plain-text cues and JASSUB's renderer clock to that offset; recreate or shift the track for the new generation without accumulating offsets. Test seek, resume, source switching, multiple simultaneous styled lines, font fallback, and CJK text. Missing or unsupported subtitles never force audio/video re-encoding; no automatic burn-in in V2.
 
-## 8. Playback Plan and FFmpeg Transcoding (V2; P05–P07)
+## 7. Playback Plan and FFmpeg Transcoding (V2; P05–P07)
 
 ### Inspection and minimum necessary processing
 
@@ -240,7 +189,7 @@ One media-processing slot is shared by pre-transcodes and real-time sessions. Re
 
 Spawn fixed resolved binaries with argument arrays, no shell, bounded stderr, and validated confined inputs. Use distinct startup/stall watchdogs for real-time sessions and a bounded whole-job timeout for pre-transcodes; do not apply a short startup timeout to an entire film. Kill and await children on timeout/shutdown before cleanup. Check free disk space and handle ENOSPC during writes. Root changes conflict with active media work and require stopping/cancelling it first; source changes invalidate jobs and terminate sessions. All process errors remain actionable without modifying originals or durable viewing history.
 
-## 9. External-Player Media Link (V2; C01)
+## 8. External-Player Media Link (V2; C01)
 
 V2 generates a transferable link for a user to paste into an external player's Open URL command. It does not ask the browser or operating system to invoke another application. That feature is deferred as C02. No player-specific URL scheme or player adapter is required.
 
@@ -250,7 +199,7 @@ Validate link generation and resource access with spaces, Unicode, percent signs
 
 External playback is playback only. V2 reads no player state and does not update Web history. Optional external-player state reading (C03) and browser/OS invocation (C02) are later requirements. Remote control, subtitle transfer, and multiple-device management remain unassigned. The superseded bridge proposal is retained in [Historical Designs](historical-design.md#superseded-v2-bridge-proposal); it is not part of the current architecture.
 
-## 10. HTTP Contracts and Failure Semantics
+## 9. HTTP Contracts and Failure Semantics
 
 Keep all existing V1 endpoints and their response shapes unless explicitly extended. New endpoints below are V2 proposals, not current API documentation. V2 extends GET/PUT settings with validated playback/cache preferences while retaining the resource-root field; older partial root updates preserve omitted preferences. A settings-only update must not clear scans or playback unless the root changes. All IDs are opaque, request schemas are strict, and public errors omit filesystem paths and credentials.
 
@@ -280,7 +229,7 @@ Keep all existing V1 endpoints and their response shapes unless explicitly exten
 
 Use `400` for invalid shapes, `404` for unknown/missing references, `403` for access denial, `409` for stale versions/generations or conflicting work, `429` for bounded queue/rate limits, and `503` for unavailable tools/root/storage capabilities. Preserve V1's structured error envelope and request IDs. Return stable codes such as `SOURCE_CHANGED`, `PROGRESS_CONFLICT`, `PREPARATION_FAILED`, `SUBTITLE_UNSUPPORTED`, and `MEDIA_LINK_UNAVAILABLE`; HTTP success alone never means media decoded or a desktop player started.
 
-## 11. Everyday Interface (V2; O16)
+## 10. Everyday Interface (V2; O16)
 
 Keep existing directory/file URLs. Add `/tasks` and `/settings`; the shared shell contains Library, Media tasks, and Settings. Preserve the last directory when moving through these screens, and retain player return context. On root change, explicitly explain the reset to root and need to scan. React Router loaders/actions own server state; component state owns transient player and form state. Poll scans/preparations/transcode sessions only while active; stop timers on terminal state or unmount, cancel stale requests, and avoid reloading an active player for unrelated status changes.
 
@@ -295,7 +244,7 @@ Use a restrained neutral palette with one accent for primary actions, semantic s
 
 The primary file action is **Watch** or **Resume**. **Copy media link** is secondary and optional. Pre-transcoding is explicit; automatic Web mode may start only necessary real-time processing. Show Direct / Prepared / Real-time and the processing reason; subtitle/progress controls reflect actual API state. At 1280 px and 390 px widths, verify readable names, no page-wide overflow, focus order, control contrast, fullscreen exit, subtitle placement, and all loading/empty/error states. ArtPlayer accessibility must be tested and supplemented by the adapter where needed. No invented artwork, placeholder data, or controls for unassigned features.
 
-## 12. Delivery Order, Acceptance, and Deferred Scope
+## 11. Delivery Order, Acceptance, and Deferred Scope
 
 | Stage | Target | Coverage and completion evidence |
 | --- | --- | --- |
