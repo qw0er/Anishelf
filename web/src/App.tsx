@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	Link,
 	Outlet,
@@ -14,6 +15,7 @@ import { buttonStyles } from "./components/ui/button.js";
 import { Spinner } from "./components/ui/spinner.js";
 import { useDelayedPending } from "./hooks/use-delayed-pending.js";
 import type { libraryLoader, scanAction } from "./routes/loaders.js";
+import "./i18n.js";
 
 export interface LibraryContext {
 	playerVersion: number;
@@ -30,6 +32,7 @@ export interface LibraryContext {
 }
 
 function App() {
+	const { t } = useTranslation();
 	const {
 		library,
 		settings,
@@ -89,14 +92,14 @@ function App() {
 						<Spinner />
 						<p>
 							{navigation.location.pathname.startsWith("/files/")
-								? "Loading file…"
-								: "Loading files…"}
+								? t("navigation.loadingFile")
+								: t("navigation.loadingFiles")}
 						</p>
 						<Link
 							className={buttonStyles("outline")}
 							to={`${location.pathname}${location.search}`}
 						>
-							Cancel navigation
+							{t("navigation.cancel")}
 						</Link>
 					</div>
 				)}

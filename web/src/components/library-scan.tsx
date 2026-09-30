@@ -1,7 +1,9 @@
 import { RefreshCw, ScanLine } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { LibraryContext } from "../App.js";
 import { useDelayedPending } from "../hooks/use-delayed-pending.js";
+import { getScanWarningTranslationKey } from "../lib/error-translation.js";
 import { Button } from "./ui/button.js";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.js";
 import { Spinner } from "./ui/spinner.js";
@@ -32,17 +34,21 @@ export default function LibraryScan({
 	reload,
 	startScan,
 }: LibraryScanProps) {
+	const { t } = useTranslation();
 	const scan = library?.scan;
 	const setupRequired = settings?.resourceRoot === null;
 	const showScanning = useDelayedPending(scanning);
 	const showSubmitting = useDelayedPending(scanSubmitting);
 	const showRefreshing = useDelayedPending(refreshing);
+	const scanStatusKey = scan
+		? `scan.status${scan.status[0]?.toUpperCase()}${scan.status.slice(1)}`
+		: "scan.statusNotStarted";
 
 	return (
 		<Card>
 			<CardHeader className="gap-4 sm:grid-cols-[1fr_auto]">
 				<div className="space-y-1">
-					<CardTitle>Library scan</CardTitle>
+					<CardTitle>{t("scan.title")}</CardTitle>
 					<div
 						className="text-sm text-muted-foreground"
 						role="status"
@@ -52,12 +58,14 @@ export default function LibraryScan({
 							<span className="inline-flex size-4 shrink-0">
 								{showScanning && <Spinner />}
 							</span>
-							Scan: {scan?.status ?? "not started"}
+							{t("scan.status", { status: t(scanStatusKey) })}
 						</p>
 						{scan && (
 							<p>
-								Visited entries: {scan.visitedCount} · Video files:{" "}
-								{scan.matchedCount}
+								{t("scan.visitedEntries", {
+									count: scan.visitedCount,
+									matched: scan.matchedCount,
+								})}
 							</p>
 						)}
 					</div>
@@ -74,7 +82,7 @@ export default function LibraryScan({
 						) : (
 							<ScanLine size={16} aria-hidden="true" />
 						)}
-						Scan library
+						{t("scan.start")}
 					</Button>
 					<Button
 						type="button"
@@ -88,7 +96,7 @@ export default function LibraryScan({
 						) : (
 							<RefreshCw size={16} aria-hidden="true" />
 						)}
-						Refresh
+						{t("scan.refresh")}
 					</Button>
 				</div>
 			</CardHeader>
@@ -101,33 +109,38 @@ export default function LibraryScan({
 				<CardContent className="space-y-2 text-sm">
 					{!settings?.resourceRoot && settings && (
 						<p>
-							Set a resource directory in{" "}
-							<Link className="underline" to="/settings">
-								Settings
-							</Link>{" "}
-							to start using the library.
+							<Trans
+								i18nKey="scan.setupRequired"
+								components={{
+									settings: <Link className="underline" to="/settings" />,
+								}}
+							/>
 						</p>
 					)}
 					{scan && scan.warnings.count > 0 && (
 						<details>
 							<summary className="cursor-pointer">
-								Scan warnings: {scan.warnings.count}
+								{t("scan.warnings", { count: scan.warnings.count })}
 							</summary>
 							<ul className="list-disc pl-5">
 								{scan.warnings.messages.map((message) => (
-									<li key={message}>{message}</li>
+									<li key={message}>
+										{getScanWarningTranslationKey(message)
+											? t(getScanWarningTranslationKey(message) ?? "")
+											: message}
+									</li>
 								))}
 							</ul>
 						</details>
 					)}
-					{library?.stale && <p>Showing the previous scan results.</p>}
+					{library?.stale && <p>{t("scan.stale")}</p>}
 					{library?.error &&
 						!(
 							setupRequired &&
 							library.error.code === "RESOURCE_ROOT_NOT_CONFIGURED"
-						) && <p role="alert">{library.error.message}</p>}
-					{libraryError && <p role="alert">{libraryError}</p>}
-					{scanError && <p role="alert">{scanError}</p>}
+						) && <p role="alert">{t(`errors.api.${library.error.code}`)}</p>}
+					{libraryError && <p role="alert">{t(libraryError)}</p>}
+					{scanError && <p role="alert">{t(scanError)}</p>}
 				</CardContent>
 			)}
 		</Card>

@@ -1,5 +1,6 @@
 import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button.js";
 
 type Theme = "light" | "dark";
@@ -9,6 +10,7 @@ function getInitialTheme(): Theme {
 }
 
 export default function ThemeToggle() {
+	const { t } = useTranslation();
 	const [theme, setTheme] = useState<Theme>(getInitialTheme);
 	const nextTheme = theme === "dark" ? "light" : "dark";
 
@@ -36,8 +38,8 @@ export default function ThemeToggle() {
 			variant="ghost"
 			className="px-3"
 			type="button"
-			aria-label={`Switch to ${nextTheme} mode`}
-			title={`Switch to ${nextTheme} mode`}
+			aria-label={t("app.switchToMode", { mode: t(`app.${nextTheme}`) })}
+			title={t("app.switchToMode", { mode: t(`app.${nextTheme}`) })}
 			onClick={selectTheme}
 		>
 			{theme === "dark" ? (

@@ -1,18 +1,20 @@
+import { useTranslation } from "react-i18next";
 import { Link, NavLink, useLocation } from "react-router";
 import ThemeToggle from "./theme-toggle.js";
 import { buttonStyles } from "./ui/button.js";
 
 export default function AppHeader({ pending = false }: { pending?: boolean }) {
+	const { t } = useTranslation();
 	const { pathname } = useLocation();
 	const browsing = pathname === "/" || pathname.startsWith("/directories/");
 	return (
 		<header className="border-b bg-card" inert={pending}>
 			<div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
 				<Link className="text-lg font-semibold" to="/">
-					Anishelf
+					{t("app.name")}
 				</Link>
 				<nav
-					aria-label="Primary navigation"
+					aria-label={t("app.primaryNavigation")}
 					className="flex items-center gap-1"
 				>
 					<NavLink
@@ -21,7 +23,7 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 							buttonStyles(isActive && browsing ? "secondary" : "ghost")
 						}
 					>
-						Library
+						{t("app.library")}
 					</NavLink>
 					<NavLink
 						to="/settings"
@@ -29,7 +31,7 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 							buttonStyles(isActive ? "secondary" : "ghost")
 						}
 					>
-						Settings
+						{t("app.settings")}
 					</NavLink>
 					<ThemeToggle />
 				</nav>

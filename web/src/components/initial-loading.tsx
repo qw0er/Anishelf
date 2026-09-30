@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router";
 import { useDelayedPending } from "../hooks/use-delayed-pending.js";
 import AppHeader from "./app-header.js";
@@ -5,6 +6,7 @@ import { Card, CardContent, CardHeader } from "./ui/card.js";
 import { Skeleton } from "./ui/skeleton.js";
 
 export default function InitialLoading() {
+	const { t } = useTranslation();
 	const { pathname } = useLocation();
 	const visible = useDelayedPending(true, pathname);
 	const player = pathname.startsWith("/files/");
@@ -15,7 +17,11 @@ export default function InitialLoading() {
 			<AppHeader pending />
 			<main className="mx-auto max-w-6xl space-y-6 px-4 py-6" aria-busy="true">
 				{visible && (
-					<div className="space-y-6" role="status" aria-label="Loading page">
+					<div
+						className="space-y-6"
+						role="status"
+						aria-label={t("loading.pageLabel")}
+					>
 						{player ? (
 							<>
 								<Skeleton className="h-9 w-36" />
@@ -60,7 +66,7 @@ export default function InitialLoading() {
 								</Card>
 							</>
 						)}
-						<span className="sr-only">Loading page…</span>
+						<span className="sr-only">{t("loading.page")}</span>
 					</div>
 				)}
 			</main>

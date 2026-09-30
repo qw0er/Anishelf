@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useFetcher } from "react-router";
 import type { SettingsResponse } from "../api/contracts.js";
 import { useDelayedPending } from "../hooks/use-delayed-pending.js";
@@ -20,29 +21,30 @@ export default function ResourceSettings({
 	settings: SettingsResponse;
 	disabled: boolean;
 }) {
+	const { t } = useTranslation();
 	const fetcher = useFetcher<typeof settingsAction>();
 	const saving = fetcher.state !== "idle";
 	const showSaving = useDelayedPending(saving);
 	return (
-		<section className="space-y-6" aria-label="Resource settings">
+		<section className="space-y-6" aria-label={t("settingsPage.label")}>
 			<div>
-				<h1 className="text-2xl font-semibold">Settings</h1>
+				<h1 className="text-2xl font-semibold">{t("settingsPage.title")}</h1>
 				<p className="text-sm text-muted-foreground">
-					Configure the server directory used by the library.
+					{t("settingsPage.description")}
 				</p>
 			</div>
 			<Card className="max-w-2xl">
 				<CardHeader>
-					<CardTitle>Resource directory</CardTitle>
+					<CardTitle>{t("settingsPage.resourceDirectory")}</CardTitle>
 					<CardDescription>
-						Enter an absolute path on the server. Scan the library after saving.
+						{t("settingsPage.resourceDescription")}
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<fetcher.Form method="post" action="/settings" className="space-y-4">
 						<div className="space-y-2">
 							<label className="text-sm font-medium" htmlFor="resource-root">
-								Resource directory path
+								{t("settingsPage.pathLabel")}
 							</label>
 							<Input
 								id="resource-root"
@@ -50,7 +52,7 @@ export default function ResourceSettings({
 								type="text"
 								required
 								defaultValue={settings.resourceRoot ?? ""}
-								placeholder="/path/to/media"
+								placeholder={t("settingsPage.pathPlaceholder")}
 								disabled={disabled || saving}
 							/>
 						</div>
@@ -62,21 +64,21 @@ export default function ResourceSettings({
 							<span className="inline-flex size-4 shrink-0">
 								{showSaving && <Spinner />}
 							</span>
-							Save directory
+							{t("settingsPage.save")}
 						</Button>
 					</fetcher.Form>
 					{settings.resourceRoot !== null && (
 						<p className="break-all text-sm text-muted-foreground">
-							Saved resource directory: {settings.resourceRoot}
+							{t("settingsPage.savedPath", {
+								path: settings.resourceRoot,
+							})}
 						</p>
 					)}
 					{disabled && (
-						<p className="text-sm">
-							Wait for the scan to finish before changing the directory.
-						</p>
+						<p className="text-sm">{t("settingsPage.waitForScan")}</p>
 					)}
 					{fetcher.state === "idle" && fetcher.data?.error && (
-						<p role="alert">{fetcher.data.error}</p>
+						<p role="alert">{t(fetcher.data.error)}</p>
 					)}
 				</CardContent>
 			</Card>

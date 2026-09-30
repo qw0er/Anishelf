@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
 	Link,
 	type RouteObject,
@@ -41,6 +42,7 @@ function PlayerPage() {
 }
 
 function SettingsPage() {
+	const { t } = useTranslation();
 	const { settings, scanning, scanPending } =
 		useOutletContext<LibraryContext>();
 	return settings ? (
@@ -50,8 +52,18 @@ function SettingsPage() {
 			disabled={scanning || scanPending}
 		/>
 	) : (
-		<section role="alert">
-			Settings could not be loaded. Try refreshing the page.
+		<section role="alert">{t("errors.settingsUnavailable")}</section>
+	);
+}
+
+function NotFoundPage() {
+	const { t } = useTranslation();
+	return (
+		<section>
+			<p role="alert">{t("navigation.pageNotFound")}</p>
+			<Link className={buttonStyles("outline")} to="/">
+				{t("navigation.goToRoot")}
+			</Link>
 		</section>
 	);
 }
@@ -90,14 +102,7 @@ export const libraryRoute: RouteObject = {
 		},
 		{
 			path: "*",
-			element: (
-				<section>
-					<p role="alert">Page not found.</p>
-					<Link className={buttonStyles("outline")} to="/">
-						Go to root
-					</Link>
-				</section>
-			),
+			element: <NotFoundPage />,
 		},
 	],
 };

@@ -1,0 +1,96 @@
+{
+	"app": {
+		"name": "Anishelf",
+		"library": "Library",
+		"settings": "Settings",
+		"primaryNavigation": "Primary navigation",
+		"switchToMode": "Switch to {{mode}} mode",
+		"light": "light",
+		"dark": "dark"
+	},
+	"navigation": {
+		"loadingFile": "Loading file…",
+		"loadingFiles": "Loading files…",
+		"cancel": "Cancel navigation",
+		"backToFiles": "Back to files",
+		"goToRoot": "Go to root",
+		"parentDirectory": "Parent directory",
+		"pageNotFound": "Page not found."
+	},
+	"loading": {
+		"page": "Loading page…",
+		"pageLabel": "Loading page"
+	},
+	"errors": {
+		"pageLabel": "Page error",
+		"pageLoad": "This page could not be loaded.",
+		"libraryStatus": "Could not load library status.",
+		"saveSettings": "Could not save settings.",
+		"resourcePathRequired": "Enter an absolute resource directory path.",
+		"startScan": "Could not start scanning.",
+		"mediaPlayback": "This media could not be played in this browser.",
+		"network": "Cannot connect to the server. Check your connection and try again.",
+		"invalidResponse": "The server returned an invalid response. Please try again.",
+		"requestFailed": "The request failed. Please try again.",
+		"settingsUnavailable": "Settings could not be loaded. Try refreshing the page.",
+		"api": {
+			"CONFIG_INVALID": "Use an absolute resource directory separate from the application data directory.",
+			"CONFIG_WRITE_FAILED": "Settings could not be saved.",
+			"SETTINGS_BUSY": "Wait for the current scan or settings save to finish and try again.",
+			"RESOURCE_ROOT_NOT_CONFIGURED": "Set a resource directory before scanning the library.",
+			"RESOURCE_ROOT_UNAVAILABLE": "The resource directory is unavailable.",
+			"RESOURCE_NOT_FOUND": "The resource was not found.",
+			"RESOURCE_MISSING": "This file is no longer available. Scan the library again.",
+			"RESOURCE_UNREADABLE": "The resource is not readable.",
+			"RESOURCE_ACCESS_DENIED": "Access to this resource is denied.",
+			"SCAN_FAILED": "The library scan failed.",
+			"INVALID_REQUEST": "The request is invalid.",
+			"REQUEST_FORBIDDEN": "This request is not allowed.",
+			"ROUTE_NOT_FOUND": "The requested endpoint was not found.",
+			"INTERNAL_ERROR": "An unexpected server error occurred."
+		}
+	},
+	"library": {
+		"filesLabel": "Library files",
+		"directoryTitle": "Directory: {{name}}",
+		"emptyDirectory": "This directory is empty. Scan the library to discover video files.",
+		"bytes": "{{count}} bytes"
+	},
+	"scan": {
+		"title": "Library scan",
+		"status": "Scan: {{status}}",
+		"statusNotStarted": "not started",
+		"statusRunning": "running",
+		"statusCompleted": "completed",
+		"statusFailed": "failed",
+		"statusCancelled": "cancelled",
+		"visitedEntries": "Visited entries: {{count}} · Video files: {{matched}}",
+		"start": "Scan library",
+		"refresh": "Refresh",
+		"setupRequired": "Set a resource directory in <settings>Settings</settings> to start using the library.",
+		"warnings": "Scan warnings: {{count}}",
+		"warningDirectory": "A directory could not be scanned; its contents were skipped.",
+		"warningFile": "A video file could not be read and was skipped.",
+		"stale": "Showing the previous scan results."
+	},
+	"settingsPage": {
+		"label": "Resource settings",
+		"title": "Settings",
+		"description": "Configure the server directory used by the library.",
+		"resourceDirectory": "Resource directory",
+		"resourceDescription": "Enter an absolute path on the server. Scan the library after saving.",
+		"pathLabel": "Resource directory path",
+		"pathPlaceholder": "/path/to/media",
+		"save": "Save directory",
+		"savedPath": "Saved resource directory: {{path}}",
+		"waitForScan": "Wait for the scan to finish before changing the directory."
+	},
+	"player": {
+		"label": "Player",
+		"videoLabel": "Video: {{name}}",
+		"retry": "Retry file"
+	},
+	"actions": {
+		"retry": "Retry"
+	}
+}

@@ -1,14 +1,15 @@
 import { RefreshCw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
 	Link,
 	useRevalidator,
 	useRouteError,
 	useSearchParams,
 } from "react-router";
-import { ApiClientError } from "../api/client.js";
 import { Button, buttonStyles } from "../components/ui/button.js";
 import { Spinner } from "../components/ui/spinner.js";
 import { useDelayedPending } from "../hooks/use-delayed-pending.js";
+import { getErrorTranslationKey } from "../lib/error-translation.js";
 import { directoryPath } from "./paths.js";
 
 export default function RouteError({
@@ -16,17 +17,16 @@ export default function RouteError({
 }: {
 	kind: "directory" | "file" | "page";
 }) {
+	const { t } = useTranslation();
 	const error = useRouteError();
 	const revalidator = useRevalidator();
 	const [searchParams] = useSearchParams();
 	const retrying = revalidator.state !== "idle";
 	const showRetrying = useDelayedPending(retrying);
 	return (
-		<section className="space-y-4" aria-label="Page error">
+		<section className="space-y-4" aria-label={t("errors.pageLabel")}>
 			<p role="alert">
-				{error instanceof ApiClientError
-					? error.message
-					: "This page could not be loaded."}
+				{t(getErrorTranslationKey(error) ?? "errors.pageLoad")}
 			</p>
 			<Button
 				type="button"
@@ -40,7 +40,7 @@ export default function RouteError({
 				) : (
 					<RefreshCw size={16} aria-hidden="true" />
 				)}
-				{kind === "file" ? "Retry file" : "Retry"}
+				{kind === "file" ? t("player.retry") : t("actions.retry")}
 			</Button>{" "}
 			<Link
 				className={buttonStyles("outline")}
@@ -50,7 +50,9 @@ export default function RouteError({
 						: "/"
 				}
 			>
-				{kind === "file" ? "Back to files" : "Go to root"}
+				{kind === "file"
+					? t("navigation.backToFiles")
+					: t("navigation.goToRoot")}
 			</Link>
 		</section>
 	);

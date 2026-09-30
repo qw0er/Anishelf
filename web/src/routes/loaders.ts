@@ -4,7 +4,6 @@ import {
 	redirect,
 } from "react-router";
 import {
-	ApiClientError,
 	getDirectory,
 	getFile,
 	getLibrary,
@@ -13,6 +12,7 @@ import {
 	saveSettings,
 	startScan,
 } from "../api/client.js";
+import { getErrorTranslationKey } from "../lib/error-translation.js";
 
 export async function libraryLoader({ request }: LoaderFunctionArgs) {
 	try {
@@ -30,10 +30,7 @@ export async function libraryLoader({ request }: LoaderFunctionArgs) {
 		return {
 			library: null,
 			settings: null,
-			error:
-				error instanceof ApiClientError
-					? error.message
-					: "Could not load library status.",
+			error: getErrorTranslationKey(error) ?? "errors.libraryStatus",
 		};
 	}
 }
@@ -42,17 +39,14 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 	const form = await request.formData();
 	const resourceRoot = form.get("resourceRoot");
 	if (typeof resourceRoot !== "string" || resourceRoot.trim() === "")
-		return { error: "Enter an absolute resource directory path." };
+		return { error: "errors.resourcePathRequired" };
 	try {
 		await saveSettings({ resourceRoot }, { signal: request.signal });
 		return redirect("/");
 	} catch (error) {
 		if (request.signal.aborted || isRequestCancelled(error)) throw error;
 		return {
-			error:
-				error instanceof ApiClientError
-					? error.message
-					: "Could not save settings.",
+			error: getErrorTranslationKey(error) ?? "errors.saveSettings",
 		};
 	}
 }
@@ -75,10 +69,7 @@ export async function scanAction({ request }: ActionFunctionArgs) {
 		if (request.signal.aborted || isRequestCancelled(error)) throw error;
 		return {
 			scan: null,
-			error:
-				error instanceof ApiClientError
-					? error.message
-					: "Could not start scanning.",
+			error: getErrorTranslationKey(error) ?? "errors.startScan",
 		};
 	}
 }

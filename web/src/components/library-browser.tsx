@@ -1,4 +1,5 @@
 import { ArrowLeft, FileVideo, Folder } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { LibraryContext } from "../App.js";
 import type { DirectoryResponse } from "../api/contracts.js";
@@ -14,10 +15,11 @@ export default function LibraryBrowser({
 	listing: DirectoryResponse;
 	scan: LibraryContext;
 }) {
+	const { t } = useTranslation();
 	const parentId = listing.directory.parentId;
 	const setupRequired = scan.settings?.resourceRoot === null;
 	return (
-		<section className="space-y-6" aria-label="Library files">
+		<section className="space-y-6" aria-label={t("library.filesLabel")}>
 			<LibraryScan {...scan} />
 			{!setupRequired && (
 				<>
@@ -27,19 +29,19 @@ export default function LibraryBrowser({
 								className={buttonStyles("outline")}
 								to={directoryPath(parentId)}
 							>
-								<ArrowLeft size={16} aria-hidden="true" /> Parent directory
+								<ArrowLeft size={16} aria-hidden="true" />
+								{t("navigation.parentDirectory")}
 							</Link>
 						)}
 						<h1 className="wrap-break-word text-2xl font-semibold">
-							Directory: {listing.directory.name}
+							{t("library.directoryTitle", { name: listing.directory.name })}
 						</h1>
 					</div>
 					<Card>
 						<CardContent>
 							{listing.children.length === 0 ? (
 								<p className="text-sm text-muted-foreground">
-									This directory is empty. Scan the library to discover video
-									files.
+									{t("library.emptyDirectory")}
 								</p>
 							) : (
 								<ul className="divide-y">
@@ -64,7 +66,9 @@ export default function LibraryBrowser({
 												</span>
 												{entry.kind === "file" && (
 													<span className="shrink-0 text-sm text-muted-foreground">
-														{entry.sizeBytes} bytes
+														{t("library.bytes", {
+															count: entry.sizeBytes,
+														})}
 													</span>
 												)}
 											</Link>
