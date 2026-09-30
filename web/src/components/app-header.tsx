@@ -1,4 +1,5 @@
 import { Link, NavLink, useLocation } from "react-router";
+import ThemeToggle from "./theme-toggle.js";
 import { buttonStyles } from "./ui/button.js";
 
 export default function AppHeader({ pending = false }: { pending?: boolean }) {
@@ -30,6 +31,7 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 					>
 						Settings
 					</NavLink>
+					<ThemeToggle />
 				</nav>
 			</div>
 		</header>

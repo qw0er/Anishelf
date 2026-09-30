@@ -7,6 +7,12 @@
     <meta name="theme-color" content="#244b42" />
     <meta name="description" content="Anishelf, your local media shelf." />
     <title>Anishelf</title>
+    <script>
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        document.documentElement.classList.add("dark");
+        document.documentElement.style.colorScheme = "dark";
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
