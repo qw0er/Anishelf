@@ -1,8 +1,8 @@
 import { constants } from "node:fs";
 import { access, mkdir, stat } from "node:fs/promises";
 import { isIP } from "node:net";
-import { homedir } from "node:os";
-import { isAbsolute, join } from "node:path";
+import { isAbsolute } from "node:path";
+import { userDataDir } from "platformdirs";
 import type {
 	DeploymentConfig,
 	LoggingConfig,
@@ -33,14 +33,8 @@ function absolutePath(value: string, name: string): string {
 	return value;
 }
 
-function defaultDataDir(env: Environment): string {
-	const xdgDataHome = env.XDG_DATA_HOME;
-	// XDG specifies that empty or relative base directories are ignored.
-	const base =
-		xdgDataHome && isAbsolute(xdgDataHome)
-			? absolutePath(xdgDataHome, "XDG_DATA_HOME")
-			: join(absolutePath(env.HOME ?? homedir(), "HOME"), ".local", "share");
-	return join(base, "anishelf");
+function defaultDataDir(): string {
+	return userDataDir("anishelf", false);
 }
 
 /** Resolve and validate startup environment variables without filesystem effects. */
@@ -68,7 +62,7 @@ export function parseDeploymentConfig(
 	}
 	const dataDir =
 		env.ANISHELF_DATA_DIR === undefined
-			? defaultDataDir(env)
+			? defaultDataDir()
 			: absolutePath(env.ANISHELF_DATA_DIR, "ANISHELF_DATA_DIR");
 	const level = env.ANISHELF_LOG_LEVEL ?? "info";
 	if (!levels.includes(level)) {

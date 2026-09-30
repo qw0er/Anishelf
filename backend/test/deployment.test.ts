@@ -1,6 +1,7 @@
 import { chmod, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { userDataDir } from "platformdirs";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import {
 	loadDeploymentConfig,
@@ -19,30 +20,15 @@ test("starts with defaults without application environment variables", () => {
 	expect(parseDeploymentConfig({})).toEqual({
 		host: "127.0.0.1",
 		port: 3000,
-		dataDir: join(homedir(), ".local", "share", "anishelf"),
+		dataDir: userDataDir("anishelf", false),
 		logging: { level: "info", destination: "stdout" },
 	});
 });
 
-test.each([undefined, "", "relative/data"])(
-	"uses HOME/.local/share when XDG_DATA_HOME is %s",
-	(XDG_DATA_HOME) => {
-		expect(
-			parseDeploymentConfig({ HOME: fixture, XDG_DATA_HOME }).dataDir,
-		).toBe(join(fixture, ".local", "share", "anishelf"));
-	},
-);
-
-test("uses XDG_DATA_HOME and allows an explicit data directory to override it", () => {
-	const env = { XDG_DATA_HOME: join(fixture, "xdg") };
-	expect(parseDeploymentConfig(env).dataDir).toBe(
-		join(fixture, "xdg", "anishelf"),
-	);
+test("allows an explicit data directory to override the platform default", () => {
 	expect(
-		parseDeploymentConfig({
-			...env,
-			ANISHELF_DATA_DIR: join(fixture, "custom"),
-		}).dataDir,
+		parseDeploymentConfig({ ANISHELF_DATA_DIR: join(fixture, "custom") })
+			.dataDir,
 	).toBe(join(fixture, "custom"));
 });
 
@@ -95,9 +81,6 @@ test.each([
 	["ANISHELF_LOG_DESTINATION", "stderr"],
 	["ANISHELF_LOG_DESTINATION", ""],
 	["ANISHELF_LOG_PATH", "/tmp/log"],
-	["XDG_DATA_HOME", "/tmp/\0"],
-	["HOME", "relative"],
-	["HOME", ""],
 ])("rejects invalid %s=%s", (name, value) => {
 	expect(() => parseDeploymentConfig({ [name]: value })).toThrow(name);
 });
@@ -120,8 +103,8 @@ test("reports how to migrate the removed TOML entry point without reading it", a
 	).rejects.toThrow("Set ANISHELF_DATA_DIR to your existing data directory");
 });
 
-test("creates the default XDG data directory and retains existing settings", async () => {
-	const env = { XDG_DATA_HOME: join(fixture, "xdg") };
+test("creates the configured data directory and retains existing settings", async () => {
+	const env = { ANISHELF_DATA_DIR: join(fixture, "data") };
 	const config = await loadDeploymentConfig(env);
 	expect((await stat(config.dataDir)).isDirectory()).toBe(true);
 	await writeFile(

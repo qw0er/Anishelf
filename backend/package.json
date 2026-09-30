@@ -22,7 +22,8 @@
 	"dependencies": {
 		"@fastify/static": "^10.1.5",
 		"fastify": "^5.12.5",
-		"pino": "^10.3.1"
+		"pino": "^10.3.1",
+		"platformdirs": "4.3.7"
 	},
 	"exports": {
 		".": "./dist/index.js",

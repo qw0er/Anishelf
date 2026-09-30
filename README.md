@@ -25,12 +25,14 @@ Startup options can be set with environment variables:
 | --- | --- | --- |
 | `ANISHELF_HOST` | `127.0.0.1` | Loopback listener IP (`127.x.x.x` or `::1`). |
 | `ANISHELF_PORT` | `3000` | Listener port, from 1 to 65535. |
-| `ANISHELF_DATA_DIR` | `$XDG_DATA_HOME/anishelf` or `~/.local/share/anishelf` | Absolute writable application data directory. |
+| `ANISHELF_DATA_DIR` | Platform-specific user data directory for Anishelf | Absolute writable application data directory. |
 | `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
 | `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout` or `file`. |
 | `ANISHELF_LOG_PATH` | Unset | Absolute log path, required only for file output. |
 
-The data directory follows the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir/latest/), including on macOS. Unset, empty or relative `XDG_DATA_HOME` falls back to `$HOME/.local/share`; `anishelf` is appended to that base. `ANISHELF_DATA_DIR` overrides this choice. The directory is created at startup if needed. Paths are resolved independently of the working directory; `~` in an environment value is not expanded by the application.
+The default uses [platformdirs](https://www.npmjs.com/package/platformdirs) to choose the user data directory for the current operating system (for example, XDG data storage on Linux, Application Support on macOS, and Local AppData on Windows). `ANISHELF_DATA_DIR` overrides this choice. The directory is created at startup if needed. Paths are resolved independently of the working directory; `~` in an environment value is not expanded by the application.
+
+On macOS, installations using the previous `~/.local/share/anishelf` default should set `ANISHELF_DATA_DIR` to that existing absolute path or move the existing data into the new platform-specific location before starting this version.
 
 ## Start the backend
 

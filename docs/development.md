@@ -66,8 +66,7 @@ npm start
 | --- | --- | --- |
 | `ANISHELF_HOST` | `127.0.0.1` | Loopback IP address (`127.x.x.x` or `::1`); hostnames are not accepted. |
 | `ANISHELF_PORT` | `3000` | Decimal integer listener port from 1 to 65535. |
-| `ANISHELF_DATA_DIR` | XDG application data directory | Absolute directory; overrides XDG resolution. |
-| `XDG_DATA_HOME` | `$HOME/.local/share` | Absolute base directory; append `anishelf`. Empty or relative values are ignored. |
+| `ANISHELF_DATA_DIR` | Platform-specific user data directory for Anishelf | Absolute directory; overrides the platform default. |
 | `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
 | `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout` or `file`. |
 | `ANISHELF_LOG_PATH` | Unset | Absolute log path; required with `file`, rejected with `stdout`. |
@@ -75,12 +74,14 @@ npm start
 | `NODE_ENV` | Unset | `development` enables the local Vite Origin allowlist and optional built-page hosting. Other values provide only APIs and media. |
 
 The same options apply to development and production; changes require restart.
-Without an explicit data directory, use `$XDG_DATA_HOME/anishelf`, falling back to
-`$HOME/.local/share/anishelf` according to the [XDG specification](https://specifications.freedesktop.org/basedir/latest/).
-If HOME is unavailable, use the operating system's user home directory. This rule also
-applies on macOS. Data is independent of the working directory. Paths must be absolute,
+Without an explicit data directory, `platformdirs` selects the current operating system's
+user data location: XDG data storage on Linux, Application Support on macOS, and Local
+AppData on Windows. Data is independent of the working directory. Paths must be absolute,
 cannot contain NUL, and do not receive application-level tilde expansion. Explicitly
 empty Anishelf variables are invalid rather than treated as defaults.
+On macOS, installations using the previous `~/.local/share/anishelf` default should set
+`ANISHELF_DATA_DIR` to that existing absolute path or move the existing data into the new
+platform-specific location before starting this version.
 
 For file logging, set `ANISHELF_LOG_DESTINATION=file` and `ANISHELF_LOG_PATH`.
 The logger ensures the parent directory exists, then delegates append writes to Pino.

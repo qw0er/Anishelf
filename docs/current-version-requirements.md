@@ -2,7 +2,7 @@
 
 **V2 is planned; V1 is implemented.** V1 manual browser acceptance is user-reported.
 
-Startup options use defaults and environment variables. `ANISHELF_DATA_DIR` overrides `$XDG_DATA_HOME/anishelf`; the fallback is `$HOME/.local/share/anishelf`. The [current design](current-version-design.md) specifies the V2 architecture.
+Startup options use defaults and environment variables. `ANISHELF_DATA_DIR` overrides the platform-specific user data directory selected by `platformdirs`. The [current design](current-version-design.md) specifies the V2 architecture.
 
 ## 1. Goal and Operating Scope
 
