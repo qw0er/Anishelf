@@ -19,11 +19,11 @@ export default function LibraryBrowser({
 	const parentId = listing.directory.parentId;
 	const setupRequired = scan.settings?.resourceRoot === null;
 	return (
-		<section className="space-y-6" aria-label={t("library.filesLabel")}>
+		<section className="stack-page" aria-label={t("library.filesLabel")}>
 			<LibraryScan {...scan} />
 			{!setupRequired && (
 				<>
-					<div className="space-y-3">
+					<div className="flex min-w-0 flex-col gap-4">
 						{parentId !== null && (
 							<Link
 								className={buttonStyles("outline")}
@@ -33,7 +33,7 @@ export default function LibraryBrowser({
 								{t("navigation.parentDirectory")}
 							</Link>
 						)}
-						<h1 className="wrap-break-word text-2xl font-semibold">
+						<h1 className="page-title">
 							{t("library.directoryTitle", { name: listing.directory.name })}
 						</h1>
 					</div>
@@ -49,7 +49,7 @@ export default function LibraryBrowser({
 										<li key={entry.id} className="py-2 first:pt-0 last:pb-0">
 											<Link
 												aria-label={entry.name}
-												className="flex min-w-0 items-center gap-3 rounded-md p-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+												className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-md px-2 py-3 sm:grid-cols-[1rem_minmax(0,1fr)_auto] hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 												to={
 													entry.kind === "directory"
 														? directoryPath(entry.id)
@@ -57,15 +57,23 @@ export default function LibraryBrowser({
 												}
 											>
 												{entry.kind === "directory" ? (
-													<Folder size={16} aria-hidden="true" />
+													<Folder
+														className="mt-1 self-start"
+														size={16}
+														aria-hidden="true"
+													/>
 												) : (
-													<FileVideo size={16} aria-hidden="true" />
+													<FileVideo
+														className="mt-1 self-start"
+														size={16}
+														aria-hidden="true"
+													/>
 												)}
-												<span className="min-w-0 flex-1 wrap-break-word">
+												<span className="min-w-0 wrap-break-word">
 													{entry.name}
 												</span>
 												{entry.kind === "file" && (
-													<span className="shrink-0 text-sm text-muted-foreground">
+													<span className="col-start-2 text-sm tabular-nums sm:col-start-3 text-muted-foreground">
 														{t("library.bytes", {
 															count: entry.sizeBytes,
 														})}

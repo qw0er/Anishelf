@@ -17,8 +17,8 @@ export default function FilePlayer({
 }) {
 	const { t } = useTranslation();
 	return (
-		<section className="space-y-5" aria-label={t("player.label")}>
-			<div className="flex flex-wrap gap-2">
+		<section className="stack-page" aria-label={t("player.label")}>
+			<div className="action-row">
 				<Link
 					className={buttonStyles("outline")}
 					to={directoryPath(returnDirectoryId || data.file.parentId)}
@@ -31,9 +31,7 @@ export default function FilePlayer({
 					{t("player.retry")}
 				</Button>
 			</div>
-			<h1 className="wrap-break-word text-2xl font-semibold">
-				{data.file.name}
-			</h1>
+			<h1 className="page-title">{data.file.name}</h1>
 			<ArtPlayer {...data} />
 		</section>
 	);

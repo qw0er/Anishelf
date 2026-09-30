@@ -81,12 +81,12 @@ function App() {
 		<div className="min-h-screen bg-background">
 			<AppHeader />
 			<main
-				className="mx-auto max-w-6xl px-4 py-6"
+				className="page-container page-content"
 				aria-busy={navigation.state !== "idle"}
 			>
 				{showNavigation && navigation.location && (
 					<div
-						className="fixed right-4 bottom-4 z-50 flex max-w-[calc(100%-2rem)] flex-wrap items-center gap-3 rounded-md border bg-card p-3 shadow-sm"
+						className="action-row fixed right-4 bottom-4 z-50 max-w-[calc(100%-2rem)] rounded-md border bg-card p-4 text-sm shadow-sm"
 						role="status"
 					>
 						<Spinner />

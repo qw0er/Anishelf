@@ -4,7 +4,6 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-	--font-sans: ui-sans-serif, system-ui, sans-serif;
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
 	--color-card: var(--card);
@@ -74,12 +73,41 @@
 	--ring: oklch(0.556 0 0);
 }
 
+@utility page-title {
+	@apply wrap-break-word text-2xl font-semibold tracking-tight;
+}
+
+@utility page-container {
+	@apply mx-auto w-full max-w-6xl px-4;
+	@variant sm {
+		@apply px-6;
+	}
+}
+
+@utility page-content {
+	@apply py-6;
+	@variant sm {
+		@apply py-8;
+	}
+}
+
+@utility stack-page {
+	@apply flex min-w-0 flex-col gap-6;
+	@variant sm {
+		@apply gap-8;
+	}
+}
+
+@utility action-row {
+	@apply flex flex-wrap items-center gap-2;
+}
+
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
 	}
 	body {
-		@apply m-0 bg-background font-sans text-foreground antialiased;
+		@apply m-0 bg-background font-sans text-base text-foreground antialiased;
 	}
 }
 

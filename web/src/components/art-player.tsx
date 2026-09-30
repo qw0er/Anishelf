@@ -123,7 +123,11 @@ export default function ArtPlayer({ file, playbackUrl }: FileResponse) {
 				ref={containerRef}
 				className="anishelf-player aspect-video max-h-[75vh] w-full bg-black"
 			/>
-			{error && <p role="alert">{error}</p>}
+			{error && (
+				<p className="text-base text-destructive" role="alert">
+					{error}
+				</p>
+			)}
 		</>
 	);
 }

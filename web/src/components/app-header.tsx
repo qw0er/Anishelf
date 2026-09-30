@@ -9,14 +9,11 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 	const browsing = pathname === "/" || pathname.startsWith("/directories/");
 	return (
 		<header className="border-b bg-card" inert={pending}>
-			<div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+			<div className="page-container flex flex-wrap items-center justify-between gap-4 py-3">
 				<Link className="text-lg font-semibold" to="/">
 					{t("app.name")}
 				</Link>
-				<nav
-					aria-label={t("app.primaryNavigation")}
-					className="flex items-center gap-1"
-				>
+				<nav aria-label={t("app.primaryNavigation")} className="action-row">
 					<NavLink
 						to="/"
 						className={({ isActive }) =>

@@ -46,8 +46,8 @@ export default function LibraryScan({
 
 	return (
 		<Card>
-			<CardHeader className="gap-4 sm:grid-cols-[1fr_auto]">
-				<div className="space-y-1">
+			<CardHeader className="gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+				<div className="flex min-w-0 flex-col gap-1">
 					<CardTitle>{t("scan.title")}</CardTitle>
 					<div
 						className="text-sm text-muted-foreground"
@@ -70,7 +70,7 @@ export default function LibraryScan({
 						)}
 					</div>
 				</div>
-				<div className="flex flex-wrap gap-2">
+				<div className="action-row">
 					<Button
 						type="button"
 						disabled={scanPending || scanning || !library?.ready}
@@ -106,7 +106,7 @@ export default function LibraryScan({
 				libraryError ||
 				scanError ||
 				!settings?.resourceRoot) && (
-				<CardContent className="space-y-2 text-sm">
+				<CardContent className="flex min-w-0 flex-col gap-2 text-sm">
 					{!settings?.resourceRoot && settings && (
 						<p>
 							<Trans
@@ -122,7 +122,7 @@ export default function LibraryScan({
 							<summary className="cursor-pointer">
 								{t("scan.warnings", { count: scan.warnings.count })}
 							</summary>
-							<ul className="list-disc pl-5">
+							<ul className="flex min-w-0 flex-col gap-1 list-disc pl-4">
 								{scan.warnings.messages.map((message) => (
 									<li key={message}>
 										{getScanWarningTranslationKey(message)
@@ -138,9 +138,21 @@ export default function LibraryScan({
 						!(
 							setupRequired &&
 							library.error.code === "RESOURCE_ROOT_NOT_CONFIGURED"
-						) && <p role="alert">{t(`errors.api.${library.error.code}`)}</p>}
-					{libraryError && <p role="alert">{t(libraryError)}</p>}
-					{scanError && <p role="alert">{t(scanError)}</p>}
+						) && (
+							<p className="text-base text-destructive" role="alert">
+								{t(`errors.api.${library.error.code}`)}
+							</p>
+						)}
+					{libraryError && (
+						<p className="text-base text-destructive" role="alert">
+							{t(libraryError)}
+						</p>
+					)}
+					{scanError && (
+						<p className="text-base text-destructive" role="alert">
+							{t(scanError)}
+						</p>
+					)}
 				</CardContent>
 			)}
 		</Card>

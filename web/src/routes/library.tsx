@@ -59,11 +59,13 @@ function SettingsPage() {
 function NotFoundPage() {
 	const { t } = useTranslation();
 	return (
-		<section>
-			<p role="alert">{t("navigation.pageNotFound")}</p>
-			<Link className={buttonStyles("outline")} to="/">
-				{t("navigation.goToRoot")}
-			</Link>
+		<section className="flex min-w-0 flex-col gap-4">
+			<h1 className="page-title">{t("navigation.pageNotFound")}</h1>
+			<div className="action-row">
+				<Link className={buttonStyles("outline")} to="/">
+					{t("navigation.goToRoot")}
+				</Link>
+			</div>
 		</section>
 	);
 }

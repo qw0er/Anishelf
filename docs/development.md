@@ -536,8 +536,10 @@ transcoding remain planned V2 capabilities.
 Icons are named imports from `lucide-react`, following the
 [Lucide React guide](https://lucide.dev/guide/react/getting-started). Buttons retain
 visible text labels and decorative icons are hidden from assistive technology.
-The page has only basic spacing, button borders, and video size limits; it is
-intended for functional testing. Interaction tests cover scan publication,
+The interface uses Tailwind defaults and existing shared controls. The
+[design system](design-system.md) records recurring page compositions, responsive
+content handling, and feedback conventions. Loading and error screens share the
+page layout; ArtPlayer retains its own control styling. Interaction tests cover scan publication,
 navigation, direct route entry, history back/forward, playback setup/cleanup,
 retries, access errors, and stale request cancellation. These DOM tests do not
 validate actual media decoding.

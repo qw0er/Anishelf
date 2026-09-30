@@ -24,36 +24,45 @@ export default function RouteError({
 	const retrying = revalidator.state !== "idle";
 	const showRetrying = useDelayedPending(retrying);
 	return (
-		<section className="space-y-4" aria-label={t("errors.pageLabel")}>
-			<p role="alert">
+		<section
+			className={
+				kind === "page"
+					? "page-container page-content flex min-w-0 flex-col gap-4"
+					: "flex min-w-0 flex-col gap-4"
+			}
+			aria-label={t("errors.pageLabel")}
+		>
+			<p className="text-base text-destructive" role="alert">
 				{t(getErrorTranslationKey(error) ?? "errors.pageLoad")}
 			</p>
-			<Button
-				type="button"
-				variant="outline"
-				disabled={retrying}
-				aria-busy={retrying}
-				onClick={() => void revalidator.revalidate()}
-			>
-				{showRetrying ? (
-					<Spinner />
-				) : (
-					<RefreshCw size={16} aria-hidden="true" />
-				)}
-				{kind === "file" ? t("player.retry") : t("actions.retry")}
-			</Button>{" "}
-			<Link
-				className={buttonStyles("outline")}
-				to={
-					kind === "file"
-						? directoryPath(searchParams.get("directory") || "root")
-						: "/"
-				}
-			>
-				{kind === "file"
-					? t("navigation.backToFiles")
-					: t("navigation.goToRoot")}
-			</Link>
+			<div className="action-row">
+				<Button
+					type="button"
+					variant="outline"
+					disabled={retrying}
+					aria-busy={retrying}
+					onClick={() => void revalidator.revalidate()}
+				>
+					{showRetrying ? (
+						<Spinner />
+					) : (
+						<RefreshCw size={16} aria-hidden="true" />
+					)}
+					{kind === "file" ? t("player.retry") : t("actions.retry")}
+				</Button>
+				<Link
+					className={buttonStyles("outline")}
+					to={
+						kind === "file"
+							? directoryPath(searchParams.get("directory") || "root")
+							: "/"
+					}
+				>
+					{kind === "file"
+						? t("navigation.backToFiles")
+						: t("navigation.goToRoot")}
+				</Link>
+			</div>
 		</section>
 	);
 }

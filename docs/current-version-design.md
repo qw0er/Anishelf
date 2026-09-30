@@ -4,6 +4,9 @@
 is implemented; progress, subtitles, preparation, and the remaining V2 workflows
 are planned. The [current requirements](current-version-requirements.md) define scope and acceptance.
 
+The shared [design system](design-system.md) records page compositions and screen
+conventions built on Tailwind defaults and shared controls. The broader V2 interface remains planned.
+
 ## 1. Architecture and Modules
 
 The client calls the HTTP transport, which delegates to application modules. Application modules coordinate supporting services and adapters. The diagram shows module boundaries and primary dependencies; the workflows and technology choices are described below.
@@ -247,7 +250,7 @@ Keep existing directory/file URLs. Add `/tasks` and `/settings`; the shared shel
 | Media tasks | Filename, state, reliable progress or indeterminate indicator, retry/cancel, play ready copy, delete copy, active real-time stop | Empty, queued, processing, ready, failed, insufficient space |
 | Settings | Resource root, Web playback mode and cache budget in separate groups | Validation, saved, busy |
 
-Use a restrained neutral palette with one accent for primary actions, semantic status colors accompanied by text/icons, consistent 4/8 px spacing, readable 14–16 px body text, and clear page/section hierarchy. Reuse Tailwind theme tokens and shadcn controls. Desktop uses a compact sidebar and broad content area; narrow screens use compact navigation and stacked controls. Long filenames wrap or truncate with an accessible full-name action; controls retain readable labels and visible keyboard focus. Announce status changes without repeatedly interrupting playback.
+Use a restrained neutral palette with one accent for primary actions, semantic status colors accompanied by text/icons, the implemented [typography and layout rules](design-system.md), and clear page/section hierarchy. Reuse Tailwind theme tokens and shadcn controls. Desktop uses a compact sidebar and broad content area; narrow screens use compact navigation and stacked controls. Long filenames wrap or truncate with an accessible full-name action; controls retain readable labels and visible keyboard focus. Announce status changes without repeatedly interrupting playback.
 
 The primary file action is **Watch** or **Resume**. **Copy media link** is secondary and optional. Pre-transcoding is explicit; automatic Web mode may start only necessary real-time processing. Show Direct / Prepared / Real-time and the processing reason; subtitle/progress controls reflect actual API state. At 1280 px and 390 px widths, verify readable names, no page-wide overflow, focus order, control contrast, fullscreen exit, subtitle placement, and all loading/empty/error states. ArtPlayer accessibility must be tested and supplemented by the adapter where needed. No invented artwork, placeholder data, or controls for unassigned features.
 
