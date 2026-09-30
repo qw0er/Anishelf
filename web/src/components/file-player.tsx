@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { ApiClientError, getFile, isRequestCancelled } from "../api/client.js";
 import type { FileResponse } from "../api/contracts.js";
 import { directoryPath } from "../routes/paths.js";
+import { Button, buttonStyles } from "./ui/button.js";
 
 function NativePlayer({ file, playbackUrl }: FileResponse) {
 	const videoRef = useRef<HTMLVideoElement>(null);
@@ -44,7 +45,7 @@ function NativePlayer({ file, playbackUrl }: FileResponse) {
 				controls
 				preload="metadata"
 				aria-label={`Video: ${file.name}`}
-				className="max-h-[70vh] max-w-full"
+				className="aspect-video max-h-[75vh] w-full bg-black"
 				onError={() => void handleMediaError()}
 			/>
 			{error && <p role="alert">{error}</p>}
@@ -62,23 +63,21 @@ export default function FilePlayer({
 	onRetry(): void;
 }) {
 	return (
-		<section className="space-y-2" aria-label="Player">
-			<div className="flex gap-2">
+		<section className="space-y-5" aria-label="Player">
+			<div className="flex flex-wrap gap-2">
 				<Link
-					className="inline-flex items-center gap-2 border px-3 py-1"
+					className={buttonStyles("outline")}
 					to={directoryPath(returnDirectoryId || data.file.parentId)}
 				>
 					<ArrowLeft size={16} aria-hidden="true" /> Back to files
 				</Link>
-				<button
-					type="button"
-					className="inline-flex items-center gap-2 border px-3 py-1"
-					onClick={onRetry}
-				>
+				<Button type="button" variant="outline" onClick={onRetry}>
 					<RefreshCw size={16} aria-hidden="true" /> Retry file
-				</button>
+				</Button>
 			</div>
-			<h2 className="font-semibold">{data.file.name}</h2>
+			<h1 className="wrap-break-word text-2xl font-semibold">
+				{data.file.name}
+			</h1>
 			<NativePlayer {...data} />
 		</section>
 	);

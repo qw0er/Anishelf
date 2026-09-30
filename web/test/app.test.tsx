@@ -6,6 +6,7 @@ import {
 	render,
 	screen,
 	waitFor,
+	within,
 } from "@testing-library/react";
 import { StrictMode } from "react";
 import { createMemoryRouter, useLocation, useNavigate } from "react-router";
@@ -230,17 +231,26 @@ test("first-run setup saves the server directory and enables a manual scan", asy
 		},
 	};
 	renderApp();
+	expect(
+		(
+			(await screen.findByRole("button", {
+				name: "Scan library",
+			})) as HTMLButtonElement
+		).disabled,
+	).toBe(true);
+	fireEvent.click(
+		within(
+			screen.getByRole("navigation", { name: "Primary navigation" }),
+		).getByRole("link", { name: "Settings" }),
+	);
 	const input = (await screen.findByLabelText(
 		"Resource directory path",
 	)) as HTMLInputElement;
 	expect(input.value).toBe("");
-	expect(
-		(screen.getByRole("button", { name: "Scan library" }) as HTMLButtonElement)
-			.disabled,
-	).toBe(true);
 	fireEvent.change(input, { target: { value: "/media/中文 videos" } });
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
-	await screen.findByText("Saved resource directory: /media/中文 videos");
+	await screen.findByRole("button", { name: "Scan library" });
+	expect(screen.getByTestId("location").textContent).toBe("/");
 	expect(
 		screen.queryByText("Set a resource directory to start using the library."),
 	).toBeNull();
@@ -261,6 +271,7 @@ test("first-run setup saves the server directory and enables a manual scan", asy
 	).toBe(false);
 	fireEvent.click(screen.getByRole("button", { name: "Scan library" }));
 	await screen.findByText("Scan: running");
+	fireEvent.click(screen.getByRole("link", { name: "Settings" }));
 	expect(
 		(
 			screen.getByRole("button", {
@@ -274,16 +285,18 @@ test("saving a new directory returns from the player and unloads old media", asy
 	renderApp();
 	await openFile();
 	const video = await screen.findByLabelText("Video: Episode 01.mp4");
-	const input = screen.getByLabelText("Resource directory path");
+	expect(screen.queryByRole("button", { name: "Scan library" })).toBeNull();
+	fireEvent.click(screen.getByRole("link", { name: "Settings" }));
+	const input = await screen.findByLabelText("Resource directory path");
 	fireEvent.change(input, { target: { value: "/new/media" } });
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
-	await screen.findByText("Saved resource directory: /new/media");
 	await waitFor(() =>
 		expect(screen.getByTestId("location").textContent).toBe("/"),
 	);
 	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
 	expect(video.getAttribute("src")).toBeNull();
 	expect(screen.queryByRole("link", { name: "Season 1" })).toBeNull();
+	expect(screen.getByText("Scan: not started")).toBeTruthy();
 });
 
 test("a failed settings save retains the input and supports a retry", async () => {
@@ -307,6 +320,7 @@ test("a failed settings save retains the input and supports a retry", async () =
 		return implementation(input, init);
 	});
 	renderApp();
+	fireEvent.click(await screen.findByRole("link", { name: "Settings" }));
 	const input = (await screen.findByLabelText(
 		"Resource directory path",
 	)) as HTMLInputElement;
@@ -314,10 +328,10 @@ test("a failed settings save retains the input and supports a retry", async () =
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
 	await screen.findByText("Settings could not be saved.");
 	expect(input.value).toBe("/new/media");
-	expect(screen.getByRole("link", { name: "Season 1" })).toBeTruthy();
+	expect(screen.getByTestId("location").textContent).toBe("/settings");
 	rejectSave = false;
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
-	await screen.findByText("Saved resource directory: /new/media");
+	await screen.findByRole("button", { name: "Scan library" });
 	expect(screen.queryByText("Settings could not be saved.")).toBeNull();
 });
 
@@ -436,6 +450,7 @@ test("starts scanning, polls status, refreshes the listing on publication, and s
 		await vi.advanceTimersByTimeAsync(1000);
 	});
 	expect(screen.getByText("Scan: completed")).toBeTruthy();
+	fireEvent.click(screen.getByText("Scan warnings: 1"));
 	expect(screen.getByText("An unreadable file was skipped.")).toBeTruthy();
 	expect(screen.getByRole("link", { name: "Season 1" })).toBeTruthy();
 	expect(
@@ -451,10 +466,23 @@ test("starts scanning, polls status, refreshes the listing on publication, and s
 
 test("scan status updates do not unload a playing file", async () => {
 	renderApp();
-	await openFile();
-	const video = await screen.findByLabelText("Video: Episode 01.mp4");
+	fireEvent.click(await screen.findByRole("link", { name: "Season 1" }));
 	fireEvent.click(screen.getByRole("button", { name: "Scan library" }));
 	await screen.findByText("Scan: running");
+	fireEvent.click(await screen.findByRole("link", { name: "Episode 01.mp4" }));
+	const video = await screen.findByLabelText("Video: Episode 01.mp4");
+	expect(screen.queryByRole("button", { name: "Scan library" })).toBeNull();
+	const libraryCalls = fetcher.mock.calls.filter(
+		([path]) => path === "/api/library",
+	).length;
+	library = { ...library, scan: completedScan };
+	await waitFor(
+		() =>
+			expect(
+				fetcher.mock.calls.filter(([path]) => path === "/api/library").length,
+			).toBeGreaterThan(libraryCalls),
+		{ timeout: 2000 },
+	);
 	expect(screen.getByLabelText("Video: Episode 01.mp4")).toBe(video);
 	expect(HTMLMediaElement.prototype.pause).not.toHaveBeenCalled();
 });

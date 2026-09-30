@@ -6,6 +6,8 @@ import {
 	useSearchParams,
 } from "react-router";
 import { ApiClientError } from "../api/client.js";
+import { Button, buttonStyles } from "../components/ui/button.js";
+import { Spinner } from "../components/ui/spinner.js";
 import { directoryPath } from "./paths.js";
 
 export default function RouteError({
@@ -17,23 +19,32 @@ export default function RouteError({
 	const revalidator = useRevalidator();
 	const [searchParams] = useSearchParams();
 	return (
-		<section className="space-y-2" aria-label="Page error">
+		<section className="space-y-4" aria-label="Page error">
 			<p role="alert">
 				{error instanceof ApiClientError
 					? error.message
 					: "This page could not be loaded."}
 			</p>
-			<button
+			<Button
 				type="button"
-				className="inline-flex items-center gap-2 border px-3 py-1"
+				variant="outline"
 				disabled={revalidator.state !== "idle"}
 				onClick={() => void revalidator.revalidate()}
 			>
-				<RefreshCw size={16} aria-hidden="true" />{" "}
-				{kind === "file" ? "Retry file" : "Retry"}
-			</button>{" "}
+				{revalidator.state !== "idle" ? (
+					<>
+						<Spinner />
+						Retrying…
+					</>
+				) : (
+					<>
+						<RefreshCw size={16} aria-hidden="true" />{" "}
+						{kind === "file" ? "Retry file" : "Retry"}
+					</>
+				)}
+			</Button>{" "}
 			<Link
-				className="border px-3 py-1"
+				className={buttonStyles("outline")}
 				to={
 					kind === "file"
 						? directoryPath(searchParams.get("directory") || "root")
