@@ -8,6 +8,7 @@ import {
 	waitFor,
 	within,
 } from "@testing-library/react";
+import Artplayer from "artplayer";
 import { StrictMode } from "react";
 import { createMemoryRouter, useLocation, useNavigate } from "react-router";
 import { RouterProvider } from "react-router/dom";
@@ -162,12 +163,20 @@ beforeEach(() => {
 		throw new Error(`Unexpected URL: ${path}`);
 	});
 	vi.stubGlobal("fetch", fetcher);
+	// Real browsers dispatch media events asynchronously. Happy DOM's src setter
+	// dispatches canplay during ArtPlayer construction, before its UI is mounted.
+	vi.spyOn(HTMLMediaElement.prototype, "src", "set").mockImplementation(
+		function (this: HTMLMediaElement, value) {
+			this.setAttribute("src", value);
+		},
+	);
 	vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
 	vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
 });
 
 afterEach(() => {
 	cleanup();
+	expect(Artplayer.instances).toHaveLength(0);
 	for (const router of routers) router.dispose();
 	routers.length = 0;
 	vi.useRealTimers();
@@ -337,9 +346,17 @@ test("a failed settings save retains the input and supports a retry", async () =
 test("navigates directories, opens media, and returns to the original directory with media unloaded", async () => {
 	renderApp("/", true);
 	await openFile();
-	const video = await screen.findByLabelText("Video: Episode 01.mp4");
+	// StrictMode destroys the first instance and creates a new video element.
+	await waitFor(() =>
+		expect(
+			screen.getByLabelText("Video: Episode 01.mp4").getAttribute("src"),
+		).toBe(file.playbackUrl),
+	);
+	const video = screen.getByLabelText("Video: Episode 01.mp4");
 	expect(video.getAttribute("src")).toBe(file.playbackUrl);
-	expect(video.hasAttribute("controls")).toBe(true);
+	expect(video.hasAttribute("controls")).toBe(false);
+	expect(video.closest(".art-video-player")).toBeTruthy();
+	expect(screen.getByRole("button", { name: "Fullscreen" })).toBeTruthy();
 	expect(video.getAttribute("preload")).toBe("metadata");
 	expect(
 		fetcher.mock.calls.some(([path]) => String(path).startsWith("/api/media/")),

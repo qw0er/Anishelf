@@ -512,8 +512,14 @@ fallback belong to Caddy or another Web server. Unknown API paths retain JSON
 errors; missing assets return HTTP errors.
 
 `components/file-player.tsx` receives file loader metadata and playback URL and
-passes the URL directly to a native `<video controls preload="metadata">`.
-The user starts playback with the browser controls. Errors trigger an access
+passes the URL to `components/art-player.tsx`, a React adapter for the bundled,
+exact-version ArtPlayer npm dependency. The underlying video uses the original
+same-origin HTTP Range URL and metadata preload; media is not fetched into a Blob.
+The user starts playback with ArtPlayer controls. The adapter enables native
+fullscreen and adds keyboard focus/activation for play and fullscreen. When the
+video is focused, Space toggles playback, Left/Right seek by five seconds, and
+Up/Down adjust volume. Independent resume storage, automatic media reconnects,
+and the ArtPlayer context menu are disabled. Errors trigger an access
 recheck to distinguish unavailable files from generic browser playback failures.
 Back returns to the selected directory and pauses/unloads the video; Retry file
 reloads metadata and the media element. Scanning does not reset an open player.
@@ -521,8 +527,11 @@ The router cancels obsolete metadata/list requests. Pending navigation shows a
 loading message and a cancellation link while retaining the current view.
 Route error elements provide error messages, retries, and return links. Polling
 timers are cleaned up when scanning stops or the layout unmounts. Playback cleanup
-also restores the source correctly when React
-StrictMode replays effects during development.
+creates a fresh instance and destroys the previous instance when React
+StrictMode replays effects during development. Leaving the player aborts pending
+access rechecks, pauses playback, and destroys the instance to release its source,
+event listeners, and player DOM. Subtitle rendering, saved progress, and
+transcoding remain planned V2 capabilities.
 
 Icons are named imports from `lucide-react`, following the
 [Lucide React guide](https://lucide.dev/guide/react/getting-started). Buttons retain

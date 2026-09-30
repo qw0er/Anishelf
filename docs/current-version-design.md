@@ -1,6 +1,8 @@
 # Anishelf — Current Design
 
-**V2 is planned; V1 is implemented.** The [current requirements](current-version-requirements.md) define scope and acceptance.
+**V1 is implemented; V2 is in progress.** The direct-playback ArtPlayer adapter
+is implemented; progress, subtitles, preparation, and the remaining V2 workflows
+are planned. The [current requirements](current-version-requirements.md) define scope and acceptance.
 
 ## 1. Architecture and Modules
 
@@ -104,6 +106,11 @@ Keep original media read-only and IDs opaque. Recheck canonical containment, pat
 Retain bounded streaming, `HEAD`, single bounded/open/suffix byte ranges, `206`, and unsatisfiable `416`. Malformed/multipart ranges and unverifiable `If-Range` fall back to full `200`; HEAD ignores Range. Close handles on completion, errors, and disconnect. Never buffer the whole media file into a browser Blob. Prepared-media delivery uses the same transport behavior, resolved through a separate private asset registry.
 
 ## 4. ArtPlayer Web Playback (V2; V04–V06, O16)
+
+The current adapter replaces native controls with bundled ArtPlayer 5.4.0 for
+original-media HTTP Range playback. It implements instance cleanup, English
+controls, metadata preload, keyboard access, fullscreen, and source-access error
+rechecks. The broader workflow below remains the V2 target.
 
 Replace the native controls with an ArtPlayer instance owned by a React adapter. ArtPlayer controls the underlying browser video element; it does not provide missing codecs or replace server preparation. Use a bundled npm dependency pinned during implementation, not a runtime CDN dependency. Its [options](https://artplayer.org/document/en/start/option), [events](https://artplayer.org/document/en/advanced/event), and [instance lifecycle](https://artplayer.org/document/en/advanced/property) document the integration surface.
 

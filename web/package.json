@@ -13,6 +13,7 @@
 	},
 	"dependencies": {
 		"@tailwindcss/vite": "^4.3.3",
+		"artplayer": "5.4.0",
 		"cn": "^0.4.0",
 		"i18next": "^26.4.2",
 		"lucide-react": "^1.48.0",

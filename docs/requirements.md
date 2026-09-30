@@ -10,7 +10,7 @@ Its core value is better Web playback, shared client state, and coordination bet
 
 This document is the complete product requirements inventory, including delivered features, the active iteration, and unassigned future capabilities. [Current Version Requirements](current-version-requirements.md) is the living release plan and acceptance checklist, currently for V2. Requirements remain in this inventory when selected for a release; update both documents rather than moving or deleting them.
 
-**Latest implemented version: V1. Active planned version: V2.** V1 completion and manual browser acceptance are user-reported. V2 requirements are planned and have not been implemented.
+**Latest completed version: V1. Active version: V2, in progress.** V1 completion and manual browser acceptance are user-reported. The direct-playback ArtPlayer adapter is implemented; progress, subtitles, preparation, and the remaining V2 workflows are planned. Replacing the player controls does not complete V2 acceptance.
 
 ## 2. Feature Inventory and Version Tracking
 

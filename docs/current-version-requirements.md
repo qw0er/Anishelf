@@ -1,6 +1,9 @@
 # Anishelf Current Version Requirements
 
-**V2 is planned; V1 is implemented.** V1 manual browser acceptance is user-reported.
+**V1 is implemented; V2 is in progress.** V1 manual browser acceptance is user-reported.
+The direct-playback ArtPlayer adapter is implemented and checked with a temporary
+H.264/AAC sample. Progress, subtitles, preparation, and the remaining V2 workflows
+are planned; this player replacement does not complete V2 acceptance.
 
 Startup options use defaults and environment variables. `ANISHELF_DATA_DIR` overrides the platform-specific user data directory selected by `platformdirs`. The [current design](current-version-design.md) specifies the V2 architecture.
 
