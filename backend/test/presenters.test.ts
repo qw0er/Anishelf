@@ -1,8 +1,11 @@
 import { expect, test } from "vitest";
 import {
+	continueWatchingResponse,
 	directoryResponse,
 	fileDto,
 	libraryResponse,
+	playbackProgressDto,
+	playbackSessionResponse,
 	scanStateDto,
 	settingsResponse,
 } from "../src/http/presenters.js";
@@ -85,4 +88,50 @@ test("settings responses expose only the public setting for setup and configured
 		const stored = { resourceRoot, internalPath: "private-settings" };
 		expect(settingsResponse(stored)).toEqual({ resourceRoot });
 	}
+});
+
+test("playback presenters omit storage identities and internal additions", () => {
+	const file = {
+		kind: "file" as const,
+		id: "file_episode",
+		parentId: "root",
+		name: "Episode.mp4",
+		sizeBytes: 100,
+		modifiedAt: "2026-10-01T00:00:00.000Z",
+		mimeType: "video/mp4",
+		relativePath: "private/Episode.mp4",
+	};
+	const progress = {
+		sourceId: "private-source-id",
+		positionMs: 1000,
+		durationMs: 100000,
+		lastViewedAtMs: 1000,
+		revision: 1,
+		generation: 1,
+		lastSequence: 1,
+		canonicalPath: "/private/media",
+	};
+	const session = {
+		token: "session-token",
+		generation: 1,
+		sourceVersion: "v1",
+		file,
+		plan: {
+			mode: "direct" as const,
+			playbackUrl: "/api/media/file_episode",
+			internalPath: "private-copy",
+		},
+		progress,
+		internalSession: "private-session",
+	};
+	const publicSession = playbackSessionResponse(session);
+	expect(publicSession.progress).toEqual(playbackProgressDto(progress));
+	const list = continueWatchingResponse({
+		availability: "checked",
+		items: [{ file, progress }],
+	});
+	for (const response of [publicSession, list]) {
+		expect(JSON.stringify(response)).not.toContain("private");
+	}
+	expect(list.items[0]?.file).toEqual(fileDto(file));
 });

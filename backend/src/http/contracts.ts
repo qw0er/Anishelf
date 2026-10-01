@@ -90,3 +90,54 @@ export interface ApiErrorResponse {
 		requestId: string;
 	};
 }
+
+export interface PlaybackProgressDto {
+	positionMs: number;
+	durationMs: number | null;
+	lastViewedAtMs: number | null;
+	revision: number;
+	generation: number;
+	lastSequence: number;
+}
+
+export interface OpenPlaybackRequest {
+	fileId: ResourceId;
+}
+
+export interface PlaybackSessionResponse {
+	token: string;
+	generation: number;
+	sourceVersion: string;
+	file: FileDto;
+	plan: { mode: "direct"; playbackUrl: string };
+	progress: PlaybackProgressDto;
+}
+
+/** The session token is supplied in the route, not trusted from the body. */
+export interface SavePlaybackProgressRequest {
+	generation: number;
+	sourceVersion: string;
+	sequence: number;
+	positionMs: number;
+	durationMs: number | null;
+}
+
+export interface SavePlaybackProgressResponse {
+	status: "saved" | "duplicate";
+	progress: PlaybackProgressDto;
+}
+
+export interface StartOverPlaybackRequest {
+	generation: number;
+	/** Stable across retries of the same reset; independent of HTTP tracing IDs. */
+	requestId: string;
+}
+
+export interface StartOverPlaybackResponse {
+	progress: PlaybackProgressDto;
+}
+
+export interface ContinueWatchingResponse {
+	availability: "unknown" | "checked";
+	items: { file: FileDto; progress: PlaybackProgressDto }[];
+}

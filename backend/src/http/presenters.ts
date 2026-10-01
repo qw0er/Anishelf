@@ -8,11 +8,19 @@ import type {
 } from "../library/model.js";
 import type { LibraryIssue, ScanState } from "../library/scan-state.js";
 import type {
+	ContinueWatchingResult,
+	PlaybackProgress,
+	PlaybackSession,
+} from "../playback/model.js";
+import type {
+	ContinueWatchingResponse,
 	DirectoryDto,
 	DirectoryResponse,
 	FileDto,
 	LibraryIssueDto,
 	LibraryResponse,
+	PlaybackProgressDto,
+	PlaybackSessionResponse,
 	ResourceDto,
 	ScanStateDto,
 	SettingsResponse,
@@ -100,4 +108,42 @@ export function settingsResponse(
 	settings: Readonly<PersistentSettings>,
 ): SettingsResponse {
 	return { resourceRoot: settings.resourceRoot };
+}
+
+export function playbackProgressDto(
+	progress: PlaybackProgress,
+): PlaybackProgressDto {
+	return {
+		positionMs: progress.positionMs,
+		durationMs: progress.durationMs,
+		lastViewedAtMs: progress.lastViewedAtMs,
+		revision: progress.revision,
+		generation: progress.generation,
+		lastSequence: progress.lastSequence,
+	};
+}
+
+export function playbackSessionResponse(
+	session: PlaybackSession,
+): PlaybackSessionResponse {
+	return {
+		token: session.token,
+		generation: session.generation,
+		sourceVersion: session.sourceVersion,
+		file: fileDto(session.file),
+		plan: { mode: session.plan.mode, playbackUrl: session.plan.playbackUrl },
+		progress: playbackProgressDto(session.progress),
+	};
+}
+
+export function continueWatchingResponse(
+	result: ContinueWatchingResult,
+): ContinueWatchingResponse {
+	return {
+		availability: result.availability,
+		items: result.items.map((item) => ({
+			file: fileDto(item.file),
+			progress: playbackProgressDto(item.progress),
+		})),
+	};
 }

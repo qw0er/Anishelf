@@ -2,10 +2,12 @@ import { randomUUID } from "node:crypto";
 import Fastify from "fastify";
 import type { Logger } from "pino";
 import type { LibraryApplication } from "../application/library.js";
+import type { PlaybackApplication } from "../application/playback.js";
 import type { DeploymentConfig } from "../config/model.js";
 import { apiError, classifyHttpError } from "./errors.js";
 import { registerLibraryRoutes } from "./library.js";
 import { registerMediaRoutes } from "./media.js";
+import { registerPlaybackRoutes } from "./playback.js";
 import { checkRequestOrigin } from "./security.js";
 import { registerSettingsRoutes } from "./settings.js";
 import { registerFrontend } from "./static.js";
@@ -15,6 +17,7 @@ export function createHttpApp(options: {
 	logger: Logger;
 	development?: boolean;
 	library?: LibraryApplication;
+	playback?: PlaybackApplication;
 	frontendRoot?: string;
 }) {
 	const app = Fastify({
@@ -64,6 +67,12 @@ export function createHttpApp(options: {
 		registerLibraryRoutes(app, library);
 		registerMediaRoutes(app, library);
 		registerSettingsRoutes(app, library);
+	}
+
+	if (options.playback) {
+		const playback = options.playback;
+		app.addHook("onClose", async () => playback.close());
+		registerPlaybackRoutes(app, playback);
 	}
 
 	const frontendRoot = options.frontendRoot;

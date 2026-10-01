@@ -590,7 +590,7 @@ canonical root and a source version derived from safely opened file metadata.
 Registration does not perform filesystem access. Candidate queries do not assert
 availability; the application must validate the active scan and source version
 before producing playback links. Playback application sessions and filesystem identity collection are implemented
-as described below. HTTP endpoints and player integration remain planned.
+as described below. HTTP endpoints are registered; player integration remains planned.
 
 The connection enables foreign keys, a five-second busy timeout, WAL, and FULL
 synchronous mode. Generation opening and save decisions use short immediate
@@ -615,7 +615,7 @@ must use SQLite's backup API. Never remove source/progress rows as cache cleanup
 `backend/src/application/playback.ts` coordinates `LibraryApplication` and
 `PlaybackRepository`. The startup entry point constructs it with the database
 repository when available and closes it before closing the database. HTTP routes
-and the Web player are not connected to these use cases yet.
+call these use cases; the Web player is not connected yet.
 
 - `open(fileId)` safely resolves the current source, registers its identity,
   successfully reads history, opens a new generation, and returns a random session
@@ -647,3 +647,52 @@ as `PLAYBACK_PERSISTENCE_FAILED`; an unavailable database produces
 `PLAYBACK_UNAVAILABLE`. Failed history loading never creates a writable session.
 Playback plans currently support original-media direct playback only; subtitle,
 prepared-copy, and real-time selection remain future integration work.
+
+
+## Playback HTTP API
+
+`backend/src/http/playback.ts` registers the following routes when a
+`PlaybackApplication` is supplied to `createHttpApp`. The production startup
+entry point supplies it even when the database is unavailable, so dependent
+operations return a typed 503 instead of appearing to be missing endpoints.
+Closing the HTTP app closes playback sessions before the database connection.
+
+| Method | Path | Input | Successful response |
+| --- | --- | --- | --- |
+| POST | `/api/playback/sessions` | `{ fileId }` | 201: `{ token, generation, sourceVersion, file, plan, progress }` |
+| PUT | `/api/playback/sessions/:token/progress` | `{ generation, sourceVersion, sequence, positionMs, durationMs }` | 200: `{ status: "saved" or "duplicate", progress }` |
+| POST | `/api/playback/sessions/:token/start-over` | `{ generation, requestId }` | 200: `{ progress }` |
+| DELETE | `/api/playback/sessions/:token` | Session token in path | 204 with no body; repeated release is harmless |
+| GET | `/api/continue-watching` | Optional `?limit=20`, range 1–100 | 200: `{ availability, items: [{ file, progress }] }` |
+
+Opening is a POST because it creates a writable session and advances generation.
+It includes saved history; no separate history read endpoint is required for the
+initial resume flow. The current plan is `{ mode: "direct", playbackUrl }`.
+Session tokens are server-issued UUIDs. The route token is authoritative; an
+additional body token or source ID is rejected. Mutations retain the existing
+Host, Origin, and Fetch Metadata checks. Playback responses use `Cache-Control:
+no-store`.
+
+Public `progress` contains `positionMs`, nullable `durationMs`, nullable
+`lastViewedAtMs`, `revision`, `generation`, and `lastSequence`. Millisecond
+values, generations, and sequences must be safe JSON integers; unknown duration
+is explicitly `null`, while known duration must be positive. Extra request
+properties and missing required fields are rejected. The list limit is parsed
+from a validated decimal query string without enabling global AJV coercion.
+Public file metadata is projected by the existing file presenter; internal source
+IDs, root identities, filesystem paths, and storage records are not returned.
+
+Clients retain the token, source version, and generation from session creation,
+and serialize progress writes with increasing sequence numbers. A successful
+start-over returns a new generation and resets the sequence; use a stable reset
+`requestId` when retrying the same operation. That ID is independent of the
+server-generated `x-request-id` used for HTTP diagnostics. Save the final position
+before releasing the session; release itself does not write progress.
+
+`PLAYBACK_CONFLICT` returns 409 for expired, superseded, or incompatible sessions
+and stale saves. `PLAYBACK_UNAVAILABLE` returns 503 when persistence is unavailable.
+`PLAYBACK_PERSISTENCE_FAILED` returns 500 for repository failures, without exposing
+internal causes. Missing/inaccessible source errors retain their existing status
+and codes. Invalid JSON shapes and numbers return `INVALID_REQUEST` (400).
+An unscanned library returns `availability: "unknown"` with an empty list; a checked
+list excludes missing/replaced and near-end files while preserving their history.

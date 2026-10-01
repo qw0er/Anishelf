@@ -51,7 +51,7 @@ export interface ContinueWatchingCandidate {
 	progress: PlaybackProgress;
 }
 
-/** Application result; no playback session HTTP endpoint is registered yet. */
+/** Application result, projected into public JSON by the HTTP presenter. */
 export interface PlaybackSession {
 	token: string;
 	generation: number;

@@ -62,6 +62,7 @@ try {
 		config,
 		logger,
 		library,
+		playback,
 		development,
 		...(development && existsSync(join(frontendRoot, "index.html"))
 			? { frontendRoot }
@@ -69,7 +70,6 @@ try {
 	});
 	app = server;
 	server.addHook("onClose", async () => {
-		playback.close();
 		database?.close();
 	});
 	await server.listen({ host: config.host, port: config.port });
