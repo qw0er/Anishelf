@@ -17,6 +17,12 @@ export interface DeploymentConfig {
 	port: number;
 	dataDir: string;
 	logging: LoggingConfig;
+	mediaTools: MediaToolsConfig;
+}
+
+export interface MediaToolsConfig {
+	ffmpegPath: string;
+	ffprobePath: string;
 }
 
 /** Stored in settings.json; deployment parameters never belong here. */

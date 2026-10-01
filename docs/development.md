@@ -74,6 +74,8 @@ npm start
 | `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
 | `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout` or `file`. |
 | `ANISHELF_LOG_PATH` | Unset | Absolute log path; required with `file`, rejected with `stdout`. |
+| `ANISHELF_FFMPEG_PATH` | `ffmpeg` from process PATH | Optional absolute FFmpeg executable path; resolved independently. |
+| `ANISHELF_FFPROBE_PATH` | `ffprobe` from process PATH | Optional absolute FFprobe executable path; resolved independently. |
 | `ANISHELF_API_TARGET` | `http://127.0.0.1:3000` | Vite proxy target; match any custom backend listener. |
 | `NODE_ENV` | Unset | `development` enables the local Vite Origin allowlist and optional built-page hosting. Other values provide only APIs and media. |
 
@@ -763,3 +765,30 @@ changes preserve the current index and do not immediately scan. No timer runs
 before a root is configured, while saving/scanning, or after shutdown. Failed
 preflight attempts are logged and retried after the configured interval. Disabling
 scheduled scans does not disable startup scans, root-change scans, or manual scans.
+
+
+## Media tool layer
+
+`backend/src/media/index.ts` exports an infrastructure API independent of HTTP and the player. Startup creates the tool layer, resolves FFmpeg and FFprobe independently, checks `-version`, retains their absolute paths and logs availability. Version detection does not certify every encoder or muxer. Missing tools do not fail startup or direct playback; dependent methods throw `MediaToolError` with `TOOL_UNAVAILABLE`. Explicit paths never fall back to PATH. Install the tools separately and set the service PATH or the optional deployment overrides above.
+
+```ts
+import { MediaTools } from "./media/index.js";
+
+const tools = await MediaTools.create(config.mediaTools);
+const info = await tools.probe(absoluteMediaPath, abortSignal);
+const subtitle = await tools.extractSubtitle(absoluteMediaPath, streamIndex);
+const webvtt = await tools.extractSubtitle(absoluteMediaPath, streamIndex, {
+    format: "webvtt",
+    signal: abortSignal,
+});
+```
+
+`probe` uses FFprobe JSON format/stream output and returns container names, duration in seconds, file size in bytes, bitrate in bits/second, tags and stream descriptors. Streams include absolute indices, type, codec, profile, dimensions, pixel format, frame-rate ratio, audio sample rate/channels/layout, optional duration/bitrate, language/title tags and default/forced dispositions. Unknown numeric/string properties become `null`; missing tags become an empty object. Descriptors identify codecs and do not claim browser compatibility. See the official [FFprobe documentation](https://ffmpeg.org/ffprobe.html).
+
+`extractSubtitle` verifies that the selected absolute stream index identifies a subtitle track, then maps only that stream through FFmpeg. Default extraction copies SubRip, ASS/SSA and WebVTT without audio/video transcoding; output formats are `srt`, `ass` (including SSA input) and `webvtt`. Explicit conversion supports these output formats, including `mov_text`/plain text input when an output format is provided. ASS extraction retains available style definitions; conversion to SRT/WebVTT may lose styling. Bitmap and other unsupported subtitle codecs throw `UNSUPPORTED_SUBTITLE`. Selection follows FFmpeg's [explicit stream mapping](https://ffmpeg.org/ffmpeg.html#Stream-selection).
+
+Results contain `streamIndex`, `format` and UTF-8 `text`. The layer writes no media or subtitle files, overwrites no input, and creates no public assets. Application callers own persistence, source-version validation and resource-root/canonical-path authorization. This is a trusted backend API and accepts absolute local regular files; never expose raw paths or stream selectors directly to clients. The current layer has no HTTP endpoint or player integration. Font attachments, bitmap extraction, cache management and transcoding remain future work.
+
+Child processes use argument arrays without a shell, disable interactive FFmpeg input, and limit protocols to `file,pipe`. Probe time is bounded to 30 seconds, extraction to 60 seconds, and output to 10 MiB per process stream. Version checks use 5 seconds / 64 KiB. An optional `AbortSignal` cancels and kills child work. Process failure, timeout, cancellation or output overflow rejects with `TOOL_FAILED`; retained failure diagnostics are capped at 4 KiB. Malformed descriptors reject with `INVALID_MEDIA`, and invalid input paths/indices with `INVALID_INPUT`. Treat causes as internal diagnostics, not API response content.
+
+The media-tool tests generate a real small MKV and verify probe metadata, selected SRT/ASS/WebVTT extraction and VTT cue timing when both executables are available. This integration case is skipped on machines without the tools; parsing, deployment and process-boundary tests still run.

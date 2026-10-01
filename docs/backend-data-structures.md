@@ -63,7 +63,9 @@ workspace export resolves to source and does not bundle backend runtime code.
 
 | Definition | Types | Scope |
 | --- | --- | --- |
-| `config/model.ts` | `LogLevel`, `LoggingConfig`, `DeploymentConfig` | Backend startup and infrastructure configuration |
+| `config/model.ts` | `LogLevel`, `LoggingConfig`, `DeploymentConfig`, `MediaToolsConfig` | Backend startup and infrastructure configuration |
+| `media/model.ts` | `MediaInfo`, `MediaStream`, `ToolStatus` | FFprobe descriptors and independently discovered tool availability; internal infrastructure types |
+| `media/model.ts` | `SubtitleFormat`, `ExtractedSubtitle` | Selected text subtitle extraction result; persistence and access control belong to the caller |
 | `config/model.ts` | `PersistentSettings` | `settings.json` and backend settings operations; HTTP projects it into an independent `SettingsResponse` |
 | `library/model.ts` | `ResourceId`, `DirectoryInfo`, `FileInfo`, `ResourceInfo` | Backend identity and path-free business information |
 | `library/model.ts` | `DirectoryEntry`, `FileEntry`, `LibraryEntry` | Internal index entries, which add root-relative paths |

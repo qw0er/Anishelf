@@ -22,6 +22,7 @@ test("starts with defaults without application environment variables", () => {
 		port: 3000,
 		dataDir: userDataDir("anishelf", false),
 		logging: { level: "info", destination: "stdout" },
+		mediaTools: { ffmpegPath: "ffmpeg", ffprobePath: "ffprobe" },
 	});
 });
 
@@ -81,6 +82,10 @@ test.each([
 	["ANISHELF_LOG_DESTINATION", "stderr"],
 	["ANISHELF_LOG_DESTINATION", ""],
 	["ANISHELF_LOG_PATH", "/tmp/log"],
+	["ANISHELF_FFMPEG_PATH", ""],
+	["ANISHELF_FFMPEG_PATH", "relative/ffmpeg"],
+	["ANISHELF_FFPROBE_PATH", "/tmp/\0"],
+	["ANISHELF_FFPROBE_PATH", "ffprobe"],
 ])("rejects invalid %s=%s", (name, value) => {
 	expect(() => parseDeploymentConfig({ [name]: value })).toThrow(name);
 });

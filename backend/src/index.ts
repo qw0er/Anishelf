@@ -10,6 +10,7 @@ import { DomainError } from "./errors.js";
 import { createHttpApp } from "./http/app.js";
 import { LibraryIndex } from "./library/index.js";
 import { ApplicationLogging } from "./logging/index.js";
+import { MediaTools } from "./media/index.js";
 
 let database: ApplicationDatabase | undefined;
 let logging: ApplicationLogging | undefined;
@@ -17,6 +18,20 @@ let app: ReturnType<typeof createHttpApp> | undefined;
 try {
 	const config = await loadDeploymentConfig();
 	logging = ApplicationLogging.create(config.logging);
+	const mediaTools = await MediaTools.create(config.mediaTools);
+	for (const [tool, status] of Object.entries(mediaTools.status)) {
+		if (status.available) {
+			logging.logger.info(
+				{ event: "media.tool_ready", tool, ...status },
+				"Media tool ready.",
+			);
+		} else {
+			logging.logger.warn(
+				{ event: "media.tool_unavailable", tool },
+				status.message,
+			);
+		}
+	}
 	try {
 		database = ApplicationDatabase.open(config.dataDir);
 		logging.logger.info(

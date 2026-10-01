@@ -2,11 +2,12 @@
 
 Anishelf is a personal animation library browser and player. Configure an existing server-side media directory, scan it automatically at backend startup or manually, browse the actual directory hierarchy, and play files in a browser.
 
-V1 supports one resource root, recursive scanning at startup and on request, natural sorting, native playback controls, and failure feedback. Original media is read-only. Scanning includes `.mp4`, `.m4v`, `.webm`, and `.mkv`, case-insensitively; playback depends on the browser and media codecs. V2 implements a Vidstack-based Web player and saved progress/resume, and plans external VTT/SRT/ASS/SSA subtitles and embedded subtitle extraction, FFmpeg pre-transcoding and real-time transcoding of necessary streams only, optional local desktop player launch, and a complete everyday-use interface. Web playback remains the default and primary experience. V2 keeps user settings in `settings.json`, adds SQLite + Drizzle for records/cache metadata, and discovers FFmpeg/FFprobe from PATH unless optional paths are configured. Subtitle and FFmpeg workflows remain planned. Accounts and download management remain unassigned.
+V1 supports one resource root, recursive scanning at startup and on request, natural sorting, native playback controls, and failure feedback. Original media is read-only. Scanning includes `.mp4`, `.m4v`, `.webm`, and `.mkv`, case-insensitively; playback depends on the browser and media codecs. V2 implements a Vidstack-based Web player and saved progress/resume, and plans external VTT/SRT/ASS/SSA subtitles and embedded subtitle extraction, FFmpeg pre-transcoding and real-time transcoding of necessary streams only, optional local desktop player launch, and a complete everyday-use interface. Web playback remains the default and primary experience. V2 keeps user settings in `settings.json`, adds SQLite + Drizzle for records/cache metadata, and discovers FFmpeg/FFprobe from PATH unless optional paths are configured. The backend tool layer now identifies media information and extracts selected text subtitle streams; player integration, cached assets, fonts, bitmap subtitles and transcoding remain planned. Accounts and download management remain unassigned.
 
 ## Requirements
 
 - Node.js 24 and npm.
+- FFmpeg and FFprobe for media inspection and subtitle extraction; direct playback works without them.
 - Read access to the media directory and write access to the application data directory.
 - V1 supports local use and loopback backend addresses. For a remote server, use SSH port forwarding. LAN/public access and authentication are outside the current scope.
 
@@ -29,6 +30,10 @@ Startup options can be set with environment variables:
 | `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
 | `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout` or `file`. |
 | `ANISHELF_LOG_PATH` | Unset | Absolute log path, required only for file output. |
+| `ANISHELF_FFMPEG_PATH` | `ffmpeg` from process PATH | Optional absolute FFmpeg executable path; resolved independently. |
+| `ANISHELF_FFPROBE_PATH` | `ffprobe` from process PATH | Optional absolute FFprobe executable path; resolved independently. |
+
+FFmpeg and FFprobe are discovered and version-checked independently at startup. Missing or unusable binaries produce warning logs and disable dependent tool operations; direct playback remains available. An explicit override never falls back to PATH. Install tools separately and ensure the service manager exposes their directory in PATH, or configure the absolute executable paths above. Restart after changing tool paths or installing tools. See [the media tool API](docs/development.md#media-tool-layer) for the current backend-only functions.
 
 The default uses [platformdirs](https://www.npmjs.com/package/platformdirs) to choose the user data directory for the current operating system (for example, XDG data storage on Linux, Application Support on macOS, and Local AppData on Windows). `ANISHELF_DATA_DIR` overrides this choice. The directory is created at startup if needed. Paths are resolved independently of the working directory; `~` in an environment value is not expanded by the application.
 
@@ -59,6 +64,9 @@ User=anishelf
 Group=anishelf
 WorkingDirectory=/opt/anishelf
 Environment=ANISHELF_DATA_DIR=/var/lib/anishelf
+# Optional when the tools are absent from the service PATH:
+# Environment=ANISHELF_FFMPEG_PATH=/usr/bin/ffmpeg
+# Environment=ANISHELF_FFPROBE_PATH=/usr/bin/ffprobe
 ExecStart=/usr/bin/node /opt/anishelf/backend/dist/index.js
 Restart=on-failure
 RestartSec=3

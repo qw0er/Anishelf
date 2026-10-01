@@ -1,0 +1,234 @@
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, beforeAll, expect, test } from "vitest";
+import { parseDeploymentConfig } from "../src/config/deployment.js";
+import { runTool } from "../src/media/process.js";
+import { MediaTools, parseMediaInfo } from "../src/media/tools.js";
+
+const tools = await MediaTools.create();
+let fixture: string;
+beforeAll(async () => {
+	fixture = await mkdtemp(join(tmpdir(), "anishelf-media-tools-"));
+});
+afterAll(async () => {
+	await rm(fixture, { recursive: true, force: true });
+});
+
+test("configures executable overrides independently", () => {
+	expect(
+		parseDeploymentConfig({ ANISHELF_FFMPEG_PATH: "/opt/tools/ffmpeg" })
+			.mediaTools,
+	).toEqual({ ffmpegPath: "/opt/tools/ffmpeg", ffprobePath: "ffprobe" });
+	expect(
+		parseDeploymentConfig({ ANISHELF_FFPROBE_PATH: "/opt/tools/ffprobe" })
+			.mediaTools,
+	).toEqual({ ffmpegPath: "ffmpeg", ffprobePath: "/opt/tools/ffprobe" });
+});
+
+test("normalizes optional metadata and preserves subtitle stream identity", () => {
+	const result = parseMediaInfo(
+		JSON.stringify({
+			format: {
+				format_name: "matroska,webm",
+				duration: "4.5",
+				size: "42",
+				bit_rate: "N/A",
+			},
+			streams: [
+				{
+					index: 3,
+					codec_type: "subtitle",
+					codec_name: "ass",
+					tags: { language: "eng" },
+					disposition: { default: 1, forced: 1 },
+				},
+			],
+		}),
+	);
+	expect(result).toMatchObject({
+		duration: 4.5,
+		size: 42,
+		bitRate: null,
+		streams: [
+			{
+				index: 3,
+				codec: "ass",
+				width: null,
+				default: true,
+				forced: true,
+				tags: { language: "eng" },
+			},
+		],
+	});
+});
+
+test.each(["not json", "{}", '{"format":{},"streams":[{"index":-1}]}'])(
+	"rejects invalid probe output %s",
+	(json) => {
+		expect(() => parseMediaInfo(json)).toThrow("invalid media information");
+	},
+);
+
+test("does not silently replace invalid executable overrides", async () => {
+	const missing = join(fixture, "missing");
+	const unavailable = await MediaTools.create({
+		ffmpegPath: missing,
+		ffprobePath: missing,
+	});
+	expect(unavailable.status.ffmpeg.available).toBe(false);
+	await expect(
+		unavailable.probe(join(fixture, "video.mkv")),
+	).rejects.toMatchObject({ code: "TOOL_UNAVAILABLE" });
+	const independent = await MediaTools.create({
+		ffmpegPath: missing,
+		ffprobePath: "ffprobe",
+	});
+	expect(independent.status.ffprobe.available).toBe(
+		tools.status.ffprobe.available,
+	);
+});
+
+test("bounds child runtime and output and accepts cancellation", async () => {
+	await expect(
+		runTool(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+			timeoutMs: 50,
+		}),
+	).rejects.toMatchObject({ code: "TOOL_FAILED" });
+	await expect(
+		runTool(
+			process.execPath,
+			["-e", "process.stdout.write('x'.repeat(100000))"],
+			{ maxBytes: 100 },
+		),
+	).rejects.toMatchObject({ code: "TOOL_FAILED" });
+	await expect(
+		runTool(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+			signal: AbortSignal.timeout(50),
+		}),
+	).rejects.toMatchObject({ code: "TOOL_FAILED" });
+});
+
+test.skipIf(!tools.status.ffmpeg.available || !tools.status.ffprobe.available)(
+	"probes real MKV and extracts SRT/ASS/WebVTT tracks",
+	async () => {
+		if (!tools.status.ffmpeg.available) throw new Error("FFmpeg unavailable");
+		const srt = join(fixture, "source.srt");
+		const ass = join(fixture, "source.ass");
+		const vtt = join(fixture, "source.vtt");
+		const media = join(fixture, "video with spaces ; $.mkv");
+		await writeFile(srt, "1\n00:00:00,200 --> 00:00:01,200\nHello SRT\n");
+		await runTool(tools.status.ffmpeg.path, [
+			"-nostdin",
+			"-v",
+			"error",
+			"-i",
+			srt,
+			ass,
+		]);
+		await writeFile(
+			ass,
+			(await readFile(ass, "utf8")).replace("Hello SRT", "{\\i1}Hello SRT"),
+		);
+		await runTool(tools.status.ffmpeg.path, [
+			"-nostdin",
+			"-v",
+			"error",
+			"-i",
+			srt,
+			vtt,
+		]);
+		await runTool(tools.status.ffmpeg.path, [
+			"-nostdin",
+			"-v",
+			"error",
+			"-f",
+			"lavfi",
+			"-i",
+			"color=size=32x32:rate=1:duration=2",
+			"-f",
+			"lavfi",
+			"-i",
+			"sine=sample_rate=48000:duration=2",
+			"-i",
+			srt,
+			"-i",
+			ass,
+			"-i",
+			vtt,
+			"-map",
+			"0:v",
+			"-map",
+			"1:a",
+			"-map",
+			"2:s",
+			"-map",
+			"3:s",
+			"-map",
+			"4:s",
+			"-c:v",
+			"ffv1",
+			"-c:a",
+			"pcm_s16le",
+			"-c:s",
+			"copy",
+			"-metadata:s:s:0",
+			"language=eng",
+			media,
+		]);
+		const info = await tools.probe(media);
+		expect(info.duration).toBeGreaterThanOrEqual(1.2);
+		expect(info.streams[0]).toMatchObject({
+			type: "video",
+			codec: "ffv1",
+			width: 32,
+			height: 32,
+		});
+		expect(info.streams[1]).toMatchObject({
+			type: "audio",
+			codec: "pcm_s16le",
+			sampleRate: 48000,
+			channels: 1,
+		});
+		const subtitles = info.streams.filter(
+			(stream) => stream.type === "subtitle",
+		);
+		expect(subtitles.map((stream) => stream.codec)).toEqual([
+			"subrip",
+			"ass",
+			"webvtt",
+		]);
+		for (const stream of subtitles) {
+			const extracted = await tools.extractSubtitle(media, stream.index);
+			expect(extracted.text).toContain("Hello SRT");
+			if (stream.codec === "ass") {
+				expect(extracted.text).toContain("[V4+ Styles]");
+				expect(extracted.text).toContain("{\\i1}");
+			}
+		}
+		const converted = await tools.extractSubtitle(
+			media,
+			subtitles[0]?.index ?? -1,
+			{ format: "webvtt" },
+		);
+		expect(converted.text).toContain("WEBVTT");
+		expect(converted.text).toContain("00:00.200 --> 00:01.200");
+		await expect(tools.extractSubtitle(media, 0)).rejects.toMatchObject({
+			code: "INVALID_INPUT",
+		});
+		await expect(tools.extractSubtitle(media, 999)).rejects.toMatchObject({
+			code: "INVALID_INPUT",
+		});
+		await expect(tools.extractSubtitle(media, -1)).rejects.toMatchObject({
+			code: "INVALID_INPUT",
+		});
+		await expect(
+			tools.probe("https://example.com/video.mkv"),
+		).rejects.toMatchObject({ code: "INVALID_INPUT" });
+		await writeFile(join(fixture, "invalid.mkv"), "invalid");
+		await expect(
+			tools.probe(join(fixture, "invalid.mkv")),
+		).rejects.toMatchObject({ code: "TOOL_FAILED" });
+	},
+	20_000,
+);

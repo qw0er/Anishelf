@@ -85,7 +85,17 @@ export function parseDeploymentConfig(
 	} else {
 		invalid("ANISHELF_LOG_DESTINATION must be 'stdout' or 'file'.");
 	}
-	return { host, port, dataDir, logging };
+	const mediaTools = {
+		ffmpegPath:
+			env.ANISHELF_FFMPEG_PATH === undefined
+				? "ffmpeg"
+				: absolutePath(env.ANISHELF_FFMPEG_PATH, "ANISHELF_FFMPEG_PATH"),
+		ffprobePath:
+			env.ANISHELF_FFPROBE_PATH === undefined
+				? "ffprobe"
+				: absolutePath(env.ANISHELF_FFPROBE_PATH, "ANISHELF_FFPROBE_PATH"),
+	};
+	return { host, port, dataDir, logging, mediaTools };
 }
 
 /** Prepare the writable data directory after validating all startup options. */

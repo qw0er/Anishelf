@@ -2,8 +2,7 @@
 
 **V1 is implemented; V2 is in progress.** V1 manual browser acceptance is user-reported.
 The direct-playback Vidstack adapter is implemented and checked with a temporary
-H.264 sample. Saved progress is integrated; subtitles, preparation, and the remaining V2 workflows
-are planned; this player replacement does not complete V2 acceptance.
+H.264 sample. Saved progress is integrated. The backend FFmpeg/FFprobe layer implements media inspection and selected text-subtitle extraction; subtitle UI/assets, preparation, and the remaining V2 workflows are planned. These foundations do not complete V2 acceptance.
 
 Startup options use defaults and environment variables. `ANISHELF_DATA_DIR` overrides the platform-specific user data directory selected by `platformdirs`. The [current design](current-version-design.md) specifies the V2 architecture.
 
