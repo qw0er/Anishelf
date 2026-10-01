@@ -18,12 +18,12 @@ import type {
 	DirectoryResponse,
 	FileResponse,
 	LibraryResponse,
-	ScanState,
+	ScanStateDto,
 	SettingsResponse,
 } from "../src/api/contracts.js";
 import { libraryRoute } from "../src/routes/library.js";
 
-const runningScan: ScanState = {
+const runningScan: ScanStateDto = {
 	id: "scan-1",
 	status: "running",
 	startedAt: "2026-09-29T00:00:00.000Z",
@@ -32,7 +32,7 @@ const runningScan: ScanState = {
 	matchedCount: 1,
 	warnings: { count: 0, messages: [] },
 };
-const completedScan: ScanState = {
+const completedScan: ScanStateDto = {
 	...runningScan,
 	status: "completed",
 	finishedAt: "2026-09-29T00:00:01.000Z",

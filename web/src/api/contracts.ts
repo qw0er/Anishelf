@@ -5,15 +5,13 @@ export type {
 	DirectoryResponse,
 	FileDto,
 	FileResponse,
+	LibraryIssueDto,
 	LibraryResponse,
 	ResourceDto,
+	ResourceId,
 	ScanResponse,
+	ScanStateDto,
+	ScanWarningSummaryDto,
 	SettingsResponse,
 	UpdateSettingsRequest,
-} from "@anishelf/backend/contracts/api";
-export type {
-	LibraryIssue,
-	ResourceId,
-	ScanState,
-	ScanWarningSummary,
-} from "@anishelf/backend/contracts/library";
+} from "@anishelf/backend/http/contracts";

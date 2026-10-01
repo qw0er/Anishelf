@@ -7,7 +7,7 @@ import type {
 	DeploymentConfig,
 	LoggingConfig,
 	LogLevel,
-} from "../contracts/config.js";
+} from "../config/model.js";
 import { DomainError } from "../errors.js";
 
 const levels: readonly string[] = [

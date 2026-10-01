@@ -1,5 +1,5 @@
 import type { FastifyRequest } from "fastify";
-import type { DeploymentConfig } from "../contracts/config.js";
+import type { DeploymentConfig } from "../config/model.js";
 import { DomainError } from "../errors.js";
 
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);

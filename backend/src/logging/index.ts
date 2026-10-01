@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import pino, { type Logger } from "pino";
-import type { LoggingConfig } from "../contracts/config.js";
+import type { LoggingConfig } from "../config/model.js";
 
 export class ApplicationLogging {
 	readonly logger: Logger;

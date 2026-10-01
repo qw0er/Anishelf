@@ -1,5 +1,5 @@
-import type { ApiErrorResponse } from "../contracts/api.js";
 import { DomainError, type ErrorCode } from "../errors.js";
+import type { ApiErrorResponse } from "./contracts.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
 	PLAYBACK_CONFLICT: {

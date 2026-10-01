@@ -2,10 +2,9 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { FastifyInstance, RawServerDefault } from "fastify";
 import type { Logger } from "pino";
 import type { LibraryApplication } from "../application/library.js";
-import type {
-	SettingsResponse,
-	UpdateSettingsRequest,
-} from "../contracts/api.js";
+import type { SettingsResponse, UpdateSettingsRequest } from "./contracts.js";
+
+import { settingsResponse } from "./presenters.js";
 
 const settingsSchema = {
 	type: "object",
@@ -28,7 +27,8 @@ export function registerSettingsRoutes(
 		{
 			schema: { response: { 200: settingsSchema } },
 		},
-		async (): Promise<SettingsResponse> => library.getSettings(),
+		async (): Promise<SettingsResponse> =>
+			settingsResponse(library.getSettings()),
 	);
 
 	app.put<{ Body: UpdateSettingsRequest }>(
@@ -45,6 +45,6 @@ export function registerSettingsRoutes(
 			},
 		},
 		async (request): Promise<SettingsResponse> =>
-			library.updateSettings(request.body),
+			settingsResponse(await library.updateSettings(request.body)),
 	);
 }

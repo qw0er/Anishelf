@@ -1,26 +1,50 @@
 import { createHash } from "node:crypto";
-import type { ResourceId, Timestamp } from "../contracts/library.js";
+import type { LibraryIssue, ScanState, Timestamp } from "./scan-state.js";
 
-export interface DirectoryEntry {
+export type ResourceId = string;
+
+/** Path-free business information; HTTP owns its public DTO projection. */
+export interface DirectoryInfo {
 	kind: "directory";
 	id: ResourceId;
 	parentId: ResourceId | null;
 	name: string;
-	relativePath: string;
 }
 
-export interface FileEntry {
+export interface FileInfo {
 	kind: "file";
 	id: ResourceId;
 	parentId: ResourceId;
 	name: string;
-	relativePath: string;
 	sizeBytes: number;
 	modifiedAt: Timestamp;
 	mimeType: string;
 }
 
+export type ResourceInfo = DirectoryInfo | FileInfo;
+
+export interface DirectoryEntry extends DirectoryInfo {
+	relativePath: string;
+}
+
+export interface FileEntry extends FileInfo {
+	relativePath: string;
+}
+
 export type LibraryEntry = DirectoryEntry | FileEntry;
+
+export interface DirectoryListing {
+	directory: DirectoryInfo;
+	children: readonly ResourceInfo[];
+}
+
+export interface LibraryStatus {
+	ready: boolean;
+	revision: number;
+	scan: ScanState | null;
+	error: LibraryIssue | null;
+	stale: boolean;
+}
 
 /** Published snapshots are read-only; traversal builds a separate candidate. */
 export interface LibrarySnapshot {

@@ -22,11 +22,14 @@
 								"patterns": [
 									{
 										"group": [
-											"../library/**",
+											"../library/index.js",
+											"../library/scanner.js",
 											"../resources/**",
-											"../config/**"
+											"../config/deployment.js",
+											"../config/persistent.js",
+											"../database/**"
 										],
-										"message": "HTTP routes must call the application layer; use contracts for configuration types."
+										"message": "HTTP routes call application use cases; presenters may import business models and configuration types."
 									}
 								]
 							}
@@ -59,7 +62,9 @@
 			"includes": [
 				"backend/src/library/**",
 				"backend/src/resources/**",
-				"backend/src/config/**"
+				"backend/src/config/**",
+				"backend/src/playback/**",
+				"backend/src/database/**"
 			],
 			"linter": {
 				"rules": {
@@ -85,7 +90,7 @@
 			}
 		},
 		{
-			"includes": ["backend/src/contracts/**"],
+			"includes": ["backend/src/http/contracts.ts"],
 			"linter": {
 				"rules": {
 					"style": {
@@ -96,14 +101,16 @@
 									{
 										"group": [
 											"../application/**",
-											"../http/**",
 											"../library/**",
 											"../resources/**",
 											"../config/**",
+											"../database/**",
+											"../playback/**",
+											"./**",
 											"fastify",
 											"@fastify/**"
 										],
-										"message": "Public contracts must not depend on backend implementation modules."
+										"message": "HTTP contracts describe public JSON shapes and must not depend on backend models or runtime implementations."
 									}
 								]
 							}

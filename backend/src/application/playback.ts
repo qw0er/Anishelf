@@ -1,46 +1,37 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
-import type { FileDto } from "../contracts/api.js";
 import {
 	type PlaybackRepository,
-	type Progress,
 	resourceRootId,
-	type SaveResult,
-	type SourceIdentity,
 } from "../database/playback-repository.js";
 import { DomainError } from "../errors.js";
+import type {
+	ContinueWatchingItem,
+	ContinueWatchingResult,
+	PlaybackProgress,
+	PlaybackSession,
+	PlaybackSourceIdentity,
+	ResolvedPlaybackSource,
+	SavePlaybackProgress,
+	SavePlaybackProgressResult,
+	StartOverPlayback,
+} from "../playback/model.js";
 import type { LibraryApplication } from "./library.js";
 
-export interface PlaybackSession {
-	token: string;
-	generation: number;
-	sourceVersion: string;
-	file: FileDto;
-	plan: { mode: "direct"; playbackUrl: string };
-	progress: Progress;
-}
-export interface SavePlaybackProgress {
-	token: string;
-	generation: number;
-	sourceVersion: string;
-	sequence: number;
-	positionMs: number;
-	durationMs: number | null;
-}
-interface Session {
+interface PlaybackSessionState {
 	sourceId: string;
-	identity: SourceIdentity;
+	identity: PlaybackSourceIdentity;
 	rootEpoch: number;
 	generation: number;
-	touchedAt: number;
-	reset?: { requestId: string; generation: number; progress: Progress };
+	touchedAtMs: number;
+	reset?: { requestId: string; generation: number; progress: PlaybackProgress };
 }
 const sessionIdleMs = 30 * 60 * 1000;
 const maximumSessions = 1000;
 
 /** Coordinates filesystem identity, session authorization and durable progress. */
 export class PlaybackApplication {
-	private readonly sessions = new Map<string, Session>();
+	private readonly sessions = new Map<string, PlaybackSessionState>();
 	private closed = false;
 	private readonly logger: Logger;
 	constructor(
@@ -80,7 +71,7 @@ export class PlaybackApplication {
 			identity: source.identity,
 			rootEpoch: source.rootEpoch,
 			generation: progress.generation,
-			touchedAt: this.now(),
+			touchedAtMs: this.now(),
 		});
 		return {
 			token,
@@ -95,7 +86,7 @@ export class PlaybackApplication {
 		};
 	}
 
-	async save(input: SavePlaybackProgress): Promise<SaveResult> {
+	async save(input: SavePlaybackProgress): Promise<SavePlaybackProgressResult> {
 		this.validateTimes(input);
 		const session = this.session(input.token);
 		await this.revalidate(input.token, session);
@@ -117,15 +108,11 @@ export class PlaybackApplication {
 			),
 		);
 		if (result.status === "stale") this.conflict();
-		session.touchedAt = this.now();
+		session.touchedAtMs = this.now();
 		return result;
 	}
 
-	async startOver(input: {
-		token: string;
-		generation: number;
-		requestId: string;
-	}): Promise<Progress> {
+	async startOver(input: StartOverPlayback): Promise<PlaybackProgress> {
 		if (
 			!Number.isSafeInteger(input.generation) ||
 			input.generation < 1 ||
@@ -137,7 +124,7 @@ export class PlaybackApplication {
 		await this.revalidate(input.token, session);
 		if (session.reset?.requestId === input.requestId) {
 			if (session.reset.generation !== input.generation) this.conflict();
-			session.touchedAt = this.now();
+			session.touchedAtMs = this.now();
 			return { ...session.reset.progress };
 		}
 		if (session.generation !== input.generation) this.conflict();
@@ -150,7 +137,7 @@ export class PlaybackApplication {
 		);
 		if (!progress) this.conflict();
 		session.generation = progress.generation;
-		session.touchedAt = this.now();
+		session.touchedAtMs = this.now();
 		session.reset = {
 			requestId: input.requestId,
 			generation: input.generation,
@@ -159,10 +146,7 @@ export class PlaybackApplication {
 		return { ...progress };
 	}
 
-	async continueWatching(limit = 20): Promise<{
-		availability: "unknown" | "checked";
-		items: { file: FileDto; progress: Progress }[];
-	}> {
+	async continueWatching(limit = 20): Promise<ContinueWatchingResult> {
 		if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
 			throw new DomainError("INVALID_REQUEST", "Invalid list limit.");
 		const repository = this.repository();
@@ -172,16 +156,14 @@ export class PlaybackApplication {
 		const rootId = resourceRootId(
 			await this.options.library.resolvePlaybackRoot(),
 		);
-		const items: { file: FileDto; progress: Progress }[] = [];
+		const items: ContinueWatchingItem[] = [];
 		for (let offset = 0; items.length < limit; offset += 100) {
 			this.assertEpoch(epoch);
 			const candidates = this.persist(() =>
 				repository.listContinueWatching(rootId, 100, offset),
 			);
 			for (const candidate of candidates) {
-				let source: Awaited<
-					ReturnType<LibraryApplication["resolvePlaybackSource"]>
-				>;
+				let source: ResolvedPlaybackSource;
 				try {
 					source = await this.options.library.resolvePlaybackSource(
 						candidate.source.fileId,
@@ -257,19 +239,22 @@ export class PlaybackApplication {
 		this.repository();
 		for (const [token, session] of this.sessions) {
 			if (
-				this.now() - session.touchedAt >= sessionIdleMs ||
+				this.now() - session.touchedAtMs >= sessionIdleMs ||
 				session.rootEpoch !== this.options.library.resourceRootEpoch
 			)
 				this.sessions.delete(token);
 		}
 	}
-	private session(token: string): Session {
+	private session(token: string): PlaybackSessionState {
 		this.prune();
 		const session = this.sessions.get(token);
 		if (!session) this.conflict();
 		return session;
 	}
-	private async revalidate(token: string, session: Session): Promise<void> {
+	private async revalidate(
+		token: string,
+		session: PlaybackSessionState,
+	): Promise<void> {
 		const source = await this.options.library.resolvePlaybackSource(
 			session.identity.fileId,
 		);

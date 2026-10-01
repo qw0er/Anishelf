@@ -33,6 +33,12 @@ Retain a modular Node.js/TypeScript backend with Fastify, Pino, and asynchronous
 
 HTTP calls application use cases. Application modules do not depend on Fastify or React; storage, inspection, and processing adapters do not own HTTP contracts. Keep existing import boundaries. The entry point assembles dependencies; avoid putting the new workflow inside route handlers or the scanner.
 
+The implemented [backend data structures](backend-data-structures.md) document
+records type ownership. Public JSON contracts live under `http`; presenters
+project business results into those contracts. Configuration, library, and
+playback models belong to their respective modules, and schema-derived database
+records remain inside repositories.
+
 ## 2. Configuration, Persistence, and Identity
 
 ### Configuration (V1 retained; V2 additions)

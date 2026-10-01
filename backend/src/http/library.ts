@@ -6,7 +6,13 @@ import type {
 	DirectoryResponse,
 	LibraryResponse,
 	ScanResponse,
-} from "../contracts/api.js";
+} from "./contracts.js";
+
+import {
+	directoryResponse,
+	libraryResponse,
+	scanStateDto,
+} from "./presenters.js";
 
 const emptyObject = {
 	type: "object",
@@ -25,7 +31,8 @@ export function registerLibraryRoutes(
 ): void {
 	app.get(
 		"/api/library",
-		async (): Promise<LibraryResponse> => library.getStatus(),
+		async (): Promise<LibraryResponse> =>
+			libraryResponse(await library.getStatus()),
 	);
 	app.post(
 		"/api/library/scan",
@@ -36,7 +43,9 @@ export function registerLibraryRoutes(
 			},
 		},
 		async (_request, reply): Promise<ScanResponse> => {
-			return reply.code(202).send({ scan: await library.startScan() });
+			return reply
+				.code(202)
+				.send({ scan: scanStateDto(await library.startScan()) });
 		},
 	);
 	app.get<{ Params: { id: string } }>(
@@ -59,7 +68,7 @@ export function registerLibraryRoutes(
 			},
 		},
 		async (request): Promise<DirectoryResponse> => {
-			return library.getDirectory(request.params.id);
+			return directoryResponse(library.getDirectory(request.params.id));
 		},
 	);
 }

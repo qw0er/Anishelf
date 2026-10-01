@@ -5,7 +5,7 @@ import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { LibraryApplication } from "../src/application/library.js";
 import { PlaybackApplication } from "../src/application/playback.js";
-import type { PersistentSettings } from "../src/contracts/config.js";
+import type { PersistentSettings } from "../src/config/model.js";
 import { ApplicationDatabase } from "../src/database/index.js";
 import { LibraryIndex } from "../src/library/index.js";
 import { createResourceId } from "../src/library/model.js";

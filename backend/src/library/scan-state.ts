@@ -1,4 +1,3 @@
-export type ResourceId = string;
 /** ISO 8601 UTC timestamp serialized as a string. */
 export type Timestamp = string;
 
@@ -8,7 +7,7 @@ export interface ScanWarningSummary {
 	messages: readonly string[];
 }
 
-interface ScanProgress {
+interface ScanStateFields {
 	id: string;
 	startedAt: Timestamp;
 	visitedCount: number;
@@ -17,14 +16,14 @@ interface ScanProgress {
 }
 
 export type ScanState =
-	| (ScanProgress & { status: "running"; finishedAt: null })
-	| (ScanProgress & { status: "completed"; finishedAt: Timestamp })
-	| (ScanProgress & {
+	| (ScanStateFields & { status: "running"; finishedAt: null })
+	| (ScanStateFields & { status: "completed"; finishedAt: Timestamp })
+	| (ScanStateFields & {
 			status: "failed";
 			finishedAt: Timestamp;
 			error: LibraryIssue;
 	  })
-	| (ScanProgress & { status: "cancelled"; finishedAt: Timestamp });
+	| (ScanStateFields & { status: "cancelled"; finishedAt: Timestamp });
 
 export interface LibraryIssue {
 	code:

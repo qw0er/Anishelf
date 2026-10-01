@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import Fastify from "fastify";
 import type { Logger } from "pino";
 import type { LibraryApplication } from "../application/library.js";
-import type { DeploymentConfig } from "../contracts/config.js";
+import type { DeploymentConfig } from "../config/model.js";
 import { apiError, classifyHttpError } from "./errors.js";
 import { registerLibraryRoutes } from "./library.js";
 import { registerMediaRoutes } from "./media.js";

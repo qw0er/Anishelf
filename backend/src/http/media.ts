@@ -2,7 +2,9 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { FastifyInstance, RawServerDefault } from "fastify";
 import type { Logger } from "pino";
 import type { LibraryApplication } from "../application/library.js";
-import type { FileResponse } from "../contracts/api.js";
+import type { FileResponse } from "./contracts.js";
+
+import { fileDto } from "./presenters.js";
 
 const schema = {
 	params: {
@@ -61,7 +63,7 @@ export function registerMediaRoutes(
 			const file = await library.getFile(request.params.id);
 			reply.header("Cache-Control", "no-store");
 			return {
-				file,
+				file: fileDto(file),
 				playbackUrl: `/api/media/${encodeURIComponent(file.id)}`,
 			};
 		},

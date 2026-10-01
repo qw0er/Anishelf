@@ -3,13 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { LibraryScanner, type ScanProgress } from "../src/library/scanner.js";
+import {
+	LibraryScanner,
+	type ScanTraversalProgress,
+} from "../src/library/scanner.js";
 import { ResourceAccess } from "../src/resources/access.js";
 
 let fixture: string;
 let resources: ResourceAccess;
 const scanner = new LibraryScanner(pino({ enabled: false }));
-function progress(): ScanProgress {
+function progress(): ScanTraversalProgress {
 	return {
 		id: "test",
 		visitedCount: 0,

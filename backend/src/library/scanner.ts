@@ -1,6 +1,5 @@
 import { join } from "node:path";
 import type { Logger } from "pino";
-import type { ScanWarningSummary } from "../contracts/library.js";
 import { DomainError } from "../errors.js";
 import { getVideoMimeType, type ResourceAccess } from "../resources/access.js";
 import {
@@ -8,10 +7,11 @@ import {
 	type DirectoryEntry,
 	type LibraryEntry,
 } from "./model.js";
+import type { ScanWarningSummary } from "./scan-state.js";
 
 const concurrency = 8;
 const warningMessageLimit = 5;
-export interface ScanProgress {
+export interface ScanTraversalProgress {
 	id: string;
 	visitedCount: number;
 	matchedCount: number;
@@ -28,8 +28,9 @@ export class LibraryScanner {
 	async scan(
 		resources: ResourceAccess,
 		rootName: string,
-		progress: ScanProgress,
+		progress: ScanTraversalProgress,
 		signal: AbortSignal,
+		onProgress?: (progress: Readonly<ScanTraversalProgress>) => void,
 	): Promise<LibraryEntry[] | null> {
 		const root: DirectoryEntry = {
 			kind: "directory",
@@ -46,7 +47,9 @@ export class LibraryScanner {
 			cursor += batch.length;
 			await Promise.all(
 				batch.map((task) =>
-					this.visit(task, resources, entries, queue, progress, signal),
+					this.visit(task, resources, entries, queue, progress, signal).finally(
+						() => onProgress?.(progress),
+					),
 				),
 			);
 		}
@@ -71,7 +74,7 @@ export class LibraryScanner {
 		resources: ResourceAccess,
 		entries: LibraryEntry[],
 		queue: ScanTask[],
-		progress: ScanProgress,
+		progress: ScanTraversalProgress,
 		signal: AbortSignal,
 	): Promise<void> {
 		if (signal.aborted) return;

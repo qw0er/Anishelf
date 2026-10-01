@@ -1,26 +1,43 @@
 import { createHash } from "node:crypto";
 import { isAbsolute } from "node:path";
 import { and, asc, desc, eq, gt, isNotNull, sql } from "drizzle-orm";
+import type {
+	ContinueWatchingCandidate,
+	PlaybackProgress,
+	PlaybackProgressUpdate,
+	PlaybackSourceIdentity,
+	RegisteredPlaybackSource,
+	SavePlaybackProgressResult,
+} from "../playback/model.js";
 import type { Store } from "./index.js";
 import { mediaSources, playbackProgress, resourceRoots } from "./schema.js";
 
-export type Progress = typeof playbackProgress.$inferSelect;
-export interface SourceIdentity {
-	canonicalRoot: string;
-	fileId: string;
-	relativePath: string;
-	sourceVersion: string;
+// Schema-derived records stay inside the database adapter.
+type PlaybackProgressRow = typeof playbackProgress.$inferSelect;
+type MediaSourceRow = typeof mediaSources.$inferSelect;
+
+function toPlaybackProgress(row: PlaybackProgressRow): PlaybackProgress {
+	return {
+		sourceId: row.sourceId,
+		positionMs: row.positionMs,
+		durationMs: row.durationMs,
+		lastViewedAtMs: row.lastViewedAtMs,
+		revision: row.revision,
+		generation: row.generation,
+		lastSequence: row.lastSequence,
+	};
 }
-export interface ProgressUpdate {
-	sourceId: string;
-	generation: number;
-	sequence: number;
-	positionMs: number;
-	durationMs: number | null;
+
+function toRegisteredSource(row: MediaSourceRow): RegisteredPlaybackSource {
+	return {
+		id: row.id,
+		rootId: row.rootId,
+		fileId: row.fileId,
+		relativePath: row.relativePath,
+		sourceVersion: row.sourceVersion,
+		createdAtMs: row.createdAtMs,
+	};
 }
-export type SaveResult =
-	| { status: "saved" | "duplicate"; progress: Progress }
-	| { status: "stale" };
 
 function key(...parts: string[]): string {
 	return createHash("sha256").update(JSON.stringify(parts)).digest("base64url");
@@ -40,7 +57,10 @@ function integer(value: number, minimum: number): void {
 export class PlaybackRepository {
 	constructor(private readonly store: Store) {}
 
-	registerSource(identity: SourceIdentity, nowMs = Date.now()) {
+	registerSource(
+		identity: PlaybackSourceIdentity,
+		nowMs = Date.now(),
+	): RegisteredPlaybackSource {
 		integer(nowMs, 0);
 		if (
 			!isAbsolute(identity.canonicalRoot) ||
@@ -85,21 +105,22 @@ export class PlaybackRepository {
 					.where(eq(mediaSources.id, id))
 					.get();
 				if (!source) throw new Error("Source registration failed.");
-				return source;
+				return toRegisteredSource(source);
 			},
 			{ behavior: "immediate" },
 		);
 	}
 
-	get(sourceId: string): Progress | undefined {
-		return this.store
+	get(sourceId: string): PlaybackProgress | undefined {
+		const row = this.store
 			.select()
 			.from(playbackProgress)
 			.where(eq(playbackProgress.sourceId, sourceId))
 			.get();
+		return row ? toPlaybackProgress(row) : undefined;
 	}
 
-	openGeneration(sourceId: string): Progress {
+	openGeneration(sourceId: string): PlaybackProgress {
 		return this.store.transaction(
 			(tx) => {
 				tx.insert(playbackProgress)
@@ -118,13 +139,16 @@ export class PlaybackRepository {
 					.where(eq(playbackProgress.sourceId, sourceId))
 					.get();
 				if (!row) throw new Error("Progress initialization failed.");
-				return row;
+				return toPlaybackProgress(row);
 			},
 			{ behavior: "immediate" },
 		);
 	}
 
-	save(update: ProgressUpdate, nowMs = Date.now()): SaveResult {
+	save(
+		update: PlaybackProgressUpdate,
+		nowMs = Date.now(),
+	): SavePlaybackProgressResult {
 		integer(nowMs, 0);
 		integer(update.generation, 1);
 		integer(update.sequence, 1);
@@ -150,7 +174,7 @@ export class PlaybackRepository {
 				if (update.sequence === current.lastSequence) {
 					return current.positionMs === positionMs &&
 						current.durationMs === update.durationMs
-						? { status: "duplicate", progress: current }
+						? { status: "duplicate", progress: toPlaybackProgress(current) }
 						: { status: "stale" };
 				}
 				const progress = tx
@@ -166,7 +190,7 @@ export class PlaybackRepository {
 					.returning()
 					.get();
 				if (!progress) throw new Error("Progress save failed.");
-				return { status: "saved", progress };
+				return { status: "saved", progress: toPlaybackProgress(progress) };
 			},
 			{ behavior: "immediate" },
 		);
@@ -176,10 +200,10 @@ export class PlaybackRepository {
 		sourceId: string,
 		generation: number,
 		nowMs = Date.now(),
-	): Progress | undefined {
+	): PlaybackProgress | undefined {
 		integer(generation, 1);
 		integer(nowMs, 0);
-		return this.store
+		const row = this.store
 			.update(playbackProgress)
 			.set({
 				positionMs: 0,
@@ -196,10 +220,15 @@ export class PlaybackRepository {
 			)
 			.returning()
 			.get();
+		return row ? toPlaybackProgress(row) : undefined;
 	}
 
 	/** Ordered database candidates only; callers must filter live availability. */
-	listContinueWatching(rootId: string, limit = 20, offset = 0) {
+	listContinueWatching(
+		rootId: string,
+		limit = 20,
+		offset = 0,
+	): ContinueWatchingCandidate[] {
 		integer(limit, 1);
 		integer(offset, 0);
 		if (limit > 100)
@@ -222,6 +251,10 @@ export class PlaybackRepository {
 			)
 			.limit(limit)
 			.offset(offset)
-			.all();
+			.all()
+			.map(({ source, progress }) => ({
+				source: toRegisteredSource(source),
+				progress: toPlaybackProgress(progress),
+			}));
 	}
 }

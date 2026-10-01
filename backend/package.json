@@ -32,11 +32,8 @@
 	},
 	"exports": {
 		".": "./dist/index.js",
-		"./contracts/api": {
-			"types": "./src/contracts/api.ts"
-		},
-		"./contracts/library": {
-			"types": "./src/contracts/library.ts"
+		"./http/contracts": {
+			"types": "./src/http/contracts.ts"
 		}
 	}
 }

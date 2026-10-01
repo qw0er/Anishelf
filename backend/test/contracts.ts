@@ -1,6 +1,6 @@
-import type { DirectoryDto, FileDto } from "../src/contracts/api.js";
-import type { LoggingConfig } from "../src/contracts/config.js";
-import type { ScanState } from "../src/contracts/library.js";
+import type { LoggingConfig } from "../src/config/model.js";
+import type { DirectoryDto, FileDto } from "../src/http/contracts.js";
+import type { ScanState } from "../src/library/scan-state.js";
 
 // Compile-time assertions protect boundary and state invariants.
 type Assert<T extends true> = T;

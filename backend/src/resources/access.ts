@@ -10,9 +10,9 @@ import {
 	stat,
 } from "node:fs/promises";
 import { extname, isAbsolute, join, relative, sep, win32 } from "node:path";
-import type { PersistentSettings } from "../contracts/config.js";
-import type { LibraryIssue } from "../contracts/library.js";
+import type { PersistentSettings } from "../config/model.js";
 import { DomainError } from "../errors.js";
+import type { LibraryIssue, Timestamp } from "../library/scan-state.js";
 
 const videoTypes: ReadonlyMap<string, string> = new Map([
 	[".mp4", "video/mp4"],
@@ -27,8 +27,12 @@ export function getVideoMimeType(path: string): string | null {
 
 export interface ResourceFileMetadata {
 	sizeBytes: number;
-	modifiedAt: string;
+	modifiedAt: Timestamp;
 	mimeType: string;
+}
+
+export interface ResourceSourceMetadata extends ResourceFileMetadata {
+	sourceVersion: string;
 }
 
 export interface OpenedResourceFile extends ResourceFileMetadata {
@@ -164,9 +168,7 @@ export class ResourceAccess {
 		}
 	}
 
-	async inspectSource(
-		relativePath: string,
-	): Promise<ResourceFileMetadata & { sourceVersion: string }> {
+	async inspectSource(relativePath: string): Promise<ResourceSourceMetadata> {
 		const file = await this.openFile(relativePath);
 		try {
 			const info = await file.handle.stat({ bigint: true });

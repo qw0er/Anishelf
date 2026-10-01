@@ -28,16 +28,19 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm run build` | Build backend and frontend |
 | `npm start` | Run the built backend entry point after building |
 
-Backend contracts are in `backend/src/contracts`: validated configuration shapes,
-public scan states and JSON API DTOs. Internal entries and snapshots live in
-`backend/src/library/model.ts`. `errors.ts` defines
+Public JSON contracts live in `backend/src/http/contracts.ts`; HTTP presenters
+explicitly convert business results into those contracts. Configuration types
+live in `backend/src/config/model.ts`, library models and business scan state in
+`backend/src/library`, and backend playback data in `backend/src/playback/model.ts`.
+See [backend data structures](backend-data-structures.md) for type ownership and
+usage. `errors.ts` defines
 HTTP-independent error codes and `DomainError`. HTTP handlers map errors to safe
 public messages and status codes instead of serializing internal errors.
 Startup environment variables and persistent JSON are validated at runtime. HTTP routes use
 Fastify JSON Schemas, with type coercion and removal of unknown fields disabled.
 
-API DTOs explicitly define their public fields; application projections exclude
-internal relative paths and future internal fields. Diagnostic errors may retain a cause for
+API DTOs explicitly define their public fields. Applications provide path-free
+business information, and HTTP presenters select public fields. Diagnostic errors may retain a cause for
 local logging. The frontend API client re-exports these contracts through type-only
 imports; backend runtime code is not bundled into the frontend.
 
@@ -428,8 +431,8 @@ accessibility. Assign `playbackUrl` directly to the video element's `src`; the
 JSON client does not fetch media bytes.
 
 `web/src/api/contracts.ts` re-exports the existing backend contracts with
-`export type` from the npm workspace package subpaths
-`@anishelf/backend/contracts/api` and `@anishelf/backend/contracts/library`. The
+`export type` from the npm workspace package subpath
+`@anishelf/backend/http/contracts`. The
 web workspace declares the backend as a development dependency; its type-only
 exports resolve directly to source and do not require a backend build first.
 Success responses use those TypeScript contracts; there is no

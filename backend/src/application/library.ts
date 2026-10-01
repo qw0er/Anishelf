@@ -1,20 +1,24 @@
 import { randomUUID } from "node:crypto";
 import { basename } from "node:path";
 import type { Logger } from "pino";
-import type {
-	DirectoryDto,
-	DirectoryResponse,
-	FileDto,
-	LibraryResponse,
-	ResourceDto,
-	UpdateSettingsRequest,
-} from "../contracts/api.js";
-import type { PersistentSettings } from "../contracts/config.js";
-import type { ScanState } from "../contracts/library.js";
+import type { PersistentSettings } from "../config/model.js";
 import { DomainError } from "../errors.js";
 import type { LibraryIndex } from "../library/index.js";
-import type { LibraryEntry } from "../library/model.js";
-import { LibraryScanner } from "../library/scanner.js";
+import type {
+	DirectoryInfo,
+	DirectoryListing,
+	FileEntry,
+	FileInfo,
+	LibraryEntry,
+	LibraryStatus,
+	ResourceInfo,
+} from "../library/model.js";
+import type { ScanState } from "../library/scan-state.js";
+import {
+	LibraryScanner,
+	type ScanTraversalProgress,
+} from "../library/scanner.js";
+import type { ResolvedPlaybackSource } from "../playback/model.js";
 import {
 	checkResourceRoot,
 	type OpenedResourceFile,
@@ -26,6 +30,10 @@ export interface SettingsStore {
 	readonly settings: Readonly<PersistentSettings>;
 	update(settings: PersistentSettings): Promise<Readonly<PersistentSettings>>;
 }
+interface UpdateLibrarySettings {
+	resourceRoot: string;
+}
+
 type RunningScan = Extract<ScanState, { status: "running" }>;
 function copyState(state: ScanState): ScanState {
 	const copy = {
@@ -41,9 +49,9 @@ function copyState(state: ScanState): ScanState {
 }
 
 /** Explicit projection prevents new internal fields from leaking into public results. */
-function directoryDto(
+function directoryInfo(
 	entry: Extract<LibraryEntry, { kind: "directory" }>,
-): DirectoryDto {
+): DirectoryInfo {
 	return {
 		kind: "directory",
 		id: entry.id,
@@ -51,8 +59,11 @@ function directoryDto(
 		name: entry.name,
 	};
 }
-function resourceDto(entry: LibraryEntry): ResourceDto {
-	if (entry.kind === "directory") return directoryDto(entry);
+function resourceInfo(entry: LibraryEntry): ResourceInfo {
+	if (entry.kind === "directory") return directoryInfo(entry);
+	return fileInfo(entry);
+}
+function fileInfo(entry: FileEntry): FileInfo {
 	return {
 		kind: "file",
 		id: entry.id,
@@ -94,7 +105,7 @@ export class LibraryApplication {
 		return { ...this.options.configuration.settings };
 	}
 
-	async getStatus(): Promise<LibraryResponse> {
+	async getStatus(): Promise<LibraryStatus> {
 		// Capture index and task state together before the asynchronous availability check.
 		const settings = this.getSettings();
 		const revision = this.options.index.revision;
@@ -111,14 +122,14 @@ export class LibraryApplication {
 		};
 	}
 
-	getDirectory(id: string): DirectoryResponse {
+	getDirectory(id: string): DirectoryListing {
 		return {
-			directory: directoryDto(this.options.index.getDirectory(id)),
-			children: this.options.index.listChildren(id).map(resourceDto),
+			directory: directoryInfo(this.options.index.getDirectory(id)),
+			children: this.options.index.listChildren(id).map(resourceInfo),
 		};
 	}
 
-	async getFile(id: string): Promise<FileDto> {
+	async getFile(id: string): Promise<FileInfo> {
 		const entry = this.options.index.getFile(id);
 		const settings = this.getSettings();
 		const resources = await ResourceAccess.create(settings);
@@ -149,7 +160,7 @@ export class LibraryApplication {
 		return resources.canonicalRoot;
 	}
 
-	async resolvePlaybackSource(id: string) {
+	async resolvePlaybackSource(id: string): Promise<ResolvedPlaybackSource> {
 		const epoch = this.rootEpoch;
 		const entry = this.options.index.getFile(id);
 		const resources = await ResourceAccess.create(this.getSettings());
@@ -164,11 +175,11 @@ export class LibraryApplication {
 				sourceVersion: metadata.sourceVersion,
 			},
 			file: {
-				...resourceDto(entry),
+				...fileInfo(entry),
 				sizeBytes: metadata.sizeBytes,
 				modifiedAt: metadata.modifiedAt,
 				mimeType: metadata.mimeType,
-			} as FileDto,
+			},
 			rootEpoch: epoch,
 		};
 	}
@@ -235,7 +246,7 @@ export class LibraryApplication {
 	}
 
 	async updateSettings(
-		input: UpdateSettingsRequest,
+		input: UpdateLibrarySettings,
 	): Promise<Readonly<PersistentSettings>> {
 		if (this.closed || this.active || this.pendingStart || this.saving)
 			throw new DomainError("SETTINGS_BUSY", "The library is busy.");
@@ -281,11 +292,28 @@ export class LibraryApplication {
 		try {
 			if (signal.aborted) return;
 			const resources = await ResourceAccess.create(settings);
+			const traversal: ScanTraversalProgress = {
+				id: progress.id,
+				visitedCount: progress.visitedCount,
+				matchedCount: progress.matchedCount,
+				warnings: {
+					count: progress.warnings.count,
+					messages: [...progress.warnings.messages],
+				},
+			};
 			const entries = await this.scanner.scan(
 				resources,
 				basename(settings.resourceRoot ?? "") || "root",
-				progress,
+				traversal,
 				signal,
+				(current) => {
+					progress.visitedCount = current.visitedCount;
+					progress.matchedCount = current.matchedCount;
+					progress.warnings = {
+						count: current.warnings.count,
+						messages: [...current.warnings.messages],
+					};
+				},
 			);
 			if (entries === null || signal.aborted) return;
 			if (

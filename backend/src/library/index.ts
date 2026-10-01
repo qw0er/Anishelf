@@ -1,12 +1,13 @@
 import { dirname, isAbsolute, sep, win32 } from "node:path";
-import type { ResourceId, Timestamp } from "../contracts/library.js";
 import { DomainError } from "../errors.js";
 import type {
 	DirectoryEntry,
 	FileEntry,
 	LibraryEntry,
 	LibrarySnapshot,
+	ResourceId,
 } from "./model.js";
+import type { Timestamp } from "./scan-state.js";
 
 const nameCollator = new Intl.Collator("en", {
 	numeric: true,

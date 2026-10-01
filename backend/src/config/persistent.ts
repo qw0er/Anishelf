@@ -9,7 +9,7 @@ import {
 	resolve,
 	sep,
 } from "node:path";
-import type { PersistentSettings } from "../contracts/config.js";
+import type { PersistentSettings } from "../config/model.js";
 import { DomainError } from "../errors.js";
 
 export function parsePersistentSettings(source: string): PersistentSettings {
