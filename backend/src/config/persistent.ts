@@ -9,7 +9,10 @@ import {
 	resolve,
 	sep,
 } from "node:path";
-import type { PersistentSettings } from "../config/model.js";
+import {
+	maximumScanIntervalMinutes,
+	type PersistentSettings,
+} from "../config/model.js";
 import { DomainError } from "../errors.js";
 
 export function parsePersistentSettings(source: string): PersistentSettings {
@@ -34,14 +37,28 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 	}
 	const settings = value as Record<string, unknown>;
 	for (const key of Object.keys(settings)) {
-		if (key !== "resourceRoot")
+		if (key !== "resourceRoot" && key !== "scanIntervalMinutes")
 			throw new DomainError(
 				"CONFIG_INVALID",
 				`Unknown persistent setting: ${key}.`,
 			);
 	}
 	const root = settings.resourceRoot;
-	if (root === null) return { resourceRoot: null };
+	const interval = settings.scanIntervalMinutes;
+	if (
+		interval !== undefined &&
+		(typeof interval !== "number" ||
+			!Number.isSafeInteger(interval) ||
+			interval < 0 ||
+			interval > maximumScanIntervalMinutes)
+	)
+		throw new DomainError(
+			"CONFIG_INVALID",
+			"scanIntervalMinutes must be an integer from 0 to 10080; 0 disables scheduled scans.",
+		);
+	const scheduling =
+		interval === undefined ? {} : { scanIntervalMinutes: interval as number };
+	if (root === null) return { resourceRoot: null, ...scheduling };
 	if (
 		typeof root !== "string" ||
 		root.trim() === "" ||
@@ -53,7 +70,7 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 			"settings.json resourceRoot must be an absolute filesystem path.",
 		);
 	}
-	return { resourceRoot: root };
+	return { resourceRoot: root, ...scheduling };
 }
 
 function contains(parent: string, child: string): boolean {

@@ -249,3 +249,41 @@ test("foreign origins cannot save settings", async () => {
 	expect(response.statusCode).toBe(403);
 	expect(configuration.settings.resourceRoot).toBeNull();
 });
+
+test("scan interval can be changed without rescanning or resetting the root and survives root-only updates", async () => {
+	await save();
+	await libraryApp.waitForCompletion();
+	const revision = index.revision;
+	const response = await app.inject({
+		method: "PUT",
+		url: "/api/settings",
+		headers,
+		payload: { resourceRoot: root, scanIntervalMinutes: 0 },
+	});
+	expect(response.statusCode).toBe(200);
+	expect(response.json()).toEqual({
+		resourceRoot: root,
+		scanIntervalMinutes: 0,
+	});
+	expect(index.revision).toBe(revision);
+	expect((await app.inject({ url: "/api/settings", headers })).json()).toEqual({
+		resourceRoot: root,
+		scanIntervalMinutes: 0,
+	});
+	await save();
+	expect(configuration.settings.scanIntervalMinutes).toBe(0);
+});
+
+test.each([-1, 1.5, 10081, "60", null])(
+	"HTTP rejects invalid scan interval %j without saving",
+	async (scanIntervalMinutes) => {
+		const response = await app.inject({
+			method: "PUT",
+			url: "/api/settings",
+			headers,
+			payload: { resourceRoot: root, scanIntervalMinutes },
+		});
+		expect(response.statusCode).toBe(400);
+		expect(configuration.settings.resourceRoot).toBeNull();
+	},
+);

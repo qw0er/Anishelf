@@ -33,6 +33,7 @@ export default function ResourceSettings({
 					{t("settingsPage.description")}
 				</p>
 			</div>
+
 			<Card className="w-full max-w-2xl">
 				<CardHeader>
 					<CardTitle>{t("settingsPage.resourceDirectory")}</CardTitle>
@@ -59,6 +60,29 @@ export default function ResourceSettings({
 								placeholder={t("settingsPage.pathPlaceholder")}
 								disabled={disabled || saving}
 							/>
+						</div>
+						<div className="flex min-w-0 flex-col gap-2">
+							<label className="text-sm font-medium" htmlFor="scan-interval">
+								{t("settingsPage.scanInterval")}
+							</label>
+							<Input
+								id="scan-interval"
+								name="scanIntervalMinutes"
+								type="number"
+								min={0}
+								max={10080}
+								step={1}
+								required
+								defaultValue={settings.scanIntervalMinutes ?? 60}
+								disabled={disabled || saving}
+								aria-describedby="scan-interval-help"
+							/>
+							<p
+								id="scan-interval-help"
+								className="text-sm text-muted-foreground"
+							>
+								{t("settingsPage.scanIntervalHelp")}
+							</p>
 						</div>
 						<div className="action-row">
 							<Button

@@ -24,7 +24,7 @@ This document is the complete product requirements inventory, including delivere
 | ID | Feature | Delivered scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
 | V01 | Resource directory configuration | Configure and persist one server-accessible root; startup before setup; directory access feedback | V1 | V1 |
-| V02 | Library scanning | Automatic scans at startup and after resource-root changes; manual rescans; recursive video discovery; repeated scans without duplicate paths; additions and removals reflected | V1 | V1 |
+| V02 | Library scanning | Automatic scans at startup and after resource-root changes; configurable scheduled scans (60 minutes by default; 0 disables) and manual rescans; recursive video discovery; repeated scans without duplicate paths; additions and removals reflected | V1 | V1 |
 | V03 | Resource browsing | Actual directory hierarchy, original filenames, stable natural sorting, and parent navigation | V1 | V1 |
 | V04 | Web playback | Browser direct playback through bounded media streams and byte ranges | V1 | V1 |
 | V05 | Basic playback controls | Play, pause, seek, volume, fullscreen, and return to the original directory | V1 | V1 |

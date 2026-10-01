@@ -312,7 +312,11 @@ test("first-run setup saves the server directory and shows the automatic scan", 
 			([path, init]) =>
 				path === "/api/settings" &&
 				init?.method === "PUT" &&
-				init.body === JSON.stringify({ resourceRoot: "/media/中文 videos" }),
+				init.body ===
+					JSON.stringify({
+						resourceRoot: "/media/中文 videos",
+						scanIntervalMinutes: 60,
+					}),
 		),
 	).toBe(true);
 	expect(
@@ -895,4 +899,37 @@ test("failed final saves do not show session messages or block navigation", asyn
 		),
 	).toBeNull();
 	expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();
+});
+
+test("settings shows the default scan interval and saves the user's disabled schedule", async () => {
+	renderApp("/settings");
+	const interval = await screen.findByLabelText(
+		"Automatic scan interval (minutes)",
+	);
+	expect((interval as HTMLInputElement).value).toBe("60");
+	fireEvent.change(interval, { target: { value: "0" } });
+	fireEvent.submit(interval.closest("form") as HTMLFormElement);
+	await waitFor(() =>
+		expect(screen.getByTestId("location").textContent).toBe("/"),
+	);
+	expect(
+		fetcher.mock.calls.some(
+			([path, init]) =>
+				path === "/api/settings" &&
+				init?.method === "PUT" &&
+				JSON.parse(String(init.body)).scanIntervalMinutes === 0,
+		),
+	).toBe(true);
+	fireEvent.click(
+		within(
+			screen.getByRole("navigation", { name: "Primary navigation" }),
+		).getByRole("link", { name: "Settings" }),
+	);
+	expect(
+		(
+			(await screen.findByLabelText(
+				"Automatic scan interval (minutes)",
+			)) as HTMLInputElement
+		).value,
+	).toBe("0");
 });

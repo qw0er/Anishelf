@@ -474,3 +474,103 @@ test("public library results select fields explicitly rather than exposing futur
 		expect(JSON.stringify(result)).not.toContain(fixture);
 	}
 });
+
+test("scheduled scans discover new files, reschedule after completion, and honor interval changes and shutdown", async () => {
+	vi.useFakeTimers();
+	let settings = { resourceRoot: root, scanIntervalMinutes: 1 };
+	const application = new LibraryApplication({
+		index,
+		configuration: {
+			get settings() {
+				return settings;
+			},
+			async update(next) {
+				settings = {
+					resourceRoot: next.resourceRoot as string,
+					scanIntervalMinutes: next.scanIntervalMinutes ?? 60,
+				};
+				return settings;
+			},
+		},
+		logger: pino({ enabled: false }),
+	});
+	try {
+		await writeFile(join(root, "scheduled.mp4"), "video");
+		await vi.advanceTimersByTimeAsync(59999);
+		expect(application.state).toBeNull();
+		await vi.advanceTimersByTimeAsync(1);
+		await application.waitForCompletion();
+		expect(index.listChildren("root").map((entry) => entry.name)).toEqual([
+			"scheduled.mp4",
+		]);
+		expect(index.revision).toBe(1);
+		await application.updateSettings({
+			resourceRoot: root,
+			scanIntervalMinutes: 2,
+		});
+		await vi.advanceTimersByTimeAsync(60000);
+		expect(index.revision).toBe(1);
+		await vi.advanceTimersByTimeAsync(60000);
+		await application.waitForCompletion();
+		expect(index.revision).toBe(2);
+		await application.updateSettings({
+			resourceRoot: root,
+			scanIntervalMinutes: 0,
+		});
+		await vi.advanceTimersByTimeAsync(300000);
+		expect(index.revision).toBe(2);
+		await application.updateSettings({
+			resourceRoot: root,
+			scanIntervalMinutes: 1,
+		});
+		await application.close();
+		await vi.advanceTimersByTimeAsync(60000);
+		expect(index.revision).toBe(2);
+	} finally {
+		await application.close();
+		vi.useRealTimers();
+	}
+});
+
+test("long scans have no overlapping timer and the next interval begins at completion", async () => {
+	vi.useFakeTimers();
+	const application = new LibraryApplication({
+		index,
+		configuration: {
+			settings: { resourceRoot: root, scanIntervalMinutes: 1 },
+			async update(next) {
+				return next;
+			},
+		},
+		logger: pino({ enabled: false }),
+	});
+	const create = ResourceAccess.create;
+	let release = () => {};
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const opening = vi
+		.spyOn(ResourceAccess, "create")
+		.mockImplementationOnce(async (settings) => {
+			await gate;
+			return create(settings);
+		});
+	try {
+		const scan = await application.startScan();
+		await vi.advanceTimersByTimeAsync(180000);
+		expect(application.state?.id).toBe(scan.id);
+		expect(opening).toHaveBeenCalledTimes(1);
+		expect(index.revision).toBe(0);
+		release();
+		await application.waitForCompletion();
+		await vi.advanceTimersByTimeAsync(59999);
+		expect(index.revision).toBe(1);
+		await vi.advanceTimersByTimeAsync(1);
+		await application.waitForCompletion();
+		expect(index.revision).toBe(2);
+	} finally {
+		release();
+		await application.close();
+		vi.useRealTimers();
+	}
+});

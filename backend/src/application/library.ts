@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { basename } from "node:path";
 import type { Logger } from "pino";
-import type { PersistentSettings } from "../config/model.js";
+import {
+	defaultScanIntervalMinutes,
+	type PersistentSettings,
+} from "../config/model.js";
 import { DomainError } from "../errors.js";
 import type { LibraryIndex } from "../library/index.js";
 import type {
@@ -32,6 +35,7 @@ export interface SettingsStore {
 }
 interface UpdateLibrarySettings {
 	resourceRoot: string;
+	scanIntervalMinutes?: number;
 }
 
 type RunningScan = Extract<ScanState, { status: "running" }>;
@@ -84,6 +88,7 @@ export class LibraryApplication {
 	private saving: Promise<Readonly<PersistentSettings>> | undefined;
 	private controller: AbortController | undefined;
 	private closed = false;
+	private scanTimer: ReturnType<typeof setTimeout> | undefined;
 	private readonly logger: Logger;
 	private readonly scanner: LibraryScanner;
 	constructor(
@@ -95,6 +100,7 @@ export class LibraryApplication {
 	) {
 		this.logger = options.logger.child({ module: "library" });
 		this.scanner = new LibraryScanner(this.logger.child({ module: "scanner" }));
+		this.scheduleScan();
 	}
 
 	get state(): ScanState | null {
@@ -199,6 +205,7 @@ export class LibraryApplication {
 			throw new DomainError("SETTINGS_BUSY", "Settings are being saved.");
 		if (this.pendingStart) return copyState(await this.pendingStart);
 		if (this.active && this.latest) return copyState(this.latest);
+		clearTimeout(this.scanTimer);
 		const settings = this.getSettings();
 		const controller = new AbortController();
 		this.controller = controller;
@@ -229,12 +236,14 @@ export class LibraryApplication {
 				).finally(() => {
 					this.active = undefined;
 					this.controller = undefined;
+					this.scheduleScan();
 				});
 				return copyState(progress);
 			})
 			.finally(() => {
 				this.pendingStart = undefined;
 				if (!this.active) this.controller = undefined;
+				if (!this.active) this.scheduleScan();
 			});
 		return copyState(await this.pendingStart);
 	}
@@ -250,7 +259,8 @@ export class LibraryApplication {
 	): Promise<Readonly<PersistentSettings>> {
 		if (this.closed || this.active || this.pendingStart || this.saving)
 			throw new DomainError("SETTINGS_BUSY", "The library is busy.");
-		const next = { ...input };
+		clearTimeout(this.scanTimer);
+		const next = { ...this.getSettings(), ...input };
 		const previousRoot = this.getSettings().resourceRoot;
 		this.saving = Promise.resolve()
 			.then(async () => {
@@ -264,6 +274,7 @@ export class LibraryApplication {
 			})
 			.finally(() => {
 				this.saving = undefined;
+				this.scheduleScan();
 			});
 		const settings = await this.saving;
 		if (!this.closed && settings.resourceRoot !== previousRoot) {
@@ -276,6 +287,7 @@ export class LibraryApplication {
 				);
 			}
 		}
+		this.scheduleScan();
 		return settings;
 	}
 
@@ -287,7 +299,33 @@ export class LibraryApplication {
 
 	async close(): Promise<void> {
 		this.closed = true;
+		clearTimeout(this.scanTimer);
 		await Promise.allSettled([this.cancelScan(), this.saving]);
+	}
+
+	private scheduleScan(): void {
+		clearTimeout(this.scanTimer);
+		const settings = this.getSettings();
+		const minutes = settings.scanIntervalMinutes ?? defaultScanIntervalMinutes;
+		if (
+			this.closed ||
+			this.active ||
+			this.pendingStart ||
+			this.saving ||
+			settings.resourceRoot === null ||
+			minutes === 0
+		)
+			return;
+		this.scanTimer = setTimeout(() => {
+			void this.startScan().catch((err) => {
+				this.logger.warn(
+					{ event: "scan.scheduled_start_failed", err },
+					"Scheduled library scan could not be started.",
+				);
+				this.scheduleScan();
+			});
+		}, minutes * 60000);
+		this.scanTimer.unref();
 	}
 
 	private async runScan(

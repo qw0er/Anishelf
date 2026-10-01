@@ -26,7 +26,7 @@ Extend the existing file browser into an everyday Web viewing workflow:
 | ID | Requirement | Iteration scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
 | V01 | Resource directory configuration | Configure and persist one root; allow startup before setup; expose existence/readability errors | V1 | V1 |
-| V02 | Library scanning | Automatically scan at startup and after resource-root changes; allow manual rescans; recursively discover supported video extensions; avoid duplicate paths; reflect additions/removals | V1 | V1 |
+| V02 | Library scanning | Automatically scan at startup and after resource-root changes; allow configurable scheduled scans (60 minutes by default; 0 disables) and manual rescans; recursively discover supported video extensions; avoid duplicate paths; reflect additions/removals | V1 | V1 |
 | V03 | Resource browsing | Actual hierarchy, original names, stable natural sorting, and parent navigation | V1 | V1 |
 | V04 | Web playback | Stream original compatible files without downloading the whole file first; support seeking | V1 | V1 |
 | V05 | Basic playback controls | Play, pause, seek, volume, fullscreen, and return to the original directory | V1 | V1 |

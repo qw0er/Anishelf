@@ -747,3 +747,19 @@ handler retains its status mapping and safe messages. Compile-time contract
 checks verify inferred request/response types and error codes. Existing HTTP
 regression tests cover validation, null duration, extra fields, session conflicts,
 DTO isolation and binary Range behavior.
+
+## Scheduled library scans
+
+`LibraryApplication` owns a single scan timer. `settings.json` optionally stores
+`scanIntervalMinutes`: an integer from 0 to 10080; 0 disables scheduling. Missing
+values use the TypeScript default of 60 minutes, including legacy settings files.
+The Web Settings page exposes this preference and `GET`/`PUT /api/settings`
+accept and return it. A root-only update preserves the existing interval.
+
+The timer waits for the configured interval after each scan completes, fails, or
+is cancelled. Manual and automatic scans share the same preflight, concurrency
+exclusion, and atomic publication. Saving settings resets the timer; interval-only
+changes preserve the current index and do not immediately scan. No timer runs
+before a root is configured, while saving/scanning, or after shutdown. Failed
+preflight attempts are logged and retried after the configured interval. Disabling
+scheduled scans does not disable startup scans, root-change scans, or manual scans.

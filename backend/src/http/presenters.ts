@@ -107,7 +107,12 @@ export function directoryResponse(
 export function settingsResponse(
 	settings: Readonly<PersistentSettings>,
 ): SettingsResponse {
-	return { resourceRoot: settings.resourceRoot };
+	return {
+		resourceRoot: settings.resourceRoot,
+		...(settings.scanIntervalMinutes === undefined
+			? {}
+			: { scanIntervalMinutes: settings.scanIntervalMinutes }),
+	};
 }
 
 export function playbackProgressDto(

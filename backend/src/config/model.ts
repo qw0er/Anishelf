@@ -22,4 +22,8 @@ export interface DeploymentConfig {
 /** Stored in settings.json; deployment parameters never belong here. */
 export interface PersistentSettings {
 	resourceRoot: string | null;
+	scanIntervalMinutes?: number;
 }
+
+export const defaultScanIntervalMinutes = 60;
+export const maximumScanIntervalMinutes = 10080;

@@ -40,7 +40,7 @@ The backend provides APIs and media only. It does not serve pages or require a f
 
 **Use Caddy or another Web server to serve `web/dist` and reverse-proxy `/api`.** Use systemd or another process manager to start, restart, and collect logs from Node.js. The build outputs are `backend/dist` and `web/dist`; keep the backend runtime dependencies available, and deploy the frontend build to the Web server's static root.
 
-After starting the backend and Caddy as described below, open <http://127.0.0.1:8080>. Save the absolute server-side media directory in the page; the first successful save creates `settings.json` in `dataDir` and starts a scan. Once configured, the backend scans the directory automatically at each startup, and changing the saved directory starts a scan. Rescan after adding or removing media.
+After starting the backend and Caddy as described below, open <http://127.0.0.1:8080>. Save the absolute server-side media directory in the page; the first successful save creates `settings.json` in `dataDir` and starts a scan. Once configured, the backend scans the directory automatically at each startup, and changing the saved directory starts a scan. Scheduled scans run every 60 minutes by default. Configure **Automatic scan interval (minutes)** in Settings, or set it to 0 to disable scheduled scans. Manual scans remain available after adding or removing media.
 
 Environment variable changes and manual JSON edits require a restart. Keep the writable application data directory separate from the media directory. Serve only the frontend build as static content.
 

@@ -40,8 +40,25 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 	const resourceRoot = form.get("resourceRoot");
 	if (typeof resourceRoot !== "string" || resourceRoot.trim() === "")
 		return { error: "errors.resourcePathRequired" };
+	const interval = form.get("scanIntervalMinutes");
+	const scanIntervalMinutes = interval === null ? undefined : Number(interval);
+	if (
+		interval !== null &&
+		(typeof interval !== "string" ||
+			interval.trim() === "" ||
+			!Number.isSafeInteger(scanIntervalMinutes) ||
+			Number(scanIntervalMinutes) < 0 ||
+			Number(scanIntervalMinutes) > 10080)
+	)
+		return { error: "settingsPage.invalidInterval" };
 	try {
-		await saveSettings({ resourceRoot }, { signal: request.signal });
+		await saveSettings(
+			{
+				resourceRoot,
+				...(scanIntervalMinutes === undefined ? {} : { scanIntervalMinutes }),
+			},
+			{ signal: request.signal },
+		);
 		return redirect("/");
 	} catch (error) {
 		if (request.signal.aborted || isRequestCancelled(error)) throw error;

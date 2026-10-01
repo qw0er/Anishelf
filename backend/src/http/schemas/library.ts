@@ -94,11 +94,21 @@ export const ScanResponseSchema = Type.Object(
 	{ additionalProperties: false },
 );
 export const SettingsResponseSchema = Type.Object(
-	{ resourceRoot: Type.Union([Type.String(), Type.Null()]) },
+	{
+		resourceRoot: Type.Union([Type.String(), Type.Null()]),
+		scanIntervalMinutes: Type.Optional(
+			Type.Integer({ minimum: 0, maximum: 10080 }),
+		),
+	},
 	{ additionalProperties: false },
 );
 export const UpdateSettingsRequestSchema = Type.Object(
-	{ resourceRoot: Type.String({ minLength: 1 }) },
+	{
+		resourceRoot: Type.String({ minLength: 1 }),
+		scanIntervalMinutes: Type.Optional(
+			Type.Integer({ minimum: 0, maximum: 10080 }),
+		),
+	},
 	{ additionalProperties: false },
 );
 export const DirectoryResponseSchema = Type.Object(
