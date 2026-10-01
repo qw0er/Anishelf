@@ -1,8 +1,8 @@
 # Anishelf Current Version Requirements
 
 **V1 is implemented; V2 is in progress.** V1 manual browser acceptance is user-reported.
-The direct-playback ArtPlayer adapter is implemented and checked with a temporary
-H.264/AAC sample. Progress, subtitles, preparation, and the remaining V2 workflows
+The direct-playback Vidstack adapter is implemented and checked with a temporary
+H.264 sample. Saved progress is integrated; subtitles, preparation, and the remaining V2 workflows
 are planned; this player replacement does not complete V2 acceptance.
 
 Startup options use defaults and environment variables. `ANISHELF_DATA_DIR` overrides the platform-specific user data directory selected by `platformdirs`. The [current design](current-version-design.md) specifies the V2 architecture.
@@ -33,7 +33,7 @@ Extend the existing file browser into an everyday Web viewing workflow:
 | V06 | Failure feedback | Distinguish missing/unreadable resources and unsupported media or playback failures | V1 | V1 |
 | W01 | Saved progress and resume | Persist position, duration, and last viewing time on the server; restore position when reopening a file | — | V2 |
 | W02 | Continue watching | Show available files with saved unfinished progress and open them for resume | — | V2 |
-| P03 | External subtitles | ArtPlayer VTT/SRT/ASS/SSA discovery, selection and off | — | V2 |
+| P03 | External subtitles | Vidstack VTT/SRT/ASS/SSA discovery, selection and off | — | V2 |
 | P08 | Embedded subtitle extraction | FFmpeg extraction from MKV/other containers; text tracks, fonts and supported bitmap assets; other formats unassigned | — | V2 (partial) |
 | P09 | Styled subtitles and fonts | ASS/SSA rendering and extracted fonts; bitmap Web rendering remains unassigned | — | V2 (partial) |
 | P05 | Playback strategy | Use original compatible media; choose the required preparation path for the target browser | — | V2 |
@@ -59,7 +59,7 @@ Extend the existing file browser into an everyday Web viewing workflow:
 
 ### Subtitles and Embedded Extraction (P03, Partial P08–P09)
 
-- Support external WebVTT, SRT, ASS and SSA with ArtPlayer and its styled-subtitle renderer. Preserve ASS/SSA styling, positioning and fonts within the validated renderer capability; do not silently strip styling by converting every track to plain WebVTT.
+- Support external WebVTT, SRT, ASS and SSA with Vidstack and a dedicated ASS/SSA renderer. Preserve ASS/SSA styling, positioning and fonts within the validated renderer capability; do not silently strip styling by converting every track to plain WebVTT.
 - Discover same-directory matching filenames and language suffixes. Show multiple/ambiguous candidates for selection. Provide track selection and off controls; show language, title, format and unsupported status where available.
 - Use FFprobe to enumerate subtitles packaged inside video containers, including MKV, and FFmpeg to extract a selected supported track to an independent cached subtitle asset. Extract embedded WebVTT, SubRip/SRT, ASS/SSA and associated supported font attachments. No audio/video transcode is required solely for extraction.
 - Identify and extract supported embedded PGS/VobSub bitmap tracks in their native representation; clearly state that their Web rendering, OCR and burn-in remain unassigned. Other extraction codecs remain unsupported with feedback; P08 remains partial.
@@ -114,7 +114,7 @@ Replace the basic V1 validation pages with a finished interface for everyday use
 | --- | --- |
 | Application shell | Consistent navigation between Library, preparation tasks, and Settings; clear current location, page titles, and back navigation |
 | Library | Clear directory/file presentation, breadcrumbs, parent navigation, readable original filenames including long/Chinese names, scan action/status, and a prominent continue-watching section with progress and resume actions |
-| Web player | Video as the main focus; ArtPlayer play/pause/seek/volume/fullscreen controls; subtitle selection/off, saved progress/resume, direct/prepared/real-time status and processing reason, and return to the original directory |
+| Web player | Video as the main focus; Vidstack play/pause/seek/volume/fullscreen controls; subtitle selection/off, saved progress/resume, direct/prepared/real-time status and processing reason, and return to the original directory |
 | Preparation tasks | Reachable pre-transcode queued/processing/ready/failed/cancelled and real-time starting/streaming/stopped states, affected filename, available progress feedback, failure reason/retry/cancel, real-time stop, and prepared-copy deletion; ready copies link to Web playback |
 | Settings | Clearly grouped resource-directory configuration, Web playback mode, cache budget, and supported playback/configuration options; expose only settings supported by V2 |
 | External-player link | Secondary **Copy media link** action with a selectable URL fallback, distinct from the primary Web playback action |

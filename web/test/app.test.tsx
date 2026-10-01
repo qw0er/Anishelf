@@ -8,7 +8,6 @@ import {
 	waitFor,
 	within,
 } from "@testing-library/react";
-import Artplayer from "artplayer";
 import { StrictMode } from "react";
 import { createMemoryRouter, useLocation, useNavigate } from "react-router";
 import { RouterProvider } from "react-router/dom";
@@ -202,7 +201,7 @@ beforeEach(() => {
 	});
 	vi.stubGlobal("fetch", fetcher);
 	// Real browsers dispatch media events asynchronously. Happy DOM's src setter
-	// dispatches canplay during ArtPlayer construction, before its UI is mounted.
+	// dispatches canplay synchronously before the provider finishes loading.
 	vi.spyOn(HTMLMediaElement.prototype, "src", "set").mockImplementation(
 		function (this: HTMLMediaElement, value) {
 			this.setAttribute("src", value);
@@ -216,7 +215,6 @@ afterEach(async () => {
 	cleanup();
 	vi.useRealTimers();
 	await new Promise((resolve) => setTimeout(resolve, 0));
-	expect(Artplayer.instances).toHaveLength(0);
 	for (const router of routers) router.dispose();
 	routers.length = 0;
 	vi.useRealTimers();
@@ -386,7 +384,7 @@ test("a failed settings save retains the input and supports a retry", async () =
 test("navigates directories, opens media, and returns to the original directory with media unloaded", async () => {
 	renderApp("/", true);
 	await openFile();
-	// StrictMode destroys the first instance and creates a new video element.
+	// Wait until the provider loads its source, including StrictMode effect replay.
 	await waitFor(() =>
 		expect(
 			screen.getByLabelText("Video: Episode 01.mp4").getAttribute("src"),
@@ -395,8 +393,8 @@ test("navigates directories, opens media, and returns to the original directory 
 	const video = screen.getByLabelText("Video: Episode 01.mp4");
 	expect(video.getAttribute("src")).toBe(file.playbackUrl);
 	expect(video.hasAttribute("controls")).toBe(false);
-	expect(video.closest(".art-video-player")).toBeTruthy();
-	expect(screen.getByRole("button", { name: "Fullscreen" })).toBeTruthy();
+	expect(video.closest(".anishelf-player")).toBeTruthy();
+	expect(screen.getByRole("button", { name: "Play" })).toBeTruthy();
 	expect(video.getAttribute("preload")).toBe("metadata");
 	expect(
 		fetcher.mock.calls.some(([path]) => String(path).startsWith("/api/media/")),
@@ -652,6 +650,9 @@ test("media errors recheck access and distinguish a deleted file from generic pl
 	renderApp();
 	await openFile();
 	const video = await screen.findByLabelText("Video: Episode 01.mp4");
+	Object.defineProperty(video, "error", {
+		value: { code: 3, message: "Decode failed" },
+	});
 	fireEvent.error(video);
 	await screen.findByText("This media could not be played in this browser.");
 	await waitFor(() =>

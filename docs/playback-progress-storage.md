@@ -83,7 +83,7 @@ Implement in this order:
 
 1. Database startup, reviewed migrations, and resource/source identity access.
 2. Progress repository transactions and session lifecycle.
-3. History/session/save APIs and ArtPlayer resume/save integration.
+3. History/session/save APIs and Vidstack resume/save integration.
 4. Continue watching queries and library UI.
 
 Verify restart/rescan survival; root and source-version isolation; unknown duration; backward seeks; duplicate/delayed writes; failed reads without zero overwrite; durable save failures; and filtering/ordering around the near-end boundary. Code changes must pass Biome check and lint, with repository and API tests for these persistence rules.

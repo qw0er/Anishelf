@@ -20,7 +20,7 @@ export interface PlaybackSessionState {
 type Position = Pick<SavePlaybackProgressRequest, "positionMs" | "durationMs">;
 const requestTimeoutMs = 5000;
 
-/** Owns one file's progress lifecycle; React and ArtPlayer are adapters. */
+/** Owns one file's progress lifecycle; React and the media player are adapters. */
 export class PlaybackSessionController {
 	private state: PlaybackSessionState = {
 		session: null,

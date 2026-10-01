@@ -1,7 +1,7 @@
 # Anishelf — Current Design
 
-**V1 is implemented; V2 is in progress.** The direct-playback ArtPlayer adapter
-is implemented; progress, subtitles, preparation, and the remaining V2 workflows
+**V1 is implemented; V2 is in progress.** The direct-playback Vidstack adapter
+and saved progress are implemented; subtitles, preparation, and the remaining V2 workflows
 are planned. The [current requirements](current-version-requirements.md) define scope and acceptance.
 
 The shared [design system](design-system.md) records page compositions and screen
@@ -27,9 +27,9 @@ The client calls the HTTP transport, which delegates to application modules. App
 | External-player link generator | V2 | Resolve accessible original media and expose a client-reachable URL for copying; no application invocation |
 | Locale resources | V2 foundation | English catalog and fallback; stable keys and future locale selection boundary |
 | App shell, library browser, scan feedback and API client | V1; V2 extension | Routing, directory context, polling, errors and accessible settings/tasks/history screens |
-| ArtPlayer adapter | V2 | Player lifecycle, media events, subtitle selection and resume |
+| Vidstack adapter | V2 | Player lifecycle, media events, subtitle selection and resume |
 
-Retain a modular Node.js/TypeScript backend with Fastify, Pino, and asynchronous filesystem access. Retain React, Vite, React Router Data Mode, Tailwind CSS, shadcn/ui, Vitest, and Biome. V2 adds ArtPlayer, FFprobe/FFmpeg child processes, SQLite with Drizzle ORM, hls.js for real-time HLS, JASSUB for styled subtitles, and generation of transferable external-player media links. Browser invocation of a player is deferred. TanStack Query remains unassigned.
+Retain a modular Node.js/TypeScript backend with Fastify, Pino, and asynchronous filesystem access. Retain React, Vite, React Router Data Mode, Tailwind CSS, shadcn/ui, Vitest, and Biome. V2 adds Vidstack, FFprobe/FFmpeg child processes, SQLite with Drizzle ORM, hls.js for real-time HLS, JASSUB for styled subtitles, and generation of transferable external-player media links. Browser invocation of a player is deferred. TanStack Query remains unassigned.
 
 HTTP calls application use cases. Application modules do not depend on Fastify or React; storage, inspection, and processing adapters do not own HTTP contracts. Keep existing import boundaries. The entry point assembles dependencies; avoid putting the new workflow inside route handlers or the scanner.
 
@@ -114,24 +114,21 @@ Keep original media read-only and IDs opaque. Recheck canonical containment, pat
 
 Retain bounded streaming, `HEAD`, single bounded/open/suffix byte ranges, `206`, and unsatisfiable `416`. Malformed/multipart ranges and unverifiable `If-Range` fall back to full `200`; HEAD ignores Range. Close handles on completion, errors, and disconnect. Never buffer the whole media file into a browser Blob. Prepared-media delivery uses the same transport behavior, resolved through a separate private asset registry.
 
-## 4. ArtPlayer Web Playback (V2; V04–V06, O16)
+## 4. Vidstack Web Playback (V2; V04–V06, O16)
 
-The current adapter replaces native controls with bundled ArtPlayer 5.4.0 for
-original-media HTTP Range playback. It implements instance cleanup, English
-controls, metadata preload, keyboard access, fullscreen, and source-access error
-rechecks. The broader workflow below remains the V2 target.
+The current adapter uses bundled `@vidstack/react` 1.15.6 for original-media HTTP Range playback. `MediaPlayer`, `MediaProvider`, and the default video layout provide player state, accessible controls, keyboard interaction, and fullscreen. The application owns source-access checks and server progress persistence. Provider setup attaches the native video to the progress controller; unmount detaches before provider cleanup. Local player storage is disabled so it cannot compete with server resume. The broader workflow below remains the V2 target.
 
-Replace the native controls with an ArtPlayer instance owned by a React adapter. ArtPlayer controls the underlying browser video element; it does not provide missing codecs or replace server preparation. Use a bundled npm dependency pinned during implementation, not a runtime CDN dependency. Its [options](https://artplayer.org/document/en/start/option), [events](https://artplayer.org/document/en/advanced/event), and [instance lifecycle](https://artplayer.org/document/en/advanced/property) document the integration surface.
+Use the [React components](https://vidstack.io/docs/player/getting-started/installation/react/) from the pinned npm dependency, with bundled styles and no runtime CDN. The provider controls the browser video element; it does not add codecs or replace server preparation.
 
 1. A file or resume action opens `/files/:id?directory=<id>`. Load the source reference, playback plan, history, and subtitle choices, keeping individual nonfatal failures separate.
 2. Mount one player per selected source. Provide the original, ready-copy, or real-time HLS URL, English controls, metadata preload, play/pause, seeking, volume, and fullscreen. Playback starts from user input; do not require audible autoplay.
-3. Load history before enabling automatic progress writes. Restore a finite saved position after media metadata arrives, clamped to actual duration; then enable event-driven saving. If history loading fails, playback remains available with a retry action and saving disabled.
+3. Load history before enabling automatic progress writes. Restore a finite saved position after media metadata arrives, clamped to actual duration; then enable event-driven saving. If history loading fails, playback remains available with Retry file available and saving disabled.
 4. Map underlying media metadata, pause, seek completion, time updates, ended, and error events into application actions. Keep the adapter independent of route revalidation; scan polling must not recreate the player.
 5. On explicit source/copy switch, capture position, pause saving during setup, load the new URL, restore position once ready, and reapply the selected subtitle. Original, copy, and real-time playback use the same history key. HLS uses the source-time mapping in Section 7.
-6. On normal exit, await a bounded final save or show the failure, then destroy the instance and release the media source. Tab termination only permits best-effort flushing. Destroy hls.js/JASSUB workers, release real-time sessions, remove timers/listeners, and abort obsolete subtitle/metadata requests. Verify React StrictMode setup/cleanup and repeat navigation.
+6. On normal exit, capture the final position and save/release in the background without blocking navigation; unmount the player to release its media source. Tab termination only permits best-effort flushing. Destroy hls.js/JASSUB workers, release real-time sessions, remove timers/listeners, and abort obsolete subtitle/metadata requests. Verify React StrictMode setup/cleanup and repeat navigation.
 7. On playback error, recheck accessibility before reporting a missing/unreadable source. If decoding remains uncertain, show a generic playback failure with retry, pre-transcoding, real-time playback, and a Copy media link option. Automatic Web mode may select real-time transcoding for a known incompatibility; a generic error alone must not trigger repeated conversion attempts or launch a native player.
 
-Keep subtitle labels and filenames as text, and subtitle HTML escaping enabled. Do not enable library-provided download, speed, offset, quality menus, extra shortcuts, or unrelated plugin features merely because they exist. Basic keyboard accessibility is required; P10's additional playback tools remain unassigned. Disable any built-in independent resume store so server history is authoritative.
+Keep subtitle labels and filenames as text, and subtitle HTML escaping enabled. Do not enable server-dependent download, offset, quality workflows, extra shortcuts, or unrelated plugin features merely because they exist. Basic keyboard accessibility is required; P10's additional playback tools remain unassigned. Disable any built-in independent resume store so server history is authoritative.
 
 ## 5. Progress, Resume, and Lists (V2; W01–W02)
 
@@ -143,18 +140,18 @@ Continue watching includes available records with positive position that are not
 
 ## 6. Subtitles (V2; P03, Partial P08–P09)
 
-ArtPlayer documents native subtitle inputs for VTT, SRT, and ASS, but format parsing alone is not a guarantee of ASS typography or effects. Use its normal text-subtitle path for VTT/SRT and the documented [JASSUB integration](https://artplayer.org/?example=jassub&libs=./uncompiled/artplayer-plugin-jassub/index.js) for styled ASS/SSA. Package worker/WASM assets with the application; record and validate pinned versions. The supported V2 matrix is explicit:
+Subtitle integration remains planned. Use Vidstack text tracks for supported text formats and a separately integrated JASSUB renderer for styled ASS/SSA. Parsing a format does not guarantee typography or effects. Package worker/WASM assets with the application and validate pinned versions. The supported V2 matrix is explicit:
 
 | Input | Discovery / extraction | Browser rendering |
 | --- | --- | --- |
-| External VTT / SRT | Confined same-directory source; serve supported format without unnecessary conversion | ArtPlayer text subtitles |
+| External VTT / SRT | Confined same-directory source; serve supported format without unnecessary conversion | Vidstack text subtitles |
 | External ASS / SSA | Same-directory source; normalize SSA to ASS only if the renderer requires it | JASSUB preserves supported styling, positioning and fonts |
 | Embedded WebVTT / SubRip / ASS / SSA, including MKV | FFprobe descriptors; FFmpeg extracts selected stream to a standalone asset, retaining timing/styles where available | Same rendering path as an external file |
 | Embedded font attachments | Extract referenced TTF/OTF attachments into private cache with opaque names | Supply only validated font assets to JASSUB; fallback font and warning if unavailable |
 | Embedded PGS / VobSub | Identify and extract a supported native bitmap representation with FFmpeg; retain required paired files | Explicitly unsupported in Web V2; no OCR or silent conversion to text |
 | Other codecs or malformed assets | Show descriptor and unsupported/extraction error | Video remains usable without the subtitle |
 
-P08 remains partial for other extraction formats; P09 delivers ASS/SSA styling/fonts in V2 while bitmap rendering/burn-in remains unassigned. Do not mistake embedded extraction for native ArtPlayer demuxing of MKV or require video transcoding just to expose a subtitle.
+P08 remains partial for other extraction formats; P09 delivers ASS/SSA styling/fonts in V2 while bitmap rendering/burn-in remains unassigned. Do not mistake embedded extraction for native Vidstack demuxing of MKV or require video transcoding just to expose a subtitle.
 
 For video stem `Episode 01`, match `Episode 01.<supported extension>` or dot-suffixed variants such as `Episode 01.zh-Hans.ass`. Compare the entire stem exactly, case-insensitive extension, and a dot boundary before suffixes. Display original filename/language/title; ambiguous matches start off and require selection. Include every discovered embedded track with its format/support status. Select only one renderer/track at a time; switching/off tears down the old overlay and works for original, prepared and real-time playback.
 
@@ -168,7 +165,7 @@ Keep cue time on the original source timeline. When real-time playback restarts 
 
 Probe on demand, with bounded FFprobe work cached by source version. Return container, duration, video/audio descriptors, subtitle choices, target profile and a per-stream action/reason. Select default video/audio streams, falling back to the first usable stream; missing audio is valid. File extensions alone never determine compatibility. Match codec/profile/pixel format/audio/container and target browser capabilities; uncertain combinations are reported as uncertain, not claimed playable.
 
-The first validation target remains Linux desktop Chromium/Chrome. Record OS, browser, FFmpeg/FFprobe, ArtPlayer, hls.js, JASSUB at acceptance. Availability of a binary alone does not certify its encoders/muxers. HDR conversion, hardware encoding and universal browser support remain unassigned.
+The first validation target remains Linux desktop Chromium/Chrome. Record OS, browser, FFmpeg/FFprobe, Vidstack, hls.js, JASSUB at acceptance. Availability of a binary alone does not certify its encoders/muxers. HDR conversion, hardware encoding and universal browser support remain unassigned.
 
 | Compatibility with the chosen delivery format and browser | Audio/video action |
 | --- | --- |
@@ -188,7 +185,7 @@ Persist `queued → processing → ready | failed | cancelled` states in SQLite.
 
 ### Real-time transcoding
 
-Real-time mode processes an existing file **while it is being watched**; it is not a live-source ingestion feature. Use a session-scoped HLS stream with fragmented MP4 segments. ArtPlayer uses [hls.js](https://github.com/video-dev/hls.js) on the selected MSE-capable browser, with native HLS only on separately validated clients. For required encoding use a distinct versioned real-time profile, initially H.264/yuv420p CRF 23 / veryfast and AAC 192 kbit/s; copy streams instead wherever compatible. No ABR ladder is required. The automatic Web strategy chooses direct original, valid prepared copy, then necessary real-time conversion. Users can also explicitly choose real-time playback or pre-transcoding; a generic media error does not cause an infinite fallback loop.
+Real-time mode processes an existing file **while it is being watched**; it is not a live-source ingestion feature. Use a session-scoped HLS stream with fragmented MP4 segments. Vidstack uses [hls.js](https://github.com/video-dev/hls.js) on the selected MSE-capable browser, with native HLS only on separately validated clients. For required encoding use a distinct versioned real-time profile, initially H.264/yuv420p CRF 23 / veryfast and AAC 192 kbit/s; copy streams instead wherever compatible. No ABR ladder is required. The automatic Web strategy chooses direct original, valid prepared copy, then necessary real-time conversion. Users can also explicitly choose real-time playback or pre-transcoding; a generic media error does not cause an infinite fallback loop.
 
 1. Resolve the source/version and requested source-time position; allocate an opaque transcode session and generation. Return `starting`, not a playable URL until initialization and at least one complete segment exist.
 2. FFmpeg emits an event playlist and approximately four-second segments. Write temporary segments and publish only complete ones; publish playlists atomically. Copied video cuts at existing keyframes, so segment durations may be longer. Assert independent segments only when actually guaranteed. See the [FFmpeg HLS muxer documentation](https://ffmpeg.org/ffmpeg-formats.html#hls-2).
@@ -257,14 +254,14 @@ Keep existing directory/file URLs. Add `/tasks` and `/settings`; the shared shel
 
 Use a restrained neutral palette with one accent for primary actions, semantic status colors accompanied by text/icons, the implemented [typography and layout rules](design-system.md), and clear page/section hierarchy. Reuse Tailwind theme tokens and shadcn controls. Desktop uses a compact sidebar and broad content area; narrow screens use compact navigation and stacked controls. Long filenames wrap or truncate with an accessible full-name action; controls retain readable labels and visible keyboard focus. Announce status changes without repeatedly interrupting playback.
 
-The primary file action is **Watch** or **Resume**. **Copy media link** is secondary and optional. Pre-transcoding is explicit; automatic Web mode may start only necessary real-time processing. Show Direct / Prepared / Real-time and the processing reason; subtitle/progress controls reflect actual API state. At 1280 px and 390 px widths, verify readable names, no page-wide overflow, focus order, control contrast, fullscreen exit, subtitle placement, and all loading/empty/error states. ArtPlayer accessibility must be tested and supplemented by the adapter where needed. No invented artwork, placeholder data, or controls for unassigned features.
+The primary file action is **Watch** or **Resume**. **Copy media link** is secondary and optional. Pre-transcoding is explicit; automatic Web mode may start only necessary real-time processing. Show Direct / Prepared / Real-time and the processing reason; subtitle/progress controls reflect actual API state. At 1280 px and 390 px widths, verify readable names, no page-wide overflow, focus order, control contrast, fullscreen exit, subtitle placement, and all loading/empty/error states. Vidstack accessibility must be tested and supplemented by the adapter where needed. No invented artwork, placeholder data, or controls for unassigned features.
 
 ## 11. Delivery Order, Acceptance, and Deferred Scope
 
 | Stage | Target | Coverage and completion evidence |
 | --- | --- | --- |
 | 1. Source identity, settings and SQLite | V2 | Optional PATH tool discovery, Drizzle migrations, transaction failure, root/content isolation; A08–A10, A14–A15, A25–A28 |
-| 2. ArtPlayer and viewing workflow | V2 | Native-player replacement plus progress/lists; A01–A10 regressions and A19 |
+| 2. Vidstack and viewing workflow | V2 | Native-player replacement plus progress/lists; A01–A10 regressions and A19 |
 | 3. Subtitle service and renderer | V2, partial P08–P09 | External formats, MKV extraction/fonts, styled rendering and bitmap boundaries; A11–A12, A24 |
 | 4. Pre-transcoding and real-time HLS | V2 | Stream preservation, seeking/source-time mapping, interruption and recovery; A13–A15, A22–A23 |
 | 5. External-player media link | V2 | Correct origin-aware URL, clipboard/selectable fallback and access checks; A16–A18 |

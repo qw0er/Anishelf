@@ -10,7 +10,7 @@ Its core value is better Web playback, shared client state, and coordination bet
 
 This document is the complete product requirements inventory, including delivered features, the active iteration, and unassigned future capabilities. [Current Version Requirements](current-version-requirements.md) is the living release plan and acceptance checklist, currently for V2. Requirements remain in this inventory when selected for a release; update both documents rather than moving or deleting them.
 
-**Latest completed version: V1. Active version: V2, in progress.** V1 completion and manual browser acceptance are user-reported. The direct-playback ArtPlayer adapter is implemented; progress, subtitles, preparation, and the remaining V2 workflows are planned. Replacing the player controls does not complete V2 acceptance.
+**Latest completed version: V1. Active version: V2, in progress.** V1 completion and manual browser acceptance are user-reported. The direct-playback Vidstack adapter and saved progress are implemented; subtitles, preparation, and the remaining V2 workflows are planned. Replacing the player controls does not complete V2 acceptance.
 
 ## 2. Feature Inventory and Version Tracking
 
@@ -73,7 +73,7 @@ This is a user-facing file download, separate from acquiring new releases throug
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| P03 | Select or disable external VTT/SRT/ASS/SSA subtitles through ArtPlayer | Later | — | V2 |
+| P03 | Select or disable external VTT/SRT/ASS/SSA subtitles through Vidstack | Later | — | V2 |
 | P05 | Choose a playback strategy based on media and client capabilities | Later | — | V2 |
 | P06 | Remux media when only the container is incompatible | Later | — | V2 |
 | P07 | FFmpeg pre-transcoding and real-time transcoding with seeking; copy compatible streams and encode only necessary streams | Later | — | V2 |
@@ -107,7 +107,7 @@ V2 implements both **Prepare for Web → wait for a reusable completed copy → 
 
 #### Subtitles and Embedded Extraction (P03, Partial P08–P09)
 
-- Support external WebVTT, SRT, ASS and SSA with ArtPlayer and its styled-subtitle renderer. Preserve ASS/SSA styling, positioning and fonts within the validated renderer capability; do not silently strip styling by converting every track to plain WebVTT.
+- Support external WebVTT, SRT, ASS and SSA with Vidstack and a dedicated ASS/SSA renderer. Preserve ASS/SSA styling, positioning and fonts within the validated renderer capability; do not silently strip styling by converting every track to plain WebVTT.
 - Discover same-directory matching filenames and language suffixes. Show multiple/ambiguous candidates for selection. Provide track selection and off controls; show language, title, format and unsupported status where available.
 - Use FFprobe to enumerate subtitles packaged inside video containers, including MKV, and FFmpeg to extract a selected supported track to an independent cached subtitle asset. Extract embedded WebVTT, SubRip/SRT, ASS/SSA and associated supported font attachments. No audio/video transcode is required solely for extraction.
 - Identify and extract supported embedded PGS/VobSub bitmap tracks in their native representation; clearly state that their Web rendering, OCR and burn-in remain unassigned. Other extraction codecs remain unsupported with feedback; P08 remains partial.

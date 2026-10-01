@@ -516,30 +516,29 @@ fallback belong to Caddy or another Web server. Unknown API paths retain JSON
 errors; missing assets return HTTP errors.
 
 `components/file-player.tsx` receives file loader metadata and playback URL and
-passes the URL to `components/art-player.tsx`, a React adapter for the bundled,
-exact-version ArtPlayer npm dependency. The underlying video uses the original
-same-origin HTTP Range URL and metadata preload; media is not fetched into a Blob.
-The user starts playback with ArtPlayer controls. The adapter enables native
-fullscreen and adds keyboard focus/activation for play and fullscreen. When the
-video is focused, Space toggles playback, Left/Right seek by five seconds, and
-Up/Down adjust volume. Independent resume storage, automatic media reconnects,
-and the ArtPlayer context menu are disabled. Errors trigger an access
-recheck to distinguish unavailable files from generic browser playback failures.
-Back returns to the selected directory and pauses/unloads the video; Retry file
-reloads metadata and the media element. Scanning does not reset an open player.
-The router cancels obsolete metadata/list requests. Pending navigation shows a
-loading message and a cancellation link while retaining the current view.
-Route error elements provide error messages, retries, and return links. Polling
-timers are cleaned up when scanning stops or the layout unmounts. Playback cleanup
-creates a fresh instance and destroys the previous instance when React
-StrictMode replays effects during development. Leaving the player aborts pending
-access rechecks, pauses playback, and destroys the instance to release its source,
-event listeners, and player DOM. Subtitle rendering and transcoding remain planned V2 capabilities.
+passes the URL to `components/video-player.tsx`. The adapter uses the pinned
+`@vidstack/react` 1.15.6 dependency with bundled default layout styles.
+`MediaPlayer` and `MediaProvider` own media state and provider lifecycle; the
+default video layout provides accessible controls and keyboard interaction.
+Native video receives the original same-origin HTTP Range URL and metadata
+preload; media is not fetched into a Blob. A direct-video loader routes the
+extensionless `/api/media/:id` URL to the native provider without an extra MIME
+probe. Unsupported formats retain the browser playback error path.
+
+Playback starts from user input. Local resume storage is disabled, and server
+progress remains the only resume record. Provider setup passes its video element
+to the progress controller; provider changes detach it. Layout-effect cleanup
+captures progress before provider teardown. Errors recheck file accessibility to
+distinguish unavailable files from generic playback failures. Back returns to the
+selected directory and unloads video; Retry file reloads metadata and remounts the
+player. Scan polling does not reset an open player. Router cancellation, loading,
+and route error handling retain their existing behavior. Subtitle integration
+and transcoding remain planned V2 capabilities.
 
 `hooks/use-playback-session.ts` adapts the player and router to
 `playback/session.ts`. Opening a file creates a server session and reads saved
 progress. The controller waits for video metadata, restores the saved source-time
-position, and enables writes only after restoration succeeds. ArtPlayer does not
+position, and enables writes only after restoration succeeds. Vidstack does not
 maintain a separate local resume record. Playback remains usable when session
 creation fails, with progress saving disabled until an explicit retry.
 
@@ -567,7 +566,7 @@ visible text labels and decorative icons are hidden from assistive technology.
 The interface uses Tailwind defaults and existing shared controls. The
 [design system](design-system.md) records recurring page compositions, responsive
 content handling, and feedback conventions. Loading and error screens share the
-page layout; ArtPlayer retains its own control styling. Interaction tests cover scan publication,
+page layout; Vidstack retains its own control styling. Interaction tests cover scan publication,
 navigation, direct route entry, history back/forward, playback setup/cleanup,
 retries, access errors, and stale request cancellation. These DOM tests do not
 validate actual media decoding.

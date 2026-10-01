@@ -5,7 +5,7 @@
 		"module": "esnext",
 		"moduleResolution": "bundler",
 		"lib": ["ESNext", "DOM"],
-		"types": ["node"],
+		"types": ["node", "vite/client"],
 		"strict": true,
 		"noUncheckedIndexedAccess": true,
 		"exactOptionalPropertyTypes": true,

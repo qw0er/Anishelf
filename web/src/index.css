@@ -111,13 +111,7 @@
 	}
 }
 
-.anishelf-player .art-controls:focus-within,
-.anishelf-player:has(.art-video:focus-visible) .art-controls {
-	opacity: 1;
-	visibility: visible;
-}
-
-.anishelf-player :focus-visible {
-	outline: 2px solid white;
-	outline-offset: -2px;
+.anishelf-player:focus-visible {
+	outline: 2px solid var(--ring);
+	outline-offset: 2px;
 }

@@ -1,7 +1,7 @@
 # Anishelf Design System
 
 Use Tailwind's default typography, spacing, width scale, and breakpoints, together
-with the existing shadcn-style shared controls and light/dark theme. ArtPlayer
+with the existing shadcn-style shared controls and light/dark theme. Vidstack
 owns its control appearance. Choose additional styling when a concrete screen
 requirement needs it.
 
@@ -39,7 +39,7 @@ labels and hide decorative icons from assistive technology.
 
 - Loading: retain the current layout, delay spinners and skeletons to avoid brief
   flashes, and expose busy state. Skeletons follow the base control and heading
-  dimensions. Keep ArtPlayer's own loading and control appearance.
+  dimensions. Keep Vidstack's own loading and control appearance.
 - Setup and empty states: explain the missing resource directory or empty listing
   in context; setup links to Settings.
 - Scanning and refreshing: display the actual status and available counts. Keep
@@ -62,6 +62,6 @@ Check existing screens at narrow and desktop widths (for example, 390 px and
 loading states, warnings, and errors. Confirm readable content, no page-wide
 horizontal overflow, visible keyboard focus, and reachable actions. DOM tests
 cover interactions; browser inspection is required to validate geometry and
-ArtPlayer's controls.
+Vidstack's controls.
 
 Extend these conventions as new workflows are implemented.

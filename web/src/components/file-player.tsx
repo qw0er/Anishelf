@@ -4,8 +4,8 @@ import { Link } from "react-router";
 import type { FileResponse } from "../api/contracts.js";
 import { usePlaybackSession } from "../hooks/use-playback-session.js";
 import { directoryPath } from "../routes/paths.js";
-import ArtPlayer from "./art-player.js";
 import { Button, buttonStyles } from "./ui/button.js";
+import VideoPlayer from "./video-player.js";
 
 export default function FilePlayer({
 	data,
@@ -34,7 +34,7 @@ export default function FilePlayer({
 				</Button>
 			</div>
 			<h1 className="page-title">{data.file.name}</h1>
-			<ArtPlayer
+			<VideoPlayer
 				{...data}
 				playbackUrl={playback.session?.plan.playbackUrl ?? data.playbackUrl}
 				onMedia={playback.attach}
