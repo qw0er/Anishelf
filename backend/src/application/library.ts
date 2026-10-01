@@ -66,6 +66,7 @@ function resourceDto(entry: LibraryEntry): ResourceDto {
 
 /** Owns library use cases, operation exclusion, scan state and snapshot publication. */
 export class LibraryApplication {
+	private rootEpoch = 0;
 	private latest: ScanState | null = null;
 	private pendingStart: Promise<ScanState> | undefined;
 	private active: Promise<void> | undefined;
@@ -130,6 +131,45 @@ export class LibraryApplication {
 			sizeBytes: current.sizeBytes,
 			modifiedAt: current.modifiedAt,
 			mimeType: current.mimeType,
+		};
+	}
+
+	get resourceRootEpoch(): number {
+		return this.rootEpoch;
+	}
+	get hasSnapshot(): boolean {
+		return this.options.index.scannedAt !== null;
+	}
+
+	async resolvePlaybackRoot(): Promise<string> {
+		const epoch = this.rootEpoch;
+		const resources = await ResourceAccess.create(this.getSettings());
+		if (epoch !== this.rootEpoch)
+			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
+		return resources.canonicalRoot;
+	}
+
+	async resolvePlaybackSource(id: string) {
+		const epoch = this.rootEpoch;
+		const entry = this.options.index.getFile(id);
+		const resources = await ResourceAccess.create(this.getSettings());
+		const metadata = await resources.inspectSource(entry.relativePath);
+		if (epoch !== this.rootEpoch)
+			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
+		return {
+			identity: {
+				canonicalRoot: resources.canonicalRoot,
+				fileId: entry.id,
+				relativePath: entry.relativePath,
+				sourceVersion: metadata.sourceVersion,
+			},
+			file: {
+				...resourceDto(entry),
+				sizeBytes: metadata.sizeBytes,
+				modifiedAt: metadata.modifiedAt,
+				mimeType: metadata.mimeType,
+			} as FileDto,
+			rootEpoch: epoch,
 		};
 	}
 
@@ -205,6 +245,7 @@ export class LibraryApplication {
 			.then(async () => {
 				const settings = await this.options.configuration.update(next);
 				if (settings.resourceRoot !== previousRoot) {
+					this.rootEpoch += 1;
 					this.options.index.reset();
 					this.latest = null;
 				}

@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LibraryApplication } from "./application/library.js";
+import { PlaybackApplication } from "./application/playback.js";
 import { loadDeploymentConfig } from "./config/deployment.js";
 import { PersistentConfiguration } from "./config/persistent.js";
 import { ApplicationDatabase } from "./database/index.js";
@@ -34,6 +35,11 @@ try {
 		index: new LibraryIndex(),
 		logger: logging.logger,
 	});
+	const playback = new PlaybackApplication({
+		library,
+		logger: logging.logger,
+		...(database ? { repository: database.playback } : {}),
+	});
 	const libraryError = (await library.getStatus()).error;
 	if (libraryError) {
 		const setupRequired = libraryError.code === "RESOURCE_ROOT_NOT_CONFIGURED";
@@ -63,6 +69,7 @@ try {
 	});
 	app = server;
 	server.addHook("onClose", async () => {
+		playback.close();
 		database?.close();
 	});
 	await server.listen({ host: config.host, port: config.port });

@@ -1,6 +1,6 @@
 # Playback Progress Storage (W01, W02)
 
-Status: the database foundation is implemented (schema, migrations, connection lifecycle, and repository). Session authorization, source fingerprint collection, APIs, and player/list integration remain planned.
+Status: the database foundation is implemented (schema, migrations, connection lifecycle, and repository). Playback application session authorization, source fingerprint collection, and available-source candidate filtering are implemented. APIs and player/list UI integration remain planned.
 
 This plan specializes the V2 persistence design in `current-version-design.md` for saved progress, resume, and Continue watching. Use SQLite at `dataDir/anishelf.sqlite`, Drizzle repositories, and reviewed versioned SQL migrations. User settings remain in `settings.json`; the library index remains rebuildable in memory.
 

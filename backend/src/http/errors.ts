@@ -2,6 +2,18 @@ import type { ApiErrorResponse } from "../contracts/api.js";
 import { DomainError, type ErrorCode } from "../errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	PLAYBACK_CONFLICT: {
+		status: 409,
+		message: "The playback session or source changed. Reopen playback.",
+	},
+	PLAYBACK_UNAVAILABLE: {
+		status: 503,
+		message: "Playback persistence is unavailable.",
+	},
+	PLAYBACK_PERSISTENCE_FAILED: {
+		status: 500,
+		message: "Playback progress could not be loaded or saved. Retry.",
+	},
 	CONFIG_INVALID: {
 		status: 400,
 		message:

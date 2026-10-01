@@ -25,6 +25,10 @@ export type SaveResult =
 function key(...parts: string[]): string {
 	return createHash("sha256").update(JSON.stringify(parts)).digest("base64url");
 }
+export function resourceRootId(canonicalRoot: string): string {
+	return key("root", canonicalRoot);
+}
+
 function integer(value: number, minimum: number): void {
 	if (!Number.isSafeInteger(value) || value < minimum)
 		throw new RangeError(
@@ -52,7 +56,7 @@ export class PlaybackRepository {
 				"A canonical root and confined source identity are required.",
 			);
 		}
-		const rootId = key("root", identity.canonicalRoot);
+		const rootId = resourceRootId(identity.canonicalRoot);
 		const id = key("source", rootId, identity.fileId, identity.sourceVersion);
 		return this.store.transaction(
 			(tx) => {

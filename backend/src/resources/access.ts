@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { constants, type Dirent, type Stats } from "node:fs";
 import {
 	access,
@@ -128,6 +129,10 @@ export async function checkResourceRoot(
 export class ResourceAccess {
 	private constructor(private readonly root: string) {}
 
+	get canonicalRoot(): string {
+		return this.root;
+	}
+
 	static async create(
 		settings: Readonly<PersistentSettings>,
 	): Promise<ResourceAccess> {
@@ -153,6 +158,35 @@ export class ResourceAccess {
 				sizeBytes: file.sizeBytes,
 				modifiedAt: file.modifiedAt,
 				mimeType: file.mimeType,
+			};
+		} finally {
+			await file.release();
+		}
+	}
+
+	async inspectSource(
+		relativePath: string,
+	): Promise<ResourceFileMetadata & { sourceVersion: string }> {
+		const file = await this.openFile(relativePath);
+		try {
+			const info = await file.handle.stat({ bigint: true });
+			const sourceVersion = createHash("sha256")
+				.update(
+					JSON.stringify([
+						"stat-v1",
+						info.size.toString(),
+						info.mtimeNs.toString(),
+						info.ctimeNs.toString(),
+						info.dev.toString(),
+						info.ino.toString(),
+					]),
+				)
+				.digest("base64url");
+			return {
+				sizeBytes: file.sizeBytes,
+				modifiedAt: file.modifiedAt,
+				mimeType: file.mimeType,
+				sourceVersion,
 			};
 		} finally {
 			await file.release();

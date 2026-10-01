@@ -586,16 +586,15 @@ saves, start-over, and ordered Continue watching candidates. Callers must supply
 canonical root and a source version derived from safely opened file metadata.
 Registration does not perform filesystem access. Candidate queries do not assert
 availability; the application must validate the active scan and source version
-before producing playback links. Session tokens, reset request-ID retries,
-filesystem identity collection, API endpoints, and player integration are not yet
-implemented.
+before producing playback links. Playback application sessions and filesystem identity collection are implemented
+as described below. HTTP endpoints and player integration remain planned.
 
 The connection enables foreign keys, a five-second busy timeout, WAL, and FULL
 synchronous mode. Generation opening and save decisions use short immediate
 transactions. Accepted saves increment revision; duplicate retries leave viewing
 time unchanged. Start-over conditionally replaces the current generation in one
-statement. Server restart loses application session tokens once that layer is
-introduced; callers must open a new generation before resuming writes.
+statement. Server restart loses application session tokens; callers must open a new
+generation before resuming writes.
 
 Normal HTTP shutdown closes the connection. Database initialization failure logs
 `database.unavailable`, preserves existing files, and leaves independent library
@@ -606,3 +605,42 @@ For a simple backup, stop the server cleanly and copy the complete data director
 before migration or recovery. Do not copy only `anishelf.sqlite` while the server
 is running: committed data can reside in its WAL. Future online backup tooling
 must use SQLite's backup API. Never remove source/progress rows as cache cleanup.
+
+
+## Playback Application
+
+`backend/src/application/playback.ts` coordinates `LibraryApplication` and
+`PlaybackRepository`. The startup entry point constructs it with the database
+repository when available and closes it before closing the database. HTTP routes
+and the Web player are not connected to these use cases yet.
+
+- `open(fileId)` safely resolves the current source, registers its identity,
+  successfully reads history, opens a new generation, and returns a random session
+  token, saved progress, file DTO, source version, and original-media direct plan.
+  It supersedes any earlier application session for the same source.
+- `save(input)` validates integer millisecond values, checks the token and generation,
+  revalidates the current root/file version, and delegates the ordered save to the
+  repository. Stale updates produce `PLAYBACK_CONFLICT`.
+- `startOver(input)` resets progress using the current generation. The most recent
+  successful reset request ID and response are retained per session for retry;
+  retrying it does not reset the database again. Clients must serialize resets.
+- `continueWatching(limit)` filters ordered repository candidates against the
+  current scan and safely inspected source versions. The display limit is applied
+  after filtering, with database candidates read in batches of 100. An unscanned
+  library returns `availability: "unknown"` with no actionable entries.
+- `release(token)` discards a session; `close()` invalidates all sessions.
+
+`ResourceAccess.inspectSource` computes a `stat-v1` fingerprint using decimal
+bigint size, mtime/ctime nanoseconds, device, and inode values from an opened file,
+then releases the handle. Canonical root paths stay internal. This detects ordinary
+replacement and is not a content hash. `LibraryApplication` exposes source/root
+resolution and a root epoch that changes on settings root switches, including a
+switch away and back to the same directory.
+
+Sessions expire after 30 minutes of inactivity; saves and reset retries renew
+activity. Pruning occurs during session operations and at most 1,000 sessions are
+retained. No session survives restart. Repository errors are logged and wrapped
+as `PLAYBACK_PERSISTENCE_FAILED`; an unavailable database produces
+`PLAYBACK_UNAVAILABLE`. Failed history loading never creates a writable session.
+Playback plans currently support original-media direct playback only; subtitle,
+prepared-copy, and real-time selection remain future integration work.
