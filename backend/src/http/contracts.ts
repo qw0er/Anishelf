@@ -1,143 +1,46 @@
-import type { ErrorCode } from "../errors.js";
+import type { Static } from "typebox";
+import type * as schemas from "./schemas/index.js";
 
-// Public JSON shapes only. Backend models and runtime state live in their owners.
-export type ResourceId = string;
-
-export interface ScanWarningSummaryDto {
-	count: number;
-	messages: readonly string[];
-}
-
-interface ScanStateFieldsDto {
-	id: string;
-	startedAt: string;
-	visitedCount: number;
-	matchedCount: number;
-	warnings: ScanWarningSummaryDto;
-}
-
-export interface LibraryIssueDto {
-	code:
-		| "RESOURCE_ROOT_NOT_CONFIGURED"
-		| "RESOURCE_ROOT_UNAVAILABLE"
-		| "SCAN_FAILED";
-	message: string;
-}
-
-export type ScanStateDto =
-	| (ScanStateFieldsDto & { status: "running"; finishedAt: null })
-	| (ScanStateFieldsDto & { status: "completed"; finishedAt: string })
-	| (ScanStateFieldsDto & {
-			status: "failed";
-			finishedAt: string;
-			error: LibraryIssueDto;
-	  })
-	| (ScanStateFieldsDto & { status: "cancelled"; finishedAt: string });
-
-export interface DirectoryDto {
-	kind: "directory";
-	id: ResourceId;
-	parentId: ResourceId | null;
-	name: string;
-}
-export interface FileDto {
-	kind: "file";
-	id: ResourceId;
-	parentId: ResourceId;
-	name: string;
-	sizeBytes: number;
-	modifiedAt: string;
-	mimeType: string;
-}
-export type ResourceDto = DirectoryDto | FileDto;
-
-export interface LibraryResponse {
-	ready: boolean;
-	revision: number;
-	scan: ScanStateDto | null;
-	error: LibraryIssueDto | null;
-	/** A failed rescan leaves the previous snapshot available but potentially stale. */
-	stale: boolean;
-}
-
-export interface ScanResponse {
-	scan: ScanStateDto;
-}
-
-export interface SettingsResponse {
-	resourceRoot: string | null;
-}
-
-export interface UpdateSettingsRequest {
-	resourceRoot: string;
-}
-
-export interface DirectoryResponse {
-	directory: DirectoryDto;
-	children: readonly ResourceDto[];
-}
-
-/** Returned after checking current file accessibility. */
-export interface FileResponse {
-	file: FileDto;
-	playbackUrl: string;
-}
-
-export interface ApiErrorResponse {
-	error: {
-		code: ErrorCode;
-		message: string;
-		requestId: string;
-	};
-}
-
-export interface PlaybackProgressDto {
-	positionMs: number;
-	durationMs: number | null;
-	lastViewedAtMs: number | null;
-	revision: number;
-	generation: number;
-	lastSequence: number;
-}
-
-export interface OpenPlaybackRequest {
-	fileId: ResourceId;
-}
-
-export interface PlaybackSessionResponse {
-	token: string;
-	generation: number;
-	sourceVersion: string;
-	file: FileDto;
-	plan: { mode: "direct"; playbackUrl: string };
-	progress: PlaybackProgressDto;
-}
-
-/** The session token is supplied in the route, not trusted from the body. */
-export interface SavePlaybackProgressRequest {
-	generation: number;
-	sourceVersion: string;
-	sequence: number;
-	positionMs: number;
-	durationMs: number | null;
-}
-
-export interface SavePlaybackProgressResponse {
-	status: "saved" | "duplicate";
-	progress: PlaybackProgressDto;
-}
-
-export interface StartOverPlaybackRequest {
-	generation: number;
-	/** Stable across retries of the same reset; independent of HTTP tracing IDs. */
-	requestId: string;
-}
-
-export interface StartOverPlaybackResponse {
-	progress: PlaybackProgressDto;
-}
-
-export interface ContinueWatchingResponse {
-	availability: "unknown" | "checked";
-	items: { file: FileDto; progress: PlaybackProgressDto }[];
-}
+// Public JSON types are derived from the same schemas used by Fastify.
+export type ResourceId = Static<typeof schemas.ResourceIdSchema>;
+export type ScanWarningSummaryDto = Static<
+	typeof schemas.ScanWarningSummaryDtoSchema
+>;
+export type LibraryIssueDto = Static<typeof schemas.LibraryIssueDtoSchema>;
+export type ScanStateDto = Static<typeof schemas.ScanStateDtoSchema>;
+export type DirectoryDto = Static<typeof schemas.DirectoryDtoSchema>;
+export type FileDto = Static<typeof schemas.FileDtoSchema>;
+export type ResourceDto = Static<typeof schemas.ResourceDtoSchema>;
+export type LibraryResponse = Static<typeof schemas.LibraryResponseSchema>;
+export type ScanResponse = Static<typeof schemas.ScanResponseSchema>;
+export type SettingsResponse = Static<typeof schemas.SettingsResponseSchema>;
+export type UpdateSettingsRequest = Static<
+	typeof schemas.UpdateSettingsRequestSchema
+>;
+export type DirectoryResponse = Static<typeof schemas.DirectoryResponseSchema>;
+export type FileResponse = Static<typeof schemas.FileResponseSchema>;
+export type ApiErrorResponse = Static<typeof schemas.ApiErrorResponseSchema>;
+export type PlaybackProgressDto = Static<
+	typeof schemas.PlaybackProgressDtoSchema
+>;
+export type OpenPlaybackRequest = Static<
+	typeof schemas.OpenPlaybackRequestSchema
+>;
+export type PlaybackSessionResponse = Static<
+	typeof schemas.PlaybackSessionResponseSchema
+>;
+export type SavePlaybackProgressRequest = Static<
+	typeof schemas.SavePlaybackProgressRequestSchema
+>;
+export type SavePlaybackProgressResponse = Static<
+	typeof schemas.SavePlaybackProgressResponseSchema
+>;
+export type StartOverPlaybackRequest = Static<
+	typeof schemas.StartOverPlaybackRequestSchema
+>;
+export type StartOverPlaybackResponse = Static<
+	typeof schemas.StartOverPlaybackResponseSchema
+>;
+export type ContinueWatchingResponse = Static<
+	typeof schemas.ContinueWatchingResponseSchema
+>;

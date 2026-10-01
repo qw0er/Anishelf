@@ -28,7 +28,8 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm run build` | Build backend and frontend |
 | `npm start` | Run the built backend entry point after building |
 
-Public JSON contracts live in `backend/src/http/contracts.ts`; HTTP presenters
+Public JSON schemas live in `backend/src/http/schemas`; `backend/src/http/contracts.ts`
+derives their TypeScript types with TypeBox `Static`. HTTP presenters
 explicitly convert business results into those contracts. Configuration types
 live in `backend/src/config/model.ts`, library models and business scan state in
 `backend/src/library`, and backend playback data in `backend/src/playback/model.ts`.
@@ -696,3 +697,36 @@ internal causes. Missing/inaccessible source errors retain their existing status
 and codes. Invalid JSON shapes and numbers return `INVALID_REQUEST` (400).
 An unscanned library returns `availability: "unknown"` with an empty list; a checked
 list excludes missing/replaced and near-end files while preserving their history.
+
+
+## TypeBox HTTP Contracts
+
+`backend/src/http/schemas` is the source of public JSON shapes and runtime request
+constraints. `common.ts` defines IDs, bounded integers, health and error responses;
+`library.ts` defines library, scan, file and settings shapes; `playback.ts` defines
+playback requests and responses. All public object schemas reject additional
+properties. `http/contracts.ts` exports only `Static<typeof Schema>` type aliases,
+keeping existing type import paths available to the Web client. Business models
+remain independent of TypeBox and HTTP schemas.
+
+The server uses `@fastify/type-provider-typebox` with TypeBox 1.x. JSON API route
+modules accept `HttpInstance`, whose provider generic preserves inference across
+module boundaries. Encapsulated playback routes select the provider again with
+`withTypeProvider`. Route handlers infer body, params, query and response types
+from their schemas; do not add separate request interfaces or handwritten route
+generics. Shared schemas are composed directly, so they need no schema registry or
+runtime reference resolution.
+
+AJV remains the runtime validator, with `coerceTypes: false` and
+`removeAdditional: false`. TypeBox builds JSON Schema and does not replace the
+validator. Query strings such as the list limit are explicitly converted only
+after validation. All successful JSON API responses now have response schemas;
+HTTP Range media remains a binary stream with parameter validation and no JSON
+response schema. Presenters still select safe public fields before serialization.
+
+The stable error-code vocabulary is declared once in `errors.ts` and is used by
+both `DomainError` and the public error schema. The existing centralized error
+handler retains its status mapping and safe messages. Compile-time contract
+checks verify inferred request/response types and error codes. Existing HTTP
+regression tests cover validation, null duration, extra fields, session conflicts,
+DTO isolation and binary Range behavior.

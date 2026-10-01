@@ -1,74 +1,50 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
-import type { FastifyInstance, RawServerDefault } from "fastify";
-import type { Logger } from "pino";
 import type { LibraryApplication } from "../application/library.js";
-import type {
-	DirectoryResponse,
-	LibraryResponse,
-	ScanResponse,
-} from "./contracts.js";
-
+import type { HttpInstance } from "./instance.js";
 import {
 	directoryResponse,
 	libraryResponse,
 	scanStateDto,
 } from "./presenters.js";
-
-const emptyObject = {
-	type: "object",
-	additionalProperties: false,
-	properties: {},
-} as const;
+import {
+	DirectoryResponseSchema,
+	EmptyObjectSchema,
+	LibraryResponseSchema,
+	ResourceParamsSchema,
+	ScanResponseSchema,
+} from "./schemas/index.js";
 
 export function registerLibraryRoutes(
-	app: FastifyInstance<
-		RawServerDefault,
-		IncomingMessage,
-		ServerResponse,
-		Logger
-	>,
+	app: HttpInstance,
 	library: LibraryApplication,
 ): void {
 	app.get(
 		"/api/library",
-		async (): Promise<LibraryResponse> =>
-			libraryResponse(await library.getStatus()),
+		{ schema: { response: { 200: LibraryResponseSchema } } },
+		async () => libraryResponse(await library.getStatus()),
 	);
 	app.post(
 		"/api/library/scan",
 		{
-			schema: { body: emptyObject },
+			schema: {
+				body: EmptyObjectSchema,
+				response: { 202: ScanResponseSchema },
+			},
 			preValidation: async (request) => {
 				if (request.body === undefined) request.body = {};
 			},
 		},
-		async (_request, reply): Promise<ScanResponse> => {
-			return reply
-				.code(202)
-				.send({ scan: scanStateDto(await library.startScan()) });
-		},
+		async (_request, reply) =>
+			reply.code(202).send({ scan: scanStateDto(await library.startScan()) }),
 	);
-	app.get<{ Params: { id: string } }>(
+	app.get(
 		"/api/directories/:id",
 		{
 			schema: {
-				params: {
-					type: "object",
-					additionalProperties: false,
-					required: ["id"],
-					properties: {
-						id: {
-							type: "string",
-							minLength: 1,
-							maxLength: 64,
-							pattern: "^[A-Za-z0-9_-]+$",
-						},
-					},
-				},
+				params: ResourceParamsSchema,
+				response: { 200: DirectoryResponseSchema },
 			},
 		},
-		async (request): Promise<DirectoryResponse> => {
-			return directoryResponse(library.getDirectory(request.params.id));
-		},
+		async (request) =>
+			directoryResponse(library.getDirectory(request.params.id)),
 	);
 }

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify from "fastify";
 import type { Logger } from "pino";
 import type { LibraryApplication } from "../application/library.js";
@@ -8,6 +9,7 @@ import { apiError, classifyHttpError } from "./errors.js";
 import { registerLibraryRoutes } from "./library.js";
 import { registerMediaRoutes } from "./media.js";
 import { registerPlaybackRoutes } from "./playback.js";
+import { HealthResponseSchema } from "./schemas/index.js";
 import { checkRequestOrigin } from "./security.js";
 import { registerSettingsRoutes } from "./settings.js";
 import { registerFrontend } from "./static.js";
@@ -28,7 +30,7 @@ export function createHttpApp(options: {
 		bodyLimit: 64 * 1024,
 		forceCloseConnections: "idle",
 		ajv: { customOptions: { removeAdditional: false, coerceTypes: false } },
-	});
+	}).withTypeProvider<TypeBoxTypeProvider>();
 	app.addHook("onRequest", async (request, reply) => {
 		reply.header("x-request-id", request.id);
 		checkRequestOrigin(request, options.config, options.development ?? false);
@@ -47,20 +49,10 @@ export function createHttpApp(options: {
 	);
 	app.get(
 		"/api/health",
-		{
-			schema: {
-				response: {
-					200: {
-						type: "object",
-						additionalProperties: false,
-						required: ["status"],
-						properties: { status: { type: "string", const: "ok" } },
-					},
-				},
-			},
-		},
-		async () => ({ status: "ok" }),
+		{ schema: { response: { 200: HealthResponseSchema } } },
+		async () => ({ status: "ok" as const }),
 	);
+
 	if (options.library) {
 		const library = options.library;
 		app.addHook("onClose", async () => library.close());

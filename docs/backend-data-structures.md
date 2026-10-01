@@ -8,7 +8,9 @@ it does not make that type a public HTTP contract.
 
 | Owner | Responsibility | Consumers |
 | --- | --- | --- |
-| `http/contracts.ts` | Public JSON requests, responses, DTOs, and their supporting types | HTTP handlers, presenters, and the Web API client |
+| `http/schemas` | Public TypeBox schemas for JSON requests, responses, DTOs and runtime constraints | HTTP routes and contract type inference |
+| `http/contracts.ts` | `Static<typeof Schema>` aliases derived from the public schemas | Presenters and the Web API client |
+| `http/instance.ts` | Fastify instance type retaining the TypeBox Type Provider | JSON API route modules |
 | `http/presenters.ts` | Explicit conversion from backend business data into public JSON shapes | HTTP handlers |
 | `config/model.ts` | Validated deployment options and persisted user settings | Startup, configuration, logging, applications, resource access, and HTTP configuration/presentation |
 | `library/model.ts` | Resource identity, path-free business information, internal index entries, snapshots, listings, and library status | Library index, scanner, applications, and HTTP presenters |
@@ -24,8 +26,9 @@ Biome enforces these import boundaries, including type-only imports.
 
 ## Public HTTP Contracts
 
-All public response shapes are defined in `http/contracts.ts`. Their wire fields
-remain the same as before this reorganization.
+All public JSON shapes are defined by TypeBox in `http/schemas` and exported as
+inferred types from `http/contracts.ts`. Route request and response types are
+inferred from these same schemas. Presenters retain explicit field projection.
 
 | Type | Purpose |
 | --- | --- |
@@ -43,10 +46,16 @@ remain the same as before this reorganization.
 | `DirectoryResponse` | `GET /api/directories/:id` result |
 | `FileResponse` | `GET /api/files/:id` metadata and direct playback URL |
 | `ApiErrorResponse` | Safe error code, message, and request ID |
+| `PlaybackProgressDto` | Public position, duration, viewing time and revision/generation/sequence |
+| `OpenPlaybackRequest`, `PlaybackSessionResponse` | Session opening input and output |
+| `SavePlaybackProgressRequest`, `SavePlaybackProgressResponse` | Progress update and accepted/duplicate result |
+| `StartOverPlaybackRequest`, `StartOverPlaybackResponse` | Idempotent reset input and new progress |
+| `ContinueWatchingResponse` | Availability state and filtered file/progress entries |
 
-`ScanStateFieldsDto` is a private helper for the scan union. `ErrorCode` remains
-owned by `errors.ts` and is shared with the error envelope. The health route
-returns its existing inline `{ status: "ok" }` shape.
+The scan schema reuses private common fields for its state union. `errors.ts` owns
+the stable `errorCodes` vocabulary and derives `ErrorCode` from it; the error
+schema uses the same values. The health route uses `HealthResponseSchema` and
+returns `{ status: "ok" }`.
 
 The Web client imports types through `@anishelf/backend/http/contracts`. This
 workspace export resolves to source and does not bundle backend runtime code.
@@ -80,8 +89,9 @@ fields. Additional internal fields are not automatically serialized.
 ## Playback Data
 
 The following types are owned by `playback/model.ts` and are backend business
-data. No playback-session, progress-save, or continue-watching HTTP endpoint is
-registered yet; these application results are not public Web contracts.
+data. Playback-session, progress-save, start-over, release, and continue-watching
+HTTP endpoints call the application. Presenters map these results to independent
+public schemas; database source IDs and internal paths are omitted.
 
 | Type | Purpose |
 | --- | --- |

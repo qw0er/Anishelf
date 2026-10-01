@@ -1,26 +1,7 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
-import type { FastifyInstance, RawServerDefault } from "fastify";
-import type { Logger } from "pino";
 import type { LibraryApplication } from "../application/library.js";
-import type { FileResponse } from "./contracts.js";
-
+import type { HttpInstance } from "./instance.js";
 import { fileDto } from "./presenters.js";
-
-const schema = {
-	params: {
-		type: "object",
-		additionalProperties: false,
-		required: ["id"],
-		properties: {
-			id: {
-				type: "string",
-				minLength: 1,
-				maxLength: 64,
-				pattern: "^[A-Za-z0-9_-]+$",
-			},
-		},
-	},
-} as const;
+import { FileResponseSchema, ResourceParamsSchema } from "./schemas/index.js";
 
 type ByteRange = { start: number; end: number } | "unsatisfiable" | null;
 
@@ -48,18 +29,18 @@ function byteRange(header: string | undefined, size: number): ByteRange {
 }
 
 export function registerMediaRoutes(
-	app: FastifyInstance<
-		RawServerDefault,
-		IncomingMessage,
-		ServerResponse,
-		Logger
-	>,
+	app: HttpInstance,
 	library: LibraryApplication,
 ): void {
-	app.get<{ Params: { id: string } }>(
+	app.get(
 		"/api/files/:id",
-		{ schema },
-		async (request, reply): Promise<FileResponse> => {
+		{
+			schema: {
+				params: ResourceParamsSchema,
+				response: { 200: FileResponseSchema },
+			},
+		},
+		async (request, reply) => {
 			const file = await library.getFile(request.params.id);
 			reply.header("Cache-Control", "no-store");
 			return {
@@ -68,10 +49,10 @@ export function registerMediaRoutes(
 			};
 		},
 	);
-	app.route<{ Params: { id: string } }>({
+	app.route({
 		method: ["GET", "HEAD"],
 		url: "/api/media/:id",
-		schema,
+		schema: { params: ResourceParamsSchema },
 		handler: async (request, reply) => {
 			const file = await library.openMedia(request.params.id);
 			let streaming = false;

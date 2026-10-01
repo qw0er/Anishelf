@@ -107,10 +107,44 @@
 											"../database/**",
 											"../playback/**",
 											"./**",
+											"!./schemas/**",
 											"fastify",
 											"@fastify/**"
 										],
-										"message": "HTTP contracts describe public JSON shapes and must not depend on backend models or runtime implementations."
+										"message": "HTTP contracts derive public JSON types from schemas; they must not depend on backend models or runtime implementations."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["backend/src/http/schemas/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"../../application/**",
+											"../../library/**",
+											"../../resources/**",
+											"../../config/**",
+											"../../database/**",
+											"../../playback/**",
+											"../app.js",
+											"../contracts.js",
+											"../presenters.js",
+											"../instance.js",
+											"fastify",
+											"@fastify/**"
+										],
+										"message": "Public HTTP schemas must be independent of backend models and transport implementations."
 									}
 								]
 							}
