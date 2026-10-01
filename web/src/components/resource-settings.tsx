@@ -1,3 +1,4 @@
+import { Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useFetcher } from "react-router";
 import type { SettingsResponse } from "../api/contracts.js";
@@ -90,9 +91,11 @@ export default function ResourceSettings({
 								disabled={disabled || saving}
 								aria-busy={saving}
 							>
-								<span className="inline-flex size-4 shrink-0">
-									{showSaving && <Spinner />}
-								</span>
+								{showSaving ? (
+									<Spinner />
+								) : (
+									<Save size={16} aria-hidden="true" />
+								)}
 								{t("settingsPage.save")}
 							</Button>
 						</div>

@@ -35,6 +35,13 @@ or saving settings. Use outline buttons for refresh, retry, and return actions;
 navigation uses the existing ghost and selected secondary variants. Keep visible
 labels and hide decorative icons from assistive technology.
 
+Use an icon with a visible text label for primary actions. In space-constrained
+areas, use an icon-only button with a Tooltip available on hover and keyboard
+focus, plus an accessible name. Choose recognizable icons; keep visible text
+when an action would otherwise be ambiguous. Tooltips supplement the action
+rather than being its only accessible label. When a loading spinner replaces
+an action icon, use the same icon size and do not leave an empty icon slot.
+
 ## Feedback
 
 - Loading: retain the current layout, delay spinners and skeletons to avoid brief

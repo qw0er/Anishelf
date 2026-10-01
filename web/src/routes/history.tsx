@@ -1,3 +1,4 @@
+import { Library, Play, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useLoaderData, useRevalidator } from "react-router";
 import { Button, buttonStyles } from "../components/ui/button.js";
@@ -31,6 +32,7 @@ export default function HistoryPage() {
 					aria-busy={revalidator.state !== "idle"}
 					onClick={() => void revalidator.revalidate()}
 				>
+					<RefreshCw size={16} aria-hidden="true" />
 					{t("history.refresh")}
 				</Button>
 			</div>
@@ -46,6 +48,7 @@ export default function HistoryPage() {
 								)}
 							</p>
 							<Link className={buttonStyles("outline")} to="/">
+								<Library size={16} aria-hidden="true" />
 								{t("app.library")}
 							</Link>
 						</div>
@@ -100,6 +103,7 @@ export default function HistoryPage() {
 										to={filePath(file.id, file.parentId)}
 										aria-label={`${t(progress.positionMs > 0 ? "history.resume" : "history.watch")}: ${file.name}`}
 									>
+										<Play size={16} aria-hidden="true" />
 										{t(
 											progress.positionMs > 0
 												? "history.resume"
