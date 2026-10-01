@@ -198,6 +198,7 @@ export class PlaybackRepository {
 		rootId: string,
 		limit = 20,
 		offset = 0,
+		view: "continue" | "recent" = "continue",
 	): ContinueWatchingCandidate[] {
 		integer(limit, 1);
 		integer(offset, 0);
@@ -210,9 +211,11 @@ export class PlaybackRepository {
 			.where(
 				and(
 					eq(mediaSources.rootId, rootId),
-					gt(playbackProgress.positionMs, 0),
+					view === "continue" ? gt(playbackProgress.positionMs, 0) : undefined,
 					isNotNull(playbackProgress.lastViewedAtMs),
-					sql`(${playbackProgress.durationMs} IS NULL OR ${playbackProgress.durationMs} - ${playbackProgress.positionMs} > min(30000, ${playbackProgress.durationMs} * 0.05))`,
+					view === "continue"
+						? sql`(${playbackProgress.durationMs} IS NULL OR ${playbackProgress.durationMs} - ${playbackProgress.positionMs} > min(30000, ${playbackProgress.durationMs} * 0.05))`
+						: undefined,
 				),
 			)
 			.orderBy(

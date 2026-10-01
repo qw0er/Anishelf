@@ -101,7 +101,7 @@ test("HTTP open/save/list/release flow resumes progress and rejects delayed writ
 	expect(duplicate.json().status).toBe("duplicate");
 	expect(duplicate.json().progress).toEqual(saved.json().progress);
 	const list = await app.inject({
-		url: "/api/continue-watching?limit=1",
+		url: "/api/history?limit=1",
 		headers,
 	});
 	expect(list.statusCode).toBe(200);
@@ -221,10 +221,10 @@ test("accepts unknown duration and backward seeks, rejects stale sequences and v
 });
 
 test.each(["0", "101", "-1", "1.5", "abc", "1&limit=2", "20&extra=1"])(
-	"rejects invalid list limits: %s",
+	"rejects invalid history limits: %s",
 	async (query) => {
 		const response = await app.inject({
-			url: `/api/continue-watching?limit=${query}`,
+			url: `/api/history?limit=${query}`,
 			headers,
 		});
 		expect(response.statusCode).toBe(400);
@@ -297,7 +297,7 @@ test("checks Host and Origin on playback mutations before executing use cases", 
 	expect((await save(session)).statusCode).toBe(200);
 });
 
-test("missing and replaced sources yield useful errors and disappear from the list", async () => {
+test("missing and replaced sources yield useful errors and disappear from history", async () => {
 	const missing = await app.inject({
 		method: "POST",
 		url: "/api/playback/sessions",
@@ -311,7 +311,7 @@ test("missing and replaced sources yield useful errors and disappear from the li
 	await rename(join(root, "replacement.mp4"), join(root, "episode.mp4"));
 	expect((await save(session, 2)).statusCode).toBe(409);
 	expect(
-		(await app.inject({ url: "/api/continue-watching", headers })).json().items,
+		(await app.inject({ url: "/api/history", headers })).json().items,
 	).toEqual([]);
 	await rm(join(root, "episode.mp4"));
 	const unavailable = await app.inject({
@@ -365,9 +365,10 @@ test("unscanned libraries return unknown availability and unavailable storage re
 		library,
 		playback,
 	});
-	expect(
-		(await app.inject({ url: "/api/continue-watching", headers })).json(),
-	).toEqual({ availability: "unknown", items: [] });
+	expect((await app.inject({ url: "/api/history", headers })).json()).toEqual({
+		availability: "unknown",
+		items: [],
+	});
 	await app.close();
 	playback = new PlaybackApplication({ library, logger });
 	app = createHttpApp({
@@ -376,7 +377,7 @@ test("unscanned libraries return unknown availability and unavailable storage re
 		playback,
 	});
 	const unavailable = await app.inject({
-		url: "/api/continue-watching",
+		url: "/api/history",
 		headers,
 	});
 	expect(unavailable.statusCode).toBe(503);
@@ -384,4 +385,42 @@ test("unscanned libraries return unknown availability and unavailable storage re
 	expect((await app.inject({ url: "/api/health", headers })).statusCode).toBe(
 		200,
 	);
+});
+
+test("recent history includes completed and zero-position records, but excludes replaced files", async () => {
+	const session = await open();
+	for (const [sequence, positionMs] of [
+		[1, 100000],
+		[2, 0],
+	]) {
+		await app.inject({
+			method: "PUT",
+			url: `/api/playback/sessions/${session.token}/progress`,
+			headers,
+			payload: {
+				generation: session.generation,
+				sourceVersion: session.sourceVersion,
+				sequence,
+				positionMs,
+				durationMs: 100000,
+			},
+		});
+		const history = await app.inject({
+			method: "GET",
+			url: "/api/history",
+			headers,
+		});
+		expect(history.statusCode).toBe(200);
+		expect(history.headers["cache-control"]).toBe("no-store");
+		expect(history.json().items).toHaveLength(1);
+		expect(history.json().items[0].progress.positionMs).toBe(positionMs);
+		expect(JSON.stringify(history.json())).not.toContain(root);
+	}
+	await writeFile(join(root, "episode.mp4"), "replacement with different size");
+	const history = await app.inject({
+		method: "GET",
+		url: "/api/history",
+		headers,
+	});
+	expect(history.json().items).toEqual([]);
 });

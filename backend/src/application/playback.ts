@@ -110,6 +110,13 @@ export class PlaybackApplication {
 	}
 
 	async continueWatching(limit = 20): Promise<ContinueWatchingResult> {
+		return this.history(limit, "continue");
+	}
+
+	async history(
+		limit = 100,
+		view: "continue" | "recent" = "recent",
+	): Promise<ContinueWatchingResult> {
 		if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
 			throw new DomainError("INVALID_REQUEST", "Invalid list limit.");
 		const repository = this.repository();
@@ -123,7 +130,7 @@ export class PlaybackApplication {
 		for (let offset = 0; items.length < limit; offset += 100) {
 			this.assertEpoch(epoch);
 			const candidates = this.persist(() =>
-				repository.listContinueWatching(rootId, 100, offset),
+				repository.listContinueWatching(rootId, 100, offset, view),
 			);
 			for (const candidate of candidates) {
 				let source: ResolvedPlaybackSource;

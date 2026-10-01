@@ -49,7 +49,7 @@ inferred from these same schemas. Presenters retain explicit field projection.
 | `PlaybackProgressDto` | Public position, duration, viewing time and generation/sequence |
 | `OpenPlaybackRequest`, `PlaybackSessionResponse` | Session opening input and output |
 | `SavePlaybackProgressRequest`, `SavePlaybackProgressResponse` | Progress update and accepted/duplicate result |
-| `ContinueWatchingResponse` | Availability state and filtered file/progress entries |
+| `ContinueWatchingResponse` | Availability state and file/progress entries returned by recent history |
 
 The scan schema reuses private common fields for its state union. `errors.ts` owns
 the stable `errorCodes` vocabulary and derives `ErrorCode` from it; the error
@@ -88,7 +88,7 @@ fields. Additional internal fields are not automatically serialized.
 ## Playback Data
 
 The following types are owned by `playback/model.ts` and are backend business
-data. Playback-session, progress-save, release, and continue-watching
+data. Playback-session, progress-save, release, and history
 HTTP endpoints call the application. Presenters map these results to independent
 public schemas; database source IDs and internal paths are omitted.
 

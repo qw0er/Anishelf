@@ -6,6 +6,7 @@ import {
 import {
 	getDirectory,
 	getFile,
+	getHistory,
 	getLibrary,
 	getSettings,
 	isRequestCancelled,
@@ -89,4 +90,8 @@ export async function scanAction({ request }: ActionFunctionArgs) {
 			error: getErrorTranslationKey(error) ?? "errors.startScan",
 		};
 	}
+}
+
+export function historyLoader({ request }: LoaderFunctionArgs) {
+	return getHistory({ signal: request.signal });
 }

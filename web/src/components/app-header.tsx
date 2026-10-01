@@ -23,6 +23,14 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 						{t("app.library")}
 					</NavLink>
 					<NavLink
+						to="/history"
+						className={({ isActive }) =>
+							buttonStyles(isActive ? "secondary" : "ghost")
+						}
+					>
+						{t("app.history")}
+					</NavLink>
+					<NavLink
 						to="/settings"
 						className={({ isActive }) =>
 							buttonStyles(isActive ? "secondary" : "ghost")

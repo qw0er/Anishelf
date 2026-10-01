@@ -13,9 +13,11 @@ import LibraryBrowser from "../components/library-browser.js";
 import ResourceSettings from "../components/resource-settings.js";
 import { buttonStyles } from "../components/ui/button.js";
 import RouteError from "./errors.js";
+import HistoryPage from "./history.js";
 import {
 	directoryLoader,
 	fileLoader,
+	historyLoader,
 	libraryLoader,
 	scanAction,
 	settingsAction,
@@ -79,6 +81,12 @@ export const libraryRoute: RouteObject = {
 	errorElement: <RouteError kind="page" />,
 	hydrateFallbackElement: <InitialLoading />,
 	children: [
+		{
+			path: "history",
+			loader: historyLoader,
+			element: <HistoryPage />,
+			errorElement: <RouteError kind="directory" />,
+		},
 		{
 			path: "settings",
 			action: settingsAction,

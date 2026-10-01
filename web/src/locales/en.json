@@ -6,11 +6,12 @@
 		"primaryNavigation": "Primary navigation",
 		"switchToMode": "Switch to {{mode}} mode",
 		"light": "light",
-		"dark": "dark"
+		"dark": "dark",
+		"history": "History"
 	},
 	"navigation": {
-		"loadingFile": "Loading file…",
-		"loadingFiles": "Loading files…",
+		"loadingFile": "Loading file\u2026",
+		"loadingFiles": "Loading files\u2026",
 		"cancel": "Cancel navigation",
 		"backToFiles": "Back to files",
 		"goToRoot": "Go to root",
@@ -18,7 +19,7 @@
 		"pageNotFound": "Page not found."
 	},
 	"loading": {
-		"page": "Loading page…",
+		"page": "Loading page\u2026",
 		"pageLabel": "Loading page"
 	},
 	"errors": {
@@ -67,7 +68,7 @@
 		"statusCompleted": "completed",
 		"statusFailed": "failed",
 		"statusCancelled": "cancelled",
-		"visitedEntries": "Visited entries: {{count}} · Video files: {{matched}}",
+		"visitedEntries": "Visited entries: {{count}} \u00b7 Video files: {{matched}}",
 		"start": "Scan library",
 		"refresh": "Refresh",
 		"setupRequired": "Set a resource directory in <settings>Settings</settings> to start using the library.",
@@ -98,5 +99,16 @@
 	},
 	"actions": {
 		"retry": "Retry"
+	},
+	"history": {
+		"title": "Playback history",
+		"description": "Your 100 most recently watched available files. Select a file to resume from its saved position.",
+		"empty": "No playback history yet. Watch a file from your library to see it here.",
+		"unknown": "Scan your library to check which watched files are available.",
+		"resume": "Resume",
+		"watch": "Watch",
+		"position": "{{position}} played",
+		"duration": "{{position}} / {{duration}}",
+		"refresh": "Refresh history"
 	}
 }

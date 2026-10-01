@@ -75,7 +75,7 @@ export function registerPlaybackRoutes(
 			},
 		);
 		scope.get(
-			"/api/continue-watching",
+			"/api/history",
 			{
 				schema: {
 					querystring: ContinueWatchingQuerySchema,
@@ -84,9 +84,9 @@ export function registerPlaybackRoutes(
 			},
 			async (request) =>
 				continueWatchingResponse(
-					await playback.continueWatching(
+					await playback.history(
 						request.query.limit === undefined
-							? 20
+							? 100
 							: Number(request.query.limit),
 					),
 				),

@@ -1,6 +1,7 @@
 // Type-only imports share the existing API contract without bundling backend code.
 export type {
 	ApiErrorResponse,
+	ContinueWatchingResponse,
 	DirectoryDto,
 	DirectoryResponse,
 	FileDto,

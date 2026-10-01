@@ -186,3 +186,7 @@ Record browser/OS versions for Web playback, representative external-player URL 
 ## 6. Deferred Scope
 
 C02 browser invocation and C03 external-player state reading are later requirements. Other deferred items remain in the [Overall Requirements](requirements.md): anime metadata/episode mapping, next-episode automation, watched markers/tracking statuses, subscriptions/RSS, qBittorrent ingestion, external trackers, remote control/saved-position handoff, multi-client coordination, automatic scans, file management, dedicated original downloads, additional locale packs/language selection, and frontend query-library migration. Bitmap subtitle Web rendering/OCR/burn-in, unsupported extraction formats, hardware acceleration and HDR guarantees remain unassigned.
+
+### Playback history page
+
+The History navigation entry opens `/history`, showing up to 100 recently viewed available files ordered by server viewing time. Each entry shows the filename, saved position, known duration, and last viewing time, and opens the existing player with its original directory context. Completed files and records saved at position zero remain in recent history. Missing or replaced sources are excluded from actionable entries without deleting durable records. Before a library snapshot is available, the page explains that a scan is needed. Empty, refresh, loading, and retryable error states are supported.

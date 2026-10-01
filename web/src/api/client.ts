@@ -1,5 +1,6 @@
 import type {
 	ApiErrorResponse,
+	ContinueWatchingResponse,
 	DirectoryResponse,
 	FileResponse,
 	LibraryResponse,
@@ -216,4 +217,10 @@ export function releasePlaybackSession(
 		"DELETE",
 		options,
 	);
+}
+
+export function getHistory(
+	options?: RequestOptions,
+): Promise<ContinueWatchingResponse> {
+	return request("/api/history", "GET", options);
 }

@@ -685,11 +685,11 @@ Closing the HTTP app closes playback sessions before the database connection.
 | POST | `/api/playback/sessions` | `{ fileId }` | 201: `{ token, generation, sourceVersion, file, plan, progress }` |
 | PUT | `/api/playback/sessions/:token/progress` | `{ generation, sourceVersion, sequence, positionMs, durationMs }` | 200: `{ status: "saved" or "duplicate", progress }` |
 | DELETE | `/api/playback/sessions/:token` | Session token in path | 204 with no body; repeated release is harmless |
-| GET | `/api/continue-watching` | Optional `?limit=20`, range 1–100 | 200: `{ availability, items: [{ file, progress }] }` |
+| GET | `/api/history` | Optional `?limit=100`, range 1–100 | 200: `{ availability, items: [{ file, progress }] }` |
 
 Opening is a POST because it creates a writable session and advances generation.
-It includes saved history; no separate history read endpoint is required for the
-initial resume flow. The current plan is `{ mode: "direct", playbackUrl }`.
+It includes the selected file's saved progress; `/api/history` lists recent
+viewing records. The current plan is `{ mode: "direct", playbackUrl }`.
 Session tokens are server-issued UUIDs. The route token is authoritative; an
 additional body token or source ID is rejected. Mutations retain the existing
 Host, Origin, and Fetch Metadata checks. Playback responses use `Cache-Control:
