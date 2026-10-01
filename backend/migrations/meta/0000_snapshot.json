@@ -1,0 +1,236 @@
+{
+	"version": "6",
+	"dialect": "sqlite",
+	"id": "be54b13c-2560-48da-bcda-d9f3a870bf98",
+	"prevId": "00000000-0000-0000-0000-000000000000",
+	"tables": {
+		"media_sources": {
+			"name": "media_sources",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"root_id": {
+					"name": "root_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"file_id": {
+					"name": "file_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"relative_path": {
+					"name": "relative_path",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"source_version": {
+					"name": "source_version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"created_at_ms": {
+					"name": "created_at_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"media_sources_identity": {
+					"name": "media_sources_identity",
+					"columns": ["root_id", "file_id", "source_version"],
+					"isUnique": true
+				},
+				"media_sources_root": {
+					"name": "media_sources_root",
+					"columns": ["root_id", "id"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"media_sources_root_id_resource_roots_id_fk": {
+					"name": "media_sources_root_id_resource_roots_id_fk",
+					"tableFrom": "media_sources",
+					"tableTo": "resource_roots",
+					"columnsFrom": ["root_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"playback_progress": {
+			"name": "playback_progress",
+			"columns": {
+				"source_id": {
+					"name": "source_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"position_ms": {
+					"name": "position_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": 0
+				},
+				"duration_ms": {
+					"name": "duration_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"last_viewed_at_ms": {
+					"name": "last_viewed_at_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"revision": {
+					"name": "revision",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": 0
+				},
+				"generation": {
+					"name": "generation",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": 1
+				},
+				"last_sequence": {
+					"name": "last_sequence",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": 0
+				}
+			},
+			"indexes": {
+				"progress_recent": {
+					"name": "progress_recent",
+					"columns": ["\"last_viewed_at_ms\" desc", "source_id"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"playback_progress_source_id_media_sources_id_fk": {
+					"name": "playback_progress_source_id_media_sources_id_fk",
+					"tableFrom": "playback_progress",
+					"tableTo": "media_sources",
+					"columnsFrom": ["source_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"progress_position": {
+					"name": "progress_position",
+					"value": "\"playback_progress\".\"position_ms\" >= 0"
+				},
+				"progress_duration": {
+					"name": "progress_duration",
+					"value": "\"playback_progress\".\"duration_ms\" IS NULL OR (\"playback_progress\".\"duration_ms\" > 0 AND \"playback_progress\".\"position_ms\" <= \"playback_progress\".\"duration_ms\")"
+				},
+				"progress_revision": {
+					"name": "progress_revision",
+					"value": "\"playback_progress\".\"revision\" >= 0"
+				},
+				"progress_generation": {
+					"name": "progress_generation",
+					"value": "\"playback_progress\".\"generation\" >= 1"
+				},
+				"progress_sequence": {
+					"name": "progress_sequence",
+					"value": "\"playback_progress\".\"last_sequence\" >= 0"
+				}
+			}
+		},
+		"resource_roots": {
+			"name": "resource_roots",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"canonical_path": {
+					"name": "canonical_path",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"created_at_ms": {
+					"name": "created_at_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"resource_roots_canonical_path_unique": {
+					"name": "resource_roots_canonical_path_unique",
+					"columns": ["canonical_path"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		}
+	},
+	"views": {},
+	"enums": {},
+	"_meta": {
+		"schemas": {},
+		"tables": {},
+		"columns": {}
+	},
+	"internal": {
+		"indexes": {
+			"progress_recent": {
+				"columns": {
+					"\"last_viewed_at_ms\" desc": {
+						"isExpression": true
+					}
+				}
+			}
+		}
+	}
+}

@@ -4,16 +4,30 @@ import { fileURLToPath } from "node:url";
 import { LibraryApplication } from "./application/library.js";
 import { loadDeploymentConfig } from "./config/deployment.js";
 import { PersistentConfiguration } from "./config/persistent.js";
+import { ApplicationDatabase } from "./database/index.js";
 import { DomainError } from "./errors.js";
 import { createHttpApp } from "./http/app.js";
 import { LibraryIndex } from "./library/index.js";
 import { ApplicationLogging } from "./logging/index.js";
 
+let database: ApplicationDatabase | undefined;
 let logging: ApplicationLogging | undefined;
 let app: ReturnType<typeof createHttpApp> | undefined;
 try {
 	const config = await loadDeploymentConfig();
 	logging = ApplicationLogging.create(config.logging);
+	try {
+		database = ApplicationDatabase.open(config.dataDir);
+		logging.logger.info(
+			{ event: "database.ready" },
+			"Database migrations applied.",
+		);
+	} catch (err) {
+		logging.logger.error(
+			{ event: "database.unavailable", err },
+			"Database unavailable; playback persistence is disabled.",
+		);
+	}
 	const persistentConfig = await PersistentConfiguration.load(config.dataDir);
 	const library = new LibraryApplication({
 		configuration: persistentConfig,
@@ -48,6 +62,9 @@ try {
 			: {}),
 	});
 	app = server;
+	server.addHook("onClose", async () => {
+		database?.close();
+	});
 	await server.listen({ host: config.host, port: config.port });
 	logger.info({ event: "application.started" }, "HTTP application started.");
 
@@ -97,4 +114,5 @@ try {
 	else process.stderr.write(`Anishelf startup failed: ${message}\n`);
 	process.exitCode = 1;
 	if (app) await app.close();
+	else database?.close();
 }

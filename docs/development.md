@@ -570,3 +570,39 @@ Localization is deferred to [O14 in Overall Requirements](requirements.md#interf
 `web/public/favicon.svg` is the flat television-on-a-shelf application icon used
 in the browser tab; it contains editable vector shapes and no external
 images, fonts, gradients, or scripts.
+
+## Playback Database Foundation
+
+The backend opens `dataDir/anishelf.sqlite` at startup using better-sqlite3 and
+Drizzle ORM. It applies the committed SQL migrations in `backend/migrations`
+relative to the module location, so both `tsx` source execution and compiled
+`backend/dist` execution use the same migration directory. Ship that directory
+alongside `dist`; do not use runtime schema push. Generate future migrations with
+`npm run db:generate --workspace backend`, then review and commit SQL and metadata.
+
+`ApplicationDatabase` owns the connection and exposes `playback`, a synchronous
+repository for source registration, progress reads, generation opening, conditional
+saves, start-over, and ordered Continue watching candidates. Callers must supply a
+canonical root and a source version derived from safely opened file metadata.
+Registration does not perform filesystem access. Candidate queries do not assert
+availability; the application must validate the active scan and source version
+before producing playback links. Session tokens, reset request-ID retries,
+filesystem identity collection, API endpoints, and player integration are not yet
+implemented.
+
+The connection enables foreign keys, a five-second busy timeout, WAL, and FULL
+synchronous mode. Generation opening and save decisions use short immediate
+transactions. Accepted saves increment revision; duplicate retries leave viewing
+time unchanged. Start-over conditionally replaces the current generation in one
+statement. Server restart loses application session tokens once that layer is
+introduced; callers must open a new generation before resuming writes.
+
+Normal HTTP shutdown closes the connection. Database initialization failure logs
+`database.unavailable`, preserves existing files, and leaves independent library
+and direct-playback functionality available. No database recovery by replacement
+is attempted.
+
+For a simple backup, stop the server cleanly and copy the complete data directory
+before migration or recovery. Do not copy only `anishelf.sqlite` while the server
+is running: committed data can reside in its WAL. Future online backup tooling
+must use SQLite's backup API. Never remove source/progress rows as cache cleanup.
