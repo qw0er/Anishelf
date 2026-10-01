@@ -49,9 +49,9 @@ Extend the existing file browser into an everyday Web viewing workflow:
 ### Saved Progress and Resume (W01, W02)
 
 - Save playback position, duration, and last viewing time to the server during playback at a bounded interval and on pause, seek completion, and normal player exit. Periodic saves bound progress loss when a tab closes unexpectedly.
-- Restore the saved position after media metadata is available; clamp it to the playable duration. Offer an explicit start-over action. Resume must not depend on audible autoplay being allowed.
+- Restore the saved position after media metadata is available; clamp it to the playable duration. Seeking to zero uses the ordinary progress-save flow. Resume must not depend on audible autoplay being allowed.
 - Show save/load failures and allow retry without blocking playback. A failed load must not silently overwrite an existing record with an initial zero position.
-- Reject delayed or duplicate updates that would overwrite a newer accepted update or an explicit start-over action. Seeking backward intentionally must remain possible; choosing the greatest position is not a valid conflict policy.
+- Reject delayed or duplicate updates that would overwrite a newer accepted update . Seeking backward intentionally must remain possible; choosing the greatest position is not a valid conflict policy.
 - Scope records to the resource root and source identity/version so switching roots or replacing content at the same path cannot apply unrelated progress. Unchanged files retain progress across rescans and server restarts.
 - Removing a file from the index does not erase its viewing record. Missing resources cannot be played from the continue-watching list; show their unavailability or exclude them from actionable entries.
 - Continue watching is ordered by last viewing time and includes unfinished files with positive saved progress. Define and test a near-end rule for treating a file as finished in this list. This does not introduce per-episode watched markers or external cumulative progress.
@@ -114,7 +114,7 @@ Replace the basic V1 validation pages with a finished interface for everyday use
 | --- | --- |
 | Application shell | Consistent navigation between Library, preparation tasks, and Settings; clear current location, page titles, and back navigation |
 | Library | Clear directory/file presentation, breadcrumbs, parent navigation, readable original filenames including long/Chinese names, scan action/status, and a prominent continue-watching section with progress and resume actions |
-| Web player | Video as the main focus; ArtPlayer play/pause/seek/volume/fullscreen controls; subtitle selection/off, saved progress/resume/start-over, direct/prepared/real-time status and processing reason, and return to the original directory |
+| Web player | Video as the main focus; ArtPlayer play/pause/seek/volume/fullscreen controls; subtitle selection/off, saved progress/resume, direct/prepared/real-time status and processing reason, and return to the original directory |
 | Preparation tasks | Reachable pre-transcode queued/processing/ready/failed/cancelled and real-time starting/streaming/stopped states, affected filename, available progress feedback, failure reason/retry/cancel, real-time stop, and prepared-copy deletion; ready copies link to Web playback |
 | Settings | Clearly grouped resource-directory configuration, Web playback mode, cache budget, and supported playback/configuration options; expose only settings supported by V2 |
 | External-player link | Secondary **Copy media link** action with a selectable URL fallback, distinct from the primary Web playback action |
@@ -148,9 +148,9 @@ These scenarios passed in V1 according to the user's manual acceptance report an
 
 | ID | Requirements | Scenario and passing result | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| A08 | W01 | Watch, pause, reopen, rescan, and restart: saved progress survives and resumes correctly; start-over and backward seeks persist | — | V2 |
+| A08 | W01 | Watch, pause, reopen, rescan, and restart: saved progress survives and resumes correctly; backward seeks, including zero, persist | — | V2 |
 | A09 | W01, W02 | Continue-watching entries are ordered correctly; finished/missing files follow the documented rule; changed roots/content cannot inherit unrelated progress | — | V2 |
-| A10 | W01 | Delayed/duplicate updates cannot overwrite newer progress or start-over; failed loading does not write zero; persistence errors leave playback usable | — | V2 |
+| A10 | W01 | Delayed/duplicate updates cannot overwrite newer progress; failed loading does not write zero; persistence errors leave playback usable | — | V2 |
 | A11 | P03, P08, P09 | Select/disable VTT/SRT/ASS/SSA external and extracted text tracks; preserve validated styles/fonts and timing across original/prepared/real-time playback | — | V2 |
 | A12 | P03, P08 | Ambiguous matches require selection; malformed/unsupported/unavailable subtitles produce feedback; outside-root access is rejected; originals remain unchanged | — | V2 |
 | A13 | P05, P06, P07 | Real samples exercise all four strategy branches; compatible streams are preserved in remux/audio-only cases; incompatible samples play and seek after preparation | — | V2 |

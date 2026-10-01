@@ -82,7 +82,7 @@ function save(session: PlaybackSessionResponse, sequence = 1) {
 	});
 }
 
-test("HTTP open/save/list/reset/release flow resumes progress and rejects delayed writes", async () => {
+test("HTTP open/save/list/release flow resumes progress and rejects delayed writes", async () => {
 	const session = await open();
 	expect(session.file.id).toBe(fileId);
 	expect(session.plan.playbackUrl).toBe(`/api/media/${fileId}`);
@@ -112,19 +112,8 @@ test("HTTP open/save/list/reset/release flow resumes progress and rejects delaye
 	});
 	const resumed = await open();
 	expect(resumed.progress.positionMs).toBe(40000);
+	expect(resumed.progress).not.toHaveProperty("revision");
 	expect((await save(session, 2)).statusCode).toBe(409);
-	const input = {
-		method: "POST" as const,
-		url: `/api/playback/sessions/${resumed.token}/start-over`,
-		headers,
-		payload: { generation: resumed.generation, requestId: "reset-1" },
-	};
-	const reset = await app.inject(input);
-	expect(reset.statusCode).toBe(200);
-	expect(reset.json().progress.positionMs).toBe(0);
-	expect(reset.json().progress.generation).toBe(resumed.generation + 1);
-	expect((await app.inject(input)).json()).toEqual(reset.json());
-	expect((await save(resumed, 2)).statusCode).toBe(409);
 	const released = await app.inject({
 		method: "DELETE",
 		url: `/api/playback/sessions/${resumed.token}`,
@@ -141,10 +130,7 @@ test("HTTP open/save/list/reset/release flow resumes progress and rejects delaye
 			})
 		).statusCode,
 	).toBe(204);
-	expect(
-		(await save({ ...resumed, generation: reset.json().progress.generation }))
-			.statusCode,
-	).toBe(409);
+	expect((await save(resumed)).statusCode).toBe(409);
 });
 
 test.each([
@@ -246,27 +232,7 @@ test.each(["0", "101", "-1", "1.5", "abc", "1&limit=2", "20&extra=1"])(
 	},
 );
 
-test("rejects malformed token and reset request without touching progress", async () => {
-	const session = await open();
-	for (const payload of [
-		{},
-		{ generation: 0, requestId: "reset" },
-		{ generation: session.generation, requestId: "" },
-		{ generation: session.generation, requestId: "x".repeat(129) },
-		{
-			generation: session.generation,
-			requestId: "reset",
-			token: session.token,
-		},
-	]) {
-		const response = await app.inject({
-			method: "POST",
-			url: `/api/playback/sessions/${session.token}/start-over`,
-			headers,
-			payload,
-		});
-		expect(response.statusCode).toBe(400);
-	}
+test("rejects malformed release tokens", async () => {
 	expect(
 		(
 			await app.inject({
@@ -276,13 +242,6 @@ test("rejects malformed token and reset request without touching progress", asyn
 			})
 		).statusCode,
 	).toBe(400);
-	const unknown = await app.inject({
-		method: "POST",
-		url: "/api/playback/sessions/00000000-0000-0000-0000-000000000000/start-over",
-		headers,
-		payload: { generation: 1, requestId: "reset" },
-	});
-	expect(unknown.statusCode).toBe(409);
 });
 
 test("checks Host and Origin on playback mutations before executing use cases", async () => {
@@ -303,11 +262,6 @@ test("checks Host and Origin on playback mutations before executing use cases", 
 				positionMs: 1000,
 				durationMs: null,
 			},
-		},
-		{
-			method: "POST" as const,
-			url: `/api/playback/sessions/${session.token}/start-over`,
-			payload: { generation: session.generation, requestId: "reset" },
 		},
 		{
 			method: "DELETE" as const,

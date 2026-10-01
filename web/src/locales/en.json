@@ -47,7 +47,10 @@
 			"INVALID_REQUEST": "The request is invalid.",
 			"REQUEST_FORBIDDEN": "This request is not allowed.",
 			"ROUTE_NOT_FOUND": "The requested endpoint was not found.",
-			"INTERNAL_ERROR": "An unexpected server error occurred."
+			"INTERNAL_ERROR": "An unexpected server error occurred.",
+			"PLAYBACK_CONFLICT": "Your playback session or file changed. Retry to reopen the session.",
+			"PLAYBACK_UNAVAILABLE": "Playback progress is unavailable. You can keep watching and retry later.",
+			"PLAYBACK_PERSISTENCE_FAILED": "Playback progress could not be loaded or saved. Please retry."
 		}
 	},
 	"library": {

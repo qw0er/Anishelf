@@ -96,7 +96,7 @@ The filesystem and SQLite are not one transaction: write/validate and rename an 
 | Record | Minimum fields | Lifecycle |
 | --- | --- | --- |
 | Root / source | Canonical root key, file ID, source version | Namespace history/cache; revalidate before use |
-| Progress | Source key, position, duration, server time, revision, session generation, sequence | Durable; original, MP4 and HLS share it |
+| Progress | Source key, position, duration, server time, session generation, sequence | Durable; original, MP4 and HLS share it |
 | Probe cache | Source version, tool/probe version, streams/duration | Regenerable |
 | Subtitle / font asset | Source/sidecar version, stream or attachment ID, format, converter version, file ID | Lazy extraction and invalidation |
 | Transcode job / prepared asset | Source, stream selections, profile/mode, state, output ID, error | Persistent queue; publish only validated completion |
@@ -137,7 +137,7 @@ Keep subtitle labels and filenames as text, and subtitle HTML escaping enabled. 
 
 Create a server-issued playback session only after a successful history read. Atomically increment its generation for that source. Each update includes source version, generation, monotonically increasing sequence, position, and duration. Reject an older generation or sequence; retrying an identical accepted update is idempotent. Check finite nonnegative times and clamp to the validated duration. Use server timestamps for ordering, never client clock order or maximum playback position.
 
-Save approximately every five seconds while playing, and on pause, completed seek, ended, and normal exit. Serialize frontend writes and coalesce periodic updates; retain the newest failed payload for visible retry. An intentional backward seek is a newer update. Start over is an explicit atomic operation that increments the session generation and saves zero; delayed pre-reset writes cannot restore old progress. The response supplies the new generation before saving resumes. After server restart, sessions must be reopened before updates are accepted. This protects one-session operation without introducing W06's multi-client reconciliation.
+Save approximately every five seconds while playing, and on pause, completed seek, ended, and normal exit. Serialize frontend writes and coalesce periodic updates; retain the newest failed payload for retry. An intentional backward seek, including seeking to zero, is a newer ordinary update within the current session generation. Opening a new session rotates the generation and rejects delayed writes from earlier sessions. After server restart, sessions must be reopened before updates are accepted. This protects one-session operation without introducing W06's multi-client reconciliation.
 
 Continue watching includes available records with positive position that are not near the end, ordered by `lastViewedAt` descending with source ID as a stable tie-breaker. Define near-end as remaining time no greater than `min(30 seconds, 5% of duration)` for a finite positive duration. An ended event stores duration as position. This only controls list membership; it does not mark an episode watched. A compact Recently watched list includes finished records as well, under the same availability checks. Missing files may be shown disabled with rescan feedback; do not delete their records. Unknown/nonfinite duration does not qualify for completion and is not persisted as a fabricated value.
 
@@ -227,7 +227,6 @@ Keep all existing V1 endpoints and their response shapes unless explicitly exten
 | `GET /api/history?view=continue\|recent` | V2 | Ordered availability-aware viewing entries |
 | `POST /api/files/:id/playback-sessions` | V2 | Read history and issue a generation; fail closed for saving on store error |
 | `PUT /api/playback-sessions/:id/progress` | V2 | Ordered, durable, idempotent update |
-| `POST /api/playback-sessions/:id/start-over` | V2 | Atomically reset position and rotate generation |
 | `POST /api/files/:id/subtitles/:trackId/prepare` | V2 | Create/reuse subtitle/font extraction; return ready asset or pending status |
 | `GET /api/subtitle-assets/:id/status` | V2 | Pending/ready/failed subtitle feedback |
 | `GET /api/subtitle-assets/:id` | V2 | Validated VTT/SRT/ASS/SSA or declared extracted format only when ready |
@@ -252,7 +251,7 @@ Keep existing directory/file URLs. Add `/tasks` and `/settings`; the shared shel
 | Screen | Layout and actions | Required states |
 | --- | --- | --- |
 | Library | Continue watching first, compact recent list, breadcrumbs, filename/size rows, scan status | Setup, unscanned, empty, loading, stale/partial scan, removed directory, retry |
-| Player | Video as focus, full filename, return link, resume/start over, subtitle/off, source badge | Loading, saving/retry, unsupported media, ready-copy selection, real-time starting/buffering/seeking, missing file |
+| Player | Video as focus, full filename, return link, automatic resume, subtitle/off, source badge | Loading, unsupported media, ready-copy selection, real-time starting/buffering/seeking, missing file |
 | Media tasks | Filename, state, reliable progress or indeterminate indicator, retry/cancel, play ready copy, delete copy, active real-time stop | Empty, queued, processing, ready, failed, insufficient space |
 | Settings | Resource root, Web playback mode and cache budget in separate groups | Validation, saved, busy |
 
@@ -271,7 +270,7 @@ The primary file action is **Watch** or **Resume**. **Copy media link** is secon
 | 5. External-player media link | V2 | Correct origin-aware URL, clipboard/selectable fallback and access checks; A16–A18 |
 | 6. Complete interface and integration | V2 | Design the shell early, finish all live workflows and visual review; A19–A21 plus A01–A18 and A22–A28 |
 
-Use Vitest for generation/sequence ordering, start-over races, source invalidation, cue conversion, job recovery, and media-link generation and encoding tests. Use real temporary files and HTTP streams for containment, ranges, asset deletion, disk-write failures, and subprocess cleanup. Frontend tests cover adapter cleanup, revalidation without reset, stale responses, and nonblocking failures. Code implementation must pass Biome check, lint, type checks, and relevant tests.
+Use Vitest for generation/sequence ordering, source invalidation, cue conversion, job recovery, and media-link generation and encoding tests. Use real temporary files and HTTP streams for containment, ranges, asset deletion, disk-write failures, and subprocess cleanup. Frontend tests cover adapter cleanup, revalidation without reset, stale responses, and nonblocking failures. Code implementation must pass Biome check, lint, type checks, and relevant tests.
 
 Record actual Linux/browser/player/tool versions and representative samples before marking V2 delivered: compatible original, container-only, audio-only, video conversion, external/embedded text subtitles, unsupported subtitles, long/Chinese filenames, and inaccessible files. Verify stream preservation using probes, and actual playback/seek/subtitle timing in the browser. Verify generated media URLs with representative paths and local/SSH-forwarded origins. Opening a native player is outside V2 acceptance.
 

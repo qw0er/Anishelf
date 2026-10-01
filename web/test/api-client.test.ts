@@ -4,6 +4,9 @@ import {
 	getDirectory,
 	getLibrary,
 	isRequestCancelled,
+	openPlaybackSession,
+	releasePlaybackSession,
+	savePlaybackProgress,
 	startScan,
 } from "../src/api/client.js";
 import type {
@@ -244,4 +247,34 @@ test("custom abort reasons are still recognized as cancellation", async () => {
 	);
 	expect(isRequestCancelled(error)).toBe(true);
 	expect(fetcher).not.toHaveBeenCalled();
+});
+
+test("playback mutations use typed payloads and release accepts an empty 204", async () => {
+	fetcher
+		.mockResolvedValueOnce(json({ token: "token" }, 201))
+		.mockResolvedValueOnce(json({ status: "saved" }))
+		.mockResolvedValueOnce(new Response(null, { status: 204 }));
+	const input = {
+		generation: 1,
+		sourceVersion: "v1",
+		sequence: 1,
+		positionMs: 1000,
+		durationMs: null,
+	};
+	await openPlaybackSession("file-1");
+	await savePlaybackProgress("token/one", input, { keepalive: true });
+	await expect(releasePlaybackSession("token/one")).resolves.toBeUndefined();
+	expect(fetcher.mock.calls[0]?.[0]).toBe("/api/playback/sessions");
+	expect(fetcher.mock.calls[0]?.[1]?.body).toBe(
+		JSON.stringify({ fileId: "file-1" }),
+	);
+	expect(fetcher.mock.calls[1]).toEqual([
+		"/api/playback/sessions/token%2Fone/progress",
+		expect.objectContaining({
+			method: "PUT",
+			body: JSON.stringify(input),
+			keepalive: true,
+		}),
+	]);
+	expect(fetcher.mock.calls[2]?.[1]?.method).toBe("DELETE");
 });

@@ -2,6 +2,7 @@ import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { FileResponse } from "../api/contracts.js";
+import { usePlaybackSession } from "../hooks/use-playback-session.js";
 import { directoryPath } from "../routes/paths.js";
 import ArtPlayer from "./art-player.js";
 import { Button, buttonStyles } from "./ui/button.js";
@@ -16,6 +17,7 @@ export default function FilePlayer({
 	onRetry(): void;
 }) {
 	const { t } = useTranslation();
+	const playback = usePlaybackSession(data.file.id);
 	return (
 		<section className="stack-page" aria-label={t("player.label")}>
 			<div className="action-row">
@@ -32,7 +34,11 @@ export default function FilePlayer({
 				</Button>
 			</div>
 			<h1 className="page-title">{data.file.name}</h1>
-			<ArtPlayer {...data} />
+			<ArtPlayer
+				{...data}
+				playbackUrl={playback.session?.plan.playbackUrl ?? data.playbackUrl}
+				onMedia={playback.attach}
+			/>
 		</section>
 	);
 }

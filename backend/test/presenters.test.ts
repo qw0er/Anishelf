@@ -106,7 +106,6 @@ test("playback presenters omit storage identities and internal additions", () =>
 		positionMs: 1000,
 		durationMs: 100000,
 		lastViewedAtMs: 1000,
-		revision: 1,
 		generation: 1,
 		lastSequence: 1,
 		canonicalPath: "/private/media",

@@ -18,6 +18,7 @@ import type {
 	DirectoryResponse,
 	FileResponse,
 	LibraryResponse,
+	PlaybackSessionResponse,
 	ScanStateDto,
 	SettingsResponse,
 } from "../src/api/contracts.js";
@@ -110,6 +111,43 @@ beforeEach(() => {
 	fetcher.mockReset();
 	fetcher.mockImplementation(async (input, init) => {
 		const path = String(input);
+		if (path === "/api/playback/sessions") {
+			return json(
+				{
+					token: "session-token",
+					generation: 1,
+					sourceVersion: "version",
+					file: file.file,
+					plan: { mode: "direct", playbackUrl: file.playbackUrl },
+					progress: {
+						positionMs: 0,
+						durationMs: 100000,
+						lastViewedAtMs: null,
+						generation: 1,
+						lastSequence: 0,
+					},
+				} satisfies PlaybackSessionResponse,
+				201,
+			);
+		}
+		if (path === "/api/playback/sessions/session-token/progress") {
+			const input = JSON.parse(String(init?.body));
+			return json({
+				status: "saved",
+				progress: {
+					positionMs: input.positionMs,
+					durationMs: input.durationMs,
+					generation: input.generation,
+					lastSequence: input.sequence,
+					lastViewedAtMs: 1,
+				},
+			});
+		}
+		if (
+			path === "/api/playback/sessions/session-token" &&
+			init?.method === "DELETE"
+		)
+			return new Response(null, { status: 204 });
 		if (path === "/api/settings") {
 			if (init?.method === "PUT") {
 				settings = JSON.parse(String(init.body)) as SettingsResponse;
@@ -174,8 +212,10 @@ beforeEach(() => {
 	vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
 });
 
-afterEach(() => {
+afterEach(async () => {
 	cleanup();
+	vi.useRealTimers();
+	await new Promise((resolve) => setTimeout(resolve, 0));
 	expect(Artplayer.instances).toHaveLength(0);
 	for (const router of routers) router.dispose();
 	routers.length = 0;
@@ -696,4 +736,161 @@ test("an unavailable library shows the error, and refresh recovers scanning", as
 	expect(
 		screen.queryByText("The resource directory is unavailable."),
 	).toBeNull();
+});
+
+test("StrictMode opens one session, restores server history, saves seeks including zero with the same generation", async () => {
+	const implementation = fetcher.getMockImplementation();
+	fetcher.mockImplementation((input, init) => {
+		if (String(input) === "/api/playback/sessions")
+			return Promise.resolve(
+				json(
+					{
+						token: "session-token",
+						generation: 1,
+						sourceVersion: "version",
+						file: file.file,
+						plan: { mode: "direct", playbackUrl: file.playbackUrl },
+						progress: {
+							positionMs: 40000,
+							durationMs: 100000,
+							lastViewedAtMs: 1,
+							generation: 1,
+							lastSequence: 0,
+						},
+					},
+					201,
+				),
+			);
+		if (!implementation) throw new Error("Missing mock");
+		return implementation(input, init);
+	});
+	renderApp("/files/file-1", true);
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(([path]) => path === "/api/playback/sessions"),
+		).toBe(true),
+	);
+	const video = await screen.findByLabelText<HTMLVideoElement>(
+		"Video: Episode 01.mp4",
+	);
+	Object.defineProperty(video, "duration", { value: 100 });
+	fireEvent.loadedMetadata(video);
+	await act(async () => {});
+	expect(video.currentTime).toBe(40);
+	expect(
+		fetcher.mock.calls.filter(([path]) => path === "/api/playback/sessions"),
+	).toHaveLength(1);
+	expect(
+		fetcher.mock.calls.filter(([path]) => String(path).endsWith("/progress")),
+	).toHaveLength(0);
+	video.currentTime = 10;
+	fireEvent.seeked(video);
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(
+				([path, init]) =>
+					String(path).endsWith("/progress") &&
+					JSON.parse(String(init?.body)).positionMs === 10000,
+			),
+		).toBe(true),
+	);
+	video.currentTime = 0;
+	fireEvent.seeked(video);
+	video.currentTime = 2;
+	fireEvent.seeked(video);
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(
+				([path, init]) =>
+					String(path).endsWith("/progress") &&
+					JSON.parse(String(init?.body)).generation === 1 &&
+					JSON.parse(String(init?.body)).positionMs === 2000,
+			),
+		).toBe(true),
+	);
+});
+
+test("normal navigation saves in the background, then releases the session", async () => {
+	const implementation = fetcher.getMockImplementation();
+	let resolveSave: ((value: Response) => void) | undefined;
+	fetcher.mockImplementation((input, init) => {
+		if (String(input).endsWith("/progress"))
+			return new Promise<Response>((resolve) => {
+				resolveSave = resolve;
+			});
+		if (!implementation) throw new Error("Missing mock");
+		return implementation(input, init);
+	});
+	renderApp("/files/file-1");
+	const video = await screen.findByLabelText<HTMLVideoElement>(
+		"Video: Episode 01.mp4",
+	);
+	Object.defineProperty(video, "duration", { value: 100 });
+	fireEvent.loadedMetadata(video);
+	await act(async () => {});
+	video.currentTime = 15;
+	fireEvent.click(screen.getByRole("link", { name: "Back to files" }));
+	await screen.findByRole("link", { name: "Episode 01.mp4" });
+	await waitFor(() => expect(resolveSave).toBeDefined());
+	await act(async () =>
+		resolveSave?.(
+			json({
+				status: "saved",
+				progress: {
+					positionMs: 15000,
+					durationMs: 100000,
+					generation: 1,
+					lastSequence: 1,
+					lastViewedAtMs: 1,
+				},
+			}),
+		),
+	);
+	await screen.findByRole("link", { name: "Episode 01.mp4" });
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(
+				([path, init]) =>
+					path === "/api/playback/sessions/session-token" &&
+					init?.method === "DELETE",
+			),
+		).toBe(true),
+	);
+});
+
+test("failed final saves do not show session messages or block navigation", async () => {
+	const implementation = fetcher.getMockImplementation();
+	fetcher.mockImplementation((input, init) => {
+		if (String(input).endsWith("/progress"))
+			return Promise.resolve(
+				json(
+					{
+						error: {
+							code: "PLAYBACK_PERSISTENCE_FAILED",
+							message: "Failed",
+							requestId: "id",
+						},
+					},
+					500,
+				),
+			);
+		if (!implementation) throw new Error("Missing mock");
+		return implementation(input, init);
+	});
+	renderApp("/files/file-1");
+	const video = await screen.findByLabelText<HTMLVideoElement>(
+		"Video: Episode 01.mp4",
+	);
+	Object.defineProperty(video, "duration", { value: 100 });
+	fireEvent.loadedMetadata(video);
+	await act(async () => {});
+	video.currentTime = 15;
+	fireEvent.click(screen.getByRole("link", { name: "Back to files" }));
+	await screen.findByRole("link", { name: "Episode 01.mp4" });
+	expect(
+		screen.queryByText(
+			"Playback progress could not be loaded or saved. Please retry.",
+		),
+	).toBeNull();
+	expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();
 });

@@ -8,13 +8,11 @@ import { DomainError } from "../errors.js";
 import type {
 	ContinueWatchingItem,
 	ContinueWatchingResult,
-	PlaybackProgress,
 	PlaybackSession,
 	PlaybackSourceIdentity,
 	ResolvedPlaybackSource,
 	SavePlaybackProgress,
 	SavePlaybackProgressResult,
-	StartOverPlayback,
 } from "../playback/model.js";
 import type { LibraryApplication } from "./library.js";
 
@@ -24,7 +22,6 @@ interface PlaybackSessionState {
 	rootEpoch: number;
 	generation: number;
 	touchedAtMs: number;
-	reset?: { requestId: string; generation: number; progress: PlaybackProgress };
 }
 const sessionIdleMs = 30 * 60 * 1000;
 const maximumSessions = 1000;
@@ -110,40 +107,6 @@ export class PlaybackApplication {
 		if (result.status === "stale") this.conflict();
 		session.touchedAtMs = this.now();
 		return result;
-	}
-
-	async startOver(input: StartOverPlayback): Promise<PlaybackProgress> {
-		if (
-			!Number.isSafeInteger(input.generation) ||
-			input.generation < 1 ||
-			!input.requestId ||
-			input.requestId.length > 128
-		)
-			throw new DomainError("INVALID_REQUEST", "Invalid start-over request.");
-		const session = this.session(input.token);
-		await this.revalidate(input.token, session);
-		if (session.reset?.requestId === input.requestId) {
-			if (session.reset.generation !== input.generation) this.conflict();
-			session.touchedAtMs = this.now();
-			return { ...session.reset.progress };
-		}
-		if (session.generation !== input.generation) this.conflict();
-		const progress = this.persist(() =>
-			this.repository().startOver(
-				session.sourceId,
-				input.generation,
-				this.now(),
-			),
-		);
-		if (!progress) this.conflict();
-		session.generation = progress.generation;
-		session.touchedAtMs = this.now();
-		session.reset = {
-			requestId: input.requestId,
-			generation: input.generation,
-			progress,
-		};
-		return { ...progress };
 	}
 
 	async continueWatching(limit = 20): Promise<ContinueWatchingResult> {

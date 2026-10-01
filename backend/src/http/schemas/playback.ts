@@ -26,7 +26,6 @@ export const PlaybackProgressDtoSchema = Type.Object(
 		positionMs: NonnegativeIntegerSchema,
 		durationMs: durationSchema,
 		lastViewedAtMs: Type.Union([NonnegativeIntegerSchema, Type.Null()]),
-		revision: NonnegativeIntegerSchema,
 		generation: PositiveIntegerSchema,
 		lastSequence: NonnegativeIntegerSchema,
 	},
@@ -65,17 +64,6 @@ export const SavePlaybackProgressResponseSchema = Type.Object(
 		status: Type.Union([Type.Literal("saved"), Type.Literal("duplicate")]),
 		progress: PlaybackProgressDtoSchema,
 	},
-	{ additionalProperties: false },
-);
-export const StartOverPlaybackRequestSchema = Type.Object(
-	{
-		generation: PositiveIntegerSchema,
-		requestId: Type.String({ minLength: 1, maxLength: 128 }),
-	},
-	{ additionalProperties: false },
-);
-export const StartOverPlaybackResponseSchema = Type.Object(
-	{ progress: PlaybackProgressDtoSchema },
 	{ additionalProperties: false },
 );
 export const ContinueWatchingQuerySchema = Type.Object(

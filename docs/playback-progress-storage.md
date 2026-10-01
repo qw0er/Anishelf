@@ -1,6 +1,6 @@
 # Playback Progress Storage (W01, W02)
 
-Status: the database foundation is implemented (schema, migrations, connection lifecycle, and repository). Playback application session authorization, source fingerprint collection, and available-source candidate filtering are implemented. HTTP APIs are implemented with separate public contracts and presenters. Player/list UI integration remains planned.
+Status: the database foundation is implemented (schema, migrations, connection lifecycle, and repository). Playback application session authorization, source fingerprint collection, and available-source candidate filtering are implemented. Migration `0001_remove_progress_revision` removes the unused revision column while preserving existing progress. HTTP APIs are implemented with separate public contracts and presenters. Frontend playback session management is integrated, including resume, automatic saves, ordinary backward seeks to zero, and cleanup. Session management runs without player status messages. Continue watching list UI remains planned.
 
 This plan specializes the V2 persistence design in `current-version-design.md` for saved progress, resume, and Continue watching. Use SQLite at `dataDir/anishelf.sqlite`, Drizzle repositories, and reviewed versioned SQL migrations. User settings remain in `settings.json`; the library index remains rebuildable in memory.
 
@@ -43,8 +43,7 @@ Retain old source versions and their progress when files disappear or change. A 
 | `position_ms` | INTEGER | NOT NULL, >= 0; last accepted source-time position |
 | `duration_ms` | INTEGER | Nullable; positive known duration, otherwise NULL |
 | `last_viewed_at_ms` | INTEGER | Nullable until the first accepted save; server time |
-| `revision` | INTEGER | NOT NULL, >= 0; increment on each accepted mutation |
-| `generation` | INTEGER | NOT NULL, >= 1; identifies the current playback session/reset |
+| `generation` | INTEGER | NOT NULL, >= 1; identifies the current playback session |
 | `last_sequence` | INTEGER | NOT NULL, >= 0; latest accepted update within this generation |
 
 Require `position_ms <= duration_ms` when duration is known. Validate finite times and safe integer ranges before conversion from browser seconds. Reject invalid supplied durations; use NULL when duration is legitimately unknown. A new session may create an initial zero row with no viewing time, but that row must not enter viewing lists.
@@ -57,9 +56,8 @@ Keep active session tokens and their source/generation bindings in memory. Their
 
 1. Resolve the current source safely and read its saved progress. On failure, keep playback usable, report the failure, and disable saving until a successful retry.
 2. Open a session transactionally: create/reuse the source and progress rows, increment the generation for an existing row, reset `last_sequence` to zero, and return history plus a server-issued token. Opening alone preserves position, duration, and last viewing time. Publish the token only after commit.
-3. Each save supplies the token, source version, generation, sequence, position, and duration. Check the active root and source validity before acceptance. Require the current generation and a strictly increasing sequence. Commit values, revision, and server viewing time atomically. Backward seeks are valid newer updates.
-4. A retry of the latest accepted sequence is successful only when its normalized position/duration match the stored values. It changes neither revision nor viewing time. A differing payload or an older sequence is rejected. This makes ambiguous network retries safe without an event-log table.
-5. Start over requires the current session/generation and a request ID. Atomically increment generation, reset sequence and position, increment revision, and update viewing time. Return the new generation before writes resume. Retain successful reset responses in a bounded in-memory request-ID cache so a lost response can be retried safely during that session. Delayed writes from before reset are rejected.
+3. Each save supplies the token, source version, generation, sequence, position, and duration. Check the active root and source validity before acceptance. Require the current generation and a strictly increasing sequence. Commit values and server viewing time atomically. Backward seeks, including seeking to zero, are ordinary newer updates within the current generation.
+4. A retry of the latest accepted sequence is successful only when its normalized position/duration match the stored values. It leaves viewing time unchanged. A differing payload or an older sequence is rejected. This makes ambiguous network retries safe without an event-log table.
 
 Opening another session for the same source supersedes the previous writer. Report that conflict; do not silently merge clients. This implements the selected stale-update protection without adding W06 reconciliation. Invalidate tokens on root switches and release them on exit; bound inactive session lifetime and memory usage.
 
@@ -85,7 +83,7 @@ Implement in this order:
 
 1. Database startup, reviewed migrations, and resource/source identity access.
 2. Progress repository transactions and session lifecycle.
-3. History/session/save/start-over APIs and ArtPlayer resume/save integration.
+3. History/session/save APIs and ArtPlayer resume/save integration.
 4. Continue watching queries and library UI.
 
-Verify restart/rescan survival; root and source-version isolation; unknown duration; backward seeks; duplicate/delayed writes; reset retries; failed reads without zero overwrite; durable save failures; and filtering/ordering around the near-end boundary. Code changes must pass Biome check and lint, with repository and API tests for these persistence rules.
+Verify restart/rescan survival; root and source-version isolation; unknown duration; backward seeks; duplicate/delayed writes; failed reads without zero overwrite; durable save failures; and filtering/ordering around the near-end boundary. Code changes must pass Biome check and lint, with repository and API tests for these persistence rules.

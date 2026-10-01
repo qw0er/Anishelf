@@ -15,8 +15,6 @@ import {
 	PlaybackTokenParamsSchema,
 	SavePlaybackProgressRequestSchema,
 	SavePlaybackProgressResponseSchema,
-	StartOverPlaybackRequestSchema,
-	StartOverPlaybackResponseSchema,
 } from "./schemas/index.js";
 
 export function registerPlaybackRoutes(
@@ -67,24 +65,6 @@ export function registerPlaybackRoutes(
 					progress: playbackProgressDto(result.progress),
 				};
 			},
-		);
-		scope.post(
-			"/api/playback/sessions/:token/start-over",
-			{
-				schema: {
-					params: PlaybackTokenParamsSchema,
-					body: StartOverPlaybackRequestSchema,
-					response: { 200: StartOverPlaybackResponseSchema },
-				},
-			},
-			async (request) => ({
-				progress: playbackProgressDto(
-					await playback.startOver({
-						...request.body,
-						token: request.params.token,
-					}),
-				),
-			}),
 		);
 		scope.delete(
 			"/api/playback/sessions/:token",

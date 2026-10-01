@@ -90,31 +90,6 @@ test("opens direct playback, resumes history, and invalidates superseded tokens"
 	});
 });
 
-test("retries resets idempotently and rejects pre-reset and out-of-order saves", async () => {
-	const session = await playback.open(fileId);
-	await playback.save(update(session, 2));
-	await expect(playback.save(update(session, 1))).rejects.toMatchObject({
-		code: "PLAYBACK_CONFLICT",
-	});
-	const input = {
-		token: session.token,
-		generation: session.generation,
-		requestId: "reset-1",
-	};
-	const reset = await playback.startOver(input);
-	now += 100;
-	expect(await playback.startOver(input)).toEqual(reset);
-	await expect(playback.save(update(session, 3))).rejects.toMatchObject({
-		code: "PLAYBACK_CONFLICT",
-	});
-	await playback.save({
-		...update(session),
-		generation: reset.generation,
-		positionMs: 1000,
-	});
-	expect(database.playback.get(reset.sourceId)?.positionMs).toBe(1000);
-});
-
 test("replacement content cannot inherit history or accept saves from the old source", async () => {
 	const session = await playback.open(fileId);
 	await playback.save(update(session));

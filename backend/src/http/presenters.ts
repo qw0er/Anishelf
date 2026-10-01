@@ -117,7 +117,6 @@ export function playbackProgressDto(
 		positionMs: progress.positionMs,
 		durationMs: progress.durationMs,
 		lastViewedAtMs: progress.lastViewedAtMs,
-		revision: progress.revision,
 		generation: progress.generation,
 		lastSequence: progress.lastSequence,
 	};

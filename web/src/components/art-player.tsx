@@ -72,7 +72,11 @@ function enableKeyboardControls(player: Artplayer) {
 	});
 }
 
-export default function ArtPlayer({ file, playbackUrl }: FileResponse) {
+export default function ArtPlayer({
+	file,
+	playbackUrl,
+	onMedia,
+}: FileResponse & { onMedia?(video: HTMLVideoElement | null): void }) {
 	const { t } = useTranslation();
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -97,6 +101,7 @@ export default function ArtPlayer({ file, playbackUrl }: FileResponse) {
 			t("player.videoLabel", { name: file.name }),
 		);
 		enableKeyboardControls(player);
+		onMedia?.(player.video);
 		player.on("video:error", async () => {
 			setError(t("errors.mediaPlayback"));
 			errorRequest?.abort();
@@ -112,10 +117,11 @@ export default function ArtPlayer({ file, playbackUrl }: FileResponse) {
 		});
 		return () => {
 			errorRequest?.abort();
+			onMedia?.(null);
 			player.pause();
 			player.destroy();
 		};
-	}, [file.id, file.name, playbackUrl, t]);
+	}, [file.id, file.name, playbackUrl, t, onMedia]);
 
 	return (
 		<>

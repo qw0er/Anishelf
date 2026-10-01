@@ -22,7 +22,6 @@ function toPlaybackProgress(row: PlaybackProgressRow): PlaybackProgress {
 		positionMs: row.positionMs,
 		durationMs: row.durationMs,
 		lastViewedAtMs: row.lastViewedAtMs,
-		revision: row.revision,
 		generation: row.generation,
 		lastSequence: row.lastSequence,
 	};
@@ -183,7 +182,6 @@ export class PlaybackRepository {
 						positionMs,
 						durationMs: update.durationMs,
 						lastViewedAtMs: nowMs,
-						revision: current.revision + 1,
 						lastSequence: update.sequence,
 					})
 					.where(eq(playbackProgress.sourceId, update.sourceId))
@@ -196,34 +194,6 @@ export class PlaybackRepository {
 		);
 	}
 
-	startOver(
-		sourceId: string,
-		generation: number,
-		nowMs = Date.now(),
-	): PlaybackProgress | undefined {
-		integer(generation, 1);
-		integer(nowMs, 0);
-		const row = this.store
-			.update(playbackProgress)
-			.set({
-				positionMs: 0,
-				generation: sql`${playbackProgress.generation} + 1`,
-				lastSequence: 0,
-				revision: sql`${playbackProgress.revision} + 1`,
-				lastViewedAtMs: nowMs,
-			})
-			.where(
-				and(
-					eq(playbackProgress.sourceId, sourceId),
-					eq(playbackProgress.generation, generation),
-				),
-			)
-			.returning()
-			.get();
-		return row ? toPlaybackProgress(row) : undefined;
-	}
-
-	/** Ordered database candidates only; callers must filter live availability. */
 	listContinueWatching(
 		rootId: string,
 		limit = 20,

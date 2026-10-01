@@ -3,7 +3,10 @@ import type {
 	DirectoryResponse,
 	FileResponse,
 	LibraryResponse,
+	PlaybackSessionResponse,
 	ResourceId,
+	SavePlaybackProgressRequest,
+	SavePlaybackProgressResponse,
 	ScanResponse,
 	SettingsResponse,
 	UpdateSettingsRequest,
@@ -37,6 +40,7 @@ export class ApiClientError extends Error {
 
 export interface RequestOptions {
 	signal?: AbortSignal;
+	keepalive?: boolean;
 }
 
 /** Cancellation remains separate from errors a view should display. */
@@ -74,9 +78,9 @@ function isApiError(value: unknown): value is PublicApiError {
 /** Uses same-origin /api URLs through the Vite proxy or production server. */
 async function request<T>(
 	path: string,
-	method: "GET" | "POST" | "PUT",
-	{ signal }: RequestOptions = {},
-	payload?: UpdateSettingsRequest,
+	method: "GET" | "POST" | "PUT" | "DELETE",
+	{ signal, keepalive }: RequestOptions = {},
+	payload?: object,
 ): Promise<T> {
 	throwIfCancelled(signal);
 	let response: Response;
@@ -91,6 +95,7 @@ async function request<T>(
 			credentials: "same-origin",
 			cache: "no-store",
 			...(signal ? { signal } : {}),
+			...(keepalive ? { keepalive: true } : {}),
 		});
 	} catch (cause) {
 		throwIfCancelled(signal);
@@ -103,6 +108,7 @@ async function request<T>(
 		});
 	}
 	throwIfCancelled(signal);
+	if (response.ok && response.status === 204) return undefined as T;
 	const requestId = response.headers.get("x-request-id");
 	let body: unknown;
 	try {
@@ -179,6 +185,35 @@ export function getFile(
 	return request<FileResponse>(
 		`/api/files/${encodeURIComponent(id)}`,
 		"GET",
+		options,
+	);
+}
+
+export function openPlaybackSession(
+	fileId: ResourceId,
+	options?: RequestOptions,
+): Promise<PlaybackSessionResponse> {
+	return request("/api/playback/sessions", "POST", options, { fileId });
+}
+export function savePlaybackProgress(
+	token: string,
+	progress: SavePlaybackProgressRequest,
+	options?: RequestOptions,
+): Promise<SavePlaybackProgressResponse> {
+	return request(
+		`/api/playback/sessions/${encodeURIComponent(token)}/progress`,
+		"PUT",
+		options,
+		progress,
+	);
+}
+export function releasePlaybackSession(
+	token: string,
+	options?: RequestOptions,
+): Promise<void> {
+	return request(
+		`/api/playback/sessions/${encodeURIComponent(token)}`,
+		"DELETE",
 		options,
 	);
 }

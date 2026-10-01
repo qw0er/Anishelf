@@ -20,7 +20,6 @@ export interface PlaybackProgress {
 	positionMs: number;
 	durationMs: number | null;
 	lastViewedAtMs: number | null;
-	revision: number;
 	generation: number;
 	lastSequence: number;
 }
@@ -68,12 +67,6 @@ export interface SavePlaybackProgress {
 	sequence: number;
 	positionMs: number;
 	durationMs: number | null;
-}
-
-export interface StartOverPlayback {
-	token: string;
-	generation: number;
-	requestId: string;
 }
 
 export interface ContinueWatchingItem {

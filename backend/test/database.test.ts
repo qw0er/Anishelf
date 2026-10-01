@@ -1,7 +1,17 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	copyFile,
+	mkdir,
+	mkdtemp,
+	readFile,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ApplicationDatabase } from "../src/database/index.js";
 
@@ -23,6 +33,75 @@ afterEach(async () => {
 });
 
 describe("playback persistence", () => {
+	it("upgrades legacy progress without losing history or weakening constraints", async () => {
+		const legacyDir = join(directory, "legacy");
+		const migrationDir = join(directory, "legacy-migrations");
+		await mkdir(legacyDir);
+		await mkdir(join(migrationDir, "meta"), { recursive: true });
+		const migrations = fileURLToPath(
+			new URL("../migrations/", import.meta.url),
+		);
+		const journal = JSON.parse(
+			await readFile(join(migrations, "meta/_journal.json"), "utf8"),
+		);
+		journal.entries = journal.entries.slice(0, 1);
+		await writeFile(
+			join(migrationDir, "meta/_journal.json"),
+			JSON.stringify(journal),
+		);
+		await copyFile(
+			join(migrations, "0000_playback_progress.sql"),
+			join(migrationDir, "0000_playback_progress.sql"),
+		);
+		const raw = new Database(join(legacyDir, "anishelf.sqlite"));
+		try {
+			migrate(drizzle(raw), { migrationsFolder: migrationDir });
+			raw.exec(
+				"INSERT INTO resource_roots VALUES ('root', '/media', 1); INSERT INTO media_sources VALUES ('source', 'root', 'file', 'episode.mp4', 'v1', 1); INSERT INTO playback_progress VALUES ('source', 45000, 100000, 10, 9, 7, 3);",
+			);
+		} finally {
+			raw.close();
+		}
+		const upgraded = ApplicationDatabase.open(legacyDir);
+		try {
+			expect(upgraded.playback.get("source")).toEqual({
+				sourceId: "source",
+				positionMs: 45000,
+				durationMs: 100000,
+				lastViewedAtMs: 10,
+				generation: 7,
+				lastSequence: 3,
+			});
+			const inspection = new Database(join(legacyDir, "anishelf.sqlite"));
+			try {
+				expect(
+					inspection.prepare("PRAGMA table_info(playback_progress)").all(),
+				).not.toEqual(
+					expect.arrayContaining([
+						expect.objectContaining({ name: "revision" }),
+					]),
+				);
+				expect(inspection.prepare("PRAGMA foreign_key_check").all()).toEqual(
+					[],
+				);
+				expect(() =>
+					inspection.exec("UPDATE playback_progress SET generation = 0"),
+				).toThrow();
+				expect(
+					inspection
+						.prepare(
+							"SELECT sql FROM sqlite_master WHERE name = 'progress_recent'",
+						)
+						.get(),
+				).toEqual({ sql: expect.stringContaining('"last_viewed_at_ms" desc') });
+			} finally {
+				inspection.close();
+			}
+		} finally {
+			upgraded.close();
+		}
+	});
+
 	it("applies migrations once, persists across reopen, and isolates roots and versions", () => {
 		const source = database.playback.registerSource(identity, 1);
 		expect(database.playback.registerSource(identity, 2)).toEqual(source);
@@ -56,7 +135,7 @@ describe("playback persistence", () => {
 		try {
 			expect(
 				raw.prepare("SELECT count(*) AS count FROM __drizzle_migrations").get(),
-			).toEqual({ count: 1 });
+			).toEqual({ count: 2 });
 			expect(raw.pragma("journal_mode", { simple: true })).toBe("wal");
 		} finally {
 			raw.close();
@@ -82,17 +161,15 @@ describe("playback persistence", () => {
 		expect(
 			database.playback.save({ ...backward, positionMs: 25000 }).status,
 		).toBe("stale");
-		const reset = database.playback.startOver(source.id, row.generation, 50);
-		expect(reset?.positionMs).toBe(0);
-		expect(database.playback.save({ ...backward, sequence: 3 }).status).toBe(
+		const zero = { ...backward, sequence: 3, positionMs: 0 };
+		expect(database.playback.save(zero, 50).status).toBe("saved");
+		const reopened = database.playback.openGeneration(source.id);
+		expect(reopened.generation).toBe(row.generation + 1);
+		expect(reopened.positionMs).toBe(0);
+		expect(reopened.lastViewedAtMs).toBe(50);
+		expect(database.playback.save({ ...zero, sequence: 4 }).status).toBe(
 			"stale",
 		);
-		expect(
-			database.playback.startOver(source.id, row.generation),
-		).toBeUndefined();
-		const reopened = database.playback.openGeneration(source.id);
-		expect(reopened.generation).toBe((reset?.generation ?? 0) + 1);
-		expect(reopened.lastViewedAtMs).toBe(50);
 	});
 
 	it("filters near-end candidates, retains unknown duration, and orders within a root", () => {

@@ -534,8 +534,32 @@ timers are cleaned up when scanning stops or the layout unmounts. Playback clean
 creates a fresh instance and destroys the previous instance when React
 StrictMode replays effects during development. Leaving the player aborts pending
 access rechecks, pauses playback, and destroys the instance to release its source,
-event listeners, and player DOM. Subtitle rendering, saved progress, and
-transcoding remain planned V2 capabilities.
+event listeners, and player DOM. Subtitle rendering and transcoding remain planned V2 capabilities.
+
+`hooks/use-playback-session.ts` adapts the player and router to
+`playback/session.ts`. Opening a file creates a server session and reads saved
+progress. The controller waits for video metadata, restores the saved source-time
+position, and enables writes only after restoration succeeds. ArtPlayer does not
+maintain a separate local resume record. Playback remains usable when session
+creation fails, with progress saving disabled until an explicit retry.
+
+While playing, progress is saved approximately every five seconds, plus pause,
+completed seek, and ended events. Writes are serialized; queued samples are
+coalesced to the newest position. Each payload carries the session generation,
+source version, and an increasing sequence. An ambiguous failed request keeps its
+sequence for an identical retry. Errors stop automatic writes; Retry file recreates the player and session.
+Session status and persistence errors are not displayed in the player.
+Seeking to zero saves an ordinary position update within the same generation.
+
+
+Route departure proceeds immediately. Unmount captures the final position,
+finishes outstanding saves in the background, and releases the token; failed
+saves do not block navigation. Remounts for
+the same file wait for this cleanup, including StrictMode effect replay. Each
+request has a five-second timeout. A `pagehide` event attempts a final fetch with
+`keepalive`; closing a tab or terminating a browser cannot guarantee delivery, so
+server idle expiry handles abandoned tokens. Continue watching list UI remains
+planned.
 
 Icons are named imports from `lucide-react`, following the
 [Lucide React guide](https://lucide.dev/guide/react/getting-started). Buttons retain
@@ -586,18 +610,18 @@ alongside `dist`; do not use runtime schema push. Generate future migrations wit
 
 `ApplicationDatabase` owns the connection and exposes `playback`, a synchronous
 repository for source registration, progress reads, generation opening, conditional
-saves, start-over, and ordered Continue watching candidates. Callers must supply a
+saves and ordered Continue watching candidates. Callers must supply a
 canonical root and a source version derived from safely opened file metadata.
 Registration does not perform filesystem access. Candidate queries do not assert
 availability; the application must validate the active scan and source version
 before producing playback links. Playback application sessions and filesystem identity collection are implemented
-as described below. HTTP endpoints are registered; player integration remains planned.
+as described below. HTTP endpoints and frontend playback session management are integrated; Continue watching list UI remains planned.
 
 The connection enables foreign keys, a five-second busy timeout, WAL, and FULL
 synchronous mode. Generation opening and save decisions use short immediate
-transactions. Accepted saves increment revision; duplicate retries leave viewing
-time unchanged. Start-over conditionally replaces the current generation in one
-statement. Server restart loses application session tokens; callers must open a new
+transactions. Duplicate retries leave viewing time unchanged. Migration
+`0001_remove_progress_revision` preserves existing progress while removing its
+unused revision column. Server restart loses application session tokens; callers must open a new
 generation before resuming writes.
 
 Normal HTTP shutdown closes the connection. Database initialization failure logs
@@ -616,7 +640,7 @@ must use SQLite's backup API. Never remove source/progress rows as cache cleanup
 `backend/src/application/playback.ts` coordinates `LibraryApplication` and
 `PlaybackRepository`. The startup entry point constructs it with the database
 repository when available and closes it before closing the database. HTTP routes
-call these use cases; the Web player is not connected yet.
+call these use cases; the Web player opens sessions and saves progress.
 
 - `open(fileId)` safely resolves the current source, registers its identity,
   successfully reads history, opens a new generation, and returns a random session
@@ -625,9 +649,6 @@ call these use cases; the Web player is not connected yet.
 - `save(input)` validates integer millisecond values, checks the token and generation,
   revalidates the current root/file version, and delegates the ordered save to the
   repository. Stale updates produce `PLAYBACK_CONFLICT`.
-- `startOver(input)` resets progress using the current generation. The most recent
-  successful reset request ID and response are retained per session for retry;
-  retrying it does not reset the database again. Clients must serialize resets.
 - `continueWatching(limit)` filters ordered repository candidates against the
   current scan and safely inspected source versions. The display limit is applied
   after filtering, with database candidates read in batches of 100. An unscanned
@@ -641,7 +662,7 @@ replacement and is not a content hash. `LibraryApplication` exposes source/root
 resolution and a root epoch that changes on settings root switches, including a
 switch away and back to the same directory.
 
-Sessions expire after 30 minutes of inactivity; saves and reset retries renew
+Sessions expire after 30 minutes of inactivity; saves renew
 activity. Pruning occurs during session operations and at most 1,000 sessions are
 retained. No session survives restart. Repository errors are logged and wrapped
 as `PLAYBACK_PERSISTENCE_FAILED`; an unavailable database produces
@@ -662,7 +683,6 @@ Closing the HTTP app closes playback sessions before the database connection.
 | --- | --- | --- | --- |
 | POST | `/api/playback/sessions` | `{ fileId }` | 201: `{ token, generation, sourceVersion, file, plan, progress }` |
 | PUT | `/api/playback/sessions/:token/progress` | `{ generation, sourceVersion, sequence, positionMs, durationMs }` | 200: `{ status: "saved" or "duplicate", progress }` |
-| POST | `/api/playback/sessions/:token/start-over` | `{ generation, requestId }` | 200: `{ progress }` |
 | DELETE | `/api/playback/sessions/:token` | Session token in path | 204 with no body; repeated release is harmless |
 | GET | `/api/continue-watching` | Optional `?limit=20`, range 1–100 | 200: `{ availability, items: [{ file, progress }] }` |
 
@@ -675,7 +695,7 @@ Host, Origin, and Fetch Metadata checks. Playback responses use `Cache-Control:
 no-store`.
 
 Public `progress` contains `positionMs`, nullable `durationMs`, nullable
-`lastViewedAtMs`, `revision`, `generation`, and `lastSequence`. Millisecond
+`lastViewedAtMs`, `generation`, and `lastSequence`. Millisecond
 values, generations, and sequences must be safe JSON integers; unknown duration
 is explicitly `null`, while known duration must be positive. Extra request
 properties and missing required fields are rejected. The list limit is parsed
@@ -684,10 +704,7 @@ Public file metadata is projected by the existing file presenter; internal sourc
 IDs, root identities, filesystem paths, and storage records are not returned.
 
 Clients retain the token, source version, and generation from session creation,
-and serialize progress writes with increasing sequence numbers. A successful
-start-over returns a new generation and resets the sequence; use a stable reset
-`requestId` when retrying the same operation. That ID is independent of the
-server-generated `x-request-id` used for HTTP diagnostics. Save the final position
+and serialize writes with increasing sequence numbers. Save the final position
 before releasing the session; release itself does not write progress.
 
 `PLAYBACK_CONFLICT` returns 409 for expired, superseded, or incompatible sessions

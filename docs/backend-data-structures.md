@@ -46,10 +46,9 @@ inferred from these same schemas. Presenters retain explicit field projection.
 | `DirectoryResponse` | `GET /api/directories/:id` result |
 | `FileResponse` | `GET /api/files/:id` metadata and direct playback URL |
 | `ApiErrorResponse` | Safe error code, message, and request ID |
-| `PlaybackProgressDto` | Public position, duration, viewing time and revision/generation/sequence |
+| `PlaybackProgressDto` | Public position, duration, viewing time and generation/sequence |
 | `OpenPlaybackRequest`, `PlaybackSessionResponse` | Session opening input and output |
 | `SavePlaybackProgressRequest`, `SavePlaybackProgressResponse` | Progress update and accepted/duplicate result |
-| `StartOverPlaybackRequest`, `StartOverPlaybackResponse` | Idempotent reset input and new progress |
 | `ContinueWatchingResponse` | Availability state and filtered file/progress entries |
 
 The scan schema reuses private common fields for its state union. `errors.ts` owns
@@ -89,7 +88,7 @@ fields. Additional internal fields are not automatically serialized.
 ## Playback Data
 
 The following types are owned by `playback/model.ts` and are backend business
-data. Playback-session, progress-save, start-over, release, and continue-watching
+data. Playback-session, progress-save, release, and continue-watching
 HTTP endpoints call the application. Presenters map these results to independent
 public schemas; database source IDs and internal paths are omitted.
 
@@ -98,19 +97,17 @@ public schemas; database source IDs and internal paths are omitted.
 | `PlaybackSourceIdentity` | Canonical root, file ID, relative path, and file version |
 | `ResolvedPlaybackSource` | Validated source identity, path-free file information, and root epoch |
 | `RegisteredPlaybackSource` | Registered source identity and persistence metadata returned by the repository |
-| `PlaybackProgress` | Durable business progress, including generation, last sequence, revision, and timestamps |
+| `PlaybackProgress` | Durable business progress, including generation, last sequence, and timestamps |
 | `PlaybackProgressUpdate` | Repository progress-write input |
 | `SavePlaybackProgressResult` | Saved, duplicate, or stale repository/application result |
 | `PlaybackSession` | Application open result with token, generation, file, direct plan, and progress |
 | `SavePlaybackProgress` | Application save input with token, file version, generation, sequence, and position |
-| `StartOverPlayback` | Application reset input with token, generation, and idempotency request ID |
 | `ContinueWatchingCandidate` | Ordered repository candidate before live availability checks |
 | `ContinueWatchingItem` | Validated available file and saved progress |
 | `ContinueWatchingResult` | Availability-check state and validated items |
 
 `PlaybackSessionState` belongs only to `application/playback.ts`. Its token-keyed
-Map stores authorization state, root epoch, generation, `touchedAtMs`, and reset
-retry information. It is not persisted or exposed as a DTO.
+Map stores authorization state, root epoch, generation, `touchedAtMs`. It is not persisted or exposed as a DTO.
 
 `PlaybackProgressRow` and `MediaSourceRow` are private schema-derived types in
 `database/playback-repository.ts`. Repository projections return independently

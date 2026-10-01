@@ -35,12 +35,6 @@ export type SavePlaybackProgressRequest = Static<
 export type SavePlaybackProgressResponse = Static<
 	typeof schemas.SavePlaybackProgressResponseSchema
 >;
-export type StartOverPlaybackRequest = Static<
-	typeof schemas.StartOverPlaybackRequestSchema
->;
-export type StartOverPlaybackResponse = Static<
-	typeof schemas.StartOverPlaybackResponseSchema
->;
 export type ContinueWatchingResponse = Static<
 	typeof schemas.ContinueWatchingResponseSchema
 >;
