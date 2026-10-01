@@ -50,7 +50,7 @@ function save(resourceRoot = root) {
 	});
 }
 
-test("first-run HTTP setup persists settings, survives restart and enables scanning", async () => {
+test("first-run HTTP setup persists settings and automatically scans the configured root", async () => {
 	expect((await app.inject({ url: "/api/health", headers })).statusCode).toBe(
 		200,
 	);
@@ -71,6 +71,7 @@ test("first-run HTTP setup persists settings, survives restart and enables scann
 	});
 	expect(blocked.statusCode).toBe(409);
 	expect(blocked.json().error.code).toBe("RESOURCE_ROOT_NOT_CONFIGURED");
+	await writeFile(join(root, "episode.mp4"), "video");
 	expect((await save()).statusCode).toBe(200);
 	expect(
 		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),
@@ -78,11 +79,7 @@ test("first-run HTTP setup persists settings, survives restart and enables scann
 	expect((await PersistentConfiguration.load(dataDir)).settings).toEqual({
 		resourceRoot: root,
 	});
-	await writeFile(join(root, "episode.mp4"), "video");
-	expect(
-		(await app.inject({ method: "POST", url: "/api/library/scan", headers }))
-			.statusCode,
-	).toBe(202);
+
 	await libraryApp.waitForCompletion();
 	expect(index.listChildren("root").map((entry) => entry.name)).toEqual([
 		"episode.mp4",
@@ -130,8 +127,9 @@ test("overlapping roots are rejected while missing separate roots can be saved a
 	).toMatchObject({ ready: true, error: null });
 });
 
-test("changing the root drops previous file IDs and scan state until the next scan", async () => {
+test("changing the root drops previous file IDs and automatically scans the new root", async () => {
 	await save();
+	await libraryApp.waitForCompletion();
 	await writeFile(join(root, "old.mp4"), "old");
 	await libraryApp.startScan();
 	await libraryApp.waitForCompletion();
@@ -141,15 +139,13 @@ test("changing the root drops previous file IDs and scan state until the next sc
 	await mkdir(other);
 	await writeFile(join(other, "new.mp4"), "new");
 	await save(other);
-	expect(index.revision).toBe(revision + 1);
-	expect(index.scannedAt).toBeNull();
-	expect(index.listChildren("root")).toEqual([]);
-	expect(libraryApp.state).toBeNull();
+	expect(index.revision).toBeGreaterThanOrEqual(revision + 1);
+	expect(libraryApp.state).not.toBeNull();
 	expect(
 		(await app.inject({ url: `/api/files/${old?.id}`, headers })).statusCode,
 	).toBe(404);
-	await libraryApp.startScan();
 	await libraryApp.waitForCompletion();
+	expect(index.revision).toBe(revision + 2);
 	expect(index.listChildren("root").map((entry) => entry.name)).toEqual([
 		"new.mp4",
 	]);
@@ -157,6 +153,7 @@ test("changing the root drops previous file IDs and scan state until the next sc
 
 test("a failed disk save preserves current settings and the published index", async () => {
 	await save();
+	await libraryApp.waitForCompletion();
 	await writeFile(join(root, "old.mp4"), "old");
 	await libraryApp.startScan();
 	await libraryApp.waitForCompletion();
@@ -174,6 +171,7 @@ test("a failed disk save preserves current settings and the published index", as
 
 test("saving the same resource directory preserves scan results", async () => {
 	await save();
+	await libraryApp.waitForCompletion();
 	await writeFile(join(root, "old.mp4"), "old");
 	await libraryApp.startScan();
 	await libraryApp.waitForCompletion();
@@ -186,6 +184,7 @@ test("saving the same resource directory preserves scan results", async () => {
 
 test("a running scan rejects settings changes", async () => {
 	await save();
+	await libraryApp.waitForCompletion();
 	const create = ResourceAccess.create;
 	let release: (() => void) | undefined;
 	const gate = new Promise<void>((resolve) => {
@@ -209,6 +208,7 @@ test("a running scan rejects settings changes", async () => {
 
 test("an in-flight save blocks another save and scan without partial changes", async () => {
 	await save();
+	await libraryApp.waitForCompletion();
 	const update = configuration.update.bind(configuration);
 	let release: (() => void) | undefined;
 	const gate = new Promise<void>((resolve) => {

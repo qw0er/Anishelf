@@ -9,6 +9,7 @@ import type { PersistentSettings } from "../src/config/model.js";
 import { ApplicationDatabase } from "../src/database/index.js";
 import { LibraryIndex } from "../src/library/index.js";
 import { createResourceId } from "../src/library/model.js";
+import { ResourceAccess } from "../src/resources/access.js";
 
 let directory: string;
 let root: string;
@@ -107,21 +108,36 @@ test("replacement content cannot inherit history or accept saves from the old so
 	);
 });
 
-test("invalidates sessions across root switches and reports unknown availability before rescan", async () => {
+test("invalidates sessions across root switches and reports unknown availability until the automatic scan finishes", async () => {
 	const session = await playback.open(fileId);
 	await playback.save(update(session));
 	const other = join(directory, "other");
 	await mkdir(other);
 	await library.updateSettings({ resourceRoot: other });
+	await library.waitForCompletion();
+	const create = ResourceAccess.create;
+	let release = () => {};
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	vi.spyOn(ResourceAccess, "create").mockImplementationOnce(
+		async (settings) => {
+			await gate;
+			return create(settings);
+		},
+	);
 	await library.updateSettings({ resourceRoot: root });
-	expect(await playback.continueWatching()).toEqual({
-		availability: "unknown",
-		items: [],
-	});
-	await expect(playback.save(update(session, 2))).rejects.toMatchObject({
-		code: "PLAYBACK_CONFLICT",
-	});
-	await library.startScan();
+	try {
+		expect(await playback.continueWatching()).toEqual({
+			availability: "unknown",
+			items: [],
+		});
+		await expect(playback.save(update(session, 2))).rejects.toMatchObject({
+			code: "PLAYBACK_CONFLICT",
+		});
+	} finally {
+		release();
+	}
 	await library.waitForCompletion();
 	expect((await playback.continueWatching()).items).toHaveLength(1);
 });

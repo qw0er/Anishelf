@@ -1,8 +1,8 @@
 # Anishelf
 
-Anishelf is a personal animation library browser and player. Configure an existing server-side media directory, scan it manually, browse the actual directory hierarchy, and play files in a browser.
+Anishelf is a personal animation library browser and player. Configure an existing server-side media directory, scan it automatically at backend startup or manually, browse the actual directory hierarchy, and play files in a browser.
 
-V1 supports one resource root, recursive manual scanning, natural sorting, native playback controls, and failure feedback. Original media is read-only. Scanning includes `.mp4`, `.m4v`, `.webm`, and `.mkv`, case-insensitively; playback depends on the browser and media codecs. V2 implements a Vidstack-based Web player and saved progress/resume, and plans external VTT/SRT/ASS/SSA subtitles and embedded subtitle extraction, FFmpeg pre-transcoding and real-time transcoding of necessary streams only, optional local desktop player launch, and a complete everyday-use interface. Web playback remains the default and primary experience. V2 keeps user settings in `settings.json`, adds SQLite + Drizzle for records/cache metadata, and discovers FFmpeg/FFprobe from PATH unless optional paths are configured. Subtitle and FFmpeg workflows remain planned. Accounts and download management remain unassigned.
+V1 supports one resource root, recursive scanning at startup and on request, natural sorting, native playback controls, and failure feedback. Original media is read-only. Scanning includes `.mp4`, `.m4v`, `.webm`, and `.mkv`, case-insensitively; playback depends on the browser and media codecs. V2 implements a Vidstack-based Web player and saved progress/resume, and plans external VTT/SRT/ASS/SSA subtitles and embedded subtitle extraction, FFmpeg pre-transcoding and real-time transcoding of necessary streams only, optional local desktop player launch, and a complete everyday-use interface. Web playback remains the default and primary experience. V2 keeps user settings in `settings.json`, adds SQLite + Drizzle for records/cache metadata, and discovers FFmpeg/FFprobe from PATH unless optional paths are configured. Subtitle and FFmpeg workflows remain planned. Accounts and download management remain unassigned.
 
 ## Requirements
 
@@ -40,7 +40,7 @@ The backend provides APIs and media only. It does not serve pages or require a f
 
 **Use Caddy or another Web server to serve `web/dist` and reverse-proxy `/api`.** Use systemd or another process manager to start, restart, and collect logs from Node.js. The build outputs are `backend/dist` and `web/dist`; keep the backend runtime dependencies available, and deploy the frontend build to the Web server's static root.
 
-After starting the backend and Caddy as described below, open <http://127.0.0.1:8080>. Save the absolute server-side media directory in the page, then click **Scan library**. The first successful save creates `settings.json` in `dataDir`. Restarting preserves the directory setting, but requires a new manual scan. Rescan after adding or removing media.
+After starting the backend and Caddy as described below, open <http://127.0.0.1:8080>. Save the absolute server-side media directory in the page; the first successful save creates `settings.json` in `dataDir` and starts a scan. Once configured, the backend scans the directory automatically at each startup, and changing the saved directory starts a scan. Rescan after adding or removing media.
 
 Environment variable changes and manual JSON edits require a restart. Keep the writable application data directory separate from the media directory. Serve only the frontend build as static content.
 

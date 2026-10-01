@@ -265,7 +265,18 @@ export class LibraryApplication {
 			.finally(() => {
 				this.saving = undefined;
 			});
-		return this.saving;
+		const settings = await this.saving;
+		if (!this.closed && settings.resourceRoot !== previousRoot) {
+			try {
+				await this.startScan();
+			} catch (err) {
+				this.logger.warn(
+					{ event: "scan.settings_start_failed", err },
+					"Settings saved, but the library scan could not be started.",
+				);
+			}
+		}
+		return settings;
 	}
 
 	async cancelScan(): Promise<void> {

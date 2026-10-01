@@ -11,7 +11,7 @@ Startup options use defaults and environment variables. `ANISHELF_DATA_DIR` over
 
 Extend the existing file browser into an everyday Web viewing workflow:
 
-**configure a resource directory → scan manually → select a file → play directly, use a prepared copy, or transcode in real time as needed → select subtitles → watch → save progress → return and resume**, with an option to generate and copy a media link for opening manually in an external player.
+**configure a resource directory → scan automatically at startup and after root changes, or manually → select a file → play directly, use a prepared copy, or transcode in real time as needed → select subtitles → watch → save progress → return and resume**, with an option to generate and copy a media link for opening manually in an external player.
 
 - Web playback is the default and primary experience. Selecting a file or continue-watching entry opens the Web player. Generating a transferable media link is a secondary action; invoking a player from the browser is deferred.
 - Personal use, one server, one resource root with nested directories, and one active playback session.
@@ -26,7 +26,7 @@ Extend the existing file browser into an everyday Web viewing workflow:
 | ID | Requirement | Iteration scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
 | V01 | Resource directory configuration | Configure and persist one root; allow startup before setup; expose existence/readability errors | V1 | V1 |
-| V02 | Manual scanning | Recursively discover supported video extensions; avoid duplicate paths; reflect additions/removals | V1 | V1 |
+| V02 | Library scanning | Automatically scan at startup and after resource-root changes; allow manual rescans; recursively discover supported video extensions; avoid duplicate paths; reflect additions/removals | V1 | V1 |
 | V03 | Resource browsing | Actual hierarchy, original names, stable natural sorting, and parent navigation | V1 | V1 |
 | V04 | Web playback | Stream original compatible files without downloading the whole file first; support seeking | V1 | V1 |
 | V05 | Basic playback controls | Play, pause, seek, volume, fullscreen, and return to the original directory | V1 | V1 |

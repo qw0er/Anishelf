@@ -337,7 +337,9 @@ Detailed Pino warnings retain local context. Losing the root fails traversal;
 changing settings outside the application during a scan also prevents publication.
 Cancelled traversal waits for outstanding filesystem calls and discards its candidate.
 The application logs scan start, completion, failure, and cancellation with scan ID,
-duration, and counts. Scans run only on request and are not persisted.
+duration, and counts. The configured resource root is scanned automatically during
+startup and after the application saves a changed resource root; scans remain asynchronous
+and are not persisted.
 
 `checkResourceRoot` in `resources/access.ts` uses the same root-resolution policy
 as `ResourceAccess.create`. Persistent configuration handles settings validation
@@ -351,9 +353,12 @@ implementation modules. Keep changes within those directions and run both
 
 ## Library browsing HTTP endpoints
 
-The entry point passes the shared application to `createHttpApp({ library })`.
-No automatic scan runs at startup. Closing the HTTP application closes the library
-application, which cancels scanning and waits for outstanding library operations.
+The entry point passes the shared application to `createHttpApp({ library })` and
+starts a scan when a resource root is configured. The library application also
+starts a scan after saving a changed root. Scans run in the background; an
+unavailable startup root is logged without preventing HTTP startup. Closing the
+HTTP application closes the library application, which cancels scanning and waits
+for outstanding library operations.
 
 | Endpoint | Response |
 | --- | --- |
@@ -550,7 +555,6 @@ sequence for an identical retry. Errors stop automatic writes; Retry file recrea
 Session status and persistence errors are not displayed in the player.
 Seeking to zero saves an ordinary position update within the same generation.
 
-
 Route departure proceeds immediately. Unmount captures the final position,
 finishes outstanding saves in the background, and releases the token; failed
 saves do not block navigation. Remounts for
@@ -633,7 +637,6 @@ before migration or recovery. Do not copy only `anishelf.sqlite` while the serve
 is running: committed data can reside in its WAL. Future online backup tooling
 must use SQLite's backup API. Never remove source/progress rows as cache cleanup.
 
-
 ## Playback Application
 
 `backend/src/application/playback.ts` coordinates `LibraryApplication` and
@@ -668,7 +671,6 @@ as `PLAYBACK_PERSISTENCE_FAILED`; an unavailable database produces
 `PLAYBACK_UNAVAILABLE`. Failed history loading never creates a writable session.
 Playback plans currently support original-media direct playback only; subtitle,
 prepared-copy, and real-time selection remain future integration work.
-
 
 ## Playback HTTP API
 
@@ -713,7 +715,6 @@ internal causes. Missing/inaccessible source errors retain their existing status
 and codes. Invalid JSON shapes and numbers return `INVALID_REQUEST` (400).
 An unscanned library returns `availability: "unknown"` with an empty list; a checked
 list excludes missing/replaced and near-end files while preserving their history.
-
 
 ## TypeBox HTTP Contracts
 

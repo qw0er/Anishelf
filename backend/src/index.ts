@@ -53,6 +53,20 @@ try {
 			libraryError.message,
 		);
 	}
+	if (library.getSettings().resourceRoot !== null) {
+		try {
+			const scan = await library.startScan();
+			logging.logger.info(
+				{ event: "library.startup_scan_started", scanId: scan.id },
+				"Startup library scan started.",
+			);
+		} catch (err) {
+			logging.logger.warn(
+				{ event: "library.startup_scan_failed", err },
+				"Startup library scan could not be started.",
+			);
+		}
+	}
 	const logger = logging.logger;
 	const development = process.env.NODE_ENV === "development";
 	const frontendRoot = fileURLToPath(

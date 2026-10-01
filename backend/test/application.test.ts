@@ -319,8 +319,7 @@ test("rejected preflight releases the operation without discarding the previous 
 	const next = join(fixture, "next");
 	await mkdir(next);
 	await libraryApp.updateSettings({ resourceRoot: next });
-	expect(libraryApp.state).toBeNull();
-	await libraryApp.startScan();
+	expect(libraryApp.state).not.toBeNull();
 	await libraryApp.waitForCompletion();
 	expect(index.getDirectory("root").name).toBe("next");
 });

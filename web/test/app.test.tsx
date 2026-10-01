@@ -149,11 +149,13 @@ beforeEach(() => {
 			return new Response(null, { status: 204 });
 		if (path === "/api/settings") {
 			if (init?.method === "PUT") {
+				const previousRoot = settings.resourceRoot;
 				settings = JSON.parse(String(init.body)) as SettingsResponse;
 				library = {
 					...library,
 					ready: true,
-					scan: null,
+					scan:
+						settings.resourceRoot !== previousRoot ? runningScan : library.scan,
 					error: null,
 					stale: false,
 					revision: library.revision + 1,
@@ -266,7 +268,7 @@ async function openFile() {
 	fireEvent.click(await screen.findByRole("link", { name: "Episode 01.mp4" }));
 }
 
-test("first-run setup saves the server directory and enables a manual scan", async () => {
+test("first-run setup saves the server directory and shows the automatic scan", async () => {
 	settings = { resourceRoot: null };
 	library = {
 		...library,
@@ -304,7 +306,7 @@ test("first-run setup saves the server directory and enables a manual scan", asy
 	expect(
 		(screen.getByRole("button", { name: "Scan library" }) as HTMLButtonElement)
 			.disabled,
-	).toBe(false);
+	).toBe(true);
 	expect(
 		fetcher.mock.calls.some(
 			([path, init]) =>
@@ -316,7 +318,6 @@ test("first-run setup saves the server directory and enables a manual scan", asy
 	expect(
 		fetcher.mock.calls.some(([path]) => path === "/api/library/scan"),
 	).toBe(false);
-	fireEvent.click(screen.getByRole("button", { name: "Scan library" }));
 	await screen.findByText("Scan: running");
 	fireEvent.click(screen.getByRole("link", { name: "Settings" }));
 	expect(
@@ -343,7 +344,7 @@ test("saving a new directory returns from the player and unloads old media", asy
 	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
 	expect(video.getAttribute("src")).toBeNull();
 	expect(screen.queryByRole("link", { name: "Season 1" })).toBeNull();
-	expect(screen.getByText("Scan: not started")).toBeTruthy();
+	expect(screen.getByText("Scan: running")).toBeTruthy();
 });
 
 test("a failed settings save retains the input and supports a retry", async () => {
