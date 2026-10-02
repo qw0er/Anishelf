@@ -162,7 +162,7 @@ FFmpeg/FFprobe executable paths are optional startup overrides; otherwise find e
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| C01 | Generate a transferable original-media URL for manual opening in an external player | Later | — | V2 |
+| C01 | Generate a transferable original-media URL for manual opening in an external player | Implemented | V2 | V2 |
 | C02 | Invoke an external player from the browser/OS through a registered protocol or equivalent integration | Later | — | Later |
 | C03 | Read external-player state when the selected integration exposes it, including playing/paused state, position, and playback end | Optional later capability; V2 only generates a transferable media link and reads no native state | — | Later |
 | C04 | Control desktop playback, pause, and seeking from the Web | Later | — | Unassigned |

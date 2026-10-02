@@ -169,3 +169,9 @@ The backend creates one `ConfigurationService` from validated startup environmen
 Only `resourceRoot` and optional `scanIntervalMinutes` are currently writable. Omitted intervals use the current built-in default; `0` disables scheduled scans. Explicit choices survive upgrades. Settings commit atomically before the effective snapshot changes. Existing root-only settings need no migration.
 
 Read-only `GET /api/client-config` supplies safe defaults, constraints and capabilities to the Web client. Client configuration failure offers a retry; the Web client does not substitute hard-coded defaults. Transcode profiles, cache budgets and profile-content cache invalidation remain planned O17 work.
+
+### External-player media links
+
+In the file list, use the copy icon (hover for **Copy media link**), or select **Copy media link** on a file's Web player page to recheck the file and copy an absolute original-media URL. Paste it into an external player's Open URL command. If clipboard access fails, select the link in the result dialog to copy it manually.
+
+Links use the browser's application origin, including an SSH-forwarded localhost port. Keep the forwarding connection active; localhost links work on the computer running that forwarding connection. The external player reads media directly over HTTP/Range. Copying does not launch a player or change Web progress, and external playback does not report progress to Anishelf. Missing files produce a link error; links do not contain server filesystem paths.

@@ -42,7 +42,7 @@ Extend the existing file browser into an everyday Web viewing workflow:
 | P05 | Playback strategy | Use original compatible media; choose the required preparation path for the target browser | — | V2 |
 | P06 | Container-only preparation | Remux compatible audio/video when only the container is incompatible | — | V2 |
 | P07 | FFmpeg pre-transcoding and real-time transcoding | Necessary streams only; reusable completed copies or segmented playback during processing; seeking, cleanup and recovery | — | V2 |
-| C01 | External-player media link | Generate and copy a client-reachable original-media URL for the user to paste into a player | — | V2 |
+| C01 | External-player media link | Generate and copy a client-reachable original-media URL for the user to paste into a player | V2 | V2 |
 | O14 | English UI foundation | English message catalog, stable keys and fallback | V2 (partial) | V2 (partial) |
 | O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access | V2 (partial) | V2 |
 | O16 | Complete everyday-use Web interface | Finished application navigation, resource browsing, playback history/resume, Web player, preparation feedback, and V2 settings with responsive and accessible states | V2 (partial) | V2 |

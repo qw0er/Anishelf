@@ -5,6 +5,7 @@ import type { LibraryContext } from "../App.js";
 import type { DirectoryResponse } from "../api/contracts.js";
 import { directoryPath, filePath } from "../routes/paths.js";
 import LibraryScan from "./library-scan.js";
+import MediaLink from "./media-link.js";
 import { buttonStyles } from "./ui/button.js";
 import { Card, CardContent } from "./ui/card.js";
 
@@ -46,7 +47,10 @@ export default function LibraryBrowser({
 							) : (
 								<ul className="divide-y">
 									{listing.children.map((entry) => (
-										<li key={entry.id} className="py-2 first:pt-0 last:pb-0">
+										<li
+											key={entry.id}
+											className="grid grid-cols-[minmax(0,1fr)_auto] gap-y-2 py-2 first:pt-0 last:pb-0"
+										>
 											<Link
 												aria-label={entry.name}
 												className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-md px-2 py-3 sm:grid-cols-[1rem_minmax(0,1fr)_auto] hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
@@ -80,6 +84,9 @@ export default function LibraryBrowser({
 													</span>
 												)}
 											</Link>
+											{entry.kind === "file" && (
+												<MediaLink fileId={entry.id} iconOnly />
+											)}
 										</li>
 									))}
 								</ul>

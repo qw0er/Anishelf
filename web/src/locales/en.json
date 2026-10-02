@@ -97,10 +97,16 @@
 	"player": {
 		"label": "Player",
 		"videoLabel": "Video: {{name}}",
-		"retry": "Retry file"
+		"retry": "Retry file",
+		"copyMediaLink": "Copy media link",
+		"mediaLinkLabel": "Media link",
+		"mediaLinkCopied": "Link copied. Paste it into your external player’s Open URL command.",
+		"mediaLinkManual": "Copy the link below and paste it into your external player’s Open URL command.",
+		"mediaLinkError": "Could not generate a media link. Please retry."
 	},
 	"actions": {
-		"retry": "Retry"
+		"retry": "Retry",
+		"close": "Close"
 	},
 	"history": {
 		"title": "Playback history",

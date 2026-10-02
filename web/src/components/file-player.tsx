@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import type { ClientConfigResponse, FileResponse } from "../api/contracts.js";
 import { usePlaybackSession } from "../hooks/use-playback-session.js";
 import { directoryPath } from "../routes/paths.js";
+import MediaLink from "./media-link.js";
 import { Button, buttonStyles } from "./ui/button.js";
 import VideoPlayer from "./video-player.js";
 
@@ -43,6 +44,7 @@ export default function FilePlayer({
 				playbackUrl={playback.session?.plan.playbackUrl ?? data.playbackUrl}
 				onMedia={playback.attach}
 			/>
+			<MediaLink key={data.file.id} fileId={data.file.id} />
 		</section>
 	);
 }

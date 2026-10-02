@@ -210,6 +210,8 @@ Spawn fixed resolved binaries with argument arrays, no shell, bounded stderr, an
 
 ## 8. External-Player Media Link (V2; C01)
 
+Implemented: the Web player includes a secondary **Copy media link** action. It rechecks accessibility with `GET /api/files/:id`, validates that the returned route belongs to the selected file, and supports Clipboard API copying with a selectable read-only field in a shadcn Dialog (Radix UI) modal. Duplicate requests are suppressed, unmount cancels pending requests, and retries clear stale links. No new backend endpoint or configuration field is needed.
+
 V2 generates a transferable link for a user to paste into an external player's Open URL command. It does not ask the browser or operating system to invoke another application. That feature is deferred as C02. No player-specific URL scheme or player adapter is required.
 
 Resolve the selected opaque file ID through the existing file API and recheck resource access. Construct an absolute original-media URL by resolving the existing same-origin media route against the browser-visible application origin. This preserves SSH-forwarded origins and avoids server filesystem paths or internal hostnames. Display the URL and provide a copy action; if clipboard access is unavailable, leave the full URL selectable and provide a clear message. The native player fetches the original media directly using HTTP/Range. The browser does not proxy media bytes.

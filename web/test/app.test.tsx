@@ -1034,3 +1034,26 @@ test("client configuration failures block the page and allow retry", async () =>
 		await screen.findByLabelText("Automatic scan interval (minutes)"),
 	).toBeTruthy();
 });
+
+test("file rows offer an icon copy button with tooltip without opening playback", async () => {
+	const copy = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
+	renderApp();
+	await screen.findByRole("link", { name: "Season 1" });
+	expect(screen.queryByRole("button", { name: "Copy media link" })).toBeNull();
+	fireEvent.click(screen.getByRole("link", { name: "Season 1" }));
+	const button = await screen.findByRole("button", { name: "Copy media link" });
+	expect(button.getAttribute("title")).toBe("Copy media link");
+	expect(button.textContent).toBe("");
+	expect(button.closest("a")).toBeNull();
+	fireEvent.click(button);
+	await screen.findByText(/Link copied/);
+	expect(copy).toHaveBeenCalledWith(
+		`${window.location.origin}/api/media/file-1`,
+	);
+	expect(screen.getByTestId("location").textContent).toBe(
+		"/directories/season-1",
+	);
+	expect(
+		fetcher.mock.calls.some(([url]) => url === "/api/playback/sessions"),
+	).toBe(false);
+});
