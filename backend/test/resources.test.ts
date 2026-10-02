@@ -59,7 +59,7 @@ test("reads root and nested directories and preserves original files", async () 
 		await file.release();
 	}
 	expect(
-		await resources.inspectFile(join("中文 folder", "episode 01.MP4")),
+		await resources.inspectVideoFile(join("中文 folder", "episode 01.MP4")),
 	).toMatchObject({ sizeBytes: 12, mimeType: "video/mp4" });
 });
 
@@ -133,7 +133,7 @@ test("rejects symlink files, directory escapes, and links inside the root", asyn
 
 test("rechecks a previously inspected file after replacement by a symlink", async () => {
 	const path = join("中文 folder", "episode 01.MP4");
-	await resources.inspectFile(path);
+	await resources.inspectVideoFile(path);
 	await rm(join(root, path));
 	const outside = join(fixture, "outside.mp4");
 	await writeFile(outside, "outside");

@@ -10,7 +10,7 @@ Its core value is better Web playback, shared client state, and coordination bet
 
 This document is the complete product requirements inventory, including delivered features, the active iteration, and unassigned future capabilities. [Current Version Requirements](current-version-requirements.md) is the living release plan and acceptance checklist, currently for V2. Requirements remain in this inventory when selected for a release; update both documents rather than moving or deleting them.
 
-**Latest completed version: V1. Active version: V2, in progress.** V1 completion and manual browser acceptance are user-reported. The direct-playback Vidstack adapter and saved progress are implemented; external subtitle discovery is implemented, while subtitle delivery/rendering, preparation, and the remaining V2 workflows are planned. Replacing the player controls does not complete V2 acceptance.
+**Latest completed version: V1. Active version: V2, in progress.** V1 completion and manual browser acceptance are user-reported. The direct-playback Vidstack adapter and saved progress are implemented; external subtitle discovery, delivery and rendering are implemented, while embedded subtitle integration, preparation, and the remaining V2 workflows are planned. Replacing the player controls does not complete V2 acceptance.
 
 ## 2. Feature Inventory and Version Tracking
 
@@ -73,7 +73,7 @@ This is a user-facing file download, separate from acquiring new releases throug
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| P03 | Select or disable external VTT/SRT/ASS/SSA subtitles through Vidstack | Later | V2 discovery only; delivery/rendering/selection pending | V2 |
+| P03 | Select or disable external VTT/SRT/ASS/SSA subtitles through Vidstack | Later | V2 external discovery, delivery, rendering and selection/off | V2 |
 | P05 | Choose a playback strategy based on media and client capabilities | Later | — | V2 |
 | P06 | Remux media when only the container is incompatible | Later | — | V2 |
 | P07 | FFmpeg pre-transcoding and real-time transcoding with seeking; copy compatible streams and encode only necessary streams | Later | — | V2 |

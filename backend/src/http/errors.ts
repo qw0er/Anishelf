@@ -2,6 +2,14 @@ import { DomainError, type ErrorCode } from "../errors.js";
 import type { ApiErrorResponse } from "./contracts.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	SUBTITLE_TOO_LARGE: {
+		status: 413,
+		message: "The subtitle exceeds the 10 MiB limit.",
+	},
+	SUBTITLE_INVALID_ENCODING: {
+		status: 422,
+		message: "Save the subtitle as UTF-8 or UTF-16 with a byte-order mark.",
+	},
 	PLAYBACK_CONFLICT: {
 		status: 409,
 		message: "The playback session or source changed. Reopen playback.",

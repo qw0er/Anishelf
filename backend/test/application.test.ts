@@ -128,14 +128,14 @@ test("child access failures produce a partial snapshot and safe warning summarie
 	await writeFile(join(root, "good.mp4"), "video");
 	const resources = await ResourceAccess.create({ resourceRoot: root });
 	const readDirectory = resources.readDirectory.bind(resources);
-	const inspectFile = resources.inspectFile.bind(resources);
+	const inspectFile = resources.inspectVideoFile.bind(resources);
 	vi.spyOn(ResourceAccess, "create").mockResolvedValue(resources);
 	vi.spyOn(resources, "readDirectory").mockImplementation(async (path = "") => {
 		if (path === "blocked")
 			throw new DomainError("RESOURCE_UNREADABLE", `secret ${fixture}`);
 		return readDirectory(path);
 	});
-	vi.spyOn(resources, "inspectFile").mockImplementation(async (path) => {
+	vi.spyOn(resources, "inspectVideoFile").mockImplementation(async (path) => {
 		if (path === "removed.mp4")
 			throw new DomainError("RESOURCE_MISSING", `secret ${fixture}`);
 		return inspectFile(path);
@@ -156,10 +156,10 @@ test("child access failures produce a partial snapshot and safe warning summarie
 test("losing the root during traversal fails instead of publishing a partial result", async () => {
 	await writeFile(join(root, "episode.mp4"), "video");
 	const resources = await ResourceAccess.create({ resourceRoot: root });
-	const inspectFile = resources.inspectFile.bind(resources);
+	const inspectVideoFile = resources.inspectVideoFile.bind(resources);
 	vi.spyOn(ResourceAccess, "create").mockResolvedValue(resources);
-	vi.spyOn(resources, "inspectFile").mockImplementation(async (path) => {
-		const result = await inspectFile(path);
+	vi.spyOn(resources, "inspectVideoFile").mockImplementation(async (path) => {
+		const result = await inspectVideoFile(path);
 		await rename(root, join(fixture, "moved"));
 		return result;
 	});
@@ -176,14 +176,14 @@ test("bounds concurrent resource access and publishes after outstanding work fin
 		await writeFile(join(root, `episode ${count}.mp4`), "video");
 	const resources = await ResourceAccess.create({ resourceRoot: root });
 	vi.spyOn(ResourceAccess, "create").mockResolvedValue(resources);
-	const inspectFile = resources.inspectFile.bind(resources);
+	const inspectVideoFile = resources.inspectVideoFile.bind(resources);
 	let active = 0;
 	let maximum = 0;
-	vi.spyOn(resources, "inspectFile").mockImplementation(async (path) => {
+	vi.spyOn(resources, "inspectVideoFile").mockImplementation(async (path) => {
 		active++;
 		maximum = Math.max(maximum, active);
 		try {
-			return await inspectFile(path);
+			return await inspectVideoFile(path);
 		} finally {
 			active--;
 		}
@@ -217,11 +217,11 @@ test("shutdown waits for active operations and rejects new scans", async () => {
 	const pending = new Promise<void>((resolve) => {
 		release = resolve;
 	});
-	const inspectFile = resources.inspectFile.bind(resources);
-	vi.spyOn(resources, "inspectFile").mockImplementation(async (path) => {
+	const inspectVideoFile = resources.inspectVideoFile.bind(resources);
+	vi.spyOn(resources, "inspectVideoFile").mockImplementation(async (path) => {
 		entered();
 		await pending;
-		return inspectFile(path);
+		return inspectVideoFile(path);
 	});
 	await libraryApp.startScan();
 	await started;
@@ -238,12 +238,12 @@ test("settings changes during a scan prevent publication and the next scan uses 
 	const nextRoot = join(fixture, "next");
 	await mkdir(nextRoot);
 	const resources = await ResourceAccess.create({ resourceRoot: root });
-	const inspectFile = resources.inspectFile.bind(resources);
+	const inspectVideoFile = resources.inspectVideoFile.bind(resources);
 	const create = vi
 		.spyOn(ResourceAccess, "create")
 		.mockResolvedValue(resources);
-	vi.spyOn(resources, "inspectFile").mockImplementation(async (path) => {
-		const result = await inspectFile(path);
+	vi.spyOn(resources, "inspectVideoFile").mockImplementation(async (path) => {
+		const result = await inspectVideoFile(path);
 		root = nextRoot;
 		return result;
 	});

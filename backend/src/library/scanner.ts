@@ -82,7 +82,7 @@ export class LibraryScanner {
 			task.kind === "directory" ? task.entry.relativePath : task.relativePath;
 		try {
 			if (task.kind === "file") {
-				const metadata = await resources.inspectFile(relativePath);
+				const metadata = await resources.inspectVideoFile(relativePath);
 				if (signal.aborted) return;
 				entries.push({
 					kind: "file",

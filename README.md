@@ -2,8 +2,6 @@
 
 Anishelf is a personal animation library browser and player. Configure an existing server-side media directory, scan it automatically at backend startup or manually, browse the actual directory hierarchy, and play files in a browser.
 
-V1 supports one resource root, recursive scanning at startup and on request, natural sorting, native playback controls, and failure feedback. Original media is read-only. Scanning includes `.mp4`, `.m4v`, `.webm`, and `.mkv`, case-insensitively; playback depends on the browser and media codecs. V2 implements a Vidstack-based Web player and saved progress/resume, and plans external VTT/SRT/ASS/SSA subtitles and embedded subtitle extraction, FFmpeg pre-transcoding and real-time transcoding of necessary streams only, optional local desktop player launch, and a complete everyday-use interface. Web playback remains the default and primary experience. V2 keeps user settings in `settings.json`, adds SQLite + Drizzle for records/cache metadata, and discovers FFmpeg/FFprobe from PATH unless optional paths are configured. The backend also discovers same-directory external VTT/SRT/ASS/SSA candidates on demand through `GET /api/files/:id/subtitles`; subtitle content delivery and rendering remain planned. The backend tool layer now identifies media information and extracts selected text subtitle streams; player integration, cached assets, fonts, bitmap subtitles and transcoding remain planned. Accounts and download management remain unassigned.
-
 ## Requirements
 
 - Node.js 24 and npm.

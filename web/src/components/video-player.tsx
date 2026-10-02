@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { ApiClientError, getFile, isRequestCancelled } from "../api/client.js";
 import type { FileResponse } from "../api/contracts.js";
 import { getErrorTranslationKey } from "../lib/error-translation.js";
+import { ExternalSubtitleTracks } from "./external-subtitles.js";
 
 // The API URL has no file extension; route all original files to native video.
 class DirectVideoLoader extends VideoProviderLoader {
@@ -88,6 +89,7 @@ export default function VideoPlayer({
 				onError={playbackFailed}
 			>
 				<MediaProvider loaders={directVideoLoaders} />
+				<ExternalSubtitleTracks fileId={file.id} />
 				<DefaultVideoLayout icons={defaultLayoutIcons} seekStep={5} />
 			</MediaPlayer>
 			{error && (

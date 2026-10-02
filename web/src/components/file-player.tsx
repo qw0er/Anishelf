@@ -35,6 +35,7 @@ export default function FilePlayer({
 			</div>
 			<h1 className="page-title">{data.file.name}</h1>
 			<VideoPlayer
+				key={data.file.id}
 				{...data}
 				playbackUrl={playback.session?.plan.playbackUrl ?? data.playbackUrl}
 				onMedia={playback.attach}

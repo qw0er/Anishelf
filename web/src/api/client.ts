@@ -10,6 +10,7 @@ import type {
 	SavePlaybackProgressResponse,
 	ScanResponse,
 	SettingsResponse,
+	SubtitleDiscoveryResponse,
 	UpdateSettingsRequest,
 } from "./contracts.js";
 
@@ -223,4 +224,25 @@ export function getHistory(
 	options?: RequestOptions,
 ): Promise<ContinueWatchingResponse> {
 	return request("/api/history", "GET", options);
+}
+
+export function getSubtitles(
+	id: ResourceId,
+	options?: RequestOptions,
+): Promise<SubtitleDiscoveryResponse> {
+	return request(
+		`/api/files/${encodeURIComponent(id)}/subtitles`,
+		"GET",
+		options,
+	);
+}
+/** Same-origin, version-checked text URL consumed directly by Vidstack. */
+export function subtitleContentUrl(
+	id: ResourceId,
+	trackId: string,
+	sourceVersion: string,
+	subtitleVersion: string,
+): string {
+	const query = new URLSearchParams({ sourceVersion, subtitleVersion });
+	return `/api/files/${encodeURIComponent(id)}/subtitles/${encodeURIComponent(trackId)}/content?${query}`;
 }

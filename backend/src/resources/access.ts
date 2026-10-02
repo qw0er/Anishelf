@@ -156,7 +156,7 @@ export class ResourceAccess {
 		}
 	}
 
-	async inspectFile(relativePath: string): Promise<ResourceFileMetadata> {
+	async inspectVideoFile(relativePath: string): Promise<ResourceFileMetadata> {
 		const file = await this.openFile(relativePath);
 		try {
 			return {
@@ -169,19 +169,23 @@ export class ResourceAccess {
 		}
 	}
 
-	async inspectSource(relativePath: string): Promise<ResourceSourceMetadata> {
-		return this.inspectOpenedSource(await this.openFile(relativePath));
+	async inspectVideoFileWithVersion(
+		relativePath: string,
+	): Promise<ResourceSourceMetadata> {
+		return this.inspectOpenedSourceWithVersion(
+			await this.openFile(relativePath),
+		);
 	}
 
 	async inspectSubtitleSource(
 		relativePath: string,
 	): Promise<ResourceSourceMetadata> {
-		return this.inspectOpenedSource(
-			await this.openTypedFile(relativePath, "subtitle"),
+		return this.inspectOpenedSourceWithVersion(
+			await this.openSubtitleFile(relativePath),
 		);
 	}
 
-	private async inspectOpenedSource(
+	private async inspectOpenedSourceWithVersion(
 		file: OpenedResourceFile,
 	): Promise<ResourceSourceMetadata> {
 		try {
@@ -213,6 +217,10 @@ export class ResourceAccess {
 		return this.openTypedFile(relativePath, "video");
 	}
 
+	async openSubtitleFile(relativePath: string): Promise<OpenedResourceFile> {
+		return this.openTypedFile(relativePath, "subtitle");
+	}
+
 	private async openTypedFile(
 		relativePath: string,
 		kind: "video" | "subtitle",
@@ -221,14 +229,22 @@ export class ResourceAccess {
 		try {
 			const { path, info } = await this.validatePath(relativePath);
 			const format = externalSubtitleFormat(path);
-			const mimeType =
-				kind === "video"
-					? getVideoMimeType(path)
-					: format === null
-						? null
-						: format === "vtt"
-							? "text/vtt"
-							: "text/plain";
+			// const mimeType =
+			// 	kind === "video"
+			// 		? getVideoMimeType(path)
+			// 		: format === null
+			// 			? null
+			// 			: format === "vtt"
+			// 				? "text/vtt"
+			// 				: "text/plain";
+			let mimeType: string | null = null;
+			if (kind === "video") {
+				mimeType = getVideoMimeType(path);
+			} else if (kind === "subtitle" && format !== null) {
+				mimeType = format === "vtt" ? "text/vtt" : "text/plain";
+			} else {
+				mimeType = null;
+			}
 			if (!info.isFile() || mimeType === null) denied();
 			// Nonblocking open prevents a replaced FIFO from hanging the process.
 			const fileHandle = await open(

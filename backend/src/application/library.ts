@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { basename } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type { Logger } from "pino";
 import {
 	defaultScanIntervalMinutes,
@@ -28,6 +28,7 @@ import {
 	ResourceAccess,
 } from "../resources/access.js";
 
+import { readSubtitleText } from "../subtitles/content.js";
 import { discoverExternalSubtitles } from "../subtitles/discovery.js";
 import type { SubtitleDiscovery } from "../subtitles/model.js";
 
@@ -142,7 +143,7 @@ export class LibraryApplication {
 		const entry = this.options.index.getFile(id);
 		const settings = this.getSettings();
 		const resources = await ResourceAccess.create(settings);
-		const current = await resources.inspectFile(entry.relativePath);
+		const current = await resources.inspectVideoFile(entry.relativePath);
 		return {
 			kind: "file",
 			id: entry.id,
@@ -173,7 +174,9 @@ export class LibraryApplication {
 		const epoch = this.rootEpoch;
 		const entry = this.options.index.getFile(id);
 		const resources = await ResourceAccess.create(this.getSettings());
-		const metadata = await resources.inspectSource(entry.relativePath);
+		const metadata = await resources.inspectVideoFileWithVersion(
+			entry.relativePath,
+		);
 		if (epoch !== this.rootEpoch)
 			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
 		return {
@@ -206,7 +209,9 @@ export class LibraryApplication {
 			source.identity.relativePath,
 			source.identity.sourceVersion,
 		);
-		const current = await resources.inspectSource(source.identity.relativePath);
+		const current = await resources.inspectVideoFileWithVersion(
+			source.identity.relativePath,
+		);
 		if (
 			source.rootEpoch !== this.rootEpoch ||
 			current.sourceVersion !== source.identity.sourceVersion
@@ -216,6 +221,60 @@ export class LibraryApplication {
 				"The playback source changed.",
 			);
 		return result;
+	}
+
+	async getSubtitleContent(
+		id: string,
+		trackId: string,
+		sourceVersion: string,
+		subtitleVersion: string,
+	): Promise<{ text: string }> {
+		const source = await this.resolvePlaybackSource(id);
+		if (source.identity.sourceVersion !== sourceVersion)
+			throw new DomainError("PLAYBACK_CONFLICT", "The video changed.");
+		const resources = await ResourceAccess.create(this.getSettings());
+		if (
+			source.rootEpoch !== this.rootEpoch ||
+			resources.canonicalRoot !== source.identity.canonicalRoot
+		)
+			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
+		const discovered = await discoverExternalSubtitles(
+			resources,
+			source.identity.relativePath,
+			sourceVersion,
+		);
+		const track = discovered.tracks.find(
+			(candidate) => candidate.id === trackId,
+		);
+		if (!track)
+			throw new DomainError(
+				"RESOURCE_NOT_FOUND",
+				"The subtitle is unavailable. Refresh the subtitle list.",
+			);
+		if (track.sourceVersion !== subtitleVersion)
+			throw new DomainError("PLAYBACK_CONFLICT", "The subtitle changed.");
+		const path = join(dirname(source.identity.relativePath), track.name);
+		const file = await resources.openSubtitleFile(path);
+		let text: string;
+		try {
+			text = await readSubtitleText(file);
+		} finally {
+			await file.release();
+		}
+		const subtitle = await resources.inspectSubtitleSource(path);
+		const video = await resources.inspectVideoFileWithVersion(
+			source.identity.relativePath,
+		);
+		if (
+			source.rootEpoch !== this.rootEpoch ||
+			subtitle.sourceVersion !== subtitleVersion ||
+			video.sourceVersion !== sourceVersion
+		)
+			throw new DomainError(
+				"PLAYBACK_CONFLICT",
+				"The subtitle or video changed.",
+			);
+		return { text };
 	}
 
 	async openMedia(id: string): Promise<OpenedResourceFile> {

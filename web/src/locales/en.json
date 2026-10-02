@@ -51,7 +51,9 @@
 			"INTERNAL_ERROR": "An unexpected server error occurred.",
 			"PLAYBACK_CONFLICT": "Your playback session or file changed. Retry to reopen the session.",
 			"PLAYBACK_UNAVAILABLE": "Playback progress is unavailable. You can keep watching and retry later.",
-			"PLAYBACK_PERSISTENCE_FAILED": "Playback progress could not be loaded or saved. Please retry."
+			"PLAYBACK_PERSISTENCE_FAILED": "Playback progress could not be loaded or saved. Please retry.",
+			"SUBTITLE_TOO_LARGE": "The subtitle exceeds the 10 MiB limit.",
+			"SUBTITLE_INVALID_ENCODING": "Save the subtitle as UTF-8 or UTF-16 with a byte-order mark."
 		}
 	},
 	"library": {

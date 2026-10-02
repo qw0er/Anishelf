@@ -40,3 +40,12 @@ export const SubtitleDiscoveryResponseSchema = Type.Object(
 	},
 	{ additionalProperties: false },
 );
+
+export const SubtitleContentParamsSchema = Type.Object(
+	{ id: ResourceIdSchema, trackId: ResourceIdSchema },
+	{ additionalProperties: false },
+);
+export const SubtitleContentQuerySchema = Type.Object(
+	{ sourceVersion: SourceVersionSchema, subtitleVersion: SourceVersionSchema },
+	{ additionalProperties: false },
+);

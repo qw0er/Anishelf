@@ -79,8 +79,8 @@ test("cancellation waits for outstanding tasks and discards their candidate", as
 	const gate = new Promise<void>((resolve) => {
 		release = resolve;
 	});
-	const inspect = resources.inspectFile.bind(resources);
-	vi.spyOn(resources, "inspectFile").mockImplementation(async (path) => {
+	const inspect = resources.inspectVideoFile.bind(resources);
+	vi.spyOn(resources, "inspectVideoFile").mockImplementation(async (path) => {
 		entered();
 		await gate;
 		return inspect(path);

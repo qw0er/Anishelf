@@ -248,3 +248,77 @@ test("rejects invalid IDs, unknown files, directory IDs and missing videos", asy
 	});
 	expect(response.statusCode).toBe(404);
 });
+
+async function contentUrl() {
+	const discovered = await discover();
+	const track = discovered.tracks[0];
+	if (!track) throw new Error("Missing test subtitle");
+	return `/api/files/${fileId}/subtitles/${track.id}/content?${new URLSearchParams({ sourceVersion: discovered.sourceVersion, subtitleVersion: track.sourceVersion })}`;
+}
+
+test("serves bounded UTF-8 subtitle text without exposing paths", async () => {
+	await sidecar(".srt", "1\n00:00:01,000 --> 00:00:02,000\n你好\n");
+	const response = await app.inject({ url: await contentUrl(), headers });
+	expect(response.statusCode).toBe(200);
+	expect(response.headers["cache-control"]).toBe("no-store");
+	expect(response.body).toContain("你好");
+	expect(response.body).not.toContain(fixture);
+});
+
+test("decodes UTF-16 BOMs and rejects undecodable bytes", async () => {
+	await writeFile(
+		join(root, "season", `${video}.srt`),
+		Buffer.concat([
+			Buffer.from([0xff, 0xfe]),
+			Buffer.from("hello 你好", "utf16le"),
+		]),
+	);
+	expect((await app.inject({ url: await contentUrl(), headers })).body).toBe(
+		"hello 你好",
+	);
+	const bigEndian = Buffer.concat([
+		Buffer.from([0xfe, 0xff]),
+		Buffer.from("hello 你好", "utf16le").swap16(),
+	]);
+	await writeFile(join(root, "season", `${video}.srt`), bigEndian);
+	expect((await app.inject({ url: await contentUrl(), headers })).body).toBe(
+		"hello 你好",
+	);
+	await writeFile(
+		join(root, "season", `${video}.srt`),
+		Buffer.from([0xff, 0xff, 0xff]),
+	);
+	const response = await app.inject({ url: await contentUrl(), headers });
+	expect(response.statusCode).toBe(422);
+	expect(response.json().error.code).toBe("SUBTITLE_INVALID_ENCODING");
+});
+
+test("rejects stale subtitle and video versions and removed tracks", async () => {
+	await sidecar(".srt");
+	const original = await contentUrl();
+	await sidecar(".srt", "changed subtitle");
+	expect((await app.inject({ url: original, headers })).statusCode).toBe(409);
+	const current = await contentUrl();
+	await writeFile(join(root, "season", `${video}.mkv`), "changed video");
+	expect((await app.inject({ url: current, headers })).statusCode).toBe(409);
+	const latest = await contentUrl();
+	await rm(join(root, "season", `${video}.srt`));
+	expect((await app.inject({ url: latest, headers })).statusCode).toBe(404);
+});
+
+test("never accepts paths, unversioned requests or foreign subtitle IDs", async () => {
+	await sidecar(".srt");
+	const url = await contentUrl();
+	const trackId = /\/subtitles\/([^/?]+)/.exec(url)?.[1] ?? "";
+	for (const invalid of [
+		url.replace(trackId, "%2Fetc%2Fpasswd"),
+		url.split("?")[0] ?? "",
+		`${url}&path=/etc/passwd`,
+	]) {
+		expect((await app.inject({ url: invalid, headers })).statusCode).toBe(400);
+	}
+	expect(
+		(await app.inject({ url: url.replace(trackId, "unknown"), headers }))
+			.statusCode,
+	).toBe(404);
+});
