@@ -16,6 +16,7 @@ import {
 	DialogTrigger,
 } from "./ui/dialog.js";
 import { Input } from "./ui/input.js";
+import { toast } from "./ui/toast.js";
 
 export default function MediaLink({
 	fileId,
@@ -28,8 +29,6 @@ export default function MediaLink({
 	const request = useRef<AbortController | null>(null);
 	const [pending, setPending] = useState(false);
 	const [link, setLink] = useState<string | null>(null);
-	const [copied, setCopied] = useState(false);
-	const [error, setError] = useState<string | null>(null);
 	useEffect(() => () => request.current?.abort(), []);
 
 	async function copyLink() {
@@ -38,23 +37,33 @@ export default function MediaLink({
 		request.current = controller;
 		setPending(true);
 		setLink(null);
-		setCopied(false);
-		setError(null);
+		const notificationId = `media-link:${fileId}`;
+		toast.close(notificationId);
 		try {
 			const url = await createMediaLink(fileId, window.location.origin, {
 				signal: controller.signal,
 			});
 			if (controller.signal.aborted) return;
-			setLink(url);
 			try {
 				await navigator.clipboard.writeText(url);
-				if (!controller.signal.aborted) setCopied(true);
+				if (!controller.signal.aborted)
+					toast.add({
+						type: "success",
+						title: t("player.mediaLinkCopied"),
+						id: notificationId,
+					});
 			} catch {
 				// The selectable field also works without clipboard permissions.
+				if (!controller.signal.aborted) setLink(url);
 			}
 		} catch (cause) {
 			if (!controller.signal.aborted && !isRequestCancelled(cause)) {
-				setError(getErrorTranslationKey(cause) ?? "player.mediaLinkError");
+				toast.add({
+					type: "error",
+					priority: "high",
+					title: t(getErrorTranslationKey(cause) ?? "player.mediaLinkError"),
+					id: notificationId,
+				});
 			}
 		} finally {
 			if (!controller.signal.aborted) setPending(false);
@@ -77,27 +86,29 @@ export default function MediaLink({
 							: "action-row"
 					}
 				>
-					<DialogTrigger asChild>
-						<Button
-							type="button"
-							variant={iconOnly ? "ghost" : "outline"}
-							className={iconOnly ? "size-9 shrink-0 p-0" : undefined}
-							aria-label={iconOnly ? t("player.copyMediaLink") : undefined}
-							title={iconOnly ? t("player.copyMediaLink") : undefined}
-							disabled={pending}
-							aria-busy={pending}
-							onClick={() => void copyLink()}
-						>
-							<Copy size={16} aria-hidden="true" />
-							{!iconOnly && t("player.copyMediaLink")}
-						</Button>
+					<DialogTrigger
+						render={
+							<Button
+								type="button"
+								variant={iconOnly ? "ghost" : "outline"}
+								className={iconOnly ? "size-9 shrink-0 p-0" : undefined}
+								aria-label={iconOnly ? t("player.copyMediaLink") : undefined}
+								title={iconOnly ? t("player.copyMediaLink") : undefined}
+								disabled={pending}
+								aria-busy={pending}
+								onClick={() => void copyLink()}
+							/>
+						}
+					>
+						<Copy size={16} aria-hidden="true" />
+						{!iconOnly && t("player.copyMediaLink")}
 					</DialogTrigger>
 				</div>
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>{t("player.mediaLinkLabel")}</DialogTitle>
 						<DialogDescription role="status">
-							{t(copied ? "player.mediaLinkCopied" : "player.mediaLinkManual")}
+							{t("player.mediaLinkManual")}
 						</DialogDescription>
 					</DialogHeader>
 					<Input
@@ -107,25 +118,11 @@ export default function MediaLink({
 						onFocus={(event) => event.currentTarget.select()}
 					/>
 					<DialogFooter>
-						<DialogClose asChild>
-							<Button type="button" variant="outline">
-								{t("actions.close")}
-							</Button>
+						<DialogClose render={<Button type="button" variant="outline" />}>
+							{t("actions.close")}
 						</DialogClose>
 					</DialogFooter>
 				</DialogContent>
-				{error && (
-					<p
-						className={
-							iconOnly
-								? "col-span-2 px-2 text-base text-destructive"
-								: "text-base text-destructive"
-						}
-						role="alert"
-					>
-						{t(error)}
-					</p>
-				)}
 			</div>
 		</Dialog>
 	);

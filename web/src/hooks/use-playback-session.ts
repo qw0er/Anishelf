@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ClientConfigResponse } from "../api/contracts.js";
+import { toast } from "../components/ui/toast.js";
+import { getErrorTranslationKey } from "../lib/error-translation.js";
 import {
 	PlaybackSessionController,
 	type PlaybackSessionState,
@@ -19,6 +22,7 @@ export function usePlaybackSession(
 	fileId: string,
 	policy: ClientConfigResponse["playback"],
 ) {
+	const { t } = useTranslation();
 	const { progressSaveIntervalMs, requestTimeoutMs } = policy;
 	const stablePolicy = useMemo(
 		() => ({ progressSaveIntervalMs, requestTimeoutMs }),
@@ -28,9 +32,39 @@ export function usePlaybackSession(
 	const controllerRef = useRef<PlaybackSessionController | null>(null);
 	const videoRef = useRef<HTMLVideoElement | null>(null);
 	useEffect(() => {
+		const notificationId = `playback-progress:${fileId}`;
+		let notifiedError: string | null = null;
 		const controller = new PlaybackSessionController(
 			fileId,
-			setState,
+			(next) => {
+				setState(next);
+				if (!next.error) {
+					if (notifiedError) toast.close(notificationId);
+					notifiedError = null;
+					return;
+				}
+				const key =
+					getErrorTranslationKey(next.error.cause) ??
+					(next.error.operation === "load"
+						? "errors.playbackLoad"
+						: "errors.playbackSave");
+				const signature = `${next.error.operation}:${key}`;
+				if (signature === notifiedError) return;
+				notifiedError = signature;
+				toast.add({
+					type: "error",
+					priority: "high",
+					title: t(key),
+					id: notificationId,
+					timeout: 10000,
+					actionProps: {
+						children: t("actions.retry"),
+						onClick: () => {
+							if (controllerRef.current === controller) void controller.retry();
+						},
+					},
+				});
+			},
 			stablePolicy,
 		);
 		controllerRef.current = controller;
@@ -42,6 +76,7 @@ export function usePlaybackSession(
 		window.addEventListener("pagehide", hide);
 		return () => {
 			window.removeEventListener("pagehide", hide);
+			toast.close(notificationId);
 			if (controllerRef.current === controller) controllerRef.current = null;
 			const departure = controller.dispose();
 			departures.set(fileId, departure);
@@ -49,7 +84,7 @@ export function usePlaybackSession(
 				if (departures.get(fileId) === departure) departures.delete(fileId);
 			});
 		};
-	}, [fileId, stablePolicy]);
+	}, [fileId, stablePolicy, t]);
 
 	const attach = useCallback((video: HTMLVideoElement | null) => {
 		videoRef.current = video;

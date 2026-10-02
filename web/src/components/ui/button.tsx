@@ -1,4 +1,4 @@
-import type * as React from "react";
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cn } from "../../lib/utils.js";
 
 type Variant = "default" | "secondary" | "outline" | "ghost";
@@ -21,6 +21,17 @@ export function Button({
 	variant = "default",
 	className,
 	...props
-}: React.ComponentProps<"button"> & { variant?: Variant }) {
-	return <button className={buttonStyles(variant, className)} {...props} />;
+}: ButtonPrimitive.Props & { variant?: Variant }) {
+	return (
+		<ButtonPrimitive
+			data-slot="button"
+			className={(state) =>
+				buttonStyles(
+					variant,
+					typeof className === "function" ? className(state) : className,
+				)
+			}
+			{...props}
+		/>
+	);
 }

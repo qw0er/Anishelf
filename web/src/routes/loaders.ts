@@ -14,6 +14,8 @@ import {
 	saveSettings,
 	startScan,
 } from "../api/client.js";
+import { toast } from "../components/ui/toast.js";
+import i18n from "../i18n.js";
 import { getErrorTranslationKey } from "../lib/error-translation.js";
 
 export async function libraryLoader({ request }: LoaderFunctionArgs) {
@@ -41,6 +43,7 @@ export async function libraryLoader({ request }: LoaderFunctionArgs) {
 }
 
 export async function settingsAction({ request }: ActionFunctionArgs) {
+	toast.close("settings-save");
 	const form = await request.formData();
 	const resourceRoot = form.get("resourceRoot");
 	if (typeof resourceRoot !== "string" || resourceRoot.trim() === "")
@@ -69,12 +72,23 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 			},
 			{ signal: request.signal },
 		);
+		toast.add({
+			type: "success",
+			title: i18n.t("settingsPage.saved"),
+			id: "settings-save",
+		});
 		return redirect("/");
 	} catch (error) {
 		if (request.signal.aborted || isRequestCancelled(error)) throw error;
-		return {
-			error: getErrorTranslationKey(error) ?? "errors.saveSettings",
-		};
+		const key = getErrorTranslationKey(error) ?? "errors.saveSettings";
+		if (key === "errors.api.CONFIG_INVALID") return { error: key };
+		toast.add({
+			type: "error",
+			priority: "high",
+			title: i18n.t(key),
+			id: "settings-save",
+		});
+		return { error: null };
 	}
 }
 
@@ -87,17 +101,20 @@ export function fileLoader({ params, request }: LoaderFunctionArgs) {
 }
 
 export async function scanAction({ request }: ActionFunctionArgs) {
+	toast.close("scan-start");
 	try {
 		return {
 			scan: (await startScan({ signal: request.signal })).scan,
-			error: null,
 		};
 	} catch (error) {
 		if (request.signal.aborted || isRequestCancelled(error)) throw error;
-		return {
-			scan: null,
-			error: getErrorTranslationKey(error) ?? "errors.startScan",
-		};
+		toast.add({
+			type: "error",
+			priority: "high",
+			title: i18n.t(getErrorTranslationKey(error) ?? "errors.startScan"),
+			id: "scan-start",
+		});
+		return { scan: null };
 	}
 }
 

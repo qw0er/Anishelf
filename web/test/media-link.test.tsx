@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import {
+	act,
 	cleanup,
 	fireEvent,
 	render,
@@ -9,6 +10,7 @@ import {
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as api from "../src/api/client.js";
 import MediaLink from "../src/components/media-link.js";
+import { Toaster, toast } from "../src/components/ui/toast.js";
 import { createMediaLink } from "../src/lib/media-link.js";
 import "../src/i18n.js";
 
@@ -32,10 +34,20 @@ beforeEach(() => {
 	vi.spyOn(api, "getFile").mockResolvedValue(file);
 });
 afterEach(() => {
+	act(() => toast.close());
 	cleanup();
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
 });
+
+function renderMediaLink(iconOnly = false) {
+	return render(
+		<>
+			<MediaLink fileId={fileId} iconOnly={iconOnly} />
+			<Toaster />
+		</>,
+	);
+}
 
 test.each([
 	"http://localhost:9000",
@@ -63,7 +75,7 @@ test.each([
 test("rechecks the file, copies its link and does not touch playback state", async () => {
 	const open = vi.spyOn(api, "openPlaybackSession");
 	const save = vi.spyOn(api, "savePlaybackProgress");
-	render(<MediaLink fileId={fileId} />);
+	renderMediaLink();
 	fireEvent.click(screen.getByRole("button", { name: "Copy media link" }));
 	await screen.findByText(/Link copied/);
 	expect(writeText).toHaveBeenCalledWith(
@@ -74,19 +86,15 @@ test("rechecks the file, copies its link and does not touch playback state", asy
 	});
 	expect(open).not.toHaveBeenCalled();
 	expect(save).not.toHaveBeenCalled();
-	const input = screen.getByRole<HTMLInputElement>("textbox", {
-		name: "Media link",
-	});
-	expect(input.readOnly).toBe(true);
-	fireEvent.focus(input);
-	expect(input.selectionEnd).toBe(input.value.length);
+	expect(screen.queryByRole("dialog", { name: "Media link" })).toBeNull();
+	expect(screen.queryByRole("textbox", { name: "Media link" })).toBeNull();
 });
 test.each(["unavailable", "rejected"])(
 	"offers manual copying when clipboard is %s",
 	async (mode) => {
 		if (mode === "unavailable") vi.stubGlobal("navigator", {});
 		else writeText.mockRejectedValue(new Error("Denied"));
-		render(<MediaLink fileId={fileId} />);
+		renderMediaLink();
 		fireEvent.click(screen.getByRole("button", { name: "Copy media link" }));
 		await screen.findByRole("dialog", { name: "Media link" });
 		await screen.findByText(/Copy the link below/);
@@ -94,16 +102,19 @@ test.each(["unavailable", "rejected"])(
 			screen.getByRole<HTMLInputElement>("textbox", { name: "Media link" })
 				.value,
 		).toBe(`${window.location.origin}${file.playbackUrl}`);
+		const input = screen.getByRole<HTMLInputElement>("textbox", {
+			name: "Media link",
+		});
+		expect(input.readOnly).toBe(true);
+		fireEvent.focus(input);
+		expect(input.selectionEnd).toBe(input.value.length);
 	},
 );
 test("clears a previous link if the source disappears and allows retry", async () => {
-	render(<MediaLink fileId={fileId} />);
+	renderMediaLink();
 	const button = screen.getByRole("button", { name: "Copy media link" });
 	fireEvent.click(button);
 	await screen.findByText(/Link copied/);
-	fireEvent.click(
-		screen.getAllByRole("button", { name: "Close" }).at(-1) as HTMLElement,
-	);
 	vi.mocked(api.getFile).mockRejectedValue(
 		new api.ApiClientError({
 			kind: "http",
@@ -113,12 +124,23 @@ test("clears a previous link if the source disappears and allows retry", async (
 		}),
 	);
 	fireEvent.click(button);
-	expect(await screen.findByRole("alert")).toBeTruthy();
+	await screen.findByText(
+		"This file is no longer available. Scan the library again.",
+		{ selector: "[data-slot=toast-title]" },
+	);
 	expect(screen.queryByRole("textbox", { name: "Media link" })).toBeNull();
 	expect(writeText).toHaveBeenCalledTimes(1);
 	vi.mocked(api.getFile).mockResolvedValue(file);
 	fireEvent.click(button);
 	await screen.findByText(/Link copied/);
+	await waitFor(() =>
+		expect(
+			screen.queryByText(
+				"This file is no longer available. Scan the library again.",
+				{ selector: "[data-slot=toast-title]" },
+			),
+		).toBeNull(),
+	);
 });
 test("prevents duplicate requests and cancels on unmount", async () => {
 	let signal: AbortSignal | undefined;
@@ -126,7 +148,7 @@ test("prevents duplicate requests and cancels on unmount", async () => {
 		signal = options?.signal;
 		return new Promise(() => {});
 	});
-	const view = render(<MediaLink fileId={fileId} />);
+	const view = renderMediaLink();
 	const button = screen.getByRole<HTMLButtonElement>("button", {
 		name: "Copy media link",
 	});
@@ -139,8 +161,9 @@ test("prevents duplicate requests and cancels on unmount", async () => {
 	expect(writeText).not.toHaveBeenCalled();
 });
 
-test("shows the result in a modal and restores focus when closed", async () => {
-	render(<MediaLink fileId={fileId} iconOnly />);
+test("shows manual copying in a modal and restores focus when closed", async () => {
+	writeText.mockRejectedValue(new Error("Denied"));
+	renderMediaLink(true);
 	const button = screen.getByRole<HTMLButtonElement>("button", {
 		name: "Copy media link",
 	});
@@ -150,19 +173,22 @@ test("shows the result in a modal and restores focus when closed", async () => {
 	expect(
 		modal.contains(screen.getByRole("textbox", { name: "Media link" })),
 	).toBe(true);
-	expect(modal.contains(screen.getByText(/Link copied/))).toBe(true);
-	expect(modal.getAttribute("data-state")).toBe("open");
+	expect(modal.contains(screen.getByText(/Copy the link below/))).toBe(true);
+	expect(modal.hasAttribute("data-open")).toBe(true);
 	fireEvent.click(
 		screen.getAllByRole("button", { name: "Close" }).at(-1) as HTMLElement,
 	);
-	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	await waitFor(() =>
+		expect(screen.queryByRole("dialog", { name: "Media link" })).toBeNull(),
+	);
 	await waitFor(() => expect(document.activeElement).toBe(button));
 	fireEvent.click(button);
 	await screen.findByRole("dialog", { name: "Media link" });
 });
 
 test("Escape dismisses the dialog and returns focus to the copy button", async () => {
-	render(<MediaLink fileId={fileId} iconOnly />);
+	writeText.mockRejectedValue(new Error("Denied"));
+	renderMediaLink(true);
 	const button = screen.getByRole<HTMLButtonElement>("button", {
 		name: "Copy media link",
 	});
@@ -170,6 +196,8 @@ test("Escape dismisses the dialog and returns focus to the copy button", async (
 	fireEvent.click(button);
 	await screen.findByRole("dialog", { name: "Media link" });
 	fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
-	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	await waitFor(() =>
+		expect(screen.queryByRole("dialog", { name: "Media link" })).toBeNull(),
+	);
 	await waitFor(() => expect(document.activeElement).toBe(button));
 });

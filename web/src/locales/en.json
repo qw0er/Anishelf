@@ -22,6 +22,9 @@
 		"page": "Loading page\u2026",
 		"pageLabel": "Loading page"
 	},
+	"notifications": {
+		"label": "Notifications"
+	},
 	"errors": {
 		"pageLabel": "Page error",
 		"pageLoad": "This page could not be loaded.",
@@ -30,6 +33,8 @@
 		"resourcePathRequired": "Enter an absolute resource directory path.",
 		"startScan": "Could not start scanning.",
 		"mediaPlayback": "This media could not be played in this browser.",
+		"playbackLoad": "Playback progress could not be loaded. You can keep watching and retry.",
+		"playbackSave": "Playback progress could not be saved. Please retry.",
 		"network": "Cannot connect to the server. Check your connection and try again.",
 		"invalidResponse": "The server returned an invalid response. Please try again.",
 		"requestFailed": "The request failed. Please try again.",
@@ -70,6 +75,9 @@
 		"statusCompleted": "completed",
 		"statusFailed": "failed",
 		"statusCancelled": "cancelled",
+		"completed": "Library scan completed.",
+		"completedWithWarnings_one": "Library scan completed with {{count}} warning. See Library scan for details.",
+		"completedWithWarnings_other": "Library scan completed with {{count}} warnings. See Library scan for details.",
 		"visitedEntries": "Visited entries: {{count}} \u00b7 Video files: {{matched}}",
 		"start": "Scan library",
 		"refresh": "Refresh",
@@ -91,6 +99,7 @@
 		"pathLabel": "Resource directory path",
 		"pathPlaceholder": "/path/to/media",
 		"save": "Save directory",
+		"saved": "Settings saved.",
 		"savedPath": "Saved resource directory: {{path}}",
 		"waitForScan": "Wait for the scan to finish before changing the directory."
 	},

@@ -38,13 +38,13 @@ export default function FilePlayer({
 			</div>
 			<h1 className="page-title">{data.file.name}</h1>
 			<VideoPlayer
-				key={data.file.id}
+				key={`video:${data.file.id}`}
 				{...data}
 				subtitlePolicy={clientConfig.subtitles}
 				playbackUrl={playback.session?.plan.playbackUrl ?? data.playbackUrl}
 				onMedia={playback.attach}
 			/>
-			<MediaLink key={data.file.id} fileId={data.file.id} />
+			<MediaLink key={`link:${data.file.id}`} fileId={data.file.id} />
 		</section>
 	);
 }

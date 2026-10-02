@@ -12,13 +12,13 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
+		"@base-ui/react": "^1.8.0",
 		"@tailwindcss/vite": "^4.3.3",
 		"@vidstack/react": "1.15.6",
 		"cn": "^0.4.0",
 		"i18next": "^26.4.2",
 		"jassub": "2.5.16",
 		"lucide-react": "^1.48.0",
-		"radix-ui": "^1.6.7",
 		"react": "^19.2.8",
 		"react-dom": "^19.2.8",
 		"react-i18next": "^17.0.15",

@@ -21,6 +21,7 @@ import type {
 	ScanStateDto,
 	SettingsResponse,
 } from "../src/api/contracts.js";
+import { Toaster, toast } from "../src/components/ui/toast.js";
 import { libraryRoute } from "../src/routes/library.js";
 import { clientConfig } from "./client-config.js";
 
@@ -218,6 +219,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+	act(() => toast.close());
 	cleanup();
 	vi.useRealTimers();
 	await new Promise((resolve) => setTimeout(resolve, 0));
@@ -263,7 +265,12 @@ function renderApp(path = "/", strict = false) {
 		{ initialEntries: [path] },
 	);
 	routers.push(router);
-	const app = <RouterProvider router={router} />;
+	const app = (
+		<>
+			<RouterProvider router={router} />
+			<Toaster />
+		</>
+	);
 	return { ...render(strict ? <StrictMode>{app}</StrictMode> : app), router };
 }
 
@@ -381,13 +388,23 @@ test("a failed settings save retains the input and supports a retry", async () =
 	)) as HTMLInputElement;
 	fireEvent.change(input, { target: { value: "/new/media" } });
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
-	await screen.findByText("Settings could not be saved.");
+	await screen.findByText("Settings could not be saved.", {
+		selector: "[data-slot=toast-title]",
+	});
+	expect(within(screen.getByRole("main")).queryByRole("alert")).toBeNull();
 	expect(input.value).toBe("/new/media");
 	expect(screen.getByTestId("location").textContent).toBe("/settings");
 	rejectSave = false;
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
 	await screen.findByRole("button", { name: "Scan library" });
-	expect(screen.queryByText("Settings could not be saved.")).toBeNull();
+	await screen.findByText("Settings saved.");
+	await waitFor(() =>
+		expect(
+			screen.queryByText("Settings could not be saved.", {
+				selector: "[data-slot=toast-title]",
+			}),
+		).toBeNull(),
+	);
 });
 
 test("navigates directories, opens media, and returns to the original directory with media unloaded", async () => {
@@ -403,7 +420,7 @@ test("navigates directories, opens media, and returns to the original directory 
 	expect(video.getAttribute("src")).toBe(file.playbackUrl);
 	expect(video.hasAttribute("controls")).toBe(false);
 	expect(video.closest(".anishelf-player")).toBeTruthy();
-	expect(screen.getByRole("button", { name: "Play" })).toBeTruthy();
+	expect(await screen.findByRole("button", { name: "Play" })).toBeTruthy();
 	expect(video.getAttribute("preload")).toBe("metadata");
 	expect(
 		fetcher.mock.calls.some(([path]) => String(path).startsWith("/api/media/")),
@@ -527,6 +544,36 @@ test("starts scanning, polls status, refreshes the listing on publication, and s
 	expect(fetcher).toHaveBeenCalledTimes(calls);
 });
 
+test("scan completion notifies once across StrictMode and repeated refreshes", async () => {
+	const notify = vi.spyOn(toast, "add");
+	library = { ...library, scan: runningScan };
+	const { router } = renderApp("/", true);
+	await screen.findByText("Scan: running");
+	expect(notify).not.toHaveBeenCalled();
+	library = {
+		...library,
+		scan: {
+			...completedScan,
+			warnings: {
+				count: 1,
+				messages: ["A video file could not be read and was skipped."],
+			},
+		},
+	};
+	await act(async () => {
+		await router.revalidate();
+	});
+	await screen.findByText(
+		"Library scan completed with 1 warning. See Library scan for details.",
+	);
+	expect(notify).toHaveBeenCalledTimes(1);
+	await act(async () => {
+		await router.revalidate();
+	});
+	expect(notify).toHaveBeenCalledTimes(1);
+	expect(screen.getByText("Scan warnings: 1")).toBeTruthy();
+});
+
 test("scan status updates do not unload a playing file", async () => {
 	renderApp();
 	fireEvent.click(await screen.findByRole("link", { name: "Season 1" }));
@@ -609,7 +656,10 @@ test("a failed scan action keeps the current directory usable and supports anoth
 	renderApp("/directories/season-1");
 	await screen.findByRole("link", { name: "Episode 01.mp4" });
 	fireEvent.click(screen.getByRole("button", { name: "Scan library" }));
-	await screen.findByText("The resource directory is unavailable.");
+	await screen.findByText("The resource directory is unavailable.", {
+		selector: "[data-slot=toast-title]",
+	});
+	expect(within(screen.getByRole("main")).queryByRole("alert")).toBeNull();
 	expect(screen.getByRole("link", { name: "Episode 01.mp4" })).toBeTruthy();
 	expect(screen.getByTestId("location").textContent).toBe(
 		"/directories/season-1",
@@ -617,9 +667,13 @@ test("a failed scan action keeps the current directory usable and supports anoth
 	rejectScan = false;
 	fireEvent.click(screen.getByRole("button", { name: "Scan library" }));
 	await screen.findByText("Scan: running");
-	expect(
-		screen.queryByText("The resource directory is unavailable."),
-	).toBeNull();
+	await waitFor(() =>
+		expect(
+			screen.queryByText("The resource directory is unavailable.", {
+				selector: "[data-slot=toast-title]",
+			}),
+		).toBeNull(),
+	);
 });
 
 test("a library-status connection failure leaves the listing available and can be revalidated", async () => {
@@ -866,6 +920,122 @@ test("normal navigation saves in the background, then releases the session", asy
 			),
 		).toBe(true),
 	);
+});
+
+test("playback session errors show a Toast and retry without unloading the video", async () => {
+	const implementation = fetcher.getMockImplementation();
+	const notify = vi.spyOn(toast, "add");
+	let rejectSession = true;
+	fetcher.mockImplementation((input, init) => {
+		if (String(input) === "/api/playback/sessions" && rejectSession)
+			return Promise.resolve(
+				json(
+					{
+						error: {
+							code: "PLAYBACK_UNAVAILABLE",
+							message: "Unavailable",
+							requestId: "id",
+						},
+					},
+					503,
+				),
+			);
+		if (!implementation) throw new Error("Missing mock");
+		return implementation(input, init);
+	});
+	renderApp("/files/file-1", true);
+	await screen.findByText(
+		"Playback progress is unavailable. You can keep watching and retry later.",
+		{ selector: "[data-slot=toast-title]" },
+	);
+	const video = await screen.findByLabelText("Video: Episode 01.mp4");
+	expect(notify).toHaveBeenCalledTimes(1);
+	rejectSession = false;
+	const retry = screen.getByText("Retry", {
+		selector: "[data-slot=toast-action]",
+	});
+	act(() => retry.focus());
+	fireEvent.click(retry);
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.filter(([url]) => url === "/api/playback/sessions"),
+		).toHaveLength(2),
+	);
+	await waitFor(() =>
+		expect(
+			screen.queryByText(
+				"Playback progress is unavailable. You can keep watching and retry later.",
+				{ selector: "[data-slot=toast-title]" },
+			),
+		).toBeNull(),
+	);
+	expect(screen.getByLabelText("Video: Episode 01.mp4")).toBe(video);
+});
+
+test("progress save failures notify once and retry the pending save", async () => {
+	const implementation = fetcher.getMockImplementation();
+	const notify = vi.spyOn(toast, "add");
+	let rejectSave = true;
+	fetcher.mockImplementation((input, init) => {
+		if (String(input).endsWith("/progress") && rejectSave)
+			return Promise.resolve(
+				json(
+					{
+						error: {
+							code: "PLAYBACK_PERSISTENCE_FAILED",
+							message: "Failed",
+							requestId: "id",
+						},
+					},
+					500,
+				),
+			);
+		if (!implementation) throw new Error("Missing mock");
+		return implementation(input, init);
+	});
+	renderApp("/files/file-1");
+	const video = await screen.findByLabelText<HTMLVideoElement>(
+		"Video: Episode 01.mp4",
+	);
+	Object.defineProperty(video, "duration", { value: 100 });
+	fireEvent.loadedMetadata(video);
+	await act(async () => {});
+	video.currentTime = 15;
+	fireEvent.seeked(video);
+	await screen.findByText(
+		"Playback progress could not be loaded or saved. Please retry.",
+		{ selector: "[data-slot=toast-title]" },
+	);
+	expect(notify).toHaveBeenCalledTimes(1);
+	fireEvent.pause(video);
+	await act(async () => {});
+	expect(notify).toHaveBeenCalledTimes(1);
+	rejectSave = false;
+	const retry = screen.getByText("Retry", {
+		selector: "[data-slot=toast-action]",
+	});
+	act(() => retry.focus());
+	fireEvent.click(retry);
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.filter(([url]) => String(url).endsWith("/progress")),
+		).toHaveLength(2),
+	);
+	const writes = fetcher.mock.calls.filter(([url]) =>
+		String(url).endsWith("/progress"),
+	);
+	expect(JSON.parse(String(writes[1]?.[1]?.body))).toEqual(
+		JSON.parse(String(writes[0]?.[1]?.body)),
+	);
+	await waitFor(() =>
+		expect(
+			screen.queryByText(
+				"Playback progress could not be loaded or saved. Please retry.",
+				{ selector: "[data-slot=toast-title]" },
+			),
+		).toBeNull(),
+	);
+	expect(screen.getByLabelText("Video: Episode 01.mp4")).toBe(video);
 });
 
 test("failed final saves do not show session messages or block navigation", async () => {

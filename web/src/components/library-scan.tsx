@@ -16,7 +16,6 @@ type LibraryScanProps = Pick<
 	| "scanning"
 	| "scanPending"
 	| "scanSubmitting"
-	| "scanError"
 	| "refreshing"
 	| "reload"
 	| "startScan"
@@ -29,7 +28,6 @@ export default function LibraryScan({
 	scanning,
 	scanPending,
 	scanSubmitting,
-	scanError,
 	refreshing,
 	reload,
 	startScan,
@@ -104,7 +102,6 @@ export default function LibraryScan({
 				library?.stale ||
 				library?.error ||
 				libraryError ||
-				scanError ||
 				!settings?.resourceRoot) && (
 				<CardContent className="flex min-w-0 flex-col gap-2 text-sm">
 					{!settings?.resourceRoot && settings && (
@@ -146,11 +143,6 @@ export default function LibraryScan({
 					{libraryError && (
 						<p className="text-base text-destructive" role="alert">
 							{t(libraryError)}
-						</p>
-					)}
-					{scanError && (
-						<p className="text-base text-destructive" role="alert">
-							{t(scanError)}
 						</p>
 					)}
 				</CardContent>

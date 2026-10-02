@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
 	Link,
@@ -17,6 +17,7 @@ import type {
 import AppHeader from "./components/app-header.js";
 import { buttonStyles } from "./components/ui/button.js";
 import { Spinner } from "./components/ui/spinner.js";
+import { toast } from "./components/ui/toast.js";
 import { useDelayedPending } from "./hooks/use-delayed-pending.js";
 import type { libraryLoader, scanAction } from "./routes/loaders.js";
 import "./i18n.js";
@@ -32,7 +33,6 @@ export interface LibraryContext {
 	scanning: boolean;
 	scanPending: boolean;
 	scanSubmitting: boolean;
-	scanError: string | null;
 	refreshing: boolean;
 	startScan(): void;
 }
@@ -51,6 +51,33 @@ function App() {
 	const location = useLocation();
 	const [playerVersion, setPlayerVersion] = useState(0);
 	const scanning = library?.scan?.status === "running";
+	const lastScan = useRef(library?.scan);
+	useEffect(() => {
+		const scan = library?.scan;
+		if (!scan) return;
+		const previous = lastScan.current;
+		lastScan.current = scan;
+		if (previous?.id === scan.id && previous.status === scan.status) return;
+		const id = `scan-result:${scan.id}`;
+		if (scan.status === "completed") {
+			if (scan.warnings.count > 0)
+				toast.add({
+					type: "warning",
+					title: t("scan.completedWithWarnings", {
+						count: scan.warnings.count,
+					}),
+					id,
+				});
+			else toast.add({ type: "success", title: t("scan.completed"), id });
+		} else if (scan.status === "failed") {
+			toast.add({
+				type: "error",
+				priority: "high",
+				title: t(`errors.api.${scan.error.code}`),
+				id,
+			});
+		}
+	}, [library?.scan, t]);
 	const scanSubmitting = scanFetcher.state === "submitting";
 	const scanPending = scanFetcher.state !== "idle";
 	const [manualRefreshing, setManualRefreshing] = useState(false);
@@ -125,7 +152,6 @@ function App() {
 							scanning,
 							scanPending,
 							scanSubmitting,
-							scanError: scanFetcher.data?.error ?? null,
 							refreshing: manualRefreshing,
 							startScan,
 						} satisfies LibraryContext
