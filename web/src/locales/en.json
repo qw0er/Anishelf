@@ -52,7 +52,7 @@
 			"PLAYBACK_CONFLICT": "Your playback session or file changed. Retry to reopen the session.",
 			"PLAYBACK_UNAVAILABLE": "Playback progress is unavailable. You can keep watching and retry later.",
 			"PLAYBACK_PERSISTENCE_FAILED": "Playback progress could not be loaded or saved. Please retry.",
-			"SUBTITLE_TOO_LARGE": "The subtitle exceeds the 10 MiB limit.",
+			"SUBTITLE_TOO_LARGE": "The subtitle exceeds the {{maximumMiB}} MiB limit.",
 			"SUBTITLE_INVALID_ENCODING": "Save the subtitle as UTF-8 or UTF-16 with a byte-order mark."
 		}
 	},
@@ -86,8 +86,8 @@
 		"resourceDirectory": "Resource directory",
 		"resourceDescription": "Enter an absolute path on the server. Changing the directory starts a scan automatically.",
 		"scanInterval": "Automatic scan interval (minutes)",
-		"scanIntervalHelp": "Default: 60 minutes. Use 0 to disable scheduled scans. The interval starts after each scan finishes.",
-		"invalidInterval": "Enter a whole number from 0 to 10080 minutes.",
+		"scanIntervalHelp": "Default: {{defaultMinutes}} minutes. Use 0 to disable scheduled scans. The interval starts after each scan finishes.",
+		"invalidInterval": "Enter a whole number from 0 to {{maximumMinutes}} minutes.",
 		"pathLabel": "Resource directory path",
 		"pathPlaceholder": "/path/to/media",
 		"save": "Save directory",

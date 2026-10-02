@@ -9,13 +9,14 @@ import {
 	resolve,
 	sep,
 } from "node:path";
-import {
-	maximumScanIntervalMinutes,
-	type PersistentSettings,
-} from "../config/model.js";
 import { DomainError } from "../errors.js";
+import type { PersistentSettings } from "./model.js";
+import { builtinPolicy } from "./policy.js";
 
-export function parsePersistentSettings(source: string): PersistentSettings {
+export function parsePersistentSettings(
+	source: string,
+	maximumIntervalMinutes = builtinPolicy.library.maximumScanIntervalMinutes,
+): PersistentSettings {
 	let value: unknown;
 	try {
 		value = JSON.parse(source);
@@ -25,10 +26,13 @@ export function parsePersistentSettings(source: string): PersistentSettings {
 			"settings.json is not valid JSON. Check its syntax.",
 		);
 	}
-	return validatePersistentSettings(value);
+	return validatePersistentSettings(value, maximumIntervalMinutes);
 }
 
-function validatePersistentSettings(value: unknown): PersistentSettings {
+function validatePersistentSettings(
+	value: unknown,
+	maximumIntervalMinutes = builtinPolicy.library.maximumScanIntervalMinutes,
+): PersistentSettings {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) {
 		throw new DomainError(
 			"CONFIG_INVALID",
@@ -50,11 +54,11 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		(typeof interval !== "number" ||
 			!Number.isSafeInteger(interval) ||
 			interval < 0 ||
-			interval > maximumScanIntervalMinutes)
+			interval > maximumIntervalMinutes)
 	)
 		throw new DomainError(
 			"CONFIG_INVALID",
-			"scanIntervalMinutes must be an integer from 0 to 10080; 0 disables scheduled scans.",
+			`settings.json scanIntervalMinutes must be an integer from 0 to ${maximumIntervalMinutes}; 0 disables scheduled scans.`,
 		);
 	const scheduling =
 		interval === undefined ? {} : { scanIntervalMinutes: interval as number };
@@ -84,6 +88,7 @@ function contains(parent: string, child: string): boolean {
 /** Missing settings enter setup mode; the first UI save creates the file. */
 async function loadPersistentSettings(
 	dataDir: string,
+	maximumIntervalMinutes: number,
 ): Promise<PersistentSettings> {
 	const path = join(dataDir, "settings.json");
 	let source: string;
@@ -97,7 +102,7 @@ async function loadPersistentSettings(
 			`Cannot read ${path}. Check the file permissions.`,
 		);
 	}
-	const settings = parsePersistentSettings(source);
+	const settings = parsePersistentSettings(source, maximumIntervalMinutes);
 	if (settings.resourceRoot !== null)
 		await checkDirectorySeparation(dataDir, settings.resourceRoot);
 	return settings;
@@ -142,27 +147,35 @@ export class PersistentConfiguration {
 	private readonly dataDir: string;
 	private current: PersistentSettings;
 
-	private constructor(dataDir: string, current: PersistentSettings) {
+	private constructor(
+		dataDir: string,
+		current: PersistentSettings,
+		private readonly maximumIntervalMinutes: number,
+	) {
 		this.dataDir = dataDir;
 		this.current = current;
 	}
 
-	static async load(dataDir: string): Promise<PersistentConfiguration> {
+	static async load(
+		dataDir: string,
+		maximumIntervalMinutes = builtinPolicy.library.maximumScanIntervalMinutes,
+	): Promise<PersistentConfiguration> {
 		return new PersistentConfiguration(
 			dataDir,
-			await loadPersistentSettings(dataDir),
+			await loadPersistentSettings(dataDir, maximumIntervalMinutes),
+			maximumIntervalMinutes,
 		);
 	}
 
 	get settings(): Readonly<PersistentSettings> {
-		return { ...this.current };
+		return Object.freeze({ ...this.current });
 	}
 
 	/** Replace the settings. Calls are serialized; rejected writes leave state unchanged. */
 	update(settings: PersistentSettings): Promise<Readonly<PersistentSettings>> {
 		let next: PersistentSettings;
 		try {
-			next = validatePersistentSettings(settings);
+			next = validatePersistentSettings(settings, this.maximumIntervalMinutes);
 		} catch (error) {
 			return Promise.reject(error);
 		}

@@ -1,5 +1,10 @@
 import { join } from "node:path";
 import type { Logger } from "pino";
+import {
+	type BuiltinPolicy,
+	builtinPolicy,
+	type DeepReadonly,
+} from "../config/policy.js";
 import { DomainError } from "../errors.js";
 import { getVideoMimeType, type ResourceAccess } from "../resources/access.js";
 import {
@@ -9,8 +14,6 @@ import {
 } from "./model.js";
 import type { ScanWarningSummary } from "./scan-state.js";
 
-const concurrency = 8;
-const warningMessageLimit = 5;
 export interface ScanTraversalProgress {
 	id: string;
 	visitedCount: number;
@@ -23,7 +26,10 @@ type ScanTask =
 
 /** Traverses a fixed resource root. The caller owns task state and publication. */
 export class LibraryScanner {
-	constructor(private readonly logger: Logger) {}
+	constructor(
+		private readonly logger: Logger,
+		private readonly policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
+	) {}
 
 	async scan(
 		resources: ResourceAccess,
@@ -43,7 +49,10 @@ export class LibraryScanner {
 		const queue: ScanTask[] = [{ kind: "directory", entry: root }];
 		let cursor = 0;
 		while (cursor < queue.length && !signal.aborted) {
-			const batch = queue.slice(cursor, cursor + concurrency);
+			const batch = queue.slice(
+				cursor,
+				cursor + this.policy.library.concurrency,
+			);
 			cursor += batch.length;
 			await Promise.all(
 				batch.map((task) =>
@@ -113,7 +122,11 @@ export class LibraryScanner {
 							relativePath: childPath,
 						},
 					});
-				} else if (child.isFile() && getVideoMimeType(child.name) !== null) {
+				} else if (
+					child.isFile() &&
+					getVideoMimeType(child.name, this.policy.media.videoMimeTypes) !==
+						null
+				) {
 					queue.push({
 						kind: "file",
 						name: child.name,
@@ -135,7 +148,10 @@ export class LibraryScanner {
 				task.kind === "directory"
 					? "A directory could not be scanned; its contents were skipped."
 					: "A video file could not be read and was skipped.";
-			if (messages.length < warningMessageLimit && !messages.includes(message))
+			if (
+				messages.length < this.policy.library.warningMessageLimit &&
+				!messages.includes(message)
+			)
 				messages.push(message);
 			progress.warnings.messages = messages;
 			this.logger.warn(

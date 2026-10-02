@@ -1,7 +1,10 @@
 import { Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useFetcher } from "react-router";
-import type { SettingsResponse } from "../api/contracts.js";
+import type {
+	ClientConfigResponse,
+	SettingsResponse,
+} from "../api/contracts.js";
 import { useDelayedPending } from "../hooks/use-delayed-pending.js";
 import type { settingsAction } from "../routes/loaders.js";
 import { Button } from "./ui/button.js";
@@ -17,9 +20,11 @@ import { Spinner } from "./ui/spinner.js";
 
 export default function ResourceSettings({
 	settings,
+	clientConfig,
 	disabled,
 }: {
 	settings: SettingsResponse;
+	clientConfig: ClientConfigResponse;
 	disabled: boolean;
 }) {
 	const { t } = useTranslation();
@@ -71,10 +76,13 @@ export default function ResourceSettings({
 								name="scanIntervalMinutes"
 								type="number"
 								min={0}
-								max={10080}
+								max={clientConfig.library.maximumScanIntervalMinutes}
 								step={1}
 								required
-								defaultValue={settings.scanIntervalMinutes ?? 60}
+								defaultValue={
+									settings.scanIntervalMinutes ??
+									clientConfig.library.defaultScanIntervalMinutes
+								}
 								disabled={disabled || saving}
 								aria-describedby="scan-interval-help"
 							/>
@@ -82,7 +90,10 @@ export default function ResourceSettings({
 								id="scan-interval-help"
 								className="text-sm text-muted-foreground"
 							>
-								{t("settingsPage.scanIntervalHelp")}
+								{t("settingsPage.scanIntervalHelp", {
+									defaultMinutes:
+										clientConfig.library.defaultScanIntervalMinutes,
+								})}
 							</p>
 						</div>
 						<div className="action-row">
@@ -112,7 +123,9 @@ export default function ResourceSettings({
 					)}
 					{fetcher.state === "idle" && fetcher.data?.error && (
 						<p className="text-base text-destructive" role="alert">
-							{t(fetcher.data.error)}
+							{t(fetcher.data.error, {
+								maximumMinutes: clientConfig.library.maximumScanIntervalMinutes,
+							})}
 						</p>
 					)}
 				</CardContent>

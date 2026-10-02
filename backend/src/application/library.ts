@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { basename, dirname, join } from "node:path";
 import type { Logger } from "pino";
+import type { PersistentSettings } from "../config/model.js";
 import {
-	defaultScanIntervalMinutes,
-	type PersistentSettings,
-} from "../config/model.js";
+	type BuiltinPolicy,
+	builtinPolicy,
+	type DeepReadonly,
+} from "../config/policy.js";
 import { DomainError } from "../errors.js";
 import type { LibraryIndex } from "../library/index.js";
 import type {
@@ -95,15 +97,21 @@ export class LibraryApplication {
 	private scanTimer: ReturnType<typeof setTimeout> | undefined;
 	private readonly logger: Logger;
 	private readonly scanner: LibraryScanner;
+	readonly policy: DeepReadonly<BuiltinPolicy>;
 	constructor(
 		private readonly options: {
 			configuration: SettingsStore;
 			logger: Logger;
 			index: LibraryIndex;
+			policy?: DeepReadonly<BuiltinPolicy>;
 		},
 	) {
+		this.policy = options.policy ?? builtinPolicy;
 		this.logger = options.logger.child({ module: "library" });
-		this.scanner = new LibraryScanner(this.logger.child({ module: "scanner" }));
+		this.scanner = new LibraryScanner(
+			this.logger.child({ module: "scanner" }),
+			this.policy,
+		);
 		this.scheduleScan();
 	}
 
@@ -142,7 +150,7 @@ export class LibraryApplication {
 	async getFile(id: string): Promise<FileInfo> {
 		const entry = this.options.index.getFile(id);
 		const settings = this.getSettings();
-		const resources = await ResourceAccess.create(settings);
+		const resources = await ResourceAccess.create(settings, this.policy);
 		const current = await resources.inspectVideoFile(entry.relativePath);
 		return {
 			kind: "file",
@@ -164,7 +172,10 @@ export class LibraryApplication {
 
 	async resolvePlaybackRoot(): Promise<string> {
 		const epoch = this.rootEpoch;
-		const resources = await ResourceAccess.create(this.getSettings());
+		const resources = await ResourceAccess.create(
+			this.getSettings(),
+			this.policy,
+		);
 		if (epoch !== this.rootEpoch)
 			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
 		return resources.canonicalRoot;
@@ -173,7 +184,10 @@ export class LibraryApplication {
 	async resolvePlaybackSource(id: string): Promise<ResolvedPlaybackSource> {
 		const epoch = this.rootEpoch;
 		const entry = this.options.index.getFile(id);
-		const resources = await ResourceAccess.create(this.getSettings());
+		const resources = await ResourceAccess.create(
+			this.getSettings(),
+			this.policy,
+		);
 		const metadata = await resources.inspectVideoFileWithVersion(
 			entry.relativePath,
 		);
@@ -198,7 +212,10 @@ export class LibraryApplication {
 
 	async discoverSubtitles(id: string): Promise<SubtitleDiscovery> {
 		const source = await this.resolvePlaybackSource(id);
-		const resources = await ResourceAccess.create(this.getSettings());
+		const resources = await ResourceAccess.create(
+			this.getSettings(),
+			this.policy,
+		);
 		if (
 			resources.canonicalRoot !== source.identity.canonicalRoot ||
 			source.rootEpoch !== this.rootEpoch
@@ -208,6 +225,7 @@ export class LibraryApplication {
 			resources,
 			source.identity.relativePath,
 			source.identity.sourceVersion,
+			this.policy.subtitles,
 		);
 		const current = await resources.inspectVideoFileWithVersion(
 			source.identity.relativePath,
@@ -232,7 +250,10 @@ export class LibraryApplication {
 		const source = await this.resolvePlaybackSource(id);
 		if (source.identity.sourceVersion !== sourceVersion)
 			throw new DomainError("PLAYBACK_CONFLICT", "The video changed.");
-		const resources = await ResourceAccess.create(this.getSettings());
+		const resources = await ResourceAccess.create(
+			this.getSettings(),
+			this.policy,
+		);
 		if (
 			source.rootEpoch !== this.rootEpoch ||
 			resources.canonicalRoot !== source.identity.canonicalRoot
@@ -242,6 +263,7 @@ export class LibraryApplication {
 			resources,
 			source.identity.relativePath,
 			sourceVersion,
+			this.policy.subtitles,
 		);
 		const track = discovered.tracks.find(
 			(candidate) => candidate.id === trackId,
@@ -257,7 +279,7 @@ export class LibraryApplication {
 		const file = await resources.openSubtitleFile(path);
 		let text: string;
 		try {
-			text = await readSubtitleText(file);
+			text = await readSubtitleText(file, this.policy.subtitles.maximumBytes);
 		} finally {
 			await file.release();
 		}
@@ -281,7 +303,7 @@ export class LibraryApplication {
 		// Pair the entry with its root before yielding, even if a settings save follows.
 		const entry = this.options.index.getFile(id);
 		const settings = this.getSettings();
-		const resources = await ResourceAccess.create(settings);
+		const resources = await ResourceAccess.create(settings, this.policy);
 		return resources.openFile(entry.relativePath);
 	}
 
@@ -393,7 +415,9 @@ export class LibraryApplication {
 	private scheduleScan(): void {
 		clearTimeout(this.scanTimer);
 		const settings = this.getSettings();
-		const minutes = settings.scanIntervalMinutes ?? defaultScanIntervalMinutes;
+		const minutes =
+			settings.scanIntervalMinutes ??
+			this.policy.library.defaultScanIntervalMinutes;
 		if (
 			this.closed ||
 			this.active ||
@@ -427,7 +451,7 @@ export class LibraryApplication {
 		);
 		try {
 			if (signal.aborted) return;
-			const resources = await ResourceAccess.create(settings);
+			const resources = await ResourceAccess.create(settings, this.policy);
 			const traversal: ScanTraversalProgress = {
 				id: progress.id,
 				visitedCount: progress.visitedCount,

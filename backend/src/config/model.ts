@@ -30,6 +30,3 @@ export interface PersistentSettings {
 	resourceRoot: string | null;
 	scanIntervalMinutes?: number;
 }
-
-export const defaultScanIntervalMinutes = 60;
-export const maximumScanIntervalMinutes = 10080;

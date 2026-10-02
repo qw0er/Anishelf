@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import { isAbsolute } from "node:path";
 import { and, asc, desc, eq, gt, isNotNull, sql } from "drizzle-orm";
+import {
+	type BuiltinPolicy,
+	builtinPolicy,
+	type DeepReadonly,
+} from "../config/policy.js";
 import type {
 	ContinueWatchingCandidate,
 	PlaybackProgress,
@@ -54,7 +59,10 @@ function integer(value: number, minimum: number): void {
 
 /** Synchronous, short transactions. Filesystem checks belong to the caller. */
 export class PlaybackRepository {
-	constructor(private readonly store: Store) {}
+	constructor(
+		private readonly store: Store,
+		private readonly policy: DeepReadonly<BuiltinPolicy>["playback"] = builtinPolicy.playback,
+	) {}
 
 	registerSource(
 		identity: PlaybackSourceIdentity,
@@ -196,14 +204,19 @@ export class PlaybackRepository {
 
 	listContinueWatching(
 		rootId: string,
-		limit = 20,
+		limit = Math.min(
+			this.policy.continueWatchingLimit,
+			this.policy.candidateBatchSize,
+		),
 		offset = 0,
 		view: "continue" | "recent" = "continue",
 	): ContinueWatchingCandidate[] {
 		integer(limit, 1);
 		integer(offset, 0);
-		if (limit > 100)
-			throw new RangeError("Candidate batch size must not exceed 100.");
+		if (limit > this.policy.candidateBatchSize)
+			throw new RangeError(
+				`Candidate batch size must not exceed ${this.policy.candidateBatchSize}.`,
+			);
 		return this.store
 			.select({ source: mediaSources, progress: playbackProgress })
 			.from(playbackProgress)
@@ -214,7 +227,7 @@ export class PlaybackRepository {
 					view === "continue" ? gt(playbackProgress.positionMs, 0) : undefined,
 					isNotNull(playbackProgress.lastViewedAtMs),
 					view === "continue"
-						? sql`(${playbackProgress.durationMs} IS NULL OR ${playbackProgress.durationMs} - ${playbackProgress.positionMs} > min(30000, ${playbackProgress.durationMs} * 0.05))`
+						? sql`(${playbackProgress.durationMs} IS NULL OR ${playbackProgress.durationMs} - ${playbackProgress.positionMs} > min(${this.policy.nearEndMs}, ${playbackProgress.durationMs} * ${this.policy.nearEndRatio}))`
 						: undefined,
 				),
 			)

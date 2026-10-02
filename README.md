@@ -161,3 +161,11 @@ npm run lint    # Biome lint
 - [Overall requirements](docs/requirements.md)
 
 The user has reported completing manual browser acceptance. Automated tests cover configuration, scanning, navigation, media delivery, access boundaries, frontend interactions, and development-only page hosting. Actual media decoding is validated by manual browser acceptance.
+
+### Unified configuration
+
+The backend creates one `ConfigurationService` from validated startup environment variables, built-in TypeScript policies and explicit `settings.json` values. Policies cover current scanning, playback, subtitle handling, tool execution, HTTP and database limits. They are read-only and updated with the program; do not copy them into `dataDir` or add policy fields to `settings.json`.
+
+Only `resourceRoot` and optional `scanIntervalMinutes` are currently writable. Omitted intervals use the current built-in default; `0` disables scheduled scans. Explicit choices survive upgrades. Settings commit atomically before the effective snapshot changes. Existing root-only settings need no migration.
+
+Read-only `GET /api/client-config` supplies safe defaults, constraints and capabilities to the Web client. Client configuration failure offers a retry; the Web client does not substitute hard-coded defaults. Transcode profiles, cache budgets and profile-content cache invalidation remain planned O17 work.

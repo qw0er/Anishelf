@@ -116,3 +116,14 @@ export async function loadDeploymentConfig(
 	}
 	return config;
 }
+
+/** Capture process environment once; adapters receive this immutable search context. */
+export function captureRuntimeEnvironment(env: Environment = process.env) {
+	return Object.freeze({
+		development: env.NODE_ENV === "development",
+		executableSearch: Object.freeze({
+			path: env.PATH ?? "",
+			pathExt: env.PATHEXT ?? ".EXE",
+		}),
+	});
+}

@@ -1,7 +1,7 @@
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import type { FileResponse } from "../api/contracts.js";
+import type { ClientConfigResponse, FileResponse } from "../api/contracts.js";
 import { usePlaybackSession } from "../hooks/use-playback-session.js";
 import { directoryPath } from "../routes/paths.js";
 import { Button, buttonStyles } from "./ui/button.js";
@@ -9,15 +9,17 @@ import VideoPlayer from "./video-player.js";
 
 export default function FilePlayer({
 	data,
+	clientConfig,
 	returnDirectoryId,
 	onRetry,
 }: {
 	data: FileResponse;
+	clientConfig: ClientConfigResponse;
 	returnDirectoryId: string | null;
 	onRetry(): void;
 }) {
 	const { t } = useTranslation();
-	const playback = usePlaybackSession(data.file.id);
+	const playback = usePlaybackSession(data.file.id, clientConfig.playback);
 	return (
 		<section className="stack-page" aria-label={t("player.label")}>
 			<div className="action-row">
@@ -37,6 +39,7 @@ export default function FilePlayer({
 			<VideoPlayer
 				key={data.file.id}
 				{...data}
+				subtitlePolicy={clientConfig.subtitles}
 				playbackUrl={playback.session?.plan.playbackUrl ?? data.playbackUrl}
 				onMedia={playback.attach}
 			/>

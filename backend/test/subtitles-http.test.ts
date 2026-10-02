@@ -11,12 +11,15 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { LibraryApplication } from "../src/application/library.js";
+import { builtinPolicy } from "../src/config/policy.js";
 import { DomainError } from "../src/errors.js";
 import { createHttpApp } from "../src/http/app.js";
 import type { SubtitleDiscoveryResponse } from "../src/http/contracts.js";
 import { LibraryIndex } from "../src/library/index.js";
 import { ResourceAccess } from "../src/resources/access.js";
-import { maximumSubtitleBytes } from "../src/subtitles/model.js";
+
+const maximumSubtitleBytes = builtinPolicy.subtitles.maximumBytes;
+
 import { settingsStore } from "./settings-store.js";
 
 let fixture: string;

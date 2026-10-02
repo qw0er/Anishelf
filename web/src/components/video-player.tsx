@@ -15,7 +15,7 @@ import "@vidstack/react/player/styles/default/layouts/video.css";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiClientError, getFile, isRequestCancelled } from "../api/client.js";
-import type { FileResponse } from "../api/contracts.js";
+import type { ClientConfigResponse, FileResponse } from "../api/contracts.js";
 import { getErrorTranslationKey } from "../lib/error-translation.js";
 import { ExternalSubtitleTracks } from "./external-subtitles.js";
 
@@ -31,7 +31,11 @@ export default function VideoPlayer({
 	file,
 	playbackUrl,
 	onMedia,
-}: FileResponse & { onMedia?(video: HTMLVideoElement | null): void }) {
+	subtitlePolicy,
+}: FileResponse & {
+	subtitlePolicy: ClientConfigResponse["subtitles"];
+	onMedia?(video: HTMLVideoElement | null): void;
+}) {
 	const { t } = useTranslation();
 	const videoRef = useRef<HTMLVideoElement | null>(null);
 	const errorRequest = useRef<AbortController | null>(null);
@@ -66,7 +70,11 @@ export default function VideoPlayer({
 		} catch (cause) {
 			if (controller.signal.aborted || isRequestCancelled(cause)) return;
 			if (cause instanceof ApiClientError)
-				setError(t(getErrorTranslationKey(cause) ?? "errors.requestFailed"));
+				setError(
+					t(getErrorTranslationKey(cause) ?? "errors.requestFailed", {
+						maximumMiB: subtitlePolicy.maximumBytes / (1024 * 1024),
+					}),
+				);
 		}
 	}
 
@@ -89,7 +97,7 @@ export default function VideoPlayer({
 				onError={playbackFailed}
 			>
 				<MediaProvider loaders={directVideoLoaders} />
-				<ExternalSubtitleTracks fileId={file.id} />
+				<ExternalSubtitleTracks fileId={file.id} policy={subtitlePolicy} />
 				<DefaultVideoLayout icons={defaultLayoutIcons} seekStep={5} />
 			</MediaPlayer>
 			{error && (

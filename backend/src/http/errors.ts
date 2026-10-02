@@ -4,7 +4,7 @@ import type { ApiErrorResponse } from "./contracts.js";
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
 	SUBTITLE_TOO_LARGE: {
 		status: 413,
-		message: "The subtitle exceeds the 10 MiB limit.",
+		message: "The subtitle exceeds the configured size limit.",
 	},
 	SUBTITLE_INVALID_ENCODING: {
 		status: 422,

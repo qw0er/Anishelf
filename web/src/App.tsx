@@ -9,15 +9,21 @@ import {
 	useNavigation,
 	useRevalidator,
 } from "react-router";
-import type { LibraryResponse, SettingsResponse } from "./api/contracts.js";
+import type {
+	ClientConfigResponse,
+	LibraryResponse,
+	SettingsResponse,
+} from "./api/contracts.js";
 import AppHeader from "./components/app-header.js";
 import { buttonStyles } from "./components/ui/button.js";
 import { Spinner } from "./components/ui/spinner.js";
 import { useDelayedPending } from "./hooks/use-delayed-pending.js";
 import type { libraryLoader, scanAction } from "./routes/loaders.js";
 import "./i18n.js";
+import { interactionPolicy } from "./lib/interaction-policy.js";
 
 export interface LibraryContext {
+	clientConfig: ClientConfigResponse;
 	playerVersion: number;
 	reload(): void;
 	settings: SettingsResponse | null;
@@ -35,6 +41,7 @@ function App() {
 	const { t } = useTranslation();
 	const {
 		library,
+		clientConfig,
 		settings,
 		error: libraryError,
 	} = useLoaderData<typeof libraryLoader>();
@@ -59,7 +66,10 @@ function App() {
 			revalidationState !== "idle"
 		)
 			return;
-		const timer = setTimeout(() => void revalidate(), 1000);
+		const timer = setTimeout(
+			() => void revalidate(),
+			interactionPolicy.scanPollIntervalMs,
+		);
 		return () => clearTimeout(timer);
 	}, [library, revalidate, revalidationState, manualRefreshing]);
 
@@ -109,6 +119,7 @@ function App() {
 							reload,
 							playerVersion,
 							settings,
+							clientConfig,
 							library,
 							libraryError,
 							scanning,

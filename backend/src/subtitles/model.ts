@@ -1,15 +1,15 @@
 import { extname } from "node:path";
+import {
+	type BuiltinPolicy,
+	builtinPolicy,
+	type DeepReadonly,
+} from "../config/policy.js";
 
 export type ExternalSubtitleFormat = "vtt" | "srt" | "ass" | "ssa";
-export const maximumSubtitleBytes = 10 * 1024 * 1024;
-const formats: Readonly<Record<string, ExternalSubtitleFormat>> = {
-	".vtt": "vtt",
-	".srt": "srt",
-	".ass": "ass",
-	".ssa": "ssa",
-};
 export function externalSubtitleFormat(
 	name: string,
+	formats: DeepReadonly<BuiltinPolicy>["subtitles"]["formats"] = builtinPolicy
+		.subtitles.formats,
 ): ExternalSubtitleFormat | null {
 	return formats[extname(name).toLowerCase()] ?? null;
 }

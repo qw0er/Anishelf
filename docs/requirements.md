@@ -203,9 +203,11 @@ V2 supports generating and copying an origin-aware original-media URL for the us
 | O14 | Interface localization and language preferences | V2 English catalog/keys/fallback foundation; additional locales and selection later | — | V2 (partial) |
 | O15 | Manage API-backed frontend state and caching with TanStack Query | Later | — | Unassigned |
 | O16 | Complete everyday-use Web interface | Finished UI for V2 library, continue watching, primary Web playback, pre-transcode/real-time tasks, and scoped settings | — | V2 |
-| O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access | — | V2 |
+| O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access | V2 (partial) | V2 |
 
 #### Unified Configuration (O17)
+
+Implemented foundation: unified startup/settings composition, immutable typed policy views for current scanning, playback, subtitles, media tools, HTTP and database behavior, and a safe read-only client configuration API. Full V2 transcode profiles, generated-cache budgets and profile-content invalidation remain planned.
 
 Use environment variables for startup options. Define container/MIME capabilities, transcode profiles, subtitle handling and resource limits/timers in TypeScript; bundle English messages as a read-only resource. Save user choices and any exposed custom profile overrides in `settings.json`. Merge only explicit user values with current defaults, validate the effective result and write settings atomically. Unset choices adopt new defaults on update; explicit choices remain. Cache keys include effective profile content. Configuration cannot bypass access checks or create unsupported codec/delivery capabilities. See the current design for ownership and upgrade rules.
 

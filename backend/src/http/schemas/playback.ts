@@ -67,7 +67,7 @@ export const SavePlaybackProgressResponseSchema = Type.Object(
 	{ additionalProperties: false },
 );
 export const ContinueWatchingQuerySchema = Type.Object(
-	{ limit: Type.Optional(Type.String({ pattern: "^[1-9][0-9]{0,2}$" })) },
+	{ limit: Type.Optional(Type.String({ pattern: "^[1-9][0-9]*$" })) },
 	{ additionalProperties: false },
 );
 export const ContinueWatchingResponseSchema = Type.Object(

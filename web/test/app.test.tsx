@@ -22,6 +22,7 @@ import type {
 	SettingsResponse,
 } from "../src/api/contracts.js";
 import { libraryRoute } from "../src/routes/library.js";
+import { clientConfig } from "./client-config.js";
 
 const runningScan: ScanStateDto = {
 	id: "scan-1",
@@ -56,6 +57,7 @@ let library: LibraryResponse;
 let directories: Map<string, DirectoryResponse>;
 let fileError: boolean;
 let settings: SettingsResponse;
+let activeClientConfig = structuredClone(clientConfig);
 
 function json(value: unknown, status = 200) {
 	return new Response(JSON.stringify(value), {
@@ -65,6 +67,7 @@ function json(value: unknown, status = 200) {
 }
 
 beforeEach(() => {
+	activeClientConfig = structuredClone(clientConfig);
 	library = {
 		ready: true,
 		revision: 1,
@@ -147,6 +150,7 @@ beforeEach(() => {
 			init?.method === "DELETE"
 		)
 			return new Response(null, { status: 204 });
+		if (path === "/api/client-config") return json(activeClientConfig);
 		if (path === "/api/settings") {
 			if (init?.method === "PUT") {
 				const previousRoot = settings.resourceRoot;
@@ -986,3 +990,47 @@ test.each(["checked", "unknown"])(
 		);
 	},
 );
+
+test("settings reads injected defaults and limits and interpolates diagnostics", async () => {
+	activeClientConfig.library = {
+		defaultScanIntervalMinutes: 3,
+		maximumScanIntervalMinutes: 10,
+	};
+	renderApp("/settings");
+	const interval = await screen.findByLabelText<HTMLInputElement>(
+		"Automatic scan interval (minutes)",
+	);
+	expect(interval.value).toBe("3");
+	expect(interval.max).toBe("10");
+	expect(screen.getByText(/Default: 3 minutes/)).toBeTruthy();
+	fireEvent.change(interval, { target: { value: "11" } });
+	fireEvent.submit(interval.closest("form") as HTMLFormElement);
+	expect(
+		await screen.findByText("Enter a whole number from 0 to 10 minutes."),
+	).toBeTruthy();
+	expect(
+		fetcher.mock.calls.some(
+			([url, init]) => url === "/api/settings" && init?.method === "PUT",
+		),
+	).toBe(false);
+});
+test("client configuration failures block the page and allow retry", async () => {
+	const implementation = fetcher.getMockImplementation();
+	let fail = true;
+	fetcher.mockImplementation((input, init) => {
+		if (String(input) === "/api/client-config" && fail)
+			return Promise.resolve(json({ invalid: true }));
+		if (!implementation) throw new Error("Missing mock");
+		return implementation(input, init);
+	});
+	renderApp("/settings");
+	expect(await screen.findByRole("alert")).toBeTruthy();
+	expect(
+		screen.queryByLabelText("Automatic scan interval (minutes)"),
+	).toBeNull();
+	fail = false;
+	fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+	expect(
+		await screen.findByLabelText("Automatic scan interval (minutes)"),
+	).toBeTruthy();
+});

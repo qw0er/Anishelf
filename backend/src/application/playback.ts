@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import {
+	type BuiltinPolicy,
+	builtinPolicy,
+	type DeepReadonly,
+} from "../config/policy.js";
+import {
 	type PlaybackRepository,
 	resourceRootId,
 } from "../database/playback-repository.js";
@@ -23,28 +28,29 @@ interface PlaybackSessionState {
 	generation: number;
 	touchedAtMs: number;
 }
-const sessionIdleMs = 30 * 60 * 1000;
-const maximumSessions = 1000;
 
 /** Coordinates filesystem identity, session authorization and durable progress. */
 export class PlaybackApplication {
 	private readonly sessions = new Map<string, PlaybackSessionState>();
 	private closed = false;
 	private readonly logger: Logger;
+	private readonly policy: DeepReadonly<BuiltinPolicy>["playback"];
 	constructor(
 		private readonly options: {
 			library: LibraryApplication;
 			repository?: PlaybackRepository;
 			logger: Logger;
 			now?: () => number;
+			policy?: DeepReadonly<BuiltinPolicy>["playback"];
 		},
 	) {
+		this.policy = options.policy ?? builtinPolicy.playback;
 		this.logger = options.logger.child({ module: "playback" });
 	}
 
 	async open(fileId: string): Promise<PlaybackSession> {
 		this.prune();
-		if (this.sessions.size >= maximumSessions)
+		if (this.sessions.size >= this.policy.maximumSessions)
 			throw new DomainError(
 				"PLAYBACK_UNAVAILABLE",
 				"Too many active playback sessions.",
@@ -109,15 +115,21 @@ export class PlaybackApplication {
 		return result;
 	}
 
-	async continueWatching(limit = 20): Promise<ContinueWatchingResult> {
+	async continueWatching(
+		limit = this.policy.continueWatchingLimit,
+	): Promise<ContinueWatchingResult> {
 		return this.history(limit, "continue");
 	}
 
 	async history(
-		limit = 100,
+		limit = this.policy.historyLimit,
 		view: "continue" | "recent" = "recent",
 	): Promise<ContinueWatchingResult> {
-		if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
+		if (
+			!Number.isSafeInteger(limit) ||
+			limit < 1 ||
+			limit > this.policy.maximumListLimit
+		)
 			throw new DomainError("INVALID_REQUEST", "Invalid list limit.");
 		const repository = this.repository();
 		if (!this.options.library.hasSnapshot)
@@ -127,10 +139,19 @@ export class PlaybackApplication {
 			await this.options.library.resolvePlaybackRoot(),
 		);
 		const items: ContinueWatchingItem[] = [];
-		for (let offset = 0; items.length < limit; offset += 100) {
+		for (
+			let offset = 0;
+			items.length < limit;
+			offset += this.policy.candidateBatchSize
+		) {
 			this.assertEpoch(epoch);
 			const candidates = this.persist(() =>
-				repository.listContinueWatching(rootId, 100, offset, view),
+				repository.listContinueWatching(
+					rootId,
+					this.policy.candidateBatchSize,
+					offset,
+					view,
+				),
 			);
 			for (const candidate of candidates) {
 				let source: ResolvedPlaybackSource;
@@ -160,7 +181,7 @@ export class PlaybackApplication {
 				items.push({ file: source.file, progress: candidate.progress });
 				if (items.length === limit) break;
 			}
-			if (candidates.length < 100) break;
+			if (candidates.length < this.policy.candidateBatchSize) break;
 		}
 		this.assertEpoch(epoch);
 		return { availability: "checked", items };
@@ -209,7 +230,7 @@ export class PlaybackApplication {
 		this.repository();
 		for (const [token, session] of this.sessions) {
 			if (
-				this.now() - session.touchedAtMs >= sessionIdleMs ||
+				this.now() - session.touchedAtMs >= this.policy.sessionIdleMs ||
 				session.rootEpoch !== this.options.library.resourceRootEpoch
 			)
 				this.sessions.delete(token);

@@ -6,6 +6,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { LibraryApplication } from "../src/application/library.js";
 import { PlaybackApplication } from "../src/application/playback.js";
 import type { PersistentSettings } from "../src/config/model.js";
+import { builtinPolicy } from "../src/config/policy.js";
 import { ApplicationDatabase } from "../src/database/index.js";
 import { LibraryIndex } from "../src/library/index.js";
 import { createResourceId } from "../src/library/model.js";
@@ -175,4 +176,38 @@ test("expires idle sessions and handles unavailable persistence", async () => {
 	await expect(unavailable.open(fileId)).rejects.toMatchObject({
 		code: "PLAYBACK_UNAVAILABLE",
 	});
+});
+
+test("injected session and list policies govern capacity, expiry and limits", async () => {
+	const scoped = new PlaybackApplication({
+		library,
+		repository: database.playback,
+		logger,
+		now: () => now,
+		policy: {
+			...builtinPolicy.playback,
+			sessionIdleMs: 10,
+			maximumSessions: 1,
+			maximumListLimit: 2,
+			historyLimit: 2,
+			continueWatchingLimit: 1,
+			candidateBatchSize: 1,
+		},
+	});
+	try {
+		const first = await scoped.open(fileId);
+		await expect(scoped.open(fileId)).rejects.toMatchObject({
+			code: "PLAYBACK_UNAVAILABLE",
+		});
+		now += 10;
+		await expect(scoped.save(update(first))).rejects.toMatchObject({
+			code: "PLAYBACK_CONFLICT",
+		});
+		expect((await scoped.open(fileId)).token).not.toBe(first.token);
+		await expect(scoped.history(3)).rejects.toMatchObject({
+			code: "INVALID_REQUEST",
+		});
+	} finally {
+		scoped.close();
+	}
 });

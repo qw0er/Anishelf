@@ -1,13 +1,17 @@
+import { builtinPolicy } from "../config/policy.js";
 import { DomainError } from "../errors.js";
 import type { OpenedResourceFile } from "../resources/access.js";
-import { maximumSubtitleBytes } from "./model.js";
 
 /** Bound reads even when a source grows after opening. Never writes the source. */
 export async function readSubtitleText(
 	file: OpenedResourceFile,
+	maximumSubtitleBytes = builtinPolicy.subtitles.maximumBytes,
 ): Promise<string> {
 	if (file.sizeBytes > maximumSubtitleBytes)
-		throw new DomainError("SUBTITLE_TOO_LARGE", "Subtitle exceeds 10 MiB.");
+		throw new DomainError(
+			"SUBTITLE_TOO_LARGE",
+			`Subtitle exceeds ${maximumSubtitleBytes} bytes.`,
+		);
 	const chunks: Buffer[] = [];
 	let size = 0;
 	while (true) {
@@ -23,7 +27,10 @@ export async function readSubtitleText(
 		if (!bytesRead) break;
 		size += bytesRead;
 		if (size > maximumSubtitleBytes)
-			throw new DomainError("SUBTITLE_TOO_LARGE", "Subtitle exceeds 10 MiB.");
+			throw new DomainError(
+				"SUBTITLE_TOO_LARGE",
+				`Subtitle exceeds ${maximumSubtitleBytes} bytes.`,
+			);
 		chunks.push(buffer.subarray(0, bytesRead));
 	}
 	const bytes = Buffer.concat(chunks);

@@ -206,7 +206,9 @@ test("settings snapshots and caller-owned input cannot mutate manager state", as
 	await settings();
 	const manager = await PersistentConfiguration.load(dataDir);
 	const snapshot = manager.settings as { resourceRoot: string };
-	snapshot.resourceRoot = "/changed-outside-manager";
+	expect(() => {
+		snapshot.resourceRoot = "/changed-outside-manager";
+	}).toThrow(TypeError);
 	expect(manager.settings.resourceRoot).toBe(resourceRoot);
 	const input = { resourceRoot: join(fixture, "next") };
 	const pending = manager.update(input);

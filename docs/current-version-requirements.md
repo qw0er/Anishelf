@@ -44,7 +44,7 @@ Extend the existing file browser into an everyday Web viewing workflow:
 | P07 | FFmpeg pre-transcoding and real-time transcoding | Necessary streams only; reusable completed copies or segmented playback during processing; seeking, cleanup and recovery | — | V2 |
 | C01 | External-player media link | Generate and copy a client-reachable original-media URL for the user to paste into a player | — | V2 |
 | O14 | English UI foundation | English message catalog, stable keys and fallback | V2 (partial) | V2 (partial) |
-| O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access | — | V2 |
+| O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access | V2 (partial) | V2 |
 | O16 | Complete everyday-use Web interface | Finished application navigation, resource browsing, playback history/resume, Web player, preparation feedback, and V2 settings with responsive and accessible states | V2 (partial) | V2 |
 
 ### Saved Progress, Resume, and Playback History (W01, W02)
@@ -101,6 +101,8 @@ V2 offers a secondary **Copy media link** action for users who want to open the 
 - Web playback remains usable regardless of whether the user opens the copied link.
 
 ### Configuration and Multilingual Foundation (O17, Partial O14)
+
+The current-function configuration foundation is implemented: one `ConfigurationService` validates built-in policy and explicit settings, supplies immutable snapshots, and preserves atomic writes. `GET /api/client-config` exposes only safe client policy and supported capabilities. Transcode profiles, cache budgets and profile-content cache invalidation remain planned until the corresponding V2 features exist.
 
 - Use environment variables for startup options. Define media-format capabilities, subtitle support and limits, runtime defaults and built-in transcode profiles in TypeScript. Bundle the English catalog as a read-only resource. Do not copy these defaults into persistent policy files.
 - Store only user choices in `settings.json`: resource root, Web playback mode, cache budget and selected profile IDs. Save custom profile definitions or parameter overrides only if V2 exposes editing them. Merge explicit user values with the current built-in defaults, validate the result and write settings atomically. Missing fields receive current defaults; explicit choices survive upgrades. Reject invalid settings with actionable diagnostics.

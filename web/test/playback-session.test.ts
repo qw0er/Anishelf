@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as api from "../src/api/client.js";
 import type { PlaybackSessionResponse } from "../src/api/contracts.js";
@@ -6,6 +7,7 @@ import {
 	PlaybackSessionController,
 	type PlaybackSessionState,
 } from "../src/playback/session.js";
+import { clientConfig } from "./client-config.js";
 
 const session: PlaybackSessionResponse = {
 	token: "token",
@@ -50,11 +52,15 @@ afterEach(async () => {
 	vi.useRealTimers();
 	vi.restoreAllMocks();
 });
-function create(ready = true) {
+function create(ready = true, policy = clientConfig.playback) {
 	let state: PlaybackSessionState | null = null;
-	const controller = new PlaybackSessionController("file", (next) => {
-		state = next;
-	});
+	const controller = new PlaybackSessionController(
+		"file",
+		(next) => {
+			state = next;
+		},
+		policy,
+	);
 	controllers.push(controller);
 	const video = document.createElement("video");
 	Object.defineProperty(video, "duration", { value: 100, configurable: true });
@@ -274,4 +280,40 @@ test("seeking to zero saves normally without pausing or changing generation", as
 		expect.objectContaining({ generation: 1, sequence: 2, positionMs: 3000 }),
 		expect.anything(),
 	);
+});
+
+test("injected save interval and request timeout control the progress lifecycle", async () => {
+	vi.useFakeTimers();
+	const { controller, video } = create(true, {
+		progressSaveIntervalMs: 100,
+		requestTimeoutMs: 50,
+	});
+	await controller.open();
+	Object.defineProperty(video, "paused", { value: false });
+	video.currentTime = 45;
+	await vi.advanceTimersByTimeAsync(99);
+	expect(api.savePlaybackProgress).not.toHaveBeenCalled();
+	await vi.advanceTimersByTimeAsync(1);
+	expect(api.savePlaybackProgress).toHaveBeenCalledTimes(1);
+	let aborted = false;
+	vi.mocked(api.savePlaybackProgress).mockImplementation(
+		(_token, _progress, options) =>
+			new Promise((_resolve, reject) => {
+				options?.signal?.addEventListener("abort", () => {
+					aborted = true;
+					reject(new DOMException("Aborted", "AbortError"));
+				});
+			}),
+	);
+	video.currentTime = 46;
+	const flush = controller.flush();
+	await vi.advanceTimersByTimeAsync(49);
+	expect(aborted).toBe(false);
+	await vi.advanceTimersByTimeAsync(1);
+	await flush;
+	expect(aborted).toBe(true);
+	vi.mocked(api.savePlaybackProgress).mockResolvedValue({
+		status: "saved",
+		progress: session.progress,
+	});
 });

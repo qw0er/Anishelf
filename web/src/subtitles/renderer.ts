@@ -1,17 +1,25 @@
 import type { TextRenderer, TextTrack } from "@vidstack/react";
 import type JASSUB from "jassub";
 import fallbackFont from "jassub/dist/default.woff2?url";
+import type { ClientConfigResponse } from "../api/contracts.js";
 
 /** Bridges JASSUB 2's promise API to Vidstack's renderer lifecycle. */
 export class StyledSubtitleRenderer implements TextRenderer {
 	readonly priority = 0;
+	private readonly policy: ClientConfigResponse["subtitles"];
+	constructor(policy: ClientConfigResponse["subtitles"]) {
+		this.policy = policy;
+	}
 	private video: HTMLVideoElement | null = null;
 	private track: TextTrack | null = null;
 	private stop: (() => void) | null = null;
 
 	canRender(track: TextTrack, video: HTMLVideoElement | null) {
 		return (
-			!!video && !!track.src && (track.type === "ass" || track.type === "ssa")
+			!!video &&
+			!!track.src &&
+			this.policy.formats.includes(track.type as "ass" | "ssa") &&
+			(track.type === "ass" || track.type === "ssa")
 		);
 	}
 	attach(video: HTMLVideoElement | null) {
@@ -62,7 +70,7 @@ export class StyledSubtitleRenderer implements TextRenderer {
 		const repaint = () => {
 			void paint().catch(fail);
 		};
-		const timer = setTimeout(fail, 15000);
+		const timer = setTimeout(fail, this.policy.initializationTimeoutMs);
 		this.stop = stop;
 		void (async () => {
 			const response = await fetch(src, { signal: controller.signal });
@@ -79,7 +87,7 @@ export class StyledSubtitleRenderer implements TextRenderer {
 				subContent: text,
 				fonts: [fallbackFont],
 				queryFonts: false,
-				libassMemoryLimit: 64 * 1024 * 1024,
+				libassMemoryLimit: this.policy.memoryMaximumBytes,
 			});
 			await instance.ready;
 			if (controller.signal.aborted) return;

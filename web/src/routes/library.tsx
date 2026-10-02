@@ -31,12 +31,14 @@ function DirectoryPage() {
 
 function PlayerPage() {
 	const data = useLoaderData<typeof fileLoader>();
-	const { reload, playerVersion } = useOutletContext<LibraryContext>();
+	const { reload, playerVersion, clientConfig } =
+		useOutletContext<LibraryContext>();
 	const [searchParams] = useSearchParams();
 	return (
 		<FilePlayer
 			key={`${data.file.id}:${playerVersion}`}
 			data={data}
+			clientConfig={clientConfig}
 			returnDirectoryId={searchParams.get("directory")}
 			onRetry={reload}
 		/>
@@ -45,12 +47,13 @@ function PlayerPage() {
 
 function SettingsPage() {
 	const { t } = useTranslation();
-	const { settings, scanning, scanPending } =
+	const { settings, scanning, scanPending, clientConfig } =
 		useOutletContext<LibraryContext>();
 	return settings ? (
 		<ResourceSettings
 			key={settings.resourceRoot}
 			settings={settings}
+			clientConfig={clientConfig}
 			disabled={scanning || scanPending}
 		/>
 	) : (

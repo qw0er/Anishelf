@@ -1,6 +1,12 @@
 import { stat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
+import { captureRuntimeEnvironment } from "../config/deployment.js";
 import type { MediaToolsConfig } from "../config/model.js";
+import {
+	type BuiltinPolicy,
+	builtinPolicy,
+	type DeepReadonly,
+} from "../config/policy.js";
 import type {
 	ExtractedSubtitle,
 	MediaInfo,
@@ -104,32 +110,32 @@ async function localFile(path: string): Promise<void> {
 	}
 }
 
-const nativeFormats: Readonly<Record<string, SubtitleFormat>> = {
-	subrip: "srt",
-	ass: "ass",
-	ssa: "ass",
-	webvtt: "webvtt",
-};
-const textCodecs = new Set([...Object.keys(nativeFormats), "mov_text", "text"]);
-
 export class MediaTools {
 	private constructor(
 		readonly status: Readonly<{ ffmpeg: ToolStatus; ffprobe: ToolStatus }>,
+		private readonly policy: DeepReadonly<BuiltinPolicy>,
 	) {}
 
 	static async create(
 		config: MediaToolsConfig = { ffmpegPath: "ffmpeg", ffprobePath: "ffprobe" },
+		policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
+		environment = captureRuntimeEnvironment().executableSearch,
 	): Promise<MediaTools> {
 		async function discover(
 			command: string,
 			tool: string,
 		): Promise<ToolStatus> {
 			try {
-				const path = await resolveExecutable(command);
-				const output = await runTool(path, ["-version"], {
-					timeoutMs: 5000,
-					maxBytes: 64 * 1024,
-				});
+				const path = await resolveExecutable(command, environment);
+				const output = await runTool(
+					path,
+					["-version"],
+					{
+						timeoutMs: policy.media.detectionTimeoutMs,
+						maxBytes: policy.media.detectionMaximumBytes,
+					},
+					policy.media,
+				);
 				const version = output.split(/\r?\n/)[0] ?? "";
 				if (!version.startsWith(`${tool} version `))
 					throw new Error("Unexpected executable");
@@ -145,7 +151,7 @@ export class MediaTools {
 			discover(config.ffmpegPath, "ffmpeg"),
 			discover(config.ffprobePath, "ffprobe"),
 		]);
-		return new MediaTools({ ffmpeg, ffprobe });
+		return new MediaTools({ ffmpeg, ffprobe }, policy);
 	}
 
 	private executable(tool: "ffmpeg" | "ffprobe"): string {
@@ -175,6 +181,7 @@ export class MediaTools {
 					path,
 				],
 				signal ? { signal } : {},
+				this.policy.media,
 			),
 		);
 	}
@@ -201,12 +208,12 @@ export class MediaTools {
 				"INVALID_INPUT",
 				"Selected stream is not a subtitle track.",
 			);
-		const native = nativeFormats[stream.codec ?? ""];
+		const native = this.policy.subtitles.nativeFormats[stream.codec ?? ""];
 		const format = options.format ?? native;
 		if (
 			!format ||
 			!["srt", "ass", "webvtt"].includes(format) ||
-			!textCodecs.has(stream.codec ?? "")
+			!this.policy.subtitles.textCodecs.includes(stream.codec ?? "")
 		)
 			throw new MediaToolError(
 				"UNSUPPORTED_SUBTITLE",
@@ -233,9 +240,10 @@ export class MediaTools {
 				"pipe:1",
 			],
 			{
-				timeoutMs: 60_000,
+				timeoutMs: this.policy.media.extractionTimeoutMs,
 				...(options.signal ? { signal: options.signal } : {}),
 			},
+			this.policy.media,
 		);
 		return { streamIndex, format, text: output };
 	}

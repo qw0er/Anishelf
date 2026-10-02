@@ -1,15 +1,14 @@
 import type { LibraryApplication } from "../application/library.js";
 import type { HttpInstance } from "./instance.js";
 import { settingsResponse } from "./presenters.js";
-import {
-	SettingsResponseSchema,
-	UpdateSettingsRequestSchema,
-} from "./schemas/index.js";
+import { createSettingsSchemas } from "./schemas/index.js";
 
 export function registerSettingsRoutes(
 	app: HttpInstance,
 	library: LibraryApplication,
 ): void {
+	const { SettingsResponseSchema, UpdateSettingsRequestSchema } =
+		createSettingsSchemas(library.policy.library.maximumScanIntervalMinutes);
 	app.get(
 		"/api/settings",
 		{ schema: { response: { 200: SettingsResponseSchema } } },

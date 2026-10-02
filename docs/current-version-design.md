@@ -55,6 +55,12 @@ Originals, writable data, and frontend static assets remain separate and non-ove
 
 ### Built-in defaults and user settings (O17)
 
+The current-function foundation is implemented in `config/policy.ts` and `config/service.ts`. The composition root creates one service; adapters receive typed read-only policy views. The service retains raw explicit settings separately from the effective immutable snapshot. Missing settings do not generate a file, failed writes preserve the published snapshot, and existing root-only settings remain valid. Current settings are `resourceRoot` and optional `scanIntervalMinutes`; the additional V2 settings described below remain planned.
+
+`GET /api/client-config` projects `defaultLanguage`, scanning defaults/constraints, progress-save/request timing, subtitle size/renderer timing/memory policy and supported formats, plus media extension/MIME mappings. It excludes deployment settings, paths and server resource budgets. HTTP settings schemas receive primitive constraints through a factory. The root Web loader requires valid client configuration; failure uses the existing retryable route error. Player policies remain stable across scan polling so revalidation does not reopen sessions or reset subtitle renderers. Loading-indicator delay and scan polling are local frontend interaction policy.
+
+Current policy defaults preserve existing behavior: scan concurrency 8 and warning preview 5; session idle expiry 30 minutes and capacity 1000; history/continue defaults 100/20 and list/batch bounds 100; near-end threshold min(30 seconds, 5%); subtitle text 10 MiB; tool detection 5 seconds/64 KiB, execution 30 seconds/10 MiB and extraction 60 seconds; HTTP body 64 KiB, database busy wait and shutdown 5 seconds; progress saves/requests 5 seconds; subtitle initialization 15 seconds and renderer memory 64 MiB. These values are program-owned and are not user-editable. Transcode profiles and derived-cache invalidation remain planned.
+
 Startup uses environment variables. Media capabilities, transcode profiles, subtitle rules and runtime policy are defined in TypeScript. The English message catalog is a bundled read-only resource. None of these defaults is copied into `dataDir`; `dataDir/settings.json` stores only user choices and explicit overrides.
 
 | Owner | Values | Update rule |

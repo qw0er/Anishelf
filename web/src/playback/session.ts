@@ -6,6 +6,7 @@ import {
 	savePlaybackProgress,
 } from "../api/client.js";
 import type {
+	ClientConfigResponse,
 	PlaybackSessionResponse,
 	SavePlaybackProgressRequest,
 } from "../api/contracts.js";
@@ -18,7 +19,6 @@ export interface PlaybackSessionState {
 	error: { operation: "load" | "save"; cause: unknown } | null;
 }
 type Position = Pick<SavePlaybackProgressRequest, "positionMs" | "durationMs">;
-const requestTimeoutMs = 5000;
 
 /** Owns one file's progress lifecycle; React and the media player are adapters. */
 export class PlaybackSessionController {
@@ -43,7 +43,13 @@ export class PlaybackSessionController {
 	private lastSaved: Position | null = null;
 	private readonly fileId: string;
 	private readonly notify: (state: PlaybackSessionState) => void;
-	constructor(fileId: string, notify: (state: PlaybackSessionState) => void) {
+	private readonly policy: ClientConfigResponse["playback"];
+	constructor(
+		fileId: string,
+		notify: (state: PlaybackSessionState) => void,
+		policy: ClientConfigResponse["playback"],
+	) {
+		this.policy = policy;
 		this.fileId = fileId;
 		this.notify = notify;
 	}
@@ -108,7 +114,7 @@ export class PlaybackSessionController {
 		};
 		this.timer = setInterval(() => {
 			if (!video.paused && !video.ended) this.queueSave();
-		}, 5000);
+		}, this.policy.progressSaveIntervalMs);
 		this.restore();
 	}
 
@@ -293,7 +299,10 @@ export class PlaybackSessionController {
 		operation: (options: RequestOptions) => Promise<T>,
 	): Promise<T> {
 		const controller = new AbortController();
-		const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
+		const timer = setTimeout(
+			() => controller.abort(),
+			this.policy.requestTimeoutMs,
+		);
 		try {
 			return await operation({
 				signal: controller.signal,

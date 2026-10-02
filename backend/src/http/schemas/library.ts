@@ -93,24 +93,33 @@ export const ScanResponseSchema = Type.Object(
 	{ scan: ScanStateDtoSchema },
 	{ additionalProperties: false },
 );
-export const SettingsResponseSchema = Type.Object(
-	{
-		resourceRoot: Type.Union([Type.String(), Type.Null()]),
-		scanIntervalMinutes: Type.Optional(
-			Type.Integer({ minimum: 0, maximum: 10080 }),
-		),
-	},
-	{ additionalProperties: false },
-);
-export const UpdateSettingsRequestSchema = Type.Object(
-	{
-		resourceRoot: Type.String({ minLength: 1 }),
-		scanIntervalMinutes: Type.Optional(
-			Type.Integer({ minimum: 0, maximum: 10080 }),
-		),
-	},
-	{ additionalProperties: false },
-);
+export function createSettingsSchemas(maximumScanIntervalMinutes?: number) {
+	const interval = Type.Optional(
+		Type.Integer({
+			minimum: 0,
+			...(maximumScanIntervalMinutes === undefined
+				? {}
+				: { maximum: maximumScanIntervalMinutes }),
+		}),
+	);
+	const SettingsResponseSchema = Type.Object(
+		{
+			resourceRoot: Type.Union([Type.String(), Type.Null()]),
+			scanIntervalMinutes: interval,
+		},
+		{ additionalProperties: false },
+	);
+	const UpdateSettingsRequestSchema = Type.Object(
+		{
+			resourceRoot: Type.String({ minLength: 1 }),
+			scanIntervalMinutes: interval,
+		},
+		{ additionalProperties: false },
+	);
+	return { SettingsResponseSchema, UpdateSettingsRequestSchema };
+}
+export const { SettingsResponseSchema, UpdateSettingsRequestSchema } =
+	createSettingsSchemas();
 export const DirectoryResponseSchema = Type.Object(
 	{ directory: DirectoryDtoSchema, children: Type.Array(ResourceDtoSchema) },
 	{ additionalProperties: false },

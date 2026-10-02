@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ClientConfigResponse } from "../api/contracts.js";
 import {
 	PlaybackSessionController,
 	type PlaybackSessionState,
@@ -14,12 +15,24 @@ const initialState: PlaybackSessionState = {
 	error: null,
 };
 
-export function usePlaybackSession(fileId: string) {
+export function usePlaybackSession(
+	fileId: string,
+	policy: ClientConfigResponse["playback"],
+) {
+	const { progressSaveIntervalMs, requestTimeoutMs } = policy;
+	const stablePolicy = useMemo(
+		() => ({ progressSaveIntervalMs, requestTimeoutMs }),
+		[progressSaveIntervalMs, requestTimeoutMs],
+	);
 	const [state, setState] = useState(initialState);
 	const controllerRef = useRef<PlaybackSessionController | null>(null);
 	const videoRef = useRef<HTMLVideoElement | null>(null);
 	useEffect(() => {
-		const controller = new PlaybackSessionController(fileId, setState);
+		const controller = new PlaybackSessionController(
+			fileId,
+			setState,
+			stablePolicy,
+		);
 		controllerRef.current = controller;
 		controller.attach(videoRef.current);
 		void controller.open(departures.get(fileId));
@@ -36,7 +49,7 @@ export function usePlaybackSession(fileId: string) {
 				if (departures.get(fileId) === departure) departures.delete(fileId);
 			});
 		};
-	}, [fileId]);
+	}, [fileId, stablePolicy]);
 
 	const attach = useCallback((video: HTMLVideoElement | null) => {
 		videoRef.current = video;

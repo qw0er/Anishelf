@@ -11,19 +11,20 @@ import {
 } from "node:fs/promises";
 import { extname, isAbsolute, join, relative, sep, win32 } from "node:path";
 import type { PersistentSettings } from "../config/model.js";
+import {
+	type BuiltinPolicy,
+	builtinPolicy,
+	type DeepReadonly,
+} from "../config/policy.js";
 import { DomainError } from "../errors.js";
 import type { LibraryIssue, Timestamp } from "../library/scan-state.js";
 import { externalSubtitleFormat } from "../subtitles/model.js";
 
-const videoTypes: ReadonlyMap<string, string> = new Map([
-	[".mp4", "video/mp4"],
-	[".m4v", "video/mp4"],
-	[".webm", "video/webm"],
-	[".mkv", "video/x-matroska"],
-]);
-
-export function getVideoMimeType(path: string): string | null {
-	return videoTypes.get(extname(path).toLowerCase()) ?? null;
+export function getVideoMimeType(
+	path: string,
+	types: Readonly<Record<string, string>> = builtinPolicy.media.videoMimeTypes,
+): string | null {
+	return types[extname(path).toLowerCase()] ?? null;
 }
 
 export interface ResourceFileMetadata {
@@ -132,7 +133,10 @@ export async function checkResourceRoot(
 
 /** Shared read-only filesystem policy for the scanner and media delivery. */
 export class ResourceAccess {
-	private constructor(private readonly root: string) {}
+	private constructor(
+		private readonly root: string,
+		private readonly policy: DeepReadonly<BuiltinPolicy>,
+	) {}
 
 	get canonicalRoot(): string {
 		return this.root;
@@ -140,8 +144,9 @@ export class ResourceAccess {
 
 	static async create(
 		settings: Readonly<PersistentSettings>,
+		policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
 	): Promise<ResourceAccess> {
-		return new ResourceAccess(await resolveResourceRoot(settings));
+		return new ResourceAccess(await resolveResourceRoot(settings), policy);
 	}
 
 	/** An empty relative path denotes the root directory. Symlink entries are not followed. */
@@ -228,7 +233,10 @@ export class ResourceAccess {
 		let handle: FileHandle | undefined;
 		try {
 			const { path, info } = await this.validatePath(relativePath);
-			const format = externalSubtitleFormat(path);
+			const format = externalSubtitleFormat(
+				path,
+				this.policy.subtitles.formats,
+			);
 			// const mimeType =
 			// 	kind === "video"
 			// 		? getVideoMimeType(path)
@@ -239,7 +247,7 @@ export class ResourceAccess {
 			// 				: "text/plain";
 			let mimeType: string | null = null;
 			if (kind === "video") {
-				mimeType = getVideoMimeType(path);
+				mimeType = getVideoMimeType(path, this.policy.media.videoMimeTypes);
 			} else if (kind === "subtitle" && format !== null) {
 				mimeType = format === "vtt" ? "text/vtt" : "text/plain";
 			} else {

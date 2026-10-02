@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
 import { basename, dirname, extname, join } from "node:path";
+import {
+	type BuiltinPolicy,
+	builtinPolicy,
+	type DeepReadonly,
+} from "../config/policy.js";
 import { DomainError } from "../errors.js";
 import type { ResourceAccess } from "../resources/access.js";
-import {
-	externalSubtitleFormat,
-	maximumSubtitleBytes,
-	type SubtitleDiscovery,
-} from "./model.js";
+import { externalSubtitleFormat, type SubtitleDiscovery } from "./model.js";
 
 const collator = new Intl.Collator("en", {
 	numeric: true,
@@ -27,6 +28,7 @@ export async function discoverExternalSubtitles(
 	resources: ResourceAccess,
 	videoPath: string,
 	sourceVersion: string,
+	policy: DeepReadonly<BuiltinPolicy>["subtitles"] = builtinPolicy.subtitles,
 ): Promise<SubtitleDiscovery> {
 	const directory = dirname(videoPath);
 	const stem = basename(videoPath, extname(videoPath));
@@ -40,7 +42,7 @@ export async function discoverExternalSubtitles(
 	);
 	const result: SubtitleDiscovery = { sourceVersion, tracks: [], warnings: [] };
 	for (const entry of entries) {
-		const format = externalSubtitleFormat(entry.name);
+		const format = externalSubtitleFormat(entry.name, policy.formats);
 		if (!format || entry.isDirectory()) continue;
 		const candidateStem = basename(entry.name, extname(entry.name));
 		if (candidateStem !== stem && !candidateStem.startsWith(`${stem}.`))
@@ -51,7 +53,7 @@ export async function discoverExternalSubtitles(
 		const path = join(directory, entry.name);
 		try {
 			const metadata = await resources.inspectSubtitleSource(path);
-			if (metadata.sizeBytes > maximumSubtitleBytes) {
+			if (metadata.sizeBytes > policy.maximumBytes) {
 				result.warnings.push({ name: entry.name, code: "SUBTITLE_TOO_LARGE" });
 				continue;
 			}

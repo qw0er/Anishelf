@@ -41,3 +41,7 @@ export type ContinueWatchingResponse = Static<
 export type SubtitleDiscoveryResponse = Static<
 	typeof schemas.SubtitleDiscoveryResponseSchema
 >;
+
+export type ClientConfigResponse = Static<
+	typeof schemas.ClientConfigResponseSchema
+>;

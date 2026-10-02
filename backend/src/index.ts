@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import type { Logger } from "pino";
 import { LibraryApplication } from "./application/library.js";
 import { PlaybackApplication } from "./application/playback.js";
-import { loadDeploymentConfig } from "./config/deployment.js";
-import type { DeploymentConfig, MediaToolsConfig } from "./config/model.js";
-import { PersistentConfiguration } from "./config/persistent.js";
+import type { MediaToolsConfig } from "./config/model.js";
+import type { BuiltinPolicy, DeepReadonly } from "./config/policy.js";
+import { ConfigurationService } from "./config/service.js";
 import { ApplicationDatabase } from "./database/index.js";
 import { DomainError } from "./errors.js";
 import { createHttpApp } from "./http/app.js";
@@ -19,8 +19,10 @@ type HttpApp = ReturnType<typeof createHttpApp>;
 async function initializeMediaTools(
 	config: MediaToolsConfig,
 	logger: Logger,
+	policy: DeepReadonly<BuiltinPolicy>,
+	environment: ConfigurationService["environment"]["executableSearch"],
 ): Promise<void> {
-	const mediaTools = await MediaTools.create(config);
+	const mediaTools = await MediaTools.create(config, policy, environment);
 	for (const [tool, status] of Object.entries(mediaTools.status)) {
 		if (status.available) {
 			logger.info(
@@ -36,9 +38,10 @@ async function initializeMediaTools(
 function openDatabase(
 	dataDir: string,
 	logger: Logger,
+	policy: DeepReadonly<BuiltinPolicy>,
 ): ApplicationDatabase | undefined {
 	try {
-		const database = ApplicationDatabase.open(dataDir);
+		const database = ApplicationDatabase.open(dataDir, policy);
 		logger.info({ event: "database.ready" }, "Database migrations applied.");
 		return database;
 	} catch (err) {
@@ -51,12 +54,12 @@ function openDatabase(
 }
 
 async function initializeLibrary(
-	dataDir: string,
+	configuration: ConfigurationService,
 	logger: Logger,
 ): Promise<LibraryApplication> {
-	const configuration = await PersistentConfiguration.load(dataDir);
 	const library = new LibraryApplication({
 		configuration,
+		policy: configuration.policy,
 		index: new LibraryIndex(),
 		logger,
 	});
@@ -91,22 +94,25 @@ async function initializeLibrary(
 }
 
 function createServer(
-	config: DeploymentConfig,
+	configuration: ConfigurationService,
 	logger: Logger,
 	library: LibraryApplication,
 	database: ApplicationDatabase | undefined,
 ): HttpApp {
+	const config = configuration.deployment;
 	const playback = new PlaybackApplication({
+		policy: configuration.policy.playback,
 		library,
 		logger,
 		...(database ? { repository: database.playback } : {}),
 	});
-	const development = process.env.NODE_ENV === "development";
+	const development = configuration.environment.development;
 	const frontendRoot = fileURLToPath(
 		new URL("../../web/dist/", import.meta.url),
 	);
 	const server = createHttpApp({
 		config,
+		policy: configuration.policy,
 		logger,
 		library,
 		playback,
@@ -121,14 +127,18 @@ function createServer(
 	return server;
 }
 
-async function stopServer(server: HttpApp, logger: Logger): Promise<void> {
+async function stopServer(
+	server: HttpApp,
+	logger: Logger,
+	shutdownTimeoutMs: number,
+): Promise<void> {
 	const timer = setTimeout(() => {
 		logger.error(
 			{ event: "application.shutdown_timeout" },
-			"Shutdown exceeded five seconds.",
+			`Shutdown exceeded ${shutdownTimeoutMs} milliseconds.`,
 		);
 		process.exit(1);
-	}, 5000);
+	}, shutdownTimeoutMs);
 	timer.unref();
 	try {
 		await server.close();
@@ -144,13 +154,17 @@ async function stopServer(server: HttpApp, logger: Logger): Promise<void> {
 	}
 }
 
-function registerShutdown(server: HttpApp, logger: Logger): void {
+function registerShutdown(
+	server: HttpApp,
+	logger: Logger,
+	shutdownTimeoutMs: number,
+): void {
 	let shutdownTask: Promise<void> | undefined;
 	const shutdown = () => {
 		if (shutdownTask) return;
 		process.off("SIGINT", shutdown);
 		process.off("SIGTERM", shutdown);
-		shutdownTask = stopServer(server, logger);
+		shutdownTask = stopServer(server, logger, shutdownTimeoutMs);
 	};
 	process.on("SIGINT", shutdown);
 	process.on("SIGTERM", shutdown);
@@ -182,16 +196,26 @@ async function main(): Promise<void> {
 	let logging: ApplicationLogging | undefined;
 	let app: HttpApp | undefined;
 	try {
-		const config = await loadDeploymentConfig();
+		const configuration = await ConfigurationService.load();
+		const config = configuration.deployment;
 		logging = ApplicationLogging.create(config.logging);
 		const logger = logging.logger;
-		await initializeMediaTools(config.mediaTools, logger);
-		database = openDatabase(config.dataDir, logger);
-		const library = await initializeLibrary(config.dataDir, logger);
-		app = createServer(config, logger, library, database);
+		await initializeMediaTools(
+			config.mediaTools,
+			logger,
+			configuration.policy,
+			configuration.environment.executableSearch,
+		);
+		database = openDatabase(config.dataDir, logger, configuration.policy);
+		const library = await initializeLibrary(configuration, logger);
+		app = createServer(configuration, logger, library, database);
 		await app.listen({ host: config.host, port: config.port });
 		logger.info({ event: "application.started" }, "HTTP application started.");
-		registerShutdown(app, logger);
+		registerShutdown(
+			app,
+			logger,
+			configuration.policy.runtime.shutdownTimeoutMs,
+		);
 	} catch (error) {
 		await handleStartupFailure(error, logging, app, database);
 	}

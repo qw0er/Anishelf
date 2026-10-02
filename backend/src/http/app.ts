@@ -5,11 +5,20 @@ import type { Logger } from "pino";
 import type { LibraryApplication } from "../application/library.js";
 import type { PlaybackApplication } from "../application/playback.js";
 import type { DeploymentConfig } from "../config/model.js";
+import {
+	type BuiltinPolicy,
+	builtinPolicy,
+	type DeepReadonly,
+} from "../config/policy.js";
+import { clientConfigResponse } from "./client-config.js";
 import { apiError, classifyHttpError } from "./errors.js";
 import { registerLibraryRoutes } from "./library.js";
 import { registerMediaRoutes } from "./media.js";
 import { registerPlaybackRoutes } from "./playback.js";
-import { HealthResponseSchema } from "./schemas/index.js";
+import {
+	ClientConfigResponseSchema,
+	HealthResponseSchema,
+} from "./schemas/index.js";
 import { checkRequestOrigin } from "./security.js";
 import { registerSettingsRoutes } from "./settings.js";
 import { registerFrontend } from "./static.js";
@@ -18,17 +27,19 @@ import { registerSubtitleRoutes } from "./subtitles.js";
 export function createHttpApp(options: {
 	config: Pick<DeploymentConfig, "host" | "port">;
 	logger: Logger;
+	policy?: DeepReadonly<BuiltinPolicy>;
 	development?: boolean;
 	library?: LibraryApplication;
 	playback?: PlaybackApplication;
 	frontendRoot?: string;
 }) {
+	const policy = options.policy ?? options.library?.policy ?? builtinPolicy;
 	const app = Fastify({
 		loggerInstance: options.logger,
 		genReqId: () => randomUUID(),
 		requestIdHeader: false,
 		trustProxy: false,
-		bodyLimit: 64 * 1024,
+		bodyLimit: policy.runtime.httpBodyMaximumBytes,
 		forceCloseConnections: "idle",
 		ajv: { customOptions: { removeAdditional: false, coerceTypes: false } },
 	}).withTypeProvider<TypeBoxTypeProvider>();
@@ -54,6 +65,11 @@ export function createHttpApp(options: {
 		async () => ({ status: "ok" as const }),
 	);
 
+	app.get(
+		"/api/client-config",
+		{ schema: { response: { 200: ClientConfigResponseSchema } } },
+		async () => clientConfigResponse(policy),
+	);
 	if (options.library) {
 		const library = options.library;
 		app.addHook("onClose", async () => library.close());
