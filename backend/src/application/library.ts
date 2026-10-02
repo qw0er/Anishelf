@@ -28,6 +28,9 @@ import {
 	ResourceAccess,
 } from "../resources/access.js";
 
+import { discoverExternalSubtitles } from "../subtitles/discovery.js";
+import type { SubtitleDiscovery } from "../subtitles/model.js";
+
 /** Minimal persistence boundary; implemented by PersistentConfiguration. */
 export interface SettingsStore {
 	readonly settings: Readonly<PersistentSettings>;
@@ -188,6 +191,31 @@ export class LibraryApplication {
 			},
 			rootEpoch: epoch,
 		};
+	}
+
+	async discoverSubtitles(id: string): Promise<SubtitleDiscovery> {
+		const source = await this.resolvePlaybackSource(id);
+		const resources = await ResourceAccess.create(this.getSettings());
+		if (
+			resources.canonicalRoot !== source.identity.canonicalRoot ||
+			source.rootEpoch !== this.rootEpoch
+		)
+			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
+		const result = await discoverExternalSubtitles(
+			resources,
+			source.identity.relativePath,
+			source.identity.sourceVersion,
+		);
+		const current = await resources.inspectSource(source.identity.relativePath);
+		if (
+			source.rootEpoch !== this.rootEpoch ||
+			current.sourceVersion !== source.identity.sourceVersion
+		)
+			throw new DomainError(
+				"PLAYBACK_CONFLICT",
+				"The playback source changed.",
+			);
+		return result;
 	}
 
 	async openMedia(id: string): Promise<OpenedResourceFile> {

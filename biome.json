@@ -64,6 +64,7 @@
 				"backend/src/resources/**",
 				"backend/src/config/**",
 				"backend/src/playback/**",
+				"backend/src/subtitles/**",
 				"backend/src/database/**"
 			],
 			"linter": {

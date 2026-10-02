@@ -1,9 +1,11 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Logger } from "pino";
 import { LibraryApplication } from "./application/library.js";
 import { PlaybackApplication } from "./application/playback.js";
 import { loadDeploymentConfig } from "./config/deployment.js";
+import type { DeploymentConfig, MediaToolsConfig } from "./config/model.js";
 import { PersistentConfiguration } from "./config/persistent.js";
 import { ApplicationDatabase } from "./database/index.js";
 import { DomainError } from "./errors.js";
@@ -12,53 +14,56 @@ import { LibraryIndex } from "./library/index.js";
 import { ApplicationLogging } from "./logging/index.js";
 import { MediaTools } from "./media/index.js";
 
-let database: ApplicationDatabase | undefined;
-let logging: ApplicationLogging | undefined;
-let app: ReturnType<typeof createHttpApp> | undefined;
-try {
-	const config = await loadDeploymentConfig();
-	logging = ApplicationLogging.create(config.logging);
-	const mediaTools = await MediaTools.create(config.mediaTools);
+type HttpApp = ReturnType<typeof createHttpApp>;
+
+async function initializeMediaTools(
+	config: MediaToolsConfig,
+	logger: Logger,
+): Promise<void> {
+	const mediaTools = await MediaTools.create(config);
 	for (const [tool, status] of Object.entries(mediaTools.status)) {
 		if (status.available) {
-			logging.logger.info(
+			logger.info(
 				{ event: "media.tool_ready", tool, ...status },
 				"Media tool ready.",
 			);
 		} else {
-			logging.logger.warn(
-				{ event: "media.tool_unavailable", tool },
-				status.message,
-			);
+			logger.warn({ event: "media.tool_unavailable", tool }, status.message);
 		}
 	}
+}
+
+function openDatabase(
+	dataDir: string,
+	logger: Logger,
+): ApplicationDatabase | undefined {
 	try {
-		database = ApplicationDatabase.open(config.dataDir);
-		logging.logger.info(
-			{ event: "database.ready" },
-			"Database migrations applied.",
-		);
+		const database = ApplicationDatabase.open(dataDir);
+		logger.info({ event: "database.ready" }, "Database migrations applied.");
+		return database;
 	} catch (err) {
-		logging.logger.error(
+		logger.error(
 			{ event: "database.unavailable", err },
 			"Database unavailable; playback persistence is disabled.",
 		);
+		return undefined;
 	}
-	const persistentConfig = await PersistentConfiguration.load(config.dataDir);
+}
+
+async function initializeLibrary(
+	dataDir: string,
+	logger: Logger,
+): Promise<LibraryApplication> {
+	const configuration = await PersistentConfiguration.load(dataDir);
 	const library = new LibraryApplication({
-		configuration: persistentConfig,
+		configuration,
 		index: new LibraryIndex(),
-		logger: logging.logger,
-	});
-	const playback = new PlaybackApplication({
-		library,
-		logger: logging.logger,
-		...(database ? { repository: database.playback } : {}),
+		logger,
 	});
 	const libraryError = (await library.getStatus()).error;
 	if (libraryError) {
 		const setupRequired = libraryError.code === "RESOURCE_ROOT_NOT_CONFIGURED";
-		logging.logger[setupRequired ? "info" : "warn"](
+		logger[setupRequired ? "info" : "warn"](
 			{
 				event: setupRequired
 					? "library.setup_required"
@@ -71,18 +76,31 @@ try {
 	if (library.getSettings().resourceRoot !== null) {
 		try {
 			const scan = await library.startScan();
-			logging.logger.info(
+			logger.info(
 				{ event: "library.startup_scan_started", scanId: scan.id },
 				"Startup library scan started.",
 			);
 		} catch (err) {
-			logging.logger.warn(
+			logger.warn(
 				{ event: "library.startup_scan_failed", err },
 				"Startup library scan could not be started.",
 			);
 		}
 	}
-	const logger = logging.logger;
+	return library;
+}
+
+function createServer(
+	config: DeploymentConfig,
+	logger: Logger,
+	library: LibraryApplication,
+	database: ApplicationDatabase | undefined,
+): HttpApp {
+	const playback = new PlaybackApplication({
+		library,
+		logger,
+		...(database ? { repository: database.playback } : {}),
+	});
 	const development = process.env.NODE_ENV === "development";
 	const frontendRoot = fileURLToPath(
 		new URL("../../web/dist/", import.meta.url),
@@ -97,47 +115,53 @@ try {
 			? { frontendRoot }
 			: {}),
 	});
-	app = server;
 	server.addHook("onClose", async () => {
 		database?.close();
 	});
-	await server.listen({ host: config.host, port: config.port });
-	logger.info({ event: "application.started" }, "HTTP application started.");
+	return server;
+}
 
+async function stopServer(server: HttpApp, logger: Logger): Promise<void> {
+	const timer = setTimeout(() => {
+		logger.error(
+			{ event: "application.shutdown_timeout" },
+			"Shutdown exceeded five seconds.",
+		);
+		process.exit(1);
+	}, 5000);
+	timer.unref();
+	try {
+		await server.close();
+		logger.info({ event: "application.stopped" }, "HTTP application stopped.");
+	} catch (err) {
+		logger.error(
+			{ event: "application.stop_failed", err },
+			"HTTP shutdown failed.",
+		);
+		process.exitCode = 1;
+	} finally {
+		clearTimeout(timer);
+	}
+}
+
+function registerShutdown(server: HttpApp, logger: Logger): void {
 	let shutdownTask: Promise<void> | undefined;
 	const shutdown = () => {
 		if (shutdownTask) return;
-		shutdownTask = (async () => {
-			process.off("SIGINT", shutdown);
-			process.off("SIGTERM", shutdown);
-			const timer = setTimeout(() => {
-				logger.error(
-					{ event: "application.shutdown_timeout" },
-					"Shutdown exceeded five seconds.",
-				);
-				process.exit(1);
-			}, 5000);
-			timer.unref();
-			try {
-				await server.close();
-				logger.info(
-					{ event: "application.stopped" },
-					"HTTP application stopped.",
-				);
-			} catch (err) {
-				logger.error(
-					{ event: "application.stop_failed", err },
-					"HTTP shutdown failed.",
-				);
-				process.exitCode = 1;
-			} finally {
-				clearTimeout(timer);
-			}
-		})();
+		process.off("SIGINT", shutdown);
+		process.off("SIGTERM", shutdown);
+		shutdownTask = stopServer(server, logger);
 	};
 	process.on("SIGINT", shutdown);
 	process.on("SIGTERM", shutdown);
-} catch (error) {
+}
+
+async function handleStartupFailure(
+	error: unknown,
+	logging: ApplicationLogging | undefined,
+	app: HttpApp | undefined,
+	database: ApplicationDatabase | undefined,
+): Promise<void> {
 	const message =
 		error instanceof DomainError
 			? error.message
@@ -152,3 +176,25 @@ try {
 	if (app) await app.close();
 	else database?.close();
 }
+
+async function main(): Promise<void> {
+	let database: ApplicationDatabase | undefined;
+	let logging: ApplicationLogging | undefined;
+	let app: HttpApp | undefined;
+	try {
+		const config = await loadDeploymentConfig();
+		logging = ApplicationLogging.create(config.logging);
+		const logger = logging.logger;
+		await initializeMediaTools(config.mediaTools, logger);
+		database = openDatabase(config.dataDir, logger);
+		const library = await initializeLibrary(config.dataDir, logger);
+		app = createServer(config, logger, library, database);
+		await app.listen({ host: config.host, port: config.port });
+		logger.info({ event: "application.started" }, "HTTP application started.");
+		registerShutdown(app, logger);
+	} catch (error) {
+		await handleStartupFailure(error, logging, app, database);
+	}
+}
+
+await main();

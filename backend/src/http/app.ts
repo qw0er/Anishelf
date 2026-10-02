@@ -13,6 +13,7 @@ import { HealthResponseSchema } from "./schemas/index.js";
 import { checkRequestOrigin } from "./security.js";
 import { registerSettingsRoutes } from "./settings.js";
 import { registerFrontend } from "./static.js";
+import { registerSubtitleRoutes } from "./subtitles.js";
 
 export function createHttpApp(options: {
 	config: Pick<DeploymentConfig, "host" | "port">;
@@ -58,6 +59,7 @@ export function createHttpApp(options: {
 		app.addHook("onClose", async () => library.close());
 		registerLibraryRoutes(app, library);
 		registerMediaRoutes(app, library);
+		registerSubtitleRoutes(app, library);
 		registerSettingsRoutes(app, library);
 	}
 

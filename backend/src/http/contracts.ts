@@ -38,3 +38,6 @@ export type SavePlaybackProgressResponse = Static<
 export type ContinueWatchingResponse = Static<
 	typeof schemas.ContinueWatchingResponseSchema
 >;
+export type SubtitleDiscoveryResponse = Static<
+	typeof schemas.SubtitleDiscoveryResponseSchema
+>;

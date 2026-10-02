@@ -1,7 +1,7 @@
 # Anishelf — Current Design
 
 **V1 is implemented; V2 is in progress.** The direct-playback Vidstack adapter
-and saved progress are implemented; subtitles, preparation, and the remaining V2 workflows
+and saved progress are implemented; subtitle delivery/rendering, preparation, and the remaining V2 workflows
 are planned. The [current requirements](current-version-requirements.md) define scope and acceptance.
 
 The shared [design system](design-system.md) records page compositions and screen
@@ -140,7 +140,7 @@ Continue watching includes available records with positive position that are not
 
 ## 6. Subtitles (V2; P03, Partial P08–P09)
 
-Subtitle integration remains planned. Use Vidstack text tracks for supported text formats and a separately integrated JASSUB renderer for styled ASS/SSA. Parsing a format does not guarantee typography or effects. Package worker/WASM assets with the application and validate pinned versions. The supported V2 matrix is explicit:
+Same-directory external subtitle discovery is implemented through `GET /api/files/:id/subtitles`, independently of library scans and playback-session persistence. Subtitle content delivery and player integration remain planned. Use Vidstack text tracks for supported text formats and a separately integrated JASSUB renderer for styled ASS/SSA. Parsing a format does not guarantee typography or effects. Package worker/WASM assets with the application and validate pinned versions. The supported V2 matrix is explicit:
 
 | Input | Discovery / extraction | Browser rendering |
 | --- | --- | --- |
@@ -220,6 +220,7 @@ Keep all existing V1 endpoints and their response shapes unless explicitly exten
 | --- | --- | --- |
 | `GET /api/client-config` | V2 | Safe effective client preferences, locale messages and capabilities; no server paths or raw configuration |
 | Existing `/api/health`, `/api/settings`, `/api/library`, `/api/library/scan`, `/api/directories/:id`, `/api/files/:id`, `/api/media/:id` | V1 retained | Health, configuration, scans, file lookup, original delivery |
+| `GET /api/files/:id/subtitles` | V2 discovery implemented | On-demand external candidate metadata and per-file warnings; no subtitle contents or server paths |
 | `GET /api/files/:id/playback` | V2 | Source version, per-stream strategy, original/ready URLs, real-time capability, subtitle descriptors |
 | `GET /api/history?view=continue\|recent` | V2 | Ordered availability-aware viewing entries |
 | `POST /api/files/:id/playback-sessions` | V2 | Read history and issue a generation; fail closed for saving on store error |

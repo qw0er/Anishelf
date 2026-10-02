@@ -2,7 +2,7 @@
 
 **V1 is implemented; V2 is in progress.** V1 manual browser acceptance is user-reported.
 The direct-playback Vidstack adapter is implemented and checked with a temporary
-H.264 sample. Saved progress is integrated. The backend FFmpeg/FFprobe layer implements media inspection and selected text-subtitle extraction; subtitle UI/assets, preparation, and the remaining V2 workflows are planned. These foundations do not complete V2 acceptance.
+H.264 sample. Saved progress is integrated. The backend FFmpeg/FFprobe layer implements media inspection and selected text-subtitle extraction; Same-directory external subtitle discovery is implemented through a dedicated API; subtitle UI/assets, preparation, and the remaining V2 workflows are planned. These foundations do not complete V2 acceptance.
 
 Startup options use defaults and environment variables. `ANISHELF_DATA_DIR` overrides the platform-specific user data directory selected by `platformdirs`. The [current design](current-version-design.md) specifies the V2 architecture.
 
@@ -32,7 +32,7 @@ Extend the existing file browser into an everyday Web viewing workflow:
 | V06 | Failure feedback | Distinguish missing/unreadable resources and unsupported media or playback failures | V1 | V1 |
 | W01 | Saved progress and resume | Persist position, duration, and last viewing time on the server; restore position when reopening a file | — | V2 |
 | W02 | Continue watching | Show available files with saved unfinished progress and open them for resume | — | V2 |
-| P03 | External subtitles | Vidstack VTT/SRT/ASS/SSA discovery, selection and off | — | V2 |
+| P03 | External subtitles | Vidstack VTT/SRT/ASS/SSA discovery, selection and off | V2 discovery only; delivery/rendering/selection pending | V2 |
 | P08 | Embedded subtitle extraction | FFmpeg extraction from MKV/other containers; text tracks, fonts and supported bitmap assets; other formats unassigned | — | V2 (partial) |
 | P09 | Styled subtitles and fonts | ASS/SSA rendering and extracted fonts; bitmap Web rendering remains unassigned | — | V2 (partial) |
 | P05 | Playback strategy | Use original compatible media; choose the required preparation path for the target browser | — | V2 |
