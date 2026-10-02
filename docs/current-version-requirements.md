@@ -5,7 +5,11 @@ The direct-playback Vidstack adapter is implemented and checked with a temporary
 H.264 sample. Saved progress, playback history/resume, and same-directory external
 subtitle discovery, version-checked delivery, selection and rendering are implemented.
 The FFmpeg/FFprobe utility layer supports media inspection and selected text-subtitle
-extraction. Playback preparation, embedded-subtitle integration, and the other
+extraction. `SubtitleApplication` integrates embedded-track discovery into the subtitle
+list API with codec/support metadata and nonfatal probe warnings. Selected embedded
+text-track extraction, persisted assets, restart reuse, version-checked delivery and
+CC-menu preparation/retry are implemented. Embedded fonts, bitmap extraction,
+playback preparation, and the other
 unfinished requirements below remain part of the current V2 scope.
 
 Startup options use defaults and environment variables. `ANISHELF_DATA_DIR` overrides the platform-specific user data directory selected by `platformdirs`. The [current design](current-version-design.md) specifies the V2 architecture.
@@ -124,6 +128,7 @@ Replace the basic V1 validation pages with a finished interface for everyday use
 
 - Define and apply a consistent visual system for typography, spacing, colors, buttons, forms, and status indicators. Use deliberate layouts and readable hierarchy rather than the existing test-page arrangement.
 - Provide designed initial setup, loading, empty library, no continue-watching entries, refreshing, success, partial-scan warning, unavailable resource, and recoverable failure states with useful next actions.
+- Prefer Toast for operation results and recoverable playback/subtitle failures. Keep ongoing subtitle preparation notifications visible until completion, failure or selection cancellation. Keep form validation, initial page failures, setup/empty states and persistent scan/library status in context.
 - Keep scan/transcoding/persistence feedback visible without interrupting usable browsing or active Web playback. Do not claim an unsupported numeric completion percentage; show an indeterminate state when only task status is known.
 - Preserve the current directory and return context when moving between browsing and playback. Opening tasks/settings and returning must not unexpectedly discard the user's location. Explain any root-change reset.
 - Support desktop and narrow/mobile layouts without overlapping controls or page-wide horizontal overflow. Validate at least 1280 px and 390 px viewport widths. Long filenames must remain identifiable and full names accessible.

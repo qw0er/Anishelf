@@ -53,10 +53,18 @@ an action icon, use the same icon size and do not leave an empty icon slot.
   incompatible operations disabled while work is in progress.
 - Warnings and stale results: show explanatory text, retain the available listing,
   and keep warning details expandable. Do not rely on color alone.
-- Errors: use the existing destructive text color and `role="alert"`. Provide
-  retry or return actions where supported; keep settings errors beside the form.
+- Notifications: prefer Toast for operation success/failure, manual refresh failures,
+  and recoverable video/subtitle failures. Video errors use the existing page Retry
+  action; subtitle preparation failures may include a retry action in the Toast.
+  Deduplicate notifications and close player notifications on retry, file changes,
+  or departure. Keep subtitle preparation Toasts visible until completion, failure,
+  or selection cancellation; do not automatically expire ongoing-task feedback.
+- Contextual errors: keep form validation beside the corresponding form and keep
+  initial page-loading failures, unavailable resources, setup, and empty states in
+  the page. Use destructive text and `role="alert"` for inline errors. Persistent
+  library errors and stale-state indicators remain visible even after a Toast closes.
 - Saving: retain the input, disable the active form while saving, and show the
-  saved path after success. Display the returned error after a failed save.
+  saved path after success. Use Toast for request failures and inline feedback for validation errors.
 
 ## Maintenance and Validation
 

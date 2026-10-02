@@ -21,5 +21,6 @@ export type {
 	ScanWarningSummaryDto,
 	SettingsResponse,
 	SubtitleDiscoveryResponse,
+	SubtitlePreparationResponse,
 	UpdateSettingsRequest,
 } from "@anishelf/backend/http/contracts";

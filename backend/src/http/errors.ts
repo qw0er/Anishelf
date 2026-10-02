@@ -2,6 +2,18 @@ import { DomainError, type ErrorCode } from "../errors.js";
 import type { ApiErrorResponse } from "./contracts.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	SUBTITLE_UNSUPPORTED: {
+		status: 422,
+		message: "This subtitle track is not supported.",
+	},
+	SUBTITLE_PREPARATION_UNAVAILABLE: {
+		status: 503,
+		message: "Subtitle preparation is unavailable.",
+	},
+	SUBTITLE_PREPARATION_BUSY: {
+		status: 503,
+		message: "Another subtitle is being prepared. Retry shortly.",
+	},
 	SUBTITLE_TOO_LARGE: {
 		status: 413,
 		message: "The subtitle exceeds the configured size limit.",

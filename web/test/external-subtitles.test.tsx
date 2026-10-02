@@ -10,6 +10,7 @@ import { StyledSubtitleRenderer } from "../src/subtitles/renderer.js";
 import { clientConfig } from "./client-config.js";
 
 const plainTrack: SubtitleDiscoveryResponse["tracks"][number] = {
+	origin: "external",
 	id: "sub-1",
 	name: "episode.en.srt",
 	format: "srt",
@@ -23,6 +24,7 @@ const discovery: SubtitleDiscoveryResponse = {
 	warnings: [],
 	tracks: [
 		{
+			origin: "external",
 			id: "sub-1",
 			name: "episode.en.srt",
 			format: "srt",
@@ -32,6 +34,7 @@ const discovery: SubtitleDiscoveryResponse = {
 			sourceVersion: "subtitle-version",
 		},
 		{
+			origin: "external",
 			id: "sub-2",
 			name: "episode.ass",
 			format: "ass",

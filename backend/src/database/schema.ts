@@ -59,3 +59,47 @@ export const playbackProgress = sqliteTable(
 		index("progress_recent").on(desc(table.lastViewedAtMs), table.sourceId),
 	],
 );
+
+export const subtitleAssets = sqliteTable(
+	"subtitle_assets",
+	{
+		id: text("id").primaryKey(),
+		sourceId: text("source_id")
+			.notNull()
+			.references(() => mediaSources.id, { onDelete: "restrict" }),
+		trackId: text("track_id").notNull(),
+		streamIndex: integer("stream_index").notNull(),
+		processingVersion: text("processing_version").notNull(),
+		format: text("format", { enum: ["srt", "ass", "webvtt"] }).notNull(),
+		status: text("status", { enum: ["pending", "ready", "failed"] }).notNull(),
+		sizeBytes: integer("size_bytes"),
+		errorCode: text("error_code", {
+			enum: [
+				"SUBTITLE_EXTRACTION_FAILED",
+				"SUBTITLE_TOOL_UNAVAILABLE",
+				"SUBTITLE_TOO_LARGE",
+				"SUBTITLE_CACHE_FULL",
+				"PLAYBACK_CONFLICT",
+				"SUBTITLE_INTERRUPTED",
+			],
+		}),
+		updatedAtMs: integer("updated_at_ms").notNull(),
+	},
+	(table) => [
+		uniqueIndex("subtitle_asset_identity").on(
+			table.sourceId,
+			table.trackId,
+			table.format,
+			table.processingVersion,
+		),
+		check("subtitle_stream_index", sql`${table.streamIndex} >= 0`),
+		check(
+			"subtitle_asset_size",
+			sql`${table.sizeBytes} IS NULL OR ${table.sizeBytes} >= 0`,
+		),
+		check(
+			"subtitle_asset_state",
+			sql`${table.status} IN ('pending', 'ready', 'failed')`,
+		),
+	],
+);

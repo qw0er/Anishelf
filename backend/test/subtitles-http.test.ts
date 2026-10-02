@@ -11,11 +11,15 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { LibraryApplication } from "../src/application/library.js";
+import { SubtitleApplication } from "../src/application/subtitles.js";
 import { builtinPolicy } from "../src/config/policy.js";
 import { DomainError } from "../src/errors.js";
 import { createHttpApp } from "../src/http/app.js";
 import type { SubtitleDiscoveryResponse } from "../src/http/contracts.js";
 import { LibraryIndex } from "../src/library/index.js";
+import type { MediaInfo, MediaStream } from "../src/media/index.js";
+import { MediaToolError, MediaTools } from "../src/media/index.js";
+import { runTool } from "../src/media/process.js";
 import { ResourceAccess } from "../src/resources/access.js";
 
 const maximumSubtitleBytes = builtinPolicy.subtitles.maximumBytes;
@@ -27,6 +31,15 @@ let root: string;
 let library: LibraryApplication;
 let app: ReturnType<typeof createHttpApp>;
 let fileId: string;
+const emptyInfo: MediaInfo = {
+	format: "matroska",
+	duration: 2,
+	size: null,
+	bitRate: null,
+	tags: {},
+	streams: [],
+};
+let probe: ReturnType<typeof vi.fn<MediaTools["probe"]>>;
 const video = "第 01 集 & 100%";
 const headers = { host: "127.0.0.1:3000" };
 beforeEach(async () => {
@@ -41,10 +54,12 @@ beforeEach(async () => {
 		configuration: settingsStore(root),
 		logger,
 	});
+	probe = vi.fn<MediaTools["probe"]>().mockResolvedValue(emptyInfo);
 	app = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger,
 		library,
+		subtitles: new SubtitleApplication({ library, tools: { probe } }),
 	});
 	await library.startScan();
 	await library.waitForCompletion();
@@ -324,4 +339,247 @@ test("never accepts paths, unversioned requests or foreign subtitle IDs", async 
 		(await app.inject({ url: url.replace(trackId, "unknown"), headers }))
 			.statusCode,
 	).toBe(404);
+});
+
+function stream(
+	index: number,
+	codec: string | null,
+	overrides: Partial<MediaStream> = {},
+): MediaStream {
+	return {
+		index,
+		type: "subtitle",
+		codec,
+		profile: null,
+		width: null,
+		height: null,
+		pixelFormat: null,
+		frameRate: null,
+		sampleRate: null,
+		channels: null,
+		channelLayout: null,
+		duration: null,
+		bitRate: null,
+		tags: {},
+		default: false,
+		forced: false,
+		...overrides,
+	};
+}
+
+test("merges external and embedded tracks without exposing selectors or loading content", async () => {
+	await sidecar(".srt", "untouched");
+	probe.mockResolvedValue({
+		...emptyInfo,
+		streams: [
+			stream(0, "h264", { type: "video" }),
+			stream(2, "ass", {
+				tags: { language: "zho", title: "Chinese" },
+				default: true,
+				forced: true,
+			}),
+			stream(3, "mov_text"),
+			stream(4, "hdmv_pgs_subtitle"),
+			stream(5, "webvtt"),
+			stream(6, null),
+		],
+	});
+	const result = await discover();
+	expect(result.tracks).toHaveLength(6);
+	expect(result.tracks[0]?.origin).toBe("external");
+	expect(result.tracks[1]).toMatchObject({
+		origin: "embedded",
+		name: "Chinese",
+		language: "zho",
+		codec: "ass",
+		format: "ass",
+		default: true,
+		forced: true,
+		sizeBytes: null,
+		extractionSupported: true,
+		webSupported: true,
+		unsupportedReason: null,
+	});
+	expect(result.tracks[2]).toMatchObject({
+		codec: "mov_text",
+		format: "srt",
+		extractionSupported: true,
+	});
+	expect(result.tracks[3]).toMatchObject({
+		codec: "hdmv_pgs_subtitle",
+		format: null,
+		webSupported: false,
+		extractionSupported: false,
+		unsupportedReason: "UNSUPPORTED_CODEC",
+	});
+	expect(result.tracks[4]?.format).toBe("vtt");
+	expect(result.tracks[5]?.format).toBeNull();
+	expect(JSON.stringify(result)).not.toContain("streamIndex");
+	expect(new Set(result.tracks.map((t) => t.id)).size).toBe(6);
+	expect((await discover()).tracks).toEqual(result.tracks);
+	expect(probe).toHaveBeenCalledTimes(1);
+});
+
+test.each(["TOOL_UNAVAILABLE", "TOOL_FAILED", "INVALID_MEDIA"] as const)(
+	"probe %s preserves external subtitles and permits retry",
+	async (code) => {
+		await sidecar(".srt");
+		probe.mockRejectedValueOnce(new MediaToolError(code, `secret ${fixture}`));
+		const result = await discover();
+		expect(result.tracks).toHaveLength(1);
+		expect(result.warnings).toEqual([
+			{
+				name: `${video}.mkv`,
+				code:
+					code === "TOOL_UNAVAILABLE"
+						? "SUBTITLE_PROBE_UNAVAILABLE"
+						: "SUBTITLE_PROBE_FAILED",
+			},
+		]);
+		expect((await discover()).warnings).toEqual([]);
+		expect(probe).toHaveBeenCalledTimes(2);
+	},
+);
+
+test("reprobes changed videos and never reuses their embedded track IDs", async () => {
+	probe.mockResolvedValue({ ...emptyInfo, streams: [stream(1, "subrip")] });
+	const first = await discover();
+	await writeFile(join(root, "season", `${video}.mkv`), "replacement video");
+	const next = await discover();
+	expect(next.sourceVersion).not.toBe(first.sourceVersion);
+	expect(next.tracks[0]?.id).not.toBe(first.tracks[0]?.id);
+	expect(probe).toHaveBeenCalledTimes(2);
+});
+
+test("rejects a source replaced during probing", async () => {
+	probe.mockImplementationOnce(async () => {
+		await writeFile(
+			join(root, "season", `${video}.mkv`),
+			"replaced while probing",
+		);
+		return emptyInfo;
+	});
+	const response = await app.inject({
+		url: `/api/files/${fileId}/subtitles`,
+		headers,
+	});
+	expect(response.statusCode).toBe(409);
+});
+
+test("shares a concurrent probe of the same source", async () => {
+	let complete!: (info: MediaInfo) => void;
+	probe.mockImplementationOnce(
+		() =>
+			new Promise((resolve) => {
+				complete = resolve;
+			}),
+	);
+	const first = discover();
+	await vi.waitFor(() => expect(probe).toHaveBeenCalledTimes(1));
+	const second = discover();
+	complete(emptyInfo);
+	await Promise.all([first, second]);
+	expect(probe).toHaveBeenCalledTimes(1);
+});
+
+test("discovers real embedded MKV subtitles through the HTTP application", async () => {
+	const tools = await MediaTools.create();
+	if (!tools.status.ffmpeg.available || !tools.status.ffprobe.available)
+		throw new Error("FFmpeg/FFprobe unavailable");
+	await sidecar(".srt", "1\n00:00:00,200 --> 00:00:01,200\nHello\n");
+	const target = join(root, "season", `${video}.mkv`);
+	await runTool(tools.status.ffmpeg.path, [
+		"-nostdin",
+		"-v",
+		"error",
+		"-y",
+		"-f",
+		"lavfi",
+		"-i",
+		"color=size=32x32:rate=1:duration=2",
+		"-i",
+		join(root, "season", `${video}.srt`),
+		"-map",
+		"0:v",
+		"-map",
+		"1:s",
+		"-c:v",
+		"ffv1",
+		"-c:s",
+		"copy",
+		"-metadata:s:s:0",
+		"language=eng",
+		"-metadata:s:s:0",
+		"title=English",
+		target,
+	]);
+	probe.mockImplementation((path, signal) => tools.probe(path, signal));
+	const result = await discover();
+	expect(result.tracks.find((t) => t.origin === "embedded")).toMatchObject({
+		codec: "subrip",
+		format: "srt",
+		language: "eng",
+		name: "English",
+		extractionSupported: true,
+		webSupported: true,
+	});
+});
+
+test("bounds probing to one source while preserving sidecars and allowing retry", async () => {
+	await writeFile(join(root, "season", "other.mkv"), "other video");
+	await writeFile(join(root, "season", "other.srt"), "other subtitle");
+	await library.startScan();
+	await library.waitForCompletion();
+	const directory = library.getDirectory("root").children[0];
+	if (!directory) throw new Error("Missing directory");
+	const other = library
+		.getDirectory(directory.id)
+		.children.find((entry) => entry.name === "other.mkv");
+	if (!other) throw new Error("Missing other video");
+	let complete!: (info: MediaInfo) => void;
+	probe.mockImplementationOnce(
+		() =>
+			new Promise((resolve) => {
+				complete = resolve;
+			}),
+	);
+	const first = discover();
+	await vi.waitFor(() => expect(probe).toHaveBeenCalledTimes(1));
+	try {
+		const response = await app.inject({
+			url: `/api/files/${other.id}/subtitles`,
+			headers,
+		});
+		expect(response.statusCode).toBe(200);
+		expect(response.json()).toMatchObject({
+			tracks: [{ origin: "external", name: "other.srt" }],
+			warnings: [{ code: "SUBTITLE_PROBE_BUSY" }],
+		});
+		expect(probe).toHaveBeenCalledTimes(1);
+	} finally {
+		complete(emptyInfo);
+		await first;
+	}
+	const retry = await app.inject({
+		url: `/api/files/${other.id}/subtitles`,
+		headers,
+	});
+	expect(retry.json().warnings).toEqual([]);
+	expect(probe).toHaveBeenCalledTimes(2);
+});
+
+test("embedded descriptors cannot be read through the external content endpoint", async () => {
+	probe.mockResolvedValue({ ...emptyInfo, streams: [stream(1, "ass")] });
+	const result = await discover();
+	const track = result.tracks[0];
+	if (!track) throw new Error("Missing embedded track");
+	const query = new URLSearchParams({
+		sourceVersion: result.sourceVersion,
+		subtitleVersion: track.sourceVersion,
+	});
+	const response = await app.inject({
+		url: `/api/files/${fileId}/subtitles/${track.id}/content?${query}`,
+		headers,
+	});
+	expect(response.statusCode).toBe(404);
 });

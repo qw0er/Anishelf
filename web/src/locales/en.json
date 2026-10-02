@@ -10,8 +10,8 @@
 		"history": "History"
 	},
 	"navigation": {
-		"loadingFile": "Loading file\u2026",
-		"loadingFiles": "Loading files\u2026",
+		"loadingFile": "Loading file…",
+		"loadingFiles": "Loading files…",
 		"cancel": "Cancel navigation",
 		"backToFiles": "Back to files",
 		"goToRoot": "Go to root",
@@ -19,7 +19,7 @@
 		"pageNotFound": "Page not found."
 	},
 	"loading": {
-		"page": "Loading page\u2026",
+		"page": "Loading page…",
 		"pageLabel": "Loading page"
 	},
 	"notifications": {
@@ -78,7 +78,7 @@
 		"completed": "Library scan completed.",
 		"completedWithWarnings_one": "Library scan completed with {{count}} warning. See Library scan for details.",
 		"completedWithWarnings_other": "Library scan completed with {{count}} warnings. See Library scan for details.",
-		"visitedEntries": "Visited entries: {{count}} \u00b7 Video files: {{matched}}",
+		"visitedEntries": "Visited entries: {{count}} · Video files: {{matched}}",
 		"start": "Scan library",
 		"refresh": "Refresh",
 		"setupRequired": "Set a resource directory in <settings>Settings</settings> to start using the library.",
@@ -127,5 +127,20 @@
 		"position": "{{position}} played",
 		"duration": "{{position}} / {{duration}}",
 		"refresh": "Refresh history"
+	},
+	"subtitles": {
+		"preparing": "Preparing subtitle: {{name}}",
+		"failed": "Subtitle preparation failed: {{name}}",
+		"retry": "Retry subtitle",
+		"errors": {
+			"SUBTITLE_EXTRACTION_FAILED": "Could not extract the subtitle. Retry or choose another track.",
+			"SUBTITLE_TOOL_UNAVAILABLE": "FFmpeg is unavailable on the server.",
+			"SUBTITLE_TOO_LARGE": "The subtitle exceeds the size limit.",
+			"SUBTITLE_CACHE_FULL": "The subtitle cache is full.",
+			"PLAYBACK_CONFLICT": "The source changed. Reopen the file.",
+			"SUBTITLE_INTERRUPTED": "Subtitle preparation was interrupted. Retry.",
+			"SUBTITLE_PREPARATION_UNAVAILABLE": "Subtitle preparation is unavailable on the server.",
+			"SUBTITLE_PREPARATION_BUSY": "Another subtitle is being prepared. Retry shortly."
+		}
 	}
 }

@@ -81,6 +81,23 @@ function App() {
 	const scanSubmitting = scanFetcher.state === "submitting";
 	const scanPending = scanFetcher.state !== "idle";
 	const [manualRefreshing, setManualRefreshing] = useState(false);
+	const refreshRequested = useRef(false);
+	useEffect(() => {
+		if (
+			!refreshRequested.current ||
+			manualRefreshing ||
+			revalidationState !== "idle"
+		)
+			return;
+		refreshRequested.current = false;
+		if (libraryError)
+			toast.add({
+				id: "library-refresh",
+				type: "error",
+				priority: "high",
+				title: t(libraryError),
+			});
+	}, [manualRefreshing, revalidationState, libraryError, t]);
 	const showNavigation = useDelayedPending(
 		navigation.state !== "idle",
 		navigation.location?.key,
@@ -101,6 +118,8 @@ function App() {
 	}, [library, revalidate, revalidationState, manualRefreshing]);
 
 	async function reload() {
+		refreshRequested.current = true;
+		toast.close("library-refresh");
 		setManualRefreshing(true);
 		setPlayerVersion((value) => value + 1);
 		try {

@@ -717,7 +717,9 @@ test("media errors recheck access and distinguish a deleted file from generic pl
 		value: { code: 3, message: "Decode failed" },
 	});
 	fireEvent.error(video);
-	await screen.findByText("This media could not be played in this browser.");
+	await screen.findByText("This media could not be played in this browser.", {
+		selector: "[data-slot=toast-title]",
+	});
 	await waitFor(() =>
 		expect(
 			fetcher.mock.calls.filter(([path]) => path === "/api/files/file-1"),
@@ -727,6 +729,7 @@ test("media errors recheck access and distinguish a deleted file from generic pl
 	fireEvent.error(video);
 	await screen.findByText(
 		"This file is no longer available. Scan the library again.",
+		{ selector: "[data-slot=toast-title]" },
 	);
 });
 

@@ -1,8 +1,9 @@
 # Anishelf — Current Design
 
 **V1 is implemented; V2 is in progress.** The direct-playback Vidstack adapter
-and saved progress are implemented; subtitle delivery/rendering, preparation, and the remaining V2 workflows
-are planned. The [current requirements](current-version-requirements.md) define scope and acceptance.
+and saved progress are implemented. External subtitle delivery/rendering and embedded
+subtitle discovery/preparation/delivery are implemented; embedded fonts, video preparation,
+and the remaining V2 workflows are planned. The [current requirements](current-version-requirements.md) define scope and acceptance.
 
 The shared [design system](design-system.md) records page compositions and screen
 conventions built on Tailwind defaults and shared controls. The broader V2 interface remains planned.
@@ -22,7 +23,7 @@ The client calls the HTTP transport, which delegates to application modules. App
 | HTTP transport | V1; V2 extension | Validation, DTOs, typed errors, HEAD/Range and handle cleanup |
 | Playback application | V2 | Source resolution, playback plan, progress sessions and asset selection |
 | Media inspector, scheduler, transcode worker | V2 | Probe, decide stream copy/encoding, schedule pre-transcodes and real-time sessions |
-| Subtitle service | V2 | Discover/extract subtitle and font assets, retain format/support metadata and serve them safely |
+| Subtitle application | V2, partial | Own external discovery/delivery, embedded inspection and selected text-track preparation; font delivery remains planned |
 | SQLite repositories through Drizzle | V2 | Transactions for history, jobs, asset metadata, sessions; no media BLOB storage |
 | External-player link generator | V2 | Resolve accessible original media and expose a client-reachable URL for copying; no application invocation |
 | Locale resources | V2 foundation | English catalog and fallback; stable keys and future locale selection boundary |
@@ -43,7 +44,7 @@ records remain inside repositories.
 
 ### Configuration (V1 retained; V2 additions)
 
-Startup uses defaults and environment variables for the listener, data directory and logging. Optional `ANISHELF_FFMPEG_PATH` and `ANISHELF_FFPROBE_PATH` executable paths accept absolute values. When omitted, resolve `ffmpeg` and `ffprobe` from the server process environment's **PATH**. Resolve each independently; do not require both overrides and do not invent mandatory binary-specific environment variables. An invalid explicit override produces an actionable tool error rather than silently choosing another binary. The implemented tool layer resolves and checks versions at startup, retains absolute paths for child processes, and rediscovers after restart. It offers on-demand media inspection and selected text-subtitle extraction through `MediaTools`; capability checks, cache/asset registration and player integration remain planned. Missing binaries log warnings without disabling direct playback. Service managers must provide PATH if their default environment omits the tools.
+Startup uses defaults and environment variables for the listener, data directory and logging. Optional `ANISHELF_FFMPEG_PATH` and `ANISHELF_FFPROBE_PATH` executable paths accept absolute values. When omitted, resolve `ffmpeg` and `ffprobe` from the server process environment's **PATH**. Resolve each independently; do not require both overrides and do not invent mandatory binary-specific environment variables. An invalid explicit override produces an actionable tool error rather than silently choosing another binary. The implemented tool layer resolves and checks versions at startup, retains absolute paths for child processes, and rediscovers after restart. It offers on-demand media inspection and selected text-subtitle extraction through `MediaTools`; embedded inspection, registered text assets and player selection are integrated. Transcoding and embedded font integration remain planned. Missing binaries log warnings without disabling direct playback. Service managers must provide PATH if their default environment omits the tools.
 
 Missing tools do not prevent V1 browsing, direct media delivery, or already usable external subtitles. Disable dependent probing/extraction/transcoding with a precise capability error. The administrator controls executable paths; Web requests never supply executables or arbitrary flags.
 
@@ -146,6 +147,69 @@ Continue watching includes available records with positive position that are not
 
 ## 6. Subtitles (V2; P03, Partial P08–P09)
 
+`SubtitleApplication` owns both subtitle HTTP use cases, independently of playback
+sessions. Startup injects the resolved `MediaTools` instance. `GET /api/files/:id/subtitles`
+merges same-directory external candidates with FFprobe subtitle-stream descriptors.
+Tracks carry an `origin` discriminator. Embedded descriptors include an opaque ID,
+codec, language/title, default/forced flags, anticipated output format, codec extraction
+support, Web-format support, and an unsupported reason. Their size is unknown (`null`);
+stream indexes and server paths are private. Support flags describe implemented codec
+and format capabilities, not the availability of a prepared asset or a guarantee of
+successful rendering. `mov_text`/`text` anticipate SRT conversion; WebVTT maps to `vtt`.
+Unknown and bitmap codecs remain visible with an unsupported status.
+
+Discovery validates the source/root before and after inspection. Successful probes
+are cached in memory by canonical root, file ID and source version, up to the built-in
+`media.maximumProbeCacheEntries` limit (32 by default); oldest insertions are evicted.
+Same-source requests share one active probe. A different uncached source receives
+`SUBTITLE_PROBE_BUSY` while inspection is occupied and can retry; there is no unbounded
+probe queue. FFprobe absence/failure returns safe `SUBTITLE_PROBE_UNAVAILABLE` or
+`SUBTITLE_PROBE_FAILED` warnings alongside external candidates, and failures are not
+cached. Application shutdown aborts and awaits the active probe. An explicitly
+external-only application without a tool provider skips embedded inspection.
+
+Embedded discovery does not extract tracks or write assets. The player registers empty
+local placeholder text tracks in Vidstack's CC menu, initially off. Only selecting a
+supported embedded track calls `POST /api/files/:id/subtitles/:trackId/prepare` with
+the discovered video `sourceVersion`; no selectors, paths or conversion flags are
+accepted. The application resolves the opaque track ID against validated probe
+metadata. The existing external content endpoint still accepts sidecar IDs only.
+
+Preparation returns `202 pending` with a status URL, or `200 ready` with a content
+URL for a reusable asset. `GET /api/subtitle-assets/:id/status` returns
+`pending | ready | failed` and a safe error code. Failed attempts can be retried
+through the same prepare request. `GET /api/subtitle-assets/:id` serves UTF-8 text
+only for registered, ready assets whose source/root and bounded regular file are
+still valid; pending output never has a content URL. The asset registry uses SQLite
+`subtitle_assets`, a source foreign key, selected stream, format and processing
+version. It does not create a playback session or update viewing progress.
+
+One text extraction runs at a time; same-asset requests share its pending record,
+while another extraction receives retryable busy feedback. Processing preserves
+supported text formats, converts `mov_text`/`text` to SRT when required, validates
+output identity and size, and rechecks the source/root before and after publishing.
+Files live under `dataDir/cache/subtitles/<opaque asset ID>.<format>`. A private
+`.pending` file is written and synced, atomically renamed, then committed ready in
+SQLite. Text output is limited to 10 MiB; the initial subtitle-only cache has a
+program-owned 256 MiB budget, including files on disk. Full caches return explicit
+failure; automatic eviction and user cache management remain planned. The proposed
+shared generated-media budget in Section 2 remains a future configuration feature.
+
+Startup removes orphan/partial files, fails interrupted pending work and invalidates
+missing or replaced ready files. Valid ready assets survive restart and are reused.
+Cache/database initialization failure disables preparation while preserving direct
+playback and external subtitles. Shutdown aborts and awaits extraction before the
+database closes. Cancelling frontend waiting does not cancel reusable server work.
+The player polls only its selected pending track, displays preparing/failure/retry
+feedback through Toast notifications, replaces the selected placeholder with the ready content URL, and ignores
+late results after switching/off/unmount. Original-source cue timing and the existing
+Vidstack/JASSUB rendering paths are retained. Browser acceptance used a generated
+H.264 MP4 with an embedded `mov_text` track: opening CC made no cache file, selection
+showed preparing feedback, extracted SRT rendered in the player, and captions off/on
+removed/restored the overlay. Real MKV/SubRip preparation is also covered by an HTTP
+integration test. This does not certify embedded fonts or every subtitle sample. Embedded fonts and bitmap extraction
+remain planned; bitmap tracks are discoverable but cannot be selected for Web rendering.
+
 Same-directory external subtitle discovery is implemented through `GET /api/files/:id/subtitles`, independently of library scans and playback-session persistence. Version-checked text delivery and player selection/off are implemented for direct playback through registered Vidstack text tracks and its built-in CC button / Captions menu. Retry file rebuilds the player and refreshes discovery; the current UI has no separate subtitle controls or feedback panel. `<Track src>` lets Vidstack load, parse and render VTT/SRT from version-checked text URLs. A JASSUB 2.5.16 adapter is registered with Vidstack's `TextRenderer` interface for ASS/SSA; Vidstack owns renderer selection and lifecycle. Worker/WASM and the fallback font are bundled. Custom/embedded font loading remains planned. Parsing a format does not guarantee typography or effects. Package worker/WASM assets with the application and validate pinned versions. The supported V2 matrix is explicit:
 
 | Input | Discovery / extraction | Browser rendering |
@@ -228,15 +292,15 @@ Keep all existing V1 endpoints and their response shapes unless explicitly exten
 | --- | --- | --- |
 | `GET /api/client-config` | V2 | Safe effective client preferences, locale messages and capabilities; no server paths or raw configuration |
 | Existing `/api/health`, `/api/settings`, `/api/library`, `/api/library/scan`, `/api/directories/:id`, `/api/files/:id`, `/api/media/:id` | V1 retained | Health, configuration, scans, file lookup, original delivery |
-| `GET /api/files/:id/subtitles` | V2 implemented | On-demand external candidate metadata and per-file warnings; no server paths |
+| `GET /api/files/:id/subtitles` | V2 implemented | External candidates and embedded stream metadata/support status; safe per-file and probe warnings; no server paths or stream selectors |
 | `GET /api/files/:id/subtitles/:trackId/content` | V2 implemented | UTF-8 text for Vidstack/JASSUB; version validation and resource confinement |
 | `GET /api/files/:id/playback` | V2 | Source version, per-stream strategy, original/ready URLs, real-time capability, subtitle descriptors |
 | `GET /api/history?view=continue\|recent` | V2 | Ordered availability-aware viewing entries |
 | `POST /api/files/:id/playback-sessions` | V2 | Read history and issue a generation; fail closed for saving on store error |
 | `PUT /api/playback-sessions/:id/progress` | V2 | Ordered, durable, idempotent update |
-| `POST /api/files/:id/subtitles/:trackId/prepare` | V2 | Create/reuse subtitle/font extraction; return ready asset or pending status |
-| `GET /api/subtitle-assets/:id/status` | V2 | Pending/ready/failed subtitle feedback |
-| `GET /api/subtitle-assets/:id` | V2 | Validated VTT/SRT/ASS/SSA or declared extracted format only when ready |
+| `POST /api/files/:id/subtitles/:trackId/prepare` | V2 implemented, text only | Version-bound selected embedded text extraction; reuse ready/pending asset or retry failure |
+| `GET /api/subtitle-assets/:id/status` | V2 implemented | Pending/ready/failed subtitle feedback |
+| `GET /api/subtitle-assets/:id` | V2 implemented | Validated VTT/SRT/ASS/SSA or declared extracted format only when ready |
 | `POST /api/files/:id/preparations` | V2 | Original result `200`, or deduplicated job `202` |
 | `GET /api/preparations` | V2 | Queued/processing/ready/failed/cancelled jobs and safe diagnostics |
 | `DELETE /api/preparations/:id` | V2 | Cancel queued/running pre-transcode and clean partial files |
@@ -286,3 +350,13 @@ Other unselected overall requirements retain **Target: Unassigned**: metadata/ep
 ### Implemented recent history
 
 `GET /api/history?limit=100` returns recent file/progress records, with a limit from 1 to 100 (default 100). History includes records with a saved viewing timestamp, including completed files and zero positions. Results resolve current source versions within the active canonical root; missing or replaced sources are excluded while their durable records remain. The `/history` route loads this list with request cancellation and uses the existing player route for resume. There is no separate `/api/continue-watching` endpoint; opening a playback session returns the saved progress for immediate resume.
+
+### Feedback presentation
+
+Follow `design-system.md`: operation results and recoverable video/subtitle errors
+use Toast notifications. Embedded subtitle preparation uses a persistent Toast,
+replaced by failure feedback with retry or closed on completion/selection changes.
+Video playback failures use Toast and the existing page Retry action. Manual
+refresh failures use Toast while persistent library errors remain in context.
+Form validation, scan status/counts/warning details, stale indicators, initial
+page errors, setup and empty states remain in their corresponding page regions.

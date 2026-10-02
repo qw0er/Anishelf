@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import type { Logger } from "pino";
 import { LibraryApplication } from "./application/library.js";
 import { PlaybackApplication } from "./application/playback.js";
+import { SubtitleApplication } from "./application/subtitles.js";
 import type { MediaToolsConfig } from "./config/model.js";
 import type { BuiltinPolicy, DeepReadonly } from "./config/policy.js";
 import { ConfigurationService } from "./config/service.js";
@@ -21,7 +22,7 @@ async function initializeMediaTools(
 	logger: Logger,
 	policy: DeepReadonly<BuiltinPolicy>,
 	environment: ConfigurationService["environment"]["executableSearch"],
-): Promise<void> {
+): Promise<MediaTools> {
 	const mediaTools = await MediaTools.create(config, policy, environment);
 	for (const [tool, status] of Object.entries(mediaTools.status)) {
 		if (status.available) {
@@ -33,6 +34,7 @@ async function initializeMediaTools(
 			logger.warn({ event: "media.tool_unavailable", tool }, status.message);
 		}
 	}
+	return mediaTools;
 }
 
 function openDatabase(
@@ -93,12 +95,13 @@ async function initializeLibrary(
 	return library;
 }
 
-function createServer(
+async function createServer(
 	configuration: ConfigurationService,
 	logger: Logger,
 	library: LibraryApplication,
 	database: ApplicationDatabase | undefined,
-): HttpApp {
+	tools: MediaTools,
+): Promise<HttpApp> {
 	const config = configuration.deployment;
 	const playback = new PlaybackApplication({
 		policy: configuration.policy.playback,
@@ -110,18 +113,34 @@ function createServer(
 	const frontendRoot = fileURLToPath(
 		new URL("../../web/dist/", import.meta.url),
 	);
+	const subtitles = new SubtitleApplication({
+		library,
+		tools,
+		dataDir: config.dataDir,
+		...(database ? { repository: database.subtitles } : {}),
+	});
+	try {
+		await subtitles.initialize();
+	} catch (err) {
+		logger.warn(
+			{ event: "subtitles.cache_unavailable", err },
+			"Subtitle preparation is unavailable; direct playback and external subtitles remain usable.",
+		);
+	}
 	const server = createHttpApp({
 		config,
 		policy: configuration.policy,
 		logger,
 		library,
 		playback,
+		subtitles,
 		development,
 		...(development && existsSync(join(frontendRoot, "index.html"))
 			? { frontendRoot }
 			: {}),
 	});
 	server.addHook("onClose", async () => {
+		await subtitles.close();
 		database?.close();
 	});
 	return server;
@@ -200,7 +219,7 @@ async function main(): Promise<void> {
 		const config = configuration.deployment;
 		logging = ApplicationLogging.create(config.logging);
 		const logger = logging.logger;
-		await initializeMediaTools(
+		const tools = await initializeMediaTools(
 			config.mediaTools,
 			logger,
 			configuration.policy,
@@ -208,7 +227,7 @@ async function main(): Promise<void> {
 		);
 		database = openDatabase(config.dataDir, logger, configuration.policy);
 		const library = await initializeLibrary(configuration, logger);
-		app = createServer(configuration, logger, library, database);
+		app = await createServer(configuration, logger, library, database, tools);
 		await app.listen({ host: config.host, port: config.port });
 		logger.info({ event: "application.started" }, "HTTP application started.");
 		registerShutdown(

@@ -1,9 +1,16 @@
 import { Track, useMediaPlayer } from "@vidstack/react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { subtitleContentUrl } from "../api/client.js";
-import type { ClientConfigResponse } from "../api/contracts.js";
+import type {
+	ClientConfigResponse,
+	SubtitleDiscoveryResponse,
+} from "../api/contracts.js";
 import { useExternalSubtitles } from "../hooks/use-external-subtitles.js";
+import { EmbeddedSubtitleController } from "../subtitles/embedded.js";
+import { prepareSelectedSubtitle } from "../subtitles/preparation.js";
 import { StyledSubtitleRenderer } from "../subtitles/renderer.js";
+import { toast } from "./ui/toast.js";
 
 /** Vidstack loads/parses tracks and controls the text renderer lifecycle. */
 export function ExternalSubtitleTracks({
@@ -28,6 +35,61 @@ export function ExternalSubtitleTracks({
 	);
 	const player = useMediaPlayer();
 	const discovery = useExternalSubtitles(fileId);
+	const { t } = useTranslation();
+
+	const embedded = useRef<EmbeddedSubtitleController | null>(null);
+	useEffect(() => {
+		const notificationId = `subtitle-preparation:${fileId}`;
+		toast.close(notificationId);
+		if (!player || !discovery) return;
+		const controller = new EmbeddedSubtitleController(
+			player.textTracks,
+			discovery.tracks.filter(
+				(
+					track,
+				): track is Extract<
+					SubtitleDiscoveryResponse["tracks"][number],
+					{ origin: "embedded" }
+				> => track.origin === "embedded",
+			),
+			(trackId, signal) =>
+				prepareSelectedSubtitle(
+					fileId,
+					trackId,
+					discovery.sourceVersion,
+					signal,
+				),
+			(feedback) => {
+				toast.close(notificationId);
+				if (!feedback) return;
+				const preparing = feedback.status === "preparing";
+				toast.add({
+					id: notificationId,
+					type: preparing ? "info" : "error",
+					timeout: preparing ? 0 : 10000,
+					title: t(preparing ? "subtitles.preparing" : "subtitles.failed", {
+						name: feedback.name,
+					}),
+					...(!preparing && {
+						priority: "high" as const,
+						description: t(`subtitles.errors.${feedback.errorCode}`, {
+							defaultValue: t("subtitles.errors.SUBTITLE_EXTRACTION_FAILED"),
+						}),
+						actionProps: {
+							children: t("subtitles.retry"),
+							onClick: () => embedded.current?.retry(),
+						},
+					}),
+				});
+			},
+		);
+		embedded.current = controller;
+		return () => {
+			controller.dispose();
+			toast.close(notificationId);
+			embedded.current = null;
+		};
+	}, [player, discovery, fileId, t]);
 	useEffect(() => {
 		if (!player) return;
 		const renderer = new StyledSubtitleRenderer(stablePolicy);
@@ -39,7 +101,16 @@ export function ExternalSubtitleTracks({
 	return (
 		<>
 			{discovery?.tracks
-				.filter((descriptor) => policy.formats.includes(descriptor.format))
+				.filter(
+					(
+						descriptor,
+					): descriptor is Extract<
+						SubtitleDiscoveryResponse["tracks"][number],
+						{ origin: "external" }
+					> =>
+						descriptor.origin === "external" &&
+						policy.formats.includes(descriptor.format),
+				)
 				.map((descriptor) => (
 					<Track
 						key={descriptor.id}

@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import type { Logger } from "pino";
 import type { LibraryApplication } from "../application/library.js";
 import type { PlaybackApplication } from "../application/playback.js";
+import { SubtitleApplication } from "../application/subtitles.js";
 import type { DeploymentConfig } from "../config/model.js";
 import {
 	type BuiltinPolicy,
@@ -31,6 +32,7 @@ export function createHttpApp(options: {
 	development?: boolean;
 	library?: LibraryApplication;
 	playback?: PlaybackApplication;
+	subtitles?: SubtitleApplication;
 	frontendRoot?: string;
 }) {
 	const policy = options.policy ?? options.library?.policy ?? builtinPolicy;
@@ -75,7 +77,9 @@ export function createHttpApp(options: {
 		app.addHook("onClose", async () => library.close());
 		registerLibraryRoutes(app, library);
 		registerMediaRoutes(app, library);
-		registerSubtitleRoutes(app, library);
+		const subtitles = options.subtitles ?? new SubtitleApplication({ library });
+		app.addHook("onClose", async () => subtitles.close());
+		registerSubtitleRoutes(app, subtitles);
 		registerSettingsRoutes(app, library);
 	}
 

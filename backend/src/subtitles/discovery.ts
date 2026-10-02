@@ -7,7 +7,10 @@ import {
 } from "../config/policy.js";
 import { DomainError } from "../errors.js";
 import type { ResourceAccess } from "../resources/access.js";
-import { externalSubtitleFormat, type SubtitleDiscovery } from "./model.js";
+import {
+	type ExternalSubtitleDiscovery,
+	externalSubtitleFormat,
+} from "./model.js";
 
 const collator = new Intl.Collator("en", {
 	numeric: true,
@@ -29,7 +32,7 @@ export async function discoverExternalSubtitles(
 	videoPath: string,
 	sourceVersion: string,
 	policy: DeepReadonly<BuiltinPolicy>["subtitles"] = builtinPolicy.subtitles,
-): Promise<SubtitleDiscovery> {
+): Promise<ExternalSubtitleDiscovery> {
 	const directory = dirname(videoPath);
 	const stem = basename(videoPath, extname(videoPath));
 	const entries = await resources.readDirectory(
@@ -40,7 +43,11 @@ export async function discoverExternalSubtitles(
 			collator.compare(a.name, b.name) ||
 			(a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
 	);
-	const result: SubtitleDiscovery = { sourceVersion, tracks: [], warnings: [] };
+	const result: ExternalSubtitleDiscovery = {
+		sourceVersion,
+		tracks: [],
+		warnings: [],
+	};
 	for (const entry of entries) {
 		const format = externalSubtitleFormat(entry.name, policy.formats);
 		if (!format || entry.isDirectory()) continue;
@@ -61,6 +68,7 @@ export async function discoverExternalSubtitles(
 				.update(JSON.stringify([resources.canonicalRoot, videoPath, path]))
 				.digest("base64url")}`;
 			result.tracks.push({
+				origin: "external",
 				id,
 				name: entry.name,
 				format,

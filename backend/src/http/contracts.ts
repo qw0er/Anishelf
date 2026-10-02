@@ -45,3 +45,7 @@ export type SubtitleDiscoveryResponse = Static<
 export type ClientConfigResponse = Static<
 	typeof schemas.ClientConfigResponseSchema
 >;
+
+export type SubtitlePreparationResponse = Static<
+	typeof schemas.SubtitlePreparationResponseSchema
+>;

@@ -48,12 +48,14 @@ const defaults = {
 		nearEndRatio: 0.05,
 	},
 	subtitles: {
+		maximumCacheBytes: 256 * 1024 * 1024,
 		maximumBytes: 10 * 1024 * 1024,
 		formats: subtitleFormats,
 		nativeFormats: nativeSubtitleFormats,
 		textCodecs: ["subrip", "ass", "ssa", "webvtt", "mov_text", "text"],
 	},
 	media: {
+		maximumProbeCacheEntries: 32,
 		videoMimeTypes,
 		detectionTimeoutMs: 5000,
 		detectionMaximumBytes: 64 * 1024,

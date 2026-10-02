@@ -12,12 +12,13 @@ import {
 } from "@vidstack/react/player/layouts/default";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiClientError, getFile, isRequestCancelled } from "../api/client.js";
 import type { ClientConfigResponse, FileResponse } from "../api/contracts.js";
 import { getErrorTranslationKey } from "../lib/error-translation.js";
 import { ExternalSubtitleTracks } from "./external-subtitles.js";
+import { toast } from "./ui/toast.js";
 
 // The API URL has no file extension; route all original files to native video.
 class DirectVideoLoader extends VideoProviderLoader {
@@ -39,16 +40,19 @@ export default function VideoPlayer({
 	const { t } = useTranslation();
 	const videoRef = useRef<HTMLVideoElement | null>(null);
 	const errorRequest = useRef<AbortController | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const notificationId = `video-playback:${file.id}`;
+	const notifiedError = useRef<string | null>(null);
 
 	useLayoutEffect(() => {
+		toast.close(notificationId);
 		onMedia?.(videoRef.current);
 		return () => {
+			toast.close(notificationId);
 			errorRequest.current?.abort();
 			// Capture progress before Vidstack unloads the provider's source.
 			onMedia?.(null);
 		};
-	}, [onMedia]);
+	}, [onMedia, notificationId]);
 
 	function providerChanged(provider: MediaProviderAdapter | null) {
 		const video = isVideoProvider(provider) ? provider.video : null;
@@ -61,7 +65,7 @@ export default function VideoPlayer({
 	}
 
 	async function playbackFailed() {
-		setError(t("errors.mediaPlayback"));
+		let message = t("errors.mediaPlayback");
 		errorRequest.current?.abort();
 		const controller = new AbortController();
 		errorRequest.current = controller;
@@ -70,41 +74,41 @@ export default function VideoPlayer({
 		} catch (cause) {
 			if (controller.signal.aborted || isRequestCancelled(cause)) return;
 			if (cause instanceof ApiClientError)
-				setError(
-					t(getErrorTranslationKey(cause) ?? "errors.requestFailed", {
-						maximumMiB: subtitlePolicy.maximumBytes / (1024 * 1024),
-					}),
-				);
+				message = t(getErrorTranslationKey(cause) ?? "errors.requestFailed", {
+					maximumMiB: subtitlePolicy.maximumBytes / (1024 * 1024),
+				});
 		}
+		if (controller.signal.aborted || notifiedError.current === message) return;
+		notifiedError.current = message;
+		toast.close(notificationId);
+		toast.add({
+			id: notificationId,
+			type: "error",
+			priority: "high",
+			title: message,
+		});
 	}
 
 	return (
-		<>
-			<MediaPlayer
-				className="anishelf-player aspect-video max-h-[75vh] w-full bg-black"
-				title={file.name}
-				src={playbackUrl}
-				viewType="video"
-				load="eager"
-				preload="metadata"
-				playsInline
-				storage={null}
-				logLevel="silent"
-				onProviderChange={(provider) => {
-					if (!provider) providerChanged(null);
-				}}
-				onProviderSetup={providerChanged}
-				onError={playbackFailed}
-			>
-				<MediaProvider loaders={directVideoLoaders} />
-				<ExternalSubtitleTracks fileId={file.id} policy={subtitlePolicy} />
-				<DefaultVideoLayout icons={defaultLayoutIcons} seekStep={5} />
-			</MediaPlayer>
-			{error && (
-				<p className="text-base text-destructive" role="alert">
-					{error}
-				</p>
-			)}
-		</>
+		<MediaPlayer
+			className="anishelf-player aspect-video max-h-[75vh] w-full bg-black"
+			title={file.name}
+			src={playbackUrl}
+			viewType="video"
+			load="eager"
+			preload="metadata"
+			playsInline
+			storage={null}
+			logLevel="silent"
+			onProviderChange={(provider) => {
+				if (!provider) providerChanged(null);
+			}}
+			onProviderSetup={providerChanged}
+			onError={playbackFailed}
+		>
+			<MediaProvider loaders={directVideoLoaders} />
+			<ExternalSubtitleTracks fileId={file.id} policy={subtitlePolicy} />
+			<DefaultVideoLayout icons={defaultLayoutIcons} seekStep={5} />
+		</MediaPlayer>
 	);
 }

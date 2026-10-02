@@ -11,18 +11,21 @@ import {
 } from "../config/policy.js";
 import { PlaybackRepository } from "./playback-repository.js";
 import * as schema from "./schema.js";
+import { SubtitleRepository } from "./subtitle-repository.js";
 
 export type Store = ReturnType<typeof drizzle<typeof schema>>;
 
 /** Owns the connection; repositories must not outlive this object. */
 export class ApplicationDatabase {
 	readonly playback: PlaybackRepository;
+	readonly subtitles: SubtitleRepository;
 	private constructor(
 		private readonly connection: Database.Database,
 		store: Store,
 		policy: DeepReadonly<BuiltinPolicy>,
 	) {
 		this.playback = new PlaybackRepository(store, policy.playback);
+		this.subtitles = new SubtitleRepository(store, this.playback);
 	}
 
 	static open(

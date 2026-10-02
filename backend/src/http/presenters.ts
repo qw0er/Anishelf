@@ -13,6 +13,10 @@ import type {
 	PlaybackSession,
 } from "../playback/model.js";
 import type {
+	SubtitleDiscovery,
+	SubtitlePreparation,
+} from "../subtitles/model.js";
+import type {
 	ContinueWatchingResponse,
 	DirectoryDto,
 	DirectoryResponse,
@@ -24,6 +28,8 @@ import type {
 	ResourceDto,
 	ScanStateDto,
 	SettingsResponse,
+	SubtitleDiscoveryResponse,
+	SubtitlePreparationResponse,
 } from "./contracts.js";
 
 /** Explicit projections keep backend additions out of public JSON responses. */
@@ -149,5 +155,56 @@ export function continueWatchingResponse(
 			file: fileDto(item.file),
 			progress: playbackProgressDto(item.progress),
 		})),
+	};
+}
+
+export function subtitleDiscoveryResponse(
+	result: SubtitleDiscovery,
+): SubtitleDiscoveryResponse {
+	return {
+		sourceVersion: result.sourceVersion,
+		tracks: result.tracks.map((track) => {
+			const base = {
+				id: track.id,
+				name: track.name,
+				language: track.language,
+				label: track.label,
+				sourceVersion: track.sourceVersion,
+			};
+			if (track.origin === "external")
+				return {
+					...base,
+					origin: track.origin,
+					format: track.format,
+					sizeBytes: track.sizeBytes,
+				};
+			return {
+				...base,
+				origin: track.origin,
+				format: track.format,
+				sizeBytes: null,
+				codec: track.codec,
+				default: track.default,
+				forced: track.forced,
+				extractionSupported: track.extractionSupported,
+				webSupported: track.webSupported,
+				unsupportedReason: track.unsupportedReason,
+			};
+		}),
+		warnings: result.warnings.map(({ name, code }) => ({ name, code })),
+	};
+}
+
+export function subtitlePreparationResponse(
+	result: SubtitlePreparation,
+): SubtitlePreparationResponse {
+	const url = `/api/subtitle-assets/${encodeURIComponent(result.id)}`;
+	return {
+		id: result.id,
+		status: result.status,
+		format: result.format,
+		errorCode: result.errorCode,
+		statusUrl: `${url}/status`,
+		contentUrl: result.status === "ready" ? url : null,
 	};
 }

@@ -12,6 +12,7 @@ import type {
 	ScanResponse,
 	SettingsResponse,
 	SubtitleDiscoveryResponse,
+	SubtitlePreparationResponse,
 	UpdateSettingsRequest,
 } from "./contracts.js";
 
@@ -290,4 +291,28 @@ export function subtitleContentUrl(
 ): string {
 	const query = new URLSearchParams({ sourceVersion, subtitleVersion });
 	return `/api/files/${encodeURIComponent(id)}/subtitles/${encodeURIComponent(trackId)}/content?${query}`;
+}
+
+export function prepareSubtitle(
+	fileId: string,
+	trackId: string,
+	sourceVersion: string,
+	options?: RequestOptions,
+): Promise<SubtitlePreparationResponse> {
+	return request(
+		`/api/files/${encodeURIComponent(fileId)}/subtitles/${encodeURIComponent(trackId)}/prepare`,
+		"POST",
+		options,
+		{ sourceVersion },
+	);
+}
+export function getSubtitlePreparation(
+	id: string,
+	options?: RequestOptions,
+): Promise<SubtitlePreparationResponse> {
+	return request(
+		`/api/subtitle-assets/${encodeURIComponent(id)}/status`,
+		"GET",
+		options,
+	);
 }
