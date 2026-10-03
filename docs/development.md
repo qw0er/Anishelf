@@ -136,6 +136,25 @@ are excluded. `npm run biome:fix` does not apply unsafe fixes.
 `ApplicationLogging` creates and exposes the Pino logger. All logging setup lives
 in `platform/logging/index.ts`.
 
+### Operational log levels
+
+Set `ANISHELF_LOG_LEVEL=debug` or `trace` before starting the backend to inspect
+more detail. The default `info` level keeps normal operation concise:
+
+| Level | Events |
+| --- | --- |
+| `info` | Startup/shutdown, scan lifecycle, settings saved, playback session opened, subtitle cache reconciliation and preparation start/completion |
+| `warn` / `error` | Tool failures, discovery degradation, invalid cached assets, persistence failures, preparation failures and server errors |
+| `debug` | Settings/playback requests, history reads, subtitle discovery and asset reuse, FFmpeg/FFprobe start/completion/cancellation, rejected HTTP requests |
+| `trace` | HTTP request start/completion, progress saves, subtitle status polling, probe cache hits and media Range response metadata |
+
+Structured records use `event`, module context, opaque resource/asset IDs and
+elapsed milliseconds where applicable. HTTP records use route templates and
+server-generated `reqId`, not raw URLs or query strings. Routine request logs
+replace Fastify's default info-level access logs. Tool records omit arguments,
+stdout and stderr; application failure records retain serialized errors. Session
+tokens, complete settings objects and subtitle text are not included in events.
+
 ## Persistent settings
 
 Start the backend with `npm run dev:backend` and start the frontend with `npm run dev:web`
@@ -810,7 +829,6 @@ Responses use `Cache-Control: no-store`. Every request inspects current sidecars
 `GET /api/files/:id/subtitles/:trackId/content?sourceVersion=...&subtitleVersion=...` re-discovers the opaque track, validates both versions, opens it through confined resource access, and returns UTF-8 `text/plain` with `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`. Reads are bounded to 10 MiB, including file growth. UTF-8 and BOM-marked UTF-16LE/BE are supported; undecodable input fails visibly. Missing tracks return 404; stale versions return 409. Original files are never modified and no subtitle cache or SQLite records are created.
 
 The frontend discovers independently of playback and starts with subtitles off. Candidates are declared with `<Track src>` pointing at the version-checked text URL. Vidstack loads, parses and renders VTT/SRT; application code does not parse captions or insert cues. The built-in CC button and Settings → Captions menu own selection/off; no separate subtitle selector, refresh button, loading status, or error panel is rendered. Retry file recreates the player and re-discovers candidates. Failed selections turn off without blocking video. ASS/SSA uses a JASSUB adapter registered through Vidstack's official `TextRenderer` interface, so Vidstack controls attach, track changes and detach. The built-in `LibASSTextRenderer` targets an older event/method API incompatible with the pinned JASSUB 2.5.16; the adapter bridges that API and tears down pending loads/workers. ASS/SSA text is passed directly to JASSUB with packaged worker/WASM and a preloaded Liberation Sans fallback. Custom fonts are not loaded and missing CJK glyphs remain possible. Unsupported browser rendering capabilities disable the selected subtitle. Vidstack controls remain available in fullscreen. Switching/off clears the previous cues/overlay; leaving the player removes the registered tracks and renderer.
-
 
 ### Program policy ownership
 

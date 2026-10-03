@@ -27,7 +27,12 @@ async function initializeMediaTools(
 	policy: DeepReadonly<BuiltinPolicy>,
 	environment: ConfigurationService["environment"]["executableSearch"],
 ): Promise<MediaTools> {
-	const mediaTools = await MediaTools.create(config, policy, environment);
+	const mediaTools = await MediaTools.create(
+		config,
+		policy,
+		environment,
+		logger,
+	);
 	for (const [tool, status] of Object.entries(mediaTools.status)) {
 		if (status.available) {
 			logger.info(
@@ -118,6 +123,7 @@ async function createServer(
 		new URL("../../../web/dist/", import.meta.url),
 	);
 	const subtitles = new SubtitleApplication({
+		logger,
 		sources: library.sources,
 		policy: library.policy,
 		tools,
@@ -224,6 +230,14 @@ async function main(): Promise<void> {
 		const config = configuration.deployment;
 		logging = ApplicationLogging.create(config.logging);
 		const logger = logging.logger;
+		logger.info(
+			{
+				event: "application.starting",
+				logLevel: config.logging.level,
+				logDestination: config.logging.destination,
+			},
+			"Application starting.",
+		);
 		const tools = await initializeMediaTools(
 			config.mediaTools,
 			logger,

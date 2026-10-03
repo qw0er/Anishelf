@@ -1,4 +1,5 @@
 import { dirname, join } from "node:path";
+import type { Logger } from "pino";
 import {
 	preparedSubtitleFormat,
 	publicSubtitleFormat,
@@ -25,6 +26,7 @@ import { SubtitlePreparationApplication } from "./subtitle-preparation.js";
 
 /** Subtitle discovery and delivery share source/version access checks. */
 export class SubtitleApplication {
+	private readonly logger: Logger | undefined;
 	private readonly sources: MediaSourceApi;
 	private readonly tools: Pick<MediaTools, "probe"> | undefined;
 	private readonly cache = new Map<string, MediaInfo>();
@@ -32,6 +34,7 @@ export class SubtitleApplication {
 	private readonly preparation: SubtitlePreparationApplication | undefined;
 	private readonly controller = new AbortController();
 	constructor(options: {
+		logger?: Logger;
 		sources: MediaSourceApi;
 		policy?: DeepReadonly<BuiltinPolicy>;
 		tools?: Pick<MediaTools, "probe"> &
@@ -39,6 +42,7 @@ export class SubtitleApplication {
 		repository?: SubtitleRepository;
 		dataDir?: string;
 	}) {
+		this.logger = options.logger?.child({ module: "subtitles" });
 		this.sources = options.sources;
 		this.policy = options.policy ?? builtinPolicy;
 		this.tools = options.tools;
@@ -49,6 +53,7 @@ export class SubtitleApplication {
 		) {
 			this.preparation = new SubtitlePreparationApplication({
 				sources: options.sources,
+				...(this.logger ? { logger: this.logger } : {}),
 				policy: this.policy,
 				repository: options.repository,
 				dataDir: options.dataDir,
@@ -67,9 +72,21 @@ export class SubtitleApplication {
 	}
 	private async inspect(key: string, path: string): Promise<MediaInfo> {
 		const cached = this.cache.get(key);
-		if (cached) return cached;
+		if (cached) {
+			this.logger?.trace(
+				{ event: "subtitles.probe_cache_hit" },
+				"Reusing cached media inspection.",
+			);
+			return cached;
+		}
 		const pending = this.active.get(key);
-		if (pending) return pending;
+		if (pending) {
+			this.logger?.trace(
+				{ event: "subtitles.probe_joined" },
+				"Joining media inspection.",
+			);
+			return pending;
+		}
 		if (this.active.size >= this.policy.media.probeConcurrency)
 			throw new MediaToolError("TOOL_FAILED", "Media inspection is busy.");
 		if (!this.tools)
@@ -116,6 +133,14 @@ export class SubtitleApplication {
 				join(resources.canonicalRoot, identity.relativePath),
 			);
 		} catch (error) {
+			this.logger?.warn(
+				{
+					event: "subtitles.probe_failed",
+					fileId: identity.fileId,
+					err: error,
+				},
+				"Embedded subtitle discovery failed.",
+			);
 			if (!(error instanceof MediaToolError)) throw error;
 			return {
 				tracks: [],
@@ -174,6 +199,11 @@ export class SubtitleApplication {
 		};
 	}
 	async discoverSubtitles(id: string): Promise<SubtitleDiscovery> {
+		const started = Date.now();
+		this.logger?.debug(
+			{ event: "subtitles.discovery_started", fileId: id },
+			"Subtitle discovery started.",
+		);
 		const source = await this.sources.resolveSource(id);
 		const resources = await this.sources.openResources();
 		if (
@@ -209,6 +239,16 @@ export class SubtitleApplication {
 				"PLAYBACK_CONFLICT",
 				"The playback source changed.",
 			);
+		this.logger?.debug(
+			{
+				event: "subtitles.discovered",
+				fileId: id,
+				trackCount: discovery.tracks.length,
+				warningCount: discovery.warnings.length,
+				durationMs: Date.now() - started,
+			},
+			"Subtitle discovery completed.",
+		);
 		return discovery;
 	}
 
@@ -228,6 +268,10 @@ export class SubtitleApplication {
 		trackId: string,
 		sourceVersion: string,
 	) {
+		this.logger?.debug(
+			{ event: "subtitles.prepare_requested", fileId, trackId },
+			"Subtitle preparation requested.",
+		);
 		const preparation = this.preparationService();
 		const source = await this.sources.resolveSource(fileId);
 		if (source.identity.sourceVersion !== sourceVersion)
@@ -270,9 +314,17 @@ export class SubtitleApplication {
 		);
 	}
 	async getSubtitleAssetStatus(id: string) {
+		this.logger?.trace(
+			{ event: "subtitles.status_requested", assetId: id },
+			"Subtitle status requested.",
+		);
 		return this.preparationService().status(id);
 	}
 	async getSubtitleAssetContent(id: string) {
+		this.logger?.debug(
+			{ event: "subtitles.content_requested", assetId: id },
+			"Prepared subtitle content requested.",
+		);
 		return this.preparationService().content(id);
 	}
 

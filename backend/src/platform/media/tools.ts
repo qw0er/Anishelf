@@ -1,5 +1,6 @@
 import { stat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
+import type { Logger } from "pino";
 import { deploymentDefaults } from "../../contracts/defaults.js";
 import { preparedSubtitleFormats } from "../../contracts/subtitles.js";
 import type { MediaToolsConfig } from "../../modules/configuration/public.js";
@@ -116,6 +117,7 @@ export class MediaTools {
 	private constructor(
 		readonly status: Readonly<{ ffmpeg: ToolStatus; ffprobe: ToolStatus }>,
 		private readonly policy: DeepReadonly<BuiltinPolicy>,
+		private readonly logger?: Logger,
 	) {}
 
 	static async create(
@@ -125,6 +127,7 @@ export class MediaTools {
 		},
 		policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
 		environment = captureRuntimeEnvironment().executableSearch,
+		logger?: Logger,
 	): Promise<MediaTools> {
 		async function discover(
 			command: string,
@@ -140,6 +143,7 @@ export class MediaTools {
 						maxBytes: policy.media.detectionMaximumBytes,
 					},
 					policy.media,
+					logger,
 				);
 				const version = output.split(/\r?\n/)[0] ?? "";
 				if (!version.startsWith(`${tool} version `))
@@ -156,7 +160,11 @@ export class MediaTools {
 			discover(config.ffmpegPath, "ffmpeg"),
 			discover(config.ffprobePath, "ffprobe"),
 		]);
-		return new MediaTools({ ffmpeg, ffprobe }, policy);
+		return new MediaTools(
+			{ ffmpeg, ffprobe },
+			policy,
+			logger?.child({ module: "media-tools" }),
+		);
 	}
 
 	private executable(tool: "ffmpeg" | "ffprobe"): string {
@@ -187,6 +195,7 @@ export class MediaTools {
 				],
 				signal ? { signal } : {},
 				this.policy.media,
+				this.logger,
 			),
 		);
 	}
@@ -249,6 +258,7 @@ export class MediaTools {
 				...(options.signal ? { signal: options.signal } : {}),
 			},
 			this.policy.media,
+			this.logger,
 		);
 		return { streamIndex, format, text: output };
 	}

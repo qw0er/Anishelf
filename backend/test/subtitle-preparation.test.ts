@@ -45,7 +45,11 @@ let fileId: string;
 let extract: ReturnType<typeof vi.fn<MediaTools["extractSubtitle"]>>;
 let policy: BuiltinPolicy;
 let probe: ReturnType<typeof vi.fn<MediaTools["probe"]>>;
-const logger = pino({ enabled: false });
+const logRecords: Record<string, unknown>[] = [];
+const logger = pino(
+	{ level: "trace" },
+	{ write: (line: string) => logRecords.push(JSON.parse(line)) },
+);
 const headers = { host: "127.0.0.1:3000", origin: "http://127.0.0.1:3000" };
 const text = "1\n00:00:00,200 --> 00:00:01,200\n你好字幕\n";
 const stream: MediaStream = {
@@ -76,6 +80,7 @@ const info: MediaInfo = {
 };
 function server() {
 	subtitles = new SubtitleApplication({
+		logger,
 		sources: library.sources,
 		policy: library.policy,
 		tools: { probe, extractSubtitle: extract },
@@ -90,6 +95,7 @@ function server() {
 	});
 }
 beforeEach(async () => {
+	logRecords.length = 0;
 	directory = await mkdtemp(join(tmpdir(), "anishelf-subtitle-preparation-"));
 	root = join(directory, "media");
 	dataDir = join(directory, "data");
@@ -228,6 +234,21 @@ test("safe failures can be retried without publishing partial files", async () =
 		contentUrl: null,
 	});
 	expect(JSON.stringify(failed)).not.toContain(directory);
+	expect(logRecords).toEqual(
+		expect.arrayContaining([
+			expect.objectContaining({
+				event: "subtitles.preparation_started",
+				level: 30,
+			}),
+			expect.objectContaining({
+				event: "subtitles.preparation_failed",
+				level: 50,
+				assetId: failed.id,
+				errorCode: "SUBTITLE_EXTRACTION_FAILED",
+				err: expect.any(Object),
+			}),
+		]),
+	);
 	expect(await readdir(join(dataDir, "cache", "subtitles"))).toEqual([]);
 	const retry = await prepare();
 	expect(retry.json().id).toBe(failed.id);

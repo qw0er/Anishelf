@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import type { Logger } from "pino";
 import { publicSubtitleFormat } from "../../../contracts/subtitles.js";
 import type { MediaTools } from "../../../platform/media/index.js";
 import { MediaToolError } from "../../../platform/media/index.js";
@@ -23,6 +24,7 @@ import { SubtitleAssetFiles } from "../infrastructure/assets.js";
 import type { SubtitleRepository } from "../infrastructure/repository.js";
 
 export class SubtitlePreparationApplication {
+	private readonly logger: Logger | undefined;
 	private readonly files: SubtitleAssetFiles;
 	private readonly controller = new AbortController();
 	private initialization: Promise<void> | undefined;
@@ -31,6 +33,7 @@ export class SubtitlePreparationApplication {
 	private publication: Promise<void> = Promise.resolve();
 	constructor(
 		private readonly options: {
+			logger?: Logger;
 			sources: MediaSourceApi;
 			policy?: DeepReadonly<BuiltinPolicy>;
 			repository: SubtitleRepository;
@@ -38,10 +41,15 @@ export class SubtitlePreparationApplication {
 			tools: Pick<MediaTools, "extractSubtitle">;
 		},
 	) {
+		this.logger = options.logger?.child({ module: "subtitle-preparation" });
 		this.files = new SubtitleAssetFiles(options.dataDir);
 	}
 	initialize(): Promise<void> {
 		this.initialization ??= this.reconcile().catch((cause) => {
+			this.logger?.error(
+				{ event: "subtitles.cache_initialization_failed", err: cause },
+				"Subtitle cache initialization failed.",
+			);
 			throw new DomainError(
 				"SUBTITLE_PREPARATION_UNAVAILABLE",
 				"Subtitle cache initialization failed.",
@@ -51,6 +59,8 @@ export class SubtitlePreparationApplication {
 		return this.initialization;
 	}
 	private async reconcile(): Promise<void> {
+		const started = Date.now();
+		let recoveredCount = 0;
 		const assets = this.options.repository.list();
 		const valid = await this.files.initialize(assets);
 		for (const asset of assets) {
@@ -65,8 +75,18 @@ export class SubtitlePreparationApplication {
 					errorCode: "SUBTITLE_INTERRUPTED",
 				});
 				await this.files.remove(asset);
+				recoveredCount++;
 			}
 		}
+		this.logger?.info(
+			{
+				event: "subtitles.cache_initialized",
+				assetCount: assets.length,
+				recoveredCount,
+				durationMs: Date.now() - started,
+			},
+			"Subtitle cache reconciled.",
+		);
 	}
 	private view(asset: SubtitleAsset): SubtitlePreparation {
 		return {
@@ -136,12 +156,26 @@ export class SubtitlePreparationApplication {
 					existing,
 					(this.options.policy ?? builtinPolicy).subtitles.maximumBytes,
 				);
+				this.logger?.debug(
+					{ event: "subtitles.asset_reused", assetId: id },
+					"Reusing prepared subtitle asset.",
+				);
 				return this.view(existing);
-			} catch {
+			} catch (err) {
+				this.logger?.warn(
+					{ event: "subtitles.asset_invalid", assetId: id, err },
+					"Cached subtitle asset is unavailable; preparing again.",
+				);
 				await this.files.remove(existing);
 			}
 		}
-		if (this.active.has(id)) return this.view(asset);
+		if (this.active.has(id)) {
+			this.logger?.debug(
+				{ event: "subtitles.preparation_joined", assetId: id },
+				"Joining active subtitle preparation.",
+			);
+			return this.view(asset);
+		}
 		if (
 			this.active.size >=
 			(this.options.policy ?? builtinPolicy).subtitles.extractionConcurrency
@@ -159,11 +193,26 @@ export class SubtitlePreparationApplication {
 				this.active.delete(id);
 			})
 			.catch((cause) => {
+				this.logger?.error(
+					{ event: "subtitles.persistence_failed", assetId: id, err: cause },
+					"Subtitle worker persistence failed.",
+				);
 				this.failure = cause;
 			});
 		return this.view(asset);
 	}
 	private async extract(asset: SubtitleAsset, epoch: number): Promise<void> {
+		const started = Date.now();
+		const context = {
+			assetId: asset.id,
+			fileId: asset.source.fileId,
+			trackId: asset.trackId,
+			format: asset.format,
+		};
+		this.logger?.info(
+			{ event: "subtitles.preparation_started", ...context },
+			"Subtitle preparation started.",
+		);
 		let published = false;
 		try {
 			await this.files.remove(asset);
@@ -213,6 +262,15 @@ export class SubtitlePreparationApplication {
 			});
 			this.publication = publication.catch(() => {});
 			await publication;
+			this.logger?.info(
+				{
+					event: "subtitles.preparation_completed",
+					...context,
+					sizeBytes,
+					durationMs: Date.now() - started,
+				},
+				"Subtitle asset published.",
+			);
 		} catch (error) {
 			if (published) await this.files.remove(asset).catch(() => {});
 			let errorCode: SubtitlePreparationError = "SUBTITLE_EXTRACTION_FAILED";
@@ -234,6 +292,19 @@ export class SubtitlePreparationApplication {
 					("code" in error && error.code === "ENOSPC"))
 			)
 				errorCode = "SUBTITLE_CACHE_FULL";
+			const log = {
+				event: "subtitles.preparation_failed",
+				...context,
+				errorCode,
+				err: error,
+				durationMs: Date.now() - started,
+			};
+			if (this.controller.signal.aborted)
+				this.logger?.debug(
+					log,
+					"Subtitle preparation interrupted during shutdown.",
+				);
+			else this.logger?.error(log, "Subtitle preparation failed.");
 			this.options.repository.save({
 				...asset,
 				status: "failed",
@@ -264,7 +335,11 @@ export class SubtitlePreparationApplication {
 					asset,
 					(this.options.policy ?? builtinPolicy).subtitles.maximumBytes,
 				);
-			} catch {
+			} catch (err) {
+				this.logger?.warn(
+					{ event: "subtitles.asset_invalid", assetId: id, err },
+					"Prepared subtitle asset is unavailable.",
+				);
 				const failed: SubtitleAsset = {
 					...asset,
 					status: "failed",

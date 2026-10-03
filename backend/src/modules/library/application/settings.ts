@@ -21,10 +21,28 @@ export class SettingsApplication {
 		resourceRoot: string;
 		scanIntervalMinutes?: number;
 	}): Promise<Readonly<PersistentSettings>> {
+		const started = Date.now();
+		this.options.logger.debug(
+			{ event: "settings.update_started" },
+			"Settings update started.",
+		);
 		const previousRoot = this.getSettings().resourceRoot;
 		const next = { ...this.getSettings(), ...input };
 		const settings = await this.options.scans.withSettingsChange(async () => {
-			const saved = await this.options.configuration.update(next);
+			let saved: Readonly<PersistentSettings>;
+			try {
+				saved = await this.options.configuration.update(next);
+			} catch (err) {
+				this.options.logger.error(
+					{
+						event: "settings.persistence_failed",
+						err,
+						durationMs: Date.now() - started,
+					},
+					"Settings persistence failed.",
+				);
+				throw err;
+			}
 			if (saved.resourceRoot !== previousRoot) {
 				this.options.rootChanged();
 				this.options.scans.reset();
@@ -44,6 +62,15 @@ export class SettingsApplication {
 				);
 			}
 		}
+		this.options.logger.info(
+			{
+				event: "settings.updated",
+				rootChanged: settings.resourceRoot !== previousRoot,
+				scanIntervalMinutes: settings.scanIntervalMinutes,
+				durationMs: Date.now() - started,
+			},
+			"Settings saved.",
+		);
 		return settings;
 	}
 }

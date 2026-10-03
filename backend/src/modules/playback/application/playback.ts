@@ -47,6 +47,11 @@ export class PlaybackApplication {
 	}
 
 	async open(fileId: string): Promise<PlaybackSession> {
+		const started = Date.now();
+		this.logger.debug(
+			{ event: "playback.open_started", fileId },
+			"Opening playback session.",
+		);
 		this.prune();
 		if (this.sessions.size >= this.policy.maximumSessions)
 			throw new DomainError(
@@ -74,6 +79,16 @@ export class PlaybackApplication {
 			generation: progress.generation,
 			touchedAtMs: this.now(),
 		});
+		this.logger.info(
+			{
+				event: "playback.opened",
+				fileId,
+				sourceId: progress.sourceId,
+				generation: progress.generation,
+				durationMs: Date.now() - started,
+			},
+			"Playback session opened.",
+		);
 		return {
 			token,
 			generation: progress.generation,
@@ -110,6 +125,15 @@ export class PlaybackApplication {
 		);
 		if (result.status === "stale") this.conflict();
 		session.touchedAtMs = this.now();
+		this.logger.trace(
+			{
+				event: "playback.progress_saved",
+				sourceId: session.sourceId,
+				sequence: input.sequence,
+				status: result.status,
+			},
+			"Playback progress saved.",
+		);
 		return result;
 	}
 
@@ -180,11 +204,20 @@ export class PlaybackApplication {
 			if (candidates.length < this.policy.candidateBatchSize) break;
 		}
 		this.assertEpoch(epoch);
+		this.logger.debug(
+			{ event: "playback.history_loaded", view, count: items.length },
+			"Playback history loaded.",
+		);
 		return { availability: "checked", items };
 	}
 
 	release(token: string): void {
-		this.sessions.delete(token);
+		const session = this.sessions.get(token);
+		if (this.sessions.delete(token))
+			this.logger.debug(
+				{ event: "playback.released", sourceId: session?.sourceId },
+				"Playback session released.",
+			);
 	}
 	close(): void {
 		this.closed = true;
@@ -257,6 +290,10 @@ export class PlaybackApplication {
 		}
 	}
 	private conflict(): never {
+		this.logger.debug(
+			{ event: "playback.conflict" },
+			"Playback session or source changed.",
+		);
 		throw new DomainError(
 			"PLAYBACK_CONFLICT",
 			"The playback session or source changed. Reopen playback.",

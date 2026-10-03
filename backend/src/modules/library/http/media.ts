@@ -75,6 +75,16 @@ export function registerMediaRoutes(
 						.header("Content-Length", 0)
 						.send();
 				}
+				request.log.trace(
+					{
+						event: "media.response_started",
+						fileId: request.params.id,
+						rangeStart: range?.start,
+						rangeEnd: range?.end,
+						sizeBytes: file.sizeBytes,
+					},
+					"Media response started.",
+				);
 				const length = range ? range.end - range.start + 1 : file.sizeBytes;
 				reply.header("Content-Length", length);
 				if (range) {
@@ -95,11 +105,17 @@ export function registerMediaRoutes(
 				stream.once("close", () => {
 					reply.raw.off("close", disconnect);
 					void file.release().catch((err: unknown) => {
-						request.log.error({ err }, "Media file release failed.");
+						request.log.error(
+							{ event: "media.release_failed", fileId: request.params.id, err },
+							"Media file release failed.",
+						);
 					});
 				});
 				stream.once("error", (err) => {
-					request.log.error({ err }, "Media stream failed.");
+					request.log.error(
+						{ event: "media.stream_failed", fileId: request.params.id, err },
+						"Media stream failed.",
+					);
 				});
 				streaming = true;
 				return reply.send(stream);

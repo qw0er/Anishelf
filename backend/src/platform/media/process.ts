@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
 import { constants } from "node:fs";
 import { access, stat } from "node:fs/promises";
-import { delimiter, isAbsolute, join } from "node:path";
+import { basename, delimiter, isAbsolute, join } from "node:path";
+import type { Logger } from "pino";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
@@ -72,7 +73,19 @@ export function runTool(
 	args: readonly string[],
 	options: { signal?: AbortSignal; timeoutMs?: number; maxBytes?: number } = {},
 	policy: DeepReadonly<BuiltinPolicy>["media"] = builtinPolicy.media,
+	logger?: Logger,
 ): Promise<string> {
+	const started = Date.now();
+	const tool = basename(path);
+	const operation = args.includes("-version")
+		? "detect"
+		: args.includes("-show_streams")
+			? "probe"
+			: "extract";
+	logger?.debug(
+		{ event: "media.tool_started", tool, operation },
+		"Media tool started.",
+	);
 	return new Promise((resolve, reject) => {
 		execFile(
 			path,
@@ -86,7 +99,19 @@ export function runTool(
 				...(options.signal ? { signal: options.signal } : {}),
 			},
 			(cause, stdout) => {
-				if (cause)
+				if (cause) {
+					const context = {
+						event: "media.tool_failed",
+						tool,
+						operation,
+						durationMs: Date.now() - started,
+						exitCode: cause.code,
+						signal: cause.signal,
+						cancelled: options.signal?.aborted ?? false,
+					};
+					if (options.signal?.aborted)
+						logger?.debug(context, "Media tool cancelled.");
+					else logger?.warn(context, "Media tool failed.");
 					reject(
 						new MediaToolError(
 							"TOOL_FAILED",
@@ -100,7 +125,19 @@ export function runTool(
 							},
 						),
 					);
-				else resolve(stdout);
+				} else {
+					logger?.debug(
+						{
+							event: "media.tool_completed",
+							tool,
+							operation,
+							durationMs: Date.now() - started,
+							outputBytes: Buffer.byteLength(stdout, "utf8"),
+						},
+						"Media tool completed.",
+					);
+					resolve(stdout);
+				}
 			},
 		);
 	});

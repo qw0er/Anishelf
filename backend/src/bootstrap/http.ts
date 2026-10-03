@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import Fastify from "fastify";
+import Fastify, { LogController } from "fastify";
 import type { Logger } from "pino";
 import {
 	ClientConfigResponseSchema,
@@ -38,6 +38,7 @@ export function createHttpApp(options: {
 	const policy = options.policy ?? options.library?.policy ?? builtinPolicy;
 	const app = Fastify({
 		loggerInstance: options.logger,
+		logController: new LogController({ disableRequestLogging: true }),
 		genReqId: () => randomUUID(),
 		requestIdHeader: false,
 		trustProxy: false,
@@ -47,7 +48,29 @@ export function createHttpApp(options: {
 	}).withTypeProvider<TypeBoxTypeProvider>();
 	app.addHook("onRequest", async (request, reply) => {
 		reply.header("x-request-id", request.id);
+		request.log.trace(
+			{
+				event: "http.request_started",
+				method: request.method,
+				route: request.routeOptions.url,
+			},
+			"HTTP request started.",
+		);
 		checkRequestOrigin(request, options.config, options.development ?? false);
+	});
+	app.addHook("onResponse", async (request, reply) => {
+		const context = {
+			event: "http.request_completed",
+			method: request.method,
+			route: request.routeOptions.url,
+			statusCode: reply.statusCode,
+			durationMs: reply.elapsedTime,
+		};
+		if (reply.statusCode >= 500)
+			request.log.error(context, "HTTP request completed with a server error.");
+		else if (reply.statusCode >= 400)
+			request.log.debug(context, "HTTP request rejected.");
+		else request.log.trace(context, "HTTP request completed.");
 	});
 	app.setErrorHandler((error, request, reply) => {
 		const { code, status } = classifyHttpError(error);
@@ -55,6 +78,11 @@ export function createHttpApp(options: {
 			request.log.error(
 				{ event: "http.request_failed", err: error },
 				"HTTP request failed.",
+			);
+		if (status < 500)
+			request.log.debug(
+				{ event: "http.request_rejected", code, statusCode: status },
+				"HTTP request rejected.",
 			);
 		return reply.code(status).send(apiError(code, request.id));
 	});
@@ -81,6 +109,7 @@ export function createHttpApp(options: {
 			options.subtitles ??
 			new SubtitleApplication({
 				sources: library.sources,
+				logger: options.logger,
 				policy: library.policy,
 			});
 		app.addHook("onClose", async () => subtitles.close());
