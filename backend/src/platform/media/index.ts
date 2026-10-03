@@ -1,5 +1,7 @@
 export type {
 	ExtractedSubtitle,
+	HdrSideData,
+	MediaContainer,
 	MediaInfo,
 	MediaStream,
 	SubtitleFormat,

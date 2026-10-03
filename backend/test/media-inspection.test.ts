@@ -25,6 +25,8 @@ import { settingsStore } from "./settings-store.js";
 
 const info: MediaInfo = {
 	format: "matroska",
+	formatAliases: ["matroska"],
+	container: "matroska",
 	duration: 12,
 	size: null,
 	bitRate: null,

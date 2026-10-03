@@ -364,6 +364,31 @@ and future playback-plan consumers. It resolves confined sources through
 and returns the resolved source plus media information. The result is backend-only;
 filesystem paths and stream indexes are not public HTTP contracts.
 
+Compatibility metadata is carried by the internal `MediaInfo` / `MediaStream`
+models. `format` preserves FFprobe's raw demuxer names; `formatAliases` trims,
+lowercases and deduplicates them. `container` uses `file-type` content signatures
+for MP4, QuickTime, Matroska and WebM; shared demuxer aliases and file extensions
+cannot establish an exact container. Unrecognized signatures remain `null`.
+Codec/profile/level, dimensions, average rational frame rate and numeric FPS,
+bitrate, audio sample rate/channels/layout, duration and default/forced flags are
+normalized from FFprobe. `attachedPicture` identifies cover streams; consumers
+must exclude those when choosing the main video.
+
+Video bit depth uses positive `bits_per_raw_sample`, falling back to the maximum
+component depth from FFprobe's `-show_pixel_formats` output in the same process.
+It never uses aggregate bits per pixel. Color range, matrix, transfer and primaries
+retain reported values. Unknown/sentinel values and invalid rates become `null`.
+HDR descriptors retain PQ/HLG signals and reported HDR side-data types, plus
+whitelisted mastering-display, content-light and Dolby Vision scalar metadata.
+No full-frame scan is performed; absent HDR metadata does not prove SDR.
+
+`MediaInfo` remains unversioned tool output. Consumers must retain it with
+`MediaInspectionResult.source.identity.sourceVersion`, which is validated and used
+in the cache key. Future compatibility plans must carry that version and revalidate
+it before use. Internal FFprobe indexes must be mapped to safe track descriptions
+or opaque IDs by HTTP presenters; neither raw probe objects nor filesystem paths
+are public response contracts. Extension and MIME type are hints only.
+
 Successful probes are cached in memory by canonical root, file ID and source version,
 up to `media.maximumProbeCacheEntries` (32 by default); oldest insertions are evicted.
 Same-source callers share one active probe across consumers. Uncached sources receive
