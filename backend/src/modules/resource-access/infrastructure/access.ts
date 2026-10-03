@@ -11,24 +11,37 @@ import {
 } from "node:fs/promises";
 import { extname, isAbsolute, join, relative, sep, win32 } from "node:path";
 import { DomainError } from "../../../shared/errors.js";
-import type { PersistentSettings } from "../../configuration/public.js";
+import type { PersistentSettings } from "../../../shared/settings.js";
 import type { FileSourceIdentity, RootIssue } from "../domain/model.js";
 
 import { assertFileSource } from "../domain/validation.js";
 
 type Timestamp = string;
 
-import { subtitleMimeTypes } from "../../../contracts/subtitles.js";
-import { storageRules } from "../../../platform/storage.js";
 import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../../configuration/public.js";
+	type SubtitleFormat,
+	subtitleExtensionFormats,
+	subtitleMimeTypes,
+} from "../../../contracts/subtitles.js";
+import { storageRules } from "../../../platform/storage.js";
+import { type DeepReadonly, freeze } from "../../../shared/policy.js";
+import {
+	type ResourceAccessPolicy,
+	resourceAccessPolicy,
+} from "../domain/policy.js";
+
+export interface ResourceAccessRuntimePolicy {
+	resourceAccess: ResourceAccessPolicy;
+	subtitles: { formats: Record<string, SubtitleFormat> };
+}
+export const resourceAccessRuntimePolicy = freeze({
+	resourceAccess: resourceAccessPolicy,
+	subtitles: { formats: subtitleExtensionFormats },
+});
 
 export function getVideoMimeType(
 	path: string,
-	types: Readonly<Record<string, string>> = builtinPolicy.media.videoMimeTypes,
+	types: Readonly<Record<string, string>> = resourceAccessPolicy.videoMimeTypes,
 ): string | null {
 	return types[extname(path).toLowerCase()] ?? null;
 }
@@ -141,7 +154,7 @@ export async function checkResourceRoot(
 export class ResourceAccess {
 	private constructor(
 		private readonly root: string,
-		private readonly policy: DeepReadonly<BuiltinPolicy>,
+		private readonly policy: DeepReadonly<ResourceAccessRuntimePolicy>,
 	) {}
 
 	get canonicalRoot(): string {
@@ -150,7 +163,7 @@ export class ResourceAccess {
 
 	static async create(
 		settings: Readonly<PersistentSettings>,
-		policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
+		policy: DeepReadonly<ResourceAccessRuntimePolicy> = resourceAccessRuntimePolicy,
 	): Promise<ResourceAccess> {
 		return new ResourceAccess(await resolveResourceRoot(settings), policy);
 	}
@@ -274,7 +287,10 @@ export class ResourceAccess {
 			const format = this.policy.subtitles.formats[extname(path).toLowerCase()];
 			let mimeType: string | null = null;
 			if (kind === "video") {
-				mimeType = getVideoMimeType(path, this.policy.media.videoMimeTypes);
+				mimeType = getVideoMimeType(
+					path,
+					this.policy.resourceAccess.videoMimeTypes,
+				);
 			} else if (kind === "subtitle" && format != null) {
 				mimeType = subtitleMimeTypes[format];
 			} else {

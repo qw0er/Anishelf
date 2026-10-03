@@ -12,7 +12,7 @@ import {
 import { storageRules } from "../../../platform/storage.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { PersistentSettings } from "../domain/model.js";
-import { builtinPolicy } from "../domain/policy.js";
+import { builtinPolicy } from "../policy.js";
 
 export function parsePersistentSettings(
 	source: string,

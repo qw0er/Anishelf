@@ -1,8 +1,5 @@
-import type {
-	BuiltinPolicy,
-	DeepReadonly,
-	SettingsStore,
-} from "../../configuration/public.js";
+import type { DeepReadonly } from "../../../shared/policy.js";
+import type { SettingsStore } from "../../../shared/settings.js";
 import {
 	checkResourceRoot,
 	type ResourceAccessApi,
@@ -16,6 +13,7 @@ import type {
 	LibraryStatus,
 	ResourceInfo,
 } from "../domain/model.js";
+import type { LibraryRuntimePolicy } from "../domain/policy.js";
 import type { LibraryIndex } from "../infrastructure/index.js";
 import type { ScanCoordinator } from "./scan-coordinator.js";
 import type { SettingsApplication } from "./settings.js";
@@ -47,8 +45,10 @@ function fileInfo(entry: FileEntry): FileInfo {
 	};
 }
 
-export class LibraryApplication {
-	readonly policy: DeepReadonly<BuiltinPolicy>;
+export class LibraryApplication<
+	TPolicy extends LibraryRuntimePolicy = LibraryRuntimePolicy,
+> {
+	readonly policy: DeepReadonly<TPolicy>;
 	readonly sources: ResourceAccessApi;
 	readonly settings: SettingsApplication;
 	private readonly scans: ScanCoordinator;
@@ -56,7 +56,7 @@ export class LibraryApplication {
 		private readonly options: {
 			configuration: SettingsStore;
 			index: LibraryIndex;
-			policy: DeepReadonly<BuiltinPolicy>;
+			policy: DeepReadonly<TPolicy>;
 			sources: ResourceAccessApi;
 			scans: ScanCoordinator;
 			settings: SettingsApplication;

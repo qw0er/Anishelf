@@ -1,11 +1,7 @@
 import { dirname, isAbsolute, sep, win32 } from "node:path";
 import { DomainError } from "../../../shared/errors.js";
+import type { DeepReadonly } from "../../../shared/policy.js";
 import { nameCollator } from "../../../shared/sorting.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../../configuration/public.js";
 import type {
 	DirectoryEntry,
 	FileEntry,
@@ -13,6 +9,7 @@ import type {
 	LibrarySnapshot,
 	ResourceId,
 } from "../domain/model.js";
+import { type LibraryPolicy, libraryPolicy } from "../domain/policy.js";
 import type { Timestamp } from "../domain/scan-state.js";
 
 function invalidSnapshot(): never {
@@ -25,7 +22,7 @@ function invalidSnapshot(): never {
 function compareEntries(
 	left: LibraryEntry,
 	right: LibraryEntry,
-	policy: DeepReadonly<BuiltinPolicy>["library"],
+	policy: DeepReadonly<LibraryPolicy>,
 	collator: Intl.Collator,
 ): number {
 	if (policy.directoriesFirst && left.kind !== right.kind)
@@ -39,7 +36,7 @@ function buildSnapshot(
 	entries: readonly LibraryEntry[],
 	revision: number,
 	scannedAt: Timestamp | null,
-	policy: DeepReadonly<BuiltinPolicy>["library"],
+	policy: DeepReadonly<LibraryPolicy>,
 ): LibrarySnapshot {
 	const collator = nameCollator(policy);
 	const entriesById = new Map<ResourceId, LibraryEntry>();
@@ -101,7 +98,7 @@ export class LibraryIndex {
 
 	constructor(
 		rootName = "root",
-		private policy: DeepReadonly<BuiltinPolicy>["library"] = builtinPolicy.library,
+		private policy: DeepReadonly<LibraryPolicy> = libraryPolicy,
 	) {
 		this.current = buildSnapshot(
 			[
@@ -119,7 +116,7 @@ export class LibraryIndex {
 		);
 	}
 
-	configure(policy: DeepReadonly<BuiltinPolicy>["library"]): void {
+	configure(policy: DeepReadonly<LibraryPolicy>): void {
 		const next = buildSnapshot(
 			[...this.current.entriesById.values()],
 			this.current.revision,

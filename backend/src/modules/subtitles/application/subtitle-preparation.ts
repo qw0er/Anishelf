@@ -4,11 +4,7 @@ import { publicSubtitleFormat } from "../../../contracts/subtitles.js";
 import type { MediaTools } from "../../../platform/media/index.js";
 import { MediaToolError } from "../../../platform/media/index.js";
 import { DomainError } from "../../../shared/errors.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../../configuration/public.js";
+import type { DeepReadonly } from "../../../shared/policy.js";
 import type {
 	ResolvedSource,
 	ResourceAccessApi,
@@ -20,6 +16,10 @@ import type {
 	SubtitlePreparation,
 	SubtitlePreparationError,
 } from "../domain/model.js";
+import {
+	type SubtitleRuntimePolicy,
+	subtitleRuntimePolicy,
+} from "../domain/policy.js";
 import { SubtitleAssetFiles } from "../infrastructure/assets.js";
 import type { SubtitleRepository } from "../infrastructure/repository.js";
 
@@ -35,7 +35,7 @@ export class SubtitlePreparationApplication {
 		private readonly options: {
 			logger?: Logger;
 			sources: ResourceAccessApi;
-			policy?: DeepReadonly<BuiltinPolicy>;
+			policy?: DeepReadonly<SubtitleRuntimePolicy>;
 			repository: SubtitleRepository;
 			dataDir: string;
 			tools: Pick<MediaTools, "extractSubtitle">;
@@ -144,7 +144,7 @@ export class SubtitlePreparationApplication {
 			try {
 				await this.files.read(
 					existing,
-					(this.options.policy ?? builtinPolicy).subtitles.maximumBytes,
+					(this.options.policy ?? subtitleRuntimePolicy).subtitles.maximumBytes,
 				);
 				this.logger?.debug(
 					{ event: "subtitles.asset_reused", assetId: id },
@@ -168,7 +168,8 @@ export class SubtitlePreparationApplication {
 		}
 		if (
 			this.active.size >=
-			(this.options.policy ?? builtinPolicy).subtitles.extractionConcurrency
+			(this.options.policy ?? subtitleRuntimePolicy).subtitles
+				.extractionConcurrency
 		)
 			throw new DomainError(
 				"SUBTITLE_PREPARATION_BUSY",
@@ -221,7 +222,7 @@ export class SubtitlePreparationApplication {
 				throw new MediaToolError("INVALID_MEDIA", "Invalid subtitle output.");
 			if (
 				sizeBytes >
-				(this.options.policy ?? builtinPolicy).subtitles.maximumBytes
+				(this.options.policy ?? subtitleRuntimePolicy).subtitles.maximumBytes
 			)
 				throw new DomainError(
 					"SUBTITLE_TOO_LARGE",
@@ -232,7 +233,8 @@ export class SubtitlePreparationApplication {
 				const total = await this.files.totalBytes();
 				if (
 					total + sizeBytes >
-					(this.options.policy ?? builtinPolicy).subtitles.maximumCacheBytes
+					(this.options.policy ?? subtitleRuntimePolicy).subtitles
+						.maximumCacheBytes
 				)
 					throw new Error("SUBTITLE_CACHE_FULL");
 				await this.validate(asset, epoch);
@@ -323,7 +325,7 @@ export class SubtitlePreparationApplication {
 			try {
 				await this.files.read(
 					asset,
-					(this.options.policy ?? builtinPolicy).subtitles.maximumBytes,
+					(this.options.policy ?? subtitleRuntimePolicy).subtitles.maximumBytes,
 				);
 			} catch (err) {
 				this.logger?.warn(
@@ -354,7 +356,7 @@ export class SubtitlePreparationApplication {
 		try {
 			const text = await this.files.read(
 				asset,
-				(this.options.policy ?? builtinPolicy).subtitles.maximumBytes,
+				(this.options.policy ?? subtitleRuntimePolicy).subtitles.maximumBytes,
 			);
 			await this.validate(asset);
 			return { text };

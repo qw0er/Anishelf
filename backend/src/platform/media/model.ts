@@ -65,21 +65,23 @@ export interface ExtractedSubtitle {
 	text: string;
 }
 
-/** Explicit processing operations; compatibility planning belongs to the application. */
-export type MediaProcessingMode =
-	| "remux"
-	| "transcode-audio"
-	| "transcode-video"
-	| "transcode";
+import type { MediaProcessingPlan } from "../../shared/media-processing.js";
+import type { DeepReadonly } from "../../shared/policy.js";
+
+export type {
+	MediaProcessingPlan,
+	MediaProcessingProfile,
+} from "../../shared/media-processing.js";
 
 export interface MediaProcessingOptions {
-	mode: MediaProcessingMode;
+	plan: DeepReadonly<MediaProcessingPlan>;
 	videoStreamIndex: number;
 	/** null explicitly produces video-only output. */
 	audioStreamIndex: number | null;
 	signal?: AbortSignal;
 	/** Optional tighter bound for a caller's remaining storage budget. */
-	maximumBytes?: number;
+	maximumBytes: number;
+	timeoutMs: number;
 }
 
 export type ToolStatus =

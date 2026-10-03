@@ -1,9 +1,7 @@
-import type {
-	BuiltinPolicy,
-	DeepReadonly,
-} from "../modules/configuration/public.js";
+import type { LibraryPolicy } from "../modules/library/public.js";
+import type { DeepReadonly } from "./policy.js";
 export function nameCollator(
-	policy: DeepReadonly<BuiltinPolicy>["library"],
+	policy: DeepReadonly<LibraryPolicy>,
 ): Intl.Collator {
 	return new Intl.Collator(policy.sortLocale, {
 		numeric: policy.sortNumeric,

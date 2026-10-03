@@ -9,3 +9,6 @@ export type PlaybackApi = Pick<
 	PlaybackApplication,
 	"open" | "save" | "release" | "history" | "continueWatching"
 >;
+
+export type { PlaybackPolicy } from "./domain/policy.js";
+export { playbackPolicy, validatePlaybackPolicy } from "./domain/policy.js";

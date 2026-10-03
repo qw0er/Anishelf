@@ -11,7 +11,7 @@ import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	validatePolicy,
-} from "../src/modules/configuration/domain/policy.js";
+} from "../src/modules/configuration/policy.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
 import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
 import { readSubtitleText } from "../src/modules/subtitles/infrastructure/content.js";
@@ -103,12 +103,13 @@ test.each([
 );
 test("rejects unsupported capabilities, invalid limits and timing values", () => {
 	const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
-	policy.media.videoMimeTypes = {
-		...policy.media.videoMimeTypes,
+	policy.resourceAccess.videoMimeTypes = {
+		...policy.resourceAccess.videoMimeTypes,
 		".avi": "video/avi",
 	};
 	expect(() => validatePolicy(policy)).toThrow("videoMimeTypes..avi");
-	policy.media.videoMimeTypes = builtinPolicy.media.videoMimeTypes;
+	policy.resourceAccess.videoMimeTypes =
+		builtinPolicy.resourceAccess.videoMimeTypes;
 	policy.playback.sessionIdleMs = Infinity;
 	expect(() => validatePolicy(policy)).toThrow("sessionIdleMs");
 });
@@ -116,7 +117,7 @@ test("removed client configuration endpoint returns 404 and settings enforce inj
 	const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
 	policy.library.maximumScanIntervalMinutes = 10;
 	policy.library.defaultScanIntervalMinutes = 3;
-	policy.runtime.httpBodyMaximumBytes = 128;
+	policy.http.httpBodyMaximumBytes = 128;
 	const configuration = await ConfigurationService.load(environment(), policy);
 	const library = createLibraryModule({
 		configuration,
@@ -244,7 +245,7 @@ test("injected near-end thresholds and batch limits control database selection",
 });
 test("tool execution uses injected output and timeout defaults", async () => {
 	const policy = {
-		...builtinPolicy.media,
+		...builtinPolicy.mediaTools,
 		executionTimeoutMs: 30,
 		maximumOutputBytes: 100,
 	};

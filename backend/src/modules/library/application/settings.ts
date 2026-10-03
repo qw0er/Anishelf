@@ -2,7 +2,7 @@ import type { Logger } from "pino";
 import type {
 	PersistentSettings,
 	SettingsStore,
-} from "../../configuration/public.js";
+} from "../../../shared/settings.js";
 import type { ScanCoordinator } from "./scan-coordinator.js";
 /** Root switching is one coordinated use case, not a configuration side effect. */
 export class SettingsApplication {

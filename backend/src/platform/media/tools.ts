@@ -5,12 +5,19 @@ import type { Logger } from "pino";
 import { deploymentDefaults } from "../../contracts/defaults.js";
 import { preparedSubtitleFormats } from "../../contracts/subtitles.js";
 import type { MediaToolsConfig } from "../../modules/configuration/public.js";
+import { captureRuntimeEnvironment } from "../../modules/configuration/public.js";
 import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	captureRuntimeEnvironment,
-	type DeepReadonly,
-} from "../../modules/configuration/public.js";
+	type SubtitlePolicy,
+	subtitlePolicy,
+} from "../../modules/subtitles/public.js";
+import type { DeepReadonly } from "../../shared/policy.js";
+import { type MediaToolPolicy, mediaToolPolicy } from "./policy.js";
+
+export interface MediaToolsPolicy {
+	mediaTools: MediaToolPolicy;
+	subtitles: SubtitlePolicy;
+}
+
 import type {
 	ExtractedSubtitle,
 	HdrSideData,
@@ -218,7 +225,7 @@ async function localFile(path: string): Promise<void> {
 export class MediaTools {
 	private constructor(
 		readonly status: Readonly<{ ffmpeg: ToolStatus; ffprobe: ToolStatus }>,
-		private readonly policy: DeepReadonly<BuiltinPolicy>,
+		private readonly policy: DeepReadonly<MediaToolsPolicy>,
 		private readonly logger?: Logger,
 	) {}
 
@@ -227,7 +234,10 @@ export class MediaTools {
 			ffmpegPath: deploymentDefaults.ffmpeg,
 			ffprobePath: deploymentDefaults.ffprobe,
 		},
-		policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
+		policy: DeepReadonly<MediaToolsPolicy> = {
+			mediaTools: mediaToolPolicy,
+			subtitles: subtitlePolicy,
+		},
 		environment = captureRuntimeEnvironment().executableSearch,
 		logger?: Logger,
 	): Promise<MediaTools> {
@@ -241,10 +251,10 @@ export class MediaTools {
 					path,
 					["-version"],
 					{
-						timeoutMs: policy.media.detectionTimeoutMs,
-						maxBytes: policy.media.detectionMaximumBytes,
+						timeoutMs: policy.mediaTools.detectionTimeoutMs,
+						maxBytes: policy.mediaTools.detectionMaximumBytes,
 					},
-					policy.media,
+					policy.mediaTools,
 					logger,
 				);
 				const version = output.split(/\r?\n/)[0] ?? "";
@@ -282,7 +292,7 @@ export class MediaTools {
 		await localFile(path);
 		// Signature detection is supplemental; incomplete headers must not suppress FFprobe.
 		const detectionTimeout = AbortSignal.timeout(
-			this.policy.media.detectionTimeoutMs,
+			this.policy.mediaTools.detectionTimeoutMs,
 		);
 		const detected = await fileTypeFromFile(path, {
 			signal: signal
@@ -312,7 +322,7 @@ export class MediaTools {
 					path,
 				],
 				signal ? { signal } : {},
-				this.policy.media,
+				this.policy.mediaTools,
 				this.logger,
 			),
 			detected ? (containers[detected.ext] ?? null) : null,
@@ -338,9 +348,8 @@ export class MediaTools {
 				"Output must be a distinct absolute local file path.",
 			);
 		if (
-			!["remux", "transcode-audio", "transcode-video", "transcode"].includes(
-				options.mode,
-			) ||
+			!["copy", "encode"].includes(options.plan.operation.video) ||
+			!["copy", "encode"].includes(options.plan.operation.audio) ||
 			!Number.isSafeInteger(options.videoStreamIndex) ||
 			options.videoStreamIndex < 0 ||
 			(options.audioStreamIndex !== null &&
@@ -351,16 +360,17 @@ export class MediaTools {
 				"INVALID_INPUT",
 				"Invalid media processing operation or stream indexes.",
 			);
-		const maximumBytes =
-			options.maximumBytes ?? this.policy.media.maximumProcessedBytes;
+		const maximumBytes = options.maximumBytes;
 		if (
 			!Number.isSafeInteger(maximumBytes) ||
 			maximumBytes <= 0 ||
-			maximumBytes > this.policy.media.maximumProcessedBytes
+			!Number.isSafeInteger(options.timeoutMs) ||
+			options.timeoutMs <= 0 ||
+			options.timeoutMs > 2147483647
 		)
 			throw new MediaToolError(
 				"INVALID_INPUT",
-				"Invalid processed-media size limit.",
+				"Invalid processed-media size or timeout limit.",
 			);
 		if (inspectedInfo) await localFile(input);
 		const info = inspectedInfo ?? (await this.probe(input, options.signal));
@@ -383,12 +393,12 @@ export class MediaTools {
 				"INVALID_INPUT",
 				"Selected video or audio stream is unavailable.",
 			);
-		const encodeVideo =
-			options.mode === "transcode-video" || options.mode === "transcode";
-		const encodeAudio =
-			options.mode === "transcode-audio" || options.mode === "transcode";
+		const { profile, operation } = options.plan;
+		const encodeVideo = operation.video === "encode";
+		const encodeAudio = operation.audio === "encode";
 		if (
 			encodeVideo &&
+			profile.video.hdrHandling === "reject" &&
 			(video.hdr.pq || video.hdr.hlg || video.hdr.sideDataTypes.length > 0)
 		)
 			throw new MediaToolError(
@@ -413,46 +423,46 @@ export class MediaTools {
 			"-map_chapters",
 			"-1",
 			"-c:v",
-			encodeVideo ? "libx264" : "copy",
+			encodeVideo ? profile.video.encoder : "copy",
 			...(encodeVideo
 				? [
 						"-pix_fmt",
-						"yuv420p",
+						profile.video.pixelFormat,
 						"-crf",
-						"20",
+						String(profile.video.crf),
 						"-preset",
-						"medium",
+						profile.video.preset,
 						"-threads",
-						"2",
-						"-vf",
-						"pad=ceil(iw/2)*2:ceil(ih/2)*2",
+						String(profile.video.threads),
+						...(profile.video.padToEven
+							? ["-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2"]
+							: []),
 						"-fps_mode",
-						"passthrough",
+						profile.video.frameRateMode,
 					]
 				: []),
 			...(audio
 				? [
 						"-c:a",
-						encodeAudio ? "aac" : "copy",
-						...(encodeAudio ? ["-b:a", "192k"] : []),
+						encodeAudio ? profile.audio.encoder : "copy",
+						...(encodeAudio ? ["-b:a", String(profile.audio.bitRate)] : []),
 					]
 				: []),
-			"-movflags",
-			"+faststart",
+			...(profile.fastStart ? ["-movflags", "+faststart"] : []),
 			"-fs",
 			String(maximumBytes),
 			"-f",
-			"mp4",
+			profile.container,
 			output,
 		];
 		await runTool(
 			executable,
 			args,
 			{
-				timeoutMs: this.policy.media.processingTimeoutMs,
+				timeoutMs: options.timeoutMs,
 				...(options.signal ? { signal: options.signal } : {}),
 			},
-			this.policy.media,
+			this.policy.mediaTools,
 			this.logger,
 		);
 		const size = (await stat(output)).size;
@@ -467,9 +477,10 @@ export class MediaTools {
 		const audios = result.streams.filter((stream) => stream.type === "audio");
 		if (
 			videos.length !== 1 ||
-			videos[0]?.codec !== (encodeVideo ? "h264" : video.codec) ||
+			videos[0]?.codec !== (encodeVideo ? profile.video.codec : video.codec) ||
 			audios.length !== (audio ? 1 : 0) ||
-			(audio && audios[0]?.codec !== (encodeAudio ? "aac" : audio.codec))
+			(audio &&
+				audios[0]?.codec !== (encodeAudio ? profile.audio.codec : audio.codec))
 		)
 			throw new MediaToolError(
 				"TOOL_FAILED",
@@ -481,7 +492,12 @@ export class MediaTools {
 			sourceDuration !== null &&
 			outputDuration !== null &&
 			Math.abs(sourceDuration - outputDuration) >
-				Math.max(2, video.framesPerSecond ? 2 / video.framesPerSecond : 2)
+				Math.max(
+					profile.durationToleranceSeconds,
+					video.framesPerSecond
+						? profile.durationToleranceFrames / video.framesPerSecond
+						: profile.durationToleranceSeconds,
+				)
 		)
 			throw new MediaToolError(
 				"TOOL_FAILED",
@@ -544,10 +560,10 @@ export class MediaTools {
 				"pipe:1",
 			],
 			{
-				timeoutMs: this.policy.media.extractionTimeoutMs,
+				timeoutMs: this.policy.subtitles.extractionTimeoutMs,
 				...(options.signal ? { signal: options.signal } : {}),
 			},
-			this.policy.media,
+			this.policy.mediaTools,
 			this.logger,
 		);
 		return { streamIndex, format, text: output };

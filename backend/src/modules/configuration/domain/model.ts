@@ -19,8 +19,4 @@ export interface MediaToolsConfig {
 	ffprobePath: string;
 }
 
-/** Stored in settings.json; deployment parameters never belong here. */
-export interface PersistentSettings {
-	resourceRoot: string | null;
-	scanIntervalMinutes?: number;
-}
+export type { PersistentSettings } from "../../../shared/settings.js";

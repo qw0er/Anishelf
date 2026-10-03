@@ -2,19 +2,19 @@ import { randomUUID } from "node:crypto";
 import { basename } from "node:path";
 import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
+import type { DeepReadonly } from "../../../shared/policy.js";
 import type {
 	PersistentSettings,
 	SettingsStore,
-} from "../../configuration/public.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../../configuration/public.js";
+} from "../../../shared/settings.js";
 import {
 	checkResourceRoot,
 	createResourceAccess,
 } from "../../resource-access/public.js";
+import {
+	type LibraryRuntimePolicy,
+	libraryRuntimePolicy,
+} from "../domain/policy.js";
 import type { ScanState } from "../domain/scan-state.js";
 import type { LibraryIndex } from "../infrastructure/index.js";
 import {
@@ -46,16 +46,16 @@ export class ScanCoordinator {
 	private scanTimer: ReturnType<typeof setTimeout> | undefined;
 	private readonly logger: Logger;
 	private readonly scanner: LibraryScanner;
-	readonly policy: DeepReadonly<BuiltinPolicy>;
+	readonly policy: DeepReadonly<LibraryRuntimePolicy>;
 	constructor(
 		private readonly options: {
 			configuration: SettingsStore;
 			logger: Logger;
 			index: LibraryIndex;
-			policy?: DeepReadonly<BuiltinPolicy>;
+			policy?: DeepReadonly<LibraryRuntimePolicy>;
 		},
 	) {
-		this.policy = options.policy ?? builtinPolicy;
+		this.policy = options.policy ?? libraryRuntimePolicy;
 		options.index.configure(this.policy.library);
 		this.logger = options.logger.child({ module: "library" });
 		this.scanner = new LibraryScanner(

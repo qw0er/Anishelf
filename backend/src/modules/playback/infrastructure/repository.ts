@@ -4,11 +4,7 @@ import {
 	playbackProgress,
 } from "../../../platform/database/schema.js";
 import type { Store } from "../../../platform/database/store.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../../configuration/public.js";
+import type { DeepReadonly } from "../../../shared/policy.js";
 import type { SourceRegistry } from "../../resource-access/public.js";
 import type {
 	ContinueWatchingCandidate,
@@ -18,6 +14,7 @@ import type {
 	SavePlaybackProgressResult,
 	SourceIdentity,
 } from "../domain/model.js";
+import { type PlaybackPolicy, playbackPolicy } from "../domain/policy.js";
 
 // Schema-derived records stay inside the database adapter.
 type PlaybackProgressRow = typeof playbackProgress.$inferSelect;
@@ -45,7 +42,7 @@ export class PlaybackRepository {
 	constructor(
 		private readonly store: Store,
 		private readonly sources: SourceRegistry,
-		private readonly policy: DeepReadonly<BuiltinPolicy>["playback"] = builtinPolicy.playback,
+		private readonly policy: DeepReadonly<PlaybackPolicy> = playbackPolicy,
 	) {}
 
 	registerSource(

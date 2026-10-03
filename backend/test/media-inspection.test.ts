@@ -7,7 +7,7 @@ import { createLibraryModule } from "../src/bootstrap/library.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
-} from "../src/modules/configuration/domain/policy.js";
+} from "../src/modules/configuration/policy.js";
 import type { LibraryApplication } from "../src/modules/library/application/library.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
 import {
@@ -38,10 +38,12 @@ let library: LibraryApplication;
 let inspection: MediaInspectionApplication;
 let probe: ReturnType<typeof vi.fn<MediaTools["probe"]>>;
 let ids: string[];
-const policy = structuredClone(builtinPolicy.media) as BuiltinPolicy["media"];
+const policy = structuredClone(
+	builtinPolicy.mediaInspection,
+) as BuiltinPolicy["mediaInspection"];
 
 beforeEach(async () => {
-	Object.assign(policy, builtinPolicy.media);
+	Object.assign(policy, builtinPolicy.mediaInspection);
 	root = await mkdtemp(join(tmpdir(), "anishelf-media-inspection-"));
 	await writeFile(join(root, "first.mkv"), "first source");
 	await writeFile(join(root, "second.mkv"), "second source");

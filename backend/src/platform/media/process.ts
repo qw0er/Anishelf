@@ -3,12 +3,9 @@ import { constants } from "node:fs";
 import { access, stat } from "node:fs/promises";
 import { basename, delimiter, isAbsolute, join } from "node:path";
 import type { Logger } from "pino";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	captureRuntimeEnvironment,
-	type DeepReadonly,
-} from "../../modules/configuration/public.js";
+import { captureRuntimeEnvironment } from "../../modules/configuration/public.js";
+import type { DeepReadonly } from "../../shared/policy.js";
+import { type MediaToolPolicy, mediaToolPolicy } from "./policy.js";
 
 export class MediaToolError extends Error {
 	constructor(
@@ -73,7 +70,7 @@ export function runTool(
 	path: string,
 	args: readonly string[],
 	options: { signal?: AbortSignal; timeoutMs?: number; maxBytes?: number } = {},
-	policy: DeepReadonly<BuiltinPolicy>["media"] = builtinPolicy.media,
+	policy: DeepReadonly<MediaToolPolicy> = mediaToolPolicy,
 	logger?: Logger,
 ): Promise<string> {
 	const started = Date.now();
@@ -82,7 +79,7 @@ export function runTool(
 		? "detect"
 		: args.includes("-show_streams")
 			? "probe"
-			: args.includes("-movflags")
+			: args.includes("-c:v")
 				? "process"
 				: "extract";
 	logger?.debug(

@@ -20,7 +20,7 @@ import type {
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
-} from "../src/modules/configuration/domain/policy.js";
+} from "../src/modules/configuration/policy.js";
 import type { LibraryApplication } from "../src/modules/library/application/library.js";
 import { createResourceId } from "../src/modules/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
@@ -94,13 +94,13 @@ function server() {
 	const inspection = new MediaInspectionApplication({
 		sources: library.sources,
 		tools: { probe },
-		policy: library.policy.media,
+		policy: policy.mediaInspection,
 		logger,
 	});
 	subtitles = new SubtitleApplication({
 		logger,
 		sources: library.sources,
-		policy: library.policy,
+		policy,
 		inspection,
 		tools: { extractSubtitle: extract },
 		dataDir,
@@ -551,7 +551,7 @@ test("default extraction format controls text codecs without a native format", a
 });
 
 test("probe slots deduplicate a source, reject excess work and become reusable", async () => {
-	policy.media.probeConcurrency = 2;
+	policy.mediaInspection.probeConcurrency = 2;
 	await writeFile(join(root, "second.mkv"), "second");
 	await writeFile(join(root, "third.mkv"), "third");
 	await library.startScan();

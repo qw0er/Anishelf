@@ -1,12 +1,12 @@
 import { DomainError } from "../../../shared/errors.js";
-import { builtinPolicy } from "../../configuration/public.js";
 import type { OpenedResourceFile } from "../../resource-access/public.js";
+import { subtitlePolicy } from "../domain/policy.js";
 
 /** Bound reads even when a source grows after opening. Never writes the source. */
 export async function readSubtitleText(
 	file: OpenedResourceFile,
-	maximumSubtitleBytes = builtinPolicy.subtitles.maximumBytes,
-	readChunkBytes = builtinPolicy.subtitles.readChunkBytes,
+	maximumSubtitleBytes = subtitlePolicy.maximumBytes,
+	readChunkBytes = subtitlePolicy.readChunkBytes,
 ): Promise<string> {
 	if (file.sizeBytes > maximumSubtitleBytes)
 		throw new DomainError(

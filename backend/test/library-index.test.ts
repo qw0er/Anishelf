@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { expect, test } from "vitest";
-import { builtinPolicy } from "../src/modules/configuration/domain/policy.js";
+import { builtinPolicy } from "../src/modules/configuration/policy.js";
 import type {
 	DirectoryEntry,
 	FileEntry,

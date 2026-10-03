@@ -6,7 +6,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/bootstrap/database.js";
 import { createLibraryModule } from "../src/bootstrap/library.js";
 import type { PersistentSettings } from "../src/modules/configuration/domain/model.js";
-import { builtinPolicy } from "../src/modules/configuration/domain/policy.js";
+import { builtinPolicy } from "../src/modules/configuration/policy.js";
 import type { LibraryApplication } from "../src/modules/library/application/library.js";
 import { createResourceId } from "../src/modules/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
@@ -44,7 +44,7 @@ beforeEach(async () => {
 	now = 1000;
 	playback = new PlaybackApplication({
 		sources: library.sources,
-		policy: library.policy.playback,
+		policy: builtinPolicy.playback,
 		repository: database.playback,
 		logger,
 		now: () => now,

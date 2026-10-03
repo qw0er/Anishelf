@@ -3,18 +3,20 @@ import { join } from "node:path";
 import type { Logger } from "pino";
 import type {
 	MediaInfo,
-	MediaProcessingMode,
 	MediaStream,
 	MediaTools,
 } from "../../../platform/media/index.js";
 import { MediaToolError } from "../../../platform/media/index.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../../configuration/public.js";
+import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import type { MediaInspectionApi } from "../../media-inspection/public.js";
 import type { ResourceAccessApi } from "../../resource-access/public.js";
+import {
+	type MediaProcessingMode,
+	type MediaProcessingPolicy,
+	mediaProcessingPolicy,
+	resolveMediaProcessingPlan,
+	validateMediaProcessingPolicy,
+} from "../domain/policy.js";
 import {
 	MediaProcessingFiles,
 	type ProcessingWorkspace,
@@ -36,7 +38,7 @@ export interface ProcessedMedia {
 	fileId: string;
 	sourceVersion: string;
 	mode: MediaProcessingMode;
-	profileId: "mp4-h264-aac-v1";
+	profileId: string;
 	videoStreamIndex: number;
 	audioStreamIndex: number | null;
 	path: string;
@@ -80,9 +82,9 @@ function selectStream(
 /** Explicit operations for future planners; no automatic conversion or compatibility claims. */
 export class MediaProcessingApplication {
 	private readonly files: MediaProcessingFiles;
-	private readonly policy: DeepReadonly<BuiltinPolicy>["media"];
+	private readonly policy: DeepReadonly<MediaProcessingPolicy>;
 	private readonly controller = new AbortController();
-	private active: Promise<ProcessedMedia> | undefined;
+	private readonly active = new Set<Promise<ProcessedMedia>>();
 	private readonly outputs = new Map<
 		string,
 		{ workspace: ProcessingWorkspace; sizeBytes: number }
@@ -93,11 +95,13 @@ export class MediaProcessingApplication {
 			inspection: MediaInspectionApi;
 			tools: Pick<MediaTools, "processMedia">;
 			dataDir: string;
-			policy?: DeepReadonly<BuiltinPolicy>["media"];
+			policy?: DeepReadonly<MediaProcessingPolicy>;
 			logger?: Logger;
 		},
 	) {
-		this.policy = options.policy ?? builtinPolicy.media;
+		const policy = options.policy ?? mediaProcessingPolicy;
+		validateMediaProcessingPolicy(policy);
+		this.policy = freeze(structuredClone(policy));
 		this.files = new MediaProcessingFiles(options.dataDir);
 	}
 	process(request: MediaProcessingRequest): Promise<ProcessedMedia> {
@@ -105,13 +109,14 @@ export class MediaProcessingApplication {
 			return Promise.reject(
 				new MediaToolError("TOOL_UNAVAILABLE", "Media processing is closed."),
 			);
-		if (this.active) return Promise.reject(new MediaProcessingBusyError());
+		if (this.active.size >= this.policy.concurrency)
+			return Promise.reject(new MediaProcessingBusyError());
 		// Own the request values for the duration of asynchronous work.
 		const active = this.run({ ...request });
-		this.active = active;
+		this.active.add(active);
 		void active
 			.finally(() => {
-				if (this.active === active) this.active = undefined;
+				this.active.delete(active);
 			})
 			.catch(() => {});
 		return active;
@@ -121,6 +126,12 @@ export class MediaProcessingApplication {
 			? AbortSignal.any([request.signal, this.controller.signal])
 			: this.controller.signal;
 		signal.throwIfAborted();
+		if (!Object.hasOwn(this.policy.operations, request.mode))
+			throw new MediaToolError(
+				"INVALID_INPUT",
+				"Invalid media processing operation.",
+			);
+		const plan = resolveMediaProcessingPlan(this.policy, request.mode);
 		if (typeof request.sourceVersion !== "string" || !request.sourceVersion)
 			throw new MediaToolError(
 				"INVALID_INPUT",
@@ -159,10 +170,11 @@ export class MediaProcessingApplication {
 				join(source.identity.canonicalRoot, source.identity.relativePath),
 				workspace.pendingPath,
 				{
-					mode: request.mode,
+					plan,
 					videoStreamIndex: video.index,
 					audioStreamIndex: audio?.index ?? null,
 					maximumBytes,
+					timeoutMs: this.policy.processingTimeoutMs,
 					signal,
 				},
 				info,
@@ -179,7 +191,7 @@ export class MediaProcessingApplication {
 				fileId: source.identity.fileId,
 				sourceVersion: source.identity.sourceVersion,
 				mode: request.mode,
-				profileId: "mp4-h264-aac-v1",
+				profileId: plan.profile.id,
 				videoStreamIndex: video.index,
 				audioStreamIndex: audio?.index ?? null,
 				path: workspace.path,
@@ -206,7 +218,7 @@ export class MediaProcessingApplication {
 	}
 	async close(): Promise<void> {
 		this.controller.abort();
-		if (this.active) await Promise.allSettled([this.active]);
+		await Promise.allSettled(this.active);
 		await Promise.all([...this.outputs.keys()].map((id) => this.release(id)));
 	}
 }

@@ -1,11 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../../configuration/public.js";
+import type { DeepReadonly } from "../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../resource-access/public.js";
 import { resourceRootId } from "../../resource-access/public.js";
 import type {
@@ -17,6 +13,7 @@ import type {
 	SavePlaybackProgressResult,
 	SourceIdentity,
 } from "../domain/model.js";
+import { type PlaybackPolicy, playbackPolicy } from "../domain/policy.js";
 import type { PlaybackRepository } from "../infrastructure/repository.js";
 
 interface PlaybackSessionState {
@@ -32,17 +29,17 @@ export class PlaybackApplication {
 	private readonly sessions = new Map<string, PlaybackSessionState>();
 	private closed = false;
 	private readonly logger: Logger;
-	private readonly policy: DeepReadonly<BuiltinPolicy>["playback"];
+	private readonly policy: DeepReadonly<PlaybackPolicy>;
 	constructor(
 		private readonly options: {
 			sources: ResourceAccessApi;
 			repository?: PlaybackRepository;
 			logger: Logger;
 			now?: () => number;
-			policy?: DeepReadonly<BuiltinPolicy>["playback"];
+			policy?: DeepReadonly<PlaybackPolicy>;
 		},
 	) {
-		this.policy = options.policy ?? builtinPolicy.playback;
+		this.policy = options.policy ?? playbackPolicy;
 		this.logger = options.logger.child({ module: "playback" });
 	}
 

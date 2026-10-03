@@ -233,7 +233,7 @@ the detailed V2 target design.
 
 ### Configuration (V1 retained; V2 additions)
 
-Startup uses defaults and environment variables for the listener, data directory and logging. Optional `ANISHELF_FFMPEG_PATH` and `ANISHELF_FFPROBE_PATH` executable paths accept absolute values. When omitted, resolve `ffmpeg` and `ffprobe` from the server process environment's **PATH**. Resolve each independently; do not require both overrides and do not invent mandatory binary-specific environment variables. An invalid explicit override produces an actionable tool error rather than silently choosing another binary. The implemented tool layer resolves and checks versions at startup, retains absolute paths for child processes, and rediscovers after restart. It offers on-demand media inspection and selected text-subtitle extraction through `MediaTools`; embedded inspection, registered text assets and player selection are integrated. Transcoding and embedded font integration remain planned. Missing binaries log warnings without disabling direct playback. Service managers must provide PATH if their default environment omits the tools.
+Startup uses defaults and environment variables for the listener, data directory and logging. Optional `ANISHELF_FFMPEG_PATH` and `ANISHELF_FFPROBE_PATH` executable paths accept absolute values. When omitted, resolve `ffmpeg` and `ffprobe` from the server process environment's **PATH**. Resolve each independently; do not require both overrides and do not invent mandatory binary-specific environment variables. An invalid explicit override produces an actionable tool error rather than silently choosing another binary. The implemented tool layer resolves and checks versions at startup, retains absolute paths for child processes, and rediscovers after restart. It offers on-demand media inspection and selected text-subtitle extraction through `MediaTools`; embedded inspection, registered text assets and player selection are integrated. Explicit MP4 remux/transcoding primitives are implemented; playback integration and embedded font integration remain planned. Missing binaries log warnings without disabling direct playback. Service managers must provide PATH if their default environment omits the tools.
 
 Missing tools do not prevent V1 browsing, direct media delivery, or already usable external subtitles. Disable dependent probing/extraction/transcoding with a precise capability error. The administrator controls executable paths; Web requests never supply executables or arbitrary flags.
 
@@ -245,7 +245,34 @@ Originals, writable data, and frontend static assets remain separate and non-ove
 
 ### Built-in defaults and user settings (O17)
 
-The current-function foundation is implemented in `modules/configuration/domain/policy.ts` and `modules/configuration/application/service.ts`. The composition root creates one service; adapters receive typed read-only policy views. The service retains raw explicit settings separately from the effective immutable snapshot. Missing settings do not generate a file, failed writes preserve the published snapshot, and existing root-only settings remain valid. Current settings are `resourceRoot` and optional `scanIntervalMinutes`; the additional V2 settings described below remain planned.
+The current-function foundation is implemented in `modules/configuration/policy.ts` and `modules/configuration/application/service.ts`. The composition root creates one service; adapters receive typed read-only policy views. The service retains raw explicit settings separately from the effective immutable snapshot. Missing settings do not generate a file, failed writes preserve the published snapshot, and existing root-only settings remain valid. Current settings are `resourceRoot` and optional `scanIntervalMinutes`; the additional V2 settings described below remain planned.
+
+Backend defaults, policy types and semantic validation live with their owners.
+`modules/configuration/policy.ts` composes and validates the complete `BuiltinPolicy`
+through module Public APIs; it contains no module-specific defaults. Configuration
+loading clones and deeply freezes the effective policy. Modules use their local
+defaults and receive only the capability views they need. Numeric validation and
+freezing helpers live in `shared/policy.ts`; the `shared/settings.ts` read/write port
+keeps business modules independent of the configuration implementation.
+
+| Policy section | Definition and validation owner |
+| --- | --- |
+| `library` | `modules/library/domain/policy.ts` |
+| `playback` | `modules/playback/domain/policy.ts` |
+| `subtitles` | `modules/subtitles/domain/policy.ts`, including extraction timeout |
+| `resourceAccess` | `modules/resource-access/domain/policy.ts`, including extension/MIME hints |
+| `mediaInspection` | `modules/media-inspection/domain/policy.ts`, including probe cache/concurrency |
+| `mediaProcessing` | `modules/media-processing/domain/policy.ts`, including operations/profile/time/budget |
+| `mediaTools` | `platform/media/policy.ts`, including process/probe execution and diagnostics |
+| `http` | `transport/policy.ts` |
+| `database` | `platform/database-policy.ts` |
+| `runtime` | `platform/runtime-policy.ts`, including shutdown timeout |
+
+The former combined `media` section is removed; injected policy callers must use
+these owner-specific sections. HTTP body and database busy timeout have moved out
+of `runtime`. These are internal policy changes; persisted settings and HTTP
+contracts retain their existing shapes. Browser-safe shared constraints remain
+in `contracts/defaults.ts` rather than acquiring backend module dependencies.
 
 Browser playback timing and subtitle renderer limits live in `web/src/config/media-policy.ts`. Browser-safe scan constraints and subtitle size limits are shared through `contracts/defaults.ts`; supported subtitle formats come from the shared format registry. No runtime client-configuration request is required. HTTP settings schemas receive server constraints through a factory and remain authoritative. Player policies are stable across scan polling, so revalidation does not reopen sessions or reset subtitle renderers. Loading-indicator delay and polling intervals remain local frontend interaction policy.
 
@@ -390,9 +417,9 @@ or opaque IDs by HTTP presenters; neither raw probe objects nor filesystem paths
 are public response contracts. Extension and MIME type are hints only.
 
 Successful probes are cached in memory by canonical root, file ID and source version,
-up to `media.maximumProbeCacheEntries` (32 by default); oldest insertions are evicted.
+up to `mediaInspection.maximumProbeCacheEntries` (32 by default); oldest insertions are evicted.
 Same-source callers share one active probe across consumers. Uncached sources receive
-`MediaInspectionBusyError` when `media.probeConcurrency` is exhausted; there is no
+`MediaInspectionBusyError` when `mediaInspection.probeConcurrency` is exhausted; there is no
 unbounded queue. Callers receive independent copies of media information, so one
 consumer cannot mutate another consumer's cached result. Failures are not cached.
 A cache hit resolves the current source once. A cache miss validates before probing
@@ -497,6 +524,19 @@ videoStreamIndex?, audioStreamIndex?, signal? })` provides four explicit operati
 | `transcode-audio` | Copy | AAC, 192 kbit/s | Fast-start MP4 |
 | `transcode-video` | H.264/yuv420p, CRF 20, medium | Copy | Fast-start MP4 |
 | `transcode` | H.264/yuv420p, CRF 20, medium | AAC, 192 kbit/s | Fast-start MP4 |
+
+The four named operations are declared in
+`modules/media-processing/domain/policy.ts` as video/audio copy-or-encode actions.
+That policy also owns the versioned profile, container/fast-start settings,
+encoder/codec/pixel format, CRF/preset/threads, audio bitrate, HDR handling,
+frame-timing/even-padding options and duration-validation tolerances. Policy
+validation preserves each operation's semantics and rejects unsupported adapters.
+`MediaProcessingApplication` resolves an immutable execution plan and passes it,
+its timeout and remaining output budget to `MediaTools.processMedia()`.
+The adapter builds FFmpeg arguments from that plan; it does not choose among the
+four operations or own their encoding parameter defaults. The result's profile ID
+comes from the resolved policy. Encoding parameter changes require a new profile
+version before introducing reusable persistent outputs.
 
 Omitted stream indexes select default tracks, falling back to the first usable
 track. Attached pictures never qualify as the video. `audioStreamIndex: null`

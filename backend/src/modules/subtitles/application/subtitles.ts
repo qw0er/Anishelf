@@ -7,11 +7,7 @@ import {
 import type { MediaInfo, MediaTools } from "../../../platform/media/index.js";
 import { MediaToolError } from "../../../platform/media/index.js";
 import { DomainError } from "../../../shared/errors.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../../configuration/public.js";
+import type { DeepReadonly } from "../../../shared/policy.js";
 import {
 	type MediaInspectionApi,
 	MediaInspectionBusyError,
@@ -29,6 +25,10 @@ import type {
 	SubtitleDiscovery,
 	SubtitlePreparationResult,
 } from "../domain/model.js";
+import {
+	type SubtitleRuntimePolicy,
+	subtitleRuntimePolicy,
+} from "../domain/policy.js";
 import { readSubtitleText } from "../infrastructure/content.js";
 import { discoverExternalSubtitles } from "../infrastructure/discovery.js";
 import type { SubtitleRepository } from "../infrastructure/repository.js";
@@ -43,7 +43,7 @@ export class SubtitleApplication {
 	constructor(options: {
 		logger?: Logger;
 		sources: ResourceAccessApi;
-		policy?: DeepReadonly<BuiltinPolicy>;
+		policy?: DeepReadonly<SubtitleRuntimePolicy>;
 		inspection?: MediaInspectionApi;
 		tools?: Pick<MediaTools, "extractSubtitle">;
 		repository?: SubtitleRepository;
@@ -51,7 +51,7 @@ export class SubtitleApplication {
 	}) {
 		this.logger = options.logger?.child({ module: "subtitles" });
 		this.sources = options.sources;
-		this.policy = options.policy ?? builtinPolicy;
+		this.policy = options.policy ?? subtitleRuntimePolicy;
 		this.inspection = options.inspection;
 		if (
 			options.repository &&
@@ -70,7 +70,7 @@ export class SubtitleApplication {
 			});
 		}
 	}
-	private readonly policy: DeepReadonly<BuiltinPolicy>;
+	private readonly policy: DeepReadonly<SubtitleRuntimePolicy>;
 	async close(): Promise<void> {
 		await this.preparation?.close();
 	}

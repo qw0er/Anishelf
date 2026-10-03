@@ -1,9 +1,6 @@
 import { DomainError } from "../../../shared/errors.js";
-import type {
-	BuiltinPolicy,
-	DeepReadonly,
-	PersistentSettings,
-} from "../../configuration/public.js";
+import type { DeepReadonly } from "../../../shared/policy.js";
+import type { PersistentSettings } from "../../../shared/settings.js";
 import type {
 	FileInfo,
 	ResolvedSource,
@@ -11,6 +8,7 @@ import type {
 	SourceReference,
 } from "../domain/model.js";
 import { assertFileSource, assertSourceVersion } from "../domain/validation.js";
+import type { ResourceAccessRuntimePolicy } from "../infrastructure/access.js";
 import {
 	type OpenedResourceFile,
 	ResourceAccess,
@@ -34,7 +32,7 @@ export class ResourceAccessApplication {
 		private readonly options: {
 			catalog: SourceCatalog;
 			configuration: { readonly settings: Readonly<PersistentSettings> };
-			policy: DeepReadonly<BuiltinPolicy>;
+			policy: DeepReadonly<ResourceAccessRuntimePolicy>;
 		},
 	) {}
 	get policy() {

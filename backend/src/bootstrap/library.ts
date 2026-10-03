@@ -16,7 +16,7 @@ export function createLibraryModule(options: {
 	index: LibraryIndex;
 	logger: Logger;
 	policy?: DeepReadonly<BuiltinPolicy>;
-}): LibraryApplication {
+}): LibraryApplication<BuiltinPolicy> {
 	const { index, configuration, logger } = options;
 	const policy = options.policy ?? builtinPolicy;
 	const sources = new ResourceAccessApplication({
@@ -39,7 +39,7 @@ export function createLibraryModule(options: {
 			index.reset();
 		},
 	});
-	return new LibraryApplication({
+	return new LibraryApplication<BuiltinPolicy>({
 		configuration,
 		index,
 		policy,

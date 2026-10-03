@@ -1,11 +1,7 @@
 import { join } from "node:path";
 import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../../configuration/public.js";
+import type { DeepReadonly } from "../../../shared/policy.js";
 import {
 	getVideoMimeType,
 	type ResourceAccess,
@@ -15,6 +11,10 @@ import {
 	type DirectoryEntry,
 	type LibraryEntry,
 } from "../domain/model.js";
+import {
+	type LibraryRuntimePolicy,
+	libraryRuntimePolicy,
+} from "../domain/policy.js";
 import type { ScanWarningSummary } from "../domain/scan-state.js";
 
 export interface ScanTraversalProgress {
@@ -31,7 +31,7 @@ type ScanTask =
 export class LibraryScanner {
 	constructor(
 		private readonly logger: Logger,
-		private readonly policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
+		private readonly policy: DeepReadonly<LibraryRuntimePolicy> = libraryRuntimePolicy,
 	) {}
 
 	async scan(
@@ -127,8 +127,10 @@ export class LibraryScanner {
 					});
 				} else if (
 					child.isFile() &&
-					getVideoMimeType(child.name, this.policy.media.videoMimeTypes) !==
-						null
+					getVideoMimeType(
+						child.name,
+						this.policy.resourceAccess.videoMimeTypes,
+					) !== null
 				) {
 					queue.push({
 						kind: "file",

@@ -8,7 +8,7 @@ import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	type DeepReadonly,
-} from "../modules/configuration/domain/policy.js";
+} from "../modules/configuration/policy.js";
 import { PlaybackRepository } from "../modules/playback/infrastructure/repository.js";
 import { SourceRepository } from "../modules/resource-access/infrastructure/repository.js";
 import { SubtitleRepository } from "../modules/subtitles/infrastructure/repository.js";
@@ -41,7 +41,7 @@ export class ApplicationDatabase {
 		try {
 			connection.pragma(adapterPolicy.sqlite.foreignKeys);
 			connection.pragma(
-				`busy_timeout = ${policy.runtime.databaseBusyTimeoutMs}`,
+				`busy_timeout = ${policy.database.databaseBusyTimeoutMs}`,
 			);
 			connection.pragma(adapterPolicy.sqlite.journal);
 			connection.pragma(adapterPolicy.sqlite.synchronous);

@@ -1,10 +1,7 @@
 import { extname } from "node:path";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../../configuration/public.js";
+import type { DeepReadonly } from "../../../shared/policy.js";
 import type { SourceIdentity } from "../../resource-access/public.js";
+import { type SubtitlePolicy, subtitlePolicy } from "./policy.js";
 
 export type {
 	PreparedSubtitleFormat,
@@ -17,8 +14,7 @@ import type {
 } from "../../../contracts/subtitles.js";
 export function externalSubtitleFormat(
 	name: string,
-	formats: DeepReadonly<BuiltinPolicy>["subtitles"]["formats"] = builtinPolicy
-		.subtitles.formats,
+	formats: DeepReadonly<SubtitlePolicy>["formats"] = subtitlePolicy.formats,
 ): ExternalSubtitleFormat | null {
 	return formats[extname(name).toLowerCase()] ?? null;
 }

@@ -7,7 +7,7 @@ import { ApplicationDatabase } from "../src/bootstrap/database.js";
 import { createHttpApp } from "../src/bootstrap/http.js";
 import { createLibraryModule } from "../src/bootstrap/library.js";
 import type { PlaybackSessionResponse } from "../src/contracts/http.js";
-import { builtinPolicy } from "../src/modules/configuration/domain/policy.js";
+import { builtinPolicy } from "../src/modules/configuration/policy.js";
 import type { LibraryApplication } from "../src/modules/library/application/library.js";
 import { createResourceId } from "../src/modules/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
@@ -41,7 +41,7 @@ beforeEach(async () => {
 	});
 	playback = new PlaybackApplication({
 		sources: library.sources,
-		policy: library.policy.playback,
+		policy: builtinPolicy.playback,
 		repository: database.playback,
 		logger,
 	});
@@ -359,7 +359,7 @@ test("unscanned libraries return unknown availability and unavailable storage re
 	});
 	playback = new PlaybackApplication({
 		sources: library.sources,
-		policy: library.policy.playback,
+		policy: builtinPolicy.playback,
 		repository: database.playback,
 		logger,
 	});

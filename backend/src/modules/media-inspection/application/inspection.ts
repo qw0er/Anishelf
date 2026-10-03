@@ -2,15 +2,15 @@ import { join } from "node:path";
 import type { Logger } from "pino";
 import type { MediaInfo, MediaTools } from "../../../platform/media/index.js";
 import { MediaToolError } from "../../../platform/media/index.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../../configuration/public.js";
+import type { DeepReadonly } from "../../../shared/policy.js";
 import type {
 	ResolvedSource,
 	ResourceAccessApi,
 } from "../../resource-access/public.js";
+import {
+	type MediaInspectionPolicy,
+	mediaInspectionPolicy,
+} from "../domain/policy.js";
 
 export class MediaInspectionBusyError extends Error {
 	constructor() {
@@ -30,17 +30,17 @@ export class MediaInspectionApplication {
 	private readonly active = new Map<string, Promise<MediaInspectionResult>>();
 	private readonly controller = new AbortController();
 	private readonly logger: Logger | undefined;
-	private readonly policy: DeepReadonly<BuiltinPolicy>["media"];
+	private readonly policy: DeepReadonly<MediaInspectionPolicy>;
 
 	constructor(
 		private readonly options: {
 			sources: ResourceAccessApi;
 			tools: Pick<MediaTools, "probe">;
-			policy?: DeepReadonly<BuiltinPolicy>["media"];
+			policy?: DeepReadonly<MediaInspectionPolicy>;
 			logger?: Logger;
 		},
 	) {
-		this.policy = options.policy ?? builtinPolicy.media;
+		this.policy = options.policy ?? mediaInspectionPolicy;
 		this.logger = options.logger?.child({ module: "media-inspection" });
 	}
 

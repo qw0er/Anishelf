@@ -53,7 +53,7 @@ test("external tool logs completion metadata without arguments or output", async
 		process.execPath,
 		["-e", "process.stdout.write('private-output')"],
 		{},
-		builtinPolicy.media,
+		builtinPolicy.mediaTools,
 		logger,
 	);
 	expect(output).toBe("private-output");
@@ -76,7 +76,7 @@ test("external tool failures remain visible at info with exit status", async () 
 			process.execPath,
 			["-e", "process.exit(7)"],
 			{},
-			builtinPolicy.media,
+			builtinPolicy.mediaTools,
 			logger,
 		),
 	).rejects.toMatchObject({ code: "TOOL_FAILED" });

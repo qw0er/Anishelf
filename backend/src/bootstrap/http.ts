@@ -8,7 +8,7 @@ import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	type DeepReadonly,
-} from "../modules/configuration/domain/policy.js";
+} from "../modules/configuration/policy.js";
 import type { LibraryApplication } from "../modules/library/application/library.js";
 import { registerLibraryRoutes } from "../modules/library/http/library.js";
 import { registerMediaRoutes } from "../modules/library/http/media.js";
@@ -31,14 +31,21 @@ export function createHttpApp(options: {
 	subtitles?: SubtitleApplication;
 	frontendRoot?: string;
 }) {
-	const policy = options.policy ?? options.library?.policy ?? builtinPolicy;
+	const policy = options.policy ?? {
+		...builtinPolicy,
+		...options.library?.policy,
+		subtitles: {
+			...builtinPolicy.subtitles,
+			...options.library?.policy.subtitles,
+		},
+	};
 	const app = Fastify({
 		loggerInstance: options.logger,
 		logController: new LogController({ disableRequestLogging: true }),
 		genReqId: () => randomUUID(),
 		requestIdHeader: false,
 		trustProxy: false,
-		bodyLimit: policy.runtime.httpBodyMaximumBytes,
+		bodyLimit: policy.http.httpBodyMaximumBytes,
 		forceCloseConnections: "idle",
 		ajv: { customOptions: { removeAdditional: false, coerceTypes: false } },
 	}).withTypeProvider<TypeBoxTypeProvider>();
@@ -101,7 +108,7 @@ export function createHttpApp(options: {
 			new SubtitleApplication({
 				sources: library.sources,
 				logger: options.logger,
-				policy: library.policy,
+				policy,
 			});
 		app.addHook("onClose", async () => subtitles.close());
 		registerSubtitleRoutes(app, subtitles);

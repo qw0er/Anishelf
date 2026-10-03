@@ -12,3 +12,6 @@ export type SubtitleApi = Pick<
 	| "getSubtitleAssetStatus"
 	| "getSubtitleAssetContent"
 >;
+
+export type { SubtitlePolicy } from "./domain/policy.js";
+export { subtitlePolicy, validateSubtitlePolicy } from "./domain/policy.js";

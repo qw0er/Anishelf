@@ -7,7 +7,7 @@ import type { MediaToolsConfig } from "../modules/configuration/domain/model.js"
 import type {
 	BuiltinPolicy,
 	DeepReadonly,
-} from "../modules/configuration/domain/policy.js";
+} from "../modules/configuration/policy.js";
 import type { LibraryApplication } from "../modules/library/application/library.js";
 import { LibraryIndex } from "../modules/library/infrastructure/index.js";
 import { MediaInspectionApplication } from "../modules/media-inspection/application/inspection.js";
@@ -126,13 +126,13 @@ async function createServer(
 	const inspection = new MediaInspectionApplication({
 		sources: library.sources,
 		tools,
-		policy: configuration.policy.media,
+		policy: configuration.policy.mediaInspection,
 		logger,
 	});
 	const subtitles = new SubtitleApplication({
 		logger,
 		sources: library.sources,
-		policy: library.policy,
+		policy: configuration.policy,
 		inspection,
 		tools,
 		dataDir: config.dataDir,

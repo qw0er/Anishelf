@@ -12,3 +12,6 @@ export type LibraryApi = Pick<
 	LibraryApplication,
 	"getStatus" | "getDirectory" | "getFile" | "startScan" | "cancelScan"
 >;
+
+export type { LibraryPolicy } from "./domain/policy.js";
+export { libraryPolicy, validateLibraryPolicy } from "./domain/policy.js";

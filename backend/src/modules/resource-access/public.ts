@@ -41,5 +41,12 @@ export type ResourceAccessApi = Pick<
 import type { SourceRepository } from "./infrastructure/repository.js";
 export type SourceRegistry = Pick<SourceRepository, "registerSource">;
 export { resourceRootId } from "./domain/identity.js";
-
+export type { ResourceAccessPolicy } from "./domain/policy.js";
+export {
+	resourceAccessPolicy,
+	validateResourceAccessPolicy,
+} from "./domain/policy.js";
 export { assertSourceVersion } from "./domain/validation.js";
+
+export type { ResourceAccessRuntimePolicy } from "./infrastructure/access.js";
+export { resourceAccessRuntimePolicy } from "./infrastructure/access.js";
