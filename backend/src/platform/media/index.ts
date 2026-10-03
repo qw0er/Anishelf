@@ -3,6 +3,8 @@ export type {
 	HdrSideData,
 	MediaContainer,
 	MediaInfo,
+	MediaProcessingMode,
+	MediaProcessingOptions,
 	MediaStream,
 	SubtitleFormat,
 	ToolStatus,

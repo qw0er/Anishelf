@@ -17,7 +17,8 @@ export class MediaToolError extends Error {
 			| "TOOL_FAILED"
 			| "INVALID_MEDIA"
 			| "INVALID_INPUT"
-			| "UNSUPPORTED_SUBTITLE",
+			| "UNSUPPORTED_SUBTITLE"
+			| "UNSUPPORTED_PROCESSING",
 		message: string,
 		options?: ErrorOptions,
 	) {
@@ -81,7 +82,9 @@ export function runTool(
 		? "detect"
 		: args.includes("-show_streams")
 			? "probe"
-			: "extract";
+			: args.includes("-movflags")
+				? "process"
+				: "extract";
 	logger?.debug(
 		{ event: "media.tool_started", tool, operation },
 		"Media tool started.",

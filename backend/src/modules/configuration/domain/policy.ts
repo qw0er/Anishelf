@@ -69,6 +69,8 @@ const defaults = {
 		detectionMaximumBytes: 64 * 1024,
 		executionTimeoutMs: 30000,
 		extractionTimeoutMs: 60000,
+		processingTimeoutMs: 6 * 60 * 60 * 1000,
+		maximumProcessedBytes: 10 * 1024 * 1024 * 1024,
 		maximumOutputBytes: 10 * 1024 * 1024,
 		diagnosticMaximumBytes: 4096,
 	},

@@ -485,6 +485,57 @@ Keep cue time on the original source timeline. When real-time playback restarts 
 
 ## 7. Playback Plan and FFmpeg Transcoding (V2; P05–P07)
 
+### Implemented processing primitives
+
+`modules/media-processing/public.ts` exposes `MediaProcessingApplication` and the
+backend-only `MediaProcessingApi`. `process({ fileId, sourceVersion, mode,
+videoStreamIndex?, audioStreamIndex?, signal? })` provides four explicit operations:
+
+| Mode | Video | Audio | Output |
+| --- | --- | --- | --- |
+| `remux` | Copy | Copy | Fast-start MP4 |
+| `transcode-audio` | Copy | AAC, 192 kbit/s | Fast-start MP4 |
+| `transcode-video` | H.264/yuv420p, CRF 20, medium | Copy | Fast-start MP4 |
+| `transcode` | H.264/yuv420p, CRF 20, medium | AAC, 192 kbit/s | Fast-start MP4 |
+
+Omitted stream indexes select default tracks, falling back to the first usable
+track. Attached pictures never qualify as the video. `audioStreamIndex: null`
+explicitly disables audio; sources without audio also produce video-only output.
+The versioned profile `mp4-h264-aac-v1` uses two video encoding threads and pads odd
+dimensions to even values rather than resizing the picture. Only the selected
+video/audio are mapped; subtitles, attachments and chapters use separate workflows.
+HDR video encoding is rejected pending a supported tone-mapping profile. Copying a
+stream does not certify browser compatibility; a codec unsupported by the MP4 muxer
+fails without silently selecting another operation.
+
+The service uses shared version-bound inspection and confined source validation.
+`MediaTools.processMedia()` validates selected internal indexes against the reused
+shared probe descriptor (or probes independently for trusted direct callers), runs
+FFmpeg without a shell or overwrite, then probes the output to check stream
+counts/codecs and duration where reported. The service validates the source before
+processing, after processing and after publication. A source/root conflict rejects
+the output even when FFmpeg succeeds. Output-limit exhaustion, failed/cancelled
+work and version conflicts remove the job directory. Output files are private,
+fsynced and renamed from `.pending` only after validation.
+
+One operation runs per service instance; another request receives
+`MediaProcessingBusyError`. Processing has a six-hour timeout and a 10 GiB total
+retained-output budget per instance (program-owned, injectable media policy).
+A tighter remaining budget is supplied to FFmpeg and size-limited partial output
+is rejected. `process()` returns a private artifact ID/path, original selected
+indexes, file ID/source version, output metadata and size. `release(id)` deletes an
+artifact; `close()` cancels active work and removes retained outputs. Callers must
+register `close()` with their lifecycle and revalidate the source before serving
+or reusing a result. Service construction performs no processing or disk writes.
+
+These are backend primitives, available for a future playback/preparation caller.
+They are not currently wired to HTTP or the player. Browser capability negotiation,
+automatic planning, persistent task/asset records, progress reporting, crash recovery,
+and HLS remain planned below. Outputs are temporary service-owned files; a crash
+can leave orphan job directories until a future recovery mechanism removes them.
+The four operations have passed static checks; actual encoding and playback sample
+acceptance remain pending.
+
 ### Inspection and minimum necessary processing
 
 Probe on demand, with bounded FFprobe work cached by source version. Return container, duration, video/audio descriptors, subtitle choices, target profile and a per-stream action/reason. Select default video/audio streams, falling back to the first usable stream; missing audio is valid. File extensions alone never determine compatibility. Match codec/profile/pixel format/audio/container and target browser capabilities; uncertain combinations are reported as uncertain, not claimed playable.

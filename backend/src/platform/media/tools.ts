@@ -1,5 +1,5 @@
 import { stat } from "node:fs/promises";
-import { isAbsolute } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 import { fileTypeFromFile } from "file-type";
 import type { Logger } from "pino";
 import { deploymentDefaults } from "../../contracts/defaults.js";
@@ -16,6 +16,7 @@ import type {
 	HdrSideData,
 	MediaContainer,
 	MediaInfo,
+	MediaProcessingOptions,
 	MediaStream,
 	SubtitleFormat,
 	ToolStatus,
@@ -316,6 +317,177 @@ export class MediaTools {
 			),
 			detected ? (containers[detected.ext] ?? null) : null,
 		);
+	}
+
+	/** Trusted backend API. Caller owns confined input access, private output and cleanup. */
+	async processMedia(
+		input: string,
+		output: string,
+		options: MediaProcessingOptions,
+		/** Only reuse metadata already validated against the caller's source version. */
+		inspectedInfo?: MediaInfo,
+	): Promise<MediaInfo> {
+		const executable = this.executable("ffmpeg");
+		if (
+			!isAbsolute(output) ||
+			output.includes("\0") ||
+			resolve(output) === resolve(input)
+		)
+			throw new MediaToolError(
+				"INVALID_INPUT",
+				"Output must be a distinct absolute local file path.",
+			);
+		if (
+			!["remux", "transcode-audio", "transcode-video", "transcode"].includes(
+				options.mode,
+			) ||
+			!Number.isSafeInteger(options.videoStreamIndex) ||
+			options.videoStreamIndex < 0 ||
+			(options.audioStreamIndex !== null &&
+				(!Number.isSafeInteger(options.audioStreamIndex) ||
+					options.audioStreamIndex < 0))
+		)
+			throw new MediaToolError(
+				"INVALID_INPUT",
+				"Invalid media processing operation or stream indexes.",
+			);
+		const maximumBytes =
+			options.maximumBytes ?? this.policy.media.maximumProcessedBytes;
+		if (
+			!Number.isSafeInteger(maximumBytes) ||
+			maximumBytes <= 0 ||
+			maximumBytes > this.policy.media.maximumProcessedBytes
+		)
+			throw new MediaToolError(
+				"INVALID_INPUT",
+				"Invalid processed-media size limit.",
+			);
+		if (inspectedInfo) await localFile(input);
+		const info = inspectedInfo ?? (await this.probe(input, options.signal));
+		const video = info.streams.find(
+			(stream) =>
+				stream.index === options.videoStreamIndex &&
+				stream.type === "video" &&
+				!stream.attachedPicture,
+		);
+		const audio =
+			options.audioStreamIndex === null
+				? undefined
+				: info.streams.find(
+						(stream) =>
+							stream.index === options.audioStreamIndex &&
+							stream.type === "audio",
+					);
+		if (!video || (options.audioStreamIndex !== null && !audio))
+			throw new MediaToolError(
+				"INVALID_INPUT",
+				"Selected video or audio stream is unavailable.",
+			);
+		const encodeVideo =
+			options.mode === "transcode-video" || options.mode === "transcode";
+		const encodeAudio =
+			options.mode === "transcode-audio" || options.mode === "transcode";
+		if (
+			encodeVideo &&
+			(video.hdr.pq || video.hdr.hlg || video.hdr.sideDataTypes.length > 0)
+		)
+			throw new MediaToolError(
+				"UNSUPPORTED_PROCESSING",
+				"HDR video encoding requires a separately supported tone-mapping profile.",
+			);
+		const args = [
+			"-nostdin",
+			"-hide_banner",
+			"-v",
+			"error",
+			"-n",
+			"-protocol_whitelist",
+			"file,pipe",
+			"-i",
+			input,
+			"-map",
+			`0:${video.index}`,
+			...(audio ? ["-map", `0:${audio.index}`] : ["-an"]),
+			"-sn",
+			"-dn",
+			"-map_chapters",
+			"-1",
+			"-c:v",
+			encodeVideo ? "libx264" : "copy",
+			...(encodeVideo
+				? [
+						"-pix_fmt",
+						"yuv420p",
+						"-crf",
+						"20",
+						"-preset",
+						"medium",
+						"-threads",
+						"2",
+						"-vf",
+						"pad=ceil(iw/2)*2:ceil(ih/2)*2",
+						"-fps_mode",
+						"passthrough",
+					]
+				: []),
+			...(audio
+				? [
+						"-c:a",
+						encodeAudio ? "aac" : "copy",
+						...(encodeAudio ? ["-b:a", "192k"] : []),
+					]
+				: []),
+			"-movflags",
+			"+faststart",
+			"-fs",
+			String(maximumBytes),
+			"-f",
+			"mp4",
+			output,
+		];
+		await runTool(
+			executable,
+			args,
+			{
+				timeoutMs: this.policy.media.processingTimeoutMs,
+				...(options.signal ? { signal: options.signal } : {}),
+			},
+			this.policy.media,
+			this.logger,
+		);
+		const size = (await stat(output)).size;
+		// FFmpeg can exit successfully on -fs; never return a size-limited partial file.
+		if (size <= 0 || size >= maximumBytes)
+			throw new MediaToolError(
+				"TOOL_FAILED",
+				"Processed media is empty or exceeds its size limit.",
+			);
+		const result = await this.probe(output, options.signal);
+		const videos = result.streams.filter((stream) => stream.type === "video");
+		const audios = result.streams.filter((stream) => stream.type === "audio");
+		if (
+			videos.length !== 1 ||
+			videos[0]?.codec !== (encodeVideo ? "h264" : video.codec) ||
+			audios.length !== (audio ? 1 : 0) ||
+			(audio && audios[0]?.codec !== (encodeAudio ? "aac" : audio.codec))
+		)
+			throw new MediaToolError(
+				"TOOL_FAILED",
+				"Processed media does not match the requested streams.",
+			);
+		const sourceDuration = video.duration ?? info.duration;
+		const outputDuration = videos[0]?.duration ?? result.duration;
+		if (
+			sourceDuration !== null &&
+			outputDuration !== null &&
+			Math.abs(sourceDuration - outputDuration) >
+				Math.max(2, video.framesPerSecond ? 2 / video.framesPerSecond : 2)
+		)
+			throw new MediaToolError(
+				"TOOL_FAILED",
+				"Processed media duration does not match the source timeline.",
+			);
+		return result;
 	}
 
 	/** Select by absolute FFprobe stream index, never by a raw selector. */

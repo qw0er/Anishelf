@@ -65,6 +65,23 @@ export interface ExtractedSubtitle {
 	text: string;
 }
 
+/** Explicit processing operations; compatibility planning belongs to the application. */
+export type MediaProcessingMode =
+	| "remux"
+	| "transcode-audio"
+	| "transcode-video"
+	| "transcode";
+
+export interface MediaProcessingOptions {
+	mode: MediaProcessingMode;
+	videoStreamIndex: number;
+	/** null explicitly produces video-only output. */
+	audioStreamIndex: number | null;
+	signal?: AbortSignal;
+	/** Optional tighter bound for a caller's remaining storage budget. */
+	maximumBytes?: number;
+}
+
 export type ToolStatus =
 	| { available: true; path: string; version: string }
 	| { available: false; message: string };
