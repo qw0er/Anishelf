@@ -10,9 +10,9 @@ import {
 	type DeepReadonly,
 } from "../../configuration/public.js";
 import type {
-	MediaSourceApi,
 	ResolvedSource,
-} from "../../media-source/public.js";
+	ResourceAccessApi,
+} from "../../resource-access/public.js";
 import { subtitleAssetId, subtitleIdentity } from "../domain/identity.js";
 import type {
 	PreparedSubtitleFormat,
@@ -34,7 +34,7 @@ export class SubtitlePreparationApplication {
 	constructor(
 		private readonly options: {
 			logger?: Logger;
-			sources: MediaSourceApi;
+			sources: ResourceAccessApi;
 			policy?: DeepReadonly<BuiltinPolicy>;
 			repository: SubtitleRepository;
 			dataDir: string;

@@ -11,9 +11,9 @@ export interface DirectoryInfo {
 	name: string;
 }
 
-export type { FileInfo } from "../../media-source/public.js";
+export type { FileInfo } from "../../resource-access/public.js";
 
-import type { FileInfo } from "../../media-source/public.js";
+import type { FileInfo } from "../../resource-access/public.js";
 
 export type ResourceInfo = DirectoryInfo | FileInfo;
 

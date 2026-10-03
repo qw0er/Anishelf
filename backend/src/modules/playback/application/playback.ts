@@ -6,8 +6,8 @@ import {
 	builtinPolicy,
 	type DeepReadonly,
 } from "../../configuration/public.js";
-import type { MediaSourceApi } from "../../media-source/public.js";
-import { resourceRootId } from "../../media-source/public.js";
+import type { ResourceAccessApi } from "../../resource-access/public.js";
+import { resourceRootId } from "../../resource-access/public.js";
 import type {
 	ContinueWatchingItem,
 	ContinueWatchingResult,
@@ -35,7 +35,7 @@ export class PlaybackApplication {
 	private readonly policy: DeepReadonly<BuiltinPolicy>["playback"];
 	constructor(
 		private readonly options: {
-			sources: MediaSourceApi;
+			sources: ResourceAccessApi;
 			repository?: PlaybackRepository;
 			logger: Logger;
 			now?: () => number;

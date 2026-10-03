@@ -5,7 +5,7 @@ import {
 	subtitleAssets,
 } from "../../../platform/database/schema.js";
 import type { Store } from "../../../platform/database/store.js";
-import type { SourceRegistry } from "../../media-source/public.js";
+import type { SourceRegistry } from "../../resource-access/public.js";
 import type { SubtitleAsset } from "../domain/model.js";
 
 export class SubtitleRepository {

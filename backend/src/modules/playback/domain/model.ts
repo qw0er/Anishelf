@@ -1,12 +1,12 @@
-import type { FileInfo } from "../../media-source/public.js";
+import type { FileInfo } from "../../resource-access/public.js";
 
 export type {
 	RegisteredSource,
 	ResolvedSource,
 	SourceIdentity,
-} from "../../media-source/public.js";
+} from "../../resource-access/public.js";
 
-import type { RegisteredSource } from "../../media-source/public.js";
+import type { RegisteredSource } from "../../resource-access/public.js";
 
 /** Durable business progress, independent of the database schema. */
 export interface PlaybackProgress {

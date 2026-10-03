@@ -57,14 +57,14 @@ responsibilities, not existing classes.
 
 ![Anishelf frontend features, backend business modules and planned V2 extensions](architecture.svg)
 
-Library, Playback and Subtitles depend on the Media Source public API and the
-Configuration public policy/types; Library and Media Source also consume the
-settings-store capability. Media Source depends on Configuration, never Library.
+Library, Playback and Subtitles depend on the Resource Access public API and the
+Configuration public policy/types; Library and Resource Access also consume the
+settings-store capability. Resource Access depends on Configuration, never Library.
 The shared transport and platform areas support these modules; they do not own
 business workflows. Frontend feature imports follow Library → Playback → Subtitles.
 
 `bootstrap/` owns assembly, startup and shutdown. It connects the source catalog
-port to the library index, creates one media-source service and one source
+port to the library index, creates one resource-access service and one source
 registry, injects these into consumers, and registers module HTTP routes. Other
 modules cannot import bootstrap. Shared models and policy are dependencies, not
 an extra stage through which requests must flow.
@@ -77,7 +77,7 @@ backend/src/
   modules/
     configuration/       # Effective configuration and atomic settings persistence
     library/             # Browse, scan coordination and root-switch use case
-    media-source/        # Source identity, root epoch and confined access
+    resource-access/        # Source identity, root epoch and confined access
     media-inspection/    # Shared version-bound probe cache and concurrency
     playback/            # Sessions, progress and history
     subtitles/           # Discovery, preparation, delivery and asset lifecycle
@@ -126,15 +126,15 @@ regression coverage; production source is checked independently.
 | [`library/application/library.ts`](../backend/src/modules/library/application/library.ts) | Browse published entries and expose library use cases; delegate scan/settings/source work |
 | [`library/application/scan-coordinator.ts`](../backend/src/modules/library/application/scan-coordinator.ts) | Own the single scan timer, task state, cancellation, settings/scan exclusion and snapshot publication |
 | [`library/application/settings.ts`](../backend/src/modules/library/application/settings.ts) | Commit settings through Configuration, then invalidate the source epoch/reset the index on a real root change and trigger scanning |
-| [`media-source/public.ts`](../backend/src/modules/media-source/public.ts) | Source API, source/catalog models and controlled access capabilities; no library implementation dependency |
-| [`media-source/application/sources.ts`](../backend/src/modules/media-source/application/sources.ts) | Own the root epoch, resolve indexed IDs, revalidate source identities and open confined media; reject asynchronous access spanning a root change |
-| [`media-source/infrastructure/repository.ts`](../backend/src/modules/media-source/infrastructure/repository.ts) | Register canonical roots and source versions for both playback and subtitles; preserve existing identity hashes |
-| [`playback/public.ts`](../backend/src/modules/playback/public.ts) | Session/progress/history capability and result types; the application depends on `MediaSourceApi`, not Library |
-| [`subtitles/public.ts`](../backend/src/modules/subtitles/public.ts) | Discovery/preparation/content capability and result types; the application depends on `MediaSourceApi`, not Library or Playback |
+| [`resource-access/public.ts`](../backend/src/modules/resource-access/public.ts) | Source API, source/catalog models and controlled access capabilities; no library implementation dependency |
+| [`resource-access/application/access.ts`](../backend/src/modules/resource-access/application/access.ts) | Own the root epoch, resolve indexed IDs, revalidate source identities and open confined media; reject asynchronous access spanning a root change |
+| [`resource-access/infrastructure/repository.ts`](../backend/src/modules/resource-access/infrastructure/repository.ts) | Register canonical roots and source versions for both playback and subtitles; preserve existing identity hashes |
+| [`playback/public.ts`](../backend/src/modules/playback/public.ts) | Session/progress/history capability and result types; the application depends on `ResourceAccessApi`, not Library |
+| [`subtitles/public.ts`](../backend/src/modules/subtitles/public.ts) | Discovery/preparation/content capability and result types; the application depends on `ResourceAccessApi`, not Library or Playback |
 | [`configuration/public.ts`](../backend/src/modules/configuration/public.ts) | Settings-store interface, configuration types and program policy; atomic persistence stays internal |
 
 The catalog port exposes only indexed file lookup and snapshot availability.
-Bootstrap supplies it from the index; Media Source never imports Library. Missing
+Bootstrap supplies it from the index; Resource Access never imports Library. Missing
 or unscanned IDs retain their existing behavior. The source service owns the one
 root epoch; only the root-switch callback assembled by bootstrap invalidates it.
 Playback, inspection and subtitle consumers receive the read-only source capability.
@@ -169,7 +169,7 @@ manual and startup scans continue to use the same lifecycle and cancellation pat
 | User settings | Configuration; atomic `settings.json` |
 | Published index | Library; rebuildable memory |
 | Scan state, timer and operation gate | Scan coordinator; process memory |
-| Root epoch | Media Source; process memory |
+| Root epoch | Resource Access; process memory |
 | Root/source identity records | Source registry; existing SQLite tables |
 | Progress/history | Playback repository; SQLite |
 | Playback session tokens | Playback application; process memory |
@@ -191,12 +191,12 @@ the same selected-track preparation flow without branching on `origin`. Routes
 compose screens; the common API client and UI controls stay shared.
 
 1. **Scan:** library HTTP → `LibraryApplication.startScan` → `ScanCoordinator`
-   → scanner → Media Source access API; the coordinator publishes to the index.
+   → scanner → Resource Access access API; the coordinator publishes to the index.
 2. **Root switch:** settings HTTP → `SettingsApplication.updateSettings` →
    scan exclusion gate → Configuration commit → source epoch invalidation/index
    reset → scan. Bootstrap connects the invalidation callback.
 3. **Playback:** player controller → playback HTTP → `PlaybackApplication` →
-   `MediaSourceApi` + playback repository. Vidstack independently requests media
+   `ResourceAccessApi` + playback repository. Vidstack independently requests media
    bytes through library HTTP → library application → source API.
 4. **Subtitles:** subtitle controllers → subtitle HTTP → `SubtitleApplication`
    → source API + discovery/media adapters. A selected embedded track delegates
@@ -360,7 +360,7 @@ Discovery validates the source/root before and after inspection. The shared
 owns probing, not the subtitle application. Its `public.ts` exposes a read-only
 `MediaInspectionApi.inspect(fileId, expectedSourceVersion?)` capability for subtitle
 and future playback-plan consumers. It resolves confined sources through
-`MediaSourceApi`, checks source version/root epoch before reuse and after probing,
+`ResourceAccessApi`, checks source version/root epoch before reuse and after probing,
 and returns the resolved source plus media information. The result is backend-only;
 filesystem paths and stream indexes are not public HTTP contracts.
 
@@ -681,7 +681,7 @@ fields. Additional internal fields are not automatically serialized.
 
 Progress/session types are owned by `modules/playback/domain/model.ts`.
 `SourceIdentity`, `ResolvedSource`, `RegisteredSource` and `FileInfo` belong to
-`modules/media-source/domain/model.ts`; consumers use its Public API. Playback-session, progress-save, release, and history
+`modules/resource-access/domain/model.ts`; consumers use its Public API. Playback-session, progress-save, release, and history
 HTTP endpoints call the application. Presenters map these results to independent
 public schemas; database source IDs and internal paths are omitted.
 
@@ -703,7 +703,7 @@ public schemas; database source IDs and internal paths are omitted.
 Map stores authorization state, root epoch, generation, `touchedAtMs`. It is not persisted or exposed as a DTO.
 
 `PlaybackProgressRow` belongs to the playback repository; `MediaSourceRow`
-belongs to `modules/media-source/infrastructure/repository.ts`. Both are private
+belongs to `modules/resource-access/infrastructure/repository.ts`. Both are private
 schema-derived types. Repository projections return independently
 defined business records, so a table-column addition does not automatically
 change application result types. Transactions, generation checks, sequence
@@ -717,9 +717,9 @@ used by the repository; it is not a business record.
 
 | Definition | Type | Purpose |
 | --- | --- | --- |
-| `modules/media-source/infrastructure/access.ts` | `ResourceFileMetadata` | Inspected size, modification timestamp, and MIME type |
-| `modules/media-source/infrastructure/access.ts` | `ResourceSourceMetadata` | File metadata with a content-version identity |
-| `modules/media-source/infrastructure/access.ts` | `OpenedResourceFile` | Backend-only metadata, file handle, and release operation |
+| `modules/resource-access/infrastructure/access.ts` | `ResourceFileMetadata` | Inspected size, modification timestamp, and MIME type |
+| `modules/resource-access/infrastructure/access.ts` | `ResourceSourceMetadata` | File metadata with a content-version identity |
+| `modules/resource-access/infrastructure/access.ts` | `OpenedResourceFile` | Backend-only metadata, file handle, and release operation |
 | `modules/configuration/infrastructure/deployment.ts` | `Environment` | Private environment-variable parsing input |
 | `modules/library/http/media.ts` | `ByteRange` | Private byte-range parsing result |
 | `transport/security.ts` | `RequestOriginConfig` | Private listener settings needed for origin validation |
@@ -911,7 +911,7 @@ verification commands belong in [Development](development.md).
 
 ### Library access, index and scanning
 
-`modules/media-source/infrastructure/access.ts` owns canonical-root confinement,
+`modules/resource-access/infrastructure/access.ts` owns canonical-root confinement,
 regular-file validation and safe file handles. Reject symlinks and paths escaping
 the configured root. Resource IDs identify locations in the published catalog;
 strong source versions come from safely opened metadata, not index timestamps.

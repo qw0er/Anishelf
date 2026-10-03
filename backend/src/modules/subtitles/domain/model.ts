@@ -4,7 +4,7 @@ import {
 	builtinPolicy,
 	type DeepReadonly,
 } from "../../configuration/public.js";
-import type { SourceIdentity } from "../../media-source/public.js";
+import type { SourceIdentity } from "../../resource-access/public.js";
 
 export type {
 	PreparedSubtitleFormat,

@@ -57,9 +57,9 @@
 <text x="912" y="468" font-size="16" fill="#64748b">HTTP</text>
 <path data-from="web-subtitles" data-to="subtitles" d="M1470 436 V484" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
 <text x="1482" y="468" font-size="16" fill="#64748b">HTTP</text>
-<path data-from="library" data-to="media-source" d="M330 864 V900 H1300 V950" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
-<path data-from="playback" data-to="media-source" d="M900 864 V900 H1300 V950" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
-<path data-from="subtitles" data-to="media-source" d="M1470 864 V900 H1300 V950" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<path data-from="library" data-to="resource-access" d="M330 864 V900 H1300 V950" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<path data-from="playback" data-to="resource-access" d="M900 864 V900 H1300 V950" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<path data-from="subtitles" data-to="resource-access" d="M1470 864 V900 H1300 V950" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
 <text x="66" y="927" font-size="17">Selected arrows: caller → dependency. Cross-module business imports use public.ts.</text>
 <rect x="64" y="950" width="650" height="218" rx="12" fill="#eef7f3" stroke="#a9c8bc"/>
 <text x="84" y="982" font-size="21" font-weight="600">modules/configuration/ · public.ts</text>
@@ -68,17 +68,17 @@
 <text x="84" y="1075" font-size="18">infrastructure/  deployment · atomic settings persistence</text>
 <text x="84" y="1104" font-size="18">Owns settings.json and effective configuration</text>
 <rect x="964" y="950" width="772" height="218" rx="12" fill="#eef7f3" stroke="#a9c8bc"/>
-<text x="984" y="982" font-size="21" font-weight="600">modules/media-source/ · public.ts</text>
-<text x="984" y="1017" font-size="18">application/  MediaSourceApplication</text>
+<text x="984" y="982" font-size="21" font-weight="600">modules/resource-access/ · public.ts</text>
+<text x="984" y="1017" font-size="18">application/  ResourceAccessApplication</text>
 <text x="984" y="1046" font-size="18">domain/  source identity · SourceCatalog port · root epoch</text>
 <text x="984" y="1075" font-size="18">infrastructure/  ResourceAccess · SourceRepository</text>
 <text x="984" y="1104" font-size="18">Owns confined access and shared source registration</text>
-<path data-from="media-source" data-to="configuration" d="M964 1060 H714" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<path data-from="resource-access" data-to="configuration" d="M964 1060 H714" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
 <text x="739" y="1043" font-size="16" fill="#64748b">Settings / policy</text>
 <rect x="40" y="1220" width="1720" height="232" rx="12" fill="#f8fafc" stroke="#cbd5e1"/>
 <text x="64" y="1255" font-size="22" font-weight="600">ASSEMBLY + SHARED TECHNICAL SUPPORT</text>
 <text x="64" y="1290" font-size="18">bootstrap/  Creates concrete services, registers feature HTTP routes and owns startup / shutdown.</text>
-<text x="64" y="1319" font-size="18">Catalog wiring: LibraryIndex → injected SourceCatalog port. Media Source does not import Library.</text>
+<text x="64" y="1319" font-size="18">Catalog wiring: LibraryIndex → injected SourceCatalog port. Resource Access does not import Library.</text>
 <text x="64" y="1348" font-size="18">Registry wiring: one SourceRepository → injected into PlaybackRepository and SubtitleRepository.</text>
 <text x="64" y="1377" font-size="18">platform/  SQLite connection/schema · logging · FFmpeg/FFprobe processes · storage adapter policy</text>
 <text x="64" y="1406" font-size="18">transport/  HTTP security, presenters, errors and static serving; contracts/ + shared/ define common types.</text>

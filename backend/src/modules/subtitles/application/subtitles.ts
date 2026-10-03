@@ -18,11 +18,11 @@ import {
 } from "../../media-inspection/public.js";
 import type {
 	FileSourceIdentity,
-	MediaSourceApi,
 	ResolvedSource,
 	ResourceAccess,
-} from "../../media-source/public.js";
-import { assertSourceVersion } from "../../media-source/public.js";
+	ResourceAccessApi,
+} from "../../resource-access/public.js";
+import { assertSourceVersion } from "../../resource-access/public.js";
 import { defaultSubtitleName, subtitleTrackId } from "../domain/identity.js";
 import type {
 	ExternalSubtitle,
@@ -37,12 +37,12 @@ import { SubtitlePreparationApplication } from "./subtitle-preparation.js";
 /** Subtitle discovery and delivery share source/version access checks. */
 export class SubtitleApplication {
 	private readonly logger: Logger | undefined;
-	private readonly sources: MediaSourceApi;
+	private readonly sources: ResourceAccessApi;
 	private readonly inspection: MediaInspectionApi | undefined;
 	private readonly preparation: SubtitlePreparationApplication | undefined;
 	constructor(options: {
 		logger?: Logger;
-		sources: MediaSourceApi;
+		sources: ResourceAccessApi;
 		policy?: DeepReadonly<BuiltinPolicy>;
 		inspection?: MediaInspectionApi;
 		tools?: Pick<MediaTools, "extractSubtitle">;

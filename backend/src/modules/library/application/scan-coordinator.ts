@@ -14,7 +14,7 @@ import {
 import {
 	checkResourceRoot,
 	createResourceAccess,
-} from "../../media-source/public.js";
+} from "../../resource-access/public.js";
 import type { ScanState } from "../domain/scan-state.js";
 import type { LibraryIndex } from "../infrastructure/index.js";
 import {

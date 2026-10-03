@@ -6,12 +6,12 @@ import {
 	builtinPolicy,
 	type PersistentSettings,
 } from "../src/modules/configuration/public.js";
-import { MediaSourceApplication } from "../src/modules/media-source/application/sources.js";
-import { ResourceAccess } from "../src/modules/media-source/infrastructure/access.js";
+import { ResourceAccessApplication } from "../src/modules/resource-access/application/access.js";
+import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
 import type {
-	MediaSourceApi,
+	ResourceAccessApi,
 	SourceCatalog,
-} from "../src/modules/media-source/public.js";
+} from "../src/modules/resource-access/public.js";
 
 import { DomainError } from "../src/shared/errors.js";
 
@@ -44,7 +44,7 @@ async function fixture() {
 			mimeType: "video/mp4",
 		}),
 	};
-	const source = new MediaSourceApplication({
+	const source = new ResourceAccessApplication({
 		catalog,
 		configuration: {
 			get settings() {
@@ -65,7 +65,7 @@ async function fixture() {
 }
 test("source access uses only the catalog port, without a library application", async () => {
 	const { source } = await fixture();
-	const api: MediaSourceApi = source;
+	const api: ResourceAccessApi = source;
 	const result = await api.resolveSource("opaque-id");
 	expect(result.file).toMatchObject({ id: "opaque-id", sizeBytes: 8 });
 	expect(result.identity.sourceVersion).toBeTruthy();

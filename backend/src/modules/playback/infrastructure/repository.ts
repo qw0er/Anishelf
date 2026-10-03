@@ -9,7 +9,7 @@ import {
 	builtinPolicy,
 	type DeepReadonly,
 } from "../../configuration/public.js";
-import type { SourceRegistry } from "../../media-source/public.js";
+import type { SourceRegistry } from "../../resource-access/public.js";
 import type {
 	ContinueWatchingCandidate,
 	PlaybackProgress,

@@ -16,7 +16,7 @@ import {
 	PersistentConfiguration,
 	parsePersistentSettings,
 } from "../src/modules/configuration/infrastructure/persistent.js";
-import { checkResourceRoot } from "../src/modules/media-source/infrastructure/access.js";
+import { checkResourceRoot } from "../src/modules/resource-access/infrastructure/access.js";
 
 async function loadPersistentSettings(dataDir: string) {
 	return (await PersistentConfiguration.load(dataDir)).settings;

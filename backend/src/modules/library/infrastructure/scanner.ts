@@ -9,7 +9,7 @@ import {
 import {
 	getVideoMimeType,
 	type ResourceAccess,
-} from "../../media-source/public.js";
+} from "../../resource-access/public.js";
 import {
 	createResourceId,
 	type DirectoryEntry,

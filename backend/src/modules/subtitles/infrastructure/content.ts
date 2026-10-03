@@ -1,6 +1,6 @@
 import { DomainError } from "../../../shared/errors.js";
 import { builtinPolicy } from "../../configuration/public.js";
-import type { OpenedResourceFile } from "../../media-source/public.js";
+import type { OpenedResourceFile } from "../../resource-access/public.js";
 
 /** Bound reads even when a source grows after opening. Never writes the source. */
 export async function readSubtitleText(

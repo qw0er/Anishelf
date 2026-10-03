@@ -15,7 +15,7 @@ test("resolves the intended module and HTTP boundaries", () => {
 		),
 	);
 	assert.equal(
-		boundaryViolation(app, "backend/src/modules/media-source/public.ts"),
+		boundaryViolation(app, "backend/src/modules/resource-access/public.ts"),
 		null,
 	);
 	const http = "backend/src/modules/library/http/library.ts";

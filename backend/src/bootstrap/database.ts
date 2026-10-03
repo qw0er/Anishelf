@@ -9,8 +9,8 @@ import {
 	builtinPolicy,
 	type DeepReadonly,
 } from "../modules/configuration/domain/policy.js";
-import { SourceRepository } from "../modules/media-source/infrastructure/repository.js";
 import { PlaybackRepository } from "../modules/playback/infrastructure/repository.js";
+import { SourceRepository } from "../modules/resource-access/infrastructure/repository.js";
 import { SubtitleRepository } from "../modules/subtitles/infrastructure/repository.js";
 import { adapterPolicy } from "../platform/adapter-policy.js";
 import * as schema from "../platform/database/schema.js";

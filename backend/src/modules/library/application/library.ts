@@ -5,8 +5,8 @@ import type {
 } from "../../configuration/public.js";
 import {
 	checkResourceRoot,
-	type MediaSourceApi,
-} from "../../media-source/public.js";
+	type ResourceAccessApi,
+} from "../../resource-access/public.js";
 import type {
 	DirectoryInfo,
 	DirectoryListing,
@@ -49,7 +49,7 @@ function fileInfo(entry: FileEntry): FileInfo {
 
 export class LibraryApplication {
 	readonly policy: DeepReadonly<BuiltinPolicy>;
-	readonly sources: MediaSourceApi;
+	readonly sources: ResourceAccessApi;
 	readonly settings: SettingsApplication;
 	private readonly scans: ScanCoordinator;
 	constructor(
@@ -57,7 +57,7 @@ export class LibraryApplication {
 			configuration: SettingsStore;
 			index: LibraryIndex;
 			policy: DeepReadonly<BuiltinPolicy>;
-			sources: MediaSourceApi;
+			sources: ResourceAccessApi;
 			scans: ScanCoordinator;
 			settings: SettingsApplication;
 		},

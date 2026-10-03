@@ -8,7 +8,7 @@ import { createLibraryModule } from "../src/bootstrap/library.js";
 import { PersistentConfiguration } from "../src/modules/configuration/infrastructure/persistent.js";
 import type { LibraryApplication } from "../src/modules/library/application/library.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { ResourceAccess } from "../src/modules/media-source/infrastructure/access.js";
+import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
 
 const headers = { host: "127.0.0.1:3000" };
 let fixture: string;

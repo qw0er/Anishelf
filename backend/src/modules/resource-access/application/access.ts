@@ -28,7 +28,7 @@ function fileInfo(entry: FileInfo): FileInfo {
 	};
 }
 /** Owns source identity and the single root epoch, independently of library implementation. */
-export class MediaSourceApplication {
+export class ResourceAccessApplication {
 	private rootEpoch = 0;
 	constructor(
 		private readonly options: {

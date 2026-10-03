@@ -8,9 +8,9 @@ import {
 	type DeepReadonly,
 } from "../../configuration/public.js";
 import type {
-	MediaSourceApi,
 	ResolvedSource,
-} from "../../media-source/public.js";
+	ResourceAccessApi,
+} from "../../resource-access/public.js";
 
 export class MediaInspectionBusyError extends Error {
 	constructor() {
@@ -34,7 +34,7 @@ export class MediaInspectionApplication {
 
 	constructor(
 		private readonly options: {
-			sources: MediaSourceApi;
+			sources: ResourceAccessApi;
 			tools: Pick<MediaTools, "probe">;
 			policy?: DeepReadonly<BuiltinPolicy>["media"];
 			logger?: Logger;

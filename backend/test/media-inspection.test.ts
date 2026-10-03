@@ -14,7 +14,7 @@ import {
 	MediaInspectionApplication,
 	MediaInspectionBusyError,
 } from "../src/modules/media-inspection/application/inspection.js";
-import { ResourceAccess } from "../src/modules/media-source/infrastructure/access.js";
+import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
 import { SubtitleApplication } from "../src/modules/subtitles/application/subtitles.js";
 import {
 	type MediaInfo,

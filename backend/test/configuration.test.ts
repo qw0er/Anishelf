@@ -13,7 +13,7 @@ import {
 	validatePolicy,
 } from "../src/modules/configuration/domain/policy.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { ResourceAccess } from "../src/modules/media-source/infrastructure/access.js";
+import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
 import { readSubtitleText } from "../src/modules/subtitles/infrastructure/content.js";
 import { discoverExternalSubtitles } from "../src/modules/subtitles/infrastructure/discovery.js";
 import { runTool } from "../src/platform/media/process.js";

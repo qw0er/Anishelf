@@ -6,7 +6,7 @@ import {
 	builtinPolicy,
 	type DeepReadonly,
 } from "../../configuration/public.js";
-import type { ResourceAccess } from "../../media-source/public.js";
+import type { ResourceAccess } from "../../resource-access/public.js";
 import { subtitleTrackId } from "../domain/identity.js";
 import {
 	type ExternalSubtitleDiscovery,

@@ -1,4 +1,4 @@
-import type { MediaSourceApplication } from "./application/sources.js";
+import type { ResourceAccessApplication } from "./application/access.js";
 import { ResourceAccess } from "./infrastructure/access.js";
 
 export type {
@@ -25,8 +25,8 @@ export function createResourceAccess(
 	return ResourceAccess.create(...args);
 }
 /** Read-only source capability; consumers cannot change the resource root or scan. */
-export type MediaSourceApi = Pick<
-	MediaSourceApplication,
+export type ResourceAccessApi = Pick<
+	ResourceAccessApplication,
 	| "resolveSource"
 	| "revalidateSource"
 	| "assertRootEpoch"

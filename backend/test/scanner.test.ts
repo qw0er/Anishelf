@@ -7,7 +7,7 @@ import {
 	LibraryScanner,
 	type ScanTraversalProgress,
 } from "../src/modules/library/infrastructure/scanner.js";
-import { ResourceAccess } from "../src/modules/media-source/infrastructure/access.js";
+import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
 
 let fixture: string;
 let resources: ResourceAccess;

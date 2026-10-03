@@ -17,7 +17,7 @@ import { builtinPolicy } from "../src/modules/configuration/domain/policy.js";
 import type { LibraryApplication } from "../src/modules/library/application/library.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
-import { ResourceAccess } from "../src/modules/media-source/infrastructure/access.js";
+import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
 import { SubtitleApplication } from "../src/modules/subtitles/application/subtitles.js";
 import type { MediaInfo, MediaStream } from "../src/platform/media/index.js";
 import { MediaToolError, MediaTools } from "../src/platform/media/index.js";

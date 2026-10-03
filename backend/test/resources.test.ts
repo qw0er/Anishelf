@@ -15,7 +15,7 @@ import { afterEach, beforeEach, expect, test } from "vitest";
 import {
 	getVideoMimeType,
 	ResourceAccess,
-} from "../src/modules/media-source/infrastructure/access.js";
+} from "../src/modules/resource-access/infrastructure/access.js";
 
 let fixture: string;
 let root: string;
