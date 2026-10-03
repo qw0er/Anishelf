@@ -1,11 +1,27 @@
-# Anishelf — Current Design
+# Anishelf Architecture
+
+- [1. Architecture and Modules](#1-architecture-and-modules)
+- [2. Configuration, Persistence, and Identity](#2-configuration-persistence-and-identity)
+- [3. Inherited Library and Media Behavior (V1 → V2)](#3-inherited-library-and-media-behavior-v1--v2)
+- [4. Vidstack Web Playback (V2; V04–V06, O16)](#4-vidstack-web-playback-v2-v04v06-o16)
+- [5. Progress, Resume, and Lists (V2; W01–W02)](#5-progress-resume-and-lists-v2-w01w02)
+- [6. Subtitles (V2; P03, Partial P08–P09)](#6-subtitles-v2-p03-partial-p08p09)
+- [7. Playback Plan and FFmpeg Transcoding (V2; P05–P07)](#7-playback-plan-and-ffmpeg-transcoding-v2-p05p07)
+- [8. External-Player Media Link (V2; C01)](#8-external-player-media-link-v2-c01)
+- [9. HTTP Contracts and Failure Semantics](#9-http-contracts-and-failure-semantics)
+- [10. Everyday Interface (V2; O16)](#10-everyday-interface-v2-o16)
+- [11. Delivery Order, Acceptance, and Deferred Scope](#11-delivery-order-acceptance-and-deferred-scope)
+- [Backend Data Structures](#backend-data-structures)
+- [Playback Progress Storage](#playback-progress-storage)
+- [UI Conventions](#ui-conventions)
+- [Implemented Integration Reference](#implemented-integration-reference)
 
 **V1 is implemented; V2 is in progress.** The direct-playback Vidstack adapter
 and saved progress are implemented. External subtitle delivery/rendering and embedded
 subtitle discovery/preparation/delivery are implemented; embedded fonts, video preparation,
-and the remaining V2 workflows are planned. The [current requirements](current-version-requirements.md) define scope and acceptance.
+and the remaining V2 workflows are planned. The [current requirements](requirements.md#current-release-scope-and-acceptance) define scope and acceptance.
 
-The shared [design system](design-system.md) records page compositions and screen
+The [UI conventions](#ui-conventions) below record page compositions and screen
 conventions built on Tailwind defaults and shared controls. The broader V2 interface remains planned.
 
 ## 1. Architecture and Modules
@@ -39,7 +55,7 @@ mean **caller → dependency**; the catalog and registry wiring notes describe
 bootstrap injection rather than reverse module imports. Proposed names describe
 responsibilities, not existing classes.
 
-![Anishelf frontend features, backend business modules and planned V2 extensions](current-version-architecture.svg)
+![Anishelf frontend features, backend business modules and planned V2 extensions](architecture.svg)
 
 Library, Playback and Subtitles depend on the Media Source public API and the
 Configuration public policy/types; Library and Media Source also consume the
@@ -141,7 +157,7 @@ manual and startup scans continue to use the same lifecycle and cancellation pat
 
 The existing database schema, migrations, identity hashes, settings format and
 HTTP URLs are unchanged by this organization. No new queue, event bus or universal
-job engine is introduced. See [backend data structures](backend-data-structures.md)
+job engine is introduced. See [backend data structures](#backend-data-structures) below
 for type ownership and [development](development.md) for operational behavior.
 
 ### 1.5 Browser organization and call paths
@@ -187,10 +203,9 @@ refactor. Their final placement must follow the same public boundaries.
 
 Video/font work, automatic cache eviction and broader V2 settings remain planned.
 Unassigned metadata, download/subscription, tracker and desktop-bridge features
-are outside this diagram. Retain the [V1 design](history/v1-design.md) and
-[historical design index](historical-design.md); the following sections preserve
+are outside this diagram. Retain the [V1 design](history.md#v1-design) and
+[historical design index](history.md); the following sections preserve
 the detailed V2 target design.
-
 
 ## 2. Configuration, Persistence, and Identity
 
@@ -204,7 +219,7 @@ Missing tools do not prevent V1 browsing, direct media delivery, or already usab
 
 The cache budget applies to generated files, not the database or original media. Reserve capacity for active sessions and remove least-recently-used, unleased regenerable assets when necessary; never delete viewing history, originals, or active output. If capacity cannot be made available, return a storage error. Lowering the budget schedules cleanup rather than removing in-use assets.
 
-Originals, writable data, and frontend static assets remain separate and non-overlapping. Use a single process-lifetime Pino logger, configured level and fixed stdout/file destination, synchronous writes and flush on shutdown; add structured job/session IDs and redact credentials. Deferred log rotation/fallback requirements remain unchanged.
+Originals, writable data, and frontend static assets remain separate and non-overlapping. Use a single process-lifetime Pino logger, configured level and fixed stdout/file destination, with synchronous writes; add structured job/session IDs and redact credentials. Deferred log rotation/fallback requirements remain unchanged.
 
 ### Built-in defaults and user settings (O17)
 
@@ -219,7 +234,6 @@ The policy audit also centralizes subtitle read chunks (64 KiB), probe/extractio
 `web/src/config/interaction-policy.ts` owns loading delay, scan/subtitle polling (1000/500 ms), default/error Toast lifetimes (6000/10000 ms), persistent preparation feedback, seek steps (5 seconds), and eager/metadata player loading. These local presentation settings and the frontend default language are owned by the web workspace and are not serialized as server configuration. `contracts/subtitles.ts` supplies browser-safe subtitle enums, renderer subsets, MIME mappings, format conversions to schemas and adapters. The subtitle registry is the single source for format names, extensions, MIME, conversions, renderer support and native codecs; policy derives its default maps and codec list from that registry. Program capability checks remain separate from policy subsets.
 
 `modules/subtitles/domain/identity.ts` owns opaque track/asset ID construction and the extraction processing version. Hash payloads and existing IDs remain compatible. `platform/storage.ts` owns stable paths, source-version markers, temporary suffixes and private permissions; changes require compatibility review. `platform/adapter-policy.ts` names fixed SQLite durability, logging redaction/write behavior and development static-cache constraints. `contracts/defaults.ts` shares deployment defaults and the Vite development port/origins. Subtitle fallback names are defined in `modules/subtitles/domain/identity.ts`; no separate subtitle message catalog is needed. No policy or capability file is generated in the data directory.
-
 
 Startup uses environment variables. Media capabilities, transcode profiles, subtitle rules and runtime policy are defined in TypeScript. The English message catalog is a bundled read-only resource. None of these defaults is copied into `dataDir`; `dataDir/settings.json` stores only user choices and explicit overrides.
 
@@ -441,7 +455,7 @@ Resolve the selected opaque file ID through the existing file API and recheck re
 
 Validate link generation and resource access with spaces, Unicode, percent signs and ampersands, including an SSH-forwarded address. Do not claim the player opened or playback started. The link does not carry Web resume position, credentials, arbitrary commands or player options. Under the current local/loopback deployment assumption the endpoint is reachable without browser-only cookies or custom headers. Authenticated deployments need a separately designed expiring access mechanism before external links can be offered.
 
-External playback is playback only. V2 reads no player state and does not update Web history. Optional external-player state reading (C03) and browser/OS invocation (C02) are later requirements. Remote control, subtitle transfer, and multiple-device management remain unassigned. The superseded bridge proposal is retained in [Historical Designs](historical-design.md#superseded-v2-bridge-proposal); it is not part of the current architecture.
+External playback is playback only. V2 reads no player state and does not update Web history. Optional external-player state reading (C03) and browser/OS invocation (C02) are later requirements. Remote control, subtitle transfer, and multiple-device management remain unassigned. The superseded bridge proposal is retained in [Historical Designs](history.md#superseded-v2-bridge-proposal); it is not part of the current architecture.
 
 ## 9. HTTP Contracts and Failure Semantics
 
@@ -484,7 +498,7 @@ Keep existing directory/file URLs. Add `/tasks` and `/settings`; the shared shel
 | Media tasks | Filename, state, reliable progress or indeterminate indicator, retry/cancel, play ready copy, delete copy, active real-time stop | Empty, queued, processing, ready, failed, insufficient space |
 | Settings | Resource root, Web playback mode and cache budget in separate groups | Validation, saved, busy |
 
-Use a restrained neutral palette with one accent for primary actions, semantic status colors accompanied by text/icons, the implemented [typography and layout rules](design-system.md), and clear page/section hierarchy. Reuse Tailwind theme tokens and shadcn controls. Desktop uses a compact sidebar and broad content area; narrow screens use compact navigation and stacked controls. Long filenames wrap or truncate with an accessible full-name action; controls retain readable labels and visible keyboard focus. Announce status changes without repeatedly interrupting playback.
+Use a restrained neutral palette with one accent for primary actions, semantic status colors accompanied by text/icons, the implemented [typography and layout rules](architecture.md#ui-conventions), and clear page/section hierarchy. Reuse Tailwind theme tokens and shadcn controls. Desktop uses a compact sidebar and broad content area; narrow screens use compact navigation and stacked controls. Long filenames wrap or truncate with an accessible full-name action; controls retain readable labels and visible keyboard focus. Announce status changes without repeatedly interrupting playback.
 
 The primary file action is **Watch** or **Resume**. **Copy media link** is secondary and optional. Pre-transcoding is explicit; automatic Web mode may start only necessary real-time processing. Show Direct / Prepared / Real-time and the processing reason; subtitle/progress controls reflect actual API state. At 1280 px and 390 px widths, verify readable names, no page-wide overflow, focus order, control contrast, fullscreen exit, subtitle placement, and all loading/empty/error states. Vidstack accessibility must be tested and supplemented by the adapter where needed. No invented artwork, placeholder data, or controls for unassigned features.
 
@@ -511,10 +525,445 @@ Other unselected overall requirements retain **Target: Unassigned**: metadata/ep
 
 ### Feedback presentation
 
-Follow `design-system.md`: operation results and recoverable video/subtitle errors
+Follow the [UI conventions](#ui-conventions) below: operation results and recoverable video/subtitle errors
 use Toast notifications. Embedded subtitle preparation uses a persistent Toast,
 replaced by failure feedback with retry or closed on completion/selection changes.
 Video playback failures use Toast and the existing page Retry action. Manual
 refresh failures use Toast while persistent library errors remain in context.
 Form validation, scan status/counts/warning details, stale indicators, initial
 page errors, setup and empty states remain in their corresponding page regions.
+
+## Backend Data Structures
+
+This document records implemented type ownership and data boundaries in
+`backend/src`. Cross-module consumers import selected types through the owning module's `public.ts`; internal exports are not public module APIs or HTTP contracts.
+
+### Ownership Rules
+
+| Owner | Responsibility | Consumers |
+| --- | --- | --- |
+| `contracts/schemas` | Public TypeBox schemas for JSON requests, responses, DTOs and runtime constraints | HTTP routes and contract type inference |
+| `contracts/http.ts` | `Static<typeof Schema>` aliases derived from the public schemas | Presenters and the Web API client |
+| `transport/instance.ts` | Fastify instance type retaining the TypeBox Type Provider | JSON API route modules |
+| `transport/presenters.ts` | Explicit conversion from backend business data into public JSON shapes | HTTP handlers |
+| `modules/configuration/domain/model.ts` | Validated deployment options and persisted user settings | Startup, configuration, logging, applications, resource access, and HTTP configuration/presentation |
+| `modules/library/domain/model.ts` | Resource identity, path-free business information, internal index entries, snapshots, listings, and library status | Library index, scanner, applications, and HTTP presenters |
+| `modules/library/domain/scan-state.ts` | Business scan lifecycle, safe issues, and warning summaries | Library application, scanner, resource access, and HTTP presenters |
+| `modules/playback/domain/model.ts` | Backend playback identity, progress, commands, and results independent of SQLite | Applications and playback repository |
+| `platform/database/schema.ts` | SQLite tables and constraints | Database adapters |
+| Implementation files | Private runtime state and local helpers | Their owning module |
+
+Application and adapter modules do not import HTTP contracts. HTTP handlers call
+application use cases, and presenters import business types to build DTOs.
+Public contracts do not import backend business models or runtime modules.
+`npm run lint` runs Biome and the resolved-import architecture checker, including type-only imports and business-module cycles.
+
+### Public HTTP Contracts
+
+All public JSON shapes are defined by TypeBox in `contracts/schemas` and exported as
+inferred types from `contracts/http.ts`. Route request and response types are
+inferred from these same schemas. Presenters retain explicit field projection.
+
+| Type | Purpose |
+| --- | --- |
+| `ResourceId` | String representation of a public resource ID |
+| `DirectoryDto` | Directory identity and display name; no relative path |
+| `FileDto` | File identity, display name, size, modification timestamp, and MIME type; no relative path |
+| `ResourceDto` | A directory or file DTO |
+| `ScanWarningSummaryDto` | Bounded warning count and safe messages |
+| `LibraryIssueDto` | A safe library failure code and message |
+| `ScanStateDto` | Public running, completed, failed, or cancelled scan state |
+| `LibraryResponse` | `GET /api/library` status and scan information |
+| `ScanResponse` | `POST /api/library/scan` result |
+| `SettingsResponse` | `GET/PUT /api/settings` response |
+| `UpdateSettingsRequest` | `PUT /api/settings` request |
+| `DirectoryResponse` | `GET /api/directories/:id` result |
+| `FileResponse` | `GET /api/files/:id` metadata and direct playback URL |
+| `ApiErrorResponse` | Safe error code, message, and request ID |
+| `PlaybackProgressDto` | Public position, duration, viewing time and generation/sequence |
+| `OpenPlaybackRequest`, `PlaybackSessionResponse` | Session opening input and output |
+| `SavePlaybackProgressRequest`, `SavePlaybackProgressResponse` | Progress update and accepted/duplicate result |
+| `ContinueWatchingResponse` | Availability state and file/progress entries returned by recent history |
+
+The scan schema reuses private common fields for its state union. `contracts/errors.ts` owns
+the stable `errorCodes` vocabulary and derives `ErrorCode` from it; the error
+schema uses the same values. The health route uses `HealthResponseSchema` and
+returns `{ status: "ok" }`.
+
+The Web client imports types through `@anishelf/backend/contracts/http`. This
+workspace export resolves to source and does not bundle backend runtime code.
+
+### Library and Configuration Data
+
+| Definition | Types | Scope |
+| --- | --- | --- |
+| `modules/configuration/domain/model.ts` | `LogLevel`, `LoggingConfig`, `DeploymentConfig`, `MediaToolsConfig` | Backend startup and infrastructure configuration |
+| `platform/media/model.ts` | `MediaInfo`, `MediaStream`, `ToolStatus` | FFprobe descriptors and independently discovered tool availability; internal infrastructure types |
+| `platform/media/model.ts` | `SubtitleFormat`, `ExtractedSubtitle` | Selected text subtitle extraction result; persistence and access control belong to the caller |
+| `modules/configuration/domain/model.ts` | `PersistentSettings` | `settings.json` and backend settings operations; HTTP projects it into an independent `SettingsResponse` |
+| `modules/library/domain/model.ts` | `ResourceId`, `DirectoryInfo`, `FileInfo`, `ResourceInfo` | Backend identity and path-free business information |
+| `modules/library/domain/model.ts` | `DirectoryEntry`, `FileEntry`, `LibraryEntry` | Internal index entries, which add root-relative paths |
+| `modules/library/domain/model.ts` | `LibrarySnapshot` | Read-only published index with ID and parent-child maps |
+| `modules/library/domain/model.ts` | `DirectoryListing`, `LibraryStatus` | Application results consumed by HTTP presenters |
+| `modules/library/domain/scan-state.ts` | `Timestamp` | ISO 8601 UTC string timestamps used by the library and resource metadata |
+| `modules/library/domain/scan-state.ts` | `ScanWarningSummary`, `ScanState`, `LibraryIssue` | Backend business scan state and safe failure information |
+| `modules/library/domain/scan-state.ts` | `ScanStateFields` | Private common fields for the business scan union |
+| `modules/configuration/public.ts` | `SettingsStore` | Configuration persistence capability used by the root-switch application |
+| `modules/library/application/scan-coordinator.ts` | `RunningScan` | Private scan lifecycle state |
+| `modules/library/infrastructure/scanner.ts` | `ScanTraversalProgress` | Scanner-owned mutable counts and warnings, reported to the application through a progress callback |
+| `modules/library/infrastructure/scanner.ts` | `ScanTask` | Private directory/file work queue items |
+
+The scanner updates a separate traversal object. The application copies reported
+counts and warnings into its lifecycle state; it does not pass its `RunningScan`
+object to the scanner. Public scan DTOs are constructed by the HTTP presenter.
+
+Library entries contain filesystem-relative paths. The application constructs
+path-free business information, and HTTP presenters explicitly select public
+fields. Additional internal fields are not automatically serialized.
+
+### Playback Data
+
+Progress/session types are owned by `modules/playback/domain/model.ts`.
+`SourceIdentity`, `ResolvedSource`, `RegisteredSource` and `FileInfo` belong to
+`modules/media-source/domain/model.ts`; consumers use its Public API. Playback-session, progress-save, release, and history
+HTTP endpoints call the application. Presenters map these results to independent
+public schemas; database source IDs and internal paths are omitted.
+
+| Type | Purpose |
+| --- | --- |
+| `SourceIdentity` | Canonical root, file ID, relative path, and file version |
+| `ResolvedSource` | Validated source identity, path-free file information, and root epoch |
+| `RegisteredSource` | Registered source identity and persistence metadata returned by the repository |
+| `PlaybackProgress` | Durable business progress, including generation, last sequence, and timestamps |
+| `PlaybackProgressUpdate` | Repository progress-write input |
+| `SavePlaybackProgressResult` | Saved, duplicate, or stale repository/application result |
+| `PlaybackSession` | Application open result with token, generation, file, direct plan, and progress |
+| `SavePlaybackProgress` | Application save input with token, file version, generation, sequence, and position |
+| `ContinueWatchingCandidate` | Ordered repository candidate before live availability checks |
+| `ContinueWatchingItem` | Validated available file and saved progress |
+| `ContinueWatchingResult` | Availability-check state and validated items |
+
+`PlaybackSessionState` belongs only to `modules/playback/application/playback.ts`. Its token-keyed
+Map stores authorization state, root epoch, generation, `touchedAtMs`. It is not persisted or exposed as a DTO.
+
+`PlaybackProgressRow` belongs to the playback repository; `MediaSourceRow`
+belongs to `modules/media-source/infrastructure/repository.ts`. Both are private
+schema-derived types. Repository projections return independently
+defined business records, so a table-column addition does not automatically
+change application result types. Transactions, generation checks, sequence
+ordering, and database constraints retain their existing behavior.
+
+The schema contains `resourceRoots`, `mediaSources`, `playbackProgress` and `subtitleAssets`.
+`Store` in `platform/database/store.ts` describes the Drizzle database capability and is
+used by the repository; it is not a business record.
+
+### Resource and Local Helper Types
+
+| Definition | Type | Purpose |
+| --- | --- | --- |
+| `modules/media-source/infrastructure/access.ts` | `ResourceFileMetadata` | Inspected size, modification timestamp, and MIME type |
+| `modules/media-source/infrastructure/access.ts` | `ResourceSourceMetadata` | File metadata with a content-version identity |
+| `modules/media-source/infrastructure/access.ts` | `OpenedResourceFile` | Backend-only metadata, file handle, and release operation |
+| `modules/configuration/infrastructure/deployment.ts` | `Environment` | Private environment-variable parsing input |
+| `modules/library/http/media.ts` | `ByteRange` | Private byte-range parsing result |
+| `transport/security.ts` | `RequestOriginConfig` | Private listener settings needed for origin validation |
+| `contracts/errors.ts` | `ErrorCode` | Shared typed error identifiers |
+
+Numeric millisecond timestamps use the `AtMs` suffix. Serialized library
+timestamps use ISO strings, such as `modifiedAt`, `startedAt`, and `finishedAt`.
+File handles, Maps, relative paths, and mutable session objects belong to backend
+operations rather than public JSON contracts.
+
+## Playback Progress Storage
+
+Status: the database foundation is implemented (schema, migrations, connection lifecycle, and repository). Playback application session authorization, source fingerprint collection, and available-source candidate filtering are implemented. Migration `0001_remove_progress_revision` removes the unused revision column while preserving existing progress. HTTP APIs are implemented with separate public contracts and presenters. Frontend playback session management is integrated, including resume, automatic saves, ordinary backward seeks to zero, and cleanup. Session management runs without player status messages. The dedicated Continue watching list UI remains planned; recent history is implemented.
+
+This section specializes the V2 persistence design above for saved progress, resume, and Continue watching. Use SQLite at `dataDir/anishelf.sqlite`, Drizzle repositories, and reviewed versioned SQL migrations. User settings remain in `settings.json`; the library index remains rebuildable in memory.
+
+### 1. Initial Tables
+
+Use three durable tables. A source row represents one version of one file under one resource root. Each source has at most one current progress row. The application currently has no user accounts, so progress belongs to the shared server library.
+
+#### `resource_roots`
+
+| Column | SQLite type | Constraint / meaning |
+| --- | --- | --- |
+| `id` | TEXT | Primary key; hash of the canonical absolute root path |
+| `canonical_path` | TEXT | NOT NULL, UNIQUE; server-internal canonical path |
+| `created_at_ms` | INTEGER | NOT NULL; server Unix time in milliseconds |
+
+Canonicalize using the resource-access root resolution. Returning to the same canonical root reuses its namespace. Root path changes create another namespace; automatic move/relink support is deferred. Never expose canonical paths in public DTOs.
+
+#### `media_sources`
+
+| Column | SQLite type | Constraint / meaning |
+| --- | --- | --- |
+| `id` | TEXT | Primary key; hash of root ID, file ID, and source version with unambiguous separators |
+| `root_id` | TEXT | NOT NULL; foreign key to `resource_roots.id`, delete RESTRICT |
+| `file_id` | TEXT | NOT NULL; existing path-derived library resource ID |
+| `relative_path` | TEXT | NOT NULL; internal lookup path within the root |
+| `source_version` | TEXT | NOT NULL; versioned fingerprint of safely opened file metadata |
+| `created_at_ms` | INTEGER | NOT NULL; first registration time |
+
+Add UNIQUE (`root_id`, `file_id`, `source_version`). Build the fingerprint from size, high-resolution mtime/ctime, and available device/inode values. Serialize large metadata integers as decimal strings when hashing, avoiding JavaScript number precision loss. Include a fingerprint-format version. This detects ordinary replacement; it is not a content hash guarantee.
+
+The current index only contains size and ISO modification time. Obtain the stronger fingerprint through the resource-access layer from the safely opened file; do not treat the current index metadata as sufficient identity. Register sources lazily when opening playback. Scanning alone need not populate the database with every file.
+
+Retain old source versions and their progress when files disappear or change. A replacement gets a new source row and does not inherit progress. Availability is derived from the active root, published scan snapshot, and source revalidation, rather than a persistent `available` flag.
+
+#### `playback_progress`
+
+| Column | SQLite type | Constraint / meaning |
+| --- | --- | --- |
+| `source_id` | TEXT | Primary key; foreign key to `media_sources.id`, delete RESTRICT |
+| `position_ms` | INTEGER | NOT NULL, >= 0; last accepted source-time position |
+| `duration_ms` | INTEGER | Nullable; positive known duration, otherwise NULL |
+| `last_viewed_at_ms` | INTEGER | Nullable until the first accepted save; server time |
+| `generation` | INTEGER | NOT NULL, >= 1; identifies the current playback session |
+| `last_sequence` | INTEGER | NOT NULL, >= 0; latest accepted update within this generation |
+
+Require `position_ms <= duration_ms` when duration is known. Validate finite times and safe integer ranges before conversion from browser seconds. Reject invalid supplied durations; use NULL when duration is legitimately unknown. A new session may create an initial zero row with no viewing time, but that row must not enter viewing lists.
+
+Index `media_sources(root_id, id)` and `playback_progress(last_viewed_at_ms DESC, source_id ASC)` for root filtering and stable ordering. Revisit query plans when real library sizes justify additional indexes.
+
+### 2. Session and Update Rules
+
+Keep active session tokens and their source/generation bindings in memory. Their loss on server restart deliberately requires reopening a session; durable generation values must never be reset. A separate persistent session table is unnecessary for W01/W02.
+
+1. Resolve the current source safely and read its saved progress. On failure, keep playback usable, report the failure, and disable saving until a successful retry.
+2. Open a session transactionally: create/reuse the source and progress rows, increment the generation for an existing row, reset `last_sequence` to zero, and return history plus a server-issued token. Opening alone preserves position, duration, and last viewing time. Publish the token only after commit.
+3. Each save supplies the token, source version, generation, sequence, position, and duration. Check the active root and source validity before acceptance. Require the current generation and a strictly increasing sequence. Commit values and server viewing time atomically. Backward seeks, including seeking to zero, are ordinary newer updates within the current generation.
+4. A retry of the latest accepted sequence is successful only when its normalized position/duration match the stored values. It leaves viewing time unchanged. A differing payload or an older sequence is rejected. This makes ambiguous network retries safe without an event-log table.
+
+Opening another session for the same source supersedes the previous writer. Report that conflict; do not silently merge clients. This implements the selected stale-update protection without adding W06 reconciliation. Invalidate tokens on root switches and release them on exit; bound inactive session lifetime and memory usage.
+
+Use approximately five-second periodic saves plus pause, completed seek, ended, and normal exit. Serialize client writes and retain the newest failed payload for retry. An ended event with known duration saves that duration as the position. Direct, prepared, and real-time playback all write source-time progress to the same row.
+
+### 3. Continue Watching
+
+Query records for the active root with positive position and a non-NULL viewing time. A record is finished when known remaining time is at most `min(30,000 ms, duration_ms * 0.05)`. Unknown duration does not imply completion. Derive this condition; do not store an `is_finished` or watched marker that can drift from the saved values or policy.
+
+Order by `last_viewed_at_ms DESC`, then `source_id ASC`. Match candidates against the current scanned library and revalidate source versions before exposing actionable playback links. Exclude missing/replaced files from actionable Continue watching entries while retaining their durable records. Before a scan, return an explicit availability-unknown state.
+
+Apply the display limit after availability filtering so unavailable candidates do not consume every visible slot. Read ordered candidates in bounded batches if necessary. Reuse current library metadata for filename, parent navigation, and playback URL; do not persist duplicate display metadata or URLs.
+
+An eventual Recently watched list can reuse the same rows, ordering, and availability rules while including finished records. It requires no extra table and is not part of the initial W02 UI scope.
+
+### 4. Storage Boundaries and Implementation Order
+
+Do not initially add playback event logs, per-episode watched markers, user profiles, client reconciliation, probe/cache/job tables, or media BLOBs. Normal scanning and cache cleanup must never delete progress or source history.
+
+Enable foreign keys, WAL, a finite busy timeout, and `synchronous=FULL`. Keep transactions short. Apply migrations before enabling dependent writes; preserve the database and surface failures instead of silently replacing it. Document WAL-aware backup before shipping persistence.
+
+Implement in this order:
+
+1. Database startup, reviewed migrations, and resource/source identity access.
+2. Progress repository transactions and session lifecycle.
+3. History/session/save APIs and Vidstack resume/save integration.
+4. Continue watching queries and library UI.
+
+Verify restart/rescan survival; root and source-version isolation; unknown duration; backward seeks; duplicate/delayed writes; failed reads without zero overwrite; durable save failures; and filtering/ordering around the near-end boundary. Code changes must pass Biome check and lint, with repository and API tests for these persistence rules.
+
+## UI Conventions
+
+Use Tailwind's default typography, spacing, width scale, and breakpoints, together
+with the existing shadcn-style shared controls and light/dark theme. Vidstack
+owns its control appearance. Choose additional styling when a concrete screen
+requirement needs it.
+
+### Shared Layout
+
+`web/src/index.css` defines the recurring page compositions. It combines native
+Tailwind utilities rather than duplicating their values as new theme tokens.
+
+| Utility | Use |
+| --- | --- |
+| `page-container` | Align the header and content in the same centered container, with responsive side gutters. |
+| `page-content` | Add responsive vertical padding to main content or a standalone error page. |
+| `stack-page` | Separate major page sections, with more room from the default `sm` breakpoint. |
+| `page-title` | Style the page's semantic `h1` and allow long titles to wrap. |
+| `action-row` | Arrange related actions with wrapping on narrow screens. |
+
+Use native utilities for local gaps, labels, supporting text, and form widths.
+Shared Card components own their padding; sections inside a page do not add a
+second outer gutter. Button, Input, and Card retain their base component sizing
+and appearance. Use semantic headings regardless of their visual size.
+
+### Content and Actions
+
+Keep filenames intact and let them wrap. Library rows keep the icon beside the
+name; file size sits below the name on narrow screens and in a separate column
+from `sm`. Use tabular numerals for sizes and allow saved resource paths to break
+without widening the page. The media viewport remains 16:9, capped at 75 vh.
+
+Use the default Button variant for the main operation, such as starting a scan
+or saving settings. Use outline buttons for refresh, retry, and return actions;
+navigation uses the existing ghost and selected secondary variants. Keep visible
+labels and hide decorative icons from assistive technology.
+
+Use an icon with a visible text label for primary actions. In space-constrained
+areas, use an icon-only button with a Tooltip available on hover and keyboard
+focus, plus an accessible name. Choose recognizable icons; keep visible text
+when an action would otherwise be ambiguous. Tooltips supplement the action
+rather than being its only accessible label. When a loading spinner replaces
+an action icon, use the same icon size and do not leave an empty icon slot.
+
+### Feedback
+
+- Loading: retain the current layout, delay spinners and skeletons to avoid brief
+  flashes, and expose busy state. Skeletons follow the base control and heading
+  dimensions. Keep Vidstack's own loading and control appearance.
+- Setup and empty states: explain the missing resource directory or empty listing
+  in context; setup links to Settings.
+- Scanning and refreshing: display the actual status and available counts. Keep
+  incompatible operations disabled while work is in progress.
+- Warnings and stale results: show explanatory text, retain the available listing,
+  and keep warning details expandable. Do not rely on color alone.
+- Notifications: prefer Toast for operation success/failure, manual refresh failures,
+  and recoverable video/subtitle failures. Video errors use the existing page Retry
+  action; subtitle preparation failures may include a retry action in the Toast.
+  Deduplicate notifications and close player notifications on retry, file changes,
+  or departure. Keep subtitle preparation Toasts visible until completion, failure,
+  or selection cancellation; do not automatically expire ongoing-task feedback.
+- Contextual errors: keep form validation beside the corresponding form and keep
+  initial page-loading failures, unavailable resources, setup, and empty states in
+  the page. Use destructive text and `role="alert"` for inline errors. Persistent
+  library errors and stale-state indicators remain visible even after a Toast closes.
+- Saving: retain the input, disable the active form while saving, and show the
+  saved path after success. Use Toast for request failures and inline feedback for validation errors.
+
+### Maintenance and Validation
+
+CSS and shared components are authoritative for style values. This document
+records their use and the screen behavior they support. Add a shared utility or
+component when a recurring requirement needs coordinated maintenance.
+
+Check existing screens at narrow and desktop widths (for example, 390 px and
+1280 px), in light and dark themes. Include long filenames and paths, empty and
+loading states, warnings, and errors. Confirm readable content, no page-wide
+horizontal overflow, visible keyboard focus, and reachable actions. DOM tests
+cover interactions; browser inspection is required to validate geometry and
+Vidstack's controls.
+
+Extend these conventions as new workflows are implemented.
+
+## Implemented Integration Reference
+
+This section describes current integration behavior; it does not make planned
+video preparation, HLS, font or bitmap workflows available. Runtime setup and
+verification commands belong in [Development](development.md).
+
+### Library access, index and scanning
+
+`modules/media-source/infrastructure/access.ts` owns canonical-root confinement,
+regular-file validation and safe file handles. Reject symlinks and paths escaping
+the configured root. Resource IDs identify locations in the published catalog;
+strong source versions come from safely opened metadata, not index timestamps.
+
+`modules/library/infrastructure/index.ts` publishes a rebuildable in-memory
+snapshot with ID and parent-child lookup. It naturally sorts directories before
+files. A scan traverses into a separate result and only replaces the published
+snapshot on successful completion; cancellation and failure preserve the prior
+snapshot. Scanner traversal counts are copied into coordinator-owned lifecycle
+state instead of exposing its mutable task state.
+
+`ScanCoordinator` owns one active scan, the settings/scan exclusion gate and one
+scheduled timer. Startup, manual and scheduled requests use the same lifecycle.
+`scanIntervalMinutes=0` disables periodic scanning. Changing the interval resets
+the timer; a successful root change resets the index and starts a scan. Same-root
+saves preserve published results. Cancelling an HTTP request does not cancel
+server work; scan cancellation is an explicit operation.
+
+### HTTP boundary and original-media delivery
+
+`bootstrap/http.ts` builds Fastify without listening, which permits injection
+and route tests. Host validation accepts the configured loopback address or
+localhost with its port; forwarded headers are not trusted. Mutation requests
+validate Origin and browser metadata. There is no general CORS allowance.
+
+TypeBox schemas in `contracts/schemas/` are authoritative for public requests and
+responses. `contracts/http.ts` exports inferred types; presenters explicitly
+project path-free DTOs. HTTP handlers enter the owning application and never open
+files or access repositories directly. Every request has a generated UUID in
+`x-request-id`; safe errors contain code, message and request ID. Unexpected
+errors return generic messages, and serialized exceptions remain in server logs.
+
+`GET /api/files/:id` validates current access and returns metadata with an original
+media URL. `GET/HEAD /api/media/:id` opens a confined regular file and supports a
+single byte range. Valid ranges produce 206; unsatisfiable ranges produce 416;
+malformed or multipart ranges are ignored. HEAD and If-Range use the full response.
+BigInt arithmetic prevents range integer overflow. Responses use no-store,
+Accept-Ranges and a bounded Content-Length. Stream completion, disconnect and
+errors release file handles; failures have structured error logs. Media bytes are
+requested by the player directly, never fetched through the JSON API client.
+
+### Browser routing and request lifecycle
+
+React Router Data Mode composes `/`, `/directories/:id`, `/files/:id`, `/settings`
+and `/history`. Route loaders forward cancellation signals; URL state restores
+selection on direct navigation and browser back/forward. File links preserve the
+originating directory through `?directory=<id>`, otherwise Back uses the file's
+parent. Unknown routes have a root-navigation action.
+
+`web/src/api/client.ts` uses same-origin paths/credentials and no-store requests.
+It checks JSON/error envelopes and distinguishes HTTP, network and invalid-response
+errors. Public success shapes are shared TypeScript contracts rather than a second
+set of runtime validators. Cancellation is checked before fetch, after headers and
+after parsing and is silently ignored by UI callers. A new request uses a new
+AbortController; cancelled views cannot publish stale data.
+
+The root loader fetches status and settings in parallel. Scan actions revalidate
+active loaders; status polling runs while scanning and stops at terminal states.
+Player identity stays stable during polling. Presentation intervals live in
+`config/interaction-policy.ts`; media-controller timing and renderer budgets live
+in `config/media-policy.ts`, with browser-safe shared business constraints.
+
+### Playback controller and persistence lifecycle
+
+`features/playback/session.ts` waits for metadata before restoring server progress
+and only enables writes after successful restoration. Vidstack local resume is
+disabled. Session failures leave direct playback usable. Save approximately every
+five seconds and on pause, completed seek and ended; serialize writes and coalesce
+samples. Ambiguous retries retain their sequence and payload. Errors stop automatic
+writes until an explicit player retry.
+
+Leaving a route captures progress before provider teardown and releases the token
+in background cleanup without blocking navigation. Remounting the same file waits
+for cleanup, including StrictMode replay. Pagehide uses keepalive for a final save,
+but browser termination cannot guarantee delivery; server idle expiry bounds
+abandoned sessions. Ordinary backward seeks, including zero, remain newer writes.
+The recent-history UI is implemented; the dedicated Continue watching list remains
+planned. Database schema and session rules are specified above.
+
+### Media tools and subtitle delivery
+
+`platform/media/` independently resolves and version-checks FFmpeg and FFprobe.
+Child calls use argument arrays without a shell, disable interactive input and
+allow only file/pipe protocols. Detection is bounded to 5 seconds and 64 KiB;
+probe/extraction default to 30/60 seconds and bounded 10 MiB output. Cancellation
+kills child work. Retained failure diagnostics are capped at 4 KiB. Tool failure,
+timeout and output overflow map to TOOL_FAILED; malformed descriptors and invalid
+paths/selectors have separate internal codes. Raw paths/selectors are trusted
+backend inputs and never public client commands.
+
+External subtitle discovery inspects only the video's directory. Match the exact
+stem with a supported extension or dot-separated suffix: `Episode 01.zh-Hans.ass`
+qualifies, while `Episode 010.srt` and `Episode 01-extra.ass` do not. Extensions
+are case-insensitive, stems case-sensitive; empty suffix components are rejected.
+Natural ordering is deterministic. Language tags are filename hints, not content
+inspection. Candidates over the shared size limit are omitted with safe warnings;
+matching symlinks/nonregular files are rejected. Sidecar changes need no video rescan.
+
+External content delivery re-discovers opaque track IDs and checks video/subtitle
+versions. It bounds reads, including file growth, and supports UTF-8 and BOM-marked
+UTF-16LE/BE. Responses use text/plain, no-store and nosniff. Discovery is metadata-only;
+embedded extraction begins only on selected-track preparation. Source changes
+invalidate old work, pending files publish atomically, and persisted asset rows
+support restart reuse. Probe and extraction slots are separate and deduplicated;
+cache-budget checks/publication serialize to prevent oversubscription.
+
+Vidstack Track declarations and its CC menu own subtitle selection. ASS/SSA uses
+a TextRenderer adapter for the pinned JASSUB API, packaged worker/WASM and a
+Liberation Sans fallback. Selection/off, retries and unmount dispose pending loads,
+tracks and overlays. Missing CJK glyphs remain possible without embedded fonts.
+Original media and sidecars are never modified.

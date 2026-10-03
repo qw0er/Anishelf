@@ -31,7 +31,7 @@ Startup options can be set with environment variables:
 | `ANISHELF_FFMPEG_PATH` | `ffmpeg` from process PATH | Optional absolute FFmpeg executable path; resolved independently. |
 | `ANISHELF_FFPROBE_PATH` | `ffprobe` from process PATH | Optional absolute FFprobe executable path; resolved independently. |
 
-FFmpeg and FFprobe are discovered and version-checked independently at startup. Missing or unusable binaries produce warning logs and disable dependent tool operations; direct playback remains available. An explicit override never falls back to PATH. Install tools separately and ensure the service manager exposes their directory in PATH, or configure the absolute executable paths above. Restart after changing tool paths or installing tools. See [the media tool API](docs/development.md#media-tool-layer) for the current backend-only functions.
+FFmpeg and FFprobe are discovered and version-checked independently at startup. Missing or unusable binaries produce warning logs and disable dependent tool operations; direct playback remains available. An explicit override never falls back to PATH. Install tools separately and ensure the service manager exposes their directory in PATH, or configure the absolute executable paths above. Restart after changing tool paths or installing tools. See [the media tool API](docs/architecture.md#media-tools-and-subtitle-delivery) for the current backend-only functions.
 
 The default uses [platformdirs](https://www.npmjs.com/package/platformdirs) to choose the user data directory for the current operating system (for example, XDG data storage on Linux, Application Support on macOS, and Local AppData on Windows). `ANISHELF_DATA_DIR` overrides this choice. The directory is created at startup if needed. Paths are resolved independently of the working directory; `~` in an environment value is not expanded by the application.
 
@@ -154,11 +154,10 @@ npm run check   # Biome, type checks, backend and frontend tests
 npm run lint    # Biome lint
 ```
 
-- [Current requirements](docs/current-version-requirements.md)
-- [Current design](docs/current-version-design.md)
-- [Historical designs](docs/historical-design.md)
-- [Development, configuration, and API details](docs/development.md)
-- [Overall requirements](docs/requirements.md)
+- [Requirements and active release acceptance](docs/requirements.md)
+- [Architecture and implementation reference](docs/architecture.md)
+- [Development and operations](docs/development.md)
+- [Complete historical records](docs/history.md)
 
 The user has reported completing manual browser acceptance. Automated tests cover configuration, scanning, navigation, media delivery, access boundaries, frontend interactions, and development-only page hosting. Actual media decoding is validated by manual browser acceptance.
 
@@ -168,7 +167,7 @@ The backend creates one `ConfigurationService` from validated startup environmen
 
 Only `resourceRoot` and optional `scanIntervalMinutes` are currently writable. Omitted intervals use the current built-in default; `0` disables scheduled scans. Explicit choices survive upgrades. Settings commit atomically before the effective snapshot changes. Existing root-only settings need no migration.
 
-Read-only `GET /api/client-config` supplies safe defaults, constraints and capabilities to the Web client. Client configuration failure offers a retry; the Web client does not substitute hard-coded defaults. Transcode profiles, cache budgets and profile-content cache invalidation remain planned O17 work.
+The Web build defines local playback and renderer policy and imports browser-safe shared scan/subtitle constraints. No client-configuration request is required. Transcode profiles, cache budgets and profile-content cache invalidation remain planned O17 work.
 
 ### External-player media links
 
