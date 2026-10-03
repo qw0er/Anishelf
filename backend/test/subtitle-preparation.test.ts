@@ -24,6 +24,7 @@ import {
 import type { LibraryApplication } from "../src/modules/library/application/library.js";
 import { createResourceId } from "../src/modules/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
+import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
 import { SubtitleApplication } from "../src/modules/subtitles/application/subtitles.js";
 import {
 	type MediaInfo,
@@ -79,11 +80,18 @@ const info: MediaInfo = {
 	streams: [stream],
 };
 function server() {
+	const inspection = new MediaInspectionApplication({
+		sources: library.sources,
+		tools: { probe },
+		policy: library.policy.media,
+		logger,
+	});
 	subtitles = new SubtitleApplication({
 		logger,
 		sources: library.sources,
 		policy: library.policy,
-		tools: { probe, extractSubtitle: extract },
+		inspection,
+		tools: { extractSubtitle: extract },
 		dataDir,
 		repository: database.subtitles,
 	});
@@ -93,6 +101,7 @@ function server() {
 		logger,
 		config: { host: "127.0.0.1", port: 3000 },
 	});
+	app.addHook("onClose", async () => inspection.close());
 }
 beforeEach(async () => {
 	logRecords.length = 0;

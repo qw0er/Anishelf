@@ -12,10 +12,13 @@ import {
 	builtinPolicy,
 	type DeepReadonly,
 } from "../../configuration/public.js";
+import {
+	type MediaInspectionApi,
+	MediaInspectionBusyError,
+} from "../../media-inspection/public.js";
 import type {
 	MediaSourceApi,
 	ResolvedSource,
-	ResourceAccess,
 } from "../../media-source/public.js";
 import { defaultSubtitleName, subtitleTrackId } from "../domain/identity.js";
 import type {
@@ -31,24 +34,21 @@ import { SubtitlePreparationApplication } from "./subtitle-preparation.js";
 export class SubtitleApplication {
 	private readonly logger: Logger | undefined;
 	private readonly sources: MediaSourceApi;
-	private readonly tools: Pick<MediaTools, "probe"> | undefined;
-	private readonly cache = new Map<string, MediaInfo>();
-	private readonly active = new Map<string, Promise<MediaInfo>>();
+	private readonly inspection: MediaInspectionApi | undefined;
 	private readonly preparation: SubtitlePreparationApplication | undefined;
-	private readonly controller = new AbortController();
 	constructor(options: {
 		logger?: Logger;
 		sources: MediaSourceApi;
 		policy?: DeepReadonly<BuiltinPolicy>;
-		tools?: Pick<MediaTools, "probe"> &
-			Partial<Pick<MediaTools, "extractSubtitle">>;
+		inspection?: MediaInspectionApi;
+		tools?: Pick<MediaTools, "extractSubtitle">;
 		repository?: SubtitleRepository;
 		dataDir?: string;
 	}) {
 		this.logger = options.logger?.child({ module: "subtitles" });
 		this.sources = options.sources;
 		this.policy = options.policy ?? builtinPolicy;
-		this.tools = options.tools;
+		this.inspection = options.inspection;
 		if (
 			options.repository &&
 			options.dataDir &&
@@ -68,74 +68,32 @@ export class SubtitleApplication {
 	}
 	private readonly policy: DeepReadonly<BuiltinPolicy>;
 	async close(): Promise<void> {
-		this.controller.abort();
 		await this.preparation?.close();
-		await Promise.allSettled(this.active.values());
-		this.cache.clear();
-	}
-	private async inspect(key: string, path: string): Promise<MediaInfo> {
-		const cached = this.cache.get(key);
-		if (cached) {
-			this.logger?.trace(
-				{ event: "subtitles.probe_cache_hit" },
-				"Reusing cached media inspection.",
-			);
-			return cached;
-		}
-		const pending = this.active.get(key);
-		if (pending) {
-			this.logger?.trace(
-				{ event: "subtitles.probe_joined" },
-				"Joining media inspection.",
-			);
-			return pending;
-		}
-		if (this.active.size >= this.policy.media.probeConcurrency)
-			throw new MediaToolError("TOOL_FAILED", "Media inspection is busy.");
-		if (!this.tools)
-			throw new MediaToolError(
-				"TOOL_UNAVAILABLE",
-				"Media inspection is unavailable.",
-			);
-		const promise = this.tools.probe(path, this.controller.signal);
-		this.active.set(key, promise);
-		try {
-			const info = await promise;
-			this.cache.set(key, info);
-			if (this.cache.size > this.policy.media.maximumProbeCacheEntries) {
-				const oldest = this.cache.keys().next().value;
-				if (oldest !== undefined) this.cache.delete(oldest);
-			}
-			return info;
-		} finally {
-			this.active.delete(key);
-		}
 	}
 	private async discoverEmbedded(
 		identity: ResolvedSource["identity"],
-		resources: ResourceAccess,
 		name: string,
 	): Promise<Pick<SubtitleDiscovery, "tracks" | "warnings">> {
 		// No provider means this application is configured for external subtitles only.
-		if (!this.tools) return { tracks: [], warnings: [] };
+		if (!this.inspection) return { tracks: [], warnings: [] };
 		const key = JSON.stringify([
 			identity.canonicalRoot,
 			identity.fileId,
 			identity.sourceVersion,
 		]);
-		if (
-			!this.cache.has(key) &&
-			!this.active.has(key) &&
-			this.active.size >= this.policy.media.probeConcurrency
-		)
-			return { tracks: [], warnings: [{ name, code: "SUBTITLE_PROBE_BUSY" }] };
 		let info: MediaInfo;
 		try {
-			info = await this.inspect(
-				key,
-				join(resources.canonicalRoot, identity.relativePath),
+			const result = await this.inspection.inspect(
+				identity.fileId,
+				identity.sourceVersion,
 			);
+			info = result.info;
 		} catch (error) {
+			if (error instanceof MediaInspectionBusyError)
+				return {
+					tracks: [],
+					warnings: [{ name, code: "SUBTITLE_PROBE_BUSY" }],
+				};
 			this.logger?.warn(
 				{
 					event: "subtitles.probe_failed",
@@ -221,9 +179,10 @@ export class SubtitleApplication {
 			this.policy.subtitles,
 			this.policy.library,
 		);
+		if (source.rootEpoch !== this.sources.resourceRootEpoch)
+			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
 		const tracks = await this.discoverEmbedded(
 			source.identity,
-			resources,
 			source.file.name,
 		);
 		const discovery: SubtitleDiscovery = {
@@ -320,7 +279,20 @@ export class SubtitleApplication {
 			source.identity.fileId,
 			sourceVersion,
 		]);
-		const info = this.cache.get(key);
+		let info: MediaInfo | undefined;
+		try {
+			info = (await this.inspection?.inspect(fileId, sourceVersion))?.info;
+		} catch (error) {
+			if (
+				error instanceof MediaInspectionBusyError ||
+				error instanceof MediaToolError
+			)
+				throw new DomainError(
+					"SUBTITLE_PREPARATION_BUSY",
+					"Subtitle inspection is unavailable. Retry.",
+				);
+			throw error;
+		}
 		const stream = info?.streams.find(
 			(stream) =>
 				stream.type === "subtitle" &&

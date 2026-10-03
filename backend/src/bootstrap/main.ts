@@ -10,6 +10,7 @@ import type {
 } from "../modules/configuration/domain/policy.js";
 import type { LibraryApplication } from "../modules/library/application/library.js";
 import { LibraryIndex } from "../modules/library/infrastructure/index.js";
+import { MediaInspectionApplication } from "../modules/media-inspection/application/inspection.js";
 import { PlaybackApplication } from "../modules/playback/application/playback.js";
 import { SubtitleApplication } from "../modules/subtitles/application/subtitles.js";
 import { ApplicationLogging } from "../platform/logging/index.js";
@@ -122,10 +123,17 @@ async function createServer(
 	const frontendRoot = fileURLToPath(
 		new URL("../../../web/dist/", import.meta.url),
 	);
+	const inspection = new MediaInspectionApplication({
+		sources: library.sources,
+		tools,
+		policy: configuration.policy.media,
+		logger,
+	});
 	const subtitles = new SubtitleApplication({
 		logger,
 		sources: library.sources,
 		policy: library.policy,
+		inspection,
 		tools,
 		dataDir: config.dataDir,
 		...(database ? { repository: database.subtitles } : {}),
@@ -152,6 +160,7 @@ async function createServer(
 	});
 	server.addHook("onClose", async () => {
 		await subtitles.close();
+		await inspection.close();
 		database?.close();
 	});
 	return server;

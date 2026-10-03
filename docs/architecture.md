@@ -78,6 +78,7 @@ backend/src/
     configuration/       # Effective configuration and atomic settings persistence
     library/             # Browse, scan coordination and root-switch use case
     media-source/        # Source identity, root epoch and confined access
+    media-inspection/    # Shared version-bound probe cache and concurrency
     playback/            # Sessions, progress and history
     subtitles/           # Discovery, preparation, delivery and asset lifecycle
   contracts/             # Browser-safe HTTP schemas/types, formats and defaults
@@ -322,7 +323,8 @@ Continue watching includes available records with positive position that are not
 ## 6. Subtitles (V2; P03, Partial P08–P09)
 
 `SubtitleApplication` owns both subtitle HTTP use cases, independently of playback
-sessions. Startup injects the resolved `MediaTools` instance. `GET /api/files/:id/subtitles`
+sessions. Startup injects a shared `MediaInspectionApi` for probing and the
+resolved `MediaTools` extraction capability. `GET /api/files/:id/subtitles`
 merges same-directory external candidates with FFprobe subtitle-stream descriptors.
 The public track shape is shared by both sources: opaque ID, name, language/title,
 format, source version, size, codec, default/forced flags, `supported` and
@@ -333,15 +335,30 @@ private. The backend derives `supported` from its codec/format capabilities, not
 availability of a prepared asset or a guarantee of successful rendering. `mov_text`/`text` anticipate SRT conversion; WebVTT maps to `vtt`.
 Unknown and bitmap codecs remain visible with an unsupported status.
 
-Discovery validates the source/root before and after inspection. Successful probes
-are cached in memory by canonical root, file ID and source version, up to the built-in
-`media.maximumProbeCacheEntries` limit (32 by default); oldest insertions are evicted.
-Same-source requests share one active probe. A different uncached source receives
-`SUBTITLE_PROBE_BUSY` while inspection is occupied and can retry; there is no unbounded
-probe queue. FFprobe absence/failure returns safe `SUBTITLE_PROBE_UNAVAILABLE` or
-`SUBTITLE_PROBE_FAILED` warnings alongside external candidates, and failures are not
-cached. Application shutdown aborts and awaits the active probe. An explicitly
-external-only application without a tool provider skips embedded inspection.
+Discovery validates the source/root before and after inspection. The shared
+`MediaInspectionApplication` in `modules/media-inspection/application/inspection.ts`
+owns probing, not the subtitle application. Its `public.ts` exposes a read-only
+`MediaInspectionApi.inspect(fileId, expectedSourceVersion?)` capability for subtitle
+and future playback-plan consumers. It resolves confined sources through
+`MediaSourceApi`, checks source version/root epoch before reuse and after probing,
+and returns the resolved source plus media information. The result is backend-only;
+filesystem paths and stream indexes are not public HTTP contracts.
+
+Successful probes are cached in memory by canonical root, file ID and source version,
+up to `media.maximumProbeCacheEntries` (32 by default); oldest insertions are evicted.
+Same-source callers share one active probe across consumers. Uncached sources receive
+`MediaInspectionBusyError` when `media.probeConcurrency` is exhausted; there is no
+unbounded queue. Callers receive independent copies of media information, so one
+consumer cannot mutate another consumer's cached result. Failures are not cached.
+Every caller revalidates its source, including on cache hits. File replacement or a
+root-epoch change produces `PLAYBACK_CONFLICT` rather than usable stale metadata.
+
+Subtitles map busy feedback to `SUBTITLE_PROBE_BUSY`, and FFprobe absence/failure to
+safe `SUBTITLE_PROBE_UNAVAILABLE` / `SUBTITLE_PROBE_FAILED` warnings alongside external
+candidates. An application without an inspection provider skips embedded inspection.
+The composition root owns the shared service lifetime: closing subtitles stops only
+subtitle preparation; server shutdown aborts and awaits shared probes before the
+database closes. No scan/list request or service construction starts probing.
 
 Discovery does not read subtitle contents, extract tracks or write assets. The player
 registers all supported tracks as empty local placeholders in Vidstack's CC menu,
