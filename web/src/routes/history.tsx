@@ -99,7 +99,7 @@ export default function HistoryPage() {
 										)}
 									</div>
 									<Link
-										className={buttonStyles("outline")}
+										className={[buttonStyles("outline"), "w-28"].join(" ")}
 										to={filePath(file.id, file.parentId)}
 										aria-label={`${t(progress.positionMs > 0 ? "history.resume" : "history.watch")}: ${file.name}`}
 									>
