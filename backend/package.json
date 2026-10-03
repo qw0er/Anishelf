@@ -34,16 +34,16 @@
 	},
 	"exports": {
 		".": "./dist/index.js",
-		"./http/contracts": {
-			"types": "./src/http/contracts.ts"
+		"./contracts/http": {
+			"types": "./src/contracts/http.ts"
 		},
-		"./public/subtitles": {
-			"types": "./src/public/subtitles.ts",
-			"default": "./src/public/subtitles.ts"
+		"./contracts/subtitles": {
+			"types": "./src/contracts/subtitles.ts",
+			"default": "./src/contracts/subtitles.ts"
 		},
-		"./public/defaults": {
-			"types": "./src/public/defaults.ts",
-			"default": "./src/public/defaults.ts"
+		"./contracts/defaults": {
+			"types": "./src/contracts/defaults.ts",
+			"default": "./src/contracts/defaults.ts"
 		}
 	}
 }

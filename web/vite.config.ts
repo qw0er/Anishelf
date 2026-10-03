@@ -1,7 +1,7 @@
 import {
 	deploymentDefaults,
 	developmentDefaults,
-} from "@anishelf/backend/public/defaults";
+} from "@anishelf/backend/contracts/defaults";
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";

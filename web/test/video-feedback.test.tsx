@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { toast } from "../src/components/ui/toast.js";
-import VideoPlayer from "../src/components/video-player.js";
+import VideoPlayer from "../src/features/playback/components/video-player.js";
 import { clientConfig } from "./client-config.js";
 
 vi.mock("@vidstack/react", () => ({
@@ -20,8 +20,8 @@ vi.mock("@vidstack/react/player/layouts/default", () => ({
 	DefaultVideoLayout: () => null,
 	defaultLayoutIcons: {},
 }));
-vi.mock("../src/components/external-subtitles.js", () => ({
-	ExternalSubtitleTracks: () => null,
+vi.mock("../src/features/subtitles/components/subtitle-tracks.js", () => ({
+	SubtitleTracks: () => null,
 }));
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),

@@ -9,9 +9,9 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as api from "../src/api/client.js";
-import MediaLink from "../src/components/media-link.js";
 import { Toaster, toast } from "../src/components/ui/toast.js";
-import { createMediaLink } from "../src/lib/media-link.js";
+import MediaLink from "../src/features/playback/components/media-link.js";
+import { createMediaLink } from "../src/features/playback/media-link.js";
 import "../src/i18n.js";
 
 const fileId = "file_123";

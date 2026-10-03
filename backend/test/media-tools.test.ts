@@ -2,9 +2,9 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { parseDeploymentConfig } from "../src/config/deployment.js";
-import { runTool } from "../src/media/process.js";
-import { MediaTools, parseMediaInfo } from "../src/media/tools.js";
+import { parseDeploymentConfig } from "../src/modules/configuration/infrastructure/deployment.js";
+import { runTool } from "../src/platform/media/process.js";
+import { MediaTools, parseMediaInfo } from "../src/platform/media/tools.js";
 
 const tools = await MediaTools.create();
 let fixture: string;

@@ -1,6 +1,6 @@
-import type { LoggingConfig } from "../src/config/model.js";
-import type { DirectoryDto, FileDto } from "../src/http/contracts.js";
-import type { ScanState } from "../src/library/scan-state.js";
+import type { DirectoryDto, FileDto } from "../src/contracts/http.js";
+import type { LoggingConfig } from "../src/modules/configuration/domain/model.js";
+import type { ScanState } from "../src/modules/library/domain/scan-state.js";
 
 // Compile-time assertions protect boundary and state invariants.
 type Assert<T extends true> = T;
@@ -21,13 +21,13 @@ export type FailedScanRequiresError = Assert<
 		: false
 >;
 
-import type { ErrorCode } from "../src/errors.js";
-import type { ApiErrorResponse } from "../src/http/contracts.js";
-import type { HttpInstance } from "../src/http/instance.js";
+import type { ApiErrorResponse } from "../src/contracts/http.js";
 import {
 	SavePlaybackProgressRequestSchema,
 	SavePlaybackProgressResponseSchema,
-} from "../src/http/schemas/index.js";
+} from "../src/contracts/schemas/index.js";
+import type { ErrorCode } from "../src/shared/errors.js";
+import type { HttpInstance } from "../src/transport/instance.js";
 
 export type ErrorCodesMatch = Assert<
 	ApiErrorResponse["error"]["code"] extends ErrorCode

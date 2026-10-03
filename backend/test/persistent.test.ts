@@ -15,8 +15,8 @@ import { afterEach, beforeEach, expect, test } from "vitest";
 import {
 	PersistentConfiguration,
 	parsePersistentSettings,
-} from "../src/config/persistent.js";
-import { checkResourceRoot } from "../src/resources/access.js";
+} from "../src/modules/configuration/infrastructure/persistent.js";
+import { checkResourceRoot } from "../src/modules/media-source/infrastructure/access.js";
 
 async function loadPersistentSettings(dataDir: string) {
 	return (await PersistentConfiguration.load(dataDir)).settings;

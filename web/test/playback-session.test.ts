@@ -6,7 +6,7 @@ import type { PlaybackSessionResponse } from "../src/api/contracts.js";
 import {
 	PlaybackSessionController,
 	type PlaybackSessionState,
-} from "../src/playback/session.js";
+} from "../src/features/playback/session.js";
 import { clientConfig } from "./client-config.js";
 
 const session: PlaybackSessionResponse = {

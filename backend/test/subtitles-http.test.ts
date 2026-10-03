@@ -10,17 +10,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { LibraryApplication } from "../src/application/library.js";
-import { SubtitleApplication } from "../src/application/subtitles.js";
-import { DomainError } from "../src/errors.js";
-import { createHttpApp } from "../src/http/app.js";
-import type { SubtitleDiscoveryResponse } from "../src/http/contracts.js";
-import { LibraryIndex } from "../src/library/index.js";
-import type { MediaInfo, MediaStream } from "../src/media/index.js";
-import { MediaToolError, MediaTools } from "../src/media/index.js";
-import { runTool } from "../src/media/process.js";
-import { builtinPolicy } from "../src/public/policy.js";
-import { ResourceAccess } from "../src/resources/access.js";
+import { createHttpApp } from "../src/bootstrap/http.js";
+import { createLibraryModule } from "../src/bootstrap/library.js";
+import type { SubtitleDiscoveryResponse } from "../src/contracts/http.js";
+import { builtinPolicy } from "../src/modules/configuration/domain/policy.js";
+import type { LibraryApplication } from "../src/modules/library/application/library.js";
+import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
+import { ResourceAccess } from "../src/modules/media-source/infrastructure/access.js";
+import { SubtitleApplication } from "../src/modules/subtitles/application/subtitles.js";
+import type { MediaInfo, MediaStream } from "../src/platform/media/index.js";
+import { MediaToolError, MediaTools } from "../src/platform/media/index.js";
+import { runTool } from "../src/platform/media/process.js";
+import { DomainError } from "../src/shared/errors.js";
 
 const maximumSubtitleBytes = builtinPolicy.subtitles.maximumBytes;
 
@@ -49,7 +50,7 @@ beforeEach(async () => {
 	await writeFile(join(root, "season", `${video}.mkv`), "video");
 	const logger = pino({ enabled: false });
 	const index = new LibraryIndex();
-	library = new LibraryApplication({
+	library = createLibraryModule({
 		index,
 		configuration: settingsStore(root),
 		logger,
@@ -59,7 +60,10 @@ beforeEach(async () => {
 		config: { host: "127.0.0.1", port: 3000 },
 		logger,
 		library,
-		subtitles: new SubtitleApplication({ library, tools: { probe } }),
+		subtitles: new SubtitleApplication({
+			sources: library.sources,
+			tools: { probe },
+		}),
 	});
 	await library.startScan();
 	await library.waitForCompletion();

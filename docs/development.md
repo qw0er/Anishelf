@@ -28,13 +28,13 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm run build` | Build backend and frontend |
 | `npm start` | Run the built backend entry point after building |
 
-Public JSON schemas live in `backend/src/http/schemas`; `backend/src/http/contracts.ts`
+Public JSON schemas live in `backend/src/contracts/schemas`; `backend/src/contracts/http.ts`
 derives their TypeScript types with TypeBox `Static`. HTTP presenters
 explicitly convert business results into those contracts. Configuration types
-live in `backend/src/config/model.ts`, library models and business scan state in
-`backend/src/library`, and backend playback data in `backend/src/playback/model.ts`.
+live in `backend/src/modules/configuration/domain/model.ts`, library models and business scan state in
+`backend/src/library`, and backend playback data in `backend/src/modules/playback/domain/model.ts`.
 See [backend data structures](backend-data-structures.md) for type ownership and
-usage. `errors.ts` defines
+usage. `shared/errors.ts` defines
 HTTP-independent error codes and `DomainError`. HTTP handlers map errors to safe
 public messages and status codes instead of serializing internal errors.
 Startup environment variables and persistent JSON are validated at runtime. HTTP routes use
@@ -122,7 +122,7 @@ and newline-delimited JSON. Call sites supply event names. Common secret fields,
 authorization/cookie headers, bodies, and config/settings objects are redacted;
 callers must still avoid secrets under other keys or inside message strings.
 
-Destination selection lives in `logging/index.ts`. Deployment loading validates
+Destination selection lives in `platform/logging/index.ts`. Deployment loading validates
 logging configuration; the logger selects stdout or the configured file path and
 ensures the file's parent directory exists. Pino handles opening and writing to
 the destination. There is no custom file-descriptor management or error listener.
@@ -134,7 +134,7 @@ Biome respects `.gitignore` through `biome.json`; dependencies and build outputs
 are excluded. `npm run biome:fix` does not apply unsafe fixes.
 
 `ApplicationLogging` creates and exposes the Pino logger. All logging setup lives
-in `logging/index.ts`.
+in `platform/logging/index.ts`.
 
 ## Persistent settings
 
@@ -182,14 +182,14 @@ per application; cross-process coordination is outside the current scope.
 
 The manager does not monitor manual file edits or automatically rescan the library.
 Resource availability can be rechecked after updates. The settings HTTP routes use
-`LibraryApplication.updateSettings` to exclude simultaneous scans and saves, including
+`SettingsApplication.updateSettings` and the scan coordinator to exclude simultaneous scans and saves, including
 the asynchronous scan preflight. Successful root changes clear the index and latest
 scan state; failed saves and unchanged roots preserve both. Runtime callers must use
 the application use case rather than writing directly through the manager.
 
 ## HTTP application skeleton
 
-`createHttpApp` in `backend/src/http/app.ts` creates the Fastify instance without
+`createHttpApp` in `backend/src/bootstrap/http.ts` creates the Fastify instance without
 starting a listener. It accepts the application Pino logger and deployment host/port,
 so tests and future modules can register routes before startup.
 
@@ -228,7 +228,7 @@ HTTP server, not the synchronous Pino destination.
 
 ## Resource access
 
-`ResourceAccess` in `backend/src/resources/access.ts` provides the shared read-only
+`ResourceAccess` in `backend/src/modules/media-source/infrastructure/access.ts` provides the shared read-only
 filesystem policy for scanning and media delivery. Create it with
 `await ResourceAccess.create(persistentConfig.settings)`. Creation resolves and
 checks the resource root; an unavailable root raises `RESOURCE_ROOT_UNAVAILABLE`.
@@ -261,11 +261,11 @@ recheck current filesystem access.
 
 ## In-memory library index
 
-`LibraryIndex` in `backend/src/library/index.ts` stores a complete library snapshot.
+`LibraryIndex` in `backend/src/modules/library/infrastructure/index.ts` stores a complete library snapshot.
 `new LibraryIndex(rootName)` starts with the `root` directory, revision 0, and
 `scannedAt: null`. It has no filesystem or HTTP dependency.
 
-- `createResourceId(kind, relativePath)` in `library/model.ts` creates stable opaque IDs. The root
+- `createResourceId(kind, relativePath)` in `modules/library/domain/model.ts` creates stable opaque IDs. The root
   directory uses `root`; unchanged kinds and paths retain their IDs between scans.
 - `replace(entries, scannedAt?)` builds and validates a complete candidate before
   publishing it and incrementing the revision. Entries must include the root;
@@ -281,18 +281,18 @@ recheck current filesystem access.
   active index. Whole-snapshot access copies the index; directory queries only
   copy the requested children.
 
-The scanner builds candidates separately. `LibraryApplication` publishes successful
+The scanner builds candidates separately. `ScanCoordinator` publishes successful
 candidates through `replace`; failure or cancellation keeps the previous index.
 The index retains internal relative paths. Application query results explicitly
 project public DTO fields before HTTP serialization.
 
 ## Library application and traversal
 
-`LibraryApplication` in `backend/src/application/library.ts` owns library use cases
-and task state. Assemble it with one index, persistent settings store, and logger:
+`LibraryApplication` in `backend/src/modules/library/application/library.ts` exposes library use cases. `ScanCoordinator` owns task state and scheduling;
+`SettingsApplication` coordinates root changes. Assemble them through bootstrap:
 
 ```ts
-const library = new LibraryApplication({
+const library = createLibraryModule({
   index: new LibraryIndex(),
   configuration: persistentConfig,
   logger,
@@ -324,7 +324,7 @@ calls as well as HTTP requests. An in-flight media lookup uses its captured root
 an existing stream keeps its file handle across a root change. A new lookup uses
 the current index, which is cleared after a changed root is committed.
 
-`LibraryScanner` in `backend/src/library/scanner.ts` is a traversal worker. Its
+`LibraryScanner` in `backend/src/modules/library/infrastructure/scanner.ts` is a traversal worker. Its
 `scan(resources, rootName, progress, signal)` method returns candidate entries, or
 `null` on cancellation. It has no settings store, index instance, or task state.
 The application provides a fixed `ResourceAccess`, progress record, and abort signal.
@@ -343,11 +343,12 @@ duration, and counts. The configured resource root is scanned automatically duri
 startup and after the application saves a changed resource root; scans remain asynchronous
 and are not persisted.
 
-`checkResourceRoot` in `resources/access.ts` uses the same root-resolution policy
+`checkResourceRoot` in `modules/media-source/infrastructure/access.ts` uses the same root-resolution policy
 as `ResourceAccess.create`. Persistent configuration handles settings validation
 and persistence; it does not probe runtime library availability.
 
-Biome import restrictions enforce these boundaries: HTTP modules call the application
+`npm run architecture:check` resolves imports and enforces module public APIs,
+layer rules and cycle prevention. Biome supplies additional editor feedback: HTTP modules call the application
 and use public contracts; the application cannot import HTTP/Fastify; lower-level
 modules cannot import application/HTTP; public contracts cannot import backend
 implementation modules. Keep changes within those directions and run both
@@ -440,7 +441,7 @@ JSON client does not fetch media bytes.
 
 `web/src/api/contracts.ts` re-exports the existing backend contracts with
 `export type` from the npm workspace package subpath
-`@anishelf/backend/http/contracts`. The
+`@anishelf/backend/contracts/http`. The
 web workspace declares the backend as a development dependency; its type-only
 exports resolve directly to source and do not require a backend build first.
 Success responses use those TypeScript contracts; there is no
@@ -641,7 +642,7 @@ must use SQLite's backup API. Never remove source/progress rows as cache cleanup
 
 ## Playback Application
 
-`backend/src/application/playback.ts` coordinates `LibraryApplication` and
+`backend/src/modules/playback/application/playback.ts` coordinates `MediaSourceApi` and
 `PlaybackRepository`. The startup entry point constructs it with the database
 repository when available and closes it before closing the database. HTTP routes
 call these use cases; the Web player opens sessions and saves progress.
@@ -662,7 +663,7 @@ call these use cases; the Web player opens sessions and saves progress.
 `ResourceAccess.inspectSource` computes a `stat-v1` fingerprint using decimal
 bigint size, mtime/ctime nanoseconds, device, and inode values from an opened file,
 then releases the handle. Canonical root paths stay internal. This detects ordinary
-replacement and is not a content hash. `LibraryApplication` exposes source/root
+replacement and is not a content hash. `MediaSourceApplication` exposes source/root
 resolution and a root epoch that changes on settings root switches, including a
 switch away and back to the same directory.
 
@@ -676,7 +677,7 @@ prepared-copy, and real-time selection remain future integration work.
 
 ## Playback HTTP API
 
-`backend/src/http/playback.ts` registers the following routes when a
+`backend/src/modules/playback/http/playback.ts` registers the following routes when a
 `PlaybackApplication` is supplied to `createHttpApp`. The production startup
 entry point supplies it even when the database is unavailable, so dependent
 operations return a typed 503 instead of appearing to be missing endpoints.
@@ -720,11 +721,11 @@ list excludes missing/replaced and near-end files while preserving their history
 
 ## TypeBox HTTP Contracts
 
-`backend/src/http/schemas` is the source of public JSON shapes and runtime request
+`backend/src/contracts/schemas` is the source of public JSON shapes and runtime request
 constraints. `common.ts` defines IDs, bounded integers, health and error responses;
 `library.ts` defines library, scan, file and settings shapes; `playback.ts` defines
 playback requests and responses. All public object schemas reject additional
-properties. `http/contracts.ts` exports only `Static<typeof Schema>` type aliases,
+properties. `contracts/http.ts` exports only `Static<typeof Schema>` type aliases,
 keeping existing type import paths available to the Web client. Business models
 remain independent of TypeBox and HTTP schemas.
 
@@ -743,7 +744,7 @@ after validation. All successful JSON API responses now have response schemas;
 HTTP Range media remains a binary stream with parameter validation and no JSON
 response schema. Presenters still select safe public fields before serialization.
 
-The stable error-code vocabulary is declared once in `errors.ts` and is used by
+The stable error-code vocabulary is declared once in `shared/errors.ts` and is used by
 both `DomainError` and the public error schema. The existing centralized error
 handler retains its status mapping and safe messages. Compile-time contract
 checks verify inferred request/response types and error codes. Existing HTTP
@@ -752,7 +753,7 @@ DTO isolation and binary Range behavior.
 
 ## Scheduled library scans
 
-`LibraryApplication` owns a single scan timer. `settings.json` optionally stores
+`ScanCoordinator` owns a single scan timer. `settings.json` optionally stores
 `scanIntervalMinutes`: an integer from 0 to 10080; 0 disables scheduling. Missing
 values use the TypeScript default of 60 minutes, including legacy settings files.
 The Web Settings page exposes this preference and `GET`/`PUT /api/settings`
@@ -768,7 +769,7 @@ scheduled scans does not disable startup scans, root-change scans, or manual sca
 
 ## Media tool layer
 
-`backend/src/media/index.ts` exports an infrastructure API independent of HTTP and the player. Startup creates the tool layer, resolves FFmpeg and FFprobe independently, checks `-version`, retains their absolute paths and logs availability. Version detection does not certify every encoder or muxer. Missing tools do not fail startup or direct playback; dependent methods throw `MediaToolError` with `TOOL_UNAVAILABLE`. Explicit paths never fall back to PATH. Install the tools separately and set the service PATH or the optional deployment overrides above.
+`backend/src/platform/media/index.ts` exports an infrastructure API independent of HTTP and the player. Startup creates the tool layer, resolves FFmpeg and FFprobe independently, checks `-version`, retains their absolute paths and logs availability. Version detection does not certify every encoder or muxer. Missing tools do not fail startup or direct playback; dependent methods throw `MediaToolError` with `TOOL_UNAVAILABLE`. Explicit paths never fall back to PATH. Install the tools separately and set the service PATH or the optional deployment overrides above.
 
 ```ts
 import { MediaTools } from "./media/index.js";
@@ -794,7 +795,7 @@ The media-tool tests generate a real small MKV and verify probe metadata, select
 
 ## External subtitle discovery
 
-`GET /api/files/:id/subtitles` discovers external subtitle candidates for an indexed video on demand. It works without FFmpeg, FFprobe or SQLite. `LibraryApplication.discoverSubtitles` coordinates source validation and the independent `subtitles/discovery.ts` module; HTTP routes do not access the filesystem directly. The video scanner and library snapshot remain video-only.
+`GET /api/files/:id/subtitles` discovers external subtitle candidates for an indexed video on demand. It works without FFmpeg, FFprobe or SQLite. `SubtitleApplication.discoverSubtitles` coordinates source validation and the independent `modules/subtitles/infrastructure/discovery.ts` module; HTTP routes do not access the filesystem directly. The video scanner and library snapshot remain video-only.
 
 Only the video's immediate directory is inspected. Match the full video stem exactly, followed either by a supported extension or a dot-separated suffix: `Episode 01.srt`, `Episode 01.zh-Hans.ass`, and `Episode 01.en.forced.vtt` match `Episode 01.mkv`. `Episode 010.srt` and `Episode 01-extra.ass` do not. Extensions are case-insensitive; stems are case-sensitive and are not Unicode-normalized. Empty suffix components are rejected. Candidates use deterministic natural filename ordering. The first suffix component is exposed as a canonical language tag only when it has a plausible two/three-letter language prefix and passes `Intl.getCanonicalLocales`; this is a filename hint, not content inspection. Preserve the full suffix as `label`, including unknown tags.
 
@@ -813,8 +814,41 @@ The frontend discovers independently of playback and starts with subtitles off. 
 
 ### Program policy ownership
 
-Keep program-owned defaults in `backend/src/public/policy.ts`; pass the effective read-only view into application services and adapters. Subtitle read chunks, default conversion, task slots and name sorting belong here. An omitted history limit must reach the application default rather than a literal in the route. Probe and extraction slots remain separate; same-key work is deduplicated, and occupied slots return busy feedback without creating a queue. Publication serializes the cache budget check and asset commit across extraction workers.
+Keep program-owned defaults in `backend/src/modules/configuration/domain/policy.ts`; pass the effective read-only view into application services and adapters. Subtitle read chunks, default conversion, task slots and name sorting belong here. An omitted history limit must reach the application default rather than a literal in the route. Probe and extraction slots remain separate; same-key work is deduplicated, and occupied slots return busy feedback without creating a queue. Publication serializes the cache budget check and asset commit across extraction workers.
 
-Use `web/src/config/interaction-policy.ts` for presentation timings, seek steps and player loading. Use the browser-safe `@anishelf/backend/public/subtitles` export for supported subtitle formats, MIME mappings, conversions; never import server configuration into the browser. `@anishelf/backend/public/defaults` supplies Vite/startup defaults and the matching development-origin allowlist.
+Use `web/src/config/interaction-policy.ts` for presentation timings, seek steps and player loading. Use the browser-safe `@anishelf/backend/contracts/subtitles` export for supported subtitle formats, MIME mappings, conversions; never import server configuration into the browser. `@anishelf/backend/contracts/defaults` supplies Vite/startup defaults and the matching development-origin allowlist.
 
-Stable IDs and processing versions belong to `public/subtitle-identity.ts`; stable paths and private modes belong to `public/storage.ts`. Fixed SQLite, logging and static-hosting constraints belong to `public/adapter-policy.ts`. Changes to persistent names, ID hashes or versions need compatibility and cache-invalidation review. Protocol values, byte-order marks and overflow-detection arithmetic remain implementation constants. These definitions are program-maintained and are not user settings.
+Stable IDs and processing versions belong to `modules/subtitles/domain/identity.ts`; stable paths and private modes belong to `platform/storage.ts`. Fixed SQLite, logging and static-hosting constraints belong to `platform/adapter-policy.ts`. Changes to persistent names, ID hashes or versions need compatibility and cache-invalidation review. Protocol values, byte-order marks and overflow-detection arithmetic remain implementation constants. These definitions are program-maintained and are not user settings.
+
+## Module boundaries after the feature refactor
+
+Business code lives in `backend/src/modules/<feature>`. Each module exposes a
+small `public.ts`; importing another module's internal files is forbidden even
+for type-only imports. `bootstrap/` is the explicit assembly exception. HTTP
+routes call their own Application rather than adapters or other modules.
+`npm run lint` includes the architecture checker; `npm run architecture:test`
+exercises rejection cases. Run `npm run check` and `npm run build` for acceptance.
+
+The shared JavaScript TypeScript compiler API is loaded from the Web workspace
+by the checker because the root workspace uses the native TypeScript compiler.
+Browser imports use only `@anishelf/backend/contracts/http`,
+`@anishelf/backend/contracts/subtitles` and `@anishelf/backend/contracts/defaults`.
+There is no catch-all backend `public/` directory. The error vocabulary is also
+browser-safe; domain error instances remain server-only.
+
+`bootstrap/library.ts` connects `SourceCatalog` to `LibraryIndex`. Playback and
+subtitles receive `MediaSourceApi`, so neither can scan, change settings or depend
+on Library internals. `MediaSourceApplication` owns the sole root epoch. The
+root-switch use case holds the scan coordinator's exclusion gate while committing
+settings, then invokes the bootstrap callback to invalidate the epoch and reset
+the index. Failure leaves the prior state intact.
+
+The source registry is shared by the playback and subtitle repositories through
+an explicit capability, not through a playback-repository dependency. Table names,
+source IDs, migrations and on-disk formats are unchanged. Background operations
+retain their existing timers, cancellation, bounded concurrency and polling; no
+queue broker or event bus is required.
+
+Web feature internals live together with their controllers and hooks. Other
+features use `features/<name>/public.ts`. `SubtitleTracks` and
+`useSubtitleDiscovery` cover external and embedded subtitles.

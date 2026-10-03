@@ -3,14 +3,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { LibraryApplication } from "../src/application/library.js";
-import { PlaybackApplication } from "../src/application/playback.js";
-import { ApplicationDatabase } from "../src/database/index.js";
-import { createHttpApp } from "../src/http/app.js";
-import type { PlaybackSessionResponse } from "../src/http/contracts.js";
-import { LibraryIndex } from "../src/library/index.js";
-import { createResourceId } from "../src/library/model.js";
-import { builtinPolicy } from "../src/public/policy.js";
+import { ApplicationDatabase } from "../src/bootstrap/database.js";
+import { createHttpApp } from "../src/bootstrap/http.js";
+import { createLibraryModule } from "../src/bootstrap/library.js";
+import type { PlaybackSessionResponse } from "../src/contracts/http.js";
+import { builtinPolicy } from "../src/modules/configuration/domain/policy.js";
+import type { LibraryApplication } from "../src/modules/library/application/library.js";
+import { createResourceId } from "../src/modules/library/domain/model.js";
+import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
+import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
 
 const headers = { host: "127.0.0.1:3000" };
 const fileId = createResourceId("file", "episode.mp4");
@@ -28,7 +29,7 @@ beforeEach(async () => {
 	await mkdir(root);
 	await writeFile(join(root, "episode.mp4"), "original video");
 	database = ApplicationDatabase.open(join(directory, "data"));
-	library = new LibraryApplication({
+	library = createLibraryModule({
 		configuration: {
 			settings: { resourceRoot: root },
 			async update(next) {
@@ -39,7 +40,8 @@ beforeEach(async () => {
 		logger,
 	});
 	playback = new PlaybackApplication({
-		library,
+		sources: library.sources,
+		policy: library.policy.playback,
 		repository: database.playback,
 		logger,
 	});
@@ -345,7 +347,7 @@ test("failed persistence uses typed errors and hides internal causes", async () 
 
 test("unscanned libraries return unknown availability and unavailable storage returns 503", async () => {
 	await app.close();
-	library = new LibraryApplication({
+	library = createLibraryModule({
 		configuration: {
 			settings: { resourceRoot: root },
 			async update(next) {
@@ -356,7 +358,8 @@ test("unscanned libraries return unknown availability and unavailable storage re
 		logger,
 	});
 	playback = new PlaybackApplication({
-		library,
+		sources: library.sources,
+		policy: library.policy.playback,
 		repository: database.playback,
 		logger,
 	});
@@ -371,7 +374,7 @@ test("unscanned libraries return unknown availability and unavailable storage re
 		items: [],
 	});
 	await app.close();
-	playback = new PlaybackApplication({ library, logger });
+	playback = new PlaybackApplication({ sources: library.sources, logger });
 	app = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger,
@@ -428,7 +431,7 @@ test("recent history includes completed and zero-position records, but excludes 
 
 test("history without a query uses the injected application default", async () => {
 	const customPlayback = new PlaybackApplication({
-		library,
+		sources: library.sources,
 		repository: database.playback,
 		logger,
 		policy: {

@@ -12,202 +12,184 @@ conventions built on Tailwind defaults and shared controls. The broader V2 inter
 
 ### 1.1 Architecture classification
 
-Anishelf is a browser/server (B/S) application with a separate frontend and
-backend. The backend is a modular monolith with a practical layered architecture;
-code is organized by a mixture of technical layers and business features. Data is
-persisted as current state through repositories and transactions. The frontend
-and backend communicate through HTTP request/response, while backend modules
-collaborate through in-process calls.
+Anishelf is a browser/server (B/S) application with separate React and Node.js
+workspaces. The backend is a modular monolith organized by business feature, with
+layers inside each module. HTTP uses request/response; business modules collaborate
+through explicit in-process APIs. Repositories persist current state with SQLite
+transactions. This is practical layering, not strict Clean Architecture, CQRS,
+Event Sourcing or a message-driven system.
 
-The classifications below describe the **current implementation**, excluding
-planned video-transcoding, HLS and other future modules.
-
-| Dimension | Classification | Evidence and scope |
-| --- | --- | --- |
-| System form | Browser/server (B/S) | React runs in the browser and accesses the Node.js backend over HTTP; the backend accesses media files. Running both on one machine does not change this relationship |
-| Frontend/backend relationship | Separate frontend and backend | `web` and `backend` are separate workspaces with an HTTP API boundary. Shared TypeScript contracts and optional backend hosting of frontend static files do not remove that boundary |
-| System decomposition | Modular monolith | One backend process contains library, playback, subtitle, persistence and media-tool modules; business modules are not independently deployed services |
-| Code organization | Hybrid package by layer and package by feature | `http/`, `application/` and `database/` group technical responsibilities; `library/`, `playback/` and `subtitles/` group business concepts. Features span these directories rather than forming complete vertical slices |
-| Internal application design | Primarily layered architecture | HTTP delegates to applications, which coordinate supporting modules and adapters. Business models and rules remain in their owning modules; dependency injection and selected interfaces do not constitute a strict Clean, Hexagonal or Onion Architecture |
-| Database read/write design | CRUD-style current-state persistence | Repositories and transactions read/update progress, source identities and subtitle asset state. There are no separate CQRS read/write models or event logs used to reconstruct state |
-| Module communication | Request/response and direct in-process calls | HTTP connects browser and backend; backend modules call methods directly. Scans and subtitle preparation use background work and status polling, without a message queue or event bus |
-
-These dimensions are complementary rather than mutually exclusive. React
-components do not by themselves establish MVVM, and the application is not
-organized around a conventional MVC structure. Business modules and domain errors
-alone are insufficient to classify the design as DDD. Background tasks and player
-event callbacks are local mechanisms rather than an event-driven system
-architecture.
-
-### 1.2 Layered architecture: implemented and planned
-
-The single diagram below combines the implementation inspected on **2026-10-03**
-with the remaining planned V2 modules, arranged from top to bottom: Web presentation, HTTP interface, application
-coordination, and supporting modules/adapters. Every arrow means **caller →
-dependency**. Lines attach to named modules; crossings are not junctions. Related
-components may share a box. Solid boxes and connections are implemented; amber
-dashed boxes and connections are proposed V2 additions. A dashed connection from
-an existing module denotes a future extension. Only the main dependencies are
-shown; proposed module names describe responsibilities, not existing classes.
-
-![Anishelf layered architecture with solid implemented modules and dashed planned V2 modules](current-version-architecture.svg)
-
-Applications can depend on other applications within the same layer:
-`PlaybackApplication`, `SubtitleApplication` and
-`SubtitlePreparationApplication` use `LibraryApplication` for source access and
-identity; `SubtitleApplication` delegates extraction to the preparation
-application. Their vertical positions make these dependencies readable; they do
-not introduce additional architectural layers.
-
-Business models and rules live in their owning modules and shared `public/`
-definitions. They are cross-cutting dependencies, not a separate processing stage.
-The supporting layer contains both internal services (scanner/index) and concrete
-adapters (configuration, files, repositories and media tools). This is a practical
-layered architecture, not a strict domain/ports/adapters split. Startup wiring,
-storage ownership and detailed call sequences are described below.
-
-The backend is one modular Node.js/TypeScript process. `backend/src/index.ts`
-loads configuration, creates the shared Pino logger, discovers media tools,
-opens/migrates SQLite, initializes the library and starts its startup scan. It
-then constructs playback and subtitle applications, reconciles subtitle assets,
-and builds the Fastify server. Shutdown closes application work and the database.
-Missing media tools or unavailable persistence reduce dependent capabilities;
-they do not inherently disable original-media delivery.
-
-The browser is a React/Vite application using React Router Data Mode. Page
-loaders/actions and the API client exchange public JSON with Fastify. Vidstack
-requests original media through a separate GET/HEAD/Range path. Subtitle content
-is loaded through the text-track/rendering pipeline. The dashed video-transcode and HLS modules are not part of this implemented path.
-
-| State or resource | Current owner | Lifetime / location |
-| --- | --- | --- |
-| Resource root and scan interval | `ConfigurationService` | User choices in atomic `dataDir/settings.json`; effective immutable settings in memory |
-| Scan status, directory/file snapshot and scan timer | `LibraryApplication`, `LibraryScanner`, `LibraryIndex` | Rebuildable process memory; publication belongs to the application |
-| Original videos and sidecar subtitles | `ResourceAccess` | Confined access under the configured media root; separate from writable application data |
-| Root/source identities and playback progress | `PlaybackRepository` | Durable SQLite records in `resource_roots`, `media_sources`, `playback_progress` |
-| Playback tokens, expiry and captured root epoch | `PlaybackApplication` | Process-local session registry; not persistent database sessions |
-| Embedded probe results and in-flight probes | `SubtitleApplication` | Bounded process-local cache, keyed by root/file/source version |
-| Subtitle asset state and source identity | `SubtitleRepository` | SQLite `subtitle_assets` plus root/source records |
-| Extracted subtitle text | `SubtitleAssetFiles` | Private `dataDir/cache/subtitles`; atomically published files, not database BLOBs |
-| Player selection, pending requests and renderer lifecycle | Web playback/subtitle controllers | Component/controller lifetime; cancellation and disposal on replacement/unmount |
-
-### 1.3 Backend dependencies and ownership
-
-HTTP routes validate requests and call applications. Presenters project business
-results into public DTOs; routes do not query repositories, traverse the library
-or construct filesystem paths. Application modules coordinate the work without
-importing Fastify or React. Lower-level modules do not import application or HTTP
-modules. These boundaries are enforced by `biome.json`.
-
-| Module / code entry | Responsibility and direct collaborators |
+| Dimension | Current classification |
 | --- | --- |
-| [`index.ts`](../backend/src/index.ts) | Composition and process lifecycle; assembles configuration, logging, tools, database, library, playback, subtitles and HTTP |
-| [`config/service.ts`](../backend/src/config/service.ts), `deployment.ts`, `persistent.ts` | Deployment/environment configuration, built-in policy and validated atomic user-settings persistence; injected into the library through its settings-store boundary |
-| [`public/`](../backend/src/public/) | Shared policy, subtitle format/identity rules, deployment defaults, storage conventions and adapter policy; only browser-safe exports are consumed by Web |
-| [`http/app.ts`](../backend/src/http/app.ts), `schemas/`, `contracts.ts`, `presenters.ts` | Fastify composition, origin checks, request IDs, errors, validation and DTO projection; `client-config.ts` projects safe policy |
-| [`application/library.ts`](../backend/src/application/library.ts) | Settings/scan exclusion, startup/root-change/manual/interval scan lifecycle, source resolution, root epochs and media opening; coordinates configuration, scanner, index and resource access |
-| [`library/scanner.ts`](../backend/src/library/scanner.ts), [`library/index.ts`](../backend/src/library/index.ts) | Scanner traverses a captured root through resource access; index owns the published lookup snapshot and sorting. Neither decides when a scan starts |
-| [`resources/access.ts`](../backend/src/resources/access.ts) | Root confinement, regular-file validation, safe handles and source-version metadata for videos and subtitles |
-| [`application/playback.ts`](../backend/src/application/playback.ts) | Direct playback plan, session generation/sequence rules, progress saving and history queries; resolves sources through the library and persists through `PlaybackRepository` |
-| [`application/subtitles.ts`](../backend/src/application/subtitles.ts) | External discovery/content, embedded metadata probing/cache and track identity; calls library source resolution, resource access, subtitle helpers and `MediaTools`; delegates prepared assets to the preparation application |
-| [`application/subtitle-preparation.ts`](../backend/src/application/subtitle-preparation.ts) | Selected text-track extraction, deduplication, source/epoch validation, bounded publication and startup reconciliation; coordinates library, tools, subtitle repository and asset files |
-| [`media/tools.ts`](../backend/src/media/tools.ts), `process.ts` | Executable discovery/version checks, FFprobe inspection and FFmpeg subtitle extraction; bounded subprocess output, timeout and cancellation |
-| [`subtitles/`](../backend/src/subtitles/) | External discovery, bounded text reading, subtitle models and private asset-file operations; does not own HTTP or application workflows |
-| [`database/index.ts`](../backend/src/database/index.ts), `schema.ts`, repositories | SQLite initialization/migrations and Drizzle transactions; playback/subtitle repositories map stored records to their module models |
+| System form | B/S, including deployments where browser and server share a machine |
+| Frontend/backend relationship | Separate workspaces and HTTP boundary; shared browser-safe contracts |
+| System decomposition | Modular monolith; one backend process |
+| Code organization | Package by feature, with HTTP/application/domain/infrastructure folders within backend modules |
+| Internal design | Layered applications, explicit module APIs and dependency injection at bootstrap |
+| Database read/write design | CRUD-style state persistence with repositories and transactions |
+| Module communication | HTTP request/response, direct in-process calls, background work and status polling |
 
-The implemented [backend data structures](backend-data-structures.md) document
-expands type ownership. Public JSON contracts derive from HTTP schemas. The Web
-workspace re-exports those contracts with **type-only imports**, rather than
-bundling backend applications or persistence code.
+### 1.2 Feature-oriented architecture: implemented and planned
 
-Configuration is a dependency across these modules, not an extra processing
-stage. `ConfigurationService` owns effective backend policy; the HTTP
-`/api/client-config` projection exposes only safe client values. Local loading,
-polling and Toast timing remain in `web/src/config/interaction-policy.ts`.
+The diagram groups React features and backend business modules by capability.
+HTTP, application, domain and infrastructure belong inside their owning backend
+module rather than forming global horizontal layers. Solid boxes describe current
+code; dashed amber elements describe the remaining V2 proposals. Selected arrows
+mean **caller → dependency**; the catalog and registry wiring notes describe
+bootstrap injection rather than reverse module imports. Proposed names describe
+responsibilities, not existing classes.
 
-### 1.4 Browser dependencies
+![Anishelf frontend features, backend business modules and planned V2 extensions](current-version-architecture.svg)
 
-| Entry / module | Collaboration |
+Library, Playback and Subtitles depend on the Media Source public API and the
+Configuration public policy/types; Library and Media Source also consume the
+settings-store capability. Media Source depends on Configuration, never Library.
+The shared transport and platform areas support these modules; they do not own
+business workflows. Frontend feature imports follow Library → Playback → Subtitles.
+
+`bootstrap/` owns assembly, startup and shutdown. It connects the source catalog
+port to the library index, creates one media-source service and one source
+registry, injects these into consumers, and registers module HTTP routes. Other
+modules cannot import bootstrap. Shared models and policy are dependencies, not
+an extra stage through which requests must flow.
+
+### 1.3 Code organization and public boundaries
+
+```text
+backend/src/
+  bootstrap/             # Process and dependency assembly
+  modules/
+    configuration/       # Effective configuration and atomic settings persistence
+    library/             # Browse, scan coordination and root-switch use case
+    media-source/        # Source identity, root epoch and confined access
+    playback/            # Sessions, progress and history
+    subtitles/           # Discovery, preparation, delivery and asset lifecycle
+  contracts/             # Browser-safe HTTP schemas/types, formats and defaults
+  transport/             # Shared HTTP security, presenters, errors and static serving
+  platform/              # Database schema/connection types, logging, media processes
+  shared/                # Domain errors and common collation
+
+web/src/
+  features/
+    library/
+    playback/
+    subtitles/
+  routes/                # Route composition and loaders/actions
+  api/                   # HTTP requests and shared contract types
+  components/ui/         # Shared presentation controls
+```
+
+Each backend business module has a `public.ts` that exposes selected capabilities
+and types. Cross-module imports must resolve to that file, including type-only
+imports. Public APIs are TypeScript interfaces/functions, not extra HTTP services.
+Only bootstrap may import another module's implementation for assembly. Modules
+use `http/`, `application/`, `domain/` and `infrastructure/` where needed; empty
+layers are not required.
+
+| Caller | Allowed business dependency |
 | --- | --- |
-| [`main.tsx`](../web/src/main.tsx), [`routes/library.tsx`](../web/src/routes/library.tsx) | Mount router and Toaster; compose library, directory, file, history and settings routes |
-| [`App.tsx`](../web/src/App.tsx), [`routes/loaders.ts`](../web/src/routes/loaders.ts) | Shared library/client-config/settings context, scan actions and revalidation; explicit retry changes player version, ordinary polling does not |
-| [`api/client.ts`](../web/src/api/client.ts), `contracts.ts` | Request cancellation, API error classification, response handling and shared public types |
-| [`components/file-player.tsx`](../web/src/components/file-player.tsx), [`hooks/use-playback-session.ts`](../web/src/hooks/use-playback-session.ts), [`playback/session.ts`](../web/src/playback/session.ts) | Compose player and media link; open session, resume, serialize progress saves, flush and release |
-| [`components/video-player.tsx`](../web/src/components/video-player.tsx) | Vidstack direct-video provider, media events and external/embedded text-track integration |
-| [`components/external-subtitles.tsx`](../web/src/components/external-subtitles.tsx), `hooks/use-external-subtitles.ts` | Discover both external and embedded tracks despite the historical names; register tracks, selection controller and styled renderer |
-| [`subtitles/embedded.ts`](../web/src/subtitles/embedded.ts), `preparation.ts` | Selection-triggered preparation, status polling, retry, stale-request cancellation and prepared-track URL installation |
-| [`subtitles/renderer.ts`](../web/src/subtitles/renderer.ts) | `StyledSubtitleRenderer` integrates JASSUB for ASS/SSA; VTT/SRT use Vidstack's text pipeline |
-| [`lib/media-link.ts`](../web/src/lib/media-link.ts), `components/media-link.tsx` | Recheck file access, validate the original-media URL, resolve it against browser origin and provide clipboard/selectable fallback |
-| `components/ui/`, `i18n.ts`, `locales/en.json` | Shared shadcn/Base UI controls and Toasts, English messages and error translation; persistent validation/status remains inline |
+| Module HTTP routes | Their own Application; contracts and shared transport helpers handle validation and presentation |
+| Application | Its own domain/adapters and another module's Public API; never HTTP or Fastify |
+| Domain | Business definitions and stable shared definitions; no own application or concrete infrastructure |
+| Infrastructure | Its own models and platform services; no application or HTTP coordination |
+| Bootstrap | Concrete implementations needed to assemble the process |
+| Web feature | Another feature's `public.ts`; backend imports are restricted to explicitly exported browser-safe contracts |
 
-### 1.5 Key implemented call paths
+`npm run architecture:check` resolves imports with the TypeScript compiler API and
+checks these boundaries, including dynamic literal imports, type imports and
+re-exports. It rejects business-module and frontend-feature cycles. `npm run lint`
+runs both Biome and this check. Tests may inspect implementation details for
+regression coverage; production source is checked independently.
 
-1. **Scan and browse:** startup, settings changes, a manual request or the interval
-   timer reaches `LibraryApplication.startScan`; `LibraryScanner.scan` traverses
-   through `ResourceAccess`; the application publishes the resulting entries to
-   `LibraryIndex`. HTTP browsing reads the published snapshot. `App` polls while
-   a scan is running and revalidates route data.
-2. **Direct playback and saved progress:** `FilePlayer` uses
-   `PlaybackSessionController` → `POST /api/playback/sessions` →
-   `PlaybackApplication.open` → library source resolution + playback repository.
-   Vidstack independently fetches `/api/media/:id` → HTTP Range handling →
-   `LibraryApplication.openMedia` → `ResourceAccess`. Player events queue
-   `PUT /api/playback/sessions/:token/progress`; the application checks the
-   current source, generation and sequence before durable saving.
-3. **Subtitle discovery:** the discovery hook → `GET /api/files/:id/subtitles`
-   → `SubtitleApplication.discoverSubtitles` → library source identity, external
-   sidecar discovery and optional FFprobe metadata inspection. Listing tracks
-   does not extract them.
-4. **Selected embedded subtitle:** `EmbeddedSubtitleController` →
-   `prepareSelectedSubtitle` → `POST /api/files/:id/subtitles/:trackId/prepare`
-   → `SubtitleApplication` → `SubtitlePreparationApplication` → FFmpeg.
-   Preparation revalidates source/root identity, atomically publishes text through
-   `SubtitleAssetFiles`, then commits the ready row through `SubtitleRepository`.
-   The browser polls `/api/subtitle-assets/:id/status`, installs the ready content
-   URL and renders through Vidstack or JASSUB. Startup reconciliation handles
-   interrupted work and missing assets.
-5. **Settings and client policy:** route action → `PUT /api/settings` →
-   `LibraryApplication.updateSettings` → `ConfigurationService.update` → atomic
-   settings write and snapshot replacement. Root changes invalidate the library
-   context and trigger a scan. Separately, the root loader requires
-   `GET /api/client-config` before dependent screens are rendered.
+### 1.4 Responsibility and state ownership
+
+| Owner / entry | Responsibility |
+| --- | --- |
+| [`bootstrap/library.ts`](../backend/src/bootstrap/library.ts) | Connect the catalog port to `LibraryIndex`; assemble source, scan and settings capabilities |
+| [`library/application/library.ts`](../backend/src/modules/library/application/library.ts) | Browse published entries and expose library use cases; delegate scan/settings/source work |
+| [`library/application/scan-coordinator.ts`](../backend/src/modules/library/application/scan-coordinator.ts) | Own the single scan timer, task state, cancellation, settings/scan exclusion and snapshot publication |
+| [`library/application/settings.ts`](../backend/src/modules/library/application/settings.ts) | Commit settings through Configuration, then invalidate the source epoch/reset the index on a real root change and trigger scanning |
+| [`media-source/public.ts`](../backend/src/modules/media-source/public.ts) | Source API, source/catalog models and controlled access capabilities; no library implementation dependency |
+| [`media-source/application/sources.ts`](../backend/src/modules/media-source/application/sources.ts) | Own the root epoch, resolve indexed IDs, inspect source versions and open confined media; reject asynchronous resolution spanning a root change |
+| [`media-source/infrastructure/repository.ts`](../backend/src/modules/media-source/infrastructure/repository.ts) | Register canonical roots and source versions for both playback and subtitles; preserve existing identity hashes |
+| [`playback/public.ts`](../backend/src/modules/playback/public.ts) | Session/progress/history capability and result types; the application depends on `MediaSourceApi`, not Library |
+| [`subtitles/public.ts`](../backend/src/modules/subtitles/public.ts) | Discovery/preparation/content capability and result types; the application depends on `MediaSourceApi`, not Library or Playback |
+| [`configuration/public.ts`](../backend/src/modules/configuration/public.ts) | Settings-store interface, configuration types and program policy; atomic persistence stays internal |
+
+The catalog port exposes only indexed file lookup and snapshot availability.
+Bootstrap supplies it from the index; Media Source never imports Library. Missing
+or unscanned IDs retain their existing behavior. The source service owns the one
+root epoch; only the root-switch callback assembled by bootstrap invalidates it.
+Playback and subtitle consumers receive the read-only source capability.
+
+Settings and scans share the coordinator's exclusion gate. A failed settings
+write preserves the prior index and epoch. A same-root save does not trigger a
+scan. Successful root changes reset the snapshot only after persistence. Scheduled,
+manual and startup scans continue to use the same lifecycle and cancellation path.
+
+| State | Owner / persistence |
+| --- | --- |
+| User settings | Configuration; atomic `settings.json` |
+| Published index | Library; rebuildable memory |
+| Scan state, timer and operation gate | Scan coordinator; process memory |
+| Root epoch | Media Source; process memory |
+| Root/source identity records | Source registry; existing SQLite tables |
+| Progress/history | Playback repository; SQLite |
+| Playback session tokens | Playback application; process memory |
+| Probe cache and extraction work | Subtitle applications; process memory |
+| Subtitle asset metadata / payloads | Subtitle repository / private cache files |
+
+The existing database schema, migrations, identity hashes, settings format and
+HTTP URLs are unchanged by this organization. No new queue, event bus or universal
+job engine is introduced. See [backend data structures](backend-data-structures.md)
+for type ownership and [development](development.md) for operational behavior.
+
+### 1.5 Browser organization and call paths
+
+Frontend components, hooks and controllers are grouped in `features/library`,
+`features/playback` and `features/subtitles`. Each feature has a `public.ts` for
+cross-feature use. `SubtitleTracks` and `useSubtitleDiscovery` handle both external
+and embedded tracks; their names no longer imply external-only behavior. Routes
+compose screens; the common API client and UI controls stay shared.
+
+1. **Scan:** library HTTP → `LibraryApplication.startScan` → `ScanCoordinator`
+   → scanner → Media Source access API; the coordinator publishes to the index.
+2. **Root switch:** settings HTTP → `SettingsApplication.updateSettings` →
+   scan exclusion gate → Configuration commit → source epoch invalidation/index
+   reset → scan. Bootstrap connects the invalidation callback.
+3. **Playback:** player controller → playback HTTP → `PlaybackApplication` →
+   `MediaSourceApi` + playback repository. Vidstack independently requests media
+   bytes through library HTTP → library application → source API.
+4. **Subtitles:** subtitle controllers → subtitle HTTP → `SubtitleApplication`
+   → source API + discovery/media adapters. A selected embedded track delegates
+   to `SubtitlePreparationApplication`, which validates the source, extracts,
+   publishes the file atomically and saves the ready asset row.
+5. **Persistence:** bootstrap injects a common source registry into playback and
+   subtitle repositories. Subtitle persistence no longer depends on the playback
+   repository for source registration.
 
 ### 1.6 Planned V2 extensions and historical design
 
-The dashed modules in the diagram map to the V2 design below. They are a proposed
-responsibility split; implementation may refine the interfaces without changing
-the layer boundaries. Solid modules retain their current scope until explicitly
-extended.
+Dashed modules remain proposals, not new implementations delivered by this
+refactor. Their final placement must follow the same public boundaries.
 
-| Planned module / extension | Intended responsibility and integration | Design section |
+| Planned module / extension | Intended integration | Design section |
 | --- | --- | --- |
-| Media tasks and playback/cache settings | Add task management and playback/cache preferences to the existing routes and API client; the basic settings screen already exists | 2, 10 |
-| HLS player adapter | Extend Vidstack with hls.js, generation-aware seeking, source-time mapping and session leases | 4, 7 |
-| Preparation / HLS / font routes | Add validation and delivery for video jobs, prepared media, HLS sessions/segments and registered fonts; delegate to applications | 9 |
-| Video preparation / HLS sessions | Coordinate persistent preparation jobs and ephemeral real-time session lifecycles; use the shared planner, scheduler and job/asset repositories | 7 |
-| Playback planner | Extend direct-only playback selection with compatibility decisions, stream-copy/encoding plans and prepared-asset reuse; use library identity, inspection and generated-cache state | 7 |
-| Media scheduler | Own the single video-processing slot, bounded queue and real-time priority; coordinate worker execution, persisted state and cache leases | 7 |
-| Transcode worker | Execute validated FFmpeg video jobs, report state and stop/await child processes; reuse bounded media-process conventions | 7 |
-| Job / asset repositories | Extend SQLite persistence for jobs, prepared outputs and recoverable operational metadata; retain playback history separately | 2, 7 |
-| Generated cache / leases | Manage generated video files, source/profile validity, budget, eviction and active-reader/session protection; extend beyond the existing subtitle-only cache | 2, 7 |
-| Font preparation | Extend subtitle workflows with attachment extraction, validation, registered font assets and JASSUB font delivery; reuse and extend media tools and subtitle storage | 6 |
+| Media tasks and playback/cache settings | Extend routes and the API client; basic settings already exist | 2, 10 |
+| HLS player adapter | Extend Vidstack with hls.js, source-time seeking and leases | 4, 7 |
+| Preparation / HLS / font routes | Validate requests and call application use cases | 9 |
+| Video preparation / HLS sessions | Coordinate jobs and real-time sessions through source APIs, planner and scheduler | 7 |
+| Playback planner | Compatibility, stream-copy/encoding choices and prepared-asset reuse | 7 |
+| Media scheduler / transcode worker | Bounded video-processing slot, real-time priority and controlled FFmpeg execution | 7 |
+| Job / asset repositories | Persist operational metadata without coupling to playback repositories | 2, 7 |
+| Generated cache / leases | Budget, eviction, source/profile validity and active-reader protection | 2, 7 |
+| Font preparation | Extend subtitles, media tools and registered font delivery to JASSUB | 6 |
 
-Additional configuration fields and profile rules extend `ConfigurationService`
-and shared policy; they are not a second configuration subsystem. Font delivery
-extends the existing JASSUB integration. Existing probing, subtitle extraction,
-SQLite repositories and asset files do not by themselves implement the dashed
-video/font workflows.
-
-Unassigned features such as metadata providers, subscriptions/downloads, tracker
-synchronization, a desktop bridge and additional locales remain outside this V2
-module diagram. Their architecture has not been selected; the overall requirements
-retain their future scope.
-
-Retain the historical [V1 design](history/v1-design.md) and
-[historical design index](historical-design.md). The detailed V2 design below
-continues to describe intended extensions. Implemented interval scanning and
-copyable original-media links are included in the current architecture; neither
-should be mistaken for a transcode scheduler or native-player invocation.
+Video/font work, automatic cache eviction and broader V2 settings remain planned.
+Unassigned metadata, download/subscription, tracker and desktop-bridge features
+are outside this diagram. Retain the [V1 design](history/v1-design.md) and
+[historical design index](historical-design.md); the following sections preserve
+the detailed V2 target design.
 
 
 ## 2. Configuration, Persistence, and Identity
@@ -226,17 +208,17 @@ Originals, writable data, and frontend static assets remain separate and non-ove
 
 ### Built-in defaults and user settings (O17)
 
-The current-function foundation is implemented in `public/policy.ts` and `config/service.ts`. The composition root creates one service; adapters receive typed read-only policy views. The service retains raw explicit settings separately from the effective immutable snapshot. Missing settings do not generate a file, failed writes preserve the published snapshot, and existing root-only settings remain valid. Current settings are `resourceRoot` and optional `scanIntervalMinutes`; the additional V2 settings described below remain planned.
+The current-function foundation is implemented in `modules/configuration/domain/policy.ts` and `modules/configuration/application/service.ts`. The composition root creates one service; adapters receive typed read-only policy views. The service retains raw explicit settings separately from the effective immutable snapshot. Missing settings do not generate a file, failed writes preserve the published snapshot, and existing root-only settings remain valid. Current settings are `resourceRoot` and optional `scanIntervalMinutes`; the additional V2 settings described below remain planned.
 
 `GET /api/client-config` projects `defaultLanguage`, scanning defaults/constraints, progress-save/request timing, subtitle size/renderer timing/memory policy and supported formats, plus media extension/MIME mappings. It excludes deployment settings, paths and server resource budgets. HTTP settings schemas receive primitive constraints through a factory. The root Web loader requires valid client configuration; failure uses the existing retryable route error. Player policies remain stable across scan polling so revalidation does not reopen sessions or reset subtitle renderers. Loading-indicator delay and scan polling are local frontend interaction policy.
 
 Current policy defaults preserve existing behavior: scan concurrency 8 and warning preview 5; session idle expiry 30 minutes and capacity 1000; history/continue defaults 100/20 and list/batch bounds 100; near-end threshold min(30 seconds, 5%); subtitle text 10 MiB; tool detection 5 seconds/64 KiB, execution 30 seconds/10 MiB and extraction 60 seconds; HTTP body 64 KiB, database busy wait and shutdown 5 seconds; progress saves/requests 5 seconds; subtitle initialization 15 seconds and renderer memory 64 MiB. These values are program-owned and are not user-editable. Transcode profiles and derived-cache invalidation remain planned.
 
-The policy audit also centralizes subtitle read chunks (64 KiB), probe/extraction concurrency (one each), default text conversion (SRT), and name sorting (English, numeric, base sensitivity, directories first). `LibraryApplication` applies sorting to its index; subtitle discovery shares the name comparator. The history HTTP route delegates an omitted limit to `PlaybackApplication.history`, so an injected history default is honored. The history description does not embed a fixed count.
+The policy audit also centralizes subtitle read chunks (64 KiB), probe/extraction concurrency (one each), default text conversion (SRT), and name sorting (English, numeric, base sensitivity, directories first). `ScanCoordinator` configures sorting on the library index; subtitle discovery shares the name comparator. The history HTTP route delegates an omitted limit to `PlaybackApplication.history`, so an injected history default is honored. The history description does not embed a fixed count.
 
-`web/src/config/interaction-policy.ts` owns loading delay, scan/subtitle polling (1000/500 ms), default/error Toast lifetimes (6000/10000 ms), persistent preparation feedback, seek steps (5 seconds), and eager/metadata player loading. These local presentation settings and the frontend default language are owned by the web workspace and are not serialized as server configuration. `public/subtitles.ts` supplies browser-safe subtitle enums, renderer subsets, MIME mappings, format conversions to schemas and adapters. The subtitle registry is the single source for format names, extensions, MIME, conversions, renderer support and native codecs; policy derives its default maps and codec list from that registry. Program capability checks remain separate from policy subsets.
+`web/src/config/interaction-policy.ts` owns loading delay, scan/subtitle polling (1000/500 ms), default/error Toast lifetimes (6000/10000 ms), persistent preparation feedback, seek steps (5 seconds), and eager/metadata player loading. These local presentation settings and the frontend default language are owned by the web workspace and are not serialized as server configuration. `contracts/subtitles.ts` supplies browser-safe subtitle enums, renderer subsets, MIME mappings, format conversions to schemas and adapters. The subtitle registry is the single source for format names, extensions, MIME, conversions, renderer support and native codecs; policy derives its default maps and codec list from that registry. Program capability checks remain separate from policy subsets.
 
-`public/subtitle-identity.ts` owns opaque track/asset ID construction and the extraction processing version. Hash payloads and existing IDs remain compatible. `public/storage.ts` owns stable paths, source-version markers, temporary suffixes and private permissions; changes require compatibility review. `public/adapter-policy.ts` names fixed SQLite durability, logging redaction/write behavior and development static-cache constraints. `public/defaults.ts` shares deployment defaults and the Vite development port/origins. Subtitle fallback names are defined in `public/subtitle-identity.ts`; no separate subtitle message catalog is needed. No policy or capability file is generated in the data directory.
+`modules/subtitles/domain/identity.ts` owns opaque track/asset ID construction and the extraction processing version. Hash payloads and existing IDs remain compatible. `platform/storage.ts` owns stable paths, source-version markers, temporary suffixes and private permissions; changes require compatibility review. `platform/adapter-policy.ts` names fixed SQLite durability, logging redaction/write behavior and development static-cache constraints. `contracts/defaults.ts` shares deployment defaults and the Vite development port/origins. Subtitle fallback names are defined in `modules/subtitles/domain/identity.ts`; no separate subtitle message catalog is needed. No policy or capability file is generated in the data directory.
 
 
 Startup uses environment variables. Media capabilities, transcode profiles, subtitle rules and runtime policy are defined in TypeScript. The English message catalog is a bundled read-only resource. None of these defaults is copied into `dataDir`; `dataDir/settings.json` stores only user choices and explicit overrides.

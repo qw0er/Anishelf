@@ -5,8 +5,8 @@ import type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
 } from "../src/api/contracts.js";
-import { EmbeddedSubtitleController } from "../src/subtitles/embedded.js";
-import { prepareSelectedSubtitle } from "../src/subtitles/preparation.js";
+import { EmbeddedSubtitleController } from "../src/features/subtitles/embedded.js";
+import { prepareSelectedSubtitle } from "../src/features/subtitles/preparation.js";
 
 type Embedded = Extract<
 	SubtitleDiscoveryResponse["tracks"][number],

@@ -12,7 +12,7 @@
 	},
 	"overrides": [
 		{
-			"includes": ["backend/src/http/**"],
+			"includes": ["backend/src/modules/*/application/**"],
 			"linter": {
 				"rules": {
 					"style": {
@@ -21,15 +21,8 @@
 							"options": {
 								"patterns": [
 									{
-										"group": [
-											"../library/index.js",
-											"../library/scanner.js",
-											"../resources/**",
-											"../config/deployment.js",
-											"../config/persistent.js",
-											"../database/**"
-										],
-										"message": "HTTP routes call application use cases; presenters may import business models and configuration types."
+										"group": ["fastify", "@fastify/**"],
+										"message": "Application use cases must be independent of HTTP."
 									}
 								]
 							}
@@ -39,35 +32,7 @@
 			}
 		},
 		{
-			"includes": ["backend/src/application/**"],
-			"linter": {
-				"rules": {
-					"style": {
-						"noRestrictedImports": {
-							"level": "error",
-							"options": {
-								"patterns": [
-									{
-										"group": ["../http/**", "fastify", "@fastify/**"],
-										"message": "Application use cases must be independent of HTTP and Fastify."
-									}
-								]
-							}
-						}
-					}
-				}
-			}
-		},
-		{
-			"includes": [
-				"backend/src/library/**",
-				"backend/src/resources/**",
-				"backend/src/config/**",
-				"backend/src/playback/**",
-				"backend/src/subtitles/**",
-				"backend/src/database/**",
-				"backend/src/public/**"
-			],
+			"includes": ["web/src/**"],
 			"linter": {
 				"rules": {
 					"style": {
@@ -77,80 +42,10 @@
 								"patterns": [
 									{
 										"group": [
-											"../application/**",
-											"../http/**",
-											"fastify",
-											"@fastify/**"
+											"@anishelf/backend/**",
+											"!@anishelf/backend/contracts/**"
 										],
-										"message": "Lower-level modules must not depend on application coordination or HTTP."
-									}
-								]
-							}
-						}
-					}
-				}
-			}
-		},
-		{
-			"includes": ["backend/src/http/contracts.ts"],
-			"linter": {
-				"rules": {
-					"style": {
-						"noRestrictedImports": {
-							"level": "error",
-							"options": {
-								"patterns": [
-									{
-										"group": [
-											"../application/**",
-											"../library/**",
-											"../resources/**",
-											"../config/**",
-											"../database/**",
-											"../playback/**",
-											"./**",
-											"!./schemas/**",
-											"fastify",
-											"@fastify/**",
-											"../public/**"
-										],
-										"message": "HTTP contracts derive public JSON types from schemas; they must not depend on backend models or runtime implementations."
-									}
-								]
-							}
-						}
-					}
-				}
-			}
-		},
-		{
-			"includes": ["backend/src/http/schemas/**"],
-			"linter": {
-				"rules": {
-					"style": {
-						"noRestrictedImports": {
-							"level": "error",
-							"options": {
-								"patterns": [
-									{
-										"group": [
-											"../../application/**",
-											"../../library/**",
-											"../../resources/**",
-											"../../config/**",
-											"../../database/**",
-											"../../playback/**",
-											"../app.js",
-											"../contracts.js",
-											"../presenters.js",
-											"../instance.js",
-											"fastify",
-											"@fastify/**",
-											"../../public/**",
-											"!../../public/subtitles.js",
-											"!../../public/defaults.js"
-										],
-										"message": "Public HTTP schemas must be independent of backend models and transport implementations."
+										"message": "Web may import only browser-safe contracts."
 									}
 								]
 							}

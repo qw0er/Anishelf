@@ -10,11 +10,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { LibraryApplication } from "../src/application/library.js";
-import { DomainError } from "../src/errors.js";
-import { LibraryIndex } from "../src/library/index.js";
-import { createResourceId } from "../src/library/model.js";
-import { ResourceAccess } from "../src/resources/access.js";
+import { createLibraryModule } from "../src/bootstrap/library.js";
+import type { LibraryApplication } from "../src/modules/library/application/library.js";
+import { createResourceId } from "../src/modules/library/domain/model.js";
+import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
+import { ResourceAccess } from "../src/modules/media-source/infrastructure/access.js";
+import { DomainError } from "../src/shared/errors.js";
 
 let fixture: string;
 let root: string;
@@ -25,7 +26,7 @@ beforeEach(async () => {
 	root = join(fixture, "media");
 	await mkdir(root);
 	index = new LibraryIndex();
-	libraryApp = new LibraryApplication({
+	libraryApp = createLibraryModule({
 		index,
 		configuration: {
 			get settings() {
@@ -265,7 +266,9 @@ test("returned scan state cannot mutate internal progress or warnings", async ()
 });
 
 test("direct callers coalesce root preflight and exclude settings saves before traversal", async () => {
-	const accessModule = await import("../src/resources/access.js");
+	const accessModule = await import(
+		"../src/modules/media-source/infrastructure/access.js"
+	);
 	const check = accessModule.checkResourceRoot;
 	let release = () => {};
 	let entered = () => {};
@@ -325,7 +328,9 @@ test("rejected preflight releases the operation without discarding the previous 
 });
 
 test("closing during root preflight waits and prevents a late scan from starting", async () => {
-	const accessModule = await import("../src/resources/access.js");
+	const accessModule = await import(
+		"../src/modules/media-source/infrastructure/access.js"
+	);
 	let release = () => {};
 	let entered = () => {};
 	const gate = new Promise<void>((resolve) => {
@@ -362,7 +367,9 @@ test("closing during root preflight waits and prevents a late scan from starting
 });
 
 test("direct settings saves exclude scans and shutdown waits for the save to settle", async () => {
-	const accessModule = await import("../src/resources/access.js");
+	const accessModule = await import(
+		"../src/modules/media-source/infrastructure/access.js"
+	);
 	const preflight = vi.spyOn(accessModule, "checkResourceRoot");
 	let release = () => {};
 	const gate = new Promise<void>((resolve) => {
@@ -377,7 +384,7 @@ test("direct settings saves exclude scans and shutdown waits for the save to set
 			return this.settings;
 		},
 	};
-	const application = new LibraryApplication({
+	const application = createLibraryModule({
 		index,
 		configuration,
 		logger: pino({ enabled: false }),
@@ -478,7 +485,7 @@ test("public library results select fields explicitly rather than exposing futur
 test("scheduled scans discover new files, reschedule after completion, and honor interval changes and shutdown", async () => {
 	vi.useFakeTimers();
 	let settings = { resourceRoot: root, scanIntervalMinutes: 1 };
-	const application = new LibraryApplication({
+	const application = createLibraryModule({
 		index,
 		configuration: {
 			get settings() {
@@ -534,7 +541,7 @@ test("scheduled scans discover new files, reschedule after completion, and honor
 
 test("long scans have no overlapping timer and the next interval begins at completion", async () => {
 	vi.useFakeTimers();
-	const application = new LibraryApplication({
+	const application = createLibraryModule({
 		index,
 		configuration: {
 			settings: { resourceRoot: root, scanIntervalMinutes: 1 },

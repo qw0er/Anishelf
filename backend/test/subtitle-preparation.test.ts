@@ -10,24 +10,28 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { LibraryApplication } from "../src/application/library.js";
-import { SubtitleApplication } from "../src/application/subtitles.js";
-import { ApplicationDatabase } from "../src/database/index.js";
-import { createHttpApp } from "../src/http/app.js";
+import { ApplicationDatabase } from "../src/bootstrap/database.js";
+import { createHttpApp } from "../src/bootstrap/http.js";
+import { createLibraryModule } from "../src/bootstrap/library.js";
 import type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
-} from "../src/http/contracts.js";
-import { LibraryIndex } from "../src/library/index.js";
-import { createResourceId } from "../src/library/model.js";
+} from "../src/contracts/http.js";
+import {
+	type BuiltinPolicy,
+	builtinPolicy,
+} from "../src/modules/configuration/domain/policy.js";
+import type { LibraryApplication } from "../src/modules/library/application/library.js";
+import { createResourceId } from "../src/modules/library/domain/model.js";
+import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
+import { SubtitleApplication } from "../src/modules/subtitles/application/subtitles.js";
 import {
 	type MediaInfo,
 	type MediaStream,
 	MediaToolError,
 	MediaTools,
-} from "../src/media/index.js";
-import { runTool } from "../src/media/process.js";
-import { type BuiltinPolicy, builtinPolicy } from "../src/public/policy.js";
+} from "../src/platform/media/index.js";
+import { runTool } from "../src/platform/media/process.js";
 import { settingsStore } from "./settings-store.js";
 
 let directory: string;
@@ -72,7 +76,8 @@ const info: MediaInfo = {
 };
 function server() {
 	subtitles = new SubtitleApplication({
-		library,
+		sources: library.sources,
+		policy: library.policy,
 		tools: { probe, extractSubtitle: extract },
 		dataDir,
 		repository: database.subtitles,
@@ -93,7 +98,7 @@ beforeEach(async () => {
 	policy = structuredClone(builtinPolicy) as BuiltinPolicy;
 	database = ApplicationDatabase.open(dataDir);
 	const index = new LibraryIndex();
-	library = new LibraryApplication({
+	library = createLibraryModule({
 		index,
 		configuration: settingsStore(root),
 		policy,
@@ -165,14 +170,14 @@ test("extracts only selected tracks, publishes complete UTF-8 text and reuses it
 	);
 	expect(JSON.stringify(result)).not.toContain(directory);
 	const registered = database.playback.registerSource(
-		(await library.resolvePlaybackSource(fileId)).identity,
+		(await library.sources.resolveSource(fileId)).identity,
 	);
 	expect(database.playback.get(registered.id)).toBeUndefined();
 	await app.close();
 	database.close();
 	database = ApplicationDatabase.open(dataDir);
 	// Reopen the same source with a fresh library and a fresh application.
-	library = new LibraryApplication({
+	library = createLibraryModule({
 		index: new LibraryIndex(),
 		configuration: settingsStore(root),
 		logger,

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { DomainError } from "../src/errors.js";
+import { DomainError } from "../src/shared/errors.js";
 
 test("domain errors preserve the code and original cause for diagnostics", () => {
 	const cause = new Error("filesystem failure");

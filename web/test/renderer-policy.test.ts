@@ -2,7 +2,7 @@
 import { waitFor } from "@testing-library/react";
 import { TextTrack } from "@vidstack/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { StyledSubtitleRenderer } from "../src/subtitles/renderer.js";
+import { StyledSubtitleRenderer } from "../src/features/subtitles/renderer.js";
 import { clientConfig } from "./client-config.js";
 
 const options = vi.hoisted(() => [] as { libassMemoryLimit: number }[]);

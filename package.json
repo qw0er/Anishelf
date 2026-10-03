@@ -15,9 +15,9 @@
 		"typecheck": "npm run typecheck --workspaces",
 		"biome:check": "biome check .",
 		"biome:fix": "biome check --write .",
-		"lint": "biome lint .",
-		"check": "npm run biome:check && npm run typecheck && npm test",
-		"test": "npm run test --workspaces --if-present",
+		"lint": "biome lint . && npm run architecture:check",
+		"check": "npm run biome:check && npm run lint && npm run typecheck && npm test",
+		"test": "npm run architecture:test && npm run test --workspaces --if-present",
 		"build": "npm run build --workspaces",
 		"start": "npm run start --workspace @anishelf/backend",
 		"start:web": "npm run build && NODE_ENV=development npm run start --workspace @anishelf/backend",
@@ -25,6 +25,8 @@
 		"dev:web": "npm run dev --workspace @anishelf/web",
 		"dev": "concurrently \"npm run dev:backend\" \"npm run dev:web\"",
 		"dev:host": "concurrently \"npm run dev:backend\" \"npm run dev --workspace @anishelf/web -- --host 0.0.0.0\"",
-		"package_source": " mkdir -p ./dist && git archive --format=tar --prefix=anishelf/ HEAD | zstd -f -o ./dist/anishelf.tar.zst"
+		"package_source": " mkdir -p ./dist && git archive --format=tar --prefix=anishelf/ HEAD | zstd -f -o ./dist/anishelf.tar.zst",
+		"architecture:check": "node scripts/check-architecture.mjs",
+		"architecture:test": "node --test scripts/check-architecture.test.mjs"
 	}
 }

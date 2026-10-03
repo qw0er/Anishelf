@@ -23,4 +23,4 @@ export type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
 	UpdateSettingsRequest,
-} from "@anishelf/backend/http/contracts";
+} from "@anishelf/backend/contracts/http";

@@ -7,11 +7,13 @@ import {
 	useSearchParams,
 } from "react-router";
 import App, { type LibraryContext } from "../App.js";
-import FilePlayer from "../components/file-player.js";
 import InitialLoading from "../components/initial-loading.js";
-import LibraryBrowser from "../components/library-browser.js";
-import ResourceSettings from "../components/resource-settings.js";
 import { buttonStyles } from "../components/ui/button.js";
+import {
+	LibraryBrowser,
+	ResourceSettings,
+} from "../features/library/public.js";
+import { FilePlayer } from "../features/playback/public.js";
 import RouteError from "./errors.js";
 import HistoryPage from "./history.js";
 import {

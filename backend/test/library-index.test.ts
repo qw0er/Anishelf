@@ -1,13 +1,13 @@
 import { join } from "node:path";
 import { expect, test } from "vitest";
-import { LibraryIndex } from "../src/library/index.js";
+import { builtinPolicy } from "../src/modules/configuration/domain/policy.js";
 import type {
 	DirectoryEntry,
 	FileEntry,
 	LibraryEntry,
-} from "../src/library/model.js";
-import { createResourceId } from "../src/library/model.js";
-import { builtinPolicy } from "../src/public/policy.js";
+} from "../src/modules/library/domain/model.js";
+import { createResourceId } from "../src/modules/library/domain/model.js";
+import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
 
 const root: DirectoryEntry = {
 	kind: "directory",

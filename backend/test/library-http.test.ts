@@ -3,16 +3,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { LibraryApplication } from "../src/application/library.js";
-import { DomainError } from "../src/errors.js";
-import { createHttpApp } from "../src/http/app.js";
+import { createHttpApp } from "../src/bootstrap/http.js";
+import { createLibraryModule } from "../src/bootstrap/library.js";
 import type {
 	DirectoryResponse,
 	LibraryResponse,
 	ScanResponse,
-} from "../src/http/contracts.js";
-import { LibraryIndex } from "../src/library/index.js";
-import { ResourceAccess } from "../src/resources/access.js";
+} from "../src/contracts/http.js";
+import type { LibraryApplication } from "../src/modules/library/application/library.js";
+import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
+import { ResourceAccess } from "../src/modules/media-source/infrastructure/access.js";
+import { DomainError } from "../src/shared/errors.js";
 import { settingsStore } from "./settings-store.js";
 
 const headers = { host: "127.0.0.1:3000" };
@@ -28,7 +29,7 @@ beforeEach(async () => {
 	index = new LibraryIndex();
 	const logger = pino({ enabled: false });
 	const configuration = settingsStore(root);
-	libraryApp = new LibraryApplication({ index, configuration, logger });
+	libraryApp = createLibraryModule({ index, configuration, logger });
 	app = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger,

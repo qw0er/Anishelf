@@ -3,20 +3,20 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { LibraryApplication } from "../src/application/library.js";
-import { ConfigurationService } from "../src/config/service.js";
-import { ApplicationDatabase } from "../src/database/index.js";
-import { createHttpApp } from "../src/http/app.js";
-import { LibraryIndex } from "../src/library/index.js";
-import { runTool } from "../src/media/process.js";
+import { ApplicationDatabase } from "../src/bootstrap/database.js";
+import { createHttpApp } from "../src/bootstrap/http.js";
+import { createLibraryModule } from "../src/bootstrap/library.js";
+import { ConfigurationService } from "../src/modules/configuration/application/service.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	validatePolicy,
-} from "../src/public/policy.js";
-import { ResourceAccess } from "../src/resources/access.js";
-import { readSubtitleText } from "../src/subtitles/content.js";
-import { discoverExternalSubtitles } from "../src/subtitles/discovery.js";
+} from "../src/modules/configuration/domain/policy.js";
+import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
+import { ResourceAccess } from "../src/modules/media-source/infrastructure/access.js";
+import { readSubtitleText } from "../src/modules/subtitles/infrastructure/content.js";
+import { discoverExternalSubtitles } from "../src/modules/subtitles/infrastructure/discovery.js";
+import { runTool } from "../src/platform/media/process.js";
 
 let directory: string;
 let dataDir: string;
@@ -118,7 +118,7 @@ test("client API whitelists supported values and HTTP settings share injected co
 	policy.library.defaultScanIntervalMinutes = 3;
 	policy.runtime.httpBodyMaximumBytes = 128;
 	const configuration = await ConfigurationService.load(environment(), policy);
-	const library = new LibraryApplication({
+	const library = createLibraryModule({
 		configuration,
 		policy: configuration.policy,
 		index: new LibraryIndex(),

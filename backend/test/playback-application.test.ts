@@ -3,14 +3,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { LibraryApplication } from "../src/application/library.js";
-import { PlaybackApplication } from "../src/application/playback.js";
-import type { PersistentSettings } from "../src/config/model.js";
-import { ApplicationDatabase } from "../src/database/index.js";
-import { LibraryIndex } from "../src/library/index.js";
-import { createResourceId } from "../src/library/model.js";
-import { builtinPolicy } from "../src/public/policy.js";
-import { ResourceAccess } from "../src/resources/access.js";
+import { ApplicationDatabase } from "../src/bootstrap/database.js";
+import { createLibraryModule } from "../src/bootstrap/library.js";
+import type { PersistentSettings } from "../src/modules/configuration/domain/model.js";
+import { builtinPolicy } from "../src/modules/configuration/domain/policy.js";
+import type { LibraryApplication } from "../src/modules/library/application/library.js";
+import { createResourceId } from "../src/modules/library/domain/model.js";
+import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
+import { ResourceAccess } from "../src/modules/media-source/infrastructure/access.js";
+import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
 
 let directory: string;
 let root: string;
@@ -27,7 +28,7 @@ beforeEach(async () => {
 	await writeFile(join(root, "episode.mp4"), "source");
 	database = ApplicationDatabase.open(join(directory, "data"));
 	let settings: PersistentSettings = { resourceRoot: root };
-	library = new LibraryApplication({
+	library = createLibraryModule({
 		configuration: {
 			get settings() {
 				return settings;
@@ -42,7 +43,8 @@ beforeEach(async () => {
 	});
 	now = 1000;
 	playback = new PlaybackApplication({
-		library,
+		sources: library.sources,
+		policy: library.policy.playback,
 		repository: database.playback,
 		logger,
 		now: () => now,
@@ -172,7 +174,10 @@ test("expires idle sessions and handles unavailable persistence", async () => {
 	await expect(playback.save(update(session))).rejects.toMatchObject({
 		code: "PLAYBACK_CONFLICT",
 	});
-	const unavailable = new PlaybackApplication({ library, logger });
+	const unavailable = new PlaybackApplication({
+		sources: library.sources,
+		logger,
+	});
 	await expect(unavailable.open(fileId)).rejects.toMatchObject({
 		code: "PLAYBACK_UNAVAILABLE",
 	});
@@ -180,7 +185,7 @@ test("expires idle sessions and handles unavailable persistence", async () => {
 
 test("injected session and list policies govern capacity, expiry and limits", async () => {
 	const scoped = new PlaybackApplication({
-		library,
+		sources: library.sources,
 		repository: database.playback,
 		logger,
 		now: () => now,

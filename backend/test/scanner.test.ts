@@ -6,8 +6,8 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
 	LibraryScanner,
 	type ScanTraversalProgress,
-} from "../src/library/scanner.js";
-import { ResourceAccess } from "../src/resources/access.js";
+} from "../src/modules/library/infrastructure/scanner.js";
+import { ResourceAccess } from "../src/modules/media-source/infrastructure/access.js";
 
 let fixture: string;
 let resources: ResourceAccess;

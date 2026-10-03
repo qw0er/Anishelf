@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { ApplicationLogging } from "../src/logging/index.js";
+import { ApplicationLogging } from "../src/platform/logging/index.js";
 
 let fixture: string;
 const outputs: ReturnType<typeof pino.destination>[] = [];

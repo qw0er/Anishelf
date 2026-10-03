@@ -5,8 +5,8 @@ import { TextTrack } from "@vidstack/react";
 import { StrictMode } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import type { SubtitleDiscoveryResponse } from "../src/api/contracts.js";
-import { useExternalSubtitles } from "../src/hooks/use-external-subtitles.js";
-import { StyledSubtitleRenderer } from "../src/subtitles/renderer.js";
+import { useSubtitleDiscovery } from "../src/features/subtitles/hooks/use-subtitle-discovery.js";
+import { StyledSubtitleRenderer } from "../src/features/subtitles/renderer.js";
 import { clientConfig } from "./client-config.js";
 
 const plainTrack: SubtitleDiscoveryResponse["tracks"][number] = {
@@ -61,7 +61,7 @@ test("discovers metadata without requesting subtitle content", async () => {
 		.fn<typeof fetch>()
 		.mockImplementation(async () => json(discovery));
 	vi.stubGlobal("fetch", fetcher);
-	const { result } = renderHook(() => useExternalSubtitles("file-1"), {
+	const { result } = renderHook(() => useSubtitleDiscovery("file-1"), {
 		wrapper: StrictMode,
 	});
 	await waitFor(() => expect(result.current?.tracks.length).toBe(2));
@@ -83,7 +83,7 @@ test("ignores stale discovery and aborts pending requests", async () => {
 		.mockImplementation(async () => json(discovery));
 	vi.stubGlobal("fetch", fetcher);
 	const { result, rerender, unmount } = renderHook(
-		({ id }) => useExternalSubtitles(id),
+		({ id }) => useSubtitleDiscovery(id),
 		{ initialProps: { id: "first" } },
 	);
 	const signal = fetcher.mock.lastCall?.[1]?.signal;
@@ -104,11 +104,11 @@ test("refreshes discovery when the player remounts", async () => {
 		.fn<typeof fetch>()
 		.mockImplementation(async () => json(discovery));
 	vi.stubGlobal("fetch", fetcher);
-	const first = renderHook(() => useExternalSubtitles("file-1"));
+	const first = renderHook(() => useSubtitleDiscovery("file-1"));
 	await waitFor(() => expect(first.result.current?.tracks.length).toBe(2));
 	first.unmount();
 	fetcher.mockImplementation(async () => json({ ...discovery, tracks: [] }));
-	const next = renderHook(() => useExternalSubtitles("file-1"));
+	const next = renderHook(() => useSubtitleDiscovery("file-1"));
 	await waitFor(() => expect(next.result.current?.tracks).toEqual([]));
 });
 

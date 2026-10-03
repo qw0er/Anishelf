@@ -1,4 +1,4 @@
-import { subtitleFormats } from "@anishelf/backend/public/subtitles";
+import { subtitleFormats } from "@anishelf/backend/contracts/subtitles";
 import { defaultLanguage } from "../config/interaction-policy.js";
 import type {
 	ApiErrorResponse,

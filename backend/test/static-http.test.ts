@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test } from "vitest";
-import { createHttpApp } from "../src/http/app.js";
+import { createHttpApp } from "../src/bootstrap/http.js";
 
 let fixture: string;
 let app: ReturnType<typeof createHttpApp>;
