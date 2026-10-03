@@ -2,12 +2,10 @@ import { Track, useMediaPlayer } from "@vidstack/react";
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { subtitleContentUrl } from "../../../api/client.js";
-import type {
-	ClientConfigResponse,
-	SubtitleDiscoveryResponse,
-} from "../../../api/contracts.js";
+import type { SubtitleDiscoveryResponse } from "../../../api/contracts.js";
 import { toast } from "../../../components/ui/toast.js";
 import { interactionPolicy } from "../../../config/interaction-policy.js";
+import type { SubtitlePolicy } from "../../../config/media-policy.js";
 import { EmbeddedSubtitleController } from "../embedded.js";
 import { useSubtitleDiscovery } from "../hooks/use-subtitle-discovery.js";
 import { prepareSelectedSubtitle } from "../preparation.js";
@@ -19,7 +17,7 @@ export function SubtitleTracks({
 	policy,
 }: {
 	fileId: string;
-	policy: ClientConfigResponse["subtitles"];
+	policy: SubtitlePolicy;
 }) {
 	const { initializationTimeoutMs, memoryMaximumBytes, maximumBytes } = policy;
 	const formatsKey = policy.formats.join(",");
@@ -30,7 +28,7 @@ export function SubtitleTracks({
 			maximumBytes,
 			formats: formatsKey
 				.split(",")
-				.filter(Boolean) as ClientConfigResponse["subtitles"]["formats"],
+				.filter(Boolean) as SubtitlePolicy["formats"],
 		}),
 		[initializationTimeoutMs, memoryMaximumBytes, maximumBytes, formatsKey],
 	);

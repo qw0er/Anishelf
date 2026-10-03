@@ -2,10 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify, { LogController } from "fastify";
 import type { Logger } from "pino";
-import {
-	ClientConfigResponseSchema,
-	HealthResponseSchema,
-} from "../contracts/schemas/index.js";
+import { HealthResponseSchema } from "../contracts/schemas/index.js";
 import type { DeploymentConfig } from "../modules/configuration/domain/model.js";
 import {
 	type BuiltinPolicy,
@@ -20,7 +17,6 @@ import type { PlaybackApplication } from "../modules/playback/application/playba
 import { registerPlaybackRoutes } from "../modules/playback/http/playback.js";
 import { SubtitleApplication } from "../modules/subtitles/application/subtitles.js";
 import { registerSubtitleRoutes } from "../modules/subtitles/http/subtitles.js";
-import { clientConfigResponse } from "../transport/client-config.js";
 import { apiError, classifyHttpError } from "../transport/errors.js";
 import { checkRequestOrigin } from "../transport/security.js";
 import { registerFrontend } from "../transport/static.js";
@@ -95,11 +91,6 @@ export function createHttpApp(options: {
 		async () => ({ status: "ok" as const }),
 	);
 
-	app.get(
-		"/api/client-config",
-		{ schema: { response: { 200: ClientConfigResponseSchema } } },
-		async () => clientConfigResponse(policy),
-	);
 	if (options.library) {
 		const library = options.library;
 		app.addHook("onClose", async () => library.close());

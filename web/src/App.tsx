@@ -9,11 +9,7 @@ import {
 	useNavigation,
 	useRevalidator,
 } from "react-router";
-import type {
-	ClientConfigResponse,
-	LibraryResponse,
-	SettingsResponse,
-} from "./api/contracts.js";
+import type { LibraryResponse, SettingsResponse } from "./api/contracts.js";
 import AppHeader from "./components/app-header.js";
 import { buttonStyles } from "./components/ui/button.js";
 import { Spinner } from "./components/ui/spinner.js";
@@ -24,7 +20,6 @@ import "./i18n.js";
 import { interactionPolicy } from "./config/interaction-policy.js";
 
 export interface LibraryContext {
-	clientConfig: ClientConfigResponse;
 	playerVersion: number;
 	reload(): void;
 	settings: SettingsResponse | null;
@@ -41,7 +36,7 @@ function App() {
 	const { t } = useTranslation();
 	const {
 		library,
-		clientConfig,
+
 		settings,
 		error: libraryError,
 	} = useLoaderData<typeof libraryLoader>();
@@ -165,7 +160,7 @@ function App() {
 							reload,
 							playerVersion,
 							settings,
-							clientConfig,
+
 							library,
 							libraryError,
 							scanning,

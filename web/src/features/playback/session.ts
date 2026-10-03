@@ -6,10 +6,10 @@ import {
 	savePlaybackProgress,
 } from "../../api/client.js";
 import type {
-	ClientConfigResponse,
 	PlaybackSessionResponse,
 	SavePlaybackProgressRequest,
 } from "../../api/contracts.js";
+import type { PlaybackPolicy } from "../../config/media-policy.js";
 
 export interface PlaybackSessionState {
 	session: PlaybackSessionResponse | null;
@@ -43,11 +43,11 @@ export class PlaybackSessionController {
 	private lastSaved: Position | null = null;
 	private readonly fileId: string;
 	private readonly notify: (state: PlaybackSessionState) => void;
-	private readonly policy: ClientConfigResponse["playback"];
+	private readonly policy: PlaybackPolicy;
 	constructor(
 		fileId: string,
 		notify: (state: PlaybackSessionState) => void,
-		policy: ClientConfigResponse["playback"],
+		policy: PlaybackPolicy,
 	) {
 		this.policy = policy;
 		this.fileId = fileId;

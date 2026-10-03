@@ -1,8 +1,5 @@
-import { subtitleFormats } from "@anishelf/backend/contracts/subtitles";
-import { defaultLanguage } from "../config/interaction-policy.js";
 import type {
 	ApiErrorResponse,
-	ClientConfigResponse,
 	ContinueWatchingResponse,
 	DirectoryResponse,
 	FileResponse,
@@ -150,50 +147,6 @@ async function request<T>(
 		});
 	}
 	return body as T;
-}
-
-export async function getClientConfig(
-	options?: RequestOptions,
-): Promise<ClientConfigResponse> {
-	const value = await request<ClientConfigResponse>(
-		"/api/client-config",
-		"GET",
-		options,
-	);
-	const positive = (n: unknown) =>
-		typeof n === "number" && Number.isSafeInteger(n) && n > 0;
-	if (
-		value?.defaultLanguage !== defaultLanguage ||
-		!value.library ||
-		!Number.isSafeInteger(value.library.defaultScanIntervalMinutes) ||
-		value.library.defaultScanIntervalMinutes < 0 ||
-		!positive(value.library.maximumScanIntervalMinutes) ||
-		value.library.defaultScanIntervalMinutes >
-			value.library.maximumScanIntervalMinutes ||
-		!value.playback ||
-		!positive(value.playback.progressSaveIntervalMs) ||
-		!positive(value.playback.requestTimeoutMs) ||
-		!value.subtitles ||
-		!positive(value.subtitles.maximumBytes) ||
-		!positive(value.subtitles.initializationTimeoutMs) ||
-		!positive(value.subtitles.memoryMaximumBytes) ||
-		!Array.isArray(value.subtitles.formats) ||
-		!value.subtitles.formats.every((format) =>
-			subtitleFormats.includes(format),
-		) ||
-		!value.media ||
-		!value.media.videoMimeTypes ||
-		Array.isArray(value.media.videoMimeTypes) ||
-		typeof value.media.videoMimeTypes !== "object" ||
-		!Object.values(value.media.videoMimeTypes).every(
-			(mime) => typeof mime === "string",
-		)
-	)
-		throw new ApiClientError({
-			kind: "invalid_response",
-			message: "The server returned invalid client configuration. Retry.",
-		});
-	return value;
 }
 
 export function getLibrary(options?: RequestOptions): Promise<LibraryResponse> {

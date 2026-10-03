@@ -109,10 +109,10 @@ test("rejects unsupported capabilities, invalid limits and timing values", () =>
 	};
 	expect(() => validatePolicy(policy)).toThrow("videoMimeTypes..avi");
 	policy.media.videoMimeTypes = builtinPolicy.media.videoMimeTypes;
-	policy.client.progressSaveIntervalMs = Infinity;
-	expect(() => validatePolicy(policy)).toThrow("progressSaveIntervalMs");
+	policy.playback.sessionIdleMs = Infinity;
+	expect(() => validatePolicy(policy)).toThrow("sessionIdleMs");
 });
-test("client API whitelists supported values and HTTP settings share injected constraints", async () => {
+test("removed client configuration endpoint returns 404 and settings enforce injected constraints", async () => {
 	const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
 	policy.library.maximumScanIntervalMinutes = 10;
 	policy.library.defaultScanIntervalMinutes = 3;
@@ -135,21 +135,10 @@ test("client API whitelists supported values and HTTP settings share injected co
 			headers: { host: "127.0.0.1:3000" },
 			url: "/api/client-config",
 		});
-		expect(response.statusCode).toBe(200);
-		const body = response.json();
-		expect(Object.keys(body).sort()).toEqual([
-			"defaultLanguage",
-			"library",
-			"media",
-			"playback",
-			"subtitles",
-		]);
-		expect(body.library).toEqual({
-			defaultScanIntervalMinutes: 3,
-			maximumScanIntervalMinutes: 10,
+		expect(response.statusCode).toBe(404);
+		expect(response.json()).toMatchObject({
+			error: { code: "ROUTE_NOT_FOUND" },
 		});
-		expect(JSON.stringify(body)).not.toContain(dataDir);
-		expect(body.runtime).toBeUndefined();
 		expect(
 			(
 				await app.inject({

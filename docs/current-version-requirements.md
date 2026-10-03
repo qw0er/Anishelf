@@ -106,7 +106,7 @@ V2 offers a secondary **Copy media link** action for users who want to open the 
 
 ### Configuration and Multilingual Foundation (O17, Partial O14)
 
-The current-function configuration foundation is implemented: one `ConfigurationService` validates built-in policy and explicit settings, supplies immutable snapshots, and preserves atomic writes. `GET /api/client-config` exposes only safe client policy and supported capabilities. Transcode profiles, cache budgets and profile-content cache invalidation remain planned until the corresponding V2 features exist.
+The current-function configuration foundation is implemented: one `ConfigurationService` validates built-in policy and explicit settings, supplies immutable snapshots, and preserves atomic writes. The Web build defines local playback/renderer policy and imports browser-safe shared constraints; no client-configuration endpoint is required. Transcode profiles, cache budgets and profile-content cache invalidation remain planned until the corresponding V2 features exist.
 
 - Use environment variables for startup options. Define media-format capabilities, subtitle support and limits, runtime defaults and built-in transcode profiles in TypeScript. Bundle the English catalog as a read-only resource. Do not copy these defaults into persistent policy files.
 - Store only user choices in `settings.json`: resource root, Web playback mode, cache budget and selected profile IDs. Save custom profile definitions or parameter overrides only if V2 exposes editing them. Merge explicit user values with the current built-in defaults, validate the result and write settings atomically. Missing fields receive current defaults; explicit choices survive upgrades. Reject invalid settings with actionable diagnostics.

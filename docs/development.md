@@ -870,3 +870,14 @@ queue broker or event bus is required.
 Web feature internals live together with their controllers and hooks. Other
 features use `features/<name>/public.ts`. `SubtitleTracks` and
 `useSubtitleDiscovery` cover external and embedded subtitles.
+
+### Browser policy ownership
+
+`web/src/config/media-policy.ts` defines playback save/request timing and subtitle
+renderer initialization/memory limits. Scan defaults/limits and subtitle size
+limits are imported from browser-safe `contracts/defaults.ts`; subtitle formats
+come from the shared format registry. The backend built-in policy consumes these
+same business defaults and continues to enforce request and asset constraints.
+The root loader fetches library status and settings directly in parallel. There
+is no client-configuration endpoint or configuration request before saving
+settings. Deploy frontend and backend builds together when changing shared limits.

@@ -4,7 +4,6 @@ import {
 	redirect,
 } from "react-router";
 import {
-	getClientConfig,
 	getDirectory,
 	getFile,
 	getHistory,
@@ -15,11 +14,11 @@ import {
 	startScan,
 } from "../api/client.js";
 import { toast } from "../components/ui/toast.js";
+import { libraryPolicy } from "../config/media-policy.js";
 import i18n from "../i18n.js";
 import { getErrorTranslationKey } from "../lib/error-translation.js";
 
 export async function libraryLoader({ request }: LoaderFunctionArgs) {
-	const clientConfig = await getClientConfig({ signal: request.signal });
 	try {
 		const [library, settings] = await Promise.all([
 			getLibrary({ signal: request.signal }),
@@ -28,13 +27,12 @@ export async function libraryLoader({ request }: LoaderFunctionArgs) {
 		return {
 			library,
 			settings,
-			clientConfig,
+
 			error: null,
 		};
 	} catch (error) {
 		if (request.signal.aborted || isRequestCancelled(error)) throw error;
 		return {
-			clientConfig,
 			library: null,
 			settings: null,
 			error: getErrorTranslationKey(error) ?? "errors.libraryStatus",
@@ -48,7 +46,7 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 	const resourceRoot = form.get("resourceRoot");
 	if (typeof resourceRoot !== "string" || resourceRoot.trim() === "")
 		return { error: "errors.resourcePathRequired" };
-	const clientConfig = await getClientConfig({ signal: request.signal });
+
 	const interval = form.get("scanIntervalMinutes");
 	const scanIntervalMinutes = interval === null ? undefined : Number(interval);
 	if (
@@ -57,12 +55,11 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 			interval.trim() === "" ||
 			!Number.isSafeInteger(scanIntervalMinutes) ||
 			Number(scanIntervalMinutes) < 0 ||
-			Number(scanIntervalMinutes) >
-				clientConfig.library.maximumScanIntervalMinutes)
+			Number(scanIntervalMinutes) > libraryPolicy.maximumScanIntervalMinutes)
 	)
 		return {
 			error: "settingsPage.invalidInterval",
-			maximumMinutes: clientConfig.library.maximumScanIntervalMinutes,
+			maximumMinutes: libraryPolicy.maximumScanIntervalMinutes,
 		};
 	try {
 		await saveSettings(

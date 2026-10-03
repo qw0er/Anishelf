@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ClientConfigResponse } from "../../../api/contracts.js";
 import { toast } from "../../../components/ui/toast.js";
 import { interactionPolicy } from "../../../config/interaction-policy.js";
+import type { PlaybackPolicy } from "../../../config/media-policy.js";
 import { getErrorTranslationKey } from "../../../lib/error-translation.js";
 import {
 	PlaybackSessionController,
@@ -19,10 +19,7 @@ const initialState: PlaybackSessionState = {
 	error: null,
 };
 
-export function usePlaybackSession(
-	fileId: string,
-	policy: ClientConfigResponse["playback"],
-) {
+export function usePlaybackSession(fileId: string, policy: PlaybackPolicy) {
 	const { t } = useTranslation();
 	const { progressSaveIntervalMs, requestTimeoutMs } = policy;
 	const stablePolicy = useMemo(

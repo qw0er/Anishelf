@@ -2,8 +2,8 @@
 import { waitFor } from "@testing-library/react";
 import { TextTrack } from "@vidstack/react";
 import { afterEach, expect, test, vi } from "vitest";
+import { subtitlePolicy } from "../src/config/media-policy.js";
 import { StyledSubtitleRenderer } from "../src/features/subtitles/renderer.js";
-import { clientConfig } from "./client-config.js";
 
 const options = vi.hoisted(() => [] as { libassMemoryLimit: number }[]);
 vi.mock("jassub", () => ({
@@ -43,7 +43,7 @@ test("uses injected initialization timeout to cancel an unfinished subtitle requ
 		}),
 	);
 	const renderer = new StyledSubtitleRenderer({
-		...clientConfig.subtitles,
+		...subtitlePolicy,
 		initializationTimeoutMs: 20,
 	});
 	const subtitle = track();
@@ -71,7 +71,7 @@ test("passes the injected memory budget to JASSUB", async () => {
 		vi.fn().mockResolvedValue(new Response("[Events]\nDialogue: example")),
 	);
 	const renderer = new StyledSubtitleRenderer({
-		...clientConfig.subtitles,
+		...subtitlePolicy,
 		memoryMaximumBytes: 123456,
 	});
 	try {

@@ -11,6 +11,7 @@ import {
 	defaultLayoutIcons,
 } from "@vidstack/react/player/layouts/default";
 import { interactionPolicy } from "../../../config/interaction-policy.js";
+import type { SubtitlePolicy } from "../../../config/media-policy.js";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import { useLayoutEffect, useRef } from "react";
@@ -20,10 +21,7 @@ import {
 	getFile,
 	isRequestCancelled,
 } from "../../../api/client.js";
-import type {
-	ClientConfigResponse,
-	FileResponse,
-} from "../../../api/contracts.js";
+import type { FileResponse } from "../../../api/contracts.js";
 import { toast } from "../../../components/ui/toast.js";
 import { getErrorTranslationKey } from "../../../lib/error-translation.js";
 import { SubtitleTracks } from "../../subtitles/public.js";
@@ -42,7 +40,7 @@ export default function VideoPlayer({
 	onMedia,
 	subtitlePolicy,
 }: FileResponse & {
-	subtitlePolicy: ClientConfigResponse["subtitles"];
+	subtitlePolicy: SubtitlePolicy;
 	onMedia?(video: HTMLVideoElement | null): void;
 }) {
 	const { t } = useTranslation();

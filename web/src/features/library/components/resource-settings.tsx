@@ -1,10 +1,7 @@
 import { Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useFetcher } from "react-router";
-import type {
-	ClientConfigResponse,
-	SettingsResponse,
-} from "../../../api/contracts.js";
+import type { SettingsResponse } from "../../../api/contracts.js";
 import { Button } from "../../../components/ui/button.js";
 import {
 	Card,
@@ -15,16 +12,16 @@ import {
 } from "../../../components/ui/card.js";
 import { Input } from "../../../components/ui/input.js";
 import { Spinner } from "../../../components/ui/spinner.js";
+import { libraryPolicy } from "../../../config/media-policy.js";
 import { useDelayedPending } from "../../../hooks/use-delayed-pending.js";
 import type { settingsAction } from "../../../routes/loaders.js";
 
 export default function ResourceSettings({
 	settings,
-	clientConfig,
+
 	disabled,
 }: {
 	settings: SettingsResponse;
-	clientConfig: ClientConfigResponse;
 	disabled: boolean;
 }) {
 	const { t } = useTranslation();
@@ -76,12 +73,12 @@ export default function ResourceSettings({
 								name="scanIntervalMinutes"
 								type="number"
 								min={0}
-								max={clientConfig.library.maximumScanIntervalMinutes}
+								max={libraryPolicy.maximumScanIntervalMinutes}
 								step={1}
 								required
 								defaultValue={
 									settings.scanIntervalMinutes ??
-									clientConfig.library.defaultScanIntervalMinutes
+									libraryPolicy.defaultScanIntervalMinutes
 								}
 								disabled={disabled || saving}
 								aria-describedby="scan-interval-help"
@@ -91,8 +88,7 @@ export default function ResourceSettings({
 								className="text-sm text-muted-foreground"
 							>
 								{t("settingsPage.scanIntervalHelp", {
-									defaultMinutes:
-										clientConfig.library.defaultScanIntervalMinutes,
+									defaultMinutes: libraryPolicy.defaultScanIntervalMinutes,
 								})}
 							</p>
 						</div>
@@ -124,7 +120,7 @@ export default function ResourceSettings({
 					{fetcher.state === "idle" && fetcher.data?.error && (
 						<p className="text-base text-destructive" role="alert">
 							{t(fetcher.data.error, {
-								maximumMinutes: clientConfig.library.maximumScanIntervalMinutes,
+								maximumMinutes: libraryPolicy.maximumScanIntervalMinutes,
 							})}
 						</p>
 					)}

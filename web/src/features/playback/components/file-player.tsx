@@ -1,11 +1,12 @@
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import type {
-	ClientConfigResponse,
-	FileResponse,
-} from "../../../api/contracts.js";
+import type { FileResponse } from "../../../api/contracts.js";
 import { Button, buttonStyles } from "../../../components/ui/button.js";
+import {
+	playbackPolicy,
+	subtitlePolicy,
+} from "../../../config/media-policy.js";
 import { directoryPath } from "../../../routes/paths.js";
 import { usePlaybackSession } from "../hooks/use-playback-session.js";
 import MediaLink from "./media-link.js";
@@ -13,17 +14,16 @@ import VideoPlayer from "./video-player.js";
 
 export default function FilePlayer({
 	data,
-	clientConfig,
+
 	returnDirectoryId,
 	onRetry,
 }: {
 	data: FileResponse;
-	clientConfig: ClientConfigResponse;
 	returnDirectoryId: string | null;
 	onRetry(): void;
 }) {
 	const { t } = useTranslation();
-	const playback = usePlaybackSession(data.file.id, clientConfig.playback);
+	const playback = usePlaybackSession(data.file.id, playbackPolicy);
 	return (
 		<section className="stack-page" aria-label={t("player.label")}>
 			<div className="action-row">
@@ -43,7 +43,7 @@ export default function FilePlayer({
 			<VideoPlayer
 				key={`video:${data.file.id}`}
 				{...data}
-				subtitlePolicy={clientConfig.subtitles}
+				subtitlePolicy={subtitlePolicy}
 				playbackUrl={playback.session?.plan.playbackUrl ?? data.playbackUrl}
 				onMedia={playback.attach}
 			/>

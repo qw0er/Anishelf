@@ -5,9 +5,9 @@ import { TextTrack } from "@vidstack/react";
 import { StrictMode } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import type { SubtitleDiscoveryResponse } from "../src/api/contracts.js";
+import { subtitlePolicy } from "../src/config/media-policy.js";
 import { useSubtitleDiscovery } from "../src/features/subtitles/hooks/use-subtitle-discovery.js";
 import { StyledSubtitleRenderer } from "../src/features/subtitles/renderer.js";
-import { clientConfig } from "./client-config.js";
 
 const plainTrack: SubtitleDiscoveryResponse["tracks"][number] = {
 	origin: "external",
@@ -134,7 +134,7 @@ test("Vidstack parses real SRT/VTT timing", async () => {
 });
 
 test("styled adapter only handles ASS/SSA tracks and safely detaches", () => {
-	const renderer = new StyledSubtitleRenderer(clientConfig.subtitles);
+	const renderer = new StyledSubtitleRenderer(subtitlePolicy);
 	const video = document.createElement("video");
 	const track = (type: "vtt" | "srt" | "ass" | "ssa") =>
 		new TextTrack({

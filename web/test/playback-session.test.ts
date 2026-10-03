@@ -3,11 +3,11 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as api from "../src/api/client.js";
 import type { PlaybackSessionResponse } from "../src/api/contracts.js";
+import { playbackPolicy } from "../src/config/media-policy.js";
 import {
 	PlaybackSessionController,
 	type PlaybackSessionState,
 } from "../src/features/playback/session.js";
-import { clientConfig } from "./client-config.js";
 
 const session: PlaybackSessionResponse = {
 	token: "token",
@@ -52,7 +52,7 @@ afterEach(async () => {
 	vi.useRealTimers();
 	vi.restoreAllMocks();
 });
-function create(ready = true, policy = clientConfig.playback) {
+function create(ready = true, policy = playbackPolicy) {
 	let state: PlaybackSessionState | null = null;
 	const controller = new PlaybackSessionController(
 		"file",

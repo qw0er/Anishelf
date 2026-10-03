@@ -1,4 +1,8 @@
-import { defaultLanguage } from "../../../contracts/defaults.js";
+import {
+	defaultLanguage,
+	libraryConstraints,
+	subtitleConstraints,
+} from "../../../contracts/defaults.js";
 import {
 	nativeSubtitleFormats,
 	type PreparedSubtitleFormat,
@@ -29,8 +33,7 @@ const videoMimeTypes: Record<string, string> = {
 
 const defaults = {
 	library: {
-		defaultScanIntervalMinutes: 60,
-		maximumScanIntervalMinutes: 10080,
+		...libraryConstraints,
 		concurrency: 8,
 		warningMessageLimit: 5,
 		sortLocale: defaultLanguage,
@@ -50,7 +53,7 @@ const defaults = {
 	},
 	subtitles: {
 		maximumCacheBytes: 256 * 1024 * 1024,
-		maximumBytes: 10 * 1024 * 1024,
+		maximumBytes: subtitleConstraints.maximumBytes,
 		readChunkBytes: 64 * 1024,
 		extractionConcurrency: 1,
 		defaultExtractionFormat: "srt" as PreparedSubtitleFormat,
@@ -74,12 +77,6 @@ const defaults = {
 		databaseBusyTimeoutMs: 5000,
 		shutdownTimeoutMs: 5000,
 	},
-	client: {
-		progressSaveIntervalMs: 5000,
-		playbackRequestTimeoutMs: 5000,
-		subtitleInitializationTimeoutMs: 15000,
-		subtitleMemoryMaximumBytes: 64 * 1024 * 1024,
-	},
 };
 
 export type BuiltinPolicy = typeof defaults;
@@ -93,7 +90,6 @@ export function validatePolicy(policy: DeepReadonly<BuiltinPolicy>): void {
 		"subtitles",
 		"media",
 		"runtime",
-		"client",
 	] as const) {
 		for (const [key, value] of Object.entries(policy[section])) {
 			if (typeof value !== "number") continue;

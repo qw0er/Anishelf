@@ -3,8 +3,8 @@
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { toast } from "../src/components/ui/toast.js";
+import { subtitlePolicy } from "../src/config/media-policy.js";
 import VideoPlayer from "../src/features/playback/components/video-player.js";
-import { clientConfig } from "./client-config.js";
 
 vi.mock("@vidstack/react", () => ({
 	VideoProviderLoader: class {},
@@ -52,7 +52,7 @@ test("playback errors use one Toast and retry remount closes the notification", 
 				mimeType: "video/mp4",
 			}}
 			playbackUrl="/api/media/file-1"
-			subtitlePolicy={clientConfig.subtitles}
+			subtitlePolicy={subtitlePolicy}
 		/>,
 	);
 	fireEvent.click(getByRole("button"));
