@@ -1,10 +1,17 @@
-import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import type { SubtitleRepository } from "../database/subtitle-repository.js";
 import { DomainError } from "../errors.js";
 import type { MediaInfo, MediaTools } from "../media/index.js";
 import { MediaToolError } from "../media/index.js";
 import type { ResolvedPlaybackSource } from "../playback/model.js";
+import {
+	defaultSubtitleName,
+	subtitleTrackId,
+} from "../public/subtitle-identity.js";
+import {
+	preparedSubtitleFormat,
+	publicSubtitleFormat,
+} from "../public/subtitles.js";
 import { ResourceAccess } from "../resources/access.js";
 import { readSubtitleText } from "../subtitles/content.js";
 import { discoverExternalSubtitles } from "../subtitles/discovery.js";
@@ -17,7 +24,7 @@ export class SubtitleApplication {
 	private readonly library: LibraryApplication;
 	private readonly tools: Pick<MediaTools, "probe"> | undefined;
 	private readonly cache = new Map<string, MediaInfo>();
-	private active: { key: string; promise: Promise<MediaInfo> } | undefined;
+	private readonly active = new Map<string, Promise<MediaInfo>>();
 	private readonly preparation: SubtitlePreparationApplication | undefined;
 	private readonly controller = new AbortController();
 	constructor(options: {
@@ -50,14 +57,15 @@ export class SubtitleApplication {
 	async close(): Promise<void> {
 		this.controller.abort();
 		await this.preparation?.close();
-		await this.active?.promise.catch(() => {});
+		await Promise.allSettled(this.active.values());
 		this.cache.clear();
 	}
 	private async inspect(key: string, path: string): Promise<MediaInfo> {
 		const cached = this.cache.get(key);
 		if (cached) return cached;
-		if (this.active?.key === key) return this.active.promise;
-		if (this.active)
+		const pending = this.active.get(key);
+		if (pending) return pending;
+		if (this.active.size >= this.policy.media.probeConcurrency)
 			throw new MediaToolError("TOOL_FAILED", "Media inspection is busy.");
 		if (!this.tools)
 			throw new MediaToolError(
@@ -65,7 +73,7 @@ export class SubtitleApplication {
 				"Media inspection is unavailable.",
 			);
 		const promise = this.tools.probe(path, this.controller.signal);
-		this.active = { key, promise };
+		this.active.set(key, promise);
 		try {
 			const info = await promise;
 			this.cache.set(key, info);
@@ -75,7 +83,7 @@ export class SubtitleApplication {
 			}
 			return info;
 		} finally {
-			this.active = undefined;
+			this.active.delete(key);
 		}
 	}
 	private async discoverEmbedded(
@@ -90,7 +98,11 @@ export class SubtitleApplication {
 			identity.fileId,
 			identity.sourceVersion,
 		]);
-		if (!this.cache.has(key) && this.active && this.active.key !== key)
+		if (
+			!this.cache.has(key) &&
+			!this.active.has(key) &&
+			this.active.size >= this.policy.media.probeConcurrency
+		)
 			return { tracks: [], warnings: [{ name, code: "SUBTITLE_PROBE_BUSY" }] };
 		let info: MediaInfo;
 		try {
@@ -126,19 +138,17 @@ export class SubtitleApplication {
 							? undefined
 							: this.policy.subtitles.nativeFormats[codec];
 					const format = extractionSupported
-						? output === "webvtt"
-							? "vtt"
-							: (output ?? "srt")
+						? publicSubtitleFormat(
+								output ?? this.policy.subtitles.defaultExtractionFormat,
+							)
 						: null;
 					const webSupported =
 						format !== null &&
 						Object.values(this.policy.subtitles.formats).includes(format);
 					return {
-						id: `subtitle_${createHash("sha256")
-							.update(JSON.stringify([key, "embedded", stream.index]))
-							.digest("base64url")}`,
+						id: subtitleTrackId([key, "embedded", stream.index]),
 						origin: "embedded" as const,
-						name: stream.tags.title || `Subtitle ${stream.index}`,
+						name: stream.tags.title || defaultSubtitleName(stream.index),
 						label: stream.tags.title ?? null,
 						language: stream.tags.language ?? null,
 						codec,
@@ -174,6 +184,7 @@ export class SubtitleApplication {
 			source.identity.relativePath,
 			source.identity.sourceVersion,
 			this.policy.subtitles,
+			this.policy.library,
 		);
 		const tracks = await this.discoverEmbedded(
 			source.identity,
@@ -242,9 +253,7 @@ export class SubtitleApplication {
 		const stream = info?.streams.find(
 			(stream) =>
 				stream.type === "subtitle" &&
-				`subtitle_${createHash("sha256")
-					.update(JSON.stringify([key, "embedded", stream.index]))
-					.digest("base64url")}` === trackId,
+				subtitleTrackId([key, "embedded", stream.index]) === trackId,
 		);
 		if (!stream)
 			throw new DomainError(
@@ -255,11 +264,7 @@ export class SubtitleApplication {
 			source,
 			trackId,
 			stream.index,
-			track.format === "vtt"
-				? "webvtt"
-				: track.format === "ssa"
-					? "ass"
-					: track.format,
+			preparedSubtitleFormat(track.format),
 		);
 	}
 	async getSubtitleAssetStatus(id: string) {
@@ -292,6 +297,7 @@ export class SubtitleApplication {
 			source.identity.relativePath,
 			sourceVersion,
 			this.policy.subtitles,
+			this.policy.library,
 		);
 		const track = discovered.tracks.find(
 			(candidate) => candidate.id === trackId,
@@ -307,7 +313,11 @@ export class SubtitleApplication {
 		const file = await resources.openSubtitleFile(path);
 		let text: string;
 		try {
-			text = await readSubtitleText(file, this.policy.subtitles.maximumBytes);
+			text = await readSubtitleText(
+				file,
+				this.policy.subtitles.maximumBytes,
+				this.policy.subtitles.readChunkBytes,
+			);
 		} finally {
 			await file.release();
 		}

@@ -86,7 +86,7 @@ export function registerPlaybackRoutes(
 				continueWatchingResponse(
 					await playback.history(
 						request.query.limit === undefined
-							? 100
+							? undefined
 							: Number(request.query.limit),
 					),
 				),

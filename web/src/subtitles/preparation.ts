@@ -1,5 +1,6 @@
 import { getSubtitlePreparation, prepareSubtitle } from "../api/client.js";
 import type { SubtitlePreparationResponse } from "../api/contracts.js";
+import { interactionPolicy } from "../config/interaction-policy.js";
 
 function wait(signal: AbortSignal): Promise<void> {
 	return new Promise((resolve, reject) => {
@@ -11,7 +12,7 @@ function wait(signal: AbortSignal): Promise<void> {
 		const timer = setTimeout(() => {
 			signal.removeEventListener("abort", stop);
 			resolve();
-		}, 500);
+		}, interactionPolicy.subtitlePollIntervalMs);
 		signal.addEventListener("abort", stop, { once: true });
 		if (signal.aborted) stop();
 	});

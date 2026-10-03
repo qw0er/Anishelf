@@ -1,21 +1,18 @@
-import { createHash } from "node:crypto";
 import { basename, dirname, extname, join } from "node:path";
+import { DomainError } from "../errors.js";
+import { nameCollator } from "../library/sorting.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	type DeepReadonly,
-} from "../config/policy.js";
-import { DomainError } from "../errors.js";
+} from "../public/policy.js";
+import { subtitleTrackId } from "../public/subtitle-identity.js";
 import type { ResourceAccess } from "../resources/access.js";
 import {
 	type ExternalSubtitleDiscovery,
 	externalSubtitleFormat,
 } from "./model.js";
 
-const collator = new Intl.Collator("en", {
-	numeric: true,
-	sensitivity: "base",
-});
 function languageFromLabel(label: string | null): string | null {
 	const token = label?.split(".")[0];
 	if (!token || !/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(token)) return null;
@@ -32,7 +29,9 @@ export async function discoverExternalSubtitles(
 	videoPath: string,
 	sourceVersion: string,
 	policy: DeepReadonly<BuiltinPolicy>["subtitles"] = builtinPolicy.subtitles,
+	sorting: DeepReadonly<BuiltinPolicy>["library"] = builtinPolicy.library,
 ): Promise<ExternalSubtitleDiscovery> {
+	const collator = nameCollator(sorting);
 	const directory = dirname(videoPath);
 	const stem = basename(videoPath, extname(videoPath));
 	const entries = await resources.readDirectory(
@@ -64,9 +63,7 @@ export async function discoverExternalSubtitles(
 				result.warnings.push({ name: entry.name, code: "SUBTITLE_TOO_LARGE" });
 				continue;
 			}
-			const id = `subtitle_${createHash("sha256")
-				.update(JSON.stringify([resources.canonicalRoot, videoPath, path]))
-				.digest("base64url")}`;
+			const id = subtitleTrackId([resources.canonicalRoot, videoPath, path]);
 			result.tracks.push({
 				origin: "external",
 				id,

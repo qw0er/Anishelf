@@ -1,11 +1,13 @@
-import type { BuiltinPolicy, DeepReadonly } from "../config/policy.js";
+import { defaultLanguage } from "../public/defaults.js";
+import type { BuiltinPolicy, DeepReadonly } from "../public/policy.js";
+
 import type { ClientConfigResponse } from "./contracts.js";
 /** Explicit whitelist: never serialize the effective server configuration. */
 export function clientConfigResponse(
 	policy: DeepReadonly<BuiltinPolicy>,
 ): ClientConfigResponse {
 	return {
-		defaultLanguage: "en",
+		defaultLanguage,
 		library: {
 			defaultScanIntervalMinutes: policy.library.defaultScanIntervalMinutes,
 			maximumScanIntervalMinutes: policy.library.maximumScanIntervalMinutes,

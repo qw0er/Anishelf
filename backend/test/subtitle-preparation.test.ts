@@ -12,7 +12,6 @@ import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { LibraryApplication } from "../src/application/library.js";
 import { SubtitleApplication } from "../src/application/subtitles.js";
-import { type BuiltinPolicy, builtinPolicy } from "../src/config/policy.js";
 import { ApplicationDatabase } from "../src/database/index.js";
 import { createHttpApp } from "../src/http/app.js";
 import type {
@@ -20,6 +19,7 @@ import type {
 	SubtitlePreparationResponse,
 } from "../src/http/contracts.js";
 import { LibraryIndex } from "../src/library/index.js";
+import { createResourceId } from "../src/library/model.js";
 import {
 	type MediaInfo,
 	type MediaStream,
@@ -27,6 +27,7 @@ import {
 	MediaTools,
 } from "../src/media/index.js";
 import { runTool } from "../src/media/process.js";
+import { type BuiltinPolicy, builtinPolicy } from "../src/public/policy.js";
 import { settingsStore } from "./settings-store.js";
 
 let directory: string;
@@ -440,4 +441,102 @@ test("changing roots during extraction invalidates the old task", async () => {
 		expect(database.subtitles.get(id)?.status).toBe("failed"),
 	);
 	expect(database.subtitles.get(id)?.errorCode).toBe("PLAYBACK_CONFLICT");
+});
+
+test("parallel extractions respect injected slots and the combined cache budget", async () => {
+	policy.subtitles.extractionConcurrency = 2;
+	policy.subtitles.maximumCacheBytes = Buffer.byteLength(text);
+	probe.mockResolvedValue({
+		...info,
+		streams: [stream, { ...stream, index: 3 }, { ...stream, index: 4 }],
+	});
+	const complete: (() => void)[] = [];
+	extract.mockImplementation(
+		(_path, index) =>
+			new Promise((resolve) => {
+				complete.push(() =>
+					resolve({ streamIndex: index, format: "srt", text }),
+				);
+			}),
+	);
+	const discovery = await discover();
+	const first = await prepare(discovery);
+	const requestTrack = (index: number) =>
+		app.inject({
+			method: "POST",
+			headers,
+			url: `/api/files/${fileId}/subtitles/${discovery.tracks[index]?.id}/prepare`,
+			payload: { sourceVersion: discovery.sourceVersion },
+		});
+	const second = await requestTrack(1);
+	expect(first.statusCode).toBe(202);
+	expect(second.statusCode).toBe(202);
+	await vi.waitFor(() => expect(extract).toHaveBeenCalledTimes(2));
+	expect((await prepare(discovery)).json().id).toBe(first.json().id);
+	expect((await requestTrack(2)).json().error.code).toBe(
+		"SUBTITLE_PREPARATION_BUSY",
+	);
+	for (const finish of complete) finish();
+	const results = await Promise.all([
+		terminal(first.json().id),
+		terminal(second.json().id),
+	]);
+	expect(results.filter((result) => result.status === "ready")).toHaveLength(1);
+	expect(
+		results.filter((result) => result.errorCode === "SUBTITLE_CACHE_FULL"),
+	).toHaveLength(1);
+});
+test("default extraction format controls text codecs without a native format", async () => {
+	policy.subtitles.defaultExtractionFormat = "ass";
+	probe.mockResolvedValue({
+		...info,
+		streams: [{ ...stream, codec: "mov_text" }],
+	});
+	extract.mockResolvedValue({ streamIndex: 2, format: "ass", text });
+	const discovery = await discover();
+	expect(discovery.tracks[0]?.format).toBe("ass");
+	const response = await prepare(discovery);
+	await terminal(response.json().id);
+	expect(extract).toHaveBeenCalledWith(
+		expect.any(String),
+		2,
+		expect.objectContaining({ format: "ass" }),
+	);
+});
+
+test("probe slots deduplicate a source, reject excess work and become reusable", async () => {
+	policy.media.probeConcurrency = 2;
+	await writeFile(join(root, "second.mkv"), "second");
+	await writeFile(join(root, "third.mkv"), "third");
+	await library.startScan();
+	await library.waitForCompletion();
+	const complete: (() => void)[] = [];
+	probe.mockImplementation(
+		() =>
+			new Promise((resolve) => {
+				complete.push(() => resolve(info));
+			}),
+	);
+	const request = (id: string) =>
+		app.inject({ headers, url: `/api/files/${id}/subtitles` });
+	const first = request(fileId);
+	const second = request(createResourceId("file", "second.mkv"));
+	await vi.waitFor(() => expect(probe).toHaveBeenCalledTimes(2));
+	const duplicate = request(fileId);
+	const busy = await request(createResourceId("file", "third.mkv"));
+	expect(busy.json().warnings).toContainEqual(
+		expect.objectContaining({ code: "SUBTITLE_PROBE_BUSY" }),
+	);
+	expect(probe).toHaveBeenCalledTimes(2);
+	for (const finish of complete) finish();
+	expect(
+		(await Promise.all([first, second, duplicate])).map(
+			(result) => result.statusCode,
+		),
+	).toEqual([200, 200, 200]);
+	probe.mockResolvedValue(info);
+	expect(
+		(await request(createResourceId("file", "third.mkv"))).json().warnings,
+	).toEqual([]);
+	expect(probe).toHaveBeenCalledTimes(3);
 });

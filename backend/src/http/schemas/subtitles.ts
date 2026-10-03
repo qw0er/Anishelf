@@ -1,13 +1,9 @@
 import { Type } from "typebox";
+import { subtitleFormats } from "../../public/subtitles.js";
 import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
 import { SourceVersionSchema } from "./playback.js";
 
-const SubtitleFormatSchema = Type.Union([
-	Type.Literal("vtt"),
-	Type.Literal("srt"),
-	Type.Literal("ass"),
-	Type.Literal("ssa"),
-]);
+const SubtitleFormatSchema = Type.Enum(subtitleFormats);
 const subtitleFields = {
 	id: ResourceIdSchema,
 	name: Type.String(),

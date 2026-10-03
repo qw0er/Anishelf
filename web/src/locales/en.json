@@ -119,7 +119,7 @@
 	},
 	"history": {
 		"title": "Playback history",
-		"description": "Your 100 most recently watched available files. Select a file to resume from its saved position.",
+		"description": "Your most recently watched available files. Select a file to resume from its saved position.",
 		"empty": "No playback history yet. Watch a file from your library to see it here.",
 		"unknown": "Scan your library to check which watched files are available.",
 		"resume": "Resume",

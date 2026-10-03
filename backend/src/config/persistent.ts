@@ -10,8 +10,9 @@ import {
 	sep,
 } from "node:path";
 import { DomainError } from "../errors.js";
+import { builtinPolicy } from "../public/policy.js";
+import { storageRules } from "../public/storage.js";
 import type { PersistentSettings } from "./model.js";
-import { builtinPolicy } from "./policy.js";
 
 export function parsePersistentSettings(
 	source: string,
@@ -90,7 +91,7 @@ async function loadPersistentSettings(
 	dataDir: string,
 	maximumIntervalMinutes: number,
 ): Promise<PersistentSettings> {
-	const path = join(dataDir, "settings.json");
+	const path = join(dataDir, storageRules.settingsFile);
 	let source: string;
 	try {
 		source = await readFile(path, "utf8");
@@ -198,12 +199,12 @@ async function writePersistentSettings(
 	dataDir: string,
 	settings: PersistentSettings,
 ): Promise<void> {
-	const target = join(dataDir, "settings.json");
+	const target = join(dataDir, storageRules.settingsFile);
 	const temporary = join(dataDir, `.settings-${randomUUID()}.tmp`);
 	try {
 		await writeFile(temporary, `${JSON.stringify(settings, null, 2)}\n`, {
 			flag: "wx",
-			mode: 0o600,
+			mode: storageRules.fileMode,
 		});
 		await rename(temporary, target);
 	} catch (cause) {

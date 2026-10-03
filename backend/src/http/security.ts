@@ -1,9 +1,10 @@
 import type { FastifyRequest } from "fastify";
 import type { DeploymentConfig } from "../config/model.js";
 import { DomainError } from "../errors.js";
+import { developmentDefaults } from "../public/defaults.js";
 
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
-const devOrigins = new Set(["http://127.0.0.1:5173", "http://localhost:5173"]);
+const devOrigins = new Set<string>(developmentDefaults.origins);
 
 type RequestOriginConfig = Pick<DeploymentConfig, "host" | "port">;
 

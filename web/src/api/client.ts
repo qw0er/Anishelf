@@ -1,3 +1,5 @@
+import { subtitleFormats } from "@anishelf/backend/public/subtitles";
+import { defaultLanguage } from "../config/interaction-policy.js";
 import type {
 	ApiErrorResponse,
 	ClientConfigResponse,
@@ -161,7 +163,7 @@ export async function getClientConfig(
 	const positive = (n: unknown) =>
 		typeof n === "number" && Number.isSafeInteger(n) && n > 0;
 	if (
-		value?.defaultLanguage !== "en" ||
+		value?.defaultLanguage !== defaultLanguage ||
 		!value.library ||
 		!Number.isSafeInteger(value.library.defaultScanIntervalMinutes) ||
 		value.library.defaultScanIntervalMinutes < 0 ||
@@ -177,7 +179,7 @@ export async function getClientConfig(
 		!positive(value.subtitles.memoryMaximumBytes) ||
 		!Array.isArray(value.subtitles.formats) ||
 		!value.subtitles.formats.every((format) =>
-			["vtt", "srt", "ass", "ssa"].includes(format),
+			subtitleFormats.includes(format),
 		) ||
 		!value.media ||
 		!value.media.videoMimeTypes ||

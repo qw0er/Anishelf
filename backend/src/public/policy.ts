@@ -1,4 +1,13 @@
 import { DomainError } from "../errors.js";
+import { defaultLanguage } from "./defaults.js";
+import {
+	nativeSubtitleFormats,
+	type PreparedSubtitleFormat,
+	preparedSubtitleFormats,
+	publicSubtitleFormat,
+	subtitleExtensionFormats,
+	textSubtitleCodecs,
+} from "./subtitles.js";
 
 export type DeepReadonly<T> = T extends object
 	? { readonly [K in keyof T]: DeepReadonly<T[K]> }
@@ -11,18 +20,6 @@ export function freeze<T>(value: T): DeepReadonly<T> {
 	return value as DeepReadonly<T>;
 }
 
-const subtitleFormats: Record<string, "vtt" | "srt" | "ass" | "ssa"> = {
-	".vtt": "vtt",
-	".srt": "srt",
-	".ass": "ass",
-	".ssa": "ssa",
-};
-const nativeSubtitleFormats: Record<string, "srt" | "ass" | "webvtt"> = {
-	subrip: "srt",
-	ass: "ass",
-	ssa: "ass",
-	webvtt: "webvtt",
-};
 const videoMimeTypes: Record<string, string> = {
 	".mp4": "video/mp4",
 	".m4v": "video/mp4",
@@ -36,6 +33,10 @@ const defaults = {
 		maximumScanIntervalMinutes: 10080,
 		concurrency: 8,
 		warningMessageLimit: 5,
+		sortLocale: defaultLanguage,
+		sortNumeric: true,
+		sortSensitivity: "base" as NonNullable<Intl.CollatorOptions["sensitivity"]>,
+		directoriesFirst: true,
 	},
 	playback: {
 		sessionIdleMs: 30 * 60 * 1000,
@@ -50,12 +51,16 @@ const defaults = {
 	subtitles: {
 		maximumCacheBytes: 256 * 1024 * 1024,
 		maximumBytes: 10 * 1024 * 1024,
-		formats: subtitleFormats,
-		nativeFormats: nativeSubtitleFormats,
-		textCodecs: ["subrip", "ass", "ssa", "webvtt", "mov_text", "text"],
+		readChunkBytes: 64 * 1024,
+		extractionConcurrency: 1,
+		defaultExtractionFormat: "srt" as PreparedSubtitleFormat,
+		formats: { ...subtitleExtensionFormats },
+		nativeFormats: { ...nativeSubtitleFormats },
+		textCodecs: [...textSubtitleCodecs],
 	},
 	media: {
 		maximumProbeCacheEntries: 32,
+		probeConcurrency: 1,
 		videoMimeTypes,
 		detectionTimeoutMs: 5000,
 		detectionMaximumBytes: 64 * 1024,
@@ -121,6 +126,39 @@ export function validatePolicy(policy: DeepReadonly<BuiltinPolicy>): void {
 			"CONFIG_INVALID",
 			"policy.playback default list limits exceed maximumListLimit.",
 		);
+	if (
+		!preparedSubtitleFormats.includes(
+			policy.subtitles.defaultExtractionFormat,
+		) ||
+		!Object.values(policy.subtitles.formats).includes(
+			publicSubtitleFormat(policy.subtitles.defaultExtractionFormat),
+		)
+	)
+		throw new DomainError(
+			"CONFIG_INVALID",
+			"policy.subtitles.defaultExtractionFormat is unsupported.",
+		);
+	if (
+		typeof policy.library.sortNumeric !== "boolean" ||
+		typeof policy.library.directoriesFirst !== "boolean" ||
+		typeof policy.library.sortLocale !== "string"
+	)
+		throw new DomainError(
+			"CONFIG_INVALID",
+			"policy.library sorting is invalid.",
+		);
+	try {
+		new Intl.Collator(policy.library.sortLocale, {
+			numeric: policy.library.sortNumeric,
+			sensitivity: policy.library.sortSensitivity,
+		});
+	} catch (cause) {
+		throw new DomainError(
+			"CONFIG_INVALID",
+			"policy.library sorting is invalid.",
+			{ cause },
+		);
+	}
 	// Capability subsets may be narrowed, but policy cannot introduce missing adapters.
 	for (const [extension, mime] of Object.entries(policy.media.videoMimeTypes))
 		if (builtinPolicy.media.videoMimeTypes[extension] !== mime)

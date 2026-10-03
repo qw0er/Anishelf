@@ -2,11 +2,6 @@ import { randomUUID } from "node:crypto";
 import { basename } from "node:path";
 import type { Logger } from "pino";
 import type { PersistentSettings } from "../config/model.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../config/policy.js";
 import { DomainError } from "../errors.js";
 import type { LibraryIndex } from "../library/index.js";
 import type {
@@ -24,6 +19,11 @@ import {
 	type ScanTraversalProgress,
 } from "../library/scanner.js";
 import type { ResolvedPlaybackSource } from "../playback/model.js";
+import {
+	type BuiltinPolicy,
+	builtinPolicy,
+	type DeepReadonly,
+} from "../public/policy.js";
 import {
 	checkResourceRoot,
 	type OpenedResourceFile,
@@ -103,6 +103,7 @@ export class LibraryApplication {
 		},
 	) {
 		this.policy = options.policy ?? builtinPolicy;
+		options.index.configure(this.policy.library);
 		this.logger = options.logger.child({ module: "library" });
 		this.scanner = new LibraryScanner(
 			this.logger.child({ module: "scanner" }),

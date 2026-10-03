@@ -56,11 +56,18 @@ Originals, writable data, and frontend static assets remain separate and non-ove
 
 ### Built-in defaults and user settings (O17)
 
-The current-function foundation is implemented in `config/policy.ts` and `config/service.ts`. The composition root creates one service; adapters receive typed read-only policy views. The service retains raw explicit settings separately from the effective immutable snapshot. Missing settings do not generate a file, failed writes preserve the published snapshot, and existing root-only settings remain valid. Current settings are `resourceRoot` and optional `scanIntervalMinutes`; the additional V2 settings described below remain planned.
+The current-function foundation is implemented in `public/policy.ts` and `config/service.ts`. The composition root creates one service; adapters receive typed read-only policy views. The service retains raw explicit settings separately from the effective immutable snapshot. Missing settings do not generate a file, failed writes preserve the published snapshot, and existing root-only settings remain valid. Current settings are `resourceRoot` and optional `scanIntervalMinutes`; the additional V2 settings described below remain planned.
 
 `GET /api/client-config` projects `defaultLanguage`, scanning defaults/constraints, progress-save/request timing, subtitle size/renderer timing/memory policy and supported formats, plus media extension/MIME mappings. It excludes deployment settings, paths and server resource budgets. HTTP settings schemas receive primitive constraints through a factory. The root Web loader requires valid client configuration; failure uses the existing retryable route error. Player policies remain stable across scan polling so revalidation does not reopen sessions or reset subtitle renderers. Loading-indicator delay and scan polling are local frontend interaction policy.
 
 Current policy defaults preserve existing behavior: scan concurrency 8 and warning preview 5; session idle expiry 30 minutes and capacity 1000; history/continue defaults 100/20 and list/batch bounds 100; near-end threshold min(30 seconds, 5%); subtitle text 10 MiB; tool detection 5 seconds/64 KiB, execution 30 seconds/10 MiB and extraction 60 seconds; HTTP body 64 KiB, database busy wait and shutdown 5 seconds; progress saves/requests 5 seconds; subtitle initialization 15 seconds and renderer memory 64 MiB. These values are program-owned and are not user-editable. Transcode profiles and derived-cache invalidation remain planned.
+
+The policy audit also centralizes subtitle read chunks (64 KiB), probe/extraction concurrency (one each), default text conversion (SRT), and name sorting (English, numeric, base sensitivity, directories first). `LibraryApplication` applies sorting to its index; subtitle discovery shares the name comparator. The history HTTP route delegates an omitted limit to `PlaybackApplication.history`, so an injected history default is honored. The history description does not embed a fixed count.
+
+`web/src/config/interaction-policy.ts` owns loading delay, scan/subtitle polling (1000/500 ms), default/error Toast lifetimes (6000/10000 ms), persistent preparation feedback, seek steps (5 seconds), and eager/metadata player loading. These local presentation settings and the frontend default language are owned by the web workspace and are not serialized as server configuration. `public/subtitles.ts` supplies browser-safe subtitle enums, renderer subsets, MIME mappings, format conversions to schemas and adapters. The subtitle registry is the single source for format names, extensions, MIME, conversions, renderer support and native codecs; policy derives its default maps and codec list from that registry. Program capability checks remain separate from policy subsets.
+
+`public/subtitle-identity.ts` owns opaque track/asset ID construction and the extraction processing version. Hash payloads and existing IDs remain compatible. `public/storage.ts` owns stable paths, source-version markers, temporary suffixes and private permissions; changes require compatibility review. `public/adapter-policy.ts` names fixed SQLite durability, logging redaction/write behavior and development static-cache constraints. `public/defaults.ts` shares deployment defaults and the Vite development port/origins. Subtitle fallback names are defined in `public/subtitle-identity.ts`; no separate subtitle message catalog is needed. No policy or capability file is generated in the data directory.
+
 
 Startup uses environment variables. Media capabilities, transcode profiles, subtitle rules and runtime policy are defined in TypeScript. The English message catalog is a bundled read-only resource. None of these defaults is copied into `dataDir`; `dataDir/settings.json` stores only user choices and explicit overrides.
 
@@ -184,9 +191,9 @@ still valid; pending output never has a content URL. The asset registry uses SQL
 `subtitle_assets`, a source foreign key, selected stream, format and processing
 version. It does not create a playback session or update viewing progress.
 
-One text extraction runs at a time; same-asset requests share its pending record,
-while another extraction receives retryable busy feedback. Processing preserves
-supported text formats, converts `mov_text`/`text` to SRT when required, validates
+Text extraction uses the policy concurrency limit (one by default); same-asset requests share its pending record,
+while a different extraction receives retryable busy feedback when all slots are occupied. Cache budget checks and publication are serialized even when multiple extraction slots are enabled. Processing preserves
+supported text formats, converts `mov_text`/`text` to the policy default output format (SRT by default) when required, validates
 output identity and size, and rechecks the source/root before and after publishing.
 Files live under `dataDir/cache/subtitles/<opaque asset ID>.<format>`. A private
 `.pending` file is written and synced, atomically renamed, then committed ready in

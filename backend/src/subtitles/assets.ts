@@ -1,24 +1,30 @@
 import { constants } from "node:fs";
 import { lstat, mkdir, open, readdir, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { storageRules } from "../public/storage.js";
+import { isSubtitleAssetId } from "../public/subtitle-identity.js";
+import { preparedSubtitleFormats } from "../public/subtitles.js";
 import type { SubtitleAsset } from "./model.js";
 
 /** Only opaque registered IDs and declared formats can address this private store. */
 export class SubtitleAssetFiles {
 	private readonly directory: string;
 	constructor(dataDir: string) {
-		this.directory = join(dataDir, "cache", "subtitles");
+		this.directory = join(dataDir, ...storageRules.subtitleCacheSegments);
 	}
 	private name(asset: SubtitleAsset): string {
 		if (
-			!/^subtitle_asset_[A-Za-z0-9_-]+$/.test(asset.id) ||
-			!["srt", "ass", "webvtt"].includes(asset.format)
+			!isSubtitleAssetId(asset.id) ||
+			!preparedSubtitleFormats.includes(asset.format)
 		)
 			throw new Error("Invalid subtitle asset key.");
 		return `${asset.id}.${asset.format}`;
 	}
 	async initialize(assets: SubtitleAsset[]): Promise<Set<string>> {
-		await mkdir(this.directory, { recursive: true, mode: 0o700 });
+		await mkdir(this.directory, {
+			recursive: true,
+			mode: storageRules.directoryMode,
+		});
 		const directory = await lstat(this.directory);
 		if (!directory.isDirectory() || directory.isSymbolicLink())
 			throw new Error("Invalid subtitle cache directory.");
@@ -60,7 +66,7 @@ export class SubtitleAssetFiles {
 
 	async publish(asset: SubtitleAsset, text: string): Promise<void> {
 		const path = join(this.directory, this.name(asset));
-		const temporary = `${path}.pending`;
+		const temporary = `${path}${storageRules.pendingSuffix}`;
 		try {
 			const handle = await open(temporary, "wx", 0o600);
 			try {

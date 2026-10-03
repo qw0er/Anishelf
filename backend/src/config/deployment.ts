@@ -9,16 +9,8 @@ import type {
 	LogLevel,
 } from "../config/model.js";
 import { DomainError } from "../errors.js";
-
-const levels: readonly string[] = [
-	"trace",
-	"debug",
-	"info",
-	"warn",
-	"error",
-	"fatal",
-	"silent",
-];
+import { deploymentDefaults, logLevels } from "../public/defaults.js";
+import { storageRules } from "../public/storage.js";
 
 type Environment = Readonly<Record<string, string | undefined>>;
 
@@ -46,11 +38,11 @@ export function parseDeploymentConfig(
 			"ANISHELF_CONFIG is no longer supported. Set ANISHELF_DATA_DIR to your existing data directory and migrate other TOML settings to environment variables.",
 		);
 	}
-	const host = env.ANISHELF_HOST ?? "127.0.0.1";
+	const host = env.ANISHELF_HOST ?? deploymentDefaults.host;
 	if (!((isIP(host) === 4 && host.startsWith("127.")) || host === "::1")) {
 		invalid("ANISHELF_HOST must be a loopback IP address (127.x.x.x or ::1).");
 	}
-	const rawPort = env.ANISHELF_PORT ?? "3000";
+	const rawPort = env.ANISHELF_PORT ?? String(deploymentDefaults.port);
 	const port = Number(rawPort);
 	if (
 		!/^\d+$/.test(rawPort) ||
@@ -64,11 +56,12 @@ export function parseDeploymentConfig(
 		env.ANISHELF_DATA_DIR === undefined
 			? defaultDataDir()
 			: absolutePath(env.ANISHELF_DATA_DIR, "ANISHELF_DATA_DIR");
-	const level = env.ANISHELF_LOG_LEVEL ?? "info";
-	if (!levels.includes(level)) {
-		invalid(`ANISHELF_LOG_LEVEL must be one of: ${levels.join(", ")}.`);
+	const level = env.ANISHELF_LOG_LEVEL ?? deploymentDefaults.logLevel;
+	if (!(logLevels as readonly string[]).includes(level)) {
+		invalid(`ANISHELF_LOG_LEVEL must be one of: ${logLevels.join(", ")}.`);
 	}
-	const destination = env.ANISHELF_LOG_DESTINATION ?? "stdout";
+	const destination =
+		env.ANISHELF_LOG_DESTINATION ?? deploymentDefaults.logDestination;
 	let logging: LoggingConfig;
 	if (destination === "stdout") {
 		if (env.ANISHELF_LOG_PATH !== undefined)
@@ -88,11 +81,11 @@ export function parseDeploymentConfig(
 	const mediaTools = {
 		ffmpegPath:
 			env.ANISHELF_FFMPEG_PATH === undefined
-				? "ffmpeg"
+				? deploymentDefaults.ffmpeg
 				: absolutePath(env.ANISHELF_FFMPEG_PATH, "ANISHELF_FFMPEG_PATH"),
 		ffprobePath:
 			env.ANISHELF_FFPROBE_PATH === undefined
-				? "ffprobe"
+				? deploymentDefaults.ffprobe
 				: absolutePath(env.ANISHELF_FFPROBE_PATH, "ANISHELF_FFPROBE_PATH"),
 	};
 	return { host, port, dataDir, logging, mediaTools };
@@ -104,7 +97,10 @@ export async function loadDeploymentConfig(
 ): Promise<DeploymentConfig> {
 	const config = parseDeploymentConfig(env);
 	try {
-		await mkdir(config.dataDir, { recursive: true, mode: 0o700 });
+		await mkdir(config.dataDir, {
+			recursive: true,
+			mode: storageRules.directoryMode,
+		});
 		if (!(await stat(config.dataDir)).isDirectory())
 			throw new Error("Not a directory");
 		await access(config.dataDir, constants.W_OK);
@@ -123,7 +119,7 @@ export function captureRuntimeEnvironment(env: Environment = process.env) {
 		development: env.NODE_ENV === "development",
 		executableSearch: Object.freeze({
 			path: env.PATH ?? "",
-			pathExt: env.PATHEXT ?? ".EXE",
+			pathExt: env.PATHEXT ?? deploymentDefaults.windowsExecutableExtension,
 		}),
 	});
 }

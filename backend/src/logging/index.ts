@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import pino, { type Logger } from "pino";
 import type { LoggingConfig } from "../config/model.js";
+import { adapterPolicy } from "../public/adapter-policy.js";
 
 export class ApplicationLogging {
 	readonly logger: Logger;
@@ -17,18 +18,7 @@ export class ApplicationLogging {
 				base: { service: "anishelf" },
 				serializers: { err: pino.stdSerializers.err },
 				redact: {
-					paths: [
-						"password",
-						"token",
-						"secret",
-						"authorization",
-						"req.headers.authorization",
-						"req.headers.cookie",
-						"req.body",
-						"res.body",
-						"config",
-						"settings",
-					],
+					paths: [...adapterPolicy.logging.redactPaths],
 					remove: true,
 				},
 			},
@@ -49,6 +39,6 @@ function createDestination(
 	}
 	return pino.destination({
 		dest: config.destination === "file" ? config.path : 1,
-		sync: true,
+		sync: adapterPolicy.logging.synchronous,
 	});
 }

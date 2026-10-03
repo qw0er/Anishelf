@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type * as React from "react";
 import { useTranslation } from "react-i18next";
+import { interactionPolicy } from "../../config/interaction-policy.js";
 
 import { Button } from "./button.js";
 
@@ -201,7 +202,11 @@ function Toaster({
 	...props
 }: ToastPrimitive.Provider.Props) {
 	return (
-		<ToastProvider toastManager={toastManager} timeout={6000} {...props}>
+		<ToastProvider
+			toastManager={toastManager}
+			timeout={interactionPolicy.toastTimeoutMs}
+			{...props}
+		>
 			{children}
 			<ToastPortal>
 				<ToastViewport>

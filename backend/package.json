@@ -36,6 +36,14 @@
 		".": "./dist/index.js",
 		"./http/contracts": {
 			"types": "./src/http/contracts.ts"
+		},
+		"./public/subtitles": {
+			"types": "./src/public/subtitles.ts",
+			"default": "./src/public/subtitles.ts"
+		},
+		"./public/defaults": {
+			"types": "./src/public/defaults.ts",
+			"default": "./src/public/defaults.ts"
 		}
 	}
 }

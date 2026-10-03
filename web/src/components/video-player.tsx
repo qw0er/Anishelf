@@ -10,6 +10,7 @@ import {
 	DefaultVideoLayout,
 	defaultLayoutIcons,
 } from "@vidstack/react/player/layouts/default";
+import { interactionPolicy } from "../config/interaction-policy.js";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import { useLayoutEffect, useRef } from "react";
@@ -95,8 +96,8 @@ export default function VideoPlayer({
 			title={file.name}
 			src={playbackUrl}
 			viewType="video"
-			load="eager"
-			preload="metadata"
+			load={interactionPolicy.playerLoad}
+			preload={interactionPolicy.playerPreload}
 			playsInline
 			storage={null}
 			logLevel="silent"
@@ -108,7 +109,10 @@ export default function VideoPlayer({
 		>
 			<MediaProvider loaders={directVideoLoaders} />
 			<ExternalSubtitleTracks fileId={file.id} policy={subtitlePolicy} />
-			<DefaultVideoLayout icons={defaultLayoutIcons} seekStep={5} />
+			<DefaultVideoLayout
+				icons={defaultLayoutIcons}
+				seekStep={interactionPolicy.seekStepSeconds}
+			/>
 		</MediaPlayer>
 	);
 }

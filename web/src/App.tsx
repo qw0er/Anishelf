@@ -21,7 +21,7 @@ import { toast } from "./components/ui/toast.js";
 import { useDelayedPending } from "./hooks/use-delayed-pending.js";
 import type { libraryLoader, scanAction } from "./routes/loaders.js";
 import "./i18n.js";
-import { interactionPolicy } from "./lib/interaction-policy.js";
+import { interactionPolicy } from "./config/interaction-policy.js";
 
 export interface LibraryContext {
 	clientConfig: ClientConfigResponse;

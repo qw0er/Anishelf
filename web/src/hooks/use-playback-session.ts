@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ClientConfigResponse } from "../api/contracts.js";
 import { toast } from "../components/ui/toast.js";
+import { interactionPolicy } from "../config/interaction-policy.js";
 import { getErrorTranslationKey } from "../lib/error-translation.js";
 import {
 	PlaybackSessionController,
@@ -56,7 +57,7 @@ export function usePlaybackSession(
 					priority: "high",
 					title: t(key),
 					id: notificationId,
-					timeout: 10000,
+					timeout: interactionPolicy.errorToastTimeoutMs,
 					actionProps: {
 						children: t("actions.retry"),
 						onClick: () => {

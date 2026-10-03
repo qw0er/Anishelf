@@ -10,7 +10,7 @@ import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	type DeepReadonly,
-} from "../config/policy.js";
+} from "../public/policy.js";
 import { clientConfigResponse } from "./client-config.js";
 import { apiError, classifyHttpError } from "./errors.js";
 import { registerLibraryRoutes } from "./library.js";

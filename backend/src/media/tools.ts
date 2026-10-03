@@ -2,11 +2,13 @@ import { stat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 import { captureRuntimeEnvironment } from "../config/deployment.js";
 import type { MediaToolsConfig } from "../config/model.js";
+import { deploymentDefaults } from "../public/defaults.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	type DeepReadonly,
-} from "../config/policy.js";
+} from "../public/policy.js";
+import { preparedSubtitleFormats } from "../public/subtitles.js";
 import type {
 	ExtractedSubtitle,
 	MediaInfo,
@@ -117,7 +119,10 @@ export class MediaTools {
 	) {}
 
 	static async create(
-		config: MediaToolsConfig = { ffmpegPath: "ffmpeg", ffprobePath: "ffprobe" },
+		config: MediaToolsConfig = {
+			ffmpegPath: deploymentDefaults.ffmpeg,
+			ffprobePath: deploymentDefaults.ffprobe,
+		},
 		policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
 		environment = captureRuntimeEnvironment().executableSearch,
 	): Promise<MediaTools> {
@@ -212,7 +217,7 @@ export class MediaTools {
 		const format = options.format ?? native;
 		if (
 			!format ||
-			!["srt", "ass", "webvtt"].includes(format) ||
+			!preparedSubtitleFormats.includes(format) ||
 			!this.policy.subtitles.textCodecs.includes(stream.codec ?? "")
 		)
 			throw new MediaToolError(

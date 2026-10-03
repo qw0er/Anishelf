@@ -6,6 +6,7 @@ import type {
 	ClientConfigResponse,
 	SubtitleDiscoveryResponse,
 } from "../api/contracts.js";
+import { interactionPolicy } from "../config/interaction-policy.js";
 import { useExternalSubtitles } from "../hooks/use-external-subtitles.js";
 import { EmbeddedSubtitleController } from "../subtitles/embedded.js";
 import { prepareSelectedSubtitle } from "../subtitles/preparation.js";
@@ -66,7 +67,9 @@ export function ExternalSubtitleTracks({
 				toast.add({
 					id: notificationId,
 					type: preparing ? "info" : "error",
-					timeout: preparing ? 0 : 10000,
+					timeout: preparing
+						? interactionPolicy.persistentToastTimeoutMs
+						: interactionPolicy.errorToastTimeoutMs,
 					title: t(preparing ? "subtitles.preparing" : "subtitles.failed", {
 						name: feedback.name,
 					}),

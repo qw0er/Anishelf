@@ -1,11 +1,6 @@
 import { createHash } from "node:crypto";
 import { isAbsolute } from "node:path";
 import { and, asc, desc, eq, gt, isNotNull, sql } from "drizzle-orm";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../config/policy.js";
 import type {
 	ContinueWatchingCandidate,
 	PlaybackProgress,
@@ -14,6 +9,11 @@ import type {
 	RegisteredPlaybackSource,
 	SavePlaybackProgressResult,
 } from "../playback/model.js";
+import {
+	type BuiltinPolicy,
+	builtinPolicy,
+	type DeepReadonly,
+} from "../public/policy.js";
 import type { Store } from "./index.js";
 import { mediaSources, playbackProgress, resourceRoots } from "./schema.js";
 

@@ -7,6 +7,7 @@ import {
 	text,
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import { preparedSubtitleFormats } from "../public/subtitles.js";
 
 export const resourceRoots = sqliteTable("resource_roots", {
 	id: text("id").primaryKey(),
@@ -70,7 +71,7 @@ export const subtitleAssets = sqliteTable(
 		trackId: text("track_id").notNull(),
 		streamIndex: integer("stream_index").notNull(),
 		processingVersion: text("processing_version").notNull(),
-		format: text("format", { enum: ["srt", "ass", "webvtt"] }).notNull(),
+		format: text("format", { enum: preparedSubtitleFormats }).notNull(),
 		status: text("status", { enum: ["pending", "ready", "failed"] }).notNull(),
 		sizeBytes: integer("size_bytes"),
 		errorCode: text("error_code", {

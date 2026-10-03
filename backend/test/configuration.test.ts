@@ -2,18 +2,18 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { LibraryApplication } from "../src/application/library.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	validatePolicy,
-} from "../src/config/policy.js";
 import { ConfigurationService } from "../src/config/service.js";
 import { ApplicationDatabase } from "../src/database/index.js";
 import { createHttpApp } from "../src/http/app.js";
 import { LibraryIndex } from "../src/library/index.js";
 import { runTool } from "../src/media/process.js";
+import {
+	type BuiltinPolicy,
+	builtinPolicy,
+	validatePolicy,
+} from "../src/public/policy.js";
 import { ResourceAccess } from "../src/resources/access.js";
 import { readSubtitleText } from "../src/subtitles/content.js";
 import { discoverExternalSubtitles } from "../src/subtitles/discovery.js";
@@ -276,3 +276,37 @@ test("tool execution uses injected output and timeout defaults", async () => {
 		),
 	).rejects.toMatchObject({ code: "TOOL_FAILED" });
 });
+
+test("subtitle reads use the supplied chunk size and still detect a growing source", async () => {
+	const root = join(directory, "media");
+	await mkdir(root);
+	await writeFile(join(root, "episode.srt"), "abcde");
+	const resources = await ResourceAccess.create({ resourceRoot: root });
+	const file = await resources.openSubtitleFile("episode.srt");
+	try {
+		const read = vi.spyOn(file.handle, "read");
+		expect(await readSubtitleText(file, 5, 2)).toBe("abcde");
+		expect(
+			(read.mock.calls as unknown as unknown[][]).map((call) => call[2]),
+		).toEqual([2, 2, 2, 1]);
+	} finally {
+		await file.release();
+	}
+	const growing = await resources.openSubtitleFile("episode.srt");
+	try {
+		await writeFile(join(root, "episode.srt"), "abcdef");
+		await expect(readSubtitleText(growing, 5, 2)).rejects.toMatchObject({
+			code: "SUBTITLE_TOO_LARGE",
+		});
+	} finally {
+		await growing.release();
+	}
+});
+test.each(["readChunkBytes", "extractionConcurrency"] as const)(
+	"rejects invalid subtitle %s",
+	(key) => {
+		const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
+		policy.subtitles[key] = 0;
+		expect(() => validatePolicy(policy)).toThrow(key);
+	},
+);

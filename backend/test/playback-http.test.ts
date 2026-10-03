@@ -10,6 +10,7 @@ import { createHttpApp } from "../src/http/app.js";
 import type { PlaybackSessionResponse } from "../src/http/contracts.js";
 import { LibraryIndex } from "../src/library/index.js";
 import { createResourceId } from "../src/library/model.js";
+import { builtinPolicy } from "../src/public/policy.js";
 
 const headers = { host: "127.0.0.1:3000" };
 const fileId = createResourceId("file", "episode.mp4");
@@ -423,4 +424,33 @@ test("recent history includes completed and zero-position records, but excludes 
 		headers,
 	});
 	expect(history.json().items).toEqual([]);
+});
+
+test("history without a query uses the injected application default", async () => {
+	const customPlayback = new PlaybackApplication({
+		library,
+		repository: database.playback,
+		logger,
+		policy: {
+			...builtinPolicy.playback,
+			historyLimit: 1,
+			maximumListLimit: 1,
+			continueWatchingLimit: 1,
+		},
+	});
+	const customApp = createHttpApp({
+		config: { host: "127.0.0.1", port: 3000 },
+		logger,
+		playback: customPlayback,
+	});
+	try {
+		const response = await customApp.inject({ url: "/api/history", headers });
+		expect(response.statusCode).toBe(200);
+		expect(
+			(await customApp.inject({ url: "/api/history?limit=2", headers }))
+				.statusCode,
+		).toBe(400);
+	} finally {
+		await customApp.close();
+	}
 });

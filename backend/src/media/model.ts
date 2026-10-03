@@ -26,7 +26,9 @@ export interface MediaInfo {
 	streams: MediaStream[];
 }
 
-export type SubtitleFormat = "srt" | "ass" | "webvtt";
+export type { PreparedSubtitleFormat as SubtitleFormat } from "../public/subtitles.js";
+
+import type { PreparedSubtitleFormat as SubtitleFormat } from "../public/subtitles.js";
 export interface ExtractedSubtitle {
 	streamIndex: number;
 	format: SubtitleFormat;

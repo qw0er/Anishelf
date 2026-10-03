@@ -1,12 +1,6 @@
+import type { logLevels } from "../public/defaults.js";
 /** Validated startup settings resolved from defaults and environment variables. */
-export type LogLevel =
-	| "trace"
-	| "debug"
-	| "info"
-	| "warn"
-	| "error"
-	| "fatal"
-	| "silent";
+export type LogLevel = (typeof logLevels)[number];
 
 export type LoggingConfig =
 	| { level: LogLevel; destination: "stdout" }

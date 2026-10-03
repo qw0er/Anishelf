@@ -65,7 +65,8 @@
 				"backend/src/config/**",
 				"backend/src/playback/**",
 				"backend/src/subtitles/**",
-				"backend/src/database/**"
+				"backend/src/database/**",
+				"backend/src/public/**"
 			],
 			"linter": {
 				"rules": {
@@ -110,7 +111,8 @@
 											"./**",
 											"!./schemas/**",
 											"fastify",
-											"@fastify/**"
+											"@fastify/**",
+											"../public/**"
 										],
 										"message": "HTTP contracts derive public JSON types from schemas; they must not depend on backend models or runtime implementations."
 									}
@@ -143,7 +145,10 @@
 											"../presenters.js",
 											"../instance.js",
 											"fastify",
-											"@fastify/**"
+											"@fastify/**",
+											"../../public/**",
+											"!../../public/subtitles.js",
+											"!../../public/defaults.js"
 										],
 										"message": "Public HTTP schemas must be independent of backend models and transport implementations."
 									}

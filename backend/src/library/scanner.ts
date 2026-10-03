@@ -1,11 +1,11 @@
 import { join } from "node:path";
 import type { Logger } from "pino";
+import { DomainError } from "../errors.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	type DeepReadonly,
-} from "../config/policy.js";
-import { DomainError } from "../errors.js";
+} from "../public/policy.js";
 import { getVideoMimeType, type ResourceAccess } from "../resources/access.js";
 import {
 	createResourceId,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { interactionPolicy } from "../lib/interaction-policy.js";
+import { interactionPolicy } from "../config/interaction-policy.js";
 
 /** Delay visual feedback without delaying requests, results, or disabled controls. */
 export function useDelayedPending(pending: boolean, identity = "") {

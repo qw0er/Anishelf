@@ -1,11 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../config/policy.js";
-import {
 	type PlaybackRepository,
 	resourceRootId,
 } from "../database/playback-repository.js";
@@ -19,6 +14,11 @@ import type {
 	SavePlaybackProgress,
 	SavePlaybackProgressResult,
 } from "../playback/model.js";
+import {
+	type BuiltinPolicy,
+	builtinPolicy,
+	type DeepReadonly,
+} from "../public/policy.js";
 import type { LibraryApplication } from "./library.js";
 
 interface PlaybackSessionState {

@@ -1,16 +1,16 @@
 import {
-	captureRuntimeEnvironment,
-	loadDeploymentConfig,
-} from "./deployment.js";
-import type { DeploymentConfig, PersistentSettings } from "./model.js";
-import { PersistentConfiguration } from "./persistent.js";
-import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	type DeepReadonly,
 	freeze,
 	validatePolicy,
-} from "./policy.js";
+} from "../public/policy.js";
+import {
+	captureRuntimeEnvironment,
+	loadDeploymentConfig,
+} from "./deployment.js";
+import type { DeploymentConfig, PersistentSettings } from "./model.js";
+import { PersistentConfiguration } from "./persistent.js";
 
 export interface EffectiveConfiguration {
 	deployment: DeploymentConfig;

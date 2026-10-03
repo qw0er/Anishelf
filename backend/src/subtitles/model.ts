@@ -1,12 +1,20 @@
 import { extname } from "node:path";
+import type { PlaybackSourceIdentity } from "../playback/model.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	type DeepReadonly,
-} from "../config/policy.js";
-import type { PlaybackSourceIdentity } from "../playback/model.js";
+} from "../public/policy.js";
 
-export type ExternalSubtitleFormat = "vtt" | "srt" | "ass" | "ssa";
+export type {
+	PreparedSubtitleFormat,
+	SubtitleFormat as ExternalSubtitleFormat,
+} from "../public/subtitles.js";
+
+import type {
+	SubtitleFormat as ExternalSubtitleFormat,
+	PreparedSubtitleFormat,
+} from "../public/subtitles.js";
 export function externalSubtitleFormat(
 	name: string,
 	formats: DeepReadonly<BuiltinPolicy>["subtitles"]["formats"] = builtinPolicy
@@ -61,7 +69,6 @@ export interface SubtitleDiscovery
 	tracks: (ExternalSubtitle | EmbeddedSubtitle)[];
 }
 
-export type PreparedSubtitleFormat = "srt" | "ass" | "webvtt";
 export type SubtitlePreparationError =
 	| "SUBTITLE_EXTRACTION_FAILED"
 	| "SUBTITLE_TOOL_UNAVAILABLE"

@@ -1,9 +1,11 @@
 import { Type } from "typebox";
+import { defaultLanguage } from "../../public/defaults.js";
+import { subtitleFormats } from "../../public/subtitles.js";
 
 const integer = () => Type.Integer({ minimum: 1 });
 export const ClientConfigResponseSchema = Type.Object(
 	{
-		defaultLanguage: Type.Literal("en"),
+		defaultLanguage: Type.Literal(defaultLanguage),
 		library: Type.Object(
 			{
 				defaultScanIntervalMinutes: Type.Integer({ minimum: 0 }),
@@ -20,14 +22,7 @@ export const ClientConfigResponseSchema = Type.Object(
 				maximumBytes: integer(),
 				initializationTimeoutMs: integer(),
 				memoryMaximumBytes: integer(),
-				formats: Type.Array(
-					Type.Union([
-						Type.Literal("vtt"),
-						Type.Literal("srt"),
-						Type.Literal("ass"),
-						Type.Literal("ssa"),
-					]),
-				),
+				formats: Type.Array(Type.Enum(subtitleFormats)),
 			},
 			{ additionalProperties: false },
 		),

@@ -1,3 +1,4 @@
+import { styledSubtitleFormats } from "@anishelf/backend/public/subtitles";
 import type { TextRenderer, TextTrack } from "@vidstack/react";
 import type JASSUB from "jassub";
 import fallbackFont from "jassub/dist/default.woff2?url";
@@ -19,7 +20,8 @@ export class StyledSubtitleRenderer implements TextRenderer {
 			!!video &&
 			!!track.src &&
 			this.policy.formats.includes(track.type as "ass" | "ssa") &&
-			(track.type === "ass" || track.type === "ssa")
+			typeof track.type === "string" &&
+			styledSubtitleFormats.includes(track.type)
 		);
 	}
 	attach(video: HTMLVideoElement | null) {

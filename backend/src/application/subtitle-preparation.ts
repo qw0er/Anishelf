@@ -1,10 +1,14 @@
-import { createHash } from "node:crypto";
 import { join } from "node:path";
 import type { SubtitleRepository } from "../database/subtitle-repository.js";
 import { DomainError } from "../errors.js";
 import type { MediaTools } from "../media/index.js";
 import { MediaToolError } from "../media/index.js";
 import type { ResolvedPlaybackSource } from "../playback/model.js";
+import {
+	subtitleAssetId,
+	subtitleIdentity,
+} from "../public/subtitle-identity.js";
+import { publicSubtitleFormat } from "../public/subtitles.js";
 import { SubtitleAssetFiles } from "../subtitles/assets.js";
 import type {
 	PreparedSubtitleFormat,
@@ -19,7 +23,8 @@ export class SubtitlePreparationApplication {
 	private readonly controller = new AbortController();
 	private initialization: Promise<void> | undefined;
 	private failure: unknown;
-	private active: { id: string; promise: Promise<void> } | undefined;
+	private readonly active = new Map<string, Promise<void>>();
+	private publication: Promise<void> = Promise.resolve();
 	constructor(
 		private readonly options: {
 			library: LibraryApplication;
@@ -62,7 +67,7 @@ export class SubtitlePreparationApplication {
 		return {
 			id: asset.id,
 			status: asset.status,
-			format: asset.format === "webvtt" ? "vtt" : asset.format,
+			format: publicSubtitleFormat(asset.format),
 			errorCode: asset.errorCode,
 		};
 	}
@@ -100,24 +105,19 @@ export class SubtitlePreparationApplication {
 				"SUBTITLE_PREPARATION_UNAVAILABLE",
 				"Subtitle preparation is closed.",
 			);
-		const id = `subtitle_asset_${createHash("sha256")
-			.update(
-				JSON.stringify([
-					source.identity.canonicalRoot,
-					source.identity.fileId,
-					source.identity.sourceVersion,
-					trackId,
-					format,
-					"text-extraction-v1",
-				]),
-			)
-			.digest("base64url")}`;
+		const id = subtitleAssetId([
+			source.identity.canonicalRoot,
+			source.identity.fileId,
+			source.identity.sourceVersion,
+			trackId,
+			format,
+		]);
 		const asset: SubtitleAsset = {
 			id,
 			source: source.identity,
 			trackId,
 			streamIndex,
-			processingVersion: "text-extraction-v1",
+			processingVersion: subtitleIdentity.processingVersion,
 			format,
 			status: "pending",
 			sizeBytes: null,
@@ -136,19 +136,22 @@ export class SubtitlePreparationApplication {
 				await this.files.remove(existing);
 			}
 		}
-		if (this.active?.id === id) return this.view(asset);
-		if (this.active)
+		if (this.active.has(id)) return this.view(asset);
+		if (
+			this.active.size >=
+			this.options.library.policy.subtitles.extractionConcurrency
+		)
 			throw new DomainError(
 				"SUBTITLE_PREPARATION_BUSY",
 				"Subtitle preparation is busy.",
 			);
 		this.options.repository.save(asset);
 		const promise = this.extract(asset, source.rootEpoch);
-		this.active = { id, promise };
+		this.active.set(id, promise);
 		// The worker owns errors and terminal persistence; HTTP returns pending immediately.
 		void promise
 			.finally(() => {
-				this.active = undefined;
+				this.active.delete(id);
 			})
 			.catch((cause) => {
 				this.failure = cause;
@@ -177,26 +180,31 @@ export class SubtitlePreparationApplication {
 					"SUBTITLE_TOO_LARGE",
 					"Subtitle output exceeds the size limit.",
 				);
-			const total = await this.files.totalBytes();
-			if (
-				total + sizeBytes >
-				this.options.library.policy.subtitles.maximumCacheBytes
-			)
-				throw new Error("SUBTITLE_CACHE_FULL");
-			await this.validate(asset, epoch);
-			if (this.controller.signal.aborted)
-				throw new Error("SUBTITLE_INTERRUPTED");
-			await this.files.publish(asset, result.text);
-			published = true;
-			await this.validate(asset, epoch);
-			if (this.controller.signal.aborted)
-				throw new Error("SUBTITLE_INTERRUPTED");
-			this.options.repository.save({
-				...asset,
-				status: "ready",
-				sizeBytes,
-				errorCode: null,
+			// Serialize budget checks through publication so parallel workers cannot oversubscribe the cache.
+			const publication = this.publication.then(async () => {
+				const total = await this.files.totalBytes();
+				if (
+					total + sizeBytes >
+					this.options.library.policy.subtitles.maximumCacheBytes
+				)
+					throw new Error("SUBTITLE_CACHE_FULL");
+				await this.validate(asset, epoch);
+				if (this.controller.signal.aborted)
+					throw new Error("SUBTITLE_INTERRUPTED");
+				await this.files.publish(asset, result.text);
+				published = true;
+				await this.validate(asset, epoch);
+				if (this.controller.signal.aborted)
+					throw new Error("SUBTITLE_INTERRUPTED");
+				this.options.repository.save({
+					...asset,
+					status: "ready",
+					sizeBytes,
+					errorCode: null,
+				});
 			});
+			this.publication = publication.catch(() => {});
+			await publication;
 		} catch (error) {
 			if (published) await this.files.remove(asset).catch(() => {});
 			let errorCode: SubtitlePreparationError = "SUBTITLE_EXTRACTION_FAILED";
@@ -293,6 +301,6 @@ export class SubtitlePreparationApplication {
 	}
 	async close(): Promise<void> {
 		this.controller.abort();
-		await this.active?.promise.catch(() => {});
+		await Promise.allSettled(this.active.values());
 	}
 }

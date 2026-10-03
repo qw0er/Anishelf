@@ -1,11 +1,12 @@
-import { builtinPolicy } from "../config/policy.js";
 import { DomainError } from "../errors.js";
+import { builtinPolicy } from "../public/policy.js";
 import type { OpenedResourceFile } from "../resources/access.js";
 
 /** Bound reads even when a source grows after opening. Never writes the source. */
 export async function readSubtitleText(
 	file: OpenedResourceFile,
 	maximumSubtitleBytes = builtinPolicy.subtitles.maximumBytes,
+	readChunkBytes = builtinPolicy.subtitles.readChunkBytes,
 ): Promise<string> {
 	if (file.sizeBytes > maximumSubtitleBytes)
 		throw new DomainError(
@@ -16,7 +17,7 @@ export async function readSubtitleText(
 	let size = 0;
 	while (true) {
 		const buffer = Buffer.alloc(
-			Math.min(64 * 1024, maximumSubtitleBytes + 1 - size),
+			Math.min(readChunkBytes, maximumSubtitleBytes + 1 - size),
 		);
 		const { bytesRead } = await file.handle.read(
 			buffer,

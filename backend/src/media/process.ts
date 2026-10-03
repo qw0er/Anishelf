@@ -7,7 +7,7 @@ import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	type DeepReadonly,
-} from "../config/policy.js";
+} from "../public/policy.js";
 
 export class MediaToolError extends Error {
 	constructor(

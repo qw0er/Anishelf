@@ -6,7 +6,6 @@ import { LibraryApplication } from "./application/library.js";
 import { PlaybackApplication } from "./application/playback.js";
 import { SubtitleApplication } from "./application/subtitles.js";
 import type { MediaToolsConfig } from "./config/model.js";
-import type { BuiltinPolicy, DeepReadonly } from "./config/policy.js";
 import { ConfigurationService } from "./config/service.js";
 import { ApplicationDatabase } from "./database/index.js";
 import { DomainError } from "./errors.js";
@@ -14,6 +13,7 @@ import { createHttpApp } from "./http/app.js";
 import { LibraryIndex } from "./library/index.js";
 import { ApplicationLogging } from "./logging/index.js";
 import { MediaTools } from "./media/index.js";
+import type { BuiltinPolicy, DeepReadonly } from "./public/policy.js";
 
 type HttpApp = ReturnType<typeof createHttpApp>;
 

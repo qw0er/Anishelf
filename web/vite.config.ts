@@ -1,16 +1,22 @@
+import {
+	deploymentDefaults,
+	developmentDefaults,
+} from "@anishelf/backend/public/defaults";
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 // https://vite.dev/config/
-const apiTarget = process.env.ANISHELF_API_TARGET ?? "http://127.0.0.1:3000";
+const apiTarget =
+	process.env.ANISHELF_API_TARGET ??
+	`http://${deploymentDefaults.host}:${deploymentDefaults.port}`;
 
 export default defineConfig({
 	resolve: { tsconfigPaths: true },
 	server: {
-		host: "127.0.0.1",
-		port: 5173,
+		host: developmentDefaults.host,
+		port: developmentDefaults.port,
 		strictPort: true,
 		proxy: {
 			"/api": {

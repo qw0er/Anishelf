@@ -2,6 +2,7 @@ import { access } from "node:fs/promises";
 import { join } from "node:path";
 import fastifyStatic from "@fastify/static";
 import type { FastifyInstance } from "fastify";
+import { adapterPolicy } from "../public/adapter-policy.js";
 import { apiError } from "./errors.js";
 
 /** Development-only hosting of the explicit frontend build directory. */
@@ -16,9 +17,9 @@ export async function registerFrontend(app: FastifyInstance, root: string) {
 	await app.register(fastifyStatic, {
 		root,
 		serve: false,
-		dotfiles: "deny",
+		dotfiles: adapterPolicy.static.dotfiles,
 		cacheControl: true,
-		maxAge: 0,
+		maxAge: adapterPolicy.static.maximumAgeMs,
 	});
 	app.get("/*", async (request, reply) => {
 		const pathname = new URL(request.url, "http://localhost").pathname;
@@ -32,7 +33,7 @@ export async function registerFrontend(app: FastifyInstance, root: string) {
 				request.headers.accept?.includes("text/html"))
 		) {
 			return reply
-				.header("Cache-Control", "no-cache")
+				.header("Cache-Control", adapterPolicy.static.pageCacheControl)
 				.sendFile("index.html", { cacheControl: false });
 		}
 		return reply.sendFile(decodeURIComponent(pathname.slice(1)));

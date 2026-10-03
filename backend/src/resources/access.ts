@@ -11,13 +11,15 @@ import {
 } from "node:fs/promises";
 import { extname, isAbsolute, join, relative, sep, win32 } from "node:path";
 import type { PersistentSettings } from "../config/model.js";
+import { DomainError } from "../errors.js";
+import type { LibraryIssue, Timestamp } from "../library/scan-state.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	type DeepReadonly,
-} from "../config/policy.js";
-import { DomainError } from "../errors.js";
-import type { LibraryIssue, Timestamp } from "../library/scan-state.js";
+} from "../public/policy.js";
+import { storageRules } from "../public/storage.js";
+import { subtitleMimeTypes } from "../public/subtitles.js";
 import { externalSubtitleFormat } from "../subtitles/model.js";
 
 export function getVideoMimeType(
@@ -198,7 +200,7 @@ export class ResourceAccess {
 			const sourceVersion = createHash("sha256")
 				.update(
 					JSON.stringify([
-						"stat-v1",
+						storageRules.sourceVersion,
 						info.size.toString(),
 						info.mtimeNs.toString(),
 						info.ctimeNs.toString(),
@@ -249,7 +251,7 @@ export class ResourceAccess {
 			if (kind === "video") {
 				mimeType = getVideoMimeType(path, this.policy.media.videoMimeTypes);
 			} else if (kind === "subtitle" && format !== null) {
-				mimeType = format === "vtt" ? "text/vtt" : "text/plain";
+				mimeType = subtitleMimeTypes[format];
 			} else {
 				mimeType = null;
 			}

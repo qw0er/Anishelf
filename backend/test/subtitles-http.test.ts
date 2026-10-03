@@ -12,7 +12,6 @@ import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { LibraryApplication } from "../src/application/library.js";
 import { SubtitleApplication } from "../src/application/subtitles.js";
-import { builtinPolicy } from "../src/config/policy.js";
 import { DomainError } from "../src/errors.js";
 import { createHttpApp } from "../src/http/app.js";
 import type { SubtitleDiscoveryResponse } from "../src/http/contracts.js";
@@ -20,6 +19,7 @@ import { LibraryIndex } from "../src/library/index.js";
 import type { MediaInfo, MediaStream } from "../src/media/index.js";
 import { MediaToolError, MediaTools } from "../src/media/index.js";
 import { runTool } from "../src/media/process.js";
+import { builtinPolicy } from "../src/public/policy.js";
 import { ResourceAccess } from "../src/resources/access.js";
 
 const maximumSubtitleBytes = builtinPolicy.subtitles.maximumBytes;

@@ -7,6 +7,7 @@ import type {
 	LibraryEntry,
 } from "../src/library/model.js";
 import { createResourceId } from "../src/library/model.js";
+import { builtinPolicy } from "../src/public/policy.js";
 
 const root: DirectoryEntry = {
 	kind: "directory",
@@ -190,4 +191,28 @@ test("rejects an invalid scan timestamp without advancing revision", () => {
 	const index = new LibraryIndex();
 	expect(() => index.replace([root], "invalid time")).toThrow();
 	expect(index.revision).toBe(0);
+});
+
+test("injected sorting changes directory priority and numeric ordering", () => {
+	const index = new LibraryIndex();
+	index.replace(
+		[root, directory("z"), file("episode2.mp4"), file("episode10.mp4")],
+		scannedAt,
+	);
+	expect(index.listChildren("root").map((entry) => entry.name)).toEqual([
+		"z",
+		"episode2.mp4",
+		"episode10.mp4",
+	]);
+	index.configure({
+		...builtinPolicy.library,
+		directoriesFirst: false,
+		sortNumeric: false,
+	});
+	expect(index.listChildren("root").map((entry) => entry.name)).toEqual([
+		"episode10.mp4",
+		"episode2.mp4",
+		"z",
+	]);
+	expect(index.revision).toBe(1);
 });
