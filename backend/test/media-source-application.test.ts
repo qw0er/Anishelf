@@ -13,6 +13,8 @@ import type {
 	SourceCatalog,
 } from "../src/modules/media-source/public.js";
 
+import { DomainError } from "../src/shared/errors.js";
+
 const directories: string[] = [];
 afterEach(async () => {
 	vi.restoreAllMocks();
@@ -93,4 +95,126 @@ test("root changes invalidate source resolution already awaiting filesystem acce
 	const resolved = await source.resolveSource("opaque-id");
 	expect(resolved.rootEpoch).toBe(1);
 	expect(resolved.file.sizeBytes).toBe(11);
+});
+
+test("revalidation accepts unchanged files and rejects replacement versions", async () => {
+	const { source, root } = await fixture();
+	const expected = await source.resolveSource("opaque-id");
+	await expect(source.revalidateSource(expected)).resolves.toEqual(expected);
+	await writeFile(join(root, "episode.mp4"), "replacement content");
+	await expect(source.revalidateSource(expected)).rejects.toMatchObject({
+		code: "PLAYBACK_CONFLICT",
+	});
+	await expect(
+		source.resolveSource("opaque-id", expected.identity.sourceVersion),
+	).rejects.toMatchObject({ code: "PLAYBACK_CONFLICT" });
+});
+
+test("active references retain their epoch while durable references can survive a restart", async () => {
+	const { source } = await fixture();
+	const expected = await source.resolveSource("opaque-id");
+	source.invalidateRoot();
+	await expect(source.revalidateSource(expected)).rejects.toMatchObject({
+		code: "PLAYBACK_CONFLICT",
+	});
+	await expect(
+		source.revalidateSource({ identity: expected.identity }),
+	).resolves.toMatchObject({ identity: expected.identity, rootEpoch: 1 });
+});
+
+test("revalidation rejects a changed root or relative path even when the version matches", async () => {
+	const { source, root } = await fixture();
+	const expected = await source.resolveSource("opaque-id");
+	for (const identity of [
+		{ ...expected.identity, canonicalRoot: join(root, "other") },
+		{ ...expected.identity, relativePath: "different.mp4" },
+	]) {
+		await expect(source.revalidateSource({ identity })).rejects.toMatchObject({
+			code: "PLAYBACK_CONFLICT",
+		});
+	}
+	await expect(
+		source.openResources({
+			identity: { ...expected.identity, canonicalRoot: join(root, "other") },
+		}),
+	).rejects.toMatchObject({ code: "PLAYBACK_CONFLICT" });
+});
+
+test("revalidation preserves missing-file errors when the root has not changed", async () => {
+	const { source, root } = await fixture();
+	const expected = await source.resolveSource("opaque-id");
+	await rm(join(root, "episode.mp4"));
+	await expect(source.revalidateSource(expected)).rejects.toMatchObject({
+		code: "RESOURCE_MISSING",
+	});
+});
+
+test("a root switch during a failed file read reports a conflict rather than a missing file", async () => {
+	const { source } = await fixture();
+	const expected = await source.resolveSource("opaque-id");
+	let entered!: () => void;
+	let release!: () => void;
+	const started = new Promise<void>((resolve) => {
+		entered = resolve;
+	});
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	vi.spyOn(
+		ResourceAccess.prototype,
+		"inspectVideoFileWithVersion",
+	).mockImplementationOnce(async () => {
+		entered();
+		await gate;
+		throw new DomainError("RESOURCE_MISSING", "Removed during inspection.");
+	});
+	const pending = source.revalidateSource(expected);
+	const rejected = expect(pending).rejects.toMatchObject({
+		code: "PLAYBACK_CONFLICT",
+	});
+	await started;
+	source.invalidateRoot();
+	release();
+	await rejected;
+});
+
+test("subtitle identity validates the actual handle and releases rejected handles", async () => {
+	const { source, root } = await fixture();
+	const path = "episode.srt";
+	await writeFile(join(root, path), "original subtitle");
+	const resources = await source.openResources();
+	const metadata = await resources.inspectSubtitleSource(path);
+	const identity = {
+		canonicalRoot: resources.canonicalRoot,
+		relativePath: path,
+		sourceVersion: metadata.sourceVersion,
+	};
+	const file = await resources.openSubtitleSource(identity);
+	try {
+		expect(await file.handle.readFile("utf8")).toBe("original subtitle");
+	} finally {
+		await file.release();
+	}
+	await resources.revalidateSubtitleSource(identity);
+	await writeFile(join(root, path), "replacement subtitle");
+	const open = resources.openSubtitleFile.bind(resources);
+	let rejectedHandle: Awaited<ReturnType<typeof open>> | undefined;
+	vi.spyOn(resources, "openSubtitleFile").mockImplementationOnce(
+		async (relativePath) => {
+			rejectedHandle = await open(relativePath);
+			return rejectedHandle;
+		},
+	);
+	await expect(resources.openSubtitleSource(identity)).rejects.toMatchObject({
+		code: "PLAYBACK_CONFLICT",
+	});
+	if (!rejectedHandle) throw new Error("Expected a rejected handle");
+	await expect(rejectedHandle.handle.stat()).rejects.toMatchObject({
+		code: "EBADF",
+	});
+	await expect(
+		resources.revalidateSubtitleSource(identity),
+	).rejects.toMatchObject({
+		code: "PLAYBACK_CONFLICT",
+	});
 });

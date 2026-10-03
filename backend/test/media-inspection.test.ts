@@ -14,6 +14,7 @@ import {
 	MediaInspectionApplication,
 	MediaInspectionBusyError,
 } from "../src/modules/media-inspection/application/inspection.js";
+import { ResourceAccess } from "../src/modules/media-source/infrastructure/access.js";
 import { SubtitleApplication } from "../src/modules/subtitles/application/subtitles.js";
 import {
 	type MediaInfo,
@@ -215,4 +216,21 @@ test("shutdown aborts and awaits active probes and rejects new work", async () =
 	await closing;
 	await rejected;
 	expect(closed).toBe(true);
+});
+
+test("probe misses validate before and after processing; cache hits need one current read", async () => {
+	const reads = vi.spyOn(
+		ResourceAccess.prototype,
+		"inspectVideoFileWithVersion",
+	);
+	try {
+		await inspection.inspect(fileId());
+		expect(reads).toHaveBeenCalledTimes(2);
+		reads.mockClear();
+		await inspection.inspect(fileId());
+		expect(reads).toHaveBeenCalledTimes(1);
+		expect(probe).toHaveBeenCalledTimes(1);
+	} finally {
+		reads.mockRestore();
+	}
 });

@@ -2,7 +2,6 @@ import { join } from "node:path";
 import type { Logger } from "pino";
 import type { MediaInfo, MediaTools } from "../../../platform/media/index.js";
 import { MediaToolError } from "../../../platform/media/index.js";
-import { DomainError } from "../../../shared/errors.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
@@ -28,7 +27,7 @@ export interface MediaInspectionResult {
 /** Shared, on-demand inspection of validated and version-bound media sources. */
 export class MediaInspectionApplication {
 	private readonly cache = new Map<string, MediaInfo>();
-	private readonly active = new Map<string, Promise<MediaInfo>>();
+	private readonly active = new Map<string, Promise<MediaInspectionResult>>();
 	private readonly controller = new AbortController();
 	private readonly logger: Logger | undefined;
 	private readonly policy: DeepReadonly<BuiltinPolicy>["media"];
@@ -53,59 +52,23 @@ export class MediaInspectionApplication {
 			);
 	}
 
-	private async resolveSource(
-		fileId: string,
-		rootEpoch = this.options.sources.resourceRootEpoch,
-	): Promise<ResolvedSource> {
-		this.assertOpen();
-		const assertEpoch = () => {
-			if (rootEpoch !== this.options.sources.resourceRootEpoch)
-				throw new DomainError("PLAYBACK_CONFLICT", "The media source changed.");
-		};
-		assertEpoch();
-		let source: ResolvedSource;
-		try {
-			source = await this.options.sources.resolveSource(fileId);
-		} catch (error) {
-			assertEpoch();
-			throw error;
-		}
-		this.assertOpen();
-		assertEpoch();
-		return source;
-	}
-
-	private async validate(source: ResolvedSource): Promise<void> {
-		this.assertOpen();
-		if (source.rootEpoch !== this.options.sources.resourceRootEpoch)
-			throw new DomainError("PLAYBACK_CONFLICT", "The media source changed.");
-		const current = await this.resolveSource(
-			source.identity.fileId,
-			source.rootEpoch,
-		);
-		this.assertOpen();
-		if (
-			current.rootEpoch !== source.rootEpoch ||
-			current.identity.canonicalRoot !== source.identity.canonicalRoot ||
-			current.identity.sourceVersion !== source.identity.sourceVersion
-		)
-			throw new DomainError("PLAYBACK_CONFLICT", "The media source changed.");
-	}
-
-	private async probe(source: ResolvedSource, key: string): Promise<MediaInfo> {
-		if (source.rootEpoch !== this.options.sources.resourceRootEpoch)
-			throw new DomainError("PLAYBACK_CONFLICT", "The media source changed.");
+	private async probe(
+		source: ResolvedSource,
+		key: string,
+	): Promise<MediaInspectionResult> {
+		this.options.sources.assertRootEpoch(source.rootEpoch);
 		const info = await this.options.tools.probe(
 			join(source.identity.canonicalRoot, source.identity.relativePath),
 			this.controller.signal,
 		);
-		await this.validate(source);
+		const current = await this.options.sources.revalidateSource(source);
+		this.assertOpen();
 		this.cache.set(key, info);
 		if (this.cache.size > this.policy.maximumProbeCacheEntries) {
 			const oldest = this.cache.keys().next().value;
 			if (oldest !== undefined) this.cache.delete(oldest);
 		}
-		return info;
+		return { source: current, info };
 	}
 
 	async inspect(
@@ -113,13 +76,11 @@ export class MediaInspectionApplication {
 		expectedSourceVersion?: string,
 	): Promise<MediaInspectionResult> {
 		this.assertOpen();
-		const source = await this.resolveSource(fileId);
+		let source = await this.options.sources.resolveSource(
+			fileId,
+			expectedSourceVersion,
+		);
 		this.assertOpen();
-		if (
-			expectedSourceVersion !== undefined &&
-			expectedSourceVersion !== source.identity.sourceVersion
-		)
-			throw new DomainError("PLAYBACK_CONFLICT", "The media source changed.");
 		const key = JSON.stringify([
 			source.identity.canonicalRoot,
 			fileId,
@@ -149,9 +110,13 @@ export class MediaInspectionApplication {
 					.finally(() => this.active.delete(key));
 				this.active.set(key, pending);
 			}
-			info = await pending;
+			const result = await pending;
+			this.options.sources.assertRootEpoch(source.rootEpoch);
+			source = result.source;
+			info = result.info;
 		}
-		await this.validate(source);
+		this.assertOpen();
+		this.options.sources.assertRootEpoch(source.rootEpoch);
 		// Each consumer owns its result; mutations cannot contaminate the shared cache.
 		return { source, info: structuredClone(info) };
 	}

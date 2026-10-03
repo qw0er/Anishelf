@@ -17,11 +17,15 @@ import {
 	MediaInspectionBusyError,
 } from "../../media-inspection/public.js";
 import type {
+	FileSourceIdentity,
 	MediaSourceApi,
 	ResolvedSource,
+	ResourceAccess,
 } from "../../media-source/public.js";
+import { assertSourceVersion } from "../../media-source/public.js";
 import { defaultSubtitleName, subtitleTrackId } from "../domain/identity.js";
 import type {
+	ExternalSubtitle,
 	SubtitleDiscovery,
 	SubtitlePreparationResult,
 } from "../domain/model.js";
@@ -73,7 +77,9 @@ export class SubtitleApplication {
 	private async discoverEmbedded(
 		identity: ResolvedSource["identity"],
 		name: string,
-	): Promise<Pick<SubtitleDiscovery, "tracks" | "warnings">> {
+	): Promise<
+		Pick<SubtitleDiscovery, "tracks" | "warnings"> & { info?: MediaInfo }
+	> {
 		// No provider means this application is configured for external subtitles only.
 		if (!this.inspection) return { tracks: [], warnings: [] };
 		const key = JSON.stringify([
@@ -117,6 +123,7 @@ export class SubtitleApplication {
 			};
 		}
 		return {
+			info,
 			warnings: [],
 			tracks: info.streams
 				.filter((stream) => stream.type === "subtitle")
@@ -159,6 +166,39 @@ export class SubtitleApplication {
 				}),
 		};
 	}
+	private async discoverForSource(source: ResolvedSource): Promise<{
+		discovery: SubtitleDiscovery;
+		resources: ResourceAccess;
+		info: MediaInfo | undefined;
+	}> {
+		const resources = await this.sources.openResources(source);
+		const external = await discoverExternalSubtitles(
+			resources,
+			source.identity.relativePath,
+			source.identity.sourceVersion,
+			this.policy.subtitles,
+			this.policy.library,
+		);
+		this.sources.assertRootEpoch(source.rootEpoch);
+		const embedded = await this.discoverEmbedded(
+			source.identity,
+			source.file.name,
+		);
+		// Successful inspection already validated this video after external discovery.
+		// Busy, unavailable and external-only discovery still need an end-of-operation check.
+		if (!embedded.info) await this.sources.revalidateSource(source);
+		this.sources.assertRootEpoch(source.rootEpoch);
+		return {
+			resources,
+			info: embedded.info,
+			discovery: {
+				...external,
+				tracks: [...external.tracks, ...embedded.tracks],
+				warnings: [...external.warnings, ...embedded.warnings],
+			},
+		};
+	}
+
 	async discoverSubtitles(id: string): Promise<SubtitleDiscovery> {
 		const started = Date.now();
 		this.logger?.debug(
@@ -166,41 +206,7 @@ export class SubtitleApplication {
 			"Subtitle discovery started.",
 		);
 		const source = await this.sources.resolveSource(id);
-		const resources = await this.sources.openResources();
-		if (
-			resources.canonicalRoot !== source.identity.canonicalRoot ||
-			source.rootEpoch !== this.sources.resourceRootEpoch
-		)
-			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
-		const result = await discoverExternalSubtitles(
-			resources,
-			source.identity.relativePath,
-			source.identity.sourceVersion,
-			this.policy.subtitles,
-			this.policy.library,
-		);
-		if (source.rootEpoch !== this.sources.resourceRootEpoch)
-			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
-		const tracks = await this.discoverEmbedded(
-			source.identity,
-			source.file.name,
-		);
-		const discovery: SubtitleDiscovery = {
-			...result,
-			tracks: [...result.tracks, ...tracks.tracks],
-			warnings: [...result.warnings, ...tracks.warnings],
-		};
-		const current = await resources.inspectVideoFileWithVersion(
-			source.identity.relativePath,
-		);
-		if (
-			source.rootEpoch !== this.sources.resourceRootEpoch ||
-			current.sourceVersion !== source.identity.sourceVersion
-		)
-			throw new DomainError(
-				"PLAYBACK_CONFLICT",
-				"The playback source changed.",
-			);
+		const { discovery } = await this.discoverForSource(source);
 		this.logger?.debug(
 			{
 				event: "subtitles.discovered",
@@ -235,40 +241,29 @@ export class SubtitleApplication {
 			{ event: "subtitles.prepare_requested", fileId, trackId },
 			"Subtitle preparation requested.",
 		);
-		const source = await this.sources.resolveSource(fileId);
-		if (source.identity.sourceVersion !== sourceVersion)
-			throw new DomainError("PLAYBACK_CONFLICT", "The video changed.");
-		const discovery = await this.discoverSubtitles(fileId);
-		if (discovery.sourceVersion !== sourceVersion)
-			throw new DomainError("PLAYBACK_CONFLICT", "The video changed.");
+		const source = await this.sources.resolveSource(fileId, sourceVersion);
+		const { discovery, resources, info } = await this.discoverForSource(source);
 		const track = discovery.tracks.find((track) => track.id === trackId);
 		if (!track)
 			throw new DomainError("RESOURCE_NOT_FOUND", "Unknown subtitle track.");
 		if (track.origin === "external") {
-			if (track.sourceVersion !== subtitleVersion)
-				throw new DomainError(
-					"PLAYBACK_CONFLICT",
-					"The subtitle changed. Refresh the subtitle list.",
-				);
-			await this.getSubtitleContent(
-				fileId,
-				trackId,
-				sourceVersion,
-				subtitleVersion,
-			);
+			assertSourceVersion(subtitleVersion ?? "", track.sourceVersion);
+			await this.readExternalSubtitle(source, track, resources);
 			return {
 				id: trackId,
 				status: "ready",
 				format: track.format,
 				errorCode: null,
-				external: { fileId, trackId, sourceVersion, subtitleVersion },
+				external: {
+					fileId,
+					trackId,
+					sourceVersion,
+					subtitleVersion: track.sourceVersion,
+				},
 			};
 		}
-		if (
-			subtitleVersion !== undefined &&
-			track.sourceVersion !== subtitleVersion
-		)
-			throw new DomainError("PLAYBACK_CONFLICT", "The subtitle changed.");
+		if (subtitleVersion !== undefined)
+			assertSourceVersion(subtitleVersion, track.sourceVersion);
 		if (!track.extractionSupported || !track.webSupported || !track.format)
 			throw new DomainError(
 				"SUBTITLE_UNSUPPORTED",
@@ -279,20 +274,6 @@ export class SubtitleApplication {
 			source.identity.fileId,
 			sourceVersion,
 		]);
-		let info: MediaInfo | undefined;
-		try {
-			info = (await this.inspection?.inspect(fileId, sourceVersion))?.info;
-		} catch (error) {
-			if (
-				error instanceof MediaInspectionBusyError ||
-				error instanceof MediaToolError
-			)
-				throw new DomainError(
-					"SUBTITLE_PREPARATION_BUSY",
-					"Subtitle inspection is unavailable. Retry.",
-				);
-			throw error;
-		}
 		const stream = info?.streams.find(
 			(stream) =>
 				stream.type === "subtitle" &&
@@ -325,21 +306,46 @@ export class SubtitleApplication {
 		return this.preparationService().content(id);
 	}
 
+	private async readExternalSubtitle(
+		source: ResolvedSource,
+		track: ExternalSubtitle,
+		resources: ResourceAccess,
+	): Promise<{ text: string }> {
+		const identity: FileSourceIdentity = {
+			canonicalRoot: source.identity.canonicalRoot,
+			relativePath: join(dirname(source.identity.relativePath), track.name),
+			sourceVersion: track.sourceVersion,
+		};
+		this.sources.assertRootEpoch(source.rootEpoch);
+		let text: string;
+		try {
+			const file = await resources.openSubtitleSource(identity);
+			try {
+				text = await readSubtitleText(
+					file,
+					this.policy.subtitles.maximumBytes,
+					this.policy.subtitles.readChunkBytes,
+				);
+			} finally {
+				await file.release();
+			}
+			await resources.revalidateSubtitleSource(identity);
+		} catch (error) {
+			this.sources.assertRootEpoch(source.rootEpoch);
+			throw error;
+		}
+		await this.sources.revalidateSource(source);
+		return { text };
+	}
+
 	async getSubtitleContent(
 		id: string,
 		trackId: string,
 		sourceVersion: string,
 		subtitleVersion: string,
 	): Promise<{ text: string }> {
-		const source = await this.sources.resolveSource(id);
-		if (source.identity.sourceVersion !== sourceVersion)
-			throw new DomainError("PLAYBACK_CONFLICT", "The video changed.");
-		const resources = await this.sources.openResources();
-		if (
-			source.rootEpoch !== this.sources.resourceRootEpoch ||
-			resources.canonicalRoot !== source.identity.canonicalRoot
-		)
-			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
+		const source = await this.sources.resolveSource(id, sourceVersion);
+		const resources = await this.sources.openResources(source);
 		const discovered = await discoverExternalSubtitles(
 			resources,
 			source.identity.relativePath,
@@ -347,6 +353,7 @@ export class SubtitleApplication {
 			this.policy.subtitles,
 			this.policy.library,
 		);
+		this.sources.assertRootEpoch(source.rootEpoch);
 		const track = discovered.tracks.find(
 			(candidate) => candidate.id === trackId,
 		);
@@ -355,33 +362,7 @@ export class SubtitleApplication {
 				"RESOURCE_NOT_FOUND",
 				"The subtitle is unavailable. Refresh the subtitle list.",
 			);
-		if (track.sourceVersion !== subtitleVersion)
-			throw new DomainError("PLAYBACK_CONFLICT", "The subtitle changed.");
-		const path = join(dirname(source.identity.relativePath), track.name);
-		const file = await resources.openSubtitleFile(path);
-		let text: string;
-		try {
-			text = await readSubtitleText(
-				file,
-				this.policy.subtitles.maximumBytes,
-				this.policy.subtitles.readChunkBytes,
-			);
-		} finally {
-			await file.release();
-		}
-		const subtitle = await resources.inspectSubtitleSource(path);
-		const video = await resources.inspectVideoFileWithVersion(
-			source.identity.relativePath,
-		);
-		if (
-			source.rootEpoch !== this.sources.resourceRootEpoch ||
-			subtitle.sourceVersion !== subtitleVersion ||
-			video.sourceVersion !== sourceVersion
-		)
-			throw new DomainError(
-				"PLAYBACK_CONFLICT",
-				"The subtitle or video changed.",
-			);
-		return { text };
+		assertSourceVersion(subtitleVersion, track.sourceVersion);
+		return this.readExternalSubtitle(source, track, resources);
 	}
 }

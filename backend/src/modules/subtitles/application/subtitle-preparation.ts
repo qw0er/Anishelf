@@ -97,20 +97,10 @@ export class SubtitlePreparationApplication {
 		};
 	}
 	private async validate(asset: SubtitleAsset, epoch?: number): Promise<void> {
-		if (epoch !== undefined && this.options.sources.resourceRootEpoch !== epoch)
-			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
-		const source = await this.options.sources.resolveSource(
-			asset.source.fileId,
-		);
-		if (
-			source.identity.canonicalRoot !== asset.source.canonicalRoot ||
-			source.identity.sourceVersion !== asset.source.sourceVersion ||
-			(epoch !== undefined && source.rootEpoch !== epoch)
-		)
-			throw new DomainError(
-				"PLAYBACK_CONFLICT",
-				"The subtitle source changed.",
-			);
+		await this.options.sources.revalidateSource({
+			identity: asset.source,
+			...(epoch === undefined ? {} : { rootEpoch: epoch }),
+		});
 	}
 	async prepare(
 		source: ResolvedSource,

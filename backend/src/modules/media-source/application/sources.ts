@@ -8,7 +8,9 @@ import type {
 	FileInfo,
 	ResolvedSource,
 	SourceCatalog,
+	SourceReference,
 } from "../domain/model.js";
+import { assertFileSource, assertSourceVersion } from "../domain/validation.js";
 import {
 	type OpenedResourceFile,
 	ResourceAccess,
@@ -44,8 +46,44 @@ export class MediaSourceApplication {
 	invalidateRoot(): void {
 		this.rootEpoch += 1;
 	}
-	openResources() {
-		return ResourceAccess.create(this.getSettings(), this.policy);
+	assertRootEpoch(epoch: number): void {
+		if (epoch !== this.rootEpoch)
+			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
+	}
+
+	private async withRoot<T>(
+		operation: () => Promise<T>,
+		epoch = this.rootEpoch,
+	): Promise<T> {
+		this.assertRootEpoch(epoch);
+		let result: T;
+		try {
+			result = await operation();
+		} catch (error) {
+			// Prefer a root conflict over a misleading missing-file/access error after a switch.
+			this.assertRootEpoch(epoch);
+			throw error;
+		}
+		this.assertRootEpoch(epoch);
+		return result;
+	}
+
+	async openResources(expected?: SourceReference): Promise<ResourceAccess> {
+		return this.withRoot(async () => {
+			const resources = await ResourceAccess.create(
+				this.getSettings(),
+				this.policy,
+			);
+			if (
+				expected &&
+				resources.canonicalRoot !== expected.identity.canonicalRoot
+			)
+				throw new DomainError(
+					"PLAYBACK_CONFLICT",
+					"The resource root changed.",
+				);
+			return resources;
+		}, expected?.rootEpoch);
 	}
 	async getFile(id: string): Promise<FileInfo> {
 		const entry = this.options.catalog.getFile(id);
@@ -71,43 +109,46 @@ export class MediaSourceApplication {
 	}
 
 	async resolveRoot(): Promise<string> {
-		const epoch = this.rootEpoch;
-		const resources = await ResourceAccess.create(
-			this.getSettings(),
-			this.policy,
-		);
-		if (epoch !== this.rootEpoch)
-			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
-		return resources.canonicalRoot;
+		return (await this.openResources()).canonicalRoot;
 	}
 
-	async resolveSource(id: string): Promise<ResolvedSource> {
+	async resolveSource(
+		id: string,
+		expectedVersion?: string,
+	): Promise<ResolvedSource> {
 		const epoch = this.rootEpoch;
-		const entry = this.options.catalog.getFile(id);
-		const resources = await ResourceAccess.create(
-			this.getSettings(),
-			this.policy,
-		);
-		const metadata = await resources.inspectVideoFileWithVersion(
-			entry.relativePath,
-		);
-		if (epoch !== this.rootEpoch)
-			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
-		return {
-			identity: {
-				canonicalRoot: resources.canonicalRoot,
-				fileId: entry.id,
-				relativePath: entry.relativePath,
-				sourceVersion: metadata.sourceVersion,
-			},
-			file: {
-				...fileInfo(entry),
-				sizeBytes: metadata.sizeBytes,
-				modifiedAt: metadata.modifiedAt,
-				mimeType: metadata.mimeType,
-			},
-			rootEpoch: epoch,
-		};
+		return this.withRoot(async () => {
+			const entry = this.options.catalog.getFile(id);
+			const resources = await this.openResources();
+			const metadata = await resources.inspectVideoFileWithVersion(
+				entry.relativePath,
+			);
+			if (expectedVersion !== undefined)
+				assertSourceVersion(expectedVersion, metadata.sourceVersion);
+			return {
+				identity: {
+					canonicalRoot: resources.canonicalRoot,
+					fileId: entry.id,
+					relativePath: entry.relativePath,
+					sourceVersion: metadata.sourceVersion,
+				},
+				file: {
+					...fileInfo(entry),
+					sizeBytes: metadata.sizeBytes,
+					modifiedAt: metadata.modifiedAt,
+					mimeType: metadata.mimeType,
+				},
+				rootEpoch: epoch,
+			};
+		}, epoch);
+	}
+
+	async revalidateSource(expected: SourceReference): Promise<ResolvedSource> {
+		return this.withRoot(async () => {
+			const current = await this.resolveSource(expected.identity.fileId);
+			assertFileSource(expected.identity, current.identity);
+			return current;
+		}, expected.rootEpoch);
 	}
 
 	async openMedia(id: string): Promise<OpenedResourceFile> {

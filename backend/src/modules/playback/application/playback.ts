@@ -157,7 +157,8 @@ export class PlaybackApplication {
 		if (!this.options.sources.hasSnapshot)
 			return { availability: "unknown", items: [] };
 		const epoch = this.options.sources.resourceRootEpoch;
-		const rootId = resourceRootId(await this.options.sources.resolveRoot());
+		const canonicalRoot = await this.options.sources.resolveRoot();
+		const rootId = resourceRootId(canonicalRoot);
 		const items: ContinueWatchingItem[] = [];
 		for (
 			let offset = 0;
@@ -176,10 +177,12 @@ export class PlaybackApplication {
 			for (const candidate of candidates) {
 				let source: ResolvedSource;
 				try {
-					source = await this.options.sources.resolveSource(
-						candidate.source.fileId,
-					);
+					source = await this.options.sources.revalidateSource({
+						identity: { ...candidate.source, canonicalRoot },
+						rootEpoch: epoch,
+					});
 				} catch (error) {
+					this.assertEpoch(epoch);
 					if (
 						error instanceof DomainError &&
 						[
@@ -187,17 +190,13 @@ export class PlaybackApplication {
 							"RESOURCE_MISSING",
 							"RESOURCE_UNREADABLE",
 							"RESOURCE_ACCESS_DENIED",
+							"PLAYBACK_CONFLICT",
 						].includes(error.code)
 					)
 						continue;
 					throw error;
 				}
 				this.assertEpoch(epoch);
-				if (
-					source.identity.sourceVersion !== candidate.source.sourceVersion ||
-					resourceRootId(source.identity.canonicalRoot) !== rootId
-				)
-					continue;
 				items.push({ file: source.file, progress: candidate.progress });
 				if (items.length === limit) break;
 			}
@@ -275,16 +274,17 @@ export class PlaybackApplication {
 		token: string,
 		session: PlaybackSessionState,
 	): Promise<void> {
-		const source = await this.options.sources.resolveSource(
-			session.identity.fileId,
-		);
+		try {
+			await this.options.sources.revalidateSource(session);
+		} catch (error) {
+			if (error instanceof DomainError && error.code === "PLAYBACK_CONFLICT") {
+				this.sessions.delete(token);
+				this.conflict();
+			}
+			throw error;
+		}
 		// Check again after awaiting filesystem access: another open/reset/root change may have intervened.
-		if (
-			this.session(token) !== session ||
-			source.rootEpoch !== session.rootEpoch ||
-			source.identity.canonicalRoot !== session.identity.canonicalRoot ||
-			source.identity.sourceVersion !== session.identity.sourceVersion
-		) {
+		if (this.session(token) !== session) {
 			this.sessions.delete(token);
 			this.conflict();
 		}

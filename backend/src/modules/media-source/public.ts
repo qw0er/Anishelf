@@ -3,11 +3,13 @@ import { ResourceAccess } from "./infrastructure/access.js";
 
 export type {
 	FileInfo,
+	FileSourceIdentity,
 	RegisteredSource,
 	ResolvedSource,
 	RootIssue,
 	SourceCatalog,
 	SourceIdentity,
+	SourceReference,
 } from "./domain/model.js";
 export type {
 	OpenedResourceFile,
@@ -26,6 +28,8 @@ export function createResourceAccess(
 export type MediaSourceApi = Pick<
 	MediaSourceApplication,
 	| "resolveSource"
+	| "revalidateSource"
+	| "assertRootEpoch"
 	| "resolveRoot"
 	| "resourceRootEpoch"
 	| "hasSnapshot"
@@ -37,3 +41,5 @@ export type MediaSourceApi = Pick<
 import type { SourceRepository } from "./infrastructure/repository.js";
 export type SourceRegistry = Pick<SourceRepository, "registerSource">;
 export { resourceRootId } from "./domain/identity.js";
+
+export { assertSourceVersion } from "./domain/validation.js";

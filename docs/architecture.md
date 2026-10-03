@@ -127,7 +127,7 @@ regression coverage; production source is checked independently.
 | [`library/application/scan-coordinator.ts`](../backend/src/modules/library/application/scan-coordinator.ts) | Own the single scan timer, task state, cancellation, settings/scan exclusion and snapshot publication |
 | [`library/application/settings.ts`](../backend/src/modules/library/application/settings.ts) | Commit settings through Configuration, then invalidate the source epoch/reset the index on a real root change and trigger scanning |
 | [`media-source/public.ts`](../backend/src/modules/media-source/public.ts) | Source API, source/catalog models and controlled access capabilities; no library implementation dependency |
-| [`media-source/application/sources.ts`](../backend/src/modules/media-source/application/sources.ts) | Own the root epoch, resolve indexed IDs, inspect source versions and open confined media; reject asynchronous resolution spanning a root change |
+| [`media-source/application/sources.ts`](../backend/src/modules/media-source/application/sources.ts) | Own the root epoch, resolve indexed IDs, revalidate source identities and open confined media; reject asynchronous access spanning a root change |
 | [`media-source/infrastructure/repository.ts`](../backend/src/modules/media-source/infrastructure/repository.ts) | Register canonical roots and source versions for both playback and subtitles; preserve existing identity hashes |
 | [`playback/public.ts`](../backend/src/modules/playback/public.ts) | Session/progress/history capability and result types; the application depends on `MediaSourceApi`, not Library |
 | [`subtitles/public.ts`](../backend/src/modules/subtitles/public.ts) | Discovery/preparation/content capability and result types; the application depends on `MediaSourceApi`, not Library or Playback |
@@ -137,7 +137,27 @@ The catalog port exposes only indexed file lookup and snapshot availability.
 Bootstrap supplies it from the index; Media Source never imports Library. Missing
 or unscanned IDs retain their existing behavior. The source service owns the one
 root epoch; only the root-switch callback assembled by bootstrap invalidates it.
-Playback and subtitle consumers receive the read-only source capability.
+Playback, inspection and subtitle consumers receive the read-only source capability.
+
+`resolveSource(id, expectedVersion?)` checks accessibility and optionally a requested
+version. `revalidateSource(expected)` centralizes canonical-root, relative-path and
+version comparison. Active references carry `rootEpoch`; persisted identities omit
+it so valid assets can survive restarts. A changed identity/epoch raises
+`PLAYBACK_CONFLICT`; ordinary missing/unreadable-file errors retain their existing
+codes. Root changes detected during failed asynchronous reads take precedence over
+those errors. `openResources(expected)` binds directory/subtitle access to the same
+root, and `assertRootEpoch(epoch)` provides a check without another filesystem read.
+Playback still owns session authorization, subtitles own matching/asset state, and
+inspection owns caching and process concurrency.
+
+`FileSourceIdentity` describes a canonical root, relative path and stat-based version
+for both videos and external subtitle files. Indexed videos add `fileId` through
+`SourceIdentity`. `ResourceAccess` generates both versions with the unchanged
+`stat-v1` fingerprint (size, nanosecond mtime/ctime, device and inode), not a content
+hash. `openSubtitleSource(identity)` checks the actual opened handle before reading;
+`revalidateSubtitleSource(identity)` checks it again after reading. Both use the same
+identity comparison as video revalidation. Size, encoding and matching rules stay
+in Subtitles. These internal identities are never included in public subtitle DTOs.
 
 Settings and scans share the coordinator's exclusion gate. A failed settings
 write preserves the prior index and epoch. A same-root save does not trigger a
@@ -350,8 +370,9 @@ Same-source callers share one active probe across consumers. Uncached sources re
 `MediaInspectionBusyError` when `media.probeConcurrency` is exhausted; there is no
 unbounded queue. Callers receive independent copies of media information, so one
 consumer cannot mutate another consumer's cached result. Failures are not cached.
-Every caller revalidates its source, including on cache hits. File replacement or a
-root-epoch change produces `PLAYBACK_CONFLICT` rather than usable stale metadata.
+A cache hit resolves the current source once. A cache miss validates before probing
+and revalidates once after completion; concurrent callers reuse that completed
+validation and check their root epoch. File replacement or a root-epoch change produces `PLAYBACK_CONFLICT` rather than usable stale metadata.
 
 Subtitles map busy feedback to `SUBTITLE_PROBE_BUSY`, and FFprobe absence/failure to
 safe `SUBTITLE_PROBE_UNAVAILABLE` / `SUBTITLE_PROBE_FAILED` warnings alongside external
@@ -359,6 +380,14 @@ candidates. An application without an inspection provider skips embedded inspect
 The composition root owns the shared service lifetime: closing subtitles stops only
 subtitle preparation; server shutdown aborts and awaits shared probes before the
 database closes. No scan/list request or service construction starts probing.
+
+Subtitle preparation reuses its own discovery's source, track list and inspected
+media information instead of resolving/discovering/probing again. External preparation
+also reuses that directory discovery when validating subtitle content. Successful
+inspection supplies discovery's final video-version check; external-only, busy and
+failed-probe discovery still explicitly revalidate the video. Reading subtitle content
+checks the opened subtitle version before reading, then checks both subtitle and video
+afterward. Extraction/publication retain their separate pre/post source checks.
 
 Discovery does not read subtitle contents, extract tracks or write assets. The player
 registers all supported tracks as empty local placeholders in Vidstack's CC menu,

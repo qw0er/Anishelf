@@ -657,3 +657,53 @@ test("external ready URLs retain version checks after preparation", async () => 
 	expect(content.statusCode).toBe(409);
 	expect(content.json().error.code).toBe("PLAYBACK_CONFLICT");
 });
+
+test("external preparation reuses discovery rather than scanning the directory again", async () => {
+	await sidecar(".srt", "original subtitle");
+	const discovery = await discover();
+	const reads = vi.spyOn(ResourceAccess.prototype, "readDirectory");
+	const response = await prepareExternal(discovery);
+	expect(response.statusCode).toBe(200);
+	expect(reads).toHaveBeenCalledTimes(1);
+});
+
+test("external content rejects replacement between discovery and opening", async () => {
+	await sidecar(".srt", "original subtitle");
+	const url = await contentUrl();
+	const open = ResourceAccess.prototype.openSubtitleFile;
+	vi.spyOn(ResourceAccess.prototype, "openSubtitleFile")
+		.mockImplementationOnce(async function (this: ResourceAccess, path) {
+			// Directory discovery has checked the original version.
+			return open.call(this, path);
+		})
+		.mockImplementationOnce(async function (this: ResourceAccess, path) {
+			await sidecar(".srt", "replacement while opening");
+			return open.call(this, path);
+		});
+	const response = await app.inject({ url, headers });
+	expect(response.statusCode).toBe(409);
+	expect(response.json().error.code).toBe("PLAYBACK_CONFLICT");
+	expect(response.body).not.toContain("replacement while opening");
+});
+
+test("external content rejects a subtitle changed while reading the opened handle", async () => {
+	await sidecar(".srt", "original subtitle");
+	const url = await contentUrl();
+	const open = ResourceAccess.prototype.openSubtitleSource;
+	vi.spyOn(
+		ResourceAccess.prototype,
+		"openSubtitleSource",
+	).mockImplementationOnce(async function (this: ResourceAccess, identity) {
+		const file = await open.call(this, identity);
+		const read = file.handle.read.bind(file.handle);
+		vi.spyOn(file.handle, "read").mockImplementationOnce(async (...args) => {
+			await sidecar(".srt", "replacement during read");
+			return read(...args);
+		});
+		return file;
+	});
+	const response = await app.inject({ url, headers });
+	expect(response.statusCode).toBe(409);
+	expect(response.json().error.code).toBe("PLAYBACK_CONFLICT");
+	expect(response.body).not.toContain("replacement during read");
+});

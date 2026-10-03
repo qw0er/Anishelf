@@ -12,7 +12,9 @@ import {
 import { extname, isAbsolute, join, relative, sep, win32 } from "node:path";
 import { DomainError } from "../../../shared/errors.js";
 import type { PersistentSettings } from "../../configuration/public.js";
-import type { RootIssue } from "../domain/model.js";
+import type { FileSourceIdentity, RootIssue } from "../domain/model.js";
+
+import { assertFileSource } from "../domain/validation.js";
 
 type Timestamp = string;
 
@@ -194,32 +196,64 @@ export class ResourceAccess {
 		);
 	}
 
+	private async sourceMetadata(
+		file: OpenedResourceFile,
+	): Promise<ResourceSourceMetadata> {
+		const info = await file.handle.stat({ bigint: true });
+		const sourceVersion = createHash("sha256")
+			.update(
+				JSON.stringify([
+					storageRules.sourceVersion,
+					info.size.toString(),
+					info.mtimeNs.toString(),
+					info.ctimeNs.toString(),
+					info.dev.toString(),
+					info.ino.toString(),
+				]),
+			)
+			.digest("base64url");
+		return {
+			sizeBytes: Number(info.size),
+			modifiedAt: new Date(Number(info.mtimeMs)).toISOString(),
+			mimeType: file.mimeType,
+			sourceVersion,
+		};
+	}
+
 	private async inspectOpenedSourceWithVersion(
 		file: OpenedResourceFile,
 	): Promise<ResourceSourceMetadata> {
 		try {
-			const info = await file.handle.stat({ bigint: true });
-			const sourceVersion = createHash("sha256")
-				.update(
-					JSON.stringify([
-						storageRules.sourceVersion,
-						info.size.toString(),
-						info.mtimeNs.toString(),
-						info.ctimeNs.toString(),
-						info.dev.toString(),
-						info.ino.toString(),
-					]),
-				)
-				.digest("base64url");
-			return {
-				sizeBytes: file.sizeBytes,
-				modifiedAt: file.modifiedAt,
-				mimeType: file.mimeType,
-				sourceVersion,
-			};
+			return await this.sourceMetadata(file);
 		} finally {
 			await file.release();
 		}
+	}
+
+	/** Validate the version of the actual opened handle before subtitle content is read. */
+	async openSubtitleSource(
+		expected: FileSourceIdentity,
+	): Promise<OpenedResourceFile> {
+		if (expected.canonicalRoot !== this.root)
+			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
+		const file = await this.openSubtitleFile(expected.relativePath);
+		try {
+			const current = await this.sourceMetadata(file);
+			assertFileSource(expected, {
+				canonicalRoot: this.root,
+				relativePath: expected.relativePath,
+				sourceVersion: current.sourceVersion,
+			});
+			return { ...file, ...current };
+		} catch (error) {
+			await file.release();
+			throw error;
+		}
+	}
+
+	async revalidateSubtitleSource(expected: FileSourceIdentity): Promise<void> {
+		const file = await this.openSubtitleSource(expected);
+		await file.release();
 	}
 
 	async openFile(relativePath: string): Promise<OpenedResourceFile> {
