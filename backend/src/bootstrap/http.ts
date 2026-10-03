@@ -13,6 +13,8 @@ import type { LibraryApplication } from "../modules/library/application/library.
 import { registerLibraryRoutes } from "../modules/library/http/library.js";
 import { registerMediaRoutes } from "../modules/library/http/media.js";
 import { registerSettingsRoutes } from "../modules/library/http/settings.js";
+import type { MediaCompatibilityApplication } from "../modules/media-compatibility/application/compatibility.js";
+import { registerCompatibilityRoutes } from "../modules/media-compatibility/http/compatibility.js";
 import type { PlaybackApplication } from "../modules/playback/application/playback.js";
 import { registerPlaybackRoutes } from "../modules/playback/http/playback.js";
 import { SubtitleApplication } from "../modules/subtitles/application/subtitles.js";
@@ -29,6 +31,7 @@ export function createHttpApp(options: {
 	library?: LibraryApplication;
 	playback?: PlaybackApplication;
 	subtitles?: SubtitleApplication;
+	compatibility?: MediaCompatibilityApplication;
 	frontendRoot?: string;
 }) {
 	const policy = options.policy ?? {
@@ -125,6 +128,8 @@ export function createHttpApp(options: {
 		registerPlaybackRoutes(app, playback);
 	}
 
+	if (options.compatibility)
+		registerCompatibilityRoutes(app, options.compatibility);
 	const frontendRoot = options.frontendRoot;
 	if (options.development && frontendRoot)
 		app.register(async (scope) => registerFrontend(scope, frontendRoot));

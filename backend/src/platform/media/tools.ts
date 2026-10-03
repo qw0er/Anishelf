@@ -11,6 +11,7 @@ import {
 	subtitlePolicy,
 } from "../../modules/subtitles/public.js";
 import type { DeepReadonly } from "../../shared/policy.js";
+import { codecDescriptor } from "./codec-descriptor.js";
 import { type MediaToolPolicy, mediaToolPolicy } from "./policy.js";
 
 export interface MediaToolsPolicy {
@@ -146,6 +147,8 @@ export function parseMediaInfo(
 				index,
 				type: stream.codec_type,
 				codec: text(stream.codec_name),
+				codecTag: text(stream.codec_tag_string),
+				codecString: codecDescriptor(stream),
 				profile: text(stream.profile),
 				level: number(stream.level),
 				bitDepth:
@@ -287,6 +290,44 @@ export class MediaTools {
 	}
 
 	/** Trusted backend API: caller must enforce resource-root access before use. */
+	private processingInventory:
+		| Promise<{
+				mp4: boolean | null;
+				h264: boolean | null;
+				aac: boolean | null;
+		  }>
+		| undefined;
+	processingCapabilities() {
+		this.processingInventory ??= (async () => {
+			try {
+				const executable = this.executable("ffmpeg");
+				const [encoders, muxers] = await Promise.all([
+					runTool(
+						executable,
+						["-hide_banner", "-encoders"],
+						{},
+						this.policy.mediaTools,
+						this.logger,
+					),
+					runTool(
+						executable,
+						["-hide_banner", "-muxers"],
+						{},
+						this.policy.mediaTools,
+						this.logger,
+					),
+				]);
+				return {
+					mp4: /^\s*E\s+mp4\s/m.test(muxers),
+					h264: /^\s*V\S*\s+libx264\s/m.test(encoders),
+					aac: /^\s*A\S*\s+aac\s/m.test(encoders),
+				};
+			} catch {
+				return { mp4: null, h264: null, aac: null };
+			}
+		})();
+		return this.processingInventory;
+	}
 	async probe(path: string, signal?: AbortSignal): Promise<MediaInfo> {
 		const executable = this.executable("ffprobe");
 		await localFile(path);
@@ -305,7 +346,7 @@ export class MediaTools {
 			mkv: "matroska",
 			webm: "webm",
 		};
-		return parseMediaInfo(
+		const info = parseMediaInfo(
 			await runTool(
 				executable,
 				[
@@ -327,6 +368,73 @@ export class MediaTools {
 			),
 			detected ? (containers[detected.ext] ?? null) : null,
 		);
+		// Probe initialization data only for selected audio/video streams. Dumping every
+		// attachment would copy embedded fonts into the probe output and exhaust its bound.
+		for (const type of ["video", "audio"]) {
+			const candidates = info.streams.filter(
+				(stream) => stream.type === type && !stream.attachedPicture,
+			);
+			const stream =
+				candidates.find((candidate) => candidate.default) ?? candidates[0];
+			if (
+				!stream ||
+				!["h264", "hevc", "aac", "av1"].includes(stream.codec ?? "")
+			)
+				continue;
+			try {
+				const data = record(
+					JSON.parse(
+						await runTool(
+							executable,
+							[
+								"-v",
+								"error",
+								"-protocol_whitelist",
+								"file,pipe",
+								"-select_streams",
+								String(stream.index),
+								"-show_entries",
+								"stream=index,codec_name,codec_tag_string,profile,extradata",
+								"-show_data",
+								"-of",
+								"json",
+								"-i",
+								path,
+							],
+							signal ? { signal } : {},
+							{
+								...this.policy.mediaTools,
+								maximumOutputBytes: Math.min(
+									this.policy.mediaTools.maximumOutputBytes,
+									256 * 1024,
+								),
+								executionTimeoutMs: Math.min(
+									this.policy.mediaTools.executionTimeoutMs,
+									5000,
+								),
+							},
+							this.logger,
+						),
+					),
+				);
+				if (Array.isArray(data.streams)) {
+					const details = data.streams
+						.map(record)
+						.find((candidate) => candidate.index === stream.index);
+					stream.codecString = details ? codecDescriptor(details) : null;
+				}
+			} catch {
+				signal?.throwIfAborted();
+				this.logger?.debug(
+					{
+						event: "media.codec_description_unavailable",
+						streamIndex: stream.index,
+					},
+					"Exact codec description is unavailable.",
+				);
+			}
+		}
+		return info;
 	}
 
 	/** Trusted backend API. Caller owns confined input access, private output and cleanup. */

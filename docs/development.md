@@ -222,3 +222,11 @@ Server policy remains program-owned; browser media/interaction policies are loca
 code. Shared scan and subtitle constraints use browser-safe contract exports.
 Deploy frontend/backend builds together when changing shared limits. Never bundle
 server configuration or paths into the browser.
+
+## Video compatibility checks
+
+See [Video compatibility checks](video-compatibility.md) for the negotiation API,
+player behavior, conservative unknown states, and processing boundaries. Run
+`npm run check` and `npm run build` after changes. FFmpeg tests need child-process
+permissions; localhost acceptance needs listener permissions. Browser decoding
+and output preparation still require real-sample validation.

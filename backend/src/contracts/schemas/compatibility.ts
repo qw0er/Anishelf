@@ -1,0 +1,149 @@
+import { Type } from "typebox";
+import { ResourceIdSchema } from "./common.js";
+import { SourceVersionSchema } from "./playback.js";
+
+const nullableNumber = Type.Union([Type.Number({ minimum: 0 }), Type.Null()]);
+const nullableString = Type.Union([
+	Type.String({ maxLength: 256 }),
+	Type.Null(),
+]);
+export const CompatibilityStatusSchema = Type.Union([
+	Type.Literal("supported"),
+	Type.Literal("unsupported"),
+	Type.Literal("unknown"),
+]);
+const stream = Type.Object(
+	{
+		index: Type.Integer({ minimum: 0 }),
+		kind: Type.Union([Type.Literal("video"), Type.Literal("audio")]),
+		codec: nullableString,
+		codecString: nullableString,
+		profile: nullableString,
+		pixelFormat: nullableString,
+		bitDepth: nullableNumber,
+		hdr: Type.Boolean(),
+		width: nullableNumber,
+		height: nullableNumber,
+		frameRate: nullableNumber,
+		bitrate: nullableNumber,
+		sampleRate: nullableNumber,
+		channels: nullableNumber,
+	},
+	{ additionalProperties: false },
+);
+const query = Type.Object(
+	{
+		id: Type.String({ maxLength: 64 }),
+		type: Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
+		contentType: nullableString,
+		video: Type.Union([stream, Type.Null()]),
+		audio: Type.Union([stream, Type.Null()]),
+	},
+	{ additionalProperties: false },
+);
+export const CompatibilityInspectionSchema = Type.Object(
+	{
+		fileId: ResourceIdSchema,
+		sourceVersion: SourceVersionSchema,
+		rulesVersion: Type.Literal("1"),
+		container: nullableString,
+		video: Type.Union([stream, Type.Null()]),
+		audio: Type.Union([stream, Type.Null()]),
+		multipleTracks: Type.Boolean(),
+		queries: Type.Array(query, { maxItems: 16 }),
+	},
+	{ additionalProperties: false },
+);
+const evidence = Type.Object(
+	{
+		id: Type.String({ maxLength: 64 }),
+		status: CompatibilityStatusSchema,
+		smooth: Type.Union([Type.Boolean(), Type.Null()]),
+		powerEfficient: Type.Union([Type.Boolean(), Type.Null()]),
+		reason: Type.Union([
+			Type.Literal("browser-supported"),
+			Type.Literal("browser-rejected"),
+			Type.Literal("browser-uncertain"),
+			Type.Literal("api-unavailable"),
+			Type.Literal("query-failed"),
+			Type.Literal("query-timeout"),
+			Type.Literal("incomplete-description"),
+		]),
+	},
+	{ additionalProperties: false },
+);
+export const CompatibilityCheckRequestSchema = Type.Object(
+	{
+		sourceVersion: SourceVersionSchema,
+		evidence: Type.Array(evidence, { maxItems: 16 }),
+	},
+	{ additionalProperties: false },
+);
+const decision = Type.Object(
+	{
+		status: CompatibilityStatusSchema,
+		reason: Type.String({ maxLength: 128 }),
+	},
+	{ additionalProperties: false },
+);
+const plan = Type.Object(
+	{
+		target: Type.Union([Type.Literal("mp4"), Type.Literal("mse")]),
+		mode: Type.Union([
+			Type.Literal("direct"),
+			Type.Literal("remux"),
+			Type.Literal("transcode-audio"),
+			Type.Literal("transcode-video"),
+			Type.Literal("transcode"),
+			Type.Literal("unknown"),
+		]),
+		video: decision,
+		audio: decision,
+		outputVideo: decision,
+		outputAudio: decision,
+		videoAction: Type.Union([
+			Type.Literal("copy"),
+			Type.Literal("encode"),
+			Type.Literal("unknown"),
+		]),
+		audioAction: Type.Union([
+			Type.Literal("copy"),
+			Type.Literal("encode"),
+			Type.Literal("none"),
+			Type.Literal("unknown"),
+		]),
+		execution: Type.Union([
+			Type.Literal("not-required"),
+			Type.Literal("unverified"),
+			Type.Literal("unavailable"),
+			Type.Literal("blocked"),
+		]),
+		reason: Type.String({ maxLength: 128 }),
+	},
+	{ additionalProperties: false },
+);
+export const CompatibilityResultSchema = Type.Object(
+	{
+		fileId: ResourceIdSchema,
+		sourceVersion: SourceVersionSchema,
+		rulesVersion: Type.Literal("1"),
+		processing: Type.Object(
+			{
+				mp4: Type.Union([Type.Boolean(), Type.Null()]),
+				h264: Type.Union([Type.Boolean(), Type.Null()]),
+				aac: Type.Union([Type.Boolean(), Type.Null()]),
+			},
+			{ additionalProperties: false },
+		),
+		direct: decision,
+		video: decision,
+		audio: decision,
+		selectedVideo: Type.Union([stream, Type.Null()]),
+		selectedAudio: Type.Union([stream, Type.Null()]),
+		container: decision,
+		plans: Type.Array(plan, { minItems: 2, maxItems: 2 }),
+		evidence: Type.Array(evidence, { maxItems: 16 }),
+		warnings: Type.Array(Type.String({ maxLength: 128 }), { maxItems: 16 }),
+	},
+	{ additionalProperties: false },
+);

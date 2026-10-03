@@ -58,8 +58,10 @@
 			"PLAYBACK_UNAVAILABLE": "Playback progress is unavailable. You can keep watching and retry later.",
 			"PLAYBACK_PERSISTENCE_FAILED": "Playback progress could not be loaded or saved. Please retry.",
 			"SUBTITLE_TOO_LARGE": "The subtitle exceeds the {{maximumMiB}} MiB limit.",
-			"SUBTITLE_INVALID_ENCODING": "Save the subtitle as UTF-8 or UTF-16 with a byte-order mark."
-		}
+			"SUBTITLE_INVALID_ENCODING": "Save the subtitle as UTF-8 or UTF-16 with a byte-order mark.",
+			"MEDIA_INSPECTION_UNAVAILABLE": "Media inspection is unavailable or busy. Retry shortly."
+		},
+		"mediaPictureUnavailable": "This browser could not decode the video picture. Audio alone may still play."
 	},
 	"library": {
 		"filesLabel": "Library files",
@@ -142,5 +144,80 @@
 			"SUBTITLE_PREPARATION_UNAVAILABLE": "Subtitle preparation is unavailable on the server.",
 			"SUBTITLE_PREPARATION_BUSY": "Another subtitle is being prepared. Retry shortly."
 		}
+	},
+	"compatibility": {
+		"label": "Playback compatibility",
+		"checking": "Checking playback compatibility…",
+		"failed": "Compatibility could not be checked. You can retry or try the original file.",
+		"supported": "This browser reports support for this file.",
+		"unsupported": "This file is not supported by this browser.",
+		"unknown": "Playback compatibility could not be confirmed.",
+		"reasonUnknown": "The available information does not establish whether this file can play.",
+		"recheck": "Check again",
+		"tryDirect": "Try original file",
+		"runtimeFailed": "Actual playback failed. Browser support information does not guarantee playback; check the file and connection or retry.",
+		"recommendation": "Recommended preparation: {{mode}}.",
+		"performanceWarning": "This browser reports that playback may not be smooth.",
+		"modes": {
+			"unknown": "Cannot determine",
+			"remux": "Change container",
+			"transcode-audio": "Convert audio only",
+			"transcode-video": "Convert video only",
+			"transcode": "Convert audio and video",
+			"direct": "Use original file"
+		},
+		"execution": {
+			"unverified": "Preparation is not connected to the player yet; the output requires validation.",
+			"unavailable": "This processing path is currently unavailable.",
+			"blocked": "The current processing profile cannot handle this file.",
+			"not-required": "Preparation is unnecessary."
+		},
+		"reasons": {
+			"browser-supported": "The browser accepts the described container and codecs. Actual playback remains the final check.",
+			"browser-rejected": "The browser rejects the described media configuration.",
+			"container-rejected": "The browser rejects this container type.",
+			"incomplete-description": "The media parameters are insufficient for a precise browser query.",
+			"missing-evidence": "The browser did not provide capability information.",
+			"browser-uncertain": "The browser cannot confirm support without trying playback.",
+			"api-unavailable": "The required browser capability API is unavailable.",
+			"query-failed": "The browser capability query failed.",
+			"query-timeout": "The browser capability query timed out.",
+			"native-track-selection-uncertain": "This file has multiple media tracks. Native playback may select a different track.",
+			"hdr-display-unverified": "HDR decoding and display behavior require actual playback validation.",
+			"no-video-stream": "No usable video stream was found.",
+			"no-audio-stream": "This file has no audio stream.",
+			"target-packaging-unverified": "Copying this stream into the target container has not been validated.",
+			"hls-executor-unavailable": "Streaming preparation is not available yet.",
+			"ffmpeg-unavailable": "FFmpeg is unavailable on the server.",
+			"hdr-conversion-unavailable": "The current conversion profile cannot process HDR video.",
+			"encoded-output-rejected": "The browser rejects the proposed output codec.",
+			"original-supported": "The original file can be tried without preparation.",
+			"insufficient-evidence": "There is insufficient evidence to choose a preparation mode.",
+			"output-validation-required": "The generated output must be inspected and tested before playback.",
+			"processing-capability-unavailable": "The server lacks a required encoder or MP4 muxer."
+		},
+		"details": "Compatibility details",
+		"kinds": {
+			"container": "Container",
+			"video": "Video",
+			"audio": "Audio"
+		},
+		"states": {
+			"supported": "Reported supported",
+			"unsupported": "Reported unsupported",
+			"unknown": "Unknown"
+		},
+		"targets": {
+			"mp4": "Prepared MP4",
+			"mse": "MSE streaming"
+		},
+		"actions": {
+			"copy": "Keep original stream",
+			"encode": "Convert",
+			"none": "No audio",
+			"unknown": "Undetermined"
+		},
+		"streamActions": "Video: {{video}}. Audio: {{audio}}.",
+		"preparationUnknown": "There is insufficient information to recommend preparation."
 	}
 }

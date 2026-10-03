@@ -257,3 +257,26 @@ export function getSubtitlePreparation(
 ): Promise<SubtitlePreparationResponse> {
 	return request(statusUrl, "GET", options);
 }
+
+export function getMediaCompatibility(
+	fileId: string,
+	options?: RequestOptions,
+): Promise<import("./contracts.js").CompatibilityInspection> {
+	return request(
+		`/api/files/${encodeURIComponent(fileId)}/compatibility`,
+		"GET",
+		options,
+	);
+}
+export function checkMediaCompatibility(
+	fileId: string,
+	input: import("./contracts.js").CompatibilityCheckRequest,
+	options?: RequestOptions,
+): Promise<import("./contracts.js").CompatibilityResult> {
+	return request(
+		`/api/files/${encodeURIComponent(fileId)}/compatibility`,
+		"POST",
+		options,
+		input,
+	);
+}

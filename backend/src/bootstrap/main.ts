@@ -10,6 +10,7 @@ import type {
 } from "../modules/configuration/policy.js";
 import type { LibraryApplication } from "../modules/library/application/library.js";
 import { LibraryIndex } from "../modules/library/infrastructure/index.js";
+import { MediaCompatibilityApplication } from "../modules/media-compatibility/application/compatibility.js";
 import { MediaInspectionApplication } from "../modules/media-inspection/application/inspection.js";
 import { PlaybackApplication } from "../modules/playback/application/playback.js";
 import { SubtitleApplication } from "../modules/subtitles/application/subtitles.js";
@@ -153,6 +154,13 @@ async function createServer(
 		library,
 		playback,
 		subtitles,
+		compatibility: new MediaCompatibilityApplication({
+			inspection,
+			sources: library.sources,
+			ffmpegAvailable: tools.status.ffmpeg.available,
+			processingCapabilities: () => tools.processingCapabilities(),
+			logger,
+		}),
 		development,
 		...(development && existsSync(join(frontendRoot, "index.html"))
 			? { frontendRoot }

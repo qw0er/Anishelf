@@ -79,6 +79,7 @@ backend/src/
     library/             # Browse, scan coordination and root-switch use case
     resource-access/        # Source identity, root epoch and confined access
     media-inspection/    # Shared version-bound probe cache and concurrency
+    media-compatibility/ # Browser negotiation and per-stream processing recommendations
     playback/            # Sessions, progress and history
     subtitles/           # Discovery, preparation, delivery and asset lifecycle
   contracts/             # Browser-safe HTTP schemas/types, formats and defaults
@@ -569,9 +570,9 @@ register `close()` with their lifecycle and revalidate the source before serving
 or reusing a result. Service construction performs no processing or disk writes.
 
 These are backend primitives, available for a future playback/preparation caller.
-They are not currently wired to HTTP or the player. Browser capability negotiation,
-automatic planning, persistent task/asset records, progress reporting, crash recovery,
-and HLS remain planned below. Outputs are temporary service-owned files; a crash
+They are not currently wired to HTTP or the player. Browser capability negotiation and compatibility planning are implemented separately;
+see [Video compatibility checks](video-compatibility.md). Persistent task/asset
+records, processing progress reporting, crash recovery, and HLS remain planned below. Outputs are temporary service-owned files; a crash
 can leave orphan job directories until a future recovery mechanism removes them.
 The four operations have passed static checks; actual encoding and playback sample
 acceptance remain pending.

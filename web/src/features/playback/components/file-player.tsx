@@ -8,6 +8,7 @@ import {
 	subtitlePolicy,
 } from "../../../config/media-policy.js";
 import { directoryPath } from "../../../routes/paths.js";
+import { useMediaCompatibility } from "../hooks/use-media-compatibility.js";
 import { usePlaybackSession } from "../hooks/use-playback-session.js";
 import MediaLink from "./media-link.js";
 import VideoPlayer from "./video-player.js";
@@ -24,6 +25,10 @@ export default function FilePlayer({
 }) {
 	const { t } = useTranslation();
 	const playback = usePlaybackSession(data.file.id, playbackPolicy);
+	const compatibility = useMediaCompatibility(
+		data.file.id,
+		playback.session?.sourceVersion,
+	);
 	return (
 		<section className="stack-page" aria-label={t("player.label")}>
 			<div className="action-row">
@@ -40,13 +45,114 @@ export default function FilePlayer({
 				</Button>
 			</div>
 			<h1 className="page-title">{data.file.name}</h1>
-			<VideoPlayer
-				key={`video:${data.file.id}`}
-				{...data}
-				subtitlePolicy={subtitlePolicy}
-				playbackUrl={playback.session?.plan.playbackUrl ?? data.playbackUrl}
-				onMedia={playback.attach}
-			/>
+			<section className="space-y-2" aria-label={t("compatibility.label")}>
+				<p role="status">
+					{t(
+						compatibility.loading
+							? "compatibility.checking"
+							: compatibility.error
+								? "compatibility.failed"
+								: `compatibility.${compatibility.result?.direct.status ?? "unknown"}`,
+					)}
+				</p>
+				{compatibility.result && (
+					<>
+						<p className="text-sm text-muted-foreground">
+							{t(
+								`compatibility.reasons.${compatibility.result.direct.reason}`,
+								{ defaultValue: t("compatibility.reasonUnknown") },
+							)}
+						</p>
+						{compatibility.result.plans
+							.filter((plan) => plan.target === "mp4" && plan.mode !== "direct")
+							.map((plan) => (
+								<p key={plan.target} className="text-sm">
+									{plan.mode === "unknown"
+										? t("compatibility.preparationUnknown")
+										: t("compatibility.recommendation", {
+												mode: t(`compatibility.modes.${plan.mode}`),
+											})}{" "}
+									{plan.mode !== "unknown" &&
+										t(`compatibility.execution.${plan.execution}`)}
+								</p>
+							))}
+						<details className="text-sm">
+							<summary>{t("compatibility.details")}</summary>
+							<dl className="mt-2 space-y-2">
+								{(["container", "video", "audio"] as const).map((kind) => (
+									<div key={kind}>
+										<dt className="font-medium">
+											{t(`compatibility.kinds.${kind}`)}
+										</dt>
+										<dd>
+											{t(
+												`compatibility.states.${compatibility.result?.[kind].status}`,
+											)}{" "}
+											—{" "}
+											{t(
+												`compatibility.reasons.${compatibility.result?.[kind].reason}`,
+												{ defaultValue: t("compatibility.reasonUnknown") },
+											)}
+										</dd>
+									</div>
+								))}
+								{compatibility.result.plans.map((plan) => (
+									<div key={plan.target}>
+										<dt className="font-medium">
+											{t(`compatibility.targets.${plan.target}`)}
+										</dt>
+										<dd>
+											{t("compatibility.streamActions", {
+												video: t(`compatibility.actions.${plan.videoAction}`),
+												audio: t(`compatibility.actions.${plan.audioAction}`),
+											})}
+										</dd>
+										<dd>
+											{t(`compatibility.reasons.${plan.reason}`, {
+												defaultValue: t("compatibility.reasonUnknown"),
+											})}
+										</dd>
+									</div>
+								))}
+							</dl>
+						</details>
+
+						{compatibility.result.warnings.includes(
+							"playback-may-not-be-smooth",
+						) && <p>{t("compatibility.performanceWarning")}</p>}
+					</>
+				)}
+				{compatibility.runtimeFailed && (
+					<p role="alert">{t("compatibility.runtimeFailed")}</p>
+				)}
+				{!compatibility.loading && (
+					<div className="action-row">
+						<Button
+							type="button"
+							variant="outline"
+							onClick={compatibility.retry}
+						>
+							{t("compatibility.recheck")}
+						</Button>
+						{!compatibility.canAttempt && (
+							<Button type="button" onClick={compatibility.tryDirect}>
+								{t("compatibility.tryDirect")}
+							</Button>
+						)}
+					</div>
+				)}
+			</section>
+			{compatibility.canAttempt && (
+				<VideoPlayer
+					key={`video:${data.file.id}`}
+					{...data}
+					subtitlePolicy={subtitlePolicy}
+					playbackUrl={playback.session?.plan.playbackUrl ?? data.playbackUrl}
+					onMedia={playback.attach}
+					onPlaybackFailure={compatibility.failed}
+					expectsVideo={Boolean(compatibility.result?.selectedVideo)}
+				/>
+			)}
 			<MediaLink key={`link:${data.file.id}`} fileId={data.file.id} />
 		</section>
 	);

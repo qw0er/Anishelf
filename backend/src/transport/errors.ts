@@ -2,6 +2,10 @@ import type { ApiErrorResponse } from "../contracts/http.js";
 import { DomainError, type ErrorCode } from "../shared/errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	MEDIA_INSPECTION_UNAVAILABLE: {
+		status: 503,
+		message: "Media inspection is unavailable or busy. Retry shortly.",
+	},
 	SUBTITLE_UNSUPPORTED: {
 		status: 422,
 		message: "This subtitle track is not supported.",

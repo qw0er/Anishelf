@@ -10,6 +10,9 @@ export interface MediaStream {
 	index: number;
 	type: string;
 	codec: string | null;
+	/** Exact codec descriptor from bounded initialization data; absent means unknown. */
+	codecString?: string | null;
+	codecTag?: string | null;
 	profile: string | null;
 	level: number | null;
 	/** Raw sample depth, otherwise maximum pixel component depth; never bits per pixel. */

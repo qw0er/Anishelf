@@ -45,3 +45,17 @@ export type SubtitleDiscoveryResponse = Static<
 export type SubtitlePreparationResponse = Static<
 	typeof schemas.SubtitlePreparationResponseSchema
 >;
+
+export type CompatibilityInspection = Static<
+	typeof schemas.CompatibilityInspectionSchema
+>;
+export type CompatibilityCheckRequest = Static<
+	typeof schemas.CompatibilityCheckRequestSchema
+>;
+export type CompatibilityResult = Static<
+	typeof schemas.CompatibilityResultSchema
+>;
+export type CompatibilityQuery = CompatibilityInspection["queries"][number];
+export type CompatibilityEvidence =
+	CompatibilityCheckRequest["evidence"][number];
+export type CompatibilityStream = NonNullable<CompatibilityInspection["video"]>;

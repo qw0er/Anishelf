@@ -38,10 +38,14 @@ export default function VideoPlayer({
 	file,
 	playbackUrl,
 	onMedia,
+	onPlaybackFailure,
+	expectsVideo,
 	subtitlePolicy,
 }: FileResponse & {
 	subtitlePolicy: SubtitlePolicy;
 	onMedia?(video: HTMLVideoElement | null): void;
+	onPlaybackFailure?(): void;
+	expectsVideo?: boolean;
 }) {
 	const { t } = useTranslation();
 	const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -70,8 +74,13 @@ export default function VideoPlayer({
 		onMedia?.(video);
 	}
 
-	async function playbackFailed() {
-		let message = t("errors.mediaPlayback");
+	async function playbackFailed(missingPicture = false) {
+		onPlaybackFailure?.();
+		let message = t(
+			missingPicture
+				? "errors.mediaPictureUnavailable"
+				: "errors.mediaPlayback",
+		);
 		errorRequest.current?.abort();
 		const controller = new AbortController();
 		errorRequest.current = controller;
@@ -110,7 +119,19 @@ export default function VideoPlayer({
 				if (!provider) providerChanged(null);
 			}}
 			onProviderSetup={providerChanged}
-			onError={playbackFailed}
+			onError={() => {
+				void playbackFailed();
+			}}
+			onLoadedMetadata={() => {
+				const video = videoRef.current;
+				if (
+					expectsVideo &&
+					video &&
+					video.videoWidth === 0 &&
+					video.videoHeight === 0
+				)
+					void playbackFailed(true);
+			}}
 		>
 			<MediaProvider loaders={directVideoLoaders} />
 			<SubtitleTracks fileId={file.id} policy={subtitlePolicy} />

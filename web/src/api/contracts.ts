@@ -1,6 +1,12 @@
 // Type-only imports share the existing API contract without bundling backend code.
 export type {
 	ApiErrorResponse,
+	CompatibilityCheckRequest,
+	CompatibilityEvidence,
+	CompatibilityInspection,
+	CompatibilityQuery,
+	CompatibilityResult,
+	CompatibilityStream,
 	ContinueWatchingResponse,
 	DirectoryDto,
 	DirectoryResponse,

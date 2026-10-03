@@ -56,6 +56,7 @@ const routers: ReturnType<typeof createMemoryRouter>[] = [];
 let library: LibraryResponse;
 let directories: Map<string, DirectoryResponse>;
 let fileError: boolean;
+let compatibilityStatus: "supported" | "unsupported" | "unknown";
 let settings: SettingsResponse;
 
 function json(value: unknown, status = 200) {
@@ -107,10 +108,47 @@ beforeEach(() => {
 		],
 	]);
 	fileError = false;
+	compatibilityStatus = "supported";
 	settings = { resourceRoot: "/media" };
 	fetcher.mockReset();
 	fetcher.mockImplementation(async (input, init) => {
 		const path = String(input);
+		if (path === "/api/files/file-1/compatibility") {
+			if (init?.method === "POST") {
+				const decision = {
+					status: compatibilityStatus,
+					reason:
+						compatibilityStatus === "supported"
+							? "browser-supported"
+							: "browser-rejected",
+				};
+				return json({
+					fileId: "file-1",
+					sourceVersion: "version",
+					rulesVersion: "1",
+					direct: decision,
+					container: decision,
+					video: decision,
+					audio: decision,
+					selectedVideo: null,
+					selectedAudio: null,
+					processing: { mp4: null, h264: null, aac: null },
+					plans: [],
+					evidence: [],
+					warnings: [],
+				});
+			}
+			return json({
+				fileId: "file-1",
+				sourceVersion: "version",
+				rulesVersion: "1",
+				container: "mp4",
+				video: null,
+				audio: null,
+				multipleTracks: false,
+				queries: [],
+			});
+		}
 		if (path === "/api/playback/sessions") {
 			return json(
 				{
@@ -1203,4 +1241,47 @@ test("file rows offer an icon copy button with tooltip without opening playback"
 	expect(
 		fetcher.mock.calls.some(([url]) => url === "/api/playback/sessions"),
 	).toBe(false);
+});
+
+test("unsupported media waits for an explicit original-file attempt and reports runtime failure", async () => {
+	compatibilityStatus = "unsupported";
+	renderApp("/files/file-1");
+	await screen.findByText("This file is not supported by this browser.");
+	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Try original file" }));
+	const video = await screen.findByLabelText("Video: Episode 01.mp4");
+	Object.defineProperty(video, "error", {
+		value: { code: 3, message: "Decode failed" },
+	});
+	fireEvent.error(video);
+	await screen.findByText(/Actual playback failed/);
+	fireEvent.click(screen.getByRole("button", { name: "Check again" }));
+	await screen.findByRole("button", { name: "Try original file" });
+	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
+});
+test("an unavailable compatibility check remains retryable and permits an explicit attempt", async () => {
+	const implementation = fetcher.getMockImplementation();
+	fetcher.mockImplementation((input, init) => {
+		if (String(input) === "/api/files/file-1/compatibility")
+			return Promise.resolve(
+				json(
+					{
+						error: {
+							code: "MEDIA_INSPECTION_UNAVAILABLE",
+							message: "Unavailable",
+							requestId: "id",
+						},
+					},
+					503,
+				),
+			);
+		if (!implementation) throw new Error("Missing mock");
+		return implementation(input, init);
+	});
+	renderApp("/files/file-1");
+	await screen.findByText(
+		"Compatibility could not be checked. You can retry or try the original file.",
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Try original file" }));
+	await screen.findByLabelText("Video: Episode 01.mp4");
 });
