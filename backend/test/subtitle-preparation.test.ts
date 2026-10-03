@@ -566,3 +566,27 @@ test("probe slots deduplicate a source, reject excess work and become reusable",
 	).toEqual([]);
 	expect(probe).toHaveBeenCalledTimes(3);
 });
+
+test("external preparation leaves the asset registry and cache untouched", async () => {
+	await writeFile(join(root, "episode.srt"), text);
+	const discovery = await discover();
+	const track = discovery.tracks.find((track) => track.origin === "external");
+	if (!track) throw new Error("Missing external track");
+	const response = await app.inject({
+		method: "POST",
+		url: `/api/files/${fileId}/subtitles/${track.id}/prepare`,
+		headers,
+		payload: {
+			sourceVersion: discovery.sourceVersion,
+			subtitleVersion: track.sourceVersion,
+		},
+	});
+	expect(response.statusCode).toBe(200);
+	expect(response.json().status).toBe("ready");
+	expect(extract).not.toHaveBeenCalled();
+	expect(database.subtitles.list()).toEqual([]);
+	await expect(
+		readdir(join(dataDir, "cache", "subtitles")),
+	).rejects.toMatchObject({ code: "ENOENT" });
+	expect(await readFile(join(root, "episode.srt"), "utf8")).toBe(text);
+});

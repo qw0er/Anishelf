@@ -165,7 +165,8 @@ for type ownership and [development](development.md) for operational behavior.
 Frontend components, hooks and controllers are grouped in `features/library`,
 `features/playback` and `features/subtitles`. Each feature has a `public.ts` for
 cross-feature use. `SubtitleTracks` and `useSubtitleDiscovery` handle both external
-and embedded tracks; their names no longer imply external-only behavior. Routes
+and embedded tracks. `SubtitleController` registers all supported tracks and uses
+the same selected-track preparation flow without branching on `origin`. Routes
 compose screens; the common API client and UI controls stay shared.
 
 1. **Scan:** library HTTP → `LibraryApplication.startScan` → `ScanCoordinator`
@@ -323,12 +324,13 @@ Continue watching includes available records with positive position that are not
 `SubtitleApplication` owns both subtitle HTTP use cases, independently of playback
 sessions. Startup injects the resolved `MediaTools` instance. `GET /api/files/:id/subtitles`
 merges same-directory external candidates with FFprobe subtitle-stream descriptors.
-Tracks carry an `origin` discriminator. Embedded descriptors include an opaque ID,
-codec, language/title, default/forced flags, anticipated output format, codec extraction
-support, Web-format support, and an unsupported reason. Their size is unknown (`null`);
-stream indexes and server paths are private. Support flags describe implemented codec
-and format capabilities, not the availability of a prepared asset or a guarantee of
-successful rendering. `mov_text`/`text` anticipate SRT conversion; WebVTT maps to `vtt`.
+The public track shape is shared by both sources: opaque ID, name, language/title,
+format, source version, size, codec, default/forced flags, `supported` and
+`unsupportedReason`. `origin` remains descriptive metadata; the frontend does not
+branch on it. External tracks have a known size, a null codec and false default/forced
+flags. Embedded sizes are unknown (`null`); stream indexes and server paths are
+private. The backend derives `supported` from its codec/format capabilities, not the
+availability of a prepared asset or a guarantee of successful rendering. `mov_text`/`text` anticipate SRT conversion; WebVTT maps to `vtt`.
 Unknown and bitmap codecs remain visible with an unsupported status.
 
 Discovery validates the source/root before and after inspection. Successful probes
@@ -341,15 +343,23 @@ probe queue. FFprobe absence/failure returns safe `SUBTITLE_PROBE_UNAVAILABLE` o
 cached. Application shutdown aborts and awaits the active probe. An explicitly
 external-only application without a tool provider skips embedded inspection.
 
-Embedded discovery does not extract tracks or write assets. The player registers empty
-local placeholder text tracks in Vidstack's CC menu, initially off. Only selecting a
-supported embedded track calls `POST /api/files/:id/subtitles/:trackId/prepare` with
-the discovered video `sourceVersion`; no selectors, paths or conversion flags are
-accepted. The application resolves the opaque track ID against validated probe
-metadata. The existing external content endpoint still accepts sidecar IDs only.
+Discovery does not read subtitle contents, extract tracks or write assets. The player
+registers all supported tracks as empty local placeholders in Vidstack's CC menu,
+initially off. Selecting any track calls
+`POST /api/files/:id/subtitles/:trackId/prepare` with the discovered video
+`sourceVersion` and track `subtitleVersion`; no selectors, paths or conversion flags
+are accepted. `SubtitleApplication` resolves the opaque ID and chooses the source
+implementation. External preparation checks both versions and validates readable,
+bounded, decodable text, then returns `200 ready` with the version-checked original
+content URL and `statusUrl: null`. It creates no asset row or cache copy and works
+without the extraction service. Missing or stale external track versions are rejected.
+For compatibility, older embedded-only requests may omit `subtitleVersion`.
+The external content endpoint still accepts sidecar IDs only and rechecks versions
+when Vidstack loads the ready URL.
 
-Preparation returns `202 pending` with a status URL, or `200 ready` with a content
-URL for a reusable asset. `GET /api/subtitle-assets/:id/status` returns
+Embedded preparation returns `202 pending` with a status URL, or `200 ready` with a
+content URL for a reusable asset. The frontend polls the supplied status URL only
+while pending and handles both sources through the same controller. `GET /api/subtitle-assets/:id/status` returns
 `pending | ready | failed` and a safe error code. Failed attempts can be retried
 through the same prepare request. `GET /api/subtitle-assets/:id` serves UTF-8 text
 only for registered, ready assets whose source/root and bounded regular file are
@@ -370,8 +380,8 @@ shared generated-media budget in Section 2 remains a future configuration featur
 
 Startup removes orphan/partial files, fails interrupted pending work and invalidates
 missing or replaced ready files. Valid ready assets survive restart and are reused.
-Cache/database initialization failure disables preparation while preserving direct
-playback and external subtitles. Shutdown aborts and awaits extraction before the
+Cache/database initialization failure disables embedded preparation while preserving
+direct playback and external preparation/delivery. Shutdown aborts and awaits extraction before the
 database closes. Cancelling frontend waiting does not cancel reusable server work.
 The player polls only its selected pending track, displays preparing/failure/retry
 feedback through Toast notifications, replaces the selected placeholder with the ready content URL, and ignores
@@ -383,7 +393,7 @@ removed/restored the overlay. Real MKV/SubRip preparation is also covered by an 
 integration test. This does not certify embedded fonts or every subtitle sample. Embedded fonts and bitmap extraction
 remain planned; bitmap tracks are discoverable but cannot be selected for Web rendering.
 
-Same-directory external subtitle discovery is implemented through `GET /api/files/:id/subtitles`, independently of library scans and playback-session persistence. Version-checked text delivery and player selection/off are implemented for direct playback through registered Vidstack text tracks and its built-in CC button / Captions menu. Retry file rebuilds the player and refreshes discovery; the current UI has no separate subtitle controls or feedback panel. `<Track src>` lets Vidstack load, parse and render VTT/SRT from version-checked text URLs. A JASSUB 2.5.16 adapter is registered with Vidstack's `TextRenderer` interface for ASS/SSA; Vidstack owns renderer selection and lifecycle. Worker/WASM and the fallback font are bundled. Custom/embedded font loading remains planned. Parsing a format does not guarantee typography or effects. Package worker/WASM assets with the application and validate pinned versions. The supported V2 matrix is explicit:
+Same-directory external subtitle discovery is implemented through `GET /api/files/:id/subtitles`, independently of library scans and playback-session persistence. Version-checked text delivery and player selection/off are implemented for direct playback through registered Vidstack text tracks and its built-in CC button / Captions menu. Retry file rebuilds the player and refreshes discovery; the current UI has no separate subtitle controls or feedback panel. The unified `SubtitleController` replaces selected placeholders with ready URL-backed Vidstack `TextTrack` instances, letting Vidstack load, parse and render VTT/SRT. A JASSUB 2.5.16 adapter is registered with Vidstack's `TextRenderer` interface for ASS/SSA; Vidstack owns renderer selection and lifecycle. Worker/WASM and the fallback font are bundled. Custom/embedded font loading remains planned. Parsing a format does not guarantee typography or effects. Package worker/WASM assets with the application and validate pinned versions. The supported V2 matrix is explicit:
 
 | Input | Discovery / extraction | Browser rendering |
 | --- | --- | --- |
@@ -470,7 +480,7 @@ Keep all existing V1 endpoints and their response shapes unless explicitly exten
 | `GET /api/history?view=continue\|recent` | V2 | Ordered availability-aware viewing entries |
 | `POST /api/files/:id/playback-sessions` | V2 | Read history and issue a generation; fail closed for saving on store error |
 | `PUT /api/playback-sessions/:id/progress` | V2 | Ordered, durable, idempotent update |
-| `POST /api/files/:id/subtitles/:trackId/prepare` | V2 implemented, text only | Version-bound selected embedded text extraction; reuse ready/pending asset or retry failure |
+| `POST /api/files/:id/subtitles/:trackId/prepare` | V2 implemented, text only | Unified selected-track preparation: ready original external URL or reusable pending/ready embedded text asset |
 | `GET /api/subtitle-assets/:id/status` | V2 implemented | Pending/ready/failed subtitle feedback |
 | `GET /api/subtitle-assets/:id` | V2 implemented | Validated VTT/SRT/ASS/SSA or declared extracted format only when ready |
 | `POST /api/files/:id/preparations` | V2 | Original result `200`, or deduplicated job `202` |
@@ -962,7 +972,8 @@ invalidate old work, pending files publish atomically, and persisted asset rows
 support restart reuse. Probe and extraction slots are separate and deduplicated;
 cache-budget checks/publication serialize to prevent oversubscription.
 
-Vidstack Track declarations and its CC menu own subtitle selection. ASS/SSA uses
+Vidstack text tracks and its CC menu own subtitle selection. One `SubtitleController`
+handles preparation, switching, off, cancellation and retry for both subtitle origins. ASS/SSA uses
 a TextRenderer adapter for the pinned JASSUB API, packaged worker/WASM and a
 Liberation Sans fallback. Selection/off, retries and unmount dispose pending loads,
 tracks and overlays. Missing CJK glyphs remain possible without embedded fonts.

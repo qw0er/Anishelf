@@ -15,36 +15,27 @@ export const SubtitleDiscoveryResponseSchema = Type.Object(
 	{
 		sourceVersion: SourceVersionSchema,
 		tracks: Type.Array(
-			Type.Union([
-				Type.Object(
-					{
-						...subtitleFields,
-						origin: Type.Literal("external"),
-						format: SubtitleFormatSchema,
-						sizeBytes: NonnegativeIntegerSchema,
-					},
-					{ additionalProperties: false },
-				),
-				Type.Object(
-					{
-						...subtitleFields,
-						origin: Type.Literal("embedded"),
-						format: Type.Union([SubtitleFormatSchema, Type.Null()]),
-						sizeBytes: Type.Null(),
-						codec: Type.Union([Type.String(), Type.Null()]),
-						default: Type.Boolean(),
-						forced: Type.Boolean(),
-						extractionSupported: Type.Boolean(),
-						webSupported: Type.Boolean(),
-						unsupportedReason: Type.Union([
-							Type.Literal("UNSUPPORTED_CODEC"),
-							Type.Literal("UNSUPPORTED_FORMAT"),
-							Type.Null(),
-						]),
-					},
-					{ additionalProperties: false },
-				),
-			]),
+			Type.Object(
+				{
+					...subtitleFields,
+					origin: Type.Union([
+						Type.Literal("external"),
+						Type.Literal("embedded"),
+					]),
+					format: Type.Union([SubtitleFormatSchema, Type.Null()]),
+					sizeBytes: Type.Union([NonnegativeIntegerSchema, Type.Null()]),
+					codec: Type.Union([Type.String(), Type.Null()]),
+					default: Type.Boolean(),
+					forced: Type.Boolean(),
+					supported: Type.Boolean(),
+					unsupportedReason: Type.Union([
+						Type.Literal("UNSUPPORTED_CODEC"),
+						Type.Literal("UNSUPPORTED_FORMAT"),
+						Type.Null(),
+					]),
+				},
+				{ additionalProperties: false },
+			),
 		),
 		warnings: Type.Array(
 			Type.Object(
@@ -77,7 +68,10 @@ export const SubtitleContentQuerySchema = Type.Object(
 );
 
 export const PrepareSubtitleRequestSchema = Type.Object(
-	{ sourceVersion: SourceVersionSchema },
+	{
+		sourceVersion: SourceVersionSchema,
+		subtitleVersion: Type.Optional(SourceVersionSchema),
+	},
 	{ additionalProperties: false },
 );
 export const SubtitleAssetParamsSchema = Type.Object(
@@ -102,7 +96,7 @@ export const SubtitlePreparationResponseSchema = Type.Object(
 			Type.Literal("PLAYBACK_CONFLICT"),
 			Type.Literal("SUBTITLE_INTERRUPTED"),
 		]),
-		statusUrl: Type.String(),
+		statusUrl: Type.Union([Type.String(), Type.Null()]),
 		contentUrl: Type.Union([Type.String(), Type.Null()]),
 	},
 	{ additionalProperties: false },

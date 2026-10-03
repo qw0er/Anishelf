@@ -400,20 +400,18 @@ test("merges external and embedded tracks without exposing selectors or loading 
 		default: true,
 		forced: true,
 		sizeBytes: null,
-		extractionSupported: true,
-		webSupported: true,
+		supported: true,
 		unsupportedReason: null,
 	});
 	expect(result.tracks[2]).toMatchObject({
 		codec: "mov_text",
 		format: "srt",
-		extractionSupported: true,
+		supported: true,
 	});
 	expect(result.tracks[3]).toMatchObject({
 		codec: "hdmv_pgs_subtitle",
 		format: null,
-		webSupported: false,
-		extractionSupported: false,
+		supported: false,
 		unsupportedReason: "UNSUPPORTED_CODEC",
 	});
 	expect(result.tracks[4]?.format).toBe("vtt");
@@ -524,8 +522,7 @@ test("discovers real embedded MKV subtitles through the HTTP application", async
 		format: "srt",
 		language: "eng",
 		name: "English",
-		extractionSupported: true,
-		webSupported: true,
+		supported: true,
 	});
 });
 
@@ -586,4 +583,71 @@ test("embedded descriptors cannot be read through the external content endpoint"
 		headers,
 	});
 	expect(response.statusCode).toBe(404);
+});
+
+async function prepareExternal(discovery: SubtitleDiscoveryResponse) {
+	const track = discovery.tracks[0];
+	if (!track) throw new Error("Missing track");
+	return app.inject({
+		method: "POST",
+		url: `/api/files/${fileId}/subtitles/${track.id}/prepare`,
+		headers: { ...headers, origin: "http://127.0.0.1:3000" },
+		payload: {
+			sourceVersion: discovery.sourceVersion,
+			subtitleVersion: track.sourceVersion,
+		},
+	});
+}
+
+test.each(["srt", "vtt", "ass", "ssa"])(
+	"prepares external %s through the common interface without an extractor or cache registry",
+	async (format) => {
+		await sidecar(`.${format}`, "original subtitle");
+		probe.mockRejectedValue(
+			new MediaToolError("TOOL_UNAVAILABLE", "Unavailable"),
+		);
+		const discovery = await discover();
+		expect(discovery.tracks[0]).toMatchObject({
+			supported: true,
+			unsupportedReason: null,
+		});
+		const response = await prepareExternal(discovery);
+		expect(response.statusCode).toBe(200);
+		const result = response.json();
+		expect(result).toMatchObject({
+			status: "ready",
+			format,
+			statusUrl: null,
+			errorCode: null,
+		});
+		expect(response.body).not.toContain(fixture);
+		const content = await app.inject({ url: result.contentUrl, headers });
+		expect(content.statusCode).toBe(200);
+		expect(content.body).toBe("original subtitle");
+	},
+);
+
+test("external preparation rejects replaced, missing and stale-video tracks", async () => {
+	await sidecar(".srt", "original");
+	const discovery = await discover();
+	await sidecar(".srt", "changed subtitle");
+	const replaced = await prepareExternal(discovery);
+	expect(replaced.statusCode).toBe(409);
+	expect(replaced.json().error.code).toBe("PLAYBACK_CONFLICT");
+	await rm(join(root, "season", `${video}.srt`));
+	expect((await prepareExternal(discovery)).statusCode).toBe(404);
+	await sidecar(".srt", "original");
+	const fresh = await discover();
+	await writeFile(join(root, "season", `${video}.mkv`), "changed video");
+	expect((await prepareExternal(fresh)).statusCode).toBe(409);
+});
+
+test("external ready URLs retain version checks after preparation", async () => {
+	await sidecar(".srt", "original");
+	const response = await prepareExternal(await discover());
+	const result = response.json();
+	await sidecar(".srt", "changed subtitle");
+	const content = await app.inject({ url: result.contentUrl, headers });
+	expect(content.statusCode).toBe(409);
+	expect(content.json().error.code).toBe("PLAYBACK_CONFLICT");
 });

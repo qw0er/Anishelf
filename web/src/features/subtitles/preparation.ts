@@ -22,14 +22,22 @@ export async function prepareSelectedSubtitle(
 	fileId: string,
 	trackId: string,
 	sourceVersion: string,
+	subtitleVersion: string,
 	signal: AbortSignal,
 ): Promise<SubtitlePreparationResponse> {
-	let result = await prepareSubtitle(fileId, trackId, sourceVersion, {
-		signal,
-	});
+	let result = await prepareSubtitle(
+		fileId,
+		trackId,
+		sourceVersion,
+		subtitleVersion,
+		{
+			signal,
+		},
+	);
 	while (result.status === "pending") {
+		if (!result.statusUrl) throw new Error("SUBTITLE_EXTRACTION_FAILED");
 		await wait(signal);
-		result = await getSubtitlePreparation(result.id, { signal });
+		result = await getSubtitlePreparation(result.statusUrl, { signal });
 	}
 	if (result.status === "failed")
 		throw new Error(result.errorCode ?? "SUBTITLE_EXTRACTION_FAILED");

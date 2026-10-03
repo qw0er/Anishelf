@@ -16,7 +16,7 @@ Its core value is better Web playback, shared client state, and coordination bet
 
 This document is the complete product requirements inventory, including delivered features, the active iteration, and unassigned future capabilities. The [current release scope and acceptance](#current-release-scope-and-acceptance) below is the living release plan, currently for V2. Requirements remain in this inventory when selected for a release; update the inventory and active release sections together rather than moving or deleting requirements.
 
-**Latest completed version: V1. Active version: V2, in progress.** V1 completion and manual browser acceptance are user-reported. The direct-playback Vidstack adapter and saved progress are implemented; external subtitle discovery, delivery and rendering are implemented, while embedded subtitle integration, preparation, and the remaining V2 workflows are planned. Replacing the player controls does not complete V2 acceptance.
+**Latest completed version: V1. Active version: V2, in progress.** V1 completion and manual browser acceptance are user-reported. The direct-playback Vidstack adapter and saved progress are implemented; external subtitle discovery, delivery and rendering, plus embedded text-subtitle discovery and selected-track preparation/delivery, are implemented. Both subtitle origins use one backend preparation contract and one frontend selection flow; embedded fonts, bitmap extraction and the remaining V2 workflows are unfinished. Replacing the player controls does not complete V2 acceptance.
 
 ## 2. Feature Inventory and Version Tracking
 
@@ -289,7 +289,10 @@ The FFmpeg/FFprobe utility layer supports media inspection and selected text-sub
 extraction. `SubtitleApplication` integrates embedded-track discovery into the subtitle
 list API with codec/support metadata and nonfatal probe warnings. Selected embedded
 text-track extraction, persisted assets, restart reuse, version-checked delivery and
-CC-menu preparation/retry are implemented. Embedded fonts, bitmap extraction,
+CC-menu preparation/retry are implemented. External and embedded tracks now share
+a public descriptor and selected-track preparation contract; the backend returns
+a ready original URL for external subtitles or prepares/reuses an embedded asset.
+The frontend uses one controller without source-specific branches. Embedded fonts, bitmap extraction,
 playback preparation, and the other
 unfinished requirements below remain part of the current V2 scope.
 

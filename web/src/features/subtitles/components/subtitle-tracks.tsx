@@ -1,12 +1,10 @@
-import { Track, useMediaPlayer } from "@vidstack/react";
+import { useMediaPlayer } from "@vidstack/react";
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { subtitleContentUrl } from "../../../api/client.js";
-import type { SubtitleDiscoveryResponse } from "../../../api/contracts.js";
 import { toast } from "../../../components/ui/toast.js";
 import { interactionPolicy } from "../../../config/interaction-policy.js";
 import type { SubtitlePolicy } from "../../../config/media-policy.js";
-import { EmbeddedSubtitleController } from "../embedded.js";
+import { SubtitleController } from "../controller.js";
 import { useSubtitleDiscovery } from "../hooks/use-subtitle-discovery.js";
 import { prepareSelectedSubtitle } from "../preparation.js";
 import { StyledSubtitleRenderer } from "../renderer.js";
@@ -36,26 +34,20 @@ export function SubtitleTracks({
 	const discovery = useSubtitleDiscovery(fileId);
 	const { t } = useTranslation();
 
-	const embedded = useRef<EmbeddedSubtitleController | null>(null);
+	const controllerRef = useRef<SubtitleController | null>(null);
 	useEffect(() => {
 		const notificationId = `subtitle-preparation:${fileId}`;
 		toast.close(notificationId);
 		if (!player || !discovery) return;
-		const controller = new EmbeddedSubtitleController(
+		const controller = new SubtitleController(
 			player.textTracks,
-			discovery.tracks.filter(
-				(
-					track,
-				): track is Extract<
-					SubtitleDiscoveryResponse["tracks"][number],
-					{ origin: "embedded" }
-				> => track.origin === "embedded",
-			),
-			(trackId, signal) =>
+			discovery.tracks,
+			(trackId, signal, subtitleVersion) =>
 				prepareSelectedSubtitle(
 					fileId,
 					trackId,
 					discovery.sourceVersion,
+					subtitleVersion,
 					signal,
 				),
 			(feedback) => {
@@ -78,17 +70,17 @@ export function SubtitleTracks({
 						}),
 						actionProps: {
 							children: t("subtitles.retry"),
-							onClick: () => embedded.current?.retry(),
+							onClick: () => controllerRef.current?.retry(),
 						},
 					}),
 				});
 			},
 		);
-		embedded.current = controller;
+		controllerRef.current = controller;
 		return () => {
 			controller.dispose();
 			toast.close(notificationId);
-			embedded.current = null;
+			controllerRef.current = null;
 		};
 	}, [player, discovery, fileId, t]);
 	useEffect(() => {
@@ -99,35 +91,5 @@ export function SubtitleTracks({
 			player.textRenderers.remove(renderer);
 		};
 	}, [player, stablePolicy]);
-	return (
-		<>
-			{discovery?.tracks
-				.filter(
-					(
-						descriptor,
-					): descriptor is Extract<
-						SubtitleDiscoveryResponse["tracks"][number],
-						{ origin: "external" }
-					> =>
-						descriptor.origin === "external" &&
-						policy.formats.includes(descriptor.format),
-				)
-				.map((descriptor) => (
-					<Track
-						key={descriptor.id}
-						id={descriptor.id}
-						src={subtitleContentUrl(
-							fileId,
-							descriptor.id,
-							discovery.sourceVersion,
-							descriptor.sourceVersion,
-						)}
-						label={`${descriptor.name}${descriptor.language ? ` · ${descriptor.language}` : ""} · ${descriptor.format.toUpperCase()}`}
-						lang={descriptor.language ?? ""}
-						kind="subtitles"
-						type={descriptor.format}
-					/>
-				))}
-		</>
-	);
+	return null;
 }

@@ -1,18 +1,15 @@
 // @vitest-environment happy-dom
-import { TextTrack, TextTrackList } from "@vidstack/react";
+import { type TextTrack, TextTrackList } from "@vidstack/react";
 import { afterEach, expect, test, vi } from "vitest";
 import type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
 } from "../src/api/contracts.js";
-import { EmbeddedSubtitleController } from "../src/features/subtitles/embedded.js";
+import { SubtitleController } from "../src/features/subtitles/controller.js";
 import { prepareSelectedSubtitle } from "../src/features/subtitles/preparation.js";
 
-type Embedded = Extract<
-	SubtitleDiscoveryResponse["tracks"][number],
-	{ origin: "embedded" }
->;
-const descriptor = (id: string): Embedded => ({
+type SubtitleTrack = SubtitleDiscoveryResponse["tracks"][number];
+const descriptor = (id: string): SubtitleTrack => ({
 	id,
 	origin: "embedded",
 	name: id,
@@ -24,8 +21,7 @@ const descriptor = (id: string): Embedded => ({
 	codec: "subrip",
 	default: true,
 	forced: false,
-	extractionSupported: true,
-	webSupported: true,
+	supported: true,
 	unsupportedReason: null,
 });
 const ready: SubtitlePreparationResponse = {
@@ -50,7 +46,7 @@ test("registers CC options without preparation, then replaces only the selected 
 	const tracks = new TextTrackList();
 	const prepare = vi.fn().mockResolvedValue(ready);
 	const feedback = vi.fn();
-	const controller = new EmbeddedSubtitleController(
+	const controller = new SubtitleController(
 		tracks,
 		[descriptor("first"), descriptor("second")],
 		prepare,
@@ -73,32 +69,48 @@ test("registers CC options without preparation, then replaces only the selected 
 	expect(tracks.length).toBe(0);
 });
 
-test("switching to external subtitles aborts preparation and ignores its late result", async () => {
+test("switching between unified external and embedded choices cancels stale preparation", async () => {
 	const tracks = new TextTrackList();
 	let complete!: (value: SubtitlePreparationResponse) => void;
-	const prepare = vi.fn(
-		(_id: string, _signal: AbortSignal) =>
-			new Promise<SubtitlePreparationResponse>((resolve) => {
-				complete = resolve;
-			}),
-	);
-	const controller = new EmbeddedSubtitleController(
+	const prepare = vi
+		.fn()
+		.mockImplementationOnce(
+			() =>
+				new Promise<SubtitlePreparationResponse>((resolve) => {
+					complete = resolve;
+				}),
+		)
+		.mockResolvedValueOnce({
+			...ready,
+			id: "external",
+			statusUrl: null,
+			contentUrl: "/external/content",
+		});
+	const controller = new SubtitleController(
 		tracks,
-		[descriptor("first")],
+		[
+			descriptor("first"),
+			{
+				...descriptor("external"),
+				origin: "external",
+				codec: null,
+				default: false,
+				sizeBytes: 12,
+				sourceVersion: "external-version",
+			},
+		],
 		prepare,
 		vi.fn(),
 	);
-	const external = new TextTrack({
-		id: "external",
-		kind: "subtitles",
-		content: { cues: [] },
-		type: "json",
-	});
-	tracks.add(external);
+	expect(prepare).not.toHaveBeenCalled();
 	getTrack(tracks, "first").mode = "showing";
-	const signal = prepare.mock.calls[0]?.[1];
-	external.mode = "showing";
-	expect(signal?.aborted).toBe(true);
+	const signal = prepare.mock.calls[0]?.[1] as AbortSignal;
+	getTrack(tracks, "external").mode = "showing";
+	expect(signal.aborted).toBe(true);
+	await vi.waitFor(() =>
+		expect(tracks.selected?.src).toBe("/external/content"),
+	);
+	expect(prepare.mock.calls[1]?.[2]).toBe("external-version");
 	complete(ready);
 	await Promise.resolve();
 	expect(tracks.selected?.id).toBe("external");
@@ -113,7 +125,7 @@ test("failure keeps the choice retryable and disposing aborts the new request", 
 		.mockRejectedValueOnce(new Error("SUBTITLE_TOOL_UNAVAILABLE"))
 		.mockImplementationOnce(() => new Promise(() => {}));
 	const feedback = vi.fn();
-	const controller = new EmbeddedSubtitleController(
+	const controller = new SubtitleController(
 		tracks,
 		[descriptor("first")],
 		prepare,
@@ -137,13 +149,12 @@ test("failure keeps the choice retryable and disposing aborts the new request", 
 test("unsupported bitmap descriptors never trigger preparation", () => {
 	const tracks = new TextTrackList();
 	const prepare = vi.fn();
-	const controller = new EmbeddedSubtitleController(
+	const controller = new SubtitleController(
 		tracks,
 		[
 			{
 				...descriptor("bitmap"),
-				webSupported: false,
-				extractionSupported: false,
+				supported: false,
 				format: null,
 			},
 		],
@@ -172,6 +183,7 @@ test("preparation client sends a version-bound POST and polls pending status", a
 		"file 1",
 		"track 2",
 		"v1",
+		"v1",
 		new AbortController().signal,
 	);
 	expect(result).toEqual(ready);
@@ -180,7 +192,35 @@ test("preparation client sends a version-bound POST and polls pending status", a
 	);
 	expect(fetcher.mock.calls[0]?.[1]).toMatchObject({
 		method: "POST",
-		body: JSON.stringify({ sourceVersion: "v1" }),
+		body: JSON.stringify({ sourceVersion: "v1", subtitleVersion: "v1" }),
 	});
 	expect(fetcher.mock.calls[1]?.[0]).toBe(ready.statusUrl);
+});
+
+test("external ready preparation completes without polling", async () => {
+	const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+		new Response(
+			JSON.stringify({
+				...ready,
+				statusUrl: null,
+				contentUrl: "/external/content",
+			}),
+		),
+	);
+	vi.stubGlobal("fetch", fetcher);
+	const result = await prepareSelectedSubtitle(
+		"file",
+		"external",
+		"video-version",
+		"subtitle-version",
+		new AbortController().signal,
+	);
+	expect(result.contentUrl).toBe("/external/content");
+	expect(fetcher).toHaveBeenCalledTimes(1);
+	expect(fetcher.mock.calls[0]?.[1]?.body).toBe(
+		JSON.stringify({
+			sourceVersion: "video-version",
+			subtitleVersion: "subtitle-version",
+		}),
+	);
 });

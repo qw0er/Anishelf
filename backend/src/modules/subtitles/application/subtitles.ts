@@ -18,7 +18,10 @@ import type {
 	ResourceAccess,
 } from "../../media-source/public.js";
 import { defaultSubtitleName, subtitleTrackId } from "../domain/identity.js";
-import type { SubtitleDiscovery } from "../domain/model.js";
+import type {
+	SubtitleDiscovery,
+	SubtitlePreparationResult,
+} from "../domain/model.js";
 import { readSubtitleText } from "../infrastructure/content.js";
 import { discoverExternalSubtitles } from "../infrastructure/discovery.js";
 import type { SubtitleRepository } from "../infrastructure/repository.js";
@@ -267,12 +270,12 @@ export class SubtitleApplication {
 		fileId: string,
 		trackId: string,
 		sourceVersion: string,
-	) {
+		subtitleVersion?: string,
+	): Promise<SubtitlePreparationResult> {
 		this.logger?.debug(
 			{ event: "subtitles.prepare_requested", fileId, trackId },
 			"Subtitle preparation requested.",
 		);
-		const preparation = this.preparationService();
 		const source = await this.sources.resolveSource(fileId);
 		if (source.identity.sourceVersion !== sourceVersion)
 			throw new DomainError("PLAYBACK_CONFLICT", "The video changed.");
@@ -280,11 +283,33 @@ export class SubtitleApplication {
 		if (discovery.sourceVersion !== sourceVersion)
 			throw new DomainError("PLAYBACK_CONFLICT", "The video changed.");
 		const track = discovery.tracks.find((track) => track.id === trackId);
-		if (track?.origin !== "embedded")
-			throw new DomainError(
-				"RESOURCE_NOT_FOUND",
-				"Unknown embedded subtitle track.",
+		if (!track)
+			throw new DomainError("RESOURCE_NOT_FOUND", "Unknown subtitle track.");
+		if (track.origin === "external") {
+			if (track.sourceVersion !== subtitleVersion)
+				throw new DomainError(
+					"PLAYBACK_CONFLICT",
+					"The subtitle changed. Refresh the subtitle list.",
+				);
+			await this.getSubtitleContent(
+				fileId,
+				trackId,
+				sourceVersion,
+				subtitleVersion,
 			);
+			return {
+				id: trackId,
+				status: "ready",
+				format: track.format,
+				errorCode: null,
+				external: { fileId, trackId, sourceVersion, subtitleVersion },
+			};
+		}
+		if (
+			subtitleVersion !== undefined &&
+			track.sourceVersion !== subtitleVersion
+		)
+			throw new DomainError("PLAYBACK_CONFLICT", "The subtitle changed.");
 		if (!track.extractionSupported || !track.webSupported || !track.format)
 			throw new DomainError(
 				"SUBTITLE_UNSUPPORTED",
@@ -306,7 +331,7 @@ export class SubtitleApplication {
 				"SUBTITLE_PREPARATION_BUSY",
 				"Subtitle inspection is unavailable. Retry.",
 			);
-		return preparation.prepare(
+		return this.preparationService().prepare(
 			source,
 			trackId,
 			stream.index,

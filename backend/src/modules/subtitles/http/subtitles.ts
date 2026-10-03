@@ -71,6 +71,7 @@ export function registerSubtitleRoutes(
 				request.params.id,
 				request.params.trackId,
 				request.body.sourceVersion,
+				request.body.subtitleVersion,
 			);
 			reply.header("Cache-Control", "no-store");
 			reply.code(result.status === "pending" ? 202 : 200);

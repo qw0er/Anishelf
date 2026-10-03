@@ -237,37 +237,23 @@ export function getSubtitles(
 		options,
 	);
 }
-/** Same-origin, version-checked text URL consumed directly by Vidstack. */
-export function subtitleContentUrl(
-	id: ResourceId,
-	trackId: string,
-	sourceVersion: string,
-	subtitleVersion: string,
-): string {
-	const query = new URLSearchParams({ sourceVersion, subtitleVersion });
-	return `/api/files/${encodeURIComponent(id)}/subtitles/${encodeURIComponent(trackId)}/content?${query}`;
-}
-
 export function prepareSubtitle(
 	fileId: string,
 	trackId: string,
 	sourceVersion: string,
+	subtitleVersion: string,
 	options?: RequestOptions,
 ): Promise<SubtitlePreparationResponse> {
 	return request(
 		`/api/files/${encodeURIComponent(fileId)}/subtitles/${encodeURIComponent(trackId)}/prepare`,
 		"POST",
 		options,
-		{ sourceVersion },
+		{ sourceVersion, subtitleVersion },
 	);
 }
 export function getSubtitlePreparation(
-	id: string,
+	statusUrl: string,
 	options?: RequestOptions,
 ): Promise<SubtitlePreparationResponse> {
-	return request(
-		`/api/subtitle-assets/${encodeURIComponent(id)}/status`,
-		"GET",
-		options,
-	);
+	return request(statusUrl, "GET", options);
 }

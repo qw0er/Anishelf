@@ -4,10 +4,7 @@ import type {
 	SubtitlePreparationResponse,
 } from "../../api/contracts.js";
 
-type EmbeddedTrack = Extract<
-	SubtitleDiscoveryResponse["tracks"][number],
-	{ origin: "embedded" }
->;
+type SubtitleTrack = SubtitleDiscoveryResponse["tracks"][number];
 export type PreparationFeedback = {
 	status: "preparing" | "failed";
 	name: string;
@@ -15,9 +12,9 @@ export type PreparationFeedback = {
 } | null;
 
 /** Empty local tracks expose CC choices without making preparation requests. */
-export class EmbeddedSubtitleController {
+export class SubtitleController {
 	private readonly registered = new Map<string, TextTrack>();
-	private readonly descriptors = new Map<string, EmbeddedTrack>();
+	private readonly descriptors = new Map<string, SubtitleTrack>();
 	private readonly ready = new Set<string>();
 	private request: AbortController | null = null;
 	private selectedId: string | null = null;
@@ -27,14 +24,16 @@ export class EmbeddedSubtitleController {
 	private readonly prepare: (
 		trackId: string,
 		signal: AbortSignal,
+		subtitleVersion: string,
 	) => Promise<SubtitlePreparationResponse>;
 	private readonly feedback: (value: PreparationFeedback) => void;
 	constructor(
 		tracks: TextTrackList,
-		descriptors: EmbeddedTrack[],
+		descriptors: SubtitleTrack[],
 		prepare: (
 			trackId: string,
 			signal: AbortSignal,
+			subtitleVersion: string,
 		) => Promise<SubtitlePreparationResponse>,
 		feedback: (value: PreparationFeedback) => void,
 	) {
@@ -42,12 +41,7 @@ export class EmbeddedSubtitleController {
 		this.prepare = prepare;
 		this.feedback = feedback;
 		for (const descriptor of descriptors) {
-			if (
-				!descriptor.webSupported ||
-				!descriptor.extractionSupported ||
-				!descriptor.format
-			)
-				continue;
+			if (!descriptor.supported || !descriptor.format) continue;
 			const track = new TextTrack({
 				id: descriptor.id,
 				label: `${descriptor.name}${descriptor.language ? ` · ${descriptor.language}` : ""} · ${descriptor.format.toUpperCase()}`,
@@ -82,7 +76,11 @@ export class EmbeddedSubtitleController {
 		this.request = request;
 		this.feedback({ status: "preparing", name: descriptor.name });
 		try {
-			const result = await this.prepare(id, request.signal);
+			const result = await this.prepare(
+				id,
+				request.signal,
+				descriptor.sourceVersion,
+			);
 			if (request.signal.aborted || this.disposed || this.selectedId !== id)
 				return;
 			if (result.status !== "ready" || !result.contentUrl)

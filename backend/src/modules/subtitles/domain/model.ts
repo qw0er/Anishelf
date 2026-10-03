@@ -93,3 +93,20 @@ export interface SubtitlePreparation {
 	format: ExternalSubtitleFormat;
 	errorCode: SubtitlePreparationError | null;
 }
+
+/** External tracks are ready references to originals, without registered cache assets. */
+export interface ExternalSubtitlePreparation {
+	id: string;
+	status: "ready";
+	format: ExternalSubtitleFormat;
+	errorCode: null;
+	external: {
+		fileId: string;
+		trackId: string;
+		sourceVersion: string;
+		subtitleVersion: string;
+	};
+}
+export type SubtitlePreparationResult =
+	| SubtitlePreparation
+	| ExternalSubtitlePreparation;

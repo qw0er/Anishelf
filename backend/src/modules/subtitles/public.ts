@@ -1,4 +1,7 @@
-export type { SubtitleDiscovery, SubtitlePreparation } from "./domain/model.js";
+export type {
+	SubtitleDiscovery,
+	SubtitlePreparationResult,
+} from "./domain/model.js";
 
 import type { SubtitleApplication } from "./application/subtitles.js";
 export type SubtitleApi = Pick<
