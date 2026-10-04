@@ -7,6 +7,7 @@ import { buttonStyles } from "../../../components/ui/button.js";
 import { Card, CardContent } from "../../../components/ui/card.js";
 import { directoryPath, filePath } from "../../../routes/paths.js";
 import { MediaLink } from "../../playback/public.js";
+import { formatFileSize } from "../format-file-size.js";
 import LibraryScan from "./library-scan.js";
 
 export default function LibraryBrowser({
@@ -16,7 +17,7 @@ export default function LibraryBrowser({
 	listing: DirectoryResponse;
 	scan: LibraryContext;
 }) {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
 	const parentId = listing.directory.parentId;
 	const setupRequired = scan.settings?.resourceRoot === null;
 	return (
@@ -78,9 +79,7 @@ export default function LibraryBrowser({
 												</span>
 												{entry.kind === "file" && (
 													<span className="col-start-2 text-sm tabular-nums sm:col-start-3 text-muted-foreground">
-														{t("library.bytes", {
-															count: entry.sizeBytes,
-														})}
+														{formatFileSize(entry.sizeBytes, i18n.language)}
 													</span>
 												)}
 											</Link>

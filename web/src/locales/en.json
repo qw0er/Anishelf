@@ -66,8 +66,7 @@
 	"library": {
 		"filesLabel": "Library files",
 		"directoryTitle": "Directory: {{name}}",
-		"emptyDirectory": "This directory is empty. Scan the library to discover video files.",
-		"bytes": "{{count}} bytes"
+		"emptyDirectory": "This directory is empty. Scan the library to discover video files."
 	},
 	"scan": {
 		"title": "Library scan",
