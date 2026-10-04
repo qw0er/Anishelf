@@ -1,4 +1,12 @@
 export type {
+	ExecutionCapabilityCheck,
+	ExecutionCapabilityRequirement,
+} from "./execution-capabilities.js";
+export {
+	checkExecutionCapabilities,
+	MediaExecutionCapabilityError,
+} from "./execution-capabilities.js";
+export type {
 	ExtractedSubtitle,
 	HdrSideData,
 	MediaContainer,
@@ -13,5 +21,14 @@ export type {
 export type { MediaToolPolicy } from "./policy.js";
 export { mediaToolPolicy, validateMediaToolPolicy } from "./policy.js";
 export { MediaToolError } from "./process.js";
+export type {
+	MediaProcessHandle,
+	MediaProcessOptions,
+} from "./processing-process.js";
+export {
+	MediaProcessError,
+	parseExecutionProgress,
+	startMediaProcess,
+} from "./processing-process.js";
 export type { MediaToolsPolicy } from "./tools.js";
 export { MediaTools } from "./tools.js";

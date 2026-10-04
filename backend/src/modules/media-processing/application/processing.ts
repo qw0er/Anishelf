@@ -7,6 +7,8 @@ import type {
 	MediaTools,
 } from "../../../platform/media/index.js";
 import { MediaToolError } from "../../../platform/media/index.js";
+import type { MediaProcessEvent } from "../../../shared/media-execution.js";
+import type { MediaProcessingPlan } from "../../../shared/media-processing.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import type { MediaInspectionApi } from "../../media-inspection/public.js";
 import type { ResourceAccessApi } from "../../resource-access/public.js";
@@ -30,6 +32,34 @@ export interface MediaProcessingRequest {
 	videoStreamIndex?: number;
 	audioStreamIndex?: number | null;
 	signal?: AbortSignal;
+}
+
+export interface MediaExecutionRequest {
+	fileId: string;
+	sourceVersion: string;
+	plan: DeepReadonly<MediaProcessingPlan>;
+	videoStreamIndex: number;
+	audioStreamIndex: number | null;
+	signal?: AbortSignal;
+	onEvent?: (event: MediaExecutionEvent) => void;
+}
+export type MediaExecutionState =
+	| "checking"
+	| "starting"
+	| "running"
+	| "validating"
+	| "ready"
+	| "failed"
+	| "cancelled";
+export type MediaExecutionEvent =
+	| MediaProcessEvent
+	| { type: "state"; state: MediaExecutionState };
+export interface MediaExecutionHandle {
+	readonly id: string;
+	readonly state: MediaExecutionState;
+	readonly completion: Promise<ProcessedMedia>;
+	/** Resolves after execution and cleanup finish. A completed result remains owned until release. */
+	stop(): Promise<void>;
 }
 
 /** Backend-owned temporary output. release(id) removes it; this is not an HTTP DTO. */
@@ -105,23 +135,121 @@ export class MediaProcessingApplication {
 		this.files = new MediaProcessingFiles(options.dataDir);
 	}
 	process(request: MediaProcessingRequest): Promise<ProcessedMedia> {
+		try {
+			return this.launch({ ...request }).completion;
+		} catch (error) {
+			return Promise.reject(error);
+		}
+	}
+	start(request: MediaExecutionRequest): MediaExecutionHandle {
+		const plan = freeze(structuredClone(request.plan));
+		validateMediaProcessingPolicy({ ...this.policy, profile: plan.profile });
+		const mode = (
+			Object.keys(this.policy.operations) as MediaProcessingMode[]
+		).find(
+			(mode) =>
+				this.policy.operations[mode].video === plan.operation.video &&
+				this.policy.operations[mode].audio === plan.operation.audio,
+		);
+		if (
+			!mode ||
+			!Number.isSafeInteger(request.videoStreamIndex) ||
+			request.videoStreamIndex < 0 ||
+			(request.audioStreamIndex !== null &&
+				(!Number.isSafeInteger(request.audioStreamIndex) ||
+					request.audioStreamIndex < 0))
+		)
+			throw new MediaToolError(
+				"INVALID_INPUT",
+				"Invalid explicit execution selection.",
+			);
+		return this.launch({ ...request, plan, mode });
+	}
+	private launch(
+		request: MediaProcessingRequest & {
+			plan?: DeepReadonly<MediaProcessingPlan>;
+			onEvent?: (event: MediaExecutionEvent) => void;
+		},
+	): MediaExecutionHandle {
 		if (this.controller.signal.aborted)
-			return Promise.reject(
-				new MediaToolError("TOOL_UNAVAILABLE", "Media processing is closed."),
+			throw new MediaToolError(
+				"TOOL_UNAVAILABLE",
+				"Media processing is closed.",
 			);
 		if (this.active.size >= this.policy.concurrency)
-			return Promise.reject(new MediaProcessingBusyError());
-		// Own the request values for the duration of asynchronous work.
-		const active = this.run({ ...request });
-		this.active.add(active);
-		void active
-			.finally(() => {
-				this.active.delete(active);
+			throw new MediaProcessingBusyError();
+		const id = randomUUID();
+		const controller = new AbortController();
+		const signal = AbortSignal.any([
+			controller.signal,
+			this.controller.signal,
+			...(request.signal ? [request.signal] : []),
+		]);
+		let state: MediaExecutionState = "checking";
+		const emit = (event: MediaExecutionEvent) => {
+			try {
+				void Promise.resolve(request.onEvent?.(structuredClone(event))).catch(
+					() =>
+						this.options.logger?.warn(
+							{ event: "media.processing_observer_failed" },
+							"Processing observer failed.",
+						),
+				);
+			} catch {
+				this.options.logger?.warn(
+					{ event: "media.processing_observer_failed" },
+					"Processing observer failed.",
+				);
+			}
+		};
+		const transition = (next: MediaExecutionState) => {
+			if (state === next && next !== "checking") return;
+			state = next;
+			emit({ type: "state", state });
+		};
+		// Deferral registers the job before observers can submit another operation.
+		const active = Promise.resolve()
+			.then(() => {
+				transition("checking");
+				return this.run({ ...request, signal }, id, (event) => {
+					if (event.type === "started") transition("starting");
+					if (event.type === "progress") transition("running");
+					if (event.type === "closed" && !event.reason)
+						transition("validating");
+					emit(event);
+				});
 			})
-			.catch(() => {});
-		return active;
+			.then(
+				(result) => {
+					transition("ready");
+					return result;
+				},
+				(error: unknown) => {
+					transition(signal.aborted ? "cancelled" : "failed");
+					throw error;
+				},
+			);
+		this.active.add(active);
+		void active.finally(() => this.active.delete(active)).catch(() => {});
+		return {
+			id,
+			get state() {
+				return state;
+			},
+			completion: active,
+			async stop() {
+				controller.abort();
+				await active.catch(() => {});
+			},
+		};
 	}
-	private async run(request: MediaProcessingRequest): Promise<ProcessedMedia> {
+	private async run(
+		request: MediaProcessingRequest & {
+			plan?: DeepReadonly<MediaProcessingPlan>;
+		},
+		id: string,
+		onEvent: (event: MediaProcessEvent) => void,
+	): Promise<ProcessedMedia> {
 		const signal = request.signal
 			? AbortSignal.any([request.signal, this.controller.signal])
 			: this.controller.signal;
@@ -131,7 +259,8 @@ export class MediaProcessingApplication {
 				"INVALID_INPUT",
 				"Invalid media processing operation.",
 			);
-		const plan = resolveMediaProcessingPlan(this.policy, request.mode);
+		const plan =
+			request.plan ?? resolveMediaProcessingPlan(this.policy, request.mode);
 		if (typeof request.sourceVersion !== "string" || !request.sourceVersion)
 			throw new MediaToolError(
 				"INVALID_INPUT",
@@ -171,6 +300,7 @@ export class MediaProcessingApplication {
 				workspace.pendingPath,
 				{
 					plan,
+					onEvent,
 					videoStreamIndex: video.index,
 					audioStreamIndex: audio?.index ?? null,
 					maximumBytes,
@@ -184,7 +314,6 @@ export class MediaProcessingApplication {
 			const sizeBytes = await this.files.publish(workspace);
 			await this.options.sources.revalidateSource(source);
 			signal.throwIfAborted();
-			const id = randomUUID();
 			this.outputs.set(id, { workspace, sizeBytes });
 			return {
 				id,

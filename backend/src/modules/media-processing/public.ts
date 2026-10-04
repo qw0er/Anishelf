@@ -1,4 +1,8 @@
 export type {
+	MediaExecutionEvent,
+	MediaExecutionHandle,
+	MediaExecutionRequest,
+	MediaExecutionState,
 	MediaProcessingRequest,
 	ProcessedMedia,
 } from "./application/processing.js";
@@ -19,5 +23,5 @@ export {
 import type { MediaProcessingApplication } from "./application/processing.js";
 export type MediaProcessingApi = Pick<
 	MediaProcessingApplication,
-	"process" | "release"
+	"start" | "process" | "release"
 >;

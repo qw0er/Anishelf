@@ -569,19 +569,46 @@ artifact; `close()` cancels active work and removes retained outputs. Callers mu
 register `close()` with their lifecycle and revalidate the source before serving
 or reusing a result. Service construction performs no processing or disk writes.
 
+`start({ fileId, sourceVersion, plan, videoStreamIndex, audioStreamIndex,
+signal?, onEvent? })` accepts an explicit, cloned execution configuration and
+returns an ID, observable state, completion promise and `stop()` method. Its
+supported adapter remains the existing MP4 profile; it does not select an encoder
+from compatibility recommendations. Completion includes validation, publication
+and source revalidation. Stopping waits for execution and cleanup. The older
+`process()` convenience method continues to resolve the configured profile.
+
+Long-running FFmpeg work uses incremental `-progress pipe:1` records. Startup,
+no-progress stall and overall deadlines have distinct failure reasons. Repeated
+unchanged progress records do not reset the stall deadline. Cancellation sends
+SIGTERM, escalates to SIGKILL after the configured grace period, and waits for
+child and pipe closure. Progress records and diagnostic tails have independent
+memory bounds. Observer errors cannot fail execution. Percentages are absent
+when inspected duration is unavailable, and 100 percent does not mean ready.
+
+Before execution, the adapter checks the cached inventory for the selected
+input demuxer, output muxer, local file protocol, progress pipe protocol,
+and, for encoded streams only,
+source decoders and selected encoders. Video encoding additionally checks its
+pixel format and required pad/scale filters. Missing requirements and unknown
+inventory results produce distinct errors; neither triggers a fallback or a new
+inventory scan. Supported requirements still have `runtimeValidation: unverified`:
+codec/muxer compatibility and actual output correctness are checked during the
+real operation. See [Media execution](media-execution.md) for the internal contract.
+
 These are backend primitives, available for a future playback/preparation caller.
 They are not currently wired to HTTP or the player. `MediaTools.capabilities()`
 enumerates the complete advertised FFmpeg build inventory once per service
 lifetime, with bounded concurrency, per-command limits, isolated snapshots and
 independent category failures. The inventory is backend-only and has no HTTP
 endpoint or browser contract. It is independent of compatibility planning.
-Hardware runtime usability and actual processing remain unverified. Browser
+Hardware runtime usability remains unverified; build inventory alone does not
+prove that a particular execution configuration will succeed. Browser
 capability negotiation and compatibility planning are implemented separately;
 see [Video compatibility checks](video-compatibility.md). Persistent task/asset
-records, processing progress reporting, crash recovery, and HLS remain planned below. Outputs are temporary service-owned files; a crash
+records, crash recovery, and HLS remain planned below. Outputs are temporary service-owned files; a crash
 can leave orphan job directories until a future recovery mechanism removes them.
-The four operations have passed static checks; actual encoding and playback sample
-acceptance remain pending.
+The four operations have passed real FFmpeg fixture tests. Browser playback
+acceptance with representative library samples remains pending.
 
 ### Inspection and minimum necessary processing
 

@@ -5,24 +5,10 @@ import { basename, delimiter, isAbsolute, join } from "node:path";
 import type { Logger } from "pino";
 import { captureRuntimeEnvironment } from "../../modules/configuration/public.js";
 import type { DeepReadonly } from "../../shared/policy.js";
+import { MediaToolError } from "./errors.js";
 import { type MediaToolPolicy, mediaToolPolicy } from "./policy.js";
 
-export class MediaToolError extends Error {
-	constructor(
-		readonly code:
-			| "TOOL_UNAVAILABLE"
-			| "TOOL_FAILED"
-			| "INVALID_MEDIA"
-			| "INVALID_INPUT"
-			| "UNSUPPORTED_SUBTITLE"
-			| "UNSUPPORTED_PROCESSING",
-		message: string,
-		options?: ErrorOptions,
-	) {
-		super(message, options);
-		this.name = "MediaToolError";
-	}
-}
+export { MediaToolError } from "./errors.js";
 
 /** Resolve once so later child processes do not depend on PATH changes. */
 export async function resolveExecutable(

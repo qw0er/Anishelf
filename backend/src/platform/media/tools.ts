@@ -14,7 +14,12 @@ import type { ServerMediaCapabilities } from "../../shared/media-capabilities.js
 import type { DeepReadonly } from "../../shared/policy.js";
 import { detectMediaCapabilities } from "./capabilities.js";
 import { codecDescriptor } from "./codec-descriptor.js";
+import {
+	checkExecutionCapabilities,
+	MediaExecutionCapabilityError,
+} from "./execution-capabilities.js";
 import { type MediaToolPolicy, mediaToolPolicy } from "./policy.js";
+import { startMediaProcess } from "./processing-process.js";
 
 export interface MediaToolsPolicy {
 	mediaTools: MediaToolPolicy;
@@ -418,6 +423,7 @@ export class MediaTools {
 		/** Only reuse metadata already validated against the caller's source version. */
 		inspectedInfo?: MediaInfo,
 	): Promise<MediaInfo> {
+		options = { ...options, plan: structuredClone(options.plan) };
 		const executable = this.executable("ffmpeg");
 		if (
 			!isAbsolute(output) ||
@@ -474,6 +480,16 @@ export class MediaTools {
 				"INVALID_INPUT",
 				"Selected video or audio stream is unavailable.",
 			);
+		const check = checkExecutionCapabilities(
+			await this.capabilities(),
+			options.plan,
+			info,
+			video.index,
+			audio?.index ?? null,
+		);
+		if (check.status !== "supported")
+			throw new MediaExecutionCapabilityError(check);
+		options.signal?.throwIfAborted();
 		const { profile, operation } = options.plan;
 		const encodeVideo = operation.video === "encode";
 		const encodeAudio = operation.audio === "encode";
@@ -487,6 +503,11 @@ export class MediaTools {
 				"HDR video encoding requires a separately supported tone-mapping profile.",
 			);
 		const args = [
+			"-nostats",
+			"-progress",
+			"pipe:1",
+			"-stats_period",
+			"0.5",
 			"-nostdin",
 			"-hide_banner",
 			"-v",
@@ -536,16 +557,21 @@ export class MediaTools {
 			profile.container,
 			output,
 		];
-		await runTool(
+		await startMediaProcess(
 			executable,
 			args,
 			{
 				timeoutMs: options.timeoutMs,
 				...(options.signal ? { signal: options.signal } : {}),
+				durationMs:
+					(video.duration ?? info.duration ?? 0) > 0
+						? (video.duration ?? info.duration ?? 0) * 1000
+						: null,
+				...(options.onEvent ? { onEvent: options.onEvent } : {}),
 			},
 			this.policy.mediaTools,
 			this.logger,
-		);
+		).completion;
 		const size = (await stat(output)).size;
 		// FFmpeg can exit successfully on -fs; never return a size-limited partial file.
 		if (size <= 0 || size >= maximumBytes)

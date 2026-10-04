@@ -12,6 +12,10 @@ const defaults = {
 	executionTimeoutMs: 30000,
 	maximumOutputBytes: 10 * 1024 * 1024,
 	diagnosticMaximumBytes: 4096,
+	processingStartupTimeoutMs: 30000,
+	processingStallTimeoutMs: 90000,
+	processingStopGraceMs: 2000,
+	progressMaximumBytes: 64 * 1024,
 };
 export type MediaToolPolicy = typeof defaults;
 export const mediaToolPolicy = freeze(defaults);

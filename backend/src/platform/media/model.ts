@@ -77,6 +77,9 @@ export type {
 } from "../../shared/media-processing.js";
 
 export interface MediaProcessingOptions {
+	onEvent?: (
+		event: import("../../shared/media-execution.js").MediaProcessEvent,
+	) => void;
 	plan: DeepReadonly<MediaProcessingPlan>;
 	videoStreamIndex: number;
 	/** null explicitly produces video-only output. */
