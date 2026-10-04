@@ -14,7 +14,6 @@ import { RouterProvider } from "react-router/dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import App from "../src/App.js";
 import type {
-	CompatibilityResult,
 	DirectoryResponse,
 	FileResponse,
 	LibraryResponse,
@@ -57,7 +56,6 @@ const routers: ReturnType<typeof createMemoryRouter>[] = [];
 let library: LibraryResponse;
 let directories: Map<string, DirectoryResponse>;
 let fileError: boolean;
-let compatibilityPlans: CompatibilityResult["plans"];
 let compatibilityStatus: "supported" | "unsupported" | "unknown";
 let settings: SettingsResponse;
 
@@ -111,7 +109,6 @@ beforeEach(() => {
 	]);
 	fileError = false;
 	compatibilityStatus = "supported";
-	compatibilityPlans = [];
 	settings = { resourceRoot: "/media" };
 	fetcher.mockReset();
 	fetcher.mockImplementation(async (input, init) => {
@@ -128,23 +125,24 @@ beforeEach(() => {
 				return json({
 					fileId: "file-1",
 					sourceVersion: "version",
-					rulesVersion: "2",
+					rulesVersion: "3",
 					direct: decision,
 					container: decision,
 					video: decision,
 					audio: decision,
 					selectedVideo: null,
 					selectedAudio: null,
-					plans: compatibilityPlans,
-					evidence: [],
+					output: null,
 					warnings: [],
 				});
 			}
 			return json({
 				fileId: "file-1",
 				sourceVersion: "version",
-				rulesVersion: "2",
+				rulesVersion: "3",
 				container: "mp4",
+				descriptionId: "a".repeat(64),
+				output: null,
 				video: null,
 				audio: null,
 				multipleTracks: false,
@@ -1270,30 +1268,26 @@ test("supported media shows compatibility information in a dialog below the play
 	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 });
 
-test("displays operation-only recommendations without an encoding profile or execution status", async () => {
+test("uses the unified fingerprint-bound request and displays source compatibility", async () => {
 	compatibilityStatus = "unsupported";
-	const video = { status: "unsupported" as const, reason: "browser-rejected" };
-	const audio = { status: "supported" as const, reason: "browser-supported" };
-	compatibilityPlans = ["file", "media-source"].map((target) => ({
-		target: target as "file" | "media-source",
-		mode: "transcode-video",
-		video,
-		audio,
-		videoAction: "encode",
-		audioAction: "copy",
-		reason: "video-encoding-required",
-	}));
 	renderApp("/files/file-1");
 	const dialog = await screen.findByRole("dialog", {
 		name: "Playback compatibility",
 	});
 	expect(
-		within(dialog).getByText("Recommended preparation: Convert video only."),
+		within(dialog).getByText("This file is not supported by this browser."),
 	).toBeTruthy();
-	expect(within(dialog).getByText("File playback")).toBeTruthy();
-	expect(within(dialog).getByText("Media Source playback")).toBeTruthy();
+	const call = fetcher.mock.calls.find(
+		([path, init]) =>
+			path === "/api/files/file-1/compatibility" && init?.method === "POST",
+	);
+	expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({
+		descriptionId: "a".repeat(64),
+		output: null,
+		sourceVersion: "version",
+	});
 	expect(dialog.textContent).not.toMatch(
-		/MP4|H\.264|AAC|profile|currently unavailable|not connected/,
+		/Recommended preparation|File playback|Media Source playback/,
 	);
 });
 

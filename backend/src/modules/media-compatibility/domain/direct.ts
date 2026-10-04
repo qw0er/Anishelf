@@ -1,0 +1,24 @@
+import type {
+	CompatibilityEvidence,
+	CompatibilityResult,
+} from "../../../contracts/http.js";
+import { compatibilityDecision } from "./evidence.js";
+import type { OriginalMediaDescription } from "./model.js";
+
+export function checkDirectCompatibility(
+	description: OriginalMediaDescription,
+	evidence: CompatibilityEvidence[],
+): CompatibilityResult["direct"] {
+	const decision = (id: string) =>
+		compatibilityDecision(description.queries, evidence, id);
+	let direct = decision("original");
+	if (decision("original-container").status === "unsupported")
+		direct = { status: "unsupported", reason: "container-rejected" };
+	if (!description.video)
+		direct = { status: "unsupported", reason: "no-video-stream" };
+	if (description.multipleTracks && direct.status === "supported")
+		direct = { status: "unknown", reason: "native-track-selection-uncertain" };
+	if (description.video?.hdr && direct.status === "supported")
+		direct = { status: "unknown", reason: "hdr-display-unverified" };
+	return direct;
+}

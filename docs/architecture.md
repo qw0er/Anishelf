@@ -79,7 +79,7 @@ backend/src/
     library/             # Browse, scan coordination and root-switch use case
     resource-access/        # Source identity, root epoch and confined access
     media-inspection/    # Shared version-bound probe cache and concurrency
-    media-compatibility/ # Browser negotiation and per-stream processing recommendations
+    media-compatibility/ # Browser negotiation for original media and selected output candidates
     playback/            # Sessions, progress and history
     subtitles/           # Discovery, preparation, delivery and asset lifecycle
   contracts/             # Browser-safe HTTP schemas/types, formats and defaults
@@ -515,55 +515,55 @@ Keep cue time on the original source timeline. When real-time playback restarts 
 
 ### Implemented execution foundation
 
-`modules/media-processing/public.ts` exposes `MediaProcessingApplication` and
-its backend-only `start`, `release` and lifecycle methods. `start()` accepts a
-source version, explicit stream indexes and an explicit execution contract. It
-returns an ID, observable state, completion promise and `stop()` method. There
-is no mode-based `process()` entry point, default output profile, encoder preset
-or built-in transcoding adapter. Constructing the application requires an
-injected `MediaExecutionAdapter`. Concrete execution configuration and FFmpeg
-argument generation remain future adapter work.
+`MediaCompatibilityApplication` exposes one `inspect()` / `check()` exchange.
+Source-only inspection checks the original media; an explicit output profile and
+delivery target add concrete candidates. Checks validate source/root/profile-bound
+fingerprints and evidence, then return an immutable compatibility snapshot.
+The version 3 HTTP presenter omits private root/profile data. Old payload shapes,
+generic operation recommendations and separate preparation methods are removed.
 
-`shared/media-processing.ts` describes caller-selected container, stream copy or
-encode requirements, encoder/codec, optional pixel format and required filters.
-These fields impose no MP4/H.264/AAC whitelist. Filter dependencies include any
-automatically inserted filters needed by the adapter; the checker does not infer
-padding, scaling, tone mapping or a substitute encoder. Compatibility planning
-remains independent and does not construct these execution contracts.
+`modules/media-processing/public.ts` exposes the pure `resolveExecutionPlan()`
+resolver and `MediaProcessingApplication`. The resolver consumes checked
+compatibility and a selected profile snapshot, applies profile constraints, then
+builds explicit stream indexes, encoding settings and filter dependencies. It has
+no inspection, browser-evidence validation or server-tool dependencies. Compatible
+originals resolve direct; unknown compatibility stays blocked. Server preflight
+belongs to the processing application immediately before execution.
 
-The application owns source-version-bound inspection, selected-stream validation,
-capability preflight, private output allocation, size/stream/codec/container/duration
-validation, source revalidation and atomic publication. Files use neutral
-`media.pending` and `media` names. The injected adapter must respect cancellation,
-timeout and size bounds, and await child closure before settling. The retained
-process runner supplies streaming progress, startup/stall/overall deadlines,
-bounded diagnostics and SIGTERM/SIGKILL termination with close acknowledgement.
-A result becomes ready only after output validation and publication.
+File and MSE evidence are distinct. MSE execution emits a complete fragmented MP4,
+without HLS publication yet. Required encodings currently have exact browser
+descriptors for libx264/yuv420p High Level 5.1 and AAC-LC. Other encoded descriptors
+and HDR processing remain unverified.
 
-The processing policy contains concurrency, timeout, retained-output budget and
-duration-validation tolerance only. One operation runs per instance, bounded by
-six hours and a 10 GiB retained-output budget. `release(id)` removes a private
-artifact. `close()` stops active work and removes retained outputs. Callers must
-register `close()` and revalidate the source before serving a result. Construction
-performs no media processing or disk writes.
+`bootstrap/media-execution.ts` provides `createMediaExecutionModule()` to compose
+compatibility and processing with the production `FfmpegExecutionAdapter`. The adapter
+compiles typed profile parameters into argument arrays, selects explicit streams,
+copies compatible streams and emits complete files. Pixel conversion, odd-size
+padding, necessary downscaling and implicit audio/video conversion dependencies
+are declared for capability checks. Build support remains runtime unverified.
 
-`MediaTools.capabilities()` enumerates the full advertised FFmpeg build inventory
-once per service lifetime. Preflight consumes the cache, checks only the selected
-execution requirements, and distinguishes missing support from unknown inventory.
-Copied streams do not require encoders or decoders. Build support remains runtime
-unverified. Real execution still requires output validation.
+The processing application owns source-version-bound inspection, selected-stream
+validation, cached capability preflight, private allocation, output validation,
+source revalidation and atomic publication. Validation checks size, stream
+counts/codecs, packaging, pixel format, requested height/channels, the planned
+H.264 descriptor and available video/audio durations. Neutral `media.pending`
+and `media` files remain private temporary artifacts. The adapter respects
+cancellation, overall/startup/stall deadlines, output bounds and child-close
+acknowledgement through the retained process runner.
 
-The former fixed MP4/H.264/AAC profile, profile resolver, mode-based entry point,
-codec-specific FFmpeg compiler and default stream selection have been removed.
-The execution foundation is not wired to HTTP or the player, and no production
-transcoding adapter is currently provided. Persistent jobs, crash recovery,
-pre-transcoding playback and HLS remain planned below. See
-[Media execution](media-execution.md) and
-[Video compatibility checks](video-compatibility.md).
+The processing policy retains concurrency, timeout, output budget and duration
+tolerance. One operation runs per instance, bounded by six hours and a 10 GiB
+retained-output budget. `release(id)` deletes a private artifact; `close()` stops
+active work and releases outputs. Callers must register closure and revalidate
+sources before serving a result. Construction performs no disk writes or media
+processing. The factory is not yet invoked by HTTP/player workflows. Persistent
+jobs, durable cache, crash recovery and HLS remain planned below. See
+[Media execution](media-execution.md), [Transcode profiles](transcode-profiles.md)
+and [Video compatibility checks](video-compatibility.md).
 
 ### Inspection and minimum necessary processing
 
-Probe on demand, with bounded FFprobe work cached by source version. Return container, duration, video/audio descriptors, subtitle choices and a per-stream action/reason. Compatibility plans do not select output profiles, codecs, encoders or packaging, and do not check execution availability. Select default video/audio streams, falling back to the first usable stream; missing audio is valid. File extensions alone never determine compatibility. Match codec/profile/pixel format/audio/container and target browser capabilities; uncertain combinations are reported as uncertain, not claimed playable.
+Probe on demand, with bounded FFprobe work cached by source version. Return container, duration, video/audio descriptors, subtitle choices and compatibility decisions. Explicit output contexts add concrete candidate acceptance; the pure execution resolver applies the selected profile and determines operations. Negotiation does not check execution availability. Select default video/audio streams, falling back to the first usable stream; missing audio is valid. File extensions alone never determine compatibility. Match codec/profile/pixel format/audio/container and target browser capabilities; uncertain combinations are reported as uncertain, not claimed playable.
 
 The first validation target remains Linux desktop Chromium/Chrome. Record OS, browser, FFmpeg/FFprobe, Vidstack, hls.js, JASSUB at acceptance. Availability of a binary alone does not certify its encoders/muxers. HDR conversion, hardware encoding and universal browser support remain unassigned.
 
@@ -575,11 +575,11 @@ The first validation target remains Linux desktop Chromium/Chrome. Record OS, br
 | Video unsupported | Encode video; copy compatible audio or encode if needed |
 | Subtitle needs extraction/format conversion | Process subtitle separately; do not encode otherwise compatible audio/video |
 
-Use the same operation-only planner for pre-transcoding and real-time output, evaluating client file and Media Source evidence respectively. A future executor chooses concrete output packaging, codecs, encoders and profiles, checks the complete server inventory and validates actual output separately. Do not encode a copied stream just to force a uniform codec or segment length. Every actual encoding decision must carry a reason. FFmpeg's [stream-copy model](https://ffmpeg.org/ffmpeg.html) underpins the compatible-stream path.
+Use the same compatibility exchange and pure execution resolver for pre-transcoding and real-time output, selecting file and Media Source contexts respectively. Profile-specific negotiation checks the configured output candidates; the pure resolver constructs execution requirements, and the processing application checks server inventory and validates actual output. Real-time execution integration remains planned. Do not encode a copied stream just to force a uniform codec or segment length. Every actual encoding decision must carry a reason. FFmpeg's [stream-copy model](https://ffmpeg.org/ffmpeg.html) underpins the compatible-stream path.
 
 ### Pre-transcoding
 
-**Prepare for Web** creates a reusable fast-start MP4. Use a versioned profile: preserve resolution, timeline and compatible streams; encode required video to H.264/yuv420p (initial CRF 20, medium), required audio to AAC (initial 192 kbit/s). These settings require sample validation. Deduplicate by source version, selected streams, profile and mode. Compatible originals return a direct-play result without creating a copy. Completed valid copies take priority over starting new real-time work.
+**Prepare for Web** creates a reusable fast-start MP4. Use a versioned profile: preserve resolution, timeline and compatible streams; encode required video to H.264/yuv420p (initial CRF 23, medium), required audio to AAC (initial 192 kbit/s). These settings require sample validation. Deduplicate by source version, selected streams, profile and mode. Compatible originals return a direct-play result without creating a copy. Completed valid copies take priority over starting new real-time work.
 
 Persist `queued → processing → ready | failed | cancelled` states in SQLite. Process one media job at a time. Write a private temporary output, require successful exit plus stream/duration/timeline validation, recheck source version, rename atomically, then commit the ready record. Only complete MP4s are playable with HEAD/Range. A percentage requires reliable duration/timestamps. On restart revalidate queued work, fail interrupted attempts with retry, reconcile partial/orphan files, and never offer them as ready. Copy deletion invalidates its registry entry, waits for open readers, removes files, and leaves originals/history intact.
 

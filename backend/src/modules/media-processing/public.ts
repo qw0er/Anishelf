@@ -21,3 +21,6 @@ export type MediaProcessingApi = Pick<
 	MediaProcessingApplication,
 	"start" | "release"
 >;
+
+export type { PreparationExecutionPlan } from "./application/execution-plan.js";
+export { resolveExecutionPlan } from "./application/execution-plan.js";

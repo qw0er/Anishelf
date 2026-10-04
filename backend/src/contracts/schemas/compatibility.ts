@@ -1,6 +1,7 @@
 import { Type } from "typebox";
 import { ResourceIdSchema } from "./common.js";
 import { SourceVersionSchema } from "./playback.js";
+import { TranscodeProfileIdSchema } from "./transcode-profiles.js";
 
 const nullableNumber = Type.Union([Type.Number({ minimum: 0 }), Type.Null()]);
 const nullableString = Type.Union([
@@ -41,19 +42,6 @@ const query = Type.Object(
 	},
 	{ additionalProperties: false },
 );
-export const CompatibilityInspectionSchema = Type.Object(
-	{
-		fileId: ResourceIdSchema,
-		sourceVersion: SourceVersionSchema,
-		rulesVersion: Type.Literal("2"),
-		container: nullableString,
-		video: Type.Union([stream, Type.Null()]),
-		audio: Type.Union([stream, Type.Null()]),
-		multipleTracks: Type.Boolean(),
-		queries: Type.Array(query, { maxItems: 16 }),
-	},
-	{ additionalProperties: false },
-);
 const evidence = Type.Object(
 	{
 		id: Type.String({ maxLength: 64 }),
@@ -72,13 +60,6 @@ const evidence = Type.Object(
 	},
 	{ additionalProperties: false },
 );
-export const CompatibilityCheckRequestSchema = Type.Object(
-	{
-		sourceVersion: SourceVersionSchema,
-		evidence: Type.Array(evidence, { maxItems: 16 }),
-	},
-	{ additionalProperties: false },
-);
 const decision = Type.Object(
 	{
 		status: CompatibilityStatusSchema,
@@ -86,47 +67,90 @@ const decision = Type.Object(
 	},
 	{ additionalProperties: false },
 );
-const plan = Type.Object(
+export const CompatibilityOutputRequestSchema = Type.Object(
 	{
+		profileId: TranscodeProfileIdSchema,
 		target: Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
-		mode: Type.Union([
-			Type.Literal("direct"),
-			Type.Literal("remux"),
-			Type.Literal("transcode-audio"),
-			Type.Literal("transcode-video"),
-			Type.Literal("transcode"),
-			Type.Literal("unknown"),
-		]),
-		video: decision,
-		audio: decision,
-		videoAction: Type.Union([
-			Type.Literal("copy"),
-			Type.Literal("encode"),
-			Type.Literal("unknown"),
-		]),
-		audioAction: Type.Union([
-			Type.Literal("copy"),
-			Type.Literal("encode"),
-			Type.Literal("none"),
-			Type.Literal("unknown"),
-		]),
-		reason: Type.String({ maxLength: 128 }),
+	},
+	{ additionalProperties: false },
+);
+const outputDescription = Type.Object(
+	{
+		profileId: TranscodeProfileIdSchema,
+		target: Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
+		profileFingerprint: Type.String({ pattern: "^[a-f0-9]{64}$" }),
+	},
+	{ additionalProperties: false },
+);
+const identity = {
+	fileId: ResourceIdSchema,
+	sourceVersion: SourceVersionSchema,
+	rulesVersion: Type.Literal("3"),
+};
+export const CompatibilityEvidenceListSchema = Type.Array(evidence, {
+	maxItems: 16,
+});
+export const CompatibilityInspectionQuerySchema = Type.Object(
+	{
+		sourceVersion: Type.Optional(SourceVersionSchema),
+		profileId: Type.Optional(TranscodeProfileIdSchema),
+		target: Type.Optional(
+			Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
+		),
+	},
+	{ additionalProperties: false },
+);
+export const CompatibilityInspectionSchema = Type.Object(
+	{
+		...identity,
+		descriptionId: Type.String({ pattern: "^[a-f0-9]{64}$" }),
+		container: nullableString,
+		video: Type.Union([stream, Type.Null()]),
+		audio: Type.Union([stream, Type.Null()]),
+		multipleTracks: Type.Boolean(),
+		queries: Type.Array(query, { maxItems: 16 }),
+		output: Type.Union([outputDescription, Type.Null()]),
+	},
+	{ additionalProperties: false },
+);
+export const CompatibilityCheckRequestSchema = Type.Object(
+	{
+		sourceVersion: SourceVersionSchema,
+		descriptionId: Type.String({ pattern: "^[a-f0-9]{64}$" }),
+		output: Type.Union([CompatibilityOutputRequestSchema, Type.Null()]),
+		evidence: CompatibilityEvidenceListSchema,
+	},
+	{ additionalProperties: false },
+);
+const outputResult = Type.Object(
+	{
+		profileId: TranscodeProfileIdSchema,
+		target: Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
+		profileFingerprint: Type.String({ pattern: "^[a-f0-9]{64}$" }),
+		copyVideo: CompatibilityStatusSchema,
+		copyAudio: CompatibilityStatusSchema,
+		combinations: Type.Object(
+			{
+				"copy-copy": CompatibilityStatusSchema,
+				"copy-encode": CompatibilityStatusSchema,
+				"encode-copy": CompatibilityStatusSchema,
+				"encode-encode": CompatibilityStatusSchema,
+			},
+			{ additionalProperties: false },
+		),
 	},
 	{ additionalProperties: false },
 );
 export const CompatibilityResultSchema = Type.Object(
 	{
-		fileId: ResourceIdSchema,
-		sourceVersion: SourceVersionSchema,
-		rulesVersion: Type.Literal("2"),
+		...identity,
 		direct: decision,
 		video: decision,
 		audio: decision,
+		container: decision,
 		selectedVideo: Type.Union([stream, Type.Null()]),
 		selectedAudio: Type.Union([stream, Type.Null()]),
-		container: decision,
-		plans: Type.Array(plan, { minItems: 2, maxItems: 2 }),
-		evidence: Type.Array(evidence, { maxItems: 16 }),
+		output: Type.Union([outputResult, Type.Null()]),
 		warnings: Type.Array(Type.String({ maxLength: 128 }), { maxItems: 16 }),
 	},
 	{ additionalProperties: false },

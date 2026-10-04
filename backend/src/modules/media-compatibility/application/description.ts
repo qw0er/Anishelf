@@ -1,9 +1,9 @@
 import type {
-	CompatibilityInspection,
 	CompatibilityQuery,
 	CompatibilityStream,
 } from "../../../contracts/http.js";
 import type { MediaInfo, MediaStream } from "../../../platform/media/index.js";
+import type { OriginalMediaDescription } from "../domain/model.js";
 
 const mime: Record<string, string> = {
 	mp4: "video/mp4",
@@ -30,11 +30,11 @@ function describe(stream: MediaStream | undefined): CompatibilityStream | null {
 		channels: stream.channels,
 	};
 }
-export function describeCompatibility(
+export function describeOriginalMedia(
 	fileId: string,
 	sourceVersion: string,
 	info: MediaInfo,
-): CompatibilityInspection {
+): OriginalMediaDescription {
 	const videos = info.streams.filter(
 		(s) => s.type === "video" && !s.attachedPicture,
 	);
@@ -72,42 +72,10 @@ export function describeCompatibility(
 			null,
 			audio,
 		);
-	// These are browser evidence candidates for unchanged source streams, not selected output formats.
-	for (const target of ["file", "media-source"] as const) {
-		for (const container of ["mp4", "webm"] as const) {
-			const candidateVideo =
-				container === "mp4" &&
-				(video?.codecString === "vp9" || video?.codecString === "vp8")
-					? { ...video, codecString: null }
-					: video;
-			add(
-				`${target}-video-${container}`,
-				target,
-				`video/${container}`,
-				candidateVideo,
-				null,
-			);
-			if (audio)
-				add(
-					`${target}-audio-${container}`,
-					target,
-					`audio/${container}`,
-					null,
-					audio,
-				);
-			add(
-				`${target}-combined-${container}`,
-				target,
-				`video/${container}`,
-				candidateVideo,
-				audio,
-			);
-		}
-	}
 	return {
 		fileId,
 		sourceVersion,
-		rulesVersion: "2",
+		rulesVersion: "3",
 		container: info.container,
 		video,
 		audio,

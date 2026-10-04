@@ -1,24 +1,30 @@
 # Video compatibility checks
 
-Compatibility checking is implemented independently of media preparation. It combines
-version-bound source inspection with reports from the current browser and returns
-explainable decisions for the original file and operation-only recommendations
-for file and Media Source playback. It never starts FFmpeg conversion or an external player.
+Compatibility checking combines version-bound source inspection with reports from
+one browser. A single `inspect()` / `check()` exchange evaluates the original media
+and optional concrete output candidates. It never starts FFmpeg or an external player.
 
 ## Inspection and negotiation
 
-1. `GET /api/files/:id/compatibility` resolves a confined library source and uses the
-   shared inspection cache. It returns the source version, selected media streams,
-   detected container, and bounded browser queries. Paths, tags, raw initialization
-   data, and FFmpeg commands are not exposed.
+1. `GET /api/files/:id/compatibility` returns selected streams, detected container,
+   source version, `descriptionId`, `rulesVersion: "3"`, original browser queries
+   and `output: null`. Optional `profileId` and `target` query parameters add concrete
+   output candidates; `target` defaults to `file` and requires a profile ID.
+   Optional `sourceVersion` checks freshness. Paths, raw initialization data and
+   encoder settings are not exposed.
 2. The browser checks file queries with `canPlayType`, MSE queries with
    `MediaSource.isTypeSupported`, and complete configurations with
-   `MediaCapabilities.decodingInfo`. Missing dimensions, bitrate, or frame rate are
-   never filled with invented defaults. Container-only queries remain probabilistic.
-3. `POST /api/files/:id/compatibility` accepts the source version and up to 16 query
-   reports. The server validates query IDs, duplicates and status/reason consistency,
-   regenerates the query descriptions, and revalidates the original source/root
-   before returning a decision. A changed source returns `409`.
+   `MediaCapabilities.decodingInfo`. Missing metadata is never invented.
+3. `POST /api/files/:id/compatibility` requires `sourceVersion`, `descriptionId`,
+   `output` (null or `{ profileId, target }`) and up to 16 evidence reports. The
+   server rebuilds the description, verifies its source/root/profile/query-bound
+   fingerprint, validates reports and rechecks the source/root. A changed source
+   returns `409`; mismatched descriptions and obsolete payloads return `400`.
+
+The resource URLs remain the same, but the former request/response shapes are
+removed. There are no separate preparation describe/check methods or generic
+`plans` field. The player submits a source-only check; future preparation callers
+select an output context through this same exchange.
 
 Reports are client capability evidence, not authority to access files or submit
 processing parameters. They are never persisted or shared between clients. The
@@ -45,48 +51,32 @@ VP8, basic 8-bit VP9 profile 0, Opus, Vorbis, MP3, AC-3 and E-AC-3 have explicit
 family descriptors. Detailed VP9 profiles and unrecognized configurations remain
 unknown; legacy WebM VP8/VP9 descriptors are not reused as MP4 descriptors.
 
-The browser queries only the unchanged source streams. MP4 and WebM MIME types
-are evidence candidates for file and Media Source delivery, not output selections.
-Each delivery type checks video, audio (if present), and their combination. No
-hypothetical H.264/AAC output, bitrate, pixel format, profile or level is invented.
-The bounded query set contains at most 16 entries.
+Source-only inspection queries the original container and selected original streams.
+It does not propose hypothetical MP4/WebM packaging. When an output profile is
+explicitly selected, queries additionally cover copied streams in that container
+and the four concrete copy/encode combinations. The bounded set has at most 16
+entries. Exact encoded descriptors currently cover libx264/yuv420p High Level 5.1
+and AAC-LC; missing encoded descriptors remain unknown. CRF bitrate is not invented.
 
-## Decisions and recommendations
+## Decisions and execution
 
-Every decision is `supported`, `unsupported`, or `unknown`, with a reason. The
-original file and the two delivery types (`file`, `media-source`) are evaluated
-separately. The compatibility contract uses `rulesVersion: "2"`.
+Every decision is `supported`, `unsupported`, or `unknown`, with a reason.
+The result includes direct playback, container and source-stream decisions plus
+optional output-copy and output-combination acceptance. It returns no generic
+operation recommendations, raw evidence, private paths or encoding parameters.
+File and Media Source output evidence are distinct and cannot be interchanged.
 
-| Evidence | Recommendation |
-| --- | --- |
-| Original combination supported | Direct playback; no processing required |
-| Original rejected, unchanged streams and their combination accepted in another packaging candidate | Remux with both streams copied |
-| Audio rejected in all evidence candidates, video accepted | Encode audio only |
-| Video rejected in all evidence candidates, audio accepted | Encode video only |
-| Both streams rejected in all evidence candidates | Encode audio and video |
-| Missing or uncertain evidence | Unknown; permit an explicit original-file attempt |
-| Streams individually accepted, combined packaging unconfirmed | Unknown; do not certify remuxing |
+`MediaCompatibilityApplication` owns inspection, evidence validation and browser
+acceptance. The pure `resolveExecutionPlan()` applies the selected profile policy
+to an immutable checked snapshot and chooses explicit copy/encode operations.
+Without an output context, an unsupported original resolves blocked. The processing
+application checks server capabilities and validates actual output. Negotiation
+does not enumerate tools or certify muxing, execution or browser playback.
 
-An accepted candidate establishes browser evidence for retaining a stream. A
-stream is rejected only when all its candidates are rejected; otherwise it remains
-unknown. No codec whitelist forces accepted source streams into a fixed MP4
-profile. Candidate and combined-query acceptance still do not certify muxing or
-actual playback.
-
-Plans contain only the delivery type, mode, source-stream compatibility decisions,
-`copy`/`encode`/`none`/`unknown` actions and reasons. They do not select a container,
-output codec, encoder, encoding profile or parameters, and do not report server
-inventory, hypothetical output compatibility, or executor availability. Selected
-source descriptors remain in the response as input information. Planning neither
-enumerates server tools nor depends on installed encoders. A future executor must
-choose output packaging/codecs/encoders, check server and client capabilities for
-that concrete choice, and validate the generated output before serving it.
-
-Multiple audio/video tracks make native track selection uncertain. HDR display
-behavior is unverified even when a codec query succeeds. HDR encoding may be
-recommended when the source is rejected; the future executor decides whether it
-can implement that recommendation. Concrete execution adapters, including HDR tone mapping, remain future work. `smooth: false` warns about performance without forcing
-conversion. Subtitle compatibility remains independent of audio/video planning.
+Multiple audio/video tracks make native selection uncertain. HDR presentation
+remains unverified and HDR conversion is blocked by the execution resolver.
+`smooth: false` warns about performance without forcing conversion. Subtitle
+compatibility remains independent of audio/video processing.
 
 ## Internal server media capabilities
 
@@ -123,7 +113,7 @@ with a **Playback compatibility info** button below the player to open the resul
 dialog. Unknown, unsupported and failed checks automatically open the dialog and
 offer **Try original file** and **Check again**. The dialog can be dismissed and
 reopened with the information button. Trying the original file closes the dialog.
-Details show container, stream and target-delivery decisions. Runtime playback
+Details show original container and stream decisions. Runtime playback
 errors reopen the dialog, retain accessibility rechecks, display actual failure
 separately, and invalidate cached capability reports. Known video sources with zero decoded
 video dimensions report a missing-picture error even if the browser plays audio
@@ -134,8 +124,9 @@ already mounted video.
 ## Verification
 
 Automated coverage includes codec descriptors, all processing branches, absent
-metadata/audio, multiple tracks/cover art, HDR recommendations, independent
-delivery evidence, source-only queries, safe HTTP negotiation, stale source versions,
+metadata/audio, multiple tracks/cover art, HDR guards, independent output contexts,
+source-only queries, fingerprint-bound HTTP negotiation, obsolete payload rejection,
+stale source versions,
 server-inventory isolation and removal of its HTTP endpoint, browser API failures,
 query timeout/cancellation, explicit original-file attempts, runtime failure,
 navigation and playback-progress regressions.

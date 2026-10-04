@@ -28,7 +28,7 @@ import {
 	type ProcessingWorkspace,
 } from "../infrastructure/files.js";
 
-/** An adapter must await child closure on cancellation. No production adapter is built in. */
+/** An adapter must await child closure on cancellation. The production FFmpeg adapter is composed separately. */
 export interface MediaExecutionAdapter {
 	execute(
 		input: string,
@@ -352,6 +352,25 @@ export class MediaProcessingApplication {
 					"TOOL_FAILED",
 					"Output does not match explicit execution requirements.",
 				);
+			if (
+				(plan.video.action === "encode" &&
+					plan.video.pixelFormat &&
+					videos[0]?.pixelFormat !== plan.video.pixelFormat) ||
+				(plan.videoParameters?.maxHeight !== undefined &&
+					(videos[0]?.height === null ||
+						(videos[0]?.height ?? Infinity) >
+							plan.videoParameters.maxHeight)) ||
+				(plan.audioParameters?.channels === "stereo" &&
+					audios[0]?.channels !== 2) ||
+				(plan.audioParameters?.channels === "preserve" &&
+					audio?.channels !== null &&
+					audios[0]?.channels !== audio?.channels) ||
+				(plan.h264Level && videos[0]?.codecString !== "avc1.640033")
+			)
+				throw new MediaToolError(
+					"TOOL_FAILED",
+					"Output does not match encoding constraints.",
+				);
 			const before = video.duration ?? info.duration;
 			const after = videos[0]?.duration ?? output.duration;
 			if (
@@ -364,6 +383,18 @@ export class MediaProcessingApplication {
 					"Output duration does not match the source.",
 				);
 
+			const audioBefore = audio?.duration;
+			const audioAfter = audios[0]?.duration;
+			if (
+				audioBefore != null &&
+				audioAfter != null &&
+				Math.abs(audioBefore - audioAfter) >
+					this.policy.durationToleranceSeconds
+			)
+				throw new MediaToolError(
+					"TOOL_FAILED",
+					"Output audio duration does not match the source.",
+				);
 			await this.options.sources.revalidateSource(source);
 			signal.throwIfAborted();
 			const sizeBytes = await this.files.publish(workspace);

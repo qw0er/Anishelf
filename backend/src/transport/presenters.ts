@@ -1,4 +1,5 @@
 import type {
+	CompatibilityResult,
 	ContinueWatchingResponse,
 	DirectoryDto,
 	DirectoryResponse,
@@ -23,6 +24,7 @@ import type {
 	ResourceInfo,
 	ScanState,
 } from "../modules/library/public.js";
+import type { CheckedCompatibility } from "../modules/media-compatibility/public.js";
 import type {
 	ContinueWatchingResult,
 	PlaybackProgress,
@@ -32,6 +34,7 @@ import type {
 	SubtitleDiscovery,
 	SubtitlePreparationResult,
 } from "../modules/subtitles/public.js";
+import type { DeepReadonly } from "../shared/policy.js";
 
 /** Explicit projections keep backend additions out of public JSON responses. */
 function directoryDto(directory: DirectoryInfo): DirectoryDto {
@@ -217,5 +220,26 @@ export function subtitlePreparationResponse(
 		errorCode: result.errorCode,
 		statusUrl: `${url}/status`,
 		contentUrl: result.status === "ready" ? url : null,
+	};
+}
+
+/** Explicitly omit canonical source paths and executable profile parameters. */
+export function presentCompatibility(
+	checked: DeepReadonly<CheckedCompatibility>,
+): CompatibilityResult {
+	return {
+		fileId: checked.fileId,
+		sourceVersion: checked.sourceVersion,
+		rulesVersion: checked.rulesVersion,
+		direct: { ...checked.direct },
+		container: { ...checked.container },
+		video: { ...checked.video },
+		audio: { ...checked.audio },
+		selectedVideo: checked.selectedVideo ? { ...checked.selectedVideo } : null,
+		selectedAudio: checked.selectedAudio ? { ...checked.selectedAudio } : null,
+		output: checked.output
+			? { ...checked.output, combinations: { ...checked.output.combinations } }
+			: null,
+		warnings: [...checked.warnings],
 	};
 }

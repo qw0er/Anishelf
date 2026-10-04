@@ -159,6 +159,7 @@ async function createServer(
 			inspection,
 			sources: library.sources,
 			logger,
+			profiles: configuration.transcodeProfiles,
 		}),
 		development,
 		...(development && existsSync(join(frontendRoot, "index.html"))

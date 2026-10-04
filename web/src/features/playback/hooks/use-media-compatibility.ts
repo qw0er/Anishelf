@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
 	checkMediaCompatibility,
-	getMediaCompatibility,
+	inspectMediaCompatibility,
 } from "../../../api/client.js";
 import type { CompatibilityResult } from "../../../api/contracts.js";
 import { clearCapabilityCache, queryCapabilities } from "../capabilities.js";
@@ -29,7 +29,10 @@ export function useMediaCompatibility(fileId: string, sourceVersion?: string) {
 		setRuntimeFailed(false);
 		void (async () => {
 			try {
-				const description = await getMediaCompatibility(fileId, { signal });
+				const description = await inspectMediaCompatibility(
+					{ fileId },
+					{ signal },
+				);
 				if (
 					expectedVersion.current &&
 					description.sourceVersion !== expectedVersion.current
@@ -41,8 +44,18 @@ export function useMediaCompatibility(fileId: string, sourceVersion?: string) {
 					revision > 0,
 				);
 				const result = await checkMediaCompatibility(
-					fileId,
-					{ sourceVersion: description.sourceVersion, evidence },
+					{
+						fileId,
+						sourceVersion: description.sourceVersion,
+						descriptionId: description.descriptionId,
+						output: description.output
+							? {
+									profileId: description.output.profileId,
+									target: description.output.target,
+								}
+							: null,
+						evidence,
+					},
 					{ signal },
 				);
 				if (!controller.signal.aborted)

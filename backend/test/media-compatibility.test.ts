@@ -9,10 +9,12 @@ import type {
 	CompatibilityEvidence,
 	CompatibilityInspection,
 } from "../src/contracts/http.js";
+import { builtinTranscodeProfiles } from "../src/modules/configuration/public.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
 import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/application/compatibility.js";
-import { describeCompatibility } from "../src/modules/media-compatibility/application/description.js";
-import { planCompatibility } from "../src/modules/media-compatibility/domain/planner.js";
+import { describeOriginalMedia } from "../src/modules/media-compatibility/application/description.js";
+import { checkDirectCompatibility } from "../src/modules/media-compatibility/domain/direct.js";
+import type { OriginalMediaDescription } from "../src/modules/media-compatibility/domain/model.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
 import { codecDescriptor } from "../src/platform/media/codec-descriptor.js";
 import { type MediaInfo, MediaToolError } from "../src/platform/media/index.js";
@@ -56,10 +58,10 @@ function media(): MediaInfo {
 	);
 }
 function description() {
-	return describeCompatibility("file", "version", media());
+	return describeOriginalMedia("file", "version", media());
 }
 function reports(
-	d: CompatibilityInspection,
+	d: Pick<CompatibilityInspection, "queries">,
 	overrides: Record<string, CompatibilityEvidence["status"]> = {},
 ): CompatibilityEvidence[] {
 	return d.queries.map((q) => {
@@ -113,75 +115,49 @@ test("reads exact AVC constraints and AAC object type; never guesses missing ini
 	).toBe("av01.0.12M.08");
 	expect(codecDescriptor({ codec_name: "av1", extradata: "bad" })).toBeNull();
 });
-test.each([
-	[{}, "direct"],
-	[{ original: "unsupported", "original-container": "unsupported" }, "remux"],
-	[{ original: "unsupported", "file-audio": "unsupported" }, "transcode-audio"],
-	[{ original: "unsupported", "file-video": "unsupported" }, "transcode-video"],
-	[
-		{
-			original: "unsupported",
-			"file-video": "unsupported",
-			"file-audio": "unsupported",
-		},
-		"transcode",
-	],
-	[{ original: "unknown", "file-video": "unknown" }, "unknown"],
-] as const)("plans necessary processing %j", (overrides, mode) => {
-	const d = description();
-	const result = planCompatibility(d, reports(d, overrides));
-	expect(result.plans[0]?.mode).toBe(mode);
-	expect(result.plans.map((plan) => plan.target)).toEqual([
-		"file",
-		"media-source",
-	]);
-	expect(result).not.toHaveProperty("processing");
-	for (const plan of result.plans) {
-		expect(plan).not.toHaveProperty("execution");
-		expect(plan).not.toHaveProperty("outputVideo");
-		expect(plan).not.toHaveProperty("outputAudio");
-	}
-});
-test("missing descriptions override optimistic client claims, missing audio is valid", () => {
+test("original descriptions contain only source queries; missing codec initialization stays unknown", () => {
 	const info = media();
-	info.streams = info.streams.slice(0, 1);
-	let d = describeCompatibility("file", "version", info);
-	expect(planCompatibility(d, reports(d)).plans[0]?.audioAction).toBe("none");
+	let d = describeOriginalMedia("file", "version", info);
+	expect(d.queries.map((query) => query.id)).toEqual([
+		"original-container",
+		"original",
+		"original-video",
+		"original-audio",
+	]);
+	expect(checkDirectCompatibility(d, reports(d)).status).toBe("supported");
 	if (info.streams[0]) info.streams[0].codecString = null;
-	d = describeCompatibility("file", "version", info);
-	expect(planCompatibility(d, reports(d)).direct.status).toBe("unknown");
-	expect(planCompatibility(d, []).plans[0]?.mode).toBe("unknown");
+	d = describeOriginalMedia("file", "version", info);
+	expect(checkDirectCompatibility(d, reports(d)).status).toBe("unknown");
 });
-test("selects default streams, excludes covers and guards native multitrack selection", () => {
+test("direct decisions retain no-video, missing-audio, multitrack and HDR guards", () => {
 	const info = media();
 	const video = info.streams[0];
 	if (!video) throw new Error("fixture");
-	info.streams.unshift({ ...video, index: 9, attachedPicture: true });
+	info.streams = [video];
+	expect(
+		checkDirectCompatibility(
+			describeOriginalMedia("file", "version", info),
+			reports(description()),
+		).status,
+	).toBe("supported");
 	info.streams.push({ ...video, index: 4, default: false });
-	const d = describeCompatibility("file", "version", info);
-	expect(d.video?.index).toBe(0);
-	expect(d.multipleTracks).toBe(true);
-	expect(planCompatibility(d, reports(d)).direct.reason).toBe(
+	let d = describeOriginalMedia("file", "version", info);
+	expect(checkDirectCompatibility(d, reports(d)).reason).toBe(
 		"native-track-selection-uncertain",
 	);
-});
-test("HDR encoding remains a recommendation and performance never forces encoding", () => {
-	const d = description();
-	if (!d.video) throw new Error("fixture");
-	d.video.hdr = true;
-	const result = planCompatibility(
-		d,
-		reports(d, { original: "unsupported", "file-video": "unsupported" }),
+	const hdr: OriginalMediaDescription = {
+		...description(),
+		video: {
+			...(description().video as NonNullable<CompatibilityInspection["video"]>),
+			hdr: true,
+		},
+	};
+	expect(checkDirectCompatibility(hdr, reports(hdr)).reason).toBe(
+		"hdr-display-unverified",
 	);
-	expect(result.plans[0]?.mode).toBe("transcode-video");
-	expect(result.plans[0]).not.toHaveProperty("execution");
-	expect(result.warnings).toContain("hdr-display-unverified");
-	const plain = description();
-	const evidence = reports(plain);
-	if (evidence[0]) evidence[0].smooth = false;
-	expect(planCompatibility(plain, evidence).plans[0]?.mode).toBe("direct");
-	expect(planCompatibility(plain, evidence).warnings).toContain(
-		"playback-may-not-be-smooth",
+	d = { ...description(), video: null };
+	expect(checkDirectCompatibility(d, reports(d)).reason).toBe(
+		"no-video-stream",
 	);
 });
 const cleanup: Array<() => Promise<unknown>> = [];
@@ -213,6 +189,7 @@ async function fixture() {
 	const compatibility = new MediaCompatibilityApplication({
 		inspection,
 		sources: library.sources,
+		profiles: builtinTranscodeProfiles,
 	});
 	const app = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
@@ -242,7 +219,12 @@ test("HTTP negotiation uses shared probes, returns safe descriptors and rejects 
 	expect(response.headers["cache-control"]).toBe("no-store");
 	expect(response.body).not.toContain(root);
 	expect(response.body).not.toContain("extradata");
-	const body = { sourceVersion: d.sourceVersion, evidence: reports(d) };
+	const body = {
+		sourceVersion: d.sourceVersion,
+		descriptionId: d.descriptionId,
+		output: null,
+		evidence: reports(d),
+	};
 	const checked = await app.inject({
 		method: "POST",
 		url,
@@ -302,89 +284,6 @@ test("unavailable probe produces retryable inspection error without blocking med
 	).toBe(200);
 });
 
-test("checks only unchanged source streams without inventing encoded output", () => {
-	const d = description();
-	expect(d.rulesVersion).toBe("2");
-	expect(d.queries.length).toBeLessThanOrEqual(16);
-	expect(d.queries.some((query) => query.id.includes("encoded"))).toBe(false);
-	for (const query of d.queries) {
-		if (query.video) expect(query.video).toEqual(d.video);
-		if (query.audio) expect(query.audio).toEqual(d.audio);
-	}
-	const result = planCompatibility(
-		d,
-		reports(d, { original: "unsupported", "file-video": "unsupported" }),
-	);
-	expect(result.plans[0]).toMatchObject({
-		mode: "transcode-video",
-		videoAction: "encode",
-		audioAction: "copy",
-		reason: "video-encoding-required",
-	});
-	expect(JSON.stringify(result.plans)).not.toMatch(
-		/libx264|aac|yuv420p|crf|encoder|muxer|execution|outputVideo|outputAudio/,
-	);
-});
-
-test("file and media-source recommendations use independent browser evidence", () => {
-	const d = description();
-	const result = planCompatibility(
-		d,
-		reports(d, { "media-source-audio": "unsupported" }),
-	);
-	expect(result.plans[0]?.mode).toBe("direct");
-	expect(result.plans[1]).toMatchObject({
-		mode: "transcode-audio",
-		audioAction: "encode",
-	});
-});
-
-test("accepts unchanged WebM streams without forcing MP4 or H.264/AAC output", () => {
-	const info = media();
-	const video = info.streams[0];
-	const audio = info.streams[1];
-	if (!video || !audio) throw new Error("fixture");
-	video.codec = "vp9";
-	video.codecString = "vp9";
-	audio.codec = "opus";
-	audio.codecString = "opus";
-	const d = describeCompatibility("file", "version", info);
-	const evidence = reports(d, {
-		original: "unsupported",
-		"file-video-mp4": "unsupported",
-		"file-audio-mp4": "unsupported",
-		"file-combined-mp4": "unsupported",
-	});
-	const result = planCompatibility(d, evidence);
-	expect(result.plans[0]).toMatchObject({
-		mode: "remux",
-		videoAction: "copy",
-		audioAction: "copy",
-	});
-	expect(result.plans[0]).not.toHaveProperty("container");
-	expect(result.plans[0]).not.toHaveProperty("codec");
-});
-
-test("missing candidate evidence stays unknown, separate stream acceptance does not certify packaging", () => {
-	const d = description();
-	let evidence = reports(d, {
-		original: "unsupported",
-		"file-video-mp4": "unsupported",
-		"file-video-webm": "unknown",
-	});
-	expect(planCompatibility(d, evidence).plans[0]?.mode).toBe("unknown");
-	evidence = reports(d, {
-		original: "unsupported",
-		"file-combined": "unsupported",
-	});
-	expect(planCompatibility(d, evidence).plans[0]).toMatchObject({
-		mode: "unknown",
-		videoAction: "copy",
-		audioAction: "copy",
-		reason: "stream-combination-unverified",
-	});
-});
-
 test("server enumeration is independent of planning and its HTTP endpoint is removed", async () => {
 	const capabilities = vi
 		.spyOn(MediaTools.prototype, "capabilities")
@@ -403,6 +302,8 @@ test("server enumeration is independent of planning and its HTTP endpoint is rem
 		headers,
 		payload: {
 			sourceVersion: d.sourceVersion,
+			descriptionId: d.descriptionId,
+			output: null,
 			evidence: reports(d, {
 				original: "unsupported",
 				"file-audio": "unsupported",
@@ -410,7 +311,8 @@ test("server enumeration is independent of planning and its HTTP endpoint is rem
 		},
 	});
 	expect(response.statusCode).toBe(200);
-	expect(response.json().plans[0].mode).toBe("transcode-audio");
+	expect(response.json()).not.toHaveProperty("plans");
+	expect(response.json().output).toBeNull();
 	expect(response.json()).not.toHaveProperty("processing");
 	expect(capabilities).not.toHaveBeenCalled();
 	probe.mockClear();
@@ -438,6 +340,8 @@ test("rejects obsolete encoded-output reports and revalidates the source before 
 				headers,
 				payload: {
 					sourceVersion: d.sourceVersion,
+					descriptionId: d.descriptionId,
+					output: null,
 					evidence: [{ ...first, id: "mp4-encoded-video" }],
 				},
 			})
@@ -456,8 +360,92 @@ test("rejects obsolete encoded-output reports and revalidates the source before 
 				method: "POST",
 				url,
 				headers,
-				payload: { sourceVersion: d.sourceVersion, evidence },
+				payload: {
+					sourceVersion: d.sourceVersion,
+					descriptionId: d.descriptionId,
+					output: null,
+					evidence,
+				},
 			})
 		).statusCode,
 	).toBe(409);
+});
+
+test("unified HTTP contracts reject obsolete payloads and isolate output contexts", async () => {
+	const { app, fileId, root } = await fixture();
+	const url = `/api/files/${fileId}/compatibility`;
+	const headers = { host: "127.0.0.1:3000" };
+	const original = (
+		await app.inject({ url, headers })
+	).json<CompatibilityInspection>();
+	expect(original.rulesVersion).toBe("3");
+	expect(original.output).toBeNull();
+	expect(
+		original.queries.every((query) => query.id.startsWith("original")),
+	).toBe(true);
+	expect(
+		(
+			await app.inject({
+				method: "POST",
+				url,
+				headers,
+				payload: {
+					sourceVersion: original.sourceVersion,
+					evidence: reports(original),
+				},
+			})
+		).statusCode,
+	).toBe(400);
+	const response = await app.inject({
+		url: `${url}?profileId=builtin%3Abalanced&target=file`,
+		headers,
+	});
+	expect(response.statusCode).toBe(200);
+	const output = response.json<CompatibilityInspection>();
+	expect(output.descriptionId).not.toBe(original.descriptionId);
+	expect(output.output?.profileId).toBe("builtin:balanced");
+	const payload = {
+		sourceVersion: output.sourceVersion,
+		descriptionId: output.descriptionId,
+		output: { profileId: "builtin:balanced", target: "file" },
+		evidence: reports(output),
+	};
+	const checked = await app.inject({ method: "POST", url, headers, payload });
+	expect(checked.statusCode).toBe(200);
+	expect(checked.json().output.combinations["copy-copy"]).toBe("supported");
+	expect(checked.body).not.toContain(root);
+	expect(checked.body).not.toMatch(
+		/canonicalRoot|libx264|encoder|crf|preset|plans/,
+	);
+	expect(
+		(
+			await app.inject({
+				method: "POST",
+				url,
+				headers,
+				payload: { ...payload, output: null },
+			})
+		).statusCode,
+	).toBe(400);
+	expect(
+		(
+			await app.inject({
+				method: "POST",
+				url,
+				headers,
+				payload: {
+					...payload,
+					output: { profileId: "builtin:balanced", target: "media-source" },
+				},
+			})
+		).statusCode,
+	).toBe(400);
+	expect(
+		(await app.inject({ url: `${url}?target=media-source`, headers }))
+			.statusCode,
+	).toBe(400);
+	expect(
+		(await app.inject({ url: `${url}?profileId=custom%3Amissing`, headers }))
+			.statusCode,
+	).toBe(400);
 });

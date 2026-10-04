@@ -6,6 +6,10 @@ export {
 	checkExecutionCapabilities,
 	MediaExecutionCapabilityError,
 } from "./execution-capabilities.js";
+export {
+	compileFfmpegArguments,
+	FfmpegExecutionAdapter,
+} from "./ffmpeg-adapter.js";
 export type {
 	ExtractedSubtitle,
 	HdrSideData,

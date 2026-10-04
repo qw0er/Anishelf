@@ -1,11 +1,14 @@
 import { Type } from "typebox";
 import {
 	CompatibilityCheckRequestSchema,
+	CompatibilityInspectionQuerySchema,
 	CompatibilityInspectionSchema,
 	CompatibilityResultSchema,
 	ResourceIdSchema,
 } from "../../../contracts/schemas/index.js";
+import { DomainError } from "../../../shared/errors.js";
 import type { HttpInstance } from "../../../transport/instance.js";
+import { presentCompatibility } from "../../../transport/presenters.js";
 import type { MediaCompatibilityApplication } from "../application/compatibility.js";
 export function registerCompatibilityRoutes(
 	app: HttpInstance,
@@ -17,10 +20,26 @@ export function registerCompatibilityRoutes(
 	);
 	app.get(
 		"/api/files/:id/compatibility",
-		{ schema: { params, response: { 200: CompatibilityInspectionSchema } } },
+		{
+			schema: {
+				params,
+				querystring: CompatibilityInspectionQuerySchema,
+				response: { 200: CompatibilityInspectionSchema },
+			},
+		},
 		async (request, reply) => {
 			reply.header("Cache-Control", "no-store");
-			return compatibility.inspect(request.params.id);
+			const { sourceVersion, profileId, target } = request.query;
+			if (target && !profileId)
+				throw new DomainError(
+					"INVALID_REQUEST",
+					"A profile ID is required with a delivery target.",
+				);
+			return compatibility.inspect({
+				fileId: request.params.id,
+				...(sourceVersion ? { sourceVersion } : {}),
+				output: profileId ? { profileId, target: target ?? "file" } : null,
+			});
 		},
 	);
 	app.post(
@@ -34,7 +53,12 @@ export function registerCompatibilityRoutes(
 		},
 		async (request, reply) => {
 			reply.header("Cache-Control", "no-store");
-			return compatibility.check(request.params.id, request.body);
+			return presentCompatibility(
+				await compatibility.check({
+					fileId: request.params.id,
+					...request.body,
+				}),
+			);
 		},
 	);
 }

@@ -105,20 +105,6 @@ export default function FilePlayer({
 											{ defaultValue: t("compatibility.reasonUnknown") },
 										)}
 									</p>
-									{compatibility.result.plans
-										.filter(
-											(plan) =>
-												plan.target === "file" && plan.mode !== "direct",
-										)
-										.map((plan) => (
-											<p key={plan.target} className="text-sm">
-												{plan.mode === "unknown"
-													? t("compatibility.preparationUnknown")
-													: t("compatibility.recommendation", {
-															mode: t(`compatibility.modes.${plan.mode}`),
-														})}
-											</p>
-										))}
 									<details className="text-sm">
 										<summary>{t("compatibility.details")}</summary>
 										<dl className="mt-2 space-y-2">
@@ -145,28 +131,6 @@ export default function FilePlayer({
 													</div>
 												),
 											)}
-											{compatibility.result.plans.map((plan) => (
-												<div key={plan.target}>
-													<dt className="font-medium">
-														{t(`compatibility.targets.${plan.target}`)}
-													</dt>
-													<dd>
-														{t("compatibility.streamActions", {
-															video: t(
-																`compatibility.actions.${plan.videoAction}`,
-															),
-															audio: t(
-																`compatibility.actions.${plan.audioAction}`,
-															),
-														})}
-													</dd>
-													<dd>
-														{t(`compatibility.reasons.${plan.reason}`, {
-															defaultValue: t("compatibility.reasonUnknown"),
-														})}
-													</dd>
-												</div>
-											))}
 										</dl>
 									</details>
 

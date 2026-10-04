@@ -1,16 +1,98 @@
 # Internal media execution
 
-Compatibility planning describes whether source video/audio should be copied or
-encoded. It never selects output profiles, encoders or FFmpeg arguments. Execution
-is a separate backend API, with no new HTTP endpoint or player integration.
+Compatibility negotiation reports browser acceptance for original media and, when
+an output profile is explicitly selected, its concrete output candidates. The execution
+resolver applies that profile's policy and constructs concrete encoding requirements;
+the FFmpeg adapter compiles arguments. These are backend APIs, with no new HTTP
+endpoint or player integration.
 
-An execution caller supplies a source version, explicit stream indexes and a
-`MediaProcessingPlan`. No production transcoding adapter or executable default target is
-provided. The separate [profile foundation](transcode-profiles.md) defines built-in
-and external output policies, but has not yet been connected to this execution API. Construction requires a caller-supplied `MediaExecutionAdapter` whose
-`execute()` method implements the concrete encoding parameters and arguments.
-The former fixed MP4/H.264/AAC adapter and mode-based `process()` API were removed.
-Concrete adapters can be implemented later without changing the planner. `null` audio selection produces video-only output.
+`MediaCompatibilityApplication` owns browser negotiation for both original media
+and profile-selected output candidates. `resolveExecutionPlan()` is a pure resolver
+that applies profile policy to checked compatibility conclusions and produces an
+explicit `MediaExecutionRequest`. `MediaProcessingApplication` rechecks the source,
+preflights FFmpeg requirements and executes the request through
+`FfmpegExecutionAdapter`. There is no separate execution-planning Application.
+
+`createMediaExecutionModule()` composes the compatibility and processing
+applications from configuration, inspected sources and discovered tools. It is an
+internal factory; preparation HTTP routes and the player do not invoke it yet.
+The GET/POST compatibility routes use the same unified exchange with rules version 3;
+the former request shapes and generic operation recommendations have been removed.
+
+The preparation exchange has three steps:
+
+1. `compatibility.inspect({ fileId, sourceVersion, output })` returns a
+   source/root-bound `descriptionId`, selected streams and browser queries.
+   `output: null` checks only the original media. An explicit
+   `{ profileId, target }` adds the profile fingerprint and concrete copy/encode
+   candidates in that profile's container. `file` and `media-source` use distinct
+   evidence. Missing profiles fail explicitly; no substitute is selected.
+2. `compatibility.check({ fileId, sourceVersion, descriptionId, output, evidence })`
+   rebuilds the description, verifies its fingerprint and validates evidence,
+   then rechecks source freshness. It returns an immutable checked snapshot with
+   original decisions and optional output-combination acceptance, plus private
+   source-root and profile data. The HTTP presenter exposes only public conclusions;
+   internal snapshots must not be serialized directly. Unknown or incomplete
+   descriptors remain unknown even if the client reports support. No generic
+   processing plan or raw evidence is returned.
+3. `resolveExecutionPlan(checked)` synchronously applies size/stereo/forced-encoding
+   policy and maps compatible streams to copy or required encoding. It requires
+   support for the chosen combination and returns `direct`, `blocked` or
+   `processing` with per-stream reasons and an immutable request. It performs no
+   source access, browser negotiation, profile lookup or server capability checks.
+   `processing.start(request)` owns server preflight, immediately before execution.
+   A source-only check can resolve direct; otherwise an output context is required.
+   Missing/unknown inventory rejects completion with the detailed capability error;
+   a resolved plan alone does not establish that the server can execute it.
+
+The profile-content fingerprint covers delivery and encoding policy, independent
+of JSON key order and display metadata. The execution ID additionally includes
+compiler version, canonical source root, source version, selected streams and
+operations. The description ID also binds browser queries and the current root
+epoch. These identities support future deduplication; they do not persist tasks.
+
+Encoded browser descriptors currently cover `libx264`/`yuv420p` High Level 5.1
+(`avc1.640033`) and AAC-LC (`mp4a.40.2`). The adapter explicitly applies those
+profile/level choices, and publication validates the H.264 descriptor. Dimensions
+and frame rate must be known and fit the H.264 level when encoding. CRF output
+bitrate is unknown, so it is not fabricated for MediaCapabilities. Other typed
+profiles can copy supported streams, but required encodings without an exact
+implemented output descriptor remain blocked. HDR conversion is also blocked.
+Browser reports are evidence, not playback certification.
+
+The production adapter compiles all declared encoder-specific parameter variants
+for trusted explicit callers. It maps only selected absolute stream indexes,
+omits subtitles/attachments/chapters, uses local file/pipe protocols, preserves
+copied streams, and emits fast-start MP4/MOV for file delivery or fragmented
+MP4 for MSE delivery. The latter is still a completed private artifact: incremental
+segment publication, HLS sessions and real-time profiles are separate future work.
+Encoding filters are generated from typed policy: downscale only when necessary, pad odd dimensions, convert pixel
+format and declare implicit video/audio conversion dependencies for preflight.
+It accepts no arbitrary administrator argument strings or filter graphs.
+`null` audio selection produces video-only output.
+
+A planner-driven caller can execute the resulting request:
+
+```ts
+const output = { profileId: selectedProfileId, target: "file" } as const;
+const description = await compatibility.inspect({ fileId, sourceVersion, output });
+const evidence = await queryClientCapabilities(description.queries);
+const checked = await compatibility.check({
+  fileId,
+  sourceVersion,
+  descriptionId: description.descriptionId,
+  output,
+  evidence,
+});
+const result = resolveExecutionPlan(checked);
+if (result.kind === "processing") {
+  const handle = processing.start(result.request);
+  const media = await handle.completion;
+  await processing.release(media.id);
+}
+```
+
+Trusted internal callers may still supply an explicit execution contract directly:
 
 ```ts
 const execution = processing.start({
@@ -73,6 +155,21 @@ Pending and published files have neutral `media.pending` and `media` names.
 
 Build support cannot establish codec/container combinations, hardware availability
 or real output validity. Adapters must check child exit; the application checks file size, stream
-counts, codecs, container and duration. Results are source-version-bound temporary artifacts.
+counts, codecs, container, pixel format, configured height/channel constraints,
+exact planned H.264 descriptor and available video/audio durations. Results are source-version-bound temporary artifacts.
 Persistent jobs, restart recovery, scheduling, HTTP progress, pre-transcode
 playback and real-time HLS remain future integrations.
+
+
+## Verification
+
+The real-FFmpeg test generates a short H.264/AAC Matroska sample and executes
+remux, audio-only encoding, video-only encoding and both-stream encoding. It
+compares compressed packet SHA-256 hashes for copied streams, probes completed
+outputs, exercises output-budget rejection and confirms cancellation waits for
+child exit. It also probes fragmented MP4 and verifies copied video packet hashes.
+The test skips when FFmpeg/FFprobe are unavailable; synthetic browser
+evidence drives branch selection and does not establish actual browser playback.
+Compatibility/resolver tests cover direct/blocked results, profile constraints,
+changed policy, source/selection handling, shared evidence validation and immutable
+snapshots. Processing tests cover server capability failures.

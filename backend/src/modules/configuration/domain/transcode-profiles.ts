@@ -1,8 +1,7 @@
-import type { Static } from "typebox";
-import type { TranscodeProfileSchema } from "../../../contracts/schemas/transcode-profiles.js";
 import { freeze } from "../../../shared/policy.js";
+import type { TranscodeProfile } from "../../../shared/transcode-profiles.js";
 
-export type TranscodeProfile = Static<typeof TranscodeProfileSchema>;
+export type { TranscodeProfile } from "../../../shared/transcode-profiles.js";
 export const defaultTranscodeProfileId = "builtin:balanced";
 export const builtinTranscodeProfiles = freeze<TranscodeProfile[]>([
 	{

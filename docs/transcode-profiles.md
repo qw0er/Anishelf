@@ -2,10 +2,10 @@
 
 The profile foundation provides a shared schema, two built-in preparation profiles,
 optional administrator-authored profiles, a read-only catalog and a persistent user
-selection. It does not execute profiles, certify browser playback, inspect encoder
-availability, or add a Settings selector yet. The existing compatibility planner
-and media execution API remain unchanged. A later resolver and production adapter
-will translate a selected profile into an explicit execution plan.
+selection. It does not certify browser playback or add a Settings selector yet. The internal
+[compatibility negotiation, execution resolver and FFmpeg adapter](media-execution.md)
+now translate selected profiles into explicit requests. The processing application
+preflights server capabilities and validates completed output. Persistent tasks, playback integration and HLS remain planned.
 
 ## Built-in profiles
 
@@ -21,7 +21,7 @@ when video encoding is needed and may produce larger output at the same CRF.
 These are initial encoding policies, not guarantees about output size or speed.
 
 Copying must satisfy the selected profile's constraints, output packaging and
-client compatibility together. A future resolver must encode when a requested
+client compatibility together. The execution resolver encodes when a requested
 size/channel transformation is necessary, even if the original stream can play.
 `maxHeight` is a ceiling; it must not upscale smaller sources. `channels: "stereo"`
 requests stereo output; `"preserve"` retains the selected source channel count.
@@ -165,9 +165,12 @@ lifetime of the configuration service.
 Loading validates the application's supported declaration shapes, not the installed
 FFmpeg build, device/driver availability, pixel-format support, container/stream
 combinations, HDR handling or client decoding. It therefore accepts supported
-hardware declarations on servers without that hardware. A future resolver must
-check all of those execution requirements and client evidence before starting a
-task; the adapter must validate actual output. Catalog membership is never proof
+hardware declarations on servers without that hardware. The compatibility application checks client evidence for concrete output
+candidates. The pure execution resolver applies profile policy to those conclusions;
+the processing application checks server requirements and validates actual output.
+Encoded descriptors currently cover libx264/yuv420p High Level 5.1 and AAC-LC.
+Other required encodings without an exact descriptor remain blocked, and hardware
+execution is not certified. Catalog membership is never proof
 that a profile can execute or play on the current client.
 
 ## Catalog and user selection
@@ -216,6 +219,6 @@ published settings and effective configuration unchanged.
 If a saved custom profile disappears, preserve its ID and return
 `selectionAvailable: false`. Unrelated settings saves preserve this choice. The
 user can select another existing profile or reset to the default; the application
-does not silently replace the missing choice. Actual task creation, profile
-snapshots, content-based cache identity and user-facing selection controls will
-be implemented with the execution and preparation integrations.
+does not silently replace the missing choice. Profile-specific compatibility negotiation snapshots profile content and calculates a canonical policy
+fingerprint, excluding display metadata. Actual task creation, persistent cache
+reuse and user-facing selection controls remain preparation integration work.

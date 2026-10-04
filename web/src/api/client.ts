@@ -258,25 +258,40 @@ export function getSubtitlePreparation(
 	return request(statusUrl, "GET", options);
 }
 
-export function getMediaCompatibility(
-	fileId: string,
+export function inspectMediaCompatibility(
+	input: {
+		fileId: string;
+		sourceVersion?: string;
+		output?: NonNullable<
+			import("./contracts.js").CompatibilityCheckRequest["output"]
+		>;
+	},
 	options?: RequestOptions,
 ): Promise<import("./contracts.js").CompatibilityInspection> {
+	const query = new URLSearchParams();
+	if (input.sourceVersion) query.set("sourceVersion", input.sourceVersion);
+	if (input.output) {
+		query.set("profileId", input.output.profileId);
+		query.set("target", input.output.target);
+	}
+	const suffix = query.size ? `?${query}` : "";
 	return request(
-		`/api/files/${encodeURIComponent(fileId)}/compatibility`,
+		`/api/files/${encodeURIComponent(input.fileId)}/compatibility${suffix}`,
 		"GET",
 		options,
 	);
 }
 export function checkMediaCompatibility(
-	fileId: string,
-	input: import("./contracts.js").CompatibilityCheckRequest,
+	input: import("./contracts.js").CompatibilityCheckRequest & {
+		fileId: string;
+	},
 	options?: RequestOptions,
 ): Promise<import("./contracts.js").CompatibilityResult> {
+	const { fileId, ...body } = input;
 	return request(
 		`/api/files/${encodeURIComponent(fileId)}/compatibility`,
 		"POST",
 		options,
-		input,
+		body,
 	);
 }

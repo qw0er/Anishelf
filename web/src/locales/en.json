@@ -156,16 +156,7 @@
 		"recheck": "Check again",
 		"tryDirect": "Try original file",
 		"runtimeFailed": "Actual playback failed. Browser support information does not guarantee playback; check the file and connection or retry.",
-		"recommendation": "Recommended preparation: {{mode}}.",
 		"performanceWarning": "This browser reports that playback may not be smooth.",
-		"modes": {
-			"unknown": "Cannot determine",
-			"remux": "Change container",
-			"transcode-audio": "Convert audio only",
-			"transcode-video": "Convert video only",
-			"transcode": "Convert audio and video",
-			"direct": "Use original file"
-		},
 		"reasons": {
 			"browser-supported": "The browser accepts the described container and codecs. Actual playback remains the final check.",
 			"browser-rejected": "The browser rejects the described media configuration.",
@@ -198,18 +189,6 @@
 			"supported": "Reported supported",
 			"unsupported": "Reported unsupported",
 			"unknown": "Unknown"
-		},
-		"targets": {
-			"file": "File playback",
-			"media-source": "Media Source playback"
-		},
-		"actions": {
-			"copy": "Keep original stream",
-			"encode": "Convert",
-			"none": "No audio",
-			"unknown": "Undetermined"
-		},
-		"streamActions": "Video: {{video}}. Audio: {{audio}}.",
-		"preparationUnknown": "There is insufficient information to recommend preparation."
+		}
 	}
 }
