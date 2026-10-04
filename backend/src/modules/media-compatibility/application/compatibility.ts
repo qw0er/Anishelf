@@ -18,8 +18,6 @@ export class MediaCompatibilityApplication {
 		private readonly options: {
 			inspection: MediaInspectionApi;
 			sources: ResourceAccessApi;
-			ffmpegAvailable: boolean;
-			processingCapabilities?: () => Promise<CompatibilityResult["processing"]>;
 			logger?: Logger;
 		},
 	) {}
@@ -77,12 +75,7 @@ export class MediaCompatibilityApplication {
 				);
 			seen.add(e.id);
 		}
-		const result = planCompatibility(
-			description,
-			input.evidence,
-			this.options.ffmpegAvailable,
-			await this.options.processingCapabilities?.(),
-		);
+		const result = planCompatibility(description, input.evidence);
 		await this.options.sources.revalidateSource(source);
 		this.options.sources.assertRootEpoch(source.rootEpoch);
 		this.options.logger?.debug(

@@ -45,7 +45,7 @@ export const CompatibilityInspectionSchema = Type.Object(
 	{
 		fileId: ResourceIdSchema,
 		sourceVersion: SourceVersionSchema,
-		rulesVersion: Type.Literal("1"),
+		rulesVersion: Type.Literal("2"),
 		container: nullableString,
 		video: Type.Union([stream, Type.Null()]),
 		audio: Type.Union([stream, Type.Null()]),
@@ -88,7 +88,7 @@ const decision = Type.Object(
 );
 const plan = Type.Object(
 	{
-		target: Type.Union([Type.Literal("mp4"), Type.Literal("mse")]),
+		target: Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
 		mode: Type.Union([
 			Type.Literal("direct"),
 			Type.Literal("remux"),
@@ -99,8 +99,6 @@ const plan = Type.Object(
 		]),
 		video: decision,
 		audio: decision,
-		outputVideo: decision,
-		outputAudio: decision,
 		videoAction: Type.Union([
 			Type.Literal("copy"),
 			Type.Literal("encode"),
@@ -112,12 +110,6 @@ const plan = Type.Object(
 			Type.Literal("none"),
 			Type.Literal("unknown"),
 		]),
-		execution: Type.Union([
-			Type.Literal("not-required"),
-			Type.Literal("unverified"),
-			Type.Literal("unavailable"),
-			Type.Literal("blocked"),
-		]),
 		reason: Type.String({ maxLength: 128 }),
 	},
 	{ additionalProperties: false },
@@ -126,15 +118,7 @@ export const CompatibilityResultSchema = Type.Object(
 	{
 		fileId: ResourceIdSchema,
 		sourceVersion: SourceVersionSchema,
-		rulesVersion: Type.Literal("1"),
-		processing: Type.Object(
-			{
-				mp4: Type.Union([Type.Boolean(), Type.Null()]),
-				h264: Type.Union([Type.Boolean(), Type.Null()]),
-				aac: Type.Union([Type.Boolean(), Type.Null()]),
-			},
-			{ additionalProperties: false },
-		),
+		rulesVersion: Type.Literal("2"),
 		direct: decision,
 		video: decision,
 		audio: decision,

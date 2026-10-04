@@ -2,8 +2,8 @@
 
 Compatibility checking is implemented independently of media preparation. It combines
 version-bound source inspection with reports from the current browser and returns
-explainable decisions for the original file, prepared MP4, and an MSE/fMP4 delivery
-candidate. It never starts FFmpeg conversion or an external player.
+explainable decisions for the original file and operation-only recommendations
+for file and Media Source playback. It never starts FFmpeg conversion or an external player.
 
 ## Inspection and negotiation
 
@@ -45,41 +45,77 @@ VP8, basic 8-bit VP9 profile 0, Opus, Vorbis, MP3, AC-3 and E-AC-3 have explicit
 family descriptors. Detailed VP9 profiles and unrecognized configurations remain
 unknown; legacy WebM VP8/VP9 descriptors are not reused as MP4 descriptors.
 
-Short codec-family queries for proposed H.264/AAC output are preliminary checks.
-The actual CRF-generated bitrate, profile/level and packaging must be probed after
-processing; no ungenerated output is certified playable.
+The browser queries only the unchanged source streams. MP4 and WebM MIME types
+are evidence candidates for file and Media Source delivery, not output selections.
+Each delivery type checks video, audio (if present), and their combination. No
+hypothetical H.264/AAC output, bitrate, pixel format, profile or level is invented.
+The bounded query set contains at most 16 entries.
 
 ## Decisions and recommendations
 
-Every decision is `supported`, `unsupported`, or `unknown`, with a reason. Native
-file, MP4 and MSE results are separate. Audio/video copying is recommended only
-when the target query is supported and the codec belongs to the explicitly modeled
-MP4 packaging candidates. Other combinations remain unknown rather than being
-silently re-encoded. The candidates are not a muxing certification: completed
-output still requires validation.
+Every decision is `supported`, `unsupported`, or `unknown`, with a reason. The
+original file and the two delivery types (`file`, `media-source`) are evaluated
+separately. The compatibility contract uses `rulesVersion: "2"`.
 
 | Evidence | Recommendation |
 | --- | --- |
 | Original combination supported | Direct playback; no processing required |
-| Original rejected, target audio/video supported | Remux with both streams copied |
-| Target audio rejected, video supported | Encode audio only |
-| Target video rejected, audio supported | Encode video only |
-| Both target streams rejected | Encode audio and video |
-| Required target information missing | Unknown; permit an explicit original-file attempt |
+| Original rejected, unchanged streams and their combination accepted in another packaging candidate | Remux with both streams copied |
+| Audio rejected in all evidence candidates, video accepted | Encode audio only |
+| Video rejected in all evidence candidates, audio accepted | Encode video only |
+| Both streams rejected in all evidence candidates | Encode audio and video |
+| Missing or uncertain evidence | Unknown; permit an explicit original-file attempt |
+| Streams individually accepted, combined packaging unconfirmed | Unknown; do not certify remuxing |
 
-The response contains selected stream descriptions, separate original stream
-results, per-target copy/encode actions, output-codec evidence, performance hints,
-and service capability inventory. FFmpeg's MP4 muxer, libx264 and AAC encoder are
-queried once per service lifetime. Missing inventory is unknown; missing required
-capabilities block the recommendation. Binary availability alone proves nothing
-about encoders. HDR encoding is blocked by the current profile. MSE/HLS execution
-is unavailable until its delivery adapter is implemented. Other preparation plans
-remain unverified and are not yet connected to HTTP processing or the player.
+An accepted candidate establishes browser evidence for retaining a stream. A
+stream is rejected only when all its candidates are rejected; otherwise it remains
+unknown. No codec whitelist forces accepted source streams into a fixed MP4
+profile. Candidate and combined-query acceptance still do not certify muxing or
+actual playback.
+
+Plans contain only the delivery type, mode, source-stream compatibility decisions,
+`copy`/`encode`/`none`/`unknown` actions and reasons. They do not select a container,
+output codec, encoder, encoding profile or parameters, and do not report server
+inventory, hypothetical output compatibility, or executor availability. Selected
+source descriptors remain in the response as input information. Planning neither
+enumerates server tools nor depends on installed encoders. A future executor must
+choose output packaging/codecs/encoders, check server and client capabilities for
+that concrete choice, and validate the generated output before serving it.
 
 Multiple audio/video tracks make native track selection uncertain. HDR display
-behavior is also unverified, even when a codec query succeeds. `smooth: false`
-warns about performance without forcing conversion. Subtitle compatibility remains
-independent and never forces audio/video encoding.
+behavior is unverified even when a codec query succeeds. HDR encoding may be
+recommended when the source is rejected; the future executor decides whether it
+can implement that recommendation. The existing explicit MP4 primitive still
+rejects HDR encoding. `smooth: false` warns about performance without forcing
+conversion. Subtitle compatibility remains independent of audio/video planning.
+
+## Internal server media capabilities
+
+`MediaTools.capabilities()` returns the complete advertised FFmpeg build inventory
+through a backend-only API. There is no server-capability HTTP endpoint or browser
+contract. It includes FFmpeg/FFprobe availability and version, a detection
+timestamp, and twelve lists: codecs, encoders, decoders, muxers, demuxers, filters,
+bitstream filters, protocols, devices, pixel formats, sample formats, and hardware
+acceleration methods. Entries retain names, descriptions, FFmpeg flags, codec
+identities and stream kinds where applicable. Comma-separated format/device
+aliases are expanded into separate names; protocols retain input/output direction.
+
+Each list reports `ready`, `failed`, `unavailable`, or `unknown`. A ready empty
+list confirms absence; a failed/unknown list does not. The aggregate status is
+`ready`, `partial`, `failed`, `unavailable`, or `unknown`. `ready` means all FFmpeg
+lists were enumerated; FFprobe availability is reported separately.
+
+Enumeration starts on the first internal capability request, shares concurrent
+requests, and caches successful and failed categories for the service lifetime.
+Restart after replacing binaries or fixing detection failures. Returned snapshots
+are isolated from the cache. The media-tool policy permits two enumeration children
+at a time, with a five-second timeout and 1 MiB output bound per command.
+
+This is a build inventory (`scope: build`, `runtimeValidation: unverified`).
+Hardware components may be compiled in without accessible hardware or suitable
+drivers. Listing an encoder does not establish successful encoding, acceptable
+speed, codec/container combinations, or playback of a particular source. Runtime
+sample validation and real-time HLS execution remain separate work.
 
 ## Player behavior
 
@@ -99,8 +135,9 @@ already mounted video.
 ## Verification
 
 Automated coverage includes codec descriptors, all processing branches, absent
-metadata/audio, multiple tracks/cover art, HDR, rejected output codecs, unavailable
-encoders, safe HTTP negotiation, stale source versions, browser API failures,
+metadata/audio, multiple tracks/cover art, HDR recommendations, independent
+delivery evidence, source-only queries, safe HTTP negotiation, stale source versions,
+server-inventory isolation and removal of its HTTP endpoint, browser API failures,
 query timeout/cancellation, explicit original-file attempts, runtime failure,
 navigation and playback-progress regressions.
 

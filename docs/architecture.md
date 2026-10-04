@@ -570,7 +570,13 @@ register `close()` with their lifecycle and revalidate the source before serving
 or reusing a result. Service construction performs no processing or disk writes.
 
 These are backend primitives, available for a future playback/preparation caller.
-They are not currently wired to HTTP or the player. Browser capability negotiation and compatibility planning are implemented separately;
+They are not currently wired to HTTP or the player. `MediaTools.capabilities()`
+enumerates the complete advertised FFmpeg build inventory once per service
+lifetime, with bounded concurrency, per-command limits, isolated snapshots and
+independent category failures. The inventory is backend-only and has no HTTP
+endpoint or browser contract. It is independent of compatibility planning.
+Hardware runtime usability and actual processing remain unverified. Browser
+capability negotiation and compatibility planning are implemented separately;
 see [Video compatibility checks](video-compatibility.md). Persistent task/asset
 records, processing progress reporting, crash recovery, and HLS remain planned below. Outputs are temporary service-owned files; a crash
 can leave orphan job directories until a future recovery mechanism removes them.
@@ -579,7 +585,7 @@ acceptance remain pending.
 
 ### Inspection and minimum necessary processing
 
-Probe on demand, with bounded FFprobe work cached by source version. Return container, duration, video/audio descriptors, subtitle choices, target profile and a per-stream action/reason. Select default video/audio streams, falling back to the first usable stream; missing audio is valid. File extensions alone never determine compatibility. Match codec/profile/pixel format/audio/container and target browser capabilities; uncertain combinations are reported as uncertain, not claimed playable.
+Probe on demand, with bounded FFprobe work cached by source version. Return container, duration, video/audio descriptors, subtitle choices and a per-stream action/reason. Compatibility plans do not select output profiles, codecs, encoders or packaging, and do not check execution availability. Select default video/audio streams, falling back to the first usable stream; missing audio is valid. File extensions alone never determine compatibility. Match codec/profile/pixel format/audio/container and target browser capabilities; uncertain combinations are reported as uncertain, not claimed playable.
 
 The first validation target remains Linux desktop Chromium/Chrome. Record OS, browser, FFmpeg/FFprobe, Vidstack, hls.js, JASSUB at acceptance. Availability of a binary alone does not certify its encoders/muxers. HDR conversion, hardware encoding and universal browser support remain unassigned.
 
@@ -591,7 +597,7 @@ The first validation target remains Linux desktop Chromium/Chrome. Record OS, br
 | Video unsupported | Encode video; copy compatible audio or encode if needed |
 | Subtitle needs extraction/format conversion | Process subtitle separately; do not encode otherwise compatible audio/video |
 
-Use the same planner for pre-transcoding and real-time output, evaluating compatibility with MP4 or HLS respectively. Do not encode a copied stream just to force a uniform codec or segment length. Every actual encoding decision must carry a reason. FFmpeg's [stream-copy model](https://ffmpeg.org/ffmpeg.html) underpins the compatible-stream path.
+Use the same operation-only planner for pre-transcoding and real-time output, evaluating client file and Media Source evidence respectively. A future executor chooses concrete output packaging, codecs, encoders and profiles, checks the complete server inventory and validates actual output separately. Do not encode a copied stream just to force a uniform codec or segment length. Every actual encoding decision must carry a reason. FFmpeg's [stream-copy model](https://ffmpeg.org/ffmpeg.html) underpins the compatible-stream path.
 
 ### Pre-transcoding
 

@@ -10,7 +10,9 @@ import {
 	type SubtitlePolicy,
 	subtitlePolicy,
 } from "../../modules/subtitles/public.js";
+import type { ServerMediaCapabilities } from "../../shared/media-capabilities.js";
 import type { DeepReadonly } from "../../shared/policy.js";
+import { detectMediaCapabilities } from "./capabilities.js";
 import { codecDescriptor } from "./codec-descriptor.js";
 import { type MediaToolPolicy, mediaToolPolicy } from "./policy.js";
 
@@ -289,44 +291,15 @@ export class MediaTools {
 		return status.path;
 	}
 
-	/** Trusted backend API: caller must enforce resource-root access before use. */
-	private processingInventory:
-		| Promise<{
-				mp4: boolean | null;
-				h264: boolean | null;
-				aac: boolean | null;
-		  }>
-		| undefined;
-	processingCapabilities() {
-		this.processingInventory ??= (async () => {
-			try {
-				const executable = this.executable("ffmpeg");
-				const [encoders, muxers] = await Promise.all([
-					runTool(
-						executable,
-						["-hide_banner", "-encoders"],
-						{},
-						this.policy.mediaTools,
-						this.logger,
-					),
-					runTool(
-						executable,
-						["-hide_banner", "-muxers"],
-						{},
-						this.policy.mediaTools,
-						this.logger,
-					),
-				]);
-				return {
-					mp4: /^\s*E\s+mp4\s/m.test(muxers),
-					h264: /^\s*V\S*\s+libx264\s/m.test(encoders),
-					aac: /^\s*A\S*\s+aac\s/m.test(encoders),
-				};
-			} catch {
-				return { mp4: null, h264: null, aac: null };
-			}
-		})();
-		return this.processingInventory;
+	private capabilityInventory: Promise<ServerMediaCapabilities> | undefined;
+	/** Enumerate once per service lifetime; callers receive isolated snapshots. */
+	async capabilities(): Promise<ServerMediaCapabilities> {
+		this.capabilityInventory ??= detectMediaCapabilities(
+			this.status,
+			this.policy.mediaTools,
+			this.logger,
+		);
+		return structuredClone(await this.capabilityInventory);
 	}
 	async probe(path: string, signal?: AbortSignal): Promise<MediaInfo> {
 		const executable = this.executable("ffprobe");

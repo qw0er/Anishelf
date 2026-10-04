@@ -72,50 +72,42 @@ export function describeCompatibility(
 			null,
 			audio,
 		);
-	for (const target of ["mp4", "mse"] as const) {
-		const type = target === "mp4" ? "file" : "media-source";
-		add(
-			`${target}-video`,
-			type,
-			"video/mp4",
-			video?.codecString === "vp9" || video?.codecString === "vp8"
-				? { ...video, codecString: null }
-				: video,
-			null,
-		);
-		if (audio) add(`${target}-audio`, type, "audio/mp4", null, audio);
-		// Encoder output level/bitrate depend on the source. These are codec-family checks,
-		// not certification of an as-yet ungenerated output.
-		if (video)
+	// These are browser evidence candidates for unchanged source streams, not selected output formats.
+	for (const target of ["file", "media-source"] as const) {
+		for (const container of ["mp4", "webm"] as const) {
+			const candidateVideo =
+				container === "mp4" &&
+				(video?.codecString === "vp9" || video?.codecString === "vp8")
+					? { ...video, codecString: null }
+					: video;
 			add(
-				`${target}-encoded-video`,
-				type,
-				"video/mp4",
-				{
-					...video,
-					codec: "h264",
-					codecString: "avc1",
-					profile: null,
-					pixelFormat: "yuv420p",
-					bitDepth: 8,
-					hdr: false,
-					bitrate: null,
-				},
+				`${target}-video-${container}`,
+				target,
+				`video/${container}`,
+				candidateVideo,
 				null,
 			);
-		if (audio)
-			add(`${target}-encoded-audio`, type, "audio/mp4", null, {
-				...audio,
-				codec: "aac",
-				codecString: "mp4a.40.2",
-				profile: "LC",
-				bitrate: 192000,
-			});
+			if (audio)
+				add(
+					`${target}-audio-${container}`,
+					target,
+					`audio/${container}`,
+					null,
+					audio,
+				);
+			add(
+				`${target}-combined-${container}`,
+				target,
+				`video/${container}`,
+				candidateVideo,
+				audio,
+			);
+		}
 	}
 	return {
 		fileId,
 		sourceVersion,
-		rulesVersion: "1",
+		rulesVersion: "2",
 		container: info.container,
 		video,
 		audio,

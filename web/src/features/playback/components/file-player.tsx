@@ -107,7 +107,8 @@ export default function FilePlayer({
 									</p>
 									{compatibility.result.plans
 										.filter(
-											(plan) => plan.target === "mp4" && plan.mode !== "direct",
+											(plan) =>
+												plan.target === "file" && plan.mode !== "direct",
 										)
 										.map((plan) => (
 											<p key={plan.target} className="text-sm">
@@ -115,9 +116,7 @@ export default function FilePlayer({
 													? t("compatibility.preparationUnknown")
 													: t("compatibility.recommendation", {
 															mode: t(`compatibility.modes.${plan.mode}`),
-														})}{" "}
-												{plan.mode !== "unknown" &&
-													t(`compatibility.execution.${plan.execution}`)}
+														})}
 											</p>
 										))}
 									<details className="text-sm">

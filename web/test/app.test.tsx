@@ -14,6 +14,7 @@ import { RouterProvider } from "react-router/dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import App from "../src/App.js";
 import type {
+	CompatibilityResult,
 	DirectoryResponse,
 	FileResponse,
 	LibraryResponse,
@@ -56,6 +57,7 @@ const routers: ReturnType<typeof createMemoryRouter>[] = [];
 let library: LibraryResponse;
 let directories: Map<string, DirectoryResponse>;
 let fileError: boolean;
+let compatibilityPlans: CompatibilityResult["plans"];
 let compatibilityStatus: "supported" | "unsupported" | "unknown";
 let settings: SettingsResponse;
 
@@ -109,6 +111,7 @@ beforeEach(() => {
 	]);
 	fileError = false;
 	compatibilityStatus = "supported";
+	compatibilityPlans = [];
 	settings = { resourceRoot: "/media" };
 	fetcher.mockReset();
 	fetcher.mockImplementation(async (input, init) => {
@@ -125,15 +128,14 @@ beforeEach(() => {
 				return json({
 					fileId: "file-1",
 					sourceVersion: "version",
-					rulesVersion: "1",
+					rulesVersion: "2",
 					direct: decision,
 					container: decision,
 					video: decision,
 					audio: decision,
 					selectedVideo: null,
 					selectedAudio: null,
-					processing: { mp4: null, h264: null, aac: null },
-					plans: [],
+					plans: compatibilityPlans,
 					evidence: [],
 					warnings: [],
 				});
@@ -141,7 +143,7 @@ beforeEach(() => {
 			return json({
 				fileId: "file-1",
 				sourceVersion: "version",
-				rulesVersion: "1",
+				rulesVersion: "2",
 				container: "mp4",
 				video: null,
 				audio: null,
@@ -1266,6 +1268,33 @@ test("supported media shows compatibility information in a dialog below the play
 	).toBeTruthy();
 	fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
 	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+});
+
+test("displays operation-only recommendations without an encoding profile or execution status", async () => {
+	compatibilityStatus = "unsupported";
+	const video = { status: "unsupported" as const, reason: "browser-rejected" };
+	const audio = { status: "supported" as const, reason: "browser-supported" };
+	compatibilityPlans = ["file", "media-source"].map((target) => ({
+		target: target as "file" | "media-source",
+		mode: "transcode-video",
+		video,
+		audio,
+		videoAction: "encode",
+		audioAction: "copy",
+		reason: "video-encoding-required",
+	}));
+	renderApp("/files/file-1");
+	const dialog = await screen.findByRole("dialog", {
+		name: "Playback compatibility",
+	});
+	expect(
+		within(dialog).getByText("Recommended preparation: Convert video only."),
+	).toBeTruthy();
+	expect(within(dialog).getByText("File playback")).toBeTruthy();
+	expect(within(dialog).getByText("Media Source playback")).toBeTruthy();
+	expect(dialog.textContent).not.toMatch(
+		/MP4|H\.264|AAC|profile|currently unavailable|not connected/,
+	);
 });
 
 test("unknown media opens a dismissible compatibility dialog that can be reopened", async () => {

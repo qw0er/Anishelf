@@ -166,12 +166,6 @@
 			"transcode": "Convert audio and video",
 			"direct": "Use original file"
 		},
-		"execution": {
-			"unverified": "Preparation is not connected to the player yet; the output requires validation.",
-			"unavailable": "This processing path is currently unavailable.",
-			"blocked": "The current processing profile cannot handle this file.",
-			"not-required": "Preparation is unnecessary."
-		},
 		"reasons": {
 			"browser-supported": "The browser accepts the described container and codecs. Actual playback remains the final check.",
 			"browser-rejected": "The browser rejects the described media configuration.",
@@ -186,15 +180,13 @@
 			"hdr-display-unverified": "HDR decoding and display behavior require actual playback validation.",
 			"no-video-stream": "No usable video stream was found.",
 			"no-audio-stream": "This file has no audio stream.",
-			"target-packaging-unverified": "Copying this stream into the target container has not been validated.",
-			"hls-executor-unavailable": "Streaming preparation is not available yet.",
-			"ffmpeg-unavailable": "FFmpeg is unavailable on the server.",
-			"hdr-conversion-unavailable": "The current conversion profile cannot process HDR video.",
-			"encoded-output-rejected": "The browser rejects the proposed output codec.",
 			"original-supported": "The original file can be tried without preparation.",
 			"insufficient-evidence": "There is insufficient evidence to choose a preparation mode.",
-			"output-validation-required": "The generated output must be inspected and tested before playback.",
-			"processing-capability-unavailable": "The server lacks a required encoder or MP4 muxer."
+			"packaging-change-required": "The original streams can be retained with different packaging.",
+			"audio-encoding-required": "The audio needs conversion; retain the original video.",
+			"video-encoding-required": "The video needs conversion; retain compatible audio.",
+			"audio-video-encoding-required": "Both audio and video need conversion.",
+			"stream-combination-unverified": "The browser has not confirmed support for the unchanged audio and video together."
 		},
 		"details": "Compatibility details",
 		"kinds": {
@@ -208,8 +200,8 @@
 			"unknown": "Unknown"
 		},
 		"targets": {
-			"mp4": "Prepared MP4",
-			"mse": "MSE streaming"
+			"file": "File playback",
+			"media-source": "Media Source playback"
 		},
 		"actions": {
 			"copy": "Keep original stream",

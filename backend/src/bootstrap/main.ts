@@ -157,8 +157,6 @@ async function createServer(
 		compatibility: new MediaCompatibilityApplication({
 			inspection,
 			sources: library.sources,
-			ffmpegAvailable: tools.status.ffmpeg.available,
-			processingCapabilities: () => tools.processingCapabilities(),
 			logger,
 		}),
 		development,

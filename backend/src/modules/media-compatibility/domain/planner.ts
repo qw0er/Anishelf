@@ -5,24 +5,20 @@ import type {
 } from "../../../contracts/http.js";
 
 type Decision = CompatibilityResult["direct"];
+
+/** Recommend stream operations only. Output selection and execution belong to a future executor. */
 export function planCompatibility(
 	description: CompatibilityInspection,
 	evidence: CompatibilityEvidence[],
-	ffmpegAvailable: boolean,
-	inventory: CompatibilityResult["processing"] = {
-		mp4: null,
-		h264: null,
-		aac: null,
-	},
 ): CompatibilityResult {
-	const byId = new Map(evidence.map((e) => [e.id, e]));
+	const byId = new Map(evidence.map((entry) => [entry.id, entry]));
 	function decision(id: string): Decision {
-		const query = description.queries.find((q) => q.id === id);
+		const query = description.queries.find((query) => query.id === id);
 		if (!query?.contentType)
 			return { status: "unknown", reason: "incomplete-description" };
-		const e = byId.get(id);
-		return e
-			? { status: e.status, reason: e.reason }
+		const report = byId.get(id);
+		return report
+			? { status: report.status, reason: report.reason }
 			: { status: "unknown", reason: "missing-evidence" };
 	}
 	const container = decision("original-container");
@@ -35,58 +31,53 @@ export function planCompatibility(
 		direct = { status: "unknown", reason: "native-track-selection-uncertain" };
 	if (description.video?.hdr && direct.status === "supported")
 		direct = { status: "unknown", reason: "hdr-display-unverified" };
-	const plans = (["mp4", "mse"] as const).map((target) => {
-		const video = decision(`${target}-video`);
-		const audio: Decision = description.audio
-			? decision(`${target}-audio`)
-			: { status: "supported", reason: "no-audio-stream" };
-		// Browser acceptance does not prove that arbitrary stream configurations can be muxed.
-		const copyable = new Set([
-			"h264",
-			"hevc",
-			"av1",
-			"aac",
-			"mp3",
-			"opus",
-			"ac3",
-			"eac3",
-		]);
-		for (const [stream, result] of [
-			[description.video, video],
-			[description.audio, audio],
-		] as const) {
-			if (
-				stream &&
-				result.status === "supported" &&
-				!copyable.has(stream.codec ?? "")
-			) {
-				result.status = "unknown";
-				result.reason = "target-packaging-unverified";
+	const plans = (["file", "media-source"] as const).map(
+		(target): CompatibilityResult["plans"][number] => {
+			function streamDecision(kind: "video" | "audio"): Decision {
+				if (kind === "audio" && !description.audio)
+					return { status: "supported", reason: "no-audio-stream" };
+				const candidates = description.queries
+					.filter((query) => query.id.startsWith(`${target}-${kind}-`))
+					.map((query) => decision(query.id));
+				const supported = candidates.find(
+					(candidate) => candidate.status === "supported",
+				);
+				if (supported) return { ...supported };
+				if (
+					candidates.length &&
+					candidates.every((candidate) => candidate.status === "unsupported")
+				)
+					return { status: "unsupported", reason: "browser-rejected" };
+				return (
+					candidates.find((candidate) => candidate.status === "unknown") ?? {
+						status: "unknown",
+						reason: "missing-evidence",
+					}
+				);
 			}
-			if (stream?.hdr && result.status === "supported") {
-				result.status = "unknown";
-				result.reason = "hdr-display-unverified";
+			const video = streamDecision("video");
+			const audio = streamDecision("audio");
+			if (description.video?.hdr && video.status === "supported") {
+				video.status = "unknown";
+				video.reason = "hdr-display-unverified";
 			}
-		}
-		const videoAction =
-			video.status === "supported"
-				? "copy"
-				: video.status === "unsupported"
-					? "encode"
-					: "unknown";
-		const audioAction = !description.audio
-			? "none"
-			: audio.status === "supported"
-				? "copy"
-				: audio.status === "unsupported"
-					? "encode"
-					: "unknown";
-		const mode =
-			target === "mp4" && direct.status === "supported"
-				? "direct"
-				: videoAction === "unknown" ||
-						audioAction === "unknown" ||
-						!description.video
+			const videoAction =
+				video.status === "supported"
+					? "copy"
+					: video.status === "unsupported"
+						? "encode"
+						: "unknown";
+			const audioAction = !description.audio
+				? "none"
+				: audio.status === "supported"
+					? "copy"
+					: audio.status === "unsupported"
+						? "encode"
+						: "unknown";
+			let mode: CompatibilityResult["plans"][number]["mode"] =
+				!description.video ||
+				videoAction === "unknown" ||
+				audioAction === "unknown"
 					? "unknown"
 					: videoAction === "copy"
 						? audioAction === "encode"
@@ -95,75 +86,66 @@ export function planCompatibility(
 						: audioAction === "encode"
 							? "transcode"
 							: "transcode-video";
-		const blocked =
-			!description.video || (videoAction === "encode" && description.video.hdr);
-		const encodedVideo =
-			videoAction === "encode" ? decision(`${target}-encoded-video`) : null;
-		const encodedAudio =
-			audioAction === "encode" ? decision(`${target}-encoded-audio`) : null;
-		const toolRejected =
-			inventory.mp4 === false ||
-			(videoAction === "encode" && inventory.h264 === false) ||
-			(audioAction === "encode" && inventory.aac === false);
-		const outputRejected =
-			encodedVideo?.status === "unsupported" ||
-			encodedAudio?.status === "unsupported";
-		return {
-			target,
-			mode,
-			video,
-			audio,
-			outputVideo: encodedVideo ?? video,
-			outputAudio: encodedAudio ?? audio,
-			videoAction: mode === "direct" ? "copy" : videoAction,
-			audioAction:
-				mode === "direct" ? (description.audio ? "copy" : "none") : audioAction,
-			execution:
-				mode === "direct"
-					? "not-required"
-					: blocked || outputRejected || toolRejected
-						? "blocked"
-						: target === "mse" || !ffmpegAvailable
-							? "unavailable"
-							: "unverified",
-			reason:
-				mode === "direct"
-					? "original-supported"
-					: !description.video
-						? "no-video-stream"
-						: blocked
-							? "hdr-conversion-unavailable"
-							: toolRejected
-								? "processing-capability-unavailable"
-								: outputRejected
-									? "encoded-output-rejected"
-									: mode === "unknown"
-										? "insufficient-evidence"
-										: target === "mse"
-											? "hls-executor-unavailable"
-											: !ffmpegAvailable
-												? "ffmpeg-unavailable"
-												: "output-validation-required",
-		} as CompatibilityResult["plans"][number];
-	});
+			let reason =
+				mode === "unknown"
+					? "insufficient-evidence"
+					: mode === "remux"
+						? "packaging-change-required"
+						: mode === "transcode-audio"
+							? "audio-encoding-required"
+							: mode === "transcode-video"
+								? "video-encoding-required"
+								: "audio-video-encoding-required";
+			// Separate stream acceptance does not establish that the unchanged streams can be packaged together.
+			if (
+				mode === "remux" &&
+				!description.queries.some(
+					(query) =>
+						query.id.startsWith(`${target}-combined-`) &&
+						decision(query.id).status === "supported",
+				)
+			) {
+				mode = "unknown";
+				reason = "stream-combination-unverified";
+			}
+			if (target === "file" && direct.status === "supported") {
+				mode = "direct";
+				reason = "original-supported";
+			}
+			if (!description.video) reason = "no-video-stream";
+			return {
+				target,
+				mode,
+				video,
+				audio,
+				videoAction: mode === "direct" ? "copy" : videoAction,
+				audioAction:
+					mode === "direct"
+						? description.audio
+							? "copy"
+							: "none"
+						: audioAction,
+				reason,
+			};
+		},
+	);
 	const warnings: string[] = [];
 	if (description.multipleTracks)
 		warnings.push("native-track-selection-uncertain");
 	if (description.video?.hdr) warnings.push("hdr-display-unverified");
-	if (evidence.some((e) => e.smooth === false))
+	if (evidence.some((entry) => entry.smooth === false))
 		warnings.push("playback-may-not-be-smooth");
 	if (
 		plans.some(
 			(plan) => plan.videoAction === "encode" || plan.audioAction === "encode",
 		)
 	)
-		warnings.push("encoded-output-requires-probe-and-playback-validation");
+		warnings.push("encoding-output-not-selected");
 	warnings.push("browser-report-is-not-playback-certification");
 	return {
 		fileId: description.fileId,
 		sourceVersion: description.sourceVersion,
-		rulesVersion: "1",
-		processing: inventory,
+		rulesVersion: "2",
 		direct,
 		video: decision("original-video"),
 		audio: description.audio
