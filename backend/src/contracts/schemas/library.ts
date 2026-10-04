@@ -1,5 +1,6 @@
 import { Type } from "typebox";
 import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
+import { TranscodeProfileIdSchema } from "./transcode-profiles.js";
 
 export const ScanWarningSummaryDtoSchema = Type.Object(
 	{ count: NonnegativeIntegerSchema, messages: Type.Array(Type.String()) },
@@ -106,6 +107,7 @@ export function createSettingsSchemas(maximumScanIntervalMinutes?: number) {
 		{
 			resourceRoot: Type.Union([Type.String(), Type.Null()]),
 			scanIntervalMinutes: interval,
+			defaultTranscodeProfileId: Type.Optional(TranscodeProfileIdSchema),
 		},
 		{ additionalProperties: false },
 	);
@@ -113,6 +115,7 @@ export function createSettingsSchemas(maximumScanIntervalMinutes?: number) {
 		{
 			resourceRoot: Type.String({ minLength: 1 }),
 			scanIntervalMinutes: interval,
+			defaultTranscodeProfileId: Type.Optional(TranscodeProfileIdSchema),
 		},
 		{ additionalProperties: false },
 	);

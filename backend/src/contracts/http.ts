@@ -59,3 +59,10 @@ export type CompatibilityQuery = CompatibilityInspection["queries"][number];
 export type CompatibilityEvidence =
 	CompatibilityCheckRequest["evidence"][number];
 export type CompatibilityStream = NonNullable<CompatibilityInspection["video"]>;
+
+export type TranscodeProfileCatalog = Static<
+	typeof schemas.TranscodeProfileCatalogSchema
+>;
+export type SelectTranscodeProfileRequest = Static<
+	typeof schemas.SelectTranscodeProfileSchema
+>;

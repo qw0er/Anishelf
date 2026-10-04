@@ -3,7 +3,9 @@ import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify, { LogController } from "fastify";
 import type { Logger } from "pino";
 import { HealthResponseSchema } from "../contracts/schemas/index.js";
+import type { ConfigurationService } from "../modules/configuration/application/service.js";
 import type { DeploymentConfig } from "../modules/configuration/domain/model.js";
+import { registerTranscodeProfileRoutes } from "../modules/configuration/http/transcode-profiles.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
@@ -33,6 +35,7 @@ export function createHttpApp(options: {
 	subtitles?: SubtitleApplication;
 	compatibility?: MediaCompatibilityApplication;
 	frontendRoot?: string;
+	configuration?: ConfigurationService;
 }) {
 	const policy = options.policy ?? {
 		...builtinPolicy,
@@ -121,6 +124,9 @@ export function createHttpApp(options: {
 			policy.library.maximumScanIntervalMinutes,
 		);
 	}
+
+	if (options.configuration)
+		registerTranscodeProfileRoutes(app, options.configuration);
 
 	if (options.playback) {
 		const playback = options.playback;

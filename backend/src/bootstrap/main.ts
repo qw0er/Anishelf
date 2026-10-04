@@ -148,6 +148,7 @@ async function createServer(
 		);
 	}
 	const server = createHttpApp({
+		configuration,
 		config,
 		policy: configuration.policy,
 		logger,

@@ -116,6 +116,9 @@ export function settingsResponse(
 ): SettingsResponse {
 	return {
 		resourceRoot: settings.resourceRoot,
+		...(settings.defaultTranscodeProfileId === undefined
+			? {}
+			: { defaultTranscodeProfileId: settings.defaultTranscodeProfileId }),
 		...(settings.scanIntervalMinutes === undefined
 			? {}
 			: { scanIntervalMinutes: settings.scanIntervalMinutes }),

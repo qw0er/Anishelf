@@ -199,12 +199,15 @@ test("marks complete detection failure and missing FFmpeg separately", async () 
 });
 
 test("deduplicates concurrent inventories, preserves partial results and isolates returned snapshots", async () => {
-	let versionCalls = 0;
+	// Concurrent discovery can finish in either order; identify the tool by path.
+	vi.spyOn(processTools, "resolveExecutable").mockImplementation(
+		async (command) => command,
+	);
 	const run = vi
 		.spyOn(processTools, "runTool")
-		.mockImplementation(async (_path, args) => {
+		.mockImplementation(async (path, args) => {
 			if (args[0] === "-version")
-				return ++versionCalls === 1
+				return path === "/test/ffmpeg"
 					? "ffmpeg version test"
 					: "ffprobe version test";
 			const kind = switches[args[1] as string];
@@ -212,8 +215,8 @@ test("deduplicates concurrent inventories, preserves partial results and isolate
 			return kind === "filters" ? "broken output" : listings[kind];
 		});
 	const tools = await MediaTools.create({
-		ffmpegPath: process.execPath,
-		ffprobePath: process.execPath,
+		ffmpegPath: "/test/ffmpeg",
+		ffprobePath: "/test/ffprobe",
 	});
 	run.mockClear();
 	const [first, second] = await Promise.all([

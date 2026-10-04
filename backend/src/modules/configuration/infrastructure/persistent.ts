@@ -9,6 +9,8 @@ import {
 	resolve,
 	sep,
 } from "node:path";
+import { Check } from "typebox/value";
+import { TranscodeProfileIdSchema } from "../../../contracts/schemas/transcode-profiles.js";
 import { storageRules } from "../../../platform/storage.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { PersistentSettings } from "../domain/model.js";
@@ -42,12 +44,26 @@ function validatePersistentSettings(
 	}
 	const settings = value as Record<string, unknown>;
 	for (const key of Object.keys(settings)) {
-		if (key !== "resourceRoot" && key !== "scanIntervalMinutes")
+		if (
+			key !== "resourceRoot" &&
+			key !== "scanIntervalMinutes" &&
+			key !== "defaultTranscodeProfileId"
+		)
 			throw new DomainError(
 				"CONFIG_INVALID",
 				`Unknown persistent setting: ${key}.`,
 			);
 	}
+	const profileId = settings.defaultTranscodeProfileId;
+	if (profileId !== undefined && !Check(TranscodeProfileIdSchema, profileId))
+		throw new DomainError(
+			"CONFIG_INVALID",
+			"settings.json defaultTranscodeProfileId must be a valid profile ID.",
+		);
+	const profile =
+		profileId === undefined
+			? {}
+			: { defaultTranscodeProfileId: profileId as string };
 	const root = settings.resourceRoot;
 	const interval = settings.scanIntervalMinutes;
 	if (
@@ -63,7 +79,7 @@ function validatePersistentSettings(
 		);
 	const scheduling =
 		interval === undefined ? {} : { scanIntervalMinutes: interval as number };
-	if (root === null) return { resourceRoot: null, ...scheduling };
+	if (root === null) return { resourceRoot: null, ...scheduling, ...profile };
 	if (
 		typeof root !== "string" ||
 		root.trim() === "" ||
@@ -75,7 +91,7 @@ function validatePersistentSettings(
 			"settings.json resourceRoot must be an absolute filesystem path.",
 		);
 	}
-	return { resourceRoot: root, ...scheduling };
+	return { resourceRoot: root, ...scheduling, ...profile };
 }
 
 function contains(parent: string, child: string): boolean {

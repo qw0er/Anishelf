@@ -165,9 +165,9 @@ The user has reported completing manual browser acceptance. Automated tests cove
 
 The backend creates one `ConfigurationService` from validated startup environment variables, built-in TypeScript policies and explicit `settings.json` values. Policies cover current scanning, playback, subtitle handling, tool execution, HTTP and database limits. They are read-only and updated with the program; do not copy them into `dataDir` or add policy fields to `settings.json`.
 
-Only `resourceRoot` and optional `scanIntervalMinutes` are currently writable. Omitted intervals use the current built-in default; `0` disables scheduled scans. Explicit choices survive upgrades. Settings commit atomically before the effective snapshot changes. Existing root-only settings need no migration.
+`resourceRoot`, optional `scanIntervalMinutes` and optional `defaultTranscodeProfileId` are currently writable. Omitted intervals use the current built-in default; `0` disables scheduled scans. Explicit choices survive upgrades. Settings commit atomically before the effective snapshot changes. Existing root-only settings need no migration.
 
-The Web build defines local playback and renderer policy and imports browser-safe shared scan/subtitle constraints. No client-configuration request is required. Transcode profiles, cache budgets and profile-content cache invalidation remain planned O17 work.
+The Web build defines local playback and renderer policy and imports browser-safe shared scan/subtitle constraints. No client-configuration request is required. The [transcode profile foundation](docs/transcode-profiles.md) provides Balanced/Fast built-ins, optional `dataDir/transcode-profiles.json`, a catalog API and persistent selection. Profile execution, the UI selector, cache budgets and profile-content cache invalidation remain planned.
 
 ### External-player media links
 

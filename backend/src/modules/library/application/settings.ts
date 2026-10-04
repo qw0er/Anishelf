@@ -20,6 +20,7 @@ export class SettingsApplication {
 	async updateSettings(input: {
 		resourceRoot: string;
 		scanIntervalMinutes?: number;
+		defaultTranscodeProfileId?: string;
 	}): Promise<Readonly<PersistentSettings>> {
 		const started = Date.now();
 		this.options.logger.debug(

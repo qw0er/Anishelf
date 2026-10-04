@@ -5,8 +5,9 @@ encoded. It never selects output profiles, encoders or FFmpeg arguments. Executi
 is a separate backend API, with no new HTTP endpoint or player integration.
 
 An execution caller supplies a source version, explicit stream indexes and a
-`MediaProcessingPlan`. No production transcoding adapter or default target is
-provided. Construction requires a caller-supplied `MediaExecutionAdapter` whose
+`MediaProcessingPlan`. No production transcoding adapter or executable default target is
+provided. The separate [profile foundation](transcode-profiles.md) defines built-in
+and external output policies, but has not yet been connected to this execution API. Construction requires a caller-supplied `MediaExecutionAdapter` whose
 `execute()` method implements the concrete encoding parameters and arguments.
 The former fixed MP4/H.264/AAC adapter and mode-based `process()` API were removed.
 Concrete adapters can be implemented later without changing the planner. `null` audio selection produces video-only output.

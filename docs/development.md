@@ -73,7 +73,10 @@ Invalid startup parameters or unusable data directories fail startup with exit c
 and a terminal diagnostic. All options are validated before creating the data directory.
 The loader creates a missing directory with mode 0700 (subject to umask), preserves
 permissions of existing directories, and checks writability. The persistent settings
-manager creates `settings.json` when the user first saves a resource directory.
+manager creates `settings.json` on the first settings save, including a transcode
+profile selection before a resource directory is configured. See
+[Transcode profiles](transcode-profiles.md) for the optional administrator-authored
+`dataDir/transcode-profiles.json`, catalog API and persistent selection.
 
 TOML loading and its parser dependency have been removed. To migrate, unset
 `ANISHELF_CONFIG`, set `ANISHELF_DATA_DIR` to the old TOML `dataDir`, and translate
