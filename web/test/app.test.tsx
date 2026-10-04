@@ -747,6 +747,7 @@ test("media errors recheck access and distinguish a deleted file from generic pl
 	renderApp();
 	await openFile();
 	const video = await screen.findByLabelText("Video: Episode 01.mp4");
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	Object.defineProperty(video, "error", {
 		value: { code: 3, message: "Decode failed" },
 	});
@@ -1243,13 +1244,60 @@ test("file rows offer an icon copy button with tooltip without opening playback"
 	).toBe(false);
 });
 
+test("supported media shows compatibility information in a dialog below the player", async () => {
+	renderApp("/files/file-1");
+	const video = await screen.findByLabelText("Video: Episode 01.mp4");
+	expect(screen.queryByRole("dialog")).toBeNull();
+	expect(
+		screen.queryByText("This browser reports support for this file."),
+	).toBeNull();
+	const trigger = screen.getByRole("button", {
+		name: "Playback compatibility info",
+	});
+	expect(
+		video.compareDocumentPosition(trigger) & Node.DOCUMENT_POSITION_FOLLOWING,
+	).toBeTruthy();
+	fireEvent.click(trigger);
+	const dialog = await screen.findByRole("dialog", {
+		name: "Playback compatibility",
+	});
+	expect(
+		within(dialog).getByText("This browser reports support for this file."),
+	).toBeTruthy();
+	fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+});
+
+test("unknown media opens a dismissible compatibility dialog that can be reopened", async () => {
+	compatibilityStatus = "unknown";
+	renderApp("/files/file-1");
+	const dialog = await screen.findByRole("dialog", {
+		name: "Playback compatibility",
+	});
+	expect(
+		within(dialog).getByText("Playback compatibility could not be confirmed."),
+	).toBeTruthy();
+	fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	fireEvent.click(
+		screen.getByRole("button", { name: "Playback compatibility info" }),
+	);
+	await screen.findByRole("dialog", { name: "Playback compatibility" });
+});
+
 test("unsupported media waits for an explicit original-file attempt and reports runtime failure", async () => {
 	compatibilityStatus = "unsupported";
 	renderApp("/files/file-1");
-	await screen.findByText("This file is not supported by this browser.");
+	const dialog = await screen.findByRole("dialog", {
+		name: "Playback compatibility",
+	});
+	expect(
+		within(dialog).getByText("This file is not supported by this browser."),
+	).toBeTruthy();
 	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Try original file" }));
 	const video = await screen.findByLabelText("Video: Episode 01.mp4");
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	Object.defineProperty(video, "error", {
 		value: { code: 3, message: "Decode failed" },
 	});

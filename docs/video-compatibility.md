@@ -83,11 +83,14 @@ independent and never forces audio/video encoding.
 
 ## Player behavior
 
-The player waits for checking. A supported original is loaded automatically;
-unknown, unsupported and failed checks offer **Try original file** and **Check
-again**. Details show container, stream and target-delivery decisions. Runtime
-playback errors retain accessibility rechecks, display actual failure separately,
-and invalidate cached capability reports. Known video sources with zero decoded
+The player waits for checking. A supported original is loaded automatically,
+with a **Playback compatibility info** button below the player to open the result
+dialog. Unknown, unsupported and failed checks automatically open the dialog and
+offer **Try original file** and **Check again**. The dialog can be dismissed and
+reopened with the information button. Trying the original file closes the dialog.
+Details show container, stream and target-delivery decisions. Runtime playback
+errors reopen the dialog, retain accessibility rechecks, display actual failure
+separately, and invalidate cached capability reports. Known video sources with zero decoded
 video dimensions report a missing-picture error even if the browser plays audio
 without raising a standard media error. No automatic conversion/fallback loop
 runs. Playback-progress recovery with the same source version does not unload an

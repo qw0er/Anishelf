@@ -147,6 +147,7 @@
 	},
 	"compatibility": {
 		"label": "Playback compatibility",
+		"showInfo": "Playback compatibility info",
 		"checking": "Checking playback compatibility…",
 		"failed": "Compatibility could not be checked. You can retry or try the original file.",
 		"supported": "This browser reports support for this file.",
