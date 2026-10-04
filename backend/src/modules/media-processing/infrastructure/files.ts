@@ -36,8 +36,8 @@ export class MediaProcessingFiles {
 		await chmod(directory, storageRules.directoryMode);
 		return {
 			directory,
-			pendingPath: join(directory, "media.mp4.pending"),
-			path: join(directory, "media.mp4"),
+			pendingPath: join(directory, "media.pending"),
+			path: join(directory, "media"),
 		};
 	}
 	async publish(workspace: ProcessingWorkspace): Promise<number> {

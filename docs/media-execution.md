@@ -5,9 +5,11 @@ encoded. It never selects output profiles, encoders or FFmpeg arguments. Executi
 is a separate backend API, with no new HTTP endpoint or player integration.
 
 An execution caller supplies a source version, explicit stream indexes and a
-`MediaProcessingPlan`. The current adapter supports the existing MP4 profile;
-additional formats and hardware encoding require adapter implementation rather
-than planner changes. `null` audio selection produces video-only output.
+`MediaProcessingPlan`. No production transcoding adapter or default target is
+provided. Construction requires a caller-supplied `MediaExecutionAdapter` whose
+`execute()` method implements the concrete encoding parameters and arguments.
+The former fixed MP4/H.264/AAC adapter and mode-based `process()` API were removed.
+Concrete adapters can be implemented later without changing the planner. `null` audio selection produces video-only output.
 
 ```ts
 const execution = processing.start({
@@ -49,12 +51,27 @@ Execution checks reuse `MediaTools.capabilities()`'s lifetime cache. The pure
 `supported`, `missing` or `unknown` result. Failed enumeration remains unknown.
 Copied streams do not require encoders or decoders; unselected audio is ignored.
 Demuxer aliases are alternatives. File protocol input and output directions and pipe protocol output for
-progress are required. Video encoding checks pixel format and pad/scale filters as needed.
+progress are required. Encoded streams check the caller-selected encoder and
+optional pixel format. Filters are checked exactly as declared by the adapter,
+including any implicit conversion filters it requires. There are no assumed
+padding, scaling or tone-mapping choices.
 Failures throw `MediaExecutionCapabilityError` with the detailed check, using
 `CAPABILITY_MISSING` or `CAPABILITY_UNKNOWN`. No check chooses a substitute.
 
+The injected adapter receives the confined input, private output path, selected
+indexes, cloned plan, abort signal, timeout, output budget and progress observer.
+It must enforce those limits and settle only after child closure. The generic
+`startMediaProcess()` helper is available for implementing that lifecycle; it
+accepts arguments supplied by a trusted backend adapter and selects no encoders.
+Application validation independently probes output, checks packaging and selected
+stream codecs/counts, enforces size and duration bounds, and revalidates the source.
+The declared FFmpeg muxer and expected FFprobe format alias are separate
+fields (`container` and `outputFormat`); they need not have the same name.
+Runtime policy contains only concurrency, deadlines, storage and validation bounds.
+Pending and published files have neutral `media.pending` and `media` names.
+
 Build support cannot establish codec/container combinations, hardware availability
-or real output validity. Execution still checks exit, file size, stream counts,
-codecs and duration. Results are source-version-bound temporary artifacts.
+or real output validity. Adapters must check child exit; the application checks file size, stream
+counts, codecs, container and duration. Results are source-version-bound temporary artifacts.
 Persistent jobs, restart recovery, scheduling, HTTP progress, pre-transcode
 playback and real-time HLS remain future integrations.

@@ -6,12 +6,9 @@ import { afterEach, expect, test, vi } from "vitest";
 import { createLibraryModule } from "../src/bootstrap/library.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
-import {
-	MediaProcessingApplication,
-	mediaProcessingPolicy,
-	resolveMediaProcessingPlan,
-} from "../src/modules/media-processing/public.js";
+import { MediaProcessingApplication } from "../src/modules/media-processing/public.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
+import { unknownMediaCapabilities } from "../src/shared/media-capabilities.js";
 import type { MediaProcessingPlan } from "../src/shared/media-processing.js";
 import { settingsStore } from "./settings-store.js";
 
@@ -37,7 +34,7 @@ async function fixture(block = false) {
 	const source = await library.sources.resolveSource(file.id);
 	const info = parseMediaInfo(
 		JSON.stringify({
-			format: { format_name: "mp4", duration: "1" },
+			format: { format_name: "matroska", duration: "1" },
 			streams: [{ index: 0, codec_type: "video", codec_name: "h264" }],
 		}),
 	);
@@ -49,7 +46,7 @@ async function fixture(block = false) {
 	const entry = new Promise<void>((resolve) => {
 		entered = resolve;
 	});
-	const processMedia = vi.fn(async (_input, output, options) => {
+	const executeMedia = vi.fn(async (_input, output, options) => {
 		await writeFile(output, "processed");
 		options.onEvent?.({ type: "started", pid: 123 });
 		entered();
@@ -69,12 +66,34 @@ async function fixture(block = false) {
 			signal: null,
 			reason: null,
 		});
-		return info;
+		return;
 	});
+	const capabilities = unknownMediaCapabilities();
+	capabilities.tools.ffmpeg.available =
+		capabilities.tools.ffprobe.available = true;
+	for (const category of Object.values(capabilities.inventory))
+		category.status = "ready";
+	for (const [kind, name, flags] of [
+		["demuxers", "matroska", ""],
+		["muxers", "matroska", ""],
+		["protocols", "file", "IO"],
+		["protocols", "pipe", "O"],
+	] as const)
+		capabilities.inventory[kind].entries.push({
+			name,
+			flags,
+			description: "",
+			codec: null,
+			mediaType: null,
+		});
 	const application = new MediaProcessingApplication({
 		sources: library.sources,
 		inspection,
-		tools: { processMedia },
+		tools: {
+			capabilities: vi.fn().mockResolvedValue(capabilities),
+			probe: vi.fn().mockResolvedValue(info),
+		},
+		executor: { execute: executeMedia },
 		dataDir: root,
 	});
 	cleanup.push(async () => {
@@ -86,7 +105,14 @@ async function fixture(block = false) {
 	const request = {
 		fileId: file.id,
 		sourceVersion: source.identity.sourceVersion,
-		plan: resolveMediaProcessingPlan(mediaProcessingPolicy, "remux"),
+		plan: {
+			id: "caller-selected",
+			container: "matroska",
+			outputFormat: "matroska",
+			video: { action: "copy" },
+			audio: { action: "copy" },
+			filters: [],
+		} as MediaProcessingPlan,
 		videoStreamIndex: 0,
 		audioStreamIndex: null,
 	};
@@ -95,8 +121,9 @@ async function fixture(block = false) {
 		request,
 		root,
 		entry,
-		processMedia,
+		executeMedia,
 		sources: library.sources,
+		capabilities,
 	};
 }
 test("explicit execution publishes a version-bound result and owns a cloned plan", async () => {
@@ -110,10 +137,10 @@ test("explicit execution publishes a version-bound result and owns a cloned plan
 			if (event.type === "state") states.push(event.state);
 		},
 	});
-	plan.profile.id = "changed-v2";
+	plan.id = "changed";
 	const result = await handle.completion;
 	expect(result.id).toBe(handle.id);
-	expect(result.profileId).toBe("mp4-h264-aac-v1");
+	expect(result.planId).toBe("caller-selected");
 	expect(handle.state).toBe("ready");
 	expect(states).toEqual(["checking", "starting", "validating", "ready"]);
 	expect((await stat(result.path)).size).toBeGreaterThan(0);
@@ -137,9 +164,9 @@ test("stop waits for failure cleanup and the concurrency slot becomes available"
 });
 test("source conflicts discard output before ready", async () => {
 	const f = await fixture();
-	const execute = f.processMedia.getMockImplementation();
+	const execute = f.executeMedia.getMockImplementation();
 	if (!execute) throw new Error("Missing fixture executor");
-	f.processMedia.mockImplementationOnce(async (...args) => {
+	f.executeMedia.mockImplementationOnce(async (...args) => {
 		const result = await execute(...args);
 		vi.spyOn(f.sources, "revalidateSource").mockRejectedValue(
 			new Error("source conflict"),
@@ -148,6 +175,33 @@ test("source conflicts discard output before ready", async () => {
 	});
 	const handle = f.application.start(f.request);
 	await expect(handle.completion).rejects.toThrow("source conflict");
+	expect(handle.state).toBe("failed");
+	expect(await readdir(join(f.root, "cache", "media-processing"))).toEqual([]);
+});
+
+test.each(["ready", "failed"] as const)(
+	"preflight %s failures do not invoke the adapter or allocate output",
+	async (status) => {
+		const f = await fixture();
+		f.capabilities.inventory.muxers = { status, entries: [], error: null };
+		const handle = f.application.start(f.request);
+		await expect(handle.completion).rejects.toMatchObject({
+			code: status === "ready" ? "CAPABILITY_MISSING" : "CAPABILITY_UNKNOWN",
+		});
+		expect(f.executeMedia).not.toHaveBeenCalled();
+		await expect(
+			stat(join(f.root, "cache", "media-processing")),
+		).rejects.toMatchObject({ code: "ENOENT" });
+	},
+);
+test("output container mismatch is rejected and removed", async () => {
+	const f = await fixture();
+	f.request.plan.outputFormat = "different-format";
+
+	const handle = f.application.start(f.request);
+	await expect(handle.completion).rejects.toMatchObject({
+		code: "TOOL_FAILED",
+	});
 	expect(handle.state).toBe("failed");
 	expect(await readdir(join(f.root, "cache", "media-processing"))).toEqual([]);
 });

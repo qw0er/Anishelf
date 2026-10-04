@@ -85,8 +85,7 @@ that concrete choice, and validate the generated output before serving it.
 Multiple audio/video tracks make native track selection uncertain. HDR display
 behavior is unverified even when a codec query succeeds. HDR encoding may be
 recommended when the source is rejected; the future executor decides whether it
-can implement that recommendation. The existing explicit MP4 primitive still
-rejects HDR encoding. `smooth: false` warns about performance without forcing
+can implement that recommendation. Concrete execution adapters, including HDR tone mapping, remain future work. `smooth: false` warns about performance without forcing
 conversion. Subtitle compatibility remains independent of audio/video planning.
 
 ## Internal server media capabilities

@@ -1,5 +1,5 @@
 import { stat } from "node:fs/promises";
-import { isAbsolute, resolve } from "node:path";
+import { isAbsolute } from "node:path";
 import { fileTypeFromFile } from "file-type";
 import type { Logger } from "pino";
 import { deploymentDefaults } from "../../contracts/defaults.js";
@@ -14,12 +14,7 @@ import type { ServerMediaCapabilities } from "../../shared/media-capabilities.js
 import type { DeepReadonly } from "../../shared/policy.js";
 import { detectMediaCapabilities } from "./capabilities.js";
 import { codecDescriptor } from "./codec-descriptor.js";
-import {
-	checkExecutionCapabilities,
-	MediaExecutionCapabilityError,
-} from "./execution-capabilities.js";
 import { type MediaToolPolicy, mediaToolPolicy } from "./policy.js";
-import { startMediaProcess } from "./processing-process.js";
 
 export interface MediaToolsPolicy {
 	mediaTools: MediaToolPolicy;
@@ -31,7 +26,6 @@ import type {
 	HdrSideData,
 	MediaContainer,
 	MediaInfo,
-	MediaProcessingOptions,
 	MediaStream,
 	SubtitleFormat,
 	ToolStatus,
@@ -413,204 +407,6 @@ export class MediaTools {
 			}
 		}
 		return info;
-	}
-
-	/** Trusted backend API. Caller owns confined input access, private output and cleanup. */
-	async processMedia(
-		input: string,
-		output: string,
-		options: MediaProcessingOptions,
-		/** Only reuse metadata already validated against the caller's source version. */
-		inspectedInfo?: MediaInfo,
-	): Promise<MediaInfo> {
-		options = { ...options, plan: structuredClone(options.plan) };
-		const executable = this.executable("ffmpeg");
-		if (
-			!isAbsolute(output) ||
-			output.includes("\0") ||
-			resolve(output) === resolve(input)
-		)
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Output must be a distinct absolute local file path.",
-			);
-		if (
-			!["copy", "encode"].includes(options.plan.operation.video) ||
-			!["copy", "encode"].includes(options.plan.operation.audio) ||
-			!Number.isSafeInteger(options.videoStreamIndex) ||
-			options.videoStreamIndex < 0 ||
-			(options.audioStreamIndex !== null &&
-				(!Number.isSafeInteger(options.audioStreamIndex) ||
-					options.audioStreamIndex < 0))
-		)
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Invalid media processing operation or stream indexes.",
-			);
-		const maximumBytes = options.maximumBytes;
-		if (
-			!Number.isSafeInteger(maximumBytes) ||
-			maximumBytes <= 0 ||
-			!Number.isSafeInteger(options.timeoutMs) ||
-			options.timeoutMs <= 0 ||
-			options.timeoutMs > 2147483647
-		)
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Invalid processed-media size or timeout limit.",
-			);
-		if (inspectedInfo) await localFile(input);
-		const info = inspectedInfo ?? (await this.probe(input, options.signal));
-		const video = info.streams.find(
-			(stream) =>
-				stream.index === options.videoStreamIndex &&
-				stream.type === "video" &&
-				!stream.attachedPicture,
-		);
-		const audio =
-			options.audioStreamIndex === null
-				? undefined
-				: info.streams.find(
-						(stream) =>
-							stream.index === options.audioStreamIndex &&
-							stream.type === "audio",
-					);
-		if (!video || (options.audioStreamIndex !== null && !audio))
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Selected video or audio stream is unavailable.",
-			);
-		const check = checkExecutionCapabilities(
-			await this.capabilities(),
-			options.plan,
-			info,
-			video.index,
-			audio?.index ?? null,
-		);
-		if (check.status !== "supported")
-			throw new MediaExecutionCapabilityError(check);
-		options.signal?.throwIfAborted();
-		const { profile, operation } = options.plan;
-		const encodeVideo = operation.video === "encode";
-		const encodeAudio = operation.audio === "encode";
-		if (
-			encodeVideo &&
-			profile.video.hdrHandling === "reject" &&
-			(video.hdr.pq || video.hdr.hlg || video.hdr.sideDataTypes.length > 0)
-		)
-			throw new MediaToolError(
-				"UNSUPPORTED_PROCESSING",
-				"HDR video encoding requires a separately supported tone-mapping profile.",
-			);
-		const args = [
-			"-nostats",
-			"-progress",
-			"pipe:1",
-			"-stats_period",
-			"0.5",
-			"-nostdin",
-			"-hide_banner",
-			"-v",
-			"error",
-			"-n",
-			"-protocol_whitelist",
-			"file,pipe",
-			"-i",
-			input,
-			"-map",
-			`0:${video.index}`,
-			...(audio ? ["-map", `0:${audio.index}`] : ["-an"]),
-			"-sn",
-			"-dn",
-			"-map_chapters",
-			"-1",
-			"-c:v",
-			encodeVideo ? profile.video.encoder : "copy",
-			...(encodeVideo
-				? [
-						"-pix_fmt",
-						profile.video.pixelFormat,
-						"-crf",
-						String(profile.video.crf),
-						"-preset",
-						profile.video.preset,
-						"-threads",
-						String(profile.video.threads),
-						...(profile.video.padToEven
-							? ["-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2"]
-							: []),
-						"-fps_mode",
-						profile.video.frameRateMode,
-					]
-				: []),
-			...(audio
-				? [
-						"-c:a",
-						encodeAudio ? profile.audio.encoder : "copy",
-						...(encodeAudio ? ["-b:a", String(profile.audio.bitRate)] : []),
-					]
-				: []),
-			...(profile.fastStart ? ["-movflags", "+faststart"] : []),
-			"-fs",
-			String(maximumBytes),
-			"-f",
-			profile.container,
-			output,
-		];
-		await startMediaProcess(
-			executable,
-			args,
-			{
-				timeoutMs: options.timeoutMs,
-				...(options.signal ? { signal: options.signal } : {}),
-				durationMs:
-					(video.duration ?? info.duration ?? 0) > 0
-						? (video.duration ?? info.duration ?? 0) * 1000
-						: null,
-				...(options.onEvent ? { onEvent: options.onEvent } : {}),
-			},
-			this.policy.mediaTools,
-			this.logger,
-		).completion;
-		const size = (await stat(output)).size;
-		// FFmpeg can exit successfully on -fs; never return a size-limited partial file.
-		if (size <= 0 || size >= maximumBytes)
-			throw new MediaToolError(
-				"TOOL_FAILED",
-				"Processed media is empty or exceeds its size limit.",
-			);
-		const result = await this.probe(output, options.signal);
-		const videos = result.streams.filter((stream) => stream.type === "video");
-		const audios = result.streams.filter((stream) => stream.type === "audio");
-		if (
-			videos.length !== 1 ||
-			videos[0]?.codec !== (encodeVideo ? profile.video.codec : video.codec) ||
-			audios.length !== (audio ? 1 : 0) ||
-			(audio &&
-				audios[0]?.codec !== (encodeAudio ? profile.audio.codec : audio.codec))
-		)
-			throw new MediaToolError(
-				"TOOL_FAILED",
-				"Processed media does not match the requested streams.",
-			);
-		const sourceDuration = video.duration ?? info.duration;
-		const outputDuration = videos[0]?.duration ?? result.duration;
-		if (
-			sourceDuration !== null &&
-			outputDuration !== null &&
-			Math.abs(sourceDuration - outputDuration) >
-				Math.max(
-					profile.durationToleranceSeconds,
-					video.framesPerSecond
-						? profile.durationToleranceFrames / video.framesPerSecond
-						: profile.durationToleranceSeconds,
-				)
-		)
-			throw new MediaToolError(
-				"TOOL_FAILED",
-				"Processed media duration does not match the source timeline.",
-			);
-		return result;
 	}
 
 	/** Select by absolute FFprobe stream index, never by a raw selector. */

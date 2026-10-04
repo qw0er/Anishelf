@@ -74,18 +74,18 @@ export function checkExecutionCapabilities(
 			purpose: "source-input",
 			status: "unknown",
 		};
-	named("muxers", plan.profile.container, "output-packaging");
+	named("muxers", plan.container, "output-packaging");
 	require("protocols", "file", "local-input-output", (entry) =>
 		entry.name === "file" &&
 		entry.flags.includes("I") &&
 		entry.flags.includes("O"));
 	require("protocols", "pipe", "progress-output", (entry) =>
 		entry.name === "pipe" && entry.flags.includes("O"));
-	for (const [kind, index, operation, encoding] of [
-		["video", videoStreamIndex, plan.operation.video, plan.profile.video],
-		["audio", audioStreamIndex, plan.operation.audio, plan.profile.audio],
+	for (const [kind, index, execution] of [
+		["video", videoStreamIndex, plan.video],
+		["audio", audioStreamIndex, plan.audio],
 	] as const) {
-		if (index === null || operation !== "encode") continue;
+		if (index === null || execution.action !== "encode") continue;
 		const stream = info.streams.find(
 			(entry) => entry.index === index && entry.type === kind,
 		);
@@ -99,25 +99,17 @@ export function checkExecutionCapabilities(
 		else
 			require("decoders", stream.codec, `${kind}-input`, (entry) =>
 				entry.codec === stream.codec && entry.mediaType === kind);
-		require("encoders", encoding.encoder, `${kind}-output`, (entry) =>
-			entry.name === encoding.encoder &&
-			entry.codec === encoding.codec &&
+		require("encoders", execution.encoder, `${kind}-output`, (entry) =>
+			entry.name === execution.encoder &&
+			entry.codec === execution.codec &&
 			entry.mediaType === kind);
+		if (execution.pixelFormat)
+			require("pixelFormats", execution.pixelFormat, `${kind}-output`, (
+				entry,
+			) => entry.name === execution.pixelFormat && entry.flags.includes("O"));
 	}
-	if (plan.operation.video === "encode") {
-		require("pixelFormats", plan.profile.video.pixelFormat, "video-output", (
-			entry,
-		) =>
-			entry.name === plan.profile.video.pixelFormat &&
-			entry.flags.includes("O"));
-		if (plan.profile.video.padToEven)
-			named("filters", "pad", "even-video-dimensions");
-		const video = info.streams.find(
-			(stream) => stream.index === videoStreamIndex,
-		);
-		if (video?.pixelFormat !== plan.profile.video.pixelFormat)
-			named("filters", "scale", "pixel-format-conversion");
-	}
+	for (const filter of plan.filters)
+		named("filters", filter, "execution-filter");
 	return {
 		status: requirements.some((requirement) => requirement.status === "missing")
 			? "missing"

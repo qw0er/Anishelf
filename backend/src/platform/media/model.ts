@@ -71,10 +71,7 @@ export interface ExtractedSubtitle {
 import type { MediaProcessingPlan } from "../../shared/media-processing.js";
 import type { DeepReadonly } from "../../shared/policy.js";
 
-export type {
-	MediaProcessingPlan,
-	MediaProcessingProfile,
-} from "../../shared/media-processing.js";
+export type { MediaProcessingPlan } from "../../shared/media-processing.js";
 
 export interface MediaProcessingOptions {
 	onEvent?: (

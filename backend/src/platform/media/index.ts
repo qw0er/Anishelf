@@ -13,7 +13,6 @@ export type {
 	MediaInfo,
 	MediaProcessingOptions,
 	MediaProcessingPlan,
-	MediaProcessingProfile,
 	MediaStream,
 	SubtitleFormat,
 	ToolStatus,

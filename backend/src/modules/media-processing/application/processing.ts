@@ -1,22 +1,26 @@
 import { randomUUID } from "node:crypto";
+import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { Logger } from "pino";
 import type {
 	MediaInfo,
+	MediaProcessingOptions,
 	MediaStream,
 	MediaTools,
 } from "../../../platform/media/index.js";
-import { MediaToolError } from "../../../platform/media/index.js";
+import {
+	checkExecutionCapabilities,
+	MediaExecutionCapabilityError,
+	MediaToolError,
+} from "../../../platform/media/index.js";
 import type { MediaProcessEvent } from "../../../shared/media-execution.js";
 import type { MediaProcessingPlan } from "../../../shared/media-processing.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import type { MediaInspectionApi } from "../../media-inspection/public.js";
 import type { ResourceAccessApi } from "../../resource-access/public.js";
 import {
-	type MediaProcessingMode,
 	type MediaProcessingPolicy,
 	mediaProcessingPolicy,
-	resolveMediaProcessingPlan,
 	validateMediaProcessingPolicy,
 } from "../domain/policy.js";
 import {
@@ -24,14 +28,14 @@ import {
 	type ProcessingWorkspace,
 } from "../infrastructure/files.js";
 
-export interface MediaProcessingRequest {
-	fileId: string;
-	sourceVersion: string;
-	mode: MediaProcessingMode;
-	/** Backend-only absolute FFprobe indexes; omission selects default/first usable. */
-	videoStreamIndex?: number;
-	audioStreamIndex?: number | null;
-	signal?: AbortSignal;
+/** An adapter must await child closure on cancellation. No production adapter is built in. */
+export interface MediaExecutionAdapter {
+	execute(
+		input: string,
+		output: string,
+		options: MediaProcessingOptions,
+		info: MediaInfo,
+	): Promise<void>;
 }
 
 export interface MediaExecutionRequest {
@@ -67,8 +71,7 @@ export interface ProcessedMedia {
 	id: string;
 	fileId: string;
 	sourceVersion: string;
-	mode: MediaProcessingMode;
-	profileId: string;
+	planId: string;
 	videoStreamIndex: number;
 	audioStreamIndex: number | null;
 	path: string;
@@ -86,27 +89,21 @@ export class MediaProcessingBusyError extends Error {
 function selectStream(
 	streams: MediaStream[],
 	type: "video" | "audio",
-	index?: number,
+	index: number,
 ): MediaStream | undefined {
 	const candidates = streams.filter(
 		(stream) =>
 			stream.type === type && (type !== "video" || !stream.attachedPicture),
 	);
-	if (index !== undefined) {
-		if (!Number.isSafeInteger(index) || index < 0)
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Invalid selected stream index.",
-			);
-		const selected = candidates.find((stream) => stream.index === index);
-		if (!selected)
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Selected stream is unavailable.",
-			);
-		return selected;
-	}
-	return candidates.find((stream) => stream.default) ?? candidates[0];
+	if (!Number.isSafeInteger(index) || index < 0)
+		throw new MediaToolError("INVALID_INPUT", "Invalid selected stream index.");
+	const selected = candidates.find((stream) => stream.index === index);
+	if (!selected)
+		throw new MediaToolError(
+			"INVALID_INPUT",
+			"Selected stream is unavailable.",
+		);
+	return selected;
 }
 
 /** Explicit operations for future planners; no automatic conversion or compatibility claims. */
@@ -123,7 +120,8 @@ export class MediaProcessingApplication {
 		private readonly options: {
 			sources: ResourceAccessApi;
 			inspection: MediaInspectionApi;
-			tools: Pick<MediaTools, "processMedia">;
+			tools: Pick<MediaTools, "capabilities" | "probe">;
+			executor: MediaExecutionAdapter;
 			dataDir: string;
 			policy?: DeepReadonly<MediaProcessingPolicy>;
 			logger?: Logger;
@@ -134,25 +132,37 @@ export class MediaProcessingApplication {
 		this.policy = freeze(structuredClone(policy));
 		this.files = new MediaProcessingFiles(options.dataDir);
 	}
-	process(request: MediaProcessingRequest): Promise<ProcessedMedia> {
-		try {
-			return this.launch({ ...request }).completion;
-		} catch (error) {
-			return Promise.reject(error);
-		}
-	}
 	start(request: MediaExecutionRequest): MediaExecutionHandle {
 		const plan = freeze(structuredClone(request.plan));
-		validateMediaProcessingPolicy({ ...this.policy, profile: plan.profile });
-		const mode = (
-			Object.keys(this.policy.operations) as MediaProcessingMode[]
-		).find(
-			(mode) =>
-				this.policy.operations[mode].video === plan.operation.video &&
-				this.policy.operations[mode].audio === plan.operation.audio,
-		);
 		if (
-			!mode ||
+			typeof plan.id !== "string" ||
+			!plan.id ||
+			typeof plan.container !== "string" ||
+			!plan.container ||
+			typeof plan.outputFormat !== "string" ||
+			!plan.outputFormat ||
+			!Array.isArray(plan.filters) ||
+			!plan.filters.every(
+				(filter) => typeof filter === "string" && filter.length > 0,
+			) ||
+			![plan.video, plan.audio].every(
+				(stream) =>
+					stream?.action === "copy" ||
+					(stream?.action === "encode" &&
+						typeof stream.encoder === "string" &&
+						stream.encoder.length > 0 &&
+						typeof stream.codec === "string" &&
+						stream.codec.length > 0 &&
+						(stream.pixelFormat === undefined ||
+							(typeof stream.pixelFormat === "string" &&
+								stream.pixelFormat.length > 0))),
+			)
+		)
+			throw new MediaToolError(
+				"INVALID_INPUT",
+				"Invalid explicit execution requirements.",
+			);
+		if (
 			!Number.isSafeInteger(request.videoStreamIndex) ||
 			request.videoStreamIndex < 0 ||
 			(request.audioStreamIndex !== null &&
@@ -163,14 +173,9 @@ export class MediaProcessingApplication {
 				"INVALID_INPUT",
 				"Invalid explicit execution selection.",
 			);
-		return this.launch({ ...request, plan, mode });
+		return this.launch({ ...request, plan });
 	}
-	private launch(
-		request: MediaProcessingRequest & {
-			plan?: DeepReadonly<MediaProcessingPlan>;
-			onEvent?: (event: MediaExecutionEvent) => void;
-		},
-	): MediaExecutionHandle {
+	private launch(request: MediaExecutionRequest): MediaExecutionHandle {
 		if (this.controller.signal.aborted)
 			throw new MediaToolError(
 				"TOOL_UNAVAILABLE",
@@ -211,13 +216,18 @@ export class MediaProcessingApplication {
 		const active = Promise.resolve()
 			.then(() => {
 				transition("checking");
-				return this.run({ ...request, signal }, id, (event) => {
-					if (event.type === "started") transition("starting");
-					if (event.type === "progress") transition("running");
-					if (event.type === "closed" && !event.reason)
-						transition("validating");
-					emit(event);
-				});
+				return this.run(
+					{ ...request, signal },
+					id,
+					(event) => {
+						if (event.type === "started") transition("starting");
+						if (event.type === "progress") transition("running");
+						if (event.type === "closed" && !event.reason)
+							transition("validating");
+						emit(event);
+					},
+					() => transition("validating"),
+				);
 			})
 			.then(
 				(result) => {
@@ -244,23 +254,16 @@ export class MediaProcessingApplication {
 		};
 	}
 	private async run(
-		request: MediaProcessingRequest & {
-			plan?: DeepReadonly<MediaProcessingPlan>;
-		},
+		request: MediaExecutionRequest,
 		id: string,
 		onEvent: (event: MediaProcessEvent) => void,
+		onValidating: () => void,
 	): Promise<ProcessedMedia> {
 		const signal = request.signal
 			? AbortSignal.any([request.signal, this.controller.signal])
 			: this.controller.signal;
 		signal.throwIfAborted();
-		if (!Object.hasOwn(this.policy.operations, request.mode))
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Invalid media processing operation.",
-			);
-		const plan =
-			request.plan ?? resolveMediaProcessingPlan(this.policy, request.mode);
+		const plan = request.plan;
 		if (typeof request.sourceVersion !== "string" || !request.sourceVersion)
 			throw new MediaToolError(
 				"INVALID_INPUT",
@@ -281,6 +284,16 @@ export class MediaProcessingApplication {
 				"INVALID_INPUT",
 				"No usable video stream is available for processing.",
 			);
+		const check = checkExecutionCapabilities(
+			await this.options.tools.capabilities(),
+			plan,
+			info,
+			video.index,
+			audio?.index ?? null,
+		);
+		if (check.status !== "supported")
+			throw new MediaExecutionCapabilityError(check);
+		signal.throwIfAborted();
 		const retainedBytes = [...this.outputs.values()].reduce(
 			(total, output) => total + output.sizeBytes,
 			0,
@@ -295,7 +308,7 @@ export class MediaProcessingApplication {
 		signal.throwIfAborted();
 		const workspace = await this.files.allocate();
 		try {
-			const output = await this.options.tools.processMedia(
+			await this.options.executor.execute(
 				join(source.identity.canonicalRoot, source.identity.relativePath),
 				workspace.pendingPath,
 				{
@@ -309,6 +322,48 @@ export class MediaProcessingApplication {
 				},
 				info,
 			);
+			signal.throwIfAborted();
+			onValidating();
+			const size = (await stat(workspace.pendingPath)).size;
+			if (size <= 0 || size >= maximumBytes)
+				throw new MediaToolError(
+					"TOOL_FAILED",
+					"Processed media is empty or exceeds its size limit.",
+				);
+			const output = await this.options.tools.probe(
+				workspace.pendingPath,
+				signal,
+			);
+			const videos = output.streams.filter((stream) => stream.type === "video");
+			const audios = output.streams.filter((stream) => stream.type === "audio");
+			if (
+				videos.length !== 1 ||
+				audios.length !== (audio ? 1 : 0) ||
+				videos[0]?.codec !==
+					(plan.video.action === "encode" ? plan.video.codec : video.codec) ||
+				(audio &&
+					audios[0]?.codec !==
+						(plan.audio.action === "encode"
+							? plan.audio.codec
+							: audio.codec)) ||
+				!output.formatAliases.includes(plan.outputFormat)
+			)
+				throw new MediaToolError(
+					"TOOL_FAILED",
+					"Output does not match explicit execution requirements.",
+				);
+			const before = video.duration ?? info.duration;
+			const after = videos[0]?.duration ?? output.duration;
+			if (
+				before !== null &&
+				after !== null &&
+				Math.abs(before - after) > this.policy.durationToleranceSeconds
+			)
+				throw new MediaToolError(
+					"TOOL_FAILED",
+					"Output duration does not match the source.",
+				);
+
 			await this.options.sources.revalidateSource(source);
 			signal.throwIfAborted();
 			const sizeBytes = await this.files.publish(workspace);
@@ -319,8 +374,7 @@ export class MediaProcessingApplication {
 				id,
 				fileId: source.identity.fileId,
 				sourceVersion: source.identity.sourceVersion,
-				mode: request.mode,
-				profileId: plan.profile.id,
+				planId: plan.id,
 				videoStreamIndex: video.index,
 				audioStreamIndex: audio?.index ?? null,
 				path: workspace.path,

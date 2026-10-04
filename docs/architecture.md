@@ -513,102 +513,53 @@ Keep cue time on the original source timeline. When real-time playback restarts 
 
 ## 7. Playback Plan and FFmpeg Transcoding (V2; P05–P07)
 
-### Implemented processing primitives
+### Implemented execution foundation
 
-`modules/media-processing/public.ts` exposes `MediaProcessingApplication` and the
-backend-only `MediaProcessingApi`. `process({ fileId, sourceVersion, mode,
-videoStreamIndex?, audioStreamIndex?, signal? })` provides four explicit operations:
+`modules/media-processing/public.ts` exposes `MediaProcessingApplication` and
+its backend-only `start`, `release` and lifecycle methods. `start()` accepts a
+source version, explicit stream indexes and an explicit execution contract. It
+returns an ID, observable state, completion promise and `stop()` method. There
+is no mode-based `process()` entry point, default output profile, encoder preset
+or built-in transcoding adapter. Constructing the application requires an
+injected `MediaExecutionAdapter`. Concrete execution configuration and FFmpeg
+argument generation remain future adapter work.
 
-| Mode | Video | Audio | Output |
-| --- | --- | --- | --- |
-| `remux` | Copy | Copy | Fast-start MP4 |
-| `transcode-audio` | Copy | AAC, 192 kbit/s | Fast-start MP4 |
-| `transcode-video` | H.264/yuv420p, CRF 20, medium | Copy | Fast-start MP4 |
-| `transcode` | H.264/yuv420p, CRF 20, medium | AAC, 192 kbit/s | Fast-start MP4 |
+`shared/media-processing.ts` describes caller-selected container, stream copy or
+encode requirements, encoder/codec, optional pixel format and required filters.
+These fields impose no MP4/H.264/AAC whitelist. Filter dependencies include any
+automatically inserted filters needed by the adapter; the checker does not infer
+padding, scaling, tone mapping or a substitute encoder. Compatibility planning
+remains independent and does not construct these execution contracts.
 
-The four named operations are declared in
-`modules/media-processing/domain/policy.ts` as video/audio copy-or-encode actions.
-That policy also owns the versioned profile, container/fast-start settings,
-encoder/codec/pixel format, CRF/preset/threads, audio bitrate, HDR handling,
-frame-timing/even-padding options and duration-validation tolerances. Policy
-validation preserves each operation's semantics and rejects unsupported adapters.
-`MediaProcessingApplication` resolves an immutable execution plan and passes it,
-its timeout and remaining output budget to `MediaTools.processMedia()`.
-The adapter builds FFmpeg arguments from that plan; it does not choose among the
-four operations or own their encoding parameter defaults. The result's profile ID
-comes from the resolved policy. Encoding parameter changes require a new profile
-version before introducing reusable persistent outputs.
+The application owns source-version-bound inspection, selected-stream validation,
+capability preflight, private output allocation, size/stream/codec/container/duration
+validation, source revalidation and atomic publication. Files use neutral
+`media.pending` and `media` names. The injected adapter must respect cancellation,
+timeout and size bounds, and await child closure before settling. The retained
+process runner supplies streaming progress, startup/stall/overall deadlines,
+bounded diagnostics and SIGTERM/SIGKILL termination with close acknowledgement.
+A result becomes ready only after output validation and publication.
 
-Omitted stream indexes select default tracks, falling back to the first usable
-track. Attached pictures never qualify as the video. `audioStreamIndex: null`
-explicitly disables audio; sources without audio also produce video-only output.
-The versioned profile `mp4-h264-aac-v1` uses two video encoding threads and pads odd
-dimensions to even values rather than resizing the picture. Only the selected
-video/audio are mapped; subtitles, attachments and chapters use separate workflows.
-HDR video encoding is rejected pending a supported tone-mapping profile. Copying a
-stream does not certify browser compatibility; a codec unsupported by the MP4 muxer
-fails without silently selecting another operation.
+The processing policy contains concurrency, timeout, retained-output budget and
+duration-validation tolerance only. One operation runs per instance, bounded by
+six hours and a 10 GiB retained-output budget. `release(id)` removes a private
+artifact. `close()` stops active work and removes retained outputs. Callers must
+register `close()` and revalidate the source before serving a result. Construction
+performs no media processing or disk writes.
 
-The service uses shared version-bound inspection and confined source validation.
-`MediaTools.processMedia()` validates selected internal indexes against the reused
-shared probe descriptor (or probes independently for trusted direct callers), runs
-FFmpeg without a shell or overwrite, then probes the output to check stream
-counts/codecs and duration where reported. The service validates the source before
-processing, after processing and after publication. A source/root conflict rejects
-the output even when FFmpeg succeeds. Output-limit exhaustion, failed/cancelled
-work and version conflicts remove the job directory. Output files are private,
-fsynced and renamed from `.pending` only after validation.
+`MediaTools.capabilities()` enumerates the full advertised FFmpeg build inventory
+once per service lifetime. Preflight consumes the cache, checks only the selected
+execution requirements, and distinguishes missing support from unknown inventory.
+Copied streams do not require encoders or decoders. Build support remains runtime
+unverified. Real execution still requires output validation.
 
-One operation runs per service instance; another request receives
-`MediaProcessingBusyError`. Processing has a six-hour timeout and a 10 GiB total
-retained-output budget per instance (program-owned, injectable media policy).
-A tighter remaining budget is supplied to FFmpeg and size-limited partial output
-is rejected. `process()` returns a private artifact ID/path, original selected
-indexes, file ID/source version, output metadata and size. `release(id)` deletes an
-artifact; `close()` cancels active work and removes retained outputs. Callers must
-register `close()` with their lifecycle and revalidate the source before serving
-or reusing a result. Service construction performs no processing or disk writes.
-
-`start({ fileId, sourceVersion, plan, videoStreamIndex, audioStreamIndex,
-signal?, onEvent? })` accepts an explicit, cloned execution configuration and
-returns an ID, observable state, completion promise and `stop()` method. Its
-supported adapter remains the existing MP4 profile; it does not select an encoder
-from compatibility recommendations. Completion includes validation, publication
-and source revalidation. Stopping waits for execution and cleanup. The older
-`process()` convenience method continues to resolve the configured profile.
-
-Long-running FFmpeg work uses incremental `-progress pipe:1` records. Startup,
-no-progress stall and overall deadlines have distinct failure reasons. Repeated
-unchanged progress records do not reset the stall deadline. Cancellation sends
-SIGTERM, escalates to SIGKILL after the configured grace period, and waits for
-child and pipe closure. Progress records and diagnostic tails have independent
-memory bounds. Observer errors cannot fail execution. Percentages are absent
-when inspected duration is unavailable, and 100 percent does not mean ready.
-
-Before execution, the adapter checks the cached inventory for the selected
-input demuxer, output muxer, local file protocol, progress pipe protocol,
-and, for encoded streams only,
-source decoders and selected encoders. Video encoding additionally checks its
-pixel format and required pad/scale filters. Missing requirements and unknown
-inventory results produce distinct errors; neither triggers a fallback or a new
-inventory scan. Supported requirements still have `runtimeValidation: unverified`:
-codec/muxer compatibility and actual output correctness are checked during the
-real operation. See [Media execution](media-execution.md) for the internal contract.
-
-These are backend primitives, available for a future playback/preparation caller.
-They are not currently wired to HTTP or the player. `MediaTools.capabilities()`
-enumerates the complete advertised FFmpeg build inventory once per service
-lifetime, with bounded concurrency, per-command limits, isolated snapshots and
-independent category failures. The inventory is backend-only and has no HTTP
-endpoint or browser contract. It is independent of compatibility planning.
-Hardware runtime usability remains unverified; build inventory alone does not
-prove that a particular execution configuration will succeed. Browser
-capability negotiation and compatibility planning are implemented separately;
-see [Video compatibility checks](video-compatibility.md). Persistent task/asset
-records, crash recovery, and HLS remain planned below. Outputs are temporary service-owned files; a crash
-can leave orphan job directories until a future recovery mechanism removes them.
-The four operations have passed real FFmpeg fixture tests. Browser playback
-acceptance with representative library samples remains pending.
+The former fixed MP4/H.264/AAC profile, profile resolver, mode-based entry point,
+codec-specific FFmpeg compiler and default stream selection have been removed.
+The execution foundation is not wired to HTTP or the player, and no production
+transcoding adapter is currently provided. Persistent jobs, crash recovery,
+pre-transcoding playback and HLS remain planned below. See
+[Media execution](media-execution.md) and
+[Video compatibility checks](video-compatibility.md).
 
 ### Inspection and minimum necessary processing
 
