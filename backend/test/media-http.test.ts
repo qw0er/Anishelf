@@ -71,11 +71,11 @@ test("returns current file metadata and a working same-origin playback URL", asy
 			modifiedAt: expect.any(String),
 			mimeType: "video/mp4",
 		},
-		playbackUrl: `/api/media/${id}`,
+		originalMediaUrl: `/api/media/${id}`,
 	});
 	expect(response.body).not.toContain("relativePath");
 	expect(response.body).not.toContain(fixture);
-	const media = await app.inject({ url: body.playbackUrl, headers });
+	const media = await app.inject({ url: body.originalMediaUrl, headers });
 	expect(media.statusCode).toBe(200);
 	expect(media.body).toBe("updated media");
 	expect(media.headers).toMatchObject({

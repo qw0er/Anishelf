@@ -98,22 +98,28 @@ export class PreparationRepository {
 	publish(task: PreparationTask, artifact: PreparedArtifact): void {
 		this.store.transaction(() => {
 			this.save(task);
+			const { delivery: _delivery, ...row } = artifact;
 			this.store
 				.insert(preparedArtifacts)
-				.values(artifact)
-				.onConflictDoUpdate({ target: preparedArtifacts.id, set: artifact })
+				.values(row)
+				.onConflictDoUpdate({ target: preparedArtifacts.id, set: row })
 				.run();
 		});
 	}
 	artifact(id: string): PreparedArtifact | undefined {
-		return this.store
+		const artifact = this.store
 			.select()
 			.from(preparedArtifacts)
 			.where(eq(preparedArtifacts.id, id))
 			.get();
+		return artifact ? { ...artifact, delivery: "file" } : undefined;
 	}
 	artifacts(): PreparedArtifact[] {
-		return this.store.select().from(preparedArtifacts).all();
+		return this.store
+			.select()
+			.from(preparedArtifacts)
+			.all()
+			.map((artifact) => ({ ...artifact, delivery: "file" }));
 	}
 	removeArtifact(task: PreparationTask): void {
 		this.store.transaction(() => {

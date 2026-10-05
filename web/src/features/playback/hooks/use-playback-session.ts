@@ -1,3 +1,7 @@
+import {
+	type MediaTimeline,
+	originalTimeline,
+} from "@anishelf/backend/contracts/media";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "../../../components/ui/toast.js";
@@ -29,6 +33,7 @@ export function usePlaybackSession(fileId: string, policy: PlaybackPolicy) {
 	const [state, setState] = useState(initialState);
 	const controllerRef = useRef<PlaybackSessionController | null>(null);
 	const videoRef = useRef<HTMLVideoElement | null>(null);
+	const timelineRef = useRef<MediaTimeline>(originalTimeline());
 	useEffect(() => {
 		const notificationId = `playback-progress:${fileId}`;
 		let notifiedError: string | null = null;
@@ -66,7 +71,7 @@ export function usePlaybackSession(fileId: string, policy: PlaybackPolicy) {
 			stablePolicy,
 		);
 		controllerRef.current = controller;
-		controller.attach(videoRef.current);
+		controller.attach(videoRef.current, timelineRef.current);
 		void controller.open(departures.get(fileId));
 		const hide = () => {
 			void controller.flush(true);
@@ -84,9 +89,16 @@ export function usePlaybackSession(fileId: string, policy: PlaybackPolicy) {
 		};
 	}, [fileId, stablePolicy, t]);
 
-	const attach = useCallback((video: HTMLVideoElement | null) => {
-		videoRef.current = video;
-		controllerRef.current?.attach(video);
-	}, []);
+	const attach = useCallback(
+		(
+			video: HTMLVideoElement | null,
+			timeline: MediaTimeline = originalTimeline(),
+		) => {
+			videoRef.current = video;
+			timelineRef.current = timeline;
+			controllerRef.current?.attach(video, timeline);
+		},
+		[],
+	);
 	return { session: state.session, attach };
 }

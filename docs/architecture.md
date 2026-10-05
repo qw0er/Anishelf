@@ -9,6 +9,7 @@
 - [Playback plans and resource ownership](#playback-plans-and-resource-ownership)
 - [Internal media execution](#internal-media-execution)
 - [Persistent Web preparation](#persistent-web-preparation)
+- [HLS migration foundation](#hls-migration-foundation)
 - [Real-time playback design](#real-time-playback-design)
 - [HTTP boundaries](#http-boundaries)
 - [UI design](#ui-design)
@@ -24,7 +25,9 @@ Direct playback, saved progress/history, external and embedded text subtitles,
 compatibility negotiation, persistent preparation and prepared-copy playback are
 implemented. Real-time HLS, embedded fonts, automatic cache eviction and broader
 playback/cache settings remain planned. The dedicated Continue watching UI is
-also planned; recent history and resume are implemented.
+also planned; recent history and resume are implemented. HLS resource contracts,
+per-track planning and source-time mapping are implemented as a migration foundation;
+HLS packaging, resource acquisition and HLS browser playback are not implemented.
 
 ## Modules and boundaries
 
@@ -48,6 +51,8 @@ precedence where the diagram has not caught up with implementation.
 | Playback | Read-only plans, sessions, durable progress and history |
 | Preparation | Persistent tasks, queue, reusable artifacts and cache delivery |
 | Subtitles | Discovery, selected-track preparation, delivery and asset lifecycle |
+| HLS | Resource/segment models, policy and lease port; publication/delivery implementation is pending |
+| Real-time | Session and lifecycle ports; runtime ownership implementation is pending |
 
 Cross-module imports, including types, use `modules/<feature>/public.ts`.
 Only bootstrap may import implementations from other modules for assembly.
@@ -61,7 +66,7 @@ Resource Access receives an indexed-source catalog port from bootstrap rather
 than importing Library. Playback, inspection and subtitles consume the same
 read-only source capability. The shared source registry prevents each feature
 from inventing its own source identity. Public API and feature dependency cycles
-are rejected by the architecture check.
+should remain acyclic.
 
 ## Configuration and persistence
 
@@ -240,7 +245,9 @@ reported as successful video playback. Viewing never enqueues processing.
 `PlaybackApplication.plan()` is read-only: it consumes checked compatibility,
 resolves a processing decision and revalidates the source. It neither creates
 history nor acquires tasks, files or real-time sessions. Private execution requests
-are projected explicitly into public resource references.
+are projected explicitly into public decisions by `POST /api/playback/plans`.
+Planning never publishes a playable HLS URL or creates a session. A HLS plan returns
+`hls-required` with a plan identity and stream actions; it is not an accepted task.
 
 | Resource | Owner guarantee |
 | --- | --- |
@@ -369,12 +376,68 @@ A newly completed task may become playable on the open file page. Without a read
 copy, show preparation guidance; watching itself never creates a task. Progress
 and subtitle selection remain attached to the original source.
 
+## HLS migration foundation
+
+The target Web delivery is HLS/fMP4. Preserve `GET/HEAD /api/media/:id` as original
+file delivery with existing Range/conditional requests for external players.
+File details expose `originalMediaUrl`; browser playback URLs belong to playback
+resources. Copy media link must always use the original file route and never
+acquire a processing resource.
+
+The migration currently preserves native file playback and completed-file
+preparation. Playback plans use a discriminated `resource`: `delivery: file` carries
+URL/MIME/timeline; `delivery: hls` additionally carries resource identity, stream
+generation, complete/growing state, tracks and available source-time ranges.
+Prepared resources must be complete. Pending plans contain no resource or URL.
+Session contracts accept these plans, but opening a session still returns a direct
+file resource. The client still selects completed copies; server-side resource
+selection/acquisition is a later migration step.
+
+Compatibility output requests accept `target: hls`; browser decoding queries use
+`media-source`, not a fictional HLS MediaCapabilities query type. Evidence remains
+bound to source/profile/selection and each requested combination. HLS planning
+requires an MP4 profile, ignores native-file acceptance as a packaging shortcut,
+and resolves each audio track separately. One track may be copied while another
+is encoded. Unknown/missing evidence blocks the plan. HLS identity includes the
+packaging version, effective settings and target segment duration. Track IDs map
+explicitly to source stream indexes; playback selection is separate from the
+tracks retained in an output.
+
+`HlsExecutionPlan` is separate from the legacy complete-file execution plan.
+It describes one video track, individual audio actions and fMP4 packaging policy.
+The file executor rejects HLS output; no HLS executor is composed yet.
+Processed file results identify their private file output explicitly. Future
+segmented results identify a directory/master playlist, not a single media path.
+Preparation exposes separate complete-file and completed-HLS artifact models;
+the repository still persists only file artifacts. No database migration, cache
+conversion or deletion is performed in this foundation step.
+
+HLS owns segment/resource and acquire/release contracts. Preparation will own
+completed publication and deletion; real-time will own leases, child execution and
+stream generations. Playback borrows resources. The initial interfaces are ports,
+not functioning resource services. Shared scheduling, segment publication,
+validated reads and generation-specific HTTP routes remain to be implemented.
+
+`MediaTimeline` records source and media origins plus the original duration.
+Browser progress converts through the shared mapping on restore/save. Finishing
+an offset stream must not mark the entire source watched. ASS/SSA and future
+WebVTT delivery must use the same mapping; subtitle clock integration is pending.
+HLS generations are independent of durable progress generations.
+
+Migration order: implement validated complete HLS output/cache; integrate the
+HLS Provider and backend resource selection; implement real-time acquisition,
+leases, shared scheduling and out-of-range seeking; then add WebVTT subtitles.
+Keep ASS/SSA on JASSUB. Do not advertise HLS delivery merely because plans or
+schemas exist. All browser builds must be deployed with matching API contracts.
+
 ## Real-time playback design
 
 **Planned.** Real-time mode processes an existing file while watched, using
 session-scoped HLS/fMP4. Vidstack uses hls.js on validated MSE clients; native HLS
-requires separate validation. The strategy is original, verified prepared copy,
-then necessary real-time processing. Use a distinct versioned low-latency profile,
+requires separate validation. The target strategy is a verified complete HLS resource, then necessary
+real-time packaging/processing; compatible streams are copied. Original Range
+delivery remains available for external players. Native Web playback remains
+the current behavior until HLS execution/delivery has been implemented. Use a distinct versioned low-latency profile,
 copy compatible streams and avoid an automatic fallback loop on generic errors.
 No ABR ladder or live-source ingestion is required.
 

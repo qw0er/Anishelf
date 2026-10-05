@@ -77,10 +77,22 @@ export interface ProcessedMedia {
 	planId: string;
 	videoStreamIndex: number;
 	audioStreamIndices: readonly number[];
-	path: string;
+	output: { delivery: "file"; path: string };
 	sizeBytes: number;
 	info: MediaInfo;
 }
+
+/** Future segmented executor result. The HLS owner must validate/publish it before HTTP use. */
+export interface ProcessedHlsMedia {
+	id: string;
+	fileId: string;
+	sourceVersion: string;
+	planId: string;
+	output: { delivery: "hls"; directory: string; masterPlaylist: string };
+	sizeBytes: number;
+	completeness: "complete" | "growing";
+}
+export type ProcessedOutput = ProcessedMedia | ProcessedHlsMedia;
 
 export class MediaProcessingBusyError extends Error {
 	constructor() {
@@ -437,7 +449,7 @@ export class MediaProcessingApplication {
 				planId: plan.id,
 				videoStreamIndex: video.index,
 				audioStreamIndices: selectedAudios.map((audio) => audio.index),
-				path: workspace.path,
+				output: { delivery: "file", path: workspace.path },
 				sizeBytes,
 				info: output,
 			};

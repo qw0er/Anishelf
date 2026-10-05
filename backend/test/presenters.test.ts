@@ -120,7 +120,16 @@ test("playback presenters omit storage identities and internal additions", () =>
 		file,
 		plan: {
 			mode: "direct" as const,
-			playbackUrl: "/api/media/file_episode",
+			resource: {
+				delivery: "file" as const,
+				url: "/api/media/file_episode",
+				mimeType: "video/mp4",
+				timeline: {
+					sourceOriginMs: 0,
+					mediaOriginMs: 0,
+					sourceDurationMs: null,
+				},
+			},
 			internalPath: "private-copy",
 		},
 		progress,

@@ -4,6 +4,8 @@ export type {
 	PreparationTask,
 	PreparationTaskDto,
 	PreparedArtifact,
+	PreparedHlsArtifact,
+	PreparedResource,
 } from "./domain/model.js";
 export type { PreparationPolicy } from "./domain/policy.js";
 export {

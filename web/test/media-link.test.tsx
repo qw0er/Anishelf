@@ -25,7 +25,7 @@ const file = {
 		modifiedAt: "date",
 		mimeType: "video/mp4",
 	},
-	playbackUrl: `/api/media/${fileId}`,
+	originalMediaUrl: `/api/media/${fileId}`,
 };
 const writeText = vi.fn().mockResolvedValue(undefined);
 beforeEach(() => {
@@ -66,8 +66,8 @@ test.each([
 	"/api/media/another",
 	"/api/media/file_123?path=/secret",
 	"//other.test/media",
-])("rejects unexpected media route %s", async (playbackUrl) => {
-	vi.mocked(api.getFile).mockResolvedValue({ ...file, playbackUrl });
+])("rejects unexpected media route %s", async (originalMediaUrl) => {
+	vi.mocked(api.getFile).mockResolvedValue({ ...file, originalMediaUrl });
 	await expect(
 		createMediaLink(fileId, "http://localhost:9000"),
 	).rejects.toMatchObject({ kind: "invalid_response" });
@@ -79,7 +79,7 @@ test("rechecks the file, copies its link and does not touch playback state", asy
 	fireEvent.click(screen.getByRole("button", { name: "Copy media link" }));
 	await screen.findByText(/Link copied/);
 	expect(writeText).toHaveBeenCalledWith(
-		`${window.location.origin}${file.playbackUrl}`,
+		`${window.location.origin}${file.originalMediaUrl}`,
 	);
 	expect(api.getFile).toHaveBeenCalledWith(fileId, {
 		signal: expect.any(AbortSignal),
@@ -101,7 +101,7 @@ test.each(["unavailable", "rejected"])(
 		expect(
 			screen.getByRole<HTMLInputElement>("textbox", { name: "Media link" })
 				.value,
-		).toBe(`${window.location.origin}${file.playbackUrl}`);
+		).toBe(`${window.location.origin}${file.originalMediaUrl}`);
 		const input = screen.getByRole<HTMLInputElement>("textbox", {
 			name: "Media link",
 		});

@@ -92,7 +92,12 @@ const task = {
 	mode: "remux",
 	status: "ready",
 	artifactId: "jp-artifact",
-	playbackUrl: "/api/prepared-media/jp-artifact",
+	resource: {
+		delivery: "file" as const,
+		url: "/api/prepared-media/jp-artifact",
+		mimeType: "video/mp4",
+		timeline: { sourceOriginMs: 0, mediaOriginMs: 0, sourceDurationMs: null },
+	},
 	updatedAtMs: 1,
 	audioStreamIndices: [2],
 } as PreparationTaskResponse;
@@ -130,7 +135,7 @@ test("changing playback audio verifies only matching copies and never enqueues a
 							modifiedAt: "now",
 							mimeType: "video/x-matroska",
 						},
-						playbackUrl: "/api/media/file",
+						originalMediaUrl: "/api/media/file",
 					}}
 					returnDirectoryId="root"
 					onRetry={vi.fn()}
@@ -140,7 +145,7 @@ test("changing playback audio verifies only matching copies and never enqueues a
 	);
 	await waitFor(() =>
 		expect(view.getByLabelText("Active video").textContent).toBe(
-			task.playbackUrl,
+			task.resource?.url,
 		),
 	);
 	expect(api.checkMediaCompatibility).toHaveBeenCalledWith(
@@ -213,7 +218,7 @@ test.each(["unknown", "unsupported", "list-error"])(
 								modifiedAt: "now",
 								mimeType: "video/x-matroska",
 							},
-							playbackUrl: "/api/media/file",
+							originalMediaUrl: "/api/media/file",
 						}}
 						returnDirectoryId="root"
 						onRetry={vi.fn()}

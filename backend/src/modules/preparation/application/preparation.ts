@@ -4,6 +4,7 @@ import type {
 	CompatibilityCheckRequest,
 	PreparationStartResponse,
 } from "../../../contracts/http.js";
+import { originalTimeline } from "../../../contracts/media.js";
 import {
 	MediaOutputBudgetError,
 	MediaToolError,
@@ -191,9 +192,14 @@ export class PreparationApplication {
 			createdAtMs: task.createdAtMs,
 			updatedAtMs: task.updatedAtMs,
 			artifactId: artifact?.id ?? null,
-			playbackUrl:
+			resource:
 				artifact && this.options.sources.hasSnapshot
-					? `/api/prepared-media/${artifact.id}`
+					? {
+							delivery: "file",
+							url: `/api/prepared-media/${artifact.id}`,
+							mimeType: artifact.mimeType,
+							timeline: originalTimeline(),
+						}
 					: null,
 			sizeBytes: artifact?.sizeBytes ?? null,
 		};
@@ -267,6 +273,8 @@ export class PreparationApplication {
 				return { kind: "direct", plan: { ...planned.plan } };
 			if (planned.kind === "blocked")
 				return { kind: "blocked", reason: planned.plan.reason };
+			if (planned.kind === "hls-required")
+				return { kind: "blocked", reason: "hls-execution-unavailable" };
 			const repository = this.repository();
 			const existing = repository.find(planned.identity.executionPlanId);
 			if (existing) {
@@ -644,7 +652,7 @@ export class PreparationApplication {
 				const source = await this.source(task);
 				await this.files.publish(
 					task.identity.executionPlanId,
-					processed.path,
+					processed.output.path,
 					processed.sizeBytes,
 				);
 				await this.options.sources.revalidateSource(source);
@@ -664,6 +672,7 @@ export class PreparationApplication {
 				)[task.request.plan.container];
 				if (!mimeType) throw new Error("Unsupported prepared container.");
 				this.repository().publish(task, {
+					delivery: "file",
 					id: task.identity.executionPlanId,
 					taskId: task.id,
 					sizeBytes: processed.sizeBytes,

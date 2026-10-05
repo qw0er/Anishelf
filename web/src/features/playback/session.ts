@@ -1,4 +1,10 @@
 import {
+	type MediaTimeline,
+	mediaTimeMs,
+	originalTimeline,
+	sourceTimeMs,
+} from "@anishelf/backend/contracts/media";
+import {
 	ApiClientError,
 	openPlaybackSession,
 	type RequestOptions,
@@ -30,6 +36,7 @@ export class PlaybackSessionController {
 		error: null,
 	};
 	private video: HTMLVideoElement | null = null;
+	private timeline: MediaTimeline = originalTimeline();
 	private metadataReady = false;
 	private position: Position | null = null;
 	private sequence = 0;
@@ -84,11 +91,15 @@ export class PlaybackSessionController {
 		return this.opening;
 	}
 
-	attach(video: HTMLVideoElement | null): void {
+	attach(
+		video: HTMLVideoElement | null,
+		timeline: MediaTimeline = originalTimeline(),
+	): void {
 		this.capture();
 		this.detachEvents?.();
 		clearInterval(this.timer);
 		this.video = video;
+		this.timeline = timeline;
 		this.metadataReady = (video?.readyState ?? 0) >= 1;
 		if (!video || this.closed) return;
 		this.publish({ restored: false });
@@ -168,9 +179,15 @@ export class PlaybackSessionController {
 				: null;
 		const target =
 			duration === null
-				? (this.position?.positionMs ?? session.progress.positionMs) / 1000
+				? mediaTimeMs(
+						this.position?.positionMs ?? session.progress.positionMs,
+						this.timeline,
+					) / 1000
 				: Math.min(
-						(this.position?.positionMs ?? session.progress.positionMs) / 1000,
+						mediaTimeMs(
+							this.position?.positionMs ?? session.progress.positionMs,
+							this.timeline,
+						) / 1000,
 						duration,
 					);
 		try {
@@ -195,14 +212,18 @@ export class PlaybackSessionController {
 		const video = this.video;
 		if (!video || !this.state.restored) return;
 		const durationMs =
-			Number.isFinite(video.duration) && video.duration > 0
+			this.timeline.sourceDurationMs ??
+			(this.timeline.sourceOriginMs === 0 &&
+			this.timeline.mediaOriginMs === 0 &&
+			Number.isFinite(video.duration) &&
+			video.duration > 0
 				? Math.round(video.duration * 1000)
-				: null;
-		const positionMs = Math.round(
-			((ended || video.ended) && durationMs !== null
+				: null);
+		const localPosition =
+			(ended || video.ended) && Number.isFinite(video.duration)
 				? video.duration
-				: video.currentTime) * 1000,
-		);
+				: video.currentTime;
+		const positionMs = sourceTimeMs(localPosition * 1000, this.timeline);
 		if (
 			!Number.isSafeInteger(positionMs) ||
 			positionMs < 0 ||

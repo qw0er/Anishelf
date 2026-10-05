@@ -4,6 +4,7 @@ import { join } from "node:path";
 import pino from "pino";
 import { Check } from "typebox/value";
 import { afterEach, expect, test, vi } from "vitest";
+import { createHttpApp } from "../src/bootstrap/http.js";
 import { createLibraryModule } from "../src/bootstrap/library.js";
 import type {
 	CompatibilityCheckRequest,
@@ -17,7 +18,10 @@ import {
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
 import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/public.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
-import { resolveExecutionPlan } from "../src/modules/media-processing/public.js";
+import {
+	resolveExecutionPlan,
+	resolveHlsExecutionPlan,
+} from "../src/modules/media-processing/public.js";
 import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { settingsStore } from "./settings-store.js";
@@ -420,7 +424,19 @@ test("playback planning validates evidence without opening history or claiming r
 	});
 	expect(direct).toEqual({
 		kind: "playable",
-		plan: { mode: "direct", playbackUrl: `/api/media/${f.file.id}` },
+		plan: {
+			mode: "direct",
+			resource: {
+				delivery: "file",
+				url: `/api/media/${f.file.id}`,
+				mimeType: "video/x-matroska",
+				timeline: {
+					sourceOriginMs: 0,
+					mediaOriginMs: 0,
+					sourceDurationMs: null,
+				},
+			},
+		},
 	});
 	const blocked = await playback.plan({
 		...input,
@@ -577,5 +593,109 @@ test("audio selection binds evidence and execution identity, preserving requeste
 		await expect(
 			f.app.inspect({ fileId: f.file.id, audioStreamIndices }),
 		).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+	}
+});
+
+test("HLS planning binds MSE evidence, preserves compatible audio and encodes only the rejected track", async () => {
+	const f = await fixture(true, true);
+	const output = { profileId: f.profile.id, target: "hls" as const };
+	const description = await f.app.inspect({ fileId: f.file.id, output });
+	const rejected = new Set([
+		"copy-audio-7",
+		"output-copy-copy-7",
+		"output-encode-copy-7",
+	]);
+	const evidence = description.queries.map(
+		(query): CompatibilityEvidence => ({
+			id: query.id,
+			status: rejected.has(query.id) ? "unsupported" : "supported",
+			reason: rejected.has(query.id) ? "browser-rejected" : "browser-supported",
+			smooth: null,
+			powerEfficient: null,
+		}),
+	);
+	const input = {
+		fileId: f.file.id,
+		sourceVersion: description.sourceVersion,
+		descriptionId: description.descriptionId,
+		output,
+		evidence,
+	};
+	const checked = await f.app.check(input);
+	expect(
+		description.queries
+			.filter((query) => !query.id.startsWith("original"))
+			.every((query) => query.type === "media-source"),
+	).toBe(true);
+	const plan = resolveHlsExecutionPlan(checked);
+	expect(plan).toMatchObject({
+		kind: "processing",
+		request: {
+			plan: {
+				delivery: "hls",
+				segmentContainer: "fmp4",
+				video: { action: "copy" },
+				audioTracks: [
+					{ sourceStreamIndex: 4, execution: { action: "copy" } },
+					{
+						sourceStreamIndex: 7,
+						execution: { action: "encode", codec: "aac" },
+					},
+				],
+			},
+		},
+	});
+	if (plan.kind !== "processing") throw new Error("Expected HLS plan");
+	expect(Object.isFrozen(plan.request.plan.audioTracks)).toBe(true);
+	const changed = resolveHlsExecutionPlan(checked, 4000);
+	if (changed.kind !== "processing") throw new Error("Expected HLS plan");
+	expect(changed.request.plan.id).not.toBe(plan.request.plan.id);
+	// Native-file acceptance cannot skip HLS packaging, and the file executor cannot consume HLS.
+	expect(
+		resolveHlsExecutionPlan({
+			...checked,
+			direct: { status: "supported", reason: "browser-supported" },
+		}).kind,
+	).toBe("processing");
+	expect(resolveExecutionPlan(checked)).toEqual({
+		kind: "blocked",
+		reason: "hls-execution-unavailable",
+	});
+	const playback = new PlaybackApplication({
+		sources: f.library.sources,
+		compatibility: f.app,
+		logger: pino({ enabled: false }),
+	});
+	const open = vi.spyOn(playback, "open");
+	const http = createHttpApp({
+		config: { host: "127.0.0.1", port: 3000 },
+		logger: pino({ enabled: false }),
+		playback,
+	});
+	try {
+		const response = await http.inject({
+			method: "POST",
+			url: "/api/playback/plans",
+			headers: { host: "127.0.0.1:3000" },
+			payload: input,
+		});
+		expect(response.statusCode).toBe(200);
+		expect(response.json()).toMatchObject({
+			kind: "hls-required",
+			audioTracks: [{ action: "copy" }, { action: "encode" }],
+		});
+		expect(response.body).not.toContain(f.source.identity.canonicalRoot);
+		expect(response.body).not.toContain("encoder");
+		expect(response.body).not.toContain("url");
+		expect(open).not.toHaveBeenCalled();
+		const stale = await http.inject({
+			method: "POST",
+			url: "/api/playback/plans",
+			headers: { host: "127.0.0.1:3000" },
+			payload: { ...input, descriptionId: "a".repeat(64) },
+		});
+		expect(stale.statusCode).toBe(400);
+	} finally {
+		await http.close();
 	}
 });

@@ -2,23 +2,25 @@ import type { DerivedMediaIdentity } from "../../../shared/media-preparation.js"
 
 export type { DerivedMediaIdentity } from "../../../shared/media-preparation.js";
 
+import type {
+	HlsPlaybackResource,
+	PlaybackPlanDto,
+	PlaybackResource,
+} from "../../../contracts/http.js";
+import { originalTimeline } from "../../../contracts/media.js";
+import type { HlsExecutionRequest } from "../../../shared/media-processing.js";
 import type { MediaExecutionRequest } from "../../media-processing/public.js";
 
-/** Public decisions contain no filesystem paths or executable encoder settings. */
-export type PlaybackPlan =
-	| { mode: "direct"; playbackUrl: string }
-	| { mode: "prepared"; artifactId: string; playbackUrl: string }
-	| { mode: "preparing"; taskId: string }
-	| {
-			mode: "realtime";
-			sessionId: string;
-			playbackUrl: string;
-			generation: number;
-	  }
-	| { mode: "blocked"; reason: string };
+/** Public decisions contain resource references, never paths or encoder settings. */
+export type PlaybackPlan = PlaybackPlanDto;
 
 /** A plan needing work is not a queued task, published artifact or live session. */
 export type PlaybackPlanningResult =
+	| {
+			kind: "hls-required";
+			identity: DerivedMediaIdentity;
+			execution: HlsExecutionRequest;
+	  }
 	| { kind: "playable"; plan: Extract<PlaybackPlan, { mode: "direct" }> }
 	| { kind: "blocked"; plan: Extract<PlaybackPlan, { mode: "blocked" }> }
 	| {
@@ -38,23 +40,28 @@ export type PlaybackPlanningResult =
 export interface PreparedPlaybackResource {
 	artifactId: string;
 	identity: DerivedMediaIdentity;
-	playbackUrl: string;
+	resource: PlaybackResource;
 }
 
 /** The real-time owner controls children/segments; this generation is not history's generation. */
 export interface RealtimePlaybackResource {
 	sessionId: string;
 	identity: DerivedMediaIdentity;
-	playbackUrl: string;
-	generation: number;
-	sourceStartMs: number;
+	resource: HlsPlaybackResource;
+	streamGeneration: number;
 }
 
 export function directPlaybackPlan(
 	fileId: string,
+	mimeType = "application/octet-stream",
 ): Extract<PlaybackPlan, { mode: "direct" }> {
 	return {
 		mode: "direct",
-		playbackUrl: `/api/media/${encodeURIComponent(fileId)}`,
+		resource: {
+			delivery: "file",
+			url: `/api/media/${encodeURIComponent(fileId)}`,
+			mimeType,
+			timeline: originalTimeline(),
+		},
 	};
 }

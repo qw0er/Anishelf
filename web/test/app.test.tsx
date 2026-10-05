@@ -50,7 +50,7 @@ const file: FileResponse = {
 		modifiedAt: "2026-09-29T00:00:00.000Z",
 		mimeType: "video/mp4",
 	},
-	playbackUrl: "/api/media/file-1",
+	originalMediaUrl: "/api/media/file-1",
 };
 
 const fetcher = vi.fn<typeof fetch>();
@@ -184,7 +184,19 @@ beforeEach(() => {
 					generation: 1,
 					sourceVersion: "version",
 					file: file.file,
-					plan: { mode: "direct", playbackUrl: file.playbackUrl },
+					plan: {
+						mode: "direct",
+						resource: {
+							delivery: "file" as const,
+							url: file.originalMediaUrl,
+							mimeType: "video/mp4",
+							timeline: {
+								sourceOriginMs: 0,
+								mediaOriginMs: 0,
+								sourceDurationMs: null,
+							},
+						},
+					},
 					progress: {
 						positionMs: 0,
 						durationMs: 100000,
@@ -476,10 +488,10 @@ test("navigates directories, opens media, and returns to the original directory 
 	await waitFor(() =>
 		expect(
 			screen.getByLabelText("Video: Episode 01.mp4").getAttribute("src"),
-		).toBe(file.playbackUrl),
+		).toBe(file.originalMediaUrl),
 	);
 	const video = screen.getByLabelText("Video: Episode 01.mp4");
-	expect(video.getAttribute("src")).toBe(file.playbackUrl);
+	expect(video.getAttribute("src")).toBe(file.originalMediaUrl);
 	expect(video.hasAttribute("controls")).toBe(false);
 	expect(video.closest(".anishelf-player")).toBeTruthy();
 	expect(await screen.findByRole("button", { name: "Play" })).toBeTruthy();
@@ -879,7 +891,19 @@ test("StrictMode opens one session, restores server history, saves seeks includi
 						generation: 1,
 						sourceVersion: "version",
 						file: file.file,
-						plan: { mode: "direct", playbackUrl: file.playbackUrl },
+						plan: {
+							mode: "direct",
+							resource: {
+								delivery: "file" as const,
+								url: file.originalMediaUrl,
+								mimeType: "video/mp4",
+								timeline: {
+									sourceOriginMs: 0,
+									mediaOriginMs: 0,
+									sourceDurationMs: null,
+								},
+							},
+						},
 						progress: {
 							positionMs: 40000,
 							durationMs: 100000,
@@ -1386,7 +1410,16 @@ test("unsupported file uses a ready transcode automatically without a terminal t
 			createdAtMs: 1,
 			updatedAtMs: 1,
 			artifactId: "artifact",
-			playbackUrl: "/api/prepared-media/artifact",
+			resource: {
+				delivery: "file" as const,
+				url: "/api/prepared-media/artifact",
+				mimeType: "video/mp4",
+				timeline: {
+					sourceOriginMs: 0,
+					mediaOriginMs: 0,
+					sourceDurationMs: null,
+				},
+			},
 			sizeBytes: 100,
 		},
 	];

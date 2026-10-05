@@ -43,7 +43,7 @@ export class MediaCompatibilityApplication {
 	private async load(input: CompatibilityInspectInput) {
 		let profile: DeepReadonly<TranscodeProfile> | null = null;
 		if (input.output) {
-			if (!["file", "media-source"].includes(input.output.target))
+			if (!["file", "media-source", "hls"].includes(input.output.target))
 				throw new DomainError(
 					"INVALID_REQUEST",
 					"Invalid compatibility delivery target.",
@@ -179,6 +179,20 @@ export class MediaCompatibilityApplication {
 			output: description.output
 				? {
 						...description.output,
+						audioTracks: original.selectedAudioTracks.map((track) => {
+							const suffix =
+								track.index === original.audio?.index ? "" : `-${track.index}`;
+							return {
+								streamIndex: track.index,
+								copyAudio: status(`copy-audio${suffix}`),
+								combinations: {
+									"copy-copy": status(`output-copy-copy${suffix}`),
+									"copy-encode": status(`output-copy-encode${suffix}`),
+									"encode-copy": status(`output-encode-copy${suffix}`),
+									"encode-encode": status(`output-encode-encode${suffix}`),
+								},
+							};
+						}),
 						copyVideo: status("copy-video"),
 						copyAudio: aggregateStatus("copy-audio"),
 						combinations: {

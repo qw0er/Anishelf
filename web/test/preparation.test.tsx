@@ -41,7 +41,7 @@ const task: PreparationTaskResponse = {
 	createdAtMs: 1,
 	updatedAtMs: 1,
 	artifactId: null,
-	playbackUrl: null,
+	resource: null,
 	sizeBytes: null,
 };
 const ready: PreparationTaskResponse = {
@@ -49,7 +49,12 @@ const ready: PreparationTaskResponse = {
 	status: "ready",
 	playbackAvailability: "ready",
 	artifactId: "artifact",
-	playbackUrl: "/api/prepared-media/artifact",
+	resource: {
+		delivery: "file" as const,
+		url: "/api/prepared-media/artifact",
+		mimeType: "video/mp4",
+		timeline: { sourceOriginMs: 0, mediaOriginMs: 0, sourceDurationMs: null },
+	},
 	sizeBytes: 100,
 };
 const description = {
@@ -272,7 +277,7 @@ test("unsupported and stale completed copies are refused", async () => {
 	vi.mocked(api.getPreparation).mockResolvedValueOnce({
 		...ready,
 		status: "failed",
-		playbackUrl: null,
+		resource: null,
 		artifactId: null,
 	});
 	await expect(
@@ -308,7 +313,7 @@ test("cancel and retry remain explicit and retry obtains fresh evidence", async 
 test("unknown source availability hides Watch and deleting a copy never cancels the original", async () => {
 	const view = render(
 		<PreparationTaskCard
-			task={{ ...ready, playbackAvailability: "unknown", playbackUrl: null }}
+			task={{ ...ready, playbackAvailability: "unknown", resource: null }}
 			refresh={vi.fn()}
 			onWatch={vi.fn()}
 		/>,

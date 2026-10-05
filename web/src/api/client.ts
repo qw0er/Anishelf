@@ -4,6 +4,8 @@ import type {
 	DirectoryResponse,
 	FileResponse,
 	LibraryResponse,
+	PlaybackPlanningRequest,
+	PlaybackPlanningResponse,
 	PlaybackSessionResponse,
 	ResourceId,
 	SavePlaybackProgressRequest,
@@ -190,6 +192,13 @@ export function getFile(
 		"GET",
 		options,
 	);
+}
+
+export function planPlayback(
+	input: PlaybackPlanningRequest,
+	options?: RequestOptions,
+): Promise<PlaybackPlanningResponse> {
+	return request("/api/playback/plans", "POST", options, input);
 }
 
 export function openPlaybackSession(

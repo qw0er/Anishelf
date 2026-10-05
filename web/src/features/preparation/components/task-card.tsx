@@ -154,7 +154,7 @@ export function PreparationTaskCard({
 						</Button>
 					</Tooltip>
 				)}
-				{task.status === "ready" && task.playbackUrl && onWatch && (
+				{task.status === "ready" && task.resource?.url && onWatch && (
 					<Tooltip
 						content={t(playing ? "preparation.playing" : "preparation.watch")}
 					>

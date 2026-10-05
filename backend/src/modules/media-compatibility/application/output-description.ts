@@ -14,7 +14,7 @@ import type {
 function describeSingleOutputCandidates(
 	original: OriginalMediaDescription,
 	profile: DeepReadonly<TranscodeProfile>,
-	target: "file" | "media-source",
+	target: "file" | "media-source" | "hls",
 ): { queries: CompatibilityQuery[]; output: CompatibilityOutput } {
 	const audio = original.audio;
 	const video =
@@ -38,7 +38,7 @@ function describeSingleOutputCandidates(
 		const streams = [v, a].filter((stream) => stream !== null);
 		queries.push({
 			id,
-			type: target,
+			type: target === "hls" ? "media-source" : target,
 			contentType:
 				streams.length && streams.every((stream) => stream.codecString)
 					? `${v ? base : base.replace("video/", "audio/")}; codecs="${streams.map((stream) => stream.codecString).join(", ")}"`
@@ -115,7 +115,7 @@ function describeSingleOutputCandidates(
 export function describeOutputCandidates(
 	original: OriginalMediaDescription,
 	profile: DeepReadonly<TranscodeProfile>,
-	target: "file" | "media-source",
+	target: "file" | "media-source" | "hls",
 ): { queries: CompatibilityQuery[]; output: CompatibilityOutput } {
 	const tracks = original.selectedAudioTracks;
 	const candidates = (tracks.length ? tracks : [null]).map(

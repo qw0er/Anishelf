@@ -190,11 +190,18 @@ export default function FilePlayer({
 					subtitlePolicy={subtitlePolicy}
 					playbackUrl={
 						tryingOrigin
-							? data.playbackUrl
-							: (preparedCurrent?.playbackUrl ??
-								playback.session?.plan.playbackUrl ??
-								data.playbackUrl)
+							? data.originalMediaUrl
+							: (preparedCurrent?.resource?.url ??
+								(playback.session?.plan.mode === "direct"
+									? playback.session.plan.resource.url
+									: undefined) ??
+								data.originalMediaUrl)
 					}
+					{...(preparedCurrent?.resource
+						? { timeline: preparedCurrent.resource.timeline }
+						: playback.session?.plan.mode === "direct"
+							? { timeline: playback.session.plan.resource.timeline }
+							: {})}
 					onMedia={playback.attach}
 					onPlaybackFailure={compatibility.failed}
 					expectsVideo={Boolean(compatibility.result?.selectedVideo)}

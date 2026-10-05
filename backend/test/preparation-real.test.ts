@@ -206,7 +206,7 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 			const task = await required(preparation).get(id);
 			expect(task.mode).toBe(mode);
 			const prepared = await required(app).inject({
-				url: required(task.playbackUrl),
+				url: required(task.resource?.url),
 				headers,
 			});
 			expect(prepared.statusCode).toBe(200);
@@ -235,7 +235,7 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 				{ timeout: 30000 },
 			);
 			const range = await required(app).inject({
-				url: required(task.playbackUrl),
+				url: required(task.resource?.url),
 				headers: { ...headers, range: "bytes=0-31" },
 			});
 			expect(range.statusCode).toBe(206);
@@ -258,7 +258,7 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 			expect(
 				(
 					await required(app).inject({
-						url: required(task.playbackUrl),
+						url: required(task.resource?.url),
 						headers,
 					})
 				).statusCode,

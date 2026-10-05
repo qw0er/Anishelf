@@ -297,11 +297,13 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 				false,
 			]);
 			if (result.request.plan.video.action === "copy")
-				expect(await packets(output.path, "v")).toEqual(inputPackets.v);
+				expect(await packets(output.output.path, "v")).toEqual(inputPackets.v);
 			if (result.request.plan.audio.action === "copy")
 				expect(
 					await Promise.all(
-						["a:0", "a:1"].map((selector) => packets(output.path, selector)),
+						["a:0", "a:1"].map((selector) =>
+							packets(output.output.path, selector),
+						),
 					),
 				).toEqual(inputPackets.a);
 			if (mode === "transcode") {
@@ -352,13 +354,19 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 					plan: { ...result.request.plan, delivery: "media-source" },
 				}).completion;
 				expect(
-					(await readFile(fragmented.path)).includes(Buffer.from("moof")),
+					(await readFile(fragmented.output.path)).includes(
+						Buffer.from("moof"),
+					),
 				).toBe(true);
-				expect(await packets(fragmented.path, "v")).toEqual(inputPackets.v);
+				expect(await packets(fragmented.output.path, "v")).toEqual(
+					inputPackets.v,
+				);
 				await processing.release(fragmented.id);
 			}
 			await processing.release(output.id);
-			await expect(stat(output.path)).rejects.toMatchObject({ code: "ENOENT" });
+			await expect(stat(output.output.path)).rejects.toMatchObject({
+				code: "ENOENT",
+			});
 		}
 	} finally {
 		await processing?.close();

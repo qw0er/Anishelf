@@ -24,8 +24,21 @@ export interface PreparationTask extends MediaPreparationSnapshot {
 	updatedAtMs: number;
 }
 export interface PreparedArtifact {
+	delivery: "file";
 	id: string;
 	taskId: string;
 	sizeBytes: number;
 	mimeType: string;
 }
+
+/** Completed HLS artifacts are owned by preparation; runtime sessions cannot delete them. */
+export interface PreparedHlsArtifact {
+	id: string;
+	taskId: string;
+	resourceId: string;
+	delivery: "hls";
+	completeness: "complete";
+	sizeBytes: number;
+	mimeType: "application/vnd.apple.mpegurl";
+}
+export type PreparedResource = PreparedArtifact | PreparedHlsArtifact;

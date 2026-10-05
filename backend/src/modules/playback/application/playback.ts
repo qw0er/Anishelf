@@ -3,8 +3,16 @@ import type { Logger } from "pino";
 import type { CompatibilityCheckRequest } from "../../../contracts/http.js";
 import { DomainError } from "../../../shared/errors.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
+import {
+	type HlsPolicy,
+	hlsPolicy,
+	validateHlsPolicy,
+} from "../../hls/public.js";
 import type { MediaCompatibilityApi } from "../../media-compatibility/public.js";
-import { resolveExecutionPlan } from "../../media-processing/public.js";
+import {
+	resolveExecutionPlan,
+	resolveHlsExecutionPlan,
+} from "../../media-processing/public.js";
 import type { ResourceAccessApi } from "../../resource-access/public.js";
 import { resourceRootId } from "../../resource-access/public.js";
 import type {
@@ -45,9 +53,11 @@ export class PlaybackApplication {
 			logger: Logger;
 			now?: () => number;
 			policy?: DeepReadonly<PlaybackPolicy>;
+			hlsPolicy?: DeepReadonly<HlsPolicy>;
 		},
 	) {
 		this.policy = options.policy ?? playbackPolicy;
+		validateHlsPolicy(options.hlsPolicy ?? hlsPolicy);
 		this.logger = options.logger.child({ module: "playback" });
 	}
 
@@ -72,6 +82,39 @@ export class PlaybackApplication {
 			checked.sourceVersion !== source.identity.sourceVersion
 		)
 			this.conflict();
+		if (checked.output?.target === "hls") {
+			const resolved = resolveHlsExecutionPlan(
+				checked,
+				(this.options.hlsPolicy ?? hlsPolicy).targetSegmentDurationMs,
+			);
+			await this.options.sources.revalidateSource(source);
+			this.options.sources.assertRootEpoch(source.rootEpoch);
+			if (this.closed)
+				throw new DomainError(
+					"PLAYBACK_UNAVAILABLE",
+					"Playback planning is closed.",
+				);
+			if (resolved.kind === "blocked")
+				return freeze({
+					kind: "blocked",
+					plan: { mode: "blocked", reason: resolved.reason },
+				});
+			return freeze({
+				kind: "hls-required",
+				identity: {
+					rootId: resourceRootId(source.identity.canonicalRoot),
+					fileId: source.identity.fileId,
+					sourceVersion: source.identity.sourceVersion,
+					profileFingerprint: resolved.profileFingerprint,
+					executionPlanId: resolved.request.plan.id,
+					videoStreamIndex: resolved.request.plan.videoStreamIndex,
+					audioStreamIndices: resolved.request.plan.audioTracks.map(
+						(track) => track.sourceStreamIndex,
+					),
+				},
+				execution: resolved.request,
+			});
+		}
 		const resolved = resolveExecutionPlan(checked);
 		await this.options.sources.revalidateSource(source);
 		this.options.sources.assertRootEpoch(source.rootEpoch);
@@ -83,7 +126,7 @@ export class PlaybackApplication {
 		if (resolved.kind === "direct")
 			return freeze({
 				kind: "playable",
-				plan: directPlaybackPlan(input.fileId),
+				plan: directPlaybackPlan(input.fileId, source.file.mimeType),
 			});
 		if (resolved.kind === "blocked")
 			return freeze({
@@ -91,7 +134,7 @@ export class PlaybackApplication {
 				plan: { mode: "blocked", reason: resolved.reason },
 			});
 		const output = checked.output;
-		if (!output) this.conflict();
+		if (!output || output.target === "hls") this.conflict();
 		return freeze({
 			kind: "processing-required",
 			target: output.target,
@@ -158,7 +201,7 @@ export class PlaybackApplication {
 			generation: progress.generation,
 			sourceVersion: source.identity.sourceVersion,
 			file: source.file,
-			plan: directPlaybackPlan(fileId),
+			plan: directPlaybackPlan(fileId, source.file.mimeType),
 			progress,
 		};
 	}

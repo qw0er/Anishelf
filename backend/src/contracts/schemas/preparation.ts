@@ -1,6 +1,7 @@
 import { Type } from "typebox";
 import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
 import { AudioStreamSelectionSchema } from "./compatibility.js";
+import { CompletedPlaybackResourceSchema } from "./media.js";
 import {
 	DirectPlaybackPlanSchema,
 	PlaybackTokenSchema,
@@ -91,7 +92,7 @@ export const PreparationTaskSchema = Type.Object(
 			Type.String({ pattern: "^[a-f0-9]{64}$" }),
 			Type.Null(),
 		]),
-		playbackUrl: Type.Union([Type.String(), Type.Null()]),
+		resource: Type.Union([CompletedPlaybackResourceSchema, Type.Null()]),
 		sizeBytes: Type.Union([NonnegativeIntegerSchema, Type.Null()]),
 	},
 	{ additionalProperties: false },

@@ -43,7 +43,7 @@ export interface PlaybackSession {
 	sourceVersion: string;
 	file: FileInfo;
 	/** Only direct sessions are started today; other resource owners are not wired yet. */
-	plan: Extract<PlaybackPlan, { mode: "direct" }>;
+	plan: PlaybackPlan;
 	progress: PlaybackProgress;
 }
 

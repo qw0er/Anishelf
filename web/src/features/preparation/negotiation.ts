@@ -67,7 +67,7 @@ export async function verifyPreparedPlayback(
 		current.profileId !== task.profileId ||
 		current.mode !== task.mode ||
 		current.status !== "ready" ||
-		!current.playbackUrl
+		!current.resource?.url
 	)
 		throw new Error("Prepared copy unavailable");
 	return current;

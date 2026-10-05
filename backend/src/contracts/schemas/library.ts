@@ -128,6 +128,6 @@ export const DirectoryResponseSchema = Type.Object(
 	{ additionalProperties: false },
 );
 export const FileResponseSchema = Type.Object(
-	{ file: FileDtoSchema, playbackUrl: Type.String() },
+	{ file: FileDtoSchema, originalMediaUrl: Type.String() },
 	{ additionalProperties: false },
 );

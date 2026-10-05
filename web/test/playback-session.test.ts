@@ -22,7 +22,15 @@ const session: PlaybackSessionResponse = {
 		modifiedAt: "date",
 		mimeType: "video/mp4",
 	},
-	plan: { mode: "direct", playbackUrl: "/api/media/file" },
+	plan: {
+		mode: "direct",
+		resource: {
+			delivery: "file" as const,
+			url: "/api/media/file",
+			mimeType: "video/mp4",
+			timeline: { sourceOriginMs: 0, mediaOriginMs: 0, sourceDurationMs: null },
+		},
+	},
 	progress: {
 		positionMs: 40000,
 		durationMs: 100000,
@@ -343,6 +351,41 @@ test("switching to prepared media retains the original session and captured sour
 			sourceVersion: session.sourceVersion,
 			positionMs: 65000,
 		}),
+		expect.anything(),
+	);
+});
+
+test("offset media restores and persists source time rather than the local segment clock", async () => {
+	const { controller, video } = create();
+	controller.attach(video, {
+		sourceOriginMs: 30000,
+		mediaOriginMs: 2000,
+		sourceDurationMs: 200000,
+	});
+	await controller.open();
+	expect(video.currentTime).toBe(12);
+	video.currentTime = 17;
+	await controller.flush();
+	expect(api.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({ positionMs: 45000, durationMs: 200000 }),
+		expect.anything(),
+	);
+});
+
+test("an offset stream ending does not mark the whole source watched", async () => {
+	const { controller, video } = create();
+	controller.attach(video, {
+		sourceOriginMs: 30000,
+		mediaOriginMs: 0,
+		sourceDurationMs: 200000,
+	});
+	await controller.open();
+	video.dispatchEvent(new Event("ended"));
+	await tick();
+	expect(api.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({ positionMs: 130000, durationMs: 200000 }),
 		expect.anything(),
 	);
 });

@@ -12,11 +12,11 @@ export async function createMediaLink(
 ): Promise<string> {
 	const file = await getFile(fileId, options);
 	const expectedPath = `/api/media/${encodeURIComponent(fileId)}`;
-	if (file.file.id !== fileId || file.playbackUrl !== expectedPath) {
+	if (file.file.id !== fileId || file.originalMediaUrl !== expectedPath) {
 		throw new ApiClientError({
 			kind: "invalid_response",
 			message: "The server returned an invalid media link. Please retry.",
 		});
 	}
-	return new URL(file.playbackUrl, origin).href;
+	return new URL(file.originalMediaUrl, origin).href;
 }

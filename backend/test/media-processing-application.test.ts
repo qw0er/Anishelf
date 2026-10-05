@@ -146,9 +146,11 @@ test("explicit execution publishes a version-bound result and owns a cloned plan
 	expect(result.planId).toBe("caller-selected");
 	expect(handle.state).toBe("ready");
 	expect(states).toEqual(["checking", "starting", "validating", "ready"]);
-	expect((await stat(result.path)).size).toBeGreaterThan(0);
+	expect((await stat(result.output.path)).size).toBeGreaterThan(0);
 	await f.application.release(result.id);
-	await expect(stat(result.path)).rejects.toMatchObject({ code: "ENOENT" });
+	await expect(stat(result.output.path)).rejects.toMatchObject({
+		code: "ENOENT",
+	});
 });
 test("stop waits for failure cleanup and the concurrency slot becomes available", async () => {
 	const f = await fixture(true);

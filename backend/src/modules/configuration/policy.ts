@@ -22,6 +22,7 @@ import {
 	httpPolicy,
 	validateHttpPolicy,
 } from "../../transport/policy.js";
+import { type HlsPolicy, hlsPolicy, validateHlsPolicy } from "../hls/public.js";
 import {
 	type LibraryPolicy,
 	libraryPolicy,
@@ -60,6 +61,7 @@ import {
 
 /** Composition only: module owners define defaults, types and validation. */
 export interface BuiltinPolicy {
+	hls: HlsPolicy;
 	library: LibraryPolicy;
 	playback: PlaybackPolicy;
 	subtitles: SubtitlePolicy;
@@ -73,6 +75,7 @@ export interface BuiltinPolicy {
 	runtime: RuntimePolicy;
 }
 export const builtinPolicy: DeepReadonly<BuiltinPolicy> = freeze({
+	hls: hlsPolicy,
 	library: libraryPolicy,
 	playback: playbackPolicy,
 	subtitles: subtitlePolicy,
@@ -86,6 +89,7 @@ export const builtinPolicy: DeepReadonly<BuiltinPolicy> = freeze({
 	runtime: runtimePolicy,
 });
 export function validatePolicy(policy: DeepReadonly<BuiltinPolicy>): void {
+	validateHlsPolicy(policy.hls);
 	validateLibraryPolicy(policy.library);
 	validatePlaybackPolicy(policy.playback);
 	validateSubtitlePolicy(policy.subtitles);

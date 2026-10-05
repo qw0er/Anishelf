@@ -24,7 +24,7 @@ export function registerMediaRoutes(
 			reply.header("Cache-Control", "no-store");
 			return {
 				file: fileDto(file),
-				playbackUrl: `/api/media/${encodeURIComponent(file.id)}`,
+				originalMediaUrl: `/api/media/${encodeURIComponent(file.id)}`,
 			};
 		},
 	);

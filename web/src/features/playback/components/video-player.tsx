@@ -1,4 +1,8 @@
 import {
+	type MediaTimeline,
+	originalTimeline,
+} from "@anishelf/backend/contracts/media";
+import {
 	isVideoProvider,
 	MediaPlayer,
 	MediaProvider,
@@ -33,17 +37,21 @@ class DirectVideoLoader extends VideoProviderLoader {
 	}
 }
 const directVideoLoaders = [DirectVideoLoader];
+const defaultTimeline = originalTimeline();
 
 export default function VideoPlayer({
 	file,
 	playbackUrl,
+	timeline = defaultTimeline,
 	onMedia,
 	onPlaybackFailure,
 	expectsVideo,
 	subtitlePolicy,
-}: FileResponse & {
+}: Pick<FileResponse, "file"> & {
 	subtitlePolicy: SubtitlePolicy;
-	onMedia?(video: HTMLVideoElement | null): void;
+	playbackUrl: string;
+	timeline?: MediaTimeline;
+	onMedia?(video: HTMLVideoElement | null, timeline: MediaTimeline): void;
 	onPlaybackFailure?(): void;
 	expectsVideo?: boolean;
 }) {
@@ -55,14 +63,14 @@ export default function VideoPlayer({
 
 	useLayoutEffect(() => {
 		toast.close(notificationId);
-		onMedia?.(videoRef.current);
+		onMedia?.(videoRef.current, timeline);
 		return () => {
 			toast.close(notificationId);
 			errorRequest.current?.abort();
 			// Capture progress before Vidstack unloads the provider's source.
-			onMedia?.(null);
+			onMedia?.(null, timeline);
 		};
-	}, [onMedia, notificationId]);
+	}, [onMedia, notificationId, timeline]);
 
 	function providerChanged(provider: MediaProviderAdapter | null) {
 		const video = isVideoProvider(provider) ? provider.video : null;
@@ -71,7 +79,7 @@ export default function VideoPlayer({
 			t("player.videoLabel", { name: file.name }),
 		);
 		videoRef.current = video;
-		onMedia?.(video);
+		onMedia?.(video, timeline);
 	}
 
 	async function playbackFailed(missingPicture = false) {

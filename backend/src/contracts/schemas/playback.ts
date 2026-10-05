@@ -5,6 +5,11 @@ import {
 	ResourceIdSchema,
 } from "./common.js";
 import { FileDtoSchema } from "./library.js";
+import {
+	CompletedPlaybackResourceSchema,
+	FilePlaybackResourceSchema,
+	HlsPlaybackResourceSchema,
+} from "./media.js";
 
 export const PlaybackTokenSchema = Type.String({
 	minLength: 36,
@@ -36,7 +41,7 @@ export const OpenPlaybackRequestSchema = Type.Object(
 	{ additionalProperties: false },
 );
 export const DirectPlaybackPlanSchema = Type.Object(
-	{ mode: Type.Literal("direct"), playbackUrl: Type.String() },
+	{ mode: Type.Literal("direct"), resource: FilePlaybackResourceSchema },
 	{ additionalProperties: false },
 );
 /** Resource references only. Pending plans have no playable URL. */
@@ -46,7 +51,7 @@ export const PlaybackPlanSchema = Type.Union([
 		{
 			mode: Type.Literal("prepared"),
 			artifactId: ResourceIdSchema,
-			playbackUrl: Type.String(),
+			resource: CompletedPlaybackResourceSchema,
 		},
 		{ additionalProperties: false },
 	),
@@ -58,8 +63,8 @@ export const PlaybackPlanSchema = Type.Union([
 		{
 			mode: Type.Literal("realtime"),
 			sessionId: PlaybackTokenSchema,
-			playbackUrl: Type.String(),
-			generation: PositiveIntegerSchema,
+			resource: HlsPlaybackResourceSchema,
+			streamGeneration: PositiveIntegerSchema,
 		},
 		{ additionalProperties: false },
 	),
@@ -74,7 +79,7 @@ export const PlaybackSessionResponseSchema = Type.Object(
 		generation: PositiveIntegerSchema,
 		sourceVersion: SourceVersionSchema,
 		file: FileDtoSchema,
-		plan: DirectPlaybackPlanSchema,
+		plan: PlaybackPlanSchema,
 		progress: PlaybackProgressDtoSchema,
 	},
 	{ additionalProperties: false },

@@ -21,6 +21,8 @@ export function resolveExecutionPlan(
 	input: DeepReadonly<CheckedCompatibility>,
 ): PreparationExecutionPlan {
 	const { profile, output } = input;
+	if (output?.target === "hls")
+		return { kind: "blocked", reason: "hls-execution-unavailable" };
 	if (input.direct.status === "supported")
 		return {
 			kind: "direct",

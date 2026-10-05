@@ -4,8 +4,13 @@ import type {
 	DirectoryDto,
 	DirectoryResponse,
 	FileDto,
+	FilePlaybackResource,
+	HlsPlaybackResource,
 	LibraryIssueDto,
 	LibraryResponse,
+	MediaTimeline,
+	PlaybackPlanDto,
+	PlaybackPlanningResponse,
 	PlaybackProgressDto,
 	PlaybackSessionResponse,
 	ResourceDto,
@@ -27,6 +32,7 @@ import type {
 import type { CheckedCompatibility } from "../modules/media-compatibility/public.js";
 import type {
 	ContinueWatchingResult,
+	PlaybackPlanningResult,
 	PlaybackProgress,
 	PlaybackSession,
 } from "../modules/playback/public.js";
@@ -148,7 +154,7 @@ export function playbackSessionResponse(
 		generation: session.generation,
 		sourceVersion: session.sourceVersion,
 		file: fileDto(session.file),
-		plan: { mode: session.plan.mode, playbackUrl: session.plan.playbackUrl },
+		plan: playbackPlanDto(session.plan),
 		progress: playbackProgressDto(session.progress),
 	};
 }
@@ -245,8 +251,130 @@ export function presentCompatibility(
 			compatibility: { ...track.compatibility },
 		})),
 		output: checked.output
-			? { ...checked.output, combinations: { ...checked.output.combinations } }
+			? {
+					...checked.output,
+					combinations: { ...checked.output.combinations },
+					audioTracks: checked.output.audioTracks.map((track) => ({
+						...track,
+						combinations: { ...track.combinations },
+					})),
+				}
 			: null,
 		warnings: [...checked.warnings],
 	};
+}
+
+/** Project nested resources explicitly; never serialize structurally compatible private fields. */
+export function playbackPlanDto(plan: PlaybackPlanDto): PlaybackPlanDto {
+	switch (plan.mode) {
+		case "blocked":
+			return { mode: plan.mode, reason: plan.reason };
+		case "preparing":
+			return { mode: plan.mode, taskId: plan.taskId };
+		case "direct":
+			return {
+				mode: plan.mode,
+				resource: filePlaybackResourceDto(plan.resource),
+			};
+		case "prepared":
+			return {
+				mode: plan.mode,
+				artifactId: plan.artifactId,
+				resource:
+					plan.resource.delivery === "file"
+						? filePlaybackResourceDto(plan.resource)
+						: {
+								...hlsPlaybackResourceDto(plan.resource),
+								completeness: plan.resource.completeness,
+							},
+			};
+		case "realtime":
+			return {
+				mode: plan.mode,
+				sessionId: plan.sessionId,
+				streamGeneration: plan.streamGeneration,
+				resource: hlsPlaybackResourceDto(plan.resource),
+			};
+	}
+}
+function timelineDto(timeline: MediaTimeline) {
+	return {
+		sourceOriginMs: timeline.sourceOriginMs,
+		mediaOriginMs: timeline.mediaOriginMs,
+		sourceDurationMs: timeline.sourceDurationMs,
+	};
+}
+function filePlaybackResourceDto(
+	resource: FilePlaybackResource,
+): FilePlaybackResource {
+	return {
+		delivery: "file",
+		url: resource.url,
+		mimeType: resource.mimeType,
+		timeline: timelineDto(resource.timeline),
+	};
+}
+function hlsPlaybackResourceDto(
+	resource: HlsPlaybackResource,
+): HlsPlaybackResource {
+	return {
+		delivery: "hls",
+		resourceId: resource.resourceId,
+		url: resource.url,
+		mimeType: resource.mimeType,
+		streamGeneration: resource.streamGeneration,
+		completeness: resource.completeness,
+		timeline: timelineDto(resource.timeline),
+		tracks: resource.tracks.map((track) => ({
+			id: track.id,
+			kind: track.kind,
+			sourceStreamIndex: track.sourceStreamIndex,
+			label: track.label,
+			language: track.language,
+			codec: track.codec,
+			default: track.default,
+		})),
+		availableRanges: resource.availableRanges.map((range) => ({
+			startMs: range.startMs,
+			endMs: range.endMs,
+		})),
+	};
+}
+
+export function playbackPlanningResponse(
+	result: PlaybackPlanningResult | DeepReadonly<PlaybackPlanningResult>,
+): PlaybackPlanningResponse {
+	switch (result.kind) {
+		case "playable":
+			return { kind: "playable", plan: playbackPlanDto(result.plan) };
+		case "blocked":
+			return { kind: "blocked", reason: result.plan.reason };
+		case "processing-required":
+			return {
+				kind: result.kind,
+				target: result.target,
+				executionPlanId: result.identity.executionPlanId,
+				mode: result.mode,
+			};
+		case "hls-required": {
+			const plan = result.execution.plan;
+			return {
+				kind: result.kind,
+				executionPlanId: plan.id,
+				segmentContainer: plan.segmentContainer,
+				targetSegmentDurationMs: plan.targetSegmentDurationMs,
+				video: {
+					sourceStreamIndex: plan.videoStreamIndex,
+					action: plan.video.action,
+					reason: plan.videoReason,
+				},
+				audioTracks: plan.audioTracks.map((track) => ({
+					sourceStreamIndex: track.sourceStreamIndex,
+					trackId: track.trackId,
+					action: track.execution.action,
+					reason: track.reason,
+				})),
+			};
+		}
+	}
 }

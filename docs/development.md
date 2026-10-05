@@ -233,3 +233,21 @@ player behavior, conservative unknown states, and processing boundaries. Run
 `npm run check` and `npm run build` after changes. FFmpeg tests need child-process
 permissions; localhost acceptance needs listener permissions. Browser decoding
 and output preparation still require real-sample validation.
+
+## HLS Migration Contracts
+
+Deploy Web/backend together: file metadata now uses `originalMediaUrl`; playback
+plans and preparation tasks expose `resource` with delivery, URL, MIME type and
+timeline instead of a flat `playbackUrl`. The original `/api/media/:id` Range route
+is unchanged. Existing persisted tasks/artifacts remain complete-file outputs.
+
+`POST /api/playback/plans` is a read-only planning API. A `hls-required` result
+contains decisions, not a playable URL or running job. HLS generation, playlist
+and segment endpoints, resource leases and HLS Provider integration are pending.
+`target: hls` negotiation is for MSE output and currently supports MP4 profiles.
+The preparation API still accepts only `target: file`.
+
+Run HLS model/planning tests and existing playback, preparation, Range and real
+FFmpeg regression tests when changing these contracts. Offset restore/save and
+stream-end behavior must be tested against the original source timeline. There
+is no actual HLS playback acceptance in this foundation phase.

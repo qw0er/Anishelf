@@ -141,7 +141,7 @@ async function fixture(
 					});
 					return {
 						id,
-						path,
+						output: { delivery: "file", path },
 						fileId: request.fileId,
 						sourceVersion: request.sourceVersion,
 						planId: request.plan.id,
@@ -337,7 +337,7 @@ test("HTTP only delivers completed media, supports ranges/HEAD, rejects arbitrar
 		["invalid", 200, "0123456789"],
 	] as const) {
 		const response = await f.app.inject({
-			url: required(task.playbackUrl),
+			url: required(task.resource?.url),
 			headers: { ...headers, range },
 		});
 		expect(response.statusCode).toBe(code);
@@ -345,7 +345,7 @@ test("HTTP only delivers completed media, supports ranges/HEAD, rejects arbitrar
 	}
 	const head = await f.app.inject({
 		method: "HEAD",
-		url: required(task.playbackUrl),
+		url: required(task.resource?.url),
 		headers,
 	});
 	expect(head.statusCode).toBe(200);
@@ -435,7 +435,7 @@ test("queued work shares bounded capacity and cancellation waits for cleanup bef
 	).rejects.toMatchObject({ code: "PREPARATION_BUSY" });
 	expect((await f.preparation.cancel(next)).status).toBe("cancelled");
 	expect((await f.preparation.cancel(id)).status).toBe("cancelled");
-	expect((await f.preparation.get(id)).playbackUrl).toBeNull();
+	expect((await f.preparation.get(id)).resource).toBeNull();
 	blocked = false;
 	const { fileId: _fileId, ...retry } = await f.input();
 	await f.preparation.retry(id, retry);
@@ -461,7 +461,7 @@ test("restart marks interrupted jobs retryable and cleans incomplete output", as
 	const interrupted = await f.preparation.get(id);
 	expect(interrupted.status).toBe("failed");
 	expect(interrupted.failureReason).toBe("interrupted");
-	expect(interrupted.playbackUrl).toBeNull();
+	expect(interrupted.resource).toBeNull();
 	await expect(
 		readFile(join(f.dataDir, "cache", "prepared-media", "orphan.pending")),
 	).rejects.toMatchObject({ code: "ENOENT" });
@@ -511,7 +511,7 @@ test.each([
 		);
 		expect(task.status).toBe("failed");
 		expect(task.failureReason).toBe(reason);
-		expect(task.playbackUrl).toBeNull();
+		expect(task.resource).toBeNull();
 		expect(f.database.preparation.artifacts()).toHaveLength(0);
 	},
 );
@@ -560,7 +560,7 @@ test("HTTP cancellation, retry and deletion never expose a pending file", async 
 		expect((await f.preparation.get(id)).status).toBe("processing"),
 	);
 	const pending = await f.preparation.get(id);
-	expect(pending.playbackUrl).toBeNull();
+	expect(pending.resource).toBeNull();
 	const key = required(f.database.preparation.get(id)).identity.executionPlanId;
 	expect(
 		(await f.app.inject({ url: `/api/prepared-media/${key}`, headers }))
@@ -587,12 +587,12 @@ test("HTTP cancellation, retry and deletion never expose a pending file", async 
 	expect(list.json().tasks[0].id).toBe(id);
 	const deleted = await f.app.inject({
 		method: "DELETE",
-		url: required(ready.playbackUrl),
+		url: required(ready.resource?.url),
 		headers,
 	});
 	expect(deleted.statusCode).toBe(204);
 	expect(
-		(await f.app.inject({ url: required(ready.playbackUrl), headers }))
+		(await f.app.inject({ url: required(ready.resource?.url), headers }))
 			.statusCode,
 	).toBe(404);
 });
@@ -646,14 +646,14 @@ test("an unavailable startup index does not invalidate a reusable completed copy
 	const pendingScan = await f.preparation.get(ready.id);
 	expect(pendingScan.status).toBe("ready");
 	expect(pendingScan.playbackAvailability).toBe("unknown");
-	expect(pendingScan.playbackUrl).toBeNull();
+	expect(pendingScan.resource).toBeNull();
 	await expect(
 		f.preparation.openArtifact(required(ready.artifactId)),
 	).rejects.toMatchObject({ code: "PREPARATION_UNAVAILABLE" });
 	snapshot.mockRestore();
 	const checked = await f.preparation.get(ready.id);
 	expect(checked.playbackAvailability).toBe("ready");
-	expect(checked.playbackUrl).toBe(ready.playbackUrl);
+	expect(checked.resource?.url).toBe(ready.resource?.url);
 });
 
 test("file-filtered task lookup finds an older copy outside the global recent-task limit", async () => {

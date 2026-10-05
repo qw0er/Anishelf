@@ -77,14 +77,22 @@ const decision = Type.Object(
 export const CompatibilityOutputRequestSchema = Type.Object(
 	{
 		profileId: TranscodeProfileIdSchema,
-		target: Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
+		target: Type.Union([
+			Type.Literal("file"),
+			Type.Literal("media-source"),
+			Type.Literal("hls"),
+		]),
 	},
 	{ additionalProperties: false },
 );
 const outputDescription = Type.Object(
 	{
 		profileId: TranscodeProfileIdSchema,
-		target: Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
+		target: Type.Union([
+			Type.Literal("file"),
+			Type.Literal("media-source"),
+			Type.Literal("hls"),
+		]),
 		profileFingerprint: Type.String({ pattern: "^[a-f0-9]{64}$" }),
 	},
 	{ additionalProperties: false },
@@ -105,7 +113,11 @@ export const CompatibilityInspectionQuerySchema = Type.Object(
 		),
 		profileId: Type.Optional(TranscodeProfileIdSchema),
 		target: Type.Optional(
-			Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
+			Type.Union([
+				Type.Literal("file"),
+				Type.Literal("media-source"),
+				Type.Literal("hls"),
+			]),
 		),
 	},
 	{ additionalProperties: false },
@@ -135,21 +147,36 @@ export const CompatibilityCheckRequestSchema = Type.Object(
 	},
 	{ additionalProperties: false },
 );
+const combinations = Type.Object(
+	{
+		"copy-copy": CompatibilityStatusSchema,
+		"copy-encode": CompatibilityStatusSchema,
+		"encode-copy": CompatibilityStatusSchema,
+		"encode-encode": CompatibilityStatusSchema,
+	},
+	{ additionalProperties: false },
+);
 const outputResult = Type.Object(
 	{
 		profileId: TranscodeProfileIdSchema,
-		target: Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
+		target: Type.Union([
+			Type.Literal("file"),
+			Type.Literal("media-source"),
+			Type.Literal("hls"),
+		]),
 		profileFingerprint: Type.String({ pattern: "^[a-f0-9]{64}$" }),
 		copyVideo: CompatibilityStatusSchema,
 		copyAudio: CompatibilityStatusSchema,
-		combinations: Type.Object(
-			{
-				"copy-copy": CompatibilityStatusSchema,
-				"copy-encode": CompatibilityStatusSchema,
-				"encode-copy": CompatibilityStatusSchema,
-				"encode-encode": CompatibilityStatusSchema,
-			},
-			{ additionalProperties: false },
+		combinations,
+		audioTracks: Type.Array(
+			Type.Object(
+				{
+					streamIndex: Type.Integer({ minimum: 0 }),
+					copyAudio: CompatibilityStatusSchema,
+					combinations,
+				},
+				{ additionalProperties: false },
+			),
 		),
 	},
 	{ additionalProperties: false },

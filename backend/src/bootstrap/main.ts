@@ -135,6 +135,7 @@ async function createServer(
 	const compatibility = execution.compatibility;
 	const playback = new PlaybackApplication({
 		policy: configuration.policy.playback,
+		hlsPolicy: configuration.policy.hls,
 		sources: library.sources,
 		compatibility,
 		logger,

@@ -77,7 +77,12 @@ test("opens direct playback, resumes history, and invalidates superseded tokens"
 	const session = await playback.open(fileId);
 	expect(session.plan).toEqual({
 		mode: "direct",
-		playbackUrl: `/api/media/${fileId}`,
+		resource: {
+			delivery: "file" as const,
+			url: `/api/media/${fileId}`,
+			mimeType: "video/mp4",
+			timeline: { sourceOriginMs: 0, mediaOriginMs: 0, sourceDurationMs: null },
+		},
 	});
 	expect(JSON.stringify(session)).not.toContain(root);
 	expect(session.progress.lastViewedAtMs).toBeNull();

@@ -33,7 +33,7 @@ export function usePreparedPlayback(
 				) &&
 				(!sourceVersion || task.sourceVersion === sourceVersion) &&
 				task.status === "ready" &&
-				task.playbackUrl,
+				task.resource?.url,
 		)
 		.sort(
 			(a, b) =>

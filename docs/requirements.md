@@ -92,11 +92,11 @@ This is a user-facing file download, separate from acquiring new releases throug
 
 #### FFmpeg Pre-transcoding and Real-time Transcoding (P05–P07)
 
-V2 implements both **Prepare for Web → wait for a reusable completed copy → play** and **Watch → transcode only as needed while playback proceeds**. Web playback remains primary. The automatic strategy prefers a compatible original, then an existing valid prepared copy, then necessary real-time processing. A user may choose direct-only or preparation-first behavior; pre-transcoding the library is never automatic.
+V2 implements both **Prepare for Web → wait for a reusable completed copy → play** and **Watch → transcode only as needed while playback proceeds**. Web playback remains primary. The target Web strategy uses HLS/fMP4 for completed and real-time resources: prefer an existing valid completed HLS resource, then necessary on-demand packaging or transcoding. Compatible streams are copied. Preserve the original `GET/HEAD /api/media/:id` Range route for external players. The HLS model/planning foundation is implemented; Web HLS delivery and real-time acquisition remain pending, so current Web playback still uses originals and completed file copies. A user may choose direct-only or preparation-first behavior; pre-transcoding the library is never automatic.
 
 | Source and target compatibility | Required processing |
 | --- | --- |
-| Original container/audio/video supported | Direct playback; no media transcode |
+| Source streams compatible with HLS delivery | Package as HLS with compatible streams copied; no audio/video encoding |
 | Only delivery container unsupported | Remux with compatible audio/video copied |
 | Audio alone unsupported | Copy video; encode audio only |
 | Video unsupported | Encode video; copy audio if compatible, otherwise encode audio |
@@ -359,11 +359,11 @@ Extend the existing file browser into an everyday Web viewing workflow:
 
 #### FFmpeg Pre-transcoding and Real-time Transcoding (P05–P07)
 
-V2 implements both **Prepare for Web → wait for a reusable completed copy → play** and **Watch → transcode only as needed while playback proceeds**. Web playback remains primary. The automatic strategy prefers a compatible original, then an existing valid prepared copy, then necessary real-time processing. A user may choose direct-only or preparation-first behavior; pre-transcoding the library is never automatic.
+V2 implements both **Prepare for Web → wait for a reusable completed copy → play** and **Watch → transcode only as needed while playback proceeds**. Web playback remains primary. The target Web strategy uses HLS/fMP4 for completed and real-time resources: prefer an existing valid completed HLS resource, then necessary on-demand packaging or transcoding. Compatible streams are copied. Preserve the original `GET/HEAD /api/media/:id` Range route for external players. The HLS model/planning foundation is implemented; Web HLS delivery and real-time acquisition remain pending, so current Web playback still uses originals and completed file copies. A user may choose direct-only or preparation-first behavior; pre-transcoding the library is never automatic.
 
 | Source and target compatibility | Required processing |
 | --- | --- |
-| Original container/audio/video supported | Direct playback; no media transcode |
+| Source streams compatible with HLS delivery | Package as HLS with compatible streams copied; no audio/video encoding |
 | Only delivery container unsupported | Remux with compatible audio/video copied |
 | Audio alone unsupported | Copy video; encode audio only |
 | Video unsupported | Encode video; copy audio if compatible, otherwise encode audio |

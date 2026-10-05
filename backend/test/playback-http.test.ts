@@ -88,7 +88,9 @@ function save(session: PlaybackSessionResponse, sequence = 1) {
 test("HTTP open/save/list/release flow resumes progress and rejects delayed writes", async () => {
 	const session = await open();
 	expect(session.file.id).toBe(fileId);
-	expect(session.plan.playbackUrl).toBe(`/api/media/${fileId}`);
+	expect(session.plan.mode === "direct" && session.plan.resource.url).toBe(
+		`/api/media/${fileId}`,
+	);
 	expect(session.progress.positionMs).toBe(0);
 	expect(session.progress).not.toHaveProperty("sourceId");
 	expect(JSON.stringify(session)).not.toContain(root);

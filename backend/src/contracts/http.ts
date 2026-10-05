@@ -76,3 +76,19 @@ export type TranscodeProfileCatalog = Static<
 export type SelectTranscodeProfileRequest = Static<
 	typeof schemas.SelectTranscodeProfileSchema
 >;
+
+export type MediaTimeline = Static<typeof schemas.MediaTimelineSchema>;
+export type MediaTrack = Static<typeof schemas.MediaTrackSchema>;
+export type FilePlaybackResource = Static<
+	typeof schemas.FilePlaybackResourceSchema
+>;
+export type HlsPlaybackResource = Static<
+	typeof schemas.HlsPlaybackResourceSchema
+>;
+export type PlaybackResource = Static<typeof schemas.PlaybackResourceSchema>;
+export type PlaybackPlanningRequest = Static<
+	typeof schemas.PlaybackPlanningRequestSchema
+>;
+export type PlaybackPlanningResponse = Static<
+	typeof schemas.PlaybackPlanningResponseSchema
+>;

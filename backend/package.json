@@ -45,6 +45,10 @@
 		"./contracts/defaults": {
 			"types": "./src/contracts/defaults.ts",
 			"default": "./src/contracts/defaults.ts"
+		},
+		"./contracts/media": {
+			"types": "./src/contracts/media.ts",
+			"default": "./src/contracts/media.ts"
 		}
 	}
 }
