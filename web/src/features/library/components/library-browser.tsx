@@ -6,10 +6,9 @@ import type { DirectoryResponse } from "../../../api/contracts.js";
 import { buttonStyles } from "../../../components/ui/button.js";
 import { Card, CardContent } from "../../../components/ui/card.js";
 import { directoryPath, filePath } from "../../../routes/paths.js";
-import { MediaLink } from "../../playback/public.js";
-import { PreparationButton } from "../../preparation/public.js";
 import { formatFileSize } from "../format-file-size.js";
 import { useDirectoryCompatibility } from "../hooks/use-directory-compatibility.js";
+import { FileActions } from "./file-actions.js";
 import LibraryScan from "./library-scan.js";
 
 export default function LibraryBrowser({
@@ -56,7 +55,7 @@ export default function LibraryBrowser({
 									{listing.children.map((entry) => (
 										<li
 											key={entry.id}
-											className="grid grid-cols-1 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto] py-2 first:pt-0 last:pb-0"
+											className="grid grid-cols-[minmax(0,1fr)_auto] items-center py-2 first:pt-0 last:pb-0"
 										>
 											<Link
 												aria-label={entry.name}
@@ -90,13 +89,12 @@ export default function LibraryBrowser({
 												)}
 											</Link>
 											{entry.kind === "file" && (
-												<div className="flex flex-wrap items-center justify-end gap-2 px-2">
-													<PreparationButton
+												<div className="flex items-center justify-end gap-1 pl-2">
+													<FileActions
 														fileId={entry.id}
 														{...compatibility.get(entry.id)}
 														onRecheck={compatibility.retry}
 													/>
-													<MediaLink fileId={entry.id} iconOnly />
 												</div>
 											)}
 										</li>

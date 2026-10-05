@@ -135,7 +135,13 @@ real-time playback require their subsequent acceptance.
 ## Web integration
 
 Opening a directory starts asynchronous source-only compatibility checks for its
-files. The list remains usable while each pending file action shows a Spinner.
+files. Every file displays its original-media compatibility beside its action
+menu, including supported files. Checking shows Spinner; supported, unsupported,
+unknown, and failed checks use distinct icons with accessible names and Tooltips
+explaining the state and reason. A ready, available copy matching the current
+source version uses a distinct prepared icon while retaining original support
+in its Tooltip. Status icons use neutral muted styling. The list remains usable
+during checks.
 Checks run in a bounded queue, with one slot matching the built-in server probe
 policy. Expected transient unavailable responses receive two bounded retries;
 request cancellation also cancels retry delays. Leaving a directory aborts client
@@ -144,7 +150,11 @@ library revision, file identity and metadata; the player can reuse them while
 checking the session source version. Unknown capability and failed requests offer
 rechecking rather than pretending the source is unsupported.
 
-File actions use icons with accessible names and tooltips.
+File operations are grouped in a Dropdown Menu at the far right of each row.
+Its icon trigger has an accessible name and Tooltip; items use icons and labels.
+The menu contains operations only, without loading or task-status entries.
+Entries query copies by file and share the result with their menus, so older artifacts remain available for
+deletion even when the original is supported or its compatibility is unknown.
 Only unsupported files expose the pre-transcode action. It negotiates fresh
 source/profile-bound browser evidence, then creates or explicitly retries work.
 Compatible originals do not expose the action. A pending task disables duplicate
@@ -154,11 +164,12 @@ The form shows only names and descriptions, without encoder arguments. Missing
 profile selections direct the user to Settings instead of guessing a fallback.
 
 There is no preparation page or task navigation item. The app shell owns one task
-list and profile catalog across route changes. When tasks exist, a bottom-right
+list and profile catalog across route changes. While at least one task is queued or processing, a bottom-right
 floating panel uses one compact row per task, showing the filename, status or
 progress, and icon actions with tooltips. Filename tooltips retain the full name,
 mode, profile, failure details, size and availability.
-It can be folded without stopping polling or losing pending actions. Pending work
+It hides when the last active task stops. Completed artifacts remain accessible
+from file menus. It can be folded without stopping polling or losing pending actions. Pending work
 and unknown startup availability are polled without overlapping requests;
 terminal states stop polling. Refresh, library changes and mutation completion
 reload tasks. Leaving the app aborts requests and timers without cancelling server

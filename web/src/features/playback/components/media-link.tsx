@@ -13,6 +13,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "../../../components/ui/dialog.js";
+import { DropdownMenuItem } from "../../../components/ui/dropdown-menu.js";
 import { Input } from "../../../components/ui/input.js";
 import { Spinner } from "../../../components/ui/spinner.js";
 import { toast } from "../../../components/ui/toast.js";
@@ -23,9 +24,11 @@ import { createMediaLink } from "../media-link.js";
 export default function MediaLink({
 	fileId,
 	iconOnly = false,
+	menuItem = false,
 }: {
 	fileId: string;
 	iconOnly?: boolean;
+	menuItem?: boolean;
 }) {
 	const { t } = useTranslation();
 	const request = useRef<AbortController | null>(null);
@@ -78,8 +81,14 @@ export default function MediaLink({
 			render={
 				<Button
 					type="button"
-					variant={iconOnly ? "ghost" : "outline"}
-					className={iconOnly ? "size-9 shrink-0 p-0" : undefined}
+					variant={iconOnly || menuItem ? "ghost" : "outline"}
+					className={
+						menuItem
+							? "w-full justify-start"
+							: iconOnly
+								? "size-9 shrink-0 p-0"
+								: undefined
+					}
 					aria-label={iconOnly ? t("player.copyMediaLink") : undefined}
 					disabled={pending}
 					focusableWhenDisabled={iconOnly}
@@ -112,7 +121,13 @@ export default function MediaLink({
 							: "action-row"
 					}
 				>
-					{iconOnly ? (
+					{menuItem ? (
+						<DropdownMenuItem
+							nativeButton
+							disabled={pending}
+							render={trigger}
+						/>
+					) : iconOnly ? (
 						<Tooltip content={t("player.copyMediaLink")}>{trigger}</Tooltip>
 					) : (
 						trigger

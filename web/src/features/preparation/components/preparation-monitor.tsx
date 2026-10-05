@@ -12,10 +12,11 @@ export function PreparationMonitor() {
 	const preparation = usePreparationContext();
 	const navigate = useNavigate();
 	const [collapsed, setCollapsed] = useState(false);
-	if (preparation.tasks.length === 0) return null;
+
 	const active = preparation.tasks.filter(
 		(task) => task.status === "queued" || task.status === "processing",
 	).length;
+	if (active === 0) return null;
 	return (
 		<aside
 			aria-label={t("preparation.monitor")}

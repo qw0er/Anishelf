@@ -78,7 +78,7 @@ export function PreparationTaskCard({
 						/>
 					) : task.status === "failed" ? (
 						<CircleAlert
-							className="size-4 shrink-0 text-destructive"
+							className="size-4 shrink-0 text-muted-foreground"
 							aria-hidden="true"
 						/>
 					) : (

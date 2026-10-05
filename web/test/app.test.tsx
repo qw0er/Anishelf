@@ -1246,20 +1246,20 @@ test("settings use shared constraints without requesting client configuration", 
 	).toBe(false);
 });
 
-test("file rows offer an icon copy button with tooltip without opening playback", async () => {
+test("file rows offer a dropdown menu for copying without opening playback", async () => {
 	const copy = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
 	renderApp();
 	await screen.findByRole("link", { name: "Season 1" });
 	expect(screen.queryByRole("button", { name: "Copy media link" })).toBeNull();
 	fireEvent.click(screen.getByRole("link", { name: "Season 1" }));
-	const button = await screen.findByRole("button", { name: "Copy media link" });
-	fireEvent.focus(button);
-	await waitFor(() =>
-		expect(
-			document.querySelector('[data-slot="tooltip-content"]')?.textContent,
-		).toBe("Copy media link"),
-	);
-	expect(button.textContent).toBe("");
+	await screen.findByRole("button", {
+		name: "This browser reports support for this file.",
+	});
+	const trigger = await screen.findByRole("button", { name: "File actions" });
+	fireEvent.click(trigger);
+	const button = await screen.findByRole("menuitem", {
+		name: "Copy media link",
+	});
 	expect(button.closest("a")).toBeNull();
 	fireEvent.click(button);
 	await screen.findByText(/Link copied/);
@@ -1365,7 +1365,7 @@ test("an unavailable compatibility check remains retryable and permits an explic
 	await screen.findByLabelText("Video: Episode 01.mp4");
 });
 
-test("unsupported file uses a ready transcode automatically and the task monitor persists across navigation", async () => {
+test("unsupported file uses a ready transcode automatically without a terminal task panel", async () => {
 	compatibilityStatus = "unsupported";
 	preparationTasks = [
 		{
@@ -1393,24 +1393,16 @@ test("unsupported file uses a ready transcode automatically and the task monitor
 		expect(video.getAttribute("src")).toBe("/api/prepared-media/artifact"),
 	);
 	expect(screen.queryByRole("dialog")).toBeNull();
-	const monitor = screen.getByRole("complementary", {
-		name: "Transcoding tasks",
-	});
-	fireEvent.click(
-		within(monitor).getByRole("button", { name: /Transcoding tasks/ }),
-	);
+	expect(
+		screen.queryByRole("complementary", { name: "Transcoding tasks" }),
+	).toBeNull();
 	fireEvent.click(screen.getByRole("link", { name: "Library" }));
 	await waitFor(() =>
 		expect(screen.getByTestId("location").textContent).toBe("/"),
 	);
-	expect(screen.getByRole("complementary", { name: "Transcoding tasks" })).toBe(
-		monitor,
-	);
 	expect(
-		within(monitor)
-			.getByRole("button", { name: /Transcoding tasks/ })
-			.getAttribute("aria-expanded"),
-	).toBe("false");
+		screen.queryByRole("complementary", { name: "Transcoding tasks" }),
+	).toBeNull();
 	expect(screen.queryByRole("link", { name: "Media preparation" })).toBeNull();
 	expect(
 		fetcher.mock.calls.some(
@@ -1418,4 +1410,20 @@ test("unsupported file uses a ready transcode automatically and the task monitor
 				String(url).includes("/preparations") && init?.method === "POST",
 		),
 	).toBe(false);
+});
+
+test("file menu preserves manual copy fallback after closing", async () => {
+	vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(
+		new Error("Clipboard unavailable"),
+	);
+	renderApp("/directories/season-1");
+	fireEvent.click(await screen.findByRole("button", { name: "File actions" }));
+	fireEvent.click(
+		await screen.findByRole("menuitem", { name: "Copy media link" }),
+	);
+	const field = await screen.findByRole("textbox", { name: "Media link" });
+	expect((field as HTMLInputElement).value).toBe(
+		`${window.location.origin}/api/media/file-1`,
+	);
+	expect(screen.queryByRole("menu")).toBeNull();
 });

@@ -68,6 +68,7 @@
 		"mediaPictureUnavailable": "This browser could not decode the video picture. Audio alone may still play."
 	},
 	"library": {
+		"fileActions": "File actions",
 		"filesLabel": "Library files",
 		"directoryTitle": "Directory: {{name}}",
 		"emptyDirectory": "This directory is empty. Scan the library to discover video files."
@@ -149,6 +150,7 @@
 		}
 	},
 	"compatibility": {
+		"prepared": "A pre-transcoded copy is ready.",
 		"label": "Playback compatibility",
 		"showInfo": "Playback compatibility info",
 		"checking": "Checking playback compatibility\u2026",
@@ -196,6 +198,7 @@
 		}
 	},
 	"preparation": {
+		"loadingCopies": "Loading prepared copies…",
 		"title": "Media preparation",
 		"allTasks": "All tasks",
 		"description": "Prepare a reusable browser copy when the original cannot play. Existing compatible streams are retained.",

@@ -970,8 +970,8 @@ remains 16:9, capped at 75 vh.
 Use the default Button variant for the main operation, such as starting a scan
 or saving settings. Use outline buttons for refresh, retry, and return actions;
 navigation uses the existing ghost and selected secondary variants. Keep visible
-labels for page and form actions; file and task list actions use icons with
-Tooltips. Hide decorative icons from assistive technology.
+labels for page and form actions; file entries use a right-aligned Dropdown
+Menu trigger and task list actions use icons with Tooltips. Hide decorative icons from assistive technology.
 
 Use an icon with a visible text label for primary actions. In space-constrained
 areas, use an icon-only button with a Tooltip available on hover and keyboard
@@ -982,10 +982,27 @@ an action icon, use the same icon size and do not leave an empty icon slot.
 
 ### Compact Lists, Settings, and Background Tasks
 
-- File and task list actions use icon-only controls with Tooltips instead of text
-  buttons. Use consistent icon sizes, control footprints, and spacing within each
-  list. Every control has an accessible name and supports keyboard focus; Tooltip
-  text describes the operation without replacing its accessible name.
+- Every file entry shows its original-media compatibility beside the action menu,
+  including supported files. Checking uses Spinner in the same control footprint;
+  supported, unsupported, unknown, and failed checks use distinct icons with
+  accessible names and Tooltips explaining the state and reason. Keep this status
+  visible without opening the menu. A ready, available pre-transcoded artifact for
+  the current source version takes precedence with its own icon; its Tooltip also
+  explains original-media support. Query copies by file as entries mount so older
+  outputs beyond the global recent-task window are included. Use neutral muted
+  icons throughout these status controls; distinguish states by shape and text.
+- File entries collect operations in a Dropdown Menu at the far right. Its
+  icon-only trigger has a Tooltip and accessible name; menu items use recognizable
+  icons and visible labels. Keep copy, preparation, recheck, and configuration
+  actions inside this secondary menu. Include actionable items only; checking,
+  loading, queued, processing, and ready states belong beside the file or in the
+  task panel, rather than as informational menu entries. When prepared copies exist, provide deletion
+  there even if the original is directly playable, and identify the profile when
+  multiple copies are available. Share the file-level copy lookup with the status control.
+- Task list actions use icon-only controls with Tooltips instead of text buttons.
+  Use consistent icon sizes, control footprints, and spacing within each list.
+  Every control has an accessible name and supports keyboard focus; Tooltip text
+  describes the operation without replacing its accessible name.
 - Show only actions relevant to the current state. Hide unnecessary operations,
   disable duplicate actions while work is pending, and use a recognizable icon
   for completion. State must remain understandable without relying on color.
@@ -995,10 +1012,11 @@ an action icon, use the same icon size and do not leave an empty icon slot.
 - Put shared configuration in Settings rather than repeating selectors in list
   entries. Use clear, consistent user-facing terminology; the preparation target
   setting is named **Pre-transcoding profile**. An unconfigured entry offers a
-  settings icon with a Tooltip that explains where to configure it.
-- Background preparation tasks appear in a collapsible panel at the bottom right
-  of the app shell, without a dedicated preparation page or navigation item. The
-  panel must not interrupt browsing or playback. Collapsing it preserves task
+  menu item that explains where to configure it.
+- Show the collapsible preparation panel at the bottom right of the app shell
+  only while at least one task is queued or processing. Hide it when no active
+  task remains; completed artifacts remain manageable from file menus. There is
+  no dedicated preparation page or navigation item. The panel must not interrupt browsing or playback. Collapsing it preserves task
   execution, polling, and pending actions.
 - Render each task as one row: **status icon, filename, status or progress, and
   action icons**. Keep task rows on one line at narrow and desktop widths,

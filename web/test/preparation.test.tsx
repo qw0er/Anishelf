@@ -15,6 +15,7 @@ import type {
 	CompatibilityResult,
 	PreparationTaskResponse,
 } from "../src/api/contracts.js";
+import { FileActions } from "../src/features/library/components/file-actions.js";
 import { PreparationButton } from "../src/features/preparation/components/preparation-button.js";
 import { PreparationMonitor } from "../src/features/preparation/components/preparation-monitor.js";
 import { PreparationProfileSettings } from "../src/features/preparation/components/profile-settings.js";
@@ -365,3 +366,140 @@ test("automatic playback discovers older ready copies outside the global recent-
 	);
 	expect(api.createPreparation).not.toHaveBeenCalled();
 });
+
+test("file menu discovers older prepared copies and deletes them even for a supported original", async () => {
+	vi.mocked(api.getFilePreparations).mockResolvedValue({ tasks: [ready] });
+	const view = render(
+		<Wrapper>
+			<FileActions
+				fileId="file"
+				loading={false}
+				result={{
+					...unsupported,
+					direct: { status: "supported", reason: "browser-supported" },
+				}}
+				error={null}
+				onRecheck={vi.fn()}
+			/>
+		</Wrapper>,
+	);
+	await waitFor(() => expect(api.getFilePreparations).toHaveBeenCalled());
+	expect(
+		await view.findByRole("button", {
+			name: "A pre-transcoded copy is ready.",
+		}),
+	).toBeTruthy();
+	fireEvent.click(view.getByRole("button", { name: "File actions" }));
+	const remove = await view.findByRole("menuitem", {
+		name: "Delete prepared copy",
+	});
+	expect(view.queryByRole("menuitem", { name: "Pre-transcode" })).toBeNull();
+	fireEvent.click(remove);
+	await waitFor(() =>
+		expect(api.deletePreparedMedia).toHaveBeenCalledWith(
+			"artifact",
+			expect.objectContaining({ signal: expect.any(AbortSignal) }),
+		),
+	);
+	expect(api.cancelPreparation).not.toHaveBeenCalled();
+});
+
+test("task monitor disappears when its last active task completes", async () => {
+	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [task] });
+	const view = render(
+		<Wrapper>
+			<PreparationMonitor />
+		</Wrapper>,
+	);
+	const monitor = await view.findByRole("complementary", {
+		name: "Transcoding tasks",
+	});
+	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [ready] });
+	fireEvent.click(view.getByRole("button", { name: "Refresh tasks" }));
+	await waitFor(() => expect(monitor.isConnected).toBe(false));
+});
+
+test("preparation from a file menu continues after the menu closes", async () => {
+	const view = render(
+		<Wrapper>
+			<FileActions
+				fileId="file"
+				loading={false}
+				result={unsupported}
+				error={null}
+				onRecheck={vi.fn()}
+			/>
+		</Wrapper>,
+	);
+	fireEvent.click(view.getByRole("button", { name: "File actions" }));
+	fireEvent.click(await view.findByRole("menuitem", { name: "Pre-transcode" }));
+	await waitFor(() =>
+		expect(api.createPreparation).toHaveBeenCalledWith(
+			"file",
+			expect.objectContaining({ sourceVersion: "version" }),
+			expect.objectContaining({ signal: expect.any(AbortSignal) }),
+		),
+	);
+	expect(view.queryByRole("menu")).toBeNull();
+});
+
+test("an older or unavailable copy does not mark the current file prepared", async () => {
+	vi.mocked(api.getFilePreparations).mockResolvedValue({
+		tasks: [
+			{ ...ready, sourceVersion: "old-version" },
+			{ ...ready, id: "unavailable", playbackAvailability: "unavailable" },
+		],
+	});
+	const view = render(
+		<Wrapper>
+			<FileActions
+				fileId="file"
+				loading={false}
+				result={unsupported}
+				error={null}
+				onRecheck={vi.fn()}
+			/>
+		</Wrapper>,
+	);
+	await view.findByRole("button", {
+		name: "This file is not supported by this browser.",
+	});
+	expect(
+		view.queryByRole("button", { name: "A pre-transcoded copy is ready." }),
+	).toBeNull();
+});
+
+test.each([task, ready])(
+	"file menu contains operations without $status status entries",
+	async (entry) => {
+		vi.mocked(api.getFilePreparations).mockResolvedValue({ tasks: [entry] });
+		const view = render(
+			<Wrapper>
+				<FileActions
+					fileId="file"
+					loading={false}
+					result={unsupported}
+					error={null}
+					onRecheck={vi.fn()}
+				/>
+			</Wrapper>,
+		);
+		fireEvent.click(view.getByRole("button", { name: "File actions" }));
+		await view.findByRole("menuitem", {
+			name:
+				entry.status === "ready"
+					? "Delete prepared copy"
+					: "Cancel preparation",
+		});
+		for (const name of [
+			"Queued",
+			"Preparing",
+			"Ready",
+			"Checking playback compatibility…",
+			"Loading prepared copies…",
+			"Pre-transcode",
+		]) {
+			expect(view.queryByRole("menuitem", { name })).toBeNull();
+		}
+	},
+);
