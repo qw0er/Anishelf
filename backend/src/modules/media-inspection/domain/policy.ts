@@ -4,7 +4,7 @@ import {
 	validateNumericPolicy,
 } from "../../../shared/policy.js";
 
-const defaults = { maximumProbeCacheEntries: 32, probeConcurrency: 1 };
+const defaults = { maximumProbeCacheEntries: 32, probeConcurrency: 2 };
 export type MediaInspectionPolicy = typeof defaults;
 export const mediaInspectionPolicy = freeze(defaults);
 export function validateMediaInspectionPolicy(
