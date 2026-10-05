@@ -4,7 +4,7 @@ import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import type { CheckedCompatibility } from "../../media-compatibility/public.js";
 import type { MediaExecutionRequest } from "./processing.js";
 
-const version = "preparation-execution:1";
+const version = "preparation-execution:2";
 export type PreparationExecutionPlan =
 	| { kind: "direct"; fileId: string; sourceVersion: string }
 	| { kind: "blocked"; reason: string }
@@ -32,7 +32,10 @@ export function resolveExecutionPlan(
 	if (output.target === "media-source" && profile.container !== "mp4")
 		return { kind: "blocked", reason: "fragmented-container-unimplemented" };
 	const video = input.selectedVideo;
-	const audio = input.selectedAudio;
+	const audios =
+		input.selectedAudioTracks ??
+		(input.selectedAudio ? [input.selectedAudio] : []);
+	const audio = audios[0];
 	if (!video) return { kind: "blocked", reason: "no-video-stream" };
 	if (video.hdr)
 		return { kind: "blocked", reason: "hdr-conversion-unverified" };
@@ -40,7 +43,8 @@ export function resolveExecutionPlan(
 		profile.video.maxHeight !== undefined &&
 		(video.height === null || video.height > profile.video.maxHeight);
 	const stereo =
-		audio && profile.audio.channels === "stereo" && audio.channels !== 2;
+		profile.audio.channels === "stereo" &&
+		audios.some((audio) => audio.channels !== 2);
 	const videoAction =
 		profile.copyCompatibleStreams && !resize ? output.copyVideo : "unsupported";
 	const audioAction = !audio
@@ -94,7 +98,7 @@ export function resolveExecutionPlan(
 			profileFingerprint: output.profileFingerprint,
 			delivery: output.target,
 			video: video.index,
-			audio: audio?.index ?? null,
+			audio: audios.map((audio) => audio.index),
 			v,
 			a,
 		}),
@@ -165,7 +169,7 @@ export function resolveExecutionPlan(
 			sourceVersion: input.sourceVersion,
 			plan: freeze(plan),
 			videoStreamIndex: video.index,
-			audioStreamIndex: audio?.index ?? null,
+			audioStreamIndices: audios.map((audio) => audio.index),
 		},
 	};
 }

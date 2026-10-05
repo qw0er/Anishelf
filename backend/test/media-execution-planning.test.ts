@@ -26,7 +26,7 @@ const cleanup: Array<() => Promise<unknown>> = [];
 afterEach(async () => {
 	await Promise.all(cleanup.splice(0).map((fn) => fn()));
 });
-async function fixture(audio = true) {
+async function fixture(audio = true, secondAudio = false) {
 	const root = await mkdtemp(join(tmpdir(), "anishelf-planning-"));
 	await writeFile(join(root, "source.mkv"), "source");
 	const index = new LibraryIndex();
@@ -66,6 +66,14 @@ async function fixture(audio = true) {
 	if (video) video.codecString = "avc1.640028";
 	const a = info.streams[1];
 	if (a) a.codecString = "mp4a.40.2";
+	if (secondAudio && a)
+		info.streams.push({
+			...a,
+			index: 7,
+			codec: "ac3",
+			codecString: "ac-3",
+			tags: { language: "jpn", title: "Japanese" },
+		});
 	const inspection = new MediaInspectionApplication({
 		sources: library.sources,
 		tools: { probe: vi.fn().mockResolvedValue(info) },
@@ -168,7 +176,7 @@ test.each([
 			mode,
 			request: {
 				videoStreamIndex: 2,
-				audioStreamIndex: 4,
+				audioStreamIndices: [4],
 				plan: { video: { action: video }, audio: { action: audio } },
 			},
 		});
@@ -244,7 +252,7 @@ test("video-only selection and unknown encoded profile descriptions fail safely"
 	const f = await fixture(false);
 	expect(await f.resolve()).toMatchObject({
 		kind: "processing",
-		request: { audioStreamIndex: null },
+		request: { audioStreamIndices: [] },
 		reasons: { audio: "no-audio-stream" },
 	});
 	f.profile.video = {
@@ -390,7 +398,7 @@ test("playback planning validates evidence without opening history or claiming r
 		sourceVersion: input.sourceVersion,
 		executionPlanId: result.execution.plan.id,
 		videoStreamIndex: 2,
-		audioStreamIndex: 4,
+		audioStreamIndices: [4],
 	});
 	expect(JSON.stringify(result.identity)).not.toContain(
 		f.source.identity.canonicalRoot,
@@ -476,4 +484,98 @@ test("playback resource contracts reject premature URLs and private execution fi
 			path: "/private/source",
 		}),
 	).toBe(false);
+});
+
+test("checks every audio track and defaults execution to all audio streams", async () => {
+	const f = await fixture(true, true);
+	expect(f.description.audioTracks?.map((track) => track.index)).toEqual([
+		4, 7,
+	]);
+	const checked = await f.app.check({
+		fileId: f.file.id,
+		sourceVersion: f.source.identity.sourceVersion,
+		descriptionId: f.description.descriptionId,
+		output: { profileId: f.profile.id, target: "file" },
+		evidence: f.evidence({
+			"original-audio": "supported",
+			"original-audio-7": "unsupported",
+			"copy-audio-7": "unsupported",
+		}),
+	});
+	expect(checked.audio.status).toBe("unsupported");
+	expect(checked.audioTracks).toMatchObject([
+		{ stream: { index: 4 }, compatibility: { status: "supported" } },
+		{
+			stream: { index: 7, language: "jpn", label: "Japanese" },
+			compatibility: { status: "unsupported" },
+		},
+	]);
+	const plan = resolveExecutionPlan(checked);
+	expect(plan).toMatchObject({
+		kind: "processing",
+		mode: "transcode-audio",
+		request: {
+			audioStreamIndices: [4, 7],
+			plan: { audio: { action: "encode" } },
+		},
+	});
+	expect(
+		resolveExecutionPlan(
+			await f.app.check({
+				fileId: f.file.id,
+				sourceVersion: f.source.identity.sourceVersion,
+				descriptionId: f.description.descriptionId,
+				output: { profileId: f.profile.id, target: "file" },
+				evidence: f.evidence({ "copy-audio-7": "unknown" }),
+			}),
+		),
+	).toEqual({ kind: "blocked", reason: "source-stream-compatibility-unknown" });
+});
+
+test("audio selection binds evidence and execution identity, preserving requested order and video-only selection", async () => {
+	const f = await fixture(true, true);
+	const plans = [];
+	for (const selection of [[7], [7, 4], []]) {
+		const output = { profileId: f.profile.id, target: "file" as const };
+		const description = await f.app.inspect({
+			fileId: f.file.id,
+			output,
+			audioStreamIndices: selection,
+		});
+		expect(description.audioTracks).toHaveLength(2);
+		expect(
+			description.selectedAudioTracks?.map((track) => track.index),
+		).toEqual(selection);
+		const evidence = description.queries.map((query) => ({
+			id: query.id,
+			status: "supported" as const,
+			reason: "browser-supported" as const,
+			smooth: null,
+			powerEfficient: null,
+		}));
+		const request = {
+			fileId: f.file.id,
+			sourceVersion: description.sourceVersion,
+			descriptionId: description.descriptionId,
+			output,
+			evidence,
+			audioStreamIndices: selection,
+		};
+		const plan = resolveExecutionPlan(await f.app.check(request));
+		expect(plan).toMatchObject({
+			kind: "processing",
+			request: { audioStreamIndices: selection },
+		});
+		if (plan.kind !== "processing") throw new Error("Missing plan");
+		plans.push(plan.request.plan.id);
+		await expect(
+			f.app.check({ ...request, audioStreamIndices: [4] }),
+		).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+	}
+	expect(new Set(plans).size).toBe(3);
+	for (const audioStreamIndices of [[0], [4, 4], [-1], [99]]) {
+		await expect(
+			f.app.inspect({ fileId: f.file.id, audioStreamIndices }),
+		).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+	}
 });

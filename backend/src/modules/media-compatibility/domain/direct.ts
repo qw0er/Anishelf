@@ -2,7 +2,7 @@ import type {
 	CompatibilityEvidence,
 	CompatibilityResult,
 } from "../../../contracts/http.js";
-import { compatibilityDecision } from "./evidence.js";
+import { aggregateCompatibility, compatibilityDecision } from "./evidence.js";
 import type { OriginalMediaDescription } from "./model.js";
 
 export function checkDirectCompatibility(
@@ -11,7 +11,11 @@ export function checkDirectCompatibility(
 ): CompatibilityResult["direct"] {
 	const decision = (id: string) =>
 		compatibilityDecision(description.queries, evidence, id);
-	let direct = decision("original");
+	let direct = aggregateCompatibility(
+		description.queries
+			.filter((query) => /^original(-\d+)?$/.test(query.id))
+			.map((query) => decision(query.id)),
+	);
 	if (decision("original-container").status === "unsupported")
 		direct = { status: "unsupported", reason: "container-rejected" };
 	if (!description.video)

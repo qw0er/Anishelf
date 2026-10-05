@@ -177,6 +177,7 @@ export class PreparationApplication {
 			filename: task.filename,
 			sourceVersion: task.source.sourceVersion,
 			profileId: task.profileId,
+			audioStreamIndices: [...task.request.audioStreamIndices],
 			mode: task.mode,
 			reasons: { ...task.reasons },
 			status: task.status,

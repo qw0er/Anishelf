@@ -44,7 +44,7 @@ export interface MediaExecutionRequest {
 	sourceVersion: string;
 	plan: DeepReadonly<MediaProcessingPlan>;
 	videoStreamIndex: number;
-	audioStreamIndex: number | null;
+	audioStreamIndices: readonly number[];
 	/** A resource owner can narrow the output budget for this execution. */
 	maximumBytes?: number;
 	signal?: AbortSignal;
@@ -76,7 +76,7 @@ export interface ProcessedMedia {
 	sourceVersion: string;
 	planId: string;
 	videoStreamIndex: number;
-	audioStreamIndex: number | null;
+	audioStreamIndices: readonly number[];
 	path: string;
 	sizeBytes: number;
 	info: MediaInfo;
@@ -176,9 +176,12 @@ export class MediaProcessingApplication {
 		if (
 			!Number.isSafeInteger(request.videoStreamIndex) ||
 			request.videoStreamIndex < 0 ||
-			(request.audioStreamIndex !== null &&
-				(!Number.isSafeInteger(request.audioStreamIndex) ||
-					request.audioStreamIndex < 0))
+			!Array.isArray(request.audioStreamIndices) ||
+			new Set(request.audioStreamIndices).size !==
+				request.audioStreamIndices.length ||
+			request.audioStreamIndices.some(
+				(index) => !Number.isSafeInteger(index) || index < 0,
+			)
 		)
 			throw new MediaToolError(
 				"INVALID_INPUT",
@@ -286,10 +289,15 @@ export class MediaProcessingApplication {
 		);
 		signal.throwIfAborted();
 		const video = selectStream(info.streams, "video", request.videoStreamIndex);
-		const audio =
-			request.audioStreamIndex === null
-				? undefined
-				: selectStream(info.streams, "audio", request.audioStreamIndex);
+		const selectedAudios = request.audioStreamIndices.map((index) => {
+			const stream = selectStream(info.streams, "audio", index);
+			if (!stream)
+				throw new MediaToolError(
+					"INVALID_INPUT",
+					"Selected audio stream is unavailable.",
+				);
+			return stream;
+		});
 		if (!video)
 			throw new MediaToolError(
 				"INVALID_INPUT",
@@ -300,7 +308,7 @@ export class MediaProcessingApplication {
 			plan,
 			info,
 			video.index,
-			audio?.index ?? null,
+			selectedAudios.map((audio) => audio.index),
 		);
 		if (check.status !== "supported")
 			throw new MediaExecutionCapabilityError(check);
@@ -329,7 +337,7 @@ export class MediaProcessingApplication {
 					plan,
 					onEvent,
 					videoStreamIndex: video.index,
-					audioStreamIndex: audio?.index ?? null,
+					audioStreamIndices: selectedAudios.map((audio) => audio.index),
 					maximumBytes,
 					timeoutMs: this.policy.processingTimeoutMs,
 					signal,
@@ -353,14 +361,14 @@ export class MediaProcessingApplication {
 			const audios = output.streams.filter((stream) => stream.type === "audio");
 			if (
 				videos.length !== 1 ||
-				audios.length !== (audio ? 1 : 0) ||
+				audios.length !== selectedAudios.length ||
 				videos[0]?.codec !==
 					(plan.video.action === "encode" ? plan.video.codec : video.codec) ||
-				(audio &&
-					audios[0]?.codec !==
-						(plan.audio.action === "encode"
-							? plan.audio.codec
-							: audio.codec)) ||
+				selectedAudios.some(
+					(audio, index) =>
+						audios[index]?.codec !==
+						(plan.audio.action === "encode" ? plan.audio.codec : audio.codec),
+				) ||
 				!output.formatAliases.includes(plan.outputFormat)
 			)
 				throw new MediaToolError(
@@ -376,10 +384,14 @@ export class MediaProcessingApplication {
 						(videos[0]?.height ?? Infinity) >
 							plan.videoParameters.maxHeight)) ||
 				(plan.audioParameters?.channels === "stereo" &&
-					audios[0]?.channels !== 2) ||
-				(plan.audioParameters?.channels === "preserve" &&
-					audio?.channels !== null &&
-					audios[0]?.channels !== audio?.channels) ||
+					audios.some((audio) => audio.channels !== 2)) ||
+				((plan.audio.action === "copy" ||
+					plan.audioParameters?.channels === "preserve") &&
+					selectedAudios.some(
+						(audio, index) =>
+							audio.channels !== null &&
+							audios[index]?.channels !== audio.channels,
+					)) ||
 				(plan.h264Level && videos[0]?.codecString !== "avc1.640033")
 			)
 				throw new MediaToolError(
@@ -398,18 +410,20 @@ export class MediaProcessingApplication {
 					"Output duration does not match the source.",
 				);
 
-			const audioBefore = audio?.duration;
-			const audioAfter = audios[0]?.duration;
-			if (
-				audioBefore != null &&
-				audioAfter != null &&
-				Math.abs(audioBefore - audioAfter) >
-					this.policy.durationToleranceSeconds
-			)
-				throw new MediaToolError(
-					"TOOL_FAILED",
-					"Output audio duration does not match the source.",
-				);
+			for (const [index, audio] of selectedAudios.entries()) {
+				const audioBefore = audio.duration;
+				const audioAfter = audios[index]?.duration;
+				if (
+					audioBefore != null &&
+					audioAfter != null &&
+					Math.abs(audioBefore - audioAfter) >
+						this.policy.durationToleranceSeconds
+				)
+					throw new MediaToolError(
+						"TOOL_FAILED",
+						"Output audio duration does not match the source.",
+					);
+			}
 			await this.options.sources.revalidateSource(source);
 			signal.throwIfAborted();
 			const sizeBytes = await this.files.publish(workspace);
@@ -422,7 +436,7 @@ export class MediaProcessingApplication {
 				sourceVersion: source.identity.sourceVersion,
 				planId: plan.id,
 				videoStreamIndex: video.index,
-				audioStreamIndex: audio?.index ?? null,
+				audioStreamIndices: selectedAudios.map((audio) => audio.index),
 				path: workspace.path,
 				sizeBytes,
 				info: output,

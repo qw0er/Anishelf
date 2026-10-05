@@ -104,7 +104,7 @@ export class PlaybackApplication {
 				profileFingerprint: resolved.profileFingerprint,
 				executionPlanId: resolved.request.plan.id,
 				videoStreamIndex: resolved.request.videoStreamIndex,
-				audioStreamIndex: resolved.request.audioStreamIndex,
+				audioStreamIndices: resolved.request.audioStreamIndices,
 			},
 			execution: resolved.request,
 		});

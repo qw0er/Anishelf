@@ -86,12 +86,13 @@ async function fixture(block = false) {
 			codec: null,
 			mediaType: null,
 		});
+	const outputProbe = vi.fn().mockResolvedValue(info);
 	const application = new MediaProcessingApplication({
 		sources: library.sources,
 		inspection,
 		tools: {
 			capabilities: vi.fn().mockResolvedValue(capabilities),
-			probe: vi.fn().mockResolvedValue(info),
+			probe: outputProbe,
 		},
 		executor: { execute: executeMedia },
 		dataDir: root,
@@ -114,7 +115,7 @@ async function fixture(block = false) {
 			filters: [],
 		} as MediaProcessingPlan,
 		videoStreamIndex: 0,
-		audioStreamIndex: null,
+		audioStreamIndices: [],
 	};
 	return {
 		application,
@@ -124,6 +125,8 @@ async function fixture(block = false) {
 		executeMedia,
 		sources: library.sources,
 		capabilities,
+		info,
+		outputProbe,
 	};
 }
 test("explicit execution publishes a version-bound result and owns a cloned plan", async () => {
@@ -205,3 +208,50 @@ test("output container mismatch is rejected and removed", async () => {
 	expect(handle.state).toBe("failed");
 	expect(await readdir(join(f.root, "cache", "media-processing"))).toEqual([]);
 });
+
+test.each(["count", "codec", "channels", "duration"])(
+	"rejects invalid second output audio track: %s",
+	async (failure) => {
+		const f = await fixture();
+		const tracks = parseMediaInfo(
+			JSON.stringify({
+				format: { format_name: "matroska" },
+				streams: [
+					{
+						index: 1,
+						codec_type: "audio",
+						codec_name: "aac",
+						channels: 2,
+						duration: "10",
+					},
+					{
+						index: 3,
+						codec_type: "audio",
+						codec_name: "ac3",
+						channels: 6,
+						duration: "10",
+					},
+				],
+			}),
+		).streams;
+		f.info.streams.push(...tracks);
+		const output = structuredClone(f.info);
+		const second = output.streams[2];
+		if (!second) throw new Error("Missing second audio");
+		if (failure === "count") output.streams.pop();
+		if (failure === "codec") second.codec = "opus";
+		if (failure === "channels") second.channels = 2;
+		if (failure === "duration") second.duration = 100;
+		f.outputProbe.mockResolvedValue(output);
+		const handle = f.application.start({
+			...f.request,
+			audioStreamIndices: [1, 3],
+		});
+		await expect(handle.completion).rejects.toMatchObject({
+			code: "TOOL_FAILED",
+		});
+		expect(await readdir(join(f.root, "cache", "media-processing"))).toEqual(
+			[],
+		);
+	},
+);

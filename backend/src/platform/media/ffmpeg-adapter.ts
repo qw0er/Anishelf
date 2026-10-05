@@ -28,9 +28,12 @@ export function compileFfmpegArguments(
 		options.maximumBytes <= 0 ||
 		!Number.isSafeInteger(options.videoStreamIndex) ||
 		options.videoStreamIndex < 0 ||
-		(options.audioStreamIndex !== null &&
-			(!Number.isSafeInteger(options.audioStreamIndex) ||
-				options.audioStreamIndex < 0))
+		!Array.isArray(options.audioStreamIndices) ||
+		new Set(options.audioStreamIndices).size !==
+			options.audioStreamIndices.length ||
+		options.audioStreamIndices.some(
+			(index) => !Number.isSafeInteger(index) || index < 0,
+		)
 	)
 		throw new MediaToolError(
 			"INVALID_INPUT",
@@ -129,7 +132,7 @@ export function compileFfmpegArguments(
 					),
 				]
 			: []),
-		...(options.audioStreamIndex !== null && plan.audio.action === "encode"
+		...(options.audioStreamIndices.length > 0 && plan.audio.action === "encode"
 			? ["abuffer", "abuffersink", "aresample", "aformat", "anull"]
 			: []),
 	];
@@ -138,9 +141,13 @@ export function compileFfmpegArguments(
 			"INVALID_INPUT",
 			"Execution plan omits required conversion filters.",
 		);
-	if (options.audioStreamIndex === null) args.push("-an");
+	if (options.audioStreamIndices.length === 0) args.push("-an");
 	else {
-		args.push("-map", `0:${options.audioStreamIndex}`);
+		for (const index of options.audioStreamIndices)
+			args.push("-map", `0:${index}`);
+		options.audioStreamIndices.forEach((index, position) => {
+			args.push(`-map_metadata:s:a:${position}`, `0:s:${index}`);
+		});
 		if (plan.audio.action === "copy") {
 			if (plan.audioParameters)
 				throw new MediaToolError(

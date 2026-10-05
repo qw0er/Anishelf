@@ -53,3 +53,14 @@ export function compatibilityStatus(
 ): CompatibilityEvidence["status"] {
 	return compatibilityDecision(queries, evidence, id).status;
 }
+
+/** Every track must be supported; one rejected track rejects the aggregate. */
+export function aggregateCompatibility(
+	decisions: CompatibilityResult["audio"][],
+): CompatibilityResult["audio"] {
+	return (
+		decisions.find((decision) => decision.status === "unsupported") ??
+		decisions.find((decision) => decision.status === "unknown") ??
+		decisions[0] ?? { status: "supported", reason: "no-audio-stream" }
+	);
+}

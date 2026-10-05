@@ -79,8 +79,8 @@ export interface MediaProcessingOptions {
 	) => void;
 	plan: DeepReadonly<MediaProcessingPlan>;
 	videoStreamIndex: number;
-	/** null explicitly produces video-only output. */
-	audioStreamIndex: number | null;
+	/** An empty selection explicitly produces video-only output. */
+	audioStreamIndices: readonly number[];
 	signal?: AbortSignal;
 	/** Optional tighter bound for a caller's remaining storage budget. */
 	maximumBytes: number;

@@ -340,14 +340,12 @@ export class MediaTools {
 			),
 			detected ? (containers[detected.ext] ?? null) : null,
 		);
-		// Probe initialization data only for selected audio/video streams. Dumping every
+		// Probe initialization data for all audio/video streams. Dumping every
 		// attachment would copy embedded fonts into the probe output and exhaust its bound.
-		for (const type of ["video", "audio"]) {
-			const candidates = info.streams.filter(
-				(stream) => stream.type === type && !stream.attachedPicture,
-			);
-			const stream =
-				candidates.find((candidate) => candidate.default) ?? candidates[0];
+		for (const stream of info.streams.filter(
+			(stream) =>
+				["video", "audio"].includes(stream.type) && !stream.attachedPicture,
+		)) {
 			if (
 				!stream ||
 				!["h264", "hevc", "aac", "av1"].includes(stream.codec ?? "")

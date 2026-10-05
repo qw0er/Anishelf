@@ -1,5 +1,6 @@
 import { Type } from "typebox";
 import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
+import { AudioStreamSelectionSchema } from "./compatibility.js";
 import {
 	DirectPlaybackPlanSchema,
 	PlaybackTokenSchema,
@@ -65,6 +66,7 @@ export const PreparationTaskSchema = Type.Object(
 		filename: Type.String(),
 		sourceVersion: SourceVersionSchema,
 		profileId: Type.String(),
+		audioStreamIndices: Type.Optional(AudioStreamSelectionSchema),
 		mode: Type.Union([
 			Type.Literal("remux"),
 			Type.Literal("transcode-audio"),

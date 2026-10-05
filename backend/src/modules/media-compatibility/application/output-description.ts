@@ -11,7 +11,7 @@ import type {
 } from "../domain/model.js";
 
 /** Describe the exact source and profile-selected output combinations for browser negotiation. */
-export function describeOutputCandidates(
+function describeSingleOutputCandidates(
 	original: OriginalMediaDescription,
 	profile: DeepReadonly<TranscodeProfile>,
 	target: "file" | "media-source",
@@ -109,5 +109,47 @@ export function describeOutputCandidates(
 	return {
 		queries,
 		output: { profileId: profile.id, target, profileFingerprint },
+	};
+}
+
+export function describeOutputCandidates(
+	original: OriginalMediaDescription,
+	profile: DeepReadonly<TranscodeProfile>,
+	target: "file" | "media-source",
+): { queries: CompatibilityQuery[]; output: CompatibilityOutput } {
+	const tracks = original.selectedAudioTracks;
+	const candidates = (tracks.length ? tracks : [null]).map(
+		(audio, trackPosition) => {
+			const result = describeSingleOutputCandidates(
+				{ ...original, audio, queries: [] },
+				profile,
+				target,
+			);
+			return {
+				...result,
+				queries: result.queries
+					.filter((query) => query.id !== "copy-video" || trackPosition === 0)
+					.map((query) => ({
+						...query,
+						id:
+							query.id === "copy-video" ||
+							audio?.index === original.audio?.index ||
+							!audio
+								? query.id
+								: `${query.id}-${audio.index}`,
+					})),
+			};
+		},
+	);
+	return {
+		queries: [
+			...original.queries,
+			...candidates.flatMap((candidate) => candidate.queries),
+		],
+		output: {
+			profileId: profile.id,
+			target,
+			profileFingerprint: transcodeProfileFingerprint(profile),
+		},
 	};
 }

@@ -29,7 +29,8 @@ export function registerCompatibilityRoutes(
 		},
 		async (request, reply) => {
 			reply.header("Cache-Control", "no-store");
-			const { sourceVersion, profileId, target } = request.query;
+			const { sourceVersion, profileId, target, audioStreamIndices } =
+				request.query;
 			if (target && !profileId)
 				throw new DomainError(
 					"INVALID_REQUEST",
@@ -37,6 +38,14 @@ export function registerCompatibilityRoutes(
 				);
 			return compatibility.inspect({
 				fileId: request.params.id,
+				...(audioStreamIndices !== undefined
+					? {
+							audioStreamIndices:
+								audioStreamIndices === ""
+									? []
+									: audioStreamIndices.split(",").map(Number),
+						}
+					: {}),
 				...(sourceVersion ? { sourceVersion } : {}),
 				output: profileId ? { profileId, target: target ?? "file" } : null,
 			});

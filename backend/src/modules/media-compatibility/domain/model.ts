@@ -11,6 +11,7 @@ export type CompatibilityOutput = NonNullable<
 export interface CompatibilityInspectInput {
 	fileId: string;
 	sourceVersion?: string;
+	audioStreamIndices?: number[];
 	output?: Pick<CompatibilityOutput, "profileId" | "target"> | null;
 }
 /** Internal snapshot. The presenter removes source paths and executable profile definitions. */

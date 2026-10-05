@@ -9,7 +9,7 @@ export interface DerivedMediaIdentity {
 	profileFingerprint: string;
 	executionPlanId: string;
 	videoStreamIndex: number;
-	audioStreamIndex: number | null;
+	audioStreamIndices: readonly number[];
 }
 /** Trusted snapshot produced by planning; excludes callbacks, cancellation and browser reports. */
 export interface MediaPreparationSnapshot {
@@ -21,6 +21,6 @@ export interface MediaPreparationSnapshot {
 		sourceVersion: string;
 		plan: DeepReadonly<MediaProcessingPlan>;
 		videoStreamIndex: number;
-		audioStreamIndex: number | null;
+		audioStreamIndices: readonly number[];
 	};
 }

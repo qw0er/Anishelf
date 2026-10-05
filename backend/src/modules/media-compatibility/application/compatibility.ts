@@ -18,6 +18,7 @@ import {
 import type { ResourceAccessApi } from "../../resource-access/public.js";
 import { checkDirectCompatibility } from "../domain/direct.js";
 import {
+	aggregateCompatibility,
 	compatibilityDecision,
 	compatibilityStatus,
 	validateCompatibilityEvidence,
@@ -80,6 +81,7 @@ export class MediaCompatibilityApplication {
 			input.fileId,
 			source.identity.sourceVersion,
 			info,
+			input.audioStreamIndices,
 		);
 		const candidates =
 			profile && input.output
@@ -96,6 +98,7 @@ export class MediaCompatibilityApplication {
 				sourceVersion: source.identity.sourceVersion,
 				output: candidates.output,
 				queries: candidates.queries,
+				audioStreamIndices: input.audioStreamIndices,
 			}),
 		};
 		return { source, original, profile, description };
@@ -128,6 +131,21 @@ export class MediaCompatibilityApplication {
 			compatibilityDecision(description.queries, input.evidence, id);
 		const status = (id: string) =>
 			compatibilityStatus(description.queries, input.evidence, id);
+		const tracks = original.audioTracks;
+		const trackDecision = (track: (typeof tracks)[number]) =>
+			decision(
+				track.index === original.audio?.index
+					? "original-audio"
+					: `original-audio-${track.index}`,
+			);
+		const aggregateStatus = (prefix: string) =>
+			aggregateCompatibility(
+				description.queries
+					.filter(
+						(query) => query.id === prefix || query.id.startsWith(`${prefix}-`),
+					)
+					.map((query) => decision(query.id)),
+			).status;
 		const warnings: string[] = ["browser-report-is-not-playback-certification"];
 		if (original.multipleTracks)
 			warnings.push("native-track-selection-uncertain");
@@ -141,24 +159,33 @@ export class MediaCompatibilityApplication {
 			canonicalRoot: source.identity.canonicalRoot,
 			profile,
 			selectedVideo: original.video,
-			selectedAudio: original.audio,
-			direct: checkDirectCompatibility(original, input.evidence),
+			selectedAudio: original.selectedAudioTracks?.[0] ?? null,
+			selectedAudioTracks: original.selectedAudioTracks,
+			audioTracks: tracks.map((stream) => ({
+				stream,
+				compatibility: trackDecision(stream),
+			})),
+			direct:
+				input.audioStreamIndices !== undefined
+					? {
+							status: "unsupported",
+							reason: "audio-selection-requires-processing",
+						}
+					: checkDirectCompatibility(original, input.evidence),
 			container: decision("original-container"),
 			video: decision("original-video"),
-			audio: original.audio
-				? decision("original-audio")
-				: { status: "supported", reason: "no-audio-stream" },
+			audio: aggregateCompatibility(tracks.map(trackDecision)),
 			warnings,
 			output: description.output
 				? {
 						...description.output,
 						copyVideo: status("copy-video"),
-						copyAudio: original.audio ? status("copy-audio") : "supported",
+						copyAudio: aggregateStatus("copy-audio"),
 						combinations: {
-							"copy-copy": status("output-copy-copy"),
-							"copy-encode": status("output-copy-encode"),
-							"encode-copy": status("output-encode-copy"),
-							"encode-encode": status("output-encode-encode"),
+							"copy-copy": aggregateStatus("output-copy-copy"),
+							"copy-encode": aggregateStatus("output-copy-encode"),
+							"encode-copy": aggregateStatus("output-encode-copy"),
+							"encode-encode": aggregateStatus("output-encode-encode"),
 						},
 					}
 				: null,

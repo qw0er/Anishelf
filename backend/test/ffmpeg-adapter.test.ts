@@ -28,7 +28,7 @@ function options(plan: MediaProcessingPlan): MediaProcessingOptions {
 	return {
 		plan,
 		videoStreamIndex: 2,
-		audioStreamIndex: 4,
+		audioStreamIndices: [4],
 		maximumBytes: 10 * 1024 * 1024,
 		timeoutMs: 30000,
 	};
@@ -56,7 +56,7 @@ test("maps explicit streams, preserves copy paths, sets faststart and uses liter
 	expect(
 		compileFfmpegArguments("/tmp/in", "/tmp/out", {
 			...options(copy),
-			audioStreamIndex: null,
+			audioStreamIndices: [],
 		}),
 	).toContain("-an");
 	expect(() =>
@@ -119,7 +119,7 @@ test("encoder-specific settings compile without accepting raw graphs or mismatch
 	).toThrow("parameters");
 });
 
-test("real FFmpeg completes all four processing branches, preserves copied packets and rejects limits/cancellation", async (context) => {
+test("real two-audio FFmpeg completes all four processing branches, preserves tracks/copied packets and rejects limits/cancellation", async (context) => {
 	const tools = await MediaTools.create();
 	if (!tools.status.ffmpeg.available || !tools.status.ffprobe.available) {
 		context.skip();
@@ -147,6 +147,28 @@ test("real FFmpeg completes all four processing branches, preserves copied packe
 				"lavfi",
 				"-i",
 				"sine=frequency=440:sample_rate=48000",
+				"-f",
+				"lavfi",
+				"-i",
+				"sine=frequency=880:sample_rate=44100",
+				"-map",
+				"0:v",
+				"-map",
+				"1:a",
+				"-map",
+				"2:a",
+				"-metadata:s:a:0",
+				"language=eng",
+				"-metadata:s:a:0",
+				"title=English",
+				"-metadata:s:a:1",
+				"language=jpn",
+				"-metadata:s:a:1",
+				"title=Japanese",
+				"-disposition:a:0",
+				"default",
+				"-disposition:a:1",
+				"0",
 				"-t",
 				"1.5",
 				"-c:v",
@@ -196,7 +218,7 @@ test("real FFmpeg completes all four processing branches, preserves copied packe
 			sourceVersion: source.identity.sourceVersion,
 			output: { profileId: profile.id, target: "file" },
 		});
-		async function packets(path: string, selector: "v" | "a") {
+		async function packets(path: string, selector: string) {
 			const result = await run(ffprobe, [
 				"-v",
 				"error",
@@ -217,7 +239,9 @@ test("real FFmpeg completes all four processing branches, preserves copied packe
 		}
 		const inputPackets = {
 			v: await packets(sourcePath, "v"),
-			a: await packets(sourcePath, "a"),
+			a: await Promise.all(
+				["a:0", "a:1"].map((selector) => packets(sourcePath, selector)),
+			),
 		};
 		for (const mode of [
 			"remux",
@@ -239,7 +263,7 @@ test("real FFmpeg completes all four processing branches, preserves copied packe
 								(mode === "transcode-video" || mode === "transcode")
 							) &&
 							!(
-								query.id === "copy-audio" &&
+								query.id.startsWith("copy-audio") &&
 								(mode === "transcode-audio" || mode === "transcode")
 							);
 						return {
@@ -258,12 +282,28 @@ test("real FFmpeg completes all four processing branches, preserves copied packe
 			expect(output.info.streams.map((stream) => stream.codec)).toEqual([
 				"h264",
 				"aac",
+				"aac",
 			]);
 			expect(output.info.duration).toBeCloseTo(1.5, 0);
+			const outputAudios = output.info.streams.filter(
+				(stream) => stream.type === "audio",
+			);
+			expect(outputAudios.map((stream) => stream.tags.language)).toEqual([
+				"eng",
+				"jpn",
+			]);
+			expect(outputAudios.map((stream) => stream.default)).toEqual([
+				true,
+				false,
+			]);
 			if (result.request.plan.video.action === "copy")
 				expect(await packets(output.path, "v")).toEqual(inputPackets.v);
 			if (result.request.plan.audio.action === "copy")
-				expect(await packets(output.path, "a")).toEqual(inputPackets.a);
+				expect(
+					await Promise.all(
+						["a:0", "a:1"].map((selector) => packets(output.path, selector)),
+					),
+				).toEqual(inputPackets.a);
 			if (mode === "transcode") {
 				const info = (
 					await inspection.inspect(file.id, source.identity.sourceVersion)
@@ -275,7 +315,7 @@ test("real FFmpeg completes all four processing branches, preserves copied packe
 						{
 							...options(result.request.plan as MediaProcessingPlan),
 							videoStreamIndex: result.request.videoStreamIndex,
-							audioStreamIndex: result.request.audioStreamIndex,
+							audioStreamIndices: result.request.audioStreamIndices,
 							maximumBytes: 100,
 						},
 						info,
@@ -290,7 +330,7 @@ test("real FFmpeg completes all four processing branches, preserves copied packe
 						{
 							...options(result.request.plan as MediaProcessingPlan),
 							videoStreamIndex: result.request.videoStreamIndex,
-							audioStreamIndex: result.request.audioStreamIndex,
+							audioStreamIndices: result.request.audioStreamIndices,
 							signal: abort.signal,
 							onEvent(event) {
 								if (event.type === "started") {

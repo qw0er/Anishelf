@@ -215,8 +215,12 @@ persisted as universal support and never authority to submit processing paramete
 
 Identify containers from content signatures and codec descriptors from inspected
 metadata/initialization data. Extensions and MIME hints do not prove support;
-missing metadata remains unknown. Prefer default usable streams, exclude cover
-art and permit video-only sources. Do not invent bitrate for CRF output or infer
+missing metadata remains unknown. Prefer the default usable video stream, exclude
+cover art and permit video-only sources. Inspect every audio stream, including its
+language, title and default disposition. Original compatibility includes a browser
+query for every audio stream and every video/audio pair; per-track decisions are
+returned in `audioTracks`. A rejected track rejects the aggregate, and incomplete
+or missing evidence for any remaining track keeps it unknown. Do not invent bitrate for CRF output or infer
 SDR merely from absent HDR metadata.
 
 File and Media Source evidence are distinct. Compatibility decisions are
@@ -264,6 +268,24 @@ compatibility. Copy compatible streams when packaging and transformation constra
 allow it; encode only required streams, with a reason per decision. Missing output
 context or unknown required compatibility blocks processing. Subtitle preparation
 is independent of audio/video encoding.
+
+Preparation includes all audio tracks by default. Clients can select a subset in
+source order or a custom order through `audioStreamIndices`: use comma-separated
+absolute FFprobe stream indexes on `GET /api/files/:id/compatibility`, and an array
+on compatibility checks and preparation creation/retry requests. Omission selects
+all tracks; an empty string/array requests video-only output. A selection requires
+new source/profile-bound browser evidence and processing rather than native direct
+playback. Unknown, non-audio and duplicate indexes are rejected. Inspection still
+checks every original audio track; output negotiation covers only selected tracks.
+The ordered selection participates in both description and derived-output identity.
+
+Selected audio tracks share the profile audio policy: copy all when every selected
+track is compatible and needs no channel conversion; otherwise encode all selected
+tracks when compatibility is known and the encoded combinations are supported.
+Output validation checks each track's codec, channels and duration. The adapter
+maps every selected track explicitly and preserves its stream metadata and default
+disposition. This delivers a completed multi-track file; HLS/DASH manifests and
+playback-time switching are not implemented by this backend.
 
 Processing owns source checks, selected-stream validation, server capability
 preflight, execution and output validation. The FFmpeg adapter compiles trusted

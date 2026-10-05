@@ -237,6 +237,13 @@ export function presentCompatibility(
 		audio: { ...checked.audio },
 		selectedVideo: checked.selectedVideo ? { ...checked.selectedVideo } : null,
 		selectedAudio: checked.selectedAudio ? { ...checked.selectedAudio } : null,
+		selectedAudioTracks: checked.selectedAudioTracks.map((track) => ({
+			...track,
+		})),
+		audioTracks: checked.audioTracks.map((track) => ({
+			stream: { ...track.stream },
+			compatibility: { ...track.compatibility },
+		})),
 		output: checked.output
 			? { ...checked.output, combinations: { ...checked.output.combinations } }
 			: null,

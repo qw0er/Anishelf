@@ -145,7 +145,7 @@ async function fixture(
 						sourceVersion: request.sourceVersion,
 						planId: request.plan.id,
 						videoStreamIndex: request.videoStreamIndex,
-						audioStreamIndex: request.audioStreamIndex,
+						audioStreamIndices: request.audioStreamIndices,
 						sizeBytes: 10,
 						info,
 					};

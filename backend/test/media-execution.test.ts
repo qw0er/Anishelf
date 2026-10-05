@@ -41,7 +41,7 @@ function inventory() {
 	return server;
 }
 test("copy checks packaging and protocols without encoding dependencies", () => {
-	const check = checkExecutionCapabilities(inventory(), plan, info, 0, 1);
+	const check = checkExecutionCapabilities(inventory(), plan, info, 0, [1]);
 	expect(check.status).toBe("supported");
 	expect(
 		check.requirements.some(
@@ -56,19 +56,19 @@ test("uses caller-selected encoder names and preserves missing versus unknown", 
 		...plan,
 		audio: { action: "encode", encoder: "libopus", codec: "opus" },
 	};
-	const check = checkExecutionCapabilities(server, explicit, info, 0, 1);
+	const check = checkExecutionCapabilities(server, explicit, info, 0, [1]);
 	expect(check.status).toBe("missing");
 	expect(
 		check.requirements.filter((r) => r.kind === "encoders").map((r) => r.name),
 	).toEqual(["libopus"]);
 	server.inventory.encoders.status = server.inventory.decoders.status =
 		"failed";
-	expect(checkExecutionCapabilities(server, explicit, info, 0, 1).status).toBe(
-		"unknown",
-	);
 	expect(
-		checkExecutionCapabilities(server, explicit, info, 0, null).status,
-	).toBe("supported");
+		checkExecutionCapabilities(server, explicit, info, 0, [1]).status,
+	).toBe("unknown");
+	expect(checkExecutionCapabilities(server, explicit, info, 0, []).status).toBe(
+		"supported",
+	);
 });
 test("checks caller-declared pixel format and filters without assuming padding or scaling", () => {
 	const server = inventory();
@@ -103,9 +103,9 @@ test("checks caller-declared pixel format and filters without assuming padding o
 		mediaType: null,
 		flags: "IO",
 	});
-	expect(checkExecutionCapabilities(server, explicit, info, 0, 1).status).toBe(
-		"missing",
-	);
+	expect(
+		checkExecutionCapabilities(server, explicit, info, 0, [1]).status,
+	).toBe("missing");
 	server.inventory.filters.entries.push({
 		name: "zscale",
 		description: "",
@@ -113,16 +113,16 @@ test("checks caller-declared pixel format and filters without assuming padding o
 		mediaType: null,
 		flags: "",
 	});
-	expect(checkExecutionCapabilities(server, explicit, info, 0, 1).status).toBe(
-		"supported",
-	);
+	expect(
+		checkExecutionCapabilities(server, explicit, info, 0, [1]).status,
+	).toBe("supported");
 });
 test("protocol directions and unknown input aliases are checked independently", () => {
 	const server = inventory();
 	server.inventory.protocols.entries = server.inventory.protocols.entries.map(
 		(entry) => ({ ...entry, flags: "I" }),
 	);
-	expect(checkExecutionCapabilities(server, plan, info, 0, 1).status).toBe(
+	expect(checkExecutionCapabilities(server, plan, info, 0, [1]).status).toBe(
 		"missing",
 	);
 	expect(
@@ -131,7 +131,7 @@ test("protocol directions and unknown input aliases are checked independently", 
 			plan,
 			{ ...info, formatAliases: [] },
 			0,
-			1,
+			[1],
 		).status,
 	).toBe("unknown");
 });

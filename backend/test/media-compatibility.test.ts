@@ -449,3 +449,42 @@ test("unified HTTP contracts reject obsolete payloads and isolate output context
 			.statusCode,
 	).toBe(400);
 });
+
+test("HTTP audio selection parses comma-separated indexes and binds POST evidence", async () => {
+	const { app, fileId } = await fixture();
+	const url = `/api/files/${fileId}/compatibility`;
+	for (const selection of ["1", ""]) {
+		const response = await app.inject({
+			url: `${url}?audioStreamIndices=${selection}`,
+			headers: { host: "127.0.0.1:3000" },
+		});
+		expect(response.statusCode).toBe(200);
+		const description = response.json<CompatibilityInspection>();
+		expect(
+			description.selectedAudioTracks?.map((track) => track.index),
+		).toEqual(selection ? [1] : []);
+		const checked = await app.inject({
+			method: "POST",
+			url,
+			headers: { host: "127.0.0.1:3000" },
+			payload: {
+				sourceVersion: description.sourceVersion,
+				descriptionId: description.descriptionId,
+				output: null,
+				audioStreamIndices: selection ? [1] : [],
+				evidence: reports(description),
+			},
+		});
+		expect(checked.statusCode).toBe(200);
+		expect(checked.json().direct.reason).toBe(
+			"audio-selection-requires-processing",
+		);
+	}
+	for (const selection of ["0", "1,1", "-1", "garbage", "99"]) {
+		const response = await app.inject({
+			url: `${url}?audioStreamIndices=${selection}`,
+			headers: { host: "127.0.0.1:3000" },
+		});
+		expect(response.statusCode).toBe(400);
+	}
+});

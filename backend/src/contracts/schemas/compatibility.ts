@@ -13,6 +13,10 @@ export const CompatibilityStatusSchema = Type.Union([
 	Type.Literal("unsupported"),
 	Type.Literal("unknown"),
 ]);
+export const AudioStreamSelectionSchema = Type.Array(
+	Type.Integer({ minimum: 0 }),
+	{ maxItems: 128, uniqueItems: true },
+);
 const stream = Type.Object(
 	{
 		index: Type.Integer({ minimum: 0 }),
@@ -29,6 +33,9 @@ const stream = Type.Object(
 		bitrate: nullableNumber,
 		sampleRate: nullableNumber,
 		channels: nullableNumber,
+		language: Type.Optional(nullableString),
+		label: Type.Optional(nullableString),
+		default: Type.Optional(Type.Boolean()),
 	},
 	{ additionalProperties: false },
 );
@@ -88,11 +95,14 @@ const identity = {
 	rulesVersion: Type.Literal("3"),
 };
 export const CompatibilityEvidenceListSchema = Type.Array(evidence, {
-	maxItems: 16,
+	maxItems: 1024,
 });
 export const CompatibilityInspectionQuerySchema = Type.Object(
 	{
 		sourceVersion: Type.Optional(SourceVersionSchema),
+		audioStreamIndices: Type.Optional(
+			Type.String({ pattern: "^(?:[0-9]+(?:,[0-9]+)*)?$", maxLength: 2048 }),
+		),
 		profileId: Type.Optional(TranscodeProfileIdSchema),
 		target: Type.Optional(
 			Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
@@ -108,7 +118,9 @@ export const CompatibilityInspectionSchema = Type.Object(
 		video: Type.Union([stream, Type.Null()]),
 		audio: Type.Union([stream, Type.Null()]),
 		multipleTracks: Type.Boolean(),
-		queries: Type.Array(query, { maxItems: 16 }),
+		audioTracks: Type.Array(stream),
+		selectedAudioTracks: Type.Array(stream),
+		queries: Type.Array(query, { maxItems: 1024 }),
 		output: Type.Union([outputDescription, Type.Null()]),
 	},
 	{ additionalProperties: false },
@@ -117,6 +129,7 @@ export const CompatibilityCheckRequestSchema = Type.Object(
 	{
 		sourceVersion: SourceVersionSchema,
 		descriptionId: Type.String({ pattern: "^[a-f0-9]{64}$" }),
+		audioStreamIndices: Type.Optional(AudioStreamSelectionSchema),
 		output: Type.Union([CompatibilityOutputRequestSchema, Type.Null()]),
 		evidence: CompatibilityEvidenceListSchema,
 	},
@@ -150,6 +163,8 @@ export const CompatibilityResultSchema = Type.Object(
 		container: decision,
 		selectedVideo: Type.Union([stream, Type.Null()]),
 		selectedAudio: Type.Union([stream, Type.Null()]),
+		selectedAudioTracks: Type.Array(stream),
+		audioTracks: Type.Array(Type.Object({ stream, compatibility: decision })),
 		output: Type.Union([outputResult, Type.Null()]),
 		warnings: Type.Array(Type.String({ maxLength: 128 }), { maxItems: 16 }),
 	},

@@ -25,7 +25,7 @@ export function checkExecutionCapabilities(
 	plan: DeepReadonly<MediaProcessingPlan>,
 	info: MediaInfo,
 	videoStreamIndex: number,
-	audioStreamIndex: number | null,
+	audioStreamIndices: number[],
 ): ExecutionCapabilityCheck {
 	const requirements: ExecutionCapabilityRequirement[] = [];
 	function require(
@@ -83,7 +83,7 @@ export function checkExecutionCapabilities(
 		entry.name === "pipe" && entry.flags.includes("O"));
 	for (const [kind, index, execution] of [
 		["video", videoStreamIndex, plan.video],
-		["audio", audioStreamIndex, plan.audio],
+		...audioStreamIndices.map((index) => ["audio", index, plan.audio] as const),
 	] as const) {
 		if (index === null || execution.action !== "encode") continue;
 		const stream = info.streams.find(

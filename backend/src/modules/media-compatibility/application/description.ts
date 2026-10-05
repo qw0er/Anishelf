@@ -3,6 +3,7 @@ import type {
 	CompatibilityStream,
 } from "../../../contracts/http.js";
 import type { MediaInfo, MediaStream } from "../../../platform/media/index.js";
+import { DomainError } from "../../../shared/errors.js";
 import type { OriginalMediaDescription } from "../domain/model.js";
 
 const mime: Record<string, string> = {
@@ -28,12 +29,16 @@ function describe(stream: MediaStream | undefined): CompatibilityStream | null {
 		bitrate: stream.bitRate,
 		sampleRate: stream.sampleRate,
 		channels: stream.channels,
+		language: stream.tags.language?.slice(0, 256) ?? null,
+		label: stream.tags.title?.slice(0, 256) ?? null,
+		default: stream.default,
 	};
 }
 export function describeOriginalMedia(
 	fileId: string,
 	sourceVersion: string,
 	info: MediaInfo,
+	selection?: number[],
 ): OriginalMediaDescription {
 	const videos = info.streams.filter(
 		(s) => s.type === "video" && !s.attachedPicture,
@@ -41,6 +46,29 @@ export function describeOriginalMedia(
 	const audios = info.streams.filter((s) => s.type === "audio");
 	const video = describe(videos.find((s) => s.default) ?? videos[0]);
 	const audio = describe(audios.find((s) => s.default) ?? audios[0]);
+	const audioTracks = audios.map(
+		(stream) => describe(stream) as CompatibilityStream,
+	);
+	if (
+		audioTracks.length > 128 ||
+		(selection &&
+			(new Set(selection).size !== selection.length ||
+				selection.some(
+					(index) => !audioTracks.some((track) => track.index === index),
+				)))
+	)
+		throw new DomainError(
+			"INVALID_REQUEST",
+			"Invalid audio stream selection or too many audio tracks.",
+		);
+	const selectedAudioTracks = selection
+		? selection.map(
+				(index) =>
+					audioTracks.find(
+						(track) => track.index === index,
+					) as CompatibilityStream,
+			)
+		: audioTracks;
 	const queries: CompatibilityQuery[] = [];
 	const add = (
 		id: string,
@@ -72,6 +100,17 @@ export function describeOriginalMedia(
 			null,
 			audio,
 		);
+	for (const track of audioTracks) {
+		if (track.index === audio?.index) continue;
+		add(
+			`original-audio-${track.index}`,
+			"file",
+			base?.replace("video/", "audio/") ?? null,
+			null,
+			track,
+		);
+		add(`original-${track.index}`, "file", base, video, track);
+	}
 	return {
 		fileId,
 		sourceVersion,
@@ -80,6 +119,8 @@ export function describeOriginalMedia(
 		video,
 		audio,
 		multipleTracks: videos.length > 1 || audios.length > 1,
+		audioTracks,
+		selectedAudioTracks,
 		queries,
 	};
 }
