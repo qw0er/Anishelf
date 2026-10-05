@@ -2,12 +2,14 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
+import { Check } from "typebox/value";
 import { afterEach, expect, test, vi } from "vitest";
 import { createLibraryModule } from "../src/bootstrap/library.js";
 import type {
 	CompatibilityCheckRequest,
 	CompatibilityEvidence,
 } from "../src/contracts/http.js";
+import { PlaybackPlanSchema } from "../src/contracts/schemas/playback.js";
 import {
 	builtinTranscodeProfiles,
 	type TranscodeProfile,
@@ -16,6 +18,7 @@ import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
 import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/public.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
 import { resolveExecutionPlan } from "../src/modules/media-processing/public.js";
+import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { settingsStore } from "./settings-store.js";
 
@@ -142,6 +145,7 @@ async function fixture(audio = true) {
 		file,
 		source,
 		info,
+		library,
 	};
 }
 test.each([
@@ -360,4 +364,116 @@ test("resolver consumes an immutable checked snapshot without consulting current
 	expect(Object.isFrozen(checked.profile?.video)).toBe(true);
 	expect(checked).not.toHaveProperty("evidence");
 	expect(checked).not.toHaveProperty("queries");
+});
+
+test("playback planning validates evidence without opening history or claiming resource readiness", async () => {
+	const f = await fixture();
+	const playback = new PlaybackApplication({
+		sources: f.library.sources,
+		compatibility: f.app,
+		logger: pino({ enabled: false }),
+	});
+	const input = {
+		fileId: f.file.id,
+		sourceVersion: f.source.identity.sourceVersion,
+		descriptionId: f.description.descriptionId,
+		output: { profileId: f.profile.id, target: "file" as const },
+		evidence: f.evidence(),
+	};
+	const result = await playback.plan(input);
+	expect(result.kind).toBe("processing-required");
+	if (result.kind !== "processing-required") throw new Error("Missing work");
+	expect(result.target).toBe("file");
+	expect(result.mode).toBe("remux");
+	expect(result.identity).toMatchObject({
+		fileId: f.file.id,
+		sourceVersion: input.sourceVersion,
+		executionPlanId: result.execution.plan.id,
+		videoStreamIndex: 2,
+		audioStreamIndex: 4,
+	});
+	expect(JSON.stringify(result.identity)).not.toContain(
+		f.source.identity.canonicalRoot,
+	);
+	expect(Object.isFrozen(result.execution.plan)).toBe(true);
+	expect(result).not.toHaveProperty("playbackUrl");
+	expect(result).not.toHaveProperty("taskId");
+	await expect(playback.open(f.file.id)).rejects.toMatchObject({
+		code: "PLAYBACK_UNAVAILABLE",
+	});
+	await expect(
+		playback.plan({ ...input, descriptionId: "stale" }),
+	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+	const direct = await playback.plan({
+		...input,
+		evidence: f.evidence(
+			Object.fromEntries(f.description.queries.map((q) => [q.id, "supported"])),
+		),
+	});
+	expect(direct).toEqual({
+		kind: "playable",
+		plan: { mode: "direct", playbackUrl: `/api/media/${f.file.id}` },
+	});
+	const blocked = await playback.plan({
+		...input,
+		evidence: f.evidence({ "copy-video": "unknown" }),
+	});
+	expect(blocked).toEqual({
+		kind: "blocked",
+		plan: { mode: "blocked", reason: "source-stream-compatibility-unknown" },
+	});
+	playback.close();
+	await expect(playback.plan(input)).rejects.toMatchObject({
+		code: "PLAYBACK_UNAVAILABLE",
+	});
+});
+
+test("playback planning rejects a root change while compatibility is awaited", async () => {
+	const f = await fixture();
+	const otherRoot = await mkdtemp(join(tmpdir(), "anishelf-planning-other-"));
+	cleanup.push(() => rm(otherRoot, { recursive: true, force: true }));
+	const original = f.app.check.bind(f.app);
+	vi.spyOn(f.app, "check").mockImplementationOnce(async (input) => {
+		const checked = await original(input);
+		await f.library.updateSettings({ resourceRoot: otherRoot });
+		return checked;
+	});
+	const playback = new PlaybackApplication({
+		sources: f.library.sources,
+		compatibility: f.app,
+		logger: pino({ enabled: false }),
+	});
+	await expect(
+		playback.plan({
+			fileId: f.file.id,
+			sourceVersion: f.source.identity.sourceVersion,
+			descriptionId: f.description.descriptionId,
+			output: { profileId: f.profile.id, target: "file" },
+			evidence: f.evidence(),
+		}),
+	).rejects.toMatchObject({ code: "PLAYBACK_CONFLICT" });
+	playback.close();
+});
+
+test("playback resource contracts reject premature URLs and private execution fields", () => {
+	expect(Check(PlaybackPlanSchema, { mode: "preparing", taskId: "task" })).toBe(
+		true,
+	);
+	expect(
+		Check(PlaybackPlanSchema, {
+			mode: "preparing",
+			taskId: "task",
+			playbackUrl: "/partial.mp4",
+		}),
+	).toBe(false);
+	expect(
+		Check(PlaybackPlanSchema, { mode: "prepared", artifactId: "artifact" }),
+	).toBe(false);
+	expect(
+		Check(PlaybackPlanSchema, {
+			mode: "direct",
+			playbackUrl: "/api/media/file",
+			path: "/private/source",
+		}),
+	).toBe(false);
 });

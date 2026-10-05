@@ -29,6 +29,7 @@ export type OpenPlaybackRequest = Static<
 export type PlaybackSessionResponse = Static<
 	typeof schemas.PlaybackSessionResponseSchema
 >;
+export type PlaybackPlanDto = Static<typeof schemas.PlaybackPlanSchema>;
 export type SavePlaybackProgressRequest = Static<
 	typeof schemas.SavePlaybackProgressRequestSchema
 >;

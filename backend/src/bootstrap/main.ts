@@ -114,12 +114,6 @@ async function createServer(
 	tools: MediaTools,
 ): Promise<HttpApp> {
 	const config = configuration.deployment;
-	const playback = new PlaybackApplication({
-		policy: configuration.policy.playback,
-		sources: library.sources,
-		logger,
-		...(database ? { repository: database.playback } : {}),
-	});
 	const development = configuration.environment.development;
 	const frontendRoot = fileURLToPath(
 		new URL("../../../web/dist/", import.meta.url),
@@ -129,6 +123,19 @@ async function createServer(
 		tools,
 		policy: configuration.policy.mediaInspection,
 		logger,
+	});
+	const compatibility = new MediaCompatibilityApplication({
+		inspection,
+		sources: library.sources,
+		logger,
+		profiles: configuration.transcodeProfiles,
+	});
+	const playback = new PlaybackApplication({
+		policy: configuration.policy.playback,
+		sources: library.sources,
+		compatibility,
+		logger,
+		...(database ? { repository: database.playback } : {}),
 	});
 	const subtitles = new SubtitleApplication({
 		logger,
@@ -155,12 +162,7 @@ async function createServer(
 		library,
 		playback,
 		subtitles,
-		compatibility: new MediaCompatibilityApplication({
-			inspection,
-			sources: library.sources,
-			logger,
-			profiles: configuration.transcodeProfiles,
-		}),
+		compatibility,
 		development,
 		...(development && existsSync(join(frontendRoot, "index.html"))
 			? { frontendRoot }

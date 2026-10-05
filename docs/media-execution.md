@@ -157,6 +157,9 @@ Build support cannot establish codec/container combinations, hardware availabili
 or real output validity. Adapters must check child exit; the application checks file size, stream
 counts, codecs, container, pixel format, configured height/channel constraints,
 exact planned H.264 descriptor and available video/audio durations. Results are source-version-bound temporary artifacts.
+The [playback planning foundation](playback-planning.md) now consumes the public
+compatibility API and this resolver through `PlaybackApplication.plan()`. It
+returns a read-only proposal without creating history or acquiring output.
 Persistent jobs, restart recovery, scheduling, HTTP progress, pre-transcode
 playback and real-time HLS remain future integrations.
 

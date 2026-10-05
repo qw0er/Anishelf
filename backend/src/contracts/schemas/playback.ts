@@ -35,16 +35,46 @@ export const OpenPlaybackRequestSchema = Type.Object(
 	{ fileId: ResourceIdSchema },
 	{ additionalProperties: false },
 );
+export const DirectPlaybackPlanSchema = Type.Object(
+	{ mode: Type.Literal("direct"), playbackUrl: Type.String() },
+	{ additionalProperties: false },
+);
+/** Resource references only. Pending plans have no playable URL. */
+export const PlaybackPlanSchema = Type.Union([
+	DirectPlaybackPlanSchema,
+	Type.Object(
+		{
+			mode: Type.Literal("prepared"),
+			artifactId: ResourceIdSchema,
+			playbackUrl: Type.String(),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{ mode: Type.Literal("preparing"), taskId: ResourceIdSchema },
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			mode: Type.Literal("realtime"),
+			sessionId: PlaybackTokenSchema,
+			playbackUrl: Type.String(),
+			generation: PositiveIntegerSchema,
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{ mode: Type.Literal("blocked"), reason: Type.String({ minLength: 1 }) },
+		{ additionalProperties: false },
+	),
+]);
 export const PlaybackSessionResponseSchema = Type.Object(
 	{
 		token: PlaybackTokenSchema,
 		generation: PositiveIntegerSchema,
 		sourceVersion: SourceVersionSchema,
 		file: FileDtoSchema,
-		plan: Type.Object(
-			{ mode: Type.Literal("direct"), playbackUrl: Type.String() },
-			{ additionalProperties: false },
-		),
+		plan: DirectPlaybackPlanSchema,
 		progress: PlaybackProgressDtoSchema,
 	},
 	{ additionalProperties: false },
