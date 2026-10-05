@@ -17,6 +17,9 @@ export type {
 	OpenPlaybackRequest,
 	PlaybackProgressDto,
 	PlaybackSessionResponse,
+	PreparationListResponse,
+	PreparationStartResponse,
+	PreparationTaskResponse,
 	ResourceDto,
 	ResourceId,
 	SavePlaybackProgressRequest,
@@ -27,5 +30,6 @@ export type {
 	SettingsResponse,
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
+	TranscodeProfileCatalog,
 	UpdateSettingsRequest,
 } from "@anishelf/backend/contracts/http";

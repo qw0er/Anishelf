@@ -1,8 +1,11 @@
 import { ArrowLeft, Info, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
-import type { FileResponse } from "../../../api/contracts.js";
+import { Link, useSearchParams } from "react-router";
+import type {
+	FileResponse,
+	PreparationTaskResponse,
+} from "../../../api/contracts.js";
 import { Button, buttonStyles } from "../../../components/ui/button.js";
 import {
 	Dialog,
@@ -16,6 +19,7 @@ import {
 	subtitlePolicy,
 } from "../../../config/media-policy.js";
 import { directoryPath } from "../../../routes/paths.js";
+import { FilePreparation } from "../../preparation/public.js";
 import { useMediaCompatibility } from "../hooks/use-media-compatibility.js";
 import { usePlaybackSession } from "../hooks/use-playback-session.js";
 import MediaLink from "./media-link.js";
@@ -32,14 +36,26 @@ export default function FilePlayer({
 	onRetry(): void;
 }) {
 	const { t } = useTranslation();
+	const [searchParams] = useSearchParams();
+	const [prepared, setPrepared] = useState<PreparationTaskResponse | null>(
+		null,
+	);
+
 	const playback = usePlaybackSession(data.file.id, playbackPolicy);
+	const preparedCurrent =
+		prepared &&
+		prepared.fileId === data.file.id &&
+		(!playback.session ||
+			prepared.sourceVersion === playback.session.sourceVersion)
+			? prepared
+			: null;
 	const compatibility = useMediaCompatibility(
 		data.file.id,
 		playback.session?.sourceVersion,
 	);
 	const [compatibilityOpen, setCompatibilityOpen] = useState(false);
 	useEffect(() => {
-		if (compatibility.loading) {
+		if (compatibility.loading || preparedCurrent) {
 			setCompatibilityOpen(false);
 		} else if (!compatibility.canAttempt || compatibility.runtimeFailed) {
 			setCompatibilityOpen(true);
@@ -48,6 +64,7 @@ export default function FilePlayer({
 		compatibility.loading,
 		compatibility.canAttempt,
 		compatibility.runtimeFailed,
+		preparedCurrent,
 	]);
 
 	return (
@@ -66,17 +83,31 @@ export default function FilePlayer({
 				</Button>
 			</div>
 			<h1 className="page-title">{data.file.name}</h1>
-			{compatibility.canAttempt && (
+			{(preparedCurrent || compatibility.canAttempt) && (
 				<VideoPlayer
-					key={`video:${data.file.id}`}
+					key={`video:${data.file.id}:${preparedCurrent?.artifactId ?? "original"}`}
 					{...data}
 					subtitlePolicy={subtitlePolicy}
-					playbackUrl={playback.session?.plan.playbackUrl ?? data.playbackUrl}
+					playbackUrl={
+						preparedCurrent?.playbackUrl ??
+						playback.session?.plan.playbackUrl ??
+						data.playbackUrl
+					}
 					onMedia={playback.attach}
 					onPlaybackFailure={compatibility.failed}
 					expectsVideo={Boolean(compatibility.result?.selectedVideo)}
 				/>
 			)}
+			<FilePreparation
+				fileId={data.file.id}
+				sourceVersion={playback.session?.sourceVersion}
+				requestedTaskId={searchParams.get("preparation")}
+				selectedTaskId={preparedCurrent?.id}
+				onSelect={(task) => {
+					setPrepared(task);
+					if (!task) compatibility.tryDirect();
+				}}
+			/>
 			<div className="action-row">
 				<Dialog open={compatibilityOpen} onOpenChange={setCompatibilityOpen}>
 					<DialogTrigger render={<Button type="button" variant="outline" />}>
@@ -150,6 +181,18 @@ export default function FilePlayer({
 										onClick={compatibility.retry}
 									>
 										{t("compatibility.recheck")}
+									</Button>
+									<Button
+										type="button"
+										variant="outline"
+										onClick={() => {
+											setCompatibilityOpen(false);
+											document
+												.getElementById("media-preparation")
+												?.scrollIntoView?.({ block: "start" });
+										}}
+									>
+										{t("preparation.open")}
 									</Button>
 									{!compatibility.canAttempt && (
 										<Button

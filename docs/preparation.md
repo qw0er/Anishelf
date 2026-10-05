@@ -4,8 +4,9 @@ The backend implements P06 and the completed-file portion of P07 through
 `PreparationApplication`. It consumes `PlaybackApplication.plan()` and the public
 processing/source APIs. The production bootstrap creates one execution module
 and injects its processor into preparation. No whole-library preparation runs
-automatically. The Web task screens, prepared-player selection and real-time HLS
-remain separate integration work.
+automatically. The Web file page and `/preparations` task screen integrate creation,
+progress, cancellation, explicit retry, completed-copy playback and deletion.
+Real-time HLS remains separate integration work.
 
 ## HTTP workflow
 
@@ -127,4 +128,40 @@ through the HTTP API. It downloads and probes complete outputs, decodes a frame
 after seeking, checks copied-stream packet hashes, exercises byte-range delivery,
 and reopens outputs after service restart without another execution. Browser
 reports in these tests are synthetic. Real browser playback, subtitle alignment,
-finished task screens and real-time playback require their subsequent acceptance.
+real-time playback require their subsequent acceptance.
+
+## Web integration
+
+The file page reads the safe profile catalog and starts preparation only on an
+explicit action. The saved profile is selected when available; an unavailable
+selection requires choosing a listed profile. The client inspects the selected
+file/profile, runs fresh browser capability queries and submits only the resulting
+source-bound check request. Direct and blocked responses remain distinct from
+queued or completed work. Preparation remains usable when progress storage is
+unavailable.
+
+`/preparations` lists persisted tasks and exposes progress, processing mode,
+profile, failure reason, prepared size and source availability. Pending work and
+unknown startup availability are polled without overlapping requests; terminal
+states stop polling. Refresh and mutation completion reload the list. Departure
+aborts client requests and timers without cancelling server jobs. Explicit cancel
+and retry call their respective endpoints; retry negotiates fresh browser evidence
+for the same source/profile. Deleting a copy never deletes the original or history.
+
+Watch actions verify the exact copy/encode combination used by the completed task
+against current browser evidence, then re-read the artifact to check availability.
+They do not enqueue another job. Task-list Watch links carry only the task ID into
+the original file page, which repeats this verification before selecting bytes.
+The native Vidstack player is remounted when switching between original and
+prepared URLs. Its existing progress controller remains bound to the original
+file and restores the captured source-time position; subtitle discovery and
+rendering also remain bound to the original. Original-file external links retain
+their existing behavior. Automatic cache selection and real-time fallback are
+not part of this integration.
+
+Frontend tests cover fresh negotiation, direct/blocked results, explicit
+cancel/retry/delete, browser rejection, stale artifact rejection, task-list Watch
+under StrictMode, polling and departure cleanup, unavailable profile selection,
+and progress restoration when replacing the media element. These tests exercise
+client workflows with mocked HTTP and browser evidence; they do not certify
+real-browser codec support or subtitle alignment in converted sample files.

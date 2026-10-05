@@ -10,8 +10,8 @@
 		"history": "History"
 	},
 	"navigation": {
-		"loadingFile": "Loading file…",
-		"loadingFiles": "Loading files…",
+		"loadingFile": "Loading file\u2026",
+		"loadingFiles": "Loading files\u2026",
 		"cancel": "Cancel navigation",
 		"backToFiles": "Back to files",
 		"goToRoot": "Go to root",
@@ -19,7 +19,7 @@
 		"pageNotFound": "Page not found."
 	},
 	"loading": {
-		"page": "Loading page…",
+		"page": "Loading page\u2026",
 		"pageLabel": "Loading page"
 	},
 	"notifications": {
@@ -83,7 +83,7 @@
 		"completed": "Library scan completed.",
 		"completedWithWarnings_one": "Library scan completed with {{count}} warning. See Library scan for details.",
 		"completedWithWarnings_other": "Library scan completed with {{count}} warnings. See Library scan for details.",
-		"visitedEntries": "Visited entries: {{count}} · Video files: {{matched}}",
+		"visitedEntries": "Visited entries: {{count}} \u00b7 Video files: {{matched}}",
 		"start": "Scan library",
 		"refresh": "Refresh",
 		"setupRequired": "Set a resource directory in <settings>Settings</settings> to start using the library.",
@@ -114,8 +114,8 @@
 		"retry": "Retry file",
 		"copyMediaLink": "Copy media link",
 		"mediaLinkLabel": "Media link",
-		"mediaLinkCopied": "Link copied. Paste it into your external player’s Open URL command.",
-		"mediaLinkManual": "Copy the link below and paste it into your external player’s Open URL command.",
+		"mediaLinkCopied": "Link copied. Paste it into your external player\u2019s Open URL command.",
+		"mediaLinkManual": "Copy the link below and paste it into your external player\u2019s Open URL command.",
 		"mediaLinkError": "Could not generate a media link. Please retry."
 	},
 	"actions": {
@@ -151,7 +151,7 @@
 	"compatibility": {
 		"label": "Playback compatibility",
 		"showInfo": "Playback compatibility info",
-		"checking": "Checking playback compatibility…",
+		"checking": "Checking playback compatibility\u2026",
 		"failed": "Compatibility could not be checked. You can retry or try the original file.",
 		"supported": "This browser reports support for this file.",
 		"unsupported": "This file is not supported by this browser.",
@@ -194,5 +194,57 @@
 			"unsupported": "Reported unsupported",
 			"unknown": "Unknown"
 		}
+	},
+	"preparation": {
+		"title": "Media preparation",
+		"allTasks": "All tasks",
+		"description": "Prepare a reusable browser copy when the original cannot play. Existing compatible streams are retained.",
+		"listDescription": "Server tasks continue when you leave this page. Deleting a prepared copy keeps the original file and viewing history.",
+		"profile": "Output profile",
+		"chooseProfile": "Choose a profile",
+		"start": "Prepare for browser",
+		"checking": "Checking browser\u2026",
+		"loading": "Loading preparation tasks\u2026",
+		"refresh": "Refresh tasks",
+		"empty": "No preparation tasks yet. Open a file to prepare a browser copy.",
+		"cancel": "Cancel preparation",
+		"retry": "Retry preparation",
+		"watch": "Watch prepared copy",
+		"playing": "Playing prepared copy",
+		"delete": "Delete prepared copy",
+		"progress": "Preparation progress",
+		"progressUnknown": "Progress unavailable",
+		"size": "Prepared size: {{size}} MiB",
+		"sourceUnavailable": "The source is not available yet. Scan or reconnect the library.",
+		"blocked": "This browser and profile cannot provide a confirmed playback path.",
+		"direct": "The original file can be played without preparation.",
+		"status": {
+			"queued": "Queued",
+			"processing": "Preparing",
+			"ready": "Ready",
+			"failed": "Failed",
+			"cancelled": "Cancelled"
+		},
+		"mode": {
+			"remux": "Repackage streams",
+			"transcode-audio": "Convert audio",
+			"transcode-video": "Convert video",
+			"transcode": "Convert video and audio"
+		},
+		"failure": {
+			"interrupted": "Preparation was interrupted. Retry to restart.",
+			"cancelled": "Preparation was cancelled.",
+			"cache-deleted": "The prepared copy was deleted.",
+			"cache-missing": "The prepared copy is missing. Retry to recreate it.",
+			"cache-full": "The cache is full. Delete a prepared copy and retry.",
+			"storage-full": "There is not enough free disk space.",
+			"source-changed": "The original file changed. Reopen it to create a new task.",
+			"profile-changed": "The output profile changed. Create a new task with an available profile.",
+			"tool-unavailable": "FFmpeg is unavailable on the server.",
+			"capability-missing": "The server lacks a required media capability.",
+			"capability-unknown": "The server media capability could not be confirmed.",
+			"processing-failed": "Media preparation failed. Retry after checking the server."
+		},
+		"open": "Show preparation options"
 	}
 }

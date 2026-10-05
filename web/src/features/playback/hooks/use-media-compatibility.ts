@@ -4,7 +4,10 @@ import {
 	inspectMediaCompatibility,
 } from "../../../api/client.js";
 import type { CompatibilityResult } from "../../../api/contracts.js";
-import { clearCapabilityCache, queryCapabilities } from "../capabilities.js";
+import {
+	clearCapabilityCache,
+	queryCapabilities,
+} from "../../../lib/media-capabilities.js";
 export function useMediaCompatibility(fileId: string, sourceVersion?: string) {
 	const identity = fileId;
 	const expectedVersion = useRef(sourceVersion);

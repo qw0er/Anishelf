@@ -14,6 +14,7 @@ import {
 	ResourceSettings,
 } from "../features/library/public.js";
 import { FilePlayer } from "../features/playback/public.js";
+import { PreparationsPage } from "../features/preparation/public.js";
 import RouteError from "./errors.js";
 import HistoryPage from "./history.js";
 import {
@@ -83,6 +84,7 @@ export const libraryRoute: RouteObject = {
 	errorElement: <RouteError kind="page" />,
 	hydrateFallbackElement: <InitialLoading />,
 	children: [
+		{ path: "preparations", element: <PreparationsPage /> },
 		{
 			path: "history",
 			loader: historyLoader,

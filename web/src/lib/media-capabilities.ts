@@ -2,7 +2,7 @@ import type {
 	CompatibilityEvidence,
 	CompatibilityQuery,
 	CompatibilityStream,
-} from "../../api/contracts.js";
+} from "../api/contracts.js";
 export interface CapabilityEnvironment {
 	canPlayType(type: string): string;
 	isTypeSupported?: (type: string) => boolean;

@@ -166,7 +166,8 @@ compatibility API and this resolver through `PlaybackApplication.plan()`. It
 returns a read-only proposal without creating history or acquiring output.
 The [preparation owner](preparation.md) adds persistent jobs, restart recovery,
 a bounded queue, polled progress and reusable completed-media HTTP delivery.
-Prepared-player integration and real-time HLS remain future integrations.
+The Web file page and task screen integrate explicit prepared playback; automatic
+playback selection and real-time HLS remain future integrations.
 
 
 ## Verification

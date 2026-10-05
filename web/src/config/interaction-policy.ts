@@ -4,6 +4,8 @@ export const defaultLanguage = "en";
 export const interactionPolicy = Object.freeze({
 	pendingDelayMs: 200,
 	scanPollIntervalMs: 1000,
+	preparationPollIntervalMs: 1000,
+	preparationRequestTimeoutMs: 30000,
 	subtitlePollIntervalMs: 500,
 	toastTimeoutMs: 6000,
 	errorToastTimeoutMs: 10000,

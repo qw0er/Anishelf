@@ -518,7 +518,8 @@ Keep cue time on the original source timeline. When real-time playback restarts 
 
 The [persistent preparation backend](preparation.md) is implemented: task APIs,
 a bounded queue, completed-file cache, restart reconciliation and HTTP/Range
-delivery. Prepared-player integration, automatic playback selection and real-time
+delivery. The Web file page and `/preparations` screen now integrate preparation
+and explicit completed-copy playback. Automatic playback selection and real-time
 HLS remain planned. The design below retains the full V2 target.
 
 ### Implemented execution foundation
@@ -564,8 +565,9 @@ tolerance. One operation runs per instance, bounded by six hours and a 10 GiB
 retained-output budget. `release(id)` deletes a private artifact; `close()` stops
 active work and releases outputs. Callers must register closure and revalidate
 sources before serving a result. Construction performs no disk writes or media
-processing. The factory is not yet invoked by HTTP/player workflows. Persistent
-jobs, durable cache, crash recovery and HLS remain planned below. See
+processing. The production preparation workflow invokes the execution factory
+through the composition root. Persistent jobs, durable cache and crash recovery
+are implemented by the preparation owner; HLS remains planned below. See
 [Media execution](media-execution.md), [Transcode profiles](transcode-profiles.md)
 and [Video compatibility checks](video-compatibility.md).
 

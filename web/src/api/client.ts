@@ -295,3 +295,65 @@ export function checkMediaCompatibility(
 		body,
 	);
 }
+
+export function getTranscodeProfiles(
+	options?: RequestOptions,
+): Promise<import("./contracts.js").TranscodeProfileCatalog> {
+	return request("/api/transcode-profiles", "GET", options);
+}
+export function getPreparations(
+	options?: RequestOptions,
+): Promise<import("./contracts.js").PreparationListResponse> {
+	return request("/api/preparations", "GET", options);
+}
+export function getPreparation(
+	id: string,
+	options?: RequestOptions,
+): Promise<import("./contracts.js").PreparationTaskResponse> {
+	return request(`/api/preparations/${encodeURIComponent(id)}`, "GET", options);
+}
+export function createPreparation(
+	fileId: string,
+	body: import("./contracts.js").CompatibilityCheckRequest,
+	options?: RequestOptions,
+): Promise<import("./contracts.js").PreparationStartResponse> {
+	return request(
+		`/api/files/${encodeURIComponent(fileId)}/preparations`,
+		"POST",
+		options,
+		body,
+	);
+}
+export function cancelPreparation(
+	id: string,
+	options?: RequestOptions,
+): Promise<import("./contracts.js").PreparationTaskResponse> {
+	return request(
+		`/api/preparations/${encodeURIComponent(id)}/cancel`,
+		"POST",
+		options,
+		{},
+	);
+}
+export function retryPreparation(
+	id: string,
+	body: import("./contracts.js").CompatibilityCheckRequest,
+	options?: RequestOptions,
+): Promise<import("./contracts.js").PreparationTaskResponse> {
+	return request(
+		`/api/preparations/${encodeURIComponent(id)}/retry`,
+		"POST",
+		options,
+		body,
+	);
+}
+export function deletePreparedMedia(
+	id: string,
+	options?: RequestOptions,
+): Promise<void> {
+	return request(
+		`/api/prepared-media/${encodeURIComponent(id)}`,
+		"DELETE",
+		options,
+	);
+}

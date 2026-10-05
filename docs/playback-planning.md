@@ -57,6 +57,12 @@ are implemented through their own API; real-time sessions are still planned. `Pr
 private source-bound identity for those integrations; they contain no local path.
 Future HTTP presenters must explicitly project public references.
 
+The Web file page now selects completed bytes through the preparation API after
+fresh browser verification. This explicit selection does not change the session
+HTTP response: the session continues to identify the original source for durable
+progress, while the native player uses the chosen artifact URL. Automatic
+original/cache/real-time selection still requires its later playback integration.
+
 ## Identity and ownership
 
 | Resource | Responsibility | Lifetime and release |

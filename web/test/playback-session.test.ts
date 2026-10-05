@@ -317,3 +317,32 @@ test("injected save interval and request timeout control the progress lifecycle"
 		progress: session.progress,
 	});
 });
+
+test("switching to prepared media retains the original session and captured source-time position", async () => {
+	const { controller, video } = create();
+	await controller.open();
+	video.currentTime = 61;
+	controller.attach(null);
+	const preparedVideo = document.createElement("video");
+	Object.defineProperty(preparedVideo, "readyState", { value: 1 });
+	Object.defineProperty(preparedVideo, "duration", { value: 100 });
+	controller.attach(preparedVideo);
+	expect(preparedVideo.currentTime).toBe(61);
+	preparedVideo.currentTime = 65;
+	preparedVideo.dispatchEvent(new Event("pause"));
+	await controller.flush();
+	expect(api.openPlaybackSession).toHaveBeenCalledTimes(1);
+	expect(api.openPlaybackSession).toHaveBeenCalledWith(
+		"file",
+		expect.anything(),
+	);
+	expect(api.savePlaybackProgress).toHaveBeenLastCalledWith(
+		session.token,
+		expect.objectContaining({
+			generation: session.generation,
+			sourceVersion: session.sourceVersion,
+			positionMs: 65000,
+		}),
+		expect.anything(),
+	);
+});
