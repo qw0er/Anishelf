@@ -73,6 +73,9 @@ const catalog = {
 			id: task.profileId,
 			name: "Browser copy",
 			description: "MP4 browser profile",
+			container: "mp4" as const,
+			videoEncoder: "libx264",
+			audioEncoder: "aac",
 			source: "builtin" as const,
 			usage: "preparation" as const,
 		},
@@ -217,12 +220,8 @@ test("target profile is saved in Settings through the persistent selection API",
 			<PreparationProfileSettings />
 		</Wrapper>,
 	);
-	const select = await view.findByRole("combobox", {
-		name: "Choose a profile",
-	});
-	await waitFor(() =>
-		expect((select as HTMLSelectElement).value).toBe(task.profileId),
-	);
+	const profile = await view.findByRole("radio", { name: /Browser copy/ });
+	await waitFor(() => expect((profile as HTMLInputElement).checked).toBe(true));
 	fireEvent.click(view.getByRole("button", { name: "Save transcode profile" }));
 	await waitFor(() =>
 		expect(api.selectTranscodeProfile).toHaveBeenCalledWith(

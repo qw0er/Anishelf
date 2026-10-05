@@ -69,10 +69,13 @@ export class ConfigurationService {
 		const selectedProfileId = this.snapshot.settings.defaultTranscodeProfileId;
 		return {
 			profiles: this.transcodeProfiles.map(
-				({ id, name, description, usage }) => ({
+				({ id, name, description, usage, container, video, audio }) => ({
 					id,
 					name,
 					description,
+					container,
+					videoEncoder: video.encoder,
+					audioEncoder: audio.encoder,
 					usage,
 					source: id.startsWith("builtin:") ? "builtin" : "custom",
 				}),

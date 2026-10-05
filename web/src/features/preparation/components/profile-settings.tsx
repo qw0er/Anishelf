@@ -53,35 +53,41 @@ export function PreparationProfileSettings() {
 							});
 						}}
 					>
-						<label
-							htmlFor="transcode-profile"
-							className="block text-sm font-medium"
-						>
-							{t("preparation.chooseProfile")}
-						</label>
-						<select
-							id="transcode-profile"
-							className="w-full min-w-0 rounded-md border bg-background p-2"
-							value={profileId}
-							disabled={action.busy}
-							onChange={(event) => setProfileId(event.target.value)}
-						>
-							<option value="" disabled>
+						<fieldset className="space-y-2" disabled={action.busy}>
+							<legend className="mb-2 text-sm font-medium">
 								{t("preparation.chooseProfile")}
-							</option>
+							</legend>
 							{preparation.catalog.profiles.map((profile) => (
-								<option key={profile.id} value={profile.id}>
-									{profile.name}
-								</option>
+								<label
+									key={profile.id}
+									className="flex cursor-pointer items-start gap-3 rounded-md border p-3 has-[:checked]:border-primary has-[:checked]:bg-accent/50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50"
+								>
+									<input
+										type="radio"
+										name="transcode-profile"
+										value={profile.id}
+										checked={profileId === profile.id}
+										onChange={() => setProfileId(profile.id)}
+										className="mt-1 accent-primary"
+									/>
+									<span className="min-w-0">
+										<span className="block text-sm font-medium">
+											{profile.name}
+										</span>
+										<span className="block text-xs text-muted-foreground">
+											{t("preparation.profileFormat", {
+												container: profile.container.toUpperCase(),
+												videoEncoder: profile.videoEncoder,
+												audioEncoder: profile.audioEncoder,
+											})}
+										</span>
+										<span className="mt-1 block text-xs text-muted-foreground">
+											{profile.description}
+										</span>
+									</span>
+								</label>
 							))}
-						</select>
-						<p className="text-sm text-muted-foreground">
-							{
-								preparation.catalog.profiles.find(
-									(profile) => profile.id === profileId,
-								)?.description
-							}
-						</p>
+						</fieldset>
 						<Button type="submit" disabled={!profileId || action.busy}>
 							{t("preparation.saveProfile")}
 						</Button>

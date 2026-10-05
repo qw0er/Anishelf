@@ -205,6 +205,7 @@
 		"listDescription": "Server tasks continue when you leave this page. Deleting a prepared copy keeps the original file and viewing history.",
 		"profile": "Pre-transcoding profile",
 		"chooseProfile": "Choose a profile",
+		"profileFormat": "{{container}} · Video: {{videoEncoder}} · Audio: {{audioEncoder}}",
 		"start": "Prepare for browser",
 		"checking": "Checking browser\u2026",
 		"loading": "Loading preparation tasks\u2026",
