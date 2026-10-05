@@ -228,7 +228,7 @@ server configuration or paths into the browser.
 
 ## Video compatibility checks
 
-See [Video compatibility checks](video-compatibility.md) for the negotiation API,
+See [Video compatibility checks](architecture.md#video-compatibility-checks) for the negotiation API,
 player behavior, conservative unknown states, and processing boundaries. Run
 `npm run check` and `npm run build` after changes. FFmpeg tests need child-process
 permissions; localhost acceptance needs listener permissions. Browser decoding
