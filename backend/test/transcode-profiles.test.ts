@@ -154,7 +154,7 @@ test("unreadable external file and failed selection writes fail without changing
 	);
 });
 
-test("catalog and selection APIs expose names only, validate IDs, and preserve existing settings", async () => {
+test("catalog and selection APIs expose display metadata, validate IDs, and preserve existing settings", async () => {
 	await writeProfiles([customProfile()]);
 	const service = await load();
 	await service.update({ resourceRoot: null, scanIntervalMinutes: 17 });
@@ -171,6 +171,9 @@ test("catalog and selection APIs expose names only, validate IDs, and preserve e
 		expect(response.statusCode).toBe(200);
 		expect(response.json().profiles[2]).toEqual({
 			id: "custom:small",
+			container: "mp4",
+			videoEncoder: "libx264",
+			audioEncoder: "aac",
 			name: "Small",
 			description: "Smaller Web copy.",
 			source: "custom",

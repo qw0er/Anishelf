@@ -10,11 +10,11 @@ import { createHttpApp } from "../src/bootstrap/http.js";
 import { createLibraryModule } from "../src/bootstrap/library.js";
 import { builtinTranscodeProfiles } from "../src/modules/configuration/public.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/public.js";
+import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/application/compatibility.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
-import { MediaProcessingApplication } from "../src/modules/media-processing/public.js";
+import { MediaProcessingApplication } from "../src/modules/media-processing/application/processing.js";
 import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
-import { PreparationApplication } from "../src/modules/preparation/public.js";
+import { PreparationApplication } from "../src/modules/preparation/application/preparation.js";
 import {
 	FfmpegExecutionAdapter,
 	MediaTools,

@@ -22,42 +22,42 @@ import {
 	httpPolicy,
 	validateHttpPolicy,
 } from "../../transport/policy.js";
-import { type HlsPolicy, hlsPolicy, validateHlsPolicy } from "../hls/public.js";
+import { type HlsPolicy, hlsPolicy, validateHlsPolicy } from "../hls/policy.js";
 import {
 	type LibraryPolicy,
 	libraryPolicy,
 	validateLibraryPolicy,
-} from "../library/public.js";
+} from "../library/policy.js";
 import {
 	type MediaInspectionPolicy,
 	mediaInspectionPolicy,
 	validateMediaInspectionPolicy,
-} from "../media-inspection/public.js";
+} from "../media-inspection/policy.js";
 import {
 	type MediaProcessingPolicy,
 	mediaProcessingPolicy,
 	validateMediaProcessingPolicy,
-} from "../media-processing/public.js";
+} from "../media-processing/policy.js";
 import {
 	type PlaybackPolicy,
 	playbackPolicy,
 	validatePlaybackPolicy,
-} from "../playback/public.js";
+} from "../playback/policy.js";
 import {
 	type PreparationPolicy,
 	preparationPolicy,
 	validatePreparationPolicy,
-} from "../preparation/public.js";
+} from "../preparation/policy.js";
 import {
 	type ResourceAccessPolicy,
 	resourceAccessPolicy,
 	validateResourceAccessPolicy,
-} from "../resource-access/public.js";
+} from "../resource-access/policy.js";
 import {
 	type SubtitlePolicy,
 	subtitlePolicy,
 	validateSubtitlePolicy,
-} from "../subtitles/public.js";
+} from "../subtitles/policy.js";
 
 /** Composition only: module owners define defaults, types and validation. */
 export interface BuiltinPolicy {

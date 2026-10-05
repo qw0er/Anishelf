@@ -1,7 +1,6 @@
 import { join } from "node:path";
 import type { Logger } from "pino";
 import { publicSubtitleFormat } from "../../../contracts/subtitles.js";
-import type { MediaTools } from "../../../platform/media/index.js";
 import { MediaToolError } from "../../../platform/media/index.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
@@ -22,6 +21,7 @@ import {
 } from "../domain/policy.js";
 import { SubtitleAssetFiles } from "../infrastructure/assets.js";
 import type { SubtitleRepository } from "../infrastructure/repository.js";
+import type { SubtitleExtractor } from "../ports.js";
 
 export class SubtitlePreparationApplication {
 	private readonly logger: Logger | undefined;
@@ -38,7 +38,7 @@ export class SubtitlePreparationApplication {
 			policy?: DeepReadonly<SubtitleRuntimePolicy>;
 			repository: SubtitleRepository;
 			dataDir: string;
-			tools: Pick<MediaTools, "extractSubtitle">;
+			tools: SubtitleExtractor;
 		},
 	) {
 		this.logger = options.logger?.child({ module: "subtitle-preparation" });

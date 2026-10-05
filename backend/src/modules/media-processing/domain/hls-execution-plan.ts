@@ -5,7 +5,7 @@ import type {
 	HlsExecutionRequest,
 } from "../../../shared/media-processing.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
-import { hlsPolicy } from "../../hls/public.js";
+import { hlsPolicy } from "../../hls/policy.js";
 import type { CheckedCompatibility } from "../../media-compatibility/public.js";
 import { resolveExecutionPlan } from "./execution-plan.js";
 

@@ -1,4 +1,8 @@
 import {
+	type SubtitleFormat,
+	subtitleExtensionFormats,
+} from "../../../contracts/subtitles.js";
+import {
 	type DeepReadonly,
 	freeze,
 	requirePolicy,
@@ -23,3 +27,12 @@ export function validateResourceAccessPolicy(
 			`resourceAccess.videoMimeTypes.${extension}`,
 		);
 }
+
+export interface ResourceAccessRuntimePolicy {
+	resourceAccess: ResourceAccessPolicy;
+	subtitles: { formats: Record<string, SubtitleFormat> };
+}
+export const resourceAccessRuntimePolicy = freeze({
+	resourceAccess: resourceAccessPolicy,
+	subtitles: { formats: subtitleExtensionFormats },
+});

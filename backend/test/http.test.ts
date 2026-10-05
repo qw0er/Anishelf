@@ -202,3 +202,34 @@ test("maps domain and unexpected errors without exposing internal paths", async 
 		expect(response.body).not.toContain("secret");
 	}
 });
+
+test("bootstrap owns one awaited dependency shutdown", async () => {
+	let closed = 0;
+	let release!: () => void;
+	const cleanup = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const app = createHttpApp({
+		config: { host: "127.0.0.1", port: 3000 },
+		logger: pino({ enabled: false }),
+		closeDependencies: async () => {
+			closed += 1;
+			await cleanup;
+		},
+	});
+	await app.ready();
+	let finished = false;
+	const stopping = app.close().then(() => {
+		finished = true;
+	});
+	try {
+		await new Promise<void>((resolve) => setImmediate(resolve));
+		expect(closed).toBe(1);
+		expect(finished).toBe(false);
+	} finally {
+		release();
+		await stopping;
+	}
+	expect(finished).toBe(true);
+	expect(closed).toBe(1);
+});

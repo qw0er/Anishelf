@@ -1,9 +1,7 @@
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type { SettingsStore } from "../../../shared/settings.js";
-import {
-	checkResourceRoot,
-	type ResourceAccessApi,
-} from "../../resource-access/public.js";
+import { checkResourceRoot } from "../../resource-access/files.js";
+import type { ResourceAccessApi } from "../../resource-access/public.js";
 import type {
 	DirectoryInfo,
 	DirectoryListing,
@@ -15,6 +13,7 @@ import type {
 } from "../domain/model.js";
 import type { LibraryRuntimePolicy } from "../domain/policy.js";
 import type { LibraryIndex } from "../infrastructure/index.js";
+import type { LibraryApi } from "../public.js";
 import type { ScanCoordinator } from "./scan-coordinator.js";
 import type { SettingsApplication } from "./settings.js";
 
@@ -47,7 +46,8 @@ function fileInfo(entry: FileEntry): FileInfo {
 
 export class LibraryApplication<
 	TPolicy extends LibraryRuntimePolicy = LibraryRuntimePolicy,
-> {
+> implements LibraryApi
+{
 	readonly policy: DeepReadonly<TPolicy>;
 	readonly sources: ResourceAccessApi;
 	readonly settings: SettingsApplication;

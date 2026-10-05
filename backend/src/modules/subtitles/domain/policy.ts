@@ -7,6 +7,7 @@ import {
 	subtitleExtensionFormats,
 	textSubtitleCodecs,
 } from "../../../contracts/subtitles.js";
+import { subtitleExtractionPolicy } from "../../../platform/media/config.js";
 import {
 	type DeepReadonly,
 	freeze,
@@ -19,7 +20,7 @@ const defaults = {
 	maximumBytes: subtitleConstraints.maximumBytes,
 	readChunkBytes: 64 * 1024,
 	extractionConcurrency: 1,
-	extractionTimeoutMs: 60000,
+	extractionTimeoutMs: subtitleExtractionPolicy.extractionTimeoutMs,
 	defaultExtractionFormat: "srt" as PreparedSubtitleFormat,
 	formats: { ...subtitleExtensionFormats },
 	nativeFormats: { ...nativeSubtitleFormats },
@@ -55,7 +56,7 @@ export function validateSubtitlePolicy(
 		);
 }
 
-import { type LibraryPolicy, libraryPolicy } from "../../library/public.js";
+import { type LibraryPolicy, libraryPolicy } from "../../library/policy.js";
 export interface SubtitleRuntimePolicy {
 	subtitles: SubtitlePolicy;
 	library: LibraryPolicy;

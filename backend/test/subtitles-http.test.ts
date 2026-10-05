@@ -60,6 +60,7 @@ beforeEach(async () => {
 	});
 	probe = vi.fn<MediaTools["probe"]>().mockResolvedValue(emptyInfo);
 	const inspection = new MediaInspectionApplication({
+		policy: { maximumProbeCacheEntries: 32, probeConcurrency: 1 },
 		sources: library.sources,
 		tools: { probe },
 	});

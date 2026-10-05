@@ -1328,9 +1328,7 @@ test("supported media shows compatibility information in a dialog below the play
 test("unsupported media displays a preparation hint without opening a modal or creating work", async () => {
 	compatibilityStatus = "unsupported";
 	renderApp("/files/file-1");
-	await screen.findByText(
-		"This browser cannot play the original file. Pre-transcode it from its folder before watching.",
-	);
+	await screen.findByText("This file is not supported by this browser.");
 	expect(screen.queryByRole("dialog")).toBeNull();
 	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
 	const call = fetcher.mock.calls.find(

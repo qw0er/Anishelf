@@ -33,7 +33,9 @@ HLS packaging, resource acquisition and HLS browser playback are not implemented
 
 Anishelf is a React/Node.js application with one backend process. Business modules
 collaborate through in-process Public APIs; HTTP is the browser/server boundary.
-Bootstrap assembles dependencies and owns startup/shutdown.
+Bootstrap assembles dependencies and owns startup/shutdown. It closes durable
+preparation and subtitle owners before shared processing/inspection and closes
+persistence last. Production supplies one shutdown sequence to HTTP composition.
 
 ![Anishelf module overview](architecture.svg)
 
@@ -54,19 +56,28 @@ precedence where the diagram has not caught up with implementation.
 | HLS | Resource/segment models, policy and lease port; publication/delivery implementation is pending |
 | Real-time | Session and lifecycle ports; runtime ownership implementation is pending |
 
-Cross-module imports, including types, use `modules/<feature>/public.ts`.
+Cross-module imports, including types, use explicit module entries: `public.ts`
+for service contracts and pure decisions, `policy.ts` for defaults/validation, and
+Resource Access's `files.ts` for the confined-filesystem capability. Public service
+contracts are explicit interfaces rather than aliases derived from Applications.
+Policy/service entries do not load Application or infrastructure implementations.
 Only bootstrap may import implementations from other modules for assembly.
 HTTP handlers call their own Application; Applications coordinate domain logic,
 adapters and other modules' Public APIs. Domain code does not depend on HTTP,
 Applications or concrete infrastructure. Platform adapters provide filesystem,
-database and media-process mechanisms without owning business workflows.
+database and media-process mechanisms without owning business workflows or
+importing business modules. Platform owns the input types it needs; Configuration
+validates and injects those inputs. Runtime environment capture belongs to Platform.
 Frontend features likewise expose `public.ts`; routes compose them.
 
 Resource Access receives an indexed-source catalog port from bootstrap rather
 than importing Library. Playback, inspection and subtitles consume the same
 read-only source capability. The shared source registry prevents each feature
-from inventing its own source identity. Public API and feature dependency cycles
-should remain acyclic.
+from inventing its own source identity. Runtime dependencies remain acyclic. Boundary checks include type-only imports;
+type-only cycles are distinguished from runtime initialization cycles.
+`npm run architecture:check` enforces these constraints with dependency-cruiser.
+See [Refactoring baseline](refactoring-baseline.md) for preserved behaviors and
+the batch 1 implementation/status inventory.
 
 ## Configuration and persistence
 

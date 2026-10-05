@@ -1,8 +1,8 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import pino, { type Logger } from "pino";
-import type { LoggingConfig } from "../../modules/configuration/public.js";
 import { adapterPolicy } from "../adapter-policy.js";
+import type { LoggingConfig } from "./config.js";
 
 export class ApplicationLogging {
 	readonly logger: Logger;

@@ -4,7 +4,7 @@ import {
 	preparedSubtitleFormat,
 	publicSubtitleFormat,
 } from "../../../contracts/subtitles.js";
-import type { MediaInfo, MediaTools } from "../../../platform/media/index.js";
+import type { MediaInfo } from "../../../platform/media/index.js";
 import { MediaToolError } from "../../../platform/media/index.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
@@ -15,8 +15,8 @@ import {
 import type {
 	FileSourceIdentity,
 	ResolvedSource,
-	ResourceAccess,
 	ResourceAccessApi,
+	ResourceFiles,
 } from "../../resource-access/public.js";
 import { assertSourceVersion } from "../../resource-access/public.js";
 import { defaultSubtitleName, subtitleTrackId } from "../domain/identity.js";
@@ -32,10 +32,12 @@ import {
 import { readSubtitleText } from "../infrastructure/content.js";
 import { discoverExternalSubtitles } from "../infrastructure/discovery.js";
 import type { SubtitleRepository } from "../infrastructure/repository.js";
+import type { SubtitleExtractor } from "../ports.js";
+import type { SubtitleApi } from "../public.js";
 import { SubtitlePreparationApplication } from "./subtitle-preparation.js";
 
 /** Subtitle discovery and delivery share source/version access checks. */
-export class SubtitleApplication {
+export class SubtitleApplication implements SubtitleApi {
 	private readonly logger: Logger | undefined;
 	private readonly sources: ResourceAccessApi;
 	private readonly inspection: MediaInspectionApi | undefined;
@@ -45,7 +47,7 @@ export class SubtitleApplication {
 		sources: ResourceAccessApi;
 		policy?: DeepReadonly<SubtitleRuntimePolicy>;
 		inspection?: MediaInspectionApi;
-		tools?: Pick<MediaTools, "extractSubtitle">;
+		tools?: SubtitleExtractor;
 		repository?: SubtitleRepository;
 		dataDir?: string;
 	}) {
@@ -168,7 +170,7 @@ export class SubtitleApplication {
 	}
 	private async discoverForSource(source: ResolvedSource): Promise<{
 		discovery: SubtitleDiscovery;
-		resources: ResourceAccess;
+		resources: ResourceFiles;
 		info: MediaInfo | undefined;
 	}> {
 		const resources = await this.sources.openResources(source);
@@ -309,7 +311,7 @@ export class SubtitleApplication {
 	private async readExternalSubtitle(
 		source: ResolvedSource,
 		track: ExternalSubtitle,
-		resources: ResourceAccess,
+		resources: ResourceFiles,
 	): Promise<{ text: string }> {
 		const identity: FileSourceIdentity = {
 			canonicalRoot: source.identity.canonicalRoot,

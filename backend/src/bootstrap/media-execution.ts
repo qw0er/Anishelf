@@ -1,8 +1,8 @@
 import type { Logger } from "pino";
 import type { ConfigurationService } from "../modules/configuration/application/service.js";
-import { MediaCompatibilityApplication } from "../modules/media-compatibility/public.js";
+import { MediaCompatibilityApplication } from "../modules/media-compatibility/application/compatibility.js";
 import type { MediaInspectionApi } from "../modules/media-inspection/public.js";
-import { MediaProcessingApplication } from "../modules/media-processing/public.js";
+import { MediaProcessingApplication } from "../modules/media-processing/application/processing.js";
 import type { ResourceAccessApi } from "../modules/resource-access/public.js";
 import {
 	FfmpegExecutionAdapter,

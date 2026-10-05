@@ -1,14 +1,15 @@
 import type { TranscodeProfileCatalog } from "../../../contracts/http.js";
+import {
+	captureRuntimeEnvironment,
+	type RuntimeEnvironment,
+} from "../../../platform/environment.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { DeploymentConfig, PersistentSettings } from "../domain/model.js";
 import {
 	defaultTranscodeProfileId,
 	type TranscodeProfile,
 } from "../domain/transcode-profiles.js";
-import {
-	captureRuntimeEnvironment,
-	loadDeploymentConfig,
-} from "../infrastructure/deployment.js";
+import { loadDeploymentConfig } from "../infrastructure/deployment.js";
 import { PersistentConfiguration } from "../infrastructure/persistent.js";
 import { loadTranscodeProfiles } from "../infrastructure/transcode-profiles.js";
 import {
@@ -34,7 +35,7 @@ export class ConfigurationService {
 	private constructor(
 		readonly deployment: DeepReadonly<DeploymentConfig>,
 		private readonly persistent: PersistentConfiguration,
-		readonly environment: ReturnType<typeof captureRuntimeEnvironment>,
+		readonly environment: RuntimeEnvironment,
 		readonly policy: DeepReadonly<BuiltinPolicy>,
 		readonly transcodeProfiles: DeepReadonly<TranscodeProfile[]>,
 	) {

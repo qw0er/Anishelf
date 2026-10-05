@@ -71,13 +71,13 @@ test("folder checks start asynchronously with bounded concurrency and navigation
 	);
 	expect(result.current.get("d").loading).toBe(true);
 	await waitFor(() =>
-		expect(api.inspectMediaCompatibility).toHaveBeenCalledTimes(1),
+		expect(api.inspectMediaCompatibility).toHaveBeenCalledTimes(2),
 	);
 	await act(async () => {
 		releases[0]?.();
 	});
 	await waitFor(() =>
-		expect(api.inspectMediaCompatibility).toHaveBeenCalledTimes(2),
+		expect(api.inspectMediaCompatibility).toHaveBeenCalledTimes(3),
 	);
 	expect(result.current.get("a").result?.direct.status).toBe("supported");
 	const oldSignal = vi.mocked(api.inspectMediaCompatibility).mock.calls[1]?.[1]

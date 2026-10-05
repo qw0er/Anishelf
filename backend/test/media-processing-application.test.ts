@@ -6,7 +6,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { createLibraryModule } from "../src/bootstrap/library.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
-import { MediaProcessingApplication } from "../src/modules/media-processing/public.js";
+import { MediaProcessingApplication } from "../src/modules/media-processing/application/processing.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { unknownMediaCapabilities } from "../src/shared/media-capabilities.js";
 import type { MediaProcessingPlan } from "../src/shared/media-processing.js";

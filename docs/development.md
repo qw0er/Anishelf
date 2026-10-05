@@ -28,7 +28,9 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm run test:watch --workspace @anishelf/backend` | Watch backend tests with Vitest |
 | `npm run biome:check` | Check formatting, lint rules, and import organization with Biome |
 | `npm run biome:fix` | Apply safe Biome fixes |
-| `npm run lint` | Run Biome lint and module/feature boundary checks |
+| `npm run lint` | Run Biome lint and dependency-cruiser architecture checks |
+| `npm run architecture:check` | Check dependency directions, public entries and runtime cycles in both workspaces |
+| `npm run architecture:test` | Verify architecture rules with allowed and forbidden dependency fixtures |
 | `npm run check` | Run Biome checks, type checks, and both workspace test suites |
 | `npm run build` | Build backend and frontend |
 | `npm start` | Run the built backend entry point after building |
@@ -201,7 +203,10 @@ Tailwind directives. The active UI uses English; further localization is planned
 
 ## Verification and Troubleshooting
 
-Run `npm run check` for Biome, lint/module-boundary checks, typechecks and all tests.
+Run `npm run check` for Biome, lint/architecture checks, typechecks and all tests.
+Architecture tests run before workspace tests. TypeScript 6 is shared by both
+workspaces so dependency-cruiser can use its supported compiler API; an unsupported
+compiler or empty workspace scan fails explicitly.
 Run workspace tests with `npm run test --workspace @anishelf/backend` or
 `npm run test --workspace @anishelf/web`. Backend HTTP tests normally use Fastify
 injection; stream/disconnect tests also require permission to bind a local port.

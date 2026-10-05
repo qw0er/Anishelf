@@ -4,13 +4,13 @@ import { isIP } from "node:net";
 import { isAbsolute } from "node:path";
 import { userDataDir } from "platformdirs";
 import { deploymentDefaults, logLevels } from "../../../contracts/defaults.js";
-import { storageRules } from "../../../platform/storage.js";
-import { DomainError } from "../../../shared/errors.js";
 import type {
-	DeploymentConfig,
 	LoggingConfig,
 	LogLevel,
-} from "../domain/model.js";
+} from "../../../platform/logging/config.js";
+import { storageRules } from "../../../platform/storage.js";
+import { DomainError } from "../../../shared/errors.js";
+import type { DeploymentConfig } from "../domain/model.js";
 
 type Environment = Readonly<Record<string, string | undefined>>;
 
@@ -111,15 +111,4 @@ export async function loadDeploymentConfig(
 		);
 	}
 	return config;
-}
-
-/** Capture process environment once; adapters receive this immutable search context. */
-export function captureRuntimeEnvironment(env: Environment = process.env) {
-	return Object.freeze({
-		development: env.NODE_ENV === "development",
-		executableSearch: Object.freeze({
-			path: env.PATH ?? "",
-			pathExt: env.PATHEXT ?? deploymentDefaults.windowsExecutableExtension,
-		}),
-	});
 }

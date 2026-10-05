@@ -2,12 +2,7 @@ import { randomUUID } from "node:crypto";
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { Logger } from "pino";
-import type {
-	MediaInfo,
-	MediaProcessingOptions,
-	MediaStream,
-	MediaTools,
-} from "../../../platform/media/index.js";
+import type { MediaStream } from "../../../platform/media/index.js";
 import {
 	checkExecutionCapabilities,
 	MediaExecutionCapabilityError,
@@ -15,7 +10,6 @@ import {
 	MediaToolError,
 } from "../../../platform/media/index.js";
 import type { MediaProcessEvent } from "../../../shared/media-execution.js";
-import type { MediaProcessingPlan } from "../../../shared/media-processing.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import type { MediaInspectionApi } from "../../media-inspection/public.js";
 import type { ResourceAccessApi } from "../../resource-access/public.js";
@@ -28,78 +22,17 @@ import {
 	MediaProcessingFiles,
 	type ProcessingWorkspace,
 } from "../infrastructure/files.js";
-
-/** An adapter must await child closure on cancellation. The production FFmpeg adapter is composed separately. */
-export interface MediaExecutionAdapter {
-	execute(
-		input: string,
-		output: string,
-		options: MediaProcessingOptions,
-		info: MediaInfo,
-	): Promise<void>;
-}
-
-export interface MediaExecutionRequest {
-	fileId: string;
-	sourceVersion: string;
-	plan: DeepReadonly<MediaProcessingPlan>;
-	videoStreamIndex: number;
-	audioStreamIndices: readonly number[];
-	/** A resource owner can narrow the output budget for this execution. */
-	maximumBytes?: number;
-	signal?: AbortSignal;
-	onEvent?: (event: MediaExecutionEvent) => void;
-}
-export type MediaExecutionState =
-	| "checking"
-	| "starting"
-	| "running"
-	| "validating"
-	| "ready"
-	| "failed"
-	| "cancelled";
-export type MediaExecutionEvent =
-	| MediaProcessEvent
-	| { type: "state"; state: MediaExecutionState };
-export interface MediaExecutionHandle {
-	readonly id: string;
-	readonly state: MediaExecutionState;
-	readonly completion: Promise<ProcessedMedia>;
-	/** Resolves after execution and cleanup finish. A completed result remains owned until release. */
-	stop(): Promise<void>;
-}
-
-/** Backend-owned temporary output. release(id) removes it; this is not an HTTP DTO. */
-export interface ProcessedMedia {
-	id: string;
-	fileId: string;
-	sourceVersion: string;
-	planId: string;
-	videoStreamIndex: number;
-	audioStreamIndices: readonly number[];
-	output: { delivery: "file"; path: string };
-	sizeBytes: number;
-	info: MediaInfo;
-}
-
-/** Future segmented executor result. The HLS owner must validate/publish it before HTTP use. */
-export interface ProcessedHlsMedia {
-	id: string;
-	fileId: string;
-	sourceVersion: string;
-	planId: string;
-	output: { delivery: "hls"; directory: string; masterPlaylist: string };
-	sizeBytes: number;
-	completeness: "complete" | "growing";
-}
-export type ProcessedOutput = ProcessedMedia | ProcessedHlsMedia;
-
-export class MediaProcessingBusyError extends Error {
-	constructor() {
-		super("Media processing is busy.");
-		this.name = "MediaProcessingBusyError";
-	}
-}
+import {
+	type MediaExecutionAdapter,
+	type MediaExecutionEvent,
+	type MediaExecutionHandle,
+	type MediaExecutionRequest,
+	type MediaExecutionState,
+	MediaProcessingBusyError,
+	type ProcessedMedia,
+	type ProcessingTools,
+} from "../ports.js";
+import type { MediaProcessingApi } from "../public.js";
 
 function selectStream(
 	streams: MediaStream[],
@@ -122,7 +55,7 @@ function selectStream(
 }
 
 /** Explicit operations for future planners; no automatic conversion or compatibility claims. */
-export class MediaProcessingApplication {
+export class MediaProcessingApplication implements MediaProcessingApi {
 	private readonly files: MediaProcessingFiles;
 	private readonly policy: DeepReadonly<MediaProcessingPolicy>;
 	private readonly controller = new AbortController();
@@ -135,7 +68,7 @@ export class MediaProcessingApplication {
 		private readonly options: {
 			sources: ResourceAccessApi;
 			inspection: MediaInspectionApi;
-			tools: Pick<MediaTools, "capabilities" | "probe">;
+			tools: ProcessingTools;
 			executor: MediaExecutionAdapter;
 			dataDir: string;
 			policy?: DeepReadonly<MediaProcessingPolicy>;

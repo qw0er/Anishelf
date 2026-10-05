@@ -10,10 +10,8 @@ import {
 } from "../src/modules/configuration/policy.js";
 import type { LibraryApplication } from "../src/modules/library/application/library.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import {
-	MediaInspectionApplication,
-	MediaInspectionBusyError,
-} from "../src/modules/media-inspection/application/inspection.js";
+import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
+import { MediaInspectionBusyError } from "../src/modules/media-inspection/public.js";
 import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
 import { SubtitleApplication } from "../src/modules/subtitles/application/subtitles.js";
 import {
@@ -89,6 +87,7 @@ function deferredProbe() {
 }
 
 test("shares one probe between subtitle discovery and another consumer", async () => {
+	policy.probeConcurrency = 1;
 	expect(probe).not.toHaveBeenCalled();
 	const finish = deferredProbe();
 	const subtitles = new SubtitleApplication({

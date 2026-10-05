@@ -2,8 +2,8 @@ import { basename, dirname, extname, join } from "node:path";
 import { DomainError } from "../../../shared/errors.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import { nameCollator } from "../../../shared/sorting.js";
-import { type LibraryPolicy, libraryPolicy } from "../../library/public.js";
-import type { ResourceAccess } from "../../resource-access/public.js";
+import { type LibraryPolicy, libraryPolicy } from "../../library/policy.js";
+import type { ResourceFiles } from "../../resource-access/public.js";
 import { subtitleTrackId } from "../domain/identity.js";
 import {
 	type ExternalSubtitleDiscovery,
@@ -23,7 +23,7 @@ function languageFromLabel(label: string | null): string | null {
 
 /** On-demand sidecar discovery; no contents, persistence or renderer claims. */
 export async function discoverExternalSubtitles(
-	resources: ResourceAccess,
+	resources: ResourceFiles,
 	videoPath: string,
 	sourceVersion: string,
 	policy: DeepReadonly<SubtitlePolicy> = subtitlePolicy,

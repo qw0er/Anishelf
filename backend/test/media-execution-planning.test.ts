@@ -16,7 +16,7 @@ import {
 	type TranscodeProfile,
 } from "../src/modules/configuration/public.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/public.js";
+import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/application/compatibility.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
 import {
 	resolveExecutionPlan,

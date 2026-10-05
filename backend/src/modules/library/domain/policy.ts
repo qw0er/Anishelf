@@ -53,7 +53,7 @@ export function validateLibraryPolicy(
 import {
 	type ResourceAccessRuntimePolicy,
 	resourceAccessRuntimePolicy,
-} from "../../resource-access/public.js";
+} from "../../resource-access/policy.js";
 /** Capabilities injected into scanning; no dependency on configuration composition. */
 export interface LibraryRuntimePolicy extends ResourceAccessRuntimePolicy {
 	library: LibraryPolicy;

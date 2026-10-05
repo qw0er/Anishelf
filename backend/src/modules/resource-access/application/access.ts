@@ -8,11 +8,10 @@ import type {
 	SourceReference,
 } from "../domain/model.js";
 import { assertFileSource, assertSourceVersion } from "../domain/validation.js";
-import type { ResourceAccessRuntimePolicy } from "../infrastructure/access.js";
-import {
-	type OpenedResourceFile,
-	ResourceAccess,
-} from "../infrastructure/access.js";
+import { ResourceAccess } from "../infrastructure/access.js";
+import type { ResourceAccessRuntimePolicy } from "../policy.js";
+import type { OpenedResourceFile } from "../ports.js";
+import type { ResourceAccessApi } from "../public.js";
 
 function fileInfo(entry: FileInfo): FileInfo {
 	return {
@@ -26,7 +25,7 @@ function fileInfo(entry: FileInfo): FileInfo {
 	};
 }
 /** Owns source identity and the single root epoch, independently of library implementation. */
-export class ResourceAccessApplication {
+export class ResourceAccessApplication implements ResourceAccessApi {
 	private rootEpoch = 0;
 	constructor(
 		private readonly options: {

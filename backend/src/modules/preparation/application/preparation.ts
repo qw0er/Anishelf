@@ -40,9 +40,10 @@ import {
 	PreparedMediaFiles,
 } from "../infrastructure/files.js";
 import type { PreparationRepository } from "../infrastructure/repository.js";
+import type { PreparationApi } from "../public.js";
 
 /** Owns persistent preparation and reusable completed files; never owns viewing progress. */
-export class PreparationApplication {
+export class PreparationApplication implements PreparationApi {
 	private readonly files: PreparedMediaFiles;
 	private readonly policy: DeepReadonly<PreparationPolicy>;
 	private initialization: Promise<void> | undefined;

@@ -8,12 +8,10 @@ import { expect, test } from "vitest";
 import { createLibraryModule } from "../src/bootstrap/library.js";
 import { builtinTranscodeProfiles } from "../src/modules/configuration/public.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/public.js";
+import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/application/compatibility.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
-import {
-	MediaProcessingApplication,
-	resolveExecutionPlan,
-} from "../src/modules/media-processing/public.js";
+import { MediaProcessingApplication } from "../src/modules/media-processing/application/processing.js";
+import { resolveExecutionPlan } from "../src/modules/media-processing/public.js";
 import {
 	compileFfmpegArguments,
 	FfmpegExecutionAdapter,

@@ -17,7 +17,7 @@ import {
 	type TranscodeProfile,
 } from "../src/modules/configuration/public.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/public.js";
+import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/application/compatibility.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
 import type {
 	MediaExecutionRequest,
@@ -25,10 +25,8 @@ import type {
 	ProcessedMedia,
 } from "../src/modules/media-processing/public.js";
 import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
-import {
-	PreparationApplication,
-	preparationPolicy,
-} from "../src/modules/preparation/public.js";
+import { PreparationApplication } from "../src/modules/preparation/application/preparation.js";
+import { preparationPolicy } from "../src/modules/preparation/policy.js";
 import { MediaToolError } from "../src/platform/media/index.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { settingsStore } from "./settings-store.js";

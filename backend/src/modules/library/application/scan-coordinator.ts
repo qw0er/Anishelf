@@ -10,7 +10,7 @@ import type {
 import {
 	checkResourceRoot,
 	createResourceAccess,
-} from "../../resource-access/public.js";
+} from "../../resource-access/files.js";
 import {
 	type LibraryRuntimePolicy,
 	libraryRuntimePolicy,

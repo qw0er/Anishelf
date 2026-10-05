@@ -28,7 +28,7 @@ export function checkExecutionCapabilities(
 	audioStreamIndices: number[],
 ): ExecutionCapabilityCheck {
 	const requirements: ExecutionCapabilityRequirement[] = [];
-	function require(
+	function requireCapability(
 		kind: MediaCapabilityKind,
 		name: string,
 		purpose: string,
@@ -50,7 +50,7 @@ export function checkExecutionCapabilities(
 		});
 	}
 	function named(kind: MediaCapabilityKind, name: string, purpose: string) {
-		require(kind, name, purpose, (entry) => entry.name === name);
+		requireCapability(kind, name, purpose, (entry) => entry.name === name);
 	}
 	for (const name of ["ffmpeg", "ffprobe"] as const)
 		requirements.push({
@@ -64,9 +64,12 @@ export function checkExecutionCapabilities(
 						? "supported"
 						: "missing",
 		});
-	require("demuxers", info.formatAliases.join(",") ||
-		"unknown", "source-input", (entry) =>
-		info.formatAliases.includes(entry.name));
+	requireCapability(
+		"demuxers",
+		info.formatAliases.join(",") || "unknown",
+		"source-input",
+		(entry) => info.formatAliases.includes(entry.name),
+	);
 	if (!info.formatAliases.length)
 		requirements[requirements.length - 1] = {
 			kind: "demuxers",
@@ -75,12 +78,21 @@ export function checkExecutionCapabilities(
 			status: "unknown",
 		};
 	named("muxers", plan.container, "output-packaging");
-	require("protocols", "file", "local-input-output", (entry) =>
-		entry.name === "file" &&
-		entry.flags.includes("I") &&
-		entry.flags.includes("O"));
-	require("protocols", "pipe", "progress-output", (entry) =>
-		entry.name === "pipe" && entry.flags.includes("O"));
+	requireCapability(
+		"protocols",
+		"file",
+		"local-input-output",
+		(entry) =>
+			entry.name === "file" &&
+			entry.flags.includes("I") &&
+			entry.flags.includes("O"),
+	);
+	requireCapability(
+		"protocols",
+		"pipe",
+		"progress-output",
+		(entry) => entry.name === "pipe" && entry.flags.includes("O"),
+	);
 	for (const [kind, index, execution] of [
 		["video", videoStreamIndex, plan.video],
 		...audioStreamIndices.map((index) => ["audio", index, plan.audio] as const),
@@ -97,16 +109,29 @@ export function checkExecutionCapabilities(
 				status: "unknown",
 			});
 		else
-			require("decoders", stream.codec, `${kind}-input`, (entry) =>
-				entry.codec === stream.codec && entry.mediaType === kind);
-		require("encoders", execution.encoder, `${kind}-output`, (entry) =>
-			entry.name === execution.encoder &&
-			entry.codec === execution.codec &&
-			entry.mediaType === kind);
+			requireCapability(
+				"decoders",
+				stream.codec,
+				`${kind}-input`,
+				(entry) => entry.codec === stream.codec && entry.mediaType === kind,
+			);
+		requireCapability(
+			"encoders",
+			execution.encoder,
+			`${kind}-output`,
+			(entry) =>
+				entry.name === execution.encoder &&
+				entry.codec === execution.codec &&
+				entry.mediaType === kind,
+		);
 		if (execution.pixelFormat)
-			require("pixelFormats", execution.pixelFormat, `${kind}-output`, (
-				entry,
-			) => entry.name === execution.pixelFormat && entry.flags.includes("O"));
+			requireCapability(
+				"pixelFormats",
+				execution.pixelFormat,
+				`${kind}-output`,
+				(entry) =>
+					entry.name === execution.pixelFormat && entry.flags.includes("O"),
+			);
 	}
 	for (const filter of plan.filters)
 		named("filters", filter, "execution-filter");

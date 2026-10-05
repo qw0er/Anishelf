@@ -2,10 +2,8 @@ import { join } from "node:path";
 import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
-import {
-	getVideoMimeType,
-	type ResourceAccess,
-} from "../../resource-access/public.js";
+import { getVideoMimeType } from "../../resource-access/files.js";
+import type { ResourceFiles } from "../../resource-access/public.js";
 import {
 	createResourceId,
 	type DirectoryEntry,
@@ -35,7 +33,7 @@ export class LibraryScanner {
 	) {}
 
 	async scan(
-		resources: ResourceAccess,
+		resources: ResourceFiles,
 		rootName: string,
 		progress: ScanTraversalProgress,
 		signal: AbortSignal,
@@ -83,7 +81,7 @@ export class LibraryScanner {
 
 	private async visit(
 		task: ScanTask,
-		resources: ResourceAccess,
+		resources: ResourceFiles,
 		entries: LibraryEntry[],
 		queue: ScanTask[],
 		progress: ScanTraversalProgress,

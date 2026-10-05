@@ -1,65 +1,31 @@
 import { createHash } from "node:crypto";
 import { constants, type Dirent, type Stats } from "node:fs";
-import {
-	access,
-	type FileHandle,
-	lstat,
-	open,
-	readdir,
-	realpath,
-	stat,
-} from "node:fs/promises";
+import type { FileHandle } from "node:fs/promises";
+import { access, lstat, open, readdir, realpath, stat } from "node:fs/promises";
 import { extname, isAbsolute, join, relative, sep, win32 } from "node:path";
+import { subtitleMimeTypes } from "../../../contracts/subtitles.js";
+import { storageRules } from "../../../platform/storage.js";
 import { DomainError } from "../../../shared/errors.js";
+import type { DeepReadonly } from "../../../shared/policy.js";
 import type { PersistentSettings } from "../../../shared/settings.js";
 import type { FileSourceIdentity, RootIssue } from "../domain/model.js";
-
 import { assertFileSource } from "../domain/validation.js";
-
-type Timestamp = string;
-
 import {
-	type SubtitleFormat,
-	subtitleExtensionFormats,
-	subtitleMimeTypes,
-} from "../../../contracts/subtitles.js";
-import { storageRules } from "../../../platform/storage.js";
-import { type DeepReadonly, freeze } from "../../../shared/policy.js";
-import {
-	type ResourceAccessPolicy,
+	type ResourceAccessRuntimePolicy,
 	resourceAccessPolicy,
-} from "../domain/policy.js";
-
-export interface ResourceAccessRuntimePolicy {
-	resourceAccess: ResourceAccessPolicy;
-	subtitles: { formats: Record<string, SubtitleFormat> };
-}
-export const resourceAccessRuntimePolicy = freeze({
-	resourceAccess: resourceAccessPolicy,
-	subtitles: { formats: subtitleExtensionFormats },
-});
+	resourceAccessRuntimePolicy,
+} from "../policy.js";
+import type {
+	OpenedResourceFile,
+	ResourceFileMetadata,
+	ResourceSourceMetadata,
+} from "../ports.js";
 
 export function getVideoMimeType(
 	path: string,
 	types: Readonly<Record<string, string>> = resourceAccessPolicy.videoMimeTypes,
 ): string | null {
 	return types[extname(path).toLowerCase()] ?? null;
-}
-
-export interface ResourceFileMetadata {
-	sizeBytes: number;
-	modifiedAt: Timestamp;
-	mimeType: string;
-}
-
-export interface ResourceSourceMetadata extends ResourceFileMetadata {
-	sourceVersion: string;
-}
-
-export interface OpenedResourceFile extends ResourceFileMetadata {
-	/** The caller owns the resource and must release it after use. */
-	handle: FileHandle;
-	release(): Promise<void>;
 }
 
 function denied(): never {

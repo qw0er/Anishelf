@@ -14,6 +14,7 @@ import type { TranscodeProfile } from "../../../shared/transcode-profiles.js";
 import {
 	type MediaInspectionApi,
 	MediaInspectionBusyError,
+	type MediaInspectionResult,
 } from "../../media-inspection/public.js";
 import type { ResourceAccessApi } from "../../resource-access/public.js";
 import { checkDirectCompatibility } from "../domain/direct.js";
@@ -27,11 +28,12 @@ import type {
 	CheckedCompatibility,
 	CompatibilityInspectInput,
 } from "../domain/model.js";
+import type { MediaCompatibilityApi } from "../public.js";
 import { describeOriginalMedia } from "./description.js";
 import { describeOutputCandidates } from "./output-description.js";
 
 /** One source-bound browser negotiation workflow, with optional concrete output context. */
-export class MediaCompatibilityApplication {
+export class MediaCompatibilityApplication implements MediaCompatibilityApi {
 	constructor(
 		private readonly options: {
 			inspection: MediaInspectionApi;
@@ -58,7 +60,7 @@ export class MediaCompatibilityApplication {
 				);
 			profile = freeze(structuredClone(configured));
 		}
-		let inspected: Awaited<ReturnType<MediaInspectionApi["inspect"]>>;
+		let inspected: MediaInspectionResult;
 		try {
 			inspected = await this.options.inspection.inspect(
 				input.fileId,

@@ -2,7 +2,7 @@ import { fingerprint } from "../../../shared/fingerprint.js";
 import type { MediaProcessingPlan } from "../../../shared/media-processing.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import type { CheckedCompatibility } from "../../media-compatibility/public.js";
-import type { MediaExecutionRequest } from "./processing.js";
+import type { MediaExecutionRequest } from "../ports.js";
 
 const version = "preparation-execution:2";
 export type PreparationExecutionPlan =

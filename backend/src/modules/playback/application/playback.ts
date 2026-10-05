@@ -7,7 +7,7 @@ import {
 	type HlsPolicy,
 	hlsPolicy,
 	validateHlsPolicy,
-} from "../../hls/public.js";
+} from "../../hls/policy.js";
 import type { MediaCompatibilityApi } from "../../media-compatibility/public.js";
 import {
 	resolveExecutionPlan,
@@ -30,6 +30,7 @@ import {
 } from "../domain/plan.js";
 import { type PlaybackPolicy, playbackPolicy } from "../domain/policy.js";
 import type { PlaybackRepository } from "../infrastructure/repository.js";
+import type { PlaybackApi } from "../public.js";
 
 interface PlaybackSessionState {
 	sourceId: string;
@@ -40,7 +41,7 @@ interface PlaybackSessionState {
 }
 
 /** Coordinates filesystem identity, session authorization and durable progress. */
-export class PlaybackApplication {
+export class PlaybackApplication implements PlaybackApi {
 	private readonly sessions = new Map<string, PlaybackSessionState>();
 	private closed = false;
 	private readonly logger: Logger;

@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import type { Logger } from "pino";
-import type { MediaInfo, MediaTools } from "../../../platform/media/index.js";
+import type { MediaInfo } from "../../../platform/media/index.js";
 import { MediaToolError } from "../../../platform/media/index.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type {
@@ -11,21 +11,15 @@ import {
 	type MediaInspectionPolicy,
 	mediaInspectionPolicy,
 } from "../domain/policy.js";
-
-export class MediaInspectionBusyError extends Error {
-	constructor() {
-		super("Media inspection is busy.");
-		this.name = "MediaInspectionBusyError";
-	}
-}
-
-export interface MediaInspectionResult {
-	source: ResolvedSource;
-	info: MediaInfo;
-}
+import {
+	MediaInspectionBusyError,
+	type MediaInspectionResult,
+	type MediaProbe,
+} from "../ports.js";
+import type { MediaInspectionApi } from "../public.js";
 
 /** Shared, on-demand inspection of validated and version-bound media sources. */
-export class MediaInspectionApplication {
+export class MediaInspectionApplication implements MediaInspectionApi {
 	private readonly cache = new Map<string, MediaInfo>();
 	private readonly active = new Map<string, Promise<MediaInspectionResult>>();
 	private readonly controller = new AbortController();
@@ -35,7 +29,7 @@ export class MediaInspectionApplication {
 	constructor(
 		private readonly options: {
 			sources: ResourceAccessApi;
-			tools: Pick<MediaTools, "probe">;
+			tools: MediaProbe;
 			policy?: DeepReadonly<MediaInspectionPolicy>;
 			logger?: Logger;
 		},

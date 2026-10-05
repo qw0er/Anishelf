@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Logger } from "pino";
 import { ConfigurationService } from "../modules/configuration/application/service.js";
-import type { MediaToolsConfig } from "../modules/configuration/domain/model.js";
 import type {
 	BuiltinPolicy,
 	DeepReadonly,
@@ -12,9 +11,11 @@ import type { LibraryApplication } from "../modules/library/application/library.
 import { LibraryIndex } from "../modules/library/infrastructure/index.js";
 import { MediaInspectionApplication } from "../modules/media-inspection/application/inspection.js";
 import { PlaybackApplication } from "../modules/playback/application/playback.js";
-import { PreparationApplication } from "../modules/preparation/public.js";
+import { PreparationApplication } from "../modules/preparation/application/preparation.js";
 import { SubtitleApplication } from "../modules/subtitles/application/subtitles.js";
+import type { ExecutableSearch } from "../platform/environment.js";
 import { ApplicationLogging } from "../platform/logging/index.js";
+import type { MediaToolsConfig } from "../platform/media/config.js";
 import { MediaTools } from "../platform/media/index.js";
 import { DomainError } from "../shared/errors.js";
 import { ApplicationDatabase } from "./database.js";
@@ -28,7 +29,7 @@ async function initializeMediaTools(
 	config: MediaToolsConfig,
 	logger: Logger,
 	policy: DeepReadonly<BuiltinPolicy>,
-	environment: ConfigurationService["environment"]["executableSearch"],
+	environment: ExecutableSearch,
 ): Promise<MediaTools> {
 	const mediaTools = await MediaTools.create(
 		config,
@@ -190,15 +191,19 @@ async function createServer(
 		subtitles,
 		compatibility,
 		development,
+		closeDependencies: async () => {
+			// Stop durable owners before their shared executor and inspection dependencies.
+			await preparation.close();
+			playback.close();
+			await subtitles.close();
+			await library.close();
+			await execution.close();
+			await inspection.close();
+			database?.close();
+		},
 		...(development && existsSync(join(frontendRoot, "index.html"))
 			? { frontendRoot }
 			: {}),
-	});
-	server.addHook("onClose", async () => {
-		await execution.close();
-		await subtitles.close();
-		await inspection.close();
-		database?.close();
 	});
 	return server;
 }

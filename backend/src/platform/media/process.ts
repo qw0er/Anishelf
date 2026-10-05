@@ -3,8 +3,8 @@ import { constants } from "node:fs";
 import { access, stat } from "node:fs/promises";
 import { basename, delimiter, isAbsolute, join } from "node:path";
 import type { Logger } from "pino";
-import { captureRuntimeEnvironment } from "../../modules/configuration/public.js";
 import type { DeepReadonly } from "../../shared/policy.js";
+import { captureRuntimeEnvironment } from "../environment.js";
 import { MediaToolError } from "./errors.js";
 import { type MediaToolPolicy, mediaToolPolicy } from "./policy.js";
 

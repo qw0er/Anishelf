@@ -5,6 +5,5 @@ export {
 	builtinTranscodeProfiles,
 	defaultTranscodeProfileId,
 } from "./domain/transcode-profiles.js";
-export { captureRuntimeEnvironment } from "./infrastructure/deployment.js";
 export type { BuiltinPolicy, DeepReadonly } from "./policy.js";
 export { builtinPolicy, freeze, validatePolicy } from "./policy.js";

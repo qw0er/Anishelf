@@ -39,6 +39,8 @@ export function createHttpApp(options: {
 	compatibility?: MediaCompatibilityApplication;
 	frontendRoot?: string;
 	configuration?: ConfigurationService;
+	/** Bootstrap can own shutdown of shared dependencies. */
+	closeDependencies?: () => Promise<void>;
 }) {
 	const policy = options.policy ?? {
 		...builtinPolicy,
@@ -48,6 +50,7 @@ export function createHttpApp(options: {
 			...options.library?.policy.subtitles,
 		},
 	};
+	let ownedSubtitles = options.subtitles;
 	const app = Fastify({
 		loggerInstance: options.logger,
 		logController: new LogController({ disableRequestLogging: true }),
@@ -109,7 +112,7 @@ export function createHttpApp(options: {
 
 	if (options.library) {
 		const library = options.library;
-		app.addHook("onClose", async () => library.close());
+
 		registerLibraryRoutes(app, library);
 		registerMediaRoutes(app, library);
 		const subtitles =
@@ -119,7 +122,7 @@ export function createHttpApp(options: {
 				logger: options.logger,
 				policy,
 			});
-		app.addHook("onClose", async () => subtitles.close());
+		ownedSubtitles = subtitles;
 		registerSubtitleRoutes(app, subtitles);
 		registerSettingsRoutes(
 			app,
@@ -133,7 +136,7 @@ export function createHttpApp(options: {
 
 	if (options.playback) {
 		const playback = options.playback;
-		app.addHook("onClose", async () => playback.close());
+
 		registerPlaybackRoutes(app, playback);
 	}
 
@@ -141,9 +144,19 @@ export function createHttpApp(options: {
 		registerCompatibilityRoutes(app, options.compatibility);
 	if (options.preparation) {
 		const preparation = options.preparation;
-		app.addHook("onClose", async () => preparation.close());
+
 		registerPreparationRoutes(app, preparation);
 	}
+	app.addHook(
+		"onClose",
+		options.closeDependencies ??
+			(async () => {
+				await options.preparation?.close();
+				options.playback?.close();
+				await ownedSubtitles?.close();
+				await options.library?.close();
+			}),
+	);
 	const frontendRoot = options.frontendRoot;
 	if (options.development && frontendRoot)
 		app.register(async (scope) => registerFrontend(scope, frontendRoot));

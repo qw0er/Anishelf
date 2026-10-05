@@ -4,21 +4,21 @@ import { fileTypeFromFile } from "file-type";
 import type { Logger } from "pino";
 import { deploymentDefaults } from "../../contracts/defaults.js";
 import { preparedSubtitleFormats } from "../../contracts/subtitles.js";
-import type { MediaToolsConfig } from "../../modules/configuration/public.js";
-import { captureRuntimeEnvironment } from "../../modules/configuration/public.js";
-import {
-	type SubtitlePolicy,
-	subtitlePolicy,
-} from "../../modules/subtitles/public.js";
 import type { ServerMediaCapabilities } from "../../shared/media-capabilities.js";
 import type { DeepReadonly } from "../../shared/policy.js";
+import { captureRuntimeEnvironment } from "../environment.js";
 import { detectMediaCapabilities } from "./capabilities.js";
 import { codecDescriptor } from "./codec-descriptor.js";
+import {
+	type MediaToolsConfig,
+	type SubtitleExtractionPolicy,
+	subtitleExtractionPolicy,
+} from "./config.js";
 import { type MediaToolPolicy, mediaToolPolicy } from "./policy.js";
 
 export interface MediaToolsPolicy {
 	mediaTools: MediaToolPolicy;
-	subtitles: SubtitlePolicy;
+	subtitles: SubtitleExtractionPolicy;
 }
 
 import type {
@@ -240,7 +240,7 @@ export class MediaTools {
 		},
 		policy: DeepReadonly<MediaToolsPolicy> = {
 			mediaTools: mediaToolPolicy,
-			subtitles: subtitlePolicy,
+			subtitles: subtitleExtractionPolicy,
 		},
 		environment = captureRuntimeEnvironment().executableSearch,
 		logger?: Logger,
