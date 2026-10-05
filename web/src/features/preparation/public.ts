@@ -1,3 +1,4 @@
+export { audioTrackLabel } from "./audio-tracks.js";
 export { PreparationFileMenuItems } from "./components/file-menu-items.js";
 export { PreparationButton } from "./components/preparation-button.js";
 export { PreparationMonitor } from "./components/preparation-monitor.js";

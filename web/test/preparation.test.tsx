@@ -135,7 +135,7 @@ function button(props = {}) {
 	);
 }
 
-test("directory action has a placeholder while checking and no transcode button for supported or unknown files", async () => {
+test("directory action has a placeholder while checking and no transcode button for supported files but an action for unknown files", async () => {
 	const view = button({ loading: true });
 	expect(
 		view
@@ -171,8 +171,9 @@ test("directory action has a placeholder while checking and no transcode button 
 			/>
 		</Wrapper>,
 	);
-	expect(view.queryByRole("button", { name: "Pre-transcode" })).toBeNull();
-	expect(view.getByRole("button", { name: "Check again" })).toBeTruthy();
+	expect(
+		await view.findByRole("button", { name: "Pre-transcode" }),
+	).toBeTruthy();
 });
 test("directory icon action exposes its tooltip on keyboard focus", async () => {
 	const view = button();
@@ -500,5 +501,206 @@ test.each([task, ready])(
 		]) {
 			expect(view.queryByRole("menuitem", { name })).toBeNull();
 		}
+	},
+);
+
+const multiAudio = {
+	...unsupported,
+	direct: { status: "unknown", reason: "native-track-selection-uncertain" },
+	audioTracks: [
+		{
+			stream: {
+				index: 4,
+				label: "English",
+				language: "eng",
+				codec: "aac",
+				channels: 2,
+				default: true,
+			},
+			compatibility: { status: "supported", reason: "browser-supported" },
+		},
+		{
+			stream: {
+				index: 7,
+				label: "Japanese",
+				language: "jpn",
+				codec: "ac3",
+				channels: 6,
+				default: false,
+			},
+			compatibility: { status: "unsupported", reason: "browser-rejected" },
+		},
+	],
+} as CompatibilityResult;
+
+test.each(["all", "subset", "none"])(
+	"multi-audio preparation chooses %s with fresh bound evidence",
+	async (selection) => {
+		const view = render(
+			<PreparationButton
+				fileId="file"
+				loading={false}
+				result={multiAudio}
+				error={null}
+				onRecheck={vi.fn()}
+				showLabel
+			/>,
+			{ wrapper: Wrapper },
+		);
+		await waitFor(() =>
+			expect(
+				(
+					view.getByRole("button", {
+						name: "Pre-transcode",
+					}) as HTMLButtonElement
+				).disabled,
+			).toBe(false),
+		);
+		fireEvent.click(view.getByRole("button", { name: "Pre-transcode" }));
+		const english = await view.findByRole("checkbox", { name: /English/ });
+		const japanese = view.getByRole("checkbox", { name: /Japanese/ });
+		expect((english as HTMLInputElement).checked).toBe(true);
+		expect((japanese as HTMLInputElement).checked).toBe(true);
+		if (selection === "subset") fireEvent.click(english);
+		if (selection === "none")
+			fireEvent.click(view.getByRole("button", { name: "No audio" }));
+		expect(api.createPreparation).not.toHaveBeenCalled();
+		fireEvent.click(view.getByRole("button", { name: "Prepare for browser" }));
+		await waitFor(() => expect(api.createPreparation).toHaveBeenCalledTimes(1));
+		const input = vi.mocked(api.createPreparation).mock.calls[0]?.[1];
+		if (selection === "all")
+			expect(input).not.toHaveProperty("audioStreamIndices");
+		else
+			expect(input?.audioStreamIndices).toEqual(
+				selection === "subset" ? [7] : [],
+			);
+		expect(
+			vi.mocked(api.inspectMediaCompatibility).mock.calls.at(-1)?.[0]
+				.audioStreamIndices,
+		).toEqual(input?.audioStreamIndices);
+	},
+);
+
+test("an existing all-audio copy does not disable preparing a selected audio track", async () => {
+	vi.mocked(api.getPreparations).mockResolvedValue({
+		tasks: [{ ...ready, audioStreamIndices: [4, 7] }],
+	});
+	const view = render(
+		<PreparationButton
+			fileId="file"
+			loading={false}
+			result={{
+				...multiAudio,
+				direct: { status: "supported", reason: "browser-supported" },
+			}}
+			error={null}
+			onRecheck={vi.fn()}
+			audioStreamIndices={[7]}
+			showLabel
+		/>,
+		{ wrapper: Wrapper },
+	);
+	await waitFor(() =>
+		expect(
+			(view.getByRole("button", { name: "Pre-transcode" }) as HTMLButtonElement)
+				.disabled,
+		).toBe(false),
+	);
+	fireEvent.click(view.getByRole("button", { name: "Pre-transcode" }));
+	await waitFor(() =>
+		expect(api.createPreparation).toHaveBeenCalledWith(
+			"file",
+			expect.objectContaining({ audioStreamIndices: [7] }),
+			expect.anything(),
+		),
+	);
+});
+
+test("ready-copy reuse filters audio selection and rechecks the exact tracks", async () => {
+	const japanese = {
+		...ready,
+		id: "japanese",
+		artifactId: "jp",
+		audioStreamIndices: [7],
+	};
+	vi.mocked(api.getPreparations).mockResolvedValue({
+		tasks: [{ ...ready, audioStreamIndices: [4, 7] }, japanese],
+	});
+	vi.mocked(api.getPreparation).mockResolvedValue(japanese);
+	const { result, rerender } = renderHook(
+		({ selection }: { selection: number[] }) =>
+			usePreparedPlayback("file", "version", true, selection, [4, 7]),
+		{ initialProps: { selection: [7] }, wrapper: Wrapper },
+	);
+	await waitFor(() => expect(result.current.task?.id).toBe("japanese"));
+	expect(api.checkMediaCompatibility).toHaveBeenCalledWith(
+		expect.objectContaining({ audioStreamIndices: [7] }),
+		expect.anything(),
+	);
+	rerender({ selection: [4] });
+	await waitFor(() => expect(result.current.loading).toBe(false));
+	expect(result.current.task).toBeNull();
+});
+
+test("task retry and verification retain audio selection and reject changed task tracks", async () => {
+	const selected = { ...ready, audioStreamIndices: [7] };
+	vi.mocked(api.getPreparation).mockResolvedValue({
+		...selected,
+		audioStreamIndices: [4],
+	});
+	await expect(
+		verifyPreparedPlayback(selected, new AbortController().signal),
+	).rejects.toThrow("unavailable");
+	const view = render(
+		<PreparationTaskCard
+			task={{ ...selected, status: "failed" }}
+			refresh={vi.fn()}
+		/>,
+		{ wrapper: Wrapper },
+	);
+	fireEvent.click(view.getByRole("button", { name: "Retry preparation" }));
+	await waitFor(() =>
+		expect(api.retryPreparation).toHaveBeenCalledWith(
+			selected.id,
+			expect.objectContaining({ audioStreamIndices: [7] }),
+			expect.anything(),
+		),
+	);
+});
+
+test("default-all playback does not silently reuse a subset copy", async () => {
+	vi.mocked(api.getPreparations).mockResolvedValue({
+		tasks: [{ ...ready, audioStreamIndices: [7] }],
+	});
+	const { result } = renderHook(
+		() => usePreparedPlayback("file", "version", true, undefined, [4, 7]),
+		{ wrapper: Wrapper },
+	);
+	await waitFor(() => expect(result.current.loading).toBe(false));
+	expect(result.current.task).toBeNull();
+	expect(api.checkMediaCompatibility).not.toHaveBeenCalled();
+});
+
+test.each([undefined, [7], []])(
+	"unknown multi-audio selection %s offers pre-transcode",
+	async (audioStreamIndices) => {
+		const view = render(
+			<PreparationButton
+				fileId="file"
+				loading={false}
+				result={{
+					...multiAudio,
+					direct: { status: "unknown", reason: "browser-uncertain" },
+				}}
+				error={null}
+				onRecheck={vi.fn()}
+				{...(audioStreamIndices !== undefined ? { audioStreamIndices } : {})}
+				showLabel
+			/>,
+			{ wrapper: Wrapper },
+		);
+		expect(
+			await view.findByRole("button", { name: "Pre-transcode" }),
+		).toBeTruthy();
 	},
 );

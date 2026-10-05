@@ -3,6 +3,7 @@ import {
 	ApiClientError,
 	getDirectory,
 	getLibrary,
+	inspectMediaCompatibility,
 	isRequestCancelled,
 	openPlaybackSession,
 	releasePlaybackSession,
@@ -277,4 +278,21 @@ test("playback mutations use typed payloads and release accepts an empty 204", a
 		}),
 	]);
 	expect(fetcher.mock.calls[2]?.[1]?.method).toBe("DELETE");
+});
+
+test("audio selection is serialized distinctly from default-all and silent output", async () => {
+	for (const selection of [undefined, [], [4, 7]]) {
+		fetcher.mockResolvedValueOnce(json({}));
+		await inspectMediaCompatibility({
+			fileId: "file",
+			...(selection !== undefined ? { audioStreamIndices: selection } : {}),
+		});
+		const url = new URL(
+			String(fetcher.mock.calls.at(-1)?.[0]),
+			"http://localhost",
+		);
+		expect(url.searchParams.get("audioStreamIndices")).toBe(
+			selection === undefined ? null : selection.join(","),
+		);
+	}
 });

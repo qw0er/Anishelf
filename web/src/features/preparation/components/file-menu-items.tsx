@@ -88,6 +88,10 @@ export function PreparationFileMenuItems({
 					{t("preparation.delete")}
 					{artifacts.length > 1 && (
 						<span className="max-w-32 truncate text-muted-foreground">
+							{task.audioStreamIndices !== undefined &&
+								(task.audioStreamIndices.length
+									? `${t("audioTracks.retained", { count: task.audioStreamIndices.length })} · `
+									: `${t("audioTracks.none")} · `)}
 							{preparation.catalog?.profiles.find(
 								(profile) => profile.id === task.profileId,
 							)?.name ?? t("preparation.profile")}

@@ -262,6 +262,7 @@ export function inspectMediaCompatibility(
 	input: {
 		fileId: string;
 		sourceVersion?: string;
+		audioStreamIndices?: number[];
 		output?: NonNullable<
 			import("./contracts.js").CompatibilityCheckRequest["output"]
 		>;
@@ -269,6 +270,8 @@ export function inspectMediaCompatibility(
 	options?: RequestOptions,
 ): Promise<import("./contracts.js").CompatibilityInspection> {
 	const query = new URLSearchParams();
+	if (input.audioStreamIndices !== undefined)
+		query.set("audioStreamIndices", input.audioStreamIndices.join(","));
 	if (input.sourceVersion) query.set("sourceVersion", input.sourceVersion);
 	if (input.output) {
 		query.set("profileId", input.output.profileId);

@@ -44,6 +44,15 @@ export function PreparationTaskCard({
 				{status} · {t(`preparation.mode.${task.mode}`)}
 			</p>
 			<p>{profileName ?? t("preparation.profile")}</p>
+			{task.audioStreamIndices !== undefined && (
+				<p>
+					{task.audioStreamIndices.length
+						? t("audioTracks.retained", {
+								count: task.audioStreamIndices.length,
+							})
+						: t("audioTracks.none")}
+				</p>
+			)}
 			{task.progress?.speed != null && pending && (
 				<p>{task.progress.speed.toFixed(1)}×</p>
 			)}
@@ -134,6 +143,7 @@ export function PreparationTaskCard({
 										task.profileId,
 										signal,
 										task.sourceVersion,
+										task.audioStreamIndices,
 									);
 									await retryPreparation(task.id, body, { signal });
 									refresh();

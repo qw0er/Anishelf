@@ -156,6 +156,7 @@ npm run lint    # Biome lint
 
 - [Requirements and active release acceptance](docs/requirements.md)
 - [Architecture and implementation reference](docs/architecture.md)
+- [UI design conventions](docs/design.md)
 - [Development and operations](docs/development.md)
 - [Complete historical records](docs/history.md)
 

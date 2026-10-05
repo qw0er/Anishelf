@@ -110,6 +110,7 @@
 		"waitForScan": "Wait for the scan to finish before changing the directory."
 	},
 	"player": {
+		"unavailableTitle": "Unable to play this video",
 		"label": "Player",
 		"videoLabel": "Video: {{name}}",
 		"retry": "Retry file",
@@ -173,6 +174,7 @@
 			"api-unavailable": "The required browser capability API is unavailable.",
 			"query-failed": "The browser capability query failed.",
 			"query-timeout": "The browser capability query timed out.",
+			"audio-selection-requires-processing": "Audio selection requires a prepared copy.",
 			"native-track-selection-uncertain": "This file has multiple media tracks. Native playback may select a different track.",
 			"hdr-display-unverified": "HDR decoding and display behavior require actual playback validation.",
 			"no-video-stream": "No usable video stream was found.",
@@ -196,6 +198,25 @@
 			"unsupported": "Reported unsupported",
 			"unknown": "Unknown"
 		}
+	},
+	"audioTracks": {
+		"copyRequired": "A prepared copy is required to play the selected audio tracks.",
+		"label": "Audio tracks",
+		"track": "Audio {{number}}",
+		"channels_one": "{{count}} channel",
+		"channels_other": "{{count}} channels",
+		"default": "Default",
+		"all": "All audio tracks",
+		"none": "No audio",
+		"noneDescription": "The prepared copy will have no audio.",
+		"prepareTitle": "Choose audio tracks",
+		"prepareDescription": "All audio tracks are included by default. Choose which tracks to keep in the prepared copy.",
+		"playback": "Playback audio",
+		"defaultPlayback": "Default audio / all tracks",
+		"playbackDescription": "Choosing an audio track uses a prepared copy. Prepare it once if no matching copy is available.",
+		"selected": "{{count}} selected audio tracks",
+		"retained_one": "{{count}} audio track retained",
+		"retained_other": "{{count}} audio tracks retained"
 	},
 	"preparation": {
 		"loadingCopies": "Loading prepared copies…",

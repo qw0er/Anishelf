@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import Database from "better-sqlite3";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/bootstrap/database.js";
@@ -701,3 +702,47 @@ test("file-filtered task lookup finds an older copy outside the global recent-ta
 	});
 	expect(invalid.statusCode).toBe(400);
 });
+
+test.each([1, null])(
+	"migrates persisted single audio selection %s before listing tasks",
+	async (audioIndex) => {
+		const f = await fixture();
+		const id = await taskId(f.preparation.create(await f.input()));
+		const task = await completed(f, id);
+		const connection = new Database(join(f.dataDir, "anishelf.sqlite"));
+		try {
+			connection
+				.prepare(`UPDATE preparation_tasks SET snapshot = json_remove(
+			json_set(snapshot, '$.request.audioStreamIndex', json(?), '$.identity.audioStreamIndex', json(?)),
+			'$.request.audioStreamIndices', '$.identity.audioStreamIndices') WHERE id = ?`)
+				.run(JSON.stringify(audioIndex), JSON.stringify(audioIndex), id);
+			connection
+				.prepare("DELETE FROM __drizzle_migrations WHERE created_at = ?")
+				.run(1791207000000);
+		} finally {
+			connection.close();
+		}
+		await f.restart();
+		const expected = audioIndex === null ? [] : [audioIndex];
+		const response = await f.app.inject({
+			method: "GET",
+			url: "/api/preparations",
+			headers,
+		});
+		expect(response.statusCode, response.body).toBe(200);
+		expect(response.json().tasks).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id,
+					audioStreamIndices: expected,
+					artifactId: task.artifactId,
+				}),
+			]),
+		);
+		expect(f.database.preparation.get(id)?.identity.audioStreamIndices).toEqual(
+			expected,
+		);
+		await f.restart();
+		expect((await f.preparation.get(id)).audioStreamIndices).toEqual(expected);
+	},
+);

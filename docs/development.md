@@ -193,10 +193,10 @@ remove history, settings or original media.
 
 ## UI Maintenance
 
-Use the existing Tailwind/shadcn Base UI controls. Add a component from the root
+Follow the [UI design conventions](design.md). Use the existing Tailwind/shadcn Base UI controls. Add a component from the root
 with `npx shadcn@latest add button --cwd web`; review the generated source and
-imports. CSS and shared components own style values; architecture documents their
-usage. Vite reads tsconfig paths through resolve.tsconfigPaths. Biome supports
+imports. CSS and shared components own style values; the design document describes
+their usage. Vite reads tsconfig paths through resolve.tsconfigPaths. Biome supports
 Tailwind directives. The active UI uses English; further localization is planned.
 
 ## Verification and Troubleshooting

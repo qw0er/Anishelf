@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { Button } from "../../../components/ui/button.js";
 import { Tooltip } from "../../../components/ui/tooltip.js";
 import { getErrorTranslationKey } from "../../../lib/error-translation.js";
+import { preparedWatchPath } from "../audio-tracks.js";
 import { usePreparationContext } from "../context.js";
 import { PreparationTaskCard } from "./task-card.js";
 export function PreparationMonitor() {
@@ -77,9 +78,7 @@ export function PreparationMonitor() {
 									(profile) => profile.id === task.profileId,
 								)?.name
 							}
-							onWatch={(task) =>
-								navigate(`/files/${encodeURIComponent(task.fileId)}`)
-							}
+							onWatch={(task) => navigate(preparedWatchPath(task))}
 						/>
 					))}
 				</div>

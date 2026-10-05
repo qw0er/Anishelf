@@ -12,16 +12,23 @@ export async function negotiatePreparation(
 	profileId: string,
 	signal: AbortSignal,
 	sourceVersion?: string,
+	audioStreamIndices?: number[],
 ): Promise<CompatibilityCheckRequest> {
 	const output = { profileId, target: "file" as const };
 	const description = await inspectBrowserMedia(
-		{ fileId, output, ...(sourceVersion ? { sourceVersion } : {}) },
+		{
+			fileId,
+			output,
+			...(sourceVersion ? { sourceVersion } : {}),
+			...(audioStreamIndices !== undefined ? { audioStreamIndices } : {}),
+		},
 		signal,
 	);
 	const evidence = await queryCapabilities(description.queries, signal, true);
 	return {
 		sourceVersion: description.sourceVersion,
 		descriptionId: description.descriptionId,
+		...(audioStreamIndices !== undefined ? { audioStreamIndices } : {}),
 		output,
 		evidence,
 	};
@@ -36,6 +43,7 @@ export async function verifyPreparedPlayback(
 		task.profileId,
 		signal,
 		task.sourceVersion,
+		task.audioStreamIndices,
 	);
 	const result = await checkMediaCompatibility(
 		{ fileId: task.fileId, ...body },
@@ -54,6 +62,10 @@ export async function verifyPreparedPlayback(
 		current.fileId !== task.fileId ||
 		current.sourceVersion !== task.sourceVersion ||
 		current.artifactId !== task.artifactId ||
+		JSON.stringify(current.audioStreamIndices) !==
+			JSON.stringify(task.audioStreamIndices) ||
+		current.profileId !== task.profileId ||
+		current.mode !== task.mode ||
 		current.status !== "ready" ||
 		!current.playbackUrl
 	)

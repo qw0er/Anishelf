@@ -11,7 +11,7 @@
 - [Persistent Web preparation](#persistent-web-preparation)
 - [Real-time playback design](#real-time-playback-design)
 - [HTTP boundaries](#http-boundaries)
-- [UI conventions](#ui-conventions)
+- [UI design](#ui-design)
 
 This document records ownership, design decisions and cross-module constraints.
 [Requirements](requirements.md) owns scope and acceptance;
@@ -287,6 +287,16 @@ maps every selected track explicitly and preserves its stream metadata and defau
 disposition. This delivers a completed multi-track file; HLS/DASH manifests and
 playback-time switching are not implemented by this backend.
 
+The Web preparation action opens audio choices for multi-track sources, with all
+tracks selected initially. It submits the chosen subset (or video-only output)
+with fresh browser evidence. The playback page lists original audio tracks and
+per-track compatibility; choosing one uses or explicitly prepares a single-track
+copy. Viewing or changing a selection never creates a server task automatically.
+The `audio` query parameter preserves the ordered selection in watch links, and
+copy discovery, pending status, retry and verification use that same selection.
+Original playback and all-track copies use their native default audio; seamless
+in-player switching remains dependent on a future HLS/DASH delivery path.
+
 Processing owns source checks, selected-stream validation, server capability
 preflight, execution and output validation. The FFmpeg adapter compiles trusted
 typed settings, selects explicit streams and declares all required filters.
@@ -411,21 +421,23 @@ to full responses; unsatisfiable ranges return 416. Completion/disconnect/errors
 release handles. The browser player requests media directly; never load a whole
 film through the JSON client or into a Blob. Pending work has no media URL.
 
-## UI conventions
+## UI design
 
-Use Tailwind defaults, shared shadcn controls and Vidstack's native control styling.
-Keep common page spacing/layout in shared CSS rather than duplicating theme values.
-Routes own server loading; components own transient form/player state. Cancellation
-and stale-response guards prevent departed views from publishing results.
+Visual hierarchy, information density, interaction, feedback, accessibility and
+responsive-layout conventions are defined in [Design](design.md). This document
+owns the UI's implementation boundaries and runtime behavior.
 
-Lists stay compact with aligned actions, truncated names and accessible full-name
-Tooltips. Status must be understandable by shape/text, not color alone. Icon-only
-controls require an accessible name and keyboard focus. Keep compatibility/task
-status outside action menus; put shared choices in Settings. The preparation panel
-is a nonblocking active-task monitor, not a dedicated page.
 
-Operation results and recoverable failures use deduplicated Toasts. Ongoing subtitle
-preparation feedback persists until completion, failure or selection cancellation.
-Use existing retry actions. Form validation, initial page errors, unavailable
-resources, scan/stale status, setup and empty states remain inline.
-Unrelated polling must not reset playback or subtitle renderers.
+Unknown original compatibility exposes pre-transcoding actions for both single-
+and multi-audio files. Fresh output compatibility evidence decides whether a task
+can be created. The player always offers an explicit original-file attempt
+when playback is blocked, including when prepared-copy discovery fails. This action
+loads the original URL without creating a preparation task. In-context recovery
+actions share a single titled playback-unavailable panel and wrapping action row.
+Check again, Try original file, and Pre-transcode use compact labeled buttons with
+icons; the page-level return link is not repeated inside the panel.
+
+The preparation audio-selection migration converts legacy single audio indices to
+one-element arrays, and legacy null selections to empty arrays, in both stored
+requests and derived identities. Existing task and artifact identities remain intact;
+new snapshots continue to use ordered arrays.

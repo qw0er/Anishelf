@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { PreparationTaskResponse } from "../../api/contracts.js";
 import { interactionPolicy } from "../../config/interaction-policy.js";
+import { matchesAudioSelection } from "./audio-tracks.js";
 import { usePreparationContext } from "./context.js";
 import { verifyPreparedPlayback } from "./negotiation.js";
 import { usePreparations } from "./use-preparations.js";
@@ -10,18 +11,26 @@ export function usePreparedPlayback(
 	fileId: string,
 	sourceVersion: string | undefined,
 	enabled: boolean,
+	audioStreamIndices?: number[],
+	allAudioStreamIndices?: number[],
 ) {
 	const preparation = usePreparationContext();
 	const fileTasks = usePreparations(fileId, enabled);
 	const [revision, setRevision] = useState(0);
-	const candidates = [
+	const tasks = [
 		...new Map(
 			[...preparation.tasks, ...fileTasks.tasks].map((task) => [task.id, task]),
 		).values(),
-	]
+	];
+	const candidates = tasks
 		.filter(
 			(task) =>
 				task.fileId === fileId &&
+				matchesAudioSelection(
+					task,
+					audioStreamIndices,
+					allAudioStreamIndices,
+				) &&
 				(!sourceVersion || task.sourceVersion === sourceVersion) &&
 				task.status === "ready" &&
 				task.playbackUrl,
@@ -35,6 +44,8 @@ export function usePreparedPlayback(
 		fileId,
 		sourceVersion,
 		enabled,
+		audioStreamIndices,
+		allAudioStreamIndices,
 		revision,
 		candidates.map((task) => [task.id, task.artifactId, task.updatedAtMs]),
 	]);
@@ -77,11 +88,17 @@ export function usePreparedPlayback(
 			: { identity, loading: enabled, task: null, error: null };
 	return {
 		...current,
+		tasks,
 		loading: enabled && (current.loading || fileTasks.loading),
 		listError: fileTasks.error,
 		pending: [...fileTasks.tasks, ...preparation.tasks].some(
 			(task) =>
 				task.fileId === fileId &&
+				matchesAudioSelection(
+					task,
+					audioStreamIndices,
+					allAudioStreamIndices,
+				) &&
 				(!sourceVersion || task.sourceVersion === sourceVersion) &&
 				(task.status === "queued" || task.status === "processing"),
 		),
