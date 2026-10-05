@@ -200,7 +200,7 @@
 		"allTasks": "All tasks",
 		"description": "Prepare a reusable browser copy when the original cannot play. Existing compatible streams are retained.",
 		"listDescription": "Server tasks continue when you leave this page. Deleting a prepared copy keeps the original file and viewing history.",
-		"profile": "Output profile",
+		"profile": "Pre-transcoding profile",
 		"chooseProfile": "Choose a profile",
 		"start": "Prepare for browser",
 		"checking": "Checking browser\u2026",
@@ -245,6 +245,20 @@
 			"capability-unknown": "The server media capability could not be confirmed.",
 			"processing-failed": "Media preparation failed. Retry after checking the server."
 		},
-		"open": "Show preparation options"
+		"open": "Show preparation options",
+		"pretranscode": "Pre-transcode",
+		"configure": "Set transcode profile",
+		"monitor": "Transcoding tasks",
+		"activeCount_one": "{{count}} active",
+		"activeCount_other": "{{count}} active",
+		"totalCount_one": "{{count}} task",
+		"totalCount_other": "{{count}} tasks",
+		"settingsDescription": "Choose the output profile used by pre-transcoding in the library. Compatible streams are retained automatically.",
+		"profileSaved": "Transcode profile saved.",
+		"saveProfile": "Save transcode profile",
+		"loadingProfiles": "Loading output profiles\u2026",
+		"required": "This browser cannot play the original file. Pre-transcode it from its folder before watching.",
+		"waitForCopy": "The prepared copy is not ready yet. Playback will start when preparation finishes.",
+		"copyUnsupported": "No available prepared copy could be confirmed for this browser. Check the task or choose another profile in Settings."
 	}
 }

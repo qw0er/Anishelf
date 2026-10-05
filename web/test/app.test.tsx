@@ -18,10 +18,12 @@ import type {
 	FileResponse,
 	LibraryResponse,
 	PlaybackSessionResponse,
+	PreparationTaskResponse,
 	ScanStateDto,
 	SettingsResponse,
 } from "../src/api/contracts.js";
 import { Toaster, toast } from "../src/components/ui/toast.js";
+import { clearOriginalCompatibilityCache } from "../src/lib/media-compatibility.js";
 import { libraryRoute } from "../src/routes/library.js";
 
 const runningScan: ScanStateDto = {
@@ -58,6 +60,7 @@ let directories: Map<string, DirectoryResponse>;
 let fileError: boolean;
 let compatibilityStatus: "supported" | "unsupported" | "unknown";
 let settings: SettingsResponse;
+let preparationTasks: PreparationTaskResponse[];
 
 function json(value: unknown, status = 200) {
 	return new Response(JSON.stringify(value), {
@@ -67,6 +70,8 @@ function json(value: unknown, status = 200) {
 }
 
 beforeEach(() => {
+	clearOriginalCompatibilityCache();
+	preparationTasks = [];
 	library = {
 		ready: true,
 		revision: 1,
@@ -113,7 +118,25 @@ beforeEach(() => {
 	fetcher.mockReset();
 	fetcher.mockImplementation(async (input, init) => {
 		const path = String(input);
-		if (path === "/api/files/file-1/compatibility") {
+		if (path === "/api/preparations" || path.startsWith("/api/preparations?"))
+			return json({ tasks: preparationTasks });
+		if (path === "/api/transcode-profiles")
+			return json({
+				profiles: [
+					{
+						id: "builtin:web",
+						name: "Browser",
+						description: "Browser profile",
+						source: "builtin",
+						usage: "preparation",
+					},
+				],
+				selectedProfileId: "builtin:web",
+				selectionAvailable: true,
+			});
+		if (path.startsWith("/api/preparations/"))
+			return json(preparationTasks.find((task) => path.endsWith(task.id)));
+		if (path.startsWith("/api/files/file-1/compatibility")) {
 			if (init?.method === "POST") {
 				const decision = {
 					status: compatibilityStatus,
@@ -132,7 +155,9 @@ beforeEach(() => {
 					audio: decision,
 					selectedVideo: null,
 					selectedAudio: null,
-					output: null,
+					output: JSON.parse(String(init.body)).output
+						? { combinations: { "copy-copy": "supported" } }
+						: null,
 					warnings: [],
 				});
 			}
@@ -1228,7 +1253,12 @@ test("file rows offer an icon copy button with tooltip without opening playback"
 	expect(screen.queryByRole("button", { name: "Copy media link" })).toBeNull();
 	fireEvent.click(screen.getByRole("link", { name: "Season 1" }));
 	const button = await screen.findByRole("button", { name: "Copy media link" });
-	expect(button.getAttribute("title")).toBe("Copy media link");
+	fireEvent.focus(button);
+	await waitFor(() =>
+		expect(
+			document.querySelector('[data-slot="tooltip-content"]')?.textContent,
+		).toBe("Copy media link"),
+	);
 	expect(button.textContent).toBe("");
 	expect(button.closest("a")).toBeNull();
 	fireEvent.click(button);
@@ -1268,15 +1298,14 @@ test("supported media shows compatibility information in a dialog below the play
 	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 });
 
-test("uses the unified fingerprint-bound request and displays source compatibility", async () => {
+test("unsupported media displays a preparation hint without opening a modal or creating work", async () => {
 	compatibilityStatus = "unsupported";
 	renderApp("/files/file-1");
-	const dialog = await screen.findByRole("dialog", {
-		name: "Playback compatibility",
-	});
-	expect(
-		within(dialog).getByText("This file is not supported by this browser."),
-	).toBeTruthy();
+	await screen.findByText(
+		"This browser cannot play the original file. Pre-transcode it from its folder before watching.",
+	);
+	expect(screen.queryByRole("dialog")).toBeNull();
+	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
 	const call = fetcher.mock.calls.find(
 		([path, init]) =>
 			path === "/api/files/file-1/compatibility" && init?.method === "POST",
@@ -1286,54 +1315,31 @@ test("uses the unified fingerprint-bound request and displays source compatibili
 		output: null,
 		sourceVersion: "version",
 	});
-	expect(dialog.textContent).not.toMatch(
-		/Recommended preparation|File playback|Media Source playback/,
-	);
+	expect(
+		fetcher.mock.calls.some(
+			([url, init]) =>
+				String(url).includes("/preparations") && init?.method === "POST",
+		),
+	).toBe(false);
 });
 
-test("unknown media opens a dismissible compatibility dialog that can be reopened", async () => {
+test("unknown media keeps an explicit original attempt and manual compatibility details", async () => {
 	compatibilityStatus = "unknown";
 	renderApp("/files/file-1");
-	const dialog = await screen.findByRole("dialog", {
-		name: "Playback compatibility",
-	});
-	expect(
-		within(dialog).getByText("Playback compatibility could not be confirmed."),
-	).toBeTruthy();
-	fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
-	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	await screen.findByText("Playback compatibility could not be confirmed.");
+	expect(screen.queryByRole("dialog")).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Try original file" }));
+	await screen.findByLabelText("Video: Episode 01.mp4");
 	fireEvent.click(
 		screen.getByRole("button", { name: "Playback compatibility info" }),
 	);
 	await screen.findByRole("dialog", { name: "Playback compatibility" });
 });
 
-test("unsupported media waits for an explicit original-file attempt and reports runtime failure", async () => {
-	compatibilityStatus = "unsupported";
-	renderApp("/files/file-1");
-	const dialog = await screen.findByRole("dialog", {
-		name: "Playback compatibility",
-	});
-	expect(
-		within(dialog).getByText("This file is not supported by this browser."),
-	).toBeTruthy();
-	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
-	fireEvent.click(screen.getByRole("button", { name: "Try original file" }));
-	const video = await screen.findByLabelText("Video: Episode 01.mp4");
-	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-	Object.defineProperty(video, "error", {
-		value: { code: 3, message: "Decode failed" },
-	});
-	fireEvent.error(video);
-	await screen.findByText(/Actual playback failed/);
-	fireEvent.click(screen.getByRole("button", { name: "Check again" }));
-	await screen.findByRole("button", { name: "Try original file" });
-	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
-});
 test("an unavailable compatibility check remains retryable and permits an explicit attempt", async () => {
 	const implementation = fetcher.getMockImplementation();
 	fetcher.mockImplementation((input, init) => {
-		if (String(input) === "/api/files/file-1/compatibility")
+		if (String(input).startsWith("/api/files/file-1/compatibility"))
 			return Promise.resolve(
 				json(
 					{
@@ -1352,7 +1358,64 @@ test("an unavailable compatibility check remains retryable and permits an explic
 	renderApp("/files/file-1");
 	await screen.findByText(
 		"Compatibility could not be checked. You can retry or try the original file.",
+		undefined,
+		{ timeout: 3000 },
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Try original file" }));
 	await screen.findByLabelText("Video: Episode 01.mp4");
+});
+
+test("unsupported file uses a ready transcode automatically and the task monitor persists across navigation", async () => {
+	compatibilityStatus = "unsupported";
+	preparationTasks = [
+		{
+			id: "prepared-task",
+			fileId: file.file.id,
+			filename: file.file.name,
+			sourceVersion: "version",
+			profileId: "builtin:web",
+			mode: "remux",
+			reasons: { video: "copy", audio: "copy" },
+			status: "ready",
+			playbackAvailability: "ready",
+			progress: null,
+			failureReason: null,
+			createdAtMs: 1,
+			updatedAtMs: 1,
+			artifactId: "artifact",
+			playbackUrl: "/api/prepared-media/artifact",
+			sizeBytes: 100,
+		},
+	];
+	renderApp("/files/file-1");
+	const video = await screen.findByLabelText("Video: Episode 01.mp4");
+	await waitFor(() =>
+		expect(video.getAttribute("src")).toBe("/api/prepared-media/artifact"),
+	);
+	expect(screen.queryByRole("dialog")).toBeNull();
+	const monitor = screen.getByRole("complementary", {
+		name: "Transcoding tasks",
+	});
+	fireEvent.click(
+		within(monitor).getByRole("button", { name: /Transcoding tasks/ }),
+	);
+	fireEvent.click(screen.getByRole("link", { name: "Library" }));
+	await waitFor(() =>
+		expect(screen.getByTestId("location").textContent).toBe("/"),
+	);
+	expect(screen.getByRole("complementary", { name: "Transcoding tasks" })).toBe(
+		monitor,
+	);
+	expect(
+		within(monitor)
+			.getByRole("button", { name: /Transcoding tasks/ })
+			.getAttribute("aria-expanded"),
+	).toBe("false");
+	expect(screen.queryByRole("link", { name: "Media preparation" })).toBeNull();
+	expect(
+		fetcher.mock.calls.some(
+			([url, init]) =>
+				String(url).includes("/preparations") && init?.method === "POST",
+		),
+	).toBe(false);
 });

@@ -357,3 +357,23 @@ export function deletePreparedMedia(
 		options,
 	);
 }
+
+export function selectTranscodeProfile(
+	profileId: string | null,
+	options?: RequestOptions,
+): Promise<import("./contracts.js").TranscodeProfileCatalog> {
+	return request("/api/transcode-profiles/selection", "PUT", options, {
+		profileId,
+	});
+}
+
+export function getFilePreparations(
+	fileId: string,
+	options?: RequestOptions,
+): Promise<import("./contracts.js").PreparationListResponse> {
+	return request(
+		`/api/preparations?${new URLSearchParams({ fileId })}`,
+		"GET",
+		options,
+	);
+}

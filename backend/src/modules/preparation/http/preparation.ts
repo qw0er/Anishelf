@@ -1,4 +1,5 @@
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { Type } from "typebox";
 import {
 	CompatibilityCheckRequestSchema,
 	EmptyObjectSchema,
@@ -7,6 +8,7 @@ import {
 	PreparationTaskParamsSchema,
 	PreparationTaskSchema,
 	PreparedArtifactParamsSchema,
+	ResourceIdSchema,
 	ResourceParamsSchema,
 } from "../../../contracts/schemas/index.js";
 import type { HttpInstance } from "../../../transport/instance.js";
@@ -27,6 +29,7 @@ export function registerPreparationRoutes(
 			{
 				schema: {
 					params: ResourceParamsSchema,
+					ResourceIdSchema,
 					body: CompatibilityCheckRequestSchema,
 					response: { 200: PreparationStartResponseSchema },
 				},
@@ -36,8 +39,16 @@ export function registerPreparationRoutes(
 		);
 		scope.get(
 			"/api/preparations",
-			{ schema: { response: { 200: PreparationListResponseSchema } } },
-			async () => preparation.list(),
+			{
+				schema: {
+					querystring: Type.Object(
+						{ fileId: Type.Optional(ResourceIdSchema) },
+						{ additionalProperties: false },
+					),
+					response: { 200: PreparationListResponseSchema },
+				},
+			},
+			async (request) => preparation.list(request.query.fileId),
 		);
 		scope.get(
 			"/api/preparations/:id",

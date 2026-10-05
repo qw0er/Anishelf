@@ -14,7 +14,9 @@ import {
 	DialogTrigger,
 } from "../../../components/ui/dialog.js";
 import { Input } from "../../../components/ui/input.js";
+import { Spinner } from "../../../components/ui/spinner.js";
 import { toast } from "../../../components/ui/toast.js";
+import { Tooltip } from "../../../components/ui/tooltip.js";
 import { getErrorTranslationKey } from "../../../lib/error-translation.js";
 import { createMediaLink } from "../media-link.js";
 
@@ -71,6 +73,30 @@ export default function MediaLink({
 		}
 	}
 
+	const trigger = (
+		<DialogTrigger
+			render={
+				<Button
+					type="button"
+					variant={iconOnly ? "ghost" : "outline"}
+					className={iconOnly ? "size-9 shrink-0 p-0" : undefined}
+					aria-label={iconOnly ? t("player.copyMediaLink") : undefined}
+					disabled={pending}
+					focusableWhenDisabled={iconOnly}
+					aria-busy={pending}
+					onClick={() => void copyLink()}
+				/>
+			}
+		>
+			{pending && iconOnly ? (
+				<Spinner />
+			) : (
+				<Copy size={16} aria-hidden="true" />
+			)}
+			{!iconOnly && t("player.copyMediaLink")}
+		</DialogTrigger>
+	);
+
 	return (
 		<Dialog
 			open={link !== null}
@@ -86,23 +112,11 @@ export default function MediaLink({
 							: "action-row"
 					}
 				>
-					<DialogTrigger
-						render={
-							<Button
-								type="button"
-								variant={iconOnly ? "ghost" : "outline"}
-								className={iconOnly ? "size-9 shrink-0 p-0" : undefined}
-								aria-label={iconOnly ? t("player.copyMediaLink") : undefined}
-								title={iconOnly ? t("player.copyMediaLink") : undefined}
-								disabled={pending}
-								aria-busy={pending}
-								onClick={() => void copyLink()}
-							/>
-						}
-					>
-						<Copy size={16} aria-hidden="true" />
-						{!iconOnly && t("player.copyMediaLink")}
-					</DialogTrigger>
+					{iconOnly ? (
+						<Tooltip content={t("player.copyMediaLink")}>{trigger}</Tooltip>
+					) : (
+						trigger
+					)}
 				</div>
 				<DialogContent>
 					<DialogHeader>

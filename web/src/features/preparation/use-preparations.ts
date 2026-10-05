@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getPreparations } from "../../api/client.js";
+import { getFilePreparations, getPreparations } from "../../api/client.js";
 import type { PreparationTaskResponse } from "../../api/contracts.js";
 import { toast } from "../../components/ui/toast.js";
 import { interactionPolicy } from "../../config/interaction-policy.js";
 import { getErrorTranslationKey } from "../../lib/error-translation.js";
 
-export function usePreparations() {
+export function usePreparations(fileId?: string, enabled = true) {
 	const [tasks, setTasks] = useState<PreparationTaskResponse[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<unknown>(null);
@@ -15,16 +15,25 @@ export function usePreparations() {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: explicit refresh trigger
 	useEffect(() => {
 		const controller = new AbortController();
+		if (!enabled) {
+			setLoading(false);
+			setTasks([]);
+			return () => controller.abort();
+		}
+		setLoading(true);
 		let timer: ReturnType<typeof setTimeout>;
 		async function load() {
 			let poll = false;
 			try {
-				const result = await getPreparations({
+				const options = {
 					signal: AbortSignal.any([
 						controller.signal,
 						AbortSignal.timeout(interactionPolicy.preparationRequestTimeoutMs),
 					]),
-				});
+				};
+				const result = await (fileId
+					? getFilePreparations(fileId, options)
+					: getPreparations(options));
 				if (controller.signal.aborted) return;
 				setTasks(result.tasks);
 				poll = result.tasks.some(
@@ -52,12 +61,19 @@ export function usePreparations() {
 			controller.abort();
 			clearTimeout(timer);
 		};
-	}, [revision]);
+	}, [revision, fileId, enabled]);
 	return {
 		tasks,
 		loading,
 		error,
 		refresh: useCallback(() => setRevision((v) => v + 1), []),
+		remember: useCallback((task: PreparationTaskResponse) => {
+			setTasks((current) => [
+				task,
+				...current.filter((item) => item.id !== task.id),
+			]);
+			setRevision((value) => value + 1);
+		}, []),
 	};
 }
 

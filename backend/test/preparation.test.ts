@@ -52,6 +52,7 @@ async function fixture(
 		maximumCacheBytes?: number;
 		minimumFreeBytes?: number;
 		maximumQueuedTasks?: number;
+		listLimit?: number;
 	} = {},
 ) {
 	const root = await mkdtemp(join(tmpdir(), "anishelf-preparation-"));
@@ -185,6 +186,7 @@ async function fixture(
 			logger,
 			policy: {
 				...preparationPolicy,
+				listLimit: options.listLimit ?? preparationPolicy.listLimit,
 				maximumCacheBytes:
 					options.maximumCacheBytes ?? preparationPolicy.maximumCacheBytes,
 				minimumFreeBytes:
@@ -651,4 +653,51 @@ test("an unavailable startup index does not invalidate a reusable completed copy
 	const checked = await f.preparation.get(ready.id);
 	expect(checked.playbackAvailability).toBe("ready");
 	expect(checked.playbackUrl).toBe(ready.playbackUrl);
+});
+
+test("file-filtered task lookup finds an older copy outside the global recent-task limit", async () => {
+	const f = await fixture({ listLimit: 1 });
+	const result = await f.preparation.create(await f.input());
+	if (result.kind !== "task") throw new Error("Expected task");
+	await vi.waitFor(async () =>
+		expect((await f.preparation.get(result.task.id)).status).toBe("ready"),
+	);
+	const original = required(f.database.preparation.get(result.task.id));
+	f.database.preparation.save({
+		...original,
+		id: randomUUID(),
+		source: {
+			...original.source,
+			fileId: "another-file",
+			relativePath: "another.mkv",
+		},
+		identity: {
+			...original.identity,
+			fileId: "another-file",
+			executionPlanId: "f".repeat(64),
+		},
+		request: { ...original.request, fileId: "another-file" },
+		status: "failed",
+		createdAtMs: original.createdAtMs + 1,
+		updatedAtMs: original.updatedAtMs + 1,
+	});
+	const recent = await f.preparation.list();
+	expect(recent.tasks[0]?.fileId).toBe("another-file");
+	const filtered = await f.app.inject({
+		method: "GET",
+		url: `/api/preparations?fileId=${encodeURIComponent(original.source.fileId)}`,
+		headers,
+	});
+	expect(filtered.statusCode).toBe(200);
+	expect(filtered.json().tasks[0]).toMatchObject({
+		id: original.id,
+		status: "ready",
+		playbackAvailability: "ready",
+	});
+	const invalid = await f.app.inject({
+		method: "GET",
+		url: "/api/preparations?fileId=bad/path",
+		headers,
+	});
+	expect(invalid.statusCode).toBe(400);
 });

@@ -14,6 +14,10 @@ import AppHeader from "./components/app-header.js";
 import { buttonStyles } from "./components/ui/button.js";
 import { Spinner } from "./components/ui/spinner.js";
 import { toast } from "./components/ui/toast.js";
+import {
+	PreparationMonitor,
+	PreparationProvider,
+} from "./features/preparation/public.js";
 import { useDelayedPending } from "./hooks/use-delayed-pending.js";
 import type { libraryLoader, scanAction } from "./routes/loaders.js";
 import "./i18n.js";
@@ -129,50 +133,53 @@ function App() {
 	}
 
 	return (
-		<div className="min-h-screen bg-background">
-			<AppHeader />
-			<main
-				className="page-container page-content"
-				aria-busy={navigation.state !== "idle"}
-			>
-				{showNavigation && navigation.location && (
-					<div
-						className="action-row fixed right-4 bottom-4 z-50 max-w-[calc(100%-2rem)] rounded-md border bg-card p-4 text-sm shadow-sm"
-						role="status"
-					>
-						<Spinner />
-						<p>
-							{navigation.location.pathname.startsWith("/files/")
-								? t("navigation.loadingFile")
-								: t("navigation.loadingFiles")}
-						</p>
-						<Link
-							className={buttonStyles("outline")}
-							to={`${location.pathname}${location.search}`}
+		<PreparationProvider libraryRevision={library?.revision}>
+			<div className="min-h-screen bg-background">
+				<AppHeader />
+				<main
+					className="page-container page-content"
+					aria-busy={navigation.state !== "idle"}
+				>
+					{showNavigation && navigation.location && (
+						<div
+							className="action-row fixed right-4 bottom-4 z-50 max-w-[calc(100%-2rem)] rounded-md border bg-card p-4 text-sm shadow-sm"
+							role="status"
 						>
-							{t("navigation.cancel")}
-						</Link>
-					</div>
-				)}
-				<Outlet
-					context={
-						{
-							reload,
-							playerVersion,
-							settings,
+							<Spinner />
+							<p>
+								{navigation.location.pathname.startsWith("/files/")
+									? t("navigation.loadingFile")
+									: t("navigation.loadingFiles")}
+							</p>
+							<Link
+								className={buttonStyles("outline")}
+								to={`${location.pathname}${location.search}`}
+							>
+								{t("navigation.cancel")}
+							</Link>
+						</div>
+					)}
+					<Outlet
+						context={
+							{
+								reload,
+								playerVersion,
+								settings,
 
-							library,
-							libraryError,
-							scanning,
-							scanPending,
-							scanSubmitting,
-							refreshing: manualRefreshing,
-							startScan,
-						} satisfies LibraryContext
-					}
-				/>
-			</main>
-		</div>
+								library,
+								libraryError,
+								scanning,
+								scanPending,
+								scanSubmitting,
+								refreshing: manualRefreshing,
+								startScan,
+							} satisfies LibraryContext
+						}
+					/>
+				</main>
+				<PreparationMonitor />
+			</div>
+		</PreparationProvider>
 	);
 }
 

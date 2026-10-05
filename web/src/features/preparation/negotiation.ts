@@ -1,13 +1,10 @@
-import {
-	checkMediaCompatibility,
-	getPreparation,
-	inspectMediaCompatibility,
-} from "../../api/client.js";
+import { checkMediaCompatibility, getPreparation } from "../../api/client.js";
 import type {
 	CompatibilityCheckRequest,
 	PreparationTaskResponse,
 } from "../../api/contracts.js";
 import { queryCapabilities } from "../../lib/media-capabilities.js";
+import { inspectBrowserMedia } from "../../lib/media-compatibility.js";
 
 /** Retry and reuse always obtain fresh, source/profile-bound browser evidence. */
 export async function negotiatePreparation(
@@ -17,9 +14,9 @@ export async function negotiatePreparation(
 	sourceVersion?: string,
 ): Promise<CompatibilityCheckRequest> {
 	const output = { profileId, target: "file" as const };
-	const description = await inspectMediaCompatibility(
+	const description = await inspectBrowserMedia(
 		{ fileId, output, ...(sourceVersion ? { sourceVersion } : {}) },
-		{ signal },
+		signal,
 	);
 	const evidence = await queryCapabilities(description.queries, signal, true);
 	return {

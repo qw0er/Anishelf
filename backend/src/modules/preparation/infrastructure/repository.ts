@@ -48,11 +48,10 @@ export class PreparationRepository {
 			updatedAtMs: row.task.updatedAtMs,
 		};
 	}
-	list(limit?: number): PreparationTask[] {
-		const query = this.query().orderBy(
-			desc(preparationTasks.createdAtMs),
-			desc(preparationTasks.id),
-		);
+	list(limit?: number, fileId?: string): PreparationTask[] {
+		const query = this.query()
+			.where(fileId ? eq(mediaSources.fileId, fileId) : undefined)
+			.orderBy(desc(preparationTasks.createdAtMs), desc(preparationTasks.id));
 		return (limit === undefined ? query.all() : query.limit(limit).all()).map(
 			(row) => this.task(row),
 		);

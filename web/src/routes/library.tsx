@@ -14,7 +14,7 @@ import {
 	ResourceSettings,
 } from "../features/library/public.js";
 import { FilePlayer } from "../features/playback/public.js";
-import { PreparationsPage } from "../features/preparation/public.js";
+import { PreparationProfileSettings } from "../features/preparation/public.js";
 import RouteError from "./errors.js";
 import HistoryPage from "./history.js";
 import {
@@ -34,7 +34,8 @@ function DirectoryPage() {
 
 function PlayerPage() {
 	const data = useLoaderData<typeof fileLoader>();
-	const { reload, playerVersion } = useOutletContext<LibraryContext>();
+	const { reload, playerVersion, settings, library } =
+		useOutletContext<LibraryContext>();
 	const [searchParams] = useSearchParams();
 	return (
 		<FilePlayer
@@ -42,6 +43,10 @@ function PlayerPage() {
 			data={data}
 			returnDirectoryId={searchParams.get("directory")}
 			onRetry={reload}
+			compatibilityScope={JSON.stringify([
+				settings?.resourceRoot,
+				library?.revision,
+			])}
 		/>
 	);
 }
@@ -51,11 +56,14 @@ function SettingsPage() {
 	const { settings, scanning, scanPending } =
 		useOutletContext<LibraryContext>();
 	return settings ? (
-		<ResourceSettings
-			key={settings.resourceRoot}
-			settings={settings}
-			disabled={scanning || scanPending}
-		/>
+		<div className="stack-page">
+			<ResourceSettings
+				key={settings.resourceRoot}
+				settings={settings}
+				disabled={scanning || scanPending}
+			/>
+			<PreparationProfileSettings />
+		</div>
 	) : (
 		<section role="alert">{t("errors.settingsUnavailable")}</section>
 	);
@@ -84,7 +92,6 @@ export const libraryRoute: RouteObject = {
 	errorElement: <RouteError kind="page" />,
 	hydrateFallbackElement: <InitialLoading />,
 	children: [
-		{ path: "preparations", element: <PreparationsPage /> },
 		{
 			path: "history",
 			loader: historyLoader,

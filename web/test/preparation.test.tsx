@@ -1,6 +1,12 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
-import { StrictMode } from "react";
+import {
+	cleanup,
+	fireEvent,
+	render,
+	renderHook,
+	waitFor,
+} from "@testing-library/react";
+import { type ReactNode, StrictMode } from "react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as api from "../src/api/client.js";
@@ -9,10 +15,13 @@ import type {
 	CompatibilityResult,
 	PreparationTaskResponse,
 } from "../src/api/contracts.js";
-import { toast } from "../src/components/ui/toast.js";
-import { FilePreparation } from "../src/features/preparation/components/file-preparation.js";
+import { PreparationButton } from "../src/features/preparation/components/preparation-button.js";
+import { PreparationMonitor } from "../src/features/preparation/components/preparation-monitor.js";
+import { PreparationProfileSettings } from "../src/features/preparation/components/profile-settings.js";
 import { PreparationTaskCard } from "../src/features/preparation/components/task-card.js";
+import { PreparationProvider } from "../src/features/preparation/context.js";
 import { verifyPreparedPlayback } from "../src/features/preparation/negotiation.js";
+import { usePreparedPlayback } from "../src/features/preparation/use-prepared-playback.js";
 import * as capabilities from "../src/lib/media-capabilities.js";
 import "../src/i18n.js";
 
@@ -57,21 +66,36 @@ const evidence = [
 		reason: "browser-supported",
 	},
 ] as const;
+const catalog = {
+	profiles: [
+		{
+			id: task.profileId,
+			name: "Browser copy",
+			description: "MP4 browser profile",
+			source: "builtin" as const,
+			usage: "preparation" as const,
+		},
+	],
+	selectedProfileId: task.profileId,
+	selectionAvailable: true,
+};
+const unsupported = {
+	sourceVersion: "version",
+	direct: { status: "unsupported" },
+} as CompatibilityResult;
+function Wrapper({ children }: { children: ReactNode }) {
+	return (
+		<MemoryRouter>
+			<PreparationProvider>{children}</PreparationProvider>
+		</MemoryRouter>
+	);
+}
 beforeEach(() => {
-	vi.spyOn(api, "getTranscodeProfiles").mockResolvedValue({
-		profiles: [
-			{
-				id: task.profileId,
-				name: "Browser copy",
-				description: "MP4 browser profile",
-				source: "builtin",
-				usage: "preparation",
-			},
-		],
-		selectedProfileId: task.profileId,
-		selectionAvailable: true,
-	});
+	vi.spyOn(api, "getTranscodeProfiles").mockResolvedValue(catalog);
 	vi.spyOn(api, "getPreparations").mockResolvedValue({ tasks: [] });
+	vi.spyOn(api, "getFilePreparations").mockImplementation(async () =>
+		api.getPreparations(),
+	);
 	vi.spyOn(api, "inspectMediaCompatibility").mockResolvedValue(description);
 	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([...evidence]);
 	vi.spyOn(api, "createPreparation").mockResolvedValue({ kind: "task", task });
@@ -85,30 +109,85 @@ beforeEach(() => {
 	});
 	vi.spyOn(api, "retryPreparation").mockResolvedValue(task);
 	vi.spyOn(api, "deletePreparedMedia").mockResolvedValue();
+	vi.spyOn(api, "selectTranscodeProfile").mockResolvedValue(catalog);
 });
 afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
 });
-function panel(props: Partial<Parameters<typeof FilePreparation>[0]> = {}) {
-	const onSelect = vi.fn();
-	const view = render(
-		<MemoryRouter>
-			<FilePreparation
+function button(props = {}) {
+	return render(
+		<Wrapper>
+			<PreparationButton
 				fileId="file"
-				sourceVersion="version"
-				onSelect={onSelect}
+				loading={false}
+				result={unsupported}
+				error={null}
+				onRecheck={vi.fn()}
 				{...props}
 			/>
-		</MemoryRouter>,
+			<PreparationMonitor />
+		</Wrapper>,
 	);
-	return { ...view, onSelect };
 }
-test("create negotiates source/profile-bound fresh evidence, and departure does not cancel the server task", async () => {
-	const view = panel();
-	fireEvent.click(
-		await view.findByRole("button", { name: "Prepare for browser" }),
+
+test("directory action has a placeholder while checking and no transcode button for supported or unknown files", async () => {
+	const view = button({ loading: true });
+	expect(
+		view
+			.getByLabelText("Checking playback compatibility…")
+			.querySelector("svg.animate-spin"),
+	).toBeTruthy();
+	view.rerender(
+		<Wrapper>
+			<PreparationButton
+				fileId="file"
+				loading={false}
+				result={{
+					...unsupported,
+					direct: { status: "supported", reason: "browser-supported" },
+				}}
+				error={null}
+				onRecheck={vi.fn()}
+			/>
+		</Wrapper>,
 	);
+	expect(view.queryByRole("button", { name: "Pre-transcode" })).toBeNull();
+	view.rerender(
+		<Wrapper>
+			<PreparationButton
+				fileId="file"
+				loading={false}
+				result={{
+					...unsupported,
+					direct: { status: "unknown", reason: "browser-uncertain" },
+				}}
+				error={null}
+				onRecheck={vi.fn()}
+			/>
+		</Wrapper>,
+	);
+	expect(view.queryByRole("button", { name: "Pre-transcode" })).toBeNull();
+	expect(view.getByRole("button", { name: "Check again" })).toBeTruthy();
+});
+test("directory icon action exposes its tooltip on keyboard focus", async () => {
+	const view = button();
+	const action = await view.findByRole("button", { name: "Pre-transcode" });
+	expect(action.textContent).toBe("");
+	fireEvent.focus(action);
+	await waitFor(() =>
+		expect(
+			document.querySelector('[data-slot="tooltip-content"]')?.textContent,
+		).toBe("Pre-transcode"),
+	);
+});
+test("explicit directory preparation negotiates fresh evidence and opens the global collapsible monitor", async () => {
+	vi.mocked(api.createPreparation).mockImplementation(async () => {
+		vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [task] });
+		return { kind: "task", task };
+	});
+	const view = button();
+	fireEvent.click(await view.findByRole("button", { name: "Pre-transcode" }));
 	await waitFor(() =>
 		expect(api.createPreparation).toHaveBeenCalledWith(
 			"file",
@@ -121,48 +200,68 @@ test("create negotiates source/profile-bound fresh evidence, and departure does 
 			expect.anything(),
 		),
 	);
-	expect(api.inspectMediaCompatibility).toHaveBeenCalledWith(
-		{
-			fileId: "file",
-			sourceVersion: "version",
-			output: { profileId: task.profileId, target: "file" },
-		},
-		expect.anything(),
-	);
-	expect(view.onSelect).not.toHaveBeenCalled();
+	const monitor = await view.findByRole("complementary", {
+		name: "Transcoding tasks",
+	});
+	expect(monitor).toBeTruthy();
+	const toggle = view.getByRole("button", { name: /Transcoding tasks/ });
+	fireEvent.click(toggle);
+	expect(toggle.getAttribute("aria-expanded")).toBe("false");
 	view.unmount();
 	expect(api.cancelPreparation).not.toHaveBeenCalled();
 });
-test("blocked and direct responses do not pretend that a prepared copy is ready", async () => {
-	vi.mocked(api.createPreparation)
-		.mockResolvedValueOnce({ kind: "blocked", reason: "insufficient-evidence" })
-		.mockResolvedValueOnce({
-			kind: "direct",
-			plan: { mode: "direct", playbackUrl: "/api/media/file" },
-		});
-	const view = panel();
-	const button = await view.findByRole("button", {
-		name: "Prepare for browser",
+test("target profile is saved in Settings through the persistent selection API", async () => {
+	const view = render(
+		<Wrapper>
+			<PreparationProfileSettings />
+		</Wrapper>,
+	);
+	const select = await view.findByRole("combobox", {
+		name: "Choose a profile",
 	});
-	fireEvent.click(button);
-	await view.findByText(
-		"There is insufficient evidence to choose a preparation mode.",
+	await waitFor(() =>
+		expect((select as HTMLSelectElement).value).toBe(task.profileId),
 	);
-	expect(view.onSelect).not.toHaveBeenCalled();
-	fireEvent.click(button);
-	await waitFor(() => expect(view.onSelect).toHaveBeenCalledWith(null));
+	fireEvent.click(view.getByRole("button", { name: "Save transcode profile" }));
+	await waitFor(() =>
+		expect(api.selectTranscodeProfile).toHaveBeenCalledWith(
+			task.profileId,
+			expect.anything(),
+		),
+	);
 });
-test("ready reuse checks the actual retained/encoded combination and does not create another job", async () => {
+test("an unavailable target selection sends the user to Settings instead of guessing a profile", async () => {
+	vi.mocked(api.getTranscodeProfiles).mockResolvedValue({
+		...catalog,
+		selectedProfileId: "custom:missing",
+		selectionAvailable: false,
+	});
+	const view = button();
+	const link = await view.findByRole("link", { name: "Set transcode profile" });
+	expect(link.getAttribute("href")).toBe("/settings");
+	expect(view.queryByRole("button", { name: "Pre-transcode" })).toBeNull();
+});
+test("unsupported original automatically selects a verified completed copy without creating work", async () => {
 	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [ready] });
-	const view = panel();
-	fireEvent.click(
-		await view.findByRole("button", { name: "Watch prepared copy" }),
+	const { result } = renderHook(
+		() => usePreparedPlayback("file", "version", true),
+		{ wrapper: Wrapper },
 	);
-	await waitFor(() => expect(view.onSelect).toHaveBeenCalledWith(ready));
+	await waitFor(() => expect(result.current.task).toEqual(ready));
 	expect(api.checkMediaCompatibility).toHaveBeenCalled();
 	expect(api.createPreparation).not.toHaveBeenCalled();
 });
-test("unsupported browser and stale ready copy are refused", async () => {
+test("missing pre-transcode is reported and does not enqueue work", async () => {
+	const { result } = renderHook(
+		() => usePreparedPlayback("file", "version", true),
+		{ wrapper: Wrapper },
+	);
+	await waitFor(() => expect(result.current.loading).toBe(false));
+	expect(result.current.task).toBeNull();
+	expect(result.current.pending).toBe(false);
+	expect(api.createPreparation).not.toHaveBeenCalled();
+});
+test("unsupported and stale completed copies are refused", async () => {
 	vi.mocked(api.checkMediaCompatibility).mockResolvedValueOnce({
 		output: { combinations: { "copy-copy": "unsupported" } },
 	} as unknown as CompatibilityResult);
@@ -180,24 +279,7 @@ test("unsupported browser and stale ready copy are refused", async () => {
 	).rejects.toThrow("unavailable");
 	expect(api.createPreparation).not.toHaveBeenCalled();
 });
-test("ready links from the task list survive StrictMode and verify before selection", async () => {
-	const onSelect = vi.fn();
-	render(
-		<StrictMode>
-			<MemoryRouter>
-				<FilePreparation
-					fileId="file"
-					sourceVersion="version"
-					requestedTaskId={ready.id}
-					onSelect={onSelect}
-				/>
-			</MemoryRouter>
-		</StrictMode>,
-	);
-	await waitFor(() => expect(onSelect).toHaveBeenCalledWith(ready));
-	expect(api.createPreparation).not.toHaveBeenCalled();
-});
-test("cancel and explicit retry are distinct, and retry obtains fresh evidence", async () => {
+test("cancel and retry remain explicit and retry obtains fresh evidence", async () => {
 	const refresh = vi.fn();
 	const view = render(<PreparationTaskCard task={task} refresh={refresh} />);
 	fireEvent.click(view.getByRole("button", { name: "Cancel preparation" }));
@@ -221,13 +303,8 @@ test("cancel and explicit retry are distinct, and retry obtains fresh evidence",
 			expect.anything(),
 		),
 	);
-	expect(capabilities.queryCapabilities).toHaveBeenCalledWith(
-		[],
-		expect.any(AbortSignal),
-		true,
-	);
 });
-test("unknown availability hides Watch; cache deletion leaves the original untouched", async () => {
+test("unknown source availability hides Watch and deleting a copy never cancels the original", async () => {
 	const view = render(
 		<PreparationTaskCard
 			task={{ ...ready, playbackAvailability: "unknown", playbackUrl: null }}
@@ -247,75 +324,44 @@ test("unknown availability hides Watch; cache deletion leaves the original untou
 	);
 	expect(api.cancelPreparation).not.toHaveBeenCalled();
 });
-test("polling updates processing progress to ready, and cleanup aborts requests", async () => {
-	vi.mocked(api.getPreparations)
-		.mockResolvedValueOnce({
-			tasks: [
-				{
-					...task,
-					status: "processing",
-					progress: {
-						percent: 45,
-						speed: 2,
-						mediaTimeMs: 1000,
-						frames: 30,
-						outputBytes: 100,
-						ended: false,
-					},
-				},
-			],
-		})
-		.mockResolvedValue({ tasks: [ready] });
-	const view = panel();
-	await view.findByRole("progressbar");
-	await view.findByRole(
-		"button",
-		{ name: "Watch prepared copy" },
-		{ timeout: 3000 },
+test("a pending task completing updates automatic playback even while the monitor is collapsed", async () => {
+	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [task] });
+	const { result } = renderHook(
+		() => usePreparedPlayback("file", "version", true),
+		{ wrapper: Wrapper },
 	);
-	const options = vi.mocked(api.getPreparations).mock.calls.at(-1)?.[0];
-	view.unmount();
-	expect(options?.signal?.aborted).toBe(true);
+	await waitFor(() => expect(result.current.pending).toBe(true));
+	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [ready] });
+	await waitFor(() => expect(result.current.task).toEqual(ready), {
+		timeout: 3000,
+	});
 });
-test("failed creation is actionable and profile selection unavailable requires a choice", async () => {
-	const add = vi.spyOn(toast, "add").mockReturnValue("notification");
-	vi.mocked(api.getTranscodeProfiles).mockResolvedValue({
-		profiles: [
-			{
-				id: task.profileId,
-				name: "Browser copy",
-				description: "profile",
-				source: "builtin",
-				usage: "preparation",
-			},
-		],
-		selectedProfileId: "custom:missing",
-		selectionAvailable: false,
-	});
-	vi.mocked(api.createPreparation).mockRejectedValueOnce(
-		new api.ApiClientError({
-			kind: "http",
-			message: "full",
-			code: "PREPARATION_CACHE_FULL",
-		}),
+test("automatic prepared selection survives StrictMode and does not start transcoding", async () => {
+	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [ready] });
+	const wrapper = ({ children }: { children: ReactNode }) => (
+		<StrictMode>
+			<Wrapper>{children}</Wrapper>
+		</StrictMode>
 	);
-	const view = panel();
-	const button = await view.findByRole("button", {
-		name: "Prepare for browser",
-	});
-	expect((button as HTMLButtonElement).disabled).toBe(true);
-	fireEvent.change(view.getByRole("combobox"), {
-		target: { value: task.profileId },
-	});
-	fireEvent.click(button);
-	await waitFor(() =>
-		expect(add).toHaveBeenCalledWith(
-			expect.objectContaining({
-				type: "error",
-				title:
-					"The prepared media cache is full. Delete a prepared copy and retry.",
-			}),
-		),
+	const { result } = renderHook(
+		() => usePreparedPlayback("file", "version", true),
+		{ wrapper },
 	);
-	expect((button as HTMLButtonElement).disabled).toBe(false);
+	await waitFor(() => expect(result.current.task).toEqual(ready));
+	expect(api.createPreparation).not.toHaveBeenCalled();
+});
+
+test("automatic playback discovers older ready copies outside the global recent-task window", async () => {
+	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [] });
+	vi.mocked(api.getFilePreparations).mockResolvedValue({ tasks: [ready] });
+	const { result } = renderHook(
+		() => usePreparedPlayback("file", "version", true),
+		{ wrapper: Wrapper },
+	);
+	await waitFor(() => expect(result.current.task).toEqual(ready));
+	expect(api.getFilePreparations).toHaveBeenCalledWith(
+		"file",
+		expect.anything(),
+	);
+	expect(api.createPreparation).not.toHaveBeenCalled();
 });

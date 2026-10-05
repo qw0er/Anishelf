@@ -3,6 +3,11 @@ export const defaultLanguage = "en";
 /** Local presentation timing, independent of server policy. */
 export const interactionPolicy = Object.freeze({
 	pendingDelayMs: 200,
+	compatibilityConcurrency: 1,
+	compatibilityBusyRetries: 2,
+	compatibilityBusyRetryDelayMs: 500,
+	compatibilityCacheEntries: 128,
+	compatibilityRequestTimeoutMs: 30000,
 	scanPollIntervalMs: 1000,
 	preparationPollIntervalMs: 1000,
 	preparationRequestTimeoutMs: 30000,

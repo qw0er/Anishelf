@@ -4,8 +4,10 @@ The backend implements P06 and the completed-file portion of P07 through
 `PreparationApplication`. It consumes `PlaybackApplication.plan()` and the public
 processing/source APIs. The production bootstrap creates one execution module
 and injects its processor into preparation. No whole-library preparation runs
-automatically. The Web file page and `/preparations` task screen integrate creation,
-progress, cancellation, explicit retry, completed-copy playback and deletion.
+automatically. The library integrates asynchronous compatibility checks and
+explicit pre-transcoding, Settings owns the target profile, and a collapsible
+floating monitor exposes task progress and operations. Unsupported originals
+automatically use a verified completed copy when available.
 Real-time HLS remains separate integration work.
 
 ## HTTP workflow
@@ -28,7 +30,7 @@ Real-time HLS remains separate integration work.
 | Method and route | Behavior |
 | --- | --- |
 | `POST /api/files/:id/preparations` | Validate fresh browser evidence, plan, deduplicate and enqueue; return a safe result |
-| `GET /api/preparations` | List the latest tasks, including tasks from earlier roots, up to the configured list limit; recheck ready copies |
+| `GET /api/preparations` | List the latest tasks, including tasks from earlier roots, up to the configured list limit; optional `fileId` filters before limiting, and ready copies are rechecked |
 | `GET /api/preparations/:id` | Read a task and recheck a ready copy's source/profile/file availability |
 | `POST /api/preparations/:id/cancel` with `{}` | Cancel queued work or abort processing; return after execution and cleanup settle |
 | `POST /api/preparations/:id/retry` | Require a fresh compatibility-check body for the same derivation; requeue failed/cancelled work |
@@ -132,36 +134,61 @@ real-time playback require their subsequent acceptance.
 
 ## Web integration
 
-The file page reads the safe profile catalog and starts preparation only on an
-explicit action. The saved profile is selected when available; an unavailable
-selection requires choosing a listed profile. The client inspects the selected
-file/profile, runs fresh browser capability queries and submits only the resulting
-source-bound check request. Direct and blocked responses remain distinct from
-queued or completed work. Preparation remains usable when progress storage is
-unavailable.
+Opening a directory starts asynchronous source-only compatibility checks for its
+files. The list remains usable while each pending file action shows a Spinner.
+Checks run in a bounded queue, with one slot matching the built-in server probe
+policy. Expected transient unavailable responses receive two bounded retries;
+request cancellation also cancels retry delays. Leaving a directory aborts client
+requests and queued checks. A shared bounded cache binds completed checks to root,
+library revision, file identity and metadata; the player can reuse them while
+checking the session source version. Unknown capability and failed requests offer
+rechecking rather than pretending the source is unsupported.
 
-`/preparations` lists persisted tasks and exposes progress, processing mode,
-profile, failure reason, prepared size and source availability. Pending work and
-unknown startup availability are polled without overlapping requests; terminal
-states stop polling. Refresh and mutation completion reload the list. Departure
-aborts client requests and timers without cancelling server jobs. Explicit cancel
-and retry call their respective endpoints; retry negotiates fresh browser evidence
-for the same source/profile. Deleting a copy never deletes the original or history.
+File actions use icons with accessible names and tooltips.
+Only unsupported files expose the pre-transcode action. It negotiates fresh
+source/profile-bound browser evidence, then creates or explicitly retries work.
+Compatible originals do not expose the action. A pending task disables duplicate
+submission, and a completed copy is marked ready. Settings reads the safe profile
+catalog and persists the target through `PUT /api/transcode-profiles/selection`.
+The form shows only names and descriptions, without encoder arguments. Missing
+profile selections direct the user to Settings instead of guessing a fallback.
 
-Watch actions verify the exact copy/encode combination used by the completed task
-against current browser evidence, then re-read the artifact to check availability.
-They do not enqueue another job. Task-list Watch links carry only the task ID into
-the original file page, which repeats this verification before selecting bytes.
-The native Vidstack player is remounted when switching between original and
-prepared URLs. Its existing progress controller remains bound to the original
-file and restores the captured source-time position; subtitle discovery and
-rendering also remain bound to the original. Original-file external links retain
-their existing behavior. Automatic cache selection and real-time fallback are
-not part of this integration.
+There is no preparation page or task navigation item. The app shell owns one task
+list and profile catalog across route changes. When tasks exist, a bottom-right
+floating panel uses one compact row per task, showing the filename, status or
+progress, and icon actions with tooltips. Filename tooltips retain the full name,
+mode, profile, failure details, size and availability.
+It can be folded without stopping polling or losing pending actions. Pending work
+and unknown startup availability are polled without overlapping requests;
+terminal states stop polling. Refresh, library changes and mutation completion
+reload tasks. Leaving the app aborts requests and timers without cancelling server
+jobs. Explicit cancel, retry and cache deletion retain their backend lifecycle
+semantics; retry obtains fresh browser evidence. Deletion preserves originals
+and history.
 
-Frontend tests cover fresh negotiation, direct/blocked results, explicit
-cancel/retry/delete, browser rejection, stale artifact rejection, task-list Watch
-under StrictMode, polling and departure cleanup, unavailable profile selection,
-and progress restoration when replacing the media element. These tests exercise
-client workflows with mocked HTTP and browser evidence; they do not certify
-real-browser codec support or subtitle alignment in converted sample files.
+When an original is supported, the player uses its direct media URL. When it is
+unsupported, it automatically checks ready copies for the same source version,
+preferring the current target profile. File-specific lookup applies the task limit
+after filtering, so older copies remain discoverable outside the global recent
+task window. It verifies the actual copy/encode
+combination against current browser evidence, then re-reads the artifact before
+using its URL. Viewing never enqueues processing. Without a ready copy, the page
+shows a preparation hint and a folder return link. If an existing task completes
+while the file page is open, the newly ready copy is verified and selected. Unknown
+original support remains a separate state with an explicit original-file attempt.
+Compatibility details are available on demand rather than opening automatically.
+
+The native Vidstack player keeps its progress controller bound to the original
+source; subtitle discovery and rendering also remain bound to that source. A
+matching source-version update from progress loading does not unload an active
+video. Original-file external links retain their behavior. Real-time fallback
+remains planned.
+
+Frontend tests cover bounded directory checking and cancellation, cache reuse,
+pending placeholders, supported/unknown action visibility, fresh preparation
+requests, persistent profile selection, monitor collapse and route continuity,
+automatic prepared selection, missing/stale/rejected copies, explicit
+cancel/retry/delete, readiness polling and StrictMode. Browser UI inspection uses
+local fixtures for layout, Settings persistence, collapse/navigation and the
+selected media URL. It does not certify the backend encoding pipeline or subtitle
+alignment in converted production sample files.

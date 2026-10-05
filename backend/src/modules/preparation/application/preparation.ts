@@ -329,10 +329,10 @@ export class PreparationApplication {
 			return this.dto(task);
 		});
 	}
-	async list(): Promise<{ tasks: PreparationTaskDto[] }> {
+	async list(fileId?: string): Promise<{ tasks: PreparationTaskDto[] }> {
 		await this.ensure();
 		return this.change(async () => {
-			const tasks = this.repository().list(this.policy.listLimit);
+			const tasks = this.repository().list(this.policy.listLimit, fileId);
 			for (const task of tasks) await this.validateReady(task);
 			return { tasks: tasks.map((task) => this.dto(task)) };
 		});

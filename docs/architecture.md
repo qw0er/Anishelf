@@ -518,9 +518,10 @@ Keep cue time on the original source timeline. When real-time playback restarts 
 
 The [persistent preparation backend](preparation.md) is implemented: task APIs,
 a bounded queue, completed-file cache, restart reconciliation and HTTP/Range
-delivery. The Web file page and `/preparations` screen now integrate preparation
-and explicit completed-copy playback. Automatic playback selection and real-time
-HLS remain planned. The design below retains the full V2 target.
+delivery. The Web library now checks files asynchronously, Settings owns the
+target profile, and a collapsible floating panel displays tasks. Unsupported
+originals automatically use a verified ready copy. Unified server-side playback
+selection and real-time HLS remain planned. The design below retains the full V2 target.
 
 ### Implemented execution foundation
 
@@ -656,12 +657,12 @@ Use `400` for invalid shapes, `404` for unknown/missing references, `403` for ac
 
 ## 10. Everyday Interface (V2; O16)
 
-Keep existing directory/file URLs. Add `/tasks` and `/settings`; the shared shell contains Library, Media tasks, and Settings. Preserve the last directory when moving through these screens, and retain player return context. On root change, explicitly explain the reset to root and need to scan. React Router loaders/actions own server state; component state owns transient player and form state. Poll scans/preparations/transcode sessions only while active; stop timers on terminal state or unmount, cancel stale requests, and avoid reloading an active player for unrelated status changes.
+Keep existing directory/file URLs and `/settings`. The shared shell contains Library, History and Settings. Preparation uses a collapsible bottom-right task panel rather than a separate task page. Settings owns target-profile selection; library rows check compatibility asynchronously and show pre-transcoding only for unsupported files. Preserve the last directory when moving through these screens, and retain player return context. On root change, explicitly explain the reset to root and need to scan. React Router loaders/actions own server state; component state owns transient player and form state. Poll scans/preparations/transcode sessions only while active; stop timers on terminal state or unmount, cancel stale requests, and avoid reloading an active player for unrelated status changes.
 
 | Screen | Layout and actions | Required states |
 | --- | --- | --- |
 | Library | Continue watching first, compact recent list, breadcrumbs, filename/size rows, scan status | Setup, unscanned, empty, loading, stale/partial scan, removed directory, retry |
-| Player | Video as focus, full filename, return link, automatic resume, subtitle/off, source badge | Loading, unsupported media, ready-copy selection, real-time starting/buffering/seeking, missing file |
+| Player | Video as focus, full filename, return link, automatic resume, subtitle/off, source badge, automatic ready-copy selection for unsupported originals | Loading, unsupported media, ready-copy selection, real-time starting/buffering/seeking, missing file |
 | Media tasks | Filename, state, reliable progress or indeterminate indicator, retry/cancel, play ready copy, delete copy, active real-time stop | Empty, queued, processing, ready, failed, insufficient space |
 | Settings | Resource root, Web playback mode and cache budget in separate groups | Validation, saved, busy |
 
@@ -958,15 +959,19 @@ and appearance. Use semantic headings regardless of their visual size.
 
 ### Content and Actions
 
-Keep filenames intact and let them wrap. Library rows keep the icon beside the
-name; file size sits below the name on narrow screens and in a separate column
-from `sm`. Use tabular numerals for sizes and allow saved resource paths to break
-without widening the page. The media viewport remains 16:9, capped at 75 vh.
+Keep list entries compact and prefer a single row. Keep the file icon beside the
+name and align actions consistently at the end of the row. Truncate long names
+in compact lists and expose the full name through a Tooltip available on hover
+and keyboard focus. Supporting metadata may move below the name on narrow
+screens when needed for readability. Use tabular numerals for sizes and progress;
+allow saved resource paths to break without widening the page. The media viewport
+remains 16:9, capped at 75 vh.
 
 Use the default Button variant for the main operation, such as starting a scan
 or saving settings. Use outline buttons for refresh, retry, and return actions;
 navigation uses the existing ghost and selected secondary variants. Keep visible
-labels and hide decorative icons from assistive technology.
+labels for page and form actions; file and task list actions use icons with
+Tooltips. Hide decorative icons from assistive technology.
 
 Use an icon with a visible text label for primary actions. In space-constrained
 areas, use an icon-only button with a Tooltip available on hover and keyboard
@@ -975,11 +980,41 @@ when an action would otherwise be ambiguous. Tooltips supplement the action
 rather than being its only accessible label. When a loading spinner replaces
 an action icon, use the same icon size and do not leave an empty icon slot.
 
+### Compact Lists, Settings, and Background Tasks
+
+- File and task list actions use icon-only controls with Tooltips instead of text
+  buttons. Use consistent icon sizes, control footprints, and spacing within each
+  list. Every control has an accessible name and supports keyboard focus; Tooltip
+  text describes the operation without replacing its accessible name.
+- Show only actions relevant to the current state. Hide unnecessary operations,
+  disable duplicate actions while work is pending, and use a recognizable icon
+  for completion. State must remain understandable without relying on color.
+- Local compatibility checks, profile loading, and processing use the shared
+  Spinner. Keep its footprint consistent with the action it replaces to avoid
+  layout shifts. Preserve the loading control's accessible label or busy state.
+- Put shared configuration in Settings rather than repeating selectors in list
+  entries. Use clear, consistent user-facing terminology; the preparation target
+  setting is named **Pre-transcoding profile**. An unconfigured entry offers a
+  settings icon with a Tooltip that explains where to configure it.
+- Background preparation tasks appear in a collapsible panel at the bottom right
+  of the app shell, without a dedicated preparation page or navigation item. The
+  panel must not interrupt browsing or playback. Collapsing it preserves task
+  execution, polling, and pending actions.
+- Render each task as one row: **status icon, filename, status or progress, and
+  action icons**. Keep task rows on one line at narrow and desktop widths,
+  truncating the filename as necessary. Show the full filename, profile, mode,
+  failure details, size, and availability through its Tooltip rather than adding
+  separate paragraphs to the row. Keep status or progress visible in the row.
+- Cancel, retry, play, delete, and panel refresh use recognizable icons with
+  Tooltips. Keep the panel header and row spacing compact, and scroll the task
+  list within the panel when it exceeds the available height.
+
 ### Feedback
 
 - Loading: retain the current layout, delay spinners and skeletons to avoid brief
   flashes, and expose busy state. Skeletons follow the base control and heading
-  dimensions. Keep Vidstack's own loading and control appearance.
+  dimensions. Compact file and task rows use Spinner rather than Skeleton
+  placeholders. Keep Vidstack's own loading and control appearance.
 - Setup and empty states: explain the missing resource directory or empty listing
   in context; setup links to Settings.
 - Scanning and refreshing: display the actual status and available counts. Keep

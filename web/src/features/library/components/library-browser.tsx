@@ -7,7 +7,9 @@ import { buttonStyles } from "../../../components/ui/button.js";
 import { Card, CardContent } from "../../../components/ui/card.js";
 import { directoryPath, filePath } from "../../../routes/paths.js";
 import { MediaLink } from "../../playback/public.js";
+import { PreparationButton } from "../../preparation/public.js";
 import { formatFileSize } from "../format-file-size.js";
+import { useDirectoryCompatibility } from "../hooks/use-directory-compatibility.js";
 import LibraryScan from "./library-scan.js";
 
 export default function LibraryBrowser({
@@ -19,6 +21,10 @@ export default function LibraryBrowser({
 }) {
 	const { t, i18n } = useTranslation();
 	const parentId = listing.directory.parentId;
+	const compatibility = useDirectoryCompatibility(
+		listing,
+		JSON.stringify([scan.settings?.resourceRoot, scan.library?.revision]),
+	);
 	const setupRequired = scan.settings?.resourceRoot === null;
 	return (
 		<section className="stack-page" aria-label={t("library.filesLabel")}>
@@ -50,7 +56,7 @@ export default function LibraryBrowser({
 									{listing.children.map((entry) => (
 										<li
 											key={entry.id}
-											className="grid grid-cols-[minmax(0,1fr)_auto] gap-y-2 py-2 first:pt-0 last:pb-0"
+											className="grid grid-cols-1 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto] py-2 first:pt-0 last:pb-0"
 										>
 											<Link
 												aria-label={entry.name}
@@ -84,7 +90,14 @@ export default function LibraryBrowser({
 												)}
 											</Link>
 											{entry.kind === "file" && (
-												<MediaLink fileId={entry.id} iconOnly />
+												<div className="flex flex-wrap items-center justify-end gap-2 px-2">
+													<PreparationButton
+														fileId={entry.id}
+														{...compatibility.get(entry.id)}
+														onRecheck={compatibility.retry}
+													/>
+													<MediaLink fileId={entry.id} iconOnly />
+												</div>
 											)}
 										</li>
 									))}

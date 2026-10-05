@@ -38,14 +38,6 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 					>
 						{t("app.settings")}
 					</NavLink>
-					<NavLink
-						to="/preparations"
-						className={({ isActive }) =>
-							buttonStyles(isActive ? "secondary" : "ghost")
-						}
-					>
-						{t("preparation.title")}
-					</NavLink>
 					<ThemeToggle />
 				</nav>
 			</div>

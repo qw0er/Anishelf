@@ -29,8 +29,9 @@ root epoch after asynchronous work. It returns a deeply immutable result:
 available playback resource. Server preflight still belongs to processing.
 `media-source` currently describes a fragmented MP4 candidate, not HLS acceptance
 or a running stream. HLS packaging, negotiation and real-time execution require
-separate integration. Automatic original/cache/real-time selection and saved
-playback preferences are also later work.
+separate integration. The Web client now selects direct originals or verified prepared copies.
+Server-side unified selection, real-time fallback and saved playback-mode
+preferences remain later work.
 
 The private planning result must never be serialized directly. It contains typed
 encoder settings. HTTP callers continue to use the existing compatibility
@@ -57,11 +58,12 @@ are implemented through their own API; real-time sessions are still planned. `Pr
 private source-bound identity for those integrations; they contain no local path.
 Future HTTP presenters must explicitly project public references.
 
-The Web file page now selects completed bytes through the preparation API after
-fresh browser verification. This explicit selection does not change the session
+For unsupported originals, the Web file page automatically selects completed
+bytes through the preparation API after fresh browser verification. This
+selection does not change the session
 HTTP response: the session continues to identify the original source for durable
-progress, while the native player uses the chosen artifact URL. Automatic
-original/cache/real-time selection still requires its later playback integration.
+progress, while the native player uses the chosen artifact URL. Unified server-side selection and real-time fallback still require their later
+playback integration.
 
 ## Identity and ownership
 
