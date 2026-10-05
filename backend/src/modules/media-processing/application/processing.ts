@@ -11,6 +11,7 @@ import type {
 import {
 	checkExecutionCapabilities,
 	MediaExecutionCapabilityError,
+	MediaOutputBudgetError,
 	MediaToolError,
 } from "../../../platform/media/index.js";
 import type { MediaProcessEvent } from "../../../shared/media-execution.js";
@@ -44,6 +45,8 @@ export interface MediaExecutionRequest {
 	plan: DeepReadonly<MediaProcessingPlan>;
 	videoStreamIndex: number;
 	audioStreamIndex: number | null;
+	/** A resource owner can narrow the output budget for this execution. */
+	maximumBytes?: number;
 	signal?: AbortSignal;
 	onEvent?: (event: MediaExecutionEvent) => void;
 }
@@ -133,6 +136,14 @@ export class MediaProcessingApplication {
 		this.files = new MediaProcessingFiles(options.dataDir);
 	}
 	start(request: MediaExecutionRequest): MediaExecutionHandle {
+		if (
+			request.maximumBytes !== undefined &&
+			(!Number.isSafeInteger(request.maximumBytes) || request.maximumBytes <= 0)
+		)
+			throw new MediaToolError(
+				"INVALID_INPUT",
+				"Invalid execution output budget.",
+			);
 		const plan = freeze(structuredClone(request.plan));
 		if (
 			typeof plan.id !== "string" ||
@@ -298,7 +309,10 @@ export class MediaProcessingApplication {
 			(total, output) => total + output.sizeBytes,
 			0,
 		);
-		const maximumBytes = this.policy.maximumProcessedBytes - retainedBytes;
+		const maximumBytes = Math.min(
+			this.policy.maximumProcessedBytes - retainedBytes,
+			request.maximumBytes ?? this.policy.maximumProcessedBytes,
+		);
 		if (maximumBytes <= 0)
 			throw new MediaToolError(
 				"TOOL_FAILED",
@@ -325,7 +339,8 @@ export class MediaProcessingApplication {
 			signal.throwIfAborted();
 			onValidating();
 			const size = (await stat(workspace.pendingPath)).size;
-			if (size <= 0 || size >= maximumBytes)
+			if (size >= maximumBytes) throw new MediaOutputBudgetError();
+			if (size <= 0)
 				throw new MediaToolError(
 					"TOOL_FAILED",
 					"Processed media is empty or exceeds its size limit.",
@@ -429,6 +444,12 @@ export class MediaProcessingApplication {
 		if (!output) return;
 		await this.files.remove(output.workspace);
 		this.outputs.delete(id);
+	}
+	/** Startup only: previous process workspaces are never reusable completed copies. */
+	async initialize(): Promise<void> {
+		if (this.active.size || this.outputs.size)
+			throw new Error("Processing has already started.");
+		await this.files.initialize();
 	}
 	async close(): Promise<void> {
 		this.controller.abort();

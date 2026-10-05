@@ -1,3 +1,7 @@
+import type { DerivedMediaIdentity } from "../../../shared/media-preparation.js";
+
+export type { DerivedMediaIdentity } from "../../../shared/media-preparation.js";
+
 import type { MediaExecutionRequest } from "../../media-processing/public.js";
 
 /** Public decisions contain no filesystem paths or executable encoder settings. */
@@ -24,19 +28,11 @@ export type PlaybackPlanningResult =
 			reasons: { video: string; audio: string };
 			identity: DerivedMediaIdentity;
 			/** Private request; transport must never serialize this result directly. */
-			execution: MediaExecutionRequest;
+			execution: Omit<
+				MediaExecutionRequest,
+				"signal" | "onEvent" | "maximumBytes"
+			>;
 	  };
-
-/** Execution identity is separate from task, artifact and real-time session IDs. */
-export interface DerivedMediaIdentity {
-	rootId: string;
-	fileId: string;
-	sourceVersion: string;
-	profileFingerprint: string;
-	executionPlanId: string;
-	videoStreamIndex: number;
-	audioStreamIndex: number | null;
-}
 
 /** Preparation owns publication/deletion; playback only borrows ready artifacts. */
 export interface PreparedPlaybackResource {

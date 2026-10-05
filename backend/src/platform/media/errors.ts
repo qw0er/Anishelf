@@ -16,3 +16,9 @@ export class MediaToolError extends Error {
 		this.name = "MediaToolError";
 	}
 }
+
+export class MediaOutputBudgetError extends MediaToolError {
+	constructor() {
+		super("TOOL_FAILED", "Media output exceeds the execution budget.");
+	}
+}

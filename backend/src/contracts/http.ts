@@ -30,6 +30,15 @@ export type PlaybackSessionResponse = Static<
 	typeof schemas.PlaybackSessionResponseSchema
 >;
 export type PlaybackPlanDto = Static<typeof schemas.PlaybackPlanSchema>;
+export type PreparationTaskResponse = Static<
+	typeof schemas.PreparationTaskSchema
+>;
+export type PreparationStartResponse = Static<
+	typeof schemas.PreparationStartResponseSchema
+>;
+export type PreparationListResponse = Static<
+	typeof schemas.PreparationListResponseSchema
+>;
 export type SavePlaybackProgressRequest = Static<
 	typeof schemas.SavePlaybackProgressRequestSchema
 >;

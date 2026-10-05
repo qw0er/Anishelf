@@ -10,6 +10,7 @@ import {
 	type DeepReadonly,
 } from "../modules/configuration/policy.js";
 import { PlaybackRepository } from "../modules/playback/infrastructure/repository.js";
+import { PreparationRepository } from "../modules/preparation/infrastructure/repository.js";
 import { SourceRepository } from "../modules/resource-access/infrastructure/repository.js";
 import { SubtitleRepository } from "../modules/subtitles/infrastructure/repository.js";
 import { adapterPolicy } from "../platform/adapter-policy.js";
@@ -22,6 +23,7 @@ import { storageRules } from "../platform/storage.js";
 export class ApplicationDatabase {
 	readonly playback: PlaybackRepository;
 	readonly subtitles: SubtitleRepository;
+	readonly preparation: PreparationRepository;
 	private constructor(
 		private readonly connection: Database.Database,
 		store: Store,
@@ -30,6 +32,7 @@ export class ApplicationDatabase {
 		const sources = new SourceRepository(store);
 		this.playback = new PlaybackRepository(store, sources, policy.playback);
 		this.subtitles = new SubtitleRepository(store, sources);
+		this.preparation = new PreparationRepository(store, sources);
 	}
 
 	static open(

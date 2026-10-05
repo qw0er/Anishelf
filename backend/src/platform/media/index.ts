@@ -1,3 +1,4 @@
+export { MediaOutputBudgetError } from "./errors.js";
 export type {
 	ExecutionCapabilityCheck,
 	ExecutionCapabilityRequirement,

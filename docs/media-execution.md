@@ -3,8 +3,9 @@
 Compatibility negotiation reports browser acceptance for original media and, when
 an output profile is explicitly selected, its concrete output candidates. The execution
 resolver applies that profile's policy and constructs concrete encoding requirements;
-the FFmpeg adapter compiles arguments. These are backend APIs, with no new HTTP
-endpoint or player integration.
+the FFmpeg adapter compiles arguments. The [preparation owner](preparation.md)
+now exposes persistent tasks and completed-media HTTP delivery. Player integration
+and real-time HLS remain separate work.
 
 `MediaCompatibilityApplication` owns browser negotiation for both original media
 and profile-selected output candidates. `resolveExecutionPlan()` is a pure resolver
@@ -15,7 +16,8 @@ preflights FFmpeg requirements and executes the request through
 
 `createMediaExecutionModule()` composes the compatibility and processing
 applications from configuration, inspected sources and discovered tools. It is an
-internal factory; preparation HTTP routes and the player do not invoke it yet.
+internal factory used by the production bootstrap for preparation HTTP workflows.
+The player still uses the original-media path.
 The GET/POST compatibility routes use the same unified exchange with rules version 3;
 the former request shapes and generic operation recommendations have been removed.
 
@@ -117,7 +119,9 @@ output, atomic publication and source-version revalidation. Child closure is not
 artifact readiness. Errors reject the completion promise. Observer exceptions
 are isolated. `await execution.stop()` waits for termination and cleanup;
 completion still rejects when cancelled. A result already completed remains
-owned until `release()`. Closing the service stops active work and releases outputs.
+owned until `release()`. Preparation adopts published bytes through its own cache
+link before releasing execution ownership. Closing the processor stops active
+work and releases its temporary outputs; it does not delete adopted prepared copies.
 
 Progress includes media time, frames, output bytes, encoding speed, percentage
 and the FFmpeg end marker. Unreported fields are `null`. Percentage is present
@@ -160,8 +164,9 @@ exact planned H.264 descriptor and available video/audio durations. Results are 
 The [playback planning foundation](playback-planning.md) now consumes the public
 compatibility API and this resolver through `PlaybackApplication.plan()`. It
 returns a read-only proposal without creating history or acquiring output.
-Persistent jobs, restart recovery, scheduling, HTTP progress, pre-transcode
-playback and real-time HLS remain future integrations.
+The [preparation owner](preparation.md) adds persistent jobs, restart recovery,
+a bounded queue, polled progress and reusable completed-media HTTP delivery.
+Prepared-player integration and real-time HLS remain future integrations.
 
 
 ## Verification

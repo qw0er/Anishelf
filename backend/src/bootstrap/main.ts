@@ -10,9 +10,9 @@ import type {
 } from "../modules/configuration/policy.js";
 import type { LibraryApplication } from "../modules/library/application/library.js";
 import { LibraryIndex } from "../modules/library/infrastructure/index.js";
-import { MediaCompatibilityApplication } from "../modules/media-compatibility/application/compatibility.js";
 import { MediaInspectionApplication } from "../modules/media-inspection/application/inspection.js";
 import { PlaybackApplication } from "../modules/playback/application/playback.js";
+import { PreparationApplication } from "../modules/preparation/public.js";
 import { SubtitleApplication } from "../modules/subtitles/application/subtitles.js";
 import { ApplicationLogging } from "../platform/logging/index.js";
 import { MediaTools } from "../platform/media/index.js";
@@ -20,6 +20,7 @@ import { DomainError } from "../shared/errors.js";
 import { ApplicationDatabase } from "./database.js";
 import { createHttpApp } from "./http.js";
 import { createLibraryModule } from "./library.js";
+import { createMediaExecutionModule } from "./media-execution.js";
 
 type HttpApp = ReturnType<typeof createHttpApp>;
 
@@ -124,12 +125,14 @@ async function createServer(
 		policy: configuration.policy.mediaInspection,
 		logger,
 	});
-	const compatibility = new MediaCompatibilityApplication({
+	const execution = createMediaExecutionModule({
+		configuration,
 		inspection,
 		sources: library.sources,
+		tools,
 		logger,
-		profiles: configuration.transcodeProfiles,
 	});
+	const compatibility = execution.compatibility;
 	const playback = new PlaybackApplication({
 		policy: configuration.policy.playback,
 		sources: library.sources,
@@ -146,6 +149,27 @@ async function createServer(
 		dataDir: config.dataDir,
 		...(database ? { repository: database.subtitles } : {}),
 	});
+	const preparation = new PreparationApplication({
+		sources: library.sources,
+		planning: playback,
+		processing: execution.processing,
+		profiles: configuration.transcodeProfiles,
+		dataDir: config.dataDir,
+		logger,
+		policy: configuration.policy.preparation,
+		...(database ? { repository: database.preparation } : {}),
+	});
+	try {
+		await preparation.initialize();
+	} catch (error) {
+		logger.warn(
+			{
+				event: "preparation.unavailable",
+				errorName: error instanceof Error ? error.name : "unknown",
+			},
+			"Media preparation is unavailable.",
+		);
+	}
 	try {
 		await subtitles.initialize();
 	} catch (err) {
@@ -161,6 +185,7 @@ async function createServer(
 		logger,
 		library,
 		playback,
+		preparation,
 		subtitles,
 		compatibility,
 		development,
@@ -169,6 +194,7 @@ async function createServer(
 			: {}),
 	});
 	server.addHook("onClose", async () => {
+		await execution.close();
 		await subtitles.close();
 		await inspection.close();
 		database?.close();

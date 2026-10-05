@@ -43,6 +43,11 @@ import {
 	validatePlaybackPolicy,
 } from "../playback/public.js";
 import {
+	type PreparationPolicy,
+	preparationPolicy,
+	validatePreparationPolicy,
+} from "../preparation/public.js";
+import {
 	type ResourceAccessPolicy,
 	resourceAccessPolicy,
 	validateResourceAccessPolicy,
@@ -61,6 +66,7 @@ export interface BuiltinPolicy {
 	resourceAccess: ResourceAccessPolicy;
 	mediaInspection: MediaInspectionPolicy;
 	mediaProcessing: MediaProcessingPolicy;
+	preparation: PreparationPolicy;
 	mediaTools: MediaToolPolicy;
 	http: HttpPolicy;
 	database: DatabasePolicy;
@@ -73,6 +79,7 @@ export const builtinPolicy: DeepReadonly<BuiltinPolicy> = freeze({
 	resourceAccess: resourceAccessPolicy,
 	mediaInspection: mediaInspectionPolicy,
 	mediaProcessing: mediaProcessingPolicy,
+	preparation: preparationPolicy,
 	mediaTools: mediaToolPolicy,
 	http: httpPolicy,
 	database: databasePolicy,
@@ -85,6 +92,7 @@ export function validatePolicy(policy: DeepReadonly<BuiltinPolicy>): void {
 	validateResourceAccessPolicy(policy.resourceAccess);
 	validateMediaInspectionPolicy(policy.mediaInspection);
 	validateMediaProcessingPolicy(policy.mediaProcessing);
+	validatePreparationPolicy(policy.preparation);
 	validateMediaToolPolicy(policy.mediaTools);
 	validateHttpPolicy(policy.http);
 	validateDatabasePolicy(policy.database);

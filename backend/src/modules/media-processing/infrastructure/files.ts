@@ -5,6 +5,7 @@ import {
 	mkdir,
 	mkdtemp,
 	open,
+	readdir,
 	rename,
 	rm,
 } from "node:fs/promises";
@@ -22,6 +23,17 @@ export class MediaProcessingFiles {
 	private readonly root: string;
 	constructor(dataDir: string) {
 		this.root = join(dataDir, "cache", "media-processing");
+	}
+	async initialize(): Promise<void> {
+		await mkdir(this.root, {
+			recursive: true,
+			mode: storageRules.directoryMode,
+		});
+		const root = await lstat(this.root);
+		if (!root.isDirectory() || root.isSymbolicLink())
+			throw new Error("Invalid media processing directory.");
+		for (const name of await readdir(this.root))
+			await rm(join(this.root, name), { recursive: true, force: true });
 	}
 	async allocate(): Promise<ProcessingWorkspace> {
 		await mkdir(this.root, {

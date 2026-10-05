@@ -7,7 +7,7 @@ import {
 	TranscodeVideoSchema,
 } from "../../contracts/schemas/transcode-profiles.js";
 import type { DeepReadonly } from "../../shared/policy.js";
-import { MediaToolError } from "./errors.js";
+import { MediaOutputBudgetError, MediaToolError } from "./errors.js";
 import type { MediaInfo, MediaProcessingOptions, ToolStatus } from "./model.js";
 import { type MediaToolPolicy, mediaToolPolicy } from "./policy.js";
 import { startMediaProcess } from "./processing-process.js";
@@ -226,7 +226,8 @@ export class FfmpegExecutionAdapter {
 		await child.completion;
 		options.signal?.throwIfAborted();
 		const size = (await stat(output)).size;
-		if (size <= 0 || size >= options.maximumBytes)
+		if (size >= options.maximumBytes) throw new MediaOutputBudgetError();
+		if (size <= 0)
 			throw new MediaToolError(
 				"TOOL_FAILED",
 				"FFmpeg output is empty or exceeds the output budget.",

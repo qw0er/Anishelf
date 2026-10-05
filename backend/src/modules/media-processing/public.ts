@@ -19,7 +19,7 @@ export {
 import type { MediaProcessingApplication } from "./application/processing.js";
 export type MediaProcessingApi = Pick<
 	MediaProcessingApplication,
-	"start" | "release"
+	"start" | "release" | "initialize"
 >;
 
 export type { PreparationExecutionPlan } from "./application/execution-plan.js";

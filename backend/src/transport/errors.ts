@@ -2,6 +2,24 @@ import type { ApiErrorResponse } from "../contracts/http.js";
 import { DomainError, type ErrorCode } from "../shared/errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	PREPARATION_UNAVAILABLE: {
+		status: 503,
+		message: "Media preparation is unavailable.",
+	},
+	PREPARATION_BUSY: {
+		status: 409,
+		message:
+			"The preparation queue is full or the prepared media is in use. Retry shortly.",
+	},
+	PREPARATION_CACHE_FULL: {
+		status: 507,
+		message:
+			"The prepared media cache is full. Delete a prepared copy and retry.",
+	},
+	PREPARATION_STORAGE_FULL: {
+		status: 507,
+		message: "Insufficient disk storage for media preparation.",
+	},
 	MEDIA_INSPECTION_UNAVAILABLE: {
 		status: 503,
 		message: "Media inspection is unavailable or busy. Retry shortly.",

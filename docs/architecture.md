@@ -80,7 +80,9 @@ backend/src/
     resource-access/        # Source identity, root epoch and confined access
     media-inspection/    # Shared version-bound probe cache and concurrency
     media-compatibility/ # Browser negotiation for original media and selected output candidates
-    playback/            # Sessions, progress and history
+    media-processing/    # Explicit execution, preflight and temporary output validation
+    playback/            # Planning, sessions, progress and history
+    preparation/         # Persistent tasks, bounded queue and reusable completed media
     subtitles/           # Discovery, preparation, delivery and asset lifecycle
   contracts/             # Browser-safe HTTP schemas/types, formats and defaults
   transport/             # Shared HTTP security, presenters, errors and static serving
@@ -130,6 +132,7 @@ regression coverage; production source is checked independently.
 | [`resource-access/public.ts`](../backend/src/modules/resource-access/public.ts) | Source API, source/catalog models and controlled access capabilities; no library implementation dependency |
 | [`resource-access/application/access.ts`](../backend/src/modules/resource-access/application/access.ts) | Own the root epoch, resolve indexed IDs, revalidate source identities and open confined media; reject asynchronous access spanning a root change |
 | [`resource-access/infrastructure/repository.ts`](../backend/src/modules/resource-access/infrastructure/repository.ts) | Register canonical roots and source versions for both playback and subtitles; preserve existing identity hashes |
+| [`preparation/public.ts`](../backend/src/modules/preparation/public.ts) | Persistent preparation, task lifecycle and source-bound completed-media delivery; uses public planning/processing/source APIs |
 | [`playback/public.ts`](../backend/src/modules/playback/public.ts) | Session/progress/history capability and result types; the application depends on `ResourceAccessApi`, not Library |
 | [`subtitles/public.ts`](../backend/src/modules/subtitles/public.ts) | Discovery/preparation/content capability and result types; the application depends on `ResourceAccessApi`, not Library or Playback |
 | [`configuration/public.ts`](../backend/src/modules/configuration/public.ts) | Settings-store interface, configuration types and program policy; atomic persistence stays internal |
@@ -512,6 +515,11 @@ Resolve track and attachment IDs on the server, never accept paths or FFmpeg sel
 Keep cue time on the original source timeline. When real-time playback restarts at a source-time offset, map both plain-text cues and JASSUB's renderer clock to that offset; recreate or shift the track for the new generation without accumulating offsets. Test seek, resume, source switching, multiple simultaneous styled lines, font fallback, and CJK text. Missing or unsupported subtitles never force audio/video re-encoding; no automatic burn-in in V2.
 
 ## 7. Playback Plan and FFmpeg Transcoding (V2; P05–P07)
+
+The [persistent preparation backend](preparation.md) is implemented: task APIs,
+a bounded queue, completed-file cache, restart reconciliation and HTTP/Range
+delivery. Prepared-player integration, automatic playback selection and real-time
+HLS remain planned. The design below retains the full V2 target.
 
 ### Implemented execution foundation
 

@@ -23,8 +23,8 @@ and optional concrete output candidates. It never starts FFmpeg or an external p
 
 The resource URLs remain the same, but the former request/response shapes are
 removed. There are no separate preparation describe/check methods or generic
-`plans` field. The player submits a source-only check; future preparation callers
-select an output context through this same exchange.
+`plans` field. The player submits a source-only check; [preparation callers](preparation.md)
+select a completed-file output context through this same exchange.
 
 Reports are client capability evidence, not authority to access files or submit
 processing parameters. They are never persisted or shared between clients. The

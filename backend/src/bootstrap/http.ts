@@ -19,6 +19,8 @@ import type { MediaCompatibilityApplication } from "../modules/media-compatibili
 import { registerCompatibilityRoutes } from "../modules/media-compatibility/http/compatibility.js";
 import type { PlaybackApplication } from "../modules/playback/application/playback.js";
 import { registerPlaybackRoutes } from "../modules/playback/http/playback.js";
+import type { PreparationApplication } from "../modules/preparation/application/preparation.js";
+import { registerPreparationRoutes } from "../modules/preparation/http/preparation.js";
 import { SubtitleApplication } from "../modules/subtitles/application/subtitles.js";
 import { registerSubtitleRoutes } from "../modules/subtitles/http/subtitles.js";
 import { apiError, classifyHttpError } from "../transport/errors.js";
@@ -32,6 +34,7 @@ export function createHttpApp(options: {
 	development?: boolean;
 	library?: LibraryApplication;
 	playback?: PlaybackApplication;
+	preparation?: PreparationApplication;
 	subtitles?: SubtitleApplication;
 	compatibility?: MediaCompatibilityApplication;
 	frontendRoot?: string;
@@ -136,6 +139,11 @@ export function createHttpApp(options: {
 
 	if (options.compatibility)
 		registerCompatibilityRoutes(app, options.compatibility);
+	if (options.preparation) {
+		const preparation = options.preparation;
+		app.addHook("onClose", async () => preparation.close());
+		registerPreparationRoutes(app, preparation);
+	}
 	const frontendRoot = options.frontendRoot;
 	if (options.development && frontendRoot)
 		app.register(async (scope) => registerFrontend(scope, frontendRoot));

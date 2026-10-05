@@ -1,0 +1,517 @@
+{
+	"version": "6",
+	"dialect": "sqlite",
+	"id": "9d82bb5b-9592-449d-831b-81d2ee21dfe5",
+	"prevId": "8cd9404f-7bac-4f3e-bd1a-ce6ce48bee20",
+	"tables": {
+		"media_sources": {
+			"name": "media_sources",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"root_id": {
+					"name": "root_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"file_id": {
+					"name": "file_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"relative_path": {
+					"name": "relative_path",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"source_version": {
+					"name": "source_version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"created_at_ms": {
+					"name": "created_at_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"media_sources_identity": {
+					"name": "media_sources_identity",
+					"columns": ["root_id", "file_id", "source_version"],
+					"isUnique": true
+				},
+				"media_sources_root": {
+					"name": "media_sources_root",
+					"columns": ["root_id", "id"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"media_sources_root_id_resource_roots_id_fk": {
+					"name": "media_sources_root_id_resource_roots_id_fk",
+					"tableFrom": "media_sources",
+					"tableTo": "resource_roots",
+					"columnsFrom": ["root_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"playback_progress": {
+			"name": "playback_progress",
+			"columns": {
+				"source_id": {
+					"name": "source_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"position_ms": {
+					"name": "position_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": 0
+				},
+				"duration_ms": {
+					"name": "duration_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"last_viewed_at_ms": {
+					"name": "last_viewed_at_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"generation": {
+					"name": "generation",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": 1
+				},
+				"last_sequence": {
+					"name": "last_sequence",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": 0
+				}
+			},
+			"indexes": {
+				"progress_recent": {
+					"name": "progress_recent",
+					"columns": ["\"last_viewed_at_ms\" desc", "source_id"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"playback_progress_source_id_media_sources_id_fk": {
+					"name": "playback_progress_source_id_media_sources_id_fk",
+					"tableFrom": "playback_progress",
+					"tableTo": "media_sources",
+					"columnsFrom": ["source_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"progress_position": {
+					"name": "progress_position",
+					"value": "\"playback_progress\".\"position_ms\" >= 0"
+				},
+				"progress_duration": {
+					"name": "progress_duration",
+					"value": "\"playback_progress\".\"duration_ms\" IS NULL OR (\"playback_progress\".\"duration_ms\" > 0 AND \"playback_progress\".\"position_ms\" <= \"playback_progress\".\"duration_ms\")"
+				},
+				"progress_generation": {
+					"name": "progress_generation",
+					"value": "\"playback_progress\".\"generation\" >= 1"
+				},
+				"progress_sequence": {
+					"name": "progress_sequence",
+					"value": "\"playback_progress\".\"last_sequence\" >= 0"
+				}
+			}
+		},
+		"preparation_tasks": {
+			"name": "preparation_tasks",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"source_id": {
+					"name": "source_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"execution_plan_id": {
+					"name": "execution_plan_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"profile_id": {
+					"name": "profile_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"profile_fingerprint": {
+					"name": "profile_fingerprint",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"filename": {
+					"name": "filename",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot": {
+					"name": "snapshot",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"progress": {
+					"name": "progress",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"failure_reason": {
+					"name": "failure_reason",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"created_at_ms": {
+					"name": "created_at_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"updated_at_ms": {
+					"name": "updated_at_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"preparation_tasks_execution_plan_id_unique": {
+					"name": "preparation_tasks_execution_plan_id_unique",
+					"columns": ["execution_plan_id"],
+					"isUnique": true
+				},
+				"preparation_queue": {
+					"name": "preparation_queue",
+					"columns": ["status", "created_at_ms"],
+					"isUnique": false
+				},
+				"preparation_source": {
+					"name": "preparation_source",
+					"columns": ["source_id"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"preparation_tasks_source_id_media_sources_id_fk": {
+					"name": "preparation_tasks_source_id_media_sources_id_fk",
+					"tableFrom": "preparation_tasks",
+					"tableTo": "media_sources",
+					"columnsFrom": ["source_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"preparation_status": {
+					"name": "preparation_status",
+					"value": "\"preparation_tasks\".\"status\" IN ('queued', 'processing', 'ready', 'failed', 'cancelled')"
+				}
+			}
+		},
+		"prepared_artifacts": {
+			"name": "prepared_artifacts",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"task_id": {
+					"name": "task_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"size_bytes": {
+					"name": "size_bytes",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"mime_type": {
+					"name": "mime_type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"prepared_artifacts_task_id_unique": {
+					"name": "prepared_artifacts_task_id_unique",
+					"columns": ["task_id"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"prepared_artifacts_task_id_preparation_tasks_id_fk": {
+					"name": "prepared_artifacts_task_id_preparation_tasks_id_fk",
+					"tableFrom": "prepared_artifacts",
+					"tableTo": "preparation_tasks",
+					"columnsFrom": ["task_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"prepared_size": {
+					"name": "prepared_size",
+					"value": "\"prepared_artifacts\".\"size_bytes\" > 0"
+				}
+			}
+		},
+		"resource_roots": {
+			"name": "resource_roots",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"canonical_path": {
+					"name": "canonical_path",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"created_at_ms": {
+					"name": "created_at_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"resource_roots_canonical_path_unique": {
+					"name": "resource_roots_canonical_path_unique",
+					"columns": ["canonical_path"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"subtitle_assets": {
+			"name": "subtitle_assets",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"source_id": {
+					"name": "source_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"track_id": {
+					"name": "track_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"stream_index": {
+					"name": "stream_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"processing_version": {
+					"name": "processing_version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"format": {
+					"name": "format",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"size_bytes": {
+					"name": "size_bytes",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"error_code": {
+					"name": "error_code",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"updated_at_ms": {
+					"name": "updated_at_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"subtitle_asset_identity": {
+					"name": "subtitle_asset_identity",
+					"columns": ["source_id", "track_id", "format", "processing_version"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"subtitle_assets_source_id_media_sources_id_fk": {
+					"name": "subtitle_assets_source_id_media_sources_id_fk",
+					"tableFrom": "subtitle_assets",
+					"tableTo": "media_sources",
+					"columnsFrom": ["source_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"subtitle_stream_index": {
+					"name": "subtitle_stream_index",
+					"value": "\"subtitle_assets\".\"stream_index\" >= 0"
+				},
+				"subtitle_asset_size": {
+					"name": "subtitle_asset_size",
+					"value": "\"subtitle_assets\".\"size_bytes\" IS NULL OR \"subtitle_assets\".\"size_bytes\" >= 0"
+				},
+				"subtitle_asset_state": {
+					"name": "subtitle_asset_state",
+					"value": "\"subtitle_assets\".\"status\" IN ('pending', 'ready', 'failed')"
+				}
+			}
+		}
+	},
+	"views": {},
+	"enums": {},
+	"_meta": {
+		"schemas": {},
+		"tables": {},
+		"columns": {}
+	},
+	"internal": {
+		"indexes": {
+			"progress_recent": {
+				"columns": {
+					"\"last_viewed_at_ms\" desc": {
+						"isExpression": true
+					}
+				}
+			}
+		}
+	}
+}

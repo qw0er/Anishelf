@@ -5,7 +5,8 @@ optional administrator-authored profiles, a read-only catalog and a persistent u
 selection. It does not certify browser playback or add a Settings selector yet. The internal
 [compatibility negotiation, execution resolver and FFmpeg adapter](media-execution.md)
 now translate selected profiles into explicit requests. The processing application
-preflights server capabilities and validates completed output. Persistent tasks, playback integration and HLS remain planned.
+preflights server capabilities and validates completed output. [Persistent preparation tasks and cache delivery](preparation.md) are implemented
+in the backend; player integration and HLS remain planned.
 
 ## Built-in profiles
 
@@ -220,5 +221,6 @@ If a saved custom profile disappears, preserve its ID and return
 `selectionAvailable: false`. Unrelated settings saves preserve this choice. The
 user can select another existing profile or reset to the default; the application
 does not silently replace the missing choice. Profile-specific compatibility negotiation snapshots profile content and calculates a canonical policy
-fingerprint, excluding display metadata. Actual task creation, persistent cache
-reuse and user-facing selection controls remain preparation integration work.
+fingerprint, excluding display metadata. [Preparation](preparation.md) now snapshots execution requests, persists tasks
+and validates profile fingerprints for cache reuse. User-facing selection controls
+remain separate integration work.

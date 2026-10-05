@@ -2,9 +2,9 @@ import type {
 	CompatibilityQuery,
 	CompatibilityStream,
 } from "../../../contracts/http.js";
-import { fingerprint } from "../../../shared/fingerprint.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type { TranscodeProfile } from "../../../shared/transcode-profiles.js";
+import { transcodeProfileFingerprint } from "../../../shared/transcode-profiles.js";
 import type {
 	CompatibilityOutput,
 	OriginalMediaDescription,
@@ -105,13 +105,7 @@ export function describeOutputCandidates(
 				v === "copy" ? video : encodedVideo,
 				a === "copy" ? audio : encodedAudio,
 			);
-	const profileFingerprint = fingerprint({
-		usage: profile.usage,
-		container: profile.container,
-		copyCompatibleStreams: profile.copyCompatibleStreams,
-		video: profile.video,
-		audio: profile.audio,
-	});
+	const profileFingerprint = transcodeProfileFingerprint(profile);
 	return {
 		queries,
 		output: { profileId: profile.id, target, profileFingerprint },

@@ -2,5 +2,6 @@ export * from "./common.js";
 export * from "./compatibility.js";
 export * from "./library.js";
 export * from "./playback.js";
+export * from "./preparation.js";
 export * from "./subtitles.js";
 export * from "./transcode-profiles.js";

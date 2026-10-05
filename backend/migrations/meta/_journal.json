@@ -22,6 +22,13 @@
 			"when": 1790946145424,
 			"tag": "0002_subtitle_assets",
 			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "6",
+			"when": 1791173213692,
+			"tag": "0003_preparation_tasks",
+			"breakpoints": true
 		}
 	]
 }
