@@ -1,8 +1,26 @@
 # Refactoring baseline
 
-This baseline records the current product behavior and the scope of batch 1.
-It is not evidence of successful decoding on every browser. Requirements still
-own product scope; architecture owns implementation decisions.
+This document records preserved behavior, the six historical implementation batches,
+and the final closeout. Batch-specific statements describe their state at that time;
+the closeout table below is the current status. Recorded browser samples do not
+certify every browser or codec. Architecture decisions remain subject to review.
+
+## Current closeout status
+
+| Area | Final implementation |
+| --- | --- |
+| Dependency direction | Platform is independent of business modules; runtime cycles and invalid module entries fail lint |
+| Consumer contracts | Preparation uses shared business planning decisions; Playback Selection consumes its own small copy/source ports, assembled in bootstrap |
+| Negotiation model | Business types live in `shared/media-negotiation.ts`; HTTP schemas retain validation and compile-time checks detect structural drift |
+| Planning and preparation | Planning is independent of progress sessions; task, worker, artifact and recovery lifecycles have separate owners |
+| Playback and frontend | Server selection owns resource choice; Query owns shared reads and batch summaries; progress retains serial protocol operations |
+| Error semantics | Subtitle failures carry explicit codes; diagnostic messages are never interpreted as status codes |
+| Transport projection | Presenters are separated by responsibility under `transport/presenters/`; no aggregate presenter barrel remains |
+| Persistence | Closeout changes no database migration, snapshot version, HTTP JSON shape or artifact identity |
+
+The sections below retain batch evidence and do not introduce additional pending
+work. Optional library substitutions are not acceptance blockers; HLS delivery,
+embedded fonts, eviction and new product behavior remain outside this refactor.
 
 ## Behavior to preserve
 
@@ -61,9 +79,9 @@ into Media Planning. Runtime HLS delivery and acquisition are not implemented.
   have a default shutdown sequence; production injects the complete one so shared
   owners are not closed twice.
 
-Planning ownership in Playback, task/DTO coupling, frontend candidate selection,
-per-file task queries and duplicated snapshot fields remain unchanged for their
-scheduled batches.
+At the end of batch 1, planning ownership, task projection, candidate selection,
+per-file queries and snapshots were intentionally unchanged. Batches 2–5 below
+subsequently replaced those paths.
 
 ## Automatic architecture checks
 
@@ -129,9 +147,8 @@ Implemented after the dependency baseline:
   `/api/media/plans` (removed in batch 6); retain existing task/artifact snapshots and unchanged output
   identities. Corrected non-H.264 encoding has a new resolver version.
 
-Task snapshot consolidation, preparation lifecycle state unions, unified playback
-resource selection/session semantics and frontend query-state ownership remain in
-later batches. HLS generation/delivery remains unimplemented.
+Task snapshots, lifecycle state unions, playback selection and frontend query
+ownership were completed in batches 3–5. HLS generation/delivery remains unimplemented.
 
 ## Batch 3: preparation tasks and artifact lifecycle
 
@@ -248,3 +265,39 @@ Live native decoding and responsive browser acceptance remain separate checks.
 These samples certify the exercised paths only. HLS, HDR, bitmap subtitles,
 embedded fonts and arbitrary target-browser/codec combinations remain unverified
 or unimplemented as described in the active architecture.
+
+## Final closeout: contracts and projections
+
+Consumer ports now use shared business negotiation/planning specifications rather
+than HTTP DTOs or provider application result aliases. Playback Selection receives
+only copy eligibility, priority and resource metadata. Bootstrap projects Preparation
+views into that port; execution settings, progress and storage bookkeeping do not
+cross it. Source identity remains a deliberately shared value, while the selection
+source port only requires MIME metadata and version/epoch validation.
+
+Media Planning domain code no longer derives its fields from HTTP responses.
+The HTTP entry validates structural input; domain evidence checks enforce source-query
+membership and decision consistency. Bidirectional compile-time assertions protect
+the intentionally unchanged wire contract. Architecture fixtures reject HTTP DTO
+imports from domain code, ports and shared business types.
+
+The backend and frontend use typed subtitle failures with explicit codes. Unknown
+exceptions produce the generic failure code rather than treating diagnostic text as
+a translation key. Existing retry and cancellation behavior is preserved.
+
+Library, settings, progress/history, subtitles, compatibility, media resources,
+preparation and playback selection each have a focused transport presenter. Routes
+and tests import the relevant projection directly.
+
+Closeout verification on 2026-10-06 passed `npm run check` in an environment
+allowing child processes and localhost listeners: Biome, architecture and Knip
+checks, both workspace typechecks, 13 architecture tests, 546 backend tests and
+168 Web tests. One platform-specific backend test was skipped on macOS. The
+architecture scan covered 284 modules and 1,149 dependencies. `npm run build`
+passed with the existing large-chunk warning; `git diff --check` passed.
+
+Regression coverage includes detached copy projections, unchanged selection and
+real FFmpeg preparation flows, HTTP projections, subtitle cache/interrupt failures,
+and generic handling of unexpected subtitle diagnostics. Browser acceptance above
+belongs to batch 6; closeout itself changes no layout or native rendering and does
+not claim a fresh browser or real-library upgrade certification.

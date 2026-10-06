@@ -8,6 +8,7 @@ import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/bootstrap/database.js";
 import { createHttpApp } from "../src/bootstrap/http.js";
 import { createLibraryModule } from "../src/bootstrap/library.js";
+import { createPlaybackCopies } from "../src/bootstrap/playback-selection.js";
 import type {
 	CompatibilityInspection,
 	PlaybackOptionsResponse,
@@ -29,7 +30,7 @@ import {
 import {
 	preparationStartResponse,
 	preparationTaskResponse,
-} from "../src/transport/presenters.js";
+} from "../src/transport/presenters/preparation.js";
 import { settingsStore } from "./settings-store.js";
 
 const run = promisify(execFile);
@@ -103,7 +104,7 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 			playbackSelection: new PlaybackSelectionApplication({
 				sources: library.sources,
 				planning: compatibility,
-				copies: preparation,
+				copies: createPlaybackCopies(preparation),
 				selectedProfileId: () => builtinTranscodeProfiles[0]?.id ?? null,
 			}),
 		});

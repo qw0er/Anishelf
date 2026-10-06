@@ -1,8 +1,8 @@
+import type { MediaStream } from "../../../platform/media/index.js";
 import type {
 	CompatibilityAudioStream,
 	CompatibilityVideoStream,
-} from "../../../contracts/http.js";
-import type { MediaStream } from "../../../platform/media/index.js";
+} from "../../../shared/media-negotiation.js";
 export function describeVideo(stream: MediaStream): CompatibilityVideoStream {
 	return {
 		...describeCommon(stream),

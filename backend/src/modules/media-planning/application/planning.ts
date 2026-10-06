@@ -1,14 +1,15 @@
 import type { Logger } from "pino";
 import { Check } from "typebox/value";
-import type {
-	CompatibilityCheckRequest,
-	CompatibilityInspection,
-} from "../../../contracts/http.js";
 import { CompatibilityCheckRequestSchema } from "../../../contracts/schemas/compatibility.js";
 import { TranscodeProfileSchema } from "../../../contracts/schemas/transcode-profiles.js";
 import { MediaToolError } from "../../../platform/media/index.js";
 import { DomainError } from "../../../shared/errors.js";
 import { fingerprint } from "../../../shared/fingerprint.js";
+import type {
+	CompatibilityCheckRequest,
+	CompatibilityInspection,
+} from "../../../shared/media-negotiation.js";
+import type { MediaPlanningResult } from "../../../shared/media-planning.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import type { TranscodeProfile } from "../../../shared/transcode-profiles.js";
 import {
@@ -30,7 +31,6 @@ import type {
 	CheckedCompatibility,
 	CompatibilityInspectInput,
 } from "../domain/model.js";
-import type { MediaPlanningResult } from "../domain/plan.js";
 import type { MediaPlanningApi } from "../public.js";
 import { describeOriginalMedia } from "./description.js";
 import { describeOutputCandidates } from "./output-description.js";

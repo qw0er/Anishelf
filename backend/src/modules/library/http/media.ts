@@ -4,7 +4,7 @@ import {
 } from "../../../contracts/schemas/index.js";
 import type { HttpInstance } from "../../../transport/instance.js";
 import { sendMediaResponse } from "../../../transport/media.js";
-import { fileDto } from "../../../transport/presenters.js";
+import { fileDto } from "../../../transport/presenters/library.js";
 import type { LibraryApplication } from "../application/library.js";
 
 export function registerMediaRoutes(

@@ -1,32 +1,43 @@
 import type {
 	CompatibilityCheckRequest,
-	CompatibilityInspection,
-} from "../../contracts/http.js";
-import type { DeepReadonly } from "../../shared/policy.js";
-import type {
-	CheckedCompatibility,
 	CompatibilityInspectInput,
-} from "../media-planning/public.js";
-import type { PreparationView } from "../preparation/public.js";
-/** Read-only requirements: selecting playback can never create or retry work. */
+	CompatibilityInspection,
+	CompatibilityResult,
+} from "../../shared/media-negotiation.js";
+import type {
+	SourceIdentity,
+	SourceReference,
+} from "../../shared/media-source.js";
+import type { DeepReadonly } from "../../shared/policy.js";
+/** Read-only requirements. No planner-private profiles or preparation execution settings. */
 export interface PlaybackSelectionPlanning {
 	inspect(input: CompatibilityInspectInput): Promise<CompatibilityInspection>;
 	check(
 		input: CompatibilityCheckRequest & { fileId: string },
-	): Promise<DeepReadonly<CheckedCompatibility>>;
+	): Promise<DeepReadonly<CompatibilityResult>>;
+}
+export interface PlaybackCopy {
+	taskId: string;
+	profileId: string;
+	source: SourceIdentity;
+	audioStreamIndices: readonly number[];
+	mode: "remux" | "transcode-audio" | "transcode-video" | "transcode";
+	pending: boolean;
+	updatedAtMs: number;
+	artifact: { id: string; mimeType: string } | null;
+	availability: "ready" | "unknown" | "unavailable";
 }
 export interface PlaybackCopies {
-	list(fileId: string): Promise<{ tasks: PreparationView[] }>;
-	get(id: string): Promise<PreparationView>;
+	list(fileId: string): Promise<{ tasks: PlaybackCopy[] }>;
+	get(id: string): Promise<PlaybackCopy>;
 }
-
+interface SelectionSource {
+	identity: SourceIdentity;
+	file: { mimeType: string };
+	rootEpoch: number;
+}
 export interface PlaybackSelectionSources {
-	resolveSource(
-		id: string,
-		expectedVersion?: string,
-	): Promise<import("../resource-access/public.js").ResolvedSource>;
-	revalidateSource(
-		expected: import("../resource-access/public.js").SourceReference,
-	): Promise<import("../resource-access/public.js").ResolvedSource>;
+	resolveSource(id: string, expectedVersion?: string): Promise<SelectionSource>;
+	revalidateSource(expected: SourceReference): Promise<unknown>;
 	assertRootEpoch(epoch: number): void;
 }

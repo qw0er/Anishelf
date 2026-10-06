@@ -8,6 +8,7 @@ import type {
 	ResolvedSource,
 	ResourceAccessApi,
 } from "../../resource-access/public.js";
+import { SubtitlePreparationFailure } from "../domain/errors.js";
 import { subtitleAssetId, subtitleIdentity } from "../domain/identity.js";
 import type {
 	PreparedSubtitleFormat,
@@ -236,15 +237,15 @@ export class SubtitlePreparationApplication {
 					(this.options.policy ?? subtitleRuntimePolicy).subtitles
 						.maximumCacheBytes
 				)
-					throw new Error("SUBTITLE_CACHE_FULL");
+					throw new SubtitlePreparationFailure("SUBTITLE_CACHE_FULL");
 				await this.validate(asset, epoch);
 				if (this.controller.signal.aborted)
-					throw new Error("SUBTITLE_INTERRUPTED");
+					throw new SubtitlePreparationFailure("SUBTITLE_INTERRUPTED");
 				await this.files.publish(asset, result.text);
 				published = true;
 				await this.validate(asset, epoch);
 				if (this.controller.signal.aborted)
-					throw new Error("SUBTITLE_INTERRUPTED");
+					throw new SubtitlePreparationFailure("SUBTITLE_INTERRUPTED");
 				this.options.repository.save({
 					...asset,
 					status: "ready",
@@ -267,6 +268,8 @@ export class SubtitlePreparationApplication {
 			if (published) await this.files.remove(asset).catch(() => {});
 			let errorCode: SubtitlePreparationError = "SUBTITLE_EXTRACTION_FAILED";
 			if (this.controller.signal.aborted) errorCode = "SUBTITLE_INTERRUPTED";
+			else if (error instanceof SubtitlePreparationFailure)
+				errorCode = error.code;
 			else if (
 				error instanceof DomainError &&
 				(error.code === "PLAYBACK_CONFLICT" ||
@@ -280,8 +283,8 @@ export class SubtitlePreparationApplication {
 				errorCode = "SUBTITLE_TOOL_UNAVAILABLE";
 			else if (
 				error instanceof Error &&
-				(error.message === "SUBTITLE_CACHE_FULL" ||
-					("code" in error && error.code === "ENOSPC"))
+				"code" in error &&
+				error.code === "ENOSPC"
 			)
 				errorCode = "SUBTITLE_CACHE_FULL";
 			const log = {

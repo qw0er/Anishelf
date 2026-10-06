@@ -70,3 +70,38 @@ export function assertHttpSchemaInference(app: HttpInstance): void {
 		},
 	);
 }
+
+import type * as Http from "../src/contracts/http.js";
+import type * as Selection from "../src/modules/playback-selection/public.js";
+import type * as Negotiation from "../src/shared/media-negotiation.js";
+
+// Bidirectional checks make drift between business vocabulary and wire schemas a build failure.
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+export type NegotiationContractsMatch = Assert<
+	Same<
+		[
+			Negotiation.CompatibilityInspection,
+			Negotiation.CompatibilityCheckRequest,
+			Negotiation.CompatibilityResult,
+		],
+		[
+			Http.CompatibilityInspection,
+			Http.CompatibilityCheckRequest,
+			Http.CompatibilityResult,
+		]
+	>
+>;
+export type SelectionContractsMatch = Assert<
+	Same<
+		[
+			Selection.PlaybackOptionsRequest,
+			Selection.PlaybackOptionsResponse,
+			Selection.PlaybackSelectionRequest,
+		],
+		[
+			Http.PlaybackOptionsRequest,
+			Http.PlaybackOptionsResponse,
+			Http.PlaybackSelectionRequest,
+		]
+	>
+>;

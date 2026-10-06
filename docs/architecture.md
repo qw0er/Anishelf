@@ -59,6 +59,13 @@ Resource Access's `files.ts` for the confined-filesystem capability. Public serv
 contracts are explicit interfaces rather than aliases derived from Applications.
 Policy/service entries do not load Application or infrastructure implementations.
 Only bootstrap may import implementations from other modules for assembly.
+Consumer-owned ports declare the smallest needed behavior and data. Preparation and
+Media Planning share immutable work specifications; they do not derive those from
+HTTP types. Playback Selection's copy port contains eligibility and resource metadata,
+not a preparation task or execution plan. Bootstrap projects the provider view into
+that port. Shared source identities and negotiation values live in focused business
+contracts, with compile-time checks against their separate HTTP schemas.
+Domain code, ports and shared business types cannot import `contracts/http.ts`.
 HTTP handlers call their own Application; Applications coordinate domain logic,
 adapters and other modules' Public APIs. Domain code does not depend on HTTP,
 Applications or concrete infrastructure. Platform adapters provide filesystem,
@@ -591,3 +598,15 @@ The preparation audio-selection migration converts legacy single audio indices t
 one-element arrays, and legacy null selections to empty arrays, in both stored
 requests and derived identities. Existing task and artifact identities remain intact;
 new snapshots continue to use ordered arrays.
+
+### Transport projections and failure codes
+
+`transport/presenters/` groups explicit HTTP projections by responsibility. Routes
+import only their relevant presenter; shared resource/file projections are reused
+without an aggregate barrel. Projections keep source paths, encoder settings and
+storage bookkeeping out of public JSON.
+
+Subtitle preparation failures carry a machine-readable `code`. Backend cache and
+interruption failures and frontend preparation-status failures never encode their
+meaning in `Error.message`. Unknown frontend exceptions become a generic subtitle
+failure; diagnostic messages remain diagnostic.

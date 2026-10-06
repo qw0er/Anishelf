@@ -6,7 +6,7 @@ import {
 	sourceTimeMs,
 } from "../src/contracts/media.js";
 import { PlaybackPlanSchema } from "../src/contracts/schemas/playback.js";
-import { playbackPlanDto } from "../src/transport/presenters.js";
+import { playbackPlanDto } from "../src/transport/presenters/media.js";
 
 test("source mapping survives an offset restart and nonzero media origin", () => {
 	const timeline = {

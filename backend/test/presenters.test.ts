@@ -7,13 +7,15 @@ import type { ScanState } from "../src/modules/library/domain/scan-state.js";
 import {
 	directoryResponse,
 	fileDto,
-	historyResponse,
 	libraryResponse,
+	scanStateDto,
+} from "../src/transport/presenters/library.js";
+import {
+	historyResponse,
 	playbackProgressDto,
 	playbackSessionResponse,
-	scanStateDto,
-	settingsResponse,
-} from "../src/transport/presenters.js";
+} from "../src/transport/presenters/playback.js";
+import { settingsResponse } from "../src/transport/presenters/settings.js";
 
 test("resource projections omit internal paths even when given full index entries", () => {
 	const directory: DirectoryEntry = {

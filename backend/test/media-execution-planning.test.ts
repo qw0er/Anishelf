@@ -30,7 +30,7 @@ import {
 import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { fingerprint } from "../src/shared/fingerprint.js";
-import { presentCompatibility } from "../src/transport/presenters.js";
+import { presentCompatibility } from "../src/transport/presenters/compatibility.js";
 import { settingsStore } from "./settings-store.js";
 
 const cleanup: Array<() => Promise<unknown>> = [];

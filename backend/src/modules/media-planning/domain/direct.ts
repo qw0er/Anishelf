@@ -1,7 +1,7 @@
 import type {
 	CompatibilityEvidence,
 	CompatibilityResult,
-} from "../../../contracts/http.js";
+} from "../../../shared/media-negotiation.js";
 import { aggregateCompatibility, compatibilityDecision } from "./evidence.js";
 import type { OriginalMediaDescription } from "./model.js";
 

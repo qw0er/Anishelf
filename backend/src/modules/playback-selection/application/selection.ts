@@ -1,17 +1,18 @@
 import { playbackSelectionConstraints } from "../../../contracts/defaults.js";
-import type {
-	PlaybackOptionsRequest,
-	PlaybackOptionsResponse,
-	PlaybackSelectionRequest,
-} from "../../../contracts/http.js";
 import { DomainError } from "../../../shared/errors.js";
-import type { PreparationView } from "../../preparation/public.js";
 import type {
 	PlaybackCopies,
+	PlaybackCopy,
 	PlaybackSelectionPlanning,
 	PlaybackSelectionSources,
 } from "../ports.js";
-import type { PlaybackSelection, PlaybackSelectionApi } from "../public.js";
+import type {
+	PlaybackOptionsRequest,
+	PlaybackOptionsResponse,
+	PlaybackSelection,
+	PlaybackSelectionApi,
+	PlaybackSelectionRequest,
+} from "../public.js";
 
 const combination = {
 	remux: "copy-copy",
@@ -29,7 +30,7 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 			selectedProfileId: () => string | null;
 		},
 	) {}
-	private async copies(fileId: string): Promise<PreparationView[]> {
+	private async copies(fileId: string): Promise<PlaybackCopy[]> {
 		try {
 			return (await this.options.copies.list(fileId)).tasks;
 		} catch (error) {
@@ -41,30 +42,28 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 			throw error;
 		}
 	}
-	private prioritize(tasks: PreparationView[]): PreparationView[] {
+	private prioritize(tasks: PlaybackCopy[]): PlaybackCopy[] {
 		const selected = this.options.selectedProfileId();
 		return tasks.sort(
 			(a, b) =>
-				Number(b.task.profileId === selected) -
-					Number(a.task.profileId === selected) ||
-				b.task.state.updatedAtMs - a.task.state.updatedAtMs ||
-				a.task.id.localeCompare(b.task.id),
+				Number(b.profileId === selected) - Number(a.profileId === selected) ||
+				b.updatedAtMs - a.updatedAtMs ||
+				a.taskId.localeCompare(b.taskId),
 		);
 	}
 	private matches(
-		view: PreparationView,
+		view: PlaybackCopy,
 		fileId: string,
 		version: string,
 		audio: readonly number[],
 		canonicalRoot: string,
 	): boolean {
-		const { task } = view;
+		const { source } = view;
 		return (
-			task.spec.source.canonicalRoot === canonicalRoot &&
-			task.spec.source.fileId === fileId &&
-			task.spec.source.sourceVersion === version &&
-			JSON.stringify(task.spec.settings.audioStreamIndices) ===
-				JSON.stringify(audio)
+			source.canonicalRoot === canonicalRoot &&
+			source.fileId === fileId &&
+			source.sourceVersion === version &&
+			JSON.stringify(view.audioStreamIndices) === JSON.stringify(audio)
 		);
 	}
 	async inspect(
@@ -100,9 +99,9 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 					fileId: input.fileId,
 					sourceVersion: original.sourceVersion,
 					audioStreamIndices: original.selectedAudioStreamIndices,
-					output: { profileId: view.task.profileId, target: "file" },
+					output: { profileId: view.profileId, target: "file" },
 				});
-				candidates.push({ taskId: view.task.id, description });
+				candidates.push({ taskId: view.taskId, description });
 				if (
 					candidates.length === playbackSelectionConstraints.maximumCandidates
 				)
@@ -189,9 +188,7 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 			),
 		);
 		this.prioritize(tasks);
-		const pending = tasks.some(({ task }) =>
-			["queued", "processing", "cancelling"].includes(task.state.status),
-		);
+		const pending = tasks.some((copy) => copy.pending);
 		const result = (
 			choice: PlaybackSelection["choice"],
 		): PlaybackSelection => ({
@@ -232,12 +229,12 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 			)
 				continue;
 			const evidence = input.candidates.find(
-				(c) => c.taskId === view.task.id,
+				(c) => c.taskId === view.taskId,
 			)?.check;
 			if (!evidence) continue;
 			if (
 				evidence.sourceVersion !== compatibility.sourceVersion ||
-				evidence.output?.profileId !== view.task.profileId ||
+				evidence.output?.profileId !== view.profileId ||
 				evidence.output.target !== "file" ||
 				JSON.stringify(evidence.audioStreamIndices) !== JSON.stringify(audio)
 			)
@@ -249,17 +246,13 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 				fileId: input.fileId,
 				...evidence,
 			});
-			if (
-				checked.output?.combinations[
-					combination[view.task.spec.settings.mode]
-				] !== "supported"
-			)
+			if (checked.output?.combinations[combination[view.mode]] !== "supported")
 				continue;
-			const current = await this.options.copies.get(view.task.id);
+			const current = await this.options.copies.get(view.taskId);
 			if (
 				current.availability !== "ready" ||
 				current.artifact?.id !== view.artifact.id ||
-				current.task.profileId !== view.task.profileId ||
+				current.profileId !== view.profileId ||
 				!this.matches(
 					current,
 					input.fileId,

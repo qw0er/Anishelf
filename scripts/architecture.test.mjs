@@ -60,6 +60,16 @@ test("allows policy and public contracts, same-module implementation, and bootst
 
 for (const [name, files] of [
 	[
+		"domain-and-ports-do-not-import-http-dtos",
+		{
+			"backend/src/modules/a/ports.ts":
+				"import type { Dto } from '../../contracts/http.js'; export interface Port { read(): Dto }",
+			"backend/src/modules/a/domain/model.ts":
+				"import type { Dto } from '../../../contracts/http.js'; export type Model = Dto;",
+			"backend/src/contracts/http.ts": "export interface Dto { id: string }",
+		},
+	],
+	[
 		"domain-does-not-load-platform-adapters",
 		{
 			"backend/src/modules/a/domain/model.ts":

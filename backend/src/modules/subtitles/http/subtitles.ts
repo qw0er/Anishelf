@@ -12,7 +12,7 @@ import type { HttpInstance } from "../../../transport/instance.js";
 import {
 	subtitleDiscoveryResponse,
 	subtitlePreparationResponse,
-} from "../../../transport/presenters.js";
+} from "../../../transport/presenters/subtitles.js";
 import type { SubtitleApplication } from "../application/subtitles.js";
 export function registerSubtitleRoutes(
 	app: HttpInstance,

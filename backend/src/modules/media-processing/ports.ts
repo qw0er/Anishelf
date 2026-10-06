@@ -4,8 +4,7 @@ import type {
 } from "../../platform/media/model.js";
 import type { ServerMediaCapabilities } from "../../shared/media-capabilities.js";
 import type { MediaProcessEvent } from "../../shared/media-execution.js";
-import type { MediaProcessingPlan } from "../../shared/media-processing.js";
-import type { DeepReadonly } from "../../shared/policy.js";
+import type { MediaExecutionSpecification } from "../../shared/media-processing.js";
 /** An adapter must await child closure on cancellation. The production FFmpeg adapter is composed separately. */
 export interface MediaExecutionAdapter {
 	execute(
@@ -16,12 +15,7 @@ export interface MediaExecutionAdapter {
 	): Promise<void>;
 }
 
-export interface MediaExecutionRequest {
-	fileId: string;
-	sourceVersion: string;
-	plan: DeepReadonly<MediaProcessingPlan>;
-	videoStreamIndex: number;
-	audioStreamIndices: readonly number[];
+export interface MediaExecutionRequest extends MediaExecutionSpecification {
 	/** A resource owner can narrow the output budget for this execution. */
 	maximumBytes?: number;
 	signal?: AbortSignal;

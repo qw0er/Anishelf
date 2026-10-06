@@ -8,7 +8,7 @@ import {
 } from "../../../contracts/schemas/index.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { HttpInstance } from "../../../transport/instance.js";
-import { presentCompatibility } from "../../../transport/presenters.js";
+import { presentCompatibility } from "../../../transport/presenters/compatibility.js";
 import type { MediaPlanningApi } from "../public.js";
 export function registerMediaPlanningRoutes(
 	app: HttpInstance,

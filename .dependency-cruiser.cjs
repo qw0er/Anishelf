@@ -3,6 +3,14 @@ const entry =
 module.exports = {
 	forbidden: [
 		{
+			name: "domain-and-ports-do-not-import-http-dtos",
+			severity: "error",
+			from: {
+				path: "^backend/src/(?:modules/[^/]+/(?:domain/|ports\\.ts$)|shared/)",
+			},
+			to: { path: "^backend/src/contracts/http\\.ts$" },
+		},
+		{
 			name: "no-unresolved-source-imports",
 			severity: "error",
 			from: { path: "^(backend|web)/src" },

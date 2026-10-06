@@ -1,11 +1,11 @@
+import type { MediaInfo } from "../../../platform/media/index.js";
+import { DomainError } from "../../../shared/errors.js";
 import type {
 	CompatibilityAudioStream,
 	CompatibilityQuery,
 	CompatibilityStream,
 	CompatibilityVideoStream,
-} from "../../../contracts/http.js";
-import type { MediaInfo } from "../../../platform/media/index.js";
-import { DomainError } from "../../../shared/errors.js";
+} from "../../../shared/media-negotiation.js";
 import type { OriginalMediaDescription } from "../domain/model.js";
 import { browserQuery } from "../domain/output-spec.js";
 import { describeAudio, describeVideo } from "../domain/streams.js";

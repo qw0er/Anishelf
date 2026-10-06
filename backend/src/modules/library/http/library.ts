@@ -10,7 +10,7 @@ import {
 	directoryResponse,
 	libraryResponse,
 	scanStateDto,
-} from "../../../transport/presenters.js";
+} from "../../../transport/presenters/library.js";
 import type { LibraryApplication } from "../application/library.js";
 
 export function registerLibraryRoutes(

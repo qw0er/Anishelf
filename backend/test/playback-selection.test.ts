@@ -1,6 +1,7 @@
 import pino from "pino";
 import { beforeEach, expect, test, vi } from "vitest";
 import { createHttpApp } from "../src/bootstrap/http.js";
+import { createPlaybackCopies } from "../src/bootstrap/playback-selection.js";
 import type {
 	CompatibilityInspection,
 	PlaybackSelectionRequest,
@@ -185,7 +186,7 @@ beforeEach(() => {
 	application = new PlaybackSelectionApplication({
 		sources,
 		planning,
-		copies,
+		copies: createPlaybackCopies(copies),
 		selectedProfileId: () => "builtin:preferred",
 	});
 });
@@ -347,4 +348,32 @@ test("candidate descriptions are bounded after server priority, not by browser r
 	expect(options.candidates).toHaveLength(128);
 	expect(options.candidates[0]?.taskId).toBe("preferred");
 	expect(planning.inspect).toHaveBeenCalledTimes(129);
+});
+
+test("composition gives selection only copy metadata, detached from mutable owner state", async () => {
+	tasks = [copy("copy")];
+	const adapter = createPlaybackCopies(copies);
+	const snapshot = await adapter.get("copy");
+	expect(Object.keys(snapshot).sort()).toEqual(
+		[
+			"artifact",
+			"audioStreamIndices",
+			"availability",
+			"mode",
+			"pending",
+			"profileId",
+			"source",
+			"taskId",
+			"updatedAtMs",
+		].sort(),
+	);
+	expect(snapshot.artifact).toEqual({ id: "copy", mimeType: "video/mp4" });
+	expect(snapshot).not.toHaveProperty("task");
+	expect(snapshot).not.toHaveProperty("spec");
+	const task = tasks[0];
+	if (!task) throw new Error("Missing fixture");
+	task.task.profileId = "changed";
+	snapshot.source.canonicalRoot = "/changed";
+	expect(snapshot.profileId).toBe("builtin:web");
+	expect(task.task.spec.source.canonicalRoot).toBe("/media");
 });

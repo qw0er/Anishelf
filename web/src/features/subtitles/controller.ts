@@ -3,6 +3,7 @@ import type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
 } from "../../api/contracts.js";
+import { SubtitlePreparationError, subtitleErrorCode } from "./errors.js";
 
 type SubtitleTrack = SubtitleDiscoveryResponse["tracks"][number];
 export type PreparationFeedback = {
@@ -84,7 +85,7 @@ export class SubtitleController {
 			if (request.signal.aborted || this.disposed || this.selectedId !== id)
 				return;
 			if (result.status !== "ready" || !result.contentUrl)
-				throw new Error("SUBTITLE_EXTRACTION_FAILED");
+				throw new SubtitlePreparationError();
 			const old = this.registered.get(id);
 			const track = new TextTrack({
 				id,
@@ -108,14 +109,7 @@ export class SubtitleController {
 		} catch (error) {
 			if (request.signal.aborted || this.disposed || this.selectedId !== id)
 				return;
-			const code =
-				error instanceof Error &&
-				"code" in error &&
-				typeof error.code === "string"
-					? error.code
-					: error instanceof Error
-						? error.message
-						: "SUBTITLE_EXTRACTION_FAILED";
+			const code = subtitleErrorCode(error);
 			this.feedback({
 				status: "failed",
 				name: descriptor.name,

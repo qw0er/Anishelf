@@ -1,6 +1,6 @@
 import { createSettingsSchemas } from "../../../contracts/schemas/index.js";
 import type { HttpInstance } from "../../../transport/instance.js";
-import { settingsResponse } from "../../../transport/presenters.js";
+import { settingsResponse } from "../../../transport/presenters/settings.js";
 import type { SettingsApplication } from "../application/settings.js";
 
 export function registerSettingsRoutes(

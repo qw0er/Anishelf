@@ -18,7 +18,7 @@ import { sendMediaResponse } from "../../../transport/media.js";
 import {
 	preparationStartResponse,
 	preparationTaskResponse,
-} from "../../../transport/presenters.js";
+} from "../../../transport/presenters/preparation.js";
 import type { PreparationApplication } from "../application/preparation.js";
 
 export function registerPreparationRoutes(

@@ -6,6 +6,7 @@ import type {
 	SubtitlePreparationResponse,
 } from "../src/api/contracts.js";
 import { SubtitleController } from "../src/features/subtitles/controller.js";
+import { SubtitlePreparationError } from "../src/features/subtitles/errors.js";
 import { prepareSelectedSubtitle } from "../src/features/subtitles/preparation.js";
 
 type SubtitleTrack = SubtitleDiscoveryResponse["tracks"][number];
@@ -122,7 +123,9 @@ test("failure keeps the choice retryable and disposing aborts the new request", 
 	const tracks = new TextTrackList();
 	const prepare = vi
 		.fn()
-		.mockRejectedValueOnce(new Error("SUBTITLE_TOOL_UNAVAILABLE"))
+		.mockRejectedValueOnce(
+			new SubtitlePreparationError("SUBTITLE_TOOL_UNAVAILABLE"),
+		)
 		.mockImplementationOnce(() => new Promise(() => {}));
 	const feedback = vi.fn();
 	const controller = new SubtitleController(
@@ -223,4 +226,26 @@ test("external ready preparation completes without polling", async () => {
 			subtitleVersion: "subtitle-version",
 		}),
 	);
+});
+
+test("unexpected diagnostic messages are not interpreted as subtitle error codes", async () => {
+	const tracks = new TextTrackList();
+	const feedback = vi.fn();
+	const controller = new SubtitleController(
+		tracks,
+		[descriptor("first")],
+		async () => {
+			throw new Error("SUBTITLE_TOOL_UNAVAILABLE");
+		},
+		feedback,
+	);
+	getTrack(tracks, "first").mode = "showing";
+	await vi.waitFor(() =>
+		expect(feedback).toHaveBeenLastCalledWith({
+			status: "failed",
+			name: "first",
+			errorCode: "SUBTITLE_EXTRACTION_FAILED",
+		}),
+	);
+	controller.dispose();
 });

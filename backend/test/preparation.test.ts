@@ -36,7 +36,7 @@ import { parseMediaInfo } from "../src/platform/media/tools.js";
 import {
 	preparationStartResponse,
 	preparationTaskResponse,
-} from "../src/transport/presenters.js";
+} from "../src/transport/presenters/preparation.js";
 import { settingsStore } from "./settings-store.js";
 
 const cleanup: Array<() => Promise<unknown>> = [];

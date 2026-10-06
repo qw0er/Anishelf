@@ -122,7 +122,7 @@ const identity = {
 	sourceVersion: SourceVersionSchema,
 	rulesVersion: Type.Literal("4"),
 };
-export const CompatibilityEvidenceListSchema = Type.Array(evidence, {
+const CompatibilityEvidenceListSchema = Type.Array(evidence, {
 	maxItems: 1024,
 });
 export const CompatibilityInspectionQuerySchema = Type.Object(

@@ -1,13 +1,13 @@
 import type {
 	CompatibilityCheckRequest,
 	CompatibilityInspection,
-} from "../../contracts/http.js";
+} from "../../shared/media-negotiation.js";
+import type { MediaPlanningResult } from "../../shared/media-planning.js";
 import type { DeepReadonly } from "../../shared/policy.js";
 import type {
 	CheckedCompatibility,
 	CompatibilityInspectInput,
 } from "./domain/model.js";
-import type { MediaPlanningResult } from "./domain/plan.js";
 export interface MediaPlanningApi {
 	plan(
 		input: CompatibilityCheckRequest & { fileId: string },

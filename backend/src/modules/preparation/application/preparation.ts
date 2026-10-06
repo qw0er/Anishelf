@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
-import type { CompatibilityCheckRequest } from "../../../contracts/http.js";
 import { DomainError } from "../../../shared/errors.js";
+import type { CompatibilityCheckRequest } from "../../../shared/media-negotiation.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import {
 	type TranscodeProfile,

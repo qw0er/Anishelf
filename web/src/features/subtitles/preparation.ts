@@ -4,6 +4,7 @@ import type { SubtitlePreparationResponse } from "../../api/contracts.js";
 import { boundedSignal } from "../../api/queries.js";
 import { queryClient } from "../../api/query-client.js";
 import { interactionPolicy } from "../../config/interaction-policy.js";
+import { SubtitlePreparationError } from "./errors.js";
 
 /** Only the selected pending track has an observer. Leaving does not cancel the server job. */
 export async function prepareSelectedSubtitle(
@@ -38,7 +39,7 @@ export async function prepareSelectedSubtitle(
 		result.status === "pending"
 			? await new Promise<SubtitlePreparationResponse>((resolve, reject) => {
 					if (!result.statusUrl) {
-						reject(new Error("SUBTITLE_EXTRACTION_FAILED"));
+						reject(new SubtitlePreparationError());
 						return;
 					}
 					const observer = new QueryObserver(client, {
@@ -76,6 +77,8 @@ export async function prepareSelectedSubtitle(
 				})
 			: result;
 	if (completed.status === "failed" || !completed.contentUrl)
-		throw new Error(completed.errorCode ?? "SUBTITLE_EXTRACTION_FAILED");
+		throw new SubtitlePreparationError(
+			completed.errorCode ?? "SUBTITLE_EXTRACTION_FAILED",
+		);
 	return completed;
 }

@@ -1,7 +1,9 @@
 import { fingerprint } from "../../../shared/fingerprint.js";
-import type { MediaProcessingPlan } from "../../../shared/media-processing.js";
+import type {
+	MediaExecutionSpecification,
+	MediaProcessingPlan,
+} from "../../../shared/media-processing.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
-import type { MediaExecutionRequest } from "../../media-processing/public.js";
 import type { CheckedCompatibility } from "./model.js";
 import {
 	encodedVideoSpec,
@@ -18,7 +20,7 @@ export type PreparationExecutionPlan =
 			mode: "remux" | "transcode-audio" | "transcode-video" | "transcode";
 			profileFingerprint: string;
 			reasons: { video: string; audio: string };
-			request: MediaExecutionRequest;
+			request: MediaExecutionSpecification;
 	  };
 
 /** Pure profile-policy resolution. Source access, browser negotiation and execution preflight belong to their applications. */

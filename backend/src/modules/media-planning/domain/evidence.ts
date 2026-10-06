@@ -1,19 +1,15 @@
-import { Check } from "typebox/value";
+import { DomainError } from "../../../shared/errors.js";
 import type {
 	CompatibilityEvidence,
 	CompatibilityQuery,
 	CompatibilityResult,
-} from "../../../contracts/http.js";
-import { CompatibilityEvidenceListSchema } from "../../../contracts/schemas/compatibility.js";
-import { DomainError } from "../../../shared/errors.js";
+} from "../../../shared/media-negotiation.js";
 
 /** Both original and profile-specific negotiation use the same evidence rules. */
 export function validateCompatibilityEvidence(
 	queries: CompatibilityQuery[],
 	evidence: CompatibilityEvidence[],
 ): void {
-	if (!Check(CompatibilityEvidenceListSchema, evidence))
-		throw new DomainError("INVALID_REQUEST", "Invalid compatibility evidence.");
 	const ids = new Set(queries.map((query) => query.id));
 	const seen = new Set<string>();
 	for (const entry of evidence) {

@@ -3,6 +3,7 @@ import type {
 	TranscodeAudioSchema,
 	TranscodeVideoSchema,
 } from "../contracts/schemas/transcode-profiles.js";
+import type { DeepReadonly } from "./policy.js";
 /** Explicit execution requirements, independent of compatibility recommendations. */
 export type MediaStreamExecution =
 	| { action: "copy" }
@@ -26,4 +27,13 @@ export interface MediaProcessingPlan {
 	videoFilters?: string[];
 	/** Exact H.264 descriptor selected by the preparation resolver. */
 	h264Level?: "5.1";
+}
+
+/** Immutable work specification shared by planners and execution consumers. */
+export interface MediaExecutionSpecification {
+	fileId: string;
+	sourceVersion: string;
+	plan: DeepReadonly<MediaProcessingPlan>;
+	videoStreamIndex: number;
+	audioStreamIndices: readonly number[];
 }

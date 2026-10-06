@@ -1,5 +1,5 @@
-import type { DerivedMediaIdentity } from "../../../shared/media-preparation.js";
-import type { MediaExecutionRequest } from "../../media-processing/public.js";
+import type { DerivedMediaIdentity } from "./media-preparation.js";
+import type { MediaExecutionSpecification } from "./media-processing.js";
 /** A plan needing work is not a queued task, published artifact or live session. */
 export type MediaPlanningResult =
 	| { kind: "playable"; fileId: string; mimeType: string }
@@ -11,8 +11,5 @@ export type MediaPlanningResult =
 			reasons: { video: string; audio: string };
 			identity: DerivedMediaIdentity;
 			/** Private request; transport must never serialize this result directly. */
-			execution: Omit<
-				MediaExecutionRequest,
-				"signal" | "onEvent" | "maximumBytes"
-			>;
+			execution: MediaExecutionSpecification;
 	  };

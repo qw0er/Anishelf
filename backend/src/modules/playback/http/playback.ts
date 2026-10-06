@@ -14,7 +14,7 @@ import {
 	historyResponse,
 	playbackProgressDto,
 	playbackSessionResponse,
-} from "../../../transport/presenters.js";
+} from "../../../transport/presenters/playback.js";
 import type { PlaybackApplication } from "../application/playback.js";
 
 export function registerPlaybackRoutes(

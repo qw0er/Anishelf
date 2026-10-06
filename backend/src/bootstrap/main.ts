@@ -23,6 +23,7 @@ import { ApplicationDatabase } from "./database.js";
 import { createHttpApp } from "./http.js";
 import { createLibraryModule } from "./library.js";
 import { createMediaExecutionModule } from "./media-execution.js";
+import { createPlaybackCopies } from "./playback-selection.js";
 
 type HttpApp = ReturnType<typeof createHttpApp>;
 
@@ -182,7 +183,7 @@ async function createServer(
 	const playbackSelection = new PlaybackSelectionApplication({
 		sources: library.sources,
 		planning,
-		copies: preparation,
+		copies: createPlaybackCopies(preparation),
 		selectedProfileId: () =>
 			configuration.getTranscodeProfileCatalog().selectedProfileId,
 	});

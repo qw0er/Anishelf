@@ -2,7 +2,7 @@ import type {
 	CompatibilityAudioStream,
 	CompatibilityQuery,
 	CompatibilityVideoStream,
-} from "../../../contracts/http.js";
+} from "../../../shared/media-negotiation.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type { TranscodeProfile } from "../../../shared/transcode-profiles.js";
 import { transcodeProfileFingerprint } from "../../../shared/transcode-profiles.js";

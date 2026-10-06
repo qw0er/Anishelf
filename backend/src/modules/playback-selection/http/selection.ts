@@ -5,7 +5,7 @@ import {
 	PlaybackSelectionResponseSchema,
 } from "../../../contracts/schemas/index.js";
 import type { HttpInstance } from "../../../transport/instance.js";
-import { playbackSelectionResponse } from "../../../transport/presenters.js";
+import { playbackSelectionResponse } from "../../../transport/presenters/selection.js";
 import type { PlaybackSelectionApi } from "../public.js";
 export function registerPlaybackSelectionRoutes(
 	app: HttpInstance,
