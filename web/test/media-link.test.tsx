@@ -4,7 +4,10 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as api from "../src/api/client.js";
 import { Toaster, toast } from "../src/components/ui/toast.js";
 import MediaLink from "../src/features/playback/components/media-link.js";
-import { createMediaLink } from "../src/features/playback/media-link.js";
+import {
+	createMediaLink,
+	createMediaPlaylist,
+} from "../src/features/playback/media-link.js";
 import {
 	act,
 	cleanup,
@@ -201,4 +204,46 @@ test("Escape dismisses the dialog and returns focus to the copy button", async (
 		expect(screen.queryByRole("dialog", { name: "Media link" })).toBeNull(),
 	);
 	await waitFor(() => expect(document.activeElement).toBe(button));
+});
+
+test("playlist keeps Unicode metadata and prevents filename line injection", async () => {
+	vi.mocked(api.getFile).mockResolvedValue({
+		...file,
+		file: { ...file.file, name: "中文\n#EXTINF:1,injected\r\n/movie.mp4" },
+	});
+	const playlist = await createMediaPlaylist(fileId, "https://example.test");
+	expect(playlist.content).toBe(
+		"#EXTM3U\n#EXTINF:-1,中文 #EXTINF:1,injected  /movie.mp4\nhttps://example.test/api/media/file_123\n",
+	);
+	expect(playlist.filename).not.toMatch(/[\r\n/:]/);
+	expect(playlist.filename.endsWith(".m3u")).toBe(true);
+});
+
+test("downloads a playlist without starting a playback session", async () => {
+	const create = vi
+		.spyOn(URL, "createObjectURL")
+		.mockReturnValue("blob:playlist");
+	const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+	const click = vi
+		.spyOn(HTMLAnchorElement.prototype, "click")
+		.mockImplementation(() => {});
+	const open = vi.spyOn(api, "openPlaybackSession");
+	render(<MediaLink fileId={fileId} playlist />);
+	fireEvent.click(
+		screen.getByRole("button", { name: "Download playlist (.m3u)" }),
+	);
+	await waitFor(() => expect(click).toHaveBeenCalledOnce());
+	const anchor = click.mock.instances[0] as HTMLAnchorElement;
+	expect(anchor.download).toBe("中文 space % &.mp4.m3u");
+	expect(anchor.href).toBe("blob:playlist");
+	expect(anchor.isConnected).toBe(false);
+	const blob = create.mock.calls[0]?.[0];
+	expect(blob).toBeInstanceOf(Blob);
+	expect(await (blob as Blob).text()).toBe(
+		`#EXTM3U\n#EXTINF:-1,${file.file.name}\n${window.location.origin}${file.originalMediaUrl}\n`,
+	);
+	expect(open).not.toHaveBeenCalled();
+	await waitFor(() => expect(revoke).toHaveBeenCalledWith("blob:playlist"), {
+		timeout: 2000,
+	});
 });

@@ -77,3 +77,15 @@ unused-export checks; their files and dependencies remain checked. TypeScript
 uses one supported 6.0 version across workspaces.
 See [Refactoring baseline](refactoring-baseline.md) for preserved behaviors and
 the refactoring implementation/status inventory.
+
+## External-player playlists
+
+The Web file page and file action menu offer **Download playlist (.m3u)** alongside
+**Copy media link**. Both recheck file access and accept only the expected original-media
+route. The frontend generates a UTF-8 extended M3U containing one entry, using the
+application origin and the current filename with control characters removed from metadata.
+The browser downloads the playlist; the user opens it in a compatible external player,
+which must be able to reach that origin. The playlist references the original media,
+not a prepared copy, and does not carry selected sidecar subtitles, audio selections,
+resume positions or browser credentials. Downloading never writes playback progress
+or claims that an external player has started.

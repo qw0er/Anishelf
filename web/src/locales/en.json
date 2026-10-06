@@ -114,6 +114,7 @@
 		"label": "Player",
 		"videoLabel": "Video: {{name}}",
 		"retry": "Retry file",
+		"downloadPlaylist": "Download playlist (.m3u)",
 		"copyMediaLink": "Copy media link",
 		"mediaLinkLabel": "Media link",
 		"mediaLinkCopied": "Link copied. Paste it into your external player\u2019s Open URL command.",

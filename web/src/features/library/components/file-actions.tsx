@@ -71,6 +71,7 @@ export function FileActions({
 				</Tooltip>
 				<DropdownMenuContent>
 					<MediaLink fileId={fileId} menuItem />
+					<MediaLink fileId={fileId} menuItem playlist />
 					<PreparationFileMenuItems
 						fileId={fileId}
 						list={list}
