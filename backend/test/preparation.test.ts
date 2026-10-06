@@ -446,6 +446,70 @@ test("pins borrowed artifacts and deleting cache preserves original media and du
 	expect((await completed(f, task.id)).status).toBe("ready");
 });
 
+test("retry replaces a legacy execution plan without changing the old task", async () => {
+	const f = await fixture();
+	const plan = f.planning.plan.bind(f.planning);
+	vi.spyOn(f.planning, "plan").mockImplementationOnce(async (input) => {
+		const planned = structuredClone(await plan(input));
+		if (planned.kind !== "processing-required")
+			throw new Error("Expected work");
+		return {
+			...planned,
+			identity: { ...planned.identity, executionPlanId: "a".repeat(64) },
+			execution: {
+				...planned.execution,
+				plan: { ...planned.execution.plan, id: "a".repeat(64) },
+			},
+		};
+	});
+	const legacy = await completed(
+		f,
+		await taskId(f.preparation.create(await f.input())),
+	);
+	await f.preparation.deleteArtifact(required(legacy.artifactId));
+	const original = f.database.preparation.get(legacy.id);
+	const { fileId: _fileId, ...input } = await f.input();
+	const response = await f.app.inject({
+		method: "POST",
+		url: `/api/preparations/${legacy.id}/retry`,
+		headers,
+		payload: input,
+	});
+	expect(response.statusCode).toBe(200);
+	const replacement = response.json();
+	expect(replacement.id).not.toBe(legacy.id);
+	expect((await completed(f, replacement.id)).status).toBe("ready");
+	expect(f.database.preparation.get(legacy.id)).toEqual(original);
+	expect(
+		f.database.preparation.get(replacement.id)?.spec.executionPlanId,
+	).not.toBe(original?.spec.executionPlanId);
+	// Repeating the old action reuses the current artifact, without duplicate work.
+	expect((await f.preparation.retry(legacy.id, input)).id).toBe(replacement.id);
+	expect(f.processing.start).toHaveBeenCalledTimes(2);
+	const ready = await f.preparation.get(replacement.id);
+	await f.preparation.deleteArtifact(required(ready.artifactId));
+	expect((await f.preparation.retry(legacy.id, input)).id).toBe(replacement.id);
+	expect((await completed(f, replacement.id)).status).toBe("ready");
+	expect(f.processing.start).toHaveBeenCalledTimes(3);
+	expect(f.database.preparation.get(legacy.id)).toEqual(original);
+});
+
+test("retry does not replace a task when the source version changed", async () => {
+	const f = await fixture();
+	const task = await completed(
+		f,
+		await taskId(f.preparation.create(await f.input())),
+	);
+	await f.preparation.deleteArtifact(required(task.artifactId));
+	await writeFile(f.sourcePath, "changed source");
+	const { fileId: _fileId, ...input } = await f.input();
+	await expect(f.preparation.retry(task.id, input)).rejects.toMatchObject({
+		code: "PLAYBACK_CONFLICT",
+	});
+	expect((await f.preparation.list()).tasks).toHaveLength(1);
+	expect(f.processing.start).toHaveBeenCalledTimes(1);
+});
+
 test("queued work shares bounded capacity and cancellation waits for cleanup before retry", async () => {
 	let blocked = true;
 	const f = await fixture({

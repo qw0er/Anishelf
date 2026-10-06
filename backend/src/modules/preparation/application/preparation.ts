@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
 import type { CompatibilityCheckRequest } from "../../../shared/media-negotiation.js";
+import type { MediaPlanningResult } from "../../../shared/media-planning.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import {
 	type TranscodeProfile,
@@ -126,7 +127,7 @@ export class PreparationApplication implements PreparationApi {
 	): Promise<PreparationCreation> {
 		input = structuredClone(input);
 		return this.track(async () => {
-			const { context, artifacts, scheduler } = await this.ensure();
+			const { scheduler } = await this.ensure();
 			if (input.output?.target !== "file")
 				throw new DomainError(
 					"INVALID_REQUEST",
@@ -142,72 +143,87 @@ export class PreparationApplication implements PreparationApi {
 				};
 			if (planned.kind === "blocked")
 				return { kind: "blocked", reason: planned.reason };
-			const source = await context.sources.resolveSource(
-				input.fileId,
-				input.sourceVersion,
-			);
-			if (
-				resourceRootId(source.identity.canonicalRoot) !==
-				planned.identity.rootId
-			)
-				throw new DomainError("PLAYBACK_CONFLICT", "The source root changed.");
-			await context.sources.revalidateSource(source);
-			context.sources.assertRootEpoch(source.rootEpoch);
-			scheduler.assertHealthy();
-			// Deduplication, capacity check and insertion are synchronous: no await between them.
-			const existing = context.repository.find(
-				planned.identity.executionPlanId,
-			);
-			if (existing)
-				return { kind: "task", view: await artifacts.inspect(existing.id) };
-			if (context.repository.queuedCount() >= this.policy.maximumQueuedTasks)
-				throw new DomainError(
-					"PREPARATION_BUSY",
-					"The preparation queue is full.",
-				);
-			const { id: _id, ...plan } = planned.execution.plan;
-			const now = Date.now();
-			const task: PreparationTask = {
-				id: randomUUID(),
-				filename: source.file.name,
-				profileId: input.output.profileId,
-				createdAtMs: now,
-				spec: freeze({
-					source: source.identity,
-					executionPlanId: planned.identity.executionPlanId,
-					profileFingerprint: planned.identity.profileFingerprint,
-					settings: {
-						version: 1,
-						plan,
-						mode: planned.mode,
-						reasons: { ...planned.reasons },
-						videoStreamIndex: planned.execution.videoStreamIndex,
-						audioStreamIndices: [...planned.execution.audioStreamIndices],
-					},
-				}),
-				state: {
-					status: "queued",
-					progress: null,
-					failureReason: null,
-					updatedAtMs: now,
-				},
-			};
-			context.repository.insert(task);
-			context.logger.info(
-				{
-					event: "preparation.queued",
-					taskId: task.id,
-					fileId: task.spec.source.fileId,
-					mode: task.spec.settings.mode,
-				},
-				"Media preparation queued.",
-			);
-			scheduler.wake();
 			return {
 				kind: "task",
-				view: { task, artifact: null, availability: "unavailable" },
+				view: await this.enqueue(input, input.output.profileId, planned),
 			};
 		});
+	}
+	private async enqueue(
+		input: CompatibilityCheckRequest & { fileId: string },
+		profileId: string,
+		planned: DeepReadonly<
+			Extract<MediaPlanningResult, { kind: "processing-required" }>
+		>,
+		retryExisting = false,
+	): Promise<PreparationView> {
+		const { context, artifacts, scheduler } = await this.ensure();
+		const source = await context.sources.resolveSource(
+			input.fileId,
+			input.sourceVersion,
+		);
+		if (
+			resourceRootId(source.identity.canonicalRoot) !== planned.identity.rootId
+		)
+			throw new DomainError("PLAYBACK_CONFLICT", "The source root changed.");
+		await context.sources.revalidateSource(source);
+		context.sources.assertRootEpoch(source.rootEpoch);
+		scheduler.assertHealthy();
+		// Deduplication, capacity check and insertion are synchronous: no await between them.
+		const existing = context.repository.find(planned.identity.executionPlanId);
+		if (existing) {
+			if (
+				retryExisting &&
+				(existing.state.status === "failed" ||
+					existing.state.status === "cancelled")
+			)
+				return this.retry(existing.id, input);
+			return artifacts.inspect(existing.id);
+		}
+		if (context.repository.queuedCount() >= this.policy.maximumQueuedTasks)
+			throw new DomainError(
+				"PREPARATION_BUSY",
+				"The preparation queue is full.",
+			);
+		const { id: _id, ...plan } = planned.execution.plan;
+		const now = Date.now();
+		const task: PreparationTask = {
+			id: randomUUID(),
+			filename: source.file.name,
+			profileId: profileId,
+			createdAtMs: now,
+			spec: freeze({
+				source: source.identity,
+				executionPlanId: planned.identity.executionPlanId,
+				profileFingerprint: planned.identity.profileFingerprint,
+				settings: {
+					version: 1,
+					plan,
+					mode: planned.mode,
+					reasons: { ...planned.reasons },
+					videoStreamIndex: planned.execution.videoStreamIndex,
+					audioStreamIndices: [...planned.execution.audioStreamIndices],
+				},
+			}),
+			state: {
+				status: "queued",
+				progress: null,
+				failureReason: null,
+				updatedAtMs: now,
+			},
+		};
+		context.repository.insert(task);
+		context.logger.info(
+			{
+				event: "preparation.queued",
+				taskId: task.id,
+				fileId: task.spec.source.fileId,
+				mode: task.spec.settings.mode,
+			},
+			"Media preparation queued.",
+		);
+		scheduler.wake();
+		return { task, artifact: null, availability: "unavailable" };
 	}
 	get(id: string): Promise<PreparationView> {
 		return this.track(async () => {
@@ -329,7 +345,10 @@ export class PreparationApplication implements PreparationApi {
 			scheduler.assertHealthy();
 			if (
 				planned.kind !== "processing-required" ||
-				planned.identity.executionPlanId !== task.spec.executionPlanId
+				planned.identity.sourceVersion !== task.spec.source.sourceVersion ||
+				planned.identity.rootId !==
+					resourceRootId(task.spec.source.canonicalRoot) ||
+				planned.identity.profileFingerprint !== task.spec.profileFingerprint
 			)
 				throw new DomainError(
 					"PLAYBACK_CONFLICT",
@@ -350,6 +369,15 @@ export class PreparationApplication implements PreparationApi {
 					"INVALID_REQUEST",
 					"This preparation is already ready.",
 				);
+			if (planned.identity.executionPlanId !== current.spec.executionPlanId) {
+				// A new planner/browser decision owns a new immutable specification.
+				return this.enqueue(
+					{ ...input, fileId: current.spec.source.fileId },
+					input.output.profileId,
+					planned,
+					true,
+				);
+			}
 			artifacts.assertUnborrowed(current.spec.executionPlanId);
 			if (context.repository.queuedCount() >= this.policy.maximumQueuedTasks)
 				throw new DomainError(

@@ -450,7 +450,7 @@ ID and one effective profile fingerprint. Persisted snapshot version 1 contains
 encoding settings and ordered stream indexes only; the source is reconstructed
 from its durable source record. Processing requests are derived when an attempt
 starts. Progress saves update execution state without rewriting the specification.
-Display filename/profile ID are task metadata. Task ID survives explicit retries;
+Display filename/profile ID are task metadata. Task ID survives retries of the same execution plan;
 the deterministic artifact ID and transient processor execution ID retain distinct
 ownership and lifetimes.
 
@@ -467,7 +467,11 @@ with `interrupted` during recovery, requiring explicit fresh-evidence retry.
 Repeated creation of the same derivation returns the existing task, including a
 failed/cancelled task; it never silently restarts work. A ready task is validated
 and reused. Retry requires a terminal task, fresh matching evidence and available
-queue capacity. The same specification is preserved. A task cannot retry while
+queue capacity. The same specification is preserved. If fresh planning produces
+another execution-plan ID for the same source/root and profile fingerprint, retry
+creates or reuses a task for that plan and returns its task ID. The old task remains
+unchanged; an existing failed/cancelled replacement is explicitly retried. Changed
+source/root/profile identities still conflict. A task cannot retry while
 its old artifact is still borrowed, preventing replacement under an existing reader.
 
 Planning, source inspection and read-only queries do not enter a global Promise
