@@ -1,13 +1,14 @@
-# Anishelf Design
+# Anishelf Design System
+
+This document owns the shared UI principles, visual conventions, interaction,
+feedback and accessibility rules. [Requirements](requirements.md) owns product
+scope, [Architecture](architecture.md) retains module boundaries, and
+[History](history.md#v2-design) preserves version-specific implementation design.
 
 - [UI principles](#ui-principles)
 - [Visual and interaction conventions](#visual-and-interaction-conventions)
 - [Feedback and interface states](#feedback-and-interface-states)
 - [Accessibility and responsive layouts](#accessibility-and-responsive-layouts)
-
-This document owns visual and interaction design guidance. [Requirements](requirements.md)
-owns product scope and acceptance; [Architecture](architecture.md) owns implementation
-decisions and module boundaries; [Development](development.md) owns setup and maintenance.
 
 ## UI principles
 
@@ -73,26 +74,3 @@ overflow. Validate at 1280 px and 390 px widths, including long and Chinese file
 Keep labels and feedback in English. Preserve original filenames. Do not show
 placeholder metadata, nonfunctional controls, invented posters, or incomplete
 integrations as completed features.
-
-## Query and player coordination
-
-Use one application QueryClient. Scope directory, file, history, task and subtitle
-queries by the configured root and relevant source/library metadata. Keep ordered
-explicit audio selections distinct from default and silent selections. Query owns
-server results; browser capability evidence and native media lifecycle remain local.
-Disable generic read/mutation retries and focus/reconnect refreshes. Request signals,
-bounded timeouts and cancelled observer cleanup still apply. Selected-track subtitle
-status and pending preparation/blocked selection use Query polling; terminal and
-active playback selections stop polling.
-
-A directory requests preparation publication summaries in batches of at most 500
-file IDs. Rows fetch detailed tasks only while their action menu is open. Publication
-metadata is a hint, never a claim that bytes are currently playable. File detail and
-server playback selection authorize source/profile/artifact availability on demand.
-
-`usePlaybackController` coordinates intent, delivery and progress; `FilePlayer`
-composes preparation controls, `AudioSelection` and `CompatibilityDialog`. An
-unchanged source keeps its media and selected subtitle instances across scan/task
-updates. Only a blocked player reacts to task completion; explicit retry or a new
-root/source/audio intent can renegotiate. Progress saves retain the dedicated serial,
-coalescing controller with original-sequence retries, outside generic Query retries.

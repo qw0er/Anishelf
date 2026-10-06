@@ -9,7 +9,7 @@
 - [Verification and Troubleshooting](#verification-and-troubleshooting)
 
 Use this guide for local setup, deployment configuration, logging, verification
-and maintenance. [Architecture](architecture.md) owns implementation details;
+and maintenance. [History](history.md#v2-design) contains the archived V2 implementation design;
 [Requirements](requirements.md) owns scope, status and acceptance. Production
 hosting instructions are in the [README](../README.md).
 
@@ -195,7 +195,7 @@ remove history, settings or original media.
 
 ## UI Maintenance
 
-Follow the [UI design conventions](design.md). Use the existing Tailwind/shadcn Base UI controls. Add a component from the root
+Follow the [Design system](design-system.md). Use the existing Tailwind/shadcn Base UI controls. Add a component from the root
 with `npx shadcn@latest add button --cwd web`; review the generated source and
 imports. CSS and shared components own style values; the design document describes
 their usage. Vite reads tsconfig paths through resolve.tsconfigPaths. Biome supports
@@ -233,7 +233,7 @@ server configuration or paths into the browser.
 
 ## Video compatibility checks
 
-See [Video compatibility checks](architecture.md#video-compatibility-checks) for the negotiation API,
+See [Video compatibility checks](history.md#v2-video-compatibility-checks) for the negotiation API,
 player behavior, conservative unknown states, and processing boundaries. Run
 `npm run check` and `npm run build` after changes. FFmpeg tests need child-process
 permissions; localhost acceptance needs listener permissions. Browser decoding
