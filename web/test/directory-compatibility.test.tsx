@@ -1,3 +1,4 @@
+import { queryClient } from "../src/api/query-client.js";
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -9,13 +10,8 @@ import type {
 	FileDto,
 } from "../src/api/contracts.js";
 import { useDirectoryCompatibility } from "../src/features/library/hooks/use-directory-compatibility.js";
-import { useMediaCompatibility } from "../src/features/playback/hooks/use-media-compatibility.js";
 import * as capabilities from "../src/lib/media-capabilities.js";
-import {
-	clearOriginalCompatibilityCache,
-	inspectBrowserMedia,
-	originalCompatibilityKey,
-} from "../src/lib/media-compatibility.js";
+import { inspectBrowserMedia } from "../src/lib/media-compatibility.js";
 import { act, cleanup, renderHook, waitFor } from "./query-test-utils.js";
 
 function file(id: string): FileDto {
@@ -41,7 +37,7 @@ const description = {
 	queries: [],
 } as unknown as CompatibilityInspection;
 beforeEach(() => {
-	clearOriginalCompatibilityCache();
+	queryClient.removeQueries({ queryKey: ["compatibility"] });
 	vi.spyOn(api, "inspectMediaCompatibility").mockResolvedValue(description);
 	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([]);
 	vi.spyOn(api, "checkMediaCompatibility").mockImplementation(
@@ -95,21 +91,18 @@ test("folder checks start asynchronously with bounded concurrency and navigation
 			?.aborted,
 	).toBe(true);
 });
-test("player reuses a completed folder check bound to metadata, scope and expected source version", async () => {
-	const folder = renderHook(() =>
+test("folder navigation reuses completed checks in the same metadata and root scope", async () => {
+	const first = renderHook(() =>
 		useDirectoryCompatibility(listing(["a"]), "scope"),
 	);
 	await waitFor(() =>
-		expect(folder.result.current.get("a").loading).toBe(false),
+		expect(first.result.current.get("a").loading).toBe(false),
 	);
-	const player = renderHook(() =>
-		useMediaCompatibility(
-			"a",
-			"version",
-			originalCompatibilityKey(file("a"), "scope"),
-		),
+	first.unmount();
+	const next = renderHook(() =>
+		useDirectoryCompatibility(listing(["a"]), "scope"),
 	);
-	await waitFor(() => expect(player.result.current.loading).toBe(false));
+	await waitFor(() => expect(next.result.current.get("a").loading).toBe(false));
 	expect(api.inspectMediaCompatibility).toHaveBeenCalledTimes(1);
 });
 test("unknown results are distinct from request failures and a changed scope triggers new checks", async () => {

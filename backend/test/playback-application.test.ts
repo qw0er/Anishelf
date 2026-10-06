@@ -85,7 +85,9 @@ test("opens direct playback, resumes history, and invalidates superseded tokens"
 	await expect(playback.save(update(session, 2))).rejects.toMatchObject({
 		code: "PLAYBACK_CONFLICT",
 	});
-	expect((await playback.continueWatching()).items[0]?.file.id).toBe(fileId);
+	expect(
+		(await playback.history(undefined, "continue")).items[0]?.file.id,
+	).toBe(fileId);
 	playback.release(reopened.token);
 	await expect(playback.save(update(reopened))).rejects.toMatchObject({
 		code: "PLAYBACK_CONFLICT",
@@ -97,7 +99,7 @@ test("replacement content cannot inherit history or accept saves from the old so
 	await playback.save(update(session));
 	await writeFile(join(root, "replacement.mp4"), "new-content");
 	await rename(join(root, "replacement.mp4"), join(root, "episode.mp4"));
-	expect((await playback.continueWatching()).items).toEqual([]);
+	expect((await playback.history(undefined, "continue")).items).toEqual([]);
 	await expect(playback.save(update(session, 2))).rejects.toMatchObject({
 		code: "PLAYBACK_CONFLICT",
 	});
@@ -129,7 +131,7 @@ test("invalidates sessions across root switches and reports unknown availability
 	);
 	await library.updateSettings({ resourceRoot: root });
 	try {
-		expect(await playback.continueWatching()).toEqual({
+		expect(await playback.history(undefined, "continue")).toEqual({
 			availability: "unknown",
 			items: [],
 		});
@@ -140,7 +142,7 @@ test("invalidates sessions across root switches and reports unknown availability
 		release();
 	}
 	await library.waitForCompletion();
-	expect((await playback.continueWatching()).items).toHaveLength(1);
+	expect((await playback.history(undefined, "continue")).items).toHaveLength(1);
 });
 
 test("failed history reads never open a generation; invalid times and persistence failures are typed", async () => {
@@ -193,7 +195,6 @@ test("injected session and list policies govern capacity, expiry and limits", as
 			maximumSessions: 1,
 			maximumListLimit: 2,
 			historyLimit: 2,
-			continueWatchingLimit: 1,
 			candidateBatchSize: 1,
 		},
 	});

@@ -8,7 +8,7 @@ const nullableString = Type.Union([
 	Type.String({ maxLength: 256 }),
 	Type.Null(),
 ]);
-export const CompatibilityStatusSchema = Type.Union([
+const CompatibilityStatusSchema = Type.Union([
 	Type.Literal("supported"),
 	Type.Literal("unsupported"),
 	Type.Literal("unknown"),
@@ -102,25 +102,17 @@ const decision = Type.Object(
 	},
 	{ additionalProperties: false },
 );
-export const CompatibilityOutputRequestSchema = Type.Object(
+const CompatibilityOutputRequestSchema = Type.Object(
 	{
 		profileId: TranscodeProfileIdSchema,
-		target: Type.Union([
-			Type.Literal("file"),
-			Type.Literal("media-source"),
-			Type.Literal("hls"),
-		]),
+		target: Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
 	},
 	{ additionalProperties: false },
 );
 const outputDescription = Type.Object(
 	{
 		profileId: TranscodeProfileIdSchema,
-		target: Type.Union([
-			Type.Literal("file"),
-			Type.Literal("media-source"),
-			Type.Literal("hls"),
-		]),
+		target: Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
 		profileFingerprint: Type.String({ pattern: "^[a-f0-9]{64}$" }),
 	},
 	{ additionalProperties: false },
@@ -141,11 +133,7 @@ export const CompatibilityInspectionQuerySchema = Type.Object(
 		),
 		profileId: Type.Optional(TranscodeProfileIdSchema),
 		target: Type.Optional(
-			Type.Union([
-				Type.Literal("file"),
-				Type.Literal("media-source"),
-				Type.Literal("hls"),
-			]),
+			Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
 		),
 	},
 	{ additionalProperties: false },
@@ -190,11 +178,7 @@ const combinations = Type.Object(
 const outputResult = Type.Object(
 	{
 		profileId: TranscodeProfileIdSchema,
-		target: Type.Union([
-			Type.Literal("file"),
-			Type.Literal("media-source"),
-			Type.Literal("hls"),
-		]),
+		target: Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
 		profileFingerprint: Type.String({ pattern: "^[a-f0-9]{64}$" }),
 		copyVideo: CompatibilityStatusSchema,
 		copyAudio: CompatibilityStatusSchema,

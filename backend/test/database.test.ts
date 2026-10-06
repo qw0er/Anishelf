@@ -198,7 +198,7 @@ describe("playback persistence", () => {
 		}
 		expect(
 			database.playback
-				.listContinueWatching(first.rootId)
+				.listHistory(first.rootId, undefined, 0, "continue")
 				.map((item) => item.source.id),
 		).toEqual([second.id, first.id]);
 		database.playback.save(
@@ -211,9 +211,9 @@ describe("playback persistence", () => {
 			},
 			30,
 		);
-		expect(database.playback.listContinueWatching(first.rootId)).toHaveLength(
-			1,
-		);
+		expect(
+			database.playback.listHistory(first.rootId, undefined, 0, "continue"),
+		).toHaveLength(1);
 		database.playback.save(
 			{
 				sourceId: second.id,
@@ -225,7 +225,8 @@ describe("playback persistence", () => {
 			40,
 		);
 		expect(
-			database.playback.listContinueWatching(first.rootId)[0]?.source.id,
+			database.playback.listHistory(first.rootId, undefined, 0, "continue")[0]
+				?.source.id,
 		).toBe(second.id);
 	});
 

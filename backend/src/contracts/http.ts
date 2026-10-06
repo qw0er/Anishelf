@@ -45,9 +45,7 @@ export type SavePlaybackProgressRequest = Static<
 export type SavePlaybackProgressResponse = Static<
 	typeof schemas.SavePlaybackProgressResponseSchema
 >;
-export type ContinueWatchingResponse = Static<
-	typeof schemas.ContinueWatchingResponseSchema
->;
+export type HistoryResponse = Static<typeof schemas.HistoryResponseSchema>;
 export type SubtitleDiscoveryResponse = Static<
 	typeof schemas.SubtitleDiscoveryResponseSchema
 >;
@@ -86,19 +84,8 @@ export type SelectTranscodeProfileRequest = Static<
 >;
 
 export type MediaTimeline = Static<typeof schemas.MediaTimelineSchema>;
-export type MediaTrack = Static<typeof schemas.MediaTrackSchema>;
 export type FilePlaybackResource = Static<
 	typeof schemas.FilePlaybackResourceSchema
->;
-export type HlsPlaybackResource = Static<
-	typeof schemas.HlsPlaybackResourceSchema
->;
-export type PlaybackResource = Static<typeof schemas.PlaybackResourceSchema>;
-export type MediaPlanningRequest = Static<
-	typeof schemas.MediaPlanningRequestSchema
->;
-export type MediaPlanningResponse = Static<
-	typeof schemas.MediaPlanningResponseSchema
 >;
 export type PlaybackOptionsRequest = Static<
 	typeof schemas.PlaybackOptionsRequestSchema

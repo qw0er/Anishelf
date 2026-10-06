@@ -30,7 +30,7 @@ export type SavePlaybackProgressResult =
 	| { status: "saved" | "duplicate"; progress: PlaybackProgress }
 	| { status: "stale" };
 
-export interface ContinueWatchingCandidate {
+export interface HistoryCandidate {
 	source: RegisteredSource;
 	progress: PlaybackProgress;
 }
@@ -52,12 +52,12 @@ export interface SavePlaybackProgress {
 	durationMs: number | null;
 }
 
-export interface ContinueWatchingItem {
+export interface HistoryItem {
 	file: FileInfo;
 	progress: PlaybackProgress;
 }
 
-export interface ContinueWatchingResult {
+export interface HistoryResult {
 	availability: "unknown" | "checked";
-	items: ContinueWatchingItem[];
+	items: HistoryItem[];
 }

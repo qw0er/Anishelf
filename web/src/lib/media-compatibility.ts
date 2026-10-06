@@ -4,15 +4,11 @@ import {
 	inspectMediaCompatibility,
 } from "../api/client.js";
 import type { CompatibilityResult, FileDto } from "../api/contracts.js";
-import { queryClient } from "../api/query-client.js";
 import { interactionPolicy } from "../config/interaction-policy.js";
 import { queryCapabilities } from "./media-capabilities.js";
 
 export function originalCompatibilityKey(file: FileDto, scope: string): string {
 	return JSON.stringify([scope, file.id, file.modifiedAt, file.sizeBytes]);
-}
-export function clearOriginalCompatibilityCache(): void {
-	queryClient.removeQueries({ queryKey: ["compatibility"] });
 }
 
 /** A cancelled folder may leave a shared server probe finishing; retry only bounded unavailable responses. */

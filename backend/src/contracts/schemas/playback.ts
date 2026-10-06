@@ -5,11 +5,7 @@ import {
 	ResourceIdSchema,
 } from "./common.js";
 import { FileDtoSchema } from "./library.js";
-import {
-	CompletedPlaybackResourceSchema,
-	FilePlaybackResourceSchema,
-	HlsPlaybackResourceSchema,
-} from "./media.js";
+import { FilePlaybackResourceSchema } from "./media.js";
 
 export const PlaybackTokenSchema = Type.String({
 	minLength: 36,
@@ -44,27 +40,14 @@ export const DirectPlaybackPlanSchema = Type.Object(
 	{ mode: Type.Literal("direct"), resource: FilePlaybackResourceSchema },
 	{ additionalProperties: false },
 );
-/** Resource references only. Pending plans have no playable URL. */
+/** Resource references only. Waiting is represented by selection.pending and a blocked plan. */
 export const PlaybackPlanSchema = Type.Union([
 	DirectPlaybackPlanSchema,
 	Type.Object(
 		{
 			mode: Type.Literal("prepared"),
 			artifactId: ResourceIdSchema,
-			resource: CompletedPlaybackResourceSchema,
-		},
-		{ additionalProperties: false },
-	),
-	Type.Object(
-		{ mode: Type.Literal("preparing"), taskId: ResourceIdSchema },
-		{ additionalProperties: false },
-	),
-	Type.Object(
-		{
-			mode: Type.Literal("realtime"),
-			sessionId: PlaybackTokenSchema,
-			resource: HlsPlaybackResourceSchema,
-			streamGeneration: PositiveIntegerSchema,
+			resource: FilePlaybackResourceSchema,
 		},
 		{ additionalProperties: false },
 	),
@@ -99,11 +82,11 @@ export const SavePlaybackProgressResponseSchema = Type.Object(
 	},
 	{ additionalProperties: false },
 );
-export const ContinueWatchingQuerySchema = Type.Object(
+export const HistoryQuerySchema = Type.Object(
 	{ limit: Type.Optional(Type.String({ pattern: "^[1-9][0-9]*$" })) },
 	{ additionalProperties: false },
 );
-export const ContinueWatchingResponseSchema = Type.Object(
+export const HistoryResponseSchema = Type.Object(
 	{
 		availability: Type.Union([
 			Type.Literal("unknown"),

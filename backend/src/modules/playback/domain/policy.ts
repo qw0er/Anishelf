@@ -8,7 +8,6 @@ import {
 const defaults = {
 	sessionIdleMs: 30 * 60 * 1000,
 	maximumSessions: 1000,
-	continueWatchingLimit: 20,
 	historyLimit: 100,
 	maximumListLimit: 100,
 	candidateBatchSize: 100,
@@ -22,8 +21,7 @@ export function validatePlaybackPolicy(
 ): void {
 	validateNumericPolicy("playback", policy, defaults);
 	requirePolicy(
-		policy.continueWatchingLimit <= policy.maximumListLimit &&
-			policy.historyLimit <= policy.maximumListLimit,
+		policy.historyLimit <= policy.maximumListLimit,
 		"playback.defaultListLimits",
 	);
 }

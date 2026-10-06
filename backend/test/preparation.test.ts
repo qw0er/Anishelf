@@ -757,6 +757,23 @@ test.each([1, null])(
 		const f = await fixture();
 		const id = await taskId(f.preparation.create(await f.input()));
 		const task = await completed(f, id);
+		const artifactPath = join(
+			f.dataDir,
+			"cache",
+			"prepared-media",
+			`${task.artifactId}.media`,
+		);
+		const originalBytes = await readFile(artifactPath);
+		const originalSpec = f.database.preparation.get(id)?.spec;
+		const writer = await f.playback.open(task.fileId);
+		await f.playback.save({
+			token: writer.token,
+			generation: writer.progress.generation,
+			sourceVersion: writer.sourceVersion,
+			sequence: 1,
+			positionMs: 1000,
+			durationMs: 10000,
+		});
 		const connection = new Database(join(f.dataDir, "anishelf.sqlite"));
 		try {
 			connection
@@ -799,6 +816,27 @@ test.each([1, null])(
 		).toEqual(expected);
 		await f.restart();
 		expect((await f.preparation.get(id)).audioStreamIndices).toEqual(expected);
+		expect(await readFile(artifactPath)).toEqual(originalBytes);
+		const upgraded = f.database.preparation.get(id);
+		expect(upgraded?.spec.executionPlanId).toBe(originalSpec?.executionPlanId);
+		expect(upgraded?.spec.profileFingerprint).toBe(
+			originalSpec?.profileFingerprint,
+		);
+		expect(upgraded?.spec.settings.version).toBe(1);
+		const reopened = await f.playback.open(task.fileId);
+		expect(reopened.progress.generation).toBeGreaterThan(
+			writer.progress.generation,
+		);
+		expect(reopened.progress).toMatchObject({
+			positionMs: 1000,
+			lastSequence: 0,
+		});
+		expect((await f.playback.history()).items[0]?.file.id).toBe(task.fileId);
+		const borrowed = await f.preparation.openArtifact(
+			required(task.artifactId),
+		);
+		await borrowed.handle.close();
+		borrowed.release();
 	},
 );
 

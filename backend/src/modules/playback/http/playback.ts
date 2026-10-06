@@ -1,7 +1,7 @@
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
-	ContinueWatchingQuerySchema,
-	ContinueWatchingResponseSchema,
+	HistoryQuerySchema,
+	HistoryResponseSchema,
 	OpenPlaybackRequestSchema,
 	PlaybackSessionResponseSchema,
 	PlaybackTokenParamsSchema,
@@ -11,7 +11,7 @@ import {
 import { DomainError } from "../../../shared/errors.js";
 import type { HttpInstance } from "../../../transport/instance.js";
 import {
-	continueWatchingResponse,
+	historyResponse,
 	playbackProgressDto,
 	playbackSessionResponse,
 } from "../../../transport/presenters.js";
@@ -78,12 +78,12 @@ export function registerPlaybackRoutes(
 			"/api/history",
 			{
 				schema: {
-					querystring: ContinueWatchingQuerySchema,
-					response: { 200: ContinueWatchingResponseSchema },
+					querystring: HistoryQuerySchema,
+					response: { 200: HistoryResponseSchema },
 				},
 			},
 			async (request) =>
-				continueWatchingResponse(
+				historyResponse(
 					await playback.history(
 						request.query.limit === undefined
 							? undefined

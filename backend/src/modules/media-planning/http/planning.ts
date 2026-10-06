@@ -4,35 +4,16 @@ import {
 	CompatibilityInspectionQuerySchema,
 	CompatibilityInspectionSchema,
 	CompatibilityResultSchema,
-	MediaPlanningRequestSchema,
-	MediaPlanningResponseSchema,
 	ResourceIdSchema,
 } from "../../../contracts/schemas/index.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { HttpInstance } from "../../../transport/instance.js";
-import {
-	mediaPlanningResponse,
-	presentCompatibility,
-} from "../../../transport/presenters.js";
+import { presentCompatibility } from "../../../transport/presenters.js";
 import type { MediaPlanningApi } from "../public.js";
 export function registerMediaPlanningRoutes(
 	app: HttpInstance,
 	planning: MediaPlanningApi,
 ): void {
-	app.post(
-		"/api/media/plans",
-		{
-			schema: {
-				body: MediaPlanningRequestSchema,
-				response: { 200: MediaPlanningResponseSchema },
-			},
-		},
-		async (request, reply) => {
-			reply.header("Cache-Control", "no-store");
-			return mediaPlanningResponse(await planning.plan(request.body));
-		},
-	);
-
 	const params = Type.Object(
 		{ id: ResourceIdSchema },
 		{ additionalProperties: false },

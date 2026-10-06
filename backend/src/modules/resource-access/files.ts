@@ -1,7 +1,6 @@
 export {
 	checkResourceRoot,
 	getVideoMimeType,
-	ResourceAccess,
 } from "./infrastructure/access.js";
 
 import type { DeepReadonly } from "../../shared/policy.js";

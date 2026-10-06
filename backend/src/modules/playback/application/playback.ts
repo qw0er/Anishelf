@@ -5,8 +5,8 @@ import type { DeepReadonly } from "../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../resource-access/public.js";
 import { resourceRootId } from "../../resource-access/public.js";
 import type {
-	ContinueWatchingItem,
-	ContinueWatchingResult,
+	HistoryItem,
+	HistoryResult,
 	PlaybackSession,
 	ResolvedSource,
 	SavePlaybackProgress,
@@ -130,16 +130,10 @@ export class PlaybackApplication implements PlaybackApi {
 		return result;
 	}
 
-	async continueWatching(
-		limit = this.policy.continueWatchingLimit,
-	): Promise<ContinueWatchingResult> {
-		return this.history(limit, "continue");
-	}
-
 	async history(
 		limit = this.policy.historyLimit,
 		view: "continue" | "recent" = "recent",
-	): Promise<ContinueWatchingResult> {
+	): Promise<HistoryResult> {
 		if (
 			!Number.isSafeInteger(limit) ||
 			limit < 1 ||
@@ -152,7 +146,7 @@ export class PlaybackApplication implements PlaybackApi {
 		const epoch = this.options.sources.resourceRootEpoch;
 		const canonicalRoot = await this.options.sources.resolveRoot();
 		const rootId = resourceRootId(canonicalRoot);
-		const items: ContinueWatchingItem[] = [];
+		const items: HistoryItem[] = [];
 		for (
 			let offset = 0;
 			items.length < limit;
@@ -160,7 +154,7 @@ export class PlaybackApplication implements PlaybackApi {
 		) {
 			this.assertEpoch(epoch);
 			const candidates = this.persist(() =>
-				repository.listContinueWatching(
+				repository.listHistory(
 					rootId,
 					this.policy.candidateBatchSize,
 					offset,

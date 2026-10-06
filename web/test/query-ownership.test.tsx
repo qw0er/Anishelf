@@ -54,7 +54,6 @@ test("a directory uses one metadata batch and no file task/detail requests befor
 	const files = vi
 		.spyOn(api, "getFilePreparations")
 		.mockResolvedValue({ tasks: [] });
-	const detail = vi.spyOn(api, "getPreparation");
 	vi.spyOn(api, "getPreparations").mockResolvedValue({ tasks: [] });
 	vi.spyOn(api, "getTranscodeProfiles").mockResolvedValue({
 		profiles: [],
@@ -94,7 +93,6 @@ test("a directory uses one metadata batch and no file task/detail requests befor
 	await waitFor(() => expect(summaries).toHaveBeenCalledTimes(1));
 	expect(summaries.mock.calls[0]?.[0]).toEqual(children.map((file) => file.id));
 	expect(files).not.toHaveBeenCalled();
-	expect(detail).not.toHaveBeenCalled();
 });
 
 test("duplicate file observers share one request and preparation mutations invalidate their owner", async () => {

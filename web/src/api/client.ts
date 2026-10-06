@@ -1,12 +1,21 @@
 import type {
 	ApiErrorResponse,
-	ContinueWatchingResponse,
+	CompatibilityCheckRequest,
+	CompatibilityInspection,
+	CompatibilityResult,
 	DirectoryResponse,
 	FileResponse,
+	HistoryResponse,
 	LibraryResponse,
-	MediaPlanningRequest,
-	MediaPlanningResponse,
+	PlaybackOptionsRequest,
+	PlaybackOptionsResponse,
+	PlaybackSelectionRequest,
+	PlaybackSelectionResponse,
 	PlaybackSessionResponse,
+	PreparationListResponse,
+	PreparationStartResponse,
+	PreparationSummaryResponse,
+	PreparationTaskResponse,
 	ResourceId,
 	SavePlaybackProgressRequest,
 	SavePlaybackProgressResponse,
@@ -14,6 +23,7 @@ import type {
 	SettingsResponse,
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
+	TranscodeProfileCatalog,
 	UpdateSettingsRequest,
 } from "./contracts.js";
 
@@ -194,13 +204,6 @@ export function getFile(
 	);
 }
 
-export function planMedia(
-	input: MediaPlanningRequest,
-	options?: RequestOptions,
-): Promise<MediaPlanningResponse> {
-	return request("/api/media/plans", "POST", options, input);
-}
-
 export function openPlaybackSession(
 	fileId: ResourceId,
 	options?: RequestOptions,
@@ -230,9 +233,7 @@ export function releasePlaybackSession(
 	);
 }
 
-export function getHistory(
-	options?: RequestOptions,
-): Promise<ContinueWatchingResponse> {
+export function getHistory(options?: RequestOptions): Promise<HistoryResponse> {
 	return request("/api/history", "GET", options);
 }
 
@@ -272,12 +273,10 @@ export function inspectMediaCompatibility(
 		fileId: string;
 		sourceVersion?: string;
 		audioStreamIndices?: number[];
-		output?: NonNullable<
-			import("./contracts.js").CompatibilityCheckRequest["output"]
-		>;
+		output?: NonNullable<CompatibilityCheckRequest["output"]>;
 	},
 	options?: RequestOptions,
-): Promise<import("./contracts.js").CompatibilityInspection> {
+): Promise<CompatibilityInspection> {
 	const query = new URLSearchParams();
 	if (input.audioStreamIndices !== undefined)
 		query.set("audioStreamIndices", input.audioStreamIndices.join(","));
@@ -294,11 +293,11 @@ export function inspectMediaCompatibility(
 	);
 }
 export function checkMediaCompatibility(
-	input: import("./contracts.js").CompatibilityCheckRequest & {
+	input: CompatibilityCheckRequest & {
 		fileId: string;
 	},
 	options?: RequestOptions,
-): Promise<import("./contracts.js").CompatibilityResult> {
+): Promise<CompatibilityResult> {
 	const { fileId, ...body } = input;
 	return request(
 		`/api/files/${encodeURIComponent(fileId)}/compatibility`,
@@ -310,25 +309,19 @@ export function checkMediaCompatibility(
 
 export function getTranscodeProfiles(
 	options?: RequestOptions,
-): Promise<import("./contracts.js").TranscodeProfileCatalog> {
+): Promise<TranscodeProfileCatalog> {
 	return request("/api/transcode-profiles", "GET", options);
 }
 export function getPreparations(
 	options?: RequestOptions,
-): Promise<import("./contracts.js").PreparationListResponse> {
+): Promise<PreparationListResponse> {
 	return request("/api/preparations?summary=true", "GET", options);
-}
-export function getPreparation(
-	id: string,
-	options?: RequestOptions,
-): Promise<import("./contracts.js").PreparationTaskResponse> {
-	return request(`/api/preparations/${encodeURIComponent(id)}`, "GET", options);
 }
 export function createPreparation(
 	fileId: string,
-	body: import("./contracts.js").CompatibilityCheckRequest,
+	body: CompatibilityCheckRequest,
 	options?: RequestOptions,
-): Promise<import("./contracts.js").PreparationStartResponse> {
+): Promise<PreparationStartResponse> {
 	return request(
 		`/api/files/${encodeURIComponent(fileId)}/preparations`,
 		"POST",
@@ -339,7 +332,7 @@ export function createPreparation(
 export function cancelPreparation(
 	id: string,
 	options?: RequestOptions,
-): Promise<import("./contracts.js").PreparationTaskResponse> {
+): Promise<PreparationTaskResponse> {
 	return request(
 		`/api/preparations/${encodeURIComponent(id)}/cancel`,
 		"POST",
@@ -349,9 +342,9 @@ export function cancelPreparation(
 }
 export function retryPreparation(
 	id: string,
-	body: import("./contracts.js").CompatibilityCheckRequest,
+	body: CompatibilityCheckRequest,
 	options?: RequestOptions,
-): Promise<import("./contracts.js").PreparationTaskResponse> {
+): Promise<PreparationTaskResponse> {
 	return request(
 		`/api/preparations/${encodeURIComponent(id)}/retry`,
 		"POST",
@@ -373,7 +366,7 @@ export function deletePreparedMedia(
 export function selectTranscodeProfile(
 	profileId: string | null,
 	options?: RequestOptions,
-): Promise<import("./contracts.js").TranscodeProfileCatalog> {
+): Promise<TranscodeProfileCatalog> {
 	return request("/api/transcode-profiles/selection", "PUT", options, {
 		profileId,
 	});
@@ -382,7 +375,7 @@ export function selectTranscodeProfile(
 export function getFilePreparations(
 	fileId: string,
 	options?: RequestOptions,
-): Promise<import("./contracts.js").PreparationListResponse> {
+): Promise<PreparationListResponse> {
 	return request(
 		`/api/preparations?${new URLSearchParams({ fileId })}`,
 		"GET",
@@ -391,21 +384,21 @@ export function getFilePreparations(
 }
 
 export function getPlaybackOptions(
-	input: import("./contracts.js").PlaybackOptionsRequest,
+	input: PlaybackOptionsRequest,
 	options?: RequestOptions,
-): Promise<import("./contracts.js").PlaybackOptionsResponse> {
+): Promise<PlaybackOptionsResponse> {
 	return request("/api/playback/options", "POST", options, input);
 }
 export function selectPlayback(
-	input: import("./contracts.js").PlaybackSelectionRequest,
+	input: PlaybackSelectionRequest,
 	options?: RequestOptions,
-): Promise<import("./contracts.js").PlaybackSelectionResponse> {
+): Promise<PlaybackSelectionResponse> {
 	return request("/api/playback/selection", "POST", options, input);
 }
 
 export function getPreparationSummaries(
 	fileIds: string[],
 	options?: RequestOptions,
-): Promise<import("./contracts.js").PreparationSummaryResponse> {
+): Promise<PreparationSummaryResponse> {
 	return request("/api/preparations/summaries", "POST", options, { fileIds });
 }

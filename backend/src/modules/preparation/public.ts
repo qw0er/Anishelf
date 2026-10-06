@@ -1,12 +1,4 @@
-export type {
-	PreparationCreation,
-	PreparationFailureReason,
-	PreparationTask,
-	PreparationView,
-	PreparedArtifact,
-	PreparedHlsArtifact,
-	PreparedResource,
-} from "./domain/model.js";
+export type { PreparationCreation, PreparationView } from "./domain/model.js";
 
 import type { FileHandle } from "node:fs/promises";
 import type { CompatibilityCheckRequest } from "../../contracts/http.js";

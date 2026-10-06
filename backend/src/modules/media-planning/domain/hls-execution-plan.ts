@@ -1,15 +1,22 @@
 import { fingerprint } from "../../../shared/fingerprint.js";
+import { type DeepReadonly, freeze } from "../../../shared/policy.js";
+import { resolveExecutionPlan } from "./execution-plan.js";
 import type {
 	HlsAudioExecution,
 	HlsExecutionPlan,
 	HlsExecutionRequest,
-} from "../../../shared/media-processing.js";
-import { type DeepReadonly, freeze } from "../../../shared/policy.js";
-import { hlsPolicy } from "../../hls/policy.js";
-import { resolveExecutionPlan } from "./execution-plan.js";
+} from "./hls-model.js";
 import type { CheckedCompatibility } from "./model.js";
 
-export type HlsPlanningResult =
+type HlsPlanningInput = Omit<CheckedCompatibility, "output"> & {
+	output:
+		| (Omit<NonNullable<CheckedCompatibility["output"]>, "target"> & {
+				target: "hls";
+		  })
+		| null;
+};
+
+type HlsPlanningResult =
 	| { kind: "blocked"; reason: string }
 	| {
 			kind: "processing";
@@ -19,8 +26,8 @@ export type HlsPlanningResult =
 
 /** Pure HLS planning. A returned plan does not publish playlists or start a process. */
 export function resolveHlsExecutionPlan(
-	input: DeepReadonly<CheckedCompatibility>,
-	targetSegmentDurationMs = hlsPolicy.targetSegmentDurationMs,
+	input: DeepReadonly<HlsPlanningInput>,
+	targetSegmentDurationMs = 6000,
 ): HlsPlanningResult {
 	if (
 		!Number.isSafeInteger(targetSegmentDurationMs) ||

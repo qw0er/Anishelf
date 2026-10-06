@@ -132,7 +132,7 @@ export async function historyLoader({ request }: LoaderFunctionArgs) {
 	return loadQuery(historyQuery(routeScope()), request.signal);
 }
 
-export function routeScope() {
+function routeScope() {
 	return JSON.stringify([
 		queryClient.getQueryData(settingsQuery().queryKey)?.resourceRoot,
 		queryClient.getQueryData(libraryQuery().queryKey)?.revision,

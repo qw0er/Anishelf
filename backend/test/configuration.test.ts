@@ -234,10 +234,10 @@ test("injected near-end thresholds and batch limits control database selection",
 			2,
 		);
 		expect(
-			database.playback.listContinueWatching(source.rootId, 1),
+			database.playback.listHistory(source.rootId, 1, 0, "continue"),
 		).toHaveLength(1);
 		expect(() =>
-			database.playback.listContinueWatching(source.rootId, 2),
+			database.playback.listHistory(source.rootId, 2, 0, "continue"),
 		).toThrow("must not exceed 1");
 	} finally {
 		database.close();

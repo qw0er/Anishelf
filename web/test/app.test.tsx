@@ -1,3 +1,4 @@
+import { queryClient } from "../src/api/query-client.js";
 // @vitest-environment happy-dom
 
 import { StrictMode } from "react";
@@ -15,7 +16,6 @@ import type {
 	SettingsResponse,
 } from "../src/api/contracts.js";
 import { Toaster, toast } from "../src/components/ui/toast.js";
-import { clearOriginalCompatibilityCache } from "../src/lib/media-compatibility.js";
 import { libraryRoute } from "../src/routes/library.js";
 import {
 	act,
@@ -71,7 +71,7 @@ function json(value: unknown, status = 200) {
 }
 
 beforeEach(() => {
-	clearOriginalCompatibilityCache();
+	queryClient.removeQueries({ queryKey: ["compatibility"] });
 	preparationTasks = [];
 	library = {
 		ready: true,

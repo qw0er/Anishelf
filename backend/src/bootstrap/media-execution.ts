@@ -23,7 +23,6 @@ export function createMediaExecutionModule(options: {
 		inspection,
 		...(options.logger ? { logger: options.logger } : {}),
 		profiles: configuration.transcodeProfiles,
-		hlsPolicy: configuration.policy.hls,
 	});
 	const processing = new MediaProcessingApplication({
 		sources,

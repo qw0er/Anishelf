@@ -5,9 +5,9 @@ import type {
 } from "../src/modules/library/domain/model.js";
 import type { ScanState } from "../src/modules/library/domain/scan-state.js";
 import {
-	continueWatchingResponse,
 	directoryResponse,
 	fileDto,
+	historyResponse,
 	libraryResponse,
 	playbackProgressDto,
 	playbackSessionResponse,
@@ -137,7 +137,7 @@ test("playback presenters omit storage identities and internal additions", () =>
 	};
 	const publicSession = playbackSessionResponse(session);
 	expect(publicSession.progress).toEqual(playbackProgressDto(progress));
-	const list = continueWatchingResponse({
+	const list = historyResponse({
 		availability: "checked",
 		items: [{ file, progress }],
 	});

@@ -439,7 +439,6 @@ test("history without a query uses the injected application default", async () =
 			...builtinPolicy.playback,
 			historyLimit: 1,
 			maximumListLimit: 1,
-			continueWatchingLimit: 1,
 		},
 	});
 	const customApp = createHttpApp({

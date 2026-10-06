@@ -22,10 +22,10 @@ import {
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
 import { MediaPlanningApplication } from "../src/modules/media-planning/application/planning.js";
+import { resolveHlsExecutionPlan } from "../src/modules/media-planning/domain/hls-execution-plan.js";
 import {
 	expectedOutputSpec,
 	resolveExecutionPlan,
-	resolveHlsExecutionPlan,
 } from "../src/modules/media-planning/public.js";
 import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
@@ -484,7 +484,7 @@ test("media planning rejects a root change while compatibility is awaited", asyn
 
 test("playback resource contracts reject premature URLs and private execution fields", () => {
 	expect(Check(PlaybackPlanSchema, { mode: "preparing", taskId: "task" })).toBe(
-		true,
+		false,
 	);
 	expect(
 		Check(PlaybackPlanSchema, {
@@ -598,7 +598,7 @@ test("audio selection binds evidence and execution identity, preserving requeste
 
 test("HLS planning binds MSE evidence, preserves compatible audio and encodes only the rejected track", async () => {
 	const f = await fixture(true, true);
-	const output = { profileId: f.profile.id, target: "hls" as const };
+	const output = { profileId: f.profile.id, target: "media-source" as const };
 	const description = await f.app.inspect({ fileId: f.file.id, output });
 	const rejected = new Set([
 		"copy-audio-7",
@@ -620,7 +620,12 @@ test("HLS planning binds MSE evidence, preserves compatible audio and encodes on
 		output,
 		evidence,
 	};
-	const checked = await f.app.check(input);
+	const negotiated = await f.app.check(input);
+	if (!negotiated.output) throw new Error("Missing output");
+	const checked = {
+		...negotiated,
+		output: { ...negotiated.output, target: "hls" as const },
+	};
 	expect(
 		description.queries
 			.filter((query) => !query.id.startsWith("original"))
@@ -649,17 +654,13 @@ test("HLS planning binds MSE evidence, preserves compatible audio and encodes on
 	const changed = resolveHlsExecutionPlan(checked, 4000);
 	if (changed.kind !== "processing") throw new Error("Expected HLS plan");
 	expect(changed.request.plan.id).not.toBe(plan.request.plan.id);
-	// Native-file acceptance cannot skip HLS packaging, and the file executor cannot consume HLS.
+	// Native-file acceptance cannot skip offline HLS packaging.
 	expect(
 		resolveHlsExecutionPlan({
 			...checked,
 			direct: { status: "supported", reason: "browser-supported" },
 		}).kind,
 	).toBe("processing");
-	expect(resolveExecutionPlan(checked)).toEqual({
-		kind: "blocked",
-		reason: "hls-execution-unavailable",
-	});
 	const playback = new PlaybackApplication({
 		sources: f.library.sources,
 		logger: pino({ enabled: false }),
@@ -678,15 +679,7 @@ test("HLS planning binds MSE evidence, preserves compatible audio and encodes on
 			headers: { host: "127.0.0.1:3000" },
 			payload: input,
 		});
-		expect(response.statusCode).toBe(200);
-		expect(response.headers["cache-control"]).toBe("no-store");
-		expect(response.json()).toMatchObject({
-			kind: "hls-required",
-			audioTracks: [{ action: "copy" }, { action: "encode" }],
-		});
-		expect(response.body).not.toContain(f.source.identity.canonicalRoot);
-		expect(response.body).not.toContain("encoder");
-		expect(response.body).not.toContain("url");
+		expect(response.statusCode).toBe(404);
 		expect(open).not.toHaveBeenCalled();
 		const removed = await http.inject({
 			method: "POST",
@@ -695,13 +688,17 @@ test("HLS planning binds MSE evidence, preserves compatible audio and encodes on
 			payload: input,
 		});
 		expect(removed.statusCode).toBe(404);
-		const stale = await http.inject({
+		const unsupportedTarget = await http.inject({
 			method: "POST",
-			url: "/api/media/plans",
+			url: `/api/files/${f.file.id}/compatibility`,
 			headers: { host: "127.0.0.1:3000" },
-			payload: { ...input, descriptionId: "a".repeat(64) },
+			payload: {
+				...input,
+				fileId: undefined,
+				output: { ...output, target: "hls" },
+			},
 		});
-		expect(stale.statusCode).toBe(400);
+		expect(unsupportedTarget.statusCode).toBe(400);
 	} finally {
 		await http.close();
 	}

@@ -8,12 +8,12 @@
 <text x="40" y="82" font-size="18">Explicit ports · Bootstrap injection · Original source timeline · No automatic preparation</text>
 <rect x="40" y="112" width="470" height="168" rx="12" fill="#f5f9ff" stroke="#b3c2d3"/>
 <text x="60" y="146" font-size="21" font-weight="600">Web / Library + preparation</text>
-<text x="60" y="180" font-size="17">Browse, configuration and scan feedback</text>
+<text x="60" y="180" font-size="17">Shared QueryClient / loaders + observers</text>
 <text x="60" y="208" font-size="17">Explicit create / cancel / retry / delete</text>
-<text x="60" y="236" font-size="17">Task monitor and prepared-copy links</text>
+<text x="60" y="236" font-size="17">Batched summaries / on-demand file tasks</text>
 <rect x="560" y="112" width="480" height="168" rx="12" fill="#f5f9ff" stroke="#b3c2d3"/>
 <text x="580" y="146" font-size="21" font-weight="600">Web / Playback</text>
-<text x="580" y="180" font-size="17">Selection hook collects capability evidence</text>
+<text x="580" y="180" font-size="17">Controller collects evidence / stable resource</text>
 <text x="580" y="208" font-size="17">Vidstack uses the returned resource only</text>
 <text x="580" y="236" font-size="17">Independent serial progress controller</text>
 <rect x="1090" y="112" width="470" height="168" rx="12" fill="#f5f9ff" stroke="#b3c2d3"/>
@@ -55,7 +55,7 @@
 <text x="580" y="688" font-size="17">Inspection cache and source descriptions</text>
 <text x="580" y="716" font-size="17">Evidence checks and pure execution plans</text>
 <text x="580" y="744" font-size="17">One expected output specification</text>
-<text x="580" y="772" font-size="17">File and per-track HLS planning</text>
+<text x="580" y="772" font-size="17">File / media-source execution decisions</text>
 <rect x="1090" y="620" width="470" height="200" rx="12" fill="#eef7f3" stroke="#b3c2d3"/>
 <text x="1110" y="654" font-size="21" font-weight="600">Subtitles</text>
 <text x="1110" y="688" font-size="17">Discovery → selected-track preparation</text>
@@ -91,5 +91,5 @@
 <rect x="40" y="1160" width="1520" height="130" rx="12" fill="#fff8eb" stroke="#b3c2d3" stroke-dasharray="8 6"/>
 <text x="60" y="1194" font-size="21" font-weight="600">Planned delivery work</text>
 <text x="60" y="1228" font-size="17">HLS publication / browser delivery, real-time acquisition and leases, embedded fonts, automatic cache eviction.</text>
-<text x="60" y="1256" font-size="17">Current HLS contracts and planning are foundations; they do not publish playable resources.</text>
+<text x="60" y="1256" font-size="17">Offline per-track HLS planning is independently tested; no runtime ports or HTTP delivery contracts.</text>
 </g></svg>

@@ -1,6 +1,6 @@
 import type { ErrorCode } from "../contracts/errors.js";
 
-export { type ErrorCode, errorCodes } from "../contracts/errors.js";
+export type { ErrorCode } from "../contracts/errors.js";
 
 /** Internal details/cause must never be serialized directly into API responses. */
 export class DomainError extends Error {

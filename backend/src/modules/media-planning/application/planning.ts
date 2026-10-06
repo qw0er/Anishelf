@@ -12,11 +12,6 @@ import { fingerprint } from "../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import type { TranscodeProfile } from "../../../shared/transcode-profiles.js";
 import {
-	type HlsPolicy,
-	hlsPolicy,
-	validateHlsPolicy,
-} from "../../hls/policy.js";
-import {
 	type MediaInspectionApi,
 	MediaInspectionBusyError,
 	type MediaInspectionResult,
@@ -31,7 +26,6 @@ import {
 	validateCompatibilityEvidence,
 } from "../domain/evidence.js";
 import { resolveExecutionPlan } from "../domain/execution-plan.js";
-import { resolveHlsExecutionPlan } from "../domain/hls-execution-plan.js";
 import type {
 	CheckedCompatibility,
 	CompatibilityInspectInput,
@@ -53,11 +47,8 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 			sources: ResourceAccessApi;
 			profiles?: DeepReadonly<TranscodeProfile[]>;
 			logger?: Logger;
-			hlsPolicy?: DeepReadonly<HlsPolicy>;
 		},
-	) {
-		validateHlsPolicy(options.hlsPolicy ?? hlsPolicy);
-	}
+	) {}
 	/** Checks client evidence and proposes work without creating history or acquiring output. */
 	async plan(
 		input: CompatibilityCheckRequest & { fileId: string },
@@ -82,39 +73,6 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 				"PLAYBACK_CONFLICT",
 				"Source changed during media planning.",
 			);
-		if (checked.output?.target === "hls") {
-			const resolved = resolveHlsExecutionPlan(
-				checked,
-				(this.options.hlsPolicy ?? hlsPolicy).targetSegmentDurationMs,
-			);
-			await this.options.sources.revalidateSource(source);
-			this.options.sources.assertRootEpoch(source.rootEpoch);
-			if (this.closed)
-				throw new DomainError(
-					"MEDIA_PLANNING_UNAVAILABLE",
-					"Media planning is closed.",
-				);
-			if (resolved.kind === "blocked")
-				return freeze({
-					kind: "blocked",
-					reason: resolved.reason,
-				});
-			return freeze({
-				kind: "hls-required",
-				identity: {
-					rootId: resourceRootId(source.identity.canonicalRoot),
-					fileId: source.identity.fileId,
-					sourceVersion: source.identity.sourceVersion,
-					profileFingerprint: resolved.profileFingerprint,
-					executionPlanId: resolved.request.plan.id,
-					videoStreamIndex: resolved.request.plan.videoStreamIndex,
-					audioStreamIndices: resolved.request.plan.audioTracks.map(
-						(track) => track.sourceStreamIndex,
-					),
-				},
-				execution: resolved.request,
-			});
-		}
 		const resolved = resolveExecutionPlan(checked);
 		await this.options.sources.revalidateSource(source);
 		this.options.sources.assertRootEpoch(source.rootEpoch);
@@ -135,7 +93,7 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 				reason: resolved.reason,
 			});
 		const output = checked.output;
-		if (!output || output.target === "hls")
+		if (!output)
 			throw new DomainError(
 				"PLAYBACK_CONFLICT",
 				"Source changed during media planning.",
@@ -169,7 +127,7 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 		this.assertOpen();
 		let profile: DeepReadonly<TranscodeProfile> | null = null;
 		if (input.output) {
-			if (!["file", "media-source", "hls"].includes(input.output.target))
+			if (!["file", "media-source"].includes(input.output.target))
 				throw new DomainError(
 					"INVALID_REQUEST",
 					"Invalid compatibility delivery target.",

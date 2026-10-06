@@ -5,7 +5,7 @@ import type { DeepReadonly } from "../../../shared/policy.js";
 import type { SourceIdentity } from "../../resource-access/public.js";
 export type PreparationFailureReason =
 	(typeof preparationFailureReasons)[number];
-export interface PreparationSpecification {
+interface PreparationSpecification {
 	source: SourceIdentity;
 	executionPlanId: string;
 	profileFingerprint: string;
@@ -53,15 +53,3 @@ export interface PreparedArtifact {
 	sizeBytes: number;
 	mimeType: string;
 }
-
-/** Completed HLS artifacts are owned by preparation; runtime sessions cannot delete them. */
-export interface PreparedHlsArtifact {
-	id: string;
-	taskId: string;
-	resourceId: string;
-	delivery: "hls";
-	completeness: "complete";
-	sizeBytes: number;
-	mimeType: "application/vnd.apple.mpegurl";
-}
-export type PreparedResource = PreparedArtifact | PreparedHlsArtifact;

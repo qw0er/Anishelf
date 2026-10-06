@@ -150,8 +150,8 @@ Open <http://127.0.0.1:3000>. `start:web` builds both workspaces before starting
 ## Checks and documentation
 
 ```sh
-npm run check   # Biome, type checks, backend and frontend tests
-npm run lint    # Biome lint
+npm run check   # Biome, architecture/unused checks, types and tests
+npm run lint    # Biome, dependency boundaries and Knip
 ```
 
 - [Requirements and active release acceptance](docs/requirements.md)
@@ -160,7 +160,10 @@ npm run lint    # Biome lint
 - [Development and operations](docs/development.md)
 - [Complete historical records](docs/history.md)
 
-The user has reported completing manual browser acceptance. Automated tests cover configuration, scanning, navigation, media delivery, access boundaries, frontend interactions, and development-only page hosting. Actual media decoding is validated by manual browser acceptance.
+Automated tests cover configuration, migrations, scanning, selection, preparation,
+media delivery, access boundaries and frontend coordination. Real FFmpeg tests
+validate completed outputs; actual browser decoding and responsive layout require
+separate acceptance. See [refactoring acceptance](docs/refactoring-baseline.md).
 
 ### Unified configuration
 

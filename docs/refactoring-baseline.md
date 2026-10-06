@@ -30,15 +30,13 @@ IDs. Existing settings, playback records and valid outputs retain their formats.
 | Status | Capabilities |
 | --- | --- |
 | Connected product functionality | Configuration, scans, browsing, original playback, saved progress/history, original external-player links, text subtitles, persistent preparation, prepared-file playback |
-| Independently testable foundation | File/media-source output planning and media execution, HLS per-track planning and source-time mapping; see media-execution-planning, media-processing-application and hls-models tests |
-| Reserved contracts | HLS resource/lease contracts, prepared/processed HLS artifact variants and real-time session/lifecycle contracts |
+| Independently testable foundation | File/media-source output planning and media execution, HLS per-track planning and source-time mapping; see media-execution-planning, media-processing-application and media-contracts tests |
+| Removed in batch 6 | Unconsumed HLS resource/lease contracts, prepared/processed HLS variants and real-time session/lifecycle ports |
 | Not implemented | HLS packaging and browser delivery, live execution/resource acquisition, embedded fonts, automatic cache eviction |
 
-Retain HLS pure planning as an independently tested foundation. It is not a
-product playback or preparation target. Batch 1 separates pure planners from the
-processing application; it does not add HLS execution or delivery. Removal of
-unused reserved variants remains a later cleanup batch. The current internal HLS
-planning branch is preserved to avoid changing established planning behavior.
+HLS pure planning remains an independently tested offline foundation. Batch 6
+removed its startup policy and production HTTP path and moved its private types
+into Media Planning. Runtime HLS delivery and acquisition are not implemented.
 
 ## Dependency and composition changes
 
@@ -128,7 +126,7 @@ Implemented after the dependency baseline:
   negotiation, planning and execution validation. Preserve actual FFmpeg width
   rounding and require exact known output dimensions before publication.
 - Update the browser contract to rules version 4 and planning route to
-  `/api/media/plans`; retain existing task/artifact snapshots and unchanged output
+  `/api/media/plans` (removed in batch 6); retain existing task/artifact snapshots and unchanged output
   identities. Corrected non-H.264 encoding has a new resolver version.
 
 Task snapshot consolidation, preparation lifecycle state unions, unified playback
@@ -211,3 +209,42 @@ Validation includes duplicate observer deduplication, directory request counts,
 shared preload cancellation, bounded negotiation concurrency, terminal polling,
 summary/detail validation separation and existing serial progress/lifecycle regressions.
 Live native decoding and responsive browser acceptance remain separate checks.
+
+## Batch 6: legacy cleanup and acceptance
+
+- Removed the redundant `/api/media/plans` HTTP endpoint and its client,
+  schemas and presenter. Compatibility inspection/check remains consumed by
+  directory checks and explicit preparation; Playback Selection owns final choices.
+- Removed HLS/real-time resource and lease ports, startup HLS policy, unused
+  prepared/processed segmented variants and unimplemented playback modes.
+  The offline HLS per-track planner and its independent regression test remain
+  within Media Planning, with domain-owned private models.
+- Renamed History contracts, models, projection and repository operations to
+  their actual purpose. `history(limit, "continue")` retains the explicitly tested
+  unfinished-playback filter without a duplicate application method/default.
+- Deleted the obsolete player compatibility hook, test-only cache reset helper,
+  unused API wrapper and business exports/re-exports. Reusable UI-library exports
+  remain available regardless of current application consumers.
+  Removed ESLint dependencies. Knip is part of lint alongside Biome and
+  dependency-cruiser; the root and Web use the same supported TypeScript version.
+- Extended migration/reopen tests to retain plan/profile/artifact identity,
+  byte-for-byte cached media, settings snapshot version and durable progress.
+  A newly opened progress writer still advances generation and resets sequence.
+  No migration or global cache invalidation is introduced by batch 6.
+- `npm run check` passes: 12 architecture tests, 545 backend tests and 167 Web
+  tests. One platform-specific backend test is skipped on macOS. Real FFmpeg
+  regressions validate remux/audio/video/combined execution. `npm run build`
+  passes with the existing frontend chunk-size warning.
+- Disposable generated media and isolated settings/database were used for live
+  browser acceptance. Original MP4 decoded with visible external VTT subtitles; an embedded mov_text
+  track was extracted and visibly rendered through the selected-track workflow.
+  An AAC two-track MKV accepted explicit Japanese selection, completed preparation,
+  automatically selected the published file and decoded at 320×180 with advancing
+  playback time in Chrome. History updated with saved source positions on departure.
+  PCM audio with insufficient browser evidence stayed conservatively blocked.
+  390px and 1280px layouts were checked, including long Chinese filenames, blocked
+  feedback, light/dark themes and History; narrow pages had no horizontal overflow.
+
+These samples certify the exercised paths only. HLS, HDR, bitmap subtitles,
+embedded fonts and arbitrary target-browser/codec combinations remain unverified
+or unimplemented as described in the active architecture.

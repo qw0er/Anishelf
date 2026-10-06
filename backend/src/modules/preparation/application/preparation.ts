@@ -142,8 +142,6 @@ export class PreparationApplication implements PreparationApi {
 				};
 			if (planned.kind === "blocked")
 				return { kind: "blocked", reason: planned.reason };
-			if (planned.kind === "hls-required")
-				return { kind: "blocked", reason: "hls-execution-unavailable" };
 			const source = await context.sources.resolveSource(
 				input.fileId,
 				input.sourceVersion,

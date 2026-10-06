@@ -9,7 +9,7 @@ import type { TranscodeProfile } from "../../../shared/transcode-profiles.js";
 
 /** FFmpeg scale=-2 rounds the proportional width to the nearest even integer;
  * pad then rounds both dimensions up to even. Unknown dimensions stay unknown. */
-export function outputDimensions(
+function outputDimensions(
 	source: Pick<CompatibilityVideoStream, "width" | "height">,
 	maxHeight?: number,
 ): { width: number | null; height: number | null } {

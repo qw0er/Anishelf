@@ -100,7 +100,6 @@ beforeEach(() => {
 	vi.spyOn(api, "inspectMediaCompatibility").mockResolvedValue(description);
 	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([...evidence]);
 	vi.spyOn(api, "createPreparation").mockResolvedValue({ kind: "task", task });
-	vi.spyOn(api, "getPreparation").mockResolvedValue(ready);
 	vi.spyOn(api, "checkMediaCompatibility").mockResolvedValue({
 		output: { combinations: { "copy-copy": "supported" } },
 	} as unknown as CompatibilityResult);

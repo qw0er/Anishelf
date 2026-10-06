@@ -1,11 +1,11 @@
 export type {
-	ContinueWatchingResult,
+	HistoryResult,
 	PlaybackProgress,
 	PlaybackSession,
 } from "./domain/model.js";
 
 import type {
-	ContinueWatchingResult,
+	HistoryResult,
 	PlaybackSession,
 	SavePlaybackProgress,
 	SavePlaybackProgressResult,
@@ -15,15 +15,5 @@ export interface PlaybackApi {
 
 	save(input: SavePlaybackProgress): Promise<SavePlaybackProgressResult>;
 	release(token: string): void;
-	history(
-		limit?: number,
-		view?: "continue" | "recent",
-	): Promise<ContinueWatchingResult>;
-	continueWatching(limit?: number): Promise<ContinueWatchingResult>;
+	history(limit?: number, view?: "continue" | "recent"): Promise<HistoryResult>;
 }
-export type {
-	DerivedMediaIdentity,
-	PlaybackPlan,
-	PreparedPlaybackResource,
-	RealtimePlaybackResource,
-} from "./domain/plan.js";

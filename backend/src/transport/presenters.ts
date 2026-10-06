@@ -1,14 +1,12 @@
 import type {
 	CompatibilityResult,
-	ContinueWatchingResponse,
 	DirectoryDto,
 	DirectoryResponse,
 	FileDto,
 	FilePlaybackResource,
-	HlsPlaybackResource,
+	HistoryResponse,
 	LibraryIssueDto,
 	LibraryResponse,
-	MediaPlanningResponse,
 	MediaTimeline,
 	PlaybackPlanDto,
 	PlaybackProgressDto,
@@ -30,15 +28,13 @@ import type {
 	ResourceInfo,
 	ScanState,
 } from "../modules/library/public.js";
+import type { CheckedCompatibility } from "../modules/media-planning/public.js";
 import type {
-	CheckedCompatibility,
-	MediaPlanningResult,
-} from "../modules/media-planning/public.js";
-import type {
-	ContinueWatchingResult,
+	HistoryResult,
 	PlaybackProgress,
 	PlaybackSession,
 } from "../modules/playback/public.js";
+import type { PreparationCreation } from "../modules/preparation/public.js";
 import type {
 	SubtitleDiscovery,
 	SubtitlePreparationResult,
@@ -160,9 +156,7 @@ export function playbackSessionResponse(
 	};
 }
 
-export function continueWatchingResponse(
-	result: ContinueWatchingResult,
-): ContinueWatchingResponse {
+export function historyResponse(result: HistoryResult): HistoryResponse {
 	return {
 		availability: result.availability,
 		items: result.items.map((item) => ({
@@ -268,8 +262,6 @@ export function playbackPlanDto(plan: PlaybackPlanDto): PlaybackPlanDto {
 	switch (plan.mode) {
 		case "blocked":
 			return { mode: plan.mode, reason: plan.reason };
-		case "preparing":
-			return { mode: plan.mode, taskId: plan.taskId };
 		case "direct":
 			return {
 				mode: plan.mode,
@@ -279,20 +271,7 @@ export function playbackPlanDto(plan: PlaybackPlanDto): PlaybackPlanDto {
 			return {
 				mode: plan.mode,
 				artifactId: plan.artifactId,
-				resource:
-					plan.resource.delivery === "file"
-						? filePlaybackResourceDto(plan.resource)
-						: {
-								...hlsPlaybackResourceDto(plan.resource),
-								completeness: plan.resource.completeness,
-							},
-			};
-		case "realtime":
-			return {
-				mode: plan.mode,
-				sessionId: plan.sessionId,
-				streamGeneration: plan.streamGeneration,
-				resource: hlsPlaybackResourceDto(plan.resource),
+				resource: filePlaybackResourceDto(plan.resource),
 			};
 	}
 }
@@ -313,76 +292,6 @@ function filePlaybackResourceDto(
 		timeline: timelineDto(resource.timeline),
 	};
 }
-function hlsPlaybackResourceDto(
-	resource: HlsPlaybackResource,
-): HlsPlaybackResource {
-	return {
-		delivery: "hls",
-		resourceId: resource.resourceId,
-		url: resource.url,
-		mimeType: resource.mimeType,
-		streamGeneration: resource.streamGeneration,
-		completeness: resource.completeness,
-		timeline: timelineDto(resource.timeline),
-		tracks: resource.tracks.map((track) => ({
-			id: track.id,
-			kind: track.kind,
-			sourceStreamIndex: track.sourceStreamIndex,
-			label: track.label,
-			language: track.language,
-			codec: track.codec,
-			default: track.default,
-		})),
-		availableRanges: resource.availableRanges.map((range) => ({
-			startMs: range.startMs,
-			endMs: range.endMs,
-		})),
-	};
-}
-
-export function mediaPlanningResponse(
-	result: MediaPlanningResult | DeepReadonly<MediaPlanningResult>,
-): MediaPlanningResponse {
-	switch (result.kind) {
-		case "playable":
-			return {
-				kind: "playable",
-				plan: playbackPlanDto(
-					directPlaybackPlan(result.fileId, result.mimeType),
-				),
-			};
-		case "blocked":
-			return { kind: "blocked", reason: result.reason };
-		case "processing-required":
-			return {
-				kind: result.kind,
-				target: result.target,
-				executionPlanId: result.identity.executionPlanId,
-				mode: result.mode,
-			};
-		case "hls-required": {
-			const plan = result.execution.plan;
-			return {
-				kind: result.kind,
-				executionPlanId: plan.id,
-				segmentContainer: plan.segmentContainer,
-				targetSegmentDurationMs: plan.targetSegmentDurationMs,
-				video: {
-					sourceStreamIndex: plan.videoStreamIndex,
-					action: plan.video.action,
-					reason: plan.videoReason,
-				},
-				audioTracks: plan.audioTracks.map((track) => ({
-					sourceStreamIndex: track.sourceStreamIndex,
-					trackId: track.trackId,
-					action: track.execution.action,
-					reason: track.reason,
-				})),
-			};
-		}
-	}
-}
-
 /** Transport owns URLs and the small user-visible progress projection. */
 export function preparationTaskResponse(
 	view: import("../modules/preparation/public.js").PreparationView,
@@ -424,7 +333,7 @@ export function preparationTaskResponse(
 	};
 }
 export function preparationStartResponse(
-	result: import("../modules/preparation/public.js").PreparationCreation,
+	result: PreparationCreation,
 ): import("../contracts/http.js").PreparationStartResponse {
 	switch (result.kind) {
 		case "direct":

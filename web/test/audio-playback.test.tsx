@@ -150,7 +150,6 @@ test("changing playback audio verifies only matching copies and never enqueues a
 	vi.spyOn(api, "checkMediaCompatibility").mockResolvedValue({
 		output: { combinations: { "copy-copy": "supported" } },
 	} as unknown as CompatibilityResult);
-	vi.spyOn(api, "getPreparation").mockResolvedValue(task);
 	const create = vi.spyOn(api, "createPreparation");
 	const view = render(
 		<MemoryRouter initialEntries={["/files/file?audio=2"]}>

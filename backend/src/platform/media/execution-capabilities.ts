@@ -7,7 +7,7 @@ import type { DeepReadonly } from "../../shared/policy.js";
 import { MediaToolError } from "./errors.js";
 import type { MediaInfo } from "./model.js";
 
-export interface ExecutionCapabilityRequirement {
+interface ExecutionCapabilityRequirement {
 	kind: MediaCapabilityKind | "tools";
 	name: string;
 	purpose: string;

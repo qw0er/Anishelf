@@ -28,7 +28,7 @@ export interface ExternalSubtitle {
 	sizeBytes: number;
 	sourceVersion: string;
 }
-export interface EmbeddedSubtitle {
+interface EmbeddedSubtitle {
 	origin: "embedded";
 	id: string;
 	name: string;
@@ -91,7 +91,7 @@ export interface SubtitlePreparation {
 }
 
 /** External tracks are ready references to originals, without registered cache assets. */
-export interface ExternalSubtitlePreparation {
+interface ExternalSubtitlePreparation {
 	id: string;
 	status: "ready";
 	format: ExternalSubtitleFormat;

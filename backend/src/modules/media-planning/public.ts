@@ -1,5 +1,4 @@
 export { resolveExecutionPlan } from "./domain/execution-plan.js";
-export { resolveHlsExecutionPlan } from "./domain/hls-execution-plan.js";
 export type {
 	CheckedCompatibility,
 	CompatibilityInspectInput,

@@ -7,7 +7,7 @@ import type { Store } from "../../../platform/database/store.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type { SourceRegistry } from "../../resource-access/public.js";
 import type {
-	ContinueWatchingCandidate,
+	HistoryCandidate,
 	PlaybackProgress,
 	PlaybackProgressUpdate,
 	RegisteredSource,
@@ -136,15 +136,12 @@ export class PlaybackRepository {
 		);
 	}
 
-	listContinueWatching(
+	listHistory(
 		rootId: string,
-		limit = Math.min(
-			this.policy.continueWatchingLimit,
-			this.policy.candidateBatchSize,
-		),
+		limit = this.policy.candidateBatchSize,
 		offset = 0,
-		view: "continue" | "recent" = "continue",
-	): ContinueWatchingCandidate[] {
+		view: "continue" | "recent" = "recent",
+	): HistoryCandidate[] {
 		integer(limit, 1);
 		integer(offset, 0);
 		if (limit > this.policy.candidateBatchSize)

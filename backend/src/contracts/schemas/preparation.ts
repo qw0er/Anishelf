@@ -1,7 +1,7 @@
 import { Type } from "typebox";
 import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
 import { AudioStreamSelectionSchema } from "./compatibility.js";
-import { CompletedPlaybackResourceSchema } from "./media.js";
+import { FilePlaybackResourceSchema } from "./media.js";
 import {
 	DirectPlaybackPlanSchema,
 	PlaybackTokenSchema,
@@ -39,7 +39,7 @@ export const preparationFailureReasons = [
 	...Object.values(failures).filter((value) => value !== failures.interrupted),
 ] as const;
 const nullableNumber = Type.Union([Type.Number({ minimum: 0 }), Type.Null()]);
-export const PreparationProgressSchema = Type.Object(
+const PreparationProgressSchema = Type.Object(
 	{
 		mediaTimeMs: nullableNumber,
 		speed: nullableNumber,
@@ -90,7 +90,7 @@ export const PreparationTaskSchema = Type.Object(
 			Type.String({ pattern: "^[a-f0-9]{64}$" }),
 			Type.Null(),
 		]),
-		resource: Type.Union([CompletedPlaybackResourceSchema, Type.Null()]),
+		resource: Type.Union([FilePlaybackResourceSchema, Type.Null()]),
 		sizeBytes: Type.Union([NonnegativeIntegerSchema, Type.Null()]),
 	},
 	{ additionalProperties: false },

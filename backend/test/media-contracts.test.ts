@@ -21,24 +21,19 @@ test("source mapping survives an offset restart and nonzero media origin", () =>
 	expect(() => sourceTimeMs(Number.NaN, timeline)).toThrow(RangeError);
 });
 
-test("resource contracts distinguish complete files, HLS resources and pending plans", () => {
+test("resource contracts reject unsupported delivery modes and strip private fields", () => {
 	const resource = {
-		delivery: "hls" as const,
-		resourceId: "resource",
-		url: "/api/hls/resource/master.m3u8",
-		mimeType: "application/vnd.apple.mpegurl" as const,
-		streamGeneration: 2,
-		completeness: "complete" as const,
+		delivery: "file" as const,
+		url: "/api/prepared-media/artifact",
+		mimeType: "video/mp4",
 		timeline: originalTimeline(90000),
-		tracks: [],
-		availableRanges: [{ startMs: 0, endMs: 90000 }],
 	};
 	const plan = { mode: "prepared" as const, artifactId: "artifact", resource };
 	expect(Check(PlaybackPlanSchema, plan)).toBe(true);
 	expect(
 		Check(PlaybackPlanSchema, {
 			...plan,
-			resource: { ...resource, completeness: "growing" },
+			resource: { ...resource, delivery: "hls" },
 		}),
 	).toBe(false);
 	expect(
@@ -53,7 +48,7 @@ test("resource contracts distinguish complete files, HLS resources and pending p
 	expect(
 		Check(PlaybackPlanSchema, {
 			...plan,
-			resource: { ...resource, mimeType: "video/mp4" },
+			mode: "realtime",
 		}),
 	).toBe(false);
 	const privatePlan = {
