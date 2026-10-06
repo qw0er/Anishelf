@@ -16,7 +16,10 @@ import {
 	LibraryBrowser,
 	ResourceSettings,
 } from "../features/library/public.js";
-import { FilePlayer } from "../features/playback/public.js";
+import {
+	ExternalPlayerSettings,
+	FilePlayer,
+} from "../features/playback/public.js";
 import { PreparationProfileSettings } from "../features/preparation/public.js";
 import RouteError from "./errors.js";
 import HistoryPage from "./history.js";
@@ -74,13 +77,14 @@ function SettingsPage() {
 	const { settings, scanning, scanPending } =
 		useOutletContext<LibraryContext>();
 	return settings ? (
-		<div className="stack-page">
+		<div className="stack-page mx-auto w-full max-w-2xl">
 			<ResourceSettings
 				key={settings.resourceRoot}
 				settings={settings}
 				disabled={scanning || scanPending}
 			/>
 			<PreparationProfileSettings />
+			<ExternalPlayerSettings />
 		</div>
 	) : (
 		<section role="alert">{t("errors.settingsUnavailable")}</section>

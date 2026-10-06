@@ -162,8 +162,8 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
 | C01 | Generate a transferable original-media URL or single-file M3U playlist for manual opening in an external player | Implemented | V2 | V2 |
-| C02 | Invoke an external player from the browser/OS through a registered protocol or equivalent integration | Later | — | Later |
-| C03 | Read external-player state when the selected integration exposes it, including playing/paused state, position, and playback end | Optional later capability; V2 only generates a transferable media link and reads no native state | — | Later |
+| C02 | Invoke platform-compatible external players through browser protocol links; manage browser-local custom URL templates in Settings | Implemented; native platform acceptance pending | Current | Current |
+| C03 | Read external-player state when the selected integration exposes it, including playing/paused state, position, and playback end | Optional later capability; browser invocation reads no native state | — | Later |
 | C04 | Control desktop playback, pause, and seeking from the Web | Later | — | Unassigned |
 | C05 | Continue viewing between Web and desktop using saved positions | Later | — | Unassigned |
 | C06 | Manage multiple devices and transfer playback sessions | Optional | — | Unassigned |
@@ -264,7 +264,7 @@ These rules apply to the relevant capabilities as they are implemented. V2 appli
 
 ## 4. Release Plan and Suggested Evolution
 
-V1 is implemented. The archived V2 scope selected saved progress and resume (W01), History (W02), external/styled subtitles and embedded extraction (P03 and partial P08/P09), FFmpeg pre-transcoding (P05–P07), transferable external-player media links (C01), and a complete everyday-use Web interface (O16). Web playback remains the primary path. C02 browser invocation and C03 native state reading are later requirements; other unselected items remain unassigned. Automatic next-episode playback is not part of V2.
+V1 is implemented. The archived V2 scope selected saved progress and resume (W01), History (W02), external/styled subtitles and embedded extraction (P03 and partial P08/P09), FFmpeg pre-transcoding (P05–P07), transferable external-player media links (C01), and a complete everyday-use Web interface (O16). Web playback remains the primary path. C02 now provides platform-filtered browser invocation and browser-local custom players; C03 native state reading remains a later requirement; other unselected items remain unassigned. Automatic next-episode playback is not part of V2.
 
 | Stage | Question to resolve | Priority candidates |
 | --- | --- | --- |

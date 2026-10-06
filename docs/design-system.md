@@ -47,6 +47,9 @@ When space allows, label buttons with an icon and text. When space is constraine
 use an icon-only button with a Tooltip that names the action. The Tooltip must not
 replace the control's accessible name or visible keyboard focus.
 
+Center the Settings title and cards in one shared content column.
+Keep action menus focused on choices and commands; put explanatory guidance in
+Settings and report invocation failures through Toasts.
 Keep compatibility and task status outside action menus. Put shared choices in
 Settings. The preparation panel is a nonblocking active-task monitor, not a dedicated
 page.

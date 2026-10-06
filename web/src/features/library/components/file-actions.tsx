@@ -12,7 +12,7 @@ import {
 	DropdownMenuTrigger,
 } from "../../../components/ui/dropdown-menu.js";
 import { Tooltip } from "../../../components/ui/tooltip.js";
-import { MediaLink } from "../../playback/public.js";
+import { ExternalPlayerSubmenu, MediaLink } from "../../playback/public.js";
 import {
 	PreparationFileMenuItems,
 	useFilePreparations,
@@ -70,6 +70,7 @@ export function FileActions({
 					</DropdownMenuTrigger>
 				</Tooltip>
 				<DropdownMenuContent>
+					<ExternalPlayerSubmenu fileId={fileId} />
 					<MediaLink fileId={fileId} menuItem />
 					<MediaLink fileId={fileId} menuItem playlist />
 					<PreparationFileMenuItems

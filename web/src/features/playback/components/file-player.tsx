@@ -13,7 +13,7 @@ import { usePlaybackController } from "../hooks/use-playback-controller.js";
 import { AudioSelection } from "./audio-selection.js";
 import { CompatibilityDialog } from "./compatibility-dialog.js";
 
-import MediaLink from "./media-link.js";
+import { PlaybackActionsMenu } from "./external-player-menu.js";
 import VideoPlayer from "./video-player.js";
 
 export default function FilePlayer({
@@ -160,8 +160,10 @@ export default function FilePlayer({
 					tryOrigin={tryOrigin}
 					tryingOrigin={tryingOrigin}
 				/>
-				<MediaLink fileId={data.file.id} playlist />
-				<MediaLink key={`link:${data.file.id}`} fileId={data.file.id} />
+				<PlaybackActionsMenu
+					key={`actions:${data.file.id}`}
+					fileId={data.file.id}
+				/>
 			</div>
 		</section>
 	);
