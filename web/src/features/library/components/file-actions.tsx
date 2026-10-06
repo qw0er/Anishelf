@@ -1,7 +1,10 @@
 import { Ellipsis } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { CompatibilityResult } from "../../../api/contracts.js";
+import type {
+	CompatibilityResult,
+	PreparationSummaryResponse,
+} from "../../../api/contracts.js";
 import { Button } from "../../../components/ui/button.js";
 import {
 	DropdownMenu,
@@ -19,9 +22,11 @@ import { CompatibilityStatus } from "./compatibility-status.js";
 
 export function FileActions({
 	fileId,
+	summary,
 	...compatibility
 }: {
 	fileId: string;
+	summary?: PreparationSummaryResponse["files"][number] | undefined;
 	loading: boolean;
 	result: CompatibilityResult | null;
 	error: unknown;
@@ -29,19 +34,25 @@ export function FileActions({
 }) {
 	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
-	const list = useFilePreparations(fileId);
-	const prepared = list.tasks.some(
-		(task) =>
-			task.status === "ready" &&
-			task.artifactId &&
-			task.playbackAvailability === "ready" &&
-			task.sourceVersion === compatibility.result?.sourceVersion,
-	);
+	const list = useFilePreparations(fileId, open);
+	const prepared =
+		summary?.versions.some(
+			(version) =>
+				version.sourceVersion === compatibility.result?.sourceVersion &&
+				version.publishedCopies > 0,
+		) ||
+		list.tasks.some(
+			(task) =>
+				task.status === "ready" &&
+				task.artifactId &&
+				task.playbackAvailability === "ready" &&
+				task.sourceVersion === compatibility.result?.sourceVersion,
+		);
 	return (
 		<>
 			<CompatibilityStatus
 				{...compatibility}
-				loading={compatibility.loading || list.loading}
+				loading={compatibility.loading}
 				prepared={prepared}
 			/>
 			<DropdownMenu open={open} onOpenChange={setOpen}>

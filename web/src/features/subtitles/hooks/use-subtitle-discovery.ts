@@ -1,21 +1,14 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getSubtitles } from "../../../api/client.js";
-import type { SubtitleDiscoveryResponse } from "../../../api/contracts.js";
-
-/** Retry file recreates the player and refreshes this discovery. */
+import { boundedSignal, keys, useQueryScope } from "../../../api/queries.js";
+/** Structural sharing and a stable source key keep selected tracks across background updates. */
 export function useSubtitleDiscovery(fileId: string) {
-	const [discovery, setDiscovery] = useState<SubtitleDiscoveryResponse | null>(
-		null,
-	);
-	useEffect(() => {
-		const controller = new AbortController();
-		setDiscovery(null);
-		void getSubtitles(fileId, { signal: controller.signal })
-			.then((result) => {
-				if (!controller.signal.aborted) setDiscovery(result);
-			})
-			.catch(() => {});
-		return () => controller.abort();
-	}, [fileId]);
-	return discovery;
+	const query = useQuery({
+		queryKey: keys.subtitles(useQueryScope(), fileId),
+		staleTime: Infinity,
+		refetchOnMount: "always",
+		queryFn: ({ signal }) =>
+			getSubtitles(fileId, { signal: boundedSignal(signal) }),
+	});
+	return query.data ?? null;
 }

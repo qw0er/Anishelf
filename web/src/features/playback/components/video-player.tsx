@@ -2,6 +2,7 @@ import {
 	type MediaTimeline,
 	originalTimeline,
 } from "@anishelf/backend/contracts/media";
+import { useQueryClient } from "@tanstack/react-query";
 import {
 	isVideoProvider,
 	MediaPlayer,
@@ -14,17 +15,15 @@ import {
 	DefaultVideoLayout,
 	defaultLayoutIcons,
 } from "@vidstack/react/player/layouts/default";
+import { fileQuery, useQueryScope } from "../../../api/queries.js";
+import { loadQuery } from "../../../api/query-client.js";
 import { interactionPolicy } from "../../../config/interaction-policy.js";
 import type { SubtitlePolicy } from "../../../config/media-policy.js";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import { useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import {
-	ApiClientError,
-	getFile,
-	isRequestCancelled,
-} from "../../../api/client.js";
+import { ApiClientError, isRequestCancelled } from "../../../api/client.js";
 import type { FileResponse } from "../../../api/contracts.js";
 import { toast } from "../../../components/ui/toast.js";
 import { getErrorTranslationKey } from "../../../lib/error-translation.js";
@@ -56,6 +55,8 @@ export default function VideoPlayer({
 	expectsVideo?: boolean;
 }) {
 	const { t } = useTranslation();
+	const client = useQueryClient();
+	const scope = useQueryScope();
 	const videoRef = useRef<HTMLVideoElement | null>(null);
 	const errorRequest = useRef<AbortController | null>(null);
 	const notificationId = `video-playback:${file.id}`;
@@ -92,7 +93,11 @@ export default function VideoPlayer({
 		const controller = new AbortController();
 		errorRequest.current = controller;
 		try {
-			await getFile(file.id, { signal: controller.signal });
+			await loadQuery(
+				{ ...fileQuery(file.id, scope), staleTime: 0 },
+				controller.signal,
+				client,
+			);
 		} catch (cause) {
 			if (controller.signal.aborted || isRequestCancelled(cause)) return;
 			if (cause instanceof ApiClientError)

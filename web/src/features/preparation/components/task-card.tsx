@@ -22,13 +22,11 @@ import { usePreparationAction } from "../use-preparations.js";
 
 export function PreparationTaskCard({
 	task,
-	refresh,
 	onWatch,
 	playing = false,
 	profileName,
 }: {
 	task: PreparationTaskResponse;
-	refresh(): void;
 	onWatch?(task: PreparationTaskResponse): void;
 	playing?: boolean;
 	profileName?: string | undefined;
@@ -69,9 +67,10 @@ export function PreparationTaskCard({
 					})}
 				</p>
 			)}
-			{task.status === "ready" && task.playbackAvailability !== "ready" && (
-				<p>{t("preparation.sourceUnavailable")}</p>
-			)}
+			{task.status === "ready" &&
+				task.playbackAvailability === "unavailable" && (
+					<p>{t("preparation.sourceUnavailable")}</p>
+				)}
 		</div>
 	);
 	return (
@@ -125,7 +124,6 @@ export function PreparationTaskCard({
 							onClick={() =>
 								void action.run(async (signal) => {
 									await cancelPreparation(task.id, { signal });
-									refresh();
 								})
 							}
 						>
@@ -151,7 +149,6 @@ export function PreparationTaskCard({
 										task.audioStreamIndices,
 									);
 									await retryPreparation(task.id, body, { signal });
-									refresh();
 								})
 							}
 						>
@@ -159,7 +156,7 @@ export function PreparationTaskCard({
 						</Button>
 					</Tooltip>
 				)}
-				{task.status === "ready" && task.resource?.url && onWatch && (
+				{task.status === "ready" && task.artifactId && onWatch && (
 					<Tooltip
 						content={t(playing ? "preparation.playing" : "preparation.watch")}
 					>
@@ -189,7 +186,6 @@ export function PreparationTaskCard({
 								void action.run(async (signal) => {
 									if (task.artifactId)
 										await deletePreparedMedia(task.artifactId, { signal });
-									refresh();
 								})
 							}
 						>

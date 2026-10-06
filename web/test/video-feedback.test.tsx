@@ -1,16 +1,16 @@
 // @vitest-environment happy-dom
 
+import { afterEach, expect, test, vi } from "vitest";
+import { toast } from "../src/components/ui/toast.js";
+import { subtitlePolicy } from "../src/config/media-policy.js";
+import VideoPlayer from "../src/features/playback/components/video-player.js";
 import {
 	act,
 	cleanup,
 	fireEvent,
 	render,
 	waitFor,
-} from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
-import { toast } from "../src/components/ui/toast.js";
-import { subtitlePolicy } from "../src/config/media-policy.js";
-import VideoPlayer from "../src/features/playback/components/video-player.js";
+} from "./query-test-utils.js";
 
 const playerEvents = vi.hoisted(() => ({
 	setup: undefined as

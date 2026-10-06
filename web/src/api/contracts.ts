@@ -30,6 +30,7 @@ export type {
 	PlaybackSessionResponse,
 	PreparationListResponse,
 	PreparationStartResponse,
+	PreparationSummaryResponse,
 	PreparationTaskResponse,
 	ResourceDto,
 	ResourceId,

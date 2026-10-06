@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
 
-import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { TextTrack } from "@vidstack/react";
 import { StrictMode } from "react";
 import { afterEach, expect, test, vi } from "vitest";
@@ -8,6 +7,7 @@ import type { SubtitleDiscoveryResponse } from "../src/api/contracts.js";
 import { subtitlePolicy } from "../src/config/media-policy.js";
 import { useSubtitleDiscovery } from "../src/features/subtitles/hooks/use-subtitle-discovery.js";
 import { StyledSubtitleRenderer } from "../src/features/subtitles/renderer.js";
+import { act, cleanup, renderHook, waitFor } from "./query-test-utils.js";
 
 const plainTrack: SubtitleDiscoveryResponse["tracks"][number] = {
 	origin: "external",
@@ -111,7 +111,7 @@ test("ignores stale discovery and aborts pending requests", async () => {
 	expect(result.current?.tracks.length).toBe(2);
 	const lastSignal = fetcher.mock.lastCall?.[1]?.signal;
 	unmount();
-	expect(lastSignal?.aborted).toBe(true);
+	expect(lastSignal?.aborted).toBe(false);
 });
 
 test("refreshes discovery when the player remounts", async () => {

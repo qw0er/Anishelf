@@ -113,3 +113,33 @@ export const PreparationListResponseSchema = Type.Object(
 	{ tasks: Type.Array(PreparationTaskSchema) },
 	{ additionalProperties: false },
 );
+
+export const PreparationSummaryRequestSchema = Type.Object(
+	{
+		fileIds: Type.Array(ResourceIdSchema, { maxItems: 500, uniqueItems: true }),
+	},
+	{ additionalProperties: false },
+);
+export const PreparationSummaryResponseSchema = Type.Object(
+	{
+		files: Type.Array(
+			Type.Object(
+				{
+					fileId: ResourceIdSchema,
+					versions: Type.Array(
+						Type.Object(
+							{
+								sourceVersion: SourceVersionSchema,
+								publishedCopies: NonnegativeIntegerSchema,
+								pendingTasks: NonnegativeIntegerSchema,
+							},
+							{ additionalProperties: false },
+						),
+					),
+				},
+				{ additionalProperties: false },
+			),
+		),
+	},
+	{ additionalProperties: false },
+);

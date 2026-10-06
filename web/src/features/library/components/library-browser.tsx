@@ -1,8 +1,10 @@
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FileVideo, Folder } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { LibraryContext } from "../../../App.js";
 import type { DirectoryResponse } from "../../../api/contracts.js";
+import { summariesQuery, useQueryScope } from "../../../api/queries.js";
 import { buttonStyles } from "../../../components/ui/button.js";
 import { Card, CardContent } from "../../../components/ui/card.js";
 import { directoryPath, filePath } from "../../../routes/paths.js";
@@ -20,6 +22,13 @@ export default function LibraryBrowser({
 }) {
 	const { t, i18n } = useTranslation();
 	const parentId = listing.directory.parentId;
+	const ids = listing.children
+		.filter((entry) => entry.kind === "file")
+		.map((file) => file.id);
+	const summaries = useQuery({
+		...summariesQuery(useQueryScope(), ids),
+		enabled: ids.length > 0,
+	});
 	const compatibility = useDirectoryCompatibility(
 		listing,
 		JSON.stringify([scan.settings?.resourceRoot, scan.library?.revision]),
@@ -92,6 +101,9 @@ export default function LibraryBrowser({
 												<div className="flex items-center justify-end gap-1 pl-2">
 													<FileActions
 														fileId={entry.id}
+														summary={summaries.data?.files.find(
+															(file) => file.fileId === entry.id,
+														)}
 														{...compatibility.get(entry.id)}
 														onRecheck={compatibility.retry}
 													/>

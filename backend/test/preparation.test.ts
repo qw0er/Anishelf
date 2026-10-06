@@ -730,6 +730,19 @@ test("file-filtered task lookup finds an older copy outside the global recent-ta
 		status: "ready",
 		playbackAvailability: "ready",
 	});
+	const batch = await f.app.inject({
+		method: "POST",
+		url: "/api/preparations/summaries",
+		headers,
+		payload: { fileIds: [original.spec.source.fileId] },
+	});
+	expect(batch.json().files[0].versions).toEqual([
+		{
+			sourceVersion: original.spec.source.sourceVersion,
+			publishedCopies: 1,
+			pendingTasks: 0,
+		},
+	]);
 	const invalid = await f.app.inject({
 		method: "GET",
 		url: "/api/preparations?fileId=bad/path",
@@ -1012,4 +1025,119 @@ test("cleanup failure never acknowledges cancellation and recovery marks it inte
 	const { fileId: _fileId, ...input } = await f.input();
 	await f.preparation.retry(id, input);
 	expect((await completed(f, id)).status).toBe("ready");
+});
+
+test("directory summaries include old publications without validating source or artifact bytes", async () => {
+	const f = await fixture({ listLimit: 1 });
+	const id = await taskId(f.preparation.create(await f.input()));
+	const ready = await completed(f, id);
+	const fileId = ready.fileId;
+	const resolve = vi.spyOn(f.library.sources, "resolveSource");
+	const revalidate = vi.spyOn(f.library.sources, "revalidateSource");
+	const artifact = vi.spyOn(PreparedMediaFiles.prototype, "open");
+	const response = await f.app.inject({
+		method: "POST",
+		url: "/api/preparations/summaries",
+		headers,
+		payload: { fileIds: [fileId] },
+	});
+	expect(response.statusCode).toBe(200);
+	expect(response.json()).toEqual({
+		files: [
+			{
+				fileId,
+				versions: [
+					{
+						sourceVersion: ready.sourceVersion,
+						publishedCopies: 1,
+						pendingTasks: 0,
+					},
+				],
+			},
+		],
+	});
+	expect(resolve).not.toHaveBeenCalled();
+	expect(revalidate).not.toHaveBeenCalled();
+	expect(artifact).not.toHaveBeenCalled();
+	await rm(
+		join(f.dataDir, "cache", "prepared-media", `${ready.artifactId}.media`),
+	);
+	const summary = await f.app.inject({
+		url: "/api/preparations?summary=true",
+		headers,
+	});
+	expect(summary.statusCode).toBe(200);
+	expect(summary.json().tasks[0]).toMatchObject({
+		id,
+		status: "ready",
+		resource: null,
+		playbackAvailability: "unknown",
+		artifactId: ready.artifactId,
+	});
+	expect(artifact).not.toHaveBeenCalled();
+	expect((await f.preparation.get(id)).failureReason).toBe("cache-missing");
+});
+
+test("summary transport rejects duplicate or oversized file batches", async () => {
+	const f = await fixture();
+	for (const fileIds of [
+		["root", "root"],
+		Array.from({ length: 501 }, (_, index) => `file-${index}`),
+	]) {
+		const response = await f.app.inject({
+			method: "POST",
+			url: "/api/preparations/summaries",
+			headers,
+			payload: { fileIds },
+		});
+		expect(response.statusCode).toBe(400);
+	}
+});
+
+test("summaries separate source versions and filter the current profile and root", async () => {
+	const f = await fixture();
+	const ready = await completed(
+		f,
+		await taskId(f.preparation.create(await f.input())),
+	);
+	const task = required(f.database.preparation.get(ready.id));
+	f.database.preparation.insert({
+		...task,
+		id: randomUUID(),
+		spec: {
+			...task.spec,
+			executionPlanId: "b".repeat(64),
+			source: { ...task.spec.source, sourceVersion: "b".repeat(64) },
+		},
+		state: {
+			status: "processing",
+			progress: null,
+			failureReason: null,
+			updatedAtMs: Date.now(),
+		},
+	});
+	const result = await f.application.summaries([ready.fileId]);
+	expect(result.files[0]?.versions).toEqual(
+		expect.arrayContaining([
+			{
+				sourceVersion: ready.sourceVersion,
+				publishedCopies: 1,
+				pendingTasks: 0,
+			},
+			{ sourceVersion: "b".repeat(64), publishedCopies: 0, pendingTasks: 1 },
+		]),
+	);
+	const profile = required(
+		f.profiles.find((profile) => profile.id === task.profileId),
+	);
+	profile.copyCompatibleStreams = !profile.copyCompatibleStreams;
+	expect(
+		(await f.application.summaries([ready.fileId])).files[0]?.versions,
+	).toEqual([]);
+	const otherRoot = join(f.dataDir, "other-root");
+	await mkdir(otherRoot, { recursive: true });
+	await f.library.updateSettings({ resourceRoot: otherRoot });
+	expect(
+		(await f.application.summaries([ready.fileId])).files[0]?.versions,
+	).toEqual([]);
 });

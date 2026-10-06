@@ -32,7 +32,9 @@ and playback.
 
 Use Tailwind defaults, shared shadcn controls and Vidstack's native control styling.
 Keep common page spacing and layout in shared CSS rather than duplicating theme
-values. Routes own server loading; components own transient form and player state.
+values. TanStack Query owns server data, request deduplication, polling and invalidation.
+Routes preload the same query keys and preserve navigation/error UX; they do not own
+a second mutable server snapshot. Components own transient form and player state.
 Cancellation and stale-response guards prevent departed views from publishing results.
 
 Keep lists compact with aligned actions. Truncate long names where needed and make
@@ -71,3 +73,26 @@ overflow. Validate at 1280 px and 390 px widths, including long and Chinese file
 Keep labels and feedback in English. Preserve original filenames. Do not show
 placeholder metadata, nonfunctional controls, invented posters, or incomplete
 integrations as completed features.
+
+## Query and player coordination
+
+Use one application QueryClient. Scope directory, file, history, task and subtitle
+queries by the configured root and relevant source/library metadata. Keep ordered
+explicit audio selections distinct from default and silent selections. Query owns
+server results; browser capability evidence and native media lifecycle remain local.
+Disable generic read/mutation retries and focus/reconnect refreshes. Request signals,
+bounded timeouts and cancelled observer cleanup still apply. Selected-track subtitle
+status and pending preparation/blocked selection use Query polling; terminal and
+active playback selections stop polling.
+
+A directory requests preparation publication summaries in batches of at most 500
+file IDs. Rows fetch detailed tasks only while their action menu is open. Publication
+metadata is a hint, never a claim that bytes are currently playable. File detail and
+server playback selection authorize source/profile/artifact availability on demand.
+
+`usePlaybackController` coordinates intent, delivery and progress; `FilePlayer`
+composes preparation controls, `AudioSelection` and `CompatibilityDialog`. An
+unchanged source keeps its media and selected subtitle instances across scan/task
+updates. Only a blocked player reacts to task completion; explicit retry or a new
+root/source/audio intent can renegotiate. Progress saves retain the dedicated serial,
+coalescing controller with original-sequence retries, outside generic Query retries.

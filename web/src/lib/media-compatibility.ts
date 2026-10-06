@@ -4,15 +4,15 @@ import {
 	inspectMediaCompatibility,
 } from "../api/client.js";
 import type { CompatibilityResult, FileDto } from "../api/contracts.js";
+import { queryClient } from "../api/query-client.js";
 import { interactionPolicy } from "../config/interaction-policy.js";
 import { queryCapabilities } from "./media-capabilities.js";
 
-const cache = new Map<string, CompatibilityResult>();
 export function originalCompatibilityKey(file: FileDto, scope: string): string {
 	return JSON.stringify([scope, file.id, file.modifiedAt, file.sizeBytes]);
 }
 export function clearOriginalCompatibilityCache(): void {
-	cache.clear();
+	queryClient.removeQueries({ queryKey: ["compatibility"] });
 }
 
 /** A cancelled folder may leave a shared server probe finishing; retry only bounded unavailable responses. */
@@ -51,21 +51,12 @@ export async function inspectBrowserMedia(
 		}
 	}
 }
-/** Cache only completed source-bound checks; callers own cancellation and concurrency. */
+/** Pure negotiation; Query owns completed results, cancellation and deduplication. */
 export async function checkOriginalMedia(
 	fileId: string,
 	signal: AbortSignal,
 	options: { sourceVersion?: string; cacheKey?: string; fresh?: boolean } = {},
 ): Promise<CompatibilityResult> {
-	const cached = options.cacheKey && cache.get(options.cacheKey);
-	if (
-		!options.fresh &&
-		cached &&
-		(!options.sourceVersion || cached.sourceVersion === options.sourceVersion)
-	) {
-		signal.throwIfAborted();
-		return cached;
-	}
 	const description = await inspectBrowserMedia(
 		{
 			fileId,
@@ -96,12 +87,5 @@ export async function checkOriginalMedia(
 		{ signal },
 	);
 	signal.throwIfAborted();
-	if (options.cacheKey) {
-		cache.set(options.cacheKey, result);
-		if (cache.size > interactionPolicy.compatibilityCacheEntries) {
-			const oldest = cache.keys().next().value;
-			if (oldest) cache.delete(oldest);
-		}
-	}
 	return result;
 }

@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+
 import { afterEach, expect, test } from "vitest";
 import type { CompatibilityResult } from "../src/api/contracts.js";
 import { CompatibilityStatus } from "../src/features/library/components/compatibility-status.js";
+import { cleanup, fireEvent, render, waitFor } from "./query-test-utils.js";
 import "../src/i18n.js";
 
 afterEach(cleanup);
@@ -94,7 +95,7 @@ test("prepared copy has a distinct neutral icon and retains original support in 
 		/>,
 	);
 	const indicator = view.getByRole("button", {
-		name: "A pre-transcoded copy is ready.",
+		name: "Pre-transcoded copy published.",
 	});
 	expect(indicator.querySelector("svg.lucide-file-check-2")).toBeTruthy();
 	expect(indicator.className).toContain("text-muted-foreground");

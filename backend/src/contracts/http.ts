@@ -112,3 +112,7 @@ export type PlaybackSelectionRequest = Static<
 export type PlaybackSelectionResponse = Static<
 	typeof schemas.PlaybackSelectionResponseSchema
 >;
+
+export type PreparationSummaryResponse = Static<
+	typeof schemas.PreparationSummaryResponseSchema
+>;

@@ -157,7 +157,7 @@ Implemented after Media Planning consolidation:
 - Startup recovery preserves valid completed files, cleans orphan/partial data and
   marks interrupted attempts retryable without automatically restarting them.
 
-Frontend directory summaries/query-state ownership remain in batch 5. HLS delivery and automatic eviction remain outside the
+Frontend directory summaries/query-state ownership are implemented in batch 5 below. HLS delivery and automatic eviction remain outside the
 implemented product scope.
 
 ## Batch 4: unified playback selection and progress sessions
@@ -178,7 +178,36 @@ implemented product scope.
 - Update HTTP contracts, bootstrap, consumers, lifecycle feedback and English docs.
   Existing valid artifacts and progress rows require no migration.
 
-Directory summaries, unified task query caching and broader component cleanup remain
-in batch 5. HLS delivery, automatic cache eviction and real-time acquisition remain
+Directory summaries, unified task query caching and component coordination are
+implemented in batch 5 below. HLS delivery, automatic cache eviction and real-time acquisition remain
 outside implemented scope. Synthetic browser evidence does not certify native
 browser decoding; live browser/media and responsive checks are separate acceptance.
+
+## Batch 5: frontend query ownership and component coordination
+
+- Introduce TanStack Query throughout server reads/commands: library status/settings,
+  route data/history, profile catalogs, preparations, browser negotiations, playback
+  selection, subtitle discovery and selected-track status. Progress authorization and
+  serial save/release remain imperative protocol operations.
+- Router loaders preload shared query entries; mounted pages observe cache updates.
+  Central keys include relevant root/library/source/profile/ordered-audio scope.
+  Preserve cancellation, bounded timeouts and stale-result isolation; shared request
+  cancellation respects other consumers. Disable generic retry/focus/reconnect work.
+- Delete manual global/file task merging and per-feature server caches/timer loops.
+  Preparation mutations invalidate lists and summaries centrally. Poll only pending
+  work; active delivery is not owned by task refresh.
+- Add root-filtered SQL preparation summaries for directory batches (500 IDs maximum)
+  and a recent metadata-only task projection. Publication is not playback certification;
+  rows open validated file-task details only on menu demand. Startup recovery and
+  explicit playback/resource checks retain artifact validation.
+- Extract `usePlaybackController`, audio selection and compatibility diagnostic views.
+  Validate default/silent/ordered route audio centrally, rejecting malformed indices.
+  Unchanged media/subtitle instances survive background task and scan publications.
+- Keep the public Planning HTTP projection until the cleanup batch, as requested.
+  Completed-file playback remains implemented; HLS, eviction and real-time execution
+  remain outside this batch.
+
+Validation includes duplicate observer deduplication, directory request counts,
+shared preload cancellation, bounded negotiation concurrency, terminal polling,
+summary/detail validation separation and existing serial progress/lifecycle regressions.
+Live native decoding and responsive browser acceptance remain separate checks.

@@ -1,11 +1,5 @@
 // @vitest-environment happy-dom
-import {
-	cleanup,
-	fireEvent,
-	render,
-	waitFor,
-	within,
-} from "@testing-library/react";
+
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as api from "../src/api/client.js";
@@ -17,6 +11,13 @@ import FilePlayer from "../src/features/playback/components/file-player.js";
 import { preparedWatchPath } from "../src/features/preparation/audio-tracks.js";
 import { PreparationProvider } from "../src/features/preparation/context.js";
 import * as capabilities from "../src/lib/media-capabilities.js";
+import {
+	cleanup,
+	fireEvent,
+	render,
+	waitFor,
+	within,
+} from "./query-test-utils.js";
 import "../src/i18n.js";
 
 const original = {

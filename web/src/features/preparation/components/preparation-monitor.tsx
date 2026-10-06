@@ -75,7 +75,6 @@ export function PreparationMonitor() {
 						<PreparationTaskCard
 							key={task.id}
 							task={task}
-							refresh={preparation.refresh}
 							profileName={
 								preparation.catalog?.profiles.find(
 									(profile) => profile.id === task.profileId,

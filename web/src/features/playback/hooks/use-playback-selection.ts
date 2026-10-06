@@ -1,5 +1,6 @@
 import { playbackSelectionConstraints } from "@anishelf/backend/contracts/defaults";
-import { useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useId, useRef, useState } from "react";
 import { getPlaybackOptions, selectPlayback } from "../../../api/client.js";
 import type {
 	CompatibilityCheckRequest,
@@ -20,27 +21,24 @@ export function usePlaybackSelection(
 	scope: string,
 	audioStreamIndices?: number[],
 	preparationRevision = "",
+	enabled = true,
 ) {
+	const instance = useId();
 	const [revision, setRevision] = useState(0);
 	const [attempt, setAttempt] = useState(false);
 	const [runtimeFailed, setRuntimeFailed] = useState(false);
 	const failed = useRef<string[]>([]);
 	const identity = JSON.stringify([
+		instance,
+		failed.current,
 		fileId,
 		scope,
 		audioStreamIndices,
 		revision,
 		attempt,
 	]);
-	const [state, setState] = useState<{
-		identity: string;
-		loading: boolean;
-		selection: PlaybackSelectionResponse | null;
-		error: unknown;
-	}>({ identity, loading: true, selection: null, error: null });
 	const lastCompatibility = useRef<CompatibilityResult | null>(null);
-	const currentRef = useRef(state);
-	currentRef.current = state;
+	const client = useQueryClient();
 	// biome-ignore lint/correctness/useExhaustiveDependencies: a changed playback intent resets runtime failures
 	useEffect(() => {
 		failed.current = [];
@@ -48,57 +46,57 @@ export function usePlaybackSelection(
 		setAttempt(false);
 		setRuntimeFailed(false);
 	}, [fileId, scope, JSON.stringify(audioStreamIndices)]);
-	// Source/session arrival does not renegotiate an already matching source.
-	useEffect(() => {
-		if (
-			currentRef.current.identity === identity &&
-			currentRef.current.selection &&
-			(!sourceVersion ||
-				currentRef.current.selection.sourceVersion === sourceVersion)
-		)
-			return;
-		const controller = new AbortController();
-		const signal = AbortSignal.any([
-			controller.signal,
-			AbortSignal.timeout(interactionPolicy.preparationRequestTimeoutMs),
-		]);
-		setState({ identity, loading: true, selection: null, error: null });
-		const intent = {
-			fileId,
-			...(sourceVersion ? { sourceVersion } : {}),
-			...(audioStreamIndices !== undefined ? { audioStreamIndices } : {}),
-			tryOriginal: attempt,
-			failedResourceIds: failed.current,
-		};
-		async function check(
-			description: CompatibilityInspection,
-			original = false,
-		): Promise<CompatibilityCheckRequest> {
-			const selection = original
-				? audioStreamIndices
-				: description.selectedAudioStreamIndices;
-			return {
-				sourceVersion: description.sourceVersion,
-				descriptionId: description.descriptionId,
-				...(selection !== undefined ? { audioStreamIndices: selection } : {}),
-				output: description.output
-					? {
-							profileId: description.output.profileId,
-							target: description.output.target,
-						}
-					: null,
-				evidence: await queryCapabilities(description.queries, signal, true),
+	const baseKey = ["playback-selection", identity] as const;
+	const cached = client.getQueryData<PlaybackSelectionResponse>(baseKey);
+	const queryKey =
+		sourceVersion && cached && cached.sourceVersion !== sourceVersion
+			? [...baseKey, sourceVersion]
+			: baseKey;
+	const query = useQuery({
+		queryKey,
+		enabled,
+		staleTime: Infinity,
+		refetchOnMount: false,
+		queryFn: async ({ signal: querySignal }) => {
+			const signal = AbortSignal.any([
+				querySignal,
+				AbortSignal.timeout(interactionPolicy.preparationRequestTimeoutMs),
+			]);
+			const intent = {
+				fileId,
+				...(sourceVersion ? { sourceVersion } : {}),
+				...(audioStreamIndices !== undefined ? { audioStreamIndices } : {}),
+				tryOriginal: attempt,
+				failedResourceIds: failed.current,
 			};
-		}
-		void (async () => {
+			async function check(
+				description: CompatibilityInspection,
+				original = false,
+			): Promise<CompatibilityCheckRequest> {
+				const selection = original
+					? audioStreamIndices
+					: description.selectedAudioStreamIndices;
+				return {
+					sourceVersion: description.sourceVersion,
+					descriptionId: description.descriptionId,
+					...(selection !== undefined ? { audioStreamIndices: selection } : {}),
+					output: description.output
+						? {
+								profileId: description.output.profileId,
+								target: description.output.target,
+							}
+						: null,
+					evidence: await queryCapabilities(description.queries, signal, true),
+				};
+			}
+
 			if (attempt) {
 				const selection = await selectPlayback(
 					{ ...intent, candidates: [] },
 					{ signal },
 				);
-				if (!signal.aborted)
-					setState({ identity, loading: false, selection, error: null });
-				return;
+				signal.throwIfAborted();
+				return selection;
 			}
 			const options = await getPlaybackOptions(intent, { signal });
 			const original = await check(options.original, true);
@@ -112,23 +110,24 @@ export function usePlaybackSelection(
 				{ ...intent, original, candidates },
 				{ signal },
 			);
-			if (!signal.aborted)
-				setState({ identity, loading: false, selection, error: null });
-		})().catch((error) => {
-			if (!controller.signal.aborted)
-				setState({ identity, loading: false, selection: null, error });
-		});
-		return () => controller.abort();
-	}, [identity, fileId, sourceVersion, audioStreamIndices, attempt]);
-	if (state.selection?.compatibility)
-		lastCompatibility.current = state.selection.compatibility;
-	const current =
-		state.identity === identity &&
-		(!sourceVersion ||
-			!state.selection ||
-			state.selection.sourceVersion === sourceVersion)
-			? state
-			: { identity, loading: true, selection: null, error: null };
+			signal.throwIfAborted();
+			return selection;
+		},
+		refetchInterval: (query) =>
+			query.state.data?.plan.mode === "blocked" && query.state.data.pending
+				? interactionPolicy.preparationPollIntervalMs
+				: false,
+	});
+	const current = {
+		identity,
+		loading: query.isPending,
+		selection: query.data ?? null,
+		error: query.error,
+	};
+	if (current.selection?.compatibility)
+		lastCompatibility.current = current.selection.compatibility;
+	const currentRef = useRef(current);
+	currentRef.current = current;
 	const previousPreparationRevision = useRef(preparationRevision);
 	useEffect(() => {
 		if (previousPreparationRevision.current === preparationRevision) return;
@@ -136,19 +135,6 @@ export function usePlaybackSelection(
 		if (currentRef.current.selection?.plan.mode === "blocked")
 			setRevision((value) => value + 1);
 	}, [preparationRevision]);
-	// Only blocked pending playback polls. Background completion cannot replace active bytes.
-	useEffect(() => {
-		if (
-			current.selection?.plan.mode !== "blocked" ||
-			!current.selection.pending
-		)
-			return;
-		const timer = setTimeout(
-			() => setRevision((v) => v + 1),
-			interactionPolicy.preparationPollIntervalMs,
-		);
-		return () => clearTimeout(timer);
-	}, [current.selection]);
 
 	return {
 		...current,

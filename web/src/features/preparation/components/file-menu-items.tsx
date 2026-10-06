@@ -32,10 +32,6 @@ export function PreparationFileMenuItems({
 				.map((task) => [task.artifactId, task]),
 		).values(),
 	];
-	function refresh() {
-		list.refresh();
-		preparation.refresh();
-	}
 	return (
 		<>
 			{!list.loading && (
@@ -61,12 +57,12 @@ export function PreparationFileMenuItems({
 				)
 				.map((task) => (
 					<DropdownMenuItem
+						closeOnClick={false}
 						key={task.id}
 						disabled={action.busy}
 						onClick={() =>
 							void action.run(async (signal) => {
 								await cancelPreparation(task.id, { signal });
-								refresh();
 							})
 						}
 					>
@@ -76,6 +72,7 @@ export function PreparationFileMenuItems({
 				))}
 			{artifacts.map((task) => (
 				<DropdownMenuItem
+					closeOnClick={false}
 					key={task.artifactId}
 					disabled={action.busy}
 					className="text-destructive"
@@ -83,7 +80,6 @@ export function PreparationFileMenuItems({
 						void action.run(async (signal) => {
 							if (task.artifactId)
 								await deletePreparedMedia(task.artifactId, { signal });
-							refresh();
 						})
 					}
 				>

@@ -1,7 +1,9 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Copy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { isRequestCancelled } from "../../../api/client.js";
+import { useQueryScope } from "../../../api/queries.js";
 import { Button } from "../../../components/ui/button.js";
 import {
 	Dialog,
@@ -31,6 +33,18 @@ export default function MediaLink({
 	menuItem?: boolean;
 }) {
 	const { t } = useTranslation();
+	const client = useQueryClient();
+	const scope = useQueryScope();
+	const mutation = useMutation({
+		mutationFn: (signal: AbortSignal) =>
+			createMediaLink(
+				fileId,
+				window.location.origin,
+				{ signal },
+				client,
+				scope,
+			),
+	});
 	const request = useRef<AbortController | null>(null);
 	const [pending, setPending] = useState(false);
 	const [link, setLink] = useState<string | null>(null);
@@ -45,9 +59,7 @@ export default function MediaLink({
 		const notificationId = `media-link:${fileId}`;
 		toast.close(notificationId);
 		try {
-			const url = await createMediaLink(fileId, window.location.origin, {
-				signal: controller.signal,
-			});
+			const url = await mutation.mutateAsync(controller.signal);
 			if (controller.signal.aborted) return;
 			try {
 				await navigator.clipboard.writeText(url);
@@ -123,6 +135,7 @@ export default function MediaLink({
 				>
 					{menuItem ? (
 						<DropdownMenuItem
+							closeOnClick={false}
 							nativeButton
 							disabled={pending}
 							render={trigger}

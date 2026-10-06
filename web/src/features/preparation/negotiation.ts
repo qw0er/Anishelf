@@ -1,4 +1,6 @@
 import type { CompatibilityCheckRequest } from "../../api/contracts.js";
+import { boundedSignal } from "../../api/queries.js";
+import { loadQuery } from "../../api/query-client.js";
 import { queryCapabilities } from "../../lib/media-capabilities.js";
 import { inspectBrowserMedia } from "../../lib/media-compatibility.js";
 
@@ -11,12 +13,26 @@ export async function negotiatePreparation(
 	audioStreamIndices?: number[],
 ): Promise<CompatibilityCheckRequest> {
 	const output = { profileId, target: "file" as const };
-	const description = await inspectBrowserMedia(
+	const description = await loadQuery(
 		{
-			fileId,
-			output,
-			...(sourceVersion ? { sourceVersion } : {}),
-			...(audioStreamIndices !== undefined ? { audioStreamIndices } : {}),
+			queryKey: [
+				"preparation-evidence",
+				fileId,
+				sourceVersion ?? null,
+				profileId,
+				audioStreamIndices ?? null,
+			],
+			staleTime: 0,
+			queryFn: ({ signal }) =>
+				inspectBrowserMedia(
+					{
+						fileId,
+						output,
+						...(sourceVersion ? { sourceVersion } : {}),
+						...(audioStreamIndices !== undefined ? { audioStreamIndices } : {}),
+					},
+					boundedSignal(signal),
+				),
 		},
 		signal,
 	);

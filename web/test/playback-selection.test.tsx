@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+
 import { type ReactNode, StrictMode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as api from "../src/api/client.js";
@@ -10,6 +10,7 @@ import type {
 } from "../src/api/contracts.js";
 import { usePlaybackSelection } from "../src/features/playback/hooks/use-playback-selection.js";
 import * as capabilities from "../src/lib/media-capabilities.js";
+import { act, cleanup, renderHook, waitFor } from "./query-test-utils.js";
 
 const description = {
 	sourceVersion: "version",
@@ -214,7 +215,7 @@ test("late cancelled selection cannot replace a new audio intent", async () => {
 		expect.anything(),
 	);
 });
-test("StrictMode settles and releases negotiation on unmount without enqueuing work", async () => {
+test("StrictMode settles completed negotiation without enqueuing work", async () => {
 	const wrapper = ({ children }: { children: ReactNode }) => (
 		<StrictMode>{children}</StrictMode>
 	);
@@ -228,7 +229,7 @@ test("StrictMode settles and releases negotiation on unmount without enqueuing w
 	unmount();
 	expect(
 		vi.mocked(api.getPlaybackOptions).mock.calls[0]?.[1]?.signal?.aborted,
-	).toBe(true);
+	).toBe(false);
 	expect(api.createPreparation).not.toHaveBeenCalled();
 });
 

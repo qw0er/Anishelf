@@ -1,12 +1,15 @@
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
 	Link,
 	type RouteObject,
 	useLoaderData,
 	useOutletContext,
+	useParams,
 	useSearchParams,
 } from "react-router";
 import App, { type LibraryContext } from "../App.js";
+import { directoryQuery, fileQuery, useQueryScope } from "../api/queries.js";
 import InitialLoading from "../components/initial-loading.js";
 import { buttonStyles } from "../components/ui/button.js";
 import {
@@ -27,19 +30,34 @@ import {
 } from "./loaders.js";
 
 function DirectoryPage() {
-	const listing = useLoaderData<typeof directoryLoader>();
+	const initial = useLoaderData<typeof directoryLoader>();
+	const { id } = useParams();
+	const query = useQuery({
+		...directoryQuery(id ?? "root", useQueryScope()),
+	});
+	const listing = query.data ?? initial;
 	const scan = useOutletContext<LibraryContext>();
+	if (query.error && !query.data) throw query.error;
 	return <LibraryBrowser listing={listing} scan={scan} />;
 }
 
 function PlayerPage() {
-	const data = useLoaderData<typeof fileLoader>();
+	const initial = useLoaderData<typeof fileLoader>();
+	const query = useQuery({
+		...fileQuery(initial.file.id, useQueryScope()),
+	});
+	const data = query.data ?? initial;
 	const { reload, playerVersion, settings, library } =
 		useOutletContext<LibraryContext>();
 	const [searchParams] = useSearchParams();
+	if (query.error && !query.data) throw query.error;
 	return (
 		<FilePlayer
-			key={`${data.file.id}:${playerVersion}`}
+			key={JSON.stringify([
+				data.file.id,
+				settings?.resourceRoot,
+				playerVersion,
+			])}
 			data={data}
 			returnDirectoryId={searchParams.get("directory")}
 			onRetry={reload}

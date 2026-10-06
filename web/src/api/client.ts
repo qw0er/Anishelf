@@ -316,7 +316,7 @@ export function getTranscodeProfiles(
 export function getPreparations(
 	options?: RequestOptions,
 ): Promise<import("./contracts.js").PreparationListResponse> {
-	return request("/api/preparations", "GET", options);
+	return request("/api/preparations?summary=true", "GET", options);
 }
 export function getPreparation(
 	id: string,
@@ -401,4 +401,11 @@ export function selectPlayback(
 	options?: RequestOptions,
 ): Promise<import("./contracts.js").PlaybackSelectionResponse> {
 	return request("/api/playback/selection", "POST", options, input);
+}
+
+export function getPreparationSummaries(
+	fileIds: string[],
+	options?: RequestOptions,
+): Promise<import("./contracts.js").PreparationSummaryResponse> {
+	return request("/api/preparations/summaries", "POST", options, { fileIds });
 }

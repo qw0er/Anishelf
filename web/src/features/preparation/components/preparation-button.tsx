@@ -61,7 +61,7 @@ export function PreparationButton({
 			<DropdownMenuItem
 				render={element}
 				nativeButton={element.type !== Link}
-				closeOnClick={!chooseTracks}
+				closeOnClick={false}
 				disabled={disabled}
 			/>
 		) : (
@@ -172,7 +172,6 @@ export function PreparationButton({
 			if (task && (task.status === "failed" || task.status === "cancelled")) {
 				const retried = await retryPreparation(task.id, body, { signal });
 				if (signal.aborted) return;
-				preparation.remember(retried);
 				onPrepared?.(retried);
 				setDialogOpen(false);
 				return;
@@ -180,7 +179,6 @@ export function PreparationButton({
 			const response = await createPreparation(fileId, body, { signal });
 			if (signal.aborted) return;
 			if (response.kind === "task") {
-				preparation.remember(response.task);
 				onPrepared?.(response.task);
 				setDialogOpen(false);
 			} else if (response.kind === "direct") onRecheck();

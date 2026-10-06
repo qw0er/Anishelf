@@ -1,17 +1,8 @@
-import {
-	createContext,
-	type ReactNode,
-	useCallback,
-	useContext,
-	useEffect,
-	useState,
-} from "react";
-import { getTranscodeProfiles } from "../../api/client.js";
-import type {
-	PreparationTaskResponse,
-	TranscodeProfileCatalog,
-} from "../../api/contracts.js";
-import { interactionPolicy } from "../../config/interaction-policy.js";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createContext, type ReactNode, useCallback, useContext } from "react";
+import type { TranscodeProfileCatalog } from "../../api/contracts.js";
+import { keys, profilesQuery } from "../../api/queries.js";
+
 import { usePreparations } from "./use-preparations.js";
 
 type PreparationContextValue = ReturnType<typeof usePreparations> & {
@@ -19,54 +10,26 @@ type PreparationContextValue = ReturnType<typeof usePreparations> & {
 	catalogError: unknown;
 	updateCatalog(value: TranscodeProfileCatalog): void;
 	refreshCatalog(): void;
-	remember(task: PreparationTaskResponse): void;
 };
 const Context = createContext<PreparationContextValue | null>(null);
-export function PreparationProvider({
-	children,
-	libraryRevision,
-}: {
-	children: ReactNode;
-	libraryRevision?: number | undefined;
-}) {
+export function PreparationProvider({ children }: { children: ReactNode }) {
 	const list = usePreparations();
-	const [catalog, setCatalog] = useState<TranscodeProfileCatalog | null>(null);
-	const [catalogError, setCatalogError] = useState<unknown>(null);
-	const [revision, setRevision] = useState(0);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: explicit catalog refresh trigger
-	useEffect(() => {
-		const controller = new AbortController();
-		void getTranscodeProfiles({
-			signal: AbortSignal.any([
-				controller.signal,
-				AbortSignal.timeout(interactionPolicy.preparationRequestTimeoutMs),
-			]),
-		})
-			.then((value) => {
-				if (!controller.signal.aborted) {
-					setCatalog(value);
-					setCatalogError(null);
-				}
-			})
-			.catch((error) => {
-				if (!controller.signal.aborted) setCatalogError(error);
-			});
-		return () => controller.abort();
-	}, [revision]);
-	const { refresh } = list;
-	// biome-ignore lint/correctness/useExhaustiveDependencies: a completed library scan revalidates cached outputs
-	useEffect(() => {
-		refresh();
-	}, [libraryRevision, refresh]);
+	const client = useQueryClient();
+	const query = useQuery(profilesQuery());
+	const catalog = query.data ?? null;
+	const catalogError = query.error;
 	return (
 		<Context
 			value={{
 				...list,
 				catalog,
 				catalogError,
-				updateCatalog: setCatalog,
-				refreshCatalog: useCallback(() => setRevision((v) => v + 1), []),
-				remember: list.remember,
+				updateCatalog: (value) => {
+					client.setQueryData(keys.profiles, value);
+				},
+				refreshCatalog: useCallback(() => {
+					void client.invalidateQueries({ queryKey: keys.profiles });
+				}, [client]),
 			}}
 		>
 			{children}

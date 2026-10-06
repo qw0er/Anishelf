@@ -1,4 +1,4 @@
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import {
 	mediaSources,
 	preparationTasks,
@@ -13,7 +13,7 @@ import type {
 	PreparationTask,
 	PreparedArtifact,
 } from "../domain/model.js";
-import type { PreparationStore } from "../ports.js";
+import type { PreparationStore, PreparationSummaryRow } from "../ports.js";
 
 export class PreparationRepository implements PreparationStore {
 	constructor(
@@ -82,6 +82,42 @@ export class PreparationRepository implements PreparationStore {
 			(row) => this.task(row),
 		);
 	}
+	summaries(canonicalRoot: string, fileIds: string[]): PreparationSummaryRow[] {
+		const rows: PreparationSummaryRow[] = [];
+		// Bound SQLite parameters; each chunk is a set query, never a query per file.
+		for (let offset = 0; offset < fileIds.length; offset += 500) {
+			rows.push(
+				...this.store
+					.select({
+						fileId: mediaSources.fileId,
+						sourceVersion: mediaSources.sourceVersion,
+						profileId: preparationTasks.profileId,
+						profileFingerprint: preparationTasks.profileFingerprint,
+						status: preparationTasks.status,
+						updatedAtMs: preparationTasks.updatedAtMs,
+						published:
+							sql<boolean>`exists(select 1 from ${preparedArtifacts} where ${preparedArtifacts.taskId} = ${preparationTasks.id})`.mapWith(
+								Boolean,
+							),
+					})
+					.from(preparationTasks)
+					.innerJoin(
+						mediaSources,
+						eq(preparationTasks.sourceId, mediaSources.id),
+					)
+					.innerJoin(resourceRoots, eq(mediaSources.rootId, resourceRoots.id))
+					.where(
+						and(
+							eq(resourceRoots.canonicalPath, canonicalRoot),
+							inArray(mediaSources.fileId, fileIds.slice(offset, offset + 500)),
+						),
+					)
+					.all(),
+			);
+		}
+		return rows;
+	}
+
 	get(id: string): PreparationTask | undefined {
 		const row = this.query().where(eq(preparationTasks.id, id)).get();
 		return row ? this.task(row) : undefined;

@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useMediaPlayer } from "@vidstack/react";
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -30,6 +31,7 @@ export function SubtitleTracks({
 		}),
 		[initializationTimeoutMs, memoryMaximumBytes, maximumBytes, formatsKey],
 	);
+	const client = useQueryClient();
 	const player = useMediaPlayer();
 	const discovery = useSubtitleDiscovery(fileId);
 	const { t } = useTranslation();
@@ -49,6 +51,7 @@ export function SubtitleTracks({
 					discovery.sourceVersion,
 					subtitleVersion,
 					signal,
+					client,
 				),
 			(feedback) => {
 				toast.close(notificationId);
@@ -82,7 +85,7 @@ export function SubtitleTracks({
 			toast.close(notificationId);
 			controllerRef.current = null;
 		};
-	}, [player, discovery, fileId, t]);
+	}, [player, discovery, fileId, t, client]);
 	useEffect(() => {
 		if (!player) return;
 		const renderer = new StyledSubtitleRenderer(stablePolicy);

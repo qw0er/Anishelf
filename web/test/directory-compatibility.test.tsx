@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as api from "../src/api/client.js";
 import type {
@@ -16,6 +16,7 @@ import {
 	inspectBrowserMedia,
 	originalCompatibilityKey,
 } from "../src/lib/media-compatibility.js";
+import { act, cleanup, renderHook, waitFor } from "./query-test-utils.js";
 
 function file(id: string): FileDto {
 	return {

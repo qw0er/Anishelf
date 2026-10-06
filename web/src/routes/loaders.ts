@@ -3,16 +3,19 @@ import {
 	type LoaderFunctionArgs,
 	redirect,
 } from "react-router";
+import { isRequestCancelled, saveSettings, startScan } from "../api/client.js";
 import {
-	getDirectory,
-	getFile,
-	getHistory,
-	getLibrary,
-	getSettings,
-	isRequestCancelled,
-	saveSettings,
-	startScan,
-} from "../api/client.js";
+	directoryQuery,
+	fileQuery,
+	historyQuery,
+	libraryQuery,
+	settingsQuery,
+} from "../api/queries.js";
+import {
+	executeMutation,
+	loadQuery,
+	queryClient,
+} from "../api/query-client.js";
 import { toast } from "../components/ui/toast.js";
 import { libraryPolicy } from "../config/media-policy.js";
 import i18n from "../i18n.js";
@@ -21,8 +24,8 @@ import { getErrorTranslationKey } from "../lib/error-translation.js";
 export async function libraryLoader({ request }: LoaderFunctionArgs) {
 	try {
 		const [library, settings] = await Promise.all([
-			getLibrary({ signal: request.signal }),
-			getSettings({ signal: request.signal }),
+			loadQuery({ ...libraryQuery(), staleTime: 0 }, request.signal),
+			loadQuery({ ...settingsQuery(), staleTime: 0 }, request.signal),
 		]);
 		return {
 			library,
@@ -62,13 +65,16 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 			maximumMinutes: libraryPolicy.maximumScanIntervalMinutes,
 		};
 	try {
-		await saveSettings(
-			{
-				resourceRoot,
-				...(scanIntervalMinutes === undefined ? {} : { scanIntervalMinutes }),
-			},
-			{ signal: request.signal },
+		await executeMutation(() =>
+			saveSettings(
+				{
+					resourceRoot,
+					...(scanIntervalMinutes === undefined ? {} : { scanIntervalMinutes }),
+				},
+				{ signal: request.signal },
+			),
 		);
+		await queryClient.invalidateQueries({ refetchType: "none" });
 		toast.add({
 			type: "success",
 			title: i18n.t("settingsPage.saved"),
@@ -89,19 +95,25 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 	}
 }
 
-export function directoryLoader({ params, request }: LoaderFunctionArgs) {
-	return getDirectory(params.id ?? "root", { signal: request.signal });
+export async function directoryLoader({ params, request }: LoaderFunctionArgs) {
+	await warmScope(request);
+	return loadQuery(
+		directoryQuery(params.id ?? "root", routeScope()),
+		request.signal,
+	);
 }
 
-export function fileLoader({ params, request }: LoaderFunctionArgs) {
-	return getFile(params.id ?? "", { signal: request.signal });
+export async function fileLoader({ params, request }: LoaderFunctionArgs) {
+	await warmScope(request);
+	return loadQuery(fileQuery(params.id ?? "", routeScope()), request.signal);
 }
 
 export async function scanAction({ request }: ActionFunctionArgs) {
 	toast.close("scan-start");
 	try {
 		return {
-			scan: (await startScan({ signal: request.signal })).scan,
+			scan: (await executeMutation(() => startScan({ signal: request.signal })))
+				.scan,
 		};
 	} catch (error) {
 		if (request.signal.aborted || isRequestCancelled(error)) throw error;
@@ -115,6 +127,23 @@ export async function scanAction({ request }: ActionFunctionArgs) {
 	}
 }
 
-export function historyLoader({ request }: LoaderFunctionArgs) {
-	return getHistory({ signal: request.signal });
+export async function historyLoader({ request }: LoaderFunctionArgs) {
+	await warmScope(request);
+	return loadQuery(historyQuery(routeScope()), request.signal);
+}
+
+export function routeScope() {
+	return JSON.stringify([
+		queryClient.getQueryData(settingsQuery().queryKey)?.resourceRoot,
+		queryClient.getQueryData(libraryQuery().queryKey)?.revision,
+	]);
+}
+
+async function warmScope(request: Request) {
+	await Promise.all([
+		loadQuery(settingsQuery(), request.signal),
+		loadQuery(libraryQuery(), request.signal),
+	]).catch((error) => {
+		if (request.signal.aborted || isRequestCancelled(error)) throw error;
+	});
 }

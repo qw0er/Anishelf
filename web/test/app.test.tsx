@@ -1,13 +1,5 @@
 // @vitest-environment happy-dom
-import {
-	act,
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-	within,
-} from "@testing-library/react";
+
 import { StrictMode } from "react";
 import { createMemoryRouter, useLocation, useNavigate } from "react-router";
 import { RouterProvider } from "react-router/dom";
@@ -25,6 +17,15 @@ import type {
 import { Toaster, toast } from "../src/components/ui/toast.js";
 import { clearOriginalCompatibilityCache } from "../src/lib/media-compatibility.js";
 import { libraryRoute } from "../src/routes/library.js";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+	within,
+} from "./query-test-utils.js";
 
 const runningScan: ScanStateDto = {
 	id: "scan-1",
@@ -118,7 +119,10 @@ beforeEach(() => {
 	fetcher.mockReset();
 	fetcher.mockImplementation(async (input, init) => {
 		const path = String(input);
-		if (path === "/api/preparations" || path.startsWith("/api/preparations?"))
+		if (
+			path === "/api/preparations?summary=true" ||
+			path.startsWith("/api/preparations?")
+		)
 			return json({ tasks: preparationTasks });
 		if (path === "/api/transcode-profiles")
 			return json({
@@ -136,6 +140,21 @@ beforeEach(() => {
 				],
 				selectedProfileId: "builtin:web",
 				selectionAvailable: true,
+			});
+		if (path === "/api/preparations/summaries")
+			return json({
+				files: [
+					{
+						fileId: "file-1",
+						versions: preparationTasks
+							.filter((task) => task.status === "ready" && task.artifactId)
+							.map((task) => ({
+								sourceVersion: task.sourceVersion,
+								publishedCopies: 1,
+								pendingTasks: 0,
+							})),
+					},
+				],
 			});
 		if (path.startsWith("/api/preparations/"))
 			return json(preparationTasks.find((task) => path.endsWith(task.id)));

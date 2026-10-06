@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -16,6 +16,7 @@ import { PreparationProfileSettings } from "../src/features/preparation/componen
 import { PreparationTaskCard } from "../src/features/preparation/components/task-card.js";
 import { PreparationProvider } from "../src/features/preparation/context.js";
 import * as capabilities from "../src/lib/media-capabilities.js";
+import { cleanup, fireEvent, render, waitFor } from "./query-test-utils.js";
 import "../src/i18n.js";
 
 const task: PreparationTaskResponse = {
@@ -239,8 +240,7 @@ test("an unavailable target selection sends the user to Settings instead of gues
 	expect(view.queryByRole("button", { name: "Pre-transcode" })).toBeNull();
 });
 test("cancel and retry remain explicit and retry obtains fresh evidence", async () => {
-	const refresh = vi.fn();
-	const view = render(<PreparationTaskCard task={task} refresh={refresh} />);
+	const view = render(<PreparationTaskCard task={task} />);
 	fireEvent.click(view.getByRole("button", { name: "Cancel preparation" }));
 	await waitFor(() =>
 		expect(api.cancelPreparation).toHaveBeenCalledWith(
@@ -251,7 +251,6 @@ test("cancel and retry remain explicit and retry obtains fresh evidence", async 
 	view.rerender(
 		<PreparationTaskCard
 			task={{ ...task, status: "failed", failureReason: "interrupted" }}
-			refresh={refresh}
 		/>,
 	);
 	fireEvent.click(view.getByRole("button", { name: "Retry preparation" }));
@@ -263,17 +262,16 @@ test("cancel and retry remain explicit and retry obtains fresh evidence", async 
 		),
 	);
 });
-test("unknown source availability hides Watch and deleting a copy never cancels the original", async () => {
+test("metadata watch intent requires server selection and deleting never cancels the original", async () => {
 	const view = render(
 		<PreparationTaskCard
 			task={{ ...ready, playbackAvailability: "unknown", resource: null }}
-			refresh={vi.fn()}
 			onWatch={vi.fn()}
 		/>,
 	);
 	expect(
 		view.queryByRole("button", { name: "Watch prepared copy" }),
-	).toBeNull();
+	).toBeTruthy();
 	fireEvent.click(view.getByRole("button", { name: "Delete prepared copy" }));
 	await waitFor(() =>
 		expect(api.deletePreparedMedia).toHaveBeenCalledWith(
@@ -299,13 +297,14 @@ test("file menu discovers older prepared copies and deletes them even for a supp
 			/>
 		</Wrapper>,
 	);
+	expect(api.getFilePreparations).not.toHaveBeenCalled();
+	fireEvent.click(view.getByRole("button", { name: "File actions" }));
 	await waitFor(() => expect(api.getFilePreparations).toHaveBeenCalled());
 	expect(
 		await view.findByRole("button", {
-			name: "A pre-transcoded copy is ready.",
+			name: "Pre-transcoded copy published.",
 		}),
 	).toBeTruthy();
-	fireEvent.click(view.getByRole("button", { name: "File actions" }));
 	const remove = await view.findByRole("menuitem", {
 		name: "Delete prepared copy",
 	});
@@ -335,7 +334,7 @@ test("task monitor disappears when its last active task completes", async () => 
 	await waitFor(() => expect(monitor.isConnected).toBe(false));
 });
 
-test("preparation from a file menu continues after the menu closes", async () => {
+test("preparation keeps its file menu mounted while the command runs", async () => {
 	const view = render(
 		<Wrapper>
 			<FileActions
@@ -356,7 +355,7 @@ test("preparation from a file menu continues after the menu closes", async () =>
 			expect.objectContaining({ signal: expect.any(AbortSignal) }),
 		),
 	);
-	expect(view.queryByRole("menu")).toBeNull();
+	expect(view.queryByRole("menu")).toBeTruthy();
 });
 
 test("an older or unavailable copy does not mark the current file prepared", async () => {
@@ -381,7 +380,7 @@ test("an older or unavailable copy does not mark the current file prepared", asy
 		name: "This file is not supported by this browser.",
 	});
 	expect(
-		view.queryByRole("button", { name: "A pre-transcoded copy is ready." }),
+		view.queryByRole("button", { name: "Pre-transcoded copy published." }),
 	).toBeNull();
 });
 
@@ -535,10 +534,7 @@ test("an existing all-audio copy does not disable preparing a selected audio tra
 test("task retry retains audio selection", async () => {
 	const selected = { ...ready, audioStreamIndices: [7] };
 	const view = render(
-		<PreparationTaskCard
-			task={{ ...selected, status: "failed" }}
-			refresh={vi.fn()}
-		/>,
+		<PreparationTaskCard task={{ ...selected, status: "failed" }} />,
 		{ wrapper: Wrapper },
 	);
 	fireEvent.click(view.getByRole("button", { name: "Retry preparation" }));
@@ -577,10 +573,7 @@ test.each([undefined, [7], []])(
 
 test("cancelling shows a pending state and disables duplicate cancellation", () => {
 	const view = render(
-		<PreparationTaskCard
-			task={{ ...task, status: "cancelling" }}
-			refresh={vi.fn()}
-		/>,
+		<PreparationTaskCard task={{ ...task, status: "cancelling" }} />,
 	);
 	expect(view.getByRole("status", { name: "Cancelling" })).toBeTruthy();
 	expect(

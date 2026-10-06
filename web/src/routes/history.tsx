@@ -1,6 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import { Library, Play, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link, useLoaderData, useRevalidator } from "react-router";
+import { Link, useLoaderData } from "react-router";
+import { historyQuery, useQueryScope } from "../api/queries.js";
 import { Button, buttonStyles } from "../components/ui/button.js";
 import { Card, CardContent } from "../components/ui/card.js";
 import type { historyLoader } from "./loaders.js";
@@ -13,8 +15,10 @@ function timestamp(ms: number): string {
 
 export default function HistoryPage() {
 	const { t, i18n } = useTranslation();
-	const history = useLoaderData<typeof historyLoader>();
-	const revalidator = useRevalidator();
+	const initial = useLoaderData<typeof historyLoader>();
+	const query = useQuery({ ...historyQuery(useQueryScope()) });
+	const history = query.data ?? initial;
+	if (query.error && !query.data) throw query.error;
 	return (
 		<section className="stack-page" aria-labelledby="history-title">
 			<div className="flex flex-wrap items-start justify-between gap-4">
@@ -28,9 +32,9 @@ export default function HistoryPage() {
 				</div>
 				<Button
 					variant="outline"
-					disabled={revalidator.state !== "idle"}
-					aria-busy={revalidator.state !== "idle"}
-					onClick={() => void revalidator.revalidate()}
+					disabled={query.isFetching}
+					aria-busy={query.isFetching}
+					onClick={() => void query.refetch()}
 				>
 					<RefreshCw size={16} aria-hidden="true" />
 					{t("history.refresh")}

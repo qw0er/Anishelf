@@ -2,6 +2,7 @@ import {
 	type MediaTimeline,
 	originalTimeline,
 } from "@anishelf/backend/contracts/media";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "../../../components/ui/toast.js";
@@ -25,6 +26,7 @@ const initialState: PlaybackSessionState = {
 
 export function usePlaybackSession(fileId: string, policy: PlaybackPolicy) {
 	const { t } = useTranslation();
+	const client = useQueryClient();
 	const { progressSaveIntervalMs, requestTimeoutMs } = policy;
 	const stablePolicy = useMemo(
 		() => ({ progressSaveIntervalMs, requestTimeoutMs }),
@@ -84,10 +86,14 @@ export function usePlaybackSession(fileId: string, policy: PlaybackPolicy) {
 			const departure = controller.dispose();
 			departures.set(fileId, departure);
 			void departure.finally(() => {
+				void client.invalidateQueries({
+					queryKey: ["history"],
+					refetchType: "none",
+				});
 				if (departures.get(fileId) === departure) departures.delete(fileId);
 			});
 		};
-	}, [fileId, stablePolicy, t]);
+	}, [fileId, stablePolicy, t, client]);
 
 	const attach = useCallback(
 		(

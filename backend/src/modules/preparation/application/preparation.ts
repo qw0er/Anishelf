@@ -3,7 +3,10 @@ import type { Logger } from "pino";
 import type { CompatibilityCheckRequest } from "../../../contracts/http.js";
 import { DomainError } from "../../../shared/errors.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
-import type { TranscodeProfile } from "../../../shared/transcode-profiles.js";
+import {
+	type TranscodeProfile,
+	transcodeProfileFingerprint,
+} from "../../../shared/transcode-profiles.js";
 import type { MediaProcessingApi } from "../../media-processing/public.js";
 import {
 	type ResourceAccessApi,
@@ -214,10 +217,27 @@ export class PreparationApplication implements PreparationApi {
 			return artifacts.inspect(id);
 		});
 	}
-	list(fileId?: string): Promise<{ tasks: PreparationView[] }> {
+	list(
+		fileId?: string,
+		summary = false,
+	): Promise<{ tasks: PreparationView[] }> {
 		return this.track(async () => {
 			const { context, artifacts } = await this.ensure();
-			const tasks = context.repository.list(this.policy.listLimit, fileId);
+			let tasks = context.repository.list(this.policy.listLimit, fileId);
+			if (summary) {
+				const epoch = context.sources.resourceRootEpoch;
+				const root = await context.sources.resolveRoot();
+				tasks = tasks.filter((task) => task.spec.source.canonicalRoot === root);
+				context.sources.assertRootEpoch(epoch);
+				return {
+					tasks: tasks.map((task) => ({
+						task,
+						artifact:
+							context.repository.artifact(task.spec.executionPlanId) ?? null,
+						availability: "unknown" as const,
+					})),
+				};
+			}
 			return {
 				tasks: await Promise.all(
 					tasks.map((task) => artifacts.inspect(task.id)),
@@ -225,6 +245,52 @@ export class PreparationApplication implements PreparationApi {
 			};
 		});
 	}
+	/** A cheap directory projection. Validate playable resources only through detail/selection. */
+	summaries(fileIds: string[]) {
+		return this.track(async () => {
+			const { context } = await this.ensure();
+			const epoch = context.sources.resourceRootEpoch;
+			const root = await context.sources.resolveRoot();
+			const files = fileIds.map((fileId) => ({
+				fileId,
+				versions: [] as {
+					sourceVersion: string;
+					publishedCopies: number;
+					pendingTasks: number;
+				}[],
+			}));
+			const byFile = new Map(files.map((file) => [file.fileId, file]));
+			const fingerprints = new Map(
+				context.profiles.map((profile) => [
+					profile.id,
+					transcodeProfileFingerprint(profile),
+				]),
+			);
+			for (const row of context.repository.summaries(root, fileIds)) {
+				if (fingerprints.get(row.profileId) !== row.profileFingerprint)
+					continue;
+				const file = byFile.get(row.fileId);
+				if (!file) continue;
+				let version = file.versions.find(
+					(value) => value.sourceVersion === row.sourceVersion,
+				);
+				if (!version) {
+					version = {
+						sourceVersion: row.sourceVersion,
+						publishedCopies: 0,
+						pendingTasks: 0,
+					};
+					file.versions.push(version);
+				}
+				if (row.status === "ready" && row.published) version.publishedCopies++;
+				if (["queued", "processing", "cancelling"].includes(row.status))
+					version.pendingTasks++;
+			}
+			context.sources.assertRootEpoch(epoch);
+			return { files };
+		});
+	}
+
 	cancel(id: string): Promise<PreparationView> {
 		return this.track(async () => {
 			const { scheduler, artifacts } = await this.ensure();

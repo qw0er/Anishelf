@@ -494,23 +494,49 @@ reclaims the invalidated bytes. Neither operation removes originals or history.
 
 ### Web integration
 
-Directory checks run asynchronously in a bounded cancellable queue. Cached results
-bind to root, library revision and source metadata; player reuse still checks its
-session version. Unknown/failed checks permit rechecking. Lookup prepared copies by
-file before applying list limits so older artifacts remain discoverable.
+The application QueryClient is the authority for server query data. Shared options
+and keys live in `web/src/api/queries.tsx`; router loaders preload that cache while
+mounted pages observe it. Navigation cancellation releases its consumer without
+cancelling a request used by another loader or observer. Queries and mutations do
+not retry automatically or refresh on window focus/reconnection. Browser capability
+caching remains local evidence rather than server state.
 
-Pre-transcoding is explicit for unsupported originals. Settings owns the shared
-target profile; missing selections require correction rather than fallback.
-File menus expose relevant preparation/retry/deletion operations. A collapsible
-app-shell panel monitors active tasks across routes; collapsing or navigating does
-not stop server jobs. Poll pending work without overlap and stop at terminal states.
+Directory compatibility observers share source-metadata/root/revision keys and a
+bounded cancellable admission queue. A directory submits one
+`POST /api/preparations/summaries` per group of at most 500 distinct file IDs. SQL
+filters canonical root and file IDs before projection, including publications
+outside the global recent-task limit. Summaries report counts per source version
+for current effective profiles, not URLs or certified playback availability.
+`GET /api/preparations?summary=true` provides recent task metadata with unknown
+availability and no resource URL. Neither summary path opens source/artifact files.
+The normal per-file/detail endpoints retain full validation and load on demand.
+Startup reconciliation still validates persisted files as part of recovery.
 
-The playback selection hook collects evidence for server-provided candidates and
-loads only the returned resource. It does not sort tasks, derive combinations or
-fallback to detail/session URLs. A newly completed task can unblock a waiting player;
-background task refresh cannot replace active bytes. Without an accepted resource,
-show preparation guidance; watching never creates a task. Progress and subtitle
-timing remain attached to the original source.
+Global and file task lists have separate canonical Query entries; components do not
+merge their own copies. Preparation mutations centrally invalidate task lists and
+publication summaries. Profile mutations update the shared catalog and invalidate
+preparation facts. Query polls only pending tasks/summaries and stops at terminal
+states. Publication metadata can be stale after external file changes; selection
+and delivery remain authoritative.
+
+Pre-transcoding is explicit. File menus query detailed tasks only while open and
+keep action controls mounted while a command runs. The app-shell panel monitors
+active tasks across routes; collapsing or navigating does not stop server jobs.
+
+`usePlaybackController` coordinates validated route intent, delivery selection and
+independent progress sessions. `FilePlayer` composes separate compatibility, audio
+and preparation views. Selection queries collect browser evidence and load only the
+server's returned resource. A blocked pending selection polls; an accepted resource
+remains stable across unrelated task/scan updates. Keys distinguish ordered audio,
+source scope, local negotiation attempts and failed resources. Explicit original
+attempts still work when inspection is unavailable. Watching never creates a task.
+
+Subtitle discovery uses a source-scoped Query entry. A selected track executes a
+non-retrying preparation mutation; its status has an observer only while selected
+and pending. Structural sharing preserves unchanged track metadata across refreshes.
+Progress writes remain in their serial/coalescing controller, preserve original
+sequence retries and invalidate cached history on departure. Resource switches do
+not replace the writer generation or source timeline.
 
 ## HLS migration foundation
 

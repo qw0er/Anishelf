@@ -5,6 +5,8 @@ import {
 	EmptyObjectSchema,
 	PreparationListResponseSchema,
 	PreparationStartResponseSchema,
+	PreparationSummaryRequestSchema,
+	PreparationSummaryResponseSchema,
 	PreparationTaskParamsSchema,
 	PreparationTaskSchema,
 	PreparedArtifactParamsSchema,
@@ -46,21 +48,38 @@ export function registerPreparationRoutes(
 					}),
 				),
 		);
+		scope.post(
+			"/api/preparations/summaries",
+			{
+				schema: {
+					body: PreparationSummaryRequestSchema,
+					response: { 200: PreparationSummaryResponseSchema },
+				},
+			},
+			(request) => preparation.summaries(request.body.fileIds),
+		);
+
 		scope.get(
 			"/api/preparations",
 			{
 				schema: {
 					querystring: Type.Object(
-						{ fileId: Type.Optional(ResourceIdSchema) },
+						{
+							fileId: Type.Optional(ResourceIdSchema),
+							summary: Type.Optional(Type.Literal("true")),
+						},
 						{ additionalProperties: false },
 					),
 					response: { 200: PreparationListResponseSchema },
 				},
 			},
 			async (request) => ({
-				tasks: (await preparation.list(request.query.fileId)).tasks.map(
-					preparationTaskResponse,
-				),
+				tasks: (
+					await preparation.list(
+						request.query.fileId,
+						request.query.summary === "true",
+					)
+				).tasks.map(preparationTaskResponse),
 			}),
 		);
 		scope.get(

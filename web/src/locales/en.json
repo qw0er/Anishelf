@@ -151,7 +151,7 @@
 		}
 	},
 	"compatibility": {
-		"prepared": "A pre-transcoded copy is ready.",
+		"prepared": "Pre-transcoded copy published.",
 		"label": "Playback compatibility",
 		"showInfo": "Playback compatibility info",
 		"checking": "Checking playback compatibility\u2026",
@@ -200,6 +200,7 @@
 		}
 	},
 	"audioTracks": {
+		"invalidSelection": "Invalid audio selection. Choose an audio track or reopen the file.",
 		"copyRequired": "A prepared copy is required to play the selected audio tracks.",
 		"label": "Audio tracks",
 		"track": "Audio {{number}}",

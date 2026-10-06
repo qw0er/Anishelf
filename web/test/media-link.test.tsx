@@ -1,4 +1,10 @@
 // @vitest-environment happy-dom
+
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import * as api from "../src/api/client.js";
+import { Toaster, toast } from "../src/components/ui/toast.js";
+import MediaLink from "../src/features/playback/components/media-link.js";
+import { createMediaLink } from "../src/features/playback/media-link.js";
 import {
 	act,
 	cleanup,
@@ -6,12 +12,7 @@ import {
 	render,
 	screen,
 	waitFor,
-} from "@testing-library/react";
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import * as api from "../src/api/client.js";
-import { Toaster, toast } from "../src/components/ui/toast.js";
-import MediaLink from "../src/features/playback/components/media-link.js";
-import { createMediaLink } from "../src/features/playback/media-link.js";
+} from "./query-test-utils.js";
 import "../src/i18n.js";
 
 const fileId = "file_123";
