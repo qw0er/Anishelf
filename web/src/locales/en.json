@@ -246,6 +246,7 @@
 		"status": {
 			"queued": "Queued",
 			"processing": "Preparing",
+			"cancelling": "Cancelling",
 			"ready": "Ready",
 			"failed": "Failed",
 			"cancelled": "Cancelled"

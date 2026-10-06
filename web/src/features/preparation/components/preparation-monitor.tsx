@@ -15,7 +15,10 @@ export function PreparationMonitor() {
 	const [collapsed, setCollapsed] = useState(false);
 
 	const active = preparation.tasks.filter(
-		(task) => task.status === "queued" || task.status === "processing",
+		(task) =>
+			task.status === "queued" ||
+			task.status === "processing" ||
+			task.status === "cancelling",
 	).length;
 	if (active === 0) return null;
 	return (

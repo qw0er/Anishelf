@@ -397,6 +397,56 @@ policy rather than retaining browser reports. Compatible originals create no tas
 Cancel waits for execution cleanup; retry requires fresh browser evidence for the
 same derivation. Changed source/profile identity requires new work.
 
+The module has explicit responsibilities:
+
+| Component | Owns |
+| --- | --- |
+| `PreparationApplication` | Create, cancel, retry, delete and read use cases; fresh planning and queue admission |
+| `PreparationScheduler` | One active attempt, database queue selection, cancellation and shutdown |
+| `PreparationWorker` | Derive the processing request, apply budgets, persist telemetry and finalize an attempt |
+| `PreparationArtifacts` | Validate, publish, open, borrow, invalidate and delete completed files |
+| `PreparationRecovery` | Initialize processing/files and reconcile persisted jobs and artifact metadata |
+| Transport presenters | Public task projection, user progress and prepared-media URLs |
+
+Task specifications are immutable and separate from mutable execution state and
+artifact metadata. A specification contains one source identity, one execution-plan
+ID and one effective profile fingerprint. Persisted snapshot version 1 contains
+encoding settings and ordered stream indexes only; the source is reconstructed
+from its durable source record. Processing requests are derived when an attempt
+starts. Progress saves update execution state without rewriting the specification.
+Display filename/profile ID are task metadata. Task ID survives explicit retries;
+the deterministic artifact ID and transient processor execution ID retain distinct
+ownership and lifetimes.
+
+Task states are `queued`, `processing`, `cancelling`, `ready`, `failed` and
+`cancelled`. Internal state unions restrict valid progress/failure combinations.
+A cancellation request signals the active attempt immediately and persists
+`cancelling`. `cancelled` is committed only after child completion, processor
+release, prepared-file cleanup and terminal-state persistence. A failed cleanup
+never returns successful cancellation; the scheduler stops admitting new work
+until restart reconciles outputs. Shutdown similarly waits for active cleanup and
+commands already in flight. Queued/interrupted/cancelling attempts become failed
+with `interrupted` during recovery, requiring explicit fresh-evidence retry.
+
+Repeated creation of the same derivation returns the existing task, including a
+failed/cancelled task; it never silently restarts work. A ready task is validated
+and reused. Retry requires a terminal task, fresh matching evidence and available
+queue capacity. The same specification is preserved. A task cannot retry while
+its old artifact is still borrowed, preventing replacement under an existing reader.
+
+Planning, source inspection and read-only queries do not enter a global Promise
+queue. Synchronous repository operations commit deduplication, queue capacity and
+insertion without an intervening await. Repository SQL computes queue count, the
+next queued task (ordered by enqueue/retry time and ID), and retained artifact
+bytes. Per-artifact gates serialize publication, validation, borrow registration,
+deletion and invalidation of the same file; independent task controls remain free
+to proceed. Ready validation rechecks source/root after file validation, preventing
+an old-root result from being advertised after a root switch.
+
+Internal process telemetry remains diagnostic/persisted state. Public progress
+contains only `mediaTimeMs`, `percent` and `speed`; frames, output-byte counters and
+process-end flags are not readiness signals and are not exposed in task DTOs.
+
 Preparation adopts validated output by hard link within the application data
 filesystem, syncs and atomically publishes it, then commits the ready record.
 Processing releases its temporary link. A hard-link failure fails visibly rather

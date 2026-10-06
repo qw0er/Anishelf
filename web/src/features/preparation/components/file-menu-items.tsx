@@ -54,7 +54,10 @@ export function PreparationFileMenuItems({
 			)}
 			{tasks
 				.filter(
-					(task) => task.status === "queued" || task.status === "processing",
+					(task) =>
+						task.status === "queued" ||
+						task.status === "processing" ||
+						task.status === "cancelling",
 				)
 				.map((task) => (
 					<DropdownMenuItem

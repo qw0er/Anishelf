@@ -26,9 +26,17 @@ import type {
 } from "../src/modules/media-processing/public.js";
 import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
 import { PreparationApplication } from "../src/modules/preparation/application/preparation.js";
+import {
+	InvalidPreparedMediaError,
+	PreparedMediaFiles,
+} from "../src/modules/preparation/infrastructure/files.js";
 import { preparationPolicy } from "../src/modules/preparation/policy.js";
 import { MediaToolError } from "../src/platform/media/index.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
+import {
+	preparationStartResponse,
+	preparationTaskResponse,
+} from "../src/transport/presenters.js";
 import { settingsStore } from "./settings-store.js";
 
 const cleanup: Array<() => Promise<unknown>> = [];
@@ -249,8 +257,30 @@ async function fixture(
 		get database() {
 			return database;
 		},
-		get preparation() {
+		get planning() {
+			return compatibility;
+		},
+		get application() {
 			return preparation;
+		},
+		get preparation() {
+			return {
+				create: async (input: CompatibilityCheckRequest & { fileId: string }) =>
+					preparationStartResponse(await preparation.create(input)),
+				get: async (id: string) =>
+					preparationTaskResponse(await preparation.get(id)),
+				list: async (fileId?: string) => ({
+					tasks: (await preparation.list(fileId)).tasks.map(
+						preparationTaskResponse,
+					),
+				}),
+				cancel: async (id: string) =>
+					preparationTaskResponse(await preparation.cancel(id)),
+				retry: async (id: string, input: CompatibilityCheckRequest) =>
+					preparationTaskResponse(await preparation.retry(id, input)),
+				openArtifact: preparation.openArtifact.bind(preparation),
+				deleteArtifact: preparation.deleteArtifact.bind(preparation),
+			};
 		},
 		get playback() {
 			return playback;
@@ -308,12 +338,10 @@ test("deduplicates concurrent preparation, publishes ready files, and reuses the
 	const snapshot = f.database.preparation.get(task.id);
 	await f.restart();
 	expect((await f.preparation.get(task.id)).status).toBe("ready");
-	expect(f.database.preparation.get(task.id)?.request).toEqual(
-		snapshot?.request,
+	expect(f.database.preparation.get(task.id)?.spec.settings).toEqual(
+		snapshot?.spec.settings,
 	);
-	expect(f.database.preparation.get(task.id)?.identity).toEqual(
-		snapshot?.identity,
-	);
+	expect(f.database.preparation.get(task.id)?.spec).toEqual(snapshot?.spec);
 	expect((await f.preparation.get(task.id)).artifactId).toBe(task.artifactId);
 	expect(await taskId(f.preparation.create(await f.input()))).toBe(task.id);
 	expect(f.processing.start).toHaveBeenCalledTimes(1);
@@ -566,7 +594,7 @@ test("HTTP cancellation, retry and deletion never expose a pending file", async 
 	);
 	const pending = await f.preparation.get(id);
 	expect(pending.resource).toBeNull();
-	const key = required(f.database.preparation.get(id)).identity.executionPlanId;
+	const key = required(f.database.preparation.get(id)).spec.executionPlanId;
 	expect(
 		(await f.app.inject({ url: `/api/prepared-media/${key}`, headers }))
 			.statusCode,
@@ -609,7 +637,7 @@ test("publication failure cleans the file without making a ready artifact", asyn
 	});
 	const id = await taskId(f.preparation.create(await f.input()));
 	expect((await completed(f, id)).status).toBe("failed");
-	const key = required(f.database.preparation.get(id)).identity.executionPlanId;
+	const key = required(f.database.preparation.get(id)).spec.executionPlanId;
 	expect(f.database.preparation.artifacts()).toHaveLength(0);
 	await expect(
 		readFile(join(f.dataDir, "cache", "prepared-media", `${key}.media`)),
@@ -669,29 +697,31 @@ test("file-filtered task lookup finds an older copy outside the global recent-ta
 		expect((await f.preparation.get(result.task.id)).status).toBe("ready"),
 	);
 	const original = required(f.database.preparation.get(result.task.id));
-	f.database.preparation.save({
+	f.database.preparation.insert({
 		...original,
 		id: randomUUID(),
-		source: {
-			...original.source,
-			fileId: "another-file",
-			relativePath: "another.mkv",
-		},
-		identity: {
-			...original.identity,
-			fileId: "another-file",
+		spec: {
+			...original.spec,
+			source: {
+				...original.spec.source,
+				fileId: "another-file",
+				relativePath: "another.mkv",
+			},
 			executionPlanId: "f".repeat(64),
 		},
-		request: { ...original.request, fileId: "another-file" },
-		status: "failed",
+		state: {
+			status: "failed",
+			failureReason: "processing-failed",
+			progress: null,
+			updatedAtMs: original.state.updatedAtMs + 1,
+		},
 		createdAtMs: original.createdAtMs + 1,
-		updatedAtMs: original.updatedAtMs + 1,
 	});
 	const recent = await f.preparation.list();
 	expect(recent.tasks[0]?.fileId).toBe("another-file");
 	const filtered = await f.app.inject({
 		method: "GET",
-		url: `/api/preparations?fileId=${encodeURIComponent(original.source.fileId)}`,
+		url: `/api/preparations?fileId=${encodeURIComponent(original.spec.source.fileId)}`,
 		headers,
 	});
 	expect(filtered.statusCode).toBe(200);
@@ -718,11 +748,18 @@ test.each([1, null])(
 		try {
 			connection
 				.prepare(`UPDATE preparation_tasks SET snapshot = json_remove(
-			json_set(snapshot, '$.request.audioStreamIndex', json(?), '$.identity.audioStreamIndex', json(?)),
+			json_set(json_object('request',json_object('fileId',?,'sourceVersion',?,'videoStreamIndex',json_extract(snapshot,'$.videoStreamIndex'),'plan',json_set(json_extract(snapshot,'$.plan'),'$.id',execution_plan_id)),
+ 'identity',json_object('executionPlanId',execution_plan_id),'mode',json_extract(snapshot,'$.mode'),'reasons',json_extract(snapshot,'$.reasons')), '$.request.audioStreamIndex', json(?), '$.identity.audioStreamIndex', json(?)),
 			'$.request.audioStreamIndices', '$.identity.audioStreamIndices') WHERE id = ?`)
-				.run(JSON.stringify(audioIndex), JSON.stringify(audioIndex), id);
+				.run(
+					task.fileId,
+					task.sourceVersion,
+					JSON.stringify(audioIndex),
+					JSON.stringify(audioIndex),
+					id,
+				);
 			connection
-				.prepare("DELETE FROM __drizzle_migrations WHERE created_at = ?")
+				.prepare("DELETE FROM __drizzle_migrations WHERE created_at >= ?")
 				.run(1791207000000);
 		} finally {
 			connection.close();
@@ -744,10 +781,235 @@ test.each([1, null])(
 				}),
 			]),
 		);
-		expect(f.database.preparation.get(id)?.identity.audioStreamIndices).toEqual(
-			expected,
-		);
+		expect(
+			f.database.preparation.get(id)?.spec.settings.audioStreamIndices,
+		).toEqual(expected);
 		await f.restart();
 		expect((await f.preparation.get(id)).audioStreamIndices).toEqual(expected);
 	},
 );
+
+function barrier() {
+	let resolve!: () => void;
+	const promise = new Promise<void>((done) => {
+		resolve = done;
+	});
+	return { promise, resolve };
+}
+
+test("slow planning does not block unrelated reads or queued cancellation", async () => {
+	const f = await fixture({ beforeOutput: waitForAbort });
+	const active = await taskId(f.preparation.create(await f.input()));
+	await vi.waitFor(async () =>
+		expect((await f.preparation.get(active)).status).toBe("processing"),
+	);
+	const next = await taskId(
+		f.preparation.create(await f.input({ "copy-audio": "unsupported" })),
+	);
+	const gate = barrier();
+	const entered = barrier();
+	const original = f.planning.plan.bind(f.planning);
+	vi.spyOn(f.planning, "plan").mockImplementationOnce(async (input) => {
+		entered.resolve();
+		await gate.promise;
+		return original(input);
+	});
+	const slow = f.preparation.create(await f.input());
+	try {
+		await entered.promise;
+		expect((await f.preparation.get(active)).status).toBe("processing");
+		expect((await f.preparation.cancel(next)).status).toBe("cancelled");
+	} finally {
+		gate.resolve();
+		await slow;
+		await f.preparation.cancel(active);
+	}
+});
+
+test("a slow ready-file validation does not block cancellation of another task", async () => {
+	let block = false;
+	const f = await fixture({
+		beforeOutput: (request) =>
+			block ? waitForAbort(request) : Promise.resolve(),
+	});
+	const ready = await completed(
+		f,
+		await taskId(f.preparation.create(await f.input())),
+	);
+	block = true;
+	const active = await taskId(
+		f.preparation.create(await f.input({ "copy-audio": "unsupported" })),
+	);
+	await vi.waitFor(async () =>
+		expect((await f.preparation.get(active)).status).toBe("processing"),
+	);
+	const gate = barrier();
+	const entered = barrier();
+	const original = PreparedMediaFiles.prototype.open;
+	vi.spyOn(PreparedMediaFiles.prototype, "open").mockImplementationOnce(
+		async function (this: PreparedMediaFiles, artifact) {
+			entered.resolve();
+			await gate.promise;
+			return original.call(this, artifact);
+		},
+	);
+	const validation = f.preparation.get(ready.id);
+	try {
+		await entered.promise;
+		expect((await f.preparation.cancel(active)).status).toBe("cancelled");
+	} finally {
+		gate.resolve();
+		await validation;
+	}
+});
+
+test("cancellation is visible during publication and only finishes after temporary cleanup", async () => {
+	const f = await fixture();
+	const publication = barrier();
+	const entered = barrier();
+	const release = barrier();
+	const releasing = barrier();
+	const originalPublish = PreparedMediaFiles.prototype.publish;
+	vi.spyOn(PreparedMediaFiles.prototype, "publish").mockImplementationOnce(
+		async function (this: PreparedMediaFiles, id, path, size) {
+			entered.resolve();
+			await publication.promise;
+			return originalPublish.call(this, id, path, size);
+		},
+	);
+	const originalRelease = f.processing.release.bind(f.processing);
+	vi.spyOn(f.processing, "release").mockImplementationOnce(async (id) => {
+		releasing.resolve();
+		await release.promise;
+		await originalRelease(id);
+	});
+	const id = await taskId(f.preparation.create(await f.input()));
+	await entered.promise;
+	let settled = false;
+	const cancelling = f.preparation.cancel(id).then((value) => {
+		settled = true;
+		return value;
+	});
+	try {
+		await vi.waitFor(async () =>
+			expect((await f.preparation.get(id)).status).toBe("cancelling"),
+		);
+		expect(settled).toBe(false);
+		const fresh = await f.input();
+		const { fileId: _fileId, ...retry } = fresh;
+		await expect(f.preparation.retry(id, retry)).rejects.toMatchObject({
+			code: "PREPARATION_BUSY",
+		});
+		publication.resolve();
+		await releasing.promise;
+		expect((await f.preparation.get(id)).status).toBe("cancelling");
+		expect(settled).toBe(false);
+	} finally {
+		publication.resolve();
+		release.resolve();
+	}
+	expect((await cancelling).status).toBe("cancelled");
+	expect(f.database.preparation.artifacts()).toEqual([]);
+	const key = required(f.database.preparation.get(id)).spec.executionPlanId;
+	await expect(
+		readFile(join(f.dataDir, "cache", "prepared-media", `${key}.media`)),
+	).rejects.toMatchObject({ code: "ENOENT" });
+	const row = required(f.database.preparation.get(id));
+	expect(row.state.status).toBe("cancelled");
+	expect(await f.application.get(id)).not.toHaveProperty("resource");
+});
+
+test("query telemetry is projected and immutable specifications are not rewritten by progress", async () => {
+	const f = await fixture();
+	const id = await taskId(f.preparation.create(await f.input()));
+	const ready = await completed(f, id);
+	expect(ready.progress).toEqual({ percent: 100, mediaTimeMs: 2000, speed: 1 });
+	const task = required(f.database.preparation.get(id));
+	expect(Object.isFrozen(task.spec.settings)).toBe(true);
+	expect(task.spec.settings.plan).not.toHaveProperty("id");
+	expect(task.spec.settings).not.toHaveProperty("request");
+	expect(task.spec.settings).not.toHaveProperty("identity");
+	expect(task.spec.settings).not.toHaveProperty("sourceVersion");
+	expect(task.state.progress).toHaveProperty("outputBytes", 10);
+	const raw = new Database(join(f.dataDir, "anishelf.sqlite"));
+	try {
+		expect(raw.pragma("foreign_key_check")).toEqual([]);
+	} finally {
+		raw.close();
+	}
+});
+
+test("invalidated borrowers prevent replacing the same artifact until all handles release", async () => {
+	const f = await fixture();
+	const ready = await completed(
+		f,
+		await taskId(f.preparation.create(await f.input())),
+	);
+	const one = await f.preparation.openArtifact(required(ready.artifactId));
+	const two = await f.preparation.openArtifact(required(ready.artifactId));
+	vi.spyOn(PreparedMediaFiles.prototype, "open").mockRejectedValueOnce(
+		new InvalidPreparedMediaError(),
+	);
+	expect((await f.preparation.get(ready.id)).failureReason).toBe(
+		"cache-missing",
+	);
+	const { fileId: _fileId, ...input } = await f.input();
+	await expect(f.preparation.retry(ready.id, input)).rejects.toMatchObject({
+		code: "PREPARATION_BUSY",
+	});
+	await one.release();
+	await one.release();
+	await expect(f.preparation.retry(ready.id, input)).rejects.toMatchObject({
+		code: "PREPARATION_BUSY",
+	});
+	await two.release();
+	await f.preparation.retry(ready.id, input);
+	expect((await completed(f, ready.id)).status).toBe("ready");
+});
+
+test("worker admission and scheduling never scan the whole task list", async () => {
+	const f = await fixture();
+	vi.spyOn(f.database.preparation, "list").mockImplementation(() => {
+		throw new Error("Unexpected full task scan");
+	});
+	const id = await taskId(f.preparation.create(await f.input()));
+	expect((await completed(f, id)).status).toBe("ready");
+});
+
+test("cleanup failure never acknowledges cancellation and recovery marks it interrupted", async () => {
+	const f = await fixture();
+	const gate = barrier();
+	const entered = barrier();
+	vi.spyOn(PreparedMediaFiles.prototype, "publish").mockImplementationOnce(
+		async () => {
+			entered.resolve();
+			await gate.promise;
+			throw new Error("Publication stopped");
+		},
+	);
+	const release = vi
+		.spyOn(f.processing, "release")
+		.mockRejectedValueOnce(new Error("Cleanup failed"));
+	const id = await taskId(f.preparation.create(await f.input()));
+	await entered.promise;
+	const cancelled = f.preparation.cancel(id);
+	const rejection = expect(cancelled).rejects.toThrow("Cleanup failed");
+	try {
+		await vi.waitFor(async () =>
+			expect((await f.preparation.get(id)).status).toBe("cancelling"),
+		);
+	} finally {
+		gate.resolve();
+	}
+	await rejection;
+	expect((await f.preparation.get(id)).status).toBe("cancelling");
+	await expect(f.preparation.create(await f.input())).rejects.toMatchObject({
+		code: "PREPARATION_UNAVAILABLE",
+	});
+	release.mockRestore();
+	await f.restart();
+	expect((await f.preparation.get(id)).failureReason).toBe("interrupted");
+	const { fileId: _fileId, ...input } = await f.input();
+	await f.preparation.retry(id, input);
+	expect((await completed(f, id)).status).toBe("ready");
+});

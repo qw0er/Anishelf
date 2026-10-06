@@ -13,7 +13,7 @@ import {
 } from "../../contracts/schemas/preparation.js";
 import { preparedSubtitleFormats } from "../../contracts/subtitles.js";
 import type { MediaExecutionProgress } from "../../shared/media-execution.js";
-import type { MediaPreparationSnapshot } from "../../shared/media-preparation.js";
+import type { PreparationSettingsSnapshot } from "../../shared/media-preparation.js";
 
 export const resourceRoots = sqliteTable("resource_roots", {
 	id: text("id").primaryKey(),
@@ -123,7 +123,7 @@ export const preparationTasks = sqliteTable(
 		profileFingerprint: text("profile_fingerprint").notNull(),
 		filename: text("filename").notNull(),
 		snapshot: text("snapshot", { mode: "json" })
-			.$type<MediaPreparationSnapshot>()
+			.$type<PreparationSettingsSnapshot>()
 			.notNull(),
 		status: text("status", { enum: preparationStatuses }).notNull(),
 		progress: text("progress", {
@@ -136,9 +136,9 @@ export const preparationTasks = sqliteTable(
 	(table) => [
 		check(
 			"preparation_status",
-			sql`${table.status} IN ('queued', 'processing', 'ready', 'failed', 'cancelled')`,
+			sql`${table.status} IN ('queued', 'processing', 'cancelling', 'ready', 'failed', 'cancelled')`,
 		),
-		index("preparation_queue").on(table.status, table.createdAtMs),
+		index("preparation_queue").on(table.status, table.updatedAtMs, table.id),
 		index("preparation_source").on(table.sourceId),
 	],
 );

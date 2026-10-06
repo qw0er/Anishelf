@@ -11,6 +11,7 @@ import {
 const statuses = {
 	queued: "queued",
 	processing: "processing",
+	cancelling: "cancelling",
 	ready: "ready",
 	failed: "failed",
 	cancelled: "cancelled",
@@ -41,14 +42,11 @@ const nullableNumber = Type.Union([Type.Number({ minimum: 0 }), Type.Null()]);
 export const PreparationProgressSchema = Type.Object(
 	{
 		mediaTimeMs: nullableNumber,
-		frames: nullableNumber,
-		outputBytes: nullableNumber,
 		speed: nullableNumber,
 		percent: Type.Union([
 			Type.Number({ minimum: 0, maximum: 100 }),
 			Type.Null(),
 		]),
-		ended: Type.Boolean(),
 	},
 	{ additionalProperties: false },
 );

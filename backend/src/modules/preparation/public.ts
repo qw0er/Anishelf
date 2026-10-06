@@ -1,29 +1,24 @@
 export type {
+	PreparationCreation,
 	PreparationFailureReason,
 	PreparationTask,
-	PreparationTaskDto,
+	PreparationView,
 	PreparedArtifact,
 	PreparedHlsArtifact,
 	PreparedResource,
 } from "./domain/model.js";
 
 import type { FileHandle } from "node:fs/promises";
-import type {
-	CompatibilityCheckRequest,
-	PreparationStartResponse,
-} from "../../contracts/http.js";
-import type { PreparationTaskDto } from "./domain/model.js";
+import type { CompatibilityCheckRequest } from "../../contracts/http.js";
+import type { PreparationCreation, PreparationView } from "./domain/model.js";
 export interface PreparationApi {
 	create(
 		input: CompatibilityCheckRequest & { fileId: string },
-	): Promise<PreparationStartResponse>;
-	get(id: string): Promise<PreparationTaskDto>;
-	list(fileId?: string): Promise<{ tasks: PreparationTaskDto[] }>;
-	cancel(id: string): Promise<PreparationTaskDto>;
-	retry(
-		id: string,
-		input: CompatibilityCheckRequest,
-	): Promise<PreparationTaskDto>;
+	): Promise<PreparationCreation>;
+	get(id: string): Promise<PreparationView>;
+	list(fileId?: string): Promise<{ tasks: PreparationView[] }>;
+	cancel(id: string): Promise<PreparationView>;
+	retry(id: string, input: CompatibilityCheckRequest): Promise<PreparationView>;
 	deleteArtifact(id: string): Promise<void>;
 	openArtifact(id: string): Promise<{
 		handle: FileHandle;

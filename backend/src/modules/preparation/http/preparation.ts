@@ -13,6 +13,10 @@ import {
 } from "../../../contracts/schemas/index.js";
 import type { HttpInstance } from "../../../transport/instance.js";
 import { sendMediaResponse } from "../../../transport/media.js";
+import {
+	preparationStartResponse,
+	preparationTaskResponse,
+} from "../../../transport/presenters.js";
 import type { PreparationApplication } from "../application/preparation.js";
 
 export function registerPreparationRoutes(
@@ -35,7 +39,12 @@ export function registerPreparationRoutes(
 				},
 			},
 			async (request) =>
-				preparation.create({ fileId: request.params.id, ...request.body }),
+				preparationStartResponse(
+					await preparation.create({
+						fileId: request.params.id,
+						...request.body,
+					}),
+				),
 		);
 		scope.get(
 			"/api/preparations",
@@ -48,7 +57,11 @@ export function registerPreparationRoutes(
 					response: { 200: PreparationListResponseSchema },
 				},
 			},
-			async (request) => preparation.list(request.query.fileId),
+			async (request) => ({
+				tasks: (await preparation.list(request.query.fileId)).tasks.map(
+					preparationTaskResponse,
+				),
+			}),
 		);
 		scope.get(
 			"/api/preparations/:id",
@@ -58,7 +71,8 @@ export function registerPreparationRoutes(
 					response: { 200: PreparationTaskSchema },
 				},
 			},
-			async (request) => preparation.get(request.params.id),
+			async (request) =>
+				preparationTaskResponse(await preparation.get(request.params.id)),
 		);
 		scope.post(
 			"/api/preparations/:id/cancel",
@@ -69,7 +83,8 @@ export function registerPreparationRoutes(
 					response: { 200: PreparationTaskSchema },
 				},
 			},
-			async (request) => preparation.cancel(request.params.id),
+			async (request) =>
+				preparationTaskResponse(await preparation.cancel(request.params.id)),
 		);
 		scope.post(
 			"/api/preparations/:id/retry",
@@ -80,7 +95,10 @@ export function registerPreparationRoutes(
 					response: { 200: PreparationTaskSchema },
 				},
 			},
-			async (request) => preparation.retry(request.params.id, request.body),
+			async (request) =>
+				preparationTaskResponse(
+					await preparation.retry(request.params.id, request.body),
+				),
 		);
 		scope.delete(
 			"/api/prepared-media/:id",

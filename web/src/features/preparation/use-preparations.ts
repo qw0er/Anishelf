@@ -40,6 +40,7 @@ export function usePreparations(fileId?: string, enabled = true) {
 					(task) =>
 						task.status === "queued" ||
 						task.status === "processing" ||
+						task.status === "cancelling" ||
 						task.playbackAvailability === "unknown",
 				);
 				setError(null);

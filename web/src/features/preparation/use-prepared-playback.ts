@@ -100,7 +100,9 @@ export function usePreparedPlayback(
 					allAudioStreamIndices,
 				) &&
 				(!sourceVersion || task.sourceVersion === sourceVersion) &&
-				(task.status === "queued" || task.status === "processing"),
+				(task.status === "queued" ||
+					task.status === "processing" ||
+					task.status === "cancelling"),
 		),
 		retry: () => {
 			preparation.refresh();

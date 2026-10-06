@@ -127,7 +127,10 @@ export function PreparationButton({
 			task.profileId === profile &&
 			matchesAudioSelection(task, selection, allTracks),
 	);
-	const pending = task?.status === "queued" || task?.status === "processing";
+	const pending =
+		task?.status === "queued" ||
+		task?.status === "processing" ||
+		task?.status === "cancelling";
 	if (!profile)
 		return control(
 			t("preparation.configure"),

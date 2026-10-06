@@ -279,3 +279,30 @@ corrected non-H.264 encode settings use a new resolver version. Existing valid
 prepared files are not deleted or globally invalidated. Real FFmpeg regression
 covers proportional-width rounding, exact output validation and stereo conversion;
 persistence tests cover restart reuse and existing single-audio snapshot migration.
+
+## Preparation lifecycle migration
+
+Batch 3 adds `0005_preparation_lifecycle.sql`. Startup applies it transactionally:
+it preserves task/source/profile identities, plan IDs, artifact IDs, sizes and MIME
+types while replacing duplicated request/identity snapshots with encoding-settings
+snapshot version 1. Source identity remains in the indexed source record. Completed
+media bytes are retained and checked during normal reconciliation. Existing ordered
+selections and earlier single-audio snapshot migration remain supported. Schema
+metadata is tracked alongside the custom data-preserving SQL.
+
+Deploy Web/backend together: task status now includes `cancelling`, and public
+progress contains `mediaTimeMs`, `percent` and `speed`. Full process telemetry stays
+internal. The monitor continues polling during cancellation; terminal `cancelled`
+means cleanup and persistence have completed. Task DTO/URL projection belongs to
+transport, while the internal Preparation API returns task/artifact views.
+
+Creation deduplicates without automatic retries. Retry needs fresh evidence for
+the same derivation and cannot replace an invalidated artifact still held by a
+reader. A cleanup failure rejects cancellation and stops new worker admission;
+restart after resolving the storage/tool failure to reconcile temporary outputs.
+Completed artifacts and original-source history remain separate.
+
+Run the full check and build, including preparation concurrency, borrowing, startup
+recovery, legacy snapshot migration, Range delivery and real FFmpeg regressions.
+Race tests pause planning, validation, publication and release to verify that
+unrelated controls proceed and terminal cancellation cannot precede cleanup.

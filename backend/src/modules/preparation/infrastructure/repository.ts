@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq, sql } from "drizzle-orm";
 import {
 	mediaSources,
 	preparationTasks,
@@ -6,10 +6,16 @@ import {
 	resourceRoots,
 } from "../../../platform/database/schema.js";
 import type { Store } from "../../../platform/database/store.js";
+import { freeze } from "../../../shared/policy.js";
 import type { SourceRegistry } from "../../resource-access/public.js";
-import type { PreparationTask, PreparedArtifact } from "../domain/model.js";
+import type {
+	PreparationState,
+	PreparationTask,
+	PreparedArtifact,
+} from "../domain/model.js";
+import type { PreparationStore } from "../ports.js";
 
-export class PreparationRepository {
+export class PreparationRepository implements PreparationStore {
 	constructor(
 		private readonly store: Store,
 		private readonly sources: SourceRegistry,
@@ -30,22 +36,42 @@ export class PreparationRepository {
 		source: typeof mediaSources.$inferSelect;
 		root: typeof resourceRoots.$inferSelect;
 	}): PreparationTask {
+		const { status, progress, failureReason, updatedAtMs } = row.task;
+		let state: PreparationState;
+		if (status === "queued" && progress === null && failureReason === null)
+			state = { status, progress: null, failureReason: null, updatedAtMs };
+		else if (
+			(status === "processing" ||
+				status === "cancelling" ||
+				status === "ready") &&
+			failureReason === null
+		)
+			state = { status, progress, failureReason: null, updatedAtMs };
+		else if (status === "failed" && failureReason !== null)
+			state = { status, progress, failureReason, updatedAtMs };
+		else if (
+			status === "cancelled" &&
+			(failureReason === "cancelled" || failureReason === "cache-deleted")
+		)
+			state = { status, progress, failureReason, updatedAtMs };
+		else throw new Error("Invalid persisted preparation state.");
 		return {
 			id: row.task.id,
-			...row.task.snapshot,
-			source: {
-				canonicalRoot: row.root.canonicalPath,
-				fileId: row.source.fileId,
-				relativePath: row.source.relativePath,
-				sourceVersion: row.source.sourceVersion,
-			},
 			filename: row.task.filename,
 			profileId: row.task.profileId,
-			status: row.task.status,
-			progress: row.task.progress,
-			failureReason: row.task.failureReason,
 			createdAtMs: row.task.createdAtMs,
-			updatedAtMs: row.task.updatedAtMs,
+			state,
+			spec: freeze({
+				source: {
+					canonicalRoot: row.root.canonicalPath,
+					fileId: row.source.fileId,
+					relativePath: row.source.relativePath,
+					sourceVersion: row.source.sourceVersion,
+				},
+				executionPlanId: row.task.executionPlanId,
+				profileFingerprint: row.task.profileFingerprint,
+				settings: row.task.snapshot,
+			}),
 		};
 	}
 	list(limit?: number, fileId?: string): PreparationTask[] {
@@ -60,66 +86,87 @@ export class PreparationRepository {
 		const row = this.query().where(eq(preparationTasks.id, id)).get();
 		return row ? this.task(row) : undefined;
 	}
-	find(executionPlanId: string): PreparationTask | undefined {
+	find(planId: string): PreparationTask | undefined {
 		const row = this.query()
-			.where(eq(preparationTasks.executionPlanId, executionPlanId))
+			.where(eq(preparationTasks.executionPlanId, planId))
 			.get();
 		return row ? this.task(row) : undefined;
 	}
-	save(task: PreparationTask): void {
+	queuedCount(): number {
+		return (
+			this.store
+				.select({ value: sql<number>`count(*)` })
+				.from(preparationTasks)
+				.where(eq(preparationTasks.status, "queued"))
+				.get()?.value ?? 0
+		);
+	}
+	nextQueued(): PreparationTask | undefined {
+		const row = this.query()
+			.where(eq(preparationTasks.status, "queued"))
+			.orderBy(asc(preparationTasks.updatedAtMs), asc(preparationTasks.id))
+			.limit(1)
+			.get();
+		return row ? this.task(row) : undefined;
+	}
+	artifactBytes(): number {
+		return (
+			this.store
+				.select({
+					value: sql<number>`coalesce(sum(${preparedArtifacts.sizeBytes}), 0)`,
+				})
+				.from(preparedArtifacts)
+				.get()?.value ?? 0
+		);
+	}
+	insert(task: PreparationTask): void {
 		this.store.transaction(() => {
-			const source = this.sources.registerSource(task.source);
-			const values = {
-				id: task.id,
-				sourceId: source.id,
-				executionPlanId: task.identity.executionPlanId,
-				profileId: task.profileId,
-				profileFingerprint: task.identity.profileFingerprint,
-				filename: task.filename,
-				snapshot: {
-					request: task.request,
-					mode: task.mode,
-					reasons: task.reasons,
-					identity: task.identity,
-				},
-				status: task.status,
-				progress: task.progress,
-				failureReason: task.failureReason,
-				createdAtMs: task.createdAtMs,
-				updatedAtMs: task.updatedAtMs,
-			};
+			const source = this.sources.registerSource(task.spec.source);
 			this.store
 				.insert(preparationTasks)
-				.values(values)
-				.onConflictDoUpdate({ target: preparationTasks.id, set: values })
+				.values({
+					id: task.id,
+					sourceId: source.id,
+					executionPlanId: task.spec.executionPlanId,
+					profileFingerprint: task.spec.profileFingerprint,
+					profileId: task.profileId,
+					filename: task.filename,
+					snapshot: task.spec.settings,
+					...task.state,
+					createdAtMs: task.createdAtMs,
+				})
 				.run();
 		});
+	}
+	/** State updates never rewrite the immutable specification. */
+	save(task: PreparationTask): void {
+		this.store
+			.update(preparationTasks)
+			.set({ ...task.state, profileId: task.profileId })
+			.where(eq(preparationTasks.id, task.id))
+			.run();
 	}
 	publish(task: PreparationTask, artifact: PreparedArtifact): void {
 		this.store.transaction(() => {
 			this.save(task);
 			const { delivery: _delivery, ...row } = artifact;
-			this.store
-				.insert(preparedArtifacts)
-				.values(row)
-				.onConflictDoUpdate({ target: preparedArtifacts.id, set: row })
-				.run();
+			this.store.insert(preparedArtifacts).values(row).run();
 		});
 	}
 	artifact(id: string): PreparedArtifact | undefined {
-		const artifact = this.store
+		const row = this.store
 			.select()
 			.from(preparedArtifacts)
 			.where(eq(preparedArtifacts.id, id))
 			.get();
-		return artifact ? { ...artifact, delivery: "file" } : undefined;
+		return row ? { ...row, delivery: "file" } : undefined;
 	}
 	artifacts(): PreparedArtifact[] {
 		return this.store
 			.select()
 			.from(preparedArtifacts)
 			.all()
-			.map((artifact) => ({ ...artifact, delivery: "file" }));
+			.map((row) => ({ ...row, delivery: "file" }));
 	}
 	removeArtifact(task: PreparationTask): void {
 		this.store.transaction(() => {

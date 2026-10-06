@@ -19,6 +19,10 @@ import {
 	FfmpegExecutionAdapter,
 	MediaTools,
 } from "../src/platform/media/index.js";
+import {
+	preparationStartResponse,
+	preparationTaskResponse,
+} from "../src/transport/presenters.js";
 import { settingsStore } from "./settings-store.js";
 
 const run = promisify(execFile);
@@ -198,10 +202,12 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 			const id = response.json().task.id as string;
 			await vi.waitFor(
 				async () =>
-					expect((await required(preparation).get(id)).status).toBe("ready"),
+					expect(
+						preparationTaskResponse(await required(preparation).get(id)).status,
+					).toBe("ready"),
 				{ timeout: 15000 },
 			);
-			const task = await required(preparation).get(id);
+			const task = preparationTaskResponse(await required(preparation).get(id));
 			expect(task.mode).toBe(mode);
 			const prepared = await required(app).inject({
 				url: required(task.resource?.url),
@@ -238,21 +244,30 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 			});
 			expect(range.statusCode).toBe(206);
 			expect(range.rawPayload).toEqual(prepared.rawPayload.subarray(0, 32));
-			const duplicate = await required(preparation).create({
-				...request,
-				fileId: file.id,
-			});
+			const duplicate = preparationStartResponse(
+				await required(preparation).create({
+					...request,
+					fileId: file.id,
+				}),
+			);
 			expect(duplicate.kind).toBe("task");
 			if (duplicate.kind === "task") expect(duplicate.task.id).toBe(id);
 		}
 		expect(starts).toHaveBeenCalledTimes(4);
-		const tasks = await required(preparation).list();
+		const tasks = {
+			tasks: (await required(preparation).list()).tasks.map(
+				preparationTaskResponse,
+			),
+		};
 		await required(app).close();
 		await required(processing).close();
 		await start();
 		const restartedStarts = vi.spyOn(required(processing), "start");
 		for (const task of tasks.tasks) {
-			expect((await required(preparation).get(task.id)).status).toBe("ready");
+			expect(
+				preparationTaskResponse(await required(preparation).get(task.id))
+					.status,
+			).toBe("ready");
 			expect(
 				(
 					await required(app).inject({

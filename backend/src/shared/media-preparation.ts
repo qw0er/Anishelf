@@ -11,16 +11,12 @@ export interface DerivedMediaIdentity {
 	videoStreamIndex: number;
 	audioStreamIndices: readonly number[];
 }
-/** Trusted snapshot produced by planning; excludes callbacks, cancellation and browser reports. */
-export interface MediaPreparationSnapshot {
-	identity: DerivedMediaIdentity;
+/** Persisted encoding settings. Source identity and plan identity live in their indexed records. */
+export interface PreparationSettingsSnapshot {
+	version: 1;
 	mode: "remux" | "transcode-audio" | "transcode-video" | "transcode";
 	reasons: { video: string; audio: string };
-	request: {
-		fileId: string;
-		sourceVersion: string;
-		plan: DeepReadonly<MediaProcessingPlan>;
-		videoStreamIndex: number;
-		audioStreamIndices: readonly number[];
-	};
+	videoStreamIndex: number;
+	audioStreamIndices: readonly number[];
+	plan: Omit<DeepReadonly<MediaProcessingPlan>, "id">;
 }

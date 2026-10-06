@@ -35,7 +35,10 @@ export function PreparationTaskCard({
 }) {
 	const { t } = useTranslation();
 	const action = usePreparationAction();
-	const pending = task.status === "queued" || task.status === "processing";
+	const pending =
+		task.status === "queued" ||
+		task.status === "processing" ||
+		task.status === "cancelling";
 	const status = t(`preparation.status.${task.status}`);
 	const details = (
 		<div className="space-y-1">
@@ -104,7 +107,9 @@ export function PreparationTaskCard({
 				aria-label={status}
 				className="shrink-0 text-xs text-muted-foreground"
 			>
-				{pending && task.progress?.percent != null
+				{pending &&
+				task.status !== "cancelling" &&
+				task.progress?.percent != null
 					? `${Math.floor(task.progress.percent)}%`
 					: status}
 			</span>
@@ -116,7 +121,7 @@ export function PreparationTaskCard({
 							className="size-7 p-0 aria-disabled:opacity-50"
 							focusableWhenDisabled
 							aria-label={t("preparation.cancel")}
-							disabled={action.busy}
+							disabled={action.busy || task.status === "cancelling"}
 							onClick={() =>
 								void action.run(async (signal) => {
 									await cancelPreparation(task.id, { signal });

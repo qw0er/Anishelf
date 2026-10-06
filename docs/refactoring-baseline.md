@@ -134,3 +134,29 @@ Implemented after the dependency baseline:
 Task snapshot consolidation, preparation lifecycle state unions, unified playback
 resource selection/session semantics and frontend query-state ownership remain in
 later batches. HLS generation/delivery remains unimplemented.
+
+## Batch 3: preparation tasks and artifact lifecycle
+
+Implemented after Media Planning consolidation:
+
+- A command facade, scheduler, worker, artifact lifecycle manager and recovery
+  coordinator have separate ownership. Explicit synchronous storage ports support
+  queue admission and state updates without importing repository implementation.
+- Immutable specifications carry the sole source/output authority; execution
+  requests are derived. Persisted snapshot migration removes duplicated identity
+  and request fields without changing plan or artifact IDs.
+- Internal state unions and a visible `cancelling` state distinguish cancellation
+  intent from completed cleanup. Terminal acknowledgement follows processor
+  completion/release, prepared-file cleanup and durable state.
+- Slow planning, file validation and queries no longer share a global command
+  queue. Gates protect one artifact at a time; synchronous commits preserve
+  deduplication/capacity and SQL owns queue counts/selection and byte totals.
+- Transport owns URLs and public progress. Borrowed invalidated bytes remain
+  accounted for, deletion remains busy while borrowed, and retry cannot overwrite
+  the same artifact until all old handles release.
+- Startup recovery preserves valid completed files, cleans orphan/partial data and
+  marks interrupted attempts retryable without automatically restarting them.
+
+Unified playback selection and frontend directory summaries/query-state ownership
+remain in batches 4 and 5. HLS delivery and automatic eviction remain outside the
+implemented product scope.

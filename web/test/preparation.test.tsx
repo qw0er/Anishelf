@@ -708,3 +708,19 @@ test.each([undefined, [7], []])(
 		).toBeTruthy();
 	},
 );
+
+test("cancelling shows a pending state and disables duplicate cancellation", () => {
+	const view = render(
+		<PreparationTaskCard
+			task={{ ...task, status: "cancelling" }}
+			refresh={vi.fn()}
+		/>,
+	);
+	expect(view.getByRole("status", { name: "Cancelling" })).toBeTruthy();
+	expect(
+		view
+			.getByRole("button", { name: "Cancel preparation" })
+			.getAttribute("aria-disabled"),
+	).toBe("true");
+	expect(view.queryByRole("button", { name: "Retry preparation" })).toBeNull();
+});
