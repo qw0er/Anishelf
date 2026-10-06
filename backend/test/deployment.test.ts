@@ -107,6 +107,9 @@ test.each([
 	["ANISHELF_DATA_DIR", "relative"],
 	["ANISHELF_DATA_DIR", ""],
 	["ANISHELF_DATA_DIR", "/tmp/\0"],
+	["ANISHELF_INITIAL_RESOURCE_ROOT", "relative"],
+	["ANISHELF_INITIAL_RESOURCE_ROOT", ""],
+	["ANISHELF_INITIAL_RESOURCE_ROOT", "/tmp/\0"],
 	["ANISHELF_LOG_LEVEL", "verbose"],
 	["ANISHELF_LOG_LEVEL", ""],
 	["ANISHELF_LOG_DESTINATION", "stderr"],
@@ -197,4 +200,13 @@ test("frontend hosting is opt-in through an absolute directory", () => {
 	expect(
 		parseDeploymentConfig({ ANISHELF_FRONTEND_DIR: frontendDir }).frontendDir,
 	).toBe(frontendDir);
+});
+
+test("parses an optional initial resource root without filesystem effects", () => {
+	const root = join(fixture, "not-created");
+	expect(parseDeploymentConfig({}).initialResourceRoot).toBeUndefined();
+	expect(
+		parseDeploymentConfig({ ANISHELF_INITIAL_RESOURCE_ROOT: root })
+			.initialResourceRoot,
+	).toBe(root);
 });

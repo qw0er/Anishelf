@@ -66,6 +66,7 @@ public-origin variable for local or SSH-only access.
 | `ANISHELF_PORT` | `3000` | Decimal integer listener port from 1 to 65535. |
 | `ANISHELF_PUBLIC_ORIGIN` | Unset | One allowed external HTTP(S) origin; no wildcards, credentials, path, query or fragment. Local access remains available; proxy authentication is required. |
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory for Anishelf | Absolute directory; overrides the platform default. |
+| `ANISHELF_INITIAL_RESOURCE_ROOT` | Unset | Absolute readable media directory used only when `settings.json` is missing; existing settings take precedence. |
 | `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
 | `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout` or `file`. |
 | `ANISHELF_LOG_PATH` | Unset | Absolute log path; required with `file`, rejected with `stdout`. |
@@ -92,7 +93,8 @@ and a terminal diagnostic. All options are validated before creating the data di
 The loader creates a missing directory with mode 0700 (subject to umask), preserves
 permissions of existing directories, and checks writability. The persistent settings
 manager creates `settings.json` on the first settings save, including a transcode
-profile selection before a resource directory is configured. See
+profile selection before a resource directory is configured, or initializes it
+on startup when `ANISHELF_INITIAL_RESOURCE_ROOT` is supplied and the file is missing. See
 [Transcode profiles](transcode-profiles.md) for the optional administrator-authored
 `dataDir/transcode-profiles.json`, catalog API and persistent selection.
 
@@ -156,7 +158,19 @@ tokens, complete settings objects and subtitle text are not included in events.
 
 ## Resource Settings and Startup
 
-A missing `settings.json` starts setup mode with `resourceRoot: null`; HTTP remains
+When `settings.json` is missing and `ANISHELF_INITIAL_RESOURCE_ROOT` is set,
+startup validates a readable, searchable directory separate from dataDir and
+creates settings containing that root. Creation never replaces an existing file;
+concurrent initializers load the file created first. Existing settings, including
+a null root, take precedence over the initialization default. An empty or malformed
+settings file still fails startup and is not repaired or replaced. Invalid path
+syntax fails environment validation before dataDir creation; an inaccessible or
+overlapping initial directory fails startup without creating settings. After
+initialization, Settings remains editable and subsequent restarts preserve it.
+Container examples set the initial root to `/media`.
+
+Without an initialization default, a missing `settings.json` starts setup mode
+with `resourceRoot: null`; HTTP remains
 available until the resource directory is configured in Settings. The first
 successful save creates the file in dataDir. Current user settings are the
 absolute resource root and optional `scanIntervalMinutes`; zero disables scheduled

@@ -82,8 +82,12 @@ listeners. Do not add port mappings (`-p`, Compose `ports`, or Quadlet
 image health check reads the same variable. Access the application locally or
 through [SSH forwarding](#run-and-use).
 
-Replace `/absolute/media/path` with an existing media directory and save `/media`
-in Settings. When reusing data, update any saved host media path to `/media`.
+Replace `/absolute/media/path` with an existing media directory. The examples set
+`ANISHELF_INITIAL_RESOURCE_ROOT=/media` so a fresh data directory automatically
+creates `settings.json` with that root. Existing settings always take precedence,
+including `resourceRoot: null`; when reusing data, update the saved root in Settings
+if needed. The initial root must be an accessible, readable directory separate
+from `/data`. This variable is an initialization default, not a permanent override.
 Keep `/data` persistent; it holds settings, SQLite and caches. Stop the previous
 service before switching methods to avoid sharing a database or listener between
 running instances. Docker, rootful Podman and rootless Podman have separate
@@ -111,6 +115,7 @@ docker volume create anishelf-data
 docker run -d --name anishelf --restart unless-stopped \
   --network host --stop-timeout 15 \
   -e ANISHELF_PORT=3000 \
+  -e ANISHELF_INITIAL_RESOURCE_ROOT=/media \
   -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
   --mount type=volume,source=anishelf-data,target=/data \
   --mount type=bind,source=/absolute/media/path,target=/media,readonly \
@@ -146,6 +151,7 @@ services:
     stop_grace_period: 15s
     environment:
       ANISHELF_PORT: "3000"
+      ANISHELF_INITIAL_RESOURCE_ROOT: "/media"
       ANISHELF_PUBLIC_ORIGIN: "https://example.com"
     volumes:
       - anishelf-data:/data
@@ -180,7 +186,8 @@ only one process uses the database and port. Docker and Podman have separate
 volume stores; this does not transfer data between runtimes.
 
 Open `http://127.0.0.1:3000` locally or through the SSH forwarding described in
-the [usage instructions](#run-and-use), and save `/media` in Settings. Change
+the [usage instructions](#run-and-use). Fresh data uses `/media` automatically;
+existing settings remain unchanged. Change
 `ANISHELF_PORT` for a different host port. Host networking requires no `ports` entry. The image health
 check uses the same port; `docker compose ps` reports its health status.
 Ensure UID/GID 1000 can read the media files. See [SELinux mounts](#selinux-mounts)
@@ -216,6 +223,7 @@ podman run -d --name anishelf --restart unless-stopped \
   --network host --stop-timeout 15 \
   --userns keep-id:uid=1000,gid=1000 --user 1000:1000 \
   -e ANISHELF_PORT=3000 \
+  -e ANISHELF_INITIAL_RESOURCE_ROOT=/media \
   -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
   -v "$HOME/.local/share/anishelf:/data" \
   -v /absolute/media/path:/media:ro \
@@ -232,6 +240,7 @@ sudo podman pull ghcr.io/qw0er/anishelf:latest
 sudo podman run -d --name anishelf --restart unless-stopped \
   --network host --stop-timeout 15 --user 1000:1000 \
   -e ANISHELF_PORT=3000 \
+  -e ANISHELF_INITIAL_RESOURCE_ROOT=/media \
   -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
   -v /var/lib/anishelf:/data \
   -v /absolute/media/path:/media:ro \
@@ -274,6 +283,7 @@ ContainerName=anishelf
 Network=host
 User=1000:1000
 Environment=ANISHELF_PORT=3000
+Environment=ANISHELF_INITIAL_RESOURCE_ROOT=/media
 Environment=ANISHELF_PUBLIC_ORIGIN=https://example.com
 Volume=/var/lib/anishelf:/data
 Volume=/absolute/media/path:/media:ro
@@ -333,6 +343,7 @@ Network=host
 UserNS=keep-id:uid=1000,gid=1000
 User=1000:1000
 Environment=ANISHELF_PORT=3000
+Environment=ANISHELF_INITIAL_RESOURCE_ROOT=/media
 Environment=ANISHELF_PUBLIC_ORIGIN=https://example.com
 Volume=%h/.local/share/anishelf:/data
 Volume=/absolute/media/path:/media:ro
@@ -369,7 +380,8 @@ To start at boot and keep the user service running after logout:
 sudo loginctl enable-linger "$USER"
 ```
 
-Access `http://127.0.0.1:3000` locally or via SSH and configure `/media` in Settings.
+Access `http://127.0.0.1:3000` locally or via SSH. Fresh data uses `/media`
+automatically; existing settings can still be changed in Settings.
 Change `Environment=ANISHELF_PORT=3000` for another unused host port; omit
 `PublishPort` with host networking. Check the image health with
 `podman inspect --format '{{.State.Health.Status}}' anishelf`.
@@ -484,6 +496,7 @@ Set environment variables before starting the application. Restart after changes
 | `ANISHELF_PUBLIC_ORIGIN` | Unset | One allowed external HTTP(S) origin, such as `https://example.com`; local access remains available. Authentication belongs to the reverse proxy. |
 | `ANISHELF_FRONTEND_DIR` | Unset | Absolute frontend build directory containing `index.html`; enables page hosting. |
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory | Absolute writable directory for settings, the database and caches. |
+| `ANISHELF_INITIAL_RESOURCE_ROOT` | Unset | Absolute readable media directory used only to create missing `settings.json`; existing settings are preserved. |
 | `ANISHELF_FFMPEG_PATH` | `ffmpeg` from PATH | Optional absolute FFmpeg executable path. |
 | `ANISHELF_FFPROBE_PATH` | `ffprobe` from PATH | Optional absolute FFprobe executable path. |
 

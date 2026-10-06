@@ -1,5 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import {
+	access,
+	link,
+	readFile,
+	realpath,
+	rename,
+	rm,
+	stat,
+	writeFile,
+} from "node:fs/promises";
 import {
 	basename,
 	dirname,
@@ -102,18 +112,40 @@ function contains(parent: string, child: string): boolean {
 	);
 }
 
-/** Missing settings enter setup mode; the first UI save creates the file. */
+/** Existing settings win; missing settings may be initialized before setup mode. */
 async function loadPersistentSettings(
 	dataDir: string,
 	maximumIntervalMinutes: number,
+	initialResourceRoot?: string,
 ): Promise<PersistentSettings> {
 	const path = join(dataDir, storageRules.settingsFile);
 	let source: string;
 	try {
 		source = await readFile(path, "utf8");
 	} catch (cause) {
-		if ((cause as NodeJS.ErrnoException).code === "ENOENT")
-			return { resourceRoot: null };
+		if ((cause as NodeJS.ErrnoException).code === "ENOENT") {
+			if (initialResourceRoot === undefined) return { resourceRoot: null };
+			const settings = validatePersistentSettings(
+				{ resourceRoot: initialResourceRoot },
+				maximumIntervalMinutes,
+			);
+			await checkDirectorySeparation(dataDir, initialResourceRoot);
+			try {
+				if (!(await stat(initialResourceRoot)).isDirectory())
+					throw new Error("Not a directory");
+				await access(initialResourceRoot, constants.R_OK | constants.X_OK);
+			} catch (cause) {
+				throw new DomainError(
+					"CONFIG_INVALID",
+					"ANISHELF_INITIAL_RESOURCE_ROOT must point to an accessible, readable directory.",
+					{ cause },
+				);
+			}
+			if (await writePersistentSettings(dataDir, settings, true))
+				return settings;
+			// Another initializer created settings first; preserve and load its result.
+			return loadPersistentSettings(dataDir, maximumIntervalMinutes);
+		}
 		throw new DomainError(
 			"CONFIG_INVALID",
 			`Cannot read ${path}. Check the file permissions.`,
@@ -176,10 +208,15 @@ export class PersistentConfiguration {
 	static async load(
 		dataDir: string,
 		maximumIntervalMinutes = builtinPolicy.library.maximumScanIntervalMinutes,
+		initialResourceRoot?: string,
 	): Promise<PersistentConfiguration> {
 		return new PersistentConfiguration(
 			dataDir,
-			await loadPersistentSettings(dataDir, maximumIntervalMinutes),
+			await loadPersistentSettings(
+				dataDir,
+				maximumIntervalMinutes,
+				initialResourceRoot,
+			),
 			maximumIntervalMinutes,
 		);
 	}
@@ -214,7 +251,8 @@ export class PersistentConfiguration {
 async function writePersistentSettings(
 	dataDir: string,
 	settings: PersistentSettings,
-): Promise<void> {
+	createOnly = false,
+): Promise<boolean> {
 	const target = join(dataDir, storageRules.settingsFile);
 	const temporary = join(dataDir, `.settings-${randomUUID()}.tmp`);
 	try {
@@ -222,8 +260,16 @@ async function writePersistentSettings(
 			flag: "wx",
 			mode: storageRules.fileMode,
 		});
-		await rename(temporary, target);
+		if (createOnly) {
+			// Publish a complete file atomically without replacing existing settings.
+			await link(temporary, target);
+		} else {
+			await rename(temporary, target);
+		}
+		return true;
 	} catch (cause) {
+		if (createOnly && (cause as NodeJS.ErrnoException).code === "EEXIST")
+			return false;
 		throw new DomainError(
 			"CONFIG_WRITE_FAILED",
 			"Cannot save persistent settings. Check the data directory and permissions.",

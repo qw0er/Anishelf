@@ -117,6 +117,14 @@ export function parseDeploymentConfig(
 			? {}
 			: { publicOrigin: parsePublicOrigin(env.ANISHELF_PUBLIC_ORIGIN) }),
 		dataDir,
+		...(env.ANISHELF_INITIAL_RESOURCE_ROOT === undefined
+			? {}
+			: {
+					initialResourceRoot: absolutePath(
+						env.ANISHELF_INITIAL_RESOURCE_ROOT,
+						"ANISHELF_INITIAL_RESOURCE_ROOT",
+					),
+				}),
 		logging,
 		mediaTools,
 		...(env.ANISHELF_FRONTEND_DIR === undefined
