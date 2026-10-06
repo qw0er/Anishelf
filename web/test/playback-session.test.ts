@@ -11,7 +11,6 @@ import {
 
 const session: PlaybackSessionResponse = {
 	token: "token",
-	generation: 1,
 	sourceVersion: "version",
 	file: {
 		kind: "file",
@@ -21,15 +20,6 @@ const session: PlaybackSessionResponse = {
 		sizeBytes: 100,
 		modifiedAt: "date",
 		mimeType: "video/mp4",
-	},
-	plan: {
-		mode: "direct",
-		resource: {
-			delivery: "file" as const,
-			url: "/api/media/file",
-			mimeType: "video/mp4",
-			timeline: { sourceOriginMs: 0, mediaOriginMs: 0, sourceDurationMs: null },
-		},
 	},
 	progress: {
 		positionMs: 40000,
@@ -255,7 +245,6 @@ test("a changed session requires explicit reopen rather than silently continuing
 	vi.mocked(api.openPlaybackSession).mockResolvedValueOnce({
 		...session,
 		token: "new-token",
-		generation: 2,
 		progress: { ...session.progress, generation: 2, positionMs: 20000 },
 	});
 	await controller.retry();
@@ -347,7 +336,7 @@ test("switching to prepared media retains the original session and captured sour
 	expect(api.savePlaybackProgress).toHaveBeenLastCalledWith(
 		session.token,
 		expect.objectContaining({
-			generation: session.generation,
+			generation: session.progress.generation,
 			sourceVersion: session.sourceVersion,
 			positionMs: 65000,
 		}),

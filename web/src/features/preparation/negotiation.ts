@@ -1,8 +1,4 @@
-import { checkMediaCompatibility, getPreparation } from "../../api/client.js";
-import type {
-	CompatibilityCheckRequest,
-	PreparationTaskResponse,
-} from "../../api/contracts.js";
+import type { CompatibilityCheckRequest } from "../../api/contracts.js";
 import { queryCapabilities } from "../../lib/media-capabilities.js";
 import { inspectBrowserMedia } from "../../lib/media-compatibility.js";
 
@@ -32,43 +28,4 @@ export async function negotiatePreparation(
 		output,
 		evidence,
 	};
-}
-
-export async function verifyPreparedPlayback(
-	task: PreparationTaskResponse,
-	signal: AbortSignal,
-): Promise<PreparationTaskResponse> {
-	const body = await negotiatePreparation(
-		task.fileId,
-		task.profileId,
-		signal,
-		task.sourceVersion,
-		task.audioStreamIndices,
-	);
-	const result = await checkMediaCompatibility(
-		{ fileId: task.fileId, ...body },
-		{ signal },
-	);
-	const combination = {
-		remux: "copy-copy",
-		"transcode-audio": "copy-encode",
-		"transcode-video": "encode-copy",
-		transcode: "encode-encode",
-	} as const;
-	if (result.output?.combinations[combination[task.mode]] !== "supported")
-		throw new Error("Prepared playback is not confirmed by this browser");
-	const current = await getPreparation(task.id, { signal });
-	if (
-		current.fileId !== task.fileId ||
-		current.sourceVersion !== task.sourceVersion ||
-		current.artifactId !== task.artifactId ||
-		JSON.stringify(current.audioStreamIndices) !==
-			JSON.stringify(task.audioStreamIndices) ||
-		current.profileId !== task.profileId ||
-		current.mode !== task.mode ||
-		current.status !== "ready" ||
-		!current.resource?.url
-	)
-		throw new Error("Prepared copy unavailable");
-	return current;
 }

@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
-import { directPlaybackPlan } from "../../../contracts/media.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../resource-access/public.js";
@@ -90,10 +89,8 @@ export class PlaybackApplication implements PlaybackApi {
 		);
 		return {
 			token,
-			generation: progress.generation,
 			sourceVersion: source.identity.sourceVersion,
 			file: source.file,
-			plan: directPlaybackPlan(fileId, source.file.mimeType),
 			progress,
 		};
 	}

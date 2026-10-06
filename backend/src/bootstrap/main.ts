@@ -11,6 +11,7 @@ import type { LibraryApplication } from "../modules/library/application/library.
 import { LibraryIndex } from "../modules/library/infrastructure/index.js";
 import { MediaInspectionApplication } from "../modules/media-inspection/application/inspection.js";
 import { PlaybackApplication } from "../modules/playback/application/playback.js";
+import { PlaybackSelectionApplication } from "../modules/playback-selection/application/selection.js";
 import { PreparationApplication } from "../modules/preparation/application/preparation.js";
 import { SubtitleApplication } from "../modules/subtitles/application/subtitles.js";
 import type { ExecutableSearch } from "../platform/environment.js";
@@ -178,7 +179,15 @@ async function createServer(
 			"Subtitle preparation is unavailable; direct playback and external subtitles remain usable.",
 		);
 	}
+	const playbackSelection = new PlaybackSelectionApplication({
+		sources: library.sources,
+		planning,
+		copies: preparation,
+		selectedProfileId: () =>
+			configuration.getTranscodeProfileCatalog().selectedProfileId,
+	});
 	const server = createHttpApp({
+		playbackSelection,
 		configuration,
 		config,
 		policy: configuration.policy,

@@ -8,12 +8,19 @@ import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/bootstrap/database.js";
 import { createHttpApp } from "../src/bootstrap/http.js";
 import { createLibraryModule } from "../src/bootstrap/library.js";
+import type {
+	CompatibilityInspection,
+	PlaybackOptionsResponse,
+	PlaybackSelectionResponse,
+	PlaybackSessionResponse,
+} from "../src/contracts/http.js";
 import { builtinTranscodeProfiles } from "../src/modules/configuration/public.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
 import { MediaPlanningApplication } from "../src/modules/media-planning/application/planning.js";
 import { MediaProcessingApplication } from "../src/modules/media-processing/application/processing.js";
 import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
+import { PlaybackSelectionApplication } from "../src/modules/playback-selection/application/selection.js";
 import { PreparationApplication } from "../src/modules/preparation/application/preparation.js";
 import {
 	FfmpegExecutionAdapter,
@@ -92,6 +99,13 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 			config: { host: "127.0.0.1", port: 3000 },
 			logger,
 			preparation,
+			playback,
+			playbackSelection: new PlaybackSelectionApplication({
+				sources: library.sources,
+				planning: compatibility,
+				copies: preparation,
+				selectedProfileId: () => builtinTranscodeProfiles[0]?.id ?? null,
+			}),
 		});
 	}
 	try {
@@ -131,6 +145,15 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 		const profile = builtinTranscodeProfiles[0];
 		if (!profile) throw new Error("Missing profile");
 		await start();
+		const progressSessionResponse = await required(app).inject({
+			method: "POST",
+			url: "/api/playback/sessions",
+			headers,
+			payload: { fileId: file.id },
+		});
+		expect(progressSessionResponse.statusCode).toBe(201);
+		const progressSession =
+			progressSessionResponse.json<PlaybackSessionResponse>();
 		async function packets(path: string, selector: "v" | "a") {
 			const output = await run(
 				ffprobe,
@@ -209,6 +232,94 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 			);
 			const task = preparationTaskResponse(await required(preparation).get(id));
 			expect(task.mode).toBe(mode);
+			const failedResourceIds = (
+				await required(preparation).list(file.id)
+			).tasks.flatMap((view) =>
+				view.artifact && view.artifact.id !== task.artifactId
+					? [view.artifact.id]
+					: [],
+			);
+			const optionsResponse = await required(app).inject({
+				method: "POST",
+				url: "/api/playback/options",
+				headers,
+				payload: {
+					fileId: file.id,
+					sourceVersion: source.identity.sourceVersion,
+					failedResourceIds,
+				},
+			});
+			expect(optionsResponse.statusCode).toBe(200);
+			const options = optionsResponse.json<PlaybackOptionsResponse>();
+			function browserCheck(
+				description: CompatibilityInspection,
+				original = false,
+			) {
+				return {
+					sourceVersion: description.sourceVersion,
+					descriptionId: description.descriptionId,
+					...(original
+						? {}
+						: { audioStreamIndices: description.selectedAudioStreamIndices }),
+					output: description.output
+						? {
+								profileId: description.output.profileId,
+								target: description.output.target,
+							}
+						: null,
+					evidence: description.queries.map((query) => ({
+						id: query.id,
+						status: query.id.startsWith("original")
+							? "unsupported"
+							: "supported",
+						reason: query.id.startsWith("original")
+							? "browser-rejected"
+							: "browser-supported",
+						smooth: null,
+					})),
+				};
+			}
+			const selectionResponse = await required(app).inject({
+				method: "POST",
+				url: "/api/playback/selection",
+				headers,
+				payload: {
+					fileId: file.id,
+					sourceVersion: source.identity.sourceVersion,
+					failedResourceIds,
+					original: browserCheck(options.original, true),
+					candidates: options.candidates.map((candidate) => ({
+						taskId: candidate.taskId,
+						check: browserCheck(candidate.description),
+					})),
+				},
+			});
+			expect(selectionResponse.statusCode, selectionResponse.body).toBe(200);
+			const selection = selectionResponse.json<PlaybackSelectionResponse>();
+			expect(selection.plan).toMatchObject({
+				mode: "prepared",
+				artifactId: task.artifactId,
+			});
+			if (selection.plan.mode !== "prepared")
+				throw new Error("Expected prepared playback");
+			expect(selection.plan.resource.url).toBe(task.resource?.url);
+			const save = await required(app).inject({
+				method: "PUT",
+				url: `/api/playback/sessions/${progressSession.token}/progress`,
+				headers,
+				payload: {
+					generation: progressSession.progress.generation,
+					sourceVersion: progressSession.sourceVersion,
+					sequence: starts.mock.calls.length,
+					positionMs: 500,
+					durationMs: 2000,
+				},
+			});
+			expect(save.statusCode).toBe(200);
+			expect(save.json().progress.generation).toBe(
+				progressSession.progress.generation,
+			);
+
 			const prepared = await required(app).inject({
 				url: required(task.resource?.url),
 				headers,

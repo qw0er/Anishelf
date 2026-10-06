@@ -1,91 +1,95 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1720" viewBox="0 0 1800 1720" role="img" aria-labelledby="title desc">
-<title id="title">Anishelf feature-oriented modular architecture</title>
-<desc id="desc">React features and backend business modules own their internal layers. Module HTTP routes enter their owning application. Selected arrows show HTTP requests and public API dependencies. Bootstrap assembles implementations and connects the source catalog to the library index. Shared platform services are separate from business modules. Dashed amber boxes describe planned V2 extensions.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1340" viewBox="0 0 1600 1340" role="img" aria-labelledby="title desc">
+<title id="title">Anishelf runtime ownership</title>
+<desc id="desc">Browser evidence feeds read-only playback selection. Progress sessions are independent. Preparation commands own tasks and artifacts. Bootstrap injects explicit ports; shared platform mechanisms sit below business owners. HLS delivery remains planned.</desc>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="#64748b"/></marker></defs>
-<rect width="1800" height="1720" fill="#ffffff"/>
-<g font-family="DejaVu Sans, Arial, sans-serif" fill="#172a43">
-<text x="40" y="48" font-size="30" font-weight="600">Anishelf · Feature-oriented modular architecture</text>
-<text x="40" y="82" font-size="19">Package by feature · Layers stay inside each module · public.ts defines cross-module boundaries</text>
-<rect x="40" y="112" width="1720" height="324" rx="12" fill="#f5f9ff" stroke="#cbd5e1"/>
-<text x="64" y="146" font-size="22" font-weight="600">WEB / React features</text>
-<text x="64" y="176" font-size="18">routes/ compose screens and loaders; api/ sends HTTP requests; shared components/ui/ provides controls</text>
-<rect x="64" y="198" width="532" height="136" rx="12" fill="#e8f0fc" stroke="#a9bcd5"/>
-<text x="84" y="228" font-size="21" font-weight="600">features/library/ · public.ts</text>
-<text x="84" y="260" font-size="17">LibraryBrowser · ResourceSettings</text>
-<text x="84" y="287" font-size="17">Browse, settings and scan feedback</text>
-<rect x="634" y="198" width="532" height="136" rx="12" fill="#e8f0fc" stroke="#a9bcd5"/>
-<text x="654" y="228" font-size="21" font-weight="600">features/playback/ · public.ts</text>
-<text x="654" y="260" font-size="17">FilePlayer · VideoPlayer · session hook</text>
-<text x="654" y="287" font-size="17">Vidstack playback, progress and media links</text>
-<rect x="1204" y="198" width="532" height="136" rx="12" fill="#e8f0fc" stroke="#a9bcd5"/>
-<text x="1224" y="228" font-size="21" font-weight="600">features/subtitles/ · public.ts</text>
-<text x="1224" y="260" font-size="17">SubtitleTracks · discovery hook</text>
-<text x="1224" y="287" font-size="17">Embedded preparation · Vidstack / JASSUB</text>
-<text x="64" y="372" font-size="18" font-weight="600">Cross-feature imports: library → playback/public.ts → subtitles/public.ts</text>
-<text x="64" y="405" font-size="17">Browser-safe contracts: backend/contracts/{http, subtitles, defaults} → web/api/contracts.ts</text>
-<rect x="40" y="484" width="1720" height="714" rx="12" fill="#f8f7fc" stroke="#cbd5e1"/>
-<text x="64" y="520" font-size="22" font-weight="600">BACKEND / One Node.js process · business modules</text>
-<text x="64" y="553" font-size="18">modules/&lt;feature&gt;/ owns HTTP → application coordination, domain models and infrastructure adapters</text>
-<rect x="64" y="580" width="532" height="284" rx="12" fill="#ffffff" stroke="#b6aed2"/>
-<text x="84" y="612" font-size="21" font-weight="600">modules/library/ · public.ts</text>
-<text x="84" y="646" font-size="17">http/  library · settings · media (Range)</text>
-<text x="84" y="672" font-size="17">application/  LibraryApplication</text>
-<text x="84" y="698" font-size="17">ScanCoordinator · SettingsApplication</text>
-<text x="84" y="724" font-size="17">domain/  library models · scan state</text>
-<text x="84" y="750" font-size="17">infrastructure/  LibraryScanner · LibraryIndex</text>
-<text x="84" y="841" font-size="17" font-weight="600">Published index + scan lifecycle</text>
-<rect x="634" y="580" width="532" height="284" rx="12" fill="#ffffff" stroke="#b6aed2"/>
-<text x="654" y="612" font-size="21" font-weight="600">modules/playback/ · public.ts</text>
-<text x="654" y="646" font-size="17">http/  sessions · progress · history</text>
-<text x="654" y="672" font-size="17">application/  PlaybackApplication</text>
-<text x="654" y="698" font-size="17">domain/  sessions · progress · history</text>
-<text x="654" y="724" font-size="17">infrastructure/  PlaybackRepository</text>
-<text x="654" y="750" font-size="17">SQLite progress; in-memory session tokens</text>
-<text x="654" y="841" font-size="17" font-weight="600">Saved progress + playback sessions</text>
-<rect x="1204" y="580" width="532" height="284" rx="12" fill="#ffffff" stroke="#b6aed2"/>
-<text x="1224" y="612" font-size="21" font-weight="600">modules/subtitles/ · public.ts</text>
-<text x="1224" y="646" font-size="17">http/  discovery · prepare · asset delivery</text>
-<text x="1224" y="672" font-size="17">application/  SubtitleApplication</text>
-<text x="1224" y="698" font-size="17">SubtitlePreparationApplication</text>
-<text x="1224" y="724" font-size="17">domain/  tracks · assets · identity</text>
-<text x="1224" y="750" font-size="17">infrastructure/  discovery · content · assets</text>
-<text x="1224" y="776" font-size="17">SubtitleRepository · private cache files</text>
-<text x="1224" y="841" font-size="17" font-weight="600">Subtitle discovery + asset lifecycle</text>
-<path data-from="web-library" data-to="library" d="M330 436 V484" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="342" y="468" font-size="16" fill="#64748b">HTTP</text>
-<path data-from="web-playback" data-to="playback" d="M900 436 V484" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="912" y="468" font-size="16" fill="#64748b">HTTP</text>
-<path data-from="web-subtitles" data-to="subtitles" d="M1470 436 V484" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="1482" y="468" font-size="16" fill="#64748b">HTTP</text>
-<path data-from="library" data-to="resource-access" d="M330 864 V900 H1300 V950" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
-<path data-from="playback" data-to="resource-access" d="M900 864 V900 H1300 V950" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
-<path data-from="subtitles" data-to="resource-access" d="M1470 864 V900 H1300 V950" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="66" y="927" font-size="17">Selected arrows: caller → dependency. Cross-module business imports use public.ts.</text>
-<rect x="64" y="950" width="650" height="218" rx="12" fill="#eef7f3" stroke="#a9c8bc"/>
-<text x="84" y="982" font-size="21" font-weight="600">modules/configuration/ · public.ts</text>
-<text x="84" y="1017" font-size="18">application/  ConfigurationService</text>
-<text x="84" y="1046" font-size="18">domain/  configuration models · built-in policy</text>
-<text x="84" y="1075" font-size="18">infrastructure/  deployment · atomic settings persistence</text>
-<text x="84" y="1104" font-size="18">Owns settings.json and effective configuration</text>
-<rect x="964" y="950" width="772" height="218" rx="12" fill="#eef7f3" stroke="#a9c8bc"/>
-<text x="984" y="982" font-size="21" font-weight="600">modules/resource-access/ · public.ts</text>
-<text x="984" y="1017" font-size="18">application/  ResourceAccessApplication</text>
-<text x="984" y="1046" font-size="18">domain/  source identity · SourceCatalog port · root epoch</text>
-<text x="984" y="1075" font-size="18">infrastructure/  ResourceAccess · SourceRepository</text>
-<text x="984" y="1104" font-size="18">Owns confined access and shared source registration</text>
-<path data-from="resource-access" data-to="configuration" d="M964 1060 H714" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="739" y="1043" font-size="16" fill="#64748b">Settings / policy</text>
-<rect x="40" y="1220" width="1720" height="232" rx="12" fill="#f8fafc" stroke="#cbd5e1"/>
-<text x="64" y="1255" font-size="22" font-weight="600">ASSEMBLY + SHARED TECHNICAL SUPPORT</text>
-<text x="64" y="1290" font-size="18">bootstrap/  Creates concrete services, registers feature HTTP routes and owns startup / shutdown.</text>
-<text x="64" y="1319" font-size="18">Catalog wiring: LibraryIndex → injected SourceCatalog port. Resource Access does not import Library.</text>
-<text x="64" y="1348" font-size="18">Registry wiring: one SourceRepository → injected into PlaybackRepository and SubtitleRepository.</text>
-<text x="64" y="1377" font-size="18">platform/  SQLite connection/schema · logging · FFmpeg/FFprobe processes · storage adapter policy</text>
-<text x="64" y="1406" font-size="18">transport/  HTTP security, presenters, errors and static serving; contracts/ + shared/ define common types.</text>
-<rect x="40" y="1474" width="1720" height="206" rx="12" fill="#fff8eb" stroke="#ba8b46" stroke-dasharray="8 6"/>
-<text x="64" y="1508" font-size="22" font-weight="600">PLANNED V2 EXTENSIONS / feature placement is provisional</text>
-<text x="64" y="1543" font-size="18">Web: media tasks + playback/cache settings; extend the playback feature with an HLS adapter.</text>
-<text x="64" y="1572" font-size="18">Backend video preparation: HLS sessions · playback planner · scheduler · transcode worker · job/asset repositories.</text>
-<text x="64" y="1601" font-size="18">Subtitles: embedded font preparation and registered font delivery. Generated cache: budgets, eviction and leases.</text>
-<text x="64" y="1630" font-size="18">Solid boxes describe current code. Dashed amber describes proposals; detailed V2 design remains in the document.</text>
+<rect width="1600" height="1340" fill="#fff"/>
+<g font-family="Arial, sans-serif" fill="#172a43">
+<text x="40" y="48" font-size="30" font-weight="600">Anishelf · Runtime ownership</text>
+<text x="40" y="82" font-size="18">Explicit ports · Bootstrap injection · Original source timeline · No automatic preparation</text>
+<rect x="40" y="112" width="470" height="168" rx="12" fill="#f5f9ff" stroke="#b3c2d3"/>
+<text x="60" y="146" font-size="21" font-weight="600">Web / Library + preparation</text>
+<text x="60" y="180" font-size="17">Browse, configuration and scan feedback</text>
+<text x="60" y="208" font-size="17">Explicit create / cancel / retry / delete</text>
+<text x="60" y="236" font-size="17">Task monitor and prepared-copy links</text>
+<rect x="560" y="112" width="480" height="168" rx="12" fill="#f5f9ff" stroke="#b3c2d3"/>
+<text x="580" y="146" font-size="21" font-weight="600">Web / Playback</text>
+<text x="580" y="180" font-size="17">Selection hook collects capability evidence</text>
+<text x="580" y="208" font-size="17">Vidstack uses the returned resource only</text>
+<text x="580" y="236" font-size="17">Independent serial progress controller</text>
+<rect x="1090" y="112" width="470" height="168" rx="12" fill="#f5f9ff" stroke="#b3c2d3"/>
+<text x="1110" y="146" font-size="21" font-weight="600">Web / Subtitles</text>
+<text x="1110" y="180" font-size="17">Track discovery and selected preparation</text>
+<text x="1110" y="208" font-size="17">Vidstack / JASSUB render text tracks</text>
+<text x="1110" y="236" font-size="17">Source-timeline timing and asset cleanup</text>
+<rect x="40" y="350" width="470" height="190" rx="12" fill="#f8f7fc" stroke="#b3c2d3"/>
+<text x="60" y="384" font-size="21" font-weight="600">Library + Configuration</text>
+<text x="60" y="418" font-size="17">Published index, scans and root switching</text>
+<text x="60" y="446" font-size="17">Atomic settings and immutable policy</text>
+<text x="60" y="474" font-size="17">Configured transcode profile catalog</text>
+<rect x="560" y="350" width="480" height="190" rx="12" fill="#f8f7fc" stroke="#b3c2d3"/>
+<text x="580" y="384" font-size="21" font-weight="600">Playback Selection</text>
+<text x="580" y="418" font-size="17">POST /playback/options → candidates</text>
+<text x="580" y="446" font-size="17">POST /playback/selection → final resource</text>
+<text x="580" y="474" font-size="17">Exact audio, browser evidence, availability</text>
+<text x="580" y="502" font-size="17">Read ports only; never starts preparation</text>
+<rect x="1090" y="350" width="470" height="190" rx="12" fill="#f8f7fc" stroke="#b3c2d3"/>
+<text x="1110" y="384" font-size="21" font-weight="600">Playback records</text>
+<text x="1110" y="418" font-size="17">Progress-write tokens + generations</text>
+<text x="1110" y="446" font-size="17">Durable progress and recent history</text>
+<text x="1110" y="474" font-size="17">No playback plan in session responses</text>
+<text x="1110" y="502" font-size="17">Resource switches retain the writer</text>
+<path d="M275 280 V350" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="287" y="319" font-size="15" fill="#64748b">HTTP</text>
+<path d="M800 280 V350" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="810" y="319" font-size="15" fill="#64748b">HTTP / capability evidence</text>
+<path d="M1000 280 V315 H1325 V350" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1200" y="304" font-size="15" fill="#64748b">HTTP / progress</text>
+<rect x="40" y="620" width="470" height="200" rx="12" fill="#eef7f3" stroke="#b3c2d3"/>
+<text x="60" y="654" font-size="21" font-weight="600">Preparation</text>
+<text x="60" y="688" font-size="17">Command facade → scheduler → worker</text>
+<text x="60" y="716" font-size="17">Artifact validation, publication and borrowing</text>
+<text x="60" y="744" font-size="17">Recovery and file / database reconciliation</text>
+<text x="60" y="772" font-size="17">Temporary execution is not a ready artifact</text>
+<rect x="560" y="620" width="480" height="200" rx="12" fill="#eef7f3" stroke="#b3c2d3"/>
+<text x="580" y="654" font-size="21" font-weight="600">Media Planning + Inspection</text>
+<text x="580" y="688" font-size="17">Inspection cache and source descriptions</text>
+<text x="580" y="716" font-size="17">Evidence checks and pure execution plans</text>
+<text x="580" y="744" font-size="17">One expected output specification</text>
+<text x="580" y="772" font-size="17">File and per-track HLS planning</text>
+<rect x="1090" y="620" width="470" height="200" rx="12" fill="#eef7f3" stroke="#b3c2d3"/>
+<text x="1110" y="654" font-size="21" font-weight="600">Subtitles</text>
+<text x="1110" y="688" font-size="17">Discovery → selected-track preparation</text>
+<text x="1110" y="716" font-size="17">Registered text assets and confined delivery</text>
+<text x="1110" y="744" font-size="17">External text / embedded extraction</text>
+<text x="1110" y="772" font-size="17">Recovery and lifecycle ownership</text>
+<path d="M650 540 V578 H275 V620" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="285" y="570" font-size="15" fill="#64748b">validated copies</text>
+<path d="M800 540 V620" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="810" y="578" font-size="15" fill="#64748b">inspection / evidence validation</text>
+<path d="M1450 280 V620" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1460" y="600" font-size="15" fill="#64748b">HTTP</text>
+<rect x="40" y="900" width="470" height="170" rx="12" fill="#f8fafc" stroke="#b3c2d3"/>
+<text x="60" y="934" font-size="21" font-weight="600">Media Processing</text>
+<text x="60" y="968" font-size="17">Preflight and FFmpeg execution</text>
+<text x="60" y="996" font-size="17">Internal telemetry and output validation</text>
+<text x="60" y="1024" font-size="17">Validated temporary output + release</text>
+<rect x="560" y="900" width="480" height="170" rx="12" fill="#f8fafc" stroke="#b3c2d3"/>
+<text x="580" y="934" font-size="21" font-weight="600">Resource Access</text>
+<text x="580" y="968" font-size="17">Canonical root, source version and epoch</text>
+<text x="580" y="996" font-size="17">Confined opening and source revalidation</text>
+<text x="580" y="1024" font-size="17">Shared source registry; originals read-only</text>
+<rect x="1090" y="900" width="470" height="170" rx="12" fill="#f8fafc" stroke="#b3c2d3"/>
+<text x="1110" y="934" font-size="21" font-weight="600">Bootstrap + Platform</text>
+<text x="1110" y="968" font-size="17">Explicit construction and shutdown order</text>
+<text x="1110" y="996" font-size="17">SQLite / filesystem / process mechanisms</text>
+<text x="1110" y="1024" font-size="17">Transport projects DTOs, errors and URLs</text>
+<path d="M275 820 V900" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="285" y="867" font-size="15" fill="#64748b">execute</text>
+<path d="M800 820 V900" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="810" y="866" font-size="15" fill="#64748b">source capability</text>
+<text x="40" y="1120" font-size="18">Selection, progress, preparation, planning and subtitles consume explicit source capabilities; only bootstrap assembles implementations.</text>
+<rect x="40" y="1160" width="1520" height="130" rx="12" fill="#fff8eb" stroke="#b3c2d3" stroke-dasharray="8 6"/>
+<text x="60" y="1194" font-size="21" font-weight="600">Planned delivery work</text>
+<text x="60" y="1228" font-size="17">HLS publication / browser delivery, real-time acquisition and leases, embedded fonts, automatic cache eviction.</text>
+<text x="60" y="1256" font-size="17">Current HLS contracts and planning are foundations; they do not publish playable resources.</text>
 </g></svg>

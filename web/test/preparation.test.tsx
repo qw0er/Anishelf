@@ -1,12 +1,6 @@
 // @vitest-environment happy-dom
-import {
-	cleanup,
-	fireEvent,
-	render,
-	renderHook,
-	waitFor,
-} from "@testing-library/react";
-import { type ReactNode, StrictMode } from "react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as api from "../src/api/client.js";
@@ -21,8 +15,6 @@ import { PreparationMonitor } from "../src/features/preparation/components/prepa
 import { PreparationProfileSettings } from "../src/features/preparation/components/profile-settings.js";
 import { PreparationTaskCard } from "../src/features/preparation/components/task-card.js";
 import { PreparationProvider } from "../src/features/preparation/context.js";
-import { verifyPreparedPlayback } from "../src/features/preparation/negotiation.js";
-import { usePreparedPlayback } from "../src/features/preparation/use-prepared-playback.js";
 import * as capabilities from "../src/lib/media-capabilities.js";
 import "../src/i18n.js";
 
@@ -246,44 +238,6 @@ test("an unavailable target selection sends the user to Settings instead of gues
 	expect(link.getAttribute("href")).toBe("/settings");
 	expect(view.queryByRole("button", { name: "Pre-transcode" })).toBeNull();
 });
-test("unsupported original automatically selects a verified completed copy without creating work", async () => {
-	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [ready] });
-	const { result } = renderHook(
-		() => usePreparedPlayback("file", "version", true),
-		{ wrapper: Wrapper },
-	);
-	await waitFor(() => expect(result.current.task).toEqual(ready));
-	expect(api.checkMediaCompatibility).toHaveBeenCalled();
-	expect(api.createPreparation).not.toHaveBeenCalled();
-});
-test("missing pre-transcode is reported and does not enqueue work", async () => {
-	const { result } = renderHook(
-		() => usePreparedPlayback("file", "version", true),
-		{ wrapper: Wrapper },
-	);
-	await waitFor(() => expect(result.current.loading).toBe(false));
-	expect(result.current.task).toBeNull();
-	expect(result.current.pending).toBe(false);
-	expect(api.createPreparation).not.toHaveBeenCalled();
-});
-test("unsupported and stale completed copies are refused", async () => {
-	vi.mocked(api.checkMediaCompatibility).mockResolvedValueOnce({
-		output: { combinations: { "copy-copy": "unsupported" } },
-	} as unknown as CompatibilityResult);
-	await expect(
-		verifyPreparedPlayback(ready, new AbortController().signal),
-	).rejects.toThrow("not confirmed");
-	vi.mocked(api.getPreparation).mockResolvedValueOnce({
-		...ready,
-		status: "failed",
-		resource: null,
-		artifactId: null,
-	});
-	await expect(
-		verifyPreparedPlayback(ready, new AbortController().signal),
-	).rejects.toThrow("unavailable");
-	expect(api.createPreparation).not.toHaveBeenCalled();
-});
 test("cancel and retry remain explicit and retry obtains fresh evidence", async () => {
 	const refresh = vi.fn();
 	const view = render(<PreparationTaskCard task={task} refresh={refresh} />);
@@ -329,48 +283,6 @@ test("unknown source availability hides Watch and deleting a copy never cancels 
 	);
 	expect(api.cancelPreparation).not.toHaveBeenCalled();
 });
-test("a pending task completing updates automatic playback even while the monitor is collapsed", async () => {
-	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [task] });
-	const { result } = renderHook(
-		() => usePreparedPlayback("file", "version", true),
-		{ wrapper: Wrapper },
-	);
-	await waitFor(() => expect(result.current.pending).toBe(true));
-	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [ready] });
-	await waitFor(() => expect(result.current.task).toEqual(ready), {
-		timeout: 3000,
-	});
-});
-test("automatic prepared selection survives StrictMode and does not start transcoding", async () => {
-	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [ready] });
-	const wrapper = ({ children }: { children: ReactNode }) => (
-		<StrictMode>
-			<Wrapper>{children}</Wrapper>
-		</StrictMode>
-	);
-	const { result } = renderHook(
-		() => usePreparedPlayback("file", "version", true),
-		{ wrapper },
-	);
-	await waitFor(() => expect(result.current.task).toEqual(ready));
-	expect(api.createPreparation).not.toHaveBeenCalled();
-});
-
-test("automatic playback discovers older ready copies outside the global recent-task window", async () => {
-	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [] });
-	vi.mocked(api.getFilePreparations).mockResolvedValue({ tasks: [ready] });
-	const { result } = renderHook(
-		() => usePreparedPlayback("file", "version", true),
-		{ wrapper: Wrapper },
-	);
-	await waitFor(() => expect(result.current.task).toEqual(ready));
-	expect(api.getFilePreparations).toHaveBeenCalledWith(
-		"file",
-		expect.anything(),
-	);
-	expect(api.createPreparation).not.toHaveBeenCalled();
-});
-
 test("file menu discovers older prepared copies and deletes them even for a supported original", async () => {
 	vi.mocked(api.getFilePreparations).mockResolvedValue({ tasks: [ready] });
 	const view = render(
@@ -620,41 +532,8 @@ test("an existing all-audio copy does not disable preparing a selected audio tra
 	);
 });
 
-test("ready-copy reuse filters audio selection and rechecks the exact tracks", async () => {
-	const japanese = {
-		...ready,
-		id: "japanese",
-		artifactId: "jp",
-		audioStreamIndices: [7],
-	};
-	vi.mocked(api.getPreparations).mockResolvedValue({
-		tasks: [{ ...ready, audioStreamIndices: [4, 7] }, japanese],
-	});
-	vi.mocked(api.getPreparation).mockResolvedValue(japanese);
-	const { result, rerender } = renderHook(
-		({ selection }: { selection: number[] }) =>
-			usePreparedPlayback("file", "version", true, selection, [4, 7]),
-		{ initialProps: { selection: [7] }, wrapper: Wrapper },
-	);
-	await waitFor(() => expect(result.current.task?.id).toBe("japanese"));
-	expect(api.checkMediaCompatibility).toHaveBeenCalledWith(
-		expect.objectContaining({ audioStreamIndices: [7] }),
-		expect.anything(),
-	);
-	rerender({ selection: [4] });
-	await waitFor(() => expect(result.current.loading).toBe(false));
-	expect(result.current.task).toBeNull();
-});
-
-test("task retry and verification retain audio selection and reject changed task tracks", async () => {
+test("task retry retains audio selection", async () => {
 	const selected = { ...ready, audioStreamIndices: [7] };
-	vi.mocked(api.getPreparation).mockResolvedValue({
-		...selected,
-		audioStreamIndices: [4],
-	});
-	await expect(
-		verifyPreparedPlayback(selected, new AbortController().signal),
-	).rejects.toThrow("unavailable");
 	const view = render(
 		<PreparationTaskCard
 			task={{ ...selected, status: "failed" }}
@@ -670,19 +549,6 @@ test("task retry and verification retain audio selection and reject changed task
 			expect.anything(),
 		),
 	);
-});
-
-test("default-all playback does not silently reuse a subset copy", async () => {
-	vi.mocked(api.getPreparations).mockResolvedValue({
-		tasks: [{ ...ready, audioStreamIndices: [7] }],
-	});
-	const { result } = renderHook(
-		() => usePreparedPlayback("file", "version", true, undefined, [4, 7]),
-		{ wrapper: Wrapper },
-	);
-	await waitFor(() => expect(result.current.loading).toBe(false));
-	expect(result.current.task).toBeNull();
-	expect(api.checkMediaCompatibility).not.toHaveBeenCalled();
 });
 
 test.each([undefined, [7], []])(

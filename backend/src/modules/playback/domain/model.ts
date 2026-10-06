@@ -7,7 +7,6 @@ export type {
 } from "../../resource-access/public.js";
 
 import type { RegisteredSource } from "../../resource-access/public.js";
-import type { PlaybackPlan } from "./plan.js";
 
 /** Durable business progress, independent of the database schema. */
 export interface PlaybackProgress {
@@ -39,11 +38,8 @@ export interface ContinueWatchingCandidate {
 /** Application result, projected into public JSON by the HTTP presenter. */
 export interface PlaybackSession {
 	token: string;
-	generation: number;
 	sourceVersion: string;
 	file: FileInfo;
-	/** Only direct sessions are started today; other resource owners are not wired yet. */
-	plan: PlaybackPlan;
 	progress: PlaybackProgress;
 }
 

@@ -76,7 +76,7 @@ function save(session: PlaybackSessionResponse, sequence = 1) {
 		url: `/api/playback/sessions/${session.token}/progress`,
 		headers,
 		payload: {
-			generation: session.generation,
+			generation: session.progress.generation,
 			sourceVersion: session.sourceVersion,
 			sequence,
 			positionMs: 40000,
@@ -88,9 +88,8 @@ function save(session: PlaybackSessionResponse, sequence = 1) {
 test("HTTP open/save/list/release flow resumes progress and rejects delayed writes", async () => {
 	const session = await open();
 	expect(session.file.id).toBe(fileId);
-	expect(session.plan.mode === "direct" && session.plan.resource.url).toBe(
-		`/api/media/${fileId}`,
-	);
+	expect(session).not.toHaveProperty("plan");
+	expect(session).not.toHaveProperty("generation");
 	expect(session.progress.positionMs).toBe(0);
 	expect(session.progress).not.toHaveProperty("sourceId");
 	expect(JSON.stringify(session)).not.toContain(root);
@@ -180,7 +179,7 @@ test.each([
 		url: `/api/playback/sessions/${session.token}/progress`,
 		headers,
 		payload: {
-			generation: session.generation,
+			generation: session.progress.generation,
 			sourceVersion: session.sourceVersion,
 			sequence: 1,
 			positionMs: 1000,
@@ -197,7 +196,7 @@ test("accepts unknown duration and backward seeks, rejects stale sequences and v
 	await save(session, 2);
 	const route = `/api/playback/sessions/${session.token}/progress`;
 	const body = {
-		generation: session.generation,
+		generation: session.progress.generation,
 		sourceVersion: session.sourceVersion,
 		sequence: 3,
 		positionMs: 1000,
@@ -261,7 +260,7 @@ test("checks Host and Origin on playback mutations before executing use cases", 
 			method: "PUT" as const,
 			url: `/api/playback/sessions/${session.token}/progress`,
 			payload: {
-				generation: session.generation,
+				generation: session.progress.generation,
 				sourceVersion: session.sourceVersion,
 				sequence: 1,
 				positionMs: 1000,
@@ -404,7 +403,7 @@ test("recent history includes completed and zero-position records, but excludes 
 			url: `/api/playback/sessions/${session.token}/progress`,
 			headers,
 			payload: {
-				generation: session.generation,
+				generation: session.progress.generation,
 				sourceVersion: session.sourceVersion,
 				sequence,
 				positionMs,

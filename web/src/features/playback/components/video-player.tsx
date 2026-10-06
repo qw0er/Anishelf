@@ -65,7 +65,7 @@ export default function VideoPlayer({
 		toast.close(notificationId);
 		onMedia?.(videoRef.current, timeline);
 		return () => {
-			toast.close(notificationId);
+			if (!notifiedError.current) toast.close(notificationId);
 			errorRequest.current?.abort();
 			// Capture progress before Vidstack unloads the provider's source.
 			onMedia?.(null, timeline);
@@ -83,7 +83,6 @@ export default function VideoPlayer({
 	}
 
 	async function playbackFailed(missingPicture = false) {
-		onPlaybackFailure?.();
 		let message = t(
 			missingPicture
 				? "errors.mediaPictureUnavailable"
@@ -110,6 +109,7 @@ export default function VideoPlayer({
 			priority: "high",
 			title: message,
 		});
+		onPlaybackFailure?.();
 	}
 
 	return (

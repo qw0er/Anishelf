@@ -7,7 +7,7 @@ import {
 	within,
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as api from "../src/api/client.js";
 import type {
 	CompatibilityResult,
@@ -51,20 +51,9 @@ const original = {
 		},
 	],
 } as unknown as CompatibilityResult;
-vi.mock("../src/features/playback/hooks/use-media-compatibility.js", () => ({
-	useMediaCompatibility: () => ({
-		loading: false,
-		result: original,
-		error: null,
-		canAttempt: original.direct.status === "supported",
-		retry: vi.fn(),
-		failed: vi.fn(),
-		tryDirect: vi.fn(),
-	}),
-}));
 vi.mock("../src/features/playback/hooks/use-playback-session.js", () => ({
 	usePlaybackSession: () => ({
-		session: { sourceVersion: "v1", plan: { playbackUrl: "/api/media/file" } },
+		session: { sourceVersion: "v1" },
 		attach: vi.fn(),
 	}),
 }));
@@ -75,6 +64,47 @@ vi.mock("../src/features/playback/components/video-player.js", () => ({
 		</div>
 	),
 }));
+beforeEach(() => {
+	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([]);
+	vi.spyOn(api, "getPlaybackOptions").mockImplementation(async (input) => ({
+		original: {
+			sourceVersion: "v1",
+			descriptionId: "fresh",
+			queries: [],
+			selectedAudioStreamIndices: input.audioStreamIndices ?? [1, 2],
+			output: null,
+		} as unknown as apiReturn,
+		candidates: [],
+	}));
+	vi.spyOn(api, "selectPlayback").mockImplementation(async (input) => ({
+		sourceVersion: "v1",
+		compatibility: original,
+		pending: false,
+		plan: input.tryOriginal
+			? {
+					mode: "direct",
+					resource: {
+						delivery: "file",
+						url: "/api/media/file",
+						mimeType: "video/mp4",
+						timeline: {
+							sourceOriginMs: 0,
+							mediaOriginMs: 0,
+							sourceDurationMs: null,
+						},
+					},
+				}
+			: input.audioStreamIndices?.[0] === 2
+				? {
+						mode: "prepared",
+						artifactId: "jp-artifact",
+						resource: task.resource as NonNullable<
+							PreparationTaskResponse["resource"]
+						>,
+					}
+				: { mode: "blocked", reason: "audio-selection-requires-copy" },
+	}));
+});
 afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
@@ -148,7 +178,7 @@ test("changing playback audio verifies only matching copies and never enqueues a
 			task.resource?.url,
 		),
 	);
-	expect(api.checkMediaCompatibility).toHaveBeenCalledWith(
+	expect(api.selectPlayback).toHaveBeenCalledWith(
 		expect.objectContaining({ audioStreamIndices: [2] }),
 		expect.anything(),
 	);

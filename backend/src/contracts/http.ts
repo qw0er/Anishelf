@@ -100,3 +100,15 @@ export type MediaPlanningRequest = Static<
 export type MediaPlanningResponse = Static<
 	typeof schemas.MediaPlanningResponseSchema
 >;
+export type PlaybackOptionsRequest = Static<
+	typeof schemas.PlaybackOptionsRequestSchema
+>;
+export type PlaybackOptionsResponse = Static<
+	typeof schemas.PlaybackOptionsResponseSchema
+>;
+export type PlaybackSelectionRequest = Static<
+	typeof schemas.PlaybackSelectionRequestSchema
+>;
+export type PlaybackSelectionResponse = Static<
+	typeof schemas.PlaybackSelectionResponseSchema
+>;

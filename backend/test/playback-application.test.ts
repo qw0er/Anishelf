@@ -65,7 +65,7 @@ function update(
 ) {
 	return {
 		token: session.token,
-		generation: session.generation,
+		generation: session.progress.generation,
 		sourceVersion: session.sourceVersion,
 		sequence,
 		positionMs: 40000,
@@ -75,15 +75,8 @@ function update(
 
 test("opens direct playback, resumes history, and invalidates superseded tokens", async () => {
 	const session = await playback.open(fileId);
-	expect(session.plan).toEqual({
-		mode: "direct",
-		resource: {
-			delivery: "file" as const,
-			url: `/api/media/${fileId}`,
-			mimeType: "video/mp4",
-			timeline: { sourceOriginMs: 0, mediaOriginMs: 0, sourceDurationMs: null },
-		},
-	});
+	expect(session).not.toHaveProperty("plan");
+	expect(session).not.toHaveProperty("generation");
 	expect(JSON.stringify(session)).not.toContain(root);
 	expect(session.progress.lastViewedAtMs).toBeNull();
 	await playback.save(update(session));

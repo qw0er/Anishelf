@@ -181,26 +181,78 @@ beforeEach(() => {
 				queries: [],
 			});
 		}
+		if (path === "/api/playback/options")
+			return json({
+				original: {
+					sourceVersion: "version",
+					descriptionId: "a".repeat(64),
+					selectedAudioStreamIndices: [],
+					queries: [],
+					output: null,
+				},
+				candidates: [],
+			});
+		if (path === "/api/playback/selection") {
+			const intent = JSON.parse(String(init?.body));
+			const decision = {
+				status: compatibilityStatus,
+				reason:
+					compatibilityStatus === "supported"
+						? "browser-supported"
+						: "browser-rejected",
+			};
+			const ready = preparationTasks.find(
+				(task) => task.status === "ready" && task.resource,
+			);
+			const resource = {
+				delivery: "file",
+				url: file.originalMediaUrl,
+				mimeType: "video/mp4",
+				timeline: {
+					sourceOriginMs: 0,
+					mediaOriginMs: 0,
+					sourceDurationMs: null,
+				},
+			};
+			return json({
+				sourceVersion: "version",
+				pending: false,
+				compatibility: {
+					fileId: "file-1",
+					sourceVersion: "version",
+					rulesVersion: "4",
+					direct: decision,
+					container: decision,
+					video: decision,
+					audio: decision,
+					selectedVideo: null,
+					defaultAudioStreamIndex: null,
+					selectedAudioStreamIndices: [],
+					audioTracks: [],
+					output: null,
+					warnings: [],
+				},
+				plan: intent.tryOriginal
+					? { mode: "direct", resource }
+					: ready
+						? {
+								mode: "prepared",
+								artifactId: ready.artifactId,
+								resource: ready.resource,
+							}
+						: compatibilityStatus === "supported" &&
+								!intent.failedResourceIds?.includes("file-1")
+							? { mode: "direct", resource }
+							: { mode: "blocked", reason: "browser-rejected" },
+			});
+		}
+
 		if (path === "/api/playback/sessions") {
 			return json(
 				{
 					token: "session-token",
-					generation: 1,
 					sourceVersion: "version",
 					file: file.file,
-					plan: {
-						mode: "direct",
-						resource: {
-							delivery: "file" as const,
-							url: file.originalMediaUrl,
-							mimeType: "video/mp4",
-							timeline: {
-								sourceOriginMs: 0,
-								mediaOriginMs: 0,
-								sourceDurationMs: null,
-							},
-						},
-					},
 					progress: {
 						positionMs: 0,
 						durationMs: 100000,
@@ -787,30 +839,31 @@ test("a missing file shows safe feedback and can be retried", async () => {
 	await screen.findByLabelText("Video: Episode 01.mp4");
 });
 
-test("media errors recheck access and distinguish a deleted file from generic playback failure", async () => {
-	renderApp();
-	await openFile();
-	const video = await screen.findByLabelText("Video: Episode 01.mp4");
-	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-	Object.defineProperty(video, "error", {
-		value: { code: 3, message: "Decode failed" },
-	});
-	fireEvent.error(video);
-	await screen.findByText("This media could not be played in this browser.", {
-		selector: "[data-slot=toast-title]",
-	});
-	await waitFor(() =>
-		expect(
-			fetcher.mock.calls.filter(([path]) => path === "/api/files/file-1"),
-		).toHaveLength(2),
-	);
-	fileError = true;
-	fireEvent.error(video);
-	await screen.findByText(
-		"This file is no longer available. Scan the library again.",
-		{ selector: "[data-slot=toast-title]" },
-	);
-});
+test.each([false, true])(
+	"media errors recheck access with missing=%s",
+	async (missing) => {
+		renderApp();
+		await openFile();
+		const video = await screen.findByLabelText("Video: Episode 01.mp4");
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		fileError = missing;
+		Object.defineProperty(video, "error", {
+			value: { code: 3, message: "Decode failed" },
+		});
+		fireEvent.error(video);
+		await screen.findByText(
+			missing
+				? "This file is no longer available. Scan the library again."
+				: "This media could not be played in this browser.",
+			{ selector: "[data-slot=toast-title]" },
+		);
+		await waitFor(() =>
+			expect(
+				fetcher.mock.calls.filter(([path]) => path === "/api/files/file-1"),
+			).toHaveLength(2),
+		);
+	},
+);
 
 test("returning while file metadata is pending aborts and discards the old response", async () => {
 	const implementation = fetcher.getMockImplementation();
@@ -1337,9 +1390,9 @@ test("unsupported media displays a preparation hint without opening a modal or c
 	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
 	const call = fetcher.mock.calls.find(
 		([path, init]) =>
-			path === "/api/files/file-1/compatibility" && init?.method === "POST",
+			path === "/api/playback/selection" && init?.method === "POST",
 	);
-	expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({
+	expect(JSON.parse(String(call?.[1]?.body)).original).toMatchObject({
 		descriptionId: "a".repeat(64),
 		output: null,
 		sourceVersion: "version",
@@ -1368,7 +1421,7 @@ test("unknown media keeps an explicit original attempt and manual compatibility 
 test("an unavailable compatibility check remains retryable and permits an explicit attempt", async () => {
 	const implementation = fetcher.getMockImplementation();
 	fetcher.mockImplementation((input, init) => {
-		if (String(input).startsWith("/api/files/file-1/compatibility"))
+		if (String(input).startsWith("/api/playback/options"))
 			return Promise.resolve(
 				json(
 					{

@@ -19,6 +19,8 @@ import type { MediaPlanningApplication } from "../modules/media-planning/applica
 import { registerMediaPlanningRoutes } from "../modules/media-planning/http/planning.js";
 import type { PlaybackApplication } from "../modules/playback/application/playback.js";
 import { registerPlaybackRoutes } from "../modules/playback/http/playback.js";
+import { registerPlaybackSelectionRoutes } from "../modules/playback-selection/http/selection.js";
+import type { PlaybackSelectionApi } from "../modules/playback-selection/public.js";
 import type { PreparationApplication } from "../modules/preparation/application/preparation.js";
 import { registerPreparationRoutes } from "../modules/preparation/http/preparation.js";
 import { SubtitleApplication } from "../modules/subtitles/application/subtitles.js";
@@ -28,6 +30,7 @@ import { checkRequestOrigin } from "../transport/security.js";
 import { registerFrontend } from "../transport/static.js";
 
 export function createHttpApp(options: {
+	playbackSelection?: PlaybackSelectionApi;
 	config: Pick<DeploymentConfig, "host" | "port">;
 	logger: Logger;
 	policy?: DeepReadonly<BuiltinPolicy>;
@@ -140,6 +143,8 @@ export function createHttpApp(options: {
 		registerPlaybackRoutes(app, playback);
 	}
 
+	if (options.playbackSelection)
+		registerPlaybackSelectionRoutes(app, options.playbackSelection);
 	if (options.mediaPlanning)
 		registerMediaPlanningRoutes(app, options.mediaPlanning);
 	if (options.preparation) {

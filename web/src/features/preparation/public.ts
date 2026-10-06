@@ -5,4 +5,3 @@ export { PreparationMonitor } from "./components/preparation-monitor.js";
 export { PreparationProfileSettings } from "./components/profile-settings.js";
 export { PreparationProvider } from "./context.js";
 export { useFilePreparations } from "./use-file-preparations.js";
-export { usePreparedPlayback } from "./use-prepared-playback.js";

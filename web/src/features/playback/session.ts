@@ -261,7 +261,7 @@ export class PlaybackSessionController {
 			this.pending.durationMs !== this.position.durationMs
 		) {
 			this.pending = {
-				generation: session.generation,
+				generation: session.progress.generation,
 				sourceVersion: session.sourceVersion,
 				sequence: ++this.sequence,
 				...this.position,

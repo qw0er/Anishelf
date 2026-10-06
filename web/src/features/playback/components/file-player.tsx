@@ -1,5 +1,5 @@
 import { ArrowLeft, Info, Play, RefreshCw } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
 import type { FileResponse } from "../../../api/contracts.js";
@@ -12,6 +12,7 @@ import {
 	DialogTrigger,
 } from "../../../components/ui/dialog.js";
 import { Skeleton } from "../../../components/ui/skeleton.js";
+import { toast } from "../../../components/ui/toast.js";
 import {
 	playbackPolicy,
 	subtitlePolicy,
@@ -21,9 +22,9 @@ import { directoryPath } from "../../../routes/paths.js";
 import {
 	audioTrackLabel,
 	PreparationButton,
-	usePreparedPlayback,
+	useFilePreparations,
 } from "../../preparation/public.js";
-import { useMediaCompatibility } from "../hooks/use-media-compatibility.js";
+import { usePlaybackSelection } from "../hooks/use-playback-selection.js";
 import { usePlaybackSession } from "../hooks/use-playback-session.js";
 import MediaLink from "./media-link.js";
 import VideoPlayer from "./video-player.js";
@@ -41,6 +42,10 @@ export default function FilePlayer({
 	compatibilityScope?: string;
 }) {
 	const { t, i18n } = useTranslation();
+	useEffect(
+		() => () => toast.close(`video-playback:${data.file.id}`),
+		[data.file.id],
+	);
 	const [searchParams, setSearchParams] = useSearchParams();
 	const audio = searchParams.get("audio");
 	const audioStreamIndices = useMemo(
@@ -54,45 +59,34 @@ export default function FilePlayer({
 	);
 
 	const playback = usePlaybackSession(data.file.id, playbackPolicy);
-	const compatibility = useMediaCompatibility(
+	const prepared = useFilePreparations(data.file.id);
+	const compatibility = usePlaybackSelection(
 		data.file.id,
 		playback.session?.sourceVersion,
 		originalCompatibilityKey(data.file, compatibilityScope),
+		audioStreamIndices,
+		JSON.stringify(
+			prepared.tasks.map((task) => [task.id, task.status, task.updatedAtMs]),
+		),
 	);
-	const unsupported =
-		!compatibility.loading &&
-		compatibility.result?.direct.status === "unsupported";
 	const audioTracks = compatibility.result?.audioTracks ?? [];
 	const allAudioStreamIndices = audioTracks.map(({ stream }) => stream.index);
-	const originIdentity = JSON.stringify([data.file.id, audio]);
-	const [originAttempt, setOriginAttempt] = useState<string | null>(null);
-	const tryingOrigin = originAttempt === originIdentity;
-	const [originRevision, setOriginRevision] = useState(0);
+	const selectedPlan = compatibility.selection?.plan;
+	const resource =
+		selectedPlan?.mode === "direct" || selectedPlan?.mode === "prepared"
+			? selectedPlan.resource
+			: null;
+	const preparedCurrent = selectedPlan?.mode === "prepared";
+	const blocked = !compatibility.loading && !resource;
+	const unsupported = compatibility.result?.direct.status === "unsupported";
+	const tryingOrigin = selectedPlan?.mode === "direct";
+	const [compatibilityOpen, setCompatibilityOpen] = useState(false);
 	function tryOrigin() {
-		setOriginAttempt(originIdentity);
-		setOriginRevision((revision) => revision + 1);
 		compatibility.tryDirect();
 	}
-	const canAttempt = tryingOrigin || compatibility.canAttempt;
-	const requiresCopy =
-		!tryingOrigin && (unsupported || audioStreamIndices !== undefined);
-	const prepared = usePreparedPlayback(
-		data.file.id,
-		compatibility.result?.sourceVersion,
-		unsupported || audioStreamIndices !== undefined || audioTracks.length > 1,
-		audioStreamIndices,
-		compatibility.result ? allAudioStreamIndices : undefined,
-	);
-	const preparedCurrent = tryingOrigin ? null : prepared.task;
-	const [compatibilityOpen, setCompatibilityOpen] = useState(false);
-
-	const blocked =
-		!compatibility.loading &&
-		!preparedCurrent &&
-		((requiresCopy && !prepared.loading) || (!requiresCopy && !canAttempt));
 	function recheck() {
 		compatibility.retry();
-		prepared.retry();
+		prepared.refresh();
 	}
 	const preparationAction = (
 		<PreparationButton
@@ -134,7 +128,7 @@ export default function FilePlayer({
 					{t("player.retry")}
 				</Button>
 			</div>
-			{(compatibility.loading || (requiresCopy && prepared.loading)) && (
+			{compatibility.loading && (
 				<div role="status" aria-label={t("compatibility.checking")}>
 					<Skeleton className="aspect-video w-full" />
 				</div>
@@ -151,17 +145,15 @@ export default function FilePlayer({
 						{t(
 							compatibility.error
 								? "compatibility.failed"
-								: requiresCopy && prepared.listError
-									? "errors.requestFailed"
-									: requiresCopy && prepared.pending
+								: compatibility.runtimeFailed
+									? "compatibility.runtimeFailed"
+									: compatibility.selection?.pending
 										? "preparation.waitForCopy"
-										: requiresCopy && prepared.error
-											? "preparation.copyUnsupported"
+										: audioStreamIndices !== undefined
+											? "audioTracks.copyRequired"
 											: unsupported
 												? "compatibility.unsupported"
-												: audioStreamIndices !== undefined
-													? "audioTracks.copyRequired"
-													: "compatibility.unknown",
+												: "compatibility.unknown",
 						)}
 					</p>
 					<div className="action-row">
@@ -183,25 +175,13 @@ export default function FilePlayer({
 					{t("preparation.playing")}
 				</p>
 			)}
-			{(preparedCurrent || (!requiresCopy && canAttempt)) && (
+			{resource && (
 				<VideoPlayer
-					key={`video:${data.file.id}:${preparedCurrent?.artifactId ?? "original"}:${tryingOrigin ? originRevision : 0}`}
+					key={`video:${data.file.id}:${resource.url}`}
 					{...data}
 					subtitlePolicy={subtitlePolicy}
-					playbackUrl={
-						tryingOrigin
-							? data.originalMediaUrl
-							: (preparedCurrent?.resource?.url ??
-								(playback.session?.plan.mode === "direct"
-									? playback.session.plan.resource.url
-									: undefined) ??
-								data.originalMediaUrl)
-					}
-					{...(preparedCurrent?.resource
-						? { timeline: preparedCurrent.resource.timeline }
-						: playback.session?.plan.mode === "direct"
-							? { timeline: playback.session.plan.resource.timeline }
-							: {})}
+					playbackUrl={resource.url}
+					timeline={resource.timeline}
 					onMedia={playback.attach}
 					onPlaybackFailure={compatibility.failed}
 					expectsVideo={Boolean(compatibility.result?.selectedVideo)}

@@ -417,7 +417,7 @@ test("pins borrowed artifacts and deleting cache preserves original media and du
 	const session = await f.playback.open(input.fileId);
 	await f.playback.save({
 		token: session.token,
-		generation: session.generation,
+		generation: session.progress.generation,
 		sourceVersion: session.sourceVersion,
 		sequence: 1,
 		positionMs: 1000,

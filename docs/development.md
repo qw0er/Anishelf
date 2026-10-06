@@ -306,3 +306,28 @@ Run the full check and build, including preparation concurrency, borrowing, star
 recovery, legacy snapshot migration, Range delivery and real FFmpeg regressions.
 Race tests pause planning, validation, publication and release to verify that
 unrelated controls proceed and terminal cancellation cannot precede cleanup.
+
+## Playback selection and progress contracts
+
+Batch 4 introduces `POST /api/playback/options` and
+`POST /api/playback/selection`. The browser collects exact source/profile-bound
+queries returned by options and submits original plus candidate checks. The server
+owns copy eligibility, ordered-audio matching, profile priority, current availability
+and final resource URLs. These requests cannot create or retry preparation tasks.
+A failed resource can be excluded for the current intent. Explicit `tryOriginal`
+uses selection without browser evidence, retaining source access/version checks.
+
+Deploy Web and backend together. Session responses no longer contain `plan` or a
+top-level `generation`; progress requests use `session.progress.generation`.
+Selection responses do not authorize progress writes. Resource changes retain the
+existing session token and original source timeline. No database migration or
+artifact identity change is required; stored progress, settings and valid copies
+remain intact.
+
+Regression coverage includes exact/default/silent/custom-order audio selection,
+unsupported output, runtime exclusions, stale evidence, root switches, deletion
+between validation and selection, pending guidance, late browser responses,
+explicit original attempts without inspection, and unchanged active selection on
+background renders. Real FFmpeg preparation tests also select each processing
+branch through HTTP and save using one progress generation. Browser decoding and
+responsive visual acceptance remain separate from synthetic capability evidence.

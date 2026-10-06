@@ -389,3 +389,16 @@ export function getFilePreparations(
 		options,
 	);
 }
+
+export function getPlaybackOptions(
+	input: import("./contracts.js").PlaybackOptionsRequest,
+	options?: RequestOptions,
+): Promise<import("./contracts.js").PlaybackOptionsResponse> {
+	return request("/api/playback/options", "POST", options, input);
+}
+export function selectPlayback(
+	input: import("./contracts.js").PlaybackSelectionRequest,
+	options?: RequestOptions,
+): Promise<import("./contracts.js").PlaybackSelectionResponse> {
+	return request("/api/playback/selection", "POST", options, input);
+}

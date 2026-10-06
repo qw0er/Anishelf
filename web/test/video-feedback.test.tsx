@@ -62,7 +62,7 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-test("playback errors use one Toast and retry remount closes the notification", async () => {
+test("playback errors use one Toast and preserve it through resource reselection", async () => {
 	const add = vi.spyOn(toast, "add").mockReturnValue("video-playback:file-1");
 	const close = vi.spyOn(toast, "close").mockImplementation(() => {});
 	const { getByRole, queryByRole, unmount } = render(
@@ -94,7 +94,7 @@ test("playback errors use one Toast and retry remount closes the notification", 
 	await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
 	close.mockClear();
 	unmount();
-	expect(close).toHaveBeenCalledWith("video-playback:file-1");
+	expect(close).not.toHaveBeenCalledWith("video-playback:file-1");
 });
 
 test("known video sources without a decoded picture report failure even when audio plays", async () => {

@@ -154,10 +154,8 @@ export function playbackSessionResponse(
 ): PlaybackSessionResponse {
 	return {
 		token: session.token,
-		generation: session.generation,
 		sourceVersion: session.sourceVersion,
 		file: fileDto(session.file),
-		plan: playbackPlanDto(session.plan),
 		progress: playbackProgressDto(session.progress),
 	};
 }
@@ -439,4 +437,32 @@ export function preparationStartResponse(
 		case "task":
 			return { kind: "task", task: preparationTaskResponse(result.view) };
 	}
+}
+
+export function playbackSelectionResponse(
+	result: import("../modules/playback-selection/public.js").PlaybackSelection,
+): import("../contracts/http.js").PlaybackSelectionResponse {
+	const { choice } = result;
+	return {
+		sourceVersion: result.sourceVersion,
+		compatibility: result.compatibility
+			? presentCompatibility(result.compatibility)
+			: null,
+		pending: result.pending,
+		plan:
+			choice.kind === "direct"
+				? directPlaybackPlan(choice.fileId, choice.mimeType)
+				: choice.kind === "blocked"
+					? { mode: "blocked", reason: choice.reason }
+					: {
+							mode: "prepared",
+							artifactId: choice.artifactId,
+							resource: {
+								delivery: "file",
+								url: `/api/prepared-media/${choice.artifactId}`,
+								mimeType: choice.mimeType,
+								timeline: originalTimeline(),
+							},
+						},
+	};
 }

@@ -157,6 +157,28 @@ Implemented after Media Planning consolidation:
 - Startup recovery preserves valid completed files, cleans orphan/partial data and
   marks interrupted attempts retryable without automatically restarting them.
 
-Unified playback selection and frontend directory summaries/query-state ownership
-remain in batches 4 and 5. HLS delivery and automatic eviction remain outside the
+Frontend directory summaries/query-state ownership remain in batch 5. HLS delivery and automatic eviction remain outside the
 implemented product scope.
+
+## Batch 4: unified playback selection and progress sessions
+
+- Add a read-only Playback Selection owner and explicitly inject planning, copies,
+  source validation and selected-profile preference. It owns final resource choice;
+  the browser submits capabilities for server-provided candidates.
+- Bind copies to canonical root, source version and exact ordered audio selection;
+  validate the task's output combination, profile/artifact availability and source
+  epoch before projection. Preserve explicit original attempts without inspection.
+- Delete browser candidate sorting, mode/combination derivation and URL fallback
+  chains. Runtime failures exclude only the failed resource for the current intent.
+- Progress sessions no longer return plans or duplicate generation. Durable storage
+  is unchanged; delivery selection does not create a new writer. Sequential saves,
+  coalesced samples and original-sequence retries remain in the progress controller.
+- Poll selection only when blocked on pending tasks; task refresh and matching
+  progress-session arrival cannot replace an active delivery resource.
+- Update HTTP contracts, bootstrap, consumers, lifecycle feedback and English docs.
+  Existing valid artifacts and progress rows require no migration.
+
+Directory summaries, unified task query caching and broader component cleanup remain
+in batch 5. HLS delivery, automatic cache eviction and real-time acquisition remain
+outside implemented scope. Synthetic browser evidence does not certify native
+browser decoding; live browser/media and responsive checks are separate acceptance.

@@ -39,8 +39,7 @@ persistence last. Production supplies one shutdown sequence to HTTP composition.
 
 ![Anishelf module overview](architecture.svg)
 
-The diagram includes V2 proposals. The status stated in this document takes
-precedence where the diagram has not caught up with implementation.
+The diagram separates implemented owners from future delivery work.
 
 | Module | Owns |
 | --- | --- |
@@ -50,7 +49,8 @@ precedence where the diagram has not caught up with implementation.
 | Media Inspection | Shared source-version-bound inspection cache and probe concurrency |
 | Media Planning | Source/output descriptions, browser evidence validation, expected output specifications and read-only execution decisions |
 | Media Processing | Execution preflight, FFmpeg work and validated temporary outputs |
-| Playback | Sessions, durable progress and history |
+| Playback Selection | Read-only candidate inspection, browser-evidence validation and final original/prepared resource choice |
+| Playback | Progress-write sessions, durable progress and history |
 | Preparation | Persistent tasks, queue, reusable artifacts and cache delivery |
 | Subtitles | Discovery, selected-track preparation, delivery and asset lifecycle |
 | HLS | Resource/segment models, policy and lease port; publication/delivery implementation is pending |
@@ -286,9 +286,37 @@ delivery target and resolver version. Display metadata does not invalidate outpu
 processing policy changes do. Identity equality alone is insufficient for reuse:
 publication, availability and current browser acceptance must also hold.
 
-The session HTTP response currently identifies direct original playback for durable
-progress. The Web client independently verifies and selects a prepared artifact.
-Unified server-side selection remains planned. A playback borrower cannot delete
+Playback Selection owns the final resource decision through two read-only requests:
+`POST /api/playback/options` describes the original and eligible completed copies;
+`POST /api/playback/selection` validates browser evidence and returns one resource
+or a blocked decision. Preparation is accessed only through read ports.
+
+Eligibility binds canonical root, source version and exact ordered audio selection.
+Current profile and artifact availability are checked by Preparation. Selection
+checks the actual task mode against output combination evidence, re-reads artifact
+availability, and revalidates source/epoch before returning. The selected profile
+ranks first, then newest task update and stable task ID. Browser-submitted candidate
+order does not set priority. Options describe at most 128 eligible candidates in
+server priority order, independently of the task-list window. Original evidence preserves omitted versus explicit
+audio intent; candidate evidence uses normalized ordered indexes. Default
+single-audio supported playback uses the
+original; multi-audio/default and unsupported playback prefer a verified copy.
+Explicit audio selections require matching copies, including empty and custom-order
+selections. Unsupported or unknown evidence never silently authorizes a copy.
+
+A blocked player may poll while matching tasks are pending. An active player keeps
+its resource through task refreshes; explicit recheck, audio intent changes and
+runtime failure trigger selection again. Runtime failures exclude the failed resource
+for that intent; recheck permits fresh evidence and another attempt. An explicit
+original attempt uses the same selection endpoint without requiring media analysis,
+while retaining confined source/version/epoch checks. It intentionally plays the
+original native track behavior regardless of selected copy tracks.
+
+The progress session response carries token, source version, file and saved
+progress only. Its sole generation is `progress.generation`; it neither chooses
+resources nor duplicates the generation. Resource selection never opens a progress
+session. Delivery switches reuse the current writer and original timeline.
+A playback borrower cannot delete
 a reusable artifact through the processing owner's temporary-output release API.
 Real-time segment generations are independent of durable progress generations.
 
@@ -477,11 +505,12 @@ File menus expose relevant preparation/retry/deletion operations. A collapsible
 app-shell panel monitors active tasks across routes; collapsing or navigating does
 not stop server jobs. Poll pending work without overlap and stop at terminal states.
 
-For unsupported originals, verify a ready copy against fresh browser evidence and
-re-read availability before loading its URL, preferring the selected profile.
-A newly completed task may become playable on the open file page. Without a ready
-copy, show preparation guidance; watching itself never creates a task. Progress
-and subtitle selection remain attached to the original source.
+The playback selection hook collects evidence for server-provided candidates and
+loads only the returned resource. It does not sort tasks, derive combinations or
+fallback to detail/session URLs. A newly completed task can unblock a waiting player;
+background task refresh cannot replace active bytes. Without an accepted resource,
+show preparation guidance; watching never creates a task. Progress and subtitle
+timing remain attached to the original source.
 
 ## HLS migration foundation
 
@@ -496,9 +525,8 @@ preparation. Playback plans use a discriminated `resource`: `delivery: file` car
 URL/MIME/timeline; `delivery: hls` additionally carries resource identity, stream
 generation, complete/growing state, tracks and available source-time ranges.
 Prepared resources must be complete. Pending plans contain no resource or URL.
-Session contracts accept these plans, but opening a session still returns a direct
-file resource. The client still selects completed copies; server-side resource
-selection/acquisition is a later migration step.
+The selection endpoint returns direct or complete prepared file resources, while
+progress sessions carry no plan. HLS selection/acquisition remains future work.
 
 Compatibility output requests accept `target: hls`; browser decoding queries use
 `media-source`, not a fictional HLS MediaCapabilities query type. Evidence remains
@@ -602,7 +630,7 @@ Unknown original compatibility exposes pre-transcoding actions for both single-
 and multi-audio files. Fresh output compatibility evidence decides whether a task
 can be created. The player always offers an explicit original-file attempt
 when playback is blocked, including when prepared-copy discovery fails. This action
-loads the original URL without creating a preparation task. In-context recovery
+asks the server for the original resource without creating a preparation task. In-context recovery
 actions share a single titled playback-unavailable panel and wrapping action row.
 Check again, Try original file, and Pre-transcode use compact labeled buttons with
 icons; the page-level return link is not repeated inside the panel.

@@ -4,6 +4,7 @@ export * from "./library.js";
 export * from "./media.js";
 export * from "./planning.js";
 export * from "./playback.js";
+export * from "./playback-selection.js";
 export * from "./preparation.js";
 export * from "./subtitles.js";
 export * from "./transcode-profiles.js";

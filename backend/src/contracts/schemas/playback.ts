@@ -76,10 +76,8 @@ export const PlaybackPlanSchema = Type.Union([
 export const PlaybackSessionResponseSchema = Type.Object(
 	{
 		token: PlaybackTokenSchema,
-		generation: PositiveIntegerSchema,
 		sourceVersion: SourceVersionSchema,
 		file: FileDtoSchema,
-		plan: PlaybackPlanSchema,
 		progress: PlaybackProgressDtoSchema,
 	},
 	{ additionalProperties: false },

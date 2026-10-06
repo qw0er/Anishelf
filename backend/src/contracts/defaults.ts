@@ -41,3 +41,9 @@ export const libraryConstraints = Object.freeze<{
 export const subtitleConstraints = Object.freeze({
 	maximumBytes: 10 * 1024 * 1024,
 });
+
+/** Bounds each browser negotiation independently of the preparation list window. */
+export const playbackSelectionConstraints = Object.freeze({
+	maximumCandidates: 128,
+	maximumFailedResources: 256,
+});
