@@ -11,16 +11,69 @@ media directory, browse its folder structure, and watch videos in your browser.
 
 ## Requirements
 
-- Node.js 24 and npm.
-- FFmpeg and FFprobe for media inspection, subtitle extraction and preparation.
-  Direct playback remains available without these tools when the browser supports
-  the original media.
+- For container deployment, use Docker or Podman on Linux. The image includes
+  Node.js, FFmpeg/FFprobe and the application; no source build is required.
+- For running from source, install Node.js 24 and npm, plus FFmpeg and FFprobe
+  for media inspection, subtitle extraction and preparation. Direct playback
+  remains available without these tools when the browser supports the original media.
 - Read access to the media directory and write access to a separate application
   data directory.
 
 The backend currently listens only on loopback addresses. Remote use is available
 through SSH port forwarding; authentication and public access are outside the
 current scope.
+
+## Deploy with a container
+
+The published image is `ghcr.io/qw0er/anishelf:latest`. On a Linux server:
+
+```sh
+docker pull ghcr.io/qw0er/anishelf:latest
+docker volume create anishelf-data
+docker run -d --name anishelf --restart unless-stopped \
+  --network host --stop-timeout 15 \
+  -e ANISHELF_PORT=3000 \
+  --mount type=volume,source=anishelf-data,target=/data \
+  --mount type=bind,source=/absolute/media/path,target=/media,readonly \
+  ghcr.io/qw0er/anishelf:latest
+```
+
+Replace `/absolute/media/path` with your server's media directory before running.
+Open [Anishelf](http://127.0.0.1:3000) and save `/media` in Settings. When reusing
+existing application data, change any saved host media path to `/media` too.
+The persistent `/data` volume stores settings, the database and caches.
+
+Host networking is required by the current loopback-only listener; do not use
+`-p` port mappings. Change `ANISHELF_PORT` to select another unused host port and
+use that port in the browser and SSH forwarding command below.
+
+For Podman, replace `docker` with `podman`. On SELinux systems such as Fedora,
+replace the media `--mount` option with
+`-v /absolute/media/path:/media:ro,Z`. The container runs as UID/GID 1000;
+ensure its user can read the media directory. See [container usage](package/README.md)
+for additional mount details. If the registry requires authentication, run
+`docker login ghcr.io` before pulling.
+
+### Update
+
+Pull the new image, then stop the application:
+
+```sh
+docker pull ghcr.io/qw0er/anishelf:latest
+docker stop --time 15 anishelf
+```
+
+Back up the application data while the container is stopped. Then remove the old
+container and rerun the deployment command above with the same data volume,
+media mount and port:
+
+```sh
+docker rm anishelf
+```
+
+Keep the `anishelf-data` volume. Pulling an image alone does not update an existing
+container. Startup applies database migrations; reverting to an older image may
+also require restoring its matching data backup.
 
 ## Build
 

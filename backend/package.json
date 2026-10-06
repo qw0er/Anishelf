@@ -2,6 +2,7 @@
 	"name": "@anishelf/backend",
 	"license": "GPL-3.0-only",
 	"author": "QWER",
+	"version": "0.2.0",
 	"type": "module",
 	"main": "dist/index.js",
 	"scripts": {
