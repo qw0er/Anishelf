@@ -7,16 +7,47 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: publish-image-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  check-main:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      allowed: ${{ steps.check.outputs.allowed }}
+    steps:
+      - name: Check out release history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check that the release commit belongs to main
+        id: check
+        shell: bash
+        run: |
+          if git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
+            echo "allowed=true" >> "$GITHUB_OUTPUT"
+          else
+            status=$?
+            if [ "$status" -ne 1 ]; then
+              exit "$status"
+            fi
+            echo "allowed=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping image publication: the release commit is not in main."
+          fi
+
   publish:
+    needs: check-main
+    if: needs.check-main.outputs.allowed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out source
         uses: actions/checkout@v6
