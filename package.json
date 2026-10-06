@@ -21,7 +21,7 @@
 		"check": "npm run biome:check && npm run lint && npm run typecheck && npm test",
 		"test": "npm run architecture:test && npm run test --workspaces --if-present",
 		"build": "npm run build --workspaces",
-		"start": "npm run build && npm run start --workspace @anishelf/backend",
+		"start": "npm run build && ANISHELF_FRONTEND_DIR=\"./web/dist\" npm run start --workspace @anishelf/backend",
 		"start:backend": "npm run start --workspace @anishelf/backend",
 		"dev:backend": "npm run dev --workspace @anishelf/backend",
 		"dev:web": "npm run dev --workspace @anishelf/web",

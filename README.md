@@ -24,6 +24,7 @@ Startup options can be set with environment variables:
 | --- | --- | --- |
 | `ANISHELF_HOST` | `127.0.0.1` | Loopback listener IP (`127.x.x.x` or `::1`). |
 | `ANISHELF_PORT` | `3000` | Listener port, from 1 to 65535. |
+| `ANISHELF_FRONTEND_DIR` | Unset | Absolute frontend build directory containing `index.html`; enables Node page hosting. |
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory for Anishelf | Absolute writable application data directory. |
 | `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
 | `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout` or `file`. |
@@ -39,7 +40,7 @@ On macOS, installations using the previous `~/.local/share/anishelf` default sho
 
 ## Start the backend
 
-The backend provides APIs and media and also serves `web/dist` when `web/dist/index.html` exists, in both production and development. Without a frontend build, it starts as an API/media-only server.
+The backend serves APIs and media by default, even when `web/dist` exists. Set `ANISHELF_FRONTEND_DIR` to an absolute frontend build directory to enable page hosting in production or development. A configured directory without `index.html` fails startup.
 
 **Node can serve the complete application; a shared Caddy can reverse-proxy all requests to Node.** Alternatively, use Caddy or another Web server to serve `web/dist` and reverse-proxy `/api`. Use systemd or another process manager to start, restart, and collect logs from Node.js. The build outputs are `backend/dist` and `web/dist`; keep the backend runtime dependencies available, and keep `web/dist` alongside `backend`, or deploy the frontend build to the Web server's static root.
 
@@ -84,7 +85,8 @@ Set `ANISHELF_DATA_DIR` in the service environment to your prepared persistent d
 
 ### Proxy the complete application with a shared Caddy
 
-When Node hosts `web/dist`, the shared Caddy can proxy pages, assets and APIs together:
+Set `ANISHELF_FRONTEND_DIR=/opt/anishelf/web/dist` in the service environment.
+When Node hosts the configured build, the shared Caddy can proxy pages, assets and APIs together:
 
 ```caddyfile
 http://127.0.0.1:8080 {
@@ -159,10 +161,10 @@ For LAN development, run `npm run dev:host`. Vite listens on `0.0.0.0:5173`; ope
 To build the frontend and backend, then serve the page directly from the backend, run:
 
 ```sh
-npm run start:web
+npm start
 ```
 
-Open <http://127.0.0.1:3000>. `start:web` builds both workspaces before starting the backend in its normal runtime mode, so it serves the newly built `web/dist` at the backend address. Page hosting is available only when `web/dist/index.html` exists. Built pages do not hot reload; rerun `npm run start:web` after changes to rebuild and restart. If a build fails, the backend will not start through this command; use `npm run dev` for frontend hot reload.
+Open <http://127.0.0.1:3000>. `start` builds both workspaces before starting the backend in its normal runtime mode, and explicitly sets `ANISHELF_FRONTEND_DIR` to the absolute `web/dist` path, so it serves the newly built frontend at the backend address. `npm run start:backend` provides only APIs/media unless `ANISHELF_FRONTEND_DIR` is set. Built pages do not hot reload; rerun `npm start` after changes to rebuild and restart. If a build fails, the backend will not start through this command; use `npm run dev` for frontend hot reload.
 
 ## Checks and documentation
 

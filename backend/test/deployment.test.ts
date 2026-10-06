@@ -74,6 +74,9 @@ test.each([
 	["ANISHELF_PORT", "3000abc"],
 	["ANISHELF_PORT", " 3000 "],
 	["ANISHELF_PORT", ""],
+	["ANISHELF_FRONTEND_DIR", "relative"],
+	["ANISHELF_FRONTEND_DIR", ""],
+	["ANISHELF_FRONTEND_DIR", "/tmp/\0"],
 	["ANISHELF_DATA_DIR", "relative"],
 	["ANISHELF_DATA_DIR", ""],
 	["ANISHELF_DATA_DIR", "/tmp/\0"],
@@ -160,3 +163,11 @@ test.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
 		}
 	},
 );
+
+test("frontend hosting is opt-in through an absolute directory", () => {
+	expect(parseDeploymentConfig({}).frontendDir).toBeUndefined();
+	const frontendDir = join(fixture, "web");
+	expect(
+		parseDeploymentConfig({ ANISHELF_FRONTEND_DIR: frontendDir }).frontendDir,
+	).toBe(frontendDir);
+});

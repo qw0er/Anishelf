@@ -5,6 +5,7 @@ export interface DeploymentConfig {
 	host: string;
 	port: number;
 	dataDir: string;
+	frontendDir?: string;
 	logging: LoggingConfig;
 	mediaTools: MediaToolsConfig;
 }

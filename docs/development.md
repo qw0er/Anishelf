@@ -21,7 +21,7 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm run dev` | Start the backend watcher and Vite together; stop both with Ctrl+C |
 | `npm run dev:host` | Start both services with Vite listening on 0.0.0.0:5173 for LAN development |
 | `npm run dev:backend` | Watch only the backend HTTP entry point with readable, colored pino-pretty terminal logs |
-| `npm run start:web` | Build both workspaces, then start the backend in its normal runtime mode to serve `web/dist` |
+| `npm start` | Build both workspaces, then start the backend in its normal runtime mode to serve `web/dist` |
 | `npm run dev:web` | Start Vite on 127.0.0.1:5173 with an API proxy |
 | `npm run typecheck` | Check both workspaces, including their tests |
 | `npm test` | Run backend and frontend API client tests once with Vitest |
@@ -33,7 +33,7 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm run architecture:test` | Verify architecture rules with allowed and forbidden dependency fixtures |
 | `npm run check` | Run Biome checks, type checks, and both workspace test suites |
 | `npm run build` | Build backend and frontend |
-| `npm start` | Run the built backend entry point after building |
+| `npm run start:backend` | Run the built backend; host pages only when `ANISHELF_FRONTEND_DIR` is set |
 
 ## Deployment configuration
 
@@ -41,7 +41,7 @@ Startup requires no deployment file or application environment variables:
 
 ```sh
 npm run build
-npm start
+npm run start:backend
 ```
 
 ### Environment variables
@@ -57,6 +57,7 @@ npm start
 | `ANISHELF_FFMPEG_PATH` | `ffmpeg` from process PATH | Optional absolute FFmpeg executable path; resolved independently. |
 | `ANISHELF_FFPROBE_PATH` | `ffprobe` from process PATH | Optional absolute FFprobe executable path; resolved independently. |
 | `ANISHELF_API_TARGET` | `http://127.0.0.1:3000` | Vite proxy target; match any custom backend listener. |
+| `ANISHELF_FRONTEND_DIR` | Unset | Absolute build directory containing `index.html`; enables Node frontend hosting. Invalid or missing builds fail startup. |
 | `NODE_ENV` | Unset | `development` enables the local Vite Origin allowlist. Built-page hosting is independent of this value. |
 
 The same options apply to development and production; changes require restart.
@@ -170,11 +171,12 @@ the backend stays on loopback. Open `http://<server-lan-ip>:5173`. The proxy rew
 Origin only when it matches the incoming Host; unrelated origins reach backend
 validation unchanged. This development server has no authentication.
 
-Vite provides SPA fallback for direct routes. `npm run start:web` builds both
+Vite provides SPA fallback for direct routes. `npm start` builds both
 workspaces and serves `web/dist` through the backend in its normal runtime mode.
-In any mode, startup enables static files and SPA fallback when
-`web/dist/index.html` exists; otherwise the backend serves only APIs/media.
-Ship `web/dist` alongside `backend` to host the complete application with Node.
+The script explicitly sets `ANISHELF_FRONTEND_DIR` to the absolute `web/dist` path.
+In any mode, Node enables static files and SPA fallback only when this environment
+variable is set. Without it, the backend serves only APIs/media, even if a frontend
+build exists. The configured directory must contain `index.html` or startup fails.
 A shared Caddy can proxy the whole application, or serve frontend files separately.
 SIGINT/SIGTERM close HTTP, active application work and the database, with a
 five-second shutdown limit; failure sets a nonzero exit code.

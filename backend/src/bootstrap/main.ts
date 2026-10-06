@@ -1,6 +1,3 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { Logger } from "pino";
 import { ConfigurationService } from "../modules/configuration/application/service.js";
 import type {
@@ -119,9 +116,7 @@ async function createServer(
 ): Promise<HttpApp> {
 	const config = configuration.deployment;
 	const development = configuration.environment.development;
-	const frontendRoot = fileURLToPath(
-		new URL("../../../web/dist/", import.meta.url),
-	);
+	const frontendRoot = config.frontendDir;
 	const inspection = new MediaInspectionApplication({
 		sources: library.sources,
 		tools,
@@ -209,7 +204,7 @@ async function createServer(
 			await inspection.close();
 			database?.close();
 		},
-		...(existsSync(join(frontendRoot, "index.html")) ? { frontendRoot } : {}),
+		...(frontendRoot === undefined ? {} : { frontendRoot }),
 	});
 	return server;
 }

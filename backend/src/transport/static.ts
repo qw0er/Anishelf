@@ -11,7 +11,7 @@ export async function registerFrontend(app: FastifyInstance, root: string) {
 		await access(join(root, "index.html"));
 	} catch {
 		throw new Error(
-			"Frontend build is missing. Run npm run build before starting.",
+			"Frontend build is missing. Run npm run build and set ANISHELF_FRONTEND_DIR to the directory containing index.html.",
 		);
 	}
 	await app.register(fastifyStatic, {

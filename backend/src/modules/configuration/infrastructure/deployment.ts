@@ -88,7 +88,21 @@ export function parseDeploymentConfig(
 				? deploymentDefaults.ffprobe
 				: absolutePath(env.ANISHELF_FFPROBE_PATH, "ANISHELF_FFPROBE_PATH"),
 	};
-	return { host, port, dataDir, logging, mediaTools };
+	return {
+		host,
+		port,
+		dataDir,
+		logging,
+		mediaTools,
+		...(env.ANISHELF_FRONTEND_DIR === undefined
+			? {}
+			: {
+					frontendDir: absolutePath(
+						env.ANISHELF_FRONTEND_DIR,
+						"ANISHELF_FRONTEND_DIR",
+					),
+				}),
+	};
 }
 
 /** Prepare the writable data directory after validating all startup options. */
