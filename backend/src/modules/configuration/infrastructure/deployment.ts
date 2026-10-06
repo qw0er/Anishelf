@@ -29,6 +29,28 @@ function defaultDataDir(): string {
 	return userDataDir("anishelf", false);
 }
 
+function parsePublicOrigin(value: string): string {
+	try {
+		const url = new URL(value);
+		if (
+			!/^https?:\/\/[^/?#\s\\]+\/?$/.test(value) ||
+			url.username ||
+			url.password ||
+			url.pathname !== "/" ||
+			url.search ||
+			url.hash
+		) {
+			throw new Error("Expected an HTTP(S) origin");
+		}
+		return url.origin;
+	} catch (cause) {
+		invalid(
+			"ANISHELF_PUBLIC_ORIGIN must be an HTTP(S) origin without credentials, path, query or fragment.",
+			cause,
+		);
+	}
+}
+
 /** Resolve and validate startup environment variables without filesystem effects. */
 export function parseDeploymentConfig(
 	env: Environment = process.env,
@@ -91,6 +113,9 @@ export function parseDeploymentConfig(
 	return {
 		host,
 		port,
+		...(env.ANISHELF_PUBLIC_ORIGIN === undefined
+			? {}
+			: { publicOrigin: parsePublicOrigin(env.ANISHELF_PUBLIC_ORIGIN) }),
 		dataDir,
 		logging,
 		mediaTools,

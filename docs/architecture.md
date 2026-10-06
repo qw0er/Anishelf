@@ -138,3 +138,23 @@ Protocol references: [IINA source](https://github.com/iina/iina/blob/develop/iin
 [VLC Android manifest](https://github.com/videolan/vlc-android/blob/master/application/vlc-android/AndroidManifest.xml),
 [MX Player Intents](https://sites.google.com/site/mxvpen/api), and
 [mpv-android manifest](https://github.com/mpv-android/mpv-android/blob/master/app/src/main/AndroidManifest.xml).
+
+## Reverse proxy request validation
+
+Configuration validates the optional `ANISHELF_PUBLIC_ORIGIN` at startup. HTTP
+transport accepts its Host authority and validates mutation Origin against the
+configured external scheme and port. Listener configuration remains loopback-only,
+and local requests keep their listener-bound Host/Origin validation. Forwarded
+headers are not trusted; cross-site mutation metadata is still rejected. A reverse
+proxy owns authentication and TLS for external access. This setting does not add
+application accounts or authentication.
+
+The setting allows a single external origin without wildcards or domain lists.
+Host validation permits that origin's hostname and effective port in addition to
+the existing loopback/localhost authority on the listener port. When unset, only
+local authorities are accepted. Host is checked on every request. Production
+mutation Origins, when present, must match the origin selected by the accepted
+Host; absent Origin remains allowed unless fetch metadata indicates cross-site
+access. GET, HEAD and OPTIONS skip Origin and fetch-metadata checks. Development
+retains the fixed Vite Origin allowlist. This allowlist does not prove that a
+request has passed proxy authentication; authentication is a proxy responsibility.

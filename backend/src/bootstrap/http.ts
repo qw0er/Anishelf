@@ -31,7 +31,7 @@ import { registerFrontend } from "../transport/static.js";
 
 export function createHttpApp(options: {
 	playbackSelection?: PlaybackSelectionApi;
-	config: Pick<DeploymentConfig, "host" | "port">;
+	config: Pick<DeploymentConfig, "host" | "port" | "publicOrigin">;
 	logger: Logger;
 	policy?: DeepReadonly<BuiltinPolicy>;
 	development?: boolean;

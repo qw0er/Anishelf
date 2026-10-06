@@ -20,8 +20,8 @@ media directory, browse its folder structure, and watch videos in your browser.
   data directory.
 
 The backend currently listens only on loopback addresses. Remote use is available
-through SSH port forwarding; authentication and public access are outside the
-current scope.
+through SSH port forwarding or a [Caddy reverse proxy](#caddy-reverse-proxy).
+The application has no built-in authentication; Caddy must protect domain access.
 
 ## Run and use
 
@@ -64,8 +64,11 @@ Open the same local address and keep the SSH connection active.
 ## Deploy with a container
 
 Use `ghcr.io/qw0er/anishelf:latest` on Linux AMD64 or ARM64. The image includes
-Node.js 24, FFmpeg/FFprobe, database migrations and the built frontend. Choose one
-of these deployment methods:
+Node.js 24, FFmpeg/FFprobe, database migrations and the built frontend. The
+examples include `ANISHELF_PUBLIC_ORIGIN=https://example.com` for domain
+access through an authenticated Caddy proxy. Replace it with your actual origin
+and apply the [Caddy configuration](#caddy-reverse-proxy). For local or SSH-only
+access, omit this variable. Choose one of these deployment methods:
 
 - [Docker CLI](#docker-cli)
 - [Docker Compose](#docker-compose)
@@ -88,8 +91,9 @@ storage; switching runtimes requires an explicit data transfer while stopped.
 
 The image runs as UID/GID 1000. Media must be readable and bind-mounted data
 writable by the container user. Rootless examples map the host user to that UID.
-On SELinux systems, use `Z` for private mounts or `z` for media shared between
-containers. GPU acceleration requires additional host/device configuration.
+The examples do not relabel host directories. On enforcing SELinux hosts, follow
+the [SELinux mount guidance](#selinux-mounts) below. GPU acceleration requires
+additional host/device configuration.
 If GHCR requires authentication, log in with the same user and runtime that
 will pull the image (`docker login ghcr.io`, `podman login ghcr.io`, or
 `sudo podman login ghcr.io`).
@@ -107,6 +111,7 @@ docker volume create anishelf-data
 docker run -d --name anishelf --restart unless-stopped \
   --network host --stop-timeout 15 \
   -e ANISHELF_PORT=3000 \
+  -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
   --mount type=volume,source=anishelf-data,target=/data \
   --mount type=bind,source=/absolute/media/path,target=/media,readonly \
   ghcr.io/qw0er/anishelf:latest
@@ -114,8 +119,7 @@ docker ps --filter name=anishelf
 docker logs -f anishelf
 ```
 
-On SELinux hosts, replace the media `--mount` with
-`-v /absolute/media/path:/media:ro,Z`.
+For SELinux mount options, see [SELinux mounts](#selinux-mounts).
 
 To update:
 
@@ -142,6 +146,7 @@ services:
     stop_grace_period: 15s
     environment:
       ANISHELF_PORT: "3000"
+      ANISHELF_PUBLIC_ORIGIN: "https://example.com"
     volumes:
       - anishelf-data:/data
       - type: bind
@@ -178,9 +183,8 @@ Open `http://127.0.0.1:3000` locally or through the SSH forwarding described in
 the [usage instructions](#run-and-use), and save `/media` in Settings. Change
 `ANISHELF_PORT` for a different host port. Host networking requires no `ports` entry. The image health
 check uses the same port; `docker compose ps` reports its health status.
-On SELinux hosts, add `selinux: Z` under `bind` for a private media mount, or
-`selinux: z` if other containers share that directory. Ensure UID/GID 1000 can
-read the media files.
+Ensure UID/GID 1000 can read the media files. See [SELinux mounts](#selinux-mounts)
+before enabling Compose relabeling options.
 
 To update to the current `latest` image, run:
 
@@ -212,8 +216,9 @@ podman run -d --name anishelf --restart unless-stopped \
   --network host --stop-timeout 15 \
   --userns keep-id:uid=1000,gid=1000 --user 1000:1000 \
   -e ANISHELF_PORT=3000 \
-  -v "$HOME/.local/share/anishelf:/data:Z" \
-  -v /absolute/media/path:/media:ro,Z \
+  -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
+  -v "$HOME/.local/share/anishelf:/data" \
+  -v /absolute/media/path:/media:ro \
   ghcr.io/qw0er/anishelf:latest
 podman ps --filter name=anishelf
 podman logs -f anishelf
@@ -227,8 +232,9 @@ sudo podman pull ghcr.io/qw0er/anishelf:latest
 sudo podman run -d --name anishelf --restart unless-stopped \
   --network host --stop-timeout 15 --user 1000:1000 \
   -e ANISHELF_PORT=3000 \
-  -v /var/lib/anishelf:/data:Z \
-  -v /absolute/media/path:/media:ro,Z \
+  -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
+  -v /var/lib/anishelf:/data \
+  -v /absolute/media/path:/media:ro \
   ghcr.io/qw0er/anishelf:latest
 sudo podman ps --filter name=anishelf
 sudo podman logs -f anishelf
@@ -268,8 +274,9 @@ ContainerName=anishelf
 Network=host
 User=1000:1000
 Environment=ANISHELF_PORT=3000
-Volume=/var/lib/anishelf:/data:Z
-Volume=/absolute/media/path:/media:ro,Z
+Environment=ANISHELF_PUBLIC_ORIGIN=https://example.com
+Volume=/var/lib/anishelf:/data
+Volume=/absolute/media/path:/media:ro
 StopTimeout=15
 
 [Service]
@@ -326,8 +333,9 @@ Network=host
 UserNS=keep-id:uid=1000,gid=1000
 User=1000:1000
 Environment=ANISHELF_PORT=3000
-Volume=%h/.local/share/anishelf:/data:Z
-Volume=/absolute/media/path:/media:ro,Z
+Environment=ANISHELF_PUBLIC_ORIGIN=https://example.com
+Volume=%h/.local/share/anishelf:/data
+Volume=/absolute/media/path:/media:ro
 StopTimeout=15
 
 [Service]
@@ -341,7 +349,7 @@ WantedBy=default.target
 
 Replace the media path; the rootless user must own the data directory and be able
 to read the media. The user namespace maps that host user to the image's UID/GID
-1000. `:Z` labels private mounts for SELinux; use `:z` for shared media.
+1000. See [SELinux mounts](#selinux-mounts) if SELinux blocks access.
 This data directory is separate from the Docker volume. Copy existing data only
 while the old service is stopped, preserving a backup and adjusting ownership
 for the rootless user.
@@ -386,6 +394,85 @@ Retain the data backup for database rollback.
 See the [Quadlet reference](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html)
 for supported keys and generator troubleshooting.
 
+### SELinux mounts
+
+On SELinux enforcing hosts, use `:Z` for private application data and `:ro,z`
+for shared, read-only media. For Podman CLI:
+
+```sh
+-v "$HOME/.local/share/anishelf:/data:Z" \
+-v /srv/anime:/media:ro,z
+```
+
+For rootless Quadlet, change the mount entries to:
+
+```ini
+Volume=%h/.local/share/anishelf:/data:Z
+Volume=/srv/anime:/media:ro,z
+```
+
+For rootful Quadlet, use `/var/lib/anishelf:/data:Z` instead. Compose bind mounts
+support `bind.selinux: Z` for private data or `z` for shared media.
+Relabeling changes host file labels and requires permission and filesystem
+support; `:ro` does not prevent it. If `lsetxattr ... operation not permitted`
+occurs, have the administrator check labeling permissions and other services
+using the directory. SELinux isolation can remain enabled with these labels.
+
+### Caddy reverse proxy
+
+Keep the backend listening on loopback and configure the external origin. For
+example, if Caddy serves `https://example.com` and Anishelf uses port 3000,
+add these environment variables to your deployment:
+
+```ini
+ANISHELF_PORT=3000
+ANISHELF_PUBLIC_ORIGIN=https://example.com
+```
+
+For Quadlet, use `Environment=ANISHELF_PORT=3000` and
+`Environment=ANISHELF_PUBLIC_ORIGIN=https://example.com`. For Compose, add
+both values under `environment`; for CLI deployment, pass each with `-e`.
+Recreate the container or restart the Quadlet service after configuration changes.
+
+`ANISHELF_PUBLIC_ORIGIN` allows one explicit external origin, without wildcards
+or a list of domains. With the example above:
+
+- Requests with Host `example.com` (or `example.com:443`) are accepted.
+  Other external domains and ports are rejected.
+- Mutations carrying Origin must match `https://example.com`; HTTP, other
+  domains and other ports are rejected. Cross-site mutation metadata is rejected
+  even when Origin is absent.
+- Local access through the configured loopback listener or `localhost` remains
+  available on the backend port, including health checks.
+- When unset, only the local Host rules apply. This setting does not authenticate
+  users; the reverse proxy must authenticate every externally accessible route.
+
+Configure Caddy to authenticate the entire application and preserve Host and
+Origin headers:
+
+```caddyfile
+example.com {
+    basic_auth {
+        qwer <password-hash>
+    }
+    reverse_proxy 127.0.0.1:3000
+}
+```
+
+Generate the password hash with `caddy hash-password` and replace
+`<password-hash>`. Validate and reload your Caddy configuration after editing.
+Caddy must share the host network with Anishelf to reach this loopback upstream.
+Use the exact browser origin, including an external non-default port if present;
+paths, credentials, queries and fragments are not accepted. Do not rewrite Host
+or Origin to the upstream address. Forwarded headers do not grant access.
+
+Check `http://127.0.0.1:3000/api/health` locally, then open the HTTPS domain,
+authenticate, and verify both browsing and a Settings save. The public origin
+allows that domain while retaining local health checks and rejecting unrelated
+Hosts, mutation Origins and cross-site mutation metadata. Basic authentication
+is provided by Caddy, not by the public-origin setting.
+See [Caddy basic authentication](https://caddyserver.com/docs/caddyfile/directives/basic_auth).
+
 ## Configuration
 
 Set environment variables before starting the application. Restart after changes.
@@ -394,6 +481,7 @@ Set environment variables before starting the application. Restart after changes
 | --- | --- | --- |
 | `ANISHELF_HOST` | `127.0.0.1` | Loopback listener address: `127.x.x.x` or `::1`. |
 | `ANISHELF_PORT` | `3000` | Listener port, from 1 to 65535. |
+| `ANISHELF_PUBLIC_ORIGIN` | Unset | One allowed external HTTP(S) origin, such as `https://example.com`; local access remains available. Authentication belongs to the reverse proxy. |
 | `ANISHELF_FRONTEND_DIR` | Unset | Absolute frontend build directory containing `index.html`; enables page hosting. |
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory | Absolute writable directory for settings, the database and caches. |
 | `ANISHELF_FFMPEG_PATH` | `ffmpeg` from PATH | Optional absolute FFmpeg executable path. |

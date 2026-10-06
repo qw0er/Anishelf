@@ -33,6 +33,33 @@ test("allows an explicit data directory to override the platform default", () =>
 	).toBe(join(fixture, "custom"));
 });
 
+test.each([
+	["https://Anime.Example.com/", "https://anime.example.com"],
+	["https://anime.example.com:443", "https://anime.example.com"],
+	["http://anime.example.com:8080", "http://anime.example.com:8080"],
+])("normalizes public origin %s", (value, expected) => {
+	expect(
+		parseDeploymentConfig({ ANISHELF_PUBLIC_ORIGIN: value }).publicOrigin,
+	).toBe(expected);
+});
+
+test.each([
+	"",
+	"anime.example.com",
+	"ftp://anime.example.com",
+	"https://user:pass@anime.example.com",
+	"https://anime.example.com/path",
+	"https://anime.example.com/../",
+	"https://anime.example.com?x=1",
+	"https://anime.example.com#fragment",
+	" https://anime.example.com",
+	"https://anime.example.com:99999",
+])("rejects invalid public origin %s", (value) => {
+	expect(() =>
+		parseDeploymentConfig({ ANISHELF_PUBLIC_ORIGIN: value }),
+	).toThrow("ANISHELF_PUBLIC_ORIGIN");
+});
+
 test("supports IPv6 loopback, port boundaries and file logging", () => {
 	const config = parseDeploymentConfig({
 		ANISHELF_HOST: "::1",
