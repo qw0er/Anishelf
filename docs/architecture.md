@@ -158,3 +158,14 @@ Host; absent Origin remains allowed unless fetch metadata indicates cross-site
 access. GET, HEAD and OPTIONS skip Origin and fetch-metadata checks. Development
 retains the fixed Vite Origin allowlist. This allowlist does not prove that a
 request has passed proxy authentication; authentication is a proxy responsibility.
+
+## Initial resource configuration
+
+Configuration validates `ANISHELF_INITIAL_RESOURCE_ROOT` as an optional absolute
+path. When persistent settings are missing, Configuration checks media-directory
+access and separation from the data directory before publishing a complete
+settings file without replacement. Existing settings always take precedence;
+malformed or unreadable settings fail instead of being overwritten. The initial
+root is a deployment default for first setup, while persistent settings remain
+the owner of subsequent user choices. Without the variable, missing settings
+continue to enter setup mode.

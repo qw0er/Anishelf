@@ -1,4 +1,14 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	chmod,
+	mkdir,
+	mkdtemp,
+	readdir,
+	readFile,
+	rm,
+	stat,
+	symlink,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
@@ -43,6 +53,110 @@ test("missing settings use current defaults without generating a policy or setti
 			service.snapshot.settings as { scanIntervalMinutes: number }
 		).scanIntervalMinutes = 9;
 	}).toThrow(TypeError);
+});
+
+test("initial resource root persists once and later UI changes survive reload", async () => {
+	const root = join(directory, "media");
+	await mkdir(root);
+	const env = { ...environment(), ANISHELF_INITIAL_RESOURCE_ROOT: root };
+	const service = await ConfigurationService.load(env);
+	expect(service.settings).toEqual({ resourceRoot: root });
+	const file = join(dataDir, "settings.json");
+	expect(JSON.parse(await readFile(file, "utf8"))).toEqual({
+		resourceRoot: root,
+	});
+	if (process.platform !== "win32")
+		expect((await stat(file)).mode & 0o777).toBe(0o600);
+	await service.update({ resourceRoot: null, scanIntervalMinutes: 0 });
+	const original = await readFile(file, "utf8");
+	expect((await ConfigurationService.load(env)).settings).toEqual({
+		resourceRoot: null,
+		scanIntervalMinutes: 0,
+	});
+	expect(await readFile(file, "utf8")).toBe(original);
+});
+
+test.each(["missing", "file", "nested", "same", "ancestor", "symlink"])(
+	"rejects invalid initial root (%s) without publishing settings",
+	async (kind) => {
+		let root = join(directory, "media");
+		if (kind === "file") await writeFile(root, "not a directory");
+		if (kind === "nested") root = join(dataDir, "media");
+		if (kind === "same") root = dataDir;
+		if (kind === "ancestor") root = directory;
+		if (kind === "symlink") {
+			await mkdir(dataDir);
+			await symlink(dataDir, root, "dir");
+		}
+		await expect(
+			ConfigurationService.load({
+				...environment(),
+				ANISHELF_INITIAL_RESOURCE_ROOT: root,
+			}),
+		).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+		await expect(
+			readFile(join(dataDir, "settings.json")),
+		).rejects.toMatchObject({ code: "ENOENT" });
+	},
+);
+
+test.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
+	"rejects unreadable initial media without persisting settings",
+	async () => {
+		const root = join(directory, "media");
+		await mkdir(root);
+		await chmod(root, 0o000);
+		try {
+			await expect(
+				ConfigurationService.load({
+					...environment(),
+					ANISHELF_INITIAL_RESOURCE_ROOT: root,
+				}),
+			).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+			await expect(
+				readFile(join(dataDir, "settings.json")),
+			).rejects.toMatchObject({ code: "ENOENT" });
+		} finally {
+			await chmod(root, 0o700);
+		}
+	},
+);
+
+test("existing settings win over unavailable initial media; malformed settings are not replaced", async () => {
+	await mkdir(dataDir);
+	const file = join(dataDir, "settings.json");
+	const env = {
+		...environment(),
+		ANISHELF_INITIAL_RESOURCE_ROOT: join(directory, "missing"),
+	};
+	await writeFile(file, '{"resourceRoot":null}');
+	expect((await ConfigurationService.load(env)).settings).toEqual({
+		resourceRoot: null,
+	});
+	await writeFile(file, "");
+	await expect(ConfigurationService.load(env)).rejects.toMatchObject({
+		code: "CONFIG_INVALID",
+	});
+	expect(await readFile(file, "utf8")).toBe("");
+});
+
+test("concurrent initializers publish one complete settings file without overwriting", async () => {
+	const roots = [join(directory, "first"), join(directory, "second")];
+	await Promise.all(roots.map((root) => mkdir(root)));
+	const services = await Promise.all(
+		roots.map((root) =>
+			ConfigurationService.load({
+				...environment(),
+				ANISHELF_INITIAL_RESOURCE_ROOT: root,
+			}),
+		),
+	);
+	const saved = JSON.parse(
+		await readFile(join(dataDir, "settings.json"), "utf8"),
+	);
+	expect(roots).toContain(saved.resourceRoot);
+	for (const service of services) expect(service.settings).toEqual(saved);
+	expect(await readdir(dataDir)).toEqual(["settings.json"]);
 });
 test("old settings adopt updated defaults; explicit choices persist and snapshots remain fixed", async () => {
 	const root = join(directory, "media");
