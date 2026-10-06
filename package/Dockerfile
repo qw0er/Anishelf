@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-bookworm-slim AS build
+FROM node:24-trixie-slim AS build
 WORKDIR /app
 
 # Native SQLite bindings can fall back to compilation when needed.
@@ -21,7 +21,7 @@ RUN npm run build \
     && npm rebuild better-sqlite3 \
     && mkdir -p backend/node_modules
 
-FROM node:24-bookworm-slim AS runtime
+FROM node:24-trixie-slim AS runtime
 WORKDIR /app
 # Override the listener at runtime with -e ANISHELF_PORT=3001.
 # The health check reads the same environment variable.
