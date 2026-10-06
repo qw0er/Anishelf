@@ -89,3 +89,52 @@ which must be able to reach that origin. The playlist references the original me
 not a prepared copy, and does not carry selected sidecar subtitles, audio selections,
 resume positions or browser credentials. Downloading never writes playback progress
 or claims that an external player has started.
+
+## Browser invocation of external players
+
+`web/src/config/external-player-policy.ts` owns platform detection, the compatibility
+matrix, protocol templates, browser-storage key and custom-entry limits. Platform
+matching uses user-agent/client platform hints, with Android preceding Linux and
+an iPadOS desktop-mode touch check preceding macOS. This is a compatibility hint,
+not installed-player detection; unknown platforms expose custom entries only.
+
+| Client platform | Built-in players |
+| --- | --- |
+| macOS | IINA, Infuse, mpv |
+| Linux | mpv |
+| Windows | mpv |
+| Android | VLC, MX Player (free edition), mpv-android |
+| iOS / iPadOS | Infuse, VLC, Outplayer |
+
+Library file actions and the file player's **More playback options** dropdown contain
+an **Open in external player** submenu. Opening it rechecks access using the existing
+file query and accepts only the original-media route. Entries are disabled during
+validation or after failure, with an explicit retry. Ready entries are native anchors:
+the user's click follows the external URL directly, preserving browser user activation.
+Android uses an explicit VIEW Intent with the package name and media MIME type, since
+Anishelf's media routes have no filename extension. The submenu also links to Settings.
+
+Custom players are added/deleted in Settings and persisted under
+`anishelf.external-players.v1` in the current origin's localStorage. They apply to
+this browser and are not server settings. Mounted consumers update after local edits
+and other-tab storage events; failed writes retain the existing list. Invalid stored
+data is reported and retained instead of silently overwritten. Templates require
+`{url}` (the original absolute URL) or `{urlEncoded}` (encodeURIComponent of that URL),
+with optional `{mimeType}`. Unknown placeholders, control/whitespace characters,
+script/data/file URLs and ordinary Web navigation schemes are rejected.
+
+The target application must be installed. Desktop mpv additionally requires an
+OS-registered handler and a version supporting `mpv://`; browser/handler compatibility
+must be tested on each target platform. MX Player Pro can be configured with a custom
+Intent using its own package. A browser may prompt before opening an application.
+Invocation does not report successful playback or update Anishelf's history, and
+does not send cookies, resume positions, selected audio tracks or sidecar subtitles.
+Copy media link and M3U download remain available in the same dropdown.
+
+Protocol references: [IINA source](https://github.com/iina/iina/blob/develop/iina/AppDelegate.swift),
+[Infuse API](https://support.firecore.com/hc/en-us/articles/215090997-API-for-Third-Party-Apps-Services),
+[mpv protocols](https://mpv.io/manual/stable/#protocols),
+[Android browser Intents](https://developer.chrome.com/docs/android/intents),
+[VLC Android manifest](https://github.com/videolan/vlc-android/blob/master/application/vlc-android/AndroidManifest.xml),
+[MX Player Intents](https://sites.google.com/site/mxvpen/api), and
+[mpv-android manifest](https://github.com/mpv-android/mpv-android/blob/master/app/src/main/AndroidManifest.xml).

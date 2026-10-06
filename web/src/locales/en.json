@@ -109,6 +109,24 @@
 		"savedPath": "Saved resource directory: {{path}}",
 		"waitForScan": "Wait for the scan to finish before changing the directory."
 	},
+	"externalPlayers": {
+		"open": "Open in external player",
+		"moreActions": "More playback options",
+		"manage": "Manage custom players",
+		"title": "External players",
+		"description": "Built-in players are shown for this device’s platform. Custom players are saved only in this browser. Install the player and any required protocol handler before opening media.",
+		"empty": "No custom players added.",
+		"name": "Player name",
+		"template": "URL template",
+		"templateHelp": "Use {url} for the media URL, {urlEncoded} for its percent-encoded value, and optionally {mimeType} for its MIME type. Custom entries appear on this browser on every platform.",
+		"add": "Add player",
+		"delete": "Delete",
+		"deleteNamed": "Delete {{name}}",
+		"invalidTemplate": "Enter a name and a valid external-protocol template containing {url} or {urlEncoded}.",
+		"storageError": "Custom player settings could not be read. Browser storage may be unavailable or the saved data may be invalid.",
+		"saveError": "Could not save custom player settings in this browser.",
+		"limit": "Up to {{count}} custom players can be saved."
+	},
 	"player": {
 		"unavailableTitle": "Unable to play this video",
 		"label": "Player",

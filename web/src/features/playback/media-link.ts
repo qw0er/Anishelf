@@ -4,7 +4,7 @@ import { fileQuery } from "../../api/queries.js";
 import { loadQuery, queryClient } from "../../api/query-client.js";
 
 /** Recheck access and accept only the original-media route for the selected file. */
-async function resolveMediaLink(
+export async function resolveMediaLink(
 	fileId: string,
 	origin: string,
 	options?: RequestOptions,
@@ -26,6 +26,7 @@ async function resolveMediaLink(
 	return {
 		url: new URL(file.originalMediaUrl, origin).href,
 		name: file.file.name,
+		mimeType: file.file.mimeType ?? "video/*",
 	};
 }
 
