@@ -25,7 +25,6 @@ docker run -d --name anishelf --restart unless-stopped \
 ```
 
 Open `http://127.0.0.1:3000` and configure `/media` as the media directory.
-For Caddy, use the complete-application proxy example in the repository README.
 The current access policy supports local access or SSH forwarding.
 To use a different port, set `ANISHELF_PORT=3001` in your shell before running
 the command above, or replace its `-e` option with `-e ANISHELF_PORT=3001`.
