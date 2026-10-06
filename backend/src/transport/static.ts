@@ -5,7 +5,7 @@ import type { FastifyInstance } from "fastify";
 import { adapterPolicy } from "../platform/adapter-policy.js";
 import { apiError } from "./errors.js";
 
-/** Development-only hosting of the explicit frontend build directory. */
+/** Host the explicit frontend build directory in any runtime mode. */
 export async function registerFrontend(app: FastifyInstance, root: string) {
 	try {
 		await access(join(root, "index.html"));

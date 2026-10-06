@@ -209,9 +209,7 @@ async function createServer(
 			await inspection.close();
 			database?.close();
 		},
-		...(development && existsSync(join(frontendRoot, "index.html"))
-			? { frontendRoot }
-			: {}),
+		...(existsSync(join(frontendRoot, "index.html")) ? { frontendRoot } : {}),
 	});
 	return server;
 }

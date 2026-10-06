@@ -39,9 +39,9 @@ On macOS, installations using the previous `~/.local/share/anishelf` default sho
 
 ## Start the backend
 
-The backend provides APIs and media only. It does not serve pages or require a frontend build to start.
+The backend provides APIs and media and also serves `web/dist` when `web/dist/index.html` exists, in both production and development. Without a frontend build, it starts as an API/media-only server.
 
-**Use Caddy or another Web server to serve `web/dist` and reverse-proxy `/api`.** Use systemd or another process manager to start, restart, and collect logs from Node.js. The build outputs are `backend/dist` and `web/dist`; keep the backend runtime dependencies available, and deploy the frontend build to the Web server's static root.
+**Node can serve the complete application; a shared Caddy can reverse-proxy all requests to Node.** Alternatively, use Caddy or another Web server to serve `web/dist` and reverse-proxy `/api`. Use systemd or another process manager to start, restart, and collect logs from Node.js. The build outputs are `backend/dist` and `web/dist`; keep the backend runtime dependencies available, and keep `web/dist` alongside `backend`, or deploy the frontend build to the Web server's static root.
 
 After starting the backend and Caddy as described below, open <http://127.0.0.1:8080>. Save the absolute server-side media directory in the page; the first successful save creates `settings.json` in `dataDir` and starts a scan. Once configured, the backend scans the directory automatically at each startup, and changing the saved directory starts a scan. Scheduled scans run every 60 minutes by default. Configure **Automatic scan interval (minutes)** in Settings, or set it to 0 to disable scheduled scans. Manual scans remain available after adding or removing media.
 
@@ -81,6 +81,23 @@ journalctl -u anishelf -f
 ```
 
 Set `ANISHELF_DATA_DIR` in the service environment to your prepared persistent directory. stdout logs are collected by systemd. After updating the code, rebuild and run `sudo systemctl restart anishelf`.
+
+### Proxy the complete application with a shared Caddy
+
+When Node hosts `web/dist`, the shared Caddy can proxy pages, assets and APIs together:
+
+```caddyfile
+http://127.0.0.1:8080 {
+    bind 127.0.0.1
+    reverse_proxy 127.0.0.1:3000 {
+        header_up Host {upstream_hostport}
+        header_up Origin "^http://127[.]0[.]0[.]1:8080$" "http://127.0.0.1:3000"
+    }
+}
+```
+
+This example preserves the current loopback-only access policy. Container-network
+listeners and LAN/public access require separate deployment/security changes.
 
 ### Serve pages and proxy APIs with Caddy
 
@@ -145,7 +162,7 @@ To build the frontend and backend, then serve the page directly from the backend
 npm run start:web
 ```
 
-Open <http://127.0.0.1:3000>. `start:web` builds both workspaces before starting the backend in development mode, so it serves the newly built `web/dist` at the backend address. Page hosting is available only when `web/dist/index.html` exists. Built pages do not hot reload; rerun `npm run start:web` after changes to rebuild and restart. If a build fails, the backend will not start through this command; use `npm run dev` for frontend hot reload.
+Open <http://127.0.0.1:3000>. `start:web` builds both workspaces before starting the backend in its normal runtime mode, so it serves the newly built `web/dist` at the backend address. Page hosting is available only when `web/dist/index.html` exists. Built pages do not hot reload; rerun `npm run start:web` after changes to rebuild and restart. If a build fails, the backend will not start through this command; use `npm run dev` for frontend hot reload.
 
 ## Checks and documentation
 

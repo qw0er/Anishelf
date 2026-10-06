@@ -164,7 +164,7 @@ export function createHttpApp(options: {
 			}),
 	);
 	const frontendRoot = options.frontendRoot;
-	if (options.development && frontendRoot)
+	if (frontendRoot)
 		app.register(async (scope) => registerFrontend(scope, frontendRoot));
 	return app;
 }

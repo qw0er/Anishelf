@@ -23,7 +23,7 @@ beforeEach(async () => {
 	app = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger: pino({ enabled: false }),
-		development: true,
+		development: false,
 		frontendRoot: root,
 	});
 });
@@ -89,22 +89,33 @@ test("fails startup with an actionable message when the frontend was not built",
 });
 
 test.each([false, undefined])(
-	"ignores frontend hosting outside development mode: %s",
+	"serves the frontend outside development mode: %s",
 	async (development) => {
 		await app.close();
 		app = createHttpApp({
 			config: { host: "127.0.0.1", port: 3000 },
 			logger: pino({ enabled: false }),
 			...(development === undefined ? {} : { development }),
-			frontendRoot: join(fixture, "missing-build"),
+			frontendRoot: join(fixture, "web"),
 		});
 		for (const url of ["/", "/files/example", "/assets/app.js"]) {
 			const response = await app.inject({ url, headers });
-			expect(response.statusCode).toBe(404);
-			expect(response.json().error.code).toBe("ROUTE_NOT_FOUND");
+			expect(response.statusCode).toBe(200);
 		}
 		expect((await app.inject({ url: "/api/health", headers })).statusCode).toBe(
 			200,
 		);
 	},
 );
+
+test("starts API-only when no frontend directory is supplied", async () => {
+	await app.close();
+	app = createHttpApp({
+		config: { host: "127.0.0.1", port: 3000 },
+		logger: pino({ enabled: false }),
+	});
+	expect((await app.inject({ url: "/", headers })).statusCode).toBe(404);
+	expect((await app.inject({ url: "/api/health", headers })).statusCode).toBe(
+		200,
+	);
+});
