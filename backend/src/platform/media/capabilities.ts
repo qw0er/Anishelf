@@ -98,10 +98,24 @@ export function parseMediaCapabilities(
 			add(match[1] as string, match[2] ?? "");
 		}
 	} else {
-		const separator = lines.findIndex((line) => /^\s*-{3,}\s*$/.test(line));
-		if (separator === -1) throw new Error("Missing capability table.");
-		for (const line of lines.slice(separator + 1)) {
+		// Filters in FFmpeg 5/7 have no separator; device tables may use "--".
+		const separator = lines.findIndex((line) =>
+			(kind === "devices" ? /^\s*-{2,}\s*$/ : /^\s*-{3,}\s*$/).test(line),
+		);
+		if (separator === -1 && kind !== "filters")
+			throw new Error("Missing capability table.");
+		const start =
+			separator === -1
+				? lines.findIndex((line) => headers[kind].test(line))
+				: separator;
+		for (const line of lines.slice(start + 1)) {
 			if (!line.trim()) continue;
+			if (
+				kind === "filters" &&
+				entries.size === 0 &&
+				/^\s*[TSC.AVN|]+\s+=\s+.+$/.test(line)
+			)
+				continue;
 			const pattern =
 				kind === "codecs"
 					? /^\s*([D.][E.][VASDT.][I.][L.][S.])\s+(\S+)\s+(.*)$/

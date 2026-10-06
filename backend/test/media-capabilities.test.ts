@@ -254,3 +254,20 @@ test("enumerates the installed FFmpeg build with bounded child processes", async
 	expect(result.detectedAtMs).not.toBeNull();
 	expect(JSON.stringify(result)).not.toContain(tools.status.ffmpeg.path);
 });
+
+test("parses FFmpeg 5 and 7 filters without a separator and two-dash device tables", () => {
+	const filters =
+		"Filters:\n T.. = Timeline support\n .S. = Slice threading\n ..C = Command support\n A = Audio input/output\n V = Video input/output\n N = Dynamic number and/or type of input/output\n | = Source or sink filter\n ... scale V->V Scale video\n ..C movie |->N Read a movie\n ... buffersink V->| Buffer frames\n";
+	expect(
+		parseMediaCapabilities("filters", filters).map((entry) => entry.name),
+	).toEqual(["buffersink", "movie", "scale"]);
+	expect(
+		parseMediaCapabilities(
+			"devices",
+			"Devices:\n D. = Demuxing supported\n .E = Muxing supported\n --\n DE alsa ALSA audio\n",
+		),
+	).toContainEqual(expect.objectContaining({ name: "alsa", flags: "DE" }));
+	expect(() =>
+		parseMediaCapabilities("filters", `${filters}corrupt row\n`),
+	).toThrow("Invalid capability table row");
+});
