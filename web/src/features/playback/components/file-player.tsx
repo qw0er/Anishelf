@@ -160,6 +160,7 @@ export default function FilePlayer({
 					tryOrigin={tryOrigin}
 					tryingOrigin={tryingOrigin}
 				/>
+				<MediaLink fileId={data.file.id} playlist />
 				<MediaLink key={`link:${data.file.id}`} fileId={data.file.id} />
 			</div>
 		</section>
