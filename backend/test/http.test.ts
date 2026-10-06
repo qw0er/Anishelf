@@ -5,9 +5,17 @@ import { DomainError } from "../src/shared/errors.js";
 
 const apps: ReturnType<typeof createHttpApp>[] = [];
 const headers = { host: "127.0.0.1:3000" };
-function application(development = false, host = "127.0.0.1") {
+function application(
+	development = false,
+	host = "127.0.0.1",
+	publicOrigin?: string,
+) {
 	const app = createHttpApp({
-		config: { host, port: 3000 },
+		config: {
+			host,
+			port: 3000,
+			...(publicOrigin === undefined ? {} : { publicOrigin }),
+		},
 		logger: pino({ enabled: false }),
 		development,
 	});
@@ -93,6 +101,77 @@ test("accepts configured IPv6 loopback Host", async () => {
 			})
 		).statusCode,
 	).toBe(200);
+});
+
+test.each([
+	["https://anime.example.com", "anime.example.com"],
+	["https://anime.example.com", "anime.example.com:443"],
+	["https://anime.example.com:8443", "anime.example.com:8443"],
+	["https://anime.example.com:80", "anime.example.com:80"],
+	["http://anime.example.com", "anime.example.com:80"],
+])(
+	"accepts proxy Host and mutation Origin for %s (%s)",
+	async (origin, host) => {
+		const app = application(false, "127.0.0.1", origin);
+		expect(
+			(await app.inject({ url: "/api/health", headers: { host } })).statusCode,
+		).toBe(200);
+		const response = await app.inject({
+			method: "POST",
+			url: "/api/test",
+			headers: { host, origin, "sec-fetch-site": "same-origin" },
+			payload: { count: 1 },
+		});
+		expect(response.statusCode).toBe(200);
+		expect(response.json()).toEqual({ count: 1 });
+		expect((await app.inject({ url: "/api/health", headers })).statusCode).toBe(
+			200,
+		);
+	},
+);
+
+test.each([
+	"evil.example.com",
+	"anime.example.com:8443",
+	"anime.example.com:80",
+	"anime.example.com@evil.example.com",
+])(
+	"rejects other proxy Hosts even with forged forwarded headers: %s",
+	async (host) => {
+		const response = await application(
+			false,
+			"127.0.0.1",
+			"https://anime.example.com",
+		).inject({
+			url: "/api/health",
+			headers: {
+				host,
+				"x-forwarded-host": "anime.example.com",
+				"x-forwarded-proto": "https",
+			},
+		});
+		expect(response.statusCode).toBe(400);
+	},
+);
+
+test.each([
+	{ origin: "https://evil.example.com" },
+	{ origin: "http://anime.example.com" },
+	{ origin: "null" },
+	{ origin: "http://127.0.0.1:3000" },
+	{ origin: "https://anime.example.com", "sec-fetch-site": "cross-site" },
+])("rejects untrusted proxy mutation headers: %j", async (mutationHeaders) => {
+	const response = await application(
+		false,
+		"127.0.0.1",
+		"https://anime.example.com",
+	).inject({
+		method: "POST",
+		url: "/api/test",
+		headers: { host: "anime.example.com", ...mutationHeaders },
+		payload: { count: 1 },
+	});
+	expect(response.statusCode).toBe(403);
 });
 
 test.each([undefined, "http://127.0.0.1:3000"])(

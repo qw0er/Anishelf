@@ -4,6 +4,7 @@ import type { MediaToolsConfig } from "../../../platform/media/config.js";
 export interface DeploymentConfig {
 	host: string;
 	port: number;
+	publicOrigin?: string;
 	dataDir: string;
 	frontendDir?: string;
 	logging: LoggingConfig;

@@ -6,14 +6,17 @@ import { DomainError } from "../shared/errors.js";
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const devOrigins = new Set<string>(developmentDefaults.origins);
 
-type RequestOriginConfig = Pick<DeploymentConfig, "host" | "port">;
+type RequestOriginConfig = Pick<
+	DeploymentConfig,
+	"host" | "port" | "publicOrigin"
+>;
 
-function parseRequestHost(request: FastifyRequest): URL {
+function parseRequestHost(request: FastifyRequest, protocol = "http:"): URL {
 	const host = request.headers.host;
 	if (!host || !/^[a-zA-Z0-9.[\]:-]+$/.test(host))
 		throw new DomainError("INVALID_REQUEST", "Invalid Host header.");
 	try {
-		return new URL(`http://${host}`);
+		return new URL(`${protocol}//${host}`);
 	} catch {
 		throw new DomainError("INVALID_REQUEST", "Invalid Host header.");
 	}
@@ -22,7 +25,12 @@ function parseRequestHost(request: FastifyRequest): URL {
 function checkRequestHost(
 	request: FastifyRequest,
 	config: RequestOriginConfig,
-): URL {
+): string {
+	if (config.publicOrigin) {
+		const publicUrl = new URL(config.publicOrigin);
+		const publicHost = parseRequestHost(request, publicUrl.protocol);
+		if (publicHost.host === publicUrl.host) return config.publicOrigin;
+	}
 	const host = parseRequestHost(request);
 	const expectedHostname = config.host === "::1" ? "[::1]" : config.host;
 	const expectedPort = request.raw.socket.localPort ?? config.port;
@@ -32,7 +40,7 @@ function checkRequestHost(
 	) {
 		throw new DomainError("INVALID_REQUEST", "Unexpected Host header.");
 	}
-	return host;
+	return `${request.protocol}://${host.host}`;
 }
 
 function isSafeMethod(method: string): boolean {
@@ -41,12 +49,12 @@ function isSafeMethod(method: string): boolean {
 
 function checkOrigin(
 	request: FastifyRequest,
-	host: URL,
+	expectedOrigin: string,
 	development: boolean,
 ): void {
 	const origin = request.headers.origin;
 	if (origin === undefined) return;
-	const sameOrigin = origin === `${request.protocol}://${host.host}`;
+	const sameOrigin = origin === expectedOrigin;
 	const allowedDevelopmentOrigin = development && devOrigins.has(origin);
 	if (!sameOrigin && !allowedDevelopmentOrigin)
 		throw new DomainError("REQUEST_FORBIDDEN", "Untrusted request origin.");
@@ -66,8 +74,8 @@ export function checkRequestOrigin(
 	config: RequestOriginConfig,
 	development: boolean,
 ): void {
-	const host = checkRequestHost(request, config);
+	const expectedOrigin = checkRequestHost(request, config);
 	if (isSafeMethod(request.method)) return;
-	checkOrigin(request, host, development);
+	checkOrigin(request, expectedOrigin, development);
 	checkFetchMetadata(request);
 }

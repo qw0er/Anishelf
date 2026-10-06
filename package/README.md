@@ -29,7 +29,9 @@ docker pull ghcr.io/qw0er/anishelf:latest
 ```
 
 Deployment instructions for Docker, Compose, Podman and Quadlet are in the
-[top-level README](../README.md#deploy-with-a-container). Publishing does not
+[top-level README](../README.md#deploy-with-a-container), including the public-origin
+configuration required for [Caddy domain access](../README.md#caddy-reverse-proxy).
+Publishing does not
 update running containers or run the project's check/test commands.
 The Dockerfile builds both workspaces as part of image construction.
 

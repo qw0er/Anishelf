@@ -44,12 +44,27 @@ npm run build
 npm run start:backend
 ```
 
+For domain access behind an authenticated Caddy proxy, configure the public
+origin when starting the built application:
+
+```sh
+ANISHELF_FRONTEND_DIR="$PWD/web/dist" \
+ANISHELF_PUBLIC_ORIGIN=https://example.com \
+npm run start:backend
+```
+
+Replace the example origin with your domain. For Docker CLI, Compose and both
+rootful/rootless Quadlet configurations, use the complete
+[container deployment examples](../README.md#deploy-with-a-container). Omit the
+public-origin variable for local or SSH-only access.
+
 ### Environment variables
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `ANISHELF_HOST` | `127.0.0.1` | Loopback IP address (`127.x.x.x` or `::1`); hostnames are not accepted. |
 | `ANISHELF_PORT` | `3000` | Decimal integer listener port from 1 to 65535. |
+| `ANISHELF_PUBLIC_ORIGIN` | Unset | One allowed external HTTP(S) origin; no wildcards, credentials, path, query or fragment. Local access remains available; proxy authentication is required. |
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory for Anishelf | Absolute directory; overrides the platform default. |
 | `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
 | `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout` or `file`. |
@@ -177,7 +192,28 @@ The script explicitly sets `ANISHELF_FRONTEND_DIR` to the absolute `web/dist` pa
 In any mode, Node enables static files and SPA fallback only when this environment
 variable is set. Without it, the backend serves only APIs/media, even if a frontend
 build exists. The configured directory must contain `index.html` or startup fails.
-A shared Caddy can proxy the whole application, or serve frontend files separately.
+A shared Caddy can proxy the whole application. Configure `ANISHELF_PUBLIC_ORIGIN`
+for its external origin and preserve Host/Origin headers; see the
+[Caddy deployment example](../README.md#caddy-reverse-proxy). Backend listening
+remains loopback-only. The explicit origin supplies the external scheme and port
+for Host and mutation Origin validation; `trustProxy` remains disabled and
+forwarded headers cannot authorize requests. Local health checks remain available.
+Caddy must authenticate all routes. Separately hosted frontend files must use
+the same external origin for API requests.
+
+The public origin adds one Host authority to the local allowlist; it does not
+replace the configured loopback/localhost access or change the listener address.
+For example, `https://example.com` accepts Host `example.com` or
+`example.com:443`, while other external Hosts and ports fail with
+`INVALID_REQUEST`. Production mutations with Origin must match the configured
+scheme, hostname and port for public-Host requests, or the local request origin
+for local-Host requests. GET, HEAD and OPTIONS only validate Host. Mutations
+without Origin remain accepted unless their fetch metadata is cross-site;
+development retains its fixed Vite Origin exceptions. Invalid mutation Origins
+or cross-site metadata fail with `REQUEST_FORBIDDEN`. With the setting unset,
+external domains remain rejected. Host/Origin validation provides no identity
+verification; Caddy owns authentication for every external route.
+
 SIGINT/SIGTERM close HTTP, active application work and the database, with a
 five-second shutdown limit; failure sets a nonzero exit code.
 
