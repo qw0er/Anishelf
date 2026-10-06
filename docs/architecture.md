@@ -22,9 +22,9 @@ routes, types and policy values.
 
 Direct playback, saved progress/history, external and embedded text subtitles,
 compatibility negotiation, persistent preparation and prepared-copy playback are
-implemented. Real-time HLS, embedded fonts, automatic cache eviction and broader
-playback/cache settings remain planned. The dedicated Continue watching UI is
-also planned; recent history and resume are implemented. Offline HLS per-track
+implemented. Real-time HLS, embedded fonts, automatic cache eviction and user-editable
+cache budgets remain later requirements. The History page covers continue watching through recent records and resume;
+no separate Continue watching UI is required. Offline HLS per-track
 planning and source-time mapping have independent tests. Unimplemented HLS and
 real-time ports, HTTP variants and artifact models have been removed.
 
