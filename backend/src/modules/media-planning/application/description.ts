@@ -1,10 +1,14 @@
 import type {
+	CompatibilityAudioStream,
 	CompatibilityQuery,
 	CompatibilityStream,
+	CompatibilityVideoStream,
 } from "../../../contracts/http.js";
-import type { MediaInfo, MediaStream } from "../../../platform/media/index.js";
+import type { MediaInfo } from "../../../platform/media/index.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { OriginalMediaDescription } from "../domain/model.js";
+import { browserQuery } from "../domain/output-spec.js";
+import { describeAudio, describeVideo } from "../domain/streams.js";
 
 const mime: Record<string, string> = {
 	mp4: "video/mp4",
@@ -12,28 +16,6 @@ const mime: Record<string, string> = {
 	matroska: "video/x-matroska",
 	webm: "video/webm",
 };
-function describe(stream: MediaStream | undefined): CompatibilityStream | null {
-	if (!stream) return null;
-	return {
-		index: stream.index,
-		kind: stream.type === "video" ? "video" : "audio",
-		codec: stream.codec,
-		codecString: stream.codecString ?? null,
-		profile: stream.profile,
-		pixelFormat: stream.pixelFormat,
-		bitDepth: stream.bitDepth,
-		hdr: stream.hdr.pq || stream.hdr.hlg || stream.hdr.sideDataTypes.length > 0,
-		width: stream.width,
-		height: stream.height,
-		frameRate: stream.framesPerSecond,
-		bitrate: stream.bitRate,
-		sampleRate: stream.sampleRate,
-		channels: stream.channels,
-		language: stream.tags.language?.slice(0, 256) ?? null,
-		label: stream.tags.title?.slice(0, 256) ?? null,
-		default: stream.default,
-	};
-}
 export function describeOriginalMedia(
 	fileId: string,
 	sourceVersion: string,
@@ -44,11 +26,11 @@ export function describeOriginalMedia(
 		(s) => s.type === "video" && !s.attachedPicture,
 	);
 	const audios = info.streams.filter((s) => s.type === "audio");
-	const video = describe(videos.find((s) => s.default) ?? videos[0]);
-	const audio = describe(audios.find((s) => s.default) ?? audios[0]);
-	const audioTracks = audios.map(
-		(stream) => describe(stream) as CompatibilityStream,
-	);
+	const chosenVideo = videos.find((s) => s.default) ?? videos[0];
+	const video = chosenVideo ? describeVideo(chosenVideo) : null;
+	const chosenAudio = audios.find((s) => s.default) ?? audios[0];
+	const audio = chosenAudio ? describeAudio(chosenAudio) : null;
+	const audioTracks = audios.map(describeAudio);
 	if (
 		audioTracks.length > 128 ||
 		(selection &&
@@ -61,21 +43,16 @@ export function describeOriginalMedia(
 			"INVALID_REQUEST",
 			"Invalid audio stream selection or too many audio tracks.",
 		);
-	const selectedAudioTracks = selection
-		? selection.map(
-				(index) =>
-					audioTracks.find(
-						(track) => track.index === index,
-					) as CompatibilityStream,
-			)
-		: audioTracks;
+	const selectedAudioStreamIndices = selection
+		? [...selection]
+		: audioTracks.map((track) => track.index);
 	const queries: CompatibilityQuery[] = [];
 	const add = (
 		id: string,
 		type: CompatibilityQuery["type"],
 		base: string | null,
-		v: CompatibilityStream | null,
-		a: CompatibilityStream | null,
+		v: CompatibilityVideoStream | null,
+		a: CompatibilityAudioStream | null,
 		containerOnly = false,
 	) => {
 		const streams = [v, a].filter((s): s is CompatibilityStream => s !== null);
@@ -86,7 +63,7 @@ export function describeOriginalMedia(
 					? base
 					: `${base}; codecs="${codecs.join(", ")}"`
 				: null;
-		queries.push({ id, type, contentType, video: v, audio: a });
+		queries.push(browserQuery(id, type, contentType, base, v, a));
 	};
 	const base = mime[info.container ?? ""] ?? null;
 	add("original-container", "file", base, null, null, true);
@@ -114,13 +91,13 @@ export function describeOriginalMedia(
 	return {
 		fileId,
 		sourceVersion,
-		rulesVersion: "3",
+		rulesVersion: "4",
 		container: info.container,
 		video,
-		audio,
+		defaultAudioStreamIndex: audio?.index ?? null,
 		multipleTracks: videos.length > 1 || audios.length > 1,
 		audioTracks,
-		selectedAudioTracks,
+		selectedAudioStreamIndices,
 		queries,
 	};
 }

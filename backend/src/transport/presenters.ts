@@ -8,9 +8,9 @@ import type {
 	HlsPlaybackResource,
 	LibraryIssueDto,
 	LibraryResponse,
+	MediaPlanningResponse,
 	MediaTimeline,
 	PlaybackPlanDto,
-	PlaybackPlanningResponse,
 	PlaybackProgressDto,
 	PlaybackSessionResponse,
 	ResourceDto,
@@ -19,6 +19,7 @@ import type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
 } from "../contracts/http.js";
+import { directPlaybackPlan } from "../contracts/media.js";
 import type { PersistentSettings } from "../modules/configuration/public.js";
 import type {
 	DirectoryInfo,
@@ -29,10 +30,12 @@ import type {
 	ResourceInfo,
 	ScanState,
 } from "../modules/library/public.js";
-import type { CheckedCompatibility } from "../modules/media-compatibility/public.js";
+import type {
+	CheckedCompatibility,
+	MediaPlanningResult,
+} from "../modules/media-planning/public.js";
 import type {
 	ContinueWatchingResult,
-	PlaybackPlanningResult,
 	PlaybackProgress,
 	PlaybackSession,
 } from "../modules/playback/public.js";
@@ -242,10 +245,8 @@ export function presentCompatibility(
 		video: { ...checked.video },
 		audio: { ...checked.audio },
 		selectedVideo: checked.selectedVideo ? { ...checked.selectedVideo } : null,
-		selectedAudio: checked.selectedAudio ? { ...checked.selectedAudio } : null,
-		selectedAudioTracks: checked.selectedAudioTracks.map((track) => ({
-			...track,
-		})),
+		defaultAudioStreamIndex: checked.defaultAudioStreamIndex,
+		selectedAudioStreamIndices: [...checked.selectedAudioStreamIndices],
 		audioTracks: checked.audioTracks.map((track) => ({
 			stream: { ...track.stream },
 			compatibility: { ...track.compatibility },
@@ -341,14 +342,19 @@ function hlsPlaybackResourceDto(
 	};
 }
 
-export function playbackPlanningResponse(
-	result: PlaybackPlanningResult | DeepReadonly<PlaybackPlanningResult>,
-): PlaybackPlanningResponse {
+export function mediaPlanningResponse(
+	result: MediaPlanningResult | DeepReadonly<MediaPlanningResult>,
+): MediaPlanningResponse {
 	switch (result.kind) {
 		case "playable":
-			return { kind: "playable", plan: playbackPlanDto(result.plan) };
+			return {
+				kind: "playable",
+				plan: playbackPlanDto(
+					directPlaybackPlan(result.fileId, result.mimeType),
+				),
+			};
 		case "blocked":
-			return { kind: "blocked", reason: result.plan.reason };
+			return { kind: "blocked", reason: result.reason };
 		case "processing-required":
 			return {
 				kind: result.kind,

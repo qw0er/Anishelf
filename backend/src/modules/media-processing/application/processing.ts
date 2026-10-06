@@ -12,6 +12,11 @@ import {
 import type { MediaProcessEvent } from "../../../shared/media-execution.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import type { MediaInspectionApi } from "../../media-inspection/public.js";
+import {
+	describeAudio,
+	describeVideo,
+	expectedOutputSpec,
+} from "../../media-planning/public.js";
 import type { ResourceAccessApi } from "../../resource-access/public.js";
 import {
 	type MediaProcessingPolicy,
@@ -248,6 +253,11 @@ export class MediaProcessingApplication implements MediaProcessingApi {
 				"INVALID_INPUT",
 				"No usable video stream is available for processing.",
 			);
+		const expected = expectedOutputSpec(
+			describeVideo(video),
+			selectedAudios.map(describeAudio),
+			plan,
+		);
 		const check = checkExecutionCapabilities(
 			await this.options.tools.capabilities(),
 			plan,
@@ -307,12 +317,10 @@ export class MediaProcessingApplication implements MediaProcessingApi {
 			if (
 				videos.length !== 1 ||
 				audios.length !== selectedAudios.length ||
-				videos[0]?.codec !==
-					(plan.video.action === "encode" ? plan.video.codec : video.codec) ||
+				videos[0]?.codec !== expected.video.codec ||
 				selectedAudios.some(
-					(audio, index) =>
-						audios[index]?.codec !==
-						(plan.audio.action === "encode" ? plan.audio.codec : audio.codec),
+					(_audio, index) =>
+						audios[index]?.codec !== expected.audios[index]?.codec,
 				) ||
 				!output.formatAliases.includes(plan.outputFormat)
 			)
@@ -321,23 +329,19 @@ export class MediaProcessingApplication implements MediaProcessingApi {
 					"Output does not match explicit execution requirements.",
 				);
 			if (
-				(plan.video.action === "encode" &&
-					plan.video.pixelFormat &&
-					videos[0]?.pixelFormat !== plan.video.pixelFormat) ||
-				(plan.videoParameters?.maxHeight !== undefined &&
-					(videos[0]?.height === null ||
-						(videos[0]?.height ?? Infinity) >
-							plan.videoParameters.maxHeight)) ||
-				(plan.audioParameters?.channels === "stereo" &&
-					audios.some((audio) => audio.channels !== 2)) ||
-				((plan.audio.action === "copy" ||
-					plan.audioParameters?.channels === "preserve") &&
-					selectedAudios.some(
-						(audio, index) =>
-							audio.channels !== null &&
-							audios[index]?.channels !== audio.channels,
-					)) ||
-				(plan.h264Level && videos[0]?.codecString !== "avc1.640033")
+				(expected.video.width !== null &&
+					videos[0]?.width !== expected.video.width) ||
+				(expected.video.height !== null &&
+					videos[0]?.height !== expected.video.height) ||
+				(expected.video.pixelFormat !== null &&
+					videos[0]?.pixelFormat !== expected.video.pixelFormat) ||
+				expected.audios.some(
+					(audio, index) =>
+						audio.channels !== null &&
+						audios[index]?.channels !== audio.channels,
+				) ||
+				(plan.h264Level &&
+					videos[0]?.codecString !== expected.video.codecString)
 			)
 				throw new MediaToolError(
 					"TOOL_FAILED",

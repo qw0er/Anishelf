@@ -68,7 +68,6 @@ const evidence = [
 		id: "fresh",
 		status: "supported",
 		smooth: null,
-		powerEfficient: null,
 		reason: "browser-supported",
 	},
 ] as const;

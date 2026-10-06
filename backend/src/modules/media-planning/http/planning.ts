@@ -4,16 +4,35 @@ import {
 	CompatibilityInspectionQuerySchema,
 	CompatibilityInspectionSchema,
 	CompatibilityResultSchema,
+	MediaPlanningRequestSchema,
+	MediaPlanningResponseSchema,
 	ResourceIdSchema,
 } from "../../../contracts/schemas/index.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { HttpInstance } from "../../../transport/instance.js";
-import { presentCompatibility } from "../../../transport/presenters.js";
-import type { MediaCompatibilityApplication } from "../application/compatibility.js";
-export function registerCompatibilityRoutes(
+import {
+	mediaPlanningResponse,
+	presentCompatibility,
+} from "../../../transport/presenters.js";
+import type { MediaPlanningApi } from "../public.js";
+export function registerMediaPlanningRoutes(
 	app: HttpInstance,
-	compatibility: MediaCompatibilityApplication,
+	planning: MediaPlanningApi,
 ): void {
+	app.post(
+		"/api/media/plans",
+		{
+			schema: {
+				body: MediaPlanningRequestSchema,
+				response: { 200: MediaPlanningResponseSchema },
+			},
+		},
+		async (request, reply) => {
+			reply.header("Cache-Control", "no-store");
+			return mediaPlanningResponse(await planning.plan(request.body));
+		},
+	);
+
 	const params = Type.Object(
 		{ id: ResourceIdSchema },
 		{ additionalProperties: false },
@@ -36,7 +55,7 @@ export function registerCompatibilityRoutes(
 					"INVALID_REQUEST",
 					"A profile ID is required with a delivery target.",
 				);
-			return compatibility.inspect({
+			return planning.inspect({
 				fileId: request.params.id,
 				...(audioStreamIndices !== undefined
 					? {
@@ -63,7 +82,7 @@ export function registerCompatibilityRoutes(
 		async (request, reply) => {
 			reply.header("Cache-Control", "no-store");
 			return presentCompatibility(
-				await compatibility.check({
+				await planning.check({
 					fileId: request.params.id,
 					...request.body,
 				}),

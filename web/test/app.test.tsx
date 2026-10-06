@@ -151,13 +151,15 @@ beforeEach(() => {
 				return json({
 					fileId: "file-1",
 					sourceVersion: "version",
-					rulesVersion: "3",
+					rulesVersion: "4",
 					direct: decision,
 					container: decision,
 					video: decision,
 					audio: decision,
 					selectedVideo: null,
-					selectedAudio: null,
+					defaultAudioStreamIndex: null,
+					selectedAudioStreamIndices: [],
+					audioTracks: [],
 					output: JSON.parse(String(init.body)).output
 						? { combinations: { "copy-copy": "supported" } }
 						: null,
@@ -167,12 +169,14 @@ beforeEach(() => {
 			return json({
 				fileId: "file-1",
 				sourceVersion: "version",
-				rulesVersion: "3",
+				rulesVersion: "4",
 				container: "mp4",
 				descriptionId: "a".repeat(64),
 				output: null,
 				video: null,
-				audio: null,
+				defaultAudioStreamIndex: null,
+				selectedAudioStreamIndices: [],
+				audioTracks: [],
 				multipleTracks: false,
 				queries: [],
 			});

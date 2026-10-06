@@ -15,8 +15,8 @@ import type { LibraryApplication } from "../modules/library/application/library.
 import { registerLibraryRoutes } from "../modules/library/http/library.js";
 import { registerMediaRoutes } from "../modules/library/http/media.js";
 import { registerSettingsRoutes } from "../modules/library/http/settings.js";
-import type { MediaCompatibilityApplication } from "../modules/media-compatibility/application/compatibility.js";
-import { registerCompatibilityRoutes } from "../modules/media-compatibility/http/compatibility.js";
+import type { MediaPlanningApplication } from "../modules/media-planning/application/planning.js";
+import { registerMediaPlanningRoutes } from "../modules/media-planning/http/planning.js";
 import type { PlaybackApplication } from "../modules/playback/application/playback.js";
 import { registerPlaybackRoutes } from "../modules/playback/http/playback.js";
 import type { PreparationApplication } from "../modules/preparation/application/preparation.js";
@@ -36,7 +36,7 @@ export function createHttpApp(options: {
 	playback?: PlaybackApplication;
 	preparation?: PreparationApplication;
 	subtitles?: SubtitleApplication;
-	compatibility?: MediaCompatibilityApplication;
+	mediaPlanning?: MediaPlanningApplication;
 	frontendRoot?: string;
 	configuration?: ConfigurationService;
 	/** Bootstrap can own shutdown of shared dependencies. */
@@ -140,8 +140,8 @@ export function createHttpApp(options: {
 		registerPlaybackRoutes(app, playback);
 	}
 
-	if (options.compatibility)
-		registerCompatibilityRoutes(app, options.compatibility);
+	if (options.mediaPlanning)
+		registerMediaPlanningRoutes(app, options.mediaPlanning);
 	if (options.preparation) {
 		const preparation = options.preparation;
 
@@ -153,6 +153,7 @@ export function createHttpApp(options: {
 			(async () => {
 				await options.preparation?.close();
 				options.playback?.close();
+				options.mediaPlanning?.close();
 				await ownedSubtitles?.close();
 				await options.library?.close();
 			}),

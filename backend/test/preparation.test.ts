@@ -17,8 +17,8 @@ import {
 	type TranscodeProfile,
 } from "../src/modules/configuration/public.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/application/compatibility.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
+import { MediaPlanningApplication } from "../src/modules/media-planning/application/planning.js";
 import type {
 	MediaExecutionRequest,
 	MediaProcessingApi,
@@ -103,11 +103,7 @@ async function fixture(
 	const profiles = structuredClone(
 		builtinTranscodeProfiles,
 	) as TranscodeProfile[];
-	const compatibility = new MediaCompatibilityApplication({
-		sources: library.sources,
-		inspection,
-		profiles,
-	});
+	let compatibility: MediaPlanningApplication;
 	let database = ApplicationDatabase.open(dataDir);
 	cleanup.push(async () => database.close());
 	const outputs = new Map<string, string>();
@@ -169,15 +165,19 @@ async function fixture(
 	let preparation: PreparationApplication;
 	let app: ReturnType<typeof createHttpApp>;
 	async function start() {
+		compatibility = new MediaPlanningApplication({
+			sources: library.sources,
+			inspection,
+			profiles,
+		});
 		playback = new PlaybackApplication({
 			sources: library.sources,
-			compatibility,
 			repository: database.playback,
 			logger,
 		});
 		preparation = new PreparationApplication({
 			sources: library.sources,
-			planning: playback,
+			planning: compatibility,
 			processing,
 			repository: database.preparation,
 			profiles,
@@ -199,7 +199,7 @@ async function fixture(
 			config: { host: "127.0.0.1", port: 3000 },
 			logger,
 			preparation,
-			compatibility,
+			mediaPlanning: compatibility,
 		});
 	}
 	await start();
@@ -235,7 +235,6 @@ async function fixture(
 								? "browser-rejected"
 								: "browser-uncertain",
 					smooth: null,
-					powerEfficient: null,
 				};
 			}),
 		};
@@ -306,8 +305,16 @@ test("deduplicates concurrent preparation, publishes ready files, and reuses the
 	expect(JSON.stringify(task)).not.toContain(f.dataDir);
 	expect(task).not.toHaveProperty("request");
 	expect(f.processing.start).toHaveBeenCalledTimes(1);
+	const snapshot = f.database.preparation.get(task.id);
 	await f.restart();
 	expect((await f.preparation.get(task.id)).status).toBe("ready");
+	expect(f.database.preparation.get(task.id)?.request).toEqual(
+		snapshot?.request,
+	);
+	expect(f.database.preparation.get(task.id)?.identity).toEqual(
+		snapshot?.identity,
+	);
+	expect((await f.preparation.get(task.id)).artifactId).toBe(task.artifactId);
 	expect(await taskId(f.preparation.create(await f.input()))).toBe(task.id);
 	expect(f.processing.start).toHaveBeenCalledTimes(1);
 	const file = await f.preparation.openArtifact(required(task.artifactId));

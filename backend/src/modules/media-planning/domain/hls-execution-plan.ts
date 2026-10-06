@@ -6,8 +6,8 @@ import type {
 } from "../../../shared/media-processing.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import { hlsPolicy } from "../../hls/policy.js";
-import type { CheckedCompatibility } from "../../media-compatibility/public.js";
 import { resolveExecutionPlan } from "./execution-plan.js";
+import type { CheckedCompatibility } from "./model.js";
 
 export type HlsPlanningResult =
 	| { kind: "blocked"; reason: string }
@@ -33,9 +33,14 @@ export function resolveHlsExecutionPlan(
 		return { kind: "blocked", reason: "hls-profile-container-unsupported" };
 	const audios: HlsAudioExecution[] = [];
 	const plans = [];
-	const tracks = input.selectedAudioTracks.length
-		? input.selectedAudioTracks
-		: [null];
+	const selected = input.selectedAudioStreamIndices.map((index) => {
+		const track = input.audioTracks.find(
+			(track) => track.stream.index === index,
+		);
+		if (!track) throw new Error("Checked audio selection is inconsistent.");
+		return track.stream;
+	});
+	const tracks = selected.length ? selected : [null];
 	for (const track of tracks) {
 		const checkedTrack = track
 			? input.output.audioTracks.find(
@@ -47,8 +52,7 @@ export function resolveHlsExecutionPlan(
 		const resolved = resolveExecutionPlan({
 			...input,
 			direct: { status: "unsupported", reason: "hls-packaging-required" },
-			selectedAudio: track,
-			selectedAudioTracks: track ? [track] : [],
+			selectedAudioStreamIndices: track ? [track.index] : [],
 			output: {
 				...input.output,
 				target: "media-source",

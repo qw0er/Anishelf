@@ -3,7 +3,7 @@ import { ResourceIdSchema } from "./common.js";
 import { CompatibilityCheckRequestSchema } from "./compatibility.js";
 import { PlaybackPlanSchema } from "./playback.js";
 
-export const PlaybackPlanningRequestSchema = Type.Object(
+export const MediaPlanningRequestSchema = Type.Object(
 	{
 		fileId: ResourceIdSchema,
 		...CompatibilityCheckRequestSchema.properties,
@@ -12,7 +12,7 @@ export const PlaybackPlanningRequestSchema = Type.Object(
 );
 
 /** Plans carry decisions only. No pending URL, paths, leases or raw FFmpeg settings. */
-export const PlaybackPlanningResponseSchema = Type.Union([
+export const MediaPlanningResponseSchema = Type.Union([
 	Type.Object(
 		{ kind: Type.Literal("playable"), plan: PlaybackPlanSchema },
 		{ additionalProperties: false },

@@ -246,7 +246,7 @@ plans and preparation tasks expose `resource` with delivery, URL, MIME type and
 timeline instead of a flat `playbackUrl`. The original `/api/media/:id` Range route
 is unchanged. Existing persisted tasks/artifacts remain complete-file outputs.
 
-`POST /api/playback/plans` is a read-only planning API. A `hls-required` result
+`POST /api/media/plans` is a read-only planning API. A `hls-required` result
 contains decisions, not a playable URL or running job. HLS generation, playlist
 and segment endpoints, resource leases and HLS Provider integration are pending.
 `target: hls` negotiation is for MSE output and currently supports MP4 profiles.
@@ -256,3 +256,26 @@ Run HLS model/planning tests and existing playback, preparation, Range and real
 FFmpeg regression tests when changing these contracts. Offset restore/save and
 stream-end behavior must be tested against the original source timeline. There
 is no actual HLS playback acceptance in this foundation phase.
+
+## Media model and planning refactor
+
+Deploy the Web/backend together for batch 2. Compatibility descriptions/checks now
+use `rulesVersion: "4"`. Audio descriptions appear once, with
+`defaultAudioStreamIndex` and ordered `selectedAudioStreamIndices`; no `audio`,
+`selectedAudio` or `selectedAudioTracks` aliases remain. Audio/video stream fields
+are specific to their `kind`, queries contain decoding parameters only, and
+`powerEfficient` is removed from submitted evidence. Refresh prior browser evidence.
+
+The planning endpoint is `POST /api/media/plans`; the old
+`POST /api/playback/plans` endpoint is removed. `MediaPlanningApplication` owns
+inspection, compatibility decisions and read-only planning. Playback no longer
+provides a planning API. Preparation receives a `PreparationPlanner` port directly
+from bootstrap. Public planning decisions remain separate from private execution
+settings, and requests still do not create tasks or progress sessions.
+
+No SQLite schema migration or task/artifact format conversion is needed for this
+batch. Existing H.264/copy plan IDs and profile fingerprints retain their meaning;
+corrected non-H.264 encode settings use a new resolver version. Existing valid
+prepared files are not deleted or globally invalidated. Real FFmpeg regression
+covers proportional-width rounding, exact output validation and stereo conversion;
+persistence tests cover restart reuse and existing single-audio snapshot migration.

@@ -5,7 +5,7 @@ import type {
 } from "../../api/contracts.js";
 
 export function audioTrackLabel(
-	track: CompatibilityResult["selectedAudioTracks"][number],
+	track: CompatibilityResult["audioTracks"][number]["stream"],
 	position: number,
 	t: TFunction,
 	locale: string,

@@ -257,3 +257,29 @@ test.each(["count", "codec", "channels", "duration"])(
 		);
 	},
 );
+
+test.each(["width", "height", "pixelFormat"] as const)(
+	"rejects copied video with changed %s before publication",
+	async (field) => {
+		const f = await fixture();
+		const source = f.info.streams[0];
+		if (!source) throw new Error("Missing source");
+		Object.assign(source, {
+			width: 1920,
+			height: 1080,
+			pixelFormat: "yuv420p",
+		});
+		const output = structuredClone(f.info);
+		const video = output.streams[0];
+		if (!video) throw new Error("Missing output");
+		if (field === "pixelFormat") video.pixelFormat = "yuv444p";
+		else video[field] = 100;
+		f.outputProbe.mockResolvedValue(output);
+		await expect(
+			f.application.start(f.request).completion,
+		).rejects.toMatchObject({ code: "TOOL_FAILED" });
+		expect(await readdir(join(f.root, "cache", "media-processing"))).toEqual(
+			[],
+		);
+	},
+);

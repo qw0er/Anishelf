@@ -4,7 +4,10 @@ import type {
 	CompatibilityCheckRequest,
 	PreparationStartResponse,
 } from "../../../contracts/http.js";
-import { originalTimeline } from "../../../contracts/media.js";
+import {
+	directPlaybackPlan,
+	originalTimeline,
+} from "../../../contracts/media.js";
 import {
 	MediaOutputBudgetError,
 	MediaToolError,
@@ -20,7 +23,6 @@ import type {
 	MediaProcessingApi,
 	ProcessedMedia,
 } from "../../media-processing/public.js";
-import type { PlaybackApi } from "../../playback/public.js";
 import {
 	type ResourceAccessApi,
 	resourceRootId,
@@ -40,6 +42,7 @@ import {
 	PreparedMediaFiles,
 } from "../infrastructure/files.js";
 import type { PreparationRepository } from "../infrastructure/repository.js";
+import type { PreparationPlanner } from "../ports.js";
 import type { PreparationApi } from "../public.js";
 
 /** Owns persistent preparation and reusable completed files; never owns viewing progress. */
@@ -57,7 +60,7 @@ export class PreparationApplication implements PreparationApi {
 	constructor(
 		private readonly options: {
 			sources: ResourceAccessApi;
-			planning: Pick<PlaybackApi, "plan">;
+			planning: PreparationPlanner;
 			processing: MediaProcessingApi;
 			repository?: PreparationRepository;
 			profiles: DeepReadonly<TranscodeProfile[]>;
@@ -271,9 +274,12 @@ export class PreparationApplication implements PreparationApi {
 					"Preparation is closed.",
 				);
 			if (planned.kind === "playable")
-				return { kind: "direct", plan: { ...planned.plan } };
+				return {
+					kind: "direct",
+					plan: directPlaybackPlan(planned.fileId, planned.mimeType),
+				};
 			if (planned.kind === "blocked")
-				return { kind: "blocked", reason: planned.plan.reason };
+				return { kind: "blocked", reason: planned.reason };
 			if (planned.kind === "hls-required")
 				return { kind: "blocked", reason: "hls-execution-unavailable" };
 			const repository = this.repository();

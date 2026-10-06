@@ -6,12 +6,15 @@ import { promisify } from "node:util";
 import pino from "pino";
 import { expect, test } from "vitest";
 import { createLibraryModule } from "../src/bootstrap/library.js";
-import { builtinTranscodeProfiles } from "../src/modules/configuration/public.js";
+import {
+	builtinTranscodeProfiles,
+	type TranscodeProfile,
+} from "../src/modules/configuration/public.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/application/compatibility.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
+import { MediaPlanningApplication } from "../src/modules/media-planning/application/planning.js";
+import { resolveExecutionPlan } from "../src/modules/media-planning/public.js";
 import { MediaProcessingApplication } from "../src/modules/media-processing/application/processing.js";
-import { resolveExecutionPlan } from "../src/modules/media-processing/public.js";
 import {
 	compileFfmpegArguments,
 	FfmpegExecutionAdapter,
@@ -196,12 +199,14 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			sources: library.sources,
 			tools,
 		});
-		const profile = builtinTranscodeProfiles[0];
+		const profile = structuredClone(builtinTranscodeProfiles[0]) as
+			| TranscodeProfile
+			| undefined;
 		if (!profile) throw new Error("Missing profile");
-		const compatibility = new MediaCompatibilityApplication({
+		const compatibility = new MediaPlanningApplication({
 			sources: library.sources,
 			inspection,
-			profiles: builtinTranscodeProfiles,
+			profiles: [profile],
 		});
 		const adapter = new FfmpegExecutionAdapter(tools.status.ffmpeg);
 		processing = new MediaProcessingApplication({
@@ -269,7 +274,6 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 							status: supported ? "supported" : "unsupported",
 							reason: supported ? "browser-supported" : "browser-rejected",
 							smooth: null,
-							powerEfficient: null,
 						};
 					}),
 				}),
@@ -366,6 +370,45 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 				code: "ENOENT",
 			});
 		}
+		profile.video.maxHeight = 60;
+		profile.audio.channels = "stereo";
+		const resizedDescription = await compatibility.inspect({
+			fileId: file.id,
+			sourceVersion: source.identity.sourceVersion,
+			output: { profileId: profile.id, target: "file" },
+		});
+		const encodedQuery = resizedDescription.queries.find(
+			(query) => query.id === "output-encode-encode",
+		);
+		expect(encodedQuery?.video).toMatchObject({ width: 106, height: 60 });
+		expect(encodedQuery?.audio?.channels).toBe(2);
+		const resized = resolveExecutionPlan(
+			await compatibility.check({
+				fileId: file.id,
+				sourceVersion: source.identity.sourceVersion,
+				descriptionId: resizedDescription.descriptionId,
+				output: { profileId: profile.id, target: "file" },
+				evidence: resizedDescription.queries.map((query) => ({
+					id: query.id,
+					status: query.id.startsWith("original") ? "unsupported" : "supported",
+					reason: query.id.startsWith("original")
+						? "browser-rejected"
+						: "browser-supported",
+					smooth: null,
+				})),
+			}),
+		);
+		if (resized.kind !== "processing") throw new Error("No resized plan");
+		const resizedOutput = await processing.start(resized.request).completion;
+		expect(
+			resizedOutput.info.streams.find((stream) => stream.type === "video"),
+		).toMatchObject({ width: 106, height: 60, codecString: "avc1.640033" });
+		expect(
+			resizedOutput.info.streams
+				.filter((stream) => stream.type === "audio")
+				.map((stream) => stream.channels),
+		).toEqual([2, 2]);
+		await processing.release(resizedOutput.id);
 	} finally {
 		await processing?.close();
 		await inspection?.close();

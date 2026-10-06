@@ -17,25 +17,54 @@ export const AudioStreamSelectionSchema = Type.Array(
 	Type.Integer({ minimum: 0 }),
 	{ maxItems: 128, uniqueItems: true },
 );
-const stream = Type.Object(
+const streamIdentity = {
+	index: Type.Integer({ minimum: 0 }),
+	codec: nullableString,
+	codecString: nullableString,
+	profile: nullableString,
+	bitrate: nullableNumber,
+	language: Type.Optional(nullableString),
+	label: Type.Optional(nullableString),
+	default: Type.Optional(Type.Boolean()),
+};
+export const VideoStreamDescriptionSchema = Type.Object(
 	{
-		index: Type.Integer({ minimum: 0 }),
-		kind: Type.Union([Type.Literal("video"), Type.Literal("audio")]),
-		codec: nullableString,
-		codecString: nullableString,
-		profile: nullableString,
+		...streamIdentity,
+		kind: Type.Literal("video"),
 		pixelFormat: nullableString,
 		bitDepth: nullableNumber,
 		hdr: Type.Boolean(),
 		width: nullableNumber,
 		height: nullableNumber,
 		frameRate: nullableNumber,
-		bitrate: nullableNumber,
+	},
+	{ additionalProperties: false },
+);
+export const AudioStreamDescriptionSchema = Type.Object(
+	{
+		...streamIdentity,
+		kind: Type.Literal("audio"),
 		sampleRate: nullableNumber,
 		channels: nullableNumber,
-		language: Type.Optional(nullableString),
-		label: Type.Optional(nullableString),
-		default: Type.Optional(Type.Boolean()),
+	},
+	{ additionalProperties: false },
+);
+const videoQuery = Type.Object(
+	{
+		contentType: nullableString,
+		width: nullableNumber,
+		height: nullableNumber,
+		frameRate: nullableNumber,
+		bitrate: nullableNumber,
+	},
+	{ additionalProperties: false },
+);
+const audioQuery = Type.Object(
+	{
+		contentType: nullableString,
+		sampleRate: nullableNumber,
+		channels: nullableNumber,
+		bitrate: nullableNumber,
 	},
 	{ additionalProperties: false },
 );
@@ -44,8 +73,8 @@ const query = Type.Object(
 		id: Type.String({ maxLength: 64 }),
 		type: Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
 		contentType: nullableString,
-		video: Type.Union([stream, Type.Null()]),
-		audio: Type.Union([stream, Type.Null()]),
+		video: Type.Union([videoQuery, Type.Null()]),
+		audio: Type.Union([audioQuery, Type.Null()]),
 	},
 	{ additionalProperties: false },
 );
@@ -54,7 +83,6 @@ const evidence = Type.Object(
 		id: Type.String({ maxLength: 64 }),
 		status: CompatibilityStatusSchema,
 		smooth: Type.Union([Type.Boolean(), Type.Null()]),
-		powerEfficient: Type.Union([Type.Boolean(), Type.Null()]),
 		reason: Type.Union([
 			Type.Literal("browser-supported"),
 			Type.Literal("browser-rejected"),
@@ -100,7 +128,7 @@ const outputDescription = Type.Object(
 const identity = {
 	fileId: ResourceIdSchema,
 	sourceVersion: SourceVersionSchema,
-	rulesVersion: Type.Literal("3"),
+	rulesVersion: Type.Literal("4"),
 };
 export const CompatibilityEvidenceListSchema = Type.Array(evidence, {
 	maxItems: 1024,
@@ -127,11 +155,14 @@ export const CompatibilityInspectionSchema = Type.Object(
 		...identity,
 		descriptionId: Type.String({ pattern: "^[a-f0-9]{64}$" }),
 		container: nullableString,
-		video: Type.Union([stream, Type.Null()]),
-		audio: Type.Union([stream, Type.Null()]),
+		video: Type.Union([VideoStreamDescriptionSchema, Type.Null()]),
 		multipleTracks: Type.Boolean(),
-		audioTracks: Type.Array(stream),
-		selectedAudioTracks: Type.Array(stream),
+		audioTracks: Type.Array(AudioStreamDescriptionSchema),
+		defaultAudioStreamIndex: Type.Union([
+			Type.Integer({ minimum: 0 }),
+			Type.Null(),
+		]),
+		selectedAudioStreamIndices: AudioStreamSelectionSchema,
 		queries: Type.Array(query, { maxItems: 1024 }),
 		output: Type.Union([outputDescription, Type.Null()]),
 	},
@@ -188,10 +219,18 @@ export const CompatibilityResultSchema = Type.Object(
 		video: decision,
 		audio: decision,
 		container: decision,
-		selectedVideo: Type.Union([stream, Type.Null()]),
-		selectedAudio: Type.Union([stream, Type.Null()]),
-		selectedAudioTracks: Type.Array(stream),
-		audioTracks: Type.Array(Type.Object({ stream, compatibility: decision })),
+		selectedVideo: Type.Union([VideoStreamDescriptionSchema, Type.Null()]),
+		defaultAudioStreamIndex: Type.Union([
+			Type.Integer({ minimum: 0 }),
+			Type.Null(),
+		]),
+		selectedAudioStreamIndices: AudioStreamSelectionSchema,
+		audioTracks: Type.Array(
+			Type.Object(
+				{ stream: AudioStreamDescriptionSchema, compatibility: decision },
+				{ additionalProperties: false },
+			),
+		),
 		output: Type.Union([outputResult, Type.Null()]),
 		warnings: Type.Array(Type.String({ maxLength: 128 }), { maxItems: 16 }),
 	},

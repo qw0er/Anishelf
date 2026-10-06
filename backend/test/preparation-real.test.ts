@@ -10,8 +10,8 @@ import { createHttpApp } from "../src/bootstrap/http.js";
 import { createLibraryModule } from "../src/bootstrap/library.js";
 import { builtinTranscodeProfiles } from "../src/modules/configuration/public.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/application/compatibility.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
+import { MediaPlanningApplication } from "../src/modules/media-planning/application/planning.js";
 import { MediaProcessingApplication } from "../src/modules/media-processing/application/processing.js";
 import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
 import { PreparationApplication } from "../src/modules/preparation/application/preparation.js";
@@ -52,14 +52,13 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 		tools,
 	});
 	const database = ApplicationDatabase.open(dataDir);
-	const compatibility = new MediaCompatibilityApplication({
+	const compatibility = new MediaPlanningApplication({
 		sources: library.sources,
 		inspection,
 		profiles: builtinTranscodeProfiles,
 	});
 	const playback = new PlaybackApplication({
 		sources: library.sources,
-		compatibility,
 		repository: database.playback,
 		logger,
 	});
@@ -77,7 +76,7 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 		});
 		preparation = new PreparationApplication({
 			sources: library.sources,
-			planning: playback,
+			planning: compatibility,
 			processing,
 			repository: database.preparation,
 			profiles: builtinTranscodeProfiles,
@@ -186,7 +185,6 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 								? ("browser-supported" as const)
 								: ("browser-rejected" as const),
 						smooth: null,
-						powerEfficient: null,
 					};
 				}),
 			};

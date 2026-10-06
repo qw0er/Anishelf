@@ -1,7 +1,6 @@
 import type {
 	CompatibilityEvidence,
 	CompatibilityQuery,
-	CompatibilityStream,
 } from "../api/contracts.js";
 export interface CapabilityEnvironment {
 	canPlayType(type: string): string;
@@ -21,8 +20,6 @@ function configuration(
 	if (!contentType || (!video && !audio)) return null;
 	const positive = (value: number | null): value is number =>
 		value !== null && Number.isFinite(value) && value > 0;
-	const streamType = (stream: CompatibilityStream) =>
-		`${(contentType.split(";")[0] ?? "").replace(/^(video|audio)\//, `${stream.kind}/`)}; codecs="${stream.codecString}"`;
 	if (
 		video &&
 		(!positive(video.width) ||
@@ -43,7 +40,7 @@ function configuration(
 		...(video
 			? {
 					video: {
-						contentType: streamType(video),
+						contentType: video.contentType ?? "",
 						width: video.width ?? 0,
 						height: video.height ?? 0,
 						bitrate: video.bitrate ?? 0,
@@ -54,7 +51,7 @@ function configuration(
 		...(audio
 			? {
 					audio: {
-						contentType: streamType(audio),
+						contentType: audio.contentType ?? "",
 						channels: String(audio.channels),
 						bitrate: audio.bitrate ?? 0,
 						samplerate: audio.sampleRate ?? 0,
@@ -91,7 +88,6 @@ export async function queryCapability(
 		status: "unknown",
 		reason: "incomplete-description",
 		smooth: null,
-		powerEfficient: null,
 	};
 	if (!query.contentType) return base;
 	try {
@@ -144,7 +140,6 @@ export async function queryCapability(
 				status: result.supported ? "supported" : "unsupported",
 				reason: result.supported ? "browser-supported" : "browser-rejected",
 				smooth: result.smooth,
-				powerEfficient: result.powerEfficient,
 			};
 		} finally {
 			clearTimeout(timer);

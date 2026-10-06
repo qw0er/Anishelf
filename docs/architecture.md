@@ -48,9 +48,9 @@ precedence where the diagram has not caught up with implementation.
 | Library | Published in-memory index, scans and root-switch coordination |
 | Resource Access | Confined file access, source identities, root epoch and source registry |
 | Media Inspection | Shared source-version-bound inspection cache and probe concurrency |
-| Media Compatibility | Browser evidence and original/output compatibility decisions |
+| Media Planning | Source/output descriptions, browser evidence validation, expected output specifications and read-only execution decisions |
 | Media Processing | Execution preflight, FFmpeg work and validated temporary outputs |
-| Playback | Read-only plans, sessions, durable progress and history |
+| Playback | Sessions, durable progress and history |
 | Preparation | Persistent tasks, queue, reusable artifacts and cache delivery |
 | Subtitles | Discovery, selected-track preparation, delivery and asset lifecycle |
 | HLS | Resource/segment models, policy and lease port; publication/delivery implementation is pending |
@@ -77,7 +77,7 @@ from inventing its own source identity. Runtime dependencies remain acyclic. Bou
 type-only cycles are distinguished from runtime initialization cycles.
 `npm run architecture:check` enforces these constraints with dependency-cruiser.
 See [Refactoring baseline](refactoring-baseline.md) for preserved behaviors and
-the batch 1 implementation/status inventory.
+the refactoring implementation/status inventory.
 
 ## Configuration and persistence
 
@@ -223,6 +223,10 @@ time, including generation changes, without accumulating offsets.
 
 ## Video compatibility checks
 
+Media Planning owns `inspect()`, `check()` and `plan()`; Playback owns progress
+sessions and history. Preparation consumes its own minimal `PreparationPlanner`
+port, wired directly to Media Planning by bootstrap.
+
 Inspection describes the original source and, when explicitly requested, concrete
 output candidates for a selected profile/delivery target. Browser evidence is
 bound to source, root, profile content and exact queries. Checking rebuilds that
@@ -235,7 +239,16 @@ missing metadata remains unknown. Prefer the default usable video stream, exclud
 cover art and permit video-only sources. Inspect every audio stream, including its
 language, title and default disposition. Original compatibility includes a browser
 query for every audio stream and every video/audio pair; per-track decisions are
-returned in `audioTracks`. A rejected track rejects the aggregate, and incomplete
+returned in `audioTracks`. Each response contains one authoritative audio description
+list, `defaultAudioStreamIndex`, and ordered `selectedAudioStreamIndices`. The
+default index describes native disposition; it never overrides an explicit
+selection. Audio/video descriptions have distinct fields according to `kind`.
+Browser queries contain only content types and decoding parameters, rather than
+full stream objects. Evidence retains support, reason and smoothness; unused
+power-efficiency data is not transported. The internal checked snapshot is an
+explicit model, not an extension of an HTTP result.
+
+A rejected track rejects the aggregate, and incomplete
 or missing evidence for any remaining track keeps it unknown. Do not invent bitrate for CRF output or infer
 SDR merely from absent HDR metadata.
 
@@ -253,10 +266,10 @@ reported as successful video playback. Viewing never enqueues processing.
 
 ## Playback plans and resource ownership
 
-`PlaybackApplication.plan()` is read-only: it consumes checked compatibility,
+`MediaPlanningApplication.plan()` is read-only: it consumes checked compatibility,
 resolves a processing decision and revalidates the source. It neither creates
 history nor acquires tasks, files or real-time sessions. Private execution requests
-are projected explicitly into public decisions by `POST /api/playback/plans`.
+are projected explicitly into public decisions by `POST /api/media/plans`.
 Planning never publishes a playable HLS URL or creates a session. A HLS plan returns
 `hls-required` with a plan identity and stream actions; it is not an accepted task.
 
@@ -281,7 +294,8 @@ Real-time segment generations are independent of durable progress generations.
 
 ## Internal media execution
 
-The pure `resolveExecutionPlan()` applies selected profile policy to checked
+Media Planning owns the pure `resolveExecutionPlan()` and
+`resolveHlsExecutionPlan()`. They apply selected profile policy to checked
 compatibility. Copy compatible streams when packaging and transformation constraints
 allow it; encode only required streams, with a reason per decision. Missing output
 context or unknown required compatibility blocks processing. Subtitle preparation
@@ -314,6 +328,38 @@ The `audio` query parameter preserves the ordered selection in watch links, and
 copy discovery, pending status, retry and verification use that same selection.
 Original playback and all-track copies use their native default audio; seamless
 in-player switching remains dependent on a future HLS/DASH delivery path.
+
+One pure expected-output specification in Media Planning supplies browser output
+queries, execution constraints and post-execution validation. Copy preserves
+source dimensions/codecs/channels. Encoding predicts the actual FFmpeg filters:
+`scale=-2` rounds proportional width to the nearest even integer, then padding
+rounds both dimensions up to even. CRF bitrate remains unknown. Stereo conversion,
+H.264 High level 5.1 descriptors and macroblock/rate limits share this specification.
+Non-H.264 encoding does not carry H.264 level settings. Processing derives the
+expected specification from the persisted execution settings and inspected source;
+it does not persist a second output snapshot. Publication checks exact known
+dimensions, pixel format, codecs and per-track channels, as well as durations.
+
+### Media identities and invalidation
+
+| Identity | Meaning and invalidation |
+| --- | --- |
+| `fileId` | Library resource address within a root; it does not prove unchanged bytes |
+| `sourceVersion` | Source observation/version used by inspection, revalidation and output reuse; changed source invalidates those observations |
+| `rootEpoch` | In-process root-switch guard; prevents publishing a result from a previous root, even when switching away and back |
+| `descriptionId` | Exact browser-negotiation context: rules, root/epoch, source version, output profile/target, decoding queries and normalized ordered selection; explicit selection also binds the processing intent |
+| Profile fingerprint | Effective encoding/packaging policy; excludes display ID/name metadata, changes when output policy changes |
+| Execution-plan ID | Deterministic output identity binding root, source, effective profile, target, ordered streams, actions and resolver version; excludes browser query shape and negotiation epoch |
+
+Batch 2 uses `rulesVersion: "4"`; old browser descriptions must be collected
+again. This does not invalidate persisted task snapshots or valid artifacts.
+Unchanged file/H.264/copy execution settings retain `preparation-execution:2` IDs;
+corrected non-H.264 encode plans use `preparation-execution:3`. HLS planning retains
+its existing `hls-execution:1` identity format. Previously stored requests remain
+executable in their original representation, and valid completed bytes remain
+reusable after restart. Task IDs, artifact IDs and transient execution IDs retain
+their separate lifecycles. Source validation, profile validation and evidence
+validation remain independent; identity equality alone does not certify output.
 
 Processing owns source checks, selected-stream validation, server capability
 preflight, execution and output validation. The FFmpeg adapter compiles trusted

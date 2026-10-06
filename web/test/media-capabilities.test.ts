@@ -9,20 +9,11 @@ const query: CompatibilityQuery = {
 	contentType: 'video/mp4; codecs="avc1.640028"',
 	audio: null,
 	video: {
-		index: 0,
-		kind: "video",
-		codec: "h264",
-		codecString: "avc1.640028",
-		profile: "High",
-		pixelFormat: "yuv420p",
-		bitDepth: 8,
-		hdr: false,
+		contentType: 'video/mp4; codecs="avc1.640028"',
 		width: 1920,
 		height: 1080,
 		frameRate: 24,
 		bitrate: 1000000,
-		sampleRate: null,
-		channels: null,
 	},
 };
 test.each([
@@ -52,11 +43,11 @@ test("MSE support is independent of native support", async () => {
 		).reason,
 	).toBe("api-unavailable");
 });
-test("exact decoding configuration retains performance separately", async () => {
+test("exact decoding configuration retains smoothness and discards unused power efficiency", async () => {
 	const decodingInfo = vi.fn().mockResolvedValue({
 		supported: true,
 		smooth: false,
-		powerEfficient: false,
+		powerEfficient: true,
 	});
 	const result = await queryCapability(query, {
 		canPlayType: () => "maybe",
@@ -65,8 +56,8 @@ test("exact decoding configuration retains performance separately", async () => 
 	expect(result).toMatchObject({
 		status: "supported",
 		smooth: false,
-		powerEfficient: false,
 	});
+	expect(result).not.toHaveProperty("powerEfficient");
 	expect(decodingInfo).toHaveBeenCalledWith({
 		type: "file",
 		video: {

@@ -1,7 +1,7 @@
 import type { Logger } from "pino";
 import type { ConfigurationService } from "../modules/configuration/application/service.js";
-import { MediaCompatibilityApplication } from "../modules/media-compatibility/application/compatibility.js";
 import type { MediaInspectionApi } from "../modules/media-inspection/public.js";
+import { MediaPlanningApplication } from "../modules/media-planning/application/planning.js";
 import { MediaProcessingApplication } from "../modules/media-processing/application/processing.js";
 import type { ResourceAccessApi } from "../modules/resource-access/public.js";
 import {
@@ -18,11 +18,12 @@ export function createMediaExecutionModule(options: {
 	logger?: Logger;
 }) {
 	const { configuration, sources, inspection, tools } = options;
-	const compatibility = new MediaCompatibilityApplication({
+	const planning = new MediaPlanningApplication({
 		sources,
 		inspection,
 		...(options.logger ? { logger: options.logger } : {}),
 		profiles: configuration.transcodeProfiles,
+		hlsPolicy: configuration.policy.hls,
 	});
 	const processing = new MediaProcessingApplication({
 		sources,
@@ -37,5 +38,12 @@ export function createMediaExecutionModule(options: {
 		policy: configuration.policy.mediaProcessing,
 		...(options.logger ? { logger: options.logger } : {}),
 	});
-	return { compatibility, processing, close: () => processing.close() };
+	return {
+		planning,
+		processing,
+		close: async () => {
+			planning.close();
+			await processing.close();
+		},
+	};
 }

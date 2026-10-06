@@ -15,7 +15,20 @@ export interface CompatibilityInspectInput {
 	output?: Pick<CompatibilityOutput, "profileId" | "target"> | null;
 }
 /** Internal snapshot. The presenter removes source paths and executable profile definitions. */
-export interface CheckedCompatibility extends CompatibilityResult {
+export interface CheckedCompatibility {
+	fileId: string;
+	sourceVersion: string;
+	rulesVersion: "4";
+	selectedVideo: CompatibilityInspection["video"];
+	defaultAudioStreamIndex: number | null;
+	selectedAudioStreamIndices: number[];
+	audioTracks: CompatibilityResult["audioTracks"];
+	direct: CompatibilityResult["direct"];
+	container: CompatibilityResult["container"];
+	video: CompatibilityResult["video"];
+	audio: CompatibilityResult["audio"];
+	output: CompatibilityResult["output"];
+	warnings: string[];
 	canonicalRoot: string;
 	profile: DeepReadonly<TranscodeProfile> | null;
 }

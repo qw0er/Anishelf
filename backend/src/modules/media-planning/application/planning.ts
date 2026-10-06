@@ -12,11 +12,17 @@ import { fingerprint } from "../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import type { TranscodeProfile } from "../../../shared/transcode-profiles.js";
 import {
+	type HlsPolicy,
+	hlsPolicy,
+	validateHlsPolicy,
+} from "../../hls/policy.js";
+import {
 	type MediaInspectionApi,
 	MediaInspectionBusyError,
 	type MediaInspectionResult,
 } from "../../media-inspection/public.js";
 import type { ResourceAccessApi } from "../../resource-access/public.js";
+import { resourceRootId } from "../../resource-access/public.js";
 import { checkDirectCompatibility } from "../domain/direct.js";
 import {
 	aggregateCompatibility,
@@ -24,25 +30,143 @@ import {
 	compatibilityStatus,
 	validateCompatibilityEvidence,
 } from "../domain/evidence.js";
+import { resolveExecutionPlan } from "../domain/execution-plan.js";
+import { resolveHlsExecutionPlan } from "../domain/hls-execution-plan.js";
 import type {
 	CheckedCompatibility,
 	CompatibilityInspectInput,
 } from "../domain/model.js";
-import type { MediaCompatibilityApi } from "../public.js";
+import type { MediaPlanningResult } from "../domain/plan.js";
+import type { MediaPlanningApi } from "../public.js";
 import { describeOriginalMedia } from "./description.js";
 import { describeOutputCandidates } from "./output-description.js";
 
 /** One source-bound browser negotiation workflow, with optional concrete output context. */
-export class MediaCompatibilityApplication implements MediaCompatibilityApi {
+export class MediaPlanningApplication implements MediaPlanningApi {
+	private closed = false;
+	close(): void {
+		this.closed = true;
+	}
 	constructor(
 		private readonly options: {
 			inspection: MediaInspectionApi;
 			sources: ResourceAccessApi;
 			profiles?: DeepReadonly<TranscodeProfile[]>;
 			logger?: Logger;
+			hlsPolicy?: DeepReadonly<HlsPolicy>;
 		},
-	) {}
+	) {
+		validateHlsPolicy(options.hlsPolicy ?? hlsPolicy);
+	}
+	/** Checks client evidence and proposes work without creating history or acquiring output. */
+	async plan(
+		input: CompatibilityCheckRequest & { fileId: string },
+	): Promise<DeepReadonly<MediaPlanningResult>> {
+		input = structuredClone(input);
+		if (this.closed)
+			throw new DomainError(
+				"MEDIA_PLANNING_UNAVAILABLE",
+				"Media planning is unavailable.",
+			);
+		const source = await this.options.sources.resolveSource(
+			input.fileId,
+			input.sourceVersion,
+		);
+		const checked = await this.check(input);
+		if (
+			checked.canonicalRoot !== source.identity.canonicalRoot ||
+			checked.fileId !== source.identity.fileId ||
+			checked.sourceVersion !== source.identity.sourceVersion
+		)
+			throw new DomainError(
+				"PLAYBACK_CONFLICT",
+				"Source changed during media planning.",
+			);
+		if (checked.output?.target === "hls") {
+			const resolved = resolveHlsExecutionPlan(
+				checked,
+				(this.options.hlsPolicy ?? hlsPolicy).targetSegmentDurationMs,
+			);
+			await this.options.sources.revalidateSource(source);
+			this.options.sources.assertRootEpoch(source.rootEpoch);
+			if (this.closed)
+				throw new DomainError(
+					"MEDIA_PLANNING_UNAVAILABLE",
+					"Media planning is closed.",
+				);
+			if (resolved.kind === "blocked")
+				return freeze({
+					kind: "blocked",
+					reason: resolved.reason,
+				});
+			return freeze({
+				kind: "hls-required",
+				identity: {
+					rootId: resourceRootId(source.identity.canonicalRoot),
+					fileId: source.identity.fileId,
+					sourceVersion: source.identity.sourceVersion,
+					profileFingerprint: resolved.profileFingerprint,
+					executionPlanId: resolved.request.plan.id,
+					videoStreamIndex: resolved.request.plan.videoStreamIndex,
+					audioStreamIndices: resolved.request.plan.audioTracks.map(
+						(track) => track.sourceStreamIndex,
+					),
+				},
+				execution: resolved.request,
+			});
+		}
+		const resolved = resolveExecutionPlan(checked);
+		await this.options.sources.revalidateSource(source);
+		this.options.sources.assertRootEpoch(source.rootEpoch);
+		if (this.closed)
+			throw new DomainError(
+				"MEDIA_PLANNING_UNAVAILABLE",
+				"Media planning is closed.",
+			);
+		if (resolved.kind === "direct")
+			return freeze({
+				kind: "playable",
+				fileId: input.fileId,
+				mimeType: source.file.mimeType,
+			});
+		if (resolved.kind === "blocked")
+			return freeze({
+				kind: "blocked",
+				reason: resolved.reason,
+			});
+		const output = checked.output;
+		if (!output || output.target === "hls")
+			throw new DomainError(
+				"PLAYBACK_CONFLICT",
+				"Source changed during media planning.",
+			);
+		return freeze({
+			kind: "processing-required",
+			target: output.target,
+			mode: resolved.mode,
+			reasons: resolved.reasons,
+			identity: {
+				rootId: resourceRootId(source.identity.canonicalRoot),
+				fileId: source.identity.fileId,
+				sourceVersion: source.identity.sourceVersion,
+				profileFingerprint: resolved.profileFingerprint,
+				executionPlanId: resolved.request.plan.id,
+				videoStreamIndex: resolved.request.videoStreamIndex,
+				audioStreamIndices: resolved.request.audioStreamIndices,
+			},
+			execution: resolved.request,
+		});
+	}
+
+	private assertOpen(): void {
+		if (this.closed)
+			throw new DomainError(
+				"MEDIA_PLANNING_UNAVAILABLE",
+				"Media planning is closed.",
+			);
+	}
 	private async load(input: CompatibilityInspectInput) {
+		this.assertOpen();
 		let profile: DeepReadonly<TranscodeProfile> | null = null;
 		if (input.output) {
 			if (!["file", "media-source", "hls"].includes(input.output.target))
@@ -93,14 +217,15 @@ export class MediaCompatibilityApplication implements MediaCompatibilityApi {
 			...original,
 			...candidates,
 			descriptionId: fingerprint({
-				rulesVersion: "3",
+				rulesVersion: "4",
 				root: source.identity.canonicalRoot,
 				rootEpoch: source.rootEpoch,
 				fileId: input.fileId,
 				sourceVersion: source.identity.sourceVersion,
 				output: candidates.output,
 				queries: candidates.queries,
-				audioStreamIndices: input.audioStreamIndices,
+				audioStreamIndices: original.selectedAudioStreamIndices,
+				explicitAudioSelection: input.audioStreamIndices !== undefined,
 			}),
 		};
 		return { source, original, profile, description };
@@ -108,14 +233,17 @@ export class MediaCompatibilityApplication implements MediaCompatibilityApi {
 	async inspect(
 		input: CompatibilityInspectInput,
 	): Promise<CompatibilityInspection> {
+		input = structuredClone(input);
 		const { source, description } = await this.load(input);
 		await this.options.sources.revalidateSource(source);
 		this.options.sources.assertRootEpoch(source.rootEpoch);
+		this.assertOpen();
 		return description;
 	}
 	async check(
 		input: CompatibilityCheckRequest & { fileId: string },
 	): Promise<DeepReadonly<CheckedCompatibility>> {
+		input = structuredClone(input);
 		const { fileId, ...request } = input;
 		if (!Check(CompatibilityCheckRequestSchema, request))
 			throw new DomainError(
@@ -136,7 +264,7 @@ export class MediaCompatibilityApplication implements MediaCompatibilityApi {
 		const tracks = original.audioTracks;
 		const trackDecision = (track: (typeof tracks)[number]) =>
 			decision(
-				track.index === original.audio?.index
+				track.index === original.defaultAudioStreamIndex
 					? "original-audio"
 					: `original-audio-${track.index}`,
 			);
@@ -157,12 +285,12 @@ export class MediaCompatibilityApplication implements MediaCompatibilityApi {
 		const checked: CheckedCompatibility = {
 			fileId,
 			sourceVersion: source.identity.sourceVersion,
-			rulesVersion: "3",
+			rulesVersion: "4",
 			canonicalRoot: source.identity.canonicalRoot,
 			profile,
 			selectedVideo: original.video,
-			selectedAudio: original.selectedAudioTracks?.[0] ?? null,
-			selectedAudioTracks: original.selectedAudioTracks,
+			defaultAudioStreamIndex: original.defaultAudioStreamIndex,
+			selectedAudioStreamIndices: original.selectedAudioStreamIndices,
 			audioTracks: tracks.map((stream) => ({
 				stream,
 				compatibility: trackDecision(stream),
@@ -181,11 +309,11 @@ export class MediaCompatibilityApplication implements MediaCompatibilityApi {
 			output: description.output
 				? {
 						...description.output,
-						audioTracks: original.selectedAudioTracks.map((track) => {
+						audioTracks: original.selectedAudioStreamIndices.map((index) => {
 							const suffix =
-								track.index === original.audio?.index ? "" : `-${track.index}`;
+								index === original.defaultAudioStreamIndex ? "" : `-${index}`;
 							return {
-								streamIndex: track.index,
+								streamIndex: index,
 								copyAudio: status(`copy-audio${suffix}`),
 								combinations: {
 									"copy-copy": status(`output-copy-copy${suffix}`),
@@ -218,6 +346,7 @@ export class MediaCompatibilityApplication implements MediaCompatibilityApi {
 			},
 			"Media compatibility checked.",
 		);
+		this.assertOpen();
 		return freeze(checked);
 	}
 }

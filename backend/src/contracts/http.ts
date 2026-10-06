@@ -68,7 +68,15 @@ export type CompatibilityResult = Static<
 export type CompatibilityQuery = CompatibilityInspection["queries"][number];
 export type CompatibilityEvidence =
 	CompatibilityCheckRequest["evidence"][number];
-export type CompatibilityStream = NonNullable<CompatibilityInspection["video"]>;
+export type CompatibilityVideoStream = Static<
+	typeof schemas.VideoStreamDescriptionSchema
+>;
+export type CompatibilityAudioStream = Static<
+	typeof schemas.AudioStreamDescriptionSchema
+>;
+export type CompatibilityStream =
+	| CompatibilityVideoStream
+	| CompatibilityAudioStream;
 
 export type TranscodeProfileCatalog = Static<
 	typeof schemas.TranscodeProfileCatalogSchema
@@ -86,9 +94,9 @@ export type HlsPlaybackResource = Static<
 	typeof schemas.HlsPlaybackResourceSchema
 >;
 export type PlaybackResource = Static<typeof schemas.PlaybackResourceSchema>;
-export type PlaybackPlanningRequest = Static<
-	typeof schemas.PlaybackPlanningRequestSchema
+export type MediaPlanningRequest = Static<
+	typeof schemas.MediaPlanningRequestSchema
 >;
-export type PlaybackPlanningResponse = Static<
-	typeof schemas.PlaybackPlanningResponseSchema
+export type MediaPlanningResponse = Static<
+	typeof schemas.MediaPlanningResponseSchema
 >;

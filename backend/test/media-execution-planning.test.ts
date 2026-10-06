@@ -10,20 +10,27 @@ import type {
 	CompatibilityCheckRequest,
 	CompatibilityEvidence,
 } from "../src/contracts/http.js";
+import {
+	CompatibilityInspectionSchema,
+	CompatibilityResultSchema,
+} from "../src/contracts/schemas/compatibility.js";
 import { PlaybackPlanSchema } from "../src/contracts/schemas/playback.js";
 import {
 	builtinTranscodeProfiles,
 	type TranscodeProfile,
 } from "../src/modules/configuration/public.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/application/compatibility.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
+import { MediaPlanningApplication } from "../src/modules/media-planning/application/planning.js";
 import {
+	expectedOutputSpec,
 	resolveExecutionPlan,
 	resolveHlsExecutionPlan,
-} from "../src/modules/media-processing/public.js";
+} from "../src/modules/media-planning/public.js";
 import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
+import { fingerprint } from "../src/shared/fingerprint.js";
+import { presentCompatibility } from "../src/transport/presenters.js";
 import { settingsStore } from "./settings-store.js";
 
 const cleanup: Array<() => Promise<unknown>> = [];
@@ -86,7 +93,7 @@ async function fixture(audio = true, secondAudio = false) {
 		builtinTranscodeProfiles[0],
 	) as TranscodeProfile;
 	const profiles = [profile];
-	const app = new MediaCompatibilityApplication({
+	const app = new MediaPlanningApplication({
 		sources: library.sources,
 		inspection,
 		profiles,
@@ -123,7 +130,6 @@ async function fixture(audio = true, secondAudio = false) {
 							? "browser-rejected"
 							: "browser-uncertain",
 				smooth: null,
-				powerEfficient: null,
 			};
 		});
 	const resolveInput = async (
@@ -184,8 +190,23 @@ test.each([
 				plan: { video: { action: video }, audio: { action: audio } },
 			},
 		});
-		if (result.kind === "processing")
+		if (result.kind === "processing") {
 			expect(Object.isFrozen(result.request.plan)).toBe(true);
+			expect(result.request.plan.id).toBe(
+				fingerprint({
+					version: "preparation-execution:2",
+					fileId: f.file.id,
+					root: f.source.identity.canonicalRoot,
+					sourceVersion: f.description.sourceVersion,
+					profileFingerprint: f.description.output?.profileFingerprint,
+					delivery: "file",
+					video: 2,
+					audio: [4],
+					v: video,
+					a: audio,
+				}),
+			);
+		}
 	},
 );
 test("supported originals resolve to direct", async () => {
@@ -335,7 +356,6 @@ test("source-only and output-context checks share evidence validation", async ()
 		status: "unknown",
 		reason: "browser-supported",
 		smooth: null,
-		powerEfficient: null,
 	};
 	const original = await f.app.inspect({
 		fileId: f.file.id,
@@ -378,11 +398,10 @@ test("resolver consumes an immutable checked snapshot without consulting current
 	expect(checked).not.toHaveProperty("queries");
 });
 
-test("playback planning validates evidence without opening history or claiming resource readiness", async () => {
+test("media planning validates evidence without opening history or claiming resource readiness", async () => {
 	const f = await fixture();
 	const playback = new PlaybackApplication({
 		sources: f.library.sources,
-		compatibility: f.app,
 		logger: pino({ enabled: false }),
 	});
 	const input = {
@@ -392,7 +411,7 @@ test("playback planning validates evidence without opening history or claiming r
 		output: { profileId: f.profile.id, target: "file" as const },
 		evidence: f.evidence(),
 	};
-	const result = await playback.plan(input);
+	const result = await f.app.plan(input);
 	expect(result.kind).toBe("processing-required");
 	if (result.kind !== "processing-required") throw new Error("Missing work");
 	expect(result.target).toBe("file");
@@ -414,9 +433,9 @@ test("playback planning validates evidence without opening history or claiming r
 		code: "PLAYBACK_UNAVAILABLE",
 	});
 	await expect(
-		playback.plan({ ...input, descriptionId: "stale" }),
+		f.app.plan({ ...input, descriptionId: "stale" }),
 	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
-	const direct = await playback.plan({
+	const direct = await f.app.plan({
 		...input,
 		evidence: f.evidence(
 			Object.fromEntries(f.description.queries.map((q) => [q.id, "supported"])),
@@ -424,35 +443,25 @@ test("playback planning validates evidence without opening history or claiming r
 	});
 	expect(direct).toEqual({
 		kind: "playable",
-		plan: {
-			mode: "direct",
-			resource: {
-				delivery: "file",
-				url: `/api/media/${f.file.id}`,
-				mimeType: "video/x-matroska",
-				timeline: {
-					sourceOriginMs: 0,
-					mediaOriginMs: 0,
-					sourceDurationMs: null,
-				},
-			},
-		},
+		fileId: f.file.id,
+		mimeType: "video/x-matroska",
 	});
-	const blocked = await playback.plan({
+
+	const blocked = await f.app.plan({
 		...input,
 		evidence: f.evidence({ "copy-video": "unknown" }),
 	});
 	expect(blocked).toEqual({
 		kind: "blocked",
-		plan: { mode: "blocked", reason: "source-stream-compatibility-unknown" },
+		reason: "source-stream-compatibility-unknown",
 	});
-	playback.close();
-	await expect(playback.plan(input)).rejects.toMatchObject({
-		code: "PLAYBACK_UNAVAILABLE",
+	f.app.close();
+	await expect(f.app.plan(input)).rejects.toMatchObject({
+		code: "MEDIA_PLANNING_UNAVAILABLE",
 	});
 });
 
-test("playback planning rejects a root change while compatibility is awaited", async () => {
+test("media planning rejects a root change while compatibility is awaited", async () => {
 	const f = await fixture();
 	const otherRoot = await mkdtemp(join(tmpdir(), "anishelf-planning-other-"));
 	cleanup.push(() => rm(otherRoot, { recursive: true, force: true }));
@@ -462,13 +471,8 @@ test("playback planning rejects a root change while compatibility is awaited", a
 		await f.library.updateSettings({ resourceRoot: otherRoot });
 		return checked;
 	});
-	const playback = new PlaybackApplication({
-		sources: f.library.sources,
-		compatibility: f.app,
-		logger: pino({ enabled: false }),
-	});
 	await expect(
-		playback.plan({
+		f.app.plan({
 			fileId: f.file.id,
 			sourceVersion: f.source.identity.sourceVersion,
 			descriptionId: f.description.descriptionId,
@@ -476,7 +480,6 @@ test("playback planning rejects a root change while compatibility is awaited", a
 			evidence: f.evidence(),
 		}),
 	).rejects.toMatchObject({ code: "PLAYBACK_CONFLICT" });
-	playback.close();
 });
 
 test("playback resource contracts reject premature URLs and private execution fields", () => {
@@ -559,15 +562,12 @@ test("audio selection binds evidence and execution identity, preserving requeste
 			audioStreamIndices: selection,
 		});
 		expect(description.audioTracks).toHaveLength(2);
-		expect(
-			description.selectedAudioTracks?.map((track) => track.index),
-		).toEqual(selection);
+		expect(description.selectedAudioStreamIndices).toEqual(selection);
 		const evidence = description.queries.map((query) => ({
 			id: query.id,
 			status: "supported" as const,
 			reason: "browser-supported" as const,
 			smooth: null,
-			powerEfficient: null,
 		}));
 		const request = {
 			fileId: f.file.id,
@@ -611,7 +611,6 @@ test("HLS planning binds MSE evidence, preserves compatible audio and encodes on
 			status: rejected.has(query.id) ? "unsupported" : "supported",
 			reason: rejected.has(query.id) ? "browser-rejected" : "browser-supported",
 			smooth: null,
-			powerEfficient: null,
 		}),
 	);
 	const input = {
@@ -663,7 +662,6 @@ test("HLS planning binds MSE evidence, preserves compatible audio and encodes on
 	});
 	const playback = new PlaybackApplication({
 		sources: f.library.sources,
-		compatibility: f.app,
 		logger: pino({ enabled: false }),
 	});
 	const open = vi.spyOn(playback, "open");
@@ -671,15 +669,17 @@ test("HLS planning binds MSE evidence, preserves compatible audio and encodes on
 		config: { host: "127.0.0.1", port: 3000 },
 		logger: pino({ enabled: false }),
 		playback,
+		mediaPlanning: f.app,
 	});
 	try {
 		const response = await http.inject({
 			method: "POST",
-			url: "/api/playback/plans",
+			url: "/api/media/plans",
 			headers: { host: "127.0.0.1:3000" },
 			payload: input,
 		});
 		expect(response.statusCode).toBe(200);
+		expect(response.headers["cache-control"]).toBe("no-store");
 		expect(response.json()).toMatchObject({
 			kind: "hls-required",
 			audioTracks: [{ action: "copy" }, { action: "encode" }],
@@ -688,9 +688,16 @@ test("HLS planning binds MSE evidence, preserves compatible audio and encodes on
 		expect(response.body).not.toContain("encoder");
 		expect(response.body).not.toContain("url");
 		expect(open).not.toHaveBeenCalled();
-		const stale = await http.inject({
+		const removed = await http.inject({
 			method: "POST",
 			url: "/api/playback/plans",
+			headers: { host: "127.0.0.1:3000" },
+			payload: input,
+		});
+		expect(removed.statusCode).toBe(404);
+		const stale = await http.inject({
+			method: "POST",
+			url: "/api/media/plans",
 			headers: { host: "127.0.0.1:3000" },
 			payload: { ...input, descriptionId: "a".repeat(64) },
 		});
@@ -698,4 +705,127 @@ test("HLS planning binds MSE evidence, preserves compatible audio and encodes on
 	} finally {
 		await http.close();
 	}
+});
+
+test.each([
+	[160, 90, 60, 106, 60],
+	[2001, 1081, undefined, 2002, 1082],
+])(
+	"browser, planner and validator agree on dimensions %sx%s at height %s",
+	async (width, height, maxHeight, expectedWidth, expectedHeight) => {
+		const f = await fixture();
+		const sourceVideo = f.info.streams[0];
+		if (!sourceVideo) throw new Error("No source video");
+		sourceVideo.width = width ?? null;
+		sourceVideo.height = height ?? null;
+		if (maxHeight === undefined) delete f.profile.video.maxHeight;
+		else f.profile.video.maxHeight = maxHeight;
+		const description = await f.inspectOutput(
+			f.file.id,
+			f.source.identity.sourceVersion,
+		);
+		const checked = await f.app.check({
+			fileId: f.file.id,
+			sourceVersion: description.sourceVersion,
+			descriptionId: description.descriptionId,
+			output: { profileId: f.profile.id, target: "file" },
+			evidence: description.queries.map((query) => ({
+				id: query.id,
+				status:
+					query.id.startsWith("original") || query.id === "copy-video"
+						? "unsupported"
+						: "supported",
+				reason:
+					query.id.startsWith("original") || query.id === "copy-video"
+						? "browser-rejected"
+						: "browser-supported",
+				smooth: null,
+			})),
+		});
+		const plan = resolveExecutionPlan(checked);
+		if (plan.kind !== "processing" || !checked.selectedVideo)
+			throw new Error("No execution");
+		const expected = expectedOutputSpec(
+			checked.selectedVideo,
+			checked.audioTracks.map((track) => track.stream),
+			plan.request.plan,
+		);
+		const query = description.queries.find(
+			(query) => query.id === "output-encode-copy",
+		);
+		expect(query?.video).toMatchObject({
+			width: expectedWidth,
+			height: expectedHeight,
+		});
+		expect(expected.video).toMatchObject({
+			width: expectedWidth,
+			height: expectedHeight,
+		});
+		expect(plan.request.plan.id).toBe(
+			fingerprint({
+				version: "preparation-execution:2",
+				fileId: f.file.id,
+				root: f.source.identity.canonicalRoot,
+				sourceVersion: description.sourceVersion,
+				profileFingerprint: checked.output?.profileFingerprint,
+				delivery: "file",
+				video: 2,
+				audio: [4],
+				v: "encode",
+				a: "copy",
+			}),
+		);
+		expect(Check(CompatibilityInspectionSchema, description)).toBe(true);
+		const publicResult = presentCompatibility(checked);
+		expect(Check(CompatibilityResultSchema, publicResult)).toBe(true);
+		expect(description).not.toHaveProperty("audio");
+		expect(publicResult).not.toHaveProperty("selectedAudio");
+		expect(publicResult).not.toHaveProperty("selectedAudioTracks");
+		expect(description.audioTracks[0]).not.toHaveProperty("width");
+		expect(description.video).not.toHaveProperty("channels");
+		expect(query?.video).not.toHaveProperty("index");
+		expect(query?.video).not.toHaveProperty("codecString");
+	},
+);
+
+test("non-H264 encoding omits H264 constraints and has a distinct resolver identity", async () => {
+	const f = await fixture();
+	const checked = await f.app.check({
+		fileId: f.file.id,
+		sourceVersion: f.description.sourceVersion,
+		descriptionId: f.description.descriptionId,
+		output: { profileId: f.profile.id, target: "file" },
+		evidence: f.evidence(),
+	});
+	if (!checked.profile || !checked.output) throw new Error("No profile/output");
+	const result = resolveExecutionPlan({
+		...checked,
+		profile: {
+			...checked.profile,
+			video: {
+				encoder: "libsvtav1",
+				codec: "av1",
+				pixelFormat: "yuv420p",
+				crf: 30,
+				preset: 8,
+			},
+		},
+		output: { ...checked.output, copyVideo: "unsupported" },
+	});
+	if (result.kind !== "processing") throw new Error("No plan");
+	expect(result.request.plan).not.toHaveProperty("h264Level");
+	expect(result.request.plan.id).toBe(
+		fingerprint({
+			version: "preparation-execution:3",
+			fileId: f.file.id,
+			root: f.source.identity.canonicalRoot,
+			sourceVersion: f.description.sourceVersion,
+			profileFingerprint: checked.output.profileFingerprint,
+			delivery: "file",
+			video: 2,
+			audio: [4],
+			v: "encode",
+			a: "copy",
+		}),
+	);
 });

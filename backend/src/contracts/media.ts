@@ -1,4 +1,5 @@
 import type { Static } from "typebox";
+import type { PlaybackPlanDto } from "./http.js";
 import type { MediaTimelineSchema } from "./schemas/media.js";
 
 export type MediaTimeline = Static<typeof MediaTimelineSchema>;
@@ -32,4 +33,19 @@ export function originalTimeline(
 	sourceDurationMs: number | null = null,
 ): MediaTimeline {
 	return { sourceOriginMs: 0, mediaOriginMs: 0, sourceDurationMs };
+}
+
+export function directPlaybackPlan(
+	fileId: string,
+	mimeType = "application/octet-stream",
+): Extract<PlaybackPlanDto, { mode: "direct" }> {
+	return {
+		mode: "direct",
+		resource: {
+			delivery: "file",
+			url: `/api/media/${encodeURIComponent(fileId)}`,
+			mimeType,
+			timeline: originalTimeline(),
+		},
+	};
 }

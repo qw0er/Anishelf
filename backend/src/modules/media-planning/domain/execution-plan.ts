@@ -1,8 +1,13 @@
 import { fingerprint } from "../../../shared/fingerprint.js";
 import type { MediaProcessingPlan } from "../../../shared/media-processing.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
-import type { CheckedCompatibility } from "../../media-compatibility/public.js";
-import type { MediaExecutionRequest } from "../ports.js";
+import type { MediaExecutionRequest } from "../../media-processing/public.js";
+import type { CheckedCompatibility } from "./model.js";
+import {
+	encodedVideoSpec,
+	exceedsH264Level,
+	videoEncodingFilters,
+} from "./output-spec.js";
 
 const version = "preparation-execution:2";
 export type PreparationExecutionPlan =
@@ -34,9 +39,13 @@ export function resolveExecutionPlan(
 	if (output.target === "media-source" && profile.container !== "mp4")
 		return { kind: "blocked", reason: "fragmented-container-unimplemented" };
 	const video = input.selectedVideo;
-	const audios =
-		input.selectedAudioTracks ??
-		(input.selectedAudio ? [input.selectedAudio] : []);
+	const audios = input.selectedAudioStreamIndices.map((index) => {
+		const track = input.audioTracks.find(
+			(track) => track.stream.index === index,
+		);
+		if (!track) throw new Error("Checked audio selection is inconsistent.");
+		return track.stream;
+	});
 	const audio = audios[0];
 	if (!video) return { kind: "blocked", reason: "no-video-stream" };
 	if (video.hdr)
@@ -62,28 +71,14 @@ export function resolveExecutionPlan(
 		return { kind: "blocked", reason: "output-combination-unverified" };
 	if (v === "encode" && (!video.width || !video.height || !video.frameRate))
 		return { kind: "blocked", reason: "video-dimensions-unverified" };
-	if (v === "encode" && profile.video.encoder === "libx264") {
-		const height = Math.min(
-			video.height ?? 0,
-			profile.video.maxHeight ?? Number.POSITIVE_INFINITY,
-		);
-		const width =
-			Math.ceil(((video.width ?? 0) * height) / (video.height ?? 1) / 2) * 2;
-		const macroblocks = Math.ceil(width / 16) * Math.ceil(height / 16);
-		if (macroblocks > 36864 || macroblocks * (video.frameRate ?? 0) > 983040)
-			return { kind: "blocked", reason: "h264-level-limit-exceeded" };
-	}
-	const videoFilters: string[] = [];
-	if (v === "encode") {
-		if (resize && profile.video.maxHeight)
-			videoFilters.push(
-				`scale=w=-2:h=${profile.video.maxHeight}:flags=lanczos`,
-			);
-		videoFilters.push(
-			"pad=ceil(iw/2)*2:ceil(ih/2)*2",
-			`format=${profile.video.pixelFormat}`,
-		);
-	}
+	if (
+		v === "encode" &&
+		profile.video.encoder === "libx264" &&
+		exceedsH264Level(encodedVideoSpec(video, profile.video))
+	)
+		return { kind: "blocked", reason: "h264-level-limit-exceeded" };
+	const videoFilters =
+		v === "encode" ? videoEncodingFilters(video, profile.video) : [];
 	// All conversions, including libavfilter's auto audio conversion, are preflighted.
 	const filters =
 		v === "encode"
@@ -93,7 +88,10 @@ export function resolveExecutionPlan(
 		filters.push("abuffer", "abuffersink", "aresample", "aformat", "anull");
 	const plan: MediaProcessingPlan = {
 		id: fingerprint({
-			version,
+			version:
+				v === "encode" && profile.video.encoder !== "libx264"
+					? "preparation-execution:3"
+					: version,
 			fileId: input.fileId,
 			root: input.canonicalRoot,
 			sourceVersion: input.sourceVersion,
@@ -129,7 +127,9 @@ export function resolveExecutionPlan(
 			? {
 					videoParameters: structuredClone(profile.video),
 					videoFilters,
-					h264Level: "5.1" as const,
+					...(profile.video.encoder === "libx264"
+						? { h264Level: "5.1" as const }
+						: {}),
 				}
 			: {}),
 		...(a === "encode"

@@ -133,12 +133,10 @@ async function createServer(
 		tools,
 		logger,
 	});
-	const compatibility = execution.compatibility;
+	const planning = execution.planning;
 	const playback = new PlaybackApplication({
 		policy: configuration.policy.playback,
-		hlsPolicy: configuration.policy.hls,
 		sources: library.sources,
-		compatibility,
 		logger,
 		...(database ? { repository: database.playback } : {}),
 	});
@@ -153,7 +151,7 @@ async function createServer(
 	});
 	const preparation = new PreparationApplication({
 		sources: library.sources,
-		planning: playback,
+		planning,
 		processing: execution.processing,
 		profiles: configuration.transcodeProfiles,
 		dataDir: config.dataDir,
@@ -189,7 +187,7 @@ async function createServer(
 		playback,
 		preparation,
 		subtitles,
-		compatibility,
+		mediaPlanning: planning,
 		development,
 		closeDependencies: async () => {
 			// Stop durable owners before their shared executor and inspection dependencies.

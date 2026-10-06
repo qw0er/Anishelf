@@ -3,8 +3,6 @@ import {
 	ContinueWatchingQuerySchema,
 	ContinueWatchingResponseSchema,
 	OpenPlaybackRequestSchema,
-	PlaybackPlanningRequestSchema,
-	PlaybackPlanningResponseSchema,
 	PlaybackSessionResponseSchema,
 	PlaybackTokenParamsSchema,
 	SavePlaybackProgressRequestSchema,
@@ -14,7 +12,6 @@ import { DomainError } from "../../../shared/errors.js";
 import type { HttpInstance } from "../../../transport/instance.js";
 import {
 	continueWatchingResponse,
-	playbackPlanningResponse,
 	playbackProgressDto,
 	playbackSessionResponse,
 } from "../../../transport/presenters.js";
@@ -29,17 +26,6 @@ export function registerPlaybackRoutes(
 		scope.addHook("onRequest", async (_request, reply) => {
 			reply.header("Cache-Control", "no-store");
 		});
-		scope.post(
-			"/api/playback/plans",
-			{
-				schema: {
-					body: PlaybackPlanningRequestSchema,
-					response: { 200: PlaybackPlanningResponseSchema },
-				},
-			},
-			async (request) =>
-				playbackPlanningResponse(await playback.plan(request.body)),
-		);
 		scope.post(
 			"/api/playback/sessions",
 			{

@@ -110,3 +110,27 @@ permission test is skipped on macOS. Real FFmpeg execution/preparation regressio
 tests ran rather than skipping for missing tools. `npm run build` also passes;
 Vite retains its existing large-chunk warning. No live browser playback or
 responsive-layout certification was performed for this structural batch.
+
+## Batch 2: media model, output specifications and planning ownership
+
+Implemented after the dependency baseline:
+
+- Replace Media Compatibility with Media Planning, owning inspect/check/plan and
+  pure file/HLS execution decisions. Preparation consumes a provider-independent
+  planning requirement; Playback retains sessions, progress and history.
+- Store audio descriptions once, alongside default and ordered selected indexes.
+  Normalize omitted selection to all audio streams, preserve empty and custom-order
+  selections, and remove single-track fallbacks.
+- Distinguish audio/video descriptions, send only decoding parameters in browser
+  queries, remove unused power-efficiency evidence, and explicitly model checked
+  internal decisions.
+- Share expected output dimensions/codecs/channels and H.264 constraints between
+  negotiation, planning and execution validation. Preserve actual FFmpeg width
+  rounding and require exact known output dimensions before publication.
+- Update the browser contract to rules version 4 and planning route to
+  `/api/media/plans`; retain existing task/artifact snapshots and unchanged output
+  identities. Corrected non-H.264 encoding has a new resolver version.
+
+Task snapshot consolidation, preparation lifecycle state unions, unified playback
+resource selection/session semantics and frontend query-state ownership remain in
+later batches. HLS generation/delivery remains unimplemented.

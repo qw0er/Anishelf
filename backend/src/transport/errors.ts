@@ -2,6 +2,10 @@ import type { ApiErrorResponse } from "../contracts/http.js";
 import { DomainError, type ErrorCode } from "../shared/errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	MEDIA_PLANNING_UNAVAILABLE: {
+		status: 503,
+		message: "Media planning is unavailable. Retry shortly.",
+	},
 	PREPARATION_UNAVAILABLE: {
 		status: 503,
 		message: "Media preparation is unavailable.",

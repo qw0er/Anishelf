@@ -11,11 +11,11 @@ import type {
 } from "../src/contracts/http.js";
 import { builtinTranscodeProfiles } from "../src/modules/configuration/public.js";
 import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaCompatibilityApplication } from "../src/modules/media-compatibility/application/compatibility.js";
-import { describeOriginalMedia } from "../src/modules/media-compatibility/application/description.js";
-import { checkDirectCompatibility } from "../src/modules/media-compatibility/domain/direct.js";
-import type { OriginalMediaDescription } from "../src/modules/media-compatibility/domain/model.js";
 import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
+import { describeOriginalMedia } from "../src/modules/media-planning/application/description.js";
+import { MediaPlanningApplication } from "../src/modules/media-planning/application/planning.js";
+import { checkDirectCompatibility } from "../src/modules/media-planning/domain/direct.js";
+import type { OriginalMediaDescription } from "../src/modules/media-planning/domain/model.js";
 import { codecDescriptor } from "../src/platform/media/codec-descriptor.js";
 import { type MediaInfo, MediaToolError } from "../src/platform/media/index.js";
 import { MediaTools, parseMediaInfo } from "../src/platform/media/tools.js";
@@ -79,7 +79,6 @@ function reports(
 						? "browser-rejected"
 						: "browser-uncertain",
 			smooth: null,
-			powerEfficient: null,
 		};
 	});
 }
@@ -186,7 +185,7 @@ async function fixture() {
 		sources: library.sources,
 		tools: { probe },
 	});
-	const compatibility = new MediaCompatibilityApplication({
+	const compatibility = new MediaPlanningApplication({
 		inspection,
 		sources: library.sources,
 		profiles: builtinTranscodeProfiles,
@@ -195,7 +194,7 @@ async function fixture() {
 		config: { host: "127.0.0.1", port: 3000 },
 		logger,
 		library,
-		compatibility,
+		mediaPlanning: compatibility,
 	});
 	app.addHook("onError", async (_request, _reply, error) => {
 		logger.error({ err: error });
@@ -378,7 +377,7 @@ test("unified HTTP contracts reject obsolete payloads and isolate output context
 	const original = (
 		await app.inject({ url, headers })
 	).json<CompatibilityInspection>();
-	expect(original.rulesVersion).toBe("3");
+	expect(original.rulesVersion).toBe("4");
 	expect(original.output).toBeNull();
 	expect(
 		original.queries.every((query) => query.id.startsWith("original")),
@@ -460,9 +459,9 @@ test("HTTP audio selection parses comma-separated indexes and binds POST evidenc
 		});
 		expect(response.statusCode).toBe(200);
 		const description = response.json<CompatibilityInspection>();
-		expect(
-			description.selectedAudioTracks?.map((track) => track.index),
-		).toEqual(selection ? [1] : []);
+		expect(description.selectedAudioStreamIndices).toEqual(
+			selection ? [1] : [],
+		);
 		const checked = await app.inject({
 			method: "POST",
 			url,
