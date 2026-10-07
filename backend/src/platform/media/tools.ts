@@ -449,6 +449,80 @@ export class MediaTools {
 		return info;
 	}
 
+	/** Bounded attachment extradata only; ordinary inspection never dumps attachments. */
+	async extractAttachment(
+		path: string,
+		streamIndex: number,
+		options: {
+			maximumBytes: number;
+			signal?: AbortSignal;
+		},
+	): Promise<Buffer> {
+		if (
+			!isAbsolute(path) ||
+			!Number.isSafeInteger(streamIndex) ||
+			streamIndex < 0 ||
+			!Number.isSafeInteger(options.maximumBytes) ||
+			options.maximumBytes < 1
+		)
+			throw new MediaToolError("INVALID_INPUT", "Invalid attachment request.");
+		const output = JSON.parse(
+			await runTool(
+				this.executable("ffprobe"),
+				[
+					"-v",
+					"error",
+					"-protocol_whitelist",
+					"file,pipe",
+					"-select_streams",
+					String(streamIndex),
+					"-show_entries",
+					"stream=index,codec_type,extradata,extradata_size",
+					"-show_data",
+					"-of",
+					"json",
+					"-i",
+					path,
+				],
+				{
+					...options,
+					timeoutMs: this.policy.subtitles.extractionTimeoutMs,
+					maxBytes: options.maximumBytes * 5 + 4096,
+				},
+				this.policy.mediaTools,
+				this.logger,
+			),
+		);
+		const stream = output.streams?.[0];
+		if (
+			stream?.index !== streamIndex ||
+			stream.codec_type !== "attachment" ||
+			typeof stream.extradata !== "string" ||
+			stream.extradata_size > options.maximumBytes
+		)
+			throw new MediaToolError(
+				"INVALID_MEDIA",
+				"Invalid or oversized attachment.",
+			);
+		const hex = stream.extradata
+			.split("\n")
+			.flatMap((line: string) => {
+				const match = /^[0-9a-f]{8}: ([0-9a-f ]+?)(?: {2}|$)/i.exec(
+					line.trim(),
+				);
+				return match?.[1]?.replaceAll(" ", "") ?? [];
+			})
+			.join("");
+		const bytes = Buffer.from(hex, "hex");
+		if (
+			!bytes.length ||
+			bytes.length > options.maximumBytes ||
+			bytes.length !== stream.extradata_size
+		)
+			throw new MediaToolError("INVALID_MEDIA", "Invalid attachment payload.");
+		return bytes;
+	}
+
 	/** Select by absolute FFprobe stream index, never by a raw selector. */
 	async extractSubtitle(
 		path: string,

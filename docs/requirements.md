@@ -81,10 +81,10 @@ This is a user-facing file download, separate from acquiring new releases throug
 | P05 | Choose a playback strategy based on media and client capabilities | Later | — | V2 |
 | P06 | Remux media when only the container is incompatible | Later | — | V2 |
 | P07 | FFmpeg full-file pre-transcoding with seeking; copy compatible streams and encode only necessary streams | V2 completed-file workflow | — | V2 |
-| P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | V2: VTT/SRT/ASS/SSA text extraction; fonts and bitmap extraction deferred | — | V2 (partial) |
-| P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | V2: styled ASS/SSA with fallback fonts; embedded fonts and bitmap handling deferred | — | V2 (partial) |
+| P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | V2: VTT/SRT/ASS/SSA text extraction; font attachments supported; bitmap extraction deferred | — | V2 (partial) |
+| P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | V2: styled ASS/SSA with embedded TTF/OTF and fallback fonts; bitmap handling deferred | — | V2 (partial) |
 | P14 | HLS/fMP4 delivery and real-time transcoding, including seeking, leases, source-time mapping and interactive scheduling | Later | — | Unassigned |
-| P15 | Extract, validate and load embedded font attachments | Unimplemented: ASS/SSA rendering currently loads only the bundled fallback font | — | Unassigned |
+| P15 | Extract, validate and load embedded font attachments | Implemented | Source-shared TTF/OTF preparation, validated cache and JASSUB loading | Current |
 | P16 | Extract embedded PGS/VobSub bitmap subtitle assets with explicit unsupported-Web feedback | Later | — | Unassigned |
 | P10 | Select audio tracks, adjust subtitle timing, change playback speed, and use shortcuts | Implemented | Current | Current |
 | P11 | Next-episode navigation and automatic continuation | Later | — | Unassigned |
@@ -101,10 +101,10 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 #### Deferred Playback and Subtitle Requirements (P14–P16)
 
-These capabilities are outside V2 and have no assigned release:
+P14 and P16 remain outside V2 with no assigned release. P15 is implemented as a subsequent extension:
 
 - **P14 HLS and real-time playback:** serve completed and live HLS/fMP4 playlists and complete segments; prefer valid completed resources and copy compatible streams. Begin playback before full conversion; support pause/resume and seeking beyond generated ranges by restarting near the requested source time. Map progress and subtitle clocks to source time. Expose starting/streaming/buffering/completed/stopped/failed states and corresponding UI. Stop and clean old processing on exit, expired lease, repeated seeks, source invalidation, failure or shutdown. Bound shared concurrency/storage and prioritize interactive work with explicit interruption/requeue feedback. Preserve history/originals and reject stale generations after restart.
-- **P15 Embedded fonts:** currently unimplemented; the styled subtitle renderer supplies only the bundled JASSUB fallback font. Rendering ASS/SSA styles and extracting text subtitle tracks do not extract video font attachments. The remaining requirement is to extract supported attachments, enforce size limits and safe filenames, validate cached fonts, load them into the styled renderer and provide fallback/missing-font feedback. Acceptance uses styled ASS/SSA and CJK samples with embedded fonts.
+- **P15 Embedded fonts:** ASS/SSA selection prepares source-shared TTF/OTF attachments on demand, validates bytes and cached identities, enforces count/size/cache limits and supplies fonts to JASSUB. Attachment names never become filesystem paths. Preparation or download failures preserve subtitles with fallback feedback and retry. External ASS/SSA and prepared-copy playback use attachments from the original video. Exact missing-family/glyph diagnosis and broad font/browser certification remain unverified; acceptance uses styled ASS/SSA and CJK samples.
 - **P16 Bitmap extraction:** extract supported PGS/VobSub in native representation, preserving paired files and access/cache protections; show explicit unsupported-Web feedback. Web rendering, OCR and burn-in remain separately unassigned.
 
 Deferred acceptance retains its existing identifiers:
@@ -274,7 +274,7 @@ V1 is implemented. The archived V2 scope selected saved progress and resume (W01
 
 | Stage | Question to resolve | Priority candidates |
 | --- | --- | --- |
-| Later: everyday viewing | Can the product support regular viewing comfortably? | HLS and real-time playback, embedded fonts and bitmap extraction; next episode remains unassigned |
+| Later: everyday viewing | Can the product support regular viewing comfortably? | HLS and real-time playback, broader font acceptance and bitmap extraction; next episode remains unassigned |
 | Later: anime library | Can files be organized into anime titles and episodes? | Metadata, identification, manual corrections, episodes, and tracking records |
 | Later: automatic acquisition | Can new episodes reach the library automatically? | Subscriptions, discovery, download integration, ingestion, and recovery |
 | Later: external tracking | Can Web viewing records integrate with trackers? | AniList synchronization; possible future read-only native-player state reporting (C03) |

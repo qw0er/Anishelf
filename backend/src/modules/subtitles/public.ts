@@ -1,5 +1,6 @@
 export type {
 	SubtitleDiscovery,
+	SubtitleFonts,
 	SubtitlePreparationResult,
 } from "./domain/model.js";
 

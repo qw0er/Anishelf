@@ -1,4 +1,7 @@
-import { subtitleConstraints } from "../../../contracts/defaults.js";
+import {
+	subtitleConstraints,
+	subtitleFontConstraints,
+} from "../../../contracts/defaults.js";
 import {
 	nativeSubtitleFormats,
 	type PreparedSubtitleFormat,
@@ -16,6 +19,11 @@ import {
 } from "../../../shared/policy.js";
 
 const defaults = {
+	fontMaximumBytes: subtitleFontConstraints.maximumBytes,
+	fontSetMaximumBytes: subtitleFontConstraints.maximumSetBytes,
+	fontMaximumCount: subtitleFontConstraints.maximumCount,
+	fontMaximumCacheBytes: 512 * 1024 * 1024,
+	fontExtractionConcurrency: 1,
 	maximumCacheBytes: 256 * 1024 * 1024,
 	maximumBytes: subtitleConstraints.maximumBytes,
 	readChunkBytes: 64 * 1024,

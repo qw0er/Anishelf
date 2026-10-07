@@ -5,6 +5,7 @@ import { boundedSignal } from "../../api/queries.js";
 import { queryClient } from "../../api/query-client.js";
 import { interactionPolicy } from "../../config/interaction-policy.js";
 import { SubtitlePreparationError } from "./errors.js";
+import { waitForFonts } from "./fonts.js";
 
 /** Only the selected pending track has an observer. Leaving does not cancel the server job. */
 export async function prepareSelectedSubtitle(
@@ -80,5 +81,8 @@ export async function prepareSelectedSubtitle(
 		throw new SubtitlePreparationError(
 			completed.errorCode ?? "SUBTITLE_EXTRACTION_FAILED",
 		);
-	return completed;
+	const fonts = completed.fonts ?? result.fonts;
+	return fonts
+		? { ...completed, fonts: await waitForFonts(fonts, signal) }
+		: completed;
 }

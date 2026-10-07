@@ -293,3 +293,64 @@ test.skipIf(!tools.status.ffmpeg.available || !tools.status.ffprobe.available)(
 		]);
 	},
 );
+
+test.skipIf(!tools.status.ffmpeg.available || !tools.status.ffprobe.available)(
+	"extracts bounded TTF/OTF attachment bytes by absolute stream index",
+	async () => {
+		if (!tools.status.ffmpeg.available) throw new Error("FFmpeg unavailable");
+		const media = join(fixture, "fonts.mkv");
+		const ttf = new URL("./fixtures/fonts/fixture.ttf", import.meta.url)
+			.pathname;
+		const otf = new URL("./fixtures/fonts/fixture.otf", import.meta.url)
+			.pathname;
+		await runTool(tools.status.ffmpeg.path, [
+			"-nostdin",
+			"-v",
+			"error",
+			"-f",
+			"lavfi",
+			"-i",
+			"color=size=32x32:rate=1:duration=1",
+			"-c:v",
+			"ffv1",
+			"-attach",
+			ttf,
+			"-metadata:s:t:0",
+			"mimetype=font/ttf",
+			"-attach",
+			otf,
+			"-metadata:s:t:1",
+			"mimetype=font/otf",
+			media,
+		]);
+		const info = await tools.probe(media);
+		const attachments = info.streams.filter(
+			(stream) => stream.type === "attachment",
+		);
+		expect(attachments).toHaveLength(2);
+		for (const [index, path] of [ttf, otf].entries()) {
+			const stream = attachments[index];
+			if (!stream) throw new Error("Missing attachment");
+			expect(
+				await tools.extractAttachment(media, stream.index, {
+					maximumBytes: 1024 * 1024,
+				}),
+			).toEqual(await readFile(path));
+			await expect(
+				tools.extractAttachment(media, stream.index, { maximumBytes: 10 }),
+			).rejects.toThrow();
+		}
+		await expect(
+			tools.extractAttachment(media, 0, { maximumBytes: 1024 }),
+		).rejects.toMatchObject({ code: "INVALID_MEDIA" });
+		await expect(
+			tools.extractAttachment(media, -1, { maximumBytes: 1024 }),
+		).rejects.toMatchObject({ code: "INVALID_INPUT" });
+		await expect(
+			tools.extractAttachment(media, 1, {
+				maximumBytes: 1024,
+				signal: AbortSignal.abort(),
+			}),
+		).rejects.toThrow();
+	},
+);

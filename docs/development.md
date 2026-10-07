@@ -426,3 +426,44 @@ explicit original attempts without inspection, and unchanged active selection on
 background renders. Real FFmpeg preparation tests also select each processing
 branch through HTTP and save using one progress generation. Browser decoding and
 responsive visual acceptance remain separate from synthetic capability evidence.
+
+## Embedded font cache
+
+ASS/SSA selection can extract TTF/OTF attachments using the existing FFprobe tool;
+no additional executable or system font installation is needed. Fontkit parses
+font payloads in the backend. The database migration adds source-bound font sets
+and attachment manifests; binary assets live in `dataDir/subtitle-fonts`.
+
+The immutable subtitle policy currently permits 32 candidates per video, 24 MiB
+per font, 64 MiB per set and 512 MiB in the font cache, with one active set extraction.
+Font cache limits are separate from text-subtitle and prepared-media budgets.
+HTTP clients cannot submit paths, stream indexes or extraction options. Browser
+loading also enforces count and byte limits, waits at most 15 seconds for preparation
+and uses a five-second font download deadline before showing fallback feedback.
+
+Logs include font set/stream identities, sizes, status and failures; they do not
+include font bytes or subtitle contents. Invalid cached fonts are removed during
+startup or validation and cause a degraded set. Retry re-extracts a degraded set.
+Automatic cache eviction is not implemented; cache-full feedback remains explicit.
+
+`backend/test/fixtures/fonts` contains original synthetic TTF/OTF fonts, generated
+with FontTools by the adjacent Python script. The application does not depend on
+Python or FontTools. Real FFprobe tests embed these fixtures in temporary MKV files
+and check byte equality, output bounds, invalid selections and cancellation.
+
+### Embedded font acceptance (2026-10-07)
+
+An isolated production build was exercised in the Codex in-app Chromium browser.
+A generated H.264/AAC MKV carried regular/bold Noto Sans CJK SC OpenType fonts and
+both synthetic test fonts (four attachments, 33,441,484 bytes total). Embedded ASS
+and matching external ASS rendered CJK text, bold/italic styles and inline `\fn`
+changes at 1280px and 390px viewport widths. A second MKV with PCM audio was
+prepared through the Web pre-transcoding action; the player used its prepared-media
+URL while rendering fonts from the original source. Subtitle off removed the
+overlay; re-enabling and a paused seek repainted styled subtitles. Browser console
+inspection found no warnings/errors during these sample checks.
+Synthetic glyphs intentionally render
+as hollow geometric boxes, making attachment-family selection visible.
+
+This is sample-based acceptance. Exact missing-family/glyph diagnostics, all font
+formats, all browsers and arbitrary complex ASS scripts remain outside this evidence.

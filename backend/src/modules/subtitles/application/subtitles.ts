@@ -34,6 +34,7 @@ import { discoverExternalSubtitles } from "../infrastructure/discovery.js";
 import type { SubtitleRepository } from "../infrastructure/repository.js";
 import type { SubtitleExtractor } from "../ports.js";
 import type { SubtitleApi } from "../public.js";
+import { SubtitleFontPreparation } from "./font-preparation.js";
 import { SubtitlePreparationApplication } from "./subtitle-preparation.js";
 
 /** Subtitle discovery and delivery share source/version access checks. */
@@ -41,6 +42,7 @@ export class SubtitleApplication implements SubtitleApi {
 	private readonly logger: Logger | undefined;
 	private readonly sources: ResourceAccessApi;
 	private readonly inspection: MediaInspectionApi | undefined;
+	private readonly fonts: SubtitleFontPreparation | undefined;
 	private readonly preparation: SubtitlePreparationApplication | undefined;
 	constructor(options: {
 		logger?: Logger;
@@ -60,6 +62,14 @@ export class SubtitleApplication implements SubtitleApi {
 			options.dataDir &&
 			options.tools?.extractSubtitle
 		) {
+			this.fonts = new SubtitleFontPreparation({
+				dataDir: options.dataDir,
+				repository: options.repository,
+				sources: options.sources,
+				tools: options.tools,
+				policy: this.policy.subtitles,
+				...(this.logger ? { logger: this.logger } : {}),
+			});
 			this.preparation = new SubtitlePreparationApplication({
 				sources: options.sources,
 				...(this.logger ? { logger: this.logger } : {}),
@@ -74,7 +84,7 @@ export class SubtitleApplication implements SubtitleApi {
 	}
 	private readonly policy: DeepReadonly<SubtitleRuntimePolicy>;
 	async close(): Promise<void> {
-		await this.preparation?.close();
+		await Promise.allSettled([this.preparation?.close(), this.fonts?.close()]);
 	}
 	private async discoverEmbedded(
 		identity: ResolvedSource["identity"],
@@ -224,6 +234,12 @@ export class SubtitleApplication implements SubtitleApi {
 
 	async initialize(): Promise<void> {
 		await this.preparation?.initialize();
+		await this.fonts?.initialize().catch((err) => {
+			this.logger?.warn(
+				{ event: "subtitles.font_cache_unavailable", err },
+				"Font cache unavailable; fallback fonts remain usable.",
+			);
+		});
 	}
 	private preparationService(): SubtitlePreparationApplication {
 		if (!this.preparation)
@@ -251,7 +267,12 @@ export class SubtitleApplication implements SubtitleApi {
 		if (track.origin === "external") {
 			assertSourceVersion(subtitleVersion ?? "", track.sourceVersion);
 			await this.readExternalSubtitle(source, track, resources);
+			const fonts =
+				track.format === "ass" || track.format === "ssa"
+					? await this.fonts?.prepare(source, info)
+					: undefined;
 			return {
+				...(fonts ? { fonts } : {}),
 				id: trackId,
 				status: "ready",
 				format: track.format,
@@ -286,13 +307,35 @@ export class SubtitleApplication implements SubtitleApi {
 				"SUBTITLE_PREPARATION_BUSY",
 				"Subtitle inspection is unavailable. Retry.",
 			);
-		return this.preparationService().prepare(
+		const fonts =
+			track.format === "ass" || track.format === "ssa"
+				? await this.fonts?.prepare(source, info)
+				: undefined;
+		const result = await this.preparationService().prepare(
 			source,
 			trackId,
 			stream.index,
 			preparedSubtitleFormat(track.format),
 		);
+		return { ...result, ...(fonts ? { fonts } : {}) };
 	}
+	async getSubtitleFontStatus(id: string) {
+		if (!this.fonts)
+			throw new DomainError(
+				"RESOURCE_NOT_FOUND",
+				"Font preparation unavailable.",
+			);
+		return this.fonts.status(id);
+	}
+	async getSubtitleFontContent(id: string, fontId: string) {
+		if (!this.fonts)
+			throw new DomainError(
+				"RESOURCE_NOT_FOUND",
+				"Font preparation unavailable.",
+			);
+		return this.fonts.content(id, fontId);
+	}
+
 	async getSubtitleAssetStatus(id: string) {
 		this.logger?.trace(
 			{ event: "subtitles.status_requested", assetId: id },
