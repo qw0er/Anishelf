@@ -19,6 +19,7 @@ export type UpdateSettingsRequest = Static<
 >;
 export type DirectoryResponse = Static<typeof schemas.DirectoryResponseSchema>;
 export type FileResponse = Static<typeof schemas.FileResponseSchema>;
+export type ChaptersResponse = Static<typeof schemas.ChaptersResponseSchema>;
 export type ApiErrorResponse = Static<typeof schemas.ApiErrorResponseSchema>;
 export type PlaybackProgressDto = Static<
 	typeof schemas.PlaybackProgressDtoSchema

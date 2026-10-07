@@ -1,5 +1,6 @@
 import type {
 	ApiErrorResponse,
+	ChaptersResponse,
 	CompatibilityCheckRequest,
 	CompatibilityInspection,
 	CompatibilityResult,
@@ -235,6 +236,19 @@ export function releasePlaybackSession(
 
 export function getHistory(options?: RequestOptions): Promise<HistoryResponse> {
 	return request("/api/history", "GET", options);
+}
+
+export function getChapters(
+	id: string,
+	sourceVersion: string,
+	options?: RequestOptions,
+): Promise<ChaptersResponse> {
+	const query = new URLSearchParams({ sourceVersion });
+	return request(
+		`/api/files/${encodeURIComponent(id)}/chapters?${query}`,
+		"GET",
+		options,
+	);
 }
 
 export function getSubtitles(

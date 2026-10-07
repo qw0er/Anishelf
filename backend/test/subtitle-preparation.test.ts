@@ -89,6 +89,7 @@ const info: MediaInfo = {
 	bitRate: null,
 	tags: {},
 	streams: [stream],
+	chapters: [],
 };
 function server() {
 	const inspection = new MediaInspectionApplication({

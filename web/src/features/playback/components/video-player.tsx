@@ -29,6 +29,8 @@ import { toast } from "../../../components/ui/toast.js";
 import { getErrorTranslationKey } from "../../../lib/error-translation.js";
 import { SubtitleTracks } from "../../subtitles/public.js";
 
+import { ChapterTracks } from "./chapter-tracks.js";
+
 // The API URL has no file extension; route all original files to native video.
 class DirectVideoLoader extends VideoProviderLoader {
 	canPlay(source: Src) {
@@ -41,6 +43,7 @@ const defaultTimeline = originalTimeline();
 export default function VideoPlayer({
 	file,
 	playbackUrl,
+	sourceVersion,
 	timeline = defaultTimeline,
 	onMedia,
 	onPlaybackFailure,
@@ -49,6 +52,7 @@ export default function VideoPlayer({
 }: Pick<FileResponse, "file"> & {
 	subtitlePolicy: SubtitlePolicy;
 	playbackUrl: string;
+	sourceVersion?: string | undefined;
 	timeline?: MediaTimeline;
 	onMedia?(video: HTMLVideoElement | null, timeline: MediaTimeline): void;
 	onPlaybackFailure?(): void;
@@ -147,6 +151,13 @@ export default function VideoPlayer({
 			}}
 		>
 			<MediaProvider loaders={directVideoLoaders} />
+			{sourceVersion && (
+				<ChapterTracks
+					fileId={file.id}
+					sourceVersion={sourceVersion}
+					timeline={timeline}
+				/>
+			)}
 			<SubtitleTracks fileId={file.id} policy={subtitlePolicy} />
 			<DefaultVideoLayout
 				icons={defaultLayoutIcons}
