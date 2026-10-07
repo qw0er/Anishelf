@@ -57,6 +57,7 @@ async function fixture(
 	options: {
 		beforeOutput?: (request: MediaExecutionRequest) => Promise<void>;
 		maximumCacheBytes?: number;
+		cacheBudget?: () => number;
 		minimumFreeBytes?: number;
 		maximumQueuedTasks?: number;
 		listLimit?: number;
@@ -191,6 +192,9 @@ async function fixture(
 			profiles,
 			dataDir,
 			logger,
+			...(options.cacheBudget
+				? { maximumCacheBytes: options.cacheBudget }
+				: {}),
 			policy: {
 				...preparationPolicy,
 				listLimit: options.listLimit ?? preparationPolicy.listLimit,
@@ -1242,4 +1246,54 @@ test("summaries separate source versions and filter the current profile and root
 	expect(
 		(await f.application.summaries([ready.fileId])).files[0]?.versions,
 	).toEqual([]);
+});
+
+test("task list defaults to ten records and More expands to one hundred", async () => {
+	const f = await fixture();
+	const id = await taskId(f.preparation.create(await f.input()));
+	await completed(f, id);
+	const original = required(f.database.preparation.get(id));
+	for (let index = 1; index <= 105; index++)
+		f.database.preparation.insert({
+			...original,
+			id: randomUUID(),
+			spec: {
+				...original.spec,
+				executionPlanId: index.toString(16).padStart(64, "0"),
+			},
+			state: {
+				status: "cancelled",
+				failureReason: "cancelled",
+				progress: null,
+				updatedAtMs: original.createdAtMs + index,
+			},
+			createdAtMs: original.createdAtMs + index,
+		});
+	const initial = await f.app.inject({
+		url: "/api/preparations?summary=true",
+		headers,
+	});
+	expect(initial.statusCode).toBe(200);
+	expect(initial.json().tasks).toHaveLength(10);
+	const expanded = await f.app.inject({
+		url: "/api/preparations?summary=true&more=true",
+		headers,
+	});
+	expect(expanded.statusCode).toBe(200);
+	expect(expanded.json().tasks).toHaveLength(100);
+	expect(expanded.json().tasks.slice(0, 10)).toEqual(initial.json().tasks);
+});
+
+test("new preparation attempts read the updated cache budget", async () => {
+	let budget = 10;
+	const f = await fixture({ cacheBudget: () => budget });
+	const id = await taskId(f.preparation.create(await f.input()));
+	expect((await completed(f, id)).failureReason).toBe("cache-full");
+	budget = 100;
+	const { fileId: _fileId, ...retry } = await f.input();
+	await f.preparation.retry(id, retry);
+	expect((await completed(f, id)).status).toBe("ready");
+	expect(vi.mocked(f.processing.start).mock.calls[1]?.[0].maximumBytes).toBe(
+		100,
+	);
 });

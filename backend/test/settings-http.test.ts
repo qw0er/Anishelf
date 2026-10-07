@@ -288,3 +288,38 @@ test.each([-1, 1.5, 10081, "60", null])(
 		expect(configuration.settings.resourceRoot).toBeNull();
 	},
 );
+
+test("cache budget is persisted and preserved by unrelated settings saves", async () => {
+	const response = await app.inject({
+		method: "PUT",
+		url: "/api/settings",
+		headers,
+		payload: { resourceRoot: root, transcodeCacheBudgetGiB: 24 },
+	});
+	expect(response.statusCode).toBe(200);
+	expect(response.json().transcodeCacheBudgetGiB).toBe(24);
+	await libraryApp.waitForCompletion();
+	expect(
+		(await PersistentConfiguration.load(dataDir)).settings
+			.transcodeCacheBudgetGiB,
+	).toBe(24);
+	expect((await save()).statusCode).toBe(200);
+	expect(
+		(await app.inject({ url: "/api/settings", headers })).json()
+			.transcodeCacheBudgetGiB,
+	).toBe(24);
+});
+
+test.each([0, -1, 1.5, "10", 8388608])(
+	"rejects invalid cache budget %s",
+	async (transcodeCacheBudgetGiB) => {
+		const response = await app.inject({
+			method: "PUT",
+			url: "/api/settings",
+			headers,
+			payload: { resourceRoot: root, transcodeCacheBudgetGiB },
+		});
+		expect(response.statusCode).toBe(400);
+		expect(configuration.settings).toEqual({ resourceRoot: null });
+	},
+);

@@ -1,18 +1,44 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useId, useRef } from "react";
+import {
+	keepPreviousData,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { keys, tasksQuery, useQueryScope } from "../../api/queries.js";
 import { toast } from "../../components/ui/toast.js";
 import { interactionPolicy } from "../../config/interaction-policy.js";
+import { preparationPolicy } from "../../config/media-policy.js";
 import { getErrorTranslationKey } from "../../lib/error-translation.js";
 
 export function usePreparations(fileId?: string, enabled = true) {
 	const scope = useQueryScope();
 	const client = useQueryClient();
-	const query = useQuery({ ...tasksQuery(scope, fileId), enabled });
+	const [expandedScope, setExpandedScope] = useState<string | null>(null);
+	const more = expandedScope === scope;
+	const query = useQuery({
+		...tasksQuery(scope, fileId, more),
+		enabled,
+		placeholderData: (previous, previousQuery) =>
+			previousQuery?.queryKey[1] === scope &&
+			previousQuery?.queryKey[3] === (fileId ?? null)
+				? keepPreviousData(previous)
+				: undefined,
+	});
 	return {
 		tasks: enabled ? (query.data?.tasks ?? []) : [],
 		loading: enabled && query.isPending,
+		loadingMore: more && query.isFetching,
+		canLoadMore:
+			(!more &&
+				(query.data?.tasks.length ?? 0) >=
+					preparationPolicy.initialListLimit) ||
+			(more && query.isError),
+		loadMore: () => {
+			if (more) void query.refetch();
+			else setExpandedScope(scope);
+		},
 		error: query.error,
 		refresh: useCallback(() => {
 			void client.invalidateQueries({ queryKey: keys.tasks(scope, fileId) });

@@ -28,6 +28,7 @@ export class PreparationContext {
 		readonly profiles: DeepReadonly<TranscodeProfile[]>,
 		readonly policy: DeepReadonly<PreparationPolicy>,
 		readonly logger: Logger,
+		readonly maximumCacheBytes: () => number = () => policy.maximumCacheBytes,
 	) {}
 	assertOpen(): void {
 		if (this.closed)

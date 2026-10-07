@@ -17,7 +17,7 @@ import {
 	queryClient,
 } from "../api/query-client.js";
 import { toast } from "../components/ui/toast.js";
-import { libraryPolicy } from "../config/media-policy.js";
+import { libraryPolicy, preparationPolicy } from "../config/media-policy.js";
 import i18n from "../i18n.js";
 import { getErrorTranslationKey } from "../lib/error-translation.js";
 
@@ -50,6 +50,17 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 	if (typeof resourceRoot !== "string" || resourceRoot.trim() === "")
 		return { error: "errors.resourcePathRequired" };
 
+	const cache = form.get("transcodeCacheBudgetGiB");
+	const transcodeCacheBudgetGiB = cache === null ? undefined : Number(cache);
+	if (
+		cache !== null &&
+		(typeof cache !== "string" ||
+			cache.trim() === "" ||
+			!Number.isSafeInteger(transcodeCacheBudgetGiB) ||
+			Number(transcodeCacheBudgetGiB) < 1 ||
+			Number(transcodeCacheBudgetGiB) > preparationPolicy.maximumCacheBudgetGiB)
+	)
+		return { error: "settingsPage.invalidCacheBudget" };
 	const interval = form.get("scanIntervalMinutes");
 	const scanIntervalMinutes = interval === null ? undefined : Number(interval);
 	if (
@@ -69,6 +80,9 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 			saveSettings(
 				{
 					resourceRoot,
+					...(transcodeCacheBudgetGiB === undefined
+						? {}
+						: { transcodeCacheBudgetGiB }),
 					...(scanIntervalMinutes === undefined ? {} : { scanIntervalMinutes }),
 				},
 				{ signal: request.signal },

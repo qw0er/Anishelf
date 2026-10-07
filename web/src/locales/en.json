@@ -107,7 +107,10 @@
 		"save": "Save directory",
 		"saved": "Settings saved.",
 		"savedPath": "Saved resource directory: {{path}}",
-		"waitForScan": "Wait for the scan to finish before changing the directory."
+		"waitForScan": "Wait for the scan to finish before changing the directory.",
+		"transcodeCacheBudget": "Transcode cache budget (GiB)",
+		"transcodeCacheBudgetHelp": "Default: {{defaultGiB}} GiB. Applies to new tasks; lowering the budget does not delete existing copies.",
+		"invalidCacheBudget": "Enter a positive whole number for the transcode cache budget."
 	},
 	"externalPlayers": {
 		"open": "Open in external player",
@@ -306,6 +309,7 @@
 		"loadingProfiles": "Loading output profiles\u2026",
 		"required": "This browser cannot play the original file. Pre-transcode it from its folder before watching.",
 		"waitForCopy": "The prepared copy is not ready yet. Playback will start when preparation finishes.",
-		"copyUnsupported": "No available prepared copy could be confirmed for this browser. Check the task or choose another profile in Settings."
+		"copyUnsupported": "No available prepared copy could be confirmed for this browser. Check the task or choose another profile in Settings.",
+		"more": "More"
 	}
 }

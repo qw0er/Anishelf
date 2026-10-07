@@ -98,6 +98,17 @@ on startup when `ANISHELF_INITIAL_RESOURCE_ROOT` is supplied and the file is mis
 [Transcode profiles](transcode-profiles.md) for the optional administrator-authored
 `dataDir/transcode-profiles.json`, catalog API and persistent selection.
 
+The optional `settings.json` field `transcodeCacheBudgetGiB` configures the total
+prepared-media cache budget in whole GiB (default: 10). It is also editable in
+Settings and through `PUT /api/settings`. Saved changes apply to subsequently
+started tasks without a restart. Lowering the budget never deletes existing copies;
+new output is blocked when retained copies already consume the budget. Active tasks
+keep their initial output allowance, and free disk space remains an additional bound.
+
+The task monitor initially requests the latest 10 records. Its **More** button
+requests the latest 100 records. Both limits are declared in preparation policy;
+this display window does not delete task history or cached media.
+
 TOML loading and its parser dependency have been removed. To migrate, unset
 `ANISHELF_CONFIG`, set `ANISHELF_DATA_DIR` to the old TOML `dataDir`, and translate
 custom listener/logging values to the variables above. The loader rejects a remaining

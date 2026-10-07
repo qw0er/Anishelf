@@ -2,6 +2,7 @@
 export interface PersistentSettings {
 	resourceRoot: string | null;
 	scanIntervalMinutes?: number;
+	transcodeCacheBudgetGiB?: number;
 	defaultTranscodeProfileId?: string;
 }
 export interface SettingsStore {

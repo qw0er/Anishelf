@@ -6,6 +6,9 @@ export function settingsResponse(
 ): SettingsResponse {
 	return {
 		resourceRoot: settings.resourceRoot,
+		...(settings.transcodeCacheBudgetGiB === undefined
+			? {}
+			: { transcodeCacheBudgetGiB: settings.transcodeCacheBudgetGiB }),
 		...(settings.defaultTranscodeProfileId === undefined
 			? {}
 			: { defaultTranscodeProfileId: settings.defaultTranscodeProfileId }),
