@@ -132,46 +132,27 @@ function button(props = {}) {
 	);
 }
 
-test("directory action has a placeholder while checking and no transcode button for supported files but an action for unknown files", async () => {
-	const view = button({ loading: true });
-	expect(
-		view
-			.getByLabelText("Checking playback compatibility…")
-			.querySelector("svg.animate-spin"),
-	).toBeTruthy();
-	view.rerender(
-		<Wrapper>
-			<PreparationButton
-				fileId="file"
-				loading={false}
-				result={{
-					...unsupported,
-					direct: { status: "supported", reason: "browser-supported" },
-				}}
-				error={null}
-				onRecheck={vi.fn()}
-			/>
-		</Wrapper>,
-	);
-	expect(view.queryByRole("button", { name: "Pre-transcode" })).toBeNull();
-	view.rerender(
-		<Wrapper>
-			<PreparationButton
-				fileId="file"
-				loading={false}
-				result={{
-					...unsupported,
-					direct: { status: "unknown", reason: "browser-uncertain" },
-				}}
-				error={null}
-				onRecheck={vi.fn()}
-			/>
-		</Wrapper>,
-	);
-	expect(
-		await view.findByRole("button", { name: "Pre-transcode" }),
-	).toBeTruthy();
-});
+test.each(["loading", "supported", "unknown", "failed"])(
+	"preparation stays available while compatibility is %s",
+	async (state) => {
+		const view = button({
+			loading: state === "loading",
+			result:
+				state === "loading" || state === "failed"
+					? null
+					: { ...unsupported, direct: { status: state } },
+			error: state === "failed" ? new Error("Probe failed") : null,
+		});
+		const action = await view.findByRole("button", { name: "Pre-transcode" });
+		await waitFor(() =>
+			expect((action as HTMLButtonElement).disabled).toBe(false),
+		);
+		expect(api.inspectMediaCompatibility).not.toHaveBeenCalled();
+		fireEvent.click(action);
+		await waitFor(() => expect(api.createPreparation).toHaveBeenCalled());
+		expect(api.inspectMediaCompatibility).toHaveBeenCalled();
+	},
+);
 test("directory icon action exposes its tooltip on keyboard focus", async () => {
 	const view = button();
 	const action = await view.findByRole("button", { name: "Pre-transcode" });
@@ -316,7 +297,11 @@ test("file menu discovers older prepared copies and deletes them even for a supp
 	const remove = await view.findByRole("menuitem", {
 		name: "Delete prepared copy",
 	});
-	expect(view.queryByRole("menuitem", { name: "Pre-transcode" })).toBeNull();
+	expect(
+		(await view.findByRole("menuitem", { name: "Pre-transcode" })).getAttribute(
+			"aria-disabled",
+		),
+	).toBe("false");
 	fireEvent.click(remove);
 	await waitFor(() =>
 		expect(api.deletePreparedMedia).toHaveBeenCalledWith(
@@ -416,13 +401,17 @@ test.each(
 					? "Delete prepared copy"
 					: "Cancel preparation",
 		});
+		expect(
+			(
+				await view.findByRole("menuitem", { name: "Pre-transcode" })
+			).getAttribute("aria-disabled"),
+		).toBe("true");
 		for (const name of [
 			"Queued",
 			"Preparing",
 			"Ready",
 			"Checking playback compatibility…",
 			"Loading prepared copies…",
-			"Pre-transcode",
 		]) {
 			expect(view.queryByRole("menuitem", { name })).toBeNull();
 		}

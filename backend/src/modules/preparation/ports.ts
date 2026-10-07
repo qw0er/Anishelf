@@ -6,6 +6,7 @@ import type { DeepReadonly } from "../../shared/policy.js";
 export interface PreparationPlanner {
 	plan(
 		input: CompatibilityCheckRequest & { fileId: string },
+		options?: { forcePreparation: boolean },
 	): Promise<DeepReadonly<MediaPlanningResult>>;
 }
 

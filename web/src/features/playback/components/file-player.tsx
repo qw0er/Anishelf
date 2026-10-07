@@ -153,7 +153,7 @@ export default function FilePlayer({
 				selectAudio={selectAudio}
 			/>
 			<div className="action-row">
-				{!blocked && !preparedCurrent && preparationAction}
+				{!blocked && preparationAction}
 				<CompatibilityDialog
 					compatibility={compatibility}
 					open={compatibilityOpen}

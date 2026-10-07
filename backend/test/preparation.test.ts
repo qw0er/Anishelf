@@ -327,6 +327,17 @@ function waitForAbort(request: MediaExecutionRequest): Promise<void> {
 	});
 }
 
+test("explicit preparation creates and reuses a copy even for a supported original", async () => {
+	const f = await fixture();
+	const base = await f.input();
+	const input = await f.input(
+		Object.fromEntries(base.evidence.map((item) => [item.id, "supported"])),
+	);
+	const id = await taskId(f.preparation.create(input));
+	expect((await completed(f, id)).status).toBe("ready");
+	expect(await taskId(f.preparation.create(input))).toBe(id);
+	expect(f.processing.start).toHaveBeenCalledTimes(1);
+});
 test("deduplicates concurrent preparation, publishes ready files, and reuses them after restart", async () => {
 	const f = await fixture();
 	const input = await f.input();

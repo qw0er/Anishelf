@@ -54,6 +54,7 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 	/** Checks client evidence and proposes work without creating history or acquiring output. */
 	async plan(
 		input: CompatibilityCheckRequest & { fileId: string },
+		options?: { forcePreparation: boolean },
 	): Promise<DeepReadonly<MediaPlanningResult>> {
 		input = structuredClone(input);
 		if (this.closed)
@@ -78,6 +79,7 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 		const resolved = resolveExecutionPlan(
 			checked,
 			this.options.preparationMode?.() ?? "compatible",
+			options?.forcePreparation ?? false,
 		);
 		await this.options.sources.revalidateSource(source);
 		this.options.sources.assertRootEpoch(source.rootEpoch);

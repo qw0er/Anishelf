@@ -34,14 +34,12 @@ export function PreparationFileMenuItems({
 	];
 	return (
 		<>
-			{!list.loading && (
-				<PreparationButton
-					fileId={fileId}
-					{...compatibility}
-					menuItem
-					tasks={tasks}
-				/>
-			)}
+			<PreparationButton
+				fileId={fileId}
+				{...compatibility}
+				menuItem
+				tasks={tasks}
+			/>
 			{list.error !== null && (
 				<DropdownMenuItem onClick={list.refresh}>
 					<RefreshCw className="size-4" aria-hidden="true" />

@@ -11,6 +11,7 @@ import type {
 export interface MediaPlanningApi {
 	plan(
 		input: CompatibilityCheckRequest & { fileId: string },
+		options?: { forcePreparation: boolean },
 	): Promise<DeepReadonly<MediaPlanningResult>>;
 	inspect(input: CompatibilityInspectInput): Promise<CompatibilityInspection>;
 	check(
