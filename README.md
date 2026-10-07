@@ -214,7 +214,56 @@ for networking and mount options.
 
 ### Podman CLI
 
-For rootless Podman, run as the user who owns the application data:
+#### Dedicated rootless user
+
+Use a dedicated non-root account named `anishelf` for rootless CLI and Quadlet
+deployments. Keep it separate from your everyday login account and do not grant
+it sudo privileges. On Linux distributions with `useradd`, run the following
+from your administrator account (skip creation if the account already exists):
+
+```sh
+sudo useradd --create-home --user-group --shell /bin/bash anishelf
+sudo loginctl enable-linger anishelf
+```
+
+The account needs a writable home and subordinate UID/GID ranges in
+`/etc/subuid` and `/etc/subgid`. Check both files from your administrator account:
+
+```sh
+sudo grep '^anishelf:' /etc/subuid /etc/subgid
+```
+
+If either range is missing, have the administrator allocate an unused range of
+at least 65,536 IDs in that file before starting Podman. Do not reuse another
+account's range. See the [Podman rootless requirements](https://docs.podman.io/en/latest/markdown/podman.1.html#rootless-mode).
+
+Grant `anishelf` read access to the media files and traversal access to their
+parent directories, using appropriate ownership or ACLs. The media mount remains
+read-only. If access relies on a supplementary group, configure Podman's
+`--group-add keep-groups` (CLI) or `GroupAdd=keep-groups` (Quadlet) with the `crun`
+runtime, and restart the user's systemd manager after changing group membership.
+The application data directory must be owned by `anishelf`.
+
+Enter the service account from your administrator account, then set the user
+runtime and bus addresses for this shell:
+
+```sh
+sudo -iu anishelf
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+```
+
+Linger starts the user's systemd manager at boot and keeps it running after
+logout. It allows the Quadlet service below to run without an interactive login.
+Run all rootless `podman`, `systemctl --user`, and `journalctl --user` commands
+below from this `anishelf` shell. Use `exit` to return to your administrator
+account before running rootful commands. Each Podman user has separate container
+storage; `sudo podman` manages root's containers rather than this account's.
+
+#### Rootless CLI
+
+Complete the [dedicated user setup](#dedicated-rootless-user), then run as
+`anishelf`:
 
 ```sh
 mkdir -p ~/.local/share/anishelf
@@ -232,7 +281,10 @@ podman ps --filter name=anishelf
 podman logs -f anishelf
 ```
 
-To run Podman as root, create a fresh data directory owned by UID/GID 1000:
+#### Rootful CLI
+
+From your administrator account, create a fresh data directory owned by
+UID/GID 1000:
 
 ```sh
 sudo install -d -m 0750 -o 1000 -g 1000 /var/lib/anishelf
@@ -323,14 +375,15 @@ If you edit the Quadlet file, run `sudo systemctl daemon-reload` before starting
 
 #### Quadlet rootless
 
-Run these commands as the non-root user who will own the service. Create the
-configuration and data directories:
+Complete the [dedicated user setup](#dedicated-rootless-user), including linger,
+and enter the `anishelf` shell with the runtime and bus environment shown there.
+Create the configuration and data directories as `anishelf`:
 
 ```sh
 mkdir -p ~/.config/containers/systemd ~/.local/share/anishelf
 ```
 
-Save `~/.config/containers/systemd/anishelf.container`:
+Save `~/.config/containers/systemd/anishelf.container` in `anishelf`'s home:
 
 ```ini
 [Unit]
@@ -358,12 +411,15 @@ TimeoutStopSec=30
 WantedBy=default.target
 ```
 
-Replace the media path; the rootless user must own the data directory and be able
-to read the media. The user namespace maps that host user to the image's UID/GID
-1000. See [SELinux mounts](#selinux-mounts) if SELinux blocks access.
-This data directory is separate from the Docker volume. Copy existing data only
-while the old service is stopped, preserving a backup and adjusting ownership
-for the rootless user.
+Replace the media path; `anishelf` must own the data directory and be able to read
+the media. The user namespace maps that host account to the image's UID/GID 1000;
+the host account itself does not need UID/GID 1000.
+See [SELinux mounts](#selinux-mounts) if SELinux blocks access.
+This account's data and container storage are separate from other rootless users
+and the Docker volume. When migrating, stop the old service and preserve a backup
+before copying application data to `anishelf`'s data directory and adjusting its
+ownership. Create the container under `anishelf` instead of reusing another
+user's container storage.
 
 Start and inspect the generated service:
 
@@ -372,12 +428,6 @@ systemctl --user daemon-reload
 systemctl --user start anishelf.service
 systemctl --user status anishelf.service
 journalctl --user -u anishelf.service -f
-```
-
-To start at boot and keep the user service running after logout:
-
-```sh
-sudo loginctl enable-linger "$USER"
 ```
 
 Access `http://127.0.0.1:3000` locally or via SSH. Fresh data uses `/media`
@@ -392,7 +442,8 @@ To update, stop the service:
 systemctl --user stop anishelf.service
 ```
 
-Back up `~/.local/share/anishelf`, then pull and start the current image:
+Back up `anishelf`'s `~/.local/share/anishelf`, then pull and start the current
+image from the same `anishelf` shell:
 
 ```sh
 podman pull ghcr.io/qw0er/anishelf:latest
