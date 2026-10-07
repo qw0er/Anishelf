@@ -28,9 +28,10 @@ export type PreparationExecutionPlan =
 export function resolveExecutionPlan(
 	input: DeepReadonly<CheckedCompatibility>,
 	mode: PreparationMode = "compatible",
+	forcePreparation = false,
 ): PreparationExecutionPlan {
 	const { profile, output } = input;
-	if (input.direct.status === "supported")
+	if (!forcePreparation && input.direct.status === "supported")
 		return {
 			kind: "direct",
 			fileId: input.fileId,

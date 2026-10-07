@@ -1,4 +1,4 @@
-import { Check, Film, RefreshCw, Settings2 } from "lucide-react";
+import { Check, Film, Settings2 } from "lucide-react";
 import { type ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
@@ -22,9 +22,7 @@ import { usePreparationAction } from "../use-preparations.js";
 
 export function PreparationButton({
 	fileId,
-	loading,
 	result,
-	error,
 	onRecheck,
 	menuItem = false,
 	tasks,
@@ -68,62 +66,16 @@ export function PreparationButton({
 			<Tooltip content={label}>{element}</Tooltip>
 		);
 	}
-	if (loading)
-		return menuItem ? null : (
-			<span
-				className="flex size-9 items-center justify-center text-muted-foreground"
-				role="status"
-				aria-label={t("compatibility.checking")}
-			>
-				<Spinner />
-			</span>
-		);
-	if ((error || !result) && showLabel)
-		return control(
-			t("compatibility.failed"),
-			<Button
-				variant="outline"
-				disabled
-				aria-label={t("preparation.pretranscode")}
-			>
-				<Film className="size-4" aria-hidden="true" />
-				{t("preparation.pretranscode")}
-			</Button>,
-			true,
-		);
-	if (error || !result)
-		return control(
-			t("compatibility.recheck"),
-			<Button
-				variant="ghost"
-				className={menuItem ? "w-full justify-start" : "size-9 p-0"}
-				onClick={onRecheck}
-				aria-label={t("compatibility.recheck")}
-			>
-				<RefreshCw className="size-4" aria-hidden="true" />
-				{menuItem && t("compatibility.recheck")}
-			</Button>,
-		);
-	if (result.direct.status === "supported" && audioStreamIndices === undefined)
-		return null;
-	if (!preparation.catalog && !preparation.catalogError)
-		return menuItem ? null : (
-			<span
-				className="flex size-9 items-center justify-center text-muted-foreground"
-				role="status"
-				aria-label={t("preparation.loadingProfiles")}
-			>
-				<Spinner />
-			</span>
-		);
-	const sourceVersion = result.sourceVersion;
+	const profileLoading = !preparation.catalog && !preparation.catalogError;
+	const sourceVersion = result?.sourceVersion;
 	const profile = preparation.catalog?.selectionAvailable
 		? preparation.catalog.selectedProfileId
 		: null;
 	const task = (tasks ?? preparation.tasks).find(
 		(task) =>
 			task.fileId === fileId &&
-			task.sourceVersion === result.sourceVersion &&
+			sourceVersion !== undefined &&
+			task.sourceVersion === sourceVersion &&
 			task.profileId === profile &&
 			(preparation.catalog?.preparationMode !== "compatible" ||
 				task.mode === "transcode") &&
@@ -133,7 +85,7 @@ export function PreparationButton({
 		task?.status === "queued" ||
 		task?.status === "processing" ||
 		task?.status === "cancelling";
-	if (!profile)
+	if (!profile && !profileLoading)
 		return control(
 			t("preparation.configure"),
 			<Link
@@ -148,8 +100,6 @@ export function PreparationButton({
 				{menuItem && t("preparation.configure")}
 			</Link>,
 		);
-	if (menuItem && !chooseTracks && (pending || task?.status === "ready"))
-		return null;
 	const label = t(
 		menuItem
 			? "preparation.pretranscode"
@@ -207,7 +157,9 @@ export function PreparationButton({
 			aria-label={label}
 			focusableWhenDisabled
 			disabled={
-				action.busy || (!chooseTracks && (pending || task?.status === "ready"))
+				profileLoading ||
+				action.busy ||
+				(!chooseTracks && (pending || task?.status === "ready"))
 			}
 			onClick={() => {
 				if (chooseTracks) {
@@ -216,7 +168,7 @@ export function PreparationButton({
 				} else start();
 			}}
 		>
-			{action.busy || pending ? (
+			{profileLoading || action.busy || pending ? (
 				<Spinner />
 			) : task?.status === "ready" ? (
 				<Check className="size-4" aria-hidden="true" />
@@ -225,7 +177,9 @@ export function PreparationButton({
 			)}
 			{(menuItem || showLabel) && label}
 		</Button>,
-		action.busy || (!chooseTracks && (pending || task?.status === "ready")),
+		profileLoading ||
+			action.busy ||
+			(!chooseTracks && (pending || task?.status === "ready")),
 	);
 
 	return (

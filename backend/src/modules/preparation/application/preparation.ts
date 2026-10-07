@@ -135,7 +135,9 @@ export class PreparationApplication implements PreparationApi {
 					"INVALID_REQUEST",
 					"Preparation requires a completed-file output profile.",
 				);
-			const planned = await this.options.planning.plan(input);
+			const planned = await this.options.planning.plan(input, {
+				forcePreparation: true,
+			});
 			scheduler.assertHealthy();
 			if (planned.kind === "playable")
 				return {
@@ -346,10 +348,13 @@ export class PreparationApplication implements PreparationApi {
 					"INVALID_REQUEST",
 					"This preparation is already ready.",
 				);
-			const planned = await this.options.planning.plan({
-				...input,
-				fileId: task.spec.source.fileId,
-			});
+			const planned = await this.options.planning.plan(
+				{
+					...input,
+					fileId: task.spec.source.fileId,
+				},
+				{ forcePreparation: true },
+			);
 			scheduler.assertHealthy();
 			if (
 				planned.kind !== "processing-required" ||

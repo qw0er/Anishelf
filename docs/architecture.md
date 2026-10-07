@@ -195,3 +195,15 @@ chapters mapped through the selected resource's timeline. Prepared files still
 omit embedded chapters; navigation does not require rebuilding them. External
 chapter files, editing, automatic opening/ending detection and thumbnails are not
 implemented.
+
+
+## Explicit pre-transcoding
+
+Every file action menu and playback page exposes pre-transcoding independently of
+original playback compatibility, including while inspection is pending or has
+failed. Selecting the action obtains fresh source/profile-bound output evidence.
+Explicit preparation requests create a profile-based copy even when the original
+is directly playable; normal playback selection still prefers a playable original.
+Matching active or ready preparations keep the menu action visible but disabled
+to avoid duplicate jobs. Profile configuration, source validation, output support
+and processing limits remain enforced before task creation.

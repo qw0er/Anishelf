@@ -457,6 +457,20 @@ test("media planning validates evidence without opening history or claiming reso
 		mimeType: "video/x-matroska",
 	});
 
+	expect(
+		await f.app.plan(
+			{
+				...input,
+				evidence: f.evidence(
+					Object.fromEntries(
+						f.description.queries.map((q) => [q.id, "supported"]),
+					),
+				),
+			},
+			{ forcePreparation: true },
+		),
+	).toMatchObject({ kind: "processing-required" });
+
 	const blocked = await f.app.plan({
 		...input,
 		evidence: f.evidence({ "copy-video": "unknown" }),
