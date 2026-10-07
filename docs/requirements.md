@@ -49,7 +49,7 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 | L11 | Relink moved files while preserving viewing history | Later | — | Unassigned |
 | L12 | Configure and manage multiple resource roots | Optional | — | Unassigned |
 | L13 | Rename, organize, delete, and reclaim storage with preservation rules | Optional | — | Unassigned |
-| L14 | Download an existing original media file from the Web interface to the user's device | Implemented | — | Web |
+| L14 | Download an existing original media file from the Web interface to the user's device | Implemented | Current | Current |
 
 #### Download Existing Media (L14)
 
@@ -84,10 +84,10 @@ This is a user-facing file download, separate from acquiring new releases throug
 | P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | V2: VTT/SRT/ASS/SSA text extraction; fonts and bitmap extraction deferred | — | V2 (partial) |
 | P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | V2: styled ASS/SSA with fallback fonts; embedded fonts and bitmap handling deferred | — | V2 (partial) |
 | P14 | HLS/fMP4 delivery and real-time transcoding, including seeking, leases, source-time mapping and interactive scheduling | Later | — | Unassigned |
-| P15 | Extract, validate and load embedded font attachments | Later | — | Unassigned |
+| P15 | Extract, validate and load embedded font attachments | Unimplemented: ASS/SSA rendering currently loads only the bundled fallback font | — | Unassigned |
 | P16 | Extract embedded PGS/VobSub bitmap subtitle assets with explicit unsupported-Web feedback | Later | — | Unassigned |
-| P10 | Select audio tracks, adjust subtitle timing, change playback speed, and use shortcuts | Later | — | Unassigned |
-| P11 | Next-episode navigation, automatic continuation, and playback preferences | Later | — | Unassigned |
+| P10 | Select audio tracks, adjust subtitle timing, change playback speed, and use shortcuts | Implemented | Current | Current |
+| P11 | Next-episode navigation and automatic continuation | Later | — | Unassigned |
 | P12 | Hardware transcoding, HDR handling, broader browser support, and advanced concurrency policies beyond the V2 bounded scheduler | Optional | — | Unassigned |
 | P13 | Opening/ending skips and chapter navigation | Optional | — | Unassigned |
 
@@ -104,7 +104,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 These capabilities are outside V2 and have no assigned release:
 
 - **P14 HLS and real-time playback:** serve completed and live HLS/fMP4 playlists and complete segments; prefer valid completed resources and copy compatible streams. Begin playback before full conversion; support pause/resume and seeking beyond generated ranges by restarting near the requested source time. Map progress and subtitle clocks to source time. Expose starting/streaming/buffering/completed/stopped/failed states and corresponding UI. Stop and clean old processing on exit, expired lease, repeated seeks, source invalidation, failure or shutdown. Bound shared concurrency/storage and prioritize interactive work with explicit interruption/requeue feedback. Preserve history/originals and reject stale generations after restart.
-- **P15 Embedded fonts:** extract supported attachments, enforce size limits and safe filenames, validate cached fonts, load them into the styled renderer and provide fallback/missing-font feedback. Acceptance uses styled ASS/SSA and CJK samples with embedded fonts.
+- **P15 Embedded fonts:** currently unimplemented; the styled subtitle renderer supplies only the bundled JASSUB fallback font. Rendering ASS/SSA styles and extracting text subtitle tracks do not extract video font attachments. The remaining requirement is to extract supported attachments, enforce size limits and safe filenames, validate cached fonts, load them into the styled renderer and provide fallback/missing-font feedback. Acceptance uses styled ASS/SSA and CJK samples with embedded fonts.
 - **P16 Bitmap extraction:** extract supported PGS/VobSub in native representation, preserving paired files and access/cache protections; show explicit unsupported-Web feedback. Web rendering, OCR and burn-in remain separately unassigned.
 
 Deferred acceptance retains its existing identifiers:
@@ -189,25 +189,25 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
 | O03 | Dashboard for continued viewing, new episodes, downloads, and exceptions | Later | — | Unassigned |
-| O04 | Unified settings for directories, playback preferences, and integrations | Later | — | Unassigned |
+| O04 | Unified settings for directories and integrations | Later | — | Unassigned |
 | O05 | Task history, logs, and automation decision explanations | Later | — | Unassigned |
 | O06 | Back up and restore metadata, viewing history, and configuration | Later | — | Unassigned |
 | O07 | LAN access, single-user authentication, and credential protection | Later | — | Unassigned |
-| O08 | Completion and failure notifications with notification preferences | Later | — | Unassigned |
+| O08 | In-app completion and failure feedback | Implemented: scan result Toasts and preparation results in the floating task monitor | Current | Current |
 | O09 | Multiple users, permissions, public deployment support, and remote access | Optional | — | Unassigned |
 | O10 | Plugin extensions and public integration APIs | Optional | — | Unassigned |
 | O11 | Log rotation, retention, and reopening files without restarting the application | Later | — | Unassigned |
 | O12 | Automatic log-output fallback after destination failure | Later | — | Unassigned |
 | O13 | Asynchronous log output with bounded buffering and shutdown flushing | Later | — | Unassigned |
 | O14 | Interface localization and language preferences | V2 English catalog/keys/fallback foundation; additional locales and selection later | — | V2 (partial) |
-| O15 | Manage API-backed frontend state and caching with TanStack Query | Later | — | Unassigned |
+| O15 | Manage API-backed frontend state and caching with TanStack Query | Implemented | Current | Current |
 | O16 | Complete everyday-use Web interface | Finished UI for V2 library, History, primary Web playback, full-file preparation tasks, and scoped settings | — | V2 |
 | O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access; built-in cache budget | V2 implementation; acceptance pending | V2 |
-| O18 | User-editable prepared-media cache budget | Later; Settings control, validation and persisted disk-space limit | — | Unassigned |
+| O18 | User-editable prepared-media cache budget | Implemented; Settings control, validation and persisted disk-space limit | Current | Current |
 
-#### User-editable Prepared-media Cache Budget (O18, Later)
+#### User-editable Prepared-media Cache Budget (O18)
 
-Allow users to configure the total disk-space limit for generated prepared-media copies through Settings. Validate and persist the explicit choice, preserve it across upgrades and enforce it for future preparation output. Account for retained in-use artifacts, distinguish cache exhaustion from insufficient disk space and preserve originals, history and settings. Lowering the limit must not silently delete existing copies; show exhaustion and allow explicit cleanup. V2 retains its built-in budget and manual prepared-copy deletion. This feature has no assigned release.
+Allow users to configure the total disk-space limit for generated prepared-media copies through Settings. Validate and persist the explicit choice, preserve it across upgrades and enforce it for future preparation output. Account for retained in-use artifacts, distinguish cache exhaustion from insufficient disk space and preserve originals, history and settings. Lowering the limit must not silently delete existing copies; show exhaustion and allow explicit cleanup. Settings provides a validated, persisted transcode cache budget in GiB. Preparation reads the current limit when starting work and accounts for retained copies; cache exhaustion and insufficient disk space have distinct feedback. Existing copies can be deleted explicitly.
 
 #### Unified Configuration (O17)
 
@@ -235,7 +235,11 @@ V1 remains English-only as implemented. V2 reserves multilingual support with an
 - Limit this cache to API-backed data. Media playback streams and local-only interface or player state are outside its scope.
 - Acceptance: revisiting a still-fresh resource listing reuses cached data; concurrent requests for the same listing do not trigger duplicate fetches; a completed scan or settings change is reflected on the next affected view; and a refresh failure is distinguishable from a successful current result.
 
-This frontend caching improvement remains unassigned beyond V2. It does not require the V1 interface to use TanStack Query.
+The Web interface implements this capability with TanStack Query, shared query definitions and a QueryClient. API-backed views reuse cached results and coordinate invalidation or refresh after changes; media streams and local player state remain outside the query cache.
+
+#### Notification Delivery Boundary (O08)
+
+The Web interface emits in-app Toasts when library scans complete or fail, provides feedback for successful actions and request failures, and displays preparation progress and completion/failure results in the floating task monitor and task cards. These existing in-app feedback paths fulfill O08; a separate preparation-result Toast is not required.
 
 #### Logging Maintenance (O11–O13)
 
