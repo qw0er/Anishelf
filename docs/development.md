@@ -68,8 +68,11 @@ public-origin variable for local or SSH-only access.
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory for Anishelf | Absolute directory; overrides the platform default. |
 | `ANISHELF_INITIAL_RESOURCE_ROOT` | Unset | Absolute readable media directory used only when `settings.json` is missing; existing settings take precedence. |
 | `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
-| `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout` or `file`. |
-| `ANISHELF_LOG_PATH` | Unset | Absolute log path; required with `file`, rejected with `stdout`. |
+| `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout`, `file`, or `both`. |
+| `ANISHELF_LOG_PATH` | `anishelf.log` in the platformdirs user log directory | Optional absolute path override for `file` / `both`; rejected with `stdout`. |
+| `ANISHELF_LOG_MAX_SIZE_BYTES` | `10485760` | Positive safe integer rotation threshold in bytes; file modes only. |
+| `ANISHELF_LOG_MAX_FILES` | `7` | Positive safe integer archive count, excluding the active file; file modes only. |
+| `ANISHELF_LOG_ROTATE_INTERVAL` | `1d` | `1h` or `1d`; file modes only. |
 | `ANISHELF_FFMPEG_PATH` | `ffmpeg` from process PATH | Optional absolute FFmpeg executable path; resolved independently. |
 | `ANISHELF_FFPROBE_PATH` | `ffprobe` from process PATH | Optional absolute FFprobe executable path; resolved independently. |
 | `ANISHELF_API_TARGET` | `http://127.0.0.1:3000` | Vite proxy target; match any custom backend listener. |
@@ -86,8 +89,10 @@ On macOS, installations using the previous `~/.local/share/anishelf` default sho
 `ANISHELF_DATA_DIR` to that existing absolute path or move the existing data into the new
 platform-specific location before starting this version.
 
-For file logging, set `ANISHELF_LOG_DESTINATION=file` and `ANISHELF_LOG_PATH`.
-The logger ensures the parent directory exists, then delegates append writes to Pino.
+For file logging, set `ANISHELF_LOG_DESTINATION=file` or `both`. The default path
+is `join(userLogDir("anishelf", false), "anishelf.log")`; `ANISHELF_LOG_PATH`
+optionally overrides it. It is independent of `ANISHELF_DATA_DIR`. See [Logging](../README.md#logging) for rotation, retention,
+recovery and deployment examples.
 Invalid startup parameters or unusable data directories fail startup with exit code 1
 and a terminal diagnostic. All options are validated before creating the data directory.
 The loader creates a missing directory with mode 0700 (subject to umask), preserves
@@ -122,31 +127,54 @@ backend development dependency. `npm run dev` displays colored level names,
 timestamps in the system time zone, and readable structured context and errors.
 Production startup and configured log files use the original JSON output.
 
-`ApplicationLogging.create` synchronously creates a Pino logger with one fixed
-stdout or file destination. Pino writes directly to that destination. Business
-modules receive `.logger`; child loggers add context. The logger is created once
-and lives until process exit. Log writes are synchronous; no application-level
-flush or close interface is provided. The operating system releases file
-descriptors when the process exits.
+`ApplicationLogging.create` creates one Pino logger with a stable output router.
+Business modules and child loggers keep that instance through file rotation and
+output failure. `stdout` writes synchronously to descriptor 1; `file` uses
+`rotating-file-stream`; `both` sends each serialized record to both outputs.
+The application owns `flush`, `reopen` and idempotent `close` lifecycle methods.
+Normal shutdown closes logging after business modules; startup failure also closes
+logging. Output shutdown has a two-second deadline.
 
 Logs use ISO UTC timestamps, numeric Pino levels, the `anishelf` service field,
 and newline-delimited JSON. Call sites supply event names. Common secret fields,
 authorization/cookie headers, bodies, and config/settings objects are redacted;
 callers must still avoid secrets under other keys or inside message strings.
 
-Destination selection lives in `platform/logging/index.ts`. Deployment loading validates
-logging configuration; the logger selects stdout or the configured file path and
-ensures the file's parent directory exists. Pino handles opening and writing to
-the destination. There is no custom file-descriptor management or error listener.
+Configuration lives in `platform/logging/config.ts`; construction and redaction
+live in `index.ts`; output routing and lifecycle live in `output.ts`.
+File rotation uses the configured byte threshold and hourly/daily interval;
+`maxFiles` bounds archives, excluding the active file and `.txt` history. The
+library preserves complete records across rotation and manages archive retention.
+Retention warnings go to stderr; a failed archive deletion can temporarily exceed
+the limit until later retention succeeds. Use a dedicated path per process and
+retain the history file across restarts.
 
-Asynchronous logging, rotation, retention, file reopening, signal handling, and automatic output
-fallback are deferred to [Overall Requirements](requirements.md#logging-maintenance-o11o13).
+A file FIFO limits accepted serialized bytes, including the in-flight record, to
+1 MiB. Records that exceed the available budget go directly to stderr rather
+than increasing the queue. File errors from write callbacks, stream events and
+synchronous setup/write operations all switch file output to stderr. The uncertain
+in-flight record is not replayed; its byte count is reported as potential loss.
+Remaining queued records go to stderr. stdout write failures, including EPIPE,
+are caught directly rather than relying on Pino's internal broken-pipe handling.
+The other output continues in `both` mode. When both outputs have failed,
+subsequent records go to stderr once. Emergency diagnostics bypass Pino to avoid
+recursive logging; stderr failure is contained but records are then lost.
+
+Unix `SIGHUP` or `ApplicationLogging.reopen()` serializes file reopening with
+in-flight writes, including explicit recovery from file failure. Signals are
+unregistered on close. There is no automatic retry loop; restart to restore failed
+stdout. Reopening does not replay previously lost records. A shutdown timeout
+reports queued bytes that may be lost and destroys the file stream.
+
+O11 and O12 are implemented. O13 remains partial: file output has bounded
+asynchronous buffering and shutdown draining, but stdout/fallback writes remain
+synchronous. See [Overall Requirements](requirements.md#logging-maintenance-o11o13).
 
 Biome respects `.gitignore` through `biome.json`; dependencies and build outputs
 are excluded. `npm run biome:fix` does not apply unsafe fixes.
 
-`ApplicationLogging` creates and exposes the Pino logger. All logging setup lives
-in `platform/logging/index.ts`.
+`ApplicationLogging` creates and exposes the Pino logger. Logging setup and output lifecycle live
+in `platform/logging/`.
 
 ### Operational log levels
 

@@ -196,9 +196,9 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | O08 | In-app completion and failure feedback | Implemented: scan result Toasts and preparation results in the floating task monitor | Current | Current |
 | O09 | Multiple users, permissions, public deployment support, and remote access | Optional | — | Unassigned |
 | O10 | Plugin extensions and public integration APIs | Optional | — | Unassigned |
-| O11 | Log rotation, retention, and reopening files without restarting the application | Later | — | Unassigned |
-| O12 | Automatic log-output fallback after destination failure | Later | — | Unassigned |
-| O13 | Asynchronous log output with bounded buffering and shutdown flushing | Later | — | Unassigned |
+| O11 | Log rotation, retention, and reopening files without restarting the application | Implemented: size/time rotation, archive count retention, Unix SIGHUP reopening | Current | Current |
+| O12 | Automatic log-output fallback after destination failure | Implemented: per-output stderr fallback; stdout/file/both modes | Current | Current |
+| O13 | Asynchronous log output with bounded buffering and shutdown flushing | Partial: bounded asynchronous file queue and shutdown draining; stdout/stderr remain synchronous | Current (partial) | Unassigned |
 | O14 | Interface localization and language preferences | V2 English catalog/keys/fallback foundation; additional locales and selection later | — | V2 (partial) |
 | O15 | Manage API-backed frontend state and caching with TanStack Query | Implemented | Current | Current |
 | O16 | Complete everyday-use Web interface | Finished UI for V2 library, History, primary Web playback, full-file preparation tasks, and scoped settings | — | V2 |
@@ -249,7 +249,9 @@ The Web interface emits in-app Toasts when library scans complete or fail, provi
 - Acceptance: asynchronous output avoids synchronous destination writes on the application path, buffers remain bounded under a slow destination, and normal shutdown writes pending records; timeout or overflow reports any potential record loss.
 - Acceptance: rotation directs subsequent logs to the new file without restarting the application; destination failure triggers the defined fallback without replacing existing business-module loggers.
 
-The implemented V1 release uses one fixed stdout or file destination; V2 retains that boundary. It supports configured levels and synchronous writes through a process-lifetime logger. Asynchronous logging, rotation, reopening, signal handling, and automatic destination switching are outside the current release.
+Current logging supports stdout, file and simultaneous stdout/file output. File modes default to `anishelf.log` in the platformdirs user log directory; `ANISHELF_LOG_PATH` is an optional absolute path override. File output rotates by size or hourly/daily interval and retains a configured archive count through `rotating-file-stream`. Unix SIGHUP reopens the file or retries a failed file destination without replacing business loggers. Each failed output falls back to stderr; healthy outputs continue. The uncertain in-flight failed record is not replayed, queued file records go to stderr, and stderr failure can lose records. Recovery is explicit for files and requires restart for stdout. Rotation, output failure, overflow and shutdown timeout diagnostics bypass the application logger.
+
+File output accepts up to 1 MiB of serialized queued/in-flight records; overflow goes to stderr. Normal shutdown allows two seconds to drain and close file output, then reports potential loss. O13 remains partial because stdout and stderr writes are synchronous. See [development logging](development.md#logging-choice) for lifecycle details and [deployment logging](../README.md#logging) for configuration.
 
 ## 3. Rules for Future Features
 

@@ -216,9 +216,10 @@ async function createServer(
 
 async function stopServer(
 	server: HttpApp,
-	logger: Logger,
+	logging: ApplicationLogging,
 	shutdownTimeoutMs: number,
 ): Promise<void> {
+	const logger = logging.logger;
 	const timer = setTimeout(() => {
 		logger.error(
 			{ event: "application.shutdown_timeout" },
@@ -237,13 +238,14 @@ async function stopServer(
 		);
 		process.exitCode = 1;
 	} finally {
+		await logging.close();
 		clearTimeout(timer);
 	}
 }
 
 function registerShutdown(
 	server: HttpApp,
-	logger: Logger,
+	logging: ApplicationLogging,
 	shutdownTimeoutMs: number,
 ): void {
 	let shutdownTask: Promise<void> | undefined;
@@ -251,7 +253,7 @@ function registerShutdown(
 		if (shutdownTask) return;
 		process.off("SIGINT", shutdown);
 		process.off("SIGTERM", shutdown);
-		shutdownTask = stopServer(server, logger, shutdownTimeoutMs);
+		shutdownTask = stopServer(server, logging, shutdownTimeoutMs);
 	};
 	process.on("SIGINT", shutdown);
 	process.on("SIGTERM", shutdown);
@@ -274,8 +276,12 @@ async function handleStartupFailure(
 		);
 	else process.stderr.write(`Anishelf startup failed: ${message}\n`);
 	process.exitCode = 1;
-	if (app) await app.close();
-	else database?.close();
+	try {
+		if (app) await app.close();
+		else database?.close();
+	} finally {
+		await logging?.close();
+	}
 }
 
 async function main(): Promise<void> {
@@ -308,7 +314,7 @@ async function main(): Promise<void> {
 		logger.info({ event: "application.started" }, "HTTP application started.");
 		registerShutdown(
 			app,
-			logger,
+			logging,
 			configuration.policy.runtime.shutdownTimeoutMs,
 		);
 	} catch (error) {

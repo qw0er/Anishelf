@@ -1793,3 +1793,19 @@ unchanged source keeps its media and selected subtitle instances across scan/tas
 updates. Only a blocked player reacts to task completion; explicit retry or a new
 root/source/audio intent can renegotiate. Progress saves retain the dedicated serial,
 coalescing controller with original-sequence retries, outside generic Query retries.
+
+
+## 2026-10-07: Logging maintenance
+
+Implemented O11 and O12: stdout/file/both output, size and hourly/daily file
+rotation, archive-count retention, Unix SIGHUP reopening and explicit file
+recovery, with per-output stderr fallback. Existing business and child loggers
+retain their output router. File output now has a bounded asynchronous queue and
+a two-second shutdown drain; O13 remains partial because stdout and stderr are
+synchronous. Current contracts and deployment instructions live in
+[requirements](requirements.md#logging-maintenance-o11o13),
+[development](development.md#logging-choice) and [README](../README.md#logging).
+
+File modes now default to `anishelf.log` in `platformdirs.userLogDir("anishelf", false)`.
+`ANISHELF_LOG_PATH` is optional and overrides that platform-specific location;
+`ANISHELF_DATA_DIR` does not alter the default log directory.

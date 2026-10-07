@@ -1,7 +1,7 @@
 import { chmod, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { userDataDir } from "platformdirs";
+import { userDataDir, userLogDir } from "platformdirs";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import {
 	loadDeploymentConfig,
@@ -74,6 +74,7 @@ test("supports IPv6 loopback, port boundaries and file logging", () => {
 		level: "debug",
 		destination: "file",
 		path: join(fixture, "anishelf.log"),
+		rotation: { maxSizeBytes: 10485760, maxFiles: 7, interval: "1d" },
 	});
 	expect(parseDeploymentConfig({ ANISHELF_PORT: "1" }).port).toBe(1);
 });
@@ -123,8 +124,8 @@ test.each([
 	expect(() => parseDeploymentConfig({ [name]: value })).toThrow(name);
 });
 
-test.each([undefined, "", "relative.log", "/tmp/\0"])(
-	"rejects missing or invalid file log path %s",
+test.each(["", "relative.log", "/tmp/\0"])(
+	"rejects invalid file log path %s",
 	(ANISHELF_LOG_PATH) => {
 		expect(() =>
 			parseDeploymentConfig({
@@ -132,6 +133,18 @@ test.each([undefined, "", "relative.log", "/tmp/\0"])(
 				ANISHELF_LOG_PATH,
 			}),
 		).toThrow("ANISHELF_LOG_PATH");
+	},
+);
+
+test.each(["file", "both"])(
+	"uses the platform log directory for %s when no path is set",
+	(destination) => {
+		expect(
+			parseDeploymentConfig({ ANISHELF_LOG_DESTINATION: destination }).logging,
+		).toMatchObject({
+			destination,
+			path: join(userLogDir("anishelf", false), "anishelf.log"),
+		});
 	},
 );
 
@@ -209,4 +222,43 @@ test("parses an optional initial resource root without filesystem effects", () =
 		parseDeploymentConfig({ ANISHELF_INITIAL_RESOURCE_ROOT: root })
 			.initialResourceRoot,
 	).toBe(root);
+});
+
+test("supports both output and explicit rotation limits", () => {
+	expect(
+		parseDeploymentConfig({
+			ANISHELF_LOG_DESTINATION: "both",
+			ANISHELF_LOG_PATH: "/tmp/anishelf.log",
+			ANISHELF_LOG_MAX_SIZE_BYTES: "1024",
+			ANISHELF_LOG_MAX_FILES: "3",
+			ANISHELF_LOG_ROTATE_INTERVAL: "1h",
+		}).logging,
+	).toEqual({
+		level: "info",
+		destination: "both",
+		path: "/tmp/anishelf.log",
+		rotation: { maxSizeBytes: 1024, maxFiles: 3, interval: "1h" },
+	});
+});
+test.each([
+	["ANISHELF_LOG_MAX_SIZE_BYTES", "0"],
+	["ANISHELF_LOG_MAX_SIZE_BYTES", "9007199254740992"],
+	["ANISHELF_LOG_MAX_FILES", "-1"],
+	["ANISHELF_LOG_MAX_FILES", "1.5"],
+	["ANISHELF_LOG_ROTATE_INTERVAL", "weekly"],
+])("rejects invalid rotation option %s", (name, value) => {
+	expect(() =>
+		parseDeploymentConfig({
+			ANISHELF_LOG_DESTINATION: "both",
+			ANISHELF_LOG_PATH: "/tmp/log",
+			[name]: value,
+		}),
+	).toThrow(name);
+});
+test.each([
+	"ANISHELF_LOG_MAX_SIZE_BYTES",
+	"ANISHELF_LOG_MAX_FILES",
+	"ANISHELF_LOG_ROTATE_INTERVAL",
+])("rejects file-only option %s with stdout", (name) => {
+	expect(() => parseDeploymentConfig({ [name]: "1" })).toThrow(name);
 });
