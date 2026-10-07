@@ -303,8 +303,10 @@ Tailwind directives. The active UI uses English; further localization is planned
 ## Verification and Troubleshooting
 
 Run `npm run check` for Biome, lint/architecture checks, typechecks and all tests.
-Architecture tests run before workspace tests. TypeScript 6 is shared by both
-workspaces so dependency-cruiser can use its supported compiler API; an unsupported
+Architecture tests run before workspace tests. Both workspaces use the root
+TypeScript dependencies: `@typescript/native` aliases TypeScript 7 and provides
+`tsc` for builds and typechecks; `typescript` aliases `@typescript/typescript6`
+and provides the TypeScript 6 API required by dependency-cruiser. An unsupported
 compiler or empty workspace scan fails explicitly.
 Run workspace tests with `npm run test --workspace @anishelf/backend` or
 `npm run test --workspace @anishelf/web`. Backend HTTP tests normally use Fastify

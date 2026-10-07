@@ -73,8 +73,9 @@ type-only cycles are distinguished from runtime initialization cycles.
 `npm run unused:check` runs Knip across both workspaces, including tests and
 package entry points, to prevent unused files, exports and dependencies. Both are
 part of lint. Reusable exports under `web/src/components/ui` are exempt from
-unused-export checks; their files and dependencies remain checked. TypeScript
-uses one supported 6.0 version across workspaces.
+unused-export checks; their files and dependencies remain checked. Both workspaces use TypeScript 7 for compilation via the root `@typescript/native`
+alias. The root `typescript` alias supplies the TypeScript 6 compatibility API
+for dependency-cruiser; architecture checks retain type-only dependencies.
 See [Refactoring baseline](refactoring-baseline.md) for preserved behaviors and
 the refactoring implementation/status inventory.
 
