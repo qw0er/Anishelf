@@ -34,7 +34,9 @@ export function encodedVideoSpec(
 		codecString:
 			profile.encoder === "libx264" && profile.pixelFormat === "yuv420p"
 				? "avc1.640033"
-				: null,
+				: profile.encoder === "libvpx-vp9" && profile.pixelFormat === "yuv420p"
+					? "vp9"
+					: null,
 		profile: profile.encoder === "libx264" ? "High" : null,
 		pixelFormat: profile.pixelFormat,
 		bitDepth: profile.pixelFormat === "yuv420p" ? 8 : null,
@@ -49,7 +51,12 @@ export function encodedAudioSpec(
 	return {
 		...source,
 		codec: profile.codec,
-		codecString: profile.encoder === "aac" ? "mp4a.40.2" : null,
+		codecString:
+			profile.encoder === "aac"
+				? "mp4a.40.2"
+				: profile.encoder === "libopus"
+					? "opus"
+					: null,
 		profile: null,
 		bitrate: "bitrateKbps" in profile ? profile.bitrateKbps * 1000 : null,
 		channels: profile.channels === "stereo" ? 2 : source.channels,

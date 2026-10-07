@@ -41,6 +41,8 @@ test("built-ins use the shared schema and missing external files create no confi
 	expect(service.transcodeProfiles.map((profile) => profile.id)).toEqual([
 		"builtin:balanced",
 		"builtin:fast",
+		"builtin:efficient",
+		"builtin:compact",
 	]);
 	expect(service.getTranscodeProfileCatalog()).toMatchObject({
 		selectedProfileId: "builtin:balanced",
@@ -66,7 +68,11 @@ test("external profiles merge into an immutable startup snapshot and choices sur
 		selectedProfileId: "custom:small",
 		selectionAvailable: true,
 	});
-	expect(Object.isFrozen(service.transcodeProfiles[2]?.video)).toBe(true);
+	expect(
+		Object.isFrozen(
+			service.transcodeProfiles[builtinTranscodeProfiles.length]?.video,
+		),
+	).toBe(true);
 	await writeProfiles([]);
 	expect(service.getTranscodeProfileCatalog().selectionAvailable).toBe(true);
 	const reload = await load();
@@ -169,7 +175,7 @@ test("catalog and selection APIs expose display metadata, validate IDs, and pres
 			url: "/api/transcode-profiles",
 		});
 		expect(response.statusCode).toBe(200);
-		expect(response.json().profiles[2]).toEqual({
+		expect(response.json().profiles[builtinTranscodeProfiles.length]).toEqual({
 			id: "custom:small",
 			container: "mp4",
 			videoEncoder: "libx264",
@@ -253,7 +259,9 @@ test("loads software and hardware declarations without requiring installed encod
 	}));
 	await writeProfiles(profiles);
 	const service = await load();
-	expect(service.transcodeProfiles.slice(2)).toEqual(profiles);
+	expect(
+		service.transcodeProfiles.slice(builtinTranscodeProfiles.length),
+	).toEqual(profiles);
 	await service.selectTranscodeProfile("custom:variant-1");
 	expect((await load()).getTranscodeProfileCatalog()).toMatchObject({
 		selectedProfileId: "custom:variant-1",

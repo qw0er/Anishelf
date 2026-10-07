@@ -1,6 +1,6 @@
 # Transcode profiles
 
-The profile foundation provides a shared schema, two built-in preparation profiles,
+The profile foundation provides a shared schema, four built-in preparation profiles,
 optional administrator-authored profiles, a read-only catalog and a persistent user
 selection. It does not certify browser playback or add a Settings selector yet. The internal
 [compatibility negotiation, execution resolver and FFmpeg adapter](history.md#v2-internal-media-execution)
@@ -10,16 +10,20 @@ in the backend; player integration and HLS remain planned.
 
 ## Built-in profiles
 
-| ID | Display name | Video encoding preset |
-| --- | --- | --- |
-| `builtin:balanced` | Balanced | `medium` |
-| `builtin:fast` | Fast | `veryfast` |
+| ID | Display name | Format | Video settings | Audio bitrate |
+| --- | --- | --- | --- | --- |
+| `builtin:fast` | Fast | H.264 / AAC / MP4 | CRF 23, `veryfast` | 192 kbit/s |
+| `builtin:balanced` | Balanced (default) | H.264 / AAC / MP4 | CRF 23, `medium` | 192 kbit/s |
+| `builtin:efficient` | Efficient | VP9 / Opus / WebM | CRF 32, `cpuUsed: 4` | 128 kbit/s |
+| `builtin:compact` | Compact | VP9 / Opus / WebM | CRF 32, `cpuUsed: 2` | 128 kbit/s |
 
-Both profiles declare preparation-only MP4 output, H.264 through `libx264`,
-`yuv420p`, CRF 23 and AAC at 192 kbit/s with the original channel count. They allow
-compatible streams to be copied and impose no dimension limit. Fast differs only
-when video encoding is needed and may produce larger output at the same CRF.
-These are initial encoding policies, not guarantees about output size or speed.
+All profiles are preparation-only, use `yuv420p`, preserve the original audio
+channel count, allow compatible streams to be copied and impose no dimension
+limit. H.264 uses `libx264`; VP9 uses `libvpx-vp9`; Opus uses `libopus`.
+Fast prioritizes encoding speed. Efficient and Compact use the same VP9 CRF 32
+and Opus 128 kbit/s settings, differing only in `cpuUsed` (4 and 2). Compact
+prioritizes compression efficiency with slower video encoding. These policies do not guarantee
+output size or speed, and CRF values are not comparable across codecs.
 
 Copying must satisfy the selected profile's constraints, output packaging and
 client compatibility together. The execution resolver encodes when a requested
@@ -169,7 +173,7 @@ combinations, HDR handling or client decoding. It therefore accepts supported
 hardware declarations on servers without that hardware. The compatibility application checks client evidence for concrete output
 candidates. The pure execution resolver applies profile policy to those conclusions;
 the processing application checks server requirements and validates actual output.
-Encoded descriptors currently cover libx264/yuv420p High Level 5.1 and AAC-LC.
+Encoded descriptors cover libx264/yuv420p High Level 5.1, libvpx-vp9/yuv420p VP9 and AAC-LC/Opus.
 Other required encodings without an exact descriptor remain blocked, and hardware
 execution is not certified. Catalog membership is never proof
 that a profile can execute or play on the current client.
@@ -194,7 +198,7 @@ that a profile can execute or play on the current client.
 }
 ```
 
-The example shows one catalog entry; a normal response includes both built-ins and
+The example shows one catalog entry; a normal response includes all four built-ins and
 all loaded custom profiles. Encoding parameters are never included. Here
 `selectionAvailable` means the selected ID exists in the catalog, not that the
 server or browser can execute or play it.

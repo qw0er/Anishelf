@@ -48,4 +48,48 @@ export const builtinTranscodeProfiles = freeze<TranscodeProfile[]>([
 			channels: "preserve",
 		},
 	},
+	{
+		id: "builtin:efficient",
+		name: "Efficient",
+		description:
+			"Prepare a VP9/Opus WebM copy with efficient compression. Preserve compatible streams when possible.",
+		usage: "preparation",
+		container: "webm",
+		copyCompatibleStreams: true,
+		video: {
+			encoder: "libvpx-vp9",
+			codec: "vp9",
+			pixelFormat: "yuv420p",
+			crf: 32,
+			cpuUsed: 4,
+		},
+		audio: {
+			encoder: "libopus",
+			codec: "opus",
+			bitrateKbps: 128,
+			channels: "preserve",
+		},
+	},
+	{
+		id: "builtin:compact",
+		name: "Compact",
+		description:
+			"Prepare a smaller VP9/Opus WebM copy with slower encoding. Preserve compatible streams when possible.",
+		usage: "preparation",
+		container: "webm",
+		copyCompatibleStreams: true,
+		video: {
+			encoder: "libvpx-vp9",
+			codec: "vp9",
+			pixelFormat: "yuv420p",
+			crf: 32,
+			cpuUsed: 2,
+		},
+		audio: {
+			encoder: "libopus",
+			codec: "opus",
+			bitrateKbps: 128,
+			channels: "preserve",
+		},
+	},
 ]);

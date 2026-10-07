@@ -37,7 +37,7 @@ const cleanup: Array<() => Promise<unknown>> = [];
 afterEach(async () => {
 	await Promise.all(cleanup.splice(0).map((fn) => fn()));
 });
-async function fixture(audio = true, secondAudio = false) {
+async function fixture(audio = true, secondAudio = false, profileIndex = 0) {
 	const root = await mkdtemp(join(tmpdir(), "anishelf-planning-"));
 	await writeFile(join(root, "source.mkv"), "source");
 	const index = new LibraryIndex();
@@ -90,7 +90,7 @@ async function fixture(audio = true, secondAudio = false) {
 		tools: { probe: vi.fn().mockResolvedValue(info) },
 	});
 	const profile = structuredClone(
-		builtinTranscodeProfiles[0],
+		builtinTranscodeProfiles[profileIndex],
 	) as TranscodeProfile;
 	const profiles = [profile];
 	const app = new MediaPlanningApplication({
@@ -826,3 +826,31 @@ test("non-H264 encoding omits H264 constraints and has a distinct resolver ident
 		}),
 	);
 });
+
+test.each([2, 3])(
+	"negotiates and resolves built-in VP9/Opus profile %s",
+	async (profileIndex) => {
+		const f = await fixture(true, false, profileIndex);
+		expect(
+			f.description.queries.find((query) => query.id === "output-encode-encode")
+				?.contentType,
+		).toBe('video/webm; codecs="vp9, opus"');
+		const result = await f.resolve({
+			"copy-video": "unsupported",
+			"copy-audio": "unsupported",
+		});
+		expect(result).toMatchObject({
+			kind: "processing",
+			mode: "transcode",
+			request: {
+				plan: {
+					container: "webm",
+					video: { action: "encode", encoder: "libvpx-vp9", codec: "vp9" },
+					audio: { action: "encode", encoder: "libopus", codec: "opus" },
+					videoParameters: f.profile.video,
+					audioParameters: f.profile.audio,
+				},
+			},
+		});
+	},
+);
