@@ -72,6 +72,7 @@ export function FileActions({
 				<DropdownMenuContent>
 					<ExternalPlayerSubmenu fileId={fileId} />
 					<MediaLink fileId={fileId} menuItem />
+					<MediaLink fileId={fileId} menuItem download />
 					<MediaLink fileId={fileId} menuItem playlist />
 					<PreparationFileMenuItems
 						fileId={fileId}

@@ -457,7 +457,8 @@ or a list of domains. With the example above:
 - Local access through the configured loopback listener or `localhost` remains
   available on the backend port, including health checks.
 - When unset, only the local Host rules apply. This setting does not authenticate
-  users; the reverse proxy must authenticate every externally accessible route.
+  users; the reverse proxy must authenticate externally accessible routes, except
+  for original media explicitly made public as described below.
 
 Configure Caddy to authenticate the entire application and preserve Host and
 Origin headers:
@@ -484,6 +485,40 @@ allows that domain while retaining local health checks and rejecting unrelated
 Hosts, mutation Origins and cross-site mutation metadata. Basic authentication
 is provided by Caddy, not by the public-origin setting.
 See [Caddy basic authentication](https://caddyserver.com/docs/caddyfile/directives/basic_auth).
+
+#### External players without authentication
+
+With the configuration above, external players must supply their own Basic Auth
+credentials. Copy media link, downloaded M3U playlists and external-player launch
+links contain only the original media URL; they do not transfer the browser's
+authentication state. A player that does not supply credentials receives HTTP 401.
+
+To allow external players to open original media without credentials, replace the
+Caddy site block with:
+
+```caddyfile
+example.com {
+    @protected {
+        not path /api/media/*
+    }
+
+    basic_auth @protected {
+        qwer <password-hash>
+    }
+    reverse_proxy 127.0.0.1:3000
+}
+```
+
+This exempts `/api/media/*` from Basic Auth while keeping pages, file listings,
+settings and other routes authenticated. Original media retains GET/HEAD and
+byte-range support for seeking. Prepared media and subtitle routes remain
+authenticated. Keep `ANISHELF_PUBLIC_ORIGIN` and the upstream configuration unchanged.
+See [Caddy request matchers](https://caddyserver.com/docs/caddyfile/matchers).
+
+Anyone who obtains an original media URL can access that file without a password;
+file IDs are not access credentials. Use this configuration only if that access
+is intended. Validate and reload Caddy, then check that an original media link
+works without credentials while the application page still requests authentication.
 
 ## Configuration
 
