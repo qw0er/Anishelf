@@ -118,6 +118,7 @@ export function PlaybackActionsMenu({ fileId }: { fileId: string }) {
 			<DropdownMenuContent>
 				<ExternalPlayerSubmenu fileId={fileId} />
 				<MediaLink fileId={fileId} menuItem />
+				<MediaLink fileId={fileId} menuItem download />
 				<MediaLink fileId={fileId} menuItem playlist />
 			</DropdownMenuContent>
 		</DropdownMenu>

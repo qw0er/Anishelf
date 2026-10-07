@@ -53,6 +53,47 @@ function renderMediaLink(iconOnly = false) {
 	);
 }
 
+test("downloads original media with its filename without buffering or opening playback", async () => {
+	const downloads: { url: string; filename: string }[] = [];
+	vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+		this: HTMLAnchorElement,
+	) {
+		downloads.push({ url: this.href, filename: this.download });
+	});
+	const open = vi.spyOn(api, "openPlaybackSession");
+	render(<MediaLink fileId={fileId} download />);
+	fireEvent.click(screen.getByRole("button", { name: "Download video" }));
+	await waitFor(() =>
+		expect(downloads).toEqual([
+			{
+				url: `${window.location.origin}${file.originalMediaUrl}`,
+				filename: file.file.name,
+			},
+		]),
+	);
+	expect(api.getFile).toHaveBeenCalledWith(fileId, {
+		signal: expect.any(AbortSignal),
+	});
+	expect(open).not.toHaveBeenCalled();
+	expect(writeText).not.toHaveBeenCalled();
+});
+
+test("does not start a download when the file access check fails", async () => {
+	vi.mocked(api.getFile).mockRejectedValue(new Error("unavailable"));
+	const click = vi
+		.spyOn(HTMLAnchorElement.prototype, "click")
+		.mockImplementation(() => {});
+	render(
+		<>
+			<MediaLink fileId={fileId} download />
+			<Toaster />
+		</>,
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Download video" }));
+	await screen.findByRole("alert");
+	expect(click).not.toHaveBeenCalled();
+});
+
 test.each([
 	"http://localhost:9000",
 	"http://127.0.0.1:3000",

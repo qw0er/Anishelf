@@ -21,25 +21,35 @@ import { Spinner } from "../../../components/ui/spinner.js";
 import { toast } from "../../../components/ui/toast.js";
 import { Tooltip } from "../../../components/ui/tooltip.js";
 import { getErrorTranslationKey } from "../../../lib/error-translation.js";
-import { createMediaLink, createMediaPlaylist } from "../media-link.js";
+import {
+	createMediaLink,
+	createMediaPlaylist,
+	resolveMediaLink,
+} from "../media-link.js";
 
 export default function MediaLink({
 	fileId,
 	iconOnly = false,
 	menuItem = false,
 	playlist = false,
+	download = false,
 }: {
 	fileId: string;
 	iconOnly?: boolean;
 	menuItem?: boolean;
 	playlist?: boolean;
+	download?: boolean;
 }) {
 	const { t } = useTranslation();
 	const client = useQueryClient();
 	const scope = useQueryScope();
 	const mutation = useMutation({
 		mutationFn: async (signal: AbortSignal) =>
-			(playlist ? createMediaPlaylist : createMediaLink)(
+			(download
+				? resolveMediaLink
+				: playlist
+					? createMediaPlaylist
+					: createMediaLink)(
 				fileId,
 				window.location.origin,
 				{ signal },
@@ -64,6 +74,18 @@ export default function MediaLink({
 			const result = await mutation.mutateAsync(controller.signal);
 			if (controller.signal.aborted) return;
 			if (typeof result !== "string") {
+				if ("url" in result) {
+					const anchor = document.createElement("a");
+					anchor.href = result.url;
+					anchor.download = result.name;
+					document.body.append(anchor);
+					try {
+						anchor.click();
+					} finally {
+						anchor.remove();
+					}
+					return;
+				}
 				const objectUrl = URL.createObjectURL(
 					new Blob([result.content], { type: "audio/x-mpegurl;charset=utf-8" }),
 				);
@@ -109,9 +131,13 @@ export default function MediaLink({
 	}
 
 	const label = t(
-		playlist ? "player.downloadPlaylist" : "player.copyMediaLink",
+		download
+			? "player.downloadVideo"
+			: playlist
+				? "player.downloadPlaylist"
+				: "player.copyMediaLink",
 	);
-	const ActionIcon = playlist ? Download : Copy;
+	const ActionIcon = playlist || download ? Download : Copy;
 
 	const trigger = (
 		<DialogTrigger

@@ -80,6 +80,13 @@ the refactoring implementation/status inventory.
 
 ## External-player playlists
 
+File actions and the player's More playback options menu also offer **Download
+video**. The action rechecks file access through the shared original-media link
+resolver, then follows a same-origin anchor with the original filename in its
+`download` attribute. The browser streams the original bytes using the existing
+GET/HEAD/Range route and the deployment's authentication policy. No full-file
+Blob, transcoding, prepared copy or playback-history update is involved.
+
 The Web file page and file action menu offer **Download playlist (.m3u)** alongside
 **Copy media link**. Both recheck file access and accept only the expected original-media
 route. The frontend generates a UTF-8 extended M3U containing one entry, using the

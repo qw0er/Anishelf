@@ -212,7 +212,11 @@ for its external origin and preserve Host/Origin headers; see the
 remains loopback-only. The explicit origin supplies the external scheme and port
 for Host and mutation Origin validation; `trustProxy` remains disabled and
 forwarded headers cannot authorize requests. Local health checks remain available.
-Caddy must authenticate all routes. Separately hosted frontend files must use
+Caddy authenticates all routes by default. An optional
+[original-media exception](../README.md#external-players-without-authentication)
+allows `/api/media/*` without credentials for external players; anyone with a
+media URL can then access that file. All other routes remain authenticated.
+Separately hosted frontend files must use
 the same external origin for API requests.
 
 The public origin adds one Host authority to the local allowlist; it does not
@@ -226,7 +230,8 @@ without Origin remain accepted unless their fetch metadata is cross-site;
 development retains its fixed Vite Origin exceptions. Invalid mutation Origins
 or cross-site metadata fail with `REQUEST_FORBIDDEN`. With the setting unset,
 external domains remain rejected. Host/Origin validation provides no identity
-verification; Caddy owns authentication for every external route.
+verification; Caddy owns external authentication and any explicitly configured
+original-media exception.
 
 SIGINT/SIGTERM close HTTP, active application work and the database, with a
 five-second shutdown limit; failure sets a nonzero exit code.

@@ -49,7 +49,7 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 | L11 | Relink moved files while preserving viewing history | Later | — | Unassigned |
 | L12 | Configure and manage multiple resource roots | Optional | — | Unassigned |
 | L13 | Rename, organize, delete, and reclaim storage with preservation rules | Optional | — | Unassigned |
-| L14 | Download an existing original media file from the Web interface to the user's device | Later | — | Unassigned |
+| L14 | Download an existing original media file from the Web interface to the user's device | Implemented | — | Web |
 
 #### Download Existing Media (L14)
 
@@ -59,7 +59,7 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 - Initially exclude batch downloads, directory archives, and managed offline libraries.
 - Acceptance: the downloaded file matches the source contents and filename, the server original remains unchanged, and unavailable or unauthorized resources cannot be downloaded.
 
-This is a user-facing file download, separate from acquiring new releases through qBittorrent (D01–D08). Both capabilities remain unassigned. The implemented V1 release serves media bytes for playback but does not provide a dedicated download action; V2 does not add that action.
+This is a user-facing file download, separate from acquiring new releases through qBittorrent (D01–D08). File actions and the player's More playback options menu provide **Download video**. The action rechecks file access and starts a native browser download from the original-media route with the original filename, without buffering the complete file in JavaScript. Download acquisition through qBittorrent remains unassigned.
 
 ### 2.2 Anime Metadata
 
