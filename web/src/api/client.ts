@@ -371,9 +371,11 @@ export function deletePreparedMedia(
 export function selectTranscodeProfile(
 	profileId: string | null,
 	options?: RequestOptions,
+	preparationMode?: TranscodeProfileCatalog["preparationMode"],
 ): Promise<TranscodeProfileCatalog> {
 	return request("/api/transcode-profiles/selection", "PUT", options, {
 		profileId,
+		...(preparationMode ? { preparationMode } : {}),
 	});
 }
 

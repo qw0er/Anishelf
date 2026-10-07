@@ -359,3 +359,48 @@ test.each(["-pix_fmt yuv420p", "../pixel", "yuv420p;command"])(
 		).toBe(false);
 	},
 );
+
+test("preparation mode defaults to compatibility and persists with profile selection", async () => {
+	const service = await load();
+	expect(service.getTranscodeProfileCatalog().preparationMode).toBe(
+		"compatible",
+	);
+	await service.selectTranscodeProfile("builtin:efficient", "fast");
+	expect((await load()).getTranscodeProfileCatalog()).toMatchObject({
+		selectedProfileId: "builtin:efficient",
+		preparationMode: "fast",
+	});
+	await service.selectTranscodeProfile("builtin:balanced");
+	expect(service.getTranscodeProfileCatalog().preparationMode).toBe("fast");
+	await service.selectTranscodeProfile("builtin:balanced", "compatible");
+	expect((await load()).getTranscodeProfileCatalog().preparationMode).toBe(
+		"compatible",
+	);
+	const app = createHttpApp({
+		logger: pino({ enabled: false }),
+		configuration: service,
+		config: service.deployment,
+	});
+	try {
+		const invalid = await app.inject({
+			headers: { host: `127.0.0.1:${service.deployment.port}` },
+			method: "PUT",
+			url: "/api/transcode-profiles/selection",
+			payload: { profileId: "builtin:balanced", preparationMode: "invalid" },
+		});
+		expect(invalid.statusCode).toBe(400);
+		const updated = await app.inject({
+			headers: { host: `127.0.0.1:${service.deployment.port}` },
+			method: "PUT",
+			url: "/api/transcode-profiles/selection",
+			payload: { profileId: "builtin:compact", preparationMode: "fast" },
+		});
+		expect(updated.statusCode).toBe(200);
+		expect(updated.json()).toMatchObject({
+			selectedProfileId: "builtin:compact",
+			preparationMode: "fast",
+		});
+	} finally {
+		await app.close();
+	}
+});

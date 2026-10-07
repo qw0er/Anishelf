@@ -4,6 +4,7 @@ import {
 	type RuntimeEnvironment,
 } from "../../../platform/environment.js";
 import { DomainError } from "../../../shared/errors.js";
+import type { PreparationMode } from "../../../shared/settings.js";
 import type { DeploymentConfig, PersistentSettings } from "../domain/model.js";
 import {
 	defaultTranscodeProfileId,
@@ -26,6 +27,7 @@ export interface EffectiveConfiguration {
 	settings: PersistentSettings & {
 		scanIntervalMinutes: number;
 		defaultTranscodeProfileId: string;
+		preparationMode: PreparationMode;
 	};
 }
 /** The composition root owns one service; consumers receive immutable snapshots. */
@@ -83,6 +85,7 @@ export class ConfigurationService {
 				}),
 			),
 			selectedProfileId,
+			preparationMode: this.snapshot.settings.preparationMode,
 			selectionAvailable: this.transcodeProfiles.some(
 				(profile) => profile.id === selectedProfileId,
 			),
@@ -90,6 +93,7 @@ export class ConfigurationService {
 	}
 	selectTranscodeProfile(
 		profileId: string | null,
+		preparationMode?: PreparationMode,
 	): Promise<Readonly<PersistentSettings>> {
 		return this.change((current) => {
 			if (
@@ -101,6 +105,7 @@ export class ConfigurationService {
 					"Select an existing transcode profile.",
 				);
 			const next = { ...current };
+			if (preparationMode !== undefined) next.preparationMode = preparationMode;
 			if (profileId === null) delete next.defaultTranscodeProfileId;
 			else next.defaultTranscodeProfileId = profileId;
 			return next;
@@ -144,6 +149,7 @@ export class ConfigurationService {
 			policy: this.policy,
 			settings: {
 				...this.settings,
+				preparationMode: this.settings.preparationMode ?? "compatible",
 				defaultTranscodeProfileId:
 					this.settings.defaultTranscodeProfileId ?? defaultTranscodeProfileId,
 				scanIntervalMinutes:

@@ -6,6 +6,9 @@ export function settingsResponse(
 ): SettingsResponse {
 	return {
 		resourceRoot: settings.resourceRoot,
+		...(settings.preparationMode === undefined
+			? {}
+			: { preparationMode: settings.preparationMode }),
 		...(settings.transcodeCacheBudgetGiB === undefined
 			? {}
 			: { transcodeCacheBudgetGiB: settings.transcodeCacheBudgetGiB }),

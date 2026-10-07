@@ -11,6 +11,7 @@ import type {
 } from "../../../shared/media-negotiation.js";
 import type { MediaPlanningResult } from "../../../shared/media-planning.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
+import type { PreparationMode } from "../../../shared/settings.js";
 import type { TranscodeProfile } from "../../../shared/transcode-profiles.js";
 import {
 	type MediaInspectionApi,
@@ -46,6 +47,7 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 			inspection: MediaInspectionApi;
 			sources: ResourceAccessApi;
 			profiles?: DeepReadonly<TranscodeProfile[]>;
+			preparationMode?: () => PreparationMode;
 			logger?: Logger;
 		},
 	) {}
@@ -73,7 +75,10 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 				"PLAYBACK_CONFLICT",
 				"Source changed during media planning.",
 			);
-		const resolved = resolveExecutionPlan(checked);
+		const resolved = resolveExecutionPlan(
+			checked,
+			this.options.preparationMode?.() ?? "compatible",
+		);
 		await this.options.sources.revalidateSource(source);
 		this.options.sources.assertRootEpoch(source.rootEpoch);
 		if (this.closed)

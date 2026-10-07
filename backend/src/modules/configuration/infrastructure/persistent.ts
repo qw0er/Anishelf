@@ -21,7 +21,10 @@ import {
 } from "node:path";
 import { Check } from "typebox/value";
 import { preparationConstraints } from "../../../contracts/defaults.js";
-import { TranscodeProfileIdSchema } from "../../../contracts/schemas/transcode-profiles.js";
+import {
+	PreparationModeSchema,
+	TranscodeProfileIdSchema,
+} from "../../../contracts/schemas/transcode-profiles.js";
 import { storageRules } from "../../../platform/storage.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { PersistentSettings } from "../domain/model.js";
@@ -59,6 +62,7 @@ function validatePersistentSettings(
 			key !== "resourceRoot" &&
 			key !== "scanIntervalMinutes" &&
 			key !== "defaultTranscodeProfileId" &&
+			key !== "preparationMode" &&
 			key !== "transcodeCacheBudgetGiB"
 		)
 			throw new DomainError(
@@ -66,6 +70,16 @@ function validatePersistentSettings(
 				`Unknown persistent setting: ${key}.`,
 			);
 	}
+	const preparationMode = settings.preparationMode;
+	if (
+		preparationMode !== undefined &&
+		!Check(PreparationModeSchema, preparationMode)
+	)
+		throw new DomainError(
+			"CONFIG_INVALID",
+			"settings.json preparationMode must be compatible or fast.",
+		);
+	const mode = preparationMode === undefined ? {} : { preparationMode };
 	const cacheBudget = settings.transcodeCacheBudgetGiB;
 	if (
 		cacheBudget !== undefined &&
@@ -108,7 +122,7 @@ function validatePersistentSettings(
 	const scheduling =
 		interval === undefined ? {} : { scanIntervalMinutes: interval as number };
 	if (root === null)
-		return { resourceRoot: null, ...scheduling, ...profile, ...cache };
+		return { resourceRoot: null, ...scheduling, ...profile, ...cache, ...mode };
 	if (
 		typeof root !== "string" ||
 		root.trim() === "" ||
@@ -120,7 +134,7 @@ function validatePersistentSettings(
 			"settings.json resourceRoot must be an absolute filesystem path.",
 		);
 	}
-	return { resourceRoot: root, ...scheduling, ...profile, ...cache };
+	return { resourceRoot: root, ...scheduling, ...profile, ...cache, ...mode };
 }
 
 function contains(parent: string, child: string): boolean {

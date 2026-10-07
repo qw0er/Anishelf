@@ -4,6 +4,7 @@ import type {
 	MediaProcessingPlan,
 } from "../../../shared/media-processing.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
+import type { PreparationMode } from "../../../shared/settings.js";
 import type { CheckedCompatibility } from "./model.js";
 import {
 	encodedVideoSpec,
@@ -26,6 +27,7 @@ export type PreparationExecutionPlan =
 /** Pure profile-policy resolution. Source access, browser negotiation and execution preflight belong to their applications. */
 export function resolveExecutionPlan(
 	input: DeepReadonly<CheckedCompatibility>,
+	mode: PreparationMode = "compatible",
 ): PreparationExecutionPlan {
 	const { profile, output } = input;
 	if (input.direct.status === "supported")
@@ -56,17 +58,20 @@ export function resolveExecutionPlan(
 	const stereo =
 		profile.audio.channels === "stereo" &&
 		audios.some((audio) => audio.channels !== 2);
+	const copyCompatibleStreams =
+		mode === "fast" && profile.copyCompatibleStreams;
 	const videoAction =
-		profile.copyCompatibleStreams && !resize ? output.copyVideo : "unsupported";
+		copyCompatibleStreams && !resize ? output.copyVideo : "unsupported";
 	const audioAction = !audio
 		? "supported"
-		: profile.copyCompatibleStreams && !stereo
+		: copyCompatibleStreams && !stereo
 			? output.copyAudio
 			: "unsupported";
 	if (videoAction === "unknown" || audioAction === "unknown")
 		return { kind: "blocked", reason: "source-stream-compatibility-unknown" };
 	const v = videoAction === "supported" ? "copy" : "encode";
-	const a = audioAction === "supported" ? "copy" : "encode";
+	const a =
+		mode === "compatible" || audioAction !== "supported" ? "encode" : "copy";
 	if (output.combinations[`${v}-${a}`] !== "supported")
 		return { kind: "blocked", reason: "output-combination-unverified" };
 	if (v === "encode" && (!video.width || !video.height || !video.frameRate))
@@ -153,7 +158,7 @@ export function resolveExecutionPlan(
 					? "browser-supported"
 					: resize
 						? "profile-size-required"
-						: !profile.copyCompatibleStreams
+						: !copyCompatibleStreams
 							? "profile-encoding-required"
 							: "browser-rejected",
 			audio: !audio
@@ -162,7 +167,7 @@ export function resolveExecutionPlan(
 					? "browser-supported"
 					: stereo
 						? "profile-stereo-required"
-						: !profile.copyCompatibleStreams
+						: !copyCompatibleStreams
 							? "profile-encoding-required"
 							: "browser-rejected",
 		},

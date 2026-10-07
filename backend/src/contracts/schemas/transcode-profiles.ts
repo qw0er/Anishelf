@@ -233,6 +233,11 @@ export const TranscodeProfilesFileSchema = Type.Object(
 	{ additionalProperties: false },
 );
 /** User-facing catalog deliberately omits encoding parameters. Availability is not certified here. */
+export const PreparationModeSchema = Type.Union([
+	Type.Literal("compatible"),
+	Type.Literal("fast"),
+]);
+
 export const TranscodeProfileCatalogSchema = Type.Object(
 	{
 		profiles: Type.Array(
@@ -256,11 +261,15 @@ export const TranscodeProfileCatalogSchema = Type.Object(
 			),
 		),
 		selectedProfileId: TranscodeProfileIdSchema,
+		preparationMode: PreparationModeSchema,
 		selectionAvailable: Type.Boolean(),
 	},
 	{ additionalProperties: false },
 );
 export const SelectTranscodeProfileSchema = Type.Object(
-	{ profileId: Type.Union([TranscodeProfileIdSchema, Type.Null()]) },
+	{
+		profileId: Type.Union([TranscodeProfileIdSchema, Type.Null()]),
+		preparationMode: Type.Optional(PreparationModeSchema),
+	},
 	{ additionalProperties: false },
 );

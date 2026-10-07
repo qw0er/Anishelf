@@ -1,7 +1,10 @@
 import { Type } from "typebox";
 import { preparationConstraints } from "../defaults.js";
 import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
-import { TranscodeProfileIdSchema } from "./transcode-profiles.js";
+import {
+	PreparationModeSchema,
+	TranscodeProfileIdSchema,
+} from "./transcode-profiles.js";
 
 export const ScanWarningSummaryDtoSchema = Type.Object(
 	{ count: NonnegativeIntegerSchema, messages: Type.Array(Type.String()) },
@@ -115,6 +118,7 @@ export function createSettingsSchemas(maximumScanIntervalMinutes?: number) {
 				}),
 			),
 			defaultTranscodeProfileId: Type.Optional(TranscodeProfileIdSchema),
+			preparationMode: Type.Optional(PreparationModeSchema),
 		},
 		{ additionalProperties: false },
 	);
@@ -129,6 +133,7 @@ export function createSettingsSchemas(maximumScanIntervalMinutes?: number) {
 				}),
 			),
 			defaultTranscodeProfileId: Type.Optional(TranscodeProfileIdSchema),
+			preparationMode: Type.Optional(PreparationModeSchema),
 		},
 		{ additionalProperties: false },
 	);

@@ -25,7 +25,7 @@ import { MediaPlanningApplication } from "../src/modules/media-planning/applicat
 import { resolveHlsExecutionPlan } from "../src/modules/media-planning/domain/hls-execution-plan.js";
 import {
 	expectedOutputSpec,
-	resolveExecutionPlan,
+	resolveExecutionPlan as resolvePreparationExecutionPlan,
 } from "../src/modules/media-planning/public.js";
 import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
@@ -33,11 +33,20 @@ import { fingerprint } from "../src/shared/fingerprint.js";
 import { presentCompatibility } from "../src/transport/presenters/compatibility.js";
 import { settingsStore } from "./settings-store.js";
 
+const resolveExecutionPlan = (
+	input: Parameters<typeof resolvePreparationExecutionPlan>[0],
+) => resolvePreparationExecutionPlan(input, "fast");
+
 const cleanup: Array<() => Promise<unknown>> = [];
 afterEach(async () => {
 	await Promise.all(cleanup.splice(0).map((fn) => fn()));
 });
-async function fixture(audio = true, secondAudio = false, profileIndex = 0) {
+async function fixture(
+	audio = true,
+	secondAudio = false,
+	profileIndex = 0,
+	preparationMode: () => "compatible" | "fast" = () => "fast",
+) {
 	const root = await mkdtemp(join(tmpdir(), "anishelf-planning-"));
 	await writeFile(join(root, "source.mkv"), "source");
 	const index = new LibraryIndex();
@@ -97,6 +106,7 @@ async function fixture(audio = true, secondAudio = false, profileIndex = 0) {
 		sources: library.sources,
 		inspection,
 		profiles,
+		preparationMode,
 	});
 	cleanup.push(async () => {
 		await inspection.close();
@@ -854,3 +864,91 @@ test.each([2, 3])(
 		});
 	},
 );
+
+test.each([0, 2])(
+	"compatibility mode encodes both streams using profile %s regardless of source copy support",
+	async (profileIndex) => {
+		const f = await fixture(true, false, profileIndex);
+		const request = {
+			fileId: f.file.id,
+			sourceVersion: f.description.sourceVersion,
+			descriptionId: f.description.descriptionId,
+			output: { profileId: f.profile.id, target: "file" as const },
+			evidence: f.evidence(),
+		};
+		for (const overrides of [
+			{},
+			{ "copy-video": "unsupported" as const },
+			{ "copy-audio": "unsupported" as const },
+			{ "copy-video": "unknown" as const, "copy-audio": "unknown" as const },
+		]) {
+			const checked = await f.app.check({
+				...request,
+				evidence: f.evidence(overrides),
+			});
+			const result = resolvePreparationExecutionPlan(checked);
+			expect(result).toMatchObject({
+				kind: "processing",
+				mode: "transcode",
+				request: {
+					plan: {
+						container: f.profile.container,
+						video: { action: "encode", encoder: f.profile.video.encoder },
+						audio: { action: "encode", encoder: f.profile.audio.encoder },
+					},
+				},
+			});
+		}
+		const checked = await f.app.check(request);
+		const compatible = resolvePreparationExecutionPlan(checked);
+		const fast = resolvePreparationExecutionPlan(checked, "fast");
+		if (compatible.kind !== "processing" || fast.kind !== "processing")
+			throw new Error("Missing plans");
+		expect(compatible.request.plan.id).not.toBe(fast.request.plan.id);
+		expect(compatible.profileFingerprint).toBe(fast.profileFingerprint);
+		const rejected = await f.app.check({
+			...request,
+			evidence: f.evidence({ "output-encode-encode": "unsupported" }),
+		});
+		expect(resolvePreparationExecutionPlan(rejected)).toMatchObject({
+			kind: "blocked",
+		});
+	},
+);
+
+test("planning reads the current preparation mode for each request", async () => {
+	let mode: "compatible" | "fast" = "compatible";
+	const f = await fixture(true, false, 0, () => mode);
+	const request = {
+		fileId: f.file.id,
+		sourceVersion: f.description.sourceVersion,
+		descriptionId: f.description.descriptionId,
+		output: { profileId: f.profile.id, target: "file" as const },
+		evidence: f.evidence(),
+	};
+	expect(await f.app.plan(request)).toMatchObject({
+		kind: "processing-required",
+		mode: "transcode",
+	});
+	mode = "fast";
+	expect(await f.app.plan(request)).toMatchObject({
+		kind: "processing-required",
+		mode: "remux",
+	});
+});
+
+test("compatibility mode without audio still uses the full-transcode mode", async () => {
+	const f = await fixture(false);
+	const checked = await f.app.check({
+		fileId: f.file.id,
+		sourceVersion: f.description.sourceVersion,
+		descriptionId: f.description.descriptionId,
+		output: { profileId: f.profile.id, target: "file" },
+		evidence: f.evidence(),
+	});
+	expect(resolvePreparationExecutionPlan(checked)).toMatchObject({
+		kind: "processing",
+		mode: "transcode",
+		request: { audioStreamIndices: [], plan: { video: { action: "encode" } } },
+	});
+});

@@ -7,8 +7,7 @@ export const builtinTranscodeProfiles = freeze<TranscodeProfile[]>([
 	{
 		id: defaultTranscodeProfileId,
 		name: "Balanced",
-		description:
-			"Prepare a Web copy with balanced encoding speed and size. Preserve compatible streams when possible.",
+		description: "Prepare a Web copy with balanced encoding speed and size.",
 		usage: "preparation",
 		container: "mp4",
 		copyCompatibleStreams: true,
@@ -30,7 +29,7 @@ export const builtinTranscodeProfiles = freeze<TranscodeProfile[]>([
 		id: "builtin:fast",
 		name: "Fast",
 		description:
-			"Prepare a Web copy faster when video encoding is needed, with potentially larger output. Preserve compatible streams when possible.",
+			"Prepare a Web copy faster when video encoding is needed, with potentially larger output.",
 		usage: "preparation",
 		container: "mp4",
 		copyCompatibleStreams: true,
@@ -51,8 +50,7 @@ export const builtinTranscodeProfiles = freeze<TranscodeProfile[]>([
 	{
 		id: "builtin:efficient",
 		name: "Efficient",
-		description:
-			"Prepare a VP9/Opus WebM copy with efficient compression. Preserve compatible streams when possible.",
+		description: "Prepare a VP9/Opus WebM copy with efficient compression.",
 		usage: "preparation",
 		container: "webm",
 		copyCompatibleStreams: true,
@@ -73,8 +71,7 @@ export const builtinTranscodeProfiles = freeze<TranscodeProfile[]>([
 	{
 		id: "builtin:compact",
 		name: "Compact",
-		description:
-			"Prepare a smaller VP9/Opus WebM copy with slower encoding. Preserve compatible streams when possible.",
+		description: "Prepare a smaller VP9/Opus WebM copy with slower encoding.",
 		usage: "preparation",
 		container: "webm",
 		copyCompatibleStreams: true,
