@@ -1,8 +1,8 @@
 import { constants } from "node:fs";
 import { access, mkdir, stat } from "node:fs/promises";
 import { isIP } from "node:net";
-import { isAbsolute } from "node:path";
-import { userDataDir } from "platformdirs";
+import { isAbsolute, join } from "node:path";
+import { userDataDir, userLogDir } from "platformdirs";
 import { deploymentDefaults, logLevels } from "../../../contracts/defaults.js";
 import type {
 	LoggingConfig,
@@ -27,6 +27,19 @@ function absolutePath(value: string, name: string): string {
 
 function defaultDataDir(): string {
 	return userDataDir("anishelf", false);
+}
+
+function positiveInteger(
+	value: string | undefined,
+	fallback: number,
+	name: string,
+): number {
+	if (value === undefined) return fallback;
+	const parsed = Number(value);
+	if (!/^\d+$/.test(value) || !Number.isSafeInteger(parsed) || parsed < 1) {
+		invalid(`${name} must be a positive safe integer.`);
+	}
+	return parsed;
 }
 
 function parsePublicOrigin(value: string): string {
@@ -87,18 +100,45 @@ export function parseDeploymentConfig(
 	let logging: LoggingConfig;
 	if (destination === "stdout") {
 		if (env.ANISHELF_LOG_PATH !== undefined)
-			invalid("ANISHELF_LOG_PATH requires ANISHELF_LOG_DESTINATION=file.");
+			invalid(
+				"ANISHELF_LOG_PATH requires ANISHELF_LOG_DESTINATION=file or both.",
+			);
+		for (const name of [
+			"ANISHELF_LOG_MAX_SIZE_BYTES",
+			"ANISHELF_LOG_MAX_FILES",
+			"ANISHELF_LOG_ROTATE_INTERVAL",
+		]) {
+			if (env[name] !== undefined) invalid(`${name} requires file logging.`);
+		}
 		logging = { level: level as LogLevel, destination };
-	} else if (destination === "file") {
-		if (env.ANISHELF_LOG_PATH === undefined)
-			invalid("ANISHELF_LOG_PATH is required for file logging.");
+	} else if (destination === "file" || destination === "both") {
+		const interval =
+			env.ANISHELF_LOG_ROTATE_INTERVAL ?? deploymentDefaults.logRotateInterval;
+		if (interval !== "1h" && interval !== "1d")
+			invalid("ANISHELF_LOG_ROTATE_INTERVAL must be '1h' or '1d'.");
 		logging = {
 			level: level as LogLevel,
 			destination,
-			path: absolutePath(env.ANISHELF_LOG_PATH, "ANISHELF_LOG_PATH"),
+			path:
+				env.ANISHELF_LOG_PATH === undefined
+					? join(userLogDir("anishelf", false), "anishelf.log")
+					: absolutePath(env.ANISHELF_LOG_PATH, "ANISHELF_LOG_PATH"),
+			rotation: {
+				maxSizeBytes: positiveInteger(
+					env.ANISHELF_LOG_MAX_SIZE_BYTES,
+					deploymentDefaults.logMaxSizeBytes,
+					"ANISHELF_LOG_MAX_SIZE_BYTES",
+				),
+				maxFiles: positiveInteger(
+					env.ANISHELF_LOG_MAX_FILES,
+					deploymentDefaults.logMaxFiles,
+					"ANISHELF_LOG_MAX_FILES",
+				),
+				interval,
+			},
 		};
 	} else {
-		invalid("ANISHELF_LOG_DESTINATION must be 'stdout' or 'file'.");
+		invalid("ANISHELF_LOG_DESTINATION must be 'stdout', 'file', or 'both'.");
 	}
 	const mediaTools = {
 		ffmpegPath:

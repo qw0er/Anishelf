@@ -11,7 +11,8 @@ export const adapterPolicy = Object.freeze({
 		pageCacheControl: "no-cache",
 	}),
 	logging: Object.freeze({
-		synchronous: true,
+		maximumBufferedBytes: 1024 * 1024,
+		shutdownTimeoutMs: 2000,
 		redactPaths: Object.freeze([
 			"password",
 			"token",

@@ -534,11 +534,82 @@ Set environment variables before starting the application. Restart after changes
 | `ANISHELF_INITIAL_RESOURCE_ROOT` | Unset | Absolute readable media directory used only to create missing `settings.json`; existing settings are preserved. |
 | `ANISHELF_FFMPEG_PATH` | `ffmpeg` from PATH | Optional absolute FFmpeg executable path. |
 | `ANISHELF_FFPROBE_PATH` | `ffprobe` from PATH | Optional absolute FFprobe executable path. |
+| `ANISHELF_LOG_LEVEL` | `info` | Log level: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
+| `ANISHELF_LOG_DESTINATION` | `stdout` | Log output destination: `stdout`, `file`, or `both` (stdout and file). |
+| `ANISHELF_LOG_PATH` | `anishelf.log` in the platform-specific user log directory | Optional absolute file path override for `file` or `both`; rejected for `stdout`. |
+| `ANISHELF_LOG_MAX_SIZE_BYTES` | `10485760` (10 MiB) | Positive integer file rotation threshold in bytes; file modes only. |
+| `ANISHELF_LOG_MAX_FILES` | `7` | Positive integer maximum number of rotated archives; excludes the active file. File modes only. |
+| `ANISHELF_LOG_ROTATE_INTERVAL` | `1d` | File rotation interval: `1h` (hourly) or `1d` (daily). File modes only. |
 
 Without `ANISHELF_FRONTEND_DIR`, the backend serves only APIs and media. A configured
 frontend directory without `index.html` fails startup. Keep application data outside
 the media and frontend directories, and preserve it across updates. Stop the
 application and back up its data before upgrading.
+
+### Logging
+
+By default, the application writes structured JSON logs at `info` level to
+standard output. To save logs to a file, start a built application from the
+repository root with:
+
+```sh
+ANISHELF_FRONTEND_DIR="$PWD/web/dist" \
+ANISHELF_LOG_LEVEL=info \
+ANISHELF_LOG_DESTINATION=file \
+npm run start:backend
+```
+
+File modes default to `anishelf.log` inside `platformdirs.userLogDir("anishelf", false)`.
+On Linux this is normally `~/.local/state/anishelf/log/anishelf.log`, or
+`$XDG_STATE_HOME/anishelf/log/anishelf.log` when configured. On macOS it is
+`~/Library/Logs/anishelf/anishelf.log`; on Windows it is normally
+`%LOCALAPPDATA%\anishelf\Logs\anishelf.log`. Set `ANISHELF_LOG_PATH` to an
+absolute path to override this location; changing `ANISHELF_DATA_DIR` does not
+change the default log directory.
+
+The application creates missing parent directories. If the log path cannot be
+opened or written, file output falls back to standard error. Set `ANISHELF_LOG_LEVEL=debug` or `trace` for more detail.
+To return to standard output, set `ANISHELF_LOG_DESTINATION=stdout` and unset
+`ANISHELF_LOG_PATH` plus any explicitly set file-rotation variables.
+
+For containers, the default standard output logs are available through
+`docker logs` or `podman logs`. To use file logging, add these variables to your
+deployment (`-e` for CLI, `environment` for Compose, or `Environment=` for Quadlet):
+
+```ini
+ANISHELF_LOG_LEVEL=info
+ANISHELF_LOG_DESTINATION=file
+ANISHELF_LOG_PATH=/data/logs/anishelf.log
+```
+
+This explicit override keeps logs inside the container's persistent `/data` mount.
+The platform-default log directory is outside `/data` in the published image;
+use this override or mount the log directory to preserve file logs. Set
+`ANISHELF_LOG_DESTINATION=both` to keep `docker logs` / `podman logs` available
+while also saving files. File logs remain JSON; `npm run dev:backend` formats
+standard output with `pino-pretty`.
+
+Files rotate daily or after reaching 10 MiB by default, retaining seven archives
+alongside the active file and its `.txt` retention-history file. Archives stay in
+the log directory; keep the history file so retention works across restarts.
+A complete log record is never split across archives, so one record can exceed
+the size threshold. Configure the size, interval and archive count with the
+variables above. Use one application process per log path. Do not combine built-in
+rotation with an external tool rotating the same file.
+
+On Unix, send `SIGHUP` to the backend process to reopen the configured file, or to
+retry file output after repairing its destination. For Docker / Podman, use
+`docker kill --signal=HUP anishelf` / `podman kill --signal=HUP anishelf`.
+Existing child loggers continue using the same output. Restart to retry failed
+stdout output; it has no automatic recovery.
+
+Failures are reported directly to stderr. Each failed output falls back there;
+healthy outputs continue in `both` mode. An in-flight failed record may be lost
+or partially written and is not replayed; queued file records go to stderr.
+If stderr also fails, those records are lost. File writes have a 1 MiB queue;
+overflow records bypass it to stderr. Shutdown waits up to two seconds for file
+output and reports potential loss on timeout. stdout and stderr writes remain
+synchronous.
 
 ## Build
 

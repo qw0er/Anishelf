@@ -1,15 +1,14 @@
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
 import pino, { type Logger } from "pino";
 import { adapterPolicy } from "../adapter-policy.js";
 import type { LoggingConfig } from "./config.js";
+import { LogOutput } from "./output.js";
 
 export class ApplicationLogging {
 	readonly logger: Logger;
 
 	private constructor(
 		config: LoggingConfig,
-		output: ReturnType<typeof pino.destination>,
+		private readonly output: LogOutput,
 	) {
 		this.logger = pino(
 			{
@@ -27,18 +26,16 @@ export class ApplicationLogging {
 	}
 
 	static create(config: LoggingConfig): ApplicationLogging {
-		return new ApplicationLogging(config, createDestination(config));
+		return new ApplicationLogging(config, new LogOutput(config));
 	}
-}
 
-function createDestination(
-	config: LoggingConfig,
-): ReturnType<typeof pino.destination> {
-	if (config.destination === "file") {
-		mkdirSync(dirname(config.path), { recursive: true });
+	flush(): Promise<void> {
+		return this.output.flush();
 	}
-	return pino.destination({
-		dest: config.destination === "file" ? config.path : 1,
-		sync: adapterPolicy.logging.synchronous,
-	});
+	reopen(): Promise<void> {
+		return this.output.reopen();
+	}
+	close(): Promise<void> {
+		return this.output.close();
+	}
 }
