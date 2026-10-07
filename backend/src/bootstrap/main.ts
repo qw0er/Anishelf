@@ -1,4 +1,5 @@
 import type { Logger } from "pino";
+import { preparationConstraints } from "../contracts/defaults.js";
 import { ConfigurationService } from "../modules/configuration/application/service.js";
 import type {
 	BuiltinPolicy,
@@ -154,6 +155,10 @@ async function createServer(
 		dataDir: config.dataDir,
 		logger,
 		policy: configuration.policy.preparation,
+		maximumCacheBytes: () =>
+			(configuration.settings.transcodeCacheBudgetGiB ??
+				preparationConstraints.defaultCacheBudgetGiB) *
+			1024 ** 3,
 		...(database ? { repository: database.preparation } : {}),
 	});
 	try {

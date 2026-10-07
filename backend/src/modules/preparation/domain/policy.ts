@@ -1,3 +1,4 @@
+import { preparationConstraints } from "../../../contracts/defaults.js";
 import {
 	type DeepReadonly,
 	freeze,
@@ -8,13 +9,15 @@ export interface PreparationPolicy {
 	minimumFreeBytes: number;
 	maximumQueuedTasks: number;
 	listLimit: number;
+	initialListLimit: number;
 	progressSaveMs: number;
 }
 export const preparationPolicy = freeze<PreparationPolicy>({
-	maximumCacheBytes: 10 * 1024 * 1024 * 1024,
+	maximumCacheBytes: preparationConstraints.defaultCacheBudgetGiB * 1024 ** 3,
 	minimumFreeBytes: 64 * 1024 * 1024,
 	maximumQueuedTasks: 100,
-	listLimit: 200,
+	listLimit: preparationConstraints.listLimit,
+	initialListLimit: preparationConstraints.initialListLimit,
 	progressSaveMs: 1000,
 });
 export function validatePreparationPolicy(

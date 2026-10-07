@@ -12,8 +12,14 @@ export const keys = {
 	file: (id: string, scope: string) => ["file", scope, id] as const,
 	history: (scope: string) => ["history", scope] as const,
 	preparations: ["preparations"] as const,
-	tasks: (scope: string, fileId?: string) =>
-		["preparations", scope, "tasks", fileId ?? null] as const,
+	tasks: (scope: string, fileId?: string, more?: boolean) =>
+		[
+			"preparations",
+			scope,
+			"tasks",
+			fileId ?? null,
+			...(more === undefined ? [] : [more]),
+		] as const,
 	summaries: (scope: string, ids: string[]) =>
 		["preparations", scope, "summaries", ids] as const,
 	profiles: ["profiles"] as const,
@@ -61,13 +67,13 @@ export const profilesQuery = () =>
 		queryFn: ({ signal }) =>
 			api.getTranscodeProfiles({ signal: boundedSignal(signal) }),
 	});
-export const tasksQuery = (scope: string, fileId?: string) =>
+export const tasksQuery = (scope: string, fileId?: string, more = false) =>
 	queryOptions({
-		queryKey: keys.tasks(scope, fileId),
+		queryKey: keys.tasks(scope, fileId, more),
 		queryFn: ({ signal }) =>
 			fileId
 				? api.getFilePreparations(fileId, { signal: boundedSignal(signal) })
-				: api.getPreparations({ signal: boundedSignal(signal) }),
+				: api.getPreparations({ signal: boundedSignal(signal) }, more),
 		refetchInterval: (query) =>
 			query.state.data?.tasks.some(
 				(task) =>

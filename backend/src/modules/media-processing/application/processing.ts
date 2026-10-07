@@ -77,6 +77,7 @@ export class MediaProcessingApplication implements MediaProcessingApi {
 			executor: MediaExecutionAdapter;
 			dataDir: string;
 			policy?: DeepReadonly<MediaProcessingPolicy>;
+			maximumProcessedBytes?: () => number;
 			logger?: Logger;
 		},
 	) {
@@ -272,9 +273,12 @@ export class MediaProcessingApplication implements MediaProcessingApi {
 			(total, output) => total + output.sizeBytes,
 			0,
 		);
+		const budget =
+			this.options.maximumProcessedBytes?.() ??
+			this.policy.maximumProcessedBytes;
 		const maximumBytes = Math.min(
-			this.policy.maximumProcessedBytes - retainedBytes,
-			request.maximumBytes ?? this.policy.maximumProcessedBytes,
+			budget - retainedBytes,
+			request.maximumBytes ?? budget,
 		);
 		if (maximumBytes <= 0)
 			throw new MediaToolError(

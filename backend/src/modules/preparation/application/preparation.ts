@@ -55,6 +55,7 @@ export class PreparationApplication implements PreparationApi {
 			dataDir: string;
 			logger: Logger;
 			policy?: DeepReadonly<PreparationPolicy>;
+			maximumCacheBytes?: () => number;
 		},
 	) {
 		this.policy = freeze(structuredClone(options.policy ?? preparationPolicy));
@@ -79,6 +80,7 @@ export class PreparationApplication implements PreparationApi {
 				this.options.profiles,
 				this.policy,
 				this.options.logger,
+				this.options.maximumCacheBytes,
 			);
 			context.closed = this.closed;
 			const artifacts = new PreparationArtifacts(context);
@@ -234,10 +236,16 @@ export class PreparationApplication implements PreparationApi {
 	list(
 		fileId?: string,
 		summary = false,
+		more = false,
 	): Promise<{ tasks: PreparationView[] }> {
 		return this.track(async () => {
 			const { context, artifacts } = await this.ensure();
-			let tasks = context.repository.list(this.policy.listLimit, fileId);
+			let tasks = context.repository.list(
+				more || fileId
+					? this.policy.listLimit
+					: Math.min(this.policy.initialListLimit, this.policy.listLimit),
+				fileId,
+			);
 			if (summary) {
 				const epoch = context.sources.resourceRootEpoch;
 				const root = await context.sources.resolveRoot();

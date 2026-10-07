@@ -475,6 +475,7 @@ test("first-run setup saves the server directory and shows the automatic scan", 
 				init.body ===
 					JSON.stringify({
 						resourceRoot: "/media/中文 videos",
+						transcodeCacheBudgetGiB: 10,
 						scanIntervalMinutes: 60,
 					}),
 		),

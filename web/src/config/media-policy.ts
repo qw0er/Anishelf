@@ -1,10 +1,12 @@
 import {
 	libraryConstraints,
+	preparationConstraints,
 	subtitleConstraints,
 } from "@anishelf/backend/contracts/defaults";
 import { subtitleFormats } from "@anishelf/backend/contracts/subtitles";
 
 export const libraryPolicy = libraryConstraints;
+export const preparationPolicy = preparationConstraints;
 export interface PlaybackPolicy {
 	readonly progressSaveIntervalMs: number;
 	readonly requestTimeoutMs: number;

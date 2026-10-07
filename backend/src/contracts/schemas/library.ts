@@ -1,4 +1,5 @@
 import { Type } from "typebox";
+import { preparationConstraints } from "../defaults.js";
 import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
 import { TranscodeProfileIdSchema } from "./transcode-profiles.js";
 
@@ -107,6 +108,12 @@ export function createSettingsSchemas(maximumScanIntervalMinutes?: number) {
 		{
 			resourceRoot: Type.Union([Type.String(), Type.Null()]),
 			scanIntervalMinutes: interval,
+			transcodeCacheBudgetGiB: Type.Optional(
+				Type.Integer({
+					minimum: 1,
+					maximum: preparationConstraints.maximumCacheBudgetGiB,
+				}),
+			),
 			defaultTranscodeProfileId: Type.Optional(TranscodeProfileIdSchema),
 		},
 		{ additionalProperties: false },
@@ -115,6 +122,12 @@ export function createSettingsSchemas(maximumScanIntervalMinutes?: number) {
 		{
 			resourceRoot: Type.String({ minLength: 1 }),
 			scanIntervalMinutes: interval,
+			transcodeCacheBudgetGiB: Type.Optional(
+				Type.Integer({
+					minimum: 1,
+					maximum: preparationConstraints.maximumCacheBudgetGiB,
+				}),
+			),
 			defaultTranscodeProfileId: Type.Optional(TranscodeProfileIdSchema),
 		},
 		{ additionalProperties: false },

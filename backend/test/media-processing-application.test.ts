@@ -16,7 +16,7 @@ const cleanup: Array<() => Promise<unknown>> = [];
 afterEach(async () => {
 	await Promise.all(cleanup.splice(0).map((fn) => fn()));
 });
-async function fixture(block = false) {
+async function fixture(block = false, maximumProcessedBytes?: () => number) {
 	const root = await mkdtemp(join(tmpdir(), "anishelf-processing-app-"));
 	await writeFile(join(root, "source.mp4"), "source");
 	const index = new LibraryIndex();
@@ -96,6 +96,7 @@ async function fixture(block = false) {
 		},
 		executor: { execute: executeMedia },
 		dataDir: root,
+		...(maximumProcessedBytes ? { maximumProcessedBytes } : {}),
 	});
 	cleanup.push(async () => {
 		await application.close();
@@ -283,3 +284,14 @@ test.each(["width", "height", "pixelFormat"] as const)(
 		);
 	},
 );
+
+test("processing honors a configured output budget above ten GiB", async () => {
+	const budget = 24 * 1024 ** 3;
+	const f = await fixture(false, () => budget);
+	const processed = await f.application.start({
+		...f.request,
+		maximumBytes: budget,
+	}).completion;
+	expect(f.executeMedia.mock.calls[0]?.[2].maximumBytes).toBe(budget);
+	await f.application.release(processed.id);
+});

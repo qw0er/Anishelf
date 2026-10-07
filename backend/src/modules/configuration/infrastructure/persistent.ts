@@ -20,6 +20,7 @@ import {
 	sep,
 } from "node:path";
 import { Check } from "typebox/value";
+import { preparationConstraints } from "../../../contracts/defaults.js";
 import { TranscodeProfileIdSchema } from "../../../contracts/schemas/transcode-profiles.js";
 import { storageRules } from "../../../platform/storage.js";
 import { DomainError } from "../../../shared/errors.js";
@@ -57,13 +58,30 @@ function validatePersistentSettings(
 		if (
 			key !== "resourceRoot" &&
 			key !== "scanIntervalMinutes" &&
-			key !== "defaultTranscodeProfileId"
+			key !== "defaultTranscodeProfileId" &&
+			key !== "transcodeCacheBudgetGiB"
 		)
 			throw new DomainError(
 				"CONFIG_INVALID",
 				`Unknown persistent setting: ${key}.`,
 			);
 	}
+	const cacheBudget = settings.transcodeCacheBudgetGiB;
+	if (
+		cacheBudget !== undefined &&
+		(typeof cacheBudget !== "number" ||
+			!Number.isSafeInteger(cacheBudget) ||
+			cacheBudget < 1 ||
+			cacheBudget > preparationConstraints.maximumCacheBudgetGiB)
+	)
+		throw new DomainError(
+			"CONFIG_INVALID",
+			"settings.json transcodeCacheBudgetGiB must be a positive integer within the safe byte budget.",
+		);
+	const cache =
+		cacheBudget === undefined
+			? {}
+			: { transcodeCacheBudgetGiB: cacheBudget as number };
 	const profileId = settings.defaultTranscodeProfileId;
 	if (profileId !== undefined && !Check(TranscodeProfileIdSchema, profileId))
 		throw new DomainError(
@@ -89,7 +107,8 @@ function validatePersistentSettings(
 		);
 	const scheduling =
 		interval === undefined ? {} : { scanIntervalMinutes: interval as number };
-	if (root === null) return { resourceRoot: null, ...scheduling, ...profile };
+	if (root === null)
+		return { resourceRoot: null, ...scheduling, ...profile, ...cache };
 	if (
 		typeof root !== "string" ||
 		root.trim() === "" ||
@@ -101,7 +120,7 @@ function validatePersistentSettings(
 			"settings.json resourceRoot must be an absolute filesystem path.",
 		);
 	}
-	return { resourceRoot: root, ...scheduling, ...profile };
+	return { resourceRoot: root, ...scheduling, ...profile, ...cache };
 }
 
 function contains(parent: string, child: string): boolean {

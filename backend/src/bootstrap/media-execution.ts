@@ -1,4 +1,5 @@
 import type { Logger } from "pino";
+import { preparationConstraints } from "../contracts/defaults.js";
 import type { ConfigurationService } from "../modules/configuration/application/service.js";
 import type { MediaInspectionApi } from "../modules/media-inspection/public.js";
 import { MediaPlanningApplication } from "../modules/media-planning/application/planning.js";
@@ -35,6 +36,10 @@ export function createMediaExecutionModule(options: {
 		),
 		dataDir: configuration.deployment.dataDir,
 		policy: configuration.policy.mediaProcessing,
+		maximumProcessedBytes: () =>
+			(configuration.settings.transcodeCacheBudgetGiB ??
+				preparationConstraints.defaultCacheBudgetGiB) *
+			1024 ** 3,
 		...(options.logger ? { logger: options.logger } : {}),
 	});
 	return {

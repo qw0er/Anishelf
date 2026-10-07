@@ -582,3 +582,27 @@ test("cancelling shows a pending state and disables duplicate cancellation", () 
 	).toBe("true");
 	expect(view.queryByRole("button", { name: "Retry preparation" })).toBeNull();
 });
+
+test("monitor requests a larger task window only after More is clicked", async () => {
+	vi.mocked(api.getPreparations).mockImplementation(async (_options, more) => ({
+		tasks: Array.from({ length: more ? 100 : 10 }, (_, index) => ({
+			...task,
+			id: `task-${index}`,
+			filename: `Episode-${index}.mkv`,
+		})),
+	}));
+	const view = render(
+		<Wrapper>
+			<PreparationMonitor />
+		</Wrapper>,
+	);
+	const more = await view.findByRole("button", { name: "More" });
+	expect(view.queryByText("Episode-10.mkv")).toBeNull();
+	expect(api.getPreparations).toHaveBeenCalledWith(expect.anything(), false);
+	fireEvent.click(more);
+	await view.findByText("Episode-99.mkv");
+	expect(api.getPreparations).toHaveBeenCalledWith(expect.anything(), true);
+	await waitFor(() =>
+		expect(view.queryByRole("button", { name: "More" })).toBeNull(),
+	);
+});

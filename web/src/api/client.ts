@@ -314,8 +314,13 @@ export function getTranscodeProfiles(
 }
 export function getPreparations(
 	options?: RequestOptions,
+	more = false,
 ): Promise<PreparationListResponse> {
-	return request("/api/preparations?summary=true", "GET", options);
+	return request(
+		`/api/preparations?summary=true${more ? "&more=true" : ""}`,
+		"GET",
+		options,
+	);
 }
 export function createPreparation(
 	fileId: string,

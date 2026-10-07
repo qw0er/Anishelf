@@ -67,6 +67,7 @@ export function registerPreparationRoutes(
 						{
 							fileId: Type.Optional(ResourceIdSchema),
 							summary: Type.Optional(Type.Literal("true")),
+							more: Type.Optional(Type.Literal("true")),
 						},
 						{ additionalProperties: false },
 					),
@@ -78,6 +79,7 @@ export function registerPreparationRoutes(
 					await preparation.list(
 						request.query.fileId,
 						request.query.summary === "true",
+						request.query.more === "true",
 					)
 				).tasks.map(preparationTaskResponse),
 			}),

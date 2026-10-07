@@ -47,3 +47,11 @@ export const playbackSelectionConstraints = Object.freeze({
 	maximumCandidates: 128,
 	maximumFailedResources: 256,
 });
+
+/** Shared preparation list and persistent cache budget defaults. */
+export const preparationConstraints = Object.freeze({
+	initialListLimit: 10,
+	listLimit: 100,
+	defaultCacheBudgetGiB: 10,
+	maximumCacheBudgetGiB: Math.floor(Number.MAX_SAFE_INTEGER / 1024 ** 3),
+});

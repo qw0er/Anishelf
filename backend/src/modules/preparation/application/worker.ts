@@ -27,7 +27,7 @@ export class PreparationWorker {
 				(await this.context.files.availableBytes()) -
 				this.context.policy.minimumFreeBytes;
 			const remaining =
-				this.context.policy.maximumCacheBytes - this.artifacts.retainedBytes();
+				this.context.maximumCacheBytes() - this.artifacts.retainedBytes();
 			if (remaining <= 0)
 				throw new DomainError(
 					"PREPARATION_CACHE_FULL",

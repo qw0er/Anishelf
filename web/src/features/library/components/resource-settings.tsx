@@ -12,7 +12,10 @@ import {
 } from "../../../components/ui/card.js";
 import { Input } from "../../../components/ui/input.js";
 import { Spinner } from "../../../components/ui/spinner.js";
-import { libraryPolicy } from "../../../config/media-policy.js";
+import {
+	libraryPolicy,
+	preparationPolicy,
+} from "../../../config/media-policy.js";
 import { useDelayedPending } from "../../../hooks/use-delayed-pending.js";
 import type { settingsAction } from "../../../routes/loaders.js";
 
@@ -89,6 +92,37 @@ export default function ResourceSettings({
 							>
 								{t("settingsPage.scanIntervalHelp", {
 									defaultMinutes: libraryPolicy.defaultScanIntervalMinutes,
+								})}
+							</p>
+						</div>
+						<div className="flex min-w-0 flex-col gap-2">
+							<label
+								className="text-sm font-medium"
+								htmlFor="transcode-cache-budget"
+							>
+								{t("settingsPage.transcodeCacheBudget")}
+							</label>
+							<Input
+								id="transcode-cache-budget"
+								name="transcodeCacheBudgetGiB"
+								type="number"
+								min={1}
+								max={preparationPolicy.maximumCacheBudgetGiB}
+								step={1}
+								required
+								defaultValue={
+									settings.transcodeCacheBudgetGiB ??
+									preparationPolicy.defaultCacheBudgetGiB
+								}
+								disabled={disabled || saving}
+								aria-describedby="transcode-cache-budget-help"
+							/>
+							<p
+								id="transcode-cache-budget-help"
+								className="text-sm text-muted-foreground"
+							>
+								{t("settingsPage.transcodeCacheBudgetHelp", {
+									defaultGiB: preparationPolicy.defaultCacheBudgetGiB,
 								})}
 							</p>
 						</div>

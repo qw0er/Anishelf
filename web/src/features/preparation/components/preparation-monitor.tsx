@@ -83,6 +83,18 @@ export function PreparationMonitor() {
 							onWatch={(task) => navigate(preparedWatchPath(task))}
 						/>
 					))}
+					{(preparation.canLoadMore || preparation.loadingMore) && (
+						<div className="p-2">
+							<Button
+								variant="ghost"
+								className="w-full"
+								disabled={preparation.loadingMore}
+								onClick={preparation.loadMore}
+							>
+								{t("preparation.more")}
+							</Button>
+						</div>
+					)}
 				</div>
 			}
 		</aside>
