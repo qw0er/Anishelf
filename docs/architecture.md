@@ -12,7 +12,7 @@ routes, types and policy values.
 
 Direct playback, saved progress/history, external and embedded text subtitles,
 compatibility negotiation, persistent preparation and prepared-copy playback are
-implemented. Real-time HLS, embedded fonts, automatic cache eviction and user-editable
+implemented. Real-time HLS, automatic cache eviction and user-editable
 cache budgets remain later requirements. The History page covers continue watching through recent records and resume;
 no separate Continue watching UI is required. Offline HLS per-track
 planning and source-time mapping have independent tests. Unimplemented HLS and
@@ -207,3 +207,47 @@ is directly playable; normal playback selection still prefers a playable origina
 Matching active or ready preparations keep the menu action visible but disabled
 to avoid duplicate jobs. Profile configuration, source validation, output support
 and processing limits remain enforced before task creation.
+
+## Embedded subtitle fonts
+
+Subtitles owns source-version-bound font sets shared by all ASS/SSA tracks for a
+video, including matching external tracks. Discovery reads attachment metadata
+only. Selecting a styled track prepares its text and the font set independently;
+VTT/SRT selection does not extract fonts. Original and prepared-copy playback use
+the original source identity, so prepared media need not retain attachments.
+
+Media Inspection supplies existing stream metadata. Platform Media extracts one
+attachment by absolute stream index using bounded FFprobe extradata output; ordinary
+inspection never dumps attachment payloads. Subtitles recognizes TTF/OTF candidates
+from codec, MIME and filename metadata, then validates actual bytes and internal
+family/character-map data with Fontkit. Metadata alone is not proof of a valid font.
+All recognized candidates are considered within limits; ASS reference matching and
+font subsetting are not required for extraction.
+
+`subtitle_font_sets` and `subtitle_font_assets` persist identities and manifests in
+the application database. Private `dataDir/subtitle-fonts` files use generated IDs,
+never attachment filenames. SHA-256 digests, byte counts and parsed font metadata
+are checked on reuse, reconciliation and delivery. Publication is serialized for
+cache budgeting, files are published atomically, and source/root identity is
+revalidated around work and delivery. Concurrent requests for one source version
+join the same preparation. Startup degrades interrupted sets, removes orphan files
+and invalid cached fonts, and retains valid assets. Degraded sets can be retried.
+There is no automatic eviction; inaccessible old-source assets may remain on disk.
+
+Subtitle preparation responses optionally contain a separate font manifest with
+`pending`, `ready` or `degraded` status, warning codes and same-origin delivery URLs.
+An empty ready set means no recognized font attachments. Font status and bytes are
+served through `/api/subtitle-font-sets/:id/status` and
+`/api/subtitle-font-sets/:id/fonts/:fontId`, using the same source access checks and
+no-store responses as subtitle assets. Partial font failures preserve validated
+fonts and do not fail prepared subtitle text.
+
+The Web controller waits up to 15 seconds for the shared set, then retains the
+manifest with its Vidstack track. The styled renderer downloads bounded font bytes
+with a five-second total download deadline and supplies `Uint8Array` attachments
+to JASSUB alongside its bundled fallback. Switching/off/unmount aborts downloads
+and releases the renderer; late completions cannot create a stale overlay. Font
+preparation/download failures show fallback feedback and a retry action while
+subtitles remain selected. Local/remote font querying remains disabled. Parsed or
+loaded fonts do not certify exact family substitution, glyph coverage or every
+ASS layout; browser/media acceptance remains separate.

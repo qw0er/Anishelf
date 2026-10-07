@@ -423,3 +423,10 @@ export function getPreparationSummaries(
 ): Promise<PreparationSummaryResponse> {
 	return request("/api/preparations/summaries", "POST", options, { fileIds });
 }
+
+export function getSubtitleFonts(
+	statusUrl: string,
+	options?: RequestOptions,
+): Promise<NonNullable<SubtitlePreparationResponse["fonts"]>> {
+	return request(statusUrl, "GET", options);
+}

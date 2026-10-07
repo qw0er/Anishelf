@@ -55,17 +55,25 @@ export function SubtitleTracks({
 				),
 			(feedback) => {
 				toast.close(notificationId);
+				toast.close(`subtitle-fonts:${fileId}`);
 				if (!feedback) return;
 				const preparing = feedback.status === "preparing";
 				toast.add({
 					id: notificationId,
-					type: preparing ? "info" : "error",
+					type: preparing || feedback.status === "warning" ? "info" : "error",
 					timeout: preparing
 						? interactionPolicy.persistentToastTimeoutMs
 						: interactionPolicy.errorToastTimeoutMs,
-					title: t(preparing ? "subtitles.preparing" : "subtitles.failed", {
-						name: feedback.name,
-					}),
+					title: t(
+						preparing
+							? "subtitles.preparing"
+							: feedback.status === "warning"
+								? "subtitles.fontFallback"
+								: "subtitles.failed",
+						{
+							name: feedback.name,
+						},
+					),
 					...(!preparing && {
 						priority: "high" as const,
 						description: t(`subtitles.errors.${feedback.errorCode}`, {
@@ -88,11 +96,23 @@ export function SubtitleTracks({
 	}, [player, discovery, fileId, t, client]);
 	useEffect(() => {
 		if (!player) return;
-		const renderer = new StyledSubtitleRenderer(stablePolicy);
+		const renderer = new StyledSubtitleRenderer(stablePolicy, (track) => {
+			toast.add({
+				id: `subtitle-fonts:${fileId}`,
+				type: "info",
+				title: t("subtitles.fontFallback", { name: track.label }),
+				description: t("subtitles.errors.FONT_FALLBACK"),
+				actionProps: {
+					children: t("subtitles.retry"),
+					onClick: () => controllerRef.current?.retry(),
+				},
+			});
+		});
 		player.textRenderers.add(renderer);
 		return () => {
 			player.textRenderers.remove(renderer);
+			toast.close(`subtitle-fonts:${fileId}`);
 		};
-	}, [player, stablePolicy]);
+	}, [player, stablePolicy, fileId, t]);
 	return null;
 }

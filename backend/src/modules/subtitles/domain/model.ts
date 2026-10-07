@@ -84,6 +84,7 @@ export interface SubtitleAsset {
 	errorCode: SubtitlePreparationError | null;
 }
 export interface SubtitlePreparation {
+	fonts?: SubtitleFonts;
 	id: string;
 	status: SubtitleAsset["status"];
 	format: ExternalSubtitleFormat;
@@ -92,6 +93,7 @@ export interface SubtitlePreparation {
 
 /** External tracks are ready references to originals, without registered cache assets. */
 interface ExternalSubtitlePreparation {
+	fonts?: SubtitleFonts;
 	id: string;
 	status: "ready";
 	format: ExternalSubtitleFormat;
@@ -106,3 +108,23 @@ interface ExternalSubtitlePreparation {
 export type SubtitlePreparationResult =
 	| SubtitlePreparation
 	| ExternalSubtitlePreparation;
+
+export interface SubtitleFontAsset {
+	id: string;
+	streamIndex: number;
+	format: "ttf" | "otf";
+	family: string;
+	sizeBytes: number;
+	digest: string;
+}
+export interface SubtitleFontSet {
+	id: string;
+	source: SourceIdentity;
+	status: "pending" | "ready" | "degraded";
+	assets: SubtitleFontAsset[];
+	warnings: string[];
+}
+export type SubtitleFonts = Pick<
+	SubtitleFontSet,
+	"id" | "status" | "assets" | "warnings"
+>;

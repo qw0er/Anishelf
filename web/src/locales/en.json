@@ -159,10 +159,12 @@
 		"refresh": "Refresh history"
 	},
 	"subtitles": {
+		"fontFallback": "Font fallback: {{name}}",
 		"preparing": "Preparing subtitle: {{name}}",
 		"failed": "Subtitle preparation failed: {{name}}",
 		"retry": "Retry subtitle",
 		"errors": {
+			"FONT_FALLBACK": "Some embedded fonts could not be loaded. Subtitles remain enabled and may use fallback fonts.",
 			"SUBTITLE_EXTRACTION_FAILED": "Could not extract the subtitle. Retry or choose another track.",
 			"SUBTITLE_TOOL_UNAVAILABLE": "FFmpeg is unavailable on the server.",
 			"SUBTITLE_TOO_LARGE": "The subtitle exceeds the size limit.",

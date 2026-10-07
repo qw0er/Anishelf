@@ -1,4 +1,5 @@
 import { Type } from "typebox";
+import { ResourceIdSchema } from "../../../contracts/schemas/common.js";
 import {
 	PrepareSubtitleRequestSchema,
 	ResourceParamsSchema,
@@ -8,9 +9,11 @@ import {
 	SubtitleDiscoveryResponseSchema,
 	SubtitlePreparationResponseSchema,
 } from "../../../contracts/schemas/index.js";
+import { SubtitleFontsResponseSchema } from "../../../contracts/schemas/subtitles.js";
 import type { HttpInstance } from "../../../transport/instance.js";
 import {
 	subtitleDiscoveryResponse,
+	subtitleFontsResponse,
 	subtitlePreparationResponse,
 } from "../../../transport/presenters/subtitles.js";
 import type { SubtitleApplication } from "../application/subtitles.js";
@@ -18,6 +21,42 @@ export function registerSubtitleRoutes(
 	app: HttpInstance,
 	subtitles: SubtitleApplication,
 ): void {
+	app.get(
+		"/api/subtitle-font-sets/:id/status",
+		{
+			schema: {
+				params: SubtitleAssetParamsSchema,
+				response: { 200: SubtitleFontsResponseSchema },
+			},
+		},
+		async (request, reply) => {
+			reply.header("Cache-Control", "no-store");
+			return subtitleFontsResponse(
+				await subtitles.getSubtitleFontStatus(request.params.id),
+			);
+		},
+	);
+	app.get(
+		"/api/subtitle-font-sets/:id/fonts/:fontId",
+		{
+			schema: {
+				params: Type.Object(
+					{ id: ResourceIdSchema, fontId: ResourceIdSchema },
+					{ additionalProperties: false },
+				),
+			},
+		},
+		async (request, reply) => {
+			const result = await subtitles.getSubtitleFontContent(
+				request.params.id,
+				request.params.fontId,
+			);
+			reply.header("Cache-Control", "no-store");
+			reply.header("X-Content-Type-Options", "nosniff");
+			reply.type(result.format === "ttf" ? "font/ttf" : "font/otf");
+			return reply.send(result.bytes);
+		},
+	);
 	app.get(
 		"/api/files/:id/subtitles",
 		{

@@ -4,10 +4,11 @@ import type {
 	SubtitlePreparationResponse,
 } from "../../api/contracts.js";
 import { SubtitlePreparationError, subtitleErrorCode } from "./errors.js";
+import { trackFonts } from "./fonts.js";
 
 type SubtitleTrack = SubtitleDiscoveryResponse["tracks"][number];
 export type PreparationFeedback = {
-	status: "preparing" | "failed";
+	status: "preparing" | "failed" | "warning";
 	name: string;
 	errorCode?: string;
 } | null;
@@ -95,6 +96,7 @@ export class SubtitleController {
 				type: result.format,
 				src: result.contentUrl,
 			});
+			if (result.fonts) trackFonts.set(track, result.fonts);
 			this.replacing = true;
 			try {
 				if (old) this.tracks.remove(old);
@@ -105,7 +107,15 @@ export class SubtitleController {
 			} finally {
 				this.replacing = false;
 			}
-			this.feedback(null);
+			this.feedback(
+				result.fonts?.status === "degraded"
+					? {
+							status: "warning",
+							name: descriptor.name,
+							errorCode: "FONT_FALLBACK",
+						}
+					: null,
+			);
 		} catch (error) {
 			if (request.signal.aborted || this.disposed || this.selectedId !== id)
 				return;
@@ -118,8 +128,10 @@ export class SubtitleController {
 		}
 	}
 	retry() {
-		if (this.selectedId && !this.ready.has(this.selectedId))
+		if (this.selectedId) {
+			this.ready.delete(this.selectedId);
 			void this.start(this.selectedId);
+		}
 	}
 	dispose() {
 		this.disposed = true;

@@ -78,8 +78,35 @@ export const SubtitleAssetParamsSchema = Type.Object(
 	{ id: ResourceIdSchema },
 	{ additionalProperties: false },
 );
+
+export const SubtitleFontsResponseSchema = Type.Object(
+	{
+		id: ResourceIdSchema,
+		status: Type.Union([
+			Type.Literal("pending"),
+			Type.Literal("ready"),
+			Type.Literal("degraded"),
+		]),
+		statusUrl: Type.String(),
+		assets: Type.Array(
+			Type.Object(
+				{
+					id: ResourceIdSchema,
+					format: Type.Union([Type.Literal("ttf"), Type.Literal("otf")]),
+					family: Type.String(),
+					sizeBytes: NonnegativeIntegerSchema,
+					contentUrl: Type.String(),
+				},
+				{ additionalProperties: false },
+			),
+		),
+		warnings: Type.Array(Type.String()),
+	},
+	{ additionalProperties: false },
+);
 export const SubtitlePreparationResponseSchema = Type.Object(
 	{
+		fonts: Type.Optional(SubtitleFontsResponseSchema),
 		id: ResourceIdSchema,
 		status: Type.Union([
 			Type.Literal("pending"),

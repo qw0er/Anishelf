@@ -3,13 +3,19 @@ import type { TextRenderer, TextTrack } from "@vidstack/react";
 import type JASSUB from "jassub";
 import fallbackFont from "jassub/dist/default.woff2?url";
 import type { SubtitlePolicy } from "../../config/media-policy.js";
+import { loadFonts, trackFonts } from "./fonts.js";
 
 /** Bridges JASSUB 2's promise API to Vidstack's renderer lifecycle. */
 export class StyledSubtitleRenderer implements TextRenderer {
 	readonly priority = 0;
 	private readonly policy: SubtitlePolicy;
-	constructor(policy: SubtitlePolicy) {
+	private readonly onFontFallback: ((track: TextTrack) => void) | undefined;
+	constructor(
+		policy: SubtitlePolicy,
+		onFontFallback?: (track: TextTrack) => void,
+	) {
 		this.policy = policy;
+		this.onFontFallback = onFontFallback;
 	}
 	private video: HTMLVideoElement | null = null;
 	private track: TextTrack | null = null;
@@ -80,6 +86,13 @@ export class StyledSubtitleRenderer implements TextRenderer {
 			const text = await response.text();
 			if (!/^\s*\[Events\]/im.test(text) || !/^Dialogue\s*:/im.test(text))
 				throw new Error("No subtitle events.");
+			const fonts = await loadFonts(trackFonts.get(track), controller.signal);
+			if (
+				fonts.degraded &&
+				trackFonts.get(track)?.status !== "degraded" &&
+				!controller.signal.aborted
+			)
+				this.onFontFallback?.(track);
 			const { default: Renderer } = await import("jassub");
 			if (controller.signal.aborted) return;
 			if (!HTMLCanvasElement.prototype.transferControlToOffscreen)
@@ -87,7 +100,7 @@ export class StyledSubtitleRenderer implements TextRenderer {
 			instance = new Renderer({
 				video,
 				subContent: text,
-				fonts: [fallbackFont],
+				fonts: [...fonts.bytes, fallbackFont],
 				queryFonts: false,
 				libassMemoryLimit: this.policy.memoryMaximumBytes,
 			});

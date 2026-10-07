@@ -868,6 +868,10 @@ test.each([1, null])(
 					JSON.stringify(audioIndex),
 					id,
 				);
+			// Restore the schema predating audio-selection/lifecycle migrations as well as its journal.
+			connection.exec(
+				"DROP TABLE subtitle_font_assets; DROP TABLE subtitle_font_sets;",
+			);
 			connection
 				.prepare("DELETE FROM __drizzle_migrations WHERE created_at >= ?")
 				.run(1791207000000);

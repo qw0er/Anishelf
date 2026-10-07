@@ -155,3 +155,44 @@ export const preparedArtifacts = sqliteTable(
 	},
 	(table) => [check("prepared_size", sql`${table.sizeBytes} > 0`)],
 );
+
+export const subtitleFontSets = sqliteTable(
+	"subtitle_font_sets",
+	{
+		id: text("id").primaryKey(),
+		sourceId: text("source_id")
+			.notNull()
+			.references(() => mediaSources.id, { onDelete: "restrict" }),
+		status: text("status", {
+			enum: ["pending", "ready", "degraded"],
+		}).notNull(),
+		warnings: text("warnings", { mode: "json" }).$type<string[]>().notNull(),
+	},
+	(table) => [
+		index("subtitle_font_source").on(table.sourceId),
+		check(
+			"subtitle_font_set_status",
+			sql`${table.status} IN ('pending', 'ready', 'degraded')`,
+		),
+	],
+);
+export const subtitleFontAssets = sqliteTable(
+	"subtitle_font_assets",
+	{
+		id: text("id").primaryKey(),
+		setId: text("set_id")
+			.notNull()
+			.references(() => subtitleFontSets.id, { onDelete: "cascade" }),
+		streamIndex: integer("stream_index").notNull(),
+		format: text("format", { enum: ["ttf", "otf"] }).notNull(),
+		family: text("family").notNull(),
+		sizeBytes: integer("size_bytes").notNull(),
+		digest: text("digest").notNull(),
+	},
+	(table) => [
+		uniqueIndex("subtitle_font_attachment").on(table.setId, table.streamIndex),
+		check("subtitle_font_stream", sql`${table.streamIndex} >= 0`),
+		check("subtitle_font_size", sql`${table.sizeBytes} > 0`),
+		check("subtitle_font_format", sql`${table.format} IN ('ttf', 'otf')`),
+	],
+);

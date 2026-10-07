@@ -58,3 +58,13 @@ export const preparationConstraints = Object.freeze({
 	defaultCacheBudgetGiB: 10,
 	maximumCacheBudgetGiB: Math.floor(Number.MAX_SAFE_INTEGER / 1024 ** 3),
 });
+
+export const subtitleFontConstraints: Readonly<{
+	maximumBytes: number;
+	maximumSetBytes: number;
+	maximumCount: number;
+}> = Object.freeze({
+	maximumBytes: 24 * 1024 * 1024,
+	maximumSetBytes: 64 * 1024 * 1024,
+	maximumCount: 32,
+});

@@ -4,6 +4,14 @@ import type {
 } from "../../platform/media/model.js";
 /** Consumer-owned extraction capability; no dependency on the concrete tool service. */
 export interface SubtitleExtractor {
+	extractAttachment?(
+		path: string,
+		streamIndex: number,
+		options: {
+			maximumBytes: number;
+			signal?: AbortSignal;
+		},
+	): Promise<Buffer>;
 	extractSubtitle(
 		path: string,
 		streamIndex: number,
