@@ -2,7 +2,7 @@
 	"name": "anishelf",
 	"license": "GPL-3.0-only",
 	"author": "QWER",
-	"version": "0.2.4",
+	"version": "0.2.5",
 	"private": true,
 	"workspaces": [
 		"backend",
