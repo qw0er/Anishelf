@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { selectTranscodeProfile } from "../../../api/client.js";
+import type { TranscodeProfileCatalog } from "../../../api/contracts.js";
 import { Button } from "../../../components/ui/button.js";
 import {
 	Card,
@@ -17,8 +18,11 @@ export function PreparationProfileSettings() {
 	const { t } = useTranslation();
 	const preparation = usePreparationContext();
 	const action = usePreparationAction();
+	const [mode, setMode] =
+		useState<TranscodeProfileCatalog["preparationMode"]>("compatible");
 	const [profileId, setProfileId] = useState("");
 	useEffect(() => {
+		setMode(preparation.catalog?.preparationMode ?? "compatible");
 		setProfileId(
 			preparation.catalog?.selectionAvailable
 				? preparation.catalog.selectedProfileId
@@ -40,9 +44,11 @@ export function PreparationProfileSettings() {
 						onSubmit={(event) => {
 							event.preventDefault();
 							void action.run(async (signal) => {
-								const catalog = await selectTranscodeProfile(profileId, {
-									signal,
-								});
+								const catalog = await selectTranscodeProfile(
+									profileId,
+									{ signal },
+									mode,
+								);
 								if (!signal.aborted) {
 									preparation.updateCatalog(catalog);
 									toast.add({
@@ -53,6 +59,33 @@ export function PreparationProfileSettings() {
 							});
 						}}
 					>
+						<fieldset className="space-y-2" disabled={action.busy}>
+							<legend className="mb-2 text-sm font-medium">
+								{t("preparation.preparationMode")}
+							</legend>
+							{(["compatible", "fast"] as const).map((value) => (
+								<label
+									key={value}
+									className="flex cursor-pointer items-start gap-3 rounded-md border p-3 has-[:checked]:border-primary has-[:checked]:bg-accent/50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50"
+								>
+									<input
+										type="radio"
+										name="preparation-mode"
+										checked={mode === value}
+										onChange={() => setMode(value)}
+										className="mt-1 accent-primary"
+									/>
+									<span>
+										<span className="block text-sm font-medium">
+											{t(`preparation.${value}Mode`)}
+										</span>
+										<span className="mt-1 block text-xs text-muted-foreground">
+											{t(`preparation.${value}Description`)}
+										</span>
+									</span>
+								</label>
+							))}
+						</fieldset>
 						<fieldset className="space-y-2" disabled={action.busy}>
 							<legend className="mb-2 text-sm font-medium">
 								{t("preparation.chooseProfile")}

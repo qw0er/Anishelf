@@ -79,6 +79,7 @@ const catalog = {
 	],
 	selectedProfileId: task.profileId,
 	selectionAvailable: true,
+	preparationMode: "compatible" as const,
 };
 const unsupported = {
 	sourceVersion: "version",
@@ -219,11 +220,19 @@ test("target profile is saved in Settings through the persistent selection API",
 	);
 	const profile = await view.findByRole("radio", { name: /Browser copy/ });
 	await waitFor(() => expect((profile as HTMLInputElement).checked).toBe(true));
-	fireEvent.click(view.getByRole("button", { name: "Save transcode profile" }));
+	const compatible = view.getByRole("radio", {
+		name: /Compatibility \(default\)/,
+	});
+	expect((compatible as HTMLInputElement).checked).toBe(true);
+	fireEvent.click(view.getByRole("radio", { name: /Fast preparation/ }));
+	fireEvent.click(
+		view.getByRole("button", { name: "Save preparation settings" }),
+	);
 	await waitFor(() =>
 		expect(api.selectTranscodeProfile).toHaveBeenCalledWith(
 			task.profileId,
 			expect.anything(),
+			"fast",
 		),
 	);
 });
@@ -383,7 +392,9 @@ test("an older or unavailable copy does not mark the current file prepared", asy
 	).toBeNull();
 });
 
-test.each([task, ready])(
+test.each(
+	[task, ready].map((entry) => ({ ...entry, mode: "transcode" as const })),
+)(
 	"file menu contains operations without $status status entries",
 	async (entry) => {
 		vi.mocked(api.getFilePreparations).mockResolvedValue({ tasks: [entry] });
@@ -606,3 +617,16 @@ test("monitor requests a larger task window only after More is clicked", async (
 		expect(view.queryByRole("button", { name: "More" })).toBeNull(),
 	);
 });
+
+test.each(["remux", "transcode-audio", "transcode-video"] as const)(
+	"compatibility preparation does not reuse a %s copy as a completed full transcode",
+	async (mode) => {
+		vi.mocked(api.getFilePreparations).mockResolvedValue({
+			tasks: [{ ...ready, mode }],
+		});
+		const view = button({ tasks: [{ ...ready, mode }] });
+		const prepare = await view.findByRole("button", { name: "Pre-transcode" });
+		fireEvent.click(prepare);
+		await waitFor(() => expect(api.createPreparation).toHaveBeenCalled());
+	},
+);

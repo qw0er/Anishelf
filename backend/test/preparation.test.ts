@@ -175,6 +175,7 @@ async function fixture(
 	let app: ReturnType<typeof createHttpApp>;
 	async function start() {
 		compatibility = new MediaPlanningApplication({
+			preparationMode: () => "fast",
 			sources: library.sources,
 			inspection,
 			profiles,

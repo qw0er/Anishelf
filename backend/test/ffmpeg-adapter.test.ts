@@ -261,13 +261,9 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 					evidence: description.queries.map((query) => {
 						const supported =
 							!query.id.startsWith("original") &&
+							!(query.id === "copy-video" && mode === "transcode-video") &&
 							!(
-								query.id === "copy-video" &&
-								(mode === "transcode-video" || mode === "transcode")
-							) &&
-							!(
-								query.id.startsWith("copy-audio") &&
-								(mode === "transcode-audio" || mode === "transcode")
+								query.id.startsWith("copy-audio") && mode === "transcode-audio"
 							);
 						return {
 							id: query.id,
@@ -277,6 +273,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 						};
 					}),
 				}),
+				mode === "transcode" ? "compatible" : "fast",
 			);
 			expect(result).toMatchObject({ kind: "processing", mode });
 			if (result.kind !== "processing") throw new Error("No plan");

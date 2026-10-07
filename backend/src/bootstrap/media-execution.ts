@@ -24,6 +24,7 @@ export function createMediaExecutionModule(options: {
 		inspection,
 		...(options.logger ? { logger: options.logger } : {}),
 		profiles: configuration.transcodeProfiles,
+		preparationMode: () => configuration.snapshot.settings.preparationMode,
 	});
 	const processing = new MediaProcessingApplication({
 		sources,

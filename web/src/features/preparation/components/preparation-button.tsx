@@ -125,6 +125,8 @@ export function PreparationButton({
 			task.fileId === fileId &&
 			task.sourceVersion === result.sourceVersion &&
 			task.profileId === profile &&
+			(preparation.catalog?.preparationMode !== "compatible" ||
+				task.mode === "transcode") &&
 			matchesAudioSelection(task, selection, allTracks),
 	);
 	const pending =

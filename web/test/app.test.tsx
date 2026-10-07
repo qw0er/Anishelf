@@ -140,6 +140,7 @@ beforeEach(() => {
 				],
 				selectedProfileId: "builtin:web",
 				selectionAvailable: true,
+				preparationMode: "compatible" as const,
 			});
 		if (path === "/api/preparations/summaries")
 			return json({

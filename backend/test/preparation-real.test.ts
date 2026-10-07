@@ -64,7 +64,9 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 		tools,
 	});
 	const database = ApplicationDatabase.open(dataDir);
+	let preparationMode: "fast" | "compatible" = "fast";
 	const compatibility = new MediaPlanningApplication({
+		preparationMode: () => preparationMode,
 		sources: library.sources,
 		inspection,
 		profiles: builtinTranscodeProfiles,
@@ -189,6 +191,7 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 			[true, false, "transcode-video"],
 			[true, true, "transcode"],
 		] as const) {
+			preparationMode = mode === "transcode" ? "compatible" : "fast";
 			const description = await compatibility.inspect({
 				fileId: file.id,
 				sourceVersion: source.identity.sourceVersion,
@@ -201,8 +204,10 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 				evidence: description.queries.map((query) => {
 					const status =
 						query.id.startsWith("original") ||
-						(query.id === "copy-video" && video) ||
-						(query.id === "copy-audio" && audio)
+						(query.id === "copy-video" &&
+							video &&
+							preparationMode === "fast") ||
+						(query.id === "copy-audio" && audio && preparationMode === "fast")
 							? ("unsupported" as const)
 							: ("supported" as const);
 					return {

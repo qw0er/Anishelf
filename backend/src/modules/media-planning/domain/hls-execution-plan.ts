@@ -56,17 +56,20 @@ export function resolveHlsExecutionPlan(
 			: null;
 		if (track && !checkedTrack)
 			return { kind: "blocked", reason: "audio-output-evidence-missing" };
-		const resolved = resolveExecutionPlan({
-			...input,
-			direct: { status: "unsupported", reason: "hls-packaging-required" },
-			selectedAudioStreamIndices: track ? [track.index] : [],
-			output: {
-				...input.output,
-				target: "media-source",
-				copyAudio: checkedTrack?.copyAudio ?? "supported",
-				combinations: checkedTrack?.combinations ?? input.output.combinations,
+		const resolved = resolveExecutionPlan(
+			{
+				...input,
+				direct: { status: "unsupported", reason: "hls-packaging-required" },
+				selectedAudioStreamIndices: track ? [track.index] : [],
+				output: {
+					...input.output,
+					target: "media-source",
+					copyAudio: checkedTrack?.copyAudio ?? "supported",
+					combinations: checkedTrack?.combinations ?? input.output.combinations,
+				},
 			},
-		});
+			"fast",
+		);
 		if (resolved.kind !== "processing")
 			return {
 				kind: "blocked",

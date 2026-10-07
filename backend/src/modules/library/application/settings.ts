@@ -1,6 +1,7 @@
 import type { Logger } from "pino";
 import type {
 	PersistentSettings,
+	PreparationMode,
 	SettingsStore,
 } from "../../../shared/settings.js";
 import type { ScanCoordinator } from "./scan-coordinator.js";
@@ -22,6 +23,7 @@ export class SettingsApplication {
 		scanIntervalMinutes?: number;
 		transcodeCacheBudgetGiB?: number;
 		defaultTranscodeProfileId?: string;
+		preparationMode?: PreparationMode;
 	}): Promise<Readonly<PersistentSettings>> {
 		const started = Date.now();
 		this.options.logger.debug(

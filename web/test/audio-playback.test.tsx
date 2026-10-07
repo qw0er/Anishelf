@@ -138,6 +138,7 @@ test("changing playback audio verifies only matching copies and never enqueues a
 		profiles: [],
 		selectedProfileId: "builtin:balanced",
 		selectionAvailable: true,
+		preparationMode: "compatible" as const,
 	});
 	vi.spyOn(api, "getPreparations").mockResolvedValue({ tasks: [task] });
 	vi.spyOn(api, "getFilePreparations").mockResolvedValue({ tasks: [task] });
@@ -227,6 +228,7 @@ test.each(["unknown", "unsupported", "list-error"])(
 			profiles: [],
 			selectedProfileId: "builtin:balanced",
 			selectionAvailable: true,
+			preparationMode: "compatible" as const,
 		});
 		vi.spyOn(api, "getPreparations").mockResolvedValue({ tasks: [] });
 		const list = vi.spyOn(api, "getFilePreparations");
