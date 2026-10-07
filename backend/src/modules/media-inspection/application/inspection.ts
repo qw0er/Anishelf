@@ -2,6 +2,7 @@ import { join } from "node:path";
 import type { Logger } from "pino";
 import type { MediaInfo } from "../../../platform/media/index.js";
 import { MediaToolError } from "../../../platform/media/index.js";
+import { DomainError } from "../../../shared/errors.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type {
 	ResolvedSource,
@@ -113,6 +114,30 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 		this.options.sources.assertRootEpoch(source.rootEpoch);
 		// Each consumer owns its result; mutations cannot contaminate the shared cache.
 		return { source, info: structuredClone(info) };
+	}
+
+	async chapters(
+		fileId: string,
+		sourceVersion: string,
+	): Promise<{ sourceVersion: string; chapters: MediaInfo["chapters"] }> {
+		try {
+			const { source, info } = await this.inspect(fileId, sourceVersion);
+			return {
+				sourceVersion: source.identity.sourceVersion,
+				chapters: info.chapters,
+			};
+		} catch (cause) {
+			if (
+				cause instanceof MediaInspectionBusyError ||
+				cause instanceof MediaToolError
+			)
+				throw new DomainError(
+					"MEDIA_INSPECTION_UNAVAILABLE",
+					"Chapter inspection is unavailable.",
+					{ cause },
+				);
+			throw cause;
+		}
 	}
 
 	async close(): Promise<void> {

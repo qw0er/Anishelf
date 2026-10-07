@@ -197,6 +197,7 @@ async function createServer(
 		playback,
 		preparation,
 		subtitles,
+		inspection,
 		mediaPlanning: planning,
 		development,
 		closeDependencies: async () => {

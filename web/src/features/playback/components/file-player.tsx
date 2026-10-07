@@ -138,6 +138,7 @@ export default function FilePlayer({
 						{...data}
 						subtitlePolicy={subtitlePolicy}
 						playbackUrl={resource.url}
+						sourceVersion={compatibility.selection?.sourceVersion}
 						timeline={resource.timeline}
 						onMedia={playback.attach}
 						onPlaybackFailure={compatibility.failed}

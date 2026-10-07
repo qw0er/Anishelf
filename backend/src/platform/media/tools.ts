@@ -199,6 +199,47 @@ export function parseMediaInfo(
 			bitRate: number(format.bit_rate),
 			tags: tags(format.tags),
 			streams,
+			chapters: (Array.isArray(root.chapters) ? root.chapters : [])
+				.flatMap((value) => {
+					if (!value || typeof value !== "object" || Array.isArray(value))
+						return [];
+					const chapter = record(value);
+					const rawStart = chapter.start_time;
+					const start =
+						(typeof rawStart === "number" || typeof rawStart === "string") &&
+						rawStart !== "" &&
+						Number.isFinite(Number(rawStart))
+							? Number(rawStart)
+							: null;
+					const end = number(chapter.end_time);
+					const duration = number(format.duration);
+					if (start === null || end === null) return [];
+					const startMs = Math.round(Math.max(0, start) * 1000);
+					const endMs = Math.round(
+						Math.min(end, duration !== null && duration > 0 ? duration : end) *
+							1000,
+					);
+					if (
+						!Number.isSafeInteger(startMs) ||
+						!Number.isSafeInteger(endMs) ||
+						endMs <= startMs
+					)
+						return [];
+					return [
+						{
+							title: text(
+								chapter.tags &&
+									typeof chapter.tags === "object" &&
+									!Array.isArray(chapter.tags)
+									? record(chapter.tags).title
+									: null,
+							),
+							startMs,
+							endMs,
+						},
+					];
+				})
+				.sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs),
 		};
 	} catch (cause) {
 		throw new MediaToolError(
@@ -328,6 +369,7 @@ export class MediaTools {
 					"file,pipe",
 					"-show_format",
 					"-show_streams",
+					"-show_chapters",
 					"-show_pixel_formats",
 					"-of",
 					"json",

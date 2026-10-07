@@ -232,3 +232,64 @@ test.skipIf(!tools.status.ffmpeg.available || !tools.status.ffprobe.available)(
 	},
 	20_000,
 );
+
+test("normalizes chapters without rejecting playable media for malformed chapter entries", () => {
+	const info = parseMediaInfo(
+		JSON.stringify({
+			format: { duration: "20" },
+			streams: [],
+			chapters: [
+				{ start_time: "10", end_time: "30", tags: { title: "Part 2" } },
+				{ start_time: "-1", end_time: "10" },
+				null,
+				{ start_time: "invalid", end_time: "5" },
+				{ start_time: "5", end_time: "5" },
+				{ start_time: "25", end_time: "30" },
+			],
+		}),
+	);
+	expect(info.chapters).toEqual([
+		{ title: null, startMs: 0, endMs: 10000 },
+		{ title: "Part 2", startMs: 10000, endMs: 20000 },
+	]);
+	expect(
+		parseMediaInfo(JSON.stringify({ format: {}, streams: [] })).chapters,
+	).toEqual([]);
+});
+
+test.skipIf(!tools.status.ffmpeg.available || !tools.status.ffprobe.available)(
+	"reads embedded chapters through real FFprobe",
+	async () => {
+		if (!tools.status.ffmpeg.available) throw new Error("FFmpeg unavailable");
+		const metadata = join(fixture, "chapters.ffmeta");
+		const media = join(fixture, "chapters.mkv");
+		await writeFile(
+			metadata,
+			";FFMETADATA1\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=0\nEND=1000\ntitle=Opening\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=1000\nEND=2000\ntitle=本編\n",
+		);
+		await runTool(tools.status.ffmpeg.path, [
+			"-nostdin",
+			"-v",
+			"error",
+			"-f",
+			"lavfi",
+			"-i",
+			"color=size=32x32:rate=1:duration=2",
+			"-f",
+			"ffmetadata",
+			"-i",
+			metadata,
+			"-map",
+			"0:v",
+			"-map_chapters",
+			"1",
+			"-c:v",
+			"ffv1",
+			media,
+		]);
+		expect((await tools.probe(media)).chapters).toEqual([
+			{ title: "Opening", startMs: 0, endMs: 1000 },
+			{ title: "本編", startMs: 1000, endMs: 2000 },
+		]);
+	},
+);

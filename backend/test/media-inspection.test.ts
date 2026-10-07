@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { createHttpApp } from "../src/bootstrap/http.js";
 import { createLibraryModule } from "../src/bootstrap/library.js";
 import {
 	type BuiltinPolicy,
@@ -29,6 +30,7 @@ const info: MediaInfo = {
 	size: null,
 	bitRate: null,
 	tags: {},
+	chapters: [],
 	streams: [],
 };
 let root: string;
@@ -235,5 +237,53 @@ test("probe misses validate before and after processing; cache hits need one cur
 		expect(probe).toHaveBeenCalledTimes(1);
 	} finally {
 		reads.mockRestore();
+	}
+});
+
+test("serves version-bound chapters with access validation and shared cache", async () => {
+	probe.mockResolvedValueOnce({
+		...info,
+		chapters: [{ title: "Opening", startMs: 0, endMs: 1000 }],
+	});
+	const inspected = await inspection.inspect(fileId());
+	const version = inspected.source.identity.sourceVersion;
+	const app = createHttpApp({
+		config: {
+			host: "127.0.0.1",
+			port: 80,
+			publicOrigin: "http://localhost",
+		},
+		logger: pino({ enabled: false }),
+		inspection,
+	});
+	try {
+		const url = `/api/files/${fileId()}/chapters?sourceVersion=${version}`;
+		const response = await app.inject({ url });
+		expect(response.statusCode).toBe(200);
+		expect(response.json()).toEqual({
+			sourceVersion: version,
+			chapters: [{ title: "Opening", startMs: 0, endMs: 1000 }],
+		});
+		expect(response.headers["cache-control"]).toBe("no-store");
+		expect(probe).toHaveBeenCalledTimes(1);
+		expect(
+			(
+				await app.inject({
+					url: `/api/files/${fileId()}/chapters?sourceVersion=obsolete`,
+				})
+			).statusCode,
+		).toBe(409);
+		expect(
+			(await app.inject({ url: `/api/files/${fileId()}/chapters` })).statusCode,
+		).toBe(400);
+		const other = await library.sources.resolveSource(fileId(1));
+		probe.mockRejectedValueOnce(new MediaToolError("TOOL_FAILED", "failed"));
+		const unavailable = await app.inject({
+			url: `/api/files/${fileId(1)}/chapters?sourceVersion=${other.identity.sourceVersion}`,
+		});
+		expect(unavailable.statusCode).toBe(503);
+		expect(unavailable.json().error.code).toBe("MEDIA_INSPECTION_UNAVAILABLE");
+	} finally {
+		await app.close();
 	}
 });

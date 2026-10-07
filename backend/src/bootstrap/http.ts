@@ -15,6 +15,8 @@ import type { LibraryApplication } from "../modules/library/application/library.
 import { registerLibraryRoutes } from "../modules/library/http/library.js";
 import { registerMediaRoutes } from "../modules/library/http/media.js";
 import { registerSettingsRoutes } from "../modules/library/http/settings.js";
+import type { MediaInspectionApplication } from "../modules/media-inspection/application/inspection.js";
+import { registerChapterRoutes } from "../modules/media-inspection/http/chapters.js";
 import type { MediaPlanningApplication } from "../modules/media-planning/application/planning.js";
 import { registerMediaPlanningRoutes } from "../modules/media-planning/http/planning.js";
 import type { PlaybackApplication } from "../modules/playback/application/playback.js";
@@ -40,6 +42,7 @@ export function createHttpApp(options: {
 	preparation?: PreparationApplication;
 	subtitles?: SubtitleApplication;
 	mediaPlanning?: MediaPlanningApplication;
+	inspection?: MediaInspectionApplication;
 	frontendRoot?: string;
 	configuration?: ConfigurationService;
 	/** Bootstrap can own shutdown of shared dependencies. */
@@ -145,6 +148,7 @@ export function createHttpApp(options: {
 
 	if (options.playbackSelection)
 		registerPlaybackSelectionRoutes(app, options.playbackSelection);
+	if (options.inspection) registerChapterRoutes(app, options.inspection);
 	if (options.mediaPlanning)
 		registerMediaPlanningRoutes(app, options.mediaPlanning);
 	if (options.preparation) {

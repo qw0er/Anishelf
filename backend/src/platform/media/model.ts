@@ -44,8 +44,15 @@ export interface MediaStream {
 	forced: boolean;
 }
 
+interface MediaChapter {
+	title: string | null;
+	startMs: number;
+	endMs: number;
+}
+
 /** Unversioned tool output. Consume with MediaInspectionResult.source.identity.sourceVersion. */
 export interface MediaInfo {
+	chapters: MediaChapter[];
 	/** Raw FFprobe demuxer names, retained for diagnostics. */
 	format: string | null;
 	formatAliases: string[];

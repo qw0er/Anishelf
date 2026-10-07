@@ -23,6 +23,8 @@ export const keys = {
 	summaries: (scope: string, ids: string[]) =>
 		["preparations", scope, "summaries", ids] as const,
 	profiles: ["profiles"] as const,
+	chapters: (scope: string, fileId: string, sourceVersion: string) =>
+		["chapters", scope, fileId, sourceVersion] as const,
 	subtitles: (scope: string, fileId: string) =>
 		["subtitles", scope, fileId] as const,
 	compatibility: (identity: string) => ["compatibility", identity] as const,

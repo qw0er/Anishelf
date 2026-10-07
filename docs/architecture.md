@@ -176,3 +176,21 @@ malformed or unreadable settings fail instead of being overwritten. The initial
 root is a deployment default for first setup, while persistent settings remain
 the owner of subsequent user choices. Without the variable, missing settings
 continue to enter setup mode.
+
+
+## Video chapters
+
+Media Inspection reads embedded chapter titles and time ranges with FFprobe and
+shares the existing source-version-bound probe cache. The version-validated
+`GET /api/files/:id/chapters?sourceVersion=...` endpoint returns source times in
+milliseconds; no embedded chapters returns an empty array. Probe failure or
+contention returns `MEDIA_INSPECTION_UNAVAILABLE`, separately from empty results.
+
+Web playback registers a Vidstack chapters text track and uses the default layout's
+chapter menu, timeline segments and current chapter title. Missing titles use
+`Chapter N`. Chapters load independently of playback and subtitles; failures offer
+a retry without stopping video. Both original and prepared playback use source
+chapters mapped through the selected resource's timeline. Prepared files still
+omit embedded chapters; navigation does not require rebuilding them. External
+chapter files, editing, automatic opening/ending detection and thumbnails are not
+implemented.

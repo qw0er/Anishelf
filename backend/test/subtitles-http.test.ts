@@ -41,6 +41,7 @@ const emptyInfo: MediaInfo = {
 	size: null,
 	bitRate: null,
 	tags: {},
+	chapters: [],
 	streams: [],
 };
 let probe: ReturnType<typeof vi.fn<MediaTools["probe"]>>;

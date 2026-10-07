@@ -119,6 +119,8 @@ beforeEach(() => {
 	fetcher.mockReset();
 	fetcher.mockImplementation(async (input, init) => {
 		const path = String(input);
+		if (path.startsWith("/api/files/file-1/chapters?"))
+			return json({ sourceVersion: "version", chapters: [] });
 		if (
 			path === "/api/preparations?summary=true" ||
 			path.startsWith("/api/preparations?")
