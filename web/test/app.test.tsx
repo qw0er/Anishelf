@@ -547,9 +547,27 @@ test("a failed settings save retains the input and supports a retry", async () =
 	expect(within(screen.getByRole("main")).queryByRole("alert")).toBeNull();
 	expect(input.value).toBe("/new/media");
 	expect(screen.getByTestId("location").textContent).toBe("/settings");
+	// The error toast appears before the fetcher returns to idle. Wait until
+	// the form is usable so disabled controls are included in the retry.
+	await waitFor(() => {
+		expect(input.disabled).toBe(false);
+		expect(
+			(
+				screen.getByRole("button", {
+					name: "Save directory",
+				}) as HTMLButtonElement
+			).disabled,
+		).toBe(false);
+	});
 	rejectSave = false;
-	fireEvent.submit(input.closest("form") as HTMLFormElement);
+	fireEvent.click(screen.getByRole("button", { name: "Save directory" }));
 	await screen.findByRole("button", { name: "Scan library" });
+	expect(
+		fetcher.mock.calls.filter(
+			([path, init]) => path === "/api/settings" && init?.method === "PUT",
+		),
+	).toHaveLength(2);
+	expect(settings.resourceRoot).toBe("/new/media");
 	await screen.findByText("Settings saved.");
 	await waitFor(() =>
 		expect(
