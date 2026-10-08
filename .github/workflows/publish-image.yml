@@ -40,9 +40,13 @@ jobs:
             echo "Skipping image publication: the release commit is not in main."
           fi
 
-  build:
+  verify:
     needs: check-main
     if: needs.check-main.outputs.allowed == 'true'
+    uses: ./.github/workflows/check.yml
+
+  build:
+    needs: verify
     strategy:
       fail-fast: false
       matrix:

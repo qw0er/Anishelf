@@ -17,7 +17,7 @@ media directory, browse its folder structure, and watch videos in your browser.
   data directory.
 
 The backend currently listens only on loopback addresses. Remote use is available
-through SSH port forwarding or a [Caddy reverse proxy](#caddy-reverse-proxy).
+through SSH port forwarding or a [Caddy reverse proxy](docs/deployment.md#caddy-reverse-proxy).
 The application has no built-in authentication; Caddy must protect domain access.
 
 ## Run and use
@@ -60,43 +60,74 @@ or Podman. The image includes Node.js, FFmpeg/FFprobe and the built application.
 - Keep `/data` persistent for settings, the database and caches.
 - Use host networking without port mappings; Anishelf listens on loopback.
 - Media must be readable and data writable by the container's UID/GID 1000.
-- Set `ANISHELF_PUBLIC_ORIGIN` to your domain and configure [Caddy](#caddy-reverse-proxy),
+- Set `ANISHELF_PUBLIC_ORIGIN` to your domain and configure [Caddy](docs/deployment.md#caddy-reverse-proxy),
   or omit it for local/SSH access.
 - `ANISHELF_INITIAL_RESOURCE_ROOT=/media` initializes a fresh installation;
   change existing roots in Settings.
 
-### Docker CLI
+Both primary examples use a named `anishelf-data` volume for application data
+and a read-only bind mount for media. Docker and Podman manage separate volumes;
+rootless Podman storage also belongs to the account running it.
+See [additional deployment guidance](docs/deployment.md) for CLI deployments,
+rootful Quadlet, SELinux, reverse proxy configuration, backups and migration.
 
-```sh
-docker pull ghcr.io/qw0er/anishelf:latest
-docker volume create anishelf-data
-docker run -d --name anishelf --restart unless-stopped \
-  --network host --stop-timeout 15 \
-  -e ANISHELF_PORT=3000 \
-  -e ANISHELF_INITIAL_RESOURCE_ROOT=/media \
-  -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
-  --mount type=volume,source=anishelf-data,target=/data \
-  --mount type=bind,source=/absolute/media/path,target=/media,readonly \
-  ghcr.io/qw0er/anishelf:latest
-docker ps --filter name=anishelf
-docker logs -f anishelf
+### Docker Compose
+
+Save this as `compose.yaml` on the Linux host with Docker Engine and the
+Docker Compose plugin, and replace the media path:
+
+```yaml
+services:
+  anishelf:
+    image: ghcr.io/qw0er/anishelf:latest
+    container_name: anishelf
+    restart: unless-stopped
+    network_mode: host
+    stop_grace_period: 15s
+    environment:
+      ANISHELF_PORT: "3000"
+      ANISHELF_INITIAL_RESOURCE_ROOT: /media
+      # Set this when using a reverse proxy:
+      # ANISHELF_PUBLIC_ORIGIN: https://example.com
+    volumes:
+      - anishelf-data:/data
+      - type: bind
+        source: /absolute/media/path
+        target: /media
+        read_only: true
+        bind:
+          create_host_path: false
+
+volumes:
+  anishelf-data:
+    name: anishelf-data
 ```
 
-For SELinux mount options, see [SELinux mounts](#selinux-mounts).
-
-To update:
+Start and inspect the application from the directory containing `compose.yaml`:
 
 ```sh
-docker pull ghcr.io/qw0er/anishelf:latest
-docker stop --time 15 anishelf
+docker compose up -d
+docker compose ps
+docker compose logs -f anishelf
 ```
 
-Back up `anishelf-data`, then run `docker rm anishelf` and repeat the `docker run`
-command. Keep the data volume.
+Compose creates the named data volume; the image's `/data` ownership allows
+UID/GID 1000 to write it. Open [Anishelf](http://127.0.0.1:3000) on the host,
+or use the SSH forwarding command above.
 
-### Podman CLI
+To update, run `docker compose pull`, then `docker compose stop`. Back up
+`anishelf-data` following the [backup instructions](docs/deployment.md#data-backup-and-migration),
+then run `docker compose up -d`. Keep the backup for database rollback.
+`docker compose down` retains the data volume; `docker compose down --volumes`
+deletes it.
 
-#### Dedicated rootless user
+### Podman Quadlet rootless
+
+Use Linux with systemd, cgroup v2 and Podman with Quadlet support. Run the service
+under a dedicated non-root account. The `[Install]` section starts it at boot;
+start the generated service without running `systemctl enable`.
+
+#### Dedicated service account
 
 Use a dedicated non-root `anishelf` account with a writable home and subordinate
 UID/GID ranges in `/etc/subuid` and `/etc/subgid`. Create it from an administrator
@@ -107,7 +138,7 @@ sudo useradd --create-home --user-group --shell /bin/bash anishelf
 sudo loginctl enable-linger anishelf
 ```
 
-Ensure the account can read the media directory and owns its application data.
+Ensure the account can read the media directory and can write its application data volume.
 If media access relies on supplementary groups, use `--group-add keep-groups`
 (or `GroupAdd=keep-groups` in Quadlet) with the `crun` runtime.
 Run rootless commands from this account:
@@ -118,127 +149,22 @@ export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
 ```
 
-#### Rootless CLI
+#### Quadlet files
 
-Complete the [dedicated user setup](#dedicated-rootless-user), then run as
-`anishelf`:
-
-```sh
-mkdir -p ~/.local/share/anishelf
-podman pull ghcr.io/qw0er/anishelf:latest
-podman run -d --name anishelf --restart unless-stopped \
-  --network host --stop-timeout 15 \
-  --userns keep-id:uid=1000,gid=1000 --user 1000:1000 \
-  -e ANISHELF_PORT=3000 \
-  -e ANISHELF_INITIAL_RESOURCE_ROOT=/media \
-  -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
-  -v "$HOME/.local/share/anishelf:/data" \
-  -v /absolute/media/path:/media:ro \
-  ghcr.io/qw0er/anishelf:latest
-podman ps --filter name=anishelf
-podman logs -f anishelf
-```
-
-#### Rootful CLI
-
-From your administrator account, create a fresh data directory owned by
-UID/GID 1000:
+Create the configuration directory as `anishelf`:
 
 ```sh
-sudo install -d -m 0750 -o 1000 -g 1000 /var/lib/anishelf
-sudo podman pull ghcr.io/qw0er/anishelf:latest
-sudo podman run -d --name anishelf --restart unless-stopped \
-  --network host --stop-timeout 15 --user 1000:1000 \
-  -e ANISHELF_PORT=3000 \
-  -e ANISHELF_INITIAL_RESOURCE_ROOT=/media \
-  -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
-  -v /var/lib/anishelf:/data \
-  -v /absolute/media/path:/media:ro \
-  ghcr.io/qw0er/anishelf:latest
-sudo podman ps --filter name=anishelf
-sudo podman logs -f anishelf
+mkdir -p ~/.config/containers/systemd
 ```
 
-For updates, pull `latest`, stop with `podman stop --time 15 anishelf`, back up
-that deployment's data directory, remove with `podman rm anishelf`, and repeat
-its run command. Prefix Podman commands with `sudo` for the root deployment.
-Use Quadlet below for systemd-managed startup at boot.
-
-### Podman Quadlet
-
-Use Podman with Quadlet support on Linux with systemd and cgroup v2.
-Choose rootful or rootless deployment. The `[Install]` section enables startup
-at boot; start the generated service without running `systemctl enable`.
-
-#### Quadlet as root
-
-Prepare a fresh data directory and the system configuration directory:
-
-```sh
-sudo mkdir -p /etc/containers/systemd
-sudo install -d -m 0750 -o 1000 -g 1000 /var/lib/anishelf
-```
-
-Save `/etc/containers/systemd/anishelf.container`:
+Save `~/.config/containers/systemd/anishelf-data.volume`:
 
 ```ini
-[Unit]
-Description=Anishelf media server
-
-[Container]
-Image=ghcr.io/qw0er/anishelf:latest
-ContainerName=anishelf
-Network=host
-User=1000:1000
-Environment=ANISHELF_PORT=3000
-Environment=ANISHELF_INITIAL_RESOURCE_ROOT=/media
-Environment=ANISHELF_PUBLIC_ORIGIN=https://example.com
-Volume=/var/lib/anishelf:/data
-Volume=/absolute/media/path:/media:ro
-StopTimeout=15
-
-[Service]
-Restart=on-failure
-TimeoutStartSec=900
-TimeoutStopSec=30
-
-[Install]
-WantedBy=multi-user.target
+[Volume]
+VolumeName=anishelf-data
 ```
 
-Rootful Podman uses the system service manager; the application still runs as
-UID/GID 1000 inside the container. Ensure that user can read the media directory.
-
-```sh
-sudo systemctl daemon-reload
-sudo systemctl start anishelf.service
-sudo systemctl status anishelf.service
-sudo journalctl -u anishelf.service -f
-```
-
-The install target starts the service on subsequent boots. Check container health
-with `sudo podman inspect --format '{{.State.Health.Status}}' anishelf`.
-To update, run `sudo systemctl stop anishelf.service`, back up `/var/lib/anishelf`,
-then run:
-
-```sh
-sudo podman pull ghcr.io/qw0er/anishelf:latest
-sudo systemctl start anishelf.service
-sudo systemctl status anishelf.service
-```
-
-If you edit the Quadlet file, run `sudo systemctl daemon-reload` before starting.
-
-#### Quadlet rootless
-
-Complete the [dedicated user setup](#dedicated-rootless-user), then create the
-configuration and data directories as `anishelf`:
-
-```sh
-mkdir -p ~/.config/containers/systemd ~/.local/share/anishelf
-```
-
-Save `~/.config/containers/systemd/anishelf.container` in `anishelf`'s home:
+Save `~/.config/containers/systemd/anishelf.container`:
 
 ```ini
 [Unit]
@@ -252,8 +178,9 @@ UserNS=keep-id:uid=1000,gid=1000
 User=1000:1000
 Environment=ANISHELF_PORT=3000
 Environment=ANISHELF_INITIAL_RESOURCE_ROOT=/media
-Environment=ANISHELF_PUBLIC_ORIGIN=https://example.com
-Volume=%h/.local/share/anishelf:/data
+# Set this when using a reverse proxy:
+# Environment=ANISHELF_PUBLIC_ORIGIN=https://example.com
+Volume=anishelf-data.volume:/data:U
 Volume=/absolute/media/path:/media:ro
 StopTimeout=15
 
@@ -266,8 +193,10 @@ TimeoutStopSec=30
 WantedBy=default.target
 ```
 
-The account must own the data directory and be able to read the media.
-`UserNS=keep-id` maps it to UID/GID 1000 inside the container.
+Quadlet creates the named volume before starting the container. `:U` sets its
+ownership for the application user; use it only on the application data volume.
+`UserNS=keep-id` maps the service account to UID/GID 1000 inside the container.
+The account must be able to read the media directory.
 
 Start and inspect the generated service:
 
@@ -284,8 +213,13 @@ To update, stop the service:
 systemctl --user stop anishelf.service
 ```
 
-Back up `anishelf`'s `~/.local/share/anishelf`, then pull and start the current
-image from the same `anishelf` shell:
+Back up the volume from the same `anishelf` shell:
+
+```sh
+podman volume export anishelf-data --output anishelf-data-backup.tar
+```
+
+Then pull and start the current image:
 
 ```sh
 podman pull ghcr.io/qw0er/anishelf:latest
@@ -298,59 +232,6 @@ Retain the data backup for database rollback.
 
 See the [Quadlet reference](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html)
 for supported keys and generator troubleshooting.
-
-### SELinux mounts
-
-On SELinux enforcing hosts, use `:Z` for private data and `:ro,z` for shared
-media in Quadlet mounts:
-
-```ini
-Volume=%h/.local/share/anishelf:/data:Z
-Volume=/absolute/media/path:/media:ro,z
-```
-
-For rootful Quadlet, use `/var/lib/anishelf:/data:Z`. For CLI deployments, use
-`-v` mounts with the same `:Z` and `:ro,z` suffixes. Relabeling changes host file labels;
-ensure the directory allows it and that other services can still access it.
-
-### Caddy reverse proxy
-
-Set `ANISHELF_PUBLIC_ORIGIN=https://example.com` in your deployment and
-restart it. Configure Caddy on the same host to protect the application:
-
-```caddyfile
-example.com {
-    basic_auth {
-        qwer <password-hash>
-    }
-    reverse_proxy 127.0.0.1:3000
-}
-```
-
-Generate `<password-hash>` with `caddy hash-password`, then validate and reload
-Caddy. Use your exact public origin, including a non-default port if needed.
-Keep Host and Origin headers unchanged. Anishelf has no built-in authentication.
-
-#### External players without authentication
-
-External-player links do not include the browser's Basic Auth credentials.
-To make original media accessible without authentication, use:
-
-```caddyfile
-example.com {
-    @protected {
-        not path /api/media/*
-    }
-
-    basic_auth @protected {
-        qwer <password-hash>
-    }
-    reverse_proxy 127.0.0.1:3000
-}
-```
-
-Anyone with an original media URL can access that file. Pages, settings,
-prepared media and subtitles remain authenticated.
 
 ## Configuration
 
