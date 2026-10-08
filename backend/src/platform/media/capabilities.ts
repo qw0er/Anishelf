@@ -36,8 +36,8 @@ const headers: Record<MediaCapabilityKind, RegExp> = {
 	codecs: /^Codecs:/m,
 	encoders: /^Encoders:/m,
 	decoders: /^Decoders:/m,
-	muxers: /^(?:Formats|Muxers):/m,
-	demuxers: /^(?:Formats|Demuxers):/m,
+	muxers: /^(?:File formats|Formats|Muxers):/m,
+	demuxers: /^(?:File formats|Formats|Demuxers):/m,
 	filters: /^Filters:/m,
 	devices: /^Devices:/m,
 	pixelFormats: /^Pixel formats:/m,
@@ -98,9 +98,12 @@ export function parseMediaCapabilities(
 			add(match[1] as string, match[2] ?? "");
 		}
 	} else {
-		// Filters in FFmpeg 5/7 have no separator; device tables may use "--".
+		// Filters in FFmpeg 5/7 have no separator; FFmpeg 6 format/device tables use "--".
 		const separator = lines.findIndex((line) =>
-			(kind === "devices" ? /^\s*-{2,}\s*$/ : /^\s*-{3,}\s*$/).test(line),
+			(kind === "devices" || kind === "muxers" || kind === "demuxers"
+				? /^\s*-{2,}\s*$/
+				: /^\s*-{3,}\s*$/
+			).test(line),
 		);
 		if (separator === -1 && kind !== "filters")
 			throw new Error("Missing capability table.");

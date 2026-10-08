@@ -483,3 +483,12 @@ failure prevents both architecture builds and image publication. See
 [container packaging](../package/README.md#publication-flow) for the release flow.
 Local checks remain useful for immediate feedback. CI does not certify browser
 codec support, visual rendering or production deployment behavior.
+
+### FFmpeg capability table compatibility
+
+Capability enumeration accepts FFmpeg 6.1.1's `File formats:` header and
+`--` separator for muxer and demuxer tables, alongside newer table formats.
+Regression tests cover MP4 muxing, Matroska/WebM aliases, legend exclusion and
+rejection of missing separators or malformed rows. Unknown capabilities still
+block execution; accepting the table format does not certify every encoder or
+browser playback path.
