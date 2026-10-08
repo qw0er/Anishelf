@@ -13,9 +13,6 @@ media directory, browse its folder structure, and watch videos in your browser.
 
 - For container deployment, use Docker or Podman on Linux. The image includes
   Node.js, FFmpeg/FFprobe and the application; no source build is required.
-- For running from source, install Node.js 24 and npm, plus FFmpeg and FFprobe
-  for media inspection, subtitle extraction and preparation. Direct playback
-  remains available without these tools when the browser supports the original media.
 - Read access to the media directory and write access to a separate application
   data directory.
 
@@ -25,21 +22,14 @@ The application has no built-in authentication; Caddy must protect domain access
 
 ## Run and use
 
-To run a previously built application on Linux or macOS, start it from the
-repository root:
+From the repository root, run:
 
 ```sh
-ANISHELF_FRONTEND_DIR="$PWD/web/dist" npm run start:backend
+npm start
 ```
 
-On Windows PowerShell:
-
-```powershell
-$env:ANISHELF_FRONTEND_DIR = Join-Path (Get-Location).Path 'web/dist'
-npm run start:backend
-```
-
-If you have not built the application yet, follow [Build](#build) first.
+This builds the application and starts it at `http://127.0.0.1:3000`.
+For a fresh checkout, install dependencies first; see [Build from source](#build-from-source).
 
 Open [Anishelf](http://127.0.0.1:3000), then:
 
@@ -63,49 +53,17 @@ Open the same local address and keep the SSH connection active.
 
 ## Deploy with a container
 
-Use `ghcr.io/qw0er/anishelf:latest` on Linux AMD64 or ARM64. The image includes
-Node.js 24, FFmpeg/FFprobe, database migrations and the built frontend. The
-examples include `ANISHELF_PUBLIC_ORIGIN=https://example.com` for domain
-access through an authenticated Caddy proxy. Replace it with your actual origin
-and apply the [Caddy configuration](#caddy-reverse-proxy). For local or SSH-only
-access, omit this variable. Choose one of these deployment methods:
+Use `ghcr.io/qw0er/anishelf:latest` on Linux AMD64 or ARM64 with Docker
+or Podman. The image includes Node.js, FFmpeg/FFprobe and the built application.
 
-- [Docker CLI](#docker-cli)
-- [Docker Compose](#docker-compose)
-- [Podman CLI](#podman-cli)
-- [Podman Quadlet as root](#quadlet-as-root)
-- [Podman Quadlet rootless](#quadlet-rootless)
-
-All examples use host networking because the backend accepts only loopback
-listeners. Do not add port mappings (`-p`, Compose `ports`, or Quadlet
-`PublishPort`). Set `ANISHELF_PORT` to another unused host port if needed; the
-image health check reads the same variable. Access the application locally or
-through [SSH forwarding](#run-and-use).
-
-Replace `/absolute/media/path` with an existing media directory. The examples set
-`ANISHELF_INITIAL_RESOURCE_ROOT=/media` so a fresh data directory automatically
-creates `settings.json` with that root. Existing settings always take precedence,
-including `resourceRoot: null`; when reusing data, update the saved root in Settings
-if needed. The initial root must be an accessible, readable directory separate
-from `/data`. This variable is an initialization default, not a permanent override.
-Keep `/data` persistent; it holds settings, SQLite and caches. Stop the previous
-service before switching methods to avoid sharing a database or listener between
-running instances. Docker, rootful Podman and rootless Podman have separate
-storage; switching runtimes requires an explicit data transfer while stopped.
-
-The image runs as UID/GID 1000. Media must be readable and bind-mounted data
-writable by the container user. Rootless examples map the host user to that UID.
-The examples do not relabel host directories. On enforcing SELinux hosts, follow
-the [SELinux mount guidance](#selinux-mounts) below. GPU acceleration requires
-additional host/device configuration.
-If GHCR requires authentication, log in with the same user and runtime that
-will pull the image (`docker login ghcr.io`, `podman login ghcr.io`, or
-`sudo podman login ghcr.io`).
-
-`latest` follows stable releases. Pulling alone does not update a running
-container. Before updating, record its image digest and back up application data
-while stopped. Rollback can require both the previous image and its matching
-data backup after database migrations. Automatic updates are not configured.
+- Replace `/absolute/media/path` with your media directory.
+- Keep `/data` persistent for settings, the database and caches.
+- Use host networking without port mappings; Anishelf listens on loopback.
+- Media must be readable and data writable by the container's UID/GID 1000.
+- Set `ANISHELF_PUBLIC_ORIGIN` to your domain and configure [Caddy](#caddy-reverse-proxy),
+  or omit it for local/SSH access.
+- `ANISHELF_INITIAL_RESOURCE_ROOT=/media` initializes a fresh installation;
+  change existing roots in Settings.
 
 ### Docker CLI
 
@@ -136,129 +94,29 @@ docker stop --time 15 anishelf
 Back up `anishelf-data`, then run `docker rm anishelf` and repeat the `docker run`
 command. Keep the data volume.
 
-### Docker Compose
-
-On a Linux host with Docker Engine and the Compose plugin, save this as
-`compose.yaml`. Replace `/absolute/media/path` with an existing media directory.
-Both AMD64 and ARM64 hosts use the same image reference.
-
-```yaml
-services:
-  anishelf:
-    image: ghcr.io/qw0er/anishelf:latest
-    restart: unless-stopped
-    network_mode: host
-    stop_grace_period: 15s
-    environment:
-      ANISHELF_PORT: "3000"
-      ANISHELF_INITIAL_RESOURCE_ROOT: "/media"
-      ANISHELF_PUBLIC_ORIGIN: "https://example.com"
-    volumes:
-      - anishelf-data:/data
-      - type: bind
-        source: /absolute/media/path
-        target: /media
-        read_only: true
-        bind:
-          create_host_path: false
-
-volumes:
-  anishelf-data:
-    external: true
-    name: anishelf-data
-```
-
-Create the volume if it does not already exist, then start the service from the
-directory containing `compose.yaml`:
-
-```sh
-docker volume create anishelf-data
-docker compose config
-docker compose pull
-docker compose up -d
-docker compose ps
-docker compose logs -f anishelf
-```
-
-The external volume reuses data from the Docker run example and survives
-`docker compose down`. Stop the old container before switching to Compose so
-only one process uses the database and port. Docker and Podman have separate
-volume stores; this does not transfer data between runtimes.
-
-Open `http://127.0.0.1:3000` locally or through the SSH forwarding described in
-the [usage instructions](#run-and-use). Fresh data uses `/media` automatically;
-existing settings remain unchanged. Change
-`ANISHELF_PORT` for a different host port. Host networking requires no `ports` entry. The image health
-check uses the same port; `docker compose ps` reports its health status.
-Ensure UID/GID 1000 can read the media files. See [SELinux mounts](#selinux-mounts)
-before enabling Compose relabeling options.
-
-To update to the current `latest` image, run:
-
-```sh
-docker compose pull
-docker compose stop anishelf
-```
-
-Back up the stopped service's `anishelf-data` volume before restarting:
-
-```sh
-docker compose up -d
-docker compose ps
-```
-
-Keep the volume and its backup. Database migrations can require restoring the
-matching backup when rolling back to an older image.
-See the [Compose service reference](https://docs.docker.com/reference/compose-file/services/)
-for networking and mount options.
-
 ### Podman CLI
 
 #### Dedicated rootless user
 
-Use a dedicated non-root account named `anishelf` for rootless CLI and Quadlet
-deployments. Keep it separate from your everyday login account and do not grant
-it sudo privileges. On Linux distributions with `useradd`, run the following
-from your administrator account (skip creation if the account already exists):
+Use a dedicated non-root `anishelf` account with a writable home and subordinate
+UID/GID ranges in `/etc/subuid` and `/etc/subgid`. Create it from an administrator
+account if needed:
 
 ```sh
 sudo useradd --create-home --user-group --shell /bin/bash anishelf
 sudo loginctl enable-linger anishelf
 ```
 
-The account needs a writable home and subordinate UID/GID ranges in
-`/etc/subuid` and `/etc/subgid`. Check both files from your administrator account:
-
-```sh
-sudo grep '^anishelf:' /etc/subuid /etc/subgid
-```
-
-If either range is missing, have the administrator allocate an unused range of
-at least 65,536 IDs in that file before starting Podman. Do not reuse another
-account's range. See the [Podman rootless requirements](https://docs.podman.io/en/latest/markdown/podman.1.html#rootless-mode).
-
-Grant `anishelf` read access to the media files and traversal access to their
-parent directories, using appropriate ownership or ACLs. The media mount remains
-read-only. If access relies on a supplementary group, configure Podman's
-`--group-add keep-groups` (CLI) or `GroupAdd=keep-groups` (Quadlet) with the `crun`
-runtime, and restart the user's systemd manager after changing group membership.
-The application data directory must be owned by `anishelf`.
-
-Enter the service account from your administrator account, then set the user
-runtime and bus addresses for this shell:
+Ensure the account can read the media directory and owns its application data.
+If media access relies on supplementary groups, use `--group-add keep-groups`
+(or `GroupAdd=keep-groups` in Quadlet) with the `crun` runtime.
+Run rootless commands from this account:
 
 ```sh
 sudo -iu anishelf
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
 ```
-
-Linger starts the user's systemd manager at boot and keeps it running after
-logout. It allows the Quadlet service below to run without an interactive login.
-Run all rootless `podman`, `systemctl --user`, and `journalctl --user` commands
-below from this `anishelf` shell. Use `exit` to return to your administrator
-account before running rootful commands. Each Podman user has separate container
-storage; `sudo podman` manages root's containers rather than this account's.
 
 #### Rootless CLI
 
@@ -308,11 +166,9 @@ Use Quadlet below for systemd-managed startup at boot.
 
 ### Podman Quadlet
 
-Use Linux with systemd, cgroup v2 and Podman with Quadlet support. Choose either
-the root or rootless configuration. `[Container] User=` controls the user inside
-the container; the configuration location selects rootful or rootless Podman.
-Quadlet generates `anishelf.service` and applies `[Install]` during generation;
-do not run `systemctl enable` on the generated service.
+Use Podman with Quadlet support on Linux with systemd and cgroup v2.
+Choose rootful or rootless deployment. The `[Install]` section enables startup
+at boot; start the generated service without running `systemctl enable`.
 
 #### Quadlet as root
 
@@ -375,9 +231,8 @@ If you edit the Quadlet file, run `sudo systemctl daemon-reload` before starting
 
 #### Quadlet rootless
 
-Complete the [dedicated user setup](#dedicated-rootless-user), including linger,
-and enter the `anishelf` shell with the runtime and bus environment shown there.
-Create the configuration and data directories as `anishelf`:
+Complete the [dedicated user setup](#dedicated-rootless-user), then create the
+configuration and data directories as `anishelf`:
 
 ```sh
 mkdir -p ~/.config/containers/systemd ~/.local/share/anishelf
@@ -411,15 +266,8 @@ TimeoutStopSec=30
 WantedBy=default.target
 ```
 
-Replace the media path; `anishelf` must own the data directory and be able to read
-the media. The user namespace maps that host account to the image's UID/GID 1000;
-the host account itself does not need UID/GID 1000.
-See [SELinux mounts](#selinux-mounts) if SELinux blocks access.
-This account's data and container storage are separate from other rootless users
-and the Docker volume. When migrating, stop the old service and preserve a backup
-before copying application data to `anishelf`'s data directory and adjusting its
-ownership. Create the container under `anishelf` instead of reusing another
-user's container storage.
+The account must own the data directory and be able to read the media.
+`UserNS=keep-id` maps it to UID/GID 1000 inside the container.
 
 Start and inspect the generated service:
 
@@ -429,12 +277,6 @@ systemctl --user start anishelf.service
 systemctl --user status anishelf.service
 journalctl --user -u anishelf.service -f
 ```
-
-Access `http://127.0.0.1:3000` locally or via SSH. Fresh data uses `/media`
-automatically; existing settings can still be changed in Settings.
-Change `Environment=ANISHELF_PORT=3000` for another unused host port; omit
-`PublishPort` with host networking. Check the image health with
-`podman inspect --format '{{.State.Health.Status}}' anishelf`.
 
 To update, stop the service:
 
@@ -459,60 +301,22 @@ for supported keys and generator troubleshooting.
 
 ### SELinux mounts
 
-On SELinux enforcing hosts, use `:Z` for private application data and `:ro,z`
-for shared, read-only media. For Podman CLI:
-
-```sh
--v "$HOME/.local/share/anishelf:/data:Z" \
--v /srv/anime:/media:ro,z
-```
-
-For rootless Quadlet, change the mount entries to:
+On SELinux enforcing hosts, use `:Z` for private data and `:ro,z` for shared
+media in Quadlet mounts:
 
 ```ini
 Volume=%h/.local/share/anishelf:/data:Z
-Volume=/srv/anime:/media:ro,z
+Volume=/absolute/media/path:/media:ro,z
 ```
 
-For rootful Quadlet, use `/var/lib/anishelf:/data:Z` instead. Compose bind mounts
-support `bind.selinux: Z` for private data or `z` for shared media.
-Relabeling changes host file labels and requires permission and filesystem
-support; `:ro` does not prevent it. If `lsetxattr ... operation not permitted`
-occurs, have the administrator check labeling permissions and other services
-using the directory. SELinux isolation can remain enabled with these labels.
+For rootful Quadlet, use `/var/lib/anishelf:/data:Z`. For CLI deployments, use
+`-v` mounts with the same `:Z` and `:ro,z` suffixes. Relabeling changes host file labels;
+ensure the directory allows it and that other services can still access it.
 
 ### Caddy reverse proxy
 
-Keep the backend listening on loopback and configure the external origin. For
-example, if Caddy serves `https://example.com` and Anishelf uses port 3000,
-add these environment variables to your deployment:
-
-```ini
-ANISHELF_PORT=3000
-ANISHELF_PUBLIC_ORIGIN=https://example.com
-```
-
-For Quadlet, use `Environment=ANISHELF_PORT=3000` and
-`Environment=ANISHELF_PUBLIC_ORIGIN=https://example.com`. For Compose, add
-both values under `environment`; for CLI deployment, pass each with `-e`.
-Recreate the container or restart the Quadlet service after configuration changes.
-
-`ANISHELF_PUBLIC_ORIGIN` allows one explicit external origin, without wildcards
-or a list of domains. With the example above:
-
-- Requests with Host `example.com` (or `example.com:443`) are accepted.
-  Other external domains and ports are rejected.
-- Mutations carrying Origin must match `https://example.com`; HTTP, other
-  domains and other ports are rejected. Cross-site mutation metadata is rejected
-  even when Origin is absent.
-- Local access through the configured loopback listener or `localhost` remains
-  available on the backend port, including health checks.
-- When unset, only the local Host rules apply. This setting does not authenticate
-  users; the reverse proxy must authenticate externally accessible routes, except
-  for original media explicitly made public as described below.
-
-Configure Caddy to authenticate the entire application and preserve Host and
-Origin headers:
+Set `ANISHELF_PUBLIC_ORIGIN=https://example.com` in your deployment and
+restart it. Configure Caddy on the same host to protect the application:
 
 ```caddyfile
 example.com {
@@ -523,29 +327,14 @@ example.com {
 }
 ```
 
-Generate the password hash with `caddy hash-password` and replace
-`<password-hash>`. Validate and reload your Caddy configuration after editing.
-Caddy must share the host network with Anishelf to reach this loopback upstream.
-Use the exact browser origin, including an external non-default port if present;
-paths, credentials, queries and fragments are not accepted. Do not rewrite Host
-or Origin to the upstream address. Forwarded headers do not grant access.
-
-Check `http://127.0.0.1:3000/api/health` locally, then open the HTTPS domain,
-authenticate, and verify both browsing and a Settings save. The public origin
-allows that domain while retaining local health checks and rejecting unrelated
-Hosts, mutation Origins and cross-site mutation metadata. Basic authentication
-is provided by Caddy, not by the public-origin setting.
-See [Caddy basic authentication](https://caddyserver.com/docs/caddyfile/directives/basic_auth).
+Generate `<password-hash>` with `caddy hash-password`, then validate and reload
+Caddy. Use your exact public origin, including a non-default port if needed.
+Keep Host and Origin headers unchanged. Anishelf has no built-in authentication.
 
 #### External players without authentication
 
-With the configuration above, external players must supply their own Basic Auth
-credentials. Copy media link, downloaded M3U playlists and external-player launch
-links contain only the original media URL; they do not transfer the browser's
-authentication state. A player that does not supply credentials receives HTTP 401.
-
-To allow external players to open original media without credentials, replace the
-Caddy site block with:
+External-player links do not include the browser's Basic Auth credentials.
+To make original media accessible without authentication, use:
 
 ```caddyfile
 example.com {
@@ -560,16 +349,8 @@ example.com {
 }
 ```
 
-This exempts `/api/media/*` from Basic Auth while keeping pages, file listings,
-settings and other routes authenticated. Original media retains GET/HEAD and
-byte-range support for seeking. Prepared media and subtitle routes remain
-authenticated. Keep `ANISHELF_PUBLIC_ORIGIN` and the upstream configuration unchanged.
-See [Caddy request matchers](https://caddyserver.com/docs/caddyfile/matchers).
-
-Anyone who obtains an original media URL can access that file without a password;
-file IDs are not access credentials. Use this configuration only if that access
-is intended. Validate and reload Caddy, then check that an original media link
-works without credentials while the application page still requests authentication.
+Anyone with an original media URL can access that file. Pages, settings,
+prepared media and subtitles remain authenticated.
 
 ## Configuration
 
@@ -599,70 +380,41 @@ application and back up its data before upgrading.
 
 ### Logging
 
-By default, the application writes structured JSON logs at `info` level to
-standard output. To save logs to a file, start a built application from the
-repository root with:
+Logs are structured JSON, written to stdout at `info` level by default.
+For containers, read them with `docker logs -f anishelf` or `podman logs -f anishelf` or
+`journalctl -u anishelf.service -f` (`--user` for rootless Quadlet).
 
-```sh
-ANISHELF_FRONTEND_DIR="$PWD/web/dist" \
-ANISHELF_LOG_LEVEL=info \
-ANISHELF_LOG_DESTINATION=file \
-npm run start:backend
-```
-
-File modes default to `anishelf.log` inside `platformdirs.userLogDir("anishelf", false)`.
-On Linux this is normally `~/.local/state/anishelf/log/anishelf.log`, or
-`$XDG_STATE_HOME/anishelf/log/anishelf.log` when configured. On macOS it is
-`~/Library/Logs/anishelf/anishelf.log`; on Windows it is normally
-`%LOCALAPPDATA%\anishelf\Logs\anishelf.log`. Set `ANISHELF_LOG_PATH` to an
-absolute path to override this location; changing `ANISHELF_DATA_DIR` does not
-change the default log directory.
-
-The application creates missing parent directories. If the log path cannot be
-opened or written, file output falls back to standard error. Set `ANISHELF_LOG_LEVEL=debug` or `trace` for more detail.
-To return to standard output, set `ANISHELF_LOG_DESTINATION=stdout` and unset
-`ANISHELF_LOG_PATH` plus any explicitly set file-rotation variables.
-
-For containers, the default standard output logs are available through
-`docker logs` or `podman logs`. To use file logging, add these variables to your
-deployment (`-e` for CLI, `environment` for Compose, or `Environment=` for Quadlet):
+For file logging, set:
 
 ```ini
-ANISHELF_LOG_LEVEL=info
-ANISHELF_LOG_DESTINATION=file
+ANISHELF_LOG_DESTINATION=both
 ANISHELF_LOG_PATH=/data/logs/anishelf.log
 ```
 
-This explicit override keeps logs inside the container's persistent `/data` mount.
-The platform-default log directory is outside `/data` in the published image;
-use this override or mount the log directory to preserve file logs. Set
-`ANISHELF_LOG_DESTINATION=both` to keep `docker logs` / `podman logs` available
-while also saving files. File logs remain JSON; `npm run dev:backend` formats
-standard output with `pino-pretty`.
+Use an absolute writable path; `/data/logs/anishelf.log` persists in the container's
+data mount. Without an explicit path, file logs use the platform's user log
+directory. Files rotate daily or at 10 MiB, retaining seven archives by default.
+Adjust the logging variables above as needed; failed file output falls back to stderr.
 
-Files rotate daily or after reaching 10 MiB by default, retaining seven archives
-alongside the active file and its `.txt` retention-history file. Archives stay in
-the log directory; keep the history file so retention works across restarts.
-A complete log record is never split across archives, so one record can exceed
-the size threshold. Configure the size, interval and archive count with the
-variables above. Use one application process per log path. Do not combine built-in
-rotation with an external tool rotating the same file.
+## Preparation modes
 
-On Unix, send `SIGHUP` to the backend process to reopen the configured file, or to
-retry file output after repairing its destination. For Docker / Podman, use
-`docker kill --signal=HUP anishelf` / `podman kill --signal=HUP anishelf`.
-Existing child loggers continue using the same output. Restart to retry failed
-stdout output; it has no automatic recovery.
+In Settings, choose a preparation mode independently of the output profile.
+Compatibility is the default: preparation encodes both video and audio using the
+selected profile, without audio-only or video-only transcoding. The profile still
+controls the container, codecs, and encoding parameters; compatibility mode does
+not guarantee support on every device. Fast preparation preserves streams supported
+by the requesting browser when the profile allows it, reducing processing time but
+potentially limiting playback on other devices. Already playable originals still
+use direct playback. Mode changes apply to new preparation requests; existing tasks
+and prepared files remain available and are checked against the playback device.
 
-Failures are reported directly to stderr. Each failed output falls back there;
-healthy outputs continue in `both` mode. An in-flight failed record may be lost
-or partially written and is not replayed; queued file records go to stderr.
-If stderr also fails, those records are lost. File writes have a 1 MiB queue;
-overflow records bypass it to stderr. Shutdown waits up to two seconds for file
-output and reports potential loss on timeout. stdout and stderr writes remain
-synchronous.
+The choice is saved as `preparationMode` (`compatible` or `fast`) in `settings.json`.
 
-## Build
+## Build from source
+
+Install Node.js 24 and npm, plus FFmpeg and FFprobe for media inspection,
+subtitle extraction and preparation. Direct playback remains available without
+these tools when the browser supports the original media.
 
 Run from the repository root:
 
@@ -684,17 +436,3 @@ Use `anishelf:local` in place of the published image in the
 [container deployment examples](#deploy-with-a-container). See
 [container packaging](package/README.md) for image publication details.
 The image includes Node.js, FFmpeg/FFprobe and the built application.
-
-## Preparation modes
-
-In Settings, choose a preparation mode independently of the output profile.
-Compatibility is the default: preparation encodes both video and audio using the
-selected profile, without audio-only or video-only transcoding. The profile still
-controls the container, codecs, and encoding parameters; compatibility mode does
-not guarantee support on every device. Fast preparation preserves streams supported
-by the requesting browser when the profile allows it, reducing processing time but
-potentially limiting playback on other devices. Already playable originals still
-use direct playback. Mode changes apply to new preparation requests; existing tasks
-and prepared files remain available and are checked against the playback device.
-
-The choice is saved as `preparationMode` (`compatible` or `fast`) in `settings.json`.
