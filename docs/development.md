@@ -467,3 +467,19 @@ as hollow geometric boxes, making attachment-family selection visible.
 
 This is sample-based acceptance. Exact missing-family/glyph diagnostics, all font
 formats, all browsers and arbitrary complex ASS scripts remain outside this evidence.
+
+## Continuous integration
+
+[Check project](../.github/workflows/check.yml) runs on pull requests targeting
+`main` and pushes to `main`. It uses Ubuntu 24.04 and Node.js from `.nvmrc`,
+installs FFmpeg/FFprobe and native build dependencies, and runs `npm ci`,
+`npm run check` and `npm run build`. FFmpeg/FFprobe availability is checked
+explicitly so missing executables fail setup rather than silently skipping
+real media tests. The runner permits child processes and localhost listeners.
+
+The container publication workflow reuses these checks after confirming that
+the release tag belongs to `main` history. Checks run against the tagged commit;
+failure prevents both architecture builds and image publication. See
+[container packaging](../package/README.md#publication-flow) for the release flow.
+Local checks remain useful for immediate feedback. CI does not certify browser
+codec support, visual rendering or production deployment behavior.
