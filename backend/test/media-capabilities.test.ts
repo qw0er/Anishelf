@@ -271,3 +271,25 @@ test("parses FFmpeg 5 and 7 filters without a separator and two-dash device tabl
 		parseMediaCapabilities("filters", `${filters}corrupt row\n`),
 	).toThrow("Invalid capability table row");
 });
+
+// FFmpeg 6.1.1 prints both inventories under "File formats:" with "--".
+test.each([
+	["muxers", " E mp4 MP4 (MPEG-4 Part 14)", ["mp4"], "E"],
+	["demuxers", " D matroska,webm Matroska / WebM", ["matroska", "webm"], "D"],
+] as const)(
+	"parses FFmpeg 6.1.1 %s without admitting legends",
+	(kind, row, names, flags) => {
+		const header =
+			"File formats:\n D. = Demuxing supported\n .E = Muxing supported\n";
+		const output = `${header} --\n${row}\n`;
+		const entries = parseMediaCapabilities(kind, output);
+		expect(entries.map((entry) => entry.name)).toEqual(names);
+		expect(entries.every((entry) => entry.flags === flags)).toBe(true);
+		expect(() => parseMediaCapabilities(kind, `${header}${row}\n`)).toThrow(
+			"Missing capability table",
+		);
+		expect(() =>
+			parseMediaCapabilities(kind, `${output}corrupt row\n`),
+		).toThrow("Invalid capability table row");
+	},
+);
