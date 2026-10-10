@@ -18,10 +18,10 @@ This document retains the product goal, feature inventory and future evolution. 
 
 ## 2. Feature Inventory and Version Tracking
 
-- **Implemented in** records the first completed version; `—` means not implemented.
+- **Implemented in** records the delivered implementation and its version; `—` means not implemented. Partial delivery is explicitly identified.
 - **Target version** records the selected iteration; `Unassigned` means no release commitment.
 - **Later** identifies a subsequent core capability; **Optional** identifies a possible longer-term extension.
-- A target version is not evidence of implementation. Mark a requirement implemented only after its acceptance criteria pass. For partial delivery, describe the delivered boundary and keep the remainder explicit.
+- A target version is not evidence of implementation. Implementation status and acceptance status are separate: delivered code does not certify acceptance. Record outstanding acceptance explicitly; for partial delivery, describe the delivered boundary and keep the remainder explicit. Archived V2 acceptance scenarios remain open unless recorded as complete in [History](history.md#v2-requirements).
 
 ### 2.0 Delivered V1 Foundation
 
@@ -41,7 +41,7 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
 | L05 | Search filenames, choose sorting, and filter resources | Later | — | Unassigned |
-| L06 | Scheduled scans, filesystem monitoring, and incremental updates | Later | — | Unassigned |
+| L06 | Scheduled scans, filesystem monitoring, and incremental updates | Partial: scheduled scans delivered under V02; filesystem monitoring and incremental updates remain unassigned | V1 (scheduled scans only) | Unassigned |
 | L07 | Parse anime titles, seasons, episode numbers, and release variants from filenames | Later | — | Unassigned |
 | L08 | Review unidentified files and manually link or correct anime and episode associations | Later | — | Unassigned |
 | L09 | Distinguish regular episodes, specials, continuous season numbering, and multi-episode files | Later | — | Unassigned |
@@ -77,19 +77,19 @@ This is a user-facing file download, separate from acquiring new releases throug
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| P03 | Select or disable external VTT/SRT/ASS/SSA subtitles through Vidstack | Later | V2 external discovery, delivery, rendering and selection/off | V2 |
-| P05 | Choose a playback strategy based on media and client capabilities | Later | — | V2 |
-| P06 | Remux media when only the container is incompatible | Later | — | V2 |
-| P07 | FFmpeg full-file pre-transcoding with seeking; copy compatible streams and encode only necessary streams | V2 completed-file workflow | — | V2 |
-| P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | V2: VTT/SRT/ASS/SSA text extraction; font attachments supported; bitmap extraction deferred | — | V2 (partial) |
-| P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | V2: styled ASS/SSA with embedded TTF/OTF and fallback fonts; bitmap handling deferred | — | V2 (partial) |
+| P03 | Select or disable external VTT/SRT/ASS/SSA subtitles through Vidstack | Implemented; remaining V2 acceptance pending | V2 | V2 |
+| P05 | Choose a playback strategy based on media and client capabilities | Implemented; real-browser compatibility acceptance pending | V2 | V2 |
+| P06 | Remux media when only the container is incompatible | Implemented; remaining V2 acceptance pending | V2 | V2 |
+| P07 | FFmpeg full-file pre-transcoding with seeking; copy compatible streams and encode only necessary streams | Implemented: completed-file preparation, reuse, cancellation, retry and recovery; remaining V2 acceptance pending | V2 | V2 |
+| P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | Partial: text-track discovery, selection, extraction and delivery implemented; font attachments supported; bitmap extraction deferred; remaining V2 acceptance pending | V2 (text subtitles); Current (fonts) | V2 (partial) |
+| P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | Partial: styled ASS/SSA and fallback fonts implemented, with embedded TTF/OTF support; bitmap handling deferred; remaining V2 acceptance pending | V2 (styles and fallback fonts); Current (embedded fonts) | V2 (partial) |
 | P14 | HLS/fMP4 delivery and real-time transcoding, including seeking, leases, source-time mapping and interactive scheduling | Later | — | Unassigned |
 | P15 | Extract, validate and load embedded font attachments | Implemented | Source-shared TTF/OTF preparation, validated cache and JASSUB loading | Current |
 | P16 | Extract embedded PGS/VobSub bitmap subtitle assets with explicit unsupported-Web feedback | Later | — | Unassigned |
 | P10 | Select audio tracks, adjust subtitle timing, change playback speed, and use shortcuts | Implemented | Current | Current |
 | P11 | Next-episode navigation and automatic continuation | Later | — | Unassigned |
 | P12 | Hardware transcoding, HDR handling, broader browser support, and advanced concurrency policies beyond the V2 bounded scheduler | Optional | — | Unassigned |
-| P13 | Opening/ending skips and chapter navigation | Optional | — | Unassigned |
+| P13 | Chapter navigation | Implemented: chapter discovery, source-time mapping and player chapter tracks; real-browser interaction acceptance pending | Current | Current |
 
 #### FFmpeg Full-file Preparation (P05–P07)
 
@@ -199,9 +199,8 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | O11 | Log rotation, retention, and reopening files without restarting the application | Implemented: size/time rotation, archive count retention, Unix SIGHUP reopening | Current | Current |
 | O12 | Automatic log-output fallback after destination failure | Implemented: per-output stderr fallback; stdout/file/both modes | Current | Current |
 | O13 | Asynchronous log output with bounded buffering and shutdown flushing | Partial: bounded asynchronous file queue and shutdown draining; stdout/stderr remain synchronous | Current (partial) | Unassigned |
-| O14 | Interface localization and language preferences | V2 English catalog/keys/fallback foundation; additional locales and selection later | — | V2 (partial) |
+| O14 | Interface localization and language preferences | Partial: English catalog, message keys and fallback implemented; additional locales and language selection remain unassigned; V2 acceptance pending | V2 (English foundation) | V2 (partial) |
 | O15 | Manage API-backed frontend state and caching with TanStack Query | Implemented | Current | Current |
-| O16 | Complete everyday-use Web interface | Finished UI for V2 library, History, primary Web playback, full-file preparation tasks, and scoped settings | — | V2 |
 | O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access; built-in cache budget | V2 implementation; acceptance pending | V2 |
 | O18 | User-editable prepared-media cache budget | Implemented; Settings control, validation and persisted disk-space limit | Current | Current |
 
@@ -210,10 +209,6 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 Allow users to configure the total disk-space limit for generated prepared-media copies through Settings. Validate and persist the explicit choice, preserve it across upgrades and enforce it for future preparation output. Account for retained in-use artifacts, distinguish cache exhaustion from insufficient disk space and preserve originals, history and settings. Lowering the limit must not silently delete existing copies; show exhaustion and allow explicit cleanup. Settings provides a validated, persisted transcode cache budget in GiB. Preparation reads the current limit when starting work and accounts for retained copies; cache exhaustion and insufficient disk space have distinct feedback. Existing copies can be deleted explicitly.
 
 #### Unified Configuration (O17)
-
-See the [archived V2 requirements and design](history.md#v2-requirements).
-
-#### Complete Web Interface (O16)
 
 See the [archived V2 requirements and design](history.md#v2-requirements).
 
@@ -270,7 +265,7 @@ These rules apply to the relevant capabilities as they are implemented. V2 appli
 
 ## 4. Release Plan and Suggested Evolution
 
-V1 is implemented. The archived V2 scope selected saved progress and resume (W01), History (W02), external/styled subtitles and embedded extraction (P03 and partial P08/P09), FFmpeg pre-transcoding (P05–P07), transferable external-player media links (C01), and a complete everyday-use Web interface (O16). Web playback remains the primary path. C02 now provides platform-filtered browser invocation and browser-local custom players; C03 native state reading remains a later requirement; other unselected items remain unassigned. Automatic next-episode playback is not part of V2.
+V1 is implemented. The archived V2 scope selected saved progress and resume (W01), History (W02), external/styled subtitles and embedded extraction (P03 and partial P08/P09), FFmpeg pre-transcoding (P05–P07), and transferable external-player media links (C01). Web playback remains the primary path. C02 now provides platform-filtered browser invocation and browser-local custom players; C03 native state reading remains a later requirement; other unselected items remain unassigned. Automatic next-episode playback is not part of V2.
 
 | Stage | Question to resolve | Priority candidates |
 | --- | --- | --- |
