@@ -3,7 +3,8 @@
 
 This document retains the architecture overview, module ownership and cross-module constraints.
 Version-specific detailed design is archived in [History](history.md#v2-design).
-[Requirements](requirements.md) owns product goals and future scope;
+[Requirements](requirements.md) owns product goals and the overall feature inventory;
+[Current iteration requirements](current-version-requirements.md) owns the selected anime-library scope and acceptance;
 [Development](development.md) owns setup and operations;
 [Design system](design-system.md) owns shared UI conventions;
 [History](history.md) preserves V1/V2 requirements, acceptance and detailed designs.

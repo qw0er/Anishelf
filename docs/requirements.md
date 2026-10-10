@@ -4,6 +4,7 @@
 - [2. Feature Inventory and Version Tracking](#2-feature-inventory-and-version-tracking)
 - [3. Rules for Future Features](#3-rules-for-future-features)
 - [4. Release Plan and Suggested Evolution](#4-release-plan-and-suggested-evolution)
+- [Current iteration requirements](current-version-requirements.md)
 - [Archived V2 requirements and acceptance](history.md#v2-requirements)
 
 ## 1. Product Goal and Document Scope
@@ -14,7 +15,7 @@ Anishelf is a personal animation media library intended to connect:
 
 Its core value is better Web playback, shared client state, and coordination between tracking and automatic downloading.
 
-This document retains the product goal, feature inventory and future evolution. Version-specific V2 requirements, acceptance and detailed design have moved to [History](history.md#v2-archive-notes). The archived acceptance gaps remain open; archiving does not declare V2 fully accepted. No next active release has been assigned.
+This document retains the product goal, feature inventory and future evolution. Version-specific V2 requirements, acceptance and detailed design have moved to [History](history.md#v2-archive-notes). The archived acceptance gaps remain open; archiving does not declare V2 fully accepted. The current iteration selects the anime library and metadata-assisted resource identification workflow described in [Current Iteration Requirements](current-version-requirements.md). Its release number is not assigned; selection does not imply implementation or acceptance.
 
 ## 2. Feature Inventory and Version Tracking
 
@@ -42,14 +43,20 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 | --- | --- | --- | --- | --- |
 | L05 | Search filenames, choose sorting, and filter resources | Later | — | Unassigned |
 | L06 | Scheduled scans, filesystem monitoring, and incremental updates | Partial: scheduled scans delivered under V02; filesystem monitoring and incremental updates remain unassigned | V1 (scheduled scans only) | Unassigned |
-| L07 | Parse anime titles, seasons, episode numbers, and release variants from filenames | Later | — | Unassigned |
-| L08 | Review unidentified files and manually link or correct anime and episode associations | Later | — | Unassigned |
-| L09 | Distinguish regular episodes, specials, continuous season numbering, and multi-episode files | Later | — | Unassigned |
-| L10 | Associate multiple file versions with an episode and select a version for playback | Later | — | Unassigned |
+| L07 | Parse anime titles, seasons, episode numbers, and release variants from filenames | Current iteration | — | Current iteration |
+| L08 | Review unidentified files and manually link or correct anime and episode associations | Current iteration | — | Current iteration |
+| L09 | Distinguish regular episodes, specials, continuous season numbering, and multi-episode files | Current iteration | — | Current iteration |
+| L10 | Associate multiple file versions with an episode and select a version for playback | Current iteration | — | Current iteration |
 | L11 | Relink moved files while preserving viewing history | Later | — | Unassigned |
 | L12 | Configure and manage multiple resource roots | Optional | — | Unassigned |
 | L13 | Rename, organize, delete, and reclaim storage with preservation rules | Optional | — | Unassigned |
 | L14 | Download an existing original media file from the Web interface to the user's device | Implemented | Current | Current |
+
+#### Resource Identification (L07–L10)
+
+Parse filenames and directory context into identification evidence; external metadata supplies candidates and episode/work relationships. Rank candidates using titles and aliases, year, season/part, format and episode information when available. Show reasons and unresolved conflicts; similar candidates or unknown episode mappings require review. Parser output and match scores are evidence, not authoritative identities or probabilities.
+
+Preserve raw parsed numbering separately from confirmed episode associations, including specials, continuous numbering and multi-episode files. Keep anime, episodes, source files, file-to-episode associations and provider identifiers separate. Manual corrections survive rescans and metadata refresh; reassociation never silently deletes source playback history. Multiple versions of an episode remain selectable without counting as separate episodes.
 
 #### Download Existing Media (L14)
 
@@ -65,13 +72,19 @@ This is a user-facing file download, separate from acquiring new releases throug
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| M01 | Search external anime metadata and store provider identifiers | Later | — | Unassigned |
-| M02 | Display covers, aliases, descriptions, seasons, episode counts, and airing information | Later | — | Unassigned |
-| M03 | Provide anime detail and episode views, organizing the library by title | Later | — | Unassigned |
-| M04 | Manually select, correct, and refresh metadata mappings | Later | — | Unassigned |
-| M05 | Cache metadata so external outages do not prevent browsing or playback | Later | — | Unassigned |
-| M07 | Preserve multilingual program titles, aliases and descriptions with language tags, original language and locale-independent IDs | Contract reserved in V2; metadata implementation later | — | Unassigned |
-| M06 | Multiple metadata providers, related works, and cross-provider ID mapping | Optional | — | Unassigned |
+| M01 | Search external anime metadata and store provider identifiers | Current iteration | — | Current iteration |
+| M02 | Display covers, aliases, descriptions, seasons, episode counts, airing information, and available same-provider work relations | Current iteration | — | Current iteration |
+| M03 | Provide anime detail and episode views, organizing the library by title | Current iteration | — | Current iteration |
+| M04 | Manually select, correct, and refresh metadata mappings | Current iteration | — | Current iteration |
+| M05 | Cache metadata so external outages do not prevent browsing or playback | Current iteration | — | Current iteration |
+| M07 | Preserve multilingual program titles, aliases and descriptions with language tags, original language and locale-independent IDs | Current iteration: preserve available provider language information without inventing translations | — | Current iteration |
+| M06 | Multiple metadata providers and cross-provider ID mapping | Optional; same-provider related works belong to M02 | — | Unassigned |
+
+#### External Metadata and Local Catalog (M01–M07)
+
+External anime metadata is a dependency of the current identification workflow, not a later tracker integration. Start with one provider supporting search and details; retain its stable identifiers and available aliases, language information, episode data and work relations. Use local anime and episode identities independent of provider IDs. Cache fetched metadata with refresh status and preserve user corrections. Outages must not block already-cached browsing or existing file playback; unavailable candidate or episode information remains explicitly unresolved.
+
+Provider and parser selection require representative filename and metadata evaluation; Seanime is a workflow reference, not a mandated dependency. Multiple providers and cross-provider mappings remain M06. Provider-required service access is distinct from T01–T05 personal account authorization, list import and progress synchronization; basic identification must not require the user to authorize a personal tracker account.
 
 ### 2.3 Web Playback and Subtitles
 
@@ -129,6 +142,10 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | W05 | Show available unwatched episodes, watched counts, and history | Later | — | Unassigned |
 | W06 | Share records across clients and handle duplicate, out-of-order, or concurrent progress updates | Later | — | Unassigned |
 | W07 | Rewatch history, ratings, tags, and personal notes | Optional | — | Unassigned |
+
+#### Episode Viewing and Tracking (W03–W05)
+
+After confirmed anime/episode associations exist, add planned, watching, completed, paused and dropped statuses; automatic completion and manual watched/unwatched corrections; watched counts, available unwatched episodes and missing-episode information where the expected episode set is known. Retain source playback positions separately from episode watched state. Watching multiple file versions must not inflate episode counts; later-episode viewing must not imply earlier episodes were watched. These capabilities are the next core stage, outside the current identification iteration.
 
 ### 2.5 Subscriptions and Resource Discovery
 
@@ -219,7 +236,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 - Keep API field names, error codes, resource IDs, and original filenames unchanged across languages.
 - Acceptance: changing the language updates supported interface text and error feedback; missing translations fall back to English; browsing and playback state remain intact.
 
-V1 remains English-only as implemented. V2 reserves multilingual support with an English message catalog, stable keys and fallback; additional language packs and a language selector remain unassigned. Future program metadata (M07) stores language-tagged titles, aliases and descriptions with original language and stable IDs, using exact locale, base language, original language and deterministic available-value fallback. This contract does not add metadata features to V2.
+V1 remains English-only as implemented. V2 reserves multilingual support with an English message catalog, stable keys and fallback; additional language packs and a language selector remain unassigned. The current anime-library iteration selects program metadata (M07): preserve available language-tagged titles, aliases and descriptions, original language and stable IDs, using exact locale, base language, original language and deterministic available-value fallback. This contract does not add metadata features to V2.
 
 #### Frontend State and Caching (O15)
 
@@ -269,9 +286,9 @@ V1 is implemented. The archived V2 scope selected saved progress and resume (W01
 
 | Stage | Question to resolve | Priority candidates |
 | --- | --- | --- |
-| Later: everyday viewing | Can the product support regular viewing comfortably? | HLS and real-time playback, broader font acceptance and bitmap extraction; next episode remains unassigned |
-| Later: anime library | Can files be organized into anime titles and episodes? | Metadata, identification, manual corrections, episodes, and tracking records |
+| Current: anime library | Can existing files become a confirmed anime and episode library? | External metadata now, filename/directory parsing, candidate matching, manual corrections, episode mappings, version selection and cached detail views |
+| Next core stage: viewing and tracking | Can users manage anime and episode viewing state? | W03–W05, episode completion/corrections and tracking statuses |
 | Later: automatic acquisition | Can new episodes reach the library automatically? | Subscriptions, discovery, download integration, ingestion, and recovery |
 | Later: external tracking | Can Web viewing records integrate with trackers? | AniList synchronization; possible future read-only native-player state reporting (C03) |
 
-These later stages are not fixed releases or mandatory ordering. For example, desktop integration can move ahead once viewing records are stable if it becomes the most pressing need. Select one independently verifiable user workflow at a time instead of assigning the entire inventory to a single release.
+The current anime-library iteration is selected. Subsequent core stages prioritize viewing/tracking, automatic acquisition, then external tracker synchronization; release numbers remain unassigned. Playback enhancements such as HLS, next-episode continuation and broader subtitle compatibility remain separate later work. For example, desktop integration can move ahead once viewing records are stable if it becomes the most pressing need. Select one independently verifiable user workflow at a time instead of assigning the entire inventory to a single release.
