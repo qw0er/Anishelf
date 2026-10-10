@@ -10,7 +10,8 @@
 
 Use this guide for local setup, deployment configuration, logging, verification
 and maintenance. [History](history.md#v2-design) contains the archived V2 implementation design;
-[Requirements](requirements.md) owns scope, status and acceptance. Production
+[Overall requirements](requirements.md) owns the feature inventory;
+[current iteration requirements](current-version-requirements.md) owns selected scope and acceptance. Production
 hosting instructions are in the [README](../README.md).
 
 Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
