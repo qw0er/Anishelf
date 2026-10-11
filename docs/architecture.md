@@ -3,7 +3,9 @@
 This document describes the overall system structure, module ownership and
 architectural constraints. [Requirements](requirements.md) owns the feature
 inventory; [Current iteration requirements](current-version-requirements.md) owns
-selected scope and acceptance. [History](history.md) preserves version-specific
+selected scope and acceptance. [Current iteration design](current-version-design.md)
+defines the proposed anime-library implementation. [History](history.md) preserves
+version-specific
 designs, including the [archived implementation details](history.md#architecture-detail-snapshot-2026-10-11).
 [Design system](design-system.md) owns shared UI conventions, while
 [Development](development.md) and [Deployment](deployment.md) cover setup and

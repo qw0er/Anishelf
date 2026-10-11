@@ -3,7 +3,9 @@
 This document owns the shared UI principles, visual conventions, interaction,
 feedback and accessibility rules. [Requirements](requirements.md) owns product
 scope, [Architecture](architecture.md) retains module boundaries, and
-[History](history.md#v2-design) preserves version-specific implementation design.
+[Current iteration design](current-version-design.md) defines the proposed poster
+wall, work details, Files and Review screens. [History](history.md#v2-design)
+preserves earlier version-specific implementation design.
 
 - [UI principles](#ui-principles)
 - [Visual and interaction conventions](#visual-and-interaction-conventions)
