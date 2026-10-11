@@ -1,0 +1,400 @@
+{
+	"schemaVersion": 1,
+	"workId": "magia-record",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 159690,
+		"sourceUrl": "https://bangumi.tv/subject/159690",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/159690",
+		"subjectResponseSha256": "05eee93790f0e5540f3438ebc3812fc5bdaca9c4baecead3e63a25a0946a5bf0",
+		"name": "マギアレコード 魔法少女まどか☆マギカ外伝",
+		"nameCn": "魔法纪录 魔法少女小圆外传",
+		"date": "2020-01-04",
+		"platform": "TV",
+		"regularEpisodeCount": 13,
+		"totalEpisodeCount": 27,
+		"aliases": [
+			"마기아 레코드 마법소녀 마도카☆마기카 외전",
+			"Magia Record: Mahou Shoujo Madoka Magica Gaiden",
+			"Magia Record: Puella Magi Madoka Magica Side Story",
+			"Magia Record 魔法少女小圆外传",
+			"マギレコ",
+			"MagiReco"
+		],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/35/5b/159690_2mim1.jpg",
+		"episodes": [
+			{
+				"id": 903025,
+				"type": 0,
+				"sort": 1,
+				"ep": 1,
+				"name": "やぁやぁ、知ってる？魔法少女のその噂",
+				"name_cn": "哎呀呀、你知道吗？魔法少女的那个传言"
+			},
+			{
+				"id": 916100,
+				"type": 0,
+				"sort": 2,
+				"ep": 2,
+				"name": "それが絶交証明書",
+				"name_cn": "那就是绝交的凭证"
+			},
+			{
+				"id": 924211,
+				"type": 0,
+				"sort": 3,
+				"ep": 3,
+				"name": "友達にしてごめんね",
+				"name_cn": "让你做我的朋友 我很抱歉"
+			},
+			{
+				"id": 924212,
+				"type": 0,
+				"sort": 4,
+				"ep": 4,
+				"name": "過去じゃないです",
+				"name_cn": "并不是过去"
+			},
+			{
+				"id": 924213,
+				"type": 0,
+				"sort": 5,
+				"ep": 5,
+				"name": "あなたが割って入る隙間なんてないんですよ？",
+				"name_cn": "我们之间没有容你插足的余地"
+			},
+			{
+				"id": 924214,
+				"type": 0,
+				"sort": 6,
+				"ep": 6,
+				"name": "なんだってしてやるよ",
+				"name_cn": "我什么都愿意做"
+			},
+			{
+				"id": 924215,
+				"type": 0,
+				"sort": 7,
+				"ep": 7,
+				"name": "一緒に帰りたい",
+				"name_cn": "我想和你一起回家"
+			},
+			{
+				"id": 924216,
+				"type": 0,
+				"sort": 8,
+				"ep": 8,
+				"name": "絶対に返信しちゃだめよ",
+				"name_cn": "绝对不要回复"
+			},
+			{
+				"id": 924217,
+				"type": 0,
+				"sort": 9,
+				"ep": 9,
+				"name": "私しかいない世界",
+				"name_cn": "只有我一人的世界"
+			},
+			{
+				"id": 924218,
+				"type": 0,
+				"sort": 10,
+				"ep": 10,
+				"name": "私の名前",
+				"name_cn": "我的名字"
+			},
+			{
+				"id": 924219,
+				"type": 0,
+				"sort": 11,
+				"ep": 11,
+				"name": "約束は午後三時、記憶ミュージアムにて",
+				"name_cn": "约定在下午3点 地点是记忆博物馆"
+			},
+			{
+				"id": 924220,
+				"type": 0,
+				"sort": 12,
+				"ep": 12,
+				"name": "どうしてこんなにみじめなんですか",
+				"name_cn": "为什么会如此悲惨？"
+			},
+			{
+				"id": 925956,
+				"type": 0,
+				"sort": 13,
+				"ep": 13,
+				"name": "たったひとつの道しるべ",
+				"name_cn": "唯一的路标"
+			},
+			{
+				"id": 927199,
+				"type": 2,
+				"sort": 1,
+				"ep": 0,
+				"name": "ごまかし",
+				"name_cn": "蒙蔽"
+			},
+			{
+				"id": 927200,
+				"type": 3,
+				"sort": 1,
+				"ep": 0,
+				"name": "アリシア",
+				"name_cn": "真实"
+			},
+			{
+				"id": 899929,
+				"type": 4,
+				"sort": 1,
+				"ep": 0,
+				"name": "マギレポ劇場 第1話",
+				"name_cn": "魔法☆报告剧场 第1话"
+			},
+			{
+				"id": 899930,
+				"type": 4,
+				"sort": 2,
+				"ep": 0,
+				"name": "マギレポ劇場 第2話",
+				"name_cn": "魔法☆报告剧场 第2话"
+			},
+			{
+				"id": 899931,
+				"type": 4,
+				"sort": 3,
+				"ep": 0,
+				"name": "マギレポ劇場 第3話",
+				"name_cn": "魔法☆报告剧场 第3话"
+			},
+			{
+				"id": 899932,
+				"type": 4,
+				"sort": 4,
+				"ep": 0,
+				"name": "マギレポ劇場 第4話",
+				"name_cn": "魔法☆报告剧场 第4话"
+			},
+			{
+				"id": 899933,
+				"type": 4,
+				"sort": 5,
+				"ep": 0,
+				"name": "マギレポ劇場 第5話",
+				"name_cn": "魔法☆报告剧场 第5话"
+			},
+			{
+				"id": 899934,
+				"type": 4,
+				"sort": 6,
+				"ep": 0,
+				"name": "マギレポ劇場 第6話",
+				"name_cn": "魔法☆报告剧场 第6话"
+			},
+			{
+				"id": 899935,
+				"type": 4,
+				"sort": 7,
+				"ep": 0,
+				"name": "マギレポ劇場 第7話",
+				"name_cn": "魔法☆报告剧场 第7话"
+			},
+			{
+				"id": 899936,
+				"type": 4,
+				"sort": 8,
+				"ep": 0,
+				"name": "マギレポ劇場 第8話",
+				"name_cn": "魔法☆报告剧场 第8话"
+			},
+			{
+				"id": 899937,
+				"type": 4,
+				"sort": 9,
+				"ep": 0,
+				"name": "マギレポ劇場 第9話",
+				"name_cn": "魔法☆报告剧场 第9话"
+			},
+			{
+				"id": 899938,
+				"type": 4,
+				"sort": 10,
+				"ep": 0,
+				"name": "マギレポ劇場 第10話",
+				"name_cn": "魔法☆报告剧场 第10话"
+			},
+			{
+				"id": 899939,
+				"type": 4,
+				"sort": 11,
+				"ep": 0,
+				"name": "マギレポ劇場 第11話",
+				"name_cn": "魔法☆报告剧场 第11话"
+			},
+			{
+				"id": 899940,
+				"type": 4,
+				"sort": 12,
+				"ep": 0,
+				"name": "マギレポ劇場 第12話",
+				"name_cn": "魔法☆报告剧场 第12话"
+			}
+		],
+		"episodeTotal": 27,
+		"relations": [
+			{
+				"id": 9717,
+				"name": "魔法少女まどか☆マギカ",
+				"name_cn": "魔法少女小圆",
+				"relation": "主线故事",
+				"type": 2
+			},
+			{
+				"id": 208779,
+				"name": "マギアレコード 魔法少女まどか☆マギカ外伝",
+				"name_cn": "魔法纪录 魔法少女小圆外传",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 258223,
+				"name": "マギアレコード 魔法少女まどか☆マギカ外伝",
+				"name_cn": "魔法纪录 魔法少女小圆外传",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 271717,
+				"name": "マギア☆レポート",
+				"name_cn": "魔法☆报告",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 295601,
+				"name": "アリシア / シグナル",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 297142,
+				"name": "ごまかし／うつろい",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 302875,
+				"name": "マギアレコード 魔法少女まどか☆マギカ外伝 2nd SEASON -覚醒前夜-",
+				"name_cn": "魔法纪录 魔法少女小圆外传 2nd SEASON -觉醒前夜-",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 303136,
+				"name": "マギアレコード 魔法少女まどか☆マギカ外伝 ボーカルソングミニコレクション",
+				"name_cn": "魔法纪录 魔法少女小圆外传 Vocal Song Mini Collection",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 317728,
+				"name": "『マギアレコード 魔法少女まどか☆マギカ外伝』TVアニメ公式ガイドブック (1)",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 595092,
+				"name": "アリシア -season 03-",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 300629,
+				"name": "マギアレコード 魔法少女まどか☆マギカ外伝 オリジナル・サウンドトラックⅠ",
+				"name_cn": "魔法纪录 魔法少女小圆外传 OST1",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 305385,
+				"name": "マギアレコード 魔法少女まどか☆マギカ外伝 オリジナル・サウンドトラックⅡ",
+				"name_cn": "魔法纪录 魔法少女小圆外传 OST2",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 308453,
+				"name": "マギアレコード 魔法少女まどか☆マギカ外伝 オリジナル・サウンドトラックⅢ",
+				"name_cn": "魔法纪录 魔法少女小圆外传 OST3",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 312018,
+				"name": "マギアレコード 魔法少女まどか☆マギカ外伝 オリジナル・サウンドトラックⅣ",
+				"name_cn": "魔法纪录 魔法少女小圆外传 OST4",
+				"relation": "原声集",
+				"type": 3
+			}
+		]
+	},
+	"anilist": {
+		"id": 104051,
+		"sourceUrl": "https://anilist.co/anime/104051",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Magia Record: Mahou Shoujo Madoka☆Magica Gaiden",
+			"english": "Magia Record: Puella Magi Madoka Magica Side Story",
+			"native": "マギアレコード 魔法少女まどか☆マギカ外伝"
+		},
+		"synonyms": [
+			"MagiReco",
+			"Magia Record",
+			"สาวน้อยเวทมนตร์ มาโดกะ",
+			"สาวน้อยเวทมนตร์ มาโดกะ [บันทึกมากิอา]",
+			"Записи о магии: Другая история девочки-волшебницы Мадоки"
+		],
+		"format": "TV",
+		"episodes": 13,
+		"startDate": {
+			"year": 2020,
+			"month": 1,
+			"day": 5
+		},
+		"relations": [
+			{
+				"id": 117002,
+				"titles": {
+					"romaji": "Magia Record: Mahou Shoujo Madoka☆Magica Gaiden 2nd SEASON - Kakusei Zenya",
+					"native": "マギアレコード 魔法少女まどか☆マギカ外伝 2nd SEASON -覚醒前夜-"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			},
+			{
+				"id": 9756,
+				"titles": {
+					"romaji": "Mahou Shoujo Madoka☆Magica",
+					"native": "魔法少女まどか☆マギカ"
+				},
+				"type": "ANIME",
+				"relation": "PARENT"
+			},
+			{
+				"id": 104273,
+				"titles": {
+					"romaji": "Magia Record: Mahou Shoujo Madoka☆Magica Gaiden",
+					"native": "マギアレコード魔法少女まどか☆マギカ外伝"
+				},
+				"type": "MANGA",
+				"relation": "ALTERNATIVE"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

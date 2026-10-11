@@ -1,0 +1,360 @@
+{
+	"schemaVersion": 1,
+	"workId": "oshi",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 386809,
+		"sourceUrl": "https://bangumi.tv/subject/386809",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/386809",
+		"subjectResponseSha256": "e8488593c7d988c2ed7ea16d807e9287a7c48920c59946fa9c70cdd06e6d5533",
+		"name": "【推しの子】",
+		"nameCn": "【我推的孩子】",
+		"date": "2023-04-12",
+		"platform": "TV",
+		"regularEpisodeCount": 11,
+		"totalEpisodeCount": 15,
+		"aliases": ["Oshi no Ko"],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/98/5e/386809_1yR81.jpg",
+		"episodes": [
+			{
+				"id": 1153155,
+				"type": 0,
+				"sort": 1,
+				"ep": 1,
+				"name": "Mother and Children",
+				"name_cn": "母亲和孩子"
+			},
+			{
+				"id": 1153156,
+				"type": 0,
+				"sort": 2,
+				"ep": 2,
+				"name": "三つ目の選択肢",
+				"name_cn": "第三个选择"
+			},
+			{
+				"id": 1153157,
+				"type": 0,
+				"sort": 3,
+				"ep": 3,
+				"name": "漫画原作ドラマ",
+				"name_cn": "漫画原作连续剧"
+			},
+			{
+				"id": 1153158,
+				"type": 0,
+				"sort": 4,
+				"ep": 4,
+				"name": "役者",
+				"name_cn": "演员"
+			},
+			{
+				"id": 1153159,
+				"type": 0,
+				"sort": 5,
+				"ep": 5,
+				"name": "恋愛リアリティショー",
+				"name_cn": "恋爱实境秀"
+			},
+			{
+				"id": 1153160,
+				"type": 0,
+				"sort": 6,
+				"ep": 6,
+				"name": "エゴサーチ",
+				"name_cn": "网上自搜"
+			},
+			{
+				"id": 1153161,
+				"type": 0,
+				"sort": 7,
+				"ep": 7,
+				"name": "バズ",
+				"name_cn": "网络热议"
+			},
+			{
+				"id": 1153162,
+				"type": 0,
+				"sort": 8,
+				"ep": 8,
+				"name": "初めて",
+				"name_cn": "第一次"
+			},
+			{
+				"id": 1153163,
+				"type": 0,
+				"sort": 9,
+				"ep": 9,
+				"name": "B小町",
+				"name_cn": "B小町"
+			},
+			{
+				"id": 1153164,
+				"type": 0,
+				"sort": 10,
+				"ep": 10,
+				"name": "プレッシャー",
+				"name_cn": "压力"
+			},
+			{
+				"id": 1153165,
+				"type": 0,
+				"sort": 11,
+				"ep": 11,
+				"name": "アイドル",
+				"name_cn": "偶像"
+			},
+			{
+				"id": 1174983,
+				"type": 1,
+				"sort": 0,
+				"ep": 0,
+				"name": "TVアニメ【推しの子】最新情報発表会",
+				"name_cn": ""
+			},
+			{
+				"id": 1211383,
+				"type": 1,
+				"sort": 7.5,
+				"ep": 0,
+				"name": "TVアニメ【推しの子】振り返り特番～【推しの子】は推せるときに推せ！～",
+				"name_cn": ""
+			},
+			{
+				"id": 1199288,
+				"type": 2,
+				"sort": 0,
+				"ep": 0,
+				"name": "アイドル",
+				"name_cn": ""
+			},
+			{
+				"id": 1199289,
+				"type": 3,
+				"sort": 0,
+				"ep": 0,
+				"name": "メフィスト",
+				"name_cn": ""
+			}
+		],
+		"episodeTotal": 15,
+		"relations": [
+			{
+				"id": 429439,
+				"name": "YOASOBI「アイドル」 Official Music Video",
+				"name_cn": "",
+				"relation": "衍生",
+				"type": 2
+			},
+			{
+				"id": 632943,
+				"name": "TVアニメ『【推しの子】』スペシャルイベント 苺プロダクション☆ファン感謝祭2023",
+				"name_cn": "",
+				"relation": "三次元",
+				"type": 6
+			},
+			{
+				"id": 611096,
+				"name": "【推しの子】Puzzle Star",
+				"name_cn": "我推的孩子 Puzzle Star",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 551446,
+				"name": "ピアノ・ソロ TVアニメ『【推しの子】』",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 495444,
+				"name": "【推しの子】TVアニメ第1期 公式ガイドブック",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 472250,
+				"name": "【推しの子】",
+				"name_cn": "【我推的孩子】",
+				"relation": "不同演绎",
+				"type": 6
+			},
+			{
+				"id": 443428,
+				"name": "【推しの子】 第2期",
+				"name_cn": "【我推的孩子】 第二季",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 438632,
+				"name": "TVアニメ「【推しの子】」オリジナルサウンドトラック",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 436132,
+				"name": "【推しの子】1stイラスト集 Glare×Sparkle",
+				"name_cn": "【我推的孩子】1st插画集 Glare×Sparkle",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 432529,
+				"name": "４５５１０",
+				"name_cn": "",
+				"relation": "番外篇",
+				"type": 1
+			},
+			{
+				"id": 208415,
+				"name": "バンドリ！ ガールズバンドパーティ！",
+				"name_cn": "BanG Dream! 少女乐团派对！",
+				"relation": "联动",
+				"type": 4
+			},
+			{
+				"id": 427969,
+				"name": "アイドル",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 426711,
+				"name": "【推しの子】のおはなし",
+				"name_cn": "",
+				"relation": "衍生",
+				"type": 6
+			},
+			{
+				"id": 424227,
+				"name": "【推しの子】Mother and Children",
+				"name_cn": "【我推的孩子】Mother and Children",
+				"relation": "总集篇",
+				"type": 2
+			},
+			{
+				"id": 422646,
+				"name": "メフィスト",
+				"name_cn": "梅菲斯特",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 303186,
+				"name": "【推しの子】",
+				"name_cn": "【我推的孩子】",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 248175,
+				"name": "かぐや様は告らせたい～天才たちの恋愛頭脳戦～",
+				"name_cn": "辉夜大小姐想让我告白～天才们的恋爱头脑战～",
+				"relation": "相同世界观",
+				"type": 2
+			},
+			{
+				"id": 236488,
+				"name": "アイドルマスター シャイニーカラーズ",
+				"name_cn": "偶像大师 闪耀色彩",
+				"relation": "联动",
+				"type": 4
+			},
+			{
+				"id": 429269,
+				"name": "TVアニメ「【推しの子】」キャラクターソングCD Vol.1",
+				"name_cn": "",
+				"relation": "角色歌",
+				"type": 3
+			},
+			{
+				"id": 429271,
+				"name": "TVアニメ「【推しの子】」キャラクターソングCD Vol.2",
+				"name_cn": "",
+				"relation": "角色歌",
+				"type": 3
+			},
+			{
+				"id": 429272,
+				"name": "TVアニメ「【推しの子】」キャラクターソングCD Vol.3",
+				"name_cn": "",
+				"relation": "角色歌",
+				"type": 3
+			},
+			{
+				"id": 443444,
+				"name": "TVアニメ「【推しの子】」キャラクターソングCD Vol.2.5",
+				"name_cn": "",
+				"relation": "角色歌",
+				"type": 3
+			}
+		]
+	},
+	"anilist": {
+		"id": 150672,
+		"sourceUrl": "https://anilist.co/anime/150672",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "[Oshi no Ko]",
+			"english": "OSHI NO KO",
+			"native": "【推しの子】"
+		},
+		"synonyms": [
+			"Favorite Girl",
+			"My Idol's Child",
+			"[Mein*Star]",
+			"เกิดใหม่เป็นลูกโอชิ",
+			"Anak Idola",
+			"【OSHI NO KO】",
+			"【推しの子】Mother and Children",
+			"[Oshi no Ko] Mother and Children",
+			"我推的孩子",
+			"【최애의 아이】",
+			"Đứa Con Của Thần Tượng",
+			"[OSHI NO KO]"
+		],
+		"format": "TV",
+		"episodes": 11,
+		"startDate": {
+			"year": 2023,
+			"month": 4,
+			"day": 12
+		},
+		"relations": [
+			{
+				"id": 117195,
+				"titles": {
+					"romaji": "[Oshi no Ko]",
+					"native": "【推しの子】"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 164117,
+				"titles": {
+					"romaji": "Idol",
+					"native": "アイドル"
+				},
+				"type": "ANIME",
+				"relation": "CHARACTER"
+			},
+			{
+				"id": 166531,
+				"titles": {
+					"romaji": "[Oshi no Ko] 2nd Season",
+					"native": "【推しの子】第2期"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

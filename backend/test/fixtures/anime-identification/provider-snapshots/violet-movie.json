@@ -1,0 +1,140 @@
+{
+	"schemaVersion": 1,
+	"workId": "violet-movie",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 242216,
+		"sourceUrl": "https://bangumi.tv/subject/242216",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/242216",
+		"subjectResponseSha256": "bf360621a24631accc823c775817d5e62f87244f6db7e50f1d6237be4bcbe348",
+		"name": "劇場版 ヴァイオレット・エヴァーガーデン",
+		"nameCn": "剧场版 紫罗兰永恒花园",
+		"date": "2020-09-18",
+		"platform": "剧场版",
+		"regularEpisodeCount": 1,
+		"totalEpisodeCount": 1,
+		"aliases": ["VIOLET EVERGARDEN the Movie"],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/52/7b/242216_kNqWl.jpg",
+		"episodes": [
+			{
+				"id": 902750,
+				"type": 0,
+				"sort": 1,
+				"ep": 1,
+				"name": "劇場版 ヴァイオレット・エヴァーガーデン",
+				"name_cn": "剧场版 紫罗兰永恒花园"
+			}
+		],
+		"episodeTotal": 1,
+		"relations": [
+			{
+				"id": 160972,
+				"name": "ヴァイオレット・エヴァーガーデン",
+				"name_cn": "紫罗兰永恒花园",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 183878,
+				"name": "ヴァイオレット・エヴァーガーデン",
+				"name_cn": "紫罗兰永恒花园",
+				"relation": "前传",
+				"type": 2
+			},
+			{
+				"id": 234262,
+				"name": "みちしるべ",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 280837,
+				"name": "ヴァイオレット・エヴァーガーデン 外伝 - 永遠と自動手記人形 -",
+				"name_cn": "紫罗兰永恒花园 外传 - 永远与自动手记人偶 -",
+				"relation": "番外篇",
+				"type": 2
+			},
+			{
+				"id": 302556,
+				"name": "WILL",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 312232,
+				"name": "『劇場版 ヴァイオレット・エヴァーガーデン』オリジナル・サウンドトラック「VIOLET EVERGARDEN : Echo Through Eternity」",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 312233,
+				"name": "Letters and Doll ~Looking back on the memories of Violet Evergarden~",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 329949,
+				"name": "劇場版 ヴァイオレット・エヴァーガーデン 公式ファンブック",
+				"name_cn": "",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 368398,
+				"name": "ヴァイオレット・エヴァーガーデン ～ラスト・レター～",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			}
+		]
+	},
+	"anilist": {
+		"id": 103047,
+		"sourceUrl": "https://anilist.co/anime/103047",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Violet Evergarden Movie",
+			"english": "Violet Evergarden: the Movie",
+			"native": "劇場版 ヴァイオレット・エヴァーガーデン"
+		},
+		"synonyms": [
+			"Виолетта Эвергарден",
+			"Вайоллет Эвергарден",
+			"薇尔莉特·伊芙加登",
+			"Violet Evergarden : Le film"
+		],
+		"format": "MOVIE",
+		"episodes": 1,
+		"startDate": {
+			"year": 2020,
+			"month": 9,
+			"day": 18
+		},
+		"relations": [
+			{
+				"id": 97298,
+				"titles": {
+					"romaji": "Violet Evergarden",
+					"native": "ヴァイオレット・エヴァーガーデン"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 109190,
+				"titles": {
+					"romaji": "Violet Evergarden Gaiden: Eien to Jidou Shuki Ningyou",
+					"native": "ヴァイオレット・エヴァーガーデン 外伝~永遠と自動手記人形~"
+				},
+				"type": "ANIME",
+				"relation": "PREQUEL"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

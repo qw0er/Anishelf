@@ -45,6 +45,11 @@ External metadata access belongs to this iteration. Personal tracker authorizati
 
 All scenarios below are pending. Acceptance must include representative Chinese, Japanese and English filenames, directory-only titles, mixed-work directories, specials, continuous numbering, season/part ambiguity, multi-episode files and multiple versions. Record parser/provider versions, sample expectations, unresolved cases and actual results.
 
+The [offline identification corpus](../backend/test/fixtures/anime-identification/README.md)
+provides sourced filenames, frozen provider records, expected associations, review
+cases and directory recipes for this evaluation. Corpus integrity and scanner
+checks do not establish identification accuracy or complete the acceptance criteria.
+
 | ID | Requirements | Passing result |
 | --- | --- | --- |
 | CAT01 | M01, M02, M07 | Search, preview and establish a local anime entry with provider ID, available aliases/language information and episode/work data; missing fields are shown as unknown. |
