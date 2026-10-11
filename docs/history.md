@@ -14,6 +14,7 @@ V2 requirements and detailed design are archived below, with acceptance gaps pre
 - [V2 requirements inventory snapshot](#v2-requirements-inventory-snapshot)
 - [V2 design](#v2-design)
 - [V2 UI design](#v2-ui-design)
+- [Architecture detail snapshot (2026-10-11)](#architecture-detail-snapshot-2026-10-11)
 
 The V1 source is commit `45962af7675ff904c5b62c00dafea9d104d01422`
 (`Bump version`). Original paths were docs/current-version-requirements.md,
@@ -1809,3 +1810,228 @@ synchronous. Current contracts and deployment instructions live in
 File modes now default to `anishelf.log` in `platformdirs.userLogDir("anishelf", false)`.
 `ANISHELF_LOG_PATH` is optional and overrides that platform-specific location;
 `ANISHELF_DATA_DIR` does not alter the default log directory.
+
+
+## Architecture Detail Snapshot (2026-10-11)
+
+The following details were moved from Architecture during the 2026-10-11
+cleanup. They record the preceding playback-focused implementation and its
+follow-up features, not the selected anime-library iteration. This is an archive
+of design decisions, not a new release or acceptance report. Earlier V1/V2
+snapshots retain their original status statements; current scope and status belong
+to [Requirements](requirements.md) and
+[Current iteration requirements](current-version-requirements.md).
+
+The preceding [runtime ownership diagram](architecture-playback-snapshot.svg) is retained as a
+historical illustration. Its planned-work labels reflect an earlier snapshot;
+embedded subtitle fonts and configurable preparation cache budgets were subsequently
+implemented. Automatic cache eviction and real-time HLS delivery remain deferred.
+
+### Module contract and tooling details
+
+Cross-module imports, including types, use explicit module entries: `public.ts`
+for service contracts and pure decisions, `policy.ts` for defaults/validation, and
+Resource Access's `files.ts` for the confined-filesystem capability. Public service
+contracts are explicit interfaces rather than aliases derived from Applications.
+Policy/service entries do not load Application or infrastructure implementations.
+Only bootstrap may import implementations from other modules for assembly.
+Consumer-owned ports declare the smallest needed behavior and data. Preparation and
+Media Planning share immutable work specifications; they do not derive those from
+HTTP types. Playback Selection's copy port contains eligibility and resource metadata,
+not a preparation task or execution plan. Bootstrap projects the provider view into
+that port. Shared source identities and negotiation values live in focused business
+contracts, with compile-time checks against their separate HTTP schemas.
+Domain code, ports and shared business types cannot import `contracts/http.ts`.
+HTTP handlers call their own Application; Applications coordinate domain logic,
+adapters and other modules' Public APIs. Domain code does not depend on HTTP,
+Applications or concrete infrastructure. Platform adapters provide filesystem,
+database and media-process mechanisms without owning business workflows or
+importing business modules. Platform owns the input types it needs; Configuration
+validates and injects those inputs. Runtime environment capture belongs to Platform.
+Frontend features likewise expose `public.ts`; routes compose them.
+
+Resource Access receives an indexed-source catalog port from bootstrap rather
+than importing Library. Playback, inspection and subtitles consume the same
+read-only source capability. The shared source registry prevents each feature
+from inventing its own source identity. Runtime dependencies remain acyclic. Boundary checks include type-only imports;
+type-only cycles are distinguished from runtime initialization cycles.
+`npm run architecture:check` enforces these constraints with dependency-cruiser.
+`npm run unused:check` runs Knip across both workspaces, including tests and
+package entry points, to prevent unused files, exports and dependencies. Both are
+part of lint. Reusable exports under `web/src/components/ui` are exempt from
+unused-export checks; their files and dependencies remain checked. Both workspaces use TypeScript 7 for compilation via the root `@typescript/native`
+alias. The root `typescript` alias supplies the TypeScript 6 compatibility API
+for dependency-cruiser; architecture checks retain type-only dependencies.
+
+## External-player playlists
+
+File actions and the player's More playback options menu also offer **Download
+video**. The action rechecks file access through the shared original-media link
+resolver, then follows a same-origin anchor with the original filename in its
+`download` attribute. The browser streams the original bytes using the existing
+GET/HEAD/Range route and the deployment's authentication policy. No full-file
+Blob, transcoding, prepared copy or playback-history update is involved.
+
+The Web file page and file action menu offer **Download playlist (.m3u)** alongside
+**Copy media link**. Both recheck file access and accept only the expected original-media
+route. The frontend generates a UTF-8 extended M3U containing one entry, using the
+application origin and the current filename with control characters removed from metadata.
+The browser downloads the playlist; the user opens it in a compatible external player,
+which must be able to reach that origin. The playlist references the original media,
+not a prepared copy, and does not carry selected sidecar subtitles, audio selections,
+resume positions or browser credentials. Downloading never writes playback progress
+or claims that an external player has started.
+
+### Browser invocation of external players
+
+`web/src/config/external-player-policy.ts` owns platform detection, the compatibility
+matrix, protocol templates, browser-storage key and custom-entry limits. Platform
+matching uses user-agent/client platform hints, with Android preceding Linux and
+an iPadOS desktop-mode touch check preceding macOS. This is a compatibility hint,
+not installed-player detection; unknown platforms expose custom entries only.
+
+| Client platform | Built-in players |
+| --- | --- |
+| macOS | IINA, Infuse, mpv |
+| Linux | mpv |
+| Windows | mpv |
+| Android | VLC, MX Player (free edition), mpv-android |
+| iOS / iPadOS | Infuse, VLC, Outplayer |
+
+Library file actions and the file player's **More playback options** dropdown contain
+an **Open in external player** submenu. Opening it rechecks access using the existing
+file query and accepts only the original-media route. Entries are disabled during
+validation or after failure, with an explicit retry. Ready entries are native anchors:
+the user's click follows the external URL directly, preserving browser user activation.
+Android uses an explicit VIEW Intent with the package name and media MIME type, since
+Anishelf's media routes have no filename extension. The submenu also links to Settings.
+
+Custom players are added/deleted in Settings and persisted under
+`anishelf.external-players.v1` in the current origin's localStorage. They apply to
+this browser and are not server settings. Mounted consumers update after local edits
+and other-tab storage events; failed writes retain the existing list. Invalid stored
+data is reported and retained instead of silently overwritten. Templates require
+`{url}` (the original absolute URL) or `{urlEncoded}` (encodeURIComponent of that URL),
+with optional `{mimeType}`. Unknown placeholders, control/whitespace characters,
+script/data/file URLs and ordinary Web navigation schemes are rejected.
+
+The target application must be installed. Desktop mpv additionally requires an
+OS-registered handler and a version supporting `mpv://`; browser/handler compatibility
+must be tested on each target platform. MX Player Pro can be configured with a custom
+Intent using its own package. A browser may prompt before opening an application.
+Invocation does not report successful playback or update Anishelf's history, and
+does not send cookies, resume positions, selected audio tracks or sidecar subtitles.
+Copy media link and M3U download remain available in the same dropdown.
+
+Protocol references: [IINA source](https://github.com/iina/iina/blob/develop/iina/AppDelegate.swift),
+[Infuse API](https://support.firecore.com/hc/en-us/articles/215090997-API-for-Third-Party-Apps-Services),
+[mpv protocols](https://mpv.io/manual/stable/#protocols),
+[Android browser Intents](https://developer.chrome.com/docs/android/intents),
+[VLC Android manifest](https://github.com/videolan/vlc-android/blob/master/application/vlc-android/AndroidManifest.xml),
+[MX Player Intents](https://sites.google.com/site/mxvpen/api), and
+[mpv-android manifest](https://github.com/mpv-android/mpv-android/blob/master/app/src/main/AndroidManifest.xml).
+
+### Reverse proxy request validation
+
+Configuration validates the optional `ANISHELF_PUBLIC_ORIGIN` at startup. HTTP
+transport accepts its Host authority and validates mutation Origin against the
+configured external scheme and port. Listener configuration remains loopback-only,
+and local requests keep their listener-bound Host/Origin validation. Forwarded
+headers are not trusted; cross-site mutation metadata is still rejected. A reverse
+proxy owns authentication and TLS for external access. This setting does not add
+application accounts or authentication.
+
+The setting allows a single external origin without wildcards or domain lists.
+Host validation permits that origin's hostname and effective port in addition to
+the existing loopback/localhost authority on the listener port. When unset, only
+local authorities are accepted. Host is checked on every request. Production
+mutation Origins, when present, must match the origin selected by the accepted
+Host; absent Origin remains allowed unless fetch metadata indicates cross-site
+access. GET, HEAD and OPTIONS skip Origin and fetch-metadata checks. Development
+retains the fixed Vite Origin allowlist. This allowlist does not prove that a
+request has passed proxy authentication; authentication is a proxy responsibility.
+
+### Initial resource configuration
+
+Configuration validates `ANISHELF_INITIAL_RESOURCE_ROOT` as an optional absolute
+path. When persistent settings are missing, Configuration checks media-directory
+access and separation from the data directory before publishing a complete
+settings file without replacement. Existing settings always take precedence;
+malformed or unreadable settings fail instead of being overwritten. The initial
+root is a deployment default for first setup, while persistent settings remain
+the owner of subsequent user choices. Without the variable, missing settings
+continue to enter setup mode.
+
+
+### Video chapters
+
+Media Inspection reads embedded chapter titles and time ranges with FFprobe and
+shares the existing source-version-bound probe cache. The version-validated
+`GET /api/files/:id/chapters?sourceVersion=...` endpoint returns source times in
+milliseconds; no embedded chapters returns an empty array. Probe failure or
+contention returns `MEDIA_INSPECTION_UNAVAILABLE`, separately from empty results.
+
+Web playback registers a Vidstack chapters text track and uses the default layout's
+chapter menu, timeline segments and current chapter title. Missing titles use
+`Chapter N`. Chapters load independently of playback and subtitles; failures offer
+a retry without stopping video. Both original and prepared playback use source
+chapters mapped through the selected resource's timeline. Prepared files still
+omit embedded chapters; navigation does not require rebuilding them. External
+chapter files, editing, automatic opening/ending detection and thumbnails are not
+implemented.
+
+
+### Explicit pre-transcoding
+
+Every file action menu and playback page exposes pre-transcoding independently of
+original playback compatibility, including while inspection is pending or has
+failed. Selecting the action obtains fresh source/profile-bound output evidence.
+Explicit preparation requests create a profile-based copy even when the original
+is directly playable; normal playback selection still prefers a playable original.
+Matching active or ready preparations keep the menu action visible but disabled
+to avoid duplicate jobs. Profile configuration, source validation, output support
+and processing limits remain enforced before task creation.
+
+### Embedded subtitle fonts
+
+Subtitles owns source-version-bound font sets shared by all ASS/SSA tracks for a
+video, including matching external tracks. Discovery reads attachment metadata
+only. Selecting a styled track prepares its text and the font set independently;
+VTT/SRT selection does not extract fonts. Original and prepared-copy playback use
+the original source identity, so prepared media need not retain attachments.
+
+Media Inspection supplies existing stream metadata. Platform Media extracts one
+attachment by absolute stream index using bounded FFprobe extradata output; ordinary
+inspection never dumps attachment payloads. Subtitles recognizes TTF/OTF candidates
+from codec, MIME and filename metadata, then validates actual bytes and internal
+family/character-map data with Fontkit. Metadata alone is not proof of a valid font.
+All recognized candidates are considered within limits; ASS reference matching and
+font subsetting are not required for extraction.
+
+`subtitle_font_sets` and `subtitle_font_assets` persist identities and manifests in
+the application database. Private `dataDir/subtitle-fonts` files use generated IDs,
+never attachment filenames. SHA-256 digests, byte counts and parsed font metadata
+are checked on reuse, reconciliation and delivery. Publication is serialized for
+cache budgeting, files are published atomically, and source/root identity is
+revalidated around work and delivery. Concurrent requests for one source version
+join the same preparation. Startup degrades interrupted sets, removes orphan files
+and invalid cached fonts, and retains valid assets. Degraded sets can be retried.
+There is no automatic eviction; inaccessible old-source assets may remain on disk.
+
+Subtitle preparation responses optionally contain a separate font manifest with
+`pending`, `ready` or `degraded` status, warning codes and same-origin delivery URLs.
+An empty ready set means no recognized font attachments. Font status and bytes are
+served through `/api/subtitle-font-sets/:id/status` and
+`/api/subtitle-font-sets/:id/fonts/:fontId`, using the same source access checks and
+no-store responses as subtitle assets. Partial font failures preserve validated
+fonts and do not fail prepared subtitle text.
+
+The Web controller waits up to 15 seconds for the shared set, then retains the
+manifest with its Vidstack track. The styled renderer downloads bounded font bytes
+with a five-second total download deadline and supplies `Uint8Array` attachments
+to JASSUB alongside its bundled fallback. Switching/off/unmount aborts downloads
+and releases the renderer; late completions cannot create a stale overlay. Font
+preparation/download failures show fallback feedback and a retry action while
+subtitles remain selected. Local/remote font querying remains disabled. Parsed or
+loaded fonts do not certify exact family substitution, glyph coverage or every
+ASS layout; browser/media acceptance remains separate.
