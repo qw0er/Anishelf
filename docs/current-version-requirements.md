@@ -8,6 +8,13 @@ This iteration is selected but not implemented or accepted. No release number is
 
 External metadata access belongs to this iteration. Personal tracker authorization, list import and progress synchronization are later capabilities and must not be prerequisites for identifying local files.
 
+The [current iteration overall design](current-version-design.md) selects
+`anitomy-ng` for local extraction and AniList as the first metadata provider,
+with provider extensibility and persistent metadata/artwork caching. The default
+interface becomes a poster-based anime library; directory browsing remains the
+resource-management and identification entry, alongside a review workflow.
+These are selected design decisions, not implemented capabilities.
+
 ## 2. Selected Requirements
 
 | IDs | Required behavior |
@@ -39,7 +46,7 @@ External metadata access belongs to this iteration. Personal tracker authorizati
 - Preserve existing source-level playback progress when establishing or changing associations. Episode watched-state aggregation and completion detection belong to W03–W05 in the next core stage.
 - Cached metadata and original file playback remain usable during provider outages. New uncached searches can fail with actionable retry feedback; incomplete episode relations remain explicit.
 - Identification reads originals without renaming, moving or deleting them. Resource-root confinement and source-version access checks continue to apply.
-- Start with one provider. Select a maintained parser/provider after evaluation against representative resources; no specific library or service is committed by this document.
+- Start with AniList through an extensible provider adapter and use `anitomy-ng` for extraction. Validate both against representative resources; retain explicit unknowns where AniList cannot provide complete episode data or numbering relations.
 
 ## 5. Acceptance Criteria
 
