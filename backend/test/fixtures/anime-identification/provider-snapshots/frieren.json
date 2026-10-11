@@ -1,0 +1,555 @@
+{
+	"schemaVersion": 1,
+	"workId": "frieren",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 400602,
+		"sourceUrl": "https://bangumi.tv/subject/400602",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/400602",
+		"subjectResponseSha256": "5051e415bb8b9990728a7d18b091aee676ea9e5a6cb72d64c02310def39b3d17",
+		"name": "葬送のフリーレン",
+		"nameCn": "葬送的芙莉莲",
+		"date": "2023-09-29",
+		"platform": "TV",
+		"regularEpisodeCount": 28,
+		"totalEpisodeCount": 36,
+		"aliases": [
+			"Frieren: Beyond Journey's End",
+			"Sousou no Frieren",
+			"葬送的芙莉蓮"
+		],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/13/c5/400602_ZI8Y9.jpg",
+		"episodes": [
+			{
+				"id": 1227087,
+				"type": 0,
+				"sort": 1,
+				"ep": 1,
+				"name": "冒険の終わり",
+				"name_cn": "冒险结束"
+			},
+			{
+				"id": 1227088,
+				"type": 0,
+				"sort": 2,
+				"ep": 2,
+				"name": "別に魔法じゃなくたって…",
+				"name_cn": "不见得一定是靠魔法…"
+			},
+			{
+				"id": 1227089,
+				"type": 0,
+				"sort": 3,
+				"ep": 3,
+				"name": "人を殺す魔法",
+				"name_cn": "杀人魔法"
+			},
+			{
+				"id": 1227090,
+				"type": 0,
+				"sort": 4,
+				"ep": 4,
+				"name": "魂の眠る地",
+				"name_cn": "灵魂长眠之地"
+			},
+			{
+				"id": 1227091,
+				"type": 0,
+				"sort": 5,
+				"ep": 5,
+				"name": "死者の幻影",
+				"name_cn": "死者的幻影"
+			},
+			{
+				"id": 1227092,
+				"type": 0,
+				"sort": 6,
+				"ep": 6,
+				"name": "村の英雄",
+				"name_cn": "村子的英雄"
+			},
+			{
+				"id": 1227093,
+				"type": 0,
+				"sort": 7,
+				"ep": 7,
+				"name": "おとぎ話のようなもの",
+				"name_cn": "童话般的事物"
+			},
+			{
+				"id": 1227094,
+				"type": 0,
+				"sort": 8,
+				"ep": 8,
+				"name": "葬送のフリーレン",
+				"name_cn": "葬送的芙莉莲"
+			},
+			{
+				"id": 1227095,
+				"type": 0,
+				"sort": 9,
+				"ep": 9,
+				"name": "断頭台のアウラ",
+				"name_cn": "断头台阿乌拉"
+			},
+			{
+				"id": 1227096,
+				"type": 0,
+				"sort": 10,
+				"ep": 10,
+				"name": "強い魔法使い",
+				"name_cn": "强大的魔法使"
+			},
+			{
+				"id": 1227097,
+				"type": 0,
+				"sort": 11,
+				"ep": 11,
+				"name": "北側諸国の冬",
+				"name_cn": "北方诸国的严冬"
+			},
+			{
+				"id": 1227098,
+				"type": 0,
+				"sort": 12,
+				"ep": 12,
+				"name": "本物の勇者",
+				"name_cn": "真正的勇者"
+			},
+			{
+				"id": 1253347,
+				"type": 0,
+				"sort": 13,
+				"ep": 13,
+				"name": "同族嫌悪",
+				"name_cn": "同类厌恶"
+			},
+			{
+				"id": 1253348,
+				"type": 0,
+				"sort": 14,
+				"ep": 14,
+				"name": "若者の特権",
+				"name_cn": "年轻人的特权"
+			},
+			{
+				"id": 1253349,
+				"type": 0,
+				"sort": 15,
+				"ep": 15,
+				"name": "厄介事の匂い",
+				"name_cn": "麻烦事的气味"
+			},
+			{
+				"id": 1253350,
+				"type": 0,
+				"sort": 16,
+				"ep": 16,
+				"name": "長寿友達",
+				"name_cn": "长寿朋友"
+			},
+			{
+				"id": 1253351,
+				"type": 0,
+				"sort": 17,
+				"ep": 17,
+				"name": "じゃあ元気で",
+				"name_cn": "那就多保重了"
+			},
+			{
+				"id": 1253352,
+				"type": 0,
+				"sort": 18,
+				"ep": 18,
+				"name": "一級魔法使い選抜試験",
+				"name_cn": "一级魔法使选拔测验"
+			},
+			{
+				"id": 1253353,
+				"type": 0,
+				"sort": 19,
+				"ep": 19,
+				"name": "入念な計画",
+				"name_cn": "精心安排的计划"
+			},
+			{
+				"id": 1253354,
+				"type": 0,
+				"sort": 20,
+				"ep": 20,
+				"name": "必要な殺し",
+				"name_cn": "必要的杀戮"
+			},
+			{
+				"id": 1253355,
+				"type": 0,
+				"sort": 21,
+				"ep": 21,
+				"name": "魔法の世界",
+				"name_cn": "魔法的世界"
+			},
+			{
+				"id": 1253356,
+				"type": 0,
+				"sort": 22,
+				"ep": 22,
+				"name": "次からは敵同士",
+				"name_cn": "下次开始就是敌人"
+			},
+			{
+				"id": 1253357,
+				"type": 0,
+				"sort": 23,
+				"ep": 23,
+				"name": "迷宮攻略",
+				"name_cn": "攻略迷宫"
+			},
+			{
+				"id": 1253358,
+				"type": 0,
+				"sort": 24,
+				"ep": 24,
+				"name": "完璧な複製体",
+				"name_cn": "完美的复制体"
+			},
+			{
+				"id": 1257303,
+				"type": 0,
+				"sort": 25,
+				"ep": 25,
+				"name": "致命的な隙",
+				"name_cn": "致命破绽"
+			},
+			{
+				"id": 1257304,
+				"type": 0,
+				"sort": 26,
+				"ep": 26,
+				"name": "魔法の高み",
+				"name_cn": "魔法的高深之处"
+			},
+			{
+				"id": 1257305,
+				"type": 0,
+				"sort": 27,
+				"ep": 27,
+				"name": "人間の時代",
+				"name_cn": "人类的时代"
+			},
+			{
+				"id": 1257306,
+				"type": 0,
+				"sort": 28,
+				"ep": 28,
+				"name": "また会ったときに恥ずかしいからね",
+				"name_cn": "因为下次再见时会很难为情"
+			},
+			{
+				"id": 1555467,
+				"type": 1,
+				"sort": 1,
+				"ep": 0,
+				"name": "葬送のフリーレン×ZIP！待望のアニメ化！魅力解剖SP",
+				"name_cn": ""
+			},
+			{
+				"id": 1253227,
+				"type": 1,
+				"sort": 2,
+				"ep": 0,
+				"name": "葬送のフリーレン ～フリーレンが見たくなる魔法～",
+				"name_cn": ""
+			},
+			{
+				"id": 1581776,
+				"type": 1,
+				"sort": 3,
+				"ep": 0,
+				"name": "葬送のフリーレン ～トークの魔法～ 特別版",
+				"name_cn": ""
+			},
+			{
+				"id": 1284023,
+				"type": 2,
+				"sort": 1,
+				"ep": 0,
+				"name": "勇者",
+				"name_cn": ""
+			},
+			{
+				"id": 1284024,
+				"type": 2,
+				"sort": 2,
+				"ep": 0,
+				"name": "晴る",
+				"name_cn": ""
+			},
+			{
+				"id": 1284026,
+				"type": 3,
+				"sort": 0,
+				"ep": 0,
+				"name": "bliss",
+				"name_cn": ""
+			},
+			{
+				"id": 1284025,
+				"type": 3,
+				"sort": 1,
+				"ep": 0,
+				"name": "Anytime Anywhere (ver. 1)",
+				"name_cn": ""
+			},
+			{
+				"id": 1287764,
+				"type": 3,
+				"sort": 2,
+				"ep": 0,
+				"name": "Anytime Anywhere (ver. 2)",
+				"name_cn": ""
+			}
+		],
+		"episodeTotal": 36,
+		"relations": [
+			{
+				"id": 459398,
+				"name": "TVアニメ『葬送のフリーレン』公式スターティングガイド",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 1
+			},
+			{
+				"id": 660333,
+				"name": "葬送のフリーレン／ミュージック・コレクション",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 622768,
+				"name": "「葬送のフリーレン」BD&DVD Vol.1 初回特典「冒険者たちのお仕事選び」",
+				"name_cn": "",
+				"relation": "广播剧",
+				"type": 3
+			},
+			{
+				"id": 535646,
+				"name": "小説 アニメ 葬送のフリーレン",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 515759,
+				"name": "葬送のフリーレン 第2期",
+				"name_cn": "葬送的芙莉莲 第二季",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 501356,
+				"name": "TVアニメ『葬送のフリーレン』公式ガイドブック ~王都からオイサーストまでの旅路~",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 1
+			},
+			{
+				"id": 477900,
+				"name": "TVアニメ『葬送のフリーレン』Original Soundtrack",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 471330,
+				"name": "TVアニメ『葬送のフリーレン』Original Soundtrack～Pre-release～",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 1817,
+				"name": "마비노기",
+				"name_cn": "洛奇",
+				"relation": "联动",
+				"type": 4
+			},
+			{
+				"id": 459283,
+				"name": "葬送のフリーレン ～●●の魔法～",
+				"name_cn": "葬送的芙莉莲 ～●●的魔法～",
+				"relation": "衍生",
+				"type": 2
+			},
+			{
+				"id": 456693,
+				"name": "YOASOBI「勇者」 Official Music Video",
+				"name_cn": "",
+				"relation": "衍生",
+				"type": 2
+			},
+			{
+				"id": 456444,
+				"name": "Anytime Anywhere",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 408344,
+				"name": "나 혼자만 레벨업: ARISE",
+				"name_cn": "我独自升级: 起立",
+				"relation": "联动",
+				"type": 4
+			},
+			{
+				"id": 369189,
+				"name": "葬送のフリーレン ～トークの魔法～",
+				"name_cn": "葬送的芙莉莲 ～谈话的魔法～",
+				"relation": "衍生",
+				"type": 6
+			},
+			{
+				"id": 305429,
+				"name": "葬送のフリーレン",
+				"name_cn": "葬送的芙莉莲",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 228217,
+				"name": "第五人格",
+				"name_cn": "",
+				"relation": "联动",
+				"type": 4
+			},
+			{
+				"id": 4521,
+				"name": "메이플스토리",
+				"name_cn": "冒险岛",
+				"relation": "联动",
+				"type": 4
+			},
+			{
+				"id": 457254,
+				"name": "勇者",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 608389,
+				"name": "TVアニメ『葬送のフリーレン』副読本 (1) フリーレン&ヒンメルがわかる魔法",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 1
+			},
+			{
+				"id": 471752,
+				"name": "晴る",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 608390,
+				"name": "TVアニメ『葬送のフリーレン』副読本 (2) フェルン&シュタルクがわかる魔法",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 1
+			}
+		]
+	},
+	"anilist": {
+		"id": 154587,
+		"sourceUrl": "https://anilist.co/anime/154587",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Sousou no Frieren",
+			"english": "Frieren: Beyond Journey’s End",
+			"native": "葬送のフリーレン"
+		},
+		"synonyms": [
+			"Frieren at the Funeral",
+			"장송의 프리렌",
+			"Frieren - Oltre la Fine del Viaggio",
+			"คำอธิษฐานในวันที่จากลา Frieren",
+			"Frieren e a Jornada para o Além",
+			"Frieren – Nach dem Ende der Reise",
+			"葬送的芙莉蓮",
+			"Frieren: Más allá del final del viaje",
+			"Frieren en el funeral",
+			"Sōsō no Furīren",
+			"Frieren. U kresu drogi",
+			"Frieren - Pháp sư tiễn táng",
+			"Фрирен, провожающая в последний путь",
+			"فريرن: ما وراء نهاية الرحلة",
+			"Frieren: Tras finalizar el viaje"
+		],
+		"format": "TV",
+		"episodes": 28,
+		"startDate": {
+			"year": 2023,
+			"month": 9,
+			"day": 29
+		},
+		"relations": [
+			{
+				"id": 118586,
+				"titles": {
+					"romaji": "Sousou no Frieren",
+					"native": "葬送のフリーレン"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 169811,
+				"titles": {
+					"romaji": "Yuusha",
+					"native": "勇者"
+				},
+				"type": "ANIME",
+				"relation": "CHARACTER"
+			},
+			{
+				"id": 170068,
+				"titles": {
+					"romaji": "Sousou no Frieren: ●● no Mahou",
+					"native": "葬送のフリーレン ～●●の魔法～"
+				},
+				"type": "ANIME",
+				"relation": "SIDE_STORY"
+			},
+			{
+				"id": 175691,
+				"titles": {
+					"romaji": "Haru",
+					"native": "晴る"
+				},
+				"type": "ANIME",
+				"relation": "OTHER"
+			},
+			{
+				"id": 182255,
+				"titles": {
+					"romaji": "Sousou no Frieren 2nd Season",
+					"native": "葬送のフリーレン 第2期"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			},
+			{
+				"id": 189513,
+				"titles": {
+					"romaji": "Sousou no Frieren: ●● no Mahou Part 2",
+					"native": "葬送のフリーレン ～●●の魔法～ 2クール"
+				},
+				"type": "ANIME",
+				"relation": "SIDE_STORY"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

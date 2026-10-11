@@ -32,9 +32,20 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm run lint` | Run Biome lint and dependency-cruiser architecture checks |
 | `npm run architecture:check` | Check dependency directions, public entries and runtime cycles in both workspaces |
 | `npm run architecture:test` | Verify architecture rules with allowed and forbidden dependency fixtures |
+| `npm run anime:corpus -- summary` | Inspect the offline anime-identification corpus; see its [usage and provenance](../backend/test/fixtures/anime-identification/README.md) for generation and evaluation |
 | `npm run check` | Run Biome checks, type checks, and both workspace test suites |
 | `npm run build` | Build backend and frontend |
 | `npm run start:backend` | Run the built backend; host pages only when `ANISHELF_FRONTEND_DIR` is set |
+
+The anime-identification corpus contains provider-backed work records, authentic
+resource filenames and explicitly synthetic boundaries. It can generate a separate
+placeholder library for scanning and later identification evaluation. These files
+are not playable videos; the corpus does not declare the selected anime-library
+iteration implemented or accepted.
+The [Nyaa supplement](../backend/test/fixtures/anime-identification/nyaa/README.md)
+adds 268 locally sourced cases and five directory scenarios. Its curated captures
+are offline test inputs; the complete unreviewed sample archive remains in the
+ignored `.nyaa-corpus.local/` directory.
 
 ## Deployment configuration
 

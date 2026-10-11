@@ -1,0 +1,244 @@
+{
+	"schemaVersion": 1,
+	"workId": "spy-2",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 411427,
+		"sourceUrl": "https://bangumi.tv/subject/411427",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/411427",
+		"subjectResponseSha256": "8eb73af0a2ecc9d2744c38953f902f225881d9bdd43dde6abd6a2d27f2f43368",
+		"name": "SPY×FAMILY Season 2",
+		"nameCn": "间谍过家家 第二季",
+		"date": "2023-10-07",
+		"platform": "TV",
+		"regularEpisodeCount": 12,
+		"totalEpisodeCount": 12,
+		"aliases": [
+			"スパイファミリー (2023)",
+			"Spy x Family (2023)",
+			"SPY×FAMILY 間諜家家酒 Season 2"
+		],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/69/5b/411427_1Bw95.jpg",
+		"episodes": [
+			{
+				"id": 1249285,
+				"type": 0,
+				"sort": 26,
+				"ep": 1,
+				"name": "ちちとははをびこうせよ",
+				"name_cn": "跟踪父亲与母亲吧"
+			},
+			{
+				"id": 1249286,
+				"type": 0,
+				"sort": 27,
+				"ep": 2,
+				"name": "ボンドの生存戦略／ダミアンの野外学習",
+				"name_cn": "彭德的生存战略／达米安的野外学习"
+			},
+			{
+				"id": 1249287,
+				"type": 0,
+				"sort": 28,
+				"ep": 3,
+				"name": "任務と家族／華麗なるボンドマン／子ども心／目覚まし",
+				"name_cn": "任务与家人 / 华丽的彭德曼 / 童心／闹钟"
+			},
+			{
+				"id": 1249288,
+				"type": 0,
+				"sort": 29,
+				"ep": 4,
+				"name": "知恵の甘味／情報屋の恋愛大作戦Ⅱ",
+				"name_cn": "智慧甜品／情报商的恋爱大作战II"
+			},
+			{
+				"id": 1249289,
+				"type": 0,
+				"sort": 30,
+				"ep": 5,
+				"name": "越境作戦",
+				"name_cn": "越境作战"
+			},
+			{
+				"id": 1249290,
+				"type": 0,
+				"sort": 31,
+				"ep": 6,
+				"name": "戦慄の豪華客船",
+				"name_cn": "战栗的豪华邮轮"
+			},
+			{
+				"id": 1249291,
+				"type": 0,
+				"sort": 32,
+				"ep": 7,
+				"name": "誰がための任務",
+				"name_cn": "为了谁的任务"
+			},
+			{
+				"id": 1249292,
+				"type": 0,
+				"sort": 33,
+				"ep": 8,
+				"name": "船上の交響曲（シンフォニー）／姉のハーブティー",
+				"name_cn": "船上的交响曲／姐姐的药草茶"
+			},
+			{
+				"id": 1249293,
+				"type": 0,
+				"sort": 34,
+				"ep": 9,
+				"name": "未来を繋ぐ手",
+				"name_cn": "维系未来的手"
+			},
+			{
+				"id": 1249294,
+				"type": 0,
+				"sort": 35,
+				"ep": 10,
+				"name": "リゾートを満喫せよ／休暇自慢",
+				"name_cn": "享受度假胜地吧／炫耀休假"
+			},
+			{
+				"id": 1249295,
+				"type": 0,
+				"sort": 36,
+				"ep": 11,
+				"name": "バーリント・ラブ／〈夜帷（とばり）〉の日常",
+				"name_cn": "伯林特恋曲／“夜帷&quot;的日常"
+			},
+			{
+				"id": 1249296,
+				"type": 0,
+				"sort": 37,
+				"ep": 12,
+				"name": "家族の一員",
+				"name_cn": "家族的一员"
+			}
+		],
+		"episodeTotal": 12,
+		"relations": [
+			{
+				"id": 279379,
+				"name": "SPY×FAMILY",
+				"name_cn": "间谍过家家",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 373267,
+				"name": "SPY×FAMILY 第2クール",
+				"name_cn": "间谍过家家 第2部分",
+				"relation": "前传",
+				"type": 2
+			},
+			{
+				"id": 411428,
+				"name": "劇場版 SPY×FAMILY CODE: White",
+				"name_cn": "剧场版 间谍过家家 代号：白",
+				"relation": "番外篇",
+				"type": 2
+			},
+			{
+				"id": 456242,
+				"name": "クラクラ",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 456245,
+				"name": "トドメの一撃 feat. Cory Wong",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 459672,
+				"name": "TVアニメ「SPY×FAMILY」Season 2 オリジナル･サウンドトラック",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 495490,
+				"name": "残夢",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 498378,
+				"name": "SPY×FAMILY Season 3",
+				"name_cn": "间谍过家家 第三季",
+				"relation": "续集",
+				"type": 2
+			}
+		]
+	},
+	"anilist": {
+		"id": 158927,
+		"sourceUrl": "https://anilist.co/anime/158927",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "SPY×FAMILY Season 2",
+			"english": "SPY x FAMILY Season 2",
+			"native": "SPY×FAMILY Season 2"
+		},
+		"synonyms": [
+			"SxF 2",
+			"스파이 패밀리",
+			"Семья шпиона",
+			"スパイファミリー 2",
+			"Spy x Family – Sezon 2"
+		],
+		"format": "TV",
+		"episodes": 12,
+		"startDate": {
+			"year": 2023,
+			"month": 10,
+			"day": 7
+		},
+		"relations": [
+			{
+				"id": 142838,
+				"titles": {
+					"romaji": "SPY×FAMILY Part 2",
+					"native": "SPY×FAMILY 第2クール"
+				},
+				"type": "ANIME",
+				"relation": "PREQUEL"
+			},
+			{
+				"id": 108556,
+				"titles": {
+					"romaji": "SPY×FAMILY",
+					"native": "SPY×FAMILY"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 158928,
+				"titles": {
+					"romaji": "SPY×FAMILY CODE: White",
+					"native": "SPY×FAMILY CODE: White"
+				},
+				"type": "ANIME",
+				"relation": "SIDE_STORY"
+			},
+			{
+				"id": 177937,
+				"titles": {
+					"romaji": "SPY×FAMILY Season 3",
+					"native": "SPY×FAMILY Season 3"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

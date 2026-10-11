@@ -1,0 +1,255 @@
+{
+	"schemaVersion": 1,
+	"workId": "spy",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 329906,
+		"sourceUrl": "https://bangumi.tv/subject/329906",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/329906",
+		"subjectResponseSha256": "a4dec63a9d8e9de33f12f45c064d2aae0bc5013aaef61b4ab4e69732029c73ac",
+		"name": "SPY×FAMILY",
+		"nameCn": "间谍过家家",
+		"date": "2022-04-09",
+		"platform": "TV",
+		"regularEpisodeCount": 12,
+		"totalEpisodeCount": 12,
+		"aliases": [
+			"Spy x Family",
+			"スパイファミリー",
+			"SPY×FAMILY间谍家家酒(港/台)"
+		],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/de/4a/329906_hmtVD.jpg",
+		"episodes": [
+			{
+				"id": 1088220,
+				"type": 0,
+				"sort": 1,
+				"ep": 1,
+				"name": "オペレーション〈梟（ストリクス）〉",
+				"name_cn": "行动代号〈枭〉"
+			},
+			{
+				"id": 1088221,
+				"type": 0,
+				"sort": 2,
+				"ep": 2,
+				"name": "妻役を確保せよ",
+				"name_cn": "找好扮演妻子的人吧"
+			},
+			{
+				"id": 1088222,
+				"type": 0,
+				"sort": 3,
+				"ep": 3,
+				"name": "受験対策をせよ",
+				"name_cn": "做好考前准备吧"
+			},
+			{
+				"id": 1088223,
+				"type": 0,
+				"sort": 4,
+				"ep": 4,
+				"name": "名門校面接試験",
+				"name_cn": "名校面试"
+			},
+			{
+				"id": 1088224,
+				"type": 0,
+				"sort": 5,
+				"ep": 5,
+				"name": "合否の行方",
+				"name_cn": "能否合格"
+			},
+			{
+				"id": 1088225,
+				"type": 0,
+				"sort": 6,
+				"ep": 6,
+				"name": "ナカヨシ作戦",
+				"name_cn": "好朋友大作战"
+			},
+			{
+				"id": 1088226,
+				"type": 0,
+				"sort": 7,
+				"ep": 7,
+				"name": "標的（ターゲット）の次男",
+				"name_cn": "目标的次子"
+			},
+			{
+				"id": 1088227,
+				"type": 0,
+				"sort": 8,
+				"ep": 8,
+				"name": "対秘密警察偽装作戦",
+				"name_cn": "对秘密警察伪装作战"
+			},
+			{
+				"id": 1088228,
+				"type": 0,
+				"sort": 9,
+				"ep": 9,
+				"name": "ラブラブを見せつけよ",
+				"name_cn": "装出恩爱的模样吧"
+			},
+			{
+				"id": 1088229,
+				"type": 0,
+				"sort": 10,
+				"ep": 10,
+				"name": "ドッジボール大作戦",
+				"name_cn": "躲避球大作战"
+			},
+			{
+				"id": 1088230,
+				"type": 0,
+				"sort": 11,
+				"ep": 11,
+				"name": "〈星（ステラ）〉",
+				"name_cn": "〈星（Stella）〉"
+			},
+			{
+				"id": 1088231,
+				"type": 0,
+				"sort": 12,
+				"ep": 12,
+				"name": "ペンギンパーク",
+				"name_cn": "企鹅公园"
+			}
+		],
+		"episodeTotal": 12,
+		"relations": [
+			{
+				"id": 279379,
+				"name": "SPY×FAMILY",
+				"name_cn": "间谍过家家",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 377129,
+				"name": "喜劇",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 377570,
+				"name": "ミックスナッツ",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 380862,
+				"name": "TBD",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 389643,
+				"name": "TVアニメ「SPY×FAMILY」オリジナルサウンドトラック Vol.1",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 404230,
+				"name": "TVアニメ『SPY×FAMILY』オリジナル・サウンドトラック",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 411428,
+				"name": "劇場版 SPY×FAMILY CODE: White",
+				"name_cn": "剧场版 间谍过家家 代号：白",
+				"relation": "番外篇",
+				"type": 2
+			},
+			{
+				"id": 446444,
+				"name": "TVアニメ『SPY×FAMILY』公式ガイドブック MISSION REPORT:221001‐1224",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 1
+			},
+			{
+				"id": 458722,
+				"name": "SPY×FAMILY ANIMATION ART BOOK",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 1
+			},
+			{
+				"id": 373267,
+				"name": "SPY×FAMILY 第2クール",
+				"name_cn": "间谍过家家 第2部分",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 394841,
+				"name": "TVアニメ『SPY×FAMILY』公式スタートガイド ANIMATION×1st MISSION",
+				"name_cn": "TV动画 SPY×FAMILY 间谍家家酒 第一季公式导读 ANIMATION×1st MISSION",
+				"relation": "其他",
+				"type": 1
+			},
+			{
+				"id": 394842,
+				"name": "TVアニメ『SPY×FAMILY』公式ガイドブック MISSION REPORT:220409-0625",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 1
+			}
+		]
+	},
+	"anilist": {
+		"id": 140960,
+		"sourceUrl": "https://anilist.co/anime/140960",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "SPY×FAMILY",
+			"english": "SPY x FAMILY",
+			"native": "SPY×FAMILY"
+		},
+		"synonyms": [
+			"SxF",
+			"스파이 패밀리",
+			"间谍过家家",
+			"Семья шпиона",
+			"سباي إكس فاميلي",
+			"Gia Đình Điệp Viên"
+		],
+		"format": "TV",
+		"episodes": 12,
+		"startDate": {
+			"year": 2022,
+			"month": 4,
+			"day": 9
+		},
+		"relations": [
+			{
+				"id": 108556,
+				"titles": {
+					"romaji": "SPY×FAMILY",
+					"native": "SPY×FAMILY"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 142838,
+				"titles": {
+					"romaji": "SPY×FAMILY Part 2",
+					"native": "SPY×FAMILY 第2クール"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

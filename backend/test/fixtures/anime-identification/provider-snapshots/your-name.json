@@ -1,0 +1,204 @@
+{
+	"schemaVersion": 1,
+	"workId": "your-name",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 160209,
+		"sourceUrl": "https://bangumi.tv/subject/160209",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/160209",
+		"subjectResponseSha256": "8ee578c2779d5807714db3f382c0d6d63f69d72af6eba9d09c0b2518982ba73a",
+		"name": "君の名は。",
+		"nameCn": "你的名字。",
+		"date": "2016-08-26",
+		"platform": "剧场版",
+		"regularEpisodeCount": 1,
+		"totalEpisodeCount": 1,
+		"aliases": ["Kimi no Na wa.", "Your Name."],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/20/15/160209_2UzU8.jpg",
+		"episodes": [
+			{
+				"id": 658319,
+				"type": 0,
+				"sort": 1,
+				"ep": 1,
+				"name": "君の名は",
+				"name_cn": "你的名字"
+			}
+		],
+		"episodeTotal": 1,
+		"relations": [
+			{
+				"id": 58949,
+				"name": "言の葉の庭",
+				"name_cn": "言叶之庭",
+				"relation": "角色出演",
+				"type": 2
+			},
+			{
+				"id": 187695,
+				"name": "君の名は。",
+				"name_cn": "你的名字。",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 189834,
+				"name": "君の名は。 Another Side:Earthbound",
+				"name_cn": "",
+				"relation": "番外篇",
+				"type": 1
+			},
+			{
+				"id": 189858,
+				"name": "新海誠監督作品 君の名は。 公式ビジュアルガイド",
+				"name_cn": "《你的名字。》官方视觉指南",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 189859,
+				"name": "新海 誠Walker ウォーカームック",
+				"name_cn": "新海诚Walker",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 198229,
+				"name": "人間開花",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 207556,
+				"name": "君の名は。 English edition",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 215943,
+				"name": "君の名は。美術画集",
+				"name_cn": "《你的名字。》美术画集",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 226616,
+				"name": "Your Name.",
+				"name_cn": "你的名字。",
+				"relation": "三次元",
+				"type": 6
+			},
+			{
+				"id": 269235,
+				"name": "天気の子",
+				"name_cn": "天气之子",
+				"relation": "角色出演",
+				"type": 2
+			},
+			{
+				"id": 303966,
+				"name": "君の名は。 新海誠絵コンテ集 2",
+				"name_cn": "你的名字 分镜集",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 183875,
+				"name": "君の名は。",
+				"name_cn": "你的名字。",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 182345,
+				"name": "小説 君の名は。",
+				"name_cn": "你的名字。",
+				"relation": "书籍",
+				"type": 1
+			}
+		]
+	},
+	"anilist": {
+		"id": 21519,
+		"sourceUrl": "https://anilist.co/anime/21519",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Kimi no Na wa.",
+			"english": "Your Name.",
+			"native": "君の名は。"
+		},
+		"synonyms": [
+			"Your Name. - Gestern, heute und für immer",
+			"Mi a Neved?",
+			"你的名字。",
+			"너의 이름은.",
+			"Tu nombre",
+			"Твоё имя",
+			"หลับตาฝันถึงชื่อเธอ",
+			"Il tuo nome",
+			"השם שלך.",
+			"Twoje imię",
+			"Tên cậu là gì",
+			"Tvoje meno.",
+			"Tvoje jméno."
+		],
+		"format": "MOVIE",
+		"episodes": 1,
+		"startDate": {
+			"year": 2016,
+			"month": 8,
+			"day": 26
+		},
+		"relations": [
+			{
+				"id": 97962,
+				"titles": {
+					"romaji": "Suntory Minami Alps no Tennen Mizu",
+					"native": "サントリー 南アルプスの天然水"
+				},
+				"type": "ANIME",
+				"relation": "CHARACTER"
+			},
+			{
+				"id": 97337,
+				"titles": {
+					"romaji": "Kimi no Na wa.",
+					"native": "君の名は。"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 97789,
+				"titles": {
+					"romaji": "Kimi no Na wa. Another Side: Earthbound",
+					"native": "君の名は。 Another Side：Earthbound"
+				},
+				"type": "MANGA",
+				"relation": "SIDE_STORY"
+			},
+			{
+				"id": 106286,
+				"titles": {
+					"romaji": "Tenki no Ko",
+					"native": "天気の子"
+				},
+				"type": "ANIME",
+				"relation": "CHARACTER"
+			},
+			{
+				"id": 16782,
+				"titles": {
+					"romaji": "Kotonoha no Niwa",
+					"native": "言の葉の庭"
+				},
+				"type": "ANIME",
+				"relation": "CHARACTER"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

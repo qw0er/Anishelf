@@ -1,0 +1,231 @@
+{
+	"schemaVersion": 1,
+	"workId": "frieren-2",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 515759,
+		"sourceUrl": "https://bangumi.tv/subject/515759",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/515759",
+		"subjectResponseSha256": "96c8486f492e738ae599db3189e71eac69ef2cda9fc2aa4104b5544e12300548",
+		"name": "葬送のフリーレン 第2期",
+		"nameCn": "葬送的芙莉莲 第二季",
+		"date": "2026-01-16",
+		"platform": "TV",
+		"regularEpisodeCount": 10,
+		"totalEpisodeCount": 10,
+		"aliases": [
+			"Sousou no Frieren 2nd Season",
+			"Frieren: Beyond Journey's End Season 2",
+			"Sousou no Frieren (2026)",
+			"Beyond Journey`s End (2026)",
+			"葬送のフリーレン (2026)"
+		],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/0b/24/515759_qA1Zc.jpg",
+		"episodes": [
+			{
+				"id": 1575936,
+				"type": 0,
+				"sort": 29,
+				"ep": 1,
+				"name": "じゃあ行こうか",
+				"name_cn": "那我们走吧"
+			},
+			{
+				"id": 1575937,
+				"type": 0,
+				"sort": 30,
+				"ep": 2,
+				"name": "南の勇者",
+				"name_cn": "南方勇者"
+			},
+			{
+				"id": 1575938,
+				"type": 0,
+				"sort": 31,
+				"ep": 3,
+				"name": "好きな場所",
+				"name_cn": "喜欢的地方"
+			},
+			{
+				"id": 1575939,
+				"type": 0,
+				"sort": 32,
+				"ep": 4,
+				"name": "誰かの故郷",
+				"name_cn": "他人的故乡"
+			},
+			{
+				"id": 1575940,
+				"type": 0,
+				"sort": 33,
+				"ep": 5,
+				"name": "北部高原の物流",
+				"name_cn": "北部高原的物流"
+			},
+			{
+				"id": 1575941,
+				"type": 0,
+				"sort": 34,
+				"ep": 6,
+				"name": "討伐要請",
+				"name_cn": "讨伐委托"
+			},
+			{
+				"id": 1575942,
+				"type": 0,
+				"sort": 35,
+				"ep": 7,
+				"name": "神技のレヴォルテ",
+				"name_cn": "神技的雷沃戴"
+			},
+			{
+				"id": 1575943,
+				"type": 0,
+				"sort": 36,
+				"ep": 8,
+				"name": "立派な最期",
+				"name_cn": "壮烈的牺牲"
+			},
+			{
+				"id": 1575944,
+				"type": 0,
+				"sort": 37,
+				"ep": 9,
+				"name": "ヒンメルの自伝",
+				"name_cn": "辛美尔的自传"
+			},
+			{
+				"id": 1575945,
+				"type": 0,
+				"sort": 38,
+				"ep": 10,
+				"name": "美しい光景",
+				"name_cn": "美丽的光景"
+			}
+		],
+		"episodeTotal": 10,
+		"relations": [
+			{
+				"id": 305429,
+				"name": "葬送のフリーレン",
+				"name_cn": "葬送的芙莉莲",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 400602,
+				"name": "葬送のフリーレン",
+				"name_cn": "葬送的芙莉莲",
+				"relation": "前传",
+				"type": 2
+			},
+			{
+				"id": 549563,
+				"name": "葬送のフリーレン ～●●の魔法～2期",
+				"name_cn": "葬送的芙莉莲 ～●●的魔法～2期",
+				"relation": "衍生",
+				"type": 2
+			},
+			{
+				"id": 615503,
+				"name": "The Story of Us",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 621059,
+				"name": "lulu.",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 621637,
+				"name": "TVアニメ『葬送のフリーレン』Season2 Original Soundtrack",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 638133,
+				"name": "葬送のフリーレン 第3期【黄金郷編】",
+				"name_cn": "葬送的芙莉莲 第三季 黄金乡篇",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 657875,
+				"name": "葬送のフリーレン フィルムコンサート2026",
+				"name_cn": "",
+				"relation": "三次元",
+				"type": 6
+			},
+			{
+				"id": 660333,
+				"name": "葬送のフリーレン／ミュージック・コレクション",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			}
+		]
+	},
+	"anilist": {
+		"id": 182255,
+		"sourceUrl": "https://anilist.co/anime/182255",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Sousou no Frieren 2nd Season",
+			"english": "Frieren: Beyond Journey’s End Season 2",
+			"native": "葬送のフリーレン 第2期"
+		},
+		"synonyms": ["Провожающая в последний путь Фрирен 2", "장송의 프리렌 2기"],
+		"format": "TV",
+		"episodes": 10,
+		"startDate": {
+			"year": 2026,
+			"month": 1,
+			"day": 16
+		},
+		"relations": [
+			{
+				"id": 118586,
+				"titles": {
+					"romaji": "Sousou no Frieren",
+					"native": "葬送のフリーレン"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 154587,
+				"titles": {
+					"romaji": "Sousou no Frieren",
+					"native": "葬送のフリーレン"
+				},
+				"type": "ANIME",
+				"relation": "PREQUEL"
+			},
+			{
+				"id": 206425,
+				"titles": {
+					"romaji": "Sousou no Frieren: ●● no Mahou Part 3",
+					"native": "葬送のフリーレン ～●●の魔法～ 3クール"
+				},
+				"type": "ANIME",
+				"relation": "SIDE_STORY"
+			},
+			{
+				"id": 209939,
+				"titles": {
+					"romaji": "Sousou no Frieren 3rd Season",
+					"native": "葬送のフリーレン 第3期"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

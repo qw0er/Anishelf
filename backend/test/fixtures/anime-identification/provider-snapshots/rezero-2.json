@@ -1,0 +1,311 @@
+{
+	"schemaVersion": 1,
+	"workId": "rezero-2",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 278826,
+		"sourceUrl": "https://bangumi.tv/subject/278826",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/278826",
+		"subjectResponseSha256": "e160571ac691f91b677ad513838d673c7260e013d8b7394b68bad6df9142a770",
+		"name": "Re:ゼロから始める異世界生活 2nd season",
+		"nameCn": "Re：从零开始的异世界生活 第二季",
+		"date": "2020-07-08",
+		"platform": "TV",
+		"regularEpisodeCount": 13,
+		"totalEpisodeCount": 13,
+		"aliases": [
+			"Re:Zero kara Hajimeru Isekai Seikatsu (2020)",
+			"Re0 第二季",
+			"Re:ゼロから始める異世界生活2"
+		],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/16/79/278826_w85gd.jpg",
+		"episodes": [
+			{
+				"id": 957951,
+				"type": 0,
+				"sort": 26,
+				"ep": 1,
+				"name": "それぞれの誓い",
+				"name_cn": "各自的誓言"
+			},
+			{
+				"id": 957952,
+				"type": 0,
+				"sort": 27,
+				"ep": 2,
+				"name": "次なる場所",
+				"name_cn": "下一个地方"
+			},
+			{
+				"id": 957953,
+				"type": 0,
+				"sort": 28,
+				"ep": 3,
+				"name": "待ちかねた再会",
+				"name_cn": "久候多时的重逢"
+			},
+			{
+				"id": 957954,
+				"type": 0,
+				"sort": 29,
+				"ep": 4,
+				"name": "親子",
+				"name_cn": "亲子"
+			},
+			{
+				"id": 957955,
+				"type": 0,
+				"sort": 30,
+				"ep": 5,
+				"name": "踏み出した一歩",
+				"name_cn": "踏出的一步"
+			},
+			{
+				"id": 957956,
+				"type": 0,
+				"sort": 31,
+				"ep": 6,
+				"name": "少女の福音",
+				"name_cn": "少女的福音"
+			},
+			{
+				"id": 957957,
+				"type": 0,
+				"sort": 32,
+				"ep": 7,
+				"name": "ユージン",
+				"name_cn": "朋友"
+			},
+			{
+				"id": 957958,
+				"type": 0,
+				"sort": 33,
+				"ep": 8,
+				"name": "命の価値",
+				"name_cn": "生命的价值"
+			},
+			{
+				"id": 957959,
+				"type": 0,
+				"sort": 34,
+				"ep": 9,
+				"name": "らぶらぶらぶらぶらぶらぶゆー",
+				"name_cn": "爱爱爱爱爱爱你"
+			},
+			{
+				"id": 957960,
+				"type": 0,
+				"sort": 35,
+				"ep": 10,
+				"name": "地獄なら知っている",
+				"name_cn": "地狱的话我已经体验过了"
+			},
+			{
+				"id": 957961,
+				"type": 0,
+				"sort": 36,
+				"ep": 11,
+				"name": "死の味",
+				"name_cn": "死亡的味道"
+			},
+			{
+				"id": 957962,
+				"type": 0,
+				"sort": 37,
+				"ep": 12,
+				"name": "魔女たちの茶会",
+				"name_cn": "魔女们的茶会"
+			},
+			{
+				"id": 967250,
+				"type": 0,
+				"sort": 38,
+				"ep": 13,
+				"name": "泣きたくなる音",
+				"name_cn": "想哭的声音"
+			}
+		],
+		"episodeTotal": 13,
+		"relations": [
+			{
+				"id": 121927,
+				"name": "Re:ゼロから始める異世界生活",
+				"name_cn": "Re：从零开始的异世界生活",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 140001,
+				"name": "Re:ゼロから始める異世界生活",
+				"name_cn": "Re：从零开始的异世界生活",
+				"relation": "前传",
+				"type": 2
+			},
+			{
+				"id": 296686,
+				"name": "MUSEUM-THE BEST OF MYTH ＆ ROID-",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 305311,
+				"name": "Re:ゼロから始める異世界生活 Lost in Memories",
+				"name_cn": "Re:从零开始的异世界生活 Lost in Memories",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 305312,
+				"name": "Re：从零开始的异世界生活-INFINTY",
+				"name_cn": "从零开始的异世界生活-无限",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 308633,
+				"name": "Realize",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 308634,
+				"name": "Memento",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 309190,
+				"name": "Re:ゼロから始める異世界生活 偽りの王選候補",
+				"name_cn": "Re:从零开始的异世界生活　虚假的王选候补",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 309318,
+				"name": "Re:ゼロから始める異世界生活 リゼロパズルコレクション",
+				"name_cn": "Re:从零开始的异世界生活 Puzzle Collection",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 310147,
+				"name": "TVアニメ「Re:ゼロから始める異世界生活」2nd season サウンドトラックCD",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 310194,
+				"name": "Re:ゼロから始める休憩時間 2nd Season",
+				"name_cn": "Re：从零开始的休息时间2",
+				"relation": "衍生",
+				"type": 2
+			},
+			{
+				"id": 316247,
+				"name": "Re:ゼロから始める異世界生活 2nd season 後半クール",
+				"name_cn": "Re：从零开始的异世界生活 第二季 后半部分",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 328492,
+				"name": "TVアニメ「Re:ゼロから始める異世界生活」キャラクターソングアルバム",
+				"name_cn": "",
+				"relation": "角色歌",
+				"type": 3
+			},
+			{
+				"id": 329586,
+				"name": "Re:ゼロから始める異世界生活 禁書と謎の精霊",
+				"name_cn": "Re:从零开始的异世界生活 禁书与神秘精灵",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 426001,
+				"name": "Re:ゼロから始める異世界生活 Witch's Re:surrection",
+				"name_cn": "",
+				"relation": "游戏",
+				"type": 4
+			}
+		]
+	},
+	"anilist": {
+		"id": 108632,
+		"sourceUrl": "https://anilist.co/anime/108632",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season",
+			"english": "Re:ZERO -Starting Life in Another World- Season 2",
+			"native": "Re:ゼロから始める異世界生活 2nd Season"
+		},
+		"synonyms": [
+			"Re:Zero kara Hajimeru Isekai Seikatsu (2020)",
+			"Re: 제로부터 시작하는 이세계 생활 2기",
+			"Re:从零开始的异世界生活第二季（上半）",
+			"Re:从零开始的异世界生活 2 上半",
+			"Re:Zero รีเซทชีวิต ฝ่าวิกฤตต่างโลก ภาค 2",
+			"Re:Zero — жизнь с нуля в другом мире. Второй сезон"
+		],
+		"format": "TV",
+		"episodes": 13,
+		"startDate": {
+			"year": 2020,
+			"month": 7,
+			"day": 8
+		},
+		"relations": [
+			{
+				"id": 85737,
+				"titles": {
+					"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu",
+					"native": "Re:ゼロから始める異世界生活"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 21355,
+				"titles": {
+					"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu",
+					"native": "Re:ゼロから始める異世界生活"
+				},
+				"type": "ANIME",
+				"relation": "PREQUEL"
+			},
+			{
+				"id": 119661,
+				"titles": {
+					"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season Part 2",
+					"native": "Re:ゼロから始める異世界生活 2nd Season Part 2"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			},
+			{
+				"id": 112218,
+				"titles": {
+					"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu: Dai-4 Shou - Seiiki to Gouyoku no Majo",
+					"native": "Re:ゼロから始める異世界生活 第四章 聖域と強欲の魔女"
+				},
+				"type": "MANGA",
+				"relation": "ALTERNATIVE"
+			},
+			{
+				"id": 120700,
+				"titles": {
+					"romaji": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 2nd Season",
+					"native": "Re:ゼロから始める休憩時間(ブレイクタイム) 2nd Season"
+				},
+				"type": "ANIME",
+				"relation": "SPIN_OFF"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

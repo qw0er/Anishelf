@@ -1,0 +1,277 @@
+{
+	"schemaVersion": 1,
+	"workId": "oshi-2",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 443428,
+		"sourceUrl": "https://bangumi.tv/subject/443428",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/443428",
+		"subjectResponseSha256": "90780c482c2c35933ece5653420b8ad6e938188d98a28224cc79315127246f23",
+		"name": "【推しの子】 第2期",
+		"nameCn": "【我推的孩子】 第二季",
+		"date": "2024-07-03",
+		"platform": "TV",
+		"regularEpisodeCount": 13,
+		"totalEpisodeCount": 14,
+		"aliases": [
+			"【推しの子】 シーズン2",
+			"Oshi no Ko 2nd Season",
+			"\"Oshi no Ko\" 2"
+		],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/d1/1c/443428_FIhFu.jpg",
+		"episodes": [
+			{
+				"id": 1349007,
+				"type": 0,
+				"sort": 12,
+				"ep": 1,
+				"name": "東京ブレイド",
+				"name_cn": "东京BLADE"
+			},
+			{
+				"id": 1349008,
+				"type": 0,
+				"sort": 13,
+				"ep": 2,
+				"name": "伝言ゲーム",
+				"name_cn": "传话游戏"
+			},
+			{
+				"id": 1349009,
+				"type": 0,
+				"sort": 14,
+				"ep": 3,
+				"name": "リライティング",
+				"name_cn": "作品改编"
+			},
+			{
+				"id": 1349010,
+				"type": 0,
+				"sort": 15,
+				"ep": 4,
+				"name": "感情演技",
+				"name_cn": "情感演技"
+			},
+			{
+				"id": 1349011,
+				"type": 0,
+				"sort": 16,
+				"ep": 5,
+				"name": "開幕",
+				"name_cn": "开幕"
+			},
+			{
+				"id": 1349012,
+				"type": 0,
+				"sort": 17,
+				"ep": 6,
+				"name": "成長",
+				"name_cn": "成长"
+			},
+			{
+				"id": 1349013,
+				"type": 0,
+				"sort": 18,
+				"ep": 7,
+				"name": "太陽",
+				"name_cn": "太阳"
+			},
+			{
+				"id": 1349014,
+				"type": 0,
+				"sort": 19,
+				"ep": 8,
+				"name": "トリガー",
+				"name_cn": "契机"
+			},
+			{
+				"id": 1349015,
+				"type": 0,
+				"sort": 20,
+				"ep": 9,
+				"name": "夢",
+				"name_cn": "美梦"
+			},
+			{
+				"id": 1349016,
+				"type": 0,
+				"sort": 21,
+				"ep": 10,
+				"name": "カイホウ",
+				"name_cn": "解脱"
+			},
+			{
+				"id": 1349017,
+				"type": 0,
+				"sort": 22,
+				"ep": 11,
+				"name": "自由",
+				"name_cn": "自由"
+			},
+			{
+				"id": 1349018,
+				"type": 0,
+				"sort": 23,
+				"ep": 12,
+				"name": "再会",
+				"name_cn": "重逢"
+			},
+			{
+				"id": 1363721,
+				"type": 0,
+				"sort": 24,
+				"ep": 13,
+				"name": "願い",
+				"name_cn": "愿望"
+			},
+			{
+				"id": 1386972,
+				"type": 1,
+				"sort": 20.5,
+				"ep": 0,
+				"name": "TVアニメ【推しの子】振り返り特番 ～【推しの子】は推せるときに推せ！～Vol.2",
+				"name_cn": ""
+			}
+		],
+		"episodeTotal": 14,
+		"relations": [
+			{
+				"id": 303186,
+				"name": "【推しの子】",
+				"name_cn": "【我推的孩子】",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 386809,
+				"name": "【推しの子】",
+				"name_cn": "【我推的孩子】",
+				"relation": "前传",
+				"type": 2
+			},
+			{
+				"id": 501921,
+				"name": "ファタール",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 501922,
+				"name": "Burning",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 501988,
+				"name": "TVアニメ「【推しの子】」オリジナルサウンドトラック Vol.2",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 501989,
+				"name": "TVアニメ「【推しの子】」キャラクターソングCD Vol.4",
+				"name_cn": "",
+				"relation": "角色歌",
+				"type": 3
+			},
+			{
+				"id": 507982,
+				"name": "【推しの子】のおはなし シーズン２",
+				"name_cn": "",
+				"relation": "衍生",
+				"type": 6
+			},
+			{
+				"id": 510089,
+				"name": "演劇【推しの子】2.5次元舞台編",
+				"name_cn": "戏剧【我推的孩子】2.5次元舞台篇",
+				"relation": "不同演绎",
+				"type": 6
+			},
+			{
+				"id": 512431,
+				"name": "TVアニメ「【推しの子】」キャラクターソングCD Vol.4.5",
+				"name_cn": "",
+				"relation": "角色歌",
+				"type": 3
+			},
+			{
+				"id": 517057,
+				"name": "【推しの子】 第3期",
+				"name_cn": "【我推的孩子】 第三季",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 551447,
+				"name": "ピアノ・ソロ TVアニメ『【推しの子】』vol.2",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 632944,
+				"name": "TVアニメ『【推しの子】』スペシャルイベント 苺プロダクション☆ファン感謝祭2025",
+				"name_cn": "",
+				"relation": "三次元",
+				"type": 6
+			}
+		]
+	},
+	"anilist": {
+		"id": 166531,
+		"sourceUrl": "https://anilist.co/anime/166531",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "[Oshi no Ko] 2nd Season",
+			"english": "OSHI NO KO Season 2",
+			"native": "【推しの子】第2期"
+		},
+		"synonyms": [
+			"我推的孩子",
+			"[OSHI NO KO] Season 2",
+			"【OSHI NO KO】Season 2"
+		],
+		"format": "TV",
+		"episodes": 13,
+		"startDate": {
+			"year": 2024,
+			"month": 7,
+			"day": 3
+		},
+		"relations": [
+			{
+				"id": 150672,
+				"titles": {
+					"romaji": "[Oshi no Ko]",
+					"native": "【推しの子】"
+				},
+				"type": "ANIME",
+				"relation": "PREQUEL"
+			},
+			{
+				"id": 117195,
+				"titles": {
+					"romaji": "[Oshi no Ko]",
+					"native": "【推しの子】"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 182587,
+				"titles": {
+					"romaji": "[Oshi no Ko] 3rd Season",
+					"native": "【推しの子】第3期"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

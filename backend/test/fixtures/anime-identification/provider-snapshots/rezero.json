@@ -1,0 +1,700 @@
+{
+	"schemaVersion": 1,
+	"workId": "rezero",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 140001,
+		"sourceUrl": "https://bangumi.tv/subject/140001",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/140001",
+		"subjectResponseSha256": "fe2050acf1f1243979a0fe54391ebd1165de8c1dd28a542e0635a770806c431b",
+		"name": "Re:ゼロから始める異世界生活",
+		"nameCn": "Re：从零开始的异世界生活",
+		"date": "2016-04-03",
+		"platform": "TV",
+		"regularEpisodeCount": 25,
+		"totalEpisodeCount": 26,
+		"aliases": [
+			"Re:Zero kara Hajimeru Isekai Seikatsu",
+			"rezero",
+			"Re0",
+			"Re: Life a Different World from Zero"
+		],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/cb/78/140001_Ew1mo.jpg",
+		"episodes": [
+			{
+				"id": 621357,
+				"type": 0,
+				"sort": 1,
+				"ep": 1,
+				"name": "始まりの終わりと終わりの始まり",
+				"name_cn": "起始的终结和终结的起始"
+			},
+			{
+				"id": 621358,
+				"type": 0,
+				"sort": 2,
+				"ep": 2,
+				"name": "再会の魔女",
+				"name_cn": "再遇魔女"
+			},
+			{
+				"id": 621359,
+				"type": 0,
+				"sort": 3,
+				"ep": 3,
+				"name": "ゼロから始まる異世界生活",
+				"name_cn": "从零开始的异世界生活"
+			},
+			{
+				"id": 621360,
+				"type": 0,
+				"sort": 4,
+				"ep": 4,
+				"name": "ロズワール邸の団欒",
+				"name_cn": "罗兹瓦尔邸的团聚"
+			},
+			{
+				"id": 621361,
+				"type": 0,
+				"sort": 5,
+				"ep": 5,
+				"name": "約束した朝は遠く",
+				"name_cn": "约定的早晨遥不可及"
+			},
+			{
+				"id": 621362,
+				"type": 0,
+				"sort": 6,
+				"ep": 6,
+				"name": "鎖の音",
+				"name_cn": "锁链之音"
+			},
+			{
+				"id": 621363,
+				"type": 0,
+				"sort": 7,
+				"ep": 7,
+				"name": "ナツキ・スバルのリスタート",
+				"name_cn": "菜月昴的重新开始"
+			},
+			{
+				"id": 621364,
+				"type": 0,
+				"sort": 8,
+				"ep": 8,
+				"name": "泣いて泣き喚いて泣き止んだから",
+				"name_cn": "哭过喊过便会停止哭泣"
+			},
+			{
+				"id": 621365,
+				"type": 0,
+				"sort": 9,
+				"ep": 9,
+				"name": "勇気の意味",
+				"name_cn": "勇气的意义"
+			},
+			{
+				"id": 621366,
+				"type": 0,
+				"sort": 10,
+				"ep": 10,
+				"name": "鬼がかったやり方",
+				"name_cn": "如有鬼助的做法"
+			},
+			{
+				"id": 621367,
+				"type": 0,
+				"sort": 11,
+				"ep": 11,
+				"name": "レム",
+				"name_cn": "蕾姆"
+			},
+			{
+				"id": 621368,
+				"type": 0,
+				"sort": 12,
+				"ep": 12,
+				"name": "再来の王都",
+				"name_cn": "再访王都"
+			},
+			{
+				"id": 626044,
+				"type": 0,
+				"sort": 13,
+				"ep": 13,
+				"name": "自称騎士ナツキ・スバル",
+				"name_cn": "自称骑士的菜月昴"
+			},
+			{
+				"id": 626045,
+				"type": 0,
+				"sort": 14,
+				"ep": 14,
+				"name": "絶望という病",
+				"name_cn": "名为绝望的疾病"
+			},
+			{
+				"id": 626046,
+				"type": 0,
+				"sort": 15,
+				"ep": 15,
+				"name": "狂気の外側",
+				"name_cn": "疯狂的外侧"
+			},
+			{
+				"id": 626047,
+				"type": 0,
+				"sort": 16,
+				"ep": 16,
+				"name": "豚の欲望",
+				"name_cn": "猪的欲望"
+			},
+			{
+				"id": 626048,
+				"type": 0,
+				"sort": 17,
+				"ep": 17,
+				"name": "醜態の果てに",
+				"name_cn": "丑态的尽头"
+			},
+			{
+				"id": 626049,
+				"type": 0,
+				"sort": 18,
+				"ep": 18,
+				"name": "ゼロから",
+				"name_cn": "从零开始"
+			},
+			{
+				"id": 626050,
+				"type": 0,
+				"sort": 19,
+				"ep": 19,
+				"name": "白鯨攻略戦",
+				"name_cn": "白鲸攻略战"
+			},
+			{
+				"id": 626051,
+				"type": 0,
+				"sort": 20,
+				"ep": 20,
+				"name": "ヴィルヘルム・ヴァン・アストレア",
+				"name_cn": "威尔海姆·梵·阿斯特雷亚"
+			},
+			{
+				"id": 626052,
+				"type": 0,
+				"sort": 21,
+				"ep": 21,
+				"name": "絶望に抗う賭け",
+				"name_cn": "反抗绝望的赌博"
+			},
+			{
+				"id": 626053,
+				"type": 0,
+				"sort": 22,
+				"ep": 22,
+				"name": "怠惰一閃",
+				"name_cn": "怠惰一闪"
+			},
+			{
+				"id": 626054,
+				"type": 0,
+				"sort": 23,
+				"ep": 23,
+				"name": "悪辣なる怠惰",
+				"name_cn": "恶毒的怠惰"
+			},
+			{
+				"id": 626055,
+				"type": 0,
+				"sort": 24,
+				"ep": 24,
+				"name": "自称騎士と最優の騎士",
+				"name_cn": "自称骑士与最优的骑士"
+			},
+			{
+				"id": 626353,
+				"type": 0,
+				"sort": 25,
+				"ep": 25,
+				"name": "ただそれだけの物語",
+				"name_cn": "仅此而已的故事"
+			},
+			{
+				"id": 626365,
+				"type": 4,
+				"sort": 0,
+				"ep": 0,
+				"name": "特番「Re:ゼロから始める異世界体験」",
+				"name_cn": "特别节目「Re：从零开始异世界体验」"
+			}
+		],
+		"episodeTotal": 26,
+		"relations": [
+			{
+				"id": 513103,
+				"name": "ラジオCD「Re：ゼロから始める異世界ラジオ生活」Vol.4",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 305311,
+				"name": "Re:ゼロから始める異世界生活 Lost in Memories",
+				"name_cn": "Re:从零开始的异世界生活 Lost in Memories",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 305312,
+				"name": "Re：从零开始的异世界生活-INFINTY",
+				"name_cn": "从零开始的异世界生活-无限",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 309190,
+				"name": "Re:ゼロから始める異世界生活 偽りの王選候補",
+				"name_cn": "Re:从零开始的异世界生活　虚假的王选候补",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 309318,
+				"name": "Re:ゼロから始める異世界生活 リゼロパズルコレクション",
+				"name_cn": "Re:从零开始的异世界生活 Puzzle Collection",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 328492,
+				"name": "TVアニメ「Re:ゼロから始める異世界生活」キャラクターソングアルバム",
+				"name_cn": "",
+				"relation": "角色歌",
+				"type": 3
+			},
+			{
+				"id": 329586,
+				"name": "Re:ゼロから始める異世界生活 禁書と謎の精霊",
+				"name_cn": "Re:从零开始的异世界生活 禁书与神秘精灵",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 337272,
+				"name": "异世界かるてっと～激突！ぱずるすくーる～",
+				"name_cn": "异世界四重奏～激战！拼图学园～",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 426001,
+				"name": "Re:ゼロから始める異世界生活 Witch's Re:surrection",
+				"name_cn": "",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 441795,
+				"name": "僕の心のヤバイやつ 第2期",
+				"name_cn": "我心里危险的东西 第二季",
+				"relation": "联动",
+				"type": 2
+			},
+			{
+				"id": 513102,
+				"name": "ラジオCD「Re：ゼロから始める異世界ラジオ生活」Vol.3",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 296686,
+				"name": "MUSEUM-THE BEST OF MYTH ＆ ROID-",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 513104,
+				"name": "ラジオCD「Re：ゼロから始める異世界ラジオ生活」Vol.5",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 513105,
+				"name": "ラジオCD「Re：ゼロから始める異世界ラジオ生活」Vol.6",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 513106,
+				"name": "ラジオCD「Re：ゼロから始める異世界ラジオ生活」Vol.7",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 513107,
+				"name": "ラジオCD「Re：ゼロから始める異世界ラジオ生活」Vol.8",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 513108,
+				"name": "ラジオCD「Re：ゼロから始める異世界ラジオ生活」Vol.9",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 513109,
+				"name": "ラジオCD「Re：ゼロから始める異世界ラジオ生活」Vol.10",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 513114,
+				"name": "DJCD「Re：ゼロから始める異世界ラジオ生活」",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 532778,
+				"name": "UNION ARENA",
+				"name_cn": "携战之境",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 541824,
+				"name": "TVアニメ「Re:ゼロから始める異世界生活」Remakeアルバム",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 564421,
+				"name": "異世界かるてっと3",
+				"name_cn": "异世界四重奏 第三季",
+				"relation": "角色出演",
+				"type": 2
+			},
+			{
+				"id": 198872,
+				"name": "Re：ゼロから始める異世界ラジオ生活",
+				"name_cn": "Re：从零开始的异世界广播生活",
+				"relation": "其他",
+				"type": 6
+			},
+			{
+				"id": 121927,
+				"name": "Re:ゼロから始める異世界生活",
+				"name_cn": "Re：从零开始的异世界生活",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 171136,
+				"name": "戦国アスカZERO",
+				"name_cn": "战国明日香ZERO",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 177998,
+				"name": "Re:ゼロから始める休憩時間",
+				"name_cn": "Re：从零开始的休息时间",
+				"relation": "衍生",
+				"type": 2
+			},
+			{
+				"id": 185837,
+				"name": "Re:プチから始める異世界生活",
+				"name_cn": "Re：从迷你开始的异世界生活",
+				"relation": "衍生",
+				"type": 2
+			},
+			{
+				"id": 189636,
+				"name": "TVアニメ「 Re:ゼロから始める異世界生活 」サウンドトラックCD",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 190981,
+				"name": "Re:ゼロから始める異世界生活 -DEATH OR KISS-",
+				"name_cn": "",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 191123,
+				"name": "TVアニメ「Re:ゼロから始める異世界生活」スペシャルサウンドトラック1",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 101788,
+				"name": "ディバインゲート",
+				"name_cn": "神圣之门",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 203893,
+				"name": "TVアニメ「Re:ゼロから始める異世界生活」スペシャルサウンドトラック2",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 209563,
+				"name": "SINoALICE －シノアリス－",
+				"name_cn": "死亡爱丽丝",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 225462,
+				"name": "Re:ゼロから始める異世界生活 Memory Snow",
+				"name_cn": "Re：从零开始的异世界生活 雪之回忆",
+				"relation": "番外篇",
+				"type": 2
+			},
+			{
+				"id": 261805,
+				"name": "Re:ゼロから始める異世界生活 氷結の絆",
+				"name_cn": "Re：从零开始的异世界生活 冰结之绊",
+				"relation": "番外篇",
+				"type": 2
+			},
+			{
+				"id": 262865,
+				"name": "異世界かるてっと",
+				"name_cn": "异世界四重奏",
+				"relation": "角色出演",
+				"type": 2
+			},
+			{
+				"id": 282617,
+				"name": "Re:ゼロから始める異世界生活 Animation Illust Works -Re:START-",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 285422,
+				"name": "異世界かるてっと２",
+				"name_cn": "异世界四重奏 第二季",
+				"relation": "角色出演",
+				"type": 2
+			},
+			{
+				"id": 296195,
+				"name": "Re:ゼロから始める異世界生活 新編集版",
+				"name_cn": "Re：从零开始的异世界生活 新编集版",
+				"relation": "总集篇",
+				"type": 2
+			},
+			{
+				"id": 177045,
+				"name": "Redo",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 184827,
+				"name": "Paradisus-Paradoxum",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 177041,
+				"name": "STYX HELIX",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 278826,
+				"name": "Re:ゼロから始める異世界生活 2nd season",
+				"name_cn": "Re：从零开始的异世界生活 第二季",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 184828,
+				"name": "Stay Alive",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 303126,
+				"name": "劇場版 異世界かるてっと ～あなざーわーるど～",
+				"name_cn": "剧场版 异世界四重奏 ～Another World～",
+				"relation": "角色出演",
+				"type": 2
+			}
+		]
+	},
+	"anilist": {
+		"id": 21355,
+		"sourceUrl": "https://anilist.co/anime/21355",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu",
+			"english": "Re:ZERO -Starting Life in Another World-",
+			"native": "Re:ゼロから始める異世界生活"
+		},
+		"synonyms": [
+			"Re: Life in a different world from zero",
+			"ReZero",
+			"Re Zero",
+			"Re：从零开始的异世界生活",
+			"Re:Zero รีเซทชีวิต ฝ่าวิกฤตต่างโลก",
+			"Re:Zero — жизнь с нуля в другом мире",
+			"Re:Zero Empezar de cero en un mundo diferente",
+			"Re:Zero – Bắt đầu lại ở thế giới khác"
+		],
+		"format": "TV",
+		"episodes": 25,
+		"startDate": {
+			"year": 2016,
+			"month": 4,
+			"day": 4
+		},
+		"relations": [
+			{
+				"id": 85737,
+				"titles": {
+					"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu",
+					"native": "Re:ゼロから始める異世界生活"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 21780,
+				"titles": {
+					"romaji": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time)",
+					"native": "Re:ゼロから始める休憩時間(ブレイクタイム)"
+				},
+				"type": "ANIME",
+				"relation": "SPIN_OFF"
+			},
+			{
+				"id": 21891,
+				"titles": {
+					"romaji": "Re:Petit kara Hajimeru Isekai Seikatsu",
+					"native": "Re:プチから始める異世界生活"
+				},
+				"type": "ANIME",
+				"relation": "SPIN_OFF"
+			},
+			{
+				"id": 100049,
+				"titles": {
+					"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu OVAs",
+					"native": "Re:ゼロから始める異世界生活 OVAs"
+				},
+				"type": "ANIME",
+				"relation": "SIDE_STORY"
+			},
+			{
+				"id": 104454,
+				"titles": {
+					"romaji": "Isekai Quartet",
+					"native": "異世界かるてっと"
+				},
+				"type": "ANIME",
+				"relation": "CHARACTER"
+			},
+			{
+				"id": 108632,
+				"titles": {
+					"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season",
+					"native": "Re:ゼロから始める異世界生活 2nd Season"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			},
+			{
+				"id": 110178,
+				"titles": {
+					"romaji": "Isekai Quartet 2",
+					"native": "異世界かるてっと 2"
+				},
+				"type": "ANIME",
+				"relation": "CHARACTER"
+			},
+			{
+				"id": 87259,
+				"titles": {
+					"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu: Dai-3 Shou - Truth of Zero",
+					"native": "Re:ゼロから始める異世界生活 第三章 Truth of Zero"
+				},
+				"type": "MANGA",
+				"relation": "ALTERNATIVE"
+			},
+			{
+				"id": 85736,
+				"titles": {
+					"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu: Dai-1 Shou - Outo no Ichinichi-hen",
+					"native": "Re:ゼロから始める異世界生活 第一章 王都の一日編"
+				},
+				"type": "MANGA",
+				"relation": "ALTERNATIVE"
+			},
+			{
+				"id": 85814,
+				"titles": {
+					"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu: Dai-2 Shou - Yashiki no Isshuukan-hen",
+					"native": "Re:ゼロから始める異世界生活 第二章 屋敷の一週間編"
+				},
+				"type": "MANGA",
+				"relation": "ALTERNATIVE"
+			},
+			{
+				"id": 117074,
+				"titles": {
+					"romaji": "Isekai Quartet: Another World",
+					"native": "異世界かるてっと ～あなざーわーるど～"
+				},
+				"type": "ANIME",
+				"relation": "CHARACTER"
+			},
+			{
+				"id": 166093,
+				"titles": {
+					"romaji": "Snack Basue",
+					"native": "スナックバス江"
+				},
+				"type": "ANIME",
+				"relation": "CHARACTER"
+			},
+			{
+				"id": 194447,
+				"titles": {
+					"romaji": "Isekai Quartet 3",
+					"native": "異世界かるてっと 3"
+				},
+				"type": "ANIME",
+				"relation": "CHARACTER"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

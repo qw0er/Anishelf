@@ -1,0 +1,518 @@
+{
+	"schemaVersion": 1,
+	"workId": "bocchi",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 328609,
+		"sourceUrl": "https://bangumi.tv/subject/328609",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/328609",
+		"subjectResponseSha256": "5159256dbb23d60709e72f2ca8bddc81aa7a6c3251027873a923081e2fc81e6a",
+		"name": "ぼっち・ざ・ろっく！",
+		"nameCn": "孤独摇滚！",
+		"date": "2022-10-08",
+		"platform": "TV",
+		"regularEpisodeCount": 12,
+		"totalEpisodeCount": 16,
+		"aliases": [
+			"BTR",
+			"Bocchi the Rock!",
+			"Bocchi the \"Guitar Hero\" Rock Story"
+		],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/e2/e7/328609_2EHLJ.jpg",
+		"episodes": [
+			{
+				"id": 1128641,
+				"type": 0,
+				"sort": 1,
+				"ep": 1,
+				"name": "転がるぼっち",
+				"name_cn": "翻转孤独"
+			},
+			{
+				"id": 1128642,
+				"type": 0,
+				"sort": 2,
+				"ep": 2,
+				"name": "また明日",
+				"name_cn": "明天见"
+			},
+			{
+				"id": 1128643,
+				"type": 0,
+				"sort": 3,
+				"ep": 3,
+				"name": "馳せサンズ",
+				"name_cn": "火速增员"
+			},
+			{
+				"id": 1128644,
+				"type": 0,
+				"sort": 4,
+				"ep": 4,
+				"name": "ジャンピングガール(ズ)",
+				"name_cn": "跳跃的女孩（们）"
+			},
+			{
+				"id": 1128645,
+				"type": 0,
+				"sort": 5,
+				"ep": 5,
+				"name": "飛べない魚",
+				"name_cn": "不会飞的鱼"
+			},
+			{
+				"id": 1128646,
+				"type": 0,
+				"sort": 6,
+				"ep": 6,
+				"name": "八景",
+				"name_cn": "八景"
+			},
+			{
+				"id": 1128647,
+				"type": 0,
+				"sort": 7,
+				"ep": 7,
+				"name": "君の家まで",
+				"name_cn": "到你的家里"
+			},
+			{
+				"id": 1128648,
+				"type": 0,
+				"sort": 8,
+				"ep": 8,
+				"name": "ぼっち・ざ・ろっく",
+				"name_cn": "孤独摇滚"
+			},
+			{
+				"id": 1128649,
+				"type": 0,
+				"sort": 9,
+				"ep": 9,
+				"name": "江ノ島エスカー",
+				"name_cn": "江之岛电扶梯"
+			},
+			{
+				"id": 1128650,
+				"type": 0,
+				"sort": 10,
+				"ep": 10,
+				"name": "アフターダーク",
+				"name_cn": "黑夜之后"
+			},
+			{
+				"id": 1128651,
+				"type": 0,
+				"sort": 11,
+				"ep": 11,
+				"name": "十二進法の夕景",
+				"name_cn": "十二进位法的黄昏"
+			},
+			{
+				"id": 1128652,
+				"type": 0,
+				"sort": 12,
+				"ep": 12,
+				"name": "君に朝が降る",
+				"name_cn": "晨光落在你身上"
+			},
+			{
+				"id": 1127110,
+				"type": 1,
+				"sort": 1,
+				"ep": 0,
+				"name": "ABEMA特別番組「BOCCHI STATION」",
+				"name_cn": ""
+			},
+			{
+				"id": 1131526,
+				"type": 1,
+				"sort": 2,
+				"ep": 0,
+				"name": "放送直前特番「ぼっち・ざ・ろっく！＃宇宙＃日本＃下北沢」",
+				"name_cn": ""
+			},
+			{
+				"id": 1151584,
+				"type": 1,
+				"sort": 3,
+				"ep": 0,
+				"name": "ぼっち・ざ・とーく！-LIVE-",
+				"name_cn": ""
+			},
+			{
+				"id": 1246592,
+				"type": 1,
+				"sort": 11.5,
+				"ep": 0,
+				"name": "振り返り特番『ごとうふたりのおねえちゃんかんさつにっき』",
+				"name_cn": "后藤双的姐姐观察日记"
+			}
+		],
+		"episodeTotal": 16,
+		"relations": [
+			{
+				"id": 323626,
+				"name": "スローループ",
+				"name_cn": "女孩的钓鱼慢活",
+				"relation": "角色出演",
+				"type": 2
+			},
+			{
+				"id": 546940,
+				"name": "LIVE STAGE「ぼっち・ざ・ろっく！」at KT Zepp Yokohama/Zepp Namba(OSAKA)",
+				"name_cn": "",
+				"relation": "三次元",
+				"type": 6
+			},
+			{
+				"id": 546121,
+				"name": "バンド・スコア TVアニメ「ぼっち・ざ・ろっく！」",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 546116,
+				"name": "ぼっち・ざ・ろっく！ 結束バンド Piano Score Vol.1",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 537409,
+				"name": "ぼっち・ざ・ろっく！ 第2期",
+				"name_cn": "孤独摇滚！第二季",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 515379,
+				"name": "ぼっち・ざ・ろっく！ 原画集",
+				"name_cn": "孤独摇滚原画集",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 513456,
+				"name": "LIVE STAGE「ぼっち・ざ・ろっく！」PARTⅡ 秀華祭",
+				"name_cn": "",
+				"relation": "三次元",
+				"type": 6
+			},
+			{
+				"id": 512098,
+				"name": "結束バンドLIVE-恒星",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 483776,
+				"name": "バイトル × ぼっち・ざ・ろっく！ コラボ動画",
+				"name_cn": "",
+				"relation": "联动",
+				"type": 2
+			},
+			{
+				"id": 442025,
+				"name": "LIVE STAGE「ぼっち・ざ・ろっく！」",
+				"name_cn": "",
+				"relation": "三次元",
+				"type": 6
+			},
+			{
+				"id": 427293,
+				"name": "「ぼっち・ざ・ろっく！」TVアニメ公式ガイドブック -COMPLEX-",
+				"name_cn": "",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 241088,
+				"name": "ぼっち・ざ・ろっく！",
+				"name_cn": "孤独摇滚！",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 400957,
+				"name": "青春コンプレックス",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 406604,
+				"name": "結束バンド",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 409028,
+				"name": "ギターと孤独と蒼い惑星",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 402307,
+				"name": "ぼっち・ざ・らじお！",
+				"name_cn": "孤独广播！",
+				"relation": "衍生",
+				"type": 6
+			},
+			{
+				"id": 404443,
+				"name": "Distortion!!",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 404454,
+				"name": "ぼっち・ざ・ろっく! オリジナルサウンドトラックvol.1",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 431685,
+				"name": "光の中へ",
+				"name_cn": "",
+				"relation": "角色歌",
+				"type": 3
+			},
+			{
+				"id": 436738,
+				"name": "劇場総集編ぼっち・ざ・ろっく！ Re:",
+				"name_cn": "剧场总集篇孤独摇滚！ Re:",
+				"relation": "总集篇",
+				"type": 2
+			},
+			{
+				"id": 409025,
+				"name": "あのバンド",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 497922,
+				"name": "Re:結束バンド",
+				"name_cn": "",
+				"relation": "角色歌",
+				"type": 3
+			},
+			{
+				"id": 406432,
+				"name": "ギターヒーローへの道",
+				"name_cn": "吉他英雄之路",
+				"relation": "衍生",
+				"type": 6
+			},
+			{
+				"id": 459642,
+				"name": "劇場総集編ぼっち・ざ・ろっく！ Re:Re:",
+				"name_cn": "剧场总集篇孤独摇滚！ Re:Re:",
+				"relation": "总集篇",
+				"type": 2
+			},
+			{
+				"id": 406492,
+				"name": "カラカラ",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 404455,
+				"name": "ぼっち・ざ・ろっく! オリジナルサウンドトラックvol.2",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 406429,
+				"name": "ぼっち・ざ・とーく！",
+				"name_cn": "孤独谈话！",
+				"relation": "衍生",
+				"type": 6
+			},
+			{
+				"id": 511054,
+				"name": "We will",
+				"name_cn": "",
+				"relation": "角色歌",
+				"type": 3
+			},
+			{
+				"id": 409027,
+				"name": "なにが悪い",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 466281,
+				"name": "結束バンドLIVE-恒星-",
+				"name_cn": "",
+				"relation": "衍生",
+				"type": 6
+			},
+			{
+				"id": 412530,
+				"name": "転がる岩、君に朝が降る",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 520345,
+				"name": "結束バンドの歌ってみた",
+				"name_cn": "",
+				"relation": "角色歌",
+				"type": 3
+			},
+			{
+				"id": 410495,
+				"name": "ワタシダケユウレイ",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 412531,
+				"name": "忘れてやらない",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 538079,
+				"name": "結束バンド ZEPP TOUR 2024 “We will”",
+				"name_cn": "",
+				"relation": "衍生",
+				"type": 6
+			},
+			{
+				"id": 412529,
+				"name": "星座になれたら",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 538075,
+				"name": "結束バンド TOUR “We will B”",
+				"name_cn": "",
+				"relation": "衍生",
+				"type": 6
+			},
+			{
+				"id": 538071,
+				"name": "結束バンドへの道",
+				"name_cn": "结束乐队之路",
+				"relation": "衍生",
+				"type": 6
+			},
+			{
+				"id": 410493,
+				"name": "ぼっち・ざ・ろっく! vol.3 特典CD",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 410494,
+				"name": "ぼっち・ざ・ろっく! vol.4 特典CD",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 412601,
+				"name": "ぼっち・ざ・ろっく! vol.6 特典CD",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			}
+		]
+	},
+	"anilist": {
+		"id": 130003,
+		"sourceUrl": "https://anilist.co/anime/130003",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Bocchi the Rock!",
+			"english": "BOCCHI THE ROCK!",
+			"native": "ぼっち・ざ・ろっく！"
+		},
+		"synonyms": [
+			"РОК-ТИХОНЯ!",
+			"บจจิเดอะร็อก!",
+			"孤獨搖滾！",
+			"孤独摇滚！",
+			"외톨이 THE ROCK!",
+			"봇치 더 록!",
+			"BTR"
+		],
+		"format": "TV",
+		"episodes": 12,
+		"startDate": {
+			"year": 2022,
+			"month": 10,
+			"day": 9
+		},
+		"relations": [
+			{
+				"id": 111258,
+				"titles": {
+					"romaji": "Bocchi the Rock!",
+					"native": "ぼっち・ざ・ろっく！"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 127549,
+				"titles": {
+					"romaji": "Slow Loop",
+					"native": "スローループ"
+				},
+				"type": "ANIME",
+				"relation": "CHARACTER"
+			},
+			{
+				"id": 165253,
+				"titles": {
+					"romaji": "Bocchi the Rock! Re:",
+					"native": "ぼっち・ざ・ろっく！Re:"
+				},
+				"type": "ANIME",
+				"relation": "SUMMARY"
+			},
+			{
+				"id": 171099,
+				"titles": {
+					"romaji": "Bocchi the Rock! Re:Re:",
+					"native": "ぼっち・ざ・ろっく！ Re:Re:"
+				},
+				"type": "ANIME",
+				"relation": "SUMMARY"
+			},
+			{
+				"id": 186712,
+				"titles": {
+					"romaji": "Bocchi the Rock! 2nd Season",
+					"native": "ぼっち・ざ・ろっく！ 2期"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

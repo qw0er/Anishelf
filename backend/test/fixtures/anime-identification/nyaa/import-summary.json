@@ -1,0 +1,563 @@
+{
+	"schemaVersion": 1,
+	"importedAt": "2026-10-11",
+	"batchStartedAt": "2026-10-11T01:36:44.066547+00:00",
+	"verification": "Local RSS provenance, torrent SHA-256 and complete decoded inventories checked; no Nyaa network requests. Positive answers use existing frozen provider snapshots.",
+	"searchCount": 60,
+	"observations": 3839,
+	"duplicatesByTorrentSha256": 262,
+	"uniqueTorrents": 3577,
+	"uniqueTorrentFiles": 100766,
+	"selectedSources": 33,
+	"addedCases": 268,
+	"addedFileCases": 235,
+	"addedTitleCases": 33,
+	"decisions": {
+		"match": 183,
+		"review": 54,
+		"ignore": 31
+	},
+	"addedScenarios": 5,
+	"searches": [
+		{
+			"id": "alias-chinese-attack-titan",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "00fefd3aa495df7416c02fb76cf825295c5e7cf9b74034db175787a9c87b72dd",
+			"manifestSha256": "300792eaef295e199caef4148c53805f62636c253b26e6cf9bcef2edb0c5bc18",
+			"collectedAt": "2026-10-11T02:34:55.229110+00:00"
+		},
+		{
+			"id": "alias-delicious-dungeon",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "45431ed80a767058103281933f7ecfa5b88f6296676532b1f9be7ca58135021a",
+			"manifestSha256": "80c28d2a7b548b51e1dc66536cb3b1cf2d03f6abe1aeb21f438df0ac0d87cb83",
+			"collectedAt": "2026-10-11T02:32:22.014668+00:00"
+		},
+		{
+			"id": "alias-frieren",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "7f209a25443f4543cca907dfe158521bac79a775a1276e748c9779eedd12977c",
+			"manifestSha256": "7402ed07e048b113abd373f24a8725e25fbc7fd9f745dbd5312687cf76353e25",
+			"collectedAt": "2026-10-11T01:55:56.824734+00:00"
+		},
+		{
+			"id": "alias-frieren-english",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "346779d1007d2b7a2d6361c7cc93caeed0d42cfea47fb9c949f409c46cc5a77c",
+			"manifestSha256": "00fac5cf22fb1d49abf0d1d994d73ada359fd2f67b5b090c063935217847f5c2",
+			"collectedAt": "2026-10-11T02:33:38.608665+00:00"
+		},
+		{
+			"id": "ambiguous-fate",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "2c266f9ed4edd8b1eb529342c8dd9ddc48a78c2d6e3ea4665e188f25f71bedf1",
+			"manifestSha256": "ba82fa43164a6e4fea6104dbf1d776862875842cee56c20f56390ac0a28a4ecc",
+			"collectedAt": "2026-10-11T01:57:13.371443+00:00"
+		},
+		{
+			"id": "ambiguous-fullmetal",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "b47f2922e44b73f361a46882238e7c9ef01a342bb10fac1817631b24a4553e40",
+			"manifestSha256": "0594bb50121d76adf1dc43e5028050c209cf666a6d786dbd3a48c9b10942d525",
+			"collectedAt": "2026-10-11T02:36:11.804179+00:00"
+		},
+		{
+			"id": "ambiguous-gundam",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "5add56bc9ec0ed04cff2985aba0e550e6538207fa62cc6af7f381efe79aab5c0",
+			"manifestSha256": "19cc762adbdd848986fcbab8d9df687463e41fa956eec3311ccc9e5c8295fb6c",
+			"collectedAt": "2026-10-11T01:58:29.949718+00:00"
+		},
+		{
+			"id": "ambiguous-hunter",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "62383e7775e4c11b2bf6e32f73aee84e85f71580aa977165eba9a2803ee4b42d",
+			"manifestSha256": "098836d114c10851a90973d307a5866c64c19098a017940b0d220429a6a524ba",
+			"collectedAt": "2026-10-11T02:37:28.445326+00:00"
+		},
+		{
+			"id": "batch-clannad",
+			"entries": 13,
+			"succeeded": 13,
+			"failed": 0,
+			"rssSha256": "01f477bfc2c4ac200381970a1b245a8fab77f620b2909017fca4f2c7470fbd8e",
+			"manifestSha256": "7607cec9088951b8b44c486e449f00ceb138944236426a3888379541cf7907e1",
+			"collectedAt": "2026-10-11T02:11:43.295209+00:00"
+		},
+		{
+			"id": "batch-cowboy-bebop",
+			"entries": 6,
+			"succeeded": 6,
+			"failed": 0,
+			"rssSha256": "030ba158421973b4a752851f51fcfcb0a5630100ccc0672f979fda5f0c9064b2",
+			"manifestSha256": "40471024d5fdbae94c7f13ecec7995f796fa1a6ef0d5f3bc5ec9c9146a40363c",
+			"collectedAt": "2026-10-11T02:11:24.222835+00:00"
+		},
+		{
+			"id": "batch-evangelion",
+			"entries": 3,
+			"succeeded": 3,
+			"failed": 0,
+			"rssSha256": "7f7888e8967130513ec4dae800b6fce2ae328852e84cdeb45209ca1f1efbbef9",
+			"manifestSha256": "212161ef5e45a39334975b32c0853481dba900ddd92e99b1664c3547f78b3a47",
+			"collectedAt": "2026-10-11T02:11:28.649165+00:00"
+		},
+		{
+			"id": "batch-frieren",
+			"entries": 24,
+			"succeeded": 24,
+			"failed": 0,
+			"rssSha256": "5b5198c12aef35e025a8e6cda0d830f23fff99352f1737399113100b1552d1dd",
+			"manifestSha256": "3ae2de01861a328cc1248b717faf07e5ae2dc4ee8a88f63e2adc263fae036d51",
+			"collectedAt": "2026-10-11T01:43:35.220531+00:00"
+		},
+		{
+			"id": "batch-fullmetal",
+			"entries": 5,
+			"succeeded": 5,
+			"failed": 0,
+			"rssSha256": "fb2bc583b19bb42ab40da2e19356b669ecb78a5931b27486c88fdd21ba05b308",
+			"manifestSha256": "04dff4cd4fc906bb024202b3ee457beb8536f9ac38f9b2df4d76bb23fe78895d",
+			"collectedAt": "2026-10-11T02:13:26.853375+00:00"
+		},
+		{
+			"id": "batch-k-on",
+			"entries": 14,
+			"succeeded": 14,
+			"failed": 0,
+			"rssSha256": "d88975f351f27ed02fdce049f5b84ab438493c94b34892b64a1c807cba7edeb9",
+			"manifestSha256": "08598348bb51fdcf1e001f34d514c58ca3bafa047cdc5da686e890890612ab94",
+			"collectedAt": "2026-10-11T02:11:58.946878+00:00"
+		},
+		{
+			"id": "batch-monogatari",
+			"entries": 55,
+			"succeeded": 55,
+			"failed": 0,
+			"rssSha256": "a7399b3222ac5839a0246cdf0726993db59b9f660e3f2483076cb01c2a5c475b",
+			"manifestSha256": "c2012de8033579f08147efe3017483ec4983c7d4cf991a91472bbf647ed8ccf1",
+			"collectedAt": "2026-10-11T02:12:56.098590+00:00"
+		},
+		{
+			"id": "batch-nichijou",
+			"entries": 39,
+			"succeeded": 39,
+			"failed": 0,
+			"rssSha256": "5e448b223f1d96abd4b7856efa618d54e6b94a048fa4e1c56c65786267da2f5b",
+			"manifestSha256": "0bef34aba3f70ebef7145d861419d347a15c8bf1f83271fb1181588083e737d0",
+			"collectedAt": "2026-10-11T02:14:07.542269+00:00"
+		},
+		{
+			"id": "batch-spy-family",
+			"entries": 48,
+			"succeeded": 48,
+			"failed": 0,
+			"rssSha256": "7d0bbd8f20747d36e9cb41a78477a1ffa2083e852bd2d51641da63d69226a455",
+			"manifestSha256": "493efe222438d8b81925b20b0dcb05fefbf0fd59c335812c4e6817fb842afbee",
+			"collectedAt": "2026-10-11T01:44:25.026264+00:00"
+		},
+		{
+			"id": "batch-steins-gate",
+			"entries": 22,
+			"succeeded": 22,
+			"failed": 0,
+			"rssSha256": "71d85cb5ce5c4e8b2e83eadc75e2181054fc7dd4cbd85c7b73618b2f6db6d5dc",
+			"manifestSha256": "f734f75040d966addf167718fe11c65394ff77b2a859265d75e8244fc7a2b808",
+			"collectedAt": "2026-10-11T02:13:19.894600+00:00"
+		},
+		{
+			"id": "bd-extras",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "27a1b2c752a4e269d3d9b267401368b9f42a71912f18007c00f87772c04794f8",
+			"manifestSha256": "bd191611c50b6276bfab7feab4eecd6dac64a7121fb544da94bcdbed9f804399",
+			"collectedAt": "2026-10-11T02:28:31.224942+00:00"
+		},
+		{
+			"id": "format-bd-remux",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "881be323f215ab188eb210c4ccb078a1dfe62eb4f79c5741330807388a6d911e",
+			"manifestSha256": "10bd62ab81e99becf81c08549eec7367d4da1df1ed5a4a6a3cc6007e02916191",
+			"collectedAt": "2026-10-11T02:42:35.744884+00:00"
+		},
+		{
+			"id": "group-erai",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "02c7efbe234d0c319a3a5afacede45545d2bf2f73960b949803a41135fa816b1",
+			"manifestSha256": "f02248a81d4e3a6a0fd7362a56683ccdfd3996b33ca796de663e5b2809fc6c3c",
+			"collectedAt": "2026-10-11T02:40:01.780394+00:00"
+		},
+		{
+			"id": "group-mtbb",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "7f76e889851b7ee4e95612549a8fa6fbbf3d04992992e17e72dfa6c00e3fc214",
+			"manifestSha256": "78bb0bd4c430fd12706297fcbf8b02e7b45ab504fe88b701902f25ee256e0dab",
+			"collectedAt": "2026-10-11T02:41:18.578816+00:00"
+		},
+		{
+			"id": "group-subsplease",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "7eaaa0040d565e6aba1d0234e79a1a3d564259dfe6b62f67a8f2dda4ce16e6c4",
+			"manifestSha256": "1a5a8b179fe4b613a338ab8c47e6bce7156b8016a220d3ea44a5763b976307cf",
+			"collectedAt": "2026-10-11T02:38:45.265546+00:00"
+		},
+		{
+			"id": "long-conan",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "96e43913a6616bce7950d902ce1cee9e32b54ca19cc29ab6c497e1688e221dd4",
+			"manifestSha256": "f030fb945b2ba105baf12f6ca6ef73796111cfea8c00bee1f70aa697c81e6198",
+			"collectedAt": "2026-10-11T01:45:41.901372+00:00"
+		},
+		{
+			"id": "long-gintama",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "b5953cc3fcbd6503f4560ae29e18bb653eb281934bdef3371d37feb01807405e",
+			"manifestSha256": "cb4478e8ff11135a287dde359d81fa38f9edbaca999d6cb650b88371854266d1",
+			"collectedAt": "2026-10-11T02:16:42.060490+00:00"
+		},
+		{
+			"id": "long-naruto",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "80a437d6d36c76db39e592a5181446977b9ab3df6cda30108401ba638a34b5b6",
+			"manifestSha256": "7a9807a554bfde8dc2c67de42a4047e9ded7c381a3fa56a9cca984ff99eedd33",
+			"collectedAt": "2026-10-11T02:15:25.297055+00:00"
+		},
+		{
+			"id": "long-one-piece",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "1779e88ec83f6d20f88cf5a5f60b3c98184803eb8e90c76075b378455145a70c",
+			"manifestSha256": "9805fdc2334bc79dd5681d9031e677a23d68f9ed13fd94ad582ba4ada305bc87",
+			"collectedAt": "2026-10-11T01:46:58.539610+00:00"
+		},
+		{
+			"id": "long-pokemon",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "0527bdcaebef43b58918fca1f0a85f44c421c6d3800adca773249db192fd69e5",
+			"manifestSha256": "276abaf8fc3997428de61761df903b00f019417d0aebdd9090a4a360892219f9",
+			"collectedAt": "2026-10-11T02:17:58.770776+00:00"
+		},
+		{
+			"id": "movie-eva",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "462ac5e4f443bfe4d8aad5e1c33521ebbf3f19a9ed491046384072c6f3d5a2d9",
+			"manifestSha256": "b9decf14ce2175ee591bf689685bd3e36c5dba85f66850d3215993f12f1276f2",
+			"collectedAt": "2026-10-11T02:23:06.432844+00:00"
+		},
+		{
+			"id": "movie-madoka",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "9d7d3623681e27e41801eeb6fd283f3a2359634c0e0761962a365ed1211bb65e",
+			"manifestSha256": "59eccaadb0a2911801946357a885b8878e64171055320ae5dcf8de5c87e461f3",
+			"collectedAt": "2026-10-11T02:21:49.679850+00:00"
+		},
+		{
+			"id": "movie-silent-voice",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "a9ba5d28209b91a4906a4b0d64c552367ae2312942ae652847d3da5120275a9c",
+			"manifestSha256": "23cb983b232672d6518ecb43e12f62449080bbed2827a9f454c978f8ff7073e1",
+			"collectedAt": "2026-10-11T02:20:32.756610+00:00"
+		},
+		{
+			"id": "movie-suzume",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "e2a04ace28c64f72ee5249826035f95de5908a857cd0c71464505253ac2cfc5d",
+			"manifestSha256": "631d77410f60c37c6a64b9bc64a2bbc0a2c3f8f753f16c4a8986d7394a62e141",
+			"collectedAt": "2026-10-11T01:48:15.058089+00:00"
+		},
+		{
+			"id": "movie-your-name",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "7b82d793b87055d3e48325cc35b3b293546dca21bb6e885318d791388ccf4f9e",
+			"manifestSha256": "9d7ca86f7b4d8672244980c0fc732ef3cb19a629b497949dbb55f57678caadef",
+			"collectedAt": "2026-10-11T02:19:15.989355+00:00"
+		},
+		{
+			"id": "multi-episode",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "fef8d05605265ec5b0396d907301387db0895efd6e6b3bb5895066ad0521d8e9",
+			"manifestSha256": "f0b19ad7cc0e7a1f499faa0de2e43440d15254e8a9b8b260f3c3b7416846681e",
+			"collectedAt": "2026-10-11T01:54:40.055596+00:00"
+		},
+		{
+			"id": "multi-episode-range",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "563a22f3495ee7ed288e3c5f7c64a85e7bbb9fccd5a429cb4752d18d62318b86",
+			"manifestSha256": "0273ba770d166b40f2c74bf5984c0db5d3ff24bf0883e785fda98c4d98815e81",
+			"collectedAt": "2026-10-11T02:31:05.220810+00:00"
+		},
+		{
+			"id": "nced",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "935e6863d6b699dd3c1e43dffa417c3f2c4c930ef6c3705518a076acb4679d00",
+			"manifestSha256": "7416a8156d3cc256218988783c2fcb8c61a3f3a5bc6d5c7b8cd4ea85fb4e4e2d",
+			"collectedAt": "2026-10-11T02:27:14.719596+00:00"
+		},
+		{
+			"id": "ncop",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "c29ecd0108b44923c3f2d1ee1ac0185129698f33d278ca02ec7098df76502acc",
+			"manifestSha256": "508b39669e166af53a6f402bc978f706a92841157cd2a929de3822854fd5d3a3",
+			"collectedAt": "2026-10-11T01:52:06.452689+00:00"
+		},
+		{
+			"id": "oad",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "ee00ff0b6794a167670b6c1c4263f3cd60d3ef5b8a64b2af051917a52d0d8382",
+			"manifestSha256": "99700b35f106032aa3ca07076f3e88fcaaaae9e8bc7b530603b5b390ed6efe88",
+			"collectedAt": "2026-10-11T01:50:49.357393+00:00"
+		},
+		{
+			"id": "ova",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "794e70604fdf6c7a9c613f1cd194d23da7dd4e9fbbe0b617b148654fe21c934b",
+			"manifestSha256": "cbcce1d22ad764cea0d370af345fa57fe78d60e761795ca4abd0aec637c3c875",
+			"collectedAt": "2026-10-11T01:49:31.983679+00:00"
+		},
+		{
+			"id": "part-attack-titan",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "48b97bd057d31dbfa2bd9fe60f274d97ff6ccae32fa498988395b22f69a8093a",
+			"manifestSha256": "d51f53469f4476d77c577d434e11f6d6525694fbcda052279ada4d898ec8ccc0",
+			"collectedAt": "2026-10-11T02:08:43.439657+00:00"
+		},
+		{
+			"id": "part-bleach",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "53502f4167d754e1c5554b28dc748a8f6962d8df29a57fa594693d4db4d9a2c0",
+			"manifestSha256": "5b4100dd451b9d28d8f49c18fdf9d725d068cc4e8e92ce1b1d8cc10d0e316fb4",
+			"collectedAt": "2026-10-11T01:43:09.114789+00:00"
+		},
+		{
+			"id": "part-dr-stone",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "fd73dbde9b2b4d116d20279c0591a0d6ad94d244aaa9a9f3460270fab5bed964",
+			"manifestSha256": "38d83c187b1588032c3fb68af00a2bdc1e626801d3f5bc970428f46329901e31",
+			"collectedAt": "2026-10-11T02:09:59.963205+00:00"
+		},
+		{
+			"id": "part-eighty-six",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "afa583065f955ca297077ac2694ed4c0af90e6e43326ad7eaa93b8ca04f4205d",
+			"manifestSha256": "5339bbe7c3dc6f5cebdf416bf3d048037ef919d7c6dc6dee57358605e443a46e",
+			"collectedAt": "2026-10-11T02:11:16.476629+00:00"
+		},
+		{
+			"id": "revision",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "eabc66dfec3b2dbc72f89788df511cf92f3fe5ca6c4e9b804cf0cdcb22693400",
+			"manifestSha256": "e93ff8e22473c5fe320bd3a0a0a4d408b307a247e7262c78452b61d6d795f81a",
+			"collectedAt": "2026-10-11T01:53:23.395378+00:00"
+		},
+		{
+			"id": "revision-v3",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "6aafda12c650e9d6c649eac3f5767405bfd0c944989c55ef6dfc92c2726b3b5d",
+			"manifestSha256": "828488d7275998b217e45d8cafd4fe64e8c0d9c00b52c63861959b8c1fbf8db4",
+			"collectedAt": "2026-10-11T02:29:48.458989+00:00"
+		},
+		{
+			"id": "season-attack-titan",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "54e06a51af69f732db35994a3d754bead6bdd94f4de7411d15904a6891777fc5",
+			"manifestSha256": "14bae6a7e3bf05b7e9cd0620659876a6fb48939e17bd7ee8831da6b9b726a1c9",
+			"collectedAt": "2026-10-11T01:41:52.348918+00:00"
+		},
+		{
+			"id": "season-danmachi",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "2f0fbbbb3155936ce797fdc883b50bc3efdd0efb1b9d31edc86b02ae5adec0e6",
+			"manifestSha256": "6d225b78d320affce967b669dd464087fd39be3bb38cc6b2649c10fc596a6b10",
+			"collectedAt": "2026-10-11T02:07:26.583853+00:00"
+		},
+		{
+			"id": "season-kaguya",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "8ae730ffa3643d85e0b9c07118a7f641af0599ffc1ae556087535b42f58379ff",
+			"manifestSha256": "755cda7201ac17ce709c52020f7da8736217903c9cd1545628bf4e62097befec",
+			"collectedAt": "2026-10-11T02:04:53.184584+00:00"
+		},
+		{
+			"id": "season-konosuba",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "16b6f840a1667e39aa0c1c403b37c3e87800d656cd0455fc29b5db276cc4ddb6",
+			"manifestSha256": "fae3e46027d979e13b2a1da115a1ead97e52aeb8a19bbf7d434f30c8387b9795",
+			"collectedAt": "2026-10-11T02:06:09.836096+00:00"
+		},
+		{
+			"id": "season-mushoku",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "7954a058b5ab2df73912aa3d6cf698b3742911fe191593fabe24a7d3aee33742",
+			"manifestSha256": "d44cd351580799ad7f34f02bcc0e7d95741a45c5a01214fb6f32bdd648a0bb7a",
+			"collectedAt": "2026-10-11T02:03:36.576794+00:00"
+		},
+		{
+			"id": "season-re-zero",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "34da9f15f51b547e28e2096cb12e784944584ef955d97beffaabaa31397eb250",
+			"manifestSha256": "a7415eff8614448559e0b4c2cb42255059cb7f2c653895b46e624f261a4ede48",
+			"collectedAt": "2026-10-11T01:40:34.624722+00:00"
+		},
+		{
+			"id": "single-bocchi",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "2d33d9a3a1925030e4954830eafb930f41cd4759c48962c491b0fe158cf970cc",
+			"manifestSha256": "d019ef00f65567f1a60c5eb49ff809efd454a2da4695627e2ba5db219e40f1d1",
+			"collectedAt": "2026-10-11T02:01:03.081873+00:00"
+		},
+		{
+			"id": "single-chainsaw",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "b3c55a9e75008210271ca4ec13b6b04aeeaf39060faf49fa41a64d15325c63ef",
+			"manifestSha256": "89b2b190a4c2a1364f7814e10eceaf1c55700607c6bb8dc3be6402cd7602af68",
+			"collectedAt": "2026-10-11T02:02:19.620519+00:00"
+		},
+		{
+			"id": "single-dungeon-meshi",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "d73848492491d94d09c9dcc747b0bfc2bb56215d2df6d28a2f002354661385f8",
+			"manifestSha256": "076de63aa180b1986b2241387f7c0faf3a5e95ccbbddda76beded85e50e576c7",
+			"collectedAt": "2026-10-11T01:59:46.542685+00:00"
+		},
+		{
+			"id": "single-frieren",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "7869d95a7ccdaef2899864f8ccd5b85cc3ab7acf1c4a87e40853b5945ad565ce",
+			"manifestSha256": "1d30d632e338a8852b987e6f03f6524a8f9d7b02a5f3852a374282d40b188ecd",
+			"collectedAt": "2026-10-11T01:38:00.917792+00:00"
+		},
+		{
+			"id": "single-spy-family",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "8bf39192e01ab9dc8f373cbc81d2e32225de7f4c8c0e9bc95e3cf8b862853a50",
+			"manifestSha256": "eba8be03b4638cc5a8b742eaa84f5f898cd9f073f09123b967ef4b80a63e6cf7",
+			"collectedAt": "2026-10-11T01:39:18.079754+00:00"
+		},
+		{
+			"id": "special-attack-titan",
+			"entries": 75,
+			"succeeded": 75,
+			"failed": 0,
+			"rssSha256": "c7cb53d1fc419973d86902839f4c2323bf178841c9f150c274eb67440a657977",
+			"manifestSha256": "410b833bf344fb968f63221f5f93f2c60c01721cd59a814242289df523294c6c",
+			"collectedAt": "2026-10-11T02:25:07.241339+00:00"
+		},
+		{
+			"id": "special-frieren",
+			"entries": 1,
+			"succeeded": 1,
+			"failed": 0,
+			"rssSha256": "23c46bf326bded91b889b0c7b08e8e3d722ae29860d2ed6166377984a94076f3",
+			"manifestSha256": "0175b9e2d43e2f6a8bde63b162a72ecb3f6a38ee627ca552b00316e5fc5c47e5",
+			"collectedAt": "2026-10-11T02:23:09.126935+00:00"
+		},
+		{
+			"id": "special-konosuba",
+			"entries": 35,
+			"succeeded": 35,
+			"failed": 0,
+			"rssSha256": "3a6f594f9e36a2d30aa8d18b4189a24e46f44fc46a0618bc848a988d199642bf",
+			"manifestSha256": "8bbfd3c6aa9e4dca4e74e4370d2a79e33d6a778a8ad2552ccfcb82f7f16c5f6b",
+			"collectedAt": "2026-10-11T02:23:50.716267+00:00"
+		},
+		{
+			"id": "special-re-zero",
+			"entries": 49,
+			"succeeded": 49,
+			"failed": 0,
+			"rssSha256": "7f8015057204c134eaf711c2eb0af1a6de89688e3b3e2522277f9998bca4a985",
+			"manifestSha256": "223b91df575ae175d4f1300b60dc088e499e86820d6fbadb94816414f027284a",
+			"collectedAt": "2026-10-11T02:25:58.008434+00:00"
+		}
+	]
+}
