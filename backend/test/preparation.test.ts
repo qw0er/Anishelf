@@ -870,7 +870,7 @@ test.each([1, null])(
 				);
 			// Restore the schema predating audio-selection/lifecycle migrations as well as its journal.
 			connection.exec(
-				"DROP TABLE subtitle_font_assets; DROP TABLE subtitle_font_sets;",
+				"DROP TABLE metadata_pins; DROP TABLE metadata_snapshots; DROP TABLE metadata_artwork; DROP TABLE subtitle_font_assets; DROP TABLE subtitle_font_sets;",
 			);
 			connection
 				.prepare("DELETE FROM __drizzle_migrations WHERE created_at >= ?")

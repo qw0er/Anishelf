@@ -1,7 +1,25 @@
 import type { ApiErrorResponse } from "../contracts/http.js";
+import { MetadataError } from "../modules/metadata/public.js";
 import { DomainError, type ErrorCode } from "../shared/errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	METADATA_UNAVAILABLE: {
+		status: 503,
+		message:
+			"Metadata is unavailable. Retry shortly; cached data and local playback remain usable.",
+	},
+	METADATA_NOT_FOUND: {
+		status: 404,
+		message: "Requested metadata or cached artwork was not found.",
+	},
+	METADATA_INVALID_RESPONSE: {
+		status: 502,
+		message: "Metadata provider returned an invalid response. Retry later.",
+	},
+	METADATA_RATE_LIMITED: {
+		status: 429,
+		message: "Metadata provider rate limit reached. Retry later.",
+	},
 	MEDIA_PLANNING_UNAVAILABLE: {
 		status: 503,
 		message: "Media planning is unavailable. Retry shortly.",
@@ -112,7 +130,27 @@ export function apiError(code: ErrorCode, requestId: string): ApiErrorResponse {
 export function classifyHttpError(error: unknown): {
 	code: ErrorCode;
 	status: number;
+	retryAt?: number;
 } {
+	if (error instanceof MetadataError) {
+		const code: ErrorCode =
+			error.failure.code === "invalid-request"
+				? "INVALID_REQUEST"
+				: error.failure.code === "not-found"
+					? "METADATA_NOT_FOUND"
+					: error.failure.code === "invalid-response"
+						? "METADATA_INVALID_RESPONSE"
+						: error.failure.code === "rate-limited"
+							? "METADATA_RATE_LIMITED"
+							: "METADATA_UNAVAILABLE";
+		return {
+			code,
+			status: domainErrors[code].status,
+			...(error.failure.retryAt === null
+				? {}
+				: { retryAt: error.failure.retryAt }),
+		};
+	}
 	if (error instanceof DomainError)
 		return { code: error.code, status: domainErrors[error.code].status };
 	const status =

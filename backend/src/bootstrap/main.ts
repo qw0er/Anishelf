@@ -22,6 +22,10 @@ import { createHttpApp } from "./http.js";
 import { createIdentificationModule } from "./identification.js";
 import { createLibraryModule } from "./library.js";
 import { createMediaExecutionModule } from "./media-execution.js";
+import {
+	createIdentificationMetadata,
+	createMetadataModule,
+} from "./metadata.js";
 import { createPlaybackCopies } from "./playback-selection.js";
 
 type HttpApp = ReturnType<typeof createHttpApp>;
@@ -188,12 +192,29 @@ async function createServer(
 		selectedProfileId: () =>
 			configuration.getTranscodeProfileCatalog().selectedProfileId,
 	});
+	let metadata: Awaited<ReturnType<typeof createMetadataModule>> | undefined;
+	if (database) {
+		try {
+			metadata = await createMetadataModule({
+				dataDir: config.dataDir,
+				store: database.metadata,
+				logger,
+			});
+		} catch (err) {
+			logger.warn(
+				{ event: "metadata.unavailable", err },
+				"Metadata cache unavailable; local identification remains usable.",
+			);
+		}
+	}
 	const identification = createIdentificationModule({
+		...(metadata ? { metadata: createIdentificationMetadata(metadata) } : {}),
 		library,
 		sources: library.sources,
 		logger,
 	});
 	const server = createHttpApp({
+		...(metadata ? { metadata } : {}),
 		playbackSelection,
 		configuration,
 		config,
@@ -209,6 +230,7 @@ async function createServer(
 		closeDependencies: async () => {
 			// Stop durable owners before their shared executor and inspection dependencies.
 			await identification.close();
+			await metadata?.close();
 			await preparation.close();
 			playback.close();
 			await subtitles.close();
