@@ -2,9 +2,13 @@
 
 ## 1. Goal and Status
 
-Deliver an anime library from existing local resources using external metadata, resource identification and manual confirmation. The user can identify a directory or selected files, resolve ambiguous titles and episode numbers, browse confirmed anime by episode and choose a file version for existing Web playback.
+Deliver an anime library from existing local resources using external metadata, resource identification and manual confirmation. Completed scans automatically identify new or changed local resources. The user can resolve ambiguous titles and episode numbers, browse confirmed anime by episode and choose a file version for existing Web playback.
 
-This iteration is selected but not implemented or accepted. No release number is assigned. The [overall requirements](requirements.md) own feature identifiers and later scope; [History](history.md#v2-requirements) preserves V2 acceptance gaps. This document does not declare those gaps complete.
+This iteration is selected and not yet complete or accepted. The backend
+[Identification module](identification.md) implements stateless local recognition
+and candidate-specific proposals. An application coordinator automatically processes
+published scans. Metadata is a reserved port; Catalog persistence and the Web review
+workflow remain pending. No release number is assigned. The [overall requirements](requirements.md) own feature identifiers and later scope; [History](history.md#v2-requirements) preserves V2 acceptance gaps. This document does not declare those gaps complete.
 
 External metadata access belongs to this iteration. Personal tracker authorization, list import and progress synchronization are later capabilities and must not be prerequisites for identifying local files.
 
@@ -29,10 +33,10 @@ These are selected design decisions, not implemented capabilities.
 
 ## 3. User Workflow
 
-1. Scan existing resources using the current library workflow, then start identification for a directory or selected files.
-2. Parse file and directory evidence and retrieve external candidates. A directory supplies context but is not assumed to contain only one anime.
-3. Preview candidate metadata and matching reasons. Confirm the anime or search for a different entry; split associations when a directory contains multiple works.
-4. Review episode mappings, including specials, continuous numbering, ranges and season/part boundaries. Correct individual mappings or apply an explicit numbering offset with a preview of affected files.
+1. Scan existing resources using the current library workflow. Published scans automatically trigger local identification; no separate Identify action is required.
+2. Identification parses file and directory evidence and, once Metadata is integrated, generates ranked candidates and candidate-specific episode proposals. A directory supplies context but is not assumed to contain only one anime.
+3. Anime Catalog owns accepting associations and presenting ambiguous proposals for review. Confirm the anime or search for a different entry; split associations when a directory contains multiple works.
+4. Use Catalog-owned correction operations to review episode mappings, including specials, continuous numbering, ranges and season/part boundaries. Correct individual mappings or apply an explicit numbering offset with a preview of affected files.
 5. Save confirmed associations and open the anime detail view. Select an episode and resource version for playback.
 6. Rescan or refresh metadata without silently overwriting confirmed manual choices. Unidentified files remain accessible through the existing file browser.
 
@@ -45,7 +49,7 @@ These are selected design decisions, not implemented capabilities.
 - Refreshing provider metadata must not erase user corrections, file associations or viewing history. Changed or unavailable sources must not inherit unrelated progress or be presented as playable without existing access validation.
 - Preserve existing source-level playback progress when establishing or changing associations. Episode watched-state aggregation and completion detection belong to W03–W05 in the next core stage.
 - Cached metadata and original file playback remain usable during provider outages. New uncached searches can fail with actionable retry feedback; incomplete episode relations remain explicit.
-- Identification reads originals without renaming, moving or deleting them. Resource-root confinement and source-version access checks continue to apply.
+- Identification consumes validated source identities and name/path strings. The coordinator accesses originals without renaming, moving or deleting them. Resource-root confinement and source-version access checks continue to apply.
 - Start with AniList through an extensible provider adapter and use `anitomy-ng` for extraction. Validate both against representative resources; retain explicit unknowns where AniList cannot provide complete episode data or numbering relations.
 
 ## 5. Acceptance Criteria

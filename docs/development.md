@@ -37,6 +37,10 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm run build` | Build backend and frontend |
 | `npm run start:backend` | Run the built backend; host pages only when `ANISHELF_FRONTEND_DIR` is set |
 
+The backend [Identification module](identification.md) documents stateless
+recognition and automatic scan coordination. It has no task/review HTTP API or
+active database dependency; Metadata and Catalog integration remain pending.
+
 The anime-identification corpus contains provider-backed work records, authentic
 resource filenames and explicitly synthetic boundaries. It can generate a separate
 placeholder library for scanning and later identification evaluation. These files

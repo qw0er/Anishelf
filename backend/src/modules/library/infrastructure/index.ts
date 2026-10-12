@@ -182,6 +182,36 @@ export class LibraryIndex {
 		);
 	}
 
+	/** Read one bounded page from a specific immutable publication. */
+	readFilePage(
+		revision: number,
+		offset: number,
+		limit: number,
+	): { files: FileEntry[]; nextOffset: number | null } {
+		if (revision !== this.current.revision || this.current.scannedAt === null)
+			throw new DomainError(
+				"SCAN_FAILED",
+				"The library publication changed or is not available.",
+			);
+		if (
+			!Number.isSafeInteger(offset) ||
+			offset < 0 ||
+			!Number.isSafeInteger(limit) ||
+			limit < 1 ||
+			limit > 500
+		)
+			throw new DomainError("INVALID_REQUEST", "Invalid library page.");
+		const files: FileEntry[] = [];
+		let skipped = 0;
+		for (const entry of this.current.entriesById.values()) {
+			if (entry.kind !== "file") continue;
+			if (skipped++ < offset) continue;
+			if (files.length === limit) return { files, nextOffset: offset + limit };
+			files.push({ ...entry });
+		}
+		return { files, nextOffset: null };
+	}
+
 	getEntry(id: ResourceId): LibraryEntry {
 		const entry = this.current.entriesById.get(id);
 		if (!entry)

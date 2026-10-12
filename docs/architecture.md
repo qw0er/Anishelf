@@ -22,7 +22,9 @@ and processing. Original resources remain read-only.
 
 ![Anishelf overall architecture](architecture.svg)
 
-The diagram shows existing module owners and the main system layers. Solid arrows
+The diagram shows resource/playback module owners and the main system layers.
+The new backend Identification owner is described below and is not yet shown in
+the diagram. Solid arrows
 show calls or mechanism use; dashed arrows show bootstrap assembly. Selected
 cross-module relationships are summarized below the diagram rather than presented
 as a complete dependency graph.
@@ -47,10 +49,13 @@ access; transport request validation does not replace authentication.
 | Playback | Progress sessions, durable viewing progress and history |
 | Preparation | Persistent tasks, scheduling, reusable artifacts and prepared-media delivery |
 | Subtitles | Track discovery, selected-track preparation, delivery and asset lifecycle |
+| Identification | Stateless local extraction, candidate ranking and episode association proposals |
 
-These are the existing runtime owners. The selected anime-library iteration is
-specified separately; its proposed capabilities are not presented here as
-implemented modules.
+These are the existing runtime owners. [Identification](identification.md) exposes
+a stateless recognition Public API and a reserved consumer-owned Metadata port.
+An application workflow uses Library publication/read APIs and Resource Access to
+automatically supply validated sources. Identification has no HTTP, database or
+Catalog dependency; production cloud matching and Catalog persistence remain pending.
 
 ## Dependency boundaries
 
