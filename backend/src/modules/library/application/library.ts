@@ -111,6 +111,18 @@ export class LibraryApplication<
 		};
 	}
 
+	onSnapshotChanged(listener: () => void): () => void {
+		return this.scans.onSnapshotChanged(listener);
+	}
+	readFilePage(
+		revision: number,
+		offset: number,
+		limit: number,
+	): { files: FileInfo[]; nextOffset: number | null } {
+		const page = this.options.index.readFilePage(revision, offset, limit);
+		return { files: page.files.map(fileInfo), nextOffset: page.nextOffset };
+	}
+
 	getDirectory(id: string): DirectoryListing {
 		return {
 			directory: directoryInfo(this.options.index.getDirectory(id)),

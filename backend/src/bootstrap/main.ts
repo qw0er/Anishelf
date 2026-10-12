@@ -19,6 +19,7 @@ import { MediaTools } from "../platform/media/index.js";
 import { DomainError } from "../shared/errors.js";
 import { ApplicationDatabase } from "./database.js";
 import { createHttpApp } from "./http.js";
+import { createIdentificationModule } from "./identification.js";
 import { createLibraryModule } from "./library.js";
 import { createMediaExecutionModule } from "./media-execution.js";
 import { createPlaybackCopies } from "./playback-selection.js";
@@ -187,6 +188,11 @@ async function createServer(
 		selectedProfileId: () =>
 			configuration.getTranscodeProfileCatalog().selectedProfileId,
 	});
+	const identification = createIdentificationModule({
+		library,
+		sources: library.sources,
+		logger,
+	});
 	const server = createHttpApp({
 		playbackSelection,
 		configuration,
@@ -202,6 +208,7 @@ async function createServer(
 		development,
 		closeDependencies: async () => {
 			// Stop durable owners before their shared executor and inspection dependencies.
+			await identification.close();
 			await preparation.close();
 			playback.close();
 			await subtitles.close();

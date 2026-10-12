@@ -7,14 +7,17 @@ not assign a release number.
 [Current iteration requirements](current-version-requirements.md) owns scope and
 CAT01–CAT08 acceptance. [Architecture](architecture.md) owns system boundaries;
 [Design system](design-system.md) owns shared interaction and visual conventions.
-The APIs and storage records below are proposed contracts, not existing exports.
+The APIs and storage records below are the iteration design baseline. The backend
+[Identification implementation](identification.md) now provides stateless recognition
+and automatic scan coordination; Metadata/Catalog implementations and the Web workflow
+remain pending. Exact Identification contracts are defined in source.
 
 ## 1. Product decisions
 
 The default entry becomes a poster-based anime library. Local directories remain
 the resource-management, identification and direct-file playback interface.
-Users explicitly identify a directory or selected files after scanning, review
-work and episode proposals, then save associations. A folder is context rather
+Published scans automatically feed new or changed resource contexts into
+Identification. Review and confirmed association changes belong to Anime Catalog. A folder is context rather
 than a work identity, and a work can have resources in several folders.
 
 Use `anitomy-ng` through its npm WebAssembly binding for local name extraction.
@@ -35,7 +38,7 @@ remain authoritative.
 | Entry | Purpose | Primary actions |
 | --- | --- | --- |
 | Library | Default poster wall of confirmed local works | Search, filter, open work |
-| Files | Existing directory browser | Browse, play file, scan, identify selection |
+| Files | Existing directory browser | Browse, play file, scan, inspect identification results |
 | Review | Unidentified and ambiguous identification results | Inspect evidence, search candidate, correct, confirm or reject |
 | History | Existing source-level playback history | Resume the corresponding source |
 | Settings | Resource root and existing playback/preparation settings | Configure resources and inspect provider/cache status |
@@ -101,10 +104,9 @@ that every associated episode is watched.
 ### Files and identification review
 
 Files retains breadcrumbs, current scan/root state, direct playback and original
-names. Add Identify for a selected directory or explicit files. Preview the
-selection and include-subdirectories choice before starting; the default is the
-selected directory's direct files. A mixed directory can produce several work
-groups, which the user can split or reassign.
+names. Completed scans automatically identify affected resource contexts. No
+separate Identify action is required. A mixed directory can produce several work
+proposals; Catalog review can split or reassign their associations.
 
 Review presents work candidates before episode mappings. Candidate rows show
 title, format, dates, cover, provider and specific matching/conflicting evidence.
@@ -129,43 +131,38 @@ HTTP client or universal job engine is needed.
 | Existing Library | Scan and publish resource index, directory browsing and root switching |
 | Existing Resource Access | Confined source resolution, registry, source versions and root epochs |
 | Proposed Metadata | Provider registry/adapters, normalization, metadata/search cache, artwork and refresh |
-| Proposed Identification | Selection snapshots, extraction evidence, candidate ranking, numbering proposals and review runs |
+| Identification | Stateless extraction evidence, candidate ranking and candidate-specific numbering proposals |
+| Application coordination | Library publication subscription, bounded source enumeration, automatic batches, cancellation and transient reuse |
 | Proposed Anime Catalog | Durable local works/episodes, confirmation transactions, associations, manual corrections and library projections |
 | Existing playback modules | Source playback, compatibility, preparation, subtitles and progress |
 
-Identification calls Library and Resource Access Public APIs for input, Metadata
-for candidates, and Anime Catalog for current decisions and confirmed changes.
-Anime Catalog calls Metadata for presentation snapshots and Resource Access for
-source registration/validity. Metadata has no dependency on Identification or
-Anime Catalog; confirmed snapshot retention is requested through its Public API.
-Dependencies stay acyclic. Bootstrap constructs and injects the adapters.
+The application coordinator consumes Library and Resource Access Public APIs,
+then calls Identification with validated source identities. Identification uses a
+parser adapter and a reserved Metadata port, and returns evidence/proposals. It
+neither reads Catalog decisions nor saves tasks, review outcomes or associations.
+Anime Catalog owns durable decisions and consumes proposals without overwriting
+manual corrections. Catalog calls Metadata for snapshots and Resource Access for
+source registration/validity. Dependencies remain acyclic; bootstrap assembles them.
 
 HTTP enters each owning Application and projects public DTOs. Domain types are
 independent of HTTP and provider GraphQL types. Cross-module imports, including
 types, use Public APIs and consumer-owned ports. Platform database/filesystem
 mechanisms do not own matching or refresh policy.
 
-The existing Library API exposes directory and file reads but no bulk
-identification snapshot. Initially use those public reads plus source resolution.
-If consistent bounded enumeration needs an additional API, add a Library-owned
-selection snapshot contract; do not access the internal index from Identification.
+Library exposes publication/root-reset notifications and bounded revision-checked
+file pages. The coordinator uses these public reads, not the internal resource index.
 
 ```mermaid
 flowchart TD
-  UI[Library / Files / Review] --> HTTP[Owning HTTP handlers]
-  HTTP --> Identify[Identification Application]
-  HTTP --> Catalog[Anime Catalog Application]
-  Identify --> Library[Library Public API]
-  Identify --> Access[Resource Access Public API]
+  Library[Library publication Public API] --> Coordinator[Automatic application coordinator]
+  Coordinator --> Access[Resource Access Public API]
+  Coordinator --> Identify[Stateless Identification]
   Identify --> Parser[anitomy-ng adapter]
-  Identify --> Metadata[Metadata Public API]
-  Identify --> Catalog
-  Catalog --> Access
-  Catalog --> Metadata
-  Metadata --> AniList[AniList adapter]
-  Metadata --> Cache[SQLite snapshots / artwork files]
-  Catalog --> State[SQLite local associations]
-  UI --> Playback[Existing source playback]
+  Identify -. Reserved .-> Metadata[Metadata Public API]
+  Identify --> Proposals[Evidence / association proposals]
+  Proposals -. Future consumer .-> Catalog[Anime Catalog]
+  UI[Review UI] -. Future .-> HTTP[Catalog HTTP handlers]
+  HTTP -.-> Catalog
 ```
 
 ## 4. Local extraction and evidence
@@ -186,7 +183,7 @@ and folder batch ranges must not become the leaf file's episode range.
 | Evidence | Retained information |
 | --- | --- |
 | Input | Original basename, relative path, ancestor names and selected source identity |
-| Extraction | Parser name/version/options, input mode, ordered raw elements and positions |
+| Extraction | Parser name/version, input mode, ordered raw elements and positions |
 | Work hints | Titles, year, season, part, volume, format/type and episode title |
 | Numbering | Every raw episode token, range/dual-number syntax, order and surrounding markers |
 | Release | Group, revision, release information, checksum and extension |
@@ -207,7 +204,7 @@ dual numbering, reject descending ranges, bound expansion, and leave unknown
 special identifiers unresolved. Detect NCOP/NCED, trailers and other ancillary
 resources separately; do not force them into ordinary episodes.
 
-Extraction reuse is keyed by durable source identity, parser/options version,
+Extraction reuse is keyed by durable source identity, parser version,
 normalization version and directory/group-context fingerprint. Membership or
 directory-context changes invalidate contextual results even if file bytes are
 unchanged. Re-extraction never overwrites a confirmed manual decision.
@@ -266,8 +263,9 @@ requiring an episode token in the filename.
 
 ## 6. Candidate generation and episode mapping
 
-1. Snapshot selected sources, root epoch and directory context. Exclude unsupported
-   or vanished sources with an explicit result instead of shrinking the denominator.
+1. The coordinator snapshots a published scan, root epoch and affected directory
+   contexts. It reports unavailable sources before passing validated identities
+   to Identification.
 2. Extract names and group compatible evidence provisionally. Preserve mixed-work
    and contradictory-directory results as independent review items.
 3. Search cached metadata first, then AniList using a small bounded set of distinct
@@ -277,8 +275,9 @@ requiring an episode token in the filename.
    season/part evidence and plausible numbering. Preserve meaningful numbers in
    titles. Explain both supporting and conflicting evidence and record matcher
    version. Provider order alone is not a confirmation rule.
-5. Resolve numbering only after a candidate work is selected. Present source
-   tokens, target labels, explicit offsets and remaining conflicts separately.
+5. Identification generates a separate numbering proposal for each candidate.
+   Catalog review presents source tokens, target labels, explicit offsets and
+   remaining conflicts separately.
 6. Preview and commit the user's selected associations atomically. Unresolved
    rows remain reviewable and original files remain directly accessible.
 
@@ -293,10 +292,11 @@ User-confirmed mapping/offset rules have an explicit work and source-selection
 scope. Multi-episode mapping creates several association rows for one source.
 The user can correct numbering without changing parser evidence.
 
-Cancellation retains completed review items and stops new network work. A
-root/source change invalidates affected proposals. Confirmation revalidates
-source versions and checks run/catalog revisions so a stale preview cannot
-overwrite a newer correction.
+The coordinator owns cancellation, transient reuse and retry on later scans;
+Identification observes caller cancellation without saving task state. A root/source
+change invalidates affected proposals. Catalog confirmation revalidates source
+versions and checks its decision revisions so stale proposals cannot overwrite a
+newer correction.
 
 ## 7. Durable model and consistency
 
@@ -311,7 +311,7 @@ not a persistent identity.
 | Provider link | Anime Catalog: local work ID, qualified provider reference, selected metadata snapshot reference |
 | Local episode | Anime Catalog: local ID/work ID, kind, preserved number/label, ordering, provenance and optional provider episode reference |
 | Source association | Anime Catalog: source registry ID, episode ID, confirmed release-to-target mapping and correction provenance |
-| Identification run/item | Identification: selection/context, status, extraction, candidates, mapping proposals, errors and revisions |
+| Recognition result | Identification output: source identity, extraction, candidates, mapping proposals and unresolved evidence; transient coordination cache, no Identification-owned durable record |
 | Metadata snapshot | Metadata: qualified reference, normalized projection, selected provider payload, field/completeness status, versions and fetch/update/expiry times |
 | Search cache | Metadata: provider/query/filter/page/schema key, result references, completeness and expiry |
 | Artwork asset | Metadata: provider reference, remote URL fingerprint, local file/digest/type/size, fetch status and access time |
@@ -360,7 +360,7 @@ These are initial application policy defaults, not AniList API guarantees:
 | Next-airing data | Fresh for 15 minutes; refreshed only when the relevant detail is used |
 | Unconfirmed detail snapshots | Up to 2,000 transient snapshots with LRU eviction; confirmed references are exempt |
 | Cover/banner files | 128 MiB separate initial budget, LRU eviction; fetch on selection/detail use and retain cached files while within budget |
-| Extraction | Reuse until source/parser/options/context version changes |
+| Extraction | Reuse until source/parser/context version changes |
 
 Freshness expiry does not delete a confirmed snapshot. Successful empty searches
 are distinguishable from request failures. Old search results can be shown as
@@ -397,8 +397,9 @@ rate as usable capacity. See [rate limiting](https://github.com/AniList/docs/blo
 Validate HTTP status, GraphQL `errors`, runtime response shape and field
 completeness; HTTP 200 alone is not success. Uncached queries can fail with retry
 guidance while cached browsing and playback continue. Startup needs no provider
-connection, and no per-card request fan-out is allowed. Shutdown cancels work
-before persistence closes; interrupted runs remain retryable.
+connection, and no per-card request fan-out is allowed. Shutdown cancels
+coordination and provider work before persistence closes; subsequent published
+scans reconstruct local recognition.
 
 ## 9. Application/API and frontend seams
 
@@ -408,11 +409,11 @@ DTO signatures should be finalized alongside implementation:
 | Owner | Operations |
 | --- | --- |
 | Metadata | Search, get cached details, resolve qualified reference, refresh, retain/release snapshot, retrieve artwork status |
-| Identification | Start selection run, read paginated run/items, cancel/retry, choose candidate, revise mapping proposals |
-| Anime Catalog | List/detail works, preview/confirm associations, correct/reassociate/remove links, list review outcomes and version availability |
+| Identification | Identify a bounded source batch; return extraction and candidate-specific proposals |
+| Anime Catalog | List/detail works, review proposals, preview/confirm associations, correct/reassociate/remove links, list review outcomes and version availability |
 
 Confirmation belongs to Anime Catalog even when initiated from Review; it checks
-proposal/source revisions through injected public capabilities. The HTTP layer
+source versions and Catalog decision revisions. The HTTP layer
 does not conduct provider calls or write another module's repository. Read DTOs
 use opaque local IDs, qualified provider IDs, safe relative paths and actionable
 state; canonical root paths and provider transport payloads stay backend-only.
@@ -421,8 +422,10 @@ Add frontend feature public entries for anime library, identification and metada
 presentation. Proposed route roles are Library, work detail, Files, Review and
 identification detail. Keep old source playback reachable and preserve validated
 return navigation. Query keys include active-root identity and relevant local
-IDs; confirmation invalidates affected wall/detail/review queries. Poll only
-active runs. Filter changes and navigation cancel/ignore stale responses.
+IDs; confirmation invalidates affected wall/detail/review queries. Recognition
+is automatic; any future workflow status is owned by application coordination
+rather than a manual Identification run. Filter changes and navigation
+cancel/ignore stale responses.
 
 Frontend search filters the local catalog unless the user explicitly opens
 candidate search. Backend pagination prevents rendering the entire collection.
@@ -438,8 +441,9 @@ Implement in bounded increments, preserving one end-to-end workflow:
    independently against the existing corpus and directory scenarios.
 2. Add AniList adapter, normalized provider contract, durable cache, limiter and
    artwork delivery; verify deterministic failures with recorded/synthetic responses.
-3. Add selection runs, candidates, numbering preview, catalog transactions and
-   manual corrections; verify rescan, restart and source/root changes.
+3. Add automatic scan coordination and stateless proposals, then Catalog-owned
+   numbering preview, transactions and manual corrections; verify rescan, restart
+   and source/root changes.
 4. Add default poster wall, work detail, Files identification and Review; connect
    version selection to existing source playback and history.
 

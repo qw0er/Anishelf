@@ -38,6 +38,7 @@ function copyState(state: ScanState): ScanState {
 
 export class ScanCoordinator {
 	private latest: ScanState | null = null;
+	private readonly snapshotListeners = new Set<() => void>();
 	private pendingStart: Promise<ScanState> | undefined;
 	private active: Promise<void> | undefined;
 	private saving: Promise<Readonly<PersistentSettings>> | undefined;
@@ -63,6 +64,25 @@ export class ScanCoordinator {
 			this.policy,
 		);
 		this.scheduleScan();
+	}
+
+	onSnapshotChanged(listener: () => void): () => void {
+		this.snapshotListeners.add(listener);
+		return () => {
+			this.snapshotListeners.delete(listener);
+		};
+	}
+	private notifySnapshotChanged(): void {
+		for (const listener of this.snapshotListeners) {
+			try {
+				listener();
+			} catch (err) {
+				this.logger.warn(
+					{ event: "scan.listener_failed", err },
+					"Library snapshot listener failed.",
+				);
+			}
+		}
 	}
 
 	get state(): ScanState | null {
@@ -145,6 +165,7 @@ export class ScanCoordinator {
 	}
 	reset(): void {
 		this.latest = null;
+		this.notifySnapshotChanged();
 	}
 	get isClosed(): boolean {
 		return this.closed;
@@ -157,6 +178,7 @@ export class ScanCoordinator {
 
 	async close(): Promise<void> {
 		this.closed = true;
+		this.snapshotListeners.clear();
 		clearTimeout(this.scanTimer);
 		await Promise.allSettled([this.cancelScan(), this.saving]);
 	}
@@ -236,6 +258,7 @@ export class ScanCoordinator {
 			const finishedAt = new Date().toISOString();
 			this.options.index.replace(entries, finishedAt);
 			this.latest = { ...progress, status: "completed", finishedAt };
+			this.notifySnapshotChanged();
 			this.logger.info(
 				{
 					event: "scan.completed",
