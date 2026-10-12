@@ -104,3 +104,19 @@ export type PlaybackSelectionResponse = Static<
 export type PreparationSummaryResponse = Static<
 	typeof schemas.PreparationSummaryResponseSchema
 >;
+
+export type MetadataSearchResponse = Static<
+	typeof schemas.MetadataSearchResponseSchema
+>;
+export type MetadataDetailsResponse = Static<
+	typeof schemas.MetadataDetailsResponseSchema
+>;
+export type MetadataRelationsResponse = Static<
+	typeof schemas.MetadataRelationsResponseSchema
+>;
+export type MetadataAiringResponse = Static<
+	typeof schemas.MetadataAiringResponseSchema
+>;
+export type MetadataArtworkResponse = Static<
+	typeof schemas.MetadataArtworkResponseSchema
+>;

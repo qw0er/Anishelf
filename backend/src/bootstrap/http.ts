@@ -19,6 +19,8 @@ import type { MediaInspectionApplication } from "../modules/media-inspection/app
 import { registerChapterRoutes } from "../modules/media-inspection/http/chapters.js";
 import type { MediaPlanningApplication } from "../modules/media-planning/application/planning.js";
 import { registerMediaPlanningRoutes } from "../modules/media-planning/http/planning.js";
+import { registerMetadataRoutes } from "../modules/metadata/http/metadata.js";
+import type { MetadataApi } from "../modules/metadata/public.js";
 import type { PlaybackApplication } from "../modules/playback/application/playback.js";
 import { registerPlaybackRoutes } from "../modules/playback/http/playback.js";
 import { registerPlaybackSelectionRoutes } from "../modules/playback-selection/http/selection.js";
@@ -32,6 +34,7 @@ import { checkRequestOrigin } from "../transport/security.js";
 import { registerFrontend } from "../transport/static.js";
 
 export function createHttpApp(options: {
+	metadata?: MetadataApi;
 	playbackSelection?: PlaybackSelectionApi;
 	config: Pick<DeploymentConfig, "host" | "port" | "publicOrigin">;
 	logger: Logger;
@@ -94,7 +97,12 @@ export function createHttpApp(options: {
 		else request.log.trace(context, "HTTP request completed.");
 	});
 	app.setErrorHandler((error, request, reply) => {
-		const { code, status } = classifyHttpError(error);
+		const { code, status, retryAt } = classifyHttpError(error);
+		if (retryAt !== undefined)
+			reply.header(
+				"Retry-After",
+				String(Math.max(0, Math.ceil((retryAt - Date.now()) / 1000))),
+			);
 		if (status >= 500)
 			request.log.error(
 				{ event: "http.request_failed", err: error },
@@ -116,6 +124,7 @@ export function createHttpApp(options: {
 		async () => ({ status: "ok" as const }),
 	);
 
+	if (options.metadata) registerMetadataRoutes(app, options.metadata);
 	if (options.library) {
 		const library = options.library;
 

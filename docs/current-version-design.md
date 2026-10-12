@@ -9,8 +9,10 @@ CAT01–CAT08 acceptance. [Architecture](architecture.md) owns system boundaries
 [Design system](design-system.md) owns shared interaction and visual conventions.
 The APIs and storage records below are the iteration design baseline. The backend
 [Identification implementation](identification.md) now provides stateless recognition
-and automatic scan coordination; Metadata/Catalog implementations and the Web workflow
-remain pending. Exact Identification contracts are defined in source.
+and automatic scan coordination. [Metadata](metadata.md) now implements cached
+AniList queries, details, relations, airing and artwork and supplies recognition
+candidates. Catalog and the Web workflow remain pending. Exact implemented
+contracts are defined in source.
 
 ## 1. Product decisions
 
@@ -130,7 +132,7 @@ HTTP client or universal job engine is needed.
 | --- | --- |
 | Existing Library | Scan and publish resource index, directory browsing and root switching |
 | Existing Resource Access | Confined source resolution, registry, source versions and root epochs |
-| Proposed Metadata | Provider registry/adapters, normalization, metadata/search cache, artwork and refresh |
+| Metadata | Provider registry/adapters, normalization, metadata/search cache, artwork and refresh |
 | Identification | Stateless extraction evidence, candidate ranking and candidate-specific numbering proposals |
 | Application coordination | Library publication subscription, bounded source enumeration, automatic batches, cancellation and transient reuse |
 | Proposed Anime Catalog | Durable local works/episodes, confirmation transactions, associations, manual corrections and library projections |
@@ -138,7 +140,7 @@ HTTP client or universal job engine is needed.
 
 The application coordinator consumes Library and Resource Access Public APIs,
 then calls Identification with validated source identities. Identification uses a
-parser adapter and a reserved Metadata port, and returns evidence/proposals. It
+parser adapter and a consumer-owned Metadata port, and returns evidence/proposals. It
 neither reads Catalog decisions nor saves tasks, review outcomes or associations.
 Anime Catalog owns durable decisions and consumes proposals without overwriting
 manual corrections. Catalog calls Metadata for snapshots and Resource Access for
@@ -158,7 +160,7 @@ flowchart TD
   Coordinator --> Access[Resource Access Public API]
   Coordinator --> Identify[Stateless Identification]
   Identify --> Parser[anitomy-ng adapter]
-  Identify -. Reserved .-> Metadata[Metadata Public API]
+  Identify --> Metadata[Metadata Public API]
   Identify --> Proposals[Evidence / association proposals]
   Proposals -. Future consumer .-> Catalog[Anime Catalog]
   UI[Review UI] -. Future .-> HTTP[Catalog HTTP handlers]

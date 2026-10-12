@@ -3,6 +3,7 @@ export * from "./common.js";
 export * from "./compatibility.js";
 export * from "./library.js";
 export * from "./media.js";
+export * from "./metadata.js";
 export * from "./playback.js";
 export * from "./playback-selection.js";
 export * from "./preparation.js";

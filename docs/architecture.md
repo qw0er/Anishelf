@@ -49,13 +49,17 @@ access; transport request validation does not replace authentication.
 | Playback | Progress sessions, durable viewing progress and history |
 | Preparation | Persistent tasks, scheduling, reusable artifacts and prepared-media delivery |
 | Subtitles | Track discovery, selected-track preparation, delivery and asset lifecycle |
+| Metadata | Provider queries, normalized snapshots, persistent cache, refresh and artwork |
 | Identification | Stateless local extraction, candidate ranking and episode association proposals |
 
 These are the existing runtime owners. [Identification](identification.md) exposes
-a stateless recognition Public API and a reserved consumer-owned Metadata port.
+a stateless recognition Public API and a consumer-owned Metadata port.
+[Metadata](metadata.md) implements AniList access behind its own Public API, and
+bootstrap adapts cached summaries into recognition candidates.
 An application workflow uses Library publication/read APIs and Resource Access to
 automatically supply validated sources. Identification has no HTTP, database or
-Catalog dependency; production cloud matching and Catalog persistence remain pending.
+Catalog dependency. Production cloud matching is connected when Metadata storage
+is available; Catalog persistence and the Web workflow remain pending.
 
 ## Dependency boundaries
 

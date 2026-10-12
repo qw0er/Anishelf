@@ -9,6 +9,7 @@ import {
 	builtinPolicy,
 	type DeepReadonly,
 } from "../modules/configuration/policy.js";
+import { MetadataRepository } from "../modules/metadata/infrastructure/repository.js";
 import { PlaybackRepository } from "../modules/playback/infrastructure/repository.js";
 import { PreparationRepository } from "../modules/preparation/infrastructure/repository.js";
 import { SourceRepository } from "../modules/resource-access/infrastructure/repository.js";
@@ -21,6 +22,7 @@ import { storageRules } from "../platform/storage.js";
 
 /** Owns the connection; repositories must not outlive this object. */
 export class ApplicationDatabase {
+	readonly metadata: MetadataRepository;
 	readonly playback: PlaybackRepository;
 	readonly subtitles: SubtitleRepository;
 	readonly preparation: PreparationRepository;
@@ -30,6 +32,7 @@ export class ApplicationDatabase {
 		policy: DeepReadonly<BuiltinPolicy>,
 	) {
 		const sources = new SourceRepository(store);
+		this.metadata = new MetadataRepository(store);
 		this.playback = new PlaybackRepository(store, sources, policy.playback);
 		this.subtitles = new SubtitleRepository(store, sources);
 		this.preparation = new PreparationRepository(store, sources);

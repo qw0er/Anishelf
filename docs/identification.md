@@ -21,8 +21,9 @@ rejection, manual corrections or anime-library persistence.
 
 `parsed` means extraction completed, not that the work or episode was confirmed.
 Missing Metadata is a normal local-only mode and never a failed parsing task.
-The current production assembly leaves Metadata unconfigured and produces no
-cloud candidates. It does not invent works, episode titles or provider identifiers.
+Production supplies cached AniList candidates through the [Metadata module](metadata.md)
+when its storage is available. Without Metadata, local parsing still succeeds.
+Identification does not invent works, episode titles or provider identifiers.
 
 The parser adapter uses pinned `anitomy-ng@1.0.10`. It separately retains basename,
 ancestor, path and same-directory batch results, including repeated/unknown element
@@ -33,9 +34,9 @@ as a range; content classification uses only parser-provided type elements.
 Parser omissions or truncations remain visible in the original evidence and
 require user review.
 
-The reserved Metadata port exposes bounded `search(query, signal)`. Metadata owns
+The consumer-owned Metadata port exposes bounded `search(query, signal)`. Metadata owns
 provider transport, snapshots, cache, retries and provider-wide limits. If an
-adapter is supplied later, Identification sends extracted titles rather than local
+adapter is configured, Identification sends extracted titles rather than local
 paths, deduplicates queries within each call, ranks candidates using `fast-fuzzy`
 and records matching/conflicting reasons. Every candidate gets a separate mapping
 proposal without requiring a user-selection step. Scores are not probabilities,
@@ -97,7 +98,7 @@ Identification migration have been removed. Identification requires no database.
 ```text
 identification/
   public.ts                     Recognition API and result types
-  ports.ts                      Parser and reserved Metadata capabilities
+  ports.ts                      Parser and consumer-owned Metadata capabilities
   policy.ts                     Recognition bounds and versions
   application/identification.ts Stateless extraction/matching orchestration
   domain/model.ts               Evidence and proposal types
@@ -119,5 +120,5 @@ automatic proposal generation through injected Metadata fixtures, provider failu
 cancellation, bounded input, actual scanner/source integration, incremental scans,
 directory context changes, replacement/deletion, restart reconstruction, root
 switching and libraries larger than one batch. Corpus extraction checks do not
-prove identification accuracy. Live AniList, durable Catalog associations, Review
-UI and playable fixtures remain separate iteration acceptance work.
+prove identification accuracy. Durable Catalog associations, Review UI and playable fixtures remain separate
+iteration acceptance work. Metadata has its own provider and persistence checks.
