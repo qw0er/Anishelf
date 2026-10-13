@@ -6,11 +6,11 @@ import {
 } from "@tanstack/react-query";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { keys, tasksQuery, useQueryScope } from "../../api/queries.js";
-import { toast } from "../../components/ui/toast.js";
-import { interactionPolicy } from "../../config/interaction-policy.js";
-import { preparationPolicy } from "../../config/media-policy.js";
-import { getErrorTranslationKey } from "../../lib/error-translation.js";
+import { useQueryScope } from "../../shared/api/queries.js";
+import { toast } from "../../shared/components/ui/toast.js";
+import { getErrorTranslationKey } from "../../shared/lib/error-translation.js";
+import { preparationInteractionPolicy, preparationPolicy } from "./policy.js";
+import { preparationKeys, tasksQuery } from "./queries.js";
 
 export function usePreparations(fileId?: string, enabled = true) {
 	const scope = useQueryScope();
@@ -41,7 +41,9 @@ export function usePreparations(fileId?: string, enabled = true) {
 		},
 		error: query.error,
 		refresh: useCallback(() => {
-			void client.invalidateQueries({ queryKey: keys.tasks(scope, fileId) });
+			void client.invalidateQueries({
+				queryKey: preparationKeys.tasks(scope, fileId),
+			});
 		}, [client, scope, fileId]),
 	};
 }
@@ -53,7 +55,7 @@ export function usePreparationAction() {
 	const mutation = useMutation({
 		mutationFn: (action: () => Promise<void>) => action(),
 		onSuccess: () => {
-			void client.invalidateQueries({ queryKey: keys.preparations });
+			void client.invalidateQueries({ queryKey: preparationKeys.preparations });
 		},
 	});
 	const notificationId = `preparation-action:${useId()}`;
@@ -77,7 +79,9 @@ export function usePreparationAction() {
 				action(
 					AbortSignal.any([
 						controller.signal,
-						AbortSignal.timeout(interactionPolicy.preparationRequestTimeoutMs),
+						AbortSignal.timeout(
+							preparationInteractionPolicy.preparationRequestTimeoutMs,
+						),
 					]),
 				),
 			);

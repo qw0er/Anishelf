@@ -75,13 +75,11 @@ export interface ExtractedSubtitle {
 	text: string;
 }
 
-import type { MediaProcessingPlan } from "../../shared/media-processing.js";
 import type { DeepReadonly } from "../../shared/policy.js";
+import type { MediaProcessingPlan } from "./specification.js";
 
 export interface MediaProcessingOptions {
-	onEvent?: (
-		event: import("../../shared/media-execution.js").MediaProcessEvent,
-	) => void;
+	onEvent?: (event: import("./events.js").MediaProcessEvent) => void;
 	plan: DeepReadonly<MediaProcessingPlan>;
 	videoStreamIndex: number;
 	/** An empty selection explicitly produces video-only output. */

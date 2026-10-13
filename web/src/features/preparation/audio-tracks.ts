@@ -2,7 +2,7 @@ import type { TFunction } from "i18next";
 import type {
 	CompatibilityResult,
 	PreparationTaskResponse,
-} from "../../api/contracts.js";
+} from "../../shared/api/contracts.js";
 
 export function audioTrackLabel(
 	track: CompatibilityResult["audioTracks"][number]["stream"],

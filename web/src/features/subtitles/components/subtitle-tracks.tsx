@@ -2,11 +2,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMediaPlayer } from "@vidstack/react";
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "../../../components/ui/toast.js";
-import { interactionPolicy } from "../../../config/interaction-policy.js";
-import type { SubtitlePolicy } from "../../../config/media-policy.js";
+import { toast } from "../../../shared/components/ui/toast.js";
+import { interactionPolicy } from "../../../shared/config/interaction-policy.js";
 import { SubtitleController } from "../controller.js";
 import { useSubtitleDiscovery } from "../hooks/use-subtitle-discovery.js";
+import type { SubtitlePolicy } from "../policy.js";
 import { prepareSelectedSubtitle } from "../preparation.js";
 import { StyledSubtitleRenderer } from "../renderer.js";
 

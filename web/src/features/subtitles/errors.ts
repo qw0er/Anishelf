@@ -1,4 +1,4 @@
-import { ApiClientError } from "../../api/client.js";
+import { ApiClientError } from "../../shared/api/client.js";
 /** Preparation status codes never travel in Error.message. */
 export class SubtitlePreparationError extends Error {
 	readonly code: string;

@@ -2,10 +2,12 @@ import type { MediaTimeline } from "@anishelf/backend/contracts/media";
 import { useQuery } from "@tanstack/react-query";
 import { TextTrack, useMediaPlayer } from "@vidstack/react";
 import { useEffect } from "react";
-import { ApiClientError, getChapters } from "../../../api/client.js";
-import { boundedSignal, keys, useQueryScope } from "../../../api/queries.js";
-import { toast } from "../../../components/ui/toast.js";
+import { ApiClientError } from "../../../shared/api/client.js";
+import { boundedSignal, useQueryScope } from "../../../shared/api/queries.js";
+import { toast } from "../../../shared/components/ui/toast.js";
+import { getChapters } from "../api.js";
 import { chapterCues } from "../chapters.js";
+import { playbackKeys } from "../queries.js";
 
 export function ChapterTracks({
 	fileId,
@@ -18,7 +20,7 @@ export function ChapterTracks({
 }) {
 	const player = useMediaPlayer();
 	const query = useQuery({
-		queryKey: keys.chapters(useQueryScope(), fileId, sourceVersion),
+		queryKey: playbackKeys.chapters(useQueryScope(), fileId, sourceVersion),
 		staleTime: Infinity,
 		retry: (attempt, error) =>
 			attempt < 2 && error instanceof ApiClientError && error.status === 503,

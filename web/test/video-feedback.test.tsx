@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 
 import { afterEach, expect, test, vi } from "vitest";
-import { toast } from "../src/components/ui/toast.js";
-import { subtitlePolicy } from "../src/config/media-policy.js";
 import VideoPlayer from "../src/features/playback/components/video-player.js";
+import { subtitlePolicy } from "../src/features/subtitles/public.js";
+import { toast } from "../src/shared/components/ui/toast.js";
 import {
 	act,
 	cleanup,
@@ -51,7 +51,7 @@ vi.mock("../src/features/subtitles/components/subtitle-tracks.js", () => ({
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
 }));
-vi.mock("../src/api/client.js", () => ({
+vi.mock("../src/shared/api/client.js", () => ({
 	getFile: vi.fn(async () => ({})),
 	isRequestCancelled: () => false,
 	ApiClientError: class extends Error {},

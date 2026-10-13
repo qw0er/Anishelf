@@ -1,13 +1,13 @@
 import { spawn } from "node:child_process";
 import { StringDecoder } from "node:string_decoder";
 import type { Logger } from "pino";
+import type { DeepReadonly } from "../../shared/policy.js";
+import { MediaToolError } from "./errors.js";
 import type {
 	MediaExecutionProgress,
 	MediaProcessEvent,
 	MediaProcessFailureReason,
-} from "../../shared/media-execution.js";
-import type { DeepReadonly } from "../../shared/policy.js";
-import { MediaToolError } from "./errors.js";
+} from "./events.js";
 import { type MediaToolPolicy, mediaToolPolicy } from "./policy.js";
 
 export class MediaProcessError extends MediaToolError {

@@ -3,14 +3,15 @@ import { useMemo } from "react";
 import type {
 	CompatibilityResult,
 	DirectoryResponse,
-} from "../../../api/contracts.js";
-import { boundedSignal, keys } from "../../../api/queries.js";
-import { interactionPolicy } from "../../../config/interaction-policy.js";
+} from "../../../shared/api/contracts.js";
+import { boundedSignal } from "../../../shared/api/queries.js";
+import { queryGate } from "../../../shared/lib/query-gate.js";
 import {
 	checkOriginalMedia,
+	compatibilityKeys,
+	mediacompatibilityInteractionPolicy,
 	originalCompatibilityKey,
-} from "../../../lib/media-compatibility.js";
-import { queryGate } from "../../../lib/query-gate.js";
+} from "../../media-compatibility/public.js";
 export type DirectoryCompatibilityState = {
 	loading: boolean;
 	result: CompatibilityResult | null;
@@ -29,12 +30,15 @@ export function useDirectoryCompatibility(
 	// A departed directory cannot occupy the new directory's admission slots.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: metadata identifies the negotiation group
 	const gate = useMemo(
-		() => queryGate(interactionPolicy.compatibilityConcurrency),
+		() =>
+			queryGate(mediacompatibilityInteractionPolicy.compatibilityConcurrency),
 		[identity],
 	);
 	const queries = useQueries({
 		queries: files.map((file) => ({
-			queryKey: keys.compatibility(originalCompatibilityKey(file, scope)),
+			queryKey: compatibilityKeys.compatibility(
+				originalCompatibilityKey(file, scope),
+			),
 			staleTime: Infinity,
 			queryFn: ({ signal }: { signal: AbortSignal }) =>
 				gate(signal, () =>
@@ -42,7 +46,7 @@ export function useDirectoryCompatibility(
 						file.id,
 						boundedSignal(
 							signal,
-							interactionPolicy.compatibilityRequestTimeoutMs,
+							mediacompatibilityInteractionPolicy.compatibilityRequestTimeoutMs,
 						),
 					),
 				),
@@ -60,7 +64,9 @@ export function useDirectoryCompatibility(
 		retry: () => {
 			for (const file of files)
 				void client.invalidateQueries({
-					queryKey: keys.compatibility(originalCompatibilityKey(file, scope)),
+					queryKey: compatibilityKeys.compatibility(
+						originalCompatibilityKey(file, scope),
+					),
 					exact: true,
 				});
 		},

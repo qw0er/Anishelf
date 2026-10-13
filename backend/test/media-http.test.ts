@@ -11,11 +11,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { createHttpApp } from "../src/bootstrap/http.js";
-import { createLibraryModule } from "../src/bootstrap/library.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
+import { createLibraryModule } from "../src/app/bootstrap/library.js";
 import type { FileResponse } from "../src/contracts/http.js";
-import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
+import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import { DomainError } from "../src/shared/errors.js";
 import { settingsStore } from "./settings-store.js";
 

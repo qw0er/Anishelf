@@ -13,19 +13,19 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { ApplicationDatabase } from "../src/bootstrap/database.js";
-import { createHttpApp } from "../src/bootstrap/http.js";
-import { createLibraryModule } from "../src/bootstrap/library.js";
-import { ConfigurationService } from "../src/modules/configuration/application/service.js";
+import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
+import { createLibraryModule } from "../src/app/bootstrap/library.js";
+import { readSubtitleText } from "../src/modules/media/subtitles/infrastructure/content.js";
+import { discoverExternalSubtitles } from "../src/modules/media/subtitles/infrastructure/discovery.js";
+import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
+import { ConfigurationService } from "../src/modules/system/configuration/application/service.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	validatePolicy,
-} from "../src/modules/configuration/policy.js";
-import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
-import { readSubtitleText } from "../src/modules/subtitles/infrastructure/content.js";
-import { discoverExternalSubtitles } from "../src/modules/subtitles/infrastructure/discovery.js";
+} from "../src/modules/system/configuration/policy.js";
 import { runTool } from "../src/platform/media/process.js";
 
 let directory: string;

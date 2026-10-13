@@ -1,11 +1,11 @@
 import { type QueryClient, QueryObserver } from "@tanstack/react-query";
-import { getSubtitlePreparation, prepareSubtitle } from "../../api/client.js";
-import type { SubtitlePreparationResponse } from "../../api/contracts.js";
-import { boundedSignal } from "../../api/queries.js";
-import { queryClient } from "../../api/query-client.js";
-import { interactionPolicy } from "../../config/interaction-policy.js";
+import type { SubtitlePreparationResponse } from "../../shared/api/contracts.js";
+import { boundedSignal } from "../../shared/api/queries.js";
+import { queryClient } from "../../shared/api/query-client.js";
+import { getSubtitlePreparation, prepareSubtitle } from "./api.js";
 import { SubtitlePreparationError } from "./errors.js";
 import { waitForFonts } from "./fonts.js";
+import { subtitlesInteractionPolicy } from "./policy.js";
 
 /** Only the selected pending track has an observer. Leaving does not cancel the server job. */
 export async function prepareSelectedSubtitle(
@@ -53,7 +53,7 @@ export async function prepareSelectedSubtitle(
 						retry: false,
 						refetchInterval: (query) =>
 							query.state.data?.status === "pending"
-								? interactionPolicy.subtitlePollIntervalMs
+								? subtitlesInteractionPolicy.subtitlePollIntervalMs
 								: false,
 					});
 					const finish = () => {

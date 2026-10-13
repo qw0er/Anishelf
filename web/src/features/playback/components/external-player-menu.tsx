@@ -2,8 +2,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, Ellipsis, ExternalLink, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQueryScope } from "../../../api/queries.js";
-import { Button } from "../../../components/ui/button.js";
+import { useQueryScope } from "../../../shared/api/queries.js";
+import { Button } from "../../../shared/components/ui/button.js";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -11,15 +11,15 @@ import {
 	DropdownMenuSub,
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
-} from "../../../components/ui/dropdown-menu.js";
-import { Spinner } from "../../../components/ui/spinner.js";
-import { toast } from "../../../components/ui/toast.js";
+} from "../../../shared/components/ui/dropdown-menu.js";
+import { Spinner } from "../../../shared/components/ui/spinner.js";
+import { toast } from "../../../shared/components/ui/toast.js";
 import {
+	buildPlayerUrl,
 	detectClientPlatform,
 	presetsForPlatform,
-} from "../../../config/external-player-policy.js";
-import { buildPlayerUrl } from "../external-players.js";
-import { useExternalPlayers } from "../hooks/use-external-players.js";
+	useExternalPlayers,
+} from "../../settings/public.js";
 import { resolveMediaLink } from "../media-link.js";
 import MediaLink from "./media-link.js";
 

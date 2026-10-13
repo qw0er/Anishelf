@@ -1,10 +1,10 @@
 import { expect, test } from "vitest";
+import type { MediaProcessEvent } from "../src/platform/media/events.js";
 import { mediaToolPolicy } from "../src/platform/media/policy.js";
 import {
 	parseExecutionProgress,
 	startMediaProcess,
 } from "../src/platform/media/processing-process.js";
-import type { MediaProcessEvent } from "../src/shared/media-execution.js";
 
 const policy = {
 	...mediaToolPolicy,

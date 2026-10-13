@@ -6,10 +6,10 @@ import {
 	FileCheck2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Button } from "../../../components/ui/button.js";
-import { Spinner } from "../../../components/ui/spinner.js";
-import { Tooltip } from "../../../components/ui/tooltip.js";
-import { getErrorTranslationKey } from "../../../lib/error-translation.js";
+import { Button } from "../../../shared/components/ui/button.js";
+import { Spinner } from "../../../shared/components/ui/spinner.js";
+import { Tooltip } from "../../../shared/components/ui/tooltip.js";
+import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
 import type { DirectoryCompatibilityState } from "../hooks/use-directory-compatibility.js";
 
 export function CompatibilityStatus({

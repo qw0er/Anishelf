@@ -6,16 +6,18 @@ import {
 } from "@anishelf/backend/contracts/media";
 import {
 	ApiClientError,
-	openPlaybackSession,
 	type RequestOptions,
-	releasePlaybackSession,
-	savePlaybackProgress,
-} from "../../api/client.js";
+} from "../../shared/api/client.js";
 import type {
 	PlaybackSessionResponse,
 	SavePlaybackProgressRequest,
-} from "../../api/contracts.js";
-import type { PlaybackPolicy } from "../../config/media-policy.js";
+} from "../../shared/api/contracts.js";
+import {
+	openPlaybackSession,
+	releasePlaybackSession,
+	savePlaybackProgress,
+} from "./api.js";
+import type { PlaybackPolicy } from "./policy.js";
 
 export interface PlaybackSessionState {
 	session: PlaybackSessionResponse | null;

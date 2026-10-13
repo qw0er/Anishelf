@@ -3,19 +3,19 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
-import { createHttpApp } from "../src/bootstrap/http.js";
-import { createLibraryModule } from "../src/bootstrap/library.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
+import { createLibraryModule } from "../src/app/bootstrap/library.js";
 import type {
 	CompatibilityEvidence,
 	CompatibilityInspection,
 } from "../src/contracts/http.js";
-import { builtinTranscodeProfiles } from "../src/modules/configuration/public.js";
-import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
-import { describeOriginalMedia } from "../src/modules/media-planning/application/description.js";
-import { MediaPlanningApplication } from "../src/modules/media-planning/application/planning.js";
-import { checkDirectCompatibility } from "../src/modules/media-planning/domain/direct.js";
-import type { OriginalMediaDescription } from "../src/modules/media-planning/domain/model.js";
+import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
+import { describeOriginalMedia } from "../src/modules/media/media-planning/application/description.js";
+import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
+import { checkDirectCompatibility } from "../src/modules/media/media-planning/domain/direct.js";
+import type { OriginalMediaDescription } from "../src/modules/media/media-planning/domain/model.js";
+import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import { builtinTranscodeProfiles } from "../src/modules/system/configuration/public.js";
 import { codecDescriptor } from "../src/platform/media/codec-descriptor.js";
 import { type MediaInfo, MediaToolError } from "../src/platform/media/index.js";
 import { MediaTools, parseMediaInfo } from "../src/platform/media/tools.js";

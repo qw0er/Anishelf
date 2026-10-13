@@ -3,18 +3,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { createHttpApp } from "../src/bootstrap/http.js";
-import { createLibraryModule } from "../src/bootstrap/library.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
+import { createLibraryModule } from "../src/app/bootstrap/library.js";
+import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
+import { MediaInspectionBusyError } from "../src/modules/media/media-inspection/public.js";
+import { SubtitleApplication } from "../src/modules/media/subtitles/application/subtitles.js";
+import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
+import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
-} from "../src/modules/configuration/policy.js";
-import type { LibraryApplication } from "../src/modules/library/application/library.js";
-import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
-import { MediaInspectionBusyError } from "../src/modules/media-inspection/public.js";
-import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
-import { SubtitleApplication } from "../src/modules/subtitles/application/subtitles.js";
+} from "../src/modules/system/configuration/policy.js";
 import {
 	type MediaInfo,
 	MediaToolError,

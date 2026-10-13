@@ -2,19 +2,19 @@ import { Check, Film, Settings2 } from "lucide-react";
 import { type ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import { createPreparation, retryPreparation } from "../../../api/client.js";
-import type { CompatibilityResult } from "../../../api/contracts.js";
-import { Button, buttonStyles } from "../../../components/ui/button.js";
+import type { CompatibilityResult } from "../../../shared/api/contracts.js";
+import { Button, buttonStyles } from "../../../shared/components/ui/button.js";
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
-} from "../../../components/ui/dialog.js";
-import { DropdownMenuItem } from "../../../components/ui/dropdown-menu.js";
-import { Spinner } from "../../../components/ui/spinner.js";
-import { toast } from "../../../components/ui/toast.js";
-import { Tooltip } from "../../../components/ui/tooltip.js";
+} from "../../../shared/components/ui/dialog.js";
+import { DropdownMenuItem } from "../../../shared/components/ui/dropdown-menu.js";
+import { Spinner } from "../../../shared/components/ui/spinner.js";
+import { toast } from "../../../shared/components/ui/toast.js";
+import { Tooltip } from "../../../shared/components/ui/tooltip.js";
+import { createPreparation, retryPreparation } from "../api.js";
 import { audioTrackLabel, matchesAudioSelection } from "../audio-tracks.js";
 import { usePreparationContext } from "../context.js";
 import { negotiatePreparation } from "../negotiation.js";
@@ -39,9 +39,9 @@ export function PreparationButton({
 	audioStreamIndices?: number[];
 	showLabel?: boolean;
 	onPrepared?(
-		task: import("../../../api/contracts.js").PreparationTaskResponse,
+		task: import("../../../shared/api/contracts.js").PreparationTaskResponse,
 	): void;
-	tasks?: import("../../../api/contracts.js").PreparationTaskResponse[];
+	tasks?: import("../../../shared/api/contracts.js").PreparationTaskResponse[];
 }) {
 	const { t, i18n } = useTranslation();
 	const [dialogOpen, setDialogOpen] = useState(false);

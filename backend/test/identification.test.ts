@@ -4,20 +4,20 @@ import { dirname, join } from "node:path";
 import { parse } from "anitomy-ng";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
-import { createHttpApp } from "../src/bootstrap/http.js";
-import { createIdentificationModule } from "../src/bootstrap/identification.js";
-import { createLibraryModule } from "../src/bootstrap/library.js";
-import { IdentificationApplication } from "../src/modules/identification/application/identification.js";
-import { proposeMapping } from "../src/modules/identification/domain/mapping.js";
-import { AnitomyIdentificationParser } from "../src/modules/identification/infrastructure/parser.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
+import { createIdentificationModule } from "../src/app/bootstrap/identification.js";
+import { createLibraryModule } from "../src/app/bootstrap/library.js";
+import { AutomaticIdentificationCoordinator } from "../src/app/workflows/automatic-identification.js";
+import { IdentificationApplication } from "../src/modules/anime/identification/application/identification.js";
+import { proposeMapping } from "../src/modules/anime/identification/domain/mapping.js";
+import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
 import type {
 	IdentificationApi,
 	IdentificationMetadata,
 	WorkCandidate,
-} from "../src/modules/identification/public.js";
-import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import type { SourceIdentity } from "../src/modules/resource-access/public.js";
-import { AutomaticIdentificationCoordinator } from "../src/workflows/automatic-identification.js";
+} from "../src/modules/anime/identification/public.js";
+import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import type { SourceIdentity } from "../src/modules/resources/resource-access/public.js";
 import { settingsStore } from "./settings-store.js";
 import { loadCorpus } from "./support/anime-corpus.js";
 

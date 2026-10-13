@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
+import { unknownMediaCapabilities } from "../src/platform/media/capability-model.js";
 import { checkExecutionCapabilities } from "../src/platform/media/execution-capabilities.js";
+import type { MediaProcessingPlan } from "../src/platform/media/specification.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
-import { unknownMediaCapabilities } from "../src/shared/media-capabilities.js";
-import type { MediaProcessingPlan } from "../src/shared/media-processing.js";
 
 const info = parseMediaInfo(
 	JSON.stringify({

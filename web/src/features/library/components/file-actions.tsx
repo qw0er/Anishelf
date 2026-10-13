@@ -4,14 +4,14 @@ import { useTranslation } from "react-i18next";
 import type {
 	CompatibilityResult,
 	PreparationSummaryResponse,
-} from "../../../api/contracts.js";
-import { Button } from "../../../components/ui/button.js";
+} from "../../../shared/api/contracts.js";
+import { Button } from "../../../shared/components/ui/button.js";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuTrigger,
-} from "../../../components/ui/dropdown-menu.js";
-import { Tooltip } from "../../../components/ui/tooltip.js";
+} from "../../../shared/components/ui/dropdown-menu.js";
+import { Tooltip } from "../../../shared/components/ui/tooltip.js";
 import { ExternalPlayerSubmenu, MediaLink } from "../../playback/public.js";
 import {
 	PreparationFileMenuItems,

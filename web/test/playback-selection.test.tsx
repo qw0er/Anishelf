@@ -1,15 +1,16 @@
+import * as playbackApi from "../src/features/playback/api.js";
+import * as preparationApi from "../src/features/preparation/api.js";
 // @vitest-environment happy-dom
 
 import { type ReactNode, StrictMode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import * as api from "../src/api/client.js";
+import * as capabilities from "../src/features/media-compatibility/capabilities.js";
+import { usePlaybackSelection } from "../src/features/playback/hooks/use-playback-selection.js";
 import type {
 	CompatibilityInspection,
 	CompatibilityResult,
 	PlaybackSelectionResponse,
-} from "../src/api/contracts.js";
-import { usePlaybackSelection } from "../src/features/playback/hooks/use-playback-selection.js";
-import * as capabilities from "../src/lib/media-capabilities.js";
+} from "../src/shared/api/contracts.js";
 import { act, cleanup, renderHook, waitFor } from "./query-test-utils.js";
 
 const description = {
@@ -40,7 +41,7 @@ const direct: PlaybackSelectionResponse = {
 	},
 };
 beforeEach(() => {
-	vi.spyOn(api, "getPlaybackOptions").mockResolvedValue({
+	vi.spyOn(playbackApi, "getPlaybackOptions").mockResolvedValue({
 		original: description,
 		candidates: [
 			{
@@ -65,9 +66,9 @@ beforeEach(() => {
 			},
 		],
 	});
-	vi.spyOn(api, "selectPlayback").mockResolvedValue(direct);
+	vi.spyOn(playbackApi, "selectPlayback").mockResolvedValue(direct);
 	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([]);
-	vi.spyOn(api, "createPreparation");
+	vi.spyOn(preparationApi, "createPreparation");
 });
 afterEach(() => {
 	cleanup();
@@ -79,7 +80,7 @@ test("browser submits all server candidates and exact selection, and uses only r
 		usePlaybackSelection("file", undefined, "root"),
 	);
 	await waitFor(() => expect(result.current.loading).toBe(false));
-	expect(api.selectPlayback).toHaveBeenCalledWith(
+	expect(playbackApi.selectPlayback).toHaveBeenCalledWith(
 		expect.objectContaining({
 			original: expect.objectContaining({ output: null }),
 			candidates: [
@@ -90,10 +91,10 @@ test("browser submits all server candidates and exact selection, and uses only r
 		expect.anything(),
 	);
 	expect(
-		vi.mocked(api.selectPlayback).mock.calls[0]?.[0].original,
+		vi.mocked(playbackApi.selectPlayback).mock.calls[0]?.[0].original,
 	).not.toHaveProperty("audioStreamIndices");
 	expect(result.current.selection?.plan).toEqual(direct.plan);
-	expect(api.createPreparation).not.toHaveBeenCalled();
+	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
 });
 test("session arriving and background rerenders preserve an active resource without renegotiation", async () => {
 	const { result, rerender } = renderHook(
@@ -104,9 +105,9 @@ test("session arriving and background rerenders preserve an active resource with
 	const selection = result.current.selection;
 	rerender({ version: "version" });
 	expect(result.current.selection).toBe(selection);
-	expect(api.selectPlayback).toHaveBeenCalledTimes(1);
+	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(1);
 	await new Promise((resolve) => setTimeout(resolve, 1100));
-	expect(api.selectPlayback).toHaveBeenCalledTimes(1);
+	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(1);
 });
 test("failed artifact is reported for server reselection and never creates work", async () => {
 	const prepared: PlaybackSelectionResponse = {
@@ -131,7 +132,7 @@ test("failed artifact is reported for server reselection and never creates work"
 			},
 		},
 	};
-	vi.mocked(api.selectPlayback)
+	vi.mocked(playbackApi.selectPlayback)
 		.mockResolvedValueOnce(prepared)
 		.mockResolvedValueOnce({
 			...direct,
@@ -145,15 +146,15 @@ test("failed artifact is reported for server reselection and never creates work"
 	await waitFor(() =>
 		expect(result.current.selection?.plan.mode).toBe("blocked"),
 	);
-	expect(api.selectPlayback).toHaveBeenLastCalledWith(
+	expect(playbackApi.selectPlayback).toHaveBeenLastCalledWith(
 		expect.objectContaining({ failedResourceIds: ["artifact"] }),
 		expect.anything(),
 	);
 	expect(result.current.runtimeFailed).toBe(true);
-	expect(api.createPreparation).not.toHaveBeenCalled();
+	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
 });
 test("only blocked pending selection polls and newly ready bytes stop that polling", async () => {
-	vi.mocked(api.selectPlayback)
+	vi.mocked(playbackApi.selectPlayback)
 		.mockResolvedValueOnce({
 			...direct,
 			pending: true,
@@ -168,11 +169,11 @@ test("only blocked pending selection polls and newly ready bytes stop that polli
 		() => expect(result.current.selection?.plan.mode).toBe("direct"),
 		{ timeout: 2500 },
 	);
-	expect(api.selectPlayback).toHaveBeenCalledTimes(2);
-	expect(api.createPreparation).not.toHaveBeenCalled();
+	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(2);
+	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
 });
 test("explicit original attempt succeeds with inspection unavailable and no fallback URL", async () => {
-	vi.mocked(api.getPlaybackOptions).mockRejectedValue(
+	vi.mocked(playbackApi.getPlaybackOptions).mockRejectedValue(
 		new Error("Inspection unavailable"),
 	);
 	const { result } = renderHook(() =>
@@ -183,15 +184,15 @@ test("explicit original attempt succeeds with inspection unavailable and no fall
 	await waitFor(() =>
 		expect(result.current.selection?.plan.mode).toBe("direct"),
 	);
-	expect(api.selectPlayback).toHaveBeenCalledWith(
+	expect(playbackApi.selectPlayback).toHaveBeenCalledWith(
 		expect.objectContaining({ tryOriginal: true, candidates: [] }),
 		expect.anything(),
 	);
-	expect(api.getPlaybackOptions).toHaveBeenCalledTimes(1);
+	expect(playbackApi.getPlaybackOptions).toHaveBeenCalledTimes(1);
 });
 test("late cancelled selection cannot replace a new audio intent", async () => {
 	let complete: (value: PlaybackSelectionResponse) => void = () => {};
-	vi.mocked(api.selectPlayback).mockImplementationOnce(
+	vi.mocked(playbackApi.selectPlayback).mockImplementationOnce(
 		() =>
 			new Promise((resolve) => {
 				complete = resolve;
@@ -201,7 +202,9 @@ test("late cancelled selection cannot replace a new audio intent", async () => {
 		({ audio }) => usePlaybackSelection("file", undefined, "root", audio),
 		{ initialProps: { audio: [1] } },
 	);
-	await waitFor(() => expect(api.selectPlayback).toHaveBeenCalledTimes(1));
+	await waitFor(() =>
+		expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(1),
+	);
 	rerender({ audio: [] });
 	await waitFor(() =>
 		expect(result.current.selection?.plan.mode).toBe("direct"),
@@ -210,7 +213,7 @@ test("late cancelled selection cannot replace a new audio intent", async () => {
 		complete({ ...direct, plan: { mode: "blocked", reason: "old" } }),
 	);
 	expect(result.current.selection?.plan.mode).toBe("direct");
-	expect(api.selectPlayback).toHaveBeenLastCalledWith(
+	expect(playbackApi.selectPlayback).toHaveBeenLastCalledWith(
 		expect.objectContaining({ audioStreamIndices: [] }),
 		expect.anything(),
 	);
@@ -228,13 +231,14 @@ test("StrictMode settles completed negotiation without enqueuing work", async ()
 	);
 	unmount();
 	expect(
-		vi.mocked(api.getPlaybackOptions).mock.calls[0]?.[1]?.signal?.aborted,
+		vi.mocked(playbackApi.getPlaybackOptions).mock.calls[0]?.[1]?.signal
+			?.aborted,
 	).toBe(false);
-	expect(api.createPreparation).not.toHaveBeenCalled();
+	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
 });
 
 test("new preparation refresh unblocks a waiting player but leaves active resources untouched", async () => {
-	vi.mocked(api.selectPlayback)
+	vi.mocked(playbackApi.selectPlayback)
 		.mockResolvedValueOnce({
 			...direct,
 			pending: false,
@@ -256,5 +260,5 @@ test("new preparation refresh unblocks a waiting player but leaves active resour
 	const selection = result.current.selection;
 	rerender({ revision: "ready" });
 	expect(result.current.selection).toBe(selection);
-	expect(api.selectPlayback).toHaveBeenCalledTimes(2);
+	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(2);
 });

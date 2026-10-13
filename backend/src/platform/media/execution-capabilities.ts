@@ -1,11 +1,11 @@
+import type { DeepReadonly } from "../../shared/policy.js";
 import type {
 	MediaCapabilityKind,
 	ServerMediaCapabilities,
-} from "../../shared/media-capabilities.js";
-import type { MediaProcessingPlan } from "../../shared/media-processing.js";
-import type { DeepReadonly } from "../../shared/policy.js";
+} from "./capability-model.js";
 import { MediaToolError } from "./errors.js";
 import type { MediaInfo } from "./model.js";
+import type { MediaProcessingPlan } from "./specification.js";
 
 interface ExecutionCapabilityRequirement {
 	kind: MediaCapabilityKind | "tools";

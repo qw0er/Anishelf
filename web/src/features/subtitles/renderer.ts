@@ -2,8 +2,8 @@ import { styledSubtitleFormats } from "@anishelf/backend/contracts/subtitles";
 import type { TextRenderer, TextTrack } from "@vidstack/react";
 import type JASSUB from "jassub";
 import fallbackFont from "jassub/dist/default.woff2?url";
-import type { SubtitlePolicy } from "../../config/media-policy.js";
 import { loadFonts, trackFonts } from "./fonts.js";
+import type { SubtitlePolicy } from "./policy.js";
 
 /** Bridges JASSUB 2's promise API to Vidstack's renderer lifecycle. */
 export class StyledSubtitleRenderer implements TextRenderer {

@@ -2,7 +2,7 @@ import { TextTrack, type TextTrackList } from "@vidstack/react";
 import type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
-} from "../../api/contracts.js";
+} from "../../shared/api/contracts.js";
 import { SubtitlePreparationError, subtitleErrorCode } from "./errors.js";
 import { trackFonts } from "./fonts.js";
 

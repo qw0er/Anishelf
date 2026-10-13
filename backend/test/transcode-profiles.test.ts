@@ -4,11 +4,11 @@ import { join } from "node:path";
 import pino from "pino";
 import { Check } from "typebox/value";
 import { afterEach, beforeEach, expect, test } from "vitest";
-import { createHttpApp } from "../src/bootstrap/http.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
 import { TranscodeProfileSchema } from "../src/contracts/schemas/transcode-profiles.js";
-import { ConfigurationService } from "../src/modules/configuration/application/service.js";
-import { builtinTranscodeProfiles } from "../src/modules/configuration/domain/transcode-profiles.js";
-import { parseTranscodeProfiles } from "../src/modules/configuration/infrastructure/transcode-profiles.js";
+import { ConfigurationService } from "../src/modules/system/configuration/application/service.js";
+import { builtinTranscodeProfiles } from "../src/modules/system/configuration/domain/transcode-profiles.js";
+import { parseTranscodeProfiles } from "../src/modules/system/configuration/infrastructure/transcode-profiles.js";
 
 let directory: string;
 beforeEach(async () => {

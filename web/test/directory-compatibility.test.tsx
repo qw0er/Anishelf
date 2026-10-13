@@ -1,17 +1,18 @@
-import { queryClient } from "../src/api/query-client.js";
+import * as mediacompatibilityApi from "../src/features/media-compatibility/api.js";
+import { ApiClientError } from "../src/shared/api/client.js";
+import { queryClient } from "../src/shared/api/query-client.js";
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import * as api from "../src/api/client.js";
+import { useDirectoryCompatibility } from "../src/features/library/hooks/use-directory-compatibility.js";
+import * as capabilities from "../src/features/media-compatibility/capabilities.js";
+import { inspectBrowserMedia } from "../src/features/media-compatibility/compatibility.js";
 import type {
 	CompatibilityInspection,
 	CompatibilityResult,
 	DirectoryResponse,
 	FileDto,
-} from "../src/api/contracts.js";
-import { useDirectoryCompatibility } from "../src/features/library/hooks/use-directory-compatibility.js";
-import * as capabilities from "../src/lib/media-capabilities.js";
-import { inspectBrowserMedia } from "../src/lib/media-compatibility.js";
+} from "../src/shared/api/contracts.js";
 import { act, cleanup, renderHook, waitFor } from "./query-test-utils.js";
 
 function file(id: string): FileDto {
@@ -38,9 +39,12 @@ const description = {
 } as unknown as CompatibilityInspection;
 beforeEach(() => {
 	queryClient.removeQueries({ queryKey: ["compatibility"] });
-	vi.spyOn(api, "inspectMediaCompatibility").mockResolvedValue(description);
+	vi.spyOn(
+		mediacompatibilityApi,
+		"inspectMediaCompatibility",
+	).mockResolvedValue(description);
 	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([]);
-	vi.spyOn(api, "checkMediaCompatibility").mockImplementation(
+	vi.spyOn(mediacompatibilityApi, "checkMediaCompatibility").mockImplementation(
 		async (input) =>
 			({
 				fileId: input.fileId,
@@ -56,7 +60,7 @@ afterEach(() => {
 });
 test("folder checks start asynchronously with bounded concurrency and navigation aborts old requests", async () => {
 	const releases: Array<() => void> = [];
-	vi.mocked(api.inspectMediaCompatibility).mockImplementation(
+	vi.mocked(mediacompatibilityApi.inspectMediaCompatibility).mockImplementation(
 		(_input, _options) =>
 			new Promise((resolve) => {
 				releases.push(() => resolve(description));
@@ -68,17 +72,21 @@ test("folder checks start asynchronously with bounded concurrency and navigation
 	);
 	expect(result.current.get("d").loading).toBe(true);
 	await waitFor(() =>
-		expect(api.inspectMediaCompatibility).toHaveBeenCalledTimes(2),
+		expect(
+			mediacompatibilityApi.inspectMediaCompatibility,
+		).toHaveBeenCalledTimes(2),
 	);
 	await act(async () => {
 		releases[0]?.();
 	});
 	await waitFor(() =>
-		expect(api.inspectMediaCompatibility).toHaveBeenCalledTimes(3),
+		expect(
+			mediacompatibilityApi.inspectMediaCompatibility,
+		).toHaveBeenCalledTimes(3),
 	);
 	expect(result.current.get("a").result?.direct.status).toBe("supported");
-	const oldSignal = vi.mocked(api.inspectMediaCompatibility).mock.calls[1]?.[1]
-		?.signal;
+	const oldSignal = vi.mocked(mediacompatibilityApi.inspectMediaCompatibility)
+		.mock.calls[1]?.[1]?.signal;
 	rerender({ data: listing(["new"]) });
 	expect(oldSignal?.aborted).toBe(true);
 	await act(async () => {
@@ -87,8 +95,9 @@ test("folder checks start asynchronously with bounded concurrency and navigation
 	expect(result.current.get("new").loading).toBe(true);
 	unmount();
 	expect(
-		vi.mocked(api.inspectMediaCompatibility).mock.calls.at(-1)?.[1]?.signal
-			?.aborted,
+		vi
+			.mocked(mediacompatibilityApi.inspectMediaCompatibility)
+			.mock.calls.at(-1)?.[1]?.signal?.aborted,
 	).toBe(true);
 });
 test("folder navigation reuses completed checks in the same metadata and root scope", async () => {
@@ -103,10 +112,14 @@ test("folder navigation reuses completed checks in the same metadata and root sc
 		useDirectoryCompatibility(listing(["a"]), "scope"),
 	);
 	await waitFor(() => expect(next.result.current.get("a").loading).toBe(false));
-	expect(api.inspectMediaCompatibility).toHaveBeenCalledTimes(1);
+	expect(mediacompatibilityApi.inspectMediaCompatibility).toHaveBeenCalledTimes(
+		1,
+	);
 });
 test("unknown results are distinct from request failures and a changed scope triggers new checks", async () => {
-	vi.mocked(api.checkMediaCompatibility).mockResolvedValueOnce({
+	vi.mocked(
+		mediacompatibilityApi.checkMediaCompatibility,
+	).mockResolvedValueOnce({
 		sourceVersion: "version",
 		direct: { status: "unknown", reason: "missing-evidence" },
 	} as CompatibilityResult);
@@ -116,9 +129,9 @@ test("unknown results are distinct from request failures and a changed scope tri
 	);
 	await waitFor(() => expect(result.current.get("a").loading).toBe(false));
 	expect(result.current.get("a").result?.direct.status).toBe("unknown");
-	vi.mocked(api.inspectMediaCompatibility).mockRejectedValueOnce(
-		new Error("Unavailable"),
-	);
+	vi.mocked(
+		mediacompatibilityApi.inspectMediaCompatibility,
+	).mockRejectedValueOnce(new Error("Unavailable"));
 	rerender({ scope: "root-2" });
 	await waitFor(() =>
 		expect(result.current.get("a").error).toBeInstanceOf(Error),
@@ -128,8 +141,10 @@ test("unknown results are distinct from request failures and a changed scope tri
 
 test("temporary inspection unavailability receives bounded retry before completing", async () => {
 	vi.useFakeTimers();
-	vi.mocked(api.inspectMediaCompatibility).mockRejectedValueOnce(
-		new api.ApiClientError({
+	vi.mocked(
+		mediacompatibilityApi.inspectMediaCompatibility,
+	).mockRejectedValueOnce(
+		new ApiClientError({
 			kind: "http",
 			status: 503,
 			code: "MEDIA_INSPECTION_UNAVAILABLE",
@@ -142,13 +157,15 @@ test("temporary inspection unavailability receives bounded retry before completi
 	);
 	await vi.advanceTimersByTimeAsync(500);
 	await expect(pending).resolves.toBe(description);
-	expect(api.inspectMediaCompatibility).toHaveBeenCalledTimes(2);
+	expect(mediacompatibilityApi.inspectMediaCompatibility).toHaveBeenCalledTimes(
+		2,
+	);
 });
 
 test("leaving a folder cancels an inspection retry delay without starting another request", async () => {
 	vi.useFakeTimers();
-	vi.mocked(api.inspectMediaCompatibility).mockRejectedValue(
-		new api.ApiClientError({
+	vi.mocked(mediacompatibilityApi.inspectMediaCompatibility).mockRejectedValue(
+		new ApiClientError({
 			kind: "http",
 			status: 503,
 			code: "MEDIA_INSPECTION_UNAVAILABLE",
@@ -164,5 +181,7 @@ test("leaving a folder cancels an inspection retry delay without starting anothe
 	controller.abort();
 	await rejected;
 	await vi.advanceTimersByTimeAsync(3000);
-	expect(api.inspectMediaCompatibility).toHaveBeenCalledTimes(1);
+	expect(mediacompatibilityApi.inspectMediaCompatibility).toHaveBeenCalledTimes(
+		1,
+	);
 });

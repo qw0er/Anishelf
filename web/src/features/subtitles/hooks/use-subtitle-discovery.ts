@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { getSubtitles } from "../../../api/client.js";
-import { boundedSignal, keys, useQueryScope } from "../../../api/queries.js";
+import { boundedSignal, useQueryScope } from "../../../shared/api/queries.js";
+import { getSubtitles } from "../api.js";
+import { subtitlesKeys } from "../queries.js";
 /** Structural sharing and a stable source key keep selected tracks across background updates. */
 export function useSubtitleDiscovery(fileId: string) {
 	const query = useQuery({
-		queryKey: keys.subtitles(useQueryScope(), fileId),
+		queryKey: subtitlesKeys.subtitles(useQueryScope(), fileId),
 		staleTime: Infinity,
 		refetchOnMount: "always",
 		queryFn: ({ signal }) =>

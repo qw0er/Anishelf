@@ -1,21 +1,21 @@
 import { expect, test } from "vitest";
-import type {
-	DirectoryEntry,
-	FileEntry,
-} from "../src/modules/library/domain/model.js";
-import type { ScanState } from "../src/modules/library/domain/scan-state.js";
-import {
-	directoryResponse,
-	fileDto,
-	libraryResponse,
-	scanStateDto,
-} from "../src/transport/presenters/library.js";
 import {
 	historyResponse,
 	playbackProgressDto,
 	playbackSessionResponse,
-} from "../src/transport/presenters/playback.js";
-import { settingsResponse } from "../src/transport/presenters/settings.js";
+} from "../src/modules/playback/playback/http/presenters.js";
+import type {
+	DirectoryEntry,
+	FileEntry,
+} from "../src/modules/resources/library/domain/model.js";
+import type { ScanState } from "../src/modules/resources/library/domain/scan-state.js";
+import {
+	directoryResponse,
+	libraryResponse,
+	scanStateDto,
+} from "../src/modules/resources/library/http/presenters.js";
+import { settingsResponse } from "../src/modules/resources/library/http/settings-presenter.js";
+import { fileDto } from "../src/transport/presenters/file.js";
 
 test("resource projections omit internal paths even when given full index entries", () => {
 	const directory: DirectoryEntry = {

@@ -1,6 +1,6 @@
 import pino from "pino";
 import { afterEach, expect, test } from "vitest";
-import { createHttpApp } from "../src/bootstrap/http.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
 import { DomainError } from "../src/shared/errors.js";
 
 const apps: ReturnType<typeof createHttpApp>[] = [];

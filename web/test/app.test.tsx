@@ -1,11 +1,12 @@
-import { queryClient } from "../src/api/query-client.js";
+import { queryClient } from "../src/shared/api/query-client.js";
 // @vitest-environment happy-dom
 
 import { StrictMode } from "react";
 import { createMemoryRouter, useLocation, useNavigate } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import App from "../src/App.js";
+import App from "../src/app/App.js";
+import { libraryRoute } from "../src/app/routes/library.js";
 import type {
 	DirectoryResponse,
 	FileResponse,
@@ -14,9 +15,8 @@ import type {
 	PreparationTaskResponse,
 	ScanStateDto,
 	SettingsResponse,
-} from "../src/api/contracts.js";
-import { Toaster, toast } from "../src/components/ui/toast.js";
-import { libraryRoute } from "../src/routes/library.js";
+} from "../src/shared/api/contracts.js";
+import { Toaster, toast } from "../src/shared/components/ui/toast.js";
 import {
 	act,
 	cleanup,

@@ -1,5 +1,5 @@
-import type { PersistentSettings } from "../src/modules/configuration/domain/model.js";
-import type { SettingsStore } from "../src/modules/configuration/public.js";
+import type { PersistentSettings } from "../src/modules/system/configuration/domain/model.js";
+import type { SettingsStore } from "../src/modules/system/configuration/public.js";
 
 /** In-memory persistence adapter for tests that do not exercise disk writes. */
 export function settingsStore(resourceRoot: string): SettingsStore {

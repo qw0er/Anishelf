@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import type { CompatibilityResult } from "../../../api/contracts.js";
+import type { CompatibilityResult } from "../../../shared/api/contracts.js";
 import { audioTrackLabel } from "../../preparation/public.js";
 export function AudioSelection({
 	audio,

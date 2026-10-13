@@ -6,7 +6,7 @@ import {
 	type RenderOptions,
 } from "@testing-library/react";
 import type { PropsWithChildren, ReactElement } from "react";
-import { queryClient } from "../src/api/query-client.js";
+import { queryClient } from "../src/shared/api/query-client.js";
 
 export * from "@testing-library/react";
 

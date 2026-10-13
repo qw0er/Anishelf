@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, expect, test } from "vitest";
-import { LibraryScanner } from "../src/modules/library/infrastructure/scanner.js";
-import { getVideoMimeType } from "../src/modules/resource-access/files.js";
-import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
+import { LibraryScanner } from "../src/modules/resources/library/infrastructure/scanner.js";
+import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
+import { getVideoMimeType } from "../src/modules/resources/resource-access/public.js";
 import {
 	type AnimePredictions,
 	corpusDirectory,

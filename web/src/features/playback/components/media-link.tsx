@@ -2,9 +2,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Copy, Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { isRequestCancelled } from "../../../api/client.js";
-import { useQueryScope } from "../../../api/queries.js";
-import { Button } from "../../../components/ui/button.js";
+import { isRequestCancelled } from "../../../shared/api/client.js";
+import { useQueryScope } from "../../../shared/api/queries.js";
+import { Button } from "../../../shared/components/ui/button.js";
 import {
 	Dialog,
 	DialogClose,
@@ -14,13 +14,13 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "../../../components/ui/dialog.js";
-import { DropdownMenuItem } from "../../../components/ui/dropdown-menu.js";
-import { Input } from "../../../components/ui/input.js";
-import { Spinner } from "../../../components/ui/spinner.js";
-import { toast } from "../../../components/ui/toast.js";
-import { Tooltip } from "../../../components/ui/tooltip.js";
-import { getErrorTranslationKey } from "../../../lib/error-translation.js";
+} from "../../../shared/components/ui/dialog.js";
+import { DropdownMenuItem } from "../../../shared/components/ui/dropdown-menu.js";
+import { Input } from "../../../shared/components/ui/input.js";
+import { Spinner } from "../../../shared/components/ui/spinner.js";
+import { toast } from "../../../shared/components/ui/toast.js";
+import { Tooltip } from "../../../shared/components/ui/tooltip.js";
+import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
 import {
 	createMediaLink,
 	createMediaPlaylist,

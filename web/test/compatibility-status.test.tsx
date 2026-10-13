@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
 
 import { afterEach, expect, test } from "vitest";
-import type { CompatibilityResult } from "../src/api/contracts.js";
 import { CompatibilityStatus } from "../src/features/library/components/compatibility-status.js";
+import type { CompatibilityResult } from "../src/shared/api/contracts.js";
 import { cleanup, fireEvent, render, waitFor } from "./query-test-utils.js";
-import "../src/i18n.js";
+import "../src/shared/i18n.js";
 
 afterEach(cleanup);
 

@@ -1,12 +1,12 @@
 import type { Logger } from "pino";
+import type { DeepReadonly } from "../../shared/policy.js";
 import {
 	type MediaCapabilityEntry,
 	type MediaCapabilityKind,
 	mediaCapabilityKinds,
 	type ServerMediaCapabilities,
 	unknownMediaCapabilities,
-} from "../../shared/media-capabilities.js";
-import type { DeepReadonly } from "../../shared/policy.js";
+} from "./capability-model.js";
 import type { ToolStatus } from "./model.js";
 import type { MediaToolPolicy } from "./policy.js";
 import { runTool } from "./process.js";
