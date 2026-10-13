@@ -1,5 +1,5 @@
 import { queryClient } from "../src/shared/api/query-client.js";
-import { animeFixture } from "./fixtures/anime.js";
+import { animeFixture, reviewFixture } from "./fixtures/anime.js";
 // @vitest-environment happy-dom
 
 import { StrictMode } from "react";
@@ -127,6 +127,8 @@ beforeEach(() => {
 			path.startsWith("/api/preparations?")
 		)
 			return json({ tasks: preparationTasks });
+		if (path === "/api/anime/identification")
+			return json({ running: false, failed: false });
 		if (path.startsWith("/api/catalog/works?"))
 			return json({ items: [], page: 1, perPage: 24, hasNextPage: false });
 		if (path === "/api/transcode-profiles")
@@ -1713,7 +1715,7 @@ test("filter submission resets pagination and sends all filters to the local cat
 
 test("the default poster wall exposes an empty state and access to Files", async () => {
 	renderApp("/");
-	await screen.findByText(/No confirmed anime yet/);
+	await screen.findByText(/No associated anime yet/);
 	expect(
 		screen
 			.getAllByRole("link", { name: "Files" })
@@ -1798,4 +1800,178 @@ test("anime version links pin the selected source version and refuse a replaced 
 	await screen.findByRole("heading", { name: "Unable to play this video" });
 	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
 	expect(screen.getByRole("link", { name: "Back to anime" })).toBeTruthy();
+});
+
+function mockReview(confirmed = false) {
+	const item = reviewFixture(confirmed);
+	const detail = animeFixture();
+	const fallback = fetcher.getMockImplementation();
+	fetcher.mockImplementation(async (input, init) => {
+		const path = String(input);
+		if (path.startsWith("/api/catalog/reviews?"))
+			return json({ items: [item], page: 1, perPage: 20, hasNextPage: false });
+		if (path === `/api/catalog/reviews/${item.id}`) return json(item);
+		if (path.startsWith("/api/metadata/search?"))
+			return json({
+				...detail.metadata,
+				data: {
+					items: [detail.metadata.data],
+					page: 1,
+					perPage: 10,
+					hasNextPage: false,
+				},
+			});
+		if (path === "/api/metadata/anilist/154587") return json(detail.metadata);
+		if (path === "/api/catalog/previews") {
+			const body = JSON.parse(String(init?.body));
+			const row = body.rows[0];
+			return json({
+				id: "preview-1",
+				expiresAt: Date.now() + 60000,
+				reference: body.reference,
+				workId: confirmed ? "work-1" : null,
+				workRevision: confirmed ? 1 : null,
+				metadata: detail.metadata,
+				rows: [
+					{
+						reviewId: item.id,
+						revision: item.revision,
+						relativePath: item.relativePath,
+						rawNumbers: item.evidence.rawEpisodes,
+						before: item.associations.map(
+							({ workId, episodeId, kind, number }) => ({
+								workId,
+								episodeId,
+								kind,
+								number,
+							}),
+						),
+						targets: row.targets.map(
+							(target: { kind: string; number: string }) => ({
+								...target,
+								number:
+									target.kind === "regular"
+										? String(Number(target.number) + row.offset)
+										: target.number,
+							}),
+						),
+						offset: row.offset,
+						reason: row.reason,
+					},
+				],
+			});
+		}
+		if (path === "/api/catalog/confirmations") {
+			item.decision = "confirmed";
+			item.revision += 1;
+			return json({ workId: "work-1", revision: 2, reviewIds: [item.id] });
+		}
+		if (path === `/api/catalog/reviews/${item.id}/remove`) {
+			item.associations = [];
+			item.decision = "rejected";
+			item.revision += 1;
+			return json(item);
+		}
+		if (!fallback) throw new Error("Missing fixture");
+		return fallback(input, init);
+	});
+	return item;
+}
+async function selectReviewWork() {
+	const input = await screen.findByLabelText("AniList ID or anime URL");
+	fireEvent.change(input, {
+		target: { value: "https://anilist.co/anime/154587/Frieren" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+	await screen.findByLabelText(
+		"Target numbers (comma-separated; movies use whole)",
+	);
+}
+
+test("failed recognition can be manually looked up, corrected with an offset preview and admitted", async () => {
+	const item = mockReview();
+	renderApp(`/review?item=${item.id}`);
+	await selectReviewWork();
+	fireEvent.change(
+		screen.getByLabelText("Target numbers (comma-separated; movies use whole)"),
+		{ target: { value: "3" } },
+	);
+	fireEvent.change(screen.getByLabelText("Regular numbering offset"), {
+		target: { value: "-1" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Preview association" }));
+	await screen.findByText("Resulting targets: regular 2");
+	fireEvent.click(screen.getByRole("button", { name: "Confirm association" }));
+	await screen.findByRole("link", { name: "Open anime" });
+	const body = fetcher.mock.calls.find(
+		([path]) => path === "/api/catalog/confirmations",
+	)?.[1]?.body;
+	expect(JSON.parse(String(body))).toMatchObject({
+		previewId: "preview-1",
+		replace: false,
+	});
+});
+
+test("correcting an automatically associated file requires explicit replacement", async () => {
+	const item = mockReview(true);
+	renderApp(`/review?item=${item.id}`);
+	await selectReviewWork();
+	fireEvent.change(
+		screen.getByLabelText("Target numbers (comma-separated; movies use whole)"),
+		{ target: { value: "2" } },
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Preview association" }));
+	const confirm = await screen.findByRole("button", {
+		name: "Confirm association",
+	});
+	expect(confirm.hasAttribute("disabled")).toBe(true);
+	fireEvent.click(screen.getByRole("checkbox", { name: /Explicitly replace/ }));
+	fireEvent.click(confirm);
+	await screen.findByRole("link", { name: "Open anime" });
+	const body = fetcher.mock.calls.find(
+		([path]) => path === "/api/catalog/confirmations",
+	)?.[1]?.body;
+	expect(JSON.parse(String(body)).replace).toBe(true);
+});
+
+test("local title and alias corrections call the revision-checked endpoint", async () => {
+	const detail = animeFixture();
+	mockAnime(detail);
+	const fallback = fetcher.getMockImplementation();
+	fetcher.mockImplementation(async (input, init) => {
+		if (
+			String(input) === "/api/catalog/works/work-1" &&
+			init?.method === "PATCH"
+		) {
+			const body = JSON.parse(String(init.body));
+			expect(body).toEqual({
+				revision: 1,
+				title: "My local title",
+				aliases: ["中文别名"],
+			});
+			detail.work.title = body.title;
+			detail.work.aliases = body.aliases;
+			detail.work.displayTitle = body.title;
+			detail.work.revision += 1;
+			return json(detail.work);
+		}
+		if (!fallback) throw new Error("Missing fixture");
+		return fallback(input, init);
+	});
+	renderApp("/anime/work-1");
+	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+	fireEvent.click(screen.getByText("Edit local title and episodes"));
+	fireEvent.change(
+		screen.getByLabelText(
+			"Local title override (blank uses the provider title)",
+		),
+		{ target: { value: "My local title" } },
+	);
+	fireEvent.change(screen.getByLabelText("Local aliases (one per line)"), {
+		target: { value: "中文别名" },
+	});
+	fireEvent.click(
+		screen.getByRole("button", { name: "Save title and aliases" }),
+	);
+	await screen.findByRole("heading", { name: "My local title", level: 1 });
 });

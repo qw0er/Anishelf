@@ -148,7 +148,7 @@ Search allows page sizes up to 50; relations/airing up to 25. Retention and snap
 version reads are internal module APIs, not arbitrary browser pin operations.
 HTTP query subscriptions cancel on disconnect. Browser response types are derived
 from the schemas in `contracts/http.ts`. The Anime Web feature now consumes Catalog projections for poster/detail display
-and Metadata for cached relations. Catalog confirmation and Review UI remain pending.
+and Metadata for cached relations. Web Review uses the existing search/detail endpoints for manual confirmation and correction.
 
 Tests use realistic injected GraphQL transports plus actual SQLite, restart,
 HTTP and filesystem integration. They exercise normalization/unknowns, stale and

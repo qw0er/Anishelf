@@ -12,6 +12,7 @@ export interface AnimeApi {
 				| "list"
 				| "detail"
 				| "reviews"
+				| "review"
 				| "preview"
 				| "confirm"
 				| "reject"

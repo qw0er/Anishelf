@@ -22,6 +22,7 @@ export class AutomaticIdentificationCoordinator {
 	private controller: AbortController | undefined;
 	private active: Promise<void> | undefined;
 	private requested = false;
+	private failed = false;
 	private closed = false;
 	private cache = new Map<string, CachedGroup>();
 	private results: IdentificationResult[] = [];
@@ -35,7 +36,8 @@ export class AutomaticIdentificationCoordinator {
 			onPublication?: (
 				results: readonly IdentificationResult[],
 				canonicalRoot: string,
-			) => void;
+				signal: AbortSignal,
+			) => void | Promise<void>;
 		},
 	) {}
 	start(): void {
@@ -60,12 +62,15 @@ export class AutomaticIdentificationCoordinator {
 					this.controller = controller;
 					try {
 						await this.synchronize(controller.signal);
+						this.failed = false;
 					} catch (err) {
-						if (!controller.signal.aborted && !this.closed)
+						if (!controller.signal.aborted && !this.closed) {
+							this.failed = true;
 							this.options.logger.warn(
 								{ event: "identification.automatic_failed", err },
 								"Automatic identification failed; the next completed scan will retry.",
 							);
+						}
 					}
 				}
 			})
@@ -189,7 +194,9 @@ export class AutomaticIdentificationCoordinator {
 			throw new Error("Library publication changed during identification.");
 		signal.throwIfAborted();
 		this.options.sources.assertRootEpoch(epoch);
-		this.options.onPublication?.(results, canonicalRoot);
+		await this.options.onPublication?.(results, canonicalRoot, signal);
+		signal.throwIfAborted();
+		this.options.sources.assertRootEpoch(epoch);
 		this.cache = next;
 		this.results = results;
 		this.options.logger.info(
@@ -201,6 +208,9 @@ export class AutomaticIdentificationCoordinator {
 			},
 			"Automatic local identification completed.",
 		);
+	}
+	getStatus() {
+		return { running: Boolean(this.active), failed: this.failed };
 	}
 	getResults(): IdentificationResult[] {
 		return structuredClone(this.results);

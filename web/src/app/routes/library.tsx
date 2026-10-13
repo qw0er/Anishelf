@@ -8,7 +8,11 @@ import {
 	useParams,
 	useSearchParams,
 } from "react-router";
-import { AnimeDetail, AnimeLibrary } from "../../features/anime/ui.js";
+import {
+	AnimeDetail,
+	AnimeLibrary,
+	ReviewPage,
+} from "../../features/anime/ui.js";
 import {
 	usePreparationAction,
 	usePreparationContext,
@@ -133,6 +137,7 @@ export const libraryRoute: RouteObject = {
 	errorElement: <RouteError kind="page" />,
 	hydrateFallbackElement: <InitialLoading />,
 	children: [
+		{ path: "review", element: <ReviewPage /> },
 		{
 			path: "history",
 			loader: historyLoader,

@@ -1,4 +1,6 @@
 export const catalogPolicy = {
+	automaticMinimumScore: 70,
+	automaticMinimumMargin: 10,
 	maximumRows: 100,
 	maximumTargets: 100,
 	maximumEpisode: 10000,

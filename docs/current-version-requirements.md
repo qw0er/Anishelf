@@ -2,7 +2,7 @@
 
 ## 1. Goal and Status
 
-Deliver an anime library from existing local resources using external metadata, resource identification and manual confirmation. Completed scans automatically identify new or changed local resources. The user can resolve ambiguous titles and episode numbers, browse confirmed anime by episode and choose a file version for existing Web playback.
+Deliver an anime library from existing local resources using external metadata, automatic admission of successful identification and manual correction. Completed scans automatically identify new or changed local resources and admit unambiguous work/episode matches. The user can resolve ambiguous titles and episode numbers, browse confirmed anime by episode and choose a file version for existing Web playback.
 
 This iteration is selected and not yet complete or accepted. The backend
 [Identification module](identification.md) implements stateless local recognition
@@ -10,7 +10,7 @@ and candidate-specific proposals. An application coordinator automatically proce
 published scans. [Metadata](metadata.md) supplies cached AniList search, details,
 relations, airing and artwork. [Anime Catalog](anime-catalog.md) implements backend persistence, review decisions,
 confirmation/correction operations and library queries. The Web poster library, work detail and version playback are implemented;
-Files identification presentation and the Web review workflow remain pending. No release number is assigned. The [overall requirements](requirements.md) own feature identifiers and later scope; [History](history.md#v2-requirements) records the retained V2 scope as implemented. The anime-library acceptance below remains pending.
+Automatic admission and the Web Review/correction workflow are implemented. Files-specific inline identification presentation remains pending. No release number is assigned. The [overall requirements](requirements.md) own feature identifiers and later scope; [History](history.md#v2-requirements) records the retained V2 scope as implemented. The anime-library acceptance below remains pending.
 
 External metadata access belongs to this iteration. Personal tracker authorization, list import and progress synchronization are later capabilities and must not be prerequisites for identifying local files.
 
@@ -19,8 +19,7 @@ The [current iteration overall design](current-version-design.md) selects
 with provider extensibility and persistent metadata/artwork caching. The default
 interface becomes a poster-based anime library; directory browsing remains the
 resource-management and identification entry, alongside a review workflow.
-The poster library and detail/playback slice is implemented; the Review workflow
-remains a selected design decision.
+The poster library, detail/playback, automatic admission and Review/correction workflows are implemented.
 
 ## 2. Selected Requirements
 
@@ -38,8 +37,8 @@ remains a selected design decision.
 
 1. Scan existing resources using the current library workflow. Published scans automatically trigger local identification; no separate Identify action is required.
 2. Identification parses file and directory evidence and uses Metadata to generate ranked candidates and candidate-specific episode proposals. A directory supplies context but is not assumed to contain only one anime.
-3. Anime Catalog owns accepting associations and presenting ambiguous proposals for review. Confirm the anime or search for a different entry; split associations when a directory contains multiple works.
-4. Use Catalog-owned correction operations to review episode mappings, including specials, continuous numbering, ranges and season/part boundaries. Correct individual mappings or apply an explicit numbering offset with a preview of affected files.
+3. Anime Catalog automatically accepts clear matches. Failed or ambiguous identification stays in Review: select a suggested work, search for another title or look up an AniList ID/URL, preview the targets and confirm. Mixed directories are handled per source.
+4. Use Review for pending, associated or rejected sources; previously identified content can be reassociated explicitly. Use Catalog-owned correction operations to review episode mappings, including specials, continuous numbering, ranges and season/part boundaries. Correct individual mappings or apply an explicit numbering offset with a preview of affected files.
 5. Save confirmed associations and open the anime detail view. Select an episode and resource version for playback.
 6. Rescan or refresh metadata without silently overwriting confirmed manual choices. Unidentified files remain accessible through the existing file browser.
 
@@ -59,7 +58,7 @@ remains a selected design decision.
 
 Full iteration acceptance remains pending. Poster/detail/version playback has
 [scoped implementation and sample verification](acceptance/anime-library/README.md);
-this does not complete the Review or recognition-accuracy scenarios. Acceptance must include representative Chinese, Japanese and English filenames, directory-only titles, mixed-work directories, specials, continuous numbering, season/part ambiguity, multi-episode files and multiple versions. Record parser/provider versions, sample expectations, unresolved cases and actual results.
+[Automatic admission and Review verification](acceptance/anime-library/automatic-review.md) also covers the new workflow. Representative recognition accuracy and complete iteration acceptance remain separate. Acceptance must include representative Chinese, Japanese and English filenames, directory-only titles, mixed-work directories, specials, continuous numbering, season/part ambiguity, multi-episode files and multiple versions. Record parser/provider versions, sample expectations, unresolved cases and actual results.
 
 The [offline identification corpus](../backend/test/fixtures/anime-identification/README.md)
 provides sourced filenames, frozen provider records, expected associations, review

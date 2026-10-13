@@ -17,7 +17,8 @@ export function createIdentificationModule(options: {
 	onPublication?: (
 		results: readonly IdentificationResult[],
 		canonicalRoot: string,
-	) => void;
+		signal: AbortSignal,
+	) => void | Promise<void>;
 }): AutomaticIdentificationCoordinator {
 	const identification = new IdentificationApplication({
 		parser: new AnitomyIdentificationParser(),

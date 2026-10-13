@@ -1,5 +1,6 @@
 import type { AnimeCatalogApi } from "../public.js";
 import { AssociationApplication } from "./associations.js";
+import { AutomaticAdmission } from "./automatic.js";
 import { CatalogContext, type CatalogOptions } from "./context.js";
 import { CatalogQueries } from "./queries.js";
 import { ReviewApplication } from "./review.js";
@@ -13,6 +14,7 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 	readonly artwork: AnimeCatalogApi["artwork"];
 	readonly detail: AnimeCatalogApi["detail"];
 	readonly publish: AnimeCatalogApi["publish"];
+	readonly review: AnimeCatalogApi["review"];
 	readonly reviews: AnimeCatalogApi["reviews"];
 	readonly reject: AnimeCatalogApi["reject"];
 	readonly remove: AnimeCatalogApi["remove"];
@@ -30,7 +32,13 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 		this.list = queries.list.bind(queries);
 		this.artwork = queries.artwork.bind(queries);
 		this.detail = queries.detail.bind(queries);
-		this.publish = review.publish.bind(review);
+		const automatic = new AutomaticAdmission(this.context, this.associations);
+		this.publish = async (results, root, signal) => {
+			signal?.throwIfAborted();
+			review.publish(results, root);
+			await automatic.admit(results, root, signal);
+		};
+		this.review = review.get.bind(review);
 		this.reviews = review.reviews.bind(review);
 		this.reject = review.reject.bind(review);
 		this.remove = review.remove.bind(review);

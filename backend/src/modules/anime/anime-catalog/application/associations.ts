@@ -31,7 +31,10 @@ export class AssociationApplication {
 				this.previews.delete(id);
 			}
 	}
-	async preview(request: PreviewRequest): Promise<CatalogPreview> {
+	async preview(
+		request: PreviewRequest,
+		signal?: AbortSignal,
+	): Promise<CatalogPreview> {
 		const root = await this.context.root();
 		this.prunePreviews();
 		if (this.previews.size >= policy.maximumPreviews)
@@ -46,7 +49,10 @@ export class AssociationApplication {
 				request.rows.length
 		)
 			invalid("Select between one and 100 distinct review items.");
-		const metadata = await this.context.options.metadata.get(request.reference);
+		const metadata = await this.context.options.metadata.get(
+			request.reference,
+			signal ? { signal } : {},
+		);
 		this.context.options.sources.assertRootEpoch(root.epoch);
 		const records: ReviewRecord[] = [];
 		const rows: CatalogPreview["rows"] = [];
@@ -113,7 +119,11 @@ export class AssociationApplication {
 		});
 		return structuredClone(value);
 	}
-	async confirm(request: Confirmation): Promise<ConfirmationResult> {
+	async confirm(
+		request: Confirmation,
+		signal?: AbortSignal,
+	): Promise<ConfirmationResult> {
+		signal?.throwIfAborted();
 		this.context.open();
 		text(request.operationKey, 200);
 		text(request.previewId, 200);
@@ -148,6 +158,7 @@ export class AssociationApplication {
 			await this.context.validate(record, root.epoch);
 		this.context.options.sources.assertRootEpoch(root.epoch);
 		this.context.open();
+		signal?.throwIfAborted();
 		const preview = saved.value;
 		if (preview.expiresAt <= Date.now())
 			conflict("Preview expired. Create a new preview.");
@@ -335,6 +346,9 @@ export class AssociationApplication {
 		return result;
 	}
 
+	discard(id: string): void {
+		this.previews.delete(id);
+	}
 	close(): void {
 		this.previews.clear();
 	}

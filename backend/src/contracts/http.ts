@@ -156,3 +156,7 @@ export type CatalogWorkResponse = Static<typeof schemas.CatalogWorkSchema>;
 export type CatalogEpisodeResponse = Static<
 	typeof schemas.CatalogEpisodeSchema
 >;
+
+export type IdentificationStatusResponse = Static<
+	typeof schemas.IdentificationStatusSchema
+>;

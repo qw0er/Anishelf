@@ -104,6 +104,16 @@ const review = Type.Object({
 	available: Type.Boolean(),
 	revision,
 	decision,
+	associations: Type.Array(
+		Type.Object({
+			workId: id,
+			workTitle: Type.String(),
+			episodeId: id,
+			kind,
+			number: Type.String(),
+			label: Type.String(),
+		}),
+	),
 	reason: nullableText,
 	evidence,
 	proposals: Type.Array(proposal),
@@ -301,3 +311,8 @@ export const CatalogReviewQuerySchema = Type.Object(
 	{ ...pagination, decision: Type.Optional(decision) },
 	{ additionalProperties: false },
 );
+
+export const IdentificationStatusSchema = Type.Object({
+	running: Type.Boolean(),
+	failed: Type.Boolean(),
+});
