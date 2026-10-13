@@ -57,26 +57,25 @@ ignored `.nyaa-corpus.local/` directory.
 ## Source maintenance
 
 Follow [Architecture](architecture.md#source-organization-and-dependency-boundaries)
-for directory ownership and module collaboration. Business consumers import only
-a module's `public.ts` or policy entry. Database adapters may additionally use a
-module's restricted `persistence.ts`; only app assembly imports implementations.
-Module groups are organizational, not permission boundaries. Small modules need
-only the files they actually use rather than mandatory layer directories.
+for module contracts and dependency directions. A business consumer imports only
+a large module's root `public.ts`; importing a child's public entry across modules
+is forbidden. Module creation and HTTP registration entries are app-only. Database
+adapters may use root persistence entries. App cannot import child implementations.
 
-The backend entry assembles the application through `src/app/bootstrap`; durable
-tables belong to module infrastructure and are aggregated by `src/app/schema.ts`.
-`drizzle.config.ts` reads that aggregate. Moving a schema must preserve table, column,
-index and foreign-key identities and must not generate an unrelated migration.
+Each backend module owns private composition and lifecycle. App aggregates global
+policy, connects complete modules and quiesces producers before releasing source,
+media-tool and database capabilities. Schema aggregation uses only root persistence
+entries. Source moves must preserve existing database identities and migrations.
 
-Web routes and composition belong to `src/app`; business requests, queries and
-policies belong to `src/features`; generic HTTP/query mechanisms and UI primitives
-belong to `src/shared`. New cross-feature consumers use Public API entries rather
-than adding implementation imports. Preserve query keys, cancellation and cache
-invalidation behavior when moving requests or controllers.
+Frontend Resources, Media, Playback and Settings expose business contracts through
+`public.ts` and app-only components through `ui.ts`. Cross-module menus and player
+extensions belong to app and are supplied through component slots. Preserve query
+keys, cancellation, Provider placement and cache invalidation when changing these
+boundaries. Shared code cannot import modules or app.
 
-Run `npm run check` and `npm run build` after a structural change. Architecture
-fixtures spawn Node child processes; media and HTTP suites also spawn tools and
-listen on localhost. Run them in an environment permitting those operations.
+Run `npm run check` and `npm run build` after structural changes. Architecture
+fixtures spawn Node processes; media and HTTP suites also spawn tools and listen
+on localhost. Run them in an environment permitting those operations.
 
 ## Deployment configuration
 

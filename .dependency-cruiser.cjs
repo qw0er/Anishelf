@@ -67,18 +67,62 @@ module.exports = {
 		{
 			name: "backend-module-entry-points",
 			severity: "error",
-			from: { path: "^backend/src/modules/([^/]+/[^/]+)/" },
+			from: {
+				path: "^backend/src/modules/([^/]+)/(?!composition/|workflows/)([^/]+)/",
+			},
 			to: {
-				path: "^backend/src/modules/(?!$1/)[^/]+/[^/]+/",
+				path: "^backend/src/modules/$1/(?!$2/)[^/]+/",
 				pathNot: "(?:public|policy|persistence)\\.ts$",
+			},
+		},
+		{
+			name: "large-public-does-not-load-implementation",
+			severity: "error",
+			from: { path: "^backend/src/modules/[^/]+/public\\.ts$" },
+			to: {
+				path: "^backend/src/modules/[^/]+/(?:composition/|create\\.ts$|http\\.ts$|persistence\\.ts$)|^backend/src/modules/[^/]+/[^/]+/(?:application(?:/|\\.ts$)|infrastructure/|http/)",
+			},
+		},
+
+		{
+			name: "backend-large-module-boundary",
+			severity: "error",
+			from: { path: "^backend/src/modules/([^/]+)/" },
+			to: {
+				path: "^backend/src/modules/(?!$1/)[^/]+/",
+				pathNot: "^backend/src/modules/[^/]+/(?:public|persistence)\\.ts$",
+			},
+		},
+		{
+			name: "backend-app-uses-module-entries",
+			severity: "error",
+			from: { path: "^backend/src/app/" },
+			to: {
+				path: "^backend/src/modules/",
+				pathNot:
+					"^backend/src/modules/[^/]+/(?:public|create|http|persistence)\\.ts$",
 			},
 		},
 		{
 			name: "backend-external-consumers-use-public-api",
 			severity: "error",
 			from: { path: "^backend/src/", pathNot: "^backend/src/(app|modules)/" },
-			to: { path: `^${modulePath}`, pathNot: "(?:public|policy)\\.ts$" },
+			to: {
+				path: "^backend/src/modules/",
+				pathNot: "^backend/src/modules/[^/]+/public\\.ts$",
+			},
 		},
+		{
+			name: "business-does-not-use-assembly-entries",
+			severity: "error",
+			from: {
+				path: "^backend/src/modules/",
+				pathNot:
+					"^backend/src/modules/[^/]+/(?:create|http|persistence)\\.ts$|^backend/src/modules/[^/]+/composition/",
+			},
+			to: { path: "^backend/src/modules/[^/]+/(?:create|http)\\.ts$" },
+		},
+
 		{
 			name: "http-does-not-call-other-modules",
 			severity: "error",
@@ -100,10 +144,14 @@ module.exports = {
 			severity: "error",
 			from: {
 				path: "^backend/src/",
-				pathNot: `^backend/src/app/|^${modulePath}(?:infrastructure/(?:schema|repository)\\.ts$|persistence\\.ts$)`,
+				pathNot:
+					"^backend/src/app/|^backend/src/modules/[^/]+/(?:create|persistence)\\.ts$|^backend/src/modules/[^/]+/composition/|^backend/src/modules/[^/]+/[^/]+/infrastructure/(?:schema|repository)\\.ts$",
 			},
-			to: { path: `^${modulePath}persistence\\.ts$` },
+			to: {
+				path: "^backend/src/modules/[^/]+/persistence\\.ts$|^backend/src/modules/[^/]+/[^/]+/persistence\\.ts$",
+			},
 		},
+
 		{
 			name: "web-only-imports-browser-contracts",
 			severity: "error",
@@ -113,15 +161,42 @@ module.exports = {
 		{
 			name: "web-feature-entry-points",
 			severity: "error",
+			from: {
+				path: "^web/src/features/(resources|media|playback)/([^/]+)/",
+			},
+			to: {
+				path: "^web/src/features/$1/(?!$2/)[^/]+/",
+				pathNot: "public\\.ts$",
+			},
+		},
+		{
+			name: "web-large-module-boundary",
+			severity: "error",
 			from: { path: "^web/src/features/([^/]+)/" },
-			to: { path: "^web/src/features/(?!$1/)[^/]+/", pathNot: "public\\.ts$" },
+			to: {
+				path: "^web/src/features/(?!$1/)[^/]+/",
+				pathNot: "^web/src/features/[^/]+/public\\.ts$",
+			},
 		},
 		{
 			name: "web-app-uses-feature-public-api",
 			severity: "error",
 			from: { path: "^web/src/app/|^web/src/main\\.tsx$" },
-			to: { path: "^web/src/features/", pathNot: "public\\.ts$" },
+			to: {
+				path: "^web/src/features/",
+				pathNot: "^web/src/features/[^/]+/(?:public|ui)\\.ts$",
+			},
 		},
+		{
+			name: "web-business-does-not-import-ui-entry",
+			severity: "error",
+			from: {
+				path: "^web/src/features/",
+				pathNot: "^web/src/features/[^/]+/ui\\.ts$",
+			},
+			to: { path: "^web/src/features/[^/]+/ui\\.ts$" },
+		},
+
 		{
 			name: "web-shared-does-not-import-features",
 			severity: "error",

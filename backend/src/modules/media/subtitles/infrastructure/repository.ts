@@ -1,10 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import {
-	mediaSources,
-	resourceRoots,
-} from "../../../resources/resource-access/persistence.js";
-import type { SourceRegistry } from "../../../resources/resource-access/public.js";
+import { mediaSources, resourceRoots } from "../../../resources/persistence.js";
+import type { SourceRegistry } from "../../../resources/public.js";
 import type { SubtitleAsset, SubtitleFontSet } from "../domain/model.js";
 import {
 	subtitleAssets,

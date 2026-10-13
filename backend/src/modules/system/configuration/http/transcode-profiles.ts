@@ -3,11 +3,11 @@ import {
 	TranscodeProfileCatalogSchema,
 } from "../../../../contracts/schemas/index.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
-import type { ConfigurationService } from "../application/service.js";
+import type { SystemApi } from "../../public.js";
 
 export function registerTranscodeProfileRoutes(
 	app: HttpInstance,
-	configuration: ConfigurationService,
+	configuration: SystemApi,
 ): void {
 	app.get(
 		"/api/transcode-profiles",

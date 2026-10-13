@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import { DomainError } from "../../../../shared/errors.js";
-import type { SourceIdentity } from "../../../resources/resource-access/public.js";
+import type { SourceIdentity } from "../../../resources/public.js";
 import { proposeMapping } from "../domain/mapping.js";
 import { rankCandidates } from "../domain/matching.js";
 import type {

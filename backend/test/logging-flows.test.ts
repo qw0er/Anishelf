@@ -1,8 +1,8 @@
 import pino from "pino";
 import { expect, test } from "vitest";
-import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { builtinPolicy } from "../src/modules/system/configuration/public.js";
+import { builtinPolicy } from "../src/app/policy.js";
 import { runTool } from "../src/platform/media/process.js";
+import { createHttpApp } from "./support/http.js";
 
 function capture(level: string) {
 	const records: Record<string, unknown>[] = [];

@@ -147,3 +147,10 @@ are intentionally non-playable and do not certify browser playback.
 The Web poster wall, work detail, Files identification presentation and Review UI
 remain pending. Full CAT01–CAT08 acceptance, representative recognition accuracy
 and real-video version-selection navigation remain iteration work.
+
+## Module boundary
+
+This implementation is private to the Anime large module. External consumers use
+its root Public API; Anime composition owns internal construction, recognition
+coordination and provider/Catalog adapters. App uses only the module creation,
+HTTP and persistence entries. See [Architecture](architecture.md) for boundaries.

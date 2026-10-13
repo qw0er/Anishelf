@@ -4,6 +4,7 @@ import {
 	type RuntimeEnvironment,
 } from "../../../../platform/environment.js";
 import { DomainError } from "../../../../shared/errors.js";
+import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
 import type { DeploymentConfig, PersistentSettings } from "../domain/model.js";
 import {
 	defaultTranscodeProfileId,
@@ -13,17 +14,17 @@ import { loadDeploymentConfig } from "../infrastructure/deployment.js";
 import { PersistentConfiguration } from "../infrastructure/persistent.js";
 import { loadTranscodeProfiles } from "../infrastructure/transcode-profiles.js";
 import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-	freeze,
-	validatePolicy,
+	type ConfigurationPolicy,
+	configurationPolicy,
+	validateConfigurationPolicy,
 } from "../policy.js";
 import type { PreparationMode } from "../settings.js";
 
-export interface EffectiveConfiguration {
+export interface EffectiveConfiguration<
+	TPolicy extends ConfigurationPolicy = ConfigurationPolicy,
+> {
 	deployment: DeploymentConfig;
-	policy: BuiltinPolicy;
+	policy: TPolicy;
 	settings: PersistentSettings & {
 		scanIntervalMinutes: number;
 		defaultTranscodeProfileId: string;
@@ -31,23 +32,32 @@ export interface EffectiveConfiguration {
 	};
 }
 /** The composition root owns one service; consumers receive immutable snapshots. */
-export class ConfigurationService {
-	private current: DeepReadonly<EffectiveConfiguration>;
+export class ConfigurationService<
+	TPolicy extends ConfigurationPolicy = ConfigurationPolicy,
+> {
+	private current: DeepReadonly<EffectiveConfiguration<TPolicy>>;
 	private pendingChange: Promise<void> = Promise.resolve();
 	private constructor(
 		readonly deployment: DeepReadonly<DeploymentConfig>,
 		private readonly persistent: PersistentConfiguration,
 		readonly environment: RuntimeEnvironment,
-		readonly policy: DeepReadonly<BuiltinPolicy>,
+		readonly policy: DeepReadonly<TPolicy>,
 		readonly transcodeProfiles: DeepReadonly<TranscodeProfile[]>,
 	) {
 		this.current = this.resolve();
 	}
+	static load(
+		env?: Readonly<Record<string, string | undefined>>,
+	): Promise<ConfigurationService>;
+	static load<TPolicy extends ConfigurationPolicy>(
+		env: Readonly<Record<string, string | undefined>>,
+		policy: DeepReadonly<TPolicy>,
+	): Promise<ConfigurationService<TPolicy>>;
 	static async load(
 		env: Readonly<Record<string, string | undefined>> = process.env,
-		policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
+		policy: DeepReadonly<ConfigurationPolicy> = configurationPolicy,
 	): Promise<ConfigurationService> {
-		validatePolicy(policy);
+		validateConfigurationPolicy(policy);
 		const deployment = freeze(await loadDeploymentConfig(env));
 		const ownedPolicy = freeze(structuredClone(policy));
 		const persistent = await PersistentConfiguration.load(
@@ -66,7 +76,7 @@ export class ConfigurationService {
 	get settings(): Readonly<PersistentSettings> {
 		return this.persistent.settings;
 	}
-	get snapshot(): DeepReadonly<EffectiveConfiguration> {
+	get snapshot(): DeepReadonly<EffectiveConfiguration<TPolicy>> {
 		return this.current;
 	}
 	getTranscodeProfileCatalog(): TranscodeProfileCatalog {
@@ -143,11 +153,11 @@ export class ConfigurationService {
 		);
 		return result;
 	}
-	private resolve(): DeepReadonly<EffectiveConfiguration> {
-		return freeze({
+	private resolve(): DeepReadonly<EffectiveConfiguration<TPolicy>> {
+		return Object.freeze({
 			deployment: this.deployment,
 			policy: this.policy,
-			settings: {
+			settings: freeze({
 				...this.settings,
 				preparationMode: this.settings.preparationMode ?? "compatible",
 				defaultTranscodeProfileId:
@@ -155,7 +165,7 @@ export class ConfigurationService {
 				scanIntervalMinutes:
 					this.settings.scanIntervalMinutes ??
 					this.policy.library.defaultScanIntervalMinutes,
-			},
+			}),
 		});
 	}
 }

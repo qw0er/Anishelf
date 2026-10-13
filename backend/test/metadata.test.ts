@@ -4,11 +4,10 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
-import { createHttpApp } from "../src/app/bootstrap/http.js";
 import {
 	createIdentificationMetadata,
 	createMetadataModule,
-} from "../src/app/bootstrap/metadata.js";
+} from "../src/modules/anime/composition/metadata.js";
 import { IdentificationApplication } from "../src/modules/anime/identification/application/identification.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
 import { MetadataApplication } from "../src/modules/anime/metadata/application/metadata.js";
@@ -17,6 +16,7 @@ import { MetadataArtworkCache } from "../src/modules/anime/metadata/infrastructu
 import { metadataPolicy } from "../src/modules/anime/metadata/policy.js";
 import type { CacheEntry } from "../src/modules/anime/metadata/ports.js";
 import { MetadataError } from "../src/modules/anime/metadata/public.js";
+import { createHttpApp } from "./support/http.js";
 
 const logger = pino({ enabled: false });
 const reference = {

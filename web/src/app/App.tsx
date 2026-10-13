@@ -10,13 +10,13 @@ import {
 	useRevalidator,
 } from "react-router";
 import {
-	libraryQuery,
-	startScan as startScanRequest,
-} from "../features/library/public.js";
-import {
 	PreparationMonitor,
 	PreparationProvider,
-} from "../features/preparation/public.js";
+} from "../features/media/ui.js";
+import {
+	libraryQuery,
+	startScan as startScanRequest,
+} from "../features/resources/public.js";
 import { settingsQuery } from "../features/settings/public.js";
 import { QueryScope } from "../shared/api/queries.js";
 import { buttonStyles } from "../shared/components/ui/button.js";
@@ -28,7 +28,7 @@ import AppHeader from "./components/app-header.js";
 import type { libraryLoader } from "./routes/loaders.js";
 import "../shared/i18n.js";
 
-import type { LibraryContext } from "../features/library/public.js";
+import type { LibraryContext } from "../features/resources/public.js";
 
 function App() {
 	const { t } = useTranslation();

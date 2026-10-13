@@ -1,6 +1,6 @@
 import type { MediaExecutionProgress } from "../../../../platform/media/events.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
-import type { SourceIdentity } from "../../../resources/resource-access/public.js";
+import type { SourceIdentity } from "../../../resources/public.js";
 import type { PreparationSettingsSnapshot } from "../snapshot.js";
 export type PreparationFailureReason =
 	| "interrupted"

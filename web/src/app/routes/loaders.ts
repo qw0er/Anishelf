@@ -3,14 +3,14 @@ import {
 	type LoaderFunctionArgs,
 	redirect,
 } from "react-router";
-import { historyQuery } from "../../features/history/public.js";
+import { preparationPolicy } from "../../features/media/public.js";
+import { historyQuery } from "../../features/playback/public.js";
 import {
 	directoryQuery,
+	fileQuery,
 	libraryQuery,
 	startScan,
-} from "../../features/library/public.js";
-import { preparationPolicy } from "../../features/preparation/public.js";
-import { fileQuery } from "../../features/resource-access/public.js";
+} from "../../features/resources/public.js";
 import {
 	libraryPolicy,
 	saveSettings,

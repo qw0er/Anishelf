@@ -1,5 +1,5 @@
 import type { DeepReadonly } from "../../../../shared/policy.js";
-import type { SettingsStore } from "../../../system/configuration/public.js";
+import type { SettingsStore } from "../../../system/public.js";
 import type {
 	ResourceAccessApi,
 	ResourceRootApi,

@@ -1,11 +1,8 @@
 import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import { DomainError } from "../../../../shared/errors.js";
-import {
-	mediaSources,
-	resourceRoots,
-} from "../../../resources/resource-access/persistence.js";
-import type { SourceRegistry } from "../../../resources/resource-access/public.js";
+import { mediaSources, resourceRoots } from "../../../resources/persistence.js";
+import type { SourceRegistry } from "../../../resources/public.js";
 import type { IdentificationResult } from "../../identification/public.js";
 import type {
 	Association,

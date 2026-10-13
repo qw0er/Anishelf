@@ -11,3 +11,14 @@ export function nameCollator(
 		sensitivity: policy.sortSensitivity,
 	});
 }
+
+export interface SortingPolicy {
+	sortLocale: string;
+	sortNumeric: boolean;
+	sortSensitivity: NonNullable<Intl.CollatorOptions["sensitivity"]>;
+}
+export const defaultSortingPolicy = Object.freeze({
+	sortLocale: "en",
+	sortNumeric: true,
+	sortSensitivity: "base" as const,
+});

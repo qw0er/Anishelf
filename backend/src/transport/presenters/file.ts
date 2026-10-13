@@ -1,5 +1,5 @@
 import type { FileDto } from "../../contracts/http.js";
-import type { FileInfo } from "../../modules/resources/resource-access/public.js";
+import type { FileInfo } from "../../modules/resources/public.js";
 export function fileDto(file: FileInfo): FileDto {
 	return {
 		kind: "file",

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { expect, test, vi } from "vitest";
-import { queryCapability } from "../src/features/media-compatibility/capabilities.js";
+import { queryCapability } from "../src/features/media/media-compatibility/capabilities.js";
 import type { CompatibilityQuery } from "../src/shared/api/contracts.js";
 
 const query: CompatibilityQuery = {

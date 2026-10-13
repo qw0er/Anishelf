@@ -1,139 +1,64 @@
 import type { Logger } from "pino";
-import { MediaInspectionApplication } from "../../modules/media/media-inspection/application.js";
-import { PlaybackSelectionApplication } from "../../modules/playback/playback-selection/application/selection.js";
-import type { LibraryApplication } from "../../modules/resources/library/application/library.js";
-import type { ConfigurationService } from "../../modules/system/configuration/application/service.js";
+import { createAnimeModule } from "../../modules/anime/create.js";
+import { createMediaModule } from "../../modules/media/create.js";
+import { createPlaybackModule } from "../../modules/playback/create.js";
+import { createResourcesModule } from "../../modules/resources/create.js";
+import { registerSystemHttp } from "../../modules/system/http.js";
+import type { SystemApi } from "../../modules/system/public.js";
 import type { MediaTools } from "../../platform/media/index.js";
-import { createCatalogModule } from "./catalog.js";
+import { closeModules } from "../lifecycle.js";
+import { builtinPolicy } from "../policy.js";
 import type { ApplicationDatabase } from "./database.js";
 import { createHttpApp } from "./http.js";
-import { createIdentificationModule } from "./identification.js";
-import { createMediaExecutionModule } from "./media-execution.js";
-import {
-	createIdentificationMetadata,
-	createMetadataModule,
-} from "./metadata.js";
-import { createPlaybackModule } from "./playback.js";
-import { createPlaybackCopies } from "./playback-selection.js";
-import {
-	createPreparationModule,
-	initializePreparationModule,
-} from "./preparation.js";
-import { createSubtitleModule, initializeSubtitleModule } from "./subtitles.js";
-
-type HttpApp = ReturnType<typeof createHttpApp>;
 export async function createServer(
-	configuration: ConfigurationService,
+	system: SystemApi,
 	logger: Logger,
-	library: LibraryApplication,
 	database: ApplicationDatabase | undefined,
 	tools: MediaTools,
-): Promise<HttpApp> {
-	const config = configuration.deployment;
-	const development = configuration.environment.development;
-	const frontendRoot = config.frontendDir;
-	const inspection = new MediaInspectionApplication({
-		sources: library.sources,
-		tools,
-		policy: configuration.policy.mediaInspection,
+) {
+	const resources = await createResourcesModule({
+		system,
 		logger,
+		policy: builtinPolicy,
 	});
-	const execution = createMediaExecutionModule({
-		configuration,
-		inspection,
-		sources: library.sources,
+	const media = await createMediaModule({
+		system,
+		resources: resources.api,
+		policy: builtinPolicy,
+		database,
 		tools,
 		logger,
 	});
-	const planning = execution.planning;
 	const playback = createPlaybackModule({
-		configuration,
-		library,
+		system,
+		resources: resources.api,
+		media: media.api,
+		policy: builtinPolicy.playback,
 		database,
 		logger,
 	});
-	const subtitles = createSubtitleModule({
-		configuration,
-		library,
+	const anime = await createAnimeModule({
+		system,
+		resources: resources.api,
 		database,
-		tools,
-		inspection,
 		logger,
 	});
-	const preparation = createPreparationModule({
-		configuration,
-		library,
-		database,
-		planning,
-		processing: execution.processing,
+	return createHttpApp({
+		config: system.deployment,
 		logger,
-	});
-	await initializePreparationModule(preparation, logger);
-	await initializeSubtitleModule(subtitles, logger);
-	const playbackSelection = new PlaybackSelectionApplication({
-		sources: library.sources,
-		planning,
-		copies: createPlaybackCopies(preparation),
-		selectedProfileId: () =>
-			configuration.getTranscodeProfileCatalog().selectedProfileId,
-	});
-	let metadata: Awaited<ReturnType<typeof createMetadataModule>> | undefined;
-	if (database) {
-		try {
-			metadata = await createMetadataModule({
-				dataDir: config.dataDir,
-				store: database.metadata,
-				logger,
-			});
-		} catch (err) {
-			logger.warn(
-				{ event: "metadata.unavailable", err },
-				"Metadata cache unavailable; local identification remains usable.",
-			);
-		}
-	}
-	const catalog = createCatalogModule({ database, metadata, library, logger });
-	const identification = createIdentificationModule({
-		...(catalog
-			? {
-					onPublication: (results, canonicalRoot) =>
-						catalog.publish(results, canonicalRoot),
-				}
+		policy: builtinPolicy,
+		development: system.environment.development,
+		...(system.deployment.frontendDir
+			? { frontendRoot: system.deployment.frontendDir }
 			: {}),
-		...(metadata ? { metadata: createIdentificationMetadata(metadata) } : {}),
-		library,
-		sources: library.sources,
-		logger,
+		registrations: [
+			(app) => registerSystemHttp(app, system),
+			resources.registerHttp,
+			media.registerHttp,
+			playback.registerHttp,
+			anime.registerHttp,
+		],
+		closeDependencies: () =>
+			closeModules({ anime, media, resources, playback, database }),
 	});
-	const server = createHttpApp({
-		...(catalog ? { catalog } : {}),
-		...(metadata ? { metadata } : {}),
-		playbackSelection,
-		configuration,
-		config,
-		policy: configuration.policy,
-		logger,
-		library,
-		playback,
-		preparation,
-		subtitles,
-		inspection,
-		mediaPlanning: planning,
-		development,
-		closeDependencies: async () => {
-			// Stop durable owners before their shared executor and inspection dependencies.
-			await identification.close();
-			catalog?.close();
-			await metadata?.close();
-			await preparation.close();
-			playback.close();
-			await subtitles.close();
-			await library.close();
-			await execution.close();
-			await inspection.close();
-			database?.close();
-		},
-		...(frontendRoot === undefined ? {} : { frontendRoot }),
-	});
-	return server;
 }

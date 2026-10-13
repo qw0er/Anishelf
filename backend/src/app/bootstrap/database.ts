@@ -5,40 +5,50 @@ import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import type { Logger } from "pino";
-import { CatalogRepository } from "../../modules/anime/anime-catalog/infrastructure/repository.js";
-import { MetadataRepository } from "../../modules/anime/metadata/infrastructure/repository.js";
-import { PreparationRepository } from "../../modules/media/preparation/infrastructure/repository.js";
-import { SubtitleRepository } from "../../modules/media/subtitles/infrastructure/repository.js";
-import { PlaybackRepository } from "../../modules/playback/playback/infrastructure/repository.js";
-import { SourceRepository } from "../../modules/resources/resource-access/infrastructure/repository.js";
+import {
+	type AnimePersistence,
+	createAnimePersistence,
+} from "../../modules/anime/persistence.js";
+import {
+	createMediaPersistence,
+	type MediaPersistence,
+} from "../../modules/media/persistence.js";
+import {
+	createPlaybackPersistence,
+	type PlaybackPersistence,
+} from "../../modules/playback/persistence.js";
+import { createResourcesPersistence } from "../../modules/resources/persistence.js";
+import { adapterPolicy } from "../../platform/adapter-policy.js";
+import type { Store } from "../../platform/database/store.js";
+import { storageRules } from "../../platform/storage.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	type DeepReadonly,
-} from "../../modules/system/configuration/policy.js";
-import { adapterPolicy } from "../../platform/adapter-policy.js";
-import type { Store } from "../../platform/database/store.js";
-import { storageRules } from "../../platform/storage.js";
+} from "../policy.js";
 import * as schema from "../schema.js";
 
 /** Owns the connection; repositories must not outlive this object. */
 export class ApplicationDatabase {
-	readonly metadata: MetadataRepository;
-	readonly catalog: CatalogRepository;
-	readonly playback: PlaybackRepository;
-	readonly subtitles: SubtitleRepository;
-	readonly preparation: PreparationRepository;
+	readonly metadata: AnimePersistence["metadata"];
+	readonly catalog: AnimePersistence["catalog"];
+	readonly playback: PlaybackPersistence["playback"];
+	readonly subtitles: MediaPersistence["subtitles"];
+	readonly preparation: MediaPersistence["preparation"];
 	private constructor(
 		private readonly connection: Database.Database,
 		store: Store,
 		policy: DeepReadonly<BuiltinPolicy>,
 	) {
-		const sources = new SourceRepository(store);
-		this.catalog = new CatalogRepository(store, sources);
-		this.metadata = new MetadataRepository(store);
-		this.playback = new PlaybackRepository(store, sources, policy.playback);
-		this.subtitles = new SubtitleRepository(store, sources);
-		this.preparation = new PreparationRepository(store, sources);
+		const { sources } = createResourcesPersistence(store);
+		const anime = createAnimePersistence(store, sources);
+		const media = createMediaPersistence(store, sources);
+		const playback = createPlaybackPersistence(store, sources, policy.playback);
+		this.catalog = anime.catalog;
+		this.metadata = anime.metadata;
+		this.playback = playback.playback;
+		this.subtitles = media.subtitles;
+		this.preparation = media.preparation;
 	}
 
 	static open(

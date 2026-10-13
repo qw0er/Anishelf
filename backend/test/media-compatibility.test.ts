@@ -3,8 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
-import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { createLibraryModule } from "../src/app/bootstrap/library.js";
 import type {
 	CompatibilityEvidence,
 	CompatibilityInspection,
@@ -14,12 +12,14 @@ import { describeOriginalMedia } from "../src/modules/media/media-planning/appli
 import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
 import { checkDirectCompatibility } from "../src/modules/media/media-planning/domain/direct.js";
 import type { OriginalMediaDescription } from "../src/modules/media/media-planning/domain/model.js";
+import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { builtinTranscodeProfiles } from "../src/modules/system/configuration/public.js";
 import { codecDescriptor } from "../src/platform/media/codec-descriptor.js";
 import { type MediaInfo, MediaToolError } from "../src/platform/media/index.js";
 import { MediaTools, parseMediaInfo } from "../src/platform/media/tools.js";
 import { settingsStore } from "./settings-store.js";
+import { createHttpApp } from "./support/http.js";
 
 function dump(hex: string) {
 	return `\n00000000: ${hex.match(/.{1,4}/g)?.join(" ")}  ....\n`;

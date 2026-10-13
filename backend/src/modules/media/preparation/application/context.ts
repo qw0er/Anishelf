@@ -1,11 +1,11 @@
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
-import type { ResourceAccessApi } from "../../../resources/resource-access/public.js";
+import type { ResourceAccessApi } from "../../../resources/public.js";
 import {
 	type TranscodeProfile,
 	transcodeProfileFingerprint,
-} from "../../../system/configuration/public.js";
+} from "../../../system/public.js";
 import type { MediaProcessingApi } from "../../media-processing/public.js";
 import type { PreparationTask } from "../domain/model.js";
 import type { PreparedMediaFiles } from "../infrastructure/files.js";

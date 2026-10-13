@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import * as playbackApi from "../src/features/playback/api.js";
-import { PlaybackActionsMenu } from "../src/features/playback/components/external-player-menu.js";
-import * as resourceApi from "../src/features/resource-access/api.js";
+import * as playbackApi from "../src/features/playback/player/api.js";
+import { PlaybackActionsMenu } from "../src/features/playback/player/components/external-player-menu.js";
+import * as resourceApi from "../src/features/resources/resource-access/api.js";
 import { ExternalPlayerSettings } from "../src/features/settings/components/external-player-settings.js";
 import {
 	detectClientPlatform,

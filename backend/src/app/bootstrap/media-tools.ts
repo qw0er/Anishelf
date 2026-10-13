@@ -1,11 +1,8 @@
 import type { Logger } from "pino";
-import type {
-	BuiltinPolicy,
-	DeepReadonly,
-} from "../../modules/system/configuration/policy.js";
 import type { ExecutableSearch } from "../../platform/environment.js";
 import type { MediaToolsConfig } from "../../platform/media/config.js";
 import { MediaTools } from "../../platform/media/index.js";
+import type { BuiltinPolicy, DeepReadonly } from "../policy.js";
 
 export async function initializeMediaTools(
 	config: MediaToolsConfig,

@@ -14,19 +14,19 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
-import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { createLibraryModule } from "../src/app/bootstrap/library.js";
-import { readSubtitleText } from "../src/modules/media/subtitles/infrastructure/content.js";
-import { discoverExternalSubtitles } from "../src/modules/media/subtitles/infrastructure/discovery.js";
-import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
-import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
-import { ConfigurationService } from "../src/modules/system/configuration/application/service.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
 	validatePolicy,
-} from "../src/modules/system/configuration/policy.js";
+} from "../src/app/policy.js";
+import { readSubtitleText } from "../src/modules/media/subtitles/infrastructure/content.js";
+import { discoverExternalSubtitles } from "../src/modules/media/subtitles/infrastructure/discovery.js";
+import { createLibraryModule } from "../src/modules/resources/composition/library.js";
+import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import { runTool } from "../src/platform/media/process.js";
+import { ConfigurationService } from "./support/configuration.js";
+import { createHttpApp } from "./support/http.js";
 
 let directory: string;
 let dataDir: string;

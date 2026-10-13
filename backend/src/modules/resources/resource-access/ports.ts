@@ -1,7 +1,7 @@
 import type { Dirent } from "node:fs";
 import type { FileHandle } from "node:fs/promises";
 import type { DeepReadonly } from "../../../shared/policy.js";
-import type { PersistentSettings } from "../../system/configuration/public.js";
+import type { PersistentSettings } from "../../system/public.js";
 import type {
 	FileInfo,
 	FileSourceIdentity,

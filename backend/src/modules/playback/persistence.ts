@@ -1,0 +1,18 @@
+import type { Store } from "../../platform/database/store.js";
+import type { DeepReadonly } from "../../shared/policy.js";
+import type { SourceRegistry } from "../resources/public.js";
+import { PlaybackRepository } from "./progress/infrastructure/repository.js";
+import type { PlaybackPolicy } from "./progress/policy.js";
+import type { PlaybackStore } from "./progress/ports.js";
+
+export { playbackProgress } from "./progress/persistence.js";
+export interface PlaybackPersistence {
+	playback: PlaybackStore;
+}
+export function createPlaybackPersistence(
+	store: Store,
+	sources: SourceRegistry,
+	policy: DeepReadonly<PlaybackPolicy>,
+): PlaybackPersistence {
+	return { playback: new PlaybackRepository(store, sources, policy) };
+}

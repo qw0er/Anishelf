@@ -3,7 +3,7 @@ import type {
 	CompatibilityCheckRequest,
 	CompatibilityInspection,
 	CompatibilityResult,
-} from "../../media/media-planning/public.js";
+} from "../../media/public.js";
 /** User intent and browser evidence are independent of their HTTP encoding. */
 export interface PlaybackOptionsRequest {
 	fileId: string;

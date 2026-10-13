@@ -10,19 +10,19 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { createLibraryModule } from "../src/app/bootstrap/library.js";
+import { builtinPolicy } from "../src/app/policy.js";
 import type { SubtitleDiscoveryResponse } from "../src/contracts/http.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import { SubtitleApplication } from "../src/modules/media/subtitles/application/subtitles.js";
+import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
-import { builtinPolicy } from "../src/modules/system/configuration/policy.js";
 import type { MediaInfo, MediaStream } from "../src/platform/media/index.js";
 import { MediaToolError, MediaTools } from "../src/platform/media/index.js";
 import { runTool } from "../src/platform/media/process.js";
 import { DomainError } from "../src/shared/errors.js";
+import { createHttpApp } from "./support/http.js";
 
 const maximumSubtitleBytes = builtinPolicy.subtitles.maximumBytes;
 

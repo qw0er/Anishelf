@@ -1,4 +1,4 @@
-import { resourceRootId } from "../../../resources/resource-access/public.js";
+import { resourceRootId } from "../../../resources/public.js";
 import type { IdentificationResult } from "../../identification/public.js";
 import { conflict, invalid, text } from "../domain/mapping.js";
 import type { ReviewItem } from "../domain/model.js";

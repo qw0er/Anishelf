@@ -1,7 +1,7 @@
 import pino from "pino";
 import { afterEach, expect, test } from "vitest";
-import { createHttpApp } from "../src/app/bootstrap/http.js";
 import { DomainError } from "../src/shared/errors.js";
+import { createHttpApp } from "./support/http.js";
 
 const apps: ReturnType<typeof createHttpApp>[] = [];
 const headers = { host: "127.0.0.1:3000" };

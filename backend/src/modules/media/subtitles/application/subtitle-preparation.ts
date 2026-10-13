@@ -7,7 +7,7 @@ import type { DeepReadonly } from "../../../../shared/policy.js";
 import type {
 	ResolvedSource,
 	ResourceAccessApi,
-} from "../../../resources/resource-access/public.js";
+} from "../../../resources/public.js";
 import { subtitleAssetId, subtitleIdentity } from "../domain/identity.js";
 import type {
 	PreparedSubtitleFormat,
@@ -17,12 +17,12 @@ import type {
 } from "../domain/model.js";
 import { SubtitlePreparationFailure } from "../domain/model.js";
 import { SubtitleAssetFiles } from "../infrastructure/assets.js";
-import type { SubtitleRepository } from "../infrastructure/repository.js";
 import {
 	type SubtitleRuntimePolicy,
 	subtitleRuntimePolicy,
 } from "../policy.js";
 import type { SubtitleExtractor } from "../ports.js";
+import type { SubtitleStore } from "../storage.js";
 
 export class SubtitlePreparationApplication {
 	private readonly logger: Logger | undefined;
@@ -37,7 +37,7 @@ export class SubtitlePreparationApplication {
 			logger?: Logger;
 			sources: ResourceAccessApi;
 			policy?: DeepReadonly<SubtitleRuntimePolicy>;
-			repository: SubtitleRepository;
+			repository: SubtitleStore;
 			dataDir: string;
 			tools: SubtitleExtractor;
 		},

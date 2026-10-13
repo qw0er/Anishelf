@@ -1,10 +1,21 @@
-export {
-	openPlaybackSession,
-	releasePlaybackSession,
-	savePlaybackProgress,
-} from "./api.js";
-export { ExternalPlayerSubmenu } from "./components/external-player-menu.js";
-export { default as FilePlayer } from "./components/file-player.js";
-export { default as MediaLink } from "./components/media-link.js";
+export { historyQuery } from "./services.js";
 
-export * from "./policy.js";
+import type { ReactNode } from "react";
+import type { CompatibilityResult } from "../../shared/api/contracts.js";
+export interface PlaybackUiSlots {
+	renderPreparation(input: {
+		key: string | number;
+		showLabel: boolean;
+		fileId: string;
+		loading: boolean;
+		result: CompatibilityResult | null;
+		error: unknown;
+		onRecheck(): void;
+		tasks: import("../../shared/api/contracts.js").PreparationTaskResponse[];
+		onPrepared(
+			task: import("../../shared/api/contracts.js").PreparationTaskResponse,
+		): void;
+		audioStreamIndices?: number[];
+	}): ReactNode;
+	renderSubtitles(fileId: string): ReactNode;
+}

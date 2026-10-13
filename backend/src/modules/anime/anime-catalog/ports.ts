@@ -2,7 +2,7 @@ import type {
 	RegisteredSource,
 	SourceIdentity,
 	SourceRegistry,
-} from "../../resources/resource-access/public.js";
+} from "../../resources/public.js";
 import type { IdentificationResult } from "../identification/public.js";
 import type { MetadataApi } from "../metadata/public.js";
 import type {

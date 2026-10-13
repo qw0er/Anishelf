@@ -4,10 +4,7 @@ import { dirname, join } from "node:path";
 import { parse } from "anitomy-ng";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
-import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { createIdentificationModule } from "../src/app/bootstrap/identification.js";
-import { createLibraryModule } from "../src/app/bootstrap/library.js";
-import { AutomaticIdentificationCoordinator } from "../src/app/workflows/automatic-identification.js";
+import { createIdentificationModule } from "../src/modules/anime/composition/identification.js";
 import { IdentificationApplication } from "../src/modules/anime/identification/application/identification.js";
 import { proposeMapping } from "../src/modules/anime/identification/domain/mapping.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
@@ -16,10 +13,13 @@ import type {
 	IdentificationMetadata,
 	WorkCandidate,
 } from "../src/modules/anime/identification/public.js";
+import { AutomaticIdentificationCoordinator } from "../src/modules/anime/workflows/automatic-identification.js";
+import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import type { SourceIdentity } from "../src/modules/resources/resource-access/public.js";
 import { settingsStore } from "./settings-store.js";
 import { loadCorpus } from "./support/anime-corpus.js";
+import { createHttpApp } from "./support/http.js";
 
 const parser = new AnitomyIdentificationParser();
 const logger = pino({ enabled: false });

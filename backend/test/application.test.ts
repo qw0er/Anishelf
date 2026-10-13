@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { createLibraryModule } from "../src/app/bootstrap/library.js";
+import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
 import { createResourceId } from "../src/modules/resources/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";

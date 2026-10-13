@@ -1,9 +1,9 @@
-import * as playbackApi from "../src/features/playback/api.js";
+import * as playbackApi from "../src/features/playback/player/api.js";
 // @vitest-environment happy-dom
 
 import { TextTrack, TextTrackList } from "@vidstack/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { ChapterTracks } from "../src/features/playback/components/chapter-tracks.js";
+import { ChapterTracks } from "../src/features/playback/player/components/chapter-tracks.js";
 import { queryClient } from "../src/shared/api/query-client.js";
 import { toast } from "../src/shared/components/ui/toast.js";
 import { cleanup, render, waitFor } from "./query-test-utils.js";

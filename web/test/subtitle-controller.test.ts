@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 import { type TextTrack, TextTrackList } from "@vidstack/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { SubtitleController } from "../src/features/subtitles/controller.js";
-import { SubtitlePreparationError } from "../src/features/subtitles/errors.js";
-import { prepareSelectedSubtitle } from "../src/features/subtitles/preparation.js";
+import { SubtitleController } from "../src/features/media/subtitles/controller.js";
+import { SubtitlePreparationError } from "../src/features/media/subtitles/errors.js";
+import { prepareSelectedSubtitle } from "../src/features/media/subtitles/preparation.js";
 import type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,

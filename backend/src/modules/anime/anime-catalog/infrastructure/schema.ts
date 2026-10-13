@@ -5,7 +5,7 @@ import {
 	text,
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
-import { mediaSources } from "../../../resources/resource-access/persistence.js";
+import { mediaSources } from "../../../resources/persistence.js";
 import { metadataSnapshots } from "../../metadata/persistence.js";
 export const catalogWorks = sqliteTable("catalog_works", {
 	id: text("id").primaryKey(),

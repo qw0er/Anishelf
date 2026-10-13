@@ -1,4 +1,4 @@
-import type { SourceIdentity } from "../../../resources/resource-access/public.js";
+import type { SourceIdentity } from "../../../resources/public.js";
 
 interface ProviderReference {
 	provider: string;

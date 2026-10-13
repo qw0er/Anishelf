@@ -1,15 +1,16 @@
-import * as mediacompatibilityApi from "../src/features/media-compatibility/api.js";
-import * as playbackApi from "../src/features/playback/api.js";
-import * as preparationApi from "../src/features/preparation/api.js";
+import { playbackUiSlots } from "../src/app/composition/playback-ui.js";
+import * as mediacompatibilityApi from "../src/features/media/media-compatibility/api.js";
+import * as preparationApi from "../src/features/media/preparation/api.js";
+import * as playbackApi from "../src/features/playback/player/api.js";
 import * as settingsApi from "../src/features/settings/api.js";
 // @vitest-environment happy-dom
 
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import * as capabilities from "../src/features/media-compatibility/capabilities.js";
-import FilePlayer from "../src/features/playback/components/file-player.js";
-import { preparedWatchPath } from "../src/features/preparation/audio-tracks.js";
-import { PreparationProvider } from "../src/features/preparation/context.js";
+import * as capabilities from "../src/features/media/media-compatibility/capabilities.js";
+import { preparedWatchPath } from "../src/features/media/preparation/audio-tracks.js";
+import { PreparationProvider } from "../src/features/media/preparation/context.js";
+import FilePlayer from "../src/features/playback/player/components/file-player.js";
 import type {
 	CompatibilityResult,
 	PreparationTaskResponse,
@@ -55,13 +56,16 @@ const original = {
 		},
 	],
 } as unknown as CompatibilityResult;
-vi.mock("../src/features/playback/hooks/use-playback-session.js", () => ({
-	usePlaybackSession: () => ({
-		session: { sourceVersion: "v1" },
-		attach: vi.fn(),
+vi.mock(
+	"../src/features/playback/player/hooks/use-playback-session.js",
+	() => ({
+		usePlaybackSession: () => ({
+			session: { sourceVersion: "v1" },
+			attach: vi.fn(),
+		}),
 	}),
-}));
-vi.mock("../src/features/playback/components/video-player.js", () => ({
+);
+vi.mock("../src/features/playback/player/components/video-player.js", () => ({
 	default: ({ playbackUrl }: { playbackUrl: string }) => (
 		<div role="status" aria-label="Active video">
 			{playbackUrl}
@@ -168,6 +172,7 @@ test("changing playback audio verifies only matching copies and never enqueues a
 		<MemoryRouter initialEntries={["/files/file?audio=2"]}>
 			<PreparationProvider>
 				<FilePlayer
+					slots={playbackUiSlots}
 					data={{
 						file: {
 							id: "file",
@@ -256,6 +261,7 @@ test.each(["unknown", "unsupported", "list-error"])(
 			<MemoryRouter>
 				<PreparationProvider>
 					<FilePlayer
+						slots={playbackUiSlots}
 						data={{
 							file: {
 								id: "file",

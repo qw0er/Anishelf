@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { chapterCues } from "../src/features/playback/chapters.js";
+import { chapterCues } from "../src/features/playback/player/chapters.js";
 
 test("maps source chapters to direct and shifted prepared timelines", () => {
 	const chapters = [

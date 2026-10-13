@@ -1,12 +1,12 @@
 import { basename, dirname, extname, join } from "node:path";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
-import { nameCollator } from "../../../../shared/sorting.js";
 import {
-	type LibraryPolicy,
-	libraryPolicy,
-} from "../../../resources/library/policy.js";
-import type { ResourceFiles } from "../../../resources/resource-access/public.js";
+	defaultSortingPolicy,
+	nameCollator,
+	type SortingPolicy,
+} from "../../../../shared/sorting.js";
+import type { ResourceFiles } from "../../../resources/public.js";
 import { subtitleTrackId } from "../domain/identity.js";
 import {
 	type ExternalSubtitleDiscovery,
@@ -30,7 +30,7 @@ export async function discoverExternalSubtitles(
 	videoPath: string,
 	sourceVersion: string,
 	policy: DeepReadonly<SubtitlePolicy> = subtitlePolicy,
-	sorting: DeepReadonly<LibraryPolicy> = libraryPolicy,
+	sorting: DeepReadonly<SortingPolicy> = defaultSortingPolicy,
 ): Promise<ExternalSubtitleDiscovery> {
 	const collator = nameCollator(sorting);
 	const directory = dirname(videoPath);

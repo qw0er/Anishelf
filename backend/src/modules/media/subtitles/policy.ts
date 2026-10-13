@@ -65,14 +65,14 @@ export function validateSubtitlePolicy(
 }
 
 import {
-	type LibraryPolicy,
-	libraryPolicy,
-} from "../../resources/library/policy.js";
+	defaultSortingPolicy,
+	type SortingPolicy,
+} from "../../../shared/sorting.js";
 export interface SubtitleRuntimePolicy {
 	subtitles: SubtitlePolicy;
-	library: LibraryPolicy;
+	library: SortingPolicy;
 }
 export const subtitleRuntimePolicy = freeze({
 	subtitles: subtitlePolicy,
-	library: libraryPolicy,
+	library: defaultSortingPolicy,
 });

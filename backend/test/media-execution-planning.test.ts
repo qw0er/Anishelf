@@ -4,8 +4,6 @@ import { join } from "node:path";
 import pino from "pino";
 import { Check } from "typebox/value";
 import { afterEach, expect, test, vi } from "vitest";
-import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { createLibraryModule } from "../src/app/bootstrap/library.js";
 import type {
 	CompatibilityCheckRequest,
 	CompatibilityEvidence,
@@ -22,7 +20,8 @@ import {
 	expectedOutputSpec,
 	resolveExecutionPlan as resolvePreparationExecutionPlan,
 } from "../src/modules/media/media-planning/public.js";
-import { PlaybackApplication } from "../src/modules/playback/playback/application/playback.js";
+import { PlaybackApplication } from "../src/modules/playback/progress/application/playback.js";
+import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import {
 	builtinTranscodeProfiles,
@@ -32,6 +31,7 @@ import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { fingerprint } from "../src/shared/fingerprint.js";
 import { presentCompatibility } from "../src/transport/presenters/compatibility.js";
 import { settingsStore } from "./settings-store.js";
+import { createHttpApp } from "./support/http.js";
 
 const resolveExecutionPlan = (
 	input: Parameters<typeof resolvePreparationExecutionPlan>[0],

@@ -3,7 +3,7 @@ import type {
 	PersistentSettings,
 	PreparationMode,
 	SettingsStore,
-} from "../../../system/configuration/public.js";
+} from "../../../system/public.js";
 import type { ScanCoordinator } from "./scan-coordinator.js";
 /** Root switching is one coordinated use case, not a configuration side effect. */
 export class SettingsApplication {

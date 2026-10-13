@@ -6,7 +6,7 @@ import type { DeepReadonly } from "../../../../shared/policy.js";
 import type {
 	PersistentSettings,
 	SettingsStore,
-} from "../../../system/configuration/public.js";
+} from "../../../system/public.js";
 import type { ResourceRootApi } from "../../resource-access/public.js";
 import type { ScanState } from "../domain/scan-state.js";
 import type { LibraryIndex } from "../infrastructure/index.js";
