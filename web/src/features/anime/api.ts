@@ -1,8 +1,19 @@
 import { type RequestOptions, request } from "../../shared/api/client.js";
 import type {
+	CatalogConfirmationRequest,
+	CatalogConfirmationResponse,
 	CatalogDetailResponse,
+	CatalogEpisodeEditRequest,
 	CatalogListResponse,
+	CatalogPreviewRequest,
+	CatalogPreviewResponse,
+	CatalogReviewItem,
+	CatalogReviewResponse,
+	CatalogWorkEditRequest,
+	IdentificationStatusResponse,
+	MetadataDetailsResponse,
 	MetadataRelationsResponse,
+	MetadataSearchResponse,
 } from "../../shared/api/contracts.js";
 
 export interface CatalogFilters {
@@ -84,3 +95,77 @@ export function getRelations(
 		options,
 	);
 }
+
+export const getReviews = (
+	decision: string,
+	page: number,
+	options?: RequestOptions,
+): Promise<CatalogReviewResponse> =>
+	request(
+		`/api/catalog/reviews?${new URLSearchParams({ decision, page: String(page), perPage: "20" })}`,
+		"GET",
+		options,
+	);
+export const getReview = (
+	id: string,
+	options?: RequestOptions,
+): Promise<CatalogReviewItem> =>
+	request(`/api/catalog/reviews/${encodeURIComponent(id)}`, "GET", options);
+export const searchMetadata = (
+	query: string,
+	page: number,
+	options?: RequestOptions,
+): Promise<MetadataSearchResponse> =>
+	request(
+		`/api/metadata/search?${new URLSearchParams({ query, page: String(page), perPage: "10" })}`,
+		"GET",
+		options,
+	);
+export const metadataDetail = (
+	provider: string,
+	id: string,
+	options?: RequestOptions,
+): Promise<MetadataDetailsResponse> =>
+	request(
+		`/api/metadata/${encodeURIComponent(provider)}/${encodeURIComponent(id)}`,
+		"GET",
+		options,
+	);
+export const previewMapping = (
+	input: CatalogPreviewRequest,
+): Promise<CatalogPreviewResponse> =>
+	request("/api/catalog/previews", "POST", {}, input);
+export const confirmMapping = (
+	input: CatalogConfirmationRequest,
+): Promise<CatalogConfirmationResponse> =>
+	request("/api/catalog/confirmations", "POST", {}, input);
+export const decideReview = (
+	id: string,
+	revision: number,
+	reason: string,
+	remove: boolean,
+): Promise<CatalogReviewItem> =>
+	request(
+		`/api/catalog/reviews/${encodeURIComponent(id)}/${remove ? "remove" : "reject"}`,
+		"POST",
+		{},
+		{ revision, reason },
+	);
+export const editWork = (id: string, input: CatalogWorkEditRequest) =>
+	request(`/api/catalog/works/${encodeURIComponent(id)}`, "PATCH", {}, input);
+export const editEpisode = (
+	id: string,
+	episodeId: string,
+	input: CatalogEpisodeEditRequest,
+) =>
+	request(
+		`/api/catalog/works/${encodeURIComponent(id)}/episodes/${encodeURIComponent(episodeId)}`,
+		"PATCH",
+		{},
+		input,
+	);
+
+export const getIdentificationStatus = (
+	options?: RequestOptions,
+): Promise<IdentificationStatusResponse> =>
+	request("/api/anime/identification", "GET", options);

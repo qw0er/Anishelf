@@ -16,6 +16,7 @@ import type { LibraryContext } from "../../resources/public.js";
 import { catalogFilters, catalogSearch } from "../api.js";
 import { catalogQuery } from "../queries.js";
 import { Artwork } from "./artwork.js";
+import { IdentificationStatus } from "./identification-status.js";
 
 const selectStyle =
 	"h-9 min-w-0 rounded-md border bg-background px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring";
@@ -53,6 +54,7 @@ export function AnimeLibrary() {
 	);
 	return (
 		<section className="stack-page" aria-label={t("anime.library")}>
+			<IdentificationStatus />
 			<div className="flex flex-wrap items-center justify-between gap-3">
 				<div>
 					<h1 className="page-title">{t("anime.library")}</h1>
@@ -60,6 +62,9 @@ export function AnimeLibrary() {
 						{t("anime.libraryHint")}
 					</p>
 				</div>
+				<Link to="/review" className={buttonStyles("outline")}>
+					{t("review.title")}
+				</Link>
 				<Link to="/directories/root" className={buttonStyles("outline")}>
 					{t("app.files")}
 				</Link>

@@ -82,6 +82,16 @@ export function registerCatalogRoutes(
 		async (request) => presentDetail(await catalog.detail(request.params.id)),
 	);
 	app.get(
+		"/api/catalog/reviews/:id",
+		{
+			schema: {
+				params: CatalogIdParamsSchema,
+				response: { 200: CatalogReviewSchema },
+			},
+		},
+		async (request) => catalog.review(request.params.id),
+	);
+	app.get(
 		"/api/catalog/reviews",
 		{
 			schema: {

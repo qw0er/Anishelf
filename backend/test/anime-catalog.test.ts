@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	mkdir,
+	mkdtemp,
+	readFile,
+	realpath,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import pino from "pino";
@@ -7,6 +14,7 @@ import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { AnimeCatalogApplication } from "../src/modules/anime/anime-catalog/application/catalog.js";
 import type { MappingSelection } from "../src/modules/anime/anime-catalog/public.js";
 import { createIdentificationModule } from "../src/modules/anime/composition/identification.js";
+import { createIdentificationMetadata } from "../src/modules/anime/composition/metadata.js";
 import { MetadataApplication } from "../src/modules/anime/metadata/application/metadata.js";
 import { MetadataArtworkCache } from "../src/modules/anime/metadata/infrastructure/artwork.js";
 import type { MetadataProvider } from "../src/modules/anime/metadata/ports.js";
@@ -66,8 +74,9 @@ async function fixture(
 ) {
 	const base = await mkdtemp(join(tmpdir(), "anishelf-catalog-"));
 	cleanups.push(() => rm(base, { recursive: true, force: true }));
-	const root = join(base, "media");
-	await mkdir(root);
+	const requestedRoot = join(base, "media");
+	await mkdir(requestedRoot);
+	const root = await realpath(requestedRoot);
 	for (const path of paths) {
 		await mkdir(dirname(join(root, path)), { recursive: true });
 		await writeFile(join(root, path), "original");
@@ -78,7 +87,10 @@ async function fixture(
 		data: {
 			...providerData,
 			reference: { ...reference, id: ref.id },
-			titles: details(ref.id).titles,
+			titles:
+				ref.id === providerData.reference.id
+					? providerData.titles
+					: details(ref.id).titles,
 		},
 		raw: {},
 	}));
@@ -794,7 +806,7 @@ test("closing Catalog stops every composed use case before reading or mutating s
 	f.catalog.close();
 	f.catalog.close();
 
-	expect(() => f.catalog.publish([], f.root)).toThrowError(
+	await expect(f.catalog.publish([], f.root)).rejects.toThrowError(
 		expect.objectContaining({ code: "CATALOG_UNAVAILABLE" }),
 	);
 	const calls = [
@@ -887,4 +899,166 @@ test("poster artwork uses retained snapshots, delivers cached images offline and
 	await f.library.waitForCompletion();
 	await f.automatic.waitForCompletion();
 	expect((await app.inject({ url: cover })).statusCode).toBe(404);
+});
+
+async function enableAutomatic(f: Awaited<ReturnType<typeof fixture>>) {
+	f.setData({
+		...details(),
+		titles: [{ value: "Anime", kind: "romaji", language: null }],
+	});
+	const search = f.metadata.search.bind(f.metadata);
+	const searchSpy = vi
+		.spyOn(f.metadata, "search")
+		.mockImplementation((query, options) =>
+			search({ ...query, provider: "fixture" }, options),
+		);
+	cleanups.push(async () => {
+		searchSpy.mockRestore();
+	});
+	const automatic = createIdentificationModule({
+		library: f.library,
+		sources: f.library.sources,
+		logger,
+		metadata: createIdentificationMetadata(f.metadata),
+		onPublication: (results, root, signal) =>
+			f.catalog.publish(results, root, signal),
+	});
+	cleanups.push(() => automatic.close());
+	await automatic.waitForCompletion();
+	return automatic;
+}
+
+test("unambiguous scanner identification automatically admits sources and preserves corrections across rescan/restart", async () => {
+	const f = await fixture(["Anime - 01.mkv", "Anime - 02.mkv"]);
+	const automatic = await enableAutomatic(f);
+	const list = await f.catalog.list();
+	expect(list.items).toHaveLength(1);
+	expect(list.items[0]?.availableEpisodes).toBe(2);
+	const work = required(list.items[0]);
+	const review = required((await f.catalog.reviews()).items[0]);
+	expect(review.decision).toBe("confirmed");
+	expect(review.reason).toContain("Automatically identified");
+	expect((await f.catalog.review(review.id)).associations[0]?.workId).toBe(
+		work.id,
+	);
+	const preview = await f.catalog.preview({
+		reference,
+		rows: [
+			{
+				reviewId: review.id,
+				revision: review.revision,
+				targets: [{ kind: "regular", number: "3" }],
+				reason: "Manual episode correction",
+			},
+		],
+	});
+	await f.catalog.confirm({
+		previewId: preview.id,
+		operationKey: "manual-over-auto",
+		replace: true,
+	});
+	const updated = await f.catalog.detail(work.id);
+	await f.catalog.editWork(
+		work.id,
+		updated.work.revision,
+		"My corrected title",
+		["My alias"],
+	);
+	await f.scan();
+	await automatic.waitForCompletion();
+	expect((await f.catalog.review(review.id)).associations[0]?.number).toBe("3");
+	expect((await f.catalog.list()).items[0]?.displayTitle).toBe(
+		"My corrected title",
+	);
+	await automatic.close();
+	await f.restart();
+	await f.scan();
+	expect((await f.catalog.list()).items).toHaveLength(1);
+	expect((await f.catalog.review(review.id)).associations[0]?.number).toBe("3");
+});
+
+test("ambiguous candidates, specials and provider failure remain pending rather than auto-associated", async () => {
+	const f = await fixture(["Anime - 01.mkv", "Anime - SP01.mkv"]);
+	f.setData({
+		...details(),
+		titles: [{ value: "Anime", kind: "romaji", language: null }],
+	});
+	const results = f.automatic.getResults();
+	for (const result of results) {
+		result.metadataStatus = "searched";
+		result.proposals = [
+			{
+				candidate: {
+					work: {
+						reference,
+						snapshotId: "search",
+						titles: ["Anime"],
+						year: 2023,
+						format: "TV",
+						episodeCount: 12,
+						season: null,
+						part: null,
+					},
+					score: 70,
+					reasons: [],
+					conflicts: [],
+					matcherVersion: "test",
+				},
+				mapping: {
+					targets: [{ kind: "regular", number: "1" }],
+					reasons: [],
+					unresolved: [],
+				},
+			},
+		];
+	}
+	const first = required(results[0]);
+	const original = structuredClone(first.proposals[0]);
+	if (!original) throw new Error("Missing proposal");
+	first.proposals.push({
+		...original,
+		candidate: {
+			...original.candidate,
+			work: {
+				...original.candidate.work,
+				reference: { ...reference, id: "2" },
+			},
+			score: 69,
+		},
+	});
+	await f.catalog.publish(results, f.root);
+	expect((await f.catalog.list()).items).toHaveLength(0);
+	first.proposals = [original];
+	first.metadataStatus = "failed";
+	await f.catalog.publish(results, f.root);
+	expect((await f.catalog.list()).items).toHaveLength(0);
+	first.metadataStatus = "searched";
+	required(first.proposals[0]).candidate.conflicts = ["Year differs"];
+	await f.catalog.publish(results, f.root);
+	expect((await f.catalog.list()).items).toHaveLength(0);
+});
+
+test("manual rejection and removal prevent later successful identification from re-admitting sources", async () => {
+	const f = await fixture();
+	const automatic = await enableAutomatic(f);
+	const item = required((await f.catalog.reviews()).items[0]);
+	await f.catalog.remove(item.id, item.revision, "Not this work");
+	await f.scan();
+	await automatic.waitForCompletion();
+	expect((await f.catalog.review(item.id)).decision).toBe("rejected");
+	expect((await f.catalog.list()).items).toHaveLength(0);
+});
+
+test("automatic hydration failure remains reviewable and a later scan can retry without duplicates", async () => {
+	const f = await fixture();
+	f.get.mockRejectedValueOnce(new Error("provider unavailable"));
+	const automatic = await enableAutomatic(f);
+	expect((await f.catalog.list()).items).toHaveLength(0);
+	expect((await f.catalog.reviews()).items[0]?.decision).toBe("pending");
+	await f.scan();
+	await automatic.waitForCompletion();
+	expect((await f.catalog.list()).items).toHaveLength(1);
+	await f.scan();
+	await automatic.waitForCompletion();
+	expect((await f.catalog.list()).items).toHaveLength(1);
 });

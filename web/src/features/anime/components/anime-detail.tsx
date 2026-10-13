@@ -24,6 +24,7 @@ import {
 import { refreshWork } from "../api.js";
 import { relationsQuery, workQuery } from "../queries.js";
 import { Artwork } from "./artwork.js";
+import { WorkEditor } from "./work-editor.js";
 
 type Episode = CatalogDetailResponse["episodes"][number];
 type Version = Episode["versions"][number];
@@ -355,7 +356,10 @@ function WorkDetail({ data }: { data: CatalogDetailResponse }) {
 					) : null;
 				})}
 				<p className="text-sm text-muted-foreground">
-					{t("anime.unresolvedHint")}{" "}
+					<Link to="/review?decision=confirmed" className="underline">
+						{t("review.correct")}
+					</Link>{" "}
+					· {t("anime.unresolvedHint")}{" "}
 					<Link to="/directories/root" className="underline">
 						{t("app.files")}
 					</Link>
@@ -402,6 +406,7 @@ function WorkDetail({ data }: { data: CatalogDetailResponse }) {
 					</fieldset>
 				)}
 			</section>
+			<WorkEditor data={data} />
 			<Dialog
 				open={Boolean(selected)}
 				onOpenChange={(open) => {
@@ -433,6 +438,12 @@ function WorkDetail({ data }: { data: CatalogDetailResponse }) {
 									{version.mapping.rawNumbers.length > 1 && (
 										<p className="text-sm">{t("anime.multiEpisode")}</p>
 									)}
+									<Link
+										className={buttonStyles("outline")}
+										to={`/review?${new URLSearchParams({ item: version.reviewId, decision: "confirmed" })}`}
+									>
+										{t("review.correct")}
+									</Link>
 									{version.available ? (
 										<Link
 											className={buttonStyles()}

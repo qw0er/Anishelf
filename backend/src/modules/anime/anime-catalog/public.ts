@@ -19,13 +19,15 @@ export interface AnimeCatalogApi {
 	publish(
 		results: readonly IdentificationResult[],
 		canonicalRoot: string,
-	): void;
+		signal?: AbortSignal,
+	): Promise<void>;
 	list(query?: CatalogQuery): Promise<Page<WorkCard>>;
 	detail(id: string): Promise<WorkDetail>;
 	artwork(
 		id: string,
 		kind: "cover" | "banner",
 	): ReturnType<MetadataApi["readArtwork"]>;
+	review(id: string): Promise<ReviewItem>;
 	reviews(options?: {
 		decision?: ReviewItem["decision"];
 		page?: number;

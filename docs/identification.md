@@ -89,8 +89,7 @@ Library closes.
 The coordinator's cache and result projection are in memory. Restart reconstructs
 them from the published scan. [Anime Catalog](anime-catalog.md) owns durable works, episodes, review decisions,
 confirmed associations and user corrections, preserving them when consuming
-automatic proposals. Identification has no dependency on Catalog. The Review UI
-remains pending.
+automatic proposals. Identification has no dependency on Catalog. Catalog automatically admits clear matches; the Web Review UI handles unresolved and associated sources.
 
 The former task/review HTTP API, repository, ORM definitions and uncommitted
 Identification migration have been removed. Identification requires no database.
@@ -122,8 +121,7 @@ automatic proposal generation through injected Metadata fixtures, provider failu
 cancellation, bounded input, actual scanner/source integration, incremental scans,
 directory context changes, replacement/deletion, restart reconstruction, root
 switching and libraries larger than one batch. Corpus extraction checks do not
-prove identification accuracy. Catalog has its own persistence/transaction checks. Review UI and playable fixtures
-remain separate iteration acceptance work. Metadata has its own provider and persistence checks.
+prove identification accuracy. Catalog has its own persistence/transaction checks. Web Review/correction and the scoped playable fixtures are implemented; representative recognition accuracy remains separate acceptance work. Metadata has its own provider and persistence checks.
 
 ## Module boundary
 

@@ -66,7 +66,7 @@ function isApiError(value: unknown): value is PublicApiError {
 /** Uses same-origin /api URLs through the Vite proxy or production server. */
 export async function request<T>(
 	path: string,
-	method: "GET" | "POST" | "PUT" | "DELETE",
+	method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
 	{ signal, keepalive }: RequestOptions = {},
 	payload?: object,
 ): Promise<T> {

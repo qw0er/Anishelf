@@ -39,8 +39,8 @@ export async function createAnimeModule(options: {
 		...(metadata ? { metadata: createIdentificationMetadata(metadata) } : {}),
 		...(catalog
 			? {
-					onPublication: (results, canonicalRoot) =>
-						catalog.publish(results, canonicalRoot),
+					onPublication: (results, canonicalRoot, signal) =>
+						catalog.publish(results, canonicalRoot, signal),
 				}
 			: {}),
 	});
@@ -58,6 +58,7 @@ export async function createAnimeModule(options: {
 			? {
 					list: (input) => catalog.list(input),
 					detail: (id) => catalog.detail(id),
+					review: (id) => catalog.review(id),
 					reviews: (input) => catalog.reviews(input),
 					preview: (input) => catalog.preview(input),
 					confirm: (input) => catalog.confirm(input),
@@ -75,7 +76,7 @@ export async function createAnimeModule(options: {
 	return {
 		api,
 		registerHttp: (app: import("../../transport/instance.js").HttpInstance) =>
-			registerAnimeHttp(app, { metadata, catalog }),
+			registerAnimeHttp(app, { metadata, catalog, identification }),
 		quiesce,
 		close: () =>
 			(closed ??= (async () => {

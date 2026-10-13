@@ -31,6 +31,14 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 						{t("app.files")}
 					</NavLink>
 					<NavLink
+						to="/review"
+						className={({ isActive }) =>
+							buttonStyles(isActive ? "secondary" : "ghost")
+						}
+					>
+						{t("review.title")}
+					</NavLink>
+					<NavLink
 						to="/history"
 						className={({ isActive }) =>
 							buttonStyles(isActive ? "secondary" : "ghost")

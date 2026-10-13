@@ -26,9 +26,10 @@ export interface CatalogOptions {
 export function safeReview(
 	record: ReviewRecord,
 	available: boolean,
+	associations: ReviewItem["associations"] = [],
 ): ReviewItem {
 	const { canonicalRoot: _, ...item } = record;
-	return { ...item, available };
+	return { ...item, available, associations };
 }
 
 /** Shared lifecycle and resource-root checks for all Catalog use cases. */

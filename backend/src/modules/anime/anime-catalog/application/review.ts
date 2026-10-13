@@ -25,6 +25,28 @@ export class ReviewApplication {
 			"Catalog proposals synchronized; user decisions preserved.",
 		);
 	}
+	private associations(id: string): ReviewItem["associations"] {
+		return this.context.options.store.associations(id).map(({ episode }) => {
+			const work = this.context.options.store.work(episode.workId);
+			return {
+				workId: episode.workId,
+				workTitle: work?.title ?? work?.providerTitle ?? episode.workId,
+				episodeId: episode.id,
+				kind: episode.kind,
+				number: episode.number,
+				label: episode.label,
+			};
+		});
+	}
+	async get(id: string): Promise<ReviewItem> {
+		const root = await this.context.root();
+		const record = this.context.requireReview(id, root.rootId);
+		return safeReview(
+			record,
+			await this.context.available(record, root.epoch),
+			this.associations(id),
+		);
+	}
 	async reviews(options: Parameters<AnimeCatalogApi["reviews"]>[0] = {}) {
 		const root = await this.context.root();
 		if (
@@ -42,7 +64,11 @@ export class ReviewApplication {
 		const items: ReviewItem[] = [];
 		for (const item of result.items)
 			items.push(
-				safeReview(item, await this.context.available(item, root.epoch)),
+				safeReview(
+					item,
+					await this.context.available(item, root.epoch),
+					this.associations(item.id),
+				),
 			);
 		this.context.options.sources.assertRootEpoch(root.epoch);
 		return { ...result, items };

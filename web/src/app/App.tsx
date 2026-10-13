@@ -82,6 +82,7 @@ function App() {
 			void client.invalidateQueries({ queryKey: ["directory"] });
 			void client.invalidateQueries({ queryKey: ["history"] });
 			void client.invalidateQueries({ queryKey: ["catalog"] });
+			void client.invalidateQueries({ queryKey: ["identification"] });
 			if (scan.warnings.count > 0)
 				toast.add({
 					type: "warning",

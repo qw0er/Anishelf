@@ -56,6 +56,14 @@ export interface ReviewItem {
 	sourceVersion: string;
 	available: boolean;
 	revision: number;
+	associations: {
+		workId: string;
+		workTitle: string;
+		episodeId: string;
+		kind: EpisodeTarget["kind"];
+		number: string;
+		label: string;
+	}[];
 	decision: "pending" | "confirmed" | "rejected";
 	reason: string | null;
 	evidence: ExtractionEvidence;
@@ -64,7 +72,7 @@ export interface ReviewItem {
 	unresolved: string[];
 }
 /** Canonical paths stay inside the application and persistence adapter. */
-export interface ReviewRecord extends ReviewItem {
+export interface ReviewRecord extends Omit<ReviewItem, "associations"> {
 	canonicalRoot: string;
 }
 export interface MappingSelection {

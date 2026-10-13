@@ -1,0 +1,75 @@
+import type { IdentificationResult } from "../../identification/public.js";
+import { automaticProposal } from "../domain/admission.js";
+import type { AssociationApplication } from "./associations.js";
+import type { CatalogContext } from "./context.js";
+
+export class AutomaticAdmission {
+	constructor(
+		private readonly context: CatalogContext,
+		private readonly associations: AssociationApplication,
+	) {}
+	async admit(
+		results: readonly IdentificationResult[],
+		canonicalRoot: string,
+		signal?: AbortSignal,
+	) {
+		const root = await this.context.root();
+		if (root.canonicalRoot !== canonicalRoot) return;
+		for (const result of results) {
+			signal?.throwIfAborted();
+			this.context.open();
+			this.context.options.sources.assertRootEpoch(root.epoch);
+			const source = this.context.options.store.registerSource(result.source);
+			const record = this.context.options.store.review(source.id);
+			const proposal = record ? automaticProposal(record) : null;
+			if (
+				!record ||
+				!proposal ||
+				this.context.options.store.associations(source.id).length
+			)
+				continue;
+			let previewId: string | null = null;
+			try {
+				const preview = await this.associations.preview(
+					{
+						reference: proposal.candidate.work.reference,
+						rows: [
+							{
+								reviewId: record.id,
+								revision: record.revision,
+								targets: proposal.mapping.targets,
+								reason:
+									"Automatically identified from an unambiguous title and episode mapping.",
+							},
+						],
+					},
+					signal,
+				);
+				previewId = preview.id;
+				signal?.throwIfAborted();
+				await this.associations.confirm(
+					{
+						previewId: preview.id,
+						operationKey: `automatic:${preview.id}`,
+						replace: false,
+					},
+					signal,
+				);
+			} catch (err) {
+				signal?.throwIfAborted();
+				this.context.open();
+				this.context.options.sources.assertRootEpoch(root.epoch);
+				this.context.options.logger.warn(
+					{
+						event: "catalog.automatic_admission_failed",
+						sourceId: source.id,
+						err,
+					},
+					"Automatic association failed; the source remains available for review.",
+				);
+			} finally {
+				if (previewId) this.associations.discard(previewId);
+			}
+		}
+	}
+}

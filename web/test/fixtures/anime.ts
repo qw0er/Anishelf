@@ -1,4 +1,7 @@
-import type { CatalogDetailResponse } from "../../src/shared/api/contracts.js";
+import type {
+	CatalogDetailResponse,
+	CatalogReviewItem,
+} from "../../src/shared/api/contracts.js";
 
 export function animeFixture(): CatalogDetailResponse {
 	const reference = {
@@ -134,5 +137,41 @@ export function animeFixture(): CatalogDetailResponse {
 				availability: "missing",
 			},
 		],
+	};
+}
+
+export function reviewFixture(confirmed = false): CatalogReviewItem {
+	const detail = animeFixture();
+	const version = detail.episodes[0]?.versions[0];
+	if (!version) throw new Error("Missing version fixture");
+	return {
+		id: version.reviewId,
+		sourceId: version.sourceId,
+		rootId: "root",
+		fileId: version.fileId,
+		relativePath: version.relativePath,
+		sourceVersion: version.sourceVersion,
+		available: true,
+		revision: 1,
+		decision: confirmed ? "confirmed" : "pending",
+		reason: confirmed
+			? "Automatically identified from an unambiguous title and episode mapping."
+			: null,
+		evidence: version.evidence,
+		proposals: [],
+		metadataStatus: "failed",
+		unresolved: ["Metadata search failed; manual identification is required."],
+		associations: confirmed
+			? [
+					{
+						workId: detail.work.id,
+						workTitle: detail.work.displayTitle,
+						episodeId: "ep-1",
+						kind: "regular",
+						number: "1",
+						label: "Episode 1",
+					},
+				]
+			: [],
 	};
 }

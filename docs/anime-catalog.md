@@ -3,8 +3,9 @@
 Anime Catalog owns the durable local anime library: works, episodes, provider
 links, source associations, review decisions and user corrections. Metadata owns
 provider snapshots and caching; Identification remains stateless and returns
-suggestions. Catalog never confirms suggestions automatically or changes original
-files, playback progress, preparation or subtitles.
+suggestions. Catalog automatically accepts clear work/episode matches and supports
+manual confirmation/correction for all decisions. Original files, source playback
+progress, preparation and subtitles remain unchanged.
 
 ## Assembly and persistence
 
@@ -107,6 +108,7 @@ local records and playback history. Later scans do not undo either decision.
 | `GET /api/catalog/works` | Paginated local search, format/year/availability filters, title/recent sorting |
 | `GET /api/catalog/works/:id` | Cached metadata, ordered episodes and source versions |
 | `GET /api/catalog/works/:id/artwork/:kind` | Validated cover/banner bytes from the retained snapshot; active-root access |
+| `GET /api/catalog/reviews/:id` | Active-root review evidence and current work/episode associations |
 | `GET /api/catalog/reviews` | Paginated pending/confirmed/rejected decisions and recognition evidence |
 | `POST /api/catalog/previews` | Preview selected mappings and replacements |
 | `POST /api/catalog/confirmations` | Atomically confirm/reassign selected rows |
@@ -171,9 +173,7 @@ normal timeline, and source progress remains authoritative.
 
 [Scoped verification and screenshots](acceptance/anime-library/README.md) cover
 real H.264/AAC version playback, subtitle selection, source seeking/history and
-1280/390 px layouts. Files identification presentation and Review UI remain pending.
-Full CAT01–CAT08 acceptance and representative recognition accuracy remain iteration
-work; this slice does not automatically confirm identification proposals.
+1280/390 px layouts. [Automatic admission and Review verification](acceptance/anime-library/automatic-review.md) covers the subsequent behavior change. Files-specific inline identification presentation, full CAT01–CAT08 acceptance and representative recognition accuracy remain iteration work.
 
 ## Module boundary
 
@@ -181,3 +181,32 @@ This implementation is private to the Anime large module. External consumers use
 its root Public API; Anime composition owns internal construction, recognition
 coordination and provider/Catalog adapters. App uses only the module creation,
 HTTP and persistence entries. See [Architecture](architecture.md) for boundaries.
+
+## Automatic admission and correction
+
+Publication is awaited by the recognition coordinator. Catalog first saves complete
+recognition evidence, then admits pending available sources with an exact normalized
+title/alias, score >= 70 and next-candidate margin >= 10, no conflicts and valid
+complete targets. Specials and ancillary files remain manual; movies can use a
+whole-work target when their candidate and mapping are unambiguous. Low similarity,
+close candidates, unknown numbering and failed metadata hydration remain in Review.
+These are deterministic initial policy rules, not an accuracy claim.
+
+Automatic admission reuses the preview/confirmation transaction with `replace:false`.
+Source version, root epoch, review/work revisions, current provider details and
+retained snapshots are validated. Per-source failure is logged and leaves that source
+reviewable; later scans retry pending sources without duplicating accepted links.
+Cancellation reaches provider hydration and prevents stale confirmation. Temporary
+automatic previews are discarded on failure. Existing confirmed/rejected decisions
+are never overwritten, including manual corrections, rejection and explicit removal.
+
+`/review` lists pending/associated/rejected sources with pagination. Single-source
+review exposes current links and evidence, candidate title search with pagination,
+AniList ID/URL lookup, explicit regular/special/movie targets, labels, offsets and
+before/after previews. Replacement and removal require an explicit checkbox. Original
+source history is preserved. Detail pages offer local title/alias and shared episode
+identity/label edits; moving a source to an existing episode uses reassociation.
+
+`GET /api/anime/identification` exposes only running/failure status. The Web polls
+while recognition is running and invalidates Catalog queries when it finishes, so
+automatically admitted anime appear without requiring a manual page reload.

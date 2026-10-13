@@ -14,7 +14,7 @@ AniList queries, details, relations, airing and artwork and supplies recognition
 candidates. [Anime Catalog](anime-catalog.md) now implements durable local works,
 episodes, review decisions, confirmation/correction transactions and HTTP queries.
 The Web poster library, work detail and version playback are implemented.
-Files identification presentation and Review remain pending. Exact implemented
+Automatic admission and Web Review/correction are implemented. Files-specific inline identification presentation remains pending. Exact implemented
 contracts are defined in source.
 
 ## 1. Product decisions
@@ -117,7 +117,7 @@ Review presents work candidates before episode mappings. Candidate rows show
 title, format, dates, cover, provider and specific matching/conflicting evidence.
 Users can search by another title or resolve an explicit AniList ID/URL. A score
 is a ranking aid, never a probability. Candidate results do not appear on the
-poster wall until confirmed.
+poster wall unless Catalog accepts them automatically under the clear-match policy or the user confirms them.
 
 For each selected work, show filename, extracted numbering, proposed target
 episode and reasons. Support individual corrections and an explicit offset over
@@ -166,7 +166,7 @@ flowchart TD
   Identify --> Metadata[Metadata Public API]
   Identify --> Proposals[Evidence / association proposals]
   Proposals --> Catalog[Anime Catalog]
-  UI[Review UI] -. Future .-> HTTP[Catalog HTTP handlers]
+  UI[Review UI] --> HTTP[Catalog HTTP handlers]
   HTTP --> Catalog
 ```
 
@@ -286,8 +286,7 @@ requiring an episode token in the filename.
 6. Preview and commit the user's selected associations atomically. Unresolved
    rows remain reviewable and original files remain directly accessible.
 
-This iteration can propose a best candidate, but identification itself does not
-commit associations automatically. Thresholds and candidate margins are
+Identification remains stateless. Catalog now automatically commits a clear match: normalized exact title/alias, ranking score at least 70, a margin of at least 10 over the next candidate, no conflicts and complete valid episode targets. Specials, ancillary resources, season/part uncertainty and unresolved numbering remain in Review. These scores are ranking evidence, not probabilities or a measured accuracy guarantee. Existing associated/rejected decisions are preserved; manual correction is explicit. Identification itself does not commit associations. Thresholds and candidate margins are
 versioned policy values calibrated against fixtures; no accuracy percentage is
 used as a production confidence threshold.
 
@@ -342,7 +341,7 @@ a confirmed association can later become unavailable without losing confirmation
 Do not migrate links automatically to a replaced file version or another root.
 Changed/disappeared sources retain historical links and become unavailable;
 unchanged versions regain availability when rediscovered. A newly discovered
-replacement remains unassociated until explicitly confirmed. Root switching
+replacement is identified independently: clear matches can be admitted automatically, while unresolved replacements require manual review. Root switching
 changes the active catalog projection without deleting other roots' state.
 Metadata refresh updates provider information, not manual fields, episode IDs,
 confirmed mappings or playback progress. Removing an association never deletes
