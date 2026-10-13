@@ -130,6 +130,8 @@ const work = {
 const card = Type.Object({
 	...work,
 	displayTitle: Type.String(),
+	coverUrl: nullableText,
+	metadataStale: Type.Boolean(),
 	reference,
 	availableEpisodes: Type.Integer(),
 	availableRegularEpisodes: Type.Integer(),
@@ -151,6 +153,7 @@ export const CatalogReviewSchema = review;
 export const CatalogWorkDetailSchema = Type.Object({
 	work: card,
 	metadata: MetadataDetailsResponseSchema,
+	bannerUrl: nullableText,
 	episodes: Type.Array(
 		Type.Object({
 			...episode,

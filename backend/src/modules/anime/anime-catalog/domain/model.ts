@@ -130,6 +130,8 @@ export interface Page<T> {
 }
 export interface WorkCard extends LocalWork {
 	displayTitle: string;
+	hasCover: boolean;
+	metadataStale: boolean;
 	reference: ProviderReference;
 	availableEpisodes: number;
 	availableRegularEpisodes: number;
@@ -147,6 +149,7 @@ interface SourceVersion {
 export interface WorkDetail {
 	work: WorkCard;
 	metadata: CachedMetadata<WorkDetails>;
+	hasBanner: boolean;
 	episodes: (LocalEpisode & {
 		versions: SourceVersion[];
 		availability: "available" | "unavailable" | "missing";

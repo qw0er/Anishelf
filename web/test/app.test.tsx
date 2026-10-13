@@ -1,4 +1,5 @@
 import { queryClient } from "../src/shared/api/query-client.js";
+import { animeFixture } from "./fixtures/anime.js";
 // @vitest-environment happy-dom
 
 import { StrictMode } from "react";
@@ -126,6 +127,8 @@ beforeEach(() => {
 			path.startsWith("/api/preparations?")
 		)
 			return json({ tasks: preparationTasks });
+		if (path.startsWith("/api/catalog/works?"))
+			return json({ items: [], page: 1, perPage: 24, hasNextPage: false });
 		if (path === "/api/transcode-profiles")
 			return json({
 				profiles: [
@@ -401,7 +404,7 @@ function RouterProbe() {
 	);
 }
 
-function renderApp(path = "/", strict = false) {
+function renderApp(path = "/directories/root", strict = false) {
 	const router = createMemoryRouter(
 		[
 			{
@@ -462,7 +465,7 @@ test("first-run setup saves the server directory and shows the automatic scan", 
 	fireEvent.change(input, { target: { value: "/media/中文 videos" } });
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
 	await screen.findByRole("button", { name: "Scan library" });
-	expect(screen.getByTestId("location").textContent).toBe("/");
+	expect(screen.getByTestId("location").textContent).toBe("/directories/root");
 	expect(
 		screen.queryByText("Set a resource directory to start using the library."),
 	).toBeNull();
@@ -507,7 +510,9 @@ test("saving a new directory returns from the player and unloads old media", asy
 	fireEvent.change(input, { target: { value: "/new/media" } });
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
 	await waitFor(() =>
-		expect(screen.getByTestId("location").textContent).toBe("/"),
+		expect(screen.getByTestId("location").textContent).toBe(
+			"/directories/root",
+		),
 	);
 	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
 	expect(video.getAttribute("src")).toBeNull();
@@ -579,7 +584,7 @@ test("a failed settings save retains the input and supports a retry", async () =
 });
 
 test("navigates directories, opens media, and returns to the original directory with media unloaded", async () => {
-	renderApp("/", true);
+	renderApp("/directories/root", true);
 	await openFile();
 	// Wait until the provider loads its source, including StrictMode effect replay.
 	await waitFor(() =>
@@ -637,11 +642,11 @@ test("direct directory links restore the view after remounting", async () => {
 	const path = screen.getByTestId("location").textContent;
 	view.unmount();
 	view.router.dispose();
-	renderApp(path ?? "/");
+	renderApp(path ?? "/directories/root");
 	await screen.findByRole("link", { name: "Episode 01.mp4" });
 	expect(
 		screen.getByRole("link", { name: "Parent directory" }).getAttribute("href"),
-	).toBe("/");
+	).toBe("/directories/root");
 });
 
 test.each(["/files/file-1", "/files/file-1?directory=season-1"])(
@@ -660,7 +665,7 @@ test("unknown URLs provide a root link", async () => {
 	renderApp("/unknown/page");
 	await screen.findByText("Page not found.");
 	fireEvent.click(screen.getByRole("link", { name: "Go to root" }));
-	await screen.findByRole("link", { name: "Season 1" });
+	await screen.findByRole("heading", { name: "Anime library" });
 	expect(screen.getByTestId("location").textContent).toBe("/");
 });
 
@@ -718,7 +723,7 @@ test("starts scanning, polls status, refreshes the listing on publication, and s
 test("scan completion notifies once across StrictMode and repeated refreshes", async () => {
 	const notify = vi.spyOn(toast, "add");
 	library = { ...library, scan: runningScan };
-	const { router } = renderApp("/", true);
+	const { router } = renderApp("/directories/root", true);
 	await screen.findByText("Scan: running");
 	expect(notify).not.toHaveBeenCalled();
 	library = {
@@ -1272,7 +1277,9 @@ test("settings shows the default scan interval and saves the user's disabled sch
 	fireEvent.change(interval, { target: { value: "0" } });
 	fireEvent.submit(interval.closest("form") as HTMLFormElement);
 	await waitFor(() =>
-		expect(screen.getByTestId("location").textContent).toBe("/"),
+		expect(screen.getByTestId("location").textContent).toBe(
+			"/directories/root",
+		),
 	);
 	expect(
 		fetcher.mock.calls.some(
@@ -1528,9 +1535,11 @@ test("unsupported file uses a ready transcode automatically without a terminal t
 	expect(
 		screen.queryByRole("complementary", { name: "Transcoding tasks" }),
 	).toBeNull();
-	fireEvent.click(screen.getByRole("link", { name: "Library" }));
+	fireEvent.click(screen.getByRole("link", { name: "Files" }));
 	await waitFor(() =>
-		expect(screen.getByTestId("location").textContent).toBe("/"),
+		expect(screen.getByTestId("location").textContent).toBe(
+			"/directories/root",
+		),
 	);
 	expect(
 		screen.queryByRole("complementary", { name: "Transcoding tasks" }),
@@ -1558,4 +1567,235 @@ test("file menu preserves manual copy fallback after closing", async () => {
 		`${window.location.origin}/api/media/file-1`,
 	);
 	expect(screen.queryByRole("menu")).toBeNull();
+});
+
+test("poster library filters local titles, preserves return context and selects an actual source version", async () => {
+	const detail = animeFixture();
+	mockAnime(detail);
+	renderApp("/?query=Frieren&sort=recent");
+	const card = await screen.findByRole("link", { name: "Frieren" });
+	expect(screen.getByText("1 / 3 regular episodes available")).toBeTruthy();
+	fireEvent.click(card);
+	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+	const episode = screen.getByText("Episode 1").closest("li");
+	expect(episode).toBeTruthy();
+	fireEvent.click(
+		within(episode as HTMLElement).getByRole("button", {
+			name: "Play: Episode 1",
+		}),
+	);
+	const dialog = await screen.findByRole("dialog");
+	expect(within(dialog).getAllByText(/1080p · Group A/)).toHaveLength(3);
+	expect(within(dialog).getAllByRole("link", { name: "Play" })).toHaveLength(2);
+	expect(within(dialog).getAllByText(/opens its normal timeline/)).toHaveLength(
+		3,
+	);
+	fireEvent.click(
+		within(dialog).getAllByRole("link", { name: "Play" })[0] as HTMLElement,
+	);
+	await screen.findByLabelText("Video: Episode 01.mp4");
+	expect(
+		fetcher.mock.calls.some(([path]) =>
+			String(path).startsWith("/api/files/file-1/subtitles"),
+		),
+	).toBe(true);
+	const back = screen.getByRole("link", { name: "Back to anime" });
+	expect(back.getAttribute("href")).toContain("#episode-ep-1");
+	expect(screen.getByTestId("location").textContent).toContain(
+		"version=source-v1",
+	);
+	fireEvent.click(back);
+	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+	fireEvent.click(screen.getByRole("link", { name: "Back to library" }));
+	await screen.findByRole("heading", { name: "Anime library" });
+	expect(screen.getByTestId("location").textContent).toBe(
+		"/?query=Frieren&sort=recent",
+	);
+	expect(
+		(screen.getByLabelText("Search local titles") as HTMLInputElement).value,
+	).toBe("Frieren");
+	expect(document.activeElement?.id).toBe("work-work-1");
+});
+
+test("detail renders unknown/missing/unavailable separately and sanitizes provider descriptions", async () => {
+	const detail = animeFixture();
+	mockAnime(detail);
+	renderApp("/anime/work-1");
+	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+	expect(screen.getByText("Safe synopsis").tagName).toBe("B");
+	expect(document.querySelector("main script")).toBeNull();
+	expect(
+		document.querySelector('main img[src*="tracking.invalid"]'),
+	).toBeNull();
+	expect(document.querySelector('a[href^="javascript:"]')).toBeNull();
+	expect(screen.getByText("Unknown")).toBeTruthy();
+	expect(
+		screen
+			.getByRole("button", { name: "Play: Episode 2" })
+			.hasAttribute("disabled"),
+	).toBe(true);
+	expect(
+		screen
+			.getByRole("button", { name: "Play: Episode 3" })
+			.hasAttribute("disabled"),
+	).toBe(true);
+	expect(screen.getByText(/No associated local file/)).toBeTruthy();
+	expect(screen.queryByText("Hidden spoiler")).toBeNull();
+	fireEvent.click(screen.getByText("More metadata"));
+	fireEvent.click(screen.getByRole("button", { name: "Show spoiler tags" }));
+	expect(screen.getByText("Hidden spoiler")).toBeTruthy();
+});
+
+test("a single usable version links directly to playback and provider refresh failure keeps it usable", async () => {
+	const detail = animeFixture();
+	const episode = detail.episodes[0];
+	if (!episode) throw new Error("Missing fixture episode");
+	episode.versions = episode.versions.slice(0, 1);
+	detail.metadata.refreshError = {
+		code: "unavailable",
+		message: "Unavailable",
+		retryAt: null,
+	};
+	mockAnime(detail);
+	renderApp("/anime/work-1?library=https%3A%2F%2Fevil.invalid");
+	const play = await screen.findByRole("link", { name: "Play: Episode 1" });
+	expect(play.getAttribute("href")).toContain("library=%2F");
+	expect(
+		screen.getByRole("link", { name: "Back to library" }).getAttribute("href"),
+	).toBe("/");
+	fireEvent.click(screen.getByRole("button", { name: "Refresh metadata" }));
+	await screen.findByRole("alert");
+	expect(screen.getByRole("link", { name: "Play: Episode 1" })).toBeTruthy();
+});
+
+test("filter submission resets pagination and sends all filters to the local catalog", async () => {
+	const detail = animeFixture();
+	mockAnime(detail);
+	renderApp("/?page=2");
+	await screen.findByRole("link", { name: "Frieren" });
+	fireEvent.change(screen.getByLabelText("Search local titles"), {
+		target: { value: "葬送" },
+	});
+	fireEvent.change(screen.getByLabelText("Format"), {
+		target: { value: "TV" },
+	});
+	fireEvent.change(screen.getByLabelText("Release year"), {
+		target: { value: "2023" },
+	});
+	fireEvent.change(screen.getByLabelText("Availability"), {
+		target: { value: "available" },
+	});
+	fireEvent.change(screen.getByLabelText("Sort by"), {
+		target: { value: "recent" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
+	await waitFor(() => expect(screen.getByText("Page 1")).toBeTruthy());
+	expect(
+		fetcher.mock.calls.some(([path]) => {
+			const url = new URL(String(path), "http://localhost");
+			return (
+				url.pathname === "/api/catalog/works" &&
+				url.searchParams.get("query") === "葬送" &&
+				url.searchParams.get("format") === "TV" &&
+				url.searchParams.get("year") === "2023" &&
+				url.searchParams.get("availability") === "available" &&
+				url.searchParams.get("sort") === "recent" &&
+				!url.searchParams.has("page")
+			);
+		}),
+	).toBe(true);
+	expect(
+		fetcher.mock.calls.some(([path]) =>
+			String(path).startsWith("/api/metadata/search"),
+		),
+	).toBe(false);
+});
+
+test("the default poster wall exposes an empty state and access to Files", async () => {
+	renderApp("/");
+	await screen.findByText(/No confirmed anime yet/);
+	expect(
+		screen
+			.getAllByRole("link", { name: "Files" })
+			.every((link) => link.getAttribute("href") === "/directories/root"),
+	).toBe(true);
+});
+
+function mockAnime(detail: ReturnType<typeof animeFixture>) {
+	const fallback = fetcher.getMockImplementation();
+	fetcher.mockImplementation(async (input, init) => {
+		const path = String(input);
+		if (path.startsWith("/api/catalog/works?"))
+			return json({
+				items: [detail.work],
+				page: Number(
+					new URL(path, "http://localhost").searchParams.get("page") ?? 1,
+				),
+				perPage: 24,
+				hasNextPage: true,
+			});
+		if (path === "/api/catalog/works/work-1") return json(detail);
+		if (path === "/api/catalog/works/work-1/refresh") return json(detail);
+		if (path.startsWith("/api/metadata/anilist/154587/relations"))
+			return json({
+				snapshotId: "relations",
+				fetchedAt: 1,
+				stale: false,
+				refreshing: false,
+				refreshError: null,
+				data: { items: [], page: 1, perPage: 25, hasNextPage: false },
+			});
+		if (!fallback) throw new Error("Missing fetch fixture");
+		return fallback(input, init);
+	});
+}
+
+test("failed poster artwork falls back to the real title without losing the work link", async () => {
+	mockAnime(animeFixture());
+	renderApp("/");
+	await screen.findByRole("link", { name: "Frieren" });
+	fireEvent.error(screen.getByRole("img", { name: "Frieren" }));
+	expect(screen.queryByRole("img", { name: "Frieren" })).toBeNull();
+	expect(screen.getByRole("link", { name: "Frieren" })).toBeTruthy();
+});
+
+test("unavailable anime playback retains its detail return link for choosing another version", async () => {
+	mockAnime(animeFixture());
+	fileError = true;
+	renderApp(
+		"/files/file-1?anime=work-1&episode=ep-1&library=%2F%3Fquery%3DFrieren&version=source-v1",
+	);
+	await screen.findByRole("alert");
+	const back = screen.getByRole("link", { name: "Back to anime" });
+	expect(back.getAttribute("href")).toBe(
+		"/anime/work-1?library=%2F%3Fquery%3DFrieren#episode-ep-1",
+	);
+	fireEvent.click(back);
+	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+});
+
+test("anime version links pin the selected source version and refuse a replaced source", async () => {
+	const fallback = fetcher.getMockImplementation();
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === "/api/playback/options") {
+			const intent = JSON.parse(String(init?.body));
+			expect(intent.sourceVersion).toBe("replaced-version");
+			return json(
+				{
+					error: {
+						code: "PLAYBACK_CONFLICT",
+						message: "Source changed",
+						requestId: "version-conflict",
+					},
+				},
+				409,
+			);
+		}
+		if (!fallback) throw new Error("Missing fixture");
+		return fallback(input, init);
+	});
+	renderApp("/files/file-1?anime=work-1&episode=ep-1&version=replaced-version");
+	await screen.findByRole("heading", { name: "Unable to play this video" });
+	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
+	expect(screen.getByRole("link", { name: "Back to anime" })).toBeTruthy();
 });

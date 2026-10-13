@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
 	Link,
 	Outlet,
+	ScrollRestoration,
 	useLoaderData,
 	useLocation,
 	useNavigation,
@@ -80,6 +81,7 @@ function App() {
 		if (scan.status === "completed") {
 			void client.invalidateQueries({ queryKey: ["directory"] });
 			void client.invalidateQueries({ queryKey: ["history"] });
+			void client.invalidateQueries({ queryKey: ["catalog"] });
 			if (scan.warnings.count > 0)
 				toast.add({
 					type: "warning",
@@ -150,6 +152,9 @@ function App() {
 			<PreparationProvider>
 				<div className="min-h-screen bg-background">
 					<AppHeader />
+					<ScrollRestoration
+						getKey={(location) => `${location.pathname}${location.search}`}
+					/>
 					<main
 						className="page-container page-content"
 						aria-busy={navigation.state !== "idle"}

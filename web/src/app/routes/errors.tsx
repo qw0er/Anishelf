@@ -10,7 +10,7 @@ import { Button, buttonStyles } from "../../shared/components/ui/button.js";
 import { Spinner } from "../../shared/components/ui/spinner.js";
 import { useDelayedPending } from "../../shared/hooks/use-delayed-pending.js";
 import { getErrorTranslationKey } from "../../shared/lib/error-translation.js";
-import { directoryPath } from "../../shared/navigation.js";
+import { animeReturnPath, directoryPath } from "../../shared/navigation.js";
 
 export default function RouteError({
 	kind,
@@ -54,12 +54,19 @@ export default function RouteError({
 					className={buttonStyles("outline")}
 					to={
 						kind === "file"
-							? directoryPath(searchParams.get("directory") || "root")
-							: "/"
+							? (animeReturnPath(searchParams) ??
+								directoryPath(searchParams.get("directory") || "root"))
+							: kind === "directory"
+								? "/directories/root"
+								: "/"
 					}
 				>
 					{kind === "file"
-						? t("navigation.backToFiles")
+						? t(
+								animeReturnPath(searchParams)
+									? "anime.backToDetail"
+									: "navigation.backToFiles",
+							)
 						: t("navigation.goToRoot")}
 				</Link>
 			</div>

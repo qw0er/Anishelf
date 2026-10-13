@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
@@ -99,7 +99,9 @@ test("large modules expose capability objects and quiesce without destroying sha
 		await anime.quiesce();
 		await Promise.all([media.quiesce(), media.quiesce()]);
 		await resources.quiesce();
-		expect(await resources.api.sources.resolveRoot()).toBe(root);
+		expect(await resources.api.sources.resolveRoot()).toBe(
+			await realpath(root),
+		);
 	} finally {
 		playback.close();
 		await anime.close();

@@ -1,3 +1,4 @@
+import { DomainError } from "../../../../shared/errors.js";
 import type { CachedMetadata, WorkDetails } from "../../metadata/public.js";
 import { conflict, integer, invalid, text } from "../domain/mapping.js";
 import type {
@@ -40,6 +41,8 @@ export class CatalogQueries {
 		return {
 			...work,
 			displayTitle: work.title ?? work.providerTitle,
+			hasCover: this.hasArtwork(work.id, "cover"),
+			metadataStale: this.snapshot(work.id).stale,
 			reference: link.reference,
 			availableEpisodes,
 			availableRegularEpisodes,
@@ -78,6 +81,28 @@ export class CatalogQueries {
 			throw new Error("Catalog work requires a detail snapshot.");
 		const { kind: _, ...metadata } = value;
 		return metadata;
+	}
+	private hasArtwork(id: string, kind: "cover" | "banner"): boolean {
+		const snapshot = this.snapshot(id);
+		return Boolean(
+			kind === "cover" ? snapshot.data.coverUrl : snapshot.data.bannerUrl,
+		);
+	}
+	async artwork(id: string, kind: "cover" | "banner") {
+		const root = await this.context.root();
+		this.context.requireWork(id, root.rootId);
+		const snapshot = this.snapshot(id);
+		const status = await this.context.options.metadata.snapshotArtwork(
+			snapshot.snapshotId,
+			kind,
+		);
+		this.context.options.sources.assertRootEpoch(root.epoch);
+		if (!status.id)
+			throw new DomainError(
+				"CATALOG_NOT_FOUND",
+				"Artwork is unavailable. Retry later.",
+			);
+		return this.context.options.metadata.readArtwork(status.id);
 	}
 	async detail(id: string): Promise<WorkDetail> {
 		const root = await this.context.root();
@@ -136,6 +161,8 @@ export class CatalogQueries {
 			work: {
 				...work,
 				displayTitle: work.title ?? work.providerTitle,
+				hasCover: this.hasArtwork(id, "cover"),
+				metadataStale: this.snapshot(id).stale,
 				reference: link.reference,
 				availableEpisodes: episodes.filter(
 					(episode) => episode.availability === "available",
@@ -146,6 +173,7 @@ export class CatalogQueries {
 				).length,
 			},
 			metadata: this.snapshot(id),
+			hasBanner: this.hasArtwork(id, "banner"),
 			episodes,
 			episodeCountProvenance:
 				work.episodeCount === null ? "unknown" : "provider-count",

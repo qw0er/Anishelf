@@ -46,7 +46,7 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 | L07 | Parse anime titles, seasons, episode numbers, and release variants from filenames | Current iteration | — | Current iteration |
 | L08 | Review unidentified files and manually link or correct anime and episode associations | Current iteration | — | Current iteration |
 | L09 | Distinguish regular episodes, specials, continuous season numbering, and multi-episode files | Current iteration | — | Current iteration |
-| L10 | Associate multiple file versions with an episode and select a version for playback | Current iteration | — | Current iteration |
+| L10 | Associate multiple file versions with an episode and select a version for playback | Implemented: Catalog associations and Web version selection with source-version checks | Current iteration | Current iteration |
 | L11 | Relink moved files while preserving viewing history | Later | — | Unassigned |
 | L12 | Configure and manage multiple resource roots | Optional | — | Unassigned |
 | L13 | Rename, organize, delete, and reclaim storage with preservation rules | Optional | — | Unassigned |
@@ -74,7 +74,7 @@ This is a user-facing file download, separate from acquiring new releases throug
 | --- | --- | --- | --- | --- |
 | M01 | Search external anime metadata and store provider identifiers | Current iteration | — | Current iteration |
 | M02 | Display covers, aliases, descriptions, seasons, episode counts, airing information, and available same-provider work relations | Current iteration | — | Current iteration |
-| M03 | Provide anime detail and episode views, organizing the library by title | Current iteration | — | Current iteration |
+| M03 | Provide anime detail and episode views, organizing the library by title | Implemented: default poster library, work details and episode playback; scoped sample verification recorded | Current iteration | Current iteration |
 | M04 | Manually select, correct, and refresh metadata mappings | Current iteration | — | Current iteration |
 | M05 | Cache metadata so external outages do not prevent browsing or playback | Current iteration | — | Current iteration |
 | M07 | Preserve multilingual program titles, aliases and descriptions with language tags, original language and locale-independent IDs | Current iteration: preserve available provider language information without inventing translations | — | Current iteration |

@@ -3,6 +3,11 @@ import {
 	type LoaderFunctionArgs,
 	redirect,
 } from "react-router";
+import {
+	catalogFilters,
+	catalogQuery,
+	workQuery,
+} from "../../features/anime/public.js";
 import { preparationPolicy } from "../../features/media/public.js";
 import { historyQuery } from "../../features/playback/public.js";
 import {
@@ -99,7 +104,7 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 			title: i18n.t("settingsPage.saved"),
 			id: "settings-save",
 		});
-		return redirect("/");
+		return redirect("/directories/root");
 	} catch (error) {
 		if (request.signal.aborted || isRequestCancelled(error)) throw error;
 		const key = getErrorTranslationKey(error) ?? "errors.saveSettings";
@@ -165,4 +170,22 @@ async function warmScope(request: Request) {
 	]).catch((error) => {
 		if (request.signal.aborted || isRequestCancelled(error)) throw error;
 	});
+}
+
+export async function catalogLoader({ request }: LoaderFunctionArgs) {
+	await warmScope(request);
+	const settings = queryClient.getQueryData(settingsQuery().queryKey);
+	const library = queryClient.getQueryData(libraryQuery().queryKey);
+	if (!settings?.resourceRoot || !library?.ready) return null;
+	return loadQuery(
+		catalogQuery(
+			catalogFilters(new URL(request.url).searchParams),
+			routeScope(),
+		),
+		request.signal,
+	);
+}
+export async function animeLoader({ request, params }: LoaderFunctionArgs) {
+	await warmScope(request);
+	return loadQuery(workQuery(params.id ?? "", routeScope()), request.signal);
 }

@@ -17,7 +17,15 @@ import type {
 } from "./domain/model.js";
 
 export interface CatalogMetadata
-	extends Pick<MetadataApi, "get" | "snapshot" | "retain" | "release"> {}
+	extends Pick<
+		MetadataApi,
+		| "get"
+		| "snapshot"
+		| "retain"
+		| "release"
+		| "snapshotArtwork"
+		| "readArtwork"
+	> {}
 export interface CatalogStore extends SourceRegistry {
 	transaction<T>(operation: (store: CatalogStore) => T): T;
 	publish(

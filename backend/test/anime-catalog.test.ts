@@ -60,7 +60,10 @@ afterEach(async () => {
 	vi.useRealTimers();
 	for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
-async function fixture(paths = ["Anime - 01.mkv"]) {
+async function fixture(
+	paths = ["Anime - 01.mkv"],
+	artworkFetch?: typeof fetch,
+) {
 	const base = await mkdtemp(join(tmpdir(), "anishelf-catalog-"));
 	cleanups.push(() => rm(base, { recursive: true, force: true }));
 	const root = join(base, "media");
@@ -107,18 +110,21 @@ async function fixture(paths = ["Anime - 01.mkv"]) {
 	const index = new LibraryIndex();
 	const configuration = settingsStore(root);
 	const library = createLibraryModule({ configuration, index, logger });
-	function makeMetadata() {
+	async function makeMetadata() {
+		const artwork = new MetadataArtworkCache({
+			dataDir: join(base, "data"),
+			store: database.metadata,
+			...(artworkFetch ? { fetch: artworkFetch } : {}),
+		});
+		await artwork.initialize();
 		return new MetadataApplication({
 			store: database.metadata,
 			providers: [provider],
-			artwork: new MetadataArtworkCache({
-				dataDir: join(base, "data"),
-				store: database.metadata,
-			}),
+			artwork,
 			logger,
 		});
 	}
-	let metadata = makeMetadata();
+	let metadata = await makeMetadata();
 	function makeCatalog() {
 		return new AnimeCatalogApplication({
 			store: database.catalog,
@@ -152,7 +158,7 @@ async function fixture(paths = ["Anime - 01.mkv"]) {
 		await metadata.close();
 		database.close();
 		database = ApplicationDatabase.open(join(base, "data"));
-		metadata = makeMetadata();
+		metadata = await makeMetadata();
 		catalog = makeCatalog();
 	}
 	await scan();
@@ -821,4 +827,64 @@ test("closing Catalog stops every composed use case before reading or mutating s
 	expect(f.database.catalog.work(committed.workId)).toEqual(before);
 	expect(f.database.catalog.operation("closed")).toBeNull();
 	expect(f.get.mock.calls).toHaveLength(providerCalls);
+});
+
+test("poster artwork uses retained snapshots, delivers cached images offline and enforces active-root access", async () => {
+	const png = Buffer.from(
+		"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a9sAAAAASUVORK5CYII=",
+		"base64",
+	);
+	const fetchArtwork = vi.fn<typeof fetch>(async () => new Response(png));
+	const f = await fixture(undefined, fetchArtwork);
+	f.setData({
+		...details(),
+		coverUrl:
+			"https://s4.anilist.co/file/anilistcdn/media/anime/cover/fixture.png",
+		bannerUrl: null,
+	});
+	const confirmed = await confirm(f);
+	const before = f.get.mock.calls.length;
+	const app = createHttpApp({
+		catalog: f.catalog,
+		config: { host: "localhost", port: 80, publicOrigin: "http://localhost" },
+		logger,
+	});
+	cleanups.push(() => app.close());
+	const list = await app.inject({ url: "/api/catalog/works" });
+	const cover = `/api/catalog/works/${confirmed.workId}/artwork/cover`;
+	expect(list.json().items[0].coverUrl).toBe(cover);
+	expect(fetchArtwork).not.toHaveBeenCalled();
+	const image = await app.inject({ url: cover });
+	expect(image.statusCode).toBe(200);
+	expect(image.headers["content-type"]).toBe("image/png");
+	expect(image.headers["x-content-type-options"]).toBe("nosniff");
+	expect(image.rawPayload).toEqual(png);
+	fetchArtwork.mockRejectedValue(new Error("offline"));
+	f.get.mockRejectedValue(new Error("provider offline"));
+	expect((await app.inject({ url: cover })).statusCode).toBe(200);
+	expect(fetchArtwork).toHaveBeenCalledTimes(1);
+	expect(f.get).toHaveBeenCalledTimes(before);
+	expect(
+		(
+			await app.inject({
+				url: `/api/catalog/works/${confirmed.workId}/artwork/banner`,
+			})
+		).statusCode,
+	).toBe(404);
+	expect(
+		(
+			await app.inject({
+				url: `/api/catalog/works/${confirmed.workId}/artwork/anything`,
+			})
+		).statusCode,
+	).toBe(400);
+	const nextRoot = join(f.base, "other-root");
+	await mkdir(nextRoot);
+	await f.library.updateResourceSettings({
+		resourceRoot: nextRoot,
+		scanIntervalMinutes: 0,
+	});
+	await f.library.waitForCompletion();
+	await f.automatic.waitForCompletion();
+	expect((await app.inject({ url: cover })).statusCode).toBe(404);
 });

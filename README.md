@@ -3,6 +3,7 @@
 Anishelf is a personal anime library browser and player. Point it at an existing
 media directory, browse its folder structure, and watch videos in your browser.
 
+- A poster library of confirmed anime, episode details and source-version selection.
 - Automatic and manual library scans.
 - Saved playback progress and watch history.
 - External subtitles and supported embedded text subtitles.
@@ -35,9 +36,17 @@ Open [Anishelf](http://127.0.0.1:3000), then:
 
 1. Save the absolute media directory in Settings. For a container deployment,
    use the mounted path, such as `/media`.
-2. Wait for the scan, browse folders and select a video to play.
+2. Wait for the scan. **Library** shows confirmed anime; open a work, select an
+   episode and choose a file version when several are available. **Files** keeps
+   the original folder browser and direct-file playback.
 3. Select subtitles or prepare a compatible copy when needed. Use **Copy media
    link** to open the original file in an external player.
+
+The poster library includes only associations confirmed through the Catalog API.
+The Web Review/confirmation workflow is still pending, so a new installation can
+show an empty poster wall while all original videos remain accessible in Files.
+See [Anime Catalog](docs/anime-catalog.md) for confirmation endpoints and
+[the scoped UI verification](docs/acceptance/anime-library/README.md).
 
 The library scans on startup and periodically. Use a manual scan after changing
 media files, or adjust the automatic scan interval in Settings; `0` disables
