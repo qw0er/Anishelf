@@ -2,8 +2,8 @@
 import { waitFor } from "@testing-library/react";
 import { TextTrack } from "@vidstack/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { subtitlePolicy } from "../src/features/subtitles/public.js";
-import { StyledSubtitleRenderer } from "../src/features/subtitles/renderer.js";
+import { subtitlePolicy } from "../src/features/media/subtitles/public.js";
+import { StyledSubtitleRenderer } from "../src/features/media/subtitles/renderer.js";
 
 const options = vi.hoisted(() => [] as { libassMemoryLimit: number }[]);
 vi.mock("jassub", () => ({

@@ -6,8 +6,6 @@ import Database from "better-sqlite3";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
-import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { createLibraryModule } from "../src/app/bootstrap/library.js";
 import type {
 	CompatibilityCheckRequest,
 	PreparationStartResponse,
@@ -29,7 +27,8 @@ import {
 	PreparedMediaFiles,
 } from "../src/modules/media/preparation/infrastructure/files.js";
 import { preparationPolicy } from "../src/modules/media/preparation/policy.js";
-import { PlaybackApplication } from "../src/modules/playback/playback/application/playback.js";
+import { PlaybackApplication } from "../src/modules/playback/progress/application/playback.js";
+import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import {
 	builtinTranscodeProfiles,
@@ -38,6 +37,7 @@ import {
 import { MediaToolError } from "../src/platform/media/index.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { settingsStore } from "./settings-store.js";
+import { createHttpApp } from "./support/http.js";
 
 const cleanup: Array<() => Promise<unknown>> = [];
 const logger = pino({ enabled: false });

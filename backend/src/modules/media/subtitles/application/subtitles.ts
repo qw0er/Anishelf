@@ -13,8 +13,8 @@ import type {
 	ResolvedSource,
 	ResourceAccessApi,
 	ResourceFiles,
-} from "../../../resources/resource-access/public.js";
-import { assertSourceVersion } from "../../../resources/resource-access/public.js";
+} from "../../../resources/public.js";
+import { assertSourceVersion } from "../../../resources/public.js";
 import {
 	type MediaInspectionApi,
 	MediaInspectionBusyError,
@@ -27,13 +27,13 @@ import type {
 } from "../domain/model.js";
 import { readSubtitleText } from "../infrastructure/content.js";
 import { discoverExternalSubtitles } from "../infrastructure/discovery.js";
-import type { SubtitleRepository } from "../infrastructure/repository.js";
 import {
 	type SubtitleRuntimePolicy,
 	subtitleRuntimePolicy,
 } from "../policy.js";
 import type { SubtitleExtractor } from "../ports.js";
 import type { SubtitleApi } from "../public.js";
+import type { SubtitleStore } from "../storage.js";
 import { SubtitleFontPreparation } from "./font-preparation.js";
 import { SubtitlePreparationApplication } from "./subtitle-preparation.js";
 
@@ -50,7 +50,7 @@ export class SubtitleApplication implements SubtitleApi {
 		policy?: DeepReadonly<SubtitleRuntimePolicy>;
 		inspection?: MediaInspectionApi;
 		tools?: SubtitleExtractor;
-		repository?: SubtitleRepository;
+		repository?: SubtitleStore;
 		dataDir?: string;
 	}) {
 		this.logger = options.logger?.child({ module: "subtitles" });

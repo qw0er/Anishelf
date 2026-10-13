@@ -1,11 +1,8 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import { freeze } from "../../../../shared/policy.js";
-import {
-	mediaSources,
-	resourceRoots,
-} from "../../../resources/resource-access/persistence.js";
-import type { SourceRegistry } from "../../../resources/resource-access/public.js";
+import { mediaSources, resourceRoots } from "../../../resources/persistence.js";
+import type { SourceRegistry } from "../../../resources/public.js";
 import type {
 	PreparationState,
 	PreparationTask,

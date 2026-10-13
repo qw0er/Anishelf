@@ -5,7 +5,7 @@ export type {
 } from "./domain/model.js";
 export type { IdentificationMetadata } from "./ports.js";
 
-import type { SourceIdentity } from "../../resources/resource-access/public.js";
+import type { SourceIdentity } from "../../resources/public.js";
 import type { IdentificationResult } from "./domain/model.js";
 
 /** Callers supply confined, validated identities and own scheduling/persistence. */

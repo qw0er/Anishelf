@@ -8,27 +8,25 @@ import {
 	useParams,
 	useSearchParams,
 } from "react-router";
-import { HistoryPage } from "../../features/history/public.js";
-import type { LibraryContext } from "../../features/library/public.js";
-import {
-	directoryQuery,
-	LibraryBrowser,
-} from "../../features/library/public.js";
-import { FilePlayer } from "../../features/playback/public.js";
 import {
 	usePreparationAction,
 	usePreparationContext,
-} from "../../features/preparation/public.js";
-import { fileQuery } from "../../features/resource-access/public.js";
+} from "../../features/media/public.js";
+import { FilePlayer, HistoryPage } from "../../features/playback/ui.js";
+import type { LibraryContext } from "../../features/resources/public.js";
+import { directoryQuery, fileQuery } from "../../features/resources/public.js";
+import { LibraryBrowser } from "../../features/resources/ui.js";
 import {
 	ExternalPlayerSettings,
 	PreparationProfileSettings,
 	ResourceSettings,
-} from "../../features/settings/public.js";
+} from "../../features/settings/ui.js";
 import { useQueryScope } from "../../shared/api/queries.js";
 import { buttonStyles } from "../../shared/components/ui/button.js";
 import App from "../App.js";
+import { FileActions } from "../components/file-actions.js";
 import InitialLoading from "../components/initial-loading.js";
+import { playbackUiSlots } from "../composition/playback-ui.js";
 import RouteError from "./errors.js";
 import {
 	directoryLoader,
@@ -48,7 +46,13 @@ function DirectoryPage() {
 	const listing = query.data ?? initial;
 	const scan = useOutletContext<LibraryContext>();
 	if (query.error && !query.data) throw query.error;
-	return <LibraryBrowser listing={listing} scan={scan} />;
+	return (
+		<LibraryBrowser
+			listing={listing}
+			scan={scan}
+			renderFileActions={(state) => <FileActions {...state} />}
+		/>
+	);
 }
 
 function PlayerPage() {
@@ -63,6 +67,7 @@ function PlayerPage() {
 	if (query.error && !query.data) throw query.error;
 	return (
 		<FilePlayer
+			slots={playbackUiSlots}
 			key={JSON.stringify([
 				data.file.id,
 				settings?.resourceRoot,

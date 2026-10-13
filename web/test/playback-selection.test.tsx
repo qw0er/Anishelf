@@ -1,11 +1,11 @@
-import * as playbackApi from "../src/features/playback/api.js";
-import * as preparationApi from "../src/features/preparation/api.js";
+import * as preparationApi from "../src/features/media/preparation/api.js";
+import * as playbackApi from "../src/features/playback/player/api.js";
 // @vitest-environment happy-dom
 
 import { type ReactNode, StrictMode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import * as capabilities from "../src/features/media-compatibility/capabilities.js";
-import { usePlaybackSelection } from "../src/features/playback/hooks/use-playback-selection.js";
+import * as capabilities from "../src/features/media/media-compatibility/capabilities.js";
+import { usePlaybackSelection } from "../src/features/playback/player/hooks/use-playback-selection.js";
 import type {
 	CompatibilityInspection,
 	CompatibilityResult,

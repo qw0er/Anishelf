@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 
 import { afterEach, expect, test, vi } from "vitest";
-import VideoPlayer from "../src/features/playback/components/video-player.js";
-import { subtitlePolicy } from "../src/features/subtitles/public.js";
+import { subtitlePolicy } from "../src/features/media/subtitles/public.js";
+import VideoPlayer from "../src/features/playback/player/components/video-player.js";
 import { toast } from "../src/shared/components/ui/toast.js";
 import {
 	act,
@@ -45,9 +45,12 @@ vi.mock("@vidstack/react/player/layouts/default", () => ({
 	DefaultVideoLayout: () => null,
 	defaultLayoutIcons: {},
 }));
-vi.mock("../src/features/subtitles/components/subtitle-tracks.js", () => ({
-	SubtitleTracks: () => null,
-}));
+vi.mock(
+	"../src/features/media/subtitles/components/subtitle-tracks.js",
+	() => ({
+		SubtitleTracks: () => null,
+	}),
+);
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
 }));

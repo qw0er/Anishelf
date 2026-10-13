@@ -7,7 +7,7 @@ import type { DeepReadonly } from "../../../shared/policy.js";
 import type {
 	ResolvedSource,
 	ResourceAccessApi,
-} from "../../resources/resource-access/public.js";
+} from "../../resources/public.js";
 import { type MediaInspectionPolicy, mediaInspectionPolicy } from "./policy.js";
 import {
 	MediaInspectionBusyError,

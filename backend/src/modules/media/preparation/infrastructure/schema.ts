@@ -11,7 +11,7 @@ import {
 	preparationStatuses,
 } from "../../../../contracts/schemas/preparation.js";
 import type { MediaExecutionProgress } from "../../../../platform/media/events.js";
-import { mediaSources } from "../../../resources/resource-access/persistence.js";
+import { mediaSources } from "../../../resources/persistence.js";
 import type { PreparationSettingsSnapshot } from "../snapshot.js";
 export const preparationTasks = sqliteTable(
 	"preparation_tasks",

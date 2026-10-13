@@ -6,15 +6,13 @@ import { promisify } from "node:util";
 import pino from "pino";
 import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
-import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { createLibraryModule } from "../src/app/bootstrap/library.js";
-import { createPlaybackCopies } from "../src/app/bootstrap/playback-selection.js";
 import type {
 	CompatibilityInspection,
 	PlaybackOptionsResponse,
 	PlaybackSelectionResponse,
 	PlaybackSessionResponse,
 } from "../src/contracts/http.js";
+import { createPlaybackCopies } from "../src/modules/media/composition/playback-selection.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
 import { MediaProcessingApplication } from "../src/modules/media/media-processing/application/processing.js";
@@ -23,8 +21,9 @@ import {
 	preparationStartResponse,
 	preparationTaskResponse,
 } from "../src/modules/media/preparation/http/presenters.js";
-import { PlaybackApplication } from "../src/modules/playback/playback/application/playback.js";
 import { PlaybackSelectionApplication } from "../src/modules/playback/playback-selection/application/selection.js";
+import { PlaybackApplication } from "../src/modules/playback/progress/application/playback.js";
+import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { builtinTranscodeProfiles } from "../src/modules/system/configuration/public.js";
 import {
@@ -32,6 +31,7 @@ import {
 	MediaTools,
 } from "../src/platform/media/index.js";
 import { settingsStore } from "./settings-store.js";
+import { createHttpApp } from "./support/http.js";
 
 const run = promisify(execFile);
 function required<T>(value: T | null | undefined): T {

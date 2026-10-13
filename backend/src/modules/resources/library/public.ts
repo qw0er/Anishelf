@@ -1,7 +1,6 @@
 export type {
 	DirectoryInfo,
 	DirectoryListing,
-	FileInfo,
 	LibraryStatus,
 	ResourceInfo,
 } from "./domain/model.js";

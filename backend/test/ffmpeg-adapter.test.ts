@@ -5,11 +5,11 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import pino from "pino";
 import { expect, test } from "vitest";
-import { createLibraryModule } from "../src/app/bootstrap/library.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
 import { resolveExecutionPlan } from "../src/modules/media/media-planning/public.js";
 import { MediaProcessingApplication } from "../src/modules/media/media-processing/application/processing.js";
+import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import {
 	builtinTranscodeProfiles,

@@ -7,7 +7,7 @@ import { subtitleMimeTypes } from "../../../../contracts/subtitles.js";
 import { storageRules } from "../../../../platform/storage.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
-import type { PersistentSettings } from "../../../system/configuration/public.js";
+import type { PersistentSettings } from "../../../system/public.js";
 import { getVideoMimeType } from "../domain/mime.js";
 import type { FileSourceIdentity, RootIssue } from "../domain/model.js";
 import { assertFileSource } from "../domain/validation.js";

@@ -8,7 +8,7 @@ import type {
 	CompatibilityInspectInput,
 	CompatibilityInspection,
 	CompatibilityResult,
-} from "../../media/media-planning/public.js";
+} from "../../media/public.js";
 /** Read-only requirements. No planner-private profiles or preparation execution settings. */
 export interface PlaybackSelectionPlanning {
 	inspect(input: CompatibilityInspectInput): Promise<CompatibilityInspection>;
@@ -16,17 +16,9 @@ export interface PlaybackSelectionPlanning {
 		input: CompatibilityCheckRequest & { fileId: string },
 	): Promise<DeepReadonly<CompatibilityResult>>;
 }
-export interface PlaybackCopy {
-	taskId: string;
-	profileId: string;
-	source: SourceIdentity;
-	audioStreamIndices: readonly number[];
-	mode: "remux" | "transcode-audio" | "transcode-video" | "transcode";
-	pending: boolean;
-	updatedAtMs: number;
-	artifact: { id: string; mimeType: string } | null;
-	availability: "ready" | "unknown" | "unavailable";
-}
+export type { PlaybackCopy } from "../../media/public.js";
+
+import type { PlaybackCopy } from "../../media/public.js";
 export interface PlaybackCopies {
 	list(fileId: string): Promise<{ tasks: PlaybackCopy[] }>;
 	get(id: string): Promise<PlaybackCopy>;

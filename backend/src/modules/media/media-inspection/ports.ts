@@ -1,5 +1,5 @@
 import type { MediaInfo } from "../../../platform/media/model.js";
-import type { ResolvedSource } from "../../resources/resource-access/public.js";
+import type { ResolvedSource } from "../../resources/public.js";
 export class MediaInspectionBusyError extends Error {
 	constructor() {
 		super("Media inspection is busy.");

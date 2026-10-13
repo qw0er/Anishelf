@@ -8,7 +8,7 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { preparedSubtitleFormats } from "../../../../contracts/subtitles.js";
-import { mediaSources } from "../../../resources/resource-access/persistence.js";
+import { mediaSources } from "../../../resources/persistence.js";
 export const subtitleAssets = sqliteTable(
 	"subtitle_assets",
 	{

@@ -156,3 +156,10 @@ retry/rate limits, response bounds, asset validation/fallback/reconciliation,
 versioned keys and Identification integration. One-page live AniList search,
 detail, relation and airing smoke requests were also validated during this change;
 these are provider-interface checks, not full anime-library acceptance.
+
+## Module boundary
+
+This implementation is private to the Anime large module. External consumers use
+its root Public API; Anime composition owns internal construction, recognition
+coordination and provider/Catalog adapters. App uses only the module creation,
+HTTP and persistence entries. See [Architecture](architecture.md) for boundaries.

@@ -3,7 +3,7 @@ import {
 	historyResponse,
 	playbackProgressDto,
 	playbackSessionResponse,
-} from "../src/modules/playback/playback/http/presenters.js";
+} from "../src/modules/playback/progress/http/presenters.js";
 import type {
 	DirectoryEntry,
 	FileEntry,

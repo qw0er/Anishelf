@@ -11,7 +11,7 @@ import {
 	MediaToolError,
 } from "../../../../platform/media/index.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
-import type { ResourceAccessApi } from "../../../resources/resource-access/public.js";
+import type { ResourceAccessApi } from "../../../resources/public.js";
 import type { MediaInspectionApi } from "../../media-inspection/public.js";
 import {
 	describeAudio,

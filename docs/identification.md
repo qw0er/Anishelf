@@ -124,3 +124,10 @@ directory context changes, replacement/deletion, restart reconstruction, root
 switching and libraries larger than one batch. Corpus extraction checks do not
 prove identification accuracy. Catalog has its own persistence/transaction checks. Review UI and playable fixtures
 remain separate iteration acceptance work. Metadata has its own provider and persistence checks.
+
+## Module boundary
+
+This implementation is private to the Anime large module. External consumers use
+its root Public API; Anime composition owns internal construction, recognition
+coordination and provider/Catalog adapters. App uses only the module creation,
+HTTP and persistence entries. See [Architecture](architecture.md) for boundaries.

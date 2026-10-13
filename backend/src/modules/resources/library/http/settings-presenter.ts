@@ -1,5 +1,5 @@
 import type { SettingsResponse } from "../../../../contracts/http.js";
-import type { PersistentSettings } from "../../../system/configuration/public.js";
+import type { PersistentSettings } from "../../../system/public.js";
 
 export function settingsResponse(
 	settings: Readonly<PersistentSettings>,

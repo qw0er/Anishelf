@@ -140,13 +140,13 @@ HTTP client or universal job engine is needed.
 | Anime Catalog | Durable local works/episodes, confirmation transactions, associations, manual corrections and library projections |
 | Existing playback modules | Source playback, compatibility, preparation, subtitles and progress |
 
-The application coordinator consumes Library and Resource Access Public APIs,
+The coordinator lives inside the Anime module and consumes the Resources root Public API,
 then calls Identification with validated source identities. Identification uses a
 parser adapter and a consumer-owned Metadata port, and returns evidence/proposals. It
 neither reads Catalog decisions nor saves tasks, review outcomes or associations.
 Anime Catalog owns durable decisions and consumes proposals without overwriting
 manual corrections. Catalog calls Metadata for snapshots and Resource Access for
-source registration/validity. Dependencies remain acyclic; bootstrap assembles them.
+source registration/validity. Dependencies remain acyclic; Anime assembles its private recognition/cache/Catalog owners; app connects complete modules.
 
 HTTP enters each owning Application and projects public DTOs. Domain types are
 independent of HTTP and provider GraphQL types. Cross-module imports, including
@@ -158,7 +158,7 @@ file pages. The coordinator uses these public reads, not the internal resource i
 
 ```mermaid
 flowchart TD
-  Library[Library publication Public API] --> Coordinator[Automatic application coordinator]
+  Library[Library publication Public API] --> Coordinator[Anime recognition coordinator]
   Coordinator --> Access[Resource Access Public API]
   Coordinator --> Identify[Stateless Identification]
   Identify --> Parser[anitomy-ng adapter]

@@ -1,5 +1,5 @@
 import { DomainError } from "../../../../shared/errors.js";
-import type { OpenedResourceFile } from "../../../resources/resource-access/public.js";
+import type { OpenedResourceFile } from "../../../resources/public.js";
 import { subtitlePolicy } from "../policy.js";
 
 /** Bound reads even when a source grows after opening. Never writes the source. */

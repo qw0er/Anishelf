@@ -1,100 +1,27 @@
-import { type DeepReadonly, freeze } from "../../../shared/policy.js";
-
-export { type DeepReadonly, freeze } from "../../../shared/policy.js";
-
+import { libraryConstraints } from "../../../contracts/defaults.js";
 import {
-	type DatabasePolicy,
-	databasePolicy,
-	validateDatabasePolicy,
-} from "../../../platform/database-policy.js";
-import {
-	type MediaToolPolicy,
-	mediaToolPolicy,
-	validateMediaToolPolicy,
-} from "../../../platform/media/policy.js";
-import {
-	type RuntimePolicy,
-	runtimePolicy,
-	validateRuntimePolicy,
-} from "../../../platform/runtime-policy.js";
-import {
-	type HttpPolicy,
-	httpPolicy,
-	validateHttpPolicy,
-} from "../../../transport/policy.js";
-import {
-	type MediaInspectionPolicy,
-	mediaInspectionPolicy,
-	validateMediaInspectionPolicy,
-} from "../../media/media-inspection/policy.js";
-import {
-	type MediaProcessingPolicy,
-	mediaProcessingPolicy,
-	validateMediaProcessingPolicy,
-} from "../../media/media-processing/policy.js";
-import {
-	type PreparationPolicy,
-	preparationPolicy,
-	validatePreparationPolicy,
-} from "../../media/preparation/policy.js";
-import {
-	type SubtitlePolicy,
-	subtitlePolicy,
-	validateSubtitlePolicy,
-} from "../../media/subtitles/policy.js";
-import {
-	type PlaybackPolicy,
-	playbackPolicy,
-	validatePlaybackPolicy,
-} from "../../playback/playback/policy.js";
-import {
-	type LibraryPolicy,
-	libraryPolicy,
-	validateLibraryPolicy,
-} from "../../resources/library/policy.js";
-import {
-	type ResourceAccessPolicy,
-	resourceAccessPolicy,
-	validateResourceAccessPolicy,
-} from "../../resources/resource-access/policy.js";
-
-/** Composition only: module owners define defaults, types and validation. */
-export interface BuiltinPolicy {
-	library: LibraryPolicy;
-	playback: PlaybackPolicy;
-	subtitles: SubtitlePolicy;
-	resourceAccess: ResourceAccessPolicy;
-	mediaInspection: MediaInspectionPolicy;
-	mediaProcessing: MediaProcessingPolicy;
-	preparation: PreparationPolicy;
-	mediaTools: MediaToolPolicy;
-	http: HttpPolicy;
-	database: DatabasePolicy;
-	runtime: RuntimePolicy;
+	type DeepReadonly,
+	freeze,
+	validateNumericPolicy,
+} from "../../../shared/policy.js";
+export interface ConfigurationPolicy {
+	library: {
+		defaultScanIntervalMinutes: number;
+		maximumScanIntervalMinutes: number;
+	};
 }
-export const builtinPolicy: DeepReadonly<BuiltinPolicy> = freeze({
-	library: libraryPolicy,
-	playback: playbackPolicy,
-	subtitles: subtitlePolicy,
-	resourceAccess: resourceAccessPolicy,
-	mediaInspection: mediaInspectionPolicy,
-	mediaProcessing: mediaProcessingPolicy,
-	preparation: preparationPolicy,
-	mediaTools: mediaToolPolicy,
-	http: httpPolicy,
-	database: databasePolicy,
-	runtime: runtimePolicy,
+export const configurationPolicy = freeze<ConfigurationPolicy>({
+	library: {
+		defaultScanIntervalMinutes: libraryConstraints.defaultScanIntervalMinutes,
+		maximumScanIntervalMinutes: libraryConstraints.maximumScanIntervalMinutes,
+	},
 });
-export function validatePolicy(policy: DeepReadonly<BuiltinPolicy>): void {
-	validateLibraryPolicy(policy.library);
-	validatePlaybackPolicy(policy.playback);
-	validateSubtitlePolicy(policy.subtitles);
-	validateResourceAccessPolicy(policy.resourceAccess);
-	validateMediaInspectionPolicy(policy.mediaInspection);
-	validateMediaProcessingPolicy(policy.mediaProcessing);
-	validatePreparationPolicy(policy.preparation);
-	validateMediaToolPolicy(policy.mediaTools);
-	validateHttpPolicy(policy.http);
-	validateDatabasePolicy(policy.database);
-	validateRuntimePolicy(policy.runtime);
+export function validateConfigurationPolicy(
+	policy: DeepReadonly<ConfigurationPolicy>,
+): void {
+	validateNumericPolicy(
+		"configuration",
+		policy.library,
+		configurationPolicy.library,
+	);
 }

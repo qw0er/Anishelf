@@ -3,7 +3,7 @@ import { DomainError } from "../../../../shared/errors.js";
 import {
 	type ResourceAccessApi,
 	resourceRootId,
-} from "../../../resources/resource-access/public.js";
+} from "../../../resources/public.js";
 import { conflict, integer, text } from "../domain/mapping.js";
 import type { LocalWork, ReviewItem, ReviewRecord } from "../domain/model.js";
 import { catalogPolicy as policy } from "../policy.js";

@@ -1,7 +1,7 @@
 import type { MediaProcessingPlan } from "../../../../platform/media/specification.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
-import type { PreparationMode } from "../../../system/configuration/public.js";
+import type { PreparationMode } from "../../../system/public.js";
 import type { MediaExecutionSpecification } from "../../media-processing/public.js";
 import type { CheckedCompatibility } from "./model.js";
 import {

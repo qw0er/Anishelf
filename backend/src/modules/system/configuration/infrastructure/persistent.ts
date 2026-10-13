@@ -28,11 +28,12 @@ import {
 import { storageRules } from "../../../../platform/storage.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { PersistentSettings } from "../domain/model.js";
-import { builtinPolicy } from "../policy.js";
+import { configurationPolicy } from "../policy.js";
 
 export function parsePersistentSettings(
 	source: string,
-	maximumIntervalMinutes = builtinPolicy.library.maximumScanIntervalMinutes,
+	maximumIntervalMinutes = configurationPolicy.library
+		.maximumScanIntervalMinutes,
 ): PersistentSettings {
 	let value: unknown;
 	try {
@@ -48,7 +49,8 @@ export function parsePersistentSettings(
 
 function validatePersistentSettings(
 	value: unknown,
-	maximumIntervalMinutes = builtinPolicy.library.maximumScanIntervalMinutes,
+	maximumIntervalMinutes = configurationPolicy.library
+		.maximumScanIntervalMinutes,
 ): PersistentSettings {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) {
 		throw new DomainError(
@@ -240,7 +242,8 @@ export class PersistentConfiguration {
 
 	static async load(
 		dataDir: string,
-		maximumIntervalMinutes = builtinPolicy.library.maximumScanIntervalMinutes,
+		maximumIntervalMinutes = configurationPolicy.library
+			.maximumScanIntervalMinutes,
 		initialResourceRoot?: string,
 	): Promise<PersistentConfiguration> {
 		return new PersistentConfiguration(

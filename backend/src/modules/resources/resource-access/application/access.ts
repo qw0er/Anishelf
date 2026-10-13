@@ -1,6 +1,6 @@
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
-import type { PersistentSettings } from "../../../system/configuration/public.js";
+import type { PersistentSettings } from "../../../system/public.js";
 import type {
 	FileInfo,
 	ResolvedSource,

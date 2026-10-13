@@ -1,5 +1,5 @@
 import type { ApiErrorResponse } from "../contracts/http.js";
-import { MetadataError } from "../modules/anime/metadata/public.js";
+import { MetadataError } from "../modules/anime/public.js";
 import { DomainError, type ErrorCode } from "../shared/errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {

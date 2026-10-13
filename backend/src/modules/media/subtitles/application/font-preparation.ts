@@ -7,7 +7,7 @@ import type { DeepReadonly } from "../../../../shared/policy.js";
 import type {
 	ResolvedSource,
 	ResourceAccessApi,
-} from "../../../resources/resource-access/public.js";
+} from "../../../resources/public.js";
 import type {
 	SubtitleFontAsset,
 	SubtitleFontSet,
@@ -18,9 +18,9 @@ import {
 	SubtitleFontFiles,
 	validateFont,
 } from "../infrastructure/fonts.js";
-import type { SubtitleRepository } from "../infrastructure/repository.js";
 import type { SubtitlePolicy } from "../policy.js";
 import type { SubtitleExtractor } from "../ports.js";
+import type { SubtitleStore } from "../storage.js";
 
 /** Font work is shared by source version, independently of selected subtitle track. */
 export class SubtitleFontPreparation {
@@ -33,7 +33,7 @@ export class SubtitleFontPreparation {
 	constructor(
 		private readonly options: {
 			dataDir: string;
-			repository: SubtitleRepository;
+			repository: SubtitleStore;
 			sources: ResourceAccessApi;
 			tools: SubtitleExtractor;
 			policy: DeepReadonly<SubtitlePolicy>;

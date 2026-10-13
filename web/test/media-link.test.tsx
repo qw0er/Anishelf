@@ -1,14 +1,14 @@
-import * as playbackApi from "../src/features/playback/api.js";
-import * as resourceApi from "../src/features/resource-access/api.js";
+import * as playbackApi from "../src/features/playback/player/api.js";
+import * as resourceApi from "../src/features/resources/resource-access/api.js";
 import { ApiClientError } from "../src/shared/api/client.js";
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import MediaLink from "../src/features/playback/components/media-link.js";
+import MediaLink from "../src/features/playback/player/components/media-link.js";
 import {
 	createMediaLink,
 	createMediaPlaylist,
-} from "../src/features/playback/media-link.js";
+} from "../src/features/playback/player/media-link.js";
 import { Toaster, toast } from "../src/shared/components/ui/toast.js";
 import {
 	act,

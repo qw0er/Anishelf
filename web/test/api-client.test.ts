@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import {
-	getDirectory,
-	getLibrary,
-	startScan,
-} from "../src/features/library/public.js";
-import { inspectMediaCompatibility } from "../src/features/media-compatibility/public.js";
+import { inspectMediaCompatibility } from "../src/features/media/media-compatibility/public.js";
 import {
 	openPlaybackSession,
 	releasePlaybackSession,
 	savePlaybackProgress,
-} from "../src/features/playback/public.js";
+} from "../src/features/playback/player/public.js";
+import {
+	getDirectory,
+	getLibrary,
+	startScan,
+} from "../src/features/resources/library/public.js";
 import {
 	ApiClientError,
 	isRequestCancelled,

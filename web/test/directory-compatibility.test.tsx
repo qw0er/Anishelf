@@ -1,12 +1,12 @@
-import * as mediacompatibilityApi from "../src/features/media-compatibility/api.js";
+import * as mediacompatibilityApi from "../src/features/media/media-compatibility/api.js";
 import { ApiClientError } from "../src/shared/api/client.js";
 import { queryClient } from "../src/shared/api/query-client.js";
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { useDirectoryCompatibility } from "../src/features/library/hooks/use-directory-compatibility.js";
-import * as capabilities from "../src/features/media-compatibility/capabilities.js";
-import { inspectBrowserMedia } from "../src/features/media-compatibility/compatibility.js";
+import * as capabilities from "../src/features/media/media-compatibility/capabilities.js";
+import { inspectBrowserMedia } from "../src/features/media/media-compatibility/compatibility.js";
+import { useDirectoryCompatibility } from "../src/features/media/media-compatibility/use-directory-compatibility.js";
 import type {
 	CompatibilityInspection,
 	CompatibilityResult,

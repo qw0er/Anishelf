@@ -52,8 +52,10 @@ test("allows policy and public contracts, same-module implementation, and bootst
 				"export const value = 1;",
 			"backend/src/modules/test/b/application/service.ts":
 				"import type { Value } from '../../a/public.js'; import { policy } from '../../a/policy.js'; export const value: Value = { id: String(policy) };",
+			"backend/src/modules/test/create.ts":
+				"export { value } from './a/application/service.js';",
 			"backend/src/app/bootstrap/main.ts":
-				"import { value } from '../../modules/test/a/application/service.js'; export { value };",
+				"export { value } from '../../modules/test/create.js';",
 		}),
 		[],
 	);
@@ -115,7 +117,7 @@ for (const [name, files] of [
 		},
 	],
 	[
-		"web-feature-entry-points",
+		"web-large-module-boundary",
 		{
 			"web/src/features/a/view.ts": "export { value } from '../b/internal.js';",
 			"web/src/features/b/internal.ts": "export const value = 1;",
@@ -203,21 +205,21 @@ test("group names do not grant access to another module's implementation", async
 				"backend/src/modules/resources/b/application.ts":
 					"export const value = 1;",
 			})
-		).includes("backend-module-entry-points"),
+		).includes("backend-large-module-boundary"),
 	);
 });
 
 test("database adapters and app can consume explicit persistence entries", async () => {
 	assert.deepEqual(
 		await scan({
-			"backend/src/modules/resources/a/persistence.ts":
-				"export { table } from './infrastructure/schema.js';",
+			"backend/src/modules/resources/persistence.ts":
+				"export { table } from './a/infrastructure/schema.js';",
 			"backend/src/modules/resources/a/infrastructure/schema.ts":
 				"export const table = 1;",
 			"backend/src/modules/media/b/infrastructure/schema.ts":
-				"export { table } from '../../../resources/a/persistence.js';",
+				"export { table } from '../../../resources/persistence.js';",
 			"backend/src/app/schema.ts":
-				"export { table } from '../modules/resources/a/persistence.js';",
+				"export { table } from '../modules/resources/persistence.js';",
 		}),
 		[],
 	);
@@ -344,3 +346,97 @@ test("public entries cannot export a root-level Application implementation", asy
 		).includes("public-and-policy-do-not-load-implementation"),
 	);
 });
+
+for (const source of [
+	"import type {Value} from '../b/child/public.js';export type {Value};",
+	"export {value} from '../b/child/public.js';",
+	"export const load=()=>import('../b/child/public.js');",
+]) {
+	test("large module rejects another group's child public entry", async () =>
+		assert.ok(
+			(
+				await scan({
+					"backend/src/modules/a/public.ts": source,
+					"backend/src/modules/b/child/public.ts":
+						"export interface Value {id:string};export const value=1;",
+				})
+			).includes("backend-large-module-boundary"),
+		));
+}
+
+test("app cannot construct a large module's internal service", async () =>
+	assert.ok(
+		(
+			await scan({
+				"backend/src/app/main.ts":
+					"export {value} from '../modules/a/child/application.js';",
+				"backend/src/modules/a/child/application.ts": "export const value=1;",
+			})
+		).includes("backend-app-uses-module-entries"),
+	));
+
+test("business cannot import a module's creation entry", async () =>
+	assert.ok(
+		(
+			await scan({
+				"backend/src/modules/a/child/application.ts":
+					"export {create} from '../../b/create.js';",
+				"backend/src/modules/b/create.ts": "export const create=()=>{};",
+			})
+		).includes("business-does-not-use-assembly-entries"),
+	));
+
+test("root public contracts are allowed across large modules", async () =>
+	assert.deepEqual(
+		await scan({
+			"backend/src/modules/a/child/application.ts":
+				"import type {Value} from '../../b/public.js';export type {Value};",
+			"backend/src/modules/b/public.ts": "export interface Value {id:string}",
+		}),
+		[],
+	));
+
+test("web business cannot import even another module's UI entry", async () =>
+	assert.ok(
+		(
+			await scan({
+				"web/src/features/a/child/view.ts":
+					"export {View} from '../../b/ui.js';",
+				"web/src/features/b/ui.ts": "export const View=()=>null;",
+			})
+		).includes("web-business-does-not-import-ui-entry"),
+	));
+
+test("web app can compose root UI entries", async () =>
+	assert.deepEqual(
+		await scan({
+			"web/src/app/view.ts": "export {View} from '../features/a/ui.js';",
+			"web/src/features/a/ui.ts": "export {View} from './child/view.js';",
+			"web/src/features/a/child/view.ts": "export const View=()=>null;",
+		}),
+		[],
+	));
+
+test("root business Public API cannot export an Application", async () =>
+	assert.ok(
+		(
+			await scan({
+				"backend/src/modules/a/public.ts":
+					"export {run} from './child/application.js';",
+				"backend/src/modules/a/child/application.ts":
+					"export const run=()=>{};",
+			})
+		).includes("large-public-does-not-load-implementation"),
+	));
+
+test("web sibling features remain encapsulated inside the Media module", async () =>
+	assert.ok(
+		(
+			await scan({
+				"web/src/features/media/preparation/view.ts":
+					"export {run} from '../subtitles/controller.js';",
+				"web/src/features/media/subtitles/controller.ts":
+					"export const run=()=>{};",
+			})
+		).includes("web-feature-entry-points"),
+	));

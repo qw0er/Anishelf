@@ -1,13 +1,13 @@
 // @vitest-environment happy-dom
 import { type TextTrack, TextTrackList } from "@vidstack/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { SubtitleController } from "../src/features/subtitles/controller.js";
+import { SubtitleController } from "../src/features/media/subtitles/controller.js";
 import {
 	loadFonts,
 	type SubtitleFonts,
 	trackFonts,
 	waitForFonts,
-} from "../src/features/subtitles/fonts.js";
+} from "../src/features/media/subtitles/fonts.js";
 
 const fonts: SubtitleFonts = {
 	id: "set",

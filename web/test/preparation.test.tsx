@@ -1,21 +1,21 @@
-import * as mediacompatibilityApi from "../src/features/media-compatibility/api.js";
-import * as preparationApi from "../src/features/preparation/api.js";
+import * as mediacompatibilityApi from "../src/features/media/media-compatibility/api.js";
+import * as preparationApi from "../src/features/media/preparation/api.js";
 import {
 	usePreparationAction,
 	usePreparationContext,
-} from "../src/features/preparation/public.js";
+} from "../src/features/media/preparation/public.js";
 import * as settingsApi from "../src/features/settings/api.js";
 // @vitest-environment happy-dom
 
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { FileActions } from "../src/features/library/components/file-actions.js";
-import * as capabilities from "../src/features/media-compatibility/capabilities.js";
-import { PreparationButton } from "../src/features/preparation/components/preparation-button.js";
-import { PreparationMonitor } from "../src/features/preparation/components/preparation-monitor.js";
-import { PreparationTaskCard } from "../src/features/preparation/components/task-card.js";
-import { PreparationProvider } from "../src/features/preparation/context.js";
+import { FileActions } from "../src/app/components/file-actions.js";
+import * as capabilities from "../src/features/media/media-compatibility/capabilities.js";
+import { PreparationButton } from "../src/features/media/preparation/components/preparation-button.js";
+import { PreparationMonitor } from "../src/features/media/preparation/components/preparation-monitor.js";
+import { PreparationTaskCard } from "../src/features/media/preparation/components/task-card.js";
+import { PreparationProvider } from "../src/features/media/preparation/context.js";
 import { PreparationProfileSettings as ProfileSettings } from "../src/features/settings/components/profile-settings.js";
 import type {
 	CompatibilityInspection,

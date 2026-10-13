@@ -6,12 +6,12 @@ import { MediaToolError } from "../../../../platform/media/index.js";
 import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
-import type { ResourceAccessApi } from "../../../resources/resource-access/public.js";
-import { resourceRootId } from "../../../resources/resource-access/public.js";
+import type { ResourceAccessApi } from "../../../resources/public.js";
+import { resourceRootId } from "../../../resources/public.js";
 import type {
 	PreparationMode,
 	TranscodeProfile,
-} from "../../../system/configuration/public.js";
+} from "../../../system/public.js";
 import {
 	type MediaInspectionApi,
 	MediaInspectionBusyError,

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { afterEach, expect, test } from "vitest";
-import { CompatibilityStatus } from "../src/features/library/components/compatibility-status.js";
+import { CompatibilityStatus } from "../src/features/resources/library/components/compatibility-status.js";
 import type { CompatibilityResult } from "../src/shared/api/contracts.js";
 import { cleanup, fireEvent, render, waitFor } from "./query-test-utils.js";
 import "../src/shared/i18n.js";

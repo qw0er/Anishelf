@@ -1,9 +1,9 @@
-import { ConfigurationService } from "../../modules/system/configuration/application/service.js";
+import { createSystemModule } from "../../modules/system/create.js";
 import { ApplicationLogging } from "../../platform/logging/index.js";
 import { DomainError } from "../../shared/errors.js";
+import { builtinPolicy, validatePolicy } from "../policy.js";
 import { type ApplicationDatabase, openDatabase } from "./database.js";
 import type { createHttpApp } from "./http.js";
-import { initializeLibrary } from "./library.js";
 import { initializeMediaTools } from "./media-tools.js";
 import { createServer } from "./server.js";
 
@@ -84,7 +84,11 @@ async function main(): Promise<void> {
 	let logging: ApplicationLogging | undefined;
 	let app: HttpApp | undefined;
 	try {
-		const configuration = await ConfigurationService.load();
+		validatePolicy(builtinPolicy);
+		const { api: configuration } = await createSystemModule(
+			process.env,
+			builtinPolicy,
+		);
 		const config = configuration.deployment;
 		logging = ApplicationLogging.create(config.logging);
 		const logger = logging.logger;
@@ -99,19 +103,14 @@ async function main(): Promise<void> {
 		const tools = await initializeMediaTools(
 			config.mediaTools,
 			logger,
-			configuration.policy,
+			builtinPolicy,
 			configuration.environment.executableSearch,
 		);
-		database = openDatabase(config.dataDir, logger, configuration.policy);
-		const library = await initializeLibrary(configuration, logger);
-		app = await createServer(configuration, logger, library, database, tools);
+		database = openDatabase(config.dataDir, logger, builtinPolicy);
+		app = await createServer(configuration, logger, database, tools);
 		await app.listen({ host: config.host, port: config.port });
 		logger.info({ event: "application.started" }, "HTTP application started.");
-		registerShutdown(
-			app,
-			logging,
-			configuration.policy.runtime.shutdownTimeoutMs,
-		);
+		registerShutdown(app, logging, builtinPolicy.runtime.shutdownTimeoutMs);
 	} catch (error) {
 		await handleStartupFailure(error, logging, app, database);
 	}

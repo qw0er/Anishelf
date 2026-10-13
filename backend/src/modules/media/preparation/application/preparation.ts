@@ -5,11 +5,11 @@ import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
 import {
 	type ResourceAccessApi,
 	resourceRootId,
-} from "../../../resources/resource-access/public.js";
+} from "../../../resources/public.js";
 import {
 	type TranscodeProfile,
 	transcodeProfileFingerprint,
-} from "../../../system/configuration/public.js";
+} from "../../../system/public.js";
 import type {
 	CompatibilityCheckRequest,
 	MediaPlanningResult,

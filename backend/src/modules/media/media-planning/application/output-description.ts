@@ -1,6 +1,6 @@
 import type { DeepReadonly } from "../../../../shared/policy.js";
-import type { TranscodeProfile } from "../../../system/configuration/public.js";
-import { transcodeProfileFingerprint } from "../../../system/configuration/public.js";
+import type { TranscodeProfile } from "../../../system/public.js";
+import { transcodeProfileFingerprint } from "../../../system/public.js";
 import type {
 	CompatibilityOutput,
 	OriginalMediaDescription,

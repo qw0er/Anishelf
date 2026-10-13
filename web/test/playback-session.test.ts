@@ -1,13 +1,13 @@
-import * as playbackApi from "../src/features/playback/api.js";
+import * as playbackApi from "../src/features/playback/player/api.js";
 import { ApiClientError } from "../src/shared/api/client.js";
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { playbackPolicy } from "../src/features/playback/policy.js";
+import { playbackPolicy } from "../src/features/playback/player/policy.js";
 import {
 	PlaybackSessionController,
 	type PlaybackSessionState,
-} from "../src/features/playback/session.js";
+} from "../src/features/playback/player/session.js";
 import type { PlaybackSessionResponse } from "../src/shared/api/contracts.js";
 
 const session: PlaybackSessionResponse = {

@@ -1,15 +1,16 @@
-import * as mediacompatibilityApi from "../src/features/media-compatibility/api.js";
-import * as preparationApi from "../src/features/preparation/api.js";
+import { FileActions } from "../src/app/components/file-actions.js";
+import * as mediacompatibilityApi from "../src/features/media/media-compatibility/api.js";
+import * as preparationApi from "../src/features/media/preparation/api.js";
 import * as settingsApi from "../src/features/settings/api.js";
 // @vitest-environment happy-dom
 
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, test, vi } from "vitest";
-import LibraryBrowser from "../src/features/library/components/library-browser.js";
-import { parseAudioSelection } from "../src/features/playback/playback-params.js";
-import { PreparationProvider } from "../src/features/preparation/context.js";
-import { useFilePreparations } from "../src/features/preparation/use-file-preparations.js";
-import { usePreparationAction } from "../src/features/preparation/use-preparations.js";
+import { PreparationProvider } from "../src/features/media/preparation/context.js";
+import { useFilePreparations } from "../src/features/media/preparation/use-file-preparations.js";
+import { usePreparationAction } from "../src/features/media/preparation/use-preparations.js";
+import { parseAudioSelection } from "../src/features/playback/player/playback-params.js";
+import LibraryBrowser from "../src/features/resources/library/components/library-browser.js";
 import type {
 	CompatibilityInspection,
 	CompatibilityResult,
@@ -79,6 +80,7 @@ test("a directory uses one metadata batch and no file task/detail requests befor
 		<MemoryRouter>
 			<PreparationProvider>
 				<LibraryBrowser
+					renderFileActions={(state) => <FileActions {...state} />}
 					listing={listing}
 					scan={{
 						settings: { resourceRoot: "/media" },

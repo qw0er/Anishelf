@@ -1,6 +1,6 @@
 import type { MediaExecutionProgress } from "../../../../platform/media/events.js";
 import { DomainError } from "../../../../shared/errors.js";
-import type { ResolvedSource } from "../../../resources/resource-access/public.js";
+import type { ResolvedSource } from "../../../resources/public.js";
 import type { ProcessedMedia } from "../../media-processing/public.js";
 import type {
 	PreparationFailureReason,
