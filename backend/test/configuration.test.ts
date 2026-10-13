@@ -21,12 +21,12 @@ import {
 } from "../src/app/policy.js";
 import { readSubtitleText } from "../src/modules/media/subtitles/infrastructure/content.js";
 import { discoverExternalSubtitles } from "../src/modules/media/subtitles/infrastructure/discovery.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import { runTool } from "../src/platform/media/process.js";
 import { ConfigurationService } from "./support/configuration.js";
 import { createHttpApp } from "./support/http.js";
+import { createLibraryModule } from "./support/library.js";
 
 let directory: string;
 let dataDir: string;

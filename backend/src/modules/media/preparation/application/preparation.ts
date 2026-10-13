@@ -1,97 +1,64 @@
 import { randomUUID } from "node:crypto";
-import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
-import {
-	type ResourceAccessApi,
-	resourceRootId,
-} from "../../../resources/public.js";
-import {
-	type TranscodeProfile,
-	transcodeProfileFingerprint,
-} from "../../../system/public.js";
+import { resourceRootId } from "../../../resources/public.js";
 import type {
 	CompatibilityCheckRequest,
 	MediaPlanningResult,
 } from "../../media-planning/public.js";
-import type { MediaProcessingApi } from "../../media-processing/public.js";
 import type {
 	PreparationCreation,
 	PreparationTask,
 	PreparationView,
 } from "../domain/model.js";
-import { PreparedMediaFiles } from "../infrastructure/files.js";
-import {
-	type PreparationPolicy,
-	preparationPolicy,
-	validatePreparationPolicy,
-} from "../policy.js";
-import type { PreparationPlanner, PreparationStore } from "../ports.js";
+import type { PreparationPolicy } from "../policy.js";
+import type { PreparationPlanner } from "../ports.js";
 import type { PreparationApi } from "../public.js";
-import { PreparationArtifacts } from "./artifacts.js";
-import { PreparationContext } from "./context.js";
-import { PreparationRecovery } from "./recovery.js";
-import { PreparationScheduler } from "./scheduler.js";
-import { PreparationWorker } from "./worker.js";
+import type { PreparationArtifacts } from "./artifacts.js";
+import type { PreparationContext } from "./context.js";
+import type { PreparationQueries } from "./queries.js";
+import type { PreparationScheduler } from "./scheduler.js";
+
+export interface PreparationServices {
+	context: PreparationContext;
+	artifacts: PreparationArtifacts;
+	scheduler: PreparationScheduler;
+	queries: PreparationQueries;
+	recover(): Promise<void>;
+}
 
 /** Command facade. Slow negotiation, source inspection and queries do not share a global queue. */
 export class PreparationApplication implements PreparationApi {
 	private readonly policy: DeepReadonly<PreparationPolicy>;
 	private initialization: Promise<void> | undefined;
-	private system:
-		| {
-				context: PreparationContext;
-				artifacts: PreparationArtifacts;
-				scheduler: PreparationScheduler;
-		  }
-		| undefined;
+	private system: PreparationServices | undefined;
 	private closed = false;
 	private readonly operations = new Set<Promise<unknown>>();
 	constructor(
 		private readonly options: {
-			sources: ResourceAccessApi;
 			planning: PreparationPlanner;
-			processing: MediaProcessingApi;
-			repository?: PreparationStore;
-			profiles: DeepReadonly<TranscodeProfile[]>;
-			dataDir: string;
-			logger: Logger;
-			policy?: DeepReadonly<PreparationPolicy>;
-			maximumCacheBytes?: () => number;
+			policy: DeepReadonly<PreparationPolicy>;
+			services?: PreparationServices;
 		},
 	) {
-		this.policy = freeze(structuredClone(options.policy ?? preparationPolicy));
-		validatePreparationPolicy(this.policy);
+		this.policy = options.policy;
 	}
+
 	initialize(): Promise<void> {
 		if (this.closed)
 			return Promise.reject(
 				new DomainError("PREPARATION_UNAVAILABLE", "Preparation is closed."),
 			);
 		this.initialization ??= Promise.resolve().then(async () => {
-			if (!this.options.repository)
+			if (!this.options.services)
 				throw new DomainError(
 					"PREPARATION_UNAVAILABLE",
 					"Preparation persistence is unavailable.",
 				);
-			const context = new PreparationContext(
-				this.options.repository,
-				this.options.sources,
-				this.options.processing,
-				new PreparedMediaFiles(this.options.dataDir),
-				this.options.profiles,
-				this.policy,
-				this.options.logger,
-				this.options.maximumCacheBytes,
-			);
-			context.closed = this.closed;
-			const artifacts = new PreparationArtifacts(context);
-			const scheduler = new PreparationScheduler(
-				context,
-				new PreparationWorker(context, artifacts),
-			);
-			this.system = { context, artifacts, scheduler };
-			await new PreparationRecovery(context, artifacts).run();
+			const system = this.options.services;
+			system.context.closed = this.closed;
+			this.system = system;
+			await system.recover();
 		});
 		return this.initialization;
 	}
@@ -232,89 +199,21 @@ export class PreparationApplication implements PreparationApi {
 		return { task, artifact: null, availability: "unavailable" };
 	}
 	get(id: string): Promise<PreparationView> {
-		return this.track(async () => {
-			const { artifacts } = await this.ensure();
-			return artifacts.inspect(id);
-		});
+		return this.track(async () => (await this.ensure()).queries.get(id));
 	}
 	list(
 		fileId?: string,
 		summary = false,
 		more = false,
 	): Promise<{ tasks: PreparationView[] }> {
-		return this.track(async () => {
-			const { context, artifacts } = await this.ensure();
-			let tasks = context.repository.list(
-				more || fileId
-					? this.policy.listLimit
-					: Math.min(this.policy.initialListLimit, this.policy.listLimit),
-				fileId,
-			);
-			if (summary) {
-				const epoch = context.sources.resourceRootEpoch;
-				const root = await context.sources.resolveRoot();
-				tasks = tasks.filter((task) => task.spec.source.canonicalRoot === root);
-				context.sources.assertRootEpoch(epoch);
-				return {
-					tasks: tasks.map((task) => ({
-						task,
-						artifact:
-							context.repository.artifact(task.spec.executionPlanId) ?? null,
-						availability: "unknown" as const,
-					})),
-				};
-			}
-			return {
-				tasks: await Promise.all(
-					tasks.map((task) => artifacts.inspect(task.id)),
-				),
-			};
-		});
+		return this.track(async () =>
+			(await this.ensure()).queries.list(fileId, summary, more),
+		);
 	}
-	/** A cheap directory projection. Validate playable resources only through detail/selection. */
 	summaries(fileIds: string[]) {
-		return this.track(async () => {
-			const { context } = await this.ensure();
-			const epoch = context.sources.resourceRootEpoch;
-			const root = await context.sources.resolveRoot();
-			const files = fileIds.map((fileId) => ({
-				fileId,
-				versions: [] as {
-					sourceVersion: string;
-					publishedCopies: number;
-					pendingTasks: number;
-				}[],
-			}));
-			const byFile = new Map(files.map((file) => [file.fileId, file]));
-			const fingerprints = new Map(
-				context.profiles.map((profile) => [
-					profile.id,
-					transcodeProfileFingerprint(profile),
-				]),
-			);
-			for (const row of context.repository.summaries(root, fileIds)) {
-				if (fingerprints.get(row.profileId) !== row.profileFingerprint)
-					continue;
-				const file = byFile.get(row.fileId);
-				if (!file) continue;
-				let version = file.versions.find(
-					(value) => value.sourceVersion === row.sourceVersion,
-				);
-				if (!version) {
-					version = {
-						sourceVersion: row.sourceVersion,
-						publishedCopies: 0,
-						pendingTasks: 0,
-					};
-					file.versions.push(version);
-				}
-				if (row.status === "ready" && row.published) version.publishedCopies++;
-				if (["queued", "processing", "cancelling"].includes(row.status))
-					version.pendingTasks++;
-			}
-			context.sources.assertRootEpoch(epoch);
-			return { files };
-		});
+		return this.track(async () =>
+			(await this.ensure()).queries.summaries(fileIds),
+		);
 	}
 
 	cancel(id: string): Promise<PreparationView> {

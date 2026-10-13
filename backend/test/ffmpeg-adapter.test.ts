@@ -9,7 +9,6 @@ import { MediaInspectionApplication } from "../src/modules/media/media-inspectio
 import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
 import { resolveExecutionPlan } from "../src/modules/media/media-planning/public.js";
 import { MediaProcessingApplication } from "../src/modules/media/media-processing/application/processing.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import {
 	builtinTranscodeProfiles,
@@ -23,6 +22,7 @@ import {
 } from "../src/platform/media/index.js";
 import type { MediaProcessingPlan } from "../src/platform/media/specification.js";
 import { settingsStore } from "./settings-store.js";
+import { createLibraryModule } from "./support/library.js";
 
 const run = promisify(execFile);
 function options(plan: MediaProcessingPlan): MediaProcessingOptions {

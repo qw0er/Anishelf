@@ -12,9 +12,8 @@ import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { builtinPolicy } from "../src/app/policy.js";
 import type { SubtitleDiscoveryResponse } from "../src/contracts/http.js";
+import { createSubtitleApplication } from "../src/modules/media/composition/subtitle-application.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
-import { SubtitleApplication } from "../src/modules/media/subtitles/application/subtitles.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
@@ -23,6 +22,7 @@ import { MediaToolError, MediaTools } from "../src/platform/media/index.js";
 import { runTool } from "../src/platform/media/process.js";
 import { DomainError } from "../src/shared/errors.js";
 import { createHttpApp } from "./support/http.js";
+import { createLibraryModule } from "./support/library.js";
 
 const maximumSubtitleBytes = builtinPolicy.subtitles.maximumBytes;
 
@@ -69,7 +69,7 @@ beforeEach(async () => {
 		config: { host: "127.0.0.1", port: 3000 },
 		logger,
 		library,
-		subtitles: new SubtitleApplication({
+		subtitles: createSubtitleApplication({
 			sources: library.sources,
 			inspection,
 		}),
@@ -252,7 +252,7 @@ test("rejects a root switch while discovery is in flight", async () => {
 	try {
 		const other = join(fixture, "other");
 		await mkdir(other);
-		await library.updateSettings({ resourceRoot: other });
+		await library.updateResourceSettings({ resourceRoot: other });
 	} finally {
 		release();
 	}

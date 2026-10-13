@@ -10,12 +10,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
 import { createResourceId } from "../src/modules/resources/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import { DomainError } from "../src/shared/errors.js";
+import { createLibraryModule } from "./support/library.js";
 
 let fixture: string;
 let root: string;
@@ -294,7 +294,9 @@ test("direct callers coalesce root preflight and exclude settings saves before t
 	try {
 		expect(libraryApp.state).toBeNull();
 		await expect(
-			libraryApp.updateSettings({ resourceRoot: join(fixture, "next") }),
+			libraryApp.updateResourceSettings({
+				resourceRoot: join(fixture, "next"),
+			}),
 		).rejects.toMatchObject({ code: "SETTINGS_BUSY" });
 		expect(root).toBe(join(fixture, "media"));
 		expect(preflight).toHaveBeenCalledTimes(1);
@@ -321,7 +323,7 @@ test("rejected preflight releases the operation without discarding the previous 
 	expect(index.snapshot).toEqual(previous);
 	const next = join(fixture, "next");
 	await mkdir(next);
-	await libraryApp.updateSettings({ resourceRoot: next });
+	await libraryApp.updateResourceSettings({ resourceRoot: next });
 	expect(libraryApp.state).not.toBeNull();
 	await libraryApp.waitForCompletion();
 	expect(index.getDirectory("root").name).toBe("next");
@@ -354,7 +356,7 @@ test("closing during root preflight waits and prevents a late scan from starting
 	try {
 		await expect(libraryApp.startScan()).rejects.toThrow("shutting down");
 		await expect(
-			libraryApp.updateSettings({ resourceRoot: root }),
+			libraryApp.updateResourceSettings({ resourceRoot: root }),
 		).rejects.toMatchObject({ code: "SETTINGS_BUSY" });
 		expect(stopped).toBe(false);
 	} finally {
@@ -390,7 +392,7 @@ test("direct settings saves exclude scans and shutdown waits for the save to set
 		logger: pino({ enabled: false }),
 	});
 	const input = { resourceRoot: join(fixture, "next") };
-	const save = application.updateSettings(input);
+	const save = application.updateResourceSettings(input);
 	input.resourceRoot = "/mutated-after-call";
 	let stopped = false;
 	try {
@@ -398,7 +400,7 @@ test("direct settings saves exclude scans and shutdown waits for the save to set
 			code: "SETTINGS_BUSY",
 		});
 		await expect(
-			application.updateSettings({ resourceRoot: root }),
+			application.updateResourceSettings({ resourceRoot: root }),
 		).rejects.toMatchObject({ code: "SETTINGS_BUSY" });
 		expect(preflight).not.toHaveBeenCalled();
 		const closing = application.close().then(() => {
@@ -444,7 +446,7 @@ test.each(["getFile", "openMedia"] as const)(
 		const pending = libraryApp[operation](id);
 		await opening;
 		try {
-			await libraryApp.updateSettings({ resourceRoot: next });
+			await libraryApp.updateResourceSettings({ resourceRoot: next });
 			expect(() => index.getFile(id)).toThrow();
 		} finally {
 			release();
@@ -511,7 +513,7 @@ test("scheduled scans discover new files, reschedule after completion, and honor
 			"scheduled.mp4",
 		]);
 		expect(index.revision).toBe(1);
-		await application.updateSettings({
+		await application.updateResourceSettings({
 			resourceRoot: root,
 			scanIntervalMinutes: 2,
 		});
@@ -520,13 +522,13 @@ test("scheduled scans discover new files, reschedule after completion, and honor
 		await vi.advanceTimersByTimeAsync(60000);
 		await application.waitForCompletion();
 		expect(index.revision).toBe(2);
-		await application.updateSettings({
+		await application.updateResourceSettings({
 			resourceRoot: root,
 			scanIntervalMinutes: 0,
 		});
 		await vi.advanceTimersByTimeAsync(300000);
 		expect(index.revision).toBe(2);
-		await application.updateSettings({
+		await application.updateResourceSettings({
 			resourceRoot: root,
 			scanIntervalMinutes: 1,
 		});

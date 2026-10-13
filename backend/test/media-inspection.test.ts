@@ -4,10 +4,9 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { type BuiltinPolicy, builtinPolicy } from "../src/app/policy.js";
+import { createSubtitleApplication } from "../src/modules/media/composition/subtitle-application.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import { MediaInspectionBusyError } from "../src/modules/media/media-inspection/public.js";
-import { SubtitleApplication } from "../src/modules/media/subtitles/application/subtitles.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
@@ -18,6 +17,7 @@ import {
 } from "../src/platform/media/index.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
+import { createLibraryModule } from "./support/library.js";
 
 const info: MediaInfo = {
 	format: "matroska",
@@ -89,7 +89,7 @@ test("shares one probe between subtitle discovery and another consumer", async (
 	policy.probeConcurrency = 1;
 	expect(probe).not.toHaveBeenCalled();
 	const finish = deferredProbe();
-	const subtitles = new SubtitleApplication({
+	const subtitles = createSubtitleApplication({
 		sources: library.sources,
 		inspection,
 	});
@@ -150,7 +150,7 @@ test("rejects a root-epoch change while probing", async () => {
 		code: "PLAYBACK_CONFLICT",
 	});
 	await vi.waitFor(() => expect(probe).toHaveBeenCalledTimes(1));
-	await library.settings.updateSettings({ resourceRoot: `${root}/.` });
+	await library.settings.updateResourceSettings({ resourceRoot: `${root}/.` });
 	await library.waitForCompletion();
 	finish();
 	await rejected;

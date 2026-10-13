@@ -14,12 +14,12 @@ import type {
 	WorkCandidate,
 } from "../src/modules/anime/identification/public.js";
 import { AutomaticIdentificationCoordinator } from "../src/modules/anime/workflows/automatic-identification.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import type { SourceIdentity } from "../src/modules/resources/resource-access/public.js";
 import { settingsStore } from "./settings-store.js";
 import { loadCorpus } from "./support/anime-corpus.js";
 import { createHttpApp } from "./support/http.js";
+import { createLibraryModule } from "./support/library.js";
 
 const parser = new AnitomyIdentificationParser();
 const logger = pino({ enabled: false });
@@ -477,7 +477,7 @@ test("root switching cancels stale recognition and processes the newly published
 	await f.library.startScan();
 	await f.library.waitForCompletion();
 	await gate;
-	await f.library.updateSettings({
+	await f.library.updateResourceSettings({
 		resourceRoot: nextRoot,
 		scanIntervalMinutes: 0,
 	});

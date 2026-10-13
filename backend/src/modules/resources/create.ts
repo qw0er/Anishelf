@@ -53,6 +53,8 @@ export async function createResourcesModule(options: {
 	};
 	const api: ResourcesApi = {
 		sources,
+		coordinateSettingsChange: (save) =>
+			library.settings.coordinateSettingsChange(save),
 		onSnapshotChanged: (listener) => library.onSnapshotChanged(listener),
 		readFilePage: (revision, offset, limit) =>
 			library.readFilePage(revision, offset, limit),

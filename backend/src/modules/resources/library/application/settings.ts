@@ -1,15 +1,18 @@
 import type { Logger } from "pino";
 import type {
 	PersistentSettings,
-	PreparationMode,
 	SettingsStore,
 } from "../../../system/public.js";
 import type { ScanCoordinator } from "./scan-coordinator.js";
 /** Root switching is one coordinated use case, not a configuration side effect. */
-export class SettingsApplication {
+export class ResourceSettingsApplication {
 	constructor(
 		private readonly options: {
-			configuration: SettingsStore;
+			configuration: SettingsStore & {
+				patchSettings?(
+					patch: Partial<PersistentSettings>,
+				): Promise<Readonly<PersistentSettings>>;
+			};
 			scans: ScanCoordinator;
 			rootChanged(): void;
 			logger: Logger;
@@ -18,35 +21,26 @@ export class SettingsApplication {
 	getSettings(): Readonly<PersistentSettings> {
 		return { ...this.options.configuration.settings };
 	}
-	async updateSettings(input: {
+	updateResourceSettings(input: {
 		resourceRoot: string;
 		scanIntervalMinutes?: number;
-		transcodeCacheBudgetGiB?: number;
-		defaultTranscodeProfileId?: string;
-		preparationMode?: PreparationMode;
 	}): Promise<Readonly<PersistentSettings>> {
-		const started = Date.now();
-		this.options.logger.debug(
-			{ event: "settings.update_started" },
-			"Settings update started.",
+		const patch = structuredClone(input);
+		return this.coordinateSettingsChange(() =>
+			this.options.configuration.patchSettings
+				? this.options.configuration.patchSettings(patch)
+				: this.options.configuration.update({
+						...this.options.configuration.settings,
+						...patch,
+					}),
 		);
+	}
+	async coordinateSettingsChange(
+		save: () => Promise<Readonly<PersistentSettings>>,
+	): Promise<Readonly<PersistentSettings>> {
 		const previousRoot = this.getSettings().resourceRoot;
-		const next = { ...this.getSettings(), ...input };
 		const settings = await this.options.scans.withSettingsChange(async () => {
-			let saved: Readonly<PersistentSettings>;
-			try {
-				saved = await this.options.configuration.update(next);
-			} catch (err) {
-				this.options.logger.error(
-					{
-						event: "settings.persistence_failed",
-						err,
-						durationMs: Date.now() - started,
-					},
-					"Settings persistence failed.",
-				);
-				throw err;
-			}
+			const saved = await save();
 			if (saved.resourceRoot !== previousRoot) {
 				this.options.rootChanged();
 				this.options.scans.reset();
@@ -66,15 +60,7 @@ export class SettingsApplication {
 				);
 			}
 		}
-		this.options.logger.info(
-			{
-				event: "settings.updated",
-				rootChanged: settings.resourceRoot !== previousRoot,
-				scanIntervalMinutes: settings.scanIntervalMinutes,
-				durationMs: Date.now() - started,
-			},
-			"Settings saved.",
-		);
+
 		return settings;
 	}
 }

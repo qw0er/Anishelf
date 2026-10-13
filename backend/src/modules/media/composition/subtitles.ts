@@ -1,8 +1,9 @@
 import type { Logger } from "pino";
 import type { LibraryApi, ResourceAccessApi } from "../../resources/public.js";
 import type { MediaInspectionApplication } from "../media-inspection/application.js";
-import { SubtitleApplication } from "../subtitles/application/subtitles.js";
+import type { SubtitleApplication } from "../subtitles/application/subtitles.js";
 import { subtitleRuntimePolicy } from "../subtitles/policy.js";
+import { createSubtitleApplication } from "./subtitle-application.js";
 
 type LibraryCapability = LibraryApi & { readonly sources: ResourceAccessApi };
 
@@ -29,7 +30,7 @@ export function createSubtitleModule({
 		import("../subtitles/policy.js").SubtitleRuntimePolicy
 	>;
 }) {
-	return new SubtitleApplication({
+	return createSubtitleApplication({
 		logger,
 		sources: library.sources,
 		policy,

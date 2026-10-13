@@ -1,8 +1,9 @@
 import type { Logger } from "pino";
 import { preparationConstraints } from "../../../contracts/defaults.js";
 import type { LibraryApi, ResourceAccessApi } from "../../resources/public.js";
-import { PreparationApplication } from "../preparation/application/preparation.js";
+import type { PreparationApplication } from "../preparation/application/preparation.js";
 import { preparationPolicy } from "../preparation/policy.js";
+import { createPreparationApplication } from "./preparation-application.js";
 
 type LibraryCapability = LibraryApi & { readonly sources: ResourceAccessApi };
 
@@ -30,7 +31,7 @@ export function createPreparationModule({
 		import("../preparation/policy.js").PreparationPolicy
 	>;
 }) {
-	return new PreparationApplication({
+	return createPreparationApplication({
 		sources: library.sources,
 		planning,
 		processing: processing,

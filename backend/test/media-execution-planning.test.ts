@@ -21,7 +21,6 @@ import {
 	resolveExecutionPlan as resolvePreparationExecutionPlan,
 } from "../src/modules/media/media-planning/public.js";
 import { PlaybackApplication } from "../src/modules/playback/progress/application/playback.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import {
 	builtinTranscodeProfiles,
@@ -32,6 +31,7 @@ import { fingerprint } from "../src/shared/fingerprint.js";
 import { presentCompatibility } from "../src/transport/presenters/compatibility.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
+import { createLibraryModule } from "./support/library.js";
 
 const resolveExecutionPlan = (
 	input: Parameters<typeof resolvePreparationExecutionPlan>[0],
@@ -492,7 +492,7 @@ test("media planning rejects a root change while compatibility is awaited", asyn
 	const original = f.app.check.bind(f.app);
 	vi.spyOn(f.app, "check").mockImplementationOnce(async (input) => {
 		const checked = await original(input);
-		await f.library.updateSettings({ resourceRoot: otherRoot });
+		await f.library.updateResourceSettings({ resourceRoot: otherRoot });
 		return checked;
 	});
 	await expect(

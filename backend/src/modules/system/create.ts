@@ -32,14 +32,22 @@ export async function createSystemModule(
 			return { settings: service.snapshot.settings };
 		},
 		update: (input) => service.update(input),
-		getTranscodeProfileCatalog: () => service.getTranscodeProfileCatalog(),
+		patchSettings: (input) => service.patchSettings(input),
 		selectTranscodeProfile: (id, mode) =>
 			service.selectTranscodeProfile(id, mode),
 	};
 	return {
 		api,
-		registerHttp: (app: import("../../transport/instance.js").HttpInstance) =>
-			registerSystemHttp(app, api),
+		registerHttp: (
+			app: import("../../transport/instance.js").HttpInstance,
+			resources: import("./public.js").ResourceSettingsCoordinator,
+		) =>
+			registerSystemHttp(
+				app,
+				api,
+				resources,
+				policy.library.maximumScanIntervalMinutes,
+			),
 	};
 }
 

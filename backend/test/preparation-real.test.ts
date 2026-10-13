@@ -13,17 +13,17 @@ import type {
 	PlaybackSessionResponse,
 } from "../src/contracts/http.js";
 import { createPlaybackCopies } from "../src/modules/media/composition/playback-selection.js";
+import { createPreparationApplication } from "../src/modules/media/composition/preparation-application.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
 import { MediaProcessingApplication } from "../src/modules/media/media-processing/application/processing.js";
-import { PreparationApplication } from "../src/modules/media/preparation/application/preparation.js";
+import type { PreparationApplication } from "../src/modules/media/preparation/application/preparation.js";
 import {
 	preparationStartResponse,
 	preparationTaskResponse,
 } from "../src/modules/media/preparation/http/presenters.js";
 import { PlaybackSelectionApplication } from "../src/modules/playback/playback-selection/application/selection.js";
 import { PlaybackApplication } from "../src/modules/playback/progress/application/playback.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { builtinTranscodeProfiles } from "../src/modules/system/configuration/public.js";
 import {
@@ -32,6 +32,7 @@ import {
 } from "../src/platform/media/index.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
+import { createLibraryModule } from "./support/library.js";
 
 const run = promisify(execFile);
 function required<T>(value: T | null | undefined): T {
@@ -88,7 +89,7 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 			executor: new FfmpegExecutionAdapter(tools.status.ffmpeg),
 			dataDir,
 		});
-		preparation = new PreparationApplication({
+		preparation = createPreparationApplication({
 			sources: library.sources,
 			planning: compatibility,
 			processing,

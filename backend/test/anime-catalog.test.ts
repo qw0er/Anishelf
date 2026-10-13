@@ -11,11 +11,11 @@ import { MetadataApplication } from "../src/modules/anime/metadata/application/m
 import { MetadataArtworkCache } from "../src/modules/anime/metadata/infrastructure/artwork.js";
 import type { MetadataProvider } from "../src/modules/anime/metadata/ports.js";
 import type { WorkDetails } from "../src/modules/anime/metadata/public.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { DomainError } from "../src/shared/errors.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
+import { createLibraryModule } from "./support/library.js";
 
 const logger = pino({ enabled: false });
 const reference = { provider: "fixture", mediaType: "anime", id: "1" } as const;
@@ -482,7 +482,7 @@ test("changed files and root switches invalidate pending previews without deleti
 	).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
 	const otherRoot = join(f.base, "other");
 	await mkdir(otherRoot);
-	await f.library.updateSettings({ resourceRoot: otherRoot });
+	await f.library.updateResourceSettings({ resourceRoot: otherRoot });
 	await f.library.waitForCompletion();
 	await f.automatic.waitForCompletion();
 	expect((await f.catalog.list()).items).toEqual([]);
@@ -496,7 +496,7 @@ test("changed files and root switches invalidate pending previews without deleti
 			replace: true,
 		}),
 	).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
-	await f.library.updateSettings({ resourceRoot: f.root });
+	await f.library.updateResourceSettings({ resourceRoot: f.root });
 	await f.library.waitForCompletion();
 	await f.automatic.waitForCompletion();
 	expect((await f.catalog.list()).items).toHaveLength(1);

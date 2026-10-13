@@ -63,6 +63,14 @@ test("allows policy and public contracts, same-module implementation, and bootst
 
 for (const [name, files] of [
 	[
+		"configuration-application-does-not-project-http",
+		{
+			"backend/src/modules/system/configuration/application/service.ts":
+				"import type { Dto } from '../../../../contracts/http.js'; export type View = Dto;",
+			"backend/src/contracts/http.ts": "export interface Dto {id: string}",
+		},
+	],
+	[
 		"domain-and-ports-do-not-import-http-dtos",
 		{
 			"backend/src/modules/test/a/ports.ts":

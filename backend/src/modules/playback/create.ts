@@ -46,7 +46,7 @@ export function createPlaybackModule(options: {
 			get: (id) => media.getPlaybackCopy(id),
 		},
 		selectedProfileId: () =>
-			configuration.getTranscodeProfileCatalog().selectedProfileId,
+			configuration.snapshot.settings.defaultTranscodeProfileId,
 	});
 	const api: PlaybackApi = {
 		open: (id: string) => playback.open(id),

@@ -37,7 +37,7 @@ access; transport request validation does not replace authentication.
 
 | Module | Owns |
 | --- | --- |
-| Configuration | Validated policy, persistent user settings and transcode profiles |
+| Configuration | Validated policy, persistent user settings, coordinated settings commands and transcode profiles |
 | Library | Published resource index, scans and resource-root switching |
 | Resource Access | Confined file access, shared source identities and source validity |
 | Media Inspection | Source-bound media metadata and shared inspection caching |
@@ -80,7 +80,7 @@ The backend source has six responsibility roots:
 | Module | Internal owners | External responsibility |
 | --- | --- | --- |
 | System | Configuration | Deployment/settings/profile capabilities and immutable effective settings |
-| Resources | Library, Resource Access | Directory/file reads, scans, root switching, publications, confined source access and registration |
+| Resources | Library, Resource Access | Directory/file reads, scans, root switching, settings-change exclusion, publications, confined source access and registration |
 | Media | Inspection, Planning, Processing, Preparation, Subtitles | Compatibility, published-copy views, media information, preparation and subtitle HTTP services |
 | Playback | Progress, Playback Selection | Resource selection, sessions, durable progress and history |
 | Anime | Identification, Metadata, Anime Catalog | Recognition coordination, provider cache/query capabilities, review and durable association decisions |
@@ -138,6 +138,28 @@ classes. `app/schema.ts` aggregates root schema entries for Drizzle initializati
 and migration tooling. Database connections remain in app/platform. Existing
 table, column, index, foreign-key and migration identities are preserved.
 
+### Application responsibilities
+
+System owns settings HTTP commands and persistence. App supplies a consumer-owned
+resource-settings coordination port implemented by Resources. Resource-root saves and scan-interval commands reserve Resources' scan gate;
+cache budgets and transcode options can change independently when their request
+retains the current root. System queues partial updates against the latest saved
+settings, so an unrelated update cannot overwrite concurrent profile selection or
+restore a resource root that changed after the request began. HTTP presenters own
+settings/profile DTO projection; Playback reads effective profile selection directly.
+
+Media composition constructs Preparation's context, scheduler, worker, recovery and
+artifact services, and constructs subtitle/font services. Preparation's command
+facade owns admission, retry and shutdown; its query service owns detail/list and
+summary projections. Processing coordinates execution and output lifetime while
+its domain validators own explicit request and completed-output checks. Subtitle
+discovery and external-content reads have dedicated implementations; its facade
+coordinates source-bound preparation and delivery. Metadata's cache reader owns
+freshness, refresh deduplication, subscriber cancellation and retained snapshots;
+the application supplies provider queries and delegates artwork to its own cache.
+Platform media tools delegate descriptor parsing and subtitle/attachment extraction
+to dedicated adapters while retaining a single mechanism entry.
+
 ### Lifecycle
 
 `quiesce()` stops producers without invalidating source access needed by cleanup.
@@ -172,6 +194,9 @@ It supplies Playback's preparation/subtitle slots using Media UI. Those componen
 retain their Providers and query scope when mounted. Directory compatibility
 queries belong to Media; Resources consumes the root capability. Profile controls
 receive preparation actions from app, avoiding Settings-to-Media dependencies.
+Preparation UI separates task matching/negotiation and command dispatch into a
+feature hook, with a dedicated audio-track dialog and a presentation-only trigger.
+The command hook retains the existing query invalidation and cancellation owner.
 
 Dependencies are one-way: Media uses Settings; Resources uses Media; Playback
 uses Resources, Media and Settings. Shared HTTP/query mechanisms, cancellation,

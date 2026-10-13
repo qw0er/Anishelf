@@ -1,4 +1,3 @@
-import type { TranscodeProfileCatalog } from "../../../../contracts/http.js";
 import {
 	captureRuntimeEnvironment,
 	type RuntimeEnvironment,
@@ -79,28 +78,15 @@ export class ConfigurationService<
 	get snapshot(): DeepReadonly<EffectiveConfiguration<TPolicy>> {
 		return this.current;
 	}
-	getTranscodeProfileCatalog(): TranscodeProfileCatalog {
-		const selectedProfileId = this.snapshot.settings.defaultTranscodeProfileId;
-		return {
-			profiles: this.transcodeProfiles.map(
-				({ id, name, description, usage, container, video, audio }) => ({
-					id,
-					name,
-					description,
-					container,
-					videoEncoder: video.encoder,
-					audioEncoder: audio.encoder,
-					usage,
-					source: id.startsWith("builtin:") ? "builtin" : "custom",
-				}),
-			),
-			selectedProfileId,
-			preparationMode: this.snapshot.settings.preparationMode,
-			selectionAvailable: this.transcodeProfiles.some(
-				(profile) => profile.id === selectedProfileId,
-			),
-		};
+	patchSettings(
+		input: Partial<PersistentSettings>,
+	): Promise<Readonly<PersistentSettings>> {
+		const patch = structuredClone(input);
+		return this.change((current) =>
+			this.validatedSettings({ ...current, ...patch }, current),
+		);
 	}
+
 	selectTranscodeProfile(
 		profileId: string | null,
 		preparationMode?: PreparationMode,
@@ -122,23 +108,27 @@ export class ConfigurationService<
 		});
 	}
 	update(settings: PersistentSettings): Promise<Readonly<PersistentSettings>> {
-		const next = { ...settings };
-		return this.change((current) => {
-			// Preserve an unavailable saved choice during unrelated settings changes.
-			if (
-				next.defaultTranscodeProfileId !== undefined &&
-				next.defaultTranscodeProfileId !== current.defaultTranscodeProfileId &&
-				!this.transcodeProfiles.some(
-					(profile) => profile.id === next.defaultTranscodeProfileId,
-				)
-			)
-				throw new DomainError(
-					"INVALID_REQUEST",
-					"Select an existing transcode profile.",
-				);
-			return next;
-		});
+		const next = structuredClone(settings);
+		return this.change((current) => this.validatedSettings(next, current));
 	}
+	private validatedSettings(
+		next: PersistentSettings,
+		current: Readonly<PersistentSettings>,
+	) {
+		if (
+			next.defaultTranscodeProfileId !== undefined &&
+			next.defaultTranscodeProfileId !== current.defaultTranscodeProfileId &&
+			!this.transcodeProfiles.some(
+				(profile) => profile.id === next.defaultTranscodeProfileId,
+			)
+		)
+			throw new DomainError(
+				"INVALID_REQUEST",
+				"Select an existing transcode profile.",
+			);
+		return next;
+	}
+
 	private change(
 		transform: (current: Readonly<PersistentSettings>) => PersistentSettings,
 	): Promise<Readonly<PersistentSettings>> {

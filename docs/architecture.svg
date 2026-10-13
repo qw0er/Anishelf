@@ -37,6 +37,7 @@
 <rect x="325" y="545" width="340" height="130" rx="12" fill="white" stroke="#cbd5e1"/>
 <text x="343" y="575" font-size="21" font-weight="600">system</text>
 <text x="343" y="613" font-size="18">Configuration</text>
+<text x="343" y="642" font-size="16">Settings commands / HTTP</text>
 <rect x="690" y="545" width="340" height="130" rx="12" fill="white" stroke="#cbd5e1"/>
 <text x="708" y="575" font-size="21" font-weight="600">resources</text>
 <text x="708" y="613" font-size="18">Library</text>

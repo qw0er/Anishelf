@@ -6,6 +6,7 @@ import { Check } from "typebox/value";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { TranscodeProfileSchema } from "../src/contracts/schemas/transcode-profiles.js";
 import { builtinTranscodeProfiles } from "../src/modules/system/configuration/domain/transcode-profiles.js";
+import { transcodeProfileCatalog } from "../src/modules/system/configuration/http/profile-presenter.js";
 import { parseTranscodeProfiles } from "../src/modules/system/configuration/infrastructure/transcode-profiles.js";
 import { ConfigurationService } from "./support/configuration.js";
 import { createHttpApp } from "./support/http.js";
@@ -44,7 +45,7 @@ test("built-ins use the shared schema and missing external files create no confi
 		"builtin:efficient",
 		"builtin:compact",
 	]);
-	expect(service.getTranscodeProfileCatalog()).toMatchObject({
+	expect(transcodeProfileCatalog(service)).toMatchObject({
 		selectedProfileId: "builtin:balanced",
 		selectionAvailable: true,
 	});
@@ -64,7 +65,7 @@ test("external profiles merge into an immutable startup snapshot and choices sur
 	expect(
 		JSON.parse(await readFile(join(directory, "settings.json"), "utf8")),
 	).toEqual({ resourceRoot: null, defaultTranscodeProfileId: "custom:small" });
-	expect((await load()).getTranscodeProfileCatalog()).toMatchObject({
+	expect(transcodeProfileCatalog(await load())).toMatchObject({
 		selectedProfileId: "custom:small",
 		selectionAvailable: true,
 	});
@@ -74,16 +75,16 @@ test("external profiles merge into an immutable startup snapshot and choices sur
 		),
 	).toBe(true);
 	await writeProfiles([]);
-	expect(service.getTranscodeProfileCatalog().selectionAvailable).toBe(true);
+	expect(transcodeProfileCatalog(service).selectionAvailable).toBe(true);
 	const reload = await load();
-	expect(reload.getTranscodeProfileCatalog()).toMatchObject({
+	expect(transcodeProfileCatalog(reload)).toMatchObject({
 		selectedProfileId: "custom:small",
 		selectionAvailable: false,
 	});
 	await reload.update({ ...reload.settings, scanIntervalMinutes: 0 });
 	expect(reload.settings.defaultTranscodeProfileId).toBe("custom:small");
 	await reload.selectTranscodeProfile(null);
-	expect(reload.getTranscodeProfileCatalog()).toMatchObject({
+	expect(transcodeProfileCatalog(reload)).toMatchObject({
 		selectedProfileId: "builtin:balanced",
 		selectionAvailable: true,
 	});
@@ -263,11 +264,11 @@ test("loads software and hardware declarations without requiring installed encod
 		service.transcodeProfiles.slice(builtinTranscodeProfiles.length),
 	).toEqual(profiles);
 	await service.selectTranscodeProfile("custom:variant-1");
-	expect((await load()).getTranscodeProfileCatalog()).toMatchObject({
+	expect(transcodeProfileCatalog(await load())).toMatchObject({
 		selectedProfileId: "custom:variant-1",
 		selectionAvailable: true,
 	});
-	expect(service.getTranscodeProfileCatalog().profiles[3]).not.toHaveProperty(
+	expect(transcodeProfileCatalog(service).profiles[3]).not.toHaveProperty(
 		"video",
 	);
 });
@@ -362,18 +363,16 @@ test.each(["-pix_fmt yuv420p", "../pixel", "yuv420p;command"])(
 
 test("preparation mode defaults to compatibility and persists with profile selection", async () => {
 	const service = await load();
-	expect(service.getTranscodeProfileCatalog().preparationMode).toBe(
-		"compatible",
-	);
+	expect(transcodeProfileCatalog(service).preparationMode).toBe("compatible");
 	await service.selectTranscodeProfile("builtin:efficient", "fast");
-	expect((await load()).getTranscodeProfileCatalog()).toMatchObject({
+	expect(transcodeProfileCatalog(await load())).toMatchObject({
 		selectedProfileId: "builtin:efficient",
 		preparationMode: "fast",
 	});
 	await service.selectTranscodeProfile("builtin:balanced");
-	expect(service.getTranscodeProfileCatalog().preparationMode).toBe("fast");
+	expect(transcodeProfileCatalog(service).preparationMode).toBe("fast");
 	await service.selectTranscodeProfile("builtin:balanced", "compatible");
-	expect((await load()).getTranscodeProfileCatalog().preparationMode).toBe(
+	expect(transcodeProfileCatalog(await load()).preparationMode).toBe(
 		"compatible",
 	);
 	const app = createHttpApp({
