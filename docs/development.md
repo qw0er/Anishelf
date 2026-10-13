@@ -40,8 +40,9 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 The backend [Identification module](identification.md) documents stateless
 recognition and automatic scan coordination. It has no task/review HTTP API or
 active database dependency. [Metadata](metadata.md) now provides persistent
-AniList query/artwork caching and supplies cloud candidates; Catalog integration
-and the Web workflow remain pending.
+AniList query/artwork caching and supplies cloud candidates. [Anime Catalog](anime-catalog.md)
+provides durable associations, review decisions, previews/confirmation, corrections
+and library HTTP queries. The Web workflow remains pending.
 
 The anime-identification corpus contains provider-backed work records, authentic
 resource filenames and explicitly synthetic boundaries. It can generate a separate

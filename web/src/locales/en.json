@@ -40,6 +40,9 @@
 		"requestFailed": "The request failed. Please try again.",
 		"settingsUnavailable": "Settings could not be loaded. Try refreshing the page.",
 		"api": {
+			"CATALOG_UNAVAILABLE": "Anime catalog is unavailable. Retry shortly; files remain accessible.",
+			"CATALOG_NOT_FOUND": "This anime or review item is unavailable in the current resource directory.",
+			"CATALOG_CONFLICT": "The catalog or file changed. Reopen review and create a new preview.",
 			"CONFIG_INVALID": "Use an absolute resource directory separate from the application data directory.",
 			"CONFIG_WRITE_FAILED": "Settings could not be saved.",
 			"SETTINGS_BUSY": "Wait for the current scan or settings save to finish and try again.",

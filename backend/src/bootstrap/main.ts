@@ -1,5 +1,6 @@
 import type { Logger } from "pino";
 import { preparationConstraints } from "../contracts/defaults.js";
+import { AnimeCatalogApplication } from "../modules/anime-catalog/application/catalog.js";
 import { ConfigurationService } from "../modules/configuration/application/service.js";
 import type {
 	BuiltinPolicy,
@@ -207,13 +208,29 @@ async function createServer(
 			);
 		}
 	}
+	const catalog =
+		database && metadata
+			? new AnimeCatalogApplication({
+					store: database.catalog,
+					metadata,
+					sources: library.sources,
+					logger,
+				})
+			: undefined;
 	const identification = createIdentificationModule({
+		...(catalog
+			? {
+					onPublication: (results, canonicalRoot) =>
+						catalog.publish(results, canonicalRoot),
+				}
+			: {}),
 		...(metadata ? { metadata: createIdentificationMetadata(metadata) } : {}),
 		library,
 		sources: library.sources,
 		logger,
 	});
 	const server = createHttpApp({
+		...(catalog ? { catalog } : {}),
 		...(metadata ? { metadata } : {}),
 		playbackSelection,
 		configuration,
@@ -230,6 +247,7 @@ async function createServer(
 		closeDependencies: async () => {
 			// Stop durable owners before their shared executor and inspection dependencies.
 			await identification.close();
+			catalog?.close();
 			await metadata?.close();
 			await preparation.close();
 			playback.close();

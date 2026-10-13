@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { CatalogRepository } from "../modules/anime-catalog/infrastructure/repository.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
@@ -23,6 +24,7 @@ import { storageRules } from "../platform/storage.js";
 /** Owns the connection; repositories must not outlive this object. */
 export class ApplicationDatabase {
 	readonly metadata: MetadataRepository;
+	readonly catalog: CatalogRepository;
 	readonly playback: PlaybackRepository;
 	readonly subtitles: SubtitleRepository;
 	readonly preparation: PreparationRepository;
@@ -32,6 +34,7 @@ export class ApplicationDatabase {
 		policy: DeepReadonly<BuiltinPolicy>,
 	) {
 		const sources = new SourceRepository(store);
+		this.catalog = new CatalogRepository(store, sources);
 		this.metadata = new MetadataRepository(store);
 		this.playback = new PlaybackRepository(store, sources, policy.playback);
 		this.subtitles = new SubtitleRepository(store, sources);

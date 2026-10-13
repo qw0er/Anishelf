@@ -73,7 +73,9 @@ coordinator independently of SQLite or HTTP availability.
    accepting results. New publications cancel the previous pass and coalesce
    into the latest scan. Failed/cancelled scans do not publish new work.
 5. Expose the current validated result projection internally. The optional
-   `onResults` sink is a future Catalog seam; production has no Catalog sink yet.
+   `onPublication` sink delivers the complete successful pass and canonical root
+   to [Anime Catalog](anime-catalog.md); production connects it when storage and
+   Metadata are available. Empty publications also reconcile disappeared sources.
    Provider failures retain extraction and are retried on a later completed scan.
 
 Automatic parsing happens after manual, scheduled and startup scans publish their
@@ -85,10 +87,10 @@ and bytes remain untouched. Shutdown unsubscribes and cancels coordination befor
 Library closes.
 
 The coordinator's cache and result projection are in memory. Restart reconstructs
-them from the published scan. Catalog will own durable works, episodes, confirmed
-associations and user corrections, and must preserve them when consuming automatic
-proposals. Identification has no dependency on Catalog. Neither Catalog nor the
-Review UI is implemented by this change.
+them from the published scan. [Anime Catalog](anime-catalog.md) owns durable works, episodes, review decisions,
+confirmed associations and user corrections, preserving them when consuming
+automatic proposals. Identification has no dependency on Catalog. The Review UI
+remains pending.
 
 The former task/review HTTP API, repository, ORM definitions and uncommitted
 Identification migration have been removed. Identification requires no database.
@@ -120,5 +122,5 @@ automatic proposal generation through injected Metadata fixtures, provider failu
 cancellation, bounded input, actual scanner/source integration, incremental scans,
 directory context changes, replacement/deletion, restart reconstruction, root
 switching and libraries larger than one batch. Corpus extraction checks do not
-prove identification accuracy. Durable Catalog associations, Review UI and playable fixtures remain separate
-iteration acceptance work. Metadata has its own provider and persistence checks.
+prove identification accuracy. Catalog has its own persistence/transaction checks. Review UI and playable fixtures
+remain separate iteration acceptance work. Metadata has its own provider and persistence checks.

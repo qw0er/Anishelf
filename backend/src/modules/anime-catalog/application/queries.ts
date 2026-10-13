@@ -1,0 +1,154 @@
+import type { CachedMetadata, WorkDetails } from "../../metadata/public.js";
+import { conflict, integer, invalid, text } from "../domain/mapping.js";
+import type {
+	CatalogQuery,
+	LocalWork,
+	WorkCard,
+	WorkDetail,
+} from "../domain/model.js";
+import { type CatalogContext, page } from "./context.js";
+
+export class CatalogQueries {
+	constructor(private readonly context: CatalogContext) {}
+	private async card(
+		work: LocalWork,
+		rootId: string,
+		epoch: number,
+	): Promise<WorkCard> {
+		const link = this.context.options.store.link(work.id);
+		if (!link) throw new Error("Catalog work is missing its provider link.");
+		let availableEpisodes = 0;
+		let availableRegularEpisodes = 0;
+		const availability = new Map<string, boolean>();
+		for (const episode of this.context.options.store.episodes(work.id)) {
+			let usable = false;
+			for (const { review } of this.context.options.store.versions(
+				episode.id,
+				rootId,
+			)) {
+				let available = availability.get(review.id);
+				if (available === undefined) {
+					available = await this.context.available(review, epoch);
+					availability.set(review.id, available);
+				}
+				usable ||= available;
+			}
+			availableEpisodes += Number(usable);
+			if (episode.kind === "regular")
+				availableRegularEpisodes += Number(usable);
+		}
+		return {
+			...work,
+			displayTitle: work.title ?? work.providerTitle,
+			reference: link.reference,
+			availableEpisodes,
+			availableRegularEpisodes,
+		};
+	}
+	async list(query: CatalogQuery = {}) {
+		const root = await this.context.root();
+		const pagination = page(query);
+		if (query.query !== undefined) text(query.query, 200);
+		if (query.year !== undefined) integer(query.year, 1, 9999);
+		if (query.format !== undefined) text(query.format, 50);
+		if (query.sort && !["title", "recent"].includes(query.sort))
+			invalid("Unknown catalog sort.");
+		if (
+			query.availability &&
+			!["available", "unavailable"].includes(query.availability)
+		)
+			invalid("Unknown availability filter.");
+		const result = this.context.options.store.list(
+			root.rootId,
+			query,
+			pagination.page,
+			pagination.perPage,
+		);
+		const items: WorkCard[] = [];
+		for (const work of result.items)
+			items.push(await this.card(work, root.rootId, root.epoch));
+		this.context.options.sources.assertRootEpoch(root.epoch);
+		return { ...result, items };
+	}
+	private snapshot(workId: string): CachedMetadata<WorkDetails> {
+		const link = this.context.options.store.link(workId);
+		if (!link) throw new Error("Catalog work is missing its provider link.");
+		const value = this.context.options.metadata.snapshot(link.snapshotId);
+		if (value.kind !== "detail")
+			throw new Error("Catalog work requires a detail snapshot.");
+		const { kind: _, ...metadata } = value;
+		return metadata;
+	}
+	async detail(id: string): Promise<WorkDetail> {
+		const root = await this.context.root();
+		const work = this.context.requireWork(id, root.rootId);
+		const episodes: WorkDetail["episodes"] = [];
+		const availability = new Map<string, boolean>();
+		for (const episode of this.context.options.store.episodes(id)) {
+			const versions: WorkDetail["episodes"][number]["versions"] = [];
+			for (const { review, association } of this.context.options.store.versions(
+				episode.id,
+				root.rootId,
+			)) {
+				let available = availability.get(review.id);
+				if (available === undefined) {
+					available = await this.context.available(review, root.epoch);
+					availability.set(review.id, available);
+				}
+				versions.push({
+					reviewId: review.id,
+					sourceId: review.sourceId,
+					fileId: review.fileId,
+					relativePath: review.relativePath,
+					sourceVersion: review.sourceVersion,
+					available,
+					evidence: review.evidence,
+					mapping: {
+						rawNumbers: association.rawNumbers,
+						reason: association.reason,
+						offset: association.offset,
+					},
+				});
+			}
+			episodes.push({
+				...episode,
+				versions,
+				availability: versions.some((version) => version.available)
+					? "available"
+					: versions.length
+						? "unavailable"
+						: "missing",
+			});
+		}
+		const order = { regular: 0, special: 1, movie: 2 };
+		episodes.sort(
+			(a, b) =>
+				order[a.kind] - order[b.kind] ||
+				a.number.localeCompare(b.number, "en", { numeric: true }) ||
+				a.id.localeCompare(b.id),
+		);
+		this.context.options.sources.assertRootEpoch(root.epoch);
+		const link = this.context.options.store.link(id);
+		if (!link) throw new Error("Catalog work is missing its provider link.");
+		if (this.context.options.store.work(id)?.revision !== work.revision)
+			conflict("The work changed while loading its detail. Reload it.");
+		return {
+			work: {
+				...work,
+				displayTitle: work.title ?? work.providerTitle,
+				reference: link.reference,
+				availableEpisodes: episodes.filter(
+					(episode) => episode.availability === "available",
+				).length,
+				availableRegularEpisodes: episodes.filter(
+					(episode) =>
+						episode.kind === "regular" && episode.availability === "available",
+				).length,
+			},
+			metadata: this.snapshot(id),
+			episodes,
+			episodeCountProvenance:
+				work.episodeCount === null ? "unknown" : "provider-count",
+		};
+	}
+}

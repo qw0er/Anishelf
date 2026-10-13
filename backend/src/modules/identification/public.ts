@@ -1,4 +1,8 @@
-export type { IdentificationResult, WorkCandidate } from "./domain/model.js";
+export type {
+	ExtractionEvidence,
+	IdentificationResult,
+	WorkCandidate,
+} from "./domain/model.js";
 export type { IdentificationMetadata } from "./ports.js";
 
 import type { SourceIdentity } from "../resource-access/public.js";

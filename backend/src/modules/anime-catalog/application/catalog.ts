@@ -1,0 +1,45 @@
+import type { AnimeCatalogApi } from "../public.js";
+import { AssociationApplication } from "./associations.js";
+import { CatalogContext, type CatalogOptions } from "./context.js";
+import { CatalogQueries } from "./queries.js";
+import { ReviewApplication } from "./review.js";
+import { WorkApplication } from "./work.js";
+
+/** Public facade; use cases share one lifecycle and transactional Catalog store. */
+export class AnimeCatalogApplication implements AnimeCatalogApi {
+	private readonly context: CatalogContext;
+	private readonly associations: AssociationApplication;
+	readonly list: AnimeCatalogApi["list"];
+	readonly detail: AnimeCatalogApi["detail"];
+	readonly publish: AnimeCatalogApi["publish"];
+	readonly reviews: AnimeCatalogApi["reviews"];
+	readonly reject: AnimeCatalogApi["reject"];
+	readonly remove: AnimeCatalogApi["remove"];
+	readonly preview: AnimeCatalogApi["preview"];
+	readonly confirm: AnimeCatalogApi["confirm"];
+	readonly editWork: AnimeCatalogApi["editWork"];
+	readonly editEpisode: AnimeCatalogApi["editEpisode"];
+	readonly refresh: AnimeCatalogApi["refresh"];
+	constructor(options: CatalogOptions) {
+		this.context = new CatalogContext(options);
+		const queries = new CatalogQueries(this.context);
+		const review = new ReviewApplication(this.context);
+		this.associations = new AssociationApplication(this.context);
+		const work = new WorkApplication(this.context, queries);
+		this.list = queries.list.bind(queries);
+		this.detail = queries.detail.bind(queries);
+		this.publish = review.publish.bind(review);
+		this.reviews = review.reviews.bind(review);
+		this.reject = review.reject.bind(review);
+		this.remove = review.remove.bind(review);
+		this.preview = this.associations.preview.bind(this.associations);
+		this.confirm = this.associations.confirm.bind(this.associations);
+		this.editWork = work.editWork.bind(work);
+		this.editEpisode = work.editEpisode.bind(work);
+		this.refresh = work.refresh.bind(work);
+	}
+	close(): void {
+		this.context.close();
+		this.associations.close();
+	}
+}
