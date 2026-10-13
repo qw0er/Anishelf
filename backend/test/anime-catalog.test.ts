@@ -1062,3 +1062,65 @@ test("automatic hydration failure remains reviewable and a later scan can retry 
 	await automatic.waitForCompletion();
 	expect((await f.catalog.list()).items).toHaveLength(1);
 });
+
+test("source playback metadata follows local edits, removal and replacement", async () => {
+	const f = await fixture();
+	const review = required((await f.catalog.reviews()).items[0]);
+	expect((await f.catalog.source(review.fileId)).associations).toEqual([]);
+	f.setData({ ...details(), episodeCount: null });
+	const confirmed = await confirm(f);
+	let detail = await f.catalog.detail(confirmed.workId);
+	const episode = required(
+		detail.episodes.find((item) => item.versions.length),
+	);
+	await f.catalog.editWork(
+		detail.work.id,
+		detail.work.revision,
+		"Local title",
+		[],
+	);
+	detail = await f.catalog.detail(confirmed.workId);
+	await f.catalog.editEpisode(
+		detail.work.id,
+		episode.id,
+		detail.work.revision,
+		"3",
+		"Local episode",
+	);
+	expect(await f.catalog.source(review.fileId)).toEqual({
+		sourceVersion: review.sourceVersion,
+		associations: [
+			{
+				workId: confirmed.workId,
+				workTitle: "Local title",
+				episodeId: episode.id,
+				kind: "regular",
+				number: "3",
+				label: "Local episode",
+			},
+		],
+	});
+	const app = createHttpApp({
+		catalog: f.catalog,
+		config: { host: "localhost", port: 80, publicOrigin: "http://localhost" },
+		logger,
+	});
+	cleanups.push(() => app.close());
+	const response = await app.inject({
+		url: `/api/catalog/sources/${review.fileId}`,
+	});
+	expect(response.statusCode).toBe(200);
+	expect(response.json()).toEqual(await f.catalog.source(review.fileId));
+	expect(response.headers["cache-control"]).toBe("no-store");
+	expect(response.body).not.toContain(f.root);
+	const current = await f.catalog.review(review.id);
+	await f.catalog.remove(current.id, current.revision, "Remove match");
+	expect((await f.catalog.source(review.fileId)).associations).toEqual([]);
+	await confirm(f);
+	await writeFile(
+		join(f.root, review.relativePath),
+		"replaced source contents",
+	);
+	await f.scan();
+	expect((await f.catalog.source(review.fileId)).associations).toEqual([]);
+});

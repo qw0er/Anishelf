@@ -24,7 +24,6 @@ import {
 import { refreshWork } from "../api.js";
 import { relationsQuery, workQuery } from "../queries.js";
 import { Artwork } from "./artwork.js";
-import { WorkEditor } from "./work-editor.js";
 
 type Episode = CatalogDetailResponse["episodes"][number];
 type Version = Episode["versions"][number];
@@ -406,7 +405,6 @@ function WorkDetail({ data }: { data: CatalogDetailResponse }) {
 					</fieldset>
 				)}
 			</section>
-			<WorkEditor data={data} />
 			<Dialog
 				open={Boolean(selected)}
 				onOpenChange={(open) => {

@@ -121,6 +121,7 @@ export type MetadataArtworkResponse = Static<
 	typeof schemas.MetadataArtworkResponseSchema
 >;
 
+export type CatalogSourceResponse = Static<typeof schemas.CatalogSourceSchema>;
 export type CatalogListResponse = Static<typeof schemas.CatalogListSchema>;
 export type CatalogDetailResponse = Static<
 	typeof schemas.CatalogWorkDetailSchema

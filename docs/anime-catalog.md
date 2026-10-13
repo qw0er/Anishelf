@@ -169,11 +169,8 @@ Single usable versions open the existing player directly. Version URLs pin the
 selected source version so a replaced file cannot silently satisfy the selection.
 Player return links retain the work, episode and library filters; ordinary Files
 playback still returns to its original directory. Multi-episode files use their
-normal timeline, and source progress remains authoritative.
-
-[Scoped verification and screenshots](acceptance/anime-library/README.md) cover
-real H.264/AAC version playback, subtitle selection, source seeking/history and
-1280/390 px layouts. [Automatic admission and Review verification](acceptance/anime-library/automatic-review.md) covers the subsequent behavior change. Files-specific inline identification presentation, full CAT01–CAT08 acceptance and representative recognition accuracy remain iteration work.
+normal timeline, and source progress remains authoritative. Matched playback uses
+the local work title and mapped episode numbers; unmatched files keep their filenames.
 
 ## Module boundary
 
@@ -204,8 +201,8 @@ are never overwritten, including manual corrections, rejection and explicit remo
 review exposes current links and evidence, candidate title search with pagination,
 AniList ID/URL lookup, explicit regular/special/movie targets, labels, offsets and
 before/after previews. Replacement and removal require an explicit checkbox. Original
-source history is preserved. Detail pages offer local title/alias and shared episode
-identity/label edits; moving a source to an existing episode uses reassociation.
+source history is preserved. Source corrections and moves to an existing episode
+use reassociation in Review.
 
 `GET /api/anime/identification` exposes only running/failure status. The Web polls
 while recognition is running and invalidates Catalog queries when it finishes, so

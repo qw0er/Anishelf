@@ -7,6 +7,7 @@ import {
 	getRelations,
 	getReview,
 	getReviews,
+	getSource,
 	getWork,
 	metadataDetail,
 	searchMetadata,
@@ -61,4 +62,10 @@ export const identificationQuery = (scope: string) =>
 			getIdentificationStatus({ signal: boundedSignal(signal) }),
 		staleTime: 0,
 		refetchInterval: (query) => (query.state.data?.running ? 1500 : false),
+	});
+
+export const sourceQuery = (id: string, scope: string) =>
+	queryOptions({
+		queryKey: ["catalog", scope, "source", id],
+		queryFn: ({ signal }) => getSource(id, { signal: boundedSignal(signal) }),
 	});

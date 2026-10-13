@@ -14,6 +14,7 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 	readonly artwork: AnimeCatalogApi["artwork"];
 	readonly detail: AnimeCatalogApi["detail"];
 	readonly publish: AnimeCatalogApi["publish"];
+	readonly source: AnimeCatalogApi["source"];
 	readonly review: AnimeCatalogApi["review"];
 	readonly reviews: AnimeCatalogApi["reviews"];
 	readonly reject: AnimeCatalogApi["reject"];
@@ -38,6 +39,7 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 			review.publish(results, root);
 			await automatic.admit(results, root, signal);
 		};
+		this.source = review.source.bind(review);
 		this.review = review.get.bind(review);
 		this.reviews = review.reviews.bind(review);
 		this.reject = review.reject.bind(review);

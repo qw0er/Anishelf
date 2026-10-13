@@ -47,11 +47,10 @@ Clear title and episode matches are added to Library automatically after scannin
 Open **Review** for failed or ambiguous identification, search/select a work, preview
 the episode mapping and confirm it. Review also lists associated/rejected sources;
 use **Correct associations** to change an identified work or episode with explicit
-replacement. The anime detail page offers local title/alias and episode edits.
+replacement.
 Manual corrections and rejections survive later scans; original files remain
 accessible in Files.
-See [Anime Catalog](docs/anime-catalog.md) for confirmation endpoints and
-[the scoped UI verification](docs/acceptance/anime-library/README.md).
+See [Anime Catalog](docs/anime-catalog.md) for identification and correction endpoints.
 
 The library scans on startup and periodically. Use a manual scan after changing
 media files, or adjust the automatic scan interval in Settings; `0` disables

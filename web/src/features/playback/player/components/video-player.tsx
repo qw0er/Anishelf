@@ -45,6 +45,7 @@ const defaultTimeline = originalTimeline();
 
 export default function VideoPlayer({
 	file,
+	displayTitle = file.name,
 	playbackUrl,
 	sourceVersion,
 	timeline = defaultTimeline,
@@ -54,6 +55,7 @@ export default function VideoPlayer({
 	renderSubtitles,
 	subtitlePolicy,
 }: Pick<FileResponse, "file"> & {
+	displayTitle?: string;
 	subtitlePolicy: { readonly maximumBytes: number };
 	renderSubtitles?: PlaybackUiSlots["renderSubtitles"] | undefined;
 	playbackUrl: string;
@@ -82,11 +84,18 @@ export default function VideoPlayer({
 		};
 	}, [onMedia, notificationId, timeline]);
 
+	useLayoutEffect(() => {
+		videoRef.current?.setAttribute(
+			"aria-label",
+			t("player.videoLabel", { name: displayTitle }),
+		);
+	}, [displayTitle, t]);
+
 	function providerChanged(provider: MediaProviderAdapter | null) {
 		const video = isVideoProvider(provider) ? provider.video : null;
 		video?.setAttribute(
 			"aria-label",
-			t("player.videoLabel", { name: file.name }),
+			t("player.videoLabel", { name: displayTitle }),
 		);
 		videoRef.current = video;
 		onMedia?.(video, timeline);
@@ -129,7 +138,7 @@ export default function VideoPlayer({
 	return (
 		<MediaPlayer
 			className="anishelf-player aspect-video max-h-[75vh] w-full bg-black"
-			title={file.name}
+			title={displayTitle}
 			src={playbackUrl}
 			viewType="video"
 			load={playbackInteractionPolicy.playerLoad}

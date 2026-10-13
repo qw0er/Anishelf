@@ -11,6 +11,7 @@ export interface AnimeApi {
 				AnimeCatalogApi,
 				| "list"
 				| "detail"
+				| "source"
 				| "reviews"
 				| "review"
 				| "preview"

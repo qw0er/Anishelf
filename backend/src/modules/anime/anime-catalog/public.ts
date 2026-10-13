@@ -27,6 +27,10 @@ export interface AnimeCatalogApi {
 		id: string,
 		kind: "cover" | "banner",
 	): ReturnType<MetadataApi["readArtwork"]>;
+	source(fileId: string): Promise<{
+		sourceVersion: string;
+		associations: ReviewItem["associations"];
+	}>;
 	review(id: string): Promise<ReviewItem>;
 	reviews(options?: {
 		decision?: ReviewItem["decision"];
