@@ -359,8 +359,8 @@ codec cases are skipped when tools are unavailable.
 DOM tests use React Testing Library and Happy DOM for interactions; they cannot
 prove browser media decoding, fullscreen geometry or subtitle visibility. Inspect
 390 px and 1280 px layouts, long names, keyboard focus, loading/error states and
-real media playback. The recorded V1 manual acceptance is user-reported; broader
-V2 acceptance remains governed by the requirements checklist.
+real media playback. The recorded V1 manual acceptance is user-reported.
+The retained V2 scenario implementation is recorded in History; new regression and browser acceptance evidence should be recorded separately.
 
 Use x-request-id to correlate HTTP failures with backend logs. At info, key
 business lifecycle events and warnings/errors remain visible. Enable debug for

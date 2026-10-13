@@ -10,7 +10,7 @@ and candidate-specific proposals. An application coordinator automatically proce
 published scans. [Metadata](metadata.md) supplies cached AniList search, details,
 relations, airing and artwork. [Anime Catalog](anime-catalog.md) implements backend persistence, review decisions,
 confirmation/correction operations and library queries. The Web review workflow
-remains pending. No release number is assigned. The [overall requirements](requirements.md) own feature identifiers and later scope; [History](history.md#v2-requirements) preserves V2 acceptance gaps. This document does not declare those gaps complete.
+remains pending. No release number is assigned. The [overall requirements](requirements.md) own feature identifiers and later scope; [History](history.md#v2-requirements) records the retained V2 scope as implemented. The anime-library acceptance below remains pending.
 
 External metadata access belongs to this iteration. Personal tracker authorization, list import and progress synchronization are later capabilities and must not be prerequisites for identifying local files.
 

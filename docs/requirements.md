@@ -15,14 +15,14 @@ Anishelf is a personal animation media library intended to connect:
 
 Its core value is better Web playback, shared client state, and coordination between tracking and automatic downloading.
 
-This document retains the product goal, feature inventory and future evolution. Version-specific V2 requirements, acceptance and detailed design have moved to [History](history.md#v2-archive-notes). The archived acceptance gaps remain open; archiving does not declare V2 fully accepted. The current iteration selects the anime library and metadata-assisted resource identification workflow described in [Current Iteration Requirements](current-version-requirements.md). Its release number is not assigned; selection does not imply implementation or acceptance.
+This document retains the product goal, feature inventory and future evolution. Version-specific V2 requirements, acceptance and detailed design have moved to [History](history.md#v2-archive-notes). The retained V2 scope and scenarios are marked implemented in History following the user status update on 2026-10-13; this is not a new acceptance-test record. The current iteration selects the anime library and metadata-assisted resource identification workflow described in [Current Iteration Requirements](current-version-requirements.md). Its release number is not assigned; selection does not imply implementation or acceptance.
 
 ## 2. Feature Inventory and Version Tracking
 
 - **Implemented in** records the delivered implementation and its version; `—` means not implemented. Partial delivery is explicitly identified.
 - **Target version** records the selected iteration; `Unassigned` means no release commitment.
 - **Later** identifies a subsequent core capability; **Optional** identifies a possible longer-term extension.
-- A target version is not evidence of implementation. Implementation status and acceptance status are separate: delivered code does not certify acceptance. Record outstanding acceptance explicitly; for partial delivery, describe the delivered boundary and keep the remainder explicit. Archived V2 acceptance scenarios remain open unless recorded as complete in [History](history.md#v2-requirements).
+- A target version is not evidence of implementation. Implementation status and acceptance status are separate: delivered code does not certify acceptance. Record outstanding acceptance explicitly; for partial delivery, describe the delivered boundary and keep the remainder explicit. The retained V2 scenarios are recorded as implemented in [History](history.md#v2-requirements), independently of new verification evidence.
 
 ### 2.0 Delivered V1 Foundation
 
@@ -90,12 +90,12 @@ Provider and parser selection require representative filename and metadata evalu
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| P03 | Select or disable external VTT/SRT/ASS/SSA subtitles through Vidstack | Implemented; remaining V2 acceptance pending | V2 | V2 |
-| P05 | Choose a playback strategy based on media and client capabilities | Implemented; real-browser compatibility acceptance pending | V2 | V2 |
-| P06 | Remux media when only the container is incompatible | Implemented; remaining V2 acceptance pending | V2 | V2 |
-| P07 | FFmpeg full-file pre-transcoding with seeking; copy compatible streams and encode only necessary streams | Implemented: completed-file preparation, reuse, cancellation, retry and recovery; remaining V2 acceptance pending | V2 | V2 |
-| P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | Partial: text-track discovery, selection, extraction and delivery implemented; font attachments supported; bitmap extraction deferred; remaining V2 acceptance pending | V2 (text subtitles); Current (fonts) | V2 (partial) |
-| P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | Partial: styled ASS/SSA and fallback fonts implemented, with embedded TTF/OTF support; bitmap handling deferred; remaining V2 acceptance pending | V2 (styles and fallback fonts); Current (embedded fonts) | V2 (partial) |
+| P03 | Select or disable external VTT/SRT/ASS/SSA subtitles through Vidstack | Implemented | V2 | V2 |
+| P05 | Choose a playback strategy based on media and client capabilities | Implemented | V2 | V2 |
+| P06 | Remux media when only the container is incompatible | Implemented | V2 | V2 |
+| P07 | FFmpeg full-file pre-transcoding with seeking; copy compatible streams and encode only necessary streams | Implemented: completed-file preparation, reuse, cancellation, retry and recovery | V2 | V2 |
+| P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | Partial: text-track discovery, selection, extraction and delivery implemented; font attachments supported; bitmap extraction deferred | V2 (text subtitles); Current (fonts) | V2 (partial) |
+| P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | Partial: styled ASS/SSA and fallback fonts implemented, with embedded TTF/OTF support; bitmap handling deferred | V2 (styles and fallback fonts); Current (embedded fonts) | V2 (partial) |
 | P14 | HLS/fMP4 delivery and real-time transcoding, including seeking, leases, source-time mapping and interactive scheduling | Later | — | Unassigned |
 | P15 | Extract, validate and load embedded font attachments | Implemented | Source-shared TTF/OTF preparation, validated cache and JASSUB loading | Current |
 | P16 | Extract embedded PGS/VobSub bitmap subtitle assets with explicit unsupported-Web feedback | Later | — | Unassigned |
@@ -216,9 +216,9 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | O11 | Log rotation, retention, and reopening files without restarting the application | Implemented: size/time rotation, archive count retention, Unix SIGHUP reopening | Current | Current |
 | O12 | Automatic log-output fallback after destination failure | Implemented: per-output stderr fallback; stdout/file/both modes | Current | Current |
 | O13 | Asynchronous log output with bounded buffering and shutdown flushing | Partial: bounded asynchronous file queue and shutdown draining; stdout/stderr remain synchronous | Current (partial) | Unassigned |
-| O14 | Interface localization and language preferences | Partial: English catalog, message keys and fallback implemented; additional locales and language selection remain unassigned; V2 acceptance pending | V2 (English foundation) | V2 (partial) |
+| O14 | Interface localization and language preferences | Partial: English catalog, message keys and fallback implemented; additional locales and language selection remain unassigned | V2 (English foundation) | V2 (partial) |
 | O15 | Manage API-backed frontend state and caching with TanStack Query | Implemented | Current | Current |
-| O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access; built-in cache budget | V2 implementation; acceptance pending | V2 |
+| O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access; built-in cache budget | V2 | V2 |
 | O18 | User-editable prepared-media cache budget | Implemented; Settings control, validation and persisted disk-space limit | Current | Current |
 
 #### User-editable Prepared-media Cache Budget (O18)

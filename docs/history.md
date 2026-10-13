@@ -675,11 +675,11 @@ Expose `requested`, `accepted`, `started`, `failed`, and `expired` launch feedba
 
 ## V2 Archive Notes
 
-Archived on 2026-10-06 after narrowing V2 to direct/completed-file playback, text subtitles, history/resume and scoped settings. Archiving records a version baseline; it does not certify unfinished acceptance. Existing implementation and acceptance statuses are preserved. HLS/real-time playback, embedded fonts, bitmap extraction and user-editable cache budgets remain later requirements. The History page covers continue watching; no separate page or playback-mode setting is required.
+Archived on 2026-10-06 after narrowing V2 to direct/completed-file playback, text subtitles, history/resume and scoped settings. Archiving records a version baseline; it does not certify unfinished acceptance. The retained V2 scope and scenarios were subsequently marked implemented on 2026-10-13 at the user's request; no new verification session is recorded by that update. HLS/real-time playback, embedded fonts, bitmap extraction and user-editable cache budgets remain later requirements. The History page covers continue watching; no separate page or playback-mode setting is required.
 
 ## V2 Requirements
 
-**V1 is implemented; V2 is in progress.** V1 manual browser acceptance is user-reported.
+**V1 and the retained V2 scope are implemented.** V1 manual browser acceptance is user-reported.
 The direct-playback Vidstack adapter is implemented and checked with a temporary
 H.264 sample. Saved progress, playback history/resume, and same-directory external
 subtitle discovery, version-checked delivery, selection and rendering are implemented.
@@ -692,8 +692,7 @@ a public descriptor and selected-track preparation contract; the backend returns
 a ready original URL for external subtitles or prepares/reuses an embedded asset.
 The frontend uses one controller without source-specific branches. Completed-file preparation
 and prepared-copy playback are implemented. HLS/real-time playback, embedded fonts and
-bitmap extraction are deferred to P14–P16. V2 retains the remaining settings and acceptance
-requirements below.
+bitmap extraction are deferred to P14–P16. The retained V2 settings and scenario requirements below are implemented.
 
 Startup options use defaults and environment variables. `ANISHELF_DATA_DIR` overrides the platform-specific user data directory selected by `platformdirs`. The [archived V2 design](#v2-design) specifies the V2 architecture.
 
@@ -726,13 +725,13 @@ Extend the existing file browser into an everyday Web viewing workflow:
 | P03 | External subtitles | Vidstack VTT/SRT/ASS/SSA discovery, selection and off | V2 | V2 |
 | P08 | Embedded subtitle extraction | FFmpeg extraction from MKV/other containers; supported text tracks; fonts and bitmap assets deferred | V2 (partial) | V2 (partial) |
 | P09 | Styled subtitles | ASS/SSA rendering with fallback fonts; provide clear feedback for unsupported Web rendering | V2 (partial) | V2 (partial) |
-| P05 | Playback strategy | Use original compatible media; choose the required preparation path for the target browser | — | V2 |
-| P06 | Container-only preparation | Remux compatible audio/video when only the container is incompatible | — | V2 |
-| P07 | FFmpeg full-file pre-transcoding | Necessary streams only; reusable completed copies; seeking, cleanup and recovery | — | V2 |
+| P05 | Playback strategy | Use original compatible media; choose the required preparation path for the target browser | V2 | V2 |
+| P06 | Container-only preparation | Remux compatible audio/video when only the container is incompatible | V2 | V2 |
+| P07 | FFmpeg full-file pre-transcoding | Necessary streams only; reusable completed copies; seeking, cleanup and recovery | V2 | V2 |
 | C01 | External-player media link | Generate and copy a client-reachable original-media URL for the user to paste into a player | V2 | V2 |
 | O14 | English UI foundation | English message catalog, stable keys and fallback | V2 (partial) | V2 (partial) |
-| O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access; built-in cache budget | V2 implementation; acceptance pending | V2 |
-| O16 | Complete everyday-use Web interface | Finished application navigation, resource browsing, playback history/resume, Web player, preparation feedback, and V2 settings with responsive and accessible states | V2 (partial) | V2 |
+| O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access; built-in cache budget | V2 | V2 |
+| O16 | Complete everyday-use Web interface | Finished application navigation, resource browsing, playback history/resume, Web player, preparation feedback, and V2 settings with responsive and accessible states | V2 | V2 |
 
 #### Saved Progress, Resume, and Playback History (W01, W02)
 
@@ -833,33 +832,33 @@ These scenarios passed in V1 according to the user's manual acceptance report an
 | A06 | Leave the player | Original directory is restored | V1 |
 | A07 | Chinese/spaced paths and outside-root access attempts | Valid resources work; outside-root and symlink escapes are rejected | V1 |
 
-#### V2 Acceptance
+#### V2 Scenario Implementation
 
-Implementation versions are listed in Section 2. A dash below means that the acceptance scenario has not been recorded as complete.
+All retained scenarios below are marked implemented in V2 following the user's status update on 2026-10-13. This closes the old V2 implementation backlog; it does not record a new test run or browser acceptance session.
 
-| ID | Requirements | Scenario and passing result | Acceptance completed in | Target version |
+| ID | Requirements | Scenario and passing result | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| A08 | W01 | Watch, pause, reopen, rescan, and restart: saved progress survives and resumes correctly; backward seeks, including zero, persist | — | V2 |
+| A08 | W01 | Watch, pause, reopen, rescan, and restart: saved progress survives and resumes correctly; backward seeks, including zero, persist | V2 | V2 |
 | A09 | W01, W02 | Playback history is ordered by last viewed time, includes completed and zero-position records, offers resume/replay, and excludes missing or replaced sources from actionable entries; changed roots/content cannot inherit unrelated progress | V2 | V2 |
-| A10 | W01 | Delayed/duplicate updates cannot overwrite newer progress; failed loading does not write zero; persistence errors leave playback usable | — | V2 |
-| A11 | P03, P08, P09 | Select/disable VTT/SRT/ASS/SSA external and extracted text tracks; preserve validated styles and timing with fallback fonts across original/prepared playback | — | V2 |
-| A12 | P03, P08 | Ambiguous matches require selection; malformed/unsupported/unavailable subtitles produce feedback; outside-root access is rejected; originals remain unchanged | — | V2 |
-| A13 | P05, P06, P07 | Real samples exercise all four strategy branches; compatible streams are preserved in remux/audio-only cases; incompatible samples play and seek after preparation | — | V2 |
-| A14 | P07 | Duplicate requests share work; repeated playback reuses output; source changes invalidate it; queued/processing/ready/failed states are accurate | — | V2 |
-| A15 | P07, W01 | Failure, insufficient storage, interrupted jobs, restart, retry, and cache deletion do not expose partial output or alter originals/history | — | V2 |
-| A16 | C01 | Generate a reachable original-media URL and copy it or show it in a selectable field; manually open it in a player through the local and SSH-forwarded application origins | — | V2 |
-| A17 | C01, W01 | Missing/unavailable media produces a useful link error; copying the link never changes Web playback history or progress | — | V2 |
-| A18 | C01 | Generated links contain only the validated application media route; spaces, Unicode, percent signs and ampersands resolve to the intended resource, including through SSH forwarding | — | V2 |
-| A19 | O16, C01 | File/resume actions open Web playback; Copy media link is visibly secondary and never invokes another application | — | V2 |
-| A20 | O16 | Complete setup, scan, browse, resume, subtitle selection, preparation/retry/cache deletion, and settings workflows through finished API-backed screens; navigation and directory return context remain correct | — | V2 |
-| A21 | O16 | At 1280 px and 390 px widths, long/Chinese filenames, controls, and task feedback remain usable; keyboard focus, labels, contrast, and loading/empty/error states pass visual and interaction review | — | V2 |
-| A24 | P03, P08, P09 | MKV with multiple supported text tracks extracts/selects correctly; external and extracted ASS/SSA styles/CJK text render with fallback fonts; bitmap tracks display unsupported status | — | V2 |
-| A25 | Configuration | With no tool paths configured, FFmpeg/FFprobe resolve independently from process PATH; valid overrides work, missing/invalid binaries show dependent-feature errors while direct playback remains usable | — | V2 |
-| A26 | Persistence | User settings remain in settings.json; Drizzle migrations/transactions preserve history and enforce deduplication; restart reconciles SQLite and asset files; cache cleanup never removes durable records | — | V2 |
-| A27 | O17 | Startup uses current built-in defaults for unset choices, preserves explicit settings across upgrades, rejects invalid overrides, supplies one validated view and invalidates cached output when the effective profile changes | — | V2 |
-| A28 | O14 | English UI, player labels and errors resolve through message keys with fallback; language-independent IDs and original filenames remain stable | — | V2 |
+| A10 | W01 | Delayed/duplicate updates cannot overwrite newer progress; failed loading does not write zero; persistence errors leave playback usable | V2 | V2 |
+| A11 | P03, P08, P09 | Select/disable VTT/SRT/ASS/SSA external and extracted text tracks; preserve validated styles and timing with fallback fonts across original/prepared playback | V2 | V2 |
+| A12 | P03, P08 | Ambiguous matches require selection; malformed/unsupported/unavailable subtitles produce feedback; outside-root access is rejected; originals remain unchanged | V2 | V2 |
+| A13 | P05, P06, P07 | Real samples exercise all four strategy branches; compatible streams are preserved in remux/audio-only cases; incompatible samples play and seek after preparation | V2 | V2 |
+| A14 | P07 | Duplicate requests share work; repeated playback reuses output; source changes invalidate it; queued/processing/ready/failed states are accurate | V2 | V2 |
+| A15 | P07, W01 | Failure, insufficient storage, interrupted jobs, restart, retry, and cache deletion do not expose partial output or alter originals/history | V2 | V2 |
+| A16 | C01 | Generate a reachable original-media URL and copy it or show it in a selectable field; manually open it in a player through the local and SSH-forwarded application origins | V2 | V2 |
+| A17 | C01, W01 | Missing/unavailable media produces a useful link error; copying the link never changes Web playback history or progress | V2 | V2 |
+| A18 | C01 | Generated links contain only the validated application media route; spaces, Unicode, percent signs and ampersands resolve to the intended resource, including through SSH forwarding | V2 | V2 |
+| A19 | O16, C01 | File/resume actions open Web playback; Copy media link is visibly secondary and never invokes another application | V2 | V2 |
+| A20 | O16 | Complete setup, scan, browse, resume, subtitle selection, preparation/retry/cache deletion, and settings workflows through finished API-backed screens; navigation and directory return context remain correct | V2 | V2 |
+| A21 | O16 | At 1280 px and 390 px widths, long/Chinese filenames, controls, and task feedback remain usable; keyboard focus, labels, contrast, and loading/empty/error states pass visual and interaction review | V2 | V2 |
+| A24 | P03, P08, P09 | MKV with multiple supported text tracks extracts/selects correctly; external and extracted ASS/SSA styles/CJK text render with fallback fonts; bitmap tracks display unsupported status | V2 | V2 |
+| A25 | Configuration | With no tool paths configured, FFmpeg/FFprobe resolve independently from process PATH; valid overrides work, missing/invalid binaries show dependent-feature errors while direct playback remains usable | V2 | V2 |
+| A26 | Persistence | User settings remain in settings.json; Drizzle migrations/transactions preserve history and enforce deduplication; restart reconciles SQLite and asset files; cache cleanup never removes durable records | V2 | V2 |
+| A27 | O17 | Startup uses current built-in defaults for unset choices, preserves explicit settings across upgrades, rejects invalid overrides, supplies one validated view and invalidates cached output when the effective profile changes | V2 | V2 |
+| A28 | O14 | English UI, player labels and errors resolve through message keys with fallback; language-independent IDs and original filenames remain stable | V2 | V2 |
 
-Record browser/OS versions for Web playback, representative external-player URL checks, source codecs, text subtitle formats, full-file preparation profiles and styled subtitle samples, and real-sample results. Automated tests do not certify browser decoding. The retained V2 workflows have implementation coverage; no known missing feature is identified after the scope reduction. This is not release acceptance: the open scenarios below still require recorded verification. V2 completion requires the new acceptance scenarios and retained V1 regression behavior; then update implemented-version fields, including the partial P08/P09 boundaries.
+The retained V2 scope is implemented, including the text-subtitle and fallback-font boundaries of P08/P09 and the English foundation of O14. Deferred capabilities remain outside V2. Future regression or browser checks should record browser/OS versions, media samples and actual results separately from this implementation status.
 
 ### 5. Essential Quality Requirements
 
@@ -886,7 +885,7 @@ Its core value is better Web playback, shared client state, and coordination bet
 
 This document is the complete product requirements inventory, including delivered features, the active iteration, and unassigned future capabilities. The [V2 requirements](#v2-requirements) below is the living release plan, currently for V2. Requirements remain in this inventory when selected for a release; update the inventory and active release sections together rather than moving or deleting requirements.
 
-**Latest completed version: V1. Active version: V2, in progress.** V1 completion and manual browser acceptance are user-reported. The direct-playback Vidstack adapter and saved progress are implemented; external subtitle discovery, delivery and rendering, plus embedded text-subtitle discovery and selected-track preparation/delivery, are implemented. Both subtitle origins use one backend preparation contract and one frontend selection flow; completed-file preparation and playback are implemented. HLS delivery, real-time transcoding, embedded fonts and bitmap extraction are deferred to unassigned later requirements; remaining V2 acceptance is still open. Replacing the player controls does not complete V2 acceptance.
+**Historical inventory snapshot:** The retained V2 scope is now marked implemented (status updated on 2026-10-13). V1 completion and manual browser acceptance are user-reported. The direct-playback Vidstack adapter and saved progress are implemented; external subtitle discovery, delivery and rendering, plus embedded text-subtitle discovery and selected-track preparation/delivery, are implemented. Both subtitle origins use one backend preparation contract and one frontend selection flow; completed-file preparation and playback are implemented. HLS delivery, real-time transcoding, embedded fonts and bitmap extraction are deferred to unassigned later requirements; The old V2 implementation backlog is closed; this status update does not record new browser/media verification.
 
 ### V2 Inventory 2. Feature Inventory and Version Tracking
 
@@ -1008,7 +1007,7 @@ Deferred acceptance retains its existing identifiers:
 
 ##### V2 Inventory Configuration and Storage Boundary (V2)
 
-FFmpeg/FFprobe executable paths are optional startup overrides; otherwise find each executable through the server process PATH. Define media-format, transcode, subtitle and runtime defaults in TypeScript; bundle the English catalog as a read-only resource. Keep user choices and explicit overrides in `settings.json`; combine them through one validated typed configuration service (O17). V2 selects SQLite with Drizzle ORM for history, source identity, jobs and cache metadata, while generated media/subtitles remain separate files. Durable records are not disposable cache. SQLite/Drizzle persistence and separate generated-file storage are implemented; acceptance remains tracked below.
+FFmpeg/FFprobe executable paths are optional startup overrides; otherwise find each executable through the server process PATH. Define media-format, transcode, subtitle and runtime defaults in TypeScript; bundle the English catalog as a read-only resource. Keep user choices and explicit overrides in `settings.json`; combine them through one validated typed configuration service (O17). V2 selects SQLite with Drizzle ORM for history, source identity, jobs and cache metadata, while generated media/subtitles remain separate files. Durable records are not disposable cache. SQLite/Drizzle persistence and separate generated-file storage are implemented; scenario implementation is tracked in the V2 table above.
 
 #### V2 Inventory 2.4 Viewing History and Tracking
 
@@ -1094,7 +1093,7 @@ V2 supports generating and copying an origin-aware original-media URL for the us
 | O14 | Interface localization and language preferences | V2 English catalog/keys/fallback foundation; additional locales and selection later | — | V2 (partial) |
 | O15 | Manage API-backed frontend state and caching with TanStack Query | Later | — | Unassigned |
 | O16 | Complete everyday-use Web interface | Finished UI for V2 library, History, primary Web playback, full-file preparation tasks, and scoped settings | — | V2 |
-| O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access; built-in cache budget | V2 implementation; acceptance pending | V2 |
+| O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access; built-in cache budget | V2 | V2 |
 | O18 | User-editable prepared-media cache budget | Later; Settings control, validation and persisted disk-space limit | — | Unassigned |
 
 ##### V2 Inventory User-editable Prepared-media Cache Budget (O18, Later)
