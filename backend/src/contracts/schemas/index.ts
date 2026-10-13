@@ -1,3 +1,4 @@
+export * from "./anime-catalog.js";
 export * from "./chapters.js";
 export * from "./common.js";
 export * from "./compatibility.js";

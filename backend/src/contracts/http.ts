@@ -120,3 +120,39 @@ export type MetadataAiringResponse = Static<
 export type MetadataArtworkResponse = Static<
 	typeof schemas.MetadataArtworkResponseSchema
 >;
+
+export type CatalogListResponse = Static<typeof schemas.CatalogListSchema>;
+export type CatalogDetailResponse = Static<
+	typeof schemas.CatalogWorkDetailSchema
+>;
+export type CatalogReviewResponse = Static<
+	typeof schemas.CatalogReviewListSchema
+>;
+export type CatalogPreviewRequest = Static<
+	typeof schemas.CatalogPreviewRequestSchema
+>;
+export type CatalogPreviewResponse = Static<
+	typeof schemas.CatalogPreviewSchema
+>;
+export type CatalogConfirmationRequest = Static<
+	typeof schemas.CatalogConfirmationRequestSchema
+>;
+export type CatalogConfirmationResponse = Static<
+	typeof schemas.CatalogConfirmationSchema
+>;
+
+export type CatalogDecisionRequest = Static<
+	typeof schemas.CatalogDecisionRequestSchema
+>;
+export type CatalogWorkEditRequest = Static<
+	typeof schemas.CatalogWorkEditSchema
+>;
+export type CatalogEpisodeEditRequest = Static<
+	typeof schemas.CatalogEpisodeEditSchema
+>;
+export type CatalogRefreshRequest = Static<typeof schemas.CatalogRefreshSchema>;
+export type CatalogReviewItem = Static<typeof schemas.CatalogReviewSchema>;
+export type CatalogWorkResponse = Static<typeof schemas.CatalogWorkSchema>;
+export type CatalogEpisodeResponse = Static<
+	typeof schemas.CatalogEpisodeSchema
+>;

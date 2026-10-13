@@ -49,3 +49,5 @@ export interface MetadataApi {
 	): Promise<ArtworkStatus>;
 	readArtwork(id: string): Promise<ArtworkAsset>;
 }
+
+export type { CachedMetadata, WorkDetails } from "./domain/model.js";

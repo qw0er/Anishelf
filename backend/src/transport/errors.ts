@@ -3,6 +3,21 @@ import { MetadataError } from "../modules/metadata/public.js";
 import { DomainError, type ErrorCode } from "../shared/errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	CATALOG_UNAVAILABLE: {
+		status: 503,
+		message:
+			"Anime catalog is unavailable. Retry shortly; original files remain accessible.",
+	},
+	CATALOG_NOT_FOUND: {
+		status: 404,
+		message:
+			"The requested work, episode or review item was not found in the active resource root.",
+	},
+	CATALOG_CONFLICT: {
+		status: 409,
+		message:
+			"Catalog decisions or source versions changed, or explicit replacement is required. Reopen review and create a new preview.",
+	},
 	METADATA_UNAVAILABLE: {
 		status: 503,
 		message:

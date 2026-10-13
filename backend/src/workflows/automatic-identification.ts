@@ -30,8 +30,11 @@ export class AutomaticIdentificationCoordinator {
 			sources: ResourceAccessApi;
 			identification: IdentificationApi;
 			logger: Logger;
-			/** Future Catalog input; this callback must preserve its own confirmed/manual state. */
-			onResults?: (results: readonly IdentificationResult[]) => Promise<void>;
+			/** Complete successful publications, including empty roots, feed durable Catalog. */
+			onPublication?: (
+				results: readonly IdentificationResult[],
+				canonicalRoot: string,
+			) => void;
 		},
 	) {}
 	start(): void {
@@ -167,8 +170,6 @@ export class AutomaticIdentificationCoordinator {
 					throw new Error("Library publication changed during identification.");
 				signal.throwIfAborted();
 				this.options.sources.assertRootEpoch(epoch);
-				if (cached?.fingerprint !== fingerprint)
-					await this.options.onResults?.(structuredClone(groupResults));
 				signal.throwIfAborted();
 				this.options.sources.assertRootEpoch(epoch);
 				results.push(...groupResults);
@@ -179,6 +180,15 @@ export class AutomaticIdentificationCoordinator {
 		}
 		signal.throwIfAborted();
 		this.options.sources.assertRootEpoch(epoch);
+		const canonicalRoot = await this.options.sources.resolveRoot();
+		signal.throwIfAborted();
+		this.options.sources.assertRootEpoch(epoch);
+		const current = await this.options.library.getStatus();
+		if (current.revision !== status.revision)
+			throw new Error("Library publication changed during identification.");
+		signal.throwIfAborted();
+		this.options.sources.assertRootEpoch(epoch);
+		this.options.onPublication?.(results, canonicalRoot);
 		this.cache = next;
 		this.results = results;
 		this.options.logger.info(

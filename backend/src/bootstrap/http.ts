@@ -3,6 +3,8 @@ import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify, { LogController } from "fastify";
 import type { Logger } from "pino";
 import { HealthResponseSchema } from "../contracts/schemas/index.js";
+import { registerCatalogRoutes } from "../modules/anime-catalog/http/catalog.js";
+import type { AnimeCatalogApi } from "../modules/anime-catalog/public.js";
 import type { ConfigurationService } from "../modules/configuration/application/service.js";
 import type { DeploymentConfig } from "../modules/configuration/domain/model.js";
 import { registerTranscodeProfileRoutes } from "../modules/configuration/http/transcode-profiles.js";
@@ -35,6 +37,7 @@ import { registerFrontend } from "../transport/static.js";
 
 export function createHttpApp(options: {
 	metadata?: MetadataApi;
+	catalog?: AnimeCatalogApi;
 	playbackSelection?: PlaybackSelectionApi;
 	config: Pick<DeploymentConfig, "host" | "port" | "publicOrigin">;
 	logger: Logger;
@@ -125,6 +128,7 @@ export function createHttpApp(options: {
 	);
 
 	if (options.metadata) registerMetadataRoutes(app, options.metadata);
+	if (options.catalog) registerCatalogRoutes(app, options.catalog);
 	if (options.library) {
 		const library = options.library;
 
@@ -169,6 +173,7 @@ export function createHttpApp(options: {
 		"onClose",
 		options.closeDependencies ??
 			(async () => {
+				options.catalog?.close();
 				await options.preparation?.close();
 				options.playback?.close();
 				options.mediaPlanning?.close();

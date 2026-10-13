@@ -11,7 +11,9 @@ The APIs and storage records below are the iteration design baseline. The backen
 [Identification implementation](identification.md) now provides stateless recognition
 and automatic scan coordination. [Metadata](metadata.md) now implements cached
 AniList queries, details, relations, airing and artwork and supplies recognition
-candidates. Catalog and the Web workflow remain pending. Exact implemented
+candidates. [Anime Catalog](anime-catalog.md) now implements durable local works,
+episodes, review decisions, confirmation/correction transactions and HTTP queries.
+The Web workflow remains pending. Exact implemented
 contracts are defined in source.
 
 ## 1. Product decisions
@@ -135,7 +137,7 @@ HTTP client or universal job engine is needed.
 | Metadata | Provider registry/adapters, normalization, metadata/search cache, artwork and refresh |
 | Identification | Stateless extraction evidence, candidate ranking and candidate-specific numbering proposals |
 | Application coordination | Library publication subscription, bounded source enumeration, automatic batches, cancellation and transient reuse |
-| Proposed Anime Catalog | Durable local works/episodes, confirmation transactions, associations, manual corrections and library projections |
+| Anime Catalog | Durable local works/episodes, confirmation transactions, associations, manual corrections and library projections |
 | Existing playback modules | Source playback, compatibility, preparation, subtitles and progress |
 
 The application coordinator consumes Library and Resource Access Public APIs,
@@ -162,9 +164,9 @@ flowchart TD
   Identify --> Parser[anitomy-ng adapter]
   Identify --> Metadata[Metadata Public API]
   Identify --> Proposals[Evidence / association proposals]
-  Proposals -. Future consumer .-> Catalog[Anime Catalog]
+  Proposals --> Catalog[Anime Catalog]
   UI[Review UI] -. Future .-> HTTP[Catalog HTTP handlers]
-  HTTP -.-> Catalog
+  HTTP --> Catalog
 ```
 
 ## 4. Local extraction and evidence
