@@ -5,12 +5,12 @@ import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import { MediaProcessingApplication } from "../src/modules/media/media-processing/application/processing.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { unknownMediaCapabilities } from "../src/platform/media/capability-model.js";
 import type { MediaProcessingPlan } from "../src/platform/media/specification.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { settingsStore } from "./settings-store.js";
+import { createLibraryModule } from "./support/library.js";
 
 const cleanup: Array<() => Promise<unknown>> = [];
 afterEach(async () => {

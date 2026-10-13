@@ -3,6 +3,12 @@ const implementation = `${modulePath}(?:(?:application|infrastructure|http)(?:/|
 module.exports = {
 	forbidden: [
 		{
+			name: "configuration-application-does-not-project-http",
+			severity: "error",
+			from: { path: "^backend/src/modules/system/configuration/application/" },
+			to: { path: "^backend/src/contracts/(?:http\\.ts$|schemas/)" },
+		},
+		{
 			name: "no-unresolved-source-imports",
 			severity: "error",
 			from: { path: "^(backend|web)/src" },

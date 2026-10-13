@@ -14,7 +14,7 @@ import {
 	libraryResponse,
 	scanStateDto,
 } from "../src/modules/resources/library/http/presenters.js";
-import { settingsResponse } from "../src/modules/resources/library/http/settings-presenter.js";
+import { settingsResponse } from "../src/modules/system/configuration/http/settings-presenter.js";
 import { fileDto } from "../src/transport/presenters/file.js";
 
 test("resource projections omit internal paths even when given full index entries", () => {

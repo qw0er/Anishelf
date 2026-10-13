@@ -7,11 +7,11 @@ import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { builtinPolicy } from "../src/app/policy.js";
 import type { PlaybackSessionResponse } from "../src/contracts/http.js";
 import { PlaybackApplication } from "../src/modules/playback/progress/application/playback.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
 import { createResourceId } from "../src/modules/resources/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { createHttpApp } from "./support/http.js";
+import { createLibraryModule } from "./support/library.js";
 
 const headers = { host: "127.0.0.1:3000" };
 const fileId = createResourceId("file", "episode.mp4");

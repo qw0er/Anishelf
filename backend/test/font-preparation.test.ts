@@ -15,16 +15,16 @@ import type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
 } from "../src/contracts/http.js";
+import { createSubtitleApplication } from "../src/modules/media/composition/subtitle-application.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import { SubtitleFontPreparation } from "../src/modules/media/subtitles/application/font-preparation.js";
-import { SubtitleApplication } from "../src/modules/media/subtitles/application/subtitles.js";
 import { validateFont } from "../src/modules/media/subtitles/infrastructure/fonts.js";
 import { subtitlePolicy } from "../src/modules/media/subtitles/policy.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
+import { createLibraryModule } from "./support/library.js";
 
 const ttf = await readFile(
 	new URL("./fixtures/fonts/fixture.ttf", import.meta.url),
@@ -270,7 +270,7 @@ test("ASS selection returns font URLs, shares fonts across embedded/external tra
 		sources: library.sources,
 		tools: { probe: async () => info },
 	});
-	const subtitles = new SubtitleApplication({
+	const subtitles = createSubtitleApplication({
 		sources: library.sources,
 		inspection,
 		tools,

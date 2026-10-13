@@ -4,6 +4,7 @@ import {
 } from "../../../../contracts/schemas/index.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { SystemApi } from "../../public.js";
+import { transcodeProfileCatalog } from "./profile-presenter.js";
 
 export function registerTranscodeProfileRoutes(
 	app: HttpInstance,
@@ -14,7 +15,7 @@ export function registerTranscodeProfileRoutes(
 		{
 			schema: { response: { 200: TranscodeProfileCatalogSchema } },
 		},
-		async () => configuration.getTranscodeProfileCatalog(),
+		async () => transcodeProfileCatalog(configuration),
 	);
 	app.put(
 		"/api/transcode-profiles/selection",
@@ -29,7 +30,7 @@ export function registerTranscodeProfileRoutes(
 				request.body.profileId,
 				request.body.preparationMode,
 			);
-			return configuration.getTranscodeProfileCatalog();
+			return transcodeProfileCatalog(configuration);
 		},
 	);
 }

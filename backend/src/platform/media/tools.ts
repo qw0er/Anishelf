@@ -3,7 +3,6 @@ import { isAbsolute } from "node:path";
 import { fileTypeFromFile } from "file-type";
 import type { Logger } from "pino";
 import { deploymentDefaults } from "../../contracts/defaults.js";
-import { preparedSubtitleFormats } from "../../contracts/subtitles.js";
 import type { DeepReadonly } from "../../shared/policy.js";
 import { captureRuntimeEnvironment } from "../environment.js";
 import { detectMediaCapabilities } from "./capabilities.js";
@@ -11,244 +10,23 @@ import type { ServerMediaCapabilities } from "./capability-model.js";
 import { codecDescriptor } from "./codec-descriptor.js";
 import {
 	type MediaToolsConfig,
-	type SubtitleExtractionPolicy,
+	type MediaToolsPolicy,
 	subtitleExtractionPolicy,
 } from "./config.js";
-import { type MediaToolPolicy, mediaToolPolicy } from "./policy.js";
-
-export interface MediaToolsPolicy {
-	mediaTools: MediaToolPolicy;
-	subtitles: SubtitleExtractionPolicy;
-}
-
+import { extractAttachment, extractSubtitle } from "./extraction.js";
 import type {
 	ExtractedSubtitle,
-	HdrSideData,
 	MediaContainer,
 	MediaInfo,
-	MediaStream,
 	SubtitleFormat,
 	ToolStatus,
 } from "./model.js";
-import { MediaToolError, resolveExecutable, runTool } from "./process.js";
+import { parseMediaInfo, probeRecord } from "./probe-parser.js";
 
-function record(value: unknown): Record<string, unknown> {
-	if (!value || typeof value !== "object" || Array.isArray(value))
-		throw new MediaToolError(
-			"INVALID_MEDIA",
-			"FFprobe returned an invalid media descriptor.",
-		);
-	return value as Record<string, unknown>;
-}
-function text(value: unknown): string | null {
-	return typeof value === "string" &&
-		value.trim() !== "" &&
-		!/^(N\/A|unknown|unspecified)$/i.test(value)
-		? value
-		: null;
-}
-function number(value: unknown): number | null {
-	if (typeof value !== "number" && typeof value !== "string") return null;
-	if (value === "") return null;
-	const parsed = Number(value);
-	return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-}
-function tags(value: unknown): Record<string, string> {
-	if (value === undefined) return {};
-	return Object.fromEntries(
-		Object.entries(record(value)).filter(
-			(entry): entry is [string, string] => typeof entry[1] === "string",
-		),
-	);
-}
-function rate(value: unknown): {
-	frameRate: string | null;
-	framesPerSecond: number | null;
-} {
-	const raw = text(value);
-	const parts = raw?.match(/^(\d+)\/(\d+)$/);
-	const fps = parts ? Number(parts[1]) / Number(parts[2]) : null;
-	return fps !== null && Number.isFinite(fps) && fps > 0
-		? { frameRate: raw, framesPerSecond: fps }
-		: { frameRate: null, framesPerSecond: null };
-}
-export function parseMediaInfo(
-	json: string,
-	container: MediaContainer | null = null,
-): MediaInfo {
-	try {
-		const root = record(JSON.parse(json));
-		const format = record(root.format);
-		if (!Array.isArray(root.streams)) throw new Error("Missing streams");
-		const pixelDepths = new Map<string, number>();
-		if (Array.isArray(root.pixel_formats)) {
-			for (const value of root.pixel_formats) {
-				const pixel = record(value);
-				if (typeof pixel.name !== "string" || !Array.isArray(pixel.components))
-					continue;
-				const depths = pixel.components.map((component) =>
-					number(record(component).bit_depth),
-				);
-				if (
-					depths.length &&
-					depths.every((depth): depth is number => depth !== null && depth > 0)
-				)
-					pixelDepths.set(pixel.name, Math.max(...depths));
-			}
-		}
-		const streams: MediaStream[] = root.streams.map((value) => {
-			const stream = record(value);
-			const index = number(stream.index);
-			if (
-				index === null ||
-				!Number.isSafeInteger(index) ||
-				typeof stream.codec_type !== "string"
-			)
-				throw new Error("Invalid stream");
-			const disposition =
-				stream.disposition === undefined ? {} : record(stream.disposition);
-			const sideData: HdrSideData[] = [];
-			if (Array.isArray(stream.side_data_list)) {
-				for (const value of stream.side_data_list) {
-					const data = record(value);
-					const type = text(data.side_data_type);
-					if (
-						!type ||
-						!/mastering display|content light|dovi|dolby vision|smpte2094|hdr/i.test(
-							type,
-						)
-					)
-						continue;
-					const values: Record<string, number | string> = {};
-					for (const [key, value] of Object.entries(data)) {
-						if (
-							!/^(red_x|red_y|green_x|green_y|blue_x|blue_y|white_point_x|white_point_y|min_luminance|max_luminance|max_content|max_average|dv_version_major|dv_version_minor|dv_profile|dv_level|rpu_present_flag|el_present_flag|bl_present_flag|dv_bl_signal_compatibility_id)$/.test(
-								key,
-							)
-						)
-							continue;
-						if (
-							typeof value === "number" &&
-							Number.isFinite(value) &&
-							value >= 0
-						)
-							values[key] = value;
-						else if (
-							typeof value === "string" &&
-							/^\d+(?:\.\d+|\/[1-9]\d*)?$/.test(value)
-						)
-							values[key] = value;
-					}
-					sideData.push({ type, values });
-				}
-			}
-			const sideDataTypes = [...new Set(sideData.map((data) => data.type))];
-			const rawDepth = number(stream.bits_per_raw_sample);
-			return {
-				index,
-				type: stream.codec_type,
-				codec: text(stream.codec_name),
-				codecTag: text(stream.codec_tag_string),
-				codecString: codecDescriptor(stream),
-				profile: text(stream.profile),
-				level: number(stream.level),
-				bitDepth:
-					stream.codec_type === "video"
-						? rawDepth && rawDepth > 0
-							? rawDepth
-							: (pixelDepths.get(text(stream.pix_fmt) ?? "") ?? null)
-						: null,
-				colorRange: text(stream.color_range),
-				colorSpace: text(stream.color_space),
-				colorTransfer: text(stream.color_transfer),
-				colorPrimaries: text(stream.color_primaries),
-				hdr: {
-					pq: stream.color_transfer === "smpte2084",
-					hlg: stream.color_transfer === "arib-std-b67",
-					sideDataTypes,
-					sideData,
-				},
-				attachedPicture: number(disposition.attached_pic) === 1,
-				width: number(stream.width),
-				height: number(stream.height),
-				pixelFormat: text(stream.pix_fmt),
-				...rate(stream.avg_frame_rate),
-				sampleRate: number(stream.sample_rate),
-				channels: number(stream.channels),
-				channelLayout: text(stream.channel_layout),
-				duration: number(stream.duration),
-				bitRate: number(stream.bit_rate),
-				tags: tags(stream.tags),
-				default: number(disposition.default) === 1,
-				forced: number(disposition.forced) === 1,
-			};
-		});
-		return {
-			format: text(format.format_name),
-			formatAliases: [
-				...new Set(
-					(text(format.format_name) ?? "")
-						.split(",")
-						.map((name) => name.trim().toLowerCase())
-						.filter(Boolean),
-				),
-			],
-			container,
-			duration: number(format.duration),
-			size: number(format.size),
-			bitRate: number(format.bit_rate),
-			tags: tags(format.tags),
-			streams,
-			chapters: (Array.isArray(root.chapters) ? root.chapters : [])
-				.flatMap((value) => {
-					if (!value || typeof value !== "object" || Array.isArray(value))
-						return [];
-					const chapter = record(value);
-					const rawStart = chapter.start_time;
-					const start =
-						(typeof rawStart === "number" || typeof rawStart === "string") &&
-						rawStart !== "" &&
-						Number.isFinite(Number(rawStart))
-							? Number(rawStart)
-							: null;
-					const end = number(chapter.end_time);
-					const duration = number(format.duration);
-					if (start === null || end === null) return [];
-					const startMs = Math.round(Math.max(0, start) * 1000);
-					const endMs = Math.round(
-						Math.min(end, duration !== null && duration > 0 ? duration : end) *
-							1000,
-					);
-					if (
-						!Number.isSafeInteger(startMs) ||
-						!Number.isSafeInteger(endMs) ||
-						endMs <= startMs
-					)
-						return [];
-					return [
-						{
-							title: text(
-								chapter.tags &&
-									typeof chapter.tags === "object" &&
-									!Array.isArray(chapter.tags)
-									? record(chapter.tags).title
-									: null,
-							),
-							startMs,
-							endMs,
-						},
-					];
-				})
-				.sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs),
-		};
-	} catch (cause) {
-		throw new MediaToolError(
-			"INVALID_MEDIA",
-			"FFprobe returned invalid media information.",
-			{ cause },
-		);
-	}
-}
+export { parseMediaInfo } from "./probe-parser.js";
+
+import { mediaToolPolicy } from "./policy.js";
+import { MediaToolError, resolveExecutable, runTool } from "./process.js";
 
 async function localFile(path: string): Promise<void> {
 	if (!isAbsolute(path) || path.includes("\0"))
@@ -394,7 +172,7 @@ export class MediaTools {
 			)
 				continue;
 			try {
-				const data = record(
+				const data = probeRecord(
 					JSON.parse(
 						await runTool(
 							executable,
@@ -431,7 +209,7 @@ export class MediaTools {
 				);
 				if (Array.isArray(data.streams)) {
 					const details = data.streams
-						.map(record)
+						.map(probeRecord)
 						.find((candidate) => candidate.index === stream.index);
 					stream.codecString = details ? codecDescriptor(details) : null;
 				}
@@ -449,140 +227,38 @@ export class MediaTools {
 		return info;
 	}
 
-	/** Bounded attachment extradata only; ordinary inspection never dumps attachments. */
 	async extractAttachment(
 		path: string,
 		streamIndex: number,
-		options: {
-			maximumBytes: number;
-			signal?: AbortSignal;
-		},
+		options: { maximumBytes: number; signal?: AbortSignal },
 	): Promise<Buffer> {
-		if (
-			!isAbsolute(path) ||
-			!Number.isSafeInteger(streamIndex) ||
-			streamIndex < 0 ||
-			!Number.isSafeInteger(options.maximumBytes) ||
-			options.maximumBytes < 1
-		)
-			throw new MediaToolError("INVALID_INPUT", "Invalid attachment request.");
-		const output = JSON.parse(
-			await runTool(
-				this.executable("ffprobe"),
-				[
-					"-v",
-					"error",
-					"-protocol_whitelist",
-					"file,pipe",
-					"-select_streams",
-					String(streamIndex),
-					"-show_entries",
-					"stream=index,codec_type,extradata,extradata_size",
-					"-show_data",
-					"-of",
-					"json",
-					"-i",
-					path,
-				],
-				{
-					...options,
-					timeoutMs: this.policy.subtitles.extractionTimeoutMs,
-					maxBytes: options.maximumBytes * 5 + 4096,
-				},
-				this.policy.mediaTools,
-				this.logger,
-			),
+		return extractAttachment(
+			{
+				executable: (tool) => this.executable(tool),
+				probe: (path, signal) => this.probe(path, signal),
+				policy: this.policy,
+				logger: this.logger,
+			},
+			path,
+			streamIndex,
+			options,
 		);
-		const stream = output.streams?.[0];
-		if (
-			stream?.index !== streamIndex ||
-			stream.codec_type !== "attachment" ||
-			typeof stream.extradata !== "string" ||
-			stream.extradata_size > options.maximumBytes
-		)
-			throw new MediaToolError(
-				"INVALID_MEDIA",
-				"Invalid or oversized attachment.",
-			);
-		const hex = stream.extradata
-			.split("\n")
-			.flatMap((line: string) => {
-				const match = /^[0-9a-f]{8}: ([0-9a-f ]+?)(?: {2}|$)/i.exec(
-					line.trim(),
-				);
-				return match?.[1]?.replaceAll(" ", "") ?? [];
-			})
-			.join("");
-		const bytes = Buffer.from(hex, "hex");
-		if (
-			!bytes.length ||
-			bytes.length > options.maximumBytes ||
-			bytes.length !== stream.extradata_size
-		)
-			throw new MediaToolError("INVALID_MEDIA", "Invalid attachment payload.");
-		return bytes;
 	}
-
-	/** Select by absolute FFprobe stream index, never by a raw selector. */
 	async extractSubtitle(
 		path: string,
 		streamIndex: number,
 		options: { format?: SubtitleFormat; signal?: AbortSignal } = {},
 	): Promise<ExtractedSubtitle> {
-		const executable = this.executable("ffmpeg");
-		if (!Number.isSafeInteger(streamIndex) || streamIndex < 0)
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Subtitle stream index must be a non-negative integer.",
-			);
-		const info = await this.probe(path, options.signal);
-		const stream = info.streams.find(
-			(candidate) =>
-				candidate.index === streamIndex && candidate.type === "subtitle",
-		);
-		if (!stream)
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Selected stream is not a subtitle track.",
-			);
-		const native = this.policy.subtitles.nativeFormats[stream.codec ?? ""];
-		const format = options.format ?? native;
-		if (
-			!format ||
-			!preparedSubtitleFormats.includes(format) ||
-			!this.policy.subtitles.textCodecs.includes(stream.codec ?? "")
-		)
-			throw new MediaToolError(
-				"UNSUPPORTED_SUBTITLE",
-				"Subtitle codec or output format is unsupported. Bitmap subtitles require a separate extraction path; mov_text/text require an explicit output format.",
-			);
-		const codec = format === native ? "copy" : format;
-		const output = await runTool(
-			executable,
-			[
-				"-nostdin",
-				"-hide_banner",
-				"-v",
-				"error",
-				"-protocol_whitelist",
-				"file,pipe",
-				"-i",
-				path,
-				"-map",
-				`0:${streamIndex}`,
-				"-c:s",
-				codec,
-				"-f",
-				format,
-				"pipe:1",
-			],
+		return extractSubtitle(
 			{
-				timeoutMs: this.policy.subtitles.extractionTimeoutMs,
-				...(options.signal ? { signal: options.signal } : {}),
+				executable: (tool) => this.executable(tool),
+				probe: (path, signal) => this.probe(path, signal),
+				policy: this.policy,
+				logger: this.logger,
 			},
-			this.policy.mediaTools,
-			this.logger,
+			path,
+			streamIndex,
+			options,
 		);
-		return { streamIndex, format, text: output };
 	}
 }

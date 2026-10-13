@@ -3,7 +3,7 @@ import type { DeepReadonly } from "../../../shared/policy.js";
 import type { SettingsStore } from "../../system/public.js";
 import { LibraryApplication } from "../library/application/library.js";
 import { ScanCoordinator } from "../library/application/scan-coordinator.js";
-import { SettingsApplication } from "../library/application/settings.js";
+import { ResourceSettingsApplication } from "../library/application/settings.js";
 import type { LibraryIndex } from "../library/infrastructure/index.js";
 import {
 	type LibraryRuntimePolicy,
@@ -45,7 +45,7 @@ export function createLibraryModule(options: {
 		policy,
 		rootFiles,
 	});
-	const settings = new SettingsApplication({
+	const settings = new ResourceSettingsApplication({
 		configuration,
 		scans,
 		logger,

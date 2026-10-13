@@ -9,13 +9,14 @@ import { registerCatalogRoutes } from "../../src/modules/anime/anime-catalog/htt
 import type { AnimeCatalogApi } from "../../src/modules/anime/anime-catalog/public.js";
 import { registerMetadataRoutes } from "../../src/modules/anime/metadata/http/metadata.js";
 import type { MetadataApi } from "../../src/modules/anime/metadata/public.js";
+import { createSubtitleApplication } from "../../src/modules/media/composition/subtitle-application.js";
 import type { MediaInspectionApplication } from "../../src/modules/media/media-inspection/application.js";
 import { registerChapterRoutes } from "../../src/modules/media/media-inspection/http/chapters.js";
 import type { MediaPlanningApplication } from "../../src/modules/media/media-planning/application/planning.js";
 import { registerMediaPlanningRoutes } from "../../src/modules/media/media-planning/http/planning.js";
 import type { PreparationApplication } from "../../src/modules/media/preparation/application/preparation.js";
 import { registerPreparationRoutes } from "../../src/modules/media/preparation/http/preparation.js";
-import { SubtitleApplication } from "../../src/modules/media/subtitles/application/subtitles.js";
+import type { SubtitleApplication } from "../../src/modules/media/subtitles/application/subtitles.js";
 import { registerSubtitleRoutes } from "../../src/modules/media/subtitles/http/subtitles.js";
 import { registerPlaybackSelectionRoutes } from "../../src/modules/playback/playback-selection/http/selection.js";
 import type { PlaybackSelectionApi } from "../../src/modules/playback/playback-selection/public.js";
@@ -24,9 +25,10 @@ import { registerPlaybackRoutes } from "../../src/modules/playback/progress/http
 import type { LibraryApplication } from "../../src/modules/resources/library/application/library.js";
 import { registerLibraryRoutes } from "../../src/modules/resources/library/http/library.js";
 import { registerMediaRoutes } from "../../src/modules/resources/library/http/media.js";
-import { registerSettingsRoutes } from "../../src/modules/resources/library/http/settings.js";
 import type { DeploymentConfig } from "../../src/modules/system/configuration/domain/model.js";
+import { registerSettingsRoutes } from "../../src/modules/system/configuration/http/settings.js";
 import { registerTranscodeProfileRoutes } from "../../src/modules/system/configuration/http/transcode-profiles.js";
+import { fixtureSettings } from "./library.js";
 export function createHttpApp(options: {
 	metadata?: MetadataApi;
 	catalog?: AnimeCatalogApi;
@@ -74,7 +76,7 @@ export function createHttpApp(options: {
 					registerMediaRoutes(app, library);
 					const subtitles =
 						options.subtitles ??
-						new SubtitleApplication({
+						createSubtitleApplication({
 							sources: library.sources,
 							logger: options.logger,
 							policy,
@@ -83,7 +85,7 @@ export function createHttpApp(options: {
 					registerSubtitleRoutes(app, subtitles);
 					registerSettingsRoutes(
 						app,
-						library.settings,
+						fixtureSettings(library),
 						policy.library.maximumScanIntervalMinutes,
 					);
 				}

@@ -16,9 +16,9 @@ import type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
 } from "../src/contracts/http.js";
+import { createSubtitleApplication } from "../src/modules/media/composition/subtitle-application.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
-import { SubtitleApplication } from "../src/modules/media/subtitles/application/subtitles.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
+import type { SubtitleApplication } from "../src/modules/media/subtitles/application/subtitles.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
 import { createResourceId } from "../src/modules/resources/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
@@ -31,6 +31,7 @@ import {
 import { runTool } from "../src/platform/media/process.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
+import { createLibraryModule } from "./support/library.js";
 
 let directory: string;
 let root: string;
@@ -95,7 +96,7 @@ function server() {
 		policy: policy.mediaInspection,
 		logger,
 	});
-	subtitles = new SubtitleApplication({
+	subtitles = createSubtitleApplication({
 		logger,
 		sources: library.sources,
 		policy,
@@ -476,7 +477,7 @@ test("changing roots during extraction invalidates the old task", async () => {
 		const other = join(directory, "other");
 		await mkdir(other);
 		await writeFile(join(other, "episode.mkv"), "other video");
-		await library.updateSettings({ resourceRoot: other });
+		await library.updateResourceSettings({ resourceRoot: other });
 		return { streamIndex: 2, format: "srt", text };
 	});
 	const response = await prepare();

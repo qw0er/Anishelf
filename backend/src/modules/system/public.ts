@@ -7,7 +7,6 @@ export type {
 } from "./configuration/public.js";
 export { transcodeProfileFingerprint } from "./configuration/public.js";
 
-import type { TranscodeProfileCatalog } from "../../contracts/http.js";
 import type { RuntimeEnvironment } from "../../platform/environment.js";
 import type { DeepReadonly } from "../../shared/policy.js";
 import type {
@@ -30,9 +29,18 @@ export interface SystemApi extends SettingsStore {
 			}
 		>;
 	};
-	getTranscodeProfileCatalog(): TranscodeProfileCatalog;
+	patchSettings(
+		input: Partial<PersistentSettings>,
+	): Promise<Readonly<PersistentSettings>>;
 	selectTranscodeProfile(
 		id: string | null,
 		mode?: PreparationMode,
+	): Promise<Readonly<PersistentSettings>>;
+}
+
+/** Resources reserves its scan/root gate around System-owned persistence. */
+export interface ResourceSettingsCoordinator {
+	coordinateSettingsChange(
+		save: () => Promise<Readonly<PersistentSettings>>,
 	): Promise<Readonly<PersistentSettings>>;
 }

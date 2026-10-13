@@ -1,214 +1,47 @@
-import { dirname, join } from "node:path";
 import type { Logger } from "pino";
-import {
-	preparedSubtitleFormat,
-	publicSubtitleFormat,
-} from "../../../../contracts/subtitles.js";
-import type { MediaInfo } from "../../../../platform/media/index.js";
-import { MediaToolError } from "../../../../platform/media/index.js";
+import { preparedSubtitleFormat } from "../../../../contracts/subtitles.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
-import type {
-	FileSourceIdentity,
-	ResolvedSource,
-	ResourceAccessApi,
-	ResourceFiles,
-} from "../../../resources/public.js";
+import type { ResourceAccessApi } from "../../../resources/public.js";
 import { assertSourceVersion } from "../../../resources/public.js";
-import {
-	type MediaInspectionApi,
-	MediaInspectionBusyError,
-} from "../../media-inspection/public.js";
-import { defaultSubtitleName, subtitleTrackId } from "../domain/identity.js";
+import { subtitleTrackId } from "../domain/identity.js";
 import type {
-	ExternalSubtitle,
 	SubtitleDiscovery,
 	SubtitlePreparationResult,
 } from "../domain/model.js";
-import { readSubtitleText } from "../infrastructure/content.js";
 import { discoverExternalSubtitles } from "../infrastructure/discovery.js";
-import {
-	type SubtitleRuntimePolicy,
-	subtitleRuntimePolicy,
-} from "../policy.js";
-import type { SubtitleExtractor } from "../ports.js";
+import type { SubtitleRuntimePolicy } from "../policy.js";
 import type { SubtitleApi } from "../public.js";
-import type { SubtitleStore } from "../storage.js";
-import { SubtitleFontPreparation } from "./font-preparation.js";
-import { SubtitlePreparationApplication } from "./subtitle-preparation.js";
+import type { SubtitleDiscoveryService } from "./discovery.js";
+import { readExternalSubtitle } from "./external-content.js";
+import type { SubtitleFontPreparation } from "./font-preparation.js";
+import type { SubtitlePreparationApplication } from "./subtitle-preparation.js";
 
 /** Subtitle discovery and delivery share source/version access checks. */
 export class SubtitleApplication implements SubtitleApi {
 	private readonly logger: Logger | undefined;
 	private readonly sources: ResourceAccessApi;
-	private readonly inspection: MediaInspectionApi | undefined;
+	private readonly discovery: SubtitleDiscoveryService;
 	private readonly fonts: SubtitleFontPreparation | undefined;
 	private readonly preparation: SubtitlePreparationApplication | undefined;
 	constructor(options: {
 		logger?: Logger;
 		sources: ResourceAccessApi;
-		policy?: DeepReadonly<SubtitleRuntimePolicy>;
-		inspection?: MediaInspectionApi;
-		tools?: SubtitleExtractor;
-		repository?: SubtitleStore;
-		dataDir?: string;
+		policy: DeepReadonly<SubtitleRuntimePolicy>;
+		discovery: SubtitleDiscoveryService;
+		fonts?: SubtitleFontPreparation;
+		preparation?: SubtitlePreparationApplication;
 	}) {
-		this.logger = options.logger?.child({ module: "subtitles" });
+		this.logger = options.logger;
 		this.sources = options.sources;
-		this.policy = options.policy ?? subtitleRuntimePolicy;
-		this.inspection = options.inspection;
-		if (
-			options.repository &&
-			options.dataDir &&
-			options.tools?.extractSubtitle
-		) {
-			this.fonts = new SubtitleFontPreparation({
-				dataDir: options.dataDir,
-				repository: options.repository,
-				sources: options.sources,
-				tools: options.tools,
-				policy: this.policy.subtitles,
-				...(this.logger ? { logger: this.logger } : {}),
-			});
-			this.preparation = new SubtitlePreparationApplication({
-				sources: options.sources,
-				...(this.logger ? { logger: this.logger } : {}),
-				policy: this.policy,
-				repository: options.repository,
-				dataDir: options.dataDir,
-				tools: {
-					extractSubtitle: options.tools.extractSubtitle.bind(options.tools),
-				},
-			});
-		}
+		this.policy = options.policy;
+		this.discovery = options.discovery;
+		this.fonts = options.fonts;
+		this.preparation = options.preparation;
 	}
 	private readonly policy: DeepReadonly<SubtitleRuntimePolicy>;
 	async close(): Promise<void> {
 		await Promise.allSettled([this.preparation?.close(), this.fonts?.close()]);
-	}
-	private async discoverEmbedded(
-		identity: ResolvedSource["identity"],
-		name: string,
-	): Promise<
-		Pick<SubtitleDiscovery, "tracks" | "warnings"> & { info?: MediaInfo }
-	> {
-		// No provider means this application is configured for external subtitles only.
-		if (!this.inspection) return { tracks: [], warnings: [] };
-		const key = JSON.stringify([
-			identity.canonicalRoot,
-			identity.fileId,
-			identity.sourceVersion,
-		]);
-		let info: MediaInfo;
-		try {
-			const result = await this.inspection.inspect(
-				identity.fileId,
-				identity.sourceVersion,
-			);
-			info = result.info;
-		} catch (error) {
-			if (error instanceof MediaInspectionBusyError)
-				return {
-					tracks: [],
-					warnings: [{ name, code: "SUBTITLE_PROBE_BUSY" }],
-				};
-			this.logger?.warn(
-				{
-					event: "subtitles.probe_failed",
-					fileId: identity.fileId,
-					err: error,
-				},
-				"Embedded subtitle discovery failed.",
-			);
-			if (!(error instanceof MediaToolError)) throw error;
-			return {
-				tracks: [],
-				warnings: [
-					{
-						name,
-						code:
-							error.code === "TOOL_UNAVAILABLE"
-								? "SUBTITLE_PROBE_UNAVAILABLE"
-								: "SUBTITLE_PROBE_FAILED",
-					},
-				],
-			};
-		}
-		return {
-			info,
-			warnings: [],
-			tracks: info.streams
-				.filter((stream) => stream.type === "subtitle")
-				.map((stream) => {
-					const codec = stream.codec;
-					const extractionSupported =
-						codec !== null && this.policy.subtitles.textCodecs.includes(codec);
-					const output =
-						codec === null
-							? undefined
-							: this.policy.subtitles.nativeFormats[codec];
-					const format = extractionSupported
-						? publicSubtitleFormat(
-								output ?? this.policy.subtitles.defaultExtractionFormat,
-							)
-						: null;
-					const webSupported =
-						format !== null &&
-						Object.values(this.policy.subtitles.formats).includes(format);
-					return {
-						id: subtitleTrackId([key, "embedded", stream.index]),
-						origin: "embedded" as const,
-						name: stream.tags.title || defaultSubtitleName(stream.index),
-						label: stream.tags.title ?? null,
-						language: stream.tags.language ?? null,
-						codec,
-						format,
-						sizeBytes: null,
-						sourceVersion: identity.sourceVersion,
-						default: stream.default,
-						forced: stream.forced,
-						extractionSupported,
-						webSupported,
-						unsupportedReason: !extractionSupported
-							? ("UNSUPPORTED_CODEC" as const)
-							: !webSupported
-								? ("UNSUPPORTED_FORMAT" as const)
-								: null,
-					};
-				}),
-		};
-	}
-	private async discoverForSource(source: ResolvedSource): Promise<{
-		discovery: SubtitleDiscovery;
-		resources: ResourceFiles;
-		info: MediaInfo | undefined;
-	}> {
-		const resources = await this.sources.openResources(source);
-		const external = await discoverExternalSubtitles(
-			resources,
-			source.identity.relativePath,
-			source.identity.sourceVersion,
-			this.policy.subtitles,
-			this.policy.library,
-		);
-		this.sources.assertRootEpoch(source.rootEpoch);
-		const embedded = await this.discoverEmbedded(
-			source.identity,
-			source.file.name,
-		);
-		// Successful inspection already validated this video after external discovery.
-		// Busy, unavailable and external-only discovery still need an end-of-operation check.
-		if (!embedded.info) await this.sources.revalidateSource(source);
-		this.sources.assertRootEpoch(source.rootEpoch);
-		return {
-			resources,
-			info: embedded.info,
-			discovery: {
-				...external,
-				tracks: [...external.tracks, ...embedded.tracks],
-				warnings: [...external.warnings, ...embedded.warnings],
-			},
-		};
 	}
 
 	async discoverSubtitles(id: string): Promise<SubtitleDiscovery> {
@@ -218,7 +51,7 @@ export class SubtitleApplication implements SubtitleApi {
 			"Subtitle discovery started.",
 		);
 		const source = await this.sources.resolveSource(id);
-		const { discovery } = await this.discoverForSource(source);
+		const { discovery } = await this.discovery.discoverForSource(source);
 		this.logger?.debug(
 			{
 				event: "subtitles.discovered",
@@ -260,13 +93,20 @@ export class SubtitleApplication implements SubtitleApi {
 			"Subtitle preparation requested.",
 		);
 		const source = await this.sources.resolveSource(fileId, sourceVersion);
-		const { discovery, resources, info } = await this.discoverForSource(source);
+		const { discovery, resources, info } =
+			await this.discovery.discoverForSource(source);
 		const track = discovery.tracks.find((track) => track.id === trackId);
 		if (!track)
 			throw new DomainError("RESOURCE_NOT_FOUND", "Unknown subtitle track.");
 		if (track.origin === "external") {
 			assertSourceVersion(subtitleVersion ?? "", track.sourceVersion);
-			await this.readExternalSubtitle(source, track, resources);
+			await readExternalSubtitle(
+				this.sources,
+				this.policy,
+				source,
+				track,
+				resources,
+			);
 			const fonts =
 				track.format === "ass" || track.format === "ssa"
 					? await this.fonts?.prepare(source, info)
@@ -351,38 +191,6 @@ export class SubtitleApplication implements SubtitleApi {
 		return this.preparationService().content(id);
 	}
 
-	private async readExternalSubtitle(
-		source: ResolvedSource,
-		track: ExternalSubtitle,
-		resources: ResourceFiles,
-	): Promise<{ text: string }> {
-		const identity: FileSourceIdentity = {
-			canonicalRoot: source.identity.canonicalRoot,
-			relativePath: join(dirname(source.identity.relativePath), track.name),
-			sourceVersion: track.sourceVersion,
-		};
-		this.sources.assertRootEpoch(source.rootEpoch);
-		let text: string;
-		try {
-			const file = await resources.openSubtitleSource(identity);
-			try {
-				text = await readSubtitleText(
-					file,
-					this.policy.subtitles.maximumBytes,
-					this.policy.subtitles.readChunkBytes,
-				);
-			} finally {
-				await file.release();
-			}
-			await resources.revalidateSubtitleSource(identity);
-		} catch (error) {
-			this.sources.assertRootEpoch(source.rootEpoch);
-			throw error;
-		}
-		await this.sources.revalidateSource(source);
-		return { text };
-	}
-
 	async getSubtitleContent(
 		id: string,
 		trackId: string,
@@ -408,6 +216,12 @@ export class SubtitleApplication implements SubtitleApi {
 				"The subtitle is unavailable. Refresh the subtitle list.",
 			);
 		assertSourceVersion(subtitleVersion, track.sourceVersion);
-		return this.readExternalSubtitle(source, track, resources);
+		return readExternalSubtitle(
+			this.sources,
+			this.policy,
+			source,
+			track,
+			resources,
+		);
 	}
 }

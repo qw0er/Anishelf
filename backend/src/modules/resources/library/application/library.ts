@@ -17,7 +17,7 @@ import type { LibraryIndex } from "../infrastructure/index.js";
 import type { LibraryRuntimePolicy } from "../policy.js";
 import type { LibraryApi } from "../public.js";
 import type { ScanCoordinator } from "./scan-coordinator.js";
-import type { SettingsApplication } from "./settings.js";
+import type { ResourceSettingsApplication } from "./settings.js";
 
 /** Explicit projection prevents new internal fields from leaking into public results. */
 function directoryInfo(
@@ -52,7 +52,7 @@ export class LibraryApplication<
 {
 	readonly policy: DeepReadonly<TPolicy>;
 	readonly sources: ResourceAccessApi;
-	readonly settings: SettingsApplication;
+	readonly settings: ResourceSettingsApplication;
 	private readonly scans: ScanCoordinator;
 	constructor(
 		private readonly options: {
@@ -62,7 +62,7 @@ export class LibraryApplication<
 			policy: DeepReadonly<TPolicy>;
 			sources: ResourceAccessApi;
 			scans: ScanCoordinator;
-			settings: SettingsApplication;
+			settings: ResourceSettingsApplication;
 		},
 	) {
 		this.policy = options.policy;
@@ -76,8 +76,10 @@ export class LibraryApplication<
 	getSettings() {
 		return this.settings.getSettings();
 	}
-	updateSettings(input: Parameters<SettingsApplication["updateSettings"]>[0]) {
-		return this.settings.updateSettings(input);
+	updateResourceSettings(
+		input: Parameters<ResourceSettingsApplication["updateResourceSettings"]>[0],
+	) {
+		return this.settings.updateResourceSettings(input);
 	}
 	getFile(id: string) {
 		return this.sources.getFile(id);

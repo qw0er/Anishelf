@@ -7,21 +7,11 @@ import {
 	Button,
 	buttonStyles,
 } from "../../../../shared/components/ui/button.js";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "../../../../shared/components/ui/dialog.js";
 import { DropdownMenuItem } from "../../../../shared/components/ui/dropdown-menu.js";
 import { Spinner } from "../../../../shared/components/ui/spinner.js";
-import { toast } from "../../../../shared/components/ui/toast.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
-import { createPreparation, retryPreparation } from "../api.js";
-import { audioTrackLabel, matchesAudioSelection } from "../audio-tracks.js";
-import { usePreparationContext } from "../context.js";
-import { negotiatePreparation } from "../negotiation.js";
-import { usePreparationAction } from "../use-preparations.js";
+import { usePreparationCommand } from "../use-preparation-command.js";
+import { AudioTrackDialog } from "./audio-track-dialog.js";
 
 export function PreparationButton({
 	fileId,
@@ -46,7 +36,7 @@ export function PreparationButton({
 	): void;
 	tasks?: import("../../../../shared/api/contracts.js").PreparationTaskResponse[];
 }) {
-	const { t, i18n } = useTranslation();
+	const { t } = useTranslation();
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [dialogSelection, setDialogSelection] = useState<number[] | undefined>(
 		undefined,
@@ -54,9 +44,6 @@ export function PreparationButton({
 	const tracks = result?.audioTracks ?? [];
 	const chooseTracks = tracks.length > 1 && audioStreamIndices === undefined;
 	const selection = chooseTracks ? dialogSelection : audioStreamIndices;
-	const allTracks = tracks.map(({ stream }) => stream.index);
-	const preparation = usePreparationContext();
-	const action = usePreparationAction();
 	function control(label: string, element: ReactElement, disabled = false) {
 		return menuItem ? (
 			<DropdownMenuItem
@@ -69,25 +56,17 @@ export function PreparationButton({
 			<Tooltip content={label}>{element}</Tooltip>
 		);
 	}
-	const profileLoading = !preparation.catalog && !preparation.catalogError;
-	const sourceVersion = result?.sourceVersion;
-	const profile = preparation.catalog?.selectionAvailable
-		? preparation.catalog.selectedProfileId
-		: null;
-	const task = (tasks ?? preparation.tasks).find(
-		(task) =>
-			task.fileId === fileId &&
-			sourceVersion !== undefined &&
-			task.sourceVersion === sourceVersion &&
-			task.profileId === profile &&
-			(preparation.catalog?.preparationMode !== "compatible" ||
-				task.mode === "transcode") &&
-			matchesAudioSelection(task, selection, allTracks),
-	);
-	const pending =
-		task?.status === "queued" ||
-		task?.status === "processing" ||
-		task?.status === "cancelling";
+	const { profileLoading, profile, task, pending, busy, start } =
+		usePreparationCommand({
+			fileId,
+			result,
+			...(tasks ? { tasks } : {}),
+			...(selection !== undefined ? { audioStreamIndices: selection } : {}),
+			...(onPrepared ? { onPrepared } : {}),
+			onRecheck,
+			onComplete: () => setDialogOpen(false),
+		});
+
 	if (!profile && !profileLoading)
 		return control(
 			t("preparation.configure"),
@@ -106,46 +85,15 @@ export function PreparationButton({
 	const label = t(
 		menuItem
 			? "preparation.pretranscode"
-			: action.busy
+			: busy
 				? "preparation.checking"
 				: pending
-					? `preparation.status.${task.status}`
+					? `preparation.status.${task?.status}`
 					: task?.status === "ready"
 						? "preparation.status.ready"
 						: "preparation.pretranscode",
 	);
-	function start() {
-		if (!profile || pending || task?.status === "ready") return;
-		void action.run(async (signal) => {
-			const body = await negotiatePreparation(
-				fileId,
-				profile,
-				signal,
-				sourceVersion,
-				selection,
-			);
-			if (task && (task.status === "failed" || task.status === "cancelled")) {
-				const retried = await retryPreparation(task.id, body, { signal });
-				if (signal.aborted) return;
-				onPrepared?.(retried);
-				setDialogOpen(false);
-				return;
-			}
-			const response = await createPreparation(fileId, body, { signal });
-			if (signal.aborted) return;
-			if (response.kind === "task") {
-				onPrepared?.(response.task);
-				setDialogOpen(false);
-			} else if (response.kind === "direct") onRecheck();
-			else
-				toast.add({
-					type: "warning",
-					title: t(`compatibility.reasons.${response.reason}`, {
-						defaultValue: t("preparation.blocked"),
-					}),
-				});
-		});
-	}
+
 	const button = control(
 		label,
 		<Button
@@ -161,7 +109,7 @@ export function PreparationButton({
 			focusableWhenDisabled
 			disabled={
 				profileLoading ||
-				action.busy ||
+				busy ||
 				(!chooseTracks && (pending || task?.status === "ready"))
 			}
 			onClick={() => {
@@ -171,7 +119,7 @@ export function PreparationButton({
 				} else start();
 			}}
 		>
-			{profileLoading || action.busy || pending ? (
+			{profileLoading || busy || pending ? (
 				<Spinner />
 			) : task?.status === "ready" ? (
 				<Check className="size-4" aria-hidden="true" />
@@ -181,7 +129,7 @@ export function PreparationButton({
 			{(menuItem || showLabel) && label}
 		</Button>,
 		profileLoading ||
-			action.busy ||
+			busy ||
 			(!chooseTracks && (pending || task?.status === "ready")),
 	);
 
@@ -189,83 +137,18 @@ export function PreparationButton({
 		<>
 			{button}
 			{chooseTracks && (
-				<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-					<DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
-						<DialogHeader>
-							<DialogTitle>{t("audioTracks.prepareTitle")}</DialogTitle>
-						</DialogHeader>
-						<p className="text-sm text-muted-foreground">
-							{t("audioTracks.prepareDescription")}
-						</p>
-						<div className="action-row">
-							<Button
-								variant="outline"
-								disabled={action.busy}
-								onClick={() => setDialogSelection(undefined)}
-							>
-								{t("audioTracks.all")}
-							</Button>
-							<Button
-								variant="outline"
-								disabled={action.busy}
-								onClick={() => setDialogSelection([])}
-							>
-								{t("audioTracks.none")}
-							</Button>
-						</div>
-						<fieldset className="space-y-3">
-							<legend className="sr-only">{t("audioTracks.label")}</legend>
-							{tracks.map(({ stream, compatibility }, position) => (
-								<label
-									key={stream.index}
-									className="flex items-start gap-3 text-sm"
-								>
-									<input
-										type="checkbox"
-										disabled={action.busy}
-										className="mt-1 size-4 accent-primary"
-										checked={(selection ?? allTracks).includes(stream.index)}
-										onChange={(event) => {
-											const checked = event.target.checked;
-											setDialogSelection(
-												allTracks.filter((index) =>
-													index === stream.index
-														? checked
-														: (selection ?? allTracks).includes(index),
-												),
-											);
-										}}
-									/>
-									<span>
-										{audioTrackLabel(stream, position, t, i18n.language)}
-										<span className="block text-muted-foreground">
-											{t(`compatibility.states.${compatibility.status}`)}
-										</span>
-									</span>
-								</label>
-							))}
-						</fieldset>
-						{selection?.length === 0 && (
-							<p className="text-sm text-muted-foreground">
-								{t("audioTracks.noneDescription")}
-							</p>
-						)}
-						<Button
-							disabled={action.busy || pending || task?.status === "ready"}
-							onClick={start}
-						>
-							{t(
-								action.busy
-									? "preparation.checking"
-									: pending
-										? `preparation.status.${task.status}`
-										: task?.status === "ready"
-											? "preparation.status.ready"
-											: "preparation.start",
-							)}
-						</Button>
-					</DialogContent>
-				</Dialog>
+				<AudioTrackDialog
+					dialogOpen={dialogOpen}
+					onOpenChange={setDialogOpen}
+					tracks={tracks}
+					selection={selection}
+					onSelectionChange={setDialogSelection}
+					busy={busy}
+					pending={pending}
+					ready={task?.status === "ready"}
+					status={task?.status}
+					onStart={start}
+				/>
 			)}
 		</>
 	);

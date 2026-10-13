@@ -6,12 +6,12 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { builtinPolicy } from "../src/app/policy.js";
 import { PlaybackApplication } from "../src/modules/playback/progress/application/playback.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
 import { createResourceId } from "../src/modules/resources/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import type { PersistentSettings } from "../src/modules/system/configuration/domain/model.js";
+import { createLibraryModule } from "./support/library.js";
 
 let directory: string;
 let root: string;
@@ -116,7 +116,7 @@ test("invalidates sessions across root switches and reports unknown availability
 	await playback.save(update(session));
 	const other = join(directory, "other");
 	await mkdir(other);
-	await library.updateSettings({ resourceRoot: other });
+	await library.updateResourceSettings({ resourceRoot: other });
 	await library.waitForCompletion();
 	const create = ResourceAccess.create;
 	let release = () => {};
@@ -129,7 +129,7 @@ test("invalidates sessions across root switches and reports unknown availability
 			return create(settings);
 		},
 	);
-	await library.updateSettings({ resourceRoot: root });
+	await library.updateResourceSettings({ resourceRoot: root });
 	try {
 		expect(await playback.history(undefined, "continue")).toEqual({
 			availability: "unknown",

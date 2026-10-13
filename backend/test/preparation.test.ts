@@ -10,6 +10,7 @@ import type {
 	CompatibilityCheckRequest,
 	PreparationStartResponse,
 } from "../src/contracts/http.js";
+import { createPreparationApplication } from "../src/modules/media/composition/preparation-application.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
 import type {
@@ -17,7 +18,7 @@ import type {
 	MediaProcessingApi,
 	ProcessedMedia,
 } from "../src/modules/media/media-processing/public.js";
-import { PreparationApplication } from "../src/modules/media/preparation/application/preparation.js";
+import type { PreparationApplication } from "../src/modules/media/preparation/application/preparation.js";
 import {
 	preparationStartResponse,
 	preparationTaskResponse,
@@ -28,7 +29,6 @@ import {
 } from "../src/modules/media/preparation/infrastructure/files.js";
 import { preparationPolicy } from "../src/modules/media/preparation/policy.js";
 import { PlaybackApplication } from "../src/modules/playback/progress/application/playback.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import {
 	builtinTranscodeProfiles,
@@ -38,6 +38,7 @@ import { MediaToolError } from "../src/platform/media/index.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
+import { createLibraryModule } from "./support/library.js";
 
 const cleanup: Array<() => Promise<unknown>> = [];
 const logger = pino({ enabled: false });
@@ -185,7 +186,7 @@ async function fixture(
 			repository: database.playback,
 			logger,
 		});
-		preparation = new PreparationApplication({
+		preparation = createPreparationApplication({
 			sources: library.sources,
 			planning: compatibility,
 			processing,
@@ -1258,7 +1259,7 @@ test("summaries separate source versions and filter the current profile and root
 	).toEqual([]);
 	const otherRoot = join(f.dataDir, "other-root");
 	await mkdir(otherRoot, { recursive: true });
-	await f.library.updateSettings({ resourceRoot: otherRoot });
+	await f.library.updateResourceSettings({ resourceRoot: otherRoot });
 	expect(
 		(await f.application.summaries([ready.fileId])).files[0]?.versions,
 	).toEqual([]);
