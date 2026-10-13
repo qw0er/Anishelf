@@ -1,14 +1,14 @@
 import pino from "pino";
 import { beforeEach, expect, test, vi } from "vitest";
-import { createHttpApp } from "../src/bootstrap/http.js";
-import { createPlaybackCopies } from "../src/bootstrap/playback-selection.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
+import { createPlaybackCopies } from "../src/app/bootstrap/playback-selection.js";
 import type {
 	CompatibilityInspection,
 	PlaybackSelectionRequest,
 } from "../src/contracts/http.js";
-import type { CheckedCompatibility } from "../src/modules/media-planning/public.js";
-import { PlaybackSelectionApplication } from "../src/modules/playback-selection/application/selection.js";
-import type { PreparationView } from "../src/modules/preparation/public.js";
+import type { CheckedCompatibility } from "../src/modules/media/media-planning/public.js";
+import type { PreparationView } from "../src/modules/media/preparation/public.js";
+import { PlaybackSelectionApplication } from "../src/modules/playback/playback-selection/application/selection.js";
 import { DomainError } from "../src/shared/errors.js";
 
 const fileId = "a".repeat(64);

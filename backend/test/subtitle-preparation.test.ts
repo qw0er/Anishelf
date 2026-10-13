@@ -10,22 +10,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { ApplicationDatabase } from "../src/bootstrap/database.js";
-import { createHttpApp } from "../src/bootstrap/http.js";
-import { createLibraryModule } from "../src/bootstrap/library.js";
+import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
+import { createLibraryModule } from "../src/app/bootstrap/library.js";
 import type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
 } from "../src/contracts/http.js";
+import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
+import { SubtitleApplication } from "../src/modules/media/subtitles/application/subtitles.js";
+import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
+import { createResourceId } from "../src/modules/resources/library/domain/model.js";
+import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
-} from "../src/modules/configuration/policy.js";
-import type { LibraryApplication } from "../src/modules/library/application/library.js";
-import { createResourceId } from "../src/modules/library/domain/model.js";
-import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
-import { SubtitleApplication } from "../src/modules/subtitles/application/subtitles.js";
+} from "../src/modules/system/configuration/policy.js";
 import {
 	type MediaInfo,
 	type MediaStream,

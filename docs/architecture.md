@@ -22,12 +22,11 @@ and processing. Original resources remain read-only.
 
 ![Anishelf overall architecture](architecture.svg)
 
-The diagram shows resource/playback module owners and the main system layers.
-The backend Identification, Metadata and Anime Catalog owners are described below
-and are not yet shown in the diagram. Solid arrows
-show calls or mechanism use; dashed arrows show bootstrap assembly. Selected
-cross-module relationships are summarized below the diagram rather than presented
-as a complete dependency graph.
+The diagram groups all thirteen runtime modules by capability. Groups organize
+source files; they do not introduce services or grant access to another module's
+implementation. Solid arrows show layer calls or mechanism use; dashed arrows
+show application assembly. The collaboration table below identifies the main
+module interfaces rather than every import.
 
 Bootstrap constructs modules, injects dependencies and owns startup/shutdown.
 Background-work owners stop before shared media services and persistence close.
@@ -64,22 +63,103 @@ is available. [Anime Catalog](anime-catalog.md) consumes complete publications,
 preserves manual decisions and owns confirmation/query HTTP APIs. The Web workflow
 remains pending.
 
-## Dependency boundaries
+## Source organization and dependency boundaries
 
-Cross-module consumers use explicit Public APIs and consumer-owned ports, including
-for type imports. Only bootstrap imports another module's implementations for
-assembly. Runtime dependencies remain acyclic; shared source identities prevent
-features from creating conflicting views of the same resource.
+The backend source has six responsibility roots:
 
-HTTP handlers call their own Application. Applications coordinate domain decisions,
-ports and module Public APIs. Domain code and business contracts remain independent
-of HTTP schemas, Applications and concrete infrastructure. Platform adapters supply
-filesystem, database and process mechanisms without owning business workflows or
-importing business modules. Configuration validates inputs before injection.
+| Root | Responsibility |
+| --- | --- |
+| `app` | Startup/shutdown, module assembly in `bootstrap`, schema aggregation and cross-module workflows |
+| `modules` | Independently owned business capabilities, grouped by `system`, `resources`, `media`, `playback` and `anime` |
+| `contracts` | Browser-safe public protocol shapes, schemas and stable shared protocol constants |
+| `platform` | Database connection capabilities, filesystem/process mechanisms, media tools and logging |
+| `shared` | Small internal concepts and tools: source identities, errors, readonly policy utilities, sorting and fingerprints |
+| `transport` | HTTP mechanisms, security, errors, streaming and projections genuinely shared by several handlers |
 
-Frontend routes compose features through public entries. Shared query infrastructure
-owns server data; components and playback controllers own transient interaction
-and browser-media state. Shared UI conventions belong to the design system.
+The groups contain Configuration; Library and Resource Access; Inspection,
+Planning, Processing, Preparation and Subtitles; Playback and Playback Selection;
+and Identification, Metadata and Anime Catalog, respectively. Module grouping is
+not a new API boundary. Every module still exposes its own `public.ts`.
+
+Cross-module consumers use explicit Public APIs and consumer-owned ports,
+including for type imports. Only `app` imports module implementations to assemble
+them. Modules cannot import `app`; platform and shared cannot import business
+modules. Public and policy entries cannot load Application or adapter implementations.
+Runtime dependencies remain acyclic.
+
+`persistence.ts` is a separate, restricted database-adapter entry. It exports table
+definitions needed by migrations, cross-module foreign keys and adapter queries;
+it does not expose repositories or business operations. Only module database
+adapters and application assembly may import these entries. Applications, domain
+code, HTTP handlers and business Public APIs cannot use them. Each module owns
+its schema beside its repository; `app/schema.ts` aggregates these entries for
+Drizzle initialization and migration tooling. `platform/database` owns the
+schema-independent table/transaction connection capability. Existing migrations
+and database identities are unchanged by source reorganization.
+
+HTTP handlers call their own Application. Module-specific presenters live beside
+the handlers; common file, media and compatibility projections remain in transport.
+Applications coordinate domain decisions, ports and module Public APIs. Domain
+code and business contracts do not derive types from HTTP schemas. Configuration
+owns settings and profile types; Planning owns negotiation and planning results;
+Processing owns execution requests and handles; Preparation owns durable task
+snapshots. Platform media owns encoder settings, low-level execution specifications,
+process events and FFmpeg capability inventories.
+
+Internal layout follows actual complexity. Media Inspection has a root-level
+Application, ports and policy rather than an otherwise empty domain directory.
+Module policy definitions live directly in `policy.ts`. Preparation scheduling,
+execution and artifact lifetimes, subtitle/font lifetimes, recognition rules and
+Catalog use cases retain separate implementations because they have distinct
+responsibilities.
+
+### Module collaboration
+
+| Consumer | Public capability or injected port |
+| --- | --- |
+| Library | Configuration settings; Resource Access root validation/opening capability injected by app, plus public MIME classification |
+| Resource Access | Configuration settings and an app-supplied resource catalog port; owns source identity/epoch validation |
+| Inspection | Resource Access source resolution and an injected media probe |
+| Planning | Inspection results, Resource Access validity and Configuration profiles; returns read-only decisions |
+| Processing | Inspection and Resource Access; executes through an injected platform media adapter |
+| Preparation | Planning and Processing APIs, Configuration profiles and Resource Access; owns jobs and artifacts |
+| Playback Selection | Planning, Resource Access and a consumer-owned prepared-copy port implemented through Preparation in app |
+| Playback | Resource Access and its own persistence port; owns progress sessions independently of selection |
+| Subtitles | Resource Access, Inspection and injected media tools; owns subtitle/font assets |
+| Automatic identification workflow | Library publication/read API, Resource Access and Identification; forwards complete proposals to Catalog through app wiring |
+| Identification | Injected parser and consumer-owned Metadata port, adapted from Metadata Public API by app |
+| Anime Catalog | Identification proposal types, Metadata snapshots/pins and Resource Access registration/validity |
+
+Application assembly owns construction and degraded-startup handling. The main
+entry connects modules and preserves shutdown order: automatic identification,
+Catalog, Metadata, Preparation, Playback, Subtitles, Library, media execution,
+Inspection, database, then logging.
+
+### Frontend ownership
+
+Web source uses `app`, `features` and `shared`, with the browser entry and global
+styles at the source root. `app` owns routes, layout, Providers and cross-feature
+coordination. Routes and sibling features consume only feature `public.ts` entries.
+Features cannot import app implementations; shared cannot import features or app.
+
+Features own endpoint requests, query keys, polling, policies, components and
+controllers. Library owns browsing/scans; Resource Access owns file reads reused
+by browsing and playback; History owns its page and queries; Settings owns resource,
+transcode-profile and external-player controls. Playback, Preparation and Subtitles
+own their respective interactions. Media Compatibility owns browser capability
+checks and compatibility negotiation. Settings profile controls receive preparation
+actions from app so Settings and Preparation do not create a runtime dependency
+cycle.
+
+Shared code owns HTTP request/error handling, QueryClient and cancellation helpers,
+query scope, UI primitives, navigation URL helpers, translations and general tools.
+Query key values and source scopes remain unchanged: source refreshes do not reset
+an unchanged player's transient state. App owns cross-feature cache invalidation;
+features expose only the entries other consumers actually need.
+
+Dependency-cruiser checks these directions, private module access (including type,
+re-export and literal dynamic imports), persistence entry restrictions, unresolved
+imports and runtime cycles. Fixture tests cover both permitted and rejected access.
 
 ## Core collaboration
 

@@ -1,7 +1,10 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { ApiClientError, type RequestOptions } from "../../api/client.js";
-import { fileQuery } from "../../api/queries.js";
-import { loadQuery, queryClient } from "../../api/query-client.js";
+import {
+	ApiClientError,
+	type RequestOptions,
+} from "../../shared/api/client.js";
+import { loadQuery, queryClient } from "../../shared/api/query-client.js";
+import { fileQuery } from "../resource-access/public.js";
 
 /** Recheck access and accept only the original-media route for the selected file. */
 export async function resolveMediaLink(

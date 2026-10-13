@@ -1,13 +1,15 @@
+import * as playbackApi from "../src/features/playback/api.js";
+import * as resourceApi from "../src/features/resource-access/api.js";
+import { ApiClientError } from "../src/shared/api/client.js";
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import * as api from "../src/api/client.js";
-import { Toaster, toast } from "../src/components/ui/toast.js";
 import MediaLink from "../src/features/playback/components/media-link.js";
 import {
 	createMediaLink,
 	createMediaPlaylist,
 } from "../src/features/playback/media-link.js";
+import { Toaster, toast } from "../src/shared/components/ui/toast.js";
 import {
 	act,
 	cleanup,
@@ -16,7 +18,7 @@ import {
 	screen,
 	waitFor,
 } from "./query-test-utils.js";
-import "../src/i18n.js";
+import "../src/shared/i18n.js";
 
 const fileId = "file_123";
 const file = {
@@ -35,7 +37,7 @@ const writeText = vi.fn().mockResolvedValue(undefined);
 beforeEach(() => {
 	writeText.mockReset().mockResolvedValue(undefined);
 	vi.stubGlobal("navigator", { clipboard: { writeText } });
-	vi.spyOn(api, "getFile").mockResolvedValue(file);
+	vi.spyOn(resourceApi, "getFile").mockResolvedValue(file);
 });
 afterEach(() => {
 	act(() => toast.close());
@@ -60,7 +62,7 @@ test("downloads original media with its filename without buffering or opening pl
 	) {
 		downloads.push({ url: this.href, filename: this.download });
 	});
-	const open = vi.spyOn(api, "openPlaybackSession");
+	const open = vi.spyOn(playbackApi, "openPlaybackSession");
 	render(<MediaLink fileId={fileId} download />);
 	fireEvent.click(screen.getByRole("button", { name: "Download video" }));
 	await waitFor(() =>
@@ -71,7 +73,7 @@ test("downloads original media with its filename without buffering or opening pl
 			},
 		]),
 	);
-	expect(api.getFile).toHaveBeenCalledWith(fileId, {
+	expect(resourceApi.getFile).toHaveBeenCalledWith(fileId, {
 		signal: expect.any(AbortSignal),
 	});
 	expect(open).not.toHaveBeenCalled();
@@ -79,7 +81,7 @@ test("downloads original media with its filename without buffering or opening pl
 });
 
 test("does not start a download when the file access check fails", async () => {
-	vi.mocked(api.getFile).mockRejectedValue(new Error("unavailable"));
+	vi.mocked(resourceApi.getFile).mockRejectedValue(new Error("unavailable"));
 	const click = vi
 		.spyOn(HTMLAnchorElement.prototype, "click")
 		.mockImplementation(() => {});
@@ -112,21 +114,24 @@ test.each([
 	"/api/media/file_123?path=/secret",
 	"//other.test/media",
 ])("rejects unexpected media route %s", async (originalMediaUrl) => {
-	vi.mocked(api.getFile).mockResolvedValue({ ...file, originalMediaUrl });
+	vi.mocked(resourceApi.getFile).mockResolvedValue({
+		...file,
+		originalMediaUrl,
+	});
 	await expect(
 		createMediaLink(fileId, "http://localhost:9000"),
 	).rejects.toMatchObject({ kind: "invalid_response" });
 });
 test("rechecks the file, copies its link and does not touch playback state", async () => {
-	const open = vi.spyOn(api, "openPlaybackSession");
-	const save = vi.spyOn(api, "savePlaybackProgress");
+	const open = vi.spyOn(playbackApi, "openPlaybackSession");
+	const save = vi.spyOn(playbackApi, "savePlaybackProgress");
 	renderMediaLink();
 	fireEvent.click(screen.getByRole("button", { name: "Copy media link" }));
 	await screen.findByText(/Link copied/);
 	expect(writeText).toHaveBeenCalledWith(
 		`${window.location.origin}${file.originalMediaUrl}`,
 	);
-	expect(api.getFile).toHaveBeenCalledWith(fileId, {
+	expect(resourceApi.getFile).toHaveBeenCalledWith(fileId, {
 		signal: expect.any(AbortSignal),
 	});
 	expect(open).not.toHaveBeenCalled();
@@ -160,8 +165,8 @@ test("clears a previous link if the source disappears and allows retry", async (
 	const button = screen.getByRole("button", { name: "Copy media link" });
 	fireEvent.click(button);
 	await screen.findByText(/Link copied/);
-	vi.mocked(api.getFile).mockRejectedValue(
-		new api.ApiClientError({
+	vi.mocked(resourceApi.getFile).mockRejectedValue(
+		new ApiClientError({
 			kind: "http",
 			status: 404,
 			code: "RESOURCE_MISSING",
@@ -175,7 +180,7 @@ test("clears a previous link if the source disappears and allows retry", async (
 	);
 	expect(screen.queryByRole("textbox", { name: "Media link" })).toBeNull();
 	expect(writeText).toHaveBeenCalledTimes(1);
-	vi.mocked(api.getFile).mockResolvedValue(file);
+	vi.mocked(resourceApi.getFile).mockResolvedValue(file);
 	fireEvent.click(button);
 	await screen.findByText(/Link copied/);
 	await waitFor(() =>
@@ -189,7 +194,7 @@ test("clears a previous link if the source disappears and allows retry", async (
 });
 test("prevents duplicate requests and cancels on unmount", async () => {
 	let signal: AbortSignal | undefined;
-	vi.mocked(api.getFile).mockImplementation((_id, options) => {
+	vi.mocked(resourceApi.getFile).mockImplementation((_id, options) => {
 		signal = options?.signal;
 		return new Promise(() => {});
 	});
@@ -200,7 +205,7 @@ test("prevents duplicate requests and cancels on unmount", async () => {
 	fireEvent.click(button);
 	fireEvent.click(button);
 	await waitFor(() => expect(button.disabled).toBe(true));
-	expect(api.getFile).toHaveBeenCalledTimes(1);
+	expect(resourceApi.getFile).toHaveBeenCalledTimes(1);
 	view.unmount();
 	expect(signal?.aborted).toBe(true);
 	expect(writeText).not.toHaveBeenCalled();
@@ -248,7 +253,7 @@ test("Escape dismisses the dialog and returns focus to the copy button", async (
 });
 
 test("playlist keeps Unicode metadata and prevents filename line injection", async () => {
-	vi.mocked(api.getFile).mockResolvedValue({
+	vi.mocked(resourceApi.getFile).mockResolvedValue({
 		...file,
 		file: { ...file.file, name: "中文\n#EXTINF:1,injected\r\n/movie.mp4" },
 	});
@@ -268,7 +273,7 @@ test("downloads a playlist without starting a playback session", async () => {
 	const click = vi
 		.spyOn(HTMLAnchorElement.prototype, "click")
 		.mockImplementation(() => {});
-	const open = vi.spyOn(api, "openPlaybackSession");
+	const open = vi.spyOn(playbackApi, "openPlaybackSession");
 	render(<MediaLink fileId={fileId} playlist />);
 	fireEvent.click(
 		screen.getByRole("button", { name: "Download playlist (.m3u)" }),

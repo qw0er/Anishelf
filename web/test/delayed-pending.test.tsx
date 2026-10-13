@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { afterEach, expect, test, vi } from "vitest";
-import { useDelayedPending } from "../src/hooks/use-delayed-pending.js";
+import { useDelayedPending } from "../src/shared/hooks/use-delayed-pending.js";
 import { act, cleanup, renderHook } from "./query-test-utils.js";
 
 afterEach(() => {

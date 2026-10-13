@@ -3,20 +3,20 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
-import { ApplicationDatabase } from "../src/bootstrap/database.js";
-import { createHttpApp } from "../src/bootstrap/http.js";
+import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
 import {
 	createIdentificationMetadata,
 	createMetadataModule,
-} from "../src/bootstrap/metadata.js";
-import { IdentificationApplication } from "../src/modules/identification/application/identification.js";
-import { AnitomyIdentificationParser } from "../src/modules/identification/infrastructure/parser.js";
-import { MetadataApplication } from "../src/modules/metadata/application/metadata.js";
-import { AniListProvider } from "../src/modules/metadata/infrastructure/anilist.js";
-import { MetadataArtworkCache } from "../src/modules/metadata/infrastructure/artwork.js";
-import { metadataPolicy } from "../src/modules/metadata/policy.js";
-import type { CacheEntry } from "../src/modules/metadata/ports.js";
-import { MetadataError } from "../src/modules/metadata/public.js";
+} from "../src/app/bootstrap/metadata.js";
+import { IdentificationApplication } from "../src/modules/anime/identification/application/identification.js";
+import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
+import { MetadataApplication } from "../src/modules/anime/metadata/application/metadata.js";
+import { AniListProvider } from "../src/modules/anime/metadata/infrastructure/anilist.js";
+import { MetadataArtworkCache } from "../src/modules/anime/metadata/infrastructure/artwork.js";
+import { metadataPolicy } from "../src/modules/anime/metadata/policy.js";
+import type { CacheEntry } from "../src/modules/anime/metadata/ports.js";
+import { MetadataError } from "../src/modules/anime/metadata/public.js";
 
 const logger = pino({ enabled: false });
 const reference = {

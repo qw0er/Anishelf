@@ -4,8 +4,8 @@ import { join } from "node:path";
 import pino from "pino";
 import { Check } from "typebox/value";
 import { afterEach, expect, test, vi } from "vitest";
-import { createHttpApp } from "../src/bootstrap/http.js";
-import { createLibraryModule } from "../src/bootstrap/library.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
+import { createLibraryModule } from "../src/app/bootstrap/library.js";
 import type {
 	CompatibilityCheckRequest,
 	CompatibilityEvidence,
@@ -15,19 +15,19 @@ import {
 	CompatibilityResultSchema,
 } from "../src/contracts/schemas/compatibility.js";
 import { PlaybackPlanSchema } from "../src/contracts/schemas/playback.js";
-import {
-	builtinTranscodeProfiles,
-	type TranscodeProfile,
-} from "../src/modules/configuration/public.js";
-import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
-import { MediaPlanningApplication } from "../src/modules/media-planning/application/planning.js";
-import { resolveHlsExecutionPlan } from "../src/modules/media-planning/domain/hls-execution-plan.js";
+import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
+import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
+import { resolveHlsExecutionPlan } from "../src/modules/media/media-planning/domain/hls-execution-plan.js";
 import {
 	expectedOutputSpec,
 	resolveExecutionPlan as resolvePreparationExecutionPlan,
-} from "../src/modules/media-planning/public.js";
-import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
+} from "../src/modules/media/media-planning/public.js";
+import { PlaybackApplication } from "../src/modules/playback/playback/application/playback.js";
+import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import {
+	builtinTranscodeProfiles,
+	type TranscodeProfile,
+} from "../src/modules/system/configuration/public.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { fingerprint } from "../src/shared/fingerprint.js";
 import { presentCompatibility } from "../src/transport/presenters/compatibility.js";

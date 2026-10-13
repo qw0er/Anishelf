@@ -1,19 +1,20 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import * as api from "../src/api/client.js";
+import * as playbackApi from "../src/features/playback/api.js";
+import { PlaybackActionsMenu } from "../src/features/playback/components/external-player-menu.js";
+import * as resourceApi from "../src/features/resource-access/api.js";
+import { ExternalPlayerSettings } from "../src/features/settings/components/external-player-settings.js";
 import {
 	detectClientPlatform,
 	externalPlayerPolicy,
 	presetsForPlatform,
-} from "../src/config/external-player-policy.js";
-import { PlaybackActionsMenu } from "../src/features/playback/components/external-player-menu.js";
-import { ExternalPlayerSettings } from "../src/features/playback/components/external-player-settings.js";
+} from "../src/features/settings/external-player-policy.js";
 import {
 	buildPlayerUrl,
 	readCustomPlayers,
 	validPlayerTemplate,
-} from "../src/features/playback/external-players.js";
-import { useExternalPlayers } from "../src/features/playback/hooks/use-external-players.js";
+} from "../src/features/settings/external-players.js";
+import { useExternalPlayers } from "../src/features/settings/hooks/use-external-players.js";
 import {
 	act,
 	cleanup,
@@ -23,7 +24,7 @@ import {
 	screen,
 	waitFor,
 } from "./query-test-utils.js";
-import "../src/i18n.js";
+import "../src/shared/i18n.js";
 
 const file = {
 	file: {
@@ -39,7 +40,7 @@ const file = {
 };
 beforeEach(() => {
 	localStorage.clear();
-	vi.spyOn(api, "getFile").mockResolvedValue(file);
+	vi.spyOn(resourceApi, "getFile").mockResolvedValue(file);
 	vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Macintosh");
 	vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
 });
@@ -198,10 +199,10 @@ test("menu prepares native anchors for detected presets and custom players witho
 			{ id: "custom:1", name: "My player", template: "custom://{urlEncoded}" },
 		]),
 	);
-	const open = vi.spyOn(api, "openPlaybackSession");
-	const save = vi.spyOn(api, "savePlaybackProgress");
+	const open = vi.spyOn(playbackApi, "openPlaybackSession");
+	const save = vi.spyOn(playbackApi, "savePlaybackProgress");
 	render(<PlaybackActionsMenu fileId="file_123" />);
-	expect(api.getFile).not.toHaveBeenCalled();
+	expect(resourceApi.getFile).not.toHaveBeenCalled();
 	fireEvent.click(
 		screen.getByRole("button", { name: "More playback options" }),
 	);
@@ -225,7 +226,7 @@ test("menu prepares native anchors for detected presets and custom players witho
 });
 
 test("failed media validation disables handoff and retry rechecks access", async () => {
-	vi.mocked(api.getFile).mockResolvedValue({
+	vi.mocked(resourceApi.getFile).mockResolvedValue({
 		...file,
 		originalMediaUrl: "https://evil.test/media",
 	});
@@ -240,7 +241,7 @@ test("failed media validation disables handoff and retry rechecks access", async
 	expect(
 		screen.getByRole("menuitem", { name: "IINA" }).getAttribute("href"),
 	).toBeNull();
-	vi.mocked(api.getFile).mockResolvedValue(file);
+	vi.mocked(resourceApi.getFile).mockResolvedValue(file);
 	fireEvent.click(screen.getByRole("menuitem", { name: "Retry" }));
 	await waitFor(() =>
 		expect(

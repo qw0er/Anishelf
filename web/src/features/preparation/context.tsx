@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, type ReactNode, useCallback, useContext } from "react";
-import type { TranscodeProfileCatalog } from "../../api/contracts.js";
-import { keys, profilesQuery } from "../../api/queries.js";
+import type { TranscodeProfileCatalog } from "../../shared/api/contracts.js";
+import { profilesQuery, settingsKeys } from "../settings/public.js";
 
 import { usePreparations } from "./use-preparations.js";
 
@@ -25,10 +25,10 @@ export function PreparationProvider({ children }: { children: ReactNode }) {
 				catalog,
 				catalogError,
 				updateCatalog: (value) => {
-					client.setQueryData(keys.profiles, value);
+					client.setQueryData(settingsKeys.profiles, value);
 				},
 				refreshCatalog: useCallback(() => {
-					void client.invalidateQueries({ queryKey: keys.profiles });
+					void client.invalidateQueries({ queryKey: settingsKeys.profiles });
 				}, [client]),
 			}}
 		>

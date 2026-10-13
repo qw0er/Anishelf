@@ -8,15 +8,15 @@ import {
 	X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import type { PreparationTaskResponse } from "../../../shared/api/contracts.js";
+import { Button } from "../../../shared/components/ui/button.js";
+import { Spinner } from "../../../shared/components/ui/spinner.js";
+import { Tooltip } from "../../../shared/components/ui/tooltip.js";
 import {
 	cancelPreparation,
 	deletePreparedMedia,
 	retryPreparation,
-} from "../../../api/client.js";
-import type { PreparationTaskResponse } from "../../../api/contracts.js";
-import { Button } from "../../../components/ui/button.js";
-import { Spinner } from "../../../components/ui/spinner.js";
-import { Tooltip } from "../../../components/ui/tooltip.js";
+} from "../api.js";
 import { negotiatePreparation } from "../negotiation.js";
 import { usePreparationAction } from "../use-preparations.js";
 

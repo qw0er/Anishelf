@@ -1,23 +1,29 @@
+import * as mediacompatibilityApi from "../src/features/media-compatibility/api.js";
+import * as preparationApi from "../src/features/preparation/api.js";
+import {
+	usePreparationAction,
+	usePreparationContext,
+} from "../src/features/preparation/public.js";
+import * as settingsApi from "../src/features/settings/api.js";
 // @vitest-environment happy-dom
 
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import * as api from "../src/api/client.js";
+import { FileActions } from "../src/features/library/components/file-actions.js";
+import * as capabilities from "../src/features/media-compatibility/capabilities.js";
+import { PreparationButton } from "../src/features/preparation/components/preparation-button.js";
+import { PreparationMonitor } from "../src/features/preparation/components/preparation-monitor.js";
+import { PreparationTaskCard } from "../src/features/preparation/components/task-card.js";
+import { PreparationProvider } from "../src/features/preparation/context.js";
+import { PreparationProfileSettings as ProfileSettings } from "../src/features/settings/components/profile-settings.js";
 import type {
 	CompatibilityInspection,
 	CompatibilityResult,
 	PreparationTaskResponse,
-} from "../src/api/contracts.js";
-import { FileActions } from "../src/features/library/components/file-actions.js";
-import { PreparationButton } from "../src/features/preparation/components/preparation-button.js";
-import { PreparationMonitor } from "../src/features/preparation/components/preparation-monitor.js";
-import { PreparationProfileSettings } from "../src/features/preparation/components/profile-settings.js";
-import { PreparationTaskCard } from "../src/features/preparation/components/task-card.js";
-import { PreparationProvider } from "../src/features/preparation/context.js";
-import * as capabilities from "../src/lib/media-capabilities.js";
+} from "../src/shared/api/contracts.js";
 import { cleanup, fireEvent, render, waitFor } from "./query-test-utils.js";
-import "../src/i18n.js";
+import "../src/shared/i18n.js";
 
 const task: PreparationTaskResponse = {
 	id: "task-1",
@@ -93,24 +99,30 @@ function Wrapper({ children }: { children: ReactNode }) {
 	);
 }
 beforeEach(() => {
-	vi.spyOn(api, "getTranscodeProfiles").mockResolvedValue(catalog);
-	vi.spyOn(api, "getPreparations").mockResolvedValue({ tasks: [] });
-	vi.spyOn(api, "getFilePreparations").mockImplementation(async () =>
-		api.getPreparations(),
+	vi.spyOn(settingsApi, "getTranscodeProfiles").mockResolvedValue(catalog);
+	vi.spyOn(preparationApi, "getPreparations").mockResolvedValue({ tasks: [] });
+	vi.spyOn(preparationApi, "getFilePreparations").mockImplementation(async () =>
+		preparationApi.getPreparations(),
 	);
-	vi.spyOn(api, "inspectMediaCompatibility").mockResolvedValue(description);
+	vi.spyOn(
+		mediacompatibilityApi,
+		"inspectMediaCompatibility",
+	).mockResolvedValue(description);
 	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([...evidence]);
-	vi.spyOn(api, "createPreparation").mockResolvedValue({ kind: "task", task });
-	vi.spyOn(api, "checkMediaCompatibility").mockResolvedValue({
+	vi.spyOn(preparationApi, "createPreparation").mockResolvedValue({
+		kind: "task",
+		task,
+	});
+	vi.spyOn(mediacompatibilityApi, "checkMediaCompatibility").mockResolvedValue({
 		output: { combinations: { "copy-copy": "supported" } },
 	} as unknown as CompatibilityResult);
-	vi.spyOn(api, "cancelPreparation").mockResolvedValue({
+	vi.spyOn(preparationApi, "cancelPreparation").mockResolvedValue({
 		...task,
 		status: "cancelled",
 	});
-	vi.spyOn(api, "retryPreparation").mockResolvedValue(task);
-	vi.spyOn(api, "deletePreparedMedia").mockResolvedValue();
-	vi.spyOn(api, "selectTranscodeProfile").mockResolvedValue(catalog);
+	vi.spyOn(preparationApi, "retryPreparation").mockResolvedValue(task);
+	vi.spyOn(preparationApi, "deletePreparedMedia").mockResolvedValue();
+	vi.spyOn(settingsApi, "selectTranscodeProfile").mockResolvedValue(catalog);
 });
 afterEach(() => {
 	cleanup();
@@ -147,10 +159,14 @@ test.each(["loading", "supported", "unknown", "failed"])(
 		await waitFor(() =>
 			expect((action as HTMLButtonElement).disabled).toBe(false),
 		);
-		expect(api.inspectMediaCompatibility).not.toHaveBeenCalled();
+		expect(
+			mediacompatibilityApi.inspectMediaCompatibility,
+		).not.toHaveBeenCalled();
 		fireEvent.click(action);
-		await waitFor(() => expect(api.createPreparation).toHaveBeenCalled());
-		expect(api.inspectMediaCompatibility).toHaveBeenCalled();
+		await waitFor(() =>
+			expect(preparationApi.createPreparation).toHaveBeenCalled(),
+		);
+		expect(mediacompatibilityApi.inspectMediaCompatibility).toHaveBeenCalled();
 	},
 );
 test("directory icon action exposes its tooltip on keyboard focus", async () => {
@@ -165,14 +181,16 @@ test("directory icon action exposes its tooltip on keyboard focus", async () => 
 	);
 });
 test("explicit directory preparation negotiates fresh evidence and opens the global collapsible monitor", async () => {
-	vi.mocked(api.createPreparation).mockImplementation(async () => {
-		vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [task] });
+	vi.mocked(preparationApi.createPreparation).mockImplementation(async () => {
+		vi.mocked(preparationApi.getPreparations).mockResolvedValue({
+			tasks: [task],
+		});
 		return { kind: "task", task };
 	});
 	const view = button();
 	fireEvent.click(await view.findByRole("button", { name: "Pre-transcode" }));
 	await waitFor(() =>
-		expect(api.createPreparation).toHaveBeenCalledWith(
+		expect(preparationApi.createPreparation).toHaveBeenCalledWith(
 			"file",
 			{
 				sourceVersion: "version",
@@ -191,7 +209,7 @@ test("explicit directory preparation negotiates fresh evidence and opens the glo
 	fireEvent.click(toggle);
 	expect(toggle.getAttribute("aria-expanded")).toBe("false");
 	view.unmount();
-	expect(api.cancelPreparation).not.toHaveBeenCalled();
+	expect(preparationApi.cancelPreparation).not.toHaveBeenCalled();
 });
 test("target profile is saved in Settings through the persistent selection API", async () => {
 	const view = render(
@@ -210,7 +228,7 @@ test("target profile is saved in Settings through the persistent selection API",
 		view.getByRole("button", { name: "Save preparation settings" }),
 	);
 	await waitFor(() =>
-		expect(api.selectTranscodeProfile).toHaveBeenCalledWith(
+		expect(settingsApi.selectTranscodeProfile).toHaveBeenCalledWith(
 			task.profileId,
 			expect.anything(),
 			"fast",
@@ -218,7 +236,7 @@ test("target profile is saved in Settings through the persistent selection API",
 	);
 });
 test("an unavailable target selection sends the user to Settings instead of guessing a profile", async () => {
-	vi.mocked(api.getTranscodeProfiles).mockResolvedValue({
+	vi.mocked(settingsApi.getTranscodeProfiles).mockResolvedValue({
 		...catalog,
 		selectedProfileId: "custom:missing",
 		selectionAvailable: false,
@@ -232,7 +250,7 @@ test("cancel and retry remain explicit and retry obtains fresh evidence", async 
 	const view = render(<PreparationTaskCard task={task} />);
 	fireEvent.click(view.getByRole("button", { name: "Cancel preparation" }));
 	await waitFor(() =>
-		expect(api.cancelPreparation).toHaveBeenCalledWith(
+		expect(preparationApi.cancelPreparation).toHaveBeenCalledWith(
 			task.id,
 			expect.anything(),
 		),
@@ -244,7 +262,7 @@ test("cancel and retry remain explicit and retry obtains fresh evidence", async 
 	);
 	fireEvent.click(view.getByRole("button", { name: "Retry preparation" }));
 	await waitFor(() =>
-		expect(api.retryPreparation).toHaveBeenCalledWith(
+		expect(preparationApi.retryPreparation).toHaveBeenCalledWith(
 			task.id,
 			expect.objectContaining({ evidence }),
 			expect.anything(),
@@ -263,15 +281,17 @@ test("metadata watch intent requires server selection and deleting never cancels
 	).toBeTruthy();
 	fireEvent.click(view.getByRole("button", { name: "Delete prepared copy" }));
 	await waitFor(() =>
-		expect(api.deletePreparedMedia).toHaveBeenCalledWith(
+		expect(preparationApi.deletePreparedMedia).toHaveBeenCalledWith(
 			ready.artifactId,
 			expect.anything(),
 		),
 	);
-	expect(api.cancelPreparation).not.toHaveBeenCalled();
+	expect(preparationApi.cancelPreparation).not.toHaveBeenCalled();
 });
 test("file menu discovers older prepared copies and deletes them even for a supported original", async () => {
-	vi.mocked(api.getFilePreparations).mockResolvedValue({ tasks: [ready] });
+	vi.mocked(preparationApi.getFilePreparations).mockResolvedValue({
+		tasks: [ready],
+	});
 	const view = render(
 		<Wrapper>
 			<FileActions
@@ -286,9 +306,11 @@ test("file menu discovers older prepared copies and deletes them even for a supp
 			/>
 		</Wrapper>,
 	);
-	expect(api.getFilePreparations).not.toHaveBeenCalled();
+	expect(preparationApi.getFilePreparations).not.toHaveBeenCalled();
 	fireEvent.click(view.getByRole("button", { name: "File actions" }));
-	await waitFor(() => expect(api.getFilePreparations).toHaveBeenCalled());
+	await waitFor(() =>
+		expect(preparationApi.getFilePreparations).toHaveBeenCalled(),
+	);
 	expect(
 		await view.findByRole("button", {
 			name: "Pre-transcoded copy published.",
@@ -304,16 +326,18 @@ test("file menu discovers older prepared copies and deletes them even for a supp
 	).toBe("false");
 	fireEvent.click(remove);
 	await waitFor(() =>
-		expect(api.deletePreparedMedia).toHaveBeenCalledWith(
+		expect(preparationApi.deletePreparedMedia).toHaveBeenCalledWith(
 			"artifact",
 			expect.objectContaining({ signal: expect.any(AbortSignal) }),
 		),
 	);
-	expect(api.cancelPreparation).not.toHaveBeenCalled();
+	expect(preparationApi.cancelPreparation).not.toHaveBeenCalled();
 });
 
 test("task monitor disappears when its last active task completes", async () => {
-	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [task] });
+	vi.mocked(preparationApi.getPreparations).mockResolvedValue({
+		tasks: [task],
+	});
 	const view = render(
 		<Wrapper>
 			<PreparationMonitor />
@@ -322,7 +346,9 @@ test("task monitor disappears when its last active task completes", async () => 
 	const monitor = await view.findByRole("complementary", {
 		name: "Transcoding tasks",
 	});
-	vi.mocked(api.getPreparations).mockResolvedValue({ tasks: [ready] });
+	vi.mocked(preparationApi.getPreparations).mockResolvedValue({
+		tasks: [ready],
+	});
 	fireEvent.click(view.getByRole("button", { name: "Refresh tasks" }));
 	await waitFor(() => expect(monitor.isConnected).toBe(false));
 });
@@ -342,7 +368,7 @@ test("preparation keeps its file menu mounted while the command runs", async () 
 	fireEvent.click(view.getByRole("button", { name: "File actions" }));
 	fireEvent.click(await view.findByRole("menuitem", { name: "Pre-transcode" }));
 	await waitFor(() =>
-		expect(api.createPreparation).toHaveBeenCalledWith(
+		expect(preparationApi.createPreparation).toHaveBeenCalledWith(
 			"file",
 			expect.objectContaining({ sourceVersion: "version" }),
 			expect.objectContaining({ signal: expect.any(AbortSignal) }),
@@ -352,7 +378,7 @@ test("preparation keeps its file menu mounted while the command runs", async () 
 });
 
 test("an older or unavailable copy does not mark the current file prepared", async () => {
-	vi.mocked(api.getFilePreparations).mockResolvedValue({
+	vi.mocked(preparationApi.getFilePreparations).mockResolvedValue({
 		tasks: [
 			{ ...ready, sourceVersion: "old-version" },
 			{ ...ready, id: "unavailable", playbackAvailability: "unavailable" },
@@ -382,7 +408,9 @@ test.each(
 )(
 	"file menu contains operations without $status status entries",
 	async (entry) => {
-		vi.mocked(api.getFilePreparations).mockResolvedValue({ tasks: [entry] });
+		vi.mocked(preparationApi.getFilePreparations).mockResolvedValue({
+			tasks: [entry],
+		});
 		const view = render(
 			<Wrapper>
 				<FileActions
@@ -478,10 +506,13 @@ test.each(["all", "subset", "none"])(
 		if (selection === "subset") fireEvent.click(english);
 		if (selection === "none")
 			fireEvent.click(view.getByRole("button", { name: "No audio" }));
-		expect(api.createPreparation).not.toHaveBeenCalled();
+		expect(preparationApi.createPreparation).not.toHaveBeenCalled();
 		fireEvent.click(view.getByRole("button", { name: "Prepare for browser" }));
-		await waitFor(() => expect(api.createPreparation).toHaveBeenCalledTimes(1));
-		const input = vi.mocked(api.createPreparation).mock.calls[0]?.[1];
+		await waitFor(() =>
+			expect(preparationApi.createPreparation).toHaveBeenCalledTimes(1),
+		);
+		const input = vi.mocked(preparationApi.createPreparation).mock
+			.calls[0]?.[1];
 		if (selection === "all")
 			expect(input).not.toHaveProperty("audioStreamIndices");
 		else
@@ -489,14 +520,15 @@ test.each(["all", "subset", "none"])(
 				selection === "subset" ? [7] : [],
 			);
 		expect(
-			vi.mocked(api.inspectMediaCompatibility).mock.calls.at(-1)?.[0]
-				.audioStreamIndices,
+			vi
+				.mocked(mediacompatibilityApi.inspectMediaCompatibility)
+				.mock.calls.at(-1)?.[0].audioStreamIndices,
 		).toEqual(input?.audioStreamIndices);
 	},
 );
 
 test("an existing all-audio copy does not disable preparing a selected audio track", async () => {
-	vi.mocked(api.getPreparations).mockResolvedValue({
+	vi.mocked(preparationApi.getPreparations).mockResolvedValue({
 		tasks: [{ ...ready, audioStreamIndices: [4, 7] }],
 	});
 	const view = render(
@@ -522,7 +554,7 @@ test("an existing all-audio copy does not disable preparing a selected audio tra
 	);
 	fireEvent.click(view.getByRole("button", { name: "Pre-transcode" }));
 	await waitFor(() =>
-		expect(api.createPreparation).toHaveBeenCalledWith(
+		expect(preparationApi.createPreparation).toHaveBeenCalledWith(
 			"file",
 			expect.objectContaining({ audioStreamIndices: [7] }),
 			expect.anything(),
@@ -538,7 +570,7 @@ test("task retry retains audio selection", async () => {
 	);
 	fireEvent.click(view.getByRole("button", { name: "Retry preparation" }));
 	await waitFor(() =>
-		expect(api.retryPreparation).toHaveBeenCalledWith(
+		expect(preparationApi.retryPreparation).toHaveBeenCalledWith(
 			selected.id,
 			expect.objectContaining({ audioStreamIndices: [7] }),
 			expect.anything(),
@@ -584,13 +616,15 @@ test("cancelling shows a pending state and disables duplicate cancellation", () 
 });
 
 test("monitor requests a larger task window only after More is clicked", async () => {
-	vi.mocked(api.getPreparations).mockImplementation(async (_options, more) => ({
-		tasks: Array.from({ length: more ? 100 : 10 }, (_, index) => ({
-			...task,
-			id: `task-${index}`,
-			filename: `Episode-${index}.mkv`,
-		})),
-	}));
+	vi.mocked(preparationApi.getPreparations).mockImplementation(
+		async (_options, more) => ({
+			tasks: Array.from({ length: more ? 100 : 10 }, (_, index) => ({
+				...task,
+				id: `task-${index}`,
+				filename: `Episode-${index}.mkv`,
+			})),
+		}),
+	);
 	const view = render(
 		<Wrapper>
 			<PreparationMonitor />
@@ -598,10 +632,16 @@ test("monitor requests a larger task window only after More is clicked", async (
 	);
 	const more = await view.findByRole("button", { name: "More" });
 	expect(view.queryByText("Episode-10.mkv")).toBeNull();
-	expect(api.getPreparations).toHaveBeenCalledWith(expect.anything(), false);
+	expect(preparationApi.getPreparations).toHaveBeenCalledWith(
+		expect.anything(),
+		false,
+	);
 	fireEvent.click(more);
 	await view.findByText("Episode-99.mkv");
-	expect(api.getPreparations).toHaveBeenCalledWith(expect.anything(), true);
+	expect(preparationApi.getPreparations).toHaveBeenCalledWith(
+		expect.anything(),
+		true,
+	);
 	await waitFor(() =>
 		expect(view.queryByRole("button", { name: "More" })).toBeNull(),
 	);
@@ -610,12 +650,23 @@ test("monitor requests a larger task window only after More is clicked", async (
 test.each(["remux", "transcode-audio", "transcode-video"] as const)(
 	"compatibility preparation does not reuse a %s copy as a completed full transcode",
 	async (mode) => {
-		vi.mocked(api.getFilePreparations).mockResolvedValue({
+		vi.mocked(preparationApi.getFilePreparations).mockResolvedValue({
 			tasks: [{ ...ready, mode }],
 		});
 		const view = button({ tasks: [{ ...ready, mode }] });
 		const prepare = await view.findByRole("button", { name: "Pre-transcode" });
 		fireEvent.click(prepare);
-		await waitFor(() => expect(api.createPreparation).toHaveBeenCalled());
+		await waitFor(() =>
+			expect(preparationApi.createPreparation).toHaveBeenCalled(),
+		);
 	},
 );
+
+function PreparationProfileSettings() {
+	return (
+		<ProfileSettings
+			preparation={usePreparationContext()}
+			action={usePreparationAction()}
+		/>
+	);
+}

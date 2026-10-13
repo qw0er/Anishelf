@@ -1,5 +1,5 @@
 import type { CompatibilityResult } from "../../contracts/http.js";
-import type { CompatibilityResult as NegotiationReport } from "../../shared/media-negotiation.js";
+import type { CompatibilityResult as NegotiationReport } from "../../modules/media/media-planning/public.js";
 import type { DeepReadonly } from "../../shared/policy.js";
 
 /** Explicitly omit canonical source paths and executable profile parameters. */

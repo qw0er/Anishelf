@@ -1,13 +1,13 @@
 import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Button } from "../../../components/ui/button.js";
+import { Button } from "../../../shared/components/ui/button.js";
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "../../../components/ui/dialog.js";
+} from "../../../shared/components/ui/dialog.js";
 import { audioTrackLabel } from "../../preparation/public.js";
 import type { usePlaybackController } from "../hooks/use-playback-controller.js";
 export function CompatibilityDialog({

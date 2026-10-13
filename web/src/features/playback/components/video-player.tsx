@@ -15,18 +15,22 @@ import {
 	DefaultVideoLayout,
 	defaultLayoutIcons,
 } from "@vidstack/react/player/layouts/default";
-import { fileQuery, useQueryScope } from "../../../api/queries.js";
-import { loadQuery } from "../../../api/query-client.js";
-import { interactionPolicy } from "../../../config/interaction-policy.js";
-import type { SubtitlePolicy } from "../../../config/media-policy.js";
+import { useQueryScope } from "../../../shared/api/queries.js";
+import { loadQuery } from "../../../shared/api/query-client.js";
+import { fileQuery } from "../../resource-access/public.js";
+import type { SubtitlePolicy } from "../../subtitles/public.js";
+import { playbackInteractionPolicy } from "../policy.js";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import { useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ApiClientError, isRequestCancelled } from "../../../api/client.js";
-import type { FileResponse } from "../../../api/contracts.js";
-import { toast } from "../../../components/ui/toast.js";
-import { getErrorTranslationKey } from "../../../lib/error-translation.js";
+import {
+	ApiClientError,
+	isRequestCancelled,
+} from "../../../shared/api/client.js";
+import type { FileResponse } from "../../../shared/api/contracts.js";
+import { toast } from "../../../shared/components/ui/toast.js";
+import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
 import { SubtitleTracks } from "../../subtitles/public.js";
 
 import { ChapterTracks } from "./chapter-tracks.js";
@@ -127,8 +131,8 @@ export default function VideoPlayer({
 			title={file.name}
 			src={playbackUrl}
 			viewType="video"
-			load={interactionPolicy.playerLoad}
-			preload={interactionPolicy.playerPreload}
+			load={playbackInteractionPolicy.playerLoad}
+			preload={playbackInteractionPolicy.playerPreload}
 			playsInline
 			storage={null}
 			logLevel="silent"
@@ -161,7 +165,7 @@ export default function VideoPlayer({
 			<SubtitleTracks fileId={file.id} policy={subtitlePolicy} />
 			<DefaultVideoLayout
 				icons={defaultLayoutIcons}
-				seekStep={interactionPolicy.seekStepSeconds}
+				seekStep={playbackInteractionPolicy.seekStepSeconds}
 			/>
 		</MediaPlayer>
 	);

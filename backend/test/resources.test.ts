@@ -12,10 +12,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, expect, test } from "vitest";
-import {
-	getVideoMimeType,
-	ResourceAccess,
-} from "../src/modules/resource-access/infrastructure/access.js";
+import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
+import { getVideoMimeType } from "../src/modules/resources/resource-access/public.js";
 
 let fixture: string;
 let root: string;

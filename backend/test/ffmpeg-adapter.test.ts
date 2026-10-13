@@ -5,23 +5,23 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import pino from "pino";
 import { expect, test } from "vitest";
-import { createLibraryModule } from "../src/bootstrap/library.js";
+import { createLibraryModule } from "../src/app/bootstrap/library.js";
+import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
+import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
+import { resolveExecutionPlan } from "../src/modules/media/media-planning/public.js";
+import { MediaProcessingApplication } from "../src/modules/media/media-processing/application/processing.js";
+import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import {
 	builtinTranscodeProfiles,
 	type TranscodeProfile,
-} from "../src/modules/configuration/public.js";
-import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
-import { MediaPlanningApplication } from "../src/modules/media-planning/application/planning.js";
-import { resolveExecutionPlan } from "../src/modules/media-planning/public.js";
-import { MediaProcessingApplication } from "../src/modules/media-processing/application/processing.js";
+} from "../src/modules/system/configuration/public.js";
 import {
 	compileFfmpegArguments,
 	FfmpegExecutionAdapter,
 	type MediaProcessingOptions,
 	MediaTools,
 } from "../src/platform/media/index.js";
-import type { MediaProcessingPlan } from "../src/shared/media-processing.js";
+import type { MediaProcessingPlan } from "../src/platform/media/specification.js";
 import { settingsStore } from "./settings-store.js";
 
 const run = promisify(execFile);

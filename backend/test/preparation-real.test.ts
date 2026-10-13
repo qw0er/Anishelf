@@ -5,32 +5,32 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import pino from "pino";
 import { expect, test, vi } from "vitest";
-import { ApplicationDatabase } from "../src/bootstrap/database.js";
-import { createHttpApp } from "../src/bootstrap/http.js";
-import { createLibraryModule } from "../src/bootstrap/library.js";
-import { createPlaybackCopies } from "../src/bootstrap/playback-selection.js";
+import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
+import { createLibraryModule } from "../src/app/bootstrap/library.js";
+import { createPlaybackCopies } from "../src/app/bootstrap/playback-selection.js";
 import type {
 	CompatibilityInspection,
 	PlaybackOptionsResponse,
 	PlaybackSelectionResponse,
 	PlaybackSessionResponse,
 } from "../src/contracts/http.js";
-import { builtinTranscodeProfiles } from "../src/modules/configuration/public.js";
-import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
-import { MediaPlanningApplication } from "../src/modules/media-planning/application/planning.js";
-import { MediaProcessingApplication } from "../src/modules/media-processing/application/processing.js";
-import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
-import { PlaybackSelectionApplication } from "../src/modules/playback-selection/application/selection.js";
-import { PreparationApplication } from "../src/modules/preparation/application/preparation.js";
+import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
+import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
+import { MediaProcessingApplication } from "../src/modules/media/media-processing/application/processing.js";
+import { PreparationApplication } from "../src/modules/media/preparation/application/preparation.js";
+import {
+	preparationStartResponse,
+	preparationTaskResponse,
+} from "../src/modules/media/preparation/http/presenters.js";
+import { PlaybackApplication } from "../src/modules/playback/playback/application/playback.js";
+import { PlaybackSelectionApplication } from "../src/modules/playback/playback-selection/application/selection.js";
+import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import { builtinTranscodeProfiles } from "../src/modules/system/configuration/public.js";
 import {
 	FfmpegExecutionAdapter,
 	MediaTools,
 } from "../src/platform/media/index.js";
-import {
-	preparationStartResponse,
-	preparationTaskResponse,
-} from "../src/transport/presenters/preparation.js";
 import { settingsStore } from "./settings-store.js";
 
 const run = promisify(execFile);

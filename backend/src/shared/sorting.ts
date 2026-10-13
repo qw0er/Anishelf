@@ -1,7 +1,10 @@
-import type { LibraryPolicy } from "../modules/library/policy.js";
 import type { DeepReadonly } from "./policy.js";
 export function nameCollator(
-	policy: DeepReadonly<LibraryPolicy>,
+	policy: DeepReadonly<{
+		sortLocale: string;
+		sortNumeric: boolean;
+		sortSensitivity: NonNullable<Intl.CollatorOptions["sensitivity"]>;
+	}>,
 ): Intl.Collator {
 	return new Intl.Collator(policy.sortLocale, {
 		numeric: policy.sortNumeric,

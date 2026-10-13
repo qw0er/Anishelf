@@ -2,16 +2,16 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
-import {
-	builtinPolicy,
-	type PersistentSettings,
-} from "../src/modules/configuration/public.js";
-import { ResourceAccessApplication } from "../src/modules/resource-access/application/access.js";
-import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
+import { ResourceAccessApplication } from "../src/modules/resources/resource-access/application/access.js";
+import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import type {
 	ResourceAccessApi,
 	SourceCatalog,
-} from "../src/modules/resource-access/public.js";
+} from "../src/modules/resources/resource-access/public.js";
+import {
+	builtinPolicy,
+	type PersistentSettings,
+} from "../src/modules/system/configuration/public.js";
 
 import { DomainError } from "../src/shared/errors.js";
 

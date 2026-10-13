@@ -3,14 +3,14 @@ import {
 	detectMediaCapabilities,
 	parseMediaCapabilities,
 } from "../src/platform/media/capabilities.js";
-import { mediaToolPolicy } from "../src/platform/media/policy.js";
-import * as processTools from "../src/platform/media/process.js";
-import { MediaTools } from "../src/platform/media/tools.js";
 import {
 	hasMediaCapability,
 	type MediaCapabilityKind,
 	mediaCapabilityKinds,
-} from "../src/shared/media-capabilities.js";
+} from "../src/platform/media/capability-model.js";
+import { mediaToolPolicy } from "../src/platform/media/policy.js";
+import * as processTools from "../src/platform/media/process.js";
+import { MediaTools } from "../src/platform/media/tools.js";
 
 const listings: Record<MediaCapabilityKind, string> = {
 	codecs:

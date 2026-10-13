@@ -1,5 +1,5 @@
 import type { DirectoryDto, FileDto } from "../src/contracts/http.js";
-import type { ScanState } from "../src/modules/library/domain/scan-state.js";
+import type { ScanState } from "../src/modules/resources/library/domain/scan-state.js";
 import type { LoggingConfig } from "../src/platform/logging/config.js";
 
 // Compile-time assertions protect boundary and state invariants.
@@ -72,8 +72,8 @@ export function assertHttpSchemaInference(app: HttpInstance): void {
 }
 
 import type * as Http from "../src/contracts/http.js";
-import type * as Selection from "../src/modules/playback-selection/public.js";
-import type * as Negotiation from "../src/shared/media-negotiation.js";
+import type * as Negotiation from "../src/modules/media/media-planning/public.js";
+import type * as Selection from "../src/modules/playback/playback-selection/public.js";
 
 // Bidirectional checks make drift between business vocabulary and wire schemas a build failure.
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;

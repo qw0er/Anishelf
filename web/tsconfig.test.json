@@ -13,5 +13,5 @@
 		"noEmit": true,
 		"skipLibCheck": true
 	},
-	"include": ["src/api", "test", "vitest.config.ts"]
+	"include": ["src/shared/api", "test", "vitest.config.ts"]
 }

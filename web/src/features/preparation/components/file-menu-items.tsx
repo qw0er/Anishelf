@@ -1,8 +1,8 @@
 import { RefreshCw, Trash2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { cancelPreparation, deletePreparedMedia } from "../../../api/client.js";
-import type { CompatibilityResult } from "../../../api/contracts.js";
-import { DropdownMenuItem } from "../../../components/ui/dropdown-menu.js";
+import type { CompatibilityResult } from "../../../shared/api/contracts.js";
+import { DropdownMenuItem } from "../../../shared/components/ui/dropdown-menu.js";
+import { cancelPreparation, deletePreparedMedia } from "../api.js";
 import { usePreparationContext } from "../context.js";
 import { usePreparationAction } from "../use-preparations.js";
 import { PreparationButton } from "./preparation-button.js";

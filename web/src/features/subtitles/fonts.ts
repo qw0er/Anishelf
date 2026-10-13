@@ -1,8 +1,8 @@
 import { subtitleFontConstraints } from "@anishelf/backend/contracts/defaults";
 import type { TextTrack } from "@vidstack/react";
-import { getSubtitleFonts } from "../../api/client.js";
-import type { SubtitlePreparationResponse } from "../../api/contracts.js";
-import { boundedSignal } from "../../api/queries.js";
+import type { SubtitlePreparationResponse } from "../../shared/api/contracts.js";
+import { boundedSignal } from "../../shared/api/queries.js";
+import { getSubtitleFonts } from "./api.js";
 
 export type SubtitleFonts = NonNullable<SubtitlePreparationResponse["fonts"]>;
 export const trackFonts = new WeakMap<TextTrack, SubtitleFonts>();

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, expect, test } from "vitest";
 import {
 	loadDeploymentConfig,
 	parseDeploymentConfig,
-} from "../src/modules/configuration/infrastructure/deployment.js";
+} from "../src/modules/system/configuration/infrastructure/deployment.js";
 
 let fixture: string;
 beforeEach(async () => {
@@ -164,7 +164,7 @@ test("creates the configured data directory and retains existing settings", asyn
 	);
 	expect(await loadDeploymentConfig(env)).toEqual(config);
 	const { PersistentConfiguration } = await import(
-		"../src/modules/configuration/infrastructure/persistent.js"
+		"../src/modules/system/configuration/infrastructure/persistent.js"
 	);
 	expect((await PersistentConfiguration.load(config.dataDir)).settings).toEqual(
 		{

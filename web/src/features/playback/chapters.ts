@@ -2,7 +2,7 @@ import {
 	type MediaTimeline,
 	mediaTimeMs,
 } from "@anishelf/backend/contracts/media";
-import type { ChaptersResponse } from "../../api/contracts.js";
+import type { ChaptersResponse } from "../../shared/api/contracts.js";
 
 /** Clip in source time before mapping; clamping both endpoints would invent chapters. */
 export function chapterCues(

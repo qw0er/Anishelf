@@ -4,10 +4,10 @@ import { fileTypeFromFile } from "file-type";
 import type { Logger } from "pino";
 import { deploymentDefaults } from "../../contracts/defaults.js";
 import { preparedSubtitleFormats } from "../../contracts/subtitles.js";
-import type { ServerMediaCapabilities } from "../../shared/media-capabilities.js";
 import type { DeepReadonly } from "../../shared/policy.js";
 import { captureRuntimeEnvironment } from "../environment.js";
 import { detectMediaCapabilities } from "./capabilities.js";
+import type { ServerMediaCapabilities } from "./capability-model.js";
 import { codecDescriptor } from "./codec-descriptor.js";
 import {
 	type MediaToolsConfig,

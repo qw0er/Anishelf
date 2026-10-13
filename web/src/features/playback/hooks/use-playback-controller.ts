@@ -4,13 +4,13 @@ import { useSearchParams } from "react-router";
 import type {
 	FileResponse,
 	PreparationTaskResponse,
-} from "../../../api/contracts.js";
-import { profilesQuery } from "../../../api/queries.js";
-import { toast } from "../../../components/ui/toast.js";
-import { playbackPolicy } from "../../../config/media-policy.js";
-import { originalCompatibilityKey } from "../../../lib/media-compatibility.js";
-import { parseAudioSelection } from "../../../routes/playback-params.js";
+} from "../../../shared/api/contracts.js";
+import { toast } from "../../../shared/components/ui/toast.js";
+import { originalCompatibilityKey } from "../../media-compatibility/public.js";
 import { useFilePreparations } from "../../preparation/public.js";
+import { profilesQuery } from "../../settings/public.js";
+import { parseAudioSelection } from "../playback-params.js";
+import { playbackPolicy } from "../policy.js";
 import { usePlaybackSelection } from "./use-playback-selection.js";
 import { usePlaybackSession } from "./use-playback-session.js";
 

@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { TextTrack } from "@vidstack/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { subtitlePolicy } from "../src/config/media-policy.js";
 import { trackFonts } from "../src/features/subtitles/fonts.js";
+import { subtitlePolicy } from "../src/features/subtitles/public.js";
 import { StyledSubtitleRenderer } from "../src/features/subtitles/renderer.js";
 
 const renderer = vi.hoisted(() => ({

@@ -25,15 +25,15 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm start` | Build both workspaces, then start the backend in its normal runtime mode to serve `web/dist` |
 | `npm run dev:web` | Start Vite on 127.0.0.1:5173 with an API proxy |
 | `npm run typecheck` | Check both workspaces, including their tests |
-| `npm test` | Run backend and frontend API client tests once with Vitest |
+| `npm test` | Run architecture fixtures and both workspace test suites |
 | `npm run test:watch --workspace @anishelf/backend` | Watch backend tests with Vitest |
 | `npm run biome:check` | Check formatting, lint rules, and import organization with Biome |
 | `npm run biome:fix` | Apply safe Biome fixes |
-| `npm run lint` | Run Biome lint and dependency-cruiser architecture checks |
+| `npm run lint` | Run Biome lint, architecture checks and unused-code checks |
 | `npm run architecture:check` | Check dependency directions, public entries and runtime cycles in both workspaces |
 | `npm run architecture:test` | Verify architecture rules with allowed and forbidden dependency fixtures |
 | `npm run anime:corpus -- summary` | Inspect the offline anime-identification corpus; see its [usage and provenance](../backend/test/fixtures/anime-identification/README.md) for generation and evaluation |
-| `npm run check` | Run Biome checks, type checks, and both workspace test suites |
+| `npm run check` | Run Biome, lint, type checks, architecture fixtures and both workspace test suites |
 | `npm run build` | Build backend and frontend |
 | `npm run start:backend` | Run the built backend; host pages only when `ANISHELF_FRONTEND_DIR` is set |
 
@@ -53,6 +53,30 @@ The [Nyaa supplement](../backend/test/fixtures/anime-identification/nyaa/README.
 adds 268 locally sourced cases and five directory scenarios. Its curated captures
 are offline test inputs; the complete unreviewed sample archive remains in the
 ignored `.nyaa-corpus.local/` directory.
+
+## Source maintenance
+
+Follow [Architecture](architecture.md#source-organization-and-dependency-boundaries)
+for directory ownership and module collaboration. Business consumers import only
+a module's `public.ts` or policy entry. Database adapters may additionally use a
+module's restricted `persistence.ts`; only app assembly imports implementations.
+Module groups are organizational, not permission boundaries. Small modules need
+only the files they actually use rather than mandatory layer directories.
+
+The backend entry assembles the application through `src/app/bootstrap`; durable
+tables belong to module infrastructure and are aggregated by `src/app/schema.ts`.
+`drizzle.config.ts` reads that aggregate. Moving a schema must preserve table, column,
+index and foreign-key identities and must not generate an unrelated migration.
+
+Web routes and composition belong to `src/app`; business requests, queries and
+policies belong to `src/features`; generic HTTP/query mechanisms and UI primitives
+belong to `src/shared`. New cross-feature consumers use Public API entries rather
+than adding implementation imports. Preserve query keys, cancellation and cache
+invalidation behavior when moving requests or controllers.
+
+Run `npm run check` and `npm run build` after a structural change. Architecture
+fixtures spawn Node child processes; media and HTTP suites also spawn tools and
+listen on localhost. Run them in an environment permitting those operations.
 
 ## Deployment configuration
 

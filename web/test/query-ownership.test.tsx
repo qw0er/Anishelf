@@ -1,23 +1,25 @@
+import * as mediacompatibilityApi from "../src/features/media-compatibility/api.js";
+import * as preparationApi from "../src/features/preparation/api.js";
+import * as settingsApi from "../src/features/settings/api.js";
 // @vitest-environment happy-dom
 
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, test, vi } from "vitest";
-import * as api from "../src/api/client.js";
+import LibraryBrowser from "../src/features/library/components/library-browser.js";
+import { parseAudioSelection } from "../src/features/playback/playback-params.js";
+import { PreparationProvider } from "../src/features/preparation/context.js";
+import { useFilePreparations } from "../src/features/preparation/use-file-preparations.js";
+import { usePreparationAction } from "../src/features/preparation/use-preparations.js";
 import type {
 	CompatibilityInspection,
 	CompatibilityResult,
 	DirectoryResponse,
-} from "../src/api/contracts.js";
+} from "../src/shared/api/contracts.js";
 import {
 	createQueryClient,
 	loadQuery,
 	queryClient,
-} from "../src/api/query-client.js";
-import LibraryBrowser from "../src/features/library/components/library-browser.js";
-import { PreparationProvider } from "../src/features/preparation/context.js";
-import { useFilePreparations } from "../src/features/preparation/use-file-preparations.js";
-import { usePreparationAction } from "../src/features/preparation/use-preparations.js";
-import { parseAudioSelection } from "../src/routes/playback-params.js";
+} from "../src/shared/api/query-client.js";
 import {
 	act,
 	cleanup,
@@ -25,7 +27,7 @@ import {
 	renderHook,
 	waitFor,
 } from "./query-test-utils.js";
-import "../src/i18n.js";
+import "../src/shared/i18n.js";
 
 afterEach(() => {
 	cleanup();
@@ -47,26 +49,29 @@ test("a directory uses one metadata batch and no file task/detail requests befor
 		children,
 	};
 	const summaries = vi
-		.spyOn(api, "getPreparationSummaries")
+		.spyOn(preparationApi, "getPreparationSummaries")
 		.mockImplementation(async (ids) => ({
 			files: ids.map((fileId) => ({ fileId, versions: [] })),
 		}));
 	const files = vi
-		.spyOn(api, "getFilePreparations")
+		.spyOn(preparationApi, "getFilePreparations")
 		.mockResolvedValue({ tasks: [] });
-	vi.spyOn(api, "getPreparations").mockResolvedValue({ tasks: [] });
-	vi.spyOn(api, "getTranscodeProfiles").mockResolvedValue({
+	vi.spyOn(preparationApi, "getPreparations").mockResolvedValue({ tasks: [] });
+	vi.spyOn(settingsApi, "getTranscodeProfiles").mockResolvedValue({
 		profiles: [],
 		selectedProfileId: "builtin:web",
 		selectionAvailable: true,
 		preparationMode: "compatible" as const,
 	});
-	vi.spyOn(api, "inspectMediaCompatibility").mockResolvedValue({
+	vi.spyOn(
+		mediacompatibilityApi,
+		"inspectMediaCompatibility",
+	).mockResolvedValue({
 		sourceVersion: "v",
 		descriptionId: "d",
 		queries: [],
 	} as unknown as CompatibilityInspection);
-	vi.spyOn(api, "checkMediaCompatibility").mockResolvedValue({
+	vi.spyOn(mediacompatibilityApi, "checkMediaCompatibility").mockResolvedValue({
 		sourceVersion: "v",
 		direct: { status: "supported", reason: "browser-supported" },
 	} as CompatibilityResult);
@@ -98,7 +103,7 @@ test("a directory uses one metadata batch and no file task/detail requests befor
 
 test("duplicate file observers share one request and preparation mutations invalidate their owner", async () => {
 	const files = vi
-		.spyOn(api, "getFilePreparations")
+		.spyOn(preparationApi, "getFilePreparations")
 		.mockResolvedValue({ tasks: [] });
 	const first = renderHook(() => useFilePreparations("file"));
 	renderHook(() => useFilePreparations("file"));

@@ -3,7 +3,7 @@
 	"workspaces": {
 		"web": {
 			"ignoreIssues": {
-				"src/components/ui/**": ["exports", "types"]
+				"src/shared/components/ui/**": ["exports", "types"]
 			}
 		}
 	}

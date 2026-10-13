@@ -1,13 +1,14 @@
+import * as playbackApi from "../src/features/playback/api.js";
+import { ApiClientError } from "../src/shared/api/client.js";
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import * as api from "../src/api/client.js";
-import type { PlaybackSessionResponse } from "../src/api/contracts.js";
-import { playbackPolicy } from "../src/config/media-policy.js";
+import { playbackPolicy } from "../src/features/playback/policy.js";
 import {
 	PlaybackSessionController,
 	type PlaybackSessionState,
 } from "../src/features/playback/session.js";
+import type { PlaybackSessionResponse } from "../src/shared/api/contracts.js";
 
 const session: PlaybackSessionResponse = {
 	token: "token",
@@ -32,8 +33,8 @@ const session: PlaybackSessionResponse = {
 let controllers: PlaybackSessionController[];
 beforeEach(() => {
 	controllers = [];
-	vi.spyOn(api, "openPlaybackSession").mockResolvedValue(session);
-	vi.spyOn(api, "savePlaybackProgress").mockImplementation(
+	vi.spyOn(playbackApi, "openPlaybackSession").mockResolvedValue(session);
+	vi.spyOn(playbackApi, "savePlaybackProgress").mockImplementation(
 		async (_token, input) => ({
 			status: "saved",
 			progress: {
@@ -43,7 +44,7 @@ beforeEach(() => {
 			},
 		}),
 	);
-	vi.spyOn(api, "releasePlaybackSession").mockResolvedValue();
+	vi.spyOn(playbackApi, "releasePlaybackSession").mockResolvedValue();
 });
 afterEach(async () => {
 	for (const controller of controllers) await controller.dispose();
@@ -85,15 +86,15 @@ test("loads history before enabling saves and restores after metadata, clamped t
 	await controller.open();
 	video.currentTime = 0;
 	video.dispatchEvent(new Event("pause"));
-	expect(api.savePlaybackProgress).not.toHaveBeenCalled();
+	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
 	Object.defineProperty(video, "duration", { value: 20 });
 	video.dispatchEvent(new Event("loadedmetadata"));
 	expect(video.currentTime).toBe(20);
 	expect(state()?.restored).toBe(true);
-	expect(api.savePlaybackProgress).not.toHaveBeenCalled();
+	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
 	video.dispatchEvent(new Event("pause"));
 	await tick();
-	expect(api.savePlaybackProgress).toHaveBeenCalledWith(
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledWith(
 		"token",
 		expect.objectContaining({ positionMs: 20000, durationMs: 20000 }),
 		expect.anything(),
@@ -104,8 +105,8 @@ test("serializes/coalesces saves while preserving a newer backward seek", async 
 	const { controller, video } = create();
 	await controller.open();
 	const first =
-		deferred<Awaited<ReturnType<typeof api.savePlaybackProgress>>>();
-	vi.mocked(api.savePlaybackProgress).mockImplementationOnce(
+		deferred<Awaited<ReturnType<typeof playbackApi.savePlaybackProgress>>>();
+	vi.mocked(playbackApi.savePlaybackProgress).mockImplementationOnce(
 		() => first.promise,
 	);
 	video.currentTime = 70;
@@ -114,21 +115,23 @@ test("serializes/coalesces saves while preserving a newer backward seek", async 
 	video.dispatchEvent(new Event("seeked"));
 	video.currentTime = 10;
 	video.dispatchEvent(new Event("seeked"));
-	expect(api.savePlaybackProgress).toHaveBeenCalledTimes(1);
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledTimes(1);
 	first.resolve({
 		status: "saved",
 		progress: { ...session.progress, positionMs: 70000, lastSequence: 1 },
 	});
 	await controller.flush();
-	expect(api.savePlaybackProgress).toHaveBeenCalledTimes(2);
-	expect(vi.mocked(api.savePlaybackProgress).mock.calls[1]?.[1]).toMatchObject({
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledTimes(2);
+	expect(
+		vi.mocked(playbackApi.savePlaybackProgress).mock.calls[1]?.[1],
+	).toMatchObject({
 		positionMs: 10000,
 		sequence: 3,
 	});
 });
 
 test("failed history reads never save zero and can be retried", async () => {
-	vi.mocked(api.openPlaybackSession).mockRejectedValueOnce(
+	vi.mocked(playbackApi.openPlaybackSession).mockRejectedValueOnce(
 		new Error("load failed"),
 	);
 	const { controller, video, state } = create();
@@ -136,7 +139,7 @@ test("failed history reads never save zero and can be retried", async () => {
 	video.currentTime = 0;
 	video.dispatchEvent(new Event("pause"));
 	await controller.flush();
-	expect(api.savePlaybackProgress).not.toHaveBeenCalled();
+	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
 	expect(state()?.error?.operation).toBe("load");
 	await controller.retry();
 	expect(video.currentTime).toBe(40);
@@ -146,18 +149,18 @@ test("failed history reads never save zero and can be retried", async () => {
 test("keeps an ambiguous failed payload for retry, or sends a newer position", async () => {
 	const { controller, video, state } = create();
 	await controller.open();
-	vi.mocked(api.savePlaybackProgress).mockRejectedValueOnce(
+	vi.mocked(playbackApi.savePlaybackProgress).mockRejectedValueOnce(
 		new Error("network"),
 	);
 	video.currentTime = 30;
 	expect(await controller.flush()).toBe(false);
-	const failed = vi.mocked(api.savePlaybackProgress).mock.calls[0]?.[1];
+	const failed = vi.mocked(playbackApi.savePlaybackProgress).mock.calls[0]?.[1];
 	expect(state()?.error?.operation).toBe("save");
 	await controller.retry();
-	expect(vi.mocked(api.savePlaybackProgress).mock.calls[1]?.[1]).toEqual(
-		failed,
-	);
-	vi.mocked(api.savePlaybackProgress).mockRejectedValueOnce(
+	expect(
+		vi.mocked(playbackApi.savePlaybackProgress).mock.calls[1]?.[1],
+	).toEqual(failed);
+	vi.mocked(playbackApi.savePlaybackProgress).mockRejectedValueOnce(
 		new Error("network"),
 	);
 	video.currentTime = 50;
@@ -165,7 +168,8 @@ test("keeps an ambiguous failed payload for retry, or sends a newer position", a
 	video.currentTime = 10;
 	await controller.retry();
 	expect(
-		vi.mocked(api.savePlaybackProgress).mock.calls.at(-1)?.[1].positionMs,
+		vi.mocked(playbackApi.savePlaybackProgress).mock.calls.at(-1)?.[1]
+			.positionMs,
 	).toBe(10000);
 });
 
@@ -174,20 +178,21 @@ test("saves periodically only while playing; ended saves duration and teardown r
 	const { controller, video } = create();
 	await controller.open();
 	await vi.advanceTimersByTimeAsync(5000);
-	expect(api.savePlaybackProgress).not.toHaveBeenCalled();
+	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
 	Object.defineProperty(video, "paused", { value: false });
 	video.currentTime = 45;
 	await vi.advanceTimersByTimeAsync(5000);
-	expect(api.savePlaybackProgress).toHaveBeenCalledTimes(1);
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledTimes(1);
 	video.currentTime = 99;
 	video.dispatchEvent(new Event("ended"));
 	await tick();
 	expect(
-		vi.mocked(api.savePlaybackProgress).mock.calls.at(-1)?.[1].positionMs,
+		vi.mocked(playbackApi.savePlaybackProgress).mock.calls.at(-1)?.[1]
+			.positionMs,
 	).toBe(100000);
 	video.currentTime = 100;
 	await controller.dispose();
-	expect(api.releasePlaybackSession).toHaveBeenCalledWith(
+	expect(playbackApi.releasePlaybackSession).toHaveBeenCalledWith(
 		"token",
 		expect.anything(),
 	);
@@ -196,7 +201,9 @@ test("saves periodically only while playing; ended saves duration and teardown r
 
 test("unmounting during open releases the late session without writing progress", async () => {
 	const pending = deferred<PlaybackSessionResponse>();
-	vi.mocked(api.openPlaybackSession).mockReturnValueOnce(pending.promise);
+	vi.mocked(playbackApi.openPlaybackSession).mockReturnValueOnce(
+		pending.promise,
+	);
 	const { controller } = create();
 	const opening = controller.open();
 	await tick();
@@ -204,8 +211,8 @@ test("unmounting during open releases the late session without writing progress"
 	pending.resolve(session);
 	await opening;
 	await disposal;
-	expect(api.releasePlaybackSession).toHaveBeenCalled();
-	expect(api.savePlaybackProgress).not.toHaveBeenCalled();
+	expect(playbackApi.releasePlaybackSession).toHaveBeenCalled();
+	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
 });
 
 test("StrictMode cleanup before open starts avoids creating an abandoned session", async () => {
@@ -213,7 +220,7 @@ test("StrictMode cleanup before open starts avoids creating an abandoned session
 	const opening = controller.open();
 	await controller.dispose();
 	await opening;
-	expect(api.openPlaybackSession).not.toHaveBeenCalled();
+	expect(playbackApi.openPlaybackSession).not.toHaveBeenCalled();
 });
 
 test("pagehide flushing uses keepalive and still preserves write ordering", async () => {
@@ -221,7 +228,7 @@ test("pagehide flushing uses keepalive and still preserves write ordering", asyn
 	await controller.open();
 	video.currentTime = 30;
 	await controller.flush(true);
-	expect(api.savePlaybackProgress).toHaveBeenCalledWith(
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledWith(
 		"token",
 		expect.objectContaining({ positionMs: 30000 }),
 		expect.objectContaining({ keepalive: true }),
@@ -231,8 +238,8 @@ test("pagehide flushing uses keepalive and still preserves write ordering", asyn
 test("a changed session requires explicit reopen rather than silently continuing to write", async () => {
 	const { controller, video, state } = create();
 	await controller.open();
-	vi.mocked(api.savePlaybackProgress).mockRejectedValueOnce(
-		new api.ApiClientError({
+	vi.mocked(playbackApi.savePlaybackProgress).mockRejectedValueOnce(
+		new ApiClientError({
 			kind: "http",
 			code: "PLAYBACK_CONFLICT",
 			status: 409,
@@ -242,7 +249,7 @@ test("a changed session requires explicit reopen rather than silently continuing
 	video.currentTime = 30;
 	await controller.flush();
 	expect(state()?.error).not.toBeNull();
-	vi.mocked(api.openPlaybackSession).mockResolvedValueOnce({
+	vi.mocked(playbackApi.openPlaybackSession).mockResolvedValueOnce({
 		...session,
 		token: "new-token",
 		progress: { ...session.progress, generation: 2, positionMs: 20000 },
@@ -251,9 +258,9 @@ test("a changed session requires explicit reopen rather than silently continuing
 	expect(video.currentTime).toBe(20);
 	video.currentTime = 25;
 	await controller.flush();
-	expect(vi.mocked(api.savePlaybackProgress).mock.calls.at(-1)?.[0]).toBe(
-		"new-token",
-	);
+	expect(
+		vi.mocked(playbackApi.savePlaybackProgress).mock.calls.at(-1)?.[0],
+	).toBe("new-token");
 });
 
 test("seeking to zero saves normally without pausing or changing generation", async () => {
@@ -264,7 +271,7 @@ test("seeking to zero saves normally without pausing or changing generation", as
 	video.dispatchEvent(new Event("seeked"));
 	await tick();
 	expect(pause).not.toHaveBeenCalled();
-	expect(api.savePlaybackProgress).toHaveBeenCalledWith(
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledWith(
 		"token",
 		expect.objectContaining({ generation: 1, sequence: 1, positionMs: 0 }),
 		expect.anything(),
@@ -272,7 +279,7 @@ test("seeking to zero saves normally without pausing or changing generation", as
 	video.currentTime = 3;
 	video.dispatchEvent(new Event("seeked"));
 	await tick();
-	expect(api.savePlaybackProgress).toHaveBeenLastCalledWith(
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
 		"token",
 		expect.objectContaining({ generation: 1, sequence: 2, positionMs: 3000 }),
 		expect.anything(),
@@ -289,11 +296,11 @@ test("injected save interval and request timeout control the progress lifecycle"
 	Object.defineProperty(video, "paused", { value: false });
 	video.currentTime = 45;
 	await vi.advanceTimersByTimeAsync(99);
-	expect(api.savePlaybackProgress).not.toHaveBeenCalled();
+	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
 	await vi.advanceTimersByTimeAsync(1);
-	expect(api.savePlaybackProgress).toHaveBeenCalledTimes(1);
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledTimes(1);
 	let aborted = false;
-	vi.mocked(api.savePlaybackProgress).mockImplementation(
+	vi.mocked(playbackApi.savePlaybackProgress).mockImplementation(
 		(_token, _progress, options) =>
 			new Promise((_resolve, reject) => {
 				options?.signal?.addEventListener("abort", () => {
@@ -309,7 +316,7 @@ test("injected save interval and request timeout control the progress lifecycle"
 	await vi.advanceTimersByTimeAsync(1);
 	await flush;
 	expect(aborted).toBe(true);
-	vi.mocked(api.savePlaybackProgress).mockResolvedValue({
+	vi.mocked(playbackApi.savePlaybackProgress).mockResolvedValue({
 		status: "saved",
 		progress: session.progress,
 	});
@@ -328,12 +335,12 @@ test("switching to prepared media retains the original session and captured sour
 	preparedVideo.currentTime = 65;
 	preparedVideo.dispatchEvent(new Event("pause"));
 	await controller.flush();
-	expect(api.openPlaybackSession).toHaveBeenCalledTimes(1);
-	expect(api.openPlaybackSession).toHaveBeenCalledWith(
+	expect(playbackApi.openPlaybackSession).toHaveBeenCalledTimes(1);
+	expect(playbackApi.openPlaybackSession).toHaveBeenCalledWith(
 		"file",
 		expect.anything(),
 	);
-	expect(api.savePlaybackProgress).toHaveBeenLastCalledWith(
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
 		session.token,
 		expect.objectContaining({
 			generation: session.progress.generation,
@@ -355,7 +362,7 @@ test("offset media restores and persists source time rather than the local segme
 	expect(video.currentTime).toBe(12);
 	video.currentTime = 17;
 	await controller.flush();
-	expect(api.savePlaybackProgress).toHaveBeenLastCalledWith(
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
 		"token",
 		expect.objectContaining({ positionMs: 45000, durationMs: 200000 }),
 		expect.anything(),
@@ -372,7 +379,7 @@ test("an offset stream ending does not mark the whole source watched", async () 
 	await controller.open();
 	video.dispatchEvent(new Event("ended"));
 	await tick();
-	expect(api.savePlaybackProgress).toHaveBeenLastCalledWith(
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
 		"token",
 		expect.objectContaining({ positionMs: 130000, durationMs: 200000 }),
 		expect.anything(),

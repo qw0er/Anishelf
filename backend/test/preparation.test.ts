@@ -5,38 +5,38 @@ import { join } from "node:path";
 import Database from "better-sqlite3";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
-import { ApplicationDatabase } from "../src/bootstrap/database.js";
-import { createHttpApp } from "../src/bootstrap/http.js";
-import { createLibraryModule } from "../src/bootstrap/library.js";
+import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
+import { createLibraryModule } from "../src/app/bootstrap/library.js";
 import type {
 	CompatibilityCheckRequest,
 	PreparationStartResponse,
 } from "../src/contracts/http.js";
-import {
-	builtinTranscodeProfiles,
-	type TranscodeProfile,
-} from "../src/modules/configuration/public.js";
-import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { MediaInspectionApplication } from "../src/modules/media-inspection/application/inspection.js";
-import { MediaPlanningApplication } from "../src/modules/media-planning/application/planning.js";
+import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
+import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
 import type {
 	MediaExecutionRequest,
 	MediaProcessingApi,
 	ProcessedMedia,
-} from "../src/modules/media-processing/public.js";
-import { PlaybackApplication } from "../src/modules/playback/application/playback.js";
-import { PreparationApplication } from "../src/modules/preparation/application/preparation.js";
-import {
-	InvalidPreparedMediaError,
-	PreparedMediaFiles,
-} from "../src/modules/preparation/infrastructure/files.js";
-import { preparationPolicy } from "../src/modules/preparation/policy.js";
-import { MediaToolError } from "../src/platform/media/index.js";
-import { parseMediaInfo } from "../src/platform/media/tools.js";
+} from "../src/modules/media/media-processing/public.js";
+import { PreparationApplication } from "../src/modules/media/preparation/application/preparation.js";
 import {
 	preparationStartResponse,
 	preparationTaskResponse,
-} from "../src/transport/presenters/preparation.js";
+} from "../src/modules/media/preparation/http/presenters.js";
+import {
+	InvalidPreparedMediaError,
+	PreparedMediaFiles,
+} from "../src/modules/media/preparation/infrastructure/files.js";
+import { preparationPolicy } from "../src/modules/media/preparation/policy.js";
+import { PlaybackApplication } from "../src/modules/playback/playback/application/playback.js";
+import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import {
+	builtinTranscodeProfiles,
+	type TranscodeProfile,
+} from "../src/modules/system/configuration/public.js";
+import { MediaToolError } from "../src/platform/media/index.js";
+import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { settingsStore } from "./settings-store.js";
 
 const cleanup: Array<() => Promise<unknown>> = [];

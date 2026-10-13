@@ -3,10 +3,10 @@
 import { TextTrack } from "@vidstack/react";
 import { StrictMode } from "react";
 import { afterEach, expect, test, vi } from "vitest";
-import type { SubtitleDiscoveryResponse } from "../src/api/contracts.js";
-import { subtitlePolicy } from "../src/config/media-policy.js";
 import { useSubtitleDiscovery } from "../src/features/subtitles/hooks/use-subtitle-discovery.js";
+import { subtitlePolicy } from "../src/features/subtitles/public.js";
 import { StyledSubtitleRenderer } from "../src/features/subtitles/renderer.js";
+import type { SubtitleDiscoveryResponse } from "../src/shared/api/contracts.js";
 import { act, cleanup, renderHook, waitFor } from "./query-test-utils.js";
 
 const plainTrack: SubtitleDiscoveryResponse["tracks"][number] = {

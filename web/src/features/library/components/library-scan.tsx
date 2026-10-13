@@ -1,17 +1,17 @@
 import { RefreshCw, ScanLine } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import type { LibraryContext } from "../../../App.js";
-import { Button } from "../../../components/ui/button.js";
+import { Button } from "../../../shared/components/ui/button.js";
 import {
 	Card,
 	CardContent,
 	CardHeader,
 	CardTitle,
-} from "../../../components/ui/card.js";
-import { Spinner } from "../../../components/ui/spinner.js";
-import { useDelayedPending } from "../../../hooks/use-delayed-pending.js";
-import { getScanWarningTranslationKey } from "../../../lib/error-translation.js";
+} from "../../../shared/components/ui/card.js";
+import { Spinner } from "../../../shared/components/ui/spinner.js";
+import { useDelayedPending } from "../../../shared/hooks/use-delayed-pending.js";
+import { getScanWarningTranslationKey } from "../../../shared/lib/error-translation.js";
+import type { LibraryContext } from "../public.js";
 
 type LibraryScanProps = Pick<
 	LibraryContext,

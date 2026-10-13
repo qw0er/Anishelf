@@ -10,11 +10,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { createLibraryModule } from "../src/bootstrap/library.js";
-import type { LibraryApplication } from "../src/modules/library/application/library.js";
-import { createResourceId } from "../src/modules/library/domain/model.js";
-import { LibraryIndex } from "../src/modules/library/infrastructure/index.js";
-import { ResourceAccess } from "../src/modules/resource-access/infrastructure/access.js";
+import { createLibraryModule } from "../src/app/bootstrap/library.js";
+import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
+import { createResourceId } from "../src/modules/resources/library/domain/model.js";
+import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import { DomainError } from "../src/shared/errors.js";
 
 let fixture: string;
@@ -267,7 +267,7 @@ test("returned scan state cannot mutate internal progress or warnings", async ()
 
 test("direct callers coalesce root preflight and exclude settings saves before traversal", async () => {
 	const accessModule = await import(
-		"../src/modules/resource-access/infrastructure/access.js"
+		"../src/modules/resources/resource-access/infrastructure/access.js"
 	);
 	const check = accessModule.checkResourceRoot;
 	let release = () => {};
@@ -329,7 +329,7 @@ test("rejected preflight releases the operation without discarding the previous 
 
 test("closing during root preflight waits and prevents a late scan from starting", async () => {
 	const accessModule = await import(
-		"../src/modules/resource-access/infrastructure/access.js"
+		"../src/modules/resources/resource-access/infrastructure/access.js"
 	);
 	let release = () => {};
 	let entered = () => {};
@@ -368,7 +368,7 @@ test("closing during root preflight waits and prevents a late scan from starting
 
 test("direct settings saves exclude scans and shutdown waits for the save to settle", async () => {
 	const accessModule = await import(
-		"../src/modules/resource-access/infrastructure/access.js"
+		"../src/modules/resources/resource-access/infrastructure/access.js"
 	);
 	const preflight = vi.spyOn(accessModule, "checkResourceRoot");
 	let release = () => {};

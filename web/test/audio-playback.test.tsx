@@ -1,16 +1,19 @@
+import * as mediacompatibilityApi from "../src/features/media-compatibility/api.js";
+import * as playbackApi from "../src/features/playback/api.js";
+import * as preparationApi from "../src/features/preparation/api.js";
+import * as settingsApi from "../src/features/settings/api.js";
 // @vitest-environment happy-dom
 
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import * as api from "../src/api/client.js";
-import type {
-	CompatibilityResult,
-	PreparationTaskResponse,
-} from "../src/api/contracts.js";
+import * as capabilities from "../src/features/media-compatibility/capabilities.js";
 import FilePlayer from "../src/features/playback/components/file-player.js";
 import { preparedWatchPath } from "../src/features/preparation/audio-tracks.js";
 import { PreparationProvider } from "../src/features/preparation/context.js";
-import * as capabilities from "../src/lib/media-capabilities.js";
+import type {
+	CompatibilityResult,
+	PreparationTaskResponse,
+} from "../src/shared/api/contracts.js";
 import {
 	cleanup,
 	fireEvent,
@@ -18,7 +21,7 @@ import {
 	waitFor,
 	within,
 } from "./query-test-utils.js";
-import "../src/i18n.js";
+import "../src/shared/i18n.js";
 
 const original = {
 	sourceVersion: "v1",
@@ -67,17 +70,19 @@ vi.mock("../src/features/playback/components/video-player.js", () => ({
 }));
 beforeEach(() => {
 	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([]);
-	vi.spyOn(api, "getPlaybackOptions").mockImplementation(async (input) => ({
-		original: {
-			sourceVersion: "v1",
-			descriptionId: "fresh",
-			queries: [],
-			selectedAudioStreamIndices: input.audioStreamIndices ?? [1, 2],
-			output: null,
-		} as unknown as apiReturn,
-		candidates: [],
-	}));
-	vi.spyOn(api, "selectPlayback").mockImplementation(async (input) => ({
+	vi.spyOn(playbackApi, "getPlaybackOptions").mockImplementation(
+		async (input) => ({
+			original: {
+				sourceVersion: "v1",
+				descriptionId: "fresh",
+				queries: [],
+				selectedAudioStreamIndices: input.audioStreamIndices ?? [1, 2],
+				output: null,
+			} as unknown as apiReturn,
+			candidates: [],
+		}),
+	);
+	vi.spyOn(playbackApi, "selectPlayback").mockImplementation(async (input) => ({
 		sourceVersion: "v1",
 		compatibility: original,
 		pending: false,
@@ -134,24 +139,31 @@ const task = {
 } as PreparationTaskResponse;
 
 test("changing playback audio verifies only matching copies and never enqueues automatically", async () => {
-	vi.spyOn(api, "getTranscodeProfiles").mockResolvedValue({
+	vi.spyOn(settingsApi, "getTranscodeProfiles").mockResolvedValue({
 		profiles: [],
 		selectedProfileId: "builtin:balanced",
 		selectionAvailable: true,
 		preparationMode: "compatible" as const,
 	});
-	vi.spyOn(api, "getPreparations").mockResolvedValue({ tasks: [task] });
-	vi.spyOn(api, "getFilePreparations").mockResolvedValue({ tasks: [task] });
-	vi.spyOn(api, "inspectMediaCompatibility").mockResolvedValue({
+	vi.spyOn(preparationApi, "getPreparations").mockResolvedValue({
+		tasks: [task],
+	});
+	vi.spyOn(preparationApi, "getFilePreparations").mockResolvedValue({
+		tasks: [task],
+	});
+	vi.spyOn(
+		mediacompatibilityApi,
+		"inspectMediaCompatibility",
+	).mockResolvedValue({
 		sourceVersion: "v1",
 		descriptionId: "fresh",
 		queries: [],
 	} as unknown as apiReturn);
 	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([]);
-	vi.spyOn(api, "checkMediaCompatibility").mockResolvedValue({
+	vi.spyOn(mediacompatibilityApi, "checkMediaCompatibility").mockResolvedValue({
 		output: { combinations: { "copy-copy": "supported" } },
 	} as unknown as CompatibilityResult);
-	const create = vi.spyOn(api, "createPreparation");
+	const create = vi.spyOn(preparationApi, "createPreparation");
 	const view = render(
 		<MemoryRouter initialEntries={["/files/file?audio=2"]}>
 			<PreparationProvider>
@@ -179,7 +191,7 @@ test("changing playback audio verifies only matching copies and never enqueues a
 			task.resource?.url,
 		),
 	);
-	expect(api.selectPlayback).toHaveBeenCalledWith(
+	expect(playbackApi.selectPlayback).toHaveBeenCalledWith(
 		expect.objectContaining({ audioStreamIndices: [2] }),
 		expect.anything(),
 	);
@@ -205,7 +217,9 @@ test("changing playback audio verifies only matching copies and never enqueues a
 	).toBeTruthy();
 	expect(within(dialog).getByText(/Japanese · AAC · 2 channels/)).toBeTruthy();
 });
-type apiReturn = Awaited<ReturnType<typeof api.inspectMediaCompatibility>>;
+type apiReturn = Awaited<
+	ReturnType<typeof mediacompatibilityApi.inspectMediaCompatibility>
+>;
 
 test("watch links preserve selected, all and silent task audio", () => {
 	expect(preparedWatchPath(task)).toBe("/files/file?audio=2");
@@ -224,18 +238,20 @@ test.each(["unknown", "unsupported", "list-error"])(
 			status: state === "unknown" ? "unknown" : "unsupported",
 			reason: "browser-rejected",
 		};
-		vi.spyOn(api, "getTranscodeProfiles").mockResolvedValue({
+		vi.spyOn(settingsApi, "getTranscodeProfiles").mockResolvedValue({
 			profiles: [],
 			selectedProfileId: "builtin:balanced",
 			selectionAvailable: true,
 			preparationMode: "compatible" as const,
 		});
-		vi.spyOn(api, "getPreparations").mockResolvedValue({ tasks: [] });
-		const list = vi.spyOn(api, "getFilePreparations");
+		vi.spyOn(preparationApi, "getPreparations").mockResolvedValue({
+			tasks: [],
+		});
+		const list = vi.spyOn(preparationApi, "getFilePreparations");
 		if (state === "list-error")
 			list.mockRejectedValue(new Error("Server error"));
 		else list.mockResolvedValue({ tasks: [] });
-		const create = vi.spyOn(api, "createPreparation");
+		const create = vi.spyOn(preparationApi, "createPreparation");
 		const view = render(
 			<MemoryRouter>
 				<PreparationProvider>

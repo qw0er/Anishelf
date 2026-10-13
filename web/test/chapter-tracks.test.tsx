@@ -1,11 +1,11 @@
+import * as playbackApi from "../src/features/playback/api.js";
 // @vitest-environment happy-dom
 
 import { TextTrack, TextTrackList } from "@vidstack/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import * as api from "../src/api/client.js";
-import { queryClient } from "../src/api/query-client.js";
-import { toast } from "../src/components/ui/toast.js";
 import { ChapterTracks } from "../src/features/playback/components/chapter-tracks.js";
+import { queryClient } from "../src/shared/api/query-client.js";
+import { toast } from "../src/shared/components/ui/toast.js";
 import { cleanup, render, waitFor } from "./query-test-utils.js";
 
 let tracks: TextTrackList;
@@ -28,7 +28,7 @@ afterEach(() => {
 });
 
 test("registers chapters beside subtitles, replaces versions and cleans up only its track", async () => {
-	vi.spyOn(api, "getChapters").mockImplementation(
+	vi.spyOn(playbackApi, "getChapters").mockImplementation(
 		async (_id, sourceVersion) => ({
 			sourceVersion,
 			chapters: [{ title: sourceVersion, startMs: 0, endMs: 10000 }],
@@ -67,7 +67,7 @@ test("registers chapters beside subtitles, replaces versions and cleans up only 
 });
 
 test("ignores mismatched versions and empty chapters", async () => {
-	vi.spyOn(api, "getChapters").mockResolvedValue({
+	vi.spyOn(playbackApi, "getChapters").mockResolvedValue({
 		sourceVersion: "old",
 		chapters: [{ title: "Old", startMs: 0, endMs: 1000 }],
 	});
@@ -80,7 +80,7 @@ test("ignores mismatched versions and empty chapters", async () => {
 		).toBeDefined(),
 	);
 	expect(tracks.toArray()).toEqual([]);
-	vi.mocked(api.getChapters).mockResolvedValue({
+	vi.mocked(playbackApi.getChapters).mockResolvedValue({
 		sourceVersion: "v2",
 		chapters: [],
 	});
@@ -96,7 +96,7 @@ test("ignores mismatched versions and empty chapters", async () => {
 });
 
 test("reports failed chapter loading with a retry without registering a broken track", async () => {
-	vi.spyOn(api, "getChapters")
+	vi.spyOn(playbackApi, "getChapters")
 		.mockRejectedValueOnce(new Error("Failed"))
 		.mockResolvedValue({
 			sourceVersion: "v1",

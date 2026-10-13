@@ -1,20 +1,24 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
-	ApiClientError,
 	getDirectory,
 	getLibrary,
-	inspectMediaCompatibility,
-	isRequestCancelled,
+	startScan,
+} from "../src/features/library/public.js";
+import { inspectMediaCompatibility } from "../src/features/media-compatibility/public.js";
+import {
 	openPlaybackSession,
 	releasePlaybackSession,
 	savePlaybackProgress,
-	startScan,
-} from "../src/api/client.js";
+} from "../src/features/playback/public.js";
+import {
+	ApiClientError,
+	isRequestCancelled,
+} from "../src/shared/api/client.js";
 import type {
 	DirectoryResponse,
 	LibraryResponse,
 	ScanResponse,
-} from "../src/api/contracts.js";
+} from "../src/shared/api/contracts.js";
 
 const fetcher = vi.fn<typeof fetch>();
 beforeEach(() => {

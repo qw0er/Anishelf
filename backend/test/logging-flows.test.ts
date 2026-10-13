@@ -1,7 +1,7 @@
 import pino from "pino";
 import { expect, test } from "vitest";
-import { createHttpApp } from "../src/bootstrap/http.js";
-import { builtinPolicy } from "../src/modules/configuration/public.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
+import { builtinPolicy } from "../src/modules/system/configuration/public.js";
 import { runTool } from "../src/platform/media/process.js";
 
 function capture(level: string) {

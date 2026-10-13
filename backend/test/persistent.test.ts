@@ -12,11 +12,11 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, test } from "vitest";
+import { checkResourceRoot } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import {
 	PersistentConfiguration,
 	parsePersistentSettings,
-} from "../src/modules/configuration/infrastructure/persistent.js";
-import { checkResourceRoot } from "../src/modules/resource-access/infrastructure/access.js";
+} from "../src/modules/system/configuration/infrastructure/persistent.js";
 
 async function loadPersistentSettings(dataDir: string) {
 	return (await PersistentConfiguration.load(dataDir)).settings;

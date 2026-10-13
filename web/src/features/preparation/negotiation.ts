@@ -1,8 +1,10 @@
-import type { CompatibilityCheckRequest } from "../../api/contracts.js";
-import { boundedSignal } from "../../api/queries.js";
-import { loadQuery } from "../../api/query-client.js";
-import { queryCapabilities } from "../../lib/media-capabilities.js";
-import { inspectBrowserMedia } from "../../lib/media-compatibility.js";
+import type { CompatibilityCheckRequest } from "../../shared/api/contracts.js";
+import { boundedSignal } from "../../shared/api/queries.js";
+import { loadQuery } from "../../shared/api/query-client.js";
+import {
+	inspectBrowserMedia,
+	queryCapabilities,
+} from "../media-compatibility/public.js";
 
 /** Retry and reuse always obtain fresh, source/profile-bound browser evidence. */
 export async function negotiatePreparation(

@@ -1,18 +1,18 @@
 import { playbackSelectionConstraints } from "@anishelf/backend/contracts/defaults";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
-import { getPlaybackOptions, selectPlayback } from "../../../api/client.js";
 import type {
 	CompatibilityCheckRequest,
 	CompatibilityInspection,
 	CompatibilityResult,
 	PlaybackSelectionResponse,
-} from "../../../api/contracts.js";
-import { interactionPolicy } from "../../../config/interaction-policy.js";
+} from "../../../shared/api/contracts.js";
 import {
 	clearCapabilityCache,
 	queryCapabilities,
-} from "../../../lib/media-capabilities.js";
+} from "../../media-compatibility/public.js";
+import { preparationInteractionPolicy } from "../../preparation/public.js";
+import { getPlaybackOptions, selectPlayback } from "../api.js";
 
 /** Browser collects evidence; the server alone filters and chooses delivery resources. */
 export function usePlaybackSelection(
@@ -60,7 +60,9 @@ export function usePlaybackSelection(
 		queryFn: async ({ signal: querySignal }) => {
 			const signal = AbortSignal.any([
 				querySignal,
-				AbortSignal.timeout(interactionPolicy.preparationRequestTimeoutMs),
+				AbortSignal.timeout(
+					preparationInteractionPolicy.preparationRequestTimeoutMs,
+				),
 			]);
 			const intent = {
 				fileId,
@@ -115,7 +117,7 @@ export function usePlaybackSelection(
 		},
 		refetchInterval: (query) =>
 			query.state.data?.plan.mode === "blocked" && query.state.data.pending
-				? interactionPolicy.preparationPollIntervalMs
+				? preparationInteractionPolicy.preparationPollIntervalMs
 				: false,
 	});
 	const current = {

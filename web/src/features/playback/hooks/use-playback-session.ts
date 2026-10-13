@@ -5,10 +5,10 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "../../../components/ui/toast.js";
-import { interactionPolicy } from "../../../config/interaction-policy.js";
-import type { PlaybackPolicy } from "../../../config/media-policy.js";
-import { getErrorTranslationKey } from "../../../lib/error-translation.js";
+import { toast } from "../../../shared/components/ui/toast.js";
+import { interactionPolicy } from "../../../shared/config/interaction-policy.js";
+import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
+import type { PlaybackPolicy } from "../policy.js";
 import {
 	PlaybackSessionController,
 	type PlaybackSessionState,
