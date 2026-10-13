@@ -10,6 +10,7 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 	private readonly context: CatalogContext;
 	private readonly associations: AssociationApplication;
 	readonly list: AnimeCatalogApi["list"];
+	readonly artwork: AnimeCatalogApi["artwork"];
 	readonly detail: AnimeCatalogApi["detail"];
 	readonly publish: AnimeCatalogApi["publish"];
 	readonly reviews: AnimeCatalogApi["reviews"];
@@ -27,6 +28,7 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 		this.associations = new AssociationApplication(this.context);
 		const work = new WorkApplication(this.context, queries);
 		this.list = queries.list.bind(queries);
+		this.artwork = queries.artwork.bind(queries);
 		this.detail = queries.detail.bind(queries);
 		this.publish = review.publish.bind(review);
 		this.reviews = review.reviews.bind(review);

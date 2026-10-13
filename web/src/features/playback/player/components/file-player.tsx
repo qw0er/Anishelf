@@ -23,12 +23,14 @@ export default function FilePlayer({
 	data,
 
 	returnDirectoryId,
+	returnTo,
 	onRetry,
 	compatibilityScope = "",
 	slots,
 }: {
 	data: FileResponse;
 	returnDirectoryId: string | null;
+	returnTo?: string | null;
 	onRetry(): void;
 	compatibilityScope?: string;
 	slots?: PlaybackUiSlots;
@@ -75,10 +77,12 @@ export default function FilePlayer({
 			<div className="action-row">
 				<Link
 					className={buttonStyles("outline")}
-					to={directoryPath(returnDirectoryId || data.file.parentId)}
+					to={
+						returnTo ?? directoryPath(returnDirectoryId || data.file.parentId)
+					}
 				>
 					<ArrowLeft size={16} aria-hidden="true" />
-					{t("navigation.backToFiles")}
+					{t(returnTo ? "anime.backToDetail" : "navigation.backToFiles")}
 				</Link>
 				<Button type="button" variant="outline" onClick={onRetry}>
 					<RefreshCw size={16} aria-hidden="true" />

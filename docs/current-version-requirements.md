@@ -9,8 +9,8 @@ This iteration is selected and not yet complete or accepted. The backend
 and candidate-specific proposals. An application coordinator automatically processes
 published scans. [Metadata](metadata.md) supplies cached AniList search, details,
 relations, airing and artwork. [Anime Catalog](anime-catalog.md) implements backend persistence, review decisions,
-confirmation/correction operations and library queries. The Web review workflow
-remains pending. No release number is assigned. The [overall requirements](requirements.md) own feature identifiers and later scope; [History](history.md#v2-requirements) records the retained V2 scope as implemented. The anime-library acceptance below remains pending.
+confirmation/correction operations and library queries. The Web poster library, work detail and version playback are implemented;
+Files identification presentation and the Web review workflow remain pending. No release number is assigned. The [overall requirements](requirements.md) own feature identifiers and later scope; [History](history.md#v2-requirements) records the retained V2 scope as implemented. The anime-library acceptance below remains pending.
 
 External metadata access belongs to this iteration. Personal tracker authorization, list import and progress synchronization are later capabilities and must not be prerequisites for identifying local files.
 
@@ -19,7 +19,8 @@ The [current iteration overall design](current-version-design.md) selects
 with provider extensibility and persistent metadata/artwork caching. The default
 interface becomes a poster-based anime library; directory browsing remains the
 resource-management and identification entry, alongside a review workflow.
-These are selected design decisions, not implemented capabilities.
+The poster library and detail/playback slice is implemented; the Review workflow
+remains a selected design decision.
 
 ## 2. Selected Requirements
 
@@ -56,7 +57,9 @@ These are selected design decisions, not implemented capabilities.
 
 ## 5. Acceptance Criteria
 
-All scenarios below are pending. Acceptance must include representative Chinese, Japanese and English filenames, directory-only titles, mixed-work directories, specials, continuous numbering, season/part ambiguity, multi-episode files and multiple versions. Record parser/provider versions, sample expectations, unresolved cases and actual results.
+Full iteration acceptance remains pending. Poster/detail/version playback has
+[scoped implementation and sample verification](acceptance/anime-library/README.md);
+this does not complete the Review or recognition-accuracy scenarios. Acceptance must include representative Chinese, Japanese and English filenames, directory-only titles, mixed-work directories, specials, continuous numbering, season/part ambiguity, multi-episode files and multiple versions. Record parser/provider versions, sample expectations, unresolved cases and actual results.
 
 The [offline identification corpus](../backend/test/fixtures/anime-identification/README.md)
 provides sourced filenames, frozen provider records, expected associations, review

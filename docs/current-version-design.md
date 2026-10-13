@@ -13,7 +13,8 @@ and automatic scan coordination. [Metadata](metadata.md) now implements cached
 AniList queries, details, relations, airing and artwork and supplies recognition
 candidates. [Anime Catalog](anime-catalog.md) now implements durable local works,
 episodes, review decisions, confirmation/correction transactions and HTTP queries.
-The Web workflow remains pending. Exact implemented
+The Web poster library, work detail and version playback are implemented.
+Files identification presentation and Review remain pending. Exact implemented
 contracts are defined in source.
 
 ## 1. Product decisions

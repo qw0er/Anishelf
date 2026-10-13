@@ -35,7 +35,7 @@ export function usePlaybackController(data: FileResponse, scope: string) {
 	const sourceScope = originalCompatibilityKey(data.file, root);
 	const selected = usePlaybackSelection(
 		data.file.id,
-		playback.session?.sourceVersion,
+		searchParams.get("version") ?? playback.session?.sourceVersion,
 		sourceScope,
 		parsed.indices,
 		JSON.stringify([

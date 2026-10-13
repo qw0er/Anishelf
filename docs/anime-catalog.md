@@ -106,6 +106,7 @@ local records and playback history. Later scans do not undo either decision.
 | --- | --- |
 | `GET /api/catalog/works` | Paginated local search, format/year/availability filters, title/recent sorting |
 | `GET /api/catalog/works/:id` | Cached metadata, ordered episodes and source versions |
+| `GET /api/catalog/works/:id/artwork/:kind` | Validated cover/banner bytes from the retained snapshot; active-root access |
 | `GET /api/catalog/reviews` | Paginated pending/confirmed/rejected decisions and recognition evidence |
 | `POST /api/catalog/previews` | Preview selected mappings and replacements |
 | `POST /api/catalog/confirmations` | Atomically confirm/reassign selected rows |
@@ -144,9 +145,35 @@ multiple versions, idempotency, transactional rollback, stale decisions, restart
 provider failures, root switching and replaced/missing sources. These fixture files
 are intentionally non-playable and do not certify browser playback.
 
-The Web poster wall, work detail, Files identification presentation and Review UI
-remain pending. Full CAT01–CAT08 acceptance, representative recognition accuracy
-and real-video version-selection navigation remain iteration work.
+The Web poster library and work detail are implemented at `/` and `/anime/:id`.
+Files remains at `/directories/root`. The wall uses local search, format/year/
+availability filters, title/recent sorting and 24-item pages. Query keys include
+resource root and scan revision; URL filters, scroll restoration and returning
+card focus retain browsing context. Missing artwork falls back to the real title.
+
+Cards/detail expose same-origin cover/banner URLs. HTTP owns URL projection;
+Catalog supplies artwork presence and Metadata loads images from the retained
+snapshot through `snapshotArtwork`, without querying AniList for each card.
+Image downloads remain lazy and bounded by Metadata's existing cache policy.
+Artwork failure never blocks metadata or playback. Snapshots remain usable offline;
+uncached images fall back to titles.
+
+Details show metadata unknowns, cached/stale status, explicit refresh/retry,
+sanitized provider Markdown/HTML, spoiler tags hidden by default, cached relations
+with pagination, and separate regular/special/movie groups. Episode rows distinguish
+available, unavailable and missing versions. Multiple usable versions open an
+accessible selector with original filenames, paths and name-derived release evidence.
+Single usable versions open the existing player directly. Version URLs pin the
+selected source version so a replaced file cannot silently satisfy the selection.
+Player return links retain the work, episode and library filters; ordinary Files
+playback still returns to its original directory. Multi-episode files use their
+normal timeline, and source progress remains authoritative.
+
+[Scoped verification and screenshots](acceptance/anime-library/README.md) cover
+real H.264/AAC version playback, subtitle selection, source seeking/history and
+1280/390 px layouts. Files identification presentation and Review UI remain pending.
+Full CAT01–CAT08 acceptance and representative recognition accuracy remain iteration
+work; this slice does not automatically confirm identification proposals.
 
 ## Module boundary
 

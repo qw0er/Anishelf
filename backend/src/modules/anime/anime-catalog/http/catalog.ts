@@ -1,3 +1,4 @@
+import { Type } from "typebox";
 import {
 	CatalogConfirmationRequestSchema,
 	CatalogConfirmationSchema,
@@ -30,6 +31,28 @@ export function registerCatalogRoutes(
 			reply.header("Cache-Control", "no-store");
 	});
 	app.get(
+		"/api/catalog/works/:id/artwork/:kind",
+		{
+			schema: {
+				params: Type.Object(
+					{
+						id: CatalogIdParamsSchema.properties.id,
+						kind: Type.Union([Type.Literal("cover"), Type.Literal("banner")]),
+					},
+					{ additionalProperties: false },
+				),
+			},
+		},
+		async (request, reply) => {
+			const asset = await catalog.artwork(
+				request.params.id,
+				request.params.kind,
+			);
+			reply.header("X-Content-Type-Options", "nosniff");
+			return reply.type(asset.mimeType).send(Buffer.from(asset.bytes));
+		},
+	);
+	app.get(
 		"/api/catalog/works",
 		{
 			schema: {
@@ -39,12 +62,13 @@ export function registerCatalogRoutes(
 		},
 		async (request) => {
 			const { page, perPage, year, ...query } = request.query;
-			return catalog.list({
+			const result = await catalog.list({
 				...query,
 				...(page ? { page: Number(page) } : {}),
 				...(perPage ? { perPage: Number(perPage) } : {}),
 				...(year ? { year: Number(year) } : {}),
 			});
+			return { ...result, items: result.items.map(presentCard) };
 		},
 	);
 	app.get(
@@ -55,7 +79,7 @@ export function registerCatalogRoutes(
 				response: { 200: CatalogWorkDetailSchema },
 			},
 		},
-		async (request) => catalog.detail(request.params.id),
+		async (request) => presentDetail(await catalog.detail(request.params.id)),
 	);
 	app.get(
 		"/api/catalog/reviews",
@@ -171,6 +195,26 @@ export function registerCatalogRoutes(
 			},
 		},
 		async (request) =>
-			catalog.refresh(request.params.id, request.body.revision),
+			presentDetail(
+				await catalog.refresh(request.params.id, request.body.revision),
+			),
 	);
+}
+
+function artworkUrl(id: string, kind: "cover" | "banner"): string {
+	return `/api/catalog/works/${encodeURIComponent(id)}/artwork/${kind}`;
+}
+function presentCard(
+	work: Awaited<ReturnType<AnimeCatalogApi["list"]>>["items"][number],
+) {
+	const { hasCover, ...card } = work;
+	return { ...card, coverUrl: hasCover ? artworkUrl(work.id, "cover") : null };
+}
+function presentDetail(value: Awaited<ReturnType<AnimeCatalogApi["detail"]>>) {
+	const { hasBanner, work, ...detail } = value;
+	return {
+		...detail,
+		work: presentCard(work),
+		bannerUrl: hasBanner ? artworkUrl(work.id, "banner") : null,
+	};
 }

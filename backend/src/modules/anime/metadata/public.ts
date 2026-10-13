@@ -47,6 +47,11 @@ export interface MetadataApi {
 		kind: "cover" | "banner",
 		options?: ReadOptions,
 	): Promise<ArtworkStatus>;
+	/** Load artwork from a retained snapshot without querying the provider. */
+	snapshotArtwork(
+		snapshotId: string,
+		kind: "cover" | "banner",
+	): Promise<ArtworkStatus>;
 	readArtwork(id: string): Promise<ArtworkAsset>;
 }
 

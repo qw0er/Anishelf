@@ -1,6 +1,8 @@
 // Type-only imports share the API contract without bundling backend code.
 export type {
 	ApiErrorResponse,
+	CatalogDetailResponse,
+	CatalogListResponse,
 	ChaptersResponse,
 	CompatibilityCheckRequest,
 	CompatibilityEvidence,
@@ -12,6 +14,7 @@ export type {
 	FileResponse,
 	HistoryResponse,
 	LibraryResponse,
+	MetadataRelationsResponse,
 	PlaybackOptionsRequest,
 	PlaybackOptionsResponse,
 	PlaybackSelectionRequest,

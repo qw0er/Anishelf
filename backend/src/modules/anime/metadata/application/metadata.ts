@@ -188,6 +188,19 @@ export class MetadataApplication implements MetadataApi {
 			options,
 		);
 	}
+	snapshotArtwork(snapshotId: string, kind: "cover" | "banner") {
+		if (kind !== "cover" && kind !== "banner")
+			throw this.invalid("Unknown artwork kind.");
+		const snapshot = this.snapshot(snapshotId);
+		if (snapshot.kind !== "detail")
+			throw this.invalid("Artwork requires a detail snapshot.");
+		const { reference, coverUrl, bannerUrl } = snapshot.data;
+		return this.options.artwork.get(
+			JSON.stringify([reference.provider, reference.id, kind]),
+			kind === "cover" ? coverUrl : bannerUrl,
+			{},
+		);
+	}
 	readArtwork(id: string) {
 		return this.options.artwork.read(id);
 	}

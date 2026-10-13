@@ -21,6 +21,7 @@ resource access or playback progress.
 | `retain(id, ownerId)` / `release(id, ownerId)` | Idempotent Catalog-owned retention pins |
 | `artwork(reference, kind, options?)` | Cover/banner status and opaque local asset ID |
 | `readArtwork(id)` | Cached image bytes and validated MIME type |
+| `snapshotArtwork(id, kind)` | Artwork from a retained detail snapshot without a provider metadata request |
 
 A reference is `{ provider, mediaType: "anime", id }`. IDs are opaque outside the
 adapter; AniList's GraphQL integer conversion is adapter-owned. `ReadOptions`
@@ -146,8 +147,8 @@ Read routes accept `cachedOnly=true`; relation/airing routes accept pagination.
 Search allows page sizes up to 50; relations/airing up to 25. Retention and snapshot
 version reads are internal module APIs, not arbitrary browser pin operations.
 HTTP query subscriptions cancel on disconnect. Browser response types are derived
-from the schemas in `contracts/http.ts`. No frontend Metadata page, poster wall,
-Catalog confirmation or Review UI is implemented by this module.
+from the schemas in `contracts/http.ts`. The Anime Web feature now consumes Catalog projections for poster/detail display
+and Metadata for cached relations. Catalog confirmation and Review UI remain pending.
 
 Tests use realistic injected GraphQL transports plus actual SQLite, restart,
 HTTP and filesystem integration. They exercise normalization/unknowns, stale and

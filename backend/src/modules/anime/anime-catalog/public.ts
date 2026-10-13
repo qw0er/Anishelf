@@ -1,4 +1,5 @@
 import type { IdentificationResult } from "../identification/public.js";
+import type { MetadataApi } from "../metadata/public.js";
 import type {
 	CatalogPreview,
 	CatalogQuery,
@@ -21,6 +22,10 @@ export interface AnimeCatalogApi {
 	): void;
 	list(query?: CatalogQuery): Promise<Page<WorkCard>>;
 	detail(id: string): Promise<WorkDetail>;
+	artwork(
+		id: string,
+		kind: "cover" | "banner",
+	): ReturnType<MetadataApi["readArtwork"]>;
 	reviews(options?: {
 		decision?: ReviewItem["decision"];
 		page?: number;

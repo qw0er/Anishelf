@@ -6,7 +6,7 @@ import { buttonStyles } from "../../shared/components/ui/button.js";
 export default function AppHeader({ pending = false }: { pending?: boolean }) {
 	const { t } = useTranslation();
 	const { pathname } = useLocation();
-	const browsing = pathname === "/" || pathname.startsWith("/directories/");
+	const browsing = pathname === "/" || pathname.startsWith("/anime/");
 	return (
 		<header className="border-b bg-card" inert={pending}>
 			<div className="page-container flex flex-wrap items-center justify-between gap-4 py-3">
@@ -16,11 +16,19 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 				<nav aria-label={t("app.primaryNavigation")} className="action-row">
 					<NavLink
 						to="/"
-						className={({ isActive }) =>
-							buttonStyles(isActive && browsing ? "secondary" : "ghost")
-						}
+						className={() => buttonStyles(browsing ? "secondary" : "ghost")}
 					>
 						{t("app.library")}
+					</NavLink>
+					<NavLink
+						to="/directories/root"
+						className={() =>
+							buttonStyles(
+								pathname.startsWith("/directories/") ? "secondary" : "ghost",
+							)
+						}
+					>
+						{t("app.files")}
 					</NavLink>
 					<NavLink
 						to="/history"

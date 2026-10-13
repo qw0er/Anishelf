@@ -8,6 +8,7 @@ import {
 	useParams,
 	useSearchParams,
 } from "react-router";
+import { AnimeDetail, AnimeLibrary } from "../../features/anime/ui.js";
 import {
 	usePreparationAction,
 	usePreparationContext,
@@ -23,12 +24,15 @@ import {
 } from "../../features/settings/ui.js";
 import { useQueryScope } from "../../shared/api/queries.js";
 import { buttonStyles } from "../../shared/components/ui/button.js";
+import { animeReturnPath } from "../../shared/navigation.js";
 import App from "../App.js";
 import { FileActions } from "../components/file-actions.js";
 import InitialLoading from "../components/initial-loading.js";
 import { playbackUiSlots } from "../composition/playback-ui.js";
 import RouteError from "./errors.js";
 import {
+	animeLoader,
+	catalogLoader,
 	directoryLoader,
 	fileLoader,
 	historyLoader,
@@ -75,6 +79,7 @@ function PlayerPage() {
 			])}
 			data={data}
 			returnDirectoryId={searchParams.get("directory")}
+			returnTo={animeReturnPath(searchParams)}
 			onRetry={reload}
 			compatibilityScope={JSON.stringify([
 				settings?.resourceRoot,
@@ -141,8 +146,14 @@ export const libraryRoute: RouteObject = {
 		},
 		{
 			index: true,
-			loader: directoryLoader,
-			element: <DirectoryPage />,
+			loader: catalogLoader,
+			element: <AnimeLibrary />,
+			errorElement: <RouteError kind="directory" />,
+		},
+		{
+			path: "anime/:id",
+			loader: animeLoader,
+			element: <AnimeDetail />,
 			errorElement: <RouteError kind="directory" />,
 		},
 		{

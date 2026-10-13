@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	mkdir,
+	mkdtemp,
+	readFile,
+	realpath,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { parse } from "anitomy-ng";
@@ -55,8 +62,9 @@ function source(relativePath: string): SourceIdentity {
 }
 async function fixture(paths = ["Frieren - 01.mkv"]) {
 	const base = await mkdtemp(join(tmpdir(), "anishelf-identification-"));
-	const root = join(base, "media");
-	await mkdir(root);
+	const requestedRoot = join(base, "media");
+	await mkdir(requestedRoot);
+	const root = await realpath(requestedRoot);
 	for (const path of paths) {
 		await mkdir(dirname(join(root, path)), { recursive: true });
 		await writeFile(join(root, path), "original placeholder");
@@ -452,8 +460,9 @@ test("automatic coordination processes libraries larger than one identification 
 
 test("root switching cancels stale recognition and processes the newly published root", async () => {
 	const f = await fixture();
-	const nextRoot = join(f.base, "next");
-	await mkdir(nextRoot);
+	const requestedNextRoot = join(f.base, "next");
+	await mkdir(requestedNextRoot);
+	const nextRoot = await realpath(requestedNextRoot);
 	await writeFile(join(nextRoot, "Your Name.mkv"), "new root placeholder");
 	let entered!: () => void;
 	const gate = new Promise<void>((resolve) => {
