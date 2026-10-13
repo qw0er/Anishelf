@@ -38,6 +38,20 @@ export class ReviewApplication {
 			};
 		});
 	}
+	async source(fileId: string) {
+		const root = await this.context.root();
+		const resolved = await this.context.options.sources.resolveSource(fileId);
+		this.context.options.sources.assertRootEpoch(root.epoch);
+		const source = this.context.options.store.registerSource(resolved.identity);
+		const record = this.context.options.store.review(source.id);
+		return {
+			sourceVersion: source.sourceVersion,
+			associations:
+				record?.available && record.decision === "confirmed"
+					? this.associations(source.id)
+					: [],
+		};
+	}
 	async get(id: string): Promise<ReviewItem> {
 		const root = await this.context.root();
 		const record = this.context.requireReview(id, root.rootId);

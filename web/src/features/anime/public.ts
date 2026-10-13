@@ -1,2 +1,2 @@
 export { catalogFilters } from "./api.js";
-export { catalogQuery, workQuery } from "./queries.js";
+export { catalogQuery, sourceQuery, workQuery } from "./queries.js";

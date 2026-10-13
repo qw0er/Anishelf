@@ -3,13 +3,12 @@ import type {
 	CatalogConfirmationRequest,
 	CatalogConfirmationResponse,
 	CatalogDetailResponse,
-	CatalogEpisodeEditRequest,
 	CatalogListResponse,
 	CatalogPreviewRequest,
 	CatalogPreviewResponse,
 	CatalogReviewItem,
 	CatalogReviewResponse,
-	CatalogWorkEditRequest,
+	CatalogSourceResponse,
 	IdentificationStatusResponse,
 	MetadataDetailsResponse,
 	MetadataRelationsResponse,
@@ -151,21 +150,13 @@ export const decideReview = (
 		{},
 		{ revision, reason },
 	);
-export const editWork = (id: string, input: CatalogWorkEditRequest) =>
-	request(`/api/catalog/works/${encodeURIComponent(id)}`, "PATCH", {}, input);
-export const editEpisode = (
-	id: string,
-	episodeId: string,
-	input: CatalogEpisodeEditRequest,
-) =>
-	request(
-		`/api/catalog/works/${encodeURIComponent(id)}/episodes/${encodeURIComponent(episodeId)}`,
-		"PATCH",
-		{},
-		input,
-	);
-
 export const getIdentificationStatus = (
 	options?: RequestOptions,
 ): Promise<IdentificationStatusResponse> =>
 	request("/api/anime/identification", "GET", options);
+
+export const getSource = (
+	id: string,
+	options?: RequestOptions,
+): Promise<CatalogSourceResponse> =>
+	request(`/api/catalog/sources/${encodeURIComponent(id)}`, "GET", options);

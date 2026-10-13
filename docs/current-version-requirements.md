@@ -56,9 +56,7 @@ The poster library, detail/playback, automatic admission and Review/correction w
 
 ## 5. Acceptance Criteria
 
-Full iteration acceptance remains pending. Poster/detail/version playback has
-[scoped implementation and sample verification](acceptance/anime-library/README.md);
-[Automatic admission and Review verification](acceptance/anime-library/automatic-review.md) also covers the new workflow. Representative recognition accuracy and complete iteration acceptance remain separate. Acceptance must include representative Chinese, Japanese and English filenames, directory-only titles, mixed-work directories, specials, continuous numbering, season/part ambiguity, multi-episode files and multiple versions. Record parser/provider versions, sample expectations, unresolved cases and actual results.
+Full iteration acceptance and representative recognition accuracy remain pending. Acceptance must include representative Chinese, Japanese and English filenames, directory-only titles, mixed-work directories, specials, continuous numbering, season/part ambiguity, multi-episode files and multiple versions. Record parser/provider versions, sample expectations, unresolved cases and actual results.
 
 The [offline identification corpus](../backend/test/fixtures/anime-identification/README.md)
 provides sourced filenames, frozen provider records, expected associations, review

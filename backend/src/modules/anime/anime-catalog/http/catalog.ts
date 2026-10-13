@@ -15,6 +15,7 @@ import {
 	CatalogReviewListSchema,
 	CatalogReviewQuerySchema,
 	CatalogReviewSchema,
+	CatalogSourceSchema,
 	CatalogWorkDetailSchema,
 	CatalogWorkEditSchema,
 	CatalogWorkSchema,
@@ -80,6 +81,16 @@ export function registerCatalogRoutes(
 			},
 		},
 		async (request) => presentDetail(await catalog.detail(request.params.id)),
+	);
+	app.get(
+		"/api/catalog/sources/:id",
+		{
+			schema: {
+				params: CatalogIdParamsSchema,
+				response: { 200: CatalogSourceSchema },
+			},
+		},
+		async (request) => catalog.source(request.params.id),
 	);
 	app.get(
 		"/api/catalog/reviews/:id",

@@ -160,6 +160,10 @@ const episode = {
 export const CatalogWorkSchema = Type.Object(work);
 export const CatalogEpisodeSchema = Type.Object(episode);
 export const CatalogReviewSchema = review;
+export const CatalogSourceSchema = Type.Object({
+	sourceVersion: id,
+	associations: review.properties.associations,
+});
 export const CatalogWorkDetailSchema = Type.Object({
 	work: card,
 	metadata: MetadataDetailsResponseSchema,

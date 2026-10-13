@@ -21,6 +21,7 @@ import VideoPlayer from "./video-player.js";
 
 export default function FilePlayer({
 	data,
+	displayTitle,
 
 	returnDirectoryId,
 	returnTo,
@@ -29,6 +30,7 @@ export default function FilePlayer({
 	slots,
 }: {
 	data: FileResponse;
+	displayTitle?: { title: string; sourceVersion: string } | undefined;
 	returnDirectoryId: string | null;
 	returnTo?: string | null;
 	onRetry(): void;
@@ -51,6 +53,14 @@ export default function FilePlayer({
 		onPrepared,
 		recheck,
 	} = usePlaybackController(data, compatibilityScope);
+	const activeVersion =
+		compatibility.selection?.sourceVersion ??
+		compatibility.result?.sourceVersion;
+	const title =
+		displayTitle &&
+		(!activeVersion || displayTitle.sourceVersion === activeVersion)
+			? displayTitle.title
+			: data.file.name;
 	const preparedCurrent = selectedPlan?.mode === "prepared";
 	const blocked = !compatibility.loading && !resource;
 	const unsupported = compatibility.result?.direct.status === "unsupported";
@@ -132,7 +142,7 @@ export default function FilePlayer({
 					</div>
 				</section>
 			)}
-			<h1 className="page-title">{data.file.name}</h1>
+			<h1 className="page-title">{title}</h1>
 			{preparedCurrent && (
 				<p className="text-sm text-muted-foreground">
 					{t("preparation.playing")}
@@ -143,6 +153,7 @@ export default function FilePlayer({
 					<VideoPlayer
 						key={`video:${data.file.id}:${resource.url}`}
 						{...data}
+						displayTitle={title}
 						subtitlePolicy={subtitlePolicy}
 						renderSubtitles={slots?.renderSubtitles}
 						playbackUrl={resource.url}

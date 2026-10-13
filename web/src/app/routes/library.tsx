@@ -8,6 +8,7 @@ import {
 	useParams,
 	useSearchParams,
 } from "react-router";
+import { sourceQuery } from "../../features/anime/public.js";
 import {
 	AnimeDetail,
 	AnimeLibrary,
@@ -72,6 +73,37 @@ function PlayerPage() {
 	const { reload, playerVersion, settings, library } =
 		useOutletContext<LibraryContext>();
 	const [searchParams] = useSearchParams();
+	const source = useQuery(sourceQuery(data.file.id, useQueryScope()));
+	const { t } = useTranslation();
+	const associations = (source.data?.associations ?? []).toSorted((a, b) =>
+		a.number.localeCompare(b.number, "en", { numeric: true }),
+	);
+	const selected = associations.find(
+		(item) =>
+			item.workId === searchParams.get("anime") &&
+			item.episodeId === searchParams.get("episode"),
+	);
+	const groups = new Map<string, { title: string; episodes: string[] }>();
+	for (const item of selected ? [selected] : associations) {
+		const group = groups.get(item.workId) ?? {
+			title: item.workTitle,
+			episodes: [],
+		};
+		group.episodes.push(
+			item.kind === "movie"
+				? t("anime.movie")
+				: t(
+						item.kind === "special"
+							? "player.specialTitle"
+							: "player.episodeTitle",
+						{ number: item.number },
+					),
+		);
+		groups.set(item.workId, group);
+	}
+	const title = [...groups.values()]
+		.map((group) => `${group.title} — ${group.episodes.join(", ")}`)
+		.join(" / ");
 	if (query.error && !query.data) throw query.error;
 	return (
 		<FilePlayer
@@ -82,6 +114,14 @@ function PlayerPage() {
 				playerVersion,
 			])}
 			data={data}
+			displayTitle={
+				title &&
+				source.data &&
+				(!searchParams.get("version") ||
+					searchParams.get("version") === source.data.sourceVersion)
+					? { title, sourceVersion: source.data.sourceVersion }
+					: undefined
+			}
 			returnDirectoryId={searchParams.get("directory")}
 			returnTo={animeReturnPath(searchParams)}
 			onRetry={reload}
