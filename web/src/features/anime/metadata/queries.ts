@@ -34,7 +34,7 @@ export const identificationQuery = (scope: string) =>
 		queryFn: ({ signal }) =>
 			getIdentificationStatus({ signal: boundedSignal(signal) }),
 		staleTime: 0,
-		refetchInterval: (query) => (query.state.data?.running ? 1500 : false),
+		refetchInterval: (query) => (query.state.data?.running ? 1500 : 15000),
 	});
 
 export const airingQuery = (provider: string, id: string) =>

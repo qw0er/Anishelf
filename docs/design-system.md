@@ -51,7 +51,7 @@ replace the control's accessible name or visible keyboard focus.
 
 Use one shared page container (72rem maximum) and title alignment for Library,
 Files, Review, History and Settings. Use the shared page header for title,
-description and page actions; place background status beneath it. Settings uses
+description and page actions; keep scan/stale status beneath it. Settings uses
 full-width section panels with a desktop description column and a bounded form
 column, stacking on mobile. Do not narrow the entire Settings page.
 
@@ -91,6 +91,11 @@ Files and Review; do not replace failure feedback with an empty-state message.
 Use deduplicated Toasts for operation results and recoverable playback or subtitle
 failures. Keep ongoing subtitle-preparation feedback visible until completion,
 failure, or selection cancellation. Reuse existing retry actions.
+Automatic anime identification uses one app-level, deduplicated loading Toast,
+kept visible through matching and admission. Completion or failure updates the
+same Toast with a timed result; page navigation does not restart notifications.
+An idle monitor checks for new background runs without adding page-level text.
+Only observed task states are shown; no synthetic progress percentage is used.
 
 Keep form validation, initial page errors, unavailable resources, scan/stale status,
 setup guidance, and empty states in context. Provide useful next actions without

@@ -5,7 +5,6 @@ import { fileReviewsQuery } from "../../../features/anime/public.js";
 import {
 	FileIdentification,
 	FileIdentificationMenu,
-	IdentificationStatus,
 } from "../../../features/anime/ui.js";
 import { directoryQuery } from "../../../features/resources/public.js";
 import { LibraryBrowser } from "../../../features/resources/ui.js";
@@ -37,17 +36,14 @@ export function DirectoryPage() {
 			listing={listing}
 			scan={scan}
 			identificationStatus={
-				<>
-					<IdentificationStatus />
-					{reviews.error && (
-						<p role="alert">
-							{t("anime.identificationLoadFailed")}{" "}
-							<Button variant="outline" onClick={() => void reviews.refetch()}>
-								{t("actions.retry")}
-							</Button>
-						</p>
-					)}
-				</>
+				reviews.error && (
+					<p role="alert">
+						{t("anime.identificationLoadFailed")}{" "}
+						<Button variant="outline" onClick={() => void reviews.refetch()}>
+							{t("actions.retry")}
+						</Button>
+					</p>
+				)
 			}
 			renderFileActions={(state) => (
 				<FileActions

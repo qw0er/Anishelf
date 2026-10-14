@@ -1,5 +1,6 @@
 import "../shared/i18n.js";
 import { Outlet, ScrollRestoration, useNavigation } from "react-router";
+import { IdentificationStatus } from "../features/anime/ui.js";
 import {
 	PreparationMonitor,
 	PreparationProvider,
@@ -32,6 +33,12 @@ export default function App() {
 						<Outlet context={runtime} />
 					</main>
 					<PreparationMonitor />
+					<IdentificationStatus
+						key={runtime.settings?.resourceRoot ?? "unconfigured"}
+						enabled={Boolean(
+							runtime.settings?.resourceRoot && runtime.library?.ready,
+						)}
+					/>
 				</div>
 			</PreparationProvider>
 		</QueryScope>
