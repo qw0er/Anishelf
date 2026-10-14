@@ -252,6 +252,22 @@ workflow that acquired them.
 
 ## Delivered anime-library workflow
 
+Recognition retains provider primary-title/alias provenance and filename/directory
+title sources. Unknown source seasons remain unknown. For locally in-scope
+numbering, an unmarked source may prefer a base work over a candidate whose
+primary titles explicitly indicate a later season. Alias-only ordinal evidence
+has a weaker influence, and a complete ordinal-bearing source title overrides
+the missing-season prior. This is a reported assumption, not extracted season-one
+evidence. Unresolved continuous numbering does not justify this prior.
+
+Work recognition and episode mapping are separate Catalog assessments. Explicit
+identity contradictions exclude candidates from automatic identity competition;
+unknown ordinals or numbering conversions remain plausible alternatives. Minimum
+score and margin apply to the remaining competitors. A recognized work can be
+shown and preselected in Review while its episodes remain pending; no association
+is created until mapping is resolved or explicitly confirmed. Manual decisions
+and source availability continue to take precedence.
+
 Title comparisons use one canonical representation for exact admission and fuzzy
 ranking: Unicode normalization, punctuation/spacing folding and dictionary-based
 Traditional-to-Simplified Chinese conversion. Provider titles are titles, not
@@ -300,9 +316,10 @@ label supplies a fallback search title only when both a numbered leaf and an
 ancestor without a parsed title repeat it; this is not sufficient to admit a work.
 Explicit leaf movie types constrain candidate format. Punctuation, spacing,
 multiplication-cross glyphs and Chinese script variants normalize consistently
-for title comparison. Canonical base-title equality receives the same identity
-weight across candidates; missing ordinals cannot make an unmarked work win over
-a numbered sequel solely because one title omits a season marker.
+for title comparison. Canonical base-title equality is combined with title provenance. An unmarked
+source can prefer a base work when its numbering fits a local episode scope;
+this soft prior penalizes explicit primary-title sequels more than alias-only
+ordinals and never inserts a source season or an episode offset.
 
 Leaf numbering distinguishes bounded contiguous ranges from multiple numbering
 systems. A filename containing a continuous number followed by explicit `SxxEyy`

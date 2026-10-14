@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
 	automaticBlockers,
 	automaticProposal,
+	recognizedWorkProposal,
 } from "../../src/modules/anime/anime-catalog/domain/admission.js";
 import type { ReviewRecord } from "../../src/modules/anime/anime-catalog/domain/model.js";
 import { IdentificationApplication } from "../../src/modules/anime/identification/application/identification.js";
@@ -29,6 +30,8 @@ function groupSummary(
 	rows: {
 		id: string;
 		expectedDecision: string;
+		expectedWorkId: string | null;
+		recognizedWorkId: string | null;
 		admittedWorkId: string | null;
 		unsafe: boolean;
 		missed: boolean;
@@ -38,6 +41,11 @@ function groupSummary(
 		total: rows.length,
 		expectedMatches: rows.filter((row) => row.expectedDecision === "match")
 			.length,
+		recognizedMatches: rows.filter(
+			(row) =>
+				row.expectedDecision === "match" &&
+				row.recognizedWorkId === row.expectedWorkId,
+		).length,
 		correctAdmissions: rows.filter((row) => row.admittedWorkId && !row.unsafe)
 			.length,
 		unsafeAdmissions: rows.filter((row) => row.unsafe).map((row) => row.id),
@@ -64,6 +72,16 @@ export async function matchingCorpusCandidates() {
 						...Object.values(anilist.titles),
 						...anilist.synonyms,
 					].filter((title): title is string => Boolean(title)),
+					titleVariants: [
+						...Object.entries(anilist.titles).flatMap(([language, value]) =>
+							value ? [{ value, kind: "primary" as const, language }] : [],
+						),
+						...anilist.synonyms.map((value) => ({
+							value,
+							kind: "alias" as const,
+							language: null,
+						})),
+					],
 					year: anilist.startDate.year,
 					format: anilist.format,
 					episodeCount: anilist.episodes,
@@ -140,6 +158,7 @@ export async function evaluateMatchingCorpus() {
 			if (!item) throw new Error("Missing corpus input");
 			const record = review(result);
 			const proposal = automaticProposal(record);
+			const recognized = recognizedWorkProposal(record);
 			const workId = proposal
 				? (ids.get(proposal.candidate.work.reference.id) ?? null)
 				: null;
@@ -224,6 +243,9 @@ export async function evaluateMatchingCorpus() {
 					JSON.stringify(actualTargets.map(Number)) !==
 						JSON.stringify(expected.episodes),
 				candidateIds,
+				recognizedWorkId: recognized
+					? (ids.get(recognized.candidate.work.reference.id) ?? null)
+					: null,
 				admittedWorkId: workId,
 				targets: actualTargets,
 				unsafe,
@@ -240,8 +262,8 @@ export async function evaluateMatchingCorpus() {
 					candidateFound: candidateIds.includes(expected.workId ?? null),
 					correctTop1: candidateIds[0] === expected.workId,
 					mappingResolved: Boolean(
-						result.proposals[0]?.mapping.targets.length &&
-							!result.proposals[0]?.mapping.unresolved.length,
+						recognized?.mapping.targets.length &&
+							!recognized?.mapping.unresolved.length,
 					),
 					admitted: Boolean(proposal),
 				},
@@ -250,6 +272,9 @@ export async function evaluateMatchingCorpus() {
 					score: candidate.score,
 					reasons: candidate.reasons,
 					conflicts: candidate.conflicts,
+					identityConflicts: candidate.identityConflicts,
+					identityUnresolved: candidate.identityUnresolved,
+					assumptions: candidate.assumptions,
 					unresolved: mapping.unresolved,
 					numbering: mapping.numbering,
 				})),
@@ -268,6 +293,11 @@ export async function evaluateMatchingCorpus() {
 			(entry) => entry.input.kind === "release-title",
 		).length,
 		admitted: rows.filter((row) => row.admittedWorkId).length,
+		recognizedMatches: rows.filter(
+			(row) =>
+				row.expectedDecision === "match" &&
+				row.recognizedWorkId === row.expectedWorkId,
+		).length,
 		correctAdmissions: rows.filter((row) => row.admittedWorkId && !row.unsafe)
 			.length,
 		unsafeAdmissions: rows.filter((row) => row.unsafe).map((row) => row.id),

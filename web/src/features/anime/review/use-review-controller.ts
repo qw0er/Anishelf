@@ -18,7 +18,13 @@ export function useReviewController(item: CatalogReviewItem) {
 		provider: string;
 		mediaType: "anime";
 		id: string;
-	} | null>(null);
+	} | null>(() =>
+		item.available
+			? (item.associations[0]?.reference ??
+				item.recognizedWork?.reference ??
+				null)
+			: null,
+	);
 	const [search, setSearch] = useState("");
 	const [searchPage, setSearchPage] = useState(1);
 	const [preview, setPreview] = useState<CatalogPreviewResponse | null>(null);

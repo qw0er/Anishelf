@@ -54,6 +54,20 @@ const evidence = Type.Object({
 		}),
 	),
 	titles: Type.Array(Type.String()),
+	titleSources: Type.Optional(
+		Type.Array(
+			Type.Object({
+				title: Type.String(),
+				mode: Type.Union([
+					Type.Literal("basename"),
+					Type.Literal("ancestor"),
+					Type.Literal("path"),
+					Type.Literal("together"),
+				]),
+				distance: Type.Integer({ minimum: 0 }),
+			}),
+		),
+	),
 	years: Type.Array(Type.String()),
 	seasons: Type.Array(Type.String()),
 	parts: Type.Array(Type.String()),
@@ -78,6 +92,15 @@ const proposal = Type.Object({
 			reference,
 			snapshotId: Type.String(),
 			titles: Type.Array(Type.String()),
+			titleVariants: Type.Optional(
+				Type.Array(
+					Type.Object({
+						value: Type.String(),
+						kind: Type.Union([Type.Literal("primary"), Type.Literal("alias")]),
+						language: nullableText,
+					}),
+				),
+			),
 			year: nullableInteger,
 			format: nullableText,
 			episodeCount: nullableInteger,
@@ -88,6 +111,9 @@ const proposal = Type.Object({
 		score: Type.Number(),
 		reasons: Type.Array(Type.String()),
 		conflicts: Type.Array(Type.String()),
+		identityConflicts: Type.Optional(Type.Array(Type.String())),
+		identityUnresolved: Type.Optional(Type.Array(Type.String())),
+		assumptions: Type.Optional(Type.Array(Type.String())),
 		matcherVersion: Type.String(),
 	}),
 	mapping: Type.Object({
@@ -113,6 +139,16 @@ const review = Type.Object({
 	available: Type.Boolean(),
 	revision,
 	decision,
+	recognizedWork: Type.Optional(
+		Type.Object({
+			reference,
+			title: Type.String(),
+			mappingStatus: Type.Union([
+				Type.Literal("resolved"),
+				Type.Literal("pending"),
+			]),
+		}),
+	),
 	associations: Type.Array(
 		Type.Object({
 			workId: id,

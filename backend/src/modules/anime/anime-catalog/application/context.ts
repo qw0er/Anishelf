@@ -4,7 +4,10 @@ import {
 	type ResourceAccessApi,
 	resourceRootId,
 } from "../../../resources/public.js";
-import { automaticBlockers } from "../domain/admission.js";
+import {
+	automaticBlockers,
+	recognizedWorkProposal,
+} from "../domain/admission.js";
 import { conflict, integer, text } from "../domain/mapping.js";
 import type { LocalWork, ReviewItem, ReviewRecord } from "../domain/model.js";
 import { catalogPolicy as policy } from "../policy.js";
@@ -30,8 +33,21 @@ export function safeReview(
 	associations: ReviewItem["associations"] = [],
 ): ReviewItem {
 	const { canonicalRoot: _, ...item } = record;
+	const assessment = { ...record, available };
+	const recognized = recognizedWorkProposal(assessment);
 	return {
 		...item,
+		...(recognized
+			? {
+					recognizedWork: {
+						reference: recognized.candidate.work.reference,
+						title: recognized.candidate.work.titles[0] ?? "",
+						mappingStatus: automaticBlockers(assessment).length
+							? ("pending" as const)
+							: ("resolved" as const),
+					},
+				}
+			: {}),
 		available,
 		associations,
 		unresolved: [

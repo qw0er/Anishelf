@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { safeReview } from "../src/modules/anime/anime-catalog/application/context.js";
 import {
 	automaticBlockers,
 	automaticProposal,
@@ -203,4 +204,214 @@ test("a corroborated alternative within the local count still needs explicit num
 	if (!result) throw new Error("Missing result");
 	expect(result.proposals[0]?.mapping.numbering?.offset).toBe(-12);
 	expect(automaticProposal(review(result))).toBeNull();
+});
+
+const provenanced = (primary: string, aliases: string[], id: string) => ({
+	...work([primary, ...aliases], id),
+	titleVariants: [
+		{ value: primary, kind: "primary" as const, language: "en" },
+		...aliases.map((value) => ({
+			value,
+			kind: "alias" as const,
+			language: null,
+		})),
+	],
+});
+
+test("missing-season prior prefers a base work without manufacturing season evidence", async () => {
+	const [result] = await identify(
+		["Ocean - 03.mkv"],
+		[
+			provenanced("Ocean", [], "base"),
+			provenanced("Ocean Season 2", ["Ocean"], "sequel"),
+		],
+	);
+	if (!result) throw new Error("Missing result");
+	expect(result.evidence.seasons).toEqual([]);
+	expect(automaticProposal(review(result))?.candidate.work.reference.id).toBe(
+		"base",
+	);
+	expect(result.proposals[0]?.candidate.assumptions?.join(" ")).toContain(
+		"source season remains unknown",
+	);
+});
+
+test("alias-only ordinals remain weak and cannot settle a shared-title tie", async () => {
+	const [result] = await identify(
+		["Ocean - 03.mkv"],
+		[
+			provenanced("Ocean", [], "base"),
+			provenanced("Ocean", ["Ocean Season 2", "Sea Journey"], "other"),
+		],
+	);
+	if (!result) throw new Error("Missing result");
+	expect(automaticProposal(review(result))).toBeNull();
+	expect(automaticBlockers(review(result))).toContain(
+		"Insufficient ranking margin.",
+	);
+});
+
+test("unresolved continuous numbering cannot justify a base-season preference", async () => {
+	const [result] = await identify(
+		["Ocean - 29.mkv"],
+		[
+			provenanced("Ocean", [], "base"),
+			provenanced("Ocean Season 2", ["Ocean"], "sequel"),
+		],
+	);
+	if (!result) throw new Error("Missing result");
+	expect(
+		result.proposals.every(
+			(proposal) => !proposal.candidate.assumptions?.length,
+		),
+	).toBe(true);
+	expect(automaticBlockers(review(result))).toContain(
+		"Insufficient ranking margin.",
+	);
+});
+
+test("explicit seasons override the missing-season prior", async () => {
+	const [result] = await identify(
+		["Ocean S02E03.mkv"],
+		[
+			provenanced("Ocean Season 1", ["Ocean"], "base"),
+			provenanced("Ocean Season 2", ["Ocean"], "sequel"),
+		],
+	);
+	if (!result) throw new Error("Missing result");
+	expect(automaticProposal(review(result))?.candidate.work.reference.id).toBe(
+		"sequel",
+	);
+	expect(
+		result.proposals.every(
+			(proposal) => !proposal.candidate.assumptions?.length,
+		),
+	).toBe(true);
+});
+
+test("complete Roman sequel titles override the missing-season prior", async () => {
+	const [result] = await identify(
+		["Ocean II - 03.mkv"],
+		[
+			provenanced("Ocean", [], "base"),
+			provenanced("Ocean II", ["Ocean"], "sequel"),
+		],
+	);
+	if (!result) throw new Error("Missing result");
+	expect(automaticProposal(review(result))?.candidate.work.reference.id).toBe(
+		"sequel",
+	);
+	expect(result.proposals[0]?.candidate.assumptions).toEqual([]);
+});
+
+test("filename identity outranks a distant directory's different work", async () => {
+	const [result] = await identify(
+		["Ocean/Archive/Other Journey - 03.mkv"],
+		[
+			provenanced("Ocean", [], "parent"),
+			provenanced("Other Journey", [], "leaf"),
+		],
+	);
+	if (!result) throw new Error("Missing result");
+	expect(automaticProposal(review(result))?.candidate.work.reference.id).toBe(
+		"leaf",
+	);
+	expect(result.evidence.titleSources).toContainEqual({
+		title: "Ocean",
+		mode: "ancestor",
+		distance: 1,
+	});
+});
+
+test("contradictory candidates do not compete, but unknown numbering remains plausible", async () => {
+	const [result] = await identify(
+		["Ocean - 03.mkv"],
+		[work(["Ocean"], "valid")],
+	);
+	if (!result) throw new Error("Missing result");
+	const record = review(result);
+	const valid = record.proposals[0];
+	if (!valid) throw new Error("Missing proposal");
+	record.proposals = [
+		{
+			...valid,
+			candidate: {
+				...valid.candidate,
+				score: valid.candidate.score + 1,
+				identityConflicts: ["Series season differs."],
+				conflicts: ["Series season differs."],
+			},
+		},
+		valid,
+	];
+	expect(automaticProposal(record)).toBe(valid);
+	record.proposals[0] = {
+		...valid,
+		candidate: {
+			...valid.candidate,
+			identityConflicts: [],
+			conflicts: ["Numbering needs correction."],
+		},
+		mapping: { ...valid.mapping, unresolved: ["Offset unknown."] },
+	};
+	expect(automaticBlockers(record)).toContain("Insufficient ranking margin.");
+	expect(automaticProposal(record)).toBeNull();
+});
+
+test("work identity survives pending numbering without admitting an association", async () => {
+	const [result] = await identify(
+		["Ocean - 29.mkv"],
+		[provenanced("Ocean", [], "base")],
+	);
+	if (!result) throw new Error("Missing result");
+	const record = review(result);
+	const item = safeReview(record, true);
+	expect(item.recognizedWork).toMatchObject({
+		reference: { id: "base" },
+		mappingStatus: "pending",
+	});
+	expect(item.associations).toEqual([]);
+	expect(automaticProposal(record)).toBeNull();
+	expect(safeReview(record, false).recognizedWork).toBeUndefined();
+	expect(
+		safeReview({ ...record, decision: "rejected" }, true).recognizedWork,
+	).toBeUndefined();
+	expect(
+		safeReview({ ...record, decision: "confirmed" }, true).recognizedWork,
+	).toBeUndefined();
+});
+
+test("inconsistent provider ordinals remain plausible alternatives rather than disappearing", async () => {
+	const [result] = await identify(
+		["Ocean - 03.mkv"],
+		[
+			provenanced("Ocean", [], "base"),
+			provenanced("Ocean", ["Ocean Season 2", "Ocean Season 3"], "uncertain"),
+		],
+	);
+	if (!result) throw new Error("Missing result");
+	const uncertain = result.proposals.find(
+		(proposal) => proposal.candidate.work.reference.id === "uncertain",
+	);
+	expect(uncertain?.candidate.identityConflicts).toEqual([]);
+	expect(uncertain?.candidate.identityUnresolved).toContain(
+		"Candidate series season evidence is contradictory.",
+	);
+	expect(automaticProposal(review(result))).toBeNull();
+});
+
+test("a different work in a distant directory cannot trigger a sequel penalty", async () => {
+	const [result] = await identify(
+		["Ocean/Archive/Other Journey - 03.mkv"],
+		[
+			provenanced("Ocean", [], "parent"),
+			provenanced("Other Journey Season 2", ["Other Journey"], "leaf"),
+		],
+	);
+	if (!result) throw new Error("Missing result");
+	expect(
+		result.proposals.find(
+			(proposal) => proposal.candidate.work.reference.id === "leaf",
+		)?.candidate.assumptions,
+	).toEqual([]);
 });

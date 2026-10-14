@@ -193,6 +193,15 @@ to verify reporting; they do not claim identification success.
 
 ### Production matcher with frozen candidates
 
+Frozen provider projections preserve primary-title/alias provenance. Reports separate
+`recognizedMatches` (correct work identity) from `correctAdmissions` (a complete,
+verified work and episode mapping). Row-level `recognizedWorkId` may be present
+while admission remains blocked by episode numbering. Identity contradictions,
+unresolved identity evidence and ranking assumptions are reported separately.
+Unknown ordinals and unknown numbering conversions remain competitors when
+calculating the admission margin. No corpus answer is used by production ranking.
+
+
 Run the production parser, ranking, mapping and admission rules offline:
 
 ```sh
