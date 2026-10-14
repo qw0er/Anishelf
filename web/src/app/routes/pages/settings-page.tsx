@@ -8,6 +8,7 @@ import {
 	PreparationProfileSettings,
 	ResourceSettings,
 } from "../../../features/settings/ui.js";
+import { PageHeader } from "../../../shared/components/page-header.js";
 import { useAppRuntime } from "../../runtime/context.js";
 export function SettingsPage() {
 	const preparation = usePreparationContext();
@@ -15,7 +16,11 @@ export function SettingsPage() {
 	const { t } = useTranslation();
 	const { settings, scanning, scanPending } = useAppRuntime();
 	return settings ? (
-		<div className="stack-page mx-auto w-full max-w-2xl">
+		<div className="stack-page">
+			<PageHeader
+				title={t("settingsPage.title")}
+				description={t("settingsPage.description")}
+			/>
 			<ResourceSettings
 				key={settings.resourceRoot}
 				settings={settings}

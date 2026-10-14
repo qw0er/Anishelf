@@ -1,18 +1,24 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import type { CatalogDetailResponse } from "../../../../shared/api/contracts.js";
+import { Button } from "../../../../shared/components/ui/button.js";
 import { safeLink } from "../detail-format.js";
 export function WorkSynopsis({ data }: { data: CatalogDetailResponse }) {
 	const { t } = useTranslation();
 	const { metadata } = data;
 	const info = metadata.data;
+	const [expanded, setExpanded] = useState(false);
+	const long = (info.description?.length ?? 0) > 400;
 	return (
-		<div className="space-y-3">
+		<div className="surface-panel space-y-3">
 			<h2 className="text-lg font-semibold">{t("anime.synopsis")}</h2>
 			{info.description ? (
-				<div className="space-y-2 wrap-anywhere [&_a]:underline [&_p]:my-2">
+				<div
+					className={`space-y-2 wrap-anywhere [&_a]:underline [&_p]:my-2 ${long && !expanded ? "line-clamp-5" : ""}`}
+				>
 					<Markdown
 						rehypePlugins={[rehypeRaw, rehypeSanitize]}
 						components={{
@@ -36,6 +42,15 @@ export function WorkSynopsis({ data }: { data: CatalogDetailResponse }) {
 				</div>
 			) : (
 				<p>{t("anime.unknownSynopsis")}</p>
+			)}
+			{long && (
+				<Button
+					variant="ghost"
+					aria-expanded={expanded}
+					onClick={() => setExpanded(!expanded)}
+				>
+					{t(expanded ? "anime.hideSynopsis" : "anime.showSynopsis")}
+				</Button>
 			)}
 		</div>
 	);

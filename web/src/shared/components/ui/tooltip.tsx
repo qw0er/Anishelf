@@ -1,16 +1,25 @@
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
-import type { ReactElement, ReactNode } from "react";
+import { type ReactElement, type ReactNode, useState } from "react";
 
 export function Tooltip({
 	children,
 	content,
+	openOnClick = false,
 }: {
 	children: ReactElement;
 	content: ReactNode;
+	openOnClick?: boolean;
 }) {
+	const [open, setOpen] = useState(false);
 	return (
-		<TooltipPrimitive.Root>
-			<TooltipPrimitive.Trigger render={children} />
+		<TooltipPrimitive.Root
+			open={openOnClick ? open : undefined}
+			onOpenChange={openOnClick ? setOpen : undefined}
+		>
+			<TooltipPrimitive.Trigger
+				render={children}
+				onClick={openOnClick ? () => setOpen(true) : undefined}
+			/>
 			<TooltipPrimitive.Portal>
 				<TooltipPrimitive.Positioner sideOffset={6} className="z-50">
 					<TooltipPrimitive.Popup

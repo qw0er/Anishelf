@@ -14,7 +14,7 @@ AniList queries, details, relations, airing and artwork and supplies recognition
 candidates. [Anime Catalog](anime-catalog.md) now implements durable local works,
 episodes, review decisions, confirmation/correction transactions and HTTP queries.
 The Web poster library, work detail and version playback are implemented.
-Automatic admission and Web Review/correction are implemented. Files now displays current-version identification decisions, associations and direct Review links. Exact implemented
+Automatic admission and Web Review/correction are implemented. Files displays current-version identification icons with Tooltips and conditional Review/work menu links. Exact implemented
 contracts are defined in source.
 
 ## 1. Product decisions
@@ -72,6 +72,14 @@ sorting. Pagination uses a stable local ID as a tie-breaker. Restore filters,
 scroll position and the selected card after returning from a detail or player.
 Do not make a cloud discovery feed part of the local poster wall.
 
+Use the shared full-width page header. A compact toolbar shows search, a filter
+panel toggle and sorting. Search submits explicitly; discrete filters and sorting
+apply immediately and reset pagination. Year changes apply on blur or Enter after
+validation. Applied criteria have removable labels. Reserve two title lines and a
+consistent availability summary on cards; put cache details on the work page.
+Cards have subtle hover feedback and a visible keyboard focus. Mobile uses two
+poster columns; desktop columns adapt to the available card width.
+
 Use a responsive grid, approximately 2:3 artwork, lazy-loaded thumbnails and
 reserved image space. A missing image shows the real title in a neutral fallback;
 do not invent artwork. The whole card is a keyboard-accessible link. Secondary
@@ -110,8 +118,19 @@ A multi-episode file opens its normal source timeline; associations do not creat
 seek boundaries. Existing source progress can support resume but does not imply
 that every associated episode is watched.
 
+The detail layout places episodes before secondary metadata. Desktop uses an
+episode column and a narrower information column; mobile stacks them in that
+order. Long descriptions can expand, and secondary metadata and relations use
+consistent disclosure panels. Unresolved files retain direct Review entry points.
+
+Settings shares the page container and header alignment with browsing. Its
+section descriptions and bounded forms are side by side on desktop and stacked
+on mobile; the entire page is not restricted to a narrow centered column.
+
 ### Files and identification review
 
+Files uses focusable identification icons with status/association Tooltips;
+Review and confirmed work/episode links are conditional file-menu actions.
 Files retains breadcrumbs, current scan/root state, direct playback and original
 names. Completed scans automatically identify affected resource contexts. No
 separate Identify action is required. A mixed directory can produce several work
@@ -128,7 +147,7 @@ episode and reasons. Support individual file corrections and an explicit offset
 with a before/after preview for that file. Selecting multiple files for one batch
 offset correction is later scope (L15). Confirm only rows with valid targets;
 leave unresolved rows in Review. Reassociation previews affected existing links
-and requires an explicit replacement action. Rejection preserves the reason and
+and requires an explicit replacement action. Rejection permits an empty reason and preserves any supplied reason; it
 does not silently turn into confirmation on retry.
 
 ## 3. Backend responsibilities and dependencies

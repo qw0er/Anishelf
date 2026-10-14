@@ -212,8 +212,9 @@ automatically admitted anime appear without requiring a manual page reload.
 
 ## Files identification and detail states
 
-Files reads identification decisions in bounded batches and shows work/episode
-links and direct Review entry points beside original filenames. Files without a
+Files reads identification decisions in bounded batches and shows identification
+status icons with Tooltips beside original filenames. File action menus expose
+Review and associated work/episode links when a current-version review exists. Files without a
 published current-version review remain awaiting identification; replaced sources
 never inherit the previous version's association. Recognition running/failure
 feedback is visible without blocking direct playback. App composes these Anime
@@ -228,3 +229,6 @@ Available files, unavailable associated versions and manual mappings retain thei
 source/mapping states. Missing or stale schedule evidence remains unknown, and
 schedule records never create associations or numbering offsets. Provider failures
 preserve detail browsing and playback and offer contextual retry.
+
+Rejection reasons are optional and empty/whitespace-only input is stored as null.
+Removing confirmed associations still requires a reason and explicit user consent.

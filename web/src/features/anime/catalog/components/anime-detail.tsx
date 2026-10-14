@@ -52,7 +52,7 @@ function WorkDetail({ data }: { data: CatalogDetailResponse }) {
 	const { work, metadata } = data;
 	return (
 		<section className="stack-page">
-			<div className="action-row">
+			<div className="action-row justify-between">
 				<Link
 					to={libraryPath}
 					state={{ focusWork: work.id }}
@@ -90,10 +90,14 @@ function WorkDetail({ data }: { data: CatalogDetailResponse }) {
 				banner
 			/>
 			<WorkMetadataHeader data={data} />
-			<WorkSynopsis data={data} />
-			<WorkMetadataExtras data={data} controller={controller} />
-			<EpisodeList data={data} controller={controller} />
-			<RelatedWorks controller={controller} />
+			<div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+				<EpisodeList data={data} controller={controller} />
+				<aside className="min-w-0 space-y-4">
+					<WorkSynopsis data={data} />
+					<WorkMetadataExtras data={data} controller={controller} />
+					<RelatedWorks controller={controller} />
+				</aside>
+			</div>
 			<VersionSelector controller={controller} />
 		</section>
 	);

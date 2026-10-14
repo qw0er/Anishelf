@@ -23,7 +23,7 @@ export function ExternalPlayerSettings() {
 	const full =
 		custom.players.length >= externalPlayerPolicy.maximumCustomPlayers;
 	return (
-		<Card className="w-full max-w-2xl">
+		<Card className="settings-section lg:grid">
 			<CardHeader>
 				<CardTitle>{t("externalPlayers.title")}</CardTitle>
 				<CardDescription>{t("externalPlayers.description")}</CardDescription>

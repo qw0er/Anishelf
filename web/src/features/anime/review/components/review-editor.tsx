@@ -52,13 +52,13 @@ function MappingEditor({ item }: { item: CatalogReviewItem }) {
 				{reference && details.isPending && !details.error && (
 					<p
 						role="status"
-						className="rounded-xl border p-5 text-sm text-muted-foreground"
+						className="rounded-lg border p-5 text-sm text-muted-foreground"
 					>
 						{t("anime.loading")}
 					</p>
 				)}
 				{!reference && (
-					<div className="flex items-center gap-3 rounded-xl border border-dashed p-5 text-sm text-muted-foreground">
+					<div className="flex items-center gap-3 rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
 						<span className="flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold">
 							2
 						</span>
@@ -76,7 +76,7 @@ function MappingEditor({ item }: { item: CatalogReviewItem }) {
 				{success && (
 					<p
 						role="status"
-						className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm"
+						className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm"
 					>
 						{t("review.saved")}{" "}
 						<Link

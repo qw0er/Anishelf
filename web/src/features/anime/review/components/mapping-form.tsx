@@ -7,8 +7,7 @@ import { Input } from "../../../../shared/components/ui/input.js";
 import { Artwork } from "../../shared/components/artwork.js";
 import type { ReviewController } from "../use-review-controller.js";
 
-const selectStyle =
-	"h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring";
+const selectStyle = "form-select w-full";
 export function MappingForm({
 	item,
 	controller,
@@ -49,7 +48,7 @@ export function MappingForm({
 		<form
 			key={`${reference.provider}:${reference.id}:${item.revision}`}
 			ref={mappingRef}
-			className="min-w-0 scroll-mt-6 space-y-4 rounded-xl border bg-card p-4 sm:p-5"
+			className="min-w-0 scroll-mt-6 space-y-4 rounded-lg border bg-card p-4 sm:p-5"
 			onChange={clearPreview}
 			onSubmit={(event) => {
 				event.preventDefault();

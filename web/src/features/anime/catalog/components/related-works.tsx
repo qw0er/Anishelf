@@ -12,8 +12,10 @@ export function RelatedWorks({
 	const { t } = useTranslation();
 	const { relations, relationsPage, changeRelationsPage } = controller;
 	return (
-		<section className="space-y-2">
-			<h2 className="text-lg font-semibold">{t("anime.related")}</h2>
+		<details className="surface-panel space-y-3">
+			<summary className="cursor-pointer font-medium">
+				{t("anime.related")}
+			</summary>
 			{relations.data?.data.items.length ? (
 				<ul className="space-y-1 text-sm">
 					{relations.data.data.items.map((relation) => (
@@ -50,6 +52,6 @@ export function RelatedWorks({
 					</Button>
 				</fieldset>
 			)}
-		</section>
+		</details>
 	);
 }

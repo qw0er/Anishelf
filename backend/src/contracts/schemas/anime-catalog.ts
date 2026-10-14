@@ -262,6 +262,10 @@ export const CatalogConfirmationSchema = Type.Object({
 	revision,
 	reviewIds: Type.Array(id),
 });
+export const CatalogRejectionRequestSchema = Type.Object(
+	{ revision, reason: Type.Optional(Type.String({ maxLength: 500 })) },
+	{ additionalProperties: false },
+);
 export const CatalogDecisionRequestSchema = Type.Object(
 	{ revision, reason: text },
 	{ additionalProperties: false },

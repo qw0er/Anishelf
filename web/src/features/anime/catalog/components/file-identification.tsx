@@ -1,6 +1,14 @@
+import {
+	CircleCheck,
+	CircleHelp,
+	CircleX,
+	Clock3,
+	TriangleAlert,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
 import type { CatalogReviewItem } from "../../../../shared/api/contracts.js";
+import { Button } from "../../../../shared/components/ui/button.js";
+import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { episodeName } from "../../shared/episode-name.js";
 
 export function FileIdentification({
@@ -9,29 +17,38 @@ export function FileIdentification({
 	item?: CatalogReviewItem | undefined;
 }) {
 	const { t } = useTranslation();
+	const status = item
+		? t(`review.${item.decision}`)
+		: t("anime.identificationPending");
+	const label = [
+		status,
+		...(item?.associations.map(
+			(link) => `${link.workTitle} · ${episodeName(link, t)}`,
+		) ?? []),
+		item && !item.available ? t("anime.unavailable") : null,
+	]
+		.filter(Boolean)
+		.join(" · ");
+	const Icon =
+		item && !item.available
+			? TriangleAlert
+			: !item
+				? Clock3
+				: item.decision === "confirmed"
+					? CircleCheck
+					: item.decision === "rejected"
+						? CircleX
+						: CircleHelp;
 	return (
-		<div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-			<span>
-				{item ? t(`review.${item.decision}`) : t("anime.identificationPending")}
-			</span>
-			{item?.associations.map((link) => (
-				<Link
-					key={link.episodeId}
-					to={`/anime/${encodeURIComponent(link.workId)}#episode-${encodeURIComponent(link.episodeId)}`}
-					className="underline wrap-anywhere"
-				>
-					{link.workTitle} · {episodeName(link, t)}
-				</Link>
-			))}
-			{item && !item.available && <span>{t("anime.unavailable")}</span>}
-			{item && (
-				<Link
-					to={`/review?item=${encodeURIComponent(item.id)}`}
-					className="underline"
-				>
-					{t(item.decision === "confirmed" ? "review.correct" : "review.title")}
-				</Link>
-			)}
-		</div>
+		<Tooltip content={label} openOnClick>
+			<Button
+				type="button"
+				variant="ghost"
+				aria-label={label}
+				className="inline-flex size-9 shrink-0 p-0 items-center justify-center rounded-md text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			>
+				<Icon size={16} aria-hidden="true" />
+			</Button>
+		</Tooltip>
 	);
 }

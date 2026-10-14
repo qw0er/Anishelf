@@ -1,5 +1,5 @@
 import { Ellipsis } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFilePreparations } from "../../features/media/public.js";
 import { PreparationFileMenuItems } from "../../features/media/ui.js";
@@ -23,9 +23,13 @@ import { Tooltip } from "../../shared/components/ui/tooltip.js";
 export function FileActions({
 	fileId,
 	summary,
+	identification,
+	identificationMenu,
 	...compatibility
 }: {
 	fileId: string;
+	identification?: ReactNode;
+	identificationMenu?: ReactNode;
 	summary?: PreparationSummaryResponse["files"][number] | undefined;
 	loading: boolean;
 	result: CompatibilityResult | null;
@@ -50,6 +54,7 @@ export function FileActions({
 		);
 	return (
 		<>
+			{identification}
 			<CompatibilityStatus
 				{...compatibility}
 				loading={compatibility.loading}
@@ -70,6 +75,7 @@ export function FileActions({
 					</DropdownMenuTrigger>
 				</Tooltip>
 				<DropdownMenuContent>
+					{identificationMenu}
 					<ExternalPlayerSubmenu fileId={fileId} />
 					<MediaLink fileId={fileId} menuItem />
 					<MediaLink fileId={fileId} menuItem download />

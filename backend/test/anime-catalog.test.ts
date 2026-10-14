@@ -1246,3 +1246,43 @@ test("work review filters match qualified candidates without admitting them and 
 		).items,
 	).toHaveLength(1);
 });
+
+test("rejection accepts omitted or blank reasons, persists null, and keeps removal explicit", async () => {
+	const f = await fixture();
+	let review = required((await f.catalog.reviews()).items[0]);
+	const app = createHttpApp({
+		catalog: f.catalog,
+		config: { host: "localhost", port: 80, publicOrigin: "http://localhost" },
+		logger,
+	});
+	cleanups.push(() => app.close());
+	for (const reason of [undefined, "", "   "]) {
+		const response = await app.inject({
+			method: "POST",
+			url: `/api/catalog/reviews/${review.id}/reject`,
+			payload: {
+				revision: review.revision,
+				...(reason === undefined ? {} : { reason }),
+			},
+		});
+		expect(response.statusCode).toBe(200);
+		expect(response.json().reason).toBeNull();
+		review = await f.catalog.review(review.id);
+	}
+	const tooLong = await app.inject({
+		method: "POST",
+		url: `/api/catalog/reviews/${review.id}/reject`,
+		payload: { revision: review.revision, reason: "x".repeat(501) },
+	});
+	expect(tooLong.statusCode).toBe(400);
+	await f.restart();
+	expect((await f.catalog.review(review.id)).reason).toBeNull();
+	await confirm(f);
+	review = await f.catalog.review(review.id);
+	await expect(
+		f.catalog.reject(review.id, review.revision, ""),
+	).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
+	await expect(
+		f.catalog.remove(review.id, review.revision, ""),
+	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+});

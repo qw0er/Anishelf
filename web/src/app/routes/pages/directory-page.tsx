@@ -4,6 +4,7 @@ import { useLoaderData, useParams } from "react-router";
 import { fileReviewsQuery } from "../../../features/anime/public.js";
 import {
 	FileIdentification,
+	FileIdentificationMenu,
 	IdentificationStatus,
 } from "../../../features/anime/ui.js";
 import { directoryQuery } from "../../../features/resources/public.js";
@@ -48,10 +49,19 @@ export function DirectoryPage() {
 					)}
 				</>
 			}
-			renderIdentification={(fileId) =>
-				reviews.data ? <FileIdentification item={byFile.get(fileId)} /> : null
-			}
-			renderFileActions={(state) => <FileActions {...state} />}
+			renderFileActions={(state) => (
+				<FileActions
+					{...state}
+					identification={
+						reviews.data ? (
+							<FileIdentification item={byFile.get(state.fileId)} />
+						) : undefined
+					}
+					identificationMenu={
+						<FileIdentificationMenu item={byFile.get(state.fileId)} />
+					}
+				/>
+			)}
 		/>
 	);
 }
