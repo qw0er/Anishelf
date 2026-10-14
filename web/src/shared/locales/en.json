@@ -478,6 +478,7 @@
 		"removeAction": "Remove associations",
 		"reject": "Reject resource",
 		"identifying": "Identifying resources and adding clear matches\u2026",
+		"identificationCompleted": "Resource identification and automatic admission finished. Unresolved matches are available in Review.",
 		"identificationFailed": "Identification did not finish. Rescan Files to retry; saved associations remain available.",
 		"optionalRejectionReason": "Reason (optional)"
 	}

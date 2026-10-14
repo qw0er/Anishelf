@@ -5,7 +5,6 @@ import { Link, useSearchParams } from "react-router";
 import { useQueryScope } from "../../../../shared/api/queries.js";
 import { PageHeader } from "../../../../shared/components/page-header.js";
 import { buttonStyles } from "../../../../shared/components/ui/button.js";
-import { IdentificationStatus } from "../../identification-status.js";
 import { reviewsQuery } from "../queries.js";
 import { ReviewEditor } from "./review-editor.js";
 import { ReviewList } from "./review-list.js";
@@ -40,7 +39,6 @@ export function ReviewPage() {
 					) : undefined
 				}
 			/>
-			<IdentificationStatus />
 			{item ? (
 				<ReviewEditor key={`${item}:${scope}`} id={item} />
 			) : (

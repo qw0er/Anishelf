@@ -9,7 +9,6 @@ import { PageHeader } from "../../../../shared/components/page-header.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
-import { IdentificationStatus } from "../../identification-status.js";
 import { catalogFilters, catalogSearch } from "../api.js";
 import { catalogQuery } from "../queries.js";
 import { CatalogFiltersForm } from "./catalog-filters-form.js";
@@ -59,7 +58,6 @@ export function AnimeLibrary({
 				title={t("anime.library")}
 				description={t("anime.libraryHint")}
 			/>
-			<IdentificationStatus />
 			{!resourceRoot ? (
 				<EmptyState
 					icon={<FolderPlus size={24} />}
