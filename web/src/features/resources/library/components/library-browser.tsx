@@ -17,7 +17,7 @@ import {
 import type { FileActionSlot } from "../../public.js";
 import { formatFileSize } from "../format-file-size.js";
 import type { LibraryScanState } from "../public.js";
-import LibraryScan from "./library-scan.js";
+import LibraryScan, { LibraryScanActions } from "./library-scan.js";
 
 export default function LibraryBrowser({
 	listing,
@@ -52,15 +52,18 @@ export default function LibraryBrowser({
 					name: listing.directory.name,
 				})}
 				actions={
-					parentId !== null ? (
-						<Link
-							className={buttonStyles("outline")}
-							to={directoryPath(parentId)}
-						>
-							<ArrowLeft size={16} aria-hidden="true" />
-							{t("navigation.parentDirectory")}
-						</Link>
-					) : undefined
+					<>
+						<LibraryScanActions {...scan} />
+						{parentId !== null && (
+							<Link
+								className={buttonStyles("outline")}
+								to={directoryPath(parentId)}
+							>
+								<ArrowLeft size={16} aria-hidden="true" />
+								{t("navigation.parentDirectory")}
+							</Link>
+						)}
+					</>
 				}
 			/>
 			<LibraryScan {...scan} />
