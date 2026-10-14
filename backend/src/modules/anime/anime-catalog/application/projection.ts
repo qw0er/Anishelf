@@ -5,7 +5,7 @@ export function projection(work: LocalWork, metadata: WorkDetails): LocalWork {
 	return {
 		...work,
 		providerTitle:
-			metadata.titles.find((title) => title.kind === "romaji")?.value ??
+			metadata.titles.find((title) => title.kind === "native")?.value ??
 			metadata.titles[0]?.value ??
 			`Untitled ${metadata.reference.id}`,
 		searchTitles: metadata.titles.map((title) => title.value),

@@ -14,11 +14,15 @@ export const catalogQuery = (filters: CatalogFilters, scope: string) =>
 		queryKey: ["catalog", scope, "list", filters],
 		queryFn: ({ signal }) =>
 			getCatalog(filters, { signal: boundedSignal(signal) }),
+		refetchInterval: 60_000,
 	});
 export const workQuery = (id: string, scope: string) =>
 	queryOptions({
 		queryKey: ["catalog", scope, "detail", id],
 		queryFn: ({ signal }) => getWork(id, { signal: boundedSignal(signal) }),
+		staleTime: 0,
+		refetchInterval: (query) =>
+			query.state.data?.metadata.refreshing ? 2000 : 60_000,
 	});
 export const sourceQuery = (id: string, scope: string) =>
 	queryOptions({

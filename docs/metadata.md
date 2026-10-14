@@ -79,6 +79,7 @@ exact version used by a confirmed association without replacing its decisions.
 | --- | --- |
 | Successful search | 24 hours |
 | Successful empty search | 15 minutes; request failures are never negative-cache entries |
+| Releasing details | 6 hours |
 | Finished details | 7 days |
 | Other details and relations | 24 hours |
 | Airing pages | 15 minutes |
@@ -86,14 +87,17 @@ exact version used by a confirmed association without replacing its decisions.
 | Other unpinned snapshots | At most 2,000, LRU |
 | Pinned snapshots | Exempt from transient eviction; owners release explicitly |
 
-Fresh reads return clones. Expired snapshots return immediately with `stale` and
+Detail freshness also applies to previously persisted snapshots: a releasing
+snapshot fetched at least six hours ago is stale even if its stored expiry used
+the former 24-hour policy. Fresh reads return clones. Expired snapshots return immediately with `stale` and
 `refreshing` and start a coalesced background revalidation. Explicit refresh waits
 for the same operation. Failure preserves the usable snapshot and reports
 `refreshError`; background retries wait at least a minute or until provider reset.
 A cache miss propagates the typed provider failure. Refresh never accesses local
-association or progress tables. Refresh happens on use, not from a periodic
-whole-catalog job. Identification's current process-local group reuse still avoids
-re-identifying unchanged directory contexts; Metadata refresh does not itself
+association or progress tables. Metadata revalidation happens on use. Catalog also
+schedules bounded revalidation of expired details for associated, unfinished local works and adopts
+the resulting snapshots; this does not crawl the provider catalog. Identification's
+current process-local group reuse still avoids re-identifying unchanged directory contexts; Metadata refresh does not itself
 trigger a new recognition pass.
 
 One subscriber cancellation does not cancel others. Once all foreground

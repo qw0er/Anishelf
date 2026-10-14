@@ -384,7 +384,8 @@ These are initial application policy defaults, not AniList API guarantees:
 | Data | Freshness / retention |
 | --- | --- |
 | Search results | Fresh for 24 hours; empty successful results for 15 minutes; transient unconfirmed entries evicted by LRU above 1,000 keys |
-| Selected work details/relations | Fresh for 24 hours while releasing/not yet released; 7 days when finished; retained while referenced by local works |
+| Selected work details | Fresh for 6 hours while releasing, 24 hours for other unfinished states, and 7 days when finished; retained while referenced by local works. Catalog periodically revalidates expired unfinished details in bounded batches and refreshes expired details on use |
+| Relations | Fresh for 24 hours |
 | Next-airing data | Fresh for 15 minutes; refreshed only when the relevant detail is used |
 | Unconfirmed detail snapshots | Up to 2,000 transient snapshots with LRU eviction; confirmed references are exempt |
 | Cover/banner files | 128 MiB separate initial budget, LRU eviction; fetch on selection/detail use and retain cached files while within budget |
@@ -392,8 +393,11 @@ These are initial application policy defaults, not AniList API guarantees:
 
 Freshness expiry does not delete a confirmed snapshot. Successful empty searches
 are distinguishable from request failures. Old search results can be shown as
-stale candidates but do not become confirmed facts. Manual refresh is available,
-coalesces with an in-flight request and still obeys provider limits. Cache keys
+stale candidates but do not become confirmed facts. Catalog adopts successful
+refreshed detail snapshots transactionally without changing local episodes, mappings or progress; concurrent local edits take priority. Open
+detail views read retained data immediately and recheck to display refresh results.
+Manual refresh is available, coalesces with an in-flight request and still obeys
+provider limits. Cache keys
 include projection/schema version and all query-affecting options; partial
 responses cannot replace a more complete valid snapshot silently.
 

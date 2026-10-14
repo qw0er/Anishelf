@@ -7,8 +7,9 @@ import {
 	type MetadataFailure,
 	type MetadataSnapshot,
 	type ReadOptions,
+	type WorkDetails,
 } from "../domain/model.js";
-import { metadataPolicy as policy } from "../policy.js";
+import { detailFreshnessMs, metadataPolicy as policy } from "../policy.js";
 import type {
 	CacheEntry,
 	MetadataProvider,
@@ -90,7 +91,7 @@ export class MetadataCacheReader {
 		}
 		if (cached && !options.refresh) {
 			if (
-				cached.expiresAt <= this.now() &&
+				this.expiresAt(cached) <= this.now() &&
 				(!cached.failure?.retryAt || cached.failure.retryAt <= this.now())
 			) {
 				void this.subscribe(key, kind, load, ttl, this.lifetime.signal).catch(
@@ -111,12 +112,20 @@ export class MetadataCacheReader {
 			return this.envelope<T>(latest ?? cached);
 		}
 	}
+	private expiresAt(entry: CacheEntry): number {
+		if (entry.kind !== "detail") return entry.expiresAt;
+		// Apply shorter policy intervals to snapshots persisted before a policy change.
+		return Math.min(
+			entry.expiresAt,
+			entry.fetchedAt + detailFreshnessMs((entry.data as WorkDetails).status),
+		);
+	}
 	private envelope<T>(entry: CacheEntry): CachedMetadata<T> {
 		this.store(() => this.options.store.touch(entry.id, this.now()));
 		return {
 			snapshotId: entry.id,
 			fetchedAt: entry.fetchedAt,
-			stale: entry.expiresAt <= this.now(),
+			stale: this.expiresAt(entry) <= this.now(),
 			refreshing: this.pending.has(entry.key),
 			refreshError: entry.failure ? { ...entry.failure } : null,
 			data: structuredClone(entry.data) as T,

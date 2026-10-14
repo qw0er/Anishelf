@@ -2350,3 +2350,46 @@ test("Review can reject a pending resource without a reason", async () => {
 	fireEvent.click(screen.getByRole("button", { name: "Reject resource" }));
 	await waitFor(() => expect(item.decision).toBe("rejected"));
 });
+
+test("automatic metadata updates appear in an open detail and invalidate the cached poster list", async () => {
+	const detail = animeFixture();
+	detail.metadata.refreshing = true;
+	mockAnime(detail);
+	renderApp("/");
+	fireEvent.click(await screen.findByRole("link", { name: "Frieren" }));
+	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+	expect(screen.getByText(/Metadata last updated:/)).toBeTruthy();
+	expect(screen.getByText("Refreshing metadata…")).toBeTruthy();
+	detail.work = {
+		...detail.work,
+		revision: 2,
+		updatedAt: Date.now(),
+		providerTitle: "Updated Frieren",
+		displayTitle: "Updated Frieren",
+	};
+	detail.metadata = {
+		...detail.metadata,
+		snapshotId: "new-snapshot",
+		fetchedAt: Date.now(),
+		stale: false,
+		refreshing: false,
+	};
+	await screen.findByRole(
+		"heading",
+		{ name: "Updated Frieren", level: 1 },
+		{ timeout: 4000 },
+	);
+	expect(screen.queryByText("Refreshing metadata…")).toBeNull();
+	expect(
+		fetcher.mock.calls.some(([path]) =>
+			String(path).endsWith("/work-1/refresh"),
+		),
+	).toBe(false);
+	fireEvent.click(screen.getByRole("link", { name: "Back to library" }));
+	await screen.findByRole("link", { name: "Updated Frieren" });
+	expect(
+		fetcher.mock.calls.filter(([path]) =>
+			String(path).startsWith("/api/catalog/works?"),
+		).length,
+	).toBeGreaterThan(1);
+});

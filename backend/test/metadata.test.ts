@@ -849,3 +849,61 @@ test("HTTP disconnect detaches its subscription and aborts unneeded provider wor
 		await app.close();
 	}
 });
+
+test.each([
+	["RELEASING", 6 * 60 * 60_000],
+	["NOT_YET_RELEASED", 24 * 60 * 60_000],
+	["HIATUS", 24 * 60 * 60_000],
+	["CANCELLED", 24 * 60 * 60_000],
+	[null, 24 * 60 * 60_000],
+	["FINISHED", 7 * 24 * 60 * 60_000],
+])(
+	"%s details revalidate only after their freshness interval",
+	async (status, interval) => {
+		let now = 1000;
+		const fetcher = vi.fn<typeof fetch>(async () =>
+			Response.json({ data: { Media: { ...media(), status } } }),
+		);
+		const { application } = await setup(fetcher, () => now);
+		const first = await application.get(reference);
+		now = first.fetchedAt + Number(interval) - 1;
+		expect((await application.get(reference)).stale).toBe(false);
+		expect(fetcher).toHaveBeenCalledTimes(1);
+		now++;
+		expect(application.snapshot(first.snapshotId).stale).toBe(true);
+		expect((await application.get(reference)).stale).toBe(true);
+		await vi.waitFor(() =>
+			expect(application.snapshot(first.snapshotId).stale).toBe(false),
+		);
+		expect(fetcher).toHaveBeenCalledTimes(2);
+	},
+);
+
+test("persisted releasing snapshots with the former 24-hour expiry use the new six-hour policy", async () => {
+	let now = 1000;
+	const fetcher = vi.fn<typeof fetch>(async () =>
+		Response.json({ data: { Media: { ...media(), status: "RELEASING" } } }),
+	);
+	const { application, database } = await setup(fetcher, () => now);
+	const first = await application.get(reference);
+	const entry = database.metadata.get(first.snapshotId);
+	if (!entry) throw new Error("Missing cached detail");
+	database.metadata.save({
+		...entry,
+		expiresAt: first.fetchedAt + 24 * 60 * 60_000,
+	});
+	now = first.fetchedAt + 6 * 60 * 60_000;
+	expect(application.snapshot(first.snapshotId).stale).toBe(true);
+	expect((await application.get(reference, { cachedOnly: true })).stale).toBe(
+		true,
+	);
+	expect(fetcher).toHaveBeenCalledTimes(1);
+	await application.get(reference);
+	await vi.waitFor(() =>
+		expect(application.snapshot(first.snapshotId).stale).toBe(false),
+	);
+	expect(fetcher).toHaveBeenCalledTimes(2);
+	expect(database.metadata.get(first.snapshotId)?.expiresAt).toBe(
+		now + 6 * 60 * 60_000,
+	);
+});

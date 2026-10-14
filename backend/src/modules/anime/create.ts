@@ -73,7 +73,10 @@ export async function createAnimeModule(options: {
 	};
 	let stopped: Promise<void> | undefined;
 	let closed: Promise<void> | undefined;
-	const quiesce = () => (stopped ??= identification.close());
+	const quiesce = () =>
+		(stopped ??= (async () => {
+			await Promise.all([identification.close(), catalog?.quiesce()]);
+		})());
 	return {
 		api,
 		registerHttp: (app: import("../../transport/instance.js").HttpInstance) =>

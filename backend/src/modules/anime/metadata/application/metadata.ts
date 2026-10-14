@@ -8,7 +8,7 @@ import {
 	type WorkDetails,
 } from "../domain/model.js";
 import type { MetadataArtworkCache } from "../infrastructure/artwork.js";
-import { metadataPolicy as policy } from "../policy.js";
+import { detailFreshnessMs, metadataPolicy as policy } from "../policy.js";
 import type { MetadataProvider, MetadataStore } from "../ports.js";
 import type { MetadataApi } from "../public.js";
 import { MetadataCacheReader } from "./cache-reader.js";
@@ -109,10 +109,7 @@ export class MetadataApplication implements MetadataApi {
 			reference,
 			options,
 			(signal) => provider.get(reference, signal),
-			(data) =>
-				data.status === "FINISHED"
-					? policy.finishedFreshMs
-					: policy.detailFreshMs,
+			(data) => detailFreshnessMs(data.status),
 		);
 	}
 	relations(

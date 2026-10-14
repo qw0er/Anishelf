@@ -1,6 +1,17 @@
 import { DomainError } from "../../../../shared/errors.js";
+import {
+	type CachedMetadata,
+	MetadataError,
+	type MetadataFailure,
+	type WorkDetails,
+} from "../../metadata/public.js";
 import { conflict, target, text } from "../domain/mapping.js";
-import type { LocalEpisode, WorkDetail } from "../domain/model.js";
+import type {
+	LocalEpisode,
+	LocalWork,
+	ProviderLink,
+	WorkDetail,
+} from "../domain/model.js";
 import type { CatalogContext } from "./context.js";
 import { projection } from "./projection.js";
 import type { CatalogQueries } from "./queries.js";
@@ -68,15 +79,88 @@ export class WorkApplication {
 		this.context.options.sources.assertRootEpoch(root.epoch);
 		this.context.open();
 		if (metadata.refreshError) return this.queries.detail(id);
+		this.apply(work, link, metadata);
+		return this.queries.detail(id);
+	}
+	async revalidate(
+		id: string,
+		signal: AbortSignal,
+	): Promise<MetadataFailure | null> {
+		this.context.open();
+		const work = this.context.options.store.work(id);
+		const link = this.context.options.store.link(id);
+		if (!work || !link) return null;
+		let metadata: CachedMetadata<WorkDetails>;
+		try {
+			metadata = await this.context.options.metadata.get(link.reference, {
+				cachedOnly: true,
+				signal,
+			});
+		} catch (error) {
+			if (
+				!(error instanceof MetadataError) ||
+				error.failure.code !== "not-found"
+			)
+				throw error;
+			// A retained snapshot may use an older adapter/projection cache key after an upgrade.
+			metadata = await this.context.options.metadata.get(link.reference, {
+				refresh: true,
+				signal,
+			});
+		}
+		if (metadata.stale) {
+			if (
+				metadata.refreshError?.retryAt &&
+				metadata.refreshError.retryAt > Date.now()
+			)
+				return metadata.refreshError;
+			metadata = await this.context.options.metadata.get(link.reference, {
+				refresh: true,
+				signal,
+			});
+		}
+		signal.throwIfAborted();
+		this.context.open();
+		if (metadata.refreshError) return metadata.refreshError;
+		// Automatic updates yield to local edits and confirmations; a later pass adopts the cached result.
+		if (
+			this.context.options.store.work(id)?.revision !== work.revision ||
+			this.context.options.store.link(id)?.snapshotId !== link.snapshotId
+		)
+			return null;
+		this.apply(work, link, metadata);
+		return null;
+	}
+	private apply(
+		work: LocalWork,
+		link: ProviderLink,
+		metadata: CachedMetadata<WorkDetails>,
+	): void {
+		const id = work.id;
+		if (
+			link.snapshotId !== metadata.snapshotId &&
+			this.context.options.store.link(id)?.snapshotId === metadata.snapshotId &&
+			this.context.options.store.work(id)?.revision === work.revision + 1
+		)
+			return;
+		if (this.context.options.store.work(id)?.revision !== work.revision)
+			conflict();
+		const projected = projection(work, metadata.data);
+		if (
+			link.snapshotId === metadata.snapshotId &&
+			JSON.stringify(projected) === JSON.stringify(work)
+		)
+			return;
 		this.context.options.metadata.retain(metadata.snapshotId, id);
 		try {
 			this.context.options.store.transaction((store) => {
-				if (store.work(id)?.revision !== revision) conflict();
+				if (
+					store.work(id)?.revision !== work.revision ||
+					store.link(id)?.snapshotId !== link.snapshotId
+				)
+					conflict();
 				store.saveWork(
-					projection(
-						{ ...work, revision: revision + 1, updatedAt: Date.now() },
-						metadata.data,
-					),
+					{ ...projected, revision: work.revision + 1, updatedAt: Date.now() },
 					{ ...link, snapshotId: metadata.snapshotId },
 				);
 			});
@@ -89,6 +173,5 @@ export class WorkApplication {
 		}
 		if (link.snapshotId !== metadata.snapshotId)
 			this.context.options.metadata.release(link.snapshotId, id);
-		return this.queries.detail(id);
 	}
 }

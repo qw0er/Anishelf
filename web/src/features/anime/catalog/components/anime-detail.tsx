@@ -46,7 +46,7 @@ export function AnimeDetail() {
 	return <WorkDetail key={`${id}:${scope}`} data={query.data} />;
 }
 function WorkDetail({ data }: { data: CatalogDetailResponse }) {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
 	const controller = useWorkDetail(data);
 	const { libraryPath, refresh } = controller;
 	const { work, metadata } = data;
@@ -77,6 +77,11 @@ function WorkDetail({ data }: { data: CatalogDetailResponse }) {
 				</p>
 			)}
 			{metadata.refreshError && <p role="alert">{t("anime.refreshFailed")}</p>}
+			<p className="text-sm text-muted-foreground">
+				{t("anime.metadataUpdated", {
+					time: new Date(metadata.fetchedAt).toLocaleString(i18n.language),
+				})}
+			</p>
 			{metadata.stale && (
 				<p role="status" className="text-sm text-muted-foreground">
 					{t("anime.stale")}

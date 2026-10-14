@@ -24,13 +24,16 @@ validation:
 | `CatalogQueries` | Local work list/detail projections and availability counts |
 | `ReviewApplication` | Recognition publication, review queries, rejection and explicit source unlinking |
 | `AssociationApplication` | Bounded transient previews, mapping confirmation and replacement |
-| `WorkApplication` | Manual work/episode edits and provider snapshot refresh |
+| `WorkApplication` | Manual episode edits, provider revalidation and transactional snapshot adoption |
+| `CatalogRefresh` | Bounded background checks and coalesced detail-triggered revalidation |
 
 Mapping validation lives in `domain/mapping.ts`; provider-to-local projection is
 shared by confirmation and refresh. All use cases share the same Catalog store.
 Confirmation still commits works, episodes, associations, review decisions and
 operation keys in one transaction. Closing the facade closes the shared context
-and clears association previews. These internal components do not introduce new
+and clears association previews. Application shutdown first quiesces recognition
+and Catalog refresh, aborting and draining automatic refresh subscribers before
+Metadata and the shared database close. These internal components do not introduce new
 cross-module APIs, HTTP routes or persistence boundaries.
 
 Migration `0008_anime_catalog.sql` adds the Catalog tables below. Migration
@@ -232,3 +235,47 @@ preserve detail browsing and playback and offer contextual retry.
 
 Rejection reasons are optional and empty/whitespace-only input is stored as null.
 Removing confirmed associations still requires a reason and explicit user consent.
+
+## Automatic metadata refresh
+
+Catalog starts a refresh check five seconds after construction and schedules the
+next check one minute after the previous batch completes. Each check scans at most
+50 associated works by a rotating stable-ID cursor across saved roots, selects at
+most five expired unfinished works, and starts the oldest selected snapshots
+first. Works without source associations and finished works are excluded from
+periodic provider requests. Unavailable historical sources still retain their
+associations and remain eligible. The cursor prevents early failing works from
+blocking later works. At most five Catalog automatic refreshes are pending,
+including detail-triggered requests.
+
+Detail freshness is six hours for releasing works, 24 hours for other unfinished
+works and seven days for finished works. Previously persisted releasing snapshots
+also use the six-hour interval without waiting for their former 24-hour expiry. Reading an expired detail immediately returns its
+retained snapshot and schedules revalidation, including for finished works.
+Lists and artwork reads remain local and do not start per-card provider requests.
+Automatic revalidation first checks the latest cached provider projection, adopts
+a fresh newer version without another provider request, and otherwise explicitly
+awaits a coalesced refresh. Metadata's persisted retry timestamp and shared
+provider queue apply to all automatic requests.
+
+Successful changed content is retained, projected into the local work and linked
+in a short transaction; only then is the old snapshot released. Identical content with an unchanged local projection
+renews freshness without increasing the work revision. An intervening local edit
+or confirmation makes the automatic update yield; the next eligible request can
+adopt the cached result. A manual request sharing an automatic provider operation
+can accept the snapshot that operation already applied. No refresh changes episode
+IDs, manual labels/numbers, source associations or playback progress. Failures
+preserve the retained data and expose refresh errors on details. Metadata persists
+provider retry state when a current cache entry exists. Catalog keeps at most 100
+recent failure envelopes in memory to also report failures when the current cache
+key is absent (for example, after an adapter upgrade); these errors retry no sooner
+than one minute or the provider retry timestamp and clear after recovery.
+
+An open Web detail refetches every two seconds while refresh is running and once
+per minute otherwise, with an immediate read on entry. A changed work revision
+invalidates cached poster lists; an open poster list also rechecks local Catalog
+projections once per minute to pick up scheduled updates. Details show the last successful metadata fetch
+time, stale state and refresh failure. Airing pages retain their 15-minute backend
+freshness; an open detail rechecks them every 15 minutes and polls while background
+revalidation is running. Airing numbers remain provider evidence, not local episode
+identities.
