@@ -61,6 +61,8 @@ Select an explicit subset of files for a work, preview each file's existing and 
 
 Parse filenames and directory context into identification evidence; external metadata supplies candidates and episode/work relationships. Rank candidates using titles and aliases, year, season/part, format and episode information when available. Show reasons and unresolved conflicts; similar candidates or unknown episode mappings require review. Parser output and match scores are evidence, not authoritative identities or probabilities.
 
+Use consistent title normalization for ranking and admission, retain explicit ordinal provenance and never assume an unmarked title is season one. Publication-local continuous-number conversion requires distinct, agreeing filename anchors within the same directory, season and work; cross-directory propagation, relation-order offsets and conflicting numbering remain unresolved. Zero numbering requires explicit identity confirmation. Review preserves original numbers, offers candidate-specific mappings and shows the same admission blockers used by the runtime and evaluator.
+
 Preserve raw parsed numbering separately from confirmed episode associations, including specials, continuous numbering and multi-episode files. Keep anime, episodes, source files, file-to-episode associations and provider identifiers separate. Manual corrections survive rescans and metadata refresh; reassociation never silently deletes source playback history. Multiple versions of an episode remain selectable without counting as separate episodes.
 
 #### Download Existing Media (L14)

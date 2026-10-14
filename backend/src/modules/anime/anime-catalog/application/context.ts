@@ -4,6 +4,7 @@ import {
 	type ResourceAccessApi,
 	resourceRootId,
 } from "../../../resources/public.js";
+import { automaticBlockers } from "../domain/admission.js";
 import { conflict, integer, text } from "../domain/mapping.js";
 import type { LocalWork, ReviewItem, ReviewRecord } from "../domain/model.js";
 import { catalogPolicy as policy } from "../policy.js";
@@ -29,7 +30,19 @@ export function safeReview(
 	associations: ReviewItem["associations"] = [],
 ): ReviewItem {
 	const { canonicalRoot: _, ...item } = record;
-	return { ...item, available, associations };
+	return {
+		...item,
+		available,
+		associations,
+		unresolved: [
+			...new Set([
+				...item.unresolved,
+				...(item.decision === "pending"
+					? automaticBlockers({ ...record, available })
+					: []),
+			]),
+		],
+	};
 }
 
 /** Shared lifecycle and resource-root checks for all Catalog use cases. */

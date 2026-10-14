@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { posix } from "node:path";
-import { parse, parse_path, parse_together } from "anitomy-ng";
+import { animeNameParser } from "../anitomy-adapter.js";
 import type {
 	ExtractionElement,
 	ExtractionEvidence,
@@ -21,13 +21,13 @@ export class AnitomyIdentificationParser implements IdentificationParser {
 	readonly version =
 		`anitomy-ng@1.0.10:${identificationPolicy.normalizationVersion}`;
 	extract(paths: string[]): ExtractionEvidence[] {
-		const together = parse_together(paths);
+		const together = animeNameParser.parseTogether(paths);
 		const contextFingerprint = createHash("sha256")
 			.update(JSON.stringify([...paths].sort()))
 			.digest("hex");
 		return paths.map((relativePath, index) => {
 			const originalName = posix.basename(relativePath);
-			const leaf = parse(originalName);
+			const leaf = animeNameParser.parse(originalName);
 			const inputs: ExtractionInput[] = [
 				{ mode: "basename", input: originalName, elements: leaf },
 				...relativePath
@@ -37,13 +37,13 @@ export class AnitomyIdentificationParser implements IdentificationParser {
 						(input): ExtractionInput => ({
 							mode: "ancestor",
 							input,
-							elements: parse(input),
+							elements: animeNameParser.parse(input),
 						}),
 					),
 				{
 					mode: "path",
 					input: relativePath,
-					elements: parse_path(relativePath),
+					elements: animeNameParser.parsePath(relativePath),
 				},
 				{
 					mode: "together",
@@ -51,20 +51,69 @@ export class AnitomyIdentificationParser implements IdentificationParser {
 					elements: together[index] ?? [],
 				},
 			];
-			const rawEpisodes = values(leaf, "episode");
-			const types = values(leaf, "type").map((value) => value.toUpperCase());
-			const ancillary = types.some((type) =>
-				["NCOP", "NCED", "OP", "ED", "PV", "CM", "TRAILER"].includes(type),
+			const adapted = inputs.map((input) =>
+				animeNameParser.adapt(input.input, input.elements),
 			);
+			const rawEpisodes = values(leaf, "episode");
+			const selected = animeNameParser.numbering(originalName, leaf);
+			// Recover only a repeated bracket label in a numbered file and its parent.
+			// This supplies a search candidate; metadata must still establish identity.
+			const group = values(leaf, "release_group")[0];
+			if (
+				!values(leaf, "title").length &&
+				rawEpisodes.length &&
+				group &&
+				inputs.some(
+					(input) =>
+						input.mode === "ancestor" &&
+						!values(input.elements, "title").length &&
+						values(input.elements, "release_group").includes(group),
+				)
+			)
+				adapted[0]?.push({
+					kind: "title",
+					value: group,
+					position:
+						leaf.find((element) => element.kind === "release_group")
+							?.position ?? 0,
+				});
+			const types = values(adapted[0] ?? [], "type").map((value) =>
+				value.toUpperCase(),
+			);
+			const menuDirectory = inputs.some(
+				(input) => input.mode === "ancestor" && /^menu$/iu.test(input.input),
+			);
+			const ancillary =
+				menuDirectory ||
+				types.some((type) =>
+					[
+						"ANCILLARY",
+						"NCOP",
+						"NCED",
+						"OP",
+						"ED",
+						"PV",
+						"CM",
+						"TRAILER",
+					].includes(type),
+				);
 			const special = types.some((type) =>
 				["OVA", "OAD", "SP", "SPECIAL"].includes(type),
 			);
-			const numbering =
-				rawEpisodes.length === 1
-					? "single"
-					: rawEpisodes.length
-						? "ambiguous"
-						: "unknown";
+			const numbering = selected.kind;
+			const titleInputs = [
+				adapted[0] ?? [],
+				...inputs
+					.flatMap((input, index) =>
+						input.mode === "ancestor" ? [adapted[index] ?? []] : [],
+					)
+					.reverse(),
+				...inputs.flatMap((input, index) =>
+					input.mode === "path" || input.mode === "together"
+						? [adapted[index] ?? []]
+						: [],
+				),
+			];
 			return {
 				parser: "anitomy-ng",
 				parserVersion: "1.0.10",
@@ -74,18 +123,17 @@ export class AnitomyIdentificationParser implements IdentificationParser {
 				relativePath,
 				inputs,
 				titles: unique(
-					inputs.flatMap((input) => values(input.elements, "title")),
+					titleInputs.flatMap((elements) => values(elements, "title")),
 				),
 				years: unique(
 					inputs.flatMap((input) => values(input.elements, "year")),
 				),
 				seasons: unique(
-					inputs.flatMap((input) => values(input.elements, "season")),
+					adapted.flatMap((elements) => values(elements, "season")),
 				),
-				parts: unique(
-					inputs.flatMap((input) => values(input.elements, "part")),
-				),
+				parts: unique(adapted.flatMap((elements) => values(elements, "part"))),
 				rawEpisodes,
+				selectedEpisodes: selected.tokens,
 				numbering,
 				contentKind: ancillary
 					? "ancillary"

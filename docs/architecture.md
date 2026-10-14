@@ -252,6 +252,31 @@ workflow that acquired them.
 
 ## Delivered anime-library workflow
 
+Title comparisons use one canonical representation for exact admission and fuzzy
+ranking: Unicode normalization, punctuation/spacing folding and dictionary-based
+Traditional-to-Simplified Chinese conversion. Provider titles are titles, not
+release filenames: only explicit season/part syntax is removed from them, never
+an arbitrary trailing number or language word. Shorter names remain search hints
+unless a provider alias corroborates them. Candidate ordinals come from explicit
+provider title syntax and retain their snapshot source; shared aliases and missing
+ordinals do not imply season one. Calendar seasons and relation order do not
+establish numbering offsets.
+
+Continuous numbering can use an offset corroborated by at least two explicit
+continuous/local filename pairs in the same root, directory, source season and
+candidate work. The anchors must cover distinct episode numbers, identify one
+candidate without conflicts and agree on the offset. A target's leaf title must
+also match the candidate; an unrelated file cannot borrow its directory's work.
+If both the source and converted numbers fit the known count, the alternative
+requires manual selection. Rules live only for that identification publication, carry
+their anchor identities, never cross directories and never replace manual Catalog
+decisions. Absent, conflicting or invalid anchors require an explicit Catalog
+preview/confirmation. Zero episodes receive a manual special suggestion requiring
+an identity and label or another explicitly verified target; they are not
+automatically invented positive regular episodes. Unknown TV numbering has
+no default target. Review defaults use the selected candidate's valid proposal,
+preserve the original source numbers and show the proposal's unresolved reasons.
+
 Completed resource scans publish validated source contexts to Anime's bounded
 recognition coordinator. Identification uses `anitomy-ng` and cached AniList
 candidates to return evidence and candidate-specific episode proposals. Catalog
@@ -259,8 +284,36 @@ automatically admits unambiguous matches and persists review decisions, stable
 local work/episode identities and source associations in SQLite. Ambiguous or
 incomplete evidence stays in Review.
 
-Recognition parses provider titles and aliases with `anitomy-ng`, retaining original
-names while comparing explicit series ordinals separately from title similarity.
+Recognition parses release names with `anitomy-ng`; the adapter's explicit title
+grammar handles provider titles without release-token stripping. Original names
+remain available while series ordinals are compared separately from similarity.
+All runtime calls to the library pass through Identification's `anitomy-adapter.ts`.
+The adapter preserves raw elements and supplements explicit Chinese/Japanese
+season markers, menu/NC opening/ending labels and language residue backed by a
+parsed dubbed-audio tag. Provider-title grammar shares explicit ordinal rules
+without discarding title words or numbers. Exact menu directories mark ancillary resources;
+an `extras` directory alone does not. Corrections do not infer work identities,
+season-one defaults or episode offsets. Normalization version changes invalidate
+recognition reuse on rescan while preserving Catalog decisions.
+Space-delimited Han/Latin title pairs supply separate title candidates. A bracket
+label supplies a fallback search title only when both a numbered leaf and an
+ancestor without a parsed title repeat it; this is not sufficient to admit a work.
+Explicit leaf movie types constrain candidate format. Punctuation, spacing,
+multiplication-cross glyphs and Chinese script variants normalize consistently
+for title comparison. Canonical base-title equality receives the same identity
+weight across candidates; missing ordinals cannot make an unmarked work win over
+a numbered sequel solely because one title omits a season marker.
+
+Leaf numbering distinguishes bounded contiguous ranges from multiple numbering
+systems. A filename containing a continuous number followed by explicit `SxxEyy`
+may select the season-local `yy` when the continuous number is not smaller; both
+raw tokens remain recorded and contradictory season evidence still blocks admission.
+Descending, oversized, inconsistent and zero numbering remains unresolved. Files
+with only continuous numbering still need an explicit correction. Corpus reports
+expose selected numbering and separately count admissions whose numbering differs
+from the corpus's provider sort values. Independently corroborated local-number
+labels enable separate comparisons; unverified cross-provider numbering remains
+excluded and explicitly reported.
 Complete contextual title matches outrank shared short aliases. Bare Roman
 numerals support ordinal matching only when a complete contextual source title
 also matches; unmarked titles do not imply season one. Missing candidate season evidence does

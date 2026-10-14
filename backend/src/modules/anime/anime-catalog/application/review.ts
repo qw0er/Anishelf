@@ -29,9 +29,13 @@ export class ReviewApplication {
 	private associations(id: string): ReviewItem["associations"] {
 		return this.context.options.store.associations(id).map(({ episode }) => {
 			const work = this.context.options.store.work(episode.workId);
+			const reference = this.context.options.store.link(
+				episode.workId,
+			)?.reference;
 			return {
 				workId: episode.workId,
 				workTitle: work?.providerTitle ?? episode.workId,
+				...(reference ? { reference } : {}),
 				episodeId: episode.id,
 				kind: episode.kind,
 				number: episode.number,

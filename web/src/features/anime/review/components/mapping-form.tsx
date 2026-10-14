@@ -5,6 +5,7 @@ import type { CatalogReviewItem } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import { Input } from "../../../../shared/components/ui/input.js";
 import { Artwork } from "../../shared/components/artwork.js";
+import { mappingDefaults } from "../mapping-defaults.js";
 import type { ReviewController } from "../use-review-controller.js";
 
 const selectStyle = "form-select w-full";
@@ -32,7 +33,6 @@ export function MappingForm({
 		requestPreview,
 		previewPending,
 	} = controller;
-	const existing = item.associations;
 	const mappingRef = useRef<HTMLFormElement>(null);
 	const loadedReference =
 		reference && details.data ? `${reference.provider}:${reference.id}` : null;
@@ -44,6 +44,12 @@ export function MappingForm({
 			});
 	}, [loadedReference]);
 	if (!reference || !details.data) return null;
+	const defaults = mappingDefaults(
+		item,
+		reference,
+		details.data.data.format,
+		details.data.data.episodeCount,
+	);
 	return (
 		<form
 			key={`${reference.provider}:${reference.id}:${item.revision}`}
@@ -104,10 +110,7 @@ export function MappingForm({
 						<select
 							name="kind"
 							className={selectStyle}
-							defaultValue={
-								existing[0]?.kind ??
-								(details.data.data.format === "MOVIE" ? "movie" : "regular")
-							}
+							defaultValue={defaults.kind}
 						>
 							<option value="regular">{t("anime.regular")}</option>
 							<option value="special">{t("anime.special")}</option>
@@ -125,13 +128,7 @@ export function MappingForm({
 							placeholder={
 								details.data.data.format === "MOVIE" ? "whole" : "1, 2, 3"
 							}
-							defaultValue={
-								existing.length
-									? existing.map((link) => link.number).join(", ")
-									: details.data.data.format === "MOVIE"
-										? "whole"
-										: item.evidence.rawEpisodes.join(", ")
-							}
+							defaultValue={defaults.numbers}
 							required
 						/>
 					</label>
@@ -146,12 +143,17 @@ export function MappingForm({
 							type="number"
 							min={-10000}
 							max={10000}
-							defaultValue="0"
+							defaultValue={defaults.offset}
 						/>
 					</label>
 					<label htmlFor="target-label" className="min-w-0 space-y-1.5 text-sm">
 						{t("review.label")}
-						<Input id="target-label" name="label" maxLength={500} />
+						<Input
+							id="target-label"
+							name="label"
+							maxLength={500}
+							defaultValue={defaults.label}
+						/>
 					</label>
 					<label
 						htmlFor="correction-reason"
@@ -170,6 +172,28 @@ export function MappingForm({
 				<p className="text-xs leading-relaxed text-muted-foreground">
 					{t("review.mappingHint")}
 				</p>
+				{defaults.offset !== 0 && (
+					<p className="text-sm text-muted-foreground">
+						{defaults.mappingReasons.join(" ")}
+					</p>
+				)}
+				{defaults.kind === "special" && (
+					<p className="text-sm text-muted-foreground">
+						{t("review.specialHint")}
+					</p>
+				)}
+				{!defaults.numbers && (
+					<p className="text-sm text-muted-foreground">
+						{t("review.unknownNumbering")}
+					</p>
+				)}
+				{defaults.reasons.length > 0 && (
+					<ul className="space-y-1 text-sm text-muted-foreground">
+						{defaults.reasons.map((reason) => (
+							<li key={reason}>{reason}</li>
+						))}
+					</ul>
+				)}
 				<Button
 					className="w-full sm:w-auto"
 					type="submit"

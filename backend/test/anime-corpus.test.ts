@@ -19,8 +19,20 @@ import {
 	validateNyaaCapture,
 	validateResourcePath,
 } from "./support/anime-corpus.js";
+import { evaluateMatchingCorpus } from "./support/anime-matching-corpus.js";
 
 const temporary: string[] = [];
+test("production matching rejects unsafe corpus admissions and exposes numbering differences", async () => {
+	const report = await evaluateMatchingCorpus();
+	expect(report.summary.unsafeAdmissions).toEqual([]);
+	expect(report.summary.episodeMismatches).toEqual([]);
+	const dual = report.rows.find((row) => row.id === "nyaa-2106580-file-001");
+	expect(dual?.rawEpisodes).toEqual(["29", "01"]);
+	expect(dual?.targets).toEqual(["1"]);
+	expect(dual?.selectedNumberingDiffers).toBe(true);
+	expect(dual?.episodeComparison).toBe("matched");
+	expect(dual?.episodeComparisonBasis).toBe("frozen-season-local-label");
+}, 20000);
 afterEach(async () => {
 	await Promise.all(
 		temporary

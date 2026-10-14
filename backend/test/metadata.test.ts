@@ -704,6 +704,44 @@ test("actual Metadata supplies Identification proposals without calendar season 
 	]);
 });
 
+test("metadata projects only explicit provider-title season and part ordinals", async () => {
+	const fetcher = transport();
+	fetcher.mockImplementation(async (_url, init) => {
+		const request = JSON.parse(String(init?.body));
+		const value = media();
+		value.title = {
+			romaji: "Ocean Season 2 Part 1",
+			english: "Ocean 2nd Season Part 1",
+			native: "海洋 第二季 第一部",
+		};
+		value.synonyms = ["Ocean"];
+		return Response.json({
+			data: {
+				Page: {
+					pageInfo: {
+						currentPage: request.variables.page,
+						perPage: request.variables.perPage,
+						hasNextPage: false,
+					},
+					media: [value],
+				},
+			},
+		});
+	});
+	const { application } = await setup(fetcher);
+	const projection = createIdentificationMetadata(application);
+	const candidates = await projection.search(
+		"Ocean",
+		new AbortController().signal,
+	);
+	expect(candidates[0]).toMatchObject({
+		season: "2",
+		part: "1",
+		ordinalSource: "provider-title",
+	});
+	expect(fetcher).toHaveBeenCalledTimes(1);
+});
+
 test("HTTP exposes normalized cache envelopes, refresh, artwork and safe failures", async () => {
 	const { application, fetcher } = await setup();
 	const app = createHttpApp({

@@ -57,6 +57,7 @@ export interface ReviewItem {
 	associations: {
 		workId: string;
 		workTitle: string;
+		reference?: ProviderReference;
 		episodeId: string;
 		kind: EpisodeTarget["kind"];
 		number: string;

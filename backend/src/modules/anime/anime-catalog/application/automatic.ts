@@ -43,7 +43,18 @@ export class AutomaticAdmission {
 							{
 								reviewId: record.id,
 								revision: record.revision,
-								targets: proposal.mapping.targets,
+								targets: proposal.mapping.targets.map((target) =>
+									proposal.mapping.numbering
+										? {
+												...target,
+												number: String(
+													Number(target.number) -
+														proposal.mapping.numbering.offset,
+												),
+											}
+										: target,
+								),
+								offset: proposal.mapping.numbering?.offset ?? 0,
 								reason:
 									"Automatically identified from an unambiguous title and episode mapping.",
 							},

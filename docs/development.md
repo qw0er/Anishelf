@@ -33,6 +33,7 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm run architecture:check` | Check dependency directions, public entries and runtime cycles in both workspaces |
 | `npm run architecture:test` | Verify architecture rules with allowed and forbidden dependency fixtures |
 | `npm run anime:corpus -- summary` | Inspect the offline anime-identification corpus; see its [usage and provenance](../backend/test/fixtures/anime-identification/README.md) for generation and evaluation |
+| `npm run --silent anime:corpus -- match` | Evaluate production matching/admission against frozen candidates, including independently corroborated local numbering and separate base/scenario statistics; this does not measure live search recall |
 | `npm run check` | Run Biome, lint, type checks, architecture fixtures and both workspace test suites |
 | `npm run build` | Build backend and frontend |
 | `npm run start:backend` | Run the built backend; host pages only when `ANISHELF_FRONTEND_DIR` is set |

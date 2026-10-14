@@ -22,21 +22,47 @@ export function rankCandidates(
 		.map((work): RankedCandidate => {
 			const reasons: string[] = [];
 			const conflicts: string[] = [];
+			const explicitMovie = evidence.inputs
+				.find((input) => input.mode === "basename")
+				?.elements.some(
+					(element) =>
+						element.kind === "type" && /^movie$/iu.test(element.value),
+				);
+			if (explicitMovie && work.format !== "MOVIE")
+				conflicts.push("Explicit movie type contradicts the candidate format.");
 			let similarity = 0;
+			let equivalentTitleText = false;
 			for (const title of evidence.titles)
 				for (const alias of work.titles) {
 					const input = normalize(titleEvidence(title).title);
 					const target = normalize(titleEvidence(alias).title);
+					if (input && input === target) equivalentTitleText = true;
 					if (input && target)
 						similarity = Math.max(
 							similarity,
+							matchingTitle(title, alias, evidence.seasons, evidence.parts)
+								? 1
+								: 0,
 							fuzzy(input, target, { useSellers: false }),
 						);
 				}
 			let score = Math.round(similarity * 70);
+			if (explicitMovie) {
+				score += work.format === "MOVIE" ? 20 : -20;
+				if (work.format === "MOVIE")
+					reasons.push("Explicit movie type matches the candidate format.");
+			}
 			const exact = evidence.titles.some((title) =>
-				work.titles.some((alias) => matchingTitle(title, alias)),
+				work.titles.some((alias) =>
+					matchingTitle(title, alias, evidence.seasons, evidence.parts),
+				),
 			);
+			if (equivalentTitleText || exact) {
+				score += 15;
+				reasons.push(
+					"Canonical title text matches; ordinal evidence is evaluated separately.",
+				);
+			}
 			const leafTitle = evidence.inputs
 				.find((input) => input.mode === "basename")
 				?.elements.find((element) => element.kind === "title")?.value;
@@ -127,31 +153,39 @@ export function rankCandidates(
 					conflicts.push("Release year differs.");
 				}
 			}
-			for (const [hints, value, label] of [
-				[evidence.parts, work.part, "Part"],
-			] as const) {
-				if (hints.length && value !== null) {
-					if (
-						hints.some(
-							(hint) =>
-								normalize(hint).replace(/^0+/, "") ===
-								normalize(value).replace(/^0+/, ""),
-						)
-					) {
-						score += 10;
-						reasons.push(`${label} matches.`);
-					} else {
-						score -= 20;
-						conflicts.push(`${label} differs.`);
-					}
-				} else if (hints.length)
-					conflicts.push(`${label} cannot be verified from metadata.`);
+			const parts = [
+				...new Set([
+					...(work.part === null ? [] : [String(Number(work.part))]),
+					...work.titles.flatMap((title) => titleEvidence(title).parts),
+				]),
+			];
+			const inputParts = [
+				...new Set(evidence.parts.map((part) => String(Number(part)))),
+			];
+			if (parts.length > 1)
+				conflicts.push("Candidate part evidence is contradictory.");
+			if (inputParts.length > 1)
+				conflicts.push("Source part evidence is contradictory.");
+			if (inputParts.length) {
+				if (!parts.length)
+					conflicts.push("Part cannot be verified from metadata.");
+				else if (
+					parts.length === 1 &&
+					inputParts.length === 1 &&
+					parts[0] === inputParts[0]
+				) {
+					score += 10;
+					reasons.push("Part matches explicit title or metadata evidence.");
+				} else {
+					score -= 20;
+					conflicts.push("Part differs.");
+				}
 			}
 			if (work.format === "MOVIE" && evidence.rawEpisodes.length)
 				conflicts.push("Episode numbering is present for a movie.");
 			if (
 				work.episodeCount !== null &&
-				evidence.rawEpisodes.some(
+				(evidence.selectedEpisodes ?? evidence.rawEpisodes).some(
 					(token) =>
 						/^\d+$/.test(token) && Number(token) > (work.episodeCount ?? 0),
 				)
