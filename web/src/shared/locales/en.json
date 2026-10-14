@@ -365,6 +365,7 @@
 		"refreshing": "Refreshing metadata\u2026",
 		"refresh": "Refresh metadata",
 		"refreshFailed": "Metadata could not be refreshed. Cached details and playback remain available; try refreshing again.",
+		"metadataUpdated": "Metadata last updated: {{time}}",
 		"stale": "Showing cached metadata. You can refresh when the provider is available.",
 		"unknown": "Unknown",
 		"releaseStatus": "Release status",

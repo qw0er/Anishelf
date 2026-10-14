@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import type { CatalogDetailResponse } from "../../../shared/api/contracts.js";
 import { useQueryScope } from "../../../shared/api/queries.js";
@@ -17,6 +17,13 @@ export function useWorkDetail(data: CatalogDetailResponse) {
 	const [params] = useSearchParams();
 	const libraryPath = libraryReturnPath(params.get("library"));
 	const { work, episodes } = data;
+	const previousRevision = useRef(work.revision);
+	useEffect(() => {
+		if (previousRevision.current !== work.revision) {
+			previousRevision.current = work.revision;
+			void client.invalidateQueries({ queryKey: ["catalog", scope, "list"] });
+		}
+	}, [client, scope, work.revision]);
 
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const selected = episodes.find((episode) => episode.id === selectedId);

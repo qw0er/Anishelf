@@ -41,6 +41,8 @@ export interface CatalogStore extends SourceRegistry {
 		reference?: ProviderLink["reference"],
 	): Page<ReviewRecord>;
 	work(id: string): LocalWork | null;
+	/** Associated works across saved roots, paged by stable ID for background work. */
+	refreshWorks(afterId: string, limit: number): LocalWork[];
 	link(workId: string): ProviderLink | null;
 	findWork(reference: ProviderLink["reference"]): LocalWork | null;
 	list(

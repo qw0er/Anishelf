@@ -3,6 +3,7 @@ export const metadataPolicy = {
 	searchFreshMs: 24 * 60 * 60 * 1000,
 	emptySearchFreshMs: 15 * 60 * 1000,
 	detailFreshMs: 24 * 60 * 60 * 1000,
+	releasingFreshMs: 6 * 60 * 60 * 1000,
 	finishedFreshMs: 7 * 24 * 60 * 60 * 1000,
 	airingFreshMs: 15 * 60 * 1000,
 	searchKeys: 1000,
@@ -16,3 +17,9 @@ export const metadataPolicy = {
 	artworkBudgetBytes: 128 * 1024 * 1024,
 	artworkHosts: ["s4.anilist.co"],
 } as const;
+
+export function detailFreshnessMs(status: string | null): number {
+	if (status === "RELEASING") return metadataPolicy.releasingFreshMs;
+	if (status === "FINISHED") return metadataPolicy.finishedFreshMs;
+	return metadataPolicy.detailFreshMs;
+}

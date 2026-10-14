@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, or, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import { DomainError } from "../../../../shared/errors.js";
 import { mediaSources, resourceRoots } from "../../../resources/persistence.js";
@@ -177,6 +177,24 @@ export class CatalogRepository implements CatalogStore {
 					},
 				}
 			: null;
+	}
+	refreshWorks(afterId: string, limit: number): LocalWork[] {
+		const associated = this.store
+			.select({ id: catalogEpisodes.workId })
+			.from(catalogEpisodes)
+			.innerJoin(
+				catalogAssociations,
+				eq(catalogAssociations.episodeId, catalogEpisodes.id),
+			);
+		return this.store
+			.select()
+			.from(catalogWorks)
+			.where(
+				and(gt(catalogWorks.id, afterId), inArray(catalogWorks.id, associated)),
+			)
+			.orderBy(asc(catalogWorks.id))
+			.limit(limit)
+			.all();
 	}
 	findWork(reference: ProviderLink["reference"]): LocalWork | null {
 		const row = this.store

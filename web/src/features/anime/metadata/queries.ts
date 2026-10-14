@@ -46,4 +46,8 @@ export const airingQuery = (provider: string, id: string) =>
 		getNextPageParam: (last) =>
 			last.data.hasNextPage ? last.data.page + 1 : undefined,
 		staleTime: 60_000,
+		refetchInterval: (query) =>
+			query.state.data?.pages.some((page) => page.refreshing)
+				? 2000
+				: 15 * 60_000,
 	});

@@ -3,6 +3,7 @@ import { AssociationApplication } from "./associations.js";
 import { AutomaticAdmission } from "./automatic.js";
 import { CatalogContext, type CatalogOptions } from "./context.js";
 import { CatalogQueries } from "./queries.js";
+import { CatalogRefresh } from "./refresh.js";
 import { ReviewApplication } from "./review.js";
 import { WorkApplication } from "./work.js";
 
@@ -10,6 +11,7 @@ import { WorkApplication } from "./work.js";
 export class AnimeCatalogApplication implements AnimeCatalogApi {
 	private readonly context: CatalogContext;
 	private readonly associations: AssociationApplication;
+	private readonly refreshing: CatalogRefresh;
 	readonly list: AnimeCatalogApi["list"];
 	readonly artwork: AnimeCatalogApi["artwork"];
 	readonly detail: AnimeCatalogApi["detail"];
@@ -30,9 +32,17 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 		const review = new ReviewApplication(this.context);
 		this.associations = new AssociationApplication(this.context);
 		const work = new WorkApplication(this.context, queries);
+		this.refreshing = new CatalogRefresh(this.context, work);
 		this.list = queries.list.bind(queries);
 		this.artwork = queries.artwork.bind(queries);
-		this.detail = queries.detail.bind(queries);
+		this.detail = async (id) => {
+			const detail = await queries.detail(id);
+			const refreshing = this.refreshing.request(id);
+			detail.metadata.refreshing ||= refreshing;
+			detail.metadata.refreshError =
+				this.refreshing.failure(id) ?? detail.metadata.refreshError;
+			return detail;
+		};
 		const automatic = new AutomaticAdmission(this.context, this.associations);
 		this.publish = async (results, root, signal) => {
 			signal?.throwIfAborted();
@@ -51,7 +61,11 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 		this.refresh = work.refresh.bind(work);
 	}
 	close(): void {
+		this.refreshing.close();
 		this.context.close();
 		this.associations.close();
+	}
+	quiesce(): Promise<void> {
+		return this.refreshing.quiesce();
 	}
 }
