@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Library, Play, RefreshCw } from "lucide-react";
+import { History, Library, Play, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useLoaderData } from "react-router";
 import type { HistoryResponse } from "../../../../shared/api/contracts.js";
 import { useQueryScope } from "../../../../shared/api/queries.js";
+import { EmptyState } from "../../../../shared/components/empty-state.js";
+import { PageHeader } from "../../../../shared/components/page-header.js";
 import {
 	Button,
 	buttonStyles,
@@ -25,41 +27,51 @@ export default function HistoryPage() {
 	if (query.error && !query.data) throw query.error;
 	return (
 		<section className="stack-page" aria-labelledby="history-title">
-			<div className="flex flex-wrap items-start justify-between gap-4">
-				<div className="min-w-0 space-y-2">
-					<h1 id="history-title" className="page-title">
-						{t("history.title")}
-					</h1>
-					<p className="text-sm text-muted-foreground">
-						{t("history.description")}
-					</p>
-				</div>
-				<Button
-					variant="outline"
-					disabled={query.isFetching}
-					aria-busy={query.isFetching}
-					onClick={() => void query.refetch()}
+			<PageHeader
+				id="history-title"
+				title={t("history.title")}
+				description={t("history.description")}
+				actions={
+					<Button
+						variant="outline"
+						disabled={query.isFetching}
+						aria-busy={query.isFetching}
+						onClick={() => void query.refetch()}
+					>
+						<RefreshCw size={16} aria-hidden="true" />
+						{t("history.refresh")}
+					</Button>
+				}
+			/>
+			<Card
+				className={
+					history.availability === "unknown" || history.items.length === 0
+						? "border-0 bg-transparent py-0"
+						: undefined
+				}
+			>
+				<CardContent
+					className={
+						history.availability === "unknown" || history.items.length === 0
+							? "px-0"
+							: undefined
+					}
 				>
-					<RefreshCw size={16} aria-hidden="true" />
-					{t("history.refresh")}
-				</Button>
-			</div>
-			<Card>
-				<CardContent>
 					{history.availability === "unknown" || history.items.length === 0 ? (
-						<div className="space-y-4">
-							<p className="text-sm text-muted-foreground">
-								{t(
-									history.availability === "unknown"
-										? "history.unknown"
-										: "history.empty",
-								)}
-							</p>
-							<Link className={buttonStyles("outline")} to="/">
-								<Library size={16} aria-hidden="true" />
-								{t("app.library")}
-							</Link>
-						</div>
+						<EmptyState
+							icon={<History size={24} />}
+							title={t(
+								history.availability === "unknown"
+									? "history.unknown"
+									: "history.empty",
+							)}
+							actions={
+								<Link className={buttonStyles("outline")} to="/">
+									<Library size={16} aria-hidden="true" />
+									{t("app.library")}
+								</Link>
+							}
+						/>
 					) : (
 						<ul className="divide-y">
 							{history.items.map(({ file, progress }) => (

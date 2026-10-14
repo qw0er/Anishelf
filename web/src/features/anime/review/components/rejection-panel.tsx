@@ -29,7 +29,7 @@ export function RejectionPanel({
 	} = controller;
 	const existing = item.associations;
 	return (
-		<details className="rounded-xl border p-4 text-sm">
+		<details className="rounded-lg border p-4 text-sm">
 			<summary className="cursor-pointer font-medium text-muted-foreground">
 				{t(existing.length ? "review.removeAction" : "review.reject")}
 			</summary>
@@ -45,8 +45,17 @@ export function RejectionPanel({
 				}}
 			>
 				<label htmlFor="rejection-reason" className="block space-y-1.5 text-sm">
-					{t("review.rejectionReason")}
-					<Input id="rejection-reason" name="reason" maxLength={500} required />
+					{t(
+						existing.length
+							? "review.rejectionReason"
+							: "review.optionalRejectionReason",
+					)}
+					<Input
+						id="rejection-reason"
+						name="reason"
+						maxLength={500}
+						required={existing.length > 0}
+					/>
 				</label>
 				{existing.length > 0 && (
 					<label className="flex items-start gap-2 text-xs leading-relaxed">

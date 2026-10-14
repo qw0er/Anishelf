@@ -3,6 +3,7 @@ import { ChevronRight, FileVideo, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { CatalogReviewResponse } from "../../../../shared/api/contracts.js";
+import { EmptyState } from "../../../../shared/components/empty-state.js";
 import {
 	Button,
 	buttonStyles,
@@ -25,7 +26,7 @@ export function ReviewList({
 		<>
 			<nav
 				aria-label={t("review.decision")}
-				className="flex flex-wrap gap-1 rounded-xl border bg-muted/30 p-1.5"
+				className="flex flex-wrap gap-1 rounded-lg border bg-muted/30 p-1.5"
 			>
 				{["pending", "confirmed", "rejected"].map((value) => (
 					<Link
@@ -54,9 +55,9 @@ export function ReviewList({
 							{query.data.items.map((row) => (
 								<li
 									key={row.id}
-									className="flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-4 transition-colors hover:border-primary/30 sm:flex-row sm:items-center sm:p-5"
+									className="flex min-w-0 flex-col gap-4 rounded-lg border bg-card p-4 transition-colors hover:border-primary/30 sm:flex-row sm:items-center sm:p-5"
 								>
-									<div className="hidden size-11 shrink-0 items-center justify-center rounded-xl border bg-muted/40 text-muted-foreground sm:flex">
+									<div className="hidden size-11 shrink-0 items-center justify-center rounded-lg border bg-muted/40 text-muted-foreground sm:flex">
 										<FileVideo className="size-5" aria-hidden="true" />
 									</div>
 									<div className="min-w-0 flex-1 space-y-2">
@@ -112,16 +113,10 @@ export function ReviewList({
 							))}
 						</ul>
 					) : (
-						<div
-							role="status"
-							className="rounded-xl border border-dashed p-10 text-center"
-						>
-							<ShieldCheck
-								className="mx-auto mb-3 size-8 text-muted-foreground"
-								aria-hidden="true"
-							/>
-							<p className="font-medium">{t("review.empty")}</p>
-						</div>
+						<EmptyState
+							icon={<ShieldCheck size={24} />}
+							title={t("review.empty")}
+						/>
 					)}
 					<fieldset
 						className="flex items-center justify-between gap-3 border-t pt-4 text-sm"

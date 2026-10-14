@@ -94,7 +94,7 @@
 @utility stack-page {
 	@apply flex min-w-0 flex-col gap-6;
 	@variant sm {
-		@apply gap-8;
+		@apply gap-6;
 	}
 }
 
@@ -120,4 +120,63 @@
 	position: absolute;
 	pointer-events: none;
 	z-index: 1;
+}
+
+@utility page-header {
+	@apply flex min-w-0 flex-col gap-4;
+	@variant sm {
+		@apply flex-row items-start justify-between;
+	}
+}
+@utility page-description {
+	@apply max-w-2xl text-sm leading-relaxed text-muted-foreground;
+}
+@utility surface-panel {
+	@apply min-w-0 rounded-lg border bg-card p-4;
+	@variant sm {
+		@apply p-5;
+	}
+}
+@utility settings-section {
+	@apply w-full;
+	@variant lg {
+		@apply grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-start gap-6;
+	}
+}
+@utility poster-grid {
+	@apply grid grid-cols-2 gap-x-4 gap-y-6;
+	@variant sm {
+		grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+	}
+}
+@utility form-select {
+	@apply h-9 min-w-0 rounded-md border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+}
+
+.app-header-container {
+	container-type: inline-size;
+	container-name: app-header;
+}
+.header-nav-link {
+	width: 2.25rem;
+	padding-inline: 0;
+	flex-shrink: 0;
+}
+.header-nav-label {
+	display: none;
+}
+.header-nav-icon {
+	flex-shrink: 0;
+}
+@container app-header (min-width: 40rem) {
+	.header-nav-link {
+		width: auto;
+		padding-inline: 1rem;
+	}
+	.header-nav-label {
+		display: inline;
+	}
+	.header-nav-icon {
+		display: none;
+	}
 }

@@ -41,7 +41,7 @@ export function PreparationProfileSettings({
 		);
 	}, [preparation.catalog]);
 	return (
-		<Card className="w-full max-w-2xl">
+		<Card className="settings-section lg:grid">
 			<CardHeader>
 				<CardTitle>{t("preparation.profile")}</CardTitle>
 				<CardDescription>

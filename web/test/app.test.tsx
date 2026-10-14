@@ -620,9 +620,7 @@ test("navigates directories, opens media, and returns to the original directory 
 	).toBe(false);
 	fireEvent.click(screen.getByRole("link", { name: "Back to files" }));
 	await screen.findByRole("link", { name: "Episode 01.mp4" });
-	expect(
-		screen.getByRole("heading", { name: "Directory: Season 1" }),
-	).toBeTruthy();
+	expect(screen.getByText("Directory: Season 1")).toBeTruthy();
 	expect(video.getAttribute("src")).toBeNull();
 	expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled();
 	expect(HTMLMediaElement.prototype.load).toHaveBeenCalled();
@@ -1685,7 +1683,7 @@ test("a single usable version links directly to playback and provider refresh fa
 	expect(screen.getByRole("link", { name: "Play: Episode 1" })).toBeTruthy();
 });
 
-test("filter submission resets pagination and sends all filters to the local catalog", async () => {
+test("search and immediate filters reset pagination and preserve applied criteria", async () => {
 	const detail = animeFixture();
 	mockAnime(detail);
 	renderApp("/?page=2");
@@ -1693,19 +1691,21 @@ test("filter submission resets pagination and sends all filters to the local cat
 	fireEvent.change(screen.getByLabelText("Search local titles"), {
 		target: { value: "葬送" },
 	});
+	fireEvent.click(screen.getByRole("button", { name: /^Search$/ }));
+	fireEvent.click(screen.getByRole("button", { name: "Filters" }));
 	fireEvent.change(screen.getByLabelText("Format"), {
 		target: { value: "TV" },
 	});
 	fireEvent.change(screen.getByLabelText("Release year"), {
 		target: { value: "2023" },
 	});
+	fireEvent.blur(screen.getByLabelText("Release year"));
 	fireEvent.change(screen.getByLabelText("Availability"), {
 		target: { value: "available" },
 	});
 	fireEvent.change(screen.getByLabelText("Sort by"), {
 		target: { value: "recent" },
 	});
-	fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
 	await waitFor(() => expect(screen.getByText("Page 1")).toBeTruthy());
 	expect(
 		fetcher.mock.calls.some(([path]) => {
@@ -2157,12 +2157,14 @@ test("Files shows associations and opens the selected review while direct playba
 		return fallback(input, init);
 	});
 	renderApp("/directories/season-1");
-	const association = await screen.findByRole("link", {
+	await screen.findByRole("button", { name: /^Associated/ });
+	fireEvent.click(screen.getByRole("button", { name: "File actions" }));
+	const association = await screen.findByRole("menuitem", {
 		name: "Frieren · Episode 1",
 	});
 	expect(association.getAttribute("href")).toBe("/anime/work-1#episode-ep-1");
 	expect(screen.getByRole("link", { name: "Episode 01.mp4" })).toBeTruthy();
-	const review = screen.getByRole("link", { name: "Correct associations" });
+	const review = screen.getByRole("menuitem", { name: "Correct associations" });
 	expect(review.getAttribute("href")).toBe(`/review?item=${item.id}`);
 	fireEvent.click(review);
 	await screen.findByText(item.evidence.originalName);
@@ -2190,7 +2192,7 @@ test("file identification failure offers retry without preventing playback", asy
 	expect(screen.getByRole("link", { name: "Episode 01.mp4" })).toBeTruthy();
 	failed = false;
 	fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-	await screen.findByText("Awaiting identification");
+	await screen.findByRole("button", { name: "Awaiting identification" });
 });
 
 test("details distinguish scheduled count-derived slots from manual mappings and list unresolved candidates", async () => {
@@ -2260,12 +2262,12 @@ test("Files updates current associations when automatic recognition completes", 
 		return fallback(input, init);
 	});
 	renderApp("/directories/season-1");
-	await screen.findByText("Awaiting identification");
+	await screen.findByRole("button", { name: "Awaiting identification" });
 	running = false;
 	await act(async () => {
 		await queryClient.invalidateQueries({ queryKey: ["identification"] });
 	});
-	await screen.findByRole("link", { name: "Frieren · Episode 1" });
+	await screen.findByRole("button", { name: /^Associated/ });
 	expect(
 		fetcher.mock.calls.filter(
 			([path]) => String(path) === "/api/catalog/file-reviews",
@@ -2323,4 +2325,28 @@ test("airing pagination retains browsing and unknown schedule evidence never mar
 		),
 	);
 	expect(screen.getByRole("button", { name: "Play: Episode 1" })).toBeTruthy();
+});
+
+test("Review can reject a pending resource without a reason", async () => {
+	const item = mockReview();
+	const fallback = fetcher.getMockImplementation();
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === `/api/catalog/reviews/${item.id}/reject`) {
+			expect(JSON.parse(String(init?.body)).reason).toBe("");
+			item.decision = "rejected";
+			item.reason = null;
+			item.revision += 1;
+			return json(item);
+		}
+		return requiredFetch(fallback)(input, init);
+	});
+	renderApp(`/review?item=${item.id}`);
+	fireEvent.click(
+		await screen.findByText("Reject resource", { selector: "summary" }),
+	);
+	expect(
+		screen.getByLabelText("Reason (optional)").hasAttribute("required"),
+	).toBe(false);
+	fireEvent.click(screen.getByRole("button", { name: "Reject resource" }));
+	await waitFor(() => expect(item.decision).toBe("rejected"));
 });

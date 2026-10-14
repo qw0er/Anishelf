@@ -145,7 +145,9 @@ export class ReviewApplication {
 	): Promise<ReviewItem> {
 		const root = await this.context.root();
 		const record = this.context.requireReview(id, root.rootId, revision);
-		text(reason);
+		if (remove || reason.trim()) text(reason);
+		else if (reason.length > 500)
+			invalid("Reason must be at most 500 characters.");
 		this.context.options.store.transaction((store) => {
 			const associations = store.associations(record.id);
 			if (associations.length && !remove)
@@ -166,7 +168,7 @@ export class ReviewApplication {
 						);
 				}
 			}
-			store.decide(record.id, revision, "rejected", reason.trim());
+			store.decide(record.id, revision, "rejected", reason.trim() || null);
 		});
 		return safeReview(
 			this.context.requireReview(id, root.rootId),

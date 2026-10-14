@@ -48,8 +48,8 @@ export default function LibraryScan({
 		: "scan.statusNotStarted";
 
 	return (
-		<Card>
-			<CardHeader className="gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+		<Card className="gap-3 py-4">
+			<CardHeader className="gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
 				<div className="flex min-w-0 flex-col gap-1">
 					<CardTitle>{t("scan.title")}</CardTitle>
 					<div
@@ -64,12 +64,17 @@ export default function LibraryScan({
 							{t("scan.status", { status: t(scanStatusKey) })}
 						</p>
 						{scan && (
-							<p>
-								{t("scan.visitedEntries", {
-									count: scan.visitedCount,
-									matched: scan.matchedCount,
-								})}
-							</p>
+							<details>
+								<summary className="cursor-pointer">
+									{t("scan.details")}
+								</summary>
+								<p>
+									{t("scan.visitedEntries", {
+										count: scan.visitedCount,
+										matched: scan.matchedCount,
+									})}
+								</p>
+							</details>
 						)}
 					</div>
 				</div>

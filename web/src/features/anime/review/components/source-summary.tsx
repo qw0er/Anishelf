@@ -9,7 +9,7 @@ export function SourceSummary({ item }: { item: CatalogReviewItem }) {
 	const { t } = useTranslation();
 	const existing = item.associations;
 	return (
-		<section className="min-w-0 space-y-4 rounded-xl border bg-card p-4 sm:p-5">
+		<section className="min-w-0 space-y-4 rounded-lg border bg-card p-4 sm:p-5">
 			<div className="flex items-center justify-between gap-2">
 				<span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
 					<FileVideo className="size-4" aria-hidden="true" />

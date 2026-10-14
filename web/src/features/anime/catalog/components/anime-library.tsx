@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { FolderPlus, Library, ScanLine, SearchX } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useSearchParams } from "react-router";
 import { useQueryScope } from "../../../../shared/api/queries.js";
-import {
-	Button,
-	buttonStyles,
-} from "../../../../shared/components/ui/button.js";
+import { EmptyState } from "../../../../shared/components/empty-state.js";
+import { PageHeader } from "../../../../shared/components/page-header.js";
+import { Button } from "../../../../shared/components/ui/button.js";
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { IdentificationStatus } from "../../identification-status.js";
@@ -55,39 +55,34 @@ export function AnimeLibrary({
 	);
 	return (
 		<section className="stack-page" aria-label={t("anime.library")}>
+			<PageHeader
+				title={t("anime.library")}
+				description={t("anime.libraryHint")}
+			/>
 			<IdentificationStatus />
-			<div className="flex flex-wrap items-center justify-between gap-3">
-				<div>
-					<h1 className="page-title">{t("anime.library")}</h1>
-					<p className="text-sm text-muted-foreground">
-						{t("anime.libraryHint")}
-					</p>
-				</div>
-				<Link to="/review" className={buttonStyles("outline")}>
-					{t("review.title")}
-				</Link>
-				<Link to="/directories/root" className={buttonStyles("outline")}>
-					{t("app.files")}
-				</Link>
-			</div>
 			{!resourceRoot ? (
-				<p>
-					{t("anime.setup")}{" "}
-					<Link to="/settings" className="underline">
-						{t("app.settings")}
-					</Link>
-				</p>
+				<EmptyState
+					icon={<FolderPlus size={24} />}
+					title={t("anime.setup")}
+					actions={
+						<Link to="/settings" className="underline">
+							{t("app.settings")}
+						</Link>
+					}
+				/>
 			) : !ready ? (
-				<p role="status">
-					{t("anime.scanFirst")}{" "}
-					<Link to="/directories/root" className="underline">
-						{t("app.files")}
-					</Link>
-				</p>
+				<EmptyState
+					icon={<ScanLine size={24} />}
+					title={t("anime.scanFirst")}
+					actions={
+						<Link to="/directories/root" className="underline">
+							{t("app.files")}
+						</Link>
+					}
+				/>
 			) : (
 				<>
 					<CatalogFiltersForm
-						key={catalogSearch(filters)}
 						filters={filters}
 						filtered={filtered}
 						onFilters={setParams}
@@ -110,7 +105,7 @@ export function AnimeLibrary({
 						<div
 							role="status"
 							aria-label={t("anime.loading")}
-							className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6"
+							className="poster-grid"
 						>
 							{[1, 2, 3, 4, 5, 6].map((id) => (
 								<Skeleton key={id} className="aspect-2/3" />
@@ -120,13 +115,31 @@ export function AnimeLibrary({
 					{query.data && (
 						<>
 							{query.data.items.length === 0 ? (
-								<p role="status">
-									{t(
+								<EmptyState
+									icon={
+										filtered || filters.page > 1 ? (
+											<SearchX size={24} />
+										) : (
+											<Library size={24} />
+										)
+									}
+									title={t(
 										filtered || filters.page > 1
 											? "anime.noResults"
 											: "anime.empty",
 									)}
-								</p>
+									actions={
+										filtered || filters.page > 1 ? (
+											<Button variant="outline" onClick={() => setParams({})}>
+												{t("anime.clear")}
+											</Button>
+										) : (
+											<Link to="/directories/root" className="underline">
+												{t("app.files")}
+											</Link>
+										)
+									}
+								/>
 							) : (
 								<CatalogResults
 									items={query.data.items}

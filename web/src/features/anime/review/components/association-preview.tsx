@@ -46,7 +46,7 @@ export function AssociationPreview({
 	return (
 		<section
 			ref={previewRef}
-			className="scroll-mt-6 space-y-4 rounded-xl border border-primary/30 bg-card p-4 sm:p-5"
+			className="scroll-mt-6 space-y-4 rounded-lg border border-primary/30 bg-card p-4 sm:p-5"
 		>
 			<div className="flex items-center gap-2">
 				<span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">

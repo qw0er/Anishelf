@@ -32,21 +32,14 @@ export default function ResourceSettings({
 	const showSaving = useDelayedPending(saving);
 	return (
 		<section className="stack-page" aria-label={t("settingsPage.label")}>
-			<div className="flex min-w-0 flex-col gap-2">
-				<h1 className="page-title">{t("settingsPage.title")}</h1>
-				<p className="text-sm text-muted-foreground">
-					{t("settingsPage.description")}
-				</p>
-			</div>
-
-			<Card className="w-full max-w-2xl">
+			<Card className="settings-section lg:grid">
 				<CardHeader>
 					<CardTitle>{t("settingsPage.resourceDirectory")}</CardTitle>
 					<CardDescription>
 						{t("settingsPage.resourceDescription")}
 					</CardDescription>
 				</CardHeader>
-				<CardContent className="flex min-w-0 flex-col gap-4">
+				<CardContent className="flex min-w-0 flex-col gap-4 lg:max-w-2xl">
 					<fetcher.Form
 						method="post"
 						action="/settings"

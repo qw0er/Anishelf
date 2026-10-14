@@ -12,13 +12,18 @@ export function UnresolvedResources({ workId }: { workId: string }) {
 	const [page, setPage] = useState(1);
 	const query = useQuery(workReviewsQuery(workId, page, useQueryScope()));
 	return (
-		<section className="space-y-3" aria-label={t("anime.unresolvedResources")}>
+		<section
+			className="surface-panel space-y-3"
+			aria-label={t("anime.unresolvedResources")}
+		>
 			<h2 className="text-lg font-semibold">
 				{t("anime.unresolvedResources")}
 			</h2>
-			<p className="text-sm text-muted-foreground">
-				{t("anime.unresolvedCandidatesHint")}
-			</p>
+			{query.data?.items.length ? (
+				<p className="text-sm text-muted-foreground">
+					{t("anime.unresolvedCandidatesHint")}
+				</p>
+			) : null}
 			{query.error && (
 				<ErrorMessage error={query.error} retry={() => void query.refetch()} />
 			)}
@@ -28,7 +33,7 @@ export function UnresolvedResources({ workId }: { workId: string }) {
 			{query.data && (
 				<>
 					{query.data.items.length ? (
-						<ul className="divide-y rounded-lg border px-4">
+						<ul className="divide-y">
 							{query.data.items.map((item) => (
 								<li key={item.id} className="space-y-1 py-3">
 									<Link

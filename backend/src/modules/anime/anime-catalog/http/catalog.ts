@@ -14,6 +14,7 @@ import {
 	CatalogPreviewRequestSchema,
 	CatalogPreviewSchema,
 	CatalogRefreshSchema,
+	CatalogRejectionRequestSchema,
 	CatalogReviewListSchema,
 	CatalogReviewQuerySchema,
 	CatalogReviewSchema,
@@ -155,7 +156,7 @@ export function registerCatalogRoutes(
 		{
 			schema: {
 				params: CatalogIdParamsSchema,
-				body: CatalogDecisionRequestSchema,
+				body: CatalogRejectionRequestSchema,
 				response: { 200: CatalogReviewSchema },
 			},
 		},
@@ -163,7 +164,7 @@ export function registerCatalogRoutes(
 			catalog.reject(
 				request.params.id,
 				request.body.revision,
-				request.body.reason,
+				request.body.reason ?? "",
 			),
 	);
 	app.post(

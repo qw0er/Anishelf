@@ -79,6 +79,7 @@
 	},
 	"scan": {
 		"title": "Library scan",
+		"details": "Scan details",
 		"status": "Scan: {{status}}",
 		"statusNotStarted": "not started",
 		"statusRunning": "running",
@@ -413,7 +414,13 @@
 		"airingUnknown": "Airing information is unknown.",
 		"notYetAired": "Not yet aired",
 		"aired": "Aired",
-		"loadMoreAiring": "Load more airing records"
+		"loadMoreAiring": "Load more airing records",
+		"searchSubmit": "Search",
+		"filters": "Filters",
+		"activeFilters": "Applied filters",
+		"removeFilter": "Remove {{filter}} filter",
+		"showSynopsis": "Read full synopsis",
+		"hideSynopsis": "Show less"
 	},
 	"review": {
 		"title": "Review",
@@ -477,6 +484,7 @@
 		"removeAction": "Remove associations",
 		"reject": "Reject resource",
 		"identifying": "Identifying resources and adding clear matches\u2026",
-		"identificationFailed": "Identification did not finish. Rescan Files to retry; saved associations remain available."
+		"identificationFailed": "Identification did not finish. Rescan Files to retry; saved associations remain available.",
+		"optionalRejectionReason": "Reason (optional)"
 	}
 }

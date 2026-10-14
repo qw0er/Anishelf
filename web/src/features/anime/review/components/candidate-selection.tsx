@@ -37,7 +37,7 @@ export function CandidateSelection({
 		changeSearchPage,
 	} = controller;
 	return (
-		<section className="min-w-0 space-y-5 rounded-xl border bg-card p-4 sm:p-5">
+		<section className="min-w-0 space-y-5 rounded-lg border bg-card p-4 sm:p-5">
 			<div className="flex items-center gap-2">
 				<span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
 					1
@@ -64,7 +64,7 @@ export function CandidateSelection({
 						return (
 							<li
 								key={`${candidate.work.reference.provider}:${candidate.work.reference.id}`}
-								className={`flex min-w-0 flex-col gap-3 rounded-xl border p-4 ${selected ? "border-primary bg-primary/5" : "bg-background"}`}
+								className={`flex min-w-0 flex-col gap-3 rounded-lg border p-4 ${selected ? "border-primary bg-primary/5" : "bg-background"}`}
 							>
 								<div className="flex items-start justify-between gap-2">
 									<div className="min-w-0 space-y-1">

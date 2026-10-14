@@ -2,6 +2,7 @@ import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button.js";
+import { Tooltip } from "./ui/tooltip.js";
 
 type Theme = "light" | "dark";
 
@@ -34,19 +35,20 @@ export default function ThemeToggle() {
 	}
 
 	return (
-		<Button
-			variant="ghost"
-			className="px-3"
-			type="button"
-			aria-label={t("app.switchToMode", { mode: t(`app.${nextTheme}`) })}
-			title={t("app.switchToMode", { mode: t(`app.${nextTheme}`) })}
-			onClick={selectTheme}
-		>
-			{theme === "dark" ? (
-				<Sun aria-hidden="true" />
-			) : (
-				<Moon aria-hidden="true" />
-			)}
-		</Button>
+		<Tooltip content={t("app.switchToMode", { mode: t(`app.${nextTheme}`) })}>
+			<Button
+				variant="ghost"
+				className="size-9 shrink-0 p-0"
+				type="button"
+				aria-label={t("app.switchToMode", { mode: t(`app.${nextTheme}`) })}
+				onClick={selectTheme}
+			>
+				{theme === "dark" ? (
+					<Sun aria-hidden="true" />
+				) : (
+					<Moon aria-hidden="true" />
+				)}
+			</Button>
+		</Tooltip>
 	);
 }

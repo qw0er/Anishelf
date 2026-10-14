@@ -49,7 +49,32 @@ When space allows, label buttons with an icon and text. When space is constraine
 use an icon-only button with a Tooltip that names the action. The Tooltip must not
 replace the control's accessible name or visible keyboard focus.
 
-Center the Settings title and cards in one shared content column.
+Use one shared page container (72rem maximum) and title alignment for Library,
+Files, Review, History and Settings. Use the shared page header for title,
+description and page actions; place background status beneath it. Settings uses
+full-width section panels with a desktop description column and a bounded form
+column, stacking on mobile. Do not narrow the entire Settings page.
+
+Use 24px section gaps, compact list rows and consistent rounded-lg bordered
+panels. Browsing lists use separators rather than a card around every row.
+Poster grids have two mobile columns and adapt desktop columns to a minimum
+card width. Reserve two title lines and one availability summary; keep cache
+information on detail pages. Whole cards open work details with matching hover
+and keyboard-focus feedback.
+
+Catalog search submits with Enter or its search button. Sorting and discrete
+filters apply immediately and reset pagination. Put secondary filters in an
+expandable panel and show removable applied-filter labels. Preserve URL state,
+return focus and scroll. Mobile toolbars use a full-width search row and a
+separate filter/sort row. The application header always stays on one line.
+Navigation uses text when its container is wide enough, otherwise icons with
+Tooltips and accessible names. If icons still do not fit, scroll only the
+navigation horizontally; keep the brand visible and preserve keyboard access.
+
+Work detail prioritizes the header and episode list. Group secondary metadata,
+synopsis, schedules and relationships into on-demand sections; keep actionable
+errors and unresolved candidates discoverable. Files identification uses a compact focusable status icon with a Tooltip.
+Review and associated work/episode links belong in the file action menu.
 Keep action menus focused on choices and commands; put explanatory guidance in
 Settings and report invocation failures through Toasts.
 Keep compatibility and task status outside action menus. Put shared choices in
@@ -57,6 +82,11 @@ Settings. The preparation panel is a nonblocking active-task monitor, not a dedi
 page.
 
 ## Feedback and interface states
+
+Empty page/list states use the shared icon-and-text placeholder, with a relevant
+next action when available. Apply the same presentation to Library, History,
+Files and Review; do not replace failure feedback with an empty-state message.
+
 
 Use deduplicated Toasts for operation results and recoverable playback or subtitle
 failures. Keep ongoing subtitle-preparation feedback visible until completion,
