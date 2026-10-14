@@ -3,6 +3,7 @@ export type {
 	IdentificationResult,
 	WorkCandidate,
 } from "./domain/model.js";
+export { matchingTitle } from "./domain/title-evidence.js";
 export type { IdentificationMetadata } from "./ports.js";
 
 import type { SourceIdentity } from "../../resources/public.js";

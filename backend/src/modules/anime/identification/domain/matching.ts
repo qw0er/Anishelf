@@ -5,14 +5,12 @@ import type {
 	RankedCandidate,
 	WorkCandidate,
 } from "./model.js";
+import {
+	matchingTitle,
+	normalizeTitle as normalize,
+	titleEvidence,
+} from "./title-evidence.js";
 
-function normalize(value: string): string {
-	return value
-		.normalize("NFKC")
-		.toLowerCase()
-		.replace(/[^\p{L}\p{N}]+/gu, " ")
-		.trim();
-}
 export function rankCandidates(
 	evidence: ExtractionEvidence,
 	works: WorkCandidate[],
@@ -27,8 +25,8 @@ export function rankCandidates(
 			let similarity = 0;
 			for (const title of evidence.titles)
 				for (const alias of work.titles) {
-					const input = normalize(title);
-					const target = normalize(alias);
+					const input = normalize(titleEvidence(title).title);
+					const target = normalize(titleEvidence(alias).title);
 					if (input && target)
 						similarity = Math.max(
 							similarity,
@@ -36,6 +34,72 @@ export function rankCandidates(
 						);
 				}
 			let score = Math.round(similarity * 70);
+			const exact = evidence.titles.some((title) =>
+				work.titles.some((alias) => matchingTitle(title, alias)),
+			);
+			const leafTitle = evidence.inputs
+				.find((input) => input.mode === "basename")
+				?.elements.find((element) => element.kind === "title")?.value;
+			if (
+				evidence.titles.some(
+					(title) =>
+						normalize(title) !== normalize(leafTitle ?? title) &&
+						work.titles.some((alias) => normalize(title) === normalize(alias)),
+				)
+			) {
+				score += 15;
+				reasons.push("A complete contextual title matches a title or alias.");
+			}
+			const titleSeasons = work.titles.flatMap(
+				(title) => titleEvidence(title).seasons,
+			);
+			const romanSeasons = work.titles.flatMap((title) => {
+				const ordinal = titleEvidence(title).romanSeason;
+				const contextualMatch = evidence.titles.some(
+					(input) =>
+						normalize(input) !== normalize(leafTitle ?? input) &&
+						normalize(input) === normalize(title),
+				);
+				return ordinal && contextualMatch ? [ordinal] : [];
+			});
+			const seasons = [
+				...new Set([
+					...(work.season === null ? [] : [String(Number(work.season))]),
+					...titleSeasons,
+					...romanSeasons,
+				]),
+			];
+			const inputSeasons = [
+				...new Set(evidence.seasons.map((season) => String(Number(season)))),
+			];
+			if (inputSeasons.length > 1)
+				conflicts.push("Source series season evidence is contradictory.");
+			if (seasons.length > 1)
+				conflicts.push("Candidate series season evidence is contradictory.");
+			if (inputSeasons.length === 1) {
+				if (seasons.length === 1) {
+					if (seasons[0] === inputSeasons[0]) {
+						score += 15;
+						reasons.push(
+							"Series season matches explicit title or metadata evidence.",
+						);
+					} else {
+						score -= 20;
+						conflicts.push("Series season differs.");
+					}
+				} else if (inputSeasons[0] !== "1")
+					conflicts.push(
+						"Series season cannot be verified from metadata or a complete title match.",
+					);
+				else
+					reasons.push(
+						"Series season is unknown; a first-season hint does not contradict this candidate.",
+					);
+			}
+			if (exact)
+				reasons.push(
+					"An extracted title matches a title or alias after explicit season normalization.",
+				);
 			reasons.push(
 				similarity === 1
 					? "An extracted title matches a title or alias."
@@ -52,7 +116,6 @@ export function rankCandidates(
 				}
 			}
 			for (const [hints, value, label] of [
-				[evidence.seasons, work.season, "Series season"],
 				[evidence.parts, work.part, "Part"],
 			] as const) {
 				if (hints.length && value !== null) {

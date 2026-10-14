@@ -257,7 +257,22 @@ recognition coordinator. Identification uses `anitomy-ng` and cached AniList
 candidates to return evidence and candidate-specific episode proposals. Catalog
 automatically admits unambiguous matches and persists review decisions, stable
 local work/episode identities and source associations in SQLite. Ambiguous or
-incomplete evidence stays in Review. Explicit confirmation, reassociation and
+incomplete evidence stays in Review.
+
+Recognition parses provider titles and aliases with `anitomy-ng`, retaining original
+names while comparing explicit series ordinals separately from title similarity.
+Complete contextual title matches outrank shared short aliases. Bare Roman
+numerals support ordinal matching only when a complete contextual source title
+also matches;
+unmarked titles do not imply season one. Missing candidate season evidence does
+not contradict an explicit first-season file, but later-season files require
+corroborating candidate evidence. Contradictory ordinals, unknown parts and
+ambiguous episode mappings remain reviewable. Search may append a series-season
+query within the existing request budget; calendar airing seasons and relations
+never establish episode offsets. Matcher version changes invalidate recognition
+reuse on rescan while Catalog preserves manual decisions.
+
+Explicit confirmation, reassociation and
 single-file numbering corrections preserve manual decisions and source history
 across rescan, metadata refresh and restart.
 

@@ -128,7 +128,16 @@ export class IdentificationApplication implements IdentificationApi {
 			if (metadata) {
 				const works: WorkCandidate[] = [];
 				let failed = false;
-				for (const title of evidence.titles.slice(0, policy.maximumQueries)) {
+				const searchTitles = [...evidence.titles];
+				if (evidence.seasons.length === 1 && Number(evidence.seasons[0]) > 1) {
+					const title = evidence.titles[0];
+					if (title)
+						searchTitles.push(`${title} Season ${Number(evidence.seasons[0])}`);
+				}
+				for (const title of [...new Set(searchTitles)].slice(
+					0,
+					policy.maximumQueries,
+				)) {
 					signal.throwIfAborted();
 					let query = queries.get(title);
 					if (!query) {
