@@ -18,35 +18,113 @@ export function rankCandidates(
 	const distinct = new Map(
 		works.map((work) => [JSON.stringify(work.reference), work]),
 	);
+	const sources =
+		evidence.titleSources ??
+		evidence.titles.map((title) => ({
+			title,
+			mode: "path" as const,
+			distance: 0,
+		}));
+	const variants = (work: WorkCandidate) =>
+		work.titleVariants ??
+		work.titles.map((value) => ({
+			value,
+			kind: "unclassified" as const,
+			language: null,
+		}));
+	const rawNumbers = (evidence.selectedEpisodes ?? evidence.rawEpisodes).map(
+		Number,
+	);
+	const localScope = (work: WorkCandidate) =>
+		rawNumbers.length > 0 &&
+		rawNumbers.every(
+			(number) =>
+				Number.isSafeInteger(number) &&
+				number > 0 &&
+				work.episodeCount !== null &&
+				number <= work.episodeCount,
+		);
+	const baseWorks = [...distinct.values()].filter(
+		(work) =>
+			localScope(work) &&
+			variants(work).some((title) => title.kind === "primary") &&
+			!variants(work).some(
+				(title) =>
+					title.kind === "primary" &&
+					(titleEvidence(title.value).seasons.some(
+						(season) => Number(season) > 1,
+					) ||
+						Number(titleEvidence(title.value).romanSeason) > 1),
+			),
+	);
 	return [...distinct.values()]
 		.map((work): RankedCandidate => {
 			const reasons: string[] = [];
 			const conflicts: string[] = [];
+			const identityConflicts: string[] = [];
+			const identityUnresolved: string[] = [];
+			const assumptions: string[] = [];
+			const hardConflict = (message: string) => {
+				conflicts.push(message);
+				identityConflicts.push(message);
+			};
+			const unknownIdentity = (message: string) => {
+				conflicts.push(message);
+				identityUnresolved.push(message);
+			};
 			const explicitMovie = evidence.inputs
 				.find((input) => input.mode === "basename")
 				?.elements.some(
 					(element) =>
 						element.kind === "type" && /^movie$/iu.test(element.value),
 				);
-			if (explicitMovie && work.format !== "MOVIE")
-				conflicts.push("Explicit movie type contradicts the candidate format.");
+			if (explicitMovie && work.format !== "MOVIE") {
+				if (work.format === null)
+					unknownIdentity(
+						"Candidate format cannot verify the explicit movie type.",
+					);
+				else
+					hardConflict("Explicit movie type contradicts the candidate format.");
+			}
 			let similarity = 0;
-			let equivalentTitleText = false;
-			for (const title of evidence.titles)
-				for (const alias of work.titles) {
-					const input = normalize(titleEvidence(title).title);
-					const target = normalize(titleEvidence(alias).title);
-					if (input && input === target) equivalentTitleText = true;
-					if (input && target)
-						similarity = Math.max(
-							similarity,
-							matchingTitle(title, alias, evidence.seasons, evidence.parts)
-								? 1
-								: 0,
-							fuzzy(input, target, { useSellers: false }),
-						);
+			let score = 0;
+			let bestSource = "unclassified";
+			for (const source of sources)
+				for (const variant of variants(work)) {
+					const input = normalize(titleEvidence(source.title).title);
+					const target = normalize(titleEvidence(variant.value).title);
+					if (!input || !target) continue;
+					const exact = matchingTitle(
+						source.title,
+						variant.value,
+						evidence.seasons,
+						evidence.parts,
+					);
+					const ratio = Math.max(
+						exact ? 1 : 0,
+						fuzzy(input, target, { useSellers: false }),
+					);
+					const identity = exact || input === target;
+					const sourceWeight =
+						source.mode === "basename"
+							? 12
+							: source.mode === "ancestor"
+								? Math.max(0, 10 - source.distance * 10)
+								: 0;
+					const pairScore =
+						Math.round(ratio * 70) +
+						(identity ? 15 : 0) +
+						Math.round(ratio * sourceWeight) +
+						(variant.kind === "primary" && identity ? 6 : 0);
+					if (pairScore > score) {
+						score = pairScore;
+						similarity = ratio;
+						bestSource = source.mode;
+					}
 				}
-			let score = Math.round(similarity * 70);
+			reasons.push(
+				`Strongest title evidence comes from ${bestSource}; provider primary titles have priority over aliases.`,
+			);
 			if (explicitMovie) {
 				score += work.format === "MOVIE" ? 20 : -20;
 				if (work.format === "MOVIE")
@@ -57,12 +135,6 @@ export function rankCandidates(
 					matchingTitle(title, alias, evidence.seasons, evidence.parts),
 				),
 			);
-			if (equivalentTitleText || exact) {
-				score += 15;
-				reasons.push(
-					"Canonical title text matches; ordinal evidence is evaluated separately.",
-				);
-			}
 			const leafTitle = evidence.inputs
 				.find((input) => input.mode === "basename")
 				?.elements.find((element) => element.kind === "title")?.value;
@@ -88,7 +160,13 @@ export function rankCandidates(
 				);
 			const completeContext = work.titles.some(contextualMatch);
 			if (completeContext) {
-				score += 15;
+				if (
+					leafTitle &&
+					work.titles.some((alias) =>
+						matchingTitle(leafTitle, alias, evidence.seasons, evidence.parts),
+					)
+				)
+					score += 12;
 				reasons.push("A complete contextual title matches a title or alias.");
 			}
 			const titleSeasons = work.titles.flatMap(
@@ -109,9 +187,9 @@ export function rankCandidates(
 				...new Set(evidence.seasons.map((season) => String(Number(season)))),
 			];
 			if (inputSeasons.length > 1)
-				conflicts.push("Source series season evidence is contradictory.");
+				hardConflict("Source series season evidence is contradictory.");
 			if (seasons.length > 1)
-				conflicts.push("Candidate series season evidence is contradictory.");
+				unknownIdentity("Candidate series season evidence is contradictory.");
 			if (inputSeasons.length === 1) {
 				if (seasons.length === 1) {
 					if (seasons[0] === inputSeasons[0]) {
@@ -121,10 +199,10 @@ export function rankCandidates(
 						);
 					} else {
 						score -= 20;
-						conflicts.push("Series season differs.");
+						hardConflict("Series season differs.");
 					}
 				} else if (inputSeasons[0] !== "1" && !completeContext)
-					conflicts.push(
+					unknownIdentity(
 						"Series season cannot be verified from metadata or a complete title match.",
 					);
 				else
@@ -133,6 +211,71 @@ export function rankCandidates(
 							? "The complete contextual title identifies this work; its series season ordinal remains unknown."
 							: "Series season is unknown; a first-season hint does not contradict this candidate.",
 					);
+			}
+			if (
+				inputSeasons.length === 0 &&
+				sources.some(
+					(source) =>
+						(source.mode === "basename" ||
+							(source.mode === "ancestor" && source.distance === 0)) &&
+						work.titles.some(
+							(title) =>
+								normalize(titleEvidence(title).title) ===
+								normalize(titleEvidence(source.title).title),
+						) &&
+						baseWorks.some((base) =>
+							variants(base).some(
+								(title) =>
+									title.kind === "primary" &&
+									matchingTitle(source.title, title.value, [], evidence.parts),
+							),
+						),
+				)
+			) {
+				const primaryLater = variants(work).filter(
+					(title) =>
+						title.kind === "primary" &&
+						(titleEvidence(title.value).seasons.some(
+							(season) => Number(season) > 1,
+						) ||
+							Number(titleEvidence(title.value).romanSeason) > 1),
+				);
+				const aliasLater = variants(work).filter(
+					(title) =>
+						title.kind === "alias" &&
+						titleEvidence(title.value).seasons.some(
+							(season) => Number(season) > 1,
+						),
+				);
+				const completeOrdinalSource = primaryLater.some((title) =>
+					sources.some(
+						(source) =>
+							(source.mode === "basename" ||
+								(source.mode === "ancestor" && source.distance === 0)) &&
+							normalize(source.title) === normalize(title.value),
+					),
+				);
+				if (primaryLater.length && !completeOrdinalSource) {
+					score -= identificationPolicy.missingSeasonPrimaryPenalty;
+					assumptions.push(
+						"No source season is specified; an explicitly numbered sequel is less likely than a locally in-scope base work.",
+					);
+				} else if (!primaryLater.length && aliasLater.length) {
+					score -=
+						(identificationPolicy.missingSeasonAliasPenalty *
+							aliasLater.length) /
+						Math.max(
+							1,
+							variants(work).filter((title) => title.kind === "alias").length,
+						);
+					assumptions.push(
+						"Only aliases suggest a later season; the missing-season preference is weak.",
+					);
+				} else if (!primaryLater.length && localScope(work)) {
+					assumptions.push(
+						"Missing-season base-work preference uses locally in-scope numbering; the source season remains unknown.",
+					);
+				}
 			}
 			if (exact)
 				reasons.push(
@@ -150,7 +293,7 @@ export function rankCandidates(
 					reasons.push("Release year matches.");
 				} else {
 					score -= 15;
-					conflicts.push("Release year differs.");
+					hardConflict("Release year differs.");
 				}
 			}
 			const parts = [
@@ -163,12 +306,12 @@ export function rankCandidates(
 				...new Set(evidence.parts.map((part) => String(Number(part)))),
 			];
 			if (parts.length > 1)
-				conflicts.push("Candidate part evidence is contradictory.");
+				unknownIdentity("Candidate part evidence is contradictory.");
 			if (inputParts.length > 1)
-				conflicts.push("Source part evidence is contradictory.");
+				hardConflict("Source part evidence is contradictory.");
 			if (inputParts.length) {
 				if (!parts.length)
-					conflicts.push("Part cannot be verified from metadata.");
+					unknownIdentity("Part cannot be verified from metadata.");
 				else if (
 					parts.length === 1 &&
 					inputParts.length === 1 &&
@@ -176,9 +319,9 @@ export function rankCandidates(
 				) {
 					score += 10;
 					reasons.push("Part matches explicit title or metadata evidence.");
-				} else {
+				} else if (parts.length === 1 && inputParts.length === 1) {
 					score -= 20;
-					conflicts.push("Part differs.");
+					hardConflict("Part differs.");
 				}
 			}
 			if (work.format === "MOVIE" && evidence.rawEpisodes.length)
@@ -198,6 +341,9 @@ export function rankCandidates(
 				score: Math.max(0, score),
 				reasons,
 				conflicts,
+				identityConflicts,
+				identityUnresolved,
+				assumptions,
 				matcherVersion: identificationPolicy.matcherVersion,
 			};
 		})

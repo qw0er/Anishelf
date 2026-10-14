@@ -10,6 +10,11 @@ export interface WorkCandidate {
 	reference: ProviderReference;
 	snapshotId: string;
 	titles: string[];
+	titleVariants?: {
+		value: string;
+		kind: "primary" | "alias";
+		language: string | null;
+	}[];
 	year: number | null;
 	format: string | null;
 	episodeCount: number | null;
@@ -23,6 +28,9 @@ export interface RankedCandidate {
 	score: number;
 	reasons: string[];
 	conflicts: string[];
+	identityConflicts?: string[];
+	identityUnresolved?: string[];
+	assumptions?: string[];
 	matcherVersion: string;
 }
 export interface ExtractionElement {
@@ -44,6 +52,11 @@ export interface ExtractionEvidence {
 	relativePath: string;
 	inputs: ExtractionInput[];
 	titles: string[];
+	titleSources?: {
+		title: string;
+		mode: ExtractionInput["mode"];
+		distance: number;
+	}[];
 	years: string[];
 	seasons: string[];
 	parts: string[];

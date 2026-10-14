@@ -430,6 +430,8 @@
 		"unavailable": "This source is missing or changed. Rescan Files before associating it.",
 		"current": "Current associations",
 		"evidence": "Identification evidence",
+		"workIdentified": "Work identified: {{title}}",
+		"workIdentifiedMappingPending": "Work identified: {{title}}. Episode mapping needs confirmation.",
 		"rawNumbers": "Parsed release numbers",
 		"selectedNumbers": "Selected filename numbers",
 		"specialHint": "Confirm the special's identity and provide a label, or choose its separate provider work. Episode zero is not assumed to be regular episode one.",

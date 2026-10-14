@@ -47,6 +47,14 @@ export function createIdentificationMetadata(
 					reference: work.reference,
 					snapshotId: result.snapshotId,
 					titles: work.titles.map((title) => title.value),
+					titleVariants: work.titles.map((title) => ({
+						value: title.value,
+						kind:
+							title.kind === "alias"
+								? ("alias" as const)
+								: ("primary" as const),
+						language: title.language,
+					})),
 					year: work.year,
 					format: work.format,
 					episodeCount: work.episodeCount,

@@ -33,6 +33,16 @@ export function SourceSummary({ item }: { item: CatalogReviewItem }) {
 					{t("review.unavailable")}
 				</p>
 			)}
+			{item.recognizedWork && (
+				<p className="rounded-lg bg-muted/40 p-3 text-sm">
+					{t(
+						item.recognizedWork.mappingStatus === "pending"
+							? "review.workIdentifiedMappingPending"
+							: "review.workIdentified",
+						{ title: item.recognizedWork.title },
+					)}
+				</p>
+			)}
 			<dl className="border-t pt-3 text-sm">
 				<dt className="mb-1 text-xs text-muted-foreground">
 					{t("review.rawNumbers")}

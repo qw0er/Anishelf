@@ -738,6 +738,10 @@ test("metadata projects only explicit provider-title season and part ordinals", 
 		season: "2",
 		part: "1",
 		ordinalSource: "provider-title",
+		titleVariants: expect.arrayContaining([
+			{ value: "Ocean Season 2 Part 1", kind: "primary", language: null },
+			{ value: "Ocean", kind: "alias", language: null },
+		]),
 	});
 	expect(fetcher).toHaveBeenCalledTimes(1);
 });

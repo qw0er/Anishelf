@@ -98,7 +98,10 @@ export function CandidateSelection({
 										{t("review.matchDetails")}
 									</summary>
 									<ul className="mt-2 space-y-1 leading-relaxed">
-										{candidate.reasons.map((reason) => (
+										{[
+											...candidate.reasons,
+											...(candidate.assumptions ?? []),
+										].map((reason) => (
 											<li className="wrap-anywhere" key={reason}>
 												{reason}
 											</li>

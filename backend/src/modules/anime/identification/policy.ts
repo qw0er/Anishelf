@@ -7,6 +7,8 @@ export const identificationPolicy = {
 	maximumCandidates: 10,
 	maximumRange: 100,
 	maximumEpisode: 10000,
-	matcherVersion: "canonical-evidence-numbering-v5",
-	normalizationVersion: "anitomy-adapter-v4",
+	matcherVersion: "provenance-season-prior-v6",
+	normalizationVersion: "anitomy-title-sources-v5",
+	missingSeasonPrimaryPenalty: 12,
+	missingSeasonAliasPenalty: 3,
 } as const;

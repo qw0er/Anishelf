@@ -101,6 +101,16 @@ export class AnitomyIdentificationParser implements IdentificationParser {
 				["OVA", "OAD", "SP", "SPECIAL"].includes(type),
 			);
 			const numbering = selected.kind;
+			const ancestorCount = inputs.filter(
+				(input) => input.mode === "ancestor",
+			).length;
+			const titleSources = inputs.flatMap((input, inputIndex) =>
+				values(adapted[inputIndex] ?? [], "title").map((title) => ({
+					title,
+					mode: input.mode,
+					distance: input.mode === "ancestor" ? ancestorCount - inputIndex : 0,
+				})),
+			);
 			const titleInputs = [
 				adapted[0] ?? [],
 				...inputs
@@ -125,6 +135,7 @@ export class AnitomyIdentificationParser implements IdentificationParser {
 				titles: unique(
 					titleInputs.flatMap((elements) => values(elements, "title")),
 				),
+				titleSources,
 				years: unique(
 					inputs.flatMap((input) => values(input.elements, "year")),
 				),
