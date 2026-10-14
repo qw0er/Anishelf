@@ -15,6 +15,10 @@ export class AutomaticAdmission {
 	) {
 		const root = await this.context.root();
 		if (root.canonicalRoot !== canonicalRoot) return;
+		const started = performance.now();
+		let admitted = 0;
+		let skipped = 0;
+		let failed = 0;
 		for (const result of results) {
 			signal?.throwIfAborted();
 			this.context.open();
@@ -26,8 +30,10 @@ export class AutomaticAdmission {
 				!record ||
 				!proposal ||
 				this.context.options.store.associations(source.id).length
-			)
+			) {
+				skipped++;
 				continue;
+			}
 			let previewId: string | null = null;
 			try {
 				const preview = await this.associations.preview(
@@ -55,10 +61,12 @@ export class AutomaticAdmission {
 					},
 					signal,
 				);
+				admitted++;
 			} catch (err) {
 				signal?.throwIfAborted();
 				this.context.open();
 				this.context.options.sources.assertRootEpoch(root.epoch);
+				failed++;
 				this.context.options.logger.warn(
 					{
 						event: "catalog.automatic_admission_failed",
@@ -71,5 +79,17 @@ export class AutomaticAdmission {
 				if (previewId) this.associations.discard(previewId);
 			}
 		}
+		this.context.options.logger.info(
+			{
+				event: "catalog.automatic_admission_completed",
+				rootId: root.rootId,
+				sources: results.length,
+				admitted,
+				skipped,
+				failed,
+				elapsedMs: Math.round(performance.now() - started),
+			},
+			"Automatic catalog admission completed.",
+		);
 	}
 }

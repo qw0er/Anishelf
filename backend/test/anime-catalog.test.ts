@@ -339,6 +339,8 @@ test("stable episode IDs, mappings and source progress survive rescan refresh an
 });
 
 test("confirmation operation keys survive restart and cannot be reused for different input", async () => {
+	const info = vi.spyOn(logger, "info");
+	const debug = vi.spyOn(logger, "debug");
 	const f = await fixture();
 	const preview = await f.catalog.preview({ reference, rows: await rows(f) });
 	const request = {
@@ -353,6 +355,19 @@ test("confirmation operation keys survive restart and cannot be reused for diffe
 		f.catalog.confirm({ ...request, replace: true }),
 	).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
 	expect((await f.catalog.list()).items).toHaveLength(1);
+	expect(
+		info.mock.calls.filter(
+			([record]) =>
+				(record as { event?: string }).event === "catalog.confirmed",
+		),
+	).toHaveLength(1);
+	expect(debug).toHaveBeenCalledWith(
+		expect.objectContaining({
+			event: "catalog.confirmation_reused",
+			workId: result.workId,
+		}),
+		expect.any(String),
+	);
 });
 
 test("stale review and work revisions block confirmation and explicit replacement previews affected links", async () => {
@@ -1254,6 +1269,7 @@ test("work review filters match qualified candidates without admitting them and 
 });
 
 test("rejection accepts omitted or blank reasons, persists null, and keeps removal explicit", async () => {
+	const info = vi.spyOn(logger, "info");
 	const f = await fixture();
 	let review = required((await f.catalog.reviews()).items[0]);
 	const app = createHttpApp({
@@ -1291,6 +1307,22 @@ test("rejection accepts omitted or blank reasons, persists null, and keeps remov
 	await expect(
 		f.catalog.remove(review.id, review.revision, ""),
 	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+	expect(
+		info.mock.calls.filter(
+			([record]) => (record as { event?: string }).event === "catalog.rejected",
+		),
+	).toHaveLength(3);
+	await f.catalog.remove(review.id, review.revision, "private removal reason");
+	expect(info).toHaveBeenCalledWith(
+		expect.objectContaining({
+			event: "catalog.associations_removed",
+			reviewId: review.id,
+		}),
+		expect.any(String),
+	);
+	expect(JSON.stringify(info.mock.calls)).not.toContain(
+		"private removal reason",
+	);
 });
 
 test("expired details return retained data immediately and coalesce automatic updates", async () => {

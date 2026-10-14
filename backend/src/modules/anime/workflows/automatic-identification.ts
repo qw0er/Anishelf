@@ -64,6 +64,14 @@ export class AutomaticIdentificationCoordinator {
 						await this.synchronize(controller.signal);
 						this.failed = false;
 					} catch (err) {
+						if (controller.signal.aborted || this.closed)
+							this.options.logger.debug(
+								{
+									event: "identification.automatic_cancelled",
+									closing: this.closed,
+								},
+								"Automatic identification cancelled.",
+							);
 						if (!controller.signal.aborted && !this.closed) {
 							this.failed = true;
 							this.options.logger.warn(
@@ -86,6 +94,14 @@ export class AutomaticIdentificationCoordinator {
 		this.options.sources.assertRootEpoch(epoch);
 		if (!status.ready || status.stale || !this.options.sources.hasSnapshot)
 			return;
+		const started = performance.now();
+		this.options.logger.info(
+			{
+				event: "identification.automatic_started",
+				libraryRevision: status.revision,
+			},
+			"Automatic identification started.",
+		);
 		const groups = new Map<string, FileInfo[]>();
 		let offset: number | null = 0;
 		while (offset !== null) {
@@ -205,6 +221,15 @@ export class AutomaticIdentificationCoordinator {
 				libraryRevision: status.revision,
 				parsed: changed,
 				available: results.length,
+				reused: results.length - changed,
+				proposed: results.filter((result) => result.status === "proposed")
+					.length,
+				unresolved: results.filter((result) => result.status === "unresolved")
+					.length,
+				metadataFailed: results.filter(
+					(result) => result.metadataStatus === "failed",
+				).length,
+				elapsedMs: Math.round(performance.now() - started),
 			},
 			"Automatic local identification completed.",
 		);

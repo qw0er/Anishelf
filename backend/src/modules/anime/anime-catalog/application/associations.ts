@@ -140,6 +140,14 @@ export class AssociationApplication {
 				conflict(
 					"Operation key was already used for a different confirmation.",
 				);
+			this.context.options.logger.debug(
+				{
+					event: "catalog.confirmation_reused",
+					workId: completed.result.workId,
+					previewId: request.previewId,
+				},
+				"Returning an already committed confirmation.",
+			);
 			return completed.result;
 		}
 		this.prunePreviews();
@@ -338,6 +346,9 @@ export class AssociationApplication {
 				event: "catalog.confirmed",
 				workId: result.workId,
 				sources: result.reviewIds.length,
+				previewId: request.previewId,
+				revision: result.revision,
+				replace: request.replace,
 			},
 			"Catalog associations confirmed.",
 		);

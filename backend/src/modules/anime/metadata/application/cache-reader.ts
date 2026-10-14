@@ -80,6 +80,18 @@ export class MetadataCacheReader {
 			request,
 		]);
 		const cached = this.store(() => this.options.store.find(key));
+		this.options.logger.trace(
+			{
+				event: "metadata.cache_read",
+				provider: provider.capabilities.key,
+				kind,
+				hit: Boolean(cached),
+				stale: cached ? this.expiresAt(cached) <= this.now() : undefined,
+				cachedOnly: Boolean(options.cachedOnly),
+				refresh: Boolean(options.refresh),
+			},
+			"Metadata cache read.",
+		);
 		if (options.cachedOnly) {
 			if (!cached)
 				throw new MetadataError({
@@ -151,6 +163,13 @@ export class MetadataCacheReader {
 					message: "Metadata refresh queue is full. Retry shortly.",
 					retryAt: null,
 				});
+			const started = performance.now();
+			const requestId = createHash("sha256").update(key).digest("hex");
+			const provider = JSON.parse(key)[0] as string;
+			this.options.logger.debug(
+				{ event: "metadata.refresh_started", requestId, provider, kind },
+				"Metadata refresh started.",
+			);
 			const controller = new AbortController();
 			const combined = AbortSignal.any([
 				controller.signal,
@@ -183,7 +202,9 @@ export class MetadataCacheReader {
 					this.options.logger.debug(
 						{
 							event: "metadata.refreshed",
-							provider: JSON.parse(key)[0],
+							provider,
+							requestId,
+							elapsedMs: Math.round(performance.now() - started),
 							kind,
 							snapshotId: id,
 						},
@@ -213,6 +234,11 @@ export class MetadataCacheReader {
 							event: "metadata.refresh_failed",
 							kind,
 							code: failure.code,
+							provider,
+							requestId,
+							retryAt: failure.retryAt,
+							retained: Boolean(cached),
+							elapsedMs: Math.round(performance.now() - started),
 							err: cause,
 						},
 						"Metadata refresh failed; usable snapshots are retained.",

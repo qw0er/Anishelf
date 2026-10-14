@@ -170,6 +170,17 @@ export class ReviewApplication {
 			}
 			store.decide(record.id, revision, "rejected", reason.trim() || null);
 		});
+		this.context.options.logger.info(
+			{
+				event: remove ? "catalog.associations_removed" : "catalog.rejected",
+				reviewId: id,
+				rootId: root.rootId,
+				revision: revision + 1,
+			},
+			remove
+				? "Catalog associations removed and source rejected."
+				: "Catalog source rejected.",
+		);
 		return safeReview(
 			this.context.requireReview(id, root.rootId),
 			await this.context.available(record, root.epoch),

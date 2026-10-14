@@ -506,7 +506,13 @@ test("first-run setup saves the server directory and shows the automatic scan", 
 	expect(
 		fetcher.mock.calls.some(([path]) => path === "/api/library/scan"),
 	).toBe(false);
-	await screen.findByText("Scan: running");
+	await waitFor(() =>
+		expect(
+			screen
+				.getByRole("button", { name: "Scan library" })
+				.getAttribute("aria-busy"),
+		).toBe("true"),
+	);
 	fireEvent.click(screen.getByRole("link", { name: "Settings" }));
 	expect(
 		(
@@ -534,7 +540,11 @@ test("saving a new directory returns from the player and unloads old media", asy
 	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
 	expect(video.getAttribute("src")).toBeNull();
 	expect(screen.queryByRole("link", { name: "Season 1" })).toBeNull();
-	expect(screen.getByText("Scan: running")).toBeTruthy();
+	expect(
+		screen
+			.getByRole("button", { name: "Scan library" })
+			.getAttribute("aria-busy"),
+	).toBe("true");
 });
 
 test("a failed settings save retains the input and supports a retry", async () => {
@@ -693,21 +703,35 @@ test("starts scanning, polls status, refreshes the listing on publication, and s
 	await act(async () => {
 		renderApp();
 	});
-	expect(screen.getByText("Scan: not started")).toBeTruthy();
+	expect(
+		screen
+			.getByRole("button", { name: "Scan library" })
+			.getAttribute("aria-busy"),
+	).toBe("false");
 	await act(async () => {
 		fireEvent.click(screen.getByRole("button", { name: "Scan library" }));
 	});
-	expect(screen.getByText("Scan: running")).toBeTruthy();
+	expect(
+		screen
+			.getByRole("button", { name: "Scan library" })
+			.getAttribute("aria-busy"),
+	).toBe("true");
 	expect(
 		(screen.getByRole("button", { name: "Scan library" }) as HTMLButtonElement)
 			.disabled,
 	).toBe(true);
-	expect(screen.getByText("Visited entries: 2 · Video files: 1")).toBeTruthy();
+	expect(
+		fetcher.mock.calls.some(([path]) => path === "/api/library/scan"),
+	).toBe(true);
 	library = { ...library, scan: { ...runningScan, visitedCount: 3 } };
 	await act(async () => {
 		await vi.advanceTimersByTimeAsync(1000);
 	});
-	expect(screen.getByText("Visited entries: 3 · Video files: 1")).toBeTruthy();
+	expect(
+		screen
+			.getByRole("button", { name: "Scan library" })
+			.getAttribute("aria-busy"),
+	).toBe("true");
 	directories.set("root", root);
 	library = {
 		...library,
@@ -720,9 +744,15 @@ test("starts scanning, polls status, refreshes the listing on publication, and s
 	await act(async () => {
 		await vi.advanceTimersByTimeAsync(1000);
 	});
-	expect(screen.getByText("Scan: completed")).toBeTruthy();
-	fireEvent.click(screen.getByText("Scan warnings: 1"));
-	expect(screen.getByText("An unreadable file was skipped.")).toBeTruthy();
+	expect(
+		screen
+			.getByRole("button", { name: "Scan library" })
+			.getAttribute("aria-busy"),
+	).toBe("false");
+	expect(
+		screen.getByText("Library scan completed with 1 warning."),
+	).toBeTruthy();
+	expect(screen.getByText(/An unreadable file was skipped\./)).toBeTruthy();
 	expect(screen.getByRole("link", { name: "Season 1" })).toBeTruthy();
 	expect(
 		(screen.getByRole("button", { name: "Scan library" }) as HTMLButtonElement)
@@ -739,7 +769,13 @@ test("scan completion notifies once across StrictMode and repeated refreshes", a
 	const notify = vi.spyOn(toast, "add");
 	library = { ...library, scan: runningScan };
 	const { router } = renderApp("/directories/root", true);
-	await screen.findByText("Scan: running");
+	await waitFor(() =>
+		expect(
+			screen
+				.getByRole("button", { name: "Scan library" })
+				.getAttribute("aria-busy"),
+		).toBe("true"),
+	);
 	expect(notify).not.toHaveBeenCalled();
 	library = {
 		...library,
@@ -754,22 +790,28 @@ test("scan completion notifies once across StrictMode and repeated refreshes", a
 	await act(async () => {
 		await router.revalidate();
 	});
-	await screen.findByText(
-		"Library scan completed with 1 warning. See Library scan for details.",
-	);
+	await screen.findByText("Library scan completed with 1 warning.");
 	expect(notify).toHaveBeenCalledTimes(1);
 	await act(async () => {
 		await router.revalidate();
 	});
 	expect(notify).toHaveBeenCalledTimes(1);
-	expect(screen.getByText("Scan warnings: 1")).toBeTruthy();
+	expect(
+		screen.getByText(/A video file could not be read and was skipped\./),
+	).toBeTruthy();
 });
 
 test("scan status updates do not unload a playing file", async () => {
 	renderApp();
 	fireEvent.click(await screen.findByRole("link", { name: "Season 1" }));
 	fireEvent.click(screen.getByRole("button", { name: "Scan library" }));
-	await screen.findByText("Scan: running");
+	await waitFor(() =>
+		expect(
+			screen
+				.getByRole("button", { name: "Scan library" })
+				.getAttribute("aria-busy"),
+		).toBe("true"),
+	);
 	fireEvent.click(await screen.findByRole("link", { name: "Episode 01.mp4" }));
 	const video = await screen.findByLabelText("Video: Episode 01.mp4");
 	expect(screen.queryByRole("button", { name: "Scan library" })).toBeNull();
@@ -820,7 +862,11 @@ test("a slow background scan poll does not turn the Refresh button into a manual
 	await act(async () => {
 		resolvePoll?.(json({ ...library, scan: completedScan }));
 	});
-	expect(screen.getByText("Scan: completed")).toBeTruthy();
+	expect(
+		screen
+			.getByRole("button", { name: "Scan library" })
+			.getAttribute("aria-busy"),
+	).toBe("false");
 });
 
 test("a failed scan action keeps the current directory usable and supports another submission", async () => {
@@ -857,7 +903,13 @@ test("a failed scan action keeps the current directory usable and supports anoth
 	);
 	rejectScan = false;
 	fireEvent.click(screen.getByRole("button", { name: "Scan library" }));
-	await screen.findByText("Scan: running");
+	await waitFor(() =>
+		expect(
+			screen
+				.getByRole("button", { name: "Scan library" })
+				.getAttribute("aria-busy"),
+		).toBe("true"),
+	);
 	await waitFor(() =>
 		expect(
 			screen.queryByText("The resource directory is unavailable.", {
@@ -878,12 +930,19 @@ test("a library-status connection failure leaves the listing available and can b
 	});
 	renderApp();
 	await screen.findByRole("link", { name: "Season 1" });
-	await screen.findByText(
-		"Cannot connect to the server. Check your connection and try again.",
-	);
+	expect(
+		(screen.getByRole("button", { name: "Scan library" }) as HTMLButtonElement)
+			.disabled,
+	).toBe(true);
 	disconnected = false;
 	fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
-	await screen.findByText("Scan: completed");
+	await waitFor(() =>
+		expect(
+			screen
+				.getByRole("button", { name: "Scan library" })
+				.hasAttribute("disabled"),
+		).toBe(false),
+	);
 	expect(screen.queryByRole("alert")).toBeNull();
 });
 
@@ -965,7 +1024,7 @@ test("a removed directory after scanning allows returning to root", async () => 
 	await screen.findByRole("link", { name: "Season 1" });
 });
 
-test("an unavailable library shows the error, and refresh recovers scanning", async () => {
+test("an unavailable library disables scanning, and refresh recovers scanning", async () => {
 	library = {
 		...library,
 		ready: false,
@@ -976,7 +1035,7 @@ test("an unavailable library shows the error, and refresh recovers scanning", as
 		},
 	};
 	renderApp();
-	await screen.findByText("The resource directory is unavailable.");
+	await screen.findByText("Showing the previous scan results.");
 	expect(
 		(screen.getByRole("button", { name: "Scan library" }) as HTMLButtonElement)
 			.disabled,

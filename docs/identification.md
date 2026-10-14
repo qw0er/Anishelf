@@ -121,7 +121,7 @@ automatic proposal generation through injected Metadata fixtures, provider failu
 cancellation, bounded input, actual scanner/source integration, incremental scans,
 directory context changes, replacement/deletion, restart reconstruction, root
 switching and libraries larger than one batch. Corpus extraction checks do not
-prove identification accuracy. Catalog has its own persistence/transaction checks. Web Review/correction and the scoped playable fixtures are implemented; representative recognition accuracy remains separate acceptance work. Metadata has its own provider and persistence checks.
+prove identification accuracy. Catalog has its own persistence/transaction checks. Web Review/correction and the scoped playable fixtures are implemented; representative recognition accuracy measurement is not an iteration acceptance requirement. Metadata has its own provider and persistence checks.
 
 ## Module boundary
 

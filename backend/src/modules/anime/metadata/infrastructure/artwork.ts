@@ -10,6 +10,7 @@ import {
 } from "node:fs/promises";
 import { join } from "node:path";
 import { fileTypeFromBuffer } from "file-type";
+import type { Logger } from "pino";
 import { abortable } from "../domain/async.js";
 import {
 	type ArtworkAsset,
@@ -32,6 +33,7 @@ export class MetadataArtworkCache {
 		private readonly options: {
 			dataDir: string;
 			store: MetadataStore;
+			logger?: Logger;
 			fetch?: typeof fetch;
 			budgetBytes?: number;
 			maximumBytes?: number;
@@ -129,6 +131,8 @@ export class MetadataArtworkCache {
 					this.lifetime.signal,
 					AbortSignal.timeout(policy.requestTimeoutMs),
 				]);
+				const started = performance.now();
+				const requestId = createHash("sha256").update(pendingKey).digest("hex");
 				const temporary = join(this.directory, `${randomUUID()}.pending`);
 				try {
 					let target = this.url(url),
@@ -191,6 +195,16 @@ export class MetadataArtworkCache {
 						accessedAt: Date.now(),
 					});
 					await this.prune(id);
+					this.options.logger?.debug(
+						{
+							event: "metadata.artwork_cached",
+							requestId,
+							artworkId: id,
+							sizeBytes: bytes.byteLength,
+							elapsedMs: Math.round(performance.now() - started),
+						},
+						"Provider artwork cached.",
+					);
 					return { id, status: "ready" as const, failure: null };
 				} catch (cause) {
 					this.lifetime.signal.throwIfAborted();
@@ -203,6 +217,16 @@ export class MetadataArtworkCache {
 									retryAt: null,
 								};
 					const retained = await usable(existing ?? fallback);
+					this.options.logger?.warn(
+						{
+							event: "metadata.artwork_failed",
+							requestId,
+							code: failure.code,
+							retained: Boolean(retained),
+							elapsedMs: Math.round(performance.now() - started),
+						},
+						"Artwork caching failed; usable cached artwork is retained.",
+					);
 					return retained
 						? { ...retained, failure }
 						: { id: null, status: "failed" as const, failure };
@@ -266,6 +290,14 @@ export class MetadataArtworkCache {
 			if (asset.id === protect) continue;
 			await rm(join(this.directory, asset.id), { force: true });
 			this.options.store.removeArtwork(asset.id);
+			this.options.logger?.debug(
+				{
+					event: "metadata.artwork_evicted",
+					artworkId: asset.id,
+					sizeBytes: asset.sizeBytes,
+				},
+				"Artwork evicted to enforce the cache budget.",
+			);
 			size -= asset.sizeBytes;
 		}
 	}

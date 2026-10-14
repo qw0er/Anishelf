@@ -89,7 +89,7 @@ This is a user-facing file download, separate from acquiring new releases throug
 
 External anime metadata is a dependency of the current identification workflow, not a later tracker integration. Start with one provider supporting search and details; retain its stable identifiers and available aliases, language information, episode data and work relations. Use local anime and episode identities independent of provider IDs. Cache fetched metadata with refresh status and preserve user corrections. Outages must not block already-cached browsing or existing file playback; unavailable candidate or episode information remains explicitly unresolved.
 
-Provider and parser selection require representative filename and metadata evaluation; Seanime is a workflow reference, not a mandated dependency. Multiple providers and cross-provider mappings remain M06. Provider-required service access is distinct from T01–T05 personal account authorization, list import and progress synchronization; basic identification must not require the user to authorize a personal tracker account.
+Provider and parser uncertainty is handled through Review; representative recognition accuracy measurement is not required for the current iteration. Seanime is a workflow reference, not a mandated dependency. Multiple providers and cross-provider mappings remain M06. Provider-required service access is distinct from T01–T05 personal account authorization, list import and progress synchronization; basic identification must not require the user to authorize a personal tracker account.
 
 ### 2.3 Web Playback and Subtitles
 
