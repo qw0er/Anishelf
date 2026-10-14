@@ -1,7 +1,7 @@
 # Anime Identification Corpus
 
 An offline, versioned resource corpus for evaluating filename parsing, work
-matching and episode associations before the anime-library implementation exists.
+matching and episode associations against the implemented anime-library workflow.
 Version `2026-10-11.2` was collected and reviewed on **2026-10-11**.
 
 ## Use the corpus
@@ -35,6 +35,43 @@ in the Nyaa capture without being materialized as fake videos.
 **Placeholders are not videos.** They validate filesystem discovery and naming,
 not FFprobe, subtitles or playback. No anime media was downloaded. Playback
 acceptance needs separate original synthetic video fixtures.
+
+## Production matching audit
+
+Run the actual Identification application, candidate ranking, episode proposal and
+Catalog automatic-admission predicate against the frozen AniList projections:
+
+```sh
+npm run --silent anime:corpus -- match > /tmp/anishelf-matching-report.json
+```
+
+The audit covers all 369 filename cases and 50 directory-scenario resources (419
+inputs). Publication labels are excluded because they are not playable files.
+Filename evaluation includes unsupported scanner extensions; this does not imply
+that production scans discover those files. Scenarios run as sibling batches;
+standalone cases run independently. All 20 works compete for every metadata query,
+including related seasons, using only AniList titles/synonyms, format, year and
+count. No expected answer filters candidates, no Bangumi aliases are injected,
+and no series ordinal is invented. This measures ranking and admission with a
+fixed candidate universe, not AniList search recall, network behavior, or database
+confirmation. The existing Catalog tests cover persistence separately.
+
+The report includes ranked candidates, scores, conflicts, mapping targets,
+admission blockers, missed matches and unexpected admissions. Bangumi continuous
+sort values are not converted into season-local numbering. Episode accuracy is
+only compared for unchanged positive integer release numbers or whole movies;
+other mappings are explicitly `not-comparable`. Corpus `match` means resolvable,
+not necessarily safe for automatic admission; a missed admission is an audit gap,
+not automatically a defect.
+
+This audit runs only when explicitly invoked through `anime:corpus -- match`;
+`npm test` does not run it. There is no frozen outcome baseline: inspect the report
+against the original corpus expectations when assessing a matcher change.
+The first audit observed 186 admissions, 166 consistent with the corpus
+work/decision expectation, 20 unexpected admissions and 140 unresolved expected
+matches. These counts describe that run, not approved outcomes or passing
+criteria. Unexpected admissions included ancillary files and conflicting-season
+evidence and need investigation.
 
 ## Contents and provenance
 
@@ -94,8 +131,7 @@ persistence schemas. A parser/matcher adapter translates its output to this shap
 | `rationale` | Why the identity/mapping is resolvable or requires review; offsets must be explicit |
 
 `match` describes the corpus answer, **not a confidence threshold or permission
-to auto-confirm in the application**. Confirmation UX and scoring thresholds are
-still unimplemented. Related candidates may be shown for `review` cases, but no
+to auto-confirm in the application**. The application applies its own conservative admission policy. Related candidates may be shown for `review` cases, but no
 confirmed work/episode association should be created from conflicting evidence.
 `ignore` applies only to identification: the original remains discoverable.
 

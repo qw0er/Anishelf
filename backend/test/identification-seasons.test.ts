@@ -147,3 +147,42 @@ test("a base title without source season evidence cannot admit a numbered sequel
 			.admitted,
 	).toBeNull();
 });
+
+test("Japanese second-season directory does not boost the first season after ordinal stripping", async () => {
+	const { admitted, result } = await identify(
+		"正反対な君と僕 第2期/[DKB] Seihantai na Kimi to Boku - S02E12 [1080p][HEVC x265 10bit][Multi-Subs] [E8379898].mkv",
+		[
+			candidate("1", ["Seihantai na Kimi to Boku", "正反対な君と僕"]),
+			candidate("2", [
+				"Seihantai na Kimi to Boku 2nd Season",
+				"正反対な君と僕 第2期",
+			]),
+		],
+	);
+	expect(admitted?.candidate.work.reference.id).toBe("2");
+	expect(result.proposals[0]?.candidate.score).toBeGreaterThanOrEqual(
+		(result.proposals[1]?.candidate.score ?? 0) + 10,
+	);
+});
+test("a full arc title identifies JoJo without inventing a provider season ordinal", async () => {
+	const { admitted } = await identify(
+		"JoJo no Kimyou na Bouken Steel Ball Run - 1st STAGE/[Feibanyama] JoJos Bizarre Adventure S06E01 [NF WebRip 1080p H265 Veryslow AAC Multi-Audio Multi-Subs].mkv",
+		[candidate("1", ["JoJo no Kimyou na Bouken: Steel Ball Run - 1st STAGE"])],
+	);
+	expect(admitted?.candidate.work.reference.id).toBe("1");
+	expect(admitted?.mapping.targets).toEqual([{ kind: "regular", number: "1" }]);
+});
+
+test("complete context does not override explicit candidate season conflicts or invalid episode counts", async () => {
+	const work = candidate("1", ["Example: Arc", "Example Season 3"]);
+	expect(
+		(await identify("Example Arc/Example S2 - 01.mkv", [work])).admitted,
+	).toBeNull();
+	expect(
+		(
+			await identify("Example Arc/Example S2 - 13.mkv", [
+				candidate("1", ["Example: Arc"]),
+			])
+		).admitted,
+	).toBeNull();
+});

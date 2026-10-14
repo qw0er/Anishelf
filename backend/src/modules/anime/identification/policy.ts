@@ -7,6 +7,6 @@ export const identificationPolicy = {
 	maximumCandidates: 10,
 	maximumRange: 100,
 	maximumEpisode: 10000,
-	matcherVersion: "title-season-evidence-v2",
+	matcherVersion: "title-season-context-v3",
 	normalizationVersion: "parser-elements-v2",
 } as const;
