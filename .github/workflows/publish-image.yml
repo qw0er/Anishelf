@@ -73,7 +73,7 @@ jobs:
         id: metadata
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/qw0er/anishelf
           tags: |
             type=semver,pattern={{version}}
             type=sha,format=long
@@ -92,7 +92,7 @@ jobs:
           context: .
           file: package/Dockerfile
           platforms: linux/${{ matrix.architecture }}
-          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=ghcr.io/qw0er/anishelf,push-by-digest=true,name-canonical=true,push=true
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha,scope=image-${{ matrix.architecture }}
           cache-to: type=gha,scope=image-${{ matrix.architecture }},mode=max
@@ -134,7 +134,7 @@ jobs:
         id: metadata
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/qw0er/anishelf
           tags: |
             type=semver,pattern={{version}}
             type=sha,format=long
@@ -149,7 +149,7 @@ jobs:
       - name: Publish multi-platform manifest
         working-directory: ${{ runner.temp }}/digests
         env:
-          IMAGE: ghcr.io/${{ github.repository }}
+          IMAGE: ghcr.io/qw0er/anishelf
           METADATA: ${{ steps.metadata.outputs.json }}
         run: |
           mapfile -t tags < <(jq -r '.tags[]' <<< "$METADATA")
