@@ -6,10 +6,14 @@ import {
 	materializeCorpus,
 	summarizeCorpus,
 } from "../backend/test/support/anime-corpus.js";
+import { evaluateMatchingCorpus } from "../backend/test/support/anime-matching-corpus.js";
 
 const [command = "summary", argument] = process.argv.slice(2);
 const corpus = await loadCorpus();
 switch (command) {
+	case "match":
+		console.log(JSON.stringify(await evaluateMatchingCorpus(), null, 2));
+		break;
 	case "summary":
 		console.log(JSON.stringify(summarizeCorpus(corpus), null, 2));
 		break;

@@ -263,10 +263,14 @@ Recognition parses provider titles and aliases with `anitomy-ng`, retaining orig
 names while comparing explicit series ordinals separately from title similarity.
 Complete contextual title matches outrank shared short aliases. Bare Roman
 numerals support ordinal matching only when a complete contextual source title
-also matches;
-unmarked titles do not imply season one. Missing candidate season evidence does
+also matches; unmarked titles do not imply season one. Missing candidate season evidence does
 not contradict an explicit first-season file, but later-season files require
-corroborating candidate evidence. Contradictory ordinals, unknown parts and
+corroborating candidate evidence or an exact complete contextual title match.
+Context matching preserves directory ordinals: a title stripped of `第2期` must
+not boost an unmarked first-season candidate. A complete arc title can identify
+an AniList work despite a release-specific series ordinal (such as `S06`),
+without assigning that ordinal to the provider work. Explicit contradictory
+ordinals still block admission even when the contextual title matches. Contradictory ordinals, unknown parts and
 ambiguous episode mappings remain reviewable. Search may append a series-season
 query within the existing request budget; calendar airing seasons and relations
 never establish episode offsets. Matcher version changes invalidate recognition

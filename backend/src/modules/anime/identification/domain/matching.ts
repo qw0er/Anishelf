@@ -40,13 +40,28 @@ export function rankCandidates(
 			const leafTitle = evidence.inputs
 				.find((input) => input.mode === "basename")
 				?.elements.find((element) => element.kind === "title")?.value;
-			if (
-				evidence.titles.some(
-					(title) =>
-						normalize(title) !== normalize(leafTitle ?? title) &&
-						work.titles.some((alias) => normalize(title) === normalize(alias)),
-				)
-			) {
+			// A parsed directory title may have lost its ordinal. Keep the complete
+			// name for context matching, and only reuse stripped titles when no
+			// season marker was removed from that directory.
+			const contextualTitles = evidence.inputs
+				.filter((input) => input.mode === "ancestor")
+				.flatMap((input) => [
+					input.input,
+					...(input.elements.some((element) => element.kind === "season") ||
+					titleEvidence(input.input).seasons.length
+						? []
+						: input.elements
+								.filter((element) => element.kind === "title")
+								.map((element) => element.value)),
+				]);
+			const contextualMatch = (title: string) =>
+				contextualTitles.some(
+					(input) =>
+						normalize(input) !== normalize(leafTitle ?? input) &&
+						normalize(input) === normalize(title),
+				);
+			const completeContext = work.titles.some(contextualMatch);
+			if (completeContext) {
 				score += 15;
 				reasons.push("A complete contextual title matches a title or alias.");
 			}
@@ -55,12 +70,7 @@ export function rankCandidates(
 			);
 			const romanSeasons = work.titles.flatMap((title) => {
 				const ordinal = titleEvidence(title).romanSeason;
-				const contextualMatch = evidence.titles.some(
-					(input) =>
-						normalize(input) !== normalize(leafTitle ?? input) &&
-						normalize(input) === normalize(title),
-				);
-				return ordinal && contextualMatch ? [ordinal] : [];
+				return ordinal && contextualMatch(title) ? [ordinal] : [];
 			});
 			const seasons = [
 				...new Set([
@@ -87,13 +97,15 @@ export function rankCandidates(
 						score -= 20;
 						conflicts.push("Series season differs.");
 					}
-				} else if (inputSeasons[0] !== "1")
+				} else if (inputSeasons[0] !== "1" && !completeContext)
 					conflicts.push(
 						"Series season cannot be verified from metadata or a complete title match.",
 					);
 				else
 					reasons.push(
-						"Series season is unknown; a first-season hint does not contradict this candidate.",
+						completeContext
+							? "The complete contextual title identifies this work; its series season ordinal remains unknown."
+							: "Series season is unknown; a first-season hint does not contradict this candidate.",
 					);
 			}
 			if (exact)
