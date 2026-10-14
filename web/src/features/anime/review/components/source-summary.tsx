@@ -41,6 +41,18 @@ export function SourceSummary({ item }: { item: CatalogReviewItem }) {
 					{item.evidence.rawEpisodes.join(", ") || t("anime.unknown")}
 				</dd>
 			</dl>
+			{item.evidence.selectedEpisodes &&
+				JSON.stringify(item.evidence.selectedEpisodes) !==
+					JSON.stringify(item.evidence.rawEpisodes) && (
+					<dl className="text-sm">
+						<dt className="mb-1 text-xs text-muted-foreground">
+							{t("review.selectedNumbers")}
+						</dt>
+						<dd className="font-medium">
+							{item.evidence.selectedEpisodes.join(", ")}
+						</dd>
+					</dl>
+				)}
 			{existing.length > 0 && (
 				<section className="space-y-2 border-t pt-3">
 					<h3 className="text-xs text-muted-foreground">

@@ -58,6 +58,7 @@ const evidence = Type.Object({
 	seasons: Type.Array(Type.String()),
 	parts: Type.Array(Type.String()),
 	rawEpisodes: Type.Array(Type.String()),
+	selectedEpisodes: Type.Optional(Type.Array(Type.String())),
 	numbering: Type.Union([
 		Type.Literal("single"),
 		Type.Literal("range"),
@@ -82,6 +83,7 @@ const proposal = Type.Object({
 			episodeCount: nullableInteger,
 			season: nullableText,
 			part: nullableText,
+			ordinalSource: Type.Optional(Type.Literal("provider-title")),
 		}),
 		score: Type.Number(),
 		reasons: Type.Array(Type.String()),
@@ -92,6 +94,13 @@ const proposal = Type.Object({
 		targets: Type.Array(target),
 		reasons: Type.Array(Type.String()),
 		unresolved: Type.Array(Type.String()),
+		numbering: Type.Optional(
+			Type.Object({
+				source: Type.Literal("directory-anchors"),
+				offset: Type.Integer(),
+				anchors: Type.Array(Type.Object({ fileId: id, sourceVersion: id })),
+			}),
+		),
 	}),
 });
 const review = Type.Object({
@@ -108,6 +117,7 @@ const review = Type.Object({
 		Type.Object({
 			workId: id,
 			workTitle: Type.String(),
+			reference: Type.Optional(reference),
 			episodeId: id,
 			kind,
 			number: Type.String(),

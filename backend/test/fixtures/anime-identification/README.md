@@ -188,9 +188,53 @@ candidate output is reported separately, never counted as a successful search.
 An incorrect work or episode confirmation, including forcing a review case into
 a match, counts as unsafe. Missing results fail instead of reducing the denominator.
 
-No parser/provider was selected by building this corpus. There is currently no
-real parser accuracy baseline. Evaluator tests use intentionally incorrect and
-missing predictions to verify reporting; they do not claim identification success.
+The generic evaluator tests use intentionally incorrect and missing predictions
+to verify reporting; they do not claim identification success.
+
+### Production matcher with frozen candidates
+
+Run the production parser, ranking, mapping and admission rules offline:
+
+```sh
+npm run --silent anime:corpus -- match > /tmp/anime-matching-report.json
+```
+
+Every search returns all 20 frozen AniList work projections. This measures local
+matching and admission, not live search recall or persistent Catalog confirmation.
+The report contains 369 base file cases and 50 scenario records; publication-title
+cases are excluded. Scenario records repeat some base samples and must not be
+interpreted as independent observations.
+
+Rows expose original `rawEpisodes`, `selectedEpisodes`, numbering classification,
+content kind, candidate-specific conversion provenance, stage outcomes and the
+same admission blockers used by the runtime. `groups.base` and `groups.scenario`
+provide separate denominators. Scores do not represent probabilities.
+
+`production-numbering.json` supplies independently corroborated season-local
+labels for 40 base cases. Each label is backed by an explicit `SxxEyy` filename or
+existing curated local-number evidence, frozen same-work Bangumi episode data
+and AniList count bounds. The loader rejects stale versions, wrong identities,
+changed source numbering and unsupported labels. These are Anishelf local slots,
+not a claimed canonical AniList episode catalog. Bangumi `ep` alone is never used
+to invent a cross-provider offset. Original corpus answers remain unchanged.
+
+Episode checks use these labels when available, otherwise unchanged positive
+release numbering or whole-movie slots. Unverified numbering systems remain
+excluded with `episodeComparisonBasis`. `admittedDifferentNumbering` reports
+proposed target numbering differing from original corpus sorts even when independently
+labelled. Incorrect verified target mapping also counts as an unsafe admission.
+
+General-rule tests use synthetic titles and perturbations outside the captured
+corpus: punctuation/spacing, Chinese scripts, preserved numeric titles, explicit
+parts, shared sequel titles, agreeing/conflicting anchors, duplicate versions,
+unrelated files, manual zero identities and unknown numbering. No production
+branch reads work names, case IDs or labels from this fixture. These tests are
+regressions, not a statistically representative held-out accuracy benchmark.
+
+A read-only live smoke check on 2026-10-15 searched AniList for a work outside this
+corpus and passed a source through parser, metadata projection, ranking, mapping
+and admission diagnosis. It selected Cowboy Bebop (AniList 1), regular episode 1,
+with no blockers. This is one successful live path, not a live recall benchmark.
 
 ## Directory scenarios and acceptance status
 

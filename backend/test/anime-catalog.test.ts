@@ -15,6 +15,8 @@ import { AnimeCatalogApplication } from "../src/modules/anime/anime-catalog/appl
 import type { MappingSelection } from "../src/modules/anime/anime-catalog/public.js";
 import { createIdentificationModule } from "../src/modules/anime/composition/identification.js";
 import { createIdentificationMetadata } from "../src/modules/anime/composition/metadata.js";
+import { IdentificationApplication } from "../src/modules/anime/identification/application/identification.js";
+import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
 import { MetadataApplication } from "../src/modules/anime/metadata/application/metadata.js";
 import { MetadataArtworkCache } from "../src/modules/anime/metadata/infrastructure/artwork.js";
 import type { MetadataProvider } from "../src/modules/anime/metadata/ports.js";
@@ -302,6 +304,81 @@ test("offset previews preserve release numbering and reject invalid or implicit 
 	required(required(invalid[0]).targets[0]).label = "Special 12.5";
 	await confirm(f, Promise.resolve(invalid));
 	expect((await f.catalog.list()).items[0]?.availableEpisodes).toBe(1);
+});
+
+test("corroborated automatic offsets persist once and special zero still needs manual confirmation", async () => {
+	const f = await fixture([
+		"Ocean Season 2/Ocean - 13 (S02E01).mkv",
+		"Ocean Season 2/Ocean - 14 (S02E02).mkv",
+		"Ocean Season 2/Ocean - 15.mkv",
+		"Ocean Season 2/Ocean - 00.mkv",
+	]);
+	f.setData({
+		...details(),
+		titles: [{ value: "Ocean Season 2", kind: "romaji", language: null }],
+	});
+	const items = (await f.catalog.reviews()).items;
+	const engine = new IdentificationApplication({
+		parser: new AnitomyIdentificationParser(),
+		metadata: {
+			search: async () => [
+				{
+					reference,
+					snapshotId: "test-search",
+					titles: ["Ocean Season 2"],
+					year: null,
+					format: "TV",
+					episodeCount: 12,
+					season: "2",
+					part: null,
+				},
+			],
+		},
+	});
+	const results = await engine.identify(
+		items.map((item) => ({
+			canonicalRoot: f.root,
+			relativePath: item.relativePath,
+			fileId: item.fileId,
+			sourceVersion: item.sourceVersion,
+		})),
+	);
+	await f.catalog.publish(results, f.root);
+	let reviews = (await f.catalog.reviews()).items;
+	const converted = required(
+		reviews.find((item) => item.evidence.originalName === "Ocean - 15.mkv"),
+	);
+	expect(converted.associations[0]?.number).toBe("3");
+	expect(converted.evidence.rawEpisodes).toEqual(["15"]);
+	expect(converted.proposals[0]?.mapping.numbering?.offset).toBe(-12);
+	const zero = required(
+		reviews.find((item) => item.evidence.originalName === "Ocean - 00.mkv"),
+	);
+	expect(zero.decision).toBe("pending");
+	const preview = await f.catalog.preview({
+		reference,
+		rows: [
+			{
+				reviewId: zero.id,
+				revision: zero.revision,
+				targets: [{ kind: "special", number: "0", label: "Prologue" }],
+				reason: "Explicit special identity",
+			},
+		],
+	});
+	await f.catalog.confirm({
+		previewId: preview.id,
+		operationKey: "special-zero",
+		replace: false,
+	});
+	await f.restart();
+	reviews = (await f.catalog.reviews()).items;
+	expect(
+		reviews.find((item) => item.id === converted.id)?.associations[0]?.number,
+	).toBe("3");
+	expect(
+		reviews.find((item) => item.id === zero.id)?.associations[0],
+	).toMatchObject({ kind: "special", number: "0", label: "Prologue" });
 });
 
 test("stable episode IDs, mappings and source progress survive rescan refresh and restart", async () => {
@@ -601,6 +678,9 @@ test("HTTP exposes safe typed DTOs, explicit confirmations and actionable valida
 	cleanups.push(() => app.close());
 	const reviewResponse = await app.inject({ url: "/api/catalog/reviews" });
 	expect(reviewResponse.statusCode).toBe(200);
+	expect(reviewResponse.json().items[0].evidence.selectedEpisodes).toEqual(
+		(await f.catalog.reviews()).items[0]?.evidence.selectedEpisodes,
+	);
 	expect(reviewResponse.headers["cache-control"]).toBe("no-store");
 	expect(reviewResponse.body).not.toContain(f.root);
 	const selected = await rows(f);
@@ -1117,6 +1197,7 @@ test("source playback metadata follows local edits, removal and replacement", as
 			{
 				workId: confirmed.workId,
 				workTitle: detail.work.providerTitle,
+				reference,
 				episodeId: episode.id,
 				kind: "regular",
 				number: "3",

@@ -164,6 +164,7 @@ export function reviewFixture(confirmed = false): CatalogReviewItem {
 					{
 						workId: detail.work.id,
 						workTitle: detail.work.displayTitle,
+						reference: detail.work.reference,
 						episodeId: "ep-1",
 						kind: "regular",
 						number: "1",

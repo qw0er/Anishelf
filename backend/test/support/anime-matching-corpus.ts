@@ -1,10 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { automaticProposal } from "../../src/modules/anime/anime-catalog/domain/admission.js";
+import {
+	automaticBlockers,
+	automaticProposal,
+} from "../../src/modules/anime/anime-catalog/domain/admission.js";
 import type { ReviewRecord } from "../../src/modules/anime/anime-catalog/domain/model.js";
-import { catalogPolicy } from "../../src/modules/anime/anime-catalog/policy.js";
 import { IdentificationApplication } from "../../src/modules/anime/identification/application/identification.js";
-import { matchingTitle } from "../../src/modules/anime/identification/domain/title-evidence.js";
 import { AnitomyIdentificationParser } from "../../src/modules/anime/identification/infrastructure/parser.js";
 import { identificationPolicy } from "../../src/modules/anime/identification/policy.js";
 import type {
@@ -12,6 +13,7 @@ import type {
 	WorkCandidate,
 } from "../../src/modules/anime/identification/public.js";
 import { type AnimeCase, corpusDirectory, loadCorpus } from "./anime-corpus.js";
+import { productionNumbering } from "./production-numbering.js";
 
 interface Snapshot {
 	anilist: {
@@ -21,6 +23,25 @@ interface Snapshot {
 		format: string;
 		episodes: number | null;
 		startDate: { year: number | null };
+	};
+}
+function groupSummary(
+	rows: {
+		id: string;
+		expectedDecision: string;
+		admittedWorkId: string | null;
+		unsafe: boolean;
+		missed: boolean;
+	}[],
+) {
+	return {
+		total: rows.length,
+		expectedMatches: rows.filter((row) => row.expectedDecision === "match")
+			.length,
+		correctAdmissions: rows.filter((row) => row.admittedWorkId && !row.unsafe)
+			.length,
+		unsafeAdmissions: rows.filter((row) => row.unsafe).map((row) => row.id),
+		missedMatches: rows.filter((row) => row.missed).map((row) => row.id),
 	};
 }
 export async function matchingCorpusCandidates() {
@@ -72,6 +93,7 @@ function review(result: IdentificationResult): ReviewRecord {
 }
 export async function evaluateMatchingCorpus() {
 	const { corpus, candidates } = await matchingCorpusCandidates();
+	const production = await productionNumbering(corpus);
 	const ids = new Map(
 		candidates.map(({ workId, candidate }) => [candidate.reference.id, workId]),
 	);
@@ -118,18 +140,29 @@ export async function evaluateMatchingCorpus() {
 			if (!item) throw new Error("Missing corpus input");
 			const record = review(result);
 			const proposal = automaticProposal(record);
-			const best = result.proposals[0];
 			const workId = proposal
 				? (ids.get(proposal.candidate.work.reference.id) ?? null)
 				: null;
 			const expected = item.entry.expected;
+			const productionLabel = production.rows.get(item.entry.id);
+			const selectedNumberingDiffers = Boolean(
+				result.evidence.selectedEpisodes &&
+					JSON.stringify(result.evidence.selectedEpisodes.map(Number)) !==
+						JSON.stringify(expected.episodes),
+			);
+			const transformedNumbering = Boolean(
+				proposal?.mapping.numbering ||
+					(result.evidence.selectedEpisodes &&
+						JSON.stringify(result.evidence.selectedEpisodes.map(Number)) !==
+							JSON.stringify(result.evidence.rawEpisodes.map(Number))),
+			);
 			const expectedMovie =
 				candidates.find((work) => work.workId === expected.workId)?.candidate
 					.format === "MOVIE";
 			const candidateIds = result.proposals.map(
 				({ candidate }) => ids.get(candidate.work.reference.id) ?? null,
 			);
-			const unsafe = Boolean(
+			const unsafeIdentity = Boolean(
 				proposal &&
 					(expected.decision !== "match" || workId !== expected.workId),
 			);
@@ -137,19 +170,22 @@ export async function evaluateMatchingCorpus() {
 			// Compare only unchanged, positive integer release numbers, or whole movies.
 			const comparable =
 				expected.decision === "match" &&
-				(expectedMovie ||
+				(Boolean(productionLabel) ||
+					expectedMovie ||
 					Boolean(
 						expected.episodes?.length &&
 							expected.parsed.rawEpisodes?.length &&
 							JSON.stringify(expected.episodes) ===
 								JSON.stringify(expected.parsed.rawEpisodes) &&
+							!proposal?.mapping.numbering &&
+							!(transformedNumbering && selectedNumberingDiffers) &&
 							expected.episodes.every(
 								(number) => Number.isInteger(number) && number > 0,
 							),
 					));
 			const expectedTargets = expectedMovie
 				? ["whole"]
-				: expected.episodes?.map(String);
+				: (productionLabel?.targets ?? expected.episodes?.map(String));
 			const actualTargets =
 				proposal?.mapping.targets.map((target) => target.number) ?? [];
 			const episodeMismatch = Boolean(
@@ -157,28 +193,8 @@ export async function evaluateMatchingCorpus() {
 					comparable &&
 					JSON.stringify(expectedTargets) !== JSON.stringify(actualTargets),
 			);
-			const blockers = best
-				? [...best.candidate.conflicts, ...best.mapping.unresolved]
-				: ["No candidate."];
-			if (best && best.candidate.score < catalogPolicy.automaticMinimumScore)
-				blockers.push("Ranking score below admission minimum.");
-			const next = result.proposals[1];
-			if (
-				best &&
-				next &&
-				best.candidate.score - next.candidate.score <
-					catalogPolicy.automaticMinimumMargin
-			)
-				blockers.push("Insufficient ranking margin.");
-			if (
-				best &&
-				!result.evidence.titles.some((title) =>
-					best.candidate.work.titles.some((alias) =>
-						matchingTitle(title, alias, result.evidence.seasons),
-					),
-				)
-			)
-				blockers.push("No exact title match for admission.");
+			const unsafe = unsafeIdentity || episodeMismatch;
+			const blockers = automaticBlockers(record);
 			rows.push({
 				id: item.id,
 				path: item.path,
@@ -186,7 +202,27 @@ export async function evaluateMatchingCorpus() {
 				expectedDecision: expected.decision,
 				expectedWorkId: expected.workId,
 				expectedEpisodes: expected.episodes,
+				expectedProductionTargets: productionLabel?.targets,
+				episodeComparisonBasis: productionLabel
+					? "frozen-season-local-label"
+					: comparable
+						? "unchanged-numbering"
+						: "unverified-numbering-system",
 				rawEpisodes: result.evidence.rawEpisodes,
+				selectedEpisodes: result.evidence.selectedEpisodes,
+				mappingNumbering: proposal?.mapping.numbering,
+				numbering: result.evidence.numbering,
+				contentKind: result.evidence.contentKind,
+				selectedNumberingDiffers:
+					expected.decision === "match" &&
+					!expectedMovie &&
+					selectedNumberingDiffers,
+				targetNumberingDiffers:
+					expected.decision === "match" &&
+					!expectedMovie &&
+					Boolean(proposal) &&
+					JSON.stringify(actualTargets.map(Number)) !==
+						JSON.stringify(expected.episodes),
 				candidateIds,
 				admittedWorkId: workId,
 				targets: actualTargets,
@@ -200,12 +236,22 @@ export async function evaluateMatchingCorpus() {
 					: "not-comparable",
 				missed: expected.decision === "match" && !proposal,
 				blockers: proposal ? [] : blockers,
+				stages: {
+					candidateFound: candidateIds.includes(expected.workId ?? null),
+					correctTop1: candidateIds[0] === expected.workId,
+					mappingResolved: Boolean(
+						result.proposals[0]?.mapping.targets.length &&
+							!result.proposals[0]?.mapping.unresolved.length,
+					),
+					admitted: Boolean(proposal),
+				},
 				candidates: result.proposals.map(({ candidate, mapping }) => ({
 					workId: ids.get(candidate.work.reference.id),
 					score: candidate.score,
 					reasons: candidate.reasons,
 					conflicts: candidate.conflicts,
 					unresolved: mapping.unresolved,
+					numbering: mapping.numbering,
 				})),
 			});
 		}
@@ -239,6 +285,9 @@ export async function evaluateMatchingCorpus() {
 		comparableAdmittedEpisodes: rows.filter(
 			(row) => row.admittedWorkId && row.episodeComparison !== "not-comparable",
 		).length,
+		admittedDifferentNumbering: rows.filter(
+			(row) => row.admittedWorkId && row.targetNumberingDiffers,
+		).length,
 		expectedMatchTop1: rows.filter(
 			(row) =>
 				row.expectedDecision === "match" &&
@@ -247,10 +296,16 @@ export async function evaluateMatchingCorpus() {
 	};
 	return {
 		corpusVersion: corpus.version,
+		productionNumberingVersion: production.version,
+		productionNumberingBasis: production.basis,
 		matcherVersion: identificationPolicy.matcherVersion,
 		candidateSource:
 			"All 20 frozen AniList projections; no live search or answer-based filtering.",
 		summary,
+		groups: {
+			base: groupSummary(rows.filter((row) => !row.id.includes(":"))),
+			scenario: groupSummary(rows.filter((row) => row.id.includes(":"))),
+		},
 		rows,
 	};
 }

@@ -1960,6 +1960,27 @@ async function selectReviewWork() {
 	await screen.findByLabelText("Episode numbers");
 }
 
+test("Review displays explicit local numbering and previews that number instead of both raw tokens", async () => {
+	const item = mockReview();
+	item.evidence.rawEpisodes = ["29", "01"];
+	item.evidence.selectedEpisodes = ["01"];
+	item.evidence.numbering = "single";
+	renderApp(`/review?item=${item.id}`);
+	await selectReviewWork();
+	expect(
+		(screen.getByLabelText("Episode numbers") as HTMLInputElement).value,
+	).toBe("1");
+	expect(screen.getByText("Selected filename numbers")).toBeTruthy();
+	fireEvent.click(screen.getByRole("button", { name: "Preview association" }));
+	await screen.findByRole("heading", { name: "Association preview" });
+	const call = fetcher.mock.calls.find(
+		([input]) => String(input) === "/api/catalog/previews",
+	);
+	expect(JSON.parse(String(call?.[1]?.body)).rows[0].targets).toEqual([
+		{ kind: "regular", number: "1" },
+	]);
+});
+
 test("failed recognition can be manually looked up, corrected with an offset preview and admitted", async () => {
 	const item = mockReview();
 	renderApp(`/review?item=${item.id}`);

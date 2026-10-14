@@ -32,6 +32,7 @@
 		"fastify": "^5.12.5",
 		"file-type": "^22.1.1",
 		"fontkit": "^2.0.4",
+		"opencc-js": "1.4.2",
 		"pino": "^10.4.0",
 		"platformdirs": "4.3.7",
 		"rotating-file-stream": "^3.2.10",

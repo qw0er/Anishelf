@@ -164,7 +164,6 @@ test("extraction preserves parser fields without filename corrections", async ()
 
 test("multiple parser episode tokens require review and movies remain proposals", async () => {
 	const names = [
-		"Show - 29 (S02E01).mkv",
 		"Show - 12.5.mkv",
 		"Show SP01.mkv",
 		"Show NCOP.mkv",
@@ -184,8 +183,8 @@ test("multiple parser episode tokens require review and movies remain proposals"
 	if (!range || !film) throw new Error("Missing extraction");
 	expect(
 		proposeMapping(range, work).targets.map((target) => target.number),
-	).toEqual([]);
-	expect(range.numbering).toBe("ambiguous");
+	).toEqual(["1", "2", "3"]);
+	expect(range.numbering).toBe("range");
 	expect(proposeMapping(film, movie).targets).toEqual([
 		{ kind: "movie", number: "whole" },
 	]);

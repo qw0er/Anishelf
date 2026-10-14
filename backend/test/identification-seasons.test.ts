@@ -59,6 +59,33 @@ test("first-season files with exact titles and valid episodes are admitted", asy
 	]);
 	expect(admitted?.mapping.targets).toEqual([{ kind: "regular", number: "4" }]);
 });
+test("Chinese ancestor and leaf season contradictions block admission", async () => {
+	const { admitted, result } = await identify(
+		"Example 第二季/Example S01E01.mkv",
+		[candidate("1", ["Example"]), candidate("2", ["Example Season 2"])],
+	);
+	expect(admitted).toBeNull();
+	expect(result.proposals[0]?.candidate.conflicts).toContain(
+		"Source series season evidence is contradictory.",
+	);
+});
+test("explicit movie leaf beats a broad TV ancestor", async () => {
+	const { admitted } = await identify(
+		"Violet Evergarden/Violet Evergarden The Movie.mp4",
+		[
+			candidate("1", ["Violet Evergarden"]),
+			{
+				...candidate("2", ["Violet Evergarden The Movie"]),
+				format: "MOVIE",
+				episodeCount: 1,
+			},
+		],
+	);
+	expect(admitted?.candidate.work.reference.id).toBe("2");
+	expect(admitted?.mapping.targets).toEqual([
+		{ kind: "movie", number: "whole" },
+	]);
+});
 test("explicit second-season titles beat a shared first-season alias", async () => {
 	const { admitted, queries } = await identify("Example S2 - 09.mkv", [
 		candidate("1", ["Example"]),

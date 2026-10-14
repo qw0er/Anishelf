@@ -1,0 +1,368 @@
+{
+	"schemaVersion": 1,
+	"version": "2026-10-15.1",
+	"corpusVersion": "2026-10-11.2",
+	"basis": "Season-local source numbering is independently labelled in the corpus or explicit SxxEyy filename syntax, corroborated by frozen same-work Bangumi ep values and AniList count bounds. No cross-provider offset is inferred, and no canonical AniList episode catalog is claimed.",
+	"rows": [
+		{
+			"caseId": "frieren-2-release-2-file-01",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [38],
+			"targets": ["10"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "frieren-2-release-3-file-01",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [37],
+			"targets": ["9"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "apothecary-2-release-1-file-03",
+			"workId": "apothecary-2",
+			"snapshot": "provider-snapshots/apothecary-2.json",
+			"providerId": "176301",
+			"expectedSorts": [37],
+			"targets": ["13"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "apothecary-2-release-1-file-04",
+			"workId": "apothecary-2",
+			"snapshot": "provider-snapshots/apothecary-2.json",
+			"providerId": "176301",
+			"expectedSorts": [42],
+			"targets": ["18"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "oshi-release-2-file-01",
+			"workId": "oshi-2",
+			"snapshot": "provider-snapshots/oshi-2.json",
+			"providerId": "166531",
+			"expectedSorts": [15],
+			"targets": ["4"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "oshi-release-3-file-01",
+			"workId": "oshi-2",
+			"snapshot": "provider-snapshots/oshi-2.json",
+			"providerId": "166531",
+			"expectedSorts": [14],
+			"targets": ["3"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "oshi-2-release-2-file-01",
+			"workId": "oshi-2",
+			"snapshot": "provider-snapshots/oshi-2.json",
+			"providerId": "166531",
+			"expectedSorts": [19],
+			"targets": ["8"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "oshi-2-release-3-file-01",
+			"workId": "oshi-2",
+			"snapshot": "provider-snapshots/oshi-2.json",
+			"providerId": "166531",
+			"expectedSorts": [18],
+			"targets": ["7"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2115493-file-001",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [29],
+			"targets": ["1"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2115493-file-002",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [30],
+			"targets": ["2"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2115493-file-003",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [31],
+			"targets": ["3"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2115493-file-004",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [32],
+			"targets": ["4"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2115493-file-005",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [33],
+			"targets": ["5"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2115493-file-006",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [34],
+			"targets": ["6"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2115493-file-007",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [35],
+			"targets": ["7"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2115493-file-008",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [36],
+			"targets": ["8"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2115493-file-009",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [37],
+			"targets": ["9"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2115493-file-010",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [38],
+			"targets": ["10"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2106580-file-001",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [29],
+			"targets": ["1"],
+			"basis": "explicit-season-local-filename"
+		},
+		{
+			"caseId": "nyaa-2106580-file-002",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [30],
+			"targets": ["2"],
+			"basis": "explicit-season-local-filename"
+		},
+		{
+			"caseId": "nyaa-2106580-file-003",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [31],
+			"targets": ["3"],
+			"basis": "explicit-season-local-filename"
+		},
+		{
+			"caseId": "nyaa-2106580-file-004",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [32],
+			"targets": ["4"],
+			"basis": "explicit-season-local-filename"
+		},
+		{
+			"caseId": "nyaa-2106580-file-005",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [33],
+			"targets": ["5"],
+			"basis": "explicit-season-local-filename"
+		},
+		{
+			"caseId": "nyaa-2106580-file-006",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [34],
+			"targets": ["6"],
+			"basis": "explicit-season-local-filename"
+		},
+		{
+			"caseId": "nyaa-2106580-file-007",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [35],
+			"targets": ["7"],
+			"basis": "explicit-season-local-filename"
+		},
+		{
+			"caseId": "nyaa-2106580-file-008",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [36],
+			"targets": ["8"],
+			"basis": "explicit-season-local-filename"
+		},
+		{
+			"caseId": "nyaa-2106580-file-009",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [37],
+			"targets": ["9"],
+			"basis": "explicit-season-local-filename"
+		},
+		{
+			"caseId": "nyaa-2106580-file-010",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [38],
+			"targets": ["10"],
+			"basis": "explicit-season-local-filename"
+		},
+		{
+			"caseId": "nyaa-2097365-file-001",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [29],
+			"targets": ["1"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2097365-file-002",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [30],
+			"targets": ["2"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2097365-file-003",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [31],
+			"targets": ["3"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2097365-file-004",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [32],
+			"targets": ["4"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2097365-file-005",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [33],
+			"targets": ["5"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2097365-file-006",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [34],
+			"targets": ["6"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2097365-file-007",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [35],
+			"targets": ["7"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2097365-file-008",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [36],
+			"targets": ["8"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2097365-file-009",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [37],
+			"targets": ["9"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-2097365-file-010",
+			"workId": "frieren-2",
+			"snapshot": "provider-snapshots/frieren-2.json",
+			"providerId": "182255",
+			"expectedSorts": [38],
+			"targets": ["10"],
+			"basis": "curated-local-numbering"
+		},
+		{
+			"caseId": "nyaa-1869969-file-027",
+			"workId": "spy-2",
+			"snapshot": "provider-snapshots/spy-2.json",
+			"providerId": "158927",
+			"expectedSorts": [26],
+			"targets": ["1"],
+			"basis": "explicit-season-local-filename"
+		},
+		{
+			"caseId": "nyaa-1869969-file-038",
+			"workId": "spy-2",
+			"snapshot": "provider-snapshots/spy-2.json",
+			"providerId": "158927",
+			"expectedSorts": [37],
+			"targets": ["12"],
+			"basis": "explicit-season-local-filename"
+		}
+	]
+}

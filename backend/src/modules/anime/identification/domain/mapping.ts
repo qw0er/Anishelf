@@ -9,6 +9,7 @@ export function proposeMapping(
 	evidence: ExtractionEvidence,
 	work: WorkCandidate,
 ): MappingProposal {
+	const episodes = evidence.selectedEpisodes ?? evidence.rawEpisodes;
 	const result: MappingProposal = {
 		targets: [],
 		reasons: [],
@@ -33,8 +34,13 @@ export function proposeMapping(
 		result.unresolved.push(
 			"Non-integer episode identifiers require an explicit correction.",
 		);
-	else {
-		const numbers = evidence.rawEpisodes.map(Number);
+	else if (episodes.length === 1 && Number(episodes[0]) === 0) {
+		result.targets = [{ kind: "special", number: "0" }];
+		result.unresolved.push(
+			"Episode zero requires an explicit special identity and label, or selection of its separate provider work.",
+		);
+	} else {
+		const numbers = episodes.map(Number);
 		const start = numbers[0] ?? 0;
 		const end = numbers.at(-1) ?? start;
 		if (

@@ -8,6 +8,7 @@ import type {
 	IdentificationResult,
 	WorkCandidate,
 } from "../domain/model.js";
+import { applyNumberingContext } from "../domain/numbering-context.js";
 import { identificationPolicy as policy } from "../policy.js";
 import type { IdentificationMetadata, IdentificationParser } from "../ports.js";
 import type { IdentificationApi } from "../public.js";
@@ -132,8 +133,18 @@ export class IdentificationApplication implements IdentificationApi {
 				if (evidence.seasons.length === 1 && Number(evidence.seasons[0]) > 1) {
 					const title = evidence.titles[0];
 					if (title)
-						searchTitles.push(`${title} Season ${Number(evidence.seasons[0])}`);
+						searchTitles.splice(
+							1,
+							0,
+							`${title} Season ${Number(evidence.seasons[0])}`,
+						);
 				}
+				if (evidence.parts.length === 1 && evidence.titles[0])
+					searchTitles.splice(
+						2,
+						0,
+						`${evidence.titles[0]} Part ${Number(evidence.parts[0])}`,
+					);
 				for (const title of [...new Set(searchTitles)].slice(
 					0,
 					policy.maximumQueries,
@@ -173,6 +184,8 @@ export class IdentificationApplication implements IdentificationApi {
 			signal.throwIfAborted();
 			results.push(result);
 		}
+		applyNumberingContext(results);
+		signal.throwIfAborted();
 		return results;
 	}
 	private async search(

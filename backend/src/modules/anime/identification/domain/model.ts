@@ -16,6 +16,7 @@ export interface WorkCandidate {
 	/** Series ordinal; never the provider's calendar airing season. */
 	season: string | null;
 	part: string | null;
+	ordinalSource?: "provider-title";
 }
 export interface RankedCandidate {
 	work: WorkCandidate;
@@ -47,6 +48,8 @@ export interface ExtractionEvidence {
 	seasons: string[];
 	parts: string[];
 	rawEpisodes: string[];
+	/** Explicitly selected leaf numbers; raw release tokens remain available. */
+	selectedEpisodes?: string[];
 	/** Interpret only leaf numbering; ancestor batch ranges are context. */
 	numbering: "single" | "range" | "ambiguous" | "unknown";
 	contentKind: "regular" | "special" | "ancillary" | "unknown";
@@ -59,6 +62,11 @@ export interface MappingProposal {
 	targets: EpisodeTarget[];
 	reasons: string[];
 	unresolved: string[];
+	numbering?: {
+		source: "directory-anchors";
+		offset: number;
+		anchors: { fileId: string; sourceVersion: string }[];
+	};
 }
 /** One possible interpretation, never a committed association. */
 interface WorkProposal {
