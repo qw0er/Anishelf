@@ -60,6 +60,7 @@ export async function createAnimeModule(options: {
 					detail: (id) => catalog.detail(id),
 					source: (id) => catalog.source(id),
 					review: (id) => catalog.review(id),
+					fileReviews: (ids) => catalog.fileReviews(ids),
 					reviews: (input) => catalog.reviews(input),
 					preview: (input) => catalog.preview(input),
 					confirm: (input) => catalog.confirm(input),

@@ -128,6 +128,18 @@ beforeEach(() => {
 			path.startsWith("/api/preparations?")
 		)
 			return json({ tasks: preparationTasks });
+		if (path === "/api/catalog/file-reviews") return json([]);
+		if (path.startsWith("/api/catalog/reviews?"))
+			return json({ items: [], page: 1, perPage: 20, hasNextPage: false });
+		if (path.includes("/airing?"))
+			return json({
+				snapshotId: "airing",
+				fetchedAt: 1,
+				stale: false,
+				refreshing: false,
+				refreshError: null,
+				data: { items: [], page: 1, perPage: 25, hasNextPage: false },
+			});
 		if (path === "/api/anime/identification")
 			return json({ running: false, failed: false });
 		if (path === "/api/catalog/sources/file-1")
@@ -2133,4 +2145,182 @@ test("a failed confirmation retains the form and reuses its preview operation ke
 		.map(([, init]) => JSON.parse(String(init?.body)));
 	expect(requests).toHaveLength(2);
 	expect(requests[1]).toEqual(requests[0]);
+});
+
+test("Files shows associations and opens the selected review while direct playback stays accessible", async () => {
+	const item = reviewFixture(true);
+	const fallback = fetcher.getMockImplementation();
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === "/api/catalog/file-reviews") return json([item]);
+		if (String(input) === `/api/catalog/reviews/${item.id}`) return json(item);
+		if (!fallback) throw new Error("Missing fixture");
+		return fallback(input, init);
+	});
+	renderApp("/directories/season-1");
+	const association = await screen.findByRole("link", {
+		name: "Frieren · Episode 1",
+	});
+	expect(association.getAttribute("href")).toBe("/anime/work-1#episode-ep-1");
+	expect(screen.getByRole("link", { name: "Episode 01.mp4" })).toBeTruthy();
+	const review = screen.getByRole("link", { name: "Correct associations" });
+	expect(review.getAttribute("href")).toBe(`/review?item=${item.id}`);
+	fireEvent.click(review);
+	await screen.findByText(item.evidence.originalName);
+	expect(screen.getByTestId("location").textContent).toContain(
+		`item=${item.id}`,
+	);
+});
+
+test("file identification failure offers retry without preventing playback", async () => {
+	const fallback = fetcher.getMockImplementation();
+	let failed = true;
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === "/api/catalog/file-reviews")
+			return failed
+				? json(
+						{ error: { code: "CATALOG_UNAVAILABLE", message: "Offline" } },
+						503,
+					)
+				: json([]);
+		if (!fallback) throw new Error("Missing fixture");
+		return fallback(input, init);
+	});
+	renderApp("/directories/season-1");
+	await screen.findByText(/Could not load file identification/);
+	expect(screen.getByRole("link", { name: "Episode 01.mp4" })).toBeTruthy();
+	failed = false;
+	fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+	await screen.findByText("Awaiting identification");
+});
+
+test("details distinguish scheduled count-derived slots from manual mappings and list unresolved candidates", async () => {
+	const detail = animeFixture();
+	const item = reviewFixture();
+	mockAnime(detail);
+	const fallback = fetcher.getMockImplementation();
+	fetcher.mockImplementation(async (input, init) => {
+		const path = String(input);
+		if (path.includes("/airing?"))
+			return json({
+				snapshotId: "airing",
+				fetchedAt: Date.now(),
+				stale: false,
+				refreshing: false,
+				refreshError: null,
+				data: {
+					items: [2, 3].map((episode) => ({
+						id: String(episode),
+						episode,
+						airingAt: Math.floor(Date.now() / 1000) + 86400,
+					})),
+					page: 1,
+					perPage: 25,
+					hasNextPage: false,
+				},
+			});
+		if (path.startsWith("/api/catalog/reviews?")) {
+			expect(new URL(path, "http://localhost").searchParams.get("workId")).toBe(
+				detail.work.id,
+			);
+			return json({ items: [item], page: 1, perPage: 20, hasNextPage: false });
+		}
+		if (!fallback) throw new Error("Missing fixture");
+		return fallback(input, init);
+	});
+	renderApp("/anime/work-1");
+	await screen.findByRole("link", { name: item.relativePath });
+	await waitFor(() =>
+		expect(document.getElementById("episode-ep-3")?.textContent).toContain(
+			"Not yet aired",
+		),
+	);
+	expect(document.getElementById("episode-ep-2")?.textContent).toContain(
+		"Local files unavailable",
+	);
+	expect(
+		screen.getByRole("link", { name: item.relativePath }).getAttribute("href"),
+	).toBe(`/review?item=${item.id}`);
+	expect(
+		screen
+			.getByRole("button", { name: "Play: Episode 3" })
+			.hasAttribute("disabled"),
+	).toBe(true);
+});
+
+test("Files updates current associations when automatic recognition completes", async () => {
+	const item = reviewFixture(true);
+	const fallback = fetcher.getMockImplementation();
+	let running = true;
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === "/api/anime/identification")
+			return json({ running, failed: false });
+		if (String(input) === "/api/catalog/file-reviews")
+			return json(running ? [] : [item]);
+		if (!fallback) throw new Error("Missing fixture");
+		return fallback(input, init);
+	});
+	renderApp("/directories/season-1");
+	await screen.findByText("Awaiting identification");
+	running = false;
+	await act(async () => {
+		await queryClient.invalidateQueries({ queryKey: ["identification"] });
+	});
+	await screen.findByRole("link", { name: "Frieren · Episode 1" });
+	expect(
+		fetcher.mock.calls.filter(
+			([path]) => String(path) === "/api/catalog/file-reviews",
+		).length,
+	).toBeGreaterThan(1);
+});
+
+test("airing pagination retains browsing and unknown schedule evidence never marks a slot unaired", async () => {
+	mockAnime(animeFixture());
+	const fallback = fetcher.getMockImplementation();
+	fetcher.mockImplementation(async (input, init) => {
+		const path = String(input);
+		if (path.includes("/airing?")) {
+			const page = Number(
+				new URL(path, "http://localhost").searchParams.get("page"),
+			);
+			return json({
+				snapshotId: "airing",
+				fetchedAt: Date.now(),
+				stale: false,
+				refreshing: false,
+				refreshError: null,
+				data: {
+					items:
+						page === 1
+							? []
+							: [
+									{
+										id: "ep3",
+										episode: 3,
+										airingAt: Math.floor(Date.now() / 1000) + 86400,
+									},
+								],
+					page,
+					perPage: 25,
+					hasNextPage: page === 1,
+				},
+			});
+		}
+		if (!fallback) throw new Error("Missing fixture");
+		return fallback(input, init);
+	});
+	renderApp("/anime/work-1");
+	await screen.findByText("Episode 3");
+	expect(document.getElementById("episode-ep-3")?.textContent).toContain(
+		"Airing information is unknown",
+	);
+	fireEvent.click(screen.getByText("Provider airing schedule"));
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Load more airing records" }),
+	);
+	await waitFor(() =>
+		expect(document.getElementById("episode-ep-3")?.textContent).toContain(
+			"Not yet aired",
+		),
+	);
+	expect(screen.getByRole("button", { name: "Play: Episode 1" })).toBeTruthy();
 });

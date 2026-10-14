@@ -111,7 +111,8 @@ local records and playback history. Later scans do not undo either decision.
 | `GET /api/catalog/works/:id` | Cached metadata, ordered episodes and source versions |
 | `GET /api/catalog/works/:id/artwork/:kind` | Validated cover/banner bytes from the retained snapshot; active-root access |
 | `GET /api/catalog/reviews/:id` | Active-root review evidence and current work/episode associations |
-| `GET /api/catalog/reviews` | Paginated pending/confirmed/rejected decisions and recognition evidence |
+| `GET /api/catalog/reviews` | Paginated pending/confirmed/rejected decisions and recognition evidence; optional `workId` filters qualified work candidates |
+| `POST /api/catalog/file-reviews` | Read current-source-version reviews for at most 100 distinct file IDs in the active root |
 | `POST /api/catalog/previews` | Preview selected mappings and replacements |
 | `POST /api/catalog/confirmations` | Atomically confirm/reassign selected rows |
 | `POST /api/catalog/reviews/:id/reject` | Persist rejection and reason |
@@ -208,3 +209,22 @@ use reassociation in Review.
 `GET /api/anime/identification` exposes only running/failure status. The Web polls
 while recognition is running and invalidates Catalog queries when it finishes, so
 automatically admitted anime appear without requiring a manual page reload.
+
+## Files identification and detail states
+
+Files reads identification decisions in bounded batches and shows work/episode
+links and direct Review entry points beside original filenames. Files without a
+published current-version review remain awaiting identification; replaced sources
+never inherit the previous version's association. Recognition running/failure
+feedback is visible without blocking direct playback. App composes these Anime
+controls into Resource browsing through presentation slots.
+
+Work details list paginated pending files whose qualified candidates include the
+work's provider reference. These are possible associations, not confirmed versions;
+files without a work candidate remain accessible through the global Review list.
+A separate paginated provider airing schedule supplies dates. Only fresh, explicit
+future records can label missing count-derived regular slots as not yet aired.
+Available files, unavailable associated versions and manual mappings retain their
+source/mapping states. Missing or stale schedule evidence remains unknown, and
+schedule records never create associations or numbering offsets. Provider failures
+preserve detail browsing and playback and offer contextual retry.

@@ -1,4 +1,5 @@
 export {
+	airingQuery,
 	identificationQuery,
 	metadataDetailQuery,
 	metadataSearchQuery,

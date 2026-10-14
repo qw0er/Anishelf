@@ -1,3 +1,4 @@
+import { DomainError } from "../../../../shared/errors.js";
 import { resourceRootId } from "../../../resources/public.js";
 import type { IdentificationResult } from "../../identification/public.js";
 import { conflict, invalid, text } from "../domain/mapping.js";
@@ -52,6 +53,46 @@ export class ReviewApplication {
 					: [],
 		};
 	}
+	async fileReviews(fileIds: string[]): Promise<ReviewItem[]> {
+		if (fileIds.length > 100 || new Set(fileIds).size !== fileIds.length)
+			invalid("Select at most 100 distinct files.");
+		const root = await this.context.root();
+		const items: ReviewItem[] = [];
+		for (const fileId of fileIds) {
+			text(fileId, 200);
+			try {
+				const resolved =
+					await this.context.options.sources.resolveSource(fileId);
+				this.context.options.sources.assertRootEpoch(root.epoch);
+				const source = this.context.options.store.registerSource(
+					resolved.identity,
+				);
+				const record = this.context.options.store.review(source.id);
+				if (record)
+					items.push(
+						safeReview(
+							record,
+							await this.context.available(record, root.epoch),
+							this.associations(record.id),
+						),
+					);
+			} catch (error) {
+				this.context.options.sources.assertRootEpoch(root.epoch);
+				if (
+					!(error instanceof DomainError) ||
+					![
+						"RESOURCE_NOT_FOUND",
+						"RESOURCE_MISSING",
+						"RESOURCE_UNREADABLE",
+						"RESOURCE_ACCESS_DENIED",
+					].includes(error.code)
+				)
+					throw error;
+			}
+		}
+		this.context.options.sources.assertRootEpoch(root.epoch);
+		return items;
+	}
 	async get(id: string): Promise<ReviewItem> {
 		const root = await this.context.root();
 		const record = this.context.requireReview(id, root.rootId);
@@ -68,12 +109,21 @@ export class ReviewApplication {
 			!["pending", "confirmed", "rejected"].includes(options.decision)
 		)
 			invalid("Unknown review decision.");
+		const reference = options.workId
+			? (() => {
+					this.context.requireWork(options.workId, root.rootId);
+					const link = this.context.options.store.link(options.workId);
+					if (!link) throw new Error("Provider link is missing.");
+					return link.reference;
+				})()
+			: undefined;
 		const pagination = page(options);
 		const result = this.context.options.store.reviews(
 			root.rootId,
 			options.decision,
 			pagination.page,
 			pagination.perPage,
+			reference,
 		);
 		const items: ReviewItem[] = [];
 		for (const item of result.items)

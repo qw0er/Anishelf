@@ -31,7 +31,9 @@ export interface AnimeCatalogApi {
 		associations: ReviewItem["associations"];
 	}>;
 	review(id: string): Promise<ReviewItem>;
+	fileReviews(fileIds: string[]): Promise<ReviewItem[]>;
 	reviews(options?: {
+		workId?: string;
 		decision?: ReviewItem["decision"];
 		page?: number;
 		perPage?: number;

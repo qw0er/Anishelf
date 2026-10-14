@@ -1,7 +1,9 @@
 import { type RequestOptions, request } from "../../../shared/api/client.js";
 import type {
 	CatalogDetailResponse,
+	CatalogFileReviewsResponse,
 	CatalogListResponse,
+	CatalogReviewResponse,
 	CatalogSourceResponse,
 } from "../../../shared/api/contracts.js";
 
@@ -77,3 +79,19 @@ export const getSource = (
 	options?: RequestOptions,
 ): Promise<CatalogSourceResponse> =>
 	request(`/api/catalog/sources/${encodeURIComponent(id)}`, "GET", options);
+
+export const getFileReviews = (
+	fileIds: string[],
+	options?: RequestOptions,
+): Promise<CatalogFileReviewsResponse> =>
+	request("/api/catalog/file-reviews", "POST", options, { fileIds });
+export const getWorkReviews = (
+	workId: string,
+	page: number,
+	options?: RequestOptions,
+): Promise<CatalogReviewResponse> =>
+	request(
+		`/api/catalog/reviews?${new URLSearchParams({ workId, decision: "pending", page: String(page), perPage: "20" })}`,
+		"GET",
+		options,
+	);
