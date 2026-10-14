@@ -1,0 +1,26 @@
+import { useTranslation } from "react-i18next";
+import { Button } from "../../../../shared/components/ui/button.js";
+import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
+
+export function ErrorMessage({
+	error,
+	retry,
+}: {
+	error: unknown;
+	retry?: () => void;
+}) {
+	const { t } = useTranslation();
+	return (
+		<div
+			role="alert"
+			className="space-y-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm"
+		>
+			<p>{t(getErrorTranslationKey(error) ?? "errors.requestFailed")}</p>
+			{retry && (
+				<Button variant="outline" onClick={retry}>
+					{t("actions.retry")}
+				</Button>
+			)}
+		</div>
+	);
+}

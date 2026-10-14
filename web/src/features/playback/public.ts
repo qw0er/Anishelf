@@ -1,4 +1,4 @@
-export { historyQuery } from "./services.js";
+export { historyQuery } from "./history/queries.js";
 
 import type { ReactNode } from "react";
 import type { CompatibilityResult } from "../../shared/api/contracts.js";

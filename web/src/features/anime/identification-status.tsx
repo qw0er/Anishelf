@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useQueryScope } from "../../../shared/api/queries.js";
-import { identificationQuery } from "../queries.js";
+import { useQueryScope } from "../../shared/api/queries.js";
+import { identificationQuery } from "./metadata/public.js";
 
 export function IdentificationStatus() {
 	const { t } = useTranslation();

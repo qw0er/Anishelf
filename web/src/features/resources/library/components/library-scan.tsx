@@ -11,10 +11,10 @@ import {
 import { Spinner } from "../../../../shared/components/ui/spinner.js";
 import { useDelayedPending } from "../../../../shared/hooks/use-delayed-pending.js";
 import { getScanWarningTranslationKey } from "../../../../shared/lib/error-translation.js";
-import type { LibraryContext } from "../public.js";
+import type { LibraryScanState } from "../public.js";
 
 type LibraryScanProps = Pick<
-	LibraryContext,
+	LibraryScanState,
 	| "library"
 	| "settings"
 	| "libraryError"

@@ -2065,3 +2065,72 @@ test("review removal stays separate from correction and retains explicit consent
 	fireEvent.click(screen.getByRole("button", { name: "Remove associations" }));
 	await waitFor(() => expect(item.decision).toBe("rejected"));
 });
+
+test("editing mapped numbers invalidates the previous association preview", async () => {
+	const item = mockReview(true);
+	renderApp(`/review?item=${item.id}`);
+	await selectReviewWork();
+	fireEvent.click(screen.getByRole("button", { name: "Preview association" }));
+	await screen.findByRole("heading", { name: "Association preview" });
+	fireEvent.click(screen.getByRole("checkbox", { name: /Explicitly replace/ }));
+	fireEvent.change(screen.getByLabelText("Episode numbers"), {
+		target: { value: "2" },
+	});
+	expect(
+		screen.queryByRole("button", { name: "Confirm association" }),
+	).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Preview association" }));
+	expect(
+		(
+			await screen.findByRole("button", { name: "Confirm association" })
+		).hasAttribute("disabled"),
+	).toBe(true);
+});
+
+test("a failed confirmation retains the form and reuses its preview operation key on retry", async () => {
+	const item = mockReview();
+	const fallback = fetcher.getMockImplementation();
+	let attempts = 0;
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === "/api/catalog/confirmations" && attempts++ === 0)
+			return json(
+				{
+					error: {
+						code: "CATALOG_UNAVAILABLE",
+						message: "Try again",
+						requestId: "retry",
+					},
+				},
+				503,
+			);
+		if (!fallback) throw new Error("Missing fixture");
+		return fallback(input, init);
+	});
+	renderApp(`/review?item=${item.id}`);
+	await selectReviewWork();
+	fireEvent.change(screen.getByLabelText("Episode numbers"), {
+		target: { value: "3" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Preview association" }));
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Confirm association" }),
+	);
+	await screen.findByRole("alert");
+	expect(
+		(screen.getByLabelText("Episode numbers") as HTMLInputElement).value,
+	).toBe("3");
+	await waitFor(() =>
+		expect(
+			screen
+				.getByRole("button", { name: "Confirm association" })
+				.hasAttribute("disabled"),
+		).toBe(false),
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Confirm association" }));
+	await screen.findByRole("link", { name: "Open anime" });
+	const requests = fetcher.mock.calls
+		.filter(([url]) => url === "/api/catalog/confirmations")
+		.map(([, init]) => JSON.parse(String(init?.body)));
+	expect(requests).toHaveLength(2);
+	expect(requests[1]).toEqual(requests[0]);
+});
