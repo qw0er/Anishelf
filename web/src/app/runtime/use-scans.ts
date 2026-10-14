@@ -4,7 +4,10 @@ import { useTranslation } from "react-i18next";
 import { startScan as startScanRequest } from "../../features/resources/public.js";
 import type { LibraryResponse } from "../../shared/api/contracts.js";
 import { toast } from "../../shared/components/ui/toast.js";
-import { getErrorTranslationKey } from "../../shared/lib/error-translation.js";
+import {
+	getErrorTranslationKey,
+	getScanWarningTranslationKey,
+} from "../../shared/lib/error-translation.js";
 export function useScans(library: LibraryResponse | null) {
 	const { t } = useTranslation();
 	const client = useQueryClient();
@@ -35,15 +38,37 @@ export function useScans(library: LibraryResponse | null) {
 			void client.invalidateQueries({ queryKey: ["history"] });
 			void client.invalidateQueries({ queryKey: ["catalog"] });
 			void client.invalidateQueries({ queryKey: ["identification"] });
+			const warningDetails = scan.warnings.messages
+				.map((message) => {
+					const key = getScanWarningTranslationKey(message);
+					return key ? t(key) : message;
+				})
+				.join(" · ");
+			const description = [
+				t("scan.visitedEntries", {
+					count: scan.visitedCount,
+					matched: scan.matchedCount,
+				}),
+				warningDetails,
+			]
+				.filter(Boolean)
+				.join(" · ");
 			if (scan.warnings.count > 0)
 				toast.add({
 					type: "warning",
 					title: t("scan.completedWithWarnings", {
 						count: scan.warnings.count,
 					}),
+					description,
 					id,
 				});
-			else toast.add({ type: "success", title: t("scan.completed"), id });
+			else
+				toast.add({
+					type: "success",
+					title: t("scan.completed"),
+					description,
+					id,
+				});
 		} else if (scan.status === "failed") {
 			toast.add({
 				type: "error",

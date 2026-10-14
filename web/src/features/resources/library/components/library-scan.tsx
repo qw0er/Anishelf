@@ -2,22 +2,14 @@ import { RefreshCw, ScanLine } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { Button } from "../../../../shared/components/ui/button.js";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "../../../../shared/components/ui/card.js";
 import { Spinner } from "../../../../shared/components/ui/spinner.js";
 import { useDelayedPending } from "../../../../shared/hooks/use-delayed-pending.js";
-import { getScanWarningTranslationKey } from "../../../../shared/lib/error-translation.js";
 import type { LibraryScanState } from "../public.js";
 
 type LibraryScanProps = Pick<
 	LibraryScanState,
 	| "library"
 	| "settings"
-	| "libraryError"
 	| "scanning"
 	| "scanPending"
 	| "scanSubmitting"
@@ -26,10 +18,8 @@ type LibraryScanProps = Pick<
 	| "startScan"
 >;
 
-export default function LibraryScan({
+export function LibraryScanActions({
 	library,
-	settings,
-	libraryError,
 	scanning,
 	scanPending,
 	scanSubmitting,
@@ -38,125 +28,72 @@ export default function LibraryScan({
 	startScan,
 }: LibraryScanProps) {
 	const { t } = useTranslation();
-	const scan = library?.scan;
-	const setupRequired = settings?.resourceRoot === null;
-	const showScanning = useDelayedPending(scanning);
 	const showSubmitting = useDelayedPending(scanSubmitting);
 	const showRefreshing = useDelayedPending(refreshing);
-	const scanStatusKey = scan
-		? `scan.status${scan.status[0]?.toUpperCase()}${scan.status.slice(1)}`
-		: "scan.statusNotStarted";
+	const showScanning = useDelayedPending(scanning);
 
 	return (
-		<Card className="gap-3 py-4">
-			<CardHeader className="gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-				<div className="flex min-w-0 flex-col gap-1">
-					<CardTitle>{t("scan.title")}</CardTitle>
-					<div
-						className="text-sm text-muted-foreground"
-						role="status"
-						aria-live="polite"
-					>
-						<p className="inline-flex items-center gap-2">
-							<span className="inline-flex size-4 shrink-0">
-								{showScanning && <Spinner />}
-							</span>
-							{t("scan.status", { status: t(scanStatusKey) })}
-						</p>
-						{scan && (
-							<details>
-								<summary className="cursor-pointer">
-									{t("scan.details")}
-								</summary>
-								<p>
-									{t("scan.visitedEntries", {
-										count: scan.visitedCount,
-										matched: scan.matchedCount,
-									})}
-								</p>
-							</details>
-						)}
-					</div>
-				</div>
-				<div className="action-row">
-					<Button
-						type="button"
-						disabled={scanPending || scanning || !library?.ready}
-						aria-busy={scanPending}
-						onClick={startScan}
-					>
-						{showSubmitting ? (
-							<Spinner />
-						) : (
-							<ScanLine size={16} aria-hidden="true" />
-						)}
-						{t("scan.start")}
-					</Button>
-					<Button
-						type="button"
-						variant="outline"
-						disabled={refreshing}
-						aria-busy={refreshing}
-						onClick={reload}
-					>
-						{showRefreshing ? (
-							<Spinner />
-						) : (
-							<RefreshCw size={16} aria-hidden="true" />
-						)}
-						{t("scan.refresh")}
-					</Button>
-				</div>
-			</CardHeader>
-			{(scan?.warnings.count ||
-				library?.stale ||
-				library?.error ||
-				libraryError ||
-				!settings?.resourceRoot) && (
-				<CardContent className="flex min-w-0 flex-col gap-2 text-sm">
-					{!settings?.resourceRoot && settings && (
-						<p>
-							<Trans
-								i18nKey="scan.setupRequired"
-								components={{
-									settings: <Link className="underline" to="/settings" />,
-								}}
-							/>
-						</p>
-					)}
-					{scan && scan.warnings.count > 0 && (
-						<details>
-							<summary className="cursor-pointer">
-								{t("scan.warnings", { count: scan.warnings.count })}
-							</summary>
-							<ul className="flex min-w-0 flex-col gap-1 list-disc pl-4">
-								{scan.warnings.messages.map((message) => (
-									<li key={message}>
-										{getScanWarningTranslationKey(message)
-											? t(getScanWarningTranslationKey(message) ?? "")
-											: message}
-									</li>
-								))}
-							</ul>
-						</details>
-					)}
-					{library?.stale && <p>{t("scan.stale")}</p>}
-					{library?.error &&
-						!(
-							setupRequired &&
-							library.error.code === "RESOURCE_ROOT_NOT_CONFIGURED"
-						) && (
-							<p className="text-base text-destructive" role="alert">
-								{t(`errors.api.${library.error.code}`)}
-							</p>
-						)}
-					{libraryError && (
-						<p className="text-base text-destructive" role="alert">
-							{t(libraryError)}
-						</p>
-					)}
-				</CardContent>
-			)}
-		</Card>
+		<>
+			<Button
+				type="button"
+				disabled={scanPending || scanning || !library?.ready}
+				aria-busy={scanPending || scanning}
+				onClick={startScan}
+			>
+				{showSubmitting || showScanning ? (
+					<Spinner />
+				) : (
+					<ScanLine size={16} aria-hidden="true" />
+				)}
+				{t("scan.start")}
+			</Button>
+			<Button
+				type="button"
+				variant="outline"
+				disabled={refreshing}
+				aria-busy={refreshing}
+				onClick={reload}
+			>
+				{showRefreshing ? (
+					<Spinner />
+				) : (
+					<RefreshCw size={16} aria-hidden="true" />
+				)}
+				{t("scan.refresh")}
+			</Button>
+		</>
+	);
+}
+
+export default function LibraryScan({
+	library,
+	settings,
+}: Pick<LibraryScanState, "library" | "settings">) {
+	const { t } = useTranslation();
+	const hasNotices = Boolean(
+		library?.stale || (settings && !settings.resourceRoot),
+	);
+
+	if (!hasNotices) return null;
+
+	return (
+		<section
+			className="flex min-w-0 flex-col gap-2"
+			aria-label={t("scan.title")}
+		>
+			<div className="flex min-w-0 flex-col gap-2 text-sm">
+				{!settings?.resourceRoot && settings && (
+					<p>
+						<Trans
+							i18nKey="scan.setupRequired"
+							components={{
+								settings: <Link className="underline" to="/settings" />,
+							}}
+						/>
+					</p>
+				)}
+				{library?.stale && <p>{t("scan.stale")}</p>}
+			</div>
+		</section>
 	);
 }
