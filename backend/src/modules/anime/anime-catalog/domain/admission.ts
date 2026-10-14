@@ -1,12 +1,7 @@
+import { matchingTitle } from "../../identification/public.js";
 import { catalogPolicy } from "../policy.js";
 import type { ReviewRecord } from "./model.js";
 
-const normalized = (value: string) =>
-	value
-		.normalize("NFKC")
-		.toLowerCase()
-		.replace(/[^\p{L}\p{N}]+/gu, " ")
-		.trim();
 /** Catalog owns admission; an external search ranking alone is not a successful match. */
 export function automaticProposal(
 	item: ReviewRecord,
@@ -40,8 +35,8 @@ export function automaticProposal(
 		return null;
 	if (
 		!item.evidence.titles.some((title) =>
-			best.candidate.work.titles.some(
-				(alias) => normalized(title) && normalized(title) === normalized(alias),
+			best.candidate.work.titles.some((alias) =>
+				matchingTitle(title, alias, item.evidence.seasons),
 			),
 		)
 	)
