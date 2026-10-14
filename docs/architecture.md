@@ -59,8 +59,7 @@ An Anime workflow uses Resources publication/read and source-access APIs to
 automatically supply validated sources. Identification has no HTTP, database or
 Catalog dependency. Production cloud matching is connected when Metadata storage
 is available. [Anime Catalog](anime-catalog.md) consumes complete publications,
-preserves manual decisions and owns confirmation/query HTTP APIs. The Web workflow
-remains pending.
+preserves manual decisions and owns confirmation/query HTTP APIs. The Web poster, detail, playback and Review workflows are implemented.
 
 ## Source organization and dependency boundaries
 
@@ -172,42 +171,61 @@ owner fails, then reports an aggregate error.
 
 ### Frontend ownership
 
-Web source retains `app`, `features` and `shared`; features now contains four
-encapsulated modules:
+Web source retains `app`, `features` and `shared`. Five encapsulated feature
+modules expose selected data capabilities through root `public.ts` entries and
+app-only components through root `ui.ts` entries.
 
-| Module | Internal features |
+| Module | Internal owners |
 | --- | --- |
 | Resources | Directory browsing/scans and shared file reads |
 | Media | Browser compatibility, preparation and subtitles |
 | Playback | Player and history |
 | Settings | Resource/profile settings and external-player preferences |
+| Anime | Catalog, Metadata and Review |
 
-Root `public.ts` exposes selected data operations, queries, hooks and contracts;
-root `ui.ts` exposes components only for app composition. Business facades import
-specific internal definitions so importing a public data operation does not load
-an internal UI barrel. Internal features remain private outside their owner.
-Settings is small enough to keep its implementation directly inside its module
-rather than an extra single-child directory.
+Public data entries use explicit named exports of actual implementations. Pure
+forwarding `services.ts` wrappers are unnecessary. Data entries must not load UI
+barrels, including indirectly through child entries. App uses only feature-root
+entries; sibling modules cannot import private children or another module's UI.
 
-App supplies Resources' file-action slot using Playback and Media UI entries.
-It supplies Playback's preparation/subtitle slots using Media UI. Those components
-retain their Providers and query scope when mounted. Directory compatibility
-queries belong to Media; Resources consumes the root capability. Profile controls
-receive preparation actions from app, avoiding Settings-to-Media dependencies.
-Preparation UI separates task matching/negotiation and command dispatch into a
-feature hook, with a dedicated audio-track dialog and a presentation-only trigger.
-The command hook retains the existing query invalidation and cancellation owner.
+App owns the global runtime and router context: library/settings queries, scan
+notifications and cross-module invalidation, manual refresh and player reset.
+The App component assembles the shell, Providers, navigation feedback and Outlet.
+Routes register the tree; dedicated page adapters compose capabilities and pass
+narrow props. Loaders/actions are grouped by page responsibility and share scope
+prewarming. Resources defines the scan/browse presentation contract without
+player state. Anime Library receives readiness through props rather than reading
+application context. Query scope remains shared infrastructure.
 
-Dependencies are one-way: Media uses Settings; Resources uses Media; Playback
-uses Resources, Media and Settings. Shared HTTP/query mechanisms, cancellation,
-UI primitives, navigation helpers and translations import neither app nor features.
-Query keys, scopes, polling, cancellation and cache invalidation retain their
-existing behavior. The Anime Web workflow remains pending.
+Anime Catalog owns the poster library, details, source associations, version
+selection and playback-title projection. Metadata owns candidate lookup, detail
+and relations queries. Review owns review reads and association commands; its
+controller retains selected-work state, preview operation keys, mutations and
+invalidation. Form parsing is separate from presentation. Resource summaries,
+candidate selection, mapping forms, previews and rejection/removal sections are
+separate components. Catalog detail sections and poster controls/results also
+have distinct presentation responsibilities. Recognition-status presentation is
+shared by Catalog and Review at the Anime root.
 
-Dependency-cruiser checks both large-module and internal feature boundaries,
-app-only entry restrictions, persistence restrictions, protocol independence,
-unresolved imports and runtime cycles. Tests cover type imports, re-exports,
-literal dynamic imports, facade projection, UI composition and staged teardown.
+Review may consume Catalog and Metadata public capabilities; Catalog may consume
+Metadata but cannot depend on Review. Metadata is independent of both. Anime's
+shared presentation and formatting leaves cannot import these owners. No generic
+form framework, event bus or additional state-management library is required.
+
+App supplies Resources' file-action slot using Playback and Media UI entries,
+and Playback's preparation/subtitle slots using Media UI. Provider placement and
+query scope are retained. Profile controls receive preparation actions from app,
+avoiding Settings-to-Media dependencies. Other dependencies remain one-way:
+Media uses Settings; Resources uses Media; Playback uses Resources, Media and
+Settings. Shared HTTP/query mechanisms, UI primitives, navigation and translations
+import neither app nor features.
+
+Refactoring preserves URLs, query keys, scopes, polling, cancellation, cache
+invalidation, notifications and source-bound playback behavior. Dependency-cruiser
+checks module/internal-owner boundaries, public/UI entries, shared leaves,
+unresolved imports and runtime cycles. Regression tests cover scan notification
+deduplication, refresh/root switching, media lifetime, title updates, Review
+confirmation/retry/removal and return/filter/focus behavior.
 
 ## Core collaboration
 

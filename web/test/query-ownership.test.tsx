@@ -85,7 +85,6 @@ test("a directory uses one metadata batch and no file task/detail requests befor
 					scan={{
 						settings: { resourceRoot: "/media" },
 						library: null,
-						playerVersion: 0,
 						libraryError: null,
 						scanning: false,
 						scanPending: false,

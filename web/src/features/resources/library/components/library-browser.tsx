@@ -13,7 +13,7 @@ import {
 } from "../../../media/public.js";
 import type { FileActionSlot } from "../../public.js";
 import { formatFileSize } from "../format-file-size.js";
-import type { LibraryContext } from "../public.js";
+import type { LibraryScanState } from "../public.js";
 import LibraryScan from "./library-scan.js";
 
 export default function LibraryBrowser({
@@ -22,7 +22,7 @@ export default function LibraryBrowser({
 	renderFileActions,
 }: {
 	listing: DirectoryResponse;
-	scan: LibraryContext;
+	scan: LibraryScanState;
 	renderFileActions?: FileActionSlot;
 }) {
 	const { t, i18n } = useTranslation();

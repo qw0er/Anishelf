@@ -16,14 +16,14 @@ export function PreparationProvider({ children }: { children: ReactNode }) {
 	const list = usePreparations();
 	const client = useQueryClient();
 	const query = useQuery(profilesQuery());
-	const catalog = query.data ?? null;
-	const catalogError = query.error;
+	const profileCatalog = query.data ?? null;
+	const profileCatalogError = query.error;
 	return (
 		<Context
 			value={{
 				...list,
-				catalog,
-				catalogError,
+				catalog: profileCatalog,
+				catalogError: profileCatalogError,
 				updateCatalog: (value) => {
 					client.setQueryData(settingsKeys.profiles, value);
 				},

@@ -448,3 +448,52 @@ test("web sibling features remain encapsulated inside the Media module", async (
 			})
 		).includes("web-feature-entry-points"),
 	));
+
+for (const [label, source] of [
+	["import", "import {value} from '../metadata/queries.js';export {value};"],
+	[
+		"type import",
+		"import type {Value} from '../metadata/queries.js';export type {Value};",
+	],
+	["re-export", "export {value} from '../metadata/queries.js';"],
+	["dynamic import", "export const load=()=>import('../metadata/queries.js');"],
+])
+	test(`Anime rejects private sibling ${label}`, async () => {
+		const violations = await scan({
+			"web/src/features/anime/review/view.ts": source,
+			"web/src/features/anime/metadata/queries.ts":
+				"export const value=1;export interface Value {id:string}",
+		});
+		assert.ok(violations.includes("web-anime-feature-entry-points"));
+	});
+for (const [consumer, target, rule] of [
+	["catalog", "review", "web-anime-catalog-does-not-import-review"],
+	["metadata", "catalog", "web-anime-metadata-is-independent"],
+	["shared", "metadata", "web-anime-shared-is-a-leaf"],
+])
+	test(`Anime ${consumer} cannot depend on ${target}`, async () => {
+		const violations = await scan({
+			[`web/src/features/anime/${consumer}/view.ts`]: `export {value} from '../${target}/public.js';`,
+			[`web/src/features/anime/${target}/public.ts`]: "export const value=1;",
+		});
+		assert.ok(violations.includes(rule));
+	});
+test("Anime Review can use selected Catalog and Metadata capabilities", async () =>
+	assert.deepEqual(
+		await scan({
+			"web/src/features/anime/review/view.ts":
+				"export {title} from '../catalog/public.js';export {lookup} from '../metadata/public.js';",
+			"web/src/features/anime/catalog/public.ts": "export const title=1;",
+			"web/src/features/anime/metadata/public.ts": "export const lookup=1;",
+		}),
+		[],
+	));
+test("Web data public entries cannot load a UI barrel through an intermediate entry", async () => {
+	const violations = await scan({
+		"web/src/features/anime/public.ts":
+			"export {View} from './catalog/public.js';",
+		"web/src/features/anime/catalog/public.ts": "export {View} from './ui.js';",
+		"web/src/features/anime/catalog/ui.ts": "export const View=()=>null;",
+	});
+	assert.ok(violations.includes("web-public-does-not-load-ui-barrels"));
+});

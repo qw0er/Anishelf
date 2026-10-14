@@ -1,11 +1,9 @@
-export { libraryPolicy } from "./policy.js";
-export { settingsKeys } from "./queries.js";
+export { saveSettings } from "./api.js";
 export {
-	buildPlayerUrl,
 	detectClientPlatform,
 	presetsForPlatform,
-	profilesQuery,
-	saveSettings,
-	settingsQuery,
-	useExternalPlayers,
-} from "./services.js";
+} from "./external-player-policy.js";
+export { buildPlayerUrl } from "./external-players.js";
+export { useExternalPlayers } from "./hooks/use-external-players.js";
+export { libraryPolicy } from "./policy.js";
+export { profilesQuery, settingsKeys, settingsQuery } from "./queries.js";

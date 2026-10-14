@@ -2,10 +2,9 @@ import type {
 	LibraryResponse,
 	SettingsResponse,
 } from "../../../shared/api/contracts.js";
-export interface LibraryContext {
-	playerVersion: number;
+export interface LibraryScanState {
 	reload(): void;
-	settings: SettingsResponse | null;
+	settings: Pick<SettingsResponse, "resourceRoot"> | null;
 	library: LibraryResponse | null;
 	libraryError: string | null;
 	scanning: boolean;

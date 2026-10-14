@@ -176,6 +176,45 @@ module.exports = {
 			},
 		},
 		{
+			name: "web-anime-feature-entry-points",
+			severity: "error",
+			from: { path: "^web/src/features/anime/(catalog|metadata|review)/" },
+			to: {
+				path: "^web/src/features/anime/(?!$1/)(catalog|metadata|review)/",
+				pathNot: "public\\.ts$",
+			},
+		},
+		{
+			name: "web-anime-catalog-does-not-import-review",
+			severity: "error",
+			from: { path: "^web/src/features/anime/catalog/" },
+			to: { path: "^web/src/features/anime/review/" },
+		},
+		{
+			name: "web-anime-metadata-is-independent",
+			severity: "error",
+			from: { path: "^web/src/features/anime/metadata/" },
+			to: { path: "^web/src/features/anime/(catalog|review)/" },
+		},
+		{
+			name: "web-anime-shared-is-a-leaf",
+			severity: "error",
+			from: { path: "^web/src/features/anime/shared/" },
+			to: {
+				path: "^web/src/features/anime/",
+				pathNot: "^web/src/features/anime/shared/",
+			},
+		},
+		{
+			name: "web-public-does-not-load-ui-barrels",
+			severity: "error",
+			from: { path: "^web/src/features/[^/]+/public\\.ts$" },
+			to: {
+				path: "^web/src/features/.*/ui\\.ts$",
+				reachable: true,
+			},
+		},
+		{
 			name: "web-large-module-boundary",
 			severity: "error",
 			from: { path: "^web/src/features/([^/]+)/" },
