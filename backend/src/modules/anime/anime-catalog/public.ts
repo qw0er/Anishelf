@@ -6,7 +6,6 @@ import type {
 	Confirmation,
 	ConfirmationResult,
 	LocalEpisode,
-	LocalWork,
 	Page,
 	PreviewRequest,
 	ReviewItem,
@@ -41,12 +40,6 @@ export interface AnimeCatalogApi {
 	confirm(request: Confirmation): Promise<ConfirmationResult>;
 	reject(id: string, revision: number, reason: string): Promise<ReviewItem>;
 	remove(id: string, revision: number, reason: string): Promise<ReviewItem>;
-	editWork(
-		id: string,
-		revision: number,
-		title: string | null,
-		aliases: string[],
-	): Promise<LocalWork>;
 	editEpisode(
 		id: string,
 		episodeId: string,

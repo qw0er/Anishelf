@@ -17,8 +17,6 @@ import {
 	CatalogReviewSchema,
 	CatalogSourceSchema,
 	CatalogWorkDetailSchema,
-	CatalogWorkEditSchema,
-	CatalogWorkSchema,
 } from "../../../../contracts/schemas/anime-catalog.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { AnimeCatalogApi } from "../public.js";
@@ -169,23 +167,6 @@ export function registerCatalogRoutes(
 				request.params.id,
 				request.body.revision,
 				request.body.reason,
-			),
-	);
-	app.patch(
-		"/api/catalog/works/:id",
-		{
-			schema: {
-				params: CatalogIdParamsSchema,
-				body: CatalogWorkEditSchema,
-				response: { 200: CatalogWorkSchema },
-			},
-		},
-		async (request) =>
-			catalog.editWork(
-				request.params.id,
-				request.body.revision,
-				request.body.title,
-				request.body.aliases,
 			),
 	);
 	app.patch(

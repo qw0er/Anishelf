@@ -18,7 +18,6 @@ export interface AnimeApi {
 				| "confirm"
 				| "reject"
 				| "remove"
-				| "editWork"
 				| "editEpisode"
 				| "refresh"
 		  >

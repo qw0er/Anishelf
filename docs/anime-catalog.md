@@ -33,11 +33,13 @@ operation keys in one transaction. Closing the facade closes the shared context
 and clears association previews. These internal components do not introduce new
 cross-module APIs, HTTP routes or persistence boundaries.
 
-Migration `0008_anime_catalog.sql` adds:
+Migration `0008_anime_catalog.sql` adds the Catalog tables below. Migration
+`0009_remove_local_work_titles.sql` removes the former local title/alias columns;
+work display and search now use provider metadata exclusively.
 
 | Table | Owner / purpose |
 | --- | --- |
-| `catalog_works` | Stable local work IDs, manual title/aliases, cached search/display projection and revision |
+| `catalog_works` | Stable local work IDs, provider-derived search/display projection and revision |
 | `catalog_provider_links` | Unique qualified provider reference and selected retained detail snapshot |
 | `catalog_episodes` | Stable local episode IDs, kind, preserved number/label and provenance |
 | `catalog_associations` | Unique source/episode links, release tokens, explicit offset, correction reason and operation key |
@@ -85,8 +87,8 @@ episodes. Count-derived labels are honest `Episode N` fallbacks.
 Episode label/identity edits retain their local ID and require the work revision.
 An existing target identity cannot be overwritten; reassign source associations
 through a replacement preview instead. Shared episode edits affect its associated
-versions. Manual titles and aliases take precedence over provider titles. Refresh
-updates only the provider projection and snapshot link, preserving local fields,
+versions. Work titles and aliases come from provider metadata. Refresh
+updates only the provider projection and snapshot link, preserving episode corrections,
 episode IDs, associations and source history. Provider failures expose Metadata's
 refresh error and preserve the last valid Catalog state.
 
@@ -114,7 +116,6 @@ local records and playback history. Later scans do not undo either decision.
 | `POST /api/catalog/confirmations` | Atomically confirm/reassign selected rows |
 | `POST /api/catalog/reviews/:id/reject` | Persist rejection and reason |
 | `POST /api/catalog/reviews/:id/remove` | Explicitly remove source associations |
-| `PATCH /api/catalog/works/:id` | Correct local title and aliases |
 | `PATCH /api/catalog/works/:id/episodes/:episodeId` | Correct episode label/identity with work revision |
 | `POST /api/catalog/works/:id/refresh` | Refresh selected provider details, preserving local decisions |
 

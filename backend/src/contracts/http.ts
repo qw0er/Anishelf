@@ -145,15 +145,11 @@ export type CatalogConfirmationResponse = Static<
 export type CatalogDecisionRequest = Static<
 	typeof schemas.CatalogDecisionRequestSchema
 >;
-export type CatalogWorkEditRequest = Static<
-	typeof schemas.CatalogWorkEditSchema
->;
 export type CatalogEpisodeEditRequest = Static<
 	typeof schemas.CatalogEpisodeEditSchema
 >;
 export type CatalogRefreshRequest = Static<typeof schemas.CatalogRefreshSchema>;
 export type CatalogReviewItem = Static<typeof schemas.CatalogReviewSchema>;
-export type CatalogWorkResponse = Static<typeof schemas.CatalogWorkSchema>;
 export type CatalogEpisodeResponse = Static<
 	typeof schemas.CatalogEpisodeSchema
 >;

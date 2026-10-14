@@ -15,8 +15,6 @@ export interface EpisodeTarget {
 }
 export interface LocalWork {
 	id: string;
-	title: string | null;
-	aliases: string[];
 	providerTitle: string;
 	searchTitles: string[];
 	format: string | null;

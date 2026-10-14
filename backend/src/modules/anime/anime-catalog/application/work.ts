@@ -1,6 +1,6 @@
 import { DomainError } from "../../../../shared/errors.js";
-import { conflict, invalid, target, text } from "../domain/mapping.js";
-import type { LocalEpisode, LocalWork, WorkDetail } from "../domain/model.js";
+import { conflict, target, text } from "../domain/mapping.js";
+import type { LocalEpisode, WorkDetail } from "../domain/model.js";
 import type { CatalogContext } from "./context.js";
 import { projection } from "./projection.js";
 import type { CatalogQueries } from "./queries.js";
@@ -10,31 +10,6 @@ export class WorkApplication {
 		private readonly context: CatalogContext,
 		private readonly queries: CatalogQueries,
 	) {}
-	async editWork(
-		id: string,
-		revision: number,
-		title: string | null,
-		aliases: string[],
-	): Promise<LocalWork> {
-		const root = await this.context.root();
-		const work = this.context.requireWork(id, root.rootId);
-		if (work.revision !== revision) conflict();
-		if (aliases.length > 100) invalid("At most 100 aliases are allowed.");
-		const updated = {
-			...work,
-			title: title === null ? null : text(title),
-			aliases: [...new Set(aliases.map((alias) => text(alias)))],
-			revision: work.revision + 1,
-			updatedAt: Date.now(),
-		};
-		const link = this.context.options.store.link(id);
-		if (!link) throw new Error("Provider link is missing.");
-		this.context.options.store.transaction((store) => {
-			if (store.work(id)?.revision !== revision) conflict();
-			store.saveWork(updated, link);
-		});
-		return updated;
-	}
 	async editEpisode(
 		id: string,
 		episodeId: string,

@@ -51,6 +51,11 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 | L12 | Configure and manage multiple resource roots | Optional | — | Unassigned |
 | L13 | Rename, organize, delete, and reclaim storage with preservation rules | Optional | — | Unassigned |
 | L14 | Download an existing original media file from the Web interface to the user's device | Implemented | Current | Current |
+| L15 | Select multiple files and preview/apply a shared episode-number offset | Later | — | Unassigned |
+
+#### Multi-file Batch Offset Correction (L15)
+
+Select an explicit subset of files for a work, preview each file's existing and proposed episode associations, and apply a shared numbering offset through Catalog-owned correction operations. Preserve original parsing evidence and source history, require explicit replacement of existing associations, and reject stale or invalid inputs. Single-file correction and offset previews remain in the current iteration; the multi-file Web workflow is later scope.
 
 #### Resource Identification (L07–L10)
 
@@ -75,7 +80,7 @@ This is a user-facing file download, separate from acquiring new releases throug
 | M01 | Search external anime metadata and store provider identifiers | Current iteration | — | Current iteration |
 | M02 | Display covers, aliases, descriptions, seasons, episode counts, airing information, and available same-provider work relations | Current iteration | — | Current iteration |
 | M03 | Provide anime detail and episode views, organizing the library by title | Implemented: default poster library, work details and episode playback; scoped sample verification recorded | Current iteration | Current iteration |
-| M04 | Manually select, correct, and refresh metadata mappings | Implemented: Review selection/reassociation, local title/episode edits and metadata refresh | Current iteration | Current iteration |
+| M04 | Manually select, correct, and refresh metadata mappings | Implemented: Review selection/reassociation, episode corrections and metadata refresh | Current iteration | Current iteration |
 | M05 | Cache metadata so external outages do not prevent browsing or playback | Current iteration | — | Current iteration |
 | M07 | Preserve multilingual program titles, aliases and descriptions with language tags, original language and locale-independent IDs | Current iteration: preserve available provider language information without inventing translations | — | Current iteration |
 | M06 | Multiple metadata providers and cross-provider ID mapping | Optional; same-provider related works belong to M02 | — | Unassigned |
@@ -99,6 +104,7 @@ Provider and parser selection require representative filename and metadata evalu
 | P14 | HLS/fMP4 delivery and real-time transcoding, including seeking, leases, source-time mapping and interactive scheduling | Later | — | Unassigned |
 | P15 | Extract, validate and load embedded font attachments | Implemented | Source-shared TTF/OTF preparation, validated cache and JASSUB loading | Current |
 | P16 | Extract embedded PGS/VobSub bitmap subtitle assets with explicit unsupported-Web feedback | Later | — | Unassigned |
+| P17 | Automatically prepare full-file Web-compatible copies in the background before playback | Later | — | Unassigned |
 | P10 | Select audio tracks, adjust subtitle timing, change playback speed, and use shortcuts | Implemented | Current | Current |
 | P11 | Next-episode navigation and automatic continuation | Later | — | Unassigned |
 | P12 | Hardware transcoding, HDR handling, broader browser support, and advanced concurrency policies beyond the V2 bounded scheduler | Optional | — | Unassigned |
@@ -107,6 +113,10 @@ Provider and parser selection require representative filename and metadata evalu
 #### FFmpeg Full-file Preparation (P05–P07)
 
 See the [archived V2 requirements and design](history.md#v2-requirements).
+
+#### Automatic Background Pre-transcoding (P17)
+
+Allow users to enable automatic background preparation for newly scanned or ingested resources under an explicit target playback profile. Reuse existing inspection, compatibility planning and full-file preparation: retain direct-playable originals, remux when sufficient and encode only necessary streams. Deduplicate by source version and preparation profile, reuse valid completed copies, and bound concurrency and cache usage. Provide queue/progress/failure feedback, cancellation and retry; recover after restart without duplicate work and invalidate changed sources. Preserve original files and source-level history. This adds automatic scheduling before playback to the existing preparation capability; it is outside the current anime-library iteration and has no assigned release.
 
 #### Subtitles and Embedded Extraction (P03, Partial P08–P09)
 

@@ -299,15 +299,11 @@ test("offset previews preserve release numbering and reject invalid or implicit 
 	expect((await f.catalog.list()).items[0]?.availableEpisodes).toBe(1);
 });
 
-test("manual titles, stable episode IDs, mappings and source progress survive rescan refresh and restart", async () => {
+test("stable episode IDs, mappings and source progress survive rescan refresh and restart", async () => {
 	const f = await fixture();
 	const result = await confirm(f);
 	let detail = await f.catalog.detail(result.workId);
 	const episodeId = required(detail.episodes[0]).id;
-	await f.catalog.editWork(result.workId, result.revision, "本地标题", [
-		"Local alias",
-	]);
-	detail = await f.catalog.detail(result.workId);
 	await f.catalog.editEpisode(
 		result.workId,
 		episodeId,
@@ -330,15 +326,10 @@ test("manual titles, stable episode IDs, mappings and source progress survive re
 	await f.restart();
 	f.get.mockRejectedValue(new Error("offline"));
 	detail = await f.catalog.detail(result.workId);
-	expect(detail.work).toMatchObject({
-		title: "本地标题",
-		aliases: ["Local alias"],
-	});
+	expect(detail.work.displayTitle).toBe(details().titles[0]?.value);
 	expect(detail.metadata.data.description).toBe("Updated provider text");
 	expect(f.database.playback.get(review.sourceId)).toEqual(progress);
-	expect((await f.catalog.list({ query: "Local alias" })).items).toHaveLength(
-		1,
-	);
+	expect((await f.catalog.list({ query: "Anime" })).items).toHaveLength(1);
 });
 
 test("confirmation operation keys survive restart and cannot be reused for different input", async () => {
@@ -523,7 +514,6 @@ test("changed files and root switches invalidate pending previews without deleti
 test("cached browsing stays offline and refresh failures preserve confirmed metadata and manual data", async () => {
 	const f = await fixture();
 	const result = await confirm(f);
-	await f.catalog.editWork(result.workId, result.revision, "Override", []);
 	const before = await f.catalog.detail(result.workId);
 	f.get.mockRejectedValue(new Error("provider outage"));
 	expect(
@@ -614,6 +604,18 @@ test("HTTP exposes safe typed DTOs, explicit confirmations and actionable valida
 	});
 	expect(detail.statusCode).toBe(200);
 	expect(detail.body).not.toContain(f.root);
+	expect(detail.json().work).not.toHaveProperty("title");
+	expect(detail.json().work).not.toHaveProperty("aliases");
+	const removedEdit = await app.inject({
+		method: "PATCH",
+		url: `/api/catalog/works/${response.json().workId}`,
+		payload: {
+			revision: response.json().revision,
+			title: "Override",
+			aliases: [],
+		},
+	});
+	expect(removedEdit.statusCode).toBe(404);
 	const invalid = await app.inject({
 		method: "POST",
 		url: "/api/catalog/confirmations",
@@ -665,7 +667,16 @@ test("separate confirmations reuse provider identity and disjoint stale previews
 		],
 	};
 	const stale = await f.catalog.preview(request);
-	await f.catalog.editWork(first.workId, first.revision, "User title", []);
+	const editedEpisode = required(
+		(await f.catalog.detail(first.workId)).episodes[0],
+	);
+	await f.catalog.editEpisode(
+		first.workId,
+		editedEpisode.id,
+		first.revision,
+		editedEpisode.number,
+		"Corrected episode",
+	);
 	await expect(
 		f.catalog.confirm({
 			operationKey: "disjoint-stale",
@@ -682,7 +693,6 @@ test("separate confirmations reuse provider identity and disjoint stale previews
 	expect(second.workId).toBe(first.workId);
 	expect((await f.catalog.list()).items).toHaveLength(1);
 	expect((await f.catalog.detail(first.workId)).work).toMatchObject({
-		title: "User title",
 		availableRegularEpisodes: 2,
 	});
 });
@@ -745,28 +755,34 @@ test("failed refresh after an intervening local edit cannot overwrite the edit",
 	);
 	const refreshing = f.catalog.refresh(result.workId, result.revision);
 	await vi.waitFor(() => expect(resolve).toBeDefined());
-	await f.catalog.editWork(
+	const episode = required((await f.catalog.detail(result.workId)).episodes[0]);
+	await f.catalog.editEpisode(
 		result.workId,
+		episode.id,
 		result.revision,
+		episode.number,
 		"Concurrent correction",
-		[],
 	);
 	required(resolve)({
 		data: { ...details(), description: "Refreshed" },
 		raw: {},
 	});
 	await expect(refreshing).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
-	expect((await f.catalog.detail(result.workId)).work.title).toBe(
+	expect((await f.catalog.detail(result.workId)).episodes[0]?.label).toBe(
 		"Concurrent correction",
 	);
 });
 
-test("literal wildcard aliases remain literal local search text", async () => {
+test("literal wildcard provider titles remain literal local search text", async () => {
 	const f = await fixture();
-	const result = await confirm(f);
-	await f.catalog.editWork(result.workId, result.revision, "100% Anime", [
-		"[release]_special",
-	]);
+	f.setData({
+		...details(),
+		titles: [
+			{ value: "100% Anime", language: "en", kind: "romaji" },
+			{ value: "[release]_special", language: null, kind: "alias" },
+		],
+	});
+	await confirm(f);
 	expect((await f.catalog.list({ query: "100%" })).items).toHaveLength(1);
 	expect((await f.catalog.list({ query: "_special" })).items).toHaveLength(1);
 	expect((await f.catalog.list({ query: "not_found%" })).items).toHaveLength(0);
@@ -822,8 +838,6 @@ test("closing Catalog stops every composed use case before reading or mutating s
 			}),
 		() => f.catalog.reject(row.reviewId, row.revision, "Rejected"),
 		() => f.catalog.remove(row.reviewId, row.revision, "Removed"),
-		() =>
-			f.catalog.editWork(committed.workId, committed.revision, "Changed", []),
 		() =>
 			f.catalog.editEpisode(
 				committed.workId,
@@ -957,18 +971,11 @@ test("unambiguous scanner identification automatically admits sources and preser
 		operationKey: "manual-over-auto",
 		replace: true,
 	});
-	const updated = await f.catalog.detail(work.id);
-	await f.catalog.editWork(
-		work.id,
-		updated.work.revision,
-		"My corrected title",
-		["My alias"],
-	);
 	await f.scan();
 	await automatic.waitForCompletion();
 	expect((await f.catalog.review(review.id)).associations[0]?.number).toBe("3");
 	expect((await f.catalog.list()).items[0]?.displayTitle).toBe(
-		"My corrected title",
+		work.displayTitle,
 	);
 	await automatic.close();
 	await f.restart();
@@ -1069,17 +1076,10 @@ test("source playback metadata follows local edits, removal and replacement", as
 	expect((await f.catalog.source(review.fileId)).associations).toEqual([]);
 	f.setData({ ...details(), episodeCount: null });
 	const confirmed = await confirm(f);
-	let detail = await f.catalog.detail(confirmed.workId);
+	const detail = await f.catalog.detail(confirmed.workId);
 	const episode = required(
 		detail.episodes.find((item) => item.versions.length),
 	);
-	await f.catalog.editWork(
-		detail.work.id,
-		detail.work.revision,
-		"Local title",
-		[],
-	);
-	detail = await f.catalog.detail(confirmed.workId);
 	await f.catalog.editEpisode(
 		detail.work.id,
 		episode.id,
@@ -1092,7 +1092,7 @@ test("source playback metadata follows local edits, removal and replacement", as
 		associations: [
 			{
 				workId: confirmed.workId,
-				workTitle: "Local title",
+				workTitle: detail.work.providerTitle,
 				episodeId: episode.id,
 				kind: "regular",
 				number: "3",

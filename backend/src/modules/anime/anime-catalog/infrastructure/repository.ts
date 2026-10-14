@@ -229,7 +229,7 @@ export class CatalogRepository implements CatalogStore {
 				),
 			);
 		const pattern = `%${(query.query ?? "").replace(/[\\%_]/g, "\\$&")}%`;
-		const title = sql`lower(coalesce(${catalogWorks.title}, ${catalogWorks.providerTitle}))`;
+		const title = sql`lower(${catalogWorks.providerTitle})`;
 		const rows = this.store
 			.select()
 			.from(catalogWorks)
@@ -239,7 +239,6 @@ export class CatalogRepository implements CatalogStore {
 					query.query
 						? or(
 								sql`${title} like ${pattern} escape '\\'`,
-								sql`exists (select 1 from json_each(${catalogWorks.aliases}) where value like ${pattern} escape '\\')`,
 								sql`exists (select 1 from json_each(${catalogWorks.searchTitles}) where value like ${pattern} escape '\\')`,
 							)
 						: undefined,

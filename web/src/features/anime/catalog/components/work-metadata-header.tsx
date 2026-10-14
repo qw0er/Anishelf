@@ -19,12 +19,7 @@ export function WorkMetadataHeader({ data }: { data: CatalogDetailResponse }) {
 			<div className="min-w-0 space-y-3">
 				<h1 className="page-title">{work.displayTitle}</h1>
 				<p className="text-sm text-muted-foreground wrap-anywhere">
-					{[
-						...new Set([
-							...work.aliases,
-							...info.titles.map((title) => title.value),
-						]),
-					]
+					{[...new Set([...info.titles.map((title) => title.value)])]
 						.filter((title) => title !== work.displayTitle)
 						.join(" · ")}
 				</p>

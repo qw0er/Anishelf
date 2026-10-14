@@ -9,8 +9,6 @@ import { mediaSources } from "../../../resources/persistence.js";
 import { metadataSnapshots } from "../../metadata/persistence.js";
 export const catalogWorks = sqliteTable("catalog_works", {
 	id: text("id").primaryKey(),
-	title: text("title"),
-	aliases: text("aliases", { mode: "json" }).$type<string[]>().notNull(),
 	providerTitle: text("provider_title").notNull(),
 	searchTitles: text("search_titles", { mode: "json" })
 		.$type<string[]>()

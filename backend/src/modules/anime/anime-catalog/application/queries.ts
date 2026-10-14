@@ -40,7 +40,7 @@ export class CatalogQueries {
 		}
 		return {
 			...work,
-			displayTitle: work.title ?? work.providerTitle,
+			displayTitle: work.providerTitle,
 			hasCover: this.hasArtwork(work.id, "cover"),
 			metadataStale: this.snapshot(work.id).stale,
 			reference: link.reference,
@@ -160,7 +160,7 @@ export class CatalogQueries {
 		return {
 			work: {
 				...work,
-				displayTitle: work.title ?? work.providerTitle,
+				displayTitle: work.providerTitle,
 				hasCover: this.hasArtwork(id, "cover"),
 				metadataStale: this.snapshot(id).stale,
 				reference: link.reference,

@@ -30,7 +30,7 @@ export class ReviewApplication {
 			const work = this.context.options.store.work(episode.workId);
 			return {
 				workId: episode.workId,
-				workTitle: work?.title ?? work?.providerTitle ?? episode.workId,
+				workTitle: work?.providerTitle ?? episode.workId,
 				episodeId: episode.id,
 				kind: episode.kind,
 				number: episode.number,
