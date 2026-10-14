@@ -2,11 +2,11 @@
 
 This document describes the overall system structure, module ownership and
 architectural constraints. [Requirements](requirements.md) owns the feature
-inventory; [Current iteration requirements](current-version-requirements.md) owns
-selected scope and acceptance. [Current iteration design](current-version-design.md)
-defines the proposed anime-library implementation. [History](history.md) preserves
-version-specific
-designs, including the [archived implementation details](history.md#architecture-detail-snapshot-2026-10-11).
+inventory and delivery status. The anime-library version's requirements and
+acceptance are complete as of 2026-10-14, confirmed by the user.
+[History](history.md#anime-library-archive-notes) retains its requirements,
+CAT01–CAT08 acceptance record and detailed design, alongside earlier designs and
+the [archived implementation details](history.md#architecture-detail-snapshot-2026-10-11).
 [Design system](design-system.md) owns shared UI conventions, while
 [Development](development.md) and [Deployment](deployment.md) cover setup and
 operations. Source contracts and database schemas remain authoritative for exact
@@ -51,14 +51,13 @@ access; transport request validation does not replace authentication.
 | Identification | Stateless local extraction, candidate ranking and episode association proposals |
 | Anime Catalog | Durable local works/episodes, review decisions, confirmed associations, corrections and library projections |
 
-These are the existing runtime owners. [Identification](identification.md) exposes
+These are the existing runtime owners. [Identification](architecture.md#internal-ownership) exposes
 a stateless recognition Public API and a consumer-owned Metadata port.
-[Metadata](metadata.md) implements AniList access behind its own Public API, and
+[Metadata](architecture.md#internal-ownership) implements AniList access behind its own Public API, and
 Anime assembly adapts cached summaries into recognition candidates.
 An Anime workflow uses Resources publication/read and source-access APIs to
 automatically supply validated sources. Identification has no HTTP, database or
-Catalog dependency. Production cloud matching is connected when Metadata storage
-is available. [Anime Catalog](anime-catalog.md) consumes complete publications,
+Catalog dependency. AniList supplies metadata-assisted matching through the persistent Metadata cache. [Anime Catalog](architecture.md#internal-ownership) consumes complete publications,
 preserves manual decisions and owns confirmation/query HTTP APIs. The Web poster, detail, playback and Review workflows are implemented.
 
 ## Source organization and dependency boundaries
@@ -250,3 +249,29 @@ Persistent task and asset owners reconcile durable state with files at startup a
 revalidate source identity before reuse or delivery. Media-tool execution and
 resource lifetimes remain bounded, with cancellation and cleanup owned by the
 workflow that acquired them.
+
+## Delivered anime-library workflow
+
+Completed resource scans publish validated source contexts to Anime's bounded
+recognition coordinator. Identification uses `anitomy-ng` and cached AniList
+candidates to return evidence and candidate-specific episode proposals. Catalog
+automatically admits unambiguous matches and persists review decisions, stable
+local work/episode identities and source associations in SQLite. Ambiguous or
+incomplete evidence stays in Review. Explicit confirmation, reassociation and
+single-file numbering corrections preserve manual decisions and source history
+across rescan, metadata refresh and restart.
+
+The default Web entry is the confirmed poster library, with cached search/filter
+controls, work details, ordered episodes and explicit resource-version selection.
+Files retains directory browsing and source playback, adds identification status
+and links to Review or associated works. Review owns candidate lookup, mapping
+previews, confirmation, correction and rejection. Version selection reuses the
+existing source-validity, compatibility, preparation, subtitle and progress paths;
+a multi-episode association does not create seek boundaries or watched states.
+
+Metadata owns provider transport, normalized snapshots, refresh/retry and bounded
+local artwork storage. Provider outages retain usable cached browsing and existing
+playback; unknown numbering remains unresolved. Original names and bytes remain
+unchanged. Personal tracker authorization is not required. Episode watched-state
+aggregation, subscriptions, download orchestration and tracker synchronization
+remain future requirements rather than existing runtime owners.

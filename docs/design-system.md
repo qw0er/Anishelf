@@ -3,7 +3,7 @@
 This document owns the shared UI principles, visual conventions, interaction,
 feedback and accessibility rules. [Requirements](requirements.md) owns product
 scope, [Architecture](architecture.md) retains module boundaries, and
-[Current iteration design](current-version-design.md) defines the proposed poster
+[Archived anime-library design](history.md#anime-library-design) records the delivered poster
 wall, work details, Files and Review screens. [History](history.md#v2-design)
 preserves earlier version-specific implementation design.
 
