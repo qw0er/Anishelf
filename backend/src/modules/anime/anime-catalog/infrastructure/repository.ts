@@ -86,12 +86,16 @@ export class CatalogRepository implements CatalogStore {
 		decision: ReviewRecord["decision"] | undefined,
 		page: number,
 		perPage: number,
+		reference?: ProviderLink["reference"],
 	): Page<ReviewRecord> {
 		const rows = this.reviewQuery()
 			.where(
 				and(
 					eq(mediaSources.rootId, rootId),
 					decision ? eq(catalogReviews.decision, decision) : undefined,
+					reference
+						? sql`exists (select 1 from json_each(${catalogReviews.result}, '$.proposals') where json_extract(value, '$.candidate.work.reference.provider') = ${reference.provider} and json_extract(value, '$.candidate.work.reference.mediaType') = ${reference.mediaType} and json_extract(value, '$.candidate.work.reference.id') = ${reference.id})`
+						: undefined,
 				),
 			)
 			.orderBy(asc(catalogReviews.id))

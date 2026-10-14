@@ -401,7 +401,19 @@
 		"chooseVersion": "Choose a file version",
 		"versionHint": "Choose an available source. Release information comes from names and does not establish browser compatibility.",
 		"releaseInfo": "Release information",
-		"multiEpisode": "This file maps to several episodes and opens its normal timeline."
+		"multiEpisode": "This file maps to several episodes and opens its normal timeline.",
+		"identificationPending": "Awaiting identification",
+		"identificationLoadFailed": "Could not load file identification. Playback is still available.",
+		"unresolvedResources": "Files needing review",
+		"unresolvedCandidatesHint": "These files suggest this work but are not confirmed associations. Review each file before adding it.",
+		"noUnresolvedResources": "No pending candidate files for this work.",
+		"allUnresolved": "Review all unresolved files",
+		"airingSchedule": "Provider airing schedule",
+		"airingScopeHint": "This is the provider's schedule. Its episode numbers may differ from your files; manual corrections remain unchanged.",
+		"airingUnknown": "Airing information is unknown.",
+		"notYetAired": "Not yet aired",
+		"aired": "Aired",
+		"loadMoreAiring": "Load more airing records"
 	},
 	"review": {
 		"title": "Review",

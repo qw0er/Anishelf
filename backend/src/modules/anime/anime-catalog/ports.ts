@@ -38,6 +38,7 @@ export interface CatalogStore extends SourceRegistry {
 		decision: ReviewRecord["decision"] | undefined,
 		page: number,
 		perPage: number,
+		reference?: ProviderLink["reference"],
 	): Page<ReviewRecord>;
 	work(id: string): LocalWork | null;
 	link(workId: string): ProviderLink | null;

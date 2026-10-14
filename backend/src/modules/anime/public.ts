@@ -13,6 +13,7 @@ export interface AnimeApi {
 				| "detail"
 				| "source"
 				| "reviews"
+				| "fileReviews"
 				| "review"
 				| "preview"
 				| "confirm"

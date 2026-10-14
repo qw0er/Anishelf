@@ -157,6 +157,11 @@ const episode = {
 };
 export const CatalogEpisodeSchema = Type.Object(episode);
 export const CatalogReviewSchema = review;
+export const CatalogFileReviewsRequestSchema = Type.Object(
+	{ fileIds: Type.Array(id, { maxItems: 100, uniqueItems: true }) },
+	{ additionalProperties: false },
+);
+export const CatalogFileReviewsSchema = Type.Array(review);
 export const CatalogSourceSchema = Type.Object({
 	sourceVersion: id,
 	associations: review.properties.associations,
@@ -301,7 +306,11 @@ export const CatalogListQuerySchema = Type.Object(
 	{ additionalProperties: false },
 );
 export const CatalogReviewQuerySchema = Type.Object(
-	{ ...pagination, decision: Type.Optional(decision) },
+	{
+		workId: Type.Optional(id),
+		...pagination,
+		decision: Type.Optional(decision),
+	},
 	{ additionalProperties: false },
 );
 

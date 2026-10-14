@@ -6,6 +6,8 @@ import {
 	CatalogEpisodeEditSchema,
 	CatalogEpisodeParamsSchema,
 	CatalogEpisodeSchema,
+	CatalogFileReviewsRequestSchema,
+	CatalogFileReviewsSchema,
 	CatalogIdParamsSchema,
 	CatalogListQuerySchema,
 	CatalogListSchema,
@@ -50,6 +52,16 @@ export function registerCatalogRoutes(
 			reply.header("X-Content-Type-Options", "nosniff");
 			return reply.type(asset.mimeType).send(Buffer.from(asset.bytes));
 		},
+	);
+	app.post(
+		"/api/catalog/file-reviews",
+		{
+			schema: {
+				body: CatalogFileReviewsRequestSchema,
+				response: { 200: CatalogFileReviewsSchema },
+			},
+		},
+		async (request) => catalog.fileReviews(request.body.fileIds),
 	);
 	app.get(
 		"/api/catalog/works",
@@ -109,8 +121,9 @@ export function registerCatalogRoutes(
 			},
 		},
 		async (request) => {
-			const { page, perPage, decision } = request.query;
+			const { page, perPage, decision, workId } = request.query;
 			return catalog.reviews({
+				...(workId ? { workId } : {}),
 				...(decision ? { decision } : {}),
 				...(page ? { page: Number(page) } : {}),
 				...(perPage ? { perPage: Number(perPage) } : {}),

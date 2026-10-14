@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FileVideo, Folder } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { DirectoryResponse } from "../../../../shared/api/contracts.js";
@@ -20,10 +21,14 @@ export default function LibraryBrowser({
 	listing,
 	scan,
 	renderFileActions,
+	identificationStatus,
+	renderIdentification,
 }: {
 	listing: DirectoryResponse;
 	scan: LibraryScanState;
 	renderFileActions?: FileActionSlot;
+	identificationStatus?: ReactNode;
+	renderIdentification?: (fileId: string) => ReactNode;
 }) {
 	const { t, i18n } = useTranslation();
 	const parentId = listing.directory.parentId;
@@ -42,6 +47,7 @@ export default function LibraryBrowser({
 	return (
 		<section className="stack-page" aria-label={t("library.filesLabel")}>
 			<LibraryScan {...scan} />
+			{identificationStatus}
 			{!setupRequired && (
 				<>
 					<div className="flex min-w-0 flex-col gap-4">
@@ -112,6 +118,11 @@ export default function LibraryBrowser({
 														...compatibility.get(entry.id),
 														onRecheck: compatibility.retry,
 													})}
+												</div>
+											)}
+											{entry.kind === "file" && (
+												<div className="col-span-2 min-w-0 px-2 pb-2 sm:pl-9">
+													{renderIdentification?.(entry.id)}
 												</div>
 											)}
 										</li>

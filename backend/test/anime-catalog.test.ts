@@ -829,6 +829,7 @@ test("closing Catalog stops every composed use case before reading or mutating s
 		() => f.catalog.list(),
 		() => f.catalog.detail(committed.workId),
 		() => f.catalog.reviews(),
+		() => f.catalog.fileReviews([]),
 		() => f.catalog.preview({ reference, rows: selected }),
 		() =>
 			f.catalog.confirm({
@@ -916,6 +917,8 @@ test("poster artwork uses retained snapshots, delivers cached images offline and
 });
 
 async function enableAutomatic(f: Awaited<ReturnType<typeof fixture>>) {
+	// Replace the local-only fixture coordinator so two publishers cannot race.
+	await f.automatic.close();
 	f.setData({
 		...details(),
 		titles: [{ value: "Anime", kind: "romaji", language: null }],
@@ -1123,4 +1126,123 @@ test("source playback metadata follows local edits, removal and replacement", as
 	);
 	await f.scan();
 	expect((await f.catalog.source(review.fileId)).associations).toEqual([]);
+});
+
+test("file review batches use current source versions and enforce request bounds", async () => {
+	const f = await fixture();
+	const review = required((await f.catalog.reviews()).items[0]);
+	expect(await f.catalog.fileReviews([review.fileId])).toMatchObject([
+		{ id: review.id, decision: "pending" },
+	]);
+	await confirm(f);
+	expect(
+		(await f.catalog.fileReviews([review.fileId]))[0]?.associations,
+	).toHaveLength(1);
+	await expect(
+		f.catalog.fileReviews([review.fileId, review.fileId]),
+	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+	await expect(
+		f.catalog.fileReviews(Array.from({ length: 101 }, (_, i) => String(i))),
+	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+	await writeFile(
+		join(f.root, review.relativePath),
+		"replaced source contents",
+	);
+	// A new version must not inherit the old confirmed review, even before publication.
+	expect(await f.catalog.fileReviews([review.fileId])).toEqual([]);
+	await f.scan();
+	expect((await f.catalog.fileReviews([review.fileId]))[0]?.decision).toBe(
+		"pending",
+	);
+	const app = createHttpApp({
+		catalog: f.catalog,
+		config: { host: "localhost", port: 80, publicOrigin: "http://localhost" },
+		logger,
+	});
+	cleanups.push(() => app.close());
+	const response = await app.inject({
+		method: "POST",
+		url: "/api/catalog/file-reviews",
+		payload: { fileIds: [review.fileId] },
+	});
+	expect(response.statusCode).toBe(200);
+	expect(response.body).not.toContain(f.root);
+	expect(response.headers["cache-control"]).toBe("no-store");
+});
+
+test("work review filters match qualified candidates without admitting them and paginate", async () => {
+	const f = await fixture([
+		"Anime - 01.mkv",
+		"Anime - 02.mkv",
+		"Anime - 03.mkv",
+	]);
+	const selected = await rows(f, ["1", "2", "3"]);
+	const confirmed = await confirm(f, Promise.resolve([required(selected[0])]));
+	const results = f.automatic.getResults();
+	const pendingFile = required(
+		(await f.catalog.reviews({ decision: "pending" })).items[0],
+	).fileId;
+	const excluded = required(
+		results.find((result) => result.source.fileId === pendingFile),
+	);
+	for (const result of results)
+		result.proposals = [
+			{
+				candidate: {
+					work: {
+						reference,
+						snapshotId: "fixture",
+						season: null,
+						part: null,
+						titles: ["Anime"],
+						year: 2023,
+						format: "TV",
+						episodeCount: 12,
+					},
+					score: 40,
+					matcherVersion: "test",
+					reasons: ["Possible title"],
+					conflicts: [],
+				},
+				mapping: { targets: [], reasons: [], unresolved: ["Unknown episode"] },
+			},
+		];
+	required(excluded.proposals[0]).candidate.work.reference = {
+		...reference,
+		provider: "other",
+	};
+	await f.catalog.publish(results, f.root);
+	const first = await f.catalog.reviews({
+		workId: confirmed.workId,
+		decision: "pending",
+		perPage: 1,
+	});
+	expect(first.items).toHaveLength(1);
+	expect(first.items[0]?.associations).toEqual([]);
+	expect(first.hasNextPage).toBe(false);
+	expect((await f.catalog.list()).items).toHaveLength(1);
+	await expect(
+		f.catalog.reviews({ workId: "unknown-work", decision: "pending" }),
+	).rejects.toMatchObject({ code: "CATALOG_NOT_FOUND" });
+	required(excluded.proposals[0]).candidate.work.reference = reference;
+	await f.catalog.publish(results, f.root);
+	expect(
+		(
+			await f.catalog.reviews({
+				workId: confirmed.workId,
+				decision: "pending",
+				perPage: 1,
+			})
+		).hasNextPage,
+	).toBe(true);
+	expect(
+		(
+			await f.catalog.reviews({
+				workId: confirmed.workId,
+				decision: "pending",
+				perPage: 1,
+				page: 2,
+			})
+		).items,
+	).toHaveLength(1);
 });

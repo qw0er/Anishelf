@@ -1,3 +1,4 @@
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
@@ -6,7 +7,10 @@ import {
 	Button,
 	buttonStyles,
 } from "../../../../shared/components/ui/button.js";
+import { airingQuery } from "../../metadata/public.js";
 import type { WorkDetailController } from "../use-work-detail.js";
+import { AiringStatus } from "./airing-status.js";
+import { UnresolvedResources } from "./unresolved-resources.js";
 export function EpisodeList({
 	data,
 	controller,
@@ -17,6 +21,13 @@ export function EpisodeList({
 	const { t } = useTranslation();
 	const { work, episodes } = data;
 	const { playPath, selectEpisode } = controller;
+	const airing = useInfiniteQuery(
+		airingQuery(work.reference.provider, work.reference.id),
+	);
+	const schedules =
+		airing.data?.pages
+			.filter((page) => !page.stale && !page.refreshError)
+			.flatMap((page) => page.data.items) ?? [];
 	return (
 		<section className="space-y-3">
 			<h2 className="text-lg font-semibold">{t("anime.episodes")}</h2>
@@ -40,6 +51,19 @@ export function EpisodeList({
 								const usable = episode.versions.filter(
 									(version) => version.available,
 								);
+								const schedule =
+									episode.kind === "regular" &&
+									episode.provenance === "count-derived"
+										? schedules.find(
+												(item) => String(item.episode) === episode.number,
+											)
+										: undefined;
+								const availability =
+									episode.availability === "missing" &&
+									schedule &&
+									schedule.airingAt * 1000 > Date.now()
+										? "notYetAired"
+										: episode.availability;
 								return (
 									<li
 										id={`episode-${episode.id}`}
@@ -51,10 +75,13 @@ export function EpisodeList({
 												{episode.label}
 											</h4>
 											<p className="text-sm text-muted-foreground">
-												{t(`anime.${episode.availability}`)} ·{" "}
+												{t(`anime.${availability}`)} ·{" "}
 												{t("anime.versionCount", {
 													count: episode.versions.length,
 												})}
+												{episode.availability === "missing" &&
+													!schedule &&
+													` · ${t("anime.airingUnknown")}`}
 											</p>
 										</div>
 										{usable.length === 1 && usable[0] ? (
@@ -83,6 +110,8 @@ export function EpisodeList({
 					</section>
 				) : null;
 			})}
+			<AiringStatus query={airing} />
+			<UnresolvedResources workId={work.id} />
 			<p className="text-sm text-muted-foreground">
 				<Link to="/review?decision=confirmed" className="underline">
 					{t("review.correct")}

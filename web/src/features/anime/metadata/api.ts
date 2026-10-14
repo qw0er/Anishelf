@@ -1,6 +1,7 @@
 import { type RequestOptions, request } from "../../../shared/api/client.js";
 import type {
 	IdentificationStatusResponse,
+	MetadataAiringResponse,
 	MetadataDetailsResponse,
 	MetadataRelationsResponse,
 	MetadataSearchResponse,
@@ -43,3 +44,15 @@ export const getIdentificationStatus = (
 	options?: RequestOptions,
 ): Promise<IdentificationStatusResponse> =>
 	request("/api/anime/identification", "GET", options);
+
+export const getAiring = (
+	provider: string,
+	id: string,
+	page: number,
+	options?: RequestOptions,
+): Promise<MetadataAiringResponse> =>
+	request(
+		`/api/metadata/${encodeURIComponent(provider)}/${encodeURIComponent(id)}/airing?perPage=25&page=${page}`,
+		"GET",
+		options,
+	);
