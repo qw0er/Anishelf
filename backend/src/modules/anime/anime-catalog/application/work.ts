@@ -65,12 +65,26 @@ export class WorkApplication {
 				link,
 			);
 		});
+		this.context.options.logger.info(
+			{
+				event: "catalog.episode_edited",
+				workId: id,
+				episodeId,
+				revision: revision + 1,
+			},
+			"Catalog episode identity updated.",
+		);
 		return updated;
 	}
 	async refresh(id: string, revision: number): Promise<WorkDetail> {
+		const started = performance.now();
 		const root = await this.context.root();
 		const work = this.context.requireWork(id, root.rootId);
 		if (work.revision !== revision) conflict();
+		this.context.options.logger.debug(
+			{ event: "catalog.refresh_requested", workId: id, revision },
+			"Manual catalog refresh requested.",
+		);
 		const link = this.context.options.store.link(id);
 		if (!link) throw new Error("Provider link is missing.");
 		const metadata = await this.context.options.metadata.get(link.reference, {
@@ -78,8 +92,18 @@ export class WorkApplication {
 		});
 		this.context.options.sources.assertRootEpoch(root.epoch);
 		this.context.open();
-		if (metadata.refreshError) return this.queries.detail(id);
-		this.apply(work, link, metadata);
+		if (!metadata.refreshError) this.apply(work, link, metadata);
+		this.context.options.logger.info(
+			{
+				event: "catalog.refresh_completed",
+				workId: id,
+				retained: Boolean(metadata.refreshError),
+				code: metadata.refreshError?.code,
+				elapsedMs: Math.round(performance.now() - started),
+			},
+			"Manual catalog refresh completed.",
+		);
+
 		return this.queries.detail(id);
 	}
 	async revalidate(
@@ -171,6 +195,16 @@ export class WorkApplication {
 				this.context.options.metadata.release(metadata.snapshotId, id);
 			throw error;
 		}
+		this.context.options.logger.info(
+			{
+				event: "catalog.metadata_updated",
+				workId: id,
+				provider: link.reference.provider,
+				snapshotId: metadata.snapshotId,
+				revision: work.revision + 1,
+			},
+			"Catalog adopted updated metadata.",
+		);
 		if (link.snapshotId !== metadata.snapshotId)
 			this.context.options.metadata.release(link.snapshotId, id);
 	}

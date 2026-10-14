@@ -219,6 +219,8 @@ test("fresh cache survives database restart and returned values are independent"
 });
 
 test("stale snapshots return immediately, coalesce refresh and expose failures", async () => {
+	const warn = vi.spyOn(logger, "warn");
+	const debug = vi.spyOn(logger, "debug");
 	let now = 1000;
 	const { application, fetcher } = await setup(transport(), () => now);
 	const original = await application.get(reference);
@@ -248,6 +250,24 @@ test("stale snapshots return immediately, coalesce refresh and expose failures",
 	expect(retained.snapshotId).toBe(original.snapshotId);
 	expect(retained.refreshError?.code).toBe("unavailable");
 	expect(retained.refreshError?.message).not.toContain("secret diagnostic");
+	expect(warn).toHaveBeenCalledWith(
+		expect.objectContaining({
+			event: "metadata.refresh_failed",
+			provider: "anilist",
+			kind: "detail",
+			retained: true,
+			code: "unavailable",
+			requestId: expect.stringMatching(/^[a-f0-9]{64}$/),
+			elapsedMs: expect.any(Number),
+		}),
+		expect.any(String),
+	);
+	expect(
+		debug.mock.calls.filter(
+			([record]) =>
+				(record as { event?: string }).event === "metadata.refresh_started",
+		),
+	).toHaveLength(2);
 	expect(fetcher).toHaveBeenCalledTimes(2);
 	await application.get(reference);
 	expect(fetcher).toHaveBeenCalledTimes(2);
@@ -606,10 +626,13 @@ test("artwork denies arbitrary hosts/redirects, non-images and excessive bytes",
 });
 
 test("artwork failure preserves the previous usable URL version and budget evicts LRU", async () => {
+	const warn = vi.spyOn(logger, "warn");
+	const debug = vi.spyOn(logger, "debug");
 	const { dir, database, fetcher } = await setup();
 	const artwork = new MetadataArtworkCache({
 		dataDir: dir,
 		store: database.metadata,
+		logger,
 		fetch: fetcher,
 		budgetBytes: png.length,
 	});
@@ -633,6 +656,24 @@ test("artwork failure preserves the previous usable URL version and budget evict
 	fetcher.mockImplementationOnce(async () => new Response(png));
 	await artwork.get("other", "https://s4.anilist.co/other.png", {});
 	expect(database.metadata.artworks()).toHaveLength(1);
+	expect(warn).toHaveBeenCalledWith(
+		expect.objectContaining({
+			event: "metadata.artwork_failed",
+			retained: true,
+			code: "unavailable",
+		}),
+		expect.any(String),
+	);
+	expect(debug).toHaveBeenCalledWith(
+		expect.objectContaining({
+			event: "metadata.artwork_evicted",
+			artworkId: first.id,
+		}),
+		expect.any(String),
+	);
+	expect(
+		JSON.stringify([...warn.mock.calls, ...debug.mock.calls]),
+	).not.toContain("https://s4.anilist.co/");
 });
 
 test("actual Metadata supplies Identification proposals without calendar season inference", async () => {

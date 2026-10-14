@@ -320,6 +320,7 @@ test("every corpus filename preserves independent local evidence", async () => {
 });
 
 test("completed scans trigger automatic identification and unchanged scans reuse results", async () => {
+	const info = vi.spyOn(logger, "info");
 	const f = await fixture(["Frieren - 01.mkv", "nested/Your Name.mkv"]);
 	const engine = new IdentificationApplication({ parser });
 	const identify = vi.spyOn(engine, "identify");
@@ -329,6 +330,24 @@ test("completed scans trigger automatic identification and unchanged scans reuse
 	expect(identify).toHaveBeenCalledTimes(2);
 	await scan(f, automatic);
 	expect(identify).toHaveBeenCalledTimes(2);
+	expect(info).toHaveBeenCalledWith(
+		expect.objectContaining({
+			event: "identification.automatic_completed",
+			parsed: 0,
+			reused: 2,
+			available: 2,
+			metadataFailed: 0,
+			elapsedMs: expect.any(Number),
+		}),
+		expect.any(String),
+	);
+	const summaries = info.mock.calls.filter(([record]) =>
+		(record as { event?: string }).event?.startsWith(
+			"identification.automatic_",
+		),
+	);
+	expect(JSON.stringify(summaries)).not.toContain("Frieren");
+	expect(JSON.stringify(summaries)).not.toContain(f.root);
 	expect(
 		automatic.getResults().every((result) => result.status === "parsed"),
 	).toBe(true);

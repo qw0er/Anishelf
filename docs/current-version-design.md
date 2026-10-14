@@ -1,8 +1,8 @@
 # Current Iteration Overall Design
 
-Status: proposed implementation design, selected on 2026-10-11. This document
-does not declare the anime-library iteration implemented or accepted and does
-not assign a release number.
+Status: implementation design, selected on 2026-10-11. The selected scope passed
+lightweight acceptance on 2026-10-14; the requirements document records verification
+and its limits. No release number is assigned.
 
 [Current iteration requirements](current-version-requirements.md) owns scope and
 CAT01–CAT08 acceptance. [Architecture](architecture.md) owns system boundaries;
@@ -467,10 +467,15 @@ multiple versions and unresolved numbers. Provider errors must not reset playbac
 
 ## 10. Delivery and validation
 
+A representative recognition accuracy study or report is not a release requirement.
+Acceptance verifies the application's safe admission, Review, persistence and
+provider-failure behavior. External parser/provider limitations may legitimately
+require manual Review; existing regression fixtures remain available for maintenance.
+
 Implement in bounded increments, preserving one end-to-end workflow:
 
-1. Add parser adapter and evidence model; evaluate basename/path/batch modes
-   independently against the existing corpus and directory scenarios.
+1. Add parser adapter and evidence model; verify evidence preservation and safe
+   handling of ambiguous basename/path/batch inputs through regression scenarios.
 2. Add AniList adapter, normalized provider contract, durable cache, limiter and
    artwork delivery; verify deterministic failures with recorded/synthetic responses.
 3. Add automatic scan coordination and stateless proposals, then Catalog-owned

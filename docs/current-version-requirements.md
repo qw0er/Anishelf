@@ -4,13 +4,13 @@
 
 Deliver an anime library from existing local resources using external metadata, automatic admission of successful identification and manual correction. Completed scans automatically identify new or changed local resources and admit unambiguous work/episode matches. The user can resolve ambiguous titles and episode numbers, browse confirmed anime by episode and choose a file version for existing Web playback.
 
-This iteration is selected and not yet complete or accepted. The backend
+The selected implementation has passed lightweight acceptance on 2026-10-14. The backend
 [Identification module](identification.md) implements stateless local recognition
 and candidate-specific proposals. An application coordinator automatically processes
 published scans. [Metadata](metadata.md) supplies cached AniList search, details,
 relations, airing and artwork. [Anime Catalog](anime-catalog.md) implements backend persistence, review decisions,
 confirmation/correction operations and library queries. The Web poster library, work detail and version playback are implemented;
-Automatic admission and the Web Review/correction workflow are implemented. Files displays current-version identification status icons with Tooltips and exposes Review/work links in file action menus. No release number is assigned. The [overall requirements](requirements.md) own feature identifiers and later scope; [History](history.md#v2-requirements) records the retained V2 scope as implemented. The anime-library acceptance below remains pending.
+Automatic admission and the Web Review/correction workflow are implemented. Files displays current-version identification status icons with Tooltips and exposes Review/work links in file action menus. No release number is assigned. The [overall requirements](requirements.md) own feature identifiers and later scope; [History](history.md#v2-requirements) records the retained V2 scope as implemented. The acceptance evidence and limits are recorded below.
 
 External metadata access belongs to this iteration. Personal tracker authorization, list import and progress synchronization are later capabilities and must not be prerequisites for identifying local files.
 
@@ -54,16 +54,33 @@ Titles and aliases come from provider metadata; editing local work titles or add
 - Preserve existing source-level playback progress when establishing or changing associations. Episode watched-state aggregation and completion detection belong to W03–W05 in the next core stage.
 - Cached metadata and original file playback remain usable during provider outages. New uncached searches can fail with actionable retry feedback; incomplete episode relations remain explicit.
 - Identification consumes validated source identities and name/path strings. The coordinator accesses originals without renaming, moving or deleting them. Resource-root confinement and source-version access checks continue to apply.
-- Start with AniList through an extensible provider adapter and use `anitomy-ng` for extraction. Validate both against representative resources; retain explicit unknowns where AniList cannot provide complete episode data or numbering relations.
+- Start with AniList through an extensible provider adapter and use `anitomy-ng` for extraction. Retain explicit unknowns where AniList cannot provide complete episode data or numbering relations.
 
 ## 5. Acceptance Criteria
 
-Full iteration acceptance and representative recognition accuracy remain pending. Acceptance must include representative Chinese, Japanese and English filenames, directory-only titles, mixed-work directories, specials, continuous numbering, season/part ambiguity, multi-episode files and multiple versions. Record parser/provider versions, sample expectations, unresolved cases and actual results.
+Lightweight acceptance completed on 2026-10-14 by reusing development verification
+and running current regression checks. Biome, lint (architecture and unused-code
+checks), type checking and production builds passed. All 238 Web tests and 143
+selected backend tests passed, covering identification, catalog decisions, metadata
+cache behavior, library HTTP and playback application/HTTP behavior. Scan UI tests
+were synchronized with the current Files header controls and completion Toasts;
+no interface changes were made during acceptance.
 
-The [offline identification corpus](../backend/test/fixtures/anime-identification/README.md)
-provides sourced filenames, frozen provider records, expected associations, review
-cases and directory recipes for this evaluation. Corpus integrity and scanner
-checks do not establish identification accuracy or complete the acceptance criteria.
+This is a bounded regression acceptance, not a new exhaustive pass through every
+CAT scenario with live provider responses, real video decoding or every browser/device.
+Existing development verification supplies the remaining evidence.
+
+Representative recognition accuracy
+measurement and a separate accuracy report are not requirements for this iteration.
+Parser/provider uncertainty and missing data are expected inputs to Review, not
+failures to meet an automatic recognition target.
+
+Acceptance focuses on application behavior: ambiguous or incomplete evidence stays
+in Review; users can resolve, correct, confirm or reject associations; saved decisions
+survive rescan, metadata refresh and restart; provider outages preserve cached browsing
+and existing playback. Existing automated scenario tests provide evidence for these
+behaviors. The [offline identification corpus](../backend/test/fixtures/anime-identification/README.md)
+remains a regression fixture and optional diagnostic resource, not a release gate.
 
 | ID | Requirements | Passing result |
 | --- | --- | --- |

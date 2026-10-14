@@ -51,11 +51,27 @@ export class CatalogRefresh {
 				snapshot.refreshError.retryAt > Date.now())
 		)
 			return false;
+		const started = performance.now();
+		this.context.options.logger.debug(
+			{ event: "catalog.background_refresh_started", workId: id },
+			"Background catalog refresh started.",
+		);
 		const task = Promise.resolve()
 			.then(() => this.work.revalidate(id, this.lifetime.signal))
 			.then((failure) => {
 				if (failure) this.fail(id, failure);
 				else this.failures.delete(id);
+				this.context.options.logger.debug(
+					{
+						event: "catalog.background_refresh_completed",
+						workId: id,
+						retained: Boolean(failure),
+						code: failure?.code,
+						retryAt: failure?.retryAt,
+						elapsedMs: Math.round(performance.now() - started),
+					},
+					"Background catalog refresh completed.",
+				);
 			})
 			.catch((err: unknown) => {
 				if (!this.lifetime.signal.aborted) {

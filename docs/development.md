@@ -237,6 +237,36 @@ replace Fastify's default info-level access logs. Tool records omit arguments,
 stdout and stderr; application failure records retain serialized errors. Session
 tokens, complete settings objects and subtitle text are not included in events.
 
+### Anime workflow logging
+
+Anime uses the same Pino logger and output lifecycle. At `info`, automatic
+identification records its publication revision, start/completion, parsed/reused
+source counts, proposed/unresolved counts, metadata failures and elapsed time.
+`catalog.automatic_admission_completed` summarizes admitted, skipped and failed
+sources; skipped includes ambiguous evidence and preserved decisions, and is not
+an error. Replaced publications and shutdown cancellations are `debug` events.
+
+Committed changes emit `catalog.confirmed`, `catalog.rejected`,
+`catalog.associations_removed`, `catalog.episode_edited` and
+`catalog.metadata_updated`. Confirmation records include preview ID, revision and
+replacement intent; idempotent retries emit `catalog.confirmation_reused` at
+`debug` and do not repeat the committed-change event. Rejection/removal reasons,
+episode labels, filenames, search text and provider payloads are not logged.
+
+Manual refresh emits `catalog.refresh_requested` at `debug` and
+`catalog.refresh_completed` at `info`; background refresh start/completion is
+`debug`. Completion records indicate whether old metadata was retained. Provider
+refresh start/success records include provider, kind, a hashed request identifier
+and elapsed time. Refresh warnings include failure code, retry time and retained
+cache availability. Routine cache reads are `trace`, avoiding polling noise at
+normal log levels. The hash correlates attempts without logging the cache key,
+which contains search criteria.
+
+Artwork cache writes and budget evictions are `debug`; download/cache failures
+are `warn` with failure code and retained-artwork availability. Records use
+opaque asset/request IDs and omit provider URLs and image bytes. Expected missing
+artwork and unresolved identification do not create per-file warnings.
+
 ## Resource Settings and Startup
 
 When `settings.json` is missing and `ANISHELF_INITIAL_RESOURCE_ROOT` is set,

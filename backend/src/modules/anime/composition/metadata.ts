@@ -14,6 +14,7 @@ export async function createMetadataModule(options: {
 	const artwork = new MetadataArtworkCache({
 		dataDir: options.dataDir,
 		store: options.store,
+		logger: options.logger,
 		...(options.fetch ? { fetch: options.fetch } : {}),
 	});
 	await artwork.initialize();
