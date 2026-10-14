@@ -204,8 +204,6 @@ export class AssociationApplication {
 				const work = projection(
 					existing ?? {
 						id: targetWorkId,
-						title: null,
-						aliases: [],
 						providerTitle: "",
 						searchTitles: [],
 						format: null,

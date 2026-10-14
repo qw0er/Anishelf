@@ -11,8 +11,6 @@ export function animeFixture(): CatalogDetailResponse {
 	} as const;
 	const work = {
 		id: "work-1",
-		title: null,
-		aliases: ["葬送のフリーレン"],
 		providerTitle: "Frieren",
 		searchTitles: ["Frieren"],
 		format: "TV",

@@ -126,8 +126,6 @@ const review = Type.Object({
 });
 const work = {
 	id,
-	title: nullableText,
-	aliases: Type.Array(Type.String()),
 	providerTitle: Type.String(),
 	searchTitles: Type.Array(Type.String()),
 	format: nullableText,
@@ -157,7 +155,6 @@ const episode = {
 		Type.Literal("count-derived"),
 	]),
 };
-export const CatalogWorkSchema = Type.Object(work);
 export const CatalogEpisodeSchema = Type.Object(episode);
 export const CatalogReviewSchema = review;
 export const CatalogSourceSchema = Type.Object({
@@ -262,14 +259,6 @@ export const CatalogConfirmationSchema = Type.Object({
 });
 export const CatalogDecisionRequestSchema = Type.Object(
 	{ revision, reason: text },
-	{ additionalProperties: false },
-);
-export const CatalogWorkEditSchema = Type.Object(
-	{
-		revision,
-		title: Type.Union([text, Type.Null()]),
-		aliases: Type.Array(text, { maxItems: 100 }),
-	},
 	{ additionalProperties: false },
 );
 export const CatalogEpisodeEditSchema = Type.Object(

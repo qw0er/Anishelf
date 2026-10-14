@@ -64,6 +64,13 @@
 			"when": 1791860500631,
 			"tag": "0008_anime_catalog",
 			"breakpoints": true
+		},
+		{
+			"idx": 9,
+			"version": "6",
+			"when": 1791954288337,
+			"tag": "0009_remove_local_work_titles",
+			"breakpoints": true
 		}
 	]
 }

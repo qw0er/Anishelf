@@ -65,7 +65,6 @@ export async function createAnimeModule(options: {
 					confirm: (input) => catalog.confirm(input),
 					reject: (...args) => catalog.reject(...args),
 					remove: (...args) => catalog.remove(...args),
-					editWork: (...args) => catalog.editWork(...args),
 					editEpisode: (...args) => catalog.editEpisode(...args),
 					refresh: (...args) => catalog.refresh(...args),
 				}

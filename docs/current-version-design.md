@@ -46,7 +46,7 @@ remain authoritative.
 | Files | Existing directory browser | Browse, play file, scan, inspect identification results |
 | Review | Unidentified and ambiguous identification results | Inspect evidence, search candidate, correct, confirm or reject |
 | History | Existing source-level playback history | Resume the corresponding source |
-| Settings | Resource root and existing playback/preparation settings | Configure resources and inspect provider/cache status |
+| Settings | Resource root and existing playback/preparation settings | Configure resources and playback/preparation preferences |
 
 Keep the existing source history; do not introduce planned/watching/completed
 statuses or episode completion percentages in this iteration. Identification
@@ -66,7 +66,7 @@ confirmed associations and count multiple versions of the same episode once.
 Show a denominator only when a regular episode count is known and the count
 uses the same numbering scope; label it as availability, not watched progress.
 
-Search operates over cached titles, synonyms and explicit local aliases. Provide
+Search operates over cached provider titles and synonyms. Provide
 format, release-year and availability filters, plus title and recently-added
 sorting. Pagination uses a stable local ID as a tie-breaker. Restore filters,
 scroll position and the selected card after returning from a detail or player.
@@ -82,6 +82,10 @@ and unavailable-resource states provide an appropriate next action.
 
 The header shows title, alternate titles, cover/banner where cached, synopsis,
 format, release status, dates, episode count and provider attribution/link.
+Do not add local work-title or alias editing controls. Show metadata failures and
+retry in the relevant search/detail view, and identify stale data when applicable.
+Keep provider/cache technical status out of Settings and normal browsing; this
+does not remove actionable failure feedback or detail-page refresh.
 Genre, studio, source type, duration, tags and provider rating are secondary
 details when supplied. Do not duplicate the full metadata on every card.
 Treat provider descriptions as untrusted text/Markdown and render through a
@@ -120,8 +124,9 @@ is a ranking aid, never a probability. Candidate results do not appear on the
 poster wall unless Catalog accepts them automatically under the clear-match policy or the user confirms them.
 
 For each selected work, show filename, extracted numbering, proposed target
-episode and reasons. Support individual corrections and an explicit offset over
-a chosen subset, with before/after preview. Confirm only rows with valid targets;
+episode and reasons. Support individual file corrections and an explicit offset
+with a before/after preview for that file. Selecting multiple files for one batch
+offset correction is later scope (L15). Confirm only rows with valid targets;
 leave unresolved rows in Review. Reassociation previews affected existing links
 and requires an explicit replacement action. Rejection preserves the reason and
 does not silently turn into confirmation on retry.
@@ -258,9 +263,9 @@ follow the official [Media reference](https://docs.anilist.co/reference/object/m
 and [streaming-episode reference](https://docs.anilist.co/reference/object/mediastreamingepisode).
 
 Retain source language where known without inventing it from a script. Display
-an explicit local title override first, then the preferred available title with
-fallbacks. Keep aliases available for search. A title override does not change
-provider identity. If regular episode count is known, locally derived `1..N`
+the preferred available provider title with deterministic fallbacks. Keep provider
+aliases available for search; local work-title and alias editing are not required.
+If regular episode count is known, locally derived `1..N`
 slots are labelled count-derived; they are not provider episode records. Unknown
 counts permit explicitly confirmed numbered local episodes without inventing a
 complete season. Movies use a confirmed whole-work playback slot rather than
@@ -311,7 +316,7 @@ not a persistent identity.
 
 | Record | Ownership and essential contents |
 | --- | --- |
-| Local work | Anime Catalog: local ID, timestamps, manual title/aliases, revision |
+| Local work | Anime Catalog: local ID, timestamps, provider-derived display/search projection, revision |
 | Provider link | Anime Catalog: local work ID, qualified provider reference, selected metadata snapshot reference |
 | Local episode | Anime Catalog: local ID/work ID, kind, preserved number/label, ordering, provenance and optional provider episode reference |
 | Source association | Anime Catalog: source registry ID, episode ID, confirmed release-to-target mapping and correction provenance |

@@ -36,5 +36,12 @@
 		"architecture:test": "node --test scripts/architecture.test.mjs",
 		"unused:check": "knip --no-progress",
 		"anime:corpus": "node --import tsx scripts/anime-corpus.mts"
+	},
+	"allowScripts": {
+		"esbuild@0.18.20": true,
+		"esbuild@0.25.12": true,
+		"esbuild@0.28.2": true,
+		"better-sqlite3@13.0.3": true,
+		"lfa-ponyfill@1.1.1": true
 	}
 }

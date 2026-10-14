@@ -33,12 +33,14 @@ The poster library, detail/playback, automatic admission and Review/correction w
 | L10 | Associate different resource versions with the same episode and allow explicit selection for playback. One file may map to multiple episodes without implying unsupported per-episode seek boundaries. |
 | M03 | Provide an anime library and detail view showing metadata, ordered episodes, associated versions and unavailable/unresolved resources. Reuse existing playback, subtitles, preparation and source-level progress. |
 
+Titles and aliases come from provider metadata; editing local work titles or adding local aliases is not required. Manual title correction means selecting the correct work association. Metadata status is contextual: show actionable fetch/refresh failures and retry in the relevant search or detail view, with stale cached data identified there. Do not add a provider/cache status panel to Settings or a persistent technical status display during normal operation.
+
 ## 3. User Workflow
 
 1. Scan existing resources using the current library workflow. Published scans automatically trigger local identification; no separate Identify action is required.
 2. Identification parses file and directory evidence and uses Metadata to generate ranked candidates and candidate-specific episode proposals. A directory supplies context but is not assumed to contain only one anime.
 3. Anime Catalog automatically accepts clear matches. Failed or ambiguous identification stays in Review: select a suggested work, search for another title or look up an AniList ID/URL, preview the targets and confirm. Mixed directories are handled per source.
-4. Use Review for pending, associated or rejected sources; previously identified content can be reassociated explicitly. Use Catalog-owned correction operations to review episode mappings, including specials, continuous numbering, ranges and season/part boundaries. Correct individual mappings or apply an explicit numbering offset with a preview of affected files.
+4. Use Review for pending, associated or rejected sources; previously identified content can be reassociated explicitly. Use Catalog-owned correction operations to review episode mappings, including specials, continuous numbering, ranges and season/part boundaries. Correct an individual file's mappings or apply an explicit numbering offset with a before/after preview for that file. Multi-file batch offset correction belongs to later scope (L15).
 5. Save confirmed associations and open the anime detail view. Select an episode and resource version for playback.
 6. Rescan or refresh metadata without silently overwriting confirmed manual choices. Unidentified files remain accessible through the existing file browser.
 
@@ -68,7 +70,7 @@ checks do not establish identification accuracy or complete the acceptance crite
 | CAT01 | M01, M02, M07 | Search, preview and establish a local anime entry with provider ID, available aliases/language information and episode/work data; missing fields are shown as unknown. |
 | CAT02 | L07, L08 | Filename and directory evidence produce explainable candidates; a mixed directory can be split into different works; close or conflicting candidates enter review. |
 | CAT03 | L09 | Regular, special, continuous and multi-episode numbering map correctly for confirmed samples; ambiguous mappings remain unresolved and accept corrections. |
-| CAT04 | L08, M04 | Manual title and episode corrections, including offset previews, survive rescan, metadata refresh and restart; reassociation preserves existing source history. |
+| CAT04 | L08, M04 | Manual work reassociation and episode corrections, including single-file offset previews, survive rescan, metadata refresh and restart; reassociation preserves existing source history. |
 | CAT05 | L10, M03 | Anime detail lists episodes and versions; selecting a valid version opens existing Web playback with working directory return, subtitle/preparation access and source progress. |
 | CAT06 | M05 | Provider failure leaves cached details and original playback usable; failed search/refresh exposes retry feedback and retains the last valid snapshot. |
 | CAT07 | L08, M01–M05 | Repeated or interrupted identification does not duplicate entries/associations; saved mappings survive restart and unavailable files are not presented as playable. |
@@ -82,4 +84,4 @@ checks do not establish identification accuracy or complete the acceptance crite
 | 3 | Automatic acquisition (S01–S07, D01–D07) | Per-anime subscription controls, starting episode/backlog preview, RSS discovery, release matching/filtering and deduplication, explainable review, qBittorrent connection/task controls, verified completion/ingestion and restart/disconnection recovery. |
 | 4 | Tracker integration (T01–T05, S08) | AniList authorization/disconnection, selected list import, title/episode mapping, progress/status synchronization, conflict preview, retry and expired-authorization feedback; importing lists does not implicitly enable downloading. |
 
-These stages are priorities, not implementation claims or assigned release numbers. Multiple metadata providers/cross-provider mappings (M06), automatic file organization (L13), moved-file relinking (L11), playback enhancements and additional clients remain outside this iteration.
+These stages are priorities, not implementation claims or assigned release numbers. Multi-file batch offset correction (L15), automatic background pre-transcoding (P17), multiple metadata providers/cross-provider mappings (M06), automatic file organization (L13), moved-file relinking (L11), playback enhancements and additional clients remain outside this iteration.

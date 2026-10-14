@@ -21,7 +21,6 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 	readonly remove: AnimeCatalogApi["remove"];
 	readonly preview: AnimeCatalogApi["preview"];
 	readonly confirm: AnimeCatalogApi["confirm"];
-	readonly editWork: AnimeCatalogApi["editWork"];
 	readonly editEpisode: AnimeCatalogApi["editEpisode"];
 	readonly refresh: AnimeCatalogApi["refresh"];
 	constructor(options: CatalogOptions) {
@@ -46,7 +45,6 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 		this.remove = review.remove.bind(review);
 		this.preview = this.associations.preview.bind(this.associations);
 		this.confirm = this.associations.confirm.bind(this.associations);
-		this.editWork = work.editWork.bind(work);
 		this.editEpisode = work.editEpisode.bind(work);
 		this.refresh = work.refresh.bind(work);
 	}
