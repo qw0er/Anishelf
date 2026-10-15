@@ -1,4 +1,5 @@
 export * from "./anime-catalog.js";
+export * from "./anime-library.js";
 export * from "./authentication.js";
 export * from "./chapters.js";
 export * from "./common.js";
@@ -11,4 +12,5 @@ export * from "./playback-selection.js";
 export * from "./preparation.js";
 export * from "./subtitles.js";
 export * from "./tracking.js";
+export * from "./tracking-list.js";
 export * from "./transcode-profiles.js";

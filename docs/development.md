@@ -647,3 +647,33 @@ Regression tests cover MP4 muxing, Matroska/WebM aliases, legend exclusion and
 rejection of missing separators or malformed rows. Unknown capabilities still
 block execution; accepting the table format does not certify every encoder or
 browser playback path.
+
+### AniList list reads and Library display
+
+Library defaults to local associated works. Choose **All works** to include the
+connected account's remote-only titles, or filter by AniList viewing state. Cards
+and details label cumulative AniList progress separately from local availability.
+Remote-only details have no playback action until resources are associated through
+the existing Catalog/Review workflow. No list read downloads resources or writes
+viewing state to AniList.
+
+GET `/api/anime/library` returns the combined, filtered page. GET
+`/api/tracking/list` returns the complete cached snapshot; GET
+`/api/tracking/entries/:mediaId` returns one cached entry. POST
+`/api/tracking/refresh` waits for a deduplicated full refresh. Optional `generation`
+values must match the current connection; HTTP mutations require the normal
+Anishelf CSRF token. Snapshot data is stored in `tracking_list_cache`, keyed by
+numeric account ID. Old snapshots are retained on disconnect but hidden, and only
+the current account's cache is exposed. A refresh publishes only after all chunks
+succeed. Failed refreshes retain previous data; a stale read normally retries
+after the one-minute failure cooldown. Explicit refresh may retry immediately.
+
+List logging adds `tracking.list_refresh_started` and
+`tracking.list_refresh_cancelled` at debug, `tracking.list_refresh_completed` at
+info with count/duration, and `tracking.list_refresh_failed` at warn with safe
+code/retry time/cache-retention state. `tracking.authorization_required` also has
+a `list` phase. `anime.library_read` is trace with scope/count/local state. These
+events exclude tokens, titles and raw provider errors. Run
+`npm test --workspace @anishelf/backend -- test/tracking-list.test.ts` for list
+snapshot, provider, merge and diagnostic checks. The complete `npm run check`
+needs permission to listen on localhost for existing HTTP disconnect tests.

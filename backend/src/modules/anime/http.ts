@@ -2,14 +2,18 @@ import { IdentificationStatusSchema } from "../../contracts/schemas/anime-catalo
 import type { HttpInstance } from "../../transport/instance.js";
 import { registerCatalogRoutes } from "./anime-catalog/http/catalog.js";
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
+import { registerAnimeLibraryRoutes } from "./anime-library/http/library.js";
+import type { AnimeLibraryApi } from "./anime-library/public.js";
 import { registerMetadataRoutes } from "./metadata/http/metadata.js";
 import type { MetadataApi } from "./metadata/public.js";
+import { registerTrackingListRoutes } from "./tracking/http/lists.js";
 import { registerTrackingRoutes } from "./tracking/http/tracking.js";
-import type { TrackingApi } from "./tracking/public.js";
+import type { TrackingApi, TrackingListsApi } from "./tracking/public.js";
 export function registerAnimeHttp(
 	app: HttpInstance,
 	owners: {
-		tracking?: TrackingApi | undefined;
+		tracking?: (TrackingApi & TrackingListsApi) | undefined;
+		library?: AnimeLibraryApi | undefined;
 		identification?: { getStatus(): { running: boolean; failed: boolean } };
 		metadata: MetadataApi | undefined;
 		catalog: AnimeCatalogApi | undefined;
@@ -24,7 +28,11 @@ export function registerAnimeHttp(
 				return owners.identification?.getStatus();
 			},
 		);
-	if (owners.tracking) registerTrackingRoutes(app, owners.tracking);
+	if (owners.tracking) {
+		registerTrackingRoutes(app, owners.tracking);
+		registerTrackingListRoutes(app, owners.tracking);
+	}
+	if (owners.library) registerAnimeLibraryRoutes(app, owners.library);
 	if (owners.metadata) registerMetadataRoutes(app, owners.metadata);
 	if (owners.catalog) registerCatalogRoutes(app, owners.catalog);
 }

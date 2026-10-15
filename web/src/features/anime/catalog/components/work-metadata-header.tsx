@@ -2,7 +2,22 @@ import { useTranslation } from "react-i18next";
 import type { CatalogDetailResponse } from "../../../../shared/api/contracts.js";
 import { Artwork } from "../../shared/components/artwork.js";
 import { fuzzyDate, safeLink } from "../detail-format.js";
-export function WorkMetadataHeader({ data }: { data: CatalogDetailResponse }) {
+export function WorkMetadataHeader({
+	data,
+}: {
+	data: {
+		metadata: CatalogDetailResponse["metadata"];
+		work: Pick<
+			CatalogDetailResponse["work"],
+			| "displayTitle"
+			| "coverUrl"
+			| "format"
+			| "year"
+			| "episodeCount"
+			| "reference"
+		>;
+	};
+}) {
 	const { t } = useTranslation();
 	const { work, metadata } = data;
 	const info = metadata.data;

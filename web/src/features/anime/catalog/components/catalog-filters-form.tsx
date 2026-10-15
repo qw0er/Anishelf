@@ -37,9 +37,9 @@ export function CatalogFiltersForm({
 		next.delete("page");
 		commit(catalogSearch(catalogFilters(next)));
 	}
-	const active = (["query", "format", "year", "availability"] as const).filter(
-		(key) => filters[key],
-	);
+	const active = (
+		["query", "format", "year", "availability", "viewingStatus"] as const
+	).filter((key) => filters[key]);
 	return (
 		<div className="space-y-3">
 			<div className="grid min-w-0 grid-cols-2 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
@@ -162,18 +162,30 @@ export function CatalogFiltersForm({
 							variant="secondary"
 							className="h-8 max-w-full text-xs"
 							aria-label={t("anime.removeFilter", {
-								filter: t(key === "query" ? "anime.search" : `anime.${key}`),
+								filter: t(
+									key === "query"
+										? "anime.search"
+										: key === "viewingStatus"
+											? "trackingList.viewingState"
+											: `anime.${key}`,
+								),
 							})}
 							onClick={() => change(key, "")}
 						>
 							<span className="truncate">
-								{key === "availability"
-									? t(`anime.${filters.availability}`)
-									: key === "format"
-										? filters.format?.replaceAll("_", " ")
-										: key === "year"
-											? `${t("anime.year")}: ${filters.year}`
-											: filters[key]}
+								{key === "viewingStatus"
+									? t(
+											filters.viewingStatus === "untracked"
+												? "trackingList.untracked"
+												: `trackingList.statuses.${filters.viewingStatus}`,
+										)
+									: key === "availability"
+										? t(`anime.${filters.availability}`)
+										: key === "format"
+											? filters.format?.replaceAll("_", " ")
+											: key === "year"
+												? `${t("anime.year")}: ${filters.year}`
+												: filters[key]}
 							</span>
 							<X size={12} aria-hidden="true" />
 						</Button>
@@ -182,7 +194,13 @@ export function CatalogFiltersForm({
 						variant="ghost"
 						className="h-8 text-xs"
 						onClick={() =>
-							commit(catalogSearch({ sort: filters.sort, page: 1 }))
+							commit(
+								catalogSearch({
+									sort: filters.sort,
+									page: 1,
+									...(filters.scope ? { scope: filters.scope } : {}),
+								}),
+							)
 						}
 					>
 						{t("anime.clear")}

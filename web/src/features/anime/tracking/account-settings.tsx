@@ -16,21 +16,15 @@ import {
 } from "../../../shared/components/ui/card.js";
 import { Input } from "../../../shared/components/ui/input.js";
 
-const accountKey = ["tracking", "account"] as const;
+import { accountQuery } from "./queries.js";
+
+const accountKey = accountQuery().queryKey;
 export function AniListAccountSettings() {
 	const { t } = useTranslation();
 	const client = useQueryClient();
 	const [token, setToken] = useState("");
 	const [preview, setPreview] = useState<TrackingPreviewResponse | null>(null);
-	const account = useQuery({
-		queryKey: accountKey,
-		queryFn: ({ signal }) =>
-			request<TrackingAccountResponse>("/api/tracking/account", "GET", {
-				signal,
-			}),
-		retry: false,
-		staleTime: 0,
-	});
+	const account = useQuery(accountQuery());
 	const command = useMutation({
 		mutationFn: async (
 			operation: "preview" | "confirm" | "disconnect" | "check",
@@ -67,6 +61,14 @@ export function AniListAccountSettings() {
 				);
 			} else result = await request("/api/tracking/account/check", "POST");
 			await client.cancelQueries({ queryKey: ["tracking"] });
+			await client.cancelQueries({
+				predicate: (query) =>
+					query.queryKey[0] === "catalog" && query.queryKey[2] === "list",
+			});
+			client.removeQueries({
+				predicate: (query) =>
+					query.queryKey[0] === "catalog" && query.queryKey[2] === "list",
+			});
 			client.removeQueries({
 				queryKey: ["tracking"],
 				predicate: (query) => query.queryKey[1] !== "account",

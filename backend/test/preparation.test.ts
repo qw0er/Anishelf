@@ -871,7 +871,7 @@ test.each([1, null])(
 				);
 			// Restore the schema predating audio-selection/lifecycle migrations as well as its journal.
 			connection.exec(
-				"DROP TABLE tracking_connection; DROP TABLE auth_sessions; DROP TABLE media_access_links; DROP TABLE catalog_associations; DROP TABLE catalog_episodes; DROP TABLE catalog_operations; DROP TABLE catalog_provider_links; DROP TABLE catalog_reviews; DROP TABLE catalog_works; DROP TABLE metadata_pins; DROP TABLE metadata_snapshots; DROP TABLE metadata_artwork; DROP TABLE subtitle_font_assets; DROP TABLE subtitle_font_sets;",
+				"DROP TABLE tracking_list_cache; DROP TABLE tracking_connection; DROP TABLE auth_sessions; DROP TABLE media_access_links; DROP TABLE catalog_associations; DROP TABLE catalog_episodes; DROP TABLE catalog_operations; DROP TABLE catalog_provider_links; DROP TABLE catalog_reviews; DROP TABLE catalog_works; DROP TABLE metadata_pins; DROP TABLE metadata_snapshots; DROP TABLE metadata_artwork; DROP TABLE subtitle_font_assets; DROP TABLE subtitle_font_sets;",
 			);
 			connection
 				.prepare("DELETE FROM __drizzle_migrations WHERE created_at >= ?")

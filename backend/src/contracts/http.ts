@@ -175,3 +175,7 @@ export type TrackingAccountResponse = Static<
 export type TrackingPreviewResponse = Static<
 	typeof schemas.TrackingPreviewSchema
 >;
+
+export type AnimeLibraryResponse = Static<typeof schemas.AnimeLibrarySchema>;
+export type TrackingListResponse = Static<typeof schemas.TrackingListSchema>;
+export type TrackingEntryResponse = Static<typeof schemas.TrackingEntrySchema>;

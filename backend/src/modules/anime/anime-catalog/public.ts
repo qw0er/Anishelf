@@ -21,6 +21,14 @@ export interface AnimeCatalogApi {
 		signal?: AbortSignal,
 	): Promise<void>;
 	list(query?: CatalogQuery): Promise<Page<WorkCard>>;
+	index(query?: CatalogQuery): Promise<{
+		items: (import("./domain/model.js").LocalWork & {
+			reference: import("../metadata/public.js").ProviderReference;
+			available: boolean;
+		})[];
+		epoch: number;
+	}>;
+	cards(ids: readonly string[], epoch: number): Promise<WorkCard[]>;
 	detail(id: string): Promise<WorkDetail>;
 	artwork(
 		id: string,

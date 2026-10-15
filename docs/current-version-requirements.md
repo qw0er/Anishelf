@@ -2,7 +2,7 @@
 
 ## 1. Goal and Status
 
-The current selected iteration connects an AniList account and lets users view and update AniList-owned viewing state from Anishelf. No release number is assigned. T01 account foundations and shared request scheduling are implemented. T02–T05 and W03–W05 remain selected work; the complete iteration has not been accepted.
+The current selected iteration connects an AniList account and lets users view and update AniList-owned viewing state from Anishelf. No release number is assigned. T01 account foundations, shared request scheduling, and T02 list reads/cache/refresh with Library display are implemented. T03–T05 and W03–W05 remain selected work; the complete iteration has not been accepted.
 
 [Overall requirements](requirements.md) retains the feature inventory and delivery status. [History](history.md#anime-library-requirements) retains the completed anime-library iteration. [Current version design](current-version-design.md) defines the planned implementation and authorization approach. The current architecture remains documented in [Architecture](architecture.md); the design records the implemented foundation separately from the remaining plan.
 
@@ -90,3 +90,26 @@ Frontend tests cover masked input clearing, confirmation, reconnect feedback and
 old-account query removal. A real browser inspected the disconnected Settings
 section. Fresh browser authorization, connected-account browser interaction and
 full ANI01–ANI10 acceptance are not claimed by these checks.
+
+
+## 9. List Read and Display Delivery
+
+T02 now reads all AniList list chunks and custom groups, persists a complete
+account-scoped snapshot, refreshes stale data in the background and supports
+explicit refresh. Failed refreshes retain the previous snapshot with visible
+error/stale feedback. Authorization failures provide reconnect guidance. A late
+response from a replaced connection cannot publish a snapshot.
+
+Library defaults to local works; All works includes AniList entries without local
+resources. Existing provider IDs join matched works exactly, with status/progress
+shown separately from resource availability. Scope, viewing state, title, format,
+year, availability and pagination compose in one view. Local cards keep their
+existing detail/playback routes. Remote-only details reuse Metadata and display
+cached viewing state without creating Catalog works. Account changes clear the
+browser's personal list/entry caches. No read initiates downloads or tracking writes.
+
+Automated tests and a read-only live fetch of 244 entries validate list access.
+A production-build fixture browser checks cards/status filters, remote detail
+fallback and a 390-pixel viewport without horizontal overflow. This delivers the
+read/display portion of W04; manual status updates, W03/W05 behavior, submissions,
+conflicts and full ANI01–ANI10 acceptance remain pending.

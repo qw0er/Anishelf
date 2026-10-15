@@ -12,6 +12,8 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 	private readonly context: CatalogContext;
 	private readonly associations: AssociationApplication;
 	private readonly refreshing: CatalogRefresh;
+	readonly index: AnimeCatalogApi["index"];
+	readonly cards: AnimeCatalogApi["cards"];
 	readonly list: AnimeCatalogApi["list"];
 	readonly artwork: AnimeCatalogApi["artwork"];
 	readonly detail: AnimeCatalogApi["detail"];
@@ -34,6 +36,8 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 		const work = new WorkApplication(this.context, queries);
 		this.refreshing = new CatalogRefresh(this.context, work);
 		this.list = queries.list.bind(queries);
+		this.index = queries.index.bind(queries);
+		this.cards = queries.cards.bind(queries);
 		this.artwork = queries.artwork.bind(queries);
 		this.detail = async (id) => {
 			const detail = await queries.detail(id);

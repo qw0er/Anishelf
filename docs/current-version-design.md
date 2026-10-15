@@ -10,7 +10,8 @@ Existing Catalog identities and confirmed work/episode associations are reused.
 
 This remains the iteration design baseline. The account foundation described in
 [Implemented account foundation](#implemented-account-foundation) is delivered;
-list access, submission workers and playback updates remain planned. No release
+list access and the unified Library read projection are also delivered. Submission
+workers and playback updates remain planned. No release
 number is assigned. [Architecture](architecture.md) describes existing runtime
 owners; [Overall requirements](requirements.md) retains delivery status. Historical
 designs remain unchanged.
@@ -19,7 +20,8 @@ designs remain unchanged.
 
 | Owner | Planned responsibility |
 | --- | --- |
-| Anime / Tracking (new) | Account lifecycle, credential access, personal lists, remote-state cache, update admission, worker, conflict resolution and tracking projections |
+| Anime / Tracking | Account lifecycle, credential access, personal-list decoding, account-scoped remote-state cache, and planned update admission/worker/conflict resolution |
+| Anime / Library | Read-only join of Tracking snapshots and Catalog summaries, filtering and pagination |
 | Anime / Catalog (existing) | Local works, episodes, provider links, confirmed source associations and resource availability |
 | Anime / Metadata (existing) | Public provider queries, metadata/artwork caches and recognition support, independent of personal authorization |
 | Playback / Progress (existing, extended) | Source position/history, validated playback evidence and completion observation |
@@ -27,8 +29,10 @@ designs remain unchanged.
 | Anime composition | Assemble Tracking and Catalog adapters and a shared AniList request scheduler |
 | App composition | Connect module root APIs, persistence and lifecycle without importing child implementations |
 
-Tracking belongs inside Anime because its application combines personal AniList
-entries with Catalog mappings and local resource availability. Do not extend
+Tracking belongs inside Anime because personal AniList entries and later submission
+targets relate to its work and episode identities. The Library read projection
+combines Tracking and Catalog capabilities; the account application does not own
+Catalog queries or list-cache refresh logic. Do not extend
 MetadataProvider with personal-list mutations or store credentials in metadata
 snapshots. Tracking exposes selected capabilities through Anime's root Public API.
 
@@ -242,7 +246,8 @@ media-link bearer tokens do not authorize tracking operations.
 | GET /api/tracking/account | Sanitized account, connection generation and authorization/connectivity state |
 | POST /api/tracking/account/preview and /confirm | Validate pasted token and explicitly confirm the account |
 | DELETE /api/tracking/account | Disconnect and invalidate the connection |
-| GET /api/tracking/list and /entries/:mediaId | Cached remote entries with freshness, local availability and pending overlay |
+| GET /api/tracking/list and /entries/:mediaId | Implemented: cached remote entries with account generation, freshness and safe error state; pending overlay remains planned |
+| GET /api/anime/library | Implemented: root-scoped local summaries joined with remote entries, local/all scope, viewing status and existing filters |
 | POST /api/tracking/refresh | Request deduplicated refresh |
 | POST /api/tracking/entries/:mediaId/updates | Admit manual absolute progress/status intent with baseline/revision |
 | GET /api/tracking/operations | Bounded pending, failed and conflict projections |
@@ -387,3 +392,60 @@ provider limits, retry, cancellation and terminal outcome using generated reques
 IDs. The [development log catalog](development.md#anilist-account-and-request-logging)
 defines levels and fields. Diagnostic tests exclude tokens, session/candidate IDs,
 account names, request/response contents and raw errors even at trace level.
+
+## Library List Read Projection
+
+The selected list implementation uses one Library page with a default local scope,
+an all-works scope and AniList status filters. Tracking's account application keeps
+account/credential lifecycle only. AniListListProvider decodes complete remote
+chunks; TrackingListReader owns atomic account snapshots, freshness and refresh
+coordination. AnimeLibraryQueries joins Tracking and Catalog public capabilities
+by provider ID, applies combined filtering/sorting/pagination, and hydrates source
+availability only for the selected page. Catalog exposes a root-scoped summary
+index and bounded card hydration; the projection never creates Catalog works for
+remote-only entries. Local playback and Review continue through existing paths.
+
+Remote-only cards open a read-only metadata detail with remote viewing state and
+an explicit no-local-resources message. Local cards keep their existing detail and
+version playback path and additionally show AniList state. Cumulative progress is
+labeled as AniList progress; no exact local watched-episode ledger is introduced.
+
+The list provider decodes every collection group, including custom lists, and
+walks `hasNextChunk`. It rejects missing fields, account/media identity mismatches,
+conflicting duplicate entries, nonterminal empty chunks and the upstream 11,000
+unique-entry ceiling rather than publishing a possibly truncated snapshot. See
+[AniList full-list documentation](https://docs.anilist.co/guide/graphql/queries/media-list).
+Only HTTPS cover URLs on the AniList artwork host `s4.anilist.co` are retained.
+
+`TrackingListReader` owns five-minute freshness, one refresh per connection
+generation, background refresh on stale reads, a one-minute failure cooldown and
+explicit refresh. Unauthorized responses mark the account as requiring reconnect.
+Successful full reads replace one account's SQLite snapshot atomically; failures
+retain its last complete snapshot. Refresh state/errors are process-local, while
+entries and fetch time survive restart. Disconnect hides snapshots; switching
+accounts selects only the new account's snapshot. Account-generation checks and
+abort signals prevent late responses from publishing after connection changes.
+
+Library filtering/sorting happens before pagination across the combined set.
+Catalog supplies persisted root-scoped summaries and provider links; only the
+selected local cards perform source availability checks. Remote aliases can match
+an existing local work without creating a second card. A missing entry is labeled
+Not on AniList only after a complete account snapshot exists. All works remains
+usable when no local resource root is configured. Personal API responses retain
+Anishelf session/CSRF protection and no-store headers; browser list and entry cache
+keys include account ID and connection generation and are removed on account commands.
+
+Structured list logs record refresh start/completion/failure/cancellation, counts,
+duration and safe error codes; they omit tokens, titles and provider error bodies.
+The Library read projection logs scope/count at trace level.
+
+Validation covers chunk traversal, custom-list duplicates, malformed/partial
+responses, snapshot replacement/restart, failed refresh retention, authorization
+expiry, account changes during refresh, exact-ID joining, filter-before-pagination,
+remote-only browsing, transport validation and safe diagnostics. Web tests cover
+scope/status filters, refresh, cached feedback, remote details and return context.
+A read-only live run fetched and persisted 244 AniList entries using the existing
+private token file; no remote mutation was issued. A production-build fixture
+browser check verified merged cards, status filtering, metadata-failure fallback,
+and 390-pixel layout without horizontal overflow. Submission, completion evidence,
+per-episode watched indicators and full iteration acceptance remain pending.

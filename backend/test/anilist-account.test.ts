@@ -12,6 +12,7 @@ import {
 } from "../src/modules/anime/anilist/public.js";
 import { createTrackingModule } from "../src/modules/anime/composition/tracking.js";
 import { TrackingApplication } from "../src/modules/anime/tracking/application.js";
+import { registerTrackingListRoutes } from "../src/modules/anime/tracking/http/lists.js";
 import { registerTrackingRoutes } from "../src/modules/anime/tracking/http/tracking.js";
 import { TrackingCredentialFiles } from "../src/modules/anime/tracking/infrastructure/credentials.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
@@ -35,6 +36,7 @@ async function setup(
 	const app = await createTrackingModule({
 		dataDir,
 		store: database.tracking,
+		listStore: database.trackingLists,
 		client,
 		...(logger ? { logger } : {}),
 	});
@@ -42,7 +44,7 @@ async function setup(
 	return { app, database, dataDir };
 }
 async function connect(
-	app: TrackingApplication,
+	app: import("../src/modules/anime/tracking/public.js").TrackingApi,
 	session = "one",
 	token = "fixture-first",
 ) {
@@ -70,6 +72,7 @@ test("credentials survive restart, remain private and never enter SQLite or publ
 	const restarted = await createTrackingModule({
 		dataDir,
 		store: database.tracking,
+		listStore: database.trackingLists,
 		client: { request: async () => ({ Viewer: { id: 7, name: "First" } }) },
 	});
 	cleanup.push(() => restarted.close());
@@ -197,6 +200,7 @@ test("missing/mismatched credential fails closed on startup; unreferenced files 
 	const restarted = await createTrackingModule({
 		dataDir,
 		store: database.tracking,
+		listStore: database.trackingLists,
 		client: {
 			request: async () => {
 				throw new Error("Must not query an invalid credential");
@@ -233,7 +237,12 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 		logger,
 		policy: builtinPolicy,
 		configure: auth.registerHttp,
-		registrations: [(scope) => registerTrackingRoutes(scope, tracking)],
+		registrations: [
+			(scope) => {
+				registerTrackingRoutes(scope, tracking);
+				registerTrackingListRoutes(scope, tracking);
+			},
+		],
 		closeDependencies: async () => {},
 	});
 	cleanup.push(() => http.close());
@@ -245,6 +254,13 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 			})
 		).statusCode,
 	).toBe(401);
+
+	for (const url of ["/api/tracking/list", "/api/tracking/entries/1"]) {
+		expect(
+			(await http.inject({ url, headers: { host: "127.0.0.1:3000" } }))
+				.statusCode,
+		).toBe(401);
+	}
 	const headers = { host: "127.0.0.1:3000" };
 	async function login() {
 		const session = await http.inject({ url: "/api/auth/session", headers });
@@ -311,6 +327,29 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 	expect(logs).not.toContain("fixture-token");
 	expect(confirmed.headers["cache-control"]).toBe("no-store");
 	const status = confirmed.json();
+	const cached = await http.inject({ url: "/api/tracking/list", headers: one });
+	expect(cached.statusCode).toBe(200);
+	expect(cached.headers["cache-control"]).toBe("no-store");
+	expect(cached.body).not.toContain("fixture-token");
+	expect(
+		(
+			await http.inject({
+				url: "/api/tracking/refresh",
+				method: "POST",
+				headers: { host: one.host, cookie: one.cookie },
+				payload: {},
+			})
+		).statusCode,
+	).toBe(403);
+	expect(
+		(
+			await http.inject({
+				url: `/api/tracking/list?generation=${body.generation}`,
+				headers: one,
+			})
+		).statusCode,
+	).toBe(409);
+
 	expect(
 		(
 			await http.inject({
