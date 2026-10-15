@@ -2,7 +2,10 @@
 
 This document describes the overall system structure, module ownership and
 architectural constraints. [Requirements](requirements.md) owns the feature
-inventory and delivery status. The anime-library version's requirements and
+inventory and delivery status. [Current version requirements](current-version-requirements.md)
+owns the selected AniList account scope and acceptance; this integration is planned,
+not an existing runtime capability. [Current version design](current-version-design.md)
+defines the planned Tracking owner, authorization and submission flow. The anime-library version's requirements and
 acceptance are complete as of 2026-10-14, confirmed by the user.
 [History](history.md#anime-library-archive-notes) retains its requirements,
 CAT01–CAT08 acceptance record and detailed design, alongside earlier designs and

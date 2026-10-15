@@ -4,6 +4,7 @@
 - [2. Feature Inventory and Version Tracking](#2-feature-inventory-and-version-tracking)
 - [3. Rules for Future Features](#3-rules-for-future-features)
 - [4. Release Plan and Suggested Evolution](#4-release-plan-and-suggested-evolution)
+- [Current version requirements: AniList accounts](current-version-requirements.md)
 - [Completed anime library requirements and acceptance](history.md#anime-library-requirements)
 - [Archived V2 requirements and acceptance](history.md#v2-requirements)
 
@@ -15,12 +16,13 @@ Anishelf is a personal animation media library intended to connect:
 
 Its core value is better Web playback, shared client state, and coordination between tracking and automatic downloading.
 
-This document retains the product goal, delivered feature inventory and future evolution. Version-specific requirements, acceptance and detailed design are retained in [History](history.md). The anime-library version completed requirements and acceptance on 2026-10-14, as confirmed by the user. Its scope is L07–L10, M01–M05 and M07; [the archive](history.md#anime-library-archive-notes) preserves CAT01–CAT08 and the original verification limits. No release number was assigned. No new iteration is selected; viewing and tracking is the next priority. The retained V2 implementation status remains recorded separately in History.
+This document retains the product goal, delivered feature inventory and future evolution. [Current version requirements](current-version-requirements.md) owns selected scope and acceptance; completed version requirements, acceptance and detailed design are retained in [History](history.md). The anime-library version completed requirements and acceptance on 2026-10-14, as confirmed by the user. Its scope is L07–L10, M01–M05 and M07; [the archive](history.md#anime-library-archive-notes) preserves CAT01–CAT08 and the original verification limits. No release number was assigned. The next unnumbered iteration selects AniList accounts and AniList-owned viewing state (W03–W05 and T01–T05); its scope and acceptance are defined in the current version requirements. The retained V2 implementation status remains recorded separately in History.
 
 ## 2. Feature Inventory and Version Tracking
 
 - **Implemented in** records the delivered implementation and its version; `—` means not implemented. Partial delivery is explicitly identified.
 - **Target version** records the selected or delivered iteration; `Unassigned` means no release commitment. `Anime library` names the completed unnumbered iteration archived on 2026-10-14; `Current` is retained for other unnumbered deliveries.
+- **Selected** identifies planned work for the next iteration, not delivered implementation.
 - **Later** identifies a subsequent core capability; **Optional** identifies a possible longer-term extension.
 - A target version is not evidence of implementation. Implementation status and acceptance status are separate: delivered code does not certify acceptance. Record outstanding acceptance explicitly; for partial delivery, describe the delivered boundary and keep the remainder explicit. The retained V2 scenarios are recorded as implemented in [History](history.md#v2-requirements), independently of new verification evidence.
 
@@ -121,7 +123,7 @@ This is a user-facing file download, separate from acquiring new releases throug
 
 External anime metadata is a dependency of the delivered identification workflow, not a later tracker integration. Start with one provider supporting search and details; retain its stable identifiers and available aliases, language information, episode data and work relations. Use local anime and episode identities independent of provider IDs. Cache fetched metadata with refresh status and preserve user corrections. Outages must not block already-cached browsing or existing file playback; unavailable candidate or episode information remains explicitly unresolved.
 
-Provider and parser uncertainty is handled through Review; representative recognition accuracy measurement is not required for the completed anime-library iteration. Seanime is a workflow reference, not a mandated dependency. Multiple providers and cross-provider mappings remain M06. Provider-required service access is distinct from T01–T05 personal account authorization, list import and progress synchronization; basic identification must not require the user to authorize a personal tracker account.
+Provider and parser uncertainty is handled through Review; representative recognition accuracy measurement is not required for the completed anime-library iteration. Seanime is a workflow reference, not a mandated dependency. Multiple providers and cross-provider mappings remain M06. Provider-required service access is distinct from T01–T05 personal account authorization, personal list access and viewing-state updates; basic identification must not require the user to authorize a personal tracker account.
 
 ### 2.3 Web Playback and Subtitles
 
@@ -179,15 +181,17 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | --- | --- | --- | --- | --- |
 | W01 | Save playback position and duration and resume playback | Implemented | V2 | V2 |
 | W02 | History page with recent viewing records and resume/replay | Implemented; History covers continue watching | V2 | V2 |
-| W03 | Detect completion and manually mark or unmark episodes as watched | Later | — | Unassigned |
-| W04 | Manage planned, watching, completed, paused, and dropped statuses | Later | — | Unassigned |
-| W05 | Show available unwatched episodes, watched counts, and history | Later | — | Unassigned |
+| W03 | Detect episode completion and submit progress updates or manual corrections to AniList | Selected | — | AniList accounts |
+| W04 | Display and update AniList tracking statuses | Selected | — | AniList accounts |
+| W05 | Show watched counts and available unwatched episodes from AniList progress, alongside local playback history | Selected | — | AniList accounts |
 | W06 | Share records across clients and handle duplicate, out-of-order, or concurrent progress updates | Later | — | Unassigned |
 | W07 | Rewatch history, ratings, tags, and personal notes | Optional | — | Unassigned |
 
 #### Episode Viewing and Tracking (W03–W05)
 
-After confirmed anime/episode associations exist, add planned, watching, completed, paused and dropped statuses; automatic completion and manual watched/unwatched corrections; watched counts, available unwatched episodes and missing-episode information where the expected episode set is known. Retain source playback positions separately from episode watched state. Watching multiple file versions must not inflate episode counts; later-episode viewing must not imply earlier episodes were watched. These capabilities are the next core stage, outside the current identification iteration.
+AniList is the authority for anime viewing status and cumulative episode progress. Display its tracked titles and supported statuses, and submit automatic completion updates and manual progress/status corrections to AniList. Reuse confirmed local work/episode associations and provider identifiers; mapping is already delivered and is not a new implementation requirement. Keep source playback positions and local playback history independent from AniList state. Multiple file versions must not increment progress repeatedly.
+
+AniList cumulative progress does not provide an independent watched/unwatched flag for every episode. Derived episode indicators must be labeled as based on AniList progress, rather than exact local per-episode viewing records. Watching a later episode must not silently imply earlier episodes were watched: noncontiguous completion requires an explicit cumulative-progress decision. Completion thresholds and backward/manual correction behavior must be specified before implementation. Do not introduce a separate authoritative local tracking list or per-episode watched-state store.
 
 ### 2.5 Subscriptions and Resource Discovery
 
@@ -236,12 +240,18 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| T01 | Authorize AniList, check connectivity, and disconnect | Later | — | Unassigned |
-| T02 | Import selected tracked titles without implicitly enabling downloads | Later | — | Unassigned |
-| T03 | Map titles and episode numbering and synchronize progress and tracking status | Later | — | Unassigned |
-| T04 | Queue synchronization, retry failures, report expired authorization, and show results | Later | — | Unassigned |
-| T05 | Preview reimport differences and resolve conflicts | Later | — | Unassigned |
-| T06 | Automatic bidirectional synchronization, multiple trackers, and rating synchronization | Optional | — | Unassigned |
+| T01 | Authorize AniList, display the connected account, check connectivity, and disconnect | Selected | — | AniList accounts |
+| T02 | Read, cache and refresh the connected account's AniList lists and viewing state | Selected | — | AniList accounts |
+| T03 | Reuse existing work/episode mappings to submit viewing progress and tracking-status updates to AniList | Selected | — | AniList accounts |
+| T04 | Persist pending updates, coalesce superseded updates, retry failures, report expired authorization, and show results | Selected | — | AniList accounts |
+| T05 | Detect remote changes before retrying pending updates and resolve conflicts without silently overwriting newer state | Selected | — | AniList accounts |
+| T06 | Multiple trackers, rating synchronization and advanced rewatch support | Optional | — | Unassigned |
+
+#### AniList Accounts: Selected Scope and Acceptance
+
+AniList is the viewing-state authority. This iteration selects account connection, cached list access, progress/status submissions, durable retries and remote-conflict handling. It reuses existing work/episode mappings and keeps local playback history independent. Independent local tracking, list import/export and reimport merging are excluded.
+
+[Current version requirements](current-version-requirements.md) owns the detailed scope, consistency rules, pending design decisions and ANI01–ANI10 acceptance scenarios.
 
 ### 2.9 Interface, Settings, and Maintenance
 
@@ -313,12 +323,12 @@ These rules apply to the relevant capabilities as they are implemented. V2 appli
 
 - **Keep states separate:** tracking, subscriptions, downloads, file availability, and viewing status are independent. Deleting a watched file must not erase its history.
 - **Verify ingestion:** download completion alone does not prove that a file exists or is playable.
-- **Make subscription scope explicit:** show the starting episode and backlog range. Importing a list must not silently start bulk downloads.
+- **Make subscription scope explicit:** show the starting episode and backlog range. Reading an AniList list must not silently start bulk downloads.
 - **Allow uncertainty:** uncertain title or episode matches require review rather than forced association.
 - **Recover without duplication:** polling, retries, and restarts must not create duplicate active downloads.
 - **Protect original files:** cancellation and deletion are distinct. Moving files must account for seeding and path associations.
-- **Save local records first:** external synchronization failures must not block playback; retry later.
-- **Avoid inflated progress:** keep per-episode records separate from external cumulative progress. Watching a later episode must not imply all earlier episodes were watched.
+- **Preserve local playback and pending intent:** save source positions/history independently and persist accepted AniList updates before delivery; remote failures must not block playback. Pending intent is not confirmed remote state.
+- **Avoid inflated progress:** keep actual source playback history separate from AniList cumulative progress and derived episode indicators. Watching a later episode must not silently imply all earlier episodes were watched.
 - **Reject stale events:** delayed player updates must not overwrite newer progress or manual corrections.
 - **Validate compatibility:** browser, codec, subtitle, and hardware support must be demonstrated with real media samples.
 
@@ -329,11 +339,11 @@ V1 is implemented. The archived V2 scope selected saved progress and resume (W01
 | Stage | Question to resolve | Priority candidates |
 | --- | --- | --- |
 | Completed: anime library | Confirmed anime and episode library from existing files; requirements and acceptance complete | L07–L10, M01–M05, M07; CAT01–CAT08 archived |
-| Next core stage: viewing and tracking | Can users manage anime and episode viewing state? | W03–W05, episode completion/corrections and tracking statuses |
+| Selected next iteration: AniList accounts | Can users view and update AniList-owned watching state through Anishelf? | W03–W05, T01–T05; account connection, cached lists, progress/status updates and recoverable submission |
 | Later: automatic acquisition | Can new episodes reach the library automatically? | Subscriptions, discovery, download integration, ingestion, and recovery |
-| Later: external tracking | Can Web viewing records integrate with trackers? | AniList synchronization; possible future read-only native-player state reporting (C03) |
+| Optional tracking extensions | Are additional tracker capabilities needed? | T06; possible future read-only native-player state reporting (C03) |
 
-The anime-library iteration is complete and archived. No next iteration has been selected. Subsequent core stages prioritize viewing/tracking, automatic acquisition, then external tracker synchronization; release numbers remain unassigned. Playback enhancements such as HLS, next-episode continuation and broader subtitle compatibility remain separate later work. For example, desktop integration can move ahead once viewing records are stable if it becomes the most pressing need. Select one independently verifiable user workflow at a time instead of assigning the entire inventory to a single release.
+The anime-library iteration is complete and archived. The next iteration combines viewing/tracking with AniList account integration, ahead of automatic acquisition. AniList is the viewing-state authority; no independent local tracking or import/export workflow is selected. The release number remains unassigned. Playback enhancements such as HLS, next-episode continuation and broader subtitle compatibility remain separate later work. For example, desktop integration can move ahead once viewing records are stable if it becomes the most pressing need. Select one independently verifiable user workflow at a time instead of assigning the entire inventory to a single release.
 
 Library automation improvements L15–L17 remain future, unassigned work and do not displace core workflows. Their suggested order is Batch Review, matching improvements from representative real failures, then learning from manual corrections. Batch correction provides immediate user control; broader automatic reuse follows only after its evidence and conflict boundaries are validated.
 

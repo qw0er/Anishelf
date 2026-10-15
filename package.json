@@ -35,6 +35,8 @@
 		"architecture:check": "node scripts/check-architecture.mjs",
 		"architecture:test": "node --test scripts/architecture.test.mjs",
 		"unused:check": "knip --no-progress",
+		"anilist:verify": "node scripts/anilist-verify.mjs",
+		"anilist:verify:test": "node --test scripts/anilist-verify.test.mjs",
 		"anime:corpus": "node --import tsx scripts/anime-corpus.mts"
 	},
 	"overrides": {
