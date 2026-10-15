@@ -212,44 +212,120 @@ For Docker CLI, replace the media `--mount` with
 `-v /absolute/media/path:/media:ro,z`. Relabeling changes host file labels;
 ensure the directory allows it and that other services can still access it.
 
+## Authentication and password recovery
+
+Authentication is always enabled, including local development. The first startup
+with no `auth.json` generates a random password and atomically publishes its
+salted scrypt hash. The plaintext is printed once to the startup console after
+HTTP startup succeeds, separately from application file logging. Container logs
+and journald can retain this output. The initial password works immediately;
+changing it in **Settings → Security** is optional.
+
+Read the initial startup output with:
+
+```sh
+docker compose logs anishelf
+# Docker CLI deployment:
+docker logs anishelf
+# As the dedicated rootless Podman account:
+journalctl --user -u anishelf.service
+```
+
+`/data/auth.json` is the independent credential source. `/data/auth-session.key`
+signs session cookies, while SQLite stores sessions and hashed media-link tokens.
+For source installations, these files live under `ANISHELF_DATA_DIR`, or the
+platform's default application data directory. Credentials use mode `0600` and
+the data directory uses `0700`. The runtime account must own these files.
+Keep the entire stopped data directory together in backups; protect backups as
+credentials. Existing data volumes initialize authentication once when upgraded.
+An invalid/unreadable credential file or unavailable database blocks startup.
+
+### Reset a forgotten password
+
+No Web login is required. These commands print a newly generated password:
+
+```sh
+docker compose exec anishelf node backend/dist/cli.js auth reset-password
+docker compose restart anishelf
+```
+
+For Docker CLI, replace `docker compose exec anishelf` with `docker exec anishelf`
+and restart with `docker restart anishelf`. For rootless Quadlet, run as the
+service account:
+
+```sh
+podman exec anishelf node backend/dist/cli.js auth reset-password
+systemctl --user restart anishelf.service
+```
+
+For a source checkout, use `npm run auth --workspace @anishelf/backend -- reset-password`
+with the same deployment environment, then restart the application. The CLI does
+not start HTTP, load user settings or probe media tools. If the server cannot
+start, use a one-off container mounting the same data volume:
+
+```sh
+docker compose run --rm --no-deps anishelf node backend/dist/cli.js auth reset-password
+```
+
+Reset replaces the credential file atomically. A running process retains its
+loaded credential until restarted, so restart immediately after any CLI or manual
+file change. Previous sessions and media links then fail their credential
+fingerprint checks. Do not delete the database to reset a password. If startup
+saved credentials but stopped before printing the initial password, use the same
+reset procedure.
+
+### Set a chosen password without the Web interface
+
+Use an interactive terminal to generate the full JSON document, with hidden
+password entry and confirmation:
+
+```sh
+docker compose exec -it anishelf node backend/dist/cli.js auth hash-password
+# Or in a source checkout:
+npm run auth --workspace @anishelf/backend -- hash-password
+```
+
+Replace `auth.json` with the printed JSON as the runtime account, preserve mode
+`0600`, and restart. The document contains version `1`, algorithm `scrypt`, a
+hexadecimal `salt` and `hash`, and parameters `N=32768`, `r=8`, `p=1`. Passwords
+contain 12–128 Unicode characters and are never trimmed. No plaintext password,
+initial-password environment variable or initial-password import file is stored.
+
+### Sessions and external players
+
+Browser sessions expire 30 days after login. Signing out revokes that session;
+changing the password revokes every session and media link. Modified credentials
+are detected immediately for Web changes and after restart for manual changes.
+The Web interface checks session status on focus and every minute; API requests
+also enforce authentication.
+
+External player links and M3U playlists contain a 24-hour token authorizing only
+`GET`/`HEAD` for one original file version, including Range requests. Anyone with
+that link can access the file until expiry or password change. Links persist
+across restarts; replacing the source invalidates them. Already open streams can
+finish. Do not publish these links or log their full query strings. Public APIs,
+prepared copies, subtitles and artwork require the browser session.
+
 ## Caddy reverse proxy
 
-Set `ANISHELF_PUBLIC_ORIGIN=https://example.com` in your deployment and
-restart it. Configure Caddy on the same host to protect the application:
+Set `ANISHELF_PUBLIC_ORIGIN=https://example.com` and restart Anishelf. Keep Host
+and Origin headers unchanged. Caddy on the same host provides TLS and forwards
+the request scheme and client address; only loopback proxies are trusted:
 
 ```caddyfile
 example.com {
-    basic_auth {
-        qwer <password-hash>
-    }
     reverse_proxy 127.0.0.1:3000
 }
 ```
 
-Generate `<password-hash>` with `caddy hash-password`, then validate and reload
-Caddy. Use your exact public origin, including a non-default port if needed.
-Keep Host and Origin headers unchanged. Anishelf has no built-in authentication.
+Use the exact public origin, including a non-default port if necessary. HTTPS
+origins use Secure cookies; local HTTP works when no HTTPS public origin is set.
+Do not serve the public application over plain HTTP.
 
-### External players without authentication
-
-External-player links do not include the browser's Basic Auth credentials.
-To make original media accessible without authentication, use:
-
-```caddyfile
-example.com {
-    @protected {
-        not path /api/media/*
-    }
-
-    basic_auth @protected {
-        qwer <password-hash>
-    }
-    reverse_proxy 127.0.0.1:3000
-}
-```
-
-Anyone with an original media URL can access that file. Pages, settings,
-prepared media and subtitles remain authenticated.
+When migrating, keep the existing Caddy Basic Auth until application login,
+password recovery and an external-player link have been checked. Then remove
+`basic_auth` and any `/api/media/*` bypass matcher. Anishelf validates media
+access itself; no anonymous media-path exemption is needed.
 
 
 See the [Docker volume reference](https://docs.docker.com/engine/storage/volumes/)

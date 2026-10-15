@@ -1,6 +1,7 @@
 import { type RequestOptions, request } from "../../../shared/api/client.js";
 import type {
 	ChaptersResponse,
+	MediaAccessLinkResponse,
 	PlaybackOptionsRequest,
 	PlaybackOptionsResponse,
 	PlaybackSelectionRequest,
@@ -64,4 +65,15 @@ export function selectPlayback(
 	options?: RequestOptions,
 ): Promise<PlaybackSelectionResponse> {
 	return request("/api/playback/selection", "POST", options, input);
+}
+
+export function createMediaAccessLink(
+	fileId: ResourceId,
+	options?: RequestOptions,
+): Promise<MediaAccessLinkResponse> {
+	return request(
+		`/api/media/${encodeURIComponent(fileId)}/access-link`,
+		"POST",
+		options,
+	);
 }

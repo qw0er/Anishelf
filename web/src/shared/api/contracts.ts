@@ -23,6 +23,7 @@ export type {
 	HistoryResponse,
 	IdentificationStatusResponse,
 	LibraryResponse,
+	MediaAccessLinkResponse,
 	MetadataAiringResponse,
 	MetadataDetailsResponse,
 	MetadataRelationsResponse,

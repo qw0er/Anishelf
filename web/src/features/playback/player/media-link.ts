@@ -5,6 +5,7 @@ import {
 } from "../../../shared/api/client.js";
 import { loadQuery, queryClient } from "../../../shared/api/query-client.js";
 import { fileQuery } from "../../resources/public.js";
+import { createMediaAccessLink } from "./api.js";
 
 /** Recheck access and accept only the original-media route for the selected file. */
 export async function resolveMediaLink(
@@ -26,8 +27,19 @@ export async function resolveMediaLink(
 			message: "The server returned an invalid media link. Please retry.",
 		});
 	}
+	const link = await createMediaAccessLink(fileId, options);
+	const resolved = new URL(link.url, origin);
+	if (
+		resolved.origin !== new URL(origin).origin ||
+		resolved.pathname !== expectedPath ||
+		!resolved.searchParams.get("access_token")
+	)
+		throw new ApiClientError({
+			kind: "invalid_response",
+			message: "The server returned an invalid media link.",
+		});
 	return {
-		url: new URL(file.originalMediaUrl, origin).href,
+		url: resolved.href,
 		name: file.file.name,
 		mimeType: file.file.mimeType ?? "video/*",
 	};

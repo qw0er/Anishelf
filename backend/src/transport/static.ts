@@ -1,12 +1,12 @@
 import { access } from "node:fs/promises";
 import { join } from "node:path";
 import fastifyStatic from "@fastify/static";
-import type { FastifyInstance } from "fastify";
 import { adapterPolicy } from "../platform/adapter-policy.js";
 import { apiError } from "./errors.js";
+import type { HttpInstance } from "./instance.js";
 
 /** Host the explicit frontend build directory in any runtime mode. */
-export async function registerFrontend(app: FastifyInstance, root: string) {
+export async function registerFrontend(app: HttpInstance, root: string) {
 	try {
 		await access(join(root, "index.html"));
 	} catch {

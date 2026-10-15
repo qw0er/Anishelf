@@ -22,7 +22,7 @@ and processing. Original resources remain read-only.
 
 ![Anishelf overall architecture](architecture.svg)
 
-The diagram shows five encapsulated business modules and their thirteen internal
+The diagram shows five encapsulated business modules and their internal
 owners. A module owns its public contract, private assembly and lifecycle. Solid arrows show layer calls or mechanism use; dashed arrows
 show application assembly. The collaboration table below identifies the main
 module interfaces rather than every import.
@@ -30,13 +30,15 @@ module interfaces rather than every import.
 Bootstrap constructs modules, injects dependencies and owns startup/shutdown.
 Background-work owners stop before shared media services and persistence close.
 The HTTP layer validates requests and projects public responses; business workflows
-remain in Applications. A reverse proxy owns TLS and authentication for external
-access; transport request validation does not replace authentication.
+remain in Applications. System owns single-user credentials and authentication.
+A reverse proxy owns TLS; transport enforces session/CSRF checks for business APIs
+and scoped tokens for original-media delivery.
 
 ## Internal ownership
 
 | Module | Owns |
 | --- | --- |
+| Authentication | Independent credential file, persistent login sessions, password recovery and scoped original-media links |
 | Configuration | Validated policy, persistent user settings, coordinated settings commands and transcode profiles |
 | Library | Published resource index, scans and resource-root switching |
 | Resource Access | Confined file access, shared source identities and source validity |
@@ -77,7 +79,7 @@ The backend source has six responsibility roots:
 
 | Module | Internal owners | External responsibility |
 | --- | --- | --- |
-| System | Configuration | Deployment/settings/profile capabilities and immutable effective settings |
+| System | Configuration, Authentication | Deployment/settings/profile capabilities, immutable effective settings, credentials and login |
 | Resources | Library, Resource Access | Directory/file reads, scans, root switching, settings-change exclusion, publications, confined source access and registration |
 | Media | Inspection, Planning, Processing, Preparation, Subtitles | Compatibility, published-copy views, media information, preparation and subtitle HTTP services |
 | Playback | Progress, Playback Selection | Resource selection, sessions, durable progress and history |
@@ -364,3 +366,39 @@ playback; unknown numbering remains unresolved. Original names and bytes remain
 unchanged. Personal tracker authorization is not required. Episode watched-state
 aggregation, subscriptions, download orchestration and tracker synchronization
 remain future requirements rather than existing runtime owners.
+
+## Authentication boundary
+
+System's Authentication owner maintains an atomically written `auth.json` and a
+separate session signing key under the data directory. Passwords use salted
+scrypt; plaintext generated passwords go only to the startup console after listen
+succeeds. The local CLI can hash or reset credentials without starting the server.
+File edits require restart; Web changes apply immediately. SQLite availability is
+required at startup, and its System-owned tables persist sessions and hashed
+media-link tokens. Session and link records bind to the loaded credential
+fingerprint, so manual hash replacement invalidates old authorization after restart.
+
+The private `AuthenticationService` class owns the loaded credential, fingerprint
+and password-change exclusion. `AuthenticationRepository` implements the durable
+storage port; module assembly exposes registration capabilities and storage ports
+rather than exporting these constructors. Named helpers and handlers express
+operations; callbacks retain closures where they adapt injected dependencies.
+The frontend playback API adapter owns the media-access-link endpoint and its
+shared response contract; media-link orchestration consumes that typed method.
+
+
+App supplies Authentication with a consumer-owned file-version capability adapted
+from Resources. Authentication registers Cookie/session plugins and a global API
+guard before module HTTP routes. Host/Origin validation remains in transport;
+CSRF checks cover unsafe authenticated requests and login. Anonymous access is
+limited to session bootstrap, login, minimal health status and frontend files.
+Sessions expire after 30 days; login rotates identifiers. Browser guards precede
+business loaders; API 401 responses clear client caches and leave the protected
+application. Focus/minute checks also detect server-side session revocation.
+
+Login/password verification uses bounded per-source and instance-wide attempts.
+Forwarded scheme/client address headers are trusted only from loopback proxies.
+HTTPS public origins require Secure cookies. Password changes revoke all sessions
+and media links; logout revokes its current session. Media tokens authorize one
+original version for 24 hours and reuse existing HEAD/Range delivery. They do not
+authorize business APIs or create playback history. Existing streams may finish.

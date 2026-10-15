@@ -161,3 +161,10 @@ export type IdentificationStatusResponse = Static<
 export type CatalogFileReviewsResponse = Static<
 	typeof schemas.CatalogFileReviewsSchema
 >;
+
+export type AuthSessionResponse = Static<
+	typeof schemas.AuthSessionResponseSchema
+>;
+export type MediaAccessLinkResponse = Static<
+	typeof schemas.MediaAccessLinkResponseSchema
+>;

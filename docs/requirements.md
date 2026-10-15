@@ -51,11 +51,33 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 | L12 | Configure and manage multiple resource roots | Optional | — | Unassigned |
 | L13 | Rename, organize, delete, and reclaim storage with preservation rules | Optional | — | Unassigned |
 | L14 | Download an existing original media file from the Web interface to the user's device | Implemented | Current | Current |
-| L15 | Select multiple files and preview/apply a shared episode-number offset | Later | — | Unassigned |
+| L15 | Batch Review with shared work selection and episode-number offset previews | Later | — | Unassigned |
+| L16 | Improve matching using representative real-world failure cases | Later | — | Unassigned |
+| L17 | Learn scoped matching rules from explicit manual corrections | Later | — | Unassigned |
 
-#### Multi-file Batch Offset Correction (L15)
+#### Batch Review (L15)
 
 Select an explicit subset of files for a work, preview each file's existing and proposed episode associations, and apply a shared numbering offset through Catalog-owned correction operations. Preserve original parsing evidence and source history, require explicit replacement of existing associations, and reject stale or invalid inputs. Single-file correction and offset previews are delivered in the completed anime-library scope; the multi-file Web workflow is later scope.
+
+After correcting one file, allow the user to find related files, explicitly select the batch scope and preview a shared work assignment and numbering conversion. Show per-file conflicts and exclusions before confirmation; a single correction does not authorize automatic changes to other files. Batch Review must remain usable without learned rules.
+
+Acceptance: selected valid files receive the previewed associations, excluded files remain unchanged, conflicts are visible and stale inputs are rejected. Existing manual associations require explicit replacement.
+
+#### Matching Improvements from Real Failures (L16)
+
+Collect representative local failure cases with user-confirmed expected works and episode mappings, preserving filename, directory and release provenance. Diagnose extraction, candidate retrieval, ranking, numbering and admission separately. Prioritize recurring failures such as shortened titles, season/part ambiguity, continuous numbering and end-of-series markers; do not lower admission thresholds solely to improve corpus coverage.
+
+Acceptance: evaluate against a fixed baseline and held-out cases, report recognition and correct automatic admission separately, and inspect incorrect admissions and regressions. Distinguish frozen-candidate evaluation from live-search retrieval. Unresolved identities and numbering remain reviewable.
+
+#### Learning from Manual Corrections (L17)
+
+Learn explainable, scoped rules only from explicit user-confirmed corrections. Candidate rule types include title aliases, season/part interpretations, directory or release-batch work assignments, episode offsets, numbering-token selection, explicitly identified special/ancillary content and rejected candidates. Keep work identity and episode mapping independent; an arbitrary single-file correction must not become a general numbering rule.
+
+Default to narrow scopes using resource root, directory, release batch, title context, work and season/part evidence. One confirmation may produce suggestions or a user-authorized batch preview; automatic reuse requires multiple independent, consistent confirmations and no conflicting evidence. Never learn new manual evidence from automatic admissions or rule-generated suggestions alone. Do not propagate offsets across unrelated directories, releases, seasons or parts, or overwrite manual decisions.
+
+Preserve each rule's source confirmations and applicable context, explain its effect on recommendations, and support disabling or deleting rules. Replaced, revoked or stale source evidence must invalidate dependent suggestions until revalidated. Conflicting rules require Review; disabling a rule must not silently undo confirmed associations.
+
+Acceptance: earlier confirmations predict later unseen files, with release/context separation to prevent evaluation leakage. Verify conflict handling, scope boundaries, evidence invalidation and rule removal, and report incorrect automatic applications as well as coverage gains.
 
 #### Resource Identification (L07–L10)
 
@@ -221,7 +243,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | O04 | Unified settings for directories and integrations | Later | — | Unassigned |
 | O05 | Task history, logs, and automation decision explanations | Later | — | Unassigned |
 | O06 | Back up and restore metadata, viewing history, and configuration | Later | — | Unassigned |
-| O07 | LAN access, single-user authentication, and credential protection | Later | — | Unassigned |
+| O07 | LAN access, single-user authentication, and credential protection | Implemented: single password, independent hash file, persistent Cookie sessions, CSRF, login limits, local recovery and 24-hour scoped media links; remote access through TLS proxy | Current | Current |
 | O08 | In-app completion and failure feedback | Implemented: scan result Toasts and preparation results in the floating task monitor | Current | Current |
 | O09 | Multiple users, permissions, public deployment support, and remote access | Optional | — | Unassigned |
 | O10 | Plugin extensions and public integration APIs | Optional | — | Unassigned |
@@ -304,3 +326,23 @@ V1 is implemented. The archived V2 scope selected saved progress and resume (W01
 | Later: external tracking | Can Web viewing records integrate with trackers? | AniList synchronization; possible future read-only native-player state reporting (C03) |
 
 The anime-library iteration is complete and archived. No next iteration has been selected. Subsequent core stages prioritize viewing/tracking, automatic acquisition, then external tracker synchronization; release numbers remain unassigned. Playback enhancements such as HLS, next-episode continuation and broader subtitle compatibility remain separate later work. For example, desktop integration can move ahead once viewing records are stable if it becomes the most pressing need. Select one independently verifiable user workflow at a time instead of assigning the entire inventory to a single release.
+
+Library automation improvements L15–L17 remain future, unassigned work and do not displace core workflows. Their suggested order is Batch Review, matching improvements from representative real failures, then learning from manual corrections. Batch correction provides immediate user control; broader automatic reuse follows only after its evidence and conflict boundaries are validated.
+
+### Single-user authentication acceptance
+
+Authentication is enabled for every deployment. A missing credential file creates
+one random password and displays it once after startup; using it does not require
+an immediate password change. Existing files are preserved. Invalid credentials
+or unavailable persistence fail closed. Users can sign in/out and change the
+password with their current password; local CLI or manual credential replacement
+provides recovery without Web access. All sessions and media links become invalid
+after password change, or after restart for manual edits. Plaintext passwords do
+not enter persistent application logging or settings APIs.
+
+Business APIs and media assets require authentication, including HEAD/Range.
+CSRF checks protect mutations. External-player and M3U links authorize only one
+original file version for 24 hours and survive restart. Invalid, expired,
+wrong-file or changed-source links are rejected. Browser logout/expiry clears
+private query caches and exits playback. Caddy supplies HTTPS without Basic Auth
+or an anonymous media-path exemption.

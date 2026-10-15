@@ -120,6 +120,13 @@ beforeEach(() => {
 	settings = { resourceRoot: "/media" };
 	fetcher.mockReset();
 	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === "/api/auth/session")
+			return json({ authenticated: true, csrfToken: "test-csrf" });
+		if (String(input) === "/api/media/file-1/access-link")
+			return json({
+				url: "/api/media/file-1?access_token=test-token",
+				expiresAt: Date.now() + 86400000,
+			});
 		const path = String(input);
 		if (path.startsWith("/api/files/file-1/chapters?"))
 			return json({ sourceVersion: "version", chapters: [] });
@@ -1470,7 +1477,7 @@ test("file rows offer a dropdown menu for copying without opening playback", asy
 	fireEvent.click(button);
 	await screen.findByText(/Link copied/);
 	expect(copy).toHaveBeenCalledWith(
-		`${window.location.origin}/api/media/file-1`,
+		`${window.location.origin}/api/media/file-1?access_token=test-token`,
 	);
 	expect(screen.getByTestId("location").textContent).toBe(
 		"/directories/season-1",
@@ -1638,7 +1645,7 @@ test("file menu preserves manual copy fallback after closing", async () => {
 	);
 	const field = await screen.findByRole("textbox", { name: "Media link" });
 	expect((field as HTMLInputElement).value).toBe(
-		`${window.location.origin}/api/media/file-1`,
+		`${window.location.origin}/api/media/file-1?access_token=test-token`,
 	);
 	expect(screen.queryByRole("menu")).toBeNull();
 });
@@ -1766,20 +1773,22 @@ test("search and immediate filters reset pagination and preserve applied criteri
 		target: { value: "recent" },
 	});
 	await waitFor(() => expect(screen.getByText("Page 1")).toBeTruthy());
-	expect(
-		fetcher.mock.calls.some(([path]) => {
-			const url = new URL(String(path), "http://localhost");
-			return (
-				url.pathname === "/api/catalog/works" &&
-				url.searchParams.get("query") === "葬送" &&
-				url.searchParams.get("format") === "TV" &&
-				url.searchParams.get("year") === "2023" &&
-				url.searchParams.get("availability") === "available" &&
-				url.searchParams.get("sort") === "recent" &&
-				!url.searchParams.has("page")
-			);
-		}),
-	).toBe(true);
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(([path]) => {
+				const url = new URL(String(path), "http://localhost");
+				return (
+					url.pathname === "/api/catalog/works" &&
+					url.searchParams.get("query") === "葬送" &&
+					url.searchParams.get("format") === "TV" &&
+					url.searchParams.get("year") === "2023" &&
+					url.searchParams.get("availability") === "available" &&
+					url.searchParams.get("sort") === "recent" &&
+					!url.searchParams.has("page")
+				);
+			}),
+		).toBe(true),
+	);
 	expect(
 		fetcher.mock.calls.some(([path]) =>
 			String(path).startsWith("/api/metadata/search"),

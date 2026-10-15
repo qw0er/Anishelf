@@ -39,6 +39,19 @@ const file = {
 	originalMediaUrl: "/api/media/file_123",
 };
 beforeEach(() => {
+	vi.stubGlobal(
+		"fetch",
+		vi.fn().mockImplementation(
+			() =>
+				new Response(
+					JSON.stringify({
+						url: "/api/media/file_123?access_token=test-token",
+						expiresAt: Date.now() + 86400000,
+					}),
+					{ headers: { "content-type": "application/json" } },
+				),
+		),
+	);
 	localStorage.clear();
 	vi.spyOn(resourceApi, "getFile").mockResolvedValue(file);
 	vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Macintosh");
@@ -47,6 +60,7 @@ beforeEach(() => {
 afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
 	localStorage.clear();
 });
 
@@ -212,13 +226,13 @@ test("menu prepares native anchors for detected presets and custom players witho
 	const item = await screen.findByRole("menuitem", { name: "IINA" });
 	await waitFor(() =>
 		expect(item.getAttribute("href")).toBe(
-			`iina://open?url=${encodeURIComponent(`${window.location.origin}/api/media/file_123`)}`,
+			`iina://open?url=${encodeURIComponent(`${window.location.origin}/api/media/file_123?access_token=test-token`)}`,
 		),
 	);
 	expect(
 		screen.getByRole("menuitem", { name: "My player" }).getAttribute("href"),
 	).toBe(
-		`custom://${encodeURIComponent(`${window.location.origin}/api/media/file_123`)}`,
+		`custom://${encodeURIComponent(`${window.location.origin}/api/media/file_123?access_token=test-token`)}`,
 	);
 	expect(screen.queryByRole("menuitem", { name: "MX Player" })).toBeNull();
 	expect(open).not.toHaveBeenCalled();
