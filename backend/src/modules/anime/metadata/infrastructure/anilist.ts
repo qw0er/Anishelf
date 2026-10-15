@@ -1,15 +1,18 @@
 import { type Static, type TSchema, Type } from "typebox";
 import { Check } from "typebox/value";
-import { abortable, pause } from "../domain/async.js";
+import {
+	type AniListClient,
+	AniListError,
+	type AniListOptions,
+	AniListScheduler,
+} from "../../anilist/public.js";
 import {
 	MetadataError,
 	type ProviderReference,
 	type WorkDetails,
 	type WorkSummary,
 } from "../domain/model.js";
-import { metadataPolicy as policy } from "../policy.js";
 import type { MetadataProvider } from "../ports.js";
-import { boundedBody } from "./transport.js";
 
 const nullable = <T extends TSchema>(type: T) =>
 	Type.Union([type, Type.Null()]);
@@ -128,20 +131,9 @@ export class AniListProvider implements MetadataProvider {
 		streamingLinks: true,
 		canonicalEpisodes: false,
 	} as const;
-	private tail: Promise<void> = Promise.resolve();
-	private nextRequestAt = 0;
-	private interval: number;
-	private queued = 0;
-	constructor(
-		private readonly options: {
-			fetch?: typeof fetch;
-			intervalMs?: number;
-			timeoutMs?: number;
-			attempts?: number;
-			random?: () => number;
-		} = {},
-	) {
-		this.interval = options.intervalMs ?? policy.requestIntervalMs;
+	private readonly client: AniListClient;
+	constructor(options: AniListOptions & { client?: AniListClient } = {}) {
+		this.client = options.client ?? new AniListScheduler(options);
 	}
 	private id(reference: ProviderReference): number {
 		if (
@@ -160,176 +152,20 @@ export class AniListProvider implements MetadataProvider {
 	private async request(
 		query: string,
 		variables: Record<string, unknown>,
-		parent: AbortSignal,
+		signal: AbortSignal,
 	): Promise<unknown> {
-		parent.throwIfAborted();
-		if (this.queued >= policy.maximumPending)
-			throw new MetadataError({
-				code: "busy",
-				message: "Metadata request queue is full. Retry shortly.",
-				retryAt: null,
-			});
-		this.queued++;
-		const previous = this.tail;
-		let unlock = () => {};
-		this.tail = new Promise<void>((resolve) => {
-			unlock = resolve;
-		});
 		try {
-			// Release the queue only after the previous request, even when this waiter cancels.
-			await abortable(previous, parent);
-			for (
-				let attempt = 0;
-				attempt < (this.options.attempts ?? policy.maximumAttempts);
-				attempt++
-			) {
-				await pause(this.nextRequestAt - Date.now(), parent);
-				this.nextRequestAt = Date.now() + this.interval;
-				const signal = AbortSignal.any([
-					parent,
-					AbortSignal.timeout(
-						this.options.timeoutMs ?? policy.requestTimeoutMs,
-					),
-				]);
-				try {
-					const response = await abortable(
-						(this.options.fetch ?? fetch)("https://graphql.anilist.co", {
-							method: "POST",
-							redirect: "error",
-							headers: {
-								"Content-Type": "application/json",
-								Accept: "application/json",
-							},
-							body: JSON.stringify({ query, variables }),
-							signal,
-						}),
-						signal,
-					);
-					this.observe(response);
-					if (!response.ok) {
-						await response.body?.cancel();
-						throw new MetadataError({
-							code:
-								response.status === 429
-									? "rate-limited"
-									: response.status === 404
-										? "not-found"
-										: response.status >= 500
-											? "unavailable"
-											: "invalid-request",
-							message:
-								"AniList request failed. Retry when the provider is available.",
-							retryAt: response.status === 429 ? this.nextRequestAt : null,
-						});
-					}
-					const bytes = await boundedBody(
-						response,
-						policy.responseMaximumBytes,
-						signal,
-					);
-					let body: unknown;
-					try {
-						body = JSON.parse(Buffer.from(bytes).toString("utf8"));
-					} catch {
-						throw invalid();
-					}
-					if (!body || typeof body !== "object") throw invalid();
-					const envelope = body as { data?: unknown; errors?: unknown };
-					if (envelope.errors !== undefined) {
-						if (!Array.isArray(envelope.errors)) throw invalid();
-						if (envelope.errors.length) {
-							const statuses = envelope.errors.map((error) =>
-								error && typeof error === "object"
-									? (error as { status?: unknown }).status
-									: undefined,
-							);
-							const code = statuses.includes(429)
-								? "rate-limited"
-								: statuses.includes(404)
-									? "not-found"
-									: statuses.some(
-												(status) => typeof status === "number" && status >= 500,
-											)
-										? "unavailable"
-										: "invalid-response";
-							if (code === "rate-limited")
-								this.nextRequestAt = Math.max(
-									this.nextRequestAt,
-									Date.now() + 60000,
-								);
-							throw new MetadataError({
-								code,
-								message:
-									"AniList returned a GraphQL error; partial data was not cached.",
-								retryAt: code === "rate-limited" ? this.nextRequestAt : null,
-							});
-						}
-					}
-					if (!envelope.data) throw invalid();
-					return envelope.data;
-				} catch (error) {
-					parent.throwIfAborted();
-					const failure =
-						error instanceof MetadataError
-							? error
-							: new MetadataError(
-									{
-										code: "unavailable",
-										message:
-											"AniList is unavailable or timed out. Retry shortly.",
-										retryAt: null,
-									},
-									{ cause: error },
-								);
-					if (
-						!["unavailable", "rate-limited"].includes(failure.failure.code) ||
-						attempt + 1 >= (this.options.attempts ?? policy.maximumAttempts)
-					)
-						throw failure;
-					await pause(
-						250 * 2 ** attempt +
-							Math.floor((this.options.random ?? Math.random)() * 250),
-						parent,
-					);
-				}
-			}
-			throw invalid();
-		} finally {
-			this.queued--;
-			void previous.finally(unlock);
-		}
-	}
-	private observe(response: Response): void {
-		const limit = Number(response.headers.get("x-ratelimit-limit"));
-		if (Number.isSafeInteger(limit) && limit > 0)
-			this.interval = Math.max(this.interval, Math.ceil(60000 / limit));
-		const retry = response.headers.get("retry-after");
-		const retryAt =
-			retry === null
-				? 0
-				: /^\d+(?:\.\d+)?$/.test(retry)
-					? Date.now() + Number(retry) * 1000
-					: Date.parse(retry);
-		const rawReset = Number(response.headers.get("x-ratelimit-reset")) * 1000;
-		const reset = Number.isFinite(rawReset) ? rawReset : 0;
-		const remainingHeader = response.headers.get("x-ratelimit-remaining");
-		const remaining = Number(remainingHeader);
-		if (
-			remainingHeader !== null &&
-			Number.isSafeInteger(remaining) &&
-			remaining > 0 &&
-			reset > Date.now()
-		)
-			this.interval = Math.max(
-				this.interval,
-				Math.ceil((reset - Date.now()) / remaining),
-			);
-		if (response.status === 429 || remainingHeader === "0") {
-			const supplied = Math.max(Number.isFinite(retryAt) ? retryAt : 0, reset);
-			this.nextRequestAt = Math.max(
-				this.nextRequestAt,
-				supplied > Date.now() ? supplied : Date.now() + 60000,
-			);
+			return await this.client.request(query, variables, { signal });
+		} catch (error) {
+			if (error instanceof AniListError)
+				throw new MetadataError({
+					...error.failure,
+					code:
+						error.failure.code === "unauthorized"
+							? "invalid-response"
+							: error.failure.code,
+				});
+			throw error;
 		}
 	}
 	async search(

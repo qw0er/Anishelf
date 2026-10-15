@@ -5,6 +5,9 @@ import type { CatalogStore } from "./anime-catalog/ports.js";
 import { MetadataRepository } from "./metadata/infrastructure/repository.js";
 import type { MetadataStore } from "./metadata/ports.js";
 
+import { TrackingRepository } from "./tracking/infrastructure/repository.js";
+import type { TrackingStore } from "./tracking/ports.js";
+
 export {
 	catalogAssociations,
 	catalogEpisodes,
@@ -18,7 +21,9 @@ export {
 	metadataPins,
 	metadataSnapshots,
 } from "./metadata/persistence.js";
+export { trackingConnection } from "./tracking/persistence.js";
 export interface AnimePersistence {
+	tracking: TrackingStore;
 	catalog: CatalogStore;
 	metadata: MetadataStore;
 }
@@ -28,6 +33,7 @@ export function createAnimePersistence(
 ): AnimePersistence {
 	return {
 		catalog: new CatalogRepository(store, sources),
+		tracking: new TrackingRepository(store),
 		metadata: new MetadataRepository(store),
 	};
 }

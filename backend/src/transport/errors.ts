@@ -3,6 +3,24 @@ import { MetadataError } from "../modules/anime/public.js";
 import { DomainError, type ErrorCode } from "../shared/errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	TRACKING_AUTHORIZATION_REQUIRED: {
+		status: 409,
+		message:
+			"AniList authorization is invalid or expired. Reconnect your account.",
+	},
+	TRACKING_UNAVAILABLE: {
+		status: 503,
+		message: "AniList account service is unavailable. Retry later.",
+	},
+	TRACKING_RATE_LIMITED: {
+		status: 429,
+		message: "AniList rate limit reached. Wait and try again.",
+	},
+	TRACKING_CONFLICT: {
+		status: 409,
+		message:
+			"The AniList connection or preview changed. Refresh and try again.",
+	},
 	AUTH_RATE_LIMITED: {
 		status: 429,
 		message: "Too many sign-in attempts. Please wait and try again.",

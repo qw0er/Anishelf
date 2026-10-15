@@ -8,7 +8,9 @@ viewing status and cumulative progress. Anishelf owns source playback positions,
 local playback history, account-scoped remote caches and durable submission intent.
 Existing Catalog identities and confirmed work/episode associations are reused.
 
-This is a design baseline, not an implementation or acceptance claim. No release
+This remains the iteration design baseline. The account foundation described in
+[Implemented account foundation](#implemented-account-foundation) is delivered;
+list access, submission workers and playback updates remain planned. No release
 number is assigned. [Architecture](architecture.md) describes existing runtime
 owners; [Overall requirements](requirements.md) retains delivery status. Historical
 designs remain unchanged.
@@ -316,3 +318,72 @@ maintainer application's PIN behavior and backend usage. Finalize schema names,
 HTTP request/response shapes, credential-file recovery, polling/backoff bounds and
 queue limits in implementation review. Keep requirements and this design aligned;
 none of these gates changes AniList's ownership or introduces list import/export.
+
+## Implemented Account Foundation
+
+The runtime now constructs Tracking and a shared AniListScheduler inside Anime.
+Tracking's application, credential adapter, repository and HTTP routes live under
+`backend/src/modules/anime/tracking/`. The scheduler's transport and domain helpers
+live under `backend/src/modules/anime/anilist/`; the existing metadata provider
+uses its public request capability. Anime composition constructs one scheduler for
+both owners. Tracking is exposed through Anime's root API and HTTP registration.
+
+The `tracking_connection` singleton row stores account ID/name, generation,
+credential reference, state and last successful or authorization-failed check time.
+Migration 0011 adds this table. Tokens are stored as immutable, fsynced 0600 JSON
+files under `<dataDir>/tracking-credentials/` (directory mode 0700), keyed by an
+unpredictable credential ID. SQLite publishes the file reference only after the
+file write succeeds. Replacement preserves the old connection if publication
+fails; startup removes unreferenced credential files and validates account and
+generation binding. Missing or invalid credentials require reconnection. These
+files use filesystem permissions, not application-level encryption.
+
+Implemented HTTP endpoints are GET /api/tracking/account, POST
+/api/tracking/account/preview, POST /api/tracking/account/confirm, POST
+/api/tracking/account/check and DELETE /api/tracking/account. Preview receives
+`{ token }` and returns candidateId/account/expiresAt/generation; confirmation
+receives `{ candidateId, generation }`; disconnect receives `{ generation }`.
+Candidates expire after five minutes and are session-bound. Status returns
+clientId/authorizationUrl/generation/account/state/connectivity/checkedAt, never a
+token. Invalid account authorization is a Tracking-specific 409 response so it
+does not sign the browser out of Anishelf. Stale generations/previews return 409,
+provider rate limiting returns 429 and unavailable account service returns 503.
+
+Settings uses the account query key `[tracking, account]` for the connection
+bootstrap; future personal-data queries must include account ID and connection
+generation. Confirm, disconnect and checks cancel Tracking queries and remove
+other Tracking cache entries before publishing the returned connection. The token
+is transient component state and cleared as preview starts; mutation variables
+contain only the operation name. No personal list cache or update worker exists
+in this delivery. Full checks passed with 51 architecture tests, 840 backend tests
+(1 skipped) and 262 frontend tests; the production build succeeded with its
+existing large-chunk warning.
+
+The shared scheduler serializes requests at a default 2400 ms interval with an
+8000 ms per-attempt timeout and at most 100 waiting requests. User account requests
+receive priority, with an ordinary queued request served after three priority
+requests. Rate-limit headers can slow both consumers. Safe read requests may
+retry up to three times; mutation operations never retry automatically. Queued
+cancellation removes the request, shutdown cancels active/queued work, response
+size is bounded at 2 MiB and partial GraphQL results are rejected. Network/provider
+errors retain no raw token-bearing payload or exception cause. Metadata keeps its
+existing error contract through an adapter.
+
+Automated fixtures cover storage, restart, expiry, stale generation, cross-session
+confirmation, account replacement, request cancellation, priority fairness, shared
+pacing and rate feedback. Real-token service validation succeeded for preview,
+confirmation, connection check, restart and local disconnect; it performed no
+list mutations and cleaned its temporary credentials. Browser verification covers
+the disconnected Settings section; a freshly issued PIN and connected browser
+flow remain manual acceptance items. The original PIN page and registered redirect
+URI have not been independently observed.
+
+### Account Foundation Diagnostics
+
+Tracking now records preview/check outcomes, stale or expired operations,
+runtime authorization failures, persistence/credential cleanup failures and
+shutdown. Shared AniList requests record bounded admission, dispatch, pacing,
+provider limits, retry, cancellation and terminal outcome using generated request
+IDs. The [development log catalog](development.md#anilist-account-and-request-logging)
+defines levels and fields. Diagnostic tests exclude tokens, session/candidate IDs,
+account names, request/response contents and raw errors even at trace level.

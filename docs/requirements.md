@@ -240,7 +240,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| T01 | Authorize AniList, display the connected account, check connectivity, and disconnect | Selected | — | AniList accounts |
+| T01 | Authorize AniList, display the connected account, check connectivity, and disconnect | Implemented: PIN token preview/confirmation, private credentials, reconnection and generation fencing; fresh browser authorization acceptance pending | AniList accounts | AniList accounts |
 | T02 | Read, cache and refresh the connected account's AniList lists and viewing state | Selected | — | AniList accounts |
 | T03 | Reuse existing work/episode mappings to submit viewing progress and tracking-status updates to AniList | Selected | — | AniList accounts |
 | T04 | Persist pending updates, coalesce superseded updates, retry failures, report expired authorization, and show results | Selected | — | AniList accounts |

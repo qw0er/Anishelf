@@ -45,6 +45,8 @@ export type {
 	SettingsResponse,
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
+	TrackingAccountResponse,
+	TrackingPreviewResponse,
 	TranscodeProfileCatalog,
 	UpdateSettingsRequest,
 } from "@anishelf/backend/contracts/http";

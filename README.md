@@ -10,6 +10,7 @@ media directory, browse its folder structure, and watch videos in your browser.
 - External subtitles and supported embedded text subtitles.
 - Media compatibility checks and prepared copies for browser playback.
 - Original-media links for external players.
+- AniList account connection, identity preview, connection checks and reconnection in Settings.
 
 ## Requirements
 
@@ -66,6 +67,26 @@ ssh -L 3000:127.0.0.1:3000 user@server
 ```
 
 Open the same local address and keep the SSH connection active.
+
+## Connect an AniList account
+
+Under **Settings → AniList account**, open **Authorize Anishelf on AniList**,
+authorize the application, and copy the access token from the AniList PIN page.
+Paste it into **AniList access token**, select **Preview account**, then verify
+the displayed identity and select **Confirm connection**. No developer application
+registration or local script is required for normal use.
+
+Use **Check connection** to validate the stored authorization. To reauthorize,
+repeat the preview/confirmation flow; an invalid token does not replace a working
+connection. **Disconnect** removes the local credential without revoking the token
+on AniList. The connection applies to the whole single-user Anishelf server.
+Personal list browsing and viewing-progress updates are still pending; this
+account foundation does not change AniList viewing state.
+
+Tokens persist in private files under the application data directory; protect
+backups of that directory. Public metadata access and local playback do not
+require an AniList account. See the [current design](docs/current-version-design.md#implemented-account-foundation)
+for storage and verification details.
 
 ## Deploy with a container
 

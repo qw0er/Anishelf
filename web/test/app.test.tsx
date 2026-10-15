@@ -331,6 +331,17 @@ beforeEach(() => {
 			init?.method === "DELETE"
 		)
 			return new Response(null, { status: 204 });
+		if (path === "/api/tracking/account")
+			return json({
+				clientId: "53902",
+				authorizationUrl:
+					"https://anilist.co/api/v2/oauth/authorize?client_id=53902&response_type=token",
+				generation: "fixture",
+				account: null,
+				state: "disconnected",
+				connectivity: "unknown",
+				checkedAt: null,
+			});
 		if (path === "/api/settings") {
 			if (init?.method === "PUT") {
 				const previousRoot = settings.resourceRoot;

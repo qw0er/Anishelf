@@ -288,6 +288,66 @@ are `warn` with failure code and retained-artwork availability. Records use
 opaque asset/request IDs and omit provider URLs and image bytes. Expected missing
 artwork and unresolved identification do not create per-file warnings.
 
+### AniList account and request logging
+
+Tracking and the shared AniList scheduler use child loggers with module values
+`tracking` and `anilist`. Production Anime composition supplies the logger to both.
+No separate output destination or log configuration is introduced.
+
+| Level | Events and purpose |
+| --- | --- |
+| `info` | `tracking.account_previewed`, `tracking.account_connected`, `tracking.account_disconnected`: user-visible account lifecycle, with numeric account IDs and connection generations where relevant |
+| `warn` | `tracking.authorization_required` with startup/check phase; `tracking.operation_failed`; `tracking.credential_cleanup_failed` with rollback/replacement/disconnect phase |
+| `error` | `tracking.persistence_failed` when connection publication or disconnect persistence fails |
+| `debug` | Tracking operation start/success/rejection/cancellation, preview expiration, successful connection checks and service shutdown; AniList request dispatch, cancellation, changed pacing and scheduler shutdown |
+| `trace` | AniList request admission, budget waits, HTTP response status and successful completion |
+| `warn` | `anilist.queue_full`, `anilist.rate_limited`, `anilist.request_retrying`, `anilist.request_failed`: bounded queue pressure, provider feedback, read retries and terminal request failures |
+
+Tracking records retain the operation and safe application error code instead of
+raw exception messages. Routine status reads do not emit business logs. Expected
+stale-preview/connection rejections and shutdown cancellation stay at debug level;
+connection checks do not repeat info-level connection events. Cleanup failures
+that do not roll back an already committed replacement still emit a warning.
+
+Scheduler records correlate one admitted request across attempts using a generated
+`requestId`, independent of the HTTP `reqId`. Fields include query/mutation kind,
+authenticated/priority booleans, attempt counts, queue depth, wait/duration and
+numeric HTTP status/retry timestamps. Cancellation identifies admission/queued/
+active stage and caller/shutdown reason; it never logs the caller's abort reason.
+
+Token values, candidate IDs, login session IDs, account names, credential file
+contents/paths, queries, variables, headers, response bodies and raw provider or
+transport errors are excluded from these events. This field whitelist is tested
+using a trace logger without relying on production redaction. Set
+`ANISHELF_LOG_LEVEL=debug` or `trace` to inspect successful checks or scheduling;
+the default info level retains lifecycle changes and operational warnings/errors.
+
+## AniList Account Foundation
+
+Settings now exposes the bundled Client ID 53902 PIN workflow, token preview,
+explicit account confirmation, connectivity checks and local disconnect. Normal
+users do not run the diagnostic CLI. Business endpoints live under
+`/api/tracking/account` and reuse the existing session/CSRF guards.
+
+SQLite migration 0011 stores the sanitized connection; private 0600 credential
+files live under `<dataDir>/tracking-credentials/` in a 0700 directory. Back up the
+SQLite database and private files consistently while stopped; a missing or
+mismatched credential requires reconnection. Never log or check these files into
+source control. Candidate tokens live only in bounded memory for five minutes.
+No list synchronization runs in this delivery.
+
+Anime composition supplies the same scheduler to Metadata and Tracking. Account
+checks have priority with a three-request fairness limit; both consumers share
+rate-header backoff and the default 2400 ms spacing. Shutting down Tracking
+invalidates previews and active account checks before the shared scheduler closes.
+
+Run `npm run test --workspace @anishelf/backend -- test/anilist-account.test.ts
+test/anilist-scheduler.test.ts test/metadata.test.ts` and
+`npm run test --workspace @anishelf/web -- test/anilist-account.test.tsx` for focused
+regressions. Metadata HTTP-disconnect tests require localhost listening permission.
+See [the design](current-version-design.md#implemented-account-foundation) for
+API/status and real-provider verification boundaries.
+
 ## Resource Settings and Startup
 
 When `settings.json` is missing and `ANISHELF_INITIAL_RESOURCE_ROOT` is set,
