@@ -11,7 +11,9 @@
 Use this guide for local setup, deployment configuration, logging, verification
 and maintenance. [History](history.md#v2-design) contains the archived V2 implementation design;
 [Overall requirements](requirements.md) owns the feature inventory;
-[current iteration requirements](current-version-requirements.md) owns selected scope and acceptance. Production
+[current iteration requirements](current-version-requirements.md) owns selected scope and acceptance; [current iteration design](current-version-design.md)
+defines the planned implementation. The [AniList API verification runbook](anilist-api-verification.md)
+explains the isolated provider check and its evidence boundaries. Production
 hosting instructions are in the [README](../README.md).
 
 Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
