@@ -92,5 +92,5 @@ Run from the repository root:
 
 ```sh
 npm run anime:corpus -- summary
-npm run test --workspace @anishelf/backend -- test/anime-corpus.test.ts
+npm run --silent anime:corpus -- match
 ```

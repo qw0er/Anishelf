@@ -11,7 +11,7 @@ From the repository root:
 ```sh
 npm run anime:corpus -- summary
 npm run anime:corpus -- generate /tmp/anishelf-anime-corpus
-npm run test --workspace @anishelf/backend -- test/anime-corpus.test.ts
+npm run --silent anime:corpus -- match
 ```
 
 The destination's parent directory must already exist. Generation creates a new
@@ -27,9 +27,8 @@ inputs and are not materialized. `fixture-manifest.json` maps generated paths to
 case IDs and marks the library `playable: false`.
 
 Three added filename inputs use TS/M2TS extensions. They are retained for
-identification evaluation, but the current scanner whitelist skips them; the
-scanner regression checks that only the supported 416 generated video paths
-are discovered. Subtitle-only and other ancillary inventory records remain
+identification evaluation, but the current scanner whitelist skips them; only
+416 generated video paths are supported by the scanner. Subtitle-only and other ancillary inventory records remain
 in the Nyaa capture without being materialized as fake videos.
 
 **Placeholders are not videos.** They validate filesystem discovery and naming,
@@ -65,7 +64,9 @@ not necessarily safe for automatic admission; a missed admission is an audit gap
 not automatically a defect.
 
 This audit runs only when explicitly invoked through `anime:corpus -- match`;
-`npm test` does not run it. There is no frozen outcome baseline: inspect the report
+`npm test`, `npm run check` and CI do not run it. The automatic identification
+tests still check filename parsing evidence from the corpus, without running
+the production matching audit. There is no frozen outcome baseline: inspect the report
 against the original corpus expectations when assessing a matcher change.
 The first audit observed 186 admissions, 166 consistent with the corpus
 work/decision expectation, 20 unexpected admissions and 140 unresolved expected
