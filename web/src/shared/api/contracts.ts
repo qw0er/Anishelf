@@ -1,5 +1,6 @@
 // Type-only imports share the API contract without bundling backend code.
 export type {
+	AnimeLibraryResponse,
 	ApiErrorResponse,
 	CatalogConfirmationRequest,
 	CatalogConfirmationResponse,
@@ -46,6 +47,8 @@ export type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
 	TrackingAccountResponse,
+	TrackingEntryResponse,
+	TrackingListResponse,
 	TrackingPreviewResponse,
 	TranscodeProfileCatalog,
 	UpdateSettingsRequest,

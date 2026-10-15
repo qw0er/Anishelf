@@ -11,6 +11,7 @@ import {
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { Artwork } from "../../shared/components/artwork.js";
+import { ViewingPanel } from "../../tracking/public.js";
 import { workQuery } from "../queries.js";
 
 import { useWorkDetail } from "../use-work-detail.js";
@@ -95,6 +96,9 @@ function WorkDetail({ data }: { data: CatalogDetailResponse }) {
 				banner
 			/>
 			<WorkMetadataHeader data={data} />
+			{work.reference.provider === "anilist" && (
+				<ViewingPanel mediaId={work.reference.id} />
+			)}
 			<div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 				<EpisodeList data={data} controller={controller} />
 				<aside className="min-w-0 space-y-4">

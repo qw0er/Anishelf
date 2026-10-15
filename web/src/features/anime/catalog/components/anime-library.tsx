@@ -9,6 +9,11 @@ import { PageHeader } from "../../../../shared/components/page-header.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
+import {
+	accountQuery,
+	LibraryTrackingControls,
+	trackingIdentity,
+} from "../../tracking/public.js";
 import { catalogFilters, catalogSearch } from "../api.js";
 import { catalogQuery } from "../queries.js";
 import { CatalogFiltersForm } from "./catalog-filters-form.js";
@@ -27,9 +32,15 @@ export function AnimeLibrary({
 	const filters = catalogFilters(params);
 	const location = useLocation();
 	const restoredFocus = useRef<string | null>(null);
+	const account = useQuery(accountQuery());
+	const canBrowse = Boolean(resourceRoot && ready) || filters.scope === "all";
 	const query = useQuery({
-		...catalogQuery(filters, useQueryScope()),
-		enabled: Boolean(resourceRoot && ready),
+		...catalogQuery(
+			filters,
+			useQueryScope(),
+			account.data ? trackingIdentity(account.data) : undefined,
+		),
+		enabled: canBrowse && !account.isPending,
 	});
 	useEffect(() => {
 		const id = location.state?.focusWork;
@@ -50,7 +61,11 @@ export function AnimeLibrary({
 		setParams(next);
 	}
 	const filtered = Boolean(
-		filters.query || filters.format || filters.year || filters.availability,
+		filters.query ||
+			filters.format ||
+			filters.year ||
+			filters.availability ||
+			filters.viewingStatus,
 	);
 	return (
 		<section className="stack-page" aria-label={t("anime.library")}>
@@ -58,7 +73,17 @@ export function AnimeLibrary({
 				title={t("anime.library")}
 				description={t("anime.libraryHint")}
 			/>
-			{!resourceRoot ? (
+			<LibraryTrackingControls
+				filters={filters}
+				onChange={change}
+				account={account.data}
+				snapshot={
+					query.data && "tracking" in query.data
+						? query.data.tracking
+						: undefined
+				}
+			/>
+			{!resourceRoot && filters.scope !== "all" ? (
 				<EmptyState
 					icon={<FolderPlus size={24} />}
 					title={t("anime.setup")}
@@ -68,7 +93,7 @@ export function AnimeLibrary({
 						</Link>
 					}
 				/>
-			) : !ready ? (
+			) : !ready && filters.scope !== "all" ? (
 				<EmptyState
 					icon={<ScanLine size={24} />}
 					title={t("anime.scanFirst")}
@@ -128,7 +153,14 @@ export function AnimeLibrary({
 									)}
 									actions={
 										filtered || filters.page > 1 ? (
-											<Button variant="outline" onClick={() => setParams({})}>
+											<Button
+												variant="outline"
+												onClick={() =>
+													setParams(
+														filters.scope ? { scope: filters.scope } : {},
+													)
+												}
+											>
 												{t("anime.clear")}
 											</Button>
 										) : (
@@ -141,6 +173,10 @@ export function AnimeLibrary({
 							) : (
 								<CatalogResults
 									items={query.data.items}
+									viewingKnown={
+										"tracking" in query.data &&
+										query.data.tracking.fetchedAt !== null
+									}
 									librarySearch={location.search}
 								/>
 							)}

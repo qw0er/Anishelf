@@ -85,6 +85,13 @@
 			"when": 1792079185818,
 			"tag": "0011_low_tinkerer",
 			"breakpoints": true
+		},
+		{
+			"idx": 12,
+			"version": "6",
+			"when": 1792082512670,
+			"tag": "0012_goofy_corsair",
+			"breakpoints": true
 		}
 	]
 }

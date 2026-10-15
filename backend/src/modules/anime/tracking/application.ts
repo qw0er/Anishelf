@@ -170,6 +170,45 @@ export class TrackingApplication implements TrackingApi {
 			);
 		}
 	}
+	/** Internal account capability, supplied only to the list reader by composition. */
+	async acquire() {
+		this.assertOpen();
+		const connection = { ...this.connection };
+		if (!connection.account || connection.state !== "connected")
+			throw new DomainError(
+				"TRACKING_AUTHORIZATION_REQUIRED",
+				"Connect AniList first.",
+			);
+		const signal = AbortSignal.any([
+			this.lifetime.signal,
+			this.accountLifetime.signal,
+		]);
+		const token = await this.options.credentials.read(connection);
+		this.assertGeneration(connection.generation);
+		signal.throwIfAborted();
+		return {
+			accountId: connection.account.id,
+			generation: connection.generation,
+			token,
+			signal,
+		};
+	}
+	assertCurrent(generation: string) {
+		this.assertGeneration(generation);
+	}
+	authorizationFailed(generation: string) {
+		this.assertGeneration(generation);
+		const next = {
+			...this.connection,
+			state: "authorization-required" as const,
+		};
+		this.options.store.save(next);
+		this.connection = next;
+		this.logger?.warn(
+			{ event: "tracking.authorization_required", phase: "list", generation },
+			"AniList list authorization requires reconnection.",
+		);
+	}
 	private clearCandidates() {
 		this.candidates.clear();
 		for (const timer of this.expiryTimers) clearTimeout(timer);

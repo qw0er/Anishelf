@@ -10,3 +10,11 @@ export const trackingConnection = sqliteTable("tracking_connection", {
 	}).notNull(),
 	checkedAt: integer("checked_at"),
 });
+
+export const trackingListCache = sqliteTable("tracking_list_cache", {
+	accountId: integer("account_id").primaryKey(),
+	fetchedAt: integer("fetched_at").notNull(),
+	entries: text("entries", { mode: "json" })
+		.$type<import("../domain/list.js").TrackingListEntry[]>()
+		.notNull(),
+});

@@ -1,5 +1,9 @@
 import type { RouteObject } from "react-router";
-import { AnimeDetail, ReviewPage } from "../../features/anime/ui.js";
+import {
+	AnimeDetail,
+	ReviewPage,
+	TrackedAnimeDetail,
+} from "../../features/anime/ui.js";
 import { HistoryPage } from "../../features/playback/ui.js";
 import App from "../App.js";
 import InitialLoading from "../components/initial-loading.js";
@@ -39,6 +43,11 @@ export const libraryRoute: RouteObject = {
 			index: true,
 			loader: catalogLoader,
 			element: <CatalogPage />,
+			errorElement: <RouteError kind="directory" />,
+		},
+		{
+			path: "anime/tracked/:mediaId",
+			element: <TrackedAnimeDetail />,
 			errorElement: <RouteError kind="directory" />,
 		},
 		{

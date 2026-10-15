@@ -321,13 +321,13 @@
 	},
 	"anime": {
 		"library": "Anime library",
-		"libraryHint": "Confirmed local anime, grouped by episode.",
+		"libraryHint": "Browse local anime and your AniList viewing state.",
 		"cached": "Cached metadata",
 		"additionalAvailable_one": "{{count}} additional episode available",
 		"additionalAvailable_other": "{{count}} additional episodes available",
 		"setup": "Choose a resource directory to get started.",
 		"scanFirst": "Scan your resource directory before browsing anime.",
-		"search": "Search local titles",
+		"search": "Search titles",
 		"format": "Format",
 		"allFormats": "All formats",
 		"year": "Release year",
@@ -515,5 +515,31 @@
 		"check": "Check connection",
 		"disconnect": "Disconnect",
 		"refresh": "Refresh connection"
+	},
+	"trackingList": {
+		"scope": "Library scope",
+		"local": "Local library",
+		"all": "All works",
+		"viewingState": "AniList viewing state",
+		"allStatuses": "All viewing states",
+		"untracked": "Not on AniList",
+		"progress": "AniList progress: {{count}}",
+		"cumulative": "AniList progress is cumulative and is separate from local playback history.",
+		"statuses": {
+			"CURRENT": "Watching",
+			"PLANNING": "Planning",
+			"COMPLETED": "Completed",
+			"PAUSED": "Paused",
+			"DROPPED": "Dropped",
+			"REPEATING": "Rewatching"
+		},
+		"refresh": "Refresh AniList list",
+		"connect": "Connect AniList in Settings",
+		"refreshing": "Refreshing AniList list\u2026",
+		"failed": "Could not refresh AniList. Previously saved list data is retained.",
+		"stale": "Showing cached AniList viewing state.",
+		"reconnect": "Reconnect your AniList account to refresh its viewing state.",
+		"notLoaded": "AniList viewing state has not loaded yet.",
+		"noLocal": "No local resources are associated with this work."
 	}
 }

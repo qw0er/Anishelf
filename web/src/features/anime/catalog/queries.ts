@@ -9,12 +9,28 @@ import {
 	getWorkReviews,
 } from "./api.js";
 
-export const catalogQuery = (filters: CatalogFilters, scope: string) =>
+export const catalogQuery = (
+	filters: CatalogFilters,
+	scope: string,
+	identity?: { accountId: number | null; generation: string },
+) =>
 	queryOptions({
-		queryKey: ["catalog", scope, "list", filters],
+		queryKey: [
+			"catalog",
+			scope,
+			"list",
+			filters,
+			identity?.accountId ?? null,
+			identity?.generation ?? null,
+		],
 		queryFn: ({ signal }) =>
-			getCatalog(filters, { signal: boundedSignal(signal) }),
-		refetchInterval: 60_000,
+			getCatalog(filters, { signal: boundedSignal(signal) }, identity),
+		refetchInterval: (query) =>
+			query.state.data &&
+			"tracking" in query.state.data &&
+			query.state.data.tracking.refreshing
+				? 1500
+				: 60_000,
 	});
 export const workQuery = (id: string, scope: string) =>
 	queryOptions({

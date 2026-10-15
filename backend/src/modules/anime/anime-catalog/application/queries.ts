@@ -73,6 +73,61 @@ export class CatalogQueries {
 		this.context.options.sources.assertRootEpoch(root.epoch);
 		return { ...result, items };
 	}
+	/** Only persisted summaries are scanned; source checks are deferred to selected cards. */
+	async index(query: CatalogQuery = {}) {
+		const root = await this.context.root();
+		const items: (LocalWork & {
+			reference: WorkCard["reference"];
+			available: boolean;
+		})[] = [];
+		const available = new Set<string>();
+		for (let pageNumber = 1; ; pageNumber++) {
+			const result = this.context.options.store.list(
+				root.rootId,
+				{ availability: "available" },
+				pageNumber,
+				50,
+			);
+			for (const work of result.items) available.add(work.id);
+			if (!result.hasNextPage) break;
+		}
+		for (let pageNumber = 1; ; pageNumber++) {
+			const result = this.context.options.store.list(
+				root.rootId,
+				query,
+				pageNumber,
+				50,
+			);
+			for (const work of result.items) {
+				const link = this.context.options.store.link(work.id);
+				if (!link) throw new Error("Catalog provider link is missing.");
+				items.push({
+					...work,
+					reference: link.reference,
+					available: available.has(work.id),
+				});
+			}
+			if (!result.hasNextPage) break;
+		}
+		this.context.options.sources.assertRootEpoch(root.epoch);
+		return { items, epoch: root.epoch };
+	}
+	async cards(ids: readonly string[], epoch: number) {
+		if (ids.length > 50) invalid("Too many library cards.");
+		const root = await this.context.root();
+		this.context.options.sources.assertRootEpoch(epoch);
+		const items: WorkCard[] = [];
+		for (const id of ids)
+			items.push(
+				await this.card(
+					this.context.requireWork(id, root.rootId),
+					root.rootId,
+					epoch,
+				),
+			);
+		this.context.options.sources.assertRootEpoch(epoch);
+		return items;
+	}
 	private snapshot(workId: string): CachedMetadata<WorkDetails> {
 		const link = this.context.options.store.link(workId);
 		if (!link) throw new Error("Catalog work is missing its provider link.");

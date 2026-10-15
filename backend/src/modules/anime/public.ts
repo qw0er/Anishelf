@@ -1,9 +1,11 @@
 export { MetadataError } from "./metadata/public.js";
 
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
+import type { AnimeLibraryApi } from "./anime-library/public.js";
 import type { MetadataApi } from "./metadata/public.js";
 import type { TrackingApi } from "./tracking/public.js";
 export interface AnimeApi {
+	readonly library?: AnimeLibraryApi | undefined;
 	readonly tracking?: TrackingApi | undefined;
 	readonly metadata:
 		| Pick<MetadataApi, "search" | "get" | "relations" | "airing" | "snapshot">

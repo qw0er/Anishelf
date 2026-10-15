@@ -1,5 +1,6 @@
 import { type RequestOptions, request } from "../../../shared/api/client.js";
 import type {
+	AnimeLibraryResponse,
 	CatalogDetailResponse,
 	CatalogFileReviewsResponse,
 	CatalogListResponse,
@@ -8,6 +9,15 @@ import type {
 } from "../../../shared/api/contracts.js";
 
 export interface CatalogFilters {
+	scope?: "local" | "all";
+	viewingStatus?:
+		| "CURRENT"
+		| "PLANNING"
+		| "COMPLETED"
+		| "PAUSED"
+		| "DROPPED"
+		| "REPEATING"
+		| "untracked";
 	query?: string;
 	format?: string;
 	year?: string;
@@ -21,7 +31,24 @@ export function catalogFilters(params: URLSearchParams): CatalogFilters {
 	const availability = params.get("availability");
 	const query = params.get("query")?.trim().slice(0, 200);
 	const format = params.get("format")?.slice(0, 50);
+	const viewingStatus = params.get("viewingStatus");
 	return {
+		...(params.get("scope") === "all" ? { scope: "all" as const } : {}),
+		...([
+			"CURRENT",
+			"PLANNING",
+			"COMPLETED",
+			"PAUSED",
+			"DROPPED",
+			"REPEATING",
+			"untracked",
+		].includes(viewingStatus ?? "")
+			? {
+					viewingStatus: viewingStatus as NonNullable<
+						CatalogFilters["viewingStatus"]
+					>,
+				}
+			: {}),
 		...(query ? { query } : {}),
 		...(format ? { format } : {}),
 		...(/^[1-9][0-9]{0,3}$/.test(year) ? { year } : {}),
@@ -47,11 +74,19 @@ export function catalogSearch(filters: CatalogFilters): string {
 export function getCatalog(
 	filters: CatalogFilters,
 	options?: RequestOptions,
-): Promise<CatalogListResponse> {
+	identity?: { accountId: number | null; generation: string },
+): Promise<AnimeLibraryResponse | CatalogListResponse> {
 	const params = new URLSearchParams(catalogSearch(filters));
 	params.set("perPage", "24");
+	if (identity) {
+		params.set("generation", identity.generation);
+		return request(`/api/anime/library?${params}`, "GET", options);
+	}
+	params.delete("scope");
+	params.delete("viewingStatus");
 	return request(`/api/catalog/works?${params}`, "GET", options);
 }
+
 export function getWork(
 	id: string,
 	options?: RequestOptions,

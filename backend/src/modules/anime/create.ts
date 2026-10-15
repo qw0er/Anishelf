@@ -2,6 +2,7 @@ import type { Logger } from "pino";
 import type { ResourcesApi } from "../resources/public.js";
 import type { SystemApi } from "../system/public.js";
 import { AniListScheduler } from "./anilist/public.js";
+import { AnimeLibraryQueries } from "./anime-library/application/library.js";
 import { createCatalogModule } from "./composition/catalog.js";
 import { createIdentificationModule } from "./composition/identification.js";
 import {
@@ -24,6 +25,7 @@ export async function createAnimeModule(options: {
 		? await createTrackingModule({
 				dataDir: system.deployment.dataDir,
 				store: database.tracking,
+				listStore: database.trackingLists,
 				client: requests,
 				logger,
 			})
@@ -44,6 +46,9 @@ export async function createAnimeModule(options: {
 			);
 		}
 	const catalog = createCatalogModule({ database, metadata, library, logger });
+	const libraryQueries = tracking
+		? new AnimeLibraryQueries({ catalog, lists: tracking, logger })
+		: undefined;
 	const identification = createIdentificationModule({
 		library,
 		sources: library.sources,
@@ -58,6 +63,7 @@ export async function createAnimeModule(options: {
 	});
 	const api: AnimeApi = {
 		tracking,
+		library: libraryQueries,
 		metadata: metadata
 			? {
 					search: (...args) => metadata.search(...args),
@@ -97,7 +103,13 @@ export async function createAnimeModule(options: {
 	return {
 		api,
 		registerHttp: (app: import("../../transport/instance.js").HttpInstance) =>
-			registerAnimeHttp(app, { metadata, catalog, identification, tracking }),
+			registerAnimeHttp(app, {
+				metadata,
+				catalog,
+				identification,
+				tracking,
+				library: libraryQueries,
+			}),
 		quiesce,
 		close: () =>
 			(closed ??= (async () => {

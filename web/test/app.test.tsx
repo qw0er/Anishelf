@@ -151,7 +151,7 @@ beforeEach(() => {
 			return json({ running: false, failed: false });
 		if (path === "/api/catalog/sources/file-1")
 			return json({ sourceVersion: "version", associations: [] });
-		if (path.startsWith("/api/catalog/works?"))
+		if (path.startsWith("/api/anime/library?"))
 			return json({ items: [], page: 1, perPage: 24, hasNextPage: false });
 		if (path === "/api/transcode-profiles")
 			return json({
@@ -1704,7 +1704,7 @@ test("poster library filters local titles, preserves return context and selects 
 		"/?query=Frieren&sort=recent",
 	);
 	expect(
-		(screen.getByLabelText("Search local titles") as HTMLInputElement).value,
+		(screen.getByLabelText("Search titles") as HTMLInputElement).value,
 	).toBe("Frieren");
 	expect(document.activeElement?.id).toBe("work-work-1");
 });
@@ -1765,7 +1765,7 @@ test("search and immediate filters reset pagination and preserve applied criteri
 	mockAnime(detail);
 	renderApp("/?page=2");
 	await screen.findByRole("link", { name: "Frieren" });
-	fireEvent.change(screen.getByLabelText("Search local titles"), {
+	fireEvent.change(screen.getByLabelText("Search titles"), {
 		target: { value: "葬送" },
 	});
 	fireEvent.click(screen.getByRole("button", { name: /^Search$/ }));
@@ -1789,7 +1789,7 @@ test("search and immediate filters reset pagination and preserve applied criteri
 			fetcher.mock.calls.some(([path]) => {
 				const url = new URL(String(path), "http://localhost");
 				return (
-					url.pathname === "/api/catalog/works" &&
+					url.pathname === "/api/anime/library" &&
 					url.searchParams.get("query") === "葬送" &&
 					url.searchParams.get("format") === "TV" &&
 					url.searchParams.get("year") === "2023" &&
@@ -1821,7 +1821,7 @@ function mockAnime(detail: ReturnType<typeof animeFixture>) {
 	const fallback = fetcher.getMockImplementation();
 	fetcher.mockImplementation(async (input, init) => {
 		const path = String(input);
-		if (path.startsWith("/api/catalog/works?"))
+		if (path.startsWith("/api/anime/library?"))
 			return json({
 				items: [detail.work],
 				page: Number(
@@ -2489,7 +2489,133 @@ test("automatic metadata updates appear in an open detail and invalidate the cac
 	await screen.findByRole("link", { name: "Updated Frieren" });
 	expect(
 		fetcher.mock.calls.filter(([path]) =>
-			String(path).startsWith("/api/catalog/works?"),
+			String(path).startsWith("/api/anime/library?"),
 		).length,
 	).toBeGreaterThan(1);
+});
+
+test("AniList library shows status and remote-only details, keeps filters and refreshes", async () => {
+	const detail = animeFixture();
+	const fallback = fetcher.getMockImplementation();
+	const tracking = {
+		accountId: 7,
+		generation: "list-fixture",
+		state: "connected",
+		fetchedAt: 1000,
+		stale: true,
+		refreshing: false,
+		error: { code: "unavailable", retryAt: 2000 },
+	};
+	const remote = {
+		...detail.work,
+		id: "anilist-2",
+		localWorkId: null,
+		displayTitle: "Remote work",
+		reference: { provider: "anilist", mediaType: "anime", id: "2" },
+		availableEpisodes: 0,
+		availableRegularEpisodes: 0,
+		viewing: { status: "PLANNING", progress: 0, updatedAt: 1 },
+	};
+	fetcher.mockImplementation(async (input, init) => {
+		const path = String(input);
+		if (path === "/api/tracking/account")
+			return json({
+				clientId: "fixture",
+				authorizationUrl: "https://anilist.co",
+				generation: tracking.generation,
+				account: { id: 7, name: "Fixture" },
+				state: "connected",
+				connectivity: "available",
+				checkedAt: 0,
+			});
+		if (path.startsWith("/api/anime/library?")) {
+			const params = new URL(path, "http://localhost").searchParams;
+			return json({
+				items:
+					params.get("scope") === "all"
+						? [remote]
+						: [
+								{
+									...detail.work,
+									localWorkId: detail.work.id,
+									viewing: { status: "CURRENT", progress: 3, updatedAt: 1 },
+								},
+							],
+				page: 1,
+				perPage: 24,
+				hasNextPage: false,
+				localState: "available",
+				tracking,
+			});
+		}
+		if (path === "/api/tracking/refresh")
+			return json({ ...tracking, entries: [] });
+		if (path.startsWith("/api/tracking/entries/2?"))
+			return json({
+				...tracking,
+				entry: {
+					id: 1,
+					mediaId: 2,
+					progress: 0,
+					status: "PLANNING",
+					updatedAt: 1,
+					titles: ["Remote work"],
+					format: "TV",
+					year: 2025,
+					episodeCount: 12,
+					coverUrl: null,
+				},
+			});
+		if (path.startsWith("/api/metadata/anilist/2"))
+			return json(
+				{ message: "Unavailable", code: "METADATA_UNAVAILABLE" },
+				503,
+			);
+		if (!fallback) throw new Error("Missing fetch fixture");
+		return fallback(input, init);
+	});
+	renderApp("/");
+	await screen.findByText(/Watching · AniList progress: 3/);
+	expect(
+		screen.getByText("Showing cached AniList viewing state."),
+	).toBeTruthy();
+	fireEvent.change(screen.getByRole("combobox", { name: "Library scope" }), {
+		target: { value: "all" },
+	});
+	const remoteLink = await screen.findByRole("link", { name: "Remote work" });
+	expect(remoteLink.getAttribute("href")).toContain("/anime/tracked/2?");
+	fireEvent.change(
+		screen.getByRole("combobox", { name: "AniList viewing state" }),
+		{ target: { value: "PLANNING" } },
+	);
+	await waitFor(() =>
+		expect(screen.getByTestId("location").textContent).toContain(
+			"viewingStatus=PLANNING",
+		),
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Refresh AniList list" }));
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(
+				([url, init]) =>
+					url === "/api/tracking/refresh" && init?.method === "POST",
+			),
+		).toBe(true),
+	);
+	fireEvent.click(await screen.findByRole("link", { name: "Remote work" }));
+	await screen.findByRole("heading", { name: "Remote work", level: 1 });
+	expect(
+		screen.getByText("No local resources are associated with this work."),
+	).toBeTruthy();
+	expect(screen.queryByRole("button", { name: /Play:/ })).toBeNull();
+	fireEvent.click(screen.getByRole("link", { name: "Back to library" }));
+	await screen.findByRole("heading", { name: "Anime library" });
+	expect(screen.getByTestId("location").textContent).toContain(
+		"scope=all&viewingStatus=PLANNING",
+	);
+	expect(
+		fetcher.mock.calls.some(([url]) =>
+			String(url).includes("/api/catalog/confirmations"),
+		),
+	).toBe(false);
 });

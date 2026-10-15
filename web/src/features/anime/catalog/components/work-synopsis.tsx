@@ -6,7 +6,11 @@ import rehypeSanitize from "rehype-sanitize";
 import type { CatalogDetailResponse } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import { safeLink } from "../detail-format.js";
-export function WorkSynopsis({ data }: { data: CatalogDetailResponse }) {
+export function WorkSynopsis({
+	data,
+}: {
+	data: Pick<CatalogDetailResponse, "metadata">;
+}) {
 	const { t } = useTranslation();
 	const { metadata } = data;
 	const info = metadata.data;

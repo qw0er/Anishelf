@@ -8,3 +8,16 @@ export interface TrackingCredentials {
 	write(connection: TrackingConnection, token: string): Promise<void>;
 	remove(id: string): Promise<void>;
 }
+
+export interface TrackingListStore {
+	read(
+		accountId: number,
+	): import("./domain/list.js").TrackingListCache | undefined;
+	replace(cache: import("./domain/list.js").TrackingListCache): void;
+}
+export interface TrackingListAccess {
+	status(): import("./domain/model.js").TrackingStatus;
+	acquire(): Promise<import("./domain/list.js").TrackingLease>;
+	assertCurrent(generation: string): void;
+	authorizationFailed(generation: string): void;
+}
