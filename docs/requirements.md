@@ -42,7 +42,7 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
 | L05 | Search filenames, choose sorting, and filter resources | Later | — | Unassigned |
-| L06 | Scheduled scans, filesystem monitoring, and incremental updates | Partial: scheduled scans delivered under V02; filesystem monitoring and incremental updates remain unassigned | V1 (scheduled scans only) | Unassigned |
+| L06 | Watch filesystem changes and update the library incrementally | Partial: scheduled scans delivered under V02; change-driven updates as the primary automatic refresh mechanism remain unassigned; scheduled full scans become an optional reconciliation fallback | V1 (scheduled scans only) | Unassigned |
 | L07 | Parse anime titles, seasons, episode numbers, and release variants from filenames | Implemented: filename/directory extraction with preserved evidence | Anime library | Anime library |
 | L08 | Review unidentified files and manually link or correct anime and episode associations | Implemented: clear-match automatic admission, manual Review and revision-checked corrections | Anime library | Anime library |
 | L09 | Distinguish regular episodes, specials, continuous season numbering, and multi-episode files | Implemented: candidate-specific episode proposals, unresolved ambiguity and confirmed corrections | Anime library | Anime library |
@@ -54,6 +54,14 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 | L15 | Batch Review with shared work selection and episode-number offset previews | Later | — | Unassigned |
 | L16 | Improve matching using representative real-world failure cases | Later | — | Unassigned |
 | L17 | Learn scoped matching rules from explicit manual corrections | Later | — | Unassigned |
+
+#### Filesystem Monitoring and Incremental Updates (L06)
+
+Watch the configured resource root recursively for file and directory additions, modifications, removals and moves. Use these changes to refresh affected library entries automatically, without waiting for a scheduled full scan. Coalesce bursts of events and wait for actively written files to stabilize before identification or media inspection. Preserve resource-root restrictions, manual associations and viewing history; identity-preserving relinking of moved files remains L11.
+
+Keep startup scanning and explicit manual rescans for initial discovery and reconciliation. Scheduled full scans remain an optional fallback rather than the primary automatic update mechanism. Detect unavailable monitoring or lost events, report degraded monitoring and provide reconciliation and retry; an inaccessible root must not be treated as an empty library.
+
+Acceptance: after files stabilize, additions, changes and removals appear automatically without waiting for the scan interval; nested directory changes are covered; bursts do not create duplicate entries or overlapping full scans; monitoring failures are visible and reconciliation restores the library. Existing manual associations and viewing history remain intact. Filesystem monitoring and incremental updates are planned, not implemented, and have no assigned release.
 
 #### Batch Review (L15)
 
