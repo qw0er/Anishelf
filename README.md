@@ -20,7 +20,10 @@ media directory, browse its folder structure, and watch videos in your browser.
 
 The backend currently listens only on loopback addresses. Remote use is available
 through SSH port forwarding or a [Caddy reverse proxy](docs/deployment.md#caddy-reverse-proxy).
-The application has no built-in authentication; Caddy must protect domain access.
+The application requires a single access password. On first startup, it generates
+a random password and displays it once in the startup console. Sign in with that
+password; change it or sign out under **Settings → Security**. Keep the data
+directory persistent. See [password recovery](docs/deployment.md#authentication-and-password-recovery).
 
 ## Run and use
 
@@ -35,7 +38,7 @@ For a fresh checkout, install dependencies first; see [Build from source](#build
 
 Open [Anishelf](http://127.0.0.1:3000), then:
 
-1. Save the absolute media directory in Settings. For a container deployment,
+1. Sign in with the password printed by the first startup, then save the absolute media directory in Settings. For a container deployment,
    use the mounted path, such as `/media`.
 2. Wait for the scan. **Library** shows confirmed anime; open a work, select an
    episode and choose a file version when several are available. **Files** keeps
@@ -70,7 +73,9 @@ Use `ghcr.io/qw0er/anishelf:latest` on Linux AMD64 or ARM64 with Docker
 or Podman. The image includes Node.js, FFmpeg/FFprobe and the built application.
 
 - Replace `/absolute/media/path` with your media directory.
-- Keep `/data` persistent for settings, the database and caches.
+- Keep `/data` persistent for credentials, sessions, settings, the database and caches.
+- Read the initial password using `docker compose logs anishelf` or, for Quadlet,
+  `journalctl --user -u anishelf.service`. It is displayed only on first initialization.
 - Use host networking without port mappings; Anishelf listens on loopback.
 - Media must be readable and data writable by the container's UID/GID 1000.
 - Set `ANISHELF_PUBLIC_ORIGIN` to your domain and configure [Caddy](docs/deployment.md#caddy-reverse-proxy),

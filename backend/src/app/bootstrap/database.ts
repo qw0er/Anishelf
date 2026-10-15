@@ -18,6 +18,8 @@ import {
 	type PlaybackPersistence,
 } from "../../modules/playback/persistence.js";
 import { createResourcesPersistence } from "../../modules/resources/persistence.js";
+import { createAuthenticationPersistence } from "../../modules/system/persistence.js";
+import type { AuthenticationStore } from "../../modules/system/public.js";
 import { adapterPolicy } from "../../platform/adapter-policy.js";
 import type { Store } from "../../platform/database/store.js";
 import { storageRules } from "../../platform/storage.js";
@@ -30,6 +32,7 @@ import * as schema from "../schema.js";
 
 /** Owns the connection; repositories must not outlive this object. */
 export class ApplicationDatabase {
+	readonly authentication: AuthenticationStore;
 	readonly metadata: AnimePersistence["metadata"];
 	readonly catalog: AnimePersistence["catalog"];
 	readonly playback: PlaybackPersistence["playback"];
@@ -40,6 +43,7 @@ export class ApplicationDatabase {
 		store: Store,
 		policy: DeepReadonly<BuiltinPolicy>,
 	) {
+		this.authentication = createAuthenticationPersistence(store);
 		const { sources } = createResourcesPersistence(store);
 		const anime = createAnimePersistence(store, sources);
 		const media = createMediaPersistence(store, sources);
@@ -86,7 +90,7 @@ export function openDatabase(
 	dataDir: string,
 	logger: Logger,
 	policy: DeepReadonly<BuiltinPolicy>,
-): ApplicationDatabase | undefined {
+): ApplicationDatabase {
 	try {
 		const database = ApplicationDatabase.open(dataDir, policy);
 		logger.info({ event: "database.ready" }, "Database migrations applied.");
@@ -94,8 +98,8 @@ export function openDatabase(
 	} catch (err) {
 		logger.error(
 			{ event: "database.unavailable", err },
-			"Database unavailable; playback persistence is disabled.",
+			"Database unavailable; startup is blocked.",
 		);
-		return undefined;
+		throw err;
 	}
 }

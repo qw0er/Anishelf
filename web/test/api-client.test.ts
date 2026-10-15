@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { inspectMediaCompatibility } from "../src/features/media/media-compatibility/public.js";
+import { createMediaAccessLink } from "../src/features/playback/player/api.js";
 import {
 	openPlaybackSession,
 	releasePlaybackSession,
@@ -78,7 +79,10 @@ test("typed methods use the browsing endpoints and same-origin uncached requests
 	] as const) {
 		expect(fetcher).toHaveBeenNthCalledWith(position, path, {
 			method,
-			headers: { Accept: "application/json" },
+			headers: {
+				Accept: "application/json",
+				...(method !== "GET" ? { "x-csrf-token": "test-csrf" } : {}),
+			},
 			credentials: "same-origin",
 			cache: "no-store",
 		});
@@ -299,4 +303,25 @@ test("audio selection is serialized distinctly from default-all and silent outpu
 			selection === undefined ? null : selection.join(","),
 		);
 	}
+});
+
+test("media access links use the shared typed endpoint adapter and CSRF transport", async () => {
+	const link = {
+		url: "/api/media/file_123?access_token=token",
+		expiresAt: 123456,
+	};
+	fetcher.mockResolvedValueOnce(json(link));
+	const controller = new AbortController();
+	expect(
+		await createMediaAccessLink("file/123", { signal: controller.signal }),
+	).toEqual(link);
+	expect(fetcher).toHaveBeenCalledWith(
+		"/api/media/file%2F123/access-link",
+		expect.objectContaining({
+			method: "POST",
+			signal: controller.signal,
+			credentials: "same-origin",
+			headers: expect.objectContaining({ "x-csrf-token": "test-csrf" }),
+		}),
+	);
 });

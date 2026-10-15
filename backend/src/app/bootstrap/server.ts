@@ -3,6 +3,7 @@ import { createAnimeModule } from "../../modules/anime/create.js";
 import { createMediaModule } from "../../modules/media/create.js";
 import { createPlaybackModule } from "../../modules/playback/create.js";
 import { createResourcesModule } from "../../modules/resources/create.js";
+import { createAuthenticationModule } from "../../modules/system/create.js";
 import { registerSystemHttp } from "../../modules/system/http.js";
 import type { SystemApi } from "../../modules/system/public.js";
 import type { MediaTools } from "../../platform/media/index.js";
@@ -16,6 +17,18 @@ export async function createServer(
 	database: ApplicationDatabase | undefined,
 	tools: MediaTools,
 ) {
+	if (!database)
+		throw new Error("Authentication requires an available database.");
+	const authentication = await createAuthenticationModule({
+		logger,
+		dataDir: system.deployment.dataDir,
+		store: database.authentication,
+		secure: system.deployment.publicOrigin?.startsWith("https:") ?? false,
+		sources: {
+			version: async (id) =>
+				(await resources.api.sources.resolveSource(id)).identity.sourceVersion,
+		},
+	});
 	const resources = await createResourcesModule({
 		system,
 		logger,
@@ -43,7 +56,8 @@ export async function createServer(
 		database,
 		logger,
 	});
-	return createHttpApp({
+	const app = createHttpApp({
+		configure: authentication.registerHttp,
 		config: system.deployment,
 		logger,
 		policy: builtinPolicy,
@@ -67,4 +81,12 @@ export async function createServer(
 		closeDependencies: () =>
 			closeModules({ anime, media, resources, playback, database }),
 	});
+	if (authentication.initialPassword)
+		app.addHook("onListen", async () => {
+			process.stdout.write(
+				`\nAnishelf authentication initialized.\nInitial password: ${authentication.initialPassword}\nThis password will not be displayed again. You can change it in Settings.\n\n`,
+			);
+			authentication.initialPassword = undefined;
+		});
+	return app;
 }

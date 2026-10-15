@@ -226,8 +226,8 @@ more detail. The default `info` level keeps normal operation concise:
 
 | Level | Events |
 | --- | --- |
-| `info` | Startup/shutdown, scan lifecycle, settings saved, playback session opened, subtitle cache reconciliation and preparation start/completion |
-| `warn` / `error` | Tool failures, discovery degradation, invalid cached assets, persistence failures, preparation failures and server errors |
+| `info` | Authentication initialization, successful login/logout and password changes; startup/shutdown, scan lifecycle, settings saved, playback session opened, subtitle cache reconciliation and preparation start/completion |
+| `warn` / `error` | Rejected authentication/password changes and login limits; credential/session storage failures, tool failures, discovery degradation, invalid cached assets, persistence failures, preparation failures and server errors |
 | `debug` | Settings/playback requests, history reads, subtitle discovery and asset reuse, FFmpeg/FFprobe start/completion/cancellation, rejected HTTP requests |
 | `trace` | HTTP request start/completion, progress saves, subtitle status polling, probe cache hits and media Range response metadata |
 
@@ -237,6 +237,24 @@ server-generated `reqId`, not raw URLs or query strings. Routine request logs
 replace Fastify's default info-level access logs. Tool records omit arguments,
 stdout and stderr; application failure records retain serialized errors. Session
 tokens, complete settings objects and subtitle text are not included in events.
+
+Authentication uses `auth.credentials_initialized`, `auth.login_succeeded`,
+`auth.logout_succeeded` and `auth.password_changed` at info level. Invalid passwords
+and rejected current-password checks use `auth.login_failed` and
+`auth.password_change_rejected`; exceeded login budgets use
+`auth.login_rate_limited` with the instance/source scope. These warnings do not
+repeat for ordinary anonymous media or API requests. Successful login is logged
+after the response completes and the session plugin has saved the session.
+
+Credential/session failures use `auth.credentials_load_failed`,
+`auth.credentials_write_failed`, `auth.password_verification_failed` and
+`auth.session_store_failed`. Records retain the operation, known storage paths,
+error category and filesystem/SQLite error code, including codes wrapped by the
+database adapter. Raw exception messages, SQL parameters and causes are omitted
+from these authentication diagnostics. Passwords, credential hashes, cookies,
+CSRF tokens and media-link tokens are never included. Initial plaintext passwords
+continue to appear only in the startup console, independently of these events.
+
 
 ### Anime workflow logging
 
@@ -310,7 +328,9 @@ remain predictable. Production mutations require the same origin.
 `npm run dev:host` exposes Vite on `0.0.0.0:5173` for trusted LAN development while
 the backend stays on loopback. Open `http://<server-lan-ip>:5173`. The proxy rewrites
 Origin only when it matches the incoming Host; unrelated origins reach backend
-validation unchanged. This development server has no authentication.
+validation unchanged. Development uses the same password authentication and CSRF protection as production.
+The first backend startup prints its random password; the Vite proxy keeps session
+cookies and API requests on the browser origin.
 
 Vite provides SPA fallback for direct routes. `npm start` builds both
 workspaces and serves `web/dist` through the backend in its normal runtime mode.
@@ -320,14 +340,14 @@ variable is set. Without it, the backend serves only APIs/media, even if a front
 build exists. The configured directory must contain `index.html` or startup fails.
 A shared Caddy can proxy the whole application. Configure `ANISHELF_PUBLIC_ORIGIN`
 for its external origin and preserve Host/Origin headers; see the
-[Caddy deployment example](../README.md#caddy-reverse-proxy). Backend listening
+[Caddy deployment example](deployment.md#caddy-reverse-proxy). Backend listening
 remains loopback-only. The explicit origin supplies the external scheme and port
-for Host and mutation Origin validation; `trustProxy` remains disabled and
-forwarded headers cannot authorize requests. Local health checks remain available.
-Caddy authenticates all routes by default. An optional
-[original-media exception](../README.md#external-players-without-authentication)
-allows `/api/media/*` without credentials for external players; anyone with a
-media URL can then access that file. All other routes remain authenticated.
+for Host and mutation Origin validation; `trustProxy` trusts loopback proxies only and
+forwarded headers supply the scheme and client address only when received from
+a loopback proxy; they do not authorize requests. Local health checks remain available.
+Anishelf authenticates business routes and protects mutations with a CSRF token.
+Caddy supplies TLS; no media-path bypass is needed. External-player URLs include
+24-hour single-file authorization tokens. See [authentication operations](deployment.md#authentication-and-password-recovery).
 Separately hosted frontend files must use
 the same external origin for API requests.
 

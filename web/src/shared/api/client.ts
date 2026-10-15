@@ -1,3 +1,4 @@
+import type { AuthSessionResponse } from "@anishelf/backend/contracts/http";
 import type { ApiErrorResponse } from "./contracts.js";
 
 export type ApiClientErrorKind = "http" | "network" | "invalid_response";
@@ -63,6 +64,24 @@ function isApiError(value: unknown): value is PublicApiError {
 	);
 }
 
+let csrfToken: string | undefined;
+let bootstrap: Promise<AuthSessionResponse> | undefined;
+export function loadAuthSession(): Promise<AuthSessionResponse> {
+	if (!bootstrap)
+		bootstrap = request<AuthSessionResponse>("/api/auth/session", "GET")
+			.then((value) => {
+				csrfToken = value.csrfToken;
+				return value;
+			})
+			.finally(() => {
+				bootstrap = undefined;
+			});
+	return bootstrap;
+}
+export function clearAuthToken() {
+	csrfToken = undefined;
+}
+
 /** Uses same-origin /api URLs through the Vite proxy or production server. */
 export async function request<T>(
 	path: string,
@@ -71,12 +90,14 @@ export async function request<T>(
 	payload?: object,
 ): Promise<T> {
 	throwIfCancelled(signal);
+	if (method !== "GET" && !csrfToken) await loadAuthSession();
 	let response: Response;
 	try {
 		response = await fetch(path, {
 			method,
 			headers: {
 				Accept: "application/json",
+				...(method !== "GET" && csrfToken ? { "x-csrf-token": csrfToken } : {}),
 				...(payload ? { "Content-Type": "application/json" } : {}),
 			},
 			...(payload ? { body: JSON.stringify(payload) } : {}),
@@ -96,6 +117,15 @@ export async function request<T>(
 		});
 	}
 	throwIfCancelled(signal);
+	if (
+		response.status === 401 &&
+		path !== "/api/auth/login" &&
+		path !== "/api/auth/password"
+	) {
+		csrfToken = undefined;
+		if (typeof window !== "undefined")
+			window.dispatchEvent(new Event("anishelf:auth-required"));
+	}
 	if (response.ok && response.status === 204) return undefined as T;
 	const requestId = response.headers.get("x-request-id");
 	let body: unknown;
@@ -131,5 +161,13 @@ export async function request<T>(
 			requestId,
 		});
 	}
+	if (
+		path === "/api/auth/login" &&
+		typeof body === "object" &&
+		body &&
+		"csrfToken" in body &&
+		typeof body.csrfToken === "string"
+	)
+		csrfToken = body.csrfToken;
 	return body as T;
 }

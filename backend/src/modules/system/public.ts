@@ -44,3 +44,5 @@ export interface ResourceSettingsCoordinator {
 		save: () => Promise<Readonly<PersistentSettings>>,
 	): Promise<Readonly<PersistentSettings>>;
 }
+
+export type { AuthenticationStore } from "./authentication/ports.js";

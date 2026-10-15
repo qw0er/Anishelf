@@ -35,6 +35,19 @@ const file = {
 };
 const writeText = vi.fn().mockResolvedValue(undefined);
 beforeEach(() => {
+	vi.stubGlobal(
+		"fetch",
+		vi.fn().mockImplementation(
+			() =>
+				new Response(
+					JSON.stringify({
+						url: "/api/media/file_123?access_token=test-token",
+						expiresAt: Date.now() + 86400000,
+					}),
+					{ headers: { "content-type": "application/json" } },
+				),
+		),
+	);
 	writeText.mockReset().mockResolvedValue(undefined);
 	vi.stubGlobal("navigator", { clipboard: { writeText } });
 	vi.spyOn(resourceApi, "getFile").mockResolvedValue(file);
@@ -68,7 +81,7 @@ test("downloads original media with its filename without buffering or opening pl
 	await waitFor(() =>
 		expect(downloads).toEqual([
 			{
-				url: `${window.location.origin}${file.originalMediaUrl}`,
+				url: `${window.location.origin}${file.originalMediaUrl}?access_token=test-token`,
 				filename: file.file.name,
 			},
 		]),
@@ -104,7 +117,7 @@ test.each([
 	"uses application origin %s without leaking the filename",
 	async (origin) => {
 		expect(await createMediaLink(fileId, origin)).toBe(
-			`${origin}/api/media/${fileId}`,
+			`${origin}/api/media/${fileId}?access_token=test-token`,
 		);
 	},
 );
@@ -129,7 +142,7 @@ test("rechecks the file, copies its link and does not touch playback state", asy
 	fireEvent.click(screen.getByRole("button", { name: "Copy media link" }));
 	await screen.findByText(/Link copied/);
 	expect(writeText).toHaveBeenCalledWith(
-		`${window.location.origin}${file.originalMediaUrl}`,
+		`${window.location.origin}${file.originalMediaUrl}?access_token=test-token`,
 	);
 	expect(resourceApi.getFile).toHaveBeenCalledWith(fileId, {
 		signal: expect.any(AbortSignal),
@@ -151,7 +164,9 @@ test.each(["unavailable", "rejected"])(
 		expect(
 			screen.getByRole<HTMLInputElement>("textbox", { name: "Media link" })
 				.value,
-		).toBe(`${window.location.origin}${file.originalMediaUrl}`);
+		).toBe(
+			`${window.location.origin}${file.originalMediaUrl}?access_token=test-token`,
+		);
 		const input = screen.getByRole<HTMLInputElement>("textbox", {
 			name: "Media link",
 		});
@@ -259,7 +274,7 @@ test("playlist keeps Unicode metadata and prevents filename line injection", asy
 	});
 	const playlist = await createMediaPlaylist(fileId, "https://example.test");
 	expect(playlist.content).toBe(
-		"#EXTM3U\n#EXTINF:-1,中文 #EXTINF:1,injected  /movie.mp4\nhttps://example.test/api/media/file_123\n",
+		"#EXTM3U\n#EXTINF:-1,中文 #EXTINF:1,injected  /movie.mp4\nhttps://example.test/api/media/file_123?access_token=test-token\n",
 	);
 	expect(playlist.filename).not.toMatch(/[\r\n/:]/);
 	expect(playlist.filename.endsWith(".m3u")).toBe(true);
@@ -286,7 +301,7 @@ test("downloads a playlist without starting a playback session", async () => {
 	const blob = create.mock.calls[0]?.[0];
 	expect(blob).toBeInstanceOf(Blob);
 	expect(await (blob as Blob).text()).toBe(
-		`#EXTM3U\n#EXTINF:-1,${file.file.name}\n${window.location.origin}${file.originalMediaUrl}\n`,
+		`#EXTM3U\n#EXTINF:-1,${file.file.name}\n${window.location.origin}${file.originalMediaUrl}?access_token=test-token\n`,
 	);
 	expect(open).not.toHaveBeenCalled();
 	await waitFor(() => expect(revoke).toHaveBeenCalledWith("blob:playlist"), {

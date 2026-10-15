@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import Fastify, { LogController } from "fastify";
+import Fastify, {
+	type FastifyPluginAsync,
+	LogController,
+	type RawServerDefault,
+} from "fastify";
 import type { Logger } from "pino";
 import { HealthResponseSchema } from "../../contracts/schemas/index.js";
 import type { DeploymentConfig } from "../../modules/system/public.js";
@@ -16,6 +20,7 @@ export function createHttpApp(options: {
 	policy: DeepReadonly<BuiltinPolicy>;
 	development?: boolean;
 	frontendRoot?: string;
+	configure?: (app: HttpInstance) => Promise<void>;
 	registrations: readonly ((app: HttpInstance) => void)[];
 	closeDependencies: () => Promise<void>;
 }) {
@@ -25,13 +30,14 @@ export function createHttpApp(options: {
 		logController: new LogController({ disableRequestLogging: true }),
 		genReqId: () => randomUUID(),
 		requestIdHeader: false,
-		trustProxy: false,
+		trustProxy: ["loopback"],
 		bodyLimit: policy.http.httpBodyMaximumBytes,
 		forceCloseConnections: "idle",
 		ajv: { customOptions: { removeAdditional: false, coerceTypes: false } },
 	}).withTypeProvider<TypeBoxTypeProvider>();
 	app.addHook("onRequest", async (request, reply) => {
 		reply.header("x-request-id", request.id);
+		reply.header("Referrer-Policy", "no-referrer");
 		request.log.trace(
 			{
 				event: "http.request_started",
@@ -84,10 +90,18 @@ export function createHttpApp(options: {
 		async () => ({ status: "ok" as const }),
 	);
 
-	for (const register of options.registrations) register(app);
 	app.addHook("onClose", options.closeDependencies);
-	const frontendRoot = options.frontendRoot;
-	if (frontendRoot)
-		app.register(async (scope) => registerFrontend(scope, frontendRoot));
+	const registerRoutes: FastifyPluginAsync<
+		Record<never, never>,
+		RawServerDefault,
+		TypeBoxTypeProvider,
+		Logger
+	> = async (http) => {
+		await options.configure?.(http);
+		for (const register of options.registrations) register(http);
+		if (options.frontendRoot)
+			await registerFrontend(http, options.frontendRoot);
+	};
+	app.register(registerRoutes);
 	return app;
 }

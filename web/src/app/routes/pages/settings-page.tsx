@@ -9,6 +9,7 @@ import {
 	ResourceSettings,
 } from "../../../features/settings/ui.js";
 import { PageHeader } from "../../../shared/components/page-header.js";
+import { SecuritySettings } from "../../auth/security-settings.js";
 import { useAppRuntime } from "../../runtime/context.js";
 export function SettingsPage() {
 	const preparation = usePreparationContext();
@@ -28,6 +29,7 @@ export function SettingsPage() {
 			/>
 			<PreparationProfileSettings preparation={preparation} action={action} />
 			<ExternalPlayerSettings />
+			<SecuritySettings />
 		</div>
 	) : (
 		<section role="alert">{t("errors.settingsUnavailable")}</section>

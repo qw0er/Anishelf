@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { loadAuthSession } from "../shared/api/client.js";
 import "../shared/i18n.js";
 import { Outlet, ScrollRestoration, useNavigation } from "react-router";
 import { IdentificationStatus } from "../features/anime/ui.js";
@@ -12,6 +14,24 @@ import { useAppRuntimeState } from "./runtime/use-app-runtime.js";
 export default function App() {
 	const runtime = useAppRuntimeState();
 	const navigation = useNavigation();
+	useEffect(() => {
+		let active = true;
+		const check = () => {
+			void loadAuthSession()
+				.then((session) => {
+					if (active && !session.authenticated)
+						window.dispatchEvent(new Event("anishelf:auth-required"));
+				})
+				.catch(() => {});
+		};
+		const timer = window.setInterval(check, 60_000);
+		window.addEventListener("focus", check);
+		return () => {
+			active = false;
+			window.clearInterval(timer);
+			window.removeEventListener("focus", check);
+		};
+	}, []);
 	return (
 		<QueryScope
 			value={JSON.stringify([

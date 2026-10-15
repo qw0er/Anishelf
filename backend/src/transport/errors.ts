@@ -3,6 +3,14 @@ import { MetadataError } from "../modules/anime/public.js";
 import { DomainError, type ErrorCode } from "../shared/errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	AUTH_RATE_LIMITED: {
+		status: 429,
+		message: "Too many sign-in attempts. Please wait and try again.",
+	},
+	AUTH_REQUIRED: {
+		status: 401,
+		message: "Sign in with the correct password to continue.",
+	},
 	CATALOG_UNAVAILABLE: {
 		status: 503,
 		message:
@@ -173,7 +181,10 @@ export function classifyHttpError(error: unknown): {
 			? error.statusCode
 			: undefined;
 	if (typeof status === "number" && status >= 400 && status < 500) {
-		return { code: "INVALID_REQUEST", status };
+		return {
+			code: status === 429 ? "AUTH_RATE_LIMITED" : "INVALID_REQUEST",
+			status,
+		};
 	}
 	return { code: "INTERNAL_ERROR", status: 500 };
 }
