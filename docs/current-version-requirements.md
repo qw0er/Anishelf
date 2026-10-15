@@ -2,9 +2,9 @@
 
 ## 1. Goal and Status
 
-The current selected iteration connects an AniList account and lets users view and update AniList-owned viewing state from Anishelf. No release number is assigned. These requirements are selected, not implemented or accepted.
+The current selected iteration connects an AniList account and lets users view and update AniList-owned viewing state from Anishelf. No release number is assigned. T01 account foundations and shared request scheduling are implemented. T02–T05 and W03–W05 remain selected work; the complete iteration has not been accepted.
 
-[Overall requirements](requirements.md) retains the feature inventory and delivery status. [History](history.md#anime-library-requirements) retains the completed anime-library iteration. [Current version design](current-version-design.md) defines the planned implementation and authorization approach. The current architecture remains documented in [Architecture](architecture.md); this document does not claim that the planned account integration already exists.
+[Overall requirements](requirements.md) retains the feature inventory and delivery status. [History](history.md#anime-library-requirements) retains the completed anime-library iteration. [Current version design](current-version-design.md) defines the planned implementation and authorization approach. The current architecture remains documented in [Architecture](architecture.md); the design records the implemented foundation separately from the remaining plan.
 
 ## 2. Selected Requirements
 
@@ -68,3 +68,25 @@ The [current version design](current-version-design.md) selects a maintainer-pro
 ## 7. Excluded Scope
 
 Independent local tracking, list import/export, reimport merging, automatic acquisition, ratings, multiple trackers, advanced rewatch support and external-player state collection are outside this iteration. Historical requirements and acceptance records remain unchanged.
+
+## 8. Account Foundation Delivery
+
+T01 now has authenticated/CSRF-protected status, token preview, confirmation,
+connection check and disconnect endpoints, plus a Settings interface using bundled
+Client ID 53902. Preview candidates belong to one login session, expire after five
+minutes and are invalidated by a connection change. Confirmation and disconnect
+require the current connection generation. The credential file reference and
+account identity persist in SQLite; the token stays in a private server-side file.
+
+Metadata and Tracking share one bounded AniList scheduler, including pacing,
+provider rate headers, priority with fairness, cancellation and shutdown. The
+public metadata adapter does not receive personal tokens.
+
+Validation includes actual token-based account preview, confirmation, Viewer
+checks, service reconstruction with persisted credentials and local disconnect in
+an isolated temporary directory; no AniList list was mutated. Automated HTTP tests
+cover login/CSRF, session-bound confirmation and response/log secret withholding.
+Frontend tests cover masked input clearing, confirmation, reconnect feedback and
+old-account query removal. A real browser inspected the disconnected Settings
+section. Fresh browser authorization, connected-account browser interaction and
+full ANI01–ANI10 acceptance are not claimed by these checks.

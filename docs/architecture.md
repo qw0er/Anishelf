@@ -3,9 +3,9 @@
 This document describes the overall system structure, module ownership and
 architectural constraints. [Requirements](requirements.md) owns the feature
 inventory and delivery status. [Current version requirements](current-version-requirements.md)
-owns the selected AniList account scope and acceptance; this integration is planned,
-not an existing runtime capability. [Current version design](current-version-design.md)
-defines the planned Tracking owner, authorization and submission flow. The anime-library version's requirements and
+owns the selected AniList account scope and acceptance. Account connection and shared
+request scheduling are implemented; list and viewing-state integration remain planned. [Current version design](current-version-design.md)
+records the delivered account foundation and planned list/submission flows. The anime-library version's requirements and
 acceptance are complete as of 2026-10-14, confirmed by the user.
 [History](history.md#anime-library-archive-notes) retains its requirements,
 CAT01–CAT08 acceptance record and detailed design, alongside earlier designs and
@@ -54,6 +54,8 @@ and scoped tokens for original-media delivery.
 | Subtitles | Track discovery, selected-track preparation, delivery and asset lifecycle |
 | Metadata | Provider queries, normalized snapshots, persistent cache, refresh and artwork |
 | Identification | Stateless local extraction, candidate ranking and episode association proposals |
+| Tracking | AniList account lifecycle, session-bound previews, private credentials and connection state |
+| AniList requests | Shared bounded request pacing, rate-limit feedback, priority fairness and cancellation |
 | Anime Catalog | Durable local works/episodes, review decisions, confirmed associations, corrections and library projections |
 
 These are the existing runtime owners. [Identification](architecture.md#internal-ownership) exposes
@@ -86,7 +88,7 @@ The backend source has six responsibility roots:
 | Resources | Library, Resource Access | Directory/file reads, scans, root switching, settings-change exclusion, publications, confined source access and registration |
 | Media | Inspection, Planning, Processing, Preparation, Subtitles | Compatibility, published-copy views, media information, preparation and subtitle HTTP services |
 | Playback | Progress, Playback Selection | Resource selection, sessions, durable progress and history |
-| Anime | Identification, Metadata, Anime Catalog | Recognition coordination, provider cache/query capabilities, review and durable association decisions |
+| Anime | Identification, Metadata, Anime Catalog, Tracking, AniList requests | Recognition, provider cache, review/associations, account lifecycle and shared provider scheduling |
 
 The five directories are API boundaries, not categorization folders. External
 consumers cannot import any child entry, including a child's `public.ts`.

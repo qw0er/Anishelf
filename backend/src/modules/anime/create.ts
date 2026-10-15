@@ -1,12 +1,14 @@
 import type { Logger } from "pino";
 import type { ResourcesApi } from "../resources/public.js";
 import type { SystemApi } from "../system/public.js";
+import { AniListScheduler } from "./anilist/public.js";
 import { createCatalogModule } from "./composition/catalog.js";
 import { createIdentificationModule } from "./composition/identification.js";
 import {
 	createIdentificationMetadata,
 	createMetadataModule,
 } from "./composition/metadata.js";
+import { createTrackingModule } from "./composition/tracking.js";
 import { registerAnimeHttp } from "./http.js";
 import type { AnimePersistence } from "./persistence.js";
 import type { AnimeApi } from "./public.js";
@@ -17,12 +19,22 @@ export async function createAnimeModule(options: {
 	logger: Logger;
 }) {
 	const { system, resources: library, database, logger } = options;
+	const requests = new AniListScheduler({ logger });
+	const tracking = database
+		? await createTrackingModule({
+				dataDir: system.deployment.dataDir,
+				store: database.tracking,
+				client: requests,
+				logger,
+			})
+		: undefined;
 	let metadata: Awaited<ReturnType<typeof createMetadataModule>> | undefined;
 	if (database)
 		try {
 			metadata = await createMetadataModule({
 				dataDir: system.deployment.dataDir,
 				store: database.metadata,
+				client: requests,
 				logger,
 			});
 		} catch (err) {
@@ -45,6 +57,7 @@ export async function createAnimeModule(options: {
 			: {}),
 	});
 	const api: AnimeApi = {
+		tracking,
 		metadata: metadata
 			? {
 					search: (...args) => metadata.search(...args),
@@ -75,18 +88,23 @@ export async function createAnimeModule(options: {
 	let closed: Promise<void> | undefined;
 	const quiesce = () =>
 		(stopped ??= (async () => {
-			await Promise.all([identification.close(), catalog?.quiesce()]);
+			await Promise.all([
+				identification.close(),
+				catalog?.quiesce(),
+				tracking?.close(),
+			]);
 		})());
 	return {
 		api,
 		registerHttp: (app: import("../../transport/instance.js").HttpInstance) =>
-			registerAnimeHttp(app, { metadata, catalog, identification }),
+			registerAnimeHttp(app, { metadata, catalog, identification, tracking }),
 		quiesce,
 		close: () =>
 			(closed ??= (async () => {
 				await quiesce();
 				catalog?.close();
 				await metadata?.close();
+				await requests.close();
 			})()),
 	};
 }

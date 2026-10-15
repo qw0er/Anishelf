@@ -486,5 +486,34 @@
 		"identificationCompleted": "Resource identification and automatic admission finished. Unresolved matches are available in Review.",
 		"identificationFailed": "Identification did not finish. Rescan Files to retry; saved associations remain available.",
 		"optionalRejectionReason": "Reason (optional)"
+	},
+	"trackingAccount": {
+		"title": "AniList account",
+		"description": "Connect AniList to use your personal viewing state. Public metadata and local playback work without a connection.",
+		"loading": "Loading AniList connection\u2026",
+		"account": "Account: {{name}}",
+		"disconnected": "No AniList account connected.",
+		"states": {
+			"disconnected": "Disconnected",
+			"connected": "Authorized",
+			"authorization-required": "Reconnect required"
+		},
+		"connectivity": {
+			"unknown": "Connection not checked",
+			"available": "Connection verified",
+			"unavailable": "Connection check failed"
+		},
+		"authorize": "Authorize Anishelf on AniList",
+		"instructions": "Authorize on AniList, copy the access token from the PIN page, then paste it below. Preview the account before confirming. Your token is stored only on this server after confirmation.",
+		"token": "AniList access token",
+		"preview": "Preview account",
+		"confirmation": "Confirm AniList account",
+		"confirmAccount": "Connect as {{name}}?",
+		"replaceNotice": "Confirming replaces the current connection for this Anishelf server. Pending previews expire after five minutes.",
+		"confirm": "Confirm connection",
+		"cancel": "Cancel",
+		"check": "Check connection",
+		"disconnect": "Disconnect",
+		"refresh": "Refresh connection"
 	}
 }

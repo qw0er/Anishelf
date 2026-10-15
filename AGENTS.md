@@ -7,3 +7,4 @@
 - Provide a Git commit in chat window when changing code. Don't commit
 - Interfaces can be modified or deleted without considering backward compatibility.
 - Read the design document before adjusting the interface
+- Remember to add logs

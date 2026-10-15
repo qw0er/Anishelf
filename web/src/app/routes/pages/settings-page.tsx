@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { AniListAccountSettings } from "../../../features/anime/ui.js";
 import {
 	usePreparationAction,
 	usePreparationContext,
@@ -29,6 +30,7 @@ export function SettingsPage() {
 			/>
 			<PreparationProfileSettings preparation={preparation} action={action} />
 			<ExternalPlayerSettings />
+			<AniListAccountSettings />
 			<SecuritySettings />
 		</div>
 	) : (

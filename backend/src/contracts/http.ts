@@ -168,3 +168,10 @@ export type AuthSessionResponse = Static<
 export type MediaAccessLinkResponse = Static<
 	typeof schemas.MediaAccessLinkResponseSchema
 >;
+
+export type TrackingAccountResponse = Static<
+	typeof schemas.TrackingStatusSchema
+>;
+export type TrackingPreviewResponse = Static<
+	typeof schemas.TrackingPreviewSchema
+>;

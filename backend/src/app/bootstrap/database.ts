@@ -33,6 +33,7 @@ import * as schema from "../schema.js";
 /** Owns the connection; repositories must not outlive this object. */
 export class ApplicationDatabase {
 	readonly authentication: AuthenticationStore;
+	readonly tracking: AnimePersistence["tracking"];
 	readonly metadata: AnimePersistence["metadata"];
 	readonly catalog: AnimePersistence["catalog"];
 	readonly playback: PlaybackPersistence["playback"];
@@ -49,6 +50,7 @@ export class ApplicationDatabase {
 		const media = createMediaPersistence(store, sources);
 		const playback = createPlaybackPersistence(store, sources, policy.playback);
 		this.catalog = anime.catalog;
+		this.tracking = anime.tracking;
 		this.metadata = anime.metadata;
 		this.playback = playback.playback;
 		this.subtitles = media.subtitles;
