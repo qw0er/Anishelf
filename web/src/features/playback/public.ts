@@ -3,6 +3,7 @@ export { historyQuery } from "./history/queries.js";
 import type { ReactNode } from "react";
 import type { CompatibilityResult } from "../../shared/api/contracts.js";
 export interface PlaybackUiSlots {
+	renderViewing?(input: { fileId: string; sourceVersion: string }): ReactNode;
 	renderPreparation(input: {
 		key: string | number;
 		showLabel: boolean;

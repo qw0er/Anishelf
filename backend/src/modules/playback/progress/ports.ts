@@ -1,7 +1,4 @@
-import type {
-	CompletionRecord,
-	ManualCompletion,
-} from "./domain/completion.js";
+import type { CompletionRecord } from "./domain/completion.js";
 import type {
 	HistoryCandidate,
 	PlaybackProgress,
@@ -11,15 +8,8 @@ import type {
 	SourceIdentity,
 } from "./domain/model.js";
 export interface PlaybackStore {
-	coverage(sourceId: string, durationMs: number): [number, number][];
-	completions(
-		sourceId?: string,
-		pendingOnly?: boolean,
-		context?: string,
-	): CompletionRecord[];
+	completions(sourceId?: string, pendingOnly?: boolean): CompletionRecord[];
 	saveCompletion(record: CompletionRecord): void;
-	/** Insert-if-absent intent receipt; existing evidence receipts always win. */
-	recordCompletion(record: ManualCompletion): void;
 	registerSource(identity: SourceIdentity, nowMs?: number): RegisteredSource;
 	get(sourceId: string): PlaybackProgress | undefined;
 	openGeneration(sourceId: string): PlaybackProgress;

@@ -135,7 +135,7 @@ describe("playback persistence", () => {
 		try {
 			expect(
 				raw.prepare("SELECT count(*) AS count FROM __drizzle_migrations").get(),
-			).toEqual({ count: 15 });
+			).toEqual({ count: 16 });
 			expect(raw.pragma("journal_mode", { simple: true })).toBe("wal");
 		} finally {
 			raw.close();
@@ -278,4 +278,90 @@ describe("playback persistence", () => {
 		expect(() => ApplicationDatabase.open(brokenDirectory)).toThrow();
 		expect(await readFile(path)).toEqual(content);
 	});
+});
+
+it("migrates admitted intent and explicitly ends legacy observations without losing playback history", async () => {
+	const legacyDir = join(directory, "viewing-legacy"),
+		migrationDir = join(directory, "viewing-migrations");
+	await mkdir(legacyDir);
+	await mkdir(join(migrationDir, "meta"), { recursive: true });
+	const migrations = fileURLToPath(new URL("../migrations/", import.meta.url));
+	const journal = JSON.parse(
+		await readFile(join(migrations, "meta/_journal.json"), "utf8"),
+	);
+	journal.entries = journal.entries.slice(0, 15);
+	await writeFile(
+		join(migrationDir, "meta/_journal.json"),
+		JSON.stringify(journal),
+	);
+	for (const entry of journal.entries)
+		await copyFile(
+			join(migrations, `${entry.tag}.sql`),
+			join(migrationDir, `${entry.tag}.sql`),
+		);
+	const raw = new Database(join(legacyDir, "anishelf.sqlite"));
+	const old = {
+		id: "op",
+		accountId: 7,
+		mediaId: 9,
+		revision: 2,
+		baseline: { id: 1, progress: 3, status: "CURRENT", updatedAt: 1 },
+		desired: { progress: 1 },
+		state: "pending",
+		remote: { id: 1, progress: 3, status: "CURRENT", updatedAt: 1 },
+		attempt: null,
+		attempts: 0,
+		retryAt: null,
+		error: null,
+		updatedAt: 100,
+		completion: false,
+	};
+	try {
+		migrate(drizzle(raw), { migrationsFolder: migrationDir });
+		raw.exec(
+			"INSERT INTO resource_roots VALUES ('root','/media',1); INSERT INTO media_sources VALUES ('source','root','file','episode.mp4','v1',1); INSERT INTO playback_progress VALUES ('source',45000,100000,10,1,2);",
+		);
+		raw
+			.prepare("INSERT INTO tracking_operations VALUES (?,?,?,?)")
+			.run("op", 7, 9, JSON.stringify(old));
+		raw
+			.prepare(
+				"INSERT INTO playback_completions (id,source_id,context,captured_at,outcome) VALUES (?,?,?,?,?)",
+			)
+			.run(
+				"receipt",
+				"source",
+				"legacy-context",
+				10,
+				JSON.stringify({ state: "pending", reason: "completion-recorded" }),
+			);
+	} finally {
+		raw.close();
+	}
+	const upgraded = ApplicationDatabase.open(legacyDir);
+	try {
+		expect(upgraded.playback.get("source")).toMatchObject({
+			positionMs: 45000,
+			lastViewedAtMs: 10,
+		});
+		expect(upgraded.trackingOperations.list(7)[0]).toMatchObject({
+			state: "pending",
+			origin: "manual-detail",
+			commandId: "op",
+			intentAt: 100,
+			desired: { progress: 1 },
+		});
+		expect(upgraded.trackingOperations.manualVersion(7, 9)).toBe(1);
+		expect(upgraded.trackingOperations.command(7, "op")).toMatchObject({
+			operationId: "op",
+			revision: 2,
+		});
+		expect(upgraded.playback.completions()[0]?.outcome).toEqual({
+			state: "ignored",
+			reason: "legacy-observation-requires-replay",
+		});
+		expect(upgraded.playback.completions(undefined, true)).toEqual([]);
+	} finally {
+		upgraded.close();
+	}
 });

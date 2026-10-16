@@ -43,6 +43,12 @@ export class TrackingModule implements TrackingApi {
 	operations(generation: string) {
 		return this.updates.operations(generation);
 	}
+	replayCommand(commandId: string, generation: string) {
+		return this.updates.replayCommand(commandId, generation);
+	}
+	manualVersion(mediaId: number, generation: string) {
+		return this.updates.manualVersion(mediaId, generation);
+	}
 	update(mediaId: number, input: TrackingUpdate) {
 		return this.updates.update(mediaId, input);
 	}

@@ -6,6 +6,8 @@ import {
 } from "../../../shared/policy.js";
 
 const defaults = {
+	completionRatio: 0.9,
+	minimumNormalPlayMs: 30000,
 	sessionIdleMs: 30 * 60 * 1000,
 	maximumSessions: 1000,
 	historyLimit: 100,
@@ -20,6 +22,10 @@ export function validatePlaybackPolicy(
 	policy: DeepReadonly<PlaybackPolicy>,
 ): void {
 	validateNumericPolicy("playback", policy, defaults);
+	requirePolicy(
+		policy.completionRatio > 0 && policy.completionRatio <= 1,
+		"playback.completionRatio",
+	);
 	requirePolicy(
 		policy.historyLimit <= policy.maximumListLimit,
 		"playback.defaultListLimits",

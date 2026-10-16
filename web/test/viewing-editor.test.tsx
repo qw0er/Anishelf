@@ -46,6 +46,11 @@ let operations: TrackingOperationResponse[];
 const fetcher = vi.fn<typeof fetch>();
 const pending = (): TrackingOperationResponse => ({
 	id: "operation-one",
+	origin: "manual-detail",
+	commandId: "command",
+	intentAt: 1,
+	target: null,
+	decisionReason: null,
 	accountId: 7,
 	mediaId: 1,
 	revision: 1,
@@ -219,4 +224,45 @@ test("a refreshed remote progress value is not unintentionally included in a sta
 	expect(JSON.parse(String(call?.[1]?.body)).desired).toEqual({
 		status: "PAUSED",
 	});
+});
+
+test("an ambiguous retry keeps its command ID while an edited intent gets a new ID", async () => {
+	const original = fetcher.getMockImplementation();
+	if (!original) throw Error("Missing fixture");
+	let failures = 2;
+	fetcher.mockImplementation(async (url, options) => {
+		if (String(url).endsWith("/updates") && failures-- > 0)
+			throw Error("Lost response");
+		return original(url, options);
+	});
+	await open();
+	fireEvent.change(
+		screen.getByRole("spinbutton", { name: "Episodes watched" }),
+		{ target: { value: "1" } },
+	);
+	const button = screen.getByRole<HTMLButtonElement>("button", {
+		name: "Save to AniList",
+	});
+	const posts = () =>
+		fetcher.mock.calls
+			.filter(([url]) => String(url).endsWith("/updates"))
+			.map(([, init]) => JSON.parse(String(init?.body)));
+	fireEvent.click(button);
+	await waitFor(() => {
+		expect(posts()).toHaveLength(1);
+		expect(button.disabled).toBe(false);
+	});
+	fireEvent.click(button);
+	await waitFor(() => {
+		expect(posts()).toHaveLength(2);
+		expect(button.disabled).toBe(false);
+	});
+	expect(posts()[0].commandId).toBe(posts()[1].commandId);
+	fireEvent.change(
+		screen.getByRole("spinbutton", { name: "Episodes watched" }),
+		{ target: { value: "2" } },
+	);
+	fireEvent.click(button);
+	await waitFor(() => expect(posts()).toHaveLength(3));
+	expect(posts()[2].commandId).not.toBe(posts()[1].commandId);
 });

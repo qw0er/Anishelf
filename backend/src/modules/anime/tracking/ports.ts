@@ -17,6 +17,12 @@ export interface TrackingOperationStore {
 	list(accountId: number): TrackingOperation[];
 	save(operation: TrackingOperation): void;
 	remove(id: string): void;
+	manualVersion(accountId: number, mediaId: number): number;
+	command(
+		accountId: number,
+		commandId: string,
+	): { operationId: string; revision: number } | undefined;
+	admit(operation: TrackingOperation): void;
 }
 export interface TrackingUpdateProvider {
 	get(

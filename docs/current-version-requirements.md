@@ -30,7 +30,7 @@ AniList owns viewing state. Anishelf reads and refreshes remote lists and submit
 - **Remote conflicts:** retain the remote baseline for a pending operation and refresh before retrying it. If remote progress/status changed, do not silently overwrite it with an older operation; display the conflict and allow keeping the remote value or explicitly submitting the local intent. Duplicate delivery and uncertain request outcomes must be reconciled against remote state before retrying. Refresh must not discard pending intent.
 - **Independent playback:** authorization expiry, offline operation and AniList failures must not prevent playback, local resume or history saves. Disconnect and list refresh must not erase those local records.
 
-This iteration does not add independent local tracking, list import/export, automatic acquisition, rating synchronization, multiple trackers or external-player state collection. The current design selects a bundled Client ID with manual PIN authorization; the 85-percent effective watched-coverage policy, evidence persistence/validation and durable handoff are implemented; this section records requirements, not implemented behavior.
+This iteration does not add independent local tracking, list import/export, automatic acquisition, rating synchronization, multiple trackers or external-player state collection. The current design selects a bundled Client ID with manual PIN authorization; the 90-percent/natural-end plus 30-second normal-play policy and durable observation handoff are implemented; implementation evidence and outstanding acceptance are recorded below.
 
 Source playback positions, resume and history remain local capabilities. Existing catalog works, episodes, provider identifiers and confirmed source associations remain the mapping foundation. No new identification or numbering-mapping workflow is required by this iteration.
 
@@ -63,7 +63,7 @@ Full ANI01–ANI10 acceptance remains pending. Account/list foundations and the 
 
 ## 6. Policy and Remaining Acceptance
 
-The [current version design](current-version-design.md) selects a maintainer-provided public Client ID, manual PIN token authorization, server-side credential storage, account isolation, durable submission and conflict recovery. It also defines skipped-episode and backward-correction behavior, and selects at least 85-percent effective watched coverage for automatic completion. Seeked ranges do not count, overlapping intervals count once, playback speed uses source-time coverage, and persisted evidence supports resumed playback for the same source version. Natural end does not bypass the threshold. Before full acceptance, verify fresh browser authorization, actual media playback evidence and real-account writes. Implemented evidence bounds, validation tolerances and the durable playback handoff are recorded below. Manual request contracts, retry bounds and queue limits are implemented below. These decisions must preserve the ownership and acceptance rules above.
+The [current version design](current-version-design.md) selects a maintainer-provided public Client ID, manual PIN token authorization, server-side credential storage, account isolation, durable submission and conflict recovery. It defines explicit skipped-episode confirmation and backward corrections, uses a 90-percent playhead or natural end plus 30 seconds of normal playback in the current session, and keeps durable automatic observations independent from unified Tracking commands. See the delivery contract below. Fresh browser authorization and real-account writes remain separate acceptance requirements. These decisions must preserve the ownership and acceptance rules above.
 
 ## 7. Excluded Scope
 
@@ -158,66 +158,46 @@ no real AniList list mutation or full iteration acceptance is claimed.
 
 ## 11. Playback Completion and Derived Viewing Display Delivery
 
-The Web player records continuous source-time intervals during playback, splits
-anchors on seeks, buffering, pauses and resource switches, and maps prepared-media
-time back to the source. Resume restoration contributes no coverage. Requests carry
-at most 128 intervals; continuity samples require no more than five seconds between
-observations. Rates from 0.25 to 16 are accepted. The backend validates integer source
-bounds, rate continuity (100 ms rounding tolerance), and newly covered wall-time cost
-against elapsed server time plus one second, capped at five minutes per request.
-Previously persisted overlapping ranges consume no additional time budget. Shared
-media inspection supplies the canonical source duration; an unknown duration or a
-client duration differing by more than one second produces no completion evidence.
-Rejected evidence leaves valid position/history saves usable. Persisted coverage
-keeps at most 4,096 disjoint ranges, retaining existing evidence if the limit is hit.
-These bounds conservatively omit unobserved time; they do not certify a malicious
-client's telemetry.
+Automatic completion requires a playhead at or beyond 90 percent of the original
+source duration, or a natural source end, plus at least 30 seconds of normal wall-clock
+playback in the current session. Resume restoration, seeks, pauses and buffering do
+not add normal time. Playback speed does not multiply wall time. Source-time mapping
+continues to support prepared media; ending an intermediate segment is not a natural
+source end. Unknown duration permits only the natural-end branch. Seeking near the
+end and then playing normally for 30 seconds can qualify: this is a deliberate
+cooperative-player policy, not a proof of viewing the whole episode. No persisted
+coverage intervals or canonical-duration probe are required.
 
-Migration `0014_playback_completion` adds source-version coverage and completion
-receipts. A validated progress save merges coverage and records an 85-percent
-completion in one SQLite transaction. Receipts bind the source to an opaque captured
-account/generation and confirmed single-target mapping/revision. The Playback-owned
-handoff worker processes at most 100 eligible receipts every two seconds, rotates
-retries by last attempt time, resumes after restart and retains unavailable admission
-for retry. Source and target context deduplicate replay. Pending intent is admitted
-to the existing Tracking worker before the receipt becomes queued. Recovery checks
-confirmed progress and existing intent, so an acknowledgement lost after admission
-cannot increment progress twice. Newer manual operations take precedence.
+A validated progress save atomically inserts an automatic observation. Source version,
+session generation and sequence checks still reject stale writes. Each source/session/
+context emits one observation; a delivery worker reads at most 100 pending/unavailable
+records and retries every two seconds. Position saving never awaits AniList delivery.
+Only accepted Tracking operation IDs or explicit ignored outcomes acknowledge delivery.
 
-Anime revalidates source availability, confirmed associations and account generation
-before admission. Same-account reconnection revalidates against the current generation and existing queue/remote baseline; another account cannot receive the observation. Regular positive-integer episodes and explicitly mapped single-entry
-movies are supported. Ambiguous, special, fractional or multi-episode mappings are
-not inferred. Contiguous progress advances absolutely; already tracked episodes do
-not increment or lower progress. Skipped episodes require confirmation. An absent
-entry requires an explicit initial status. Existing entries receive progress-only
-commands, with no automatic tracking-status policy. Admission failures never depend
-on a live AniList response to acknowledge local progress.
+Tracking owns the full viewing operation lifecycle: decision-required, pending,
+submitting, succeeded, failed, conflict, authorization-required and cancelled.
+Detail edits and player marks enter the same durable command path as automatic
+observations, with explicit origin, command ID and intent time. Manual versions fence
+late automatic observations across restarts and operation pruning. Worker state changes
+do not become newer user intent. Player marks need no playback telemetry; skipped
+episodes require an explicit confirmation, and a missing entry requires initial status.
+Keep followed by Mark is a new valid command. Cancelled desired progress is not a
+confirmed remote value. Existing tracking statuses are unchanged by automatic updates.
 
-Eligible players poll `GET /api/playback/sessions/:token/completion`; a POST to the
-same authenticated, CSRF-protected route records the user's advance/keep decision
-before retrying admission. A POST that advances without an existing receipt records
-explicit manual intent through that same handoff, which is how the player marks an
-episode watched before 85-percent coverage exists; declining without a receipt
-records nothing and cannot suppress later evidence. Player feedback distinguishes
-recorded, waiting for a decision, unavailable, queued and unchanged outcomes from
-one control. Queued is not remote success; the existing operation monitor reports
-confirmed delivery, failures and conflicts, including automatically admitted
-operations that complete between polls. Terminal player outcomes stop polling.
-Decisions survive navigation and can be resumed by reopening the same source under
-the same account generation and mapping.
+`GET /api/tracking/episode-target` resolves a source to a confirmed single target.
+`POST /api/tracking/episode-commands` records mark, confirm or keep commands, revalidating
+mapping and account. Detail absolute edits use the existing updates route with a command
+ID. Both surfaces use the same operation queries and mutation feedback, following actual
+provider success/failure/conflict rather than stopping at an outbox acknowledgement.
+Playback completion decision routes and their independent UI state are removed.
 
-Local details show watched/unwatched indicators only for supported episode numbers
-and a confirmed cached AniList entry. Specials and fractional numbers remain unknown.
-Counts use cumulative AniList progress and available unwatched episodes; duplicate
-file versions count once. Library cards compute available unwatched counts from
-actual available episode targets during existing page hydration, rather than
-subtracting progress from availability. Pending intent never changes these indicators;
-local resume/history remains separate and no per-episode watched-state store is added.
+Migration 0015 preserves history, remote caches and admitted/uncertain Tracking operations.
+It seeds durable intent versions/command receipts and explicitly ends legacy observations
+that cannot prove their manual version. Coverage intervals are removed. New playback
+sessions can produce new automatic observations under the new policy.
 
-Automated fixtures cover coverage union, resumed sessions, seeks, speed, timeline
-mapping, elapsed-time/duration rejection, stale sessions, restart, lost responses,
-replay/version deduplication, skipped decisions, explicit initial status, account and
-mapping changes, manual precedence, UI decisions and count semantics. A production
-build fixture browser verifies detail indicators and explicit skipped-episode admission
-at 390 px and 1280 px without horizontal overflow. No real AniList list mutation or
-real-media browser completion acceptance is claimed by these checks.
+Local detail/Library indicators derive solely from confirmed AniList cumulative progress;
+specials/fractional/multi-target mappings remain unknown and versions count once.
+Fixtures cover command ordering, replay, manual correction, cross-gap/new-entry decisions,
+account/mapping changes, telemetry boundaries, source timeline conversion and migration.
+Real provider-write acceptance remains separate from local/browser fixture validation.

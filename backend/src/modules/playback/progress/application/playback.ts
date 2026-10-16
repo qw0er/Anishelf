@@ -1,15 +1,10 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../../resources/public.js";
 import { resourceRootId } from "../../../resources/public.js";
-import type {
-	CompletionDecision,
-	CompletionOutcome,
-	PlaybackCompletionObserver,
-} from "../domain/completion.js";
-import { mergeCoverage } from "../domain/completion.js";
+import type { PlaybackCompletionObserver } from "../domain/completion.js";
 import type {
 	HistoryItem,
 	HistoryResult,
@@ -26,9 +21,7 @@ import { PlaybackCompletions } from "./completions.js";
 
 interface PlaybackSessionState {
 	completionContext: string | null;
-	sourceDurationMs?: number | null;
 	openedAt: number;
-	evidenceAt: number;
 	sourceId: string;
 	identity: SourceIdentity;
 	rootEpoch: number;
@@ -46,9 +39,6 @@ export class PlaybackApplication implements PlaybackApi {
 	constructor(
 		private readonly options: {
 			sources: ResourceAccessApi;
-			sourceDuration?:
-				| ((fileId: string, sourceVersion: string) => Promise<number | null>)
-				| undefined;
 			completionObserver?: PlaybackCompletionObserver | undefined;
 			repository?: PlaybackStore;
 			logger: Logger;
@@ -110,7 +100,6 @@ export class PlaybackApplication implements PlaybackApi {
 		this.sessions.set(token, {
 			completionContext,
 			openedAt,
-			evidenceAt: this.now(),
 			sourceId: progress.sourceId,
 			identity: source.identity,
 			rootEpoch: source.rootEpoch,
@@ -129,7 +118,6 @@ export class PlaybackApplication implements PlaybackApi {
 		);
 		return {
 			token,
-			completionEnabled: Boolean(completionContext),
 			sourceVersion: source.identity.sourceVersion,
 			file: source.file,
 			progress,
@@ -145,25 +133,28 @@ export class PlaybackApplication implements PlaybackApi {
 			input.sourceVersion !== session.identity.sourceVersion
 		)
 			this.conflict();
-		if (input.intervals?.length && session.sourceDurationMs === undefined) {
-			try {
-				session.sourceDurationMs =
-					(await this.options.sourceDuration?.(
-						session.identity.fileId,
-						session.identity.sourceVersion,
-					)) ?? null;
-			} catch {
-				this.logger.warn(
-					{
-						event: "playback.evidence_duration_unavailable",
-						sourceId: session.sourceId,
-					},
-					"Source duration unavailable; resume remains usable.",
-				);
-			}
-			await this.revalidate(input.token, session);
-		}
-		const intervals = this.validEvidence(input, session);
+		const completed =
+			(input.normalPlayedMs ?? 0) >= this.policy.minimumNormalPlayMs &&
+			(input.normalPlayedMs ?? 0) <=
+				Math.max(0, this.now() - session.openedAt) + 1000 &&
+			(input.naturalEnd === true ||
+				(input.durationMs !== null &&
+					input.positionMs / input.durationMs >= this.policy.completionRatio));
+		const observation =
+			completed && session.completionContext
+				? {
+						id: createHash("sha256")
+							.update(
+								JSON.stringify([
+									session.sourceId,
+									session.generation,
+									session.completionContext,
+								]),
+							)
+							.digest("hex"),
+						context: session.completionContext,
+					}
+				: undefined;
 		const result = this.persist(() =>
 			this.repository().save(
 				{
@@ -172,18 +163,12 @@ export class PlaybackApplication implements PlaybackApi {
 					sequence: input.sequence,
 					positionMs: input.positionMs,
 					durationMs: input.durationMs,
-					evidence: {
-						intervals,
-						durationMs: session.sourceDurationMs ?? 0,
-						context: session.completionContext,
-						capturedAt: session.openedAt,
-					},
+					...(observation ? { observation } : {}),
 				},
 				this.now(),
 			),
 		);
 		if (result.status === "stale") this.conflict();
-		if (result.status === "saved") session.evidenceAt = this.now();
 		session.touchedAtMs = this.now();
 		void this.completionsWorker?.flush();
 		this.logger.trace(
@@ -272,116 +257,6 @@ export class PlaybackApplication implements PlaybackApi {
 				{ event: "playback.released", sourceId: session?.sourceId },
 				"Playback session released.",
 			);
-	}
-	async completion(token: string): Promise<CompletionOutcome | null> {
-		const session = this.session(token);
-		await this.revalidate(token, session);
-		const records = this.repository().completions(
-			session.sourceId,
-			false,
-			session.completionContext ?? "",
-		);
-		return (
-			records.find((record) => record.context === session.completionContext)
-				?.outcome ?? null
-		);
-	}
-	async decideCompletion(
-		token: string,
-		decision: CompletionDecision,
-	): Promise<CompletionOutcome | null> {
-		const session = this.session(token);
-		await this.revalidate(token, session);
-		const context = session.completionContext;
-		const record = context
-			? this.repository()
-					.completions(session.sourceId, false, context)
-					.find((r) => r.context === context)
-			: undefined;
-		if (record && this.completionsWorker)
-			await this.completionsWorker.decide(record, decision);
-		// Manual marking has no coverage receipt yet: record explicit intent through the same handoff.
-		// Declining without a receipt records nothing, so later automatic evidence is never suppressed.
-		else if (!record && context && decision.advance && this.completionsWorker) {
-			this.logger.info(
-				{
-					event: "playback.completion_manual_recorded",
-					sourceId: session.sourceId,
-					decision,
-				},
-				"Manual playback completion recorded.",
-			);
-			await this.completionsWorker.mark(
-				session.sourceId,
-				context,
-				this.now(),
-				decision,
-			);
-		}
-		return this.completion(token);
-	}
-	private validEvidence(
-		input: SavePlaybackProgress,
-		session: PlaybackSessionState,
-	) {
-		const intervals = input.intervals ?? [];
-		if (
-			!session.sourceDurationMs ||
-			!input.durationMs ||
-			Math.abs(session.sourceDurationMs - input.durationMs) > 1000
-		)
-			return [];
-		let covered = this.repository().coverage(
-			session.sourceId,
-			session.sourceDurationMs,
-		);
-		let elapsed = 0;
-		if (intervals.length > 128) return [];
-		for (const i of intervals) {
-			if (
-				!input.durationMs ||
-				!Number.isSafeInteger(i.startMs) ||
-				!Number.isSafeInteger(i.endMs) ||
-				i.startMs < 0 ||
-				i.endMs <= i.startMs ||
-				i.endMs > input.durationMs ||
-				!Number.isFinite(i.elapsedMs) ||
-				i.elapsedMs <= 0 ||
-				!Number.isFinite(i.rate) ||
-				i.rate < 0.25 ||
-				i.rate > 16 ||
-				i.endMs - i.startMs > i.elapsedMs * i.rate + 100
-			)
-				return [];
-			const before = covered.reduce(
-				(sum, [start, end]) => sum + end - start,
-				0,
-			);
-			covered = mergeCoverage([
-				...covered,
-				[i.startMs, Math.min(i.endMs, session.sourceDurationMs)],
-			]);
-			const added =
-				covered.reduce((sum, [start, end]) => sum + end - start, 0) - before;
-			elapsed += (i.elapsedMs * added) / (i.endMs - i.startMs);
-		}
-		// Delivery delay grants no unbounded credit. Invalid telemetry never breaks resume saves.
-		if (
-			elapsed >
-			Math.min(300000, Math.max(0, this.now() - session.evidenceAt) + 1000)
-		) {
-			this.logger.debug(
-				{ event: "playback.evidence_rejected", sourceId: session.sourceId },
-				"Playback evidence exceeded elapsed-time budget.",
-			);
-			return [];
-		}
-		return intervals
-			.map((i) => ({
-				...i,
-				endMs: Math.min(i.endMs, session.sourceDurationMs ?? i.endMs),
-			}))
-			.filter((i) => i.endMs > i.startMs);
 	}
 	async close(): Promise<void> {
 		this.closed = true;
@@ -472,6 +347,9 @@ export class PlaybackApplication implements PlaybackApi {
 			input.generation < 1 ||
 			input.sequence < 1 ||
 			input.positionMs < 0 ||
+			(input.normalPlayedMs !== undefined &&
+				(!Number.isSafeInteger(input.normalPlayedMs) ||
+					input.normalPlayedMs < 0)) ||
 			(input.durationMs !== null &&
 				(!Number.isSafeInteger(input.durationMs) || input.durationMs <= 0))
 		)

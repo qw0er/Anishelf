@@ -197,14 +197,11 @@ history. Library cards use actual available episode targets for unwatched counts
 counting multiple resource versions once. Pending intent never changes confirmed
 indicators. Keep these hints within the existing row/card hierarchy.
 
-Eligible players show one nonblocking control in the player action row beside the
-other player buttons that both marks the episode watched and reports completion
-state. Its label distinguishes saved
-evidence, queued intent, unavailable admission and failed reads, and it stays the
-only player surface for that state; the existing operation Toasts report remote
-delivery outcomes. Opening the control reveals the recorded reason, the
-initial-status selector required by a new AniList entry, labeled Confirm/Keep
-actions when advancing across skipped episodes, the unchanged reason, and an
-actionable retry. Keep content wrapping at narrow widths, and stop player outcome
-polling at queued/unchanged states. An unmapped source does not create a tracking
-prompt or unrelated completion polling.
+Eligible players show a nonblocking Tracking control in the player action row. It
+provides Mark as watched, actual operation state and the same progress editor available
+on details. Decision-required operations explain cumulative cross-gap changes and expose
+explicit Confirm/Keep actions or an initial-status selector. Failures expose Retry;
+conflicts expose Keep AniList value/Submit my change. Confirmed values and pending intent
+stay visually distinct. Player and detail share operation queries, cache updates and
+notifications, and both follow remote confirmation instead of stopping at queued.
+Keep controls wrapping at narrow widths. Unmapped sources show no tracking command.

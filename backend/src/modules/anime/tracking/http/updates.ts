@@ -1,5 +1,7 @@
 import { Type } from "typebox";
 import {
+	TrackingEpisodeCommandSchema,
+	TrackingEpisodeTargetSchema,
 	TrackingOperationCommandSchema,
 	TrackingOperationSchema,
 	TrackingOperationsSchema,
@@ -7,11 +9,43 @@ import {
 	TrackingUpdateSchema,
 } from "../../../../contracts/schemas/tracking-update.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
-import type { TrackingUpdatesApi } from "../public.js";
+import type { TrackingUpdatesApi, TrackingViewingApi } from "../public.js";
 export function registerTrackingUpdateRoutes(
 	app: HttpInstance,
 	updates: TrackingUpdatesApi,
+	viewing?: TrackingViewingApi,
 ) {
+	if (viewing) {
+		app.get(
+			"/api/tracking/episode-target",
+			{
+				schema: {
+					querystring: Type.Object(
+						{
+							fileId: Type.String({ minLength: 1 }),
+							sourceVersion: Type.String({ minLength: 1 }),
+						},
+						{ additionalProperties: false },
+					),
+					response: {
+						200: Type.Union([Type.Null(), TrackingEpisodeTargetSchema]),
+					},
+				},
+			},
+			async (request) =>
+				viewing.target(request.query.fileId, request.query.sourceVersion),
+		);
+		app.post(
+			"/api/tracking/episode-commands",
+			{
+				schema: {
+					body: TrackingEpisodeCommandSchema,
+					response: { 200: TrackingOperationSchema },
+				},
+			},
+			async (request) => viewing.mark(request.body),
+		);
+	}
 	const params = Type.Object({ id: Type.String({ format: "uuid" }) });
 	app.get(
 		"/api/tracking/operations",

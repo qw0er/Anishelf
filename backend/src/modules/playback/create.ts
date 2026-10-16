@@ -34,7 +34,6 @@ export function createPlaybackModule(options: {
 	const playback = createProgressModule({
 		configuration,
 		completionObserver: options.completionObserver,
-		sourceDuration: (id, version) => media.sourceDuration(id, version),
 		library,
 		database,
 		logger,

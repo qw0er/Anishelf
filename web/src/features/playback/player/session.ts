@@ -40,7 +40,8 @@ export class PlaybackSessionController {
 		restored: false,
 		error: null,
 	};
-	private readonly evidence = new PlaybackEvidence();
+	private evidence = new PlaybackEvidence();
+	private naturalEnd = false;
 	private playing = false;
 	private video: HTMLVideoElement | null = null;
 	private timeline: MediaTimeline = originalTimeline();
@@ -54,7 +55,7 @@ export class PlaybackSessionController {
 	private keepalive = false;
 	private timer: ReturnType<typeof setInterval> | undefined;
 	private detachEvents: (() => void) | undefined;
-	private lastSaved: Position | null = null;
+	private lastSaved: SavePlaybackProgressRequest | null = null;
 	private readonly fileId: string;
 	private readonly notify: (state: PlaybackSessionState) => void;
 	private readonly policy: PlaybackPolicy;
@@ -84,6 +85,8 @@ export class PlaybackSessionController {
 					openPlaybackSession(this.fileId, options),
 				);
 				this.sequence = session.progress.lastSequence;
+				this.evidence = new PlaybackEvidence();
+				this.naturalEnd = false;
 				this.position = null;
 				this.pending = null;
 				this.lastSaved = null;
@@ -126,11 +129,13 @@ export class PlaybackSessionController {
 		};
 		const sample = () => this.sampleEvidence();
 		const playing = () => {
+			if (!video.ended) this.naturalEnd = false;
 			this.evidence.reset();
 			this.playing = true;
 			sample();
 		};
 		const interrupt = () => {
+			this.naturalEnd = false;
 			this.playing = false;
 			this.evidence.reset();
 		};
@@ -144,6 +149,13 @@ export class PlaybackSessionController {
 		};
 		const ended = () => {
 			stop();
+			const duration = this.timeline.sourceDurationMs;
+			this.naturalEnd =
+				duration === null
+					? this.timeline.sourceOriginMs === 0 &&
+						this.timeline.mediaOriginMs === 0
+					: sourceTimeMs(video.currentTime * 1000, this.timeline) >=
+						duration - 1000;
 			this.queueSave(true);
 		};
 		const events: [string, () => void][] = [
@@ -257,7 +269,7 @@ export class PlaybackSessionController {
 	}
 	private sampleEvidence() {
 		if (this.video && this.state.restored)
-			this.evidence.sample(this.video, this.timeline, this.playing);
+			this.evidence.sample(this.video, this.playing);
 	}
 	private capture(ended = false): void {
 		const video = this.video;
@@ -299,28 +311,27 @@ export class PlaybackSessionController {
 			(this.state.error && !retry)
 		)
 			return;
-		const intervals = this.evidence.take();
+
 		if (
-			!intervals.length &&
 			!this.pending &&
 			this.lastSaved?.positionMs === this.position.positionMs &&
 			this.lastSaved.durationMs === this.position.durationMs &&
+			this.lastSaved.normalPlayedMs === this.evidence.normalPlayedMs &&
+			this.lastSaved.naturalEnd === this.naturalEnd &&
 			!this.state.error
 		)
 			return;
 		// Preserve sequence/payload for an ambiguous failed write unless a newer position exists.
 		if (
-			intervals.length > 0 ||
 			!this.pending ||
 			this.pending.positionMs !== this.position.positionMs ||
-			this.pending.durationMs !== this.position.durationMs
+			this.pending.durationMs !== this.position.durationMs ||
+			this.pending.normalPlayedMs !== this.evidence.normalPlayedMs ||
+			this.pending.naturalEnd !== this.naturalEnd
 		) {
-			const combined = [...(this.pending?.intervals ?? []), ...intervals].slice(
-				0,
-				128,
-			);
 			this.pending = {
-				intervals: combined,
+				normalPlayedMs: this.evidence.normalPlayedMs,
+				naturalEnd: this.naturalEnd,
 				generation: session.progress.generation,
 				sourceVersion: session.sourceVersion,
 				sequence: ++this.sequence,
@@ -346,10 +357,7 @@ export class PlaybackSessionController {
 					const result = await this.request((options) =>
 						savePlaybackProgress(session.token, payload, options),
 					);
-					this.lastSaved = {
-						positionMs: payload.positionMs,
-						durationMs: payload.durationMs,
-					};
+					this.lastSaved = payload;
 					this.publish({
 						session: { ...session, progress: result.progress },
 						error: null,
@@ -366,15 +374,7 @@ export class PlaybackSessionController {
 		}
 	}
 	private retainFailed(payload: SavePlaybackProgressRequest) {
-		if (this.pending)
-			this.pending = {
-				...this.pending,
-				intervals: [
-					...(payload.intervals ?? []),
-					...(this.pending.intervals ?? []),
-				].slice(0, 128),
-			};
-		else this.pending = payload;
+		this.pending ??= payload;
 	}
 	private async release(): Promise<void> {
 		const session = this.state.session;

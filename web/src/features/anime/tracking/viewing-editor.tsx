@@ -1,9 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiClientError, request } from "../../../shared/api/client.js";
 import type {
-	TrackingAccountResponse,
 	TrackingEntryResponse,
 	TrackingOperationResponse,
 	TrackingUpdateRequest,
@@ -16,9 +15,8 @@ import {
 	DialogTitle,
 } from "../../../shared/components/ui/dialog.js";
 import { Input } from "../../../shared/components/ui/input.js";
-import { toast } from "../../../shared/components/ui/toast.js";
-import { operationsQuery, reportTrackingOperations } from "./operations.js";
-import { accountQuery } from "./queries.js";
+import { operationsQuery } from "./operations.js";
+import { useTrackingMutation } from "./use-tracking-mutation.js";
 import type { ViewingState } from "./use-viewing-state.js";
 
 type Status = NonNullable<TrackingEntryResponse["entry"]>["status"];
@@ -96,7 +94,6 @@ function ViewingForm({
 	operation: TrackingOperationResponse | undefined;
 }) {
 	const { t } = useTranslation();
-	const client = useQueryClient();
 	const progressId = useId();
 	const pending =
 		operation && !["succeeded", "cancelled"].includes(operation.state);
@@ -134,10 +131,30 @@ function ViewingForm({
 					operation.desired.status !== undefined &&
 					status !== operation.desired.status,
 			));
-	const mutation = useMutation({
-		mutationFn: async (command: "update" | "retry" | "remote" | "local") => {
+	const mutation = useTrackingMutation(
+		{ accountId: snapshot.accountId, generation: snapshot.generation },
+		async (
+			command: "update" | "retry" | "remote" | "local" | "confirm" | "keep",
+			commandId,
+		) => {
 			const revision = operation?.revision ?? null;
 			const body = { generation: snapshot.generation, revision };
+			if ((command === "confirm" || command === "keep") && operation?.target)
+				return request<TrackingOperationResponse>(
+					"/api/tracking/episode-commands",
+					"POST",
+					{},
+					{
+						...body,
+						commandId,
+						mappingRevision: operation.target.mappingRevision,
+						fileId: operation.target.fileId,
+						sourceVersion: operation.target.sourceVersion,
+						action: command === "keep" ? "keep" : "mark",
+						confirmSkipped: true,
+						initialStatus: status,
+					},
+				);
 			if (command !== "update")
 				return request<TrackingOperationResponse>(
 					`/api/tracking/operations/${operation?.id}/${command === "retry" ? "retry" : "resolve"}`,
@@ -156,6 +173,7 @@ function ViewingForm({
 				{},
 				{
 					...body,
+					commandId,
 					baseline: remote
 						? {
 								id: remote.id,
@@ -168,30 +186,15 @@ function ViewingForm({
 				},
 			);
 		},
-		onSuccess: (result) => {
-			const current = client.getQueryData<TrackingAccountResponse>(
-				accountQuery().queryKey,
-			);
-			if (current && current.generation !== snapshot.generation) return;
-			reportTrackingOperations(
-				client,
-				{ accountId: snapshot.accountId, generation: snapshot.generation },
-				[result],
-			);
-			void client.invalidateQueries({ queryKey: ["tracking", "operations"] });
-			void client.invalidateQueries({ queryKey: ["tracking", "entry"] });
-			void client.invalidateQueries({ queryKey: ["anime-library"] });
+		{
+			progress,
+			status,
+			progressEdited,
+			statusEdited,
+			revision: operation?.revision,
+			remote,
 		},
-		onError: (error: Error) => {
-			if (
-				!(
-					error instanceof ApiClientError &&
-					(error.status === 400 || error.status === 409)
-				)
-			)
-				toast.add({ type: "error", title: error.message });
-		},
-	});
+	);
 	const valid =
 		progress.trim() !== "" &&
 		Number.isInteger(Number(progress)) &&
@@ -283,6 +286,36 @@ function ViewingForm({
 				(mutation.error.status === 400 || mutation.error.status === 409) && (
 					<p role="alert">{mutation.error.message}</p>
 				)}
+			{operation?.state === "decision-required" && (
+				<div className="grid gap-2">
+					<p>
+						{t(
+							operation.decisionReason === "initial-status-required"
+								? "playbackCompletion.initial"
+								: "playbackCompletion.advance",
+							{ episode: operation.desired.progress },
+						)}
+					</p>
+					<div className="flex flex-wrap gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							disabled={mutation.isPending}
+							onClick={() => mutation.mutate("confirm")}
+						>
+							{t("playbackCompletion.confirm")}
+						</Button>
+						<Button
+							type="button"
+							variant="ghost"
+							disabled={mutation.isPending}
+							onClick={() => mutation.mutate("keep")}
+						>
+							{t("playbackCompletion.keep")}
+						</Button>
+					</div>
+				</div>
+			)}
 			<div className="flex flex-wrap gap-2">
 				{operation?.state === "conflict" ? (
 					<>

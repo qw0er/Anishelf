@@ -28,7 +28,9 @@ export {
 	metadataSnapshots,
 } from "./metadata/persistence.js";
 export {
+	trackingCommands,
 	trackingConnection,
+	trackingIntentVersions,
 	trackingListCache,
 	trackingOperations,
 } from "./tracking/persistence.js";

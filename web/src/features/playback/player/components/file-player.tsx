@@ -15,7 +15,6 @@ import type { PlaybackUiSlots } from "../../public.js";
 import { usePlaybackController } from "../hooks/use-playback-controller.js";
 import { AudioSelection } from "./audio-selection.js";
 import { CompatibilityDialog } from "./compatibility-dialog.js";
-import { CompletionControl } from "./completion-control.js";
 
 import { PlaybackActionsMenu } from "./external-player-menu.js";
 import VideoPlayer from "./video-player.js";
@@ -185,14 +184,11 @@ export default function FilePlayer({
 					key={`actions:${data.file.id}`}
 					fileId={data.file.id}
 				/>
-				<CompletionControl
-					key={playback.session?.token}
-					token={
-						playback.session?.completionEnabled
-							? playback.session.token
-							: undefined
-					}
-				/>
+				{playback.session &&
+					slots?.renderViewing?.({
+						fileId: data.file.id,
+						sourceVersion: playback.session.sourceVersion,
+					})}
 			</div>
 		</section>
 	);

@@ -736,31 +736,36 @@ media or external players.
 
 ## Playback Completion Verification
 
-Play a confirmed, single-target episode with a connected AniList account. Effective
-coverage must reach 85 percent of the full source duration: a 24-minute source needs
-20 minutes 24 seconds. Resume restoration, seeking, pauses, buffering and natural end
-alone add no credit. Existing entries advance progress only; skipped episodes require
-confirmation and creating an entry requires an explicit initial status. The single
-completion control below the player also marks the episode watched without waiting for
-coverage, recording the same revalidated receipt through the Playback handoff; the
-mapping must already be confirmed, so an unmapped source shows no control. Pending intent
-and confirmed AniList values remain distinct. Uncertain writes, failures and conflicts
-reuse the manual editor and app operation monitor. Local playback/History remains
-available independently of tracking. The detail labels and Library unwatched counts
-use confirmed cumulative progress, not file-version counts or pending intent.
+Automatic completion requires a playhead at or beyond 90 percent of the original
+source duration, or a natural source end, plus at least 30 seconds of normal wall-clock
+playback in the current session. Resume restoration, seeks, pauses and buffering do
+not add normal time. Playback speed does not multiply wall time. Source-time mapping
+continues to support prepared media; ending an intermediate segment is not a natural
+source end. Unknown duration permits only the natural-end branch. Seeking near the
+end and then playing normally for 30 seconds can qualify: this is a deliberate
+cooperative-player policy, not a proof of viewing the whole episode. No persisted
+coverage intervals or canonical-duration probe are required.
 
-`playback-application.test.ts`, `tracking-completion.test.ts`,
-`playback-session.test.ts`, `playback-evidence.test.ts` and
-`completion-control.test.tsx` provide deterministic fixtures without real AniList
-mutations. Existing Tracking worker/HTTP/restart suites remain the reliable-delivery
-baseline. The 0014 migration preserves prior position/history data. Real provider
-writes and real-media browser completion still require separate runtime acceptance.
+Player marks and detail edits use the same Tracking command lifecycle. Verify initial
+status, explicit cross-gap confirmation, Keep then Mark, retry, conflict resolution,
+manual backward correction, source/account changes and actual final provider results.
+Command IDs make lost acknowledgements idempotent. Logs include command ID, origin,
+operation ID/revision and delivery state; no credentials or opaque target context.
+`playback.completion_handoff`, `playback.completion_admission_failed`,
+`playback.completion_worker_failed` and `playback.completion_capture_failed` diagnose
+automatic observation delivery; `tracking.operation_state` traces shared admission and
+submission. Position saves remain independent.
 
-Completion logs use `playback.completion_handoff` for state/reason transitions,
-`playback.completion_manual_recorded` for manual mark-watched receipts,
-`playback.completion_admission_failed` and `playback.completion_worker_failed` for
-retained retryable work, `playback.completion_capture_failed` for target lookup failure,
-`playback.evidence_duration_unavailable` for unavailable canonical duration and
-`playback.evidence_rejected` for elapsed-budget rejection. Existing
-`tracking.operation_state` logs record admitted command and delivery lifecycle.
-Logs omit credentials, opaque target context and raw provider errors.
+Relevant suites: backend `playback-application`, `tracking-completion`, `tracking-updates`,
+`database` and account HTTP; Web `playback-session`, `playback-evidence`,
+`player-viewing-control`, `viewing-editor` and operation feedback. Migration 0015 tests
+preserve legacy pending submissions/history and explicitly terminate legacy observations.
+Real AniList mutations are a separate acceptance step from fixture checks.
+
+A local browser acceptance on 2026-10-16 used a generated 45-second MP4, real
+Playback/Tracking applications, real HTTP contracts and temporary SQLite with a
+simulated AniList provider. Normal playback automatically advanced episode 4 and
+showed remote confirmation. Episode 7 required explicit cross-gap confirmation;
+Keep followed by Mark remained actionable. The player reused the detail editor
+for a backward correction. The 390-pixel control layout had no horizontal overflow.
+This verifies local media/command integration, not real AniList delivery.

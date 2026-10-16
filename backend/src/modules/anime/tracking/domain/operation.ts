@@ -14,8 +14,23 @@ export interface TrackingAttempt {
 	baseline: TrackingRemoteState | null;
 	desired: TrackingDesiredState;
 }
+type TrackingOrigin = "manual-detail" | "manual-player" | "automatic";
+export interface TrackingEpisodeTarget {
+	fileId: string;
+	sourceVersion: string;
+	reviewId: string;
+	mappingRevision: number;
+	episodeId: string;
+	mediaId: number;
+	episode: number;
+}
+type TrackingDecisionReason = "skipped-episodes" | "initial-status-required";
 export interface TrackingOperation {
-	completion?: boolean;
+	origin: TrackingOrigin;
+	commandId: string;
+	intentAt: number;
+	target: TrackingEpisodeTarget | null;
+	decisionReason: TrackingDecisionReason | null;
 	id: string;
 	accountId: number;
 	mediaId: number;
@@ -23,6 +38,7 @@ export interface TrackingOperation {
 	baseline: TrackingRemoteState | null;
 	desired: TrackingDesiredState;
 	state:
+		| "decision-required"
 		| "pending"
 		| "submitting"
 		| "failed"
@@ -38,7 +54,11 @@ export interface TrackingOperation {
 	updatedAt: number;
 }
 export interface TrackingUpdate {
-	completion?: boolean;
+	cancelled?: boolean;
+	commandId?: string;
+	origin?: TrackingOrigin;
+	target?: TrackingEpisodeTarget;
+	decisionReason?: TrackingDecisionReason;
 	generation: string;
 	revision: number | null;
 	baseline: TrackingRemoteState | null;

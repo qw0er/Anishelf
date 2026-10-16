@@ -33,7 +33,7 @@ export function validateNumericPolicy(
 	for (const [key, value] of Object.entries(values)) {
 		if (typeof value !== "number") continue;
 		const valid =
-			key === "nearEndRatio"
+			key === "nearEndRatio" || key === "completionRatio"
 				? Number.isFinite(value) && value > 0 && value <= 1
 				: Number.isSafeInteger(value) &&
 					(key === "defaultScanIntervalMinutes" || key === "crf"

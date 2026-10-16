@@ -23,7 +23,11 @@ function completed(): TrackingOperationResponse {
 		retryAt: null,
 		error: null,
 		updatedAt: 1,
-		completion: true,
+		origin: "automatic",
+		commandId: "command",
+		intentAt: 1,
+		target: null,
+		decisionReason: null,
 	};
 }
 afterEach(() => vi.restoreAllMocks());
