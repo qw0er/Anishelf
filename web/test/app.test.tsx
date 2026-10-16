@@ -2603,6 +2603,11 @@ test("AniList library shows status and remote-only details, keeps filters and re
 	expect(
 		screen.getByText("Showing cached AniList viewing state."),
 	).toBeTruthy();
+	expect(screen.queryByRole("combobox", { name: "Library scope" })).toBeNull();
+	expect(
+		screen.queryByRole("combobox", { name: "AniList viewing state" }),
+	).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Filters" }));
 	fireEvent.change(screen.getByRole("combobox", { name: "Library scope" }), {
 		target: { value: "all" },
 	});
@@ -2692,4 +2697,32 @@ test("account lookup failure keeps Library filters and retries without falling b
 			String(path).startsWith("/api/catalog/works?"),
 		),
 	).toBe(false);
+});
+
+test("Library filters allow All works before local setup and disable viewing state without an account", async () => {
+	settings = { resourceRoot: null };
+	renderApp("/");
+	const filters = await screen.findByRole("button", { name: "Filters" });
+	expect(screen.queryByRole("combobox", { name: "Library scope" })).toBeNull();
+	fireEvent.click(filters);
+	const viewing = screen.getByRole("combobox", {
+		name: "AniList viewing state",
+	});
+	expect(viewing.hasAttribute("disabled")).toBe(true);
+	fireEvent.change(screen.getByRole("combobox", { name: "Library scope" }), {
+		target: { value: "all" },
+	});
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(([path]) => {
+				const url = new URL(String(path), "http://localhost");
+				return (
+					url.pathname === "/api/anime/library" &&
+					url.searchParams.get("scope") === "all"
+				);
+			}),
+		).toBe(true),
+	);
+	await screen.findByText(/No associated anime yet/);
+	expect(screen.getByTestId("location").textContent).toContain("scope=all");
 });
