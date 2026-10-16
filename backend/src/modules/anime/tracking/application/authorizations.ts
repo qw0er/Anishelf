@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { TrackingCandidate, TrackingPreview } from "../domain/model.js";
-import type { AniListAccountProvider } from "../infrastructure/account-provider.js";
+import type { TrackingAccountProvider } from "../ports.js";
 import type { TrackingConnectionState } from "./connection.js";
 
 const candidateLifetime = 5 * 60_000;
@@ -12,7 +12,7 @@ export class TrackingAuthorizations {
 	private readonly validations = new Map<string, string>();
 	constructor(
 		private readonly connection: TrackingConnectionState,
-		private readonly provider: AniListAccountProvider,
+		private readonly provider: TrackingAccountProvider,
 		private readonly now: () => number,
 		private readonly logger: Logger | undefined,
 	) {}

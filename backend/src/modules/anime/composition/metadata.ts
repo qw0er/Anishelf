@@ -1,4 +1,5 @@
 import type { Logger } from "pino";
+import { AniListMetadataClient } from "../anilist/infrastructure/metadata-client.js";
 import type { AniListClient } from "../anilist/public.js";
 import {
 	type IdentificationMetadata,
@@ -14,7 +15,7 @@ export async function createMetadataModule(options: {
 	store: MetadataStore;
 	logger: Logger;
 	fetch?: typeof fetch;
-	client?: AniListClient;
+	client: AniListClient;
 }): Promise<MetadataApplication> {
 	const artwork = new MetadataArtworkCache({
 		dataDir: options.dataDir,
@@ -27,12 +28,7 @@ export async function createMetadataModule(options: {
 		store: options.store,
 		logger: options.logger,
 		artwork,
-		providers: [
-			new AniListProvider({
-				...(options.fetch ? { fetch: options.fetch } : {}),
-				...(options.client ? { client: options.client } : {}),
-			}),
-		],
+		providers: [new AniListProvider(new AniListMetadataClient(options.client))],
 	});
 }
 

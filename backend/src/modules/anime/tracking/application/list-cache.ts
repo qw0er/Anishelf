@@ -1,16 +1,25 @@
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
-import { AniListError } from "../../anilist/public.js";
+import type { TrackingListSnapshot } from "../domain/list.js";
+import { TrackingListError } from "../domain/list.js";
 import type {
-	TrackingListEntry,
-	TrackingListSnapshot,
-} from "../domain/list.js";
-import type { TrackingListAccess, TrackingListStore } from "../ports.js";
+	TrackingListAccess,
+	TrackingListProvider,
+	TrackingListStore,
+} from "../ports.js";
 
 interface Active {
 	generation: string;
 	controller: AbortController;
 	task: Promise<void>;
+}
+export interface TrackingListReaderOptions {
+	access: TrackingListAccess;
+	store: TrackingListStore;
+	provider: TrackingListProvider;
+	logger?: Logger;
+	now?: () => number;
+	freshMs?: number;
 }
 /** Owns freshness, deduplication, recovery and atomic publication, never matching. */
 export class TrackingListReader {
@@ -21,21 +30,7 @@ export class TrackingListReader {
 	private active: Active | undefined;
 	private stopped = false;
 	private readonly logger: Logger | undefined;
-	constructor(
-		private readonly options: {
-			access: TrackingListAccess;
-			store: TrackingListStore;
-			provider: {
-				read(
-					lease: import("../domain/list.js").TrackingLease,
-					signal: AbortSignal,
-				): Promise<TrackingListEntry[]>;
-			};
-			logger?: Logger;
-			now?: () => number;
-			freshMs?: number;
-		},
-	) {
+	constructor(private readonly options: TrackingListReaderOptions) {
 		this.logger = options.logger?.child({ module: "tracking-list" });
 	}
 	private now() {
@@ -145,15 +140,15 @@ export class TrackingListReader {
 				return;
 			}
 			const code =
-				error instanceof AniListError
-					? error.failure.code
+				error instanceof TrackingListError
+					? error.code
 					: error instanceof DomainError &&
 							error.code === "TRACKING_AUTHORIZATION_REQUIRED"
 						? "unauthorized"
 						: "unavailable";
 			const retryAt =
-				error instanceof AniListError && error.failure.retryAt !== null
-					? error.failure.retryAt
+				error instanceof TrackingListError && error.retryAt !== null
+					? error.retryAt
 					: code === "unauthorized"
 						? null
 						: this.now() + 60_000;

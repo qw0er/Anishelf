@@ -6,10 +6,10 @@ import {
 	TrackingStatusSchema,
 } from "../../../../contracts/schemas/tracking.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
-import type { TrackingApi } from "../public.js";
+import type { TrackingAccountsApi } from "../public.js";
 export function registerTrackingRoutes(
 	app: HttpInstance,
-	tracking: TrackingApi,
+	tracking: TrackingAccountsApi,
 ) {
 	app.get(
 		"/api/tracking/account",

@@ -7,9 +7,12 @@ import {
 	type SearchRequest,
 	type WorkDetails,
 } from "../domain/model.js";
-import type { MetadataArtworkCache } from "../infrastructure/artwork.js";
 import { detailFreshnessMs, metadataPolicy as policy } from "../policy.js";
-import type { MetadataProvider, MetadataStore } from "../ports.js";
+import type {
+	MetadataArtwork,
+	MetadataProvider,
+	MetadataStore,
+} from "../ports.js";
 import type { MetadataApi } from "../public.js";
 import { MetadataCacheReader } from "./cache-reader.js";
 
@@ -21,7 +24,7 @@ export class MetadataApplication implements MetadataApi {
 		private readonly options: {
 			providers: MetadataProvider[];
 			store: MetadataStore;
-			artwork: MetadataArtworkCache;
+			artwork: MetadataArtwork;
 			logger: Logger;
 			now?: () => number;
 		},

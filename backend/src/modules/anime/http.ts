@@ -8,11 +8,11 @@ import { registerMetadataRoutes } from "./metadata/http/metadata.js";
 import type { MetadataApi } from "./metadata/public.js";
 import { registerTrackingListRoutes } from "./tracking/http/lists.js";
 import { registerTrackingRoutes } from "./tracking/http/tracking.js";
-import type { TrackingApi, TrackingListsApi } from "./tracking/public.js";
+import type { TrackingApi } from "./tracking/public.js";
 export function registerAnimeHttp(
 	app: HttpInstance,
 	owners: {
-		tracking?: (TrackingApi & TrackingListsApi) | undefined;
+		tracking?: TrackingApi | undefined;
 		library?: AnimeLibraryApi | undefined;
 		identification?: { getStatus(): { running: boolean; failed: boolean } };
 		metadata: MetadataApi | undefined;

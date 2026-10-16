@@ -3,6 +3,22 @@ const implementation = `${modulePath}(?:(?:application|infrastructure|http)(?:/|
 module.exports = {
 	forbidden: [
 		{
+			name: "anime-applications-use-ports",
+			severity: "error",
+			from: {
+				path: "^backend/src/modules/anime/(?:tracking|metadata)/application(?:/|\\.ts$)",
+			},
+			to: {
+				path: "^backend/src/modules/anime/(?:[^/]+/infrastructure/|anilist/)",
+			},
+		},
+		{
+			name: "anilist-protocol-does-not-import-business",
+			severity: "error",
+			from: { path: "^backend/src/modules/anime/anilist/" },
+			to: { path: "^backend/src/modules/anime/(?!anilist/)[^/]+/" },
+		},
+		{
 			name: "configuration-application-does-not-project-http",
 			severity: "error",
 			from: { path: "^backend/src/modules/system/configuration/application/" },
@@ -126,7 +142,9 @@ module.exports = {
 				pathNot:
 					"^backend/src/modules/[^/]+/(?:create|http|persistence)\\.ts$|^backend/src/modules/[^/]+/composition/",
 			},
-			to: { path: "^backend/src/modules/[^/]+/(?:create|http)\\.ts$" },
+			to: {
+				path: "^backend/src/modules/[^/]+/(?:(?:create|http)\\.ts$|composition/)",
+			},
 		},
 
 		{

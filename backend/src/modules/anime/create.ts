@@ -11,6 +11,7 @@ import {
 } from "./composition/metadata.js";
 import { createTrackingModule } from "./composition/tracking.js";
 import { registerAnimeHttp } from "./http.js";
+import type { MetadataApplication } from "./metadata/application/metadata.js";
 import type { AnimePersistence } from "./persistence.js";
 import type { AnimeApi } from "./public.js";
 export async function createAnimeModule(options: {
@@ -30,7 +31,7 @@ export async function createAnimeModule(options: {
 				logger,
 			})
 		: undefined;
-	let metadata: Awaited<ReturnType<typeof createMetadataModule>> | undefined;
+	let metadata: MetadataApplication | undefined;
 	if (database)
 		try {
 			metadata = await createMetadataModule({

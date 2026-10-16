@@ -4,6 +4,11 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
+import { AniListMetadataClient } from "../src/modules/anime/anilist/infrastructure/metadata-client.js";
+import {
+	type AniListOptions,
+	AniListScheduler,
+} from "../src/modules/anime/anilist/public.js";
 import {
 	createIdentificationMetadata,
 	createMetadataModule,
@@ -118,6 +123,11 @@ function transport() {
 		return Response.json(response(request.query, request.variables));
 	});
 }
+function createProvider(options: AniListOptions): AniListProvider {
+	return new AniListProvider(
+		new AniListMetadataClient(new AniListScheduler(options)),
+	);
+}
 const cleanups: (() => Promise<void>)[] = [];
 afterEach(async () => {
 	vi.useRealTimers();
@@ -134,7 +144,7 @@ async function setup(fetcher = transport(), now?: () => number) {
 		fetch: fetcher,
 	});
 	await artwork.initialize();
-	const provider = new AniListProvider({
+	const provider = createProvider({
 		fetch: fetcher,
 		intervalMs: 0,
 		attempts: 1,
@@ -203,6 +213,11 @@ test("fresh cache survives database restart and returned values are independent"
 			store: reopened.metadata,
 			logger,
 			fetch: offline,
+			client: new AniListScheduler({
+				fetch: offline,
+				intervalMs: 0,
+				attempts: 1,
+			}),
 		});
 		try {
 			expect((await next.get(reference, { cachedOnly: true })).snapshotId).toBe(
@@ -317,7 +332,7 @@ test("empty searches have short TTL and failures never create negative cache ent
 
 test("provider validation rejects partial, malformed, oversized and wrong-identity responses", async () => {
 	const fetcher = transport();
-	const provider = new AniListProvider({
+	const provider = createProvider({
 		fetch: fetcher,
 		intervalMs: 0,
 		attempts: 1,
@@ -441,7 +456,7 @@ test("rate headers pace retries and honor Retry-After/reset without bursts", asy
 				},
 			}),
 	);
-	const provider = new AniListProvider({
+	const provider = createProvider({
 		fetch: fetcher,
 		intervalMs: 0,
 		attempts: 2,
@@ -460,7 +475,7 @@ test("temporary failures retry within bounds, invalid responses do not loop", as
 	fetcher.mockImplementationOnce(async () => {
 		throw new Error("network");
 	});
-	const provider = new AniListProvider({
+	const provider = createProvider({
 		fetch: fetcher,
 		intervalMs: 0,
 		attempts: 2,
@@ -897,7 +912,7 @@ test("streamed response size limits apply without Content-Length", async () => {
 				}),
 			),
 	);
-	const provider = new AniListProvider({
+	const provider = createProvider({
 		fetch: fetcher,
 		intervalMs: 0,
 		attempts: 1,

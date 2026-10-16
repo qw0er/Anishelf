@@ -1,4 +1,13 @@
-import type { TrackingConnection } from "./domain/model.js";
+import type {
+	TrackingLease,
+	TrackingListCache,
+	TrackingListEntry,
+} from "./domain/list.js";
+import type {
+	TrackingAccount,
+	TrackingConnection,
+	TrackingStatus,
+} from "./domain/model.js";
 export interface TrackingStore {
 	get(): TrackingConnection | undefined;
 	save(connection: TrackingConnection): void;
@@ -8,16 +17,19 @@ export interface TrackingCredentials {
 	write(connection: TrackingConnection, token: string): Promise<void>;
 	remove(id: string): Promise<void>;
 }
-
 export interface TrackingListStore {
-	read(
-		accountId: number,
-	): import("./domain/list.js").TrackingListCache | undefined;
-	replace(cache: import("./domain/list.js").TrackingListCache): void;
+	read(accountId: number): TrackingListCache | undefined;
+	replace(cache: TrackingListCache): void;
 }
 export interface TrackingListAccess {
-	status(): import("./domain/model.js").TrackingStatus;
-	acquire(): Promise<import("./domain/list.js").TrackingLease>;
+	status(): TrackingStatus;
+	acquire(): Promise<TrackingLease>;
 	assertCurrent(generation: string): void;
 	authorizationFailed(generation: string): void;
+}
+export interface TrackingAccountProvider {
+	viewer(token: string, signal: AbortSignal): Promise<TrackingAccount>;
+}
+export interface TrackingListProvider {
+	read(lease: TrackingLease, signal: AbortSignal): Promise<TrackingListEntry[]>;
 }

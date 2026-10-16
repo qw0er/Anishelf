@@ -20,7 +20,8 @@ designs remain unchanged.
 
 | Owner | Planned responsibility |
 | --- | --- |
-| Anime / Tracking | Account lifecycle, credential access, personal-list decoding, account-scoped remote-state cache, and planned update admission/worker/conflict resolution |
+| Anime / Tracking | Account lifecycle, credential access, personal-state adaptation, account-scoped remote-state cache, and planned update admission/worker/conflict resolution |
+| Anime / AniList | Provider-specific account/list/metadata protocol clients, GraphQL schemas and response validation; shared request scheduler |
 | Anime / Library | Read-only join of Tracking snapshots and Catalog summaries, filtering and pagination |
 | Anime / Catalog (existing) | Local works, episodes, provider links, confirmed source associations and resource availability |
 | Anime / Metadata (existing) | Public provider queries, metadata/artwork caches and recognition support, independent of personal authorization |
@@ -359,8 +360,8 @@ bootstrap; future personal-data queries must include account ID and connection
 generation. Confirm, disconnect and checks cancel Tracking queries and remove
 other Tracking cache entries before publishing the returned connection. The token
 is transient component state and cleared as preview starts; mutation variables
-contain only the operation name. No personal list cache or update worker exists
-in this delivery. Full checks passed with 51 architecture tests, 840 backend tests
+contain only the operation name. This foundation was delivered before the list
+cache described below; the update worker remains planned. Foundation checks passed with 51 architecture tests, 840 backend tests
 (1 skipped) and 262 frontend tests; the production build succeeded with its
 existing large-chunk warning.
 
@@ -397,8 +398,8 @@ account names, request/response contents and raw errors even at trace level.
 
 The selected list implementation uses one Library page with a default local scope,
 an all-works scope and AniList status filters. Tracking's account application keeps
-account/credential lifecycle only. AniListListProvider decodes complete remote
-chunks; TrackingListReader owns atomic account snapshots, freshness and refresh
+account/credential lifecycle only. AniListListsClient decodes complete remote
+chunks, while AniListListProvider adapts its results/errors to Tracking ports; TrackingListReader owns atomic account snapshots, freshness and refresh
 coordination. AnimeLibraryQueries joins Tracking and Catalog public capabilities
 by provider ID, applies combined filtering/sorting/pagination, and hydrates source
 availability only for the selected page. Catalog exposes a root-scoped summary
@@ -410,7 +411,7 @@ an explicit no-local-resources message. Local cards keep their existing detail a
 version playback path and additionally show AniList state. Cumulative progress is
 labeled as AniList progress; no exact local watched-episode ledger is introduced.
 
-The list provider decodes every collection group, including custom lists, and
+The AniList protocol list client decodes every collection group, including custom lists, and
 walks `hasNextChunk`. It rejects missing fields, account/media identity mismatches,
 conflicting duplicate entries, nonterminal empty chunks and the upstream 11,000
 unique-entry ceiling rather than publishing a possibly truncated snapshot. See
@@ -451,26 +452,39 @@ and 390-pixel layout without horizontal overflow. Submission, completion evidenc
 per-episode watched indicators and full iteration acceptance remain pending.
 
 
-### Account Application Responsibilities and Explicit Types
+### Module Boundaries, Assembly and Explicit Types
 
-`TrackingApplication` coordinates account operations and serializes confirmation
-and disconnect. Its collaborators have separate ownership:
+The AniList boundary owns the provider protocol. `AniListAccountClient`,
+`AniListListsClient` and `AniListMetadataClient` live under
+`anilist/infrastructure/`, alongside GraphQL schemas. They use explicit,
+provider-owned account/media/list models and share the scheduler supplied by Anime
+composition. AniList does not import Metadata, Tracking, Library or Catalog types.
+No protocol client creates another scheduler as a fallback.
 
-| Class | Responsibility |
+Metadata's `AniListProvider` performs only reference validation, normalization and
+error adaptation through the typed `AniListMetadataApi`. Tracking's account/list
+adapters implement its own `TrackingAccountProvider` and `TrackingListProvider`
+ports. They map provider errors into safe Tracking errors. Neither consumer's
+Application imports protocol clients, raw transport or concrete adapters.
+
+| Owner | Responsibility |
 | --- | --- |
-| `TrackingConnectionState` | Persisted connection, generation checks, credential rotation/rollback, authorization state, connection and shutdown abort signals |
-| `TrackingAuthorizations` | Session-bound token previews, concurrent preview replacement, capacity and expiry; clears all candidates on connection change |
-| `TrackingConnectionCheck` | Remote identity validation, overlapping-check sequencing and guarded connection-check publication |
-| `AniListAccountProvider` | Viewer request, response validation and provider-to-domain error conversion |
-| `TrackingDiagnostics` | Sanitized operation start/success/rejection/failure/cancellation logs |
-| `TrackingModule` | Named module facade for account commands, list reads and ordered shutdown |
+| `tracking/application/tracking.ts`: `TrackingModule` | Complete account/list facade and ordered shutdown |
+| `tracking/application/account.ts`: `TrackingAccountApplication` | Account commands and serialized confirmation/disconnect |
+| `TrackingConnectionState` | Persisted connection, generation checks, credential rotation/rollback, authorization state and abort signals |
+| `TrackingAuthorizations` | Session-bound previews, concurrent preview replacement, capacity and expiry |
+| `TrackingConnectionCheck` | Remote identity validation through the account port, overlapping-check sequencing and guarded publication |
+| `TrackingDiagnostics` | Sanitized operation lifecycle logs |
+| `TrackingListReader` | Account-scoped snapshots, freshness, refresh coalescing and retained cache on failure |
+| `composition/tracking.ts` | Construct collaborators, inject ports/configuration, initialize credentials and return the module facade |
 
-`createTrackingModule` returns `Promise<TrackingModule>` and constructs the facade
-class. Core account operations explicitly return `TrackingStatus`,
-`TrackingPreview` or the server-only `TrackingLease`; internal authorization
-candidates use `TrackingCandidate`. Module/application options have named
-interfaces. Important business contracts are declared types rather than anonymous
-factory objects or types inferred through `ReturnType<typeof factory>`.
+`TrackingApi` extends `TrackingAccountsApi` and `TrackingListsApi`; consumers can
+request a narrower capability without constructing intersection types. HTTP
+account routes use the account capability and Library uses only list reads.
+`createTrackingModule` explicitly returns `Promise<TrackingModule>`. Core results
+use `TrackingStatus`, `TrackingPreview`, `TrackingListSnapshot` or the server-only
+`TrackingLease`. Important business and protocol models have named declarations;
+module types do not depend on factory `ReturnType` inference.
 
 Connection publication still follows credential-write, generation validation and
 SQLite save before changing the active connection. Failed publication rolls back
@@ -478,3 +492,10 @@ the new credential. Successful connection changes cancel prior account work and
 invalidate previews before old credentials are cleaned up. Shutdown cancels
 requests, clears pending authorizations and waits for serialized account changes.
 The existing session, CSRF, list-cache and safe-log contracts remain in force.
+
+Architecture checks forbid consumer Applications from depending on infrastructure
+or the AniList protocol directly, forbid AniList from importing business modules,
+and forbid business code from importing composition. Dependency fixtures exercise
+these failures and permit the intended port-based assembly path. Integration
+fixtures exercise the assembled account/list facade through protocol adapters,
+including malformed responses, retained snapshots and expired authorization.
