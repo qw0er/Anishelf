@@ -8,6 +8,7 @@ import { registerMetadataRoutes } from "./metadata/http/metadata.js";
 import type { MetadataApi } from "./metadata/public.js";
 import { registerTrackingListRoutes } from "./tracking/http/lists.js";
 import { registerTrackingRoutes } from "./tracking/http/tracking.js";
+import { registerTrackingUpdateRoutes } from "./tracking/http/updates.js";
 import type { TrackingApi } from "./tracking/public.js";
 export function registerAnimeHttp(
 	app: HttpInstance,
@@ -31,6 +32,7 @@ export function registerAnimeHttp(
 	if (owners.tracking) {
 		registerTrackingRoutes(app, owners.tracking);
 		registerTrackingListRoutes(app, owners.tracking);
+		registerTrackingUpdateRoutes(app, owners.tracking);
 	}
 	if (owners.library) registerAnimeLibraryRoutes(app, owners.library);
 	if (owners.metadata) registerMetadataRoutes(app, owners.metadata);

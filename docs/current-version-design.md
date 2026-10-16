@@ -10,8 +10,8 @@ Existing Catalog identities and confirmed work/episode associations are reused.
 
 This remains the iteration design baseline. The account foundation described in
 [Implemented account foundation](#implemented-account-foundation) is delivered;
-list access and the unified Library read projection are also delivered. Submission
-workers and playback updates remain planned. No release
+list access and the unified Library read projection are also delivered. Manual progress/status commands and reliable submission/conflict recovery are
+also delivered; automatic playback updates remain planned. No release
 number is assigned. [Architecture](architecture.md) describes existing runtime
 owners; [Overall requirements](requirements.md) retains delivery status. Historical
 designs remain unchanged.
@@ -20,8 +20,8 @@ designs remain unchanged.
 
 | Owner | Planned responsibility |
 | --- | --- |
-| Anime / Tracking | Account lifecycle, credential access, personal-state adaptation, account-scoped remote-state cache, and planned update admission/worker/conflict resolution |
-| Anime / AniList | Provider-specific account/list/metadata protocol clients, GraphQL schemas and response validation; shared request scheduler |
+| Anime / Tracking | Account lifecycle, credential access, personal-state adaptation, account-scoped remote-state cache, and manual update admission/worker/conflict resolution |
+| Anime / AniList | Provider-specific account/list/update/metadata protocol clients, GraphQL schemas and response validation; shared request scheduler |
 | Anime / Library | Read-only join of Tracking snapshots and Catalog summaries, filtering and pagination |
 | Anime / Catalog (existing) | Local works, episodes, provider links, confirmed source associations and resource availability |
 | Anime / Metadata (existing) | Public provider queries, metadata/artwork caches and recognition support, independent of personal authorization |
@@ -258,8 +258,8 @@ AniList cumulative progress, not an independent per-episode watched ledger.
 
 ## 7. HTTP and Frontend Contracts
 
-The following are proposed route families, to be finalized with transport schemas
-before implementation. Account commands require Anishelf authentication and CSRF;
+The following manual route families are implemented with shared transport schemas;
+automatic playback handoff remains planned. Account commands require Anishelf authentication and CSRF;
 media-link bearer tokens do not authorize tracking operations.
 
 | Route family | Purpose |
@@ -267,7 +267,7 @@ media-link bearer tokens do not authorize tracking operations.
 | GET /api/tracking/account | Sanitized account, connection generation and authorization/connectivity state |
 | POST /api/tracking/account/preview and /confirm | Validate pasted token and explicitly confirm the account |
 | DELETE /api/tracking/account | Disconnect and invalidate the connection |
-| GET /api/tracking/list and /entries/:mediaId | Implemented: cached remote entries with account generation, freshness and safe error state; pending overlay remains planned |
+| GET /api/tracking/list and /entries/:mediaId | Implemented: cached remote entries with account generation, freshness and safe error state; pending intent is read separately from /operations |
 | GET /api/anime/library | Implemented: root-scoped local summaries joined with remote entries, local/all scope, viewing status and existing filters |
 | POST /api/tracking/refresh | Request deduplicated refresh |
 | POST /api/tracking/entries/:mediaId/updates | Admit manual absolute progress/status intent with baseline/revision |
@@ -344,9 +344,9 @@ must not be inferred from fixtures.
 Before automatic updates ship, implement and validate the selected 85-percent
 coverage policy, finalize interval validation tolerances and evidence persistence,
 and define the transactional handoff contract. Before account integration ships, verify the real
-maintainer application's PIN behavior and backend usage. Finalize schema names,
-HTTP request/response shapes, credential-file recovery, polling/backoff bounds and
-queue limits in implementation review. Keep requirements and this design aligned;
+maintainer application's PIN behavior and backend usage. Manual route schemas, retry bounds and queue limits are now implemented.
+Playback evidence schemas and the transactional handoff still require implementation
+review; real-account writes remain an acceptance gate. Keep requirements and this design aligned;
 none of these gates changes AniList's ownership or introduces list import/export.
 
 ## Implemented Account Foundation
@@ -385,7 +385,7 @@ generation. Confirm, disconnect and checks cancel Tracking queries and remove
 other Tracking cache entries before publishing the returned connection. The token
 is transient component state and cleared as preview starts; mutation variables
 contain only the operation name. This foundation was delivered before the list
-cache described below; the update worker remains planned. Foundation checks passed with 51 architecture tests, 840 backend tests
+cache described below; the manual update worker was delivered subsequently. Foundation checks passed with 51 architecture tests, 840 backend tests
 (1 skipped) and 262 frontend tests; the production build succeeded with its
 existing large-chunk warning.
 
@@ -470,7 +470,7 @@ account/list/refresh coordination. Library scope and AniList viewing state live
 in the expandable Filters panel alongside format, year and availability. The
 panel remains reachable before local setup so All works can still be selected.
 The icon-only Tracking refresh action shares the search/Filters/sort toolbar;
-persistent Tracking feedback stays directly below it. It always reads `/api/anime/library` using
+only authorization and initial-load failures stay below it; cached-state explanations and update times live in the refresh Tooltip. It always reads `/api/anime/library` using
 one response contract. Account status supplies the account ID and connection
 generation for cache isolation; a status failure shows a retryable error and
 preserves filters. It never changes the list endpoint or drops scope/status
@@ -488,7 +488,7 @@ scope/status filters, refresh, cached feedback, remote details and return contex
 A read-only live run fetched and persisted 244 AniList entries using the existing
 private token file; no remote mutation was issued. A production-build fixture
 browser check verified merged cards, status filtering, metadata-failure fallback,
-and 390-pixel layout without horizontal overflow. Submission, completion evidence,
+and 390-pixel layout without horizontal overflow. Manual submission was delivered subsequently. Completion evidence,
 per-episode watched indicators and full iteration acceptance remain pending.
 
 
@@ -539,3 +539,46 @@ and forbid business code from importing composition. Dependency fixtures exercis
 these failures and permit the intended port-based assembly path. Integration
 fixtures exercise the assembled account/list facade through protocol adapters,
 including malformed responses, retained snapshots and expired authorization.
+
+
+## Implemented Manual Viewing Updates
+
+`TrackingUpdates` owns durable absolute progress/status commands, revision checks,
+coalescing, immutable attempts, reconciliation and worker lifecycle. Its
+`TrackingOperationStore` port persists account/media operations in SQLite, with a
+unique account/media index; `TrackingUpdateProvider` is adapted to the provider-owned
+`AniListUpdatesClient`. The protocol client validates account/media/type identity,
+uses an existing list-entry ID for updates and verifies an anime target before
+creating an entry with an explicit status. Only intended progress/status fields are
+sent. Provider-side automatic behavior is represented by the returned confirmed
+state; ratings, notes, dates and repeat counts are never sent by this feature.
+
+The worker checks eligible work once per second and serializes delivery. Persisted
+pending/submitting operations recover on restart; saved attempts reconcile before
+resubmission. Transient failures allow five automatic attempts with exponential
+backoff and jitter, honoring a later provider retry time; authorization pauses work,
+invalid requests require correction and conflicts require explicit resolution.
+The per-account limit is 100 unfinished operations and 1,000 retained records;
+only terminal successful/cancelled records may be pruned for admission. Retry
+and conflict commands require current connection generation and operation revision.
+Connection abort signals fence active work and publication. Shutdown stops admission,
+clears the worker timer and aborts/waits for active work before account shutdown.
+
+The proposed manual-update, operation-list, retry and resolve routes in Section 7
+are now implemented with shared TypeBox request/response contracts, normal session/
+CSRF protection and no-store responses. Operations expose confirmed baseline/remote
+values and desired fields separately; the private attempted payload is omitted
+from HTTP projections. Full-list refresh retains operations and uses a local
+mutation revision to discard snapshots captured before a confirmed write. A
+persisted cache invalidation flag forces a full refresh across restart while
+preserving the original fetch timestamp for stale-data feedback.
+
+A shared dialog on local and remote-only details exposes manual edits, pending
+intent, failures, retry timing and conflict resolution. The app-level operation
+monitor continues deduplicated Toast results after navigation. It polls active work
+at 1.5 seconds and idle operation state at 10 seconds; query keys include account
+and connection generation. Account changes clear old queries/notices. Input values
+are never optimistically presented as AniList-confirmed state. Automatic playback
+completion/evidence and W05 derived episode displays remain unimplemented.
+
+Fixture validation and its limits are recorded in the current version requirements.

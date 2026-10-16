@@ -2631,8 +2631,8 @@ test("AniList library shows status and remote-only details, keeps filters and re
 	expect(refreshButton.textContent).toBe("");
 	expect(refreshButton.hasAttribute("data-base-ui-tooltip-trigger")).toBe(true);
 	expect(
-		screen.getByText("Showing cached AniList viewing state."),
-	).toBeTruthy();
+		screen.queryByText("Showing cached AniList viewing state."),
+	).toBeNull();
 	expect(screen.queryByRole("combobox", { name: "Library scope" })).toBeNull();
 	expect(
 		screen.queryByRole("combobox", { name: "AniList viewing state" }),
@@ -2818,7 +2818,7 @@ test.each(["retained response", "network"])(
 			return requiredFetch(fallback)(input, init);
 		});
 		renderApp("/");
-		await screen.findByText("Showing cached AniList viewing state.");
+		await screen.findByRole("button", { name: "Refresh AniList list" });
 		fireEvent.click(
 			screen.getByRole("button", { name: "Refresh AniList list" }),
 		);
@@ -2835,8 +2835,8 @@ test.each(["retained response", "network"])(
 			),
 		).toBeNull();
 		expect(
-			main.getByText("Showing cached AniList viewing state."),
-		).toBeTruthy();
+			main.queryByText("Showing cached AniList viewing state."),
+		).toBeNull();
 		await waitFor(() =>
 			expect(
 				screen

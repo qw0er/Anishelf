@@ -29,6 +29,7 @@ export class TrackingListReader {
 	>();
 	private active: Active | undefined;
 	private stopped = false;
+	private mutationRevision = 0;
 	private readonly logger: Logger | undefined;
 	constructor(private readonly options: TrackingListReaderOptions) {
 		this.logger = options.logger?.child({ module: "tracking-list" });
@@ -55,6 +56,7 @@ export class TrackingListReader {
 		const stale =
 			status.state !== "connected" ||
 			!cache ||
+			cache.invalidated === true ||
 			this.now() - cache.fetchedAt >= (this.options.freshMs ?? 300_000);
 		const failure = this.failures.get(status.generation) ?? null;
 		if (
@@ -100,6 +102,7 @@ export class TrackingListReader {
 	}
 	private async fetch(generation: string, controller: AbortController) {
 		const started = this.now();
+		const mutationRevision = this.mutationRevision;
 		this.failures.delete(generation);
 		this.logger?.debug(
 			{ event: "tracking.list_refresh_started", generation },
@@ -113,6 +116,7 @@ export class TrackingListReader {
 			const entries = await this.options.provider.read(lease, signal);
 			signal.throwIfAborted();
 			this.assert(generation);
+			if (mutationRevision !== this.mutationRevision) return;
 			this.options.store.replace({
 				accountId: lease.accountId,
 				entries,
@@ -169,6 +173,27 @@ export class TrackingListReader {
 				},
 				"AniList list refresh failed; previous snapshot retained.",
 			);
+		}
+	}
+	confirmed(
+		accountId: number,
+		mediaId: number,
+		remote: import("../domain/operation.js").TrackingRemoteState | null,
+	): void {
+		this.mutationRevision++;
+		const cache = this.options.store.read(accountId);
+		if (cache) {
+			this.options.store.replace({
+				...cache,
+				invalidated: true,
+				entries: cache.entries.flatMap((entry) =>
+					entry.mediaId !== mediaId
+						? [entry]
+						: remote
+							? [{ ...entry, ...remote }]
+							: [],
+				),
+			});
 		}
 	}
 	async close() {

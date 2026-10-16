@@ -8,6 +8,30 @@ import type {
 	TrackingConnection,
 	TrackingStatus,
 } from "./domain/model.js";
+import type {
+	TrackingDesiredState,
+	TrackingOperation,
+	TrackingRemoteState,
+} from "./domain/operation.js";
+export interface TrackingOperationStore {
+	list(accountId: number): TrackingOperation[];
+	save(operation: TrackingOperation): void;
+	remove(id: string): void;
+}
+export interface TrackingUpdateProvider {
+	get(
+		lease: TrackingLease,
+		mediaId: number,
+		signal: AbortSignal,
+	): Promise<TrackingRemoteState | null>;
+	save(
+		lease: TrackingLease,
+		mediaId: number,
+		entryId: number | null,
+		desired: TrackingDesiredState,
+		signal: AbortSignal,
+	): Promise<TrackingRemoteState>;
+}
 export interface TrackingStore {
 	get(): TrackingConnection | undefined;
 	save(connection: TrackingConnection): void;

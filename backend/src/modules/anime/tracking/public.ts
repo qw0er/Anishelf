@@ -1,5 +1,10 @@
 import type { TrackingListSnapshot } from "./domain/list.js";
 import type { TrackingPreview, TrackingStatus } from "./domain/model.js";
+import type {
+	TrackingOperation,
+	TrackingOperationCommand,
+	TrackingUpdate,
+} from "./domain/operation.js";
 
 export type {
 	TrackingListEntry,
@@ -23,5 +28,21 @@ export interface TrackingListsApi {
 	refreshList(generation?: string): Promise<TrackingListSnapshot>;
 }
 
-/** Complete Tracking capability; consumers may request narrower account/list ports. */
-export interface TrackingApi extends TrackingAccountsApi, TrackingListsApi {}
+/** Durable manual viewing-state commands, isolated by account and connection. */
+export interface TrackingUpdatesApi {
+	operations(generation: string): TrackingOperation[];
+	update(mediaId: number, input: TrackingUpdate): TrackingOperation;
+	retryOperation(
+		id: string,
+		input: TrackingOperationCommand,
+	): TrackingOperation;
+	resolveOperation(
+		id: string,
+		input: TrackingOperationCommand,
+		keepRemote: boolean,
+	): Promise<TrackingOperation>;
+}
+export interface TrackingApi
+	extends TrackingAccountsApi,
+		TrackingListsApi,
+		TrackingUpdatesApi {}

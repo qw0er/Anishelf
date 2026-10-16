@@ -89,7 +89,7 @@ export function AnimeLibrary({
 				/>
 			) : (
 				<>
-					{query.error && (
+					{query.error && !query.data && (
 						<div role="alert" className="space-y-2">
 							<p>
 								{t(getErrorTranslationKey(query.error) ?? "errors.pageLoad")}

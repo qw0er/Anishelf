@@ -2,7 +2,7 @@
 
 ## 1. Goal and Status
 
-The current selected iteration connects an AniList account and lets users view and update AniList-owned viewing state from Anishelf. No release number is assigned. T01 account foundations, shared request scheduling, and T02 list reads/cache/refresh with Library display are implemented. T03–T05 and W03–W05 remain selected work; the complete iteration has not been accepted.
+The current selected iteration connects an AniList account and lets users view and update AniList-owned viewing state from Anishelf. No release number is assigned. T01 account foundations, shared request scheduling, and T02 list reads/cache/refresh with Library display are implemented. Manual progress/status changes and their durable submission, retry and conflict recovery are now implemented. Automatic completion (W03) and derived episode indicators/counts (W05) remain selected work; the complete iteration has not been accepted.
 
 [Overall requirements](requirements.md) retains the feature inventory and delivery status. [History](history.md#anime-library-requirements) retains the completed anime-library iteration. [Current version design](current-version-design.md) defines the planned implementation and authorization approach. The current architecture remains documented in [Architecture](architecture.md); the design records the implemented foundation separately from the remaining plan.
 
@@ -30,7 +30,7 @@ AniList owns viewing state. Anishelf reads and refreshes remote lists and submit
 - **Remote conflicts:** retain the remote baseline for a pending operation and refresh before retrying it. If remote progress/status changed, do not silently overwrite it with an older operation; display the conflict and allow keeping the remote value or explicitly submitting the local intent. Duplicate delivery and uncertain request outcomes must be reconciled against remote state before retrying. Refresh must not discard pending intent.
 - **Independent playback:** authorization expiry, offline operation and AniList failures must not prevent playback, local resume or history saves. Disconnect and list refresh must not erase those local records.
 
-This iteration does not add independent local tracking, list import/export, automatic acquisition, rating synchronization, multiple trackers or external-player state collection. The current design selects a bundled Client ID with manual PIN authorization; the 85-percent effective watched-coverage policy is selected, while evidence persistence/validation, scheduling and exact request contracts retain implementation gates; this section records requirements, not implemented behavior.
+This iteration does not add independent local tracking, list import/export, automatic acquisition, rating synchronization, multiple trackers or external-player state collection. The current design selects a bundled Client ID with manual PIN authorization; the 85-percent effective watched-coverage policy is selected, while playback evidence persistence/validation and its handoff retain implementation gates; this section records requirements, not implemented behavior.
 
 Source playback positions, resume and history remain local capabilities. Existing catalog works, episodes, provider identifiers and confirmed source associations remain the mapping foundation. No new identification or numbering-mapping workflow is required by this iteration.
 
@@ -46,7 +46,7 @@ AniList cumulative progress cannot represent arbitrary independent watched/unwat
 
 ## 5. Acceptance Criteria
 
-All scenarios below are pending implementation and verification.
+Full ANI01–ANI10 acceptance remains pending. Account/list foundations and the manual submission path have implementation and fixture evidence below; automatic-completion scenarios remain unimplemented.
 
 | ID | Requirements | Acceptance scenario |
 | --- | --- | --- |
@@ -63,7 +63,7 @@ All scenarios below are pending implementation and verification.
 
 ## 6. Design Decisions Still Required
 
-The [current version design](current-version-design.md) selects a maintainer-provided public Client ID, manual PIN token authorization, server-side credential storage, account isolation, durable submission and conflict recovery. It also defines skipped-episode and backward-correction behavior, and selects at least 85-percent effective watched coverage for automatic completion. Seeked ranges do not count, overlapping intervals count once, playback speed uses source-time coverage, and persisted evidence supports resumed playback for the same source version. Natural end does not bypass the threshold. Before implementation is accepted, close its remaining gates: verify actual provider authorization, finalize evidence persistence and validation tolerances, the durable playback handoff, refresh/retry bounds and exact request contracts. These decisions must preserve the ownership and acceptance rules above.
+The [current version design](current-version-design.md) selects a maintainer-provided public Client ID, manual PIN token authorization, server-side credential storage, account isolation, durable submission and conflict recovery. It also defines skipped-episode and backward-correction behavior, and selects at least 85-percent effective watched coverage for automatic completion. Seeked ranges do not count, overlapping intervals count once, playback speed uses source-time coverage, and persisted evidence supports resumed playback for the same source version. Natural end does not bypass the threshold. Before implementation is accepted, close its remaining gates: verify actual provider authorization, finalize playback evidence persistence and validation tolerances and the durable playback handoff, then verify real-account writes. Manual request contracts, retry bounds and queue limits are implemented below. These decisions must preserve the ownership and acceptance rules above.
 
 ## 7. Excluded Scope
 
@@ -110,6 +110,49 @@ browser's personal list/entry caches. No read initiates downloads or tracking wr
 
 Automated tests and a read-only live fetch of 244 entries validate list access.
 A production-build fixture browser checks cards/status filters, remote detail
-fallback and a 390-pixel viewport without horizontal overflow. This delivers the
-read/display portion of W04; manual status updates, W03/W05 behavior, submissions,
-conflicts and full ANI01–ANI10 acceptance remain pending.
+fallback and a 390-pixel viewport without horizontal overflow. This delivered the read/display portion of W04. The subsequent manual update
+delivery is recorded below; automatic completion, W05 and full ANI01–ANI10
+acceptance remain pending.
+
+
+## 10. Manual Viewing Updates and Reliable Submission Delivery
+
+Local and remote-only work details now offer an AniList progress/status editor.
+Commands contain absolute values and only intended fields, including explicit
+backward progress corrections and an initial status for a new remote entry.
+Confirmed remote values remain distinct from pending intent. Automatic completion
+and automatic status transitions are not enabled by this delivery.
+
+Tracking persists one revisioned operation per account/media before dispatch.
+Unsent edits coalesce; an attempted payload remains immutable while a later edit
+is retained. Each delivery first reads the individual remote entry. Already-applied
+values reconcile as success; edits to intended baseline fields pause for explicit
+conflict resolution. Keeping AniList values cancels intent; submitting local intent
+captures a fresh baseline and checks again before delivery. Entry appearance/removal
+and lost responses follow the same reconciliation path. AniList has no atomic
+conditional mutation, so a concurrent remote edit between read and write remains
+an upstream limitation.
+
+The worker serializes delivery through the shared scheduler. Transient failures
+use exponential backoff with jitter and provider retry times, with at most five
+automatic attempts before explicit retry. Authorization errors pause submission;
+reconnecting the same account resumes it, while another account cannot receive
+old operations. Restart recovers persisted attempts by reading remote state first.
+Admission allows at most 100 unfinished operations per account; retained records
+are bounded to 1,000, pruning only the oldest successful/cancelled record as needed.
+
+The editor exposes pending, failed, reconnect-required and conflict outcomes,
+retry time, explicit retry and conflict choices. App-level polling continues result
+notifications after detail navigation, with an action to reopen the work. Account
+changes cancel queries and clear the previous account's notices. Confirmed writes
+update affected cached entries and make the full list stale for refresh; list
+refresh cannot discard operations or publish a pre-write snapshot over a confirmed
+result. Diagnostic events contain operation identity/state and safe error codes,
+without tokens or provider payloads.
+
+Automated fixtures cover database restart, lost responses, backward corrections,
+coalescing, immutable attempts with later edits, account fencing, retry bounds,
+protocol identity checks, HTTP session/CSRF validation and UI pending/conflict/retry
+behavior. A production-build browser fixture verified a manual backward correction
+and status change through pending to confirmed state. These are fixture checks;
+no real AniList list mutation or full iteration acceptance is claimed.

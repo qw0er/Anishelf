@@ -1,13 +1,19 @@
 import type { TrackingListSnapshot } from "../domain/list.js";
 import type { TrackingPreview, TrackingStatus } from "../domain/model.js";
+import type {
+	TrackingOperationCommand,
+	TrackingUpdate,
+} from "../domain/operation.js";
 import type { TrackingApi } from "../public.js";
 import type { TrackingAccountApplication } from "./account.js";
 import type { TrackingListReader } from "./list-cache.js";
+import type { TrackingUpdates } from "./updates.js";
 /** Module boundary: account commands and list reads expose no internal credential access. */
 export class TrackingModule implements TrackingApi {
 	constructor(
 		private readonly accounts: TrackingAccountApplication,
 		private readonly lists: TrackingListReader,
+		private readonly updates: TrackingUpdates,
 	) {}
 	status(): TrackingStatus {
 		return this.accounts.status();
@@ -34,7 +40,24 @@ export class TrackingModule implements TrackingApi {
 	refreshList(generation?: string): Promise<TrackingListSnapshot> {
 		return this.lists.refresh(generation);
 	}
+	operations(generation: string) {
+		return this.updates.operations(generation);
+	}
+	update(mediaId: number, input: TrackingUpdate) {
+		return this.updates.update(mediaId, input);
+	}
+	retryOperation(id: string, input: TrackingOperationCommand) {
+		return this.updates.retryOperation(id, input);
+	}
+	resolveOperation(
+		id: string,
+		input: TrackingOperationCommand,
+		keepRemote: boolean,
+	) {
+		return this.updates.resolveOperation(id, input, keepRemote);
+	}
 	async close(): Promise<void> {
+		await this.updates.close();
 		await this.lists.close();
 		await this.accounts.close();
 	}

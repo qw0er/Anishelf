@@ -27,6 +27,7 @@ export async function createAnimeModule(options: {
 				dataDir: system.deployment.dataDir,
 				store: database.tracking,
 				listStore: database.trackingLists,
+				operationStore: database.trackingOperations,
 				client: requests,
 				logger,
 			})

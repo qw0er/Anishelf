@@ -144,3 +144,36 @@ test("cancelled Library reads do not produce a failure Toast", async () => {
 	).rejects.toMatchObject({ name: "AbortError" });
 	expect(toast.add).not.toHaveBeenCalled();
 });
+
+test("repeated background transport failures retain cached Library data and notify once", async () => {
+	const cache = client();
+	const state = { ...snapshot(), error: null, stale: false };
+	const result = {
+		items: [],
+		page: 1,
+		perPage: 24,
+		hasNextPage: false,
+		localState: "available",
+		tracking: state,
+	};
+	const query = {
+		...animeLibraryQuery(filters, "root", identity),
+		staleTime: 0,
+		retry: false as const,
+	};
+	fetcher.mockResolvedValue(json(result));
+	await cache.fetchQuery(query);
+	fetcher.mockRejectedValue(new TypeError("private network detail"));
+	await expect(cache.fetchQuery(query)).rejects.toBeTruthy();
+	await expect(cache.fetchQuery(query)).rejects.toBeTruthy();
+	expect(cache.getQueryData(query.queryKey)).toEqual(result);
+	expect(toast.add).toHaveBeenCalledTimes(1);
+	expect(JSON.stringify(vi.mocked(toast.add).mock.calls)).not.toContain(
+		"private network detail",
+	);
+	fetcher.mockResolvedValue(json(result));
+	await cache.fetchQuery(query);
+	fetcher.mockRejectedValue(new TypeError("Offline again"));
+	await expect(cache.fetchQuery(query)).rejects.toBeTruthy();
+	expect(toast.add).toHaveBeenCalledTimes(2);
+});

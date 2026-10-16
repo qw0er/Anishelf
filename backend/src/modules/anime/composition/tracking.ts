@@ -1,6 +1,7 @@
 import type { Logger } from "pino";
 import { AniListAccountClient } from "../anilist/infrastructure/account-client.js";
 import { AniListListsClient } from "../anilist/infrastructure/lists-client.js";
+import { AniListUpdatesClient } from "../anilist/infrastructure/updates-client.js";
 import { aniListAuthorization } from "../anilist/policy.js";
 import type { AniListClient } from "../anilist/public.js";
 import { TrackingAccountApplication } from "../tracking/application/account.js";
@@ -10,13 +11,16 @@ import { TrackingConnectionCheck } from "../tracking/application/connection-chec
 import { TrackingDiagnostics } from "../tracking/application/diagnostics.js";
 import { TrackingListReader } from "../tracking/application/list-cache.js";
 import { TrackingModule } from "../tracking/application/tracking.js";
+import { TrackingUpdates } from "../tracking/application/updates.js";
 import { AniListAccountProvider } from "../tracking/infrastructure/account-provider.js";
 import { TrackingCredentialFiles } from "../tracking/infrastructure/credentials.js";
 import { AniListListProvider } from "../tracking/infrastructure/list-provider.js";
+import { AniListUpdateProvider } from "../tracking/infrastructure/update-provider.js";
 import type {
 	TrackingAccountProvider,
 	TrackingCredentials,
 	TrackingListStore,
+	TrackingOperationStore,
 	TrackingStore,
 } from "../tracking/ports.js";
 
@@ -65,6 +69,7 @@ export interface TrackingModuleOptions {
 	dataDir: string;
 	store: TrackingStore;
 	listStore: TrackingListStore;
+	operationStore: TrackingOperationStore;
 	client: AniListClient;
 	logger?: Logger;
 }
@@ -88,5 +93,15 @@ export async function createTrackingModule(
 		provider: new AniListListProvider(new AniListListsClient(options.client)),
 		...(options.logger ? { logger: options.logger } : {}),
 	});
-	return new TrackingModule(accounts, lists);
+	const updates = new TrackingUpdates({
+		access: accounts,
+		store: options.operationStore,
+		provider: new AniListUpdateProvider(
+			new AniListUpdatesClient(options.client),
+		),
+		confirmed: (accountId, mediaId, remote) =>
+			lists.confirmed(accountId, mediaId, remote),
+		...(options.logger ? { logger: options.logger } : {}),
+	});
+	return new TrackingModule(accounts, lists, updates);
 }

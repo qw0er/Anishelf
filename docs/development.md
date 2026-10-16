@@ -677,3 +677,36 @@ events exclude tokens, titles and raw provider errors. Run
 `npm test --workspace @anishelf/backend -- test/tracking-list.test.ts` for list
 snapshot, provider, merge and diagnostic checks. The complete `npm run check`
 needs permission to listen on localhost for existing HTTP disconnect tests.
+
+
+### Manual AniList updates
+
+Open **Edit AniList progress** on a local or remote-only work detail. Progress is
+cumulative; explicit lower values are accepted. Choose a status when creating an
+entry. The dialog separates confirmed values from durable pending intent and
+exposes retry/conflict choices. App-level Toasts continue after navigation.
+
+POST `/api/tracking/entries/:mediaId/updates` accepts connection `generation`, the
+last operation `revision` (null for the first command), a remote `baseline` (null
+for an absent entry) and `desired` progress/status fields. GET
+`/api/tracking/operations?generation=...` exposes current-account operation state.
+POST `/api/tracking/operations/:id/retry` requires generation/revision; POST
+`/api/tracking/operations/:id/resolve` additionally accepts `keepRemote`. All commands
+require the normal Anishelf session and CSRF. An accepted command is queued intent,
+not remote success. Credentials and private attempted payloads are excluded from
+HTTP responses.
+
+`tracking_operations` stores one account/media record with desired values, baseline,
+revision, immutable attempt, outcome and retry time. The worker allows five automatic
+attempts, reads remote state before every attempt, and retains uncertain outcomes
+across restart. Disconnect/another account fences delivery; reauthorization of the
+same account permits reconciliation and recovery. Capacity is 100 unfinished and
+1,000 retained operations per account, pruning only terminal records for admission.
+
+`tracking.operation_state` logs operation/account/media IDs, revision, state, safe
+failure code and retry time at info. `tracking.worker_failed` logs a sanitized
+worker failure at error. Neither event includes credentials, desired values,
+provider payloads or raw errors. Run `test/tracking-updates.test.ts` and
+`test/anilist-account.test.ts` in the backend workspace and
+`test/viewing-editor.test.tsx` in the web workspace for fixture coverage. These tests
+do not mutate AniList; live writes and full ANI acceptance require separate evidence.

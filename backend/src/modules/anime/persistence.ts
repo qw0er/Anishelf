@@ -6,8 +6,13 @@ import { MetadataRepository } from "./metadata/infrastructure/repository.js";
 import type { MetadataStore } from "./metadata/ports.js";
 
 import { TrackingListRepository } from "./tracking/infrastructure/list-repository.js";
+import { TrackingOperationRepository } from "./tracking/infrastructure/operation-repository.js";
 import { TrackingRepository } from "./tracking/infrastructure/repository.js";
-import type { TrackingListStore, TrackingStore } from "./tracking/ports.js";
+import type {
+	TrackingListStore,
+	TrackingOperationStore,
+	TrackingStore,
+} from "./tracking/ports.js";
 
 export {
 	catalogAssociations,
@@ -25,9 +30,11 @@ export {
 export {
 	trackingConnection,
 	trackingListCache,
+	trackingOperations,
 } from "./tracking/persistence.js";
 export interface AnimePersistence {
 	tracking: TrackingStore;
+	trackingOperations: TrackingOperationStore;
 	trackingLists: TrackingListStore;
 	catalog: CatalogStore;
 	metadata: MetadataStore;
@@ -39,6 +46,7 @@ export function createAnimePersistence(
 	return {
 		catalog: new CatalogRepository(store, sources),
 		tracking: new TrackingRepository(store),
+		trackingOperations: new TrackingOperationRepository(store),
 		trackingLists: new TrackingListRepository(store),
 		metadata: new MetadataRepository(store),
 	};

@@ -48,7 +48,10 @@ export type {
 	TrackingAccountResponse,
 	TrackingEntryResponse,
 	TrackingListResponse,
+	TrackingOperationResponse,
+	TrackingOperationsResponse,
 	TrackingPreviewResponse,
+	TrackingUpdateRequest,
 	TranscodeProfileCatalog,
 	UpdateSettingsRequest,
 } from "@anishelf/backend/contracts/http";
