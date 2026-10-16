@@ -442,7 +442,10 @@ The Library read projection logs scope, page/total/local/remote counts and
 Tracking state at trace level.
 
 The Web `anime/library` feature owns the wall's filters, card presentation and
-account/list/refresh coordination. It always reads `/api/anime/library` using
+account/list/refresh coordination. Library scope and AniList viewing state live
+in the expandable Filters panel alongside format, year and availability. The
+panel remains reachable before local setup so All works can still be selected.
+Tracking refresh and feedback remain visible above the filters. It always reads `/api/anime/library` using
 one response contract. Account status supplies the account ID and connection
 generation for cache isolation; a status failure shows a retryable error and
 preserves filters. It never changes the list endpoint or drops scope/status

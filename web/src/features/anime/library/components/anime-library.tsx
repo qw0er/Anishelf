@@ -39,13 +39,6 @@ export function AnimeLibrary({
 			document.getElementById(`work-${id}`)?.focus({ preventScroll: true });
 		}
 	}, [location.key, location.state, query.data]);
-	function change(key: string, value: string) {
-		const next = new URLSearchParams(librarySearch(filters));
-		if (value) next.set(key, value);
-		else next.delete(key);
-		if (key !== "page") next.delete("page");
-		setParams(next);
-	}
 	const filtered = Boolean(
 		filters.query ||
 			filters.format ||
@@ -60,11 +53,15 @@ export function AnimeLibrary({
 				description={t("anime.libraryHint")}
 			/>
 			<LibraryTrackingControls
-				filters={filters}
-				onChange={change}
 				account={query.account}
 				snapshot={query.data?.tracking}
 				refresh={query.refresh}
+			/>
+			<LibraryFiltersForm
+				filters={filters}
+				filtered={filtered}
+				onFilters={setParams}
+				viewingEnabled={Boolean(query.account?.account)}
 			/>
 			{!resourceRoot && filters.scope !== "all" ? (
 				<EmptyState
@@ -88,11 +85,6 @@ export function AnimeLibrary({
 				/>
 			) : (
 				<>
-					<LibraryFiltersForm
-						filters={filters}
-						filtered={filtered}
-						onFilters={setParams}
-					/>
 					{query.error && (
 						<div role="alert" className="space-y-2">
 							<p>
@@ -164,7 +156,9 @@ export function AnimeLibrary({
 								page={filters.page}
 								fetching={query.isFetching}
 								hasNextPage={query.data.hasNextPage}
-								onPage={(page) => change("page", String(page))}
+								onPage={(page) =>
+									setParams(librarySearch({ ...filters, page }))
+								}
 							/>
 						</>
 					)}

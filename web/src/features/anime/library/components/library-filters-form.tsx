@@ -10,10 +10,12 @@ export function LibraryFiltersForm({
 	filters,
 	filtered,
 	onFilters,
+	viewingEnabled,
 }: {
 	filters: LibraryFilters;
 	filtered: boolean;
 	onFilters(value: string): void;
+	viewingEnabled: boolean;
 }) {
 	const { t } = useTranslation();
 	const [search, setSearch] = useState(filters.query ?? "");
@@ -93,6 +95,46 @@ export function LibraryFiltersForm({
 			</div>
 			<div id="catalog-filters" hidden={!expanded}>
 				<div className="surface-panel grid gap-4 sm:grid-cols-3">
+					<label className="min-w-0 space-y-1 text-sm">
+						<span>{t("trackingList.scope")}</span>
+						<select
+							className="form-select block w-full"
+							value={filters.scope ?? "local"}
+							onChange={(event) => change("scope", event.target.value)}
+						>
+							<option value="local">{t("trackingList.local")}</option>
+							<option value="all">{t("trackingList.all")}</option>
+						</select>
+					</label>
+					<label className="min-w-0 space-y-1 text-sm">
+						<span>{t("trackingList.viewingState")}</span>
+						<select
+							className="form-select block w-full"
+							value={filters.viewingStatus ?? ""}
+							onChange={(event) => change("viewingStatus", event.target.value)}
+							disabled={!viewingEnabled}
+						>
+							<option value="">{t("trackingList.allStatuses")}</option>
+							{[
+								"CURRENT",
+								"PLANNING",
+								"COMPLETED",
+								"PAUSED",
+								"DROPPED",
+								"REPEATING",
+								"untracked",
+							].map((status) => (
+								<option key={status} value={status}>
+									{t(
+										status === "untracked"
+											? "trackingList.untracked"
+											: `trackingList.statuses.${status}`,
+									)}
+								</option>
+							))}
+						</select>
+					</label>
+
 					<label className="space-y-1 text-sm">
 						{t("anime.format")}
 						<select
