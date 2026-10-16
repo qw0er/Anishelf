@@ -4,7 +4,7 @@
 - [2. Feature Inventory and Version Tracking](#2-feature-inventory-and-version-tracking)
 - [3. Rules for Future Features](#3-rules-for-future-features)
 - [4. Release Plan and Suggested Evolution](#4-release-plan-and-suggested-evolution)
-- [Current version requirements: AniList accounts](current-version-requirements.md)
+- [Completed AniList accounts requirements and acceptance](history.md#anilist-accounts-requirements)
 - [Completed anime library requirements and acceptance](history.md#anime-library-requirements)
 - [Archived V2 requirements and acceptance](history.md#v2-requirements)
 
@@ -16,7 +16,14 @@ Anishelf is a personal animation media library intended to connect:
 
 Its core value is better Web playback, shared client state, and coordination between tracking and automatic downloading.
 
-This document retains the product goal, delivered feature inventory and future evolution. [Current version requirements](current-version-requirements.md) owns selected scope and acceptance; completed version requirements, acceptance and detailed design are retained in [History](history.md). The anime-library version completed requirements and acceptance on 2026-10-14, as confirmed by the user. Its scope is L07–L10, M01–M05 and M07; [the archive](history.md#anime-library-archive-notes) preserves CAT01–CAT08 and the original verification limits. No release number was assigned. The next unnumbered iteration selects AniList accounts and AniList-owned viewing state (W03–W05 and T01–T05); its scope and acceptance are defined in the current version requirements. The retained V2 implementation status remains recorded separately in History.
+This document retains the product goal, delivered feature inventory and future evolution.
+Completed requirements, acceptance and detailed designs are retained in [History](history.md).
+The anime-library iteration (L07–L10, M01–M05, M07; CAT01–CAT08) was accepted by the user
+on 2026-10-14. The AniList accounts iteration (T01–T05, W03–W05; ANI01–ANI10) was accepted
+by the user on 2026-10-17 and is now [archived](history.md#anilist-accounts-archive-notes).
+Neither iteration was assigned a release number. No next iteration has been selected;
+Later/Unassigned items remain future work. The retained V2 implementation status remains
+recorded separately in History.
 
 ## 2. Feature Inventory and Version Tracking
 
@@ -181,9 +188,9 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | --- | --- | --- | --- | --- |
 | W01 | Save playback position and duration and resume playback | Implemented | V2 | V2 |
 | W02 | History page with recent viewing records and resume/replay | Implemented; History covers continue watching | V2 | V2 |
-| W03 | Detect episode completion and submit progress updates or manual corrections to AniList | Implemented: unified detail/player commands and 90-percent/natural-end completion with 30-second normal-play minimum; live acceptance pending | AniList accounts | AniList accounts |
-| W04 | Display and update AniList tracking statuses | Implemented: remote display/filters and manual status updates; full iteration acceptance pending | AniList accounts | AniList accounts |
-| W05 | Show watched counts and available unwatched episodes from AniList progress, alongside local playback history | Implemented: detail indicators/counts and Library available-unwatched counts; live acceptance pending | AniList accounts | AniList accounts |
+| W03 | Detect episode completion and submit progress updates or manual corrections to AniList | Implemented: unified detail/player commands and 90-percent/natural-end completion with 30-second normal-play minimum; accepted by the user on 2026-10-17 | AniList accounts | AniList accounts |
+| W04 | Display and update AniList tracking statuses | Implemented: remote display/filters and manual status updates; accepted by the user on 2026-10-17 | AniList accounts | AniList accounts |
+| W05 | Show watched counts and available unwatched episodes from AniList progress, alongside local playback history | Implemented: detail indicators/counts and Library available-unwatched counts; accepted by the user on 2026-10-17 | AniList accounts | AniList accounts |
 | W06 | Share records across clients and handle duplicate, out-of-order, or concurrent progress updates | Later | — | Unassigned |
 | W07 | Rewatch history, ratings, tags, and personal notes | Optional | — | Unassigned |
 
@@ -240,18 +247,18 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| T01 | Authorize AniList, display the connected account, check connectivity, and disconnect | Implemented: PIN token preview/confirmation, private credentials, reconnection and generation fencing; fresh browser authorization acceptance pending | AniList accounts | AniList accounts |
-| T02 | Read, cache and refresh the connected account's AniList lists and viewing state | Implemented: complete account-scoped snapshots, stale/error feedback, unified local/remote Library and read-only details | AniList accounts | AniList accounts |
-| T03 | Reuse existing work/episode mappings to submit viewing progress and tracking-status updates to AniList | Implemented: manual updates and mapped automatic episode completion; live acceptance pending | AniList accounts | AniList accounts |
-| T04 | Persist pending updates, coalesce superseded updates, retry failures, report expired authorization, and show results | Implemented: manual commands and durable playback handoff; full acceptance pending | AniList accounts | AniList accounts |
-| T05 | Detect remote changes before retrying pending updates and resolve conflicts without silently overwriting newer state | Implemented for manual and playback commands; live acceptance pending; upstream read/write race remains | AniList accounts | AniList accounts |
+| T01 | Authorize AniList, display the connected account, check connectivity, and disconnect | Implemented: PIN token preview/confirmation, private credentials, reconnection and generation fencing; accepted by the user on 2026-10-17 | AniList accounts | AniList accounts |
+| T02 | Read, cache and refresh the connected account's AniList lists and viewing state | Implemented and user-accepted on 2026-10-17: complete account-scoped snapshots, stale/error feedback, unified local/remote Library and viewing-state details | AniList accounts | AniList accounts |
+| T03 | Reuse existing work/episode mappings to submit viewing progress and tracking-status updates to AniList | Implemented: manual updates and mapped automatic episode completion; accepted by the user on 2026-10-17 | AniList accounts | AniList accounts |
+| T04 | Persist pending updates, coalesce superseded updates, retry failures, report expired authorization, and show results | Implemented: manual commands and durable playback handoff; accepted by the user on 2026-10-17 | AniList accounts | AniList accounts |
+| T05 | Detect remote changes before retrying pending updates and resolve conflicts without silently overwriting newer state | Implemented for manual and playback commands; accepted by the user on 2026-10-17; upstream read/write race remains | AniList accounts | AniList accounts |
 | T06 | Multiple trackers, rating synchronization and advanced rewatch support | Optional | — | Unassigned |
 
 #### AniList Accounts: Selected Scope and Acceptance
 
 AniList is the viewing-state authority. This iteration selects account connection, cached list access, progress/status submissions, durable retries and remote-conflict handling. It reuses existing work/episode mappings and keeps local playback history independent. Independent local tracking, list import/export and reimport merging are excluded.
 
-[Current version requirements](current-version-requirements.md) owns the detailed scope, consistency rules, pending design decisions and ANI01–ANI10 acceptance scenarios.
+[Archived AniList accounts requirements](history.md#anilist-accounts-requirements) retains the completed scope, consistency rules and ANI01–ANI10 scenarios. [The final acceptance record](history.md#anilist-accounts-archive-notes) records user acceptance on 2026-10-17; current implementation ownership is maintained in [Architecture](architecture.md).
 
 ### 2.9 Interface, Settings, and Maintenance
 
@@ -339,11 +346,16 @@ V1 is implemented. The archived V2 scope selected saved progress and resume (W01
 | Stage | Question to resolve | Priority candidates |
 | --- | --- | --- |
 | Completed: anime library | Confirmed anime and episode library from existing files; requirements and acceptance complete | L07–L10, M01–M05, M07; CAT01–CAT08 archived |
-| Selected next iteration: AniList accounts | Can users view and update AniList-owned watching state through Anishelf? | W03–W05, T01–T05; account connection, cached lists, progress/status updates and recoverable submission |
+| Completed: AniList accounts | AniList-owned viewing state, unified progress/status commands and recoverable submission; accepted on 2026-10-17 | W03–W05, T01–T05; ANI01–ANI10 archived |
 | Later: automatic acquisition | Can new episodes reach the library automatically? | Subscriptions, discovery, download integration, ingestion, and recovery |
 | Optional tracking extensions | Are additional tracker capabilities needed? | T06; possible future read-only native-player state reporting (C03) |
 
-The anime-library iteration is complete and archived. The next iteration combines viewing/tracking with AniList account integration, ahead of automatic acquisition. AniList is the viewing-state authority; no independent local tracking or import/export workflow is selected. The release number remains unassigned. Playback enhancements such as HLS, next-episode continuation and broader subtitle compatibility remain separate later work. For example, desktop integration can move ahead once viewing records are stable if it becomes the most pressing need. Select one independently verifiable user workflow at a time instead of assigning the entire inventory to a single release.
+The anime-library and AniList accounts iterations are complete and archived. No next
+iteration or release number is assigned. Automatic acquisition remains later work;
+playback enhancements such as HLS, next-episode continuation and broader subtitle
+compatibility are separate candidates. Select one independently verifiable user workflow
+before promoting future requirements into an active iteration. AniList remains the
+viewing-state authority; an independent local tracking/import workflow is not selected.
 
 Library automation improvements L15–L17 remain future, unassigned work and do not displace core workflows. Their suggested order is Batch Review, matching improvements from representative real failures, then learning from manual corrections. Batch correction provides immediate user control; broader automatic reuse follows only after its evidence and conflict boundaries are validated.
 

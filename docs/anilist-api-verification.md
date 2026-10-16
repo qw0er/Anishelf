@@ -1,12 +1,16 @@
 # AniList Authorization and API Verification
 
-## Scope and Current Evidence
+## Scope and Historical Evidence
 
 This is the executable provider check for step 1 of the
-[current version design](current-version-design.md#9-delivery-and-verification).
+[archived AniList design](history.md#anilist-design-9-delivery-and-verification).
 It does not implement the production Tracking module or satisfy ANI01–ANI10 by
 itself. Client ID `53902` was supplied by the maintainer; it is public application
 identity, not a credential. Its registered redirect URI has not yet been confirmed.
+
+The iteration was subsequently accepted by the user on 2026-10-17; see the
+[final acceptance record](history.md#anilist-accounts-archive-notes). The registration
+and evidence statements here describe the diagnostic checkpoint, not current release blockers.
 
 Evidence recorded on 2026-10-15:
 

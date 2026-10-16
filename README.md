@@ -80,12 +80,15 @@ Use **Check connection** to validate the stored authorization. To reauthorize,
 repeat the preview/confirmation flow; an invalid token does not replace a working
 connection. **Disconnect** removes the local credential without revoking the token
 on AniList. The connection applies to the whole single-user Anishelf server.
-Personal list browsing and viewing-progress updates are still pending; this
-account foundation does not change AniList viewing state.
+Browse AniList lists, including titles without local files, from Library. Edit cumulative
+progress and tracking status on details or from the player. Automatic completion submits
+confirmed episode targets; skipped episodes require explicit confirmation. Pending changes,
+retries and remote conflicts remain visible until confirmed. AniList owns viewing state;
+local playback positions and history remain independent.
 
 Tokens persist in private files under the application data directory; protect
 backups of that directory. Public metadata access and local playback do not
-require an AniList account. See the [current design](docs/current-version-design.md#implemented-account-foundation)
+require an AniList account. See the [archived AniList design](docs/history.md#anilist-design-implemented-account-foundation)
 for storage and verification details.
 
 ## Deploy with a container
