@@ -425,3 +425,14 @@ HTTPS public origins require Secure cookies. Password changes revoke all session
 and media links; logout revokes its current session. Media tokens authorize one
 original version for 24 hours and reuse existing HEAD/Range delivery. They do not
 authorize business APIs or create playback history. Existing streams may finish.
+
+### Local work detail query naming
+
+The local detail read follows `localWorkDetailQuery` → `getLocalWorkDetail` →
+`GET /api/catalog/works/:id` → `AnimeCatalogApi.getLocalWorkDetail` →
+`CatalogQueries.getLocalWorkDetail`. The HTTP contract is
+`LocalWorkDetailResponse` (`LocalWorkDetailSchema`); the Catalog domain aggregate
+is `LocalWorkDetail`. It combines the local work, metadata snapshot, episodes
+and file versions. Tracking viewing state and provider airing schedules remain
+separate reads. The frontend cache key is
+`["catalog", scope, "local-work-detail", id]`; `scope` isolates client caches.

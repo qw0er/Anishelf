@@ -6,11 +6,11 @@ import type {
 	Confirmation,
 	ConfirmationResult,
 	LocalEpisode,
+	LocalWorkDetail,
 	Page,
 	PreviewRequest,
 	ReviewItem,
 	WorkCard,
-	WorkDetail,
 } from "./domain/model.js";
 
 export type * from "./domain/model.js";
@@ -29,7 +29,7 @@ export interface AnimeCatalogApi {
 		epoch: number;
 	}>;
 	cards(ids: readonly string[], epoch: number): Promise<WorkCard[]>;
-	detail(id: string): Promise<WorkDetail>;
+	getLocalWorkDetail(id: string): Promise<LocalWorkDetail>;
 	artwork(
 		id: string,
 		kind: "cover" | "banner",
@@ -57,6 +57,6 @@ export interface AnimeCatalogApi {
 		number: string,
 		label: string,
 	): Promise<LocalEpisode>;
-	refresh(id: string, revision: number): Promise<WorkDetail>;
+	refresh(id: string, revision: number): Promise<LocalWorkDetail>;
 	close(): void;
 }

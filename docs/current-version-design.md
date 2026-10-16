@@ -208,13 +208,33 @@ AniList media ID and episode target inside Anime. Revalidate mappings when an
 observation is admitted; if they changed after capture, leave it unresolved instead
 of applying an old episode to a new association.
 
-The proposed first completion policy requires normal playback reaching 90 percent
-or a natural end, with seek discontinuities excluded. Position/duration alone does
-not prove viewing: extend the observation contract with bounded playback intervals
-or equivalent evidence and deduplicate accepted observations. This is cooperative
-player telemetry, not proof against a malicious client. The exact minimum normal
-play interval and treatment of resumed playback must be specified and tested before
-automatic submission is enabled. Until then, manual updates provide the usable path.
+The selected completion policy requires effective watched coverage of at least
+85 percent of the full source duration. Coverage is the duration of the union of
+validated playback intervals divided by the full source duration, not the latest
+playhead position. For a 24-minute episode this is 20 minutes 24 seconds, leaving
+room to skip opening/ending sequences or previews without detecting their boundaries.
+
+- Count source-time intervals traversed during actual playback. Seeking does not
+  count the skipped range; pauses, buffering and loading a resume position add no coverage.
+- Merge overlapping intervals so replaying a segment never increases its coverage
+  twice. Playback speed changes count the source-time range actually traversed,
+  rather than requiring the equivalent wall-clock viewing time.
+- Persist validated coverage for the same source version across sessions and
+  restarts, and merge new intervals when playback resumes. Keep evidence scoped to
+  the source version; do not combine timestamps from alternate cuts or file versions.
+- Natural playback end triggers evaluation but does not bypass the 85-percent
+  requirement. Seeking near the end and playing a few seconds is insufficient.
+- Unknown or invalid source duration cannot produce an automatic completion.
+  Existing mapping and multi-episode restrictions below still apply.
+
+Extend the observation contract with bounded playback intervals and deduplicate
+accepted observations. Validate continuity against elapsed time and playback rate,
+split intervals on seeks and interruptions, and map prepared-media time to source
+time before accumulation. This is cooperative player telemetry, not proof against
+a malicious client. Coverage is local completion evidence, not an authoritative
+watched-episode ledger or AniList-confirmed progress. The evidence persistence,
+validation tolerances and durable handoff still require implementation and tests
+before automatic submission is enabled; manual updates remain the initial usable path.
 
 | Completed target compared with confirmed progress N | Behavior |
 | --- | --- |
@@ -309,7 +329,10 @@ Use a controllable provider fixture for chunk failures, repeated custom-list
 entries, HTTP/GraphQL errors, lost mutation responses, remote edits, account
 replacement during a request and an old response arriving after a newer operation.
 Exercise the real database across close/reopen for handoff and worker recovery.
-Test explicit backward corrections, seek-only completion, resuming near the end,
+Test coverage below, exactly at and above 85 percent, skipped opening/ending ranges,
+overlapping intervals, playback speeds, pause/buffering gaps, restart/resume
+coverage persistence and source-version isolation. Test explicit backward
+corrections, seek-only completion, natural end below threshold, resuming near the end,
 multiple versions, mapping changes and multiple-episode files. Verify playback,
 subtitles, preparation and local history remain usable during authorization and
 network failures. Run Biome, lint, architecture/type checks and relevant tests for
@@ -318,8 +341,9 @@ must not be inferred from fixtures.
 
 ## 10. Remaining Implementation Gates
 
-Before automatic updates ship, finalize completion evidence/thresholds and the
-transactional handoff contract. Before account integration ships, verify the real
+Before automatic updates ship, implement and validate the selected 85-percent
+coverage policy, finalize interval validation tolerances and evidence persistence,
+and define the transactional handoff contract. Before account integration ships, verify the real
 maintainer application's PIN behavior and backend usage. Finalize schema names,
 HTTP request/response shapes, credential-file recovery, polling/backoff bounds and
 queue limits in implementation review. Keep requirements and this design aligned;

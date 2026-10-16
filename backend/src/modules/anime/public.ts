@@ -14,7 +14,7 @@ export interface AnimeApi {
 		| Pick<
 				AnimeCatalogApi,
 				| "list"
-				| "detail"
+				| "getLocalWorkDetail"
 				| "source"
 				| "reviews"
 				| "fileReviews"

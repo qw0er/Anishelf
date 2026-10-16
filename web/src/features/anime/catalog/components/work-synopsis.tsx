@@ -3,13 +3,13 @@ import { useTranslation } from "react-i18next";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
-import type { CatalogDetailResponse } from "../../../../shared/api/contracts.js";
+import type { LocalWorkDetailResponse } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import { safeLink } from "../detail-format.js";
 export function WorkSynopsis({
 	data,
 }: {
-	data: Pick<CatalogDetailResponse, "metadata">;
+	data: Pick<LocalWorkDetailResponse, "metadata">;
 }) {
 	const { t } = useTranslation();
 	const { metadata } = data;

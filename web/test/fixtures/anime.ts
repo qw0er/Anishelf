@@ -1,9 +1,9 @@
 import type {
-	CatalogDetailResponse,
 	CatalogReviewItem,
+	LocalWorkDetailResponse,
 } from "../../src/shared/api/contracts.js";
 
-export function animeFixture(): CatalogDetailResponse {
+export function animeFixture(): LocalWorkDetailResponse {
 	const reference = {
 		provider: "anilist",
 		mediaType: "anime",

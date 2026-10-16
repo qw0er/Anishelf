@@ -83,7 +83,7 @@ test("previews without retaining token, requires confirmation and clears former 
 		{ scope: "all" },
 	];
 	queryClient.setQueryData(oldLibraryKey, { private: true });
-	queryClient.setQueryData(["catalog", "root", "detail", "work-1"], {
+	queryClient.setQueryData(["catalog", "root", "local-work-detail", "work-1"], {
 		public: true,
 	});
 	render(<AniListAccountSettings />);
@@ -128,7 +128,12 @@ test("previews without retaining token, requires confirmation and clears former 
 	).toBeUndefined();
 	expect(queryClient.getQueryData(oldLibraryKey)).toBeUndefined();
 	expect(
-		queryClient.getQueryData(["catalog", "root", "detail", "work-1"]),
+		queryClient.getQueryData([
+			"catalog",
+			"root",
+			"local-work-detail",
+			"work-1",
+		]),
 	).toEqual({ public: true });
 	expect(
 		JSON.stringify(

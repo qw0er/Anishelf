@@ -248,7 +248,7 @@ test("published scans create durable reviews, and confirmation establishes a loc
 	const list = await f.catalog.list();
 	expect(list.items).toHaveLength(1);
 	expect(list.items[0]?.availableEpisodes).toBe(2);
-	const detail = await f.catalog.detail(result.workId);
+	const detail = await f.catalog.getLocalWorkDetail(result.workId);
 	expect(
 		detail.episodes
 			.filter((item) => item.versions.length)
@@ -276,7 +276,7 @@ test("multiple versions count once and one source can map to multiple explicit e
 	if (!first) throw new Error("Missing review");
 	first.targets.push({ kind: "regular", number: "2" });
 	const result = await confirm(f, Promise.resolve(selected));
-	const detail = await f.catalog.detail(result.workId);
+	const detail = await f.catalog.getLocalWorkDetail(result.workId);
 	expect(detail.work.availableEpisodes).toBe(2);
 	expect(detail.episodes[0]?.versions).toHaveLength(2);
 	expect(detail.episodes[1]?.versions).toHaveLength(1);
@@ -384,7 +384,7 @@ test("corroborated automatic offsets persist once and special zero still needs m
 test("stable episode IDs, mappings and source progress survive rescan refresh and restart", async () => {
 	const f = await fixture();
 	const result = await confirm(f);
-	let detail = await f.catalog.detail(result.workId);
+	let detail = await f.catalog.getLocalWorkDetail(result.workId);
 	const originalTitle = detail.work.displayTitle;
 	const episodeId = required(detail.episodes[0]).id;
 	await f.catalog.editEpisode(
@@ -398,7 +398,7 @@ test("stable episode IDs, mappings and source progress survive rescan refresh an
 	f.database.playback.openGeneration(review.sourceId);
 	const progress = f.database.playback.get(review.sourceId);
 	await f.scan();
-	detail = await f.catalog.detail(result.workId);
+	detail = await f.catalog.getLocalWorkDetail(result.workId);
 	expect(detail.episodes[0]).toMatchObject({
 		id: episodeId,
 		number: "1",
@@ -408,7 +408,7 @@ test("stable episode IDs, mappings and source progress survive rescan refresh an
 	await f.catalog.refresh(result.workId, detail.work.revision);
 	await f.restart();
 	f.get.mockRejectedValue(new Error("offline"));
-	detail = await f.catalog.detail(result.workId);
+	detail = await f.catalog.getLocalWorkDetail(result.workId);
 	expect(detail.work.displayTitle).toBe(originalTitle);
 	expect(detail.metadata.data.description).toBe("Updated provider text");
 	expect(f.database.playback.get(review.sourceId)).toEqual(progress);
@@ -546,14 +546,16 @@ test("replaced sources require new confirmation and missing files retain unavail
 	const f = await fixture();
 	const result = await confirm(f);
 	const before = required(
-		required((await f.catalog.detail(result.workId)).episodes[0]).versions[0],
+		required((await f.catalog.getLocalWorkDetail(result.workId)).episodes[0])
+			.versions[0],
 	);
 	await writeFile(
 		join(f.root, "Anime - 01.mkv"),
 		"replacement with different size",
 	);
 	expect(
-		(await f.catalog.detail(result.workId)).episodes[0]?.versions[0]?.available,
+		(await f.catalog.getLocalWorkDetail(result.workId)).episodes[0]?.versions[0]
+			?.available,
 	).toBe(false);
 	await f.scan();
 	const reviews = await f.catalog.reviews();
@@ -569,9 +571,9 @@ test("replaced sources require new confirmation and missing files retain unavail
 	).toBe(result.workId);
 	await rm(join(f.root, "Anime - 01.mkv"));
 	await f.scan();
-	expect((await f.catalog.detail(result.workId)).work.availableEpisodes).toBe(
-		0,
-	);
+	expect(
+		(await f.catalog.getLocalWorkDetail(result.workId)).work.availableEpisodes,
+	).toBe(0);
 	expect((await f.catalog.list()).items).toHaveLength(1);
 });
 
@@ -593,7 +595,9 @@ test("changed files and root switches invalidate pending previews without deleti
 	await f.library.waitForCompletion();
 	await f.automatic.waitForCompletion();
 	expect((await f.catalog.list()).items).toEqual([]);
-	await expect(f.catalog.detail(initial.workId)).rejects.toMatchObject({
+	await expect(
+		f.catalog.getLocalWorkDetail(initial.workId),
+	).rejects.toMatchObject({
 		code: "CATALOG_NOT_FOUND",
 	});
 	await expect(
@@ -612,23 +616,23 @@ test("changed files and root switches invalidate pending previews without deleti
 test("cached browsing stays offline and refresh failures preserve confirmed metadata and manual data", async () => {
 	const f = await fixture();
 	const result = await confirm(f);
-	const before = await f.catalog.detail(result.workId);
+	const before = await f.catalog.getLocalWorkDetail(result.workId);
 	f.get.mockRejectedValue(new Error("provider outage"));
 	expect(
 		(await f.catalog.refresh(result.workId, before.work.revision)).metadata
 			.refreshError?.code,
 	).toBe("unavailable");
-	const after = await f.catalog.detail(result.workId);
+	const after = await f.catalog.getLocalWorkDetail(result.workId);
 	expect(after.work).toEqual(before.work);
 	expect(after.metadata.data).toEqual(before.metadata.data);
 	expect(f.get).toHaveBeenCalledTimes(2);
 	await f.catalog.list();
-	await f.catalog.detail(result.workId);
+	await f.catalog.getLocalWorkDetail(result.workId);
 	expect(f.get).toHaveBeenCalledTimes(2);
 	f.database.metadata.prune(0, 0);
-	expect((await f.catalog.detail(result.workId)).metadata.data).toEqual(
-		before.metadata.data,
-	);
+	expect(
+		(await f.catalog.getLocalWorkDetail(result.workId)).metadata.data,
+	).toEqual(before.metadata.data);
 });
 
 test("preview expiry requires a new preview without keeping transient snapshots pinned", async () => {
@@ -744,7 +748,9 @@ test("root epoch conflicts remain visible rather than being disguised as unavail
 			throw new DomainError("INTERNAL_ERROR", "unexpected storage fault");
 		},
 	);
-	await expect(f.catalog.detail(result.workId)).rejects.toMatchObject({
+	await expect(
+		f.catalog.getLocalWorkDetail(result.workId),
+	).rejects.toMatchObject({
 		code: "INTERNAL_ERROR",
 	});
 });
@@ -769,7 +775,7 @@ test("separate confirmations reuse provider identity and disjoint stale previews
 	};
 	const stale = await f.catalog.preview(request);
 	const editedEpisode = required(
-		(await f.catalog.detail(first.workId)).episodes[0],
+		(await f.catalog.getLocalWorkDetail(first.workId)).episodes[0],
 	);
 	await f.catalog.editEpisode(
 		first.workId,
@@ -793,9 +799,11 @@ test("separate confirmations reuse provider identity and disjoint stale previews
 	});
 	expect(second.workId).toBe(first.workId);
 	expect((await f.catalog.list()).items).toHaveLength(1);
-	expect((await f.catalog.detail(first.workId)).work).toMatchObject({
-		availableRegularEpisodes: 2,
-	});
+	expect((await f.catalog.getLocalWorkDetail(first.workId)).work).toMatchObject(
+		{
+			availableRegularEpisodes: 2,
+		},
+	);
 });
 
 test("movies and unknown counts preserve explicit targets without inventing canonical episode records", async () => {
@@ -804,8 +812,12 @@ test("movies and unknown counts preserve explicit targets without inventing cano
 	const selected = await rows(f);
 	required(selected[0]).targets = [{ kind: "movie", number: "whole" }];
 	const movie = await confirm(f, Promise.resolve(selected));
-	expect((await f.catalog.detail(movie.workId)).episodes).toHaveLength(1);
-	expect((await f.catalog.detail(movie.workId)).episodes[0]).toMatchObject({
+	expect(
+		(await f.catalog.getLocalWorkDetail(movie.workId)).episodes,
+	).toHaveLength(1);
+	expect(
+		(await f.catalog.getLocalWorkDetail(movie.workId)).episodes[0],
+	).toMatchObject({
 		kind: "movie",
 		number: "whole",
 		provenance: "confirmed",
@@ -821,7 +833,7 @@ test("movies and unknown counts preserve explicit targets without inventing cano
 		previewId: preview.id,
 		replace: true,
 	});
-	const detail = await f.catalog.detail(unknown.workId);
+	const detail = await f.catalog.getLocalWorkDetail(unknown.workId);
 	expect(detail.episodes).toHaveLength(1);
 	expect(detail.episodeCountProvenance).toBe("unknown");
 	expect(detail.episodes[0]?.number).toBe("75");
@@ -856,7 +868,9 @@ test("failed refresh after an intervening local edit cannot overwrite the edit",
 	);
 	const refreshing = f.catalog.refresh(result.workId, result.revision);
 	await vi.waitFor(() => expect(resolve).toBeDefined());
-	const episode = required((await f.catalog.detail(result.workId)).episodes[0]);
+	const episode = required(
+		(await f.catalog.getLocalWorkDetail(result.workId)).episodes[0],
+	);
 	await f.catalog.editEpisode(
 		result.workId,
 		episode.id,
@@ -869,9 +883,9 @@ test("failed refresh after an intervening local edit cannot overwrite the edit",
 		raw: {},
 	});
 	await expect(refreshing).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
-	expect((await f.catalog.detail(result.workId)).episodes[0]?.label).toBe(
-		"Concurrent correction",
-	);
+	expect(
+		(await f.catalog.getLocalWorkDetail(result.workId)).episodes[0]?.label,
+	).toBe("Concurrent correction");
 });
 
 test("literal wildcard provider titles remain literal local search text", async () => {
@@ -903,12 +917,15 @@ test("concurrent confirmation retries share one result and do not leak metadata 
 	]);
 	expect(results[0]).toEqual(results[1]);
 	f.setData({ ...details(), description: "New snapshot" });
-	const detail = await f.catalog.detail(required(results[0]).workId);
+	const detail = await f.catalog.getLocalWorkDetail(
+		required(results[0]).workId,
+	);
 	await f.catalog.refresh(detail.work.id, detail.work.revision);
 	f.database.metadata.prune(0, 0);
 	expect(f.database.metadata.get(preview.metadata.snapshotId)).toBeNull();
 	expect(
-		(await f.catalog.detail(detail.work.id)).metadata.data.description,
+		(await f.catalog.getLocalWorkDetail(detail.work.id)).metadata.data
+			.description,
 	).toBe("New snapshot");
 });
 
@@ -928,7 +945,7 @@ test("closing Catalog stops every composed use case before reading or mutating s
 	);
 	const calls = [
 		() => f.catalog.list(),
-		() => f.catalog.detail(committed.workId),
+		() => f.catalog.getLocalWorkDetail(committed.workId),
 		() => f.catalog.reviews(),
 		() => f.catalog.fileReviews([]),
 		() => f.catalog.preview({ reference, rows: selected }),
@@ -1180,7 +1197,7 @@ test("source playback metadata follows local edits, removal and replacement", as
 	expect((await f.catalog.source(review.fileId)).associations).toEqual([]);
 	f.setData({ ...details(), episodeCount: null });
 	const confirmed = await confirm(f);
-	const detail = await f.catalog.detail(confirmed.workId);
+	const detail = await f.catalog.getLocalWorkDetail(confirmed.workId);
 	const episode = required(
 		detail.episodes.find((item) => item.versions.length),
 	);
@@ -1409,7 +1426,7 @@ test("rejection accepts omitted or blank reasons, persists null, and keeps remov
 test("expired details return retained data immediately and coalesce automatic updates", async () => {
 	const f = await fixture();
 	const result = await confirm(f);
-	const before = await f.catalog.detail(result.workId);
+	const before = await f.catalog.getLocalWorkDetail(result.workId);
 	const episode = required(before.episodes[0]);
 	await f.catalog.editEpisode(
 		result.workId,
@@ -1433,8 +1450,8 @@ test("expired details return retained data immediately and coalesce automatic up
 				complete = resolve;
 			}),
 	);
-	const first = await f.catalog.detail(result.workId);
-	const second = await f.catalog.detail(result.workId);
+	const first = await f.catalog.getLocalWorkDetail(result.workId);
+	const second = await f.catalog.getLocalWorkDetail(result.workId);
 	expect(first.metadata).toMatchObject({
 		snapshotId: before.metadata.snapshotId,
 		stale: true,
@@ -1452,7 +1469,7 @@ test("expired details return retained data immediately and coalesce automatic up
 			before.metadata.snapshotId,
 		),
 	);
-	const after = await f.catalog.detail(result.workId);
+	const after = await f.catalog.getLocalWorkDetail(result.workId);
 	expect(after.metadata.data.description).toBe("Automatic update");
 	expect(after.work.episodeCount).toBe(13);
 	expect(after.metadata.refreshing).toBe(false);
@@ -1508,7 +1525,7 @@ test("startup refreshes expired releasing works without a detail request and ski
 	vi.setSystemTime(fetchedAt + 16 * 24 * 60 * 60_000);
 	await vi.advanceTimersByTimeAsync(60_000);
 	expect(f.get).toHaveBeenCalledTimes(1);
-	const oldFinished = await f.catalog.detail(finished.workId);
+	const oldFinished = await f.catalog.getLocalWorkDetail(finished.workId);
 	expect(oldFinished.metadata.refreshing).toBe(true);
 	await vi.advanceTimersByTimeAsync(0);
 	expect(f.get).toHaveBeenCalledTimes(2);
@@ -1517,18 +1534,18 @@ test("startup refreshes expired releasing works without a detail request and ski
 test("automatic failure keeps the snapshot and honors persisted retry time across restart", async () => {
 	const f = await fixture();
 	const result = await confirm(f);
-	const before = await f.catalog.detail(result.workId);
+	const before = await f.catalog.getLocalWorkDetail(result.workId);
 	let now = before.metadata.fetchedAt + 8 * 24 * 60 * 60_000;
 	vi.spyOn(Date, "now").mockImplementation(() => now);
 	f.get.mockRejectedValue(new Error("Provider offline"));
-	await f.catalog.detail(result.workId);
+	await f.catalog.getLocalWorkDetail(result.workId);
 	await vi.waitFor(() =>
 		expect(
 			f.metadata.snapshot(before.metadata.snapshotId).refreshError,
 		).not.toBeNull(),
 	);
 	await f.restart();
-	const retry = await f.catalog.detail(result.workId);
+	const retry = await f.catalog.getLocalWorkDetail(result.workId);
 	expect(retry.metadata).toMatchObject({
 		snapshotId: before.metadata.snapshotId,
 		refreshing: false,
@@ -1540,21 +1557,21 @@ test("automatic failure keeps the snapshot and honors persisted retry time acros
 		raw: {},
 	}));
 	now += 60_001;
-	await f.catalog.detail(result.workId);
+	await f.catalog.getLocalWorkDetail(result.workId);
 	await vi.waitFor(() =>
 		expect(f.database.catalog.link(result.workId)?.snapshotId).not.toBe(
 			before.metadata.snapshotId,
 		),
 	);
 	expect(
-		(await f.catalog.detail(result.workId)).metadata.refreshError,
+		(await f.catalog.getLocalWorkDetail(result.workId)).metadata.refreshError,
 	).toBeNull();
 });
 
 test("automatic refresh yields to a concurrent correction then adopts cached metadata without another provider read", async () => {
 	const f = await fixture();
 	const result = await confirm(f);
-	const before = await f.catalog.detail(result.workId);
+	const before = await f.catalog.getLocalWorkDetail(result.workId);
 	vi.spyOn(Date, "now").mockReturnValue(
 		before.metadata.fetchedAt + 8 * 24 * 60 * 60_000,
 	);
@@ -1567,7 +1584,7 @@ test("automatic refresh yields to a concurrent correction then adopts cached met
 				complete = resolve;
 			}),
 	);
-	await f.catalog.detail(result.workId);
+	await f.catalog.getLocalWorkDetail(result.workId);
 	await vi.waitFor(() => expect(complete).toBeDefined());
 	const episode = required(before.episodes[0]);
 	await f.catalog.editEpisode(
@@ -1588,12 +1605,13 @@ test("automatic refresh yields to a concurrent correction then adopts cached met
 	);
 	await vi.waitFor(async () =>
 		expect(
-			(await f.catalog.detail(result.workId)).metadata.data.description,
+			(await f.catalog.getLocalWorkDetail(result.workId)).metadata.data
+				.description,
 		).toBe("New data"),
 	);
-	expect((await f.catalog.detail(result.workId)).episodes[0]?.label).toBe(
-		"Concurrent correction",
-	);
+	expect(
+		(await f.catalog.getLocalWorkDetail(result.workId)).episodes[0]?.label,
+	).toBe("Concurrent correction");
 	expect(f.get).toHaveBeenCalledTimes(2);
 });
 
@@ -1601,7 +1619,7 @@ test("quiescing cancels automatic refresh and prevents later catalog writes or t
 	const f = await fixture();
 	f.setData({ ...details(), status: "RELEASING" });
 	const result = await confirm(f);
-	const before = await f.catalog.detail(result.workId);
+	const before = await f.catalog.getLocalWorkDetail(result.workId);
 	vi.spyOn(Date, "now").mockReturnValue(
 		before.metadata.fetchedAt + 25 * 60 * 60_000,
 	);
@@ -1614,7 +1632,7 @@ test("quiescing cancels automatic refresh and prevents later catalog writes or t
 				complete = resolve;
 			}),
 	);
-	await f.catalog.detail(result.workId);
+	await f.catalog.getLocalWorkDetail(result.workId);
 	await vi.waitFor(() => expect(complete).toBeDefined());
 	await f.catalog.quiesce();
 	required(complete)({
@@ -1625,9 +1643,9 @@ test("quiescing cancels automatic refresh and prevents later catalog writes or t
 	expect(f.database.catalog.link(result.workId)?.snapshotId).toBe(
 		before.metadata.snapshotId,
 	);
-	expect((await f.catalog.detail(result.workId)).metadata.refreshing).toBe(
-		false,
-	);
+	expect(
+		(await f.catalog.getLocalWorkDetail(result.workId)).metadata.refreshing,
+	).toBe(false);
 	expect(f.get).toHaveBeenCalledTimes(2);
 });
 
@@ -1675,7 +1693,7 @@ test("background checks rotate through batches and exclude works without source 
 test("manual refresh joins an automatic request and accepts its already applied snapshot", async () => {
 	const f = await fixture();
 	const result = await confirm(f);
-	const before = await f.catalog.detail(result.workId);
+	const before = await f.catalog.getLocalWorkDetail(result.workId);
 	vi.spyOn(Date, "now").mockReturnValue(
 		before.metadata.fetchedAt + 8 * 24 * 60 * 60_000,
 	);
@@ -1688,7 +1706,7 @@ test("manual refresh joins an automatic request and accepts its already applied 
 				complete = resolve;
 			}),
 	);
-	await f.catalog.detail(result.workId);
+	await f.catalog.getLocalWorkDetail(result.workId);
 	await vi.waitFor(() => expect(complete).toBeDefined());
 	const reads = vi.spyOn(f.metadata, "get");
 	const manual = f.catalog.refresh(result.workId, before.work.revision);
@@ -1707,7 +1725,7 @@ test("manual refresh joins an automatic request and accepts its already applied 
 test("automatic errors for a missing current cache key are visible without replacing the retained snapshot", async () => {
 	const f = await fixture();
 	const result = await confirm(f);
-	const before = await f.catalog.detail(result.workId);
+	const before = await f.catalog.getLocalWorkDetail(result.workId);
 	const now = before.metadata.fetchedAt + 8 * 24 * 60 * 60_000;
 	vi.spyOn(Date, "now").mockReturnValue(now);
 	const reads = vi
@@ -1719,14 +1737,15 @@ test("automatic errors for a missing current cache key are visible without repla
 				retryAt: options?.cachedOnly ? null : now + 120_000,
 			});
 		});
-	await f.catalog.detail(result.workId);
+	await f.catalog.getLocalWorkDetail(result.workId);
 	await vi.waitFor(async () =>
 		expect(
-			(await f.catalog.detail(result.workId)).metadata.refreshError?.code,
+			(await f.catalog.getLocalWorkDetail(result.workId)).metadata.refreshError
+				?.code,
 		).toBe("rate-limited"),
 	);
 	expect(reads).toHaveBeenCalledTimes(2);
-	const after = await f.catalog.detail(result.workId);
+	const after = await f.catalog.getLocalWorkDetail(result.workId);
 	expect(after.metadata.snapshotId).toBe(before.metadata.snapshotId);
 	expect(after.metadata.data).toEqual(before.metadata.data);
 	expect(after.metadata.refreshing).toBe(false);
@@ -1735,14 +1754,14 @@ test("automatic errors for a missing current cache key are visible without repla
 test("unchanged provider details renew freshness without incrementing the local work revision", async () => {
 	const f = await fixture();
 	const result = await confirm(f);
-	const before = await f.catalog.detail(result.workId);
+	const before = await f.catalog.getLocalWorkDetail(result.workId);
 	const now = before.metadata.fetchedAt + 8 * 24 * 60 * 60_000;
 	vi.spyOn(Date, "now").mockReturnValue(now);
-	await f.catalog.detail(result.workId);
+	await f.catalog.getLocalWorkDetail(result.workId);
 	await vi.waitFor(() =>
 		expect(f.metadata.snapshot(before.metadata.snapshotId).stale).toBe(false),
 	);
-	const after = await f.catalog.detail(result.workId);
+	const after = await f.catalog.getLocalWorkDetail(result.workId);
 	expect(after.work.revision).toBe(before.work.revision);
 	expect(after.metadata.snapshotId).toBe(before.metadata.snapshotId);
 	expect(after.metadata.fetchedAt).toBe(now);

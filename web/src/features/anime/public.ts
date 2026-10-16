@@ -1,6 +1,6 @@
 export {
+	localWorkDetailQuery,
 	useAnimePlaybackTitle,
-	workQuery,
 } from "./catalog/public.js";
 
 export { fileReviewsQuery } from "./catalog/queries.js";

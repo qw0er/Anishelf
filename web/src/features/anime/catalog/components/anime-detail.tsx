@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
-import type { CatalogDetailResponse } from "../../../../shared/api/contracts.js";
+import type { LocalWorkDetailResponse } from "../../../../shared/api/contracts.js";
 import { useQueryScope } from "../../../../shared/api/queries.js";
 import {
 	Button,
@@ -12,9 +12,9 @@ import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { Artwork } from "../../shared/components/artwork.js";
 import { useViewingState, ViewingSummary } from "../../tracking/public.js";
-import { workQuery } from "../queries.js";
+import { localWorkDetailQuery } from "../queries.js";
 
-import { useWorkDetail } from "../use-work-detail.js";
+import { useLocalWorkDetail } from "../use-local-work-detail.js";
 import { EpisodeList } from "./episode-list.js";
 import { RelatedWorks } from "./related-works.js";
 import { VersionSelector } from "./version-selector.js";
@@ -24,7 +24,7 @@ import { WorkSynopsis } from "./work-synopsis.js";
 export function AnimeDetail() {
 	const { id = "" } = useParams();
 	const scope = useQueryScope();
-	const query = useQuery(workQuery(id, scope));
+	const query = useQuery(localWorkDetailQuery(id, scope));
 	const { t } = useTranslation();
 	if (!query.data)
 		return query.error ? (
@@ -44,11 +44,11 @@ export function AnimeDetail() {
 				<Skeleton className="h-64 w-full" />
 			</div>
 		);
-	return <WorkDetail key={`${id}:${scope}`} data={query.data} />;
+	return <LocalWorkDetail key={`${id}:${scope}`} data={query.data} />;
 }
-function WorkDetail({ data }: { data: CatalogDetailResponse }) {
+function LocalWorkDetail({ data }: { data: LocalWorkDetailResponse }) {
 	const { t, i18n } = useTranslation();
-	const controller = useWorkDetail(data);
+	const controller = useLocalWorkDetail(data);
 	const { libraryPath, refresh } = controller;
 	const { work, metadata } = data;
 	const viewing = useViewingState(

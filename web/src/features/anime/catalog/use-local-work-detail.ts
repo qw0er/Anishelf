@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 import { isRequestCancelled } from "../../../shared/api/client.js";
-import type { CatalogDetailResponse } from "../../../shared/api/contracts.js";
+import type { LocalWorkDetailResponse } from "../../../shared/api/contracts.js";
 import { useQueryScope } from "../../../shared/api/queries.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
@@ -17,10 +17,10 @@ import {
 	reportMetadataRefresh,
 } from "../metadata/public.js";
 import { animeLibraryQueryKey } from "../shared/query-keys.js";
-import { refreshWork } from "./api.js";
+import { refreshLocalWorkDetail } from "./api.js";
 import type { Episode, Version } from "./detail-format.js";
-import { workQuery } from "./queries.js";
-export function useWorkDetail(data: CatalogDetailResponse) {
+import { localWorkDetailQuery } from "./queries.js";
+export function useLocalWorkDetail(data: LocalWorkDetailResponse) {
 	const scope = useQueryScope();
 	const client = useQueryClient();
 	const { t } = useTranslation();
@@ -59,10 +59,13 @@ export function useWorkDetail(data: CatalogDetailResponse) {
 					title: t(getErrorTranslationKey(error) ?? "anime.refreshFailed"),
 				});
 		},
-		mutationFn: () => refreshWork(work.id, work.revision),
+		mutationFn: () => refreshLocalWorkDetail(work.id, work.revision),
 		onSuccess: async (result) => {
 			reportMetadataRefresh(client, result.metadata, true);
-			client.setQueryData(workQuery(work.id, scope).queryKey, result);
+			client.setQueryData(
+				localWorkDetailQuery(work.id, scope).queryKey,
+				result,
+			);
 			await client.invalidateQueries({
 				queryKey: [...animeLibraryQueryKey, scope],
 			});
@@ -91,4 +94,4 @@ export function useWorkDetail(data: CatalogDetailResponse) {
 		changeRelationsPage: setRelationsPage,
 	};
 }
-export type WorkDetailController = ReturnType<typeof useWorkDetail>;
+export type LocalWorkDetailController = ReturnType<typeof useLocalWorkDetail>;

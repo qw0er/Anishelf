@@ -4,8 +4,8 @@ import { conflict, integer, invalid, text } from "../domain/mapping.js";
 import type {
 	CatalogQuery,
 	LocalWork,
+	LocalWorkDetail,
 	WorkCard,
-	WorkDetail,
 } from "../domain/model.js";
 import { type CatalogContext, page } from "./context.js";
 
@@ -159,13 +159,13 @@ export class CatalogQueries {
 			);
 		return this.context.options.metadata.readArtwork(status.id);
 	}
-	async detail(id: string): Promise<WorkDetail> {
+	async getLocalWorkDetail(id: string): Promise<LocalWorkDetail> {
 		const root = await this.context.root();
 		const work = this.context.requireWork(id, root.rootId);
-		const episodes: WorkDetail["episodes"] = [];
+		const episodes: LocalWorkDetail["episodes"] = [];
 		const availability = new Map<string, boolean>();
 		for (const episode of this.context.options.store.episodes(id)) {
-			const versions: WorkDetail["episodes"][number]["versions"] = [];
+			const versions: LocalWorkDetail["episodes"][number]["versions"] = [];
 			for (const { review, association } of this.context.options.store.versions(
 				episode.id,
 				root.rootId,

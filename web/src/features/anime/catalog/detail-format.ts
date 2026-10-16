@@ -1,5 +1,5 @@
-import type { CatalogDetailResponse } from "../../../shared/api/contracts.js";
-export type Episode = CatalogDetailResponse["episodes"][number];
+import type { LocalWorkDetailResponse } from "../../../shared/api/contracts.js";
+export type Episode = LocalWorkDetailResponse["episodes"][number];
 export type Version = Episode["versions"][number];
 export function safeLink(value: string | null): string | undefined {
 	if (!value) return undefined;
@@ -41,7 +41,7 @@ export function releaseInfo(version: Version): string {
 	].join(" · ");
 }
 export function fuzzyDate(
-	date: CatalogDetailResponse["metadata"]["data"]["startDate"],
+	date: LocalWorkDetailResponse["metadata"]["data"]["startDate"],
 ): string | null {
 	if (!date?.year) return null;
 	return [

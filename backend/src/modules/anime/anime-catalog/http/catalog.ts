@@ -19,7 +19,7 @@ import {
 	CatalogReviewQuerySchema,
 	CatalogReviewSchema,
 	CatalogSourceSchema,
-	CatalogWorkDetailSchema,
+	LocalWorkDetailSchema,
 } from "../../../../contracts/schemas/anime-catalog.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { AnimeCatalogApi } from "../public.js";
@@ -88,10 +88,13 @@ export function registerCatalogRoutes(
 		{
 			schema: {
 				params: CatalogIdParamsSchema,
-				response: { 200: CatalogWorkDetailSchema },
+				response: { 200: LocalWorkDetailSchema },
 			},
 		},
-		async (request) => presentDetail(await catalog.detail(request.params.id)),
+		async (request) =>
+			presentLocalWorkDetail(
+				await catalog.getLocalWorkDetail(request.params.id),
+			),
 	);
 	app.get(
 		"/api/catalog/sources/:id",
@@ -207,11 +210,11 @@ export function registerCatalogRoutes(
 			schema: {
 				params: CatalogIdParamsSchema,
 				body: CatalogRefreshSchema,
-				response: { 200: CatalogWorkDetailSchema },
+				response: { 200: LocalWorkDetailSchema },
 			},
 		},
 		async (request) =>
-			presentDetail(
+			presentLocalWorkDetail(
 				await catalog.refresh(request.params.id, request.body.revision),
 			),
 	);
@@ -226,7 +229,9 @@ function presentCard(
 	const { hasCover, ...card } = work;
 	return { ...card, coverUrl: hasCover ? artworkUrl(work.id, "cover") : null };
 }
-function presentDetail(value: Awaited<ReturnType<AnimeCatalogApi["detail"]>>) {
+function presentLocalWorkDetail(
+	value: Awaited<ReturnType<AnimeCatalogApi["getLocalWorkDetail"]>>,
+) {
 	const { hasBanner, work, ...detail } = value;
 	return {
 		...detail,
