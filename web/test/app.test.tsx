@@ -1761,12 +1761,19 @@ test("a single usable version links directly to playback and provider refresh fa
 	const episode = detail.episodes[0];
 	if (!episode) throw new Error("Missing fixture episode");
 	episode.versions = episode.versions.slice(0, 1);
-	detail.metadata.refreshError = {
-		code: "unavailable",
-		message: "Unavailable",
-		retryAt: null,
-	};
 	mockAnime(detail);
+	const fallback = fetcher.getMockImplementation();
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === "/api/catalog/works/work-1/refresh") {
+			detail.metadata.refreshError = {
+				code: "unavailable",
+				message: "Unavailable",
+				retryAt: null,
+			};
+			return json(detail);
+		}
+		return requiredFetch(fallback)(input, init);
+	});
 	renderApp("/anime/work-1?library=https%3A%2F%2Fevil.invalid");
 	const play = await screen.findByRole("link", { name: "Play: Episode 1" });
 	expect(play.getAttribute("href")).toContain("library=%2F");
@@ -1774,7 +1781,10 @@ test("a single usable version links directly to playback and provider refresh fa
 		screen.getByRole("link", { name: "Back to library" }).getAttribute("href"),
 	).toBe("/");
 	fireEvent.click(screen.getByRole("button", { name: "Refresh metadata" }));
-	await screen.findByRole("alert");
+	await screen.findByText(/Metadata could not be refreshed/, {
+		selector: "[data-slot=toast-title]",
+	});
+	expect(within(screen.getByRole("main")).queryByRole("alert")).toBeNull();
 	expect(screen.getByRole("link", { name: "Play: Episode 1" })).toBeTruthy();
 });
 
@@ -2023,6 +2033,7 @@ test("Review displays explicit local numbering and previews that number instead 
 
 test("failed recognition can be manually looked up, corrected with an offset preview and admitted", async () => {
 	const item = mockReview();
+	mockAnime(animeFixture());
 	renderApp(`/review?item=${item.id}`);
 	await selectReviewWork();
 	fireEvent.change(screen.getByLabelText("Episode numbers"), {
@@ -2034,7 +2045,7 @@ test("failed recognition can be manually looked up, corrected with an offset pre
 	fireEvent.click(screen.getByRole("button", { name: "Preview association" }));
 	await screen.findByText("Episode 2", { exact: true });
 	fireEvent.click(screen.getByRole("button", { name: "Confirm association" }));
-	await screen.findByRole("link", { name: "Open anime" });
+	await screen.findByRole("button", { name: "Open anime" });
 	const body = fetcher.mock.calls.find(
 		([path]) => path === "/api/catalog/confirmations",
 	)?.[1]?.body;
@@ -2042,6 +2053,11 @@ test("failed recognition can be manually looked up, corrected with an offset pre
 		previewId: "preview-1",
 		replace: false,
 	});
+	expect(
+		within(screen.getByRole("main")).queryByText("Association saved."),
+	).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Open anime" }));
+	await screen.findByRole("heading", { name: "Frieren", level: 1 });
 });
 
 test("correcting an automatically associated file requires explicit replacement", async () => {
@@ -2058,7 +2074,7 @@ test("correcting an automatically associated file requires explicit replacement"
 	expect(confirm.hasAttribute("disabled")).toBe(true);
 	fireEvent.click(screen.getByRole("checkbox", { name: /Explicitly replace/ }));
 	fireEvent.click(confirm);
-	await screen.findByRole("link", { name: "Open anime" });
+	await screen.findByRole("button", { name: "Open anime" });
 	const body = fetcher.mock.calls.find(
 		([path]) => path === "/api/catalog/confirmations",
 	)?.[1]?.body;
@@ -2247,7 +2263,10 @@ test("a failed confirmation retains the form and reuses its preview operation ke
 	fireEvent.click(
 		await screen.findByRole("button", { name: "Confirm association" }),
 	);
-	await screen.findByRole("alert");
+	await screen.findByText(/Anime catalog is unavailable/, {
+		selector: "[data-slot=toast-title]",
+	});
+	expect(within(screen.getByRole("main")).queryByRole("alert")).toBeNull();
 	expect(
 		(screen.getByLabelText("Episode numbers") as HTMLInputElement).value,
 	).toBe("3");
@@ -2259,7 +2278,7 @@ test("a failed confirmation retains the form and reuses its preview operation ke
 		).toBe(false),
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Confirm association" }));
-	await screen.findByRole("link", { name: "Open anime" });
+	await screen.findByRole("button", { name: "Open anime" });
 	const requests = fetcher.mock.calls
 		.filter(([url]) => url === "/api/catalog/confirmations")
 		.map(([, init]) => JSON.parse(String(init?.body)));
@@ -2600,6 +2619,17 @@ test("AniList library shows status and remote-only details, keeps filters and re
 	});
 	renderApp("/");
 	await screen.findByText(/Watching · AniList progress: 3/);
+	const toolbar = within(
+		screen.getByRole("group", { name: "Library controls" }),
+	);
+	expect(toolbar.getByRole("button", { name: "Search" })).toBeTruthy();
+	expect(toolbar.getByRole("button", { name: "Filters" })).toBeTruthy();
+	expect(toolbar.getByRole("combobox", { name: "Sort by" })).toBeTruthy();
+	const refreshButton = toolbar.getByRole("button", {
+		name: "Refresh AniList list",
+	});
+	expect(refreshButton.textContent).toBe("");
+	expect(refreshButton.hasAttribute("data-base-ui-tooltip-trigger")).toBe(true);
 	expect(
 		screen.getByText("Showing cached AniList viewing state."),
 	).toBeTruthy();
@@ -2636,8 +2666,17 @@ test("AniList library shows status and remote-only details, keeps filters and re
 			screen.queryByText("Showing cached AniList viewing state."),
 		).toBeNull(),
 	);
+	await screen.findByText("AniList list refreshed.", {
+		selector: "[data-slot=toast-title]",
+	});
 	fireEvent.click(await screen.findByRole("link", { name: "Remote work" }));
 	await screen.findByRole("heading", { name: "Remote work", level: 1 });
+	const remoteState = within(
+		screen.getByRole("region", { name: "AniList viewing state" }),
+	);
+	expect(remoteState.getByText("Planning")).toBeTruthy();
+	expect(remoteState.getByText("0 / 12 episodes")).toBeTruthy();
+	expect(remoteState.queryByRole("heading")).toBeNull();
 	expect(
 		screen.getByText("No local resources are associated with this work."),
 	).toBeTruthy();
@@ -2725,4 +2764,259 @@ test("Library filters allow All works before local setup and disable viewing sta
 	);
 	await screen.findByText(/No associated anime yet/);
 	expect(screen.getByTestId("location").textContent).toContain("scope=all");
+});
+
+test("the Library AniList connection button opens Settings", async () => {
+	renderApp("/");
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Connect AniList in Settings" }),
+	);
+	await screen.findByRole("heading", { name: "Settings", level: 1 });
+	expect(screen.getByTestId("location").textContent).toContain("/settings");
+});
+
+test.each(["retained response", "network"])(
+	"manual AniList refresh failure uses a Toast for %s and keeps cache context",
+	async (failureKind) => {
+		const fallback = fetcher.getMockImplementation();
+		const snapshot: AnimeLibraryResponse["tracking"] = {
+			accountId: 7,
+			generation: `manual-${failureKind}`,
+			state: "connected",
+			fetchedAt: 1000,
+			stale: true,
+			refreshing: false,
+			error: null,
+		};
+		fetcher.mockImplementation(async (input, init) => {
+			const path = String(input);
+			if (path === "/api/tracking/account")
+				return json({
+					clientId: "fixture",
+					authorizationUrl: "https://anilist.co",
+					generation: snapshot.generation,
+					account: { id: 7, name: "Fixture" },
+					state: "connected",
+					connectivity: "available",
+					checkedAt: 0,
+				});
+			if (path.startsWith("/api/anime/library?"))
+				return json({
+					items: [],
+					page: 1,
+					perPage: 24,
+					hasNextPage: false,
+					localState: "available",
+					tracking: snapshot,
+				});
+			if (path === "/api/tracking/refresh") {
+				if (failureKind === "network")
+					throw new TypeError("private transport detail");
+				snapshot.error = { code: "unavailable", retryAt: 2000 };
+				return json({ ...snapshot, entries: [] });
+			}
+			return requiredFetch(fallback)(input, init);
+		});
+		renderApp("/");
+		await screen.findByText("Showing cached AniList viewing state.");
+		fireEvent.click(
+			screen.getByRole("button", { name: "Refresh AniList list" }),
+		);
+		await screen.findByText(
+			failureKind === "network"
+				? /Cannot connect to the server/
+				: /Could not refresh AniList/,
+			{ selector: "[data-slot=toast-title]" },
+		);
+		const main = within(screen.getByRole("main"));
+		expect(
+			main.queryByText(
+				/Could not refresh AniList|Cannot connect to the server/,
+			),
+		).toBeNull();
+		expect(
+			main.getByText("Showing cached AniList viewing state."),
+		).toBeTruthy();
+		await waitFor(() =>
+			expect(
+				screen
+					.getByRole("button", { name: "Refresh AniList list" })
+					.hasAttribute("disabled"),
+			).toBe(false),
+		);
+	},
+);
+
+test.each([400, 409, 422])(
+	"Review HTTP %s correction errors stay inline with the form",
+	async (status) => {
+		const item = mockReview();
+		const fallback = fetcher.getMockImplementation();
+		const notify = vi.spyOn(toast, "add");
+		fetcher.mockImplementation(async (input, init) => {
+			if (String(input) === "/api/catalog/confirmations")
+				return json(
+					{
+						error: {
+							code: status === 409 ? "CATALOG_CONFLICT" : "INVALID_REQUEST",
+							message: "Correct the request",
+							requestId: "correction",
+						},
+					},
+					status,
+				);
+			return requiredFetch(fallback)(input, init);
+		});
+		renderApp(`/review?item=${item.id}`);
+		await selectReviewWork();
+		fireEvent.click(
+			screen.getByRole("button", { name: "Preview association" }),
+		);
+		fireEvent.click(
+			await screen.findByRole("button", { name: "Confirm association" }),
+		);
+		await within(screen.getByRole("main")).findByRole("alert");
+		expect(screen.getByLabelText("Episode numbers")).toBeTruthy();
+		expect(
+			screen.getByRole("heading", { name: "Association preview" }),
+		).toBeTruthy();
+		expect(
+			notify.mock.calls.some(
+				([notice]) => notice.id === `review-operation:${item.id}`,
+			),
+		).toBe(false);
+		notify.mockRestore();
+	},
+);
+
+test("a failed Review rejection uses a Toast, retains the reason and can be retried", async () => {
+	const item = mockReview();
+	const fallback = fetcher.getMockImplementation();
+	let failing = true;
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === `/api/catalog/reviews/${item.id}/reject`) {
+			if (failing)
+				return json(
+					{
+						error: {
+							code: "CATALOG_UNAVAILABLE",
+							message: "Unavailable",
+							requestId: "reject",
+						},
+					},
+					503,
+				);
+			item.decision = "rejected";
+			return json(item);
+		}
+		return requiredFetch(fallback)(input, init);
+	});
+	renderApp(`/review?item=${item.id}`);
+	fireEvent.click(
+		await screen.findByText("Reject resource", { selector: "summary" }),
+	);
+	fireEvent.change(screen.getByLabelText("Reason (optional)"), {
+		target: { value: "Keep outside library" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Reject resource" }));
+	await screen.findByText(/Anime catalog is unavailable/, {
+		selector: "[data-slot=toast-title]",
+	});
+	expect(within(screen.getByRole("main")).queryByRole("alert")).toBeNull();
+	expect(
+		(screen.getByLabelText("Reason (optional)") as HTMLInputElement).value,
+	).toBe("Keep outside library");
+	failing = false;
+	await waitFor(() =>
+		expect(
+			screen
+				.getByRole("button", { name: "Reject resource" })
+				.hasAttribute("disabled"),
+		).toBe(false),
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Reject resource" }));
+	await screen.findByText("Resource rejected.", {
+		selector: "[data-slot=toast-title]",
+	});
+});
+
+test("manual metadata refresh success is a Toast and leaves the refresh action available", async () => {
+	mockAnime(animeFixture());
+	renderApp("/anime/work-1");
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Refresh metadata" }),
+	);
+	await screen.findByText("Metadata refreshed.", {
+		selector: "[data-slot=toast-title]",
+	});
+	expect(
+		within(screen.getByRole("main")).queryByText("Metadata refreshed."),
+	).toBeNull();
+	await waitFor(() =>
+		expect(
+			screen
+				.getByRole("button", { name: "Refresh metadata" })
+				.hasAttribute("disabled"),
+		).toBe(false),
+	);
+});
+
+test("local detail viewing state lives in the title header and uses provider count instead of locally available episodes", async () => {
+	mockAnime(animeFixture());
+	const fallback = fetcher.getMockImplementation();
+	fetcher.mockImplementation(async (input, init) => {
+		const path = String(input);
+		if (path === "/api/tracking/account")
+			return json({
+				clientId: "fixture",
+				authorizationUrl: "https://anilist.co",
+				generation: "header-viewing",
+				account: { id: 7, name: "Fixture" },
+				state: "connected",
+				connectivity: "available",
+				checkedAt: 0,
+			});
+		if (path.startsWith("/api/tracking/entries/154587?"))
+			return json({
+				accountId: 7,
+				generation: "header-viewing",
+				state: "connected",
+				fetchedAt: 1000,
+				stale: false,
+				refreshing: false,
+				error: null,
+				entry: {
+					id: 1,
+					mediaId: 154587,
+					progress: 2,
+					status: "CURRENT",
+					updatedAt: 1,
+					titles: ["Frieren"],
+					format: "TV",
+					year: 2023,
+					episodeCount: 3,
+					coverUrl: null,
+				},
+			});
+		return requiredFetch(fallback)(input, init);
+	});
+	renderApp("/anime/work-1");
+	const title = await screen.findByRole("heading", {
+		name: "Frieren",
+		level: 1,
+	});
+	const header = title.parentElement;
+	if (!header) throw new Error("Missing title header");
+	const summary = await within(header).findByRole("region", {
+		name: "AniList viewing state",
+	});
+	await within(summary).findByText("2 / 3 episodes");
+	expect(within(summary).getByText("Watching")).toBeTruthy();
+	expect(within(summary).queryByRole("heading")).toBeNull();
+	expect(
+		within(summary).queryByText(/separate from local playback history/),
+	).toBeNull();
+	expect(
+		screen.getAllByRole("region", { name: "AniList viewing state" }),
+	).toHaveLength(1);
 });

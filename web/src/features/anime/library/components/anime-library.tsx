@@ -7,12 +7,13 @@ import { PageHeader } from "../../../../shared/components/page-header.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
+import { TrackingFeedback } from "../../tracking/public.js";
 import { libraryFilters, librarySearch } from "../api.js";
 import { useLibraryData } from "../use-library-data.js";
 import { LibraryFiltersForm } from "./library-filters-form.js";
 import { LibraryPagination } from "./library-pagination.js";
 import { LibraryResults } from "./library-results.js";
-import { LibraryTrackingControls } from "./library-tracking-controls.js";
+import { LibraryTrackingAction } from "./library-tracking-action.js";
 
 export function AnimeLibrary({
 	resourceRoot,
@@ -52,17 +53,20 @@ export function AnimeLibrary({
 				title={t("anime.library")}
 				description={t("anime.libraryHint")}
 			/>
-			<LibraryTrackingControls
-				account={query.account}
-				snapshot={query.data?.tracking}
-				refresh={query.refresh}
-			/>
 			<LibraryFiltersForm
 				filters={filters}
 				filtered={filtered}
 				onFilters={setParams}
 				viewingEnabled={Boolean(query.account?.account)}
+				actions={
+					<LibraryTrackingAction
+						account={query.account}
+						snapshot={query.data?.tracking}
+						refresh={query.refresh}
+					/>
+				}
 			/>
+			{query.data && <TrackingFeedback snapshot={query.data.tracking} />}
 			{!resourceRoot && filters.scope !== "all" ? (
 				<EmptyState
 					icon={<FolderPlus size={24} />}

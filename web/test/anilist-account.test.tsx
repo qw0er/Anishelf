@@ -11,6 +11,7 @@ import {
 	render,
 	screen,
 	waitFor,
+	within,
 } from "./query-test-utils.js";
 
 const disconnected: TrackingAccountResponse = {
@@ -96,7 +97,14 @@ test("previews without retaining token, requires confirmation and clears former 
 		"AniList access token",
 	) as HTMLInputElement;
 	fireEvent.change(input, { target: { value: "fixture-token" } });
-	fireEvent.submit(input.closest("form") as HTMLFormElement);
+	const actions = screen.getByRole("group", {
+		name: "AniList account actions",
+	});
+	const previewButton = within(actions).getByRole("button", {
+		name: "Preview account",
+	});
+	expect((previewButton as HTMLButtonElement).form).toBe(input.form);
+	fireEvent.click(previewButton);
 	await screen.findByText("Connect as Fixture?");
 	expect(input.value).toBe("");
 	expect(
@@ -104,8 +112,17 @@ test("previews without retaining token, requires confirmation and clears former 
 			([path]) => path === "/api/tracking/account/confirm",
 		),
 	).toBe(false);
-	fireEvent.click(screen.getByRole("button", { name: "Confirm connection" }));
+	expect(within(actions).getByRole("button", { name: "Cancel" })).toBeTruthy();
+	fireEvent.click(
+		within(actions).getByRole("button", { name: "Confirm connection" }),
+	);
 	await screen.findByText("Account: Fixture");
+	expect(
+		within(actions).getByRole("button", { name: "Check connection" }),
+	).toBeTruthy();
+	expect(
+		within(actions).getByRole("button", { name: "Disconnect" }),
+	).toBeTruthy();
 	expect(
 		queryClient.getQueryData(["tracking", "old-account", "list"]),
 	).toBeUndefined();

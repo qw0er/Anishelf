@@ -7,6 +7,7 @@ import {
 	metadataDetail,
 	searchMetadata,
 } from "./api.js";
+import { reportMetadataRefresh } from "./refresh-feedback.js";
 
 export const relationsQuery = (provider: string, id: string, page: number) =>
 	queryOptions({
@@ -24,8 +25,14 @@ export const metadataSearchQuery = (query: string, page: number) =>
 export const metadataDetailQuery = (provider: string, id: string) =>
 	queryOptions({
 		queryKey: ["metadata-detail", provider, id],
-		queryFn: ({ signal }) =>
-			metadataDetail(provider, id, { signal: boundedSignal(signal) }),
+		queryFn: async ({ signal, client }) => {
+			const result = await metadataDetail(provider, id, {
+				signal: boundedSignal(signal),
+			});
+			signal.throwIfAborted();
+			reportMetadataRefresh(client, result);
+			return result;
+		},
 	});
 
 export const identificationQuery = (scope: string) =>

@@ -6,6 +6,7 @@ import type {
 	TrackingListResponse,
 } from "../../../shared/api/contracts.js";
 import { boundedSignal } from "../../../shared/api/queries.js";
+import { reportTrackingRefresh } from "./refresh-feedback.js";
 export const accountQuery = () =>
 	queryOptions({
 		queryKey: ["tracking", "account"] as const,
@@ -35,12 +36,16 @@ export const entryQuery = (mediaId: string, identity: TrackingIdentity) =>
 			identity.generation,
 			mediaId,
 		],
-		queryFn: ({ signal }) =>
-			request<TrackingEntryResponse>(
+		queryFn: async ({ signal, client }) => {
+			const result = await request<TrackingEntryResponse>(
 				`/api/tracking/entries/${encodeURIComponent(mediaId)}?${new URLSearchParams({ generation: identity.generation })}`,
 				"GET",
 				{ signal: boundedSignal(signal) },
-			),
+			);
+			signal.throwIfAborted();
+			reportTrackingRefresh(client, result);
+			return result;
+		},
 		refetchInterval: (query) => (query.state.data?.refreshing ? 1500 : 60_000),
 	});
 export function refreshTrackingList(generation: string) {

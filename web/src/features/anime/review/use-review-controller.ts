@@ -1,20 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router";
 import type {
 	CatalogPreviewResponse,
 	CatalogReviewItem,
 } from "../../../shared/api/contracts.js";
+import { toast } from "../../../shared/components/ui/toast.js";
 import {
 	metadataDetailQuery,
 	metadataSearchQuery,
 } from "../metadata/public.js";
 import { animeLibraryQueryKey } from "../shared/query-keys.js";
 import { confirmMapping, decideReview, previewMapping } from "./api.js";
+import { inlineReviewError, reportReviewFailure } from "./feedback.js";
 import { parseMapping, parseProviderReference } from "./mapping.js";
 export function useReviewController(item: CatalogReviewItem) {
 	const { t } = useTranslation();
 	const client = useQueryClient();
+	const navigate = useNavigate();
+	const noticeId = `review-operation:${item.id}`;
 	const [reference, setReference] = useState<{
 		provider: string;
 		mediaType: "anime";
@@ -35,7 +40,6 @@ export function useReviewController(item: CatalogReviewItem) {
 		null,
 	);
 	const [validation, setValidation] = useState<string | null>(null);
-	const [success, setSuccess] = useState<string | null>(null);
 	const searchQuery = useQuery({
 		...metadataSearchQuery(search, searchPage),
 		enabled: search.length > 0,
@@ -52,15 +56,18 @@ export function useReviewController(item: CatalogReviewItem) {
 		]);
 	};
 	const previewAction = useMutation({
+		onMutate: () => toast.close(noticeId),
+		onError: (error) => reportReviewFailure(noticeId, error),
 		mutationFn: previewMapping,
 		onSuccess: (value) => {
 			setPreview(value);
 			setOperationKey(crypto.randomUUID());
 			setReplace(false);
-			setSuccess(null);
 		},
 	});
 	const confirmAction = useMutation({
+		onMutate: () => toast.close(noticeId),
+		onError: (error) => reportReviewFailure(noticeId, error),
 		mutationFn: () => {
 			if (!preview) throw new Error("No preview");
 			return confirmMapping({
@@ -71,17 +78,35 @@ export function useReviewController(item: CatalogReviewItem) {
 		},
 		onSuccess: async (value) => {
 			setPreview(null);
-			setSuccess(value.workId);
+			toast.add({
+				id: noticeId,
+				type: "success",
+				title: t("review.saved"),
+				actionProps: {
+					children: t("review.openWork"),
+					onClick: () => {
+						void navigate(`/anime/${encodeURIComponent(value.workId)}`);
+					},
+				},
+			});
 			await invalidate();
 		},
 	});
 	const decisionAction = useMutation({
+		onMutate: () => toast.close(noticeId),
+		onError: (error) => reportReviewFailure(noticeId, error),
 		mutationFn: ({ reason, remove }: { reason: string; remove: boolean }) =>
 			decideReview(item.id, item.revision, reason, remove),
-		onSuccess: async () => {
+		onSuccess: async (_result, variables) => {
 			setPreview(null);
-			setSuccess(null);
 			setDecisionValidation(null);
+			toast.add({
+				id: noticeId,
+				type: "success",
+				title: t(
+					variables.remove ? "review.removalSaved" : "review.rejectionSaved",
+				),
+			});
 			await invalidate();
 		},
 	});
@@ -138,16 +163,15 @@ export function useReviewController(item: CatalogReviewItem) {
 		replace,
 		validation,
 		decisionValidation,
-		success,
 		searchQuery,
 		details,
 		replacement,
 		busy,
 		previewPending: previewAction.isPending,
 		confirmPending: confirmAction.isPending,
-		previewError: previewAction.error,
-		confirmError: confirmAction.error,
-		decisionError: decisionAction.error,
+		previewError: inlineReviewError(previewAction.error),
+		confirmError: inlineReviewError(confirmAction.error),
+		decisionError: inlineReviewError(decisionAction.error),
 		selectWork,
 		searchWorks,
 		lookupWork,

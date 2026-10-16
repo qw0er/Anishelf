@@ -1,10 +1,13 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { CatalogDetailResponse } from "../../../../shared/api/contracts.js";
 import { Artwork } from "../../shared/components/artwork.js";
 import { fuzzyDate, safeLink } from "../detail-format.js";
 export function WorkMetadataHeader({
 	data,
+	viewing,
 }: {
+	viewing?: ReactNode;
 	data: {
 		metadata: CatalogDetailResponse["metadata"];
 		work: Pick<
@@ -38,6 +41,7 @@ export function WorkMetadataHeader({
 						.filter((title) => title !== work.displayTitle)
 						.join(" · ")}
 				</p>
+				{viewing}
 				<dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
 					{[
 						["format", work.format?.replaceAll("_", " ")],

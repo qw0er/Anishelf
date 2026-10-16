@@ -11,7 +11,7 @@ import {
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { Artwork } from "../../shared/components/artwork.js";
-import { ViewingPanel } from "../../tracking/public.js";
+import { useViewingState, ViewingSummary } from "../../tracking/public.js";
 import { workQuery } from "../queries.js";
 
 import { useWorkDetail } from "../use-work-detail.js";
@@ -51,6 +51,9 @@ function WorkDetail({ data }: { data: CatalogDetailResponse }) {
 	const controller = useWorkDetail(data);
 	const { libraryPath, refresh } = controller;
 	const { work, metadata } = data;
+	const viewing = useViewingState(
+		work.reference.provider === "anilist" ? work.reference.id : undefined,
+	);
 	return (
 		<section className="stack-page">
 			<div className="action-row justify-between">
@@ -65,19 +68,27 @@ function WorkDetail({ data }: { data: CatalogDetailResponse }) {
 				</Link>
 				<Button
 					variant="outline"
-					disabled={refresh.isPending}
+					disabled={refresh.isPending || metadata.refreshing}
+					aria-busy={refresh.isPending || metadata.refreshing}
 					onClick={() => refresh.mutate()}
 				>
-					<RefreshCw size={16} aria-hidden="true" />
-					{t(refresh.isPending ? "anime.refreshing" : "anime.refresh")}
+					<RefreshCw
+						size={16}
+						aria-hidden="true"
+						className={
+							refresh.isPending || metadata.refreshing
+								? "animate-spin"
+								: undefined
+						}
+					/>
+					{t(
+						refresh.isPending || metadata.refreshing
+							? "anime.refreshing"
+							: "anime.refresh",
+					)}
 				</Button>
 			</div>
-			{refresh.error && (
-				<p role="alert">
-					{t(getErrorTranslationKey(refresh.error) ?? "anime.refreshFailed")}
-				</p>
-			)}
-			{metadata.refreshError && <p role="alert">{t("anime.refreshFailed")}</p>}
+
 			<p className="text-sm text-muted-foreground">
 				{t("anime.metadataUpdated", {
 					time: new Date(metadata.fetchedAt).toLocaleString(i18n.language),
@@ -88,17 +99,21 @@ function WorkDetail({ data }: { data: CatalogDetailResponse }) {
 					{t("anime.stale")}
 				</p>
 			)}
-			{metadata.refreshing && <p role="status">{t("anime.refreshing")}</p>}
 			<Artwork
 				key={`banner:${metadata.fetchedAt}`}
 				url={data.bannerUrl}
 				title={work.displayTitle}
 				banner
 			/>
-			<WorkMetadataHeader data={data} />
-			{work.reference.provider === "anilist" && (
-				<ViewingPanel mediaId={work.reference.id} />
-			)}
+			<WorkMetadataHeader
+				data={data}
+				viewing={
+					<ViewingSummary
+						state={viewing}
+						episodeCount={metadata.data.episodeCount}
+					/>
+				}
+			/>
 			<div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 				<EpisodeList data={data} controller={controller} />
 				<aside className="min-w-0 space-y-4">
