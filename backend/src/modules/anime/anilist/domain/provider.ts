@@ -124,3 +124,30 @@ export interface AniListMetadataApi {
 		signal: AbortSignal,
 	): Promise<AniListResult<AniListPage<AniListAiringEpisode>>>;
 }
+
+export interface AniListRemoteState {
+	id: number;
+	progress: number;
+	status: AniListViewingStatus;
+	updatedAt: number;
+}
+export interface AniListDesiredState {
+	progress?: number;
+	status?: AniListViewingStatus;
+}
+export interface AniListUpdateApi {
+	get(
+		accountId: number,
+		mediaId: number,
+		token: string,
+		signal: AbortSignal,
+	): Promise<AniListRemoteState | null>;
+	save(
+		accountId: number,
+		mediaId: number,
+		entryId: number | null,
+		desired: AniListDesiredState,
+		token: string,
+		signal: AbortSignal,
+	): Promise<AniListRemoteState>;
+}

@@ -546,8 +546,7 @@
 		"episodes_other": "{{count}} episodes",
 		"progressInfo": "About AniList progress",
 		"cached": "Cached",
-		"cacheDetails": "AniList cache details",
-		"cacheInfo": "Showing saved AniList viewing state. Last updated: {{time}}.",
+		"updatedAt": "Last updated: {{time}}.",
 		"reconnectAction": "Reconnect",
 		"unavailable": "Viewing state unavailable",
 		"cumulative": "AniList progress is cumulative and is separate from local playback history.",
@@ -570,5 +569,30 @@
 		"reconnect": "Reconnect your AniList account to refresh its viewing state.",
 		"notLoaded": "AniList viewing state has not loaded yet.",
 		"noLocal": "No local resources are associated with this work."
+	},
+	"trackingUpdate": {
+		"edit": "Edit AniList progress",
+		"description": "Save progress and status to AniList. Changes remain pending until AniList confirms them.",
+		"progress": "Episodes watched",
+		"status": "Tracking status",
+		"confirmed_one": "Confirmed on AniList: {{progress}} episode \u00b7 {{status}}",
+		"confirmed_other": "Confirmed on AniList: {{progress}} episodes \u00b7 {{status}}",
+		"desired_one": "Pending change: {{progress}} episode \u00b7 {{status}}",
+		"desired_other": "Pending change: {{progress}} episodes \u00b7 {{status}}",
+		"cumulative": "Progress is cumulative. Advancing it includes all earlier episodes. Lower values are allowed as explicit corrections.",
+		"save": "Save to AniList",
+		"keepRemote": "Keep AniList value",
+		"submitLocal": "Submit my change",
+		"failure": "Submission needs attention ({{code}}).",
+		"retryAt": "Automatic retry after {{time}}",
+		"states": {
+			"pending": "AniList change queued",
+			"submitting": "Submitting to AniList",
+			"failed": "AniList submission failed",
+			"conflict": "AniList changed remotely. Choose which value to keep.",
+			"authorization-required": "Reconnect AniList to continue submission",
+			"succeeded": "AniList change confirmed",
+			"cancelled": "Kept AniList value"
+		}
 	}
 }

@@ -1,0 +1,328 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useId, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ApiClientError, request } from "../../../shared/api/client.js";
+import type {
+	TrackingAccountResponse,
+	TrackingEntryResponse,
+	TrackingOperationResponse,
+	TrackingUpdateRequest,
+} from "../../../shared/api/contracts.js";
+import { Button } from "../../../shared/components/ui/button.js";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogTitle,
+} from "../../../shared/components/ui/dialog.js";
+import { Input } from "../../../shared/components/ui/input.js";
+import { toast } from "../../../shared/components/ui/toast.js";
+import { operationsQuery, reportTrackingOperations } from "./operations.js";
+import { accountQuery } from "./queries.js";
+import type { ViewingState } from "./use-viewing-state.js";
+
+type Status = NonNullable<TrackingEntryResponse["entry"]>["status"];
+const statuses: Status[] = [
+	"CURRENT",
+	"PLANNING",
+	"COMPLETED",
+	"PAUSED",
+	"DROPPED",
+	"REPEATING",
+];
+export function ViewingEditor({
+	state,
+	mediaId,
+}: {
+	state: ViewingState;
+	mediaId: string;
+}) {
+	const { t } = useTranslation();
+	const [open, setOpen] = useState(false);
+	const snapshot = state.snapshot;
+	const identity = {
+		accountId: snapshot?.accountId ?? null,
+		generation: snapshot?.generation ?? "",
+	};
+	const operations = useQuery({
+		...operationsQuery(identity),
+		enabled: Boolean(identity.accountId && identity.generation),
+	});
+	const operation = operations.data?.find(
+		(op) => op.mediaId === Number(mediaId),
+	);
+	if (snapshot?.state !== "connected" || snapshot.fetchedAt === null)
+		return null;
+	return (
+		<>
+			<Button variant="outline" onClick={() => setOpen(true)}>
+				{t("trackingUpdate.edit")}
+			</Button>
+			<Dialog open={open} onOpenChange={setOpen}>
+				<DialogContent>
+					<DialogTitle>{t("trackingUpdate.edit")}</DialogTitle>
+					<DialogDescription>
+						{t("trackingUpdate.description")}
+					</DialogDescription>
+					{operations.isPending ? (
+						<p role="status">{t("anime.loading")}</p>
+					) : operations.error ? (
+						<div role="alert">
+							<p>{t("errors.pageLoad")}</p>
+							<Button onClick={() => void operations.refetch()}>
+								{t("actions.retry")}
+							</Button>
+						</div>
+					) : (
+						<ViewingForm
+							key={`${snapshot.generation}:${operation?.revision ?? 0}`}
+							mediaId={mediaId}
+							snapshot={snapshot}
+							operation={operation}
+						/>
+					)}
+				</DialogContent>
+			</Dialog>
+		</>
+	);
+}
+function ViewingForm({
+	mediaId,
+	snapshot,
+	operation,
+}: {
+	mediaId: string;
+	snapshot: TrackingEntryResponse;
+	operation: TrackingOperationResponse | undefined;
+}) {
+	const { t } = useTranslation();
+	const client = useQueryClient();
+	const progressId = useId();
+	const pending =
+		operation && !["succeeded", "cancelled"].includes(operation.state);
+	const remote =
+		operation && (snapshot.fetchedAt ?? 0) < operation.updatedAt
+			? operation.remote
+			: snapshot.entry;
+	const [progress, setProgress] = useState(
+		String(
+			(pending ? operation.desired.progress : undefined) ??
+				remote?.progress ??
+				0,
+		),
+	);
+	const [status, setStatus] = useState<Status>(
+		(pending ? operation.desired.status : undefined) ??
+			remote?.status ??
+			"CURRENT",
+	);
+	const [progressEdited, setProgressEdited] = useState(false);
+	const [statusEdited, setStatusEdited] = useState(false);
+	const progressChanged =
+		progressEdited &&
+		(Number(progress) !== remote?.progress ||
+			Boolean(
+				pending &&
+					operation.desired.progress !== undefined &&
+					Number(progress) !== operation.desired.progress,
+			));
+	const statusChanged =
+		statusEdited &&
+		(status !== remote?.status ||
+			Boolean(
+				pending &&
+					operation.desired.status !== undefined &&
+					status !== operation.desired.status,
+			));
+	const mutation = useMutation({
+		mutationFn: async (command: "update" | "retry" | "remote" | "local") => {
+			const revision = operation?.revision ?? null;
+			const body = { generation: snapshot.generation, revision };
+			if (command !== "update")
+				return request<TrackingOperationResponse>(
+					`/api/tracking/operations/${operation?.id}/${command === "retry" ? "retry" : "resolve"}`,
+					"POST",
+					{},
+					command === "retry"
+						? body
+						: { ...body, keepRemote: command === "remote" },
+				);
+			const desired: TrackingUpdateRequest["desired"] = {};
+			if (!remote || progressChanged) desired.progress = Number(progress);
+			if (!remote || statusChanged) desired.status = status;
+			return request<TrackingOperationResponse>(
+				`/api/tracking/entries/${mediaId}/updates`,
+				"POST",
+				{},
+				{
+					...body,
+					baseline: remote
+						? {
+								id: remote.id,
+								progress: remote.progress,
+								status: remote.status,
+								updatedAt: remote.updatedAt,
+							}
+						: null,
+					desired,
+				},
+			);
+		},
+		onSuccess: (result) => {
+			const current = client.getQueryData<TrackingAccountResponse>(
+				accountQuery().queryKey,
+			);
+			if (current && current.generation !== snapshot.generation) return;
+			reportTrackingOperations(
+				client,
+				{ accountId: snapshot.accountId, generation: snapshot.generation },
+				[result],
+			);
+			void client.invalidateQueries({ queryKey: ["tracking", "operations"] });
+			void client.invalidateQueries({ queryKey: ["tracking", "entry"] });
+			void client.invalidateQueries({ queryKey: ["anime-library"] });
+		},
+		onError: (error: Error) => {
+			if (
+				!(
+					error instanceof ApiClientError &&
+					(error.status === 400 || error.status === 409)
+				)
+			)
+				toast.add({ type: "error", title: error.message });
+		},
+	});
+	const valid =
+		progress.trim() !== "" &&
+		Number.isInteger(Number(progress)) &&
+		Number(progress) >= 0 &&
+		Number(progress) <= 2147483647;
+	const changed = !remote || progressChanged || statusChanged;
+	return (
+		<form
+			className="grid gap-4"
+			onSubmit={(event) => {
+				event.preventDefault();
+				if (valid && changed) mutation.mutate("update");
+			}}
+		>
+			<p className="text-sm text-muted-foreground">
+				{remote
+					? t("trackingUpdate.confirmed", {
+							progress: remote.progress,
+							count: remote.progress,
+							status: t(`trackingList.statuses.${remote.status}`),
+						})
+					: t("trackingList.untracked")}
+			</p>
+			<label htmlFor={progressId} className="grid gap-1">
+				{t("trackingUpdate.progress")}
+				<Input
+					id={progressId}
+					type="number"
+					min={0}
+					max={2147483647}
+					step={1}
+					required
+					value={progress}
+					onChange={(event) => {
+						setProgressEdited(true);
+						setProgress(event.target.value);
+					}}
+				/>
+			</label>
+			<label className="grid gap-1">
+				{t("trackingUpdate.status")}
+				<select
+					className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+					value={status}
+					onChange={(event) => {
+						setStatusEdited(true);
+						setStatus(event.target.value as Status);
+					}}
+				>
+					{statuses.map((value) => (
+						<option key={value} value={value}>
+							{t(`trackingList.statuses.${value}`)}
+						</option>
+					))}
+				</select>
+			</label>
+			<p className="text-xs text-muted-foreground">
+				{t("trackingUpdate.cumulative")}
+			</p>
+			{operation && (
+				<div role="status" className="text-sm">
+					<p>{t(`trackingUpdate.states.${operation.state}`)}</p>
+					{pending && (
+						<p>
+							{t("trackingUpdate.desired", {
+								count: operation.desired.progress ?? remote?.progress ?? 0,
+								progress: operation.desired.progress ?? remote?.progress ?? "—",
+								status: operation.desired.status
+									? t(`trackingList.statuses.${operation.desired.status}`)
+									: remote
+										? t(`trackingList.statuses.${remote.status}`)
+										: "—",
+							})}
+						</p>
+					)}
+					{operation.error && (
+						<p>{t("trackingUpdate.failure", { code: operation.error })}</p>
+					)}
+					{operation.retryAt !== null && (
+						<p>
+							{t("trackingUpdate.retryAt", {
+								time: new Date(operation.retryAt).toLocaleTimeString(),
+							})}
+						</p>
+					)}
+				</div>
+			)}
+			{mutation.error instanceof ApiClientError &&
+				(mutation.error.status === 400 || mutation.error.status === 409) && (
+					<p role="alert">{mutation.error.message}</p>
+				)}
+			<div className="flex flex-wrap gap-2">
+				{operation?.state === "conflict" ? (
+					<>
+						<Button
+							type="button"
+							variant="outline"
+							disabled={mutation.isPending}
+							onClick={() => mutation.mutate("remote")}
+						>
+							{t("trackingUpdate.keepRemote")}
+						</Button>
+						<Button
+							type="button"
+							disabled={mutation.isPending}
+							onClick={() => mutation.mutate("local")}
+						>
+							{t("trackingUpdate.submitLocal")}
+						</Button>
+					</>
+				) : (
+					<>
+						<Button
+							type="submit"
+							disabled={mutation.isPending || !valid || !changed}
+						>
+							{t("trackingUpdate.save")}
+						</Button>
+						{operation?.state === "failed" && (
+							<Button
+								type="button"
+								variant="outline"
+								disabled={mutation.isPending}
+								onClick={() => mutation.mutate("retry")}
+							>
+								{t("actions.retry")}
+							</Button>
+						)}
+					</>
+				)}
+			</div>
+		</form>
+	);
+}

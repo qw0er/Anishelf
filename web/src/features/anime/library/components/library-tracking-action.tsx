@@ -7,6 +7,7 @@ import type {
 } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
+import { TrackingRefreshHint } from "../../tracking/public.js";
 
 export function LibraryTrackingAction({
 	account,
@@ -35,7 +36,11 @@ export function LibraryTrackingAction({
 		);
 	const refreshing = refresh.isPending || Boolean(snapshot?.refreshing);
 	return (
-		<Tooltip content={t("trackingList.refresh")}>
+		<Tooltip
+			content={
+				<TrackingRefreshHint snapshot={snapshot} refreshing={refreshing} />
+			}
+		>
 			<Button
 				variant="outline"
 				className="size-9 shrink-0 p-0"

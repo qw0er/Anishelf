@@ -165,11 +165,13 @@ test("refresh coalesces, preserves the full previous snapshot on failure and sur
 		const first = ApplicationDatabase.open(dir);
 		const saved = f.cache.get(7);
 		if (!saved) throw new Error("Expected saved snapshot");
-		first.trackingLists.replace(saved);
+		first.trackingLists.replace({ ...saved, invalidated: true });
 		first.close();
 		const second = ApplicationDatabase.open(dir);
 		try {
 			expect(second.trackingLists.read(7)?.entries).toEqual([item()]);
+			expect(second.trackingLists.read(7)?.invalidated).toBe(true);
+			expect(second.trackingLists.read(7)?.fetchedAt).toBe(saved.fetchedAt);
 			expect(second.trackingLists.read(8)).toBeUndefined();
 		} finally {
 			second.close();
@@ -391,6 +393,7 @@ test("assembled Tracking facade uses protocol adapters, preserves cache on malfo
 		dataDir: dir,
 		store: database.tracking,
 		listStore: database.trackingLists,
+		operationStore: database.trackingOperations,
 		client: {
 			request: async (query) => {
 				if (query.includes("Viewer"))
@@ -436,4 +439,30 @@ test("assembled Tracking facade uses protocol adapters, preserves cache on malfo
 		database.close();
 		await rm(dir, { recursive: true, force: true });
 	}
+});
+
+test("confirmed writes fence an older in-flight full-list refresh", async () => {
+	const f = readerFixture();
+	await f.reader.refresh();
+	let finish: ((value: TrackingListEntry[]) => void) | undefined;
+	f.read.mockImplementationOnce(
+		() =>
+			new Promise((resolve) => {
+				finish = resolve;
+			}),
+	);
+	const refresh = f.reader.refresh();
+	await vi.waitFor(() => expect(finish).toBeDefined());
+	f.reader.confirmed(7, 1, {
+		id: 10,
+		progress: 8,
+		status: "PAUSED",
+		updatedAt: 2000,
+	});
+	finish?.([item()]);
+	await refresh;
+	expect(f.reader.read(undefined, false).entries[0]?.progress).toBe(8);
+	expect(f.reader.read(undefined, false).fetchedAt).toBe(1000);
+	expect(f.reader.read(undefined, false).stale).toBe(true);
+	await f.reader.close();
 });

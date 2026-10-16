@@ -39,11 +39,6 @@ export function TrackingFeedback({
 					{t("trackingList.notLoaded")}
 				</p>
 			)}
-			{snapshot.stale && snapshot.fetchedAt !== null && (
-				<p className="text-xs text-muted-foreground">
-					{t("trackingList.stale")}
-				</p>
-			)}
 		</>
 	);
 }

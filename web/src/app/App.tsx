@@ -2,7 +2,10 @@ import { useEffect } from "react";
 import { loadAuthSession } from "../shared/api/client.js";
 import "../shared/i18n.js";
 import { Outlet, ScrollRestoration, useNavigation } from "react-router";
-import { IdentificationStatus } from "../features/anime/ui.js";
+import {
+	IdentificationStatus,
+	TrackingOperationMonitor,
+} from "../features/anime/ui.js";
 import {
 	PreparationMonitor,
 	PreparationProvider,
@@ -53,6 +56,7 @@ export default function App() {
 						<Outlet context={runtime} />
 					</main>
 					<PreparationMonitor />
+					<TrackingOperationMonitor />
 					<IdentificationStatus
 						key={runtime.settings?.resourceRoot ?? "unconfigured"}
 						enabled={Boolean(

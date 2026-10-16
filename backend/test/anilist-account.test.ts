@@ -18,6 +18,7 @@ import {
 import type { TrackingAccountApplication } from "../src/modules/anime/tracking/application/account.js";
 import { registerTrackingListRoutes } from "../src/modules/anime/tracking/http/lists.js";
 import { registerTrackingRoutes } from "../src/modules/anime/tracking/http/tracking.js";
+import { registerTrackingUpdateRoutes } from "../src/modules/anime/tracking/http/updates.js";
 import { AniListAccountProvider } from "../src/modules/anime/tracking/infrastructure/account-provider.js";
 import { TrackingCredentialFiles } from "../src/modules/anime/tracking/infrastructure/credentials.js";
 import type {
@@ -63,6 +64,7 @@ async function setup(
 		dataDir,
 		store: database.tracking,
 		listStore: database.trackingLists,
+		operationStore: database.trackingOperations,
 		client,
 		...(logger ? { logger } : {}),
 	});
@@ -99,6 +101,7 @@ test("credentials survive restart, remain private and never enter SQLite or publ
 		dataDir,
 		store: database.tracking,
 		listStore: database.trackingLists,
+		operationStore: database.trackingOperations,
 		client: { request: async () => ({ Viewer: { id: 7, name: "First" } }) },
 	});
 	cleanup.push(() => restarted.close());
@@ -227,6 +230,7 @@ test("missing/mismatched credential fails closed on startup; unreferenced files 
 		dataDir,
 		store: database.tracking,
 		listStore: database.trackingLists,
+		operationStore: database.trackingOperations,
 		client: {
 			request: async () => {
 				throw new Error("Must not query an invalid credential");
@@ -267,6 +271,7 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 			(scope) => {
 				registerTrackingRoutes(scope, tracking);
 				registerTrackingListRoutes(scope, tracking);
+				registerTrackingUpdateRoutes(scope, tracking);
 			},
 		],
 		closeDependencies: async () => {},
@@ -281,7 +286,11 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 		).statusCode,
 	).toBe(401);
 
-	for (const url of ["/api/tracking/list", "/api/tracking/entries/1"]) {
+	for (const url of [
+		"/api/tracking/list",
+		"/api/tracking/entries/1",
+		"/api/tracking/operations",
+	]) {
 		expect(
 			(await http.inject({ url, headers: { host: "127.0.0.1:3000" } }))
 				.statusCode,
@@ -353,6 +362,71 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 	expect(logs).not.toContain("fixture-token");
 	expect(confirmed.headers["cache-control"]).toBe("no-store");
 	const status = confirmed.json();
+	const updateUrl = "/api/tracking/entries/1/updates";
+	const updatePayload = {
+		generation: status.generation,
+		revision: null,
+		baseline: null,
+		desired: { progress: 0, status: "CURRENT" },
+	};
+	expect(
+		(
+			await http.inject({
+				url: updateUrl,
+				method: "POST",
+				headers: { host: one.host, cookie: one.cookie },
+				payload: updatePayload,
+			})
+		).statusCode,
+	).toBe(403);
+	expect(
+		(
+			await http.inject({
+				url: updateUrl,
+				method: "POST",
+				headers: one,
+				payload: { ...updatePayload, desired: {} },
+			})
+		).statusCode,
+	).toBe(400);
+	expect(
+		(
+			await http.inject({
+				url: updateUrl,
+				method: "POST",
+				headers: one,
+				payload: { ...updatePayload, desired: { progress: -1 } },
+			})
+		).statusCode,
+	).toBe(400);
+	const accepted = await http.inject({
+		url: updateUrl,
+		method: "POST",
+		headers: one,
+		payload: updatePayload,
+	});
+	expect(accepted.statusCode).toBe(200);
+	expect(accepted.json().state).toBe("pending");
+	expect(accepted.json()).not.toHaveProperty("attempt");
+	expect(accepted.headers["cache-control"]).toBe("no-store");
+	expect(
+		(
+			await http.inject({
+				url: updateUrl,
+				method: "POST",
+				headers: one,
+				payload: updatePayload,
+			})
+		).statusCode,
+	).toBe(409);
+	const operations = await http.inject({
+		url: `/api/tracking/operations?generation=${status.generation}`,
+		headers: one,
+	});
+	expect(operations.statusCode).toBe(200);
+	expect(operations.body).not.toContain("fixture-token");
+	expect(operations.json()[0]).not.toHaveProperty("attempt");
+
 	const cached = await http.inject({ url: "/api/tracking/list", headers: one });
 	expect(cached.statusCode).toBe(200);
 	expect(cached.headers["cache-control"]).toBe("no-store");

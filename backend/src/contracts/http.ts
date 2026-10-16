@@ -179,3 +179,13 @@ export type TrackingPreviewResponse = Static<
 export type AnimeLibraryResponse = Static<typeof schemas.AnimeLibrarySchema>;
 export type TrackingListResponse = Static<typeof schemas.TrackingListSchema>;
 export type TrackingEntryResponse = Static<typeof schemas.TrackingEntrySchema>;
+
+export type TrackingOperationResponse = Static<
+	typeof import("./schemas/tracking-update.js").TrackingOperationSchema
+>;
+export type TrackingOperationsResponse = Static<
+	typeof import("./schemas/tracking-update.js").TrackingOperationsSchema
+>;
+export type TrackingUpdateRequest = Static<
+	typeof import("./schemas/tracking-update.js").TrackingUpdateSchema
+>;

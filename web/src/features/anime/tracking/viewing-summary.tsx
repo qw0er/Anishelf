@@ -5,7 +5,9 @@ import type { TrackingEntryResponse } from "../../../shared/api/contracts.js";
 import { Button } from "../../../shared/components/ui/button.js";
 import { Skeleton } from "../../../shared/components/ui/skeleton.js";
 import { Tooltip } from "../../../shared/components/ui/tooltip.js";
+import { TrackingRefreshHint } from "./refresh-hint.js";
 import type { ViewingState } from "./use-viewing-state.js";
+import { ViewingEditor } from "./viewing-editor.js";
 
 type ViewingStatus = NonNullable<TrackingEntryResponse["entry"]>["status"];
 const statusStyles: Record<ViewingStatus, string> = {
@@ -24,14 +26,13 @@ export function ViewingSummary({
 	state: ViewingState;
 	episodeCount?: number | null;
 }) {
-	const { t, i18n } = useTranslation();
+	const { t } = useTranslation();
 	if (!state.visible) return null;
 	const snapshot = state.snapshot;
 	const entry = snapshot?.entry;
 	const hasSnapshot = snapshot !== undefined && snapshot.fetchedAt !== null;
-	const unavailable = Boolean(state.error || (snapshot?.error && !hasSnapshot));
-	const pending =
-		(state.loading || !hasSnapshot) && !unavailable && !state.reconnect;
+	const unavailable = Boolean(!hasSnapshot && (state.error || snapshot?.error));
+	const pending = !hasSnapshot && !unavailable && !state.reconnect;
 	const total = episodeCount === undefined ? entry?.episodeCount : episodeCount;
 	return (
 		<section
@@ -80,30 +81,6 @@ export function ViewingSummary({
 					{t("trackingList.untracked")}
 				</span>
 			) : null}
-			{snapshot?.stale && snapshot.fetchedAt !== null && (
-				<Tooltip
-					openOnClick
-					content={t("trackingList.cacheInfo", {
-						time: new Date(snapshot.fetchedAt).toLocaleString(i18n.language),
-					})}
-				>
-					<Button
-						variant="ghost"
-						className="h-6 rounded-full bg-muted px-2 text-xs text-muted-foreground"
-						aria-label={t("trackingList.cacheDetails")}
-					>
-						{t("trackingList.cached")}
-					</Button>
-				</Tooltip>
-			)}
-			{state.refreshing && !pending && (
-				<span role="status" aria-label={t("trackingList.refreshing")}>
-					<RefreshCw
-						className="size-3.5 animate-spin text-muted-foreground"
-						aria-hidden="true"
-					/>
-				</span>
-			)}
 			{state.reconnect && (
 				<Tooltip content={t("trackingList.reconnect")}>
 					<Link
@@ -120,18 +97,39 @@ export function ViewingSummary({
 					{t("trackingList.unavailable")}
 				</span>
 			)}
-			{state.error && !state.reconnect && (
-				<Tooltip content={t("trackingList.entryFailed")}>
-					<Button
-						variant="ghost"
-						className="size-6 shrink-0 p-0"
-						aria-label={t("actions.retry")}
-						onClick={state.retry}
-					>
-						<RefreshCw className="size-3.5" aria-hidden="true" />
-					</Button>
-				</Tooltip>
-			)}
+			<Tooltip
+				openOnClick
+				content={
+					<TrackingRefreshHint
+						snapshot={snapshot}
+						refreshing={state.refreshing}
+					/>
+				}
+			>
+				<Button
+					variant="ghost"
+					className="size-6 shrink-0 p-0"
+					aria-label={t(
+						!hasSnapshot && state.error
+							? "actions.retry"
+							: "trackingList.refresh",
+					)}
+					aria-busy={state.refreshing}
+					aria-disabled={state.refreshing || state.reconnect}
+					onClick={() => {
+						if (!state.refreshing && !state.reconnect) {
+							if (!hasSnapshot || state.error) state.retry();
+							else (state.refresh ?? state.retry)();
+						}
+					}}
+				>
+					<RefreshCw
+						className={state.refreshing ? "size-3.5 animate-spin" : "size-3.5"}
+						aria-hidden="true"
+					/>
+				</Button>
+			</Tooltip>
+			{state.mediaId && <ViewingEditor state={state} mediaId={state.mediaId} />}
 		</section>
 	);
 }

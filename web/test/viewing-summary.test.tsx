@@ -111,7 +111,7 @@ test("saved viewing state stays visible during reconnection and cache time is av
 	).toBe("/settings");
 	expect(screen.queryByText(/Showing saved AniList viewing state/)).toBeNull();
 	act(() =>
-		screen.getByRole("button", { name: "AniList cache details" }).focus(),
+		screen.getByRole("button", { name: "Refresh AniList list" }).focus(),
 	);
 	expect((await screen.findByRole("tooltip")).textContent).toContain(
 		"Last updated:",
@@ -130,5 +130,48 @@ test("initial read errors expose a compact failure and a working retry instead o
 	);
 	expect(screen.queryByText("Not on AniList")).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+	expect(state.retry).toHaveBeenCalledTimes(1);
+});
+
+test("cached, refreshing and failed background reads retain the same summary controls", async () => {
+	const state = viewing();
+	if (!state.snapshot) throw Error("Missing snapshot fixture");
+	const view = render(<ViewingSummary state={state} />, {
+		wrapper: MemoryRouter,
+	});
+	const region = screen.getByRole("region", { name: "AniList viewing state" });
+	const childCount = region.children.length;
+	const refresh = screen.getByRole("button", { name: "Refresh AniList list" });
+	view.rerender(
+		<ViewingSummary
+			state={{
+				...state,
+				refreshing: true,
+				snapshot: { ...state.snapshot, stale: true, refreshing: true },
+			}}
+		/>,
+	);
+	expect(screen.getByRole("button", { name: "Refresh AniList list" })).toBe(
+		refresh,
+	);
+	expect(refresh.getAttribute("aria-busy")).toBe("true");
+	expect(region.children.length).toBe(childCount);
+	expect(screen.queryByText("Cached")).toBeNull();
+	expect(
+		screen.queryByText("Showing cached AniList viewing state."),
+	).toBeNull();
+	view.rerender(
+		<ViewingSummary
+			state={{
+				...state,
+				error: new Error("Offline"),
+				snapshot: { ...state.snapshot, stale: true },
+			}}
+		/>,
+	);
+	expect(screen.getByText("8 / 12 episodes")).toBeTruthy();
+	expect(screen.queryByRole("alert")).toBeNull();
+	expect(region.children.length).toBe(childCount);
+	fireEvent.click(refresh);
 	expect(state.retry).toHaveBeenCalledTimes(1);
 });

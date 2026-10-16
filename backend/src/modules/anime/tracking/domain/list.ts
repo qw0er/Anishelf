@@ -20,6 +20,7 @@ export interface TrackingListEntry {
 	coverUrl: string | null;
 }
 export interface TrackingListCache {
+	invalidated?: boolean;
 	accountId: number;
 	fetchedAt: number;
 	entries: TrackingListEntry[];

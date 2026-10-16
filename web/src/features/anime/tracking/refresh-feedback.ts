@@ -1,4 +1,8 @@
 import type { QueryClient } from "@tanstack/react-query";
+import {
+	ApiClientError,
+	isRequestCancelled,
+} from "../../../shared/api/client.js";
 import type { TrackingListResponse } from "../../../shared/api/contracts.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import i18n from "../../../shared/i18n.js";
@@ -12,6 +16,7 @@ export function reportTrackingRefresh(
 	snapshot: Omit<TrackingListResponse, "entries">,
 	manual = false,
 ): void {
+	clearTrackingReadFailure(client, snapshot.generation);
 	if (snapshot.refreshing) return;
 	const id = trackingRefreshNoticeId(snapshot.generation);
 	const failure =
@@ -36,4 +41,38 @@ export function reportTrackingRefresh(
 		snapshot.fetchedAt !== null
 	)
 		toast.add({ id, type: "success", title: i18n.t("trackingList.refreshed") });
+}
+
+/** Cached content remains usable after a transport failure; report outside page layout. */
+export function reportTrackingReadFailure(
+	client: QueryClient,
+	generation: string,
+	error: unknown,
+	fetchedAt: number | null,
+): void {
+	if (isRequestCancelled(error)) return;
+	reportRefreshFailure(client, {
+		id: `${trackingRefreshNoticeId(generation)}:read`,
+		failure: {
+			code:
+				error instanceof ApiClientError
+					? (error.code ?? error.kind)
+					: "unavailable",
+			retryAt: null,
+		},
+		fetchedAt,
+		title: i18n.t("trackingList.failed"),
+	});
+}
+
+export function clearTrackingReadFailure(
+	client: QueryClient,
+	generation: string,
+): void {
+	reportRefreshFailure(client, {
+		id: `${trackingRefreshNoticeId(generation)}:read`,
+		failure: null,
+		fetchedAt: null,
+		title: "",
+	});
 }

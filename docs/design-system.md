@@ -88,10 +88,18 @@ Work detail prioritizes the header and episode list. AniList viewing state is a
 compact row inside the title/metadata header on both local and remote details.
 Use a status Badge, cumulative progress and the provider's total episode count;
 unknown totals show only the watched count. Keep the cumulative-progress explanation
-and cache fetch time in keyboard/touch-accessible Tooltips. Cached data has a small
-marker; refreshing uses a small busy icon. Show a short loading skeleton until a
+in a keyboard/touch-accessible Tooltip. Keep a fixed-size refresh button in the
+summary and Library toolbar; its Tooltip contains the last update time and, only
+when stale, the saved-data explanation. Refreshing changes only the existing icon
+and aria-busy state, without an extra badge, spinner or cache-feedback row. Show a short loading skeleton until a
 complete list snapshot establishes whether an entry exists. Reconnect guidance and
-initial-read failures remain visible in the row. The summary wraps on narrow screens.
+initial-read failures remain visible in the row. The summary wraps on narrow screens. An Edit AniList progress action opens a shared
+dialog on local and remote-only details. Keep confirmed remote values and pending
+intent visibly separate. Progress accepts explicit backward corrections; status
+changes are explicit choices. Show revision/validation errors beside the form,
+retry timing and conflict choices in the dialog, and submission lifecycle/results
+in deduplicated app-level Toasts with a work-detail recovery action. Network failure
+must retain editable input and persisted intent.
 
 Episode numbering guidance is an info icon beside the episode heading with a
 keyboard/touch-accessible Tooltip. Files needing review use a compact disclosure
@@ -145,8 +153,11 @@ checks failure envelopes even when HTTP succeeds. Cached background-refresh
 failures notify once per failure identity across filters and detail navigation;
 polling the same failure does not repeat notifications. Recovery clears that
 identity, and an explicit retry can report a new result. Refresh buttons and small
-busy indicators show work in progress; authorization, initial-load and stale-cache
-context remain inline. The Library connection action is a labeled button that
+busy indicators show work in progress immediately. Preserve existing content
+during background refresh and transport failures; skeletons and inline read errors
+are reserved for the first load without data. Authorization guidance remains inline;
+stale-cache context belongs in the refresh Tooltip. Background failures use
+deduplicated Toasts. No busy-state delay or selective data-update mechanism is added. The Library connection action is a labeled button that
 opens Settings. Existing backend refresh and Catalog operation logs retain their
 operation outcomes; UI placement changes do not add request payloads to logs.
 

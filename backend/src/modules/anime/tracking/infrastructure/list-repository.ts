@@ -14,10 +14,11 @@ export class TrackingListRepository implements TrackingListStore {
 			.get();
 	}
 	replace(cache: TrackingListCache) {
+		const value = { ...cache, invalidated: cache.invalidated ?? false };
 		this.store
 			.insert(trackingListCache)
-			.values(cache)
-			.onConflictDoUpdate({ target: trackingListCache.accountId, set: cache })
+			.values(value)
+			.onConflictDoUpdate({ target: trackingListCache.accountId, set: value })
 			.run();
 	}
 }
