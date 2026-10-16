@@ -67,7 +67,12 @@ export async function checkOriginalMedia(
 		options.sourceVersion &&
 		description.sourceVersion !== options.sourceVersion
 	)
-		throw new Error("The source changed. Reopen playback.");
+		throw new ApiClientError({
+			kind: "http",
+			status: 409,
+			code: "PLAYBACK_CONFLICT",
+			message: "The source changed. Reopen playback.",
+		});
 	const evidence = await queryCapabilities(
 		description.queries,
 		signal,
@@ -84,5 +89,12 @@ export async function checkOriginalMedia(
 		{ signal },
 	);
 	signal.throwIfAborted();
+	if (options.sourceVersion && result.sourceVersion !== options.sourceVersion)
+		throw new ApiClientError({
+			kind: "http",
+			status: 409,
+			code: "PLAYBACK_CONFLICT",
+			message: "The source changed. Reopen playback.",
+		});
 	return result;
 }

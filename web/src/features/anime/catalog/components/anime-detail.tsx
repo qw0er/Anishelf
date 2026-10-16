@@ -13,6 +13,7 @@ import { getErrorTranslationKey } from "../../../../shared/lib/error-translation
 import { Artwork } from "../../shared/components/artwork.js";
 import { useViewingState, ViewingSummary } from "../../tracking/public.js";
 import { localWorkDetailQuery } from "../queries.js";
+import type { AnimeResourceActionSlot } from "../resource-actions.js";
 
 import { useLocalWorkDetail } from "../use-local-work-detail.js";
 import { EpisodeList } from "./episode-list.js";
@@ -21,7 +22,11 @@ import { VersionSelector } from "./version-selector.js";
 import { WorkMetadataExtras } from "./work-metadata-extras.js";
 import { WorkMetadataHeader } from "./work-metadata-header.js";
 import { WorkSynopsis } from "./work-synopsis.js";
-export function AnimeDetail() {
+export function AnimeDetail({
+	renderResourceActions,
+}: {
+	renderResourceActions: AnimeResourceActionSlot;
+}) {
 	const { id = "" } = useParams();
 	const scope = useQueryScope();
 	const query = useQuery(localWorkDetailQuery(id, scope));
@@ -44,9 +49,21 @@ export function AnimeDetail() {
 				<Skeleton className="h-64 w-full" />
 			</div>
 		);
-	return <LocalWorkDetail key={`${id}:${scope}`} data={query.data} />;
+	return (
+		<LocalWorkDetail
+			key={`${id}:${scope}`}
+			data={query.data}
+			renderResourceActions={renderResourceActions}
+		/>
+	);
 }
-function LocalWorkDetail({ data }: { data: LocalWorkDetailResponse }) {
+function LocalWorkDetail({
+	data,
+	renderResourceActions,
+}: {
+	data: LocalWorkDetailResponse;
+	renderResourceActions: AnimeResourceActionSlot;
+}) {
 	const { t, i18n } = useTranslation();
 	const controller = useLocalWorkDetail(data);
 	const { libraryPath, refresh } = controller;
@@ -115,14 +132,21 @@ function LocalWorkDetail({ data }: { data: LocalWorkDetailResponse }) {
 				}
 			/>
 			<div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-				<EpisodeList data={data} controller={controller} />
+				<EpisodeList
+					data={data}
+					controller={controller}
+					renderResourceActions={renderResourceActions}
+				/>
 				<aside className="min-w-0 space-y-4">
 					<WorkSynopsis data={data} />
 					<WorkMetadataExtras data={data} controller={controller} />
 					<RelatedWorks controller={controller} />
 				</aside>
 			</div>
-			<VersionSelector controller={controller} />
+			<VersionSelector
+				controller={controller}
+				renderResourceActions={renderResourceActions}
+			/>
 		</section>
 	);
 }

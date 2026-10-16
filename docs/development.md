@@ -458,7 +458,8 @@ Tailwind directives. The active UI uses English; further localization is planned
 ## Verification and Troubleshooting
 
 Run `npm run check` for Biome, lint/architecture checks, typechecks and all tests.
-Architecture tests run before workspace tests. Both workspaces use the root
+`npm test` runs architecture, backend and web tests concurrently, prefixes each
+suite's output, and succeeds only when all three suites pass. Both workspaces use the root
 TypeScript dependencies: `@typescript/native` aliases TypeScript 7 and provides
 `tsc` for builds and typechecks; `typescript` aliases `@typescript/typescript6`
 and provides the TypeScript 6 API required by dependency-cruiser. An unsupported
@@ -710,3 +711,24 @@ provider payloads or raw errors. Run `test/tracking-updates.test.ts` and
 `test/anilist-account.test.ts` in the backend workspace and
 `test/viewing-editor.test.tsx` in the web workspace for fixture coverage. These tests
 do not mutate AniList; live writes and full ANI acceptance require separate evidence.
+
+
+### Anime detail file actions
+
+Single-version episodes expose the same file commands as Files beside Play. For
+multiple versions, open the chooser and use the menu on the desired version. The
+menu reuses external-player links, original media copy/download/playlist actions,
+and preparation creation/cancellation/copy deletion. Commands target that row's
+file ID; preparation compatibility is negotiated with the Catalog source version.
+A known source conflict disables its menu until the source/Catalog state is
+refreshed. Unknown compatibility still permits existing external-file workflows.
+Web links retain the work, episode, expected source version and Library return URL.
+Unavailable versions have no file menu. Detailed preparation task reads start only when the menu
+opens; a batched summary read displays matching published copies immediately; compatibility checks use the existing bounded negotiation policy.
+
+Existing media access and preparation command paths retain their safe request and
+operation logs and Toast/retry behavior; no duplicate backend workflow or UI
+payload logging is introduced. Frontend integration tests cover single-version
+menu parity, version-specific copying, unavailable versions, stale-source disabling
+and playback context. Browser checks use a local provider/API fixture, not real
+media or external players.

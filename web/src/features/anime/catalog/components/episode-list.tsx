@@ -9,14 +9,17 @@ import {
 } from "../../../../shared/components/ui/button.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { airingQuery } from "../../metadata/public.js";
+import type { AnimeResourceActionSlot } from "../resource-actions.js";
 import type { LocalWorkDetailController } from "../use-local-work-detail.js";
 import { AiringStatus } from "./airing-status.js";
 import { UnresolvedResources } from "./unresolved-resources.js";
 export function EpisodeList({
 	data,
 	controller,
+	renderResourceActions,
 }: {
 	data: LocalWorkDetailResponse;
+	renderResourceActions: AnimeResourceActionSlot;
 	controller: Pick<LocalWorkDetailController, "playPath" | "selectEpisode">;
 }) {
 	const { t } = useTranslation();
@@ -97,14 +100,17 @@ export function EpisodeList({
 											</p>
 										</div>
 										{usable.length === 1 && usable[0] ? (
-											<Link
-												className={buttonStyles()}
-												to={playPath(usable[0], episode)}
-												aria-label={`${t("anime.play")}: ${episode.label}`}
-											>
-												<Play size={16} aria-hidden="true" />
-												{t("anime.play")}
-											</Link>
+											<div className="flex shrink-0 items-center gap-1">
+												{renderResourceActions(usable[0])}
+												<Link
+													className={buttonStyles()}
+													to={playPath(usable[0], episode)}
+													aria-label={`${t("anime.play")}: ${episode.label}`}
+												>
+													<Play size={16} aria-hidden="true" />
+													{t("anime.play")}
+												</Link>
+											</div>
 										) : (
 											<Button
 												disabled={usable.length === 0}
