@@ -1,3 +1,4 @@
+import type { TrackingListSnapshot } from "./domain/list.js";
 import type { TrackingPreview, TrackingStatus } from "./domain/model.js";
 
 export type {
@@ -5,7 +6,7 @@ export type {
 	TrackingListSnapshot,
 	ViewingStatus,
 } from "./domain/list.js";
-export interface TrackingApi {
+export interface TrackingAccountsApi {
 	status(): TrackingStatus;
 	preview(sessionId: string, token: string): Promise<TrackingPreview>;
 	confirm(
@@ -18,11 +19,9 @@ export interface TrackingApi {
 }
 
 export interface TrackingListsApi {
-	list(
-		generation?: string,
-		refreshStale?: boolean,
-	): import("./domain/list.js").TrackingListSnapshot;
-	refreshList(
-		generation?: string,
-	): Promise<import("./domain/list.js").TrackingListSnapshot>;
+	list(generation?: string, refreshStale?: boolean): TrackingListSnapshot;
+	refreshList(generation?: string): Promise<TrackingListSnapshot>;
 }
+
+/** Complete Tracking capability; consumers may request narrower account/list ports. */
+export interface TrackingApi extends TrackingAccountsApi, TrackingListsApi {}

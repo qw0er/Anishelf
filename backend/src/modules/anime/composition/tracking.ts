@@ -1,17 +1,66 @@
 import type { Logger } from "pino";
+import { AniListAccountClient } from "../anilist/infrastructure/account-client.js";
+import { AniListListsClient } from "../anilist/infrastructure/lists-client.js";
+import { aniListAuthorization } from "../anilist/policy.js";
 import type { AniListClient } from "../anilist/public.js";
+import { TrackingAccountApplication } from "../tracking/application/account.js";
+import { TrackingAuthorizations } from "../tracking/application/authorizations.js";
+import { TrackingConnectionState } from "../tracking/application/connection.js";
+import { TrackingConnectionCheck } from "../tracking/application/connection-check.js";
+import { TrackingDiagnostics } from "../tracking/application/diagnostics.js";
 import { TrackingListReader } from "../tracking/application/list-cache.js";
-import { TrackingApplication } from "../tracking/application.js";
-import type { TrackingListSnapshot } from "../tracking/domain/list.js";
-import type {
-	TrackingPreview,
-	TrackingStatus,
-} from "../tracking/domain/model.js";
+import { TrackingModule } from "../tracking/application/tracking.js";
+import { AniListAccountProvider } from "../tracking/infrastructure/account-provider.js";
 import { TrackingCredentialFiles } from "../tracking/infrastructure/credentials.js";
 import { AniListListProvider } from "../tracking/infrastructure/list-provider.js";
-import type { TrackingListStore, TrackingStore } from "../tracking/ports.js";
-import type { TrackingApi, TrackingListsApi } from "../tracking/public.js";
+import type {
+	TrackingAccountProvider,
+	TrackingCredentials,
+	TrackingListStore,
+	TrackingStore,
+} from "../tracking/ports.js";
 
+export interface TrackingAccountAssemblyOptions {
+	store: TrackingStore;
+	credentials: TrackingCredentials;
+	provider: TrackingAccountProvider;
+	now?: () => number;
+	logger?: Logger;
+}
+export function createTrackingAccounts(
+	options: TrackingAccountAssemblyOptions,
+): TrackingAccountApplication {
+	const logger = options.logger?.child({ module: "tracking" });
+	let authorizations: TrackingAuthorizations;
+	const connection = new TrackingConnectionState({
+		authorization: aniListAuthorization,
+		store: options.store,
+		credentials: options.credentials,
+		...(options.now ? { now: options.now } : {}),
+		...(logger ? { logger } : {}),
+		onChange: () => authorizations.clear(),
+	});
+	authorizations = new TrackingAuthorizations(
+		connection,
+		options.provider,
+		options.now ?? Date.now,
+		logger,
+	);
+	const checks = new TrackingConnectionCheck(
+		connection,
+		options.credentials,
+		options.provider,
+		logger,
+	);
+	const diagnostics = new TrackingDiagnostics(connection, logger);
+	return new TrackingAccountApplication({
+		connection,
+		authorizations,
+		checks,
+		diagnostics,
+		...(logger ? { logger } : {}),
+	});
+}
 export interface TrackingModuleOptions {
 	dataDir: string;
 	store: TrackingStore;
@@ -19,54 +68,25 @@ export interface TrackingModuleOptions {
 	client: AniListClient;
 	logger?: Logger;
 }
-/** Module boundary: account commands and list reads expose no internal credential access. */
-export class TrackingModule implements TrackingApi, TrackingListsApi {
-	constructor(
-		private readonly accounts: TrackingApplication,
-		private readonly lists: TrackingListReader,
-	) {}
-	status(): TrackingStatus {
-		return this.accounts.status();
-	}
-	preview(sessionId: string, token: string): Promise<TrackingPreview> {
-		return this.accounts.preview(sessionId, token);
-	}
-	confirm(
-		sessionId: string,
-		candidateId: string,
-		generation: string,
-	): Promise<TrackingStatus> {
-		return this.accounts.confirm(sessionId, candidateId, generation);
-	}
-	disconnect(generation: string): Promise<TrackingStatus> {
-		return this.accounts.disconnect(generation);
-	}
-	check(): Promise<TrackingStatus> {
-		return this.accounts.check();
-	}
-	list(generation?: string, refreshStale = true): TrackingListSnapshot {
-		return this.lists.read(generation, refreshStale);
-	}
-	refreshList(generation?: string): Promise<TrackingListSnapshot> {
-		return this.lists.refresh(generation);
-	}
-	async close(): Promise<void> {
-		await this.lists.close();
-		await this.accounts.close();
-	}
-}
 export async function createTrackingModule(
 	options: TrackingModuleOptions,
 ): Promise<TrackingModule> {
 	const credentials = new TrackingCredentialFiles(options.dataDir);
 	await credentials.initialize(options.store.get()?.credentialId ?? null);
-	const tracking = new TrackingApplication({ ...options, credentials });
-	await tracking.initialize();
-	const lists = new TrackingListReader({
-		access: tracking,
-		store: options.listStore,
-		provider: new AniListListProvider(options.client),
+	const accounts = createTrackingAccounts({
+		store: options.store,
+		credentials,
+		provider: new AniListAccountProvider(
+			new AniListAccountClient(options.client),
+		),
 		...(options.logger ? { logger: options.logger } : {}),
 	});
-	return new TrackingModule(tracking, lists);
+	await accounts.initialize();
+	const lists = new TrackingListReader({
+		access: accounts,
+		store: options.listStore,
+		provider: new AniListListProvider(new AniListListsClient(options.client)),
+		...(options.logger ? { logger: options.logger } : {}),
+	});
+	return new TrackingModule(accounts, lists);
 }

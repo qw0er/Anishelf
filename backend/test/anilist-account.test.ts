@@ -6,16 +6,42 @@ import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
 import { builtinPolicy } from "../src/app/policy.js";
+import { AniListAccountClient } from "../src/modules/anime/anilist/infrastructure/account-client.js";
 import {
 	type AniListClient,
 	AniListError,
 } from "../src/modules/anime/anilist/public.js";
-import { createTrackingModule } from "../src/modules/anime/composition/tracking.js";
-import { TrackingApplication } from "../src/modules/anime/tracking/application.js";
+import {
+	createTrackingAccounts,
+	createTrackingModule,
+} from "../src/modules/anime/composition/tracking.js";
+import type { TrackingAccountApplication } from "../src/modules/anime/tracking/application/account.js";
 import { registerTrackingListRoutes } from "../src/modules/anime/tracking/http/lists.js";
 import { registerTrackingRoutes } from "../src/modules/anime/tracking/http/tracking.js";
+import { AniListAccountProvider } from "../src/modules/anime/tracking/infrastructure/account-provider.js";
 import { TrackingCredentialFiles } from "../src/modules/anime/tracking/infrastructure/credentials.js";
+import type {
+	TrackingCredentials,
+	TrackingStore,
+} from "../src/modules/anime/tracking/ports.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
+
+interface AccountTestOptions {
+	store: TrackingStore;
+	credentials: TrackingCredentials;
+	client: AniListClient;
+	now?: () => number;
+	logger?: Logger;
+}
+function createAccounts({
+	client,
+	...options
+}: AccountTestOptions): TrackingAccountApplication {
+	return createTrackingAccounts({
+		...options,
+		provider: new AniListAccountProvider(new AniListAccountClient(client)),
+	});
+}
 
 const cleanup: (() => unknown)[] = [];
 afterEach(async () => {
@@ -44,7 +70,7 @@ async function setup(
 	return { app, database, dataDir };
 }
 async function connect(
-	app: import("../src/modules/anime/tracking/public.js").TrackingApi,
+	app: import("../src/modules/anime/tracking/public.js").TrackingAccountsApi,
 	session = "one",
 	token = "fixture-first",
 ) {
@@ -88,7 +114,7 @@ test("preview is bound to session, expires, and invalid replacement preserves th
 	const { app, database, dataDir } = await setup();
 	await connect(app);
 	const credentials = new TrackingCredentialFiles(dataDir);
-	const tracking = new TrackingApplication({
+	const tracking = createAccounts({
 		store: database.tracking,
 		credentials,
 		now: () => now,
@@ -480,7 +506,7 @@ test("failed persistence and previously silent credential cleanup emit safe diag
 	const removal = vi
 		.spyOn(credentials, "remove")
 		.mockRejectedValue(new Error("private-credential-path-sentinel"));
-	const service = new TrackingApplication({
+	const service = createAccounts({
 		store: database.tracking,
 		credentials,
 		logger,
@@ -569,7 +595,7 @@ test("shutdown waits for in-flight credential publication and rolls it back", as
 			});
 		},
 	);
-	const app = new TrackingApplication({
+	const app = createAccounts({
 		store: database.tracking,
 		credentials,
 		client: { request: async () => ({ Viewer: { id: 7, name: "Fixture" } }) },

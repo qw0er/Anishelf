@@ -1,9 +1,12 @@
 import type {
 	AiringEpisode,
+	ArtworkAsset,
+	ArtworkStatus,
 	MetadataFailure,
 	Page,
 	ProviderCapabilities,
 	ProviderReference,
+	ReadOptions,
 	WorkDetails,
 	WorkRelation,
 	WorkSummary,
@@ -68,4 +71,14 @@ export interface MetadataStore {
 	artworks(): ArtworkRecord[];
 	saveArtwork(record: ArtworkRecord): void;
 	removeArtwork(id: string): void;
+}
+
+export interface MetadataArtwork {
+	get(
+		key: string,
+		url: string | null,
+		options: ReadOptions,
+	): Promise<ArtworkStatus>;
+	read(id: string): Promise<ArtworkAsset>;
+	close(): Promise<void>;
 }

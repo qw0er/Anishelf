@@ -63,6 +63,24 @@ test("allows policy and public contracts, same-module implementation, and bootst
 
 for (const [name, files] of [
 	[
+		"anime-applications-use-ports",
+		{
+			"backend/src/modules/anime/tracking/application/account.ts":
+				"import type { Provider } from '../infrastructure/provider.js'; export type Account = Provider;",
+			"backend/src/modules/anime/tracking/infrastructure/provider.ts":
+				"export interface Provider { id: string }",
+		},
+	],
+	[
+		"anilist-protocol-does-not-import-business",
+		{
+			"backend/src/modules/anime/anilist/domain/model.ts":
+				"import type { Entry } from '../../tracking/public.js'; export type Response = Entry;",
+			"backend/src/modules/anime/tracking/public.ts":
+				"export interface Entry { id: string }",
+		},
+	],
+	[
 		"configuration-application-does-not-project-http",
 		{
 			"backend/src/modules/system/configuration/application/service.ts":
@@ -496,4 +514,30 @@ test("Web data public entries cannot load a UI barrel through an intermediate en
 		"web/src/features/anime/catalog/ui.ts": "export const View=()=>null;",
 	});
 	assert.ok(violations.includes("web-public-does-not-load-ui-barrels"));
+});
+
+test("Tracking business cannot depend on its composition even through types", async () => {
+	const violations = await scan({
+		"backend/src/modules/anime/tracking/application/account.ts":
+			"import type { Assembly } from '../../composition/tracking.js'; export type Account = Assembly;",
+		"backend/src/modules/anime/composition/tracking.ts":
+			"export interface Assembly { id: string }",
+	});
+	assert.ok(violations.includes("business-does-not-use-assembly-entries"));
+});
+
+test("Tracking module owns its facade and provider dependencies arrive through ports", async () => {
+	assert.deepEqual(
+		await scan({
+			"backend/src/modules/anime/tracking/ports.ts":
+				"export interface Provider { viewer(): string }",
+			"backend/src/modules/anime/tracking/application/account.ts":
+				"import type { Provider } from '../ports.js'; export class Account { constructor(readonly provider: Provider) {} }",
+			"backend/src/modules/anime/tracking/application/tracking.ts":
+				"import { Account } from './account.js'; export class TrackingModule { constructor(readonly account: Account) {} }",
+			"backend/src/modules/anime/composition/tracking.ts":
+				"import { Account } from '../tracking/application/account.js'; import { TrackingModule } from '../tracking/application/tracking.js'; export const create = () => new TrackingModule(new Account({viewer: () => 'fixture'}));",
+		}),
+		[],
+	);
 });

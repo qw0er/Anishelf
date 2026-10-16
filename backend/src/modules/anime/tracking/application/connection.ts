@@ -4,14 +4,15 @@ import { DomainError } from "../../../../shared/errors.js";
 import type { TrackingLease } from "../domain/list.js";
 import type {
 	TrackingAccount,
+	TrackingAuthorization,
 	TrackingCandidate,
 	TrackingConnection,
 	TrackingStatus,
 } from "../domain/model.js";
 import type { TrackingCredentials, TrackingStore } from "../ports.js";
 
-const clientId = "53902";
 export interface TrackingConnectionOptions {
+	authorization: TrackingAuthorization;
 	store: TrackingStore;
 	credentials: TrackingCredentials;
 	now?: () => number;
@@ -54,8 +55,8 @@ export class TrackingConnectionState {
 	}
 	status(): TrackingStatus {
 		return {
-			clientId,
-			authorizationUrl: `https://anilist.co/api/v2/oauth/authorize?client_id=${clientId}&response_type=token`,
+			clientId: this.options.authorization.clientId,
+			authorizationUrl: this.options.authorization.authorizationUrl,
 			generation: this.connection.generation,
 			account: this.connection.account ? { ...this.connection.account } : null,
 			state: this.connection.state,

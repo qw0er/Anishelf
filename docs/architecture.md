@@ -4,8 +4,8 @@ This document describes the overall system structure, module ownership and
 architectural constraints. [Requirements](requirements.md) owns the feature
 inventory and delivery status. [Current version requirements](current-version-requirements.md)
 owns the selected AniList account scope and acceptance. Account connection and shared
-request scheduling are implemented; list and viewing-state integration remain planned. [Current version design](current-version-design.md)
-records the delivered account foundation and planned list/submission flows. The anime-library version's requirements and
+request scheduling, account-scoped list reads/cache/refresh and Library viewing-state display are implemented; submissions and playback-driven updates remain planned. [Current version design](current-version-design.md)
+records the delivered account/read flows and planned submission flows. The anime-library version's requirements and
 acceptance are complete as of 2026-10-14, confirmed by the user.
 [History](history.md#anime-library-archive-notes) retains its requirements,
 CAT01–CAT08 acceptance record and detailed design, alongside earlier designs and
@@ -54,8 +54,9 @@ and scoped tokens for original-media delivery.
 | Subtitles | Track discovery, selected-track preparation, delivery and asset lifecycle |
 | Metadata | Provider queries, normalized snapshots, persistent cache, refresh and artwork |
 | Identification | Stateless local extraction, candidate ranking and episode association proposals |
-| Tracking | AniList account lifecycle, session-bound previews, private credentials and connection state |
-| AniList requests | Shared bounded request pacing, rate-limit feedback, priority fairness and cancellation |
+| Tracking | Account lifecycle, session-bound previews, private credentials, connection state, account-scoped list cache and refresh |
+| Anime Library | Read-only join of Catalog and Tracking, local/all scope, status filters and pagination |
+| AniList protocol | Typed Viewer, list and metadata clients, GraphQL schemas, provider response validation; shared bounded pacing, retry, priority fairness and cancellation |
 | Anime Catalog | Durable local works/episodes, review decisions, confirmed associations, corrections and library projections |
 
 These are the existing runtime owners. [Identification](architecture.md#internal-ownership) exposes
@@ -88,12 +89,29 @@ The backend source has six responsibility roots:
 | Resources | Library, Resource Access | Directory/file reads, scans, root switching, settings-change exclusion, publications, confined source access and registration |
 | Media | Inspection, Planning, Processing, Preparation, Subtitles | Compatibility, published-copy views, media information, preparation and subtitle HTTP services |
 | Playback | Progress, Playback Selection | Resource selection, sessions, durable progress and history |
-| Anime | Identification, Metadata, Anime Catalog, Tracking, AniList requests | Recognition, provider cache, review/associations, account lifecycle and shared provider scheduling |
+| Anime | Identification, Metadata, Anime Catalog, Tracking, Anime Library, AniList protocol | Recognition, provider cache, review/associations, account/list lifecycle, combined Library reads and shared provider access |
 
 The five directories are API boundaries, not categorization folders. External
 consumers cannot import any child entry, including a child's `public.ts`.
 Internal owners still collaborate through their own Public APIs and ports;
 module composition owns the only implementation-access exception.
+
+Within Anime, `anilist/` owns provider protocol code and never imports Metadata,
+Tracking or Catalog business types. Its account, list and metadata clients share
+one `AniListScheduler` created by Anime assembly. Metadata and Tracking
+infrastructure adapters convert typed protocol results/errors into their own
+contracts. Their Applications depend on consumer-owned ports, not provider
+implementations or the AniList transport. The AniList authorization configuration
+is injected into Tracking during assembly.
+
+`tracking/application/tracking.ts` owns the named `TrackingModule` facade and its
+ordered account/list shutdown. `tracking/application/account.ts` coordinates
+account commands. `composition/tracking.ts` only constructs collaborators and
+injects ports; business code cannot import composition, including for types.
+`TrackingApi` is the complete contract and extends the narrower
+`TrackingAccountsApi` and `TrackingListsApi`. Library requests only the list
+capability. Composition code does not define runtime business facades.
+
 
 | Root entry | Allowed consumer |
 | --- | --- |

@@ -6,10 +6,12 @@ import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
 import { builtinPolicy } from "../src/app/policy.js";
+import { AniListListsClient } from "../src/modules/anime/anilist/infrastructure/lists-client.js";
 import { AniListError } from "../src/modules/anime/anilist/public.js";
 import { AnimeLibraryQueries } from "../src/modules/anime/anime-library/application/library.js";
 import type { LocalIndex } from "../src/modules/anime/anime-library/domain/model.js";
 import { registerAnimeLibraryRoutes } from "../src/modules/anime/anime-library/http/library.js";
+import { createTrackingModule } from "../src/modules/anime/composition/tracking.js";
 import { TrackingListReader } from "../src/modules/anime/tracking/application/list-cache.js";
 import type {
 	TrackingLease,
@@ -17,8 +19,8 @@ import type {
 	TrackingListEntry,
 	TrackingListSnapshot,
 } from "../src/modules/anime/tracking/domain/list.js";
+import { TrackingListError } from "../src/modules/anime/tracking/domain/list.js";
 import type { TrackingStatus } from "../src/modules/anime/tracking/domain/model.js";
-import { AniListListProvider } from "../src/modules/anime/tracking/infrastructure/list-provider.js";
 import type { TrackingListStore } from "../src/modules/anime/tracking/ports.js";
 
 const lease: TrackingLease = {
@@ -67,8 +69,9 @@ test("provider reads every chunk, deduplicates custom lists and strips unsafe co
 		.fn()
 		.mockResolvedValueOnce(chunk([raw(), raw()], true))
 		.mockResolvedValueOnce(chunk([raw(2)]));
-	const entries = await new AniListListProvider({ request }).read(
-		lease,
+	const entries = await new AniListListsClient({ request }).read(
+		lease.accountId,
+		lease.token,
 		lease.signal,
 	);
 	expect(entries).toEqual([item(), item(2)]);
@@ -86,8 +89,9 @@ test.each([
 	"provider rejects incomplete or inconsistent collections",
 	async (response) => {
 		await expect(
-			new AniListListProvider({ request: async () => response }).read(
-				lease,
+			new AniListListsClient({ request: async () => response }).read(
+				lease.accountId,
+				lease.token,
 				lease.signal,
 			),
 		).rejects.toBeInstanceOf(AniListError);
@@ -148,13 +152,7 @@ test("refresh coalesces, preserves the full previous snapshot on failure and sur
 	expect(f.read).toHaveBeenCalledTimes(1);
 	expect(f.reader.read(undefined, false).entries).toEqual([item()]);
 	f.advance();
-	f.read.mockRejectedValueOnce(
-		new AniListError({
-			code: "unavailable",
-			message: "private error",
-			retryAt: null,
-		}),
-	);
+	f.read.mockRejectedValueOnce(new TrackingListError("unavailable", null));
 	const failed = await f.reader.refresh();
 	expect(failed.entries).toEqual([item()]);
 	expect(failed.stale).toBe(true);
@@ -202,13 +200,7 @@ test("an in-flight response cannot publish into a changed account", async () => 
 test("authorization failure retains cached state and requires reconnect", async () => {
 	const f = readerFixture();
 	await f.reader.refresh();
-	f.read.mockRejectedValueOnce(
-		new AniListError({
-			code: "unauthorized",
-			message: "Secret",
-			retryAt: null,
-		}),
-	);
+	f.read.mockRejectedValueOnce(new TrackingListError("unauthorized", null));
 	const snapshot = await f.reader.refresh();
 	expect(snapshot.state).toBe("authorization-required");
 	expect(snapshot.entries).toHaveLength(1);
@@ -302,8 +294,10 @@ test("a later chunk failure prevents publishing a partial list; an empty complet
 		.fn()
 		.mockResolvedValueOnce(chunk([raw(2)], true))
 		.mockRejectedValueOnce(new Error("private-provider-sentinel"));
-	const provider = new AniListListProvider({ request });
-	f.read.mockImplementationOnce(() => provider.read(lease, lease.signal));
+	const provider = new AniListListsClient({ request });
+	f.read.mockImplementationOnce(() =>
+		provider.read(lease.accountId, lease.token, lease.signal),
+	);
 	const failed = await f.reader.refresh();
 	expect(failed.entries).toEqual([item()]);
 	f.read.mockResolvedValueOnce([]);
@@ -386,5 +380,60 @@ test("unified Library HTTP validates filters and serializes merged cards", async
 			).toBe(400);
 	} finally {
 		await http.close();
+	}
+});
+
+test("assembled Tracking facade uses protocol adapters, preserves cache on malformed reads and maps expired authorization", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "anishelf-tracking-boundary-"));
+	const database = ApplicationDatabase.open(dir);
+	let mode = "success";
+	const module = await createTrackingModule({
+		dataDir: dir,
+		store: database.tracking,
+		listStore: database.trackingLists,
+		client: {
+			request: async (query) => {
+				if (query.includes("Viewer"))
+					return { Viewer: { id: 7, name: "Fixture" } };
+				if (mode === "unauthorized")
+					throw new AniListError({
+						code: "unauthorized",
+						message: "private-provider-sentinel",
+						retryAt: null,
+					});
+				return mode === "malformed"
+					? { MediaListCollection: null }
+					: chunk([raw()]);
+			},
+		},
+	});
+	try {
+		const preview = await module.preview(
+			"fixture-session",
+			"private-token-sentinel",
+		);
+		await module.confirm(
+			"fixture-session",
+			preview.candidateId,
+			preview.generation,
+		);
+		const generation = module.status().generation;
+		expect((await module.refreshList(generation)).entries).toEqual([item()]);
+		mode = "malformed";
+		const failed = await module.refreshList(generation);
+		expect(failed.error?.code).toBe("invalid-response");
+		expect(failed.entries).toEqual([item()]);
+		mode = "unauthorized";
+		const expired = await module.refreshList(generation);
+		expect(expired.state).toBe("authorization-required");
+		expect(expired.error?.code).toBe("unauthorized");
+		expect(expired.entries).toEqual([item()]);
+		expect(JSON.stringify(expired)).not.toContain("private-token-sentinel");
+		await module.disconnect(generation);
+		expect(module.list(undefined, false).entries).toEqual([]);
+	} finally {
+		await module.close();
+		database.close();
+		await rm(dir, { recursive: true, force: true });
 	}
 });

@@ -33,3 +33,8 @@ export interface TrackingCandidate {
 	expiresAt: number;
 	generation: string;
 }
+
+export interface TrackingAuthorization {
+	clientId: string;
+	authorizationUrl: string;
+}

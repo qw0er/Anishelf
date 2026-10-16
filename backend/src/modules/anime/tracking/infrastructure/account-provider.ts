@@ -1,28 +1,14 @@
 import { DomainError } from "../../../../shared/errors.js";
-import { type AniListClient, AniListError } from "../../anilist/public.js";
+import { type AniListAccountApi, AniListError } from "../../anilist/public.js";
 import type { TrackingAccount } from "../domain/model.js";
+import type { TrackingAccountProvider } from "../ports.js";
 
-export class AniListAccountProvider {
-	constructor(private readonly client: AniListClient) {}
+export class AniListAccountProvider implements TrackingAccountProvider {
+	constructor(private readonly client: AniListAccountApi) {}
 	async viewer(token: string, signal: AbortSignal): Promise<TrackingAccount> {
 		try {
-			const raw = (await this.client.request(
-				"query ConnectedAniListAccount { Viewer { id name } }",
-				{},
-				{ token, signal, priority: true },
-			)) as { Viewer?: { id?: unknown; name?: unknown } };
-			if (
-				!Number.isSafeInteger(raw?.Viewer?.id) ||
-				Number(raw.Viewer?.id) <= 0 ||
-				typeof raw.Viewer?.name !== "string" ||
-				!raw.Viewer.name ||
-				raw.Viewer.name.length > 256
-			)
-				throw new DomainError(
-					"TRACKING_UNAVAILABLE",
-					"AniList returned an invalid account.",
-				);
-			return { id: raw.Viewer.id as number, name: raw.Viewer.name };
+			const account = await this.client.viewer(token, signal);
+			return { id: account.id, name: account.name };
 		} catch (error) {
 			if (error instanceof DomainError) throw error;
 			if (

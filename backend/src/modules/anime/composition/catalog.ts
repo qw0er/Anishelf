@@ -1,11 +1,11 @@
 import type { Logger } from "pino";
 import type { LibraryApi, ResourceAccessApi } from "../../resources/public.js";
 import { AnimeCatalogApplication } from "../anime-catalog/application/catalog.js";
+import type { MetadataApplication } from "../metadata/application/metadata.js";
 
 type LibraryCapability = LibraryApi & { readonly sources: ResourceAccessApi };
 
 import type { AnimePersistence } from "../persistence.js";
-import type { createMetadataModule } from "./metadata.js";
 
 export function createCatalogModule({
 	database,
@@ -14,7 +14,7 @@ export function createCatalogModule({
 	logger,
 }: {
 	database: AnimePersistence | undefined;
-	metadata: Awaited<ReturnType<typeof createMetadataModule>> | undefined;
+	metadata: MetadataApplication | undefined;
 	library: LibraryCapability;
 	logger: Logger;
 }) {

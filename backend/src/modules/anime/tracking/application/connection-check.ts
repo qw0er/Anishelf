@@ -1,8 +1,7 @@
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { TrackingStatus } from "../domain/model.js";
-import type { AniListAccountProvider } from "../infrastructure/account-provider.js";
-import type { TrackingCredentials } from "../ports.js";
+import type { TrackingAccountProvider, TrackingCredentials } from "../ports.js";
 import type { TrackingConnectionState } from "./connection.js";
 
 export class TrackingConnectionCheck {
@@ -10,7 +9,7 @@ export class TrackingConnectionCheck {
 	constructor(
 		private readonly connection: TrackingConnectionState,
 		private readonly credentials: TrackingCredentials,
-		private readonly provider: AniListAccountProvider,
+		private readonly provider: TrackingAccountProvider,
 		private readonly logger: Logger | undefined,
 	) {}
 	async check(): Promise<TrackingStatus> {
