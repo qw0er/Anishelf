@@ -1,22 +1,23 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Play } from "lucide-react";
+import { Info, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import type { CatalogDetailResponse } from "../../../../shared/api/contracts.js";
+import type { LocalWorkDetailResponse } from "../../../../shared/api/contracts.js";
 import {
 	Button,
 	buttonStyles,
 } from "../../../../shared/components/ui/button.js";
+import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { airingQuery } from "../../metadata/public.js";
-import type { WorkDetailController } from "../use-work-detail.js";
+import type { LocalWorkDetailController } from "../use-local-work-detail.js";
 import { AiringStatus } from "./airing-status.js";
 import { UnresolvedResources } from "./unresolved-resources.js";
 export function EpisodeList({
 	data,
 	controller,
 }: {
-	data: CatalogDetailResponse;
-	controller: Pick<WorkDetailController, "playPath" | "selectEpisode">;
+	data: LocalWorkDetailResponse;
+	controller: Pick<LocalWorkDetailController, "playPath" | "selectEpisode">;
 }) {
 	const { t } = useTranslation();
 	const { work, episodes } = data;
@@ -30,16 +31,27 @@ export function EpisodeList({
 			.flatMap((page) => page.data.items) ?? [];
 	return (
 		<section className="space-y-3">
-			<h2 className="text-lg font-semibold">{t("anime.episodes")}</h2>
-			<p className="text-sm text-muted-foreground">
-				{t(
-					work.format === "MOVIE"
-						? "anime.movieTimeline"
-						: work.episodeCount === null
-							? "anime.unknownTotal"
-							: "anime.countDerived",
-				)}
-			</p>
+			<div className="flex items-center gap-1">
+				<h2 className="text-lg font-semibold">{t("anime.episodes")}</h2>
+				<Tooltip
+					openOnClick
+					content={t(
+						work.format === "MOVIE"
+							? "anime.movieTimeline"
+							: work.episodeCount === null
+								? "anime.unknownTotal"
+								: "anime.countDerived",
+					)}
+				>
+					<Button
+						variant="ghost"
+						className="size-6 p-0 text-muted-foreground"
+						aria-label={t("anime.episodeNumberingInfo")}
+					>
+						<Info className="size-3.5" aria-hidden="true" />
+					</Button>
+				</Tooltip>
+			</div>
 			{episodes.length === 0 && <p>{t("anime.noEpisodes")}</p>}
 			{(["regular", "special", "movie"] as const).map((kind) => {
 				const group = episodes.filter((episode) => episode.kind === kind);

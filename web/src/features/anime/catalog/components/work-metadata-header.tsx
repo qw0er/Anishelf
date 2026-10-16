@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import type { CatalogDetailResponse } from "../../../../shared/api/contracts.js";
+import type { LocalWorkDetailResponse } from "../../../../shared/api/contracts.js";
 import { Artwork } from "../../shared/components/artwork.js";
 import { fuzzyDate, safeLink } from "../detail-format.js";
 export function WorkMetadataHeader({
@@ -9,9 +9,9 @@ export function WorkMetadataHeader({
 }: {
 	viewing?: ReactNode;
 	data: {
-		metadata: CatalogDetailResponse["metadata"];
+		metadata: LocalWorkDetailResponse["metadata"];
 		work: Pick<
-			CatalogDetailResponse["work"],
+			LocalWorkDetailResponse["work"],
 			| "displayTitle"
 			| "coverUrl"
 			| "format"

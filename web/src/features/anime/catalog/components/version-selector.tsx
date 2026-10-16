@@ -8,12 +8,12 @@ import {
 	DialogTitle,
 } from "../../../../shared/components/ui/dialog.js";
 import { releaseInfo } from "../detail-format.js";
-import type { WorkDetailController } from "../use-work-detail.js";
+import type { LocalWorkDetailController } from "../use-local-work-detail.js";
 export function VersionSelector({
 	controller,
 }: {
 	controller: Pick<
-		WorkDetailController,
+		LocalWorkDetailController,
 		"selected" | "playPath" | "closeVersions"
 	>;
 }) {

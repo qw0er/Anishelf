@@ -77,7 +77,7 @@ export async function createAnimeModule(options: {
 		catalog: catalog
 			? {
 					list: (input) => catalog.list(input),
-					detail: (id) => catalog.detail(id),
+					getLocalWorkDetail: (id) => catalog.getLocalWorkDetail(id),
 					source: (id) => catalog.source(id),
 					review: (id) => catalog.review(id),
 					fileReviews: (ids) => catalog.fileReviews(ids),

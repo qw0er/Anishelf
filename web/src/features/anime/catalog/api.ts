@@ -1,26 +1,26 @@
 import { type RequestOptions, request } from "../../../shared/api/client.js";
 import type {
-	CatalogDetailResponse,
 	CatalogFileReviewsResponse,
 	CatalogReviewResponse,
 	CatalogSourceResponse,
+	LocalWorkDetailResponse,
 } from "../../../shared/api/contracts.js";
 
-export function getWork(
+export function getLocalWorkDetail(
 	id: string,
 	options?: RequestOptions,
-): Promise<CatalogDetailResponse> {
+): Promise<LocalWorkDetailResponse> {
 	return request(
 		`/api/catalog/works/${encodeURIComponent(id)}`,
 		"GET",
 		options,
 	);
 }
-export function refreshWork(
+export function refreshLocalWorkDetail(
 	id: string,
 	revision: number,
 	options?: RequestOptions,
-): Promise<CatalogDetailResponse> {
+): Promise<LocalWorkDetailResponse> {
 	return request(
 		`/api/catalog/works/${encodeURIComponent(id)}/refresh`,
 		"POST",

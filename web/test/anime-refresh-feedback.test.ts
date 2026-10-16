@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { workQuery } from "../src/features/anime/catalog/queries.js";
+import { localWorkDetailQuery } from "../src/features/anime/catalog/queries.js";
 import { animeLibraryQuery } from "../src/features/anime/library/queries.js";
 import { metadataDetailQuery } from "../src/features/anime/metadata/queries.js";
 import { entryQuery } from "../src/features/anime/tracking/queries.js";
@@ -95,15 +95,21 @@ test("metadata failure envelopes notify once across local and provider details, 
 	fetcher.mockImplementation(async (input) =>
 		json(String(input).startsWith("/api/catalog/") ? detail : detail.metadata),
 	);
-	await cache.fetchQuery(workQuery("work-1", "root"));
+	await cache.fetchQuery(localWorkDetailQuery("work-1", "root"));
 	await cache.fetchQuery(metadataDetailQuery("anilist", "154587"));
-	await cache.fetchQuery({ ...workQuery("work-1", "root"), staleTime: 0 });
+	await cache.fetchQuery({
+		...localWorkDetailQuery("work-1", "root"),
+		staleTime: 0,
+	});
 	expect(toast.add).toHaveBeenCalledTimes(1);
 	expect(JSON.stringify(vi.mocked(toast.add).mock.calls)).not.toContain(
 		"private provider response",
 	);
 	detail.metadata.refreshError.retryAt = 3000;
-	await cache.fetchQuery({ ...workQuery("work-1", "root"), staleTime: 0 });
+	await cache.fetchQuery({
+		...localWorkDetailQuery("work-1", "root"),
+		staleTime: 0,
+	});
 	expect(toast.add).toHaveBeenCalledTimes(2);
 });
 

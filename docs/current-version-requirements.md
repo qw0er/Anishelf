@@ -30,7 +30,7 @@ AniList owns viewing state. Anishelf reads and refreshes remote lists and submit
 - **Remote conflicts:** retain the remote baseline for a pending operation and refresh before retrying it. If remote progress/status changed, do not silently overwrite it with an older operation; display the conflict and allow keeping the remote value or explicitly submitting the local intent. Duplicate delivery and uncertain request outcomes must be reconciled against remote state before retrying. Refresh must not discard pending intent.
 - **Independent playback:** authorization expiry, offline operation and AniList failures must not prevent playback, local resume or history saves. Disconnect and list refresh must not erase those local records.
 
-This iteration does not add independent local tracking, list import/export, automatic acquisition, rating synchronization, multiple trackers or external-player state collection. The current design selects a bundled Client ID with manual PIN authorization; completion evidence, scheduling and exact request contracts retain implementation gates; this section records requirements, not implemented behavior.
+This iteration does not add independent local tracking, list import/export, automatic acquisition, rating synchronization, multiple trackers or external-player state collection. The current design selects a bundled Client ID with manual PIN authorization; the 85-percent effective watched-coverage policy is selected, while evidence persistence/validation, scheduling and exact request contracts retain implementation gates; this section records requirements, not implemented behavior.
 
 Source playback positions, resume and history remain local capabilities. Existing catalog works, episodes, provider identifiers and confirmed source associations remain the mapping foundation. No new identification or numbering-mapping workflow is required by this iteration.
 
@@ -63,7 +63,7 @@ All scenarios below are pending implementation and verification.
 
 ## 6. Design Decisions Still Required
 
-The [current version design](current-version-design.md) selects a maintainer-provided public Client ID, manual PIN token authorization, server-side credential storage, account isolation, durable submission and conflict recovery. It also defines skipped-episode and backward-correction behavior. Before implementation is accepted, close its remaining gates: verify actual provider authorization, finalize completion evidence/thresholds, the durable playback handoff, refresh/retry bounds and exact request contracts. These decisions must preserve the ownership and acceptance rules above.
+The [current version design](current-version-design.md) selects a maintainer-provided public Client ID, manual PIN token authorization, server-side credential storage, account isolation, durable submission and conflict recovery. It also defines skipped-episode and backward-correction behavior, and selects at least 85-percent effective watched coverage for automatic completion. Seeked ranges do not count, overlapping intervals count once, playback speed uses source-time coverage, and persisted evidence supports resumed playback for the same source version. Natural end does not bypass the threshold. Before implementation is accepted, close its remaining gates: verify actual provider authorization, finalize evidence persistence and validation tolerances, the durable playback handoff, refresh/retry bounds and exact request contracts. These decisions must preserve the ownership and acceptance rules above.
 
 ## 7. Excluded Scope
 

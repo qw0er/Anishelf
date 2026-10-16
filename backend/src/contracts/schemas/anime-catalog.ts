@@ -212,7 +212,7 @@ export const CatalogSourceSchema = Type.Object({
 	sourceVersion: id,
 	associations: review.properties.associations,
 });
-export const CatalogWorkDetailSchema = Type.Object({
+export const LocalWorkDetailSchema = Type.Object({
 	work: card,
 	metadata: MetadataDetailsResponseSchema,
 	bannerUrl: nullableText,

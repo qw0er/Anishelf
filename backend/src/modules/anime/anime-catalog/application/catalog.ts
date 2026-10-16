@@ -16,7 +16,7 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 	readonly cards: AnimeCatalogApi["cards"];
 	readonly list: AnimeCatalogApi["list"];
 	readonly artwork: AnimeCatalogApi["artwork"];
-	readonly detail: AnimeCatalogApi["detail"];
+	readonly getLocalWorkDetail: AnimeCatalogApi["getLocalWorkDetail"];
 	readonly publish: AnimeCatalogApi["publish"];
 	readonly source: AnimeCatalogApi["source"];
 	readonly review: AnimeCatalogApi["review"];
@@ -39,8 +39,8 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 		this.index = queries.index.bind(queries);
 		this.cards = queries.cards.bind(queries);
 		this.artwork = queries.artwork.bind(queries);
-		this.detail = async (id) => {
-			const detail = await queries.detail(id);
+		this.getLocalWorkDetail = async (id) => {
+			const detail = await queries.getLocalWorkDetail(id);
 			const refreshing = this.refreshing.request(id);
 			detail.metadata.refreshing ||= refreshing;
 			detail.metadata.refreshError =

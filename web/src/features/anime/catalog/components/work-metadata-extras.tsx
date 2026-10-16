@@ -1,13 +1,16 @@
 import { useTranslation } from "react-i18next";
-import type { CatalogDetailResponse } from "../../../../shared/api/contracts.js";
+import type { LocalWorkDetailResponse } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
-import type { WorkDetailController } from "../use-work-detail.js";
+import type { LocalWorkDetailController } from "../use-local-work-detail.js";
 export function WorkMetadataExtras({
 	data,
 	controller,
 }: {
-	data: CatalogDetailResponse;
-	controller: Pick<WorkDetailController, "showSpoilers" | "toggleSpoilers">;
+	data: LocalWorkDetailResponse;
+	controller: Pick<
+		LocalWorkDetailController,
+		"showSpoilers" | "toggleSpoilers"
+	>;
 }) {
 	const { t } = useTranslation();
 	const { metadata } = data;

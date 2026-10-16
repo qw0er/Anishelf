@@ -1,13 +1,20 @@
 import { queryOptions } from "@tanstack/react-query";
 import { boundedSignal } from "../../../shared/api/queries.js";
 import { reportMetadataRefresh } from "../metadata/public.js";
-import { getFileReviews, getSource, getWork, getWorkReviews } from "./api.js";
+import {
+	getFileReviews,
+	getLocalWorkDetail,
+	getSource,
+	getWorkReviews,
+} from "./api.js";
 
-export const workQuery = (id: string, scope: string) =>
+export const localWorkDetailQuery = (id: string, scope: string) =>
 	queryOptions({
-		queryKey: ["catalog", scope, "detail", id],
+		queryKey: ["catalog", scope, "local-work-detail", id],
 		queryFn: async ({ signal, client }) => {
-			const result = await getWork(id, { signal: boundedSignal(signal) });
+			const result = await getLocalWorkDetail(id, {
+				signal: boundedSignal(signal),
+			});
 			signal.throwIfAborted();
 			reportMetadataRefresh(client, result.metadata);
 			return result;

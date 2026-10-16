@@ -159,7 +159,7 @@ interface SourceVersion {
 	evidence: ExtractionEvidence;
 	mapping: { rawNumbers: string[]; reason: string; offset: number };
 }
-export interface WorkDetail {
+export interface LocalWorkDetail {
 	work: WorkCard;
 	metadata: CachedMetadata<WorkDetails>;
 	hasBanner: boolean;

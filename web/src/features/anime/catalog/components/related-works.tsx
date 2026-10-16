@@ -1,11 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "../../../../shared/components/ui/button.js";
-import type { WorkDetailController } from "../use-work-detail.js";
+import type { LocalWorkDetailController } from "../use-local-work-detail.js";
 export function RelatedWorks({
 	controller,
 }: {
 	controller: Pick<
-		WorkDetailController,
+		LocalWorkDetailController,
 		"relations" | "relationsPage" | "changeRelationsPage"
 	>;
 }) {

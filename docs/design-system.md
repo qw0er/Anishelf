@@ -93,6 +93,11 @@ marker; refreshing uses a small busy icon. Show a short loading skeleton until a
 complete list snapshot establishes whether an entry exists. Reconnect guidance and
 initial-read failures remain visible in the row. The summary wraps on narrow screens.
 
+Episode numbering guidance is an info icon beside the episode heading with a
+keyboard/touch-accessible Tooltip. Files needing review use a compact disclosure
+with a current-page count, candidate links and pagination inside. Keep loading
+and errors visible while collapsed; candidate guidance belongs in a Tooltip.
+
 Provider airing schedules use a compact disclosure with a loaded-record count.
 Keep the provider numbering explanation in an accessible Tooltip. Expanded records
 show episode, local date/time and status in aligned rows sorted by broadcast time.

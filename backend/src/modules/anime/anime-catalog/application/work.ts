@@ -9,8 +9,8 @@ import { conflict, target, text } from "../domain/mapping.js";
 import type {
 	LocalEpisode,
 	LocalWork,
+	LocalWorkDetail,
 	ProviderLink,
-	WorkDetail,
 } from "../domain/model.js";
 import type { CatalogContext } from "./context.js";
 import { projection } from "./projection.js";
@@ -76,7 +76,7 @@ export class WorkApplication {
 		);
 		return updated;
 	}
-	async refresh(id: string, revision: number): Promise<WorkDetail> {
+	async refresh(id: string, revision: number): Promise<LocalWorkDetail> {
 		const started = performance.now();
 		const root = await this.context.root();
 		const work = this.context.requireWork(id, root.rootId);
@@ -104,7 +104,7 @@ export class WorkApplication {
 			"Manual catalog refresh completed.",
 		);
 
-		return this.queries.detail(id);
+		return this.queries.getLocalWorkDetail(id);
 	}
 	async revalidate(
 		id: string,
