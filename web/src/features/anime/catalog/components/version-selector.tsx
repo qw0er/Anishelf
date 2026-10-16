@@ -8,10 +8,13 @@ import {
 	DialogTitle,
 } from "../../../../shared/components/ui/dialog.js";
 import { releaseInfo } from "../detail-format.js";
+import type { AnimeResourceActionSlot } from "../resource-actions.js";
 import type { LocalWorkDetailController } from "../use-local-work-detail.js";
 export function VersionSelector({
 	controller,
+	renderResourceActions,
 }: {
+	renderResourceActions: AnimeResourceActionSlot;
 	controller: Pick<
 		LocalWorkDetailController,
 		"selected" | "playPath" | "closeVersions"
@@ -58,12 +61,15 @@ export function VersionSelector({
 									{t("review.correct")}
 								</Link>
 								{version.available ? (
-									<Link
-										className={buttonStyles()}
-										to={playPath(version, selected)}
-									>
-										{t("anime.play")}
-									</Link>
+									<div className="inline-flex items-center gap-1">
+										{renderResourceActions(version)}
+										<Link
+											className={buttonStyles()}
+											to={playPath(version, selected)}
+										>
+											{t("anime.play")}
+										</Link>
+									</div>
 								) : (
 									<p>{t("anime.unavailable")}</p>
 								)}

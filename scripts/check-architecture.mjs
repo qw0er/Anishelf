@@ -5,12 +5,12 @@ import { cruise } from "dependency-cruiser";
 const require = createRequire(import.meta.url);
 const rules = require("../.dependency-cruiser.cjs");
 
-async function checkArchitecture() {
+export async function checkArchitecture(baseDir = process.cwd()) {
 	const result = await cruise(
 		["backend/src", "web/src"],
 		{
 			...rules.options,
-			baseDir: process.cwd(),
+			baseDir,
 			ruleSet: rules,
 			validate: true,
 			outputType: "json",

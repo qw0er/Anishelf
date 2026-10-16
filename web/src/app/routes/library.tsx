@@ -1,15 +1,12 @@
 import type { RouteObject } from "react-router";
-import {
-	AnimeDetail,
-	ReviewPage,
-	TrackedAnimeDetail,
-} from "../../features/anime/ui.js";
+import { ReviewPage, TrackedAnimeDetail } from "../../features/anime/ui.js";
 import { HistoryPage } from "../../features/playback/ui.js";
 import App from "../App.js";
 import InitialLoading from "../components/initial-loading.js";
 import { animeLoader } from "./anime-data.js";
 import RouteError from "./errors.js";
 import { historyLoader } from "./history-data.js";
+import { AnimeDetailPage } from "./pages/anime-detail-page.js";
 import { AnimeLibraryPage } from "./pages/anime-library-page.js";
 import { DirectoryPage } from "./pages/directory-page.js";
 import { NotFoundPage } from "./pages/not-found-page.js";
@@ -52,7 +49,7 @@ export const libraryRoute: RouteObject = {
 		{
 			path: "anime/:id",
 			loader: animeLoader,
-			element: <AnimeDetail />,
+			element: <AnimeDetailPage />,
 			errorElement: <RouteError kind="directory" />,
 		},
 		{

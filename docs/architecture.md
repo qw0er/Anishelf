@@ -112,7 +112,6 @@ injects ports; business code cannot import composition, including for types.
 `TrackingAccountsApi` and `TrackingListsApi`. Library requests only the list
 capability. Composition code does not define runtime business facades.
 
-
 | Root entry | Allowed consumer |
 | --- | --- |
 | `public.ts` | Sibling modules, app and boundary presenters: selected business capabilities/types only |
@@ -409,7 +408,6 @@ operations; callbacks retain closures where they adapt injected dependencies.
 The frontend playback API adapter owns the media-access-link endpoint and its
 shared response contract; media-link orchestration consumes that typed method.
 
-
 App supplies Authentication with a consumer-owned file-version capability adapted
 from Resources. Authentication registers Cookie/session plugins and a global API
 guard before module HTTP routes. Host/Origin validation remains in transport;
@@ -436,3 +434,18 @@ is `LocalWorkDetail`. It combines the local work, metadata snapshot, episodes
 and file versions. Tracking viewing state and provider airing schedules remain
 separate reads. The frontend cache key is
 `["catalog", scope, "local-work-detail", id]`; `scope` isolates client caches.
+
+### Anime detail resource actions
+
+App's `AnimeDetailPage` supplies `AnimeResourceActionSlot` to the Anime detail UI.
+Episode/version selection remains Anime-owned; `AnimeFileActions` composes the same
+`FileActions` used by Files, using Media's version-scoped compatibility query and
+existing Playback/Media UI exports. The per-detail negotiation gate uses Media's
+existing concurrency limit, with cancellation and resource/source-version query
+identities. No feature imports App or a sibling feature's private implementation.
+Preparation task reads remain lazy on menu opening. A single deduplicated summary
+request covers the available file IDs from the observed detail cache; published
+copies matching the Catalog source version show the prepared indicator before
+opening a menu, including while original compatibility is still being checked. Existing media-link/access,
+compatibility, preparation and playback endpoints retain their diagnostics and
+source checks; this UI adds no independent command implementation or backend API.

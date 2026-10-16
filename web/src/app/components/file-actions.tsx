@@ -22,12 +22,16 @@ import { Tooltip } from "../../shared/components/ui/tooltip.js";
 
 export function FileActions({
 	fileId,
+	sourceVersion,
 	summary,
 	identification,
 	identificationMenu,
+	disabled = false,
 	...compatibility
 }: {
 	fileId: string;
+	sourceVersion?: string;
+	disabled?: boolean;
 	identification?: ReactNode;
 	identificationMenu?: ReactNode;
 	summary?: PreparationSummaryResponse["files"][number] | undefined;
@@ -38,11 +42,12 @@ export function FileActions({
 }) {
 	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
-	const list = useFilePreparations(fileId, open);
+	const list = useFilePreparations(fileId, open && !disabled);
+	const expectedVersion = sourceVersion ?? compatibility.result?.sourceVersion;
 	const prepared =
 		summary?.versions.some(
 			(version) =>
-				version.sourceVersion === compatibility.result?.sourceVersion &&
+				version.sourceVersion === expectedVersion &&
 				version.publishedCopies > 0,
 		) ||
 		list.tasks.some(
@@ -50,7 +55,7 @@ export function FileActions({
 				task.status === "ready" &&
 				task.artifactId &&
 				task.playbackAvailability === "ready" &&
-				task.sourceVersion === compatibility.result?.sourceVersion,
+				task.sourceVersion === expectedVersion,
 		);
 	return (
 		<>
@@ -58,11 +63,12 @@ export function FileActions({
 			<CompatibilityStatus
 				{...compatibility}
 				loading={compatibility.loading}
-				prepared={prepared}
+				prepared={prepared && !disabled}
 			/>
-			<DropdownMenu open={open} onOpenChange={setOpen}>
+			<DropdownMenu open={open && !disabled} onOpenChange={setOpen}>
 				<Tooltip content={t("library.fileActions")}>
 					<DropdownMenuTrigger
+						disabled={disabled}
 						render={
 							<Button
 								variant="ghost"

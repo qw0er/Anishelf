@@ -101,6 +101,19 @@ retry timing and conflict choices in the dialog, and submission lifecycle/result
 in deduplicated app-level Toasts with a work-detail recovery action. Network failure
 must retain editable input and persisted intent.
 
+Anime details keep Web playback as the primary episode action. A single available
+version orders controls as compatibility status, shared Files action menu, then
+Play. The version chooser uses the same order.
+Multiple available versions open the version chooser; each available version has
+its own Play and file-action controls. Unavailable versions expose no file commands.
+The same menu provides external players, original links/downloads/playlists and
+preparation controls, while association corrections remain in the Anime context.
+App supplies the cross-feature composition through a typed resource-action slot;
+Anime does not depend on App or Media/Playback UI internals. Compatibility queries
+are bounded, account for resource scope and the selected source version, and known
+source conflicts disable the affected menu. Web playback retains work, episode,
+source-version and Library return context. Existing command feedback and logs apply.
+
 Episode numbering guidance is an info icon beside the episode heading with a
 keyboard/touch-accessible Tooltip. Files needing review use a compact disclosure
 with a current-page count, candidate links and pagination inside. Keep loading

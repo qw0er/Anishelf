@@ -1,16 +1,9 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
-
-const execute = promisify(execFile);
-const checker = fileURLToPath(
-	new URL("./check-architecture.mjs", import.meta.url),
-);
+import { checkArchitecture } from "./check-architecture.mjs";
 
 async function scan(files) {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-architecture-"));
@@ -24,16 +17,7 @@ async function scan(files) {
 			await mkdir(dirname(join(directory, name)), { recursive: true });
 			await writeFile(join(directory, name), source);
 		}
-		let stdout;
-		try {
-			({ stdout } = await execute(process.execPath, [checker, "--json"], {
-				cwd: directory,
-			}));
-		} catch (error) {
-			if (!error.stdout) throw error;
-			stdout = error.stdout;
-		}
-		const summary = JSON.parse(stdout);
+		const { summary } = await checkArchitecture(directory);
 		return summary.violations.map((violation) => violation.rule.name);
 	} finally {
 		await rm(directory, { recursive: true, force: true });

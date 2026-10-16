@@ -19,10 +19,10 @@ export function CompatibilityStatus({
 	prepared = false,
 }: DirectoryCompatibilityState & { prepared?: boolean }) {
 	const { t } = useTranslation();
-	const state = loading
-		? "checking"
-		: prepared
-			? "prepared"
+	const state = prepared
+		? "prepared"
+		: loading
+			? "checking"
 			: error
 				? "failed"
 				: (result?.direct.status ?? "unknown");
@@ -66,9 +66,13 @@ export function CompatibilityStatus({
 				variant="ghost"
 				className="size-9 shrink-0 p-0 text-muted-foreground"
 				aria-label={label}
-				aria-busy={loading}
+				aria-busy={state === "checking"}
 			>
-				{loading ? <Spinner /> : <Icon className="size-4" aria-hidden="true" />}
+				{state === "checking" ? (
+					<Spinner />
+				) : (
+					<Icon className="size-4" aria-hidden="true" />
+				)}
 			</Button>
 		</Tooltip>
 	);
