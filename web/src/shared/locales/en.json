@@ -597,6 +597,11 @@
 	},
 	"playbackCompletion": {
 		"label": "AniList playback update",
+		"mark": "Mark as watched",
+		"marking": "Marking watched\u2026",
+		"review": "Review AniList update",
+		"queuedButton": "AniList update queued",
+		"retryButton": "Retry AniList update",
 		"queued": "Episode completion queued for AniList. Confirmation appears in tracking notifications.",
 		"initial": "Add this title to AniList with progress {{episode}}?",
 		"advance": "Advance AniList progress to episode {{episode}}, including skipped episodes?",

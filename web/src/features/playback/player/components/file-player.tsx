@@ -15,7 +15,7 @@ import type { PlaybackUiSlots } from "../../public.js";
 import { usePlaybackController } from "../hooks/use-playback-controller.js";
 import { AudioSelection } from "./audio-selection.js";
 import { CompatibilityDialog } from "./compatibility-dialog.js";
-import { CompletionFeedback } from "./completion-feedback.js";
+import { CompletionControl } from "./completion-control.js";
 
 import { PlaybackActionsMenu } from "./external-player-menu.js";
 import VideoPlayer from "./video-player.js";
@@ -166,14 +166,6 @@ export default function FilePlayer({
 					/>
 				</QueryScope>
 			)}
-			<CompletionFeedback
-				key={playback.session?.token}
-				token={
-					playback.session?.completionEnabled
-						? playback.session.token
-						: undefined
-				}
-			/>
 			<AudioSelection
 				audio={audio}
 				audioTracks={audioTracks}
@@ -192,6 +184,14 @@ export default function FilePlayer({
 				<PlaybackActionsMenu
 					key={`actions:${data.file.id}`}
 					fileId={data.file.id}
+				/>
+				<CompletionControl
+					key={playback.session?.token}
+					token={
+						playback.session?.completionEnabled
+							? playback.session.token
+							: undefined
+					}
 				/>
 			</div>
 		</section>

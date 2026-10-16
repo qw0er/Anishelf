@@ -1,4 +1,7 @@
-import type { CompletionRecord } from "./domain/completion.js";
+import type {
+	CompletionRecord,
+	ManualCompletion,
+} from "./domain/completion.js";
 import type {
 	HistoryCandidate,
 	PlaybackProgress,
@@ -15,6 +18,8 @@ export interface PlaybackStore {
 		context?: string,
 	): CompletionRecord[];
 	saveCompletion(record: CompletionRecord): void;
+	/** Insert-if-absent intent receipt; existing evidence receipts always win. */
+	recordCompletion(record: ManualCompletion): void;
 	registerSource(identity: SourceIdentity, nowMs?: number): RegisteredSource;
 	get(sourceId: string): PlaybackProgress | undefined;
 	openGeneration(sourceId: string): PlaybackProgress;

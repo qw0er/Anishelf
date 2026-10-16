@@ -594,5 +594,9 @@ The source coverage transaction, bounded validation policy, two-second handoff,
 restart/replay semantics, decision routes, UI indicators and acceptance limits are
 specified in [Playback completion delivery](current-version-requirements.md#11-playback-completion-and-derived-viewing-display-delivery).
 The implementation preserves progress-only automation, explicit initial status and
-skipped-episode decisions. Unknown mappings remain manual. Confirmed AniList state
-alone drives W05; pending local intent does not become confirmed watched state.
+skipped-episode decisions. The player's single completion control both marks an
+episode watched through the same revalidated handoff, creating the receipt that
+coverage would otherwise add, and carries every recorded/blocked/queued/failed state
+that used to sit in a separate panel. Unknown mappings remain manual. Confirmed
+AniList state alone drives W05; pending local intent does not become confirmed
+watched state.

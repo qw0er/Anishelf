@@ -89,6 +89,17 @@ export class PlaybackCompletions {
 		});
 		await this.flush();
 	}
+	/** Manual marking creates the receipt that coverage-based completion would otherwise add. */
+	async mark(
+		sourceId: string,
+		context: string,
+		capturedAt: number,
+		decision: CompletionDecision,
+	): Promise<void> {
+		await this.active;
+		this.store.recordCompletion({ sourceId, context, capturedAt, decision });
+		await this.flush();
+	}
 	async close() {
 		this.closed = true;
 		clearInterval(this.timer);

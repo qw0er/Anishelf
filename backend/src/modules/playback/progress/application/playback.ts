@@ -292,11 +292,32 @@ export class PlaybackApplication implements PlaybackApi {
 	): Promise<CompletionOutcome | null> {
 		const session = this.session(token);
 		await this.revalidate(token, session);
-		const record = this.repository()
-			.completions(session.sourceId, false, session.completionContext ?? "")
-			.find((r) => r.context === session.completionContext);
+		const context = session.completionContext;
+		const record = context
+			? this.repository()
+					.completions(session.sourceId, false, context)
+					.find((r) => r.context === context)
+			: undefined;
 		if (record && this.completionsWorker)
 			await this.completionsWorker.decide(record, decision);
+		// Manual marking has no coverage receipt yet: record explicit intent through the same handoff.
+		// Declining without a receipt records nothing, so later automatic evidence is never suppressed.
+		else if (!record && context && decision.advance && this.completionsWorker) {
+			this.logger.info(
+				{
+					event: "playback.completion_manual_recorded",
+					sourceId: session.sourceId,
+					decision,
+				},
+				"Manual playback completion recorded.",
+			);
+			await this.completionsWorker.mark(
+				session.sourceId,
+				context,
+				this.now(),
+				decision,
+			);
+		}
 		return this.completion(token);
 	}
 	private validEvidence(
