@@ -1,3 +1,4 @@
+import { once } from "node:events";
 import { writeSync } from "node:fs";
 import {
 	mkdtemp,
@@ -7,6 +8,7 @@ import {
 	rm,
 	writeFile,
 } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Writable } from "node:stream";
@@ -301,12 +303,27 @@ test("slow output bounds the queue and reports overflow to stderr", async () => 
 });
 
 test("time rotation archives a file below the size threshold", async () => {
-	const actual = await vi.importActual<typeof import("rotating-file-stream")>(
+	const actual = createRequire(import.meta.url)(
 		"rotating-file-stream",
+	) as typeof import("rotating-file-stream");
+	vi.useFakeTimers({ toFake: ["Date"] });
+	const timers = createRequire(import.meta.url)(
+		"node:timers",
+	) as typeof import("node:timers");
+	let triggerRotation!: () => void;
+	const schedule = timers.setTimeout;
+	vi.spyOn(timers, "setTimeout").mockImplementationOnce(
+		(callback, delay, ...args) => {
+			triggerRotation = () => callback(...args);
+			return schedule(callback, delay, ...args);
+		},
 	);
+	vi.setSystemTime(new Date("2026-10-16T12:00:00.000Z"));
+	let stream!: ReturnType<typeof createStream>;
 	vi.mocked(createStream).mockImplementationOnce((filename, options) => {
 		expect(options?.interval).toBe("1h");
-		return actual.createStream(filename, { ...options, interval: "1s" });
+		stream = actual.createStream(filename, options);
+		return stream;
 	});
 	const path = join(fixture, "hourly.log");
 	const instance = create({
@@ -317,7 +334,11 @@ test("time rotation archives a file below the size threshold", async () => {
 	});
 	instance.logger.info({ event: "before" });
 	await instance.flush();
-	await new Promise((resolve) => setTimeout(resolve, 1100));
+	// Reopening completes the asynchronous archive operation after the hour boundary.
+	const reopened = once(stream, "open");
+	vi.setSystemTime(new Date("2026-10-16T13:00:00.000Z"));
+	triggerRotation();
+	await reopened;
 	instance.logger.info({ event: "after" });
 	await instance.flush();
 	expect((await records(path)).map((record) => record.event)).toEqual([
@@ -328,6 +349,11 @@ test("time rotation archives a file below the size threshold", async () => {
 		name.endsWith("-hourly.log"),
 	);
 	expect(archives).toHaveLength(1);
+	expect(
+		(await records(join(fixture, archives[0] ?? ""))).map(
+			(record) => record.event,
+		),
+	).toEqual(["before"]);
 });
 
 test("SIGHUP reopens a renamed file and closing removes the handler", async () => {
