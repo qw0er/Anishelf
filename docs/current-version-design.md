@@ -11,7 +11,7 @@ Existing Catalog identities and confirmed work/episode associations are reused.
 This remains the iteration design baseline. The account foundation described in
 [Implemented account foundation](#implemented-account-foundation) is delivered;
 list access and the unified Library read projection are also delivered. Manual progress/status commands and reliable submission/conflict recovery are
-also delivered; automatic playback updates remain planned. No release
+also delivered; automatic playback updates and W05 displays are delivered as described in the completion implementation section below. No release
 number is assigned. [Architecture](architecture.md) describes existing runtime
 owners; [Overall requirements](requirements.md) retains delivery status. Historical
 designs remain unchanged.
@@ -166,7 +166,7 @@ before acknowledging tracking acceptance; asynchronous in-memory callbacks alone
 are insufficient. Consume handoff records idempotently. A practical implementation
 can add a Playback-owned outbox beside its store and expose bounded read/ack
 capabilities through its root API; only Anime decides tracking targets and intent.
-The exact local transaction boundary is an implementation gate.
+The implemented transaction saves progress, merges source coverage and inserts a completion receipt atomically; the receipt is acknowledged only after Tracking admission or an explicit terminal decision.
 
 Before every submission attempt, fetch remote state. If changed fields already
 match the desired state, reconcile as success. If they still match the captured
@@ -232,9 +232,7 @@ accepted observations. Validate continuity against elapsed time and playback rat
 split intervals on seeks and interruptions, and map prepared-media time to source
 time before accumulation. This is cooperative player telemetry, not proof against
 a malicious client. Coverage is local completion evidence, not an authoritative
-watched-episode ledger or AniList-confirmed progress. The evidence persistence,
-validation tolerances and durable handoff still require implementation and tests
-before automatic submission is enabled; manual updates remain the initial usable path.
+watched-episode ledger or AniList-confirmed progress. Evidence persistence, validation tolerances and the durable handoff are implemented; their bounds and validation limits are recorded in the completion implementation section below.
 
 | Completed target compared with confirmed progress N | Behavior |
 | --- | --- |
@@ -259,7 +257,7 @@ AniList cumulative progress, not an independent per-episode watched ledger.
 ## 7. HTTP and Frontend Contracts
 
 The following manual route families are implemented with shared transport schemas;
-automatic playback handoff remains planned. Account commands require Anishelf authentication and CSRF;
+automatic playback handoff is also implemented through Playback-owned completion routes. Account commands require Anishelf authentication and CSRF;
 media-link bearer tokens do not authorize tracking operations.
 
 | Route family | Purpose |
@@ -339,15 +337,14 @@ network failures. Run Biome, lint, architecture/type checks and relevant tests f
 implementation changes. Provider and browser acceptance require actual runs and
 must not be inferred from fixtures.
 
-## 10. Remaining Implementation Gates
+## 10. Remaining Acceptance
 
-Before automatic updates ship, implement and validate the selected 85-percent
-coverage policy, finalize interval validation tolerances and evidence persistence,
-and define the transactional handoff contract. Before account integration ships, verify the real
-maintainer application's PIN behavior and backend usage. Manual route schemas, retry bounds and queue limits are now implemented.
-Playback evidence schemas and the transactional handoff still require implementation
-review; real-account writes remain an acceptance gate. Keep requirements and this design aligned;
-none of these gates changes AniList's ownership or introduces list import/export.
+The selected coverage policy, validation bounds, evidence schemas and transactional
+handoff are implemented and have fixture coverage. Fresh browser PIN authorization,
+real-media browser completion and real-account writes remain runtime acceptance
+items. Manual commands and automatic admission share the implemented retry bounds,
+queue limits and conflict recovery. These remaining checks do not change AniList's
+ownership or introduce list import/export.
 
 ## Implemented Account Foundation
 
@@ -488,8 +485,7 @@ scope/status filters, refresh, cached feedback, remote details and return contex
 A read-only live run fetched and persisted 244 AniList entries using the existing
 private token file; no remote mutation was issued. A production-build fixture
 browser check verified merged cards, status filtering, metadata-failure fallback,
-and 390-pixel layout without horizontal overflow. Manual submission was delivered subsequently. Completion evidence,
-per-episode watched indicators and full iteration acceptance remain pending.
+and 390-pixel layout without horizontal overflow. Manual submission was delivered subsequently. Completion evidence and per-episode indicators were delivered subsequently; full iteration acceptance remains pending.
 
 
 ### Module Boundaries, Assembly and Explicit Types
@@ -578,7 +574,25 @@ intent, failures, retry timing and conflict resolution. The app-level operation
 monitor continues deduplicated Toast results after navigation. It polls active work
 at 1.5 seconds and idle operation state at 10 seconds; query keys include account
 and connection generation. Account changes clear old queries/notices. Input values
-are never optimistically presented as AniList-confirmed state. Automatic playback
-completion/evidence and W05 derived episode displays remain unimplemented.
+are never optimistically presented as AniList-confirmed state. Automatic playback completion/evidence and W05 derived episode displays are delivered separately below.
 
 Fixture validation and its limits are recorded in the current version requirements.
+
+
+## Implemented Playback Completion and W05
+
+Playback owns continuous source-time coverage and durable completion receipts;
+Anime's `TrackingCompletions` captures and revalidates confirmed Catalog targets and
+admits absolute intent through Tracking's existing public command path. App assembly
+constructs Anime first and injects this structural observation port into Playback.
+The completion worker stops before Anime's submission consumer shuts down. Media
+exports only version-checked source duration from shared inspection, never raw probe
+paths. Tracking operations mark playback origin for safe manual precedence and
+operation notifications; manual HTTP commands cannot supply that marker.
+
+The source coverage transaction, bounded validation policy, two-second handoff,
+restart/replay semantics, decision routes, UI indicators and acceptance limits are
+specified in [Playback completion delivery](current-version-requirements.md#11-playback-completion-and-derived-viewing-display-delivery).
+The implementation preserves progress-only automation, explicit initial status and
+skipped-episode decisions. Unknown mappings remain manual. Confirmed AniList state
+alone drives W05; pending local intent does not become confirmed watched state.

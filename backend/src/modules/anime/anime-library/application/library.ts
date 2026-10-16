@@ -210,6 +210,12 @@ function localCard(card: LibraryCard, work: WorkCard | undefined): LibraryCard {
 		? {
 				...card,
 				availableEpisodes: work.availableEpisodes,
+				availableUnwatchedEpisodes:
+					card.viewing && work.availableTrackingEpisodes
+						? work.availableTrackingEpisodes.filter(
+								(number) => number > (card.viewing?.progress ?? 0),
+							).length
+						: null,
 				availableRegularEpisodes: work.availableRegularEpisodes,
 				hasCover: work.hasCover,
 				metadataStale: work.metadataStale,

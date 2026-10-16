@@ -16,6 +16,8 @@ export type {
 	CompatibilityInspection,
 	CompatibilityQuery,
 	CompatibilityResult,
+	CompletionDecision,
+	CompletionOutcome,
 	DirectoryResponse,
 	FileDto,
 	FileResponse,

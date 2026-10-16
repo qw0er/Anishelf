@@ -133,6 +133,7 @@ function LocalWorkDetail({
 			/>
 			<div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 				<EpisodeList
+					anilistProgress={viewing.snapshot?.entry?.progress ?? null}
 					data={data}
 					controller={controller}
 					renderResourceActions={renderResourceActions}

@@ -37,6 +37,7 @@ export const AnimeLibrarySchema = Type.Object({
 			episodeCount: integer,
 			updatedAt: Type.Integer(),
 			availableEpisodes: Type.Integer(),
+			availableUnwatchedEpisodes: Type.Optional(integer),
 			availableRegularEpisodes: Type.Integer(),
 			metadataStale: Type.Boolean(),
 			coverUrl: text,

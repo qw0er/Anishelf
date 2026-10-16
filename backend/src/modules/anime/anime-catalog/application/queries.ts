@@ -18,6 +18,7 @@ export class CatalogQueries {
 	): Promise<WorkCard> {
 		const link = this.context.options.store.link(work.id);
 		if (!link) throw new Error("Catalog work is missing its provider link.");
+		const availableTrackingEpisodes: number[] = [];
 		let availableEpisodes = 0;
 		let availableRegularEpisodes = 0;
 		const availability = new Map<string, boolean>();
@@ -34,6 +35,13 @@ export class CatalogQueries {
 				}
 				usable ||= available;
 			}
+			if (
+				usable &&
+				(episode.kind === "regular" ||
+					(episode.kind === "movie" && episode.number === "1")) &&
+				/^[1-9][0-9]*$/.test(episode.number)
+			)
+				availableTrackingEpisodes.push(Number(episode.number));
 			availableEpisodes += Number(usable);
 			if (episode.kind === "regular")
 				availableRegularEpisodes += Number(usable);
@@ -46,6 +54,7 @@ export class CatalogQueries {
 			reference: link.reference,
 			availableEpisodes,
 			availableRegularEpisodes,
+			availableTrackingEpisodes,
 		};
 	}
 	async list(query: CatalogQuery = {}) {

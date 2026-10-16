@@ -5,6 +5,12 @@ import type { DeepReadonly } from "../../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../../resources/public.js";
 import { resourceRootId } from "../../../resources/public.js";
 import type {
+	CompletionDecision,
+	CompletionOutcome,
+	PlaybackCompletionObserver,
+} from "../domain/completion.js";
+import { mergeCoverage } from "../domain/completion.js";
+import type {
 	HistoryItem,
 	HistoryResult,
 	PlaybackSession,
@@ -16,8 +22,13 @@ import type {
 import { type PlaybackPolicy, playbackPolicy } from "../policy.js";
 import type { PlaybackStore } from "../ports.js";
 import type { PlaybackApi } from "../public.js";
+import { PlaybackCompletions } from "./completions.js";
 
 interface PlaybackSessionState {
+	completionContext: string | null;
+	sourceDurationMs?: number | null;
+	openedAt: number;
+	evidenceAt: number;
 	sourceId: string;
 	identity: SourceIdentity;
 	rootEpoch: number;
@@ -29,11 +40,16 @@ interface PlaybackSessionState {
 export class PlaybackApplication implements PlaybackApi {
 	private readonly sessions = new Map<string, PlaybackSessionState>();
 	private closed = false;
+	private readonly completionsWorker: PlaybackCompletions | undefined;
 	private readonly logger: Logger;
 	private readonly policy: DeepReadonly<PlaybackPolicy>;
 	constructor(
 		private readonly options: {
 			sources: ResourceAccessApi;
+			sourceDuration?:
+				| ((fileId: string, sourceVersion: string) => Promise<number | null>)
+				| undefined;
+			completionObserver?: PlaybackCompletionObserver | undefined;
 			repository?: PlaybackStore;
 			logger: Logger;
 			now?: () => number;
@@ -42,10 +58,17 @@ export class PlaybackApplication implements PlaybackApi {
 	) {
 		this.policy = options.policy ?? playbackPolicy;
 		this.logger = options.logger.child({ module: "playback" });
+		if (options.repository && options.completionObserver)
+			this.completionsWorker = new PlaybackCompletions(
+				options.repository,
+				options.completionObserver,
+				this.logger,
+			);
 	}
 
 	async open(fileId: string): Promise<PlaybackSession> {
 		const started = Date.now();
+		const openedAt = this.now();
 		this.logger.debug(
 			{ event: "playback.open_started", fileId },
 			"Opening playback session.",
@@ -65,12 +88,29 @@ export class PlaybackApplication implements PlaybackApi {
 			repository.get(registered.id);
 			return repository.openGeneration(registered.id);
 		});
+		let completionContext: string | null = null;
+		try {
+			completionContext =
+				(await this.options.completionObserver?.capture(
+					fileId,
+					source.identity.sourceVersion,
+				)) ?? null;
+		} catch {
+			this.logger.warn(
+				{ event: "playback.completion_capture_failed", fileId },
+				"Tracking target unavailable; local playback remains usable.",
+			);
+		}
+		this.assertEpoch(source.rootEpoch);
 		const token = randomUUID();
 		for (const [otherToken, session] of this.sessions) {
 			if (session.sourceId === progress.sourceId)
 				this.sessions.delete(otherToken);
 		}
 		this.sessions.set(token, {
+			completionContext,
+			openedAt,
+			evidenceAt: this.now(),
 			sourceId: progress.sourceId,
 			identity: source.identity,
 			rootEpoch: source.rootEpoch,
@@ -89,6 +129,7 @@ export class PlaybackApplication implements PlaybackApi {
 		);
 		return {
 			token,
+			completionEnabled: Boolean(completionContext),
 			sourceVersion: source.identity.sourceVersion,
 			file: source.file,
 			progress,
@@ -104,6 +145,25 @@ export class PlaybackApplication implements PlaybackApi {
 			input.sourceVersion !== session.identity.sourceVersion
 		)
 			this.conflict();
+		if (input.intervals?.length && session.sourceDurationMs === undefined) {
+			try {
+				session.sourceDurationMs =
+					(await this.options.sourceDuration?.(
+						session.identity.fileId,
+						session.identity.sourceVersion,
+					)) ?? null;
+			} catch {
+				this.logger.warn(
+					{
+						event: "playback.evidence_duration_unavailable",
+						sourceId: session.sourceId,
+					},
+					"Source duration unavailable; resume remains usable.",
+				);
+			}
+			await this.revalidate(input.token, session);
+		}
+		const intervals = this.validEvidence(input, session);
 		const result = this.persist(() =>
 			this.repository().save(
 				{
@@ -112,12 +172,20 @@ export class PlaybackApplication implements PlaybackApi {
 					sequence: input.sequence,
 					positionMs: input.positionMs,
 					durationMs: input.durationMs,
+					evidence: {
+						intervals,
+						durationMs: session.sourceDurationMs ?? 0,
+						context: session.completionContext,
+						capturedAt: session.openedAt,
+					},
 				},
 				this.now(),
 			),
 		);
 		if (result.status === "stale") this.conflict();
+		if (result.status === "saved") session.evidenceAt = this.now();
 		session.touchedAtMs = this.now();
+		void this.completionsWorker?.flush();
 		this.logger.trace(
 			{
 				event: "playback.progress_saved",
@@ -205,9 +273,99 @@ export class PlaybackApplication implements PlaybackApi {
 				"Playback session released.",
 			);
 	}
-	close(): void {
+	async completion(token: string): Promise<CompletionOutcome | null> {
+		const session = this.session(token);
+		await this.revalidate(token, session);
+		const records = this.repository().completions(
+			session.sourceId,
+			false,
+			session.completionContext ?? "",
+		);
+		return (
+			records.find((record) => record.context === session.completionContext)
+				?.outcome ?? null
+		);
+	}
+	async decideCompletion(
+		token: string,
+		decision: CompletionDecision,
+	): Promise<CompletionOutcome | null> {
+		const session = this.session(token);
+		await this.revalidate(token, session);
+		const record = this.repository()
+			.completions(session.sourceId, false, session.completionContext ?? "")
+			.find((r) => r.context === session.completionContext);
+		if (record && this.completionsWorker)
+			await this.completionsWorker.decide(record, decision);
+		return this.completion(token);
+	}
+	private validEvidence(
+		input: SavePlaybackProgress,
+		session: PlaybackSessionState,
+	) {
+		const intervals = input.intervals ?? [];
+		if (
+			!session.sourceDurationMs ||
+			!input.durationMs ||
+			Math.abs(session.sourceDurationMs - input.durationMs) > 1000
+		)
+			return [];
+		let covered = this.repository().coverage(
+			session.sourceId,
+			session.sourceDurationMs,
+		);
+		let elapsed = 0;
+		if (intervals.length > 128) return [];
+		for (const i of intervals) {
+			if (
+				!input.durationMs ||
+				!Number.isSafeInteger(i.startMs) ||
+				!Number.isSafeInteger(i.endMs) ||
+				i.startMs < 0 ||
+				i.endMs <= i.startMs ||
+				i.endMs > input.durationMs ||
+				!Number.isFinite(i.elapsedMs) ||
+				i.elapsedMs <= 0 ||
+				!Number.isFinite(i.rate) ||
+				i.rate < 0.25 ||
+				i.rate > 16 ||
+				i.endMs - i.startMs > i.elapsedMs * i.rate + 100
+			)
+				return [];
+			const before = covered.reduce(
+				(sum, [start, end]) => sum + end - start,
+				0,
+			);
+			covered = mergeCoverage([
+				...covered,
+				[i.startMs, Math.min(i.endMs, session.sourceDurationMs)],
+			]);
+			const added =
+				covered.reduce((sum, [start, end]) => sum + end - start, 0) - before;
+			elapsed += (i.elapsedMs * added) / (i.endMs - i.startMs);
+		}
+		// Delivery delay grants no unbounded credit. Invalid telemetry never breaks resume saves.
+		if (
+			elapsed >
+			Math.min(300000, Math.max(0, this.now() - session.evidenceAt) + 1000)
+		) {
+			this.logger.debug(
+				{ event: "playback.evidence_rejected", sourceId: session.sourceId },
+				"Playback evidence exceeded elapsed-time budget.",
+			);
+			return [];
+		}
+		return intervals
+			.map((i) => ({
+				...i,
+				endMs: Math.min(i.endMs, session.sourceDurationMs ?? i.endMs),
+			}))
+			.filter((i) => i.endMs > i.startMs);
+	}
+	async close(): Promise<void> {
 		this.closed = true;
 		this.sessions.clear();
+		await this.completionsWorker?.close();
 	}
 
 	private now(): number {

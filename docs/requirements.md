@@ -181,9 +181,9 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | --- | --- | --- | --- | --- |
 | W01 | Save playback position and duration and resume playback | Implemented | V2 | V2 |
 | W02 | History page with recent viewing records and resume/replay | Implemented; History covers continue watching | V2 | V2 |
-| W03 | Detect episode completion and submit progress updates or manual corrections to AniList | Partial: manual corrections implemented; automatic completion pending | AniList accounts (manual) | AniList accounts |
+| W03 | Detect episode completion and submit progress updates or manual corrections to AniList | Implemented: manual corrections and 85-percent coverage-based completion; live acceptance pending | AniList accounts | AniList accounts |
 | W04 | Display and update AniList tracking statuses | Implemented: remote display/filters and manual status updates; full iteration acceptance pending | AniList accounts | AniList accounts |
-| W05 | Show watched counts and available unwatched episodes from AniList progress, alongside local playback history | Selected | — | AniList accounts |
+| W05 | Show watched counts and available unwatched episodes from AniList progress, alongside local playback history | Implemented: detail indicators/counts and Library available-unwatched counts; live acceptance pending | AniList accounts | AniList accounts |
 | W06 | Share records across clients and handle duplicate, out-of-order, or concurrent progress updates | Later | — | Unassigned |
 | W07 | Rewatch history, ratings, tags, and personal notes | Optional | — | Unassigned |
 
@@ -191,7 +191,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 AniList is the authority for anime viewing status and cumulative episode progress. Display its tracked titles and supported statuses, and submit automatic completion updates and manual progress/status corrections to AniList. Reuse confirmed local work/episode associations and provider identifiers; mapping is already delivered and is not a new implementation requirement. Keep source playback positions and local playback history independent from AniList state. Multiple file versions must not increment progress repeatedly.
 
-AniList cumulative progress does not provide an independent watched/unwatched flag for every episode. Derived episode indicators must be labeled as based on AniList progress, rather than exact local per-episode viewing records. Watching a later episode must not silently imply earlier episodes were watched: noncontiguous completion requires an explicit cumulative-progress decision. The selected automatic-completion policy requires at least 85-percent effective watched coverage, counting the union of actual playback intervals across resumed sessions for the same source version. Seeking adds no coverage and natural end does not bypass the threshold; playback speed counts source-time coverage. Evidence persistence and validation remain implementation work; backward/manual corrections follow the current version design. Do not introduce a separate authoritative local tracking list or per-episode watched-state store.
+AniList cumulative progress does not provide an independent watched/unwatched flag for every episode. Derived episode indicators must be labeled as based on AniList progress, rather than exact local per-episode viewing records. Watching a later episode must not silently imply earlier episodes were watched: noncontiguous completion requires an explicit cumulative-progress decision. The selected automatic-completion policy requires at least 85-percent effective watched coverage, counting the union of actual playback intervals across resumed sessions for the same source version. Seeking adds no coverage and natural end does not bypass the threshold; playback speed counts source-time coverage. Evidence persistence, validation and durable handoff are implemented; backward/manual corrections follow the current version design. Do not introduce a separate authoritative local tracking list or per-episode watched-state store.
 
 ### 2.5 Subscriptions and Resource Discovery
 
@@ -242,9 +242,9 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | --- | --- | --- | --- | --- |
 | T01 | Authorize AniList, display the connected account, check connectivity, and disconnect | Implemented: PIN token preview/confirmation, private credentials, reconnection and generation fencing; fresh browser authorization acceptance pending | AniList accounts | AniList accounts |
 | T02 | Read, cache and refresh the connected account's AniList lists and viewing state | Implemented: complete account-scoped snapshots, stale/error feedback, unified local/remote Library and read-only details | AniList accounts | AniList accounts |
-| T03 | Reuse existing work/episode mappings to submit viewing progress and tracking-status updates to AniList | Partial: manual detail updates using provider IDs; automatic episode completion pending | AniList accounts (manual) | AniList accounts |
-| T04 | Persist pending updates, coalesce superseded updates, retry failures, report expired authorization, and show results | Implemented for manual commands; playback handoff and full acceptance pending | AniList accounts (manual) | AniList accounts |
-| T05 | Detect remote changes before retrying pending updates and resolve conflicts without silently overwriting newer state | Implemented for manual commands; live acceptance pending; upstream read/write race remains | AniList accounts (manual) | AniList accounts |
+| T03 | Reuse existing work/episode mappings to submit viewing progress and tracking-status updates to AniList | Implemented: manual updates and mapped automatic episode completion; live acceptance pending | AniList accounts | AniList accounts |
+| T04 | Persist pending updates, coalesce superseded updates, retry failures, report expired authorization, and show results | Implemented: manual commands and durable playback handoff; full acceptance pending | AniList accounts | AniList accounts |
+| T05 | Detect remote changes before retrying pending updates and resolve conflicts without silently overwriting newer state | Implemented for manual and playback commands; live acceptance pending; upstream read/write race remains | AniList accounts | AniList accounts |
 | T06 | Multiple trackers, rating synchronization and advanced rewatch support | Optional | — | Unassigned |
 
 #### AniList Accounts: Selected Scope and Acceptance

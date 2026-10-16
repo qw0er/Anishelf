@@ -17,6 +17,9 @@ export function createPlaybackModule(options: {
 	media: MediaApi;
 	database?: PlaybackPersistence | undefined;
 	logger: Logger;
+	completionObserver?:
+		| import("./progress/domain/completion.js").PlaybackCompletionObserver
+		| undefined;
 	policy?: import("../../shared/policy.js").DeepReadonly<
 		import("./progress/policy.js").PlaybackPolicy
 	>;
@@ -30,6 +33,8 @@ export function createPlaybackModule(options: {
 	} = options;
 	const playback = createProgressModule({
 		configuration,
+		completionObserver: options.completionObserver,
+		sourceDuration: (id, version) => media.sourceDuration(id, version),
 		library,
 		database,
 		logger,

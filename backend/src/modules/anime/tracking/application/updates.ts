@@ -140,6 +140,7 @@ export class TrackingUpdates {
 		const pending = previous && !terminal(previous);
 		const operation: TrackingOperation = {
 			id: previous?.id ?? randomUUID(),
+			completion: input.completion ?? false,
 			accountId: status.account.id,
 			mediaId,
 			revision: (previous?.revision ?? 0) + 1,

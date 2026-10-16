@@ -8,6 +8,7 @@ import { createHttpApp } from "../src/app/bootstrap/http.js";
 import { builtinPolicy } from "../src/app/policy.js";
 import { AniListListsClient } from "../src/modules/anime/anilist/infrastructure/lists-client.js";
 import { AniListError } from "../src/modules/anime/anilist/public.js";
+import type { AnimeCatalogApi } from "../src/modules/anime/anime-catalog/public.js";
 import { AnimeLibraryQueries } from "../src/modules/anime/anime-library/application/library.js";
 import type { LocalIndex } from "../src/modules/anime/anime-library/domain/model.js";
 import { registerAnimeLibraryRoutes } from "../src/modules/anime/anime-library/http/library.js";
@@ -240,7 +241,7 @@ function projection() {
 			},
 		],
 	};
-	const cards = vi.fn(async () => []);
+	const cards = vi.fn<AnimeCatalogApi["cards"]>(async () => []);
 	const app = new AnimeLibraryQueries({
 		catalog: { index: async () => index, cards },
 		lists: { list: () => snapshot, refreshList: async () => snapshot },
@@ -465,4 +466,24 @@ test("confirmed writes fence an older in-flight full-list refresh", async () => 
 	expect(f.reader.read(undefined, false).fetchedAt).toBe(1000);
 	expect(f.reader.read(undefined, false).stale).toBe(true);
 	await f.reader.close();
+});
+
+test("available-unwatched counts use actual episode numbers rather than availability minus progress", async () => {
+	const f = projection();
+	const indexed = f.index.items[0];
+	if (!indexed) throw new Error("Missing local work");
+	f.cards.mockResolvedValue([
+		{
+			...indexed,
+			displayTitle: indexed.providerTitle,
+			hasCover: false,
+			metadataStale: false,
+			availableEpisodes: 4,
+			availableRegularEpisodes: 3,
+			availableTrackingEpisodes: [1, 4, 7],
+		},
+	]);
+	expect((await f.app.list()).items[0]?.availableUnwatchedEpisodes).toBe(2);
+	f.snapshot.entries = [];
+	expect((await f.app.list()).items[0]?.availableUnwatchedEpisodes).toBeNull();
 });

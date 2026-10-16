@@ -42,17 +42,18 @@ export async function createServer(
 		tools,
 		logger,
 	});
-	const playback = createPlaybackModule({
-		system,
-		resources: resources.api,
-		media: media.api,
-		policy: builtinPolicy.playback,
-		database,
-		logger,
-	});
 	const anime = await createAnimeModule({
 		system,
 		resources: resources.api,
+		database,
+		logger,
+	});
+	const playback = createPlaybackModule({
+		system,
+		completionObserver: anime.completionObserver,
+		resources: resources.api,
+		media: media.api,
+		policy: builtinPolicy.playback,
 		database,
 		logger,
 	});

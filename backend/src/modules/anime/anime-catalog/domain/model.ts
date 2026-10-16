@@ -142,6 +142,7 @@ export interface Page<T> {
 	hasNextPage: boolean;
 }
 export interface WorkCard extends LocalWork {
+	availableTrackingEpisodes?: number[];
 	displayTitle: string;
 	hasCover: boolean;
 	metadataStale: boolean;

@@ -7,6 +7,30 @@ import {
 	text,
 } from "drizzle-orm/sqlite-core";
 import { mediaSources } from "../../../resources/persistence.js";
+export const playbackCoverage = sqliteTable("playback_coverage", {
+	sourceId: text("source_id")
+		.primaryKey()
+		.references(() => mediaSources.id, { onDelete: "restrict" }),
+	durationMs: integer("duration_ms").notNull(),
+	intervals: text("intervals", { mode: "json" })
+		.$type<[number, number][]>()
+		.notNull(),
+});
+export const playbackCompletions = sqliteTable("playback_completions", {
+	id: text("id").primaryKey(),
+	sourceId: text("source_id")
+		.notNull()
+		.references(() => mediaSources.id, { onDelete: "restrict" }),
+	context: text("context").notNull(),
+	capturedAt: integer("captured_at").notNull(),
+	attemptedAt: integer("attempted_at").notNull().default(0),
+	outcome: text("outcome", { mode: "json" })
+		.$type<import("../domain/completion.js").CompletionOutcome>()
+		.notNull(),
+	decision: text("decision", { mode: "json" }).$type<
+		import("../domain/completion.js").CompletionDecision | null
+	>(),
+});
 export const playbackProgress = sqliteTable(
 	"playback_progress",
 	{

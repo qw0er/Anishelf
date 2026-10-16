@@ -158,7 +158,8 @@ test("app waits for producers and releases every owner even if one shutdown fail
 			},
 		},
 	});
-	expect(events).toEqual(["recognition stopping"]);
+	await Promise.resolve();
+	expect(events).toEqual(["playback closed", "recognition stopping"]);
 	release();
 	await expect(stopping).rejects.toBeInstanceOf(AggregateError);
 	expect(events.indexOf("media closed")).toBeGreaterThan(

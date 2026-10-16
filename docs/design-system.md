@@ -186,3 +186,21 @@ overflow. Validate at 1280 px and 390 px widths, including long and Chinese file
 Keep labels and feedback in English. Preserve original filenames. Do not show
 placeholder metadata, nonfunctional controls, invented posters, or incomplete
 integrations as completed features.
+
+
+## Episode Viewing and Playback Completion
+
+Detail episode rows label supported targets as watched/unwatched **based on AniList
+progress**; specials and fractional numbers show unknown. The summary distinguishes
+cumulative watched progress from available unwatched episodes and local playback
+history. Library cards use actual available episode targets for unwatched counts,
+counting multiple resource versions once. Pending intent never changes confirmed
+indicators. Keep these hints within the existing row/card hierarchy.
+
+Eligible players show a nonblocking completion panel below the player. Distinguish
+saved evidence, queued intent, unavailable admission and confirmed submission; the
+existing operation Toasts report remote delivery outcomes. Advancing across skipped
+episodes requires labeled Confirm/Keep actions; a new AniList entry also requires
+an initial-status selector. Errors retain actionable retry. Keep controls wrapping
+at narrow widths, and stop player outcome polling at queued/unchanged states. An
+unmapped source does not create a tracking prompt or unrelated completion polling.

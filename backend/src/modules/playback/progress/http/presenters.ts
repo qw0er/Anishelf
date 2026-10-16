@@ -27,6 +27,7 @@ export function playbackSessionResponse(
 ): PlaybackSessionResponse {
 	return {
 		token: session.token,
+		completionEnabled: session.completionEnabled ?? false,
 		sourceVersion: session.sourceVersion,
 		file: fileDto(session.file),
 		progress: playbackProgressDto(session.progress),

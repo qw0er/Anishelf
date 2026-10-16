@@ -108,6 +108,14 @@ export async function createMediaModule(options: {
 	await initializeSubtitleModule(subtitles, logger);
 	const copies = createPlaybackCopies(preparation);
 	const api: MediaApi = {
+		sourceDuration: async (fileId, sourceVersion) => {
+			const { info } = await inspection.inspect(fileId, sourceVersion);
+			return info.duration &&
+				Number.isFinite(info.duration) &&
+				info.duration > 0
+				? Math.round(info.duration * 1000)
+				: null;
+		},
 		inspectCompatibility: (input) => execution.planning.inspect(input),
 		checkCompatibility: async (input) =>
 			compatibilityView(await execution.planning.check(input)),

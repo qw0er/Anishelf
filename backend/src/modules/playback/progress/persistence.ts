@@ -1,2 +1,6 @@
 /** Database adapter entry; never import this from business or HTTP code. */
-export { playbackProgress } from "./infrastructure/schema.js";
+export {
+	playbackCompletions,
+	playbackCoverage,
+	playbackProgress,
+} from "./infrastructure/schema.js";

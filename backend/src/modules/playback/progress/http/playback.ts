@@ -1,5 +1,7 @@
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
+	CompletionDecisionSchema,
+	CompletionOutcomeSchema,
 	HistoryQuerySchema,
 	HistoryResponseSchema,
 	OpenPlaybackRequestSchema,
@@ -65,6 +67,28 @@ export function registerPlaybackRoutes(
 					progress: playbackProgressDto(result.progress),
 				};
 			},
+		);
+		scope.get(
+			"/api/playback/sessions/:token/completion",
+			{
+				schema: {
+					params: PlaybackTokenParamsSchema,
+					response: { 200: CompletionOutcomeSchema },
+				},
+			},
+			async (request) => playback.completion(request.params.token),
+		);
+		scope.post(
+			"/api/playback/sessions/:token/completion",
+			{
+				schema: {
+					params: PlaybackTokenParamsSchema,
+					body: CompletionDecisionSchema,
+					response: { 200: CompletionOutcomeSchema },
+				},
+			},
+			async (request) =>
+				playback.decideCompletion(request.params.token, request.body),
 		);
 		scope.delete(
 			"/api/playback/sessions/:token",

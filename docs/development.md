@@ -45,7 +45,7 @@ recognition and automatic scan coordination. It has no task/review HTTP API or
 active database dependency. [Metadata](metadata.md) now provides persistent
 AniList query/artwork caching and supplies cloud candidates. [Anime Catalog](anime-catalog.md)
 provides durable associations, review decisions, previews/confirmation, corrections
-and library HTTP queries. The Web workflow remains pending.
+and library HTTP queries. The Web Library, detail/playback and Review workflows are implemented.
 
 The anime-identification corpus contains provider-backed work records, authentic
 resource filenames and explicitly synthetic boundaries. It can generate a separate
@@ -732,3 +732,31 @@ payload logging is introduced. Frontend integration tests cover single-version
 menu parity, version-specific copying, unavailable versions, stale-source disabling
 and playback context. Browser checks use a local provider/API fixture, not real
 media or external players.
+
+
+## Playback Completion Verification
+
+Play a confirmed, single-target episode with a connected AniList account. Effective
+coverage must reach 85 percent of the full source duration: a 24-minute source needs
+20 minutes 24 seconds. Resume restoration, seeking, pauses, buffering and natural end
+alone add no credit. Existing entries advance progress only; skipped episodes require
+confirmation and creating an entry requires an explicit initial status. Pending intent
+and confirmed AniList values remain distinct. Uncertain writes, failures and conflicts
+reuse the manual editor and app operation monitor. Local playback/History remains
+available independently of tracking. The detail labels and Library unwatched counts
+use confirmed cumulative progress, not file-version counts or pending intent.
+
+`playback-application.test.ts`, `tracking-completion.test.ts`,
+`playback-session.test.ts`, `playback-evidence.test.ts` and
+`completion-feedback.test.tsx` provide deterministic fixtures without real AniList
+mutations. Existing Tracking worker/HTTP/restart suites remain the reliable-delivery
+baseline. The 0014 migration preserves prior position/history data. Real provider
+writes and real-media browser completion still require separate runtime acceptance.
+
+Completion logs use `playback.completion_handoff` for state/reason transitions,
+`playback.completion_admission_failed` and `playback.completion_worker_failed` for
+retained retryable work, `playback.completion_capture_failed` for target lookup failure,
+`playback.evidence_duration_unavailable` for unavailable canonical duration and
+`playback.evidence_rejected` for elapsed-budget rejection. Existing
+`tracking.operation_state` logs record admitted command and delivery lifecycle.
+Logs omit credentials, opaque target context and raw provider errors.

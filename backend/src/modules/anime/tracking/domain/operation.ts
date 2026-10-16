@@ -15,6 +15,7 @@ export interface TrackingAttempt {
 	desired: TrackingDesiredState;
 }
 export interface TrackingOperation {
+	completion?: boolean;
 	id: string;
 	accountId: number;
 	mediaId: number;
@@ -37,6 +38,7 @@ export interface TrackingOperation {
 	updatedAt: number;
 }
 export interface TrackingUpdate {
+	completion?: boolean;
 	generation: string;
 	revision: number | null;
 	baseline: TrackingRemoteState | null;

@@ -26,6 +26,9 @@ export interface PlaybackSessionState {
 	restored: boolean;
 	error: { operation: "load" | "save"; cause: unknown } | null;
 }
+
+import { PlaybackEvidence } from "./evidence.js";
+
 type Position = Pick<SavePlaybackProgressRequest, "positionMs" | "durationMs">;
 
 /** Owns one file's progress lifecycle; React and the media player are adapters. */
@@ -37,6 +40,8 @@ export class PlaybackSessionController {
 		restored: false,
 		error: null,
 	};
+	private readonly evidence = new PlaybackEvidence();
+	private playing = false;
 	private video: HTMLVideoElement | null = null;
 	private timeline: MediaTimeline = originalTimeline();
 	private metadataReady = false;
@@ -97,6 +102,9 @@ export class PlaybackSessionController {
 		video: HTMLVideoElement | null,
 		timeline: MediaTimeline = originalTimeline(),
 	): void {
+		this.sampleEvidence();
+		this.evidence.reset();
+		this.playing = false;
 		this.capture();
 		this.detachEvents?.();
 		clearInterval(this.timer);
@@ -110,16 +118,50 @@ export class PlaybackSessionController {
 			this.restore();
 		};
 		const seeked = () => {
+			this.evidence.reset();
+			this.playing = !video.paused && !video.ended;
+			this.sampleEvidence();
 			if (!this.state.restored) this.finishRestore();
 			else this.queueSave();
 		};
-		const save = () => this.queueSave();
-		const ended = () => this.queueSave(true);
+		const sample = () => this.sampleEvidence();
+		const playing = () => {
+			this.evidence.reset();
+			this.playing = true;
+			sample();
+		};
+		const interrupt = () => {
+			this.playing = false;
+			this.evidence.reset();
+		};
+		const stop = () => {
+			sample();
+			interrupt();
+		};
+		const save = () => {
+			stop();
+			this.queueSave();
+		};
+		const ended = () => {
+			stop();
+			this.queueSave(true);
+		};
+		const events: [string, () => void][] = [
+			["playing", playing],
+			["timeupdate", sample],
+			["seeking", interrupt],
+			["waiting", interrupt],
+			["stalled", interrupt],
+			["ratechange", playing],
+		];
+		for (const [name, handler] of events) video.addEventListener(name, handler);
 		video.addEventListener("loadedmetadata", metadata);
 		video.addEventListener("seeked", seeked);
 		video.addEventListener("pause", save);
 		video.addEventListener("ended", ended);
 		this.detachEvents = () => {
+			for (const [name, handler] of events)
+				video.removeEventListener(name, handler);
 			video.removeEventListener("loadedmetadata", metadata);
 			video.removeEventListener("seeked", seeked);
 			video.removeEventListener("pause", save);
@@ -152,6 +194,9 @@ export class PlaybackSessionController {
 	}
 
 	async dispose(): Promise<void> {
+		this.sampleEvidence();
+		this.evidence.reset();
+		this.playing = false;
 		this.capture();
 		this.detachEvents?.();
 		clearInterval(this.timer);
@@ -210,6 +255,10 @@ export class PlaybackSessionController {
 		this.publish({ restored: true });
 		this.capture();
 	}
+	private sampleEvidence() {
+		if (this.video && this.state.restored)
+			this.evidence.sample(this.video, this.timeline, this.playing);
+	}
 	private capture(ended = false): void {
 		const video = this.video;
 		if (!video || !this.state.restored) return;
@@ -240,6 +289,7 @@ export class PlaybackSessionController {
 		};
 	}
 	private queueSave(ended = false, retry = false): void {
+		this.sampleEvidence();
 		this.capture(ended);
 		const session = this.state.session;
 		if (
@@ -249,7 +299,9 @@ export class PlaybackSessionController {
 			(this.state.error && !retry)
 		)
 			return;
+		const intervals = this.evidence.take();
 		if (
+			!intervals.length &&
 			!this.pending &&
 			this.lastSaved?.positionMs === this.position.positionMs &&
 			this.lastSaved.durationMs === this.position.durationMs &&
@@ -258,11 +310,17 @@ export class PlaybackSessionController {
 			return;
 		// Preserve sequence/payload for an ambiguous failed write unless a newer position exists.
 		if (
+			intervals.length > 0 ||
 			!this.pending ||
 			this.pending.positionMs !== this.position.positionMs ||
 			this.pending.durationMs !== this.position.durationMs
 		) {
+			const combined = [...(this.pending?.intervals ?? []), ...intervals].slice(
+				0,
+				128,
+			);
 			this.pending = {
+				intervals: combined,
 				generation: session.progress.generation,
 				sourceVersion: session.sourceVersion,
 				sequence: ++this.sequence,
@@ -297,7 +355,7 @@ export class PlaybackSessionController {
 						error: null,
 					});
 				} catch (cause) {
-					this.pending ??= payload;
+					this.retainFailed(payload);
 					this.publish({ error: { operation: "save", cause } });
 					return false;
 				}
@@ -306,6 +364,17 @@ export class PlaybackSessionController {
 		} finally {
 			this.publish({ saving: false });
 		}
+	}
+	private retainFailed(payload: SavePlaybackProgressRequest) {
+		if (this.pending)
+			this.pending = {
+				...this.pending,
+				intervals: [
+					...(payload.intervals ?? []),
+					...(this.pending.intervals ?? []),
+				].slice(0, 128),
+			};
+		else this.pending = payload;
 	}
 	private async release(): Promise<void> {
 		const session = this.state.session;
