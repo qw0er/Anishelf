@@ -449,3 +449,32 @@ private token file; no remote mutation was issued. A production-build fixture
 browser check verified merged cards, status filtering, metadata-failure fallback,
 and 390-pixel layout without horizontal overflow. Submission, completion evidence,
 per-episode watched indicators and full iteration acceptance remain pending.
+
+
+### Account Application Responsibilities and Explicit Types
+
+`TrackingApplication` coordinates account operations and serializes confirmation
+and disconnect. Its collaborators have separate ownership:
+
+| Class | Responsibility |
+| --- | --- |
+| `TrackingConnectionState` | Persisted connection, generation checks, credential rotation/rollback, authorization state, connection and shutdown abort signals |
+| `TrackingAuthorizations` | Session-bound token previews, concurrent preview replacement, capacity and expiry; clears all candidates on connection change |
+| `TrackingConnectionCheck` | Remote identity validation, overlapping-check sequencing and guarded connection-check publication |
+| `AniListAccountProvider` | Viewer request, response validation and provider-to-domain error conversion |
+| `TrackingDiagnostics` | Sanitized operation start/success/rejection/failure/cancellation logs |
+| `TrackingModule` | Named module facade for account commands, list reads and ordered shutdown |
+
+`createTrackingModule` returns `Promise<TrackingModule>` and constructs the facade
+class. Core account operations explicitly return `TrackingStatus`,
+`TrackingPreview` or the server-only `TrackingLease`; internal authorization
+candidates use `TrackingCandidate`. Module/application options have named
+interfaces. Important business contracts are declared types rather than anonymous
+factory objects or types inferred through `ReturnType<typeof factory>`.
+
+Connection publication still follows credential-write, generation validation and
+SQLite save before changing the active connection. Failed publication rolls back
+the new credential. Successful connection changes cancel prior account work and
+invalidate previews before old credentials are cleaned up. Shutdown cancels
+requests, clears pending authorizations and waits for serialized account changes.
+The existing session, CSRF, list-cache and safe-log contracts remain in force.

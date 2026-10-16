@@ -24,3 +24,12 @@ export interface TrackingPreview {
 	expiresAt: number;
 	generation: string;
 }
+
+/** Server-only authorization candidate, never part of an HTTP response. */
+export interface TrackingCandidate {
+	id: string;
+	token: string;
+	account: TrackingAccount;
+	expiresAt: number;
+	generation: string;
+}

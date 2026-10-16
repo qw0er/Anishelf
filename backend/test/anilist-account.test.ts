@@ -505,3 +505,91 @@ test("failed persistence and previously silent credential cleanup emit safe diag
 	expect(output).not.toContain("raw-sql-parameters-sentinel");
 	expect(output).not.toContain("private-token-sentinel");
 });
+
+test("a superseded preview cannot overwrite the latest candidate for the same session", async () => {
+	let finish: ((value: unknown) => void) | undefined;
+	const { app } = await setup({
+		request: async (_query, _variables, options) =>
+			options.token === "older"
+				? new Promise((resolve) => {
+						finish = resolve;
+					})
+				: { Viewer: { id: 8, name: "Latest" } },
+	});
+	const older = app.preview("one", "older");
+	const rejected = expect(older).rejects.toMatchObject({
+		code: "TRACKING_CONFLICT",
+	});
+	await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+	const latest = await app.preview("one", "latest");
+	finish?.({ Viewer: { id: 7, name: "Older" } });
+	await rejected;
+	expect(
+		(await app.confirm("one", latest.candidateId, latest.generation)).account
+			?.id,
+	).toBe(8);
+});
+
+test("an older check cannot publish after a newer check for the same connection", async () => {
+	let finish: ((value: unknown) => void) | undefined;
+	let checks = 0;
+	const { app } = await setup({
+		request: async () => {
+			checks++;
+			if (checks === 2)
+				return new Promise((resolve) => {
+					finish = resolve;
+				});
+			return { Viewer: { id: 7, name: checks === 1 ? "Initial" : "Latest" } };
+		},
+	});
+	await connect(app);
+	const older = app.check();
+	const rejected = expect(older).rejects.toMatchObject({
+		code: "TRACKING_CONFLICT",
+	});
+	await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+	await app.check();
+	finish?.({ Viewer: { id: 7, name: "Older" } });
+	await rejected;
+	expect(app.status().account?.name).toBe("Latest");
+	expect(app.status().connectivity).toBe("available");
+});
+
+test("shutdown waits for in-flight credential publication and rolls it back", async () => {
+	const { database, dataDir } = await setup();
+	const credentials = new TrackingCredentialFiles(dataDir);
+	const write = credentials.write.bind(credentials);
+	let finish: (() => void) | undefined;
+	vi.spyOn(credentials, "write").mockImplementation(
+		async (connection, token) => {
+			await write(connection, token);
+			await new Promise<void>((resolve) => {
+				finish = resolve;
+			});
+		},
+	);
+	const app = new TrackingApplication({
+		store: database.tracking,
+		credentials,
+		client: { request: async () => ({ Viewer: { id: 7, name: "Fixture" } }) },
+	});
+	cleanup.push(() => app.close());
+	const preview = await app.preview("one", "fixture");
+	const pending = app.confirm("one", preview.candidateId, preview.generation);
+	const rejected = expect(pending).rejects.toMatchObject({
+		code: "TRACKING_UNAVAILABLE",
+	});
+	await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+	let stopped = false;
+	const stopping = app.close().then(() => {
+		stopped = true;
+	});
+	await Promise.resolve();
+	expect(stopped).toBe(false);
+	finish?.();
+	await rejected;
+	await stopping;
+	expect(database.tracking.get()?.account).toBeNull();
+	expect(await readdir(join(dataDir, "tracking-credentials"))).toEqual([]);
+});
