@@ -8,12 +8,7 @@ import {
 import { libraryReturnPath } from "../../../../shared/navigation.js";
 import { metadataDetailQuery } from "../../metadata/public.js";
 import { Artwork } from "../../shared/components/artwork.js";
-import {
-	accountQuery,
-	entryQuery,
-	trackingIdentity,
-	ViewingPanel,
-} from "../../tracking/public.js";
+import { useViewingState, ViewingSummary } from "../../tracking/public.js";
 import { WorkMetadataHeader } from "./work-metadata-header.js";
 import { WorkSynopsis } from "./work-synopsis.js";
 export function TrackedAnimeDetail() {
@@ -21,18 +16,9 @@ export function TrackedAnimeDetail() {
 	const [params] = useSearchParams();
 	const { t } = useTranslation();
 	const metadata = useQuery(metadataDetailQuery("anilist", mediaId));
-	const account = useQuery(accountQuery());
-	const entry = useQuery({
-		...entryQuery(
-			mediaId,
-			account.data
-				? trackingIdentity(account.data)
-				: { accountId: null, generation: "" },
-		),
-		enabled: Boolean(account.data?.account),
-	});
+	const viewing = useViewingState(mediaId);
 	const info = metadata.data?.data;
-	const summary = entry.data?.entry;
+	const summary = viewing.snapshot?.entry;
 	const title = summary?.titles[0] ?? info?.titles[0]?.value ?? mediaId;
 	return (
 		<section className="stack-page">
@@ -48,6 +34,12 @@ export function TrackedAnimeDetail() {
 				<>
 					<Artwork url={info.bannerUrl} title={title} banner />
 					<WorkMetadataHeader
+						viewing={
+							<ViewingSummary
+								state={viewing}
+								episodeCount={info.episodeCount}
+							/>
+						}
 						data={{
 							work: {
 								displayTitle: title,
@@ -60,18 +52,17 @@ export function TrackedAnimeDetail() {
 							metadata: metadata.data,
 						}}
 					/>
-					<ViewingPanel mediaId={mediaId} />
 					<WorkSynopsis data={{ metadata: metadata.data }} />
 				</>
 			) : (
 				<>
 					<h1 className="page-title">{title}</h1>
+					<ViewingSummary state={viewing} />
 					{summary && (
 						<div className="w-32">
 							<Artwork url={summary.coverUrl} title={title} />
 						</div>
 					)}
-					<ViewingPanel mediaId={mediaId} />
 					{metadata.error ? (
 						<div role="alert">
 							<p>{t("errors.pageLoad")}</p>

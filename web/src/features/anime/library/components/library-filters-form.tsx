@@ -1,8 +1,9 @@
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../../../shared/components/ui/button.js";
 import { Input } from "../../../../shared/components/ui/input.js";
+import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import type { LibraryFilters } from "../api.js";
 import { libraryFilters, librarySearch } from "../api.js";
 
@@ -11,11 +12,13 @@ export function LibraryFiltersForm({
 	filtered,
 	onFilters,
 	viewingEnabled,
+	actions,
 }: {
 	filters: LibraryFilters;
 	filtered: boolean;
 	onFilters(value: string): void;
 	viewingEnabled: boolean;
+	actions: ReactNode;
 }) {
 	const { t } = useTranslation();
 	const [search, setSearch] = useState(filters.query ?? "");
@@ -44,9 +47,12 @@ export function LibraryFiltersForm({
 	).filter((key) => filters[key]);
 	return (
 		<div className="space-y-3">
-			<div className="grid min-w-0 grid-cols-2 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+			<fieldset
+				aria-label={t("anime.libraryControls")}
+				className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto_auto] items-end gap-2 sm:gap-3"
+			>
 				<form
-					className="col-span-2 flex min-w-0 gap-2 sm:col-span-1"
+					className="flex min-w-0 gap-2"
 					onSubmit={(event) => {
 						event.preventDefault();
 						change("query", search);
@@ -67,21 +73,26 @@ export function LibraryFiltersForm({
 					<Button
 						type="submit"
 						variant="outline"
+						className="size-9 shrink-0 p-0"
 						aria-label={t("anime.searchSubmit")}
 					>
 						<Search size={16} aria-hidden="true" />
 					</Button>
 				</form>
-				<Button
-					variant="outline"
-					aria-expanded={expanded}
-					aria-controls="catalog-filters"
-					onClick={() => setExpanded(!expanded)}
-				>
-					<SlidersHorizontal size={16} aria-hidden="true" />
-					{t("anime.filters")}
-				</Button>
-				<label className="min-w-0">
+				<Tooltip content={t("anime.filters")}>
+					<Button
+						variant="outline"
+						className="size-9 p-0 sm:h-9 sm:w-auto sm:px-4"
+						aria-label={t("anime.filters")}
+						aria-expanded={expanded}
+						aria-controls="catalog-filters"
+						onClick={() => setExpanded(!expanded)}
+					>
+						<SlidersHorizontal size={16} aria-hidden="true" />
+						<span className="hidden sm:inline">{t("anime.filters")}</span>
+					</Button>
+				</Tooltip>
+				<label className="w-24 min-w-0 sm:w-auto">
 					<span className="sr-only">{t("anime.sort")}</span>
 					<select
 						className="form-select w-full"
@@ -92,7 +103,8 @@ export function LibraryFiltersForm({
 						<option value="recent">{t("anime.recentSort")}</option>
 					</select>
 				</label>
-			</div>
+				{actions}
+			</fieldset>
 			<div id="catalog-filters" hidden={!expanded}>
 				<div className="surface-panel grid gap-4 sm:grid-cols-3">
 					<label className="min-w-0 space-y-1 text-sm">

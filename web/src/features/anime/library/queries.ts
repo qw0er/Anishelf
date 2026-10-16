@@ -1,7 +1,10 @@
 import { queryOptions, skipToken } from "@tanstack/react-query";
 import { boundedSignal } from "../../../shared/api/queries.js";
 import { animeLibraryQueryKey } from "../shared/query-keys.js";
-import type { TrackingIdentity } from "../tracking/public.js";
+import {
+	reportTrackingRefresh,
+	type TrackingIdentity,
+} from "../tracking/public.js";
 import { getAnimeLibrary, type LibraryFilters } from "./api.js";
 
 export const animeLibraryQuery = (
@@ -18,10 +21,14 @@ export const animeLibraryQuery = (
 			filters,
 		],
 		queryFn: identity
-			? ({ signal }) =>
-					getAnimeLibrary(filters, identity.generation, {
+			? async ({ signal, client }) => {
+					const result = await getAnimeLibrary(filters, identity.generation, {
 						signal: boundedSignal(signal),
-					})
+					});
+					signal.throwIfAborted();
+					reportTrackingRefresh(client, result.tracking);
+					return result;
+				}
 			: skipToken,
 		refetchInterval: (query) =>
 			query.state.data?.tracking.refreshing ? 1500 : 60_000,

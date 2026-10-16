@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
 import type { CatalogReviewItem } from "../../../../shared/api/contracts.js";
 import { useQueryScope } from "../../../../shared/api/queries.js";
 import { ErrorMessage } from "../../shared/components/error-message.js";
@@ -32,7 +31,6 @@ function MappingEditor({ item }: { item: CatalogReviewItem }) {
 		validation,
 		previewError,
 		confirmError,
-		success,
 	} = controller;
 	return (
 		<div className="grid min-w-0 items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -72,21 +70,6 @@ function MappingEditor({ item }: { item: CatalogReviewItem }) {
 				{validation && <p role="alert">{validation}</p>}
 				{previewError && <ErrorMessage error={previewError} />}
 				{confirmError && <ErrorMessage error={confirmError} />}
-
-				{success && (
-					<p
-						role="status"
-						className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm"
-					>
-						{t("review.saved")}{" "}
-						<Link
-							to={`/anime/${encodeURIComponent(success)}`}
-							className="underline"
-						>
-							{t("review.openWork")}
-						</Link>
-					</p>
-				)}
 			</div>
 		</div>
 	);

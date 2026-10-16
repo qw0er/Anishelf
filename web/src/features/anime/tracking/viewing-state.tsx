@@ -1,8 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { TrackingEntryResponse } from "../../../shared/api/contracts.js";
-import { accountQuery, entryQuery, trackingIdentity } from "./queries.js";
 export function ViewingBadge({
 	viewing,
 }: {
@@ -14,44 +12,6 @@ export function ViewingBadge({
 			{t(`trackingList.statuses.${viewing.status}`)} ·{" "}
 			{t("trackingList.progress", { count: viewing.progress })}
 		</p>
-	);
-}
-export function ViewingPanel({ mediaId }: { mediaId: string }) {
-	const account = useQuery(accountQuery());
-	const entry = useQuery({
-		...entryQuery(
-			mediaId,
-			account.data
-				? trackingIdentity(account.data)
-				: { accountId: null, generation: "" },
-		),
-		enabled: Boolean(account.data?.account),
-	});
-	const { t } = useTranslation();
-	if (!account.data?.account) return null;
-	return (
-		<section
-			className="surface-panel space-y-2"
-			aria-label={t("trackingList.viewingState")}
-		>
-			<h2 className="font-semibold">{t("trackingList.viewingState")}</h2>
-			{entry.data?.entry ? (
-				<ViewingBadge viewing={entry.data.entry} />
-			) : (
-				<p>
-					{t(
-						entry.data?.fetchedAt === null || !entry.data
-							? "trackingList.notLoaded"
-							: "trackingList.untracked",
-					)}
-				</p>
-			)}
-			<p className="text-xs text-muted-foreground">
-				{t("trackingList.cumulative")}
-			</p>
-			{entry.data && <TrackingFeedback snapshot={entry.data} />}
-			{entry.error && <p role="alert">{t("trackingList.failed")}</p>}
-		</section>
 	);
 }
 export function TrackingFeedback({
@@ -74,14 +34,9 @@ export function TrackingFeedback({
 		);
 	return (
 		<>
-			{snapshot.refreshing && (
-				<p role="status" className="text-sm">
-					{t("trackingList.refreshing")}
-				</p>
-			)}
-			{snapshot.error && (
+			{snapshot.error && snapshot.fetchedAt === null && (
 				<p role="alert" className="text-sm">
-					{t("trackingList.failed")}
+					{t("trackingList.notLoaded")}
 				</p>
 			)}
 			{snapshot.stale && snapshot.fetchedAt !== null && (

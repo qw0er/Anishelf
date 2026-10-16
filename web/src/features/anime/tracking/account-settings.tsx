@@ -6,7 +6,7 @@ import type {
 	TrackingAccountResponse,
 	TrackingPreviewResponse,
 } from "../../../shared/api/contracts.js";
-import { Button } from "../../../shared/components/ui/button.js";
+import { Button, buttonStyles } from "../../../shared/components/ui/button.js";
 import {
 	Card,
 	CardContent,
@@ -83,7 +83,7 @@ export function AniListAccountSettings() {
 				<CardTitle>{t("trackingAccount.title")}</CardTitle>
 				<CardDescription>{t("trackingAccount.description")}</CardDescription>
 			</CardHeader>
-			<CardContent className="space-y-4">
+			<CardContent className="min-w-0 space-y-4">
 				{account.isPending && (
 					<p role="status">{t("trackingAccount.loading")}</p>
 				)}
@@ -98,18 +98,11 @@ export function AniListAccountSettings() {
 							{t(`trackingAccount.states.${current.state}`)} ·{" "}
 							{t(`trackingAccount.connectivity.${current.connectivity}`)}
 						</p>
-						<a
-							href={current.authorizationUrl}
-							target="_blank"
-							rel="noreferrer"
-							className="underline"
-						>
-							{t("trackingAccount.authorize")}
-						</a>
 						<p className="text-sm text-muted-foreground">
 							{t("trackingAccount.instructions")}
 						</p>
 						<form
+							id="anilist-account-token-form"
 							className="space-y-3"
 							onSubmit={(event) => {
 								event.preventDefault();
@@ -133,9 +126,6 @@ export function AniListAccountSettings() {
 									required
 								/>
 							</label>
-							<Button type="submit" disabled={busy || !token.trim()}>
-								{t("trackingAccount.preview")}
-							</Button>
 						</form>
 						{preview && (
 							<section
@@ -150,44 +140,69 @@ export function AniListAccountSettings() {
 								<p className="text-sm text-muted-foreground">
 									{t("trackingAccount.replaceNotice")}
 								</p>
-								<Button
-									disabled={busy}
-									onClick={() => command.mutate("confirm")}
-								>
-									{t("trackingAccount.confirm")}
-								</Button>
-								<Button
-									variant="outline"
-									disabled={busy}
-									onClick={() => setPreview(null)}
-								>
-									{t("trackingAccount.cancel")}
-								</Button>
 							</section>
-						)}
-						{current.account && (
-							<div className="flex flex-wrap gap-2">
-								<Button
-									variant="outline"
-									disabled={busy}
-									onClick={() => command.mutate("check")}
-								>
-									{t("trackingAccount.check")}
-								</Button>
-								<Button
-									variant="outline"
-									disabled={busy}
-									onClick={() => command.mutate("disconnect")}
-								>
-									{t("trackingAccount.disconnect")}
-								</Button>
-							</div>
 						)}
 					</>
 				)}
-				{(account.error || command.error) && (
-					<div role="alert" className="space-y-2">
-						<p>{(command.error ?? account.error)?.message}</p>
+				<fieldset
+					aria-label={t("trackingAccount.actions")}
+					className="flex min-w-0 flex-wrap items-center gap-2"
+				>
+					{current && (
+						<>
+							<a
+								href={current.authorizationUrl}
+								target="_blank"
+								rel="noreferrer"
+								className={buttonStyles("outline")}
+							>
+								{t("trackingAccount.authorize")}
+							</a>
+							<Button
+								type="submit"
+								form="anilist-account-token-form"
+								disabled={busy || !token.trim()}
+							>
+								{t("trackingAccount.preview")}
+							</Button>
+							{preview && (
+								<>
+									<Button
+										disabled={busy}
+										onClick={() => command.mutate("confirm")}
+									>
+										{t("trackingAccount.confirm")}
+									</Button>
+									<Button
+										variant="outline"
+										disabled={busy}
+										onClick={() => setPreview(null)}
+									>
+										{t("trackingAccount.cancel")}
+									</Button>
+								</>
+							)}
+							{current.account && (
+								<>
+									<Button
+										variant="outline"
+										disabled={busy}
+										onClick={() => command.mutate("check")}
+									>
+										{t("trackingAccount.check")}
+									</Button>
+									<Button
+										variant="outline"
+										disabled={busy}
+										onClick={() => command.mutate("disconnect")}
+									>
+										{t("trackingAccount.disconnect")}
+									</Button>
+								</>
+							)}
+						</>
+					)}
+					{(account.error || command.error) && (
 						<Button
 							variant="outline"
 							disabled={busy}
@@ -198,6 +213,11 @@ export function AniListAccountSettings() {
 						>
 							{t("trackingAccount.refresh")}
 						</Button>
+					)}
+				</fieldset>
+				{(account.error || command.error) && (
+					<div role="alert" className="space-y-2">
+						<p>{(command.error ?? account.error)?.message}</p>
 					</div>
 				)}
 			</CardContent>

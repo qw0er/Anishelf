@@ -19,6 +19,16 @@ information and actions needed to make the next decision; avoid dense screens,
 duplicated status, decorative metrics, and controls for unsupported or unrelated
 features.
 
+Place persistent information in the page structure. Information that users need
+to keep referring to, such as resource details, durable status, validation errors,
+and setup guidance, belongs in the relevant page section or beside its control.
+Present temporary information, such as operation progress, completion results,
+and recoverable operation failures, in nonblocking floating UI such as Toasts or
+floating task panels. Temporary feedback must not occupy page layout space or
+insert banners, rows, or panels into the page structure. Choose placement by how
+long the information remains relevant to the user's task, not by whether its data
+is persisted in storage.
+
 Establish a clear hierarchy. Web playback is the primary workflow, while optional
 actions such as copying a media link remain visually secondary. Show a concise
 summary by default and put diagnostic or less frequently needed detail behind a
@@ -65,13 +75,32 @@ and keyboard-focus feedback.
 Catalog search submits with Enter or its search button. Sorting and discrete
 filters apply immediately and reset pagination. Put secondary filters in an
 expandable panel and show removable applied-filter labels. Preserve URL state,
-return focus and scroll. Mobile toolbars use a full-width search row and a
-separate filter/sort row. The application header always stays on one line.
+return focus and scroll. The Library toolbar keeps search, Filters, sort and the
+AniList action on one row. Refresh uses an icon button with a Tooltip and an
+accessible name. On narrow screens, compact action icons and a bounded sort
+control preserve search space. AniList account actions share one row when space
+allows and wrap naturally on narrower screens. The application header always stays on one line.
 Navigation uses text when its container is wide enough, otherwise icons with
 Tooltips and accessible names. If icons still do not fit, scroll only the
 navigation horizontally; keep the brand visible and preserve keyboard access.
 
-Work detail prioritizes the header and episode list. Group secondary metadata,
+Work detail prioritizes the header and episode list. AniList viewing state is a
+compact row inside the title/metadata header on both local and remote details.
+Use a status Badge, cumulative progress and the provider's total episode count;
+unknown totals show only the watched count. Keep the cumulative-progress explanation
+and cache fetch time in keyboard/touch-accessible Tooltips. Cached data has a small
+marker; refreshing uses a small busy icon. Show a short loading skeleton until a
+complete list snapshot establishes whether an entry exists. Reconnect guidance and
+initial-read failures remain visible in the row. The summary wraps on narrow screens.
+
+Provider airing schedules use a compact disclosure with a loaded-record count.
+Keep the provider numbering explanation in an accessible Tooltip. Expanded records
+show episode, local date/time and status in aligned rows sorted by broadcast time.
+Cached records are unverified; pagination must not imply a complete schedule or
+identify the next broadcast from an unordered partial response. Loading, cache
+markers and read failures remain visible while collapsed.
+
+Group secondary metadata,
 synopsis, schedules and relationships into on-demand sections; keep actionable
 errors and unresolved candidates discoverable. Files identification uses a compact focusable status icon with a Tooltip.
 Review and associated work/episode links belong in the file action menu.
@@ -101,6 +130,20 @@ Keep form validation, initial page errors, unavailable resources, scan/stale sta
 setup guidance, and empty states in context. Provide useful next actions without
 repeating the same information in multiple places. Do not imply a numeric completion
 percentage when only a task state is known; use an indeterminate state instead.
+
+Manual AniList-list and metadata refresh results, and Review confirmation,
+rejection and removal results use Toasts. Review validation, missing-resource and
+revision-conflict errors remain beside the form; transport and server-operation
+failures use Toasts while retaining the form and its existing retry action.
+A successful association Toast includes an Open anime action. Refresh feedback
+checks failure envelopes even when HTTP succeeds. Cached background-refresh
+failures notify once per failure identity across filters and detail navigation;
+polling the same failure does not repeat notifications. Recovery clears that
+identity, and an explicit retry can report a new result. Refresh buttons and small
+busy indicators show work in progress; authorization, initial-load and stale-cache
+context remain inline. The Library connection action is a labeled button that
+opens Settings. Existing backend refresh and Catalog operation logs retain their
+operation outcomes; UI placement changes do not add request payloads to logs.
 
 Unrelated polling must not reset playback or subtitle renderers.
 

@@ -5,7 +5,8 @@ import { queryClient } from "../src/shared/api/query-client.js";
 import { toast } from "../src/shared/components/ui/toast.js";
 import { act, cleanup, render, waitFor } from "./query-test-utils.js";
 
-vi.mock("react-i18next", () => ({
+vi.mock("react-i18next", async (importOriginal) => ({
+	...(await importOriginal<typeof import("react-i18next")>()),
 	useTranslation: () => ({ t: (key: string) => key }),
 }));
 vi.mock("../src/features/anime/metadata/api.js", () => ({

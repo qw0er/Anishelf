@@ -1,13 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
+import { isRequestCancelled } from "../../../shared/api/client.js";
 import type { CatalogDetailResponse } from "../../../shared/api/contracts.js";
 import { useQueryScope } from "../../../shared/api/queries.js";
+import { toast } from "../../../shared/components/ui/toast.js";
+import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
 import {
 	animePlayerPath,
 	libraryReturnPath,
 } from "../../../shared/navigation.js";
-import { relationsQuery } from "../metadata/public.js";
+import {
+	metadataRefreshNoticeId,
+	relationsQuery,
+	reportMetadataRefresh,
+} from "../metadata/public.js";
 import { animeLibraryQueryKey } from "../shared/query-keys.js";
 import { refreshWork } from "./api.js";
 import type { Episode, Version } from "./detail-format.js";
@@ -15,6 +23,7 @@ import { workQuery } from "./queries.js";
 export function useWorkDetail(data: CatalogDetailResponse) {
 	const scope = useQueryScope();
 	const client = useQueryClient();
+	const { t } = useTranslation();
 	const [params] = useSearchParams();
 	const libraryPath = libraryReturnPath(params.get("library"));
 	const { work, episodes } = data;
@@ -35,9 +44,24 @@ export function useWorkDetail(data: CatalogDetailResponse) {
 	const relations = useQuery(
 		relationsQuery(work.reference.provider, work.reference.id, relationsPage),
 	);
+	const noticeId = metadataRefreshNoticeId(
+		work.reference.provider,
+		work.reference.id,
+	);
 	const refresh = useMutation({
+		onMutate: () => toast.close(noticeId),
+		onError: (error) => {
+			if (!isRequestCancelled(error))
+				toast.add({
+					id: noticeId,
+					type: "error",
+					priority: "high",
+					title: t(getErrorTranslationKey(error) ?? "anime.refreshFailed"),
+				});
+		},
 		mutationFn: () => refreshWork(work.id, work.revision),
 		onSuccess: async (result) => {
+			reportMetadataRefresh(client, result.metadata, true);
 			client.setQueryData(workQuery(work.id, scope).queryKey, result);
 			await client.invalidateQueries({
 				queryKey: [...animeLibraryQueryKey, scope],

@@ -43,7 +43,7 @@ test("recognized work preselects details while preserving the user's later selec
 	const item = identified();
 	const { result, rerender } = renderHook(
 		({ item }) => useReviewController(item),
-		{ initialProps: { item } },
+		{ initialProps: { item }, wrapper: MemoryRouter },
 	);
 	expect(result.current.reference).toEqual(item.recognizedWork?.reference);
 	expect(result.current.preview).toBeNull();
@@ -61,7 +61,8 @@ test("unavailable sources do not preselect, and confirmed associations take prec
 	const item = identified();
 	item.available = false;
 	expect(
-		renderHook(() => useReviewController(item)).result.current.reference,
+		renderHook(() => useReviewController(item), { wrapper: MemoryRouter })
+			.result.current.reference,
 	).toBeNull();
 	const confirmed = reviewFixture(true);
 	confirmed.recognizedWork = item.recognizedWork ?? {
@@ -70,7 +71,8 @@ test("unavailable sources do not preselect, and confirmed associations take prec
 		mappingStatus: "pending",
 	};
 	expect(
-		renderHook(() => useReviewController(confirmed)).result.current.reference,
+		renderHook(() => useReviewController(confirmed), { wrapper: MemoryRouter })
+			.result.current.reference,
 	).toEqual(confirmed.associations[0]?.reference);
 });
 test("Review shows recognized work separately from unresolved episode mapping", () => {
