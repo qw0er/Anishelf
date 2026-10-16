@@ -198,6 +198,60 @@ test("enforces count, per-font, aggregate and cache budgets", async () => {
 	expect(await readdir(join(dataDir, "subtitle-fonts"))).toEqual([]);
 });
 
+test("status preserves fonts published while source validation is pending", async () => {
+	let releaseExtraction!: () => void;
+	const extractionGate = new Promise<void>((resolve) => {
+		releaseExtraction = resolve;
+	});
+	extract.mockImplementation(async (_path, index) => {
+		await extractionGate;
+		return index === 4 ? ttf : otf;
+	});
+	const pending = await fonts.prepare(await source(), info);
+	let releaseStatus!: () => void;
+	const statusGate = new Promise<void>((resolve) => {
+		releaseStatus = resolve;
+	});
+	let enteredStatus!: () => void;
+	const entered = new Promise<void>((resolve) => {
+		enteredStatus = resolve;
+	});
+	const original = library.sources.revalidateSource.bind(library.sources);
+	let blocked = false;
+	const spy = vi
+		.spyOn(library.sources, "revalidateSource")
+		.mockImplementation(async (input) => {
+			if (!blocked && Object.keys(input).length === 1) {
+				blocked = true;
+				enteredStatus();
+				await statusGate;
+			}
+			return original(input);
+		});
+	try {
+		const statusRequest = fonts.status(pending.id);
+		await entered;
+		releaseExtraction();
+		await vi.waitFor(() =>
+			expect(database.subtitles.getFonts(pending.id)?.status).toBe("ready"),
+		);
+		// Let extraction settle and clear its active marker before status resumes.
+		await fonts.prepare(await source(), info);
+		releaseStatus();
+		const result = await statusRequest;
+		expect(result).toMatchObject({ status: "ready", warnings: [] });
+		expect(result.assets).toHaveLength(2);
+		expect(database.subtitles.getFonts(pending.id)).toMatchObject({
+			status: "ready",
+			assets: result.assets,
+		});
+	} finally {
+		releaseExtraction();
+		releaseStatus();
+		spy.mockRestore();
+	}
+});
+
 test("detects same-length font corruption, removes it and regenerates on retry", async () => {
 	const pending = await fonts.prepare(await source(), info);
 	const ready = await complete(pending.id);

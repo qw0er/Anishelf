@@ -314,13 +314,21 @@ export class SubtitleFontPreparation {
 		const set = this.options.repository.getFonts(id);
 		if (!set) throw new DomainError("RESOURCE_NOT_FOUND", "Unknown font set.");
 		await this.options.sources.revalidateSource({ identity: set.source });
-		return set;
+		// Source validation yields to extraction; use its latest published state.
+		const current = this.options.repository.getFonts(id);
+		if (!current)
+			throw new DomainError("RESOURCE_NOT_FOUND", "Unknown font set.");
+		return current;
 	}
 	async status(id: string): Promise<SubtitleFonts> {
 		const set = await this.set(id);
 		if (set.status === "pending" && !this.active.has(id)) {
 			set.status = "degraded";
 			set.warnings = ["FONT_INTERRUPTED"];
+			this.options.logger?.warn(
+				{ event: "subtitles.font_interrupted", setId: id },
+				"Font preparation is pending without an active task.",
+			);
 		}
 		if (set.status !== "pending") {
 			await this.check(set);
