@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { animeLibraryQueryKey } from "../../features/anime/public.js";
 import { startScan as startScanRequest } from "../../features/resources/public.js";
 import type { LibraryResponse } from "../../shared/api/contracts.js";
 import { toast } from "../../shared/components/ui/toast.js";
@@ -37,6 +38,7 @@ export function useScans(library: LibraryResponse | null) {
 			void client.invalidateQueries({ queryKey: ["directory"] });
 			void client.invalidateQueries({ queryKey: ["history"] });
 			void client.invalidateQueries({ queryKey: ["catalog"] });
+			void client.invalidateQueries({ queryKey: animeLibraryQueryKey });
 			void client.invalidateQueries({ queryKey: ["identification"] });
 			const warningDetails = scan.warnings.messages
 				.map((message) => {

@@ -196,9 +196,11 @@ module.exports = {
 		{
 			name: "web-anime-feature-entry-points",
 			severity: "error",
-			from: { path: "^web/src/features/anime/(catalog|metadata|review)/" },
+			from: {
+				path: "^web/src/features/anime/(catalog|metadata|review|library|tracking)/",
+			},
 			to: {
-				path: "^web/src/features/anime/(?!$1/)(catalog|metadata|review)/",
+				path: "^web/src/features/anime/(?!$1/)(catalog|metadata|review|library|tracking)/",
 				pathNot: "public\\.ts$",
 			},
 		},
@@ -212,7 +214,9 @@ module.exports = {
 			name: "web-anime-metadata-is-independent",
 			severity: "error",
 			from: { path: "^web/src/features/anime/metadata/" },
-			to: { path: "^web/src/features/anime/(catalog|review)/" },
+			to: {
+				path: "^web/src/features/anime/(catalog|review|library|tracking)/",
+			},
 		},
 		{
 			name: "web-anime-shared-is-a-leaf",

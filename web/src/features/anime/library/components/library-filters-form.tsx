@@ -3,15 +3,15 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../../../shared/components/ui/button.js";
 import { Input } from "../../../../shared/components/ui/input.js";
-import type { CatalogFilters } from "../api.js";
-import { catalogFilters, catalogSearch } from "../api.js";
+import type { LibraryFilters } from "../api.js";
+import { libraryFilters, librarySearch } from "../api.js";
 
-export function CatalogFiltersForm({
+export function LibraryFiltersForm({
 	filters,
 	filtered,
 	onFilters,
 }: {
-	filters: CatalogFilters;
+	filters: LibraryFilters;
 	filtered: boolean;
 	onFilters(value: string): void;
 }) {
@@ -19,7 +19,7 @@ export function CatalogFiltersForm({
 	const [search, setSearch] = useState(filters.query ?? "");
 	const [year, setYear] = useState(filters.year ?? "");
 	const [expanded, setExpanded] = useState(false);
-	const applied = catalogSearch(filters);
+	const applied = librarySearch(filters);
 	const pending = useRef(applied);
 	useEffect(() => {
 		pending.current = applied;
@@ -35,7 +35,7 @@ export function CatalogFiltersForm({
 		if (value.trim()) next.set(key, value.trim());
 		else next.delete(key);
 		next.delete("page");
-		commit(catalogSearch(catalogFilters(next)));
+		commit(librarySearch(libraryFilters(next)));
 	}
 	const active = (
 		["query", "format", "year", "availability", "viewingStatus"] as const
@@ -195,7 +195,7 @@ export function CatalogFiltersForm({
 						className="h-8 text-xs"
 						onClick={() =>
 							commit(
-								catalogSearch({
+								librarySearch({
 									sort: filters.sort,
 									page: 1,
 									...(filters.scope ? { scope: filters.scope } : {}),

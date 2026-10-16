@@ -6,7 +6,6 @@ export type {
 	CatalogConfirmationResponse,
 	CatalogDetailResponse,
 	CatalogFileReviewsResponse,
-	CatalogListResponse,
 	CatalogPreviewRequest,
 	CatalogPreviewResponse,
 	CatalogReviewItem,

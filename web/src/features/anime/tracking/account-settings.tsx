@@ -16,6 +16,7 @@ import {
 } from "../../../shared/components/ui/card.js";
 import { Input } from "../../../shared/components/ui/input.js";
 
+import { animeLibraryQueryKey } from "../shared/query-keys.js";
 import { accountQuery } from "./queries.js";
 
 const accountKey = accountQuery().queryKey;
@@ -61,14 +62,8 @@ export function AniListAccountSettings() {
 				);
 			} else result = await request("/api/tracking/account/check", "POST");
 			await client.cancelQueries({ queryKey: ["tracking"] });
-			await client.cancelQueries({
-				predicate: (query) =>
-					query.queryKey[0] === "catalog" && query.queryKey[2] === "list",
-			});
-			client.removeQueries({
-				predicate: (query) =>
-					query.queryKey[0] === "catalog" && query.queryKey[2] === "list",
-			});
+			await client.cancelQueries({ queryKey: animeLibraryQueryKey });
+			client.removeQueries({ queryKey: animeLibraryQueryKey });
 			client.removeQueries({
 				queryKey: ["tracking"],
 				predicate: (query) => query.queryKey[1] !== "account",

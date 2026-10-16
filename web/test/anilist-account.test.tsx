@@ -74,6 +74,17 @@ test("previews without retaining token, requires confirmation and clears former 
 	queryClient.setQueryData(["tracking", "old-account", "list"], {
 		private: true,
 	});
+	const oldLibraryKey = [
+		"anime-library",
+		"root",
+		7,
+		"old-generation",
+		{ scope: "all" },
+	];
+	queryClient.setQueryData(oldLibraryKey, { private: true });
+	queryClient.setQueryData(["catalog", "root", "detail", "work-1"], {
+		public: true,
+	});
 	render(<AniListAccountSettings />);
 	expect(await screen.findByText("No AniList account connected.")).toBeTruthy();
 	expect(
@@ -98,6 +109,10 @@ test("previews without retaining token, requires confirmation and clears former 
 	expect(
 		queryClient.getQueryData(["tracking", "old-account", "list"]),
 	).toBeUndefined();
+	expect(queryClient.getQueryData(oldLibraryKey)).toBeUndefined();
+	expect(
+		queryClient.getQueryData(["catalog", "root", "detail", "work-1"]),
+	).toEqual({ public: true });
 	expect(
 		JSON.stringify(
 			queryClient

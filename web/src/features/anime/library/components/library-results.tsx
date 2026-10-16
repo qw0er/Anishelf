@@ -1,21 +1,15 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import type {
-	AnimeLibraryResponse,
-	CatalogListResponse,
-} from "../../../../shared/api/contracts.js";
+import type { AnimeLibraryResponse } from "../../../../shared/api/contracts.js";
 import { Artwork } from "../../shared/components/artwork.js";
 import { ViewingBadge } from "../../tracking/public.js";
 
-export function CatalogResults({
+export function LibraryResults({
 	items,
 	librarySearch,
 	viewingKnown = false,
 }: {
-	items: (
-		| AnimeLibraryResponse["items"][number]
-		| CatalogListResponse["items"][number]
-	)[];
+	items: AnimeLibraryResponse["items"];
 	librarySearch: string;
 	viewingKnown?: boolean;
 }) {
@@ -27,7 +21,7 @@ export function CatalogResults({
 					<Link
 						id={`work-${work.id}`}
 						className="group flex h-full min-w-0 flex-col overflow-hidden rounded-lg border bg-card transition-[box-shadow,border-color] hover:border-foreground/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring motion-reduce:transition-none"
-						to={`${"localWorkId" in work && work.localWorkId === null ? `/anime/tracked/${encodeURIComponent(work.reference.id)}` : `/anime/${encodeURIComponent(work.id)}`}?${new URLSearchParams({ library: `/${librarySearch}` })}`}
+						to={`${work.localWorkId === null ? `/anime/tracked/${encodeURIComponent(work.reference.id)}` : `/anime/${encodeURIComponent(work.id)}`}?${new URLSearchParams({ library: `/${librarySearch}` })}`}
 						aria-label={work.displayTitle}
 					>
 						<Artwork
@@ -46,15 +40,13 @@ export function CatalogResults({
 								{work.format?.replaceAll("_", " ") ?? t("anime.unknownFormat")}{" "}
 								· {work.year ?? t("anime.unknownYear")}
 							</p>
-							{"viewing" in work && work.viewing && (
-								<ViewingBadge viewing={work.viewing} />
-							)}
-							{viewingKnown && "viewing" in work && !work.viewing && (
+							{work.viewing && <ViewingBadge viewing={work.viewing} />}
+							{viewingKnown && !work.viewing && (
 								<p className="text-xs text-muted-foreground">
 									{t("trackingList.untracked")}
 								</p>
 							)}
-							{"localWorkId" in work && work.localWorkId === null && (
+							{work.localWorkId === null && (
 								<p className="text-xs text-muted-foreground">
 									{t("trackingList.noLocal")}
 								</p>

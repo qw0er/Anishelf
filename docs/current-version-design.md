@@ -438,7 +438,19 @@ keys include account ID and connection generation and are removed on account com
 
 Structured list logs record refresh start/completion/failure/cancellation, counts,
 duration and safe error codes; they omit tokens, titles and provider error bodies.
-The Library read projection logs scope/count at trace level.
+The Library read projection logs scope, page/total/local/remote counts and
+Tracking state at trace level.
+
+The Web `anime/library` feature owns the wall's filters, card presentation and
+account/list/refresh coordination. It always reads `/api/anime/library` using
+one response contract. Account status supplies the account ID and connection
+generation for cache isolation; a status failure shows a retryable error and
+preserves filters. It never changes the list endpoint or drops scope/status
+filters. The parent route supplies resource readiness; the Library hook owns
+its account and list queries without a duplicate page loader. Library caches use
+the shared `anime-library` prefix, separate from Catalog details and reviews.
+Account commands cancel and remove those caches before publishing new identity;
+list refresh, Catalog edits, scans and completed identification invalidate them.
 
 Validation covers chunk traversal, custom-list duplicates, malformed/partial
 responses, snapshot replacement/restart, failed refresh retention, authorization

@@ -9,6 +9,7 @@ import {
 	metadataDetailQuery,
 	metadataSearchQuery,
 } from "../metadata/public.js";
+import { animeLibraryQueryKey } from "../shared/query-keys.js";
 import { confirmMapping, decideReview, previewMapping } from "./api.js";
 import { parseMapping, parseProviderReference } from "./mapping.js";
 export function useReviewController(item: CatalogReviewItem) {
@@ -45,7 +46,10 @@ export function useReviewController(item: CatalogReviewItem) {
 	});
 	const replacement = Boolean(preview?.rows.some((row) => row.before.length));
 	const invalidate = async () => {
-		await client.invalidateQueries({ queryKey: ["catalog"] });
+		await Promise.all([
+			client.invalidateQueries({ queryKey: ["catalog"] }),
+			client.invalidateQueries({ queryKey: animeLibraryQueryKey }),
+		]);
 	};
 	const previewAction = useMutation({
 		mutationFn: previewMapping,

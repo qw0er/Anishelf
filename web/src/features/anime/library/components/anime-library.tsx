@@ -1,24 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
 import { FolderPlus, Library, ScanLine, SearchX } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useSearchParams } from "react-router";
-import { useQueryScope } from "../../../../shared/api/queries.js";
 import { EmptyState } from "../../../../shared/components/empty-state.js";
 import { PageHeader } from "../../../../shared/components/page-header.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
-import {
-	accountQuery,
-	LibraryTrackingControls,
-	trackingIdentity,
-} from "../../tracking/public.js";
-import { catalogFilters, catalogSearch } from "../api.js";
-import { catalogQuery } from "../queries.js";
-import { CatalogFiltersForm } from "./catalog-filters-form.js";
-import { CatalogPagination } from "./catalog-pagination.js";
-import { CatalogResults } from "./catalog-results.js";
+import { libraryFilters, librarySearch } from "../api.js";
+import { useLibraryData } from "../use-library-data.js";
+import { LibraryFiltersForm } from "./library-filters-form.js";
+import { LibraryPagination } from "./library-pagination.js";
+import { LibraryResults } from "./library-results.js";
+import { LibraryTrackingControls } from "./library-tracking-controls.js";
 
 export function AnimeLibrary({
 	resourceRoot,
@@ -29,19 +23,11 @@ export function AnimeLibrary({
 }) {
 	const { t } = useTranslation();
 	const [params, setParams] = useSearchParams();
-	const filters = catalogFilters(params);
+	const filters = libraryFilters(params);
 	const location = useLocation();
 	const restoredFocus = useRef<string | null>(null);
-	const account = useQuery(accountQuery());
 	const canBrowse = Boolean(resourceRoot && ready) || filters.scope === "all";
-	const query = useQuery({
-		...catalogQuery(
-			filters,
-			useQueryScope(),
-			account.data ? trackingIdentity(account.data) : undefined,
-		),
-		enabled: canBrowse && !account.isPending,
-	});
+	const query = useLibraryData(filters, canBrowse);
 	useEffect(() => {
 		const id = location.state?.focusWork;
 		if (
@@ -54,7 +40,7 @@ export function AnimeLibrary({
 		}
 	}, [location.key, location.state, query.data]);
 	function change(key: string, value: string) {
-		const next = new URLSearchParams(catalogSearch(filters));
+		const next = new URLSearchParams(librarySearch(filters));
 		if (value) next.set(key, value);
 		else next.delete(key);
 		if (key !== "page") next.delete("page");
@@ -76,12 +62,9 @@ export function AnimeLibrary({
 			<LibraryTrackingControls
 				filters={filters}
 				onChange={change}
-				account={account.data}
-				snapshot={
-					query.data && "tracking" in query.data
-						? query.data.tracking
-						: undefined
-				}
+				account={query.account}
+				snapshot={query.data?.tracking}
+				refresh={query.refresh}
 			/>
 			{!resourceRoot && filters.scope !== "all" ? (
 				<EmptyState
@@ -105,7 +88,7 @@ export function AnimeLibrary({
 				/>
 			) : (
 				<>
-					<CatalogFiltersForm
+					<LibraryFiltersForm
 						filters={filters}
 						filtered={filtered}
 						onFilters={setParams}
@@ -171,16 +154,13 @@ export function AnimeLibrary({
 									}
 								/>
 							) : (
-								<CatalogResults
+								<LibraryResults
 									items={query.data.items}
-									viewingKnown={
-										"tracking" in query.data &&
-										query.data.tracking.fetchedAt !== null
-									}
+									viewingKnown={query.data.tracking.fetchedAt !== null}
 									librarySearch={location.search}
 								/>
 							)}
-							<CatalogPagination
+							<LibraryPagination
 								page={filters.page}
 								fetching={query.isFetching}
 								hasNextPage={query.data.hasNextPage}

@@ -496,6 +496,26 @@ for (const [consumer, target, rule] of [
 		});
 		assert.ok(violations.includes(rule));
 	});
+for (const consumer of ["library", "tracking"])
+	test(`Anime ${consumer} uses sibling public entry points`, async () => {
+		assert.ok(
+			(
+				await scan({
+					[`web/src/features/anime/${consumer}/view.ts`]:
+						"export {value} from '../metadata/queries.js';",
+					"web/src/features/anime/metadata/queries.ts": "export const value=1;",
+				})
+			).includes("web-anime-feature-entry-points"),
+		);
+		assert.deepEqual(
+			await scan({
+				[`web/src/features/anime/${consumer}/view.ts`]:
+					"export {value} from '../metadata/public.js';",
+				"web/src/features/anime/metadata/public.ts": "export const value=1;",
+			}),
+			[],
+		);
+	});
 test("Anime Review can use selected Catalog and Metadata capabilities", async () =>
 	assert.deepEqual(
 		await scan({
