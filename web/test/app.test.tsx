@@ -9,6 +9,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import App from "../src/app/App.js";
 import { libraryRoute } from "../src/app/routes/library.js";
 import type {
+	AnimeLibraryResponse,
 	CatalogSourceResponse,
 	DirectoryResponse,
 	FileResponse,
@@ -54,6 +55,16 @@ const file: FileResponse = {
 		mimeType: "video/mp4",
 	},
 	originalMediaUrl: "/api/media/file-1",
+};
+
+const disconnectedList: AnimeLibraryResponse["tracking"] = {
+	accountId: null,
+	generation: "fixture",
+	state: "disconnected",
+	fetchedAt: null,
+	stale: true,
+	refreshing: false,
+	error: null,
 };
 
 const fetcher = vi.fn<typeof fetch>();
@@ -152,7 +163,14 @@ beforeEach(() => {
 		if (path === "/api/catalog/sources/file-1")
 			return json({ sourceVersion: "version", associations: [] });
 		if (path.startsWith("/api/anime/library?"))
-			return json({ items: [], page: 1, perPage: 24, hasNextPage: false });
+			return json({
+				items: [],
+				page: 1,
+				perPage: 24,
+				hasNextPage: false,
+				localState: "available",
+				tracking: disconnectedList,
+			});
 		if (path === "/api/transcode-profiles")
 			return json({
 				profiles: [
@@ -1823,12 +1841,14 @@ function mockAnime(detail: ReturnType<typeof animeFixture>) {
 		const path = String(input);
 		if (path.startsWith("/api/anime/library?"))
 			return json({
-				items: [detail.work],
+				items: [{ ...detail.work, localWorkId: detail.work.id, viewing: null }],
 				page: Number(
 					new URL(path, "http://localhost").searchParams.get("page") ?? 1,
 				),
 				perPage: 24,
 				hasNextPage: true,
+				localState: "available",
+				tracking: disconnectedList,
 			});
 		if (path === "/api/catalog/works/work-1") return json(detail);
 		if (path === "/api/catalog/works/work-1/refresh") return json(detail);
@@ -2497,7 +2517,7 @@ test("automatic metadata updates appear in an open detail and invalidate the cac
 test("AniList library shows status and remote-only details, keeps filters and refreshes", async () => {
 	const detail = animeFixture();
 	const fallback = fetcher.getMockImplementation();
-	const tracking = {
+	const tracking: AnimeLibraryResponse["tracking"] = {
 		accountId: 7,
 		generation: "list-fixture",
 		state: "connected",
@@ -2548,8 +2568,12 @@ test("AniList library shows status and remote-only details, keeps filters and re
 				tracking,
 			});
 		}
-		if (path === "/api/tracking/refresh")
+		if (path === "/api/tracking/refresh") {
+			tracking.fetchedAt = Date.now();
+			tracking.stale = false;
+			tracking.error = null;
 			return json({ ...tracking, entries: [] });
+		}
 		if (path.startsWith("/api/tracking/entries/2?"))
 			return json({
 				...tracking,
@@ -2602,6 +2626,11 @@ test("AniList library shows status and remote-only details, keeps filters and re
 			),
 		).toBe(true),
 	);
+	await waitFor(() =>
+		expect(
+			screen.queryByText("Showing cached AniList viewing state."),
+		).toBeNull(),
+	);
 	fireEvent.click(await screen.findByRole("link", { name: "Remote work" }));
 	await screen.findByRole("heading", { name: "Remote work", level: 1 });
 	expect(
@@ -2616,6 +2645,51 @@ test("AniList library shows status and remote-only details, keeps filters and re
 	expect(
 		fetcher.mock.calls.some(([url]) =>
 			String(url).includes("/api/catalog/confirmations"),
+		),
+	).toBe(false);
+});
+
+test("account lookup failure keeps Library filters and retries without falling back to Catalog", async () => {
+	mockAnime(animeFixture());
+	const fallback = fetcher.getMockImplementation();
+	let failed = true;
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === "/api/tracking/account" && failed)
+			return json(
+				{ error: { code: "TRACKING_UNAVAILABLE", message: "Unavailable" } },
+				503,
+			);
+		return requiredFetch(fallback)(input, init);
+	});
+	renderApp("/?scope=all&viewingStatus=PLANNING&query=Frieren&page=2");
+	const retry = await screen.findByRole("button", { name: "Retry" });
+	expect(screen.getByTestId("location").textContent).toContain(
+		"viewingStatus=PLANNING",
+	);
+	expect(
+		fetcher.mock.calls.some(([path]) =>
+			String(path).startsWith("/api/catalog/works?"),
+		),
+	).toBe(false);
+	failed = false;
+	fireEvent.click(retry);
+	await screen.findByRole("link", { name: "Frieren" });
+	expect(
+		fetcher.mock.calls.some(([path]) => {
+			const url = new URL(String(path), "http://localhost");
+			return (
+				url.pathname === "/api/anime/library" &&
+				url.searchParams.get("scope") === "all" &&
+				url.searchParams.get("viewingStatus") === "PLANNING" &&
+				url.searchParams.get("query") === "Frieren" &&
+				url.searchParams.get("page") === "2" &&
+				url.searchParams.get("generation") === "fixture"
+			);
+		}),
+	).toBe(true);
+	expect(
+		fetcher.mock.calls.some(([path]) =>
+			String(path).startsWith("/api/catalog/works?"),
 		),
 	).toBe(false);
 });

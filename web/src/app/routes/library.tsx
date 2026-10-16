@@ -7,10 +7,10 @@ import {
 import { HistoryPage } from "../../features/playback/ui.js";
 import App from "../App.js";
 import InitialLoading from "../components/initial-loading.js";
-import { animeLoader, catalogLoader } from "./anime-data.js";
+import { animeLoader } from "./anime-data.js";
 import RouteError from "./errors.js";
 import { historyLoader } from "./history-data.js";
-import { CatalogPage } from "./pages/catalog-page.js";
+import { AnimeLibraryPage } from "./pages/anime-library-page.js";
 import { DirectoryPage } from "./pages/directory-page.js";
 import { NotFoundPage } from "./pages/not-found-page.js";
 import { PlayerPage } from "./pages/player-page.js";
@@ -41,8 +41,7 @@ export const libraryRoute: RouteObject = {
 		},
 		{
 			index: true,
-			loader: catalogLoader,
-			element: <CatalogPage />,
+			element: <AnimeLibraryPage />,
 			errorElement: <RouteError kind="directory" />,
 		},
 		{

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "../../../../shared/components/ui/button.js";
 
-export function CatalogPagination({
+export function LibraryPagination({
 	page,
 	fetching,
 	hasNextPage,

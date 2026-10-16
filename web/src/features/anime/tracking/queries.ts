@@ -16,14 +16,17 @@ export const accountQuery = () =>
 		retry: false,
 		staleTime: 0,
 	});
-export const trackingIdentity = (account: TrackingAccountResponse) => ({
+export interface TrackingIdentity {
+	accountId: number | null;
+	generation: string;
+}
+export const trackingIdentity = (
+	account: TrackingAccountResponse,
+): TrackingIdentity => ({
 	accountId: account.account?.id ?? null,
 	generation: account.generation,
 });
-export const entryQuery = (
-	mediaId: string,
-	identity: { accountId: number | null; generation: string },
-) =>
+export const entryQuery = (mediaId: string, identity: TrackingIdentity) =>
 	queryOptions({
 		queryKey: [
 			"tracking",

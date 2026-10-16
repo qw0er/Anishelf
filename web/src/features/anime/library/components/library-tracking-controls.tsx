@@ -1,13 +1,11 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type {
 	AnimeLibraryResponse,
 	TrackingAccountResponse,
-} from "../../../shared/api/contracts.js";
-import { Button } from "../../../shared/components/ui/button.js";
-import { refreshTrackingList } from "./queries.js";
-import { TrackingFeedback } from "./viewing-state.js";
+} from "../../../../shared/api/contracts.js";
+import { Button } from "../../../../shared/components/ui/button.js";
+import { TrackingFeedback } from "../../tracking/public.js";
 
 interface Filters {
 	scope?: "local" | "all";
@@ -18,26 +16,15 @@ export function LibraryTrackingControls({
 	onChange,
 	account,
 	snapshot,
+	refresh,
 }: {
 	filters: Filters;
 	onChange(key: string, value: string): void;
 	account: TrackingAccountResponse | undefined;
 	snapshot: AnimeLibraryResponse["tracking"] | undefined;
+	refresh: { isPending: boolean; error: Error | null; mutate(): void };
 }) {
 	const { t } = useTranslation();
-	const client = useQueryClient();
-	const refresh = useMutation({
-		mutationFn: () => refreshTrackingList(account?.generation ?? ""),
-		onSettled: async () => {
-			await Promise.all([
-				client.invalidateQueries({ queryKey: ["tracking"] }),
-				client.invalidateQueries({
-					predicate: (query) =>
-						query.queryKey[0] === "catalog" && query.queryKey[2] === "list",
-				}),
-			]);
-		},
-	});
 	return (
 		<div className="space-y-2">
 			<div className="flex flex-wrap items-end gap-3">

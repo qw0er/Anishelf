@@ -51,6 +51,7 @@ test("background recognition uses one persistent Toast and updates it on complet
 		),
 	);
 	expect(invalidate).toHaveBeenCalledWith({ queryKey: ["catalog"] });
+	expect(invalidate).toHaveBeenCalledWith({ queryKey: ["anime-library"] });
 });
 
 test("failed recognition emits one error notification and cleans it up on unmount", async () => {

@@ -8,6 +8,7 @@ import {
 	libraryReturnPath,
 } from "../../../shared/navigation.js";
 import { relationsQuery } from "../metadata/public.js";
+import { animeLibraryQueryKey } from "../shared/query-keys.js";
 import { refreshWork } from "./api.js";
 import type { Episode, Version } from "./detail-format.js";
 import { workQuery } from "./queries.js";
@@ -21,7 +22,9 @@ export function useWorkDetail(data: CatalogDetailResponse) {
 	useEffect(() => {
 		if (previousRevision.current !== work.revision) {
 			previousRevision.current = work.revision;
-			void client.invalidateQueries({ queryKey: ["catalog", scope, "list"] });
+			void client.invalidateQueries({
+				queryKey: [...animeLibraryQueryKey, scope],
+			});
 		}
 	}, [client, scope, work.revision]);
 
@@ -36,7 +39,9 @@ export function useWorkDetail(data: CatalogDetailResponse) {
 		mutationFn: () => refreshWork(work.id, work.revision),
 		onSuccess: async (result) => {
 			client.setQueryData(workQuery(work.id, scope).queryKey, result);
-			await client.invalidateQueries({ queryKey: ["catalog", scope, "list"] });
+			await client.invalidateQueries({
+				queryKey: [...animeLibraryQueryKey, scope],
+			});
 		},
 	});
 	function playPath(version: Version, episode: Episode) {
