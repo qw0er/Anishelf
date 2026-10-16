@@ -1,5 +1,6 @@
 import {
 	integer,
+	primaryKey,
 	sqliteTable,
 	text,
 	uniqueIndex,
@@ -43,3 +44,25 @@ export const trackingListCache = sqliteTable("tracking_list_cache", {
 		.$type<import("../domain/list.js").TrackingListEntry[]>()
 		.notNull(),
 });
+
+/** Intent ordering survives operation pruning and worker state changes. */
+export const trackingIntentVersions = sqliteTable(
+	"tracking_intent_versions",
+	{
+		accountId: integer("account_id").notNull(),
+		mediaId: integer("media_id").notNull(),
+		manualVersion: integer("manual_version").notNull().default(0),
+	},
+	(table) => [primaryKey({ columns: [table.accountId, table.mediaId] })],
+);
+/** Durable command deduplication is separate from the mutable per-title operation. */
+export const trackingCommands = sqliteTable(
+	"tracking_commands",
+	{
+		accountId: integer("account_id").notNull(),
+		commandId: text("command_id").notNull(),
+		operationId: text("operation_id").notNull(),
+		revision: integer("revision").notNull(),
+	},
+	(table) => [primaryKey({ columns: [table.accountId, table.commandId] })],
+);

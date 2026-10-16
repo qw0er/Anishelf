@@ -8,3 +8,5 @@ export { ReviewPage } from "./review/components/review-page.js";
 export { AniListAccountSettings } from "./tracking/account-settings.js";
 
 export { TrackingOperationMonitor } from "./tracking/operation-monitor.js";
+
+export { PlayerViewingControl } from "./tracking/player-viewing-control.js";

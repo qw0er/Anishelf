@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -364,6 +365,7 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 	const status = confirmed.json();
 	const updateUrl = "/api/tracking/entries/1/updates";
 	const updatePayload = {
+		commandId: randomUUID(),
 		generation: status.generation,
 		revision: null,
 		baseline: null,
@@ -418,7 +420,7 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 				payload: updatePayload,
 			})
 		).statusCode,
-	).toBe(409);
+	).toBe(200);
 	const operations = await http.inject({
 		url: `/api/tracking/operations?generation=${status.generation}`,
 		headers: one,

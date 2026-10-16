@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
 
-import { originalTimeline } from "@anishelf/backend/contracts/media";
 import { expect, test } from "vitest";
 import {
 	episodeViewing,
@@ -8,59 +7,32 @@ import {
 } from "../src/features/anime/tracking/episode-viewing.js";
 import { PlaybackEvidence } from "../src/features/playback/player/evidence.js";
 
-test("records source time at playback speed, breaks continuity on seeks/buffering and ignores resume", () => {
+test("normal time excludes resume, seeks, buffering and long gaps, and uses wall time at double speed", () => {
 	const video = document.createElement("video");
 	const evidence = new PlaybackEvidence();
-	const timeline = originalTimeline();
 	video.currentTime = 40;
-	evidence.sample(video, timeline, false, 0);
-	video.currentTime = 50;
-	evidence.sample(video, timeline, true, 1000);
-	video.currentTime = 51;
-	evidence.sample(video, timeline, true, 2000);
-	expect(evidence.take()).toEqual([
-		{ startMs: 50000, endMs: 51000, elapsedMs: 1000, rate: 1 },
-	]);
-	evidence.reset();
+	evidence.sample(video, false, 0);
 	video.currentTime = 90;
-	evidence.sample(video, timeline, true, 3000);
+	evidence.sample(video, true, 1000);
 	video.currentTime = 91;
-	evidence.sample(video, timeline, true, 4000);
-	expect(evidence.take()).toEqual([
-		{ startMs: 90000, endMs: 91000, elapsedMs: 1000, rate: 1 },
-	]);
-	evidence.sample(video, timeline, false, 5000);
-	video.currentTime = 95;
-	evidence.sample(video, timeline, true, 9000);
-	expect(evidence.take()).toEqual([]);
-	video.playbackRate = 2;
+	evidence.sample(video, true, 2000);
+	expect(evidence.normalPlayedMs).toBe(1000);
+	video.currentTime = 150;
+	evidence.sample(video, true, 3000);
+	expect(evidence.normalPlayedMs).toBe(1000);
 	evidence.reset();
-	evidence.sample(video, timeline, true, 10000);
-	video.currentTime = 97;
-	evidence.sample(video, timeline, true, 11000);
-	expect(evidence.take()).toEqual([
-		{ startMs: 95000, endMs: 97000, elapsedMs: 1000, rate: 2 },
-	]);
-});
-
-test("maps prepared media evidence to original source time and drops long unobserved gaps", () => {
-	const video = document.createElement("video");
-	const evidence = new PlaybackEvidence();
-	const timeline = {
-		sourceOriginMs: 30000,
-		mediaOriginMs: 10000,
-		sourceDurationMs: 100000,
-	};
-	video.currentTime = 10;
-	evidence.sample(video, timeline, true, 0);
-	video.currentTime = 11;
-	evidence.sample(video, timeline, true, 1000);
-	expect(evidence.take()).toEqual([
-		{ startMs: 30000, endMs: 31000, elapsedMs: 1000, rate: 1 },
-	]);
-	video.currentTime = 30;
-	evidence.sample(video, timeline, true, 20000);
-	expect(evidence.take()).toEqual([]);
+	video.playbackRate = 2;
+	evidence.sample(video, true, 4000);
+	video.currentTime = 152;
+	evidence.sample(video, true, 5000);
+	expect(evidence.normalPlayedMs).toBe(2000);
+	evidence.sample(video, false, 6000);
+	video.currentTime = 154;
+	evidence.sample(video, true, 7000);
+	expect(evidence.normalPlayedMs).toBe(2000);
+	video.currentTime = 180;
+	evidence.sample(video, true, 20000);
+	expect(evidence.normalPlayedMs).toBe(2000);
 });
 
 test("AniList indicators use cumulative targets and count available unwatched episodes once per episode", () => {

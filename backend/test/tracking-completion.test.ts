@@ -1,301 +1,438 @@
-import { expect, test, vi } from "vitest";
+import { randomUUID } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, expect, test, vi } from "vitest";
+import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import type { ReviewItem } from "../src/modules/anime/anime-catalog/public.js";
-import { TrackingCompletions } from "../src/modules/anime/tracking/application/completion.js";
-import type {
-	TrackingListEntry,
-	TrackingListSnapshot,
-} from "../src/modules/anime/tracking/domain/list.js";
+import { TrackingUpdates } from "../src/modules/anime/tracking/application/updates.js";
+import { TrackingViewingCommands } from "../src/modules/anime/tracking/application/viewing.js";
 import type { TrackingStatus } from "../src/modules/anime/tracking/domain/model.js";
-import type {
-	TrackingOperation,
-	TrackingUpdate,
-} from "../src/modules/anime/tracking/domain/operation.js";
+import type { TrackingRemoteState } from "../src/modules/anime/tracking/domain/operation.js";
+import type { TrackingEpisodeCommand } from "../src/modules/anime/tracking/public.js";
 
-function fixture(number = "4") {
-	const review: ReviewItem = {
+const dispose: (() => unknown)[] = [];
+afterEach(async () => {
+	for (const fn of dispose.splice(0).reverse()) await fn();
+});
+async function fixture(number = "4") {
+	const directory = await mkdtemp(join(tmpdir(), "anishelf-viewing-"));
+	dispose.push(() => rm(directory, { recursive: true, force: true }));
+	const database = ApplicationDatabase.open(directory);
+	dispose.push(() => database.close());
+	const review = {
 		id: "review",
-		sourceId: "source",
-		rootId: "root",
-		fileId: "file",
-		relativePath: "Episode.mkv",
-		sourceVersion: "v1",
 		available: true,
-		revision: 1,
 		decision: "confirmed",
-		reason: null,
-		evidence: {
-			parser: "fixture",
-			parserVersion: "1",
-			normalizationVersion: "1",
-			contextFingerprint: "context",
-			originalName: "Episode.mkv",
-			relativePath: "Episode.mkv",
-			inputs: [],
-			titles: [],
-			years: [],
-			seasons: [],
-			parts: [],
-			rawEpisodes: [number],
-			numbering: "single",
-			contentKind: "regular",
-		},
-		proposals: [],
-		metadataStatus: "searched",
-		unresolved: [],
+		sourceVersion: "v1",
+		revision: 1,
 		associations: [
 			{
-				workId: "work",
-				workTitle: "Anime",
-				reference: { provider: "anilist", id: "9", mediaType: "anime" },
-				episodeId: "episode",
+				reference: { provider: "anilist", id: "9" },
 				kind: "regular",
 				number,
-				label: `Episode ${number}`,
+				episodeId: "ep",
 			},
 		],
-	};
+	} as ReviewItem;
 	const status: TrackingStatus = {
 		account: { id: 7, name: "Fixture" },
-		generation: "generation",
+		generation: randomUUID(),
 		state: "connected",
 		clientId: "client",
 		authorizationUrl: "https://example.test",
 		connectivity: "available",
 		checkedAt: null,
 	};
-	const entry: TrackingListEntry = {
+	let remote: TrackingRemoteState | null = {
 		id: 10,
-		mediaId: 9,
 		progress: 3,
 		status: "CURRENT",
 		updatedAt: 100,
-		titles: ["Anime"],
-		format: "TV",
-		year: 2026,
-		episodeCount: 12,
-		coverUrl: null,
 	};
-	const snapshot: TrackingListSnapshot = {
-		accountId: 7,
-		generation: "generation",
-		state: "connected",
-		fetchedAt: 100,
-		stale: false,
-		refreshing: false,
-		error: null,
-		entries: [entry],
-	};
-	const operations: TrackingOperation[] = [];
-	const update = vi.fn(
-		(mediaId: number, input: TrackingUpdate): TrackingOperation => {
-			const operation: TrackingOperation = {
-				id: "op",
-				accountId: 7,
-				mediaId,
-				revision: 1,
-				baseline: input.baseline,
-				desired: input.desired,
-				state: "pending",
-				remote: input.baseline,
-				attempt: null,
-				attempts: 0,
-				retryAt: null,
-				error: null,
-				updatedAt: 2000,
-				completion: input.completion ?? false,
-			};
-			operations.splice(0, operations.length, operation);
-			return operation;
-		},
+	let now = 1000;
+	const save = vi.fn(
+		async (
+			_lease: unknown,
+			_media: unknown,
+			_id: unknown,
+			desired: Partial<TrackingRemoteState>,
+		) =>
+			(remote = {
+				...(remote ?? { id: 10, progress: 0, status: "CURRENT", updatedAt: 0 }),
+				...desired,
+				updatedAt: now,
+			}),
 	);
-	const fileReviews = vi.fn(async () => [review]);
-	const service = new TrackingCompletions(
-		{ fileReviews },
+	const get = vi.fn(async () => remote);
+	const updates = new TrackingUpdates({
+		store: database.trackingOperations,
+		access: {
+			status: () => status,
+			assertCurrent: (g) => {
+				if (g !== status.generation) throw Error("stale");
+			},
+			acquire: async () => ({
+				accountId: status.account?.id ?? 0,
+				generation: status.generation,
+				token: "secret",
+				signal: new AbortController().signal,
+			}),
+			authorizationFailed: () => {
+				status.state = "authorization-required";
+			},
+		},
+		provider: { get, save },
+		confirmed: () => {},
+		now: () => now,
+	});
+	dispose.push(() => updates.close());
+	const service = new TrackingViewingCommands(
+		{ fileReviews: async () => [review] },
 		{
 			status: () => status,
-			list: () => snapshot,
-			operations: () => operations,
-			update,
+			list: () => ({
+				accountId: 7,
+				generation: status.generation,
+				state: status.state,
+				fetchedAt: now,
+				stale: false,
+				refreshing: false,
+				error: null,
+				entries: remote
+					? [
+							{
+								...remote,
+								mediaId: 9,
+								titles: ["Fixture"],
+								format: "TV",
+								year: 2026,
+								episodeCount: 12,
+								coverUrl: null,
+							},
+						]
+					: [],
+			}),
+			operations: (g) => updates.operations(g),
+			update: (id, input) => updates.update(id, input),
+			manualVersion: (id, g) => updates.manualVersion(id, g),
+			replayCommand: (id, g) => updates.replayCommand(id, g),
 		},
 	);
+	const current = () => updates.operations(status.generation)[0];
+	const required = () => {
+		const operation = current();
+		if (!operation) throw Error("Missing operation");
+		return operation;
+	};
+	const command = (
+		overrides: Partial<TrackingEpisodeCommand> = {},
+	): TrackingEpisodeCommand => ({
+		commandId: randomUUID(),
+		generation: status.generation,
+		revision: current()?.revision ?? null,
+		fileId: "file",
+		mappingRevision: 1,
+		sourceVersion: "v1",
+		action: "mark",
+		...overrides,
+	});
 	const capture = async () => {
 		const context = await service.capture("file", "v1");
-		if (!context) throw new Error("No target");
+		if (!context) throw Error("No target");
 		return context;
 	};
 	return {
+		database,
 		review,
 		status,
-		entry,
-		snapshot,
-		operations,
-		update,
-		fileReviews,
 		service,
+		updates,
+		save,
+		get,
+		current: required,
+		command,
 		capture,
+		setRemote: (next: TrackingRemoteState | null) => {
+			remote = next;
+		},
+		advance: () => {
+			now += 100000;
+		},
 	};
 }
-
-test("admits only absolute contiguous progress, deduplicates repeated and alternate version completions", async () => {
-	const f = fixture();
-	const context = await f.capture();
-	expect(await f.service.submit(context, 1000, null)).toMatchObject({
-		state: "queued",
-	});
-	expect(f.update).toHaveBeenCalledWith(
-		9,
-		expect.objectContaining({
-			baseline: { id: 10, progress: 3, status: "CURRENT", updatedAt: 100 },
-			desired: { progress: 4 },
-			completion: true,
-		}),
+test("automatic next episode and player manual marks share absolute intent and submission results", async () => {
+	const f = await fixture();
+	expect(await f.service.submit(await f.capture(), randomUUID())).toMatchObject(
+		{ state: "accepted" },
 	);
-	expect(await f.service.submit(context, 1000, null)).toMatchObject({
-		state: "skipped",
-		reason: "already-tracked",
+	expect(f.current()).toMatchObject({
+		origin: "automatic",
+		desired: { progress: 4 },
+		state: "pending",
 	});
-	f.review.sourceVersion = "v2";
-	const alternate = await f.service.capture("file", "v2");
-	expect(await f.service.submit(alternate ?? "", 1000, null)).toMatchObject({
-		state: "skipped",
-		reason: "already-tracked",
-	});
-	expect(f.update).toHaveBeenCalledTimes(1);
+	await f.updates.flush();
+	expect(f.current().state).toBe("succeeded");
+	expect(f.save).toHaveBeenCalledTimes(1);
+	expect(await f.service.submit(await f.capture(), randomUUID())).toMatchObject(
+		{ state: "ignored", reason: "already-tracked" },
+	);
 });
-
-test("skipped episodes require explicit confirmation or may keep the existing progress", async () => {
-	const f = fixture("7");
-	const context = await f.capture();
-	expect(await f.service.submit(context, 1000, null)).toMatchObject({
+test("first manual mark requires skipped-episode confirmation instead of bypassing it", async () => {
+	const f = await fixture("7");
+	const operation = await f.service.mark(f.command());
+	expect(operation).toMatchObject({
 		state: "decision-required",
-		reason: "skipped-episodes",
-		episode: 7,
+		decisionReason: "skipped-episodes",
+		origin: "manual-player",
 	});
-	expect(f.update).not.toHaveBeenCalled();
-	expect(
-		await f.service.submit(context, 1000, { advance: false }),
-	).toMatchObject({ state: "skipped", reason: "kept-progress" });
-	expect(
-		await f.service.submit(context, 1000, { advance: true }),
-	).toMatchObject({ state: "queued" });
-	expect(f.update.mock.calls[0]?.[1].desired).toEqual({ progress: 7 });
+	await f.updates.flush();
+	expect(f.save).not.toHaveBeenCalled();
+	await f.service.mark(f.command({ confirmSkipped: true }));
+	await f.updates.flush();
+	expect(f.current()).toMatchObject({
+		state: "succeeded",
+		remote: { progress: 7 },
+	});
 });
-
-test("creating an entry requires a user-selected initial status; automatic updates preserve existing status", async () => {
-	const f = fixture("1");
-	f.snapshot.entries = [];
-	const context = await f.capture();
-	expect(await f.service.submit(context, 1000, null)).toMatchObject({
+test("keeping progress then marking again creates a new usable decision", async () => {
+	const f = await fixture("7");
+	await f.service.mark(f.command());
+	await f.service.mark(f.command({ action: "keep" }));
+	expect(f.current().state).toBe("cancelled");
+	const next = await f.service.mark(f.command());
+	expect(next).toMatchObject({
 		state: "decision-required",
-		reason: "initial-status-required",
+		decisionReason: "skipped-episodes",
 	});
-	expect(
-		await f.service.submit(context, 1000, { advance: true }),
-	).toMatchObject({ state: "decision-required" });
-	expect(
-		await f.service.submit(context, 1000, {
-			advance: true,
-			initialStatus: "PLANNING",
-		}),
-	).toMatchObject({ state: "queued" });
-	expect(f.update.mock.calls[0]?.[1].desired).toEqual({
-		progress: 1,
-		status: "PLANNING",
-	});
+	await f.service.mark(f.command({ confirmSkipped: true }));
+	await f.updates.flush();
+	expect(f.current().remote?.progress).toBe(7);
 });
-
-test("newer manual backwards corrections take precedence over late completion and explicit decisions", async () => {
-	const f = fixture();
-	const context = await f.capture();
-	const op = f.update(9, {
-		generation: "generation",
+test("cancelled automatic desired progress is not counted as remotely tracked", async () => {
+	const f = await fixture("7");
+	await f.service.submit(await f.capture(), randomUUID());
+	const op = f.current();
+	f.database.trackingOperations.save({ ...op, state: "cancelled" });
+	expect(await f.service.submit(await f.capture(), randomUUID())).toMatchObject(
+		{ state: "accepted" },
+	);
+	expect(f.current().state).toBe("decision-required");
+});
+test("missing entries require an explicit initial status, while existing statuses are preserved", async () => {
+	const f = await fixture("1");
+	f.setRemote(null);
+	await f.service.submit(await f.capture(), randomUUID());
+	expect(f.current().decisionReason).toBe("initial-status-required");
+	await f.service.mark(
+		f.command({ confirmSkipped: true, initialStatus: "PLANNING" }),
+	);
+	await f.updates.flush();
+	expect(f.current().remote).toMatchObject({ progress: 1, status: "PLANNING" });
+	const association = f.review.associations[0];
+	if (!association) throw Error("Missing association");
+	association.number = "2";
+	await f.service.mark(f.command({ initialStatus: "COMPLETED" }));
+	await f.updates.flush();
+	expect(f.current().remote).toMatchObject({ progress: 2, status: "PLANNING" });
+});
+test("newer manual corrections fence old observations even after worker updates and pruning", async () => {
+	const f = await fixture();
+	const old = await f.capture();
+	const op = f.updates.update(9, {
+		generation: f.status.generation,
 		revision: null,
 		baseline: { id: 10, progress: 3, status: "CURRENT", updatedAt: 100 },
 		desired: { progress: 1 },
 	});
-	op.state = "succeeded";
-	f.entry.progress = 1;
-	f.update.mockClear();
-	expect(
-		await f.service.submit(context, 1000, { advance: true }),
-	).toMatchObject({ state: "skipped", reason: "manual-change" });
-	expect(f.update).not.toHaveBeenCalled();
+	f.advance();
+	await f.updates.flush();
+	expect(f.current().intentAt).toBe(1000);
+	expect(f.current().updatedAt).toBeGreaterThan(1000);
+	expect(await f.service.submit(old, randomUUID())).toMatchObject({
+		state: "ignored",
+		reason: "manual-change",
+	});
+	f.database.trackingOperations.remove(op.id);
+	expect(await f.service.submit(old, randomUUID())).toMatchObject({
+		state: "ignored",
+		reason: "manual-change",
+	});
+	expect(await f.service.submit(await f.capture(), randomUUID())).toMatchObject(
+		{ state: "accepted" },
+	);
 });
-
-test.each(["revision", "source", "association", "unavailable"])(
-	"revalidates %s before admission",
-	async (change) => {
-		const f = fixture();
-		const context = await f.capture();
-		if (change === "revision") f.review.revision++;
-		if (change === "source") f.review.sourceVersion = "v2";
-		if (change === "association" && f.review.associations[0])
-			f.review.associations[0].number = "5";
-		if (change === "unavailable") f.review.available = false;
-		expect(await f.service.submit(context, 1000, null)).toMatchObject({
-			state: "skipped",
-			reason: "mapping-changed",
-		});
-		expect(f.update).not.toHaveBeenCalled();
-	},
-);
-
-test("isolates accounts and retains authorization/list failures for retry", async () => {
-	const f = fixture();
-	const context = await f.capture();
-	f.status.state = "authorization-required";
-	expect(await f.service.submit(context, 1000, null)).toMatchObject({
-		state: "unavailable",
-		reason: "reconnect-required",
+test("a manual command predating session capture is not made newer by worker completion", async () => {
+	const f = await fixture();
+	f.updates.update(9, {
+		generation: f.status.generation,
+		revision: null,
+		baseline: { id: 10, progress: 3, status: "CURRENT", updatedAt: 100 },
+		desired: { progress: 2 },
 	});
-	f.status.state = "connected";
-	f.snapshot.fetchedAt = null;
-	expect(await f.service.submit(context, 1000, null)).toMatchObject({
-		state: "unavailable",
-		reason: "list-unavailable",
+	const captured = await f.capture();
+	f.advance();
+	await f.updates.flush();
+	expect(await f.service.submit(captured, randomUUID())).toMatchObject({
+		state: "accepted",
 	});
-	f.status.generation = "replacement";
-	f.status.account = { id: 8, name: "Different account" };
-	expect(await f.service.submit(context, 1000, null)).toMatchObject({
-		state: "skipped",
+});
+test("player commands are idempotent across lost acknowledgements and a replay does not bump manual version", async () => {
+	const f = await fixture();
+	const input = f.command();
+	const first = await f.service.mark(input);
+	await f.updates.flush();
+	const version = f.updates.manualVersion(9, f.status.generation);
+	expect((await f.service.mark(input)).id).toBe(first.id);
+	expect(f.updates.manualVersion(9, f.status.generation)).toBe(version);
+	expect(f.save).toHaveBeenCalledTimes(1);
+});
+test("mapping revisions and accounts are revalidated before automatic admission and manual confirmation", async () => {
+	const f = await fixture("7");
+	const captured = await f.capture();
+	await f.service.mark(f.command());
+	f.review.revision++;
+	expect(await f.service.submit(captured, randomUUID())).toMatchObject({
+		state: "ignored",
+		reason: "mapping-changed",
+	});
+	await expect(
+		f.service.mark(f.command({ confirmSkipped: true })),
+	).rejects.toMatchObject({ code: "TRACKING_CONFLICT" });
+	f.status.account = { id: 8, name: "Other" };
+	expect(await f.service.submit(captured, randomUUID())).toMatchObject({
+		state: "ignored",
 		reason: "account-changed",
 	});
-	expect(f.update).not.toHaveBeenCalled();
+});
+test("same-account reconnect uses the current generation and unsupported mappings stay manual", async () => {
+	const f = await fixture();
+	const captured = await f.capture();
+	f.status.generation = randomUUID();
+	expect(await f.service.submit(captured, randomUUID())).toMatchObject({
+		state: "accepted",
+	});
+	const association = f.review.associations[0];
+	if (!association) throw Error("Missing association");
+	association.kind = "special";
+	expect(await f.service.capture("file", "v1")).toBeNull();
 });
 
-test.each(["special", "fractional", "multiple", "pending"])(
-	"does not infer %s targets",
-	async (kind) => {
-		const f = fixture();
-		const association = f.review.associations[0];
-		if (!association) throw new Error("Missing target");
-		if (kind === "special") association.kind = "special";
-		if (kind === "fractional") association.number = "4.5";
-		if (kind === "multiple")
-			f.review.associations.push({
-				...association,
-				episodeId: "another",
-				number: "5",
-			});
-		if (kind === "pending") f.review.decision = "pending";
-		expect(await f.service.capture("file", "v1")).toBeNull();
-	},
-);
-
-test("same-account reconnection reconciles with the new generation rather than losing saved completion", async () => {
-	const f = fixture();
-	const context = await f.capture();
-	f.status.generation = "reconnected";
-	f.snapshot.generation = "reconnected";
-	expect(await f.service.submit(context, 1000, null)).toMatchObject({
-		state: "queued",
-	});
-	expect(f.update).toHaveBeenCalledWith(
-		9,
-		expect.objectContaining({
-			generation: "reconnected",
-			baseline: expect.objectContaining({ progress: 3 }),
-			desired: { progress: 4 },
-		}),
+test("HTTP player commands serialize the real admission and final operation with a minimal remote baseline", async () => {
+	const { createHttpApp } = await import("../src/app/bootstrap/http.js");
+	const { builtinPolicy } = await import("../src/app/policy.js");
+	const { registerTrackingUpdateRoutes } = await import(
+		"../src/modules/anime/tracking/http/updates.js"
 	);
+	const { default: pino } = await import("pino");
+	const f = await fixture("7");
+	const http = createHttpApp({
+		config: { host: "127.0.0.1", port: 3000 },
+		logger: pino({ enabled: false }),
+		policy: builtinPolicy,
+		registrations: [
+			(scope) => registerTrackingUpdateRoutes(scope, f.updates, f.service),
+		],
+		closeDependencies: async () => {},
+	});
+	dispose.push(() => http.close());
+	const headers = { host: "127.0.0.1:3000" };
+	const input = f.command();
+	const first = await http.inject({
+		url: "/api/tracking/episode-commands",
+		method: "POST",
+		headers,
+		payload: input,
+	});
+	expect(first.statusCode, first.body).toBe(200);
+	expect(first.json()).toMatchObject({
+		state: "decision-required",
+		decisionReason: "skipped-episodes",
+	});
+	expect(Object.keys(first.json().baseline).sort()).toEqual([
+		"id",
+		"progress",
+		"status",
+		"updatedAt",
+	]);
+	const repeat = await http.inject({
+		url: "/api/tracking/episode-commands",
+		method: "POST",
+		headers,
+		payload: input,
+	});
+	expect(repeat.statusCode).toBe(200);
+	expect(repeat.json().revision).toBe(first.json().revision);
+	const confirm = await http.inject({
+		url: "/api/tracking/episode-commands",
+		method: "POST",
+		headers,
+		payload: f.command({ confirmSkipped: true }),
+	});
+	expect(confirm.statusCode, confirm.body).toBe(200);
+	await f.updates.flush();
+	const result = await http.inject({
+		url: `/api/tracking/operations?generation=${f.status.generation}`,
+		headers,
+	});
+	expect(result.statusCode, result.body).toBe(200);
+	expect(result.json()[0]).toMatchObject({
+		state: "succeeded",
+		remote: { progress: 7 },
+	});
+	const invalid = await http.inject({
+		url: "/api/tracking/episode-commands",
+		method: "POST",
+		headers,
+		payload: { ...f.command(), origin: "automatic" },
+	});
+	expect(invalid.statusCode).toBe(400);
+});
+
+test("editing status does not silently accept an unconfirmed automatic progress suggestion", async () => {
+	const f = await fixture("7");
+	await f.service.submit(await f.capture(), randomUUID());
+	const op = f.current();
+	f.updates.update(9, {
+		generation: f.status.generation,
+		revision: op.revision,
+		baseline: op.baseline,
+		desired: { status: "PAUSED" },
+	});
+	await f.updates.flush();
+	expect(f.current().remote).toMatchObject({ progress: 3, status: "PAUSED" });
+});
+
+test("concurrent duplicate player commands admit once and stale UI mapping revisions cannot retarget a mark", async () => {
+	const f = await fixture();
+	const input = f.command();
+	const [first, second] = await Promise.all([
+		f.service.mark(input),
+		f.service.mark(input),
+	]);
+	expect(second.id).toBe(first.id);
+	expect(second.revision).toBe(first.revision);
+	expect(f.updates.manualVersion(9, f.status.generation)).toBe(1);
+	await f.updates.flush();
+	f.review.revision++;
+	await expect(f.service.mark(f.command())).rejects.toMatchObject({
+		code: "TRACKING_CONFLICT",
+	});
+});
+
+test("a fresh completion uses current remote progress after an earlier successful value was corrected on AniList", async () => {
+	const f = await fixture();
+	await f.service.submit(await f.capture(), randomUUID());
+	await f.updates.flush();
+	expect(f.current().state).toBe("succeeded");
+	f.advance();
+	f.setRemote({ id: 10, progress: 3, status: "CURRENT", updatedAt: 200 });
+	const observed = await f.service.submit(await f.capture(), randomUUID());
+	expect(observed).toMatchObject({
+		state: "accepted",
+		reason: "operation-recorded",
+	});
+	await f.updates.flush();
+	expect(f.current().remote?.progress).toBe(4);
+	expect(f.save).toHaveBeenCalledTimes(2);
 });

@@ -14,7 +14,7 @@ import { registerAnimeHttp } from "./http.js";
 import type { MetadataApplication } from "./metadata/application/metadata.js";
 import type { AnimePersistence } from "./persistence.js";
 import type { AnimeApi } from "./public.js";
-import { TrackingCompletions } from "./tracking/application/completion.js";
+import { TrackingViewingCommands } from "./tracking/application/viewing.js";
 export async function createAnimeModule(options: {
 	system: SystemApi;
 	resources: ResourcesApi;
@@ -93,6 +93,10 @@ export async function createAnimeModule(options: {
 				}
 			: undefined,
 	};
+	const viewing =
+		catalog && tracking
+			? new TrackingViewingCommands(catalog, tracking)
+			: undefined;
 	let stopped: Promise<void> | undefined;
 	let closed: Promise<void> | undefined;
 	const quiesce = () =>
@@ -105,16 +109,14 @@ export async function createAnimeModule(options: {
 		})());
 	return {
 		api,
-		completionObserver:
-			catalog && tracking
-				? new TrackingCompletions(catalog, tracking)
-				: undefined,
+		completionObserver: viewing,
 		registerHttp: (app: import("../../transport/instance.js").HttpInstance) =>
 			registerAnimeHttp(app, {
 				metadata,
 				catalog,
 				identification,
 				tracking,
+				viewing,
 				library: libraryQueries,
 			}),
 		quiesce,

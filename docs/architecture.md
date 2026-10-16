@@ -4,7 +4,7 @@ This document describes the overall system structure, module ownership and
 architectural constraints. [Requirements](requirements.md) owns the feature
 inventory and delivery status. [Current version requirements](current-version-requirements.md)
 owns the selected AniList account scope and acceptance. Account connection and shared
-request scheduling, account-scoped list reads/cache/refresh, manual submissions, coverage-based playback updates and derived Library/detail viewing displays are implemented. Real-provider write acceptance remains pending. [Current version design](current-version-design.md)
+request scheduling, account-scoped list reads/cache/refresh, manual submissions, playhead-based automatic observations and unified viewing commands and derived Library/detail viewing displays are implemented. Real-provider write acceptance remains pending. [Current version design](current-version-design.md)
 records the delivered account, read, submission and playback observation flows. The anime-library version's requirements and
 acceptance are complete as of 2026-10-14, confirmed by the user.
 [History](history.md#anime-library-archive-notes) retains its requirements,
@@ -453,19 +453,21 @@ source checks; this UI adds no independent command implementation or backend API
 
 ## Playback Completion Observation
 
-Playback/Progress persists source-version coverage and completion receipts alongside
-resume/history. Source duration comes from Media's version-checked shared inspection.
-A progress transaction merges validated intervals and inserts an 85-percent receipt
-atomically. Its worker retries durable receipts through an injected consumer-owned
-port; Anime captures/revalidates account generation and Catalog mapping, then admits
-absolute intent to Tracking's existing operation queue. Replay, uncertain admission
-and alternate versions cannot add repeated increments; explicit backwards manual
-changes take precedence over older observations. Playback stops and drains this
-producer before Anime quiesces. No tracking provider request is awaited by a position
-save. Decision-required receipts remain durable and are exposed through authenticated
-Playback session routes. A decision posted before any receipt exists records explicit
-manual intent as a receipt in the same handoff, so marking an episode watched never
-bypasses mapping/account revalidation, while declining without a receipt records
-nothing and cannot suppress later evidence. Local episode/Library indicators derive
-only from confirmed cached AniList progress; they introduce no authoritative local
-watched ledger.
+Playback owns source positions/history and a delivery-only observation outbox. Its
+application evaluates the 90-percent/natural-source-end plus 30-second normal-play
+policy. Its repository atomically persists positions and eligible observations, without
+business threshold calculations or coverage storage. A consumer-owned port connects
+observations to Anime through app composition; its worker drains before Anime shutdown.
+
+Anime's `TrackingViewingCommands` resolves/revalidates confirmed targets and admits
+player marks/automatic observations through `TrackingUpdates.update()`, also used by
+detail absolute edits. Tracking owns durable decisions, retries, conflicts and provider
+confirmation. Commands carry explicit origin/ID/intent time. Manual versions and command
+receipts are committed with admission and survive mutable-operation pruning. Playback
+outbox outcomes only acknowledge operation IDs or an explicit ignored observation.
+
+The app injects Anime's `PlayerViewingControl` into Playback's viewing UI slot. It shares
+`useTrackingMutation` and operation queries with the detail editor, so confirmed, failed
+and conflict states stay consistent. No Playback decision endpoints or separate tracking
+status machine remain. Confirmed cached AniList cumulative progress drives all derived
+viewing indicators; it remains independent of local resume/history.

@@ -457,29 +457,3 @@ test("history without a query uses the injected application default", async () =
 		await customApp.close();
 	}
 });
-
-test("completion decision routes validate status and reject expired session authorization", async () => {
-	const session = await open();
-	const base = `/api/playback/sessions/${session.token}/completion`;
-	const read = await app.inject({ method: "GET", url: base, headers });
-	expect(read.statusCode).toBe(200);
-	expect(read.json()).toBeNull();
-	expect(
-		(
-			await app.inject({
-				method: "POST",
-				url: base,
-				headers,
-				payload: { advance: true, initialStatus: "INVALID" },
-			})
-		).statusCode,
-	).toBe(400);
-	await app.inject({
-		method: "DELETE",
-		url: `/api/playback/sessions/${session.token}`,
-		headers,
-	});
-	expect(
-		(await app.inject({ method: "GET", url: base, headers })).statusCode,
-	).toBe(409);
-});

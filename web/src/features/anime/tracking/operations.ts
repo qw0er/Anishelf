@@ -69,7 +69,11 @@ export function reportTrackingOperations(
 			void client.invalidateQueries({ queryKey: ["anime-library"] });
 			void client.invalidateQueries({ queryKey: ["tracking", "entry"] });
 		}
-		if (op.state === "succeeded" && !prior && !(op.completion && established))
+		if (
+			op.state === "succeeded" &&
+			!prior &&
+			!(op.origin === "automatic" && established)
+		)
 			continue;
 		const notice = {
 			id,

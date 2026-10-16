@@ -1,6 +1,5 @@
 import type { Logger } from "pino";
 import type {
-	CompletionDecision,
 	CompletionRecord,
 	PlaybackCompletionObserver,
 } from "../domain/completion.js";
@@ -43,11 +42,7 @@ export class PlaybackCompletions {
 	}
 	private async deliver(record: CompletionRecord) {
 		try {
-			const outcome = await this.observer.submit(
-				record.context,
-				record.capturedAt,
-				record.decision,
-			);
+			const outcome = await this.observer.submit(record.context, record.id);
 			if (this.closed) return;
 			this.store.saveCompletion({ ...record, outcome });
 			if (JSON.stringify(outcome) !== JSON.stringify(record.outcome))
@@ -55,6 +50,8 @@ export class PlaybackCompletions {
 					{
 						event: "playback.completion_handoff",
 						completionId: record.id,
+						operationId: outcome.operationId,
+						revision: outcome.revision,
 						state: outcome.state,
 						reason: outcome.reason,
 					},
@@ -75,30 +72,6 @@ export class PlaybackCompletions {
 					outcome: { state: "unavailable", reason: "tracking-unavailable" },
 				});
 		}
-	}
-	async decide(record: CompletionRecord, decision: CompletionDecision) {
-		await this.active;
-		const latest = this.store
-			.completions(record.sourceId, false, record.context)
-			.find((r) => r.id === record.id);
-		if (latest?.outcome.state !== "decision-required") return;
-		this.store.saveCompletion({
-			...latest,
-			decision,
-			outcome: { state: "pending", reason: "decision-recorded" },
-		});
-		await this.flush();
-	}
-	/** Manual marking creates the receipt that coverage-based completion would otherwise add. */
-	async mark(
-		sourceId: string,
-		context: string,
-		capturedAt: number,
-		decision: CompletionDecision,
-	): Promise<void> {
-		await this.active;
-		this.store.recordCompletion({ sourceId, context, capturedAt, decision });
-		await this.flush();
 	}
 	async close() {
 		this.closed = true;

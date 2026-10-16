@@ -108,7 +108,8 @@ required.
 | List cache | Account ID, media ID, list-entry ID, progress, status, remote updatedAt, fetchedAt and list display summary |
 | Refresh snapshot | Account ID, snapshot generation, completed fetch time, freshness/error state |
 | Pending operation | Account ID, connection generation, media/entry ID, changed fields, desired values, remote baseline, origin, revision, state, attempts, next attempt and safe error |
-| Playback observation | Source version, playback generation/sequence, observation identity and mapped target/revision sufficient for deduplication and recovery |
+| Automatic observation | Source/session identity, mapped target/revision/account/manual version, delivery state and accepted operation ID/revision |
+| Intent ordering and deduplication | Per-account/media manual version and per-command admission receipt, retained independently of mutable operations |
 
 The cache key is account plus AniList media ID. List display summaries may reuse
 normalized metadata types, but personal state never enters the public metadata
@@ -166,7 +167,7 @@ before acknowledging tracking acceptance; asynchronous in-memory callbacks alone
 are insufficient. Consume handoff records idempotently. A practical implementation
 can add a Playback-owned outbox beside its store and expose bounded read/ack
 capabilities through its root API; only Anime decides tracking targets and intent.
-The implemented transaction saves progress, merges source coverage and inserts a completion receipt atomically; the receipt is acknowledged only after Tracking admission or an explicit terminal decision.
+The progress transaction saves the source position and inserts an automatic observation atomically. Its outbox tracks delivery only; Tracking owns decisions and submission results. Manual commands bypass the outbox.
 
 Before every submission attempt, fetch remote state. If changed fields already
 match the desired state, reconcile as success. If they still match the captured
@@ -198,7 +199,7 @@ not provide atomic remote compare-and-swap guarantees.
 
 Source: [mutation reference](https://raw.githubusercontent.com/AniList/docs/master/docs/reference/mutation.md).
 
-## 6. Playback Completion and Existing Mappings
+## 6. Automatic Completion and Existing Mappings
 
 Observe only successfully validated progress updates after the existing source
 version, session generation and sequence checks. Loading a resume position is not
@@ -208,31 +209,15 @@ AniList media ID and episode target inside Anime. Revalidate mappings when an
 observation is admitted; if they changed after capture, leave it unresolved instead
 of applying an old episode to a new association.
 
-The selected completion policy requires effective watched coverage of at least
-85 percent of the full source duration. Coverage is the duration of the union of
-validated playback intervals divided by the full source duration, not the latest
-playhead position. For a 24-minute episode this is 20 minutes 24 seconds, leaving
-room to skip opening/ending sequences or previews without detecting their boundaries.
-
-- Count source-time intervals traversed during actual playback. Seeking does not
-  count the skipped range; pauses, buffering and loading a resume position add no coverage.
-- Merge overlapping intervals so replaying a segment never increases its coverage
-  twice. Playback speed changes count the source-time range actually traversed,
-  rather than requiring the equivalent wall-clock viewing time.
-- Persist validated coverage for the same source version across sessions and
-  restarts, and merge new intervals when playback resumes. Keep evidence scoped to
-  the source version; do not combine timestamps from alternate cuts or file versions.
-- Natural playback end triggers evaluation but does not bypass the 85-percent
-  requirement. Seeking near the end and playing a few seconds is insufficient.
-- Unknown or invalid source duration cannot produce an automatic completion.
-  Existing mapping and multi-episode restrictions below still apply.
-
-Extend the observation contract with bounded playback intervals and deduplicate
-accepted observations. Validate continuity against elapsed time and playback rate,
-split intervals on seeks and interruptions, and map prepared-media time to source
-time before accumulation. This is cooperative player telemetry, not proof against
-a malicious client. Coverage is local completion evidence, not an authoritative
-watched-episode ledger or AniList-confirmed progress. Evidence persistence, validation tolerances and the durable handoff are implemented; their bounds and validation limits are recorded in the completion implementation section below.
+Automatic completion requires a playhead at or beyond 90 percent of the original
+source duration, or a natural source end, plus at least 30 seconds of normal wall-clock
+playback in the current session. Resume restoration, seeks, pauses and buffering do
+not add normal time. Playback speed does not multiply wall time. Source-time mapping
+continues to support prepared media; ending an intermediate segment is not a natural
+source end. Unknown duration permits only the natural-end branch. Seeking near the
+end and then playing normally for 30 seconds can qualify: this is a deliberate
+cooperative-player policy, not a proof of viewing the whole episode. No persisted
+coverage intervals or canonical-duration probe are required.
 
 | Completed target compared with confirmed progress N | Behavior |
 | --- | --- |
@@ -257,7 +242,7 @@ AniList cumulative progress, not an independent per-episode watched ledger.
 ## 7. HTTP and Frontend Contracts
 
 The following manual route families are implemented with shared transport schemas;
-automatic playback handoff is also implemented through Playback-owned completion routes. Account commands require Anishelf authentication and CSRF;
+automatic observations use an internal Playback outbox; all user viewing commands use Tracking routes. Account commands require Anishelf authentication and CSRF;
 media-link bearer tokens do not authorize tracking operations.
 
 | Route family | Purpose |
@@ -268,7 +253,9 @@ media-link bearer tokens do not authorize tracking operations.
 | GET /api/tracking/list and /entries/:mediaId | Implemented: cached remote entries with account generation, freshness and safe error state; pending intent is read separately from /operations |
 | GET /api/anime/library | Implemented: root-scoped local summaries joined with remote entries, local/all scope, viewing status and existing filters |
 | POST /api/tracking/refresh | Request deduplicated refresh |
-| POST /api/tracking/entries/:mediaId/updates | Admit manual absolute progress/status intent with baseline/revision |
+| POST /api/tracking/entries/:mediaId/updates | Admit manual absolute progress/status intent with command ID and baseline/revision |
+| GET /api/tracking/episode-target | Resolve a confirmed source/episode target |
+| POST /api/tracking/episode-commands | Admit player marks, explicit cross-gap/new-entry confirmation and Keep |
 | GET /api/tracking/operations | Bounded pending, failed and conflict projections |
 | POST /api/tracking/operations/:id/retry and /resolve | Retry or resolve using the current operation revision |
 
@@ -327,20 +314,13 @@ Use a controllable provider fixture for chunk failures, repeated custom-list
 entries, HTTP/GraphQL errors, lost mutation responses, remote edits, account
 replacement during a request and an old response arriving after a newer operation.
 Exercise the real database across close/reopen for handoff and worker recovery.
-Test coverage below, exactly at and above 85 percent, skipped opening/ending ranges,
-overlapping intervals, playback speeds, pause/buffering gaps, restart/resume
-coverage persistence and source-version isolation. Test explicit backward
-corrections, seek-only completion, natural end below threshold, resuming near the end,
-multiple versions, mapping changes and multiple-episode files. Verify playback,
-subtitles, preparation and local history remain usable during authorization and
-network failures. Run Biome, lint, architecture/type checks and relevant tests for
-implementation changes. Provider and browser acceptance require actual runs and
-must not be inferred from fixtures.
+Test the 90-percent and 30-second boundaries, natural end with unknown duration,
+seek/resume-only rejection, pauses, buffering, speeds, intermediate segment ends,
+stale source/session/sequence, durable outbox replay, explicit backward corrections,
+manual intent fencing after restart/pruning, cancelled-operation recovery, separate
+cross-gap confirmation and UI transitions through the actual submission result.
 
-## 10. Remaining Acceptance
-
-The selected coverage policy, validation bounds, evidence schemas and transactional
-handoff are implemented and have fixture coverage. Fresh browser PIN authorization,
+Fresh browser PIN authorization,
 real-media browser completion and real-account writes remain runtime acceptance
 items. Manual commands and automatic admission share the implemented retry bounds,
 queue limits and conflict recovery. These remaining checks do not change AniList's
@@ -579,24 +559,47 @@ are never optimistically presented as AniList-confirmed state. Automatic playbac
 Fixture validation and its limits are recorded in the current version requirements.
 
 
-## Implemented Playback Completion and W05
+## Unified Viewing Commands and Automatic Observations
 
-Playback owns continuous source-time coverage and durable completion receipts;
-Anime's `TrackingCompletions` captures and revalidates confirmed Catalog targets and
-admits absolute intent through Tracking's existing public command path. App assembly
-constructs Anime first and injects this structural observation port into Playback.
-The completion worker stops before Anime's submission consumer shuts down. Media
-exports only version-checked source duration from shared inspection, never raw probe
-paths. Tracking operations mark playback origin for safe manual precedence and
-operation notifications; manual HTTP commands cannot supply that marker.
+Automatic completion requires a playhead at or beyond 90 percent of the original
+source duration, or a natural source end, plus at least 30 seconds of normal wall-clock
+playback in the current session. Resume restoration, seeks, pauses and buffering do
+not add normal time. Playback speed does not multiply wall time. Source-time mapping
+continues to support prepared media; ending an intermediate segment is not a natural
+source end. Unknown duration permits only the natural-end branch. Seeking near the
+end and then playing normally for 30 seconds can qualify: this is a deliberate
+cooperative-player policy, not a proof of viewing the whole episode. No persisted
+coverage intervals or canonical-duration probe are required.
 
-The source coverage transaction, bounded validation policy, two-second handoff,
-restart/replay semantics, decision routes, UI indicators and acceptance limits are
-specified in [Playback completion delivery](current-version-requirements.md#11-playback-completion-and-derived-viewing-display-delivery).
-The implementation preserves progress-only automation, explicit initial status and
-skipped-episode decisions. The player's single completion control both marks an
-episode watched through the same revalidated handoff, creating the receipt that
-coverage would otherwise add, and carries every recorded/blocked/queued/failed state
-that used to sit in a separate panel. Unknown mappings remain manual. Confirmed
-AniList state alone drives W05; pending local intent does not become confirmed
-watched state.
+`TrackingUpdates.update()` admits absolute intent from `manual-detail`, `manual-player`
+and `automatic` origins. `TrackingViewingCommands` resolves/revalidates Catalog targets
+for player marks and observations. HTTP callers cannot impersonate automatic origin.
+New-entry status and skipped-episode confirmation are separate from marking a target;
+`decision-required` is a durable Tracking operation, not a Playback receipt state.
+Choosing Keep cancels that suggestion. A later manual mark creates new intent.
+Details and player controls use the same `useTrackingMutation`, account-scoped
+operations query, retry/conflict commands and confirmed-cache invalidation. Player UI
+is injected by app composition through `PlaybackUiSlots.renderViewing`.
+
+Each accepted command has a command ID, explicit origin and intent timestamp.
+Worker updates only change delivery timestamps. Per-account/media manual versions
+survive operation pruning; observations capture a version and cannot override a later
+manual edit. Command receipts, manual-version advancement and operation admission are
+one SQLite transaction. Lost acknowledgements can replay the command ID without
+resubmission or another manual-version increment. Cancelled/failed desired values are
+never presented as confirmed AniList progress. Active automatic operations are linked
+by operation ID/revision, including failures needing retry.
+
+Playback observations bind the source version/session generation and captured Catalog
+revision/account. Its bounded delivery worker acknowledges accepted operation IDs or
+explicit ignored outcomes; it owns no provider writes or user decisions. Position
+saves remain usable independently of AniList availability. Same-account reconnects
+revalidate mapping and intent version; another account cannot receive the observation.
+The producer drains before Tracking shuts down.
+
+Migration `0015_unified_viewing_commands` removes coverage and receipt decisions,
+preserves playback history/cache/admitted operations and converts their origin and
+intent fields. Legacy observations lack an intent version and are explicitly ended
+with `legacy-observation-requires-replay`; no old observation is blindly resubmitted.
+Existing pending/uncertain Tracking submissions continue their original reconciliation.
+Confirmed AniList state alone drives W05 indicators.

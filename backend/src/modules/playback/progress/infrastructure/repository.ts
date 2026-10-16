@@ -1,14 +1,9 @@
-import { createHash } from "node:crypto";
 import { and, asc, desc, eq, gt, isNotNull, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import { mediaSources } from "../../../resources/persistence.js";
 import type { SourceRegistry } from "../../../resources/public.js";
-import {
-	type CompletionRecord,
-	type ManualCompletion,
-	mergeCoverage,
-} from "../domain/completion.js";
+import type { CompletionRecord } from "../domain/completion.js";
 import type {
 	HistoryCandidate,
 	PlaybackProgress,
@@ -18,11 +13,7 @@ import type {
 	SourceIdentity,
 } from "../domain/model.js";
 import { type PlaybackPolicy, playbackPolicy } from "../policy.js";
-import {
-	playbackCompletions,
-	playbackCoverage,
-	playbackProgress,
-} from "./schema.js";
+import { playbackCompletions, playbackProgress } from "./schema.js";
 
 // Schema-derived records stay inside the database adapter.
 type PlaybackProgressRow = typeof playbackProgress.$inferSelect;
@@ -45,11 +36,6 @@ function integer(value: number, minimum: number): void {
 		);
 }
 
-/** Evidence and manual intent for one source/target pair share a single receipt. */
-function completionId(sourceId: string, context: string): string {
-	return createHash("sha256").update(sourceId).update(context).digest("hex");
-}
-
 /** Synchronous, short transactions. Filesystem checks belong to the caller. */
 export class PlaybackRepository {
 	constructor(
@@ -58,37 +44,27 @@ export class PlaybackRepository {
 		private readonly policy: DeepReadonly<PlaybackPolicy> = playbackPolicy,
 	) {}
 
-	coverage(sourceId: string, durationMs: number): [number, number][] {
-		const row = this.store
-			.select()
-			.from(playbackCoverage)
-			.where(eq(playbackCoverage.sourceId, sourceId))
-			.get();
-		return row?.durationMs === durationMs ? row.intervals : [];
-	}
-	completions(
-		sourceId?: string,
-		pendingOnly = false,
-		context?: string,
-	): CompletionRecord[] {
+	completions(sourceId?: string, pendingOnly = false): CompletionRecord[] {
 		return this.store
 			.select()
 			.from(playbackCompletions)
 			.where(
 				and(
 					sourceId ? eq(playbackCompletions.sourceId, sourceId) : undefined,
-					context !== undefined
-						? eq(playbackCompletions.context, context)
-						: undefined,
 					pendingOnly
 						? sql`json_extract(${playbackCompletions.outcome}, '$.state') IN ('pending','unavailable')`
 						: undefined,
 				),
 			)
 			.orderBy(asc(playbackCompletions.attemptedAt))
-			.limit(context !== undefined ? 1 : pendingOnly ? 100 : 1000)
+			.limit(pendingOnly ? 100 : 1000)
 			.all()
-			.map((row) => ({ ...row, decision: row.decision ?? null }));
+			.map((row) => ({
+				id: row.id,
+				sourceId: row.sourceId,
+				context: row.context,
+				outcome: row.outcome,
+			}));
 	}
 	saveCompletion(record: CompletionRecord): void {
 		this.store
@@ -98,24 +74,9 @@ export class PlaybackRepository {
 				target: playbackCompletions.id,
 				set: {
 					outcome: record.outcome,
-					decision: record.decision,
 					attemptedAt: Date.now(),
 				},
 			})
-			.run();
-	}
-	recordCompletion(record: ManualCompletion): void {
-		this.store
-			.insert(playbackCompletions)
-			.values({
-				id: completionId(record.sourceId, record.context),
-				sourceId: record.sourceId,
-				context: record.context,
-				capturedAt: record.capturedAt,
-				outcome: { state: "pending", reason: "manual-marked" },
-				decision: record.decision,
-			})
-			.onConflictDoNothing()
 			.run();
 	}
 	registerSource(
@@ -203,54 +164,16 @@ export class PlaybackRepository {
 					.returning()
 					.get();
 				if (!progress) throw new Error("Progress save failed.");
-				const evidence = update.evidence;
-				if (evidence?.durationMs && evidence.intervals.length) {
-					const previous = tx
-						.select()
-						.from(playbackCoverage)
-						.where(eq(playbackCoverage.sourceId, update.sourceId))
-						.get();
-					// A changed duration invalidates old evidence instead of mixing alternate timelines.
-					const intervals = mergeCoverage([
-						...(previous?.durationMs === evidence.durationMs
-							? previous.intervals
-							: []),
-						...evidence.intervals.map(
-							(i) => [i.startMs, i.endMs] as [number, number],
-						),
-					]);
-					if (intervals.length <= 4096) {
-						tx.insert(playbackCoverage)
-							.values({
-								sourceId: update.sourceId,
-								durationMs: evidence.durationMs,
-								intervals,
-							})
-							.onConflictDoUpdate({
-								target: playbackCoverage.sourceId,
-								set: { durationMs: evidence.durationMs, intervals },
-							})
-							.run();
-						const covered = intervals.reduce(
-							(sum, [start, end]) => sum + end - start,
-							0,
-						);
-						if (covered / evidence.durationMs >= 0.85 && evidence.context) {
-							const id = completionId(update.sourceId, evidence.context);
-							tx.insert(playbackCompletions)
-								.values({
-									id,
-									sourceId: update.sourceId,
-									context: evidence.context,
-									capturedAt: evidence.capturedAt,
-									outcome: { state: "pending", reason: "completion-recorded" },
-									decision: null,
-								})
-								.onConflictDoNothing()
-								.run();
-						}
-					}
-				}
+				if (update.observation)
+					tx.insert(playbackCompletions)
+						.values({
+							id: update.observation.id,
+							sourceId: update.sourceId,
+							context: update.observation.context,
+							outcome: { state: "pending", reason: "observation-recorded" },
+						})
+						.onConflictDoNothing()
+						.run();
 				return { status: "saved", progress: toPlaybackProgress(progress) };
 			},
 			{ behavior: "immediate" },

@@ -79,6 +79,24 @@ export class TrackingUpdates {
 		const status = this.options.access.status();
 		return status.account ? this.options.store.list(status.account.id) : [];
 	}
+	replayCommand(
+		commandId: string,
+		generation: string,
+	): TrackingOperation | undefined {
+		this.options.access.assertCurrent(generation);
+		const accountId = this.options.access.status().account?.id;
+		const command = accountId
+			? this.options.store.command(accountId, commandId)
+			: undefined;
+		return command
+			? this.operations(generation).find((op) => op.id === command.operationId)
+			: undefined;
+	}
+	manualVersion(mediaId: number, generation: string): number {
+		this.options.access.assertCurrent(generation);
+		const accountId = this.options.access.status().account?.id;
+		return accountId ? this.options.store.manualVersion(accountId, mediaId) : 0;
+	}
 	update(mediaId: number, input: TrackingUpdate): TrackingOperation {
 		const status = this.options.access.status();
 		this.options.access.assertCurrent(input.generation);
@@ -89,6 +107,19 @@ export class TrackingUpdates {
 			);
 		if (this.lifetime.signal.aborted)
 			this.failure("TRACKING_UNAVAILABLE", "Tracking stopped.");
+		const commandId = input.commandId ?? randomUUID();
+		const replay = this.options.store.command(status.account.id, commandId);
+		if (replay) {
+			const existing = this.operations(input.generation).find(
+				(op) => op.id === replay.operationId,
+			);
+			if (!existing || existing.mediaId !== mediaId)
+				this.failure(
+					"TRACKING_CONFLICT",
+					"Command was superseded or pruned; reload viewing state.",
+				);
+			return existing;
+		}
 		const desired = input.desired;
 		if (
 			!Number.isSafeInteger(mediaId) ||
@@ -113,7 +144,12 @@ export class TrackingUpdates {
 			);
 		if (previous?.state === "conflict")
 			this.failure("TRACKING_CONFLICT", "Resolve the remote conflict first.");
-		if (!input.baseline && !desired.status && (!previous || terminal(previous)))
+		if (
+			!input.decisionReason &&
+			!input.baseline &&
+			!desired.status &&
+			(!previous || terminal(previous))
+		)
 			this.failure(
 				"INVALID_REQUEST",
 				"Choose an initial status when adding to AniList.",
@@ -137,27 +173,36 @@ export class TrackingUpdates {
 				);
 			this.options.store.remove(oldest.id);
 		}
-		const pending = previous && !terminal(previous);
+		const pending =
+			previous && !terminal(previous) && previous.state !== "decision-required";
 		const operation: TrackingOperation = {
 			id: previous?.id ?? randomUUID(),
-			completion: input.completion ?? false,
+			origin: input.origin ?? "manual-detail",
+			commandId,
+			intentAt: this.now(),
+			target: input.target ?? null,
+			decisionReason: input.decisionReason ?? null,
 			accountId: status.account.id,
 			mediaId,
 			revision: (previous?.revision ?? 0) + 1,
 			baseline: pending ? previous.baseline : input.baseline,
 			desired: { ...(pending ? previous.desired : {}), ...desired },
-			state:
-				previous?.state === "submitting" && this.active
-					? "submitting"
-					: "pending",
+			state: input.cancelled
+				? "cancelled"
+				: input.decisionReason
+					? "decision-required"
+					: previous?.state === "submitting" && this.active
+						? "submitting"
+						: "pending",
 			remote: pending ? previous.remote : input.baseline,
-			attempt: pending ? previous.attempt : null,
+			attempt: pending && !input.decisionReason ? previous.attempt : null,
 			attempts: 0,
 			retryAt: null,
 			error: null,
 			updatedAt: this.now(),
 		};
-		this.persist(operation);
+		this.options.store.admit(operation);
+		this.log(operation);
 		this.wake();
 		return operation;
 	}
@@ -230,7 +275,12 @@ export class TrackingUpdates {
 			retryAt: null,
 			error: null,
 		};
-		this.persist(next);
+		next.origin = "manual-detail";
+		next.commandId = randomUUID();
+		next.intentAt = this.now();
+		next.updatedAt = this.now();
+		this.options.store.admit(next);
+		this.log(next);
 		this.options.confirmed(op.accountId, op.mediaId, remote);
 		this.wake();
 		return next;
@@ -238,6 +288,9 @@ export class TrackingUpdates {
 	private persist(op: TrackingOperation) {
 		op.updatedAt = this.now();
 		this.options.store.save(op);
+		this.log(op);
+	}
+	private log(op: TrackingOperation) {
 		this.options.logger?.info(
 			{
 				event: "tracking.operation_state",
@@ -245,6 +298,10 @@ export class TrackingUpdates {
 				accountId: op.accountId,
 				mediaId: op.mediaId,
 				revision: op.revision,
+				origin: op.origin,
+				commandId: op.commandId,
+				intentAt: op.intentAt,
+				decisionReason: op.decisionReason,
 				state: op.state,
 				code: op.error,
 				retryAt: op.retryAt,

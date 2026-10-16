@@ -7,7 +7,6 @@ import type { PlaybackStore } from "./progress/ports.js";
 
 export {
 	playbackCompletions,
-	playbackCoverage,
 	playbackProgress,
 } from "./progress/persistence.js";
 export interface PlaybackPersistence {

@@ -386,7 +386,7 @@ test("an offset stream ending does not mark the whole source watched", async () 
 	);
 });
 
-test("sends actual played intervals and never includes a forward seek in completion evidence", async () => {
+test("counts normal wall time and excludes forward seeks", async () => {
 	let now = 0;
 	vi.spyOn(performance, "now").mockImplementation(() => now);
 	const { controller, video } = create();
@@ -403,7 +403,7 @@ test("sends actual played intervals and never includes a forward seek in complet
 		"token",
 		expect.objectContaining({
 			positionMs: 99000,
-			intervals: [{ startMs: 40000, endMs: 41000, elapsedMs: 1000, rate: 1 }],
+			normalPlayedMs: 1000,
 		}),
 		expect.anything(),
 	);
@@ -415,13 +415,13 @@ test("sends actual played intervals and never includes a forward seek in complet
 	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
 		"token",
 		expect.objectContaining({
-			intervals: [{ startMs: 99000, endMs: 100000, elapsedMs: 1000, rate: 1 }],
+			normalPlayedMs: 2000,
 		}),
 		expect.anything(),
 	);
 });
 
-test("retains watched intervals when a progress response is lost and a newer payload is queued", async () => {
+test("retains cumulative normal time when a response is lost and a newer payload is queued", async () => {
 	let now = 0;
 	vi.spyOn(performance, "now").mockImplementation(() => now);
 	const { controller, video } = create();
@@ -448,8 +448,48 @@ test("retains watched intervals when a progress response is lost and a newer pay
 	const payload = vi
 		.mocked(playbackApi.savePlaybackProgress)
 		.mock.calls.at(-1)?.[1];
-	expect(payload?.intervals).toEqual([
-		{ startMs: 40000, endMs: 41000, elapsedMs: 1000, rate: 1 },
-		{ startMs: 41000, endMs: 42000, elapsedMs: 1000, rate: 1 },
-	]);
+	expect(payload?.normalPlayedMs).toBe(2000);
+});
+
+test("a natural end updates pending telemetry even when the position is unchanged after an ambiguous failure", async () => {
+	let now = 0;
+	vi.spyOn(performance, "now").mockImplementation(() => now);
+	const { controller, video } = create();
+	Object.defineProperty(video, "duration", {
+		value: Number.NaN,
+		configurable: true,
+	});
+	await controller.open();
+	video.dispatchEvent(new Event("playing"));
+	for (let i = 1; i <= 30; i++) {
+		now = i * 1000;
+		video.currentTime = 40 + i;
+		video.dispatchEvent(new Event("timeupdate"));
+	}
+	vi.mocked(playbackApi.savePlaybackProgress).mockRejectedValueOnce(
+		new Error("Lost response"),
+	);
+	video.dispatchEvent(new Event("pause"));
+	await tick();
+	const failed = vi
+		.mocked(playbackApi.savePlaybackProgress)
+		.mock.calls.at(-1)?.[1];
+	expect(failed).toMatchObject({
+		positionMs: 70000,
+		normalPlayedMs: 30000,
+		naturalEnd: false,
+		durationMs: null,
+	});
+	video.dispatchEvent(new Event("ended"));
+	await controller.retry();
+	const retried = vi
+		.mocked(playbackApi.savePlaybackProgress)
+		.mock.calls.at(-1)?.[1];
+	expect(retried).toMatchObject({
+		positionMs: 70000,
+		normalPlayedMs: 30000,
+		naturalEnd: true,
+		durationMs: null,
+	});
+	expect(retried?.sequence).toBeGreaterThan(failed?.sequence ?? 0);
 });

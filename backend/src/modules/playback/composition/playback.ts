@@ -14,12 +14,8 @@ export function createPlaybackModule({
 	logger,
 	policy = playbackPolicy,
 	completionObserver,
-	sourceDuration,
 }: {
 	configuration: SystemApi;
-	sourceDuration?:
-		| ((fileId: string, sourceVersion: string) => Promise<number | null>)
-		| undefined;
 	library: LibraryCapability;
 	database?: PlaybackPersistence | undefined;
 	logger: Logger;
@@ -33,7 +29,6 @@ export function createPlaybackModule({
 	return new PlaybackApplication({
 		policy,
 		completionObserver,
-		sourceDuration,
 		sources: library.sources,
 		logger,
 		...(database ? { repository: database.playback } : {}),

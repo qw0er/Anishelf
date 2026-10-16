@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { checkArchitecture } from "./check-architecture.mjs";
 
 async function scan(files) {
-	const directory = await mkdtemp(join(tmpdir(), "anishelf-architecture-"));
+	const directory = await realpath(
+		await mkdtemp(join(tmpdir(), "anishelf-architecture-")),
+	);
 	try {
 		const sources = {
 			"backend/src/shared/empty.ts": "export {};",
