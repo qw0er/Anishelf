@@ -35,6 +35,13 @@ export interface CompletionRecord {
 	outcome: CompletionOutcome;
 	decision: CompletionDecision | null;
 }
+/** Manual marking records explicit intent before any coverage evidence exists. */
+export interface ManualCompletion {
+	sourceId: string;
+	context: string;
+	capturedAt: number;
+	decision: CompletionDecision;
+}
 /** Consumer-owned port: Anime resolves and revalidates the opaque target. */
 export interface PlaybackCompletionObserver {
 	capture(fileId: string, sourceVersion: string): Promise<string | null>;

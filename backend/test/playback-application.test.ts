@@ -403,3 +403,81 @@ test("requires explicit skipped-episode decision and persists it before admissio
 	});
 	expect((await playback.completion(session.token))?.state).toBe("queued");
 });
+
+test("manual marking records a receipt without coverage evidence and still requires decisions", async () => {
+	await playback.close();
+	const observer = {
+		capture: async () => "manual-target",
+		submit: vi.fn(
+			async (
+				_context: string,
+				_at: number,
+				decision: { advance: boolean; initialStatus?: string } | null,
+			) =>
+				decision?.initialStatus
+					? { state: "queued" as const, reason: "submission-queued" }
+					: {
+							state: "decision-required" as const,
+							reason: "initial-status-required",
+							episode: 1,
+							mediaId: 9,
+						},
+		),
+	};
+	playback = new PlaybackApplication({
+		sources: library.sources,
+		repository: database.playback,
+		logger,
+		now: () => now,
+		sourceDuration: async () => 100000,
+		completionObserver: observer,
+	});
+	const session = await playback.open(fileId);
+	expect(await playback.completion(session.token)).toBeNull();
+	expect(database.playback.completions()).toEqual([]);
+	expect(
+		await playback.decideCompletion(session.token, { advance: true }),
+	).toMatchObject({ state: "decision-required", episode: 1, mediaId: 9 });
+	expect(observer.submit).toHaveBeenCalledWith("manual-target", now, {
+		advance: true,
+	});
+	expect(database.playback.completions()[0]?.decision).toEqual({
+		advance: true,
+	});
+	expect(
+		await playback.decideCompletion(session.token, {
+			advance: true,
+			initialStatus: "PLANNING",
+		}),
+	).toEqual({ state: "queued", reason: "submission-queued" });
+	expect(database.playback.completions()).toHaveLength(1);
+	expect(database.playback.completions()[0]?.decision).toEqual({
+		advance: true,
+		initialStatus: "PLANNING",
+	});
+});
+
+test("declining completion without evidence records nothing", async () => {
+	await playback.close();
+	const observer = {
+		capture: async () => "manual-target",
+		submit: vi.fn(async () => ({
+			state: "queued" as const,
+			reason: "submission-queued",
+		})),
+	};
+	playback = new PlaybackApplication({
+		sources: library.sources,
+		repository: database.playback,
+		logger,
+		now: () => now,
+		sourceDuration: async () => 100000,
+		completionObserver: observer,
+	});
+	const session = await playback.open(fileId);
+	expect(
+		await playback.decideCompletion(session.token, { advance: false }),
+	).toBeNull();
+	expect(database.playback.completions()).toEqual([]);
+	expect(observer.submit).not.toHaveBeenCalled();
+});

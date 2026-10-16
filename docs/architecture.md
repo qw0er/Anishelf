@@ -463,5 +463,9 @@ and alternate versions cannot add repeated increments; explicit backwards manual
 changes take precedence over older observations. Playback stops and drains this
 producer before Anime quiesces. No tracking provider request is awaited by a position
 save. Decision-required receipts remain durable and are exposed through authenticated
-Playback session routes. Local episode/Library indicators derive only from confirmed
-cached AniList progress; they introduce no authoritative local watched ledger.
+Playback session routes. A decision posted before any receipt exists records explicit
+manual intent as a receipt in the same handoff, so marking an episode watched never
+bypasses mapping/account revalidation, while declining without a receipt records
+nothing and cannot suppress later evidence. Local episode/Library indicators derive
+only from confirmed cached AniList progress; they introduce no authoritative local
+watched ledger.

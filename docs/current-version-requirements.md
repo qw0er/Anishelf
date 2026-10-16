@@ -195,12 +195,16 @@ on a live AniList response to acknowledge local progress.
 
 Eligible players poll `GET /api/playback/sessions/:token/completion`; a POST to the
 same authenticated, CSRF-protected route records the user's advance/keep decision
-before retrying admission. Player feedback distinguishes recorded, waiting for a
-decision, unavailable, queued and unchanged outcomes. Queued is not remote success;
-the existing operation monitor reports confirmed delivery, failures and conflicts,
-including automatically admitted operations that complete between polls. Terminal
-player outcomes stop polling. Decisions survive navigation and can be resumed by
-reopening the same source under the same account generation and mapping.
+before retrying admission. A POST that advances without an existing receipt records
+explicit manual intent through that same handoff, which is how the player marks an
+episode watched before 85-percent coverage exists; declining without a receipt
+records nothing and cannot suppress later evidence. Player feedback distinguishes
+recorded, waiting for a decision, unavailable, queued and unchanged outcomes from
+one control. Queued is not remote success; the existing operation monitor reports
+confirmed delivery, failures and conflicts, including automatically admitted
+operations that complete between polls. Terminal player outcomes stop polling.
+Decisions survive navigation and can be resumed by reopening the same source under
+the same account generation and mapping.
 
 Local details show watched/unwatched indicators only for supported episode numbers
 and a confirmed cached AniList entry. Specials and fractional numbers remain unknown.

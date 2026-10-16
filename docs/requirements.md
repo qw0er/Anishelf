@@ -181,7 +181,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | --- | --- | --- | --- | --- |
 | W01 | Save playback position and duration and resume playback | Implemented | V2 | V2 |
 | W02 | History page with recent viewing records and resume/replay | Implemented; History covers continue watching | V2 | V2 |
-| W03 | Detect episode completion and submit progress updates or manual corrections to AniList | Implemented: manual corrections and 85-percent coverage-based completion; live acceptance pending | AniList accounts | AniList accounts |
+| W03 | Detect episode completion and submit progress updates or manual corrections to AniList | Implemented: player mark-watched, manual corrections and 85-percent coverage-based completion; live acceptance pending | AniList accounts | AniList accounts |
 | W04 | Display and update AniList tracking statuses | Implemented: remote display/filters and manual status updates; full iteration acceptance pending | AniList accounts | AniList accounts |
 | W05 | Show watched counts and available unwatched episodes from AniList progress, alongside local playback history | Implemented: detail indicators/counts and Library available-unwatched counts; live acceptance pending | AniList accounts | AniList accounts |
 | W06 | Share records across clients and handle duplicate, out-of-order, or concurrent progress updates | Later | — | Unassigned |

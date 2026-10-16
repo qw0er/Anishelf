@@ -740,7 +740,10 @@ Play a confirmed, single-target episode with a connected AniList account. Effect
 coverage must reach 85 percent of the full source duration: a 24-minute source needs
 20 minutes 24 seconds. Resume restoration, seeking, pauses, buffering and natural end
 alone add no credit. Existing entries advance progress only; skipped episodes require
-confirmation and creating an entry requires an explicit initial status. Pending intent
+confirmation and creating an entry requires an explicit initial status. The single
+completion control below the player also marks the episode watched without waiting for
+coverage, recording the same revalidated receipt through the Playback handoff; the
+mapping must already be confirmed, so an unmapped source shows no control. Pending intent
 and confirmed AniList values remain distinct. Uncertain writes, failures and conflicts
 reuse the manual editor and app operation monitor. Local playback/History remains
 available independently of tracking. The detail labels and Library unwatched counts
@@ -748,12 +751,13 @@ use confirmed cumulative progress, not file-version counts or pending intent.
 
 `playback-application.test.ts`, `tracking-completion.test.ts`,
 `playback-session.test.ts`, `playback-evidence.test.ts` and
-`completion-feedback.test.tsx` provide deterministic fixtures without real AniList
+`completion-control.test.tsx` provide deterministic fixtures without real AniList
 mutations. Existing Tracking worker/HTTP/restart suites remain the reliable-delivery
 baseline. The 0014 migration preserves prior position/history data. Real provider
 writes and real-media browser completion still require separate runtime acceptance.
 
 Completion logs use `playback.completion_handoff` for state/reason transitions,
+`playback.completion_manual_recorded` for manual mark-watched receipts,
 `playback.completion_admission_failed` and `playback.completion_worker_failed` for
 retained retryable work, `playback.completion_capture_failed` for target lookup failure,
 `playback.evidence_duration_unavailable` for unavailable canonical duration and

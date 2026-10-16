@@ -4,7 +4,11 @@ import type { Store } from "../../../../platform/database/store.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import { mediaSources } from "../../../resources/persistence.js";
 import type { SourceRegistry } from "../../../resources/public.js";
-import { type CompletionRecord, mergeCoverage } from "../domain/completion.js";
+import {
+	type CompletionRecord,
+	type ManualCompletion,
+	mergeCoverage,
+} from "../domain/completion.js";
 import type {
 	HistoryCandidate,
 	PlaybackProgress,
@@ -39,6 +43,11 @@ function integer(value: number, minimum: number): void {
 		throw new RangeError(
 			"Expected a nonnegative safe integer within the supported range.",
 		);
+}
+
+/** Evidence and manual intent for one source/target pair share a single receipt. */
+function completionId(sourceId: string, context: string): string {
+	return createHash("sha256").update(sourceId).update(context).digest("hex");
 }
 
 /** Synchronous, short transactions. Filesystem checks belong to the caller. */
@@ -93,6 +102,20 @@ export class PlaybackRepository {
 					attemptedAt: Date.now(),
 				},
 			})
+			.run();
+	}
+	recordCompletion(record: ManualCompletion): void {
+		this.store
+			.insert(playbackCompletions)
+			.values({
+				id: completionId(record.sourceId, record.context),
+				sourceId: record.sourceId,
+				context: record.context,
+				capturedAt: record.capturedAt,
+				outcome: { state: "pending", reason: "manual-marked" },
+				decision: record.decision,
+			})
+			.onConflictDoNothing()
 			.run();
 	}
 	registerSource(
@@ -213,10 +236,7 @@ export class PlaybackRepository {
 							0,
 						);
 						if (covered / evidence.durationMs >= 0.85 && evidence.context) {
-							const id = createHash("sha256")
-								.update(update.sourceId)
-								.update(evidence.context)
-								.digest("hex");
+							const id = completionId(update.sourceId, evidence.context);
 							tx.insert(playbackCompletions)
 								.values({
 									id,
