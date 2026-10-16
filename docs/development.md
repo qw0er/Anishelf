@@ -11,8 +11,9 @@
 Use this guide for local setup, deployment configuration, logging, verification
 and maintenance. [History](history.md#v2-design) contains the archived V2 implementation design;
 [Overall requirements](requirements.md) owns the feature inventory;
-[current iteration requirements](current-version-requirements.md) owns selected scope and acceptance; [current iteration design](current-version-design.md)
-defines the planned implementation. The [AniList API verification runbook](anilist-api-verification.md)
+[archived AniList requirements](history.md#anilist-accounts-requirements) and
+[design](history.md#anilist-accounts-design) retain the completed iteration. User acceptance
+was confirmed on 2026-10-17; [Architecture](architecture.md) describes current ownership. The [AniList API verification runbook](anilist-api-verification.md)
 explains the isolated provider check and its evidence boundaries. Production
 hosting instructions are in the [README](../README.md).
 
@@ -345,7 +346,7 @@ Run `npm run test --workspace @anishelf/backend -- test/anilist-account.test.ts
 test/anilist-scheduler.test.ts test/metadata.test.ts` and
 `npm run test --workspace @anishelf/web -- test/anilist-account.test.tsx` for focused
 regressions. Metadata HTTP-disconnect tests require localhost listening permission.
-See [the design](current-version-design.md#implemented-account-foundation) for
+See [the design](history.md#anilist-design-implemented-account-foundation) for
 API/status and real-provider verification boundaries.
 
 ## Resource Settings and Startup
@@ -710,7 +711,8 @@ worker failure at error. Neither event includes credentials, desired values,
 provider payloads or raw errors. Run `test/tracking-updates.test.ts` and
 `test/anilist-account.test.ts` in the backend workspace and
 `test/viewing-editor.test.tsx` in the web workspace for fixture coverage. These tests
-do not mutate AniList; live writes and full ANI acceptance require separate evidence.
+do not mutate AniList; the subsequent user-confirmed ANI01–ANI10 acceptance is
+recorded in [History](history.md#anilist-accounts-archive-notes).
 
 
 ### Anime detail file actions
@@ -760,7 +762,8 @@ Relevant suites: backend `playback-application`, `tracking-completion`, `trackin
 `database` and account HTTP; Web `playback-session`, `playback-evidence`,
 `player-viewing-control`, `viewing-editor` and operation feedback. Migration 0015 tests
 preserve legacy pending submissions/history and explicitly terminate legacy observations.
-Real AniList mutations are a separate acceptance step from fixture checks.
+The user confirmed complete iteration acceptance on 2026-10-17. The fixture checks
+remain distinct from that user-provided acceptance record.
 
 A local browser acceptance on 2026-10-16 used a generated 45-second MP4, real
 Playback/Tracking applications, real HTTP contracts and temporary SQLite with a

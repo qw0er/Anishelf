@@ -1,19 +1,18 @@
 # Anishelf Architecture
 
-This document describes the overall system structure, module ownership and
-architectural constraints. [Requirements](requirements.md) owns the feature
-inventory and delivery status. [Current version requirements](current-version-requirements.md)
-owns the selected AniList account scope and acceptance. Account connection and shared
-request scheduling, account-scoped list reads/cache/refresh, manual submissions, playhead-based automatic observations and unified viewing commands and derived Library/detail viewing displays are implemented. Real-provider write acceptance remains pending. [Current version design](current-version-design.md)
-records the delivered account, read, submission and playback observation flows. The anime-library version's requirements and
-acceptance are complete as of 2026-10-14, confirmed by the user.
-[History](history.md#anime-library-archive-notes) retains its requirements,
-CAT01–CAT08 acceptance record and detailed design, alongside earlier designs and
-the [archived implementation details](history.md#architecture-detail-snapshot-2026-10-11).
-[Design system](design-system.md) owns shared UI conventions, while
-[Development](development.md) and [Deployment](deployment.md) cover setup and
-operations. Source contracts and database schemas remain authoritative for exact
-fields, routes and policy values.
+This document describes the implemented system structure, module ownership and
+architectural constraints. [Requirements](requirements.md) owns the current feature
+inventory and future work. The AniList accounts iteration (T01–T05, W03–W05;
+ANI01–ANI10) was accepted by the user on **2026-10-17**; its completed requirements,
+acceptance record and design are retained in [History](history.md#anilist-accounts-archive-notes).
+The anime-library iteration was accepted on 2026-10-14 and is also archived there.
+No next iteration or new release number has been selected.
+
+[Design system](design-system.md) owns shared UI conventions; [Development](development.md)
+and [Deployment](deployment.md) cover setup and operations. Source contracts and database
+schemas remain authoritative for exact fields, routes and policy values. Historical
+verification limits remain attached to the archived evidence; they are not current
+iteration acceptance blockers.
 
 ## System structure
 
@@ -49,14 +48,14 @@ and scoped tokens for original-media delivery.
 | Media Planning | Compatibility interpretation, output specifications and read-only execution decisions |
 | Media Processing | Execution preflight, media-tool work and validated temporary outputs |
 | Playback Selection | Browser-evidence validation and selection of original or prepared resources |
-| Progress | Progress sessions, durable viewing progress and history |
+| Progress | Source-bound playback sessions, resume/history, normal-play completion detection and a durable observation outbox |
 | Preparation | Persistent tasks, scheduling, reusable artifacts and prepared-media delivery |
 | Subtitles | Track discovery, selected-track preparation, delivery and asset lifecycle |
 | Metadata | Provider queries, normalized snapshots, persistent cache, refresh and artwork |
 | Identification | Stateless local extraction, candidate ranking and episode association proposals |
-| Tracking | Account lifecycle, session-bound previews, private credentials, connection state, account-scoped list cache and refresh |
+| Tracking | Account/credential lifecycle, list cache, unified viewing commands, manual intent versions, command deduplication, durable decisions/submission, retry and conflict recovery |
 | Anime Library | Read-only join of Catalog and Tracking, local/all scope, status filters and pagination |
-| AniList protocol | Typed Viewer, list and metadata clients, GraphQL schemas, provider response validation; shared bounded pacing, retry, priority fairness and cancellation |
+| AniList protocol | Typed Viewer, list, update and metadata clients, GraphQL schemas, provider response validation; shared bounded pacing, retry, priority fairness and cancellation |
 | Anime Catalog | Durable local works/episodes, review decisions, confirmed associations, corrections and library projections |
 
 These are the existing runtime owners. [Identification](architecture.md#internal-ownership) exposes
@@ -88,8 +87,8 @@ The backend source has six responsibility roots:
 | System | Configuration, Authentication | Deployment/settings/profile capabilities, immutable effective settings, credentials and login |
 | Resources | Library, Resource Access | Directory/file reads, scans, root switching, settings-change exclusion, publications, confined source access and registration |
 | Media | Inspection, Planning, Processing, Preparation, Subtitles | Compatibility, published-copy views, media information, preparation and subtitle HTTP services |
-| Playback | Progress, Playback Selection | Resource selection, sessions, durable progress and history |
-| Anime | Identification, Metadata, Anime Catalog, Tracking, Anime Library, AniList protocol | Recognition, provider cache, review/associations, account/list lifecycle, combined Library reads and shared provider access |
+| Playback | Progress, Playback Selection | Resource selection, source sessions/resume/history and durable automatic observations |
+| Anime | Identification, Metadata, Anime Catalog, Tracking, Anime Library, AniList protocol | Recognition, provider cache, review/associations, account/list lifecycle, unified viewing updates, combined Library reads and shared provider access |
 
 The five directories are API boundaries, not categorization folders. External
 consumers cannot import any child entry, including a child's `public.ts`.
@@ -97,7 +96,7 @@ Internal owners still collaborate through their own Public APIs and ports;
 module composition owns the only implementation-access exception.
 
 Within Anime, `anilist/` owns provider protocol code and never imports Metadata,
-Tracking or Catalog business types. Its account, list and metadata clients share
+Tracking or Catalog business types. Its account, list, update and metadata clients share
 one `AniListScheduler` created by Anime assembly. Metadata and Tracking
 infrastructure adapters convert typed protocol results/errors into their own
 contracts. Their Applications depend on consumer-owned ports, not provider
@@ -105,11 +104,11 @@ implementations or the AniList transport. The AniList authorization configuratio
 is injected into Tracking during assembly.
 
 `tracking/application/tracking.ts` owns the named `TrackingModule` facade and its
-ordered account/list shutdown. `tracking/application/account.ts` coordinates
+ordered submission/list/account shutdown. `tracking/application/account.ts` coordinates
 account commands. `composition/tracking.ts` only constructs collaborators and
 injects ports; business code cannot import composition, including for types.
 `TrackingApi` is the complete contract and extends the narrower
-`TrackingAccountsApi` and `TrackingListsApi`. Library requests only the list
+`TrackingAccountsApi`, `TrackingListsApi` and `TrackingUpdatesApi`. Library requests only the list
 capability. Composition code does not define runtime business facades.
 
 | Root entry | Allowed consumer |
@@ -140,7 +139,7 @@ and modules cannot import app.
 | System | Platform configuration mechanisms; app supplies only settings-validation policy |
 | Resources | System settings and profile selection; confined source capabilities are constructed internally |
 | Media | Resources source validity/access, System settings/profiles, injected platform media tools |
-| Playback | Resources identities/access; Media compatibility checks and published-copy views; System selected profile |
+| Playback | Resources identities/access; Media compatibility checks and published-copy views; System selected profile; consumer-owned observation port supplied by Anime through app assembly |
 | Anime | Resources publications and bounded reads/access; System deployment settings |
 | Anime internal recognition | Parser and Metadata candidate port, both adapted inside Anime |
 
@@ -157,8 +156,8 @@ is an independent concept, not a dependency on Library's policy implementation.
 Each durable child owns tables beside its repository. Root persistence entries
 provide schema and structural storage ports; they do not publish repository
 classes. `app/schema.ts` aggregates root schema entries for Drizzle initialization
-and migration tooling. Database connections remain in app/platform. Existing
-table, column, index, foreign-key and migration identities are preserved.
+and migration tooling. Database connections remain in app/platform. Schema changes use explicit Drizzle migrations; supported upgrades preserve
+source identities, playback history and accepted submission intent.
 
 ### Application responsibilities
 
@@ -471,3 +470,43 @@ The app injects Anime's `PlayerViewingControl` into Playback's viewing UI slot. 
 and conflict states stay consistent. No Playback decision endpoints or separate tracking
 status machine remain. Confirmed cached AniList cumulative progress drives all derived
 viewing indicators; it remains independent of local resume/history.
+
+## Tracking Persistence and Submission
+
+| Record | Owner and purpose |
+| --- | --- |
+| Source playback progress | Playback; source version/session/sequence authorize position/history writes |
+| Automatic observations | Playback; transactionally recorded with eligible position saves, with delivery-only outcomes and accepted operation identity |
+| Account connection and credential reference | Tracking; account generation fences credentials, account reads and delivery |
+| Complete remote list snapshot | Tracking; confirmed account-scoped AniList state with freshness/invalidation metadata |
+| Revisioned viewing operation | Tracking; desired fields, remote baseline, decision requirement, immutable attempted payload and delivery/retry/conflict state |
+| Manual intent version and command receipt | Tracking; atomically admitted with intent, retained independently of operation pruning for ordering and replay deduplication |
+
+`TrackingViewingCommands` resolves only confirmed, unambiguous Catalog targets. Manual
+player commands include the observed mapping revision and revalidate it on admission.
+Automatic observations additionally capture account/manual version; later manual changes
+fence them even across restarts and pruning. Detail absolute edits and player/automatic
+commands all enter `TrackingUpdates.update()`. Manual origin is distinct from automatic
+origin; worker timestamps never establish user-intent order.
+
+The submission worker reads remote state before dispatch or reconciliation, preserves
+unrelated fields, and sends absolute desired values. Already-applied writes reconcile as
+success; changes to intended baseline fields require an explicit remote/local conflict
+choice. Transient retries are bounded and honor provider timing. Account generation,
+cancellation and immutable attempts prevent late responses from clearing newer intent.
+A provider request already accepted cannot be recalled, and AniList offers no atomic
+conditional mutation: a concurrent edit between read and write remains possible.
+
+Pending intent and confirmed remote values remain separate in the cache and UI.
+`decision-required` belongs to Tracking; Keep ends a suggestion while another manual mark
+creates new intent. Player, detail and the operation monitor follow the same operation
+identity/revision through final confirmation, failure or conflict. Account changes clear
+personal browser queries/notices. AniList outages never block local playback, subtitles,
+preparation, source resume or history.
+
+The producer stops and waits for in-flight delivery before Tracking shuts down; Tracking stops submissions,
+then list work and account access before shared provider scheduling and persistence close.
+Migration 0015 removes coverage/decision receipts, preserves history and admitted attempts,
+and explicitly terminates legacy observations that lack an intent version. Startup does
+not blindly replay those old observations. This is a migration boundary, not a current
+viewing-state limitation.
