@@ -25,6 +25,7 @@ export interface PlaybackCopy {
 	availability: "ready" | "unknown" | "unavailable";
 }
 export interface MediaApi {
+	sourceDuration(fileId: string, sourceVersion: string): Promise<number | null>;
 	inspectCompatibility(
 		input: CompatibilityInspectInput,
 	): Promise<CompatibilityInspection>;

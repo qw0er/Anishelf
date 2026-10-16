@@ -1,4 +1,5 @@
 import type { FileInfo } from "../../../resources/public.js";
+import type { WatchedInterval } from "./completion.js";
 
 export type {
 	RegisteredSource,
@@ -19,6 +20,12 @@ export interface PlaybackProgress {
 }
 
 export interface PlaybackProgressUpdate {
+	evidence?: {
+		intervals: WatchedInterval[];
+		durationMs: number;
+		context: string | null;
+		capturedAt: number;
+	};
 	sourceId: string;
 	generation: number;
 	sequence: number;
@@ -37,6 +44,7 @@ export interface HistoryCandidate {
 
 /** Application result, projected into public JSON by the HTTP presenter. */
 export interface PlaybackSession {
+	completionEnabled?: boolean;
 	token: string;
 	sourceVersion: string;
 	file: FileInfo;
@@ -44,6 +52,7 @@ export interface PlaybackSession {
 }
 
 export interface SavePlaybackProgress {
+	intervals?: WatchedInterval[];
 	token: string;
 	generation: number;
 	sourceVersion: string;

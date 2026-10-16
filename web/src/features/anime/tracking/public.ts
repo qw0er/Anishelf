@@ -1,3 +1,4 @@
+export { episodeViewing, episodeViewingCounts } from "./episode-viewing.js";
 export type { TrackingIdentity } from "./queries.js";
 export {
 	accountQuery,

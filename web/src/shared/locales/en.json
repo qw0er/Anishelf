@@ -594,5 +594,34 @@
 			"succeeded": "AniList change confirmed",
 			"cancelled": "Kept AniList value"
 		}
+	},
+	"playbackCompletion": {
+		"label": "AniList playback update",
+		"queued": "Episode completion queued for AniList. Confirmation appears in tracking notifications.",
+		"initial": "Add this title to AniList with progress {{episode}}?",
+		"advance": "Advance AniList progress to episode {{episode}}, including skipped episodes?",
+		"unavailable": "Episode completion saved. AniList admission will retry; local playback is unaffected.",
+		"pending": "Episode completion saved; waiting for AniList admission.",
+		"status": "Initial AniList status",
+		"confirm": "Confirm progress update",
+		"keep": "Keep current progress",
+		"view": "View AniList progress",
+		"error": "Could not load or update AniList completion.",
+		"reasons": {
+			"account-changed": "AniList progress unchanged because the connected account changed.",
+			"mapping-changed": "AniList progress unchanged because the episode association changed.",
+			"manual-change": "Your manual AniList change takes priority.",
+			"already-tracked": "This episode is already covered by AniList progress.",
+			"kept-progress": "Kept the current AniList progress."
+		},
+		"unchanged": "AniList progress unchanged."
+	},
+	"episodeViewing": {
+		"summary": "AniList progress: {{progress}} watched · {{available}} available unwatched. Based on cumulative AniList progress; local playback history is separate.",
+		"watched": "Watched (AniList progress)",
+		"unwatched": "Unwatched (AniList progress)",
+		"unknown": "Not determined by AniList progress",
+		"availableUnwatched_one": "{{count}} available unwatched (AniList progress)",
+		"availableUnwatched_other": "{{count}} available unwatched (AniList progress)"
 	}
 }

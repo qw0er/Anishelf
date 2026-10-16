@@ -3021,6 +3021,13 @@ test("local detail viewing state lives in the title header and uses provider cou
 		name: "AniList viewing state",
 	});
 	await within(summary).findByText("2 / 3 episodes");
+	expect(
+		await screen.findByText(
+			/AniList progress: 2 watched · 0 available unwatched/,
+		),
+	).toBeTruthy();
+	expect(screen.getAllByText("Watched (AniList progress)")).toHaveLength(2);
+	expect(screen.getByText("Unwatched (AniList progress)")).toBeTruthy();
 	expect(within(summary).getByText("Watching")).toBeTruthy();
 	expect(within(summary).queryByRole("heading")).toBeNull();
 	expect(

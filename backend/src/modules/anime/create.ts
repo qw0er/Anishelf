@@ -14,6 +14,7 @@ import { registerAnimeHttp } from "./http.js";
 import type { MetadataApplication } from "./metadata/application/metadata.js";
 import type { AnimePersistence } from "./persistence.js";
 import type { AnimeApi } from "./public.js";
+import { TrackingCompletions } from "./tracking/application/completion.js";
 export async function createAnimeModule(options: {
 	system: SystemApi;
 	resources: ResourcesApi;
@@ -104,6 +105,10 @@ export async function createAnimeModule(options: {
 		})());
 	return {
 		api,
+		completionObserver:
+			catalog && tracking
+				? new TrackingCompletions(catalog, tracking)
+				: undefined,
 		registerHttp: (app: import("../../transport/instance.js").HttpInstance) =>
 			registerAnimeHttp(app, {
 				metadata,

@@ -9,6 +9,7 @@ import {
 } from "../../../../shared/components/ui/button.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { airingQuery } from "../../metadata/public.js";
+import { episodeViewing, episodeViewingCounts } from "../../tracking/public.js";
 import type { AnimeResourceActionSlot } from "../resource-actions.js";
 import type { LocalWorkDetailController } from "../use-local-work-detail.js";
 import { AiringStatus } from "./airing-status.js";
@@ -17,8 +18,10 @@ export function EpisodeList({
 	data,
 	controller,
 	renderResourceActions,
+	anilistProgress,
 }: {
 	data: LocalWorkDetailResponse;
+	anilistProgress: number | null;
 	renderResourceActions: AnimeResourceActionSlot;
 	controller: Pick<LocalWorkDetailController, "playPath" | "selectEpisode">;
 }) {
@@ -28,6 +31,7 @@ export function EpisodeList({
 	const airing = useInfiniteQuery(
 		airingQuery(work.reference.provider, work.reference.id),
 	);
+	const counts = episodeViewingCounts(episodes, anilistProgress);
 	const schedules =
 		airing.data?.pages
 			.filter((page) => !page.stale && !page.refreshError)
@@ -55,6 +59,14 @@ export function EpisodeList({
 					</Button>
 				</Tooltip>
 			</div>
+			{anilistProgress !== null && (
+				<p className="text-sm text-muted-foreground">
+					{t("episodeViewing.summary", {
+						progress: anilistProgress,
+						available: counts.availableUnwatched,
+					})}
+				</p>
+			)}
 			{episodes.length === 0 && <p>{t("anime.noEpisodes")}</p>}
 			{(["regular", "special", "movie"] as const).map((kind) => {
 				const group = episodes.filter((episode) => episode.kind === kind);
@@ -89,6 +101,17 @@ export function EpisodeList({
 											<h4 className="font-medium wrap-anywhere">
 												{episode.label}
 											</h4>
+											{anilistProgress !== null && (
+												<p className="text-xs text-muted-foreground">
+													{episodeViewing(episode, anilistProgress) ===
+													"watched"
+														? t("episodeViewing.watched")
+														: episodeViewing(episode, anilistProgress) ===
+																"unwatched"
+															? t("episodeViewing.unwatched")
+															: t("episodeViewing.unknown")}
+												</p>
+											)}
 											<p className="text-sm text-muted-foreground">
 												{t(`anime.${availability}`)} ·{" "}
 												{t("anime.versionCount", {

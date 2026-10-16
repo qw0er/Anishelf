@@ -2,6 +2,10 @@ import type { Static } from "typebox";
 import type * as schemas from "./schemas/index.js";
 
 // Public JSON types are derived from the same schemas used by Fastify.
+export type CompletionOutcome = Static<typeof schemas.CompletionOutcomeSchema>;
+export type CompletionDecision = Static<
+	typeof schemas.CompletionDecisionSchema
+>;
 export type ResourceId = Static<typeof schemas.ResourceIdSchema>;
 export type ScanWarningSummaryDto = Static<
 	typeof schemas.ScanWarningSummaryDtoSchema

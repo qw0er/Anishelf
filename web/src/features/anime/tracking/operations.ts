@@ -6,6 +6,7 @@ import { toast } from "../../../shared/components/ui/toast.js";
 import i18n from "../../../shared/i18n.js";
 import type { TrackingIdentity } from "./queries.js";
 
+const generations = new WeakMap<QueryClient, Set<string>>();
 const seen = new WeakMap<QueryClient, Map<string, string>>();
 export const operationsQuery = (identity: TrackingIdentity) =>
 	queryOptions({
@@ -41,6 +42,13 @@ export function reportTrackingOperations(
 	identity: TrackingIdentity,
 	operations: TrackingOperationsResponse,
 ): void {
+	let observed = generations.get(client);
+	if (!observed) {
+		observed = new Set();
+		generations.set(client, observed);
+	}
+	const established = observed.has(identity.generation);
+	observed.add(identity.generation);
 	let states = seen.get(client);
 	if (!states) {
 		states = new Map();
@@ -57,7 +65,12 @@ export function reportTrackingOperations(
 			toast.close(id);
 			continue;
 		}
-		if (op.state === "succeeded" && !prior) continue;
+		if (op.state === "succeeded" || op.state === "authorization-required") {
+			void client.invalidateQueries({ queryKey: ["anime-library"] });
+			void client.invalidateQueries({ queryKey: ["tracking", "entry"] });
+		}
+		if (op.state === "succeeded" && !prior && !(op.completion && established))
+			continue;
 		const notice = {
 			id,
 			type:
@@ -75,18 +88,15 @@ export function reportTrackingOperations(
 		};
 		if (prior) toast.update(id, notice);
 		else toast.add(notice);
-		if (op.state === "succeeded" || op.state === "authorization-required") {
-			if (op.state === "authorization-required")
-				void client.invalidateQueries({ queryKey: ["tracking", "account"] });
-			void client.invalidateQueries({ queryKey: ["anime-library"] });
-			void client.invalidateQueries({ queryKey: ["tracking", "entry"] });
-		}
+		if (op.state === "authorization-required")
+			void client.invalidateQueries({ queryKey: ["tracking", "account"] });
 	}
 }
 export function clearTrackingOperationNotices(
 	client: QueryClient,
 	generation: string,
 ): void {
+	generations.get(client)?.delete(generation);
 	const states = seen.get(client);
 	if (!states) return;
 	for (const key of states.keys())

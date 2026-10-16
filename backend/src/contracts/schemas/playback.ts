@@ -59,9 +59,44 @@ export const PlaybackPlanSchema = Type.Union([
 export const PlaybackSessionResponseSchema = Type.Object(
 	{
 		token: PlaybackTokenSchema,
+		completionEnabled: Type.Optional(Type.Boolean()),
 		sourceVersion: SourceVersionSchema,
 		file: FileDtoSchema,
 		progress: PlaybackProgressDtoSchema,
+	},
+	{ additionalProperties: false },
+);
+export const CompletionOutcomeSchema = Type.Union([
+	Type.Null(),
+	Type.Object(
+		{
+			state: Type.Union([
+				Type.Literal("pending"),
+				Type.Literal("decision-required"),
+				Type.Literal("queued"),
+				Type.Literal("skipped"),
+				Type.Literal("unavailable"),
+			]),
+			reason: Type.String(),
+			episode: Type.Optional(PositiveIntegerSchema),
+			mediaId: Type.Optional(PositiveIntegerSchema),
+		},
+		{ additionalProperties: false },
+	),
+]);
+export const CompletionDecisionSchema = Type.Object(
+	{
+		advance: Type.Boolean(),
+		initialStatus: Type.Optional(
+			Type.Union([
+				Type.Literal("CURRENT"),
+				Type.Literal("PLANNING"),
+				Type.Literal("COMPLETED"),
+				Type.Literal("PAUSED"),
+				Type.Literal("DROPPED"),
+				Type.Literal("REPEATING"),
+			]),
+		),
 	},
 	{ additionalProperties: false },
 );
@@ -70,6 +105,20 @@ export const SavePlaybackProgressRequestSchema = Type.Object(
 		generation: PositiveIntegerSchema,
 		sourceVersion: SourceVersionSchema,
 		sequence: PositiveIntegerSchema,
+		intervals: Type.Optional(
+			Type.Array(
+				Type.Object(
+					{
+						startMs: NonnegativeIntegerSchema,
+						endMs: PositiveIntegerSchema,
+						elapsedMs: Type.Number({ exclusiveMinimum: 0, maximum: 300000 }),
+						rate: Type.Number({ minimum: 0.25, maximum: 16 }),
+					},
+					{ additionalProperties: false },
+				),
+				{ maxItems: 128 },
+			),
+		),
 		positionMs: NonnegativeIntegerSchema,
 		durationMs: durationSchema,
 	},

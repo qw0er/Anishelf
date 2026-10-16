@@ -3,15 +3,15 @@ export async function closeModules(owners: {
 	anime: { quiesce(): Promise<void>; close(): Promise<void> };
 	media: { quiesce(): Promise<void>; close(): Promise<void> };
 	resources: { quiesce(): Promise<void>; close(): Promise<void> };
-	playback: { close(): void };
+	playback: { close(): void | Promise<void> };
 	database?: { close(): void } | undefined;
 }): Promise<void> {
 	const failures: unknown[] = [];
 	for (const operation of [
+		() => owners.playback.close(),
 		() => owners.anime.quiesce(),
 		() => owners.media.quiesce(),
 		() => owners.resources.quiesce(),
-		() => owners.playback.close(),
 		() => owners.anime.close(),
 		() => owners.media.close(),
 		() => owners.resources.close(),

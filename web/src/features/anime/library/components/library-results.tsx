@@ -41,6 +41,13 @@ export function LibraryResults({
 								· {work.year ?? t("anime.unknownYear")}
 							</p>
 							{work.viewing && <ViewingBadge viewing={work.viewing} />}
+							{typeof work.availableUnwatchedEpisodes === "number" && (
+								<p className="text-xs text-muted-foreground">
+									{t("episodeViewing.availableUnwatched", {
+										count: work.availableUnwatchedEpisodes,
+									})}
+								</p>
+							)}
 							{viewingKnown && !work.viewing && (
 								<p className="text-xs text-muted-foreground">
 									{t("trackingList.untracked")}

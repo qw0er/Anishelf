@@ -385,3 +385,71 @@ test("an offset stream ending does not mark the whole source watched", async () 
 		expect.anything(),
 	);
 });
+
+test("sends actual played intervals and never includes a forward seek in completion evidence", async () => {
+	let now = 0;
+	vi.spyOn(performance, "now").mockImplementation(() => now);
+	const { controller, video } = create();
+	await controller.open();
+	video.dispatchEvent(new Event("playing"));
+	now = 1000;
+	video.currentTime = 41;
+	video.dispatchEvent(new Event("timeupdate"));
+	video.dispatchEvent(new Event("seeking"));
+	video.currentTime = 99;
+	video.dispatchEvent(new Event("seeked"));
+	await tick();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({
+			positionMs: 99000,
+			intervals: [{ startMs: 40000, endMs: 41000, elapsedMs: 1000, rate: 1 }],
+		}),
+		expect.anything(),
+	);
+	video.dispatchEvent(new Event("playing"));
+	now = 2000;
+	video.currentTime = 100;
+	video.dispatchEvent(new Event("pause"));
+	await tick();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({
+			intervals: [{ startMs: 99000, endMs: 100000, elapsedMs: 1000, rate: 1 }],
+		}),
+		expect.anything(),
+	);
+});
+
+test("retains watched intervals when a progress response is lost and a newer payload is queued", async () => {
+	let now = 0;
+	vi.spyOn(performance, "now").mockImplementation(() => now);
+	const { controller, video } = create();
+	await controller.open();
+	let reject: (error: Error) => void = () => {};
+	vi.mocked(playbackApi.savePlaybackProgress).mockImplementationOnce(
+		() =>
+			new Promise((_resolve, no) => {
+				reject = no;
+			}),
+	);
+	video.dispatchEvent(new Event("playing"));
+	now = 1000;
+	video.currentTime = 41;
+	video.dispatchEvent(new Event("pause"));
+	await tick();
+	video.dispatchEvent(new Event("playing"));
+	now = 2000;
+	video.currentTime = 42;
+	video.dispatchEvent(new Event("pause"));
+	reject(new Error("Lost response"));
+	await tick();
+	await controller.retry();
+	const payload = vi
+		.mocked(playbackApi.savePlaybackProgress)
+		.mock.calls.at(-1)?.[1];
+	expect(payload?.intervals).toEqual([
+		{ startMs: 40000, endMs: 41000, elapsedMs: 1000, rate: 1 },
+		{ startMs: 41000, endMs: 42000, elapsedMs: 1000, rate: 1 },
+	]);
+});

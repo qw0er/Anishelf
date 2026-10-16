@@ -41,6 +41,7 @@ export const TrackingResolveSchema = Type.Object(
 	{ additionalProperties: false },
 );
 export const TrackingOperationSchema = Type.Object({
+	completion: Type.Optional(Type.Boolean()),
 	id: Type.String(),
 	accountId: Type.Integer(),
 	mediaId: Type.Integer(),
