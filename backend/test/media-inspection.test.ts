@@ -227,7 +227,7 @@ test("probe misses validate before and after processing; cache hits need one cur
 	);
 	try {
 		await inspection.inspect(fileId());
-		expect(reads).toHaveBeenCalledTimes(2);
+		expect(reads).toHaveBeenCalledTimes(3);
 		reads.mockClear();
 		await inspection.inspect(fileId());
 		expect(reads).toHaveBeenCalledTimes(1);

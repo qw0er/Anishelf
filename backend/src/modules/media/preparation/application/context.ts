@@ -63,7 +63,7 @@ export class PreparationContext {
 			expected.sourceVersion,
 		);
 		if (
-			source.identity.canonicalRoot !== expected.canonicalRoot ||
+			source.identity.scopeId !== expected.scopeId ||
 			source.identity.relativePath !== expected.relativePath
 		)
 			throw new DomainError(

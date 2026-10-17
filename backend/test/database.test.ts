@@ -14,11 +14,12 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
+import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 
 let directory: string;
 let database: ApplicationDatabase;
 const identity = {
-	canonicalRoot: "/media",
+	scopeId: resourceRootId("/media"),
 	fileId: "file_1",
 	relativePath: "episode.mkv",
 	sourceVersion: "v1",
@@ -33,6 +34,37 @@ afterEach(async () => {
 });
 
 describe("playback persistence", () => {
+	it("reuses legacy path-based source keys and history through opaque scope identities", () => {
+		const rootId = "Mb2IOv55KUcYGjyLunUsGK_HL5nuzvGlsLCATB8cOyU";
+		const sourceId = "OryB-kYlplagDhKinb004iH-sm1I0F11VWSsFNHBfb0";
+		const raw = new Database(join(directory, "anishelf.sqlite"));
+		try {
+			raw
+				.prepare("INSERT INTO resource_roots VALUES (?, ?, ?)")
+				.run(rootId, "/media", 1);
+			raw
+				.prepare("INSERT INTO media_sources VALUES (?, ?, ?, ?, ?, ?)")
+				.run(sourceId, rootId, "file_1", "episode.mkv", "v1", 1);
+		} finally {
+			raw.close();
+		}
+		const generation = database.playback.openGeneration(sourceId);
+		database.playback.save({
+			sourceId,
+			generation: generation.generation,
+			sequence: 1,
+			positionMs: 12345,
+			durationMs: 60000,
+		});
+		database.close();
+		database = ApplicationDatabase.open(directory);
+		expect(database.playback.registerSource(identity).id).toBe(sourceId);
+		expect(database.playback.listHistory([rootId])[0]).toMatchObject({
+			source: { id: sourceId, rootId },
+			progress: { positionMs: 12345 },
+		});
+	});
+
 	it("upgrades legacy progress without losing history or weakening constraints", async () => {
 		const legacyDir = join(directory, "legacy");
 		const migrationDir = join(directory, "legacy-migrations");
@@ -126,7 +158,7 @@ describe("playback persistence", () => {
 		});
 		const otherRoot = database.playback.registerSource({
 			...identity,
-			canonicalRoot: "/other",
+			scopeId: resourceRootId("/other"),
 		});
 		expect(replaced.id).not.toBe(source.id);
 		expect(otherRoot.id).not.toBe(source.id);
@@ -181,7 +213,7 @@ describe("playback persistence", () => {
 		});
 		const other = database.playback.registerSource({
 			...identity,
-			canonicalRoot: "/other",
+			scopeId: resourceRootId("/other"),
 		});
 		for (const source of [first, second, other]) {
 			const row = database.playback.openGeneration(source.id);
@@ -198,9 +230,17 @@ describe("playback persistence", () => {
 		}
 		expect(
 			database.playback
-				.listHistory(first.rootId, undefined, 0, "continue")
+				.listHistory([first.rootId], undefined, 0, "continue")
 				.map((item) => item.source.id),
 		).toEqual([second.id, first.id]);
+		expect(
+			database.playback
+				.listHistory([first.rootId, other.rootId], undefined, 0, "continue")
+				.map((item) => item.source.id),
+		).toEqual(expect.arrayContaining([first.id, second.id, other.id]));
+		expect(database.playback.listHistory([], undefined, 0, "continue")).toEqual(
+			[],
+		);
 		database.playback.save(
 			{
 				sourceId: second.id,
@@ -212,7 +252,7 @@ describe("playback persistence", () => {
 			30,
 		);
 		expect(
-			database.playback.listHistory(first.rootId, undefined, 0, "continue"),
+			database.playback.listHistory([first.rootId], undefined, 0, "continue"),
 		).toHaveLength(1);
 		database.playback.save(
 			{
@@ -225,7 +265,7 @@ describe("playback persistence", () => {
 			40,
 		);
 		expect(
-			database.playback.listHistory(first.rootId, undefined, 0, "continue")[0]
+			database.playback.listHistory([first.rootId], undefined, 0, "continue")[0]
 				?.source.id,
 		).toBe(second.id);
 	});

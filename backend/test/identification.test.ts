@@ -22,6 +22,7 @@ import type {
 } from "../src/modules/anime/identification/public.js";
 import { AutomaticIdentificationCoordinator } from "../src/modules/anime/workflows/automatic-identification.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import type { SourceIdentity } from "../src/modules/resources/resource-access/public.js";
 import { settingsStore } from "./settings-store.js";
 import { loadCorpus } from "./support/anime-corpus.js";
@@ -54,7 +55,7 @@ afterEach(async () => {
 });
 function source(relativePath: string): SourceIdentity {
 	return {
-		canonicalRoot: "/media",
+		scopeId: "/media",
 		fileId: relativePath,
 		relativePath,
 		sourceVersion: "v1",
@@ -490,7 +491,7 @@ test("root switching cancels stale recognition and processes the newly published
 	const identify: IdentificationApi = {
 		version: engine.version,
 		identify: async (sources, signal) => {
-			if (sources[0]?.canonicalRoot === f.root) {
+			if (sources[0]?.scopeId === resourceRootId(f.root)) {
 				entered();
 				await new Promise<void>((resolve) => {
 					signal?.addEventListener("abort", () => resolve(), { once: true });
@@ -512,7 +513,7 @@ test("root switching cancels stale recognition and processes the newly published
 	await automatic.waitForCompletion();
 	const results = automatic.getResults();
 	expect(results).toHaveLength(1);
-	expect(results[0]?.source.canonicalRoot).toBe(nextRoot);
+	expect(results[0]?.source.scopeId).toBe(resourceRootId(nextRoot));
 	expect(results[0]?.evidence.originalName).toBe("Your Name.mkv");
 });
 

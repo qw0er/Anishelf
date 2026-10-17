@@ -3,7 +3,6 @@ import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../../resources/public.js";
-import { resourceRootId } from "../../../resources/public.js";
 import type { PlaybackCompletionObserver } from "../domain/completion.js";
 import type {
 	HistoryItem,
@@ -25,7 +24,7 @@ interface PlaybackSessionState {
 	openedAt: number;
 	sourceId: string;
 	identity: SourceIdentity;
-	rootEpoch: number;
+	accessRevision: number;
 	generation: number;
 	touchedAtMs: number;
 }
@@ -71,7 +70,7 @@ export class PlaybackApplication implements PlaybackApi {
 				"Too many active playback sessions.",
 			);
 		const source = await this.options.sources.resolveSource(fileId);
-		this.assertEpoch(source.rootEpoch);
+		this.assertEpoch(source.accessRevision);
 		const repository = this.repository();
 		const progress = this.persist(() => {
 			const registered = repository.registerSource(source.identity, this.now());
@@ -92,7 +91,7 @@ export class PlaybackApplication implements PlaybackApi {
 				"Tracking target unavailable; local playback remains usable.",
 			);
 		}
-		this.assertEpoch(source.rootEpoch);
+		this.assertEpoch(source.accessRevision);
 		const token = randomUUID();
 		for (const [otherToken, session] of this.sessions) {
 			if (session.sourceId === progress.sourceId)
@@ -104,7 +103,7 @@ export class PlaybackApplication implements PlaybackApi {
 			openedAt,
 			sourceId: progress.sourceId,
 			identity: source.identity,
-			rootEpoch: source.rootEpoch,
+			accessRevision: source.accessRevision,
 			generation: progress.generation,
 			touchedAtMs: this.now(),
 		});
@@ -201,9 +200,8 @@ export class PlaybackApplication implements PlaybackApi {
 		const repository = this.repository();
 		if (!this.options.sources.hasSnapshot)
 			return { availability: "unknown", items: [] };
-		const epoch = this.options.sources.resourceRootEpoch;
-		const canonicalRoot = await this.options.sources.resolveRoot();
-		const rootId = resourceRootId(canonicalRoot);
+		const epoch = this.options.sources.accessRevision;
+		const scope = await this.options.sources.getScope();
 		const items: HistoryItem[] = [];
 		for (
 			let offset = 0;
@@ -213,7 +211,7 @@ export class PlaybackApplication implements PlaybackApi {
 			this.assertEpoch(epoch);
 			const candidates = this.persist(() =>
 				repository.listHistory(
-					rootId,
+					scope.ids,
 					this.policy.candidateBatchSize,
 					offset,
 					view,
@@ -223,8 +221,8 @@ export class PlaybackApplication implements PlaybackApi {
 				let source: ResolvedSource;
 				try {
 					source = await this.options.sources.revalidateSource({
-						identity: { ...candidate.source, canonicalRoot },
-						rootEpoch: epoch,
+						identity: { ...candidate.source, scopeId: candidate.source.rootId },
+						accessRevision: epoch,
 					});
 				} catch (error) {
 					this.assertEpoch(epoch);
@@ -298,14 +296,14 @@ export class PlaybackApplication implements PlaybackApi {
 	}
 	private assertEpoch(epoch: number): void {
 		this.repository();
-		if (epoch !== this.options.sources.resourceRootEpoch) this.conflict();
+		if (epoch !== this.options.sources.accessRevision) this.conflict();
 	}
 	private prune(): void {
 		this.repository();
 		for (const [token, session] of this.sessions) {
 			if (
 				this.now() - session.touchedAtMs >= this.policy.sessionIdleMs ||
-				session.rootEpoch !== this.options.sources.resourceRootEpoch
+				session.accessRevision !== this.options.sources.accessRevision
 			)
 				this.sessions.delete(token);
 		}

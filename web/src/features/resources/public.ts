@@ -1,5 +1,6 @@
 export { startScan } from "./library/api.js";
 export type { LibraryScanState } from "./library/context.js";
+export { resourceContext } from "./library/context.js";
 export { directoryQuery, libraryQuery } from "./library/queries.js";
 export { fileQuery } from "./resource-access/queries.js";
 

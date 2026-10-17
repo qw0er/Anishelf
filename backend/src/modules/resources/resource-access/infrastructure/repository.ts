@@ -1,7 +1,7 @@
 import { isAbsolute } from "node:path";
 import { eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import { resourceRootId, sourceIdentityKey } from "../domain/identity.js";
+import { sourceIdentityKey } from "../domain/identity.js";
 import type { RegisteredSource, SourceIdentity } from "../domain/model.js";
 import { mediaSources, resourceRoots } from "./schema.js";
 
@@ -31,8 +31,8 @@ export class SourceRepository {
 	): RegisteredSource {
 		integer(nowMs, 0);
 		if (
-			!isAbsolute(identity.canonicalRoot) ||
-			identity.canonicalRoot.includes("\0") ||
+			!/^[A-Za-z0-9_-]{43}$/.test(identity.scopeId) ||
+			identity.scopeId.includes("\0") ||
 			!identity.fileId ||
 			!identity.sourceVersion ||
 			!identity.relativePath ||
@@ -41,10 +41,10 @@ export class SourceRepository {
 			identity.relativePath.split(/[\\/]/).includes("..")
 		) {
 			throw new Error(
-				"A canonical root and confined source identity are required.",
+				"An opaque resource scope and confined source identity are required.",
 			);
 		}
-		const rootId = resourceRootId(identity.canonicalRoot);
+		const rootId = identity.scopeId;
 		const id = sourceIdentityKey(
 			"source",
 			rootId,
@@ -56,7 +56,7 @@ export class SourceRepository {
 				tx.insert(resourceRoots)
 					.values({
 						id: rootId,
-						canonicalPath: identity.canonicalRoot,
+						canonicalPath: `scope:${rootId}`,
 						createdAtMs: nowMs,
 					})
 					.onConflictDoNothing()

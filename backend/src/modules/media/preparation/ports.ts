@@ -16,7 +16,10 @@ import type { PreparationTask, PreparedArtifact } from "./domain/model.js";
 /** Synchronous commits keep deduplication and queue admission atomic within the backend process. */
 export interface PreparationStore {
 	list(limit?: number, fileId?: string): PreparationTask[];
-	summaries(canonicalRoot: string, fileIds: string[]): PreparationSummaryRow[];
+	summaries(
+		scopeIds: readonly string[],
+		fileIds: string[],
+	): PreparationSummaryRow[];
 	get(id: string): PreparationTask | undefined;
 	find(planId: string): PreparationTask | undefined;
 	queuedCount(): number;

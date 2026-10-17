@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gt, inArray, or, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import { DomainError } from "../../../../shared/errors.js";
-import { mediaSources, resourceRoots } from "../../../resources/persistence.js";
+import { mediaSources } from "../../../resources/persistence.js";
 import type { SourceRegistry } from "../../../resources/public.js";
 import type { IdentificationResult } from "../../identification/public.js";
 import type {
@@ -45,7 +45,6 @@ export class CatalogRepository implements CatalogStore {
 	private readReview(row: {
 		review: typeof catalogReviews.$inferSelect;
 		source: typeof mediaSources.$inferSelect;
-		root: typeof resourceRoots.$inferSelect;
 	}): ReviewRecord {
 		const result = row.review.result as IdentificationResult;
 		return {
@@ -55,7 +54,7 @@ export class CatalogRepository implements CatalogStore {
 			fileId: row.source.fileId,
 			relativePath: row.source.relativePath,
 			sourceVersion: row.source.sourceVersion,
-			canonicalRoot: row.root.canonicalPath,
+			scopeId: row.source.rootId,
 			available: row.review.available,
 			revision: row.review.revision,
 			decision: row.review.decision,
@@ -71,18 +70,16 @@ export class CatalogRepository implements CatalogStore {
 			.select({
 				review: catalogReviews,
 				source: mediaSources,
-				root: resourceRoots,
 			})
 			.from(catalogReviews)
-			.innerJoin(mediaSources, eq(mediaSources.id, catalogReviews.id))
-			.innerJoin(resourceRoots, eq(resourceRoots.id, mediaSources.rootId));
+			.innerJoin(mediaSources, eq(mediaSources.id, catalogReviews.id));
 	}
 	review(id: string): ReviewRecord | null {
 		const row = this.reviewQuery().where(eq(catalogReviews.id, id)).get();
 		return row ? this.readReview(row) : null;
 	}
 	reviews(
-		rootId: string,
+		scopeIds: readonly string[],
 		decision: ReviewRecord["decision"] | undefined,
 		page: number,
 		perPage: number,
@@ -91,7 +88,7 @@ export class CatalogRepository implements CatalogStore {
 		const rows = this.reviewQuery()
 			.where(
 				and(
-					eq(mediaSources.rootId, rootId),
+					inArray(mediaSources.rootId, [...scopeIds]),
 					decision ? eq(catalogReviews.decision, decision) : undefined,
 					reference
 						? sql`exists (select 1 from json_each(${catalogReviews.result}, '$.proposals') where json_extract(value, '$.candidate.work.reference.provider') = ${reference.provider} and json_extract(value, '$.candidate.work.reference.mediaType') = ${reference.mediaType} and json_extract(value, '$.candidate.work.reference.id') = ${reference.id})`
@@ -109,16 +106,19 @@ export class CatalogRepository implements CatalogStore {
 			hasNextPage: rows.length > perPage,
 		};
 	}
-	publish(rootId: string, items: Parameters<CatalogStore["publish"]>[1]): void {
+	publish(
+		scopeIds: readonly string[],
+		items: Parameters<CatalogStore["publish"]>[1],
+	): void {
 		this.transaction(() => {
-			const rootSources = this.store
+			const scopeSources = this.store
 				.select({ id: mediaSources.id })
 				.from(mediaSources)
-				.where(eq(mediaSources.rootId, rootId));
+				.where(inArray(mediaSources.rootId, [...scopeIds]));
 			this.store
 				.update(catalogReviews)
 				.set({ available: false })
-				.where(inArray(catalogReviews.id, rootSources))
+				.where(inArray(catalogReviews.id, scopeSources))
 				.run();
 			for (const { source, result } of items) {
 				const previous = this.store
@@ -215,7 +215,7 @@ export class CatalogRepository implements CatalogStore {
 		return row?.work ?? null;
 	}
 	list(
-		rootId: string,
+		scopeIds: readonly string[],
 		query: CatalogQuery,
 		page: number,
 		perPage: number,
@@ -231,7 +231,7 @@ export class CatalogRepository implements CatalogStore {
 				mediaSources,
 				eq(mediaSources.id, catalogAssociations.sourceId),
 			)
-			.where(eq(mediaSources.rootId, rootId));
+			.where(inArray(mediaSources.rootId, [...scopeIds]));
 		const availableWorks = this.store
 			.select({ id: catalogEpisodes.workId })
 			.from(catalogEpisodes)
@@ -246,7 +246,7 @@ export class CatalogRepository implements CatalogStore {
 			.innerJoin(catalogReviews, eq(catalogReviews.id, mediaSources.id))
 			.where(
 				and(
-					eq(mediaSources.rootId, rootId),
+					inArray(mediaSources.rootId, [...scopeIds]),
 					eq(catalogReviews.available, true),
 				),
 			);
@@ -336,7 +336,7 @@ export class CatalogRepository implements CatalogStore {
 			.all()
 			.map((row) => ({ ...row.association, episode: row.episode }));
 	}
-	versions(episodeId: string, rootId: string) {
+	versions(episodeId: string, scopeIds: readonly string[]) {
 		const rows = this.store
 			.select({ association: catalogAssociations })
 			.from(catalogAssociations)
@@ -347,7 +347,7 @@ export class CatalogRepository implements CatalogStore {
 			.where(
 				and(
 					eq(catalogAssociations.episodeId, episodeId),
-					eq(mediaSources.rootId, rootId),
+					inArray(mediaSources.rootId, [...scopeIds]),
 				),
 			)
 			.orderBy(asc(catalogAssociations.sourceId))

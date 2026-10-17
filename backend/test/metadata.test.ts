@@ -699,7 +699,7 @@ test("actual Metadata supplies Identification proposals without calendar season 
 	});
 	const results = await identification.identify([
 		{
-			canonicalRoot: "/library",
+			scopeId: "/library",
 			fileId: "file",
 			relativePath: "Frieren - 01.mkv",
 			sourceVersion: "version",

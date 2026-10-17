@@ -18,11 +18,11 @@ export async function readExternalSubtitle(
 	resources: ResourceFiles,
 ): Promise<{ text: string }> {
 	const identity: FileSourceIdentity = {
-		canonicalRoot: source.identity.canonicalRoot,
+		scopeId: source.identity.scopeId,
 		relativePath: join(dirname(source.identity.relativePath), track.name),
 		sourceVersion: track.sourceVersion,
 	};
-	sources.assertRootEpoch(source.rootEpoch);
+	sources.assertAccessRevision(source.accessRevision);
 	let text: string;
 	try {
 		const file = await resources.openSubtitleSource(identity);
@@ -37,7 +37,7 @@ export async function readExternalSubtitle(
 		}
 		await resources.revalidateSubtitleSource(identity);
 	} catch (error) {
-		sources.assertRootEpoch(source.rootEpoch);
+		sources.assertAccessRevision(source.accessRevision);
 		throw error;
 	}
 	await sources.revalidateSource(source);

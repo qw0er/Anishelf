@@ -4,6 +4,7 @@ import type { PersistentSettings } from "../../../system/public.js";
 import type {
 	FileInfo,
 	ResolvedSource,
+	ResourceScope,
 	SourceCatalog,
 	SourceReference,
 } from "../domain/model.js";
@@ -24,9 +25,9 @@ function fileInfo(entry: FileInfo): FileInfo {
 		mimeType: entry.mimeType,
 	};
 }
-/** Owns source identity and the single root epoch, independently of library implementation. */
+/** Owns resource membership, source validity and access invalidation. */
 export class ResourceAccessApplication implements ResourceAccessApi {
-	private rootEpoch = 0;
+	private revision = 0;
 	constructor(
 		private readonly options: {
 			catalog: SourceCatalog;
@@ -41,27 +42,27 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 		return { ...this.options.configuration.settings };
 	}
 	invalidateRoot(): void {
-		this.rootEpoch += 1;
+		this.revision += 1;
 	}
-	assertRootEpoch(epoch: number): void {
-		if (epoch !== this.rootEpoch)
+	assertAccessRevision(epoch: number): void {
+		if (epoch !== this.revision)
 			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
 	}
 
 	private async withRoot<T>(
 		operation: () => Promise<T>,
-		epoch = this.rootEpoch,
+		epoch = this.revision,
 	): Promise<T> {
-		this.assertRootEpoch(epoch);
+		this.assertAccessRevision(epoch);
 		let result: T;
 		try {
 			result = await operation();
 		} catch (error) {
 			// Prefer a root conflict over a misleading missing-file/access error after a switch.
-			this.assertRootEpoch(epoch);
+			this.assertAccessRevision(epoch);
 			throw error;
 		}
-		this.assertRootEpoch(epoch);
+		this.assertAccessRevision(epoch);
 		return result;
 	}
 
@@ -71,16 +72,13 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 				this.getSettings(),
 				this.policy,
 			);
-			if (
-				expected &&
-				resources.canonicalRoot !== expected.identity.canonicalRoot
-			)
+			if (expected && resources.scopeId !== expected.identity.scopeId)
 				throw new DomainError(
 					"PLAYBACK_CONFLICT",
 					"The resource root changed.",
 				);
 			return resources;
-		}, expected?.rootEpoch);
+		}, expected?.accessRevision);
 	}
 	async getFile(id: string): Promise<FileInfo> {
 		const entry = this.options.catalog.getFile(id);
@@ -98,22 +96,32 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 		};
 	}
 
-	get resourceRootEpoch(): number {
-		return this.rootEpoch;
+	get accessRevision(): number {
+		return this.revision;
 	}
 	get hasSnapshot(): boolean {
 		return this.options.catalog.hasSnapshot;
 	}
 
-	async resolveRoot(): Promise<string> {
-		return (await this.openResources()).canonicalRoot;
+	async getScope(): Promise<ResourceScope> {
+		return this.withRoot(async () => ({
+			ids: [(await this.openResources()).scopeId],
+			revision: this.revision,
+		}));
+	}
+	async filePath(expected: SourceReference): Promise<string> {
+		const current = await this.revalidateSource(expected);
+		return this.withRoot(async () => {
+			const resources = await this.openResources(current);
+			return resources.filePath(current.identity.relativePath);
+		}, current.accessRevision);
 	}
 
 	async resolveSource(
 		id: string,
 		expectedVersion?: string,
 	): Promise<ResolvedSource> {
-		const epoch = this.rootEpoch;
+		const epoch = this.revision;
 		return this.withRoot(async () => {
 			const entry = this.options.catalog.getFile(id);
 			const resources = await this.openResources();
@@ -124,7 +132,7 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 				assertSourceVersion(expectedVersion, metadata.sourceVersion);
 			return {
 				identity: {
-					canonicalRoot: resources.canonicalRoot,
+					scopeId: resources.scopeId,
 					fileId: entry.id,
 					relativePath: entry.relativePath,
 					sourceVersion: metadata.sourceVersion,
@@ -135,7 +143,7 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 					modifiedAt: metadata.modifiedAt,
 					mimeType: metadata.mimeType,
 				},
-				rootEpoch: epoch,
+				accessRevision: epoch,
 			};
 		}, epoch);
 	}
@@ -145,7 +153,7 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 			const current = await this.resolveSource(expected.identity.fileId);
 			assertFileSource(expected.identity, current.identity);
 			return current;
-		}, expected.rootEpoch);
+		}, expected.accessRevision);
 	}
 
 	async openMedia(id: string): Promise<OpenedResourceFile> {

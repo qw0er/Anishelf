@@ -29,7 +29,7 @@ async function identify(path: string, works: WorkCandidate[]) {
 	});
 	const [result] = await engine.identify([
 		{
-			canonicalRoot: "/media",
+			scopeId: "/media",
 			fileId: path,
 			relativePath: path,
 			sourceVersion: "1",

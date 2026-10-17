@@ -11,7 +11,7 @@ export type CompatibilityOutput = NonNullable<
 >;
 /** Planning-only context never belongs to a consumer's compatibility report. */
 export interface CheckedCompatibility extends CompatibilityResult {
-	canonicalRoot: string;
+	scopeId: string;
 	profile: DeepReadonly<TranscodeProfile> | null;
 }
 export type OriginalMediaDescription = Omit<

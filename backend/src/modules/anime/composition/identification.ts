@@ -16,7 +16,7 @@ export function createIdentificationModule(options: {
 	metadata?: IdentificationMetadata;
 	onPublication?: (
 		results: readonly IdentificationResult[],
-		canonicalRoot: string,
+		scopeIds: readonly string[],
 		signal: AbortSignal,
 	) => void | Promise<void>;
 }): AutomaticIdentificationCoordinator {

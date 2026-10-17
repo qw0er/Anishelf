@@ -36,10 +36,10 @@ function writeLibraryFilterSession(search: string) {
 }
 
 export function AnimeLibrary({
-	resourceRoot,
+	configured,
 	ready,
 }: {
-	resourceRoot: string | null;
+	configured: boolean;
 	ready: boolean;
 }) {
 	const { t } = useTranslation();
@@ -69,7 +69,7 @@ export function AnimeLibrary({
 	}, [location.search, setParams]);
 	const canBrowse =
 		filterSessionReady &&
-		(Boolean(resourceRoot && ready) || filters.scope === "all");
+		(Boolean(configured && ready) || filters.scope === "all");
 	const query = useLibraryData(filters, canBrowse);
 	useEffect(() => {
 		const id = location.state?.focusWork;
@@ -109,7 +109,7 @@ export function AnimeLibrary({
 				}
 			/>
 			{query.data && <TrackingFeedback snapshot={query.data.tracking} />}
-			{!resourceRoot && filters.scope !== "all" ? (
+			{!configured && filters.scope !== "all" ? (
 				<EmptyState
 					icon={<FolderPlus size={24} />}
 					title={t("anime.setup")}

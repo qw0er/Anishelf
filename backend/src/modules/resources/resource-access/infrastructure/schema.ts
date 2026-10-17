@@ -7,6 +7,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 export const resourceRoots = sqliteTable("resource_roots", {
 	id: text("id").primaryKey(),
+	/** Legacy unique column retained for database continuity; new rows store an opaque scope marker. */
 	canonicalPath: text("canonical_path").notNull().unique(),
 	createdAtMs: integer("created_at_ms").notNull(),
 });

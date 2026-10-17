@@ -57,7 +57,7 @@ test("System settings HTTP updates media settings while Resources reserves its s
 	const gate = new Promise<void>((resolve) => {
 		release = resolve;
 	});
-	const pending = resources.api.coordinateSettingsChange(async () => {
+	const pending = resources.api.applySettingsChange({}, async () => {
 		await gate;
 		return system.api.patchSettings({});
 	});

@@ -28,8 +28,8 @@ export class WorkApplication {
 		number: string,
 		label: string,
 	): Promise<LocalEpisode> {
-		const root = await this.context.root();
-		const work = this.context.requireWork(id, root.rootId);
+		const scope = await this.context.scope();
+		const work = this.context.requireWork(id, scope.ids);
 		if (work.revision !== revision) conflict();
 		const episodes = this.context.options.store.episodes(id);
 		const episode = episodes.find((item) => item.id === episodeId);
@@ -78,8 +78,8 @@ export class WorkApplication {
 	}
 	async refresh(id: string, revision: number): Promise<LocalWorkDetail> {
 		const started = performance.now();
-		const root = await this.context.root();
-		const work = this.context.requireWork(id, root.rootId);
+		const scope = await this.context.scope();
+		const work = this.context.requireWork(id, scope.ids);
 		if (work.revision !== revision) conflict();
 		this.context.options.logger.debug(
 			{ event: "catalog.refresh_requested", workId: id, revision },
@@ -90,7 +90,7 @@ export class WorkApplication {
 		const metadata = await this.context.options.metadata.get(link.reference, {
 			refresh: true,
 		});
-		this.context.options.sources.assertRootEpoch(root.epoch);
+		this.context.options.sources.assertAccessRevision(scope.revision);
 		this.context.open();
 		if (!metadata.refreshError) this.apply(work, link, metadata);
 		this.context.options.logger.info(

@@ -7,6 +7,7 @@ import type {
 	FileSourceIdentity,
 	RegisteredSource,
 	ResolvedSource,
+	ResourceScope,
 	RootIssue,
 	SourceIdentity,
 	SourceReference,
@@ -30,7 +31,7 @@ export interface OpenedResourceFile extends ResourceFileMetadata {
 
 /** Confined filesystem capability; implementations retain handle ownership rules. */
 export interface ResourceFiles {
-	readonly canonicalRoot: string;
+	readonly scopeId: string;
 	readDirectory(relativePath?: string): Promise<Dirent[]>;
 	inspectVideoFile(relativePath: string): Promise<ResourceFileMetadata>;
 	inspectVideoFileWithVersion(
@@ -43,12 +44,13 @@ export interface ResourceFiles {
 	revalidateSubtitleSource(expected: FileSourceIdentity): Promise<void>;
 }
 export interface ResourceAccessApi {
-	readonly resourceRootEpoch: number;
+	readonly accessRevision: number;
 	readonly hasSnapshot: boolean;
 	resolveSource(id: string, expectedVersion?: string): Promise<ResolvedSource>;
 	revalidateSource(expected: SourceReference): Promise<ResolvedSource>;
-	assertRootEpoch(epoch: number): void;
-	resolveRoot(): Promise<string>;
+	assertAccessRevision(epoch: number): void;
+	getScope(): Promise<ResourceScope>;
+	filePath(expected: SourceReference): Promise<string>;
 	getFile(id: string): Promise<FileInfo>;
 	openMedia(id: string): Promise<OpenedResourceFile>;
 	openResources(expected?: SourceReference): Promise<ResourceFiles>;

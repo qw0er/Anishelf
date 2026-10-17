@@ -27,10 +27,12 @@ export class PreparationQueries {
 			fileId,
 		);
 		if (summary) {
-			const epoch = context.sources.resourceRootEpoch;
-			const root = await context.sources.resolveRoot();
-			tasks = tasks.filter((task) => task.spec.source.canonicalRoot === root);
-			context.sources.assertRootEpoch(epoch);
+			const epoch = context.sources.accessRevision;
+			const scope = await context.sources.getScope();
+			tasks = tasks.filter((task) =>
+				scope.ids.includes(task.spec.source.scopeId),
+			);
+			context.sources.assertAccessRevision(epoch);
 			return {
 				tasks: tasks.map((task) => ({
 					task,
@@ -47,8 +49,8 @@ export class PreparationQueries {
 	/** A cheap directory projection. Validate playable resources only through detail/selection. */
 	async summaries(fileIds: string[]) {
 		const { context } = this.services;
-		const epoch = context.sources.resourceRootEpoch;
-		const root = await context.sources.resolveRoot();
+		const epoch = context.sources.accessRevision;
+		const scope = await context.sources.getScope();
 		const files = fileIds.map((fileId) => ({
 			fileId,
 			versions: [] as {
@@ -64,7 +66,7 @@ export class PreparationQueries {
 				transcodeProfileFingerprint(profile),
 			]),
 		);
-		for (const row of context.repository.summaries(root, fileIds)) {
+		for (const row of context.repository.summaries(scope.ids, fileIds)) {
 			if (fingerprints.get(row.profileId) !== row.profileFingerprint) continue;
 			const file = byFile.get(row.fileId);
 			if (!file) continue;
@@ -83,7 +85,7 @@ export class PreparationQueries {
 			if (["queued", "processing", "cancelling"].includes(row.status))
 				version.pendingTasks++;
 		}
-		context.sources.assertRootEpoch(epoch);
+		context.sources.assertAccessRevision(epoch);
 		return { files };
 	}
 }

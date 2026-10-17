@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import type { Logger } from "pino";
 import { publicSubtitleFormat } from "../../../../contracts/subtitles.js";
 import { MediaToolError } from "../../../../platform/media/index.js";
@@ -100,7 +99,7 @@ export class SubtitlePreparationApplication {
 	private async validate(asset: SubtitleAsset, epoch?: number): Promise<void> {
 		await this.options.sources.revalidateSource({
 			identity: asset.source,
-			...(epoch === undefined ? {} : { rootEpoch: epoch }),
+			...(epoch === undefined ? {} : { accessRevision: epoch }),
 		});
 	}
 	async prepare(
@@ -122,7 +121,7 @@ export class SubtitlePreparationApplication {
 				"Subtitle preparation is closed.",
 			);
 		const id = subtitleAssetId([
-			source.identity.canonicalRoot,
+			source.identity.scopeId,
 			source.identity.fileId,
 			source.identity.sourceVersion,
 			trackId,
@@ -139,7 +138,7 @@ export class SubtitlePreparationApplication {
 			sizeBytes: null,
 			errorCode: null,
 		};
-		await this.validate(asset, source.rootEpoch);
+		await this.validate(asset, source.accessRevision);
 		const existing = this.options.repository.get(id);
 		if (existing?.status === "ready") {
 			try {
@@ -177,7 +176,7 @@ export class SubtitlePreparationApplication {
 				"Subtitle preparation is busy.",
 			);
 		this.options.repository.save(asset);
-		const promise = this.extract(asset, source.rootEpoch);
+		const promise = this.extract(asset, source.accessRevision);
 		this.active.set(id, promise);
 		// The worker owns errors and terminal persistence; HTTP returns pending immediately.
 		void promise
@@ -210,7 +209,10 @@ export class SubtitlePreparationApplication {
 			await this.files.remove(asset);
 			await this.validate(asset, epoch);
 			const result = await this.options.tools.extractSubtitle(
-				join(asset.source.canonicalRoot, asset.source.relativePath),
+				await this.options.sources.filePath({
+					identity: asset.source,
+					accessRevision: epoch,
+				}),
 				asset.streamIndex,
 				{ format: asset.format, signal: this.controller.signal },
 			);

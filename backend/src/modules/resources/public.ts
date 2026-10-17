@@ -7,13 +7,12 @@ export type {
 	ResolvedSource,
 	ResourceAccessApi,
 	ResourceFiles,
+	ResourceScope,
 	SourceIdentity,
+	SourceReference,
 	SourceRegistry,
 } from "./resource-access/public.js";
-export {
-	assertSourceVersion,
-	resourceRootId,
-} from "./resource-access/public.js";
+export { assertSourceVersion } from "./resource-access/public.js";
 
 import type { ResourceSettingsCoordinator } from "../system/public.js";
 import type { LibraryApi } from "./library/public.js";

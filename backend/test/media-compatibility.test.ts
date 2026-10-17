@@ -413,9 +413,7 @@ test("unified HTTP contracts reject obsolete payloads and isolate output context
 	expect(checked.statusCode).toBe(200);
 	expect(checked.json().output.combinations["copy-copy"]).toBe("supported");
 	expect(checked.body).not.toContain(root);
-	expect(checked.body).not.toMatch(
-		/canonicalRoot|libx264|encoder|crf|preset|plans/,
-	);
+	expect(checked.body).not.toMatch(/scopeId|libx264|encoder|crf|preset|plans/);
 	expect(
 		(
 			await app.inject({

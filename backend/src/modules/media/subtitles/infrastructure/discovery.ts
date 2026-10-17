@@ -64,7 +64,7 @@ export async function discoverExternalSubtitles(
 				result.warnings.push({ name: entry.name, code: "SUBTITLE_TOO_LARGE" });
 				continue;
 			}
-			const id = subtitleTrackId([resources.canonicalRoot, videoPath, path]);
+			const id = subtitleTrackId([resources.scopeId, videoPath, path]);
 			result.tracks.push({
 				origin: "external",
 				id,

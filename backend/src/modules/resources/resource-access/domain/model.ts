@@ -8,18 +8,27 @@ export interface FileInfo {
 	mimeType: string;
 }
 
-import type { SourceIdentity } from "../../../../shared/media-source.js";
+/** Identifies one file version within an opaque Resources scope. Backend only. */
+export interface FileSourceIdentity {
+	scopeId: string;
+	relativePath: string;
+	sourceVersion: string;
+}
 
-export type {
-	FileSourceIdentity,
-	SourceIdentity,
-	SourceReference,
-} from "../../../../shared/media-source.js";
+export interface SourceIdentity extends FileSourceIdentity {
+	fileId: string;
+}
+
+/** Durable identities omit the process-local access revision; active operations retain it. */
+export interface SourceReference {
+	identity: SourceIdentity;
+	accessRevision?: number;
+}
 
 export interface ResolvedSource {
 	identity: SourceIdentity;
 	file: FileInfo;
-	rootEpoch: number;
+	accessRevision: number;
 }
 
 export interface RegisteredSource {
@@ -38,4 +47,10 @@ export interface SourceCatalog {
 export interface RootIssue {
 	code: "RESOURCE_ROOT_NOT_CONFIGURED" | "RESOURCE_ROOT_UNAVAILABLE";
 	message: string;
+}
+
+/** Opaque membership selected by Resources; paths stay private. */
+export interface ResourceScope {
+	readonly ids: readonly string[];
+	readonly revision: number;
 }

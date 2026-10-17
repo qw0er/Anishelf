@@ -162,6 +162,7 @@ async function fixture(
 			evidence: evidence(overrides),
 		});
 	return {
+		root,
 		app,
 		resolve,
 		description,
@@ -206,7 +207,7 @@ test.each([
 				fingerprint({
 					version: "preparation-execution:2",
 					fileId: f.file.id,
-					root: f.source.identity.canonicalRoot,
+					root: f.source.identity.scopeId,
 					sourceVersion: f.description.sourceVersion,
 					profileFingerprint: f.description.output?.profileFingerprint,
 					delivery: "file",
@@ -433,9 +434,8 @@ test("media planning validates evidence without opening history or claiming reso
 		videoStreamIndex: 2,
 		audioStreamIndices: [4],
 	});
-	expect(JSON.stringify(result.identity)).not.toContain(
-		f.source.identity.canonicalRoot,
-	);
+	expect(result.identity.rootId).toBe(f.source.identity.scopeId);
+	expect(JSON.stringify(result.identity)).not.toContain(f.root);
 	expect(Object.isFrozen(result.execution.plan)).toBe(true);
 	expect(result).not.toHaveProperty("playbackUrl");
 	expect(result).not.toHaveProperty("taskId");
@@ -786,7 +786,7 @@ test.each([
 			fingerprint({
 				version: "preparation-execution:2",
 				fileId: f.file.id,
-				root: f.source.identity.canonicalRoot,
+				root: f.source.identity.scopeId,
 				sourceVersion: description.sourceVersion,
 				profileFingerprint: checked.output?.profileFingerprint,
 				delivery: "file",
@@ -839,7 +839,7 @@ test("non-H264 encoding omits H264 constraints and has a distinct resolver ident
 		fingerprint({
 			version: "preparation-execution:3",
 			fileId: f.file.id,
-			root: f.source.identity.canonicalRoot,
+			root: f.source.identity.scopeId,
 			sourceVersion: f.description.sourceVersion,
 			profileFingerprint: checked.output.profileFingerprint,
 			delivery: "file",

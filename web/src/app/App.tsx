@@ -8,6 +8,7 @@ import {
 	PreparationMonitor,
 	PreparationProvider,
 } from "../features/media/ui.js";
+import { resourceContext } from "../features/resources/public.js";
 import { QueryScope } from "../shared/api/queries.js";
 import { useSessionCheck } from "./auth/use-session-check.js";
 import AppHeader from "./components/app-header.js";
@@ -16,14 +17,10 @@ import { useAppRuntimeState } from "./runtime/use-app-runtime.js";
 export default function App() {
 	const runtime = useAppRuntimeState();
 	const navigation = useNavigation();
+	const resources = resourceContext(runtime.settings, runtime.library);
 	useSessionCheck();
 	return (
-		<QueryScope
-			value={JSON.stringify([
-				runtime.settings?.resourceRoot,
-				runtime.library?.revision,
-			])}
-		>
+		<QueryScope value={resources.scope}>
 			<PreparationProvider>
 				<div className="min-h-screen bg-background">
 					<AppHeader />
@@ -40,10 +37,8 @@ export default function App() {
 					<PreparationMonitor />
 					<TrackingOperationMonitor />
 					<IdentificationStatus
-						key={runtime.settings?.resourceRoot ?? "unconfigured"}
-						enabled={Boolean(
-							runtime.settings?.resourceRoot && runtime.library?.ready,
-						)}
+						key={resources.identity}
+						enabled={resources.ready}
 					/>
 				</div>
 			</PreparationProvider>

@@ -16,7 +16,7 @@ import { projection } from "./projection.js";
 
 interface SavedPreview {
 	value: CatalogPreview;
-	canonicalRoot: string;
+	scopeIds: readonly string[];
 	epoch: number;
 	sources: ReviewRecord[];
 	affectedWorks: { id: string; revision: number }[];
@@ -35,7 +35,7 @@ export class AssociationApplication {
 		request: PreviewRequest,
 		signal?: AbortSignal,
 	): Promise<CatalogPreview> {
-		const root = await this.context.root();
+		const scope = await this.context.scope();
 		this.prunePreviews();
 		if (this.previews.size >= policy.maximumPreviews)
 			throw new DomainError(
@@ -53,17 +53,17 @@ export class AssociationApplication {
 			request.reference,
 			signal ? { signal } : {},
 		);
-		this.context.options.sources.assertRootEpoch(root.epoch);
+		this.context.options.sources.assertAccessRevision(scope.revision);
 		const records: ReviewRecord[] = [];
 		const rows: CatalogPreview["rows"] = [];
 		const affectedWorks = new Map<string, number>();
 		for (const selection of request.rows) {
 			const record = this.context.requireReview(
 				selection.reviewId,
-				root.rootId,
+				scope.ids,
 				selection.revision,
 			);
-			await this.context.validate(record, root.epoch);
+			await this.context.validate(record, scope.revision);
 			const before = this.context.options.store
 				.associations(record.sourceId)
 				.map(({ episode }) => ({
@@ -100,7 +100,7 @@ export class AssociationApplication {
 			metadata,
 			rows,
 		};
-		this.context.options.sources.assertRootEpoch(root.epoch);
+		this.context.options.sources.assertAccessRevision(scope.revision);
 		this.context.open();
 		if (this.previews.size >= policy.maximumPreviews)
 			throw new DomainError(
@@ -110,8 +110,8 @@ export class AssociationApplication {
 		this.previews.set(value.id, {
 			value,
 			sources: records,
-			canonicalRoot: root.canonicalRoot,
-			epoch: root.epoch,
+			scopeIds: scope.ids,
+			epoch: scope.revision,
 			affectedWorks: [...affectedWorks].map(([id, revision]) => ({
 				id,
 				revision,
@@ -156,15 +156,15 @@ export class AssociationApplication {
 			conflict(
 				"Preview expired or the server restarted. Create a new preview.",
 			);
-		const root = await this.context.root();
+		const scope = await this.context.scope();
 		if (
-			saved.epoch !== root.epoch ||
-			saved.canonicalRoot !== root.canonicalRoot
+			saved.epoch !== scope.revision ||
+			JSON.stringify(saved.scopeIds) !== JSON.stringify(scope.ids)
 		)
 			conflict("The resource root changed. Create a new preview.");
 		for (const record of saved.sources)
-			await this.context.validate(record, root.epoch);
-		this.context.options.sources.assertRootEpoch(root.epoch);
+			await this.context.validate(record, scope.revision);
+		this.context.options.sources.assertAccessRevision(scope.revision);
 		this.context.open();
 		signal?.throwIfAborted();
 		const preview = saved.value;

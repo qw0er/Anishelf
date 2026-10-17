@@ -26,6 +26,7 @@ import {
 	type WorkDetails,
 } from "../src/modules/anime/metadata/public.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import { DomainError } from "../src/shared/errors.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
@@ -156,8 +157,7 @@ async function fixture(
 		library,
 		sources: library.sources,
 		logger,
-		onPublication: (results, canonicalRoot) =>
-			catalog.publish(results, canonicalRoot),
+		onPublication: (results, scopeIds) => catalog.publish(results, scopeIds),
 	});
 	cleanups.push(async () => {
 		await automatic.close();
@@ -338,13 +338,13 @@ test("corroborated automatic offsets persist once and special zero still needs m
 	});
 	const results = await engine.identify(
 		items.map((item) => ({
-			canonicalRoot: f.root,
+			scopeId: resourceRootId(f.root),
 			relativePath: item.relativePath,
 			fileId: item.fileId,
 			sourceVersion: item.sourceVersion,
 		})),
 	);
-	await f.catalog.publish(results, f.root);
+	await f.catalog.publish(results, [resourceRootId(f.root)]);
 	let reviews = (await f.catalog.reviews()).items;
 	const converted = required(
 		reviews.find((item) => item.evidence.originalName === "Ocean - 15.mkv"),
@@ -941,7 +941,9 @@ test("closing Catalog stops every composed use case before reading or mutating s
 	f.catalog.close();
 	f.catalog.close();
 
-	await expect(f.catalog.publish([], f.root)).rejects.toThrowError(
+	await expect(
+		f.catalog.publish([], [resourceRootId(f.root)]),
+	).rejects.toThrowError(
 		expect.objectContaining({ code: "CATALOG_UNAVAILABLE" }),
 	);
 	const calls = [
@@ -1155,15 +1157,15 @@ test("ambiguous candidates, specials and provider failure remain pending rather 
 			score: 69,
 		},
 	});
-	await f.catalog.publish(results, f.root);
+	await f.catalog.publish(results, [resourceRootId(f.root)]);
 	expect((await f.catalog.list()).items).toHaveLength(0);
 	first.proposals = [original];
 	first.metadataStatus = "failed";
-	await f.catalog.publish(results, f.root);
+	await f.catalog.publish(results, [resourceRootId(f.root)]);
 	expect((await f.catalog.list()).items).toHaveLength(0);
 	first.metadataStatus = "searched";
 	required(first.proposals[0]).candidate.conflicts = ["Year differs"];
-	await f.catalog.publish(results, f.root);
+	await f.catalog.publish(results, [resourceRootId(f.root)]);
 	expect((await f.catalog.list()).items).toHaveLength(0);
 });
 
@@ -1331,7 +1333,7 @@ test("work review filters match qualified candidates without admitting them and 
 		...reference,
 		provider: "other",
 	};
-	await f.catalog.publish(results, f.root);
+	await f.catalog.publish(results, [resourceRootId(f.root)]);
 	const first = await f.catalog.reviews({
 		workId: confirmed.workId,
 		decision: "pending",
@@ -1345,7 +1347,7 @@ test("work review filters match qualified candidates without admitting them and 
 		f.catalog.reviews({ workId: "unknown-work", decision: "pending" }),
 	).rejects.toMatchObject({ code: "CATALOG_NOT_FOUND" });
 	required(excluded.proposals[0]).candidate.work.reference = reference;
-	await f.catalog.publish(results, f.root);
+	await f.catalog.publish(results, [resourceRootId(f.root)]);
 	expect(
 		(
 			await f.catalog.reviews({
@@ -1769,4 +1771,29 @@ test("unchanged provider details renew freshness without incrementing the local 
 	expect(after.metadata.snapshotId).toBe(before.metadata.snapshotId);
 	expect(after.metadata.fetchedAt).toBe(now);
 	expect(f.get).toHaveBeenCalledTimes(2);
+});
+
+test("Catalog queries and complete publications use opaque scope collections", async () => {
+	const f = await fixture();
+	const result = required(f.automatic.getResults()[0]);
+	const otherScope = resourceRootId("/another-library");
+	const otherResult = structuredClone(result);
+	otherResult.source.scopeId = otherScope;
+	const source = f.database.catalog.registerSource(otherResult.source);
+	f.database.catalog.publish([otherScope], [{ source, result: otherResult }]);
+	const currentScope = result.source.scopeId;
+	const reviews = f.database.catalog.reviews(
+		[currentScope, otherScope],
+		undefined,
+		1,
+		100,
+	);
+	expect(reviews.items.map((item) => item.rootId)).toEqual(
+		expect.arrayContaining([currentScope, otherScope]),
+	);
+	f.database.catalog.publish([currentScope], []);
+	expect(f.database.catalog.review(source.id)?.available).toBe(true);
+	f.database.catalog.publish([currentScope, otherScope], []);
+	expect(f.database.catalog.review(source.id)?.available).toBe(false);
+	expect(f.database.catalog.reviews([], undefined, 1, 100).items).toEqual([]);
 });

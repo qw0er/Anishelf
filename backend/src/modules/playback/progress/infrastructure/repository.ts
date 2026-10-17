@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNotNull, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import { mediaSources } from "../../../resources/persistence.js";
@@ -181,7 +181,7 @@ export class PlaybackRepository {
 	}
 
 	listHistory(
-		rootId: string,
+		scopeIds: readonly string[],
 		limit = this.policy.candidateBatchSize,
 		offset = 0,
 		view: "continue" | "recent" = "recent",
@@ -198,7 +198,7 @@ export class PlaybackRepository {
 			.innerJoin(mediaSources, eq(mediaSources.id, playbackProgress.sourceId))
 			.where(
 				and(
-					eq(mediaSources.rootId, rootId),
+					inArray(mediaSources.rootId, [...scopeIds]),
 					view === "continue" ? gt(playbackProgress.positionMs, 0) : undefined,
 					isNotNull(playbackProgress.lastViewedAtMs),
 					view === "continue"

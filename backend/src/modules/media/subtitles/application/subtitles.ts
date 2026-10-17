@@ -133,7 +133,7 @@ export class SubtitleApplication implements SubtitleApi {
 				"Unsupported subtitle track.",
 			);
 		const key = JSON.stringify([
-			source.identity.canonicalRoot,
+			source.identity.scopeId,
 			source.identity.fileId,
 			sourceVersion,
 		]);
@@ -206,7 +206,7 @@ export class SubtitleApplication implements SubtitleApi {
 			this.policy.subtitles,
 			this.policy.library,
 		);
-		this.sources.assertRootEpoch(source.rootEpoch);
+		this.sources.assertAccessRevision(source.accessRevision);
 		const track = discovered.tracks.find(
 			(candidate) => candidate.id === trackId,
 		);

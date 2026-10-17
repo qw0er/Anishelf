@@ -1,9 +1,35 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import {
+	mkdir,
+	mkdtemp,
+	readdir,
+	readFile,
+	realpath,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { checkArchitecture } from "./check-architecture.mjs";
+
+test("resource consumers do not interpret directory roots or read the directory table", async () => {
+	for (const module of ["anime", "media", "playback"]) {
+		const directory = new URL(
+			`../backend/src/modules/${module}/`,
+			import.meta.url,
+		);
+		for (const path of await readdir(directory, { recursive: true })) {
+			if (!path.endsWith(".ts")) continue;
+			const source = await readFile(new URL(path, directory), "utf8");
+			assert.doesNotMatch(
+				source,
+				/\b(?:canonicalRoot|resourceRoot|resourceRootId|resourceRootEpoch|resolveRoot|assertRootEpoch|resourceRoots)\b/,
+				`${module}/${path} must use Resources identities and capabilities`,
+			);
+		}
+	}
+});
 
 async function scan(files) {
 	const directory = await realpath(

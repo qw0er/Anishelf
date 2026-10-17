@@ -10,11 +10,11 @@ export class AutomaticAdmission {
 	) {}
 	async admit(
 		results: readonly IdentificationResult[],
-		canonicalRoot: string,
+		scopeIds: readonly string[],
 		signal?: AbortSignal,
 	) {
-		const root = await this.context.root();
-		if (root.canonicalRoot !== canonicalRoot) return;
+		const scope = await this.context.scope();
+		if (JSON.stringify(scope.ids) !== JSON.stringify(scopeIds)) return;
 		const started = performance.now();
 		let admitted = 0;
 		let skipped = 0;
@@ -22,7 +22,7 @@ export class AutomaticAdmission {
 		for (const result of results) {
 			signal?.throwIfAborted();
 			this.context.open();
-			this.context.options.sources.assertRootEpoch(root.epoch);
+			this.context.options.sources.assertAccessRevision(scope.revision);
 			const source = this.context.options.store.registerSource(result.source);
 			const record = this.context.options.store.review(source.id);
 			const proposal = record ? automaticProposal(record) : null;
@@ -76,7 +76,7 @@ export class AutomaticAdmission {
 			} catch (err) {
 				signal?.throwIfAborted();
 				this.context.open();
-				this.context.options.sources.assertRootEpoch(root.epoch);
+				this.context.options.sources.assertAccessRevision(scope.revision);
 				failed++;
 				this.context.options.logger.warn(
 					{
@@ -93,7 +93,7 @@ export class AutomaticAdmission {
 		this.context.options.logger.info(
 			{
 				event: "catalog.automatic_admission_completed",
-				rootId: root.rootId,
+				scopeIds: scope.ids,
 				sources: results.length,
 				admitted,
 				skipped,

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
@@ -62,14 +62,71 @@ async function fixture() {
 	};
 }
 test("source access uses only the catalog port, without a library application", async () => {
-	const { source } = await fixture();
+	const { source, root } = await fixture();
 	const api: ResourceAccessApi = source;
 	const result = await api.resolveSource("opaque-id");
 	expect(result.file).toMatchObject({ id: "opaque-id", sizeBytes: 8 });
 	expect(result.identity.sourceVersion).toBeTruthy();
+	const scope = await api.getScope();
+	expect(scope).toEqual({ ids: [result.identity.scopeId], revision: 0 });
+	expect(JSON.stringify({ scope, identity: result.identity })).not.toContain(
+		root,
+	);
+	expect(result.identity).not.toHaveProperty("canonicalRoot");
 	const file = await api.openMedia("opaque-id");
 	await file.release();
-	expect(api.resourceRootEpoch).toBe(0);
+	expect(api.accessRevision).toBe(0);
+});
+
+test("tool paths are resolved by Resources and reject forged or stale references", async () => {
+	const { source, root } = await fixture();
+	const expected = await source.resolveSource("opaque-id");
+	expect(await source.filePath(expected)).toBe(
+		join(await realpath(root), "episode.mp4"),
+	);
+	for (const identity of [
+		{ ...expected.identity, scopeId: "another-scope" },
+		{ ...expected.identity, relativePath: "../outside.mp4" },
+		{ ...expected.identity, sourceVersion: "replaced" },
+	]) {
+		await expect(source.filePath({ identity })).rejects.toMatchObject({
+			code: "PLAYBACK_CONFLICT",
+		});
+	}
+	source.invalidateRoot();
+	await expect(source.filePath(expected)).rejects.toMatchObject({
+		code: "PLAYBACK_CONFLICT",
+	});
+});
+
+test("a configuration change during tool-path resolution rejects the old path", async () => {
+	const { source } = await fixture();
+	const expected = await source.resolveSource("opaque-id");
+	let release!: () => void;
+	let entered!: () => void;
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const started = new Promise<void>((resolve) => {
+		entered = resolve;
+	});
+	const filePath = ResourceAccess.prototype.filePath;
+	vi.spyOn(ResourceAccess.prototype, "filePath").mockImplementationOnce(
+		async function (this: ResourceAccess, path) {
+			const result = await filePath.call(this, path);
+			entered();
+			await gate;
+			return result;
+		},
+	);
+	const pending = source.filePath(expected);
+	const rejected = expect(pending).rejects.toMatchObject({
+		code: "PLAYBACK_CONFLICT",
+	});
+	await started;
+	source.invalidateRoot();
+	release();
+	await rejected;
 });
 test("root changes invalidate source resolution already awaiting filesystem access", async () => {
 	const { source, base, setRoot } = await fixture();
@@ -91,7 +148,7 @@ test("root changes invalidate source resolution already awaiting filesystem acce
 	release();
 	await expect(pending).rejects.toMatchObject({ code: "PLAYBACK_CONFLICT" });
 	const resolved = await source.resolveSource("opaque-id");
-	expect(resolved.rootEpoch).toBe(1);
+	expect(resolved.accessRevision).toBe(1);
 	expect(resolved.file.sizeBytes).toBe(11);
 });
 
@@ -117,14 +174,14 @@ test("active references retain their epoch while durable references can survive 
 	});
 	await expect(
 		source.revalidateSource({ identity: expected.identity }),
-	).resolves.toMatchObject({ identity: expected.identity, rootEpoch: 1 });
+	).resolves.toMatchObject({ identity: expected.identity, accessRevision: 1 });
 });
 
 test("revalidation rejects a changed root or relative path even when the version matches", async () => {
 	const { source, root } = await fixture();
 	const expected = await source.resolveSource("opaque-id");
 	for (const identity of [
-		{ ...expected.identity, canonicalRoot: join(root, "other") },
+		{ ...expected.identity, scopeId: join(root, "other") },
 		{ ...expected.identity, relativePath: "different.mp4" },
 	]) {
 		await expect(source.revalidateSource({ identity })).rejects.toMatchObject({
@@ -133,7 +190,7 @@ test("revalidation rejects a changed root or relative path even when the version
 	}
 	await expect(
 		source.openResources({
-			identity: { ...expected.identity, canonicalRoot: join(root, "other") },
+			identity: { ...expected.identity, scopeId: join(root, "other") },
 		}),
 	).rejects.toMatchObject({ code: "PLAYBACK_CONFLICT" });
 });
@@ -183,7 +240,7 @@ test("subtitle identity validates the actual handle and releases rejected handle
 	const resources = await source.openResources();
 	const metadata = await resources.inspectSubtitleSource(path);
 	const identity = {
-		canonicalRoot: resources.canonicalRoot,
+		scopeId: resources.scopeId,
 		relativePath: path,
 		sourceVersion: metadata.sourceVersion,
 	};
