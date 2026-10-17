@@ -4,6 +4,7 @@ import type { AnimeLibraryResponse } from "../../../shared/api/contracts.js";
 export interface LibraryFilters {
 	scope?: "local" | "all";
 	viewingStatus?:
+		| "all"
 		| "CURRENT"
 		| "PLANNING"
 		| "COMPLETED"
@@ -24,24 +25,26 @@ export function libraryFilters(params: URLSearchParams): LibraryFilters {
 	const availability = params.get("availability");
 	const query = params.get("query")?.trim().slice(0, 200);
 	const format = params.get("format")?.slice(0, 50);
-	const viewingStatus = params.get("viewingStatus");
+	const requestedViewingStatus = params.get("viewingStatus");
+	const viewingStatus =
+		requestedViewingStatus === "all"
+			? "all"
+			: [
+						"CURRENT",
+						"PLANNING",
+						"COMPLETED",
+						"PAUSED",
+						"DROPPED",
+						"REPEATING",
+						"untracked",
+					].includes(requestedViewingStatus ?? "CURRENT")
+				? (requestedViewingStatus ?? "CURRENT")
+				: "CURRENT";
 	return {
 		...(params.get("scope") === "all" ? { scope: "all" as const } : {}),
-		...([
-			"CURRENT",
-			"PLANNING",
-			"COMPLETED",
-			"PAUSED",
-			"DROPPED",
-			"REPEATING",
-			"untracked",
-		].includes(viewingStatus ?? "")
-			? {
-					viewingStatus: viewingStatus as NonNullable<
-						LibraryFilters["viewingStatus"]
-					>,
-				}
-			: {}),
+		viewingStatus: viewingStatus as NonNullable<
+			LibraryFilters["viewingStatus"]
+		>,
 		...(query ? { query } : {}),
 		...(format ? { format } : {}),
 		...(/^[1-9][0-9]{0,3}$/.test(year) ? { year } : {}),
@@ -70,6 +73,7 @@ export function getAnimeLibrary(
 	options?: RequestOptions,
 ): Promise<AnimeLibraryResponse> {
 	const params = new URLSearchParams(librarySearch(filters));
+	if (filters.viewingStatus === "all") params.delete("viewingStatus");
 	params.set("perPage", "24");
 	params.set("generation", generation);
 	return request(`/api/anime/library?${params}`, "GET", options);
