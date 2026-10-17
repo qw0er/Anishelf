@@ -1,5 +1,5 @@
 import { FolderPlus, Library, ScanLine, SearchX } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useSearchParams } from "react-router";
 import { EmptyState } from "../../../../shared/components/empty-state.js";
@@ -15,6 +15,26 @@ import { LibraryPagination } from "./library-pagination.js";
 import { LibraryResults } from "./library-results.js";
 import { LibraryTrackingAction } from "./library-tracking-action.js";
 
+const libraryFilterSessionKey = "anishelf:anime-library:filters";
+
+function readLibraryFilterSession() {
+	try {
+		return window.sessionStorage.getItem(libraryFilterSessionKey);
+	} catch (error) {
+		console.warn("[AnimeLibrary] Could not read tab-session filters.", error);
+		return null;
+	}
+}
+
+function writeLibraryFilterSession(search: string) {
+	try {
+		if (search) window.sessionStorage.setItem(libraryFilterSessionKey, search);
+		else window.sessionStorage.removeItem(libraryFilterSessionKey);
+	} catch (error) {
+		console.warn("[AnimeLibrary] Could not save tab-session filters.", error);
+	}
+}
+
 export function AnimeLibrary({
 	resourceRoot,
 	ready,
@@ -27,7 +47,29 @@ export function AnimeLibrary({
 	const filters = libraryFilters(params);
 	const location = useLocation();
 	const restoredFocus = useRef<string | null>(null);
-	const canBrowse = Boolean(resourceRoot && ready) || filters.scope === "all";
+	const [filterSessionReady, setFilterSessionReady] = useState(false);
+	const setLibrarySearch = useCallback(
+		(search: string) => {
+			writeLibraryFilterSession(search);
+			setParams(search);
+		},
+		[setParams],
+	);
+	useEffect(() => {
+		if (location.search) {
+			writeLibraryFilterSession(
+				librarySearch(libraryFilters(new URLSearchParams(location.search))),
+			);
+			setFilterSessionReady(true);
+			return;
+		}
+		const saved = readLibraryFilterSession();
+		if (saved) setParams(saved, { replace: true });
+		else setFilterSessionReady(true);
+	}, [location.search, setParams]);
+	const canBrowse =
+		filterSessionReady &&
+		(Boolean(resourceRoot && ready) || filters.scope === "all");
 	const query = useLibraryData(filters, canBrowse);
 	useEffect(() => {
 		const id = location.state?.focusWork;
@@ -56,7 +98,7 @@ export function AnimeLibrary({
 			<LibraryFiltersForm
 				filters={filters}
 				filtered={filtered}
-				onFilters={setParams}
+				onFilters={setLibrarySearch}
 				viewingEnabled={Boolean(query.account?.account)}
 				actions={
 					<LibraryTrackingAction
@@ -135,8 +177,14 @@ export function AnimeLibrary({
 											<Button
 												variant="outline"
 												onClick={() =>
-													setParams(
-														filters.scope ? { scope: filters.scope } : {},
+													setLibrarySearch(
+														librarySearch({
+															sort: "title",
+															page: 1,
+															...(filters.scope
+																? { scope: filters.scope }
+																: {}),
+														}),
 													)
 												}
 											>
@@ -161,7 +209,7 @@ export function AnimeLibrary({
 								fetching={query.isFetching}
 								hasNextPage={query.data.hasNextPage}
 								onPage={(page) =>
-									setParams(librarySearch({ ...filters, page }))
+									setLibrarySearch(librarySearch({ ...filters, page }))
 								}
 							/>
 						</>
