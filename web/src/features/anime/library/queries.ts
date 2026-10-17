@@ -44,6 +44,7 @@ export const animeLibraryQuery = (
 					}
 				}
 			: skipToken,
+		refetchOnWindowFocus: true,
 		refetchInterval: (query) =>
-			query.state.data?.tracking.refreshing ? 1500 : 60_000,
+			query.state.data?.tracking.refreshing ? 1500 : 5 * 60_000,
 	});

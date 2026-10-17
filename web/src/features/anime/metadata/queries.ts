@@ -41,7 +41,8 @@ export const identificationQuery = (scope: string) =>
 		queryFn: ({ signal }) =>
 			getIdentificationStatus({ signal: boundedSignal(signal) }),
 		staleTime: 0,
-		refetchInterval: (query) => (query.state.data?.running ? 1500 : 15000),
+		refetchOnWindowFocus: true,
+		refetchInterval: (query) => (query.state.data?.running ? 1500 : 60_000),
 	});
 
 export const airingQuery = (provider: string, id: string) =>
@@ -53,6 +54,7 @@ export const airingQuery = (provider: string, id: string) =>
 		getNextPageParam: (last) =>
 			last.data.hasNextPage ? last.data.page + 1 : undefined,
 		staleTime: 60_000,
+		refetchOnWindowFocus: true,
 		refetchInterval: (query) =>
 			query.state.data?.pages.some((page) => page.refreshing)
 				? 2000

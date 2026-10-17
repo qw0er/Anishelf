@@ -8,7 +8,10 @@ import type { TrackingIdentity } from "./queries.js";
 
 const generations = new WeakMap<QueryClient, Set<string>>();
 const seen = new WeakMap<QueryClient, Map<string, string>>();
-export const operationsQuery = (identity: TrackingIdentity) =>
+export const operationsQuery = (
+	identity: TrackingIdentity,
+	watchForNew = false,
+) =>
 	queryOptions({
 		queryKey: [
 			"tracking",
@@ -26,6 +29,7 @@ export const operationsQuery = (identity: TrackingIdentity) =>
 			reportTrackingOperations(client, identity, operations);
 			return operations;
 		},
+		refetchOnWindowFocus: true,
 		refetchInterval: (query) =>
 			query.state.data?.some(
 				(op) =>
@@ -34,7 +38,9 @@ export const operationsQuery = (identity: TrackingIdentity) =>
 					(op.state === "failed" && op.retryAt !== null),
 			)
 				? 1500
-				: 10000,
+				: watchForNew
+					? 10000
+					: 60_000,
 		retry: false,
 	});
 export function reportTrackingOperations(

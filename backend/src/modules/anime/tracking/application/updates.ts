@@ -59,10 +59,11 @@ export class TrackingUpdates {
 	private readonly lifetime = new AbortController();
 	private active: Promise<void> | undefined;
 	private requested = false;
-	private readonly timer: ReturnType<typeof setInterval>;
+	private timer: ReturnType<typeof setTimeout> | undefined;
 	constructor(private readonly options: Options) {
-		this.timer = setInterval(() => this.wake(), 1000);
-		this.timer.unref();
+		this.wake();
+	}
+	connectionChanged(): void {
 		this.wake();
 	}
 	private now() {
@@ -311,6 +312,8 @@ export class TrackingUpdates {
 	}
 	private wake() {
 		if (this.lifetime.signal.aborted) return;
+		clearTimeout(this.timer);
+		this.timer = undefined;
 		this.requested = true;
 		if (this.active) return;
 		this.active = Promise.resolve()
@@ -325,14 +328,48 @@ export class TrackingUpdates {
 					{ event: "tracking.worker_failed" },
 					"Tracking worker failed; durable operations retained.",
 				);
+				this.schedule(30_000);
 			})
 			.finally(() => {
 				this.active = undefined;
 				if (this.requested) this.wake();
+				else if (!this.timer) this.scheduleRetry();
 			});
 	}
+	private schedule(delay: number) {
+		if (this.lifetime.signal.aborted) return;
+		clearTimeout(this.timer);
+		this.timer = setTimeout(
+			() => this.wake(),
+			Math.min(2_147_483_647, Math.max(0, delay)),
+		);
+		this.timer.unref();
+		this.options.logger?.debug(
+			{ event: "tracking.worker_retry_scheduled", delayMs: delay },
+			"Tracking worker will wake for pending retries.",
+		);
+	}
+	private scheduleRetry() {
+		if (this.lifetime.signal.aborted) return;
+		try {
+			const status = this.options.access.status();
+			if (!status.account || status.state !== "connected") return;
+			let next = Number.POSITIVE_INFINITY;
+			for (const op of this.options.store.list(status.account.id)) {
+				if (op.state === "failed" && op.retryAt !== null)
+					next = Math.min(next, op.retryAt);
+			}
+			if (Number.isFinite(next)) this.schedule(next - this.now());
+		} catch {
+			this.options.logger?.error(
+				{ event: "tracking.worker_schedule_failed" },
+				"Tracking retry schedule could not be read; recovery will retry.",
+			);
+			this.schedule(30_000);
+		}
+	}
 
-	/** Exposed for deterministic fixture execution, also used by the scheduled worker. */
+	/** Flush admitted work; delayed retries use the same wake/drain lifecycle. */
 	async flush(): Promise<void> {
 		this.wake();
 		await this.active;
@@ -470,7 +507,7 @@ export class TrackingUpdates {
 		}
 	}
 	async close(): Promise<void> {
-		clearInterval(this.timer);
+		clearTimeout(this.timer);
 		this.lifetime.abort();
 		await this.active;
 	}

@@ -73,7 +73,7 @@ function TargetControl({
 	const { t } = useTranslation();
 	const viewing = useViewingState(String(target.mediaId));
 	const operations = useQuery({
-		...operationsQuery(identity),
+		...operationsQuery(identity, true),
 		enabled: Boolean(identity.accountId),
 	});
 	const operation = operations.data?.find(

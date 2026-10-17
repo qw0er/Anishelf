@@ -21,6 +21,7 @@ import { PlaybackCompletions } from "./completions.js";
 
 interface PlaybackSessionState {
 	completionContext: string | null;
+	completionQueued: boolean;
 	openedAt: number;
 	sourceId: string;
 	identity: SourceIdentity;
@@ -99,6 +100,7 @@ export class PlaybackApplication implements PlaybackApi {
 		}
 		this.sessions.set(token, {
 			completionContext,
+			completionQueued: false,
 			openedAt,
 			sourceId: progress.sourceId,
 			identity: source.identity,
@@ -141,7 +143,7 @@ export class PlaybackApplication implements PlaybackApi {
 				(input.durationMs !== null &&
 					input.positionMs / input.durationMs >= this.policy.completionRatio));
 		const observation =
-			completed && session.completionContext
+			completed && !session.completionQueued && session.completionContext
 				? {
 						id: createHash("sha256")
 							.update(
@@ -170,7 +172,10 @@ export class PlaybackApplication implements PlaybackApi {
 		);
 		if (result.status === "stale") this.conflict();
 		session.touchedAtMs = this.now();
-		void this.completionsWorker?.flush();
+		if (observation && result.status === "saved") {
+			session.completionQueued = true;
+			void this.completionsWorker?.flush();
+		}
 		this.logger.trace(
 			{
 				event: "playback.progress_saved",

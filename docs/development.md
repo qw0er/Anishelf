@@ -772,3 +772,20 @@ showed remote confirmation. Episode 7 required explicit cross-gap confirmation;
 Keep followed by Mark remained actionable. The player reused the detail editor
 for a backward correction. The 390-pixel control layout had no horizontal overflow.
 This verifies local media/command integration, not real AniList delivery.
+
+
+## Scheduling verification
+
+Backend queues use direct wakeups and timeouts only for retries, rather than
+one-second or two-second idle scans. `tracking.worker_retry_scheduled` and
+`playback.completion_retry_scheduled` debug records report the next delay without
+credentials or opaque completion context. Storage scheduling failures retain the
+existing error diagnostics and a bounded recovery delay.
+
+Use fake clocks to verify idle queues perform no reads, retries run at their saved
+deadlines, reconnection resumes authorization-blocked work, and notifications
+received during an active handoff are not lost. Verify startup recovery and shutdown
+cancellation alongside command coalescing and uncertain remote-write reconciliation.
+Browser checks cover focus/visibility deduplication, hidden-tab suspension and the
+five-minute visible-session fallback. See [Architecture](architecture.md#background-scheduling-and-browser-refresh)
+for the active and idle refresh intervals.
