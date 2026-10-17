@@ -14,6 +14,7 @@ import { Input } from "../../../shared/components/ui/input.js";
 import { Spinner } from "../../../shared/components/ui/spinner.js";
 import { useDelayedPending } from "../../../shared/hooks/use-delayed-pending.js";
 import { libraryPolicy, preparationPolicy } from "../policy.js";
+import { ResourcePathList } from "./resource-path-list.js";
 
 export default function ResourceSettings({
 	settings,
@@ -45,27 +46,10 @@ export default function ResourceSettings({
 						action="/settings"
 						className="flex min-w-0 flex-col gap-4"
 					>
-						<div className="flex min-w-0 flex-col gap-2">
-							<label className="text-sm font-medium" htmlFor="resource-root">
-								{t("settingsPage.pathLabel")}
-							</label>
-							<textarea
-								id="resource-root"
-								name="resourceRoots"
-								rows={4}
-								className="border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 w-full min-w-0 rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:opacity-50"
-								aria-describedby="resource-roots-help"
-								defaultValue={settings.resourceRoots.join("\n")}
-								placeholder={t("settingsPage.pathPlaceholder")}
-								disabled={disabled || saving}
-							/>
-							<p
-								id="resource-roots-help"
-								className="text-sm text-muted-foreground"
-							>
-								{t("settingsPage.pathsHelp")}
-							</p>
-						</div>
+						<ResourcePathList
+							paths={settings.resourceRoots}
+							disabled={disabled || saving}
+						/>
 						<div className="flex min-w-0 flex-col gap-2">
 							<label className="text-sm font-medium" htmlFor="scan-interval">
 								{t("settingsPage.scanInterval")}
@@ -140,13 +124,6 @@ export default function ResourceSettings({
 							</Button>
 						</div>
 					</fetcher.Form>
-					{settings.resourceRoots.length > 0 && (
-						<p className="break-all text-sm text-muted-foreground">
-							{t("settingsPage.savedPath", {
-								path: settings.resourceRoots.join(" · "),
-							})}
-						</p>
-					)}
 					{disabled && (
 						<p className="text-sm">{t("settingsPage.waitForScan")}</p>
 					)}

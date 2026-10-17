@@ -106,7 +106,7 @@ or Podman. The image includes Node.js, FFmpeg/FFprobe and the built application.
   or omit it for local/SSH access.
 - `ANISHELF_INITIAL_RESOURCE_ROOT=/media` initializes a fresh installation.
   For multiple mounts, use `ANISHELF_INITIAL_RESOURCE_ROOTS='["/media/anime","/media/movies"]'`
-  instead. Change existing paths in Settings, one absolute path per line. Paths
+  instead. Change existing paths in Settings using the directory list and Add directory control. Paths
   must not overlap; an empty list returns to setup mode.
 
 Both primary examples use a named `anishelf-data` volume for application data
