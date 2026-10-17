@@ -1694,7 +1694,7 @@ test("poster library filters local titles, preserves return context and selects 
 	mockAnime(detail);
 	renderApp("/?query=Frieren&sort=recent");
 	const card = await screen.findByRole("link", { name: "Frieren" });
-	expect(screen.getByText("1 / 3 regular episodes available")).toBeTruthy();
+	expect(within(card).getByText("Local 1 / 3")).toBeTruthy();
 	fireEvent.click(card);
 	await screen.findByRole("heading", { name: "Frieren", level: 1 });
 	const episode = screen.getByText("Episode 1").closest("li");
@@ -2628,7 +2628,9 @@ test("AniList library shows status and remote-only details, keeps filters and re
 		return fallback(input, init);
 	});
 	renderApp("/");
-	await screen.findByText(/Watching · AniList progress: 3/);
+	const localCard = await screen.findByRole("link", { name: "Frieren" });
+	expect(within(localCard).getByText("Watching")).toBeTruthy();
+	expect(within(localCard).getByText("3 / 3")).toBeTruthy();
 	const toolbar = within(
 		screen.getByRole("group", { name: "Library controls" }),
 	);
@@ -2971,72 +2973,90 @@ test("manual metadata refresh success is a Toast and leaves the refresh action a
 	);
 });
 
-test("local detail viewing state lives in the title header and uses provider count instead of locally available episodes", async () => {
-	mockAnime(animeFixture());
-	const fallback = fetcher.getMockImplementation();
-	fetcher.mockImplementation(async (input, init) => {
-		const path = String(input);
-		if (path === "/api/tracking/account")
-			return json({
-				clientId: "fixture",
-				authorizationUrl: "https://anilist.co",
-				generation: "header-viewing",
-				account: { id: 7, name: "Fixture" },
-				state: "connected",
-				connectivity: "available",
-				checkedAt: 0,
+test.each([0, 2])(
+	"local detail keeps progress in its header and only shows positive unwatched hints (progress %s)",
+	async (progress) => {
+		mockAnime(animeFixture());
+		const fallback = fetcher.getMockImplementation();
+		fetcher.mockImplementation(async (input, init) => {
+			const path = String(input);
+			if (path === "/api/tracking/account")
+				return json({
+					clientId: "fixture",
+					authorizationUrl: "https://anilist.co",
+					generation: "header-viewing",
+					account: { id: 7, name: "Fixture" },
+					state: "connected",
+					connectivity: "available",
+					checkedAt: 0,
+				});
+			if (path.startsWith("/api/tracking/entries/154587?"))
+				return json({
+					accountId: 7,
+					generation: "header-viewing",
+					state: "connected",
+					fetchedAt: 1000,
+					stale: false,
+					refreshing: false,
+					error: null,
+					entry: {
+						id: 1,
+						mediaId: 154587,
+						progress,
+						status: "CURRENT",
+						updatedAt: 1,
+						titles: ["Frieren"],
+						format: "TV",
+						year: 2023,
+						episodeCount: 3,
+						coverUrl: null,
+					},
+				});
+			return requiredFetch(fallback)(input, init);
+		});
+		renderApp("/anime/work-1");
+		const title = await screen.findByRole("heading", {
+			name: "Frieren",
+			level: 1,
+		});
+		const header = title.parentElement;
+		if (!header) throw new Error("Missing title header");
+		const summary = await within(header).findByRole("region", {
+			name: "AniList viewing state",
+		});
+		await within(summary).findByText(`${progress} / 3 episodes`);
+		expect(screen.queryByText(/AniList progress: 2 watched/)).toBeNull();
+		expect(screen.queryByText(/0 unwatched available/)).toBeNull();
+		if (progress === 2) {
+			expect(screen.getAllByText("Watched")).toHaveLength(2);
+			expect(screen.getByText("Unwatched")).toBeTruthy();
+			expect(
+				screen.queryByRole("button", {
+					name: "About available unwatched episodes",
+				}),
+			).toBeNull();
+		} else {
+			expect(screen.queryByText("Watched")).toBeNull();
+			expect(screen.getAllByText("Unwatched")).toHaveLength(3);
+			const hint = screen.getByRole("button", {
+				name: "About available unwatched episodes",
 			});
-		if (path.startsWith("/api/tracking/entries/154587?"))
-			return json({
-				accountId: 7,
-				generation: "header-viewing",
-				state: "connected",
-				fetchedAt: 1000,
-				stale: false,
-				refreshing: false,
-				error: null,
-				entry: {
-					id: 1,
-					mediaId: 154587,
-					progress: 2,
-					status: "CURRENT",
-					updatedAt: 1,
-					titles: ["Frieren"],
-					format: "TV",
-					year: 2023,
-					episodeCount: 3,
-					coverUrl: null,
-				},
-			});
-		return requiredFetch(fallback)(input, init);
-	});
-	renderApp("/anime/work-1");
-	const title = await screen.findByRole("heading", {
-		name: "Frieren",
-		level: 1,
-	});
-	const header = title.parentElement;
-	if (!header) throw new Error("Missing title header");
-	const summary = await within(header).findByRole("region", {
-		name: "AniList viewing state",
-	});
-	await within(summary).findByText("2 / 3 episodes");
-	expect(
-		await screen.findByText(
-			/AniList progress: 2 watched · 0 available unwatched/,
-		),
-	).toBeTruthy();
-	expect(screen.getAllByText("Watched (AniList progress)")).toHaveLength(2);
-	expect(screen.getByText("Unwatched (AniList progress)")).toBeTruthy();
-	expect(within(summary).getByText("Watching")).toBeTruthy();
-	expect(within(summary).queryByRole("heading")).toBeNull();
-	expect(
-		within(summary).queryByText(/separate from local playback history/),
-	).toBeNull();
-	expect(
-		screen.getAllByRole("region", { name: "AniList viewing state" }),
-	).toHaveLength(1);
-});
+			expect(hint.textContent).toContain("1 unwatched available");
+			fireEvent.click(hint);
+			await screen.findByText(
+				"Locally available episodes numbered after your cumulative AniList progress. Local playback history is separate.",
+			);
+		}
+		expect(within(summary).getByText("Watching")).toBeTruthy();
+		expect(within(summary).queryByRole("heading")).toBeNull();
+		expect(
+			within(summary).queryByText(/separate from local playback history/),
+		).toBeNull();
+		expect(
+			screen.getAllByRole("region", { name: "AniList viewing state" }),
+		).toHaveLength(1);
+	},
+);
 
 test("single-version anime rows reuse Files commands without leaving detail or opening playback", async () => {
 	const detail = animeFixture();

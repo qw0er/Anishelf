@@ -38,7 +38,7 @@ export function EpisodeList({
 			.flatMap((page) => page.data.items) ?? [];
 	return (
 		<section className="space-y-3">
-			<div className="flex items-center gap-1">
+			<div className="flex flex-wrap items-center gap-1">
 				<h2 className="text-lg font-semibold">{t("anime.episodes")}</h2>
 				<Tooltip
 					openOnClick
@@ -58,15 +58,21 @@ export function EpisodeList({
 						<Info className="size-3.5" aria-hidden="true" />
 					</Button>
 				</Tooltip>
+				{anilistProgress !== null && counts.availableUnwatched > 0 && (
+					<Tooltip content={t("episodeViewing.availabilityInfo")} openOnClick>
+						<Button
+							variant="ghost"
+							className="ml-auto h-auto gap-1 px-1 py-0.5 text-xs text-muted-foreground"
+							aria-label={t("episodeViewing.availabilityInfoLabel")}
+						>
+							{t("episodeViewing.availableUnwatched", {
+								count: counts.availableUnwatched,
+							})}
+							<Info className="size-3.5" aria-hidden="true" />
+						</Button>
+					</Tooltip>
+				)}
 			</div>
-			{anilistProgress !== null && (
-				<p className="text-sm text-muted-foreground">
-					{t("episodeViewing.summary", {
-						progress: anilistProgress,
-						available: counts.availableUnwatched,
-					})}
-				</p>
-			)}
 			{episodes.length === 0 && <p>{t("anime.noEpisodes")}</p>}
 			{(["regular", "special", "movie"] as const).map((kind) => {
 				const group = episodes.filter((episode) => episode.kind === kind);

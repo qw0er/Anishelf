@@ -70,7 +70,13 @@ panels. Browsing lists use separators rather than a card around every row.
 Poster grids have two mobile columns and adapt desktop columns to a minimum
 card width. Reserve two title lines and one availability summary; keep cache
 information on detail pages. Whole cards open work details with matching hover
-and keyboard-focus feedback.
+and keyboard-focus feedback. Cards show format/year, a compact viewing-status
+badge with cumulative progress (for example, `Watching 1 / 12`), and one local
+availability line (`Local 0 / 12`). Unknown totals omit the denominator. Movies
+use a single local-availability slot. Show an additional unwatched-availability
+hint only when its count is positive. Card Tooltips and screen-reader text retain
+the source and full meaning of the compact counts; do not add nested buttons to
+whole-card links or repeat the remote-only availability sentence.
 
 Catalog search submits with Enter or its search button. Sorting and discrete
 filters apply immediately and reset pagination. Put secondary filters in an
@@ -91,7 +97,11 @@ Work detail prioritizes the header and episode list. AniList viewing state is a
 compact row inside the title/metadata header on both local and remote details.
 Use a status Badge, cumulative progress and the provider's total episode count;
 unknown totals show only the watched count. Keep the cumulative-progress explanation
-in a keyboard/touch-accessible Tooltip. Keep a fixed-size refresh button in the
+in a keyboard/touch-accessible Tooltip. Episode lists do not repeat the header's
+progress summary or its explanatory paragraph. Put a positive unwatched-availability
+count beside the episode heading with its own accessible explanation Tooltip;
+omit zero counts. Episode rows use short Watched/Unwatched labels, with the AniList
+source explained at the list/header level. Keep a fixed-size refresh button in the
 summary and Library toolbar; its Tooltip contains the last update time and, only
 when stale, the saved-data explanation. Refreshing changes only the existing icon
 and aria-busy state, without an extra badge, spinner or cache-feedback row. Show a short loading skeleton until a
