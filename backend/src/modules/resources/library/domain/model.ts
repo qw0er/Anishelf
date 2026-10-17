@@ -18,10 +18,12 @@ import type { FileInfo } from "../../resource-access/public.js";
 export type ResourceInfo = DirectoryInfo | FileInfo;
 
 export interface DirectoryEntry extends DirectoryInfo {
+	scopeId?: string;
 	relativePath: string;
 }
 
 export interface FileEntry extends FileInfo {
+	scopeId?: string;
 	relativePath: string;
 }
 
@@ -38,6 +40,12 @@ export interface LibraryStatus {
 	scan: ScanState | null;
 	error: LibraryIssue | null;
 	stale: boolean;
+	roots?: {
+		id: string;
+		name: string;
+		available: boolean;
+		error: LibraryIssue | null;
+	}[];
 }
 
 /** Published snapshots are read-only; traversal builds a separate candidate. */
@@ -53,7 +61,11 @@ export interface LibrarySnapshot {
 export function createResourceId(
 	kind: LibraryEntry["kind"],
 	relativePath: string,
+	scopeId?: string,
 ): ResourceId {
-	if (kind === "directory" && relativePath === "") return "root";
-	return `${kind}_${createHash("sha256").update(kind).update("\0").update(relativePath).digest("base64url")}`;
+	if (scopeId === undefined && kind === "directory" && relativePath === "")
+		return "root";
+	const hash = createHash("sha256").update(kind).update("\0");
+	if (scopeId !== undefined) hash.update(scopeId).update("\0");
+	return `${kind}_${hash.update(relativePath).digest("base64url")}`;
 }

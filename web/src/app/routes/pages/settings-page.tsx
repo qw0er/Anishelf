@@ -24,7 +24,7 @@ export function SettingsPage() {
 				description={t("settingsPage.description")}
 			/>
 			<ResourceSettings
-				key={settings.resourceRoot}
+				key={JSON.stringify(settings.resourceRoots)}
 				settings={settings}
 				disabled={scanning || scanPending}
 			/>

@@ -68,7 +68,7 @@ test("System settings HTTP updates media settings while Resources reserves its s
 			url: "/api/settings",
 			headers,
 			payload: {
-				resourceRoot: root,
+				resourceRoots: [root],
 				transcodeCacheBudgetGiB: 12,
 				defaultTranscodeProfileId: "builtin:fast",
 				preparationMode: "fast",
@@ -76,7 +76,7 @@ test("System settings HTTP updates media settings while Resources reserves its s
 		});
 		expect(response.statusCode).toBe(200);
 		expect(response.json()).toMatchObject({
-			resourceRoot: root,
+			resourceRoots: [root],
 			transcodeCacheBudgetGiB: 12,
 			defaultTranscodeProfileId: "builtin:fast",
 			preparationMode: "fast",
@@ -85,11 +85,11 @@ test("System settings HTTP updates media settings while Resources reserves its s
 			method: "PUT",
 			url: "/api/settings",
 			headers,
-			payload: { resourceRoot: other },
+			payload: { resourceRoots: [other] },
 		});
 		expect(rejected.statusCode).toBe(409);
 		expect(rejected.json().error).toMatchObject({ code: "SETTINGS_BUSY" });
-		expect(system.api.settings.resourceRoot).toBe(root);
+		expect(system.api.settings.resourceRoots).toEqual([root]);
 		const profile = await app.inject({
 			method: "GET",
 			url: "/api/transcode-profiles",
@@ -111,18 +111,18 @@ test("a media settings patch does not restore a stale root or overwrite concurre
 	const { system, resources, root, other } = await fixture();
 	const settings = new SettingsApplication(system.api, resources.api, logger);
 	// All writes enqueue before persistence completes; the media patch observes the old root.
-	const rootWrite = system.api.patchSettings({ resourceRoot: other });
+	const rootWrite = system.api.patchSettings({ resourceRoots: [other] });
 	const profileWrite = system.api.selectTranscodeProfile(
 		"builtin:fast",
 		"fast",
 	);
 	const budgetWrite = settings.updateSettings({
-		resourceRoot: root,
+		resourceRoots: [root],
 		transcodeCacheBudgetGiB: 14,
 	});
 	await Promise.all([rootWrite, profileWrite, budgetWrite]);
 	expect(system.api.settings).toMatchObject({
-		resourceRoot: other,
+		resourceRoots: [other],
 		transcodeCacheBudgetGiB: 14,
 		defaultTranscodeProfileId: "builtin:fast",
 		preparationMode: "fast",

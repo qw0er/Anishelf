@@ -2,7 +2,7 @@ import type { Logger } from "pino";
 import type { ResourceSettingsCoordinator } from "../../public.js";
 import type { PersistentSettings, SettingsStore } from "../settings.js";
 export type SettingsUpdate = Partial<PersistentSettings> & {
-	resourceRoot: string;
+	resourceRoots: string[];
 };
 /** System owns every setting write; Resources coordinates only resource-related changes. */
 export class SettingsApplication {

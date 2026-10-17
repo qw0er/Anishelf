@@ -331,3 +331,27 @@ access itself; no anonymous media-path exemption is needed.
 See the [Docker volume reference](https://docs.docker.com/engine/storage/volumes/)
 and [Podman Quadlet reference](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html)
 for volume lifecycle and supported unit keys.
+
+## Multiple resource directories
+
+Mount each media location read-only at a distinct server path, then enter one path
+per line in Settings. For example, mount `/host/anime` at `/media/anime` and
+`/host/movies` at `/media/movies`. Do not configure both `/media` and its children.
+For fresh installations, initialize both paths with:
+
+```sh
+ANISHELF_INITIAL_RESOURCE_ROOTS='["/media/anime","/media/movies"]'
+```
+
+Use this instead of `ANISHELF_INITIAL_RESOURCE_ROOT`; existing settings always take
+precedence. Settings persist the list as `resourceRoots`; legacy single-path files
+are read automatically and rewritten on the next save. Up to 64 non-overlapping
+paths are supported. DataDir must remain separate from every media path, including
+through symlinks.
+
+Files shows one entry per root when multiple paths are configured. Offline roots
+retain their previous listing and show a warning while healthy roots keep updating.
+All-root failure preserves the previous index. Removing a path hides its files,
+retaining history and accepted associations for restoration. Source IDs and history
+survive the automatic file-identity migration; old browser file URLs and stored
+external-media links should be refreshed after upgrade.

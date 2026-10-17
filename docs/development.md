@@ -351,35 +351,34 @@ API/status and real-provider verification boundaries.
 
 ## Resource Settings and Startup
 
-When `settings.json` is missing and `ANISHELF_INITIAL_RESOURCE_ROOT` is set,
-startup validates a readable, searchable directory separate from dataDir and
-creates settings containing that root. Creation never replaces an existing file;
-concurrent initializers load the file created first. Existing settings, including
-a null root, take precedence over the initialization default. An empty or malformed
-settings file still fails startup and is not repaired or replaced. Invalid path
-syntax fails environment validation before dataDir creation; an inaccessible or
-overlapping initial directory fails startup without creating settings. After
-initialization, Settings remains editable and subsequent restarts preserve it.
-Container examples set the initial root to `/media`.
+Settings accepts one absolute server path per line, up to 64 paths. It persists
+`resourceRoots: string[]`; `[]` means setup mode. Duplicate, nested, symlink-aliased
+paths and overlap with dataDir are rejected. Legacy `resourceRoot` string/null
+settings load into the array format; the next save writes that format. Existing
+settings always win over startup initializers, including an explicitly empty list.
+Malformed or unreadable files fail startup without replacement.
 
-Without an initialization default, a missing `settings.json` starts setup mode
-with `resourceRoot: null`; HTTP remains
-available until the resource directory is configured in Settings. The first
-successful save creates the file in dataDir. Current user settings are the
-absolute resource root and optional `scanIntervalMinutes`; zero disables scheduled
-scanning. Manual edits require restart; UI saves take effect immediately.
+For fresh deployments, `ANISHELF_INITIAL_RESOURCE_ROOTS` accepts a JSON array such
+as `'["/media/anime","/media/movies"]'`. The original
+`ANISHELF_INITIAL_RESOURCE_ROOT=/media` remains a single-path convenience; set only
+one initializer. All initial directories must be readable and separate from the
+data directory. Creation never overwrites an existing settings file, including
+under concurrent initialization. Without an initializer, setup remains available.
 
-Malformed/unreadable settings, unknown keys and invalid paths fail startup without
-overwriting the file. Keep dataDir, the resource root and frontend assets separate;
-dataDir and resourceRoot must not contain one another, including through symlinks.
-An unavailable configured root preserves settings but disables scanning until it
-is fixed. Missing FFmpeg/FFprobe disables dependent operations and logs a warning;
-browsing and direct playback remain available.
+Scans and resource-setting writes exclude each other. Configuration changes revoke
+active access references, remove inactive scopes and remount unchanged entries,
+then scan automatically. Reordering paths retains file IDs. An unavailable root
+retains its old entries while healthy roots update; all-root failure preserves the
+whole previous index. Removing a root hides its resources without deleting accepted
+Catalog associations or playback history. Empty configurations do not start a scan.
+Manual settings-file changes require restart; Web saves take effect immediately.
 
-Saving a real root change invalidates the old index and starts a scan; saving the
-same root preserves results. Scans and saves exclude each other. Failed writes
-preserve the prior settings and index. See the architecture's configuration and
-scan rules for API/error details.
+Migration 0016 scopes legacy file IDs and preserves durable source IDs, history and
+foreign keys. Resources supplies the SQLite identity functions registered by app
+before Drizzle runs; apply migrations through normal application startup. Browser
+file IDs change on upgrade; existing stored media links remain scoped to their old
+file IDs and should be regenerated. Generated media/subtitle cache identities may
+require fresh preparation. Missing media tools do not block direct playback.
 
 ## Development Proxy and Hosting
 

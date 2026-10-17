@@ -160,7 +160,7 @@ test("creates the configured data directory and retains existing settings", asyn
 	expect((await stat(config.dataDir)).isDirectory()).toBe(true);
 	await writeFile(
 		join(config.dataDir, "settings.json"),
-		'{"resourceRoot":null}',
+		'{"resourceRoots":[]}',
 	);
 	expect(await loadDeploymentConfig(env)).toEqual(config);
 	const { PersistentConfiguration } = await import(
@@ -168,7 +168,7 @@ test("creates the configured data directory and retains existing settings", asyn
 	);
 	expect((await PersistentConfiguration.load(config.dataDir)).settings).toEqual(
 		{
-			resourceRoot: null,
+			resourceRoots: [],
 		},
 	);
 });

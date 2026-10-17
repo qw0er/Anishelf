@@ -14,7 +14,7 @@ export class ResourceSettingsApplication {
 				): Promise<Readonly<PersistentSettings>>;
 			};
 			scans: ScanCoordinator;
-			rootChanged(): void;
+			rootChanged(): Promise<void>;
 			logger: Logger;
 		},
 	) {}
@@ -22,7 +22,7 @@ export class ResourceSettingsApplication {
 		return { ...this.options.configuration.settings };
 	}
 	updateResourceSettings(input: {
-		resourceRoot: string;
+		resourceRoots: string[];
 		scanIntervalMinutes?: number;
 	}): Promise<Readonly<PersistentSettings>> {
 		const patch = structuredClone(input);
@@ -48,11 +48,12 @@ export class ResourceSettingsApplication {
 			patch.defaultTranscodeProfileId !== undefined ||
 			patch.preparationMode !== undefined;
 		const resourceChange =
-			patch.resourceRoot !== current.resourceRoot ||
+			JSON.stringify(patch.resourceRoots) !==
+				JSON.stringify(current.resourceRoots) ||
 			patch.scanIntervalMinutes !== undefined ||
 			!mediaUpdate;
 		if (!resourceChange) {
-			delete patch.resourceRoot;
+			delete patch.resourceRoots;
 			delete patch.scanIntervalMinutes;
 			return save(patch);
 		}
@@ -61,11 +62,13 @@ export class ResourceSettingsApplication {
 	async coordinateSettingsChange(
 		save: () => Promise<Readonly<PersistentSettings>>,
 	): Promise<Readonly<PersistentSettings>> {
-		const previousRoot = this.getSettings().resourceRoot;
+		const previousRoot = this.getSettings().resourceRoots;
 		const settings = await this.options.scans.withSettingsChange(async () => {
 			const saved = await save();
-			if (saved.resourceRoot !== previousRoot) {
-				this.options.rootChanged();
+			if (
+				JSON.stringify(saved.resourceRoots) !== JSON.stringify(previousRoot)
+			) {
+				await this.options.rootChanged();
 				this.options.logger.info(
 					{ event: "resources.scope_invalidated" },
 					"Resource configuration changed; source access and the published index were invalidated.",
@@ -76,7 +79,8 @@ export class ResourceSettingsApplication {
 		});
 		if (
 			!this.options.scans.isClosed &&
-			settings.resourceRoot !== previousRoot
+			settings.resourceRoots.length > 0 &&
+			JSON.stringify(settings.resourceRoots) !== JSON.stringify(previousRoot)
 		) {
 			try {
 				await this.options.scans.startScan();

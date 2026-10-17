@@ -104,8 +104,10 @@ or Podman. The image includes Node.js, FFmpeg/FFprobe and the built application.
 - Media must be readable and data writable by the container's UID/GID 1000.
 - Set `ANISHELF_PUBLIC_ORIGIN` to your domain and configure [Caddy](docs/deployment.md#caddy-reverse-proxy),
   or omit it for local/SSH access.
-- `ANISHELF_INITIAL_RESOURCE_ROOT=/media` initializes a fresh installation;
-  change existing roots in Settings.
+- `ANISHELF_INITIAL_RESOURCE_ROOT=/media` initializes a fresh installation.
+  For multiple mounts, use `ANISHELF_INITIAL_RESOURCE_ROOTS='["/media/anime","/media/movies"]'`
+  instead. Change existing paths in Settings, one absolute path per line. Paths
+  must not overlap; an empty list returns to setup mode.
 
 Both primary examples use a named `anishelf-data` volume for application data
 and a read-only bind mount for media. Docker and Podman manage separate volumes;
@@ -286,7 +288,8 @@ Set environment variables before starting the application. Restart after changes
 | `ANISHELF_PUBLIC_ORIGIN` | Unset | One allowed external HTTP(S) origin, such as `https://example.com`; local access remains available. Authentication belongs to the reverse proxy. |
 | `ANISHELF_FRONTEND_DIR` | Unset | Absolute frontend build directory containing `index.html`; enables page hosting. |
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory | Absolute writable directory for settings, the database and caches. |
-| `ANISHELF_INITIAL_RESOURCE_ROOT` | Unset | Absolute readable media directory used only to create missing `settings.json`; existing settings are preserved. |
+| `ANISHELF_INITIAL_RESOURCE_ROOTS` | Unset | JSON array of up to 64 readable, non-overlapping absolute media paths; only creates missing settings. |
+| `ANISHELF_INITIAL_RESOURCE_ROOT` | Unset | Single-path initialization convenience; do not combine with the plural initializer. Existing settings are preserved. |
 | `ANISHELF_FFMPEG_PATH` | `ffmpeg` from PATH | Optional absolute FFmpeg executable path. |
 | `ANISHELF_FFPROBE_PATH` | `ffprobe` from PATH | Optional absolute FFprobe executable path. |
 | `ANISHELF_LOG_LEVEL` | `info` | Log level: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |

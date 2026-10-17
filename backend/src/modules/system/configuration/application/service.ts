@@ -62,7 +62,7 @@ export class ConfigurationService<
 		const persistent = await PersistentConfiguration.load(
 			deployment.dataDir,
 			ownedPolicy.library.maximumScanIntervalMinutes,
-			deployment.initialResourceRoot,
+			deployment.initialResourceRoots ?? deployment.initialResourceRoot,
 		);
 		return new ConfigurationService(
 			deployment,

@@ -42,7 +42,7 @@ export interface RegisteredSource {
 
 export interface SourceCatalog {
 	readonly hasSnapshot: boolean;
-	getFile(id: string): FileInfo & { relativePath: string };
+	getFile(id: string): FileInfo & { relativePath: string; scopeId?: string };
 }
 export interface RootIssue {
 	code: "RESOURCE_ROOT_NOT_CONFIGURED" | "RESOURCE_ROOT_UNAVAILABLE";

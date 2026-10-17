@@ -23,7 +23,7 @@ function progress(): ScanTraversalProgress {
 beforeEach(async () => {
 	fixture = await mkdtemp(join(tmpdir(), "anishelf-traversal-"));
 	await writeFile(join(fixture, "episode.mp4"), "video");
-	resources = await ResourceAccess.create({ resourceRoot: fixture });
+	resources = await ResourceAccess.create({ resourceRoots: [fixture] });
 });
 afterEach(async () => {
 	vi.restoreAllMocks();
@@ -43,7 +43,7 @@ test("traversal returns independent candidates for explicitly supplied roots", a
 	const next = join(fixture, "next");
 	await mkdir(next);
 	const second = await scanner.scan(
-		await ResourceAccess.create({ resourceRoot: next }),
+		await ResourceAccess.create({ resourceRoots: [next] }),
 		"second",
 		progress(),
 		new AbortController().signal,
@@ -54,6 +54,7 @@ test("traversal returns independent candidates for explicitly supplied roots", a
 			id: "root",
 			parentId: null,
 			name: "second",
+			scopeId: expect.any(String),
 			relativePath: "",
 		},
 	]);

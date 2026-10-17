@@ -42,12 +42,12 @@ afterEach(async () => {
 	await rm(fixture, { recursive: true, force: true });
 });
 
-function save(resourceRoot = root) {
+function save(resourceRoots = root) {
 	return app.inject({
 		method: "PUT",
 		url: "/api/settings",
 		headers,
-		payload: { resourceRoot },
+		payload: { resourceRoots: [resourceRoots] },
 	});
 }
 
@@ -56,7 +56,7 @@ test("first-run HTTP setup persists settings and automatically scans the configu
 		200,
 	);
 	expect((await app.inject({ url: "/api/settings", headers })).json()).toEqual({
-		resourceRoot: null,
+		resourceRoots: [],
 	});
 	expect(
 		(await app.inject({ url: "/api/library", headers })).json(),
@@ -76,9 +76,9 @@ test("first-run HTTP setup persists settings and automatically scans the configu
 	expect((await save()).statusCode).toBe(200);
 	expect(
 		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),
-	).toEqual({ resourceRoot: root });
+	).toEqual({ resourceRoots: [root] });
 	expect((await PersistentConfiguration.load(dataDir)).settings).toEqual({
-		resourceRoot: root,
+		resourceRoots: [root],
 	});
 
 	await libraryApp.waitForCompletion();
@@ -89,12 +89,12 @@ test("first-run HTTP setup persists settings and automatically scans the configu
 
 test.each([
 	{},
-	{ resourceRoot: null },
-	{ resourceRoot: 123 },
-	{ resourceRoot: "" },
-	{ resourceRoot: "relative" },
-	{ resourceRoot: "\0/media" },
-	{ resourceRoot: "/media", port: 1234 },
+	{ resourceRoots: null },
+	{ resourceRoots: 123 },
+	{ resourceRoots: [""] },
+	{ resourceRoots: ["relative"] },
+	{ resourceRoots: ["\0/media"] },
+	{ resourceRoots: ["/media"], port: 1234 },
 ])("invalid settings preserve setup mode: %j", async (payload) => {
 	const response = await app.inject({
 		method: "PUT",
@@ -103,7 +103,7 @@ test.each([
 		payload,
 	});
 	expect(response.statusCode).toBe(400);
-	expect(configuration.settings).toEqual({ resourceRoot: null });
+	expect(configuration.settings).toEqual({ resourceRoots: [] });
 	expect(index.revision).toBe(0);
 	await expect(readFile(join(dataDir, "settings.json"))).rejects.toMatchObject({
 		code: "ENOENT",
@@ -165,7 +165,7 @@ test("a failed disk save preserves current settings and the published index", as
 	expect(response.statusCode).toBe(500);
 	expect(response.json().error.code).toBe("CONFIG_WRITE_FAILED");
 	expect(response.body).not.toContain(fixture);
-	expect(configuration.settings.resourceRoot).toBe(root);
+	expect(configuration.settings.resourceRoots).toEqual([root]);
 	expect(index.snapshot).toEqual(snapshot);
 	expect(libraryApp.state).toEqual(state);
 });
@@ -200,7 +200,7 @@ test("a running scan rejects settings changes", async () => {
 		const response = await save(join(fixture, "other"));
 		expect(response.statusCode).toBe(409);
 		expect(response.json().error.code).toBe("SETTINGS_BUSY");
-		expect(configuration.settings.resourceRoot).toBe(root);
+		expect(configuration.settings.resourceRoots).toEqual([root]);
 	} finally {
 		release?.();
 	}
@@ -233,7 +233,7 @@ test("an in-flight save blocks another save and scan without partial changes", a
 			(await app.inject({ method: "POST", url: "/api/library/scan", headers }))
 				.statusCode,
 		).toBe(409);
-		expect(configuration.settings.resourceRoot).toBe(root);
+		expect(configuration.settings.resourceRoots).toEqual([root]);
 	} finally {
 		release?.();
 	}
@@ -245,10 +245,10 @@ test("foreign origins cannot save settings", async () => {
 		method: "PUT",
 		url: "/api/settings",
 		headers: { ...headers, origin: "https://foreign.example" },
-		payload: { resourceRoot: root },
+		payload: { resourceRoots: [root] },
 	});
 	expect(response.statusCode).toBe(403);
-	expect(configuration.settings.resourceRoot).toBeNull();
+	expect(configuration.settings.resourceRoots).toEqual([]);
 });
 
 test("scan interval can be changed without rescanning or resetting the root and survives root-only updates", async () => {
@@ -259,16 +259,16 @@ test("scan interval can be changed without rescanning or resetting the root and 
 		method: "PUT",
 		url: "/api/settings",
 		headers,
-		payload: { resourceRoot: root, scanIntervalMinutes: 0 },
+		payload: { resourceRoots: [root], scanIntervalMinutes: 0 },
 	});
 	expect(response.statusCode).toBe(200);
 	expect(response.json()).toEqual({
-		resourceRoot: root,
+		resourceRoots: [root],
 		scanIntervalMinutes: 0,
 	});
 	expect(index.revision).toBe(revision);
 	expect((await app.inject({ url: "/api/settings", headers })).json()).toEqual({
-		resourceRoot: root,
+		resourceRoots: [root],
 		scanIntervalMinutes: 0,
 	});
 	await save();
@@ -282,10 +282,10 @@ test.each([-1, 1.5, 10081, "60", null])(
 			method: "PUT",
 			url: "/api/settings",
 			headers,
-			payload: { resourceRoot: root, scanIntervalMinutes },
+			payload: { resourceRoots: [root], scanIntervalMinutes },
 		});
 		expect(response.statusCode).toBe(400);
-		expect(configuration.settings.resourceRoot).toBeNull();
+		expect(configuration.settings.resourceRoots).toEqual([]);
 	},
 );
 
@@ -294,7 +294,7 @@ test("cache budget is persisted and preserved by unrelated settings saves", asyn
 		method: "PUT",
 		url: "/api/settings",
 		headers,
-		payload: { resourceRoot: root, transcodeCacheBudgetGiB: 24 },
+		payload: { resourceRoots: [root], transcodeCacheBudgetGiB: 24 },
 	});
 	expect(response.statusCode).toBe(200);
 	expect(response.json().transcodeCacheBudgetGiB).toBe(24);
@@ -317,9 +317,9 @@ test.each([0, -1, 1.5, "10", 8388608])(
 			method: "PUT",
 			url: "/api/settings",
 			headers,
-			payload: { resourceRoot: root, transcodeCacheBudgetGiB },
+			payload: { resourceRoots: [root], transcodeCacheBudgetGiB },
 		});
 		expect(response.statusCode).toBe(400);
-		expect(configuration.settings).toEqual({ resourceRoot: null });
+		expect(configuration.settings).toEqual({ resourceRoots: [] });
 	},
 );

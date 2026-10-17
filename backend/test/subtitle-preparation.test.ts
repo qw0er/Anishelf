@@ -477,7 +477,7 @@ test("changing roots during extraction invalidates the old task", async () => {
 		const other = join(directory, "other");
 		await mkdir(other);
 		await writeFile(join(other, "episode.mkv"), "other video");
-		await library.updateResourceSettings({ resourceRoot: other });
+		await library.updateResourceSettings({ resourceRoots: [other] });
 		return { streamIndex: 2, format: "srt", text };
 	});
 	const response = await prepare();
@@ -565,10 +565,22 @@ test("probe slots deduplicate a source, reject excess work and become reusable",
 	const request = (id: string) =>
 		app.inject({ headers, url: `/api/files/${id}/subtitles` });
 	const first = request(fileId);
-	const second = request(createResourceId("file", "second.mkv"));
+	const second = request(
+		createResourceId(
+			"file",
+			"second.mkv",
+			(await library.sources.getScope()).ids[0],
+		),
+	);
 	await vi.waitFor(() => expect(probe).toHaveBeenCalledTimes(2));
 	const duplicate = request(fileId);
-	const busy = await request(createResourceId("file", "third.mkv"));
+	const busy = await request(
+		createResourceId(
+			"file",
+			"third.mkv",
+			(await library.sources.getScope()).ids[0],
+		),
+	);
 	expect(busy.json().warnings).toContainEqual(
 		expect.objectContaining({ code: "SUBTITLE_PROBE_BUSY" }),
 	);
@@ -581,7 +593,17 @@ test("probe slots deduplicate a source, reject excess work and become reusable",
 	).toEqual([200, 200, 200]);
 	probe.mockResolvedValue(info);
 	expect(
-		(await request(createResourceId("file", "third.mkv"))).json().warnings,
+		(
+			await request(
+				createResourceId(
+					"file",
+					"third.mkv",
+					(
+						await library.sources.getScope()
+					).ids[0],
+				),
+			)
+		).json().warnings,
 	).toEqual([]);
 	expect(probe).toHaveBeenCalledTimes(3);
 });

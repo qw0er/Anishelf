@@ -185,15 +185,21 @@ by those IDs. They neither calculate root IDs nor read the directory table.
 Resources issues process-local `accessRevision` values and validates them through
 `assertAccessRevision` and `revalidateSource`. Durable identities omit that
 revision so restart recovery can revalidate the same source. Configuration changes
-invalidate active references and reset the index before a new scan. Resources logs
+invalidate active references, remove inactive scopes and remount retained entries
+before a new scan. Resources logs
 `resources.scope_invalidated` without recording paths. Media owns tool execution;
 Resources' `filePath(reference)` validates membership, version, confinement and
 access revision before returning a transient tool input. Media never reconstructs
 an original-media path from a root. Sidecar discovery retains bounded relative
 directory reads through `ResourceFiles`.
 
-Normalized source/root primary keys remain unchanged, preserving history and
-associations. Database adapters reconstruct source identities from `media_sources`
+Durable source/root primary keys remain unchanged, preserving history and
+associations. Migration 0016 scopes legacy file lookup IDs by directory, updates
+recognition, durable observation and Tracking target file IDs, and preserves every
+source primary key and foreign
+key. App registers Resources-owned deterministic SQLite identity functions before
+Drizzle migration; registry reads use the unique scope/file/version identity so
+existing primary keys remain reusable. Database adapters reconstruct source identities from `media_sources`
 alone. The private legacy `resource_roots.canonical_path` unique column remains for
 database continuity; newly registered scopes store an opaque marker there, and no
 consumer interprets the column. Existing generated copies remain stored; new
@@ -204,9 +210,28 @@ Web Resources projects configuration into identity, cache scope, configured and
 ready values. App routes compose that projection, and Anime receives readiness
 booleans rather than directory paths. System continues to persist the combined
 settings document and validate its deployment constraints; the directory editor
-retains its existing Settings page and HTTP contract. Multiple configured
-directories are still future work: this refactor isolates resource consumers but
-retains the existing single-directory scanner and configuration format.
+retains its existing Settings page. Settings use `resourceRoots: string[]`, with
+an empty array representing setup mode. Legacy `resourceRoot` settings load as a
+one-element list (or an empty list for null); the next save writes the new format.
+Duplicate, overlapping and symlink-aliased roots are rejected, including overlap
+with the data directory. Up to 64 roots can be configured.
+
+Resource file IDs include the opaque root scope and relative path, so equal names
+in different roots never share source access, subtitles or history. Multiple roots
+appear beneath a synthetic Files root; a single root retains the flat entry view.
+Mount labels with equal basenames include a stable scope suffix. Reordering the
+configured roots does not change file identities.
+
+Each scan builds one candidate per directory, then atomically publishes the merged
+index. An unavailable directory retains its previous entries and adds a bounded
+warning while healthy directories continue scanning. Unexpected scan failures or
+all-unavailable preflight preserve the entire previous publication. Per-root
+availability is exposed in Library status; actual media access always revalidates
+the selected root. Recognition cannot admit unavailable retained files. Removing
+a root hides its local versions without deleting associations, progress or saved
+source records; restoring it recovers those records. Empty configurations invalidate
+access without starting a scan. Scan/root logs include scope IDs and counts rather
+than configured absolute paths.
 
 Media composition constructs Preparation's context, scheduler, worker, recovery and
 artifact services, and constructs subtitle/font services. Preparation's command

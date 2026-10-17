@@ -9,6 +9,7 @@ import type {
 	LibrarySnapshot,
 	ResourceId,
 } from "../domain/model.js";
+import { createResourceId } from "../domain/model.js";
 import type { Timestamp } from "../domain/scan-state.js";
 import { type LibraryPolicy, libraryPolicy } from "../policy.js";
 
@@ -43,7 +44,11 @@ function buildSnapshot(
 	const paths = new Set<string>();
 	const childIdsByParent = new Map<ResourceId, ResourceId[]>();
 	for (const entry of entries) {
-		if (!entry.id || entriesById.has(entry.id) || paths.has(entry.relativePath))
+		if (
+			!entry.id ||
+			entriesById.has(entry.id) ||
+			paths.has(JSON.stringify([entry.scopeId, entry.relativePath]))
+		)
 			invalidSnapshot();
 		const path = entry.relativePath;
 		if (
@@ -57,7 +62,7 @@ function buildSnapshot(
 		)
 			invalidSnapshot();
 		entriesById.set(entry.id, { ...entry });
-		paths.add(path);
+		paths.add(JSON.stringify([entry.scopeId, path]));
 		if (entry.kind === "directory") childIdsByParent.set(entry.id, []);
 	}
 	const root = entriesById.get("root");
@@ -74,7 +79,10 @@ function buildSnapshot(
 		const parentPath = dirname(entry.relativePath);
 		if (
 			parent?.kind !== "directory" ||
-			(parentPath === "." ? "" : parentPath) !== parent.relativePath
+			(entry.relativePath === ""
+				? parent.id !== "root" || parent.scopeId !== undefined
+				: (parentPath === "." ? "" : parentPath) !== parent.relativePath ||
+					parent.scopeId !== entry.scopeId)
 		)
 			invalidSnapshot();
 		childIdsByParent.get(parent.id)?.push(entry.id);
@@ -130,18 +138,43 @@ export class LibraryIndex {
 		return this.current.revision;
 	}
 
-	/** Discard entries belonging to a previous resource root. */
-	reset(): void {
+	/** Remove inactive scopes and remount retained entries while awaiting the next scan. */
+	reset(roots: readonly { id: string; name: string }[] = []): void {
+		const multiple = roots.length > 1;
+		const entries: LibraryEntry[] = [];
+		if (multiple || roots.length === 0)
+			entries.push({
+				kind: "directory",
+				id: "root",
+				parentId: null,
+				name: multiple ? "Resources" : "root",
+				relativePath: "",
+			});
+		for (const root of roots) {
+			const mountId = multiple
+				? createResourceId("directory", "", root.id)
+				: "root";
+			entries.push({
+				kind: "directory",
+				id: mountId,
+				parentId: multiple ? "root" : null,
+				scopeId: root.id,
+				name: root.name,
+				relativePath: "",
+			});
+			for (const entry of this.current.entriesById.values()) {
+				if (entry.scopeId !== root.id || entry.relativePath === "") continue;
+				entries.push({
+					...entry,
+					parentId:
+						dirname(entry.relativePath) === "."
+							? mountId
+							: (entry.parentId ?? mountId),
+				});
+			}
+		}
 		this.current = buildSnapshot(
-			[
-				{
-					kind: "directory",
-					id: "root",
-					parentId: null,
-					name: "root",
-					relativePath: "",
-				},
-			],
+			entries,
 			this.current.revision + 1,
 			null,
 			this.policy,

@@ -2,7 +2,7 @@ export type PreparationMode = "compatible" | "fast";
 
 /** Settings port consumed by business workflows; configuration implements persistence. */
 export interface PersistentSettings {
-	resourceRoot: string | null;
+	resourceRoots: string[];
 	preparationMode?: PreparationMode;
 	scanIntervalMinutes?: number;
 	transcodeCacheBudgetGiB?: number;

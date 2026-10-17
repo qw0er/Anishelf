@@ -189,7 +189,7 @@ test("rejects symlinks and oversized files while keeping usable candidates", asy
 	const media = await app.inject({ url: `/api/media/${fileId}`, headers });
 	expect(media.statusCode).toBe(200);
 	expect(media.body).toBe("video");
-	const resources = await ResourceAccess.create({ resourceRoot: root });
+	const resources = await ResourceAccess.create({ resourceRoots: [root] });
 	await expect(
 		resources.openFile(join("season", `${video}.srt`)),
 	).rejects.toMatchObject({ code: "RESOURCE_ACCESS_DENIED" });
@@ -252,7 +252,7 @@ test("rejects a root switch while discovery is in flight", async () => {
 	try {
 		const other = join(fixture, "other");
 		await mkdir(other);
-		await library.updateResourceSettings({ resourceRoot: other });
+		await library.updateResourceSettings({ resourceRoots: [other] });
 	} finally {
 		release();
 	}

@@ -10,10 +10,12 @@ import {
 	libraryRuntimePolicy,
 } from "../library/policy.js";
 import { ResourceAccessApplication } from "../resource-access/application/access.js";
+import { ResourceAccess } from "../resource-access/infrastructure/access.js";
 import {
-	checkResourceRoot,
-	ResourceAccess,
-} from "../resource-access/infrastructure/access.js";
+	checkRoots,
+	configuredRoots,
+	rootStatus,
+} from "../resource-access/infrastructure/roots.js";
 import type { ResourceRootApi } from "../resource-access/public.js";
 /** Connect the catalog port without a resource-access -> library module dependency. */
 export function createLibraryModule(options: {
@@ -35,7 +37,13 @@ export function createLibraryModule(options: {
 		},
 	});
 	const rootFiles: ResourceRootApi = {
-		checkRoot: (settings) => checkResourceRoot(settings),
+		getRoots: async (settings) =>
+			(await rootStatus(settings)).map((root) => ({
+				id: root.scopeId,
+				name: root.name,
+				error: root.error,
+			})),
+		checkRoot: (settings) => checkRoots(settings),
 		openRoot: (settings, policy) => ResourceAccess.create(settings, policy),
 	};
 	const scans = new ScanCoordinator({
@@ -49,9 +57,10 @@ export function createLibraryModule(options: {
 		configuration,
 		scans,
 		logger,
-		rootChanged: () => {
+		rootChanged: async () => {
 			sources.invalidateRoot();
-			index.reset();
+			const roots = await configuredRoots(configuration.settings);
+			index.reset(roots.map((root) => ({ id: root.scopeId, name: root.name })));
 		},
 	});
 	return new LibraryApplication<LibraryRuntimePolicy>({

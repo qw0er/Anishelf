@@ -49,7 +49,7 @@ test("built-ins use the shared schema and missing external files create no confi
 		selectedProfileId: "builtin:balanced",
 		selectionAvailable: true,
 	});
-	expect(service.settings).toEqual({ resourceRoot: null });
+	expect(service.settings).toEqual({ resourceRoots: [] });
 	await expect(
 		readFile(join(directory, "settings.json")),
 	).rejects.toMatchObject({ code: "ENOENT" });
@@ -64,7 +64,7 @@ test("external profiles merge into an immutable startup snapshot and choices sur
 	await service.selectTranscodeProfile("custom:small");
 	expect(
 		JSON.parse(await readFile(join(directory, "settings.json"), "utf8")),
-	).toEqual({ resourceRoot: null, defaultTranscodeProfileId: "custom:small" });
+	).toEqual({ resourceRoots: [], defaultTranscodeProfileId: "custom:small" });
 	expect(transcodeProfileCatalog(await load())).toMatchObject({
 		selectedProfileId: "custom:small",
 		selectionAvailable: true,
@@ -164,7 +164,7 @@ test("unreadable external file and failed selection writes fail without changing
 test("catalog and selection APIs expose display metadata, validate IDs, and preserve existing settings", async () => {
 	await writeProfiles([customProfile()]);
 	const service = await load();
-	await service.update({ resourceRoot: null, scanIntervalMinutes: 17 });
+	await service.update({ resourceRoots: [], scanIntervalMinutes: 17 });
 	const app = createHttpApp({
 		configuration: service,
 		config: service.deployment,
@@ -195,7 +195,7 @@ test("catalog and selection APIs expose display metadata, validate IDs, and pres
 		expect(select.statusCode).toBe(200);
 		expect(select.json().selectedProfileId).toBe("custom:small");
 		expect(service.settings).toEqual({
-			resourceRoot: null,
+			resourceRoots: [],
 			scanIntervalMinutes: 17,
 			defaultTranscodeProfileId: "custom:small",
 		});

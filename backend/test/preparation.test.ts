@@ -1259,7 +1259,7 @@ test("summaries separate source versions and filter the current profile and root
 	).toEqual([]);
 	const otherRoot = join(f.dataDir, "other-root");
 	await mkdir(otherRoot, { recursive: true });
-	await f.library.updateResourceSettings({ resourceRoot: otherRoot });
+	await f.library.updateResourceSettings({ resourceRoots: [otherRoot] });
 	expect(
 		(await f.application.summaries([ready.fileId])).files[0]?.versions,
 	).toEqual([]);

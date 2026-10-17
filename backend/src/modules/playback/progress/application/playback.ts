@@ -230,6 +230,7 @@ export class PlaybackApplication implements PlaybackApi {
 						error instanceof DomainError &&
 						[
 							"RESOURCE_NOT_FOUND",
+							"RESOURCE_ROOT_UNAVAILABLE",
 							"RESOURCE_MISSING",
 							"RESOURCE_UNREADABLE",
 							"RESOURCE_ACCESS_DENIED",

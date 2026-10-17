@@ -60,6 +60,9 @@ export interface SourceRegistry {
 }
 
 export interface ResourceRootApi {
+	getRoots(
+		settings: Readonly<PersistentSettings>,
+	): Promise<{ id: string; name: string; error: RootIssue | null }[]>;
 	checkRoot(settings: Readonly<PersistentSettings>): Promise<RootIssue | null>;
 	openRoot(
 		settings: Readonly<PersistentSettings>,

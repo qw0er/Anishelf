@@ -89,9 +89,9 @@ test("scan and status projections retain every state without sharing mutable war
 });
 
 test("settings responses expose only the public setting for setup and configured roots", () => {
-	for (const resourceRoot of [null, "/media"]) {
-		const stored = { resourceRoot, internalPath: "private-settings" };
-		expect(settingsResponse(stored)).toEqual({ resourceRoot });
+	for (const resourceRoots of [[], ["/media"]]) {
+		const stored = { resourceRoots, internalPath: "private-settings" };
+		expect(settingsResponse(stored)).toEqual({ resourceRoots });
 	}
 });
 

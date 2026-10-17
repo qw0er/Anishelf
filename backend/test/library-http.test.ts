@@ -65,7 +65,7 @@ async function scan(): Promise<ScanResponse> {
 }
 
 test("reports the initial library and empty root without automatically scanning", async () => {
-	expect(await library()).toEqual({
+	expect(await library()).toMatchObject({
 		ready: true,
 		revision: 0,
 		scan: null,
@@ -248,7 +248,7 @@ test("failed rescans preserve a stale snapshot and expose safe errors until reco
 
 test("partial scans return safe warning summaries through HTTP", async () => {
 	await mkdir(join(root, "blocked"));
-	const resources = await ResourceAccess.create({ resourceRoot: root });
+	const resources = await ResourceAccess.create({ resourceRoots: [root] });
 	const read = resources.readDirectory.bind(resources);
 	vi.spyOn(ResourceAccess, "create").mockResolvedValue(resources);
 	vi.spyOn(resources, "readDirectory").mockImplementation(async (path = "") => {
@@ -273,7 +273,7 @@ test.each([
 	{
 		method: "POST",
 		url: "/api/library/scan",
-		payload: { resourceRoot: "/private" },
+		payload: { resourceRoots: ["/private"] },
 	},
 	{ method: "POST", url: "/api/library/scan", payload: [] },
 	{

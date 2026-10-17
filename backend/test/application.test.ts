@@ -19,23 +19,25 @@ import { createLibraryModule } from "./support/library.js";
 
 let fixture: string;
 let root: string;
+let scopeId: string;
 let index: LibraryIndex;
 let libraryApp: LibraryApplication;
 beforeEach(async () => {
 	fixture = await mkdtemp(join(tmpdir(), "anishelf-scan-"));
 	root = join(fixture, "media");
 	await mkdir(root);
+	scopeId = (await ResourceAccess.create({ resourceRoots: [root] })).scopeId;
 	index = new LibraryIndex();
 	libraryApp = createLibraryModule({
 		index,
 		configuration: {
 			get settings() {
-				return { resourceRoot: root };
+				return { resourceRoots: [root] };
 			},
 			async update(next) {
-				if (next.resourceRoot === null)
+				if (next.resourceRoots === null)
 					throw new Error("Expected a configured root");
-				root = next.resourceRoot;
+				root = next.resourceRoots[0] as string;
 				return next;
 			},
 		},
@@ -69,12 +71,12 @@ test("scans nested directories and allowed video types, skipping symlinks and ot
 	expect(index.snapshot.entriesById.size).toBe(7);
 	expect(
 		index.getFile(
-			createResourceId("file", join("中文 folder", "episode 2.MP4")),
+			createResourceId("file", join("中文 folder", "episode 2.MP4"), scopeId),
 		),
 	).toMatchObject({ sizeBytes: 5, mimeType: "video/mp4" });
-	expect(index.listChildren(createResourceId("directory", "empty"))).toEqual(
-		[],
-	);
+	expect(
+		index.listChildren(createResourceId("directory", "empty", scopeId)),
+	).toEqual([]);
 });
 
 test("an empty directory is a successful scan", async () => {
@@ -97,7 +99,9 @@ test("reuses the active scan and replaces additions and removals without duplica
 	await writeFile(join(root, "new.mp4"), "video");
 	const second = await libraryApp.startScan();
 	expect(second.id).not.toBe(first.id);
-	expect(index.getFile(createResourceId("file", "old.mp4"))).toBeDefined();
+	expect(
+		index.getFile(createResourceId("file", "old.mp4", scopeId)),
+	).toBeDefined();
 	await libraryApp.waitForCompletion();
 	expect(index.revision).toBe(2);
 	expect(index.listChildren("root").map((entry) => entry.name)).toEqual([
@@ -127,7 +131,7 @@ test("child access failures produce a partial snapshot and safe warning summarie
 	await writeFile(join(root, "blocked", "hidden.mp4"), "video");
 	await writeFile(join(root, "removed.mp4"), "video");
 	await writeFile(join(root, "good.mp4"), "video");
-	const resources = await ResourceAccess.create({ resourceRoot: root });
+	const resources = await ResourceAccess.create({ resourceRoots: [root] });
 	const readDirectory = resources.readDirectory.bind(resources);
 	const inspectFile = resources.inspectVideoFile.bind(resources);
 	vi.spyOn(ResourceAccess, "create").mockResolvedValue(resources);
@@ -156,7 +160,7 @@ test("child access failures produce a partial snapshot and safe warning summarie
 
 test("losing the root during traversal fails instead of publishing a partial result", async () => {
 	await writeFile(join(root, "episode.mp4"), "video");
-	const resources = await ResourceAccess.create({ resourceRoot: root });
+	const resources = await ResourceAccess.create({ resourceRoots: [root] });
 	const inspectVideoFile = resources.inspectVideoFile.bind(resources);
 	vi.spyOn(ResourceAccess, "create").mockResolvedValue(resources);
 	vi.spyOn(resources, "inspectVideoFile").mockImplementation(async (path) => {
@@ -175,7 +179,7 @@ test("losing the root during traversal fails instead of publishing a partial res
 test("bounds concurrent resource access and publishes after outstanding work finishes", async () => {
 	for (let count = 0; count < 20; count++)
 		await writeFile(join(root, `episode ${count}.mp4`), "video");
-	const resources = await ResourceAccess.create({ resourceRoot: root });
+	const resources = await ResourceAccess.create({ resourceRoots: [root] });
 	vi.spyOn(ResourceAccess, "create").mockResolvedValue(resources);
 	const inspectVideoFile = resources.inspectVideoFile.bind(resources);
 	let active = 0;
@@ -208,7 +212,7 @@ test("cancellation discards the candidate and allows another scan", async () => 
 
 test("shutdown waits for active operations and rejects new scans", async () => {
 	await writeFile(join(root, "episode.mp4"), "video");
-	const resources = await ResourceAccess.create({ resourceRoot: root });
+	const resources = await ResourceAccess.create({ resourceRoots: [root] });
 	vi.spyOn(ResourceAccess, "create").mockResolvedValue(resources);
 	let entered: () => void = () => {};
 	const started = new Promise<void>((resolve) => {
@@ -238,7 +242,7 @@ test("settings changes during a scan prevent publication and the next scan uses 
 	await writeFile(join(root, "episode.mp4"), "video");
 	const nextRoot = join(fixture, "next");
 	await mkdir(nextRoot);
-	const resources = await ResourceAccess.create({ resourceRoot: root });
+	const resources = await ResourceAccess.create({ resourceRoots: [root] });
 	const inspectVideoFile = resources.inspectVideoFile.bind(resources);
 	const create = vi
 		.spyOn(ResourceAccess, "create")
@@ -295,7 +299,7 @@ test("direct callers coalesce root preflight and exclude settings saves before t
 		expect(libraryApp.state).toBeNull();
 		await expect(
 			libraryApp.updateResourceSettings({
-				resourceRoot: join(fixture, "next"),
+				resourceRoots: [join(fixture, "next")],
 			}),
 		).rejects.toMatchObject({ code: "SETTINGS_BUSY" });
 		expect(root).toBe(join(fixture, "media"));
@@ -323,7 +327,7 @@ test("rejected preflight releases the operation without discarding the previous 
 	expect(index.snapshot).toEqual(previous);
 	const next = join(fixture, "next");
 	await mkdir(next);
-	await libraryApp.updateResourceSettings({ resourceRoot: next });
+	await libraryApp.updateResourceSettings({ resourceRoots: [next] });
 	expect(libraryApp.state).not.toBeNull();
 	await libraryApp.waitForCompletion();
 	expect(index.getDirectory("root").name).toBe("next");
@@ -356,7 +360,7 @@ test("closing during root preflight waits and prevents a late scan from starting
 	try {
 		await expect(libraryApp.startScan()).rejects.toThrow("shutting down");
 		await expect(
-			libraryApp.updateResourceSettings({ resourceRoot: root }),
+			libraryApp.updateResourceSettings({ resourceRoots: [root] }),
 		).rejects.toMatchObject({ code: "SETTINGS_BUSY" });
 		expect(stopped).toBe(false);
 	} finally {
@@ -378,11 +382,11 @@ test("direct settings saves exclude scans and shutdown waits for the save to set
 		release = resolve;
 	});
 	const configuration = {
-		settings: { resourceRoot: root },
-		async update(next: { resourceRoot: string | null }) {
+		settings: { resourceRoots: [root] },
+		async update(next: { resourceRoots: string[] }) {
 			await gate;
-			if (next.resourceRoot === null) throw new Error("Expected a root");
-			this.settings = { resourceRoot: next.resourceRoot };
+			if (next.resourceRoots === null) throw new Error("Expected a root");
+			this.settings = { resourceRoots: next.resourceRoots };
 			return this.settings;
 		},
 	};
@@ -391,16 +395,16 @@ test("direct settings saves exclude scans and shutdown waits for the save to set
 		configuration,
 		logger: pino({ enabled: false }),
 	});
-	const input = { resourceRoot: join(fixture, "next") };
+	const input = { resourceRoots: [join(fixture, "next")] };
 	const save = application.updateResourceSettings(input);
-	input.resourceRoot = "/mutated-after-call";
+	input.resourceRoots = ["/mutated-after-call"];
 	let stopped = false;
 	try {
 		await expect(application.startScan()).rejects.toMatchObject({
 			code: "SETTINGS_BUSY",
 		});
 		await expect(
-			application.updateResourceSettings({ resourceRoot: root }),
+			application.updateResourceSettings({ resourceRoots: [root] }),
 		).rejects.toMatchObject({ code: "SETTINGS_BUSY" });
 		expect(preflight).not.toHaveBeenCalled();
 		const closing = application.close().then(() => {
@@ -414,7 +418,7 @@ test("direct settings saves exclude scans and shutdown waits for the save to set
 		release();
 		await application.close();
 	}
-	expect(await save).toEqual({ resourceRoot: join(fixture, "next") });
+	expect(await save).toEqual({ resourceRoots: [join(fixture, "next")] });
 	expect(index.scannedAt).toBeNull();
 	expect(index.revision).toBe(1);
 });
@@ -428,7 +432,7 @@ test.each(["getFile", "openMedia"] as const)(
 		await writeFile(join(next, "episode.mp4"), "different-root-contents");
 		await libraryApp.startScan();
 		await libraryApp.waitForCompletion();
-		const id = createResourceId("file", "episode.mp4");
+		const id = createResourceId("file", "episode.mp4", scopeId);
 		const original = ResourceAccess.create;
 		let release = () => {};
 		let entered = () => {};
@@ -446,7 +450,7 @@ test.each(["getFile", "openMedia"] as const)(
 		const pending = libraryApp[operation](id);
 		await opening;
 		try {
-			await libraryApp.updateResourceSettings({ resourceRoot: next });
+			await libraryApp.updateResourceSettings({ resourceRoots: [next] });
 			expect(() => index.getFile(id)).toThrow();
 		} finally {
 			release();
@@ -475,7 +479,7 @@ test("public library results select fields explicitly rather than exposing futur
 	);
 	const listing = libraryApp.getDirectory("root");
 	const file = await libraryApp.getFile(
-		createResourceId("file", "episode.mp4"),
+		createResourceId("file", "episode.mp4", scopeId),
 	);
 	for (const result of [listing, file]) {
 		expect(JSON.stringify(result)).not.toContain("privateDiagnostic");
@@ -486,7 +490,7 @@ test("public library results select fields explicitly rather than exposing futur
 
 test("scheduled scans discover new files, reschedule after completion, and honor interval changes and shutdown", async () => {
 	vi.useFakeTimers();
-	let settings = { resourceRoot: root, scanIntervalMinutes: 1 };
+	let settings = { resourceRoots: [root], scanIntervalMinutes: 1 };
 	const application = createLibraryModule({
 		index,
 		configuration: {
@@ -495,7 +499,7 @@ test("scheduled scans discover new files, reschedule after completion, and honor
 			},
 			async update(next) {
 				settings = {
-					resourceRoot: next.resourceRoot as string,
+					resourceRoots: next.resourceRoots,
 					scanIntervalMinutes: next.scanIntervalMinutes ?? 60,
 				};
 				return settings;
@@ -514,7 +518,7 @@ test("scheduled scans discover new files, reschedule after completion, and honor
 		]);
 		expect(index.revision).toBe(1);
 		await application.updateResourceSettings({
-			resourceRoot: root,
+			resourceRoots: [root],
 			scanIntervalMinutes: 2,
 		});
 		await vi.advanceTimersByTimeAsync(60000);
@@ -523,13 +527,13 @@ test("scheduled scans discover new files, reschedule after completion, and honor
 		await application.waitForCompletion();
 		expect(index.revision).toBe(2);
 		await application.updateResourceSettings({
-			resourceRoot: root,
+			resourceRoots: [root],
 			scanIntervalMinutes: 0,
 		});
 		await vi.advanceTimersByTimeAsync(300000);
 		expect(index.revision).toBe(2);
 		await application.updateResourceSettings({
-			resourceRoot: root,
+			resourceRoots: [root],
 			scanIntervalMinutes: 1,
 		});
 		await application.close();
@@ -546,7 +550,7 @@ test("long scans have no overlapping timer and the next interval begins at compl
 	const application = createLibraryModule({
 		index,
 		configuration: {
-			settings: { resourceRoot: root, scanIntervalMinutes: 1 },
+			settings: { resourceRoots: [root], scanIntervalMinutes: 1 },
 			async update(next) {
 				return next;
 			},

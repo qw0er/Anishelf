@@ -17,7 +17,10 @@ import {
 	createPlaybackPersistence,
 	type PlaybackPersistence,
 } from "../../modules/playback/persistence.js";
-import { createResourcesPersistence } from "../../modules/resources/persistence.js";
+import {
+	createResourcesPersistence,
+	resourceIdentityMigrationFunctions,
+} from "../../modules/resources/persistence.js";
 import { createAuthenticationPersistence } from "../../modules/system/persistence.js";
 import type { AuthenticationStore } from "../../modules/system/public.js";
 import { adapterPolicy } from "../../platform/adapter-policy.js";
@@ -74,6 +77,10 @@ export class ApplicationDatabase {
 			);
 			connection.pragma(adapterPolicy.sqlite.journal);
 			connection.pragma(adapterPolicy.sqlite.synchronous);
+			for (const [name, implementation] of Object.entries(
+				resourceIdentityMigrationFunctions,
+			))
+				connection.function(name, { deterministic: true }, implementation);
 			const store = drizzle(connection, { schema });
 			migrate(store, {
 				migrationsFolder: fileURLToPath(

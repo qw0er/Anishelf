@@ -21,7 +21,9 @@ Completed requirements, acceptance and detailed designs are retained in [History
 The anime-library iteration (L07–L10, M01–M05, M07; CAT01–CAT08) was accepted by the user
 on 2026-10-14. The AniList accounts iteration (T01–T05, W03–W05; ANI01–ANI10) was accepted
 by the user on 2026-10-17 and is now [archived](history.md#anilist-accounts-archive-notes).
-Neither iteration was assigned a release number. No next iteration has been selected;
+Neither iteration was assigned a release number. Multi-root resource management (L12)
+is implemented in the current unnumbered scope; user acceptance remains pending. No
+new release number has been selected;
 Later/Unassigned items remain future work. The retained V2 implementation status remains
 recorded separately in History.
 
@@ -37,7 +39,7 @@ recorded separately in History.
 
 | ID | Feature | Delivered scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| V01 | Resource directory configuration | Configure and persist one server-accessible root; startup before setup; directory access feedback | V1 | V1 |
+| V01 | Resource directory configuration | Original single-root setup; multiple persisted roots and per-root feedback are delivered under L12 | V1 | V1 |
 | V02 | Library scanning | Automatic scans at startup and after resource-root changes; configurable scheduled scans (60 minutes by default; 0 disables) and manual rescans; recursive video discovery; repeated scans without duplicate paths; additions and removals reflected | V1 | V1 |
 | V03 | Resource browsing | Actual directory hierarchy, original filenames, stable natural sorting, and parent navigation | V1 | V1 |
 | V04 | Web playback | Browser direct playback through bounded media streams and byte ranges | V1 | V1 |
@@ -57,12 +59,28 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 | L09 | Distinguish regular episodes, specials, continuous season numbering, and multi-episode files | Implemented: candidate-specific episode proposals, unresolved ambiguity and confirmed corrections | Anime library | Anime library |
 | L10 | Associate multiple file versions with an episode and select a version for playback | Implemented: Catalog associations and Web version selection with source-version checks | Anime library | Anime library |
 | L11 | Relink moved files while preserving viewing history | Later | — | Unassigned |
-| L12 | Configure and manage multiple resource roots | Optional | — | Unassigned |
+| L12 | Configure and manage multiple resource roots | Implemented: up to 64 non-overlapping paths, per-root Files entries, scoped identities, partial scan recovery, legacy settings/history upgrade; acceptance pending | Current | Current |
 | L13 | Rename, organize, delete, and reclaim storage with preservation rules | Optional | — | Unassigned |
 | L14 | Download an existing original media file from the Web interface to the user's device | Implemented | Current | Current |
 | L15 | Batch Review with shared work selection and episode-number offset previews | Later | — | Unassigned |
 | L16 | Improve matching using representative real-world failure cases | Later | — | Unassigned |
 | L17 | Learn scoped matching rules from explicit manual corrections | Later | — | Unassigned |
+
+#### Multi-root resource management (L12)
+
+Settings persist `resourceRoots` as a list of absolute server paths; an empty list
+returns to setup mode. Canonically duplicate or nested roots and overlap with the
+data directory are rejected, including aliases through symlinks. Multiple roots
+are browsed as distinct Files entries. Identical relative filenames remain distinct
+resources, and reordering roots does not change their identities.
+
+Healthy roots continue to update if another root is unavailable. Failed roots
+retain their previous index and report availability/warnings; all-root failure
+must not publish an empty library. Removing a root hides its resources while
+preserving accepted associations and playback history. Restoring it makes those
+records reusable. Legacy single-path settings and durable source records upgrade
+without discarding history. Filesystem watching and moved-file relinking remain
+separate future scope (L06 and L11).
 
 #### Filesystem Monitoring and Incremental Updates (L06)
 

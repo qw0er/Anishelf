@@ -8,13 +8,12 @@ import { builtinPolicy } from "../src/app/policy.js";
 import type { PlaybackSessionResponse } from "../src/contracts/http.js";
 import { PlaybackApplication } from "../src/modules/playback/progress/application/playback.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
-import { createResourceId } from "../src/modules/resources/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { createHttpApp } from "./support/http.js";
 import { createLibraryModule } from "./support/library.js";
 
 const headers = { host: "127.0.0.1:3000" };
-const fileId = createResourceId("file", "episode.mp4");
+let fileId: string;
 const logger = pino({ enabled: false });
 let directory: string;
 let root: string;
@@ -31,7 +30,7 @@ beforeEach(async () => {
 	database = ApplicationDatabase.open(join(directory, "data"));
 	library = createLibraryModule({
 		configuration: {
-			settings: { resourceRoot: root },
+			settings: { resourceRoots: [root] },
 			async update(next) {
 				return next;
 			},
@@ -53,6 +52,9 @@ beforeEach(async () => {
 	});
 	await library.startScan();
 	await library.waitForCompletion();
+	fileId = library
+		.getDirectory("root")
+		.children.find((entry) => entry.kind === "file")?.id as string;
 });
 afterEach(async () => {
 	await app.close();
@@ -142,7 +144,7 @@ test.each([
 	{ fileId: "" },
 	{ fileId: "../episode.mp4" },
 	{ fileId: 1 },
-	{ fileId, sourceId: "private" },
+	{ fileId: "file_invalid", sourceId: "private" },
 ])(
 	"rejects invalid session bodies without opening a session: %j",
 	async (payload) => {
@@ -350,7 +352,7 @@ test("unscanned libraries return unknown availability and unavailable storage re
 	await app.close();
 	library = createLibraryModule({
 		configuration: {
-			settings: { resourceRoot: root },
+			settings: { resourceRoots: [root] },
 			async update(next) {
 				return next;
 			},

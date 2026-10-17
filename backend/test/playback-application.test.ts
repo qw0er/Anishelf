@@ -7,7 +7,6 @@ import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { builtinPolicy } from "../src/app/policy.js";
 import { PlaybackApplication } from "../src/modules/playback/progress/application/playback.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
-import { createResourceId } from "../src/modules/resources/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import type { PersistentSettings } from "../src/modules/system/configuration/domain/model.js";
@@ -19,7 +18,7 @@ let database: ApplicationDatabase;
 let library: LibraryApplication;
 let playback: PlaybackApplication;
 let now: number;
-const fileId = createResourceId("file", "episode.mp4");
+let fileId: string;
 const logger = pino({ enabled: false });
 beforeEach(async () => {
 	directory = await mkdtemp(join(tmpdir(), "anishelf-playback-"));
@@ -27,7 +26,7 @@ beforeEach(async () => {
 	await mkdir(root);
 	await writeFile(join(root, "episode.mp4"), "source");
 	database = ApplicationDatabase.open(join(directory, "data"));
-	let settings: PersistentSettings = { resourceRoot: root };
+	let settings: PersistentSettings = { resourceRoots: [root] };
 	library = createLibraryModule({
 		configuration: {
 			get settings() {
@@ -51,6 +50,9 @@ beforeEach(async () => {
 	});
 	await library.startScan();
 	await library.waitForCompletion();
+	fileId = library
+		.getDirectory("root")
+		.children.find((entry) => entry.kind === "file")?.id as string;
 });
 afterEach(async () => {
 	await playback.close();
@@ -116,7 +118,7 @@ test("invalidates sessions across root switches and reports unknown availability
 	await playback.save(update(session));
 	const other = join(directory, "other");
 	await mkdir(other);
-	await library.updateResourceSettings({ resourceRoot: other });
+	await library.updateResourceSettings({ resourceRoots: [other] });
 	await library.waitForCompletion();
 	const create = ResourceAccess.create;
 	let release = () => {};
@@ -129,7 +131,7 @@ test("invalidates sessions across root switches and reports unknown availability
 			return create(settings);
 		},
 	);
-	await library.updateResourceSettings({ resourceRoot: root });
+	await library.updateResourceSettings({ resourceRoots: [root] });
 	try {
 		expect(await playback.history(undefined, "continue")).toEqual({
 			availability: "unknown",
