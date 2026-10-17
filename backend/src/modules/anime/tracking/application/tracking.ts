@@ -21,18 +21,30 @@ export class TrackingModule implements TrackingApi {
 	preview(sessionId: string, token: string): Promise<TrackingPreview> {
 		return this.accounts.preview(sessionId, token);
 	}
-	confirm(
+	async confirm(
 		sessionId: string,
 		candidateId: string,
 		generation: string,
 	): Promise<TrackingStatus> {
-		return this.accounts.confirm(sessionId, candidateId, generation);
+		const status = await this.accounts.confirm(
+			sessionId,
+			candidateId,
+			generation,
+		);
+		this.updates.connectionChanged();
+		return status;
 	}
-	disconnect(generation: string): Promise<TrackingStatus> {
-		return this.accounts.disconnect(generation);
+	async disconnect(generation: string): Promise<TrackingStatus> {
+		const status = await this.accounts.disconnect(generation);
+		this.updates.connectionChanged();
+		return status;
 	}
-	check(): Promise<TrackingStatus> {
-		return this.accounts.check();
+	async check(): Promise<TrackingStatus> {
+		try {
+			return await this.accounts.check();
+		} finally {
+			this.updates.connectionChanged();
+		}
 	}
 	list(generation?: string, refreshStale = true): TrackingListSnapshot {
 		return this.lists.read(generation, refreshStale);

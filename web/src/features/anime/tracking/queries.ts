@@ -83,7 +83,9 @@ export const entryQuery = (mediaId: string, identity: TrackingIdentity) =>
 				throw error;
 			}
 		},
-		refetchInterval: (query) => (query.state.data?.refreshing ? 1500 : 60_000),
+		refetchOnWindowFocus: true,
+		refetchInterval: (query) =>
+			query.state.data?.refreshing ? 1500 : 5 * 60_000,
 	});
 export function refreshTrackingList(generation: string) {
 	return request<TrackingListResponse>(

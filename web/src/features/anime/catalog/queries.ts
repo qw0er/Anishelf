@@ -20,8 +20,9 @@ export const localWorkDetailQuery = (id: string, scope: string) =>
 			return result;
 		},
 		staleTime: 0,
+		refetchOnWindowFocus: true,
 		refetchInterval: (query) =>
-			query.state.data?.metadata.refreshing ? 2000 : 60_000,
+			query.state.data?.metadata.refreshing ? 2000 : 5 * 60_000,
 	});
 export const sourceQuery = (id: string, scope: string) =>
 	queryOptions({

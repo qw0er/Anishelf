@@ -8,7 +8,7 @@ export const catalogPolicy = {
 	maximumPreviews: 100,
 	previewTtlMs: 15 * 60 * 1000,
 	refreshStartupMs: 5000,
-	refreshIntervalMs: 60_000,
+	refreshIntervalMs: 15 * 60_000,
 	refreshScanSize: 50,
 	maximumRefreshes: 5,
 	maximumRefreshFailures: 100,

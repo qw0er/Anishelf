@@ -1845,9 +1845,9 @@ test("search and immediate filters reset pagination and preserve applied criteri
 	).toBe(false);
 });
 
-test("the default poster wall exposes an empty state and access to Files", async () => {
+test("the default Watching poster wall exposes a filtered empty state and access to Files", async () => {
 	renderApp("/");
-	await screen.findByText(/No associated anime yet/);
+	await screen.findByText(/No anime match these filters/);
 	expect(
 		screen
 			.getAllByRole("link", { name: "Files" })
@@ -2772,7 +2772,7 @@ test("Library filters allow All works before local setup and disable viewing sta
 			}),
 		).toBe(true),
 	);
-	await screen.findByText(/No associated anime yet/);
+	await screen.findByText(/No anime match these filters/);
 	expect(screen.getByTestId("location").textContent).toContain("scope=all");
 });
 

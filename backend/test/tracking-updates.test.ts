@@ -89,6 +89,7 @@ async function fixture() {
 	const operation = () => database.trackingOperations.list(7)[0];
 	return {
 		get,
+		store: database.trackingOperations,
 		save,
 		confirmed,
 		status,
@@ -380,4 +381,43 @@ test("a definite invalid request can be corrected without replaying the rejected
 	await f.worker.flush();
 	expect(f.operation()?.state).toBe("succeeded");
 	expect(f.save.mock.calls[1]?.[3]).toEqual({ progress: 4 });
+});
+
+test("worker sleeps when idle and arms only the next failed-operation deadline", async () => {
+	const f = await fixture();
+	vi.useFakeTimers();
+	try {
+		await f.worker.flush();
+		const reads = vi.spyOn(f.store, "list");
+		await vi.advanceTimersByTimeAsync(60_000);
+		expect(reads).not.toHaveBeenCalled();
+		f.get.mockRejectedValueOnce(new TrackingListError("unavailable", null));
+		f.worker.update(1, f.input({ progress: 8 }));
+		await f.worker.flush();
+		expect(f.operation()?.state).toBe("failed");
+		expect(f.get).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(1999);
+		expect(f.get).toHaveBeenCalledTimes(1);
+		f.advance();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(f.operation()?.state).toBe("succeeded");
+		reads.mockClear();
+		await vi.advanceTimersByTimeAsync(60_000);
+		expect(reads).not.toHaveBeenCalled();
+	} finally {
+		await f.worker.close();
+		vi.useRealTimers();
+	}
+});
+
+test("reconnection wakes retained authorization-required operations without polling", async () => {
+	const f = await fixture();
+	f.get.mockRejectedValueOnce(new TrackingListError("unauthorized", null));
+	f.worker.update(1, f.input({ progress: 8 }));
+	await f.worker.flush();
+	expect(f.operation()?.state).toBe("authorization-required");
+	f.status.state = "connected";
+	f.worker.connectionChanged();
+	await f.worker.flush();
+	expect(f.operation()?.state).toBe("succeeded");
 });

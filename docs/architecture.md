@@ -510,3 +510,35 @@ Migration 0015 removes coverage/decision receipts, preserves history and admitte
 and explicitly terminates legacy observations that lack an intent version. Startup does
 not blindly replay those old observations. This is a migration boundary, not a current
 viewing-state limitation.
+
+
+## Background scheduling and browser refresh
+
+Tracking updates wake after durable command admission, explicit retry/conflict
+resolution, account reconnection or connection verification. Startup recovers saved
+operations. A single timeout targets the earliest failed operation's retry deadline;
+empty or disconnected queues have no recurring timer. Unexpected worker/storage
+failures schedule a 30-second recovery attempt. Delivery still reconciles uncertain
+remote writes before submitting and retains the shared AniList request budget.
+
+Playback completion observations wake their handoff worker after their first durable
+save in a playback session. Startup restores pending observations. The worker drains
+bounded batches, retains wakeups received during delivery, and retries unavailable
+handoffs with exponential delays from 2 seconds to a maximum of 60 seconds. Empty
+queues have no timer; durable observations remain the source of recovery.
+
+Catalog retains an initial check after 5 seconds and checks associated works every
+15 minutes after the previous pass finishes. Only stale unfinished metadata is
+refreshed automatically, with the existing bounded batches and concurrency. Opening
+a local work detail still requests immediate stale-metadata revalidation.
+
+Visible browser sessions revalidate on focus/visibility return, coalescing checks
+within 30 seconds, with a 5-minute fallback. Hidden tabs do not run this fallback.
+Every business request continues to enforce server-side authentication and handle
+401 responses immediately. Idle Library, work-detail and tracking-entry queries
+check every 5 minutes; identification and operation monitors use a 60-second idle
+fallback to discover scheduled scans or changes from another tab. These queries
+also refresh stale data on focus. While the player is mounted, operation discovery
+retains a 10-second fallback so automatic viewing commands remain observable.
+Active operations, scans, preparations and subtitle tasks retain their existing
+fast polling intervals and stop or slow down when their work completes.
