@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { join } from "node:path";
 import type { Logger } from "pino";
 import type { MediaInfo } from "../../../../platform/media/index.js";
 import { DomainError } from "../../../../shared/errors.js";
@@ -97,7 +96,7 @@ export class SubtitleFontPreparation {
 		const id = `fontset_${createHash("sha256")
 			.update(
 				JSON.stringify([
-					source.identity.canonicalRoot,
+					source.identity.scopeId,
 					source.identity.fileId,
 					source.identity.sourceVersion,
 					"font-extraction-v1",
@@ -219,7 +218,7 @@ export class SubtitleFontPreparation {
 				this.controller.signal.throwIfAborted();
 				try {
 					const bytes = await this.options.tools.extractAttachment?.(
-						join(source.identity.canonicalRoot, source.identity.relativePath),
+						await this.options.sources.filePath(source),
 						stream.index,
 						{
 							maximumBytes: this.options.policy.fontMaximumBytes,

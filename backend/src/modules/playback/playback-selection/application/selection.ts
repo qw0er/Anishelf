@@ -56,11 +56,11 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 		fileId: string,
 		version: string,
 		audio: readonly number[],
-		canonicalRoot: string,
+		scopeId: string,
 	): boolean {
 		const { source } = view;
 		return (
-			source.canonicalRoot === canonicalRoot &&
+			source.scopeId === scopeId &&
 			source.fileId === fileId &&
 			source.sourceVersion === version &&
 			JSON.stringify(view.audioStreamIndices) === JSON.stringify(audio)
@@ -87,7 +87,7 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 					input.fileId,
 					original.sourceVersion,
 					original.selectedAudioStreamIndices,
-					source.identity.canonicalRoot,
+					source.identity.scopeId,
 				) ||
 				view.availability !== "ready" ||
 				!view.artifact ||
@@ -113,7 +113,7 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 			}
 		}
 		await this.options.sources.revalidateSource(source);
-		this.options.sources.assertRootEpoch(source.rootEpoch);
+		this.options.sources.assertAccessRevision(source.accessRevision);
 		return { original, candidates };
 	}
 	async select(input: PlaybackSelectionRequest): Promise<PlaybackSelection> {
@@ -123,7 +123,7 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 				input.sourceVersion,
 			);
 			await this.options.sources.revalidateSource(source);
-			this.options.sources.assertRootEpoch(source.rootEpoch);
+			this.options.sources.assertAccessRevision(source.accessRevision);
 			return {
 				sourceVersion: source.identity.sourceVersion,
 				compatibility: null,
@@ -184,7 +184,7 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 				input.fileId,
 				compatibility.sourceVersion,
 				audio,
-				source.identity.canonicalRoot,
+				source.identity.scopeId,
 			),
 		);
 		this.prioritize(tasks);
@@ -199,7 +199,7 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 		});
 		const finish = async (choice: PlaybackSelection["choice"]) => {
 			await this.options.sources.revalidateSource(source);
-			this.options.sources.assertRootEpoch(source.rootEpoch);
+			this.options.sources.assertAccessRevision(source.accessRevision);
 			return result(choice);
 		};
 		// Default multi-audio playback prefers a verified copy, as native track selection varies by browser.
@@ -258,7 +258,7 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 					input.fileId,
 					compatibility.sourceVersion,
 					audio,
-					source.identity.canonicalRoot,
+					source.identity.scopeId,
 				)
 			)
 				continue;

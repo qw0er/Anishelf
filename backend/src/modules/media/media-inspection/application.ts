@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import type { Logger } from "pino";
 import type { MediaInfo } from "../../../platform/media/index.js";
 import { MediaToolError } from "../../../platform/media/index.js";
@@ -48,9 +47,9 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 		source: ResolvedSource,
 		key: string,
 	): Promise<MediaInspectionResult> {
-		this.options.sources.assertRootEpoch(source.rootEpoch);
+		this.options.sources.assertAccessRevision(source.accessRevision);
 		const info = await this.options.tools.probe(
-			join(source.identity.canonicalRoot, source.identity.relativePath),
+			await this.options.sources.filePath(source),
 			this.controller.signal,
 		);
 		const current = await this.options.sources.revalidateSource(source);
@@ -74,7 +73,7 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 		);
 		this.assertOpen();
 		const key = JSON.stringify([
-			source.identity.canonicalRoot,
+			source.identity.scopeId,
 			fileId,
 			source.identity.sourceVersion,
 		]);
@@ -103,12 +102,12 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 				this.active.set(key, pending);
 			}
 			const result = await pending;
-			this.options.sources.assertRootEpoch(source.rootEpoch);
+			this.options.sources.assertAccessRevision(source.accessRevision);
 			source = result.source;
 			info = result.info;
 		}
 		this.assertOpen();
-		this.options.sources.assertRootEpoch(source.rootEpoch);
+		this.options.sources.assertAccessRevision(source.accessRevision);
 		// Each consumer owns its result; mutations cannot contaminate the shared cache.
 		return { source, info: structuredClone(info) };
 	}

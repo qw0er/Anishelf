@@ -35,7 +35,7 @@ export class AutomaticIdentificationCoordinator {
 			/** Complete successful publications, including empty roots, feed durable Catalog. */
 			onPublication?: (
 				results: readonly IdentificationResult[],
-				canonicalRoot: string,
+				scopeIds: readonly string[],
 				signal: AbortSignal,
 			) => void | Promise<void>;
 		},
@@ -88,10 +88,10 @@ export class AutomaticIdentificationCoordinator {
 			});
 	}
 	private async synchronize(signal: AbortSignal): Promise<void> {
-		const epoch = this.options.sources.resourceRootEpoch;
+		const epoch = this.options.sources.accessRevision;
 		const status = await this.options.library.getStatus();
 		signal.throwIfAborted();
-		this.options.sources.assertRootEpoch(epoch);
+		this.options.sources.assertAccessRevision(epoch);
 		if (!status.ready || status.stale || !this.options.sources.hasSnapshot)
 			return;
 		const started = performance.now();
@@ -138,13 +138,13 @@ export class AutomaticIdentificationCoordinator {
 				const sources: SourceIdentity[] = [];
 				for (const file of chunk) {
 					signal.throwIfAborted();
-					this.options.sources.assertRootEpoch(epoch);
+					this.options.sources.assertAccessRevision(epoch);
 					try {
 						const resolved = await this.options.sources.resolveSource(file.id);
 						sources.push(resolved.identity);
 					} catch (err) {
 						signal.throwIfAborted();
-						this.options.sources.assertRootEpoch(epoch);
+						this.options.sources.assertAccessRevision(epoch);
 						this.options.logger.warn(
 							{
 								event: "identification.source_unavailable",
@@ -156,13 +156,9 @@ export class AutomaticIdentificationCoordinator {
 					}
 				}
 				signal.throwIfAborted();
-				this.options.sources.assertRootEpoch(epoch);
+				this.options.sources.assertAccessRevision(epoch);
 				if (!sources.length) continue;
-				const key = JSON.stringify([
-					sources[0]?.canonicalRoot,
-					directoryId,
-					start,
-				]);
+				const key = JSON.stringify([sources[0]?.scopeId, directoryId, start]);
 				const fingerprint = createHash("sha256")
 					.update(
 						JSON.stringify([this.options.identification.version, sources]),
@@ -179,21 +175,21 @@ export class AutomaticIdentificationCoordinator {
 					changed += sources.length;
 				}
 				signal.throwIfAborted();
-				this.options.sources.assertRootEpoch(epoch);
+				this.options.sources.assertAccessRevision(epoch);
 				// Resource versions may have changed while recognition/provider work was awaiting.
 				for (const source of sources)
 					await this.options.sources.revalidateSource({
 						identity: source,
-						rootEpoch: epoch,
+						accessRevision: epoch,
 					});
 				signal.throwIfAborted();
 				const current = await this.options.library.getStatus();
 				if (current.revision !== status.revision)
 					throw new Error("Library publication changed during identification.");
 				signal.throwIfAborted();
-				this.options.sources.assertRootEpoch(epoch);
+				this.options.sources.assertAccessRevision(epoch);
 				signal.throwIfAborted();
-				this.options.sources.assertRootEpoch(epoch);
+				this.options.sources.assertAccessRevision(epoch);
 				results.push(...groupResults);
 				// Failed provider work retains local evidence but is eligible for the next scan.
 				if (groupResults.every((result) => result.metadataStatus !== "failed"))
@@ -201,18 +197,18 @@ export class AutomaticIdentificationCoordinator {
 			}
 		}
 		signal.throwIfAborted();
-		this.options.sources.assertRootEpoch(epoch);
-		const canonicalRoot = await this.options.sources.resolveRoot();
+		this.options.sources.assertAccessRevision(epoch);
+		const scope = await this.options.sources.getScope();
 		signal.throwIfAborted();
-		this.options.sources.assertRootEpoch(epoch);
+		this.options.sources.assertAccessRevision(epoch);
 		const current = await this.options.library.getStatus();
 		if (current.revision !== status.revision)
 			throw new Error("Library publication changed during identification.");
 		signal.throwIfAborted();
-		this.options.sources.assertRootEpoch(epoch);
-		await this.options.onPublication?.(results, canonicalRoot, signal);
+		this.options.sources.assertAccessRevision(epoch);
+		await this.options.onPublication?.(results, scope.ids, signal);
 		signal.throwIfAborted();
-		this.options.sources.assertRootEpoch(epoch);
+		this.options.sources.assertAccessRevision(epoch);
 		this.cache = next;
 		this.results = results;
 		this.options.logger.info(

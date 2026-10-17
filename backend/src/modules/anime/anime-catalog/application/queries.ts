@@ -13,7 +13,7 @@ export class CatalogQueries {
 	constructor(private readonly context: CatalogContext) {}
 	private async card(
 		work: LocalWork,
-		rootId: string,
+		scopeIds: readonly string[],
 		epoch: number,
 	): Promise<WorkCard> {
 		const link = this.context.options.store.link(work.id);
@@ -26,7 +26,7 @@ export class CatalogQueries {
 			let usable = false;
 			for (const { review } of this.context.options.store.versions(
 				episode.id,
-				rootId,
+				scopeIds,
 			)) {
 				let available = availability.get(review.id);
 				if (available === undefined) {
@@ -58,7 +58,7 @@ export class CatalogQueries {
 		};
 	}
 	async list(query: CatalogQuery = {}) {
-		const root = await this.context.root();
+		const scope = await this.context.scope();
 		const pagination = page(query);
 		if (query.query !== undefined) text(query.query, 200);
 		if (query.year !== undefined) integer(query.year, 1, 9999);
@@ -71,20 +71,20 @@ export class CatalogQueries {
 		)
 			invalid("Unknown availability filter.");
 		const result = this.context.options.store.list(
-			root.rootId,
+			scope.ids,
 			query,
 			pagination.page,
 			pagination.perPage,
 		);
 		const items: WorkCard[] = [];
 		for (const work of result.items)
-			items.push(await this.card(work, root.rootId, root.epoch));
-		this.context.options.sources.assertRootEpoch(root.epoch);
+			items.push(await this.card(work, scope.ids, scope.revision));
+		this.context.options.sources.assertAccessRevision(scope.revision);
 		return { ...result, items };
 	}
 	/** Only persisted summaries are scanned; source checks are deferred to selected cards. */
 	async index(query: CatalogQuery = {}) {
-		const root = await this.context.root();
+		const scope = await this.context.scope();
 		const items: (LocalWork & {
 			reference: WorkCard["reference"];
 			available: boolean;
@@ -92,7 +92,7 @@ export class CatalogQueries {
 		const available = new Set<string>();
 		for (let pageNumber = 1; ; pageNumber++) {
 			const result = this.context.options.store.list(
-				root.rootId,
+				scope.ids,
 				{ availability: "available" },
 				pageNumber,
 				50,
@@ -102,7 +102,7 @@ export class CatalogQueries {
 		}
 		for (let pageNumber = 1; ; pageNumber++) {
 			const result = this.context.options.store.list(
-				root.rootId,
+				scope.ids,
 				query,
 				pageNumber,
 				50,
@@ -118,23 +118,23 @@ export class CatalogQueries {
 			}
 			if (!result.hasNextPage) break;
 		}
-		this.context.options.sources.assertRootEpoch(root.epoch);
-		return { items, epoch: root.epoch };
+		this.context.options.sources.assertAccessRevision(scope.revision);
+		return { items, epoch: scope.revision };
 	}
 	async cards(ids: readonly string[], epoch: number) {
 		if (ids.length > 50) invalid("Too many library cards.");
-		const root = await this.context.root();
-		this.context.options.sources.assertRootEpoch(epoch);
+		const scope = await this.context.scope();
+		this.context.options.sources.assertAccessRevision(epoch);
 		const items: WorkCard[] = [];
 		for (const id of ids)
 			items.push(
 				await this.card(
-					this.context.requireWork(id, root.rootId),
-					root.rootId,
+					this.context.requireWork(id, scope.ids),
+					scope.ids,
 					epoch,
 				),
 			);
-		this.context.options.sources.assertRootEpoch(epoch);
+		this.context.options.sources.assertAccessRevision(epoch);
 		return items;
 	}
 	private snapshot(workId: string): CachedMetadata<WorkDetails> {
@@ -153,14 +153,14 @@ export class CatalogQueries {
 		);
 	}
 	async artwork(id: string, kind: "cover" | "banner") {
-		const root = await this.context.root();
-		this.context.requireWork(id, root.rootId);
+		const scope = await this.context.scope();
+		this.context.requireWork(id, scope.ids);
 		const snapshot = this.snapshot(id);
 		const status = await this.context.options.metadata.snapshotArtwork(
 			snapshot.snapshotId,
 			kind,
 		);
-		this.context.options.sources.assertRootEpoch(root.epoch);
+		this.context.options.sources.assertAccessRevision(scope.revision);
 		if (!status.id)
 			throw new DomainError(
 				"CATALOG_NOT_FOUND",
@@ -169,19 +169,19 @@ export class CatalogQueries {
 		return this.context.options.metadata.readArtwork(status.id);
 	}
 	async getLocalWorkDetail(id: string): Promise<LocalWorkDetail> {
-		const root = await this.context.root();
-		const work = this.context.requireWork(id, root.rootId);
+		const scope = await this.context.scope();
+		const work = this.context.requireWork(id, scope.ids);
 		const episodes: LocalWorkDetail["episodes"] = [];
 		const availability = new Map<string, boolean>();
 		for (const episode of this.context.options.store.episodes(id)) {
 			const versions: LocalWorkDetail["episodes"][number]["versions"] = [];
 			for (const { review, association } of this.context.options.store.versions(
 				episode.id,
-				root.rootId,
+				scope.ids,
 			)) {
 				let available = availability.get(review.id);
 				if (available === undefined) {
-					available = await this.context.available(review, root.epoch);
+					available = await this.context.available(review, scope.revision);
 					availability.set(review.id, available);
 				}
 				versions.push({
@@ -216,7 +216,7 @@ export class CatalogQueries {
 				a.number.localeCompare(b.number, "en", { numeric: true }) ||
 				a.id.localeCompare(b.id),
 		);
-		this.context.options.sources.assertRootEpoch(root.epoch);
+		this.context.options.sources.assertAccessRevision(scope.revision);
 		const link = this.context.options.store.link(id);
 		if (!link) throw new Error("Catalog work is missing its provider link.");
 		if (this.context.options.store.work(id)?.revision !== work.revision)

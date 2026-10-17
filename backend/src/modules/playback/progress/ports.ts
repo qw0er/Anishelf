@@ -18,7 +18,7 @@ export interface PlaybackStore {
 		nowMs?: number,
 	): SavePlaybackProgressResult;
 	listHistory(
-		rootId: string,
+		scopeIds: readonly string[],
 		limit?: number,
 		offset?: number,
 		view?: "continue" | "recent",

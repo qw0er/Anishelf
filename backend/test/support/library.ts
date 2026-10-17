@@ -11,7 +11,10 @@ export function createLibraryModule(
 		library,
 		new SettingsApplication(
 			options.configuration,
-			library.settings,
+			{
+				applySettingsChange: (input, save) =>
+					library.settings.applySettingsChange(input, save),
+			},
 			options.logger,
 		),
 	);

@@ -15,11 +15,11 @@ const fileId = "a".repeat(64);
 const source = {
 	identity: {
 		fileId,
-		canonicalRoot: "/media",
+		scopeId: "/media",
 		relativePath: "video.mkv",
 		sourceVersion: "version",
 	},
-	rootEpoch: 1,
+	accessRevision: 1,
 	file: {
 		id: fileId,
 		kind: "file" as const,
@@ -57,7 +57,7 @@ const original: CheckedCompatibility = {
 	audio: decision,
 	output: null,
 	warnings: [],
-	canonicalRoot: "/media",
+	scopeId: "/media",
 	profile: null,
 };
 const description = {
@@ -125,7 +125,7 @@ let tasks: PreparationView[];
 const sources = {
 	resolveSource: vi.fn(async (_id: string, _version?: string) => source),
 	revalidateSource: vi.fn(async () => source),
-	assertRootEpoch: vi.fn(),
+	assertAccessRevision: vi.fn(),
 };
 const planning = {
 	inspect: vi.fn(async () => description),
@@ -218,7 +218,7 @@ test("default-all excludes subset and wrong-root copies", async () => {
 		...wrongRoot.task,
 		spec: {
 			...wrongRoot.task.spec,
-			source: { ...source.identity, canonicalRoot: "/old" },
+			source: { ...source.identity, scopeId: "/old" },
 		},
 	};
 	tasks = [copy("one", "builtin:web", [2]), wrongRoot];
@@ -295,7 +295,7 @@ test("stale browser evidence and post-selection root switch fail rather than lea
 	await expect(application.select(request())).rejects.toMatchObject({
 		code: "PLAYBACK_CONFLICT",
 	});
-	sources.assertRootEpoch.mockImplementationOnce(() => {
+	sources.assertAccessRevision.mockImplementationOnce(() => {
 		throw new DomainError("PLAYBACK_CONFLICT", "Root changed");
 	});
 	await expect(
@@ -329,7 +329,7 @@ test("HTTP projects the selected URL with no progress generation or private sour
 		expect(response.headers["cache-control"]).toBe("no-store");
 		expect(response.json().plan.resource.url).toBe(`/api/media/${fileId}`);
 		expect(response.json()).not.toHaveProperty("generation");
-		expect(response.body).not.toContain('"canonicalRoot"');
+		expect(response.body).not.toContain('"scopeId"');
 		const invalid = await app.inject({
 			method: "POST",
 			url: "/api/playback/selection",
@@ -373,7 +373,7 @@ test("composition gives selection only copy metadata, detached from mutable owne
 	const task = tasks[0];
 	if (!task) throw new Error("Missing fixture");
 	task.task.profileId = "changed";
-	snapshot.source.canonicalRoot = "/changed";
+	snapshot.source.scopeId = "/changed";
 	expect(snapshot.profileId).toBe("builtin:web");
-	expect(task.task.spec.source.canonicalRoot).toBe("/media");
+	expect(task.task.spec.source.scopeId).toBe("/media");
 });

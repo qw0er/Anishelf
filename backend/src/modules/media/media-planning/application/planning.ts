@@ -7,7 +7,6 @@ import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../../resources/public.js";
-import { resourceRootId } from "../../../resources/public.js";
 import type {
 	PreparationMode,
 	TranscodeProfile,
@@ -70,7 +69,7 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 		);
 		const checked = await this.check(input);
 		if (
-			checked.canonicalRoot !== source.identity.canonicalRoot ||
+			checked.scopeId !== source.identity.scopeId ||
 			checked.fileId !== source.identity.fileId ||
 			checked.sourceVersion !== source.identity.sourceVersion
 		)
@@ -84,7 +83,7 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 			options?.forcePreparation ?? false,
 		);
 		await this.options.sources.revalidateSource(source);
-		this.options.sources.assertRootEpoch(source.rootEpoch);
+		this.options.sources.assertAccessRevision(source.accessRevision);
 		if (this.closed)
 			throw new DomainError(
 				"MEDIA_PLANNING_UNAVAILABLE",
@@ -113,7 +112,7 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 			mode: resolved.mode,
 			reasons: resolved.reasons,
 			identity: {
-				rootId: resourceRootId(source.identity.canonicalRoot),
+				rootId: source.identity.scopeId,
 				fileId: source.identity.fileId,
 				sourceVersion: source.identity.sourceVersion,
 				profileFingerprint: resolved.profileFingerprint,
@@ -185,8 +184,8 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 			...candidates,
 			descriptionId: fingerprint({
 				rulesVersion: "4",
-				root: source.identity.canonicalRoot,
-				rootEpoch: source.rootEpoch,
+				root: source.identity.scopeId,
+				accessRevision: source.accessRevision,
 				fileId: input.fileId,
 				sourceVersion: source.identity.sourceVersion,
 				output: candidates.output,
@@ -203,7 +202,7 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 		input = structuredClone(input);
 		const { source, description } = await this.load(input);
 		await this.options.sources.revalidateSource(source);
-		this.options.sources.assertRootEpoch(source.rootEpoch);
+		this.options.sources.assertAccessRevision(source.accessRevision);
 		this.assertOpen();
 		return description;
 	}
@@ -253,7 +252,7 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 			fileId,
 			sourceVersion: source.identity.sourceVersion,
 			rulesVersion: "4",
-			canonicalRoot: source.identity.canonicalRoot,
+			scopeId: source.identity.scopeId,
 			profile,
 			selectedVideo: original.video,
 			defaultAudioStreamIndex: original.defaultAudioStreamIndex,
@@ -302,7 +301,7 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 				: null,
 		};
 		await this.options.sources.revalidateSource(source);
-		this.options.sources.assertRootEpoch(source.rootEpoch);
+		this.options.sources.assertAccessRevision(source.accessRevision);
 		this.options.logger?.debug(
 			{
 				event: "media.compatibility_checked",

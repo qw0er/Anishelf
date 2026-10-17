@@ -12,11 +12,12 @@ import type { CompatibilityResult } from "../src/modules/media/public.js";
 import { compatibilityView } from "../src/modules/media/views.js";
 import { createPlaybackModule } from "../src/modules/playback/create.js";
 import { createResourcesModule } from "../src/modules/resources/create.js";
+import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import { createSystemModule } from "../src/modules/system/create.js";
 
 test("Media publishes an immutable independent view without planner-private fields", () => {
 	const result: CompatibilityResult & {
-		canonicalRoot: string;
+		scopeId: string;
 		profile: object;
 		privateFutureField: string;
 	} = {
@@ -33,12 +34,12 @@ test("Media publishes an immutable independent view without planner-private fiel
 		audioTracks: [],
 		output: null,
 		warnings: ["warning"],
-		canonicalRoot: "/private/root",
+		scopeId: "/private/root",
 		profile: { encoder: "private" },
 		privateFutureField: "private",
 	};
 	const view = compatibilityView(result);
-	expect(view).not.toHaveProperty("canonicalRoot");
+	expect(view).not.toHaveProperty("scopeId");
 	expect(view).not.toHaveProperty("profile");
 	expect(view).not.toHaveProperty("privateFutureField");
 	expect(Object.isFrozen(view)).toBe(true);
@@ -99,9 +100,9 @@ test("large modules expose capability objects and quiesce without destroying sha
 		await anime.quiesce();
 		await Promise.all([media.quiesce(), media.quiesce()]);
 		await resources.quiesce();
-		expect(await resources.api.sources.resolveRoot()).toBe(
-			await realpath(root),
-		);
+		expect((await resources.api.sources.getScope()).ids).toEqual([
+			resourceRootId(await realpath(root)),
+		]);
 	} finally {
 		playback.close();
 		await anime.close();

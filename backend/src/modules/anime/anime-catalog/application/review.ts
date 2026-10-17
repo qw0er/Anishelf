@@ -1,5 +1,4 @@
 import { DomainError } from "../../../../shared/errors.js";
-import { resourceRootId } from "../../../resources/public.js";
 import type { IdentificationResult } from "../../identification/public.js";
 import { conflict, invalid, text } from "../domain/mapping.js";
 import type { ReviewItem } from "../domain/model.js";
@@ -10,19 +9,19 @@ export class ReviewApplication {
 	constructor(private readonly context: CatalogContext) {}
 	publish(
 		results: readonly IdentificationResult[],
-		canonicalRoot: string,
+		scopeIds: readonly string[],
 	): void {
 		this.context.open();
-		const rootId = resourceRootId(canonicalRoot);
-		if (results.some((result) => result.source.canonicalRoot !== canonicalRoot))
+
+		if (results.some((result) => !scopeIds.includes(result.source.scopeId)))
 			invalid("A publication must belong to one resource root.");
 		const items = results.map((result) => ({
 			source: this.context.options.store.registerSource(result.source),
 			result: structuredClone(result),
 		}));
-		this.context.options.store.publish(rootId, items);
+		this.context.options.store.publish(scopeIds, items);
 		this.context.options.logger.info(
-			{ event: "catalog.publication_saved", sources: items.length, rootId },
+			{ event: "catalog.publication_saved", sources: items.length, scopeIds },
 			"Catalog proposals synchronized; user decisions preserved.",
 		);
 	}
@@ -44,9 +43,9 @@ export class ReviewApplication {
 		});
 	}
 	async source(fileId: string) {
-		const root = await this.context.root();
+		const scope = await this.context.scope();
 		const resolved = await this.context.options.sources.resolveSource(fileId);
-		this.context.options.sources.assertRootEpoch(root.epoch);
+		this.context.options.sources.assertAccessRevision(scope.revision);
 		const source = this.context.options.store.registerSource(resolved.identity);
 		const record = this.context.options.store.review(source.id);
 		return {
@@ -60,14 +59,14 @@ export class ReviewApplication {
 	async fileReviews(fileIds: string[]): Promise<ReviewItem[]> {
 		if (fileIds.length > 100 || new Set(fileIds).size !== fileIds.length)
 			invalid("Select at most 100 distinct files.");
-		const root = await this.context.root();
+		const scope = await this.context.scope();
 		const items: ReviewItem[] = [];
 		for (const fileId of fileIds) {
 			text(fileId, 200);
 			try {
 				const resolved =
 					await this.context.options.sources.resolveSource(fileId);
-				this.context.options.sources.assertRootEpoch(root.epoch);
+				this.context.options.sources.assertAccessRevision(scope.revision);
 				const source = this.context.options.store.registerSource(
 					resolved.identity,
 				);
@@ -76,12 +75,12 @@ export class ReviewApplication {
 					items.push(
 						safeReview(
 							record,
-							await this.context.available(record, root.epoch),
+							await this.context.available(record, scope.revision),
 							this.associations(record.id),
 						),
 					);
 			} catch (error) {
-				this.context.options.sources.assertRootEpoch(root.epoch);
+				this.context.options.sources.assertAccessRevision(scope.revision);
 				if (
 					!(error instanceof DomainError) ||
 					![
@@ -94,20 +93,20 @@ export class ReviewApplication {
 					throw error;
 			}
 		}
-		this.context.options.sources.assertRootEpoch(root.epoch);
+		this.context.options.sources.assertAccessRevision(scope.revision);
 		return items;
 	}
 	async get(id: string): Promise<ReviewItem> {
-		const root = await this.context.root();
-		const record = this.context.requireReview(id, root.rootId);
+		const scope = await this.context.scope();
+		const record = this.context.requireReview(id, scope.ids);
 		return safeReview(
 			record,
-			await this.context.available(record, root.epoch),
+			await this.context.available(record, scope.revision),
 			this.associations(id),
 		);
 	}
 	async reviews(options: Parameters<AnimeCatalogApi["reviews"]>[0] = {}) {
-		const root = await this.context.root();
+		const scope = await this.context.scope();
 		if (
 			options.decision &&
 			!["pending", "confirmed", "rejected"].includes(options.decision)
@@ -115,7 +114,7 @@ export class ReviewApplication {
 			invalid("Unknown review decision.");
 		const reference = options.workId
 			? (() => {
-					this.context.requireWork(options.workId, root.rootId);
+					this.context.requireWork(options.workId, scope.ids);
 					const link = this.context.options.store.link(options.workId);
 					if (!link) throw new Error("Provider link is missing.");
 					return link.reference;
@@ -123,7 +122,7 @@ export class ReviewApplication {
 			: undefined;
 		const pagination = page(options);
 		const result = this.context.options.store.reviews(
-			root.rootId,
+			scope.ids,
 			options.decision,
 			pagination.page,
 			pagination.perPage,
@@ -134,11 +133,11 @@ export class ReviewApplication {
 			items.push(
 				safeReview(
 					item,
-					await this.context.available(item, root.epoch),
+					await this.context.available(item, scope.revision),
 					this.associations(item.id),
 				),
 			);
-		this.context.options.sources.assertRootEpoch(root.epoch);
+		this.context.options.sources.assertAccessRevision(scope.revision);
 		return { ...result, items };
 	}
 	private async decision(
@@ -147,8 +146,8 @@ export class ReviewApplication {
 		reason: string,
 		remove: boolean,
 	): Promise<ReviewItem> {
-		const root = await this.context.root();
-		const record = this.context.requireReview(id, root.rootId, revision);
+		const scope = await this.context.scope();
+		const record = this.context.requireReview(id, scope.ids, revision);
 		if (remove || reason.trim()) text(reason);
 		else if (reason.length > 500)
 			invalid("Reason must be at most 500 characters.");
@@ -178,7 +177,7 @@ export class ReviewApplication {
 			{
 				event: remove ? "catalog.associations_removed" : "catalog.rejected",
 				reviewId: id,
-				rootId: root.rootId,
+				scopeIds: scope.ids,
 				revision: revision + 1,
 			},
 			remove
@@ -186,8 +185,8 @@ export class ReviewApplication {
 				: "Catalog source rejected.",
 		);
 		return safeReview(
-			this.context.requireReview(id, root.rootId),
-			await this.context.available(record, root.epoch),
+			this.context.requireReview(id, scope.ids),
+			await this.context.available(record, scope.revision),
 		);
 	}
 	reject(id: string, revision: number, reason: string) {

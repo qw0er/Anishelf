@@ -22,6 +22,7 @@ import {
 import { readSubtitleText } from "../src/modules/media/subtitles/infrastructure/content.js";
 import { discoverExternalSubtitles } from "../src/modules/media/subtitles/infrastructure/discovery.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import { runTool } from "../src/platform/media/process.js";
 import { ConfigurationService } from "./support/configuration.js";
@@ -329,7 +330,7 @@ test("injected near-end thresholds and batch limits control database selection",
 	try {
 		const source = database.playback.registerSource(
 			{
-				canonicalRoot: "/media",
+				scopeId: resourceRootId("/media"),
 				relativePath: "episode.mp4",
 				fileId: "file",
 				sourceVersion: "v",
@@ -348,10 +349,10 @@ test("injected near-end thresholds and batch limits control database selection",
 			2,
 		);
 		expect(
-			database.playback.listHistory(source.rootId, 1, 0, "continue"),
+			database.playback.listHistory([source.rootId], 1, 0, "continue"),
 		).toHaveLength(1);
 		expect(() =>
-			database.playback.listHistory(source.rootId, 2, 0, "continue"),
+			database.playback.listHistory([source.rootId], 2, 0, "continue"),
 		).toThrow("must not exceed 1");
 	} finally {
 		database.close();

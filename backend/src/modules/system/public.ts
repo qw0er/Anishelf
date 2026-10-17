@@ -40,8 +40,11 @@ export interface SystemApi extends SettingsStore {
 
 /** Resources reserves its scan/root gate around System-owned persistence. */
 export interface ResourceSettingsCoordinator {
-	coordinateSettingsChange(
-		save: () => Promise<Readonly<PersistentSettings>>,
+	applySettingsChange(
+		input: Partial<PersistentSettings>,
+		save: (
+			patch: Partial<PersistentSettings>,
+		) => Promise<Readonly<PersistentSettings>>,
 	): Promise<Readonly<PersistentSettings>>;
 }
 

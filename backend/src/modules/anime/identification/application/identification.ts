@@ -53,7 +53,7 @@ export class IdentificationApplication implements IdentificationApi {
 					"INVALID_REQUEST",
 					"Supply validated root-relative source identities.",
 				);
-			const key = JSON.stringify([source.canonicalRoot, source.fileId]);
+			const key = JSON.stringify([source.scopeId, source.fileId]);
 			if (seen.has(key))
 				throw new DomainError(
 					"INVALID_REQUEST",
@@ -61,7 +61,7 @@ export class IdentificationApplication implements IdentificationApi {
 				);
 			seen.add(key);
 			const directory = JSON.stringify([
-				source.canonicalRoot,
+				source.scopeId,
 				posix.dirname(source.relativePath),
 			]);
 			const group = groups.get(directory) ?? [];

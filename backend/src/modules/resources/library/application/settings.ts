@@ -35,6 +35,29 @@ export class ResourceSettingsApplication {
 					}),
 		);
 	}
+	applySettingsChange(
+		input: Partial<PersistentSettings>,
+		save: (
+			patch: Partial<PersistentSettings>,
+		) => Promise<Readonly<PersistentSettings>>,
+	): Promise<Readonly<PersistentSettings>> {
+		const patch = structuredClone(input);
+		const current = this.getSettings();
+		const mediaUpdate =
+			patch.transcodeCacheBudgetGiB !== undefined ||
+			patch.defaultTranscodeProfileId !== undefined ||
+			patch.preparationMode !== undefined;
+		const resourceChange =
+			patch.resourceRoot !== current.resourceRoot ||
+			patch.scanIntervalMinutes !== undefined ||
+			!mediaUpdate;
+		if (!resourceChange) {
+			delete patch.resourceRoot;
+			delete patch.scanIntervalMinutes;
+			return save(patch);
+		}
+		return this.coordinateSettingsChange(() => save(patch));
+	}
 	async coordinateSettingsChange(
 		save: () => Promise<Readonly<PersistentSettings>>,
 	): Promise<Readonly<PersistentSettings>> {
@@ -43,6 +66,10 @@ export class ResourceSettingsApplication {
 			const saved = await save();
 			if (saved.resourceRoot !== previousRoot) {
 				this.options.rootChanged();
+				this.options.logger.info(
+					{ event: "resources.scope_invalidated" },
+					"Resource configuration changed; source access and the published index were invalidated.",
+				);
 				this.options.scans.reset();
 			}
 			return { ...saved };

@@ -17,7 +17,7 @@ export type * from "./domain/model.js";
 export interface AnimeCatalogApi {
 	publish(
 		results: readonly IdentificationResult[],
-		canonicalRoot: string,
+		scopeIds: readonly string[],
 		signal?: AbortSignal,
 	): Promise<void>;
 	list(query?: CatalogQuery): Promise<Page<WorkCard>>;

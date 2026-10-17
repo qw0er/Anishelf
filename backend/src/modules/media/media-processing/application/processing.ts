@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { stat } from "node:fs/promises";
-import { join } from "node:path";
 import type { Logger } from "pino";
 import type { MediaProcessEvent } from "../../../../platform/media/events.js";
 import type { MediaStream } from "../../../../platform/media/index.js";
@@ -243,7 +242,7 @@ export class MediaProcessingApplication implements MediaProcessingApi {
 		const workspace = await this.files.allocate();
 		try {
 			await this.options.executor.execute(
-				join(source.identity.canonicalRoot, source.identity.relativePath),
+				await this.options.sources.filePath(source),
 				workspace.pendingPath,
 				{
 					plan,

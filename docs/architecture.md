@@ -162,12 +162,51 @@ source identities, playback history and accepted submission intent.
 ### Application responsibilities
 
 System owns settings HTTP commands and persistence. App supplies a consumer-owned
-resource-settings coordination port implemented by Resources. Resource-root saves and scan-interval commands reserve Resources' scan gate;
+resource-settings coordination port implemented by Resources. Resources decides
+which settings patches require its scan gate and strips unchanged resource fields
+from independent media patches. Resource-root saves and scan-interval commands reserve Resources' scan gate;
 cache budgets and transcode options can change independently when their request
 retains the current root. System queues partial updates against the latest saved
 settings, so an unrelated update cannot overwrite concurrent profile selection or
 restore a resource root that changed after the request began. HTTP presenters own
 settings/profile DTO projection; Playback reads effective profile selection directly.
+
+### Resource directory isolation
+
+Resources owns directory selection, canonical-path resolution, confinement, scans,
+index replacement and access invalidation. Its public source identities contain
+an opaque `scopeId`, a file ID, a relative resource name and a source version.
+`getScope()` returns active scope IDs and an access revision; consumers query
+membership as a collection rather than resolving one active filesystem root.
+Catalog publications include the complete scope collection, including an empty
+publication. Catalog, Review, preparation summaries and playback history filter
+by those IDs. They neither calculate root IDs nor read the directory table.
+
+Resources issues process-local `accessRevision` values and validates them through
+`assertAccessRevision` and `revalidateSource`. Durable identities omit that
+revision so restart recovery can revalidate the same source. Configuration changes
+invalidate active references and reset the index before a new scan. Resources logs
+`resources.scope_invalidated` without recording paths. Media owns tool execution;
+Resources' `filePath(reference)` validates membership, version, confinement and
+access revision before returning a transient tool input. Media never reconstructs
+an original-media path from a root. Sidecar discovery retains bounded relative
+directory reads through `ResourceFiles`.
+
+Normalized source/root primary keys remain unchanged, preserving history and
+associations. Database adapters reconstruct source identities from `media_sources`
+alone. The private legacy `resource_roots.canonical_path` unique column remains for
+database continuity; newly registered scopes store an opaque marker there, and no
+consumer interprets the column. Existing generated copies remain stored; new
+planning and subtitle cache identities use opaque scopes and can require fresh
+preparation. Source bytes and accepted Catalog decisions are unaffected.
+
+Web Resources projects configuration into identity, cache scope, configured and
+ready values. App routes compose that projection, and Anime receives readiness
+booleans rather than directory paths. System continues to persist the combined
+settings document and validate its deployment constraints; the directory editor
+retains its existing Settings page and HTTP contract. Multiple configured
+directories are still future work: this refactor isolates resource consumers but
+retains the existing single-directory scanner and configuration format.
 
 Media composition constructs Preparation's context, scheduler, worker, recovery and
 artifact services, and constructs subtitle/font services. Preparation's command

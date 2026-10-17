@@ -97,7 +97,7 @@ export function resolveExecutionPlan(
 					? "preparation-execution:3"
 					: version,
 			fileId: input.fileId,
-			root: input.canonicalRoot,
+			root: input.scopeId,
 			sourceVersion: input.sourceVersion,
 			profileFingerprint: output.profileFingerprint,
 			delivery: output.target,

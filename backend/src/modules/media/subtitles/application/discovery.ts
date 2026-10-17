@@ -47,7 +47,7 @@ export class SubtitleDiscoveryService {
 		// No provider means this application is configured for external subtitles only.
 		if (!this.inspection) return { tracks: [], warnings: [] };
 		const key = JSON.stringify([
-			identity.canonicalRoot,
+			identity.scopeId,
 			identity.fileId,
 			identity.sourceVersion,
 		]);
@@ -143,7 +143,7 @@ export class SubtitleDiscoveryService {
 			this.policy.subtitles,
 			this.policy.library,
 		);
-		this.sources.assertRootEpoch(source.rootEpoch);
+		this.sources.assertAccessRevision(source.accessRevision);
 		const embedded = await this.discoverEmbedded(
 			source.identity,
 			source.file.name,
@@ -151,7 +151,7 @@ export class SubtitleDiscoveryService {
 		// Successful inspection already validated this video after external discovery.
 		// Busy, unavailable and external-only discovery still need an end-of-operation check.
 		if (!embedded.info) await this.sources.revalidateSource(source);
-		this.sources.assertRootEpoch(source.rootEpoch);
+		this.sources.assertAccessRevision(source.accessRevision);
 		return {
 			resources,
 			info: embedded.info,

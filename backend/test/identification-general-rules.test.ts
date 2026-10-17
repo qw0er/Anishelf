@@ -32,7 +32,7 @@ async function identify(paths: string[], works: WorkCandidate[]) {
 	return app.identify(
 		paths.map((relativePath) => ({
 			relativePath,
-			canonicalRoot: "/library",
+			scopeId: "/library",
 			fileId: relativePath,
 			sourceVersion: "v1",
 		})),
@@ -47,7 +47,7 @@ const review = (result: Awaited<ReturnType<typeof identify>>[number]) =>
 		rootId: "test",
 		sourceVersion: result.source.sourceVersion,
 		relativePath: result.source.relativePath,
-		canonicalRoot: result.source.canonicalRoot,
+		scopeId: result.source.scopeId,
 		revision: 1,
 		reason: null,
 		available: true,

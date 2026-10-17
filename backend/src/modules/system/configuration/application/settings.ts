@@ -22,26 +22,13 @@ export class SettingsApplication {
 		input: SettingsUpdate,
 	): Promise<Readonly<PersistentSettings>> {
 		const patch: Partial<PersistentSettings> = structuredClone(input);
-		const current = this.getSettings();
-		const mediaUpdate =
-			patch.transcodeCacheBudgetGiB !== undefined ||
-			patch.defaultTranscodeProfileId !== undefined ||
-			patch.preparationMode !== undefined;
-		const resourceChange =
-			patch.resourceRoot !== current.resourceRoot ||
-			patch.scanIntervalMinutes !== undefined ||
-			!mediaUpdate;
-		if (!resourceChange) {
-			delete patch.resourceRoot;
-			delete patch.scanIntervalMinutes;
-		}
 
 		const started = Date.now();
 		this.logger.debug(
 			{ event: "settings.update_started" },
 			"Settings update started.",
 		);
-		const save = async () => {
+		const save = async (patch: Partial<PersistentSettings>) => {
 			try {
 				return await (this.configuration.patchSettings
 					? this.configuration.patchSettings(patch)
@@ -61,13 +48,10 @@ export class SettingsApplication {
 				throw err;
 			}
 		};
-		const saved = resourceChange
-			? await this.resources.coordinateSettingsChange(save)
-			: await save();
+		const saved = await this.resources.applySettingsChange(patch, save);
 		this.logger.info(
 			{
 				event: "settings.updated",
-				rootChanged: saved.resourceRoot !== current.resourceRoot,
 				scanIntervalMinutes: saved.scanIntervalMinutes,
 				durationMs: Date.now() - started,
 			},

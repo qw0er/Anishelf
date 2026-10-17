@@ -37,24 +37,26 @@ export async function createResourcesModule(options: {
 		},
 	});
 	const sources: ResourceAccessApi = {
-		get resourceRootEpoch() {
-			return library.sources.resourceRootEpoch;
+		get accessRevision() {
+			return library.sources.accessRevision;
 		},
 		get hasSnapshot() {
 			return library.sources.hasSnapshot;
 		},
 		resolveSource: (id, version) => library.sources.resolveSource(id, version),
 		revalidateSource: (source) => library.sources.revalidateSource(source),
-		assertRootEpoch: (epoch) => library.sources.assertRootEpoch(epoch),
-		resolveRoot: () => library.sources.resolveRoot(),
+		assertAccessRevision: (epoch) =>
+			library.sources.assertAccessRevision(epoch),
+		getScope: () => library.sources.getScope(),
+		filePath: (expected) => library.sources.filePath(expected),
 		getFile: (id) => library.sources.getFile(id),
 		openMedia: (id) => library.sources.openMedia(id),
 		openResources: (source) => library.sources.openResources(source),
 	};
 	const api: ResourcesApi = {
 		sources,
-		coordinateSettingsChange: (save) =>
-			library.settings.coordinateSettingsChange(save),
+		applySettingsChange: (input, save) =>
+			library.settings.applySettingsChange(input, save),
 		onSnapshotChanged: (listener) => library.onSnapshotChanged(listener),
 		readFilePage: (revision, offset, limit) =>
 			library.readFilePage(revision, offset, limit),

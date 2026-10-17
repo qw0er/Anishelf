@@ -1,7 +1,3 @@
-import type {
-	SourceIdentity,
-	SourceReference,
-} from "../../../shared/media-source.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type {
 	CompatibilityCheckRequest,
@@ -9,6 +5,10 @@ import type {
 	CompatibilityInspection,
 	CompatibilityResult,
 } from "../../media/public.js";
+import type {
+	SourceIdentity,
+	SourceReference,
+} from "../../resources/public.js";
 /** Read-only requirements. No planner-private profiles or preparation execution settings. */
 export interface PlaybackSelectionPlanning {
 	inspect(input: CompatibilityInspectInput): Promise<CompatibilityInspection>;
@@ -26,10 +26,10 @@ export interface PlaybackCopies {
 interface SelectionSource {
 	identity: SourceIdentity;
 	file: { mimeType: string };
-	rootEpoch: number;
+	accessRevision: number;
 }
 export interface PlaybackSelectionSources {
 	resolveSource(id: string, expectedVersion?: string): Promise<SelectionSource>;
 	revalidateSource(expected: SourceReference): Promise<unknown>;
-	assertRootEpoch(epoch: number): void;
+	assertAccessRevision(epoch: number): void;
 }

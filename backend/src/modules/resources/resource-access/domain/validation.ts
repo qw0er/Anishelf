@@ -11,7 +11,7 @@ export function assertFileSource(
 	current: FileSourceIdentity,
 ): void {
 	if (
-		expected.canonicalRoot !== current.canonicalRoot ||
+		expected.scopeId !== current.scopeId ||
 		expected.relativePath !== current.relativePath
 	)
 		throw new DomainError("PLAYBACK_CONFLICT", "The source file changed.");

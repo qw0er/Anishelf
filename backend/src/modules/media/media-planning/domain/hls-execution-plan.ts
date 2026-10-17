@@ -113,7 +113,7 @@ export function resolveHlsExecutionPlan(
 		...settings,
 		id: fingerprint({
 			version: "hls-execution:1",
-			root: input.canonicalRoot,
+			root: input.scopeId,
 			fileId: input.fileId,
 			sourceVersion: input.sourceVersion,
 			profileFingerprint: input.output.profileFingerprint,

@@ -5,8 +5,8 @@ export type {
 	CompatibilityResult,
 } from "./media-planning/public.js";
 
-import type { SourceIdentity } from "../../shared/media-source.js";
 import type { DeepReadonly } from "../../shared/policy.js";
+import type { SourceIdentity } from "../resources/public.js";
 import type {
 	CompatibilityCheckRequest,
 	CompatibilityInspectInput,

@@ -407,7 +407,7 @@ test("HTTP only delivers completed media, supports ranges/HEAD, rejects arbitrar
 		headers,
 	});
 	expect(status.json().status).toBe("ready");
-	expect(JSON.stringify(status.json())).not.toContain("canonicalRoot");
+	expect(JSON.stringify(status.json())).not.toContain("scopeId");
 	expect(
 		(
 			await f.app.inject({

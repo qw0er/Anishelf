@@ -29,12 +29,12 @@ export interface CatalogMetadata
 export interface CatalogStore extends SourceRegistry {
 	transaction<T>(operation: (store: CatalogStore) => T): T;
 	publish(
-		rootId: string,
+		scopeIds: readonly string[],
 		items: { source: RegisteredSource; result: IdentificationResult }[],
 	): void;
 	review(id: string): ReviewRecord | null;
 	reviews(
-		rootId: string,
+		scopeIds: readonly string[],
 		decision: ReviewRecord["decision"] | undefined,
 		page: number,
 		perPage: number,
@@ -46,7 +46,7 @@ export interface CatalogStore extends SourceRegistry {
 	link(workId: string): ProviderLink | null;
 	findWork(reference: ProviderLink["reference"]): LocalWork | null;
 	list(
-		rootId: string,
+		scopeIds: readonly string[],
 		query: CatalogQuery,
 		page: number,
 		perPage: number,
@@ -57,7 +57,7 @@ export interface CatalogStore extends SourceRegistry {
 	associations(sourceId: string): (Association & { episode: LocalEpisode })[];
 	versions(
 		episodeId: string,
-		rootId: string,
+		scopeIds: readonly string[],
 	): { review: ReviewRecord; association: Association }[];
 	replaceAssociations(sourceId: string, associations: Association[]): void;
 	decide(

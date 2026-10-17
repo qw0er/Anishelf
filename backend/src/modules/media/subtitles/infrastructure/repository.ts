@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import { mediaSources, resourceRoots } from "../../../resources/persistence.js";
+import { mediaSources } from "../../../resources/persistence.js";
 import type { SourceRegistry } from "../../../resources/public.js";
 import type { SubtitleAsset, SubtitleFontSet } from "../domain/model.js";
 import {
@@ -75,27 +75,23 @@ export class SubtitleRepository {
 			.select({
 				set: subtitleFontSets,
 				source: mediaSources,
-				root: resourceRoots,
 			})
 			.from(subtitleFontSets)
-			.innerJoin(mediaSources, eq(subtitleFontSets.sourceId, mediaSources.id))
-			.innerJoin(resourceRoots, eq(mediaSources.rootId, resourceRoots.id));
+			.innerJoin(mediaSources, eq(subtitleFontSets.sourceId, mediaSources.id));
 	}
 	private toFonts({
 		set,
 		source,
-		root,
 	}: {
 		set: typeof subtitleFontSets.$inferSelect;
 		source: typeof mediaSources.$inferSelect;
-		root: typeof resourceRoots.$inferSelect;
 	}): SubtitleFontSet {
 		return {
 			id: set.id,
 			status: set.status,
 			warnings: set.warnings,
 			source: {
-				canonicalRoot: root.canonicalPath,
+				scopeId: source.rootId,
 				fileId: source.fileId,
 				relativePath: source.relativePath,
 				sourceVersion: source.sourceVersion,
@@ -123,20 +119,16 @@ export class SubtitleRepository {
 			.select({
 				asset: subtitleAssets,
 				source: mediaSources,
-				root: resourceRoots,
 			})
 			.from(subtitleAssets)
-			.innerJoin(mediaSources, eq(subtitleAssets.sourceId, mediaSources.id))
-			.innerJoin(resourceRoots, eq(mediaSources.rootId, resourceRoots.id));
+			.innerJoin(mediaSources, eq(subtitleAssets.sourceId, mediaSources.id));
 	}
 	private toAsset({
 		asset,
 		source,
-		root,
 	}: {
 		asset: typeof subtitleAssets.$inferSelect;
 		source: typeof mediaSources.$inferSelect;
-		root: typeof resourceRoots.$inferSelect;
 	}): SubtitleAsset {
 		return {
 			id: asset.id,
@@ -148,7 +140,7 @@ export class SubtitleRepository {
 			sizeBytes: asset.sizeBytes,
 			errorCode: asset.errorCode,
 			source: {
-				canonicalRoot: root.canonicalPath,
+				scopeId: source.rootId,
 				fileId: source.fileId,
 				relativePath: source.relativePath,
 				sourceVersion: source.sourceVersion,

@@ -122,7 +122,7 @@ export class PreparationArtifacts {
 		if (task.state.status === "ready" && source) {
 			try {
 				await this.context.sources.revalidateSource(source);
-				this.context.sources.assertRootEpoch(source.rootEpoch);
+				this.context.sources.assertAccessRevision(source.accessRevision);
 				if (!this.context.profileValid(task))
 					throw new PreparationProfileChangedError();
 			} catch (error) {
@@ -164,7 +164,7 @@ export class PreparationArtifacts {
 			const handle = await this.context.files.open(artifact);
 			try {
 				await this.context.sources.revalidateSource(source);
-				this.context.sources.assertRootEpoch(source.rootEpoch);
+				this.context.sources.assertAccessRevision(source.accessRevision);
 				this.context.assertOpen();
 			} catch (error) {
 				await handle.close();
@@ -252,7 +252,7 @@ export class PreparationArtifacts {
 				processed.sizeBytes,
 			);
 			await this.context.sources.revalidateSource(source);
-			this.context.sources.assertRootEpoch(source.rootEpoch);
+			this.context.sources.assertAccessRevision(source.accessRevision);
 			signal.throwIfAborted();
 			this.context.assertOpen();
 			if (!this.context.profileValid(task))

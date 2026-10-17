@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { DomainError } from "../../../../shared/errors.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
-import { resourceRootId } from "../../../resources/public.js";
 import type {
 	CompatibilityCheckRequest,
 	MediaPlanningResult,
@@ -135,12 +134,10 @@ export class PreparationApplication implements PreparationApi {
 			input.fileId,
 			input.sourceVersion,
 		);
-		if (
-			resourceRootId(source.identity.canonicalRoot) !== planned.identity.rootId
-		)
+		if (source.identity.scopeId !== planned.identity.rootId)
 			throw new DomainError("PLAYBACK_CONFLICT", "The source root changed.");
 		await context.sources.revalidateSource(source);
-		context.sources.assertRootEpoch(source.rootEpoch);
+		context.sources.assertAccessRevision(source.accessRevision);
 		scheduler.assertHealthy();
 		// Deduplication, capacity check and insertion are synchronous: no await between them.
 		const existing = context.repository.find(planned.identity.executionPlanId);
@@ -260,8 +257,7 @@ export class PreparationApplication implements PreparationApi {
 			if (
 				planned.kind !== "processing-required" ||
 				planned.identity.sourceVersion !== task.spec.source.sourceVersion ||
-				planned.identity.rootId !==
-					resourceRootId(task.spec.source.canonicalRoot) ||
+				planned.identity.rootId !== task.spec.source.scopeId ||
 				planned.identity.profileFingerprint !== task.spec.profileFingerprint
 			)
 				throw new DomainError(

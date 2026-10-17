@@ -13,7 +13,7 @@ function scope(result: IdentificationResult, work: WorkCandidate) {
 		return null;
 	const path = result.source.relativePath;
 	return JSON.stringify([
-		result.source.canonicalRoot,
+		result.source.scopeId,
 		path.slice(0, path.lastIndexOf("/") + 1),
 		seasons[0],
 		work.reference,

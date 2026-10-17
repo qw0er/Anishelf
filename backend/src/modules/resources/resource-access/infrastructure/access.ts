@@ -8,6 +8,7 @@ import { storageRules } from "../../../../platform/storage.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import type { PersistentSettings } from "../../../system/public.js";
+import { resourceRootId } from "../domain/identity.js";
 import { getVideoMimeType } from "../domain/mime.js";
 import type { FileSourceIdentity, RootIssue } from "../domain/model.js";
 import { assertFileSource } from "../domain/validation.js";
@@ -116,8 +117,8 @@ export class ResourceAccess {
 		private readonly policy: DeepReadonly<ResourceAccessRuntimePolicy>,
 	) {}
 
-	get canonicalRoot(): string {
-		return this.root;
+	get scopeId(): string {
+		return resourceRootId(this.root);
 	}
 
 	static async create(
@@ -125,6 +126,13 @@ export class ResourceAccess {
 		policy: DeepReadonly<ResourceAccessRuntimePolicy> = resourceAccessRuntimePolicy,
 	): Promise<ResourceAccess> {
 		return new ResourceAccess(await resolveResourceRoot(settings), policy);
+	}
+
+	/** Transient tool input; directory resolution and confinement stay inside Resources. */
+	async filePath(relativePath: string): Promise<string> {
+		const file = await this.openFile(relativePath);
+		await file.release();
+		return join(this.root, relativePath);
 	}
 
 	/** An empty relative path denotes the root directory. Symlink entries are not followed. */
@@ -206,13 +214,13 @@ export class ResourceAccess {
 	async openSubtitleSource(
 		expected: FileSourceIdentity,
 	): Promise<OpenedResourceFile> {
-		if (expected.canonicalRoot !== this.root)
+		if (expected.scopeId !== this.scopeId)
 			throw new DomainError("PLAYBACK_CONFLICT", "The resource root changed.");
 		const file = await this.openSubtitleFile(expected.relativePath);
 		try {
 			const current = await this.sourceMetadata(file);
 			assertFileSource(expected, {
-				canonicalRoot: this.root,
+				scopeId: this.scopeId,
 				relativePath: expected.relativePath,
 				sourceVersion: current.sourceVersion,
 			});

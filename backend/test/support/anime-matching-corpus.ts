@@ -101,7 +101,7 @@ function review(result: IdentificationResult): ReviewRecord {
 		rootId: "corpus",
 		fileId: result.source.fileId,
 		relativePath: result.source.relativePath,
-		canonicalRoot: result.source.canonicalRoot,
+		scopeId: result.source.scopeId,
 		sourceVersion: result.source.sourceVersion,
 		available: true,
 		revision: 1,
@@ -147,7 +147,7 @@ export async function evaluateMatchingCorpus() {
 	for (const group of groups) {
 		const results = await engine.identify(
 			group.map(({ id, path }) => ({
-				canonicalRoot: "/corpus",
+				scopeId: "/corpus",
 				fileId: id,
 				relativePath: path,
 				sourceVersion: corpus.version,

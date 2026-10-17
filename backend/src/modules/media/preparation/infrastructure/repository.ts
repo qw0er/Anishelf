@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import { freeze } from "../../../../shared/policy.js";
-import { mediaSources, resourceRoots } from "../../../resources/persistence.js";
+import { mediaSources } from "../../../resources/persistence.js";
 import type { SourceRegistry } from "../../../resources/public.js";
 import type {
 	PreparationState,
@@ -21,16 +21,13 @@ export class PreparationRepository implements PreparationStore {
 			.select({
 				task: preparationTasks,
 				source: mediaSources,
-				root: resourceRoots,
 			})
 			.from(preparationTasks)
-			.innerJoin(mediaSources, eq(preparationTasks.sourceId, mediaSources.id))
-			.innerJoin(resourceRoots, eq(mediaSources.rootId, resourceRoots.id));
+			.innerJoin(mediaSources, eq(preparationTasks.sourceId, mediaSources.id));
 	}
 	private task(row: {
 		task: typeof preparationTasks.$inferSelect;
 		source: typeof mediaSources.$inferSelect;
-		root: typeof resourceRoots.$inferSelect;
 	}): PreparationTask {
 		const { status, progress, failureReason, updatedAtMs } = row.task;
 		let state: PreparationState;
@@ -59,7 +56,7 @@ export class PreparationRepository implements PreparationStore {
 			state,
 			spec: freeze({
 				source: {
-					canonicalRoot: row.root.canonicalPath,
+					scopeId: row.source.rootId,
 					fileId: row.source.fileId,
 					relativePath: row.source.relativePath,
 					sourceVersion: row.source.sourceVersion,
@@ -78,7 +75,10 @@ export class PreparationRepository implements PreparationStore {
 			(row) => this.task(row),
 		);
 	}
-	summaries(canonicalRoot: string, fileIds: string[]): PreparationSummaryRow[] {
+	summaries(
+		scopeIds: readonly string[],
+		fileIds: string[],
+	): PreparationSummaryRow[] {
 		const rows: PreparationSummaryRow[] = [];
 		// Bound SQLite parameters; each chunk is a set query, never a query per file.
 		for (let offset = 0; offset < fileIds.length; offset += 500) {
@@ -101,10 +101,9 @@ export class PreparationRepository implements PreparationStore {
 						mediaSources,
 						eq(preparationTasks.sourceId, mediaSources.id),
 					)
-					.innerJoin(resourceRoots, eq(mediaSources.rootId, resourceRoots.id))
 					.where(
 						and(
-							eq(resourceRoots.canonicalPath, canonicalRoot),
+							inArray(mediaSources.rootId, [...scopeIds]),
 							inArray(mediaSources.fileId, fileIds.slice(offset, offset + 500)),
 						),
 					)

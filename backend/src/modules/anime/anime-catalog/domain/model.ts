@@ -75,10 +75,10 @@ export interface ReviewItem {
 	metadataStatus: IdentificationResult["metadataStatus"];
 	unresolved: string[];
 }
-/** Canonical paths stay inside the application and persistence adapter. */
+/** Internal source membership; the HTTP projection retains its existing opaque rootId field. */
 export interface ReviewRecord
 	extends Omit<ReviewItem, "associations" | "recognizedWork"> {
-	canonicalRoot: string;
+	scopeId: string;
 }
 export interface MappingSelection {
 	reviewId: string;

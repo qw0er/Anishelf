@@ -1,8 +1,8 @@
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
-import {
-	type ResourceAccessApi,
-	resourceRootId,
+import type {
+	ResourceAccessApi,
+	ResourceScope,
 } from "../../../resources/public.js";
 import {
 	automaticBlockers,
@@ -32,7 +32,7 @@ export function safeReview(
 	available: boolean,
 	associations: ReviewItem["associations"] = [],
 ): ReviewItem {
-	const { canonicalRoot: _, ...item } = record;
+	const { scopeId: _, ...item } = record;
 	const assessment = { ...record, available };
 	const recognized = recognizedWorkProposal(assessment);
 	return {
@@ -69,16 +69,17 @@ export class CatalogContext {
 		if (this.closed)
 			throw new DomainError("CATALOG_UNAVAILABLE", "Catalog is closed.");
 	}
-	async root() {
+	async scope(): Promise<ResourceScope> {
 		this.open();
-		const epoch = this.options.sources.resourceRootEpoch;
-		const canonicalRoot = await this.options.sources.resolveRoot();
-		this.options.sources.assertRootEpoch(epoch);
-		return { canonicalRoot, epoch, rootId: resourceRootId(canonicalRoot) };
+		return this.options.sources.getScope();
 	}
-	requireReview(id: string, rootId: string, revision?: number): ReviewRecord {
+	requireReview(
+		id: string,
+		scopeIds: readonly string[],
+		revision?: number,
+	): ReviewRecord {
 		const record = this.options.store.review(text(id, 200));
-		if (!record || record.rootId !== rootId)
+		if (!record || !scopeIds.includes(record.rootId))
 			throw new DomainError(
 				"CATALOG_NOT_FOUND",
 				"Review item is not in the active root.",
@@ -90,14 +91,14 @@ export class CatalogContext {
 			conflict();
 		return record;
 	}
-	requireWork(id: string, rootId: string): LocalWork {
+	requireWork(id: string, scopeIds: readonly string[]): LocalWork {
 		const work = this.options.store.work(text(id, 200));
 		if (
 			!work ||
 			!this.options.store
 				.episodes(id)
 				.some(
-					(episode) => this.options.store.versions(episode.id, rootId).length,
+					(episode) => this.options.store.versions(episode.id, scopeIds).length,
 				)
 		)
 			throw new DomainError(
@@ -110,9 +111,9 @@ export class CatalogContext {
 		if (!record.available || !this.options.sources.hasSnapshot) return false;
 		try {
 			await this.options.sources.revalidateSource({
-				rootEpoch: epoch,
+				accessRevision: epoch,
 				identity: {
-					canonicalRoot: record.canonicalRoot,
+					scopeId: record.scopeId,
 					fileId: record.fileId,
 					relativePath: record.relativePath,
 					sourceVersion: record.sourceVersion,
@@ -120,7 +121,7 @@ export class CatalogContext {
 			});
 			return true;
 		} catch (error) {
-			this.options.sources.assertRootEpoch(epoch);
+			this.options.sources.assertAccessRevision(epoch);
 			if (
 				error instanceof DomainError &&
 				[
