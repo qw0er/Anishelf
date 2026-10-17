@@ -525,10 +525,11 @@ test("first-run setup saves the server directory and shows the automatic scan", 
 		).getByRole("link", { name: "Settings" }),
 	);
 	const input = (await screen.findByLabelText(
-		"Resource directory paths",
-	)) as HTMLTextAreaElement;
+		"New resource directory path",
+	)) as HTMLInputElement;
 	expect(input.value).toBe("");
 	fireEvent.change(input, { target: { value: "/media/中文 videos" } });
+	fireEvent.click(screen.getByRole("button", { name: "Add directory" }));
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
 	await screen.findByRole("button", { name: "Scan library" });
 	expect(screen.getByTestId("location").textContent).toBe("/directories/root");
@@ -578,8 +579,10 @@ test("saving a new directory returns from the player and unloads old media", asy
 	const video = await screen.findByLabelText("Video: Episode 01.mp4");
 	expect(screen.queryByRole("button", { name: "Scan library" })).toBeNull();
 	fireEvent.click(screen.getByRole("link", { name: "Settings" }));
-	const input = await screen.findByLabelText("Resource directory paths");
+	const input = await screen.findByLabelText("New resource directory path");
+	fireEvent.click(screen.getByRole("button", { name: "Delete /media" }));
 	fireEvent.change(input, { target: { value: "/new/media" } });
+	fireEvent.click(screen.getByRole("button", { name: "Add directory" }));
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
 	await waitFor(() =>
 		expect(screen.getByTestId("location").textContent).toBe(
@@ -596,7 +599,7 @@ test("saving a new directory returns from the player and unloads old media", asy
 	).toBe("true");
 });
 
-test("a failed settings save retains the input and supports a retry", async () => {
+test("a failed settings save retains the draft list and supports a retry", async () => {
 	const implementation = fetcher.getMockImplementation();
 	let rejectSave = true;
 	fetcher.mockImplementation((input, init) => {
@@ -618,15 +621,19 @@ test("a failed settings save retains the input and supports a retry", async () =
 	});
 	renderApp("/settings");
 	const input = (await screen.findByLabelText(
-		"Resource directory paths",
+		"New resource directory path",
 	)) as HTMLInputElement;
+	fireEvent.click(screen.getByRole("button", { name: "Delete /media" }));
 	fireEvent.change(input, { target: { value: "/new/media" } });
+	fireEvent.click(screen.getByRole("button", { name: "Add directory" }));
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
 	await screen.findByText("Settings could not be saved.", {
 		selector: "[data-slot=toast-title]",
 	});
 	expect(within(screen.getByRole("main")).queryByRole("alert")).toBeNull();
-	expect(input.value).toBe("/new/media");
+	expect(
+		screen.getByRole("button", { name: "Delete /new/media" }),
+	).toBeTruthy();
 	expect(screen.getByTestId("location").textContent).toBe("/settings");
 	// The error toast appears before the fetcher returns to idle. Wait until
 	// the form is usable so disabled controls are included in the retry.
@@ -3275,12 +3282,24 @@ test.each(["source-v1", "older-source"])(
 	},
 );
 
-test("settings save multiple paths from separate lines", async () => {
+test("settings save the edited directory list", async () => {
 	renderApp("/settings");
-	const input = await screen.findByLabelText("Resource directory paths");
-	fireEvent.change(input, {
-		target: { value: "/disk-a/media\n\n/disk-b/中文 videos" },
-	});
+	const input = await screen.findByLabelText("New resource directory path");
+	fireEvent.click(screen.getByRole("button", { name: "Delete /media" }));
+	fireEvent.change(input, { target: { value: "/disk-a/media" } });
+	fireEvent.click(screen.getByRole("button", { name: "Add directory" }));
+	fireEvent.change(input, { target: { value: "/disk-b/中文 videos" } });
+	fireEvent.keyDown(input, { key: "Enter" });
+	expect(
+		within(
+			screen.getByRole("list", { name: "Resource directory paths" }),
+		).getAllByRole("listitem"),
+	).toHaveLength(2);
+	expect(
+		fetcher.mock.calls.some(
+			([path, init]) => path === "/api/settings" && init?.method === "PUT",
+		),
+	).toBe(false);
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
 	await waitFor(() =>
 		expect(settings.resourceRoots).toEqual([
@@ -3294,18 +3313,21 @@ test("settings save multiple paths from separate lines", async () => {
 
 test("duplicate paths stay editable without sending a settings request", async () => {
 	renderApp("/settings");
-	const input = await screen.findByLabelText("Resource directory paths");
-	fireEvent.change(input, { target: { value: "/media\n/media" } });
-	fireEvent.submit(input.closest("form") as HTMLFormElement);
-	await screen.findByText(
-		"Enter up to 64 distinct resource paths, one per line.",
-	);
+	const input = await screen.findByLabelText("New resource directory path");
+	fireEvent.change(input, { target: { value: "/media" } });
+	fireEvent.click(screen.getByRole("button", { name: "Add directory" }));
+	await screen.findByText("This directory is already in the list.");
 	expect(
 		fetcher.mock.calls.some(
 			([path, init]) => path === "/api/settings" && init?.method === "PUT",
 		),
 	).toBe(false);
-	expect((input as HTMLTextAreaElement).value).toBe("/media\n/media");
+	expect((input as HTMLInputElement).value).toBe("/media");
+	expect(
+		within(
+			screen.getByRole("list", { name: "Resource directory paths" }),
+		).getAllByRole("listitem"),
+	).toHaveLength(1);
 });
 
 test("Files shows root entries and an offline warning while healthy roots remain browsable", async () => {
@@ -3356,8 +3378,9 @@ test("Files shows root entries and an offline warning while healthy roots remain
 
 test("clearing the path list saves setup mode", async () => {
 	renderApp("/settings");
-	const input = await screen.findByLabelText("Resource directory paths");
-	fireEvent.change(input, { target: { value: "" } });
+	const input = await screen.findByLabelText("New resource directory path");
+	fireEvent.click(screen.getByRole("button", { name: "Delete /media" }));
+	await screen.findByText("No resource directories added.");
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
 	await waitFor(() => expect(settings.resourceRoots).toEqual([]));
 	await screen.findByRole("button", { name: "Scan library" });

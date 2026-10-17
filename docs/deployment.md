@@ -334,8 +334,8 @@ for volume lifecycle and supported unit keys.
 
 ## Multiple resource directories
 
-Mount each media location read-only at a distinct server path, then enter one path
-per line in Settings. For example, mount `/host/anime` at `/media/anime` and
+Mount each media location read-only at a distinct server path, then add each path
+to the directory list in Settings and save. For example, mount `/host/anime` at `/media/anime` and
 `/host/movies` at `/media/movies`. Do not configure both `/media` and its children.
 For fresh installations, initialize both paths with:
 

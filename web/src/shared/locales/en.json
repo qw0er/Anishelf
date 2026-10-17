@@ -106,12 +106,18 @@
 		"pathPlaceholder": "/path/to/media",
 		"save": "Save directories",
 		"saved": "Settings saved.",
-		"savedPath": "Saved resource directories: {{path}}",
 		"waitForScan": "Wait for the scan to finish before changing directories.",
 		"transcodeCacheBudget": "Transcode cache budget (GiB)",
 		"transcodeCacheBudgetHelp": "Default: {{defaultGiB}} GiB. Applies to new tasks; lowering the budget does not delete existing copies.",
 		"invalidCacheBudget": "Enter a positive whole number for the transcode cache budget.",
-		"pathsHelp": "One absolute path per line, up to 64 paths. Paths must not overlap. Leave empty to remove all resource directories."
+		"pathsHelp": "Add directories to the list, then save your changes. Paths must not overlap. Remove all entries to return to setup mode.",
+		"newPathLabel": "New resource directory path",
+		"addPath": "Add directory",
+		"deletePath": "Delete",
+		"removePath": "Delete {{path}}",
+		"duplicatePath": "This directory is already in the list.",
+		"noPaths": "No resource directories added.",
+		"pathsLimitReached": "The list has reached the limit of 64 directories. Remove an entry to add another."
 	},
 	"externalPlayers": {
 		"open": "Open in external player",

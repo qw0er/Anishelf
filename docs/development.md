@@ -351,7 +351,9 @@ API/status and real-provider verification boundaries.
 
 ## Resource Settings and Startup
 
-Settings accepts one absolute server path per line, up to 64 paths. It persists
+Settings displays up to 64 paths in a list. Delete removes a draft entry; the input
+and Add directory button append a new absolute server path. Save directories
+persists the whole draft list; failed saves retain it for retry. It persists
 `resourceRoots: string[]`; `[]` means setup mode. Duplicate, nested, symlink-aliased
 paths and overlap with dataDir are rejected. Legacy `resourceRoot` string/null
 settings load into the array format; the next save writes that format. Existing
