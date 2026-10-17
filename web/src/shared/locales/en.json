@@ -350,6 +350,8 @@
 		"availableCount_one": "{{count}} episode available",
 		"availableCount_other": "{{count}} episodes available",
 		"regularCount": "{{count}} / {{total}} regular episodes available",
+		"localProgress": "Local {{count}} / {{total}}",
+		"localCount": "{{count}} local",
 		"pagination": "Library pages",
 		"previous": "Previous",
 		"next": "Next",
@@ -540,6 +542,8 @@
 		"allStatuses": "All viewing states",
 		"untracked": "Not on AniList",
 		"progress": "AniList progress: {{count}}",
+		"watchedCount_one": "{{count}} watched",
+		"watchedCount_other": "{{count}} watched",
 		"provider": "AniList",
 		"episodeProgress": "{{progress}} / {{total}} episodes",
 		"episodes_one": "{{count}} episode",
@@ -624,11 +628,12 @@
 		"unchanged": "AniList progress unchanged."
 	},
 	"episodeViewing": {
-		"summary": "AniList progress: {{progress}} watched · {{available}} available unwatched. Based on cumulative AniList progress; local playback history is separate.",
-		"watched": "Watched (AniList progress)",
-		"unwatched": "Unwatched (AniList progress)",
-		"unknown": "Not determined by AniList progress",
-		"availableUnwatched_one": "{{count}} available unwatched (AniList progress)",
-		"availableUnwatched_other": "{{count}} available unwatched (AniList progress)"
+		"availabilityInfoLabel": "About available unwatched episodes",
+		"availabilityInfo": "Locally available episodes numbered after your cumulative AniList progress. Local playback history is separate.",
+		"watched": "Watched",
+		"unwatched": "Unwatched",
+		"unknown": "Viewing state unknown",
+		"availableUnwatched_one": "{{count}} unwatched available",
+		"availableUnwatched_other": "{{count}} unwatched available"
 	}
 }
