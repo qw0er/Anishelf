@@ -75,8 +75,10 @@ and keyboard-focus feedback.
 Catalog search submits with Enter or its search button. Sorting and discrete
 filters apply immediately and reset pagination. Put secondary filters in an
 expandable panel and show removable applied-filter labels. Preserve URL state,
-return focus and scroll. The Library toolbar keeps search, Filters, sort and the
-AniList action on one row. Refresh uses an icon button with a Tooltip and an
+return focus and scroll. Restore the last applied Library filters when returning
+to Library in the same tab session; explicit URL filters take precedence. The
+Library toolbar keeps search, Filters, sort and the AniList action on one row.
+Refresh uses an icon button with a Tooltip and an
 accessible name. On narrow screens, compact action icons and a bounded sort
 control preserve search space. AniList account actions share one row when space
 allows and wrap naturally on narrower screens. The application header always stays on one line.
