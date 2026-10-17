@@ -4,27 +4,19 @@ import {
 	access,
 	link,
 	readFile,
-	realpath,
 	rename,
 	rm,
 	stat,
 	writeFile,
 } from "node:fs/promises";
-import {
-	basename,
-	dirname,
-	isAbsolute,
-	join,
-	relative,
-	resolve,
-	sep,
-} from "node:path";
+import { isAbsolute, join, relative, sep } from "node:path";
 import { Check } from "typebox/value";
 import { preparationConstraints } from "../../../../contracts/defaults.js";
 import {
 	PreparationModeSchema,
 	TranscodeProfileIdSchema,
 } from "../../../../contracts/schemas/transcode-profiles.js";
+import { canonicalPath } from "../../../../platform/canonical-path.js";
 import { storageRules } from "../../../../platform/storage.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { PersistentSettings } from "../domain/model.js";
@@ -59,8 +51,17 @@ function validatePersistentSettings(
 		);
 	}
 	const settings = value as Record<string, unknown>;
+	if (
+		Object.hasOwn(settings, "resourceRoots") &&
+		Object.hasOwn(settings, "resourceRoot")
+	)
+		throw new DomainError(
+			"CONFIG_INVALID",
+			"Use resourceRoots or legacy resourceRoot, not both.",
+		);
 	for (const key of Object.keys(settings)) {
 		if (
+			key !== "resourceRoots" &&
 			key !== "resourceRoot" &&
 			key !== "scanIntervalMinutes" &&
 			key !== "defaultTranscodeProfileId" &&
@@ -108,7 +109,13 @@ function validatePersistentSettings(
 		profileId === undefined
 			? {}
 			: { defaultTranscodeProfileId: profileId as string };
-	const root = settings.resourceRoot;
+	const roots =
+		settings.resourceRoots ??
+		(settings.resourceRoot === null
+			? []
+			: typeof settings.resourceRoot === "string"
+				? [settings.resourceRoot]
+				: undefined);
 	const interval = settings.scanIntervalMinutes;
 	if (
 		interval !== undefined &&
@@ -123,20 +130,31 @@ function validatePersistentSettings(
 		);
 	const scheduling =
 		interval === undefined ? {} : { scanIntervalMinutes: interval as number };
-	if (root === null)
-		return { resourceRoot: null, ...scheduling, ...profile, ...cache, ...mode };
 	if (
-		typeof root !== "string" ||
-		root.trim() === "" ||
-		root.includes("\0") ||
-		!isAbsolute(root)
+		!Array.isArray(roots) ||
+		roots.length > 64 ||
+		roots.some(
+			(root) =>
+				typeof root !== "string" ||
+				root.trim() === "" ||
+				root.includes("\0") ||
+				!isAbsolute(root),
+		)
 	) {
 		throw new DomainError(
 			"CONFIG_INVALID",
-			"settings.json resourceRoot must be an absolute filesystem path.",
+			"settings.json resourceRoots must contain at most 64 absolute filesystem paths.",
 		);
 	}
-	return { resourceRoot: root, ...scheduling, ...profile, ...cache, ...mode };
+	if (new Set(roots).size !== roots.length)
+		throw new DomainError("CONFIG_INVALID", "Resource paths must be distinct.");
+	return {
+		resourceRoots: [...roots],
+		...scheduling,
+		...profile,
+		...cache,
+		...mode,
+	};
 }
 
 function contains(parent: string, child: string): boolean {
@@ -151,7 +169,7 @@ function contains(parent: string, child: string): boolean {
 async function loadPersistentSettings(
 	dataDir: string,
 	maximumIntervalMinutes: number,
-	initialResourceRoot?: string,
+	initialResourceRoot?: string | readonly string[],
 ): Promise<PersistentSettings> {
 	const path = join(dataDir, storageRules.settingsFile);
 	let source: string;
@@ -159,20 +177,27 @@ async function loadPersistentSettings(
 		source = await readFile(path, "utf8");
 	} catch (cause) {
 		if ((cause as NodeJS.ErrnoException).code === "ENOENT") {
-			if (initialResourceRoot === undefined) return { resourceRoot: null };
+			if (initialResourceRoot === undefined) return { resourceRoots: [] };
 			const settings = validatePersistentSettings(
-				{ resourceRoot: initialResourceRoot },
+				{
+					resourceRoots:
+						typeof initialResourceRoot === "string"
+							? [initialResourceRoot]
+							: [...initialResourceRoot],
+				},
 				maximumIntervalMinutes,
 			);
-			await checkDirectorySeparation(dataDir, initialResourceRoot);
+			await validateResourceDirectories(dataDir, settings.resourceRoots);
 			try {
-				if (!(await stat(initialResourceRoot)).isDirectory())
-					throw new Error("Not a directory");
-				await access(initialResourceRoot, constants.R_OK | constants.X_OK);
+				for (const root of settings.resourceRoots) {
+					if (!(await stat(root)).isDirectory())
+						throw new Error("Not a directory");
+					await access(root, constants.R_OK | constants.X_OK);
+				}
 			} catch (cause) {
 				throw new DomainError(
 					"CONFIG_INVALID",
-					"ANISHELF_INITIAL_RESOURCE_ROOT must point to an accessible, readable directory.",
+					"Resource initializers must point to accessible, readable directories.",
 					{ cause },
 				);
 			}
@@ -187,41 +212,43 @@ async function loadPersistentSettings(
 		);
 	}
 	const settings = parsePersistentSettings(source, maximumIntervalMinutes);
-	if (settings.resourceRoot !== null)
-		await checkDirectorySeparation(dataDir, settings.resourceRoot);
+	await validateResourceDirectories(dataDir, settings.resourceRoots);
 	return settings;
-}
-
-/** Resolve existing ancestors even when the configured directory is unavailable. */
-async function canonicalSettingsPath(path: string): Promise<string> {
-	const absolute = resolve(path);
-	let candidate = absolute;
-	const suffix: string[] = [];
-	while (true) {
-		try {
-			return join(await realpath(candidate), ...suffix);
-		} catch {
-			const parent = dirname(candidate);
-			if (parent === candidate) return absolute;
-			suffix.unshift(basename(candidate));
-			candidate = parent;
-		}
-	}
 }
 
 async function checkDirectorySeparation(
 	dataDir: string,
-	resourceRoot: string,
+	resourceRoots: string,
 ): Promise<void> {
 	const [data, root] = await Promise.all([
-		canonicalSettingsPath(dataDir),
-		canonicalSettingsPath(resourceRoot),
+		canonicalPath(dataDir),
+		canonicalPath(resourceRoots),
 	]);
 	if (contains(data, root) || contains(root, data)) {
 		throw new DomainError(
 			"CONFIG_INVALID",
-			"dataDir and resourceRoot must be separate directories; neither may contain the other.",
+			"dataDir and resourceRoots must be separate directories; neither may contain the other.",
 		);
+	}
+}
+
+async function validateResourceDirectories(
+	dataDir: string,
+	roots: readonly string[],
+): Promise<void> {
+	const canonical = await Promise.all(roots.map(canonicalPath));
+	for (let index = 0; index < roots.length; index++) {
+		await checkDirectorySeparation(dataDir, roots[index] as string);
+		for (let other = 0; other < index; other++) {
+			if (
+				contains(canonical[index] as string, canonical[other] as string) ||
+				contains(canonical[other] as string, canonical[index] as string)
+			)
+				throw new DomainError(
+					"CONFIG_INVALID",
+					"Resource paths must not duplicate or contain one another.",
+				);
+		}
 	}
 }
 
@@ -244,7 +271,7 @@ export class PersistentConfiguration {
 		dataDir: string,
 		maximumIntervalMinutes = configurationPolicy.library
 			.maximumScanIntervalMinutes,
-		initialResourceRoot?: string,
+		initialResourceRoot?: string | readonly string[],
 	): Promise<PersistentConfiguration> {
 		return new PersistentConfiguration(
 			dataDir,
@@ -258,7 +285,10 @@ export class PersistentConfiguration {
 	}
 
 	get settings(): Readonly<PersistentSettings> {
-		return Object.freeze({ ...this.current });
+		return Object.freeze({
+			...this.current,
+			resourceRoots: [...this.current.resourceRoots],
+		});
 	}
 
 	/** Replace the settings. Calls are serialized; rejected writes leave state unchanged. */
@@ -270,8 +300,7 @@ export class PersistentConfiguration {
 			return Promise.reject(error);
 		}
 		const result = this.pendingWrite.then(async () => {
-			if (next.resourceRoot !== null)
-				await checkDirectorySeparation(this.dataDir, next.resourceRoot);
+			await validateResourceDirectories(this.dataDir, next.resourceRoots);
 			await writePersistentSettings(this.dataDir, next);
 			this.current = next;
 			return this.settings;

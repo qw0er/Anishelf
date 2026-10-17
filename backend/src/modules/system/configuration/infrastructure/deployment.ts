@@ -28,6 +28,33 @@ function absolutePath(value: string, name: string): string {
 	return value;
 }
 
+function initialRoots(env: Environment): string[] | undefined {
+	if (env.ANISHELF_INITIAL_RESOURCE_ROOTS === undefined) return undefined;
+	if (env.ANISHELF_INITIAL_RESOURCE_ROOT !== undefined)
+		invalid(
+			"Set only one resource initializer: ANISHELF_INITIAL_RESOURCE_ROOTS or ANISHELF_INITIAL_RESOURCE_ROOT.",
+		);
+	let value: unknown;
+	try {
+		value = JSON.parse(env.ANISHELF_INITIAL_RESOURCE_ROOTS);
+	} catch {
+		invalid(
+			"ANISHELF_INITIAL_RESOURCE_ROOTS must be a JSON array of absolute paths.",
+		);
+	}
+	if (
+		!Array.isArray(value) ||
+		value.length > 64 ||
+		value.some((path) => typeof path !== "string")
+	)
+		invalid(
+			"ANISHELF_INITIAL_RESOURCE_ROOTS must be a JSON array of at most 64 absolute paths.",
+		);
+	return (value as string[]).map((path) =>
+		absolutePath(path, "ANISHELF_INITIAL_RESOURCE_ROOTS"),
+	);
+}
+
 function defaultDataDir(): string {
 	return userDataDir("anishelf", false);
 }
@@ -143,6 +170,7 @@ export function parseDeploymentConfig(
 	} else {
 		invalid("ANISHELF_LOG_DESTINATION must be 'stdout', 'file', or 'both'.");
 	}
+	const resourceInitializers = initialRoots(env);
 	const mediaTools = {
 		ffmpegPath:
 			env.ANISHELF_FFMPEG_PATH === undefined
@@ -168,6 +196,9 @@ export function parseDeploymentConfig(
 						"ANISHELF_INITIAL_RESOURCE_ROOT",
 					),
 				}),
+		...(resourceInitializers === undefined
+			? {}
+			: { initialResourceRoots: resourceInitializers }),
 		logging,
 		mediaTools,
 		...(env.ANISHELF_FRONTEND_DIR === undefined

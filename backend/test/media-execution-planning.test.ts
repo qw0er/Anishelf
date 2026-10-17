@@ -492,7 +492,7 @@ test("media planning rejects a root change while compatibility is awaited", asyn
 	const original = f.app.check.bind(f.app);
 	vi.spyOn(f.app, "check").mockImplementationOnce(async (input) => {
 		const checked = await original(input);
-		await f.library.updateResourceSettings({ resourceRoot: otherRoot });
+		await f.library.updateResourceSettings({ resourceRoots: [otherRoot] });
 		return checked;
 	});
 	await expect(

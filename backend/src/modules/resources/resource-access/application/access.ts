@@ -10,6 +10,7 @@ import type {
 } from "../domain/model.js";
 import { assertFileSource, assertSourceVersion } from "../domain/validation.js";
 import { ResourceAccess } from "../infrastructure/access.js";
+import { configuredRoots } from "../infrastructure/roots.js";
 import type { ResourceAccessRuntimePolicy } from "../policy.js";
 import type { OpenedResourceFile } from "../ports.js";
 import type { ResourceAccessApi } from "../public.js";
@@ -66,24 +67,43 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 		return result;
 	}
 
-	async openResources(expected?: SourceReference): Promise<ResourceAccess> {
-		return this.withRoot(async () => {
-			const resources = await ResourceAccess.create(
-				this.getSettings(),
-				this.policy,
+	private async openConfigured(
+		settings: Readonly<PersistentSettings>,
+		scopeId?: string,
+	): Promise<ResourceAccess> {
+		const roots = await configuredRoots(settings);
+		const root =
+			scopeId === undefined && roots.length === 1
+				? roots[0]
+				: roots.find((root) => root.scopeId === scopeId);
+		if (!root)
+			throw new DomainError(
+				settings.resourceRoots.length
+					? "PLAYBACK_CONFLICT"
+					: "RESOURCE_ROOT_NOT_CONFIGURED",
+				"The resource directory is not configured.",
 			);
-			if (expected && resources.scopeId !== expected.identity.scopeId)
-				throw new DomainError(
-					"PLAYBACK_CONFLICT",
-					"The resource root changed.",
-				);
-			return resources;
-		}, expected?.accessRevision);
+		const resources = await ResourceAccess.create(
+			{ ...settings, resourceRoots: [root.path] },
+			this.policy,
+		);
+		if (resources.scopeId !== root.scopeId)
+			throw new DomainError(
+				"PLAYBACK_CONFLICT",
+				"The resource directory changed while opening it.",
+			);
+		return resources;
+	}
+	async openResources(expected?: SourceReference): Promise<ResourceAccess> {
+		return this.withRoot(
+			() => this.openConfigured(this.getSettings(), expected?.identity.scopeId),
+			expected?.accessRevision,
+		);
 	}
 	async getFile(id: string): Promise<FileInfo> {
 		const entry = this.options.catalog.getFile(id);
 		const settings = this.getSettings();
-		const resources = await ResourceAccess.create(settings, this.policy);
+		const resources = await this.openConfigured(settings, entry.scopeId);
 		const current = await resources.inspectVideoFile(entry.relativePath);
 		return {
 			kind: "file",
@@ -105,7 +125,9 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 
 	async getScope(): Promise<ResourceScope> {
 		return this.withRoot(async () => ({
-			ids: [(await this.openResources()).scopeId],
+			ids: (await configuredRoots(this.getSettings())).map(
+				(root) => root.scopeId,
+			),
 			revision: this.revision,
 		}));
 	}
@@ -124,7 +146,10 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 		const epoch = this.revision;
 		return this.withRoot(async () => {
 			const entry = this.options.catalog.getFile(id);
-			const resources = await this.openResources();
+			const resources = await this.openConfigured(
+				this.getSettings(),
+				entry.scopeId,
+			);
 			const metadata = await resources.inspectVideoFileWithVersion(
 				entry.relativePath,
 			);
@@ -160,7 +185,7 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 		// Pair the entry with its root before yielding, even if a settings save follows.
 		const entry = this.options.catalog.getFile(id);
 		const settings = this.getSettings();
-		const resources = await ResourceAccess.create(settings, this.policy);
+		const resources = await this.openConfigured(settings, entry.scopeId);
 		return resources.openFile(entry.relativePath);
 	}
 }

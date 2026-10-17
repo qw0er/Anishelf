@@ -106,9 +106,16 @@ export class LibraryApplication<
 		const scannedAt = this.options.index.scannedAt;
 		const scan = this.state;
 		const rootIssue = await this.options.rootFiles.checkRoot(settings);
+		const roots = await this.options.rootFiles.getRoots(settings);
 		const error = rootIssue ?? (scan?.status === "failed" ? scan.error : null);
 		return {
 			ready: rootIssue === null,
+			roots: roots.map((root) => ({
+				id: root.id,
+				name: root.name,
+				available: root.error === null,
+				error: root.error,
+			})),
 			revision,
 			scan,
 			error,

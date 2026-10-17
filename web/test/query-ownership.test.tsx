@@ -83,7 +83,7 @@ test("a directory uses one metadata batch and no file task/detail requests befor
 					renderFileActions={(state) => <FileActions {...state} />}
 					listing={listing}
 					scan={{
-						settings: { resourceRoot: "/media" },
+						settings: { resourceRoots: ["/media"] },
 						library: null,
 						libraryError: null,
 						scanning: false,

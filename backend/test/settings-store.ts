@@ -2,8 +2,8 @@ import type { PersistentSettings } from "../src/modules/system/configuration/dom
 import type { SettingsStore } from "../src/modules/system/configuration/public.js";
 
 /** In-memory persistence adapter for tests that do not exercise disk writes. */
-export function settingsStore(resourceRoot: string): SettingsStore {
-	let current: PersistentSettings = { resourceRoot };
+export function settingsStore(resourceRoots: string): SettingsStore {
+	let current: PersistentSettings = { resourceRoots: [resourceRoots] };
 	return {
 		get settings() {
 			return { ...current };

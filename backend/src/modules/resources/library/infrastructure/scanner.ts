@@ -35,11 +35,13 @@ export class LibraryScanner {
 		progress: ScanTraversalProgress,
 		signal: AbortSignal,
 		onProgress?: (progress: Readonly<ScanTraversalProgress>) => void,
+		mount = false,
 	): Promise<LibraryEntry[] | null> {
 		const root: DirectoryEntry = {
 			kind: "directory",
-			id: "root",
-			parentId: null,
+			id: mount ? createResourceId("directory", "", resources.scopeId) : "root",
+			parentId: mount ? "root" : null,
+			scopeId: resources.scopeId,
 			name: rootName,
 			relativePath: "",
 		};
@@ -93,7 +95,8 @@ export class LibraryScanner {
 				if (signal.aborted) return;
 				entries.push({
 					kind: "file",
-					id: createResourceId("file", relativePath),
+					scopeId: resources.scopeId,
+					id: createResourceId("file", relativePath, resources.scopeId),
 					parentId: task.parentId,
 					name: task.name,
 					relativePath,
@@ -114,7 +117,8 @@ export class LibraryScanner {
 						kind: "directory",
 						entry: {
 							kind: "directory",
-							id: createResourceId("directory", childPath),
+							scopeId: resources.scopeId,
+							id: createResourceId("directory", childPath, resources.scopeId),
 							parentId: task.entry.id,
 							name: child.name,
 							relativePath: childPath,
@@ -136,7 +140,7 @@ export class LibraryScanner {
 				}
 			}
 		} catch (cause) {
-			if (task.kind === "directory" && task.entry.id === "root")
+			if (task.kind === "directory" && task.entry.relativePath === "")
 				throw new DomainError(
 					"RESOURCE_ROOT_UNAVAILABLE",
 					"The resource directory is unavailable.",

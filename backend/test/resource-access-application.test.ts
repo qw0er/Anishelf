@@ -28,7 +28,7 @@ async function fixture() {
 	const root = join(base, "media");
 	await mkdir(root);
 	await writeFile(join(root, "episode.mp4"), "original");
-	let settings: PersistentSettings = { resourceRoot: root };
+	let settings: PersistentSettings = { resourceRoots: [root] };
 	const catalog: SourceCatalog = {
 		hasSnapshot: true,
 		getFile: (id) => ({
@@ -55,8 +55,8 @@ async function fixture() {
 		source,
 		root,
 		base,
-		setRoot: (resourceRoot: string) => {
-			settings = { resourceRoot };
+		setRoot: (resourceRoots: string) => {
+			settings = { resourceRoots: [resourceRoots] };
 			source.invalidateRoot();
 		},
 	};

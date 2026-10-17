@@ -43,7 +43,7 @@ const environment = () => ({ ANISHELF_DATA_DIR: dataDir });
 
 test("missing settings use current defaults without generating a policy or settings file", async () => {
 	const service = await ConfigurationService.load(environment());
-	expect(service.settings).toEqual({ resourceRoot: null });
+	expect(service.settings).toEqual({ resourceRoots: [] });
 	expect(service.snapshot.settings.scanIntervalMinutes).toBe(60);
 	await expect(readFile(join(dataDir, "settings.json"))).rejects.toMatchObject({
 		code: "ENOENT",
@@ -61,17 +61,17 @@ test("initial resource root persists once and later UI changes survive reload", 
 	await mkdir(root);
 	const env = { ...environment(), ANISHELF_INITIAL_RESOURCE_ROOT: root };
 	const service = await ConfigurationService.load(env);
-	expect(service.settings).toEqual({ resourceRoot: root });
+	expect(service.settings).toEqual({ resourceRoots: [root] });
 	const file = join(dataDir, "settings.json");
 	expect(JSON.parse(await readFile(file, "utf8"))).toEqual({
-		resourceRoot: root,
+		resourceRoots: [root],
 	});
 	if (process.platform !== "win32")
 		expect((await stat(file)).mode & 0o777).toBe(0o600);
-	await service.update({ resourceRoot: null, scanIntervalMinutes: 0 });
+	await service.update({ resourceRoots: [], scanIntervalMinutes: 0 });
 	const original = await readFile(file, "utf8");
 	expect((await ConfigurationService.load(env)).settings).toEqual({
-		resourceRoot: null,
+		resourceRoots: [],
 		scanIntervalMinutes: 0,
 	});
 	expect(await readFile(file, "utf8")).toBe(original);
@@ -130,9 +130,9 @@ test("existing settings win over unavailable initial media; malformed settings a
 		...environment(),
 		ANISHELF_INITIAL_RESOURCE_ROOT: join(directory, "missing"),
 	};
-	await writeFile(file, '{"resourceRoot":null}');
+	await writeFile(file, '{"resourceRoots":[]}');
 	expect((await ConfigurationService.load(env)).settings).toEqual({
-		resourceRoot: null,
+		resourceRoots: [],
 	});
 	await writeFile(file, "");
 	await expect(ConfigurationService.load(env)).rejects.toMatchObject({
@@ -155,7 +155,7 @@ test("concurrent initializers publish one complete settings file without overwri
 	const saved = JSON.parse(
 		await readFile(join(dataDir, "settings.json"), "utf8"),
 	);
-	expect(roots).toContain(saved.resourceRoot);
+	expect(roots).toContain(saved.resourceRoots[0]);
 	for (const service of services) expect(service.settings).toEqual(saved);
 	expect(await readdir(dataDir)).toEqual(["settings.json"]);
 });
@@ -165,7 +165,7 @@ test("old settings adopt updated defaults; explicit choices persist and snapshot
 	await mkdir(dataDir);
 	await writeFile(
 		join(dataDir, "settings.json"),
-		JSON.stringify({ resourceRoot: root }),
+		JSON.stringify({ resourceRoots: [root] }),
 	);
 	const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
 	policy.library.defaultScanIntervalMinutes = 7;
@@ -173,39 +173,39 @@ test("old settings adopt updated defaults; explicit choices persist and snapshot
 	const previous = service.snapshot;
 	policy.library.defaultScanIntervalMinutes = 99;
 	expect(service.snapshot.settings.scanIntervalMinutes).toBe(7);
-	await service.update({ resourceRoot: root, scanIntervalMinutes: 0 });
+	await service.update({ resourceRoots: [root], scanIntervalMinutes: 0 });
 	expect(previous.settings.scanIntervalMinutes).toBe(7);
 	expect(service.snapshot.settings.scanIntervalMinutes).toBe(0);
 	expect(
 		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),
-	).toEqual({ resourceRoot: root, scanIntervalMinutes: 0 });
+	).toEqual({ resourceRoots: [root], scanIntervalMinutes: 0 });
 	const reload = await ConfigurationService.load(environment(), policy);
 	expect(reload.snapshot.settings.scanIntervalMinutes).toBe(0);
-	await reload.update({ resourceRoot: root });
+	await reload.update({ resourceRoots: [root] });
 	expect(
 		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),
-	).toEqual({ resourceRoot: root });
+	).toEqual({ resourceRoots: [root] });
 });
 test("invalid settings and failed writes preserve the published snapshot", async () => {
 	const service = await ConfigurationService.load(environment());
 	const before = service.snapshot;
 	await expect(
-		service.update({ resourceRoot: null, scanIntervalMinutes: 10081 }),
+		service.update({ resourceRoots: [], scanIntervalMinutes: 10081 }),
 	).rejects.toMatchObject({ code: "CONFIG_INVALID" });
 	expect(service.snapshot).toBe(before);
 	await mkdir(join(dataDir, "settings.json"));
-	await expect(service.update({ resourceRoot: null })).rejects.toMatchObject({
+	await expect(service.update({ resourceRoots: [] })).rejects.toMatchObject({
 		code: "CONFIG_WRITE_FAILED",
 	});
 	expect(service.snapshot).toBe(before);
 	await rm(join(dataDir, "settings.json"), { recursive: true });
-	await service.update({ resourceRoot: null, scanIntervalMinutes: 0 });
+	await service.update({ resourceRoots: [], scanIntervalMinutes: 0 });
 	expect(service.snapshot.settings.scanIntervalMinutes).toBe(0);
 });
 test.each([
-	{ resourceRoot: null, unexpected: 1 },
-	{ resourceRoot: null, scanIntervalMinutes: -1 },
-	{ resourceRoot: null, scanIntervalMinutes: 1.5 },
+	{ resourceRoots: [], unexpected: 1 },
+	{ resourceRoots: [], scanIntervalMinutes: -1 },
+	{ resourceRoots: [], scanIntervalMinutes: 1.5 },
 ])(
 	"rejects malformed persistent settings with key diagnostics: %j",
 	async (settings) => {
@@ -262,7 +262,7 @@ test("removed client configuration endpoint returns 404 and settings enforce inj
 					headers: { host: "127.0.0.1:3000" },
 					url: "/api/settings",
 					payload: {
-						resourceRoot: join(directory, "media"),
+						resourceRoots: [join(directory, "media")],
 						scanIntervalMinutes: 11,
 					},
 				})
@@ -274,7 +274,7 @@ test("removed client configuration endpoint returns 404 and settings enforce inj
 					method: "PUT",
 					headers: { host: "127.0.0.1:3000" },
 					url: "/api/settings",
-					payload: { resourceRoot: `/${"x".repeat(256)}` },
+					payload: { resourceRoots: [`/${"x".repeat(256)}`] },
 				})
 			).statusCode,
 		).toBe(413);
@@ -289,7 +289,10 @@ test("injected subtitle bounds govern discovery and reads at the exact boundary"
 	await writeFile(join(root, "episode.srt"), "abc");
 	const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
 	policy.subtitles.maximumBytes = 3;
-	const resources = await ResourceAccess.create({ resourceRoot: root }, policy);
+	const resources = await ResourceAccess.create(
+		{ resourceRoots: [root] },
+		policy,
+	);
 	expect(
 		(
 			await discoverExternalSubtitles(
@@ -386,7 +389,7 @@ test("subtitle reads use the supplied chunk size and still detect a growing sour
 	const root = join(directory, "media");
 	await mkdir(root);
 	await writeFile(join(root, "episode.srt"), "abcde");
-	const resources = await ResourceAccess.create({ resourceRoot: root });
+	const resources = await ResourceAccess.create({ resourceRoots: [root] });
 	const file = await resources.openSubtitleFile("episode.srt");
 	try {
 		const read = vi.spyOn(file.handle, "read");

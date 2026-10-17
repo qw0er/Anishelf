@@ -87,6 +87,19 @@ export const ResourceDtoSchema = Type.Union([
 export const LibraryResponseSchema = Type.Object(
 	{
 		ready: Type.Boolean(),
+		roots: Type.Optional(
+			Type.Array(
+				Type.Object(
+					{
+						id: Type.String(),
+						name: Type.String(),
+						available: Type.Boolean(),
+						error: Type.Union([LibraryIssueDtoSchema, Type.Null()]),
+					},
+					{ additionalProperties: false },
+				),
+			),
+		),
 		revision: NonnegativeIntegerSchema,
 		scan: Type.Union([ScanStateDtoSchema, Type.Null()]),
 		error: Type.Union([LibraryIssueDtoSchema, Type.Null()]),
@@ -109,7 +122,10 @@ export function createSettingsSchemas(maximumScanIntervalMinutes?: number) {
 	);
 	const SettingsResponseSchema = Type.Object(
 		{
-			resourceRoot: Type.Union([Type.String(), Type.Null()]),
+			resourceRoots: Type.Array(Type.String({ minLength: 1 }), {
+				maxItems: 64,
+				uniqueItems: true,
+			}),
 			scanIntervalMinutes: interval,
 			transcodeCacheBudgetGiB: Type.Optional(
 				Type.Integer({
@@ -124,7 +140,10 @@ export function createSettingsSchemas(maximumScanIntervalMinutes?: number) {
 	);
 	const UpdateSettingsRequestSchema = Type.Object(
 		{
-			resourceRoot: Type.String({ minLength: 1 }),
+			resourceRoots: Type.Array(Type.String({ minLength: 1 }), {
+				maxItems: 64,
+				uniqueItems: true,
+			}),
 			scanIntervalMinutes: interval,
 			transcodeCacheBudgetGiB: Type.Optional(
 				Type.Integer({

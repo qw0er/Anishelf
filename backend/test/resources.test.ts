@@ -23,7 +23,7 @@ beforeEach(async () => {
 	root = join(fixture, "media");
 	await mkdir(join(root, "中文 folder"), { recursive: true });
 	await writeFile(join(root, "中文 folder", "episode 01.MP4"), "sample-video");
-	resources = await ResourceAccess.create({ resourceRoot: root });
+	resources = await ResourceAccess.create({ resourceRoots: [root] });
 });
 afterEach(async () => {
 	await rm(fixture, { recursive: true, force: true });
@@ -147,7 +147,7 @@ test("rechecks a previously inspected file after replacement by a symlink", asyn
 test("canonicalizes a configured root alias and rejects replacement of the canonical root", async () => {
 	const alias = join(fixture, "alias");
 	await symlink(root, alias, "dir");
-	const access = await ResourceAccess.create({ resourceRoot: alias });
+	const access = await ResourceAccess.create({ resourceRoots: [alias] });
 	expect(await access.readDirectory()).toHaveLength(1);
 	await rename(root, join(fixture, "old-root"));
 	await symlink(join(fixture, "old-root"), root, "dir");
@@ -159,17 +159,17 @@ test("canonicalizes a configured root alias and rejects replacement of the canon
 test("unavailable roots are recoverable by creating access again", async () => {
 	const missing = join(fixture, "missing");
 	await expect(
-		ResourceAccess.create({ resourceRoot: missing }),
+		ResourceAccess.create({ resourceRoots: [missing] }),
 	).rejects.toMatchObject({ code: "RESOURCE_ROOT_UNAVAILABLE" });
 	await writeFile(missing, "not a directory");
 	await expect(
-		ResourceAccess.create({ resourceRoot: missing }),
+		ResourceAccess.create({ resourceRoots: [missing] }),
 	).rejects.toMatchObject({ code: "RESOURCE_ROOT_UNAVAILABLE" });
 	await rm(missing);
 	await mkdir(missing);
 	expect(
 		await (
-			await ResourceAccess.create({ resourceRoot: missing })
+			await ResourceAccess.create({ resourceRoots: [missing] })
 		).readDirectory(),
 	).toEqual([]);
 });

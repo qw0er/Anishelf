@@ -24,67 +24,73 @@ async function loadPersistentSettings(dataDir: string) {
 
 let fixture: string;
 let dataDir: string;
-let resourceRoot: string;
+let resourceRoots: string;
 beforeEach(async () => {
 	fixture = await mkdtemp(join(tmpdir(), "anishelf-settings-"));
 	dataDir = join(fixture, "data");
-	resourceRoot = join(fixture, "中文 media");
+	resourceRoots = join(fixture, "中文 media");
 	await mkdir(dataDir);
 });
 afterEach(async () => {
 	await rm(fixture, { recursive: true, force: true });
 });
-async function settings(root = resourceRoot): Promise<void> {
+async function settings(root = resourceRoots): Promise<void> {
 	await writeFile(
 		join(dataDir, "settings.json"),
-		JSON.stringify({ resourceRoot: root }),
+		JSON.stringify({ resourceRoots: [root] }),
 	);
 }
 
 test.each([
 	"",
-	'{"resourceRoot":',
+	'{"resourceRoots":',
 	"null",
 	"[]",
 	"123",
 	"{}",
-	'{"resourceRoot":123}',
-	'{"resourceRoot":"relative"}',
-	'{"resourceRoot":""}',
-	'{"resourceRoot":"\\u0000"}',
-	'{"resourceRoot":"/media","port":3000}',
+	'{"resourceRoots":123}',
+	'{"resourceRoots":"relative"}',
+	'{"resourceRoots":""}',
+	'{"resourceRoots":"\\u0000"}',
+	'{"resourceRoots":"/media","port":3000}',
 ])("rejects invalid persistent configuration: %s", (source) => {
 	expect(() => parsePersistentSettings(source)).toThrow();
 });
 
 test("loads read-only settings and handles valid paths with spaces and Chinese", async () => {
-	await mkdir(resourceRoot);
+	await mkdir(resourceRoots);
 	await settings();
 	const path = join(dataDir, "settings.json");
 	const original = await readFile(path, "utf8");
 	await chmod(path, 0o400);
-	expect(await loadPersistentSettings(dataDir)).toEqual({ resourceRoot });
-	expect(await checkResourceRoot({ resourceRoot })).toBeNull();
+	expect(await loadPersistentSettings(dataDir)).toEqual({
+		resourceRoots: [resourceRoots],
+	});
+	expect(
+		await checkResourceRoot({ resourceRoots: [resourceRoots] }),
+	).toBeNull();
 	expect(await readFile(path, "utf8")).toBe(original);
 });
 
 test("missing settings enter setup mode and the first save creates the file", async () => {
 	const manager = await PersistentConfiguration.load(dataDir);
-	expect(manager.settings).toEqual({ resourceRoot: null });
+	expect(manager.settings).toEqual({ resourceRoots: [] });
 	expect(await checkResourceRoot(manager.settings)).toMatchObject({
 		code: "RESOURCE_ROOT_NOT_CONFIGURED",
 	});
 	expect(await readdir(dataDir)).toEqual([]);
-	await manager.update({ resourceRoot });
+	await manager.update({ resourceRoots: [resourceRoots] });
 	expect(
 		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),
-	).toEqual({ resourceRoot });
-	expect(await loadPersistentSettings(dataDir)).toEqual({ resourceRoot });
+	).toEqual({ resourceRoots: [resourceRoots] });
+	expect(await loadPersistentSettings(dataDir)).toEqual({
+		resourceRoots: [resourceRoots],
+	});
 });
 
 test("an explicitly unconfigured file survives restart", async () => {
-	await writeFile(join(dataDir, "settings.json"), '{"resourceRoot":null}');
-	expect(await loadPersistentSettings(dataDir)).toEqual({ resourceRoot: null });
+	await writeFile(join(dataDir, "settings.json"), '{"resourceRoots":[]}');
+	expect(await loadPersistentSettings(dataDir)).toEqual({ resourceRoots: [] });
 });
 
 test("malformed JSON does not put its contents in diagnostics", () => {
@@ -128,10 +134,12 @@ test("rejects missing nested roots under a symlink to the data directory", async
 	await settings();
 	const manager = await PersistentConfiguration.load(dataDir);
 	await expect(
-		manager.update({ resourceRoot: join(alias, "missing", "media") }),
+		manager.update({ resourceRoots: [join(alias, "missing", "media")] }),
 	).rejects.toMatchObject({ code: "CONFIG_INVALID" });
-	expect(manager.settings).toEqual({ resourceRoot });
-	expect(await loadPersistentSettings(dataDir)).toEqual({ resourceRoot });
+	expect(manager.settings).toEqual({ resourceRoots: [resourceRoots] });
+	expect(await loadPersistentSettings(dataDir)).toEqual({
+		resourceRoots: [resourceRoots],
+	});
 });
 
 test("a missing nested root under a separate symlink remains recoverable", async () => {
@@ -141,8 +149,10 @@ test("a missing nested root under a separate symlink remains recoverable", async
 	await symlink(separate, alias, "dir");
 	const root = join(alias, "missing", "media");
 	await settings(root);
-	expect(await loadPersistentSettings(dataDir)).toEqual({ resourceRoot: root });
-	expect(await checkResourceRoot({ resourceRoot: root })).toMatchObject({
+	expect(await loadPersistentSettings(dataDir)).toEqual({
+		resourceRoots: [root],
+	});
+	expect(await checkResourceRoot({ resourceRoots: [root] })).toMatchObject({
 		code: "RESOURCE_ROOT_UNAVAILABLE",
 	});
 });
@@ -152,14 +162,16 @@ test("missing root is recoverable and availability can be rechecked", async () =
 	const loaded = await loadPersistentSettings(dataDir);
 	const issue = await checkResourceRoot(loaded);
 	expect(issue?.code).toBe("RESOURCE_ROOT_UNAVAILABLE");
-	expect(issue?.message).not.toContain(resourceRoot);
-	await mkdir(resourceRoot);
+	expect(issue?.message).not.toContain(resourceRoots);
+	await mkdir(resourceRoots);
 	expect(await checkResourceRoot(loaded)).toBeNull();
 });
 
 test("a resource path pointing to a file is unavailable", async () => {
-	await writeFile(resourceRoot, "not a directory");
-	expect(await checkResourceRoot({ resourceRoot })).toMatchObject({
+	await writeFile(resourceRoots, "not a directory");
+	expect(
+		await checkResourceRoot({ resourceRoots: [resourceRoots] }),
+	).toMatchObject({
 		code: "RESOURCE_ROOT_UNAVAILABLE",
 	});
 });
@@ -167,7 +179,7 @@ test("a resource path pointing to a file is unavailable", async () => {
 test.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
 	"distinguishes unreadable settings from an unreadable root",
 	async () => {
-		await mkdir(resourceRoot);
+		await mkdir(resourceRoots);
 		await settings();
 		const path = join(dataDir, "settings.json");
 		await chmod(path, 0o000);
@@ -178,13 +190,15 @@ test.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
 		} finally {
 			await chmod(path, 0o600);
 		}
-		await chmod(resourceRoot, 0o000);
+		await chmod(resourceRoots, 0o000);
 		try {
-			expect(await checkResourceRoot({ resourceRoot })).toMatchObject({
+			expect(
+				await checkResourceRoot({ resourceRoots: [resourceRoots] }),
+			).toMatchObject({
 				code: "RESOURCE_ROOT_UNAVAILABLE",
 			});
 		} finally {
-			await chmod(resourceRoot, 0o700);
+			await chmod(resourceRoots, 0o700);
 		}
 	},
 );
@@ -192,7 +206,7 @@ test.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
 test("manager updates both disk and memory and reloads the saved settings", async () => {
 	await settings();
 	const manager = await PersistentConfiguration.load(dataDir);
-	const next = { resourceRoot: join(fixture, "new media") };
+	const next = { resourceRoots: [join(fixture, "new media")] };
 	expect(await manager.update(next)).toEqual(next);
 	expect(manager.settings).toEqual(next);
 	expect(
@@ -205,16 +219,16 @@ test("manager updates both disk and memory and reloads the saved settings", asyn
 test("settings snapshots and caller-owned input cannot mutate manager state", async () => {
 	await settings();
 	const manager = await PersistentConfiguration.load(dataDir);
-	const snapshot = manager.settings as { resourceRoot: string };
+	const snapshot = manager.settings as { resourceRoots: string[] };
 	expect(() => {
-		snapshot.resourceRoot = "/changed-outside-manager";
+		snapshot.resourceRoots = ["/changed-outside-manager"];
 	}).toThrow(TypeError);
-	expect(manager.settings.resourceRoot).toBe(resourceRoot);
-	const input = { resourceRoot: join(fixture, "next") };
+	expect(manager.settings.resourceRoots).toEqual([resourceRoots]);
+	const input = { resourceRoots: [join(fixture, "next")] };
 	const pending = manager.update(input);
-	input.resourceRoot = "/changed-after-update-call";
+	input.resourceRoots = ["/changed-after-update-call"];
 	await pending;
-	expect(manager.settings.resourceRoot).toBe(join(fixture, "next"));
+	expect(manager.settings.resourceRoots).toEqual([join(fixture, "next")]);
 });
 
 test("invalid updates leave memory and file unchanged", async () => {
@@ -222,23 +236,23 @@ test("invalid updates leave memory and file unchanged", async () => {
 	const manager = await PersistentConfiguration.load(dataDir);
 	const original = await readFile(join(dataDir, "settings.json"), "utf8");
 	await expect(
-		manager.update({ resourceRoot: "relative" }),
+		manager.update({ resourceRoots: ["relative"] }),
 	).rejects.toMatchObject({ code: "CONFIG_INVALID" });
-	await expect(manager.update({ resourceRoot: dataDir })).rejects.toMatchObject(
-		{ code: "CONFIG_INVALID" },
-	);
-	expect(manager.settings).toEqual({ resourceRoot });
+	await expect(
+		manager.update({ resourceRoots: [dataDir] }),
+	).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+	expect(manager.settings).toEqual({ resourceRoots: [resourceRoots] });
 	expect(await readFile(join(dataDir, "settings.json"), "utf8")).toBe(original);
 });
 
 test("concurrent updates save in call order and continue after rejection", async () => {
 	await settings();
 	const manager = await PersistentConfiguration.load(dataDir);
-	const first = { resourceRoot: join(fixture, "first") };
-	const last = { resourceRoot: join(fixture, "last") };
+	const first = { resourceRoots: [join(fixture, "first")] };
+	const last = { resourceRoots: [join(fixture, "last")] };
 	const results = await Promise.allSettled([
 		manager.update(first),
-		manager.update({ resourceRoot: dataDir }),
+		manager.update({ resourceRoots: [dataDir] }),
 		manager.update(last),
 	]);
 	expect(results.map((result) => result.status)).toEqual([
@@ -259,11 +273,11 @@ test("failed atomic replacement preserves memory, cleans temporary files and per
 	const backup = join(dataDir, "backup.json");
 	await rename(path, backup);
 	await mkdir(path); // Force replacement failure without relying on OS permission rules.
-	const next = { resourceRoot: join(fixture, "next") };
+	const next = { resourceRoots: [join(fixture, "next")] };
 	await expect(manager.update(next)).rejects.toMatchObject({
 		code: "CONFIG_WRITE_FAILED",
 	});
-	expect(manager.settings).toEqual({ resourceRoot });
+	expect(manager.settings).toEqual({ resourceRoots: [resourceRoots] });
 	expect((await readdir(dataDir)).some((name) => name.endsWith(".tmp"))).toBe(
 		false,
 	);
@@ -281,9 +295,9 @@ test.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
 		await chmod(dataDir, 0o500);
 		try {
 			await expect(
-				manager.update({ resourceRoot: join(fixture, "next") }),
+				manager.update({ resourceRoots: [join(fixture, "next")] }),
 			).rejects.toMatchObject({ code: "CONFIG_WRITE_FAILED" });
-			expect(manager.settings).toEqual({ resourceRoot });
+			expect(manager.settings).toEqual({ resourceRoots: [resourceRoots] });
 			expect(await readFile(join(dataDir, "settings.json"), "utf8")).toBe(
 				original,
 			);
@@ -298,7 +312,7 @@ test.each([-1, 1.5, 10081, null, "60"])(
 	(scanIntervalMinutes) => {
 		expect(() =>
 			parsePersistentSettings(
-				JSON.stringify({ resourceRoot, scanIntervalMinutes }),
+				JSON.stringify({ resourceRoots: [resourceRoots], scanIntervalMinutes }),
 			),
 		).toThrow("scanIntervalMinutes");
 	},
@@ -306,14 +320,20 @@ test.each([-1, 1.5, 10081, null, "60"])(
 
 test("scan interval is persisted and survives restart, including disabling it", async () => {
 	const configuration = await PersistentConfiguration.load(dataDir);
-	await configuration.update({ resourceRoot, scanIntervalMinutes: 30 });
-	expect(await loadPersistentSettings(dataDir)).toEqual({
-		resourceRoot,
+	await configuration.update({
+		resourceRoots: [resourceRoots],
 		scanIntervalMinutes: 30,
 	});
-	await configuration.update({ resourceRoot, scanIntervalMinutes: 0 });
 	expect(await loadPersistentSettings(dataDir)).toEqual({
-		resourceRoot,
+		resourceRoots: [resourceRoots],
+		scanIntervalMinutes: 30,
+	});
+	await configuration.update({
+		resourceRoots: [resourceRoots],
+		scanIntervalMinutes: 0,
+	});
+	expect(await loadPersistentSettings(dataDir)).toEqual({
+		resourceRoots: [resourceRoots],
 		scanIntervalMinutes: 0,
 	});
 });

@@ -10,9 +10,18 @@ import { getErrorTranslationKey } from "../../shared/lib/error-translation.js";
 export async function settingsAction({ request }: ActionFunctionArgs) {
 	toast.close("settings-save");
 	const form = await request.formData();
-	const resourceRoot = form.get("resourceRoot");
-	if (typeof resourceRoot !== "string" || resourceRoot.trim() === "")
+	const paths = form.get("resourceRoots");
+	if (typeof paths !== "string")
 		return { error: "errors.resourcePathRequired" };
+	const resourceRoots = paths
+		.split(/\r?\n/)
+		.map((path) => path.trim())
+		.filter(Boolean);
+	if (
+		resourceRoots.length > 64 ||
+		new Set(resourceRoots).size !== resourceRoots.length
+	)
+		return { error: "errors.resourcePathsInvalid" };
 
 	const cache = form.get("transcodeCacheBudgetGiB");
 	const transcodeCacheBudgetGiB = cache === null ? undefined : Number(cache);
@@ -43,7 +52,7 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 		await executeMutation(() =>
 			saveSettings(
 				{
-					resourceRoot,
+					resourceRoots,
 					...(transcodeCacheBudgetGiB === undefined
 						? {}
 						: { transcodeCacheBudgetGiB }),

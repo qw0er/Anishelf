@@ -7,6 +7,7 @@ export interface DeploymentConfig {
 	publicOrigin?: string;
 	dataDir: string;
 	initialResourceRoot?: string;
+	initialResourceRoots?: string[];
 	frontendDir?: string;
 	logging: LoggingConfig;
 	mediaTools: MediaToolsConfig;

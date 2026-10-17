@@ -4,7 +4,7 @@ import type {
 } from "../../../shared/api/contracts.js";
 export interface LibraryScanState {
 	reload(): void;
-	settings: Pick<SettingsResponse, "resourceRoot"> | null;
+	settings: Pick<SettingsResponse, "resourceRoots"> | null;
 	library: LibraryResponse | null;
 	libraryError: string | null;
 	scanning: boolean;
@@ -16,14 +16,14 @@ export interface LibraryScanState {
 
 /** Resource configuration is interpreted here, not by resource consumers. */
 export function resourceContext(
-	settings: Pick<SettingsResponse, "resourceRoot"> | null | undefined,
+	settings: Pick<SettingsResponse, "resourceRoots"> | null | undefined,
 	library: Pick<LibraryResponse, "revision" | "ready"> | null | undefined,
 ) {
-	const identity = settings?.resourceRoot ?? "unconfigured";
+	const identity = JSON.stringify(settings?.resourceRoots ?? []);
 	return {
 		identity,
-		scope: JSON.stringify([settings?.resourceRoot, library?.revision]),
-		configured: Boolean(settings?.resourceRoot),
-		ready: Boolean(settings?.resourceRoot && library?.ready),
+		scope: JSON.stringify([settings?.resourceRoots, library?.revision]),
+		configured: Boolean(settings?.resourceRoots.length),
+		ready: Boolean(settings?.resourceRoots.length && library?.ready),
 	};
 }

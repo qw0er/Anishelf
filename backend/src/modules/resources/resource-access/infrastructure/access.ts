@@ -73,13 +73,15 @@ function metadata(info: Stats, mimeType: string): ResourceFileMetadata {
 async function resolveResourceRoot(
 	settings: Readonly<PersistentSettings>,
 ): Promise<string> {
-	if (settings.resourceRoot === null)
+	if (settings.resourceRoots.length === 0)
 		throw new DomainError(
 			"RESOURCE_ROOT_NOT_CONFIGURED",
 			"Set a resource directory before accessing the library.",
 		);
 	try {
-		const root = await realpath(settings.resourceRoot);
+		if (settings.resourceRoots.length !== 1)
+			throw new Error("A specific resource directory is required.");
+		const root = await realpath(settings.resourceRoots[0] as string);
 		if (!(await stat(root)).isDirectory()) throw new Error("Not a directory");
 		await access(root, constants.R_OK | constants.X_OK);
 		return root;

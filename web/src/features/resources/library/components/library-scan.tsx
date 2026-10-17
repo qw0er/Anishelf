@@ -71,7 +71,9 @@ export default function LibraryScan({
 }: Pick<LibraryScanState, "library" | "settings">) {
 	const { t } = useTranslation();
 	const hasNotices = Boolean(
-		library?.stale || (settings && !settings.resourceRoot),
+		library?.roots?.some((root) => !root.available) ||
+			library?.stale ||
+			(settings && !settings.resourceRoots.length),
 	);
 
 	if (!hasNotices) return null;
@@ -82,7 +84,7 @@ export default function LibraryScan({
 			aria-label={t("scan.title")}
 		>
 			<div className="flex min-w-0 flex-col gap-2 text-sm">
-				{!settings?.resourceRoot && settings && (
+				{!settings?.resourceRoots.length && settings && (
 					<p>
 						<Trans
 							i18nKey="scan.setupRequired"
@@ -93,6 +95,13 @@ export default function LibraryScan({
 					</p>
 				)}
 				{library?.stale && <p>{t("scan.stale")}</p>}
+				{library?.roots
+					?.filter((root) => !root.available)
+					.map((root) => (
+						<p key={root.id} role="status">
+							{t("scan.directoryUnavailable", { name: root.name })}
+						</p>
+					))}
 			</div>
 		</section>
 	);

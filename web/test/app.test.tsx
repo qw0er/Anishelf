@@ -128,7 +128,7 @@ beforeEach(() => {
 	]);
 	fileError = false;
 	compatibilityStatus = "supported";
-	settings = { resourceRoot: "/media" };
+	settings = { resourceRoots: ["/media"] };
 	fetcher.mockReset();
 	fetcher.mockImplementation(async (input, init) => {
 		if (String(input) === "/api/auth/session")
@@ -372,13 +372,16 @@ beforeEach(() => {
 			});
 		if (path === "/api/settings") {
 			if (init?.method === "PUT") {
-				const previousRoot = settings.resourceRoot;
+				const previousRoot = settings.resourceRoots;
 				settings = JSON.parse(String(init.body)) as SettingsResponse;
 				library = {
 					...library,
-					ready: true,
+					ready: settings.resourceRoots.length > 0,
 					scan:
-						settings.resourceRoot !== previousRoot ? runningScan : library.scan,
+						JSON.stringify(settings.resourceRoots) !==
+						JSON.stringify(previousRoot)
+							? runningScan
+							: library.scan,
 					error: null,
 					stale: false,
 					revision: library.revision + 1,
@@ -498,7 +501,7 @@ async function openFile() {
 }
 
 test("first-run setup saves the server directory and shows the automatic scan", async () => {
-	settings = { resourceRoot: null };
+	settings = { resourceRoots: [] };
 	library = {
 		...library,
 		ready: false,
@@ -522,8 +525,8 @@ test("first-run setup saves the server directory and shows the automatic scan", 
 		).getByRole("link", { name: "Settings" }),
 	);
 	const input = (await screen.findByLabelText(
-		"Resource directory path",
-	)) as HTMLInputElement;
+		"Resource directory paths",
+	)) as HTMLTextAreaElement;
 	expect(input.value).toBe("");
 	fireEvent.change(input, { target: { value: "/media/中文 videos" } });
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
@@ -543,7 +546,7 @@ test("first-run setup saves the server directory and shows the automatic scan", 
 				init?.method === "PUT" &&
 				init.body ===
 					JSON.stringify({
-						resourceRoot: "/media/中文 videos",
+						resourceRoots: ["/media/中文 videos"],
 						transcodeCacheBudgetGiB: 10,
 						scanIntervalMinutes: 60,
 					}),
@@ -563,7 +566,7 @@ test("first-run setup saves the server directory and shows the automatic scan", 
 	expect(
 		(
 			screen.getByRole("button", {
-				name: "Save directory",
+				name: "Save directories",
 			}) as HTMLButtonElement
 		).disabled,
 	).toBe(true);
@@ -575,7 +578,7 @@ test("saving a new directory returns from the player and unloads old media", asy
 	const video = await screen.findByLabelText("Video: Episode 01.mp4");
 	expect(screen.queryByRole("button", { name: "Scan library" })).toBeNull();
 	fireEvent.click(screen.getByRole("link", { name: "Settings" }));
-	const input = await screen.findByLabelText("Resource directory path");
+	const input = await screen.findByLabelText("Resource directory paths");
 	fireEvent.change(input, { target: { value: "/new/media" } });
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
 	await waitFor(() =>
@@ -615,7 +618,7 @@ test("a failed settings save retains the input and supports a retry", async () =
 	});
 	renderApp("/settings");
 	const input = (await screen.findByLabelText(
-		"Resource directory path",
+		"Resource directory paths",
 	)) as HTMLInputElement;
 	fireEvent.change(input, { target: { value: "/new/media" } });
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
@@ -632,20 +635,20 @@ test("a failed settings save retains the input and supports a retry", async () =
 		expect(
 			(
 				screen.getByRole("button", {
-					name: "Save directory",
+					name: "Save directories",
 				}) as HTMLButtonElement
 			).disabled,
 		).toBe(false);
 	});
 	rejectSave = false;
-	fireEvent.click(screen.getByRole("button", { name: "Save directory" }));
+	fireEvent.click(screen.getByRole("button", { name: "Save directories" }));
 	await screen.findByRole("button", { name: "Scan library" });
 	expect(
 		fetcher.mock.calls.filter(
 			([path, init]) => path === "/api/settings" && init?.method === "PUT",
 		),
 	).toHaveLength(2);
-	expect(settings.resourceRoot).toBe("/new/media");
+	expect(settings.resourceRoots).toEqual(["/new/media"]);
 	await screen.findByText("Settings saved.");
 	await waitFor(() =>
 		expect(
@@ -2751,7 +2754,7 @@ test("account lookup failure keeps Library filters and retries without falling b
 });
 
 test("Library filters allow All works before local setup and disable viewing state without an account", async () => {
-	settings = { resourceRoot: null };
+	settings = { resourceRoots: [] };
 	renderApp("/");
 	const filters = await screen.findByRole("button", { name: "Filters" });
 	expect(screen.queryByRole("combobox", { name: "Library scope" })).toBeNull();
@@ -3271,3 +3274,95 @@ test.each(["source-v1", "older-source"])(
 			).toBeNull();
 	},
 );
+
+test("settings save multiple paths from separate lines", async () => {
+	renderApp("/settings");
+	const input = await screen.findByLabelText("Resource directory paths");
+	fireEvent.change(input, {
+		target: { value: "/disk-a/media\n\n/disk-b/中文 videos" },
+	});
+	fireEvent.submit(input.closest("form") as HTMLFormElement);
+	await waitFor(() =>
+		expect(settings.resourceRoots).toEqual([
+			"/disk-a/media",
+			"/disk-b/中文 videos",
+		]),
+	);
+	await screen.findByRole("button", { name: "Scan library" });
+	expect(screen.getByTestId("location").textContent).toBe("/directories/root");
+});
+
+test("duplicate paths stay editable without sending a settings request", async () => {
+	renderApp("/settings");
+	const input = await screen.findByLabelText("Resource directory paths");
+	fireEvent.change(input, { target: { value: "/media\n/media" } });
+	fireEvent.submit(input.closest("form") as HTMLFormElement);
+	await screen.findByText(
+		"Enter up to 64 distinct resource paths, one per line.",
+	);
+	expect(
+		fetcher.mock.calls.some(
+			([path, init]) => path === "/api/settings" && init?.method === "PUT",
+		),
+	).toBe(false);
+	expect((input as HTMLTextAreaElement).value).toBe("/media\n/media");
+});
+
+test("Files shows root entries and an offline warning while healthy roots remain browsable", async () => {
+	settings = { resourceRoots: ["/disk-a/media", "/disk-b/media"] };
+	library = {
+		...library,
+		roots: [
+			{
+				id: "scope-a",
+				name: "Disk A",
+				available: false,
+				error: { code: "RESOURCE_ROOT_UNAVAILABLE", message: "Unavailable" },
+			},
+			{ id: "scope-b", name: "Disk B", available: true, error: null },
+		],
+	};
+	directories.set("root", {
+		directory: {
+			kind: "directory",
+			id: "root",
+			parentId: null,
+			name: "Resources",
+		},
+		children: [
+			{ kind: "directory", id: "disk-a", parentId: "root", name: "Disk A" },
+			{ kind: "directory", id: "disk-b", parentId: "root", name: "Disk B" },
+		],
+	});
+	directories.set("disk-b", {
+		directory: {
+			kind: "directory",
+			id: "disk-b",
+			parentId: "root",
+			name: "Disk B",
+		},
+		children: [{ ...file.file, parentId: "disk-b" }],
+	});
+	renderApp();
+	await screen.findByText(
+		"Disk A is unavailable. Its previous index is retained; other directories can still be used.",
+	);
+	fireEvent.click(await screen.findByRole("link", { name: "Disk B" }));
+	await screen.findByRole("link", { name: "Episode 01.mp4" });
+	expect(screen.getByTestId("location").textContent).toBe(
+		"/directories/disk-b",
+	);
+});
+
+test("clearing the path list saves setup mode", async () => {
+	renderApp("/settings");
+	const input = await screen.findByLabelText("Resource directory paths");
+	fireEvent.change(input, { target: { value: "" } });
+	fireEvent.submit(input.closest("form") as HTMLFormElement);
+	await waitFor(() => expect(settings.resourceRoots).toEqual([]));
+	await screen.findByRole("button", { name: "Scan library" });
+	expect(
+		(screen.getByRole("button", { name: "Scan library" }) as HTMLButtonElement)
+			.disabled,
+	).toBe(true);
+});

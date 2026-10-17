@@ -506,7 +506,7 @@ test("root switching cancels stale recognition and processes the newly published
 	await f.library.waitForCompletion();
 	await gate;
 	await f.library.updateResourceSettings({
-		resourceRoot: nextRoot,
+		resourceRoots: [nextRoot],
 		scanIntervalMinutes: 0,
 	});
 	await f.library.waitForCompletion();

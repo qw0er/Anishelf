@@ -25,6 +25,7 @@ import {
 	MetadataError,
 	type WorkDetails,
 } from "../src/modules/anime/metadata/public.js";
+import { createResourceId } from "../src/modules/resources/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import { DomainError } from "../src/shared/errors.js";
@@ -592,7 +593,7 @@ test("changed files and root switches invalidate pending previews without deleti
 	).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
 	const otherRoot = join(f.base, "other");
 	await mkdir(otherRoot);
-	await f.library.updateResourceSettings({ resourceRoot: otherRoot });
+	await f.library.updateResourceSettings({ resourceRoots: [otherRoot] });
 	await f.library.waitForCompletion();
 	await f.automatic.waitForCompletion();
 	expect((await f.catalog.list()).items).toEqual([]);
@@ -608,7 +609,7 @@ test("changed files and root switches invalidate pending previews without deleti
 			replace: true,
 		}),
 	).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
-	await f.library.updateResourceSettings({ resourceRoot: f.root });
+	await f.library.updateResourceSettings({ resourceRoots: [f.root] });
 	await f.library.waitForCompletion();
 	await f.automatic.waitForCompletion();
 	expect((await f.catalog.list()).items).toHaveLength(1);
@@ -1029,7 +1030,7 @@ test("poster artwork uses retained snapshots, delivers cached images offline and
 	const nextRoot = join(f.base, "other-root");
 	await mkdir(nextRoot);
 	await f.library.updateResourceSettings({
-		resourceRoot: nextRoot,
+		resourceRoots: [nextRoot],
 		scanIntervalMinutes: 0,
 	});
 	await f.library.waitForCompletion();
@@ -1796,4 +1797,71 @@ test("Catalog queries and complete publications use opaque scope collections", a
 	f.database.catalog.publish([currentScope, otherScope], []);
 	expect(f.database.catalog.review(source.id)?.available).toBe(false);
 	expect(f.database.catalog.reviews([], undefined, 1, 100).items).toEqual([]);
+});
+
+test("multi-root versions preserve confirmed associations through identity upgrade, removal and restoration", async () => {
+	const f = await fixture();
+	const preview = await f.catalog.preview({ reference, rows: await rows(f) });
+	const confirmed = await f.catalog.confirm({
+		operationKey: "multi-first",
+		previewId: preview.id,
+		replace: false,
+	});
+	const original = required((await f.catalog.reviews()).items[0]);
+	const { default: Database } = await import("better-sqlite3");
+	const raw = new Database(join(f.base, "data", "anishelf.sqlite"));
+	try {
+		raw
+			.prepare("UPDATE media_sources SET file_id = ? WHERE id = ?")
+			.run(createResourceId("file", original.relativePath), original.id);
+		raw
+			.prepare("DELETE FROM __drizzle_migrations WHERE created_at = ?")
+			.run(1792252800000);
+	} finally {
+		raw.close();
+	}
+	await f.restart();
+	expect((await f.catalog.review(original.id)).decision).toBe("confirmed");
+	const other = join(f.base, "another-disk");
+	await mkdir(other);
+	await writeFile(join(other, "Anime - 01.mkv"), "another copy");
+	await f.library.updateResourceSettings({ resourceRoots: [f.root, other] });
+	await f.library.waitForCompletion();
+	await f.automatic.waitForCompletion();
+	const second = required(
+		(await f.catalog.reviews()).items.find(
+			(item) => item.rootId !== original.rootId,
+		),
+	);
+	expect(second.fileId).not.toBe(original.fileId);
+	const extra = await f.catalog.preview({
+		reference,
+		rows: [
+			{
+				reviewId: second.id,
+				revision: second.revision,
+				targets: [{ kind: "regular", number: "1" }],
+				reason: "Second resource directory copy",
+			},
+		],
+	});
+	await f.catalog.confirm({
+		operationKey: "multi-second",
+		previewId: extra.id,
+		replace: false,
+	});
+	const versions = async () =>
+		(await f.catalog.getLocalWorkDetail(confirmed.workId)).episodes.find(
+			(episode) => episode.number === "1",
+		)?.versions;
+	expect(await versions()).toHaveLength(2);
+	await f.library.updateResourceSettings({ resourceRoots: [other] });
+	await f.library.waitForCompletion();
+	await f.automatic.waitForCompletion();
+	expect(await versions()).toHaveLength(1);
+	await f.library.updateResourceSettings({ resourceRoots: [other, f.root] });
+	await f.library.waitForCompletion();
+	await f.automatic.waitForCompletion();
+	expect(await versions()).toHaveLength(2);
+	expect((await f.catalog.review(original.id)).decision).toBe("confirmed");
 });

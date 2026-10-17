@@ -1,5 +1,5 @@
 import { isAbsolute } from "node:path";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import { sourceIdentityKey } from "../domain/identity.js";
 import type { RegisteredSource, SourceIdentity } from "../domain/model.js";
@@ -75,7 +75,13 @@ export class SourceRepository {
 				const source = tx
 					.select()
 					.from(mediaSources)
-					.where(eq(mediaSources.id, id))
+					.where(
+						and(
+							eq(mediaSources.rootId, rootId),
+							eq(mediaSources.fileId, identity.fileId),
+							eq(mediaSources.sourceVersion, identity.sourceVersion),
+						),
+					)
 					.get();
 				if (!source) throw new Error("Source registration failed.");
 				return toRegisteredSource(source);

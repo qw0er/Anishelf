@@ -41,9 +41,9 @@ export default function LibraryBrowser({
 	});
 	const compatibility = useDirectoryCompatibility(
 		listing,
-		JSON.stringify([scan.settings?.resourceRoot, scan.library?.revision]),
+		JSON.stringify([scan.settings?.resourceRoots, scan.library?.revision]),
 	);
-	const setupRequired = scan.settings?.resourceRoot === null;
+	const setupRequired = scan.settings?.resourceRoots.length === 0;
 	return (
 		<section className="stack-page" aria-label={t("library.filesLabel")}>
 			<PageHeader

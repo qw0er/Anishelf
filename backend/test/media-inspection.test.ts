@@ -150,7 +150,9 @@ test("rejects a root-epoch change while probing", async () => {
 		code: "PLAYBACK_CONFLICT",
 	});
 	await vi.waitFor(() => expect(probe).toHaveBeenCalledTimes(1));
-	await library.settings.updateResourceSettings({ resourceRoot: `${root}/.` });
+	await library.settings.updateResourceSettings({
+		resourceRoots: [`${root}/.`],
+	});
 	await library.waitForCompletion();
 	finish();
 	await rejected;

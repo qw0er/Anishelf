@@ -81,7 +81,7 @@ export async function createResourcesModule(options: {
 				status.error.message,
 			);
 		}
-		if (options.system.settings.resourceRoot !== null) {
+		if (options.system.settings.resourceRoots.length > 0) {
 			const scan = await api.startScan();
 			options.logger.info(
 				{ event: "library.startup_scan_started", scanId: scan.id },

@@ -5,7 +5,7 @@ export function settingsResponse(
 	settings: Readonly<PersistentSettings>,
 ): SettingsResponse {
 	return {
-		resourceRoot: settings.resourceRoot,
+		resourceRoots: settings.resourceRoots,
 		...(settings.preparationMode === undefined
 			? {}
 			: { preparationMode: settings.preparationMode }),

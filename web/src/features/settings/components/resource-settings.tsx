@@ -49,15 +49,22 @@ export default function ResourceSettings({
 							<label className="text-sm font-medium" htmlFor="resource-root">
 								{t("settingsPage.pathLabel")}
 							</label>
-							<Input
+							<textarea
 								id="resource-root"
-								name="resourceRoot"
-								type="text"
-								required
-								defaultValue={settings.resourceRoot ?? ""}
+								name="resourceRoots"
+								rows={4}
+								className="border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 w-full min-w-0 rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:opacity-50"
+								aria-describedby="resource-roots-help"
+								defaultValue={settings.resourceRoots.join("\n")}
 								placeholder={t("settingsPage.pathPlaceholder")}
 								disabled={disabled || saving}
 							/>
+							<p
+								id="resource-roots-help"
+								className="text-sm text-muted-foreground"
+							>
+								{t("settingsPage.pathsHelp")}
+							</p>
 						</div>
 						<div className="flex min-w-0 flex-col gap-2">
 							<label className="text-sm font-medium" htmlFor="scan-interval">
@@ -133,10 +140,10 @@ export default function ResourceSettings({
 							</Button>
 						</div>
 					</fetcher.Form>
-					{settings.resourceRoot !== null && (
+					{settings.resourceRoots.length > 0 && (
 						<p className="break-all text-sm text-muted-foreground">
 							{t("settingsPage.savedPath", {
-								path: settings.resourceRoot,
+								path: settings.resourceRoots.join(" · "),
 							})}
 						</p>
 					)}
