@@ -29,12 +29,25 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 		query: AnimeLibraryQuery = {},
 		generation?: string,
 	): Promise<LibraryResult> {
+		const page = query.page ?? 1;
+		const perPage = query.perPage ?? 24;
+		if (
+			!Number.isSafeInteger(page) ||
+			page < 1 ||
+			page > 100000 ||
+			!Number.isSafeInteger(perPage) ||
+			perPage < 1 ||
+			perPage > 50
+		)
+			throw new DomainError("INVALID_REQUEST", "Invalid library page.");
 		const tracking = this.options.lists.list(generation);
 		const index = await this.localIndex();
 		this.options.lists.list(tracking.generation, false);
 		const tracked = new Map(
 			tracking.entries.map((entry) => [entry.mediaId, entry]),
 		);
+		const sort = query.sort ?? "unwatched";
+		const addedAt = new Map<string, number>();
 		const cards = new Map<string, LibraryCard>();
 		const localKeys = new Set(
 			index?.items.map((work) => workKey(work.reference)) ?? [],
@@ -59,6 +72,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 					))
 			)
 				continue;
+			addedAt.set(work.id, work.createdAt);
 			cards.set(key, {
 				id: work.id,
 				localWorkId: work.id,
@@ -67,7 +81,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 				format: work.format,
 				year: work.year,
 				episodeCount: work.episodeCount,
-				updatedAt: work.createdAt,
+				updatedAt: work.updatedAt,
 				availableEpisodes: 0,
 				availableRegularEpisodes: 0,
 				metadataStale: false,
@@ -88,6 +102,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			for (const entry of tracking.entries) {
 				const key = entry.mediaId;
 				if (localKeys.has(key) || !matches(entry, query)) continue;
+				addedAt.set(entry.mediaId, entry.updatedAt ?? tracking.fetchedAt ?? 0);
 				cards.set(key, {
 					id: entry.mediaId,
 					localWorkId: null,
@@ -106,42 +121,56 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 					viewingAvailability: "tracked",
 				});
 			}
-		const filtered = [...cards.values()].filter(
+		let filtered = [...cards.values()].filter(
 			(card) =>
 				!query.viewingStatus ||
 				(query.viewingStatus === "untracked"
 					? card.viewingAvailability === "untracked"
 					: card.viewing?.status === query.viewingStatus),
 		);
-		filtered.sort(
-			(a, b) =>
-				(query.sort === "recent"
-					? b.updatedAt - a.updatedAt
-					: a.displayTitle.localeCompare(b.displayTitle, "en", {
-							sensitivity: "base",
-							numeric: true,
-						})) || a.id.localeCompare(b.id),
-		);
-		const page = query.page ?? 1;
-		const perPage = query.perPage ?? 24;
-		if (
-			!Number.isSafeInteger(page) ||
-			page < 1 ||
-			page > 100000 ||
-			!Number.isSafeInteger(perPage) ||
-			perPage < 1 ||
-			perPage > 50
-		)
-			throw new DomainError("INVALID_REQUEST", "Invalid library page.");
+		const hydrated =
+			sort === "unwatched"
+				? await this.hydrate(
+						filtered.filter((card) => card.localWorkId && card.viewing),
+						index,
+					)
+				: new Map<string, WorkCard>();
+		if (sort === "unwatched")
+			filtered = filtered.map((card) => localCard(card, hydrated.get(card.id)));
+		filtered.sort((a, b) => {
+			if (sort === "recent")
+				return (
+					(addedAt.get(b.id) ?? 0) - (addedAt.get(a.id) ?? 0) ||
+					a.id.localeCompare(b.id)
+				);
+			if (sort === "updated")
+				return b.updatedAt - a.updatedAt || a.id.localeCompare(b.id);
+			const priority =
+				sort === "unwatched"
+					? Number((b.availableUnwatchedEpisodes ?? 0) > 0) -
+						Number((a.availableUnwatchedEpisodes ?? 0) > 0)
+					: 0;
+			return (
+				priority ||
+				a.displayTitle.localeCompare(b.displayTitle, "en", {
+					sensitivity: "base",
+					numeric: true,
+				}) ||
+				a.id.localeCompare(b.id)
+			);
+		});
+
 		const selected = filtered.slice((page - 1) * perPage, page * perPage);
 		const localIds = selected.flatMap((card) =>
 			card.localWorkId ? [card.localWorkId] : [],
 		);
-		const localCards =
-			this.options.catalog && index && localIds.length
-				? await this.options.catalog.cards(localIds, index.epoch)
-				: [];
-		const hydrated = new Map(localCards.map((card) => [card.id, card]));
+		for (const [id, card] of await this.hydrate(
+			selected.filter(
+				(card) => card.localWorkId && !hydrated.has(card.localWorkId),
+			),
+			index,
+		))
+			hydrated.set(id, card);
 		const items = selected.map((card) =>
 			localCard(
 				card,
@@ -154,6 +183,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			{
 				event: "anime.library_read",
 				scope: query.scope ?? "local",
+				sort,
 				count: items.length,
 				totalCount: filtered.length,
 				localCount: localIds.length,
@@ -172,6 +202,24 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			tracking: envelope,
 		};
 	}
+	private async hydrate(
+		cards: readonly LibraryCard[],
+		index: LocalIndex | null,
+	) {
+		const hydrated = new Map<string, WorkCard>();
+		if (!this.options.catalog || !index) return hydrated;
+		const ids = cards.flatMap((card) =>
+			card.localWorkId ? [card.localWorkId] : [],
+		);
+		for (let offset = 0; offset < ids.length; offset += 50)
+			for (const card of await this.options.catalog.cards(
+				ids.slice(offset, offset + 50),
+				index.epoch,
+			))
+				hydrated.set(card.id, card);
+		return hydrated;
+	}
+
 	private async localIndex(): Promise<LocalIndex | null> {
 		if (!this.options.catalog) return null;
 		try {

@@ -453,6 +453,18 @@ Explicit confirmation, reassociation and
 single-file numbering corrections preserve manual decisions and source history
 across rescan, metadata refresh and restart.
 
+Library sorting is applied before pagination. Its default, `unwatched`, groups
+works with a positive available-unwatched count first, then sorts each group by title.
+Counts reuse confirmed available episode numbers and the provider's cumulative
+progress; unknown/unmapped progress does not imply unwatched episodes. To rank
+across pages, this sort hydrates all matching tracked local cards in batches of at most 50
+under the index access epoch, then hydrates any remaining selected cards. Other sorts
+hydrate only the selected page.
+`recent` uses local work creation time, while `updated` uses local Catalog update
+time. Remote-only entries use their provider update time or the snapshot fetch time
+for both chronological sorts and never gain locally available-unwatched priority.
+The projection read log includes the effective sort.
+
 The default Web entry is the confirmed poster library, with cached search/filter
 controls, work details, ordered episodes and explicit resource-version selection.
 Files retains directory browsing and source playback, adds identification status

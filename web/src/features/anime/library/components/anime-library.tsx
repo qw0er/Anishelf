@@ -179,7 +179,7 @@ export function AnimeLibrary({
 												onClick={() =>
 													setLibrarySearch(
 														librarySearch({
-															sort: "title",
+															sort: "unwatched",
 															page: 1,
 															...(filters.scope
 																? { scope: filters.scope }

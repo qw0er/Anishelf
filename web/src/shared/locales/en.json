@@ -352,6 +352,8 @@
 		"sort": "Sort by",
 		"titleSort": "Title",
 		"recentSort": "Recently added",
+		"updatedSort": "Recently updated",
+		"unwatchedSort": "Unwatched first",
 		"apply": "Apply filters",
 		"clear": "Clear filters",
 		"loading": "Loading anime…",

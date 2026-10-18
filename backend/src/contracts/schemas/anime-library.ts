@@ -11,6 +11,14 @@ const integer = Type.Union([Type.Integer(), Type.Null()]);
 export const AnimeLibraryQuerySchema = Type.Object(
 	{
 		...CatalogListQuerySchema.properties,
+		sort: Type.Optional(
+			Type.Union([
+				Type.Literal("title"),
+				Type.Literal("recent"),
+				Type.Literal("updated"),
+				Type.Literal("unwatched"),
+			]),
+		),
 		scope: Type.Optional(
 			Type.Union([Type.Literal("local"), Type.Literal("all")]),
 		),

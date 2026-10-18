@@ -48,7 +48,7 @@ export const playbackSelectionConstraints = Object.freeze({
 export const preparationConstraints = Object.freeze({
 	initialListLimit: 10,
 	listLimit: 100,
-	defaultCacheBudgetGiB: 10,
+	defaultCacheBudgetGiB: 50,
 	maximumCacheBudgetGiB: Math.floor(Number.MAX_SAFE_INTEGER / 1024 ** 3),
 });
 

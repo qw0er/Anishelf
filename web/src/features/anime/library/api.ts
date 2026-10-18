@@ -16,7 +16,7 @@ export interface LibraryFilters {
 	format?: string;
 	year?: string;
 	availability?: "available" | "unavailable";
-	sort: "title" | "recent";
+	sort: "title" | "recent" | "updated" | "unwatched";
 	page: number;
 }
 export function libraryFilters(params: URLSearchParams): LibraryFilters {
@@ -51,7 +51,11 @@ export function libraryFilters(params: URLSearchParams): LibraryFilters {
 		...(availability === "available" || availability === "unavailable"
 			? { availability }
 			: {}),
-		sort: params.get("sort") === "recent" ? "recent" : "title",
+		sort: ["title", "recent", "updated", "unwatched"].includes(
+			params.get("sort") ?? "",
+		)
+			? (params.get("sort") as LibraryFilters["sort"])
+			: "unwatched",
 		page: /^[1-9][0-9]{0,4}$/.test(page) ? Number(page) : 1,
 	};
 }
@@ -60,7 +64,7 @@ export function librarySearch(filters: LibraryFilters): string {
 	for (const [key, value] of Object.entries(filters)) {
 		if (
 			(key === "page" && value === 1) ||
-			(key === "sort" && value === "title")
+			(key === "sort" && value === "unwatched")
 		)
 			continue;
 		if (value) params.set(key, String(value));
