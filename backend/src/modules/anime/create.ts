@@ -3,6 +3,10 @@ import type { ResourcesApi } from "../resources/public.js";
 import type { SystemApi } from "../system/public.js";
 import { AniListScheduler } from "./anilist/public.js";
 import { AnimeLibraryQueries } from "./anime-library/application/library.js";
+import {
+	createAniListMetadata,
+	createAniListTracking,
+} from "./composition/anilist.js";
 import { createCatalogModule } from "./composition/catalog.js";
 import { createIdentificationModule } from "./composition/identification.js";
 import {
@@ -29,7 +33,7 @@ export async function createAnimeModule(options: {
 				store: database.tracking,
 				listStore: database.trackingLists,
 				operationStore: database.trackingOperations,
-				client: requests,
+				...createAniListTracking(requests),
 				logger,
 			})
 		: undefined;
@@ -39,7 +43,7 @@ export async function createAnimeModule(options: {
 			metadata = await createMetadataModule({
 				dataDir: system.deployment.dataDir,
 				store: database.metadata,
-				client: requests,
+				...createAniListMetadata(requests),
 				logger,
 			});
 		} catch (err) {
@@ -95,7 +99,7 @@ export async function createAnimeModule(options: {
 	};
 	const viewing =
 		catalog && tracking
-			? new TrackingViewingCommands(catalog, tracking)
+			? new TrackingViewingCommands(catalog, tracking, undefined, logger)
 			: undefined;
 	let stopped: Promise<void> | undefined;
 	let closed: Promise<void> | undefined;

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { request } from "../../../shared/api/client.js";
 import type {
 	TrackingEpisodeCommandRequest,
+	TrackingEpisodeResolutionResponse,
 	TrackingEpisodeTargetResponse,
 	TrackingOperationResponse,
 } from "../../../shared/api/contracts.js";
@@ -23,6 +24,7 @@ export function PlayerViewingControl({
 	fileId: string;
 	sourceVersion: string;
 }) {
+	const { t } = useTranslation();
 	const account = useQuery(accountQuery());
 	const identity = account.data
 		? trackingIdentity(account.data)
@@ -39,7 +41,7 @@ export function PlayerViewingControl({
 		enabled: Boolean(identity.accountId),
 		retry: false,
 		queryFn: ({ signal }) =>
-			request<TrackingEpisodeTargetResponse | null>(
+			request<TrackingEpisodeResolutionResponse>(
 				`/api/tracking/episode-target?${new URLSearchParams({ fileId, sourceVersion })}`,
 				"GET",
 				{ signal: boundedSignal(signal) },
@@ -47,10 +49,16 @@ export function PlayerViewingControl({
 	});
 	if (target.error) return <TargetError retry={() => void target.refetch()} />;
 	if (!target.data) return null;
+	if (!target.data.target)
+		return (
+			<p className="text-xs text-muted-foreground">
+				{t(`trackingTarget.${target.data.state}`)}
+			</p>
+		);
 	return (
 		<TargetControl
-			key={`${identity.generation}:${target.data.mediaId}:${target.data.episode}`}
-			target={target.data}
+			key={`${identity.generation}:${target.data.target.mediaId}:${target.data.target.episode}`}
+			target={target.data.target}
 			identity={identity}
 		/>
 	);
@@ -68,7 +76,7 @@ function TargetControl({
 	identity,
 }: {
 	target: TrackingEpisodeTargetResponse;
-	identity: { accountId: number | null; generation: string };
+	identity: { accountId: string | null; generation: string };
 }) {
 	const { t } = useTranslation();
 	const viewing = useViewingState(String(target.mediaId));
@@ -79,10 +87,9 @@ function TargetControl({
 	const operation = operations.data?.find(
 		(op) => op.mediaId === target.mediaId,
 	);
-	const [status, setStatus] =
-		useState<NonNullable<TrackingEpisodeCommandRequest["initialStatus"]>>(
-			"CURRENT",
-		);
+	const [status, setStatus] = useState<
+		NonNullable<TrackingEpisodeCommandRequest["initialStatus"]>
+	>(viewing.snapshot?.provider.capabilities.statuses[0] ?? "watching");
 	type Action = "mark" | "confirm" | "keep" | "retry" | "remote" | "local";
 	const mutation = useTrackingMutation(
 		identity,
@@ -163,20 +170,13 @@ function TargetControl({
 							onChange={(e) => setStatus(e.target.value as typeof status)}
 							className="rounded-md border bg-background p-2"
 						>
-							{(
-								[
-									"CURRENT",
-									"PLANNING",
-									"COMPLETED",
-									"PAUSED",
-									"DROPPED",
-									"REPEATING",
-								] as const
-							).map((value) => (
-								<option key={value} value={value}>
-									{t(`trackingList.statuses.${value}`)}
-								</option>
-							))}
+							{(viewing.snapshot?.provider.capabilities.statuses ?? []).map(
+								(value) => (
+									<option key={value} value={value}>
+										{t(`trackingList.statuses.${value}`)}
+									</option>
+								),
+							)}
 						</select>
 					)}
 					<Button

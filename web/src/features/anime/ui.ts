@@ -5,7 +5,7 @@ export { TrackedAnimeDetail } from "./catalog/components/tracked-anime-detail.js
 export { IdentificationStatus } from "./identification-status.js";
 export { AnimeLibrary } from "./library/components/anime-library.js";
 export { ReviewPage } from "./review/components/review-page.js";
-export { AniListAccountSettings } from "./tracking/account-settings.js";
+export { TrackingAccountSettings } from "./tracking/account-settings.js";
 
 export { TrackingOperationMonitor } from "./tracking/operation-monitor.js";
 

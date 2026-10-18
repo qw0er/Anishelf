@@ -16,6 +16,7 @@ import {
 } from "./query-test-utils.js";
 
 vi.mock("../src/features/anime/metadata/public.js", () => ({
+	resolveMetadataReference: async () => null,
 	metadataSearchQuery: () => ({
 		queryKey: ["test-search"],
 		queryFn: async () => null,

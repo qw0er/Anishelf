@@ -47,6 +47,7 @@
 		"esbuild@0.25.12": true,
 		"esbuild@0.28.2": true,
 		"better-sqlite3@13.0.3": true,
-		"lfa-ponyfill@1.1.1": true
+		"lfa-ponyfill@1.1.1": true,
+		"fsevents@2.3.3": true
 	}
 }

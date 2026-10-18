@@ -18,9 +18,9 @@ export class TrackingConnectionCheck {
 		const sequence = ++this.checkSequence;
 		if (!connection.account) return this.connection.status();
 		try {
-			const token = await this.credentials.read(connection);
+			const credential = await this.credentials.read(connection);
 			const account = await this.provider.viewer(
-				token,
+				credential,
 				this.connection.accountSignal(),
 			);
 			this.connection.assertCurrent(connection.generation);
@@ -41,7 +41,7 @@ export class TrackingConnectionCheck {
 					accountId: account.id,
 					generation: connection.generation,
 				},
-				"AniList connection verified.",
+				"Tracking connection verified.",
 			);
 		} catch (error) {
 			this.connection.assertCurrent(connection.generation);
@@ -66,13 +66,13 @@ export class TrackingConnectionCheck {
 						accountId: connection.account.id,
 						generation: connection.generation,
 					},
-					"AniList authorization is invalid; reconnect required.",
+					"Tracking authorization is invalid; reconnect required.",
 				);
 			}
 			if (error instanceof DomainError) throw error;
 			throw new DomainError(
 				"TRACKING_UNAVAILABLE",
-				"AniList account check failed.",
+				"Tracking account check failed.",
 			);
 		}
 		return this.connection.status();

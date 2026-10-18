@@ -1,3 +1,4 @@
+import { workReference } from "@anishelf/backend/contracts/references";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useParams, useSearchParams } from "react-router";
@@ -15,7 +16,10 @@ export function TrackedAnimeDetail() {
 	const { mediaId = "" } = useParams();
 	const [params] = useSearchParams();
 	const { t } = useTranslation();
-	const metadata = useQuery(metadataDetailQuery("anilist", mediaId));
+	const reference = workReference(mediaId);
+	const metadata = useQuery(
+		metadataDetailQuery(reference.provider, reference.id),
+	);
 	const viewing = useViewingState(mediaId);
 	const info = metadata.data?.data;
 	const summary = viewing.snapshot?.entry;
@@ -25,7 +29,7 @@ export function TrackedAnimeDetail() {
 			<Link
 				className={buttonStyles("outline")}
 				to={libraryReturnPath(params.get("library"))}
-				state={{ focusWork: `anilist-${mediaId}` }}
+				state={{ focusWork: mediaId }}
 			>
 				{t("anime.back")}
 			</Link>

@@ -18,8 +18,8 @@ export class TrackingModule implements TrackingApi {
 	status(): TrackingStatus {
 		return this.accounts.status();
 	}
-	preview(sessionId: string, token: string): Promise<TrackingPreview> {
-		return this.accounts.preview(sessionId, token);
+	preview(sessionId: string, credential: string): Promise<TrackingPreview> {
+		return this.accounts.preview(sessionId, credential);
 	}
 	async confirm(
 		sessionId: string,
@@ -58,10 +58,10 @@ export class TrackingModule implements TrackingApi {
 	replayCommand(commandId: string, generation: string) {
 		return this.updates.replayCommand(commandId, generation);
 	}
-	manualVersion(mediaId: number, generation: string) {
+	manualVersion(mediaId: string, generation: string) {
 		return this.updates.manualVersion(mediaId, generation);
 	}
-	update(mediaId: number, input: TrackingUpdate) {
+	update(mediaId: string, input: TrackingUpdate) {
 		return this.updates.update(mediaId, input);
 	}
 	retryOperation(id: string, input: TrackingOperationCommand) {

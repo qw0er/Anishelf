@@ -1,3 +1,4 @@
+import { workKey } from "@anishelf/backend/contracts/references";
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
@@ -41,9 +42,11 @@ export function LibraryResults({
 				const descriptionId = `${descriptionPrefix}-${work.id}`;
 				const viewingDescription = work.viewing
 					? `${t("trackingList.provider")} · ${t(`trackingList.statuses.${work.viewing.status}`)} · ${work.episodeCount !== null && work.episodeCount > 0 ? t("trackingList.episodeProgress", { progress: work.viewing.progress, total: work.episodeCount }) : t("trackingList.progress", { count: work.viewing.progress })}.`
-					: viewingKnown
-						? t("trackingList.untracked")
-						: "";
+					: work.viewingAvailability === "unmapped"
+						? t("trackingList.unmapped")
+						: viewingKnown && work.viewingAvailability === "untracked"
+							? t("trackingList.untracked")
+							: "";
 				const description = [
 					viewingDescription,
 					localDescription,
@@ -57,7 +60,7 @@ export function LibraryResults({
 							<Link
 								id={`work-${work.id}`}
 								className="group flex h-full min-w-0 flex-col overflow-hidden rounded-lg border bg-card transition-[box-shadow,border-color] hover:border-foreground/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring motion-reduce:transition-none"
-								to={`${work.localWorkId === null ? `/anime/tracked/${encodeURIComponent(work.reference.id)}` : `/anime/${encodeURIComponent(work.id)}`}?${new URLSearchParams({ library: `/${librarySearch}` })}`}
+								to={`${work.localWorkId === null ? `/anime/tracked/${encodeURIComponent(workKey(work.reference))}` : `/anime/${encodeURIComponent(work.id)}`}?${new URLSearchParams({ library: `/${librarySearch}` })}`}
 								aria-label={work.displayTitle}
 								aria-describedby={descriptionId}
 							>
@@ -92,7 +95,12 @@ export function LibraryResults({
 												})}
 											</p>
 										)}
-									{viewingKnown && !work.viewing && (
+									{work.viewingAvailability === "unmapped" && (
+										<p className="text-xs text-muted-foreground">
+											{t("trackingList.unmapped")}
+										</p>
+									)}
+									{viewingKnown && work.viewingAvailability === "untracked" && (
 										<p className="text-xs text-muted-foreground">
 											{t("trackingList.untracked")}
 										</p>

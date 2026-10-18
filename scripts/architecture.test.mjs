@@ -573,3 +573,20 @@ test("Tracking module owns its facade and provider dependencies arrive through p
 		[],
 	);
 });
+
+test("business code cannot hide provider-specific branches behind neutral imports", async () => {
+	await assert.rejects(
+		scan({
+			"backend/src/modules/anime/tracking/application/targets.ts":
+				"export const target = (provider: string) => provider === 'anilist';",
+		}),
+		/provider-independent-business/,
+	);
+	await assert.rejects(
+		scan({
+			"web/src/features/anime/tracking/example.ts":
+				"export const provider = 'anilist';",
+		}),
+		/provider-independent-business/,
+	);
+});

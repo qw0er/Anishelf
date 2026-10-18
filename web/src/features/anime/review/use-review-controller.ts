@@ -10,11 +10,12 @@ import { toast } from "../../../shared/components/ui/toast.js";
 import {
 	metadataDetailQuery,
 	metadataSearchQuery,
+	resolveMetadataReference,
 } from "../metadata/public.js";
 import { animeLibraryQueryKey } from "../shared/query-keys.js";
 import { confirmMapping, decideReview, previewMapping } from "./api.js";
 import { inlineReviewError, reportReviewFailure } from "./feedback.js";
-import { parseMapping, parseProviderReference } from "./mapping.js";
+import { parseMapping } from "./mapping.js";
 export function useReviewController(item: CatalogReviewItem) {
 	const { t } = useTranslation();
 	const client = useQueryClient();
@@ -110,7 +111,13 @@ export function useReviewController(item: CatalogReviewItem) {
 			await invalidate();
 		},
 	});
+	const lookup = useMutation({
+		mutationFn: resolveMetadataReference,
+		onSuccess: selectWork,
+		onError: () => setValidation(t("review.invalidId")),
+	});
 	const busy =
+		lookup.isPending ||
 		previewAction.isPending ||
 		confirmAction.isPending ||
 		decisionAction.isPending;
@@ -127,14 +134,12 @@ export function useReviewController(item: CatalogReviewItem) {
 		setSearch(value);
 		setSearchPage(1);
 	}
+
 	function lookupWork(value: string) {
-		const ref = parseProviderReference(value);
-		if (!ref) {
-			setValidation(t("review.invalidId"));
-			return;
-		}
-		selectWork(ref);
+		setValidation(null);
+		lookup.mutate(value);
 	}
+
 	function requestPreview(form: FormData) {
 		setValidation(null);
 		if (!reference) return;

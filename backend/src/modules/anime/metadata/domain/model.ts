@@ -1,8 +1,5 @@
-export interface ProviderReference {
-	provider: string;
-	mediaType: "anime";
-	id: string;
-}
+export type ProviderReference =
+	import("../../../../shared/external-reference.js").ExternalWorkReference;
 interface MetadataTitle {
 	value: string;
 	language: string | null;

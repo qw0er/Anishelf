@@ -170,7 +170,8 @@ export function CandidateSelection({
 							event.preventDefault();
 							lookupWork(
 								String(
-									new FormData(event.currentTarget).get("anilistId") ?? "",
+									new FormData(event.currentTarget).get("providerReference") ??
+										"",
 								).trim(),
 							);
 						}}
@@ -182,7 +183,7 @@ export function CandidateSelection({
 							{t("review.providerId")}
 							<Input
 								id="provider-id"
-								name="anilistId"
+								name="providerReference"
 								disabled={busy}
 								required
 							/>

@@ -62,6 +62,16 @@ export class AniListProvider implements MetadataProvider {
 		canonicalEpisodes: false,
 	} as const;
 	constructor(private readonly client: AniListMetadataApi) {}
+	resolveReference(value: string): ProviderReference | null {
+		const match =
+			/^(?:https:\/\/anilist\.co\/anime\/)?([1-9][0-9]*)(?:\/[^?#]*)?\/?$/.exec(
+				value,
+			);
+		const id = match?.[1];
+		return id && Number(id) <= 2147483647
+			? { provider: "anilist", mediaType: "anime", id }
+			: null;
+	}
 	private id(reference: ProviderReference): number {
 		if (
 			reference.provider !== "anilist" ||

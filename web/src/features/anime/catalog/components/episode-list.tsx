@@ -18,10 +18,10 @@ export function EpisodeList({
 	data,
 	controller,
 	renderResourceActions,
-	anilistProgress,
+	trackingProgress,
 }: {
 	data: LocalWorkDetailResponse;
-	anilistProgress: number | null;
+	trackingProgress: number | null;
 	renderResourceActions: AnimeResourceActionSlot;
 	controller: Pick<LocalWorkDetailController, "playPath" | "selectEpisode">;
 }) {
@@ -31,7 +31,7 @@ export function EpisodeList({
 	const airing = useInfiniteQuery(
 		airingQuery(work.reference.provider, work.reference.id),
 	);
-	const counts = episodeViewingCounts(episodes, anilistProgress);
+	const counts = episodeViewingCounts(episodes, trackingProgress);
 	const schedules =
 		airing.data?.pages
 			.filter((page) => !page.stale && !page.refreshError)
@@ -58,7 +58,7 @@ export function EpisodeList({
 						<Info className="size-3.5" aria-hidden="true" />
 					</Button>
 				</Tooltip>
-				{anilistProgress !== null && counts.availableUnwatched > 0 && (
+				{trackingProgress !== null && counts.availableUnwatched > 0 && (
 					<Tooltip content={t("episodeViewing.availabilityInfo")} openOnClick>
 						<Button
 							variant="ghost"
@@ -107,12 +107,12 @@ export function EpisodeList({
 											<h4 className="font-medium wrap-anywhere">
 												{episode.label}
 											</h4>
-											{anilistProgress !== null && (
+											{trackingProgress !== null && (
 												<p className="text-xs text-muted-foreground">
-													{episodeViewing(episode, anilistProgress) ===
+													{episodeViewing(episode, trackingProgress) ===
 													"watched"
 														? t("episodeViewing.watched")
-														: episodeViewing(episode, anilistProgress) ===
+														: episodeViewing(episode, trackingProgress) ===
 																"unwatched"
 															? t("episodeViewing.unwatched")
 															: t("episodeViewing.unknown")}

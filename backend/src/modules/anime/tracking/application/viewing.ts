@@ -1,3 +1,4 @@
+import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { AnimeCatalogApi } from "../../anime-catalog/public.js";
 import type {
@@ -5,14 +6,18 @@ import type {
 	TrackingOperation,
 	TrackingRemoteState,
 } from "../domain/operation.js";
+import type { TrackingTargetResolver } from "../ports.js";
 import type {
 	TrackingApi,
 	TrackingEpisodeCommand,
+	TrackingEpisodeResolution,
 	TrackingObservationOutcome,
 } from "../public.js";
+import { ExactTrackingTargets } from "./targets.js";
 
 interface ObservationContext extends TrackingEpisodeTarget {
-	accountId: number;
+	version: 2;
+	accountId: string;
 	generation: string;
 	manualVersion: number;
 }
@@ -30,55 +35,75 @@ export class TrackingViewingCommands {
 			| "manualVersion"
 			| "replayCommand"
 		>,
+		private readonly resolver: TrackingTargetResolver = new ExactTrackingTargets(),
+		private readonly logger?: Logger,
 	) {}
-	private async mapping(
+	async resolveTarget(
 		fileId: string,
 		sourceVersion: string,
-	): Promise<TrackingEpisodeTarget | null> {
+	): Promise<TrackingEpisodeResolution> {
+		const account = this.tracking.status();
+		if (!account.account || account.state !== "connected")
+			return { state: "unavailable", target: null };
 		const [review] = await this.catalog.fileReviews([fileId]);
-		const association = review?.associations[0];
+		let state: "unmapped" | "ambiguous" | "unsupported" = "unmapped";
+		let target: TrackingEpisodeTarget | null = null;
 		if (
-			!review?.available ||
-			review.decision !== "confirmed" ||
-			review.sourceVersion !== sourceVersion ||
-			review.associations.length !== 1 ||
-			!association ||
-			association.reference?.provider !== "anilist" ||
-			!["regular", "movie"].includes(association.kind) ||
-			!/^[1-9][0-9]*$/.test(association.number)
-		)
-			return null;
-		const mediaId = Number(association.reference.id),
-			episode = Number(association.number);
-		if (
-			!Number.isSafeInteger(mediaId) ||
-			mediaId <= 0 ||
-			mediaId > 2147483647 ||
-			!Number.isSafeInteger(episode) ||
-			episode > 2147483647 ||
-			(association.kind === "movie" && episode !== 1)
-		)
-			return null;
-		return {
-			fileId,
-			sourceVersion,
-			reviewId: review.id,
-			mappingRevision: review.revision,
-			episodeId: association.episodeId,
-			mediaId,
-			episode,
-		};
+			review?.available &&
+			review.decision === "confirmed" &&
+			review.sourceVersion === sourceVersion
+		) {
+			if (review.associations.length > 1) state = "ambiguous";
+			else {
+				const association = review.associations[0];
+				if (association?.reference) {
+					if (
+						!["regular", "movie"].includes(association.kind) ||
+						!/^[1-9][0-9]*$/.test(association.number) ||
+						(association.kind === "movie" && association.number !== "1")
+					)
+						state = "unsupported";
+					else {
+						const result = this.resolver.resolve(
+							association.reference,
+							Number(association.number),
+							account.provider,
+						);
+						if (result.state === "resolved")
+							target = {
+								fileId,
+								sourceVersion,
+								reviewId: review.id,
+								mappingRevision: review.revision,
+								episodeId: association.episodeId,
+								mediaId: result.mediaId,
+								episode: result.episode,
+							};
+						else state = result.state;
+					}
+				}
+			}
+		}
+		if (this.tracking.status().generation !== account.generation)
+			return { state: "unavailable", target: null };
+		this.logger?.debug(
+			{
+				event: "tracking.target_resolved",
+				provider: account.provider.key,
+				fileId,
+				state: target ? "resolved" : state,
+			},
+			"Tracking episode target resolved.",
+		);
+		return target ? { state: "resolved", target } : { state, target: null };
 	}
 	async target(
 		fileId: string,
 		sourceVersion: string,
 	): Promise<TrackingEpisodeTarget | null> {
-		const account = this.tracking.status();
-		if (!account.account || account.state !== "connected") return null;
-		const target = await this.mapping(fileId, sourceVersion);
-		if (this.tracking.status().generation !== account.generation) return null;
-		return target;
+		return (await this.resolveTarget(fileId, sourceVersion)).target;
 	}
+
 	async capture(fileId: string, sourceVersion: string): Promise<string | null> {
 		const account = this.tracking.status();
 		const target = await this.target(fileId, sourceVersion);
@@ -90,6 +115,7 @@ export class TrackingViewingCommands {
 			return null;
 		return JSON.stringify({
 			...target,
+			version: 2,
 			accountId: account.account.id,
 			generation: account.generation,
 			manualVersion: this.tracking.manualVersion(
@@ -98,12 +124,12 @@ export class TrackingViewingCommands {
 			),
 		} satisfies ObservationContext);
 	}
-	private values(mediaId: number, generation: string) {
+	private values(mediaId: string, generation: string) {
 		const list = this.tracking.list(generation);
 		if (list.fetchedAt === null)
 			throw new DomainError(
 				"TRACKING_UNAVAILABLE",
-				"Load AniList viewing state before updating progress.",
+				"Load Tracking viewing state before updating progress.",
 			);
 		const operation = this.tracking
 			.operations(generation)
@@ -207,6 +233,8 @@ export class TrackingViewingCommands {
 		observationId: string,
 	): Promise<TrackingObservationOutcome> {
 		const captured: ObservationContext = JSON.parse(context);
+		if (captured.version !== 2)
+			return { state: "ignored", reason: "unsupported-observation-version" };
 		const account = this.tracking.status();
 		if (account.account?.id !== captured.accountId)
 			return { state: "ignored", reason: "account-changed" };

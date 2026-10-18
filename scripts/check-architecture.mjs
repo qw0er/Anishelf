@@ -1,4 +1,6 @@
+import { readdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cruise } from "dependency-cruiser";
 
@@ -6,6 +8,38 @@ const require = createRequire(import.meta.url);
 const rules = require("../.dependency-cruiser.cjs");
 
 export async function checkArchitecture(baseDir = process.cwd()) {
+	for (const relative of [
+		"backend/src/modules/anime",
+		"web/src/features/anime",
+	]) {
+		const directory = join(baseDir, relative);
+		let files;
+		try {
+			files = await readdir(directory, { recursive: true });
+		} catch (error) {
+			if (error.code === "ENOENT") continue;
+			throw error;
+		}
+		for (const file of files) {
+			if (!file.endsWith(".ts") && !file.endsWith(".tsx")) continue;
+			if (
+				relative.startsWith("backend") &&
+				!/^(?:tracking|metadata|anime-library|anime-catalog|identification)\/(?:application\/|domain\/|(?:ports|public|policy)\.ts$)/.test(
+					file,
+				)
+			)
+				continue;
+			if (
+				/\b(?:AniList|anilist)\b/.test(
+					await readFile(join(directory, file), "utf8"),
+				)
+			)
+				throw new Error(
+					`provider-independent-business: ${relative}/${file} contains AniList-specific code`,
+				);
+		}
+	}
+
 	const result = await cruise(
 		["backend/src", "web/src"],
 		{

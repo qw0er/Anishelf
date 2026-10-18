@@ -1,4 +1,5 @@
 import { DomainError } from "../../../../shared/errors.js";
+import { externalId } from "../../../../shared/external-reference.js";
 import { type AniListAccountApi, AniListError } from "../../anilist/public.js";
 import type { TrackingAccount } from "../domain/model.js";
 import type { TrackingAccountProvider } from "../ports.js";
@@ -7,8 +8,13 @@ export class AniListAccountProvider implements TrackingAccountProvider {
 	constructor(private readonly client: AniListAccountApi) {}
 	async viewer(token: string, signal: AbortSignal): Promise<TrackingAccount> {
 		try {
+			if (!token || /\s/.test(token))
+				throw new DomainError("INVALID_REQUEST", "Invalid access token.");
 			const account = await this.client.viewer(token, signal);
-			return { id: account.id, name: account.name };
+			return {
+				id: externalId("anilist", String(account.id)),
+				name: account.name,
+			};
 		} catch (error) {
 			if (error instanceof DomainError) throw error;
 			if (

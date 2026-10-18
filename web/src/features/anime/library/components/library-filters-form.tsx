@@ -122,18 +122,18 @@ export function LibraryFiltersForm({
 						<span>{t("trackingList.viewingState")}</span>
 						<select
 							className="form-select block w-full"
-							value={filters.viewingStatus ?? "CURRENT"}
+							value={filters.viewingStatus ?? "watching"}
 							onChange={(event) => change("viewingStatus", event.target.value)}
 							disabled={!viewingEnabled}
 						>
 							<option value="all">{t("trackingList.allStatuses")}</option>
 							{[
-								"CURRENT",
-								"PLANNING",
-								"COMPLETED",
-								"PAUSED",
-								"DROPPED",
-								"REPEATING",
+								"watching",
+								"planned",
+								"completed",
+								"paused",
+								"dropped",
+								"rewatching",
 								"untracked",
 							].map((status) => (
 								<option key={status} value={status}>

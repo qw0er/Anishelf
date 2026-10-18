@@ -13,7 +13,7 @@ test("operation observation slows after completion and immediately resumes fast 
 		.fn<() => Promise<TrackingOperationsResponse>>()
 		.mockResolvedValue([]);
 	const observer = new QueryObserver(client, {
-		...operationsQuery({ accountId: 7, generation: "one" }),
+		...operationsQuery({ accountId: "anilist:7", generation: "one" }),
 		queryFn: read,
 	});
 	const unsubscribe = observer.subscribe(() => {});

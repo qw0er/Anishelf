@@ -11,6 +11,7 @@ import {
 	screen,
 	waitFor,
 } from "./query-test-utils.js";
+import { trackingProvider } from "./tracking-fixture.js";
 import "../src/shared/i18n.js";
 
 const target = {
@@ -19,7 +20,7 @@ const target = {
 	reviewId: "review",
 	mappingRevision: 1,
 	episodeId: "ep7",
-	mediaId: 9,
+	mediaId: "anilist:anime:9",
 	episode: 7,
 };
 let operation: TrackingOperationResponse | undefined;
@@ -34,16 +35,16 @@ const op = (
 	intentAt: 1,
 	target,
 	decisionReason: state === "decision-required" ? "skipped-episodes" : null,
-	accountId: 7,
-	mediaId: 9,
+	accountId: "anilist:7",
+	mediaId: "anilist:anime:9",
 	revision: (operation?.revision ?? 0) + 1,
-	baseline: { id: 1, progress: 3, status: "CURRENT", updatedAt: 1 },
+	baseline: { id: "anilist:1", progress: 3, status: "watching", updatedAt: 1 },
 	desired: { progress: 7 },
 	state,
 	remote: {
-		id: 1,
+		id: "anilist:1",
 		progress: state === "succeeded" ? 7 : 3,
-		status: "CURRENT",
+		status: "watching",
 		updatedAt: 1,
 	},
 	attempts: 0,
@@ -58,16 +59,19 @@ beforeEach(() => {
 		const path = String(url);
 		if (path.endsWith("/account"))
 			return Response.json({
-				account: { id: 7, name: "Fixture" },
+				provider: trackingProvider,
+				account: { id: "anilist:7", name: "Fixture" },
 				generation: "generation",
 				state: "connected",
 			});
-		if (path.includes("/episode-target?")) return Response.json(target);
+		if (path.includes("/episode-target?"))
+			return Response.json({ state: "resolved", target });
 		if (path.includes("/operations?"))
 			return Response.json(operation ? [operation] : []);
-		if (path.includes("/entries/9?"))
+		if (path.includes("/entries/anilist%3Aanime%3A9?"))
 			return Response.json({
-				accountId: 7,
+				provider: trackingProvider,
+				accountId: "anilist:7",
 				generation: "generation",
 				state: "connected",
 				fetchedAt: 1000,
@@ -75,10 +79,10 @@ beforeEach(() => {
 				refreshing: false,
 				error: null,
 				entry: {
-					id: 1,
-					mediaId: 9,
+					id: "anilist:1",
+					mediaId: "anilist:anime:9",
 					progress: confirmed,
-					status: "CURRENT",
+					status: "watching",
 					updatedAt: 1,
 				},
 			});
@@ -133,12 +137,14 @@ test("manual mark creates a Tracking decision, confirms separately and follows t
 	fireEvent.click(
 		screen.getByRole("button", { name: "Confirm progress update" }),
 	);
-	await screen.findByText("AniList change queued");
+	await screen.findByText("the tracking service change queued");
 	operation = op("succeeded");
 	confirmed = 7;
 	await queryClient.invalidateQueries({ queryKey: ["tracking", "operations"] });
-	await screen.findByText("AniList change confirmed");
-	await screen.findByRole("button", { name: "Watched on AniList" });
+	await screen.findByText("the tracking service change confirmed");
+	await screen.findByRole("button", {
+		name: "Watched on the tracking service",
+	});
 	expect(
 		fetcher.mock.calls.some(([url]) => String(url).includes("/api/playback/")),
 	).toBe(false);
@@ -151,16 +157,16 @@ test("keep then mark again remains actionable and final submission failures offe
 	fireEvent.click(
 		await screen.findByRole("button", { name: "Keep current progress" }),
 	);
-	await screen.findByText("Kept AniList value");
+	await screen.findByText("Kept the tracking service value");
 	fireEvent.click(screen.getByRole("button", { name: "Mark as watched" }));
 	await screen.findByText(/including skipped episodes/);
 	fireEvent.click(
 		screen.getByRole("button", { name: "Confirm progress update" }),
 	);
-	await screen.findByText("AniList change queued");
+	await screen.findByText("the tracking service change queued");
 	operation = { ...op("failed"), error: "unavailable" };
 	await queryClient.invalidateQueries({ queryKey: ["tracking", "operations"] });
-	await screen.findByText("AniList submission failed");
+	await screen.findByText("the tracking service submission failed");
 	fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 	await waitFor(() =>
 		expect(

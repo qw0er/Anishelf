@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
+import { externalIdParts } from "../../../../shared/external-reference.js";
 import type { TrackingLease } from "../domain/list.js";
 import type {
 	TrackingAccount,
@@ -34,6 +35,27 @@ export class TrackingConnectionState {
 			state: "disconnected",
 			checkedAt: null,
 		};
+		if (
+			this.connection.account &&
+			externalIdParts(this.connection.account.id).provider !==
+				options.authorization.provider.key
+		) {
+			this.connection = {
+				generation: randomUUID(),
+				account: null,
+				credentialId: null,
+				state: "disconnected",
+				checkedAt: null,
+			};
+			options.store.save(this.connection);
+			this.logger?.info(
+				{
+					event: "tracking.provider_changed",
+					provider: options.authorization.provider.key,
+				},
+				"Tracking provider changed; previous account disconnected.",
+			);
+		}
 		if (!options.store.get()) options.store.save(this.connection);
 	}
 	async initialize(): Promise<void> {
@@ -48,15 +70,14 @@ export class TrackingConnectionState {
 				this.options.store.save(this.connection);
 				this.logger?.warn(
 					{ event: "tracking.authorization_required", phase: "startup" },
-					"AniList credential is missing or invalid; reconnect required.",
+					"Tracking credential is missing or invalid; reconnect required.",
 				);
 			}
 		}
 	}
 	status(): TrackingStatus {
 		return {
-			clientId: this.options.authorization.clientId,
-			authorizationUrl: this.options.authorization.authorizationUrl,
+			provider: this.options.authorization.provider,
 			generation: this.connection.generation,
 			account: this.connection.account ? { ...this.connection.account } : null,
 			state: this.connection.state,
@@ -73,7 +94,7 @@ export class TrackingConnectionState {
 		} catch {
 			this.logger?.warn(
 				{ event: "tracking.credential_cleanup_failed", phase },
-				"AniList credential cleanup failed.",
+				"Tracking credential cleanup failed.",
 			);
 			throw new DomainError(
 				"TRACKING_UNAVAILABLE",
@@ -88,19 +109,19 @@ export class TrackingConnectionState {
 		if (!connection.account || connection.state !== "connected")
 			throw new DomainError(
 				"TRACKING_AUTHORIZATION_REQUIRED",
-				"Connect AniList first.",
+				"Connect Tracking first.",
 			);
 		const signal = AbortSignal.any([
 			this.lifetime.signal,
 			this.accountLifetime.signal,
 		]);
-		const token = await this.options.credentials.read(connection);
+		const credential = await this.options.credentials.read(connection);
 		this.assertGeneration(connection.generation);
 		signal.throwIfAborted();
 		return {
 			accountId: connection.account.id,
 			generation: connection.generation,
-			token,
+			credential,
 			signal,
 		};
 	}
@@ -117,7 +138,7 @@ export class TrackingConnectionState {
 		this.connection = next;
 		this.logger?.warn(
 			{ event: "tracking.authorization_required", phase: "list", generation },
-			"AniList list authorization requires reconnection.",
+			"Tracking list authorization requires reconnection.",
 		);
 	}
 	private now(): number {
@@ -132,7 +153,7 @@ export class TrackingConnectionState {
 		if (this.connection.generation !== generation)
 			throw new DomainError(
 				"TRACKING_CONFLICT",
-				"AniList connection changed. Retry.",
+				"Tracking connection changed. Retry.",
 			);
 	}
 	async connect(
@@ -148,7 +169,7 @@ export class TrackingConnectionState {
 			checkedAt: this.now(),
 		};
 		try {
-			await this.options.credentials.write(next, candidate.token);
+			await this.options.credentials.write(next, candidate.credential);
 			this.assertGeneration(generation);
 			this.options.store.save(next);
 		} catch (error) {
@@ -158,7 +179,7 @@ export class TrackingConnectionState {
 			)
 				this.logger?.error(
 					{ event: "tracking.persistence_failed", operation: "confirm" },
-					"AniList account connection could not be persisted.",
+					"Tracking account connection could not be persisted.",
 				);
 			if (next.credentialId)
 				await this.removeCredential(next.credentialId, "rollback").catch(
@@ -185,7 +206,7 @@ export class TrackingConnectionState {
 				accountId: next.account?.id,
 				generation: next.generation,
 			},
-			"AniList account connected.",
+			"Tracking account connected.",
 		);
 		return this.status();
 	}
@@ -204,7 +225,7 @@ export class TrackingConnectionState {
 		} catch {
 			this.logger?.error(
 				{ event: "tracking.persistence_failed", operation: "disconnect" },
-				"AniList disconnect could not be persisted.",
+				"Tracking disconnect could not be persisted.",
 			);
 			throw new DomainError(
 				"TRACKING_UNAVAILABLE",
@@ -228,7 +249,7 @@ export class TrackingConnectionState {
 		}
 		this.logger?.info(
 			{ event: "tracking.account_disconnected", generation: next.generation },
-			"AniList account disconnected locally.",
+			"Tracking account disconnected locally.",
 		);
 		return this.status();
 	}

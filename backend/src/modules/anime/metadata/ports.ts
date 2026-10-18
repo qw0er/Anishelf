@@ -17,6 +17,7 @@ export interface ProviderResult<T> {
 }
 export interface MetadataProvider {
 	readonly capabilities: ProviderCapabilities;
+	resolveReference?(value: string): ProviderReference | null;
 	search(
 		query: string,
 		page: number,

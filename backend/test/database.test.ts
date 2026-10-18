@@ -167,7 +167,7 @@ describe("playback persistence", () => {
 		try {
 			expect(
 				raw.prepare("SELECT count(*) AS count FROM __drizzle_migrations").get(),
-			).toEqual({ count: 17 });
+			).toEqual({ count: 18 });
 			expect(raw.pragma("journal_mode", { simple: true })).toBe("wal");
 		} finally {
 			raw.close();
@@ -384,15 +384,19 @@ it("migrates admitted intent and explicitly ends legacy observations without los
 			positionMs: 45000,
 			lastViewedAtMs: 10,
 		});
-		expect(upgraded.trackingOperations.list(7)[0]).toMatchObject({
+		expect(upgraded.trackingOperations.list("anilist:7")[0]).toMatchObject({
 			state: "pending",
 			origin: "manual-detail",
 			commandId: "op",
 			intentAt: 100,
 			desired: { progress: 1 },
 		});
-		expect(upgraded.trackingOperations.manualVersion(7, 9)).toBe(1);
-		expect(upgraded.trackingOperations.command(7, "op")).toMatchObject({
+		expect(
+			upgraded.trackingOperations.manualVersion("anilist:7", "anilist:anime:9"),
+		).toBe(1);
+		expect(
+			upgraded.trackingOperations.command("anilist:7", "op"),
+		).toMatchObject({
 			operationId: "op",
 			revision: 2,
 		});

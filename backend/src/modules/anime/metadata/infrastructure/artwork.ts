@@ -32,6 +32,7 @@ export class MetadataArtworkCache {
 	constructor(
 		private readonly options: {
 			dataDir: string;
+			hosts: readonly string[];
 			store: MetadataStore;
 			logger?: Logger;
 			fetch?: typeof fetch;
@@ -65,7 +66,7 @@ export class MetadataArtworkCache {
 		const url = new URL(value);
 		if (
 			url.protocol !== "https:" ||
-			!policy.artworkHosts.includes(url.hostname as "s4.anilist.co") ||
+			!this.options.hosts.includes(url.hostname) ||
 			url.port ||
 			url.username ||
 			url.password

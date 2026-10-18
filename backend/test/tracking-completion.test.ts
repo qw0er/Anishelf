@@ -9,6 +9,7 @@ import { TrackingUpdates } from "../src/modules/anime/tracking/application/updat
 import { TrackingViewingCommands } from "../src/modules/anime/tracking/application/viewing.js";
 import type { TrackingStatus } from "../src/modules/anime/tracking/domain/model.js";
 import type { TrackingRemoteState } from "../src/modules/anime/tracking/domain/operation.js";
+import { aniListTracking } from "../src/modules/anime/tracking/infrastructure/provider-mapping.js";
 import type { TrackingEpisodeCommand } from "../src/modules/anime/tracking/public.js";
 
 const dispose: (() => unknown)[] = [];
@@ -28,7 +29,7 @@ async function fixture(number = "4") {
 		revision: 1,
 		associations: [
 			{
-				reference: { provider: "anilist", id: "9" },
+				reference: { provider: "anilist", mediaType: "anime", id: "9" },
 				kind: "regular",
 				number,
 				episodeId: "ep",
@@ -36,18 +37,17 @@ async function fixture(number = "4") {
 		],
 	} as ReviewItem;
 	const status: TrackingStatus = {
-		account: { id: 7, name: "Fixture" },
+		account: { id: "anilist:7", name: "Fixture" },
 		generation: randomUUID(),
 		state: "connected",
-		clientId: "client",
-		authorizationUrl: "https://example.test",
+		provider: aniListTracking,
 		connectivity: "available",
 		checkedAt: null,
 	};
 	let remote: TrackingRemoteState | null = {
-		id: 10,
+		id: "anilist:10",
 		progress: 3,
-		status: "CURRENT",
+		status: "watching",
 		updatedAt: 100,
 	};
 	let now = 1000;
@@ -59,7 +59,12 @@ async function fixture(number = "4") {
 			desired: Partial<TrackingRemoteState>,
 		) =>
 			(remote = {
-				...(remote ?? { id: 10, progress: 0, status: "CURRENT", updatedAt: 0 }),
+				...(remote ?? {
+					id: "anilist:10",
+					progress: 0,
+					status: "watching",
+					updatedAt: 0,
+				}),
 				...desired,
 				updatedAt: now,
 			}),
@@ -73,9 +78,9 @@ async function fixture(number = "4") {
 				if (g !== status.generation) throw Error("stale");
 			},
 			acquire: async () => ({
-				accountId: status.account?.id ?? 0,
+				accountId: status.account?.id ?? "",
 				generation: status.generation,
-				token: "secret",
+				credential: "secret",
 				signal: new AbortController().signal,
 			}),
 			authorizationFailed: () => {
@@ -92,7 +97,8 @@ async function fixture(number = "4") {
 		{
 			status: () => status,
 			list: () => ({
-				accountId: 7,
+				provider: aniListTracking,
+				accountId: "anilist:7",
 				generation: status.generation,
 				state: status.state,
 				fetchedAt: now,
@@ -103,7 +109,7 @@ async function fixture(number = "4") {
 					? [
 							{
 								...remote,
-								mediaId: 9,
+								mediaId: "anilist:anime:9",
 								titles: ["Fixture"],
 								format: "TV",
 								year: 2026,
@@ -225,24 +231,29 @@ test("missing entries require an explicit initial status, while existing statuse
 	await f.service.submit(await f.capture(), randomUUID());
 	expect(f.current().decisionReason).toBe("initial-status-required");
 	await f.service.mark(
-		f.command({ confirmSkipped: true, initialStatus: "PLANNING" }),
+		f.command({ confirmSkipped: true, initialStatus: "planned" }),
 	);
 	await f.updates.flush();
-	expect(f.current().remote).toMatchObject({ progress: 1, status: "PLANNING" });
+	expect(f.current().remote).toMatchObject({ progress: 1, status: "planned" });
 	const association = f.review.associations[0];
 	if (!association) throw Error("Missing association");
 	association.number = "2";
-	await f.service.mark(f.command({ initialStatus: "COMPLETED" }));
+	await f.service.mark(f.command({ initialStatus: "completed" }));
 	await f.updates.flush();
-	expect(f.current().remote).toMatchObject({ progress: 2, status: "PLANNING" });
+	expect(f.current().remote).toMatchObject({ progress: 2, status: "planned" });
 });
 test("newer manual corrections fence old observations even after worker updates and pruning", async () => {
 	const f = await fixture();
 	const old = await f.capture();
-	const op = f.updates.update(9, {
+	const op = f.updates.update("anilist:anime:9", {
 		generation: f.status.generation,
 		revision: null,
-		baseline: { id: 10, progress: 3, status: "CURRENT", updatedAt: 100 },
+		baseline: {
+			id: "anilist:10",
+			progress: 3,
+			status: "watching",
+			updatedAt: 100,
+		},
 		desired: { progress: 1 },
 	});
 	f.advance();
@@ -264,10 +275,15 @@ test("newer manual corrections fence old observations even after worker updates 
 });
 test("a manual command predating session capture is not made newer by worker completion", async () => {
 	const f = await fixture();
-	f.updates.update(9, {
+	f.updates.update("anilist:anime:9", {
 		generation: f.status.generation,
 		revision: null,
-		baseline: { id: 10, progress: 3, status: "CURRENT", updatedAt: 100 },
+		baseline: {
+			id: "anilist:10",
+			progress: 3,
+			status: "watching",
+			updatedAt: 100,
+		},
 		desired: { progress: 2 },
 	});
 	const captured = await f.capture();
@@ -282,9 +298,14 @@ test("player commands are idempotent across lost acknowledgements and a replay d
 	const input = f.command();
 	const first = await f.service.mark(input);
 	await f.updates.flush();
-	const version = f.updates.manualVersion(9, f.status.generation);
+	const version = f.updates.manualVersion(
+		"anilist:anime:9",
+		f.status.generation,
+	);
 	expect((await f.service.mark(input)).id).toBe(first.id);
-	expect(f.updates.manualVersion(9, f.status.generation)).toBe(version);
+	expect(f.updates.manualVersion("anilist:anime:9", f.status.generation)).toBe(
+		version,
+	);
 	expect(f.save).toHaveBeenCalledTimes(1);
 });
 test("mapping revisions and accounts are revalidated before automatic admission and manual confirmation", async () => {
@@ -299,7 +320,7 @@ test("mapping revisions and accounts are revalidated before automatic admission 
 	await expect(
 		f.service.mark(f.command({ confirmSkipped: true })),
 	).rejects.toMatchObject({ code: "TRACKING_CONFLICT" });
-	f.status.account = { id: 8, name: "Other" };
+	f.status.account = { id: "anilist:8", name: "Other" };
 	expect(await f.service.submit(captured, randomUUID())).toMatchObject({
 		state: "ignored",
 		reason: "account-changed",
@@ -393,14 +414,14 @@ test("editing status does not silently accept an unconfirmed automatic progress 
 	const f = await fixture("7");
 	await f.service.submit(await f.capture(), randomUUID());
 	const op = f.current();
-	f.updates.update(9, {
+	f.updates.update("anilist:anime:9", {
 		generation: f.status.generation,
 		revision: op.revision,
 		baseline: op.baseline,
-		desired: { status: "PAUSED" },
+		desired: { status: "paused" },
 	});
 	await f.updates.flush();
-	expect(f.current().remote).toMatchObject({ progress: 3, status: "PAUSED" });
+	expect(f.current().remote).toMatchObject({ progress: 3, status: "paused" });
 });
 
 test("concurrent duplicate player commands admit once and stale UI mapping revisions cannot retarget a mark", async () => {
@@ -412,7 +433,9 @@ test("concurrent duplicate player commands admit once and stale UI mapping revis
 	]);
 	expect(second.id).toBe(first.id);
 	expect(second.revision).toBe(first.revision);
-	expect(f.updates.manualVersion(9, f.status.generation)).toBe(1);
+	expect(f.updates.manualVersion("anilist:anime:9", f.status.generation)).toBe(
+		1,
+	);
 	await f.updates.flush();
 	f.review.revision++;
 	await expect(f.service.mark(f.command())).rejects.toMatchObject({
@@ -426,7 +449,12 @@ test("a fresh completion uses current remote progress after an earlier successfu
 	await f.updates.flush();
 	expect(f.current().state).toBe("succeeded");
 	f.advance();
-	f.setRemote({ id: 10, progress: 3, status: "CURRENT", updatedAt: 200 });
+	f.setRemote({
+		id: "anilist:10",
+		progress: 3,
+		status: "watching",
+		updatedAt: 200,
+	});
 	const observed = await f.service.submit(await f.capture(), randomUUID());
 	expect(observed).toMatchObject({
 		state: "accepted",

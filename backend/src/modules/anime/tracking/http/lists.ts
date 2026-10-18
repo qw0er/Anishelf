@@ -35,7 +35,7 @@ export function registerTrackingListRoutes(
 		{
 			schema: {
 				params: Type.Object({
-					mediaId: Type.String({ pattern: "^[1-9][0-9]{0,9}$" }),
+					mediaId: Type.String({ minLength: 1, maxLength: 1024 }),
 				}),
 				querystring: TrackingGenerationSchema,
 				response: { 200: TrackingEntrySchema },
@@ -46,9 +46,8 @@ export function registerTrackingListRoutes(
 			return {
 				...snapshot,
 				entry:
-					entries.find(
-						(item) => item.mediaId === Number(request.params.mediaId),
-					) ?? null,
+					entries.find((item) => item.mediaId === request.params.mediaId) ??
+					null,
 			};
 		},
 	);

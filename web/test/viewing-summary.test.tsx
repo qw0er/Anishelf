@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router";
 import { afterEach, expect, test, vi } from "vitest";
 import type { ViewingState } from "../src/features/anime/tracking/use-viewing-state.js";
 import { ViewingSummary } from "../src/features/anime/tracking/viewing-summary.js";
+import { trackingProvider } from "./tracking-fixture.js";
 import "../src/shared/i18n.js";
 import { act, cleanup, fireEvent, render, screen } from "./query-test-utils.js";
 
@@ -16,7 +17,8 @@ function viewing(): ViewingState {
 		error: null,
 		retry: vi.fn(),
 		snapshot: {
-			accountId: 7,
+			provider: trackingProvider,
+			accountId: "anilist:7",
 			generation: "viewing",
 			state: "connected",
 			fetchedAt: 1000,
@@ -24,10 +26,10 @@ function viewing(): ViewingState {
 			refreshing: false,
 			error: null,
 			entry: {
-				id: 1,
-				mediaId: 2,
+				id: "anilist:1",
+				mediaId: "anilist:anime:2",
 				progress: 8,
-				status: "CURRENT",
+				status: "watching",
 				updatedAt: 1,
 				titles: ["Work"],
 				format: "TV",
@@ -48,13 +50,13 @@ test("the compact summary uses the provider total and moves cumulative explanati
 	expect(screen.queryByRole("heading")).toBeNull();
 	expect(screen.queryByText(/AniList progress is cumulative/)).toBeNull();
 	fireEvent.click(
-		screen.getByRole("button", { name: "About AniList progress" }),
+		screen.getByRole("button", { name: "About the tracking service progress" }),
 	);
 	const tooltip = await screen.findByRole("tooltip");
 	expect(tooltip.textContent).toContain("separate from local playback history");
 	expect(
 		screen
-			.getByRole("button", { name: "About AniList progress" })
+			.getByRole("button", { name: "About the tracking service progress" })
 			.getAttribute("aria-describedby"),
 	).toBe(tooltip.id);
 });
@@ -80,20 +82,24 @@ test("a pending initial list uses a skeleton until a complete snapshot establish
 	});
 	expect(
 		screen.getByRole("status", {
-			name: "AniList viewing state has not loaded yet.",
+			name: "the tracking service viewing state has not loaded yet.",
 		}),
 	).toBeTruthy();
-	expect(screen.queryByText("Not on AniList")).toBeNull();
+	expect(screen.queryByText("Not on the tracking service")).toBeNull();
 	view.rerender(
 		<ViewingSummary
 			state={{
 				...state,
 				refreshing: false,
-				snapshot: { ...state.snapshot, fetchedAt: 2000, refreshing: false },
+				snapshot: {
+					...state.snapshot,
+					fetchedAt: 2000,
+					refreshing: false,
+				},
 			}}
 		/>,
 	);
-	expect(screen.getByText("Not on AniList")).toBeTruthy();
+	expect(screen.getByText("Not on the tracking service")).toBeTruthy();
 	expect(screen.queryByRole("status")).toBeNull();
 });
 
@@ -109,9 +115,13 @@ test("saved viewing state stays visible during reconnection and cache time is av
 	expect(
 		screen.getByRole("link", { name: "Reconnect" }).getAttribute("href"),
 	).toBe("/settings");
-	expect(screen.queryByText(/Showing saved AniList viewing state/)).toBeNull();
+	expect(
+		screen.queryByText(/Showing saved the tracking service viewing state/),
+	).toBeNull();
 	act(() =>
-		screen.getByRole("button", { name: "Refresh AniList list" }).focus(),
+		screen
+			.getByRole("button", { name: "Refresh the tracking service list" })
+			.focus(),
 	);
 	expect((await screen.findByRole("tooltip")).textContent).toContain(
 		"Last updated:",
@@ -128,7 +138,7 @@ test("initial read errors expose a compact failure and a working retry instead o
 	expect(screen.getByRole("alert").textContent).toBe(
 		"Viewing state unavailable",
 	);
-	expect(screen.queryByText("Not on AniList")).toBeNull();
+	expect(screen.queryByText("Not on the tracking service")).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 	expect(state.retry).toHaveBeenCalledTimes(1);
 });
@@ -139,33 +149,44 @@ test("cached, refreshing and failed background reads retain the same summary con
 	const view = render(<ViewingSummary state={state} />, {
 		wrapper: MemoryRouter,
 	});
-	const region = screen.getByRole("region", { name: "AniList viewing state" });
+	const region = screen.getByRole("region", {
+		name: "the tracking service viewing state",
+	});
 	const childCount = region.children.length;
-	const refresh = screen.getByRole("button", { name: "Refresh AniList list" });
+	const refresh = screen.getByRole("button", {
+		name: "Refresh the tracking service list",
+	});
 	view.rerender(
 		<ViewingSummary
 			state={{
 				...state,
 				refreshing: true,
-				snapshot: { ...state.snapshot, stale: true, refreshing: true },
+				snapshot: {
+					...state.snapshot,
+					stale: true,
+					refreshing: true,
+				},
 			}}
 		/>,
 	);
-	expect(screen.getByRole("button", { name: "Refresh AniList list" })).toBe(
-		refresh,
-	);
+	expect(
+		screen.getByRole("button", { name: "Refresh the tracking service list" }),
+	).toBe(refresh);
 	expect(refresh.getAttribute("aria-busy")).toBe("true");
 	expect(region.children.length).toBe(childCount);
 	expect(screen.queryByText("Cached")).toBeNull();
 	expect(
-		screen.queryByText("Showing cached AniList viewing state."),
+		screen.queryByText("Showing cached the tracking service viewing state."),
 	).toBeNull();
 	view.rerender(
 		<ViewingSummary
 			state={{
 				...state,
 				error: new Error("Offline"),
-				snapshot: { ...state.snapshot, stale: true },
+				snapshot: {
+					...state.snapshot,
+					stale: true,
+				},
 			}}
 		/>,
 	);

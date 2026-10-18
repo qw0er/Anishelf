@@ -2,17 +2,6 @@ import type {
 	CatalogPreviewRequest,
 	CatalogReviewItem,
 } from "../../../shared/api/contracts.js";
-export function parseProviderReference(
-	value: string,
-): CatalogPreviewRequest["reference"] | null {
-	const match =
-		/^(?:https:\/\/anilist\.co\/anime\/)?([1-9][0-9]*)(?:\/[^?#]*)?\/?$/.exec(
-			value.trim(),
-		);
-	return match?.[1]
-		? { provider: "anilist", mediaType: "anime", id: match[1] }
-		: null;
-}
 export function parseMapping(
 	form: FormData,
 	item: Pick<CatalogReviewItem, "id" | "revision">,

@@ -1,9 +1,9 @@
 import type { ViewingStatus } from "./list.js";
 export interface TrackingRemoteState {
-	id: number;
+	id: string;
 	progress: number;
 	status: ViewingStatus;
-	updatedAt: number;
+	updatedAt: number | null;
 }
 export interface TrackingDesiredState {
 	progress?: number;
@@ -21,7 +21,7 @@ export interface TrackingEpisodeTarget {
 	reviewId: string;
 	mappingRevision: number;
 	episodeId: string;
-	mediaId: number;
+	mediaId: string;
 	episode: number;
 }
 type TrackingDecisionReason = "skipped-episodes" | "initial-status-required";
@@ -32,8 +32,8 @@ export interface TrackingOperation {
 	target: TrackingEpisodeTarget | null;
 	decisionReason: TrackingDecisionReason | null;
 	id: string;
-	accountId: number;
-	mediaId: number;
+	accountId: string;
+	mediaId: string;
 	revision: number;
 	baseline: TrackingRemoteState | null;
 	desired: TrackingDesiredState;
