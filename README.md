@@ -56,9 +56,11 @@ Manual corrections and rejections survive later scans; original files remain
 accessible in Files.
 See [Anime Catalog](docs/anime-catalog.md) for identification and correction endpoints.
 
-The library scans on startup and periodically. Use a manual scan after changing
-media files, or adjust the automatic scan interval in Settings; `0` disables
-scheduled scans. Playback support depends on the browser and the media format.
+The library scans on startup and watches filesystem changes for incremental updates.
+Manual scans reconcile the library when needed; monitoring failures are reported
+and retried automatically. There are no scheduled full scans. See
+[Filesystem monitoring](docs/filesystem-monitoring.md) for recovery and limitations.
+Playback support depends on the browser and the media format.
 
 For a remote server, forward its application port:
 

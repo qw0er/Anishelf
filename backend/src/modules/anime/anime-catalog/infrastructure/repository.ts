@@ -109,17 +109,33 @@ export class CatalogRepository implements CatalogStore {
 	publish(
 		scopeIds: readonly string[],
 		items: Parameters<CatalogStore["publish"]>[1],
+		fileIds?: readonly string[],
 	): void {
 		this.transaction(() => {
-			const scopeSources = this.store
-				.select({ id: mediaSources.id })
-				.from(mediaSources)
-				.where(inArray(mediaSources.rootId, [...scopeIds]));
-			this.store
-				.update(catalogReviews)
-				.set({ available: false })
-				.where(inArray(catalogReviews.id, scopeSources))
-				.run();
+			// Keep SQLite bind counts bounded even for very large directory removals.
+			const scopes: Array<readonly string[] | undefined> = [];
+			if (fileIds === undefined) scopes.push(undefined);
+			else
+				for (let offset = 0; offset < fileIds.length; offset += 500)
+					scopes.push(fileIds.slice(offset, offset + 500));
+			for (const scope of scopes) {
+				const rootSources = this.store
+					.select({ id: mediaSources.id })
+					.from(mediaSources)
+					.where(
+						scope === undefined
+							? inArray(mediaSources.rootId, [...scopeIds])
+							: and(
+									inArray(mediaSources.rootId, [...scopeIds]),
+									inArray(mediaSources.fileId, [...scope]),
+								),
+					);
+				this.store
+					.update(catalogReviews)
+					.set({ available: false })
+					.where(inArray(catalogReviews.id, rootSources))
+					.run();
+			}
 			for (const { source, result } of items) {
 				const previous = this.store
 					.select()

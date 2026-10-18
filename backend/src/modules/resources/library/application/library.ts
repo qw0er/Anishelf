@@ -1,3 +1,4 @@
+import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import type { SettingsStore } from "../../../system/public.js";
 import type {
@@ -9,6 +10,7 @@ import type {
 	DirectoryListing,
 	FileEntry,
 	FileInfo,
+	LibraryChange,
 	LibraryEntry,
 	LibraryStatus,
 	ResourceInfo,
@@ -109,6 +111,7 @@ export class LibraryApplication<
 		const roots = await this.options.rootFiles.getRoots(settings);
 		const error = rootIssue ?? (scan?.status === "failed" ? scan.error : null);
 		return {
+			monitor: this.scans.monitorState,
 			ready: rootIssue === null,
 			roots: roots.map((root) => ({
 				id: root.id,
@@ -123,8 +126,20 @@ export class LibraryApplication<
 		};
 	}
 
-	onSnapshotChanged(listener: () => void): () => void {
+	onSnapshotChanged(listener: (change: LibraryChange) => void): () => void {
 		return this.scans.onSnapshotChanged(listener);
+	}
+	readDirectoryFiles(id: string): FileInfo[] {
+		try {
+			return this.options.index
+				.listChildren(id)
+				.filter((entry): entry is FileEntry => entry.kind === "file")
+				.map(fileInfo);
+		} catch (error) {
+			if (error instanceof DomainError && error.code === "RESOURCE_NOT_FOUND")
+				return [];
+			throw error;
+		}
 	}
 	readFilePage(
 		revision: number,

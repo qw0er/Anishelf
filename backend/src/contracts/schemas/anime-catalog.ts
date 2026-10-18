@@ -367,4 +367,6 @@ export const CatalogReviewQuerySchema = Type.Object(
 export const IdentificationStatusSchema = Type.Object({
 	running: Type.Boolean(),
 	failed: Type.Boolean(),
+	revision: Type.Optional(Type.Integer({ minimum: 0 })),
+	incremental: Type.Optional(Type.Boolean()),
 });

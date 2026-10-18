@@ -1,4 +1,4 @@
-export type { LibraryApi } from "./library/public.js";
+export type { LibraryApi, LibraryChange } from "./library/public.js";
 export type {
 	FileInfo,
 	FileSourceIdentity,

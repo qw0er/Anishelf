@@ -12,11 +12,13 @@ import * as api from "./api.js";
 export const libraryQuery = () =>
 	queryOptions({
 		queryKey: libraryKeys.library,
+		refetchOnWindowFocus: "always",
+		refetchOnReconnect: "always",
 		queryFn: ({ signal }) => api.getLibrary({ signal: boundedSignal(signal) }),
 		refetchInterval: (query) =>
 			query.state.data?.scan?.status === "running"
 				? libraryInteractionPolicy.scanPollIntervalMs
-				: false,
+				: libraryInteractionPolicy.statusPollIntervalMs,
 	});
 export const directoryQuery = (id: string, scope: string) =>
 	queryOptions({

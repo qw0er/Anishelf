@@ -1,5 +1,6 @@
 export const identificationPolicy = {
 	maximumFiles: 500,
+	automaticRetryMs: 5000,
 	parserGroupSize: 50,
 	maximumQueries: 3,
 	maximumBatchQueries: 100,

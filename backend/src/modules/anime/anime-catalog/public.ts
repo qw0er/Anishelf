@@ -19,6 +19,7 @@ export interface AnimeCatalogApi {
 		results: readonly IdentificationResult[],
 		scopeIds: readonly string[],
 		signal?: AbortSignal,
+		fileIds?: readonly string[],
 	): Promise<void>;
 	list(query?: CatalogQuery): Promise<Page<WorkCard>>;
 	index(query?: CatalogQuery): Promise<{

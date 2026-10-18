@@ -158,7 +158,8 @@ async function fixture(
 		library,
 		sources: library.sources,
 		logger,
-		onPublication: (results, scopeIds) => catalog.publish(results, scopeIds),
+		onPublication: (results, scopeIds, signal, fileIds) =>
+			catalog.publish(results, scopeIds, signal, fileIds),
 	});
 	cleanups.push(async () => {
 		await automatic.close();
@@ -1031,7 +1032,6 @@ test("poster artwork uses retained snapshots, delivers cached images offline and
 	await mkdir(nextRoot);
 	await f.library.updateResourceSettings({
 		resourceRoots: [nextRoot],
-		scanIntervalMinutes: 0,
 	});
 	await f.library.waitForCompletion();
 	await f.automatic.waitForCompletion();
@@ -1864,4 +1864,31 @@ test("multi-root versions preserve confirmed associations through identity upgra
 	await f.automatic.waitForCompletion();
 	expect(await versions()).toHaveLength(2);
 	expect((await f.catalog.review(original.id)).decision).toBe("confirmed");
+});
+
+test("scoped publications retain unrelated decisions, associations and playback history", async () => {
+	const f = await fixture(["series/Anime - 01.mkv", "other/Anime - 02.mkv"]);
+	const before = (await f.catalog.reviews()).items;
+	const changed = required(
+		before.find((item) => item.relativePath.startsWith("series/")),
+	);
+	const untouched = required(before.find((item) => item.id !== changed.id));
+	await f.catalog.reject(untouched.id, untouched.revision, "Manual decision");
+	f.database.playback.openGeneration(changed.sourceId);
+	const previous = f.database.catalog.associations(changed.sourceId);
+	await f.catalog.publish(
+		[],
+		(await f.library.sources.getScope()).ids,
+		undefined,
+		[changed.fileId],
+	);
+	const retained = f.database.catalog.review(untouched.id);
+	expect(retained).toMatchObject({
+		available: true,
+		decision: "rejected",
+		reason: "Manual decision",
+	});
+	expect(f.database.catalog.review(changed.id)?.available).toBe(false);
+	expect(f.database.catalog.associations(changed.sourceId)).toEqual(previous);
+	expect(f.database.playback.get(changed.sourceId)).toBeDefined();
 });

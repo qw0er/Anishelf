@@ -4,7 +4,6 @@ export type PreparationMode = "compatible" | "fast";
 export interface PersistentSettings {
 	resourceRoots: string[];
 	preparationMode?: PreparationMode;
-	scanIntervalMinutes?: number;
 	transcodeCacheBudgetGiB?: number;
 	defaultTranscodeProfileId?: string;
 }

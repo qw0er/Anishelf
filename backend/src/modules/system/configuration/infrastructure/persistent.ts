@@ -20,13 +20,8 @@ import { canonicalPath } from "../../../../platform/canonical-path.js";
 import { storageRules } from "../../../../platform/storage.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { PersistentSettings } from "../domain/model.js";
-import { configurationPolicy } from "../policy.js";
 
-export function parsePersistentSettings(
-	source: string,
-	maximumIntervalMinutes = configurationPolicy.library
-		.maximumScanIntervalMinutes,
-): PersistentSettings {
+export function parsePersistentSettings(source: string): PersistentSettings {
 	let value: unknown;
 	try {
 		value = JSON.parse(source);
@@ -36,14 +31,10 @@ export function parsePersistentSettings(
 			"settings.json is not valid JSON. Check its syntax.",
 		);
 	}
-	return validatePersistentSettings(value, maximumIntervalMinutes);
+	return validatePersistentSettings(value);
 }
 
-function validatePersistentSettings(
-	value: unknown,
-	maximumIntervalMinutes = configurationPolicy.library
-		.maximumScanIntervalMinutes,
-): PersistentSettings {
+function validatePersistentSettings(value: unknown): PersistentSettings {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) {
 		throw new DomainError(
 			"CONFIG_INVALID",
@@ -116,20 +107,6 @@ function validatePersistentSettings(
 			: typeof settings.resourceRoot === "string"
 				? [settings.resourceRoot]
 				: undefined);
-	const interval = settings.scanIntervalMinutes;
-	if (
-		interval !== undefined &&
-		(typeof interval !== "number" ||
-			!Number.isSafeInteger(interval) ||
-			interval < 0 ||
-			interval > maximumIntervalMinutes)
-	)
-		throw new DomainError(
-			"CONFIG_INVALID",
-			`settings.json scanIntervalMinutes must be an integer from 0 to ${maximumIntervalMinutes}; 0 disables scheduled scans.`,
-		);
-	const scheduling =
-		interval === undefined ? {} : { scanIntervalMinutes: interval as number };
 	if (
 		!Array.isArray(roots) ||
 		roots.length > 64 ||
@@ -150,7 +127,6 @@ function validatePersistentSettings(
 		throw new DomainError("CONFIG_INVALID", "Resource paths must be distinct.");
 	return {
 		resourceRoots: [...roots],
-		...scheduling,
 		...profile,
 		...cache,
 		...mode,
@@ -168,7 +144,6 @@ function contains(parent: string, child: string): boolean {
 /** Existing settings win; missing settings may be initialized before setup mode. */
 async function loadPersistentSettings(
 	dataDir: string,
-	maximumIntervalMinutes: number,
 	initialResourceRoot?: string | readonly string[],
 ): Promise<PersistentSettings> {
 	const path = join(dataDir, storageRules.settingsFile);
@@ -178,15 +153,12 @@ async function loadPersistentSettings(
 	} catch (cause) {
 		if ((cause as NodeJS.ErrnoException).code === "ENOENT") {
 			if (initialResourceRoot === undefined) return { resourceRoots: [] };
-			const settings = validatePersistentSettings(
-				{
-					resourceRoots:
-						typeof initialResourceRoot === "string"
-							? [initialResourceRoot]
-							: [...initialResourceRoot],
-				},
-				maximumIntervalMinutes,
-			);
+			const settings = validatePersistentSettings({
+				resourceRoots:
+					typeof initialResourceRoot === "string"
+						? [initialResourceRoot]
+						: [...initialResourceRoot],
+			});
 			await validateResourceDirectories(dataDir, settings.resourceRoots);
 			try {
 				for (const root of settings.resourceRoots) {
@@ -204,15 +176,17 @@ async function loadPersistentSettings(
 			if (await writePersistentSettings(dataDir, settings, true))
 				return settings;
 			// Another initializer created settings first; preserve and load its result.
-			return loadPersistentSettings(dataDir, maximumIntervalMinutes);
+			return loadPersistentSettings(dataDir);
 		}
 		throw new DomainError(
 			"CONFIG_INVALID",
 			`Cannot read ${path}. Check the file permissions.`,
 		);
 	}
-	const settings = parsePersistentSettings(source, maximumIntervalMinutes);
+	const settings = parsePersistentSettings(source);
 	await validateResourceDirectories(dataDir, settings.resourceRoots);
+	if (Object.hasOwn(JSON.parse(source), "scanIntervalMinutes"))
+		await writePersistentSettings(dataDir, settings);
 	return settings;
 }
 
@@ -258,29 +232,18 @@ export class PersistentConfiguration {
 	private readonly dataDir: string;
 	private current: PersistentSettings;
 
-	private constructor(
-		dataDir: string,
-		current: PersistentSettings,
-		private readonly maximumIntervalMinutes: number,
-	) {
+	private constructor(dataDir: string, current: PersistentSettings) {
 		this.dataDir = dataDir;
 		this.current = current;
 	}
 
 	static async load(
 		dataDir: string,
-		maximumIntervalMinutes = configurationPolicy.library
-			.maximumScanIntervalMinutes,
 		initialResourceRoot?: string | readonly string[],
 	): Promise<PersistentConfiguration> {
 		return new PersistentConfiguration(
 			dataDir,
-			await loadPersistentSettings(
-				dataDir,
-				maximumIntervalMinutes,
-				initialResourceRoot,
-			),
-			maximumIntervalMinutes,
+			await loadPersistentSettings(dataDir, initialResourceRoot),
 		);
 	}
 
@@ -295,7 +258,7 @@ export class PersistentConfiguration {
 	update(settings: PersistentSettings): Promise<Readonly<PersistentSettings>> {
 		let next: PersistentSettings;
 		try {
-			next = validatePersistentSettings(settings, this.maximumIntervalMinutes);
+			next = validatePersistentSettings(settings);
 		} catch (error) {
 			return Promise.reject(error);
 		}

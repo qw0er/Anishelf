@@ -23,7 +23,6 @@ export interface SystemApi extends SettingsStore {
 	readonly snapshot: {
 		readonly settings: DeepReadonly<
 			PersistentSettings & {
-				scanIntervalMinutes: number;
 				defaultTranscodeProfileId: string;
 				preparationMode: PreparationMode;
 			}

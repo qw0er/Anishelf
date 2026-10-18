@@ -307,33 +307,15 @@ test.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
 	},
 );
 
-test.each([-1, 1.5, 10081, null, "60"])(
-	"rejects invalid scan interval %j",
-	(scanIntervalMinutes) => {
-		expect(() =>
-			parsePersistentSettings(
-				JSON.stringify({ resourceRoots: [resourceRoots], scanIntervalMinutes }),
-			),
-		).toThrow("scanIntervalMinutes");
-	},
-);
-
-test("scan interval is persisted and survives restart, including disabling it", async () => {
+test("obsolete scan interval is removed from settings on load", async () => {
+	await mkdir(dataDir, { recursive: true });
+	await writeFile(
+		join(dataDir, "settings.json"),
+		JSON.stringify({ resourceRoots: [resourceRoots], scanIntervalMinutes: 30 }),
+	);
 	const configuration = await PersistentConfiguration.load(dataDir);
-	await configuration.update({
-		resourceRoots: [resourceRoots],
-		scanIntervalMinutes: 30,
-	});
-	expect(await loadPersistentSettings(dataDir)).toEqual({
-		resourceRoots: [resourceRoots],
-		scanIntervalMinutes: 30,
-	});
-	await configuration.update({
-		resourceRoots: [resourceRoots],
-		scanIntervalMinutes: 0,
-	});
-	expect(await loadPersistentSettings(dataDir)).toEqual({
-		resourceRoots: [resourceRoots],
-		scanIntervalMinutes: 0,
-	});
+	expect(configuration.settings).toEqual({ resourceRoots: [resourceRoots] });
+	expect(
+		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),
+	).toEqual({ resourceRoots: [resourceRoots] });
 });

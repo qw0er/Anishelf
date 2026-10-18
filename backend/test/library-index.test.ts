@@ -216,3 +216,41 @@ test("injected sorting changes directory priority and numeric ordering", () => {
 	]);
 	expect(index.revision).toBe(1);
 });
+
+test("incremental batches publish once, preserve ordering and treat unchanged entries as a no-op", () => {
+	const index = new LibraryIndex();
+	const folder = directory("series");
+	const keep = file("keep.mp4");
+	index.replace(
+		[root, keep, folder, file("Episode 10.mp4", folder)],
+		scannedAt,
+	);
+	const before = index.snapshot;
+	expect(index.apply([file("Episode 2.mp4", folder)], [])).toEqual([folder.id]);
+	expect(index.revision).toBe(before.revision + 1);
+	expect(index.listChildren(folder.id).map((entry) => entry.name)).toEqual([
+		"Episode 2.mp4",
+		"Episode 10.mp4",
+	]);
+	expect(before.entriesById.size).toBe(4);
+	expect(index.apply([file("Episode 2.mp4", folder)], [])).toEqual([]);
+	expect(index.revision).toBe(before.revision + 1);
+	expect(index.apply([], [folder.id])).toContain(folder.id);
+	expect(index.listChildren("root")).toEqual([keep]);
+});
+
+test("an invalid incremental batch cannot mutate the previously published child lists", () => {
+	const index = new LibraryIndex();
+	index.replace([root, file("keep.mp4")], scannedAt);
+	const before = index.snapshot;
+	expect(() =>
+		index.apply(
+			[file("new.mp4"), { ...file("invalid.mp4"), parentId: "missing" }],
+			[],
+		),
+	).toThrow();
+	expect(index.snapshot).toEqual(before);
+	expect(index.listChildren("root").map((entry) => entry.name)).toEqual([
+		"keep.mp4",
+	]);
+});

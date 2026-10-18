@@ -46,7 +46,7 @@ async function fixture() {
 	const configuration = await ConfigurationService.load({
 		ANISHELF_DATA_DIR: dataDir,
 	});
-	await configuration.update({ resourceRoots: roots, scanIntervalMinutes: 0 });
+	await configuration.update({ resourceRoots: roots });
 	const records: Record<string, unknown>[] = [];
 	const logger = pino(
 		{ level: "debug" },

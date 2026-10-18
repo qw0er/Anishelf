@@ -71,7 +71,8 @@ export default function LibraryScan({
 }: Pick<LibraryScanState, "library" | "settings">) {
 	const { t } = useTranslation();
 	const hasNotices = Boolean(
-		library?.roots?.some((root) => !root.available) ||
+		library?.monitor ||
+			library?.roots?.some((root) => !root.available) ||
 			library?.stale ||
 			(settings && !settings.resourceRoots.length),
 	);
@@ -92,6 +93,13 @@ export default function LibraryScan({
 								settings: <Link className="underline" to="/settings" />,
 							}}
 						/>
+					</p>
+				)}
+				{library?.monitor && settings?.resourceRoots.length && (
+					<p
+						role={library.monitor.status === "degraded" ? "status" : undefined}
+					>
+						{t(`scan.monitor.${library.monitor.status}`)}
 					</p>
 				)}
 				{library?.stale && <p>{t("scan.stale")}</p>}

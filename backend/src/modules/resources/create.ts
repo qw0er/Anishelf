@@ -58,6 +58,7 @@ export async function createResourcesModule(options: {
 		applySettingsChange: (input, save) =>
 			library.settings.applySettingsChange(input, save),
 		onSnapshotChanged: (listener) => library.onSnapshotChanged(listener),
+		readDirectoryFiles: (id) => library.readDirectoryFiles(id),
 		readFilePage: (revision, offset, limit) =>
 			library.readFilePage(revision, offset, limit),
 		getStatus: () => library.getStatus(),

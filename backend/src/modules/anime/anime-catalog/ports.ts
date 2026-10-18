@@ -31,6 +31,7 @@ export interface CatalogStore extends SourceRegistry {
 	publish(
 		scopeIds: readonly string[],
 		items: { source: RegisteredSource; result: IdentificationResult }[],
+		fileIds?: readonly string[],
 	): void;
 	review(id: string): ReviewRecord | null;
 	reviews(

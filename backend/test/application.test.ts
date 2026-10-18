@@ -133,18 +133,20 @@ test("child access failures produce a partial snapshot and safe warning summarie
 	await writeFile(join(root, "good.mp4"), "video");
 	const resources = await ResourceAccess.create({ resourceRoots: [root] });
 	const readDirectory = resources.readDirectory.bind(resources);
-	const inspectFile = resources.inspectVideoFile.bind(resources);
+	const inspectFile = resources.inspectVideoFileWithVersion.bind(resources);
 	vi.spyOn(ResourceAccess, "create").mockResolvedValue(resources);
 	vi.spyOn(resources, "readDirectory").mockImplementation(async (path = "") => {
 		if (path === "blocked")
 			throw new DomainError("RESOURCE_UNREADABLE", `secret ${fixture}`);
 		return readDirectory(path);
 	});
-	vi.spyOn(resources, "inspectVideoFile").mockImplementation(async (path) => {
-		if (path === "removed.mp4")
-			throw new DomainError("RESOURCE_MISSING", `secret ${fixture}`);
-		return inspectFile(path);
-	});
+	vi.spyOn(resources, "inspectVideoFileWithVersion").mockImplementation(
+		async (path) => {
+			if (path === "removed.mp4")
+				throw new DomainError("RESOURCE_MISSING", `secret ${fixture}`);
+			return inspectFile(path);
+		},
+	);
 	await libraryApp.startScan();
 	expect(await libraryApp.waitForCompletion()).toMatchObject({
 		status: "completed",
@@ -161,13 +163,16 @@ test("child access failures produce a partial snapshot and safe warning summarie
 test("losing the root during traversal fails instead of publishing a partial result", async () => {
 	await writeFile(join(root, "episode.mp4"), "video");
 	const resources = await ResourceAccess.create({ resourceRoots: [root] });
-	const inspectVideoFile = resources.inspectVideoFile.bind(resources);
+	const inspectVideoFileWithVersion =
+		resources.inspectVideoFileWithVersion.bind(resources);
 	vi.spyOn(ResourceAccess, "create").mockResolvedValue(resources);
-	vi.spyOn(resources, "inspectVideoFile").mockImplementation(async (path) => {
-		const result = await inspectVideoFile(path);
-		await rename(root, join(fixture, "moved"));
-		return result;
-	});
+	vi.spyOn(resources, "inspectVideoFileWithVersion").mockImplementation(
+		async (path) => {
+			const result = await inspectVideoFileWithVersion(path);
+			await rename(root, join(fixture, "moved"));
+			return result;
+		},
+	);
 	await libraryApp.startScan();
 	expect(await libraryApp.waitForCompletion()).toMatchObject({
 		status: "failed",
@@ -181,18 +186,21 @@ test("bounds concurrent resource access and publishes after outstanding work fin
 		await writeFile(join(root, `episode ${count}.mp4`), "video");
 	const resources = await ResourceAccess.create({ resourceRoots: [root] });
 	vi.spyOn(ResourceAccess, "create").mockResolvedValue(resources);
-	const inspectVideoFile = resources.inspectVideoFile.bind(resources);
+	const inspectVideoFileWithVersion =
+		resources.inspectVideoFileWithVersion.bind(resources);
 	let active = 0;
 	let maximum = 0;
-	vi.spyOn(resources, "inspectVideoFile").mockImplementation(async (path) => {
-		active++;
-		maximum = Math.max(maximum, active);
-		try {
-			return await inspectVideoFile(path);
-		} finally {
-			active--;
-		}
-	});
+	vi.spyOn(resources, "inspectVideoFileWithVersion").mockImplementation(
+		async (path) => {
+			active++;
+			maximum = Math.max(maximum, active);
+			try {
+				return await inspectVideoFileWithVersion(path);
+			} finally {
+				active--;
+			}
+		},
+	);
 	await libraryApp.startScan();
 	expect((await libraryApp.waitForCompletion())?.status).toBe("completed");
 	expect(maximum).toBe(8);
@@ -222,12 +230,15 @@ test("shutdown waits for active operations and rejects new scans", async () => {
 	const pending = new Promise<void>((resolve) => {
 		release = resolve;
 	});
-	const inspectVideoFile = resources.inspectVideoFile.bind(resources);
-	vi.spyOn(resources, "inspectVideoFile").mockImplementation(async (path) => {
-		entered();
-		await pending;
-		return inspectVideoFile(path);
-	});
+	const inspectVideoFileWithVersion =
+		resources.inspectVideoFileWithVersion.bind(resources);
+	vi.spyOn(resources, "inspectVideoFileWithVersion").mockImplementation(
+		async (path) => {
+			entered();
+			await pending;
+			return inspectVideoFileWithVersion(path);
+		},
+	);
 	await libraryApp.startScan();
 	await started;
 	const closed = libraryApp.close();
@@ -243,15 +254,18 @@ test("settings changes during a scan prevent publication and the next scan uses 
 	const nextRoot = join(fixture, "next");
 	await mkdir(nextRoot);
 	const resources = await ResourceAccess.create({ resourceRoots: [root] });
-	const inspectVideoFile = resources.inspectVideoFile.bind(resources);
+	const inspectVideoFileWithVersion =
+		resources.inspectVideoFileWithVersion.bind(resources);
 	const create = vi
 		.spyOn(ResourceAccess, "create")
 		.mockResolvedValue(resources);
-	vi.spyOn(resources, "inspectVideoFile").mockImplementation(async (path) => {
-		const result = await inspectVideoFile(path);
-		root = nextRoot;
-		return result;
-	});
+	vi.spyOn(resources, "inspectVideoFileWithVersion").mockImplementation(
+		async (path) => {
+			const result = await inspectVideoFileWithVersion(path);
+			root = nextRoot;
+			return result;
+		},
+	);
 	await libraryApp.startScan();
 	expect((await libraryApp.waitForCompletion())?.status).toBe("failed");
 	expect(index.revision).toBe(0);
@@ -485,105 +499,5 @@ test("public library results select fields explicitly rather than exposing futur
 		expect(JSON.stringify(result)).not.toContain("privateDiagnostic");
 		expect(JSON.stringify(result)).not.toContain("relativePath");
 		expect(JSON.stringify(result)).not.toContain(fixture);
-	}
-});
-
-test("scheduled scans discover new files, reschedule after completion, and honor interval changes and shutdown", async () => {
-	vi.useFakeTimers();
-	let settings = { resourceRoots: [root], scanIntervalMinutes: 1 };
-	const application = createLibraryModule({
-		index,
-		configuration: {
-			get settings() {
-				return settings;
-			},
-			async update(next) {
-				settings = {
-					resourceRoots: next.resourceRoots,
-					scanIntervalMinutes: next.scanIntervalMinutes ?? 60,
-				};
-				return settings;
-			},
-		},
-		logger: pino({ enabled: false }),
-	});
-	try {
-		await writeFile(join(root, "scheduled.mp4"), "video");
-		await vi.advanceTimersByTimeAsync(59999);
-		expect(application.state).toBeNull();
-		await vi.advanceTimersByTimeAsync(1);
-		await application.waitForCompletion();
-		expect(index.listChildren("root").map((entry) => entry.name)).toEqual([
-			"scheduled.mp4",
-		]);
-		expect(index.revision).toBe(1);
-		await application.updateResourceSettings({
-			resourceRoots: [root],
-			scanIntervalMinutes: 2,
-		});
-		await vi.advanceTimersByTimeAsync(60000);
-		expect(index.revision).toBe(1);
-		await vi.advanceTimersByTimeAsync(60000);
-		await application.waitForCompletion();
-		expect(index.revision).toBe(2);
-		await application.updateResourceSettings({
-			resourceRoots: [root],
-			scanIntervalMinutes: 0,
-		});
-		await vi.advanceTimersByTimeAsync(300000);
-		expect(index.revision).toBe(2);
-		await application.updateResourceSettings({
-			resourceRoots: [root],
-			scanIntervalMinutes: 1,
-		});
-		await application.close();
-		await vi.advanceTimersByTimeAsync(60000);
-		expect(index.revision).toBe(2);
-	} finally {
-		await application.close();
-		vi.useRealTimers();
-	}
-});
-
-test("long scans have no overlapping timer and the next interval begins at completion", async () => {
-	vi.useFakeTimers();
-	const application = createLibraryModule({
-		index,
-		configuration: {
-			settings: { resourceRoots: [root], scanIntervalMinutes: 1 },
-			async update(next) {
-				return next;
-			},
-		},
-		logger: pino({ enabled: false }),
-	});
-	const create = ResourceAccess.create;
-	let release = () => {};
-	const gate = new Promise<void>((resolve) => {
-		release = resolve;
-	});
-	const opening = vi
-		.spyOn(ResourceAccess, "create")
-		.mockImplementationOnce(async (settings) => {
-			await gate;
-			return create(settings);
-		});
-	try {
-		const scan = await application.startScan();
-		await vi.advanceTimersByTimeAsync(180000);
-		expect(application.state?.id).toBe(scan.id);
-		expect(opening).toHaveBeenCalledTimes(1);
-		expect(index.revision).toBe(0);
-		release();
-		await application.waitForCompletion();
-		await vi.advanceTimersByTimeAsync(59999);
-		expect(index.revision).toBe(1);
-		await vi.advanceTimersByTimeAsync(1);
-		await application.waitForCompletion();
-		expect(index.revision).toBe(2);
-	} finally {
-		release();
-		await application.close();
-		vi.useRealTimers();
 	}
 });

@@ -67,13 +67,7 @@ export async function createServer(
 			? { frontendRoot: system.deployment.frontendDir }
 			: {}),
 		registrations: [
-			(app) =>
-				registerSystemHttp(
-					app,
-					system,
-					resources.api,
-					builtinPolicy.library.maximumScanIntervalMinutes,
-				),
+			(app) => registerSystemHttp(app, system, resources.api),
 			resources.registerHttp,
 			media.registerHttp,
 			playback.registerHttp,

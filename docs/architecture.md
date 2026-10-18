@@ -164,7 +164,7 @@ source identities, playback history and accepted submission intent.
 System owns settings HTTP commands and persistence. App supplies a consumer-owned
 resource-settings coordination port implemented by Resources. Resources decides
 which settings patches require its scan gate and strips unchanged resource fields
-from independent media patches. Resource-root saves and scan-interval commands reserve Resources' scan gate;
+from independent media patches. Resource-root saves reserve Resources' scan and incremental-update gate;
 cache budgets and transcode options can change independently when their request
 retains the current root. System queues partial updates against the latest saved
 settings, so an unrelated update cannot overwrite concurrent profile selection or
@@ -380,8 +380,10 @@ automatically invented positive regular episodes. Unknown TV numbering has
 no default target. Review defaults use the selected candidate's valid proposal,
 preserve the original source numbers and show the proposal's unresolved reasons.
 
-Completed resource scans publish validated source contexts to Anime's bounded
-recognition coordinator. Identification uses `anitomy-ng` and cached AniList
+Resources publishes baseline snapshots and directory-scoped changes to Anime's bounded
+recognition coordinator. Incremental publications read affected directory groups and
+update only explicitly scoped Catalog sources; full scans remain for startup, manual
+reconciliation and monitoring recovery. See [Filesystem monitoring](filesystem-monitoring.md). Identification uses `anitomy-ng` and cached AniList
 candidates to return evidence and candidate-specific episode proposals. Catalog
 automatically admits unambiguous matches and persists review decisions, stable
 local work/episode identities and source associations in SQLite. Ambiguous or

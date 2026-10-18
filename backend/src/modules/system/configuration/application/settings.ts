@@ -52,7 +52,6 @@ export class SettingsApplication {
 		this.logger.info(
 			{
 				event: "settings.updated",
-				scanIntervalMinutes: saved.scanIntervalMinutes,
 				durationMs: Date.now() - started,
 			},
 			"Settings saved.",

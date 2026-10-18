@@ -18,6 +18,7 @@ export function createIdentificationModule(options: {
 		results: readonly IdentificationResult[],
 		scopeIds: readonly string[],
 		signal: AbortSignal,
+		fileIds?: readonly string[],
 	) => void | Promise<void>;
 }): AutomaticIdentificationCoordinator {
 	const identification = new IdentificationApplication({

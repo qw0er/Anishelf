@@ -507,7 +507,6 @@ test("root switching cancels stale recognition and processes the newly published
 	await gate;
 	await f.library.updateResourceSettings({
 		resourceRoots: [nextRoot],
-		scanIntervalMinutes: 0,
 	});
 	await f.library.waitForCompletion();
 	await automatic.waitForCompletion();
@@ -536,3 +535,91 @@ test("failed Metadata work is retried by a later scan without losing local evide
 	expect(automatic.getResults()[0]?.metadataStatus).toBe("searched");
 	expect(search).toHaveBeenCalledTimes(2);
 });
+
+test("filesystem publications identify only affected directory contexts without enumerating the library", async () => {
+	const f = await fixture(["series/Frieren - 01.mkv", "other/Your Name.mkv"]);
+	const engine = new IdentificationApplication({ parser });
+	const identify = vi.spyOn(engine, "identify");
+	const automatic = coordinator(f, engine);
+	await scan(f, automatic);
+	identify.mockClear();
+	const enumerate = vi.spyOn(f.library, "readFilePage");
+	await writeFile(join(f.root, "series/Frieren - 02.mkv"), "new");
+	await expect
+		.poll(() => automatic.getResults().length, { timeout: 6000 })
+		.toBe(3);
+	expect(enumerate).not.toHaveBeenCalled();
+	expect(identify).toHaveBeenCalledTimes(1);
+	expect(
+		identify.mock.calls[0]?.[0].every((source) =>
+			source.relativePath.startsWith("series/"),
+		),
+	).toBe(true);
+	expect(automatic.getStatus().revision).toBe(2);
+	await rm(join(f.root, "series"), { recursive: true });
+	await expect
+		.poll(() => automatic.getResults().length, { timeout: 6000 })
+		.toBe(1);
+	expect(automatic.getResults()[0]?.source.relativePath).toBe(
+		"other/Your Name.mkv",
+	);
+	expect(enumerate).not.toHaveBeenCalled();
+}, 15000);
+
+test("unrelated directory changes queue behind active incremental recognition without cancelling it", async () => {
+	const f = await fixture(["series/Frieren - 01.mkv", "other/Your Name.mkv"]);
+	const engine = new IdentificationApplication({ parser });
+	let block = false;
+	let entered = () => {};
+	const started = new Promise<void>((resolve) => {
+		entered = resolve;
+	});
+	let release = () => {};
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	let activeSignal: AbortSignal | undefined;
+	const automatic = coordinator(f, {
+		version: engine.version,
+		async identify(sources, signal) {
+			if (block && sources[0]?.relativePath.startsWith("series/")) {
+				activeSignal = signal;
+				entered();
+				await gate;
+				signal?.throwIfAborted();
+			}
+			return engine.identify(sources, signal);
+		},
+	});
+	await scan(f, automatic);
+	block = true;
+	try {
+		await writeFile(join(f.root, "series/Frieren - 02.mkv"), "new");
+		await started;
+		const directories = vi.spyOn(f.library, "readDirectoryFiles");
+		await writeFile(join(f.root, "other/Your Name 2.mkv"), "other");
+		// Wait for the second resource publication, not merely the file write.
+		const before = (await f.library.getStatus()).revision;
+		await expect
+			.poll(async () => (await f.library.getStatus()).revision, {
+				timeout: 6000,
+			})
+			.toBeGreaterThan(before);
+		expect(activeSignal?.aborted).toBe(false);
+		release();
+		await expect
+			.poll(() => automatic.getResults().length, { timeout: 6000 })
+			.toBe(4);
+		expect(
+			directories.mock.calls.some(
+				([id]) =>
+					id ===
+					f.library
+						.getDirectory("root")
+						.children.find((child) => child.name === "other")?.id,
+			),
+		).toBe(true);
+	} finally {
+		release();
+	}
+}, 15000);

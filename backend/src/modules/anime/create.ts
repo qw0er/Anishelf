@@ -59,8 +59,8 @@ export async function createAnimeModule(options: {
 		...(metadata ? { metadata: createIdentificationMetadata(metadata) } : {}),
 		...(catalog
 			? {
-					onPublication: (results, scopeIds, signal) =>
-						catalog.publish(results, scopeIds, signal),
+					onPublication: (results, scopeIds, signal, fileIds) =>
+						catalog.publish(results, scopeIds, signal, fileIds),
 				}
 			: {}),
 	});

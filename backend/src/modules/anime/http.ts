@@ -16,7 +16,14 @@ export function registerAnimeHttp(
 		tracking?: TrackingApi | undefined;
 		viewing?: TrackingViewingApi | undefined;
 		library?: AnimeLibraryApi | undefined;
-		identification?: { getStatus(): { running: boolean; failed: boolean } };
+		identification?: {
+			getStatus(): {
+				running: boolean;
+				failed: boolean;
+				revision?: number;
+				incremental?: boolean;
+			};
+		};
 		metadata: MetadataApi | undefined;
 		catalog: AnimeCatalogApi | undefined;
 	},

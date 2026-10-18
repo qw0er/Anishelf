@@ -23,7 +23,6 @@ export class ResourceSettingsApplication {
 	}
 	updateResourceSettings(input: {
 		resourceRoots: string[];
-		scanIntervalMinutes?: number;
 	}): Promise<Readonly<PersistentSettings>> {
 		const patch = structuredClone(input);
 		return this.coordinateSettingsChange(() =>
@@ -49,12 +48,9 @@ export class ResourceSettingsApplication {
 			patch.preparationMode !== undefined;
 		const resourceChange =
 			JSON.stringify(patch.resourceRoots) !==
-				JSON.stringify(current.resourceRoots) ||
-			patch.scanIntervalMinutes !== undefined ||
-			!mediaUpdate;
+				JSON.stringify(current.resourceRoots) || !mediaUpdate;
 		if (!resourceChange) {
 			delete patch.resourceRoots;
-			delete patch.scanIntervalMinutes;
 			return save(patch);
 		}
 		return this.coordinateSettingsChange(() => save(patch));
@@ -73,7 +69,7 @@ export class ResourceSettingsApplication {
 					{ event: "resources.scope_invalidated" },
 					"Resource configuration changed; source access and the published index were invalidated.",
 				);
-				this.options.scans.reset();
+				await this.options.scans.reset();
 			}
 			return { ...saved };
 		});
