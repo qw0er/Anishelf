@@ -171,6 +171,18 @@ settings, so an unrelated update cannot overwrite concurrent profile selection o
 restore a resource root that changed after the request began. HTTP presenters own
 settings/profile DTO projection; Playback reads effective profile selection directly.
 
+Resources composes one `ResourceRoots` owner for private directory descriptors and
+live availability. `LibrarySynchronizer` owns the sole mutation gate, task state,
+publication validation/notifications and shutdown. `ScanRunner` builds baseline and
+root-recovery candidates; `ChangeProcessor` builds path-scoped patches.
+`RootMonitorManager` owns per-scope lifecycles, application `ChangeQueue` owns
+coalescing/retry, and infrastructure `FilesystemWatcher` only adapts native events.
+`LibraryIndex` retains atomic publication and queries. Source access reuses the same
+root owner while retaining access revisions, confinement and version validation.
+Status queries inspect roots once, and root descriptors carry their path explicitly
+rather than relying on configuration-array positions. See
+[Filesystem monitoring](filesystem-monitoring.md) for lifecycle details.
+
 ### Resource directory isolation
 
 Resources owns directory selection, canonical-path resolution, confinement, scans,

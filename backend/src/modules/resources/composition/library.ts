@@ -1,34 +1,36 @@
 import type { Logger } from "pino";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type { SettingsStore } from "../../system/public.js";
+import { ChangeProcessor } from "../library/application/change-processor.js";
 import { LibraryApplication } from "../library/application/library.js";
-import { ScanCoordinator } from "../library/application/scan-coordinator.js";
+import { LibrarySynchronizer } from "../library/application/library-synchronizer.js";
+import { RootMonitorManager } from "../library/application/root-monitor-manager.js";
+import { ScanRunner } from "../library/application/scan-runner.js";
 import { ResourceSettingsApplication } from "../library/application/settings.js";
 import type { LibraryIndex } from "../library/infrastructure/index.js";
+import { LibraryScanner } from "../library/infrastructure/scanner.js";
 import {
 	type LibraryRuntimePolicy,
 	libraryRuntimePolicy,
 } from "../library/policy.js";
 import { ResourceAccessApplication } from "../resource-access/application/access.js";
-import { ResourceAccess } from "../resource-access/infrastructure/access.js";
-import {
-	checkRoots,
-	configuredRoots,
-	rootStatus,
-} from "../resource-access/infrastructure/roots.js";
-import type { ResourceRootApi } from "../resource-access/public.js";
-/** Connect the catalog port without a resource-access -> library module dependency. */
+import { ResourceRoots } from "../resource-access/application/roots.js";
+
+/** Constructs collaborators; source access and library synchronization share one directory owner. */
 export function createLibraryModule(options: {
 	configuration: SettingsStore;
 	index: LibraryIndex;
 	logger: Logger;
 	policy?: DeepReadonly<LibraryRuntimePolicy>;
 }): LibraryApplication<LibraryRuntimePolicy> {
-	const { index, configuration, logger } = options;
+	const { index, configuration } = options;
 	const policy = options.policy ?? libraryRuntimePolicy;
+	const logger = options.logger.child({ module: "library" });
+	index.configure(policy.library);
+	const roots = new ResourceRoots(policy);
 	const sources = new ResourceAccessApplication({
 		configuration,
-		policy,
+		roots,
 		catalog: {
 			get hasSnapshot() {
 				return index.scannedAt !== null;
@@ -36,40 +38,41 @@ export function createLibraryModule(options: {
 			getFile: (id) => index.getFile(id),
 		},
 	});
-	const rootFiles: ResourceRootApi = {
-		getRoots: async (settings) =>
-			(await rootStatus(settings)).map((root) => ({
-				id: root.scopeId,
-				name: root.name,
-				error: root.error,
-			})),
-		checkRoot: (settings) => checkRoots(settings),
-		openRoot: (settings, policy) => ResourceAccess.create(settings, policy),
-	};
-	const scans = new ScanCoordinator({
-		configuration,
-		index,
+	const monitoring = new RootMonitorManager({ policy: policy.library, logger });
+	const scans = new ScanRunner({
+		roots,
+		scanner: new LibraryScanner(logger.child({ module: "scanner" }), policy),
 		logger,
-		policy,
-		rootFiles,
+		warningMessageLimit: policy.library.warningMessageLimit,
+	});
+	const changes = new ChangeProcessor({ roots, index, policy });
+	const synchronizer = new LibrarySynchronizer({
+		configuration,
+		roots,
+		index,
+		scans,
+		changes,
+		monitoring,
+		logger,
 	});
 	const settings = new ResourceSettingsApplication({
 		configuration,
-		scans,
+		synchronizer,
 		logger,
 		rootChanged: async () => {
 			sources.invalidateRoot();
-			const roots = await configuredRoots(configuration.settings);
-			index.reset(roots.map((root) => ({ id: root.scopeId, name: root.name })));
+			const directories = await roots.list(configuration.settings);
+			index.reset(
+				directories.map((root) => ({ id: root.scopeId, name: root.name })),
+			);
 		},
 	});
 	return new LibraryApplication<LibraryRuntimePolicy>({
-		rootFiles,
-		configuration,
+		roots,
 		index,
 		policy,
 		sources,
-		scans,
+		synchronizer,
 		settings,
 	});
 }

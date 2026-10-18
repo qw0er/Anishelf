@@ -1,6 +1,5 @@
 import type { Dirent } from "node:fs";
 import type { FileHandle } from "node:fs/promises";
-import type { DeepReadonly } from "../../../shared/policy.js";
 import type { PersistentSettings } from "../../system/public.js";
 import type {
 	FileInfo,
@@ -12,7 +11,6 @@ import type {
 	SourceIdentity,
 	SourceReference,
 } from "./domain/model.js";
-import type { ResourceAccessRuntimePolicy } from "./policy.js";
 export interface ResourceFileMetadata {
 	sizeBytes: number;
 	modifiedAt: string;
@@ -59,13 +57,30 @@ export interface SourceRegistry {
 	registerSource(identity: SourceIdentity, nowMs?: number): RegisteredSource;
 }
 
-export interface ResourceRootApi {
-	getRoots(
+/** Private directory descriptors stay inside Resources; consumers receive opaque scopes. */
+export interface ResourceRoot {
+	readonly scopeId: string;
+	readonly path: string;
+	readonly name: string;
+}
+export interface ResourceRootStatus extends ResourceRoot {
+	readonly error: RootIssue | null;
+}
+export interface ResourceRootSelection {
+	roots: ResourceRootStatus[];
+	issue: RootIssue | null;
+}
+export interface ResourceRootAccess extends ResourceFiles {
+	filePath(relativePath: string): Promise<string>;
+}
+export interface ResourceRootsApi {
+	list(settings: Readonly<PersistentSettings>): Promise<ResourceRoot[]>;
+	inspect(
 		settings: Readonly<PersistentSettings>,
-	): Promise<{ id: string; name: string; error: RootIssue | null }[]>;
-	checkRoot(settings: Readonly<PersistentSettings>): Promise<RootIssue | null>;
-	openRoot(
+	): Promise<ResourceRootSelection>;
+	open(root: ResourceRoot): Promise<ResourceRootAccess>;
+	resolve(
 		settings: Readonly<PersistentSettings>,
-		policy: DeepReadonly<ResourceAccessRuntimePolicy>,
-	): Promise<ResourceFiles>;
+		scopeId?: string,
+	): Promise<ResourceRoot>;
 }

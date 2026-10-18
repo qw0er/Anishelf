@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { builtinPolicy } from "../src/app/policy.js";
 import { ResourceAccessApplication } from "../src/modules/resources/resource-access/application/access.js";
+import { ResourceRoots } from "../src/modules/resources/resource-access/application/roots.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import type {
 	ResourceAccessApi,
@@ -49,7 +50,7 @@ async function fixture() {
 				return settings;
 			},
 		},
-		policy: builtinPolicy,
+		roots: new ResourceRoots(builtinPolicy),
 	});
 	return {
 		source,
