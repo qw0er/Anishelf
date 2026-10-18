@@ -3,7 +3,7 @@ import type {
 	PersistentSettings,
 	SettingsStore,
 } from "../../../system/public.js";
-import type { ScanCoordinator } from "./scan-coordinator.js";
+import type { LibrarySynchronizer } from "./library-synchronizer.js";
 /** Root switching is one coordinated use case, not a configuration side effect. */
 export class ResourceSettingsApplication {
 	constructor(
@@ -13,7 +13,7 @@ export class ResourceSettingsApplication {
 					patch: Partial<PersistentSettings>,
 				): Promise<Readonly<PersistentSettings>>;
 			};
-			scans: ScanCoordinator;
+			synchronizer: LibrarySynchronizer;
 			rootChanged(): Promise<void>;
 			logger: Logger;
 		},
@@ -59,27 +59,29 @@ export class ResourceSettingsApplication {
 		save: () => Promise<Readonly<PersistentSettings>>,
 	): Promise<Readonly<PersistentSettings>> {
 		const previousRoot = this.getSettings().resourceRoots;
-		const settings = await this.options.scans.withSettingsChange(async () => {
-			const saved = await save();
-			if (
-				JSON.stringify(saved.resourceRoots) !== JSON.stringify(previousRoot)
-			) {
-				await this.options.rootChanged();
-				this.options.logger.info(
-					{ event: "resources.scope_invalidated" },
-					"Resource configuration changed; source access and the published index were invalidated.",
-				);
-				await this.options.scans.reset();
-			}
-			return { ...saved };
-		});
+		const settings = await this.options.synchronizer.withSettingsChange(
+			async () => {
+				const saved = await save();
+				if (
+					JSON.stringify(saved.resourceRoots) !== JSON.stringify(previousRoot)
+				) {
+					await this.options.rootChanged();
+					this.options.logger.info(
+						{ event: "resources.scope_invalidated" },
+						"Resource configuration changed; source access and the published index were invalidated.",
+					);
+					await this.options.synchronizer.reset();
+				}
+				return { ...saved };
+			},
+		);
 		if (
-			!this.options.scans.isClosed &&
+			!this.options.synchronizer.isClosed &&
 			settings.resourceRoots.length > 0 &&
 			JSON.stringify(settings.resourceRoots) !== JSON.stringify(previousRoot)
 		) {
 			try {
-				await this.options.scans.startScan();
+				await this.options.synchronizer.startScan();
 			} catch (err) {
 				this.options.logger.warn(
 					{ event: "scan.settings_start_failed", err },

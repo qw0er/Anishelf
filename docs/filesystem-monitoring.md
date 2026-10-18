@@ -5,9 +5,29 @@ mechanism. There is no scheduled full scan. Startup, resource-root changes,
 explicit scans and recovery after known monitoring failures establish a complete
 baseline. AniList metadata refresh remains independent.
 
+## Responsibility boundaries
+
+| Owner | Responsibility |
+| --- | --- |
+| ResourceRoots | Resolve configured roots into private scope/path/name descriptors, inspect availability once per status request, and verify scope identity on every open |
+| LibrarySynchronizer | Own exclusion, task state, cancellation, final configuration checks, publication notifications and ordered shutdown |
+| ScanRunner | Build baseline and strict root-recovery candidates through the same traversal, retaining unavailable roots during a baseline |
+| ChangeProcessor | Resolve dirty paths and build a patch without changing the published index |
+| RootMonitorManager | Manage the per-scope watcher and queue lifecycle and project aggregate monitoring state |
+| ChangeQueue | Coalesce and bound paths, retain work while synchronization is busy, and schedule reconciliation with backoff |
+| FilesystemWatcher | Normalize native Chokidar events and manage watch initialization/close without scheduling library work |
+| LibraryIndex | Validate and atomically publish complete, scope-level or path-level changes; serve index queries |
+
+Composition constructs the directory owner once and shares it with source access,
+status queries, scanning and change processing. Directory descriptors include the
+path explicitly; no consumer joins a scope list to configuration paths by position.
+They remain private to Resources. The existing public source APIs, HTTP shapes and
+persistent identities are unchanged. Availability is read live; this refactor does
+not cache filesystem health or weaken confinement/version validation.
+
 ## Event processing
 
-`ResourceMonitor` wraps Chokidar with symbolic-link following disabled, atomic
+`FilesystemWatcher` wraps Chokidar with symbolic-link following disabled, atomic
 write normalization and a two-second write-stability window. This window only
 indicates that writes have paused; it is not a download-completion guarantee.
 Each configured root is canonicalized before watching and owns an independent
@@ -15,13 +35,13 @@ monitor and recovery queue. Resource IDs include the opaque scope ID, so identic
 relative paths in different directories remain distinct. Watch initialization may enumerate the
 root to establish native watches; ordinary changes do not traverse the whole root.
 
-The monitor collects root-relative dirty paths in a bounded set, using a 500 ms
+The application-owned `ChangeQueue` collects root-relative dirty paths in a bounded set, using a 500 ms
 batch window with a fixed deadline so continuous events cannot postpone work
 forever. The watcher starts before baseline traversal. Events received during a
-scan or settings save remain queued. One coordinator serializes baseline scans,
-incremental publications and resource-setting changes.
+scan or settings save remain queued. `LibrarySynchronizer` owns the single exclusion gate for baseline scans, root
+recovery, incremental publications and resource-setting changes.
 
-Events are hints, not authoritative additions or deletions. `readChanges` resolves
+Events are hints, not authoritative additions or deletions. `ChangeProcessor` resolves
 each affected path through confined Resource Access, reading its parent directory
 and inspecting only affected video files. Newly discovered directories require
 subtree discovery; known, unrelated directories are not traversed. Missing
@@ -64,8 +84,9 @@ the published index. Retries back off from one second to at most 30 seconds. A
 new watcher and a successful baseline restore monitoring. Recovery scans with
 unreadable resources do not replace the retained snapshot. Manual scans can retry
 immediately. Root changes discard queued old-scope events; recovery reconciles only the affected
-directory while healthy directories continue publishing incremental changes; shutdown closes the
-watcher and waits for active work.
+directory while healthy directories continue publishing incremental changes; shutdown closes watchers, cancels active scan/recovery work and waits for
+in-flight operations. A failure received during reconciliation keeps recovery
+pending instead of being overwritten by that reconciliation completing.
 
 Native events cannot prove the absence of silently lost events. Network-mounted
 filesystems need deployment-specific validation. There is no automatic switch to

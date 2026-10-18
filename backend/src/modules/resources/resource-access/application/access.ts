@@ -1,5 +1,4 @@
 import { DomainError } from "../../../../shared/errors.js";
-import type { DeepReadonly } from "../../../../shared/policy.js";
 import type { PersistentSettings } from "../../../system/public.js";
 import type {
 	FileInfo,
@@ -9,10 +8,11 @@ import type {
 	SourceReference,
 } from "../domain/model.js";
 import { assertFileSource, assertSourceVersion } from "../domain/validation.js";
-import { ResourceAccess } from "../infrastructure/access.js";
-import { configuredRoots } from "../infrastructure/roots.js";
-import type { ResourceAccessRuntimePolicy } from "../policy.js";
-import type { OpenedResourceFile } from "../ports.js";
+import type {
+	OpenedResourceFile,
+	ResourceRootAccess,
+	ResourceRootsApi,
+} from "../ports.js";
 import type { ResourceAccessApi } from "../public.js";
 
 function fileInfo(entry: FileInfo): FileInfo {
@@ -33,12 +33,9 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 		private readonly options: {
 			catalog: SourceCatalog;
 			configuration: { readonly settings: Readonly<PersistentSettings> };
-			policy: DeepReadonly<ResourceAccessRuntimePolicy>;
+			roots: ResourceRootsApi;
 		},
 	) {}
-	get policy() {
-		return this.options.policy;
-	}
 	private getSettings() {
 		return { ...this.options.configuration.settings };
 	}
@@ -70,31 +67,12 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 	private async openConfigured(
 		settings: Readonly<PersistentSettings>,
 		scopeId?: string,
-	): Promise<ResourceAccess> {
-		const roots = await configuredRoots(settings);
-		const root =
-			scopeId === undefined && roots.length === 1
-				? roots[0]
-				: roots.find((root) => root.scopeId === scopeId);
-		if (!root)
-			throw new DomainError(
-				settings.resourceRoots.length
-					? "PLAYBACK_CONFLICT"
-					: "RESOURCE_ROOT_NOT_CONFIGURED",
-				"The resource directory is not configured.",
-			);
-		const resources = await ResourceAccess.create(
-			{ ...settings, resourceRoots: [root.path] },
-			this.policy,
+	): Promise<ResourceRootAccess> {
+		return this.options.roots.open(
+			await this.options.roots.resolve(settings, scopeId),
 		);
-		if (resources.scopeId !== root.scopeId)
-			throw new DomainError(
-				"PLAYBACK_CONFLICT",
-				"The resource directory changed while opening it.",
-			);
-		return resources;
 	}
-	async openResources(expected?: SourceReference): Promise<ResourceAccess> {
+	async openResources(expected?: SourceReference): Promise<ResourceRootAccess> {
 		return this.withRoot(
 			() => this.openConfigured(this.getSettings(), expected?.identity.scopeId),
 			expected?.accessRevision,
@@ -125,7 +103,7 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 
 	async getScope(): Promise<ResourceScope> {
 		return this.withRoot(async () => ({
-			ids: (await configuredRoots(this.getSettings())).map(
+			ids: (await this.options.roots.list(this.getSettings())).map(
 				(root) => root.scopeId,
 			),
 			revision: this.revision,

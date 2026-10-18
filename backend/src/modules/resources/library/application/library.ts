@@ -1,9 +1,8 @@
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
-import type { SettingsStore } from "../../../system/public.js";
 import type {
 	ResourceAccessApi,
-	ResourceRootApi,
+	ResourceRootsApi,
 } from "../../resource-access/public.js";
 import type {
 	DirectoryInfo,
@@ -18,7 +17,7 @@ import type {
 import type { LibraryIndex } from "../infrastructure/index.js";
 import type { LibraryRuntimePolicy } from "../policy.js";
 import type { LibraryApi } from "../public.js";
-import type { ScanCoordinator } from "./scan-coordinator.js";
+import type { LibrarySynchronizer } from "./library-synchronizer.js";
 import type { ResourceSettingsApplication } from "./settings.js";
 
 /** Explicit projection prevents new internal fields from leaking into public results. */
@@ -55,25 +54,24 @@ export class LibraryApplication<
 	readonly policy: DeepReadonly<TPolicy>;
 	readonly sources: ResourceAccessApi;
 	readonly settings: ResourceSettingsApplication;
-	private readonly scans: ScanCoordinator;
+	private readonly synchronizer: LibrarySynchronizer;
 	constructor(
 		private readonly options: {
-			configuration: SettingsStore;
-			rootFiles: ResourceRootApi;
+			roots: ResourceRootsApi;
 			index: LibraryIndex;
 			policy: DeepReadonly<TPolicy>;
 			sources: ResourceAccessApi;
-			scans: ScanCoordinator;
+			synchronizer: LibrarySynchronizer;
 			settings: ResourceSettingsApplication;
 		},
 	) {
 		this.policy = options.policy;
 		this.sources = options.sources;
-		this.scans = options.scans;
+		this.synchronizer = options.synchronizer;
 		this.settings = options.settings;
 	}
 	get state() {
-		return this.scans.state;
+		return this.synchronizer.state;
 	}
 	getSettings() {
 		return this.settings.getSettings();
@@ -90,16 +88,16 @@ export class LibraryApplication<
 		return this.sources.openMedia(id);
 	}
 	startScan() {
-		return this.scans.startScan();
+		return this.synchronizer.startScan();
 	}
 	waitForCompletion() {
-		return this.scans.waitForCompletion();
+		return this.synchronizer.waitForCompletion();
 	}
 	cancelScan() {
-		return this.scans.cancelScan();
+		return this.synchronizer.cancelScan();
 	}
 	close() {
-		return this.scans.close();
+		return this.synchronizer.close();
 	}
 	async getStatus(): Promise<LibraryStatus> {
 		// Capture index and task state together before the asynchronous availability check.
@@ -107,14 +105,14 @@ export class LibraryApplication<
 		const revision = this.options.index.revision;
 		const scannedAt = this.options.index.scannedAt;
 		const scan = this.state;
-		const rootIssue = await this.options.rootFiles.checkRoot(settings);
-		const roots = await this.options.rootFiles.getRoots(settings);
+		const { roots, issue: rootIssue } =
+			await this.options.roots.inspect(settings);
 		const error = rootIssue ?? (scan?.status === "failed" ? scan.error : null);
 		return {
-			monitor: this.scans.monitorState,
+			monitor: this.synchronizer.monitorState,
 			ready: rootIssue === null,
 			roots: roots.map((root) => ({
-				id: root.id,
+				id: root.scopeId,
 				name: root.name,
 				available: root.error === null,
 				error: root.error,
@@ -127,7 +125,7 @@ export class LibraryApplication<
 	}
 
 	onSnapshotChanged(listener: (change: LibraryChange) => void): () => void {
-		return this.scans.onSnapshotChanged(listener);
+		return this.synchronizer.onSnapshotChanged(listener);
 	}
 	readDirectoryFiles(id: string): FileInfo[] {
 		try {

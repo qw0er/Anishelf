@@ -245,6 +245,17 @@ export class LibraryIndex {
 		return { files, nextOffset: null };
 	}
 
+	/** Replace one mounted scope atomically, retaining all other roots. */
+	replaceScope(scopeId: string, entries: readonly LibraryEntry[]): string[] {
+		const root = this.findPath("", scopeId);
+		const removals = root
+			? root.id === "root"
+				? this.listChildren(root.id).map((child) => child.id)
+				: [root.id]
+			: [];
+		return this.apply(entries, removals);
+	}
+
 	findPath(path: string, scopeId?: string): LibraryEntry | undefined {
 		const root = this.current.entriesById.get("root");
 		if (path === "" && root && root.scopeId === scopeId) return { ...root };
