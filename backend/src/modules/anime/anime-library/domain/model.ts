@@ -7,7 +7,8 @@ import type {
 	TrackingListSnapshot,
 	ViewingStatus,
 } from "../../tracking/public.js";
-export interface AnimeLibraryQuery extends CatalogQuery {
+export interface AnimeLibraryQuery extends Omit<CatalogQuery, "sort"> {
+	sort?: "title" | "recent" | "updated" | "unwatched";
 	scope?: "local" | "all";
 	viewingStatus?: ViewingStatus | "untracked";
 }

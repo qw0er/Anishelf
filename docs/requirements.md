@@ -66,6 +66,15 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 | L16 | Improve matching using representative real-world failure cases | Later | — | Unassigned |
 | L17 | Learn scoped matching rules from explicit manual corrections | Later | — | Unassigned |
 
+The poster library supports Title, Recently added, Recently updated and Unwatched
+first sorting. Unwatched first is the default: works with locally available episodes
+beyond the tracking provider's cumulative progress precede other works; each group
+uses title order. Unknown progress and remote-only works receive no unwatched priority.
+Recently updated uses the local Catalog work update timestamp; remote-only works use
+the provider list-entry update timestamp, falling back to the list fetch time.
+Recently added retains local Catalog creation-time ordering. This poster sorting
+delivery does not complete L05 filename search/sorting/filtering in Files.
+
 #### Multi-root resource management (L12)
 
 Settings persist `resourceRoots` as a list of absolute server paths; an empty list
@@ -167,7 +176,7 @@ Provider and parser uncertainty is handled through Review; representative recogn
 | P10 | Select audio tracks, adjust subtitle timing, change playback speed, and use shortcuts | Implemented | Current | Current |
 | P11 | Next-episode navigation and automatic continuation | Later | — | Unassigned |
 | P12 | Hardware transcoding, HDR handling, broader browser support, and advanced concurrency policies beyond the V2 bounded scheduler | Optional | — | Unassigned |
-| P13 | Chapter navigation | Implemented: chapter discovery, source-time mapping and player chapter tracks; real-browser interaction acceptance pending | Current | Current |
+| P13 | Chapter navigation | Implemented and accepted: chapter discovery, source-time mapping, player chapter tracks and real-browser interaction acceptance (2026-10-19) | Current | Current |
 
 #### FFmpeg Full-file Preparation (P05–P07)
 

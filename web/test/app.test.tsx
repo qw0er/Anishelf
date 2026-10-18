@@ -1,3 +1,4 @@
+import { preparationConstraints } from "@anishelf/backend/contracts/defaults";
 import { queryClient } from "../src/shared/api/query-client.js";
 import { animeFixture, reviewFixture } from "./fixtures/anime.js";
 import { trackingProvider } from "./tracking-fixture.js";
@@ -550,7 +551,8 @@ test("first-run setup saves the server directory and shows the automatic scan", 
 				init.body ===
 					JSON.stringify({
 						resourceRoots: ["/media/中文 videos"],
-						transcodeCacheBudgetGiB: 10,
+						transcodeCacheBudgetGiB:
+							preparationConstraints.defaultCacheBudgetGiB,
 					}),
 		),
 	).toBe(true);
@@ -3379,4 +3381,26 @@ test("clearing the path list saves setup mode", async () => {
 		(screen.getByRole("button", { name: "Scan library" }) as HTMLButtonElement)
 			.disabled,
 	).toBe(true);
+});
+
+test("poster sorting defaults to unwatched first and exposes all four choices", async () => {
+	mockAnime(animeFixture());
+	renderApp("/");
+	await screen.findByRole("link", { name: "Frieren" });
+	const select = screen.getByLabelText("Sort by") as HTMLSelectElement;
+	expect(select.value).toBe("unwatched");
+	expect(Array.from(select.options, (option) => option.text)).toEqual([
+		"Unwatched first",
+		"Recently updated",
+		"Title",
+		"Recently added",
+	]);
+	for (const sort of ["updated", "title", "recent", "unwatched"]) {
+		fireEvent.change(select, { target: { value: sort } });
+		await waitFor(() => expect(select.value).toBe(sort));
+		const location = screen.getByTestId("location").textContent ?? "";
+		expect(new URL(location, "http://localhost").searchParams.get("sort")).toBe(
+			sort === "unwatched" ? null : sort,
+		);
+	}
 });

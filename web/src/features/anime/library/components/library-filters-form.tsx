@@ -99,6 +99,8 @@ export function LibraryFiltersForm({
 						value={filters.sort}
 						onChange={(event) => change("sort", event.target.value)}
 					>
+						<option value="unwatched">{t("anime.unwatchedSort")}</option>
+						<option value="updated">{t("anime.updatedSort")}</option>
 						<option value="title">{t("anime.titleSort")}</option>
 						<option value="recent">{t("anime.recentSort")}</option>
 					</select>

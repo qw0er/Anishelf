@@ -384,7 +384,17 @@ test("unified Library HTTP validates filters and serializes merged cards", async
 		expect(response.json().items[0].viewing.progress).toBe(3);
 		expect(response.json().items[0]).toHaveProperty("coverUrl");
 		expect(response.json().items[0]).not.toHaveProperty("remoteCoverUrl");
+		for (const sort of ["updated", "unwatched", "title", "recent"])
+			expect(
+				(
+					await http.inject({
+						url: `/api/anime/library?sort=${sort}`,
+						headers: { host: "127.0.0.1:3000" },
+					})
+				).statusCode,
+			).toBe(200);
 		for (const query of [
+			"sort=bad",
 			"scope=bad",
 			"viewingStatus=bad",
 			"perPage=51",
@@ -503,4 +513,74 @@ test("available-unwatched counts use actual episode numbers rather than availabi
 	expect((await f.app.list()).items[0]?.availableUnwatchedEpisodes).toBe(2);
 	f.snapshot.entries = [];
 	expect((await f.app.list()).items[0]?.availableUnwatchedEpisodes).toBeNull();
+});
+
+test("unwatched sorting uses all available episode mappings before pagination and batches card reads", async () => {
+	const f = projection();
+	const base = f.index.items[0];
+	if (!base) throw new Error("Missing local work");
+	f.index.items = Array.from({ length: 54 }, (_, i) => ({
+		...base,
+		id: `work-${i}`,
+		providerTitle: `Title ${i}`,
+		reference: { ...base.reference, id: String(i + 1) },
+	}));
+	f.snapshot.entries = f.index.items.map((_, i) => item(i + 1));
+	f.cards.mockImplementation(async (ids) =>
+		f.index.items
+			.filter((work) => ids.includes(work.id))
+			.map((work) => ({
+				...work,
+				displayTitle: work.providerTitle,
+				hasCover: false,
+				metadataStale: false,
+				availableEpisodes: 2,
+				availableRegularEpisodes: 2,
+				availableTrackingEpisodes: [
+					1,
+					work.id === "work-53" || work.id === "work-52" ? 7 : 3,
+				],
+			})),
+	);
+	const first = await f.app.list({ perPage: 1 });
+	expect(first.items[0]?.id).toBe("work-52");
+	expect(first.items[0]?.availableUnwatchedEpisodes).toBe(1);
+	expect(first.hasNextPage).toBe(true);
+	expect(f.cards.mock.calls.map(([ids]) => ids.length)).toEqual([50, 4]);
+	expect(
+		(await f.app.list({ sort: "unwatched", perPage: 1, page: 2 })).items[0]?.id,
+	).toBe("work-53");
+	f.snapshot.entries = [];
+	expect((await f.app.list({ perPage: 1 })).items[0]?.id).toBe("work-0");
+});
+
+test("recent addition and work update sorts use distinct timestamps and retain remote-only works", async () => {
+	const f = projection();
+	const base = f.index.items[0];
+	if (!base) throw new Error("Missing local work");
+	f.index.items = [
+		{ ...base, id: "older", createdAt: 10, updatedAt: 300_000 },
+		{
+			...base,
+			id: "newer",
+			reference: { ...base.reference, id: "3" },
+			createdAt: 20,
+			updatedAt: 30,
+		},
+	];
+	expect(
+		(await f.app.list({ sort: "recent" })).items.map((work) => work.id),
+	).toEqual(["newer", "older"]);
+	expect(
+		(await f.app.list({ sort: "updated" })).items.map((work) => work.id),
+	).toEqual(["older", "newer"]);
+	expect(
+		(await f.app.list({ scope: "all", sort: "updated" })).items.map(
+			(work) => work.id,
+		),
+	).toEqual(["older", "anilist:anime:2", "newer"]);
+	expect(
+		(await f.app.list({ scope: "all" })).items.at(-1)
+			?.availableUnwatchedEpisodes ?? null,
+	).toBeNull();
 });
