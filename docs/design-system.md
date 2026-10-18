@@ -159,11 +159,14 @@ Files and Review; do not replace failure feedback with an empty-state message.
 Use deduplicated Toasts for operation results and recoverable playback or subtitle
 failures. Keep ongoing subtitle-preparation feedback visible until completion,
 failure, or selection cancellation. Reuse existing retry actions.
-Automatic anime identification uses one app-level, deduplicated loading Toast,
+Baseline anime identification uses one app-level, deduplicated loading Toast,
 kept visible through matching and admission. Completion or failure updates the
 same Toast with a timed result; page navigation does not restart notifications.
 An idle monitor checks for new background runs without adding page-level text.
-Only observed task states are shown; no synthetic progress percentage is used.
+Successful incremental identification stays silent; failures remain visible through
+the same deduplicated feedback. Files shows persistent filesystem-monitoring state
+and recovery guidance. Only observed task states are shown; no synthetic progress
+percentage is used.
 
 Keep form validation, initial page errors, unavailable resources, scan/stale status,
 setup guidance, and empty states in context. Provide useful next actions without

@@ -27,12 +27,7 @@ export async function createSystemModule(
 	env: Readonly<Record<string, string | undefined>> = process.env,
 	policy: DeepReadonly<ConfigurationPolicy> = configurationPolicy,
 ) {
-	const service = await ConfigurationService.load(env, {
-		library: {
-			defaultScanIntervalMinutes: policy.library.defaultScanIntervalMinutes,
-			maximumScanIntervalMinutes: policy.library.maximumScanIntervalMinutes,
-		},
-	});
+	const service = await ConfigurationService.load(env, policy);
 	const api: SystemApi = {
 		get settings() {
 			return service.settings;
@@ -57,12 +52,7 @@ export async function createSystemModule(
 	return {
 		api,
 		registerHttp: (app: HttpInstance, resources: ResourceSettingsCoordinator) =>
-			registerSystemHttp(
-				app,
-				api,
-				resources,
-				policy.library.maximumScanIntervalMinutes,
-			),
+			registerSystemHttp(app, api, resources),
 	};
 }
 

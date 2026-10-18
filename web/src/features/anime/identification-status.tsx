@@ -17,7 +17,12 @@ export function IdentificationStatus({
 	const scope = useQueryScope();
 	const client = useQueryClient();
 	const status = useQuery({ ...identificationQuery(scope), enabled });
-	const previous = useRef<{ running: boolean; failed: boolean } | null>(null);
+	const previous = useRef<{
+		running: boolean;
+		failed: boolean;
+		revision?: number;
+		incremental?: boolean;
+	} | null>(null);
 	const notificationId = "automatic-identification";
 	useEffect(() => () => toast.close(notificationId), []);
 	useEffect(() => {
@@ -30,11 +35,19 @@ export function IdentificationStatus({
 		const current = status.data;
 		const last = previous.current;
 		previous.current = current;
+		if (last && last.revision !== current.revision) {
+			void client.invalidateQueries({ queryKey: ["catalog"] });
+			void client.invalidateQueries({ queryKey: animeLibraryQueryKey });
+		}
 		if (last?.running === current.running && last?.failed === current.failed)
 			return;
 		if (last?.running && !current.running) {
 			void client.invalidateQueries({ queryKey: ["catalog"] });
 			void client.invalidateQueries({ queryKey: animeLibraryQueryKey });
+		}
+		if (current.incremental && !current.failed) {
+			toast.close(notificationId);
+			return;
 		}
 		if (current.running) {
 			toast.close(notificationId);

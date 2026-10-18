@@ -25,7 +25,6 @@ export interface EffectiveConfiguration<
 	deployment: DeploymentConfig;
 	policy: TPolicy;
 	settings: PersistentSettings & {
-		scanIntervalMinutes: number;
 		defaultTranscodeProfileId: string;
 		preparationMode: PreparationMode;
 	};
@@ -61,7 +60,6 @@ export class ConfigurationService<
 		const ownedPolicy = freeze(structuredClone(policy));
 		const persistent = await PersistentConfiguration.load(
 			deployment.dataDir,
-			ownedPolicy.library.maximumScanIntervalMinutes,
 			deployment.initialResourceRoots ?? deployment.initialResourceRoot,
 		);
 		return new ConfigurationService(
@@ -152,9 +150,6 @@ export class ConfigurationService<
 				preparationMode: this.settings.preparationMode ?? "compatible",
 				defaultTranscodeProfileId:
 					this.settings.defaultTranscodeProfileId ?? defaultTranscodeProfileId,
-				scanIntervalMinutes:
-					this.settings.scanIntervalMinutes ??
-					this.policy.library.defaultScanIntervalMinutes,
 			}),
 		});
 	}

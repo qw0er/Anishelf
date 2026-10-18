@@ -15,8 +15,5 @@ export function settingsResponse(
 		...(settings.defaultTranscodeProfileId === undefined
 			? {}
 			: { defaultTranscodeProfileId: settings.defaultTranscodeProfileId }),
-		...(settings.scanIntervalMinutes === undefined
-			? {}
-			: { scanIntervalMinutes: settings.scanIntervalMinutes }),
 	};
 }

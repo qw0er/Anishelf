@@ -24,6 +24,7 @@ export interface DirectoryEntry extends DirectoryInfo {
 
 export interface FileEntry extends FileInfo {
 	scopeId?: string;
+	sourceVersion?: string;
 	relativePath: string;
 }
 
@@ -34,7 +35,18 @@ export interface DirectoryListing {
 	children: readonly ResourceInfo[];
 }
 
+export interface LibraryChange {
+	revision: number;
+	/** null denotes a baseline publication or root reset. */
+	directoryIds: readonly string[] | null;
+}
+export interface MonitorState {
+	status: "starting" | "watching" | "degraded" | "disabled";
+	error: string | null;
+}
+
 export interface LibraryStatus {
+	monitor?: MonitorState;
 	ready: boolean;
 	revision: number;
 	scan: ScanState | null;

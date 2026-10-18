@@ -81,7 +81,7 @@ test("external profiles merge into an immutable startup snapshot and choices sur
 		selectedProfileId: "custom:small",
 		selectionAvailable: false,
 	});
-	await reload.update({ ...reload.settings, scanIntervalMinutes: 0 });
+	await reload.update({ ...reload.settings });
 	expect(reload.settings.defaultTranscodeProfileId).toBe("custom:small");
 	await reload.selectTranscodeProfile(null);
 	expect(transcodeProfileCatalog(reload)).toMatchObject({
@@ -164,7 +164,7 @@ test("unreadable external file and failed selection writes fail without changing
 test("catalog and selection APIs expose display metadata, validate IDs, and preserve existing settings", async () => {
 	await writeProfiles([customProfile()]);
 	const service = await load();
-	await service.update({ resourceRoots: [], scanIntervalMinutes: 17 });
+	await service.update({ resourceRoots: [] });
 	const app = createHttpApp({
 		configuration: service,
 		config: service.deployment,
@@ -196,7 +196,6 @@ test("catalog and selection APIs expose display metadata, validate IDs, and pres
 		expect(select.json().selectedProfileId).toBe("custom:small");
 		expect(service.settings).toEqual({
 			resourceRoots: [],
-			scanIntervalMinutes: 17,
 			defaultTranscodeProfileId: "custom:small",
 		});
 		for (const payload of [

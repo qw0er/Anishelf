@@ -36,9 +36,7 @@ export function validateNumericPolicy(
 			key === "nearEndRatio" || key === "completionRatio"
 				? Number.isFinite(value) && value > 0 && value <= 1
 				: Number.isSafeInteger(value) &&
-					(key === "defaultScanIntervalMinutes" || key === "crf"
-						? value >= 0
-						: value > 0);
+					(key === "crf" ? value >= 0 : value > 0);
 		requirePolicy(
 			valid && (!key.endsWith("Ms") || value <= 2147483647),
 			`${section}.${key}`,

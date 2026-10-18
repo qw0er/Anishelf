@@ -44,15 +44,14 @@ const environment = () => ({ ANISHELF_DATA_DIR: dataDir });
 test("missing settings use current defaults without generating a policy or settings file", async () => {
 	const service = await ConfigurationService.load(environment());
 	expect(service.settings).toEqual({ resourceRoots: [] });
-	expect(service.snapshot.settings.scanIntervalMinutes).toBe(60);
+	expect(service.snapshot.settings.preparationMode).toBe("compatible");
 	await expect(readFile(join(dataDir, "settings.json"))).rejects.toMatchObject({
 		code: "ENOENT",
 	});
 	expect(Object.isFrozen(service.snapshot.policy.subtitles.formats)).toBe(true);
 	expect(() => {
-		(
-			service.snapshot.settings as { scanIntervalMinutes: number }
-		).scanIntervalMinutes = 9;
+		(service.snapshot.settings as { preparationMode: string }).preparationMode =
+			"fast";
 	}).toThrow(TypeError);
 });
 
@@ -68,11 +67,10 @@ test("initial resource root persists once and later UI changes survive reload", 
 	});
 	if (process.platform !== "win32")
 		expect((await stat(file)).mode & 0o777).toBe(0o600);
-	await service.update({ resourceRoots: [], scanIntervalMinutes: 0 });
+	await service.update({ resourceRoots: [] });
 	const original = await readFile(file, "utf8");
 	expect((await ConfigurationService.load(env)).settings).toEqual({
 		resourceRoots: [],
-		scanIntervalMinutes: 0,
 	});
 	expect(await readFile(file, "utf8")).toBe(original);
 });
@@ -168,19 +166,19 @@ test("old settings adopt updated defaults; explicit choices persist and snapshot
 		JSON.stringify({ resourceRoots: [root] }),
 	);
 	const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
-	policy.library.defaultScanIntervalMinutes = 7;
+	policy.library.changeDebounceMs = 700;
 	const service = await ConfigurationService.load(environment(), policy);
 	const previous = service.snapshot;
-	policy.library.defaultScanIntervalMinutes = 99;
-	expect(service.snapshot.settings.scanIntervalMinutes).toBe(7);
-	await service.update({ resourceRoots: [root], scanIntervalMinutes: 0 });
-	expect(previous.settings.scanIntervalMinutes).toBe(7);
-	expect(service.snapshot.settings.scanIntervalMinutes).toBe(0);
+	policy.library.changeDebounceMs = 9900;
+	expect(service.snapshot.policy.library.changeDebounceMs).toBe(700);
+	await service.update({ resourceRoots: [root] });
+	expect(previous.policy.library.changeDebounceMs).toBe(700);
+	expect(service.snapshot.settings).not.toHaveProperty("scanIntervalMinutes");
 	expect(
 		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),
-	).toEqual({ resourceRoots: [root], scanIntervalMinutes: 0 });
+	).toEqual({ resourceRoots: [root] });
 	const reload = await ConfigurationService.load(environment(), policy);
-	expect(reload.snapshot.settings.scanIntervalMinutes).toBe(0);
+	expect(reload.snapshot.settings).not.toHaveProperty("scanIntervalMinutes");
 	await reload.update({ resourceRoots: [root] });
 	expect(
 		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),
@@ -190,7 +188,7 @@ test("invalid settings and failed writes preserve the published snapshot", async
 	const service = await ConfigurationService.load(environment());
 	const before = service.snapshot;
 	await expect(
-		service.update({ resourceRoots: [], scanIntervalMinutes: 10081 }),
+		service.update({ resourceRoots: ["relative"] }),
 	).rejects.toMatchObject({ code: "CONFIG_INVALID" });
 	expect(service.snapshot).toBe(before);
 	await mkdir(join(dataDir, "settings.json"));
@@ -199,13 +197,13 @@ test("invalid settings and failed writes preserve the published snapshot", async
 	});
 	expect(service.snapshot).toBe(before);
 	await rm(join(dataDir, "settings.json"), { recursive: true });
-	await service.update({ resourceRoots: [], scanIntervalMinutes: 0 });
-	expect(service.snapshot.settings.scanIntervalMinutes).toBe(0);
+	await service.update({ resourceRoots: [] });
+	expect(service.snapshot.settings).not.toHaveProperty("scanIntervalMinutes");
 });
 test.each([
 	{ resourceRoots: [], unexpected: 1 },
-	{ resourceRoots: [], scanIntervalMinutes: -1 },
-	{ resourceRoots: [], scanIntervalMinutes: 1.5 },
+	{ resourceRoots: ["relative"] },
+	{ resourceRoots: [null] },
 ])(
 	"rejects malformed persistent settings with key diagnostics: %j",
 	async (settings) => {
@@ -230,8 +228,6 @@ test("rejects unsupported capabilities, invalid limits and timing values", () =>
 });
 test("removed client configuration endpoint returns 404 and settings enforce injected constraints", async () => {
 	const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
-	policy.library.maximumScanIntervalMinutes = 10;
-	policy.library.defaultScanIntervalMinutes = 3;
 	policy.http.httpBodyMaximumBytes = 128;
 	const configuration = await ConfigurationService.load(environment(), policy);
 	const library = createLibraryModule({

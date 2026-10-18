@@ -65,6 +65,7 @@ export function scanStateDto(state: ScanState): ScanStateDto {
 
 export function libraryResponse(status: LibraryStatus): LibraryResponse {
 	return {
+		...(status.monitor ? { monitor: { ...status.monitor } } : {}),
 		ready: status.ready,
 		...(status.roots ? { roots: status.roots } : {}),
 		revision: status.revision,

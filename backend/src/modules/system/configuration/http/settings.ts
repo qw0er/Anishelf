@@ -6,10 +6,9 @@ import { settingsResponse } from "./settings-presenter.js";
 export function registerSettingsRoutes(
 	app: HttpInstance,
 	settings: SettingsApplication,
-	maximumScanIntervalMinutes: number,
 ): void {
 	const { SettingsResponseSchema, UpdateSettingsRequestSchema } =
-		createSettingsSchemas(maximumScanIntervalMinutes);
+		createSettingsSchemas();
 	app.get(
 		"/api/settings",
 		{ schema: { response: { 200: SettingsResponseSchema } } },

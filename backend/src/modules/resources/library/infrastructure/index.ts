@@ -245,6 +245,109 @@ export class LibraryIndex {
 		return { files, nextOffset: null };
 	}
 
+	findPath(path: string, scopeId?: string): LibraryEntry | undefined {
+		const root = this.current.entriesById.get("root");
+		if (path === "" && root && root.scopeId === scopeId) return { ...root };
+		const file = this.current.entriesById.get(
+			createResourceId("file", path, scopeId),
+		);
+		const entry =
+			file ??
+			this.current.entriesById.get(
+				createResourceId("directory", path, scopeId),
+			);
+		return entry ? { ...entry } : undefined;
+	}
+
+	/** Copy maps, but inspect and sort only affected entries; publish the batch atomically. */
+	apply(
+		upserts: readonly LibraryEntry[],
+		removals: readonly string[],
+	): string[] {
+		const entries = new Map(this.current.entriesById);
+		const children = new Map<string, string[]>(
+			[...this.current.childIdsByParent].map(([id, ids]) => [
+				id,
+				ids as string[],
+			]),
+		);
+		const affected = new Set<string>();
+		let changed = false;
+		const touch = (id: string) => {
+			if (!affected.has(id)) children.set(id, [...(children.get(id) ?? [])]);
+			affected.add(id);
+		};
+		const remove = (id: string) => {
+			const entry = entries.get(id);
+			if (!entry || id === "root") return;
+			if (entry.kind === "directory") {
+				for (const child of [...(children.get(id) ?? [])]) remove(child);
+				children.delete(id);
+				affected.add(id);
+			}
+			if (entry.parentId) {
+				touch(entry.parentId);
+				children.set(
+					entry.parentId,
+					(children.get(entry.parentId) ?? []).filter((child) => child !== id),
+				);
+			}
+			entries.delete(id);
+			changed = true;
+		};
+		for (const id of removals) remove(id);
+		for (const entry of upserts) {
+			const previous = entries.get(entry.id);
+			if (JSON.stringify(previous) === JSON.stringify(entry)) continue;
+			if (
+				entry.id !== "root" &&
+				entry.id !==
+					createResourceId(entry.kind, entry.relativePath, entry.scopeId)
+			)
+				invalidSnapshot();
+			const parent = entry.parentId ? entries.get(entry.parentId) : undefined;
+			if (
+				entry.id !== "root" &&
+				(parent?.kind !== "directory" ||
+					(entry.relativePath === ""
+						? parent.id !== "root" || parent.scopeId !== undefined
+						: parent.scopeId !== entry.scopeId ||
+							(dirname(entry.relativePath) === "."
+								? ""
+								: dirname(entry.relativePath)) !== parent.relativePath))
+			)
+				invalidSnapshot();
+			entries.set(entry.id, { ...entry });
+			if (entry.kind === "directory" && !children.has(entry.id))
+				children.set(entry.id, []);
+			if (entry.parentId) {
+				touch(entry.parentId);
+				if (!previous) children.get(entry.parentId)?.push(entry.id);
+			}
+			changed = true;
+		}
+		if (!changed) return [];
+		const collator = nameCollator(this.policy);
+		for (const id of affected)
+			children
+				.get(id)
+				?.sort((a, b) =>
+					compareEntries(
+						entries.get(a) as LibraryEntry,
+						entries.get(b) as LibraryEntry,
+						this.policy,
+						collator,
+					),
+				);
+		this.current = {
+			...this.current,
+			revision: this.current.revision + 1,
+			entriesById: entries,
+			childIdsByParent: children,
+		};
+		return [...affected];
+	}
+
 	getEntry(id: ResourceId): LibraryEntry {
 		const entry = this.current.entriesById.get(id);
 		if (!entry)

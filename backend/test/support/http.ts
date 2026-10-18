@@ -83,11 +83,7 @@ export function createHttpApp(options: {
 						});
 					ownedSubtitles = subtitles;
 					registerSubtitleRoutes(app, subtitles);
-					registerSettingsRoutes(
-						app,
-						fixtureSettings(library),
-						policy.library.maximumScanIntervalMinutes,
-					);
+					registerSettingsRoutes(app, fixtureSettings(library));
 				}
 
 				if (options.configuration)

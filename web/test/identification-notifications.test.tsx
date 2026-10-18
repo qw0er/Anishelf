@@ -75,3 +75,50 @@ test("failed recognition emits one error notification and cleans it up on unmoun
 	view.unmount();
 	expect(close).toHaveBeenCalledWith("automatic-identification");
 });
+
+test("publication revisions refresh Catalog even when recognition finishes between polls", async () => {
+	vi.spyOn(toast, "add").mockReturnValue("automatic-identification");
+	vi.spyOn(toast, "close").mockImplementation(() => {});
+	const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+	queryClient.setQueryData(key, { running: false, failed: false, revision: 1 });
+	render(<IdentificationStatus />);
+	await act(async () => {
+		queryClient.setQueryData(key, {
+			running: false,
+			failed: false,
+			revision: 2,
+		});
+	});
+	await waitFor(() =>
+		expect(invalidate).toHaveBeenCalledWith({ queryKey: ["catalog"] }),
+	);
+	expect(invalidate).toHaveBeenCalledWith({ queryKey: ["anime-library"] });
+});
+
+test("successful incremental recognition stays quiet while revisions refresh views", async () => {
+	const add = vi
+		.spyOn(toast, "add")
+		.mockReturnValue("automatic-identification");
+	vi.spyOn(toast, "close").mockImplementation(() => {});
+	const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+	queryClient.setQueryData(key, {
+		running: true,
+		failed: false,
+		revision: 1,
+		incremental: true,
+	});
+	render(<IdentificationStatus />);
+	expect(add).not.toHaveBeenCalled();
+	await act(async () => {
+		queryClient.setQueryData(key, {
+			running: false,
+			failed: false,
+			revision: 2,
+			incremental: true,
+		});
+	});
+	await waitFor(() =>
+		expect(invalidate).toHaveBeenCalledWith({ queryKey: ["catalog"] }),
+	);
+	expect(add).not.toHaveBeenCalled();
+});

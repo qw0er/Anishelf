@@ -150,9 +150,11 @@ test("discovers exact stems, dot suffixes and all formats with deterministic ord
 	const directories = library.getDirectory(
 		library.getDirectory("root").children[0]?.id ?? "",
 	);
-	expect(directories.children.map((entry) => entry.name)).toEqual([
-		`${video}.mkv`,
-	]);
+	expect(
+		directories.children
+			.filter((entry) => entry.kind === "file")
+			.map((entry) => entry.name),
+	).toEqual([`${video}.mkv`]);
 });
 
 test("reflects additions, modifications and removals without rescanning or changing originals", async () => {

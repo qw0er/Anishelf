@@ -1,27 +1,13 @@
-import { libraryConstraints } from "../../../contracts/defaults.js";
 import {
 	type DeepReadonly,
 	freeze,
-	validateNumericPolicy,
+	requirePolicy,
 } from "../../../shared/policy.js";
-export interface ConfigurationPolicy {
-	library: {
-		defaultScanIntervalMinutes: number;
-		maximumScanIntervalMinutes: number;
-	};
-}
-export const configurationPolicy = freeze<ConfigurationPolicy>({
-	library: {
-		defaultScanIntervalMinutes: libraryConstraints.defaultScanIntervalMinutes,
-		maximumScanIntervalMinutes: libraryConstraints.maximumScanIntervalMinutes,
-	},
-});
+/** Configuration retains a frozen caller-owned policy snapshot without owning resource policy. */
+export type ConfigurationPolicy = object;
+export const configurationPolicy = freeze({});
 export function validateConfigurationPolicy(
 	policy: DeepReadonly<ConfigurationPolicy>,
 ): void {
-	validateNumericPolicy(
-		"configuration",
-		policy.library,
-		configurationPolicy.library,
-	);
+	requirePolicy(typeof policy === "object" && policy !== null, "configuration");
 }

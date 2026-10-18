@@ -1,6 +1,6 @@
 import { type ActionFunctionArgs, redirect } from "react-router";
 import { preparationPolicy } from "../../features/media/public.js";
-import { libraryPolicy, saveSettings } from "../../features/settings/public.js";
+import { saveSettings } from "../../features/settings/public.js";
 import { isRequestCancelled } from "../../shared/api/client.js";
 import { executeMutation, queryClient } from "../../shared/api/query-client.js";
 import { toast } from "../../shared/components/ui/toast.js";
@@ -34,20 +34,6 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 			Number(transcodeCacheBudgetGiB) > preparationPolicy.maximumCacheBudgetGiB)
 	)
 		return { error: "settingsPage.invalidCacheBudget" };
-	const interval = form.get("scanIntervalMinutes");
-	const scanIntervalMinutes = interval === null ? undefined : Number(interval);
-	if (
-		interval !== null &&
-		(typeof interval !== "string" ||
-			interval.trim() === "" ||
-			!Number.isSafeInteger(scanIntervalMinutes) ||
-			Number(scanIntervalMinutes) < 0 ||
-			Number(scanIntervalMinutes) > libraryPolicy.maximumScanIntervalMinutes)
-	)
-		return {
-			error: "settingsPage.invalidInterval",
-			maximumMinutes: libraryPolicy.maximumScanIntervalMinutes,
-		};
 	try {
 		await executeMutation(() =>
 			saveSettings(
@@ -56,7 +42,6 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 					...(transcodeCacheBudgetGiB === undefined
 						? {}
 						: { transcodeCacheBudgetGiB }),
-					...(scanIntervalMinutes === undefined ? {} : { scanIntervalMinutes }),
 				},
 				{ signal: request.signal },
 			),

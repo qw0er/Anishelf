@@ -48,9 +48,9 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 			return detail;
 		};
 		const automatic = new AutomaticAdmission(this.context, this.associations);
-		this.publish = async (results, root, signal) => {
+		this.publish = async (results, root, signal, fileIds) => {
 			signal?.throwIfAborted();
-			review.publish(results, root);
+			review.publish(results, root, fileIds);
 			await automatic.admit(results, root, signal);
 		};
 		this.source = review.source.bind(review);

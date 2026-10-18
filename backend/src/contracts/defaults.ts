@@ -34,13 +34,6 @@ export const logLevels = Object.freeze([
 ] as const);
 
 /** Browser-safe business constraints shared by the server and Web build. */
-export const libraryConstraints = Object.freeze<{
-	defaultScanIntervalMinutes: number;
-	maximumScanIntervalMinutes: number;
-}>({
-	defaultScanIntervalMinutes: 60,
-	maximumScanIntervalMinutes: 10080,
-});
 export const subtitleConstraints = Object.freeze({
 	maximumBytes: 10 * 1024 * 1024,
 });

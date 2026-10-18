@@ -10,18 +10,30 @@ export class ReviewApplication {
 	publish(
 		results: readonly IdentificationResult[],
 		scopeIds: readonly string[],
+		fileIds?: readonly string[],
 	): void {
 		this.context.open();
 
 		if (results.some((result) => !scopeIds.includes(result.source.scopeId)))
 			invalid("A publication must belong to one resource root.");
+		if (fileIds !== undefined) {
+			const scope = new Set(fileIds);
+			if (results.some((result) => !scope.has(result.source.fileId)))
+				invalid("Incremental results must belong to the declared file scope.");
+		}
 		const items = results.map((result) => ({
 			source: this.context.options.store.registerSource(result.source),
 			result: structuredClone(result),
 		}));
-		this.context.options.store.publish(scopeIds, items);
+		this.context.options.store.publish(scopeIds, items, fileIds);
 		this.context.options.logger.info(
-			{ event: "catalog.publication_saved", sources: items.length, scopeIds },
+			{
+				event: "catalog.publication_saved",
+				sources: items.length,
+				scopeIds,
+				scope: fileIds === undefined ? "full" : "incremental",
+				affectedFiles: fileIds?.length,
+			},
 			"Catalog proposals synchronized; user decisions preserved.",
 		);
 	}

@@ -13,7 +13,7 @@ import {
 import { Input } from "../../../shared/components/ui/input.js";
 import { Spinner } from "../../../shared/components/ui/spinner.js";
 import { useDelayedPending } from "../../../shared/hooks/use-delayed-pending.js";
-import { libraryPolicy, preparationPolicy } from "../policy.js";
+import { preparationPolicy } from "../policy.js";
 import { ResourcePathList } from "./resource-path-list.js";
 
 export default function ResourceSettings({
@@ -27,7 +27,6 @@ export default function ResourceSettings({
 	const { t } = useTranslation();
 	const fetcher = useFetcher<{
 		error: string | null;
-		maximumMinutes?: number;
 	}>();
 	const saving = fetcher.state !== "idle";
 	const showSaving = useDelayedPending(saving);
@@ -50,34 +49,6 @@ export default function ResourceSettings({
 							paths={settings.resourceRoots}
 							disabled={disabled || saving}
 						/>
-						<div className="flex min-w-0 flex-col gap-2">
-							<label className="text-sm font-medium" htmlFor="scan-interval">
-								{t("settingsPage.scanInterval")}
-							</label>
-							<Input
-								id="scan-interval"
-								name="scanIntervalMinutes"
-								type="number"
-								min={0}
-								max={libraryPolicy.maximumScanIntervalMinutes}
-								step={1}
-								required
-								defaultValue={
-									settings.scanIntervalMinutes ??
-									libraryPolicy.defaultScanIntervalMinutes
-								}
-								disabled={disabled || saving}
-								aria-describedby="scan-interval-help"
-							/>
-							<p
-								id="scan-interval-help"
-								className="text-sm text-muted-foreground"
-							>
-								{t("settingsPage.scanIntervalHelp", {
-									defaultMinutes: libraryPolicy.defaultScanIntervalMinutes,
-								})}
-							</p>
-						</div>
 						<div className="flex min-w-0 flex-col gap-2">
 							<label
 								className="text-sm font-medium"
@@ -129,9 +100,7 @@ export default function ResourceSettings({
 					)}
 					{fetcher.state === "idle" && fetcher.data?.error && (
 						<p className="text-base text-destructive" role="alert">
-							{t(fetcher.data.error, {
-								maximumMinutes: libraryPolicy.maximumScanIntervalMinutes,
-							})}
+							{t(fetcher.data.error)}
 						</p>
 					)}
 				</CardContent>

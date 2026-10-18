@@ -1,7 +1,4 @@
-import {
-	defaultLanguage,
-	libraryConstraints,
-} from "../../../contracts/defaults.js";
+import { defaultLanguage } from "../../../contracts/defaults.js";
 import { DomainError } from "../../../shared/errors.js";
 import {
 	type DeepReadonly,
@@ -11,7 +8,11 @@ import {
 } from "../../../shared/policy.js";
 
 const defaults = {
-	...libraryConstraints,
+	changeDebounceMs: 500,
+	writeStabilityMs: 2000,
+	monitorRetryMs: 1000,
+	monitorMaximumRetryMs: 30000,
+	maximumPendingChanges: 10000,
 	concurrency: 8,
 	warningMessageLimit: 5,
 	sortLocale: defaultLanguage,
@@ -26,9 +27,8 @@ export function validateLibraryPolicy(
 ): void {
 	validateNumericPolicy("library", policy, defaults);
 	requirePolicy(
-		policy.defaultScanIntervalMinutes <= policy.maximumScanIntervalMinutes &&
-			policy.maximumScanIntervalMinutes * 60000 <= 2147483647,
-		"library.scanInterval",
+		policy.monitorRetryMs <= policy.monitorMaximumRetryMs,
+		"library.monitorRetryMs",
 	);
 	requirePolicy(
 		typeof policy.sortNumeric === "boolean" &&

@@ -365,7 +365,9 @@ as `'["/media/anime","/media/movies"]'`. The original
 `ANISHELF_INITIAL_RESOURCE_ROOT=/media` remains a single-path convenience; set only
 one initializer. All initial directories must be readable and separate from the
 data directory. Creation never overwrites an existing settings file, including
-under concurrent initialization. Without an initializer, setup remains available.
+under concurrent initialization. Without an initializer, setup remains available. Native filesystem monitoring replaces
+scheduled scans; obsolete `scanIntervalMinutes` settings are removed on load.
+See [Filesystem monitoring](filesystem-monitoring.md) for incremental updates and recovery.
 
 Scans and resource-setting writes exclude each other. Configuration changes revoke
 active access references, remove inactive scopes and remount unchanged entries,

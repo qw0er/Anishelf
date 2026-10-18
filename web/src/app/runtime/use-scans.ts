@@ -26,6 +26,20 @@ export function useScans(library: LibraryResponse | null) {
 			}),
 	});
 	const scanning = library?.scan?.status === "running";
+	const lastRevision = useRef(library?.revision);
+	useEffect(() => {
+		if (library && lastRevision.current !== library.revision) {
+			lastRevision.current = library.revision;
+			for (const queryKey of [
+				["directory"],
+				["history"],
+				["catalog"],
+				animeLibraryQueryKey,
+				["identification"],
+			])
+				void client.invalidateQueries({ queryKey });
+		}
+	}, [library, client]);
 	const lastScan = useRef(library?.scan);
 	useEffect(() => {
 		const scan = library?.scan;

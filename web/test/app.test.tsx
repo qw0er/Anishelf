@@ -549,7 +549,6 @@ test("first-run setup saves the server directory and shows the automatic scan", 
 					JSON.stringify({
 						resourceRoots: ["/media/中文 videos"],
 						transcodeCacheBudgetGiB: 10,
-						scanIntervalMinutes: 60,
 					}),
 		),
 	).toBe(true);
@@ -750,7 +749,7 @@ test("unknown URLs provide a root link", async () => {
 	expect(screen.getByTestId("location").textContent).toBe("/");
 });
 
-test("starts scanning, polls status, refreshes the listing on publication, and stops polling", async () => {
+test("starts scanning, refreshes publications, and keeps lightweight status polling", async () => {
 	vi.useFakeTimers();
 	library = { ...library, revision: 0, scan: null };
 	const root = directories.get("root");
@@ -818,7 +817,7 @@ test("starts scanning, polls status, refreshes the listing on publication, and s
 	await act(async () => {
 		await vi.advanceTimersByTimeAsync(5000);
 	});
-	expect(fetcher).toHaveBeenCalledTimes(calls);
+	expect(fetcher.mock.calls.length).toBeGreaterThan(calls);
 });
 
 test("scan completion notifies once across StrictMode and repeated refreshes", async () => {
@@ -1398,14 +1397,13 @@ test("failed final saves do not show session messages or block navigation", asyn
 	expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();
 });
 
-test("settings shows the default scan interval and saves the user's disabled schedule", async () => {
+test("settings saves the resource root without a scan interval", async () => {
 	renderApp("/settings");
-	const interval = await screen.findByLabelText(
-		"Automatic scan interval (minutes)",
-	);
-	expect((interval as HTMLInputElement).value).toBe("60");
-	fireEvent.change(interval, { target: { value: "0" } });
-	fireEvent.submit(interval.closest("form") as HTMLFormElement);
+	const path = await screen.findByLabelText("New resource directory path");
+	expect(
+		screen.queryByLabelText("Automatic scan interval (minutes)"),
+	).toBeNull();
+	fireEvent.submit(path.closest("form") as HTMLFormElement);
 	await waitFor(() =>
 		expect(screen.getByTestId("location").textContent).toBe(
 			"/directories/root",
@@ -1413,24 +1411,12 @@ test("settings shows the default scan interval and saves the user's disabled sch
 	);
 	expect(
 		fetcher.mock.calls.some(
-			([path, init]) =>
-				path === "/api/settings" &&
+			([url, init]) =>
+				url === "/api/settings" &&
 				init?.method === "PUT" &&
-				JSON.parse(String(init.body)).scanIntervalMinutes === 0,
+				!Object.hasOwn(JSON.parse(String(init.body)), "scanIntervalMinutes"),
 		),
 	).toBe(true);
-	fireEvent.click(
-		within(
-			screen.getByRole("navigation", { name: "Primary navigation" }),
-		).getByRole("link", { name: "Settings" }),
-	);
-	expect(
-		(
-			(await screen.findByLabelText(
-				"Automatic scan interval (minutes)",
-			)) as HTMLInputElement
-		).value,
-	).toBe("0");
 });
 
 test("history displays saved progress and opens the player with its directory context", async () => {
@@ -1486,23 +1472,12 @@ test.each(["checked", "unknown"])(
 	},
 );
 
-test("settings use shared constraints without requesting client configuration", async () => {
+test("settings use shared cache constraints without requesting client configuration", async () => {
 	renderApp("/settings");
-	const interval = await screen.findByLabelText<HTMLInputElement>(
-		"Automatic scan interval (minutes)",
+	const budget = await screen.findByLabelText<HTMLInputElement>(
+		"Transcode cache budget (GiB)",
 	);
-	expect(interval.value).toBe("60");
-	expect(interval.max).toBe("10080");
-	fireEvent.change(interval, { target: { value: "10081" } });
-	fireEvent.submit(interval.closest("form") as HTMLFormElement);
-	expect(
-		await screen.findByText("Enter a whole number from 0 to 10080 minutes."),
-	).toBeTruthy();
-	expect(
-		fetcher.mock.calls.some(
-			([url, init]) => url === "/api/settings" && init?.method === "PUT",
-		),
-	).toBe(false);
+	expect(budget.min).toBe("1");
 	expect(
 		fetcher.mock.calls.some(([url]) => String(url).includes("client-config")),
 	).toBe(false);

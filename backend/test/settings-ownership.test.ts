@@ -28,7 +28,6 @@ async function fixture() {
 		ANISHELF_DATA_DIR: join(directory, "data"),
 		ANISHELF_INITIAL_RESOURCE_ROOT: root,
 	});
-	await system.api.patchSettings({ scanIntervalMinutes: 0 });
 	const resources = await createResourcesModule({ system: system.api, logger });
 	cleanup.push(() => resources.close());
 	await resources.api.cancelScan();
@@ -42,13 +41,7 @@ test("System settings HTTP updates media settings while Resources reserves its s
 		logger,
 		policy: builtinPolicy,
 		registrations: [
-			(app) =>
-				registerSystemHttp(
-					app,
-					system.api,
-					resources.api,
-					builtinPolicy.library.maximumScanIntervalMinutes,
-				),
+			(app) => registerSystemHttp(app, system.api, resources.api),
 		],
 		closeDependencies: async () => {},
 	});

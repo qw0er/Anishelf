@@ -7,12 +7,7 @@ export function registerSystemHttp(
 	app: HttpInstance,
 	api: SystemApi,
 	resources: ResourceSettingsCoordinator,
-	maximumScanIntervalMinutes: number,
 ): void {
 	registerTranscodeProfileRoutes(app, api);
-	registerSettingsRoutes(
-		app,
-		new SettingsApplication(api, resources, app.log),
-		maximumScanIntervalMinutes,
-	);
+	registerSettingsRoutes(app, new SettingsApplication(api, resources, app.log));
 }
