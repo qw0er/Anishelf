@@ -1,7 +1,7 @@
 import { Type } from "typebox";
 import {
 	TrackingEpisodeCommandSchema,
-	TrackingEpisodeTargetSchema,
+	TrackingEpisodeResolutionSchema,
 	TrackingOperationCommandSchema,
 	TrackingOperationSchema,
 	TrackingOperationsSchema,
@@ -28,12 +28,15 @@ export function registerTrackingUpdateRoutes(
 						{ additionalProperties: false },
 					),
 					response: {
-						200: Type.Union([Type.Null(), TrackingEpisodeTargetSchema]),
+						200: TrackingEpisodeResolutionSchema,
 					},
 				},
 			},
 			async (request) =>
-				viewing.target(request.query.fileId, request.query.sourceVersion),
+				viewing.resolveTarget(
+					request.query.fileId,
+					request.query.sourceVersion,
+				),
 		);
 		app.post(
 			"/api/tracking/episode-commands",
@@ -65,14 +68,13 @@ export function registerTrackingUpdateRoutes(
 		{
 			schema: {
 				params: Type.Object({
-					mediaId: Type.String({ pattern: "^[1-9][0-9]{0,9}$" }),
+					mediaId: Type.String({ minLength: 1, maxLength: 1024 }),
 				}),
 				body: TrackingUpdateSchema,
 				response: { 200: TrackingOperationSchema },
 			},
 		},
-		async (request) =>
-			updates.update(Number(request.params.mediaId), request.body),
+		async (request) => updates.update(request.params.mediaId, request.body),
 	);
 	app.post(
 		"/api/tracking/operations/:id/retry",

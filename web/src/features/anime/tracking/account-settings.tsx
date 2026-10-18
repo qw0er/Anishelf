@@ -20,10 +20,10 @@ import { animeLibraryQueryKey } from "../shared/query-keys.js";
 import { accountQuery } from "./queries.js";
 
 const accountKey = accountQuery().queryKey;
-export function AniListAccountSettings() {
+export function TrackingAccountSettings() {
 	const { t } = useTranslation();
 	const client = useQueryClient();
-	const [token, setToken] = useState("");
+	const [credential, setCredential] = useState("");
 	const [preview, setPreview] = useState<TrackingPreviewResponse | null>(null);
 	const account = useQuery(accountQuery());
 	const command = useMutation({
@@ -31,14 +31,14 @@ export function AniListAccountSettings() {
 			operation: "preview" | "confirm" | "disconnect" | "check",
 		) => {
 			if (operation === "preview") {
-				const input = token.trim();
-				setToken("");
+				const input = credential.trim();
+				setCredential("");
 				setPreview(null);
 				const result = await request<TrackingPreviewResponse>(
 					"/api/tracking/account/preview",
 					"POST",
 					{},
-					{ token: input },
+					{ credential: input },
 				);
 				setPreview(result);
 				return;
@@ -80,7 +80,9 @@ export function AniListAccountSettings() {
 	return (
 		<Card className="settings-section lg:grid">
 			<CardHeader>
-				<CardTitle>{t("trackingAccount.title")}</CardTitle>
+				<CardTitle>
+					{current?.provider.name ?? t("trackingAccount.title")}
+				</CardTitle>
 				<CardDescription>{t("trackingAccount.description")}</CardDescription>
 			</CardHeader>
 			<CardContent className="min-w-0 space-y-4">
@@ -102,24 +104,24 @@ export function AniListAccountSettings() {
 							{t("trackingAccount.instructions")}
 						</p>
 						<form
-							id="anilist-account-token-form"
+							id="tracking-credential-form"
 							className="space-y-3"
 							onSubmit={(event) => {
 								event.preventDefault();
 								command.mutate("preview");
 							}}
 						>
-							<label htmlFor="anilist-token" className="block space-y-2">
-								<span>{t("trackingAccount.token")}</span>
+							<label htmlFor="tracking-credential" className="block space-y-2">
+								<span>{current.provider.authorization.label}</span>
 								<Input
-									id="anilist-token"
-									name="anilist-token"
+									id="tracking-credential"
+									name="tracking-credential"
 									type="password"
 									autoComplete="off"
 									maxLength={8192}
-									value={token}
+									value={credential}
 									onChange={(event) => {
-										setToken(event.target.value);
+										setCredential(event.target.value);
 										setPreview(null);
 									}}
 									disabled={busy}
@@ -150,18 +152,20 @@ export function AniListAccountSettings() {
 				>
 					{current && (
 						<>
-							<a
-								href={current.authorizationUrl}
-								target="_blank"
-								rel="noreferrer"
-								className={buttonStyles("outline")}
-							>
-								{t("trackingAccount.authorize")}
-							</a>
+							{current.provider.authorization.url && (
+								<a
+									href={current.provider.authorization.url}
+									target="_blank"
+									rel="noreferrer"
+									className={buttonStyles("outline")}
+								>
+									{t("trackingAccount.authorize")}
+								</a>
+							)}
 							<Button
 								type="submit"
-								form="anilist-account-token-form"
-								disabled={busy || !token.trim()}
+								form="tracking-credential-form"
+								disabled={busy || !credential.trim()}
 							>
 								{t("trackingAccount.preview")}
 							</Button>

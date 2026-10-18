@@ -1,1 +1,1 @@
-export { abortable } from "../../anilist/public.js";
+export { abortable } from "../../../../shared/abortable.js";

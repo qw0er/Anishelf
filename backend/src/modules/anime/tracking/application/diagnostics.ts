@@ -19,7 +19,7 @@ export class TrackingDiagnostics {
 				operation,
 				generation: this.connection.status().generation,
 			},
-			"AniList account operation started.",
+			"Tracking account operation started.",
 		);
 		try {
 			const result = await action();
@@ -31,7 +31,7 @@ export class TrackingDiagnostics {
 					generation: this.connection.status().generation,
 					durationMs: Date.now() - startedAt,
 				},
-				"AniList account operation completed.",
+				"Tracking account operation completed.",
 			);
 			return result;
 		} catch (error) {
@@ -48,7 +48,7 @@ export class TrackingDiagnostics {
 						...context,
 						reason: "shutdown",
 					},
-					"AniList account operation cancelled.",
+					"Tracking account operation cancelled.",
 				);
 			else if (
 				error instanceof DomainError &&
@@ -56,12 +56,12 @@ export class TrackingDiagnostics {
 			)
 				this.logger?.debug(
 					{ event: "tracking.operation_rejected", ...context },
-					"AniList account operation rejected.",
+					"Tracking account operation rejected.",
 				);
 			else
 				this.logger?.warn(
 					{ event: "tracking.operation_failed", ...context },
-					"AniList account operation failed.",
+					"Tracking account operation failed.",
 				);
 			throw error;
 		}

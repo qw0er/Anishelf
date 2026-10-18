@@ -9,6 +9,7 @@ import {
 	type AniListOptions,
 	AniListScheduler,
 } from "../src/modules/anime/anilist/public.js";
+import { createAniListMetadata } from "../src/modules/anime/composition/anilist.js";
 import {
 	createIdentificationMetadata,
 	createMetadataModule,
@@ -139,6 +140,7 @@ async function setup(fetcher = transport(), now?: () => number) {
 	const database = ApplicationDatabase.open(dir);
 	cleanups.push(async () => database.close());
 	const artwork = new MetadataArtworkCache({
+		hosts: ["s4.anilist.co"],
 		dataDir: dir,
 		store: database.metadata,
 		fetch: fetcher,
@@ -150,6 +152,7 @@ async function setup(fetcher = transport(), now?: () => number) {
 		attempts: 1,
 	});
 	const application = new MetadataApplication({
+		defaultProvider: "anilist",
 		store: database.metadata,
 		providers: [provider],
 		artwork,
@@ -213,11 +216,13 @@ test("fresh cache survives database restart and returned values are independent"
 			store: reopened.metadata,
 			logger,
 			fetch: offline,
-			client: new AniListScheduler({
-				fetch: offline,
-				intervalMs: 0,
-				attempts: 1,
-			}),
+			...createAniListMetadata(
+				new AniListScheduler({
+					fetch: offline,
+					intervalMs: 0,
+					attempts: 1,
+				}),
+			),
 		});
 		try {
 			expect((await next.get(reference, { cachedOnly: true })).snapshotId).toBe(
@@ -645,6 +650,7 @@ test("artwork failure preserves the previous usable URL version and budget evict
 	const debug = vi.spyOn(logger, "debug");
 	const { dir, database, fetcher } = await setup();
 	const artwork = new MetadataArtworkCache({
+		hosts: ["s4.anilist.co"],
 		dataDir: dir,
 		store: database.metadata,
 		logger,
@@ -850,6 +856,7 @@ test("snapshot cache keys distinguish pagination, provider versions and referenc
 	).toBe(details.snapshotId);
 	expect(fetcher).toHaveBeenCalledTimes(3);
 	const next = new MetadataApplication({
+		defaultProvider: "anilist",
 		store: database.metadata,
 		artwork,
 		logger,
@@ -1004,4 +1011,36 @@ test("persisted releasing snapshots with the former 24-hour expiry use the new s
 	expect(database.metadata.get(first.snapshotId)?.expiresAt).toBe(
 		now + 6 * 60 * 60_000,
 	);
+});
+
+test("manual lookup delegates provider ID and URL parsing to the configured adapter without a network request", async () => {
+	const { application, fetcher } = await setup();
+	const app = createHttpApp({
+		config: { host: "localhost", port: 80, publicOrigin: "http://localhost" },
+		logger,
+		metadata: application,
+	});
+	try {
+		for (const value of ["154587", "https://anilist.co/anime/154587/Frieren"]) {
+			const response = await app.inject({
+				url: `/api/metadata/reference?${new URLSearchParams({ value })}`,
+			});
+			expect(response.statusCode, response.body).toBe(200);
+			expect(response.json()).toEqual({
+				provider: "anilist",
+				mediaType: "anime",
+				id: "154587",
+			});
+		}
+		expect(
+			(
+				await app.inject({
+					url: `/api/metadata/reference?${new URLSearchParams({ value: "https://other.example/anime/154587" })}`,
+				})
+			).statusCode,
+		).toBe(400);
+		expect(fetcher).not.toHaveBeenCalled();
+	} finally {
+		await app.close();
+	}
 });

@@ -132,12 +132,14 @@ async function fixture(
 	const library = createLibraryModule({ configuration, index, logger });
 	async function makeMetadata() {
 		const artwork = new MetadataArtworkCache({
+			hosts: ["s4.anilist.co"],
 			dataDir: join(base, "data"),
 			store: database.metadata,
 			...(artworkFetch ? { fetch: artworkFetch } : {}),
 		});
 		await artwork.initialize();
 		return new MetadataApplication({
+			defaultProvider: "fixture",
 			store: database.metadata,
 			providers: [provider],
 			artwork,
@@ -1815,7 +1817,7 @@ test("multi-root versions preserve confirmed associations through identity upgra
 			.prepare("UPDATE media_sources SET file_id = ? WHERE id = ?")
 			.run(createResourceId("file", original.relativePath), original.id);
 		raw
-			.prepare("DELETE FROM __drizzle_migrations WHERE created_at = ?")
+			.prepare("DELETE FROM __drizzle_migrations WHERE created_at >= ?")
 			.run(1792252800000);
 	} finally {
 		raw.close();

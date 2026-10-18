@@ -394,9 +394,9 @@ test("legacy settings and file IDs upgrade without changing durable source IDs o
 			.prepare(
 				"INSERT INTO tracking_operations (id, account_id, media_id, operation) VALUES (?, ?, ?, ?)",
 			)
-			.run("operation-1", 7, 9, JSON.stringify(operation));
+			.run("operation-1", "7", "9", JSON.stringify(operation));
 		raw
-			.prepare("DELETE FROM __drizzle_migrations WHERE created_at = ?")
+			.prepare("DELETE FROM __drizzle_migrations WHERE created_at >= ?")
 			.run(1792252800000);
 	} finally {
 		raw.close();
@@ -419,7 +419,7 @@ test("legacy settings and file IDs upgrade without changing durable source IDs o
 			mappingRevision: 7,
 			reviewId: "legacy-source",
 		});
-		expect(upgraded.trackingOperations.list(7)[0]).toMatchObject({
+		expect(upgraded.trackingOperations.list("anilist:7")[0]).toMatchObject({
 			id: "operation-1",
 			commandId: "command-1",
 			revision: 2,

@@ -12,6 +12,7 @@ import type { AnimeCatalogApi } from "../src/modules/anime/anime-catalog/public.
 import { AnimeLibraryQueries } from "../src/modules/anime/anime-library/application/library.js";
 import type { LocalIndex } from "../src/modules/anime/anime-library/domain/model.js";
 import { registerAnimeLibraryRoutes } from "../src/modules/anime/anime-library/http/library.js";
+import { createAniListTracking } from "../src/modules/anime/composition/anilist.js";
 import { createTrackingModule } from "../src/modules/anime/composition/tracking.js";
 import { TrackingListReader } from "../src/modules/anime/tracking/application/list-cache.js";
 import type {
@@ -20,22 +21,24 @@ import type {
 	TrackingListEntry,
 	TrackingListSnapshot,
 } from "../src/modules/anime/tracking/domain/list.js";
-import { TrackingListError } from "../src/modules/anime/tracking/domain/list.js";
+import { TrackingProviderError } from "../src/modules/anime/tracking/domain/list.js";
 import type { TrackingStatus } from "../src/modules/anime/tracking/domain/model.js";
+import { AniListListProvider } from "../src/modules/anime/tracking/infrastructure/list-provider.js";
+import { aniListTracking } from "../src/modules/anime/tracking/infrastructure/provider-mapping.js";
 import type { TrackingListStore } from "../src/modules/anime/tracking/ports.js";
 
 const lease: TrackingLease = {
-	accountId: 7,
+	accountId: "anilist:7",
 	generation: "first",
-	token: "private-fixture-token",
+	credential: "private-fixture-token",
 	signal: new AbortController().signal,
 };
 const item = (mediaId = 1): TrackingListEntry => ({
-	id: mediaId,
-	mediaId,
+	id: `anilist:${mediaId}`,
+	mediaId: `anilist:anime:${mediaId}`,
 	progress: 3,
-	status: "CURRENT",
-	updatedAt: 100,
+	status: "watching",
+	updatedAt: 100_000,
 	titles: [`Title ${mediaId}`],
 	format: "TV",
 	year: 2025,
@@ -71,13 +74,21 @@ test("provider reads every chunk, deduplicates custom lists and strips unsafe co
 		.mockResolvedValueOnce(chunk([raw(), raw()], true))
 		.mockResolvedValueOnce(chunk([raw(2)]));
 	const entries = await new AniListListsClient({ request }).read(
-		lease.accountId,
-		lease.token,
+		7,
+		lease.credential,
 		lease.signal,
 	);
-	expect(entries).toEqual([item(), item(2)]);
+	expect(
+		entries.map((entry) => ({
+			...entry,
+			id: `anilist:${entry.id}`,
+			mediaId: `anilist:anime:${entry.mediaId}`,
+			status: "watching",
+			updatedAt: entry.updatedAt * 1000,
+		})),
+	).toEqual([item(), item(2)]);
 	expect(request.mock.calls[1]?.[1]).toEqual({ userId: 7, chunk: 2 });
-	expect(request.mock.calls[0]?.[2].token).toBe(lease.token);
+	expect(request.mock.calls[0]?.[2].token).toBe(lease.credential);
 });
 test.each([
 	chunk([{ ...raw(), userId: 8 }]),
@@ -91,8 +102,8 @@ test.each([
 	async (response) => {
 		await expect(
 			new AniListListsClient({ request: async () => response }).read(
-				lease.accountId,
-				lease.token,
+				7,
+				lease.credential,
 				lease.signal,
 			),
 		).rejects.toBeInstanceOf(AniListError);
@@ -101,15 +112,14 @@ test.each([
 function readerFixture() {
 	let now = 1000;
 	const status: TrackingStatus = {
-		clientId: "fixture",
-		authorizationUrl: "https://anilist.co",
+		provider: aniListTracking,
 		generation: "first",
-		account: { id: 7, name: "Fixture" },
+		account: { id: "anilist:7", name: "Fixture" },
 		state: "connected",
 		connectivity: "available",
 		checkedAt: 0,
 	};
-	const cache = new Map<number, TrackingListCache>();
+	const cache = new Map<string, TrackingListCache>();
 	const store: TrackingListStore = {
 		read: (id) => cache.get(id),
 		replace: (value) => {
@@ -125,7 +135,7 @@ function readerFixture() {
 			status: () => status,
 			acquire: async () => ({
 				...lease,
-				accountId: status.account?.id ?? 0,
+				accountId: status.account?.id ?? "",
 				generation: status.generation,
 			}),
 			assertCurrent: (generation) => {
@@ -153,7 +163,7 @@ test("refresh coalesces, preserves the full previous snapshot on failure and sur
 	expect(f.read).toHaveBeenCalledTimes(1);
 	expect(f.reader.read(undefined, false).entries).toEqual([item()]);
 	f.advance();
-	f.read.mockRejectedValueOnce(new TrackingListError("unavailable", null));
+	f.read.mockRejectedValueOnce(new TrackingProviderError("unavailable", null));
 	const failed = await f.reader.refresh();
 	expect(failed.entries).toEqual([item()]);
 	expect(failed.stale).toBe(true);
@@ -164,16 +174,18 @@ test("refresh coalesces, preserves the full previous snapshot on failure and sur
 	const dir = await mkdtemp(join(tmpdir(), "anishelf-lists-"));
 	try {
 		const first = ApplicationDatabase.open(dir);
-		const saved = f.cache.get(7);
+		const saved = f.cache.get("anilist:7");
 		if (!saved) throw new Error("Expected saved snapshot");
 		first.trackingLists.replace({ ...saved, invalidated: true });
 		first.close();
 		const second = ApplicationDatabase.open(dir);
 		try {
-			expect(second.trackingLists.read(7)?.entries).toEqual([item()]);
-			expect(second.trackingLists.read(7)?.invalidated).toBe(true);
-			expect(second.trackingLists.read(7)?.fetchedAt).toBe(saved.fetchedAt);
-			expect(second.trackingLists.read(8)).toBeUndefined();
+			expect(second.trackingLists.read("anilist:7")?.entries).toEqual([item()]);
+			expect(second.trackingLists.read("anilist:7")?.invalidated).toBe(true);
+			expect(second.trackingLists.read("anilist:7")?.fetchedAt).toBe(
+				saved.fetchedAt,
+			);
+			expect(second.trackingLists.read("anilist:8")).toBeUndefined();
 		} finally {
 			second.close();
 		}
@@ -193,7 +205,7 @@ test("an in-flight response cannot publish into a changed account", async () => 
 	const pending = f.reader.refresh("first");
 	await vi.waitFor(() => expect(f.read).toHaveBeenCalled());
 	f.status.generation = "second";
-	f.status.account = { id: 8, name: "Other" };
+	f.status.account = { id: "anilist:8", name: "Other" };
 	resolve([item()]);
 	await expect(pending).rejects.toThrow("Account changed");
 	expect(f.cache.size).toBe(0);
@@ -203,18 +215,19 @@ test("an in-flight response cannot publish into a changed account", async () => 
 test("authorization failure retains cached state and requires reconnect", async () => {
 	const f = readerFixture();
 	await f.reader.refresh();
-	f.read.mockRejectedValueOnce(new TrackingListError("unauthorized", null));
+	f.read.mockRejectedValueOnce(new TrackingProviderError("unauthorized", null));
 	const snapshot = await f.reader.refresh();
 	expect(snapshot.state).toBe("authorization-required");
 	expect(snapshot.entries).toHaveLength(1);
 	expect(snapshot.error).toEqual({ code: "unauthorized", retryAt: null });
-	expect(JSON.stringify(snapshot)).not.toContain(lease.token);
+	expect(JSON.stringify(snapshot)).not.toContain(lease.credential);
 	await f.reader.close();
 });
 function projection() {
 	const f = readerFixture();
 	const snapshot: TrackingListSnapshot = {
-		accountId: 7,
+		provider: aniListTracking,
+		accountId: "anilist:7",
 		generation: "first",
 		state: "connected",
 		fetchedAt: 1000,
@@ -264,7 +277,7 @@ test("library merges only exact IDs, preserves local identity, and paginates aft
 		(await app.list({ scope: "all", availability: "unavailable" })).items.map(
 			(entry) => entry.id,
 		),
-	).toEqual(["anilist-2"]);
+	).toEqual(["anilist:anime:2"]);
 	expect(
 		(await app.list({ scope: "all", query: "Title 1" })).items[0]?.id,
 	).toBe("local");
@@ -283,7 +296,7 @@ test("remote lists can be browsed without a local catalog", async () => {
 		logger: pino({ enabled: false }),
 	});
 	expect((await app.list()).items).toEqual([]);
-	const result = await app.list({ scope: "all", viewingStatus: "CURRENT" });
+	const result = await app.list({ scope: "all", viewingStatus: "watching" });
 	expect(result.localState).toBe("unavailable");
 	expect(result.items).toHaveLength(2);
 	expect(result.items.every((entry) => entry.localWorkId === null)).toBe(true);
@@ -299,7 +312,7 @@ test("a later chunk failure prevents publishing a partial list; an empty complet
 		.mockRejectedValueOnce(new Error("private-provider-sentinel"));
 	const provider = new AniListListsClient({ request });
 	f.read.mockImplementationOnce(() =>
-		provider.read(lease.accountId, lease.token, lease.signal),
+		new AniListListProvider(provider).read(lease, lease.signal),
 	);
 	const failed = await f.reader.refresh();
 	expect(failed.entries).toEqual([item()]);
@@ -344,7 +357,11 @@ test("list logs contain outcomes and counts but no credentials, titles or provid
 	expect(logs).toContain("tracking.list_refresh_completed");
 	expect(logs).toContain("tracking.list_refresh_failed");
 	expect(logs).toContain('"retainedCache":false');
-	for (const secret of [lease.token, "Title 1", "private-provider-sentinel"])
+	for (const secret of [
+		lease.credential,
+		"Title 1",
+		"private-provider-sentinel",
+	])
 		expect(logs).not.toContain(secret);
 });
 
@@ -359,7 +376,7 @@ test("unified Library HTTP validates filters and serializes merged cards", async
 	});
 	try {
 		const response = await http.inject({
-			url: "/api/anime/library?scope=all&viewingStatus=CURRENT&perPage=1",
+			url: "/api/anime/library?scope=all&viewingStatus=watching&perPage=1",
 			headers: { host: "127.0.0.1:3000" },
 		});
 		expect(response.statusCode).toBe(200);
@@ -395,7 +412,7 @@ test("assembled Tracking facade uses protocol adapters, preserves cache on malfo
 		store: database.tracking,
 		listStore: database.trackingLists,
 		operationStore: database.trackingOperations,
-		client: {
+		...createAniListTracking({
 			request: async (query) => {
 				if (query.includes("Viewer"))
 					return { Viewer: { id: 7, name: "Fixture" } };
@@ -409,7 +426,7 @@ test("assembled Tracking facade uses protocol adapters, preserves cache on malfo
 					? { MediaListCollection: null }
 					: chunk([raw()]);
 			},
-		},
+		}),
 	});
 	try {
 		const preview = await module.preview(
@@ -454,10 +471,10 @@ test("confirmed writes fence an older in-flight full-list refresh", async () => 
 	);
 	const refresh = f.reader.refresh();
 	await vi.waitFor(() => expect(finish).toBeDefined());
-	f.reader.confirmed(7, 1, {
-		id: 10,
+	f.reader.confirmed("anilist:7", "anilist:anime:1", {
+		id: "anilist:10",
 		progress: 8,
-		status: "PAUSED",
+		status: "paused",
 		updatedAt: 2000,
 	});
 	finish?.([item()]);

@@ -7,6 +7,7 @@ import {
 	MetadataPageQuerySchema,
 	MetadataReadQuerySchema,
 	MetadataReferenceParamsSchema,
+	MetadataReferenceSchema,
 	MetadataRelationsResponseSchema,
 	MetadataSearchQuerySchema,
 	MetadataSearchResponseSchema,
@@ -47,6 +48,23 @@ export function registerMetadataRoutes(
 	metadata: MetadataApi,
 ): void {
 	app.get("/api/metadata/providers", async () => metadata.providers());
+	app.get(
+		"/api/metadata/reference",
+		{
+			schema: {
+				querystring: Type.Object(
+					{
+						value: Type.String({ minLength: 1, maxLength: 2000 }),
+						provider: Type.Optional(Type.String({ minLength: 1 })),
+					},
+					{ additionalProperties: false },
+				),
+				response: { 200: MetadataReferenceSchema },
+			},
+		},
+		async (request) =>
+			metadata.resolveReference(request.query.value, request.query.provider),
+	);
 	app.get(
 		"/api/metadata/search",
 		{

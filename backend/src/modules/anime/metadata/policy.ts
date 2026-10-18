@@ -13,7 +13,6 @@ export const metadataPolicy = {
 	responseMaximumBytes: 2 * 1024 * 1024,
 	artworkMaximumBytes: 5 * 1024 * 1024,
 	artworkBudgetBytes: 128 * 1024 * 1024,
-	artworkHosts: ["s4.anilist.co"],
 } as const;
 
 export function detailFreshnessMs(status: string | null): number {

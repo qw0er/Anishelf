@@ -23,6 +23,7 @@ export class MetadataApplication implements MetadataApi {
 	constructor(
 		private readonly options: {
 			providers: MetadataProvider[];
+			defaultProvider: string;
 			store: MetadataStore;
 			artwork: MetadataArtwork;
 			logger: Logger;
@@ -38,6 +39,34 @@ export class MetadataApplication implements MetadataApi {
 		);
 		if (this.providerMap.size !== options.providers.length)
 			throw new Error("Duplicate metadata provider key.");
+		if (!this.providerMap.has(options.defaultProvider))
+			throw new Error("Unknown default metadata provider.");
+	}
+	resolveReference(
+		value: string,
+		provider = this.options.defaultProvider,
+	): ProviderReference {
+		const input = value.trim();
+		if (!input || input.length > 2000)
+			throw this.invalid("Enter a provider ID or supported work URL.");
+		const adapter = this.provider({
+			provider,
+			mediaType: "anime",
+			id: "lookup",
+		});
+		const reference = adapter.resolveReference
+			? adapter.resolveReference(input)
+			: { provider, mediaType: "anime" as const, id: input };
+		if (!reference || reference.provider !== provider)
+			throw this.invalid(
+				"Enter a valid ID or supported work URL for this provider.",
+			);
+		this.provider(reference);
+		this.options.logger.debug(
+			{ event: "metadata.reference_resolved", provider },
+			"Metadata work reference resolved.",
+		);
+		return reference;
 	}
 	providers() {
 		return [...this.providerMap.values()].map((provider) => ({
@@ -82,7 +111,7 @@ export class MetadataApplication implements MetadataApi {
 		)
 			throw this.invalid("Search requires a title of 1–200 characters.");
 		const provider = this.provider({
-			provider: request.provider ?? "anilist",
+			provider: request.provider ?? this.options.defaultProvider,
 			mediaType: "anime",
 			id: "search",
 		});

@@ -59,6 +59,10 @@
 		"./contracts/media": {
 			"types": "./src/contracts/media.ts",
 			"default": "./src/contracts/media.ts"
+		},
+		"./contracts/references": {
+			"types": "./src/contracts/references.ts",
+			"default": "./src/contracts/references.ts"
 		}
 	}
 }

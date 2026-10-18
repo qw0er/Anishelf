@@ -18,6 +18,7 @@ export type { ProviderReference } from "./domain/model.js";
 export { MetadataError } from "./domain/model.js";
 export interface MetadataApi {
 	providers(): ProviderCapabilities[];
+	resolveReference(value: string, provider?: string): ProviderReference;
 	search(
 		request: SearchRequest,
 		options?: ReadOptions,

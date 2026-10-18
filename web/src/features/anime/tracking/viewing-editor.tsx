@@ -20,14 +20,6 @@ import { useTrackingMutation } from "./use-tracking-mutation.js";
 import type { ViewingState } from "./use-viewing-state.js";
 
 type Status = NonNullable<TrackingEntryResponse["entry"]>["status"];
-const statuses: Status[] = [
-	"CURRENT",
-	"PLANNING",
-	"COMPLETED",
-	"PAUSED",
-	"DROPPED",
-	"REPEATING",
-];
 export function ViewingEditor({
 	state,
 	mediaId,
@@ -46,9 +38,7 @@ export function ViewingEditor({
 		...operationsQuery(identity),
 		enabled: Boolean(identity.accountId && identity.generation),
 	});
-	const operation = operations.data?.find(
-		(op) => op.mediaId === Number(mediaId),
-	);
+	const operation = operations.data?.find((op) => op.mediaId === mediaId);
 	if (snapshot?.state !== "connected" || snapshot.fetchedAt === null)
 		return null;
 	return (
@@ -111,7 +101,8 @@ function ViewingForm({
 	const [status, setStatus] = useState<Status>(
 		(pending ? operation.desired.status : undefined) ??
 			remote?.status ??
-			"CURRENT",
+			snapshot.provider.capabilities.statuses[0] ??
+			"watching",
 	);
 	const [progressEdited, setProgressEdited] = useState(false);
 	const [statusEdited, setStatusEdited] = useState(false);
@@ -168,7 +159,7 @@ function ViewingForm({
 			if (!remote || progressChanged) desired.progress = Number(progress);
 			if (!remote || statusChanged) desired.status = status;
 			return request<TrackingOperationResponse>(
-				`/api/tracking/entries/${mediaId}/updates`,
+				`/api/tracking/entries/${encodeURIComponent(mediaId)}/updates`,
 				"POST",
 				{},
 				{
@@ -199,7 +190,7 @@ function ViewingForm({
 		progress.trim() !== "" &&
 		Number.isInteger(Number(progress)) &&
 		Number(progress) >= 0 &&
-		Number(progress) <= 2147483647;
+		Number(progress) <= snapshot.provider.capabilities.maximumProgress;
 	const changed = !remote || progressChanged || statusChanged;
 	return (
 		<form
@@ -224,7 +215,7 @@ function ViewingForm({
 					id={progressId}
 					type="number"
 					min={0}
-					max={2147483647}
+					max={snapshot.provider.capabilities.maximumProgress}
 					step={1}
 					required
 					value={progress}
@@ -244,7 +235,7 @@ function ViewingForm({
 						setStatus(event.target.value as Status);
 					}}
 				>
-					{statuses.map((value) => (
+					{snapshot.provider.capabilities.statuses.map((value) => (
 						<option key={value} value={value}>
 							{t(`trackingList.statuses.${value}`)}
 						</option>

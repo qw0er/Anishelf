@@ -1,12 +1,12 @@
 import { Type } from "typebox";
+import { TrackingProviderSchema } from "./tracking-provider.js";
 
 const TrackingAccountSchema = Type.Object({
-	id: Type.Integer({ minimum: 1 }),
+	id: Type.String({ minLength: 1 }),
 	name: Type.String(),
 });
 export const TrackingStatusSchema = Type.Object({
-	clientId: Type.String(),
-	authorizationUrl: Type.String(),
+	provider: TrackingProviderSchema,
 	generation: Type.String(),
 	account: Type.Union([TrackingAccountSchema, Type.Null()]),
 	state: Type.Union([
@@ -22,7 +22,7 @@ export const TrackingStatusSchema = Type.Object({
 	checkedAt: Type.Union([Type.Number(), Type.Null()]),
 });
 export const TrackingPreviewRequestSchema = Type.Object(
-	{ token: Type.String({ minLength: 1, maxLength: 8192, pattern: "^\\S+$" }) },
+	{ credential: Type.String({ minLength: 1, maxLength: 8192 }) },
 	{ additionalProperties: false },
 );
 export const TrackingPreviewSchema = Type.Object({

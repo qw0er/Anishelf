@@ -1,3 +1,4 @@
+import { workKey } from "@anishelf/backend/contracts/references";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -68,9 +69,7 @@ function LocalWorkDetail({
 	const controller = useLocalWorkDetail(data);
 	const { libraryPath, refresh } = controller;
 	const { work, metadata } = data;
-	const viewing = useViewingState(
-		work.reference.provider === "anilist" ? work.reference.id : undefined,
-	);
+	const viewing = useViewingState(workKey(work.reference));
 	return (
 		<section className="stack-page">
 			<div className="action-row justify-between">
@@ -133,7 +132,7 @@ function LocalWorkDetail({
 			/>
 			<div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 				<EpisodeList
-					anilistProgress={viewing.snapshot?.entry?.progress ?? null}
+					trackingProgress={viewing.snapshot?.entry?.progress ?? null}
 					data={data}
 					controller={controller}
 					renderResourceActions={renderResourceActions}

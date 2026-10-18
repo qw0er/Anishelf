@@ -22,7 +22,8 @@ const work: Card = {
 	availableUnwatchedEpisodes: 0,
 	metadataStale: false,
 	coverUrl: null,
-	viewing: { status: "CURRENT", progress: 1, updatedAt: 1 },
+	viewingAvailability: "tracked",
+	viewing: { status: "watching", progress: 1, updatedAt: 1 },
 };
 function show(items: Card[]) {
 	return render(
@@ -78,10 +79,28 @@ test("unknown totals and movies show meaningful counts, while only positive unwa
 	).toBeTruthy();
 });
 test("remote-only cards keep their remote route and show local availability once", () => {
-	show([{ ...work, localWorkId: null, viewing: null }]);
+	show([
+		{
+			...work,
+			localWorkId: null,
+			viewing: null,
+			viewingAvailability: "untracked",
+		},
+	]);
 	const card = screen.getByRole("link", { name: "Example" });
-	expect(card.getAttribute("href")).toContain("/anime/tracked/9?");
+	expect(card.getAttribute("href")).toContain(
+		"/anime/tracked/anilist%3Aanime%3A9?",
+	);
 	expect(within(card).getByText("Local 0 / 12")).toBeTruthy();
-	expect(within(card).getByText("Not on AniList")).toBeTruthy();
+	expect(within(card).getByText("Not on the tracking service")).toBeTruthy();
 	expect(within(card).queryByText("No local resources")).toBeNull();
+});
+
+test("a missing cross-provider mapping is visible and is never presented as untracked", () => {
+	show([{ ...work, viewing: null, viewingAvailability: "unmapped" }]);
+	const card = screen.getByRole("link", { name: "Example" });
+	expect(
+		within(card).getByText("No confirmed mapping to the tracking provider."),
+	).toBeTruthy();
+	expect(within(card).queryByText("Not on the tracking service")).toBeNull();
 });

@@ -1,5 +1,9 @@
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
+import {
+	workKey,
+	workReference,
+} from "../../../../shared/external-reference.js";
 import type { AnimeCatalogApi, WorkCard } from "../../anime-catalog/public.js";
 import type {
 	TrackingListEntry,
@@ -29,20 +33,15 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 		const index = await this.localIndex();
 		this.options.lists.list(tracking.generation, false);
 		const tracked = new Map(
-			tracking.entries.map((entry) => [String(entry.mediaId), entry]),
+			tracking.entries.map((entry) => [entry.mediaId, entry]),
 		);
 		const cards = new Map<string, LibraryCard>();
 		const localKeys = new Set(
-			index?.items.map(
-				(work) => `${work.reference.provider}:${work.reference.id}`,
-			) ?? [],
+			index?.items.map((work) => workKey(work.reference)) ?? [],
 		);
 		for (const work of index?.items ?? []) {
-			const viewing =
-				work.reference.provider === "anilist"
-					? tracked.get(work.reference.id)
-					: undefined;
-			const key = `${work.reference.provider}:${work.reference.id}`;
+			const viewing = tracked.get(workKey(work.reference));
+			const key = workKey(work.reference);
 			if (
 				(query.availability === "available" && !work.available) ||
 				(query.availability === "unavailable" && work.available) ||
@@ -75,38 +74,43 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 				hasCover: false,
 				remoteCoverUrl: null,
 				viewing: viewing ? viewingState(viewing) : null,
+				viewingAvailability:
+					work.reference.provider !== tracking.provider.key
+						? "unmapped"
+						: tracking.fetchedAt === null
+							? "unknown"
+							: viewing
+								? "tracked"
+								: "untracked",
 			});
 		}
 		if (query.scope === "all" && query.availability !== "available")
 			for (const entry of tracking.entries) {
-				const key = `anilist:${entry.mediaId}`;
+				const key = entry.mediaId;
 				if (localKeys.has(key) || !matches(entry, query)) continue;
 				cards.set(key, {
-					id: `anilist-${entry.mediaId}`,
+					id: entry.mediaId,
 					localWorkId: null,
-					reference: {
-						provider: "anilist",
-						mediaType: "anime",
-						id: String(entry.mediaId),
-					},
+					reference: workReference(entry.mediaId),
 					displayTitle: entry.titles[0] ?? String(entry.mediaId),
 					format: entry.format,
 					year: entry.year,
 					episodeCount: entry.episodeCount,
-					updatedAt: entry.updatedAt * 1000,
+					updatedAt: entry.updatedAt ?? tracking.fetchedAt ?? 0,
 					availableEpisodes: 0,
 					availableRegularEpisodes: 0,
 					metadataStale: tracking.stale,
 					hasCover: false,
 					remoteCoverUrl: entry.coverUrl,
 					viewing: viewingState(entry),
+					viewingAvailability: "tracked",
 				});
 			}
 		const filtered = [...cards.values()].filter(
 			(card) =>
 				!query.viewingStatus ||
 				(query.viewingStatus === "untracked"
-					? tracking.fetchedAt !== null && card.viewing === null
+					? card.viewingAvailability === "untracked"
 					: card.viewing?.status === query.viewingStatus),
 		);
 		filtered.sort(

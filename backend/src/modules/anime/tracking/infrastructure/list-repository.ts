@@ -6,7 +6,7 @@ import { trackingListCache } from "./schema.js";
 /** One complete account snapshot replaces the previous snapshot atomically. */
 export class TrackingListRepository implements TrackingListStore {
 	constructor(private readonly store: Store) {}
-	read(accountId: number): TrackingListCache | undefined {
+	read(accountId: string): TrackingListCache | undefined {
 		return this.store
 			.select()
 			.from(trackingListCache)

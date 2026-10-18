@@ -12,6 +12,7 @@ export interface AnimeLibraryQuery extends CatalogQuery {
 	viewingStatus?: ViewingStatus | "untracked";
 }
 export interface LibraryCard {
+	viewingAvailability: "unknown" | "unmapped" | "tracked" | "untracked";
 	availableUnwatchedEpisodes?: number | null;
 	id: string;
 	localWorkId: string | null;
@@ -29,7 +30,7 @@ export interface LibraryCard {
 	viewing: {
 		status: ViewingStatus;
 		progress: number;
-		updatedAt: number;
+		updatedAt: number | null;
 	} | null;
 }
 export interface LibraryResult {

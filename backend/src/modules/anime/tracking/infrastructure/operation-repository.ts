@@ -9,7 +9,7 @@ import {
 } from "./schema.js";
 export class TrackingOperationRepository implements TrackingOperationStore {
 	constructor(private readonly store: Store) {}
-	list(accountId: number): TrackingOperation[] {
+	list(accountId: string): TrackingOperation[] {
 		return this.store
 			.select()
 			.from(trackingOperations)
@@ -17,7 +17,7 @@ export class TrackingOperationRepository implements TrackingOperationStore {
 			.all()
 			.map((row) => row.operation);
 	}
-	manualVersion(accountId: number, mediaId: number): number {
+	manualVersion(accountId: string, mediaId: string): number {
 		return (
 			this.store
 				.select()
@@ -31,7 +31,7 @@ export class TrackingOperationRepository implements TrackingOperationStore {
 				.get()?.manualVersion ?? 0
 		);
 	}
-	command(accountId: number, commandId: string) {
+	command(accountId: string, commandId: string) {
 		return this.store
 			.select()
 			.from(trackingCommands)

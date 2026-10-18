@@ -1,18 +1,13 @@
-const viewingStatuses = [
-	"CURRENT",
-	"PLANNING",
-	"COMPLETED",
-	"PAUSED",
-	"DROPPED",
-	"REPEATING",
-] as const;
-export type ViewingStatus = (typeof viewingStatuses)[number];
+import type { TrackingProviderDescriptor } from "./model.js";
+import type { ViewingStatus } from "./viewing.js";
+
+export type { ViewingStatus } from "./viewing.js";
 export interface TrackingListEntry {
-	id: number;
-	mediaId: number;
+	id: string;
+	mediaId: string;
 	progress: number;
 	status: ViewingStatus;
-	updatedAt: number;
+	updatedAt: number | null;
 	titles: string[];
 	format: string | null;
 	year: number | null;
@@ -21,13 +16,14 @@ export interface TrackingListEntry {
 }
 export interface TrackingListCache {
 	invalidated?: boolean;
-	accountId: number;
+	accountId: string;
 	fetchedAt: number;
 	entries: TrackingListEntry[];
 }
 export interface TrackingListSnapshot {
-	accountId: number | null;
+	accountId: string | null;
 	generation: string;
+	provider: TrackingProviderDescriptor;
 	state: "disconnected" | "connected" | "authorization-required";
 	fetchedAt: number | null;
 	stale: boolean;
@@ -36,13 +32,13 @@ export interface TrackingListSnapshot {
 	entries: TrackingListEntry[];
 }
 export interface TrackingLease {
-	accountId: number;
+	accountId: string;
 	generation: string;
-	token: string;
+	credential: string;
 	signal: AbortSignal;
 }
 
-export type TrackingListFailureCode =
+export type TrackingProviderFailureCode =
 	| "busy"
 	| "invalid-request"
 	| "not-found"
@@ -51,12 +47,12 @@ export type TrackingListFailureCode =
 	| "rate-limited"
 	| "unauthorized";
 /** Provider-neutral, sanitized failure exposed by the Tracking list port. */
-export class TrackingListError extends Error {
+export class TrackingProviderError extends Error {
 	constructor(
-		readonly code: TrackingListFailureCode,
+		readonly code: TrackingProviderFailureCode,
 		readonly retryAt: number | null,
 	) {
 		super("Tracking provider list read failed.");
-		this.name = "TrackingListError";
+		this.name = "TrackingProviderError";
 	}
 }

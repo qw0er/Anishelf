@@ -41,6 +41,12 @@ export const AnimeLibrarySchema = Type.Object({
 			availableRegularEpisodes: Type.Integer(),
 			metadataStale: Type.Boolean(),
 			coverUrl: text,
+			viewingAvailability: Type.Union([
+				Type.Literal("unknown"),
+				Type.Literal("unmapped"),
+				Type.Literal("tracked"),
+				Type.Literal("untracked"),
+			]),
 			viewing: Type.Union([ViewingStateSchema, Type.Null()]),
 		}),
 	),

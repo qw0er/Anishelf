@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
+import { externalIdParts } from "../../../../shared/external-reference.js";
 import type { TrackingCandidate, TrackingPreview } from "../domain/model.js";
 import type { TrackingAccountProvider } from "../ports.js";
 import type { TrackingConnectionState } from "./connection.js";
@@ -41,10 +42,13 @@ export class TrackingAuthorizations {
 			);
 		return candidate;
 	}
-	async preview(sessionId: string, token: string): Promise<TrackingPreview> {
+	async preview(
+		sessionId: string,
+		credential: string,
+	): Promise<TrackingPreview> {
 		this.connection.assertOpen();
-		if (!token || token.length > 8192 || /\s/.test(token))
-			throw new DomainError("INVALID_REQUEST", "Invalid access token.");
+		if (!credential || credential.length > 8192)
+			throw new DomainError("INVALID_REQUEST", "Invalid access credential.");
 		for (const [key, candidate] of this.candidates)
 			if (candidate.expiresAt <= this.now()) this.candidates.delete(key);
 		if (this.candidates.size + this.validations.size >= 100)
@@ -57,8 +61,23 @@ export class TrackingAuthorizations {
 		this.candidates.delete(sessionId);
 		this.validations.set(sessionId, id);
 		try {
-			const account = await this.provider.viewer(token, this.connection.signal);
+			const account = await this.provider.viewer(
+				credential,
+				this.connection.signal,
+			);
 			this.connection.assertCurrent(generation);
+			try {
+				if (
+					externalIdParts(account.id).provider !==
+					this.connection.status().provider.key
+				)
+					throw new Error("Wrong provider.");
+			} catch {
+				throw new DomainError(
+					"TRACKING_UNAVAILABLE",
+					"Provider returned an invalid account identity.",
+				);
+			}
 			if (this.validations.get(sessionId) !== id)
 				throw new DomainError(
 					"TRACKING_CONFLICT",
@@ -66,7 +85,7 @@ export class TrackingAuthorizations {
 				);
 			const candidate: TrackingCandidate = {
 				id,
-				token,
+				credential,
 				account,
 				generation,
 				expiresAt: this.now() + candidateLifetime,
@@ -77,7 +96,7 @@ export class TrackingAuthorizations {
 					this.candidates.delete(sessionId);
 					this.logger?.debug(
 						{ event: "tracking.preview_expired", accountId: account.id },
-						"AniList account preview expired.",
+						"Tracking account preview expired.",
 					);
 				}
 				this.expiryTimers.delete(timer);
@@ -90,7 +109,7 @@ export class TrackingAuthorizations {
 					accountId: account.id,
 					expiresAt: candidate.expiresAt,
 				},
-				"AniList account preview ready for confirmation.",
+				"Tracking account preview ready for confirmation.",
 			);
 			return {
 				candidateId: id,

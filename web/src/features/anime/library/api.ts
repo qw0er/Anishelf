@@ -5,12 +5,12 @@ export interface LibraryFilters {
 	scope?: "local" | "all";
 	viewingStatus?:
 		| "all"
-		| "CURRENT"
-		| "PLANNING"
-		| "COMPLETED"
-		| "PAUSED"
-		| "DROPPED"
-		| "REPEATING"
+		| "watching"
+		| "planned"
+		| "completed"
+		| "paused"
+		| "dropped"
+		| "rewatching"
 		| "untracked";
 	query?: string;
 	format?: string;
@@ -30,16 +30,16 @@ export function libraryFilters(params: URLSearchParams): LibraryFilters {
 		requestedViewingStatus === "all"
 			? "all"
 			: [
-						"CURRENT",
-						"PLANNING",
-						"COMPLETED",
-						"PAUSED",
-						"DROPPED",
-						"REPEATING",
+						"watching",
+						"planned",
+						"completed",
+						"paused",
+						"dropped",
+						"rewatching",
 						"untracked",
-					].includes(requestedViewingStatus ?? "CURRENT")
-				? (requestedViewingStatus ?? "CURRENT")
-				: "CURRENT";
+					].includes(requestedViewingStatus ?? "watching")
+				? (requestedViewingStatus ?? "watching")
+				: "watching";
 	return {
 		...(params.get("scope") === "all" ? { scope: "all" as const } : {}),
 		viewingStatus: viewingStatus as NonNullable<

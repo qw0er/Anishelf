@@ -43,7 +43,7 @@ export const accountQuery = () =>
 		staleTime: 0,
 	});
 export interface TrackingIdentity {
-	accountId: number | null;
+	accountId: string | null;
 	generation: string;
 }
 export const trackingIdentity = (

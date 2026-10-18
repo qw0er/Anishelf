@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { AniListAccountSettings } from "../src/features/anime/tracking/account-settings.js";
+import { TrackingAccountSettings } from "../src/features/anime/tracking/account-settings.js";
 import { queryClient } from "../src/shared/api/query-client.js";
+import { trackingProvider } from "./tracking-fixture.js";
 import "../src/shared/i18n.js";
 
 import type { TrackingAccountResponse } from "../src/shared/api/contracts.js";
@@ -15,9 +16,7 @@ import {
 } from "./query-test-utils.js";
 
 const disconnected: TrackingAccountResponse = {
-	clientId: "53902",
-	authorizationUrl:
-		"https://anilist.co/api/v2/oauth/authorize?client_id=53902&response_type=token",
+	provider: trackingProvider,
 	generation: "one",
 	account: null,
 	state: "disconnected",
@@ -27,7 +26,8 @@ const disconnected: TrackingAccountResponse = {
 const connected: TrackingAccountResponse = {
 	...disconnected,
 	generation: "two",
-	account: { id: 7, name: "Fixture" },
+	provider: trackingProvider,
+	account: { id: "anilist:7", name: "Fixture" },
 	state: "connected",
 	connectivity: "available",
 };
@@ -53,7 +53,7 @@ test("previews without retaining token, requires confirmation and clears former 
 			return json(status);
 		if (path === "/api/tracking/account/preview") {
 			expect(JSON.parse(String(options?.body))).toEqual({
-				token: "fixture-token",
+				credential: "fixture-token",
 			});
 			return json({
 				candidateId: "candidate",
@@ -86,19 +86,19 @@ test("previews without retaining token, requires confirmation and clears former 
 	queryClient.setQueryData(["catalog", "root", "local-work-detail", "work-1"], {
 		public: true,
 	});
-	render(<AniListAccountSettings />);
-	expect(await screen.findByText("No AniList account connected.")).toBeTruthy();
+	render(<TrackingAccountSettings />);
+	expect(
+		await screen.findByText("No the tracking service account connected."),
+	).toBeTruthy();
 	expect(
 		screen
-			.getByRole("link", { name: "Authorize Anishelf on AniList" })
+			.getByRole("link", { name: "Open provider authorization" })
 			.getAttribute("href"),
-	).toBe(disconnected.authorizationUrl);
-	const input = screen.getByLabelText(
-		"AniList access token",
-	) as HTMLInputElement;
+	).toBe(disconnected.provider.authorization.url);
+	const input = screen.getByLabelText("Access token") as HTMLInputElement;
 	fireEvent.change(input, { target: { value: "fixture-token" } });
 	const actions = screen.getByRole("group", {
-		name: "AniList account actions",
+		name: "the tracking service account actions",
 	});
 	const previewButton = within(actions).getByRole("button", {
 		name: "Preview account",
@@ -172,13 +172,13 @@ test("disconnect uses connection generation and authorization failure offers rec
 		}
 		return json(status);
 	});
-	render(<AniListAccountSettings />);
+	render(<TrackingAccountSettings />);
 	await screen.findByText("Account: Fixture");
 	fireEvent.click(screen.getByRole("button", { name: "Check connection" }));
 	await screen.findByRole("alert");
 	await screen.findByText("Reconnect required · Connection check failed");
 	expect(
-		screen.getByRole("link", { name: "Authorize Anishelf on AniList" }),
+		screen.getByRole("link", { name: "Open provider authorization" }),
 	).toBeTruthy();
 	await waitFor(() =>
 		expect(
@@ -187,5 +187,5 @@ test("disconnect uses connection generation and authorization failure offers rec
 		).toBe(false),
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
-	await screen.findByText("No AniList account connected.");
+	await screen.findByText("No the tracking service account connected.");
 });

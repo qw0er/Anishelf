@@ -8,12 +8,13 @@ import { AniListUpdatesClient } from "../src/modules/anime/anilist/infrastructur
 import type { AniListClient } from "../src/modules/anime/anilist/public.js";
 import { AniListError } from "../src/modules/anime/anilist/public.js";
 import { TrackingUpdates } from "../src/modules/anime/tracking/application/updates.js";
-import { TrackingListError } from "../src/modules/anime/tracking/domain/list.js";
+import { TrackingProviderError } from "../src/modules/anime/tracking/domain/list.js";
 import type { TrackingStatus } from "../src/modules/anime/tracking/domain/model.js";
 import type {
 	TrackingRemoteState,
 	TrackingUpdate,
 } from "../src/modules/anime/tracking/domain/operation.js";
+import { aniListTracking } from "../src/modules/anime/tracking/infrastructure/provider-mapping.js";
 import type { TrackingUpdateProvider } from "../src/modules/anime/tracking/ports.js";
 
 const disposals: (() => unknown)[] = [];
@@ -21,9 +22,9 @@ afterEach(async () => {
 	for (const dispose of disposals.splice(0).reverse()) await dispose();
 });
 const initial: TrackingRemoteState = {
-	id: 10,
+	id: "anilist:10",
 	progress: 3,
-	status: "CURRENT",
+	status: "watching",
 	updatedAt: 100,
 };
 async function fixture() {
@@ -34,9 +35,8 @@ async function fixture() {
 	let remote: TrackingRemoteState | null = { ...initial };
 	let now = 1000;
 	const status: TrackingStatus = {
-		clientId: "test",
-		authorizationUrl: "https://example.test",
-		account: { id: 7, name: "Fixture" },
+		provider: aniListTracking,
+		account: { id: "anilist:7", name: "Fixture" },
 		generation: randomUUID(),
 		state: "connected",
 		connectivity: "available",
@@ -49,9 +49,9 @@ async function fixture() {
 			if (generation !== status.generation) throw new Error("Stale account");
 		},
 		acquire: async () => ({
-			accountId: status.account?.id ?? 0,
+			accountId: status.account?.id ?? "",
 			generation: status.generation,
-			token: "secret",
+			credential: "secret",
 			signal: accountController.signal,
 		}),
 		authorizationFailed: () => {
@@ -86,7 +86,7 @@ async function fixture() {
 		baseline: { ...initial },
 		desired,
 	});
-	const operation = () => database.trackingOperations.list(7)[0];
+	const operation = () => database.trackingOperations.list("anilist:7")[0];
 	return {
 		get,
 		store: database.trackingOperations,
@@ -104,7 +104,7 @@ async function fixture() {
 		advance() {
 			now += 1_000_000;
 		},
-		switchAccount(id: number) {
+		switchAccount(id: string) {
 			accountController.abort();
 			accountController = new AbortController();
 			status.account = { id, name: "Other" };
@@ -121,7 +121,7 @@ async function fixture() {
 }
 test("persists before dispatch, permits backward correction and only sends intended fields", async () => {
 	const f = await fixture();
-	f.worker.update(1, f.input({ progress: 1 }));
+	f.worker.update("anilist:anime:1", f.input({ progress: 1 }));
 	expect(f.operation()?.state).toBe("pending");
 	expect(f.save).not.toHaveBeenCalled();
 	await f.worker.flush();
@@ -131,19 +131,19 @@ test("persists before dispatch, permits backward correction and only sends inten
 });
 test("coalesces unsent progress and status without losing explicit correction", async () => {
 	const f = await fixture();
-	const first = f.worker.update(1, f.input({ progress: 8 }));
+	const first = f.worker.update("anilist:anime:1", f.input({ progress: 8 }));
 	f.worker.update(
-		1,
-		f.input({ progress: 2, status: "PAUSED" }, first.revision),
+		"anilist:anime:1",
+		f.input({ progress: 2, status: "paused" }, first.revision),
 	);
 	await f.worker.flush();
 	expect(f.save).toHaveBeenCalledTimes(1);
-	expect(f.save.mock.calls[0]?.[3]).toEqual({ progress: 2, status: "PAUSED" });
+	expect(f.save.mock.calls[0]?.[3]).toEqual({ progress: 2, status: "paused" });
 });
 test("offline failure survives real database restart and reconciles before delivery", async () => {
 	const f = await fixture();
-	f.get.mockRejectedValueOnce(new TrackingListError("unavailable", null));
-	f.worker.update(1, f.input({ progress: 4 }));
+	f.get.mockRejectedValueOnce(new TrackingProviderError("unavailable", null));
+	f.worker.update("anilist:anime:1", f.input({ progress: 4 }));
 	await f.worker.flush();
 	expect(f.operation()?.state).toBe("failed");
 	f.advance();
@@ -155,9 +155,9 @@ test("lost successful mutation response is reconciled after restart without dupl
 	const f = await fixture();
 	f.save.mockImplementationOnce(async () => {
 		f.setRemote({ ...initial, progress: 4 });
-		throw new TrackingListError("unavailable", null);
+		throw new TrackingProviderError("unavailable", null);
 	});
-	f.worker.update(1, f.input({ progress: 4 }));
+	f.worker.update("anilist:anime:1", f.input({ progress: 4 }));
 	await f.worker.flush();
 	expect(f.operation()?.attempt?.desired).toEqual({ progress: 4 });
 	f.advance();
@@ -168,7 +168,7 @@ test("lost successful mutation response is reconciled after restart without dupl
 test("remote edits conflict, refresh does not discard intent, and explicit local resolution uses a fresh baseline", async () => {
 	const f = await fixture();
 	f.setRemote({ ...initial, progress: 6 });
-	f.worker.update(1, f.input({ progress: 4 }));
+	f.worker.update("anilist:anime:1", f.input({ progress: 4 }));
 	await f.worker.flush();
 	expect(f.operation()?.state).toBe("conflict");
 	expect(f.save).not.toHaveBeenCalled();
@@ -186,7 +186,7 @@ test("remote edits conflict, refresh does not discard intent, and explicit local
 test("keeping remote value cancels intent and stale revisions cannot overwrite it", async () => {
 	const f = await fixture();
 	f.setRemote({ ...initial, progress: 6 });
-	f.worker.update(1, f.input({ progress: 4 }));
+	f.worker.update("anilist:anime:1", f.input({ progress: 4 }));
 	await f.worker.flush();
 	const op = f.operation();
 	if (!op) throw Error("missing");
@@ -198,16 +198,16 @@ test("keeping remote value cancels intent and stale revisions cannot overwrite i
 	expect(f.operation()?.state).toBe("cancelled");
 	expect(f.save).not.toHaveBeenCalled();
 	expect(() =>
-		f.worker.update(1, f.input({ progress: 2 }, op.revision)),
+		f.worker.update("anilist:anime:1", f.input({ progress: 2 }, op.revision)),
 	).toThrow();
 });
 test("unrelated remote status edits do not conflict with progress-only intent", async () => {
 	const f = await fixture();
-	f.setRemote({ ...initial, status: "PAUSED" });
-	f.worker.update(1, f.input({ progress: 4 }));
+	f.setRemote({ ...initial, status: "paused" });
+	f.worker.update("anilist:anime:1", f.input({ progress: 4 }));
 	await f.worker.flush();
 	expect(f.operation()?.state).toBe("succeeded");
-	expect(f.operation()?.remote?.status).toBe("PAUSED");
+	expect(f.operation()?.remote?.status).toBe("paused");
 });
 test("an in-flight immutable attempt cannot clear a newer manual correction", async () => {
 	const f = await fixture();
@@ -219,9 +219,9 @@ test("an in-flight immutable attempt cannot clear a newer manual correction", as
 		f.setRemote({ ...initial, progress: 4 });
 		return { ...initial, progress: 4 };
 	});
-	const first = f.worker.update(1, f.input({ progress: 4 }));
+	const first = f.worker.update("anilist:anime:1", f.input({ progress: 4 }));
 	await vi.waitFor(() => expect(f.save).toHaveBeenCalledTimes(1));
-	f.worker.update(1, f.input({ progress: 1 }, first.revision));
+	f.worker.update("anilist:anime:1", f.input({ progress: 1 }, first.revision));
 	finish?.();
 	await f.worker.flush();
 
@@ -237,9 +237,9 @@ test("account switch fences late responses and never delivers previous account w
 		});
 		return initial;
 	});
-	f.worker.update(1, f.input({ progress: 4 }));
+	f.worker.update("anilist:anime:1", f.input({ progress: 4 }));
 	await vi.waitFor(() => expect(f.get).toHaveBeenCalled());
-	f.switchAccount(8);
+	f.switchAccount("anilist:8");
 	finish?.();
 	await f.worker.flush();
 	await f.worker.flush();
@@ -248,8 +248,8 @@ test("account switch fences late responses and never delivers previous account w
 });
 test("authorization errors pause submission; reconnect resumes the same account only", async () => {
 	const f = await fixture();
-	f.get.mockRejectedValueOnce(new TrackingListError("unauthorized", null));
-	f.worker.update(1, f.input({ progress: 4 }));
+	f.get.mockRejectedValueOnce(new TrackingProviderError("unauthorized", null));
+	f.worker.update("anilist:anime:1", f.input({ progress: 4 }));
 	await f.worker.flush();
 	expect(f.status.state).toBe("authorization-required");
 	expect(f.operation()?.state).toBe("authorization-required");
@@ -263,15 +263,20 @@ test("authorization errors pause submission; reconnect resumes the same account 
 test("new entries require an explicit status and deleted entries conflict", async () => {
 	const f = await fixture();
 	expect(() =>
-		f.worker.update(1, { ...f.input({ progress: 0 }), baseline: null }),
+		f.worker.update("anilist:anime:1", {
+			...f.input({ progress: 0 }),
+			baseline: null,
+		}),
 	).toThrow();
 	f.setRemote(null);
-	f.worker.update(1, f.input({ progress: 4 }));
+	f.worker.update("anilist:anime:1", f.input({ progress: 4 }));
 	await f.worker.flush();
 	expect(f.operation()?.state).toBe("conflict");
 });
 const rawState = {
 	...initial,
+	id: 10,
+	status: "CURRENT",
 	userId: 7,
 	mediaId: 1,
 	media: { type: "ANIME" },
@@ -317,8 +322,8 @@ test("protocol treats not-found as absent but rejects account/media/type mismatc
 
 test("transient attempts stop automatically after five failures and allow explicit retry", async () => {
 	const f = await fixture();
-	f.get.mockRejectedValue(new TrackingListError("rate-limited", 50_000));
-	f.worker.update(1, f.input({ progress: 4 }));
+	f.get.mockRejectedValue(new TrackingProviderError("rate-limited", 50_000));
+	f.worker.update("anilist:anime:1", f.input({ progress: 4 }));
 	for (let i = 0; i < 5; i++) {
 		await f.worker.flush();
 		f.advance();
@@ -373,11 +378,13 @@ test("new anime entries validate the target and send explicit initial status", a
 
 test("a definite invalid request can be corrected without replaying the rejected payload", async () => {
 	const f = await fixture();
-	f.save.mockRejectedValueOnce(new TrackingListError("invalid-request", null));
-	const first = f.worker.update(1, f.input({ progress: 9999 }));
+	f.save.mockRejectedValueOnce(
+		new TrackingProviderError("invalid-request", null),
+	);
+	const first = f.worker.update("anilist:anime:1", f.input({ progress: 9999 }));
 	await f.worker.flush();
 	expect(f.operation()?.attempt).toBeNull();
-	f.worker.update(1, f.input({ progress: 4 }, first.revision));
+	f.worker.update("anilist:anime:1", f.input({ progress: 4 }, first.revision));
 	await f.worker.flush();
 	expect(f.operation()?.state).toBe("succeeded");
 	expect(f.save.mock.calls[1]?.[3]).toEqual({ progress: 4 });
@@ -391,8 +398,8 @@ test("worker sleeps when idle and arms only the next failed-operation deadline",
 		const reads = vi.spyOn(f.store, "list");
 		await vi.advanceTimersByTimeAsync(60_000);
 		expect(reads).not.toHaveBeenCalled();
-		f.get.mockRejectedValueOnce(new TrackingListError("unavailable", null));
-		f.worker.update(1, f.input({ progress: 8 }));
+		f.get.mockRejectedValueOnce(new TrackingProviderError("unavailable", null));
+		f.worker.update("anilist:anime:1", f.input({ progress: 8 }));
 		await f.worker.flush();
 		expect(f.operation()?.state).toBe("failed");
 		expect(f.get).toHaveBeenCalledTimes(1);
@@ -412,8 +419,8 @@ test("worker sleeps when idle and arms only the next failed-operation deadline",
 
 test("reconnection wakes retained authorization-required operations without polling", async () => {
 	const f = await fixture();
-	f.get.mockRejectedValueOnce(new TrackingListError("unauthorized", null));
-	f.worker.update(1, f.input({ progress: 8 }));
+	f.get.mockRejectedValueOnce(new TrackingProviderError("unauthorized", null));
+	f.worker.update("anilist:anime:1", f.input({ progress: 8 }));
 	await f.worker.flush();
 	expect(f.operation()?.state).toBe("authorization-required");
 	f.status.state = "connected";

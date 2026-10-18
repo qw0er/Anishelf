@@ -1,7 +1,7 @@
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { TrackingListSnapshot } from "../domain/list.js";
-import { TrackingListError } from "../domain/list.js";
+import { TrackingProviderError } from "../domain/list.js";
 import type {
 	TrackingListAccess,
 	TrackingListProvider,
@@ -67,6 +67,7 @@ export class TrackingListReader {
 		)
 			void this.refresh(status.generation).catch(() => {});
 		return {
+			provider: status.provider,
 			accountId: status.account?.id ?? null,
 			generation: status.generation,
 			state: status.state,
@@ -106,7 +107,7 @@ export class TrackingListReader {
 		this.failures.delete(generation);
 		this.logger?.debug(
 			{ event: "tracking.list_refresh_started", generation },
-			"Refreshing AniList lists.",
+			"Refreshing Tracking lists.",
 		);
 		try {
 			const lease = await this.options.access.acquire();
@@ -129,7 +130,7 @@ export class TrackingListReader {
 					count: entries.length,
 					durationMs: this.now() - started,
 				},
-				"AniList list snapshot published.",
+				"Tracking list snapshot published.",
 			);
 		} catch (error) {
 			if (
@@ -139,19 +140,19 @@ export class TrackingListReader {
 			) {
 				this.logger?.debug(
 					{ event: "tracking.list_refresh_cancelled" },
-					"AniList list refresh cancelled.",
+					"Tracking list refresh cancelled.",
 				);
 				return;
 			}
 			const code =
-				error instanceof TrackingListError
+				error instanceof TrackingProviderError
 					? error.code
 					: error instanceof DomainError &&
 							error.code === "TRACKING_AUTHORIZATION_REQUIRED"
 						? "unauthorized"
 						: "unavailable";
 			const retryAt =
-				error instanceof TrackingListError && error.retryAt !== null
+				error instanceof TrackingProviderError && error.retryAt !== null
 					? error.retryAt
 					: code === "unauthorized"
 						? null
@@ -167,17 +168,17 @@ export class TrackingListReader {
 					retryAt,
 					retainedCache: Boolean(
 						this.options.store.read(
-							this.options.access.status().account?.id ?? 0,
+							this.options.access.status().account?.id ?? "",
 						),
 					),
 				},
-				"AniList list refresh failed; previous snapshot retained.",
+				"Tracking list refresh failed; previous snapshot retained.",
 			);
 		}
 	}
 	confirmed(
-		accountId: number,
-		mediaId: number,
+		accountId: string,
+		mediaId: string,
 		remote: import("../domain/operation.js").TrackingRemoteState | null,
 	): void {
 		this.mutationRevision++;

@@ -13,7 +13,7 @@ export type {
 } from "./domain/list.js";
 export interface TrackingAccountsApi {
 	status(): TrackingStatus;
-	preview(sessionId: string, token: string): Promise<TrackingPreview>;
+	preview(sessionId: string, credential: string): Promise<TrackingPreview>;
 	confirm(
 		sessionId: string,
 		candidateId: string,
@@ -35,8 +35,8 @@ export interface TrackingUpdatesApi {
 		commandId: string,
 		generation: string,
 	): TrackingOperation | undefined;
-	manualVersion(mediaId: number, generation: string): number;
-	update(mediaId: number, input: TrackingUpdate): TrackingOperation;
+	manualVersion(mediaId: string, generation: string): number;
+	update(mediaId: string, input: TrackingUpdate): TrackingOperation;
 	retryOperation(
 		id: string,
 		input: TrackingOperationCommand,
@@ -69,7 +69,20 @@ export interface TrackingObservationOutcome {
 	operationId?: string;
 	revision?: number;
 }
+export type TrackingEpisodeResolution =
+	| {
+			state: "resolved";
+			target: import("./domain/operation.js").TrackingEpisodeTarget;
+	  }
+	| {
+			state: "unmapped" | "ambiguous" | "unsupported" | "unavailable";
+			target: null;
+	  };
 export interface TrackingViewingApi {
+	resolveTarget(
+		fileId: string,
+		sourceVersion: string,
+	): Promise<TrackingEpisodeResolution>;
 	target(
 		fileId: string,
 		sourceVersion: string,

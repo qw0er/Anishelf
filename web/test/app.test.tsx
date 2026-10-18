@@ -1,5 +1,6 @@
 import { queryClient } from "../src/shared/api/query-client.js";
 import { animeFixture, reviewFixture } from "./fixtures/anime.js";
+import { trackingProvider } from "./tracking-fixture.js";
 // @vitest-environment happy-dom
 
 import { StrictMode } from "react";
@@ -58,6 +59,7 @@ const file: FileResponse = {
 };
 
 const disconnectedList: AnimeLibraryResponse["tracking"] = {
+	provider: trackingProvider,
 	accountId: null,
 	generation: "fixture",
 	state: "disconnected",
@@ -359,11 +361,11 @@ beforeEach(() => {
 			init?.method === "DELETE"
 		)
 			return new Response(null, { status: 204 });
+		if (path.startsWith("/api/metadata/reference?"))
+			return json({ provider: "anilist", mediaType: "anime", id: "154587" });
 		if (path === "/api/tracking/account")
 			return json({
-				clientId: "53902",
-				authorizationUrl:
-					"https://anilist.co/api/v2/oauth/authorize?client_id=53902&response_type=token",
+				provider: trackingProvider,
 				generation: "fixture",
 				account: null,
 				state: "disconnected",
@@ -1997,7 +1999,7 @@ function mockReview(confirmed = false) {
 	return item;
 }
 async function selectReviewWork() {
-	const input = await screen.findByLabelText("AniList ID or anime URL");
+	const input = await screen.findByLabelText("Provider ID or work URL");
 	fireEvent.change(input, {
 		target: { value: "https://anilist.co/anime/154587/Frieren" },
 	});
@@ -2532,7 +2534,8 @@ test("AniList library shows status and remote-only details, keeps filters and re
 	const detail = animeFixture();
 	const fallback = fetcher.getMockImplementation();
 	const tracking: AnimeLibraryResponse["tracking"] = {
-		accountId: 7,
+		provider: trackingProvider,
+		accountId: "anilist:7",
 		generation: "list-fixture",
 		state: "connected",
 		fetchedAt: 1000,
@@ -2548,16 +2551,15 @@ test("AniList library shows status and remote-only details, keeps filters and re
 		reference: { provider: "anilist", mediaType: "anime", id: "2" },
 		availableEpisodes: 0,
 		availableRegularEpisodes: 0,
-		viewing: { status: "PLANNING", progress: 0, updatedAt: 1 },
+		viewing: { status: "planned", progress: 0, updatedAt: 1 },
 	};
 	fetcher.mockImplementation(async (input, init) => {
 		const path = String(input);
 		if (path === "/api/tracking/account")
 			return json({
-				clientId: "fixture",
-				authorizationUrl: "https://anilist.co",
+				provider: trackingProvider,
 				generation: tracking.generation,
-				account: { id: 7, name: "Fixture" },
+				account: { id: "anilist:7", name: "Fixture" },
 				state: "connected",
 				connectivity: "available",
 				checkedAt: 0,
@@ -2572,7 +2574,7 @@ test("AniList library shows status and remote-only details, keeps filters and re
 								{
 									...detail.work,
 									localWorkId: detail.work.id,
-									viewing: { status: "CURRENT", progress: 3, updatedAt: 1 },
+									viewing: { status: "watching", progress: 3, updatedAt: 1 },
 								},
 							],
 				page: 1,
@@ -2588,14 +2590,14 @@ test("AniList library shows status and remote-only details, keeps filters and re
 			tracking.error = null;
 			return json({ ...tracking, entries: [] });
 		}
-		if (path.startsWith("/api/tracking/entries/2?"))
+		if (path.startsWith("/api/tracking/entries/anilist%3Aanime%3A2?"))
 			return json({
 				...tracking,
 				entry: {
 					id: 1,
 					mediaId: 2,
 					progress: 0,
-					status: "PLANNING",
+					status: "planned",
 					updatedAt: 1,
 					titles: ["Remote work"],
 					format: "TV",
@@ -2623,33 +2625,41 @@ test("AniList library shows status and remote-only details, keeps filters and re
 	expect(toolbar.getByRole("button", { name: "Filters" })).toBeTruthy();
 	expect(toolbar.getByRole("combobox", { name: "Sort by" })).toBeTruthy();
 	const refreshButton = toolbar.getByRole("button", {
-		name: "Refresh AniList list",
+		name: "Refresh the tracking service list",
 	});
 	expect(refreshButton.textContent).toBe("");
 	expect(refreshButton.hasAttribute("data-base-ui-tooltip-trigger")).toBe(true);
 	expect(
-		screen.queryByText("Showing cached AniList viewing state."),
+		screen.queryByText("Showing cached the tracking service viewing state."),
 	).toBeNull();
 	expect(screen.queryByRole("combobox", { name: "Library scope" })).toBeNull();
 	expect(
-		screen.queryByRole("combobox", { name: "AniList viewing state" }),
+		screen.queryByRole("combobox", {
+			name: "the tracking service viewing state",
+		}),
 	).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Filters" }));
 	fireEvent.change(screen.getByRole("combobox", { name: "Library scope" }), {
 		target: { value: "all" },
 	});
 	const remoteLink = await screen.findByRole("link", { name: "Remote work" });
-	expect(remoteLink.getAttribute("href")).toContain("/anime/tracked/2?");
+	expect(remoteLink.getAttribute("href")).toContain(
+		"/anime/tracked/anilist%3Aanime%3A2?",
+	);
 	fireEvent.change(
-		screen.getByRole("combobox", { name: "AniList viewing state" }),
-		{ target: { value: "PLANNING" } },
+		screen.getByRole("combobox", {
+			name: "the tracking service viewing state",
+		}),
+		{ target: { value: "planned" } },
 	);
 	await waitFor(() =>
 		expect(screen.getByTestId("location").textContent).toContain(
-			"viewingStatus=PLANNING",
+			"viewingStatus=planned",
 		),
 	);
-	fireEvent.click(screen.getByRole("button", { name: "Refresh AniList list" }));
+	fireEvent.click(
+		screen.getByRole("button", { name: "Refresh the tracking service list" }),
+	);
 	await waitFor(() =>
 		expect(
 			fetcher.mock.calls.some(
@@ -2660,16 +2670,16 @@ test("AniList library shows status and remote-only details, keeps filters and re
 	);
 	await waitFor(() =>
 		expect(
-			screen.queryByText("Showing cached AniList viewing state."),
+			screen.queryByText("Showing cached the tracking service viewing state."),
 		).toBeNull(),
 	);
-	await screen.findByText("AniList list refreshed.", {
+	await screen.findByText("the tracking service list refreshed.", {
 		selector: "[data-slot=toast-title]",
 	});
 	fireEvent.click(await screen.findByRole("link", { name: "Remote work" }));
 	await screen.findByRole("heading", { name: "Remote work", level: 1 });
 	const remoteState = within(
-		screen.getByRole("region", { name: "AniList viewing state" }),
+		screen.getByRole("region", { name: "the tracking service viewing state" }),
 	);
 	expect(remoteState.getByText("Planning")).toBeTruthy();
 	expect(remoteState.getByText("0 / 12 episodes")).toBeTruthy();
@@ -2681,7 +2691,7 @@ test("AniList library shows status and remote-only details, keeps filters and re
 	fireEvent.click(screen.getByRole("link", { name: "Back to library" }));
 	await screen.findByRole("heading", { name: "Anime library" });
 	expect(screen.getByTestId("location").textContent).toContain(
-		"scope=all&viewingStatus=PLANNING",
+		"scope=all&viewingStatus=planned",
 	);
 	expect(
 		fetcher.mock.calls.some(([url]) =>
@@ -2702,10 +2712,10 @@ test("account lookup failure keeps Library filters and retries without falling b
 			);
 		return requiredFetch(fallback)(input, init);
 	});
-	renderApp("/?scope=all&viewingStatus=PLANNING&query=Frieren&page=2");
+	renderApp("/?scope=all&viewingStatus=planned&query=Frieren&page=2");
 	const retry = await screen.findByRole("button", { name: "Retry" });
 	expect(screen.getByTestId("location").textContent).toContain(
-		"viewingStatus=PLANNING",
+		"viewingStatus=planned",
 	);
 	expect(
 		fetcher.mock.calls.some(([path]) =>
@@ -2721,7 +2731,7 @@ test("account lookup failure keeps Library filters and retries without falling b
 			return (
 				url.pathname === "/api/anime/library" &&
 				url.searchParams.get("scope") === "all" &&
-				url.searchParams.get("viewingStatus") === "PLANNING" &&
+				url.searchParams.get("viewingStatus") === "planned" &&
 				url.searchParams.get("query") === "Frieren" &&
 				url.searchParams.get("page") === "2" &&
 				url.searchParams.get("generation") === "fixture"
@@ -2742,7 +2752,7 @@ test("Library filters allow All works before local setup and disable viewing sta
 	expect(screen.queryByRole("combobox", { name: "Library scope" })).toBeNull();
 	fireEvent.click(filters);
 	const viewing = screen.getByRole("combobox", {
-		name: "AniList viewing state",
+		name: "the tracking service viewing state",
 	});
 	expect(viewing.hasAttribute("disabled")).toBe(true);
 	fireEvent.change(screen.getByRole("combobox", { name: "Library scope" }), {
@@ -2766,7 +2776,9 @@ test("Library filters allow All works before local setup and disable viewing sta
 test("the Library AniList connection button opens Settings", async () => {
 	renderApp("/");
 	fireEvent.click(
-		await screen.findByRole("button", { name: "Connect AniList in Settings" }),
+		await screen.findByRole("button", {
+			name: "Connect the tracking service in Settings",
+		}),
 	);
 	await screen.findByRole("heading", { name: "Settings", level: 1 });
 	expect(screen.getByTestId("location").textContent).toContain("/settings");
@@ -2777,7 +2789,8 @@ test.each(["retained response", "network"])(
 	async (failureKind) => {
 		const fallback = fetcher.getMockImplementation();
 		const snapshot: AnimeLibraryResponse["tracking"] = {
-			accountId: 7,
+			provider: trackingProvider,
+			accountId: "anilist:7",
 			generation: `manual-${failureKind}`,
 			state: "connected",
 			fetchedAt: 1000,
@@ -2789,10 +2802,9 @@ test.each(["retained response", "network"])(
 			const path = String(input);
 			if (path === "/api/tracking/account")
 				return json({
-					clientId: "fixture",
-					authorizationUrl: "https://anilist.co",
+					provider: trackingProvider,
 					generation: snapshot.generation,
-					account: { id: 7, name: "Fixture" },
+					account: { id: "anilist:7", name: "Fixture" },
 					state: "connected",
 					connectivity: "available",
 					checkedAt: 0,
@@ -2815,29 +2827,31 @@ test.each(["retained response", "network"])(
 			return requiredFetch(fallback)(input, init);
 		});
 		renderApp("/");
-		await screen.findByRole("button", { name: "Refresh AniList list" });
+		await screen.findByRole("button", {
+			name: "Refresh the tracking service list",
+		});
 		fireEvent.click(
-			screen.getByRole("button", { name: "Refresh AniList list" }),
+			screen.getByRole("button", { name: "Refresh the tracking service list" }),
 		);
 		await screen.findByText(
 			failureKind === "network"
 				? /Cannot connect to the server/
-				: /Could not refresh AniList/,
+				: /Could not refresh the tracking service/,
 			{ selector: "[data-slot=toast-title]" },
 		);
 		const main = within(screen.getByRole("main"));
 		expect(
 			main.queryByText(
-				/Could not refresh AniList|Cannot connect to the server/,
+				/Could not refresh the tracking service|Cannot connect to the server/,
 			),
 		).toBeNull();
 		expect(
-			main.queryByText("Showing cached AniList viewing state."),
+			main.queryByText("Showing cached the tracking service viewing state."),
 		).toBeNull();
 		await waitFor(() =>
 			expect(
 				screen
-					.getByRole("button", { name: "Refresh AniList list" })
+					.getByRole("button", { name: "Refresh the tracking service list" })
 					.hasAttribute("disabled"),
 			).toBe(false),
 		);
@@ -2967,17 +2981,17 @@ test.each([0, 2])(
 			const path = String(input);
 			if (path === "/api/tracking/account")
 				return json({
-					clientId: "fixture",
-					authorizationUrl: "https://anilist.co",
+					provider: trackingProvider,
 					generation: "header-viewing",
-					account: { id: 7, name: "Fixture" },
+					account: { id: "anilist:7", name: "Fixture" },
 					state: "connected",
 					connectivity: "available",
 					checkedAt: 0,
 				});
-			if (path.startsWith("/api/tracking/entries/154587?"))
+			if (path.startsWith("/api/tracking/entries/anilist%3Aanime%3A154587?"))
 				return json({
-					accountId: 7,
+					provider: trackingProvider,
+					accountId: "anilist:7",
 					generation: "header-viewing",
 					state: "connected",
 					fetchedAt: 1000,
@@ -2988,7 +3002,7 @@ test.each([0, 2])(
 						id: 1,
 						mediaId: 154587,
 						progress,
-						status: "CURRENT",
+						status: "watching",
 						updatedAt: 1,
 						titles: ["Frieren"],
 						format: "TV",
@@ -3007,7 +3021,7 @@ test.each([0, 2])(
 		const header = title.parentElement;
 		if (!header) throw new Error("Missing title header");
 		const summary = await within(header).findByRole("region", {
-			name: "AniList viewing state",
+			name: "the tracking service viewing state",
 		});
 		await within(summary).findByText(`${progress} / 3 episodes`);
 		expect(screen.queryByText(/AniList progress: 2 watched/)).toBeNull();
@@ -3029,7 +3043,7 @@ test.each([0, 2])(
 			expect(hint.textContent).toContain("1 unwatched available");
 			fireEvent.click(hint);
 			await screen.findByText(
-				"Locally available episodes numbered after your cumulative AniList progress. Local playback history is separate.",
+				"Locally available episodes numbered after your cumulative the tracking service progress. Local playback history is separate.",
 			);
 		}
 		expect(within(summary).getByText("Watching")).toBeTruthy();
@@ -3038,7 +3052,9 @@ test.each([0, 2])(
 			within(summary).queryByText(/separate from local playback history/),
 		).toBeNull();
 		expect(
-			screen.getAllByRole("region", { name: "AniList viewing state" }),
+			screen.getAllByRole("region", {
+				name: "the tracking service viewing state",
+			}),
 		).toHaveLength(1);
 	},
 );

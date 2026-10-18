@@ -11,12 +11,12 @@ import { ViewingEditor } from "./viewing-editor.js";
 
 type ViewingStatus = NonNullable<TrackingEntryResponse["entry"]>["status"];
 const statusStyles: Record<ViewingStatus, string> = {
-	CURRENT: "bg-primary/10 text-primary",
-	PLANNING: "bg-muted text-muted-foreground",
-	COMPLETED: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-	PAUSED: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-	DROPPED: "bg-muted text-muted-foreground",
-	REPEATING: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
+	watching: "bg-primary/10 text-primary",
+	planned: "bg-muted text-muted-foreground",
+	completed: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+	paused: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+	dropped: "bg-muted text-muted-foreground",
+	rewatching: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
 };
 
 export function ViewingSummary({
@@ -28,6 +28,12 @@ export function ViewingSummary({
 }) {
 	const { t } = useTranslation();
 	if (!state.visible) return null;
+	if (state.unmapped)
+		return (
+			<p className="text-sm text-muted-foreground">
+				{t("trackingList.unmapped")}
+			</p>
+		);
 	const snapshot = state.snapshot;
 	const entry = snapshot?.entry;
 	const hasSnapshot = snapshot !== undefined && snapshot.fetchedAt !== null;
@@ -40,7 +46,7 @@ export function ViewingSummary({
 			className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm"
 		>
 			<span className="text-xs font-medium text-muted-foreground">
-				{t("trackingList.provider")}
+				{snapshot?.provider.name ?? t("trackingList.provider")}
 			</span>
 			{entry ? (
 				<>

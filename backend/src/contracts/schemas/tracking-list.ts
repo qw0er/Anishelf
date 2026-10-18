@@ -1,20 +1,22 @@
 import { Type } from "typebox";
+import { TrackingProviderSchema } from "./tracking-provider.js";
 export const ViewingStatusSchema = Type.Union([
-	Type.Literal("CURRENT"),
-	Type.Literal("PLANNING"),
-	Type.Literal("COMPLETED"),
-	Type.Literal("PAUSED"),
-	Type.Literal("DROPPED"),
-	Type.Literal("REPEATING"),
+	Type.Literal("watching"),
+	Type.Literal("planned"),
+	Type.Literal("completed"),
+	Type.Literal("paused"),
+	Type.Literal("dropped"),
+	Type.Literal("rewatching"),
 ]);
 export const ViewingStateSchema = Type.Object({
 	status: ViewingStatusSchema,
 	progress: Type.Integer({ minimum: 0 }),
-	updatedAt: Type.Integer(),
+	updatedAt: Type.Union([Type.Integer(), Type.Null()]),
 });
 const text = Type.Union([Type.String(), Type.Null()]);
 export const TrackingListEnvelopeSchema = Type.Object({
-	accountId: Type.Union([Type.Integer(), Type.Null()]),
+	provider: TrackingProviderSchema,
+	accountId: Type.Union([Type.String(), Type.Null()]),
 	generation: Type.String(),
 	state: Type.Union([
 		Type.Literal("disconnected"),
@@ -33,11 +35,11 @@ export const TrackingListEnvelopeSchema = Type.Object({
 	]),
 });
 const entry = Type.Object({
-	id: Type.Integer(),
-	mediaId: Type.Integer(),
+	id: Type.String({ minLength: 1 }),
+	mediaId: Type.String({ minLength: 1 }),
 	progress: Type.Integer(),
 	status: ViewingStatusSchema,
-	updatedAt: Type.Integer(),
+	updatedAt: Type.Union([Type.Integer(), Type.Null()]),
 	titles: Type.Array(Type.String()),
 	format: text,
 	year: Type.Union([Type.Integer(), Type.Null()]),

@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
-import { TrackingListError } from "../domain/list.js";
+import { workReference } from "../../../../shared/external-reference.js";
+import { TrackingProviderError } from "../domain/list.js";
 import type {
 	TrackingAttempt,
 	TrackingDesiredState,
@@ -21,8 +22,8 @@ interface Options {
 	store: TrackingOperationStore;
 	provider: TrackingUpdateProvider;
 	confirmed(
-		accountId: number,
-		mediaId: number,
+		accountId: string,
+		mediaId: string,
 		remote: TrackingRemoteState | null,
 	): void;
 	logger?: Logger;
@@ -93,18 +94,38 @@ export class TrackingUpdates {
 			? this.operations(generation).find((op) => op.id === command.operationId)
 			: undefined;
 	}
-	manualVersion(mediaId: number, generation: string): number {
+	manualVersion(mediaId: string, generation: string): number {
 		this.options.access.assertCurrent(generation);
 		const accountId = this.options.access.status().account?.id;
 		return accountId ? this.options.store.manualVersion(accountId, mediaId) : 0;
 	}
-	update(mediaId: number, input: TrackingUpdate): TrackingOperation {
+	private validTarget(key: string, provider: string): boolean {
+		try {
+			return key.length <= 1024 && workReference(key).provider === provider;
+		} catch {
+			return false;
+		}
+	}
+	private supported(desired: TrackingDesiredState): boolean {
+		const capabilities = this.options.access.status().provider.capabilities;
+		return (
+			Object.keys(desired).length > 0 &&
+			(desired.status === undefined ||
+				capabilities.statuses.includes(desired.status)) &&
+			(desired.progress === undefined ||
+				(Number.isSafeInteger(desired.progress) &&
+					desired.progress >= 0 &&
+					desired.progress <= capabilities.maximumProgress))
+		);
+	}
+
+	update(mediaId: string, input: TrackingUpdate): TrackingOperation {
 		const status = this.options.access.status();
 		this.options.access.assertCurrent(input.generation);
 		if (!status.account || status.state !== "connected")
 			throw new DomainError(
 				"TRACKING_AUTHORIZATION_REQUIRED",
-				"Reconnect AniList before changing viewing state.",
+				"Reconnect Tracking before changing viewing state.",
 			);
 		if (this.lifetime.signal.aborted)
 			this.failure("TRACKING_UNAVAILABLE", "Tracking stopped.");
@@ -123,19 +144,14 @@ export class TrackingUpdates {
 		}
 		const desired = input.desired;
 		if (
-			!Number.isSafeInteger(mediaId) ||
-			mediaId <= 0 ||
-			mediaId > 2147483647 ||
-			!Object.keys(desired).length ||
-			(desired.progress !== undefined &&
-				(!Number.isInteger(desired.progress) ||
-					desired.progress < 0 ||
-					desired.progress > 2147483647))
+			!this.validTarget(mediaId, status.provider.key) ||
+			!this.supported(desired)
 		)
 			this.failure(
 				"INVALID_REQUEST",
-				"Enter a nonnegative progress or a tracking status.",
+				"The tracking provider does not support this target, progress or status.",
 			);
+
 		const operations = this.operations(input.generation);
 		const previous = operations.find((op) => op.mediaId === mediaId);
 		if ((previous?.revision ?? null) !== input.revision)
@@ -153,7 +169,7 @@ export class TrackingUpdates {
 		)
 			this.failure(
 				"INVALID_REQUEST",
-				"Choose an initial status when adding to AniList.",
+				"Choose an initial status when adding to Tracking.",
 			);
 		if (
 			(!previous || terminal(previous)) &&
@@ -231,7 +247,7 @@ export class TrackingUpdates {
 		if (this.options.access.status().state !== "connected")
 			throw new DomainError(
 				"TRACKING_AUTHORIZATION_REQUIRED",
-				"Reconnect AniList first.",
+				"Reconnect Tracking first.",
 			);
 		const next: TrackingOperation = {
 			...op,
@@ -263,7 +279,7 @@ export class TrackingUpdates {
 		if (!keepRemote && !remote && !op.desired.status)
 			this.failure(
 				"INVALID_REQUEST",
-				"Remote entry was removed. Keep AniList value, then choose an initial status.",
+				"Remote entry was removed. Keep Tracking value, then choose an initial status.",
 			);
 		const next: TrackingOperation = {
 			...op,
@@ -295,6 +311,7 @@ export class TrackingUpdates {
 		this.options.logger?.info(
 			{
 				event: "tracking.operation_state",
+				provider: this.options.access.status().provider.key,
 				operationId: op.id,
 				accountId: op.accountId,
 				mediaId: op.mediaId,
@@ -307,7 +324,7 @@ export class TrackingUpdates {
 				code: op.error,
 				retryAt: op.retryAt,
 			},
-			"AniList viewing operation persisted.",
+			"Tracking viewing operation persisted.",
 		);
 	}
 	private wake() {
@@ -404,6 +421,14 @@ export class TrackingUpdates {
 		try {
 			const lease = await this.options.access.acquire();
 			if (lease.generation !== generation) return;
+			if (
+				!this.validTarget(
+					op.mediaId,
+					this.options.access.status().provider.key,
+				) ||
+				!this.supported(attempt.desired)
+			)
+				throw new TrackingProviderError("invalid-request", null);
 			signal = AbortSignal.any([lease.signal, this.lifetime.signal]);
 			let remote = await this.options.provider.get(lease, op.mediaId, signal);
 			signal.throwIfAborted();
@@ -439,7 +464,7 @@ export class TrackingUpdates {
 				signal.throwIfAborted();
 				this.options.access.assertCurrent(generation);
 				if (!matches(remote, attempt.desired))
-					throw new TrackingListError("invalid-response", null);
+					throw new TrackingProviderError("invalid-response", null);
 			}
 			signal.throwIfAborted();
 			this.options.access.assertCurrent(generation);
@@ -472,7 +497,7 @@ export class TrackingUpdates {
 				.find((item) => item.id === op.id);
 			if (!latest) return;
 			const code =
-				error instanceof TrackingListError
+				error instanceof TrackingProviderError
 					? error.code
 					: error instanceof DomainError &&
 							error.code === "TRACKING_AUTHORIZATION_REQUIRED"
@@ -491,7 +516,7 @@ export class TrackingUpdates {
 							this.now() +
 								Math.min(300_000, 2000 * 2 ** (attempts - 1)) *
 									(1 + (this.options.random ?? Math.random)()),
-							error instanceof TrackingListError ? (error.retryAt ?? 0) : 0,
+							error instanceof TrackingProviderError ? (error.retryAt ?? 0) : 0,
 						)
 					: null;
 			this.persist({

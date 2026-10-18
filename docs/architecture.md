@@ -100,8 +100,10 @@ Tracking or Catalog business types. Its account, list, update and metadata clien
 one `AniListScheduler` created by Anime assembly. Metadata and Tracking
 infrastructure adapters convert typed protocol results/errors into their own
 contracts. Their Applications depend on consumer-owned ports, not provider
-implementations or the AniList transport. The AniList authorization configuration
-is injected into Tracking during assembly.
+implementations or the AniList transport. Provider descriptors, credential-entry authorization, capabilities and adapters
+are injected into Tracking during assembly. AniList is the production provider.
+See [Provider-independent anime integration](tracking-provider-design.md) for
+identity encoding, mapping outcomes, provider replacement and migration 0017.
 
 `tracking/application/tracking.ts` owns the named `TrackingModule` facade and its
 ordered submission/list/account shutdown. `tracking/application/account.ts` coordinates
@@ -546,7 +548,7 @@ outbox outcomes only acknowledge operation IDs or an explicit ignored observatio
 The app injects Anime's `PlayerViewingControl` into Playback's viewing UI slot. It shares
 `useTrackingMutation` and operation queries with the detail editor, so confirmed, failed
 and conflict states stay consistent. No Playback decision endpoints or separate tracking
-status machine remain. Confirmed cached AniList cumulative progress drives all derived
+status machine remain. Confirmed cached provider cumulative progress drives all derived
 viewing indicators; it remains independent of local resume/history.
 
 ## Tracking Persistence and Submission
@@ -556,11 +558,14 @@ viewing indicators; it remains independent of local resume/history.
 | Source playback progress | Playback; source version/session/sequence authorize position/history writes |
 | Automatic observations | Playback; transactionally recorded with eligible position saves, with delivery-only outcomes and accepted operation identity |
 | Account connection and credential reference | Tracking; account generation fences credentials, account reads and delivery |
-| Complete remote list snapshot | Tracking; confirmed account-scoped AniList state with freshness/invalidation metadata |
+| Complete remote list snapshot | Tracking; confirmed provider/account-scoped remote state with freshness/invalidation metadata |
 | Revisioned viewing operation | Tracking; desired fields, remote baseline, decision requirement, immutable attempted payload and delivery/retry/conflict state |
 | Manual intent version and command receipt | Tracking; atomically admitted with intent, retained independently of operation pruning for ordering and replay deduplication |
 
-`TrackingViewingCommands` resolves only confirmed, unambiguous Catalog targets. Manual
+`TrackingViewingCommands` resolves only confirmed, unambiguous Catalog targets through
+a consumer-owned target resolver. Exact provider references resolve directly;
+unsupported, ambiguous and unmapped targets remain explicit. External IDs are
+opaque canonical keys, qualified by provider; adapters own numeric conversion. Manual
 player commands include the observed mapping revision and revalidate it on admission.
 Automatic observations additionally capture account/manual version; later manual changes
 fence them even across restarts and pruning. Detail absolute edits and player/automatic
@@ -584,6 +589,10 @@ preparation, source resume or history.
 
 The producer stops and waits for in-flight delivery before Tracking shuts down; Tracking stops submissions,
 then list work and account access before shared provider scheduling and persistence close.
+Migration 0017 namespaces account/work/entry IDs, normalizes viewing states and remote
+timestamps, and versions observation contexts while preserving attempts and intent order.
+Legacy credential files remain readable through exact generation/account binding;
+new credential files are versioned. Paired database/credential backups support restore.
 Migration 0015 removes coverage/decision receipts, preserves history and admitted attempts,
 and explicitly terminates legacy observations that lack an intent version. Startup does
 not blindly replay those old observations. This is a migration boundary, not a current

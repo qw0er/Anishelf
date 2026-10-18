@@ -3,7 +3,7 @@ export interface TrackingEpisode {
 	number: string;
 	versions: { available: boolean }[];
 }
-/** Cumulative AniList progress; specials/fractional numbers remain unknown. */
+/** Cumulative Tracking progress; specials/fractional numbers remain unknown. */
 export function episodeViewing(
 	episode: TrackingEpisode,
 	progress: number | null,

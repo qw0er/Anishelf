@@ -1,3 +1,4 @@
+export { resolveMetadataReference } from "./api.js";
 export {
 	airingQuery,
 	identificationQuery,

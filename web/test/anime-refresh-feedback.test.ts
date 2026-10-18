@@ -8,9 +8,10 @@ import type { TrackingListResponse } from "../src/shared/api/contracts.js";
 import { createQueryClient } from "../src/shared/api/query-client.js";
 import { toast } from "../src/shared/components/ui/toast.js";
 import { animeFixture } from "./fixtures/anime.js";
+import { trackingProvider } from "./tracking-fixture.js";
 
 const fetcher = vi.fn<typeof fetch>();
-const identity = { accountId: 7, generation: "feedback-account" };
+const identity = { accountId: "anilist:7", generation: "feedback-account" };
 const filters = { page: 1, sort: "title" as const };
 const clients: ReturnType<typeof createQueryClient>[] = [];
 const json = (value: unknown) =>
@@ -25,6 +26,7 @@ function client() {
 function snapshot(): TrackingListResponse {
 	return {
 		...identity,
+		provider: trackingProvider,
 		state: "connected",
 		fetchedAt: 1000,
 		stale: true,

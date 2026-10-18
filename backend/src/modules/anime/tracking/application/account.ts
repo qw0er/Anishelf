@@ -28,9 +28,9 @@ export class TrackingAccountApplication
 	status(): TrackingStatus {
 		return this.options.connection.status();
 	}
-	preview(sessionId: string, token: string): Promise<TrackingPreview> {
+	preview(sessionId: string, credential: string): Promise<TrackingPreview> {
 		return this.options.diagnostics.observe("preview", () =>
-			this.options.authorizations.preview(sessionId, token),
+			this.options.authorizations.preview(sessionId, credential),
 		);
 	}
 	confirm(
@@ -82,14 +82,14 @@ export class TrackingAccountApplication
 				pendingPreviews: this.options.authorizations.pendingCount,
 				validations: this.options.authorizations.validationCount,
 			},
-			"Stopping AniList account service.",
+			"Stopping Tracking account service.",
 		);
 		this.options.connection.stop();
 		this.options.authorizations.clear();
 		await this.tail;
 		this.options.logger?.debug(
 			{ event: "tracking.stopped" },
-			"AniList account service stopped.",
+			"Tracking account service stopped.",
 		);
 	}
 }

@@ -12,6 +12,7 @@ import {
 	type AniListClient,
 	AniListError,
 } from "../src/modules/anime/anilist/public.js";
+import { createAniListTracking } from "../src/modules/anime/composition/anilist.js";
 import {
 	createTrackingAccounts,
 	createTrackingModule,
@@ -22,6 +23,7 @@ import { registerTrackingRoutes } from "../src/modules/anime/tracking/http/track
 import { registerTrackingUpdateRoutes } from "../src/modules/anime/tracking/http/updates.js";
 import { AniListAccountProvider } from "../src/modules/anime/tracking/infrastructure/account-provider.js";
 import { TrackingCredentialFiles } from "../src/modules/anime/tracking/infrastructure/credentials.js";
+import { aniListTracking } from "../src/modules/anime/tracking/infrastructure/provider-mapping.js";
 import type {
 	TrackingCredentials,
 	TrackingStore,
@@ -40,6 +42,7 @@ function createAccounts({
 	...options
 }: AccountTestOptions): TrackingAccountApplication {
 	return createTrackingAccounts({
+		descriptor: aniListTracking,
 		...options,
 		provider: new AniListAccountProvider(new AniListAccountClient(client)),
 	});
@@ -66,7 +69,7 @@ async function setup(
 		store: database.tracking,
 		listStore: database.trackingLists,
 		operationStore: database.trackingOperations,
-		client,
+		...createAniListTracking(client),
 		...(logger ? { logger } : {}),
 	});
 	cleanup.push(() => app.close());
@@ -86,7 +89,7 @@ test("credentials survive restart, remain private and never enter SQLite or publ
 	const initial = app.status();
 	expect(initial.state).toBe("disconnected");
 	const result = await connect(app);
-	expect(result.account).toEqual({ id: 7, name: "First" });
+	expect(result.account).toEqual({ id: "anilist:7", name: "First" });
 	expect(result.generation).not.toBe(initial.generation);
 	expect(JSON.stringify(result)).not.toContain("fixture-first");
 	expect(JSON.stringify(database.tracking.get())).not.toContain(
@@ -103,10 +106,12 @@ test("credentials survive restart, remain private and never enter SQLite or publ
 		store: database.tracking,
 		listStore: database.trackingLists,
 		operationStore: database.trackingOperations,
-		client: { request: async () => ({ Viewer: { id: 7, name: "First" } }) },
+		...createAniListTracking({
+			request: async () => ({ Viewer: { id: 7, name: "First" } }),
+		}),
 	});
 	cleanup.push(() => restarted.close());
-	expect(restarted.status().account?.id).toBe(7);
+	expect(restarted.status().account?.id).toBe("anilist:7");
 	expect((await restarted.check()).connectivity).toBe("available");
 	await restarted.disconnect(restarted.status().generation);
 	expect(await readdir(join(dataDir, "tracking-credentials"))).toEqual([]);
@@ -146,7 +151,7 @@ test("preview is bound to session, expires, and invalid replacement preserves th
 	await expect(tracking.preview("one", "invalid")).rejects.toMatchObject({
 		code: "TRACKING_AUTHORIZATION_REQUIRED",
 	});
-	expect(tracking.status().account?.id).toBe(7);
+	expect(tracking.status().account?.id).toBe("anilist:7");
 });
 
 test("disconnect fences an in-flight preview and a stale confirmation", async () => {
@@ -206,7 +211,7 @@ test("old account checks cannot replace a new account; invalid credentials requi
 	await app.confirm("one", preview.candidateId, preview.generation);
 	delayed?.({ Viewer: { id: 7, name: "First" } });
 	await rejected;
-	expect(app.status().account?.id).toBe(8);
+	expect(app.status().account?.id).toBe("anilist:8");
 	mode = "unauthorized";
 	await expect(app.check()).rejects.toMatchObject({
 		code: "TRACKING_AUTHORIZATION_REQUIRED",
@@ -223,7 +228,7 @@ test("missing/mismatched credential fails closed on startup; unreferenced files 
 		file,
 		JSON.stringify({
 			generation: "wrong",
-			accountId: 7,
+			accountId: "anilist:7",
 			token: "fixture-token",
 		}),
 	);
@@ -232,11 +237,11 @@ test("missing/mismatched credential fails closed on startup; unreferenced files 
 		store: database.tracking,
 		listStore: database.trackingLists,
 		operationStore: database.trackingOperations,
-		client: {
+		...createAniListTracking({
 			request: async () => {
 				throw new Error("Must not query an invalid credential");
 			},
-		},
+		}),
 	});
 	cleanup.push(() => restarted.close());
 	expect(restarted.status().state).toBe("authorization-required");
@@ -289,7 +294,7 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 
 	for (const url of [
 		"/api/tracking/list",
-		"/api/tracking/entries/1",
+		"/api/tracking/entries/anilist%3Aanime%3A1",
 		"/api/tracking/operations",
 	]) {
 		expect(
@@ -325,7 +330,7 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 				url: "/api/tracking/account/preview",
 				method: "POST",
 				headers: { host: one.host, cookie: one.cookie },
-				payload: { token: "fixture-token" },
+				payload: { credential: "fixture-token" },
 			})
 		).statusCode,
 	).toBe(403);
@@ -333,7 +338,7 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 		url: "/api/tracking/account/preview",
 		method: "POST",
 		headers: one,
-		payload: { token: "fixture-token" },
+		payload: { credential: "fixture-token" },
 	});
 	expect(preview.statusCode).toBe(200);
 	expect(preview.body).not.toContain("fixture-token");
@@ -363,13 +368,13 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 	expect(logs).not.toContain("fixture-token");
 	expect(confirmed.headers["cache-control"]).toBe("no-store");
 	const status = confirmed.json();
-	const updateUrl = "/api/tracking/entries/1/updates";
+	const updateUrl = "/api/tracking/entries/anilist%3Aanime%3A1/updates";
 	const updatePayload = {
 		commandId: randomUUID(),
 		generation: status.generation,
 		revision: null,
 		baseline: null,
-		desired: { progress: 0, status: "CURRENT" },
+		desired: { progress: 0, status: "watching" },
 	};
 	expect(
 		(
@@ -524,7 +529,7 @@ test("account lifecycle diagnostics record safe outcomes without tokens, session
 			}),
 			expect.objectContaining({
 				event: "tracking.account_previewed",
-				accountId: 7,
+				accountId: "anilist:7",
 				level: 30,
 			}),
 			expect.objectContaining({
@@ -629,7 +634,7 @@ test("a superseded preview cannot overwrite the latest candidate for the same se
 	expect(
 		(await app.confirm("one", latest.candidateId, latest.generation)).account
 			?.id,
-	).toBe(8);
+	).toBe("anilist:8");
 });
 
 test("an older check cannot publish after a newer check for the same connection", async () => {

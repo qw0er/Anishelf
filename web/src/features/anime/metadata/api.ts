@@ -56,3 +56,8 @@ export const getAiring = (
 		"GET",
 		options,
 	);
+
+export const resolveMetadataReference = (value: string) =>
+	request<
+		import("../../../shared/api/contracts.js").CatalogPreviewRequest["reference"]
+	>(`/api/metadata/reference?${new URLSearchParams({ value })}`, "GET");

@@ -200,6 +200,10 @@ Deferred acceptance retains its existing identifiers:
 
 See the [archived V2 requirements and design](history.md#v2-requirements).
 
+### Provider integration boundary
+
+Metadata and Tracking use provider-owned adapters behind application-owned contracts. AniList remains the production provider and authority for its viewing state. Opaque provider-qualified identities, product-owned viewing statuses, explicit target resolution outcomes and provider capability checks isolate Library and Playback from provider protocols. One tracking account and cumulative episode progress are supported. Additional production providers, simultaneous accounts and evidence-backed cross-provider episode mappings remain Later/Unassigned. See [the provider integration design](tracking-provider-design.md).
+
 ### 2.4 Viewing History and Tracking
 
 | ID | Feature | Scope | Implemented in | Target version |

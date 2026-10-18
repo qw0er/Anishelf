@@ -72,9 +72,9 @@ Open the same local address and keep the SSH connection active.
 
 ## Connect an AniList account
 
-Under **Settings → AniList account**, open **Authorize Anishelf on AniList**,
+Under **Settings → AniList account**, open **Open provider authorization**,
 authorize the application, and copy the access token from the AniList PIN page.
-Paste it into **AniList access token**, select **Preview account**, then verify
+Paste it into **Access token**, select **Preview account**, then verify
 the displayed identity and select **Confirm connection**. No developer application
 registration or local script is required for normal use.
 
@@ -90,7 +90,9 @@ local playback positions and history remain independent.
 
 Tokens persist in private files under the application data directory; protect
 backups of that directory. Public metadata access and local playback do not
-require an AniList account. See the [archived AniList design](docs/history.md#anilist-design-implemented-account-foundation)
+require an AniList account. Provider integration boundaries and upgrade/restore behavior are documented in
+[Provider-independent anime integration](docs/tracking-provider-design.md).
+See the [archived AniList design](docs/history.md#anilist-design-implemented-account-foundation)
 for storage and verification details.
 
 ## Deploy with a container

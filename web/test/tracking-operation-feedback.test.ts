@@ -8,17 +8,17 @@ import {
 import type { TrackingOperationResponse } from "../src/shared/api/contracts.js";
 import { toast } from "../src/shared/components/ui/toast.js";
 
-const identity = { accountId: 7, generation: "one" };
+const identity = { accountId: "anilist:7", generation: "one" };
 function completed(): TrackingOperationResponse {
 	return {
 		id: "operation",
-		accountId: 7,
-		mediaId: 9,
+		accountId: "anilist:7",
+		mediaId: "anilist:anime:9",
 		revision: 1,
 		baseline: null,
 		desired: { progress: 1 },
 		state: "succeeded",
-		remote: { id: 1, progress: 1, status: "CURRENT", updatedAt: 1 },
+		remote: { id: "anilist:1", progress: 1, status: "watching", updatedAt: 1 },
 		attempts: 1,
 		retryAt: null,
 		error: null,
@@ -50,9 +50,11 @@ test("does not replay old completed notices on first read or after account repla
 	const notify = vi.spyOn(toast, "add").mockReturnValue("notice");
 	reportTrackingOperations(client, identity, [completed()]);
 	clearTrackingOperationNotices(client, identity.generation);
-	reportTrackingOperations(client, { accountId: 8, generation: "two" }, [
-		{ ...completed(), accountId: 8 },
-	]);
+	reportTrackingOperations(
+		client,
+		{ accountId: "anilist:8", generation: "two" },
+		[{ ...completed(), accountId: "anilist:8" }],
+	);
 	expect(notify).not.toHaveBeenCalled();
 	client.clear();
 });

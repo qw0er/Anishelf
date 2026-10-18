@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { ViewingState } from "../src/features/anime/tracking/use-viewing-state.js";
 import { ViewingEditor } from "../src/features/anime/tracking/viewing-editor.js";
 import type { TrackingOperationResponse } from "../src/shared/api/contracts.js";
+import { trackingProvider } from "./tracking-fixture.js";
 import "../src/shared/i18n.js";
 import {
 	cleanup,
@@ -13,7 +14,8 @@ import {
 } from "./query-test-utils.js";
 
 const snapshot: NonNullable<ViewingState["snapshot"]> = {
-	accountId: 7,
+	provider: trackingProvider,
+	accountId: "anilist:7",
 	generation: "generation-one",
 	state: "connected",
 	fetchedAt: 1000,
@@ -21,10 +23,10 @@ const snapshot: NonNullable<ViewingState["snapshot"]> = {
 	refreshing: false,
 	error: null,
 	entry: {
-		id: 10,
-		mediaId: 1,
+		id: "anilist:10",
+		mediaId: "anilist:anime:1",
 		progress: 3,
-		status: "CURRENT",
+		status: "watching",
 		updatedAt: 100,
 		titles: ["Fixture"],
 		format: "TV",
@@ -51,13 +53,18 @@ const pending = (): TrackingOperationResponse => ({
 	intentAt: 1,
 	target: null,
 	decisionReason: null,
-	accountId: 7,
-	mediaId: 1,
+	accountId: "anilist:7",
+	mediaId: "anilist:anime:1",
 	revision: 1,
-	baseline: { id: 10, progress: 3, status: "CURRENT", updatedAt: 100 },
+	baseline: {
+		id: "anilist:10",
+		progress: 3,
+		status: "watching",
+		updatedAt: 100,
+	},
 	desired: { progress: 1 },
 	state: "pending",
-	remote: { id: 10, progress: 3, status: "CURRENT", updatedAt: 100 },
+	remote: { id: "anilist:10", progress: 3, status: "watching", updatedAt: 100 },
 	attempts: 0,
 	retryAt: null,
 	error: null,
@@ -89,9 +96,9 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 async function open() {
-	render(<ViewingEditor state={state} mediaId="1" />);
+	render(<ViewingEditor state={state} mediaId="anilist:anime:1" />);
 	fireEvent.click(
-		screen.getByRole("button", { name: "Edit AniList progress" }),
+		screen.getByRole("button", { name: "Edit the tracking service progress" }),
 	);
 	await screen.findByRole("spinbutton", { name: "Episodes watched" });
 }
@@ -101,10 +108,14 @@ test("manual backward correction submits only changed progress and shows pending
 		screen.getByRole("spinbutton", { name: "Episodes watched" }),
 		{ target: { value: "1" } },
 	);
-	fireEvent.click(screen.getByRole("button", { name: "Save to AniList" }));
-	await screen.findByText("AniList change queued");
+	fireEvent.click(
+		screen.getByRole("button", { name: "Save to the tracking service" }),
+	);
+	await screen.findByText("the tracking service change queued");
 	expect(
-		screen.getByText("Confirmed on AniList: 3 episodes · Watching"),
+		screen.getByText(
+			"Confirmed on the tracking service: 3 episodes · Watching",
+		),
 	).toBeTruthy();
 	expect(screen.getByText("Pending change: 1 episode · Watching")).toBeTruthy();
 	const call = fetcher.mock.calls.find(([url]) =>
@@ -126,17 +137,20 @@ test("status-only change omits progress and rejects negative progress in the for
 		{ target: { value: "-1" } },
 	);
 	expect(
-		screen.getByRole<HTMLButtonElement>("button", { name: "Save to AniList" })
-			.disabled,
+		screen.getByRole<HTMLButtonElement>("button", {
+			name: "Save to the tracking service",
+		}).disabled,
 	).toBe(true);
 	fireEvent.change(
 		screen.getByRole("spinbutton", { name: "Episodes watched" }),
 		{ target: { value: "3" } },
 	);
 	fireEvent.change(screen.getByRole("combobox", { name: "Tracking status" }), {
-		target: { value: "PAUSED" },
+		target: { value: "paused" },
 	});
-	fireEvent.click(screen.getByRole("button", { name: "Save to AniList" }));
+	fireEvent.click(
+		screen.getByRole("button", { name: "Save to the tracking service" }),
+	);
 	await waitFor(() =>
 		expect(
 			fetcher.mock.calls.some(([url]) => String(url).endsWith("/updates")),
@@ -146,7 +160,7 @@ test("status-only change omits progress and rejects negative progress in the for
 		String(url).endsWith("/updates"),
 	);
 	expect(JSON.parse(String(call?.[1]?.body)).desired).toEqual({
-		status: "PAUSED",
+		status: "paused",
 	});
 });
 test("conflict exposes explicit choices with the current operation revision", async () => {
@@ -154,17 +168,28 @@ test("conflict exposes explicit choices with the current operation revision", as
 		{
 			...pending(),
 			state: "conflict",
-			remote: { id: 10, progress: 6, status: "CURRENT", updatedAt: 200 },
+			remote: {
+				id: "anilist:10",
+				progress: 6,
+				status: "watching",
+				updatedAt: 200,
+			},
 			error: "remote-changed",
 		},
 	];
 	await open();
 	expect(
-		screen.getByText("Confirmed on AniList: 6 episodes · Watching"),
+		screen.getByText(
+			"Confirmed on the tracking service: 6 episodes · Watching",
+		),
 	).toBeTruthy();
-	expect(screen.queryByRole("button", { name: "Save to AniList" })).toBeNull();
-	fireEvent.click(screen.getByRole("button", { name: "Keep AniList value" }));
-	await screen.findByText("Kept AniList value");
+	expect(
+		screen.queryByRole("button", { name: "Save to the tracking service" }),
+	).toBeNull();
+	fireEvent.click(
+		screen.getByRole("button", { name: "Keep the tracking service value" }),
+	);
+	await screen.findByText("Kept the tracking service value");
 	const call = fetcher.mock.calls.find(([url]) =>
 		String(url).endsWith("/resolve"),
 	);
@@ -183,20 +208,22 @@ test("failed operation keeps intent and exposes retry", async () => {
 		}).value,
 	).toBe("1");
 	fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-	await screen.findByText("AniList change queued");
+	await screen.findByText("the tracking service change queued");
 	expect(
 		fetcher.mock.calls.some(([url]) => String(url).endsWith("/retry")),
 	).toBe(true);
 });
 
 test("a refreshed remote progress value is not unintentionally included in a status edit", async () => {
-	const view = render(<ViewingEditor state={state} mediaId="1" />);
+	const view = render(
+		<ViewingEditor state={state} mediaId="anilist:anime:1" />,
+	);
 	fireEvent.click(
-		screen.getByRole("button", { name: "Edit AniList progress" }),
+		screen.getByRole("button", { name: "Edit the tracking service progress" }),
 	);
 	await screen.findByRole("spinbutton", { name: "Episodes watched" });
 	fireEvent.change(screen.getByRole("combobox", { name: "Tracking status" }), {
-		target: { value: "PAUSED" },
+		target: { value: "paused" },
 	});
 	if (!snapshot.entry) throw Error("missing entry");
 	view.rerender(
@@ -209,10 +236,12 @@ test("a refreshed remote progress value is not unintentionally included in a sta
 					entry: { ...snapshot.entry, progress: 6 },
 				},
 			}}
-			mediaId="1"
+			mediaId="anilist:anime:1"
 		/>,
 	);
-	fireEvent.click(screen.getByRole("button", { name: "Save to AniList" }));
+	fireEvent.click(
+		screen.getByRole("button", { name: "Save to the tracking service" }),
+	);
 	await waitFor(() =>
 		expect(
 			fetcher.mock.calls.some(([url]) => String(url).endsWith("/updates")),
@@ -222,7 +251,7 @@ test("a refreshed remote progress value is not unintentionally included in a sta
 		String(url).endsWith("/updates"),
 	);
 	expect(JSON.parse(String(call?.[1]?.body)).desired).toEqual({
-		status: "PAUSED",
+		status: "paused",
 	});
 });
 
@@ -241,7 +270,7 @@ test("an ambiguous retry keeps its command ID while an edited intent gets a new 
 		{ target: { value: "1" } },
 	);
 	const button = screen.getByRole<HTMLButtonElement>("button", {
-		name: "Save to AniList",
+		name: "Save to the tracking service",
 	});
 	const posts = () =>
 		fetcher.mock.calls
@@ -265,4 +294,38 @@ test("an ambiguous retry keeps its command ID while an edited intent gets a new 
 	fireEvent.click(button);
 	await waitFor(() => expect(posts()).toHaveLength(3));
 	expect(posts()[2].commandId).not.toBe(posts()[1].commandId);
+});
+
+test("the editor uses provider capabilities for supported states and progress limits", async () => {
+	render(
+		<ViewingEditor
+			state={{
+				...state,
+				snapshot: {
+					...snapshot,
+					provider: {
+						...trackingProvider,
+						name: "Fixture Tracker",
+						key: "fixture",
+						capabilities: {
+							progress: "cumulative-episodes",
+							maximumProgress: 50,
+							statuses: ["watching", "completed"],
+						},
+					},
+				},
+			}}
+			mediaId="fixture:anime:show-alpha"
+		/>,
+	);
+	fireEvent.click(
+		screen.getByRole("button", { name: "Edit the tracking service progress" }),
+	);
+	const progress = await screen.findByRole("spinbutton", {
+		name: "Episodes watched",
+	});
+	expect(progress.getAttribute("max")).toBe("50");
+	expect(screen.getByRole("option", { name: "Watching" })).toBeTruthy();
+	expect(screen.getByRole("option", { name: "Completed" })).toBeTruthy();
+	expect(screen.queryByRole("option", { name: "Paused" })).toBeNull();
 });

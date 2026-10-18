@@ -190,9 +190,13 @@ export type TrackingUpdateRequest = Static<
 	typeof import("./schemas/tracking-update.js").TrackingUpdateSchema
 >;
 
-export type TrackingEpisodeTargetResponse = Static<
-	typeof import("./schemas/tracking-update.js").TrackingEpisodeTargetSchema
+export type TrackingEpisodeTargetResponse = NonNullable<
+	TrackingEpisodeResolutionResponse["target"]
 >;
 export type TrackingEpisodeCommandRequest = Static<
 	typeof import("./schemas/tracking-update.js").TrackingEpisodeCommandSchema
+>;
+
+export type TrackingEpisodeResolutionResponse = Static<
+	typeof import("./schemas/tracking-update.js").TrackingEpisodeResolutionSchema
 >;

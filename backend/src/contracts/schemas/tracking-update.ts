@@ -4,10 +4,10 @@ import { ViewingStatusSchema } from "./tracking-list.js";
 const TrackingRemoteSchema = Type.Union([
 	Type.Object(
 		{
-			id: Type.Integer({ minimum: 1 }),
-			progress: Type.Integer({ minimum: 0, maximum: 2147483647 }),
+			id: Type.String({ minLength: 1 }),
+			progress: Type.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
 			status: ViewingStatusSchema,
-			updatedAt: Type.Integer({ minimum: 0 }),
+			updatedAt: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]),
 		},
 		{ additionalProperties: false },
 	),
@@ -15,7 +15,9 @@ const TrackingRemoteSchema = Type.Union([
 ]);
 const desired = Type.Object(
 	{
-		progress: Type.Optional(Type.Integer({ minimum: 0, maximum: 2147483647 })),
+		progress: Type.Optional(
+			Type.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
+		),
 		status: Type.Optional(ViewingStatusSchema),
 	},
 	{ additionalProperties: false, minProperties: 1 },
@@ -41,13 +43,13 @@ export const TrackingResolveSchema = Type.Object(
 	{ ...TrackingOperationCommandSchema.properties, keepRemote: Type.Boolean() },
 	{ additionalProperties: false },
 );
-export const TrackingEpisodeTargetSchema = Type.Object({
+const TrackingEpisodeTargetSchema = Type.Object({
 	fileId: Type.String(),
 	sourceVersion: Type.String(),
 	reviewId: Type.String(),
 	mappingRevision: Type.Integer(),
 	episodeId: Type.String(),
-	mediaId: Type.Integer({ minimum: 1 }),
+	mediaId: Type.String({ minLength: 1 }),
 	episode: Type.Integer({ minimum: 1 }),
 });
 export const TrackingEpisodeCommandSchema = Type.Object(
@@ -79,8 +81,8 @@ export const TrackingOperationSchema = Type.Object({
 	]),
 	target: Type.Union([Type.Null(), TrackingEpisodeTargetSchema]),
 	id: Type.String(),
-	accountId: Type.Integer(),
-	mediaId: Type.Integer(),
+	accountId: Type.String({ minLength: 1 }),
+	mediaId: Type.String({ minLength: 1 }),
 	revision: Type.Integer(),
 	baseline: TrackingRemoteSchema,
 	desired,
@@ -101,3 +103,19 @@ export const TrackingOperationSchema = Type.Object({
 	updatedAt: Type.Number(),
 });
 export const TrackingOperationsSchema = Type.Array(TrackingOperationSchema);
+
+export const TrackingEpisodeResolutionSchema = Type.Union([
+	Type.Object({
+		state: Type.Literal("resolved"),
+		target: TrackingEpisodeTargetSchema,
+	}),
+	Type.Object({
+		state: Type.Union([
+			Type.Literal("unmapped"),
+			Type.Literal("ambiguous"),
+			Type.Literal("unsupported"),
+			Type.Literal("unavailable"),
+		]),
+		target: Type.Null(),
+	}),
+]);

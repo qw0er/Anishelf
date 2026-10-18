@@ -48,6 +48,7 @@ export type {
 	TrackingAccountResponse,
 	TrackingEntryResponse,
 	TrackingEpisodeCommandRequest,
+	TrackingEpisodeResolutionResponse,
 	TrackingEpisodeTargetResponse,
 	TrackingListResponse,
 	TrackingOperationResponse,

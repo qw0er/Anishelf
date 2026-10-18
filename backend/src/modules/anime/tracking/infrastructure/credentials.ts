@@ -1,6 +1,7 @@
 import { chmod, mkdir, open, readdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { DomainError } from "../../../../shared/errors.js";
+import { externalId } from "../../../../shared/external-reference.js";
 import type { TrackingConnection } from "../domain/model.js";
 import type { TrackingCredentials } from "../ports.js";
 /** Immutable files: SQLite publishes the reference only after a complete fsync. */
@@ -25,16 +26,17 @@ export class TrackingCredentialFiles implements TrackingCredentials {
 			);
 		return join(this.directory, `${id}.json`);
 	}
-	async write(connection: TrackingConnection, token: string) {
+	async write(connection: TrackingConnection, credential: string) {
 		if (!connection.credentialId || !connection.account)
 			throw new Error("Missing credential identity.");
 		const handle = await open(this.path(connection.credentialId), "wx", 0o600);
 		try {
 			await handle.writeFile(
 				JSON.stringify({
+					version: 2,
 					generation: connection.generation,
 					accountId: connection.account.id,
-					token,
+					credential,
 				}),
 			);
 			await handle.sync();
@@ -49,23 +51,35 @@ export class TrackingCredentialFiles implements TrackingCredentials {
 			const path = this.path(connection.credentialId);
 			await chmod(path, 0o600);
 			const value = JSON.parse(await readFile(path, "utf8")) as {
+				version?: unknown;
+				token?: unknown;
 				generation?: unknown;
 				accountId?: unknown;
-				token?: unknown;
+				credential?: unknown;
 			};
+			const legacy = value.version === undefined;
+			const credential = legacy ? value.token : value.credential;
 			if (
+				(!legacy && value.version !== 2) ||
+				typeof credential !== "string" ||
+				!credential ||
+				credential.length > 8192 ||
+				(legacy && /\s/.test(credential)) ||
 				value.generation !== connection.generation ||
-				value.accountId !== connection.account.id ||
-				typeof value.token !== "string" ||
-				!value.token ||
-				/\s/.test(value.token)
+				(value.accountId !== connection.account.id &&
+					!(
+						value.version === undefined &&
+						typeof value.accountId === "number" &&
+						externalId("anilist", String(value.accountId)) ===
+							connection.account.id
+					))
 			)
 				throw new Error("Invalid credential.");
-			return value.token;
+			return credential;
 		} catch {
 			throw new DomainError(
 				"TRACKING_AUTHORIZATION_REQUIRED",
-				"Reconnect your AniList account.",
+				"Reconnect your Tracking account.",
 			);
 		}
 	}

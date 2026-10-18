@@ -1,5 +1,6 @@
+import type { ViewingStatus } from "./viewing.js";
 export interface TrackingAccount {
-	id: number;
+	id: string;
 	name: string;
 }
 export interface TrackingConnection {
@@ -10,8 +11,7 @@ export interface TrackingConnection {
 	checkedAt: number | null;
 }
 export interface TrackingStatus {
-	clientId: string;
-	authorizationUrl: string;
+	provider: TrackingProviderDescriptor;
 	generation: string;
 	account: TrackingAccount | null;
 	state: TrackingConnection["state"];
@@ -28,13 +28,23 @@ export interface TrackingPreview {
 /** Server-only authorization candidate, never part of an HTTP response. */
 export interface TrackingCandidate {
 	id: string;
-	token: string;
+	credential: string;
 	account: TrackingAccount;
 	expiresAt: number;
 	generation: string;
 }
 
 export interface TrackingAuthorization {
-	clientId: string;
-	authorizationUrl: string;
+	provider: TrackingProviderDescriptor;
+}
+
+export interface TrackingProviderDescriptor {
+	key: string;
+	name: string;
+	authorization: { kind: "credential"; label: string; url: string | null };
+	capabilities: {
+		progress: "cumulative-episodes";
+		maximumProgress: number;
+		statuses: ViewingStatus[];
+	};
 }

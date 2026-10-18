@@ -2,14 +2,14 @@ import { Type } from "typebox";
 
 const text = Type.Union([Type.String(), Type.Null()]);
 const integer = Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]);
-const reference = Type.Object({
+export const MetadataReferenceSchema = Type.Object({
 	provider: Type.String(),
 	mediaType: Type.Literal("anime"),
 	id: Type.String(),
 });
 const summary = {
 	unavailableFields: Type.Array(Type.String()),
-	reference,
+	reference: MetadataReferenceSchema,
 	titles: Type.Array(
 		Type.Object({
 			value: Type.String(),

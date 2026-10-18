@@ -26,7 +26,7 @@ export function registerTrackingRoutes(
 			},
 		},
 		async (request) =>
-			tracking.preview(request.session.sessionId, request.body.token),
+			tracking.preview(request.session.sessionId, request.body.credential),
 	);
 	app.post(
 		"/api/tracking/account/confirm",

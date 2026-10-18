@@ -6,7 +6,7 @@ module.exports = {
 			name: "anime-applications-use-ports",
 			severity: "error",
 			from: {
-				path: "^backend/src/modules/anime/(?:tracking|metadata)/application(?:/|\\.ts$)",
+				path: "^backend/src/modules/anime/(?:tracking|metadata|anime-library|anime-catalog|identification)/(?:application/|domain/|ports\\.ts$|public\\.ts$)",
 			},
 			to: {
 				path: "^backend/src/modules/anime/(?:[^/]+/infrastructure/|anilist/)",
