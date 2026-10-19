@@ -74,6 +74,17 @@ test("System settings HTTP updates media settings while Resources reserves its s
 			defaultTranscodeProfileId: "builtin:fast",
 			preparationMode: "fast",
 		});
+		const webUi = await app.inject({
+			method: "PUT",
+			url: "/api/settings",
+			headers,
+			payload: { qbittorrentWebUiUrl: "https://downloads.example.com/" },
+		});
+		expect(webUi.statusCode).toBe(200);
+		expect(webUi.json()).toMatchObject({
+			resourceRoots: [root],
+			qbittorrentWebUiUrl: "https://downloads.example.com/",
+		});
 		const rejected = await app.inject({
 			method: "PUT",
 			url: "/api/settings",
@@ -113,11 +124,15 @@ test("a media settings patch does not restore a stale root or overwrite concurre
 		resourceRoots: [root],
 		transcodeCacheBudgetGiB: 14,
 	});
-	await Promise.all([rootWrite, profileWrite, budgetWrite]);
+	const webUiWrite = settings.updateSettings({
+		qbittorrentWebUiUrl: "https://downloads.example.com/",
+	});
+	await Promise.all([rootWrite, profileWrite, budgetWrite, webUiWrite]);
 	expect(system.api.settings).toMatchObject({
 		resourceRoots: [other],
 		transcodeCacheBudgetGiB: 14,
 		defaultTranscodeProfileId: "builtin:fast",
 		preparationMode: "fast",
+		qbittorrentWebUiUrl: "https://downloads.example.com/",
 	});
 });

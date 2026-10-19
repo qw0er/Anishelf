@@ -80,10 +80,11 @@ flowchart TD
 Private organization: `domain/`, `application/`, `infrastructure/`, `composition/`
 and HTTP handlers. Root `public.ts`, `create.ts`, `http.ts` and `persistence.ts`
 follow the existing module rules. App assembles root APIs, migration schema,
-logging and lifecycle. Acquisition owns integration configuration and its secrets;
-System does not absorb downloader business logic simply because settings appear
-on the Settings page. Prefer established RSS/XML and torrent parsing libraries;
-select and pin them during implementation rather than writing parsers from scratch.
+logging and lifecycle. System Configuration owns shared setting validation and
+persistence. Acquisition owns downloader business logic and private credentials,
+and consumes configuration through injected capabilities. Prefer established
+RSS/XML and torrent parsing libraries; select and pin them during implementation
+rather than writing parsers from scratch.
 
 ## 3. Public Capabilities and Required Extensions
 
@@ -330,9 +331,9 @@ payload retrieval; enforce destination restrictions across redirects and DNS res
 
 Provide an **Open qBittorrent WebUI** link on the downloads page and integration
 settings. Open it in a new tab with `rel="noopener noreferrer"`. Support two modes
-through an optional Acquisition-owned `webUiUrl` setting:
+through an optional Configuration-owned `qbittorrentWebUiUrl` setting:
 
-- **Default, built-in proxy:** persist `null` when the field is omitted or blank.
+- **Default, built-in proxy:** use `null` by default and persist `null` when cleared or blank.
   Resolve the link to the application-relative route
   `/integrations/qbittorrent/`, including the deployment base path if supported.
   Do not persist or infer a public hostname from the downloader API endpoint.
@@ -361,7 +362,27 @@ against the selected supported version before claiming compatibility.
 An external Caddy/Nginx proxy only forwards the Anishelf site to Anishelf, preserving
 the application route. It needs no qBittorrent-specific routing, hostname or port.
 qBittorrent must still enable WebUI and be reachable from the Anishelf backend.
-The built-in route is a proposed capability, not an existing deployed endpoint.
+The built-in route and integration settings are implemented. The private upstream
+is the deployment-only `ANISHELF_QBITTORRENT_URL` HTTP(S) origin. System Configuration
+validates and persists nullable `qbittorrentWebUiUrl` in `settings.json`; the Settings
+page reads and writes `/api/settings`. Updates may contain only the fields being
+changed; omitted fields retain their current values. Acquisition receives a
+read-only settings capability and exposes derived navigation and proxy availability
+through `GET /api/integrations/qbittorrent`, with no setting-write endpoint or
+independent configuration store. There is no downloads page yet; this does not
+implement acquisition commands or task reconciliation.
+
+Deployments that bypass qBittorrent authentication must restrict the bypass to
+the Anishelf backend address and avoid publishing the WebUI port. Anishelf
+authentication protects the proxy. Independently deployed instances may
+retain qBittorrent login: the proxy isolates its SID cookie under the integration
+path. Mutation requests require a trusted Origin or Referer before upstream
+header rewriting; qBittorrent CSRF and Host validation remain enabled.
+
+HTTP forwarding and settings are covered by local mock-upstream tests. Real
+qBittorrent version/browser compatibility and container deployment still require
+live validation. Custom WebUI implementations must support hosting under a URL
+prefix; the proxy does not rewrite HTML or JavaScript response bodies.
 
 Validate default/custom selection, clearing and persistence, origin/base-path
 resolution, unauthenticated page/asset/API denial, upstream login/logout, static

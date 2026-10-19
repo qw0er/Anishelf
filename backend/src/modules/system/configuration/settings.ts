@@ -6,6 +6,7 @@ export interface PersistentSettings {
 	preparationMode?: PreparationMode;
 	transcodeCacheBudgetGiB?: number;
 	defaultTranscodeProfileId?: string;
+	qbittorrentWebUiUrl?: string | null;
 }
 export interface SettingsStore {
 	readonly settings: Readonly<PersistentSettings>;

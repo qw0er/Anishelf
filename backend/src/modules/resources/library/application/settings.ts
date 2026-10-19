@@ -42,13 +42,12 @@ export class ResourceSettingsApplication {
 	): Promise<Readonly<PersistentSettings>> {
 		const patch = structuredClone(input);
 		const current = this.getSettings();
-		const mediaUpdate =
-			patch.transcodeCacheBudgetGiB !== undefined ||
-			patch.defaultTranscodeProfileId !== undefined ||
-			patch.preparationMode !== undefined;
+		const nonResourceUpdate = Object.keys(patch).some(
+			(key) => key !== "resourceRoots",
+		);
 		const resourceChange =
 			JSON.stringify(patch.resourceRoots) !==
-				JSON.stringify(current.resourceRoots) || !mediaUpdate;
+				JSON.stringify(current.resourceRoots) || !nonResourceUpdate;
 		if (!resourceChange) {
 			delete patch.resourceRoots;
 			return save(patch);

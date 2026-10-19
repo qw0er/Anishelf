@@ -19,6 +19,25 @@ export default defineConfig({
 		port: developmentDefaults.port,
 		strictPort: true,
 		proxy: {
+			"/integrations/qbittorrent": {
+				target: apiTarget,
+				changeOrigin: true,
+				configure(proxy) {
+					proxy.on("proxyReq", (proxyRequest, request) => {
+						const localOrigin = `http://${request.headers.host}`;
+						if (request.headers.origin === localOrigin)
+							proxyRequest.setHeader("origin", new URL(apiTarget).origin);
+						if (request.headers.referer?.startsWith(`${localOrigin}/`))
+							proxyRequest.setHeader(
+								"referer",
+								request.headers.referer.replace(
+									localOrigin,
+									new URL(apiTarget).origin,
+								),
+							);
+					});
+				},
+			},
 			"/api": {
 				target: apiTarget,
 				changeOrigin: true,

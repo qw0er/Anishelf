@@ -1,5 +1,6 @@
 import type { Static } from "typebox";
 import type * as schemas from "./schemas/index.js";
+export type QbittorrentWebUi = Static<typeof schemas.QbittorrentWebUiSchema>;
 
 // Public JSON types are derived from the same schemas used by Fastify.
 export type ResourceId = Static<typeof schemas.ResourceIdSchema>;

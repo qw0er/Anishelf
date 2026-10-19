@@ -6,6 +6,9 @@ export function settingsResponse(
 ): SettingsResponse {
 	return {
 		resourceRoots: settings.resourceRoots,
+		...(settings.qbittorrentWebUiUrl === undefined
+			? {}
+			: { qbittorrentWebUiUrl: settings.qbittorrentWebUiUrl }),
 		...(settings.preparationMode === undefined
 			? {}
 			: { preparationMode: settings.preparationMode }),

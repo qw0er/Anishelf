@@ -83,5 +83,29 @@ export function checkRequestOrigin(
 	const expectedOrigin = checkRequestHost(request, config);
 	if (isSafeMethod(request.method)) return;
 	checkOrigin(request, expectedOrigin, development);
+	const path = new URL(request.url, "http://localhost").pathname;
+	if (
+		path === "/integrations/qbittorrent" ||
+		path.startsWith("/integrations/qbittorrent/")
+	) {
+		if (!request.headers.origin && !request.headers.referer)
+			throw new DomainError(
+				"REQUEST_FORBIDDEN",
+				"A same-origin request is required.",
+			);
+		if (request.headers.referer) {
+			let origin: string;
+			try {
+				origin = new URL(request.headers.referer).origin;
+			} catch {
+				throw new DomainError("REQUEST_FORBIDDEN", "Invalid Referer.");
+			}
+			if (origin !== expectedOrigin && !(development && devOrigins.has(origin)))
+				throw new DomainError(
+					"REQUEST_FORBIDDEN",
+					"Untrusted request referer.",
+				);
+		}
+	}
 	checkFetchMetadata(request);
 }

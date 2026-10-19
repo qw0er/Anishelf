@@ -1,4 +1,5 @@
 import type { Logger } from "pino";
+import { createAcquisitionModule } from "../../modules/acquisition/create.js";
 import { createAnimeModule } from "../../modules/anime/create.js";
 import { createMediaModule } from "../../modules/media/create.js";
 import { createPlaybackModule } from "../../modules/playback/create.js";
@@ -57,6 +58,12 @@ export async function createServer(
 		database,
 		logger,
 	});
+	const acquisition = createAcquisitionModule({
+		settings: () => system.settings,
+		upstream: system.deployment.qbittorrentUrl,
+		secure: system.deployment.publicOrigin?.startsWith("https:") ?? false,
+		logger,
+	});
 	const app = createHttpApp({
 		configure: authentication.registerHttp,
 		config: system.deployment,
@@ -67,6 +74,7 @@ export async function createServer(
 			? { frontendRoot: system.deployment.frontendDir }
 			: {}),
 		registrations: [
+			acquisition.registerHttp,
 			(app) => registerSystemHttp(app, system, resources.api),
 			resources.registerHttp,
 			media.registerHttp,
