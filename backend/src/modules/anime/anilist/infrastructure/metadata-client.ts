@@ -15,7 +15,10 @@ import {
 	pageInfo,
 	queries,
 	summarySchema,
+	summarySelection,
 } from "./media-schema.js";
+
+import { withAniList } from "./wrapper.js";
 
 function invalid(): never {
 	throw new AniListError({
@@ -32,11 +35,17 @@ export class AniListMetadataClient implements AniListMetadataApi {
 		perPage: number,
 		signal: AbortSignal,
 	): Promise<AniListResult<AniListPage<AniListMediaSummary>>> {
-		const raw = await this.client.request(
-			queries.search,
-			{ query, page, perPage },
-			{ signal },
+		const result = await withAniList(this.client, { signal }, (sdk) =>
+			sdk.anime.getAnimeBySearch(query, page, perPage, {
+				select: {
+					page: {
+						pageInfo: { currentPage: true, perPage: true, hasNextPage: true },
+						media: summarySelection,
+					},
+				},
+			}),
 		);
+		const raw = { Page: result.page };
 		const schema = Type.Object({
 			Page: Type.Object({
 				pageInfo,
@@ -64,7 +73,9 @@ export class AniListMetadataClient implements AniListMetadataApi {
 		id: number,
 		signal: AbortSignal,
 	): Promise<AniListResult<AniListMediaDetails>> {
-		const raw = await this.client.request(queries.detail, { id }, { signal });
+		const raw = await withAniList(this.client, { signal }, (sdk) =>
+			sdk.graphql.request(queries.detail, { id }),
+		);
 		if (Check(Type.Object({ Media: Type.Null() }), raw))
 			throw new AniListError({
 				code: "not-found",
@@ -82,10 +93,8 @@ export class AniListMetadataClient implements AniListMetadataApi {
 		id: number,
 		signal: AbortSignal,
 	): Promise<AniListResult<AniListRelation[]>> {
-		const raw = await this.client.request(
-			queries.relations,
-			{ id },
-			{ signal },
+		const raw = await withAniList(this.client, { signal }, (sdk) =>
+			sdk.graphql.request(queries.relations, { id }),
 		);
 		const relationSummary = Type.Object({
 			...summarySchema.properties,
@@ -110,10 +119,8 @@ export class AniListMetadataClient implements AniListMetadataApi {
 		perPage: number,
 		signal: AbortSignal,
 	): Promise<AniListResult<AniListPage<AniListAiringEpisode>>> {
-		const raw = await this.client.request(
-			queries.airing,
-			{ id, page, perPage },
-			{ signal },
+		const raw = await withAniList(this.client, { signal }, (sdk) =>
+			sdk.graphql.request(queries.airing, { id, page, perPage }),
 		);
 		const schema = Type.Object({
 			Media: Type.Object({

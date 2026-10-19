@@ -3,6 +3,8 @@ import { Check } from "typebox/value";
 import { type AniListClient, AniListError } from "../domain/model.js";
 import type { AniListAccount, AniListAccountApi } from "../domain/provider.js";
 
+import { withAniList } from "./wrapper.js";
+
 const viewerSchema = Type.Object({
 	Viewer: Type.Object({
 		id: Type.Integer({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER }),
@@ -12,11 +14,13 @@ const viewerSchema = Type.Object({
 export class AniListAccountClient implements AniListAccountApi {
 	constructor(private readonly client: AniListClient) {}
 	async viewer(token: string, signal: AbortSignal): Promise<AniListAccount> {
-		const raw = await this.client.request(
-			"query ConnectedAniListAccount { Viewer { id name } }",
-			{},
+		const result = await withAniList(
+			this.client,
 			{ token, signal, priority: true },
+			(sdk) =>
+				sdk.user.getViewer({ select: { viewer: { id: true, name: true } } }),
 		);
+		const raw = { Viewer: result.viewer };
 		if (!Check(viewerSchema, raw))
 			throw new AniListError({
 				code: "invalid-response",

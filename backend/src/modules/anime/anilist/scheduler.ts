@@ -48,6 +48,15 @@ export class AniListScheduler implements AniListClient {
 	constructor(private readonly options: AniListOptions = {}) {
 		this.interval = options.intervalMs ?? 2400;
 		this.logger = options.logger?.child({ module: "anilist" });
+		this.logger?.debug(
+			{
+				event: "anilist.scheduler_configured",
+				intervalMs: this.interval,
+				queryMaximumAttempts: options.attempts ?? policy.maximumAttempts,
+				mutationMaximumAttempts: 1,
+			},
+			"AniList request scheduling policy configured.",
+		);
 	}
 	request(
 		query: string,

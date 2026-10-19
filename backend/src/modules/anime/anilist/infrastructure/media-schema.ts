@@ -66,8 +66,21 @@ export const pageInfo = Type.Object({
 });
 const summaryFields = `id type title { romaji english native } synonyms startDate { year month day } seasonYear format status episodes season coverImage { extraLarge large }`;
 export const queries = {
-	search: `query SearchAnime($query: String!, $page: Int!, $perPage: Int!) { Page(page: $page, perPage: $perPage) { pageInfo { currentPage perPage hasNextPage } media(search: $query, type: ANIME, sort: SEARCH_MATCH) { ${summaryFields} } } }`,
 	detail: `query AnimeDetails($id: Int!) { Media(id: $id, type: ANIME) { ${summaryFields} description(asHtml: false) bannerImage endDate { year month day } duration countryOfOrigin source(version: 3) genres tags { name rank isGeneralSpoiler isMediaSpoiler } studios(isMain: true) { nodes { id name } } averageScore siteUrl updatedAt streamingEpisodes { title url site thumbnail } } }`,
 	relations: `query AnimeRelations($id: Int!) { Media(id: $id, type: ANIME) { relations { edges { relationType(version: 2) node { ${summaryFields} } } } } }`,
 	airing: `query AnimeAiring($id: Int!, $page: Int!, $perPage: Int!) { Media(id: $id, type: ANIME) { airingSchedule(page: $page, perPage: $perPage) { pageInfo { currentPage perPage hasNextPage } nodes { id episode airingAt } } } }`,
 };
+
+export const summarySelection = {
+	id: true,
+	type: true,
+	title: { romaji: true, english: true, native: true },
+	synonyms: true,
+	startDate: { year: true, month: true, day: true },
+	seasonYear: true,
+	format: true,
+	status: true,
+	episodes: true,
+	season: true,
+	coverImage: { extraLarge: true, large: true },
+} as const;
