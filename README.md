@@ -19,7 +19,8 @@ media directory, browse its folder structure, and watch videos in your browser.
 - Read access to the media directory and write access to a separate application
   data directory.
 
-The backend currently listens only on loopback addresses. Remote use is available
+Source installations listen on loopback by default; container images listen on
+`0.0.0.0` internally and publish a host loopback port. Remote use is available
 through SSH port forwarding or a [Caddy reverse proxy](docs/deployment.md#caddy-reverse-proxy).
 The application requires a single access password. On first startup, it generates
 a random password and displays it once in the startup console. Sign in with that
@@ -104,7 +105,7 @@ or Podman. The image includes Node.js, FFmpeg/FFprobe and the built application.
 - Keep `/data` persistent for credentials, sessions, settings, the database and caches.
 - Read the initial password using `docker compose logs anishelf` or, for Quadlet,
   `journalctl --user -u anishelf.service`. It is displayed only on first initialization.
-- Use host networking without port mappings; Anishelf listens on loopback.
+- Use bridge networking with port 3000 published on the host loopback address.
 - Media must be readable and data writable by the container's UID/GID 1000.
 - Set `ANISHELF_PUBLIC_ORIGIN` to your domain and configure [Caddy](docs/deployment.md#caddy-reverse-proxy),
   or omit it for local/SSH access.
@@ -130,7 +131,8 @@ services:
     image: ghcr.io/qw0er/anishelf:latest
     container_name: anishelf
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - "127.0.0.1:3000:3000"
     stop_grace_period: 15s
     environment:
       ANISHELF_PORT: "3000"
@@ -221,7 +223,7 @@ Description=Anishelf media server
 [Container]
 Image=ghcr.io/qw0er/anishelf:latest
 ContainerName=anishelf
-Network=host
+PublishPort=127.0.0.1:3000:3000
 UserNS=keep-id:uid=1000,gid=1000
 User=1000:1000
 Environment=ANISHELF_PORT=3000
@@ -287,9 +289,9 @@ Set environment variables before starting the application. Restart after changes
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `ANISHELF_HOST` | `127.0.0.1` | Loopback listener address: `127.x.x.x` or `::1`. |
+| `ANISHELF_HOST` | `127.0.0.1` | Listener IPv4/IPv6 address; the container image defaults to `0.0.0.0`. |
 | `ANISHELF_PORT` | `3000` | Listener port, from 1 to 65535. |
-| `ANISHELF_PUBLIC_ORIGIN` | Unset | One allowed external HTTP(S) origin, such as `https://example.com`; local access remains available. Authentication belongs to the reverse proxy. |
+| `ANISHELF_PUBLIC_ORIGIN` | Unset | One allowed external HTTP(S) origin, such as `https://example.com`; local access remains available. Anishelf enforces application authentication. |
 | `ANISHELF_FRONTEND_DIR` | Unset | Absolute frontend build directory containing `index.html`; enables page hosting. |
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory | Absolute writable directory for settings, the database and caches. |
 | `ANISHELF_INITIAL_RESOURCE_ROOTS` | Unset | JSON array of up to 64 readable, non-overlapping absolute media paths; only creates missing settings. |

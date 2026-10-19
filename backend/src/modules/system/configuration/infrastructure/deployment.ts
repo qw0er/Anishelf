@@ -104,8 +104,8 @@ export function parseDeploymentConfig(
 		);
 	}
 	const host = env.ANISHELF_HOST ?? deploymentDefaults.host;
-	if (!((isIP(host) === 4 && host.startsWith("127.")) || host === "::1")) {
-		invalid("ANISHELF_HOST must be a loopback IP address (127.x.x.x or ::1).");
+	if (!isIP(host)) {
+		invalid("ANISHELF_HOST must be an IPv4 or IPv6 address.");
 	}
 	const rawPort = env.ANISHELF_PORT ?? String(deploymentDefaults.port);
 	const port = Number(rawPort);

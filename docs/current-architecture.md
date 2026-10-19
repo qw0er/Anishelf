@@ -326,6 +326,50 @@ must not inherit downloader cookies or use release links as unrestricted interna
 network requests. Keep separate endpoint policies for LAN integrations and feed
 payload retrieval; enforce destination restrictions across redirects and DNS resolution.
 
+### 9.1 qBittorrent WebUI Access
+
+Provide an **Open qBittorrent WebUI** link on the downloads page and integration
+settings. Open it in a new tab with `rel="noopener noreferrer"`. Support two modes
+through an optional Acquisition-owned `webUiUrl` setting:
+
+- **Default, built-in proxy:** persist `null` when the field is omitted or blank.
+  Resolve the link to the application-relative route
+  `/integrations/qbittorrent/`, including the deployment base path if supported.
+  Do not persist or infer a public hostname from the downloader API endpoint.
+  The browser resolves the relative link against the current Anishelf origin.
+- **Custom URL:** open the explicitly configured absolute HTTP/HTTPS URL directly.
+  Reject embedded usernames/passwords and unsupported schemes. This URL is only
+  a browser navigation target; it does not change the backend downloader endpoint
+  or imply that Anishelf authentication protects the external destination.
+
+Settings labels and helper text are English: **WebUI URL** and **Leave blank to
+open through Anishelf's built-in proxy.** Clearing a custom value restores the
+default. If the integration is unconfigured or the proxy is unavailable, show an
+actionable configuration/error state; do not silently fall back to an internal
+downloader address.
+
+Anishelf owns both the default link construction and the backend proxy route.
+The backend must authenticate every proxied page, asset and API request, restrict
+the upstream to the configured qBittorrent integration, and handle prefix removal,
+redirects, cookie scope and upstream request headers. Preserve CSRF protection
+and isolate qBittorrent cookies from Anishelf session cookies; never forward the
+Anishelf session to the upstream. WebUI access exposes full downloader controls,
+not only Acquisition-managed tasks, so treat it as integration administration.
+Automatic qBittorrent login is not implied by proxying; validate its login flow
+against the selected supported version before claiming compatibility.
+
+An external Caddy/Nginx proxy only forwards the Anishelf site to Anishelf, preserving
+the application route. It needs no qBittorrent-specific routing, hostname or port.
+qBittorrent must still enable WebUI and be reachable from the Anishelf backend.
+The built-in route is a proposed capability, not an existing deployed endpoint.
+
+Validate default/custom selection, clearing and persistence, origin/base-path
+resolution, unauthenticated page/asset/API denial, upstream login/logout, static
+assets, redirects, cookie isolation and CSRF behavior. Exercise direct deployment
+and deployment behind Caddy with only a site-wide Anishelf proxy rule. Log proxy
+availability and sanitized failure classes without cookies, credentials or full
+credential-bearing URLs.
+
 ## 10. Observability and Validation
 
 Structured logs correlate feed, subscription, release, intent, command, root scope

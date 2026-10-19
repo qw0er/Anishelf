@@ -109,7 +109,14 @@ async function main(): Promise<void> {
 		database = openDatabase(config.dataDir, logger, builtinPolicy);
 		app = await createServer(configuration, logger, database, tools);
 		await app.listen({ host: config.host, port: config.port });
-		logger.info({ event: "application.started" }, "HTTP application started.");
+		logger.info(
+			{
+				event: "application.started",
+				host: config.host,
+				port: config.port,
+			},
+			"HTTP application started.",
+		);
 		registerShutdown(app, logging, builtinPolicy.runtime.shutdownTimeoutMs);
 	} catch (error) {
 		await handleStartupFailure(error, logging, app, database);

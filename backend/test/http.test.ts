@@ -312,3 +312,83 @@ test("bootstrap owns one awaited dependency shutdown", async () => {
 	expect(finished).toBe(true);
 	expect(closed).toBe(1);
 });
+
+test.each(["0.0.0.0", "::"])(
+	"wildcard listener %s retains Host restrictions",
+	async (host) => {
+		const app = application(false, host);
+		expect((await app.inject({ url: "/api/health", headers })).statusCode).toBe(
+			200,
+		);
+		expect(
+			(
+				await app.inject({
+					url: "/api/health",
+					headers: { host: "evil.example:3000" },
+				})
+			).statusCode,
+		).toBe(400);
+	},
+);
+
+test("container listener accepts a mapped public port and checks mutation origin", async () => {
+	const app = application(false, "0.0.0.0", "http://localhost:8080");
+	for (const [origin, status] of [
+		["http://localhost:8080", 200],
+		["http://localhost:3000", 403],
+	] as const) {
+		expect(
+			(
+				await app.inject({
+					method: "POST",
+					url: "/api/test",
+					headers: { host: "localhost:8080", origin },
+					payload: { count: 1 },
+				})
+			).statusCode,
+		).toBe(status);
+	}
+});
+
+test("only loopback proxies supply client IP and scheme", async () => {
+	const app = createHttpApp({
+		config: {
+			host: "0.0.0.0",
+			port: 3000,
+			publicOrigin: "https://anime.example.com",
+		},
+		logger: pino({ enabled: false }),
+	});
+	apps.push(app);
+	app.get("/network", async (request) => ({
+		ip: request.ip,
+		protocol: request.protocol,
+	}));
+	for (const remoteAddress of ["127.0.0.1", "172.18.0.2"]) {
+		const response = await app.inject({
+			url: "/network",
+			remoteAddress,
+			headers: {
+				host: "anime.example.com",
+				"x-forwarded-for": "203.0.113.7",
+				"x-forwarded-proto": "https",
+			},
+		});
+		expect(response.statusCode).toBe(200);
+		expect(response.json()).toEqual(
+			remoteAddress === "127.0.0.1"
+				? { ip: "203.0.113.7", protocol: "https" }
+				: { ip: remoteAddress, protocol: "http" },
+		);
+	}
+});
+
+test("wildcard listener serves health over a real network connection", async () => {
+	const app = application(false, "0.0.0.0");
+	const address = await app.listen({ host: "0.0.0.0", port: 0 });
+	const response = await fetch(
+		`${address.replace("0.0.0.0", "127.0.0.1")}/api/health`,
+	);
+	expect(response.status).toBe(200);
+	expect(await response.json()).toEqual({ status: "ok" });
+});

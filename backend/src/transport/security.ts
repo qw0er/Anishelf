@@ -32,10 +32,16 @@ function checkRequestHost(
 		if (publicHost.host === publicUrl.host) return config.publicOrigin;
 	}
 	const host = parseRequestHost(request);
-	const expectedHostname = config.host === "::1" ? "[::1]" : config.host;
+	const expectedHostname = config.host.includes(":")
+		? `[${config.host}]`
+		: config.host;
+	const localHostnames =
+		config.host === "0.0.0.0" || config.host === "::"
+			? ["127.0.0.1", "[::1]", "localhost"]
+			: [expectedHostname, "localhost"];
 	const expectedPort = request.raw.socket.localPort ?? config.port;
 	if (
-		![expectedHostname, "localhost"].includes(host.hostname) ||
+		!localHostnames.includes(host.hostname) ||
 		Number(host.port || 80) !== expectedPort
 	) {
 		throw new DomainError("INVALID_REQUEST", "Unexpected Host header.");

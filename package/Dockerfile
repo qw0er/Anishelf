@@ -26,7 +26,7 @@ WORKDIR /app
 # Override the listener at runtime with -e ANISHELF_PORT=3001.
 # The health check reads the same environment variable.
 ENV NODE_ENV=production \
-    ANISHELF_HOST=127.0.0.1 \
+    ANISHELF_HOST=0.0.0.0 \
     ANISHELF_PORT=3000 \
     ANISHELF_DATA_DIR=/data \
     ANISHELF_FRONTEND_DIR=/app/web/dist \
@@ -46,7 +46,9 @@ COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/migrations ./backend/migrations
 COPY --from=build /app/web/dist ./web/dist
 
+EXPOSE 3000
+
 USER node
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD node -e 'fetch(`http://${process.env.ANISHELF_HOST.includes(":") ? `[${process.env.ANISHELF_HOST}]` : process.env.ANISHELF_HOST}:${process.env.ANISHELF_PORT}/api/health`).then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1));'
+    CMD node -e 'fetch(`http://${process.env.ANISHELF_HOST === "0.0.0.0" ? "127.0.0.1" : process.env.ANISHELF_HOST === "::" ? "[::1]" : process.env.ANISHELF_HOST.includes(":") ? `[${process.env.ANISHELF_HOST}]` : process.env.ANISHELF_HOST}:${process.env.ANISHELF_PORT}/api/health`).then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1));'
 CMD ["node", "backend/dist/index.js"]
