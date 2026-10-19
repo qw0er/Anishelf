@@ -10,7 +10,6 @@ export const metadataPolicy = {
 	snapshots: 2000,
 	maximumPending: 100,
 	requestTimeoutMs: 8000,
-	responseMaximumBytes: 2 * 1024 * 1024,
 	artworkMaximumBytes: 5 * 1024 * 1024,
 	artworkBudgetBytes: 128 * 1024 * 1024,
 } as const;

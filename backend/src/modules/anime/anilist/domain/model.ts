@@ -1,3 +1,4 @@
+import type { Anilist } from "@api-wrappers/anilist-wrapper";
 import type { Logger } from "pino";
 export type AniListFailureCode =
 	| "busy"
@@ -19,12 +20,15 @@ export class AniListError extends Error {
 		this.name = "AniListError";
 	}
 }
+export interface AniListRequestOptions {
+	signal: AbortSignal;
+	token?: string;
+}
 export interface AniListClient {
-	request(
-		query: string,
-		variables: Record<string, unknown>,
-		options: { signal: AbortSignal; token?: string; priority?: boolean },
-	): Promise<unknown>;
+	execute<T>(
+		options: AniListRequestOptions,
+		operation: (sdk: Anilist) => Promise<T>,
+	): Promise<T>;
 }
 export interface AniListOptions {
 	logger?: Logger;
@@ -32,6 +36,4 @@ export interface AniListOptions {
 	intervalMs?: number;
 	timeoutMs?: number;
 	attempts?: number;
-	random?: () => number;
-	maximumPending?: number;
 }

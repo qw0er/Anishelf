@@ -18,8 +18,6 @@ import {
 	summarySelection,
 } from "./media-schema.js";
 
-import { withAniList } from "./wrapper.js";
-
 function invalid(): never {
 	throw new AniListError({
 		code: "invalid-response",
@@ -35,7 +33,7 @@ export class AniListMetadataClient implements AniListMetadataApi {
 		perPage: number,
 		signal: AbortSignal,
 	): Promise<AniListResult<AniListPage<AniListMediaSummary>>> {
-		const result = await withAniList(this.client, { signal }, (sdk) =>
+		const result = await this.client.execute({ signal }, (sdk) =>
 			sdk.anime.getAnimeBySearch(query, page, perPage, {
 				select: {
 					page: {
@@ -73,7 +71,7 @@ export class AniListMetadataClient implements AniListMetadataApi {
 		id: number,
 		signal: AbortSignal,
 	): Promise<AniListResult<AniListMediaDetails>> {
-		const raw = await withAniList(this.client, { signal }, (sdk) =>
+		const raw = await this.client.execute({ signal }, (sdk) =>
 			sdk.graphql.request(queries.detail, { id }),
 		);
 		if (Check(Type.Object({ Media: Type.Null() }), raw))
@@ -93,7 +91,7 @@ export class AniListMetadataClient implements AniListMetadataApi {
 		id: number,
 		signal: AbortSignal,
 	): Promise<AniListResult<AniListRelation[]>> {
-		const raw = await withAniList(this.client, { signal }, (sdk) =>
+		const raw = await this.client.execute({ signal }, (sdk) =>
 			sdk.graphql.request(queries.relations, { id }),
 		);
 		const relationSummary = Type.Object({
@@ -119,7 +117,7 @@ export class AniListMetadataClient implements AniListMetadataApi {
 		perPage: number,
 		signal: AbortSignal,
 	): Promise<AniListResult<AniListPage<AniListAiringEpisode>>> {
-		const raw = await withAniList(this.client, { signal }, (sdk) =>
+		const raw = await this.client.execute({ signal }, (sdk) =>
 			sdk.graphql.request(queries.airing, { id, page, perPage }),
 		);
 		const schema = Type.Object({

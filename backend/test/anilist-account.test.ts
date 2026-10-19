@@ -7,12 +7,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
 import { builtinPolicy } from "../src/app/policy.js";
-import { AniListAccountClient } from "../src/modules/anime/anilist/infrastructure/account-client.js";
-import {
-	type AniListClient,
-	AniListError,
-} from "../src/modules/anime/anilist/public.js";
-import { createAniListTracking } from "../src/modules/anime/composition/anilist.js";
+import { AniListError } from "../src/modules/anime/anilist/public.js";
 import {
 	createTrackingAccounts,
 	createTrackingModule,
@@ -29,6 +24,11 @@ import type {
 	TrackingStore,
 } from "../src/modules/anime/tracking/ports.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
+import type { AniListClient } from "./anilist-fixture.js";
+import {
+	AniListAccountClient,
+	createAniListTracking,
+} from "./anilist-fixture.js";
 
 interface AccountTestOptions {
 	store: TrackingStore;

@@ -267,9 +267,7 @@ test("startup reconciles an upgraded uncertain AniList attempt without submittin
 	const { createTrackingModule } = await import(
 		"../src/modules/anime/composition/tracking.js"
 	);
-	const { createAniListTracking } = await import(
-		"../src/modules/anime/composition/anilist.js"
-	);
+	const { createAniListTracking } = await import("./anilist-fixture.js");
 	const { vi } = await import("vitest");
 	const request = vi.fn(async () => ({
 		MediaList: {

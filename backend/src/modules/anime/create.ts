@@ -1,7 +1,7 @@
 import type { Logger } from "pino";
 import type { ResourcesApi } from "../resources/public.js";
 import type { SystemApi } from "../system/public.js";
-import { AniListScheduler } from "./anilist/public.js";
+import { AniListWrapper } from "./anilist/public.js";
 import { AnimeLibraryQueries } from "./anime-library/application/library.js";
 import {
 	createAniListMetadata,
@@ -26,7 +26,7 @@ export async function createAnimeModule(options: {
 	logger: Logger;
 }) {
 	const { system, resources: library, database, logger } = options;
-	const requests = new AniListScheduler({ logger });
+	const requests = new AniListWrapper({ logger });
 	const tracking = database
 		? await createTrackingModule({
 				dataDir: system.deployment.dataDir,
