@@ -6,13 +6,11 @@ import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
 import { builtinPolicy } from "../src/app/policy.js";
-import { AniListListsClient } from "../src/modules/anime/anilist/infrastructure/lists-client.js";
 import { AniListError } from "../src/modules/anime/anilist/public.js";
 import type { AnimeCatalogApi } from "../src/modules/anime/anime-catalog/public.js";
 import { AnimeLibraryQueries } from "../src/modules/anime/anime-library/application/library.js";
 import type { LocalIndex } from "../src/modules/anime/anime-library/domain/model.js";
 import { registerAnimeLibraryRoutes } from "../src/modules/anime/anime-library/http/library.js";
-import { createAniListTracking } from "../src/modules/anime/composition/anilist.js";
 import { createTrackingModule } from "../src/modules/anime/composition/tracking.js";
 import { TrackingListReader } from "../src/modules/anime/tracking/application/list-cache.js";
 import type {
@@ -26,6 +24,10 @@ import type { TrackingStatus } from "../src/modules/anime/tracking/domain/model.
 import { AniListListProvider } from "../src/modules/anime/tracking/infrastructure/list-provider.js";
 import { aniListTracking } from "../src/modules/anime/tracking/infrastructure/provider-mapping.js";
 import type { TrackingListStore } from "../src/modules/anime/tracking/ports.js";
+import {
+	AniListListsClient,
+	createAniListTracking,
+} from "./anilist-fixture.js";
 
 const lease: TrackingLease = {
 	accountId: "anilist:7",

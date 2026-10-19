@@ -7,7 +7,7 @@ import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { AniListMetadataClient } from "../src/modules/anime/anilist/infrastructure/metadata-client.js";
 import {
 	type AniListOptions,
-	AniListScheduler,
+	AniListWrapper,
 } from "../src/modules/anime/anilist/public.js";
 import { createAniListMetadata } from "../src/modules/anime/composition/anilist.js";
 import {
@@ -126,7 +126,7 @@ function transport() {
 }
 function createProvider(options: AniListOptions): AniListProvider {
 	return new AniListProvider(
-		new AniListMetadataClient(new AniListScheduler(options)),
+		new AniListMetadataClient(new AniListWrapper(options)),
 	);
 }
 const cleanups: (() => Promise<void>)[] = [];
@@ -217,7 +217,7 @@ test("fresh cache survives database restart and returned values are independent"
 			logger,
 			fetch: offline,
 			...createAniListMetadata(
-				new AniListScheduler({
+				new AniListWrapper({
 					fetch: offline,
 					intervalMs: 0,
 					attempts: 1,
@@ -335,7 +335,7 @@ test("empty searches have short TTL and failures never create negative cache ent
 	).toBeNull();
 });
 
-test("provider validation rejects partial, malformed, oversized and wrong-identity responses", async () => {
+test("provider validation rejects partial, malformed and wrong-identity responses", async () => {
 	const fetcher = transport();
 	const provider = createProvider({
 		fetch: fetcher,
@@ -353,14 +353,7 @@ test("provider validation rejects partial, malformed, oversized and wrong-identi
 	}
 	fetcher.mockImplementationOnce(async () => new Response("bad-json"));
 	await failure(provider.get(reference, noSignal()), "invalid-response");
-	fetcher.mockImplementationOnce(
-		async () =>
-			new Response("{}", {
-				headers: {
-					"content-length": String(metadataPolicy.responseMaximumBytes + 1),
-				},
-			}),
-	);
+	fetcher.mockImplementationOnce(async () => Response.json({}));
 	await failure(provider.get(reference, noSignal()), "invalid-response");
 	fetcher.mockImplementationOnce(async () =>
 		Response.json({ data: { Media: null } }),
@@ -465,7 +458,6 @@ test("rate headers pace retries and honor Retry-After/reset without bursts", asy
 		fetch: fetcher,
 		intervalMs: 0,
 		attempts: 2,
-		random: () => 0,
 	});
 	const task = provider.get(reference, noSignal());
 	await vi.advanceTimersByTimeAsync(1000);
@@ -484,7 +476,6 @@ test("temporary failures retry within bounds, invalid responses do not loop", as
 		fetch: fetcher,
 		intervalMs: 0,
 		attempts: 2,
-		random: () => 0,
 	});
 	expect((await provider.get(reference, noSignal())).data.reference).toEqual(
 		reference,
@@ -903,17 +894,14 @@ test("uncached work is bounded and queued cancellation does not launch extra req
 	expect(fetcher).toHaveBeenCalledTimes(1);
 });
 
-test("streamed response size limits apply without Content-Length", async () => {
+test("SDK rejects malformed streamed GraphQL responses without Content-Length", async () => {
 	const fetcher = transport();
 	fetcher.mockImplementationOnce(
 		async () =>
 			new Response(
 				new ReadableStream({
 					start(controller) {
-						controller.enqueue(
-							new Uint8Array(metadataPolicy.responseMaximumBytes),
-						);
-						controller.enqueue(new Uint8Array(1));
+						controller.enqueue(new TextEncoder().encode("invalid-json"));
 						controller.close();
 					},
 				}),

@@ -97,7 +97,7 @@ module composition owns the only implementation-access exception.
 
 Within Anime, `anilist/` owns provider protocol code and never imports Metadata,
 Tracking or Catalog business types. Its account, list, update and metadata clients share
-one `AniListScheduler` created by Anime assembly. Metadata and Tracking
+one `AniListWrapper` created by Anime assembly, using native SDK transport and shared SDK rate-limit plugins. Metadata and Tracking
 infrastructure adapters convert typed protocol results/errors into their own
 contracts. Their Applications depend on consumer-owned ports, not provider
 implementations or the AniList transport. Provider descriptors, credential-entry authorization, capabilities and adapters

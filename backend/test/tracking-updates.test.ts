@@ -4,8 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
-import { AniListUpdatesClient } from "../src/modules/anime/anilist/infrastructure/updates-client.js";
-import type { AniListClient } from "../src/modules/anime/anilist/public.js";
 import { AniListError } from "../src/modules/anime/anilist/public.js";
 import { TrackingUpdates } from "../src/modules/anime/tracking/application/updates.js";
 import { TrackingProviderError } from "../src/modules/anime/tracking/domain/list.js";
@@ -16,6 +14,8 @@ import type {
 } from "../src/modules/anime/tracking/domain/operation.js";
 import { aniListTracking } from "../src/modules/anime/tracking/infrastructure/provider-mapping.js";
 import type { TrackingUpdateProvider } from "../src/modules/anime/tracking/ports.js";
+import type { AniListClient } from "./anilist-fixture.js";
+import { AniListUpdatesClient } from "./anilist-fixture.js";
 
 const disposals: (() => unknown)[] = [];
 afterEach(async () => {

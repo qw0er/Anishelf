@@ -27,19 +27,30 @@ wrapper's raw GraphQL service because convenience methods do not preserve all
 required arguments and projections. Runtime response and identity checks remain
 in the protocol adapters; generated TypeScript types are not runtime validation.
 
-`infrastructure/wrapper.ts` creates an operation-scoped SDK and supplies a custom
-transport that delegates to the existing shared `AniListScheduler`. Its decoded
-result is presented to the SDK as a GraphQL response. SDK retries are disabled
-(`maxAttempts: 1`); only the scheduler contacts AniList, attaches credentials,
-limits response bytes, observes rate-limit headers and owns cancellation,
-priority, deadlines and retries. Mutations still have one transport attempt;
-uncertain delivery is reconciled by Tracking. Original scheduler exceptions are
-preserved across api-core wrapping. Tokens and signals are captured per operation,
-so simultaneous public and account calls do not share mutable SDK credentials.
+`anilist/client.ts` constructs operation-scoped SDK instances with native
+SDK transport. Credentials and cancellation remain local to each operation.
+All instances share api-core rate-limit and header-rate-limit plugin instances,
+including public Metadata and authenticated Tracking requests. The shared limiter
+allows one active request and a default minimum interval of 2400 ms. It acquires
+its slot before checking server feedback; response headers are recorded before
+releasing the slot. HTTP 429 Retry-After and exhausted-budget reset headers delay
+subsequent requests, including requests from other consumers.
 
-Existing request/outcome diagnostics remain at the scheduler and consumer layers.
-The scheduler logs its effective pacing and query/mutation attempt limits without
-credentials or payloads. No new database format or provider identity is introduced.
+The SDK owns HTTP, authorization, timeout, cancellation, response decoding and
+bounded retries. Queries allow up to three attempts for transport failures and
+HTTP 429/500/502/503/504. The SDK conditional retry plugin disables mutation retries before
+transport execution; Tracking still reconciles uncertain delivery. GraphQL errors
+are rejected even when partial data is present. Consumer clients retain runtime
+schema and identity checks. SDK errors are converted to sanitized AniList errors;
+raw errors, response bodies and credentials are never retained in diagnostics.
+Request attempt/outcome and effective policy logs remain available.
+
+The custom scheduler, transport bridge and response reader are removed. SDK FIFO
+limiting replaces account priority/fairness and the protocol queue cap. There is
+no custom protocol response-size cap; SDK timeout follows its native fetch
+semantics. Metadata and Tracking retain their own work admission and cancellation
+policies. Closing the integration aborts active/queued operations and waits for
+caller-visible promises to settle. No database format changes are required.
 
 ## Persistence and migration
 
@@ -54,7 +65,7 @@ A deterministic non-AniList provider must exercise opaque IDs, different state e
 - `shared/external-reference.ts`: canonical work keys and scoped account/entry IDs; exported to Web through `contracts/references`.
 - `tracking/domain`: product viewing semantics, provider descriptors, namespaced opaque identities and nullable millisecond remote timestamps.
 - `tracking/ports.ts`: account/list/update and target-resolution ports. `tracking/application/targets.ts` implements exact-reference resolution.
-- `composition/tracking.ts` and `composition/metadata.ts`: provider-neutral factories. `composition/anilist.ts` selects production adapters and policy. The protocol scheduler remains shared by all AniList clients.
+- `composition/tracking.ts` and `composition/metadata.ts`: provider-neutral factories. `composition/anilist.ts` selects production adapters and policy. SDK limiter instances remain shared by all AniList clients.
 - `anime-library/application/library.ts`: exact reference joins, stable remote identities and explicit tracked/untracked/unknown/unmapped availability.
 - `contracts/schemas/tracking*`: synchronized HTTP identity, capability, state and target-resolution contracts. Web cache keys include scoped account IDs and generations.
 - `0017_tracking_provider_identity.sql`: transactional data/schema migration; malformed operation JSON aborts the upgrade instead of replaying uncertain intent. Invalid/legacy observation versions terminate delivery with an explicit outcome.
@@ -75,7 +86,7 @@ Stop Anishelf and back up the SQLite database together with `tracking-credential
 
 Biome check, lint (including architecture and unused exports), both workspace type checks and both production builds passed. The final full suite recorded 939 backend passes, one skip and one failure; all 322 Web tests passed. The remaining failure is `multiple native monitors isolate equal paths and keep healthy roots updating during recovery` in `backend/test/filesystem-monitor.test.ts`. It was independently reproduced from an unchanged HEAD source snapshot with child-process/localhost permissions; Resources and that test were not changed by this refactor. The same baseline run also reproduced the unrelated-directory native-monitor assertion. Therefore `npm run check` is not fully green despite all provider-related tests passing. No live remote account or production database was used for acceptance.
 
-## SDK replacement verification (2026-10-19)
+## Initial SDK integration verification (2026-10-19)
 
 Biome check, lint (including architecture and unused exports), both workspace type
 checks and production builds passed. The full suite passed 947 Backend tests,
@@ -85,3 +96,16 @@ original failure identity and retry timestamps, one-attempt mutations through th
 real scheduler, and cancellation before dispatch. Existing metadata, authorization,
 list and Tracking regressions also pass. No live AniList credential was used;
 real-provider read/write acceptance remains pending.
+
+## Native SDK transport replacement (2026-10-19)
+
+The native SDK regression suite covers shared pacing and header feedback,
+credential isolation, query retries, single-attempt mutations, sanitized errors,
+queued cancellation, shutdown and native timeout. Biome, lint (including architecture and unused exports), both workspace type
+checks and all 59 architecture tests passed. The full suite recorded 941 Backend
+passes, one skip and one native filesystem-monitor failure; all 324 Web tests
+passed. The failure is the resource-monitor recovery test described above, outside
+the AniList changes and reproduced in an unchanged HEAD temporary snapshot
+(which also reproduced the unrelated-directory monitor assertion). Both production
+builds passed. Live AniList account acceptance is separate from local
+mocked-HTTP verification.
