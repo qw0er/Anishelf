@@ -5,6 +5,7 @@ export interface DeploymentConfig {
 	host: string;
 	port: number;
 	publicOrigin?: string;
+	qbittorrentUrl?: string;
 	dataDir: string;
 	initialResourceRoot?: string;
 	initialResourceRoots?: string[];

@@ -72,7 +72,7 @@ function positiveInteger(
 	return parsed;
 }
 
-function parsePublicOrigin(value: string): string {
+function parseHttpOrigin(value: string, name: string): string {
 	try {
 		const url = new URL(value);
 		if (
@@ -88,7 +88,7 @@ function parsePublicOrigin(value: string): string {
 		return url.origin;
 	} catch (cause) {
 		invalid(
-			"ANISHELF_PUBLIC_ORIGIN must be an HTTP(S) origin without credentials, path, query or fragment.",
+			`${name} must be an HTTP(S) origin without credentials, path, query or fragment.`,
 			cause,
 		);
 	}
@@ -171,6 +171,13 @@ export function parseDeploymentConfig(
 		invalid("ANISHELF_LOG_DESTINATION must be 'stdout', 'file', or 'both'.");
 	}
 	const resourceInitializers = initialRoots(env);
+	const qbittorrentUrl =
+		env.ANISHELF_QBITTORRENT_URL === undefined
+			? undefined
+			: parseHttpOrigin(
+					env.ANISHELF_QBITTORRENT_URL,
+					"ANISHELF_QBITTORRENT_URL",
+				);
 	const mediaTools = {
 		ffmpegPath:
 			env.ANISHELF_FFMPEG_PATH === undefined
@@ -184,9 +191,15 @@ export function parseDeploymentConfig(
 	return {
 		host,
 		port,
+		...(qbittorrentUrl ? { qbittorrentUrl } : {}),
 		...(env.ANISHELF_PUBLIC_ORIGIN === undefined
 			? {}
-			: { publicOrigin: parsePublicOrigin(env.ANISHELF_PUBLIC_ORIGIN) }),
+			: {
+					publicOrigin: parseHttpOrigin(
+						env.ANISHELF_PUBLIC_ORIGIN,
+						"ANISHELF_PUBLIC_ORIGIN",
+					),
+				}),
 		dataDir,
 		...(env.ANISHELF_INITIAL_RESOURCE_ROOT === undefined
 			? {}

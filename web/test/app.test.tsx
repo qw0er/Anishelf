@@ -142,6 +142,11 @@ beforeEach(() => {
 				expiresAt: Date.now() + 86400000,
 			});
 		const path = String(input);
+		if (path === "/api/integrations/qbittorrent")
+			return json({
+				url: "/integrations/qbittorrent/",
+				proxyConfigured: false,
+			});
 		if (path.startsWith("/api/files/file-1/chapters?"))
 			return json({ sourceVersion: "version", chapters: [] });
 		if (

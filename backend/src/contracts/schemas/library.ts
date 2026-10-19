@@ -140,15 +140,20 @@ export function createSettingsSchemas() {
 			),
 			defaultTranscodeProfileId: Type.Optional(TranscodeProfileIdSchema),
 			preparationMode: Type.Optional(PreparationModeSchema),
+			qbittorrentWebUiUrl: Type.Optional(
+				Type.Union([Type.String({ maxLength: 2048 }), Type.Null()]),
+			),
 		},
 		{ additionalProperties: false },
 	);
 	const UpdateSettingsRequestSchema = Type.Object(
 		{
-			resourceRoots: Type.Array(Type.String({ minLength: 1 }), {
-				maxItems: 64,
-				uniqueItems: true,
-			}),
+			resourceRoots: Type.Optional(
+				Type.Array(Type.String({ minLength: 1 }), {
+					maxItems: 64,
+					uniqueItems: true,
+				}),
+			),
 			transcodeCacheBudgetGiB: Type.Optional(
 				Type.Integer({
 					minimum: 1,
@@ -157,8 +162,11 @@ export function createSettingsSchemas() {
 			),
 			defaultTranscodeProfileId: Type.Optional(TranscodeProfileIdSchema),
 			preparationMode: Type.Optional(PreparationModeSchema),
+			qbittorrentWebUiUrl: Type.Optional(
+				Type.Union([Type.String({ maxLength: 2048 }), Type.Null()]),
+			),
 		},
-		{ additionalProperties: false },
+		{ additionalProperties: false, minProperties: 1 },
 	);
 	return { SettingsResponseSchema, UpdateSettingsRequestSchema };
 }

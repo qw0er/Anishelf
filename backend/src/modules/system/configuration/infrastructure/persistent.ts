@@ -20,6 +20,7 @@ import { canonicalPath } from "../../../../platform/canonical-path.js";
 import { storageRules } from "../../../../platform/storage.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { PersistentSettings } from "../domain/model.js";
+import { normalizeQbittorrentWebUiUrl } from "../domain/webui-url.js";
 
 export function parsePersistentSettings(source: string): PersistentSettings {
 	let value: unknown;
@@ -57,7 +58,8 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 			key !== "scanIntervalMinutes" &&
 			key !== "defaultTranscodeProfileId" &&
 			key !== "preparationMode" &&
-			key !== "transcodeCacheBudgetGiB"
+			key !== "transcodeCacheBudgetGiB" &&
+			key !== "qbittorrentWebUiUrl"
 		)
 			throw new DomainError(
 				"CONFIG_INVALID",
@@ -127,6 +129,13 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		throw new DomainError("CONFIG_INVALID", "Resource paths must be distinct.");
 	return {
 		resourceRoots: [...roots],
+		...(settings.qbittorrentWebUiUrl === undefined
+			? {}
+			: {
+					qbittorrentWebUiUrl: normalizeQbittorrentWebUiUrl(
+						settings.qbittorrentWebUiUrl,
+					),
+				}),
 		...profile,
 		...cache,
 		...mode,

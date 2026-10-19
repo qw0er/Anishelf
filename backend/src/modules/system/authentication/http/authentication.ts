@@ -154,6 +154,18 @@ export async function registerAuthentication(
 	]);
 	app.addHook("onRequest", async function authorizeRequest(request, reply) {
 		const path = new URL(request.url, "http://localhost").pathname;
+		if (
+			path === "/integrations/qbittorrent" ||
+			path.startsWith("/integrations/qbittorrent/")
+		) {
+			reply.header("Cache-Control", "no-store");
+			if (!authenticated(request))
+				throw new DomainError(
+					"AUTH_REQUIRED",
+					"Sign in to Anishelf to open qBittorrent.",
+				);
+			return;
+		}
 		if (!(path === "/api" || path.startsWith("/api/"))) return;
 		reply.header("Cache-Control", "no-store");
 		const safe = ["GET", "HEAD", "OPTIONS"].includes(request.method);

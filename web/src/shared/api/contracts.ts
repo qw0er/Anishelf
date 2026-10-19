@@ -37,6 +37,7 @@ export type {
 	PreparationStartResponse,
 	PreparationSummaryResponse,
 	PreparationTaskResponse,
+	QbittorrentWebUi,
 	ResourceId,
 	SavePlaybackProgressRequest,
 	SavePlaybackProgressResponse,

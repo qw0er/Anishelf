@@ -1,9 +1,7 @@
 import type { Logger } from "pino";
 import type { ResourceSettingsCoordinator } from "../../public.js";
 import type { PersistentSettings, SettingsStore } from "../settings.js";
-export type SettingsUpdate = Partial<PersistentSettings> & {
-	resourceRoots: string[];
-};
+export type SettingsUpdate = Partial<PersistentSettings>;
 /** System owns every setting write; Resources coordinates only resource-related changes. */
 export class SettingsApplication {
 	constructor(
@@ -48,10 +46,14 @@ export class SettingsApplication {
 				throw err;
 			}
 		};
-		const saved = await this.resources.applySettingsChange(patch, save);
+		const saved =
+			patch.resourceRoots === undefined
+				? await save(patch)
+				: await this.resources.applySettingsChange(patch, save);
 		this.logger.info(
 			{
 				event: "settings.updated",
+				fields: Object.keys(patch),
 				durationMs: Date.now() - started,
 			},
 			"Settings saved.",
