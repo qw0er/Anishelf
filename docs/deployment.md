@@ -59,7 +59,7 @@ ownership. Do not reuse another account's Podman storage directory.
 docker pull ghcr.io/qw0er/anishelf:latest
 docker volume create anishelf-data
 docker run -d --name anishelf --restart unless-stopped \
-  --network host --stop-timeout 15 \
+  -p 127.0.0.1:3000:3000 --stop-timeout 15 \
   -e ANISHELF_PORT=3000 \
   -e ANISHELF_INITIAL_RESOURCE_ROOT=/media \
   -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
@@ -93,7 +93,7 @@ Complete the [dedicated service account setup](../README.md#dedicated-service-ac
 mkdir -p ~/.local/share/anishelf
 podman pull ghcr.io/qw0er/anishelf:latest
 podman run -d --name anishelf --restart unless-stopped \
-  --network host --stop-timeout 15 \
+  -p 127.0.0.1:3000:3000 --stop-timeout 15 \
   --userns keep-id:uid=1000,gid=1000 --user 1000:1000 \
   -e ANISHELF_PORT=3000 \
   -e ANISHELF_INITIAL_RESOURCE_ROOT=/media \
@@ -114,7 +114,7 @@ UID/GID 1000:
 sudo install -d -m 0750 -o 1000 -g 1000 /var/lib/anishelf
 sudo podman pull ghcr.io/qw0er/anishelf:latest
 sudo podman run -d --name anishelf --restart unless-stopped \
-  --network host --stop-timeout 15 --user 1000:1000 \
+  -p 127.0.0.1:3000:3000 --stop-timeout 15 --user 1000:1000 \
   -e ANISHELF_PORT=3000 \
   -e ANISHELF_INITIAL_RESOURCE_ROOT=/media \
   -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
@@ -154,7 +154,7 @@ Description=Anishelf media server
 [Container]
 Image=ghcr.io/qw0er/anishelf:latest
 ContainerName=anishelf
-Network=host
+PublishPort=127.0.0.1:3000:3000
 User=1000:1000
 Environment=ANISHELF_PORT=3000
 Environment=ANISHELF_INITIAL_RESOURCE_ROOT=/media
@@ -310,13 +310,32 @@ prepared copies, subtitles and artwork require the browser session.
 
 Set `ANISHELF_PUBLIC_ORIGIN=https://example.com` and restart Anishelf. Keep Host
 and Origin headers unchanged. Caddy on the same host provides TLS and forwards
-the request scheme and client address; only loopback proxies are trusted:
+the request scheme and client address. By default only loopback proxies are trusted:
 
 ```caddyfile
 example.com {
     reverse_proxy 127.0.0.1:3000
 }
 ```
+
+Container deployments use bridge networking and publish `127.0.0.1:3000:3000`.
+Keep `ANISHELF_HOST=0.0.0.0` inside the container (the image default); container
+loopback listeners cannot receive bridge port mappings. To change the host port,
+change the left-hand port only, for example `127.0.0.1:8080:3000`, and update
+Caddy's upstream. Set `ANISHELF_PUBLIC_ORIGIN` to the browser-facing origin,
+including its port, whenever it differs from the internal listener. This also
+supports deliberate LAN publication; keep public access behind HTTPS.
+
+Caddy is expected to run on the host and connect to the published loopback port.
+Only loopback peers are trusted for forwarded headers. Container forwarding may
+present a gateway IP instead, so per-source login limits can be shared across
+users. This does not block proxy access: Host/Origin validation uses the configured
+public origin, and Secure cookies depend on that origin rather than forwarded
+headers. No proxy-IP configuration is required.
+
+When migrating an existing host-network deployment, recreate the container with
+port publication and remove any old `ANISHELF_HOST=127.0.0.1` override. Keep its
+existing data volume and media mounts. Do not run both instances on the same data.
 
 Use the exact public origin, including a non-default port if necessary. HTTPS
 origins use Secure cookies; local HTTP works when no HTTPS public origin is set.

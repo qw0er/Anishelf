@@ -108,7 +108,7 @@ public-origin variable for local or SSH-only access.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `ANISHELF_HOST` | `127.0.0.1` | Loopback IP address (`127.x.x.x` or `::1`); hostnames are not accepted. |
+| `ANISHELF_HOST` | `127.0.0.1` | Listener IPv4/IPv6 literal; the container image uses `0.0.0.0`. |
 | `ANISHELF_PORT` | `3000` | Decimal integer listener port from 1 to 65535. |
 | `ANISHELF_PUBLIC_ORIGIN` | Unset | One allowed external HTTP(S) origin; no wildcards, credentials, path, query or fragment. Local access remains available; proxy authentication is required. |
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory for Anishelf | Absolute directory; overrides the platform default. |
@@ -407,10 +407,12 @@ build exists. The configured directory must contain `index.html` or startup fail
 A shared Caddy can proxy the whole application. Configure `ANISHELF_PUBLIC_ORIGIN`
 for its external origin and preserve Host/Origin headers; see the
 [Caddy deployment example](deployment.md#caddy-reverse-proxy). Backend listening
-remains loopback-only. The explicit origin supplies the external scheme and port
-for Host and mutation Origin validation; `trustProxy` trusts loopback proxies only and
-forwarded headers supply the scheme and client address only when received from
-a loopback proxy; they do not authorize requests. Local health checks remain available.
+defaults to loopback for source installations and `0.0.0.0` in container images.
+Containers use bridge networking with host loopback port publication. The explicit
+origin supplies the external scheme and port for Host and mutation Origin validation.
+Forwarded headers supply scheme/client address only from loopback proxies; they
+do not authorize requests. Container forwarding may obscure the client IP without
+affecting Host/Origin validation or authentication. Local health checks remain available.
 Anishelf authenticates business routes and protects mutations with a CSRF token.
 Caddy supplies TLS; no media-path bypass is needed. External-player URLs include
 24-hour single-file authorization tokens. See [authentication operations](deployment.md#authentication-and-password-recovery).

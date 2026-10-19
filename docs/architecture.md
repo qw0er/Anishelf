@@ -509,7 +509,14 @@ business loaders; API 401 responses clear client caches and leave the protected
 application. Focus/minute checks also detect server-side session revocation.
 
 Login/password verification uses bounded per-source and instance-wide attempts.
-Forwarded scheme/client address headers are trusted only from loopback proxies.
+Source installations default to a loopback listener; container images listen on
+`0.0.0.0` behind bridge port publication bound to host loopback. Listener addresses
+must be IPv4/IPv6 literals. Host/Origin validation retains explicit public-origin
+matching, including translated external ports; wildcard listeners do not permit
+arbitrary Host values. Forwarded scheme/client address headers are trusted only
+from loopback proxies. Container forwarding may obscure the client IP; public-origin
+validation and authentication do not depend on trusting forwarded headers.
+The startup success log records listener configuration.
 HTTPS public origins require Secure cookies. Password changes revoke all sessions
 and media links; logout revokes its current session. Media tokens authorize one
 original version for 24 hours and reuse existing HEAD/Range delivery. They do not

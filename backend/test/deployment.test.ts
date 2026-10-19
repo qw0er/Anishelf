@@ -89,9 +89,6 @@ test.each(["trace", "debug", "info", "warn", "error", "fatal", "silent"])(
 );
 
 test.each([
-	["ANISHELF_HOST", "0.0.0.0"],
-	["ANISHELF_HOST", "192.168.1.2"],
-	["ANISHELF_HOST", "::"],
 	["ANISHELF_HOST", "127.invalid"],
 	["ANISHELF_HOST", ""],
 	["ANISHELF_PORT", "0"],
@@ -262,3 +259,10 @@ test.each([
 ])("rejects file-only option %s with stdout", (name) => {
 	expect(() => parseDeploymentConfig({ [name]: "1" })).toThrow(name);
 });
+
+test.each(["0.0.0.0", "192.168.1.2", "::"])(
+	"accepts listener IP %s",
+	(host) => {
+		expect(parseDeploymentConfig({ ANISHELF_HOST: host }).host).toBe(host);
+	},
+);
