@@ -16,6 +16,31 @@ Target resolution is a consumer-owned port. Exact reference matches in the activ
 
 Metadata defaults and artwork host allowlists are injected during assembly. Manual lookup sends an opaque ID or supported work URL to the selected metadata adapter through `/api/metadata/reference`; frontend business code does not parse provider URLs. Provider adapters normalize schema differences; raw provider data remains isolated. Artwork requests remain HTTPS-only, with bounded responses and redirect validation. Cache identity includes provider and projection versions.
 
+## AniList SDK integration
+
+The AniList protocol adapters use `@api-wrappers/anilist-wrapper` 4.0.1.
+Search, viewer lookup and entry saves use its services with explicit field selections.
+Details retain `description(asHtml: false)`, `source(version: 3)` and main-studio
+arguments; relations retain `relationType(version: 2)`. Those queries, airing
+pagination, complete chunked list reads and account/media entry lookups use the
+wrapper's raw GraphQL service because convenience methods do not preserve all
+required arguments and projections. Runtime response and identity checks remain
+in the protocol adapters; generated TypeScript types are not runtime validation.
+
+`infrastructure/wrapper.ts` creates an operation-scoped SDK and supplies a custom
+transport that delegates to the existing shared `AniListScheduler`. Its decoded
+result is presented to the SDK as a GraphQL response. SDK retries are disabled
+(`maxAttempts: 1`); only the scheduler contacts AniList, attaches credentials,
+limits response bytes, observes rate-limit headers and owns cancellation,
+priority, deadlines and retries. Mutations still have one transport attempt;
+uncertain delivery is reconciled by Tracking. Original scheduler exceptions are
+preserved across api-core wrapping. Tokens and signals are captured per operation,
+so simultaneous public and account calls do not share mutable SDK credentials.
+
+Existing request/outcome diagnostics remain at the scheduler and consumer layers.
+The scheduler logs its effective pacing and query/mutation attempt limits without
+credentials or payloads. No new database format or provider identity is introduced.
+
 ## Persistence and migration
 
 Migration 0017 converts numeric account/media/entry identities to canonical AniList keys in columns and nested JSON, normalizes viewing statuses and remote timestamps, and versions pending playback observation contexts. Operation IDs, revisions, attempted desired fields, receipts, manual versions, retries and history are preserved. Uncertain submissions reconcile before dispatch. SQL changes run under the migration transaction. Existing immutable credential files are read through an exact legacy AniList account binding; new files use version 2 and opaque credentials. No credential file rewrite is required, so interrupted SQL migrations cannot partially migrate secrets. Backups must include both the SQLite database and tracking-credentials directory. Restore both together to roll back an upgrade; downgrade-in-place is unsupported.
@@ -49,3 +74,14 @@ Stop Anishelf and back up the SQLite database together with `tracking-credential
 ## Verification record (2026-10-18)
 
 Biome check, lint (including architecture and unused exports), both workspace type checks and both production builds passed. The final full suite recorded 939 backend passes, one skip and one failure; all 322 Web tests passed. The remaining failure is `multiple native monitors isolate equal paths and keep healthy roots updating during recovery` in `backend/test/filesystem-monitor.test.ts`. It was independently reproduced from an unchanged HEAD source snapshot with child-process/localhost permissions; Resources and that test were not changed by this refactor. The same baseline run also reproduced the unrelated-directory native-monitor assertion. Therefore `npm run check` is not fully green despite all provider-related tests passing. No live remote account or production database was used for acceptance.
+
+## SDK replacement verification (2026-10-19)
+
+Biome check, lint (including architecture and unused exports), both workspace type
+checks and production builds passed. The full suite passed 947 Backend tests,
+324 Web tests and 59 architecture tests. Wrapper regressions cover concurrent
+credential/public-request isolation, priority and cancellation context forwarding,
+original failure identity and retry timestamps, one-attempt mutations through the
+real scheduler, and cancellation before dispatch. Existing metadata, authorization,
+list and Tracking regressions also pass. No live AniList credential was used;
+real-provider read/write acceptance remains pending.

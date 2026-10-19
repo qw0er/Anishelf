@@ -7,6 +7,8 @@ import type {
 	AniListUpdateApi,
 } from "../domain/provider.js";
 
+import { withAniList } from "./wrapper.js";
+
 const fields = "id userId mediaId progress status updatedAt media { type }";
 const state = Type.Object({
 	id: Type.Integer({ minimum: 1 }),
@@ -51,10 +53,14 @@ export class AniListUpdatesClient implements AniListUpdateApi {
 		signal: AbortSignal,
 	): Promise<AniListRemoteState | null> {
 		try {
-			const raw = await this.client.request(
-				`query TrackingEntry($userId: Int!, $mediaId: Int!) { MediaList(userId: $userId, mediaId: $mediaId, type: ANIME) { ${fields} } }`,
-				{ userId: accountId, mediaId },
+			const raw = await withAniList(
+				this.client,
 				{ token, signal, priority: true },
+				(sdk) =>
+					sdk.graphql.request(
+						`query TrackingEntry($userId: Int!, $mediaId: Int!) { MediaList(userId: $userId, mediaId: $mediaId, type: ANIME) { ${fields} } }`,
+						{ userId: accountId, mediaId },
+					),
 			);
 			if (typeof raw !== "object" || raw === null || !("MediaList" in raw))
 				return decode(raw, accountId, mediaId);
@@ -76,10 +82,14 @@ export class AniListUpdatesClient implements AniListUpdateApi {
 		signal: AbortSignal,
 	): Promise<AniListRemoteState> {
 		if (entryId === null) {
-			const target = await this.client.request(
-				"query TrackingTarget($id: Int!) { Media(id: $id, type: ANIME) { id type } }",
-				{ id: mediaId },
+			const target = await withAniList(
+				this.client,
 				{ token, signal, priority: true },
+				(sdk) =>
+					sdk.graphql.request(
+						"query TrackingTarget($id: Int!) { Media(id: $id, type: ANIME) { id type } }",
+						{ id: mediaId },
+					),
 			);
 			const schema = Type.Object({
 				Media: Type.Object({ id: Type.Integer(), type: Type.Literal("ANIME") }),
@@ -91,17 +101,27 @@ export class AniListUpdatesClient implements AniListUpdateApi {
 					retryAt: null,
 				});
 		}
-		const raw = await this.client.request(
-			`mutation TrackingUpdate($id: Int, $mediaId: Int, $progress: Int, $status: MediaListStatus) { SaveMediaListEntry(id: $id, mediaId: $mediaId, progress: $progress, status: $status) { ${fields} } }`,
-			{ ...(entryId === null ? { mediaId } : { id: entryId }), ...desired },
+		const raw = await withAniList(
+			this.client,
 			{ token, signal, priority: true },
+			(sdk) =>
+				sdk.mediaList.saveEntry(
+					{ ...(entryId === null ? { mediaId } : { id: entryId }), ...desired },
+					{
+						select: {
+							mediaList: {
+								id: true,
+								userId: true,
+								mediaId: true,
+								progress: true,
+								status: true,
+								updatedAt: true,
+								media: { type: true },
+							},
+						},
+					},
+				),
 		);
-		return decode(
-			typeof raw === "object" && raw !== null && "SaveMediaListEntry" in raw
-				? raw.SaveMediaListEntry
-				: raw,
-			accountId,
-			mediaId,
-		);
+		return decode(raw.mediaList, accountId, mediaId);
 	}
 }

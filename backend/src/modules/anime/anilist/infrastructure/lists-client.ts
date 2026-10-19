@@ -3,6 +3,8 @@ import { Check } from "typebox/value";
 import { type AniListClient, AniListError } from "../domain/model.js";
 import type { AniListListEntry, AniListListsApi } from "../domain/provider.js";
 
+import { withAniList } from "./wrapper.js";
+
 const nullable = <
 	T extends ReturnType<typeof Type.String> | ReturnType<typeof Type.Integer>,
 >(
@@ -75,10 +77,8 @@ export class AniListListsClient implements AniListListsApi {
 		const entries = new Map<number, AniListListEntry>();
 		for (let page = 1; page <= 1000; page++) {
 			signal.throwIfAborted();
-			const raw = await this.client.request(
-				query,
-				{ userId: accountId, chunk: page },
-				{ signal, token: token },
+			const raw = await withAniList(this.client, { signal, token }, (sdk) =>
+				sdk.graphql.request(query, { userId: accountId, chunk: page }),
 			);
 			if (!Check(chunk, raw)) invalid();
 			let added = 0;

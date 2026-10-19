@@ -87,7 +87,7 @@ function response(query: string, variables: Record<string, number>) {
 		perPage: variables.perPage ?? 25,
 		hasNextPage: false,
 	};
-	if (query.includes("SearchAnime"))
+	if (query.includes("SelectedAnimeSearch"))
 		return { data: { Page: { pageInfo, media: [media()] } } };
 	if (query.includes("AnimeRelations"))
 		return {
