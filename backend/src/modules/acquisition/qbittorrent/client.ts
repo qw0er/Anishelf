@@ -1,6 +1,5 @@
-import { type QBittorrent, TorrentClientError } from "@ctrl/qbittorrent";
+import { QBittorrent, TorrentClientError } from "@ctrl/qbittorrent";
 import { Check } from "typebox/value";
-import { abortable } from "../../../shared/abortable.js";
 import {
 	type AddDownload,
 	type DownloadTask,
@@ -14,11 +13,6 @@ import {
 	preferencesSchema,
 	tasksSchema,
 } from "./infrastructure/schema.js";
-import { ValidatedQbittorrentSdk } from "./infrastructure/sdk.js";
-import {
-	QbittorrentTransport,
-	type RequestContext,
-} from "./infrastructure/transport.js";
 
 function inputError(): never {
 	throw new QbittorrentError("invalid-input", "not-sent");
@@ -38,12 +32,10 @@ function text(value: unknown): value is string {
 
 export class QbittorrentClient implements QbittorrentApi {
 	private readonly sdk: QBittorrent;
-	private readonly transport: QbittorrentTransport;
 	private readonly shutdown = new AbortController();
 	private readonly pending = new Set<Promise<unknown>>();
 	private authentication: Promise<void> | undefined;
 	private readonly logger;
-	private readonly timeoutMs: number;
 
 	constructor(options: QbittorrentOptions) {
 		let url: URL;
@@ -63,23 +55,18 @@ export class QbittorrentClient implements QbittorrentApi {
 		)
 			inputError();
 		url.pathname = `${url.pathname.replace(/\/+$/, "")}/`;
-		this.timeoutMs = options.timeoutMs ?? 30_000;
-		const maximumBytes = options.maximumResponseBytes ?? 5 * 1024 * 1024;
+		const timeoutMs = options.timeoutMs ?? 30_000;
 		if (
-			!Number.isSafeInteger(this.timeoutMs) ||
-			this.timeoutMs < 1 ||
-			this.timeoutMs > 2_147_483_647 ||
-			!Number.isSafeInteger(maximumBytes) ||
-			maximumBytes < 1
+			!Number.isSafeInteger(timeoutMs) ||
+			timeoutMs < 1 ||
+			timeoutMs > 2_147_483_647
 		)
 			inputError();
-		this.transport = new QbittorrentTransport(url, maximumBytes);
-		this.sdk = new ValidatedQbittorrentSdk({
+		this.sdk = new QBittorrent({
 			baseUrl: url.href,
 			username: options.username,
 			password: options.password,
-			timeout: this.timeoutMs,
-			dispatcher: this.transport.dispatcher,
+			timeout: timeoutMs,
 		});
 		this.logger = options.logger.child({ module: "qbittorrent" });
 		this.logger.debug(
@@ -267,21 +254,19 @@ export class QbittorrentClient implements QbittorrentApi {
 		signal: AbortSignal | undefined,
 		action: () => Promise<T>,
 	): Promise<T> {
-		const timeout = AbortSignal.timeout(this.timeoutMs);
-		const context: RequestContext = {
-			signal: AbortSignal.any([
-				timeout,
-				this.shutdown.signal,
-				...(signal ? [signal] : []),
-			]),
-			writeSent: false,
-		};
-		const task = this.transport.context.run(context, async () => {
+		const cancellation = AbortSignal.any([
+			this.shutdown.signal,
+			...(signal ? [signal] : []),
+		]);
+		let actionStarted = false;
+		const task = (async () => {
 			try {
-				context.signal.throwIfAborted();
-				await abortable(this.authenticate(), context.signal);
-				context.signal.throwIfAborted();
+				cancellation.throwIfAborted();
+				await this.authenticate();
+				cancellation.throwIfAborted();
+				actionStarted = true;
 				const result = await action();
+				cancellation.throwIfAborted();
 				this.logger.debug(
 					{ event: "qbittorrent.succeeded", operation },
 					"qBittorrent operation succeeded.",
@@ -304,12 +289,14 @@ export class QbittorrentClient implements QbittorrentApi {
 				if (status === 401 || status === 403) code = "unauthorized";
 				else if (status && status >= 400 && status < 500) code = "rejected";
 				if (error instanceof QbittorrentError) code = error.code;
-				if (context.failure) code = context.failure.code;
-				if (context.signal.aborted)
-					code = timeout.aborted ? "timeout" : "cancelled";
+				// The SDK wraps fetch timeouts in TorrentClientError/FetchError causes.
+				for (let cause = error; cause instanceof Error; cause = cause.cause) {
+					if (cause.name === "TimeoutError") code = "timeout";
+				}
+				if (cancellation.aborted) code = "cancelled";
 				const outcome = !write
 					? "read"
-					: !context.writeSent
+					: !actionStarted
 						? "not-sent"
 						: code === "unauthorized" || code === "rejected"
 							? "rejected"
@@ -322,14 +309,13 @@ export class QbittorrentClient implements QbittorrentApi {
 				);
 				throw failure;
 			}
-		});
+		})();
 		this.pending.add(task);
 		void task.finally(() => this.pending.delete(task)).catch(() => {});
 		return task;
 	}
 	async close(): Promise<void> {
 		this.shutdown.abort();
-		await this.transport.close();
 		await Promise.allSettled([...this.pending]);
 		this.sdk.logout();
 		this.logger.debug(

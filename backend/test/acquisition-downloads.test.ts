@@ -355,6 +355,23 @@ test("remote add success followed by a timeout binds after restart without resen
 		"bound",
 	);
 });
+test("successful add without a matching remote task stays unknown and is not resent", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	f.add.mockResolvedValueOnce(undefined);
+	await f.worker.tick();
+	expect(f.db.acquisitionDownloads.activity(key, 1, 100).items[0]?.state).toBe(
+		"unknown",
+	);
+	await f.restart();
+	f.advance();
+	await f.worker.tick();
+	expect(f.add).toHaveBeenCalledTimes(1);
+	expect(f.db.acquisitionDownloads.activity(key, 1, 100).items[0]?.state).toBe(
+		"unknown",
+	);
+});
 test("uncertain absent submissions are not retried automatically; explicit retry is idempotent", async () => {
 	const f = await fixture();
 	await f.configure();
