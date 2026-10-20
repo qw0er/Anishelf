@@ -14,6 +14,17 @@ services:
       ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL: http://localhost:8080
     volumes:
       - anishelf-data:/data
+    # Podman's default OCI build format drops Dockerfile HEALTHCHECK metadata.
+    # Declaring it here keeps depends_on.service_healthy working under Podman.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:3000/api/health').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1));"
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
   web:
     image: ghcr.io/qw0er/anishelf-web:latest
