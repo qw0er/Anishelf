@@ -154,6 +154,7 @@ function contains(parent: string, child: string): boolean {
 async function loadPersistentSettings(
 	dataDir: string,
 	initialResourceRoot?: string | readonly string[],
+	initialQbittorrentWebUiUrl?: string,
 ): Promise<PersistentSettings> {
 	const path = join(dataDir, storageRules.settingsFile);
 	let source: string;
@@ -161,12 +162,19 @@ async function loadPersistentSettings(
 		source = await readFile(path, "utf8");
 	} catch (cause) {
 		if ((cause as NodeJS.ErrnoException).code === "ENOENT") {
-			if (initialResourceRoot === undefined) return { resourceRoots: [] };
+			if (
+				initialResourceRoot === undefined &&
+				initialQbittorrentWebUiUrl === undefined
+			)
+				return { resourceRoots: [] };
 			const settings = validatePersistentSettings({
 				resourceRoots:
 					typeof initialResourceRoot === "string"
 						? [initialResourceRoot]
-						: [...initialResourceRoot],
+						: [...(initialResourceRoot ?? [])],
+				...(initialQbittorrentWebUiUrl === undefined
+					? {}
+					: { qbittorrentWebUiUrl: initialQbittorrentWebUiUrl }),
 			});
 			await validateResourceDirectories(dataDir, settings.resourceRoots);
 			try {
@@ -249,10 +257,15 @@ export class PersistentConfiguration {
 	static async load(
 		dataDir: string,
 		initialResourceRoot?: string | readonly string[],
+		initialQbittorrentWebUiUrl?: string,
 	): Promise<PersistentConfiguration> {
 		return new PersistentConfiguration(
 			dataDir,
-			await loadPersistentSettings(dataDir, initialResourceRoot),
+			await loadPersistentSettings(
+				dataDir,
+				initialResourceRoot,
+				initialQbittorrentWebUiUrl,
+			),
 		);
 	}
 

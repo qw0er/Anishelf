@@ -14,6 +14,7 @@ import type {
 import { storageRules } from "../../../../platform/storage.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeploymentConfig } from "../domain/model.js";
+import { normalizeQbittorrentWebUiUrl } from "../domain/webui-url.js";
 
 type Environment = Readonly<Record<string, string | undefined>>;
 
@@ -52,6 +53,20 @@ function initialRoots(env: Environment): string[] | undefined {
 		);
 	return (value as string[]).map((path) =>
 		absolutePath(path, "ANISHELF_INITIAL_RESOURCE_ROOTS"),
+	);
+}
+
+function initialQbittorrentWebUiUrl(env: Environment): string | undefined {
+	const value = env.ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL;
+	if (value === undefined) return undefined;
+	try {
+		const url = normalizeQbittorrentWebUiUrl(value);
+		if (url) return url;
+	} catch {
+		// Report the initializer name without including the supplied URL.
+	}
+	invalid(
+		"ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL must be an absolute HTTP(S) URL without credentials.",
 	);
 }
 
@@ -171,6 +186,7 @@ export function parseDeploymentConfig(
 		invalid("ANISHELF_LOG_DESTINATION must be 'stdout', 'file', or 'both'.");
 	}
 	const resourceInitializers = initialRoots(env);
+	const webUiInitializer = initialQbittorrentWebUiUrl(env);
 	const mediaTools = {
 		ffmpegPath:
 			env.ANISHELF_FFMPEG_PATH === undefined
@@ -204,6 +220,9 @@ export function parseDeploymentConfig(
 		...(resourceInitializers === undefined
 			? {}
 			: { initialResourceRoots: resourceInitializers }),
+		...(webUiInitializer === undefined
+			? {}
+			: { initialQbittorrentWebUiUrl: webUiInitializer }),
 		logging,
 		mediaTools,
 		...(env.ANISHELF_FRONTEND_DIR === undefined

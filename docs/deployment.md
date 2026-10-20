@@ -1,10 +1,110 @@
-# Additional container deployment guidance
+# Container deployment
 
-The primary deployment paths are [Docker Compose and rootless Podman Quadlet](../README.md#deploy-with-a-container).
-Use the shared image, networking, media permissions and environment guidance there.
-This document covers alternate deployment methods and operational details.
+Use the repository's [compose.yaml](../compose.yaml) with Docker Engine and the
+Compose plugin. [Quick start](../README.md#deploy-with-a-container) covers local
+builds and release images. Container deployments now run a Caddy frontend and a
+Node backend separately; the earlier single-container CLI/Quadlet examples no
+longer describe the deployment topology.
+
+## Networking and storage
+
+`web` publishes the application at `127.0.0.1:3000:8080`. It serves the SPA and proxies the
+unchanged `/api` path to `backend:3000` on the Compose network. Keep the backend
+port private. The application services run as UID/GID 1000; only the backend mounts
+`/data`, and it reads media without write access. qBittorrent has independent
+configuration and incomplete-download volumes, and a read/write `/downloads`
+mount of the same host media directory. Set `ANISHELF_PUBLIC_ORIGIN` on `backend` to the browser's
+exact origin, including its port. This setting validates Host/Origin and selects
+Secure cookies; no CORS configuration or browser API URL is needed.
+
+The frontend listens on plain HTTP inside the private deployment. It has no
+persistent application state; TLS terminates at a host reverse proxy. It provides
+`/healthz` for its own health check; `/api/health` goes to the backend. Compose
+waits for the backend health check before initially starting the frontend.
+Caddy resolves the backend service name for subsequent connections, so replacing
+the backend does not require a fixed container IP.
+
+The frontend preserves cookies, CSRF tokens, Origin, Host, Range and conditional
+request headers. Media responses stream without a proxy response cache. Hashed
+`/assets/` files use immutable caching; HTML uses `no-cache`. Unknown API routes
+reach backend JSON errors; missing assets return 404 instead of the SPA.
+Access and runtime logs filter query strings and request/response headers to
+avoid exposing media tokens or credentials.
+
+## Data storage
+
+Keep the named `anishelf-data` volume mounted only on the backend. It contains
+credentials, sessions, settings, SQLite and generated assets. Media stays outside
+this volume. Named volume initialization preserves `/data` ownership for UID/GID
+1000; a bind-mounted data directory must be writable by that user. Keep the whole
+data directory together in backups, and never share it between running backends.
+
+## Data backup and migration
+
+Stop the services, then back up the Anishelf volume:
+
+```sh
+docker compose stop
+docker run --rm --user 0:0 \
+  --mount type=volume,source=anishelf-data,target=/data,readonly \
+  --mount "type=bind,source=$PWD,target=/backup" \
+  --entrypoint tar ghcr.io/qw0er/anishelf-backend:latest \
+  -C /data -czf /backup/anishelf-data-backup.tar.gz .
+```
+
+For a locally built installation, use the backend image built by Compose in that
+command. Copy credentials, database, settings and caches together. Keep backups
+outside the volume. Restore only while the backend is stopped and preserve
+UID/GID 1000 ownership and private credential file permissions.
+
+To migrate from the all-in-one image, stop the old container or systemd service,
+back up its data, and use the same `anishelf-data` volume in Compose. If it used a
+bind mount or a differently named volume, update the backend mount accordingly.
+Keep media at its existing container paths so saved roots remain valid. Remove
+`ANISHELF_FRONTEND_DIR` from the backend environment. Disable the old startup
+unit before starting Compose; do not run two backends on the same data.
+
+For source builds, update the checkout and run `docker compose up -d --build`.
+For published images, pull both matching release versions before stopping and
+backing up the deployment, then run `docker compose up -d --no-build`.
+Keep the backup for database rollback. Do not use `down --volumes` during upgrades.
+
+## SELinux mounts
+
+For a shared media bind mount on an enforcing host, add `selinux: z` under the
+mount's `bind` options. Use `Z` only for a private mount. Docker manages labels
+for named data volumes; relabel bind-mounted data as appropriate for the host.
 
 ## qBittorrent WebUI access
+
+Compose includes `linuxserver/qbittorrent:latest`, with PUID/PGID 1000 and its own
+`anishelf-qbittorrent-config` volume. The browser WebUI is published at
+`http://localhost:8080`; TCP/UDP port 6881 is published for peers. The backend has
+`ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL=http://localhost:8080`, which seeds the
+saved browser URL only when `settings.json` does not exist. It works with or
+without resource-root initializers. Existing files, including a cleared or absent
+URL, remain unchanged. The initializer does not connect to or authenticate with
+the downloader API, and it does not restore the removed backend proxy.
+
+The URL must be reachable **from the browser**. The Compose hostname
+`qbittorrent` is only resolvable inside its container network. For remote access,
+use a browser-facing WebUI domain or forward both loopback ports:
+
+```sh
+ssh -L 3000:127.0.0.1:3000 -L 8080:127.0.0.1:8080 user@server
+```
+
+Read the temporary `admin` password using `docker compose logs qbittorrent`, then
+set a permanent password in qBittorrent. Configure completed downloads at
+`/downloads` and enable its incomplete directory at `/incomplete`. Both backend
+and qBittorrent media bind sources must refer to the same host directory. That
+directory must be writable by UID/GID 1000; Anishelf's mount remains read-only.
+The separate incomplete volume keeps partial files outside the watched root once
+that preference is enabled. Retain both qBittorrent volumes across recreations;
+stop qBittorrent and back them up separately from `anishelf-data`.
+
+See the [LinuxServer qBittorrent image documentation](https://docs.linuxserver.io/images/docker-qbittorrent/)
+for its login, port and directory settings.
 
 In Settings, enter an absolute HTTP/HTTPS **WebUI URL** reachable from your
 browser, then save and use **Open qBittorrent WebUI**. Embedded usernames/passwords
@@ -15,214 +115,6 @@ are rejected. The address is stored as `qbittorrentWebUiUrl` in
 Anishelf opens this address directly. Configure the destination's authentication
 and network access independently. Anishelf does not proxy qBittorrent or configure
 its alternate UI files.
-
-## Data storage
-
-Anishelf requires a persistent writable `/data`; both named volumes and bind
-mounts satisfy this requirement. The primary examples use named volumes for
-consistent lifecycle management. The alternate Podman examples below use bind
-mounts when an explicit host directory is useful for backups or storage placement.
-`keep-id` lets the dedicated account own a rootless bind mount while the
-application runs as UID/GID 1000 inside the container.
-
-Named volumes are isolated by runtime and, for rootless Podman, by account.
-Run Podman volume commands as the service account; `sudo podman` uses different
-storage. Never mount the same application data in two running instances.
-
-## Data backup and migration
-
-Stop the application before copying data so the database and caches are consistent.
-For Docker Compose, run `docker compose stop`, then export the volume to the
-current directory with a temporary container:
-
-```sh
-docker run --rm --user 0:0 \
-  --mount type=volume,source=anishelf-data,target=/data,readonly \
-  --mount "type=bind,source=$PWD,target=/backup" \
-  --entrypoint tar ghcr.io/qw0er/anishelf:latest \
-  -C /data -czf /backup/anishelf-data-backup.tar.gz .
-```
-
-For rootless Quadlet, run `systemctl --user stop anishelf.service` and
-`podman volume export anishelf-data --output anishelf-data-backup.tar` as `anishelf`.
-For bind mounts, back up the entire host data directory after stopping the service.
-Keep backups outside the data volume and retain the previous image version for rollback.
-
-Existing bind-mount deployments are not migrated automatically. Stop the old
-instance and back up its data before switching the Quadlet configuration.
-As `anishelf`, create and import a fresh destination volume:
-
-```sh
-podman volume create anishelf-data
-tar -C "$HOME/.local/share/anishelf" -cf anishelf-data-migration.tar .
-podman volume import anishelf-data anishelf-data-migration.tar
-```
-
-Use an empty destination volume. Then install the `.volume` file and updated
-`.container` file from the README, reload the user service manager and start the
-service. Confirm settings and the library before removing the old directory.
-When moving from another account or rootful deployment, an administrator must
-copy the stopped data to a location readable by `anishelf` first and adjust its
-ownership. Do not reuse another account's Podman storage directory.
-
-## Docker CLI
-
-```sh
-docker pull ghcr.io/qw0er/anishelf:latest
-docker volume create anishelf-data
-docker run -d --name anishelf --restart unless-stopped \
-  -p 127.0.0.1:3000:3000 --stop-timeout 15 \
-  -e ANISHELF_PORT=3000 \
-  -e ANISHELF_INITIAL_RESOURCE_ROOT=/media \
-  -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
-  --mount type=volume,source=anishelf-data,target=/data \
-  --mount type=bind,source=/absolute/media/path,target=/media,readonly \
-  ghcr.io/qw0er/anishelf:latest
-docker ps --filter name=anishelf
-docker logs -f anishelf
-```
-
-For SELinux mount options, see [SELinux mounts](#selinux-mounts).
-
-To update:
-
-```sh
-docker pull ghcr.io/qw0er/anishelf:latest
-docker stop --time 15 anishelf
-```
-
-Back up `anishelf-data`, then run `docker rm anishelf` and repeat the `docker run`
-command. Keep the data volume.
-
-## Podman CLI
-
-#### Rootless CLI
-
-Complete the [dedicated service account setup](../README.md#dedicated-service-account), then run as
-`anishelf`:
-
-```sh
-mkdir -p ~/.local/share/anishelf
-podman pull ghcr.io/qw0er/anishelf:latest
-podman run -d --name anishelf --restart unless-stopped \
-  -p 127.0.0.1:3000:3000 --stop-timeout 15 \
-  --userns keep-id:uid=1000,gid=1000 --user 1000:1000 \
-  -e ANISHELF_PORT=3000 \
-  -e ANISHELF_INITIAL_RESOURCE_ROOT=/media \
-  -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
-  -v "$HOME/.local/share/anishelf:/data" \
-  -v /absolute/media/path:/media:ro \
-  ghcr.io/qw0er/anishelf:latest
-podman ps --filter name=anishelf
-podman logs -f anishelf
-```
-
-#### Rootful CLI
-
-From your administrator account, create a fresh data directory owned by
-UID/GID 1000:
-
-```sh
-sudo install -d -m 0750 -o 1000 -g 1000 /var/lib/anishelf
-sudo podman pull ghcr.io/qw0er/anishelf:latest
-sudo podman run -d --name anishelf --restart unless-stopped \
-  -p 127.0.0.1:3000:3000 --stop-timeout 15 --user 1000:1000 \
-  -e ANISHELF_PORT=3000 \
-  -e ANISHELF_INITIAL_RESOURCE_ROOT=/media \
-  -e ANISHELF_PUBLIC_ORIGIN=https://example.com \
-  -v /var/lib/anishelf:/data \
-  -v /absolute/media/path:/media:ro \
-  ghcr.io/qw0er/anishelf:latest
-sudo podman ps --filter name=anishelf
-sudo podman logs -f anishelf
-```
-
-For updates, pull `latest`, stop with `podman stop --time 15 anishelf`, back up
-that deployment's data directory, remove with `podman rm anishelf`, and repeat
-its run command. Prefix Podman commands with `sudo` for the root deployment.
-Use [rootless Quadlet](../README.md#podman-quadlet-rootless) for systemd-managed startup at boot.
-
-## Rootful Podman Quadlet
-
-Use Podman with Quadlet support on Linux with systemd and cgroup v2.
-The `[Install]` section enables startup
-at boot; start the generated service without running `systemctl enable`.
-
-#### Quadlet as root
-
-Prepare a fresh data directory and the system configuration directory:
-
-```sh
-sudo mkdir -p /etc/containers/systemd
-sudo install -d -m 0750 -o 1000 -g 1000 /var/lib/anishelf
-```
-
-Save `/etc/containers/systemd/anishelf.container`:
-
-```ini
-[Unit]
-Description=Anishelf media server
-
-[Container]
-Image=ghcr.io/qw0er/anishelf:latest
-ContainerName=anishelf
-PublishPort=127.0.0.1:3000:3000
-User=1000:1000
-Environment=ANISHELF_PORT=3000
-Environment=ANISHELF_INITIAL_RESOURCE_ROOT=/media
-Environment=ANISHELF_PUBLIC_ORIGIN=https://example.com
-Volume=/var/lib/anishelf:/data
-Volume=/absolute/media/path:/media:ro
-StopTimeout=15
-
-[Service]
-Restart=on-failure
-TimeoutStartSec=900
-TimeoutStopSec=30
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Rootful Podman uses the system service manager; the application still runs as
-UID/GID 1000 inside the container. Ensure that user can read the media directory.
-
-```sh
-sudo systemctl daemon-reload
-sudo systemctl start anishelf.service
-sudo systemctl status anishelf.service
-sudo journalctl -u anishelf.service -f
-```
-
-The install target starts the service on subsequent boots. Check container health
-with `sudo podman inspect --format '{{.State.Health.Status}}' anishelf`.
-To update, run `sudo systemctl stop anishelf.service`, back up `/var/lib/anishelf`,
-then run:
-
-```sh
-sudo podman pull ghcr.io/qw0er/anishelf:latest
-sudo systemctl start anishelf.service
-sudo systemctl status anishelf.service
-```
-
-If you edit the Quadlet file, run `sudo systemctl daemon-reload` before starting.
-
-## SELinux mounts
-
-On SELinux enforcing hosts, named data volumes are managed by the runtime.
-For rootless Quadlet, keep `:U` and add `:Z` for private data; use `:ro,z` for
-shared media:
-
-```ini
-Volume=anishelf-data.volume:/data:Z,U
-Volume=/absolute/media/path:/media:ro,z
-```
-
-For rootful Quadlet, use `/var/lib/anishelf:/data:Z`. For CLI deployments, use
-`-v` mounts with the same `:Z` and `:ro,z` suffixes. For Docker Compose, add `selinux: z` under the media mount's `bind` options.
-For Docker CLI, replace the media `--mount` with
-`-v /absolute/media/path:/media:ro,z`. Relabeling changes host file labels;
-ensure the directory allows it and that other services can still access it.
 
 ## Authentication and password recovery
 
@@ -236,11 +128,7 @@ changing it in **Settings → Security** is optional.
 Read the initial startup output with:
 
 ```sh
-docker compose logs anishelf
-# Docker CLI deployment:
-docker logs anishelf
-# As the dedicated rootless Podman account:
-journalctl --user -u anishelf.service
+docker compose logs backend
 ```
 
 `/data/auth.json` is the independent credential source. `/data/auth-session.key`
@@ -257,17 +145,8 @@ An invalid/unreadable credential file or unavailable database blocks startup.
 No Web login is required. These commands print a newly generated password:
 
 ```sh
-docker compose exec anishelf node backend/dist/cli.js auth reset-password
-docker compose restart anishelf
-```
-
-For Docker CLI, replace `docker compose exec anishelf` with `docker exec anishelf`
-and restart with `docker restart anishelf`. For rootless Quadlet, run as the
-service account:
-
-```sh
-podman exec anishelf node backend/dist/cli.js auth reset-password
-systemctl --user restart anishelf.service
+docker compose exec backend node backend/dist/cli.js auth reset-password
+docker compose restart backend
 ```
 
 For a source checkout, use `npm run auth --workspace @anishelf/backend -- reset-password`
@@ -276,7 +155,7 @@ not start HTTP, load user settings or probe media tools. If the server cannot
 start, use a one-off container mounting the same data volume:
 
 ```sh
-docker compose run --rm --no-deps anishelf node backend/dist/cli.js auth reset-password
+docker compose run --rm --no-deps backend node backend/dist/cli.js auth reset-password
 ```
 
 Reset replaces the credential file atomically. A running process retains its
@@ -292,7 +171,7 @@ Use an interactive terminal to generate the full JSON document, with hidden
 password entry and confirmation:
 
 ```sh
-docker compose exec -it anishelf node backend/dist/cli.js auth hash-password
+docker compose exec -it backend node backend/dist/cli.js auth hash-password
 # Or in a source checkout:
 npm run auth --workspace @anishelf/backend -- hash-password
 ```
@@ -320,9 +199,13 @@ prepared copies, subtitles and artwork require the browser session.
 
 ## Caddy reverse proxy
 
-Set `ANISHELF_PUBLIC_ORIGIN=https://example.com` and restart Anishelf. Keep Host
-and Origin headers unchanged. Caddy on the same host provides TLS and forwards
-the request scheme and client address. By default only loopback proxies are trusted:
+For a domain served by Caddy on the host, set the backend environment in Compose:
+
+```yaml
+ANISHELF_PUBLIC_ORIGIN: https://example.com
+```
+
+Forward the entire site to the **web** container:
 
 ```caddyfile
 example.com {
@@ -330,38 +213,18 @@ example.com {
 }
 ```
 
-Container deployments use bridge networking and publish `127.0.0.1:3000:3000`.
-Keep `ANISHELF_HOST=0.0.0.0` inside the container (the image default); container
-loopback listeners cannot receive bridge port mappings. To change the host port,
-change the left-hand port only, for example `127.0.0.1:8080:3000`, and update
-Caddy's upstream. Set `ANISHELF_PUBLIC_ORIGIN` to the browser-facing origin,
-including its port, whenever it differs from the internal listener. This also
-supports deliberate LAN publication; keep public access behind HTTPS.
+The container's Caddy serves files and proxies APIs; the host's Caddy owns TLS.
+Keep Host and Origin unchanged. `ANISHELF_PUBLIC_ORIGIN` determines the external
+scheme/port and Secure cookies, independently of forwarded headers. The backend
+trusts forwarded headers only from loopback peers, so the container proxy can
+make per-source login limits shared across users. No proxy-IP setting is needed.
 
-Caddy is expected to run on the host and connect to the published loopback port.
-Only loopback peers are trusted for forwarded headers. Container forwarding may
-present a gateway IP instead, so per-source login limits can be shared across
-users. This does not block proxy access: Host/Origin validation uses the configured
-public origin, and Secure cookies depend on that origin rather than forwarded
-headers. No proxy-IP configuration is required.
-
-When migrating an existing host-network deployment, recreate the container with
-port publication and remove any old `ANISHELF_HOST=127.0.0.1` override. Keep its
-existing data volume and media mounts. Do not run both instances on the same data.
-
-Use the exact public origin, including a non-default port if necessary. HTTPS
-origins use Secure cookies; local HTTP works when no HTTPS public origin is set.
-Do not serve the public application over plain HTTP.
-
-When migrating, keep the existing Caddy Basic Auth until application login,
-password recovery and an external-player link have been checked. Then remove
-`basic_auth` and any `/api/media/*` bypass matcher. Anishelf validates media
-access itself; no anonymous media-path exemption is needed.
-
-
-See the [Docker volume reference](https://docs.docker.com/engine/storage/volumes/)
-and [Podman Quadlet reference](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html)
-for volume lifecycle and supported unit keys.
+To change the host port, edit only the left-hand port, for example
+`127.0.0.1:8080:8080`, then update the host Caddy upstream and the public origin
+if its browser-facing port changes. For LAN HTTP access, publish a deliberate
+LAN address and set its exact public origin. Use HTTPS for public access.
+External-player links still require their media token; no anonymous API bypass
+or separate `/api` host proxy rule is needed.
 
 ## Multiple resource directories
 

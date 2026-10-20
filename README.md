@@ -14,8 +14,8 @@ media directory, browse its folder structure, and watch videos in your browser.
 
 ## Requirements
 
-- For container deployment, use Docker or Podman on Linux. The image includes
-  Node.js, FFmpeg/FFprobe and the application; no source build is required.
+- For container deployment, use Docker Engine and Docker Compose on Linux.
+  Separate backend and web images contain the required runtime tools.
 - Read access to the media directory and write access to a separate application
   data directory.
 
@@ -98,190 +98,62 @@ for storage and verification details.
 
 ## Deploy with a container
 
-Use `ghcr.io/qw0er/anishelf:latest` on Linux AMD64 or ARM64 with Docker
-or Podman. The image includes Node.js, FFmpeg/FFprobe and the built application.
+Use Docker Engine with the Compose plugin on Linux AMD64 or ARM64. The
+[compose.yaml](compose.yaml) file runs three containers:
 
-- Replace `/absolute/media/path` with your media directory.
-- Keep `/data` persistent for credentials, sessions, settings, the database and caches.
-- Read the initial password using `docker compose logs anishelf` or, for Quadlet,
-  `journalctl --user -u anishelf.service`. It is displayed only on first initialization.
-- Use bridge networking with port 3000 published on the host loopback address.
-- Media must be readable and data writable by the container's UID/GID 1000.
-- Set `ANISHELF_PUBLIC_ORIGIN` to your domain and configure [Caddy](docs/deployment.md#caddy-reverse-proxy),
-  or omit it for local/SSH access.
-- `ANISHELF_INITIAL_RESOURCE_ROOT=/media` initializes a fresh installation.
-  For multiple mounts, use `ANISHELF_INITIAL_RESOURCE_ROOTS='["/media/anime","/media/movies"]'`
-  instead. Change existing paths in Settings using the directory list and Add directory control. Paths
-  must not overlap; an empty list returns to setup mode.
-
-Both primary examples use a named `anishelf-data` volume for application data
-and a read-only bind mount for media. Docker and Podman manage separate volumes;
-rootless Podman storage also belongs to the account running it.
-See [additional deployment guidance](docs/deployment.md) for CLI deployments,
-rootful Quadlet, SELinux, reverse proxy configuration, backups and migration.
+- `web`: Caddy serves the built frontend and forwards `/api` to `backend:3000`.
+  It publishes the application entry at `127.0.0.1:3000`.
+- `backend`: Node.js and FFmpeg/FFprobe handle APIs, scanning and media delivery.
+  It mounts the persistent `anishelf-data` volume and read-only media.
+- `qbittorrent`: the download client has its own persisted configuration, a
+  read/write mount of the same host media directory at `/downloads`, and a separate
+  `/incomplete` volume. Its WebUI publishes `127.0.0.1:8080`; peer TCP/UDP uses 6881.
 
 ### Docker Compose
 
-Save this as `compose.yaml` on the Linux host with Docker Engine and the
-Docker Compose plugin, and replace the media path:
-
-```yaml
-services:
-  anishelf:
-    image: ghcr.io/qw0er/anishelf:latest
-    container_name: anishelf
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:3000:3000"
-    stop_grace_period: 15s
-    environment:
-      ANISHELF_PORT: "3000"
-      ANISHELF_INITIAL_RESOURCE_ROOT: /media
-      # Set this when using a reverse proxy:
-      # ANISHELF_PUBLIC_ORIGIN: https://example.com
-    volumes:
-      - anishelf-data:/data
-      - type: bind
-        source: /absolute/media/path
-        target: /media
-        read_only: true
-        bind:
-          create_host_path: false
-
-volumes:
-  anishelf-data:
-    name: anishelf-data
-```
-
-Start and inspect the application from the directory containing `compose.yaml`:
+From a source checkout, replace `/absolute/media/path` in `compose.yaml` with your
+media directory in both backend and qBittorrent mounts, then build and start:
 
 ```sh
-docker compose up -d
+docker compose up -d --build
 docker compose ps
-docker compose logs -f anishelf
+docker compose logs -f backend
 ```
 
-Compose creates the named data volume; the image's `/data` ownership allows
-UID/GID 1000 to write it. Open [Anishelf](http://127.0.0.1:3000) on the host,
-or use the SSH forwarding command above.
+Open [Anishelf](http://localhost:3000). Read the initial password from the backend
+logs. Media must be readable by UID/GID 1000. `/media` initializes a fresh
+installation; change existing roots in Settings. The Compose environment also
+sets `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL=http://localhost:8080`, so a fresh
+installation has an **Open qBittorrent WebUI** link immediately. Existing
+`settings.json` is preserved; save the address in Settings for an existing install.
+This is a browser link, so use an address reachable from the browser rather than
+`http://qbittorrent:8080`. For remote access, change it to your WebUI domain or
+forward port 8080 alongside port 3000 over SSH.
 
-To update, run `docker compose pull`, then `docker compose stop`. Back up
-`anishelf-data` following the [backup instructions](docs/deployment.md#data-backup-and-migration),
-then run `docker compose up -d`. Keep the backup for database rollback.
-`docker compose down` retains the data volume; `docker compose down --volumes`
-deletes it.
+Read the qBittorrent temporary `admin` password with `docker compose logs qbittorrent`
+and set a permanent password in its WebUI. Its authentication is independent of
+Anishelf. Set completed downloads to `/downloads` and enable the incomplete
+folder at `/incomplete` so unfinished data stays outside the watched library.
+See [qBittorrent deployment details](docs/deployment.md#qbittorrent-webui-access).
 
-### Podman Quadlet rootless
+The Compose file also names the release images `ghcr.io/qw0er/anishelf-backend:latest`
+and `ghcr.io/qw0er/anishelf-web:latest`. After these images have been published,
+you can use `docker compose pull` followed by `docker compose up -d --no-build`
+instead of building locally. Deploy both images from the same release.
 
-Use Linux with systemd, cgroup v2 and Podman with Quadlet support. Run the service
-under a dedicated non-root account. The `[Install]` section starts it at boot;
-start the generated service without running `systemctl enable`.
+Set the backend's `ANISHELF_PUBLIC_ORIGIN` to the exact browser-facing origin.
+The provided value is `http://localhost:3000`; change it for another hostname,
+port or HTTPS domain. The browser uses the same origin for pages and APIs.
+A host TLS proxy forwards the whole site to the web container's published port;
+see [Caddy domain access](docs/deployment.md#caddy-reverse-proxy).
 
-#### Dedicated service account
-
-Use a dedicated non-root `anishelf` account with a writable home and subordinate
-UID/GID ranges in `/etc/subuid` and `/etc/subgid`. Create it from an administrator
-account if needed:
-
-```sh
-sudo useradd --create-home --user-group --shell /bin/bash anishelf
-sudo loginctl enable-linger anishelf
-```
-
-Ensure the account can read the media directory and can write its application data volume.
-If media access relies on supplementary groups, use `--group-add keep-groups`
-(or `GroupAdd=keep-groups` in Quadlet) with the `crun` runtime.
-Run rootless commands from this account:
-
-```sh
-sudo -iu anishelf
-export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
-```
-
-#### Quadlet files
-
-Create the configuration directory as `anishelf`:
-
-```sh
-mkdir -p ~/.config/containers/systemd
-```
-
-Save `~/.config/containers/systemd/anishelf-data.volume`:
-
-```ini
-[Volume]
-VolumeName=anishelf-data
-```
-
-Save `~/.config/containers/systemd/anishelf.container`:
-
-```ini
-[Unit]
-Description=Anishelf media server
-
-[Container]
-Image=ghcr.io/qw0er/anishelf:latest
-ContainerName=anishelf
-PublishPort=127.0.0.1:3000:3000
-UserNS=keep-id:uid=1000,gid=1000
-User=1000:1000
-Environment=ANISHELF_PORT=3000
-Environment=ANISHELF_INITIAL_RESOURCE_ROOT=/media
-# Set this when using a reverse proxy:
-# Environment=ANISHELF_PUBLIC_ORIGIN=https://example.com
-Volume=anishelf-data.volume:/data:U
-Volume=/absolute/media/path:/media:ro
-StopTimeout=15
-
-[Service]
-Restart=on-failure
-TimeoutStartSec=900
-TimeoutStopSec=30
-
-[Install]
-WantedBy=default.target
-```
-
-Quadlet creates the named volume before starting the container. `:U` sets its
-ownership for the application user; use it only on the application data volume.
-`UserNS=keep-id` maps the service account to UID/GID 1000 inside the container.
-The account must be able to read the media directory.
-
-Start and inspect the generated service:
-
-```sh
-systemctl --user daemon-reload
-systemctl --user start anishelf.service
-systemctl --user status anishelf.service
-journalctl --user -u anishelf.service -f
-```
-
-To update, stop the service:
-
-```sh
-systemctl --user stop anishelf.service
-```
-
-Back up the volume from the same `anishelf` shell:
-
-```sh
-podman volume export anishelf-data --output anishelf-data-backup.tar
-```
-
-Then pull and start the current image:
-
-```sh
-podman pull ghcr.io/qw0er/anishelf:latest
-systemctl --user daemon-reload
-systemctl --user start anishelf.service
-systemctl --user status anishelf.service
-```
-
-Retain the data backup for database rollback.
-
-See the [Quadlet reference](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html)
-for supported keys and generator troubleshooting.
+Keep `anishelf-data` across updates. Stop the containers and
+[back up the volume](docs/deployment.md#data-backup-and-migration) before upgrading.
+`docker compose down` retains the volume; `docker compose down --volumes` deletes
+it. Existing all-in-one deployments can reuse this volume after the old container
+has stopped. Remove the old `ANISHELF_FRONTEND_DIR` override; the backend image
+now serves only APIs. See [deployment guidance](docs/deployment.md) for migration,
+SELinux, password recovery and multiple media mounts.
 
 ## Configuration
 
@@ -294,6 +166,7 @@ Set environment variables before starting the application. Restart after changes
 | `ANISHELF_PUBLIC_ORIGIN` | Unset | One allowed external HTTP(S) origin, such as `https://example.com`; local access remains available. Anishelf enforces application authentication. |
 | `ANISHELF_FRONTEND_DIR` | Unset | Absolute frontend build directory containing `index.html`; enables page hosting. |
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory | Absolute writable directory for settings, the database and caches. |
+| `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` | Unset | Initial absolute browser WebUI address; seeds missing `settings.json`, without replacing existing settings. |
 | `ANISHELF_INITIAL_RESOURCE_ROOTS` | Unset | JSON array of up to 64 readable, non-overlapping absolute media paths; only creates missing settings. |
 | `ANISHELF_INITIAL_RESOURCE_ROOT` | Unset | Single-path initialization convenience; do not combine with the plural initializer. Existing settings are preserved. |
 | `ANISHELF_FFMPEG_PATH` | `ffmpeg` from PATH | Optional absolute FFmpeg executable path. |
@@ -313,8 +186,7 @@ application and back up its data before upgrading.
 ### Logging
 
 Logs are structured JSON, written to stdout at `info` level by default.
-For containers, read them with `docker logs -f anishelf` or `podman logs -f anishelf` or
-`journalctl -u anishelf.service -f` (`--user` for rootless Quadlet).
+For containers, read them with `docker compose logs -f backend web`.
 
 For file logging, set:
 
