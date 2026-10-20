@@ -59,6 +59,7 @@ export interface PreviewInput {
 	revision: string | null;
 }
 export interface SubscriptionPreview {
+	downloadDestination?: string | null;
 	token: string;
 	expiresAt: number;
 	source: string;

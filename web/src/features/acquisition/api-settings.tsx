@@ -11,6 +11,7 @@ import {
 	getQbittorrentConnection,
 	saveQbittorrentConnection,
 } from "./api.js";
+import { downloadKeys } from "./downloads-api.js";
 
 const queryKey = ["acquisition", "qbittorrent"] as const;
 
@@ -59,6 +60,7 @@ function ConnectionForm({
 	function saved(value: QbittorrentConnectionSettings) {
 		setPassword("");
 		client.setQueryData(queryKey, value);
+		void client.invalidateQueries({ queryKey: downloadKeys });
 	}
 	const save = useMutation({
 		// Passwords stay out of mutation variables and query caches.

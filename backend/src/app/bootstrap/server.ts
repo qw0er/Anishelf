@@ -62,6 +62,11 @@ export async function createServer(
 		dataDir: system.deployment.dataDir,
 		logger,
 		store: database.acquisition,
+		downloadStore: database.acquisitionDownloads,
+		...(resources.api.acquisition
+			? { resources: resources.api.acquisition }
+			: {}),
+		...(anime.api.ingestion ? { ingestion: anime.api.ingestion } : {}),
 		...(system.deployment.qbittorrentApiUrl
 			? { suggestedApiUrl: system.deployment.qbittorrentApiUrl }
 			: {}),

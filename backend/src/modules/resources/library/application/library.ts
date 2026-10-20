@@ -1,3 +1,4 @@
+import { isAbsolute, posix, relative, resolve } from "node:path";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import type {
@@ -14,6 +15,7 @@ import type {
 	LibraryStatus,
 	ResourceInfo,
 } from "../domain/model.js";
+import { createResourceId } from "../domain/model.js";
 import type { LibraryIndex } from "../infrastructure/index.js";
 import type { LibraryRuntimePolicy } from "../policy.js";
 import type { LibraryApi } from "../public.js";
@@ -80,6 +82,56 @@ export class LibraryApplication<
 		input: Parameters<ResourceSettingsApplication["updateResourceSettings"]>[0],
 	) {
 		return this.settings.updateResourceSettings(input);
+	}
+	async downloadRoots() {
+		return (await this.options.roots.list(this.getSettings())).map(
+			({ scopeId, name }) => ({ scopeId, name }),
+		);
+	}
+	async validateDownloadRoot(scopeId: string, incompletePath: string) {
+		const root = await this.options.roots.resolve(this.getSettings(), scopeId);
+		await this.options.roots.open(root);
+		for (const watched of await this.options.roots.list(this.getSettings())) {
+			const path = relative(resolve(watched.path), resolve(incompletePath));
+			if (
+				!path ||
+				(!path.startsWith(`..${posix.sep}`) &&
+					path !== ".." &&
+					!isAbsolute(path))
+			)
+				throw new DomainError(
+					"INVALID_REQUEST",
+					"Incomplete downloads must be outside watched roots.",
+				);
+		}
+	}
+	private async downloadAccess(scopeId: string, path: string) {
+		if (
+			!path ||
+			path.length > 4096 ||
+			path.includes("\\") ||
+			path.includes("\0") ||
+			posix.isAbsolute(path) ||
+			path.split("/").some((part) => !part || part === "." || part === "..")
+		)
+			throw new DomainError("INVALID_REQUEST", "Invalid download file path.");
+		const epoch = this.sources.accessRevision;
+		const root = await this.options.roots.resolve(this.getSettings(), scopeId);
+		const resources = await this.options.roots.open(root);
+		const file = await resources.inspectVideoFileWithVersion(path);
+		this.sources.assertAccessRevision(epoch);
+		return { file, epoch };
+	}
+	async inspectDownload(scopeId: string, path: string) {
+		return (await this.downloadAccess(scopeId, path)).file;
+	}
+	async refreshDownload(scopeId: string, path: string) {
+		const before = await this.downloadAccess(scopeId, path);
+		await this.synchronizer.refreshPaths(scopeId, [path]);
+		this.sources.assertAccessRevision(before.epoch);
+		const id = createResourceId("file", path, scopeId);
+		return (await this.sources.resolveSource(id, before.file.sourceVersion))
+			.identity;
 	}
 	getFile(id: string) {
 		return this.sources.getFile(id);

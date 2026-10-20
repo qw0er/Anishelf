@@ -198,6 +198,26 @@ saved account. The address can still be edited before saving.
 Passwords are stored privately in `/data/app/acquisition/qbittorrent.json` with
 mode `0600`, never returned by the settings API. An empty password keeps the saved
 one only for the same URL and username; changing either requires reentry.
+After saving the API account, configure **Download destination** in Settings:
+choose the `/data/media` resource root, enter `/data/media` as the qBittorrent
+completed path, save and validate. Other deployment layouts can map a different
+qBittorrent path to one selected resource root. Configure the actual equivalent
+mounts first; validation of preferences does not prove shared file visibility.
+The first completed-file import verifies actual access and size.
+
+Each anime is submitted under its own stable `Title [provider-id]` subdirectory.
+Anishelf keeps media mounts read-only and does not create, move or rename files;
+qBittorrent owns directory creation and final placement. Keep its incomplete path
+outside every watched resource directory. The bundled `/data/incomplete` volume
+already has the required isolation when the preference is enabled in qBittorrent.
+
+Existing RSS subscriptions continue discovery only after upgrade. Open the anime,
+choose Edit subscription or Confirm download scope, check RSS and explicitly
+confirm the previewed starting scope/destination. Changing the destination or API
+account requires reconfirmation. Use Open WebUI for transfer controls and deletion;
+Activity in anime details reports status and import recovery. Removing a task in
+WebUI prevents automatic recreation until explicit acquisition retry.
+
 Protect volume backups because they contain recoverable downloader credentials.
 
 See the [LinuxServer qBittorrent image documentation](https://docs.linuxserver.io/images/docker-qbittorrent/)

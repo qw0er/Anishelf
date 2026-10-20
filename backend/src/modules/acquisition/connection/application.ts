@@ -48,6 +48,7 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 	};
 	private unreadable = false;
 	private closed = false;
+	private checking = false;
 	private writes: Promise<unknown> = Promise.resolve();
 	private readonly clients = new Set<QbittorrentApi>();
 	private readonly suggestedApiUrl: string | null;
@@ -170,7 +171,7 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 	}
 	async probe(generation: string) {
 		this.assertGeneration(generation);
-		if (this.clients.size)
+		if (this.checking)
 			throw new DomainError(
 				"ACQUISITION_UNAVAILABLE",
 				"A qBittorrent connection test is already running.",
@@ -183,6 +184,7 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 			);
 		const client = this.createClient({ ...connection, logger: this.logger });
 		this.clients.add(client);
+		this.checking = true;
 		try {
 			const result = await client.probe();
 			this.assertGeneration(generation);
@@ -209,11 +211,36 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 			};
 		} finally {
 			await client.close();
+			this.checking = false;
 			this.clients.delete(client);
 		}
 	}
 	private async closeClients() {
 		await Promise.allSettled([...this.clients].map((client) => client.close()));
+	}
+	async withClient<T>(
+		generation: string,
+		operation: (client: QbittorrentApi) => Promise<T>,
+	): Promise<T> {
+		this.assertGeneration(generation);
+		if (!this.saved.connection || this.unreadable)
+			throw new DomainError(
+				"ACQUISITION_UNAVAILABLE",
+				"Configure qBittorrent first.",
+			);
+		const client = this.createClient({
+			...this.saved.connection,
+			logger: this.logger,
+		});
+		this.clients.add(client);
+		try {
+			const result = await operation(client);
+			this.assertGeneration(generation);
+			return result;
+		} finally {
+			await client.close();
+			this.clients.delete(client);
+		}
 	}
 	async activeHashes(signal: AbortSignal): Promise<string[] | null> {
 		if (this.unreadable)

@@ -32,9 +32,9 @@ The returned interface provides:
   `remove()` always sends `deleteFiles=false`; destructive data deletion is not exposed.
 
 Hashes must be individual hexadecimal v1/v2 identifiers; `all`, hash lists and
-wildcards are rejected. Submission does not resolve or verify canonical torrent
-identity: the future workflow must parse torrent bytes, reserve identities and
-reconcile by hash before binding an accepted request to an intent.
+wildcards are rejected. The adapter itself does not resolve canonical torrent identity. The acquisition
+worker parses torrent bytes, reserves identities and reconciles by hash before
+binding an accepted request to a durable intent.
 
 ## Transport, failures and lifecycle
 
@@ -116,11 +116,14 @@ Run it in an environment permitting localhost listeners.
 save/retention/removal, private permissions, restart, failed writes, generation
 conflicts, stale checks, authentication/CSRF, redaction and password input/cache behavior.
 
-Path mapping/probes, durable intent and command storage, reconciliation workers,
-download controls and verified ingestion remain future work.
-[RSS subscriptions and automatic selection](rss-subscriptions.md) are implemented.
-No live qBittorrent, real torrent download or complete ACQ acceptance was run for
-this foundation. D01–D07 are not complete.
+The [current workflow](current-architecture.md) implements destination validation,
+durable intent/reservations, restart reconciliation, compact per-work observations
+and verified ingestion. Settings selects one resource root and corresponding
+qBittorrent completed path; each anime gets a stable subdirectory. The download
+worker uses the adapter's add/read capabilities. Pause/resume/removal/data deletion
+remain in WebUI, with external removals suppressed until explicit retry in Anishelf.
+Real qBittorrent compatibility, real torrent downloads and ACQ01–ACQ11 acceptance
+remain unverified by local contract fixtures.
 
 
 The optional deployment API URL hint prefills the form without creating an

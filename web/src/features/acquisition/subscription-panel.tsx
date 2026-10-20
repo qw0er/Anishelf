@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Ellipsis } from "lucide-react";
 import { useId, useState } from "react";
 import type {
 	SubscriptionPreview,
@@ -6,8 +7,17 @@ import type {
 } from "../../shared/api/contracts.js";
 import { boundedSignal } from "../../shared/api/queries.js";
 import { Button } from "../../shared/components/ui/button.js";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "../../shared/components/ui/dropdown-menu.js";
 import { Input } from "../../shared/components/ui/input.js";
 import { toast } from "../../shared/components/ui/toast.js";
+import { Tooltip } from "../../shared/components/ui/tooltip.js";
+import { DownloadActivityPanel } from "./download-activity.js";
+import { downloadKeys } from "./downloads-api.js";
 import {
 	confirmSubscription,
 	getSubscription,
@@ -34,6 +44,7 @@ export function SubscriptionPanel({ workKey }: { workKey: string }) {
 		setEditing(false);
 		setPage(1);
 		void client.invalidateQueries({ queryKey: key(workKey) });
+		void client.invalidateQueries({ queryKey: downloadKeys });
 	}
 	const action = useMutation({
 		mutationFn: async (command: "toggle" | "refresh" | "remove") => {
@@ -54,6 +65,7 @@ export function SubscriptionPanel({ workKey }: { workKey: string }) {
 		},
 		onError: () => {
 			void client.invalidateQueries({ queryKey: key(workKey) });
+			void client.invalidateQueries({ queryKey: downloadKeys });
 			toast.add({
 				title: "Could not update the subscription. Refresh and retry.",
 				type: "error",
@@ -65,9 +77,63 @@ export function SubscriptionPanel({ workKey }: { workKey: string }) {
 			<div className="action-row justify-between">
 				<h2 className="text-lg font-semibold">RSS subscription</h2>
 				{subscription && (
-					<span className="text-sm text-muted-foreground">
-						{subscription.enabled ? "Enabled" : "Paused"}
-					</span>
+					<div className="action-row">
+						<Tooltip
+							openOnClick
+							content="Pausing stops future acquisitions; existing downloads continue. AniList status changes do not alter subscriptions or downloads."
+						>
+							<button
+								type="button"
+								className="text-sm text-muted-foreground underline decoration-dotted"
+								aria-label="Subscription policy"
+							>
+								{subscription.enabled ? "Enabled" : "Paused"}
+							</button>
+						</Tooltip>{" "}
+						<DropdownMenu>
+							<Tooltip content="Subscription actions">
+								<DropdownMenuTrigger
+									render={
+										<Button
+											variant="ghost"
+											className="size-9 shrink-0 p-0"
+											aria-label="Subscription actions"
+										/>
+									}
+								>
+									<Ellipsis className="size-4" aria-hidden="true" />
+								</DropdownMenuTrigger>
+							</Tooltip>
+							<DropdownMenuContent>
+								<DropdownMenuItem
+									disabled={action.isPending}
+									onClick={() => action.mutate("toggle")}
+								>
+									{subscription.enabled
+										? "Pause subscription"
+										: "Resume subscription"}
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									disabled={action.isPending || !subscription.enabled}
+									onClick={() => action.mutate("refresh")}
+								>
+									Check now
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									disabled={action.isPending}
+									onClick={() => setEditing(!editing)}
+								>
+									Edit subscription
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									disabled={action.isPending}
+									onClick={() => action.mutate("remove")}
+								>
+									Remove subscription
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</div>
 				)}
 			</div>
 			{query.isPending ? (
@@ -86,49 +152,13 @@ export function SubscriptionPanel({ workKey }: { workKey: string }) {
 							<p className="break-all text-sm">
 								{subscription.source} · From episode {subscription.startEpisode}
 							</p>
-							<p className="text-sm text-muted-foreground">
-								{subscription.checkedAt
-									? `Last checked: ${new Date(subscription.checkedAt).toLocaleString()}`
-									: "Not checked yet"}
-							</p>
+
 							{subscription.error && (
 								<p role="status" className="text-sm">
 									Could not update candidates ({reason(subscription.error)}).
 									Previous results are retained; automatic retry is scheduled.
 								</p>
 							)}
-							<div className="action-row">
-								<Button
-									variant="outline"
-									disabled={action.isPending}
-									onClick={() => action.mutate("toggle")}
-								>
-									{subscription.enabled
-										? "Pause subscription"
-										: "Resume subscription"}
-								</Button>
-								<Button
-									variant="outline"
-									disabled={action.isPending || !subscription.enabled}
-									onClick={() => action.mutate("refresh")}
-								>
-									Check now
-								</Button>
-								<Button
-									variant="outline"
-									disabled={action.isPending}
-									onClick={() => setEditing(!editing)}
-								>
-									Edit subscription
-								</Button>
-								<Button
-									variant="outline"
-									disabled={action.isPending}
-									onClick={() => action.mutate("remove")}
-								>
-									Remove subscription
-								</Button>
-							</div>
 						</>
 					)}
 					{(!subscription || editing) && (
@@ -139,49 +169,33 @@ export function SubscriptionPanel({ workKey }: { workKey: string }) {
 							onSaved={updated}
 						/>
 					)}
-					{query.data && query.data.total > 0 && (
-						<>
-							<p className="text-sm text-muted-foreground">
-								One eligible version per episode is selected automatically.
-								Download submission is not enabled yet.
-							</p>
-							<ul className="divide-y">
-								{query.data.candidates.map((candidate) => (
-									<li key={candidate.id} className="space-y-1 py-2">
-										<p className="break-words text-sm font-medium">
-											{candidate.title}
-										</p>
-										<p className="text-sm text-muted-foreground">
-											{candidate.episode
-												? `Episode ${candidate.episode} · `
-												: ""}
-											{candidate.status === "selected"
-												? "Selected · awaiting download integration"
-												: `Skipped · ${candidate.reasons.map(reason).join("; ")}`}
-										</p>
-									</li>
-								))}
-							</ul>
-							<div className="action-row">
-								<Button
-									variant="outline"
-									disabled={page <= 1}
-									onClick={() => setPage(page - 1)}
-								>
-									Previous candidates
-								</Button>
-								<span className="text-sm">
-									Page {page} · {query.data.total} releases
-								</span>
-								<Button
-									variant="outline"
-									disabled={page * 20 >= query.data.total}
-									onClick={() => setPage(page + 1)}
-								>
-									Next candidates
-								</Button>
-							</div>
-						</>
+					{query.data && (
+						<DownloadActivityPanel
+							key={workKey}
+							workKey={workKey}
+							view={query.data}
+							reason={reason}
+							onConfigure={() => setEditing(true)}
+						/>
+					)}
+					{query.data && query.data.total > 20 && (
+						<div className="action-row">
+							<Button
+								variant="outline"
+								disabled={page <= 1}
+								onClick={() => setPage(page - 1)}
+							>
+								Previous releases
+							</Button>
+							<span className="text-sm">Page {page}</span>
+							<Button
+								variant="outline"
+								disabled={page * 20 >= query.data.total}
+								onClick={() => setPage(page + 1)}
+							>
+								Next releases
+							</Button>
+						</div>
 					)}
 				</>
 			)}
@@ -305,6 +319,11 @@ function SubscriptionForm({
 						The first check includes releases currently returned by this feed.
 						Eligible versions are selected automatically; no review is required.
 					</p>
+					<p className="break-words text-sm">
+						{preview.downloadDestination
+							? `Automatic download destination: ${preview.downloadDestination}`
+							: "Discovery only. Configure and validate a download destination in Settings to enable automatic downloads."}
+					</p>
 					<Button type="button" disabled={busy} onClick={() => save.mutate()}>
 						{save.isPending ? "Enabling subscription…" : "Enable subscription"}
 					</Button>
@@ -316,6 +335,8 @@ function SubscriptionForm({
 
 function reason(code: string): string {
 	const messages: Record<string, string> = {
+		acquisition_unavailable:
+			"automatic acquisition could not be queued; check metadata and destination settings",
 		identity_unconfirmed: "animation or season could not be confirmed",
 		unsupported_content: "special, pack or unsupported content",
 		episode_unconfirmed: "single regular episode could not be confirmed",

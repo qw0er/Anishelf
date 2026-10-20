@@ -167,7 +167,7 @@ describe("playback persistence", () => {
 		try {
 			expect(
 				raw.prepare("SELECT count(*) AS count FROM __drizzle_migrations").get(),
-			).toEqual({ count: 19 });
+			).toEqual({ count: 20 });
 			expect(raw.pragma("journal_mode", { simple: true })).toBe("wal");
 		} finally {
 			raw.close();

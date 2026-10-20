@@ -1,0 +1,855 @@
+import { randomUUID } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { toTorrentFile } from "parse-torrent";
+import pino from "pino";
+import { afterEach, expect, test, vi } from "vitest";
+import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
+import { createHttpApp } from "../src/app/bootstrap/http.js";
+import { builtinPolicy } from "../src/app/policy.js";
+import { createAcquisitionModule } from "../src/modules/acquisition/create.js";
+import { DownloadsApplication } from "../src/modules/acquisition/downloads/application.js";
+import {
+	absoluteDownloadPath,
+	relativeDownloadPath,
+	workDirectory,
+} from "../src/modules/acquisition/downloads/domain/paths.js";
+import { resolveTorrent } from "../src/modules/acquisition/downloads/infrastructure/torrent.js";
+import {
+	type QbittorrentApi,
+	QbittorrentError,
+} from "../src/modules/acquisition/qbittorrent/public.js";
+import type { AcquisitionTarget } from "../src/modules/anime/public.js";
+import { createAuthenticationModule } from "../src/modules/system/create.js";
+
+const cleanup: (() => Promise<unknown>)[] = [];
+afterEach(async () => {
+	for (const close of cleanup.splice(0).reverse()) await close();
+});
+const key = "anilist:anime:1",
+	hash = "a".repeat(40);
+const target: AcquisitionTarget = {
+	work: {
+		reference: { provider: "anilist", mediaType: "anime", id: "1" },
+		snapshotId: "snapshot",
+		titles: ["Frieren"],
+		year: 2023,
+		format: "TV",
+		episodeCount: 28,
+		season: null,
+		part: null,
+	},
+	availableEpisodes: [],
+	revision: "one",
+};
+const logger = pino({ level: "silent" });
+async function fixture() {
+	const dir = await mkdtemp(join(tmpdir(), "anishelf-downloads-"));
+	cleanup.push(() => rm(dir, { recursive: true, force: true }));
+	let db = ApplicationDatabase.open(dir);
+	cleanup.push(async () => db.close());
+	let now = 1_000_000,
+		generation = "account-1";
+	const state: { task: Awaited<ReturnType<QbittorrentApi["task"]>> } = {
+		task: null,
+	};
+	const probe = vi.fn<QbittorrentApi["probe"]>(async () => ({
+		version: "5.0.5",
+		apiVersion: "2.11.4",
+		defaultSavePath: "/downloads",
+		incompletePathEnabled: true,
+		incompletePath: "/incomplete",
+	}));
+	const add = vi.fn<QbittorrentApi["add"]>(async (input) => {
+		state.task = {
+			hash,
+			v1Hash: hash,
+			v2Hash: null,
+			name: "Frieren - 03",
+			state: "downloading",
+			progress: 0.25,
+			remainingBytes: 75,
+			totalBytes: 100,
+			downloadBytesPerSecond: 10,
+			uploadBytesPerSecond: 0,
+			savePath: input.savePath,
+			contentPath: `${input.savePath}/Frieren - 03.mkv`,
+			category: input.category,
+			tags: input.tags,
+		};
+	});
+	const client: QbittorrentApi = {
+		probe,
+		add,
+		task: vi.fn(async () => state.task),
+		tasks: vi.fn(async () => (state.task ? [state.task] : [])),
+		files: vi.fn(async () => [
+			{
+				index: 0,
+				path: "Frieren - 03.mkv",
+				sizeBytes: 100,
+				progress: 1,
+				priority: 1,
+			},
+		]),
+		pause: vi.fn(),
+		resume: vi.fn(),
+		remove: vi.fn(),
+		recheck: vi.fn(),
+		close: vi.fn(),
+	};
+	const resources = {
+		roots: vi.fn(async () => [{ scopeId: "root", name: "Anime" }]),
+		validate: vi.fn(async () => {}),
+		inspect: vi.fn(async () => ({ sizeBytes: 100, sourceVersion: "v1" })),
+		refresh: vi.fn(async (_scope: string, path: string) => ({
+			scopeId: "root",
+			relativePath: path,
+			fileId: "file",
+			sourceVersion: "v1",
+		})),
+	};
+	const anime = {
+		target: vi.fn(async () => target),
+		assess: vi.fn(() => ({
+			episode: 3,
+			eligible: true,
+			reasons: [] as string[],
+			version: "1",
+		})),
+	};
+	const ingestion = {
+		available: vi.fn(async () => true),
+		ingest: vi.fn(async () => "available" as "available" | "review"),
+	};
+	const transport = {
+		read: vi.fn(async () => new Uint8Array()),
+		close: vi.fn(async () => {}),
+	};
+	function seed() {
+		db.acquisition.saveSubscription(
+			{
+				workKey: key,
+				feedId: "feed",
+				startEpisode: 1,
+				enabled: true,
+				revision: randomUUID(),
+			},
+			{
+				id: "feed",
+				revision: "feed-1",
+				url: "https://example.org/feed?passkey=secret",
+				etag: null,
+				lastModified: null,
+				checkedAt: now,
+				nextAttemptAt: now + 600000,
+				failures: 0,
+				error: null,
+				entries: [
+					{
+						id: "entry",
+						observationId: "entry",
+						title: "Frieren - 03",
+						publishedAt: now,
+						downloadUrl: `magnet:?xt=urn:btih:${hash}`,
+						hash,
+					},
+				],
+			},
+			[
+				{
+					id: "candidate",
+					workKey: key,
+					entryId: "entry",
+					title: "Frieren - 03",
+					episode: 3,
+					status: "selected",
+					reasons: [],
+					version: "1",
+					snapshotId: "snapshot",
+					publishedAt: now,
+				},
+			],
+		);
+	}
+	seed();
+	function create() {
+		const worker = new DownloadsApplication({
+			store: db.acquisitionDownloads,
+			discovery: db.acquisition,
+			resources,
+			anime,
+			ingestion,
+			transport,
+			connectionGeneration: () => generation,
+			withClient: async (expected, operation) => {
+				if (expected !== generation) throw new Error("changed");
+				return operation(client);
+			},
+			logger,
+			now: () => now,
+		});
+		cleanup.push(() => worker.close());
+		return worker;
+	}
+	let worker = create();
+	async function configure() {
+		const saved = await worker.saveDestination({
+			revision: db.acquisitionDownloads.destination()?.revision ?? null,
+			scopeId: "root",
+			path: "/downloads",
+		});
+		await worker.validate(saved.revision);
+		return saved;
+	}
+	async function authorize() {
+		await worker.authorize(
+			key,
+			db.acquisition.subscription(key)?.revision ?? "",
+			db.acquisitionDownloads.destination()?.revision ?? "",
+		);
+	}
+	function complete() {
+		if (!state.task) throw new Error("No task");
+		state.task = {
+			...state.task,
+			state: "uploading",
+			progress: 1,
+			remainingBytes: 0,
+		};
+	}
+	return {
+		dir,
+		get db() {
+			return db;
+		},
+		get worker() {
+			return worker;
+		},
+		state,
+		client,
+		probe,
+		add,
+		resources,
+		anime,
+		ingestion,
+		transport,
+		seed,
+		configure,
+		authorize,
+		complete,
+		advance: () => {
+			now += 3600000;
+		},
+		changeAccount: () => {
+			generation = "account-2";
+		},
+		restart: async () => {
+			await worker.close();
+			db.close();
+			db = ApplicationDatabase.open(dir);
+			worker = create();
+		},
+	};
+}
+
+test("old subscriptions stay discovery-only until scoped confirmation and destination validation", async () => {
+	const f = await fixture();
+	await f.worker.tick();
+	expect(f.add).not.toHaveBeenCalled();
+	const config = await f.configure();
+	await f.worker.tick();
+	expect(f.add).not.toHaveBeenCalled();
+	await f.authorize();
+	await f.worker.tick();
+	expect(f.add).toHaveBeenCalledTimes(1);
+	expect(f.add.mock.calls[0]?.[0]).toMatchObject({
+		savePath: "/downloads/Frieren [anilist-1]",
+		category: "anishelf",
+		tags: [expect.stringMatching(/^anishelf-/)],
+	});
+	expect(f.worker.activity(key).authorized).toBe(true);
+	const settings = await f.worker.saveDestination({
+		revision: config.revision,
+		scopeId: "root",
+		path: "/new",
+	});
+	await f.worker.validate(settings.revision);
+	expect(f.worker.activity(key).authorized).toBe(false);
+});
+test("repeated polling and restart retain one task, identity and directory", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	await Promise.all([f.worker.tick(), f.worker.tick()]);
+	await f.restart();
+	await f.worker.tick();
+	expect(f.add).toHaveBeenCalledTimes(1);
+	expect(f.db.acquisitionDownloads.intents()).toHaveLength(1);
+	expect(f.db.acquisitionDownloads.directory(key)).toBe("Frieren [anilist-1]");
+	expect(JSON.stringify(f.worker.activity(key))).not.toMatch(
+		/magnet|passkey|secret|savePath|unresolved/,
+	);
+});
+test("remote add success followed by a timeout binds after restart without resending", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	const actual = f.add.getMockImplementation();
+	f.add.mockImplementationOnce(async (input) => {
+		await actual?.(input);
+		throw new QbittorrentError("timeout", "unknown");
+	});
+	await f.worker.tick();
+	expect(f.db.acquisitionDownloads.intents()[0]?.state).toBe("unknown");
+	await f.restart();
+	f.advance();
+	await f.worker.tick();
+	expect(f.add).toHaveBeenCalledTimes(1);
+	expect(f.db.acquisitionDownloads.intents()[0]?.state).toBe("bound");
+});
+test("uncertain absent submissions are not retried automatically; explicit retry is idempotent", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	f.add.mockRejectedValueOnce(new QbittorrentError("timeout", "unknown"));
+	await f.worker.tick();
+	f.advance();
+	await f.worker.tick();
+	expect(f.add).toHaveBeenCalledTimes(1);
+	const item = f.db.acquisitionDownloads.intents()[0];
+	if (!item) throw new Error();
+	f.worker.retry(item.id, item.revision, "manual", "acquisition");
+	f.worker.retry(item.id, item.revision, "manual", "acquisition");
+	await f.worker.tick();
+	expect(f.add).toHaveBeenCalledTimes(2);
+});
+test("external pause remains paused and external removal suppresses acquisition across restart", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	if (!f.state.task) throw new Error();
+	f.state.task.state = "stoppedDL";
+	await f.worker.tick();
+	expect(f.client.resume).not.toHaveBeenCalled();
+	f.state.task = null;
+	await f.worker.tick();
+	expect(f.worker.activity(key).items[0]?.state).toBe("missing");
+	await f.restart();
+	await f.worker.tick();
+	expect(f.add).toHaveBeenCalledTimes(1);
+});
+test("completed files become available only after confined refresh and Anime ingestion", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	f.complete();
+	await f.worker.tick();
+	expect(f.resources.inspect).toHaveBeenCalledWith(
+		"root",
+		"Frieren [anilist-1]/Frieren - 03.mkv",
+	);
+	expect(f.resources.refresh).toHaveBeenCalled();
+	expect(f.ingestion.ingest).toHaveBeenCalled();
+	expect(f.worker.activity(key).items[0]).toMatchObject({
+		state: "available",
+		ingestion: "available",
+	});
+	expect((await f.worker.settings()).destination?.visibilityVerified).toBe(
+		true,
+	);
+});
+test("missing completed file is an import failure and retry imports without downloading again", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	f.complete();
+	f.resources.inspect.mockRejectedValueOnce(new Error("missing"));
+	await f.worker.tick();
+	expect(f.worker.activity(key).items[0]?.ingestion).toBe("failed");
+	expect(f.ingestion.ingest).not.toHaveBeenCalled();
+	const item = f.db.acquisitionDownloads.intents()[0];
+	if (!item) throw new Error();
+	f.worker.retry(item.id, item.revision, "retry-import", "import");
+	await f.worker.tick();
+	expect(f.add).toHaveBeenCalledTimes(1);
+	expect(f.worker.activity(key).items[0]?.state).toBe("available");
+});
+test("unsupported multi-video layouts and association conflicts remain reviewable", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	f.complete();
+	vi.mocked(f.client.files).mockResolvedValue([
+		{ index: 0, path: "01.mkv", sizeBytes: 50, priority: 1, progress: 1 },
+		{ index: 1, path: "02.mkv", sizeBytes: 50, priority: 1, progress: 1 },
+	]);
+	await f.worker.tick();
+	expect(f.worker.activity(key).items[0]).toMatchObject({
+		ingestion: "review",
+		error: "unsupported_file_layout",
+	});
+	expect(f.ingestion.ingest).not.toHaveBeenCalled();
+});
+test("disconnection is not task removal and account replacement does not control new account tasks", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	vi.mocked(f.client.task).mockRejectedValueOnce(
+		new QbittorrentError("unavailable", "read"),
+	);
+	await f.worker.tick();
+	expect(f.worker.activity(key).items[0]?.state).toBe("bound");
+	f.changeAccount();
+	f.advance();
+	await f.worker.tick();
+	expect(f.worker.activity(key).authorized).toBe(false);
+	expect(f.add).toHaveBeenCalledTimes(1);
+});
+test("scope pause during asynchronous submission preparation prevents add", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	f.anime.target
+		.mockImplementationOnce(async () => target)
+		.mockImplementationOnce(async () => {
+			const sub = f.db.acquisition.subscription(key),
+				feed = f.db.acquisition.feed("feed");
+			if (sub && feed)
+				f.db.acquisition.saveSubscription(
+					{ ...sub, enabled: false, revision: "paused" },
+					feed,
+					f.db.acquisition.candidates(key),
+				);
+			return target;
+		});
+	await f.worker.tick();
+	expect(f.add).not.toHaveBeenCalled();
+});
+test("invalid incomplete directories and removed resource roots prevent validation", async () => {
+	const f = await fixture();
+	const saved = await f.worker.saveDestination({
+		revision: null,
+		scopeId: "root",
+		path: "/downloads",
+	});
+	f.probe.mockResolvedValueOnce({
+		version: "5",
+		apiVersion: "2",
+		defaultSavePath: "/downloads",
+		incompletePathEnabled: true,
+		incompletePath: "/downloads/partial",
+	});
+	await expect(f.worker.validate(saved.revision)).rejects.toThrow();
+	expect((await f.worker.settings()).destination?.validated).toBe(false);
+});
+test("torrent parser verifies canonical magnet identity and rejects pure v2 and mismatched feed hashes", async () => {
+	const transport = { read: vi.fn(), close: vi.fn() };
+	const signal = new AbortController().signal;
+	expect(
+		(
+			await resolveTorrent(
+				{ downloadUrl: `magnet:?xt=urn:btih:${hash.toUpperCase()}`, hash },
+				transport,
+				signal,
+			)
+		).hash,
+	).toBe(hash);
+	await expect(
+		resolveTorrent(
+			{ downloadUrl: `magnet:?xt=urn:btih:${hash}`, hash: "b".repeat(40) },
+			transport,
+			signal,
+		),
+	).rejects.toMatchObject({ code: "torrent_identity_conflict" });
+	await expect(
+		resolveTorrent(
+			{ downloadUrl: `magnet:?xt=urn:btmh:1220${"a".repeat(64)}`, hash: null },
+			transport,
+			signal,
+		),
+	).rejects.toThrow();
+});
+test("destination and torrent paths reject escapes and directory names remain bounded", () => {
+	for (const path of ["../x", "/x", "a/../x", "a\\x", "a//x"])
+		expect(() => relativeDownloadPath(path)).toThrow();
+	for (const path of ["relative", "/a/../b", "C:\\media"])
+		expect(() => absoluteDownloadPath(path)).toThrow();
+	expect(workDirectory(key, "Frieren")).toBe("Frieren [anilist-1]");
+	expect(
+		Buffer.byteLength(workDirectory(key, "动画".repeat(200))),
+	).toBeLessThanOrEqual(240);
+	expect(workDirectory("anilist:anime:2", "Frieren")).not.toBe(
+		workDirectory(key, "Frieren"),
+	);
+});
+test("module subscription confirmation binds the previewed download configuration", async () => {
+	const f = await fixture();
+	const module = await createAcquisitionModule({
+		dataDir: f.dir,
+		logger,
+		store: f.db.acquisition,
+		downloadStore: f.db.acquisitionDownloads,
+		resources: f.resources,
+		anime: f.anime,
+		ingestion: f.ingestion,
+		torrentTransport: f.transport,
+		createClient: () => f.client,
+		transport: {
+			fetch: async () => ({
+				xml: `<rss version="2.0"><channel><item><title>Frieren - 03</title><guid>entry</guid><enclosure url="magnet:?xt=urn:btih:${hash}" type="application/x-bittorrent"/></item></channel></rss>`,
+				etag: null,
+				lastModified: null,
+			}),
+			close: async () => {},
+		},
+		autoStart: false,
+	});
+	cleanup.push(() => module.close());
+	await module.api.connection.save({
+		generation: module.api.connection.settings().generation,
+		url: "http://downloader:8080",
+		username: "user",
+		password: "password",
+	});
+	const downloads = module.api.downloads,
+		discovery = module.api.discovery;
+	if (!downloads || !discovery) throw new Error();
+	const dest = await downloads.saveDestination({
+		revision: null,
+		scopeId: "root",
+		path: "/downloads",
+	});
+	await downloads.validate(dest.revision);
+	const preview = await discovery.preview("session", {
+		workKey: key,
+		rssUrl: "https://example.org/new-feed",
+		startEpisode: 1,
+		revision: f.db.acquisition.subscription(key)?.revision ?? null,
+	});
+	expect(preview.downloadDestination).toBe("/downloads/Frieren [anilist-1]");
+	await discovery.confirm("session", key, preview.token);
+	expect(downloads.activity(key).authorized).toBe(true);
+	const second = await discovery.preview("session", {
+		workKey: key,
+		rssUrl: "",
+		startEpisode: 2,
+		revision: f.db.acquisition.subscription(key)?.revision ?? null,
+	});
+	await downloads.saveDestination({
+		revision: dest.revision,
+		scopeId: "root",
+		path: "/other",
+	});
+	await expect(
+		discovery.confirm("session", key, second.token),
+	).rejects.toMatchObject({ code: "ACQUISITION_CONFLICT" });
+});
+
+test("v1 and hybrid torrent bytes resolve consistently and reject unsafe original path components", async () => {
+	const bytes = (hybrid = false, name = "Frieren - 03.mkv") =>
+		toTorrentFile({
+			infoHash: "",
+			announce: [],
+			urlList: [],
+			info: {
+				name: Buffer.from(name),
+				length: 100,
+				"piece length": 16384,
+				pieces: Buffer.alloc(20),
+				...(hybrid
+					? {
+							"meta version": 2,
+							"file tree": {
+								[name]: {
+									"": { length: 100, "pieces root": Buffer.alloc(32) },
+								},
+							},
+						}
+					: {}),
+			},
+		});
+	const transport = {
+		read: vi.fn(async () => new Uint8Array(bytes())),
+		close: async () => {},
+	};
+	const first = await resolveTorrent(
+		{ downloadUrl: "https://example.org/episode.torrent", hash: null },
+		transport,
+		new AbortController().signal,
+	);
+	expect(first.hash).toMatch(/^[a-f0-9]{40}$/);
+	transport.read.mockResolvedValueOnce(new Uint8Array(bytes(true)));
+	const hybrid = await resolveTorrent(
+		{ downloadUrl: "https://example.org/episode.torrent", hash: null },
+		transport,
+		new AbortController().signal,
+	);
+	expect(hybrid.hash).toMatch(/^[a-f0-9]{40}$/);
+	transport.read.mockResolvedValueOnce(
+		new Uint8Array(bytes(false, "../escape.mkv")),
+	);
+	await expect(
+		resolveTorrent(
+			{ downloadUrl: "https://example.org/episode.torrent", hash: null },
+			transport,
+			new AbortController().signal,
+		),
+	).rejects.toMatchObject({ code: "invalid_file_path" });
+});
+test("download endpoints enforce authentication, CSRF, revision checks and safe projections", async () => {
+	const f = await fixture();
+	const module = await createAcquisitionModule({
+		dataDir: f.dir,
+		logger,
+		store: f.db.acquisition,
+		downloadStore: f.db.acquisitionDownloads,
+		resources: f.resources,
+		anime: f.anime,
+		ingestion: f.ingestion,
+		torrentTransport: f.transport,
+		createClient: () => f.client,
+		transport: { fetch: vi.fn(), close: async () => {} },
+		autoStart: false,
+	});
+	cleanup.push(() => module.close());
+	const auth = await createAuthenticationModule({
+		logger,
+		dataDir: f.dir,
+		store: f.db.authentication,
+		secure: false,
+		sources: { version: async () => "one" },
+	});
+	const app = createHttpApp({
+		config: { host: "127.0.0.1", port: 3000 },
+		logger,
+		policy: builtinPolicy,
+		configure: auth.registerHttp,
+		registrations: [module.registerHttp],
+		closeDependencies: async () => {},
+	});
+	cleanup.push(() => app.close());
+	const headers = { host: "127.0.0.1:3000" },
+		url = "/api/acquisition/downloads/settings";
+	expect((await app.inject({ url, headers })).statusCode).toBe(401);
+	const session = await app.inject({ url: "/api/auth/session", headers });
+	const login = await app.inject({
+		method: "POST",
+		url: "/api/auth/login",
+		headers: {
+			...headers,
+			cookie: session.cookies.map((c) => `${c.name}=${c.value}`).join("; "),
+			"x-csrf-token": session.json().csrfToken,
+		},
+		payload: { password: auth.initialPassword },
+	});
+	const signed = {
+			...headers,
+			cookie: login.cookies.map((c) => `${c.name}=${c.value}`).join("; "),
+		},
+		mutation = { ...signed, "x-csrf-token": login.json().csrfToken };
+	expect(
+		(
+			await app.inject({
+				method: "PUT",
+				url,
+				headers: signed,
+				payload: { revision: null, scopeId: "root", path: "/downloads" },
+			})
+		).statusCode,
+	).toBe(403);
+	const result = await app.inject({
+		method: "PUT",
+		url,
+		headers: mutation,
+		payload: { revision: null, scopeId: "root", path: "/downloads" },
+	});
+	expect(result.statusCode).toBe(200);
+	expect(
+		(
+			await app.inject({
+				method: "PUT",
+				url,
+				headers: mutation,
+				payload: { revision: null, scopeId: "root", path: "/other" },
+			})
+		).statusCode,
+	).toBe(409);
+	const activity = await app.inject({
+		url: `/api/acquisition/downloads?workKey=${key}`,
+		headers: signed,
+	});
+	expect(activity.statusCode).toBe(200);
+	expect(activity.json()).toMatchObject({ authorized: false, items: [] });
+	expect(activity.body).not.toContain("secret");
+});
+
+test("an ingested resource remains available during downloader outages and reports later Catalog removal without recreating associations", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	f.complete();
+	await f.worker.tick();
+	const calls = vi.mocked(f.client.task).mock.calls.length;
+	vi.mocked(f.client.task).mockRejectedValue(
+		new QbittorrentError("unavailable", "read"),
+	);
+	await f.worker.tick();
+	expect(f.worker.activity(key).items[0]?.state).toBe("available");
+	expect(vi.mocked(f.client.task).mock.calls).toHaveLength(calls);
+	f.ingestion.available.mockResolvedValueOnce(false);
+	await f.worker.tick();
+	expect(f.worker.activity(key).items[0]).toMatchObject({
+		state: "bound",
+		ingestion: "review",
+		error: "association_changed",
+	});
+	expect(f.ingestion.ingest).toHaveBeenCalledTimes(1);
+});
+test("failed pre-reservation metadata checks remain visible and recover without losing candidates", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	f.anime.target.mockRejectedValueOnce(new Error("offline"));
+	await f.worker.tick();
+	expect(f.db.acquisition.subscription(key)?.lastError).toBe(
+		"acquisition_unavailable",
+	);
+	expect(f.db.acquisition.candidates(key)).toHaveLength(1);
+	f.advance();
+	await f.worker.tick();
+	expect(f.db.acquisition.subscription(key)?.lastError).toBeNull();
+	expect(f.add).toHaveBeenCalledTimes(1);
+});
+
+test("changed release selection cannot submit a previously reserved publication; explicit recovery uses the current choice", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	f.anime.target
+		.mockImplementationOnce(async () => target)
+		.mockImplementationOnce(async () => {
+			const sub = f.db.acquisition.subscription(key),
+				feed = f.db.acquisition.feed("feed");
+			if (!sub || !feed) throw new Error();
+			f.db.acquisition.saveSubscription(
+				sub,
+				{
+					...feed,
+					entries: [
+						{
+							...feed.entries[0],
+							id: "new-entry",
+							observationId: "new-entry",
+							title: "Frieren - 03 new release",
+							publishedAt: 1,
+							downloadUrl: `magnet:?xt=urn:btih:${"b".repeat(40)}`,
+							hash: "b".repeat(40),
+						},
+					],
+				},
+				[
+					{
+						...f.db.acquisition.candidates(key)[0],
+						id: "new-candidate",
+						workKey: key,
+						entryId: "new-entry",
+						title: "Frieren - 03 new release",
+						episode: 3,
+						status: "selected",
+						reasons: [],
+						version: "1",
+						snapshotId: "snapshot",
+						publishedAt: 1,
+					},
+				],
+			);
+			return target;
+		});
+	await f.worker.tick();
+	expect(f.add).not.toHaveBeenCalled();
+	const item = f.db.acquisitionDownloads.intents()[0];
+	if (!item) throw new Error();
+	expect(item.error).toBe("selection_changed");
+	f.worker.retry(item.id, item.revision, "retry-new-selection", "acquisition");
+	await f.worker.tick();
+	expect(f.add).toHaveBeenCalledTimes(1);
+	expect(f.add.mock.calls[0]?.[0].source).toMatchObject({
+		magnet: `magnet:?xt=urn:btih:${"b".repeat(40)}`,
+	});
+});
+
+test("pre-submission checks exclude another active version and reject stale release evidence", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	vi.mocked(f.client.tasks).mockResolvedValueOnce([
+		{
+			hash: "b".repeat(40),
+			v1Hash: "b".repeat(40),
+			v2Hash: null,
+			name: "Frieren - 03 other",
+			state: "downloading",
+			progress: 0.5,
+			remainingBytes: 50,
+			totalBytes: 100,
+			downloadBytesPerSecond: 1,
+			uploadBytesPerSecond: 0,
+			savePath: "/elsewhere",
+			contentPath: "/elsewhere/file",
+			category: "external",
+			tags: [],
+		},
+	]);
+	await f.worker.tick();
+	expect(f.add).not.toHaveBeenCalled();
+	let item = f.db.acquisitionDownloads.intents()[0];
+	if (!item) throw new Error();
+	expect(item.error).toBe("episode_downloading");
+	f.worker.retry(item.id, item.revision, "retry-evidence", "acquisition");
+	f.anime.assess.mockReturnValueOnce({
+		episode: 3,
+		eligible: false,
+		reasons: ["identity_unconfirmed"],
+		version: "2",
+	});
+	await f.worker.tick();
+	expect(f.add).not.toHaveBeenCalled();
+	item = f.db.acquisitionDownloads.intents()[0];
+	expect(item?.error).toBe("release_evidence_changed");
+});
+
+test("account changes block stale bindings until explicit recovery reconciles the owned hash in the new connection", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	f.changeAccount();
+	await f.worker.tick();
+	let item = f.db.acquisitionDownloads.intents()[0];
+	if (!item) throw new Error();
+	expect(item).toMatchObject({
+		state: "blocked",
+		error: "downloader_configuration_changed",
+	});
+	expect((await f.worker.settings()).destination?.validated).toBe(false);
+	await f.configure();
+	await f.authorize();
+	item = f.db.acquisitionDownloads.intents()[0];
+	if (!item) throw new Error();
+	f.worker.retry(item.id, item.revision, "recover-connection", "acquisition");
+	await f.worker.tick();
+	expect(f.db.acquisitionDownloads.intents()[0]).toMatchObject({
+		state: "bound",
+		destination: { connectionGeneration: "account-2" },
+	});
+	expect(f.add).toHaveBeenCalledTimes(1);
+});
