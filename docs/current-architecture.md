@@ -142,7 +142,15 @@ destructive file deletion belong to WebUI, independently from Catalog operations
 
 ## Scheduling, Retention and Lifecycle
 
-Reuse the existing bounded RSS scheduler. The download worker reconciles every
+RSS discovery uses a global `rssRefreshIntervalMinutes` setting, defaulting to
+30 minutes with a range of 1–1440 whole minutes. Its 30-second scheduler reads the
+current setting and recalculates healthy feed deadlines from their last successful
+check, including after restart. Failure retry deadlines remain independent of this
+setting. The shared feed reader uses the current interval after successful requests,
+including HTTP 304 responses. Settings updates and schedule changes emit structured
+logs without source URLs.
+
+The download worker reconciles every
 5 seconds with active work and every 60 seconds idle. Process at most two intents
 concurrently; serialize each tick and intent, reload revisions around asynchronous
 boundaries and exponentially back off to one hour. Checks and reads never become

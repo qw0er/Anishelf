@@ -1,4 +1,5 @@
 import type { Logger } from "pino";
+import { rssConstraints } from "../../../contracts/defaults.js";
 import { DomainError } from "../../../shared/errors.js";
 import type {
 	AcquisitionTarget,
@@ -15,6 +16,7 @@ export type DiscoveryOptions = {
 	downloads: (signal: AbortSignal) => Promise<string[] | null>;
 	logger: Logger;
 	now?: () => number;
+	refreshIntervalMinutes?: () => number | undefined;
 	downloadPreview?: (
 		key: string,
 		target: AcquisitionTarget,
@@ -33,6 +35,12 @@ export class DiscoveryContext {
 	constructor(readonly options: DiscoveryOptions) {}
 	get signal(): AbortSignal {
 		return this.shutdown.signal;
+	}
+	refreshIntervalMs() {
+		return (
+			(this.options.refreshIntervalMinutes?.() ??
+				rssConstraints.defaultRefreshIntervalMinutes) * 60_000
+		);
 	}
 	now() {
 		return this.options.now?.() ?? Date.now();

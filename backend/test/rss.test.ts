@@ -7,6 +7,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
 import { builtinPolicy } from "../src/app/policy.js";
+import { rssConstraints } from "../src/contracts/defaults.js";
 import {
 	createAcquisitionModule,
 	createQbittorrentClient,
@@ -73,7 +74,10 @@ async function fixture(
 	const database = ApplicationDatabase.open(dataDir);
 	cleanup.push(async () => database.close());
 	let clock = 1_000_000;
-	const state = { target: structuredClone(target) };
+	const state = {
+		target: structuredClone(target),
+		refreshIntervalMinutes: undefined as number | undefined,
+	};
 	const fetch = vi.fn<FeedTransport["fetch"]>(async () => ({
 		xml: feed(),
 		etag: "etag-1",
@@ -92,6 +96,7 @@ async function fixture(
 		},
 		transport: { fetch, close: async () => {} },
 		now: () => clock,
+		rssRefreshIntervalMinutes: () => state.refreshIntervalMinutes,
 		autoStart: false,
 		...(createClient ? { createClient } : {}),
 	};
@@ -121,7 +126,9 @@ async function fixture(
 		logs,
 		options,
 		subscribe,
-		advance: (milliseconds = 600_000) => {
+		advance: (
+			milliseconds = rssConstraints.defaultRefreshIntervalMinutes * 60_000,
+		) => {
 			clock += milliseconds;
 		},
 	};
@@ -650,4 +657,78 @@ test("subscription HTTP routes are authenticated, CSRF protected and redact priv
 		).statusCode,
 	).toBe(400);
 	expect(f.logs.join("")).not.toContain("private-token");
+});
+
+test("RSS uses the default interval and reschedules existing feeds after live changes", async () => {
+	const f = await fixture();
+	const saved = await f.subscribe();
+	const feedId = saved.subscription?.feedId ?? "";
+	const initial = f.database.acquisition.feed(feedId);
+	expect(initial?.nextAttemptAt).toBe(
+		(initial?.checkedAt ?? 0) +
+			rssConstraints.defaultRefreshIntervalMinutes * 60_000,
+	);
+	vi.useFakeTimers();
+	const worker = await createAcquisitionModule({
+		...f.options,
+		autoStart: true,
+	});
+	cleanup.push(() => worker.close());
+	await vi.advanceTimersByTimeAsync(0);
+	f.advance(10 * 60_000);
+	await vi.advanceTimersByTimeAsync(30_000);
+	expect(f.fetch).toHaveBeenCalledTimes(1);
+	f.state.refreshIntervalMinutes = 60;
+	await vi.advanceTimersByTimeAsync(30_000);
+	expect(f.database.acquisition.feed(feedId)?.nextAttemptAt).toBe(
+		(initial?.checkedAt ?? 0) + 60 * 60_000,
+	);
+	f.advance(20 * 60_000);
+	await vi.advanceTimersByTimeAsync(30_000);
+	expect(f.fetch).toHaveBeenCalledTimes(1);
+	// Reducing the interval makes this existing feed due on the next scheduler check.
+	f.state.refreshIntervalMinutes = 15;
+	f.fetch.mockResolvedValueOnce({
+		xml: null as never,
+		etag: "etag-1",
+		lastModified: null,
+	});
+	await vi.advanceTimersByTimeAsync(30_000);
+	expect(f.fetch).toHaveBeenCalledTimes(2);
+	const refreshed = f.database.acquisition.feed(feedId);
+	expect(refreshed?.nextAttemptAt).toBe(
+		(refreshed?.checkedAt ?? 0) + 15 * 60_000,
+	);
+	expect(f.discovery.get(key).candidates).toEqual(saved.candidates);
+});
+
+test("changing the RSS interval preserves failure retry deadlines and restart recovery", async () => {
+	const f = await fixture();
+	const saved = await f.subscribe();
+	const feedId = saved.subscription?.feedId ?? "";
+	f.advance();
+	f.fetch.mockRejectedValueOnce(new Error("source unavailable"));
+	await f.discovery.refresh(key, saved.subscription?.revision ?? "");
+	const failed = f.database.acquisition.feed(feedId);
+	expect(failed?.failures).toBe(1);
+	f.state.refreshIntervalMinutes = 1440;
+	vi.useFakeTimers();
+	const worker = await createAcquisitionModule({
+		...f.options,
+		autoStart: true,
+	});
+	cleanup.push(() => worker.close());
+	await vi.advanceTimersByTimeAsync(0);
+	expect(f.database.acquisition.feed(feedId)?.nextAttemptAt).toBe(
+		failed?.nextAttemptAt,
+	);
+	expect(f.fetch).toHaveBeenCalledTimes(2);
+	f.advance(120_000);
+	await vi.advanceTimersByTimeAsync(30_000);
+	expect(f.fetch).toHaveBeenCalledTimes(3);
+	const recovered = f.database.acquisition.feed(feedId);
+	expect(recovered?.failures).toBe(0);
+	expect(recovered?.nextAttemptAt).toBe(
+		(recovered?.checkedAt ?? 0) + 1440 * 60_000,
+	);
 });

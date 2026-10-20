@@ -6,6 +6,9 @@ export function settingsResponse(
 ): SettingsResponse {
 	return {
 		resourceRoots: settings.resourceRoots,
+		...(settings.rssRefreshIntervalMinutes === undefined
+			? {}
+			: { rssRefreshIntervalMinutes: settings.rssRefreshIntervalMinutes }),
 		...(settings.qbittorrentWebUiUrl === undefined
 			? {}
 			: { qbittorrentWebUiUrl: settings.qbittorrentWebUiUrl }),

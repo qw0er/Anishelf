@@ -475,3 +475,17 @@ test("concurrent URL initializers publish one complete settings file", async () 
 		saved,
 	);
 });
+
+test.each([0, -1, 1.5, 1441, "30", null])(
+	"startup rejects invalid RSS refresh interval %j",
+	async (rssRefreshIntervalMinutes) => {
+		await mkdir(dataDir, { recursive: true });
+		await writeFile(
+			join(dataDir, "settings.json"),
+			JSON.stringify({ resourceRoots: [], rssRefreshIntervalMinutes }),
+		);
+		await expect(
+			ConfigurationService.load(environment()),
+		).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+	},
+);

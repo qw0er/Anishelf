@@ -41,6 +41,7 @@ export async function createAcquisitionModule(options: {
 	transport?: FeedTransport;
 	now?: () => number;
 	autoStart?: boolean;
+	rssRefreshIntervalMinutes?: () => number | undefined;
 }) {
 	const connection = new QbittorrentConnection(
 		new QbittorrentConfigurationFile(options.dataDir),
@@ -82,6 +83,9 @@ export async function createAcquisitionModule(options: {
 				},
 				transport: options.transport ?? new RssTransport(),
 				parse: parseRss,
+				...(options.rssRefreshIntervalMinutes
+					? { refreshIntervalMinutes: options.rssRefreshIntervalMinutes }
+					: {}),
 				normalizeUrl: rssUrl,
 				downloads: (signal) => connection.activeHashes(signal),
 				logger: options.logger,
