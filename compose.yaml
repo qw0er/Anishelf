@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 15s
     environment:
-      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:3000}
+      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:${ANISHELF_PORT:-3000}}
       ANISHELF_DATA_DIR: /data/app
       ANISHELF_INITIAL_RESOURCE_ROOT: /data/media
       ANISHELF_QBITTORRENT_API_URL: http://qbittorrent:8080
@@ -40,7 +40,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 15s
     ports:
-      - "${ANISHELF_BIND_ADDRESS:-127.0.0.1}:3000:8080"
+      - "${ANISHELF_BIND_ADDRESS:-127.0.0.1}:${ANISHELF_PORT:-3000}:8080"
     depends_on:
       backend:
         condition: service_healthy
@@ -56,18 +56,18 @@ services:
         chown "$${PUID}:$${PGID}" /data/media /data/incomplete
         echo "qBittorrent media and incomplete mount roots initialized."
         exec /init
-    image: linuxserver/qbittorrent:latest
+    image: linuxserver/qbittorrent:${QBITTORRENT_TAG:-latest}
     restart: unless-stopped
     stop_grace_period: 30s
     environment:
       PUID: "1000"
       PGID: "1000"
       WEBUI_PORT: "8080"
-      TORRENTING_PORT: "6881"
+      TORRENTING_PORT: "${QBITTORRENT_PEER_PORT:-6881}"
     ports:
-      - "127.0.0.1:8080:8080"
-      - "6881:6881"
-      - "6881:6881/udp"
+      - "${QBITTORRENT_BIND_ADDRESS:-127.0.0.1}:${QBITTORRENT_WEBUI_PORT:-8080}:8080"
+      - "${QBITTORRENT_PEER_PORT:-6881}:${QBITTORRENT_PEER_PORT:-6881}"
+      - "${QBITTORRENT_PEER_PORT:-6881}:${QBITTORRENT_PEER_PORT:-6881}/udp"
     volumes:
       - qbittorrent-config:/config
       - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media

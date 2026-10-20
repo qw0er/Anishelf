@@ -25,21 +25,18 @@ docker build -f package/Dockerfile --target web -t anishelf-web:local .
 Use [compose.yaml](../compose.yaml) to build and run the pair together. Set
 the backend's `ANISHELF_PUBLIC_ORIGIN` to your
 browser-facing origin before starting. The default is `http://localhost:3000`.
-Copy [.env.example](../.env.example) to `.env` to configure tags, ports, browser
-origin and an optional host media path. Web and Backend share `ANISHELF_TAG`.
-qBittorrent is optional via `COMPOSE_PROFILES=qbittorrent`; its third-party image
-is pulled rather than built by this project. Set the optional deployment API URL
-hint to prefill the account form; credentials still require an explicit save.
-The browser WebUI URL is optional and defaults to blank.
+The repository-root Compose builds development images.
+[Deployment Compose](deploy/compose.yaml) pulls matching Web/Backend images using
+`ANISHELF_TAG`. Both optionally include qBittorrent and use the same storage and
+port settings; see [deployment environment options](deploy/.env.example).
 
-Backend exclusively mounts `anishelf-app:/data/app` and reads
-`anishelf-media:/data/media:ro`. qBittorrent has write access to media and separate
-config/incomplete volumes, with no application-state mount. Set its save path to
-`/data/media` and incomplete path to `/data/incomplete`. Its startup wrapper
-initializes only those mount roots before executing the image's normal `/init`.
-`ANISHELF_MEDIA_PATH` can replace the named media volume with an absolute host
-directory. The new layout does not automatically migrate earlier shared volumes.
-See [deployment guidance](../docs/deployment.md) for storage, TLS and migration.
+Application state and completed media have separate named volumes. qBittorrent
+writes media and has private config/incomplete volumes. `ANISHELF_MEDIA_PATH`
+can replace the media volume with an absolute host path readable by UID/GID 1000.
+Do not run development and deployment backends against the same app volume.
+The bundled API hint stays `http://qbittorrent:8080`; credentials and browser WebUI
+links are saved in Settings. qBittorrent uses completed path `/data/media` and an
+enabled incomplete path `/data/incomplete`.
 
 ## Publication flow
 

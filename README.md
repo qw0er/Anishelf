@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 15s
     environment:
-      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:3000}
+      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:${ANISHELF_PORT:-3000}}
       ANISHELF_DATA_DIR: /data/app
       ANISHELF_INITIAL_RESOURCE_ROOT: /data/media
       ANISHELF_QBITTORRENT_API_URL: http://qbittorrent:8080
@@ -44,7 +44,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 15s
     ports:
-      - "${ANISHELF_BIND_ADDRESS:-127.0.0.1}:3000:8080"
+      - "${ANISHELF_BIND_ADDRESS:-127.0.0.1}:${ANISHELF_PORT:-3000}:8080"
     depends_on:
       backend:
         condition: service_healthy
@@ -60,18 +60,18 @@ services:
         chown "$${PUID}:$${PGID}" /data/media /data/incomplete
         echo "qBittorrent media and incomplete mount roots initialized."
         exec /init
-    image: linuxserver/qbittorrent:latest
+    image: linuxserver/qbittorrent:${QBITTORRENT_TAG:-latest}
     restart: unless-stopped
     stop_grace_period: 30s
     environment:
       PUID: "1000"
       PGID: "1000"
       WEBUI_PORT: "8080"
-      TORRENTING_PORT: "6881"
+      TORRENTING_PORT: "${QBITTORRENT_PEER_PORT:-6881}"
     ports:
-      - "127.0.0.1:8080:8080"
-      - "6881:6881"
-      - "6881:6881/udp"
+      - "${QBITTORRENT_BIND_ADDRESS:-127.0.0.1}:${QBITTORRENT_WEBUI_PORT:-8080}:8080"
+      - "${QBITTORRENT_PEER_PORT:-6881}:${QBITTORRENT_PEER_PORT:-6881}"
+      - "${QBITTORRENT_PEER_PORT:-6881}:${QBITTORRENT_PEER_PORT:-6881}/udp"
     volumes:
       - qbittorrent-config:/config
       - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media
@@ -98,13 +98,18 @@ Open [localhost:3000](http://localhost:3000). The initial password appears in Ba
 
 Optional `.env` settings:
 
-| Setting | Purpose |
+| Variable | Default / purpose |
 | --- | --- |
-| `ANISHELF_TAG=latest` | Shared Web/Backend image tag; pin a release for updates |
-| `ANISHELF_MEDIA_PATH=/srv/anishelf/media` | Existing host media directory instead of the media volume |
-| `COMPOSE_PROFILES=qbittorrent` | Include the bundled downloader |
-| `ANISHELF_PUBLIC_ORIGIN=https://anime.example.com` | Exact browser-facing origin |
-| `ANISHELF_BIND_ADDRESS=192.168.1.10` | Bind Web to a LAN address instead of loopback |
+| `ANISHELF_TAG` | `latest`; matching Web/Backend release images |
+| `ANISHELF_BIND_ADDRESS` / `ANISHELF_PORT` | `127.0.0.1` / `3000`; application host address/port |
+| `ANISHELF_PUBLIC_ORIGIN` | `http://localhost:<ANISHELF_PORT>`; override for LAN or HTTPS |
+| `ANISHELF_MEDIA_PATH` | Host media directory; unset uses the media volume |
+| `COMPOSE_PROFILES` | Set `qbittorrent` to include the downloader |
+| `QBITTORRENT_TAG` | `latest`; downloader image version |
+| `QBITTORRENT_BIND_ADDRESS` / `QBITTORRENT_WEBUI_PORT` | `127.0.0.1` / `8080`; host WebUI address/port |
+| `QBITTORRENT_PEER_PORT` | `6881`; synchronized listener and TCP/UDP publication |
+
+See [the optional deployment environment file](package/deploy/.env.example).
 
 - Backend runs as UID/GID 1000 and reads original media without modifying it.
 - Keep all four data volumes. Stop services and back up before updating; never use `down --volumes` to update.
@@ -127,7 +132,7 @@ Enable `COMPOSE_PROFILES=qbittorrent`, then run `docker compose up -d`.
 | --- | --- |
 | Initial password | `docker compose logs qbittorrent` |
 | API address | `http://qbittorrent:8080` |
-| Browser WebUI | `http://localhost:8080` |
+| Browser WebUI | `http://localhost:<QBITTORRENT_WEBUI_PORT>` (default 8080) |
 | Completed directory | `/data/media` |
 | Enabled incomplete directory | `/data/incomplete` |
 
