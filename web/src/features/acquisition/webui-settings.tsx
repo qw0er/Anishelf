@@ -85,7 +85,8 @@ export function QbittorrentSettings() {
 								id="qbittorrent-webui-help"
 								className="text-sm text-muted-foreground"
 							>
-								Enter the qBittorrent WebUI address to open directly.
+								Optional browser address for opening qBittorrent. API access
+								works without this link.
 							</p>
 							{save.isError && (
 								<p role="alert">

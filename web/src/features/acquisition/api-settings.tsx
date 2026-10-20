@@ -151,8 +151,8 @@ function ConnectionForm({
 				/>
 			</label>
 			<p id="qbittorrent-api-help" className="text-sm text-muted-foreground">
-				Use an address reachable from the backend. Compose:
-				http://qbittorrent:8080.
+				Backend connection address. A deployment default may be prefilled; enter
+				your account below and save to connect.
 			</p>
 			<label htmlFor="qbittorrent-api-username" className="block space-y-2">
 				<span className="text-sm font-medium">Username</span>

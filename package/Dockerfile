@@ -36,7 +36,7 @@ ENV NODE_ENV=production \
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /data/app /data/media /data/incomplete \
+    && mkdir -p /data/app /data/media \
     && chown -R node:node /data
 COPY --from=backend-build /app/node_modules ./node_modules
 COPY --from=backend-build /app/backend/package.json ./backend/package.json

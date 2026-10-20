@@ -50,13 +50,17 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 	private closed = false;
 	private writes: Promise<unknown> = Promise.resolve();
 	private readonly clients = new Set<QbittorrentApi>();
+	private readonly suggestedApiUrl: string | null;
 	constructor(
 		private readonly store: ConnectionStore,
 		private readonly createClient: (
 			options: QbittorrentOptions,
 		) => QbittorrentApi,
 		private readonly logger: Logger,
-	) {}
+		suggestedApiUrl?: string,
+	) {
+		this.suggestedApiUrl = suggestedApiUrl ? normalize(suggestedApiUrl) : null;
+	}
 	async initialize() {
 		try {
 			const saved = await this.store.read();
@@ -76,6 +80,11 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 				"Saved qBittorrent credentials could not be loaded.",
 			);
 		}
+		if (this.suggestedApiUrl && !this.saved.connection && !this.unreadable)
+			this.logger.info(
+				{ event: "qbittorrent.endpoint_suggested" },
+				"Deployment API address is available; save account credentials in Settings to connect.",
+			);
 	}
 	settings(): ConnectionSettings {
 		return {
@@ -85,7 +94,7 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 				: this.saved.connection
 					? "configured"
 					: "unconfigured",
-			url: this.saved.connection?.url ?? null,
+			url: this.saved.connection?.url ?? this.suggestedApiUrl,
 			username: this.saved.connection?.username ?? "",
 			passwordConfigured: Boolean(this.saved.connection),
 		};

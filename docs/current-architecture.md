@@ -350,6 +350,14 @@ Generation checks reject stale edits and invalidate in-flight connection tests.
 Explicit save, test and remove actions do not submit or modify downloads.
 See the [adapter contract and security boundary](qbittorrent-adapter.md#manual-account-settings).
 
+The optional `ANISHELF_QBITTORRENT_API_URL` deployment hint prefills the API URL
+only when no account is saved. It is not a configured connection, never triggers
+login or persistence, and does not override a saved account. Blank is unset.
+Compose's downloader profile is optional and independent from this hint. The
+new deployment mounts application state exclusively in Backend, completed media
+read-only in Backend/read-write in qBittorrent, and private config/incomplete
+volumes only in qBittorrent. See [deployment](deployment.md).
+
 ### 9.2 qBittorrent WebUI Access
 
 Provide an **Open qBittorrent WebUI** link in integration settings. Open the
@@ -366,7 +374,8 @@ is missing, independently of resource-root initializers. Validate it as a browse
 HTTP(S) address and publish settings atomically; existing settings (including an
 absent URL or explicit `null`) always win. It neither probes connectivity nor
 performs downloader API authentication. Use the English label **WebUI URL**
-and helper text **Enter the qBittorrent WebUI address to open directly.**
+and helper text explaining that it is an optional browser address independent
+from API access. Compose does not seed a localhost WebUI link by default.
 
 Anishelf does not proxy qBittorrent pages, assets or API requests. There is no
 private WebUI upstream environment variable or separate navigation endpoint.

@@ -106,73 +106,63 @@ for storage and verification details.
 ## Deploy with a container
 
 Use Docker Engine with the Compose plugin on Linux AMD64 or ARM64. The
-[compose.yaml](compose.yaml) file runs three containers:
+[compose.yaml](compose.yaml) starts Web and Backend. qBittorrent is optional.
 
-- `web`: Caddy serves the built frontend and forwards `/api` to `backend:3000`.
-  It publishes the application entry at `127.0.0.1:3000`.
-- `backend`: Node.js and FFmpeg/FFprobe handle APIs, scanning and media delivery.
-  It mounts `anishelf-data` at `/data`, storing application state in `/data/app`
-  and browsing completed media in `/data/media`.
-- `qbittorrent`: the download client shares `anishelf-data` at `/data`, with
-  completed media in `/data/media` and partial downloads in `/data/incomplete`.
-  Its configuration has a separate volume. Its WebUI publishes `127.0.0.1:8080`;
-  peer TCP/UDP uses 6881.
+- `web` serves the frontend and forwards `/api` to the private backend. Its default
+  browser entry is `http://localhost:3000`, published on host loopback only.
+- `backend` owns the private `anishelf-app` volume and reads completed media from
+  `anishelf-media` at `/data/media` through a read-only mount.
+- Optional `qbittorrent` writes completed media to the same media volume. Its
+  configuration and incomplete downloads have separate private volumes.
 
 ### Docker Compose
 
-From a fresh source installation, build and start directly; no host media path
-or separate media volume is required:
+For a source checkout:
 
 ```sh
+cp .env.example .env
+# Edit .env for your browser origin, ports and optional downloader.
 docker compose up -d --build
-docker compose ps
 docker compose logs -f backend
 ```
 
-Open [Anishelf](http://localhost:3000). Read the initial password from the backend
-logs. The backend image initializes the shared directories for UID/GID 1000.
-`/data/media` initializes a fresh installation; existing installations must follow
-the [storage migration steps](docs/deployment.md#data-backup-and-migration) before
-starting with this layout. The Compose environment also
-sets `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL=http://localhost:8080`, so a fresh
-installation has an **Open qBittorrent WebUI** link immediately. Existing
-`settings.json` is preserved; save the address in Settings for an existing install.
-This is a browser link, so use an address reachable from the browser rather than
-`http://qbittorrent:8080`. For remote access, change it to your WebUI domain or
-forward port 8080 alongside port 3000 over SSH.
+Open [Anishelf](http://localhost:3000) and sign in with the password printed in
+backend logs. Fresh settings use `/data/media` as the resource root. No downloader
+or browser WebUI link is configured by default.
 
-Read the qBittorrent temporary `admin` password with `docker compose logs qbittorrent`
-and set a permanent password in its WebUI. Its authentication is independent of
-Anishelf. Set completed downloads to `/data/media` and enable the incomplete
-folder at `/data/incomplete` so unfinished data stays outside the watched library.
-These qBittorrent preferences must be configured in its WebUI; mounting the volume
-does not set them automatically. Anishelf keeps original media read-only at the
-application level; the shared volume itself is writable by both containers.
-In Anishelf Settings, configure the qBittorrent **API connection** with
-`http://qbittorrent:8080`, your qBittorrent username and password, save, then use
-**Test connection**. This account is separate from Anishelf login, and the API
-URL is separate from the browser WebUI URL. Saved passwords are never returned;
-leave the field blank to retain one for the same API URL and username.
-See [qBittorrent deployment details](docs/deployment.md#qbittorrent-webui-access).
+To include qBittorrent, uncomment these two lines in `.env`:
 
-The Compose file also names the release images `ghcr.io/qw0er/anishelf-backend:latest`
-and `ghcr.io/qw0er/anishelf-web:latest`. After these images have been published,
-you can use `docker compose pull` followed by `docker compose up -d --no-build`
-instead of building locally. Deploy both images from the same release.
+```dotenv
+COMPOSE_PROFILES=qbittorrent
+ANISHELF_QBITTORRENT_API_URL=http://qbittorrent:8080
+```
 
-Set the backend's `ANISHELF_PUBLIC_ORIGIN` to the exact browser-facing origin.
-The provided value is `http://localhost:3000`; change it for another hostname,
-port or HTTPS domain. The browser uses the same origin for pages and APIs.
-A host TLS proxy forwards the whole site to the web container's published port;
-see [Caddy domain access](docs/deployment.md#caddy-reverse-proxy).
+Then run the same Compose command. Read its temporary password with
+`docker compose logs qbittorrent`, set a permanent password in qBittorrent, and
+configure completed downloads at `/data/media` and incomplete downloads at
+`/data/incomplete`. In Anishelf Settings, the API address is prefilled; enter your
+qBittorrent username/password, save and test. The prefilled address alone does not
+connect an account. Existing saved API accounts always take precedence.
 
-Keep `anishelf-data` across updates. Stop the containers and
-[back up the volume](docs/deployment.md#data-backup-and-migration) before upgrading.
-`docker compose down` retains the volume; `docker compose down --volumes` deletes
-it. Existing deployments must migrate the old flat application directory into
-`app/` before reusing the volume. Remove the old `ANISHELF_FRONTEND_DIR` override; the backend image
-now serves only APIs. See [deployment guidance](docs/deployment.md) for migration,
-SELinux, password recovery and multiple media mounts.
+The **WebUI URL** is an optional browser-reachable address, configured separately
+in Settings. It is not inferred from the backend API URL. Leave it blank when only
+API access is needed; Anishelf does not proxy the downloader WebUI.
+
+[.env.example](.env.example) centralizes the shared Anishelf image tag, browser
+origin, published ports, time zone and downloader options. To use an existing host
+media directory, set `ANISHELF_MEDIA_PATH=/srv/anishelf/media`; see
+[storage permissions](docs/deployment.md#data-storage). Keep
+`ANISHELF_PUBLIC_ORIGIN` aligned with the browser hostname, port and scheme when
+changing the published port or using HTTPS.
+
+For published releases, set `ANISHELF_TAG` to the same available release tag for
+both images, then use `docker compose pull` and `docker compose up -d --no-build`.
+Branch pushes do not publish images; build from source when the desired tag is
+unavailable. [Back up persistent data](docs/deployment.md#data-backup-and-updates)
+before updates. Do not use `down --volumes` unless intentionally deleting data.
+The isolated volume layout does not automatically import older shared-volume
+installations. See [deployment guidance](docs/deployment.md) for storage, updates,
+TLS, SELinux and password recovery.
 
 ## Configuration
 

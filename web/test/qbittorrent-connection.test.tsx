@@ -175,3 +175,19 @@ test("tests the saved connection and removes credentials explicitly", async () =
 		{ generation: "one" },
 	);
 });
+
+test("a deployment URL is prefilled without a saved account or automatic connection", async () => {
+	const { request } = mockConnection({ url: "http://qbittorrent:8080/" });
+	render(<QbittorrentApiSettings />);
+	const address = await screen.findByLabelText("API URL");
+	expect((address as HTMLInputElement).value).toBe("http://qbittorrent:8080/");
+	expect(
+		screen
+			.getByRole("button", { name: "Test connection" })
+			.hasAttribute("disabled"),
+	).toBe(true);
+	expect(
+		screen.queryByRole("button", { name: "Remove API connection" }),
+	).toBeNull();
+	expect(request.mock.calls.every((call) => call[1] === "GET")).toBe(true);
+});

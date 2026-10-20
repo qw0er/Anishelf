@@ -69,7 +69,7 @@ without deleting downloader tasks or media.
 Acquisition stores the recoverable plaintext password in
 `ANISHELF_DATA_DIR/acquisition/qbittorrent.json` (Compose:
 `/data/app/acquisition/qbittorrent.json`), with directory mode `0700` and file
-mode `0600`. These permissions are not encryption; protect the shared volume
+mode `0600`. These permissions are not encryption; protect the application volume
 and backups. Writes use a temporary file, fsync and atomic rename. Restart reloads
 the account without a network call. Malformed private configuration reports an
 unavailable state and can be replaced without blocking local playback.
@@ -121,3 +121,10 @@ download controls and verified ingestion remain future work.
 [RSS subscriptions and automatic selection](rss-subscriptions.md) are implemented.
 No live qBittorrent, real torrent download or complete ACQ acceptance was run for
 this foundation. D01–D07 are not complete.
+
+
+The optional deployment API URL hint prefills the form without creating an
+account. Saved account settings override it. Compose uses an optional downloader
+profile and isolated application/media/config/incomplete storage; see
+[deployment configuration](deployment.md#configure-and-start). The browser WebUI
+link remains separate and defaults to blank.

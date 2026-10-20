@@ -27,3 +27,8 @@ dist-ssr
 .aws
 .agents
 temp
+
+# Local deployment configuration
+.env
+.env.*
+!.env.example

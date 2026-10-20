@@ -277,8 +277,6 @@ test("normalizes the optional initial qBittorrent browser address", () => {
 });
 
 test.each([
-	"",
-	" ",
 	"/qbittorrent/",
 	"javascript:alert(1)",
 	"https://user:pass@example.com/",
@@ -287,4 +285,33 @@ test.each([
 	expect(() =>
 		parseDeploymentConfig({ ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL: value }),
 	).toThrow("ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL");
+});
+
+test("blank downloader deployment addresses stay unset and API hints are normalized", () => {
+	const config = parseDeploymentConfig({
+		ANISHELF_QBITTORRENT_API_URL: " ",
+		ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL: "",
+	});
+	expect(config.qbittorrentApiUrl).toBeUndefined();
+	expect(config.initialQbittorrentWebUiUrl).toBeUndefined();
+	expect(
+		parseDeploymentConfig({
+			ANISHELF_QBITTORRENT_API_URL: " http://qbittorrent:8080 ",
+		}).qbittorrentApiUrl,
+	).toBe("http://qbittorrent:8080/");
+});
+
+test.each([
+	"/qbittorrent",
+	"ftp://example.com",
+	"https://user:secret@example.com",
+	"http://example.com/?token=secret",
+	"http://example.com/#fragment",
+	"http://example.com/\\unsafe",
+])("rejects unsafe API address hints without echoing input (%s)", (value) => {
+	expect(() =>
+		parseDeploymentConfig({ ANISHELF_QBITTORRENT_API_URL: value }),
+	).toThrow(
+		"ANISHELF_QBITTORRENT_API_URL must be an absolute HTTP(S) URL without credentials, query or fragment.",
+	);
 });
