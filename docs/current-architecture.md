@@ -337,7 +337,12 @@ schemes. The browser must be able to reach this address.
 System Configuration owns the optional `qbittorrentWebUiUrl` setting in
 `settings.json`. The Settings page reads and writes `/api/settings`; omitted
 update fields retain their values. Blank or cleared values persist as `null`
-and hide the link until another URL is saved. Use the English label **WebUI URL**
+and hide the link until another URL is saved. The deployment initializer
+`ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` seeds this URL only when `settings.json`
+is missing, independently of resource-root initializers. Validate it as a browser
+HTTP(S) address and publish settings atomically; existing settings (including an
+absent URL or explicit `null`) always win. It neither probes connectivity nor
+performs downloader API authentication. Use the English label **WebUI URL**
 and helper text **Enter the qBittorrent WebUI address to open directly.**
 
 Anishelf does not proxy qBittorrent pages, assets or API requests. There is no

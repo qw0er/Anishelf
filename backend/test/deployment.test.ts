@@ -266,3 +266,25 @@ test.each(["0.0.0.0", "192.168.1.2", "::"])(
 		expect(parseDeploymentConfig({ ANISHELF_HOST: host }).host).toBe(host);
 	},
 );
+
+test("normalizes the optional initial qBittorrent browser address", () => {
+	expect(parseDeploymentConfig({}).initialQbittorrentWebUiUrl).toBeUndefined();
+	expect(
+		parseDeploymentConfig({
+			ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL: " https://downloads.example.com ",
+		}).initialQbittorrentWebUiUrl,
+	).toBe("https://downloads.example.com/");
+});
+
+test.each([
+	"",
+	" ",
+	"/qbittorrent/",
+	"javascript:alert(1)",
+	"https://user:pass@example.com/",
+	"http://example.com/\\unsafe",
+])("rejects an invalid initial qBittorrent browser address (%s)", (value) => {
+	expect(() =>
+		parseDeploymentConfig({ ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL: value }),
+	).toThrow("ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL");
+});

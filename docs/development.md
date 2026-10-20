@@ -99,10 +99,11 @@ ANISHELF_PUBLIC_ORIGIN=https://example.com \
 npm run start:backend
 ```
 
-Replace the example origin with your domain. For Docker CLI, Compose and both
-rootful/rootless Quadlet configurations, use the complete
-[container deployment examples](../README.md#deploy-with-a-container). Omit the
-public-origin variable for local or SSH-only access.
+Replace the example origin with your domain. For separate backend and Caddy web
+containers, use [compose.yaml](../compose.yaml) and the
+[container deployment guide](../README.md#deploy-with-a-container). Set the backend
+public origin to the browser-facing address; Compose defaults to `http://localhost:3000`.
+Source installations can omit the public origin for local access to the backend port.
 
 ### Environment variables
 
@@ -112,6 +113,7 @@ public-origin variable for local or SSH-only access.
 | `ANISHELF_PORT` | `3000` | Decimal integer listener port from 1 to 65535. |
 | `ANISHELF_PUBLIC_ORIGIN` | Unset | One allowed external HTTP(S) origin; no wildcards, credentials, path, query or fragment. Local access remains available; proxy authentication is required. |
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory for Anishelf | Absolute directory; overrides the platform default. |
+| `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` | Unset | Absolute HTTP(S) browser address without embedded credentials; seeds `qbittorrentWebUiUrl` only when `settings.json` is missing. No connection probe or API login. |
 | `ANISHELF_INITIAL_RESOURCE_ROOT` | Unset | Absolute readable media directory used only when `settings.json` is missing; existing settings take precedence. |
 | `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
 | `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout`, `file`, or `both`. |
@@ -408,8 +410,11 @@ A shared Caddy can proxy the whole application. Configure `ANISHELF_PUBLIC_ORIGI
 for its external origin and preserve Host/Origin headers; see the
 [Caddy deployment example](deployment.md#caddy-reverse-proxy). Backend listening
 defaults to loopback for source installations and `0.0.0.0` in container images.
-Containers use bridge networking with host loopback port publication. The explicit
-origin supplies the external scheme and port for Host and mutation Origin validation.
+Container deployments use two images built from the same revision: Caddy serves
+static files and proxies `/api` to the private backend over the Compose network.
+Only the web container publishes host loopback port 3000 (container port 8080).
+The backend image does not enable Node static hosting. The explicit public origin
+supplies the external scheme and port for Host and mutation Origin validation.
 Forwarded headers supply scheme/client address only from loopback proxies; they
 do not authorize requests. Container forwarding may obscure the client IP without
 affecting Host/Origin validation or authentication. Local health checks remain available.

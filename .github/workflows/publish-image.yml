@@ -1,4 +1,4 @@
-name: Publish container image
+name: Publish container images
 
 on:
   push:
@@ -50,6 +50,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        component: [backend, web]
+        architecture: [amd64, arm64]
         include:
           - architecture: amd64
             runner: ubuntu-24.04
@@ -73,7 +75,7 @@ jobs:
         id: metadata
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/qw0er/anishelf
+          images: ghcr.io/qw0er/anishelf-${{ matrix.component }}
           tags: |
             type=semver,pattern={{version}}
             type=sha,format=long
@@ -91,11 +93,12 @@ jobs:
         with:
           context: .
           file: package/Dockerfile
+          target: ${{ matrix.component }}
           platforms: linux/${{ matrix.architecture }}
-          outputs: type=image,name=ghcr.io/qw0er/anishelf,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=ghcr.io/qw0er/anishelf-${{ matrix.component }},push-by-digest=true,name-canonical=true,push=true
           labels: ${{ steps.metadata.outputs.labels }}
-          cache-from: type=gha,scope=image-${{ matrix.architecture }}
-          cache-to: type=gha,scope=image-${{ matrix.architecture }},mode=max
+          cache-from: type=gha,scope=image-${{ matrix.component }}-${{ matrix.architecture }}
+          cache-to: type=gha,scope=image-${{ matrix.component }}-${{ matrix.architecture }},mode=max
 
       - name: Export image digest
         env:
@@ -107,13 +110,16 @@ jobs:
       - name: Upload image digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.architecture }}
+          name: digests-${{ matrix.component }}-${{ matrix.architecture }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
 
   publish:
     needs: build
+    strategy:
+      matrix:
+        component: [backend, web]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -124,7 +130,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ${{ runner.temp }}/digests
-          pattern: digests-*
+          pattern: digests-${{ matrix.component }}-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
@@ -134,7 +140,7 @@ jobs:
         id: metadata
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/qw0er/anishelf
+          images: ghcr.io/qw0er/anishelf-${{ matrix.component }}
           tags: |
             type=semver,pattern={{version}}
             type=sha,format=long
@@ -149,7 +155,7 @@ jobs:
       - name: Publish multi-platform manifest
         working-directory: ${{ runner.temp }}/digests
         env:
-          IMAGE: ghcr.io/qw0er/anishelf
+          IMAGE: ghcr.io/qw0er/anishelf-${{ matrix.component }}
           METADATA: ${{ steps.metadata.outputs.json }}
         run: |
           mapfile -t tags < <(jq -r '.tags[]' <<< "$METADATA")

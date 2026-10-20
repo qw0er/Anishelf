@@ -414,3 +414,64 @@ test.each(["readChunkBytes", "extractionConcurrency"] as const)(
 		expect(() => validatePolicy(policy)).toThrow(key);
 	},
 );
+
+test.each([false, true])(
+	"initializes the qBittorrent browser URL with a media initializer (%s)",
+	async (withRoot) => {
+		const root = join(directory, "media");
+		await mkdir(root);
+		const env = {
+			...environment(),
+			ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL: "http://localhost:8080",
+			...(withRoot ? { ANISHELF_INITIAL_RESOURCE_ROOT: root } : {}),
+		};
+		const service = await ConfigurationService.load(env);
+		expect(service.settings).toEqual({
+			resourceRoots: withRoot ? [root] : [],
+			qbittorrentWebUiUrl: "http://localhost:8080/",
+		});
+		const file = join(dataDir, "settings.json");
+		expect(JSON.parse(await readFile(file, "utf8"))).toEqual(service.settings);
+		if (process.platform !== "win32")
+			expect((await stat(file)).mode & 0o777).toBe(0o600);
+		await service.update({ ...service.settings, qbittorrentWebUiUrl: null });
+		const saved = await readFile(file, "utf8");
+		expect(
+			(await ConfigurationService.load(env)).settings.qbittorrentWebUiUrl,
+		).toBeNull();
+		expect(await readFile(file, "utf8")).toBe(saved);
+	},
+);
+
+test("the qBittorrent initializer preserves an existing settings file without a URL", async () => {
+	const service = await ConfigurationService.load(environment());
+	await service.update({ resourceRoots: [] });
+	const file = join(dataDir, "settings.json");
+	const saved = await readFile(file, "utf8");
+	const reloaded = await ConfigurationService.load({
+		...environment(),
+		ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL: "http://localhost:8080",
+	});
+	expect(reloaded.settings).toEqual({ resourceRoots: [] });
+	expect(await readFile(file, "utf8")).toBe(saved);
+});
+
+test("concurrent URL initializers publish one complete settings file", async () => {
+	const urls = ["http://localhost:8080/", "https://downloads.example.com/"];
+	await Promise.all(
+		urls.map((url) =>
+			ConfigurationService.load({
+				...environment(),
+				ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL: url,
+			}),
+		),
+	);
+	const saved = JSON.parse(
+		await readFile(join(dataDir, "settings.json"), "utf8"),
+	);
+	expect(saved.resourceRoots).toEqual([]);
+	expect(urls).toContain(saved.qbittorrentWebUiUrl);
+	expect((await ConfigurationService.load(environment())).settings).toEqual(
+		saved,
+	);
+});

@@ -61,6 +61,7 @@ export class ConfigurationService<
 		const persistent = await PersistentConfiguration.load(
 			deployment.dataDir,
 			deployment.initialResourceRoots ?? deployment.initialResourceRoot,
+			deployment.initialQbittorrentWebUiUrl,
 		);
 		return new ConfigurationService(
 			deployment,

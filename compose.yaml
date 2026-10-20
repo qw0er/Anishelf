@@ -1,0 +1,66 @@
+services:
+  backend:
+    image: ghcr.io/qw0er/anishelf-backend:latest
+    build:
+      context: .
+      dockerfile: package/Dockerfile
+      target: backend
+    restart: unless-stopped
+    stop_grace_period: 15s
+    environment:
+      ANISHELF_PUBLIC_ORIGIN: http://localhost:3000
+      ANISHELF_INITIAL_RESOURCE_ROOT: /media
+      ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL: http://localhost:8080
+    volumes:
+      - anishelf-data:/data
+      - type: bind
+        source: /absolute/media/path
+        target: /media
+        read_only: true
+        bind:
+          create_host_path: false
+
+  web:
+    image: ghcr.io/qw0er/anishelf-web:latest
+    build:
+      context: .
+      dockerfile: package/Dockerfile
+      target: web
+    restart: unless-stopped
+    stop_grace_period: 15s
+    ports:
+      - "127.0.0.1:3000:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  qbittorrent:
+    image: linuxserver/qbittorrent:latest
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Asia/Shanghai
+      WEBUI_PORT: "8080"
+      TORRENTING_PORT: "6881"
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+    volumes:
+      - qbittorrent-config:/config
+      - qbittorrent-incomplete:/incomplete
+      - type: bind
+        source: /absolute/media/path
+        target: /downloads
+        bind:
+          create_host_path: false
+
+volumes:
+  anishelf-data:
+    name: anishelf-data
+  qbittorrent-config:
+    name: anishelf-qbittorrent-config
+  qbittorrent-incomplete:
+    name: anishelf-qbittorrent-incomplete

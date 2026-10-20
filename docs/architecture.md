@@ -33,8 +33,12 @@ Bootstrap constructs modules, injects dependencies and owns startup/shutdown.
 Background-work owners stop before shared media services and persistence close.
 The HTTP layer validates requests and projects public responses; business workflows
 remain in Applications. System owns single-user credentials and authentication.
-A reverse proxy owns TLS; transport enforces session/CSRF checks for business APIs
-and scoped tokens for original-media delivery.
+A host reverse proxy owns TLS; transport enforces session/CSRF checks for business
+APIs and scoped tokens for original-media delivery. Container deployments use
+separate web and backend images: Caddy serves the SPA and forwards `/api` on the
+same browser origin to the private Node backend. Only the web container publishes
+a host loopback port; only the backend mounts persistent data and original media.
+Source installations can still explicitly enable Node frontend hosting.
 
 ## Internal ownership
 
@@ -509,8 +513,9 @@ business loaders; API 401 responses clear client caches and leave the protected
 application. Focus/minute checks also detect server-side session revocation.
 
 Login/password verification uses bounded per-source and instance-wide attempts.
-Source installations default to a loopback listener; container images listen on
-`0.0.0.0` behind bridge port publication bound to host loopback. Listener addresses
+Source installations default to a loopback listener. The backend container listens
+on `0.0.0.0:3000` on the private Compose network; Caddy in the web container listens
+on port 8080, published on host loopback port 3000. Listener addresses
 must be IPv4/IPv6 literals. Host/Origin validation retains explicit public-origin
 matching, including translated external ports; wildcard listeners do not permit
 arbitrary Host values. Forwarded scheme/client address headers are trusted only
