@@ -364,6 +364,14 @@ beforeEach(() => {
 			return new Response(null, { status: 204 });
 		if (path.startsWith("/api/metadata/reference?"))
 			return json({ provider: "anilist", mediaType: "anime", id: "154587" });
+		if (path === "/api/acquisition/qbittorrent")
+			return json({
+				generation: "fixture",
+				state: "unconfigured",
+				url: null,
+				username: "",
+				passwordConfigured: false,
+			});
 		if (path === "/api/tracking/account")
 			return json({
 				provider: trackingProvider,

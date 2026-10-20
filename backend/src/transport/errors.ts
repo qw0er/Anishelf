@@ -3,6 +3,16 @@ import { MetadataError } from "../modules/anime/public.js";
 import { DomainError, type ErrorCode } from "../shared/errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	ACQUISITION_CONFLICT: {
+		status: 409,
+		message:
+			"The qBittorrent configuration changed. Reload settings and try again.",
+	},
+	ACQUISITION_UNAVAILABLE: {
+		status: 503,
+		message:
+			"The qBittorrent configuration or connection test is unavailable. Retry shortly.",
+	},
 	TRACKING_AUTHORIZATION_REQUIRED: {
 		status: 409,
 		message:

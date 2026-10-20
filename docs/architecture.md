@@ -24,7 +24,7 @@ and processing. Original resources remain read-only.
 
 ![Anishelf overall architecture](architecture.svg)
 
-The diagram shows five encapsulated business modules and their internal
+The diagram shows the five media/tracking modules and their internal
 owners. A module owns its public contract, private assembly and lifecycle. Solid arrows show layer calls or mechanism use; dashed arrows
 show application assembly. The collaboration table below identifies the main
 module interfaces rather than every import.
@@ -78,7 +78,7 @@ The backend source has six responsibility roots:
 | Root | Responsibility |
 | --- | --- |
 | `app` | Connect complete modules, assemble global policy, own protocol setup and staged shutdown |
-| `modules` | Five independently encapsulated business modules |
+| `modules` | Six independently encapsulated business modules |
 | `contracts` | Browser-safe protocol shapes, schemas and shared protocol constants |
 | `platform` | Database connection capabilities, media tools, filesystem/process mechanisms and logging |
 | `shared` | Small internal concepts: identities, errors, readonly utilities, sorting and fingerprints |
@@ -93,14 +93,15 @@ The backend source has six responsibility roots:
 | Media | Inspection, Planning, Processing, Preparation, Subtitles | Compatibility, published-copy views, media information, preparation and subtitle HTTP services |
 | Playback | Progress, Playback Selection | Resource selection, source sessions/resume/history and durable automatic observations |
 | Anime | Identification, Metadata, Anime Catalog, Tracking, Anime Library, AniList protocol | Recognition, provider cache, review/associations, account/list lifecycle, unified viewing updates, combined Library reads and shared provider access |
+| Acquisition | qBittorrent adapter, Connection | Private manually entered downloader credentials, settings HTTP and explicit connection testing; no automatic downloads yet |
 
-`modules/acquisition` now contains a standalone [qBittorrent adapter foundation](qbittorrent-adapter.md)
-with an Acquisition-owned contract and construction entry. It is not registered
-with bootstrap and has no HTTP, database or workers yet; the five runtime modules
-above remain the application assembly. The complete sixth module remains the
+`modules/acquisition` contains the [qBittorrent adapter and manual account settings](qbittorrent-adapter.md)
+with an Acquisition-owned contract, private credential file, HTTP routes and
+bootstrap/shutdown integration. It has no acquisition database or workers yet.
+The complete download workflow remains the
 [current iteration design](current-architecture.md).
 
-The five directories are API boundaries, not categorization folders. External
+The six directories are API boundaries, not categorization folders. External
 consumers cannot import any child entry, including a child's `public.ts`.
 Internal owners still collaborate through their own Public APIs and ports;
 module composition owns the only implementation-access exception.

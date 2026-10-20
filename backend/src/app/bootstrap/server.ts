@@ -1,4 +1,5 @@
 import type { Logger } from "pino";
+import { createAcquisitionModule } from "../../modules/acquisition/create.js";
 import { createAnimeModule } from "../../modules/anime/create.js";
 import { createMediaModule } from "../../modules/media/create.js";
 import { createPlaybackModule } from "../../modules/playback/create.js";
@@ -57,6 +58,10 @@ export async function createServer(
 		database,
 		logger,
 	});
+	const acquisition = await createAcquisitionModule({
+		dataDir: system.deployment.dataDir,
+		logger,
+	});
 	const app = createHttpApp({
 		configure: authentication.registerHttp,
 		config: system.deployment,
@@ -72,9 +77,17 @@ export async function createServer(
 			media.registerHttp,
 			playback.registerHttp,
 			anime.registerHttp,
+			acquisition.registerHttp,
 		],
 		closeDependencies: () =>
-			closeModules({ anime, media, resources, playback, database }),
+			closeModules({
+				acquisition,
+				anime,
+				media,
+				resources,
+				playback,
+				database,
+			}),
 	});
 	if (authentication.initialPassword)
 		app.addHook("onListen", async () => {

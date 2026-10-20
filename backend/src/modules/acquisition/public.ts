@@ -1,5 +1,10 @@
 export type {
 	QbittorrentApi,
 	QbittorrentOptions,
-} from "./qbittorrent/domain/model.js";
-export { QbittorrentError } from "./qbittorrent/domain/model.js";
+} from "./qbittorrent/public.js";
+export { QbittorrentError } from "./qbittorrent/public.js";
+
+import type { QbittorrentConnectionApi } from "./connection/public.js";
+export interface AcquisitionApi {
+	readonly connection: QbittorrentConnectionApi;
+}

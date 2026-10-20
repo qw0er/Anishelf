@@ -41,6 +41,8 @@
 		"requestFailed": "The request failed. Please try again.",
 		"settingsUnavailable": "Settings could not be loaded. Try refreshing the page.",
 		"api": {
+			"ACQUISITION_CONFLICT": "The qBittorrent configuration changed. Reload settings and try again.",
+			"ACQUISITION_UNAVAILABLE": "The qBittorrent configuration or connection test is unavailable. Retry shortly.",
 			"CATALOG_UNAVAILABLE": "Anime catalog is unavailable. Retry shortly; files remain accessible.",
 			"CATALOG_NOT_FOUND": "This anime or review item is unavailable in the current resource directory.",
 			"CATALOG_CONFLICT": "The catalog or file changed. Reopen review and create a new preview.",
