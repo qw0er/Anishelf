@@ -94,6 +94,12 @@ The backend source has six responsibility roots:
 | Playback | Progress, Playback Selection | Resource selection, source sessions/resume/history and durable automatic observations |
 | Anime | Identification, Metadata, Anime Catalog, Tracking, Anime Library, AniList protocol | Recognition, provider cache, review/associations, account/list lifecycle, unified viewing updates, combined Library reads and shared provider access |
 
+`modules/acquisition` now contains a standalone [qBittorrent adapter foundation](qbittorrent-adapter.md)
+with an Acquisition-owned contract and construction entry. It is not registered
+with bootstrap and has no HTTP, database or workers yet; the five runtime modules
+above remain the application assembly. The complete sixth module remains the
+[current iteration design](current-architecture.md).
+
 The five directories are API boundaries, not categorization folders. External
 consumers cannot import any child entry, including a child's `public.ts`.
 Internal owners still collaborate through their own Public APIs and ports;

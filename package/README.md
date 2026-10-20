@@ -22,11 +22,17 @@ docker build -f package/Dockerfile --target backend -t anishelf-backend:local .
 docker build -f package/Dockerfile --target web -t anishelf-web:local .
 ```
 
-Use [compose.yaml](../compose.yaml) to build and run the pair together. Replace
-the media bind source and set the backend's `ANISHELF_PUBLIC_ORIGIN` to your
+Use [compose.yaml](../compose.yaml) to build and run the pair together. Set
+the backend's `ANISHELF_PUBLIC_ORIGIN` to your
 browser-facing origin before starting. The default is `http://localhost:3000`.
 Compose also starts qBittorrent and seeds its browser WebUI link with `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` on fresh
 installations. This third-party image is pulled rather than built by this project.
+Backend and qBittorrent share `anishelf-data:/data`: application state is in
+`/data/app`, completed media in `/data/media` and partial downloads in
+`/data/incomplete`. The backend image creates these directories with UID/GID 1000
+ownership for fresh named-volume initialization. No host media bind is required.
+Set qBittorrent's save and incomplete paths in its WebUI. Existing flat application
+data must be migrated into `app/` before using the new image default.
 See [deployment guidance](../docs/deployment.md) for storage, TLS and migration.
 
 ## Publication flow
