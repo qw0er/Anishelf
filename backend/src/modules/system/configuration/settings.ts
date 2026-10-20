@@ -7,6 +7,7 @@ export interface PersistentSettings {
 	transcodeCacheBudgetGiB?: number;
 	defaultTranscodeProfileId?: string;
 	qbittorrentWebUiUrl?: string | null;
+	rssRefreshIntervalMinutes?: number;
 }
 export interface SettingsStore {
 	readonly settings: Readonly<PersistentSettings>;

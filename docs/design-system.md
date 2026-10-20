@@ -224,6 +224,10 @@ Keep controls wrapping at narrow widths. Unmapped sources show no tracking comma
 
 ## Automatic Acquisition
 
+Settings includes a compact RSS section with one global refresh interval in whole
+minutes (1–1440, default 30). Keep edits local until Save, show the unit in the input
+label, and use Toasts for save results. Saving applies without a restart.
+
 Keep the RSS subscription summary compact and place secondary subscription actions
 in its menu. Its policy Tooltip explains that pausing stops future acquisition,
 while existing downloads continue and AniList status does not change subscription

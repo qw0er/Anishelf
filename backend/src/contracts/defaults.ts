@@ -1,5 +1,12 @@
 export const defaultLanguage = "en";
 
+/** Global RSS discovery cadence, expressed in whole minutes. */
+export const rssConstraints = Object.freeze({
+	defaultRefreshIntervalMinutes: 30,
+	minimumRefreshIntervalMinutes: 1,
+	maximumRefreshIntervalMinutes: 1440,
+});
+
 /** Program-maintained startup and development defaults. */
 export const deploymentDefaults = Object.freeze({
 	host: "127.0.0.1",

@@ -1,5 +1,4 @@
 export const discoveryPolicy = {
-	intervalMs: 10 * 60_000,
 	retryMaximumMs: 60 * 60_000,
 	tickMs: 30_000,
 	maximumSubscriptions: 64,

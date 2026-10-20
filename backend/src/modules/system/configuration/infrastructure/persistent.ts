@@ -11,7 +11,10 @@ import {
 } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
 import { Check } from "typebox/value";
-import { preparationConstraints } from "../../../../contracts/defaults.js";
+import {
+	preparationConstraints,
+	rssConstraints,
+} from "../../../../contracts/defaults.js";
 import {
 	PreparationModeSchema,
 	TranscodeProfileIdSchema,
@@ -59,13 +62,26 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 			key !== "defaultTranscodeProfileId" &&
 			key !== "preparationMode" &&
 			key !== "transcodeCacheBudgetGiB" &&
-			key !== "qbittorrentWebUiUrl"
+			key !== "qbittorrentWebUiUrl" &&
+			key !== "rssRefreshIntervalMinutes"
 		)
 			throw new DomainError(
 				"CONFIG_INVALID",
 				`Unknown persistent setting: ${key}.`,
 			);
 	}
+	const rssInterval = settings.rssRefreshIntervalMinutes;
+	if (
+		rssInterval !== undefined &&
+		(typeof rssInterval !== "number" ||
+			!Number.isSafeInteger(rssInterval) ||
+			rssInterval < rssConstraints.minimumRefreshIntervalMinutes ||
+			rssInterval > rssConstraints.maximumRefreshIntervalMinutes)
+	)
+		throw new DomainError(
+			"CONFIG_INVALID",
+			"settings.json rssRefreshIntervalMinutes must be an integer between 1 and 1440.",
+		);
 	const preparationMode = settings.preparationMode;
 	if (
 		preparationMode !== undefined &&
@@ -129,6 +145,9 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		throw new DomainError("CONFIG_INVALID", "Resource paths must be distinct.");
 	return {
 		resourceRoots: [...roots],
+		...(rssInterval === undefined
+			? {}
+			: { rssRefreshIntervalMinutes: rssInterval as number }),
 		...(settings.qbittorrentWebUiUrl === undefined
 			? {}
 			: {

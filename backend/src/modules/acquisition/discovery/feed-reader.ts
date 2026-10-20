@@ -33,7 +33,7 @@ export class FeedReader {
 				etag: response.etag,
 				lastModified: response.lastModified,
 				checkedAt: this.context.now(),
-				nextAttemptAt: this.context.now() + policy.intervalMs,
+				nextAttemptAt: this.context.now() + this.context.refreshIntervalMs(),
 				failures: 0,
 				error: null,
 			};

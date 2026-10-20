@@ -1,5 +1,8 @@
 import { useTranslation } from "react-i18next";
-import { QbittorrentSettings } from "../../../features/acquisition/ui.js";
+import {
+	QbittorrentSettings,
+	RssSettings,
+} from "../../../features/acquisition/ui.js";
 import { TrackingAccountSettings } from "../../../features/anime/ui.js";
 import {
 	usePreparationAction,
@@ -32,6 +35,7 @@ export function SettingsPage() {
 			<PreparationProfileSettings preparation={preparation} action={action} />
 			<ExternalPlayerSettings />
 			<TrackingAccountSettings />
+			<RssSettings />
 			<QbittorrentSettings />
 			<SecuritySettings />
 		</div>

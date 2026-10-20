@@ -59,6 +59,7 @@ export async function createServer(
 		logger,
 	});
 	const acquisition = await createAcquisitionModule({
+		rssRefreshIntervalMinutes: () => system.settings.rssRefreshIntervalMinutes,
 		dataDir: system.deployment.dataDir,
 		logger,
 		store: database.acquisition,

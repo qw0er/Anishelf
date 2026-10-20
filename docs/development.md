@@ -160,6 +160,16 @@ started tasks without a restart. Lowering the budget never deletes existing copi
 new output is blocked when retained copies already consume the budget. Active tasks
 keep their initial output allowance, and free disk space remains an additional bound.
 
+The optional `settings.json` field `rssRefreshIntervalMinutes` controls normal RSS
+polling for all enabled subscriptions (default: 30 minutes; integer range: 1–1440).
+Edit it in the RSS section of Settings or through `PUT /api/settings`. An absent
+field uses the built-in default; saving the displayed value persists that choice.
+The scheduler applies saved changes at its next check (normally every 30 seconds),
+measuring the new interval from each feed's last successful check. A shorter interval can make a
+feed immediately due. Failed feeds retain their existing retry deadline and
+exponential backoff; a successful fetch resumes the configured cadence. Conditional
+HTTP requests and manual refresh remain available.
+
 The task monitor initially requests the latest 10 records. Its **More** button
 requests the latest 100 records. Both limits are declared in preparation policy;
 this display window does not delete task history or cached media.

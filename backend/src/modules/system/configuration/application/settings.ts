@@ -54,6 +54,9 @@ export class SettingsApplication {
 			{
 				event: "settings.updated",
 				fields: Object.keys(patch),
+				...(patch.rssRefreshIntervalMinutes === undefined
+					? {}
+					: { rssRefreshIntervalMinutes: patch.rssRefreshIntervalMinutes }),
 				durationMs: Date.now() - started,
 			},
 			"Settings saved.",

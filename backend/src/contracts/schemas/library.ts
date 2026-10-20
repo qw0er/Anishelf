@@ -1,5 +1,5 @@
 import { Type } from "typebox";
-import { preparationConstraints } from "../defaults.js";
+import { preparationConstraints, rssConstraints } from "../defaults.js";
 import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
 import {
 	PreparationModeSchema,
@@ -132,6 +132,12 @@ export function createSettingsSchemas() {
 				maxItems: 64,
 				uniqueItems: true,
 			}),
+			rssRefreshIntervalMinutes: Type.Optional(
+				Type.Integer({
+					minimum: rssConstraints.minimumRefreshIntervalMinutes,
+					maximum: rssConstraints.maximumRefreshIntervalMinutes,
+				}),
+			),
 			transcodeCacheBudgetGiB: Type.Optional(
 				Type.Integer({
 					minimum: 1,
@@ -152,6 +158,12 @@ export function createSettingsSchemas() {
 				Type.Array(Type.String({ minLength: 1 }), {
 					maxItems: 64,
 					uniqueItems: true,
+				}),
+			),
+			rssRefreshIntervalMinutes: Type.Optional(
+				Type.Integer({
+					minimum: rssConstraints.minimumRefreshIntervalMinutes,
+					maximum: rssConstraints.maximumRefreshIntervalMinutes,
 				}),
 			),
 			transcodeCacheBudgetGiB: Type.Optional(

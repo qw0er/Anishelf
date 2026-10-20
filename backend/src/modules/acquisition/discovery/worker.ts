@@ -118,7 +118,25 @@ export class DiscoveryWorker {
 				),
 			];
 			const due = ids
-				.map((id) => this.context.options.store.feed(id))
+				.map((id) => {
+					const feed = this.context.options.store.feed(id);
+					if (!feed || feed.failures > 0 || feed.checkedAt === null)
+						return feed;
+					const nextAttemptAt =
+						feed.checkedAt + this.context.refreshIntervalMs();
+					if (nextAttemptAt === feed.nextAttemptAt) return feed;
+					const updated = { ...feed, nextAttemptAt };
+					this.context.options.store.saveFeed(updated);
+					this.context.options.logger.debug(
+						{
+							event: "acquisition.feed_rescheduled",
+							feedId: feed.id,
+							nextAttemptAt,
+						},
+						"RSS refresh schedule updated.",
+					);
+					return updated;
+				})
 				.filter((feed): feed is FeedRecord =>
 					Boolean(feed && feed.nextAttemptAt <= this.context.now()),
 				);
