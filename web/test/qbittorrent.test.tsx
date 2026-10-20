@@ -15,19 +15,14 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-test("saves a custom browser address and clearing restores the built-in proxy", async () => {
+test("saves a direct browser address and clearing hides the link", async () => {
 	let settings = {
 		resourceRoots: ["/media"],
 		qbittorrentWebUiUrl: null as string | null,
 	};
 	const request = vi
 		.spyOn(api, "request")
-		.mockImplementation(async (path, method, _options, payload) => {
-			if (path === "/api/integrations/qbittorrent")
-				return {
-					url: settings.qbittorrentWebUiUrl ?? "/integrations/qbittorrent/",
-					proxyConfigured: true,
-				};
+		.mockImplementation(async (_path, method, _options, payload) => {
 			if (method === "PUT") {
 				const url =
 					(
@@ -41,11 +36,8 @@ test("saves a custom browser address and clearing restores the built-in proxy", 
 			return settings;
 		});
 	render(<QbittorrentSettings />);
-	expect(
-		(
-			await screen.findByRole("link", { name: "Open qBittorrent WebUI" })
-		).getAttribute("href"),
-	).toBe("/integrations/qbittorrent/");
+	await screen.findByText("Save a WebUI URL to open qBittorrent.");
+	expect(screen.queryByRole("link")).toBeNull();
 	const input = screen.getByLabelText("WebUI URL");
 	fireEvent.change(input, {
 		target: { value: "https://downloads.example.com/" },
@@ -72,20 +64,17 @@ test("saves a custom browser address and clearing restores the built-in proxy", 
 	]);
 	fireEvent.change(input, { target: { value: "" } });
 	fireEvent.click(screen.getByRole("button", { name: "Save" }));
-	await waitFor(() =>
-		expect(screen.getByRole("link").getAttribute("href")).toBe(
-			"/integrations/qbittorrent/",
-		),
+	await waitFor(() => expect(screen.queryByRole("link")).toBeNull());
+	expect(request.mock.calls.every((call) => call[0] === "/api/settings")).toBe(
+		true,
 	);
 });
 
-test("shows actionable configuration when the default proxy has no upstream", async () => {
-	vi.spyOn(api, "request").mockImplementation(async (path) =>
-		path === "/api/settings"
-			? { resourceRoots: [], qbittorrentWebUiUrl: null }
-			: { url: "/integrations/qbittorrent/", proxyConfigured: false },
-	);
+test("shows configuration guidance when no WebUI URL is saved", async () => {
+	vi.spyOn(api, "request").mockResolvedValue({ resourceRoots: [] });
 	render(<QbittorrentSettings />);
-	expect(await screen.findByText(/Set ANISHELF_QBITTORRENT_URL/)).toBeTruthy();
+	expect(
+		await screen.findByText("Save a WebUI URL to open qBittorrent."),
+	).toBeTruthy();
 	expect(screen.queryByRole("link")).toBeNull();
 });

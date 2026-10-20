@@ -1,7 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { request } from "../../shared/api/client.js";
-import type { QbittorrentWebUi } from "../../shared/api/contracts.js";
 import { Button, buttonStyles } from "../../shared/components/ui/button.js";
 import {
 	Card,
@@ -17,29 +15,19 @@ import {
 	settingsQuery,
 } from "../settings/public.js";
 
-const key = ["integrations", "qbittorrent"];
-const endpoint = "/api/integrations/qbittorrent";
-
 export function QbittorrentSettings() {
 	const client = useQueryClient();
 	const configuration = useQuery(settingsQuery());
-	const query = useQuery({
-		queryKey: key,
-		queryFn: ({ signal }) =>
-			request<QbittorrentWebUi>(endpoint, "GET", { signal }),
-	});
 	const [draft, setDraft] = useState<string | null>(null);
 	const save = useMutation({
 		mutationFn: (qbittorrentWebUiUrl: string) =>
 			saveSettings({ qbittorrentWebUiUrl }),
-		onSuccess: async (settings) => {
+		onSuccess: (settings) => {
 			client.setQueryData(settingsKeys.settings, settings);
-			await client.invalidateQueries({ queryKey: key });
 			setDraft(null);
 		},
 	});
 	const settings = configuration.data;
-	const link = query.data;
 	return (
 		<Card className="settings-section lg:grid">
 			<CardHeader>
@@ -47,22 +35,21 @@ export function QbittorrentSettings() {
 				<CardDescription>Open the full download client WebUI.</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
-				{query.isPending || configuration.isPending ? (
+				{configuration.isPending ? (
 					<p role="status">Loading qBittorrent settings…</p>
-				) : query.isError || configuration.isError ? (
+				) : configuration.isError ? (
 					<div role="alert">
 						Could not load qBittorrent settings.{" "}
 						<Button
 							variant="outline"
 							onClick={() => {
-								void query.refetch();
 								void configuration.refetch();
 							}}
 						>
 							Retry
 						</Button>
 					</div>
-				) : settings && link ? (
+				) : settings ? (
 					<>
 						<form
 							className="space-y-3"
@@ -94,7 +81,7 @@ export function QbittorrentSettings() {
 								id="qbittorrent-webui-help"
 								className="text-sm text-muted-foreground"
 							>
-								Leave blank to open through Anishelf's built-in proxy.
+								Enter the qBittorrent WebUI address to open directly.
 							</p>
 							{save.isError && (
 								<p role="alert">
@@ -107,26 +94,23 @@ export function QbittorrentSettings() {
 								{save.isPending ? "Saving…" : "Save"}
 							</Button>
 						</form>
-						{settings.qbittorrentWebUiUrl || link.proxyConfigured ? (
+						{settings.qbittorrentWebUiUrl ? (
 							<>
 								<a
 									className={buttonStyles("outline")}
-									href={link.url}
+									href={settings.qbittorrentWebUiUrl}
 									target="_blank"
 									rel="noopener noreferrer"
 								>
 									Open qBittorrent WebUI
 								</a>
-								{settings.qbittorrentWebUiUrl && (
-									<p className="text-sm text-muted-foreground">
-										This external address uses its own access controls.
-									</p>
-								)}
+								<p className="text-sm text-muted-foreground">
+									This address uses its own access controls.
+								</p>
 							</>
 						) : (
 							<p role="status" className="text-sm text-muted-foreground">
-								Set ANISHELF_QBITTORRENT_URL on the server and restart Anishelf,
-								or save a custom WebUI URL.
+								Save a WebUI URL to open qBittorrent.
 							</p>
 						)}
 					</>

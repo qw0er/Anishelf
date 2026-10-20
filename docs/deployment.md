@@ -6,26 +6,15 @@ This document covers alternate deployment methods and operational details.
 
 ## qBittorrent WebUI access
 
-Set `ANISHELF_QBITTORRENT_URL=http://qbittorrent:8080` on Anishelf to enable the
-proxy. This private upstream must be an HTTP(S) origin with no credentials, path,
-query or fragment; restart Anishelf after changing it. Without this variable the
-proxy returns an actionable 503 response. The proxy requires an Anishelf session
-on every page, asset and API request. Existing instances can keep their own
-qBittorrent login, or explicitly trust only the Anishelf backend source address.
+In Settings, enter an absolute HTTP/HTTPS **WebUI URL** reachable from your
+browser, then save and use **Open qBittorrent WebUI**. Embedded usernames/passwords
+are rejected. The address is stored as `qbittorrentWebUiUrl` in
+`/data/settings.json` through `/api/settings`. Clearing and saving persists
+`null` and hides the link; omitted update fields retain their values.
 
-**WebUI URL** in Settings is a separate, persisted browser navigation target.
-Leave it blank to use the built-in proxy; enter an absolute HTTP/HTTPS URL to
-open an independently hosted WebUI. Embedded usernames/passwords are rejected.
-Save before opening the link; clearing and saving restores the proxy. This field
-does not change the backend upstream, configure qBittorrent's alternate UI files,
-or protect the external destination with Anishelf authentication. It is stored
-by System Configuration as `qbittorrentWebUiUrl` in `/data/settings.json`.
-Blank or cleared values persist as `null`; omitted update fields retain their
-current values. The Settings UI reads and saves through `/api/settings`.
-Acquisition only exposes read-only navigation information and the proxy route;
-it has no independent settings file.
-Custom upstream UI assets must support a subpath; response bodies are streamed
-without HTML/JavaScript rewriting. The application currently serves at `/`.
+Anishelf opens this address directly. Configure the destination's authentication
+and network access independently. Anishelf does not proxy qBittorrent or configure
+its alternate UI files.
 
 ## Data storage
 
