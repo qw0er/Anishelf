@@ -3,12 +3,12 @@ import type { Store } from "../../../../platform/database/store.js";
 import { mediaSources } from "../../../resources/persistence.js";
 import type { SourceRegistry } from "../../../resources/public.js";
 import type { SubtitleAsset, SubtitleFontSet } from "../domain/model.js";
+import { readSubtitleFontSets, writeSubtitleFontSets } from "./records.js";
 import {
 	subtitleAssets,
 	subtitleFontAssets,
 	subtitleFontSets,
 } from "./schema.js";
-
 export class SubtitleRepository {
 	constructor(
 		private readonly store: Store,
@@ -46,19 +46,12 @@ export class SubtitleRepository {
 	saveFonts(set: SubtitleFontSet): void {
 		this.store.transaction(() => {
 			const source = this.sources.registerSource(set.source);
-			this.store
-				.insert(subtitleFontSets)
-				.values({
-					id: set.id,
-					sourceId: source.id,
-					status: set.status,
-					warnings: set.warnings,
-				})
-				.onConflictDoUpdate({
-					target: subtitleFontSets.id,
-					set: { status: set.status, warnings: set.warnings },
-				})
-				.run();
+			writeSubtitleFontSets(this.store, {
+				id: set.id,
+				sourceId: source.id,
+				status: set.status,
+				warnings: set.warnings,
+			});
 			this.store
 				.delete(subtitleFontAssets)
 				.where(eq(subtitleFontAssets.setId, set.id))
@@ -89,7 +82,7 @@ export class SubtitleRepository {
 		return {
 			id: set.id,
 			status: set.status,
-			warnings: set.warnings,
+			warnings: readSubtitleFontSets(this.store, set).warnings,
 			source: {
 				scopeId: source.rootId,
 				fileId: source.fileId,

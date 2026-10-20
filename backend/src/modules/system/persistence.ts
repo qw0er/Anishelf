@@ -11,3 +11,5 @@ export function createAuthenticationPersistence(
 ): AuthenticationStore {
 	return new AuthenticationRepository(store);
 }
+
+export * from "./authentication/infrastructure/schema.js";

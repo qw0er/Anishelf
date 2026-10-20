@@ -1,17 +1,7 @@
-import {
-	copyFile,
-	mkdir,
-	mkdtemp,
-	readFile,
-	rm,
-	writeFile,
-} from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
@@ -34,106 +24,6 @@ afterEach(async () => {
 });
 
 describe("playback persistence", () => {
-	it("reuses legacy path-based source keys and history through opaque scope identities", () => {
-		const rootId = "Mb2IOv55KUcYGjyLunUsGK_HL5nuzvGlsLCATB8cOyU";
-		const sourceId = "OryB-kYlplagDhKinb004iH-sm1I0F11VWSsFNHBfb0";
-		const raw = new Database(join(directory, "anishelf.sqlite"));
-		try {
-			raw
-				.prepare("INSERT INTO resource_roots VALUES (?, ?, ?)")
-				.run(rootId, "/media", 1);
-			raw
-				.prepare("INSERT INTO media_sources VALUES (?, ?, ?, ?, ?, ?)")
-				.run(sourceId, rootId, "file_1", "episode.mkv", "v1", 1);
-		} finally {
-			raw.close();
-		}
-		const generation = database.playback.openGeneration(sourceId);
-		database.playback.save({
-			sourceId,
-			generation: generation.generation,
-			sequence: 1,
-			positionMs: 12345,
-			durationMs: 60000,
-		});
-		database.close();
-		database = ApplicationDatabase.open(directory);
-		expect(database.playback.registerSource(identity).id).toBe(sourceId);
-		expect(database.playback.listHistory([rootId])[0]).toMatchObject({
-			source: { id: sourceId, rootId },
-			progress: { positionMs: 12345 },
-		});
-	});
-
-	it("upgrades legacy progress without losing history or weakening constraints", async () => {
-		const legacyDir = join(directory, "legacy");
-		const migrationDir = join(directory, "legacy-migrations");
-		await mkdir(legacyDir);
-		await mkdir(join(migrationDir, "meta"), { recursive: true });
-		const migrations = fileURLToPath(
-			new URL("../migrations/", import.meta.url),
-		);
-		const journal = JSON.parse(
-			await readFile(join(migrations, "meta/_journal.json"), "utf8"),
-		);
-		journal.entries = journal.entries.slice(0, 1);
-		await writeFile(
-			join(migrationDir, "meta/_journal.json"),
-			JSON.stringify(journal),
-		);
-		await copyFile(
-			join(migrations, "0000_playback_progress.sql"),
-			join(migrationDir, "0000_playback_progress.sql"),
-		);
-		const raw = new Database(join(legacyDir, "anishelf.sqlite"));
-		try {
-			migrate(drizzle(raw), { migrationsFolder: migrationDir });
-			raw.exec(
-				"INSERT INTO resource_roots VALUES ('root', '/media', 1); INSERT INTO media_sources VALUES ('source', 'root', 'file', 'episode.mp4', 'v1', 1); INSERT INTO playback_progress VALUES ('source', 45000, 100000, 10, 9, 7, 3);",
-			);
-		} finally {
-			raw.close();
-		}
-		const upgraded = ApplicationDatabase.open(legacyDir);
-		try {
-			expect(upgraded.playback.get("source")).toEqual({
-				sourceId: "source",
-				positionMs: 45000,
-				durationMs: 100000,
-				lastViewedAtMs: 10,
-				generation: 7,
-				lastSequence: 3,
-			});
-			const inspection = new Database(join(legacyDir, "anishelf.sqlite"));
-			try {
-				expect(
-					inspection.prepare("PRAGMA table_info(playback_progress)").all(),
-				).not.toEqual(
-					expect.arrayContaining([
-						expect.objectContaining({ name: "revision" }),
-					]),
-				);
-				expect(inspection.prepare("PRAGMA foreign_key_check").all()).toEqual(
-					[],
-				);
-				expect(() =>
-					inspection.exec("UPDATE playback_progress SET generation = 0"),
-				).toThrow();
-				expect(
-					inspection
-						.prepare(
-							"SELECT sql FROM sqlite_master WHERE name = 'progress_recent'",
-						)
-						.get(),
-				).toEqual({ sql: expect.stringContaining('"last_viewed_at_ms" desc') });
-			} finally {
-				inspection.close();
-			}
-		} finally {
-			upgraded.close();
-		}
-	});
-
 	it("applies migrations once, persists across reopen, and isolates roots and versions", () => {
 		const source = database.playback.registerSource(identity, 1);
 		expect(database.playback.registerSource(identity, 2)).toEqual(source);
@@ -167,7 +57,7 @@ describe("playback persistence", () => {
 		try {
 			expect(
 				raw.prepare("SELECT count(*) AS count FROM __drizzle_migrations").get(),
-			).toEqual({ count: 20 });
+			).toEqual({ count: 1 });
 			expect(raw.pragma("journal_mode", { simple: true })).toBe("wal");
 		} finally {
 			raw.close();
@@ -318,94 +208,4 @@ describe("playback persistence", () => {
 		expect(() => ApplicationDatabase.open(brokenDirectory)).toThrow();
 		expect(await readFile(path)).toEqual(content);
 	});
-});
-
-it("migrates admitted intent and explicitly ends legacy observations without losing playback history", async () => {
-	const legacyDir = join(directory, "viewing-legacy"),
-		migrationDir = join(directory, "viewing-migrations");
-	await mkdir(legacyDir);
-	await mkdir(join(migrationDir, "meta"), { recursive: true });
-	const migrations = fileURLToPath(new URL("../migrations/", import.meta.url));
-	const journal = JSON.parse(
-		await readFile(join(migrations, "meta/_journal.json"), "utf8"),
-	);
-	journal.entries = journal.entries.slice(0, 15);
-	await writeFile(
-		join(migrationDir, "meta/_journal.json"),
-		JSON.stringify(journal),
-	);
-	for (const entry of journal.entries)
-		await copyFile(
-			join(migrations, `${entry.tag}.sql`),
-			join(migrationDir, `${entry.tag}.sql`),
-		);
-	const raw = new Database(join(legacyDir, "anishelf.sqlite"));
-	const old = {
-		id: "op",
-		accountId: 7,
-		mediaId: 9,
-		revision: 2,
-		baseline: { id: 1, progress: 3, status: "CURRENT", updatedAt: 1 },
-		desired: { progress: 1 },
-		state: "pending",
-		remote: { id: 1, progress: 3, status: "CURRENT", updatedAt: 1 },
-		attempt: null,
-		attempts: 0,
-		retryAt: null,
-		error: null,
-		updatedAt: 100,
-		completion: false,
-	};
-	try {
-		migrate(drizzle(raw), { migrationsFolder: migrationDir });
-		raw.exec(
-			"INSERT INTO resource_roots VALUES ('root','/media',1); INSERT INTO media_sources VALUES ('source','root','file','episode.mp4','v1',1); INSERT INTO playback_progress VALUES ('source',45000,100000,10,1,2);",
-		);
-		raw
-			.prepare("INSERT INTO tracking_operations VALUES (?,?,?,?)")
-			.run("op", 7, 9, JSON.stringify(old));
-		raw
-			.prepare(
-				"INSERT INTO playback_completions (id,source_id,context,captured_at,outcome) VALUES (?,?,?,?,?)",
-			)
-			.run(
-				"receipt",
-				"source",
-				"legacy-context",
-				10,
-				JSON.stringify({ state: "pending", reason: "completion-recorded" }),
-			);
-	} finally {
-		raw.close();
-	}
-	const upgraded = ApplicationDatabase.open(legacyDir);
-	try {
-		expect(upgraded.playback.get("source")).toMatchObject({
-			positionMs: 45000,
-			lastViewedAtMs: 10,
-		});
-		expect(upgraded.trackingOperations.list("anilist:7")[0]).toMatchObject({
-			state: "pending",
-			origin: "manual-detail",
-			commandId: "op",
-			intentAt: 100,
-			desired: { progress: 1 },
-		});
-		expect(
-			upgraded.trackingOperations.manualVersion("anilist:7", "anilist:anime:9"),
-		).toBe(1);
-		expect(
-			upgraded.trackingOperations.command("anilist:7", "op"),
-		).toMatchObject({
-			operationId: "op",
-			revision: 2,
-		});
-		expect(upgraded.playback.completions()[0]?.outcome).toEqual({
-			state: "ignored",
-			reason: "legacy-observation-requires-replay",
-		});
-		expect(upgraded.playback.completions(undefined, true)).toEqual([]);
-	} finally {
-		upgraded.close();
-	}
 });

@@ -79,7 +79,6 @@ async function fixture() {
 		key: "fixture:anime:1",
 		kind: "detail",
 		data,
-		raw: {},
 		fetchedAt: Date.now(),
 		expiresAt: Date.now() + 600000,
 		accessedAt: Date.now(),

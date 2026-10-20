@@ -439,11 +439,27 @@ test("pause, restart and removal preserve state without fetching on reads", asyn
 	const count = f.fetch.mock.calls.length;
 	f.discovery.get(key);
 	expect(f.fetch.mock.calls).toHaveLength(count);
-	f.database.authentication.saveSession("retained", "history", 9_999_999);
+	f.database.authentication.saveSession(
+		"retained",
+		JSON.stringify({
+			cookie: {
+				expires: null,
+				originalMaxAge: null,
+				sameSite: "lax",
+				secure: false,
+				path: "/",
+				httpOnly: true,
+				domain: null,
+			},
+		}),
+		9_999_999,
+	);
 	const reopened = await createAcquisitionModule(f.options);
 	cleanup.push(() => reopened.close());
 	expect(reopened.api.discovery?.get(key)).toEqual(paused);
-	expect(f.database.authentication.readSession("retained", 0)).toBe("history");
+	expect(
+		JSON.parse(f.database.authentication.readSession("retained", 0) ?? "null"),
+	).toMatchObject({ cookie: { path: "/", httpOnly: true } });
 	await expect(
 		f.discovery.refresh(key, paused.subscription?.revision ?? ""),
 	).rejects.toMatchObject({ code: "ACQUISITION_CONFLICT" });

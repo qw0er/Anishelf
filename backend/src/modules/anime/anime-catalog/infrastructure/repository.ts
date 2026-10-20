@@ -1,9 +1,10 @@
 import { and, asc, desc, eq, gt, inArray, or, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import { DomainError } from "../../../../shared/errors.js";
+import { fingerprint } from "../../../../shared/fingerprint.js";
 import { mediaSources } from "../../../resources/persistence.js";
 import type { SourceRegistry } from "../../../resources/public.js";
-import type { IdentificationResult } from "../../identification/public.js";
+
 import type {
 	Association,
 	CatalogQuery,
@@ -16,18 +17,31 @@ import type {
 } from "../domain/model.js";
 import type { CatalogStore } from "../ports.js";
 import {
+	readCatalogAssociations,
+	readCatalogOperations,
+	readCatalogReviews,
+	readCatalogWorks,
+	writeCatalogAssociations,
+	writeCatalogOperations,
+	writeCatalogReviews,
+	writeCatalogWorks,
+} from "./records.js";
+import {
 	catalogAssociations,
 	catalogEpisodes,
 	catalogOperations,
 	catalogProviderLinks,
 	catalogReviews,
+	catalogReviewsResultProposals,
 	catalogWorks,
+	catalogWorksSearchTitles,
 } from "./schema.js";
 
 type Connection = Pick<
 	Store,
 	"select" | "insert" | "update" | "delete" | "transaction"
 >;
+
 export class CatalogRepository implements CatalogStore {
 	constructor(
 		private readonly store: Connection,
@@ -46,7 +60,7 @@ export class CatalogRepository implements CatalogStore {
 		review: typeof catalogReviews.$inferSelect;
 		source: typeof mediaSources.$inferSelect;
 	}): ReviewRecord {
-		const result = row.review.result as IdentificationResult;
+		const result = readCatalogReviews(this.store, row.review).result;
 		return {
 			id: row.review.id,
 			sourceId: row.source.id,
@@ -91,7 +105,7 @@ export class CatalogRepository implements CatalogStore {
 					inArray(mediaSources.rootId, [...scopeIds]),
 					decision ? eq(catalogReviews.decision, decision) : undefined,
 					reference
-						? sql`exists (select 1 from json_each(${catalogReviews.result}, '$.proposals') where json_extract(value, '$.candidate.work.reference.provider') = ${reference.provider} and json_extract(value, '$.candidate.work.reference.mediaType') = ${reference.mediaType} and json_extract(value, '$.candidate.work.reference.id') = ${reference.id})`
+						? sql`exists (select 1 from ${catalogReviewsResultProposals} where ${catalogReviewsResultProposals.parentId} = ${catalogReviews.id} and ${catalogReviewsResultProposals.candidateWorkReferenceProvider} = ${reference.provider} and ${catalogReviewsResultProposals.candidateWorkReferenceMediaType} = ${reference.mediaType} and ${catalogReviewsResultProposals.candidateWorkReferenceId} = ${reference.id})`
 						: undefined,
 				),
 			)
@@ -142,39 +156,29 @@ export class CatalogRepository implements CatalogStore {
 					.from(catalogReviews)
 					.where(eq(catalogReviews.id, source.id))
 					.get();
+				const { source: _source, ...storedResult } = result;
 				const changed =
 					!previous ||
-					JSON.stringify(previous.result) !== JSON.stringify(result);
-				this.store
-					.insert(catalogReviews)
-					.values({
-						id: source.id,
-						result,
-						available: true,
-						revision: 1,
-						decision: "pending",
-						reason: null,
-					})
-					.onConflictDoUpdate({
-						target: catalogReviews.id,
-						set: {
-							result,
-							available: true,
-							revision: (previous?.revision ?? 1) + Number(changed),
-						},
-					})
-					.run();
+					fingerprint(readCatalogReviews(this.store, previous).result) !==
+						fingerprint(storedResult);
+				writeCatalogReviews(this.store, {
+					id: source.id,
+					result: storedResult,
+					available: true,
+					revision: previous ? previous.revision + Number(changed) : 1,
+					decision: previous?.decision ?? "pending",
+					reason: previous?.reason ?? null,
+				});
 			}
 		});
 	}
 	work(id: string): LocalWork | null {
-		return (
-			this.store
-				.select()
-				.from(catalogWorks)
-				.where(eq(catalogWorks.id, id))
-				.get() ?? null
-		);
+		const row = this.store
+			.select()
+			.from(catalogWorks)
+			.where(eq(catalogWorks.id, id))
+			.get();
+		return row ? readCatalogWorks(this.store, row) : null;
 	}
 	link(workId: string): ProviderLink | null {
 		const row = this.store
@@ -210,7 +214,8 @@ export class CatalogRepository implements CatalogStore {
 			)
 			.orderBy(asc(catalogWorks.id))
 			.limit(limit)
-			.all();
+			.all()
+			.map((row) => readCatalogWorks(this.store, row));
 	}
 	findWork(reference: ProviderLink["reference"]): LocalWork | null {
 		const row = this.store
@@ -228,7 +233,7 @@ export class CatalogRepository implements CatalogStore {
 				),
 			)
 			.get();
-		return row?.work ?? null;
+		return row ? readCatalogWorks(this.store, row.work) : null;
 	}
 	list(
 		scopeIds: readonly string[],
@@ -277,7 +282,7 @@ export class CatalogRepository implements CatalogStore {
 					query.query
 						? or(
 								sql`${title} like ${pattern} escape '\\'`,
-								sql`exists (select 1 from json_each(${catalogWorks.searchTitles}) where value like ${pattern} escape '\\')`,
+								sql`exists (select 1 from ${catalogWorksSearchTitles} where ${catalogWorksSearchTitles.parentId} = ${catalogWorks.id} and ${catalogWorksSearchTitles.value} like ${pattern} escape '\\')`,
 							)
 						: undefined,
 					query.format ? eq(catalogWorks.format, query.format) : undefined,
@@ -299,32 +304,32 @@ export class CatalogRepository implements CatalogStore {
 			.offset((page - 1) * perPage)
 			.all();
 		return {
-			items: rows.slice(0, perPage),
+			items: rows
+				.slice(0, perPage)
+				.map((row) => readCatalogWorks(this.store, row)),
 			page,
 			perPage,
 			hasNextPage: rows.length > perPage,
 		};
 	}
 	saveWork(work: LocalWork, link: ProviderLink): void {
-		this.store
-			.insert(catalogWorks)
-			.values(work)
-			.onConflictDoUpdate({ target: catalogWorks.id, set: work })
-			.run();
-		this.store
-			.insert(catalogProviderLinks)
-			.values({
-				workId: work.id,
-				snapshotId: link.snapshotId,
-				provider: link.reference.provider,
-				mediaType: link.reference.mediaType,
-				providerId: link.reference.id,
-			})
-			.onConflictDoUpdate({
-				target: catalogProviderLinks.workId,
-				set: { snapshotId: link.snapshotId },
-			})
-			.run();
+		this.store.transaction((store) => {
+			writeCatalogWorks(store, work);
+			store
+				.insert(catalogProviderLinks)
+				.values({
+					workId: work.id,
+					snapshotId: link.snapshotId,
+					provider: link.reference.provider,
+					mediaType: link.reference.mediaType,
+					providerId: link.reference.id,
+				})
+				.onConflictDoUpdate({
+					target: catalogProviderLinks.workId,
+					set: { snapshotId: link.snapshotId },
+				})
+				.run();
+		});
 	}
 	episodes(workId: string): LocalEpisode[] {
 		return this.store
@@ -350,7 +355,10 @@ export class CatalogRepository implements CatalogStore {
 			)
 			.where(eq(catalogAssociations.sourceId, sourceId))
 			.all()
-			.map((row) => ({ ...row.association, episode: row.episode }));
+			.map((row) => ({
+				...readCatalogAssociations(this.store, row.association),
+				episode: row.episode,
+			}));
 	}
 	versions(episodeId: string, scopeIds: readonly string[]) {
 		const rows = this.store
@@ -372,16 +380,24 @@ export class CatalogRepository implements CatalogStore {
 			const review = this.review(row.association.sourceId);
 			if (!review)
 				throw new Error("Associated catalog source has no review record.");
-			return { review, association: row.association };
+			return {
+				review,
+				association: readCatalogAssociations(this.store, row.association),
+			};
 		});
 	}
 	replaceAssociations(sourceId: string, associations: Association[]): void {
-		this.store
-			.delete(catalogAssociations)
-			.where(eq(catalogAssociations.sourceId, sourceId))
-			.run();
-		if (associations.length)
-			this.store.insert(catalogAssociations).values(associations).run();
+		this.store.transaction((store) => {
+			store
+				.delete(catalogAssociations)
+				.where(eq(catalogAssociations.sourceId, sourceId))
+				.run();
+			for (const association of associations)
+				writeCatalogAssociations(store, {
+					...association,
+					id: `${association.sourceId.length}:${association.sourceId}${association.episodeId}`,
+				});
+		});
 	}
 	decide(
 		id: string,
@@ -410,21 +426,15 @@ export class CatalogRepository implements CatalogStore {
 			.from(catalogOperations)
 			.where(eq(catalogOperations.key, key))
 			.get();
-		return row
-			? {
-					fingerprint: row.fingerprint,
-					result: row.result as ConfirmationResult,
-				}
-			: null;
+		if (!row) return null;
+		const { fingerprint, result } = readCatalogOperations(this.store, row);
+		return { fingerprint, result };
 	}
 	saveOperation(
 		key: string,
 		fingerprint: string,
 		result: ConfirmationResult,
 	): void {
-		this.store
-			.insert(catalogOperations)
-			.values({ key, fingerprint, result })
-			.run();
+		writeCatalogOperations(this.store, { key, fingerprint, result });
 	}
 }

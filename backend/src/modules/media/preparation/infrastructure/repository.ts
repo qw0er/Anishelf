@@ -9,8 +9,8 @@ import type {
 	PreparedArtifact,
 } from "../domain/model.js";
 import type { PreparationStore, PreparationSummaryRow } from "../ports.js";
+import { readPreparationTasks, writePreparationTasks } from "./records.js";
 import { preparationTasks, preparedArtifacts } from "./schema.js";
-
 export class PreparationRepository implements PreparationStore {
 	constructor(
 		private readonly store: Store,
@@ -29,7 +29,8 @@ export class PreparationRepository implements PreparationStore {
 		task: typeof preparationTasks.$inferSelect;
 		source: typeof mediaSources.$inferSelect;
 	}): PreparationTask {
-		const { status, progress, failureReason, updatedAtMs } = row.task;
+		const task = readPreparationTasks(this.store, row.task);
+		const { status, progress, failureReason, updatedAtMs } = task;
 		let state: PreparationState;
 		if (status === "queued" && progress === null && failureReason === null)
 			state = { status, progress: null, failureReason: null, updatedAtMs };
@@ -63,7 +64,7 @@ export class PreparationRepository implements PreparationStore {
 				},
 				executionPlanId: row.task.executionPlanId,
 				profileFingerprint: row.task.profileFingerprint,
-				settings: row.task.snapshot,
+				settings: task.snapshot,
 			}),
 		};
 	}
@@ -153,27 +154,37 @@ export class PreparationRepository implements PreparationStore {
 	insert(task: PreparationTask): void {
 		this.store.transaction(() => {
 			const source = this.sources.registerSource(task.spec.source);
-			this.store
-				.insert(preparationTasks)
-				.values({
-					id: task.id,
-					sourceId: source.id,
-					executionPlanId: task.spec.executionPlanId,
-					profileFingerprint: task.spec.profileFingerprint,
-					profileId: task.profileId,
-					filename: task.filename,
-					snapshot: task.spec.settings,
-					...task.state,
-					createdAtMs: task.createdAtMs,
-				})
-				.run();
+			writePreparationTasks(this.store, {
+				id: task.id,
+				sourceId: source.id,
+				executionPlanId: task.spec.executionPlanId,
+				profileFingerprint: task.spec.profileFingerprint,
+				profileId: task.profileId,
+				filename: task.filename,
+				snapshot: task.spec.settings,
+				...task.state,
+				createdAtMs: task.createdAtMs,
+			});
 		});
 	}
 	/** State updates never rewrite the immutable specification. */
 	save(task: PreparationTask): void {
+		const { status, progress, failureReason, updatedAtMs } = task.state;
 		this.store
 			.update(preparationTasks)
-			.set({ ...task.state, profileId: task.profileId })
+			.set({
+				status,
+				profileId: task.profileId,
+				failureReason,
+				updatedAtMs,
+				progressPresent: progress !== null,
+				progressMediaTimeMs: progress?.mediaTimeMs ?? null,
+				progressFrames: progress?.frames ?? null,
+				progressOutputBytes: progress?.outputBytes ?? null,
+				progressSpeed: progress?.speed ?? null,
+				progressPercent: progress?.percent ?? null,
+				progressEnded: progress?.ended ?? null,
+			})
 			.where(eq(preparationTasks.id, task.id))
 			.run();
 	}

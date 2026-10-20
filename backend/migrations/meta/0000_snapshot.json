@@ -1,9 +1,3344 @@
 {
 	"version": "6",
 	"dialect": "sqlite",
-	"id": "be54b13c-2560-48da-bcda-d9f3a870bf98",
-	"prevId": "00000000-0000-0000-0000-000000000000",
 	"tables": {
+		"acquisition_authorizations": {
+			"name": "acquisition_authorizations",
+			"columns": {
+				"work_key": {
+					"name": "work_key",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"feed_id": {
+					"name": "feed_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"start_episode": {
+					"name": "start_episode",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"destination_revision": {
+					"name": "destination_revision",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"connection_generation": {
+					"name": "connection_generation",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"acquisition_authorizations_start_episode_0": {
+					"name": "acquisition_authorizations_start_episode_0",
+					"value": "\"acquisition_authorizations\".\"start_episode\" >= 1"
+				}
+			}
+		},
+		"acquisition_candidates": {
+			"name": "acquisition_candidates",
+			"columns": {
+				"chosen": {
+					"name": "chosen",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"work_key": {
+					"name": "work_key",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"entry_id": {
+					"name": "entry_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"title": {
+					"name": "title",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"episode": {
+					"name": "episode",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"version": {
+					"name": "version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_id": {
+					"name": "snapshot_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"published_at": {
+					"name": "published_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"acquisition_candidates_work": {
+					"name": "acquisition_candidates_work",
+					"columns": ["work_key"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"acquisition_candidates_work_key_acquisition_subscriptions_work_key_fk": {
+					"name": "acquisition_candidates_work_key_acquisition_subscriptions_work_key_fk",
+					"tableFrom": "acquisition_candidates",
+					"tableTo": "acquisition_subscriptions",
+					"columnsFrom": ["work_key"],
+					"columnsTo": ["work_key"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"acquisition_candidates_chosen_0": {
+					"name": "acquisition_candidates_chosen_0",
+					"value": "\"acquisition_candidates\".\"chosen\" IN (0, 1)"
+				},
+				"acquisition_candidates_status_0": {
+					"name": "acquisition_candidates_status_0",
+					"value": "\"acquisition_candidates\".\"status\" IN ('selected', 'skipped')"
+				}
+			}
+		},
+		"acquisition_candidates_reasons": {
+			"name": "acquisition_candidates_reasons",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"acquisition_candidates_reasons_order": {
+					"name": "acquisition_candidates_reasons_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"acquisition_candidates_reasons_parent_id_acquisition_candidates_id_fk": {
+					"name": "acquisition_candidates_reasons_parent_id_acquisition_candidates_id_fk",
+					"tableFrom": "acquisition_candidates_reasons",
+					"tableTo": "acquisition_candidates",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"acquisition_candidates_reasons_ordinal": {
+					"name": "acquisition_candidates_reasons_ordinal",
+					"value": "\"acquisition_candidates_reasons\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"acquisition_destination": {
+			"name": "acquisition_destination",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"revision": {
+					"name": "revision",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"scope_id": {
+					"name": "scope_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"path": {
+					"name": "path",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"connection_generation": {
+					"name": "connection_generation",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"validated": {
+					"name": "validated",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"visibility_verified": {
+					"name": "visibility_verified",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"acquisition_destination_validated_0": {
+					"name": "acquisition_destination_validated_0",
+					"value": "\"acquisition_destination\".\"validated\" IN (0, 1)"
+				},
+				"acquisition_destination_visibility_verified_0": {
+					"name": "acquisition_destination_visibility_verified_0",
+					"value": "\"acquisition_destination\".\"visibility_verified\" IN (0, 1)"
+				},
+				"acquisition_destination_singleton": {
+					"name": "acquisition_destination_singleton",
+					"value": "\"acquisition_destination\".\"id\" = 'default'"
+				}
+			}
+		},
+		"acquisition_directories": {
+			"name": "acquisition_directories",
+			"columns": {
+				"work_key": {
+					"name": "work_key",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"directory": {
+					"name": "directory",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"acquisition_directories_directory_unique": {
+					"name": "acquisition_directories_directory_unique",
+					"columns": ["directory"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"acquisition_feeds": {
+			"name": "acquisition_feeds",
+			"columns": {
+				"revision": {
+					"name": "revision",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"url": {
+					"name": "url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"etag": {
+					"name": "etag",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"last_modified": {
+					"name": "last_modified",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"checked_at": {
+					"name": "checked_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"next_attempt_at": {
+					"name": "next_attempt_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"failures": {
+					"name": "failures",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"error": {
+					"name": "error",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"acquisition_feeds_next_attempt_at_0": {
+					"name": "acquisition_feeds_next_attempt_at_0",
+					"value": "\"acquisition_feeds\".\"next_attempt_at\" >= 0"
+				},
+				"acquisition_feeds_failures_0": {
+					"name": "acquisition_feeds_failures_0",
+					"value": "\"acquisition_feeds\".\"failures\" >= 0"
+				}
+			}
+		},
+		"acquisition_feeds_entries": {
+			"name": "acquisition_feeds_entries",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"observation_id": {
+					"name": "observation_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"title": {
+					"name": "title",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"published_at": {
+					"name": "published_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"download_url": {
+					"name": "download_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"hash": {
+					"name": "hash",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"acquisition_feeds_entries_order": {
+					"name": "acquisition_feeds_entries_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"acquisition_feeds_entries_parent_id_acquisition_feeds_id_fk": {
+					"name": "acquisition_feeds_entries_parent_id_acquisition_feeds_id_fk",
+					"tableFrom": "acquisition_feeds_entries",
+					"tableTo": "acquisition_feeds",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"acquisition_feeds_entries_ordinal": {
+					"name": "acquisition_feeds_entries_ordinal",
+					"value": "\"acquisition_feeds_entries\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"acquisition_intents": {
+			"name": "acquisition_intents",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"revision": {
+					"name": "revision",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"work_key": {
+					"name": "work_key",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"candidate_id": {
+					"name": "candidate_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"episode": {
+					"name": "episode",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"title": {
+					"name": "title",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"hash": {
+					"name": "hash",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"expected_hash": {
+					"name": "expected_hash",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"source": {
+					"name": "source",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"destination_revision": {
+					"name": "destination_revision",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"destination_scope_id": {
+					"name": "destination_scope_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"destination_path": {
+					"name": "destination_path",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"destination_connection_generation": {
+					"name": "destination_connection_generation",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"destination_validated": {
+					"name": "destination_validated",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"destination_visibility_verified": {
+					"name": "destination_visibility_verified",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"directory": {
+					"name": "directory",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"subscription_revision": {
+					"name": "subscription_revision",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"state": {
+					"name": "state",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"transfer": {
+					"name": "transfer",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"progress": {
+					"name": "progress",
+					"type": "real",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"ingestion": {
+					"name": "ingestion",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"error": {
+					"name": "error",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"attempts": {
+					"name": "attempts",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"next_attempt_at": {
+					"name": "next_attempt_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"observed_at": {
+					"name": "observed_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"source_identity_present": {
+					"name": "source_identity_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"source_identity_scope_id": {
+					"name": "source_identity_scope_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"source_identity_file_id": {
+					"name": "source_identity_file_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"source_identity_relative_path": {
+					"name": "source_identity_relative_path",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"source_identity_source_version": {
+					"name": "source_identity_source_version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"last_command_present": {
+					"name": "last_command_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"last_command_id": {
+					"name": "last_command_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"last_command_kind": {
+					"name": "last_command_kind",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"acquisition_episode_reservation": {
+					"name": "acquisition_episode_reservation",
+					"columns": ["work_key", "episode"],
+					"isUnique": true
+				},
+				"acquisition_hash_reservation": {
+					"name": "acquisition_hash_reservation",
+					"columns": ["hash"],
+					"isUnique": true
+				},
+				"acquisition_intents_work": {
+					"name": "acquisition_intents_work",
+					"columns": ["work_key", "created_at", "id"],
+					"isUnique": false
+				},
+				"acquisition_intents_due": {
+					"name": "acquisition_intents_due",
+					"columns": ["state", "next_attempt_at", "id"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"acquisition_intents_episode_0": {
+					"name": "acquisition_intents_episode_0",
+					"value": "\"acquisition_intents\".\"episode\" >= 1"
+				},
+				"acquisition_intents_destination_validated_0": {
+					"name": "acquisition_intents_destination_validated_0",
+					"value": "\"acquisition_intents\".\"destination_validated\" IN (0, 1)"
+				},
+				"acquisition_intents_destination_visibility_verified_0": {
+					"name": "acquisition_intents_destination_visibility_verified_0",
+					"value": "\"acquisition_intents\".\"destination_visibility_verified\" IN (0, 1)"
+				},
+				"acquisition_intents_state_0": {
+					"name": "acquisition_intents_state_0",
+					"value": "\"acquisition_intents\".\"state\" IN ('pending', 'submitting', 'unknown', 'bound', 'blocked', 'missing', 'available')"
+				},
+				"acquisition_intents_progress_0": {
+					"name": "acquisition_intents_progress_0",
+					"value": "\"acquisition_intents\".\"progress\" BETWEEN 0 AND 1"
+				},
+				"acquisition_intents_ingestion_0": {
+					"name": "acquisition_intents_ingestion_0",
+					"value": "\"acquisition_intents\".\"ingestion\" IN ('not-ready', 'pending', 'validating', 'review', 'failed', 'available')"
+				},
+				"acquisition_intents_attempts_0": {
+					"name": "acquisition_intents_attempts_0",
+					"value": "\"acquisition_intents\".\"attempts\" >= 0"
+				},
+				"acquisition_intents_next_attempt_at_0": {
+					"name": "acquisition_intents_next_attempt_at_0",
+					"value": "\"acquisition_intents\".\"next_attempt_at\" >= 0"
+				},
+				"acquisition_intents_updated_at_0": {
+					"name": "acquisition_intents_updated_at_0",
+					"value": "\"acquisition_intents\".\"updated_at\" >= 0"
+				},
+				"acquisition_intents_created_at_0": {
+					"name": "acquisition_intents_created_at_0",
+					"value": "\"acquisition_intents\".\"created_at\" >= 0"
+				},
+				"acquisition_intents_source_identity_present_0": {
+					"name": "acquisition_intents_source_identity_present_0",
+					"value": "\"acquisition_intents\".\"source_identity_present\" IN (0, 1)"
+				},
+				"acquisition_intents_last_command_present_0": {
+					"name": "acquisition_intents_last_command_present_0",
+					"value": "\"acquisition_intents\".\"last_command_present\" IN (0, 1)"
+				},
+				"acquisition_intents_last_command_kind_0": {
+					"name": "acquisition_intents_last_command_kind_0",
+					"value": "\"acquisition_intents\".\"last_command_kind\" IN ('acquisition', 'import')"
+				}
+			}
+		},
+		"acquisition_subscriptions": {
+			"name": "acquisition_subscriptions",
+			"columns": {
+				"last_error": {
+					"name": "last_error",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"last_error_present": {
+					"name": "last_error_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"work_key": {
+					"name": "work_key",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"feed_id": {
+					"name": "feed_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"start_episode": {
+					"name": "start_episode",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"enabled": {
+					"name": "enabled",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"revision": {
+					"name": "revision",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"acquisition_subscriptions_feed": {
+					"name": "acquisition_subscriptions_feed",
+					"columns": ["feed_id"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"acquisition_subscriptions_feed_id_acquisition_feeds_id_fk": {
+					"name": "acquisition_subscriptions_feed_id_acquisition_feeds_id_fk",
+					"tableFrom": "acquisition_subscriptions",
+					"tableTo": "acquisition_feeds",
+					"columnsFrom": ["feed_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"acquisition_subscriptions_last_error_present_0": {
+					"name": "acquisition_subscriptions_last_error_present_0",
+					"value": "\"acquisition_subscriptions\".\"last_error_present\" IN (0, 1)"
+				},
+				"acquisition_subscriptions_start_episode_0": {
+					"name": "acquisition_subscriptions_start_episode_0",
+					"value": "\"acquisition_subscriptions\".\"start_episode\" >= 1"
+				},
+				"acquisition_subscriptions_enabled_0": {
+					"name": "acquisition_subscriptions_enabled_0",
+					"value": "\"acquisition_subscriptions\".\"enabled\" IN (0, 1)"
+				}
+			}
+		},
+		"auth_sessions": {
+			"name": "auth_sessions",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"expires_at": {
+					"name": "expires_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"auth_fingerprint": {
+					"name": "auth_fingerprint",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"auth_expires_at": {
+					"name": "auth_expires_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"csrf_token": {
+					"name": "csrf_token",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"cookie_expires": {
+					"name": "cookie_expires",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"cookie_original_max_age": {
+					"name": "cookie_original_max_age",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"cookie_original_expires": {
+					"name": "cookie_original_expires",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"cookie_same_site": {
+					"name": "cookie_same_site",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"cookie_secure": {
+					"name": "cookie_secure",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"cookie_path": {
+					"name": "cookie_path",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"cookie_http_only": {
+					"name": "cookie_http_only",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"cookie_domain": {
+					"name": "cookie_domain",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"cookie_partitioned": {
+					"name": "cookie_partitioned",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"auth_sessions_expiry": {
+					"name": "auth_sessions_expiry",
+					"columns": ["expires_at"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"auth_sessions_cookie_secure_0": {
+					"name": "auth_sessions_cookie_secure_0",
+					"value": "\"auth_sessions\".\"cookie_secure\" IN (0, 1)"
+				},
+				"auth_sessions_cookie_http_only_0": {
+					"name": "auth_sessions_cookie_http_only_0",
+					"value": "\"auth_sessions\".\"cookie_http_only\" IN (0, 1)"
+				},
+				"auth_sessions_cookie_partitioned_0": {
+					"name": "auth_sessions_cookie_partitioned_0",
+					"value": "\"auth_sessions\".\"cookie_partitioned\" IN (0, 1)"
+				}
+			}
+		},
+		"catalog_associations": {
+			"name": "catalog_associations",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"source_id": {
+					"name": "source_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"episode_id": {
+					"name": "episode_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"reason": {
+					"name": "reason",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"operation_key": {
+					"name": "operation_key",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"offset": {
+					"name": "offset",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_source_episode": {
+					"name": "catalog_source_episode",
+					"columns": ["source_id", "episode_id"],
+					"isUnique": true
+				},
+				"catalog_episode_sources": {
+					"name": "catalog_episode_sources",
+					"columns": ["episode_id"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"catalog_associations_source_id_media_sources_id_fk": {
+					"name": "catalog_associations_source_id_media_sources_id_fk",
+					"tableFrom": "catalog_associations",
+					"tableTo": "media_sources",
+					"columnsFrom": ["source_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				},
+				"catalog_associations_episode_id_catalog_episodes_id_fk": {
+					"name": "catalog_associations_episode_id_catalog_episodes_id_fk",
+					"tableFrom": "catalog_associations",
+					"tableTo": "catalog_episodes",
+					"columnsFrom": ["episode_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"catalog_associations_raw_numbers": {
+			"name": "catalog_associations_raw_numbers",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_associations_raw_numbers_order": {
+					"name": "catalog_associations_raw_numbers_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_associations_raw_numbers_parent_id_catalog_associations_id_fk": {
+					"name": "catalog_associations_raw_numbers_parent_id_catalog_associations_id_fk",
+					"tableFrom": "catalog_associations_raw_numbers",
+					"tableTo": "catalog_associations",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_associations_raw_numbers_ordinal": {
+					"name": "catalog_associations_raw_numbers_ordinal",
+					"value": "\"catalog_associations_raw_numbers\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_episodes": {
+			"name": "catalog_episodes",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"work_id": {
+					"name": "work_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"kind": {
+					"name": "kind",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"number": {
+					"name": "number",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"label": {
+					"name": "label",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"provenance": {
+					"name": "provenance",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_episode_identity": {
+					"name": "catalog_episode_identity",
+					"columns": ["work_id", "kind", "number"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_episodes_work_id_catalog_works_id_fk": {
+					"name": "catalog_episodes_work_id_catalog_works_id_fk",
+					"tableFrom": "catalog_episodes",
+					"tableTo": "catalog_works",
+					"columnsFrom": ["work_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_episode_kind": {
+					"name": "catalog_episode_kind",
+					"value": "\"catalog_episodes\".\"kind\" IN ('regular', 'special', 'movie')"
+				},
+				"catalog_episode_provenance": {
+					"name": "catalog_episode_provenance",
+					"value": "\"catalog_episodes\".\"provenance\" IN ('confirmed', 'count-derived')"
+				}
+			}
+		},
+		"catalog_operations": {
+			"name": "catalog_operations",
+			"columns": {
+				"key": {
+					"name": "key",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"fingerprint": {
+					"name": "fingerprint",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"result_work_id": {
+					"name": "result_work_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"result_revision": {
+					"name": "result_revision",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_operations_result_revision_0": {
+					"name": "catalog_operations_result_revision_0",
+					"value": "\"catalog_operations\".\"result_revision\" >= 0"
+				}
+			}
+		},
+		"catalog_operations_result_review_ids": {
+			"name": "catalog_operations_result_review_ids",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_operations_result_review_ids_order": {
+					"name": "catalog_operations_result_review_ids_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_operations_result_review_ids_parent_id_catalog_operations_key_fk": {
+					"name": "catalog_operations_result_review_ids_parent_id_catalog_operations_key_fk",
+					"tableFrom": "catalog_operations_result_review_ids",
+					"tableTo": "catalog_operations",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["key"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_operations_result_review_ids_ordinal": {
+					"name": "catalog_operations_result_review_ids_ordinal",
+					"value": "\"catalog_operations_result_review_ids\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_provider_links": {
+			"name": "catalog_provider_links",
+			"columns": {
+				"work_id": {
+					"name": "work_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"provider": {
+					"name": "provider",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"media_type": {
+					"name": "media_type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"provider_id": {
+					"name": "provider_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_id": {
+					"name": "snapshot_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_provider_identity": {
+					"name": "catalog_provider_identity",
+					"columns": ["provider", "media_type", "provider_id"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_provider_links_work_id_catalog_works_id_fk": {
+					"name": "catalog_provider_links_work_id_catalog_works_id_fk",
+					"tableFrom": "catalog_provider_links",
+					"tableTo": "catalog_works",
+					"columnsFrom": ["work_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				},
+				"catalog_provider_links_snapshot_id_metadata_snapshots_id_fk": {
+					"name": "catalog_provider_links_snapshot_id_metadata_snapshots_id_fk",
+					"tableFrom": "catalog_provider_links",
+					"tableTo": "metadata_snapshots",
+					"columnsFrom": ["snapshot_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_provider_media_type": {
+					"name": "catalog_provider_media_type",
+					"value": "\"catalog_provider_links\".\"media_type\" = 'anime'"
+				}
+			}
+		},
+		"catalog_reviews": {
+			"name": "catalog_reviews",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"available": {
+					"name": "available",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"revision": {
+					"name": "revision",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"decision": {
+					"name": "decision",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"reason": {
+					"name": "reason",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"result_evidence_parser": {
+					"name": "result_evidence_parser",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"result_evidence_parser_version": {
+					"name": "result_evidence_parser_version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"result_evidence_normalization_version": {
+					"name": "result_evidence_normalization_version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"result_evidence_context_fingerprint": {
+					"name": "result_evidence_context_fingerprint",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"result_evidence_original_name": {
+					"name": "result_evidence_original_name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"result_evidence_relative_path": {
+					"name": "result_evidence_relative_path",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"result_evidence_title_sources_present": {
+					"name": "result_evidence_title_sources_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"result_evidence_selected_episodes_present": {
+					"name": "result_evidence_selected_episodes_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"result_evidence_numbering": {
+					"name": "result_evidence_numbering",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"result_evidence_content_kind": {
+					"name": "result_evidence_content_kind",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"result_status": {
+					"name": "result_status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"result_metadata_status": {
+					"name": "result_metadata_status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_decision": {
+					"name": "catalog_reviews_decision",
+					"columns": ["decision", "id"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_id_media_sources_id_fk": {
+					"name": "catalog_reviews_id_media_sources_id_fk",
+					"tableFrom": "catalog_reviews",
+					"tableTo": "media_sources",
+					"columnsFrom": ["id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_available_0": {
+					"name": "catalog_reviews_available_0",
+					"value": "\"catalog_reviews\".\"available\" IN (0, 1)"
+				},
+				"catalog_reviews_revision_0": {
+					"name": "catalog_reviews_revision_0",
+					"value": "\"catalog_reviews\".\"revision\" >= 0"
+				},
+				"catalog_reviews_decision_0": {
+					"name": "catalog_reviews_decision_0",
+					"value": "\"catalog_reviews\".\"decision\" IN ('pending', 'confirmed', 'rejected')"
+				},
+				"catalog_reviews_result_evidence_title_sources_present_0": {
+					"name": "catalog_reviews_result_evidence_title_sources_present_0",
+					"value": "\"catalog_reviews\".\"result_evidence_title_sources_present\" IN (0, 1)"
+				},
+				"catalog_reviews_result_evidence_selected_episodes_present_0": {
+					"name": "catalog_reviews_result_evidence_selected_episodes_present_0",
+					"value": "\"catalog_reviews\".\"result_evidence_selected_episodes_present\" IN (0, 1)"
+				},
+				"catalog_reviews_result_evidence_numbering_0": {
+					"name": "catalog_reviews_result_evidence_numbering_0",
+					"value": "\"catalog_reviews\".\"result_evidence_numbering\" IN ('single', 'range', 'ambiguous', 'unknown')"
+				},
+				"catalog_reviews_result_evidence_content_kind_0": {
+					"name": "catalog_reviews_result_evidence_content_kind_0",
+					"value": "\"catalog_reviews\".\"result_evidence_content_kind\" IN ('regular', 'special', 'ancillary', 'unknown')"
+				},
+				"catalog_reviews_result_status_0": {
+					"name": "catalog_reviews_result_status_0",
+					"value": "\"catalog_reviews\".\"result_status\" IN ('parsed', 'proposed', 'unresolved')"
+				},
+				"catalog_reviews_result_metadata_status_0": {
+					"name": "catalog_reviews_result_metadata_status_0",
+					"value": "\"catalog_reviews\".\"result_metadata_status\" IN ('not-configured', 'searched', 'failed')"
+				}
+			}
+		},
+		"catalog_reviews_result_evidence_inputs": {
+			"name": "catalog_reviews_result_evidence_inputs",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"mode": {
+					"name": "mode",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"input": {
+					"name": "input",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_evidence_inputs_order": {
+					"name": "catalog_reviews_result_evidence_inputs_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_evidence_inputs_parent_id_catalog_reviews_id_fk": {
+					"name": "catalog_reviews_result_evidence_inputs_parent_id_catalog_reviews_id_fk",
+					"tableFrom": "catalog_reviews_result_evidence_inputs",
+					"tableTo": "catalog_reviews",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_evidence_inputs_ordinal": {
+					"name": "catalog_reviews_result_evidence_inputs_ordinal",
+					"value": "\"catalog_reviews_result_evidence_inputs\".\"ordinal_index\" >= 0"
+				},
+				"catalog_reviews_result_evidence_inputs_mode_0": {
+					"name": "catalog_reviews_result_evidence_inputs_mode_0",
+					"value": "\"catalog_reviews_result_evidence_inputs\".\"mode\" IN ('basename', 'ancestor', 'path', 'together')"
+				}
+			}
+		},
+		"catalog_reviews_result_evidence_inputs_elements": {
+			"name": "catalog_reviews_result_evidence_inputs_elements",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"kind": {
+					"name": "kind",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"position": {
+					"name": "position",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_evidence_inputs_elements_order": {
+					"name": "catalog_reviews_result_evidence_inputs_elements_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_evidence_inputs_elements_parent_id_catalog_reviews_result_evidence_inputs_row_id_fk": {
+					"name": "catalog_reviews_result_evidence_inputs_elements_parent_id_catalog_reviews_result_evidence_inputs_row_id_fk",
+					"tableFrom": "catalog_reviews_result_evidence_inputs_elements",
+					"tableTo": "catalog_reviews_result_evidence_inputs",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_evidence_inputs_elements_ordinal": {
+					"name": "catalog_reviews_result_evidence_inputs_elements_ordinal",
+					"value": "\"catalog_reviews_result_evidence_inputs_elements\".\"ordinal_index\" >= 0"
+				},
+				"catalog_reviews_result_evidence_inputs_elements_position_0": {
+					"name": "catalog_reviews_result_evidence_inputs_elements_position_0",
+					"value": "\"catalog_reviews_result_evidence_inputs_elements\".\"position\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_evidence_parts": {
+			"name": "catalog_reviews_result_evidence_parts",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_evidence_parts_order": {
+					"name": "catalog_reviews_result_evidence_parts_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_evidence_parts_parent_id_catalog_reviews_id_fk": {
+					"name": "catalog_reviews_result_evidence_parts_parent_id_catalog_reviews_id_fk",
+					"tableFrom": "catalog_reviews_result_evidence_parts",
+					"tableTo": "catalog_reviews",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_evidence_parts_ordinal": {
+					"name": "catalog_reviews_result_evidence_parts_ordinal",
+					"value": "\"catalog_reviews_result_evidence_parts\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_evidence_raw_episodes": {
+			"name": "catalog_reviews_result_evidence_raw_episodes",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_evidence_raw_episodes_order": {
+					"name": "catalog_reviews_result_evidence_raw_episodes_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_evidence_raw_episodes_parent_id_catalog_reviews_id_fk": {
+					"name": "catalog_reviews_result_evidence_raw_episodes_parent_id_catalog_reviews_id_fk",
+					"tableFrom": "catalog_reviews_result_evidence_raw_episodes",
+					"tableTo": "catalog_reviews",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_evidence_raw_episodes_ordinal": {
+					"name": "catalog_reviews_result_evidence_raw_episodes_ordinal",
+					"value": "\"catalog_reviews_result_evidence_raw_episodes\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_evidence_seasons": {
+			"name": "catalog_reviews_result_evidence_seasons",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_evidence_seasons_order": {
+					"name": "catalog_reviews_result_evidence_seasons_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_evidence_seasons_parent_id_catalog_reviews_id_fk": {
+					"name": "catalog_reviews_result_evidence_seasons_parent_id_catalog_reviews_id_fk",
+					"tableFrom": "catalog_reviews_result_evidence_seasons",
+					"tableTo": "catalog_reviews",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_evidence_seasons_ordinal": {
+					"name": "catalog_reviews_result_evidence_seasons_ordinal",
+					"value": "\"catalog_reviews_result_evidence_seasons\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_evidence_selected_episodes": {
+			"name": "catalog_reviews_result_evidence_selected_episodes",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_evidence_selected_episodes_order": {
+					"name": "catalog_reviews_result_evidence_selected_episodes_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_evidence_selected_episodes_parent_id_catalog_reviews_id_fk": {
+					"name": "catalog_reviews_result_evidence_selected_episodes_parent_id_catalog_reviews_id_fk",
+					"tableFrom": "catalog_reviews_result_evidence_selected_episodes",
+					"tableTo": "catalog_reviews",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_evidence_selected_episodes_ordinal": {
+					"name": "catalog_reviews_result_evidence_selected_episodes_ordinal",
+					"value": "\"catalog_reviews_result_evidence_selected_episodes\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_evidence_title_sources": {
+			"name": "catalog_reviews_result_evidence_title_sources",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"title": {
+					"name": "title",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"mode": {
+					"name": "mode",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"distance": {
+					"name": "distance",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_evidence_title_sources_order": {
+					"name": "catalog_reviews_result_evidence_title_sources_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_evidence_title_sources_parent_id_catalog_reviews_id_fk": {
+					"name": "catalog_reviews_result_evidence_title_sources_parent_id_catalog_reviews_id_fk",
+					"tableFrom": "catalog_reviews_result_evidence_title_sources",
+					"tableTo": "catalog_reviews",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_evidence_title_sources_ordinal": {
+					"name": "catalog_reviews_result_evidence_title_sources_ordinal",
+					"value": "\"catalog_reviews_result_evidence_title_sources\".\"ordinal_index\" >= 0"
+				},
+				"catalog_reviews_result_evidence_title_sources_mode_0": {
+					"name": "catalog_reviews_result_evidence_title_sources_mode_0",
+					"value": "\"catalog_reviews_result_evidence_title_sources\".\"mode\" IN ('basename', 'ancestor', 'path', 'together')"
+				},
+				"catalog_reviews_result_evidence_title_sources_distance_0": {
+					"name": "catalog_reviews_result_evidence_title_sources_distance_0",
+					"value": "\"catalog_reviews_result_evidence_title_sources\".\"distance\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_evidence_titles": {
+			"name": "catalog_reviews_result_evidence_titles",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_evidence_titles_order": {
+					"name": "catalog_reviews_result_evidence_titles_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_evidence_titles_parent_id_catalog_reviews_id_fk": {
+					"name": "catalog_reviews_result_evidence_titles_parent_id_catalog_reviews_id_fk",
+					"tableFrom": "catalog_reviews_result_evidence_titles",
+					"tableTo": "catalog_reviews",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_evidence_titles_ordinal": {
+					"name": "catalog_reviews_result_evidence_titles_ordinal",
+					"value": "\"catalog_reviews_result_evidence_titles\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_evidence_years": {
+			"name": "catalog_reviews_result_evidence_years",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_evidence_years_order": {
+					"name": "catalog_reviews_result_evidence_years_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_evidence_years_parent_id_catalog_reviews_id_fk": {
+					"name": "catalog_reviews_result_evidence_years_parent_id_catalog_reviews_id_fk",
+					"tableFrom": "catalog_reviews_result_evidence_years",
+					"tableTo": "catalog_reviews",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_evidence_years_ordinal": {
+					"name": "catalog_reviews_result_evidence_years_ordinal",
+					"value": "\"catalog_reviews_result_evidence_years\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_proposals": {
+			"name": "catalog_reviews_result_proposals",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"candidate_work_reference_provider": {
+					"name": "candidate_work_reference_provider",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"candidate_work_reference_media_type": {
+					"name": "candidate_work_reference_media_type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"candidate_work_reference_id": {
+					"name": "candidate_work_reference_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"candidate_work_snapshot_id": {
+					"name": "candidate_work_snapshot_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"candidate_work_title_variants_present": {
+					"name": "candidate_work_title_variants_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"candidate_work_year": {
+					"name": "candidate_work_year",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"candidate_work_format": {
+					"name": "candidate_work_format",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"candidate_work_episode_count": {
+					"name": "candidate_work_episode_count",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"candidate_work_season": {
+					"name": "candidate_work_season",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"candidate_work_part": {
+					"name": "candidate_work_part",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"candidate_work_ordinal_source": {
+					"name": "candidate_work_ordinal_source",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"candidate_score": {
+					"name": "candidate_score",
+					"type": "real",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"candidate_identity_conflicts_present": {
+					"name": "candidate_identity_conflicts_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"candidate_identity_unresolved_present": {
+					"name": "candidate_identity_unresolved_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"candidate_assumptions_present": {
+					"name": "candidate_assumptions_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"candidate_matcher_version": {
+					"name": "candidate_matcher_version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"mapping_numbering_present": {
+					"name": "mapping_numbering_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"mapping_numbering_source": {
+					"name": "mapping_numbering_source",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"mapping_numbering_offset": {
+					"name": "mapping_numbering_offset",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_review_candidate_reference": {
+					"name": "catalog_review_candidate_reference",
+					"columns": [
+						"candidate_work_reference_provider",
+						"candidate_work_reference_media_type",
+						"candidate_work_reference_id",
+						"parent_id"
+					],
+					"isUnique": false
+				},
+				"catalog_reviews_result_proposals_order": {
+					"name": "catalog_reviews_result_proposals_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_proposals_parent_id_catalog_reviews_id_fk": {
+					"name": "catalog_reviews_result_proposals_parent_id_catalog_reviews_id_fk",
+					"tableFrom": "catalog_reviews_result_proposals",
+					"tableTo": "catalog_reviews",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_proposals_ordinal": {
+					"name": "catalog_reviews_result_proposals_ordinal",
+					"value": "\"catalog_reviews_result_proposals\".\"ordinal_index\" >= 0"
+				},
+				"catalog_reviews_result_proposals_candidate_work_reference_media_type_0": {
+					"name": "catalog_reviews_result_proposals_candidate_work_reference_media_type_0",
+					"value": "\"catalog_reviews_result_proposals\".\"candidate_work_reference_media_type\" IN ('anime')"
+				},
+				"catalog_reviews_result_proposals_candidate_work_title_variants_present_0": {
+					"name": "catalog_reviews_result_proposals_candidate_work_title_variants_present_0",
+					"value": "\"catalog_reviews_result_proposals\".\"candidate_work_title_variants_present\" IN (0, 1)"
+				},
+				"catalog_reviews_result_proposals_candidate_work_ordinal_source_0": {
+					"name": "catalog_reviews_result_proposals_candidate_work_ordinal_source_0",
+					"value": "\"catalog_reviews_result_proposals\".\"candidate_work_ordinal_source\" IN ('provider-title')"
+				},
+				"catalog_reviews_result_proposals_candidate_identity_conflicts_present_0": {
+					"name": "catalog_reviews_result_proposals_candidate_identity_conflicts_present_0",
+					"value": "\"catalog_reviews_result_proposals\".\"candidate_identity_conflicts_present\" IN (0, 1)"
+				},
+				"catalog_reviews_result_proposals_candidate_identity_unresolved_present_0": {
+					"name": "catalog_reviews_result_proposals_candidate_identity_unresolved_present_0",
+					"value": "\"catalog_reviews_result_proposals\".\"candidate_identity_unresolved_present\" IN (0, 1)"
+				},
+				"catalog_reviews_result_proposals_candidate_assumptions_present_0": {
+					"name": "catalog_reviews_result_proposals_candidate_assumptions_present_0",
+					"value": "\"catalog_reviews_result_proposals\".\"candidate_assumptions_present\" IN (0, 1)"
+				},
+				"catalog_reviews_result_proposals_mapping_numbering_present_0": {
+					"name": "catalog_reviews_result_proposals_mapping_numbering_present_0",
+					"value": "\"catalog_reviews_result_proposals\".\"mapping_numbering_present\" IN (0, 1)"
+				},
+				"catalog_reviews_result_proposals_mapping_numbering_source_0": {
+					"name": "catalog_reviews_result_proposals_mapping_numbering_source_0",
+					"value": "\"catalog_reviews_result_proposals\".\"mapping_numbering_source\" IN ('directory-anchors')"
+				}
+			}
+		},
+		"catalog_reviews_result_proposals_candidate_assumptions": {
+			"name": "catalog_reviews_result_proposals_candidate_assumptions",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_proposals_candidate_assumptions_order": {
+					"name": "catalog_reviews_result_proposals_candidate_assumptions_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_proposals_candidate_assumptions_parent_id_catalog_reviews_result_proposals_row_id_fk": {
+					"name": "catalog_reviews_result_proposals_candidate_assumptions_parent_id_catalog_reviews_result_proposals_row_id_fk",
+					"tableFrom": "catalog_reviews_result_proposals_candidate_assumptions",
+					"tableTo": "catalog_reviews_result_proposals",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_proposals_candidate_assumptions_ordinal": {
+					"name": "catalog_reviews_result_proposals_candidate_assumptions_ordinal",
+					"value": "\"catalog_reviews_result_proposals_candidate_assumptions\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_proposals_candidate_conflicts": {
+			"name": "catalog_reviews_result_proposals_candidate_conflicts",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_proposals_candidate_conflicts_order": {
+					"name": "catalog_reviews_result_proposals_candidate_conflicts_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_proposals_candidate_conflicts_parent_id_catalog_reviews_result_proposals_row_id_fk": {
+					"name": "catalog_reviews_result_proposals_candidate_conflicts_parent_id_catalog_reviews_result_proposals_row_id_fk",
+					"tableFrom": "catalog_reviews_result_proposals_candidate_conflicts",
+					"tableTo": "catalog_reviews_result_proposals",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_proposals_candidate_conflicts_ordinal": {
+					"name": "catalog_reviews_result_proposals_candidate_conflicts_ordinal",
+					"value": "\"catalog_reviews_result_proposals_candidate_conflicts\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_proposals_candidate_identity_conflicts": {
+			"name": "catalog_reviews_result_proposals_candidate_identity_conflicts",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_proposals_candidate_identity_conflicts_order": {
+					"name": "catalog_reviews_result_proposals_candidate_identity_conflicts_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_proposals_candidate_identity_conflicts_parent_id_catalog_reviews_result_proposals_row_id_fk": {
+					"name": "catalog_reviews_result_proposals_candidate_identity_conflicts_parent_id_catalog_reviews_result_proposals_row_id_fk",
+					"tableFrom": "catalog_reviews_result_proposals_candidate_identity_conflicts",
+					"tableTo": "catalog_reviews_result_proposals",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"catalog_reviews_result_proposals_candidate_identity_unresolved": {
+			"name": "catalog_reviews_result_proposals_candidate_identity_unresolved",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_proposals_candidate_identity_unresolved_order": {
+					"name": "catalog_reviews_result_proposals_candidate_identity_unresolved_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_proposals_candidate_identity_unresolved_parent_id_catalog_reviews_result_proposals_row_id_fk": {
+					"name": "catalog_reviews_result_proposals_candidate_identity_unresolved_parent_id_catalog_reviews_result_proposals_row_id_fk",
+					"tableFrom": "catalog_reviews_result_proposals_candidate_identity_unresolved",
+					"tableTo": "catalog_reviews_result_proposals",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"catalog_reviews_result_proposals_candidate_reasons": {
+			"name": "catalog_reviews_result_proposals_candidate_reasons",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_proposals_candidate_reasons_order": {
+					"name": "catalog_reviews_result_proposals_candidate_reasons_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_proposals_candidate_reasons_parent_id_catalog_reviews_result_proposals_row_id_fk": {
+					"name": "catalog_reviews_result_proposals_candidate_reasons_parent_id_catalog_reviews_result_proposals_row_id_fk",
+					"tableFrom": "catalog_reviews_result_proposals_candidate_reasons",
+					"tableTo": "catalog_reviews_result_proposals",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_proposals_candidate_reasons_ordinal": {
+					"name": "catalog_reviews_result_proposals_candidate_reasons_ordinal",
+					"value": "\"catalog_reviews_result_proposals_candidate_reasons\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_proposals_candidate_work_title_variants": {
+			"name": "catalog_reviews_result_proposals_candidate_work_title_variants",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"kind": {
+					"name": "kind",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"language": {
+					"name": "language",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_proposals_candidate_work_title_variants_order": {
+					"name": "catalog_reviews_result_proposals_candidate_work_title_variants_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_proposals_candidate_work_title_variants_parent_id_catalog_reviews_result_proposals_row_id_fk": {
+					"name": "catalog_reviews_result_proposals_candidate_work_title_variants_parent_id_catalog_reviews_result_proposals_row_id_fk",
+					"tableFrom": "catalog_reviews_result_proposals_candidate_work_title_variants",
+					"tableTo": "catalog_reviews_result_proposals",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_proposals_candidate_work_title_variants_kind_0": {
+					"name": "catalog_reviews_result_proposals_candidate_work_title_variants_kind_0",
+					"value": "\"catalog_reviews_result_proposals_candidate_work_title_variants\".\"kind\" IN ('primary', 'alias')"
+				}
+			}
+		},
+		"catalog_reviews_result_proposals_candidate_work_titles": {
+			"name": "catalog_reviews_result_proposals_candidate_work_titles",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_proposals_candidate_work_titles_order": {
+					"name": "catalog_reviews_result_proposals_candidate_work_titles_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_proposals_candidate_work_titles_parent_id_catalog_reviews_result_proposals_row_id_fk": {
+					"name": "catalog_reviews_result_proposals_candidate_work_titles_parent_id_catalog_reviews_result_proposals_row_id_fk",
+					"tableFrom": "catalog_reviews_result_proposals_candidate_work_titles",
+					"tableTo": "catalog_reviews_result_proposals",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_proposals_candidate_work_titles_ordinal": {
+					"name": "catalog_reviews_result_proposals_candidate_work_titles_ordinal",
+					"value": "\"catalog_reviews_result_proposals_candidate_work_titles\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_proposals_mapping_numbering_anchors": {
+			"name": "catalog_reviews_result_proposals_mapping_numbering_anchors",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"file_id": {
+					"name": "file_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"source_version": {
+					"name": "source_version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_proposals_mapping_numbering_anchors_order": {
+					"name": "catalog_reviews_result_proposals_mapping_numbering_anchors_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_proposals_mapping_numbering_anchors_parent_id_catalog_reviews_result_proposals_row_id_fk": {
+					"name": "catalog_reviews_result_proposals_mapping_numbering_anchors_parent_id_catalog_reviews_result_proposals_row_id_fk",
+					"tableFrom": "catalog_reviews_result_proposals_mapping_numbering_anchors",
+					"tableTo": "catalog_reviews_result_proposals",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_proposals_mapping_numbering_anchors_ordinal": {
+					"name": "catalog_reviews_result_proposals_mapping_numbering_anchors_ordinal",
+					"value": "\"catalog_reviews_result_proposals_mapping_numbering_anchors\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_proposals_mapping_reasons": {
+			"name": "catalog_reviews_result_proposals_mapping_reasons",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_proposals_mapping_reasons_order": {
+					"name": "catalog_reviews_result_proposals_mapping_reasons_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_proposals_mapping_reasons_parent_id_catalog_reviews_result_proposals_row_id_fk": {
+					"name": "catalog_reviews_result_proposals_mapping_reasons_parent_id_catalog_reviews_result_proposals_row_id_fk",
+					"tableFrom": "catalog_reviews_result_proposals_mapping_reasons",
+					"tableTo": "catalog_reviews_result_proposals",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_proposals_mapping_reasons_ordinal": {
+					"name": "catalog_reviews_result_proposals_mapping_reasons_ordinal",
+					"value": "\"catalog_reviews_result_proposals_mapping_reasons\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_proposals_mapping_targets": {
+			"name": "catalog_reviews_result_proposals_mapping_targets",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"kind": {
+					"name": "kind",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"number": {
+					"name": "number",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_proposals_mapping_targets_order": {
+					"name": "catalog_reviews_result_proposals_mapping_targets_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_proposals_mapping_targets_parent_id_catalog_reviews_result_proposals_row_id_fk": {
+					"name": "catalog_reviews_result_proposals_mapping_targets_parent_id_catalog_reviews_result_proposals_row_id_fk",
+					"tableFrom": "catalog_reviews_result_proposals_mapping_targets",
+					"tableTo": "catalog_reviews_result_proposals",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_proposals_mapping_targets_ordinal": {
+					"name": "catalog_reviews_result_proposals_mapping_targets_ordinal",
+					"value": "\"catalog_reviews_result_proposals_mapping_targets\".\"ordinal_index\" >= 0"
+				},
+				"catalog_reviews_result_proposals_mapping_targets_kind_0": {
+					"name": "catalog_reviews_result_proposals_mapping_targets_kind_0",
+					"value": "\"catalog_reviews_result_proposals_mapping_targets\".\"kind\" IN ('regular', 'special', 'movie')"
+				}
+			}
+		},
+		"catalog_reviews_result_proposals_mapping_unresolved": {
+			"name": "catalog_reviews_result_proposals_mapping_unresolved",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_proposals_mapping_unresolved_order": {
+					"name": "catalog_reviews_result_proposals_mapping_unresolved_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_proposals_mapping_unresolved_parent_id_catalog_reviews_result_proposals_row_id_fk": {
+					"name": "catalog_reviews_result_proposals_mapping_unresolved_parent_id_catalog_reviews_result_proposals_row_id_fk",
+					"tableFrom": "catalog_reviews_result_proposals_mapping_unresolved",
+					"tableTo": "catalog_reviews_result_proposals",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_proposals_mapping_unresolved_ordinal": {
+					"name": "catalog_reviews_result_proposals_mapping_unresolved_ordinal",
+					"value": "\"catalog_reviews_result_proposals_mapping_unresolved\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_reviews_result_unresolved": {
+			"name": "catalog_reviews_result_unresolved",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_reviews_result_unresolved_order": {
+					"name": "catalog_reviews_result_unresolved_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_reviews_result_unresolved_parent_id_catalog_reviews_id_fk": {
+					"name": "catalog_reviews_result_unresolved_parent_id_catalog_reviews_id_fk",
+					"tableFrom": "catalog_reviews_result_unresolved",
+					"tableTo": "catalog_reviews",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_reviews_result_unresolved_ordinal": {
+					"name": "catalog_reviews_result_unresolved_ordinal",
+					"value": "\"catalog_reviews_result_unresolved\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"catalog_works": {
+			"name": "catalog_works",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"provider_title": {
+					"name": "provider_title",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"format": {
+					"name": "format",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"year": {
+					"name": "year",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"episode_count": {
+					"name": "episode_count",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"revision": {
+					"name": "revision",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_works_episode_count_0": {
+					"name": "catalog_works_episode_count_0",
+					"value": "\"catalog_works\".\"episode_count\" >= 0"
+				},
+				"catalog_works_revision_0": {
+					"name": "catalog_works_revision_0",
+					"value": "\"catalog_works\".\"revision\" >= 0"
+				}
+			}
+		},
+		"catalog_works_search_titles": {
+			"name": "catalog_works_search_titles",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"catalog_works_search_titles_order": {
+					"name": "catalog_works_search_titles_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"catalog_works_search_titles_parent_id_catalog_works_id_fk": {
+					"name": "catalog_works_search_titles_parent_id_catalog_works_id_fk",
+					"tableFrom": "catalog_works_search_titles",
+					"tableTo": "catalog_works",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"catalog_works_search_titles_ordinal": {
+					"name": "catalog_works_search_titles_ordinal",
+					"value": "\"catalog_works_search_titles\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"media_access_links": {
+			"name": "media_access_links",
+			"columns": {
+				"token_hash": {
+					"name": "token_hash",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"file_id": {
+					"name": "file_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"source_version": {
+					"name": "source_version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"fingerprint": {
+					"name": "fingerprint",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"expires_at": {
+					"name": "expires_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"media_access_links_expiry": {
+					"name": "media_access_links_expiry",
+					"columns": ["expires_at"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
 		"media_sources": {
 			"name": "media_sources",
 			"columns": {
@@ -77,6 +3412,1648 @@
 			"uniqueConstraints": {},
 			"checkConstraints": {}
 		},
+		"metadata_artwork": {
+			"name": "metadata_artwork",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"asset_key": {
+					"name": "asset_key",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"url": {
+					"name": "url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"mime_type": {
+					"name": "mime_type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"size_bytes": {
+					"name": "size_bytes",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"accessed_at": {
+					"name": "accessed_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_artwork_lru": {
+					"name": "metadata_artwork_lru",
+					"columns": ["accessed_at"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_artwork_size": {
+					"name": "metadata_artwork_size",
+					"value": "\"metadata_artwork\".\"size_bytes\" >= 0"
+				}
+			}
+		},
+		"metadata_pins": {
+			"name": "metadata_pins",
+			"columns": {
+				"snapshot_id": {
+					"name": "snapshot_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"owner_id": {
+					"name": "owner_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"metadata_pins_snapshot_id_metadata_snapshots_id_fk": {
+					"name": "metadata_pins_snapshot_id_metadata_snapshots_id_fk",
+					"tableFrom": "metadata_pins",
+					"tableTo": "metadata_snapshots",
+					"columnsFrom": ["snapshot_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {
+				"metadata_pins_snapshot_id_owner_id_pk": {
+					"columns": ["snapshot_id", "owner_id"],
+					"name": "metadata_pins_snapshot_id_owner_id_pk"
+				}
+			},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"metadata_snapshots": {
+			"name": "metadata_snapshots",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"key": {
+					"name": "key",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"kind": {
+					"name": "kind",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"fetched_at": {
+					"name": "fetched_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"expires_at": {
+					"name": "expires_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"accessed_at": {
+					"name": "accessed_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"failure_present": {
+					"name": "failure_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"failure_code": {
+					"name": "failure_code",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"failure_message": {
+					"name": "failure_message",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"failure_retry_at": {
+					"name": "failure_retry_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"page": {
+					"name": "page",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"per_page": {
+					"name": "per_page",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"has_next_page": {
+					"name": "has_next_page",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_present": {
+					"name": "detail_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"detail_reference_provider": {
+					"name": "detail_reference_provider",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_reference_media_type": {
+					"name": "detail_reference_media_type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_reference_id": {
+					"name": "detail_reference_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_year": {
+					"name": "detail_year",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_format": {
+					"name": "detail_format",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_status": {
+					"name": "detail_status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_episode_count": {
+					"name": "detail_episode_count",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_airing_season": {
+					"name": "detail_airing_season",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_cover_url": {
+					"name": "detail_cover_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_description": {
+					"name": "detail_description",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_banner_url": {
+					"name": "detail_banner_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_start_date_present": {
+					"name": "detail_start_date_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"detail_start_date_year": {
+					"name": "detail_start_date_year",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_start_date_month": {
+					"name": "detail_start_date_month",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_start_date_day": {
+					"name": "detail_start_date_day",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_end_date_present": {
+					"name": "detail_end_date_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"detail_end_date_year": {
+					"name": "detail_end_date_year",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_end_date_month": {
+					"name": "detail_end_date_month",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_end_date_day": {
+					"name": "detail_end_date_day",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_duration_minutes": {
+					"name": "detail_duration_minutes",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_country": {
+					"name": "detail_country",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_source": {
+					"name": "detail_source",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_average_score": {
+					"name": "detail_average_score",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_site_url": {
+					"name": "detail_site_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_provider_updated_at": {
+					"name": "detail_provider_updated_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"detail_episode_catalog": {
+					"name": "detail_episode_catalog",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_cache_key": {
+					"name": "metadata_cache_key",
+					"columns": ["key", "fetched_at"],
+					"isUnique": false
+				},
+				"metadata_lru": {
+					"name": "metadata_lru",
+					"columns": ["kind", "accessed_at"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshot_projection": {
+					"name": "metadata_snapshot_projection",
+					"value": "(\"metadata_snapshots\".\"kind\" = 'detail' AND \"metadata_snapshots\".\"detail_present\" = 1) OR (\"metadata_snapshots\".\"kind\" <> 'detail' AND \"metadata_snapshots\".\"detail_present\" = 0 AND \"metadata_snapshots\".\"page\" IS NOT NULL AND \"metadata_snapshots\".\"per_page\" IS NOT NULL AND \"metadata_snapshots\".\"has_next_page\" IS NOT NULL)"
+				},
+				"metadata_snapshot_failure": {
+					"name": "metadata_snapshot_failure",
+					"value": "\"metadata_snapshots\".\"failure_present\" = 0 OR (\"metadata_snapshots\".\"failure_code\" IS NOT NULL AND \"metadata_snapshots\".\"failure_message\" IS NOT NULL)"
+				},
+				"metadata_snapshots_kind_0": {
+					"name": "metadata_snapshots_kind_0",
+					"value": "\"metadata_snapshots\".\"kind\" IN ('search', 'detail', 'relations', 'airing')"
+				},
+				"metadata_snapshots_failure_present_0": {
+					"name": "metadata_snapshots_failure_present_0",
+					"value": "\"metadata_snapshots\".\"failure_present\" IN (0, 1)"
+				},
+				"metadata_snapshots_has_next_page_0": {
+					"name": "metadata_snapshots_has_next_page_0",
+					"value": "\"metadata_snapshots\".\"has_next_page\" IN (0, 1)"
+				},
+				"metadata_snapshots_detail_present_0": {
+					"name": "metadata_snapshots_detail_present_0",
+					"value": "\"metadata_snapshots\".\"detail_present\" IN (0, 1)"
+				},
+				"metadata_snapshots_detail_reference_media_type_0": {
+					"name": "metadata_snapshots_detail_reference_media_type_0",
+					"value": "\"metadata_snapshots\".\"detail_reference_media_type\" IN ('anime')"
+				},
+				"metadata_snapshots_detail_episode_count_0": {
+					"name": "metadata_snapshots_detail_episode_count_0",
+					"value": "\"metadata_snapshots\".\"detail_episode_count\" >= 0"
+				},
+				"metadata_snapshots_detail_start_date_present_0": {
+					"name": "metadata_snapshots_detail_start_date_present_0",
+					"value": "\"metadata_snapshots\".\"detail_start_date_present\" IN (0, 1)"
+				},
+				"metadata_snapshots_detail_end_date_present_0": {
+					"name": "metadata_snapshots_detail_end_date_present_0",
+					"value": "\"metadata_snapshots\".\"detail_end_date_present\" IN (0, 1)"
+				},
+				"metadata_snapshots_detail_episode_catalog_0": {
+					"name": "metadata_snapshots_detail_episode_catalog_0",
+					"value": "\"metadata_snapshots\".\"detail_episode_catalog\" IN ('unavailable')"
+				}
+			}
+		},
+		"metadata_snapshots_airing": {
+			"name": "metadata_snapshots_airing",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"episode": {
+					"name": "episode",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"airing_at": {
+					"name": "airing_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_snapshots_airing_order": {
+					"name": "metadata_snapshots_airing_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"metadata_snapshots_airing_parent_id_metadata_snapshots_id_fk": {
+					"name": "metadata_snapshots_airing_parent_id_metadata_snapshots_id_fk",
+					"tableFrom": "metadata_snapshots_airing",
+					"tableTo": "metadata_snapshots",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshots_airing_ordinal": {
+					"name": "metadata_snapshots_airing_ordinal",
+					"value": "\"metadata_snapshots_airing\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"metadata_snapshots_detail_genres": {
+			"name": "metadata_snapshots_detail_genres",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_snapshots_detail_genres_order": {
+					"name": "metadata_snapshots_detail_genres_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"metadata_snapshots_detail_genres_parent_id_metadata_snapshots_id_fk": {
+					"name": "metadata_snapshots_detail_genres_parent_id_metadata_snapshots_id_fk",
+					"tableFrom": "metadata_snapshots_detail_genres",
+					"tableTo": "metadata_snapshots",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshots_detail_genres_ordinal": {
+					"name": "metadata_snapshots_detail_genres_ordinal",
+					"value": "\"metadata_snapshots_detail_genres\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"metadata_snapshots_detail_streaming_episodes": {
+			"name": "metadata_snapshots_detail_streaming_episodes",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"title": {
+					"name": "title",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"url": {
+					"name": "url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"site": {
+					"name": "site",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"thumbnail": {
+					"name": "thumbnail",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_snapshots_detail_streaming_episodes_order": {
+					"name": "metadata_snapshots_detail_streaming_episodes_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"metadata_snapshots_detail_streaming_episodes_parent_id_metadata_snapshots_id_fk": {
+					"name": "metadata_snapshots_detail_streaming_episodes_parent_id_metadata_snapshots_id_fk",
+					"tableFrom": "metadata_snapshots_detail_streaming_episodes",
+					"tableTo": "metadata_snapshots",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshots_detail_streaming_episodes_ordinal": {
+					"name": "metadata_snapshots_detail_streaming_episodes_ordinal",
+					"value": "\"metadata_snapshots_detail_streaming_episodes\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"metadata_snapshots_detail_studios": {
+			"name": "metadata_snapshots_detail_studios",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"name": {
+					"name": "name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_snapshots_detail_studios_order": {
+					"name": "metadata_snapshots_detail_studios_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"metadata_snapshots_detail_studios_parent_id_metadata_snapshots_id_fk": {
+					"name": "metadata_snapshots_detail_studios_parent_id_metadata_snapshots_id_fk",
+					"tableFrom": "metadata_snapshots_detail_studios",
+					"tableTo": "metadata_snapshots",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshots_detail_studios_ordinal": {
+					"name": "metadata_snapshots_detail_studios_ordinal",
+					"value": "\"metadata_snapshots_detail_studios\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"metadata_snapshots_detail_tags": {
+			"name": "metadata_snapshots_detail_tags",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"name": {
+					"name": "name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"rank": {
+					"name": "rank",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"spoiler": {
+					"name": "spoiler",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_snapshots_detail_tags_order": {
+					"name": "metadata_snapshots_detail_tags_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"metadata_snapshots_detail_tags_parent_id_metadata_snapshots_id_fk": {
+					"name": "metadata_snapshots_detail_tags_parent_id_metadata_snapshots_id_fk",
+					"tableFrom": "metadata_snapshots_detail_tags",
+					"tableTo": "metadata_snapshots",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshots_detail_tags_ordinal": {
+					"name": "metadata_snapshots_detail_tags_ordinal",
+					"value": "\"metadata_snapshots_detail_tags\".\"ordinal_index\" >= 0"
+				},
+				"metadata_snapshots_detail_tags_spoiler_0": {
+					"name": "metadata_snapshots_detail_tags_spoiler_0",
+					"value": "\"metadata_snapshots_detail_tags\".\"spoiler\" IN (0, 1)"
+				}
+			}
+		},
+		"metadata_snapshots_detail_titles": {
+			"name": "metadata_snapshots_detail_titles",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"language": {
+					"name": "language",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"kind": {
+					"name": "kind",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_snapshots_detail_titles_order": {
+					"name": "metadata_snapshots_detail_titles_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"metadata_snapshots_detail_titles_parent_id_metadata_snapshots_id_fk": {
+					"name": "metadata_snapshots_detail_titles_parent_id_metadata_snapshots_id_fk",
+					"tableFrom": "metadata_snapshots_detail_titles",
+					"tableTo": "metadata_snapshots",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshots_detail_titles_ordinal": {
+					"name": "metadata_snapshots_detail_titles_ordinal",
+					"value": "\"metadata_snapshots_detail_titles\".\"ordinal_index\" >= 0"
+				},
+				"metadata_snapshots_detail_titles_kind_0": {
+					"name": "metadata_snapshots_detail_titles_kind_0",
+					"value": "\"metadata_snapshots_detail_titles\".\"kind\" IN ('romaji', 'english', 'native', 'alias')"
+				}
+			}
+		},
+		"metadata_snapshots_detail_unavailable_fields": {
+			"name": "metadata_snapshots_detail_unavailable_fields",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_snapshots_detail_unavailable_fields_order": {
+					"name": "metadata_snapshots_detail_unavailable_fields_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"metadata_snapshots_detail_unavailable_fields_parent_id_metadata_snapshots_id_fk": {
+					"name": "metadata_snapshots_detail_unavailable_fields_parent_id_metadata_snapshots_id_fk",
+					"tableFrom": "metadata_snapshots_detail_unavailable_fields",
+					"tableTo": "metadata_snapshots",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshots_detail_unavailable_fields_ordinal": {
+					"name": "metadata_snapshots_detail_unavailable_fields_ordinal",
+					"value": "\"metadata_snapshots_detail_unavailable_fields\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"metadata_snapshots_items": {
+			"name": "metadata_snapshots_items",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"reference_provider": {
+					"name": "reference_provider",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"reference_media_type": {
+					"name": "reference_media_type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"reference_id": {
+					"name": "reference_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"year": {
+					"name": "year",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"format": {
+					"name": "format",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"episode_count": {
+					"name": "episode_count",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"airing_season": {
+					"name": "airing_season",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"cover_url": {
+					"name": "cover_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_snapshots_items_order": {
+					"name": "metadata_snapshots_items_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"metadata_snapshots_items_parent_id_metadata_snapshots_id_fk": {
+					"name": "metadata_snapshots_items_parent_id_metadata_snapshots_id_fk",
+					"tableFrom": "metadata_snapshots_items",
+					"tableTo": "metadata_snapshots",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshots_items_ordinal": {
+					"name": "metadata_snapshots_items_ordinal",
+					"value": "\"metadata_snapshots_items\".\"ordinal_index\" >= 0"
+				},
+				"metadata_snapshots_items_reference_media_type_0": {
+					"name": "metadata_snapshots_items_reference_media_type_0",
+					"value": "\"metadata_snapshots_items\".\"reference_media_type\" IN ('anime')"
+				},
+				"metadata_snapshots_items_episode_count_0": {
+					"name": "metadata_snapshots_items_episode_count_0",
+					"value": "\"metadata_snapshots_items\".\"episode_count\" >= 0"
+				}
+			}
+		},
+		"metadata_snapshots_items_titles": {
+			"name": "metadata_snapshots_items_titles",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"language": {
+					"name": "language",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"kind": {
+					"name": "kind",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_snapshots_items_titles_order": {
+					"name": "metadata_snapshots_items_titles_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"metadata_snapshots_items_titles_parent_id_metadata_snapshots_items_row_id_fk": {
+					"name": "metadata_snapshots_items_titles_parent_id_metadata_snapshots_items_row_id_fk",
+					"tableFrom": "metadata_snapshots_items_titles",
+					"tableTo": "metadata_snapshots_items",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshots_items_titles_ordinal": {
+					"name": "metadata_snapshots_items_titles_ordinal",
+					"value": "\"metadata_snapshots_items_titles\".\"ordinal_index\" >= 0"
+				},
+				"metadata_snapshots_items_titles_kind_0": {
+					"name": "metadata_snapshots_items_titles_kind_0",
+					"value": "\"metadata_snapshots_items_titles\".\"kind\" IN ('romaji', 'english', 'native', 'alias')"
+				}
+			}
+		},
+		"metadata_snapshots_items_unavailable_fields": {
+			"name": "metadata_snapshots_items_unavailable_fields",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_snapshots_items_unavailable_fields_order": {
+					"name": "metadata_snapshots_items_unavailable_fields_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"metadata_snapshots_items_unavailable_fields_parent_id_metadata_snapshots_items_row_id_fk": {
+					"name": "metadata_snapshots_items_unavailable_fields_parent_id_metadata_snapshots_items_row_id_fk",
+					"tableFrom": "metadata_snapshots_items_unavailable_fields",
+					"tableTo": "metadata_snapshots_items",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshots_items_unavailable_fields_ordinal": {
+					"name": "metadata_snapshots_items_unavailable_fields_ordinal",
+					"value": "\"metadata_snapshots_items_unavailable_fields\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"metadata_snapshots_relations": {
+			"name": "metadata_snapshots_relations",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"type": {
+					"name": "type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"work_reference_provider": {
+					"name": "work_reference_provider",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"work_reference_media_type": {
+					"name": "work_reference_media_type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"work_reference_id": {
+					"name": "work_reference_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"work_year": {
+					"name": "work_year",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"work_format": {
+					"name": "work_format",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"work_status": {
+					"name": "work_status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"work_episode_count": {
+					"name": "work_episode_count",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"work_airing_season": {
+					"name": "work_airing_season",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"work_cover_url": {
+					"name": "work_cover_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_snapshots_relations_order": {
+					"name": "metadata_snapshots_relations_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"metadata_snapshots_relations_parent_id_metadata_snapshots_id_fk": {
+					"name": "metadata_snapshots_relations_parent_id_metadata_snapshots_id_fk",
+					"tableFrom": "metadata_snapshots_relations",
+					"tableTo": "metadata_snapshots",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshots_relations_ordinal": {
+					"name": "metadata_snapshots_relations_ordinal",
+					"value": "\"metadata_snapshots_relations\".\"ordinal_index\" >= 0"
+				},
+				"metadata_snapshots_relations_work_reference_media_type_0": {
+					"name": "metadata_snapshots_relations_work_reference_media_type_0",
+					"value": "\"metadata_snapshots_relations\".\"work_reference_media_type\" IN ('anime')"
+				},
+				"metadata_snapshots_relations_work_episode_count_0": {
+					"name": "metadata_snapshots_relations_work_episode_count_0",
+					"value": "\"metadata_snapshots_relations\".\"work_episode_count\" >= 0"
+				}
+			}
+		},
+		"metadata_snapshots_relations_work_titles": {
+			"name": "metadata_snapshots_relations_work_titles",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"language": {
+					"name": "language",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"kind": {
+					"name": "kind",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_snapshots_relations_work_titles_order": {
+					"name": "metadata_snapshots_relations_work_titles_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"metadata_snapshots_relations_work_titles_parent_id_metadata_snapshots_relations_row_id_fk": {
+					"name": "metadata_snapshots_relations_work_titles_parent_id_metadata_snapshots_relations_row_id_fk",
+					"tableFrom": "metadata_snapshots_relations_work_titles",
+					"tableTo": "metadata_snapshots_relations",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshots_relations_work_titles_ordinal": {
+					"name": "metadata_snapshots_relations_work_titles_ordinal",
+					"value": "\"metadata_snapshots_relations_work_titles\".\"ordinal_index\" >= 0"
+				},
+				"metadata_snapshots_relations_work_titles_kind_0": {
+					"name": "metadata_snapshots_relations_work_titles_kind_0",
+					"value": "\"metadata_snapshots_relations_work_titles\".\"kind\" IN ('romaji', 'english', 'native', 'alias')"
+				}
+			}
+		},
+		"metadata_snapshots_relations_work_unavailable_fields": {
+			"name": "metadata_snapshots_relations_work_unavailable_fields",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"metadata_snapshots_relations_work_unavailable_fields_order": {
+					"name": "metadata_snapshots_relations_work_unavailable_fields_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"metadata_snapshots_relations_work_unavailable_fields_parent_id_metadata_snapshots_relations_row_id_fk": {
+					"name": "metadata_snapshots_relations_work_unavailable_fields_parent_id_metadata_snapshots_relations_row_id_fk",
+					"tableFrom": "metadata_snapshots_relations_work_unavailable_fields",
+					"tableTo": "metadata_snapshots_relations",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"metadata_snapshots_relations_work_unavailable_fields_ordinal": {
+					"name": "metadata_snapshots_relations_work_unavailable_fields_ordinal",
+					"value": "\"metadata_snapshots_relations_work_unavailable_fields\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"playback_completions": {
+			"name": "playback_completions",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"source_id": {
+					"name": "source_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"attempted_at": {
+					"name": "attempted_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"context_version": {
+					"name": "context_version",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"context_account_id": {
+					"name": "context_account_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"context_generation": {
+					"name": "context_generation",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"context_manual_version": {
+					"name": "context_manual_version",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"context_file_id": {
+					"name": "context_file_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"context_source_version": {
+					"name": "context_source_version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"context_review_id": {
+					"name": "context_review_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"context_mapping_revision": {
+					"name": "context_mapping_revision",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"context_episode_id": {
+					"name": "context_episode_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"context_media_id": {
+					"name": "context_media_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"context_episode": {
+					"name": "context_episode",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"outcome_state": {
+					"name": "outcome_state",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"outcome_reason": {
+					"name": "outcome_reason",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"outcome_operation_id": {
+					"name": "outcome_operation_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"outcome_revision": {
+					"name": "outcome_revision",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"playback_completion_delivery": {
+					"name": "playback_completion_delivery",
+					"columns": ["outcome_state", "attempted_at", "id"],
+					"isUnique": false
+				},
+				"playback_completion_source": {
+					"name": "playback_completion_source",
+					"columns": ["source_id"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"playback_completions_source_id_media_sources_id_fk": {
+					"name": "playback_completions_source_id_media_sources_id_fk",
+					"tableFrom": "playback_completions",
+					"tableTo": "media_sources",
+					"columnsFrom": ["source_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"playback_context_version": {
+					"name": "playback_context_version",
+					"value": "\"playback_completions\".\"context_version\" = 2"
+				},
+				"playback_context_values": {
+					"name": "playback_context_values",
+					"value": "\"playback_completions\".\"context_manual_version\" >= 0 AND \"playback_completions\".\"context_mapping_revision\" >= 0 AND \"playback_completions\".\"context_episode\" >= 1"
+				},
+				"playback_completions_attempted_at_0": {
+					"name": "playback_completions_attempted_at_0",
+					"value": "\"playback_completions\".\"attempted_at\" >= 0"
+				},
+				"playback_completions_outcome_state_0": {
+					"name": "playback_completions_outcome_state_0",
+					"value": "\"playback_completions\".\"outcome_state\" IN ('pending', 'accepted', 'ignored', 'unavailable')"
+				},
+				"playback_completions_outcome_revision_0": {
+					"name": "playback_completions_outcome_revision_0",
+					"value": "\"playback_completions\".\"outcome_revision\" >= 0"
+				}
+			}
+		},
 		"playback_progress": {
 			"name": "playback_progress",
 			"columns": {
@@ -108,14 +5085,6 @@
 					"primaryKey": false,
 					"notNull": false,
 					"autoincrement": false
-				},
-				"revision": {
-					"name": "revision",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false,
-					"default": 0
 				},
 				"generation": {
 					"name": "generation",
@@ -163,10 +5132,6 @@
 					"name": "progress_duration",
 					"value": "\"playback_progress\".\"duration_ms\" IS NULL OR (\"playback_progress\".\"duration_ms\" > 0 AND \"playback_progress\".\"position_ms\" <= \"playback_progress\".\"duration_ms\")"
 				},
-				"progress_revision": {
-					"name": "progress_revision",
-					"value": "\"playback_progress\".\"revision\" >= 0"
-				},
 				"progress_generation": {
 					"name": "progress_generation",
 					"value": "\"playback_progress\".\"generation\" >= 1"
@@ -174,6 +5139,701 @@
 				"progress_sequence": {
 					"name": "progress_sequence",
 					"value": "\"playback_progress\".\"last_sequence\" >= 0"
+				}
+			}
+		},
+		"preparation_tasks": {
+			"name": "preparation_tasks",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"source_id": {
+					"name": "source_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"execution_plan_id": {
+					"name": "execution_plan_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"profile_id": {
+					"name": "profile_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"profile_fingerprint": {
+					"name": "profile_fingerprint",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"filename": {
+					"name": "filename",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_version": {
+					"name": "snapshot_version",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_mode": {
+					"name": "snapshot_mode",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_reasons_video": {
+					"name": "snapshot_reasons_video",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_reasons_audio": {
+					"name": "snapshot_reasons_audio",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_video_stream_index": {
+					"name": "snapshot_video_stream_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_plan_container": {
+					"name": "snapshot_plan_container",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_plan_delivery": {
+					"name": "snapshot_plan_delivery",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_output_format": {
+					"name": "snapshot_plan_output_format",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_action": {
+					"name": "snapshot_plan_video_action",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_encoder": {
+					"name": "snapshot_plan_video_encoder",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_codec": {
+					"name": "snapshot_plan_video_codec",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_pixel_format": {
+					"name": "snapshot_plan_video_pixel_format",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_audio_action": {
+					"name": "snapshot_plan_audio_action",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_plan_audio_encoder": {
+					"name": "snapshot_plan_audio_encoder",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_audio_codec": {
+					"name": "snapshot_plan_audio_codec",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_audio_pixel_format": {
+					"name": "snapshot_plan_audio_pixel_format",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_parameters_present": {
+					"name": "snapshot_plan_video_parameters_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_parameters_pixel_format": {
+					"name": "snapshot_plan_video_parameters_pixel_format",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_parameters_max_height": {
+					"name": "snapshot_plan_video_parameters_max_height",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_parameters_encoder": {
+					"name": "snapshot_plan_video_parameters_encoder",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_parameters_codec": {
+					"name": "snapshot_plan_video_parameters_codec",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_parameters_crf": {
+					"name": "snapshot_plan_video_parameters_crf",
+					"type": "real",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_parameters_preset": {
+					"name": "snapshot_plan_video_parameters_preset",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_parameters_cpu_used": {
+					"name": "snapshot_plan_video_parameters_cpu_used",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_parameters_bitrate_kbps": {
+					"name": "snapshot_plan_video_parameters_bitrate_kbps",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_audio_parameters_present": {
+					"name": "snapshot_plan_audio_parameters_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_plan_audio_parameters_channels": {
+					"name": "snapshot_plan_audio_parameters_channels",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_audio_parameters_encoder": {
+					"name": "snapshot_plan_audio_parameters_encoder",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_audio_parameters_codec": {
+					"name": "snapshot_plan_audio_parameters_codec",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_audio_parameters_bitrate_kbps": {
+					"name": "snapshot_plan_audio_parameters_bitrate_kbps",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_audio_parameters_compression_level": {
+					"name": "snapshot_plan_audio_parameters_compression_level",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"snapshot_plan_video_filters_present": {
+					"name": "snapshot_plan_video_filters_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"snapshot_plan_h264_level": {
+					"name": "snapshot_plan_h264_level",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"progress_present": {
+					"name": "progress_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"progress_media_time_ms": {
+					"name": "progress_media_time_ms",
+					"type": "real",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"progress_frames": {
+					"name": "progress_frames",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"progress_output_bytes": {
+					"name": "progress_output_bytes",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"progress_speed": {
+					"name": "progress_speed",
+					"type": "real",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"progress_percent": {
+					"name": "progress_percent",
+					"type": "real",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"progress_ended": {
+					"name": "progress_ended",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"failure_reason": {
+					"name": "failure_reason",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"created_at_ms": {
+					"name": "created_at_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"updated_at_ms": {
+					"name": "updated_at_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"preparation_tasks_execution_plan_id_unique": {
+					"name": "preparation_tasks_execution_plan_id_unique",
+					"columns": ["execution_plan_id"],
+					"isUnique": true
+				},
+				"preparation_queue": {
+					"name": "preparation_queue",
+					"columns": ["status", "updated_at_ms", "id"],
+					"isUnique": false
+				},
+				"preparation_source": {
+					"name": "preparation_source",
+					"columns": ["source_id"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"preparation_tasks_source_id_media_sources_id_fk": {
+					"name": "preparation_tasks_source_id_media_sources_id_fk",
+					"tableFrom": "preparation_tasks",
+					"tableTo": "media_sources",
+					"columnsFrom": ["source_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"preparation_snapshot_version": {
+					"name": "preparation_snapshot_version",
+					"value": "\"preparation_tasks\".\"snapshot_version\" = 1"
+				},
+				"preparation_progress_shape": {
+					"name": "preparation_progress_shape",
+					"value": "\"preparation_tasks\".\"progress_present\" = 0 OR (\"preparation_tasks\".\"progress_ended\" IS NOT NULL AND (\"preparation_tasks\".\"progress_percent\" IS NULL OR \"preparation_tasks\".\"progress_percent\" BETWEEN 0 AND 100))"
+				},
+				"preparation_failure_reason": {
+					"name": "preparation_failure_reason",
+					"value": "\"preparation_tasks\".\"failure_reason\" IN ('interrupted', 'cancelled', 'cache-deleted', 'cache-missing', 'cache-full', 'storage-full', 'source-changed', 'profile-changed', 'tool-unavailable', 'capability-missing', 'capability-unknown', 'processing-failed')"
+				},
+				"preparation_state_shape": {
+					"name": "preparation_state_shape",
+					"value": "(\"preparation_tasks\".\"status\" IN ('queued', 'processing', 'cancelling', 'ready') AND \"preparation_tasks\".\"failure_reason\" IS NULL AND (\"preparation_tasks\".\"status\" <> 'queued' OR \"preparation_tasks\".\"progress_present\" = 0)) OR (\"preparation_tasks\".\"status\" = 'failed' AND \"preparation_tasks\".\"failure_reason\" IS NOT NULL) OR (\"preparation_tasks\".\"status\" = 'cancelled' AND \"preparation_tasks\".\"failure_reason\" IS NOT NULL AND \"preparation_tasks\".\"failure_reason\" IN ('cancelled', 'cache-deleted'))"
+				},
+				"preparation_tasks_snapshot_mode_0": {
+					"name": "preparation_tasks_snapshot_mode_0",
+					"value": "\"preparation_tasks\".\"snapshot_mode\" IN ('remux', 'transcode-audio', 'transcode-video', 'transcode')"
+				},
+				"preparation_tasks_snapshot_video_stream_index_0": {
+					"name": "preparation_tasks_snapshot_video_stream_index_0",
+					"value": "\"preparation_tasks\".\"snapshot_video_stream_index\" >= 0"
+				},
+				"preparation_tasks_snapshot_plan_delivery_0": {
+					"name": "preparation_tasks_snapshot_plan_delivery_0",
+					"value": "\"preparation_tasks\".\"snapshot_plan_delivery\" IN ('file', 'media-source')"
+				},
+				"preparation_tasks_snapshot_plan_video_action_0": {
+					"name": "preparation_tasks_snapshot_plan_video_action_0",
+					"value": "\"preparation_tasks\".\"snapshot_plan_video_action\" IN ('copy', 'encode')"
+				},
+				"preparation_tasks_snapshot_plan_audio_action_0": {
+					"name": "preparation_tasks_snapshot_plan_audio_action_0",
+					"value": "\"preparation_tasks\".\"snapshot_plan_audio_action\" IN ('copy', 'encode')"
+				},
+				"preparation_tasks_snapshot_plan_video_parameters_present_0": {
+					"name": "preparation_tasks_snapshot_plan_video_parameters_present_0",
+					"value": "\"preparation_tasks\".\"snapshot_plan_video_parameters_present\" IN (0, 1)"
+				},
+				"preparation_tasks_snapshot_plan_audio_parameters_present_0": {
+					"name": "preparation_tasks_snapshot_plan_audio_parameters_present_0",
+					"value": "\"preparation_tasks\".\"snapshot_plan_audio_parameters_present\" IN (0, 1)"
+				},
+				"preparation_tasks_snapshot_plan_audio_parameters_channels_0": {
+					"name": "preparation_tasks_snapshot_plan_audio_parameters_channels_0",
+					"value": "\"preparation_tasks\".\"snapshot_plan_audio_parameters_channels\" IN ('preserve', 'stereo')"
+				},
+				"preparation_tasks_snapshot_plan_video_filters_present_0": {
+					"name": "preparation_tasks_snapshot_plan_video_filters_present_0",
+					"value": "\"preparation_tasks\".\"snapshot_plan_video_filters_present\" IN (0, 1)"
+				},
+				"preparation_tasks_snapshot_plan_h264_level_0": {
+					"name": "preparation_tasks_snapshot_plan_h264_level_0",
+					"value": "\"preparation_tasks\".\"snapshot_plan_h264_level\" IN ('5.1')"
+				},
+				"preparation_tasks_status_0": {
+					"name": "preparation_tasks_status_0",
+					"value": "\"preparation_tasks\".\"status\" IN ('queued', 'processing', 'cancelling', 'ready', 'failed', 'cancelled')"
+				},
+				"preparation_tasks_progress_present_0": {
+					"name": "preparation_tasks_progress_present_0",
+					"value": "\"preparation_tasks\".\"progress_present\" IN (0, 1)"
+				},
+				"preparation_tasks_progress_ended_0": {
+					"name": "preparation_tasks_progress_ended_0",
+					"value": "\"preparation_tasks\".\"progress_ended\" IN (0, 1)"
+				}
+			}
+		},
+		"preparation_tasks_snapshot_audio_stream_indices": {
+			"name": "preparation_tasks_snapshot_audio_stream_indices",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"preparation_tasks_snapshot_audio_stream_indices_order": {
+					"name": "preparation_tasks_snapshot_audio_stream_indices_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"preparation_tasks_snapshot_audio_stream_indices_parent_id_preparation_tasks_id_fk": {
+					"name": "preparation_tasks_snapshot_audio_stream_indices_parent_id_preparation_tasks_id_fk",
+					"tableFrom": "preparation_tasks_snapshot_audio_stream_indices",
+					"tableTo": "preparation_tasks",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"preparation_tasks_snapshot_audio_stream_indices_ordinal": {
+					"name": "preparation_tasks_snapshot_audio_stream_indices_ordinal",
+					"value": "\"preparation_tasks_snapshot_audio_stream_indices\".\"ordinal_index\" >= 0"
+				},
+				"preparation_tasks_snapshot_audio_stream_indices_value_0": {
+					"name": "preparation_tasks_snapshot_audio_stream_indices_value_0",
+					"value": "\"preparation_tasks_snapshot_audio_stream_indices\".\"value\" >= 0"
+				}
+			}
+		},
+		"preparation_tasks_snapshot_plan_filters": {
+			"name": "preparation_tasks_snapshot_plan_filters",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"preparation_tasks_snapshot_plan_filters_order": {
+					"name": "preparation_tasks_snapshot_plan_filters_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"preparation_tasks_snapshot_plan_filters_parent_id_preparation_tasks_id_fk": {
+					"name": "preparation_tasks_snapshot_plan_filters_parent_id_preparation_tasks_id_fk",
+					"tableFrom": "preparation_tasks_snapshot_plan_filters",
+					"tableTo": "preparation_tasks",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"preparation_tasks_snapshot_plan_filters_ordinal": {
+					"name": "preparation_tasks_snapshot_plan_filters_ordinal",
+					"value": "\"preparation_tasks_snapshot_plan_filters\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"preparation_tasks_snapshot_plan_video_filters": {
+			"name": "preparation_tasks_snapshot_plan_video_filters",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"preparation_tasks_snapshot_plan_video_filters_order": {
+					"name": "preparation_tasks_snapshot_plan_video_filters_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"preparation_tasks_snapshot_plan_video_filters_parent_id_preparation_tasks_id_fk": {
+					"name": "preparation_tasks_snapshot_plan_video_filters_parent_id_preparation_tasks_id_fk",
+					"tableFrom": "preparation_tasks_snapshot_plan_video_filters",
+					"tableTo": "preparation_tasks",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"preparation_tasks_snapshot_plan_video_filters_ordinal": {
+					"name": "preparation_tasks_snapshot_plan_video_filters_ordinal",
+					"value": "\"preparation_tasks_snapshot_plan_video_filters\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"prepared_artifacts": {
+			"name": "prepared_artifacts",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"task_id": {
+					"name": "task_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"size_bytes": {
+					"name": "size_bytes",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"mime_type": {
+					"name": "mime_type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"prepared_artifacts_task_id_unique": {
+					"name": "prepared_artifacts_task_id_unique",
+					"columns": ["task_id"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"prepared_artifacts_task_id_preparation_tasks_id_fk": {
+					"name": "prepared_artifacts_task_id_preparation_tasks_id_fk",
+					"tableFrom": "prepared_artifacts",
+					"tableTo": "preparation_tasks",
+					"columnsFrom": ["task_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"prepared_size": {
+					"name": "prepared_size",
+					"value": "\"prepared_artifacts\".\"size_bytes\" > 0"
 				}
 			}
 		},
@@ -187,13 +5847,6 @@
 					"notNull": true,
 					"autoincrement": false
 				},
-				"canonical_path": {
-					"name": "canonical_path",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
-				},
 				"created_at_ms": {
 					"name": "created_at_ms",
 					"type": "integer",
@@ -202,23 +5855,1133 @@
 					"autoincrement": false
 				}
 			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"subtitle_assets": {
+			"name": "subtitle_assets",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"source_id": {
+					"name": "source_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"track_id": {
+					"name": "track_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"stream_index": {
+					"name": "stream_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"processing_version": {
+					"name": "processing_version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"format": {
+					"name": "format",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"size_bytes": {
+					"name": "size_bytes",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"error_code": {
+					"name": "error_code",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"updated_at_ms": {
+					"name": "updated_at_ms",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
 			"indexes": {
-				"resource_roots_canonical_path_unique": {
-					"name": "resource_roots_canonical_path_unique",
-					"columns": ["canonical_path"],
+				"subtitle_asset_identity": {
+					"name": "subtitle_asset_identity",
+					"columns": ["source_id", "track_id", "format", "processing_version"],
 					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"subtitle_assets_source_id_media_sources_id_fk": {
+					"name": "subtitle_assets_source_id_media_sources_id_fk",
+					"tableFrom": "subtitle_assets",
+					"tableTo": "media_sources",
+					"columnsFrom": ["source_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"subtitle_asset_error": {
+					"name": "subtitle_asset_error",
+					"value": "\"subtitle_assets\".\"error_code\" IN ('SUBTITLE_EXTRACTION_FAILED', 'SUBTITLE_TOOL_UNAVAILABLE', 'SUBTITLE_TOO_LARGE', 'SUBTITLE_CACHE_FULL', 'PLAYBACK_CONFLICT', 'SUBTITLE_INTERRUPTED')"
+				},
+				"subtitle_asset_result": {
+					"name": "subtitle_asset_result",
+					"value": "(\"subtitle_assets\".\"status\" = 'failed' AND \"subtitle_assets\".\"error_code\" IS NOT NULL) OR (\"subtitle_assets\".\"status\" IN ('pending', 'ready') AND \"subtitle_assets\".\"error_code\" IS NULL)"
+				},
+				"subtitle_asset_format": {
+					"name": "subtitle_asset_format",
+					"value": "\"subtitle_assets\".\"format\" IN ('webvtt', 'srt', 'ass', 'ssa')"
+				},
+				"subtitle_stream_index": {
+					"name": "subtitle_stream_index",
+					"value": "\"subtitle_assets\".\"stream_index\" >= 0"
+				},
+				"subtitle_asset_size": {
+					"name": "subtitle_asset_size",
+					"value": "\"subtitle_assets\".\"size_bytes\" IS NULL OR \"subtitle_assets\".\"size_bytes\" >= 0"
+				},
+				"subtitle_asset_state": {
+					"name": "subtitle_asset_state",
+					"value": "\"subtitle_assets\".\"status\" IN ('pending', 'ready', 'failed')"
+				}
+			}
+		},
+		"subtitle_font_assets": {
+			"name": "subtitle_font_assets",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"set_id": {
+					"name": "set_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"stream_index": {
+					"name": "stream_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"format": {
+					"name": "format",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"family": {
+					"name": "family",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"size_bytes": {
+					"name": "size_bytes",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"digest": {
+					"name": "digest",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"subtitle_font_attachment": {
+					"name": "subtitle_font_attachment",
+					"columns": ["set_id", "stream_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"subtitle_font_assets_set_id_subtitle_font_sets_id_fk": {
+					"name": "subtitle_font_assets_set_id_subtitle_font_sets_id_fk",
+					"tableFrom": "subtitle_font_assets",
+					"tableTo": "subtitle_font_sets",
+					"columnsFrom": ["set_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"subtitle_font_stream": {
+					"name": "subtitle_font_stream",
+					"value": "\"subtitle_font_assets\".\"stream_index\" >= 0"
+				},
+				"subtitle_font_size": {
+					"name": "subtitle_font_size",
+					"value": "\"subtitle_font_assets\".\"size_bytes\" > 0"
+				},
+				"subtitle_font_format": {
+					"name": "subtitle_font_format",
+					"value": "\"subtitle_font_assets\".\"format\" IN ('ttf', 'otf')"
+				}
+			}
+		},
+		"subtitle_font_sets": {
+			"name": "subtitle_font_sets",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"source_id": {
+					"name": "source_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"subtitle_font_source": {
+					"name": "subtitle_font_source",
+					"columns": ["source_id"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"subtitle_font_sets_source_id_media_sources_id_fk": {
+					"name": "subtitle_font_sets_source_id_media_sources_id_fk",
+					"tableFrom": "subtitle_font_sets",
+					"tableTo": "media_sources",
+					"columnsFrom": ["source_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"subtitle_font_sets_status_0": {
+					"name": "subtitle_font_sets_status_0",
+					"value": "\"subtitle_font_sets\".\"status\" IN ('pending', 'ready', 'degraded')"
+				}
+			}
+		},
+		"subtitle_font_sets_warnings": {
+			"name": "subtitle_font_sets_warnings",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"subtitle_font_sets_warnings_order": {
+					"name": "subtitle_font_sets_warnings_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"subtitle_font_sets_warnings_parent_id_subtitle_font_sets_id_fk": {
+					"name": "subtitle_font_sets_warnings_parent_id_subtitle_font_sets_id_fk",
+					"tableFrom": "subtitle_font_sets_warnings",
+					"tableTo": "subtitle_font_sets",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"subtitle_font_sets_warnings_ordinal": {
+					"name": "subtitle_font_sets_warnings_ordinal",
+					"value": "\"subtitle_font_sets_warnings\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"tracking_commands": {
+			"name": "tracking_commands",
+			"columns": {
+				"account_id": {
+					"name": "account_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"command_id": {
+					"name": "command_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"operation_id": {
+					"name": "operation_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"revision": {
+					"name": "revision",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {
+				"tracking_commands_account_id_command_id_pk": {
+					"columns": ["account_id", "command_id"],
+					"name": "tracking_commands_account_id_command_id_pk"
+				}
+			},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"tracking_command_revision": {
+					"name": "tracking_command_revision",
+					"value": "\"tracking_commands\".\"revision\" >= 0"
+				}
+			}
+		},
+		"tracking_connection": {
+			"name": "tracking_connection",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"generation": {
+					"name": "generation",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"account_id": {
+					"name": "account_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"account_name": {
+					"name": "account_name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"credential_id": {
+					"name": "credential_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"state": {
+					"name": "state",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"checked_at": {
+					"name": "checked_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"tracking_connection_singleton": {
+					"name": "tracking_connection_singleton",
+					"value": "\"tracking_connection\".\"id\" = 1"
+				},
+				"tracking_connection_state": {
+					"name": "tracking_connection_state",
+					"value": "\"tracking_connection\".\"state\" IN ('disconnected', 'connected', 'authorization-required')"
+				},
+				"tracking_connection_account": {
+					"name": "tracking_connection_account",
+					"value": "(\"tracking_connection\".\"account_id\" IS NULL) = (\"tracking_connection\".\"account_name\" IS NULL)"
+				},
+				"tracking_connection_credentials": {
+					"name": "tracking_connection_credentials",
+					"value": "\"tracking_connection\".\"state\" <> 'connected' OR (\"tracking_connection\".\"account_id\" IS NOT NULL AND \"tracking_connection\".\"credential_id\" IS NOT NULL)"
+				}
+			}
+		},
+		"tracking_intent_versions": {
+			"name": "tracking_intent_versions",
+			"columns": {
+				"account_id": {
+					"name": "account_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"media_id": {
+					"name": "media_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"manual_version": {
+					"name": "manual_version",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": 0
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {
+				"tracking_intent_versions_account_id_media_id_pk": {
+					"columns": ["account_id", "media_id"],
+					"name": "tracking_intent_versions_account_id_media_id_pk"
+				}
+			},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"tracking_manual_version": {
+					"name": "tracking_manual_version",
+					"value": "\"tracking_intent_versions\".\"manual_version\" >= 0"
+				}
+			}
+		},
+		"tracking_list_cache": {
+			"name": "tracking_list_cache",
+			"columns": {
+				"invalidated": {
+					"name": "invalidated",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"account_id": {
+					"name": "account_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"fetched_at": {
+					"name": "fetched_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"tracking_list_cache_invalidated_0": {
+					"name": "tracking_list_cache_invalidated_0",
+					"value": "\"tracking_list_cache\".\"invalidated\" IN (0, 1)"
+				}
+			}
+		},
+		"tracking_list_cache_entries": {
+			"name": "tracking_list_cache_entries",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"media_id": {
+					"name": "media_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"progress": {
+					"name": "progress",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"format": {
+					"name": "format",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"year": {
+					"name": "year",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"episode_count": {
+					"name": "episode_count",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"cover_url": {
+					"name": "cover_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"tracking_list_entry_media": {
+					"name": "tracking_list_entry_media",
+					"columns": ["parent_id", "media_id"],
+					"isUnique": true
+				},
+				"tracking_list_cache_entries_order": {
+					"name": "tracking_list_cache_entries_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"tracking_list_cache_entries_parent_id_tracking_list_cache_account_id_fk": {
+					"name": "tracking_list_cache_entries_parent_id_tracking_list_cache_account_id_fk",
+					"tableFrom": "tracking_list_cache_entries",
+					"tableTo": "tracking_list_cache",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["account_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"tracking_list_cache_entries_ordinal": {
+					"name": "tracking_list_cache_entries_ordinal",
+					"value": "\"tracking_list_cache_entries\".\"ordinal_index\" >= 0"
+				},
+				"tracking_list_cache_entries_progress_0": {
+					"name": "tracking_list_cache_entries_progress_0",
+					"value": "\"tracking_list_cache_entries\".\"progress\" >= 0"
+				},
+				"tracking_list_cache_entries_status_0": {
+					"name": "tracking_list_cache_entries_status_0",
+					"value": "\"tracking_list_cache_entries\".\"status\" IN ('watching', 'planned', 'completed', 'paused', 'dropped', 'rewatching')"
+				}
+			}
+		},
+		"tracking_list_cache_entries_titles": {
+			"name": "tracking_list_cache_entries_titles",
+			"columns": {
+				"row_id": {
+					"name": "row_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"parent_id": {
+					"name": "parent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ordinal_index": {
+					"name": "ordinal_index",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"value": {
+					"name": "value",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"tracking_list_cache_entries_titles_order": {
+					"name": "tracking_list_cache_entries_titles_order",
+					"columns": ["parent_id", "ordinal_index"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"tracking_list_cache_entries_titles_parent_id_tracking_list_cache_entries_row_id_fk": {
+					"name": "tracking_list_cache_entries_titles_parent_id_tracking_list_cache_entries_row_id_fk",
+					"tableFrom": "tracking_list_cache_entries_titles",
+					"tableTo": "tracking_list_cache_entries",
+					"columnsFrom": ["parent_id"],
+					"columnsTo": ["row_id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"tracking_list_cache_entries_titles_ordinal": {
+					"name": "tracking_list_cache_entries_titles_ordinal",
+					"value": "\"tracking_list_cache_entries_titles\".\"ordinal_index\" >= 0"
+				}
+			}
+		},
+		"tracking_operations": {
+			"name": "tracking_operations",
+			"columns": {
+				"origin": {
+					"name": "origin",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"command_id": {
+					"name": "command_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"intent_at": {
+					"name": "intent_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"target_present": {
+					"name": "target_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"target_file_id": {
+					"name": "target_file_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"target_source_version": {
+					"name": "target_source_version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"target_review_id": {
+					"name": "target_review_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"target_mapping_revision": {
+					"name": "target_mapping_revision",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"target_episode_id": {
+					"name": "target_episode_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"target_media_id": {
+					"name": "target_media_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"target_episode": {
+					"name": "target_episode",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"decision_reason": {
+					"name": "decision_reason",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"account_id": {
+					"name": "account_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"media_id": {
+					"name": "media_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"revision": {
+					"name": "revision",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"baseline_present": {
+					"name": "baseline_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"baseline_id": {
+					"name": "baseline_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"baseline_progress": {
+					"name": "baseline_progress",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"baseline_status": {
+					"name": "baseline_status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"baseline_updated_at": {
+					"name": "baseline_updated_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"desired_progress": {
+					"name": "desired_progress",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"desired_status": {
+					"name": "desired_status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"state": {
+					"name": "state",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"remote_present": {
+					"name": "remote_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"remote_id": {
+					"name": "remote_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"remote_progress": {
+					"name": "remote_progress",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"remote_status": {
+					"name": "remote_status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"remote_updated_at": {
+					"name": "remote_updated_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"attempt_present": {
+					"name": "attempt_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"attempt_revision": {
+					"name": "attempt_revision",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"attempt_baseline_present": {
+					"name": "attempt_baseline_present",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"attempt_baseline_id": {
+					"name": "attempt_baseline_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"attempt_baseline_progress": {
+					"name": "attempt_baseline_progress",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"attempt_baseline_status": {
+					"name": "attempt_baseline_status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"attempt_baseline_updated_at": {
+					"name": "attempt_baseline_updated_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"attempt_desired_progress": {
+					"name": "attempt_desired_progress",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"attempt_desired_status": {
+					"name": "attempt_desired_status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"attempts": {
+					"name": "attempts",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"retry_at": {
+					"name": "retry_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"error": {
+					"name": "error",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"tracking_operations_account_media": {
+					"name": "tracking_operations_account_media",
+					"columns": ["account_id", "media_id"],
+					"isUnique": true
+				},
+				"tracking_operations_due": {
+					"name": "tracking_operations_due",
+					"columns": ["account_id", "state", "retry_at"],
+					"isUnique": false
 				}
 			},
 			"foreignKeys": {},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {},
-			"checkConstraints": {}
+			"checkConstraints": {
+				"tracking_operations_origin_0": {
+					"name": "tracking_operations_origin_0",
+					"value": "\"tracking_operations\".\"origin\" IN ('manual-detail', 'manual-player', 'automatic')"
+				},
+				"tracking_operations_target_present_0": {
+					"name": "tracking_operations_target_present_0",
+					"value": "\"tracking_operations\".\"target_present\" IN (0, 1)"
+				},
+				"tracking_operations_target_mapping_revision_0": {
+					"name": "tracking_operations_target_mapping_revision_0",
+					"value": "\"tracking_operations\".\"target_mapping_revision\" >= 0"
+				},
+				"tracking_operations_target_episode_0": {
+					"name": "tracking_operations_target_episode_0",
+					"value": "\"tracking_operations\".\"target_episode\" >= 1"
+				},
+				"tracking_operations_decision_reason_0": {
+					"name": "tracking_operations_decision_reason_0",
+					"value": "\"tracking_operations\".\"decision_reason\" IN ('skipped-episodes', 'initial-status-required')"
+				},
+				"tracking_operations_revision_0": {
+					"name": "tracking_operations_revision_0",
+					"value": "\"tracking_operations\".\"revision\" >= 0"
+				},
+				"tracking_operations_baseline_present_0": {
+					"name": "tracking_operations_baseline_present_0",
+					"value": "\"tracking_operations\".\"baseline_present\" IN (0, 1)"
+				},
+				"tracking_operations_baseline_progress_0": {
+					"name": "tracking_operations_baseline_progress_0",
+					"value": "\"tracking_operations\".\"baseline_progress\" >= 0"
+				},
+				"tracking_operations_baseline_status_0": {
+					"name": "tracking_operations_baseline_status_0",
+					"value": "\"tracking_operations\".\"baseline_status\" IN ('watching', 'planned', 'completed', 'paused', 'dropped', 'rewatching')"
+				},
+				"tracking_operations_desired_progress_0": {
+					"name": "tracking_operations_desired_progress_0",
+					"value": "\"tracking_operations\".\"desired_progress\" >= 0"
+				},
+				"tracking_operations_desired_status_0": {
+					"name": "tracking_operations_desired_status_0",
+					"value": "\"tracking_operations\".\"desired_status\" IN ('watching', 'planned', 'completed', 'paused', 'dropped', 'rewatching')"
+				},
+				"tracking_operations_state_0": {
+					"name": "tracking_operations_state_0",
+					"value": "\"tracking_operations\".\"state\" IN ('decision-required', 'pending', 'submitting', 'failed', 'conflict', 'authorization-required', 'succeeded', 'cancelled')"
+				},
+				"tracking_operations_remote_present_0": {
+					"name": "tracking_operations_remote_present_0",
+					"value": "\"tracking_operations\".\"remote_present\" IN (0, 1)"
+				},
+				"tracking_operations_remote_progress_0": {
+					"name": "tracking_operations_remote_progress_0",
+					"value": "\"tracking_operations\".\"remote_progress\" >= 0"
+				},
+				"tracking_operations_remote_status_0": {
+					"name": "tracking_operations_remote_status_0",
+					"value": "\"tracking_operations\".\"remote_status\" IN ('watching', 'planned', 'completed', 'paused', 'dropped', 'rewatching')"
+				},
+				"tracking_operations_attempt_present_0": {
+					"name": "tracking_operations_attempt_present_0",
+					"value": "\"tracking_operations\".\"attempt_present\" IN (0, 1)"
+				},
+				"tracking_operations_attempt_revision_0": {
+					"name": "tracking_operations_attempt_revision_0",
+					"value": "\"tracking_operations\".\"attempt_revision\" >= 0"
+				},
+				"tracking_operations_attempt_baseline_present_0": {
+					"name": "tracking_operations_attempt_baseline_present_0",
+					"value": "\"tracking_operations\".\"attempt_baseline_present\" IN (0, 1)"
+				},
+				"tracking_operations_attempt_baseline_progress_0": {
+					"name": "tracking_operations_attempt_baseline_progress_0",
+					"value": "\"tracking_operations\".\"attempt_baseline_progress\" >= 0"
+				},
+				"tracking_operations_attempt_baseline_status_0": {
+					"name": "tracking_operations_attempt_baseline_status_0",
+					"value": "\"tracking_operations\".\"attempt_baseline_status\" IN ('watching', 'planned', 'completed', 'paused', 'dropped', 'rewatching')"
+				},
+				"tracking_operations_attempt_desired_progress_0": {
+					"name": "tracking_operations_attempt_desired_progress_0",
+					"value": "\"tracking_operations\".\"attempt_desired_progress\" >= 0"
+				},
+				"tracking_operations_attempt_desired_status_0": {
+					"name": "tracking_operations_attempt_desired_status_0",
+					"value": "\"tracking_operations\".\"attempt_desired_status\" IN ('watching', 'planned', 'completed', 'paused', 'dropped', 'rewatching')"
+				},
+				"tracking_operations_attempts_0": {
+					"name": "tracking_operations_attempts_0",
+					"value": "\"tracking_operations\".\"attempts\" >= 0"
+				}
+			}
 		}
 	},
 	"views": {},
 	"enums": {},
 	"_meta": {
-		"schemas": {},
 		"tables": {},
 		"columns": {}
 	},
@@ -232,5 +6995,7 @@
 				}
 			}
 		}
-	}
+	},
+	"id": "8f44326f-10c9-4e26-b6c3-ea483a9935c0",
+	"prevId": "00000000-0000-0000-0000-000000000000"
 }

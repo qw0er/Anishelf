@@ -231,7 +231,23 @@ async function observing() {
 		repository: database.playback,
 		logger,
 		now: () => now,
-		completionObserver: { capture: async () => "target", submit },
+		completionObserver: {
+			capture: async () =>
+				JSON.stringify({
+					version: 2,
+					accountId: "account",
+					generation: "generation",
+					manualVersion: 0,
+					fileId: "file",
+					sourceVersion: "v1",
+					reviewId: "review",
+					mappingRevision: 1,
+					episodeId: "episode",
+					mediaId: "media",
+					episode: 1,
+				}),
+			submit,
+		},
 	});
 	return submit;
 }
@@ -349,10 +365,41 @@ test("stale sequences cannot add observations and admission failure recovers aft
 		repository: database.playback,
 		logger,
 		now: () => now,
-		completionObserver: { capture: async () => "target", submit },
+		completionObserver: {
+			capture: async () =>
+				JSON.stringify({
+					version: 2,
+					accountId: "account",
+					generation: "generation",
+					manualVersion: 0,
+					fileId: "file",
+					sourceVersion: "v1",
+					reviewId: "review",
+					mappingRevision: 1,
+					episodeId: "episode",
+					mediaId: "media",
+					episode: 1,
+				}),
+			submit,
+		},
 	});
 	await vi.waitFor(() =>
 		expect(database.playback.completions()[0]?.outcome.state).toBe("accepted"),
 	);
-	expect(submit).toHaveBeenLastCalledWith("target", id);
+	expect(submit).toHaveBeenLastCalledWith(
+		JSON.stringify({
+			version: 2,
+			accountId: "account",
+			generation: "generation",
+			manualVersion: 0,
+			fileId: "file",
+			sourceVersion: "v1",
+			reviewId: "review",
+			mappingRevision: 1,
+			episodeId: "episode",
+			mediaId: "media",
+			episode: 1,
+		}),
+		id,
+	);
 });

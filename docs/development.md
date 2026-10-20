@@ -334,7 +334,7 @@ explicit account confirmation, connectivity checks and local disconnect. Normal
 users do not run the diagnostic CLI. Business endpoints live under
 `/api/tracking/account` and reuse the existing session/CSRF guards.
 
-SQLite migration 0011 stores the sanitized connection; private 0600 credential
+SQLite stores the sanitized connection; private 0600 credential
 files live under `<dataDir>/tracking-credentials/` in a 0700 directory. Back up the
 SQLite database and private files consistently while stopped; a missing or
 mismatched credential requires reconnection. Never log or check these files into
@@ -381,12 +381,9 @@ whole previous index. Removing a root hides its resources without deleting accep
 Catalog associations or playback history. Empty configurations do not start a scan.
 Manual settings-file changes require restart; Web saves take effect immediately.
 
-Migration 0016 scopes legacy file IDs and preserves durable source IDs, history and
-foreign keys. Resources supplies the SQLite identity functions registered by app
-before Drizzle runs; apply migrations through normal application startup. Browser
-file IDs change on upgrade; existing stored media links remain scoped to their old
-file IDs and should be regenerated. Generated media/subtitle cache identities may
-require fresh preparation. Missing media tools do not block direct playback.
+Resources registers scoped source identities directly. The database stores the
+current relational format only; old database formats are rejected without upgrade
+or automatic replacement. Missing media tools do not block direct playback.
 
 ## Development Proxy and Hosting
 
@@ -447,6 +444,10 @@ five-second shutdown limit; failure sets a nonzero exit code.
 
 The backend opens dataDir/anishelf.sqlite and applies committed versioned SQL
 migrations from backend/migrations. Ship that directory alongside backend/dist.
+The [relational persistence design](database-design.md) documents all 32 original
+tables and the current schema, including constraints, restart verification and
+rejection of unsupported formats. There is no historical database upgrade path.
+
 Generate changes with `npm run db:generate --workspace backend`, review generated
 SQL and metadata, and commit them; never use destructive schema push at runtime.
 
@@ -544,15 +545,11 @@ prepared files are not deleted or globally invalidated. Real FFmpeg regression
 covers proportional-width rounding, exact output validation and stereo conversion;
 persistence tests cover restart reuse and existing single-audio snapshot migration.
 
-## Preparation lifecycle migration
+## Preparation lifecycle persistence
 
-Batch 3 adds `0005_preparation_lifecycle.sql`. Startup applies it transactionally:
-it preserves task/source/profile identities, plan IDs, artifact IDs, sizes and MIME
-types while replacing duplicated request/identity snapshots with encoding-settings
-snapshot version 1. Source identity remains in the indexed source record. Completed
-media bytes are retained and checked during normal reconciliation. Existing ordered
-selections and earlier single-audio snapshot migration remain supported. Schema
-metadata is tracked alongside the custom data-preserving SQL.
+Tasks persist their immutable encoding specification as explicit columns and
+ordered selections/filters. Progress updates only change lifecycle columns.
+Old single-audio and serialized task formats are not supported.
 
 Deploy Web/backend together: task status now includes `cancelling`, and public
 progress contains `mediaTimeMs`, `percent` and `speed`. Full process telemetry stays
@@ -567,7 +564,7 @@ restart after resolving the storage/tool failure to reconcile temporary outputs.
 Completed artifacts and original-source history remain separate.
 
 Run the full check and build, including preparation concurrency, borrowing, startup
-recovery, legacy snapshot migration, Range delivery and real FFmpeg regressions.
+recovery, relational persistence, Range delivery and real FFmpeg regressions.
 Race tests pause planning, validation, publication and release to verify that
 unrelated controls proceed and terminal cancellation cannot precede cleanup.
 
@@ -772,8 +769,8 @@ submission. Position saves remain independent.
 
 Relevant suites: backend `playback-application`, `tracking-completion`, `tracking-updates`,
 `database` and account HTTP; Web `playback-session`, `playback-evidence`,
-`player-viewing-control`, `viewing-editor` and operation feedback. Migration 0015 tests
-preserve legacy pending submissions/history and explicitly terminate legacy observations.
+`player-viewing-control`, `viewing-editor` and operation feedback. Database tests
+cover the current relational format, restart persistence and unsupported-format rejection.
 The user confirmed complete iteration acceptance on 2026-10-17. The fixture checks
 remain distinct from that user-provided acceptance record.
 

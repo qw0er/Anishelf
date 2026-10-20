@@ -25,7 +25,6 @@ import {
 	MetadataError,
 	type WorkDetails,
 } from "../src/modules/anime/metadata/public.js";
-import { createResourceId } from "../src/modules/resources/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import { DomainError } from "../src/shared/errors.js";
@@ -1801,7 +1800,7 @@ test("Catalog queries and complete publications use opaque scope collections", a
 	expect(f.database.catalog.reviews([], undefined, 1, 100).items).toEqual([]);
 });
 
-test("multi-root versions preserve confirmed associations through identity upgrade, removal and restoration", async () => {
+test("multi-root versions preserve confirmed associations through removal and restoration", async () => {
 	const f = await fixture();
 	const preview = await f.catalog.preview({ reference, rows: await rows(f) });
 	const confirmed = await f.catalog.confirm({
@@ -1810,22 +1809,7 @@ test("multi-root versions preserve confirmed associations through identity upgra
 		replace: false,
 	});
 	const original = required((await f.catalog.reviews()).items[0]);
-	const { default: Database } = await import("better-sqlite3");
-	const raw = new Database(join(f.base, "data", "anishelf.sqlite"));
-	try {
-		raw
-			.prepare("UPDATE media_sources SET file_id = ? WHERE id = ?")
-			.run(createResourceId("file", original.relativePath), original.id);
-		// Rewind later schema along with its migration records.
-		raw.exec(
-			"DROP TABLE acquisition_intents; DROP TABLE acquisition_directories; DROP TABLE acquisition_authorizations; DROP TABLE acquisition_destination; DROP TABLE acquisition_candidates; DROP TABLE acquisition_subscriptions; DROP TABLE acquisition_feeds;",
-		);
-		raw
-			.prepare("DELETE FROM __drizzle_migrations WHERE created_at >= ?")
-			.run(1792252800000);
-	} finally {
-		raw.close();
-	}
+
 	await f.restart();
 	expect((await f.catalog.review(original.id)).decision).toBe("confirmed");
 	const other = join(f.base, "another-disk");

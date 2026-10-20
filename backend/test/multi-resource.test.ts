@@ -10,7 +10,6 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import Database from "better-sqlite3";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
@@ -21,7 +20,6 @@ import { LibraryIndex } from "../src/modules/resources/library/infrastructure/in
 import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import { ConfigurationService } from "../src/modules/system/configuration/application/service.js";
-import { parsePersistentSettings } from "../src/modules/system/configuration/infrastructure/persistent.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { createHttpApp } from "./support/http.js";
 import { createLibraryModule } from "./support/library.js";
@@ -311,129 +309,6 @@ test("HTTP saves and browses multiple roots and reports directory availability w
 		payload: { resourceRoots: [] },
 	});
 	expect(removed.statusCode).toBe(200);
-});
-
-test("legacy settings and file IDs upgrade without changing durable source IDs or progress", async () => {
-	expect(parsePersistentSettings('{"resourceRoot":"/old-media"}')).toEqual({
-		resourceRoots: ["/old-media"],
-	});
-	expect(parsePersistentSettings('{"resourceRoot":null}')).toEqual({
-		resourceRoots: [],
-	});
-	const base = await mkdtemp(join(tmpdir(), "anishelf-legacy-multi-root-"));
-	cleanup.push(() => rm(base, { recursive: true, force: true }));
-	const dataDir = join(base, "data");
-	ApplicationDatabase.open(dataDir).close();
-	const scopeId = resourceRootId("/legacy-media");
-	const legacyFileId = createResourceId("file", "legacy.mkv");
-	const raw = new Database(join(dataDir, "anishelf.sqlite"));
-	try {
-		raw
-			.prepare("INSERT OR IGNORE INTO resource_roots VALUES (?, ?, ?)")
-			.run(scopeId, "/legacy-media", 1);
-		raw
-			.prepare("INSERT INTO media_sources VALUES (?, ?, ?, ?, ?, ?)")
-			.run(
-				"legacy-source",
-				scopeId,
-				legacyFileId,
-				"legacy.mkv",
-				"legacy-version",
-				1,
-			);
-		raw
-			.prepare(
-				"INSERT INTO playback_progress (source_id, position_ms, duration_ms, last_viewed_at_ms, generation, last_sequence) VALUES (?, ?, ?, ?, ?, ?)",
-			)
-			.run("legacy-source", 12345, 60000, 10, 1, 1);
-		const target = {
-			fileId: legacyFileId,
-			sourceVersion: "legacy-version",
-			reviewId: "legacy-source",
-			mappingRevision: 7,
-			episodeId: "episode-1",
-			mediaId: 9,
-			episode: 1,
-		};
-		raw
-			.prepare(
-				"INSERT INTO playback_completions (id, source_id, context, outcome) VALUES (?, ?, ?, ?)",
-			)
-			.run(
-				"observation-1",
-				"legacy-source",
-				JSON.stringify({
-					...target,
-					accountId: 7,
-					generation: "generation-1",
-					manualVersion: 0,
-				}),
-				JSON.stringify({ state: "pending", reason: "observation-recorded" }),
-			);
-		const operation = {
-			id: "operation-1",
-			accountId: 7,
-			mediaId: 9,
-			origin: "manual-player",
-			commandId: "command-1",
-			intentAt: 100,
-			target,
-			decisionReason: null,
-			revision: 2,
-			baseline: null,
-			desired: { progress: 1 },
-			state: "pending",
-			remote: null,
-			attempt: null,
-			attempts: 0,
-			retryAt: null,
-			error: null,
-			updatedAt: 100,
-		};
-		raw
-			.prepare(
-				"INSERT INTO tracking_operations (id, account_id, media_id, operation) VALUES (?, ?, ?, ?)",
-			)
-			.run("operation-1", "7", "9", JSON.stringify(operation));
-		// This fixture replays all migrations after the legacy identity schema.
-		raw.exec(
-			"DROP TABLE acquisition_intents; DROP TABLE acquisition_directories; DROP TABLE acquisition_authorizations; DROP TABLE acquisition_destination; DROP TABLE acquisition_candidates; DROP TABLE acquisition_subscriptions; DROP TABLE acquisition_feeds;",
-		);
-		raw
-			.prepare("DELETE FROM __drizzle_migrations WHERE created_at >= ?")
-			.run(1792252800000);
-	} finally {
-		raw.close();
-	}
-	const upgraded = ApplicationDatabase.open(dataDir);
-	try {
-		const source = upgraded.playback.registerSource({
-			scopeId,
-			fileId: createResourceId("file", "legacy.mkv", scopeId),
-			relativePath: "legacy.mkv",
-			sourceVersion: "legacy-version",
-		});
-		expect(source.id).toBe("legacy-source");
-		expect(upgraded.playback.get(source.id)?.positionMs).toBe(12345);
-		const fileId = createResourceId("file", "legacy.mkv", scopeId);
-		expect(
-			JSON.parse(upgraded.playback.completions()[0]?.context as string),
-		).toMatchObject({
-			fileId,
-			mappingRevision: 7,
-			reviewId: "legacy-source",
-		});
-		expect(upgraded.trackingOperations.list("anilist:7")[0]).toMatchObject({
-			id: "operation-1",
-			commandId: "command-1",
-			revision: 2,
-			desired: { progress: 1 },
-			state: "pending",
-			target: { fileId, mappingRevision: 7 },
-		});
-	} finally {
-		upgraded.close();
-	}
 });
 
 test("plural startup initialization validates all paths and preserves existing settings", async () => {
