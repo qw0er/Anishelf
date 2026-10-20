@@ -1,7 +1,9 @@
 [Unit]
+PartOf=anishelf.target
 Description=Anishelf optional qBittorrent
 
 [Container]
+# Pin the required qBittorrent 5.x image tag here.
 Image=docker.io/linuxserver/qbittorrent:latest
 ContainerName=anishelf-qbittorrent
 Network=anishelf.network
@@ -11,12 +13,18 @@ User=0
 Group=0
 Environment=PUID=1000
 Environment=PGID=1000
+# Internal WebUI/API port; keep 8080 when only changing the host port.
 Environment=WEBUI_PORT=8080
+# Peer port: change this and both TCP/UDP PublishPort entries together.
 Environment=TORRENTING_PORT=6881
 Volume=anishelf-qbittorrent-config.volume:/config
+# For host media, use the same path as Backend: /absolute/media:/data/media:z.
 Volume=anishelf-media.volume:/data/media
 Volume=anishelf-qbittorrent-incomplete.volume:/data/incomplete
+# WebUI host address:host port:container port; edit the first two fields.
+# Set Anishelf Settings WebUI URL to the browser-reachable address.
 PublishPort=127.0.0.1:8080:8080
+# Peer host/container ports must match TORRENTING_PORT (TCP and UDP).
 PublishPort=6881:6881
 PublishPort=6881:6881/udp
 Entrypoint=/bin/sh
@@ -28,4 +36,4 @@ TimeoutStartSec=900
 TimeoutStopSec=45
 
 [Install]
-WantedBy=default.target
+WantedBy=anishelf.target
