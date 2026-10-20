@@ -1,0 +1,31 @@
+[Unit]
+Description=Anishelf optional qBittorrent
+
+[Container]
+Image=docker.io/linuxserver/qbittorrent:latest
+ContainerName=anishelf-qbittorrent
+Network=anishelf.network
+NetworkAlias=qbittorrent
+UserNS=keep-id:uid=1000,gid=1000
+User=0
+Group=0
+Environment=PUID=1000
+Environment=PGID=1000
+Environment=WEBUI_PORT=8080
+Environment=TORRENTING_PORT=6881
+Volume=anishelf-qbittorrent-config.volume:/config
+Volume=anishelf-media.volume:/data/media
+Volume=anishelf-qbittorrent-incomplete.volume:/data/incomplete
+PublishPort=127.0.0.1:8080:8080
+PublishPort=6881:6881
+PublishPort=6881:6881/udp
+Entrypoint=/bin/sh
+Exec=-ec "mkdir -p /data/media /data/incomplete; chown 1000:1000 /data/media /data/incomplete; echo 'qBittorrent media and incomplete mount roots initialized.'; exec /init"
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+TimeoutStopSec=45
+
+[Install]
+WantedBy=default.target
