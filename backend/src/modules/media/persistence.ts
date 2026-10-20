@@ -27,3 +27,7 @@ export function createMediaPersistence(
 		subtitles: new SubtitleRepository(store, sources),
 	};
 }
+
+export * from "./preparation/infrastructure/schema.js";
+
+export * from "./subtitles/infrastructure/schema.js";

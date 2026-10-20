@@ -1,7 +1,9 @@
 import { and, eq, gt, lte } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import type { AuthenticationStore } from "../ports.js";
+import { readAuthSessions, writeAuthSessions } from "./records.js";
 import { authSessions, mediaAccessLinks } from "./schema.js";
+import type { SessionRecord } from "./session-record.js";
 export class AuthenticationRepository implements AuthenticationStore {
 	constructor(private readonly store: Store) {}
 
@@ -10,22 +12,24 @@ export class AuthenticationRepository implements AuthenticationStore {
 			.delete(authSessions)
 			.where(lte(authSessions.expiresAt, Date.now()))
 			.run();
-		this.store
-			.insert(authSessions)
-			.values({ id, data, expiresAt })
-			.onConflictDoUpdate({
-				target: authSessions.id,
-				set: { data, expiresAt },
-			})
-			.run();
+		const value = JSON.parse(data) as Omit<SessionRecord, "id" | "expiresAt">;
+		writeAuthSessions(this.store, { ...value, id, expiresAt });
 	}
 	readSession(id: string, now: number) {
-		return this.store
+		const row = this.store
 			.select()
 			.from(authSessions)
 			.where(and(eq(authSessions.id, id), gt(authSessions.expiresAt, now)))
-			.get()?.data;
+			.get();
+		if (!row) return undefined;
+		const {
+			id: _id,
+			expiresAt: _expiresAt,
+			...value
+		} = readAuthSessions(this.store, row);
+		return JSON.stringify(value);
 	}
+
 	deleteSession(id: string) {
 		this.store.delete(authSessions).where(eq(authSessions.id, id)).run();
 	}

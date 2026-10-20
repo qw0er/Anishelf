@@ -23,10 +23,7 @@ import {
 	createPlaybackPersistence,
 	type PlaybackPersistence,
 } from "../../modules/playback/persistence.js";
-import {
-	createResourcesPersistence,
-	resourceIdentityMigrationFunctions,
-} from "../../modules/resources/persistence.js";
+import { createResourcesPersistence } from "../../modules/resources/persistence.js";
 import { createAuthenticationPersistence } from "../../modules/system/persistence.js";
 import type { AuthenticationStore } from "../../modules/system/public.js";
 import { adapterPolicy } from "../../platform/adapter-policy.js";
@@ -81,22 +78,33 @@ export class ApplicationDatabase {
 		mkdirSync(dataDir, { recursive: true, mode: storageRules.directoryMode });
 		const connection = new Database(join(dataDir, storageRules.databaseFile));
 		try {
+			const schemaVersion = connection.pragma("user_version", { simple: true });
+			const existingTables = connection
+				.prepare(
+					"SELECT count(*) AS count FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
+				)
+				.get() as { count: number };
+			if (
+				(schemaVersion !== 0 && schemaVersion !== 1) ||
+				(existingTables.count > 0 && schemaVersion !== 1)
+			)
+				throw new Error(
+					"Unsupported database format. This application requires a new relational database; existing files were preserved.",
+				);
 			connection.pragma(adapterPolicy.sqlite.foreignKeys);
 			connection.pragma(
 				`busy_timeout = ${policy.database.databaseBusyTimeoutMs}`,
 			);
 			connection.pragma(adapterPolicy.sqlite.journal);
 			connection.pragma(adapterPolicy.sqlite.synchronous);
-			for (const [name, implementation] of Object.entries(
-				resourceIdentityMigrationFunctions,
-			))
-				connection.function(name, { deterministic: true }, implementation);
 			const store = drizzle(connection, { schema });
 			migrate(store, {
 				migrationsFolder: fileURLToPath(
 					new URL("../../../migrations/", import.meta.url),
 				),
 			});
+			if ((connection.pragma("foreign_key_check") as unknown[]).length)
+				throw new Error("Database schema contains invalid foreign keys.");
 			return new ApplicationDatabase(connection, store, policy);
 		} catch (error) {
 			connection.close();
@@ -116,7 +124,10 @@ export function openDatabase(
 ): ApplicationDatabase {
 	try {
 		const database = ApplicationDatabase.open(dataDir, policy);
-		logger.info({ event: "database.ready" }, "Database migrations applied.");
+		logger.info(
+			{ event: "database.ready", schemaVersion: 1 },
+			"Relational database is ready.",
+		);
 		return database;
 	} catch (err) {
 		logger.error(

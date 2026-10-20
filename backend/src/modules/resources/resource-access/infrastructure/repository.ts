@@ -56,7 +56,6 @@ export class SourceRepository {
 				tx.insert(resourceRoots)
 					.values({
 						id: rootId,
-						canonicalPath: `scope:${rootId}`,
 						createdAtMs: nowMs,
 					})
 					.onConflictDoNothing()

@@ -84,7 +84,7 @@ not existing transfers/imports. AniList status has no automatic acquisition effe
 
 ## Persistence and Commands
 
-Migration `0019` adds destination, permissions, work directories and intent tables.
+The current schema defines destination, permission, work-directory and intent tables.
 Intent records are independent of subscription foreign keys, so removal does not
 lose in-flight tasks. Unique indexes reserve work/episode and canonical torrent
 hashes. Unresolved release identities receive a provisional unique reservation
@@ -95,8 +95,9 @@ Download persistence provides work-scoped activity pagination and aggregate coun
 indexed work/episode and hash reservation lookups, and cursor-ordered due-task batches.
 The worker loads at most two intent payloads per batch, while including available
 sources for subsequent availability checks. Idle detection uses an existence query.
-Retention redacts terminal detail in SQL and preserves reservations. JSON state filters
-and activity ordering still run in SQLite; this change does not establish a load benchmark.
+Retention redacts terminal detail in SQL and preserves reservations. State filters,
+retry deadlines and activity ordering use explicit columns and indexes in the current schema. See [Relational persistence](database-design.md). These
+changes do not establish a load benchmark.
 
 Private intent evidence includes source URL, expected feed hash, canonical hash,
 destination snapshot, stable directory, accepted subscription revision, submission

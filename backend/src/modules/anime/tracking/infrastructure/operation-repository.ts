@@ -2,6 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import type { TrackingOperation } from "../domain/operation.js";
 import type { TrackingOperationStore } from "../ports.js";
+import { readTrackingOperations, writeTrackingOperations } from "./records.js";
 import {
 	trackingCommands,
 	trackingIntentVersions,
@@ -15,7 +16,7 @@ export class TrackingOperationRepository implements TrackingOperationStore {
 			.from(trackingOperations)
 			.where(eq(trackingOperations.accountId, accountId))
 			.all()
-			.map((row) => row.operation);
+			.map((row) => readTrackingOperations(this.store, row));
 	}
 	manualVersion(accountId: string, mediaId: string): number {
 		return (
@@ -85,15 +86,6 @@ export class TrackingOperationRepository implements TrackingOperationStore {
 			.run();
 	}
 	save(operation: TrackingOperation): void {
-		this.store
-			.insert(trackingOperations)
-			.values({
-				id: operation.id,
-				accountId: operation.accountId,
-				mediaId: operation.mediaId,
-				operation,
-			})
-			.onConflictDoUpdate({ target: trackingOperations.id, set: { operation } })
-			.run();
+		writeTrackingOperations(this.store, operation);
 	}
 }

@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { preparedSubtitleFormats } from "../../../../contracts/subtitles.js";
 import { mediaSources } from "../../../resources/persistence.js";
+
 export const subtitleAssets = sqliteTable(
 	"subtitle_assets",
 	{
@@ -35,6 +36,18 @@ export const subtitleAssets = sqliteTable(
 		updatedAtMs: integer("updated_at_ms").notNull(),
 	},
 	(table) => [
+		check(
+			"subtitle_asset_error",
+			sql`${table.errorCode} IN ('SUBTITLE_EXTRACTION_FAILED', 'SUBTITLE_TOOL_UNAVAILABLE', 'SUBTITLE_TOO_LARGE', 'SUBTITLE_CACHE_FULL', 'PLAYBACK_CONFLICT', 'SUBTITLE_INTERRUPTED')`,
+		),
+		check(
+			"subtitle_asset_result",
+			sql`(${table.status} = 'failed' AND ${table.errorCode} IS NOT NULL) OR (${table.status} IN ('pending', 'ready') AND ${table.errorCode} IS NULL)`,
+		),
+		check(
+			"subtitle_asset_format",
+			sql`${table.format} IN ('webvtt', 'srt', 'ass', 'ssa')`,
+		),
 		uniqueIndex("subtitle_asset_identity").on(
 			table.sourceId,
 			table.trackId,
@@ -49,27 +62,6 @@ export const subtitleAssets = sqliteTable(
 		check(
 			"subtitle_asset_state",
 			sql`${table.status} IN ('pending', 'ready', 'failed')`,
-		),
-	],
-);
-
-export const subtitleFontSets = sqliteTable(
-	"subtitle_font_sets",
-	{
-		id: text("id").primaryKey(),
-		sourceId: text("source_id")
-			.notNull()
-			.references(() => mediaSources.id, { onDelete: "restrict" }),
-		status: text("status", {
-			enum: ["pending", "ready", "degraded"],
-		}).notNull(),
-		warnings: text("warnings", { mode: "json" }).$type<string[]>().notNull(),
-	},
-	(table) => [
-		index("subtitle_font_source").on(table.sourceId),
-		check(
-			"subtitle_font_set_status",
-			sql`${table.status} IN ('pending', 'ready', 'degraded')`,
 		),
 	],
 );
@@ -92,5 +84,46 @@ export const subtitleFontAssets = sqliteTable(
 		check("subtitle_font_stream", sql`${table.streamIndex} >= 0`),
 		check("subtitle_font_size", sql`${table.sizeBytes} > 0`),
 		check("subtitle_font_format", sql`${table.format} IN ('ttf', 'otf')`),
+	],
+);
+
+export const subtitleFontSets = sqliteTable(
+	"subtitle_font_sets",
+	{
+		id: text("id").primaryKey().notNull(),
+		sourceId: text("source_id")
+			.notNull()
+			.references(() => mediaSources.id, { onDelete: "restrict" }),
+		status: text("status", {
+			enum: ["pending", "ready", "degraded"],
+		}).notNull(),
+	},
+	(table) => [
+		check(
+			"subtitle_font_sets_status_0",
+			sql`${table.status} IN ('pending', 'ready', 'degraded')`,
+		),
+		index("subtitle_font_source").on(table.sourceId),
+	],
+);
+export const subtitleFontSetsWarnings = sqliteTable(
+	"subtitle_font_sets_warnings",
+	{
+		rowId: text("row_id").primaryKey(),
+		parentId: text("parent_id")
+			.notNull()
+			.references(() => subtitleFontSets.id, { onDelete: "cascade" }),
+		ordinalIndex: integer("ordinal_index").notNull(),
+		value: text("value").notNull(),
+	},
+	(table) => [
+		check(
+			"subtitle_font_sets_warnings_ordinal",
+			sql`${table.ordinalIndex} >= 0`,
+		),
+		uniqueIndex("subtitle_font_sets_warnings_order").on(
+			table.parentId,
+			table.ordinalIndex,
+		),
 	],
 );

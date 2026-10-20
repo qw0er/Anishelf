@@ -72,13 +72,17 @@ export class MetadataCacheReader {
 		signal.throwIfAborted();
 		if (options.refresh && options.cachedOnly)
 			throw this.invalid("Refresh cannot be combined with cached-only reads.");
-		const key = JSON.stringify([
-			provider.capabilities.key,
-			provider.capabilities.version,
-			policy.projectionVersion,
-			kind,
-			request,
-		]);
+		const key = createHash("sha256")
+			.update(
+				JSON.stringify([
+					provider.capabilities.key,
+					provider.capabilities.version,
+					policy.projectionVersion,
+					kind,
+					request,
+				]),
+			)
+			.digest("hex");
 		const cached = this.store(() => this.options.store.find(key));
 		this.options.logger.trace(
 			{
@@ -106,15 +110,27 @@ export class MetadataCacheReader {
 				this.expiresAt(cached) <= this.now() &&
 				(!cached.failure?.retryAt || cached.failure.retryAt <= this.now())
 			) {
-				void this.subscribe(key, kind, load, ttl, this.lifetime.signal).catch(
-					() => {},
-				);
+				void this.subscribe(
+					key,
+					kind,
+					load,
+					ttl,
+					this.lifetime.signal,
+					provider.capabilities.key,
+				).catch(() => {});
 			}
 			return this.envelope<T>(cached);
 		}
 		try {
 			return this.envelope<T>(
-				await this.subscribe(key, kind, load, ttl, signal),
+				await this.subscribe(
+					key,
+					kind,
+					load,
+					ttl,
+					signal,
+					provider.capabilities.key,
+				),
 			);
 		} catch (error) {
 			signal.throwIfAborted();
@@ -149,6 +165,7 @@ export class MetadataCacheReader {
 		load: (signal: AbortSignal) => Promise<ProviderResult<T>>,
 		ttl: (data: T) => number,
 		signal: AbortSignal,
+		provider: string,
 	): Promise<CacheEntry> {
 		signal.throwIfAborted();
 		let pending = this.pending.get(key);
@@ -165,7 +182,6 @@ export class MetadataCacheReader {
 				});
 			const started = performance.now();
 			const requestId = createHash("sha256").update(key).digest("hex");
-			const provider = JSON.parse(key)[0] as string;
 			this.options.logger.debug(
 				{ event: "metadata.refresh_started", requestId, provider, kind },
 				"Metadata refresh started.",
@@ -189,7 +205,6 @@ export class MetadataCacheReader {
 						key,
 						kind,
 						data: result.data,
-						raw: result.raw,
 						fetchedAt: now,
 						expiresAt: now + ttl(result.data),
 						accessedAt: now,

@@ -97,8 +97,8 @@ The backend source has six responsibility roots:
 
 `modules/acquisition` contains the [qBittorrent adapter and manual account settings](qbittorrent-adapter.md)
 with an Acquisition-owned contract, private credential file, HTTP routes and
-bootstrap/shutdown integration. Its [RSS discovery](rss-subscriptions.md) owns three
-SQLite tables and bounded background workers. Anime supplies a provider-neutral
+bootstrap/shutdown integration. Its [RSS discovery](rss-subscriptions.md) owns Feed, Subscription and Candidate
+records and their ordered collection tables and bounded background workers. Anime supplies a provider-neutral
 release-assessment API and Catalog supplies current episode availability; remote
 releases never impersonate local source identities.
 The [current acquisition architecture](current-architecture.md) adds durable download
@@ -126,7 +126,7 @@ contracts. Their Applications depend on consumer-owned ports, not provider
 implementations or the AniList transport. Provider descriptors, credential-entry authorization, capabilities and adapters
 are injected into Tracking during assembly. AniList is the production provider.
 See [Provider-independent anime integration](tracking-provider-design.md) for
-identity encoding, mapping outcomes, provider replacement and migration 0017.
+identity encoding, mapping outcomes and provider replacement.
 
 `tracking/application/tracking.ts` owns the named `TrackingModule` facade and its
 ordered submission/list/account shutdown. `tracking/application/account.ts` coordinates
@@ -183,6 +183,8 @@ provide schema and structural storage ports; they do not publish repository
 classes. `app/schema.ts` aggregates root schema entries for Drizzle initialization
 and migration tooling. Database connections remain in app/platform. Schema changes use explicit Drizzle migrations; supported upgrades preserve
 source identities, playback history and accepted submission intent.
+[Relational persistence](database-design.md) documents the complete table audit,
+normalized records, constraints and current-only database initialization.
 
 ### Application responsibilities
 
@@ -230,18 +232,11 @@ access revision before returning a transient tool input. Media never reconstruct
 an original-media path from a root. Sidecar discovery retains bounded relative
 directory reads through `ResourceFiles`.
 
-Durable source/root primary keys remain unchanged, preserving history and
-associations. Migration 0016 scopes legacy file lookup IDs by directory, updates
-recognition, durable observation and Tracking target file IDs, and preserves every
-source primary key and foreign
-key. App registers Resources-owned deterministic SQLite identity functions before
-Drizzle migration; registry reads use the unique scope/file/version identity so
-existing primary keys remain reusable. Database adapters reconstruct source identities from `media_sources`
-alone. The private legacy `resource_roots.canonical_path` unique column remains for
-database continuity; newly registered scopes store an opaque marker there, and no
-consumer interprets the column. Existing generated copies remain stored; new
-planning and subtitle cache identities use opaque scopes and can require fresh
-preparation. Source bytes and accepted Catalog decisions are unaffected.
+Durable source identity is the unique scope/file/version tuple. Database adapters
+reconstruct source identities from `media_sources`; `resource_roots` stores only
+opaque scope identity and creation time. Paths belong to configuration and confined
+Resources access. Database initialization creates the current relational schema;
+older database formats are rejected without modifying their records.
 
 Web Resources projects configuration into identity, cache scope, configured and
 ready values. App routes compose that projection, and Anime receives readiness
@@ -632,14 +627,11 @@ preparation, source resume or history.
 
 The producer stops and waits for in-flight delivery before Tracking shuts down; Tracking stops submissions,
 then list work and account access before shared provider scheduling and persistence close.
-Migration 0017 namespaces account/work/entry IDs, normalizes viewing states and remote
-timestamps, and versions observation contexts while preserving attempts and intent order.
-Legacy credential files remain readable through exact generation/account binding;
-new credential files are versioned. Paired database/credential backups support restore.
-Migration 0015 removes coverage/decision receipts, preserves history and admitted attempts,
-and explicitly terminates legacy observations that lack an intent version. Startup does
-not blindly replay those old observations. This is a migration boundary, not a current
-viewing-state limitation.
+Tracking persists provider-qualified account/work/entry IDs, normalized viewing
+states, current observation contexts and versioned credential files. Old database
+and credential encodings have no compatibility readers. Paired backups support
+restoring the same application/database format.
+
 
 
 ## Background scheduling and browser refresh

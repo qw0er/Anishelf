@@ -53,3 +53,7 @@ export function createAnimePersistence(
 		metadata: new MetadataRepository(store),
 	};
 }
+
+export * from "./anime-catalog/infrastructure/schema.js";
+export * from "./metadata/infrastructure/schema.js";
+export * from "./tracking/infrastructure/schema.js";

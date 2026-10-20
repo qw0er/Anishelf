@@ -1,4 +1,16 @@
-import { and, asc, desc, eq, gt, ne, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	gt,
+	inArray,
+	lt,
+	lte,
+	ne,
+	notInArray,
+	sql,
+} from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import type {
 	DownloadAuthorization,
@@ -6,6 +18,14 @@ import type {
 	DownloadIntent,
 } from "../domain/model.js";
 import type { DownloadStore } from "../ports.js";
+import {
+	readAcquisitionAuthorizations,
+	readAcquisitionDestination,
+	readAcquisitionIntents,
+	writeAcquisitionAuthorizations,
+	writeAcquisitionDestination,
+	writeAcquisitionIntents,
+} from "./records.js";
 import {
 	acquisitionAuthorizations as authorizations,
 	acquisitionDestination as destination,
@@ -15,30 +35,24 @@ import {
 export class DownloadRepository implements DownloadStore {
 	constructor(private readonly store: Store) {}
 	destination() {
-		return this.store.select().from(destination).get()?.data ?? null;
+		const row = this.store.select().from(destination).get();
+		if (!row) return null;
+		const { id: _id, ...value } = readAcquisitionDestination(this.store, row);
+		return value;
 	}
 	saveDestination(data: DownloadDestination) {
-		this.store
-			.insert(destination)
-			.values({ id: "default", data })
-			.onConflictDoUpdate({ target: destination.id, set: { data } })
-			.run();
+		writeAcquisitionDestination(this.store, { ...data, id: "default" });
 	}
 	authorization(workKey: string) {
-		return (
-			this.store
-				.select()
-				.from(authorizations)
-				.where(eq(authorizations.workKey, workKey))
-				.get()?.data ?? null
-		);
+		const row = this.store
+			.select()
+			.from(authorizations)
+			.where(eq(authorizations.workKey, workKey))
+			.get();
+		return row ? readAcquisitionAuthorizations(this.store, row) : null;
 	}
 	authorize(data: DownloadAuthorization) {
-		this.store
-			.insert(authorizations)
-			.values({ workKey: data.workKey, data })
-			.onConflictDoUpdate({ target: authorizations.workKey, set: { data } })
-			.run();
+		writeAcquisitionAuthorizations(this.store, data);
 	}
 	directory(workKey: string) {
 		return (
@@ -62,8 +76,8 @@ export class DownloadRepository implements DownloadStore {
 		const summary = this.store
 			.select({
 				total: sql<number>`count(*)`,
-				active: sql<number>`coalesce(sum(json_extract(${intents.data}, '$.state') not in ('available', 'missing', 'blocked')), 0)`,
-				attention: sql<number>`coalesce(sum(json_extract(${intents.data}, '$.error') is not null), 0)`,
+				active: sql<number>`coalesce(sum(${intents.state} not in ('available', 'missing', 'blocked')), 0)`,
+				attention: sql<number>`coalesce(sum(${intents.error} is not null), 0)`,
 			})
 			.from(intents)
 			.where(scope)
@@ -72,17 +86,14 @@ export class DownloadRepository implements DownloadStore {
 			.select()
 			.from(intents)
 			.where(scope)
-			.orderBy(
-				desc(sql`json_extract(${intents.data}, '$.createdAt')`),
-				asc(intents.id),
-			)
+			.orderBy(desc(intents.createdAt), asc(intents.id))
 			.limit(pageSize)
 			.offset((page - 1) * pageSize)
 			.all()
-			.map((row) => row.data);
+			.map((row) => readAcquisitionIntents(this.store, row));
 		const candidateIds = this.store
 			.select({
-				id: sql<string>`json_extract(${intents.data}, '$.candidateId')`,
+				id: intents.candidateId,
 			})
 			.from(intents)
 			.where(scope)
@@ -101,12 +112,7 @@ export class DownloadRepository implements DownloadStore {
 			this.store
 				.select({ id: intents.id })
 				.from(intents)
-				.where(
-					and(
-						eq(intents.workKey, workKey),
-						eq(intents.episode, String(episode)),
-					),
-				)
+				.where(and(eq(intents.workKey, workKey), eq(intents.episode, episode)))
 				.get(),
 		);
 	}
@@ -126,68 +132,61 @@ export class DownloadRepository implements DownloadStore {
 			.where(
 				and(
 					gt(intents.id, afterId),
-					sql`json_extract(${intents.data}, '$.state') not in ('missing', 'blocked')`,
-					sql`json_extract(${intents.data}, '$.nextAttemptAt') <= ${now}`,
+					notInArray(intents.state, ["missing", "blocked"]),
+					lte(intents.nextAttemptAt, now),
 				),
 			)
 			.orderBy(asc(intents.id))
 			.limit(limit)
 			.all()
-			.map((row) => row.data);
+			.map((row) => readAcquisitionIntents(this.store, row));
 	}
 	hasActive() {
 		return Boolean(
 			this.store
 				.select({ id: intents.id })
 				.from(intents)
-				.where(
-					sql`json_extract(${intents.data}, '$.state') not in ('available', 'missing', 'blocked')`,
-				)
+				.where(notInArray(intents.state, ["available", "missing", "blocked"]))
 				.limit(1)
 				.get(),
 		);
 	}
 
 	intent(id: string) {
-		return (
-			this.store.select().from(intents).where(eq(intents.id, id)).get()?.data ??
-			null
-		);
+		const row = this.store
+			.select()
+			.from(intents)
+			.where(eq(intents.id, id))
+			.get();
+		return row ? readAcquisitionIntents(this.store, row) : null;
 	}
 	reserve(data: DownloadIntent) {
-		return (
-			this.store
-				.insert(intents)
-				.values({
-					id: data.id,
-					workKey: data.workKey,
-					episode: String(data.episode),
-					hash: data.hash,
-					data,
-				})
-				.onConflictDoNothing()
-				.run().changes === 1
+		return this.store.transaction(
+			() => {
+				if (
+					this.intent(data.id) ||
+					this.reservedEpisode(data.workKey, data.episode) ||
+					this.hashOwner(data.hash, data.id)
+				)
+					return false;
+				writeAcquisitionIntents(this.store, data);
+				return true;
+			},
+			{ behavior: "immediate" },
 		);
 	}
 	saveIntent(data: DownloadIntent) {
-		this.store
-			.update(intents)
-			.set({ data, hash: data.hash })
-			.where(eq(intents.id, data.id))
-			.run();
+		if (this.intent(data.id)) writeAcquisitionIntents(this.store, data);
 	}
-
 	prune(before: number) {
 		this.store
 			.update(intents)
-			.set({
-				data: sql`json_set(${intents.data}, '$.source', '', '$.title', '', '$.transfer', null, '$.error', null)`,
-			})
+			.set({ source: "", title: "", transfer: null, error: null })
 			.where(
 				and(
-					sql`json_extract(${intents.data}, '$.updatedAt') < ${before}`,
-					sql`json_extract(${intents.data}, '$.state') in ('available', 'missing')`,
-					sql`json_extract(${intents.data}, '$.source') <> ''`,
+					lt(intents.updatedAt, before),
+					inArray(intents.state, ["available", "missing"]),
+					ne(intents.source, ""),
 				),
 			)
 			.run();

@@ -3,6 +3,14 @@ import type { Store } from "../../../../platform/database/store.js";
 import type { Candidate, FeedRecord, Subscription } from "../domain/model.js";
 import type { DiscoveryStore } from "../ports.js";
 import {
+	readAcquisitionCandidates,
+	readAcquisitionFeeds,
+	readAcquisitionSubscriptions,
+	writeAcquisitionCandidates,
+	writeAcquisitionFeeds,
+	writeAcquisitionSubscriptions,
+} from "./records.js";
+import {
 	acquisitionCandidates as candidates,
 	acquisitionFeeds as feeds,
 	acquisitionSubscriptions as subscriptions,
@@ -18,38 +26,29 @@ export class DiscoveryRepository implements DiscoveryStore {
 		if (!current?.enabled || current.revision !== subscription.revision) return;
 		// Reservation recovery must not erase a separate assessment error or replace candidates.
 		if (!failed && current.lastError !== "acquisition_unavailable") return;
-		this.store
-			.update(subscriptions)
-			.set({
-				data: {
-					...current,
-					lastError: failed ? "acquisition_unavailable" : null,
-				},
-			})
-			.where(eq(subscriptions.workKey, current.workKey))
-			.run();
+		writeAcquisitionSubscriptions(this.store, {
+			...current,
+			lastError: failed ? "acquisition_unavailable" : null,
+		});
 	}
 	subscription(workKey: string) {
-		return (
-			this.store
-				.select()
-				.from(subscriptions)
-				.where(eq(subscriptions.workKey, workKey))
-				.get()?.data ?? null
-		);
+		const row = this.store
+			.select()
+			.from(subscriptions)
+			.where(eq(subscriptions.workKey, workKey))
+			.get();
+		return row ? readAcquisitionSubscriptions(this.store, row) : null;
 	}
 	subscriptions() {
 		return this.store
 			.select()
 			.from(subscriptions)
 			.all()
-			.map((row) => row.data);
+			.map((row) => readAcquisitionSubscriptions(this.store, row));
 	}
 	feed(id: string) {
-		return (
-			this.store.select().from(feeds).where(eq(feeds.id, id)).get()?.data ??
-			null
-		);
+		const row = this.store.select().from(feeds).where(eq(feeds.id, id)).get();
+		return row ? readAcquisitionFeeds(this.store, row) : null;
 	}
 	candidates(workKey: string) {
 		return this.store
@@ -57,15 +56,12 @@ export class DiscoveryRepository implements DiscoveryStore {
 			.from(candidates)
 			.where(eq(candidates.workKey, workKey))
 			.all()
-			.map((row) => row.data);
+			.map((row) => readAcquisitionCandidates(this.store, row));
 	}
 	saveFeed(feed: FeedRecord) {
-		this.store
-			.insert(feeds)
-			.values({ id: feed.id, data: feed })
-			.onConflictDoUpdate({ target: feeds.id, set: { data: feed } })
-			.run();
+		writeAcquisitionFeeds(this.store, feed);
 	}
+
 	saveSubscription(
 		subscription: Subscription,
 		feed: FeedRecord,
@@ -75,16 +71,7 @@ export class DiscoveryRepository implements DiscoveryStore {
 			const repository = new DiscoveryRepository(store);
 			const previous = repository.subscription(subscription.workKey);
 			repository.saveFeed(feed);
-			const row = {
-				workKey: subscription.workKey,
-				feedId: feed.id,
-				data: subscription,
-			};
-			store
-				.insert(subscriptions)
-				.values(row)
-				.onConflictDoUpdate({ target: subscriptions.workKey, set: row })
-				.run();
+			writeAcquisitionSubscriptions(store, subscription);
 			repository.replaceCandidates(subscription.workKey, result);
 			if (
 				previous &&
@@ -99,10 +86,7 @@ export class DiscoveryRepository implements DiscoveryStore {
 	private replaceCandidates(workKey: string, result: Candidate[]) {
 		this.store.delete(candidates).where(eq(candidates.workKey, workKey)).run();
 		for (const candidate of result)
-			this.store
-				.insert(candidates)
-				.values({ id: candidate.id, workKey, data: candidate })
-				.run();
+			writeAcquisitionCandidates(this.store, candidate);
 	}
 	updateCandidates(
 		subscription: Subscription,
@@ -115,11 +99,7 @@ export class DiscoveryRepository implements DiscoveryStore {
 			if (!current?.enabled || current.revision !== subscription.revision)
 				return false;
 			repository.replaceCandidates(subscription.workKey, result);
-			store
-				.update(subscriptions)
-				.set({ data: { ...current, lastError: error } })
-				.where(eq(subscriptions.workKey, subscription.workKey))
-				.run();
+			writeAcquisitionSubscriptions(store, { ...current, lastError: error });
 			return true;
 		});
 	}

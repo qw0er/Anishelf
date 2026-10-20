@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { DomainError } from "../../../../shared/errors.js";
+import { fingerprint as commandFingerprint } from "../../../../shared/fingerprint.js";
 import { MetadataError } from "../../metadata/public.js";
 import { conflict, invalid, targets, text } from "../domain/mapping.js";
 import type {
@@ -131,7 +132,10 @@ export class AssociationApplication {
 			invalid(
 				"Specify whether this confirmation explicitly replaces existing links.",
 			);
-		const fingerprint = JSON.stringify([request.previewId, request.replace]);
+		const fingerprint = commandFingerprint([
+			request.previewId,
+			request.replace,
+		]);
 		const completed = this.context.options.store.operation(
 			request.operationKey,
 		);

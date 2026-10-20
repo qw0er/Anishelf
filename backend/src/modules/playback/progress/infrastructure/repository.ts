@@ -13,6 +13,11 @@ import type {
 	SourceIdentity,
 } from "../domain/model.js";
 import { type PlaybackPolicy, playbackPolicy } from "../policy.js";
+import { decodeCompletion, encodeCompletion } from "./completion-record.js";
+import {
+	readPlaybackCompletions,
+	writePlaybackCompletions,
+} from "./records.js";
 import { playbackCompletions, playbackProgress } from "./schema.js";
 
 // Schema-derived records stay inside the database adapter.
@@ -52,33 +57,41 @@ export class PlaybackRepository {
 				and(
 					sourceId ? eq(playbackCompletions.sourceId, sourceId) : undefined,
 					pendingOnly
-						? sql`json_extract(${playbackCompletions.outcome}, '$.state') IN ('pending','unavailable')`
+						? inArray(playbackCompletions.outcomeState, [
+								"pending",
+								"unavailable",
+							])
 						: undefined,
 				),
 			)
 			.orderBy(asc(playbackCompletions.attemptedAt))
 			.limit(pendingOnly ? 100 : 1000)
 			.all()
-			.map((row) => ({
-				id: row.id,
-				sourceId: row.sourceId,
-				context: row.context,
-				outcome: row.outcome,
-			}));
+			.map((row) => decodeCompletion(readPlaybackCompletions(this.store, row)));
 	}
 	saveCompletion(record: CompletionRecord): void {
+		const existing = this.store
+			.select({ id: playbackCompletions.id })
+			.from(playbackCompletions)
+			.where(eq(playbackCompletions.id, record.id))
+			.get();
+		if (!existing) {
+			writePlaybackCompletions(this.store, encodeCompletion(record));
+			return;
+		}
 		this.store
-			.insert(playbackCompletions)
-			.values(record)
-			.onConflictDoUpdate({
-				target: playbackCompletions.id,
-				set: {
-					outcome: record.outcome,
-					attemptedAt: Date.now(),
-				},
+			.update(playbackCompletions)
+			.set({
+				attemptedAt: Date.now(),
+				outcomeState: record.outcome.state,
+				outcomeReason: record.outcome.reason,
+				outcomeOperationId: record.outcome.operationId ?? null,
+				outcomeRevision: record.outcome.revision ?? null,
 			})
+			.where(eq(playbackCompletions.id, record.id))
 			.run();
 	}
+
 	registerSource(
 		identity: SourceIdentity,
 		nowMs = Date.now(),
@@ -164,16 +177,24 @@ export class PlaybackRepository {
 					.returning()
 					.get();
 				if (!progress) throw new Error("Progress save failed.");
-				if (update.observation)
-					tx.insert(playbackCompletions)
-						.values({
+				if (
+					update.observation &&
+					!tx
+						.select({ id: playbackCompletions.id })
+						.from(playbackCompletions)
+						.where(eq(playbackCompletions.id, update.observation.id))
+						.get()
+				)
+					writePlaybackCompletions(tx, {
+						...encodeCompletion({
 							id: update.observation.id,
 							sourceId: update.sourceId,
 							context: update.observation.context,
 							outcome: { state: "pending", reason: "observation-recorded" },
-						})
-						.onConflictDoNothing()
-						.run();
+						}),
+						attemptedAt: 0,
+					});
+
 				return { status: "saved", progress: toPlaybackProgress(progress) };
 			},
 			{ behavior: "immediate" },

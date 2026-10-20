@@ -1,7 +1,6 @@
 import { chmod, mkdir, open, readdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { DomainError } from "../../../../shared/errors.js";
-import { externalId } from "../../../../shared/external-reference.js";
 import type { TrackingConnection } from "../domain/model.js";
 import type { TrackingCredentials } from "../ports.js";
 /** Immutable files: SQLite publishes the reference only after a complete fsync. */
@@ -52,27 +51,18 @@ export class TrackingCredentialFiles implements TrackingCredentials {
 			await chmod(path, 0o600);
 			const value = JSON.parse(await readFile(path, "utf8")) as {
 				version?: unknown;
-				token?: unknown;
 				generation?: unknown;
 				accountId?: unknown;
 				credential?: unknown;
 			};
-			const legacy = value.version === undefined;
-			const credential = legacy ? value.token : value.credential;
+			const credential = value.credential;
 			if (
-				(!legacy && value.version !== 2) ||
+				value.version !== 2 ||
 				typeof credential !== "string" ||
 				!credential ||
 				credential.length > 8192 ||
-				(legacy && /\s/.test(credential)) ||
 				value.generation !== connection.generation ||
-				(value.accountId !== connection.account.id &&
-					!(
-						value.version === undefined &&
-						typeof value.accountId === "number" &&
-						externalId("anilist", String(value.accountId)) ===
-							connection.account.id
-					))
+				value.accountId !== connection.account.id
 			)
 				throw new Error("Invalid credential.");
 			return credential;

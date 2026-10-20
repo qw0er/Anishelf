@@ -46,7 +46,6 @@ export interface CacheEntry {
 	key: string;
 	kind: "search" | "detail" | "relations" | "airing";
 	data: unknown;
-	raw: unknown;
 	fetchedAt: number;
 	expiresAt: number;
 	accessedAt: number;

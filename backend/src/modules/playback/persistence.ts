@@ -19,3 +19,5 @@ export function createPlaybackPersistence(
 ): PlaybackPersistence {
 	return { playback: new PlaybackRepository(store, sources, policy) };
 }
+
+export * from "./progress/infrastructure/schema.js";

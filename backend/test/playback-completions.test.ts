@@ -36,7 +36,19 @@ function fixture() {
 		rows.set(id, {
 			id,
 			sourceId: id,
-			context: "target",
+			context: JSON.stringify({
+				version: 2,
+				accountId: "account",
+				generation: "generation",
+				manualVersion: 0,
+				fileId: "file",
+				sourceVersion: "v1",
+				reviewId: "review",
+				mappingRevision: 1,
+				episodeId: "episode",
+				mediaId: "media",
+				episode: 1,
+			}),
 			outcome: { state: "pending", reason: "new" },
 		});
 	return { worker, rows, read, submit, add };

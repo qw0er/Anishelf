@@ -1,43 +1,93 @@
 import { and, asc, desc, eq, ne, notInArray, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import type { MetadataFailure } from "../domain/model.js";
+import type {
+	AiringEpisode,
+	MetadataFailure,
+	Page,
+	WorkDetails,
+	WorkRelation,
+	WorkSummary,
+} from "../domain/model.js";
 import type { ArtworkRecord, CacheEntry, MetadataStore } from "../ports.js";
+import { readMetadataSnapshots, writeMetadataSnapshots } from "./records.js";
 import { metadataArtwork, metadataPins, metadataSnapshots } from "./schema.js";
+import type { NormalizedSnapshot } from "./snapshot-record.js";
 export class MetadataRepository implements MetadataStore {
 	constructor(private readonly store: Store) {}
+	private decode(row: typeof metadataSnapshots.$inferSelect): CacheEntry {
+		const value = readMetadataSnapshots(this.store, row);
+		const {
+			detail,
+			items,
+			relations,
+			airing,
+			page,
+			perPage,
+			hasNextPage,
+			...entry
+		} = value;
+		return {
+			...entry,
+			data:
+				value.kind === "detail"
+					? detail
+					: {
+							items:
+								value.kind === "search"
+									? items
+									: value.kind === "relations"
+										? relations
+										: airing,
+							page: page ?? 1,
+							perPage: perPage ?? 50,
+							hasNextPage: hasNextPage ?? false,
+						},
+		};
+	}
 	find(key: string): CacheEntry | null {
-		return (
-			this.store
-				.select()
-				.from(metadataSnapshots)
-				.where(eq(metadataSnapshots.key, key))
-				.orderBy(
-					desc(metadataSnapshots.fetchedAt),
-					desc(sql`${metadataSnapshots}.rowid`),
-				)
-				.get() ?? null
-		);
+		const row = this.store
+			.select()
+			.from(metadataSnapshots)
+			.where(eq(metadataSnapshots.key, key))
+			.orderBy(
+				desc(metadataSnapshots.fetchedAt),
+				desc(sql`${metadataSnapshots}.rowid`),
+			)
+			.get();
+		return row ? this.decode(row) : null;
 	}
 	get(id: string): CacheEntry | null {
-		return (
-			this.store
-				.select()
-				.from(metadataSnapshots)
-				.where(eq(metadataSnapshots.id, id))
-				.get() ?? null
-		);
+		const row = this.store
+			.select()
+			.from(metadataSnapshots)
+			.where(eq(metadataSnapshots.id, id))
+			.get();
+		return row ? this.decode(row) : null;
 	}
 	save(entry: CacheEntry): void {
-		this.store
-			.insert(metadataSnapshots)
-			.values(entry)
-			.onConflictDoUpdate({ target: metadataSnapshots.id, set: entry })
-			.run();
+		const data = entry.data as Page<WorkSummary | WorkRelation | AiringEpisode>;
+		const value: NormalizedSnapshot = {
+			...entry,
+			page: entry.kind === "detail" ? null : data.page,
+			perPage: entry.kind === "detail" ? null : data.perPage,
+			hasNextPage: entry.kind === "detail" ? null : data.hasNextPage,
+			detail: entry.kind === "detail" ? (entry.data as WorkDetails) : null,
+			items: entry.kind === "search" ? (data.items as WorkSummary[]) : [],
+			relations:
+				entry.kind === "relations" ? (data.items as WorkRelation[]) : [],
+			airing: entry.kind === "airing" ? (data.items as AiringEpisode[]) : [],
+		};
+		writeMetadataSnapshots(this.store, value);
 	}
 	fail(id: string, failure: MetadataFailure): void {
 		this.store
 			.update(metadataSnapshots)
-			.set({ failure })
+			.set({
+				failurePresent: true,
+				failureCode: failure.code,
+				failureMessage: failure.message,
+				failureRetryAt: failure.retryAt,
+			})
 			.where(eq(metadataSnapshots.id, id))
 			.run();
 	}

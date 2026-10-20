@@ -18,3 +18,7 @@ import { DownloadRepository } from "./downloads/infrastructure/repository.js";
 export function createDownloadPersistence(store: Store) {
 	return new DownloadRepository(store);
 }
+
+export * from "./discovery/infrastructure/schema.js";
+
+export * from "./downloads/infrastructure/schema.js";
