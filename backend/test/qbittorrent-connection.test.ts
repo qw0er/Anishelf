@@ -332,3 +332,44 @@ test("authenticated HTTP endpoints enforce CSRF, validate inputs and never echo 
 	).toBe(false);
 	expect(f.logs.join("")).not.toContain(details.password);
 });
+
+test("deployment API hint never configures an account and saved accounts override it", async () => {
+	const f = await fixture();
+	const suggested = await createAcquisitionModule({
+		dataDir: f.dataDir,
+		logger: f.logger,
+		createClient: f.createClient,
+		suggestedApiUrl: "http://qbittorrent:8080",
+	});
+	cleanup.push(() => suggested.close());
+	const connection = suggested.api.connection;
+	expect(connection.settings()).toMatchObject({
+		state: "unconfigured",
+		url: "http://qbittorrent:8080/",
+		username: "",
+		passwordConfigured: false,
+	});
+	expect(f.calls).toHaveLength(0);
+	await expect(readFile(f.file)).rejects.toMatchObject({ code: "ENOENT" });
+	const saved = await connection.save({
+		...details,
+		url: "https://external.example.com/qbt",
+		generation: connection.settings().generation,
+	});
+	const restarted = await createAcquisitionModule({
+		dataDir: f.dataDir,
+		logger: f.logger,
+		createClient: f.createClient,
+		suggestedApiUrl: "http://another:8080",
+	});
+	cleanup.push(() => restarted.close());
+	expect(restarted.api.connection.settings()).toEqual(saved);
+	const removed = await restarted.api.connection.clear(saved.generation);
+	expect(removed).toMatchObject({
+		state: "unconfigured",
+		url: "http://another:8080/",
+		passwordConfigured: false,
+	});
+	expect(f.calls).toHaveLength(0);
+	expect(f.logs.join("")).not.toContain("another:8080");
+});

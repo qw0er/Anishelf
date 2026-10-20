@@ -113,7 +113,8 @@ Source installations can omit the public origin for local access to the backend 
 | `ANISHELF_PORT` | `3000` | Decimal integer listener port from 1 to 65535. |
 | `ANISHELF_PUBLIC_ORIGIN` | Unset | One allowed external HTTP(S) origin; no wildcards, credentials, path, query or fragment. Local access remains available; proxy authentication is required. |
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory for Anishelf | Absolute directory; overrides the platform default. |
-| `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` | Unset | Absolute HTTP(S) browser address without embedded credentials; seeds `qbittorrentWebUiUrl` only when `settings.json` is missing. No connection probe or API login. |
+| `ANISHELF_QBITTORRENT_API_URL` | Unset | Optional HTTP(S) backend address without credentials, query or fragment. Prefills the API account form only when no account is saved; never logs in or saves credentials automatically. Blank means unset. |
+| `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` | Unset | Absolute HTTP(S) browser address without embedded credentials; seeds `qbittorrentWebUiUrl` only when `settings.json` is missing. Blank means unset. No connection probe or API login. |
 | `ANISHELF_INITIAL_RESOURCE_ROOT` | Unset | Absolute readable media directory used only when `settings.json` is missing; existing settings take precedence. |
 | `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
 | `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout`, `file`, or `both`. |

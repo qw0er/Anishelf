@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ghcr.io/qw0er/anishelf-backend:latest
+    image: ghcr.io/qw0er/anishelf-backend:${ANISHELF_TAG:-latest}
     build:
       context: .
       dockerfile: package/Dockerfile
@@ -8,12 +8,15 @@ services:
     restart: unless-stopped
     stop_grace_period: 15s
     environment:
-      ANISHELF_PUBLIC_ORIGIN: http://localhost:3000
+      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:3000}
       ANISHELF_DATA_DIR: /data/app
       ANISHELF_INITIAL_RESOURCE_ROOT: /data/media
-      ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL: http://localhost:8080
+      ANISHELF_QBITTORRENT_API_URL: ${ANISHELF_QBITTORRENT_API_URL:-}
+      ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL: ${ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL:-}
+      TZ: ${TZ:-Etc/UTC}
     volumes:
-      - anishelf-data:/data
+      - anishelf-app:/data/app
+      - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media:ro
     # Podman's default OCI build format drops Dockerfile HEALTHCHECK metadata.
     # Declaring it here keeps depends_on.service_healthy working under Podman.
     healthcheck:
@@ -27,7 +30,7 @@ services:
       retries: 3
 
   web:
-    image: ghcr.io/qw0er/anishelf-web:latest
+    image: ghcr.io/qw0er/anishelf-web:${ANISHELF_TAG:-latest}
     build:
       context: .
       dockerfile: package/Dockerfile
@@ -35,31 +38,46 @@ services:
     restart: unless-stopped
     stop_grace_period: 15s
     ports:
-      - "127.0.0.1:3000:8080"
+      - "${ANISHELF_BIND_ADDRESS:-127.0.0.1}:${ANISHELF_PORT:-3000}:8080"
     depends_on:
       backend:
         condition: service_healthy
 
   qbittorrent:
-    image: linuxserver/qbittorrent:latest
+    profiles: [qbittorrent]
+    # Initialize only the mount roots before LinuxServer's normal init process.
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        mkdir -p /data/media /data/incomplete
+        chown "$${PUID}:$${PGID}" /data/media /data/incomplete
+        echo "qBittorrent media and incomplete mount roots initialized."
+        exec /init
+    image: linuxserver/qbittorrent:${QBITTORRENT_TAG:-latest}
     restart: unless-stopped
     stop_grace_period: 30s
     environment:
-      PUID: "1000"
-      PGID: "1000"
-      TZ: Asia/Shanghai
-      WEBUI_PORT: "8080"
-      TORRENTING_PORT: "6881"
+      PUID: "${QBITTORRENT_UID:-1000}"
+      PGID: "${QBITTORRENT_GID:-1000}"
+      TZ: ${TZ:-Etc/UTC}
+      WEBUI_PORT: "${QBITTORRENT_WEBUI_PORT:-8080}"
+      TORRENTING_PORT: "${QBITTORRENT_PEER_PORT:-6881}"
     ports:
-      - "127.0.0.1:8080:8080"
-      - "6881:6881"
-      - "6881:6881/udp"
+      - "${QBITTORRENT_BIND_ADDRESS:-127.0.0.1}:${QBITTORRENT_WEBUI_PORT:-8080}:${QBITTORRENT_WEBUI_PORT:-8080}"
+      - "${QBITTORRENT_PEER_PORT:-6881}:${QBITTORRENT_PEER_PORT:-6881}"
+      - "${QBITTORRENT_PEER_PORT:-6881}:${QBITTORRENT_PEER_PORT:-6881}/udp"
     volumes:
       - qbittorrent-config:/config
-      - anishelf-data:/data
+      - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media
+      - qbittorrent-incomplete:/data/incomplete
 
 volumes:
-  anishelf-data:
-    name: anishelf-data
+  anishelf-app:
+    name: anishelf-app
+  anishelf-media:
+    name: anishelf-media
+  qbittorrent-incomplete:
+    name: anishelf-qbittorrent-incomplete
   qbittorrent-config:
     name: anishelf-qbittorrent-config

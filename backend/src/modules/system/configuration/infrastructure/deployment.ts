@@ -58,7 +58,7 @@ function initialRoots(env: Environment): string[] | undefined {
 
 function initialQbittorrentWebUiUrl(env: Environment): string | undefined {
 	const value = env.ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL;
-	if (value === undefined) return undefined;
+	if (value === undefined || !value.trim()) return undefined;
 	try {
 		const url = normalizeQbittorrentWebUiUrl(value);
 		if (url) return url;
@@ -67,6 +67,26 @@ function initialQbittorrentWebUiUrl(env: Environment): string | undefined {
 	}
 	invalid(
 		"ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL must be an absolute HTTP(S) URL without credentials.",
+	);
+}
+
+function qbittorrentApiUrl(env: Environment): string | undefined {
+	const value = env.ANISHELF_QBITTORRENT_API_URL;
+	if (value === undefined || !value.trim()) return undefined;
+	try {
+		const normalized = normalizeQbittorrentWebUiUrl(value);
+		if (normalized) {
+			const url = new URL(normalized);
+			if (!url.search && !url.hash) {
+				url.pathname = `${url.pathname.replace(/\/+$/, "")}/`;
+				return url.href;
+			}
+		}
+	} catch {
+		// Keep credential-bearing input out of diagnostics.
+	}
+	invalid(
+		"ANISHELF_QBITTORRENT_API_URL must be an absolute HTTP(S) URL without credentials, query or fragment.",
 	);
 }
 
@@ -187,6 +207,7 @@ export function parseDeploymentConfig(
 	}
 	const resourceInitializers = initialRoots(env);
 	const webUiInitializer = initialQbittorrentWebUiUrl(env);
+	const apiUrl = qbittorrentApiUrl(env);
 	const mediaTools = {
 		ffmpegPath:
 			env.ANISHELF_FFMPEG_PATH === undefined
@@ -223,6 +244,7 @@ export function parseDeploymentConfig(
 		...(webUiInitializer === undefined
 			? {}
 			: { initialQbittorrentWebUiUrl: webUiInitializer }),
+		...(apiUrl === undefined ? {} : { qbittorrentApiUrl: apiUrl }),
 		logging,
 		mediaTools,
 		...(env.ANISHELF_FRONTEND_DIR === undefined

@@ -6,16 +6,57 @@ builds and release images. Container deployments now run a Caddy frontend and a
 Node backend separately; the earlier single-container CLI/Quadlet examples no
 longer describe the deployment topology.
 
+## Configure and start
+
+Copy [.env.example](../.env.example) to `.env` beside `compose.yaml`. Compose reads
+it automatically; keep it out of version control. The default command starts only
+Web and Backend:
+
+```sh
+docker compose up -d --build
+```
+
+For published matching release images, set `ANISHELF_TAG` and use `pull` followed
+by `up -d --no-build`. The source `next` branch may be ahead of published images.
+
+| Compose option | Default | Purpose |
+| --- | --- | --- |
+| `ANISHELF_TAG` | `latest` | Shared image tag for Web and Backend; pin an available release for predictable updates |
+| `ANISHELF_BIND_ADDRESS` | `127.0.0.1` | Application host bind address |
+| `ANISHELF_PORT` | `3000` | Published application port; backend container still listens on 3000 |
+| `ANISHELF_PUBLIC_ORIGIN` | `http://localhost:3000` | Exact browser-facing origin, including a changed port or HTTPS domain |
+| `ANISHELF_MEDIA_PATH` | Unset | Absolute host media directory; unset uses the `anishelf-media` named volume |
+| `COMPOSE_PROFILES` | Unset | Set to `qbittorrent` to include the bundled downloader |
+| `ANISHELF_QBITTORRENT_API_URL` | Unset | Optional backend-reachable API form default, with no credentials; saved accounts win |
+| `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` | Unset | Optional browser link initializer for new settings only |
+| `TZ` | `Etc/UTC` | Backend and downloader time zone |
+| `QBITTORRENT_TAG` | `latest` | LinuxServer downloader image tag |
+| `QBITTORRENT_BIND_ADDRESS` | `127.0.0.1` | Downloader WebUI host bind address |
+| `QBITTORRENT_WEBUI_PORT` | `8080` | Downloader WebUI/API port, both host and container; update the API form default if changed |
+| `QBITTORRENT_PEER_PORT` | `6881` | Downloader TCP/UDP peer port, both host and container |
+| `QBITTORRENT_UID` / `QBITTORRENT_GID` | `1000` / `1000` | Downloader file ownership; Backend remains UID/GID 1000 |
+
+To use the bundled downloader, uncomment both lines in `.env`:
+
+```dotenv
+COMPOSE_PROFILES=qbittorrent
+ANISHELF_QBITTORRENT_API_URL=http://qbittorrent:8080
+```
+
+Use the same `up` command after editing. Alternatively `docker compose --profile
+qbittorrent up -d --build` enables the service for that invocation, but does not
+set an API address hint: configure that separately in `.env` or Settings. Keeping
+`COMPOSE_PROFILES` in `.env` also keeps the downloader included in subsequent
+start, stop, pull and update commands. A profile does not automatically configure
+an API account. For an external downloader, leave the profile disabled and enter
+its backend-reachable URL in Settings or as the deployment hint.
+
 ## Networking and storage
 
-`web` publishes the application at `127.0.0.1:3000:8080`. It serves the SPA and proxies the
+`web` publishes `127.0.0.1:3000:8080` by default. It serves the SPA and proxies the
 unchanged `/api` path to `backend:3000` on the Compose network. Keep the backend
-port private. The application services run as UID/GID 1000. Backend and qBittorrent
-both mount the named `anishelf-data` volume at `/data`. qBittorrent configuration
-has its own volume; no host media bind or separate incomplete-download volume is
-required. Set `ANISHELF_PUBLIC_ORIGIN` on `backend` to the browser's
-exact origin, including its port. This setting validates Host/Origin and selects
-Secure cookies; no CORS configuration or browser API URL is needed.
+port private. `ANISHELF_PUBLIC_ORIGIN` validates Host/Origin and selects Secure
+cookies; no CORS configuration or browser API URL is needed.
 
 The frontend listens on plain HTTP inside the private deployment. It has no
 persistent application state; TLS terminates at a host reverse proxy. It provides
@@ -33,94 +74,83 @@ avoid exposing media tokens or credentials.
 
 ## Data storage
 
-Keep the named `anishelf-data` volume shared by backend and qBittorrent:
+| Storage | Container path | Backend | qBittorrent |
+| --- | --- | --- | --- |
+| `anishelf-app` | `/data/app` | Read/write: settings, credentials, SQLite, logs and generated caches | Not mounted |
+| `anishelf-media` or `ANISHELF_MEDIA_PATH` | `/data/media` | Read-only: completed library media | Read/write |
+| `anishelf-qbittorrent-config` | `/config` | Not mounted | Read/write: downloader settings and task state |
+| `anishelf-qbittorrent-incomplete` | `/data/incomplete` | Not mounted | Read/write: unfinished downloads |
 
-| Path in both containers | Contents |
-| --- | --- |
-| `/data/app` | Anishelf credentials, sessions, settings, SQLite and generated assets |
-| `/data/media` | Completed media; the initial Anishelf resource root |
-| `/data/incomplete` | In-progress downloads, outside every watched root |
+`web` has no data mounts. qBittorrent cannot access application state through these
+mounts. Fresh application/media volumes inherit UID/GID 1000 from the backend
+image. The bundled downloader initializes ownership of only its media/incomplete
+mount roots using PUID/PGID, then executes LinuxServer's normal `/init`; it does
+not recursively change ownership of existing media. Keep the downloader UID/GID
+at 1000 for the default permissions, or explicitly ensure Backend UID/GID 1000
+can traverse directories and read every completed file.
 
-The backend image defaults `ANISHELF_DATA_DIR` to `/data/app` and creates all three
-directories owned by UID/GID 1000. Fresh named-volume initialization copies this
-layout from the image. Both mounts are writable; Anishelf's application still
-treats original media as read-only. The shared storage does not isolate Anishelf
-state from qBittorrent. `web` has no data mount. Never share the application state
-between two running backends. Do not configure `/data` as a resource root: it would
-contain application state and incomplete downloads and fails directory separation.
-
-## Data backup and migration
-
-Stop both writers, then back up the shared volume (including downloaded media and
-partial downloads). Ensure the backup destination has enough space:
+For a host media directory, set `ANISHELF_MEDIA_PATH` to its absolute path. The
+same directory is mounted read-only by Backend and read/write by the bundled
+downloader. Prepare the directory before startup; an empty example on Linux is:
 
 ```sh
-docker compose stop
+sudo install -d -o 1000 -g 1000 -m 0755 /srv/anishelf/media
+```
+
+For existing files, check their read/traverse permissions instead of blindly
+changing ownership recursively. Without the bundled downloader, arrange writes
+through your own downloader or host tools. Generated assets stay in `/data/app`;
+Anishelf does not require write access to original media. Never use `/data` as a
+resource root or share the app volume between running backends.
+
+## Data backup and updates
+
+The default layout uses new isolated volumes. It does not import or migrate the
+previous `anishelf-data` layout. Existing volumes are not deleted, but must not be
+mistaken for the new installation's application state. This configuration targets
+the new layout; there is no compatibility or automatic migration path.
+
+Stop all writers, including a downloader previously enabled on the command line:
+
+```sh
+docker compose --profile qbittorrent stop
+```
+
+Back up the entire application volume, preserving modes and ownership. For
+published images, an example from the Compose directory is:
+
+```sh
 docker run --rm --user 0:0 \
-  --mount type=volume,source=anishelf-data,target=/data,readonly \
+  --mount type=volume,source=anishelf-app,target=/data,readonly \
   --mount "type=bind,source=$PWD,target=/backup" \
-  --entrypoint tar ghcr.io/qw0er/anishelf-backend:latest \
-  -C /data -czf /backup/anishelf-data-backup.tar.gz .
+  --entrypoint tar "ghcr.io/qw0er/anishelf-backend:${ANISHELF_TAG:-latest}" \
+  -C /data -czf /backup/anishelf-app-backup.tar.gz .
 ```
 
-For a locally built installation, use the backend image built by Compose in that
-command. Also back up `anishelf-qbittorrent-config`, which holds qBittorrent's
-configuration and task state, while qBittorrent is stopped. Copy credentials,
-database, settings and caches together. Keep backups outside the volume. Restore
-only while both services are stopped and preserve UID/GID 1000 ownership and
-private credential file permissions.
+The shell running `docker run` does not load `.env`; set/export `ANISHELF_TAG` or
+substitute the exact installed image tag. For source builds use the image built
+by Compose. Also back up the media directory/volume, downloader config volume and
+incomplete volume if retaining partial transfers is required. The isolated app
+volume makes application-only backups possible without copying all media.
+Protect backups because RSS URLs and API credentials are recoverable. Restore
+only while services are stopped, preserving file ownership and private modes.
 
-### Upgrade an existing flat data volume
-
-Earlier images stored application state directly at `/data`. Changing the data
-directory without moving that state would initialize a separate installation.
-After stopping the services and making a verified backup, move the old application
-files and directories into `app/`. The following command is for the standard
-`anishelf-data` volume; use the locally built backend image if necessary:
+For source updates, update the checkout and run `docker compose up -d --build`.
+For published images, set the same available `ANISHELF_TAG` for both components,
+pull while the current stack is running, then stop, back up and recreate:
 
 ```sh
-docker run --rm --user 0:0 \
-  --mount type=volume,source=anishelf-data,target=/data \
-  --entrypoint sh ghcr.io/qw0er/anishelf-backend:latest -ec '
-    mkdir -p /data/app /data/media /data/incomplete
-    test -z "$(ls -A /data/app)" || {
-      echo "app/ is not empty; inspect the existing layout before migrating." >&2
-      exit 1
-    }
-    find /data -mindepth 1 -maxdepth 1 \
-      ! -name app ! -name media ! -name incomplete \
-      -exec mv -t /data/app -- {} +
-    chown 1000:1000 /data /data/app /data/media /data/incomplete
-  '
+docker compose pull
+docker compose --profile qbittorrent stop
+# Back up persistent data before proceeding.
+docker compose up -d --no-build
 ```
 
-This preserves existing file permissions and does not merge two application
-states. Keep `settings.json`, credentials, SQLite (including any WAL/SHM files),
-logs and generated assets together. If an earlier installation already uses the
-reserved `app`, `media` or `incomplete` names for other content, inspect and resolve
-those paths before using the command. No automatic migration runs at startup.
-
-Existing settings override `ANISHELF_INITIAL_RESOURCE_ROOT`. If media previously
-lived in a host bind, copy it into the shared volume's `media/` directory while
-both services are stopped, then change the saved resource root to `/data/media`
-in Settings. Moving to a different resource-root path does not guarantee automatic
-identity/history relinking; retain the old media mount and saved root until that
-transition has been checked if preserving existing associations is required.
-For existing qBittorrent tasks, update their save locations and confirm file access
-before resuming. Retain the old incomplete volume until its partial downloads have
-been transferred or finished; Compose no longer mounts it automatically.
-
-To migrate from the all-in-one image, stop the old container or systemd service,
-back up its data, and use the same `anishelf-data` volume in Compose. If it used a
-bind mount or a differently named volume, update both shared mounts accordingly.
-Migrate flat application state and media using the steps above. Remove
-`ANISHELF_FRONTEND_DIR` from the backend environment. Disable the old startup
-unit before starting Compose; do not run two backends on the same data.
-
-For source builds, update the checkout and run `docker compose up -d --build`.
-For published images, pull both matching release versions before stopping and
-backing up the deployment, then run `docker compose up -d --no-build`.
-Keep the backup for database rollback. Do not use `down --volumes` during upgrades.
+Keep `.env` and persistent volumes across updates. Keep a pre-update app backup
+for database rollback; reverting image tags alone does not undo migrations.
+`down --volumes` deletes persistent data and is not an update step. Disabling a
+profile does not stop an already running downloader: explicitly stop it before
+removing `COMPOSE_PROFILES` from `.env`.
 
 ## SELinux mounts
 
@@ -131,14 +161,14 @@ for named data volumes; relabel bind-mounted data as appropriate for the host.
 
 ## qBittorrent WebUI access
 
-Compose includes `linuxserver/qbittorrent:latest`, with PUID/PGID 1000 and its own
-`anishelf-qbittorrent-config` volume. The browser WebUI is published at
-`http://localhost:8080`; TCP/UDP port 6881 is published for peers. The backend has
-`ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL=http://localhost:8080`, which seeds the
-saved browser URL only when `settings.json` does not exist. It works with or
-without resource-root initializers. Existing files, including a cleared or absent
-URL, remain unchanged. The initializer does not connect to or authenticate with
-the downloader API, and it does not restore the removed backend proxy.
+The optional `qbittorrent` profile uses LinuxServer's image with PUID/PGID 1000
+and its own config/incomplete volumes. By default its WebUI publishes
+`127.0.0.1:8080` and peers use TCP/UDP 6881. Ports, image tag and ownership are
+configured in `.env`. The browser WebUI link defaults to blank. An explicitly
+supplied `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` seeds the link only when
+`settings.json` is missing; existing saved settings, including an absent or cleared
+link, always win. Blank initializer values are treated as unset. This neither
+logs into the API nor restores the removed backend proxy.
 
 The URL must be reachable **from the browser**. The Compose hostname
 `qbittorrent` is only resolvable inside its container network. For remote access,
@@ -151,16 +181,20 @@ ssh -L 3000:127.0.0.1:3000 -L 8080:127.0.0.1:8080 user@server
 Read the temporary `admin` password using `docker compose logs qbittorrent`, then
 set a permanent password in qBittorrent. Configure completed downloads at
 `/data/media` and enable its incomplete directory at `/data/incomplete`.
-Both services see these paths in the same named volume. These preferences must
+Only completed media is shared with Backend; unfinished data is not mounted there. These preferences must
 be saved in qBittorrent; volume mounting does not configure them. The incomplete
 directory keeps partial files outside the watched root once that preference is
-enabled. Retain `anishelf-data` and `anishelf-qbittorrent-config` across recreations
-and stop both writers before backing them up.
+enabled. Retain all configured volumes across recreations and stop both writers before
+backing them up.
 
 In Anishelf **Settings → qBittorrent → API connection**, enter API URL
-`http://qbittorrent:8080`, username `admin` (or your configured account) and the
+`http://qbittorrent:8080` (or the port configured in `.env`), username `admin`
+(or your configured account) and the
 password you set in qBittorrent. Save, then choose **Test connection**. This URL
 is reached by the backend and is separate from the browser WebUI URL below.
+`ANISHELF_QBITTORRENT_API_URL` only prefills this form when no account is saved.
+It does not persist credentials, connect or test automatically, or override a
+saved account. The address can still be edited before saving.
 Passwords are stored privately in `/data/app/acquisition/qbittorrent.json` with
 mode `0600`, never returned by the settings API. An empty password keeps the saved
 one only for the same URL and username; changing either requires reentry.
@@ -263,10 +297,10 @@ prepared copies, subtitles and artwork require the browser session.
 
 ## Caddy reverse proxy
 
-For a domain served by Caddy on the host, set the backend environment in Compose:
+For a domain served by Caddy on the host, set the browser origin in `.env`:
 
-```yaml
-ANISHELF_PUBLIC_ORIGIN: https://example.com
+```dotenv
+ANISHELF_PUBLIC_ORIGIN=https://example.com
 ```
 
 Forward the entire site to the **web** container:
@@ -292,7 +326,7 @@ or separate `/api` host proxy rule is needed.
 
 ## Multiple resource directories
 
-The default shared-volume root is `/data/media`. For additional existing media,
+The default completed-media root is `/data/media`. For additional existing media,
 mount each extra location read-only at a distinct server path, then add each path
 to the directory list in Settings and save. For example, mount `/host/anime` at `/media/anime` and
 `/host/movies` at `/media/movies`. Do not configure both `/media` and its children.

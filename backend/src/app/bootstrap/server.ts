@@ -62,6 +62,9 @@ export async function createServer(
 		dataDir: system.deployment.dataDir,
 		logger,
 		store: database.acquisition,
+		...(system.deployment.qbittorrentApiUrl
+			? { suggestedApiUrl: system.deployment.qbittorrentApiUrl }
+			: {}),
 		...(anime.api.acquisition ? { anime: anime.api.acquisition } : {}),
 	});
 	const app = createHttpApp({

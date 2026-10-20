@@ -27,6 +27,7 @@ export async function createAcquisitionModule(options: {
 	dataDir: string;
 	logger: Logger;
 	createClient?: (options: QbittorrentOptions) => QbittorrentApi;
+	suggestedApiUrl?: string;
 	store?: DiscoveryStore;
 	anime?: ReleaseAssessmentApi;
 	transport?: FeedTransport;
@@ -37,6 +38,7 @@ export async function createAcquisitionModule(options: {
 		new QbittorrentConfigurationFile(options.dataDir),
 		options.createClient ?? createQbittorrentClient,
 		options.logger.child({ module: "acquisition" }),
+		options.suggestedApiUrl,
 	);
 	await connection.initialize();
 	const discovery = options.store

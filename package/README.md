@@ -25,14 +25,20 @@ docker build -f package/Dockerfile --target web -t anishelf-web:local .
 Use [compose.yaml](../compose.yaml) to build and run the pair together. Set
 the backend's `ANISHELF_PUBLIC_ORIGIN` to your
 browser-facing origin before starting. The default is `http://localhost:3000`.
-Compose also starts qBittorrent and seeds its browser WebUI link with `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` on fresh
-installations. This third-party image is pulled rather than built by this project.
-Backend and qBittorrent share `anishelf-data:/data`: application state is in
-`/data/app`, completed media in `/data/media` and partial downloads in
-`/data/incomplete`. The backend image creates these directories with UID/GID 1000
-ownership for fresh named-volume initialization. No host media bind is required.
-Set qBittorrent's save and incomplete paths in its WebUI. Existing flat application
-data must be migrated into `app/` before using the new image default.
+Copy [.env.example](../.env.example) to `.env` to configure tags, ports, browser
+origin and an optional host media path. Web and Backend share `ANISHELF_TAG`.
+qBittorrent is optional via `COMPOSE_PROFILES=qbittorrent`; its third-party image
+is pulled rather than built by this project. Set the optional deployment API URL
+hint to prefill the account form; credentials still require an explicit save.
+The browser WebUI URL is optional and defaults to blank.
+
+Backend exclusively mounts `anishelf-app:/data/app` and reads
+`anishelf-media:/data/media:ro`. qBittorrent has write access to media and separate
+config/incomplete volumes, with no application-state mount. Set its save path to
+`/data/media` and incomplete path to `/data/incomplete`. Its startup wrapper
+initializes only those mount roots before executing the image's normal `/init`.
+`ANISHELF_MEDIA_PATH` can replace the named media volume with an absolute host
+directory. The new layout does not automatically migrate earlier shared volumes.
 See [deployment guidance](../docs/deployment.md) for storage, TLS and migration.
 
 ## Publication flow
@@ -62,8 +68,8 @@ does not create a GitHub Release or update running containers.
 
 ```sh
 docker compose pull
-docker compose stop
-# Back up anishelf-data before continuing.
+docker compose --profile qbittorrent stop
+# Back up anishelf-app and other persistent data before continuing.
 docker compose up -d --no-build
 ```
 
