@@ -395,6 +395,10 @@ test("legacy settings and file IDs upgrade without changing durable source IDs o
 				"INSERT INTO tracking_operations (id, account_id, media_id, operation) VALUES (?, ?, ?, ?)",
 			)
 			.run("operation-1", "7", "9", JSON.stringify(operation));
+		// This fixture replays all migrations after the legacy identity schema.
+		raw.exec(
+			"DROP TABLE acquisition_candidates; DROP TABLE acquisition_subscriptions; DROP TABLE acquisition_feeds;",
+		);
 		raw
 			.prepare("DELETE FROM __drizzle_migrations WHERE created_at >= ?")
 			.run(1792252800000);

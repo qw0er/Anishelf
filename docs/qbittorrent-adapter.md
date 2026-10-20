@@ -77,7 +77,9 @@ unavailable state and can be replaced without blocking local playback.
 Updates and removal require the displayed configuration generation. Successful
 changes replace the generation and abort active checks; old check results cannot
 be published against a new account. Closing Acquisition aborts checks before other
-modules and persistence close. No downloading or background polling is enabled.
+modules and persistence close. The connection layer does not submit downloads.
+The separate [RSS discovery worker](rss-subscriptions.md) reads task snapshots for
+duplicate exclusion when an account is configured.
 
 Undici supplies connection pooling and response-size enforcement. The wrapper adds
 an operation deadline (30 seconds by default), caller cancellation, shutdown abort,
@@ -115,6 +117,7 @@ save/retention/removal, private permissions, restart, failed writes, generation
 conflicts, stale checks, authentication/CSRF, redaction and password input/cache behavior.
 
 Path mapping/probes, durable intent and command storage, reconciliation workers,
-RSS/subscriptions, download controls and verified ingestion remain future work.
+download controls and verified ingestion remain future work.
+[RSS subscriptions and automatic selection](rss-subscriptions.md) are implemented.
 No live qBittorrent, real torrent download or complete ACQ acceptance was run for
 this foundation. D01–D07 are not complete.

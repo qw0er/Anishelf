@@ -1,3 +1,5 @@
+export { proposeMapping } from "./domain/mapping.js";
+export { rankCandidates } from "./domain/matching.js";
 export type {
 	ExtractionEvidence,
 	IdentificationResult,

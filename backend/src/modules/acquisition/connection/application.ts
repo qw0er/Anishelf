@@ -206,6 +206,33 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 	private async closeClients() {
 		await Promise.allSettled([...this.clients].map((client) => client.close()));
 	}
+	async activeHashes(signal: AbortSignal): Promise<string[] | null> {
+		if (this.unreadable)
+			throw new DomainError(
+				"ACQUISITION_UNAVAILABLE",
+				"Saved qBittorrent credentials could not be loaded.",
+			);
+		if (!this.saved.connection) return null;
+		const generation = this.saved.generation;
+		this.assertGeneration(generation);
+		const client = this.createClient({
+			...this.saved.connection,
+			logger: this.logger,
+		});
+		this.clients.add(client);
+		try {
+			const tasks = await client.tasks(signal);
+			this.assertGeneration(generation);
+			return tasks.flatMap((task) => [
+				task.hash,
+				...(task.v1Hash ? [task.v1Hash] : []),
+				...(task.v2Hash ? [task.v2Hash] : []),
+			]);
+		} finally {
+			await client.close();
+			this.clients.delete(client);
+		}
+	}
 	async close() {
 		this.closed = true;
 		await this.writes;

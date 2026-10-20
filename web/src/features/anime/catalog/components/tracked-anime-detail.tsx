@@ -1,5 +1,6 @@
 import { workReference } from "@anishelf/backend/contracts/references";
 import { useQuery } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams, useSearchParams } from "react-router";
 import {
@@ -12,7 +13,11 @@ import { Artwork } from "../../shared/components/artwork.js";
 import { useViewingState, ViewingSummary } from "../../tracking/public.js";
 import { WorkMetadataHeader } from "./work-metadata-header.js";
 import { WorkSynopsis } from "./work-synopsis.js";
-export function TrackedAnimeDetail() {
+export function TrackedAnimeDetail({
+	renderSubscription,
+}: {
+	renderSubscription?: (workKey: string) => ReactNode;
+} = {}) {
 	const { mediaId = "" } = useParams();
 	const [params] = useSearchParams();
 	const { t } = useTranslation();
@@ -79,6 +84,7 @@ export function TrackedAnimeDetail() {
 					)}
 				</>
 			)}
+			{renderSubscription?.(mediaId)}
 		</section>
 	);
 }

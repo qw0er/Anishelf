@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useParams } from "react-router";
+import { SubscriptionPanel } from "../../../features/acquisition/ui.js";
 import type { AnimeResourceActionSlot } from "../../../features/anime/public.js";
 import { localWorkDetailQuery } from "../../../features/anime/public.js";
 import { AnimeDetail } from "../../../features/anime/ui.js";
@@ -52,5 +53,12 @@ export function AnimeDetailPage() {
 			gate={gate}
 		/>
 	);
-	return <AnimeDetail renderResourceActions={renderResourceActions} />;
+	return (
+		<AnimeDetail
+			renderResourceActions={renderResourceActions}
+			renderSubscription={(workKey) => (
+				<SubscriptionPanel key={workKey} workKey={workKey} />
+			)}
+		/>
+	);
 }

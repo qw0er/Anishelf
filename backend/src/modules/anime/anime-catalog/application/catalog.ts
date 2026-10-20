@@ -9,6 +9,7 @@ import { WorkApplication } from "./work.js";
 
 /** Public facade; use cases share one lifecycle and transactional Catalog store. */
 export class AnimeCatalogApplication implements AnimeCatalogApi {
+	readonly availableEpisodes: AnimeCatalogApi["availableEpisodes"];
 	private readonly context: CatalogContext;
 	private readonly associations: AssociationApplication;
 	private readonly refreshing: CatalogRefresh;
@@ -31,6 +32,7 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 	constructor(options: CatalogOptions) {
 		this.context = new CatalogContext(options);
 		const queries = new CatalogQueries(this.context);
+		this.availableEpisodes = queries.availableEpisodes.bind(queries);
 		const review = new ReviewApplication(this.context);
 		this.associations = new AssociationApplication(this.context);
 		const work = new WorkApplication(this.context, queries);

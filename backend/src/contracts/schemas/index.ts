@@ -11,6 +11,7 @@ export * from "./metadata.js";
 export * from "./playback.js";
 export * from "./playback-selection.js";
 export * from "./preparation.js";
+export * from "./subscriptions.js";
 export * from "./subtitles.js";
 export * from "./tracking.js";
 export * from "./tracking-list.js";

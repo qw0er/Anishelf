@@ -11,6 +11,7 @@ media directory, browse its folder structure, and watch videos in your browser.
 - Media compatibility checks and prepared copies for browser playback.
 - Original-media links for external players.
 - AniList account connection, identity preview, connection checks and reconnection in Settings.
+- RSS subscriptions from anime details, with automatic single-version candidate selection.
 
 ## Requirements
 
@@ -56,6 +57,12 @@ replacement.
 Manual corrections and rejections survive later scans; original files remain
 accessible in Files.
 See [Anime Catalog](docs/anime-catalog.md) for identification and correction endpoints.
+
+To discover releases, open an anime detail page and add its RSS address and starting
+episode under **RSS subscription**. Check the source, then enable the subscription.
+Discovery selects one eligible version per episode automatically and explains skips;
+no release review or advanced filtering setup is required. Download submission is
+not enabled yet. See [RSS subscriptions](docs/rss-subscriptions.md) for scope and limits.
 
 The library scans on startup and watches filesystem changes for incremental updates.
 Manual scans reconcile the library when needed; monitoring failures are reported
