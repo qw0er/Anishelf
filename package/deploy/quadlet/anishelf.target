@@ -1,0 +1,7 @@
+[Unit]
+Description=Anishelf stack
+Requires=anishelf-backend.service anishelf-web.service
+After=anishelf-backend.service anishelf-web.service
+
+[Install]
+WantedBy=default.target
