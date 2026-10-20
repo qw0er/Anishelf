@@ -38,8 +38,13 @@ export function SecuritySettings() {
 					onSubmit={async (event) => {
 						event.preventDefault();
 						setError("");
-						if (password !== confirmation) {
+						const nextPassword = password.trim();
+						if (nextPassword !== confirmation.trim()) {
 							setError("Passwords do not match.");
+							return;
+						}
+						if ([...nextPassword].length < 8) {
+							setError("Password must contain at least 8 characters.");
 							return;
 						}
 						setPending(true);
@@ -48,7 +53,10 @@ export function SecuritySettings() {
 								"/api/auth/password",
 								"PUT",
 								{},
-								{ currentPassword, password },
+								{
+									currentPassword: currentPassword.trim(),
+									password: nextPassword,
+								},
 							);
 							leave();
 						} catch (error) {
@@ -74,7 +82,7 @@ export function SecuritySettings() {
 						/>
 					</label>
 					<label htmlFor="new-password" className="block space-y-2">
-						<span>New password (12–128 characters)</span>
+						<span>New password (8–128 characters, outer spaces trimmed)</span>
 						<Input
 							id="new-password"
 							type="password"

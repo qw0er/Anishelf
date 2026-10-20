@@ -6,6 +6,7 @@ import {
 	type Credential,
 	credentialFingerprint,
 	hashPassword,
+	normalizePassword,
 	replaceCredential,
 	verifyPassword,
 } from "./infrastructure/credentials.js";
@@ -58,7 +59,13 @@ export class AuthenticationService {
 				expected !== this.currentFingerprint
 			)
 				throw new DomainError("AUTH_REQUIRED", "Invalid password.");
-			const next = await hashPassword(password);
+			const normalized = normalizePassword(password);
+			if ([...normalized].length < 8 || [...normalized].length > 128)
+				throw new DomainError(
+					"INVALID_REQUEST",
+					"Password must contain 8–128 characters.",
+				);
+			const next = await hashPassword(normalized);
 			try {
 				await replaceCredential(this.dataDir, next);
 			} catch (error) {

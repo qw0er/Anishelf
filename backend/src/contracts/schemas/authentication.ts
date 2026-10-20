@@ -6,7 +6,7 @@ export const LoginRequestSchema = Type.Object(
 export const ChangePasswordRequestSchema = Type.Object(
 	{
 		currentPassword: Type.String({ minLength: 1, maxLength: 128 }),
-		password: Type.String({ minLength: 12, maxLength: 128 }),
+		password: Type.String({ minLength: 8, maxLength: 128 }),
 	},
 	{ additionalProperties: false },
 );
