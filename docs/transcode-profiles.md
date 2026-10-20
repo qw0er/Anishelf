@@ -228,3 +228,17 @@ does not silently replace the missing choice. Profile-specific compatibility neg
 fingerprint, excluding display metadata. [Preparation](history.md#v2-persistent-web-preparation) now snapshots execution requests, persists tasks
 and validates profile fingerprints for cache reuse. User-facing selection controls
 remain separate integration work.
+
+## Preparation modes
+
+In Settings, choose a preparation mode independently of the output profile.
+Compatibility is the default: preparation encodes both video and audio using the
+selected profile, without audio-only or video-only transcoding. The profile still
+controls the container, codecs, and encoding parameters; compatibility mode does
+not guarantee support on every device. Fast preparation preserves streams supported
+by the requesting browser when the profile allows it, reducing processing time but
+potentially limiting playback on other devices. Already playable originals still
+use direct playback. Mode changes apply to new preparation requests; existing tasks
+and prepared files remain available and are checked against the playback device.
+
+The choice is saved as `preparationMode` (`compatible` or `fast`) in `settings.json`.

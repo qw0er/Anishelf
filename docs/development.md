@@ -141,8 +141,11 @@ platform-specific location before starting this version.
 
 For file logging, set `ANISHELF_LOG_DESTINATION=file` or `both`. The default path
 is `join(userLogDir("anishelf", false), "anishelf.log")`; `ANISHELF_LOG_PATH`
-optionally overrides it. It is independent of `ANISHELF_DATA_DIR`. See [Logging](../README.md#logging) for rotation, retention,
-recovery and deployment examples.
+optionally overrides it. It is independent of `ANISHELF_DATA_DIR`.
+Logs rotate daily or at 10 MiB, retaining seven archives by default; failed file
+output falls back to stderr. In containers, use a persistent path such as
+`ANISHELF_LOG_PATH=/data/app/anishelf.log` with `ANISHELF_LOG_DESTINATION=both`,
+or read default stdout logs with `docker compose logs -f backend web`.
 Invalid startup parameters or unusable data directories fail startup with exit code 1
 and a terminal diagnostic. All options are validated before creating the data directory.
 The loader creates a missing directory with mode 0700 (subject to umask), preserves
