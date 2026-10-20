@@ -1,0 +1,22 @@
+[Unit]
+Description=Anishelf backend
+
+[Container]
+Image=ghcr.io/qw0er/anishelf-backend:latest
+ContainerName=anishelf-backend
+Network=anishelf.network
+NetworkAlias=backend
+UserNS=keep-id:uid=1000,gid=1000
+Environment=ANISHELF_PUBLIC_ORIGIN=http://localhost:3000
+Environment=ANISHELF_INITIAL_RESOURCE_ROOT=/data/media
+Environment=ANISHELF_QBITTORRENT_API_URL=http://qbittorrent:8080
+Volume=anishelf-app.volume:/data/app
+Volume=anishelf-media.volume:/data/media:ro
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

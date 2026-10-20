@@ -100,8 +100,9 @@ npm run start:backend
 ```
 
 Replace the example origin with your domain. For separate backend and Caddy web
-containers, use [compose.yaml](../compose.yaml) and the
-[container deployment guide](../README.md#deploy-with-a-container). Set the backend
+development containers, use the repository-root [compose.yaml](../compose.yaml)
+with `docker compose up -d --build`. Published-image deployment is in the
+[README](../README.md#deploy-with-a-container). Set the backend
 public origin to the browser-facing address; Compose defaults to `http://localhost:3000`.
 Source installations can omit the public origin for local access to the backend port.
 
@@ -409,7 +410,7 @@ variable is set. Without it, the backend serves only APIs/media, even if a front
 build exists. The configured directory must contain `index.html` or startup fails.
 A shared Caddy can proxy the whole application. Configure `ANISHELF_PUBLIC_ORIGIN`
 for its external origin and preserve Host/Origin headers; see the
-[Caddy deployment example](deployment.md#caddy-reverse-proxy). Backend listening
+[Caddy deployment example](deployment.md#network-and-qbittorrent). Backend listening
 defaults to loopback for source installations and `0.0.0.0` in container images.
 Container deployments use two images built from the same revision: Caddy serves
 static files and proxies `/api` to the private backend over the Compose network.
@@ -421,7 +422,7 @@ do not authorize requests. Container forwarding may obscure the client IP withou
 affecting Host/Origin validation or authentication. Local health checks remain available.
 Anishelf authenticates business routes and protects mutations with a CSRF token.
 Caddy supplies TLS; no media-path bypass is needed. External-player URLs include
-24-hour single-file authorization tokens. See [authentication operations](deployment.md#authentication-and-password-recovery).
+24-hour single-file authorization tokens. See [authentication operations](deployment.md#storage-updates-and-recovery).
 Separately hosted frontend files must use
 the same external origin for API requests.
 

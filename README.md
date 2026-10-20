@@ -22,11 +22,11 @@ media directory, browse its folder structure, and watch videos in your browser.
 
 Source installations listen on loopback by default; container images listen on
 `0.0.0.0` internally and publish a host loopback port. Remote use is available
-through SSH port forwarding or a [Caddy reverse proxy](docs/deployment.md#caddy-reverse-proxy).
+through SSH port forwarding or a [Caddy reverse proxy](docs/deployment.md#network-and-qbittorrent).
 The application requires a single access password. On first startup, it generates
 a random password and displays it once in the startup console. Sign in with that
 password; change it or sign out under **Settings → Security**. Keep the data
-directory persistent. See [password recovery](docs/deployment.md#authentication-and-password-recovery).
+directory persistent. See [password recovery](docs/deployment.md#storage-updates-and-recovery).
 
 ## Run and use
 
@@ -111,64 +111,135 @@ for storage and verification details.
 
 ## Deploy with a container
 
-Use Docker Engine with the Compose plugin on Linux AMD64 or ARM64. The
-[compose.yaml](compose.yaml) starts Web and Backend. qBittorrent is optional.
+Use Docker Compose on Linux AMD64 or ARM64. Save the following as `compose.yaml`
+in a deployment directory, or copy [the deployment file](package/deploy/compose.yaml).
+It pulls published GHCR images; no source checkout or build is required.
 
-- `web` serves the frontend and forwards `/api` to the private backend. Its default
-  browser entry is `http://localhost:3000`, published on host loopback only.
-- `backend` owns the private `anishelf-app` volume and reads completed media from
-  `anishelf-media` at `/data/media` through a read-only mount.
-- Optional `qbittorrent` writes completed media to the same media volume. Its
-  configuration and incomplete downloads have separate private volumes.
+```yaml
+services:
+  backend:
+    image: ghcr.io/qw0er/anishelf-backend:${ANISHELF_TAG:-latest}
+    restart: unless-stopped
+    stop_grace_period: 15s
+    environment:
+      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:3000}
+      ANISHELF_DATA_DIR: /data/app
+      ANISHELF_INITIAL_RESOURCE_ROOT: /data/media
+      ANISHELF_QBITTORRENT_API_URL: http://qbittorrent:8080
+    volumes:
+      - anishelf-app:/data/app
+      - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media:ro
+    # Podman's default OCI build format drops Dockerfile HEALTHCHECK metadata.
+    # Declaring it here keeps depends_on.service_healthy working under Podman.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:3000/api/health').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1));"
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
-### Docker Compose
+  web:
+    image: ghcr.io/qw0er/anishelf-web:${ANISHELF_TAG:-latest}
+    restart: unless-stopped
+    stop_grace_period: 15s
+    ports:
+      - "${ANISHELF_BIND_ADDRESS:-127.0.0.1}:3000:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
 
-For a source checkout:
+  qbittorrent:
+    profiles: [qbittorrent]
+    # Initialize only the mount roots before LinuxServer's normal init process.
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        mkdir -p /data/media /data/incomplete
+        chown "$${PUID}:$${PGID}" /data/media /data/incomplete
+        echo "qBittorrent media and incomplete mount roots initialized."
+        exec /init
+    image: linuxserver/qbittorrent:latest
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      WEBUI_PORT: "8080"
+      TORRENTING_PORT: "6881"
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+    volumes:
+      - qbittorrent-config:/config
+      - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media
+      - qbittorrent-incomplete:/data/incomplete
+
+volumes:
+  anishelf-app:
+    name: anishelf-app
+  anishelf-media:
+    name: anishelf-media
+  qbittorrent-incomplete:
+    name: anishelf-qbittorrent-incomplete
+  qbittorrent-config:
+    name: anishelf-qbittorrent-config
+```
 
 ```sh
-cp .env.example .env
-# Edit .env for your browser origin, ports and optional downloader.
-docker compose up -d --build
-docker compose logs -f backend
+docker compose pull
+docker compose up -d
+docker compose logs backend
 ```
 
-Open [Anishelf](http://localhost:3000) and sign in with the password printed in
-backend logs. Fresh settings use `/data/media` as the resource root. No downloader
-or browser WebUI link is configured by default.
+Open [Anishelf](http://localhost:3000) and use the initial password from backend
+logs. Both stacks use the same four persistent volumes: application state,
+completed media, qBittorrent configuration and incomplete downloads. Backend reads
+media; the optional downloader writes it. Backend remains UID/GID 1000.
 
-To include qBittorrent, uncomment these two lines in `.env`:
+Optional `.env` settings:
 
 ```dotenv
-COMPOSE_PROFILES=qbittorrent
-ANISHELF_QBITTORRENT_API_URL=http://qbittorrent:8080
+ANISHELF_TAG=latest
+ANISHELF_PUBLIC_ORIGIN=http://localhost:3000
+# Optional existing host media directory (Backend needs read/traverse access):
+# ANISHELF_MEDIA_PATH=/srv/anishelf/media
+# Optional bundled downloader:
+# COMPOSE_PROFILES=qbittorrent
 ```
 
-Then run the same Compose command. Read its temporary password with
-`docker compose logs qbittorrent`, set a permanent password in qBittorrent, and
-configure completed downloads at `/data/media` and incomplete downloads at
-`/data/incomplete`. In Anishelf Settings, the API address is prefilled; enter your
-qBittorrent username/password, save and test. The prefilled address alone does not
-connect an account. Existing saved API accounts always take precedence.
+Pin the same published release tag for both images when updating. Set the origin
+to your actual HTTPS domain when using a reverse proxy. For remote loopback access,
+use `ssh -L 3000:127.0.0.1:3000 user@server`.
 
-The **WebUI URL** is an optional browser-reachable address, configured separately
-in Settings. It is not inferred from the backend API URL. Leave it blank when only
-API access is needed; Anishelf does not proxy the downloader WebUI.
+qBittorrent is optional in both stacks. Set `COMPOSE_PROFILES=qbittorrent` to keep
+it included in pull/start/stop commands, or use `--profile qbittorrent` each time.
+Read its temporary password with `docker compose logs qbittorrent`, set a permanent
+password, and configure completed downloads at `/data/media` and incomplete
+downloads at `/data/incomplete`. In Anishelf Settings, save the API account, test
+it and validate Download destination. The API address is prefilled with
+`http://qbittorrent:8080`; replace it when using an external instance. Configure
+the browser WebUI address separately, then confirm each subscription's scope.
 
-[.env.example](.env.example) centralizes the shared Anishelf image tag, browser
-origin, published ports, time zone and downloader options. To use an existing host
-media directory, set `ANISHELF_MEDIA_PATH=/srv/anishelf/media`; see
-[storage permissions](docs/deployment.md#data-storage). Keep
-`ANISHELF_PUBLIC_ORIGIN` aligned with the browser hostname, port and scheme when
-changing the published port or using HTTPS.
+For an existing media directory, set `ANISHELF_MEDIA_PATH` to its absolute path.
+On SELinux hosts, add `z` to both media mounts (`:ro,z` and `:z`).
 
-For published releases, set `ANISHELF_TAG` to the same available release tag for
-both images, then use `docker compose pull` and `docker compose up -d --no-build`.
-Branch pushes do not publish images; build from source when the desired tag is
-unavailable. [Back up persistent data](docs/deployment.md#data-backup-and-updates)
-before updates. Do not use `down --volumes` unless intentionally deleting data.
-The isolated volume layout does not automatically import older shared-volume
-installations. See [deployment guidance](docs/deployment.md) for storage, updates,
-TLS, SELinux and password recovery.
+For updates, run `docker compose pull`, stop the stack, back up `anishelf-app`,
+then run `docker compose up -d`. Never use `down --volumes` to update.
+See [deployment notes and Podman Quadlet](docs/deployment.md).
+
+The repository-root [compose.yaml](compose.yaml) is for **development**, builds the
+current checkout, and optionally starts qBittorrent:
+
+```sh
+docker compose up -d --build
+# With the development downloader:
+docker compose --profile qbittorrent up -d --build
+```
 
 ## Configuration
 
