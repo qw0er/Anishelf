@@ -10,6 +10,25 @@ import {
 
 export class DiscoveryRepository implements DiscoveryStore {
 	constructor(private readonly store: Store) {}
+	transaction(operation: () => void) {
+		this.store.transaction(() => operation(), { behavior: "immediate" });
+	}
+	reservationOutcome(subscription: Subscription, failed: boolean) {
+		const current = this.subscription(subscription.workKey);
+		if (!current?.enabled || current.revision !== subscription.revision) return;
+		// Reservation recovery must not erase a separate assessment error or replace candidates.
+		if (!failed && current.lastError !== "acquisition_unavailable") return;
+		this.store
+			.update(subscriptions)
+			.set({
+				data: {
+					...current,
+					lastError: failed ? "acquisition_unavailable" : null,
+				},
+			})
+			.where(eq(subscriptions.workKey, current.workKey))
+			.run();
+	}
 	subscription(workKey: string) {
 		return (
 			this.store

@@ -32,6 +32,33 @@ capability checks the accepted episode against leaf filename evidence, publishes
 conflicting files into local Review and uses revision-checked Catalog confirmation
 without replacing manual decisions. Acquisition does not write their tables.
 
+## Internal Workflow Boundaries
+
+`DownloadsApplication` is an internal facade over destination settings and authorization,
+recovery commands, activity queries, reservations, remote submission/reconciliation,
+completed-file import and a bounded worker. `DownloadContext` owns cancellation,
+request draining and the single revision-checked intent writer. Each reconciliation
+uses a `DownloadExecution` that retains its own latest written revision across
+submission and import stages. A delayed failure cannot adopt and overwrite a newer
+command. Structured intent transition logs include the work, intent and new revision.
+
+Discovery owns feed evidence, subscription revisions and candidate publication. Its
+application manages session-bound previews and commands; `FeedReader` coalesces
+bounded source requests, the pure `selectCandidates` policy evaluates explicit
+snapshots, and `DiscoveryWorker` owns polling and scheduling. Downloads consumes a
+consumer-owned selection port with subscription/candidate/release reads and an explicit
+reservation-outcome notification. Discovery applies that notification without
+replacing candidates or clearing a separate assessment failure on recovery.
+
+`SubscriptionConfirmation` coordinates the synchronous SQLite transaction that saves
+the subscription, feed and candidates together with the confirmed download permission.
+A permission failure rolls the complete confirmation back and retains the preview
+for retry. Production repositories share the application database connection; injected
+persistence implementations must preserve that transaction boundary.
+
+Module assembly exposes selected method capabilities. Internal workflow objects,
+stores, workers and lifecycle methods do not escape through the business API.
+
 ## Destination and Authorization
 
 One destination maps a qBittorrent absolute POSIX prefix to a configured Resources
@@ -63,6 +90,13 @@ lose in-flight tasks. Unique indexes reserve work/episode and canonical torrent
 hashes. Unresolved release identities receive a provisional unique reservation
 until the bounded torrent parser resolves them. Duplicate canonical identities
 remain blocked rather than silently controlling another work's task.
+
+Download persistence provides work-scoped activity pagination and aggregate counts,
+indexed work/episode and hash reservation lookups, and cursor-ordered due-task batches.
+The worker loads at most two intent payloads per batch, while including available
+sources for subsequent availability checks. Idle detection uses an existence query.
+Retention redacts terminal detail in SQL and preserves reservations. JSON state filters
+and activity ordering still run in SQLite; this change does not establish a load benchmark.
 
 Private intent evidence includes source URL, expected feed hash, canonical hash,
 destination snapshot, stable directory, accepted subscription revision, submission
@@ -149,6 +183,8 @@ never log private RSS/Magnet URLs, tokens, torrent payloads or SDK raw responses
 
 Fixtures cover identity/path validation, SQLite reservations/restart, uncertain
 submission, external task changes, confined refresh, Catalog association/manual
-preservation, HTTP authentication/CSRF/revisions and compact UI recovery. Run Biome,
+preservation, HTTP authentication/CSRF/revisions and compact UI recovery. Regression coverage also
+checks atomic confirmation rollback, activity pagination and summaries, bounded
+worker cursors, retained reservations and late failures after a newer retry command. Run Biome,
 lint, type checks and project tests with required localhost/subprocess permissions.
 Actual RSS/qBittorrent/mapped-media/browser tests remain separate acceptance gates.

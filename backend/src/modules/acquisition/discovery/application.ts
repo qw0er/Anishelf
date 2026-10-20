@@ -1,11 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
-import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
 import { workReference } from "../../../shared/external-reference.js";
-import type {
-	AcquisitionTarget,
-	ReleaseAssessmentApi,
-} from "../../anime/public.js";
+import type { AcquisitionTarget } from "../../anime/public.js";
+import { DiscoveryContext, type DiscoveryOptions } from "./context.js";
 import {
 	type Candidate,
 	type FeedRecord,
@@ -15,9 +12,11 @@ import {
 	type SubscriptionPreview,
 	type SubscriptionView,
 } from "./domain/model.js";
+import { selectCandidates } from "./domain/selection.js";
+import { FeedReader } from "./feed-reader.js";
 import { discoveryPolicy as policy } from "./policy.js";
-import type { DiscoveryStore, FeedTransport } from "./ports.js";
 import type { DiscoveryApi } from "./public.js";
+import { DiscoveryWorker } from "./worker.js";
 
 function hash(value: string) {
 	return createHash("sha256").update(value).digest("hex");
@@ -39,46 +38,22 @@ interface Preview {
 	feedRevision: string | null;
 }
 export class DiscoveryApplication implements DiscoveryApi {
-	private readonly shutdown = new AbortController();
+	private readonly context: DiscoveryContext;
+	private readonly reader: FeedReader;
+	private readonly worker: DiscoveryWorker;
 	private readonly previews = new Map<string, Preview>();
-	private readonly fetching = new Map<string, Promise<FeedRecord>>();
-	private readonly polling = new Map<string, Promise<void>>();
-	private readonly pending = new Set<Promise<unknown>>();
-	private timer: ReturnType<typeof setInterval> | undefined;
-	private ticking: Promise<void> | undefined;
 	private preparing = 0;
-	constructor(
-		private readonly options: {
-			store: DiscoveryStore;
-			transport: FeedTransport;
-			anime: ReleaseAssessmentApi;
-			parse: (xml: string) => FeedRecord["entries"];
-			normalizeUrl: (url: string) => string;
-			downloads: (signal: AbortSignal) => Promise<string[] | null>;
-			logger: Logger;
-			now?: () => number;
-			downloadPreview?: (
-				key: string,
-				target: AcquisitionTarget,
-			) => { revision: string; path: string } | null;
-			authorizeDownloads?: (
-				subscription: Subscription,
-				revision: string,
-			) => Promise<void>;
-		},
-	) {}
-	private now() {
-		return this.options.now?.() ?? Date.now();
-	}
-	private open() {
-		if (this.shutdown.signal.aborted)
-			throw new DomainError(
-				"ACQUISITION_UNAVAILABLE",
-				"Discovery is stopping.",
-			);
+	constructor(private readonly options: DiscoveryOptions) {
+		this.context = new DiscoveryContext(options);
+		this.reader = new FeedReader(this.context);
+		this.worker = new DiscoveryWorker(
+			this.context,
+			this.reader,
+			(subscription, feed, target) => this.assess(subscription, feed, target),
+		);
 	}
 	private key(value: string) {
-		this.open();
+		this.context.open();
 		try {
 			workReference(value);
 		} catch {
@@ -123,15 +98,8 @@ export class DiscoveryApplication implements DiscoveryApi {
 		const parsed = new URL(url);
 		return parsed.origin;
 	}
-	private tracked<T>(operation: () => Promise<T>): Promise<T> {
-		this.open();
-		const task = operation();
-		this.pending.add(task);
-		void task.finally(() => this.pending.delete(task)).catch(() => {});
-		return task;
-	}
 	preview(session: string, input: PreviewInput) {
-		return this.tracked(async () => {
+		return this.context.tracked(async () => {
 			if (this.preparing >= 2)
 				throw new DomainError(
 					"ACQUISITION_UNAVAILABLE",
@@ -181,14 +149,14 @@ export class DiscoveryApplication implements DiscoveryApi {
 		}
 		if (!url) throw new DomainError("INVALID_REQUEST", "Enter an RSS URL.");
 		for (const [token, preview] of this.previews)
-			if (preview.expiresAt <= this.now()) this.previews.delete(token);
+			if (preview.expiresAt <= this.context.now()) this.previews.delete(token);
 		if (this.previews.size >= policy.maximumPreviews)
 			throw new DomainError(
 				"ACQUISITION_UNAVAILABLE",
 				"Too many pending previews.",
 			);
 		const existing = this.options.store.feed(hash(url));
-		const feed = await this.fetchFeed(
+		const feed = await this.reader.fetch(
 			existing ?? {
 				revision: randomUUID(),
 				id: hash(url),
@@ -204,7 +172,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 		);
 		const target = await this.options.anime.target(
 			input.workKey,
-			this.shutdown.signal,
+			this.context.signal,
 		);
 		const prospective: Subscription = {
 			workKey: input.workKey,
@@ -214,9 +182,9 @@ export class DiscoveryApplication implements DiscoveryApi {
 			enabled: true,
 		};
 		const candidates = await this.assess(prospective, feed, target);
-		this.open();
+		this.context.open();
 		const token = randomUUID(),
-			expiresAt = this.now() + policy.previewLifetimeMs;
+			expiresAt = this.context.now() + policy.previewLifetimeMs;
 		const download =
 			this.options.downloadPreview?.(input.workKey, target) ?? null;
 		this.previews.set(token, {
@@ -242,20 +210,20 @@ export class DiscoveryApplication implements DiscoveryApi {
 		};
 	}
 	confirm(session: string, workKey: string, token: string) {
-		return this.tracked(async () => {
+		return this.context.tracked(async () => {
 			const preview = this.previews.get(token);
 			if (
 				!preview ||
 				preview.session !== session ||
 				preview.input.workKey !== workKey ||
-				preview.expiresAt <= this.now()
+				preview.expiresAt <= this.context.now()
 			)
 				conflict();
 			const target = await this.options.anime.target(
 				workKey,
-				this.shutdown.signal,
+				this.context.signal,
 			);
-			this.open();
+			this.context.open();
 			const current = this.options.store.subscription(workKey);
 			if (
 				(current?.revision ?? null) !== preview.input.revision ||
@@ -282,16 +250,17 @@ export class DiscoveryApplication implements DiscoveryApi {
 				enabled: true,
 				revision: randomUUID(),
 			};
-			this.options.store.saveSubscription(
+			this.options.confirmation.commit(
 				subscription,
-				preview.feed,
-				preview.candidates,
+				preview.downloadRevision,
+				() => {
+					this.options.store.saveSubscription(
+						subscription,
+						preview.feed,
+						preview.candidates,
+					);
+				},
 			);
-			if (preview.downloadRevision)
-				await this.options.authorizeDownloads?.(
-					subscription,
-					preview.downloadRevision,
-				);
 			this.previews.delete(token);
 			this.options.logger.info(
 				{
@@ -330,54 +299,23 @@ export class DiscoveryApplication implements DiscoveryApi {
 		);
 	}
 	refresh(workKey: string, revision: string) {
-		return this.tracked(async () => {
+		return this.context.tracked(async () => {
 			this.key(workKey);
 			const subscription = this.options.store.subscription(workKey);
 			if (!subscription?.enabled || subscription.revision !== revision)
 				conflict();
 			const feed = this.options.store.feed(subscription.feedId);
 			if (!feed) conflict();
-			if (feed.checkedAt !== null && this.now() - feed.checkedAt < 30_000)
+			if (
+				feed.checkedAt !== null &&
+				this.context.now() - feed.checkedAt < 30_000
+			)
 				return this.get(workKey);
-			await this.pollFeed(feed);
+			await this.worker.pollFeed(feed);
 			return this.get(workKey);
 		});
 	}
-	private fetchFeed(feed: FeedRecord): Promise<FeedRecord> {
-		const current = this.fetching.get(feed.id);
-		if (current) return current;
-		if (this.fetching.size >= 2)
-			return Promise.reject(new RssError("source_busy"));
-		const task = (async () => {
-			const response = await this.options.transport.fetch(
-				feed.url,
-				feed,
-				this.shutdown.signal,
-			);
-			if (response.xml === null && feed.checkedAt === null)
-				throw new RssError("invalid_response");
-			const entries =
-				response.xml === null ? feed.entries : this.options.parse(response.xml);
-			const retained = new Map(feed.entries.map((entry) => [entry.id, entry]));
-			for (const entry of entries) retained.set(entry.id, entry);
-			if (retained.size > policy.maximumRetainedItems)
-				throw new RssError("storage_limit");
-			return {
-				...feed,
-				revision: randomUUID(),
-				entries: [...retained.values()],
-				etag: response.etag,
-				lastModified: response.lastModified,
-				checkedAt: this.now(),
-				nextAttemptAt: this.now() + policy.intervalMs,
-				failures: 0,
-				error: null,
-			};
-		})();
-		this.fetching.set(feed.id, task);
-		void task.finally(() => this.fetching.delete(feed.id)).catch(() => {});
-		return task;
-	}
+
 	private async assess(
 		subscription: Subscription,
 		feed: FeedRecord,
@@ -386,212 +324,49 @@ export class DiscoveryApplication implements DiscoveryApi {
 		let hashes: string[] | null = null,
 			downloadsUnknown = false;
 		try {
-			hashes = await this.options.downloads(this.shutdown.signal);
+			hashes = await this.options.downloads(this.context.signal);
 		} catch {
 			downloadsUnknown = true;
 		}
-		const active = new Set(hashes ?? []);
-		const previous = new Set(
-			this.options.store
-				.candidates(subscription.workKey)
-				.filter(
-					(candidate) => candidate.chosen || candidate.status === "selected",
-				)
-				.map((candidate) => candidate.entryId),
-		);
-		const candidates = feed.entries.map((entry): Candidate => {
-			const assessment = this.options.anime.assess(entry.title, target),
-				reasons = [...assessment.reasons];
-			if (!entry.downloadUrl) reasons.push("download_unavailable");
-			if (
-				assessment.episode !== null &&
-				assessment.episode < subscription.startEpisode
-			)
-				reasons.push("outside_scope");
-			if (
-				assessment.episode !== null &&
-				target.availableEpisodes.includes(assessment.episode)
-			)
-				reasons.push("already_available");
-			if (entry.hash && active.has(entry.hash))
-				reasons.push("existing_download");
-			if (downloadsUnknown) reasons.push("downloader_unavailable");
-			return {
-				chosen: previous.has(entry.id),
-				id: hash(`${subscription.workKey}:${entry.id}`),
-				entryId: entry.id,
-				workKey: subscription.workKey,
-				title: entry.title,
-				episode: assessment.episode,
-				status: reasons.length ? "skipped" : "selected",
-				reasons,
-				version: assessment.version,
-				snapshotId: target.work.snapshotId,
-				publishedAt: entry.publishedAt,
-			};
+		return selectCandidates({
+			subscription,
+			feed,
+			target,
+			downloadsUnknown,
+			active: new Set(hashes ?? []),
+			previous: new Set(
+				this.options.store
+					.candidates(subscription.workKey)
+					.filter(
+						(candidate) => candidate.chosen || candidate.status === "selected",
+					)
+					.map((candidate) => candidate.entryId),
+			),
+			assess: (title, work) => this.options.anime.assess(title, work),
 		});
-		candidates.sort(
-			(a, b) =>
-				Number(previous.has(b.entryId)) - Number(previous.has(a.entryId)) ||
-				(a.publishedAt ?? Infinity) - (b.publishedAt ?? Infinity) ||
-				a.entryId.localeCompare(b.entryId),
-		);
-		const selected = new Set<number>();
-		const downloading = new Set(
-			candidates
-				.filter(
-					(candidate) =>
-						candidate.reasons.includes("existing_download") &&
-						!candidate.reasons.includes("identity_unconfirmed"),
-				)
-				.map((candidate) => candidate.episode),
-		);
-		for (const candidate of candidates)
-			if (candidate.status === "selected" && candidate.episode !== null) {
-				if (downloading.has(candidate.episode)) {
-					candidate.status = "skipped";
-					candidate.reasons.push("episode_downloading");
-					continue;
-				}
-				if (selected.has(candidate.episode)) {
-					candidate.status = "skipped";
-					candidate.reasons.push("another_version_selected");
-				} else {
-					selected.add(candidate.episode);
-					candidate.chosen = true;
-				}
-			}
-		return candidates;
 	}
-	private pollFeed(feed: FeedRecord): Promise<void> {
-		const current = this.polling.get(feed.id);
-		if (current) return current;
-		const task = this.runFeed(feed);
-		this.polling.set(feed.id, task);
-		void task.finally(() => this.polling.delete(feed.id)).catch(() => {});
-		return task;
-	}
-	private async runFeed(feed: FeedRecord) {
-		const canPublish = (revision = feed.revision) => {
-			const current = this.options.store.feed(feed.id);
-			return current && [feed.revision, revision].includes(current.revision);
+	/** Discovery owns the projection and reservation-result writes exposed to Downloads. */
+	acquisition() {
+		return {
+			subscription: (workKey: string) =>
+				this.options.store.subscription(workKey),
+			subscriptions: () => this.options.store.subscriptions(),
+			candidates: (workKey: string) => this.options.store.candidates(workKey),
+			release: (feedId: string, entryId: string) =>
+				this.options.store
+					.feed(feedId)
+					?.entries.find((entry) => entry.id === entryId) ?? null,
+			reservationOutcome: (subscription: Subscription, failed: boolean) =>
+				this.options.store.reservationOutcome(subscription, failed),
 		};
-		try {
-			const updated = await this.fetchFeed(feed);
-			this.open();
-			if (!canPublish(updated.revision)) return;
-			const subscriptions = this.options.store
-				.subscriptions()
-				.filter(
-					(subscription) =>
-						subscription.enabled && subscription.feedId === feed.id,
-				);
-			if (!subscriptions.length) return;
-			for (const subscription of subscriptions) {
-				try {
-					const target = await this.options.anime.target(
-						subscription.workKey,
-						this.shutdown.signal,
-					);
-					const candidates = await this.assess(subscription, updated, target);
-					this.open();
-					if (!canPublish(updated.revision)) return;
-					this.options.store.updateCandidates(subscription, candidates);
-				} catch {
-					if (this.shutdown.signal.aborted || !canPublish(updated.revision))
-						return;
-					this.options.store.updateCandidates(
-						subscription,
-						this.options.store.candidates(subscription.workKey),
-						"assessment_unavailable",
-					);
-					this.options.logger.warn(
-						{ event: "acquisition.assessment_failed", feedId: feed.id },
-						"Subscription assessment will retry.",
-					);
-				}
-			}
-			if (!canPublish(updated.revision)) return;
-			this.options.store.saveFeed(updated);
-			this.options.logger.info(
-				{
-					event: "acquisition.discovery_completed",
-					feedId: feed.id,
-					entries: updated.entries.length,
-				},
-				"RSS discovery completed.",
-			);
-		} catch (error) {
-			if (this.shutdown.signal.aborted || !canPublish()) return;
-			const failures = feed.failures + 1,
-				code =
-					error instanceof RssError ? error.code : "assessment_unavailable";
-			this.options.store.saveFeed({
-				...feed,
-				failures,
-				error: code,
-				nextAttemptAt:
-					this.now() +
-					Math.min(policy.retryMaximumMs, 60_000 * 2 ** Math.min(failures, 6)),
-			});
-			this.options.logger.warn(
-				{ event: "acquisition.discovery_failed", feedId: feed.id, code },
-				"RSS discovery will retry.",
-			);
-		}
 	}
 	start() {
-		this.timer = setInterval(() => {
-			void this.tick();
-		}, policy.tickMs);
-		this.timer.unref();
-		void this.tick();
-	}
-	private tick(): Promise<void> {
-		if (this.ticking || this.shutdown.signal.aborted)
-			return this.ticking ?? Promise.resolve();
-		const task = (async () => {
-			const ids = [
-				...new Set(
-					this.options.store
-						.subscriptions()
-						.filter((subscription) => subscription.enabled)
-						.map((subscription) => subscription.feedId),
-				),
-			];
-			const due = ids
-				.map((id) => this.options.store.feed(id))
-				.filter((feed): feed is FeedRecord =>
-					Boolean(feed && feed.nextAttemptAt <= this.now()),
-				);
-			for (
-				let index = 0;
-				index < due.length && !this.shutdown.signal.aborted;
-				index += 2
-			)
-				await Promise.all(
-					due.slice(index, index + 2).map((feed) => this.pollFeed(feed)),
-				);
-		})().catch(() => {
-			this.options.logger.warn(
-				{ event: "acquisition.scheduler_failed" },
-				"RSS scheduler will retry.",
-			);
-		});
-		this.ticking = task;
-		void task.finally(() => {
-			this.ticking = undefined;
-		});
-		return task;
+		this.worker.start();
 	}
 	async close() {
-		this.shutdown.abort();
-		if (this.timer) clearInterval(this.timer);
+		this.context.shutdown.abort();
 		await this.options.transport.close();
-		await Promise.allSettled([
-			...this.pending,
-			...(this.ticking ? [this.ticking] : []),
-		]);
+		await Promise.allSettled([...this.context.pending, this.worker.close()]);
 		this.previews.clear();
 	}
 }

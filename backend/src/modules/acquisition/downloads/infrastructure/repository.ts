@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ne, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import type {
 	DownloadAuthorization,
@@ -56,13 +56,98 @@ export class DownloadRepository implements DownloadStore {
 			.onConflictDoNothing()
 			.run();
 	}
-	intents() {
+
+	activity(workKey: string, page: number, pageSize: number) {
+		const scope = eq(intents.workKey, workKey);
+		const summary = this.store
+			.select({
+				total: sql<number>`count(*)`,
+				active: sql<number>`coalesce(sum(json_extract(${intents.data}, '$.state') not in ('available', 'missing', 'blocked')), 0)`,
+				attention: sql<number>`coalesce(sum(json_extract(${intents.data}, '$.error') is not null), 0)`,
+			})
+			.from(intents)
+			.where(scope)
+			.get();
+		const items = this.store
+			.select()
+			.from(intents)
+			.where(scope)
+			.orderBy(
+				desc(sql`json_extract(${intents.data}, '$.createdAt')`),
+				asc(intents.id),
+			)
+			.limit(pageSize)
+			.offset((page - 1) * pageSize)
+			.all()
+			.map((row) => row.data);
+		const candidateIds = this.store
+			.select({
+				id: sql<string>`json_extract(${intents.data}, '$.candidateId')`,
+			})
+			.from(intents)
+			.where(scope)
+			.all()
+			.map((row) => row.id);
+		return {
+			items,
+			total: summary?.total ?? 0,
+			active: summary?.active ?? 0,
+			attention: summary?.attention ?? 0,
+			candidateIds,
+		};
+	}
+	reservedEpisode(workKey: string, episode: number) {
+		return Boolean(
+			this.store
+				.select({ id: intents.id })
+				.from(intents)
+				.where(
+					and(
+						eq(intents.workKey, workKey),
+						eq(intents.episode, String(episode)),
+					),
+				)
+				.get(),
+		);
+	}
+	hashOwner(hash: string, exceptId: string) {
+		return Boolean(
+			this.store
+				.select({ id: intents.id })
+				.from(intents)
+				.where(and(eq(intents.hash, hash), ne(intents.id, exceptId)))
+				.get(),
+		);
+	}
+	workBatch(afterId: string, limit: number, now: number) {
 		return this.store
 			.select()
 			.from(intents)
+			.where(
+				and(
+					gt(intents.id, afterId),
+					sql`json_extract(${intents.data}, '$.state') not in ('missing', 'blocked')`,
+					sql`json_extract(${intents.data}, '$.nextAttemptAt') <= ${now}`,
+				),
+			)
+			.orderBy(asc(intents.id))
+			.limit(limit)
 			.all()
 			.map((row) => row.data);
 	}
+	hasActive() {
+		return Boolean(
+			this.store
+				.select({ id: intents.id })
+				.from(intents)
+				.where(
+					sql`json_extract(${intents.data}, '$.state') not in ('available', 'missing', 'blocked')`,
+				)
+				.limit(1)
+				.get(),
+		);
+	}
+
 	intent(id: string) {
 		return (
 			this.store.select().from(intents).where(eq(intents.id, id)).get()?.data ??
@@ -91,21 +176,20 @@ export class DownloadRepository implements DownloadStore {
 			.where(eq(intents.id, data.id))
 			.run();
 	}
+
 	prune(before: number) {
-		for (const item of this.intents())
-			if (
-				item.updatedAt < before &&
-				["available", "missing"].includes(item.state) &&
-				item.source
-			) {
-				// Keep reservations, suppression and source identity after detailed evidence expires.
-				this.saveIntent({
-					...item,
-					source: "",
-					title: "",
-					transfer: null,
-					error: null,
-				});
-			}
+		this.store
+			.update(intents)
+			.set({
+				data: sql`json_set(${intents.data}, '$.source', '', '$.title', '', '$.transfer', null, '$.error', null)`,
+			})
+			.where(
+				and(
+					sql`json_extract(${intents.data}, '$.updatedAt') < ${before}`,
+					sql`json_extract(${intents.data}, '$.state') in ('available', 'missing')`,
+					sql`json_extract(${intents.data}, '$.source') <> ''`,
+				),
+			)
+			.run();
 	}
 }

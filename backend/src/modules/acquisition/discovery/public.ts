@@ -22,5 +22,4 @@ export interface DiscoveryApi {
 	refresh(workKey: string, revision: string): Promise<SubscriptionView>;
 }
 
-export type { FeedEntry, Subscription } from "./domain/model.js";
-export type { DiscoveryStore } from "./ports.js";
+export type { Candidate, FeedEntry, Subscription } from "./domain/model.js";

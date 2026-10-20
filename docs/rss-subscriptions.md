@@ -104,7 +104,10 @@ suppression are managed separately by the acquisition worker.
 
 Preview tokens bind the authenticated session, anime, feed evidence, starting scope,
 subscription revision, metadata snapshot and local availability. Confirmation
-rechecks revisions. Old polling results cannot overwrite a paused, edited or removed
+rechecks revisions and the previewed destination. Acquisition saves the subscription,
+feed, candidates and download permission in one synchronous SQLite transaction;
+a permission write failure rolls back confirmation and leaves its token retryable.
+Old polling results cannot overwrite a paused, edited or removed
 subscription. Previewing changes no subscription or candidate rows. All mutation
 routes use the existing authentication and CSRF boundary:
 
