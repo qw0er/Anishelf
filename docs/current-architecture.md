@@ -126,6 +126,28 @@ the new connection before any possible resend. Available local sources remain
 independent of downloader connectivity. Definitively rejected
 or unsent submissions can back off; unknown mutations require reconciliation.
 
+### qBittorrent SDK boundary
+
+`QbittorrentClient` uses `@ctrl/qbittorrent` directly. The SDK owns HTTP requests,
+cookies, authentication recovery, multipart encoding and per-request timeouts.
+The client retains input/response validation, domain mapping, shared initial login,
+the supported-version check and sanitized operation logs. It does not install a
+custom dispatcher, enforce a response byte limit or validate raw add receipts.
+SDK redirect and response-decoding behavior applies.
+
+Cancellation is cooperative: it is checked before authentication, before the SDK
+action and after that action completes. It does not abort an in-flight HTTP request;
+that request finishes or reaches the SDK timeout. Closing blocks new operations,
+drains pending operations and clears local authentication. Cancellation of one
+operation does not interrupt shared login for other operations.
+
+Once a mutation action starts, failures without an explicit rejection are treated
+as unknown, even if the request might not have reached the server. The SDK may
+re-authenticate and repeat a request after an explicit authentication rejection;
+the client adds no mutation retries. A successful add call is only a receipt:
+submission must still query by hash and validate category/tag ownership before
+binding. Unrecognized receipts therefore cannot establish a binding on their own.
+
 ## Completion and Ingestion
 
 1. Observe full completion with no remaining bytes and no metadata/check/move/error

@@ -8,9 +8,7 @@ export type QbittorrentFailureCode =
 	| "timeout"
 	| "cancelled"
 	| "rejected"
-	| "invalid-response"
-	| "response-too-large"
-	| "redirect";
+	| "invalid-response";
 
 export class QbittorrentError extends Error {
 	constructor(
@@ -28,8 +26,8 @@ export interface QbittorrentOptions {
 	username: string;
 	password: string;
 	logger: Logger;
+	/** SDK timeout per HTTP request, not a deadline for the entire operation. */
 	timeoutMs?: number;
-	maximumResponseBytes?: number;
 }
 
 export interface DownloadTask {
@@ -66,6 +64,7 @@ export interface AddDownload {
 	paused?: boolean;
 }
 
+/** Cancellation is checked between SDK calls; in-flight requests use the SDK timeout. */
 export interface QbittorrentApi {
 	probe(signal?: AbortSignal): Promise<{
 		version: string;
@@ -85,5 +84,6 @@ export interface QbittorrentApi {
 	recheck(hash: string, signal?: AbortSignal): Promise<void>;
 	/** Always preserves downloaded data. Destructive deletion is future scope. */
 	remove(hash: string, signal?: AbortSignal): Promise<void>;
+	/** Reject new operations and drain SDK requests before clearing authentication. */
 	close(): Promise<void>;
 }

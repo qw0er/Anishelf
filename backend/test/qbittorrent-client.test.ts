@@ -118,7 +118,7 @@ async function fixture(
 }
 
 test("SDK cookie login is shared by concurrent operations and preserves proxy prefix", async () => {
-	const { client, requests, url } = await fixture();
+	const { client, requests } = await fixture();
 	const [probe, tasks] = await Promise.all([client.probe(), client.tasks()]);
 	expect(probe).toEqual({
 		version: "v5.0.5",
@@ -142,7 +142,6 @@ test("SDK cookie login is shared by concurrent operations and preserves proxy pr
 	);
 	for (const request of requests.slice(1)) {
 		expect(request.headers.cookie).toBe("SID=session-secret");
-		expect(request.headers.referer).toBe(url);
 	}
 });
 test("lookup distinguishes absent task from a failed or invalid snapshot", async () => {
@@ -290,28 +289,7 @@ test("unsupported major version blocks mutations", async () => {
 		false,
 	);
 });
-test("redirects are rejected without forwarding credentials", async () => {
-	const { client, requests } = await fixture((request, response) => {
-		if (!request.path.includes("/torrents/info")) return false;
-		response.writeHead(302, { location: "/stolen" }).end();
-	});
-	await expect(client.tasks()).rejects.toMatchObject({ code: "redirect" });
-	expect(requests.some((request) => request.path === "/stolen")).toBe(false);
-});
-test("oversized and streamed responses fail instead of publishing a partial snapshot", async () => {
-	const { client } = await fixture(
-		(request, response) => {
-			if (!request.path.includes("/torrents/info")) return false;
-			response.write("[");
-			response.end(" ".repeat(2048));
-		},
-		{ maximumResponseBytes: 1024 },
-	);
-	await expect(client.tasks()).rejects.toMatchObject({
-		code: "response-too-large",
-	});
-});
-test("operation deadline aborts in-flight writes and retains unknown outcome", async () => {
+test("SDK request timeout retains unknown mutation outcome", async () => {
 	const { client } = await fixture(
 		(request) => (request.path.endsWith("/torrents/stop") ? undefined : false),
 		{ timeoutMs: 150 },
@@ -321,10 +299,12 @@ test("operation deadline aborts in-flight writes and retains unknown outcome", a
 		outcome: "unknown",
 	});
 });
-test("caller cancellation and close terminate requests without later reuse", async () => {
+test("cancellation waits for the SDK request; close drains it and blocks reuse", async () => {
 	let seen = () => {};
-	const { client } = await fixture((request) => {
+	let respond = () => {};
+	const { client, requests } = await fixture((request, response) => {
 		if (!request.path.includes("/torrents/info")) return false;
+		respond = () => response.end(JSON.stringify([torrent]));
 		seen();
 	});
 	await client.probe();
@@ -338,16 +318,72 @@ test("caller cancellation and close terminate requests without later reuse", asy
 	});
 	await received;
 	controller.abort();
+	const closing = client.close();
+	await expect(client.tasks()).rejects.toMatchObject({ code: "cancelled" });
+	respond();
 	await assertion;
-	const secondReceived = new Promise<void>((resolve) => {
+	await closing;
+	expect(
+		requests.filter((request) => request.path.includes("/torrents/info")),
+	).toHaveLength(1);
+});
+test("cancelling an in-flight mutation keeps its result unknown without resending", async () => {
+	let seen = () => {};
+	let respond = () => {};
+	const { client, requests } = await fixture((request, response) => {
+		if (!request.path.endsWith("/torrents/stop")) return false;
+		respond = () => response.end();
+		seen();
+	});
+	const controller = new AbortController();
+	const received = new Promise<void>((resolve) => {
 		seen = resolve;
 	});
-	const pending = client.tasks();
-	const closed = expect(pending).rejects.toMatchObject({ code: "cancelled" });
-	await secondReceived;
-	await client.close();
-	await closed;
-	await expect(client.tasks()).rejects.toMatchObject({ code: "cancelled" });
+	const mutation = client.pause(hash, controller.signal);
+	const assertion = expect(mutation).rejects.toMatchObject({
+		code: "cancelled",
+		outcome: "unknown",
+	});
+	await received;
+	controller.abort();
+	respond();
+	await assertion;
+	expect(
+		requests.filter((request) => request.path.endsWith("/torrents/stop")),
+	).toHaveLength(1);
+});
+test("cancelling one login waiter does not cancel another operation or send its mutation", async () => {
+	let seen = () => {};
+	let respond = () => {};
+	const { client, requests } = await fixture((request, response) => {
+		if (!request.path.endsWith("/auth/login")) return false;
+		respond = () => {
+			response.setHeader("set-cookie", "SID=session-secret; Path=/");
+			response.end("Ok.");
+		};
+		seen();
+	});
+	const controller = new AbortController();
+	const received = new Promise<void>((resolve) => {
+		seen = resolve;
+	});
+	const mutation = client.pause(hash, controller.signal);
+	const assertion = expect(mutation).rejects.toMatchObject({
+		code: "cancelled",
+		outcome: "not-sent",
+	});
+	await received;
+	const tasks = client.tasks();
+	controller.abort();
+	respond();
+	await assertion;
+	expect(await tasks).toHaveLength(1);
+	expect(
+		requests.filter((request) => request.path.endsWith("/auth/login")),
+	).toHaveLength(1);
+	expect(
+		requests.some((request) => request.path.endsWith("/torrents/stop")),
+	).toBe(false);
 });
 test("invalid endpoint credentials and wildcard hashes are rejected locally", async () => {
 	const { client, requests } = await fixture();
@@ -378,7 +414,7 @@ test("invalid endpoint credentials and wildcard hashes are rejected locally", as
 	}
 });
 
-test("an unrecognized add receipt is unknown; HTTP success alone never proves acceptance", async () => {
+test("SDK add completion leaves task acceptance to hash reconciliation", async () => {
 	const { client, requests } = await fixture((request, response) => {
 		if (!request.path.endsWith("/torrents/add")) return false;
 		response.end("<html>login page</html>");
@@ -390,7 +426,7 @@ test("an unrecognized add receipt is unknown; HTTP success alone never proves ac
 			category: "anishelf",
 			tags: [],
 		}),
-	).rejects.toMatchObject({ code: "invalid-response", outcome: "unknown" });
+	).resolves.toBeUndefined();
 	expect(
 		requests.filter((request) => request.path.endsWith("/torrents/add")),
 	).toHaveLength(1);
@@ -420,19 +456,13 @@ test("pre-cancelled mutations never send even authentication requests", async ()
 	});
 	expect(requests).toHaveLength(0);
 });
-test("malformed file indexes and compression cannot bypass response validation", async () => {
-	let compressed = false;
+test("malformed file indexes fail business response validation", async () => {
 	const { client } = await fixture((request, response) => {
 		if (!request.path.includes("/torrents/files")) return false;
-		if (compressed) response.setHeader("content-encoding", "gzip");
 		response.end(
 			JSON.stringify([{ name: "x.mkv", size: 10, progress: 1, priority: 1 }]),
 		);
 	});
-	await expect(client.files(hash)).rejects.toMatchObject({
-		code: "invalid-response",
-	});
-	compressed = true;
 	await expect(client.files(hash)).rejects.toMatchObject({
 		code: "invalid-response",
 	});
