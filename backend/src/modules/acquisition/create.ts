@@ -2,6 +2,7 @@ import type { Logger } from "pino";
 import { DomainError } from "../../shared/errors.js";
 import type { AnimeApi, ReleaseAssessmentApi } from "../anime/public.js";
 import type { AcquisitionResources } from "../resources/public.js";
+import { SubscriptionConfirmation } from "./application/subscription-confirmation.js";
 import { QbittorrentConnection } from "./connection/application.js";
 import { QbittorrentConfigurationFile } from "./connection/infrastructure/configuration.js";
 import { DiscoveryApplication } from "./discovery/application.js";
@@ -48,40 +49,23 @@ export async function createAcquisitionModule(options: {
 		options.suggestedApiUrl,
 	);
 	await connection.initialize();
-	const downloads =
-		options.downloadStore &&
-		options.store &&
-		options.resources &&
-		options.anime &&
-		options.ingestion
-			? new DownloadsApplication({
-					store: options.downloadStore,
-					discovery: options.store,
-					resources: options.resources,
-					anime: options.anime,
-					ingestion: options.ingestion,
-					transport: options.torrentTransport ?? new RssTransport(),
-					connectionGeneration: () => connection.settings().generation,
-					withClient: (generation, operation) =>
-						connection.withClient(generation, operation),
-					logger: options.logger,
-					...(options.now ? { now: options.now } : {}),
-				})
-			: undefined;
-	const discovery = options.store
+	let downloads: DownloadsApplication | undefined;
+	const discoveryStore = options.store;
+	const discovery = discoveryStore
 		? new DiscoveryApplication({
-				store: options.store,
-				...(downloads
-					? {
-							downloadPreview: (key, target) => downloads.preview(key, target),
-							authorizeDownloads: (subscription, revision) =>
-								downloads.authorize(
-									subscription.workKey,
-									subscription.revision,
-									revision,
-								),
-						}
-					: {}),
+				store: discoveryStore,
+				downloadPreview: (key, target) =>
+					downloads?.preview(key, target) ?? null,
+				confirmation: new SubscriptionConfirmation({
+					logger: options.logger,
+					transaction: (operation) => discoveryStore.transaction(operation),
+					authorize: (key, revision, destinationRevision) =>
+						downloads?.authorizeSubscription(
+							key,
+							revision,
+							destinationRevision,
+						),
+				}),
 				anime: options.anime ?? {
 					target: async () => {
 						throw new DomainError(
@@ -104,14 +88,63 @@ export async function createAcquisitionModule(options: {
 				...(options.now ? { now: options.now } : {}),
 			})
 		: undefined;
+	downloads =
+		options.downloadStore &&
+		discovery &&
+		options.resources &&
+		options.anime &&
+		options.ingestion
+			? new DownloadsApplication({
+					store: options.downloadStore,
+					selection: discovery.acquisition(),
+					resources: options.resources,
+					anime: options.anime,
+					ingestion: options.ingestion,
+					transport: options.torrentTransport ?? new RssTransport(),
+					connectionGeneration: () => connection.settings().generation,
+					withClient: (generation, operation) =>
+						connection.withClient(generation, operation),
+					logger: options.logger,
+					...(options.now ? { now: options.now } : {}),
+				})
+			: undefined;
 	if (options.autoStart !== false) {
 		discovery?.start();
 		downloads?.start();
 	}
+	const downloadApi = downloads;
 	const api: AcquisitionApi = {
-		connection,
-		...(downloads ? { downloads } : {}),
-		...(discovery ? { discovery } : {}),
+		connection: {
+			settings: () => connection.settings(),
+			save: (input) => connection.save(input),
+			clear: (generation) => connection.clear(generation),
+			probe: (generation) => connection.probe(generation),
+		},
+		...(downloadApi
+			? {
+					downloads: {
+						settings: () => downloadApi.settings(),
+						saveDestination: (input) => downloadApi.saveDestination(input),
+						validate: (revision) => downloadApi.validate(revision),
+						activity: (key, page) => downloadApi.activity(key, page),
+						retry: (...args) => downloadApi.retry(...args),
+					},
+				}
+			: {}),
+		...(discovery
+			? {
+					discovery: {
+						get: (key, page) => discovery.get(key, page),
+						preview: (session, input) => discovery.preview(session, input),
+						confirm: (session, key, token) =>
+							discovery.confirm(session, key, token),
+						setEnabled: (key, revision, enabled) =>
+							discovery.setEnabled(key, revision, enabled),
+						remove: (key, revision) => discovery.remove(key, revision),
+						refresh: (key, revision) => discovery.refresh(key, revision),
+					},
+				}
+			: {}),
 	};
 	return {
 		api,

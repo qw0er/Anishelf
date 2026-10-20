@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -177,7 +177,17 @@ async function fixture() {
 	function create() {
 		const worker = new DownloadsApplication({
 			store: db.acquisitionDownloads,
-			discovery: db.acquisition,
+			selection: {
+				subscription: (key) => db.acquisition.subscription(key),
+				subscriptions: () => db.acquisition.subscriptions(),
+				candidates: (key) => db.acquisition.candidates(key),
+				release: (feedId, entryId) =>
+					db.acquisition
+						.feed(feedId)
+						?.entries.find((entry) => entry.id === entryId) ?? null,
+				reservationOutcome: (subscription, failed) =>
+					db.acquisition.reservationOutcome(subscription, failed),
+			},
 			resources,
 			anime,
 			ingestion,
@@ -204,7 +214,7 @@ async function fixture() {
 		return saved;
 	}
 	async function authorize() {
-		await worker.authorize(
+		worker.authorizeSubscription(
 			key,
 			db.acquisition.subscription(key)?.revision ?? "",
 			db.acquisitionDownloads.destination()?.revision ?? "",
@@ -254,6 +264,37 @@ async function fixture() {
 	};
 }
 
+async function connectedModule(f: Awaited<ReturnType<typeof fixture>>) {
+	const module = await createAcquisitionModule({
+		dataDir: f.dir,
+		logger,
+		store: f.db.acquisition,
+		downloadStore: f.db.acquisitionDownloads,
+		resources: f.resources,
+		anime: f.anime,
+		ingestion: f.ingestion,
+		torrentTransport: f.transport,
+		createClient: () => f.client,
+		transport: {
+			fetch: async () => ({
+				xml: `<rss version="2.0"><channel><item><title>Frieren - 03</title><guid>entry</guid><enclosure url="magnet:?xt=urn:btih:${hash}" type="application/x-bittorrent"/></item></channel></rss>`,
+				etag: null,
+				lastModified: null,
+			}),
+			close: async () => {},
+		},
+		autoStart: false,
+	});
+	cleanup.push(() => module.close());
+	await module.api.connection.save({
+		generation: module.api.connection.settings().generation,
+		url: "http://downloader:8080",
+		username: "user",
+		password: "password",
+	});
+	return module;
+}
+
 test("old subscriptions stay discovery-only until scoped confirmation and destination validation", async () => {
 	const f = await fixture();
 	await f.worker.tick();
@@ -287,7 +328,7 @@ test("repeated polling and restart retain one task, identity and directory", asy
 	await f.restart();
 	await f.worker.tick();
 	expect(f.add).toHaveBeenCalledTimes(1);
-	expect(f.db.acquisitionDownloads.intents()).toHaveLength(1);
+	expect(f.db.acquisitionDownloads.activity(key, 1, 100).items).toHaveLength(1);
 	expect(f.db.acquisitionDownloads.directory(key)).toBe("Frieren [anilist-1]");
 	expect(JSON.stringify(f.worker.activity(key))).not.toMatch(
 		/magnet|passkey|secret|savePath|unresolved/,
@@ -303,12 +344,16 @@ test("remote add success followed by a timeout binds after restart without resen
 		throw new QbittorrentError("timeout", "unknown");
 	});
 	await f.worker.tick();
-	expect(f.db.acquisitionDownloads.intents()[0]?.state).toBe("unknown");
+	expect(f.db.acquisitionDownloads.activity(key, 1, 100).items[0]?.state).toBe(
+		"unknown",
+	);
 	await f.restart();
 	f.advance();
 	await f.worker.tick();
 	expect(f.add).toHaveBeenCalledTimes(1);
-	expect(f.db.acquisitionDownloads.intents()[0]?.state).toBe("bound");
+	expect(f.db.acquisitionDownloads.activity(key, 1, 100).items[0]?.state).toBe(
+		"bound",
+	);
 });
 test("uncertain absent submissions are not retried automatically; explicit retry is idempotent", async () => {
 	const f = await fixture();
@@ -319,7 +364,7 @@ test("uncertain absent submissions are not retried automatically; explicit retry
 	f.advance();
 	await f.worker.tick();
 	expect(f.add).toHaveBeenCalledTimes(1);
-	const item = f.db.acquisitionDownloads.intents()[0];
+	const item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
 	if (!item) throw new Error();
 	f.worker.retry(item.id, item.revision, "manual", "acquisition");
 	f.worker.retry(item.id, item.revision, "manual", "acquisition");
@@ -373,7 +418,7 @@ test("missing completed file is an import failure and retry imports without down
 	await f.worker.tick();
 	expect(f.worker.activity(key).items[0]?.ingestion).toBe("failed");
 	expect(f.ingestion.ingest).not.toHaveBeenCalled();
-	const item = f.db.acquisitionDownloads.intents()[0];
+	const item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
 	if (!item) throw new Error();
 	f.worker.retry(item.id, item.revision, "retry-import", "import");
 	await f.worker.tick();
@@ -492,33 +537,7 @@ test("destination and torrent paths reject escapes and directory names remain bo
 });
 test("module subscription confirmation binds the previewed download configuration", async () => {
 	const f = await fixture();
-	const module = await createAcquisitionModule({
-		dataDir: f.dir,
-		logger,
-		store: f.db.acquisition,
-		downloadStore: f.db.acquisitionDownloads,
-		resources: f.resources,
-		anime: f.anime,
-		ingestion: f.ingestion,
-		torrentTransport: f.transport,
-		createClient: () => f.client,
-		transport: {
-			fetch: async () => ({
-				xml: `<rss version="2.0"><channel><item><title>Frieren - 03</title><guid>entry</guid><enclosure url="magnet:?xt=urn:btih:${hash}" type="application/x-bittorrent"/></item></channel></rss>`,
-				etag: null,
-				lastModified: null,
-			}),
-			close: async () => {},
-		},
-		autoStart: false,
-	});
-	cleanup.push(() => module.close());
-	await module.api.connection.save({
-		generation: module.api.connection.settings().generation,
-		url: "http://downloader:8080",
-		username: "user",
-		password: "password",
-	});
+	const module = await connectedModule(f);
 	const downloads = module.api.downloads,
 		discovery = module.api.discovery;
 	if (!downloads || !discovery) throw new Error();
@@ -776,7 +795,7 @@ test("changed release selection cannot submit a previously reserved publication;
 		});
 	await f.worker.tick();
 	expect(f.add).not.toHaveBeenCalled();
-	const item = f.db.acquisitionDownloads.intents()[0];
+	const item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
 	if (!item) throw new Error();
 	expect(item.error).toBe("selection_changed");
 	f.worker.retry(item.id, item.revision, "retry-new-selection", "acquisition");
@@ -811,7 +830,7 @@ test("pre-submission checks exclude another active version and reject stale rele
 	]);
 	await f.worker.tick();
 	expect(f.add).not.toHaveBeenCalled();
-	let item = f.db.acquisitionDownloads.intents()[0];
+	let item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
 	if (!item) throw new Error();
 	expect(item.error).toBe("episode_downloading");
 	f.worker.retry(item.id, item.revision, "retry-evidence", "acquisition");
@@ -823,7 +842,7 @@ test("pre-submission checks exclude another active version and reject stale rele
 	});
 	await f.worker.tick();
 	expect(f.add).not.toHaveBeenCalled();
-	item = f.db.acquisitionDownloads.intents()[0];
+	item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
 	expect(item?.error).toBe("release_evidence_changed");
 });
 
@@ -834,7 +853,7 @@ test("account changes block stale bindings until explicit recovery reconciles th
 	await f.worker.tick();
 	f.changeAccount();
 	await f.worker.tick();
-	let item = f.db.acquisitionDownloads.intents()[0];
+	let item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
 	if (!item) throw new Error();
 	expect(item).toMatchObject({
 		state: "blocked",
@@ -843,13 +862,296 @@ test("account changes block stale bindings until explicit recovery reconciles th
 	expect((await f.worker.settings()).destination?.validated).toBe(false);
 	await f.configure();
 	await f.authorize();
-	item = f.db.acquisitionDownloads.intents()[0];
+	item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
 	if (!item) throw new Error();
 	f.worker.retry(item.id, item.revision, "recover-connection", "acquisition");
 	await f.worker.tick();
-	expect(f.db.acquisitionDownloads.intents()[0]).toMatchObject({
+	expect(
+		f.db.acquisitionDownloads.activity(key, 1, 100).items[0],
+	).toMatchObject({
 		state: "bound",
 		destination: { connectionGeneration: "account-2" },
 	});
 	expect(f.add).toHaveBeenCalledTimes(1);
+});
+
+test("subscription confirmation rolls back feed, candidates and scope when permission persistence fails", async () => {
+	const f = await fixture();
+	const module = await connectedModule(f);
+	const downloads = module.api.downloads,
+		discovery = module.api.discovery;
+	if (!downloads || !discovery) throw new Error();
+	const destination = await downloads.saveDestination({
+		revision: null,
+		scopeId: "root",
+		path: "/downloads",
+	});
+	await downloads.validate(destination.revision);
+	const beforeFeed = f.db.acquisition.feed("feed");
+	const before = f.db.acquisition.subscription(key),
+		candidates = f.db.acquisition.candidates(key);
+	const preview = await discovery.preview("session", {
+		workKey: key,
+		rssUrl: "https://example.org/other-feed",
+		startEpisode: 2,
+		revision: before?.revision ?? null,
+	});
+	const authorize = f.db.acquisitionDownloads.authorize.bind(
+		f.db.acquisitionDownloads,
+	);
+	const writePermission = vi
+		.spyOn(f.db.acquisitionDownloads, "authorize")
+		.mockImplementationOnce((permission) => {
+			authorize(permission);
+			throw new Error("storage failed");
+		});
+	await expect(
+		discovery.confirm("session", key, preview.token),
+	).rejects.toThrow("storage failed");
+	expect(f.db.acquisition.subscription(key)).toEqual(before);
+	expect(f.db.acquisition.feed("feed")).toEqual(beforeFeed);
+	expect(
+		f.db.acquisition.feed(
+			createHash("sha256")
+				.update("https://example.org/other-feed")
+				.digest("hex"),
+		),
+	).toBeNull();
+	expect(f.db.acquisition.candidates(key)).toEqual(candidates);
+	expect(f.db.acquisition.subscriptions()).toHaveLength(1);
+	expect(f.db.acquisitionDownloads.authorization(key)).toBeNull();
+	// The same unconsumed preview can be confirmed after recovery.
+	writePermission.mockRestore();
+	await discovery.confirm("session", key, preview.token);
+	expect(downloads.activity(key).authorized).toBe(true);
+});
+
+test("download activity paginates one work with stable ordering and summaries across every page", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	const original = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
+	if (!original) throw new Error();
+	const records = [original];
+	for (let index = 0; index < 25; index++) {
+		const item = {
+			...original,
+			id: `page-${String(index).padStart(2, "0")}`,
+			hash: `unresolved:page-${index}`,
+			episode: index + 100,
+			candidateId: `candidate-${index}`,
+			createdAt: original.createdAt + Math.floor(index / 2),
+			state: index % 2 ? ("blocked" as const) : ("available" as const),
+			error: index % 2 ? "test_failure" : null,
+		};
+		expect(f.db.acquisitionDownloads.reserve(item)).toBe(true);
+		records.push(item);
+	}
+	expect(
+		f.db.acquisitionDownloads.reserve({
+			...original,
+			id: "foreign",
+			workKey: "anilist:anime:2",
+			hash: "unresolved:foreign",
+		}),
+	).toBe(true);
+	const expected = records.sort(
+		(a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id),
+	);
+	const pages = [1, 2, 3, 4].map((page) =>
+		f.db.acquisitionDownloads.activity(key, page, 7),
+	);
+	expect(pages.flatMap((page) => page.items.map((item) => item.id))).toEqual(
+		expected.map((item) => item.id),
+	);
+	for (const page of pages) {
+		expect(page).toMatchObject({ total: 26, active: 1, attention: 12 });
+		expect(page.candidateIds).toHaveLength(26);
+	}
+	expect(f.worker.activity(key, 2).items).toHaveLength(6);
+	expect(
+		f.db.acquisitionDownloads.activity("anilist:anime:999", 1, 20),
+	).toEqual({ items: [], total: 0, active: 0, attention: 0, candidateIds: [] });
+});
+
+test("worker queries use bounded cursors, retain reservations and redact only expired terminal evidence", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	const original = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
+	if (!original) throw new Error();
+	const states = [
+		"bound",
+		"available",
+		"pending",
+		"unknown",
+		"missing",
+		"blocked",
+	] as const;
+	for (const [index, state] of states.entries()) {
+		f.db.acquisitionDownloads.reserve({
+			...original,
+			id: `!batch-${index}`,
+			hash: `unresolved:!batch-${index}`,
+			episode: index + 100,
+			state,
+			nextAttemptAt: index === 2 ? original.updatedAt + 1000 : 0,
+		});
+	}
+	const batch = f.db.acquisitionDownloads.workBatch("", 2, original.updatedAt);
+	expect(batch.map((item) => item.id)).toEqual(["!batch-0", "!batch-1"]);
+	const next = f.db.acquisitionDownloads.workBatch(
+		"!batch-1",
+		2,
+		original.updatedAt,
+	);
+	expect(next.map((item) => item.id)).toEqual(["!batch-3", original.id].sort());
+	expect(f.db.acquisitionDownloads.hasActive()).toBe(true);
+	expect(f.db.acquisitionDownloads.reservedEpisode(key, 104)).toBe(true);
+	expect(
+		f.db.acquisitionDownloads.hashOwner("unresolved:!batch-4", "other"),
+	).toBe(true);
+	expect(
+		f.db.acquisitionDownloads.hashOwner("unresolved:!batch-4", "!batch-4"),
+	).toBe(false);
+	f.db.acquisitionDownloads.prune(original.updatedAt + 1);
+	expect(f.db.acquisitionDownloads.intent("!batch-1")).toMatchObject({
+		source: "",
+		title: "",
+		transfer: null,
+		error: null,
+		state: "available",
+	});
+	expect(f.db.acquisitionDownloads.intent("!batch-4")).toMatchObject({
+		source: "",
+		state: "missing",
+	});
+	expect(f.db.acquisitionDownloads.intent("!batch-5")?.source).toBe(
+		original.source,
+	);
+	expect(f.db.acquisitionDownloads.reservedEpisode(key, 104)).toBe(true);
+	expect(
+		f.db.acquisitionDownloads.reserve({
+			...original,
+			id: "duplicate",
+			hash: "another",
+			episode: 104,
+		}),
+	).toBe(false);
+});
+
+test("late remote failures cannot overwrite a newer explicit acquisition retry", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	f.add.mockRejectedValueOnce(new QbittorrentError("timeout", "unknown"));
+	await f.worker.tick();
+	f.advance();
+	vi.mocked(f.client.task).mockImplementationOnce(async () => {
+		const item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
+		if (!item) throw new Error();
+		f.worker.retry(item.id, item.revision, "newer-command", "acquisition");
+		throw new QbittorrentError("unavailable", "read");
+	});
+	await f.worker.tick();
+	expect(
+		f.db.acquisitionDownloads.activity(key, 1, 100).items[0],
+	).toMatchObject({
+		state: "pending",
+		error: null,
+		nextAttemptAt: 0,
+		lastCommand: { id: "newer-command" },
+	});
+	expect(f.add).toHaveBeenCalledTimes(1);
+	await f.worker.tick();
+	expect(f.add).toHaveBeenCalledTimes(2);
+});
+
+test("definitive submission failures retain retryable intent after the submitting revision is persisted", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	f.add.mockRejectedValueOnce(new QbittorrentError("unavailable", "rejected"));
+	await f.worker.tick();
+	expect(f.worker.activity(key).items[0]).toMatchObject({
+		state: "pending",
+		error: "downloader_unavailable",
+		attempts: 2,
+	});
+	await f.worker.tick();
+	expect(f.add).toHaveBeenCalledTimes(1);
+	f.advance();
+	await f.worker.tick();
+	expect(f.add).toHaveBeenCalledTimes(2);
+	expect(f.worker.activity(key).items[0]?.state).toBe("bound");
+});
+
+test("successful reservation checks preserve Discovery assessment errors and candidate evidence", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	const subscription = f.db.acquisition.subscription(key),
+		candidates = f.db.acquisition.candidates(key);
+	if (!subscription) throw new Error();
+	f.db.acquisition.updateCandidates(
+		subscription,
+		candidates,
+		"assessment_unavailable",
+	);
+	await f.worker.tick();
+	expect(f.db.acquisition.subscription(key)?.lastError).toBe(
+		"assessment_unavailable",
+	);
+	expect(f.db.acquisition.candidates(key)).toEqual(candidates);
+});
+
+test("one serial worker tick processes every available source in bounded batches", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	f.complete();
+	await f.worker.tick();
+	const original = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
+	if (!original) throw new Error();
+	for (let index = 0; index < 7; index++) {
+		expect(
+			f.db.acquisitionDownloads.reserve({
+				...original,
+				id: `available-${index}`,
+				hash: `reserved-${index}`,
+				episode: index + 100,
+			}),
+		).toBe(true);
+	}
+	let active = 0,
+		maximum = 0;
+	f.ingestion.available.mockImplementation(async () => {
+		active++;
+		maximum = Math.max(maximum, active);
+		await Promise.resolve();
+		active--;
+		return true;
+	});
+	const read = vi.spyOn(f.db.acquisitionDownloads, "workBatch");
+	const first = f.worker.tick(),
+		second = f.worker.tick();
+	expect(first).toBe(second);
+	await first;
+	expect(f.ingestion.available).toHaveBeenCalledTimes(8);
+	expect(maximum).toBe(2);
+	const processed = read.mock.results.flatMap((result) =>
+		result.type === "return" ? result.value.map((item) => item.id) : [],
+	);
+	expect(processed).toHaveLength(8);
+	expect(new Set(processed).size).toBe(8);
+	for (const [index, call] of read.mock.calls.entries()) {
+		expect(call[1]).toBe(2);
+		const result = read.mock.results[index];
+		if (result?.type === "return")
+			expect(result.value.length).toBeLessThanOrEqual(2);
+	}
+	expect(f.db.acquisitionDownloads.hasActive()).toBe(false);
 });

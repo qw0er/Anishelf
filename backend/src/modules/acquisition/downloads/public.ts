@@ -13,11 +13,6 @@ export interface DownloadsApi {
 	}): Promise<DownloadDestination>;
 	validate(revision: string): Promise<DownloadDestination>;
 	activity(workKey: string, page?: number): DownloadActivity;
-	authorize(
-		workKey: string,
-		revision: string,
-		destinationRevision: string,
-	): Promise<void>;
 	retry(
 		id: string,
 		revision: string,

@@ -1,5 +1,7 @@
 import type { Candidate, FeedRecord, Subscription } from "./domain/model.js";
 export interface DiscoveryStore {
+	transaction(operation: () => void): void;
+	reservationOutcome(subscription: Subscription, failed: boolean): void;
 	subscription(workKey: string): Subscription | null;
 	subscriptions(): Subscription[];
 	feed(id: string): FeedRecord | null;

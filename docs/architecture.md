@@ -106,6 +106,13 @@ records, per-anime placement, restart reconciliation and verified import through
 Resources and Anime public capabilities. Transfer controls remain in qBittorrent
 WebUI; the detail-page Activity is a compact status/recovery view.
 
+Acquisition internally separates Discovery preview/selection/polling from download
+configuration, authorization, reservations, submission, import, queries and scheduling.
+A consumer-owned selection port keeps Downloads out of Discovery persistence.
+Subscription confirmation coordinates both owners in one SQLite transaction; download
+state changes use one revision-checked writer across submission/import stages.
+See [Internal workflow boundaries](current-architecture.md#internal-workflow-boundaries).
+
 The six directories are API boundaries, not categorization folders. External
 consumers cannot import any child entry, including a child's `public.ts`.
 Internal owners still collaborate through their own Public APIs and ports;
@@ -492,9 +499,9 @@ a multi-episode association does not create seek boundaries or watched states.
 Metadata owns provider transport, normalized snapshots, refresh/retry and bounded
 local artwork storage. Provider outages retain usable cached browsing and existing
 playback; unknown numbering remains unresolved. Original names and bytes remain
-unchanged. Personal tracker authorization is not required. Episode watched-state
-aggregation, subscriptions, download orchestration and tracker synchronization
-remain future requirements rather than existing runtime owners.
+unchanged. Personal tracker authorization is not required for metadata or local playback.
+Tracking owns viewing updates; Acquisition owns RSS subscriptions and download
+orchestration, as described in their dedicated sections.
 
 ## Authentication boundary
 
