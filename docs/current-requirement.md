@@ -2,6 +2,11 @@
 
 Date: 2026-10-19.
 
+Implementation update (2026-10-20): the standalone [qBittorrent API adapter](qbittorrent-adapter.md)
+is delivered as a tested foundation. Subscription, discovery, durable downloads,
+integration configuration/path verification and ingestion remain unimplemented;
+ACQ01–ACQ11 have not been accepted.
+
 Status: the next iteration targets automatic resource acquisition. This report
 analyzes the existing requirements; it is not an implementation or acceptance
 record. No release number is assigned. The detailed scope below is proposed,

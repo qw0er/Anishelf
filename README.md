@@ -104,15 +104,17 @@ Use Docker Engine with the Compose plugin on Linux AMD64 or ARM64. The
 - `web`: Caddy serves the built frontend and forwards `/api` to `backend:3000`.
   It publishes the application entry at `127.0.0.1:3000`.
 - `backend`: Node.js and FFmpeg/FFprobe handle APIs, scanning and media delivery.
-  It mounts the persistent `anishelf-data` volume and read-only media.
-- `qbittorrent`: the download client has its own persisted configuration, a
-  read/write mount of the same host media directory at `/downloads`, and a separate
-  `/incomplete` volume. Its WebUI publishes `127.0.0.1:8080`; peer TCP/UDP uses 6881.
+  It mounts `anishelf-data` at `/data`, storing application state in `/data/app`
+  and browsing completed media in `/data/media`.
+- `qbittorrent`: the download client shares `anishelf-data` at `/data`, with
+  completed media in `/data/media` and partial downloads in `/data/incomplete`.
+  Its configuration has a separate volume. Its WebUI publishes `127.0.0.1:8080`;
+  peer TCP/UDP uses 6881.
 
 ### Docker Compose
 
-From a source checkout, replace `/absolute/media/path` in `compose.yaml` with your
-media directory in both backend and qBittorrent mounts, then build and start:
+From a fresh source installation, build and start directly; no host media path
+or separate media volume is required:
 
 ```sh
 docker compose up -d --build
@@ -121,8 +123,10 @@ docker compose logs -f backend
 ```
 
 Open [Anishelf](http://localhost:3000). Read the initial password from the backend
-logs. Media must be readable by UID/GID 1000. `/media` initializes a fresh
-installation; change existing roots in Settings. The Compose environment also
+logs. The backend image initializes the shared directories for UID/GID 1000.
+`/data/media` initializes a fresh installation; existing installations must follow
+the [storage migration steps](docs/deployment.md#data-backup-and-migration) before
+starting with this layout. The Compose environment also
 sets `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL=http://localhost:8080`, so a fresh
 installation has an **Open qBittorrent WebUI** link immediately. Existing
 `settings.json` is preserved; save the address in Settings for an existing install.
@@ -132,8 +136,11 @@ forward port 8080 alongside port 3000 over SSH.
 
 Read the qBittorrent temporary `admin` password with `docker compose logs qbittorrent`
 and set a permanent password in its WebUI. Its authentication is independent of
-Anishelf. Set completed downloads to `/downloads` and enable the incomplete
-folder at `/incomplete` so unfinished data stays outside the watched library.
+Anishelf. Set completed downloads to `/data/media` and enable the incomplete
+folder at `/data/incomplete` so unfinished data stays outside the watched library.
+These qBittorrent preferences must be configured in its WebUI; mounting the volume
+does not set them automatically. Anishelf keeps original media read-only at the
+application level; the shared volume itself is writable by both containers.
 See [qBittorrent deployment details](docs/deployment.md#qbittorrent-webui-access).
 
 The Compose file also names the release images `ghcr.io/qw0er/anishelf-backend:latest`
@@ -150,8 +157,8 @@ see [Caddy domain access](docs/deployment.md#caddy-reverse-proxy).
 Keep `anishelf-data` across updates. Stop the containers and
 [back up the volume](docs/deployment.md#data-backup-and-migration) before upgrading.
 `docker compose down` retains the volume; `docker compose down --volumes` deletes
-it. Existing all-in-one deployments can reuse this volume after the old container
-has stopped. Remove the old `ANISHELF_FRONTEND_DIR` override; the backend image
+it. Existing deployments must migrate the old flat application directory into
+`app/` before reusing the volume. Remove the old `ANISHELF_FRONTEND_DIR` override; the backend image
 now serves only APIs. See [deployment guidance](docs/deployment.md) for migration,
 SELinux, password recovery and multiple media mounts.
 

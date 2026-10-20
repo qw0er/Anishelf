@@ -1,7 +1,8 @@
 # Automatic Acquisition: Current Iteration Architecture
 
-Date: 2026-10-19. Status: proposed implementation design; no acquisition code or
-acceptance is claimed. This document defines the target architecture for
+Date: 2026-10-20. Status: proposed workflow design with a standalone
+[qBittorrent adapter foundation](qbittorrent-adapter.md) implemented. Acquisition
+orchestration and end-to-end acceptance remain pending. This document defines the target architecture for
 [current requirements](current-requirement.md). [Architecture](architecture.md)
 continues to describe the implemented system. No release number is assigned.
 
@@ -42,6 +43,8 @@ limits still require implementation-time validation.
 ## 2. Module Ownership
 
 Add `backend/src/modules/acquisition` as a sixth encapsulated business module.
+The directory currently contains only the standalone qBittorrent adapter and its
+construction entry; bootstrap, persistence and workflow owners remain unimplemented.
 It owns acquisition intent and workflow, not anime identity, local file identity,
 playability, viewing state or the BitTorrent engine. Keep HTTP between browser and
 backend, and direct in-process Public API calls between backend modules. Do not
@@ -392,7 +395,9 @@ and localhost listeners. Mocked adapters do not certify live provider compatibil
 Before implementation fixes adapter contracts, select the real feed fixtures and
 qBittorrent supported version/API range, validate v1/hybrid torrent identity
 behavior, verify incomplete-file placement, and confirm production path mappings.
-These are compatibility gates, not a claim that current code provides the design.
+These remain workflow compatibility gates. The standalone adapter targets 5.x and
+has local HTTP contract tests; it does not establish live compatibility or deliver
+the orchestration described above. See its [implemented boundary](qbittorrent-adapter.md).
 
 External protocol reference: [official qBittorrent WebUI API documentation](https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-%28qBittorrent-5.0%29).
 Endpoint names, response shapes and available parameters must be checked against

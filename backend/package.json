@@ -26,6 +26,7 @@
 	"dependencies": {
 		"@api-wrappers/anilist-wrapper": "^4.0.1",
 		"@api-wrappers/api-core": "^1.1.1",
+		"@ctrl/qbittorrent": "10.0.1",
 		"@fastify/cookie": "^11.1.3",
 		"@fastify/rate-limit": "^11.2.1",
 		"@fastify/session": "^11.1.4",
@@ -43,7 +44,8 @@
 		"pino": "^10.4.0",
 		"platformdirs": "4.3.7",
 		"rotating-file-stream": "^3.2.10",
-		"typebox": "^1.3.37"
+		"typebox": "^1.3.37",
+		"undici": "7.30.1"
 	},
 	"exports": {
 		".": "./dist/index.js",
