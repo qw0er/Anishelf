@@ -171,13 +171,6 @@ export function parseDeploymentConfig(
 		invalid("ANISHELF_LOG_DESTINATION must be 'stdout', 'file', or 'both'.");
 	}
 	const resourceInitializers = initialRoots(env);
-	const qbittorrentUrl =
-		env.ANISHELF_QBITTORRENT_URL === undefined
-			? undefined
-			: parseHttpOrigin(
-					env.ANISHELF_QBITTORRENT_URL,
-					"ANISHELF_QBITTORRENT_URL",
-				);
 	const mediaTools = {
 		ffmpegPath:
 			env.ANISHELF_FFMPEG_PATH === undefined
@@ -191,7 +184,6 @@ export function parseDeploymentConfig(
 	return {
 		host,
 		port,
-		...(qbittorrentUrl ? { qbittorrentUrl } : {}),
 		...(env.ANISHELF_PUBLIC_ORIGIN === undefined
 			? {}
 			: {
