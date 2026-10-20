@@ -6,6 +6,10 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import type { Logger } from "pino";
 import {
+	createAcquisitionPersistence,
+	type DiscoveryStore,
+} from "../../modules/acquisition/persistence.js";
+import {
 	type AnimePersistence,
 	createAnimePersistence,
 } from "../../modules/anime/persistence.js";
@@ -35,6 +39,7 @@ import * as schema from "../schema.js";
 
 /** Owns the connection; repositories must not outlive this object. */
 export class ApplicationDatabase {
+	readonly acquisition: DiscoveryStore;
 	readonly authentication: AuthenticationStore;
 	readonly trackingOperations: AnimePersistence["trackingOperations"];
 	readonly trackingLists: AnimePersistence["trackingLists"];
@@ -50,6 +55,7 @@ export class ApplicationDatabase {
 		policy: DeepReadonly<BuiltinPolicy>,
 	) {
 		this.authentication = createAuthenticationPersistence(store);
+		this.acquisition = createAcquisitionPersistence(store);
 		const { sources } = createResourcesPersistence(store);
 		const anime = createAnimePersistence(store, sources);
 		const media = createMediaPersistence(store, sources);

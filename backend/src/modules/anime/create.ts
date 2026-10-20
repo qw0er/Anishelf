@@ -15,9 +15,11 @@ import {
 } from "./composition/metadata.js";
 import { createTrackingModule } from "./composition/tracking.js";
 import { registerAnimeHttp } from "./http.js";
+import { AnitomyIdentificationParser } from "./identification/infrastructure/parser.js";
 import type { MetadataApplication } from "./metadata/application/metadata.js";
 import type { AnimePersistence } from "./persistence.js";
 import type { AnimeApi } from "./public.js";
+import { AnimeReleaseAssessment } from "./release-assessment/application.js";
 import { TrackingViewingCommands } from "./tracking/application/viewing.js";
 export async function createAnimeModule(options: {
 	system: SystemApi;
@@ -69,6 +71,15 @@ export async function createAnimeModule(options: {
 			: {}),
 	});
 	const api: AnimeApi = {
+		...(metadata
+			? {
+					acquisition: new AnimeReleaseAssessment(
+						new AnitomyIdentificationParser(),
+						metadata,
+						catalog,
+					),
+				}
+			: {}),
 		tracking,
 		library: libraryQueries,
 		metadata: metadata

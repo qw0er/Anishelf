@@ -11,6 +11,24 @@ import { type CatalogContext, page } from "./context.js";
 
 export class CatalogQueries {
 	constructor(private readonly context: CatalogContext) {}
+	async availableEpisodes(
+		reference: import("../../metadata/public.js").ProviderReference,
+	) {
+		const scope = await this.context.scope();
+		const work = this.context.options.store.findWork(reference);
+		const episodes = work
+			? ((await this.card(work, scope.ids, scope.revision))
+					.availableTrackingEpisodes ?? [])
+			: [];
+		return {
+			episodes,
+			revision: JSON.stringify([
+				scope.revision,
+				work?.revision ?? null,
+				episodes,
+			]),
+		};
+	}
 	private async card(
 		work: LocalWork,
 		scopeIds: readonly string[],

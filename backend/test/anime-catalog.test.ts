@@ -1816,6 +1816,10 @@ test("multi-root versions preserve confirmed associations through identity upgra
 		raw
 			.prepare("UPDATE media_sources SET file_id = ? WHERE id = ?")
 			.run(createResourceId("file", original.relativePath), original.id);
+		// Rewind later schema along with its migration records.
+		raw.exec(
+			"DROP TABLE acquisition_candidates; DROP TABLE acquisition_subscriptions; DROP TABLE acquisition_feeds;",
+		);
 		raw
 			.prepare("DELETE FROM __drizzle_migrations WHERE created_at >= ?")
 			.run(1792252800000);

@@ -235,15 +235,19 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| S01 | Enable or pause automatic acquisition from an anime's own page | Later | — | Unassigned |
-| S02 | Set the starting episode and backlog scope with an impact preview | Later | — | Unassigned |
-| S03 | Configure sources such as RSS and discover releases periodically | Later | — | Unassigned |
-| S04 | Match releases to titles and episodes, queuing ambiguous matches for review | Later | — | Unassigned |
-| S05 | Filter by subtitle language, release group, resolution, codec, and keywords | Later | — | Unassigned |
-| S06 | Deduplicate and exclude existing files, active downloads, and unwanted episodes | Later | — | Unassigned |
-| S07 | Explain selection and rejection decisions and allow manual selection or dismissal | Later | — | Unassigned |
+| S01 | Enable or pause RSS discovery from an anime's own page | Implemented; download submission separate | Current | Unassigned |
+| S02 | Set the starting episode and backlog scope with an impact preview | Implemented: default 1, session-bound revision checks | Current | Unassigned |
+| S03 | Configure RSS and discover releases periodically | Implemented: one RSS per anime, shared conditional fetches and durable scheduling; live feed acceptance pending | Current | Unassigned |
+| S04 | Match releases to titles and episodes and explain uncertain matches | Implemented: uncertain releases are automatically skipped without review | Current | Unassigned |
+| S05 | Filter by subtitle language, release group, resolution, codec, and keywords | Deferred: choose a source RSS representing these preferences; no advanced configuration UI | — | Unassigned |
+| S06 | Deduplicate and exclude existing files, active downloads, and unwanted episodes | Partial: feed/hash/URL identity, accessible local episodes and known qBittorrent hashes; canonical submission identity and reservations pending | Current (discovery) | Unassigned |
+| S07 | Explain decisions and automatically choose one release per episode | Implemented: stable selection and skipped reasons; manual selection/dismissal outside the simplified scope | Current | Unassigned |
 | S08 | Coordinate tracking-status changes with subscriptions and explain their effect on existing tasks | Later | — | Unassigned |
 | S09 | Search multiple sources, rank releases, process season packs, and upgrade quality | Optional | — | Unassigned |
+
+See [RSS subscriptions](rss-subscriptions.md) for the implemented first two stages.
+These stages select candidates automatically without per-release approval. They do
+not submit torrents or complete download-to-playback acceptance.
 
 ### 2.6 Downloads and Automatic Ingestion
 

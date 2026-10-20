@@ -1,6 +1,7 @@
 import { workKey } from "@anishelf/backend/contracts/references";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, RefreshCw } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 import type { LocalWorkDetailResponse } from "../../../../shared/api/contracts.js";
@@ -25,8 +26,10 @@ import { WorkMetadataHeader } from "./work-metadata-header.js";
 import { WorkSynopsis } from "./work-synopsis.js";
 export function AnimeDetail({
 	renderResourceActions,
+	renderSubscription,
 }: {
 	renderResourceActions: AnimeResourceActionSlot;
+	renderSubscription?: (workKey: string) => ReactNode;
 }) {
 	const { id = "" } = useParams();
 	const scope = useQueryScope();
@@ -55,15 +58,18 @@ export function AnimeDetail({
 			key={`${id}:${scope}`}
 			data={query.data}
 			renderResourceActions={renderResourceActions}
+			{...(renderSubscription ? { renderSubscription } : {})}
 		/>
 	);
 }
 function LocalWorkDetail({
 	data,
 	renderResourceActions,
+	renderSubscription,
 }: {
 	data: LocalWorkDetailResponse;
 	renderResourceActions: AnimeResourceActionSlot;
+	renderSubscription?: (workKey: string) => ReactNode;
 }) {
 	const { t, i18n } = useTranslation();
 	const controller = useLocalWorkDetail(data);
@@ -143,6 +149,7 @@ function LocalWorkDetail({
 					<RelatedWorks controller={controller} />
 				</aside>
 			</div>
+			{renderSubscription?.(workKey(work.reference))}
 			<VersionSelector
 				controller={controller}
 				renderResourceActions={renderResourceActions}

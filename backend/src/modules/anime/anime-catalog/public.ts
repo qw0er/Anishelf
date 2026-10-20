@@ -15,6 +15,9 @@ import type {
 
 export type * from "./domain/model.js";
 export interface AnimeCatalogApi {
+	availableEpisodes(
+		reference: import("../metadata/public.js").ProviderReference,
+	): Promise<{ episodes: number[]; revision: string }>;
 	publish(
 		results: readonly IdentificationResult[],
 		scopeIds: readonly string[],

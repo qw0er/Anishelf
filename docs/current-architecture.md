@@ -1,10 +1,16 @@
 # Automatic Acquisition: Current Iteration Architecture
 
-Date: 2026-10-20. Status: proposed workflow design with a standalone
-[qBittorrent adapter and manual account settings](qbittorrent-adapter.md) implemented. Acquisition
-orchestration and end-to-end acceptance remain pending. This document defines the target architecture for
+Date: 2026-10-20. Status: [qBittorrent connection settings](qbittorrent-adapter.md)
+and [RSS subscriptions with automatic release selection](rss-subscriptions.md) are
+implemented. Download orchestration and end-to-end acceptance remain pending. This document defines the target architecture for
 [current requirements](current-requirement.md). [Architecture](architecture.md)
 continues to describe the implemented system. No release number is assigned.
+
+The implemented first two stages use minimal configuration: one RSS URL and a
+starting episode on the anime detail page. Automatic selected/skipped decisions
+replace earlier proposals for advanced filters or release review. The remaining
+download/ingestion sections describe future work; see the RSS document for exact
+implemented contracts and limits.
 
 ## 1. Scope and Selected Design Policies
 
@@ -16,7 +22,7 @@ are outside the initial adapter contract. Select representative production feeds
 before certifying compatibility; arbitrary RSS extensions are not promised.
 
 The initial automatic path handles one regular episode per release. Packs,
-ambiguous numbering and specials receive an explanation and review status;
+ambiguous numbering and specials are skipped with an explanation;
 unsupported file layouts cannot be forced through automatic ingestion. Automatic
 quality upgrades, file organization, multiple download clients and seeding policy
 management remain deferred.
@@ -31,8 +37,8 @@ Design defaults, subject to fixture and real-provider acceptance:
 | Pause or scope edit | Stop new automatic selections/submissions; retain existing downloader tasks and pending ingestion. Recheck revision immediately before submission. |
 | AniList status change | Display an advisory; do not enable, pause, cancel or delete anything automatically. Reading lists causes no acquisition writes. |
 | Existing version | Any currently accessible confirmed local version satisfies an episode; do not upgrade automatically. |
-| Missing required attribute | Require review rather than treating unknown as a match. |
-| Candidate preference | Ordered user preferences, then publication time, then stable release ID; no waiting window for hypothetical future preferred releases. |
+| Missing identity or episode evidence | Skip with an explanation. No release-review queue. |
+| Candidate preference | Keep a valid previous choice; otherwise earliest known publication time, then stable release ID. Select one version per episode automatically. |
 | Dismissal/cancellation | Preserve a suppression record so repeated polling does not recreate the same acquisition; explicit retry can reopen it. |
 | File placement | qBittorrent writes completed files into a configured resource root; incomplete data must be outside all watched roots. No moves or copies by Anishelf. |
 
@@ -44,8 +50,9 @@ limits still require implementation-time validation.
 
 Add `backend/src/modules/acquisition` as a sixth encapsulated business module.
 The directory currently contains the qBittorrent adapter, private manual connection
-configuration and connection-test HTTP API. Bootstrap registers and closes this
-module; database-backed acquisition records and workflow owners remain unimplemented.
+configuration, connection-test HTTP API, SQLite-backed RSS subscriptions and a
+bounded discovery worker. Bootstrap registers and closes this module. Download
+intent, command, reservation and ingestion records remain unimplemented.
 It owns acquisition intent and workflow, not anime identity, local file identity,
 playability, viewing state or the BitTorrent engine. Keep HTTP between browser and
 backend, and direct in-process Public API calls between backend modules. Do not
@@ -103,10 +110,10 @@ domain inputs independently from browser schemas and expose only narrow root API
 | Web → Acquisition | Preview/save/pause subscriptions; list candidates/tasks; review/dismiss/select; issue download controls and ingestion retries. |
 | App → Acquisition | Construct with injected ports, register HTTP, start recovery/workers and stop/drain before database shutdown. |
 
-Current `AnimeApi` does not expose release assessment or acquisition ingestion.
+Current `AnimeApi.acquisition` exposes target resolution, current accessible
+episodes and stateless release assessment. Acquisition ingestion remains pending.
 Current `IdentificationApi.identify()` accepts validated `SourceIdentity[]` and
-must not receive synthetic RSS paths. Extend Anime internally with a stateless
-release-assessment input. Share `anitomy-adapter.ts`, title normalization,
+must not receive synthetic RSS paths. The implemented release-assessment input is independent of local sources. Share `anitomy-adapter.ts`, title normalization,
 contradiction checks and episode-mapping primitives, while keeping local directory
 anchors confined to local identification. Return versioned evidence and proposals;
 Acquisition decides acquisition eligibility, Anime decides identity correctness.
@@ -167,18 +174,18 @@ pending command first; execute externally; record/reconcile the outcome afterwar
    primary/alias titles, reject explicit work/season/part/type contradictions and
    independently assess episode mapping. Feed binding alone does not prove identity.
    No cross-feed borrowing of local directory anchors or guessed episode offsets.
-4. Apply scope and hard filters. Use allowlists/exclusions for group, language,
-   resolution and codec, plus literal case-folded include/exclude keywords. Do not
-   expose arbitrary regular expressions initially. Explicit mismatches reject;
-   missing required evidence or ambiguous mapping requires review.
+4. Apply starting scope and built-in identity/episode checks. Skip explicit
+   contradictions and uncertain mappings with explanations. Users choose a source
+   feed representing their release preferences; no advanced filter configuration
+   or per-release approval is exposed.
 5. Exclude accessible confirmed local episodes, active acquisitions and persistent
    suppression records. Query qBittorrent by canonical hash before adding: an
    external existing torrent blocks duplicate submission but is not silently
    adopted or controlled without explicit user action.
-6. Rank eligible candidates within the current discovery batch by ordered
-   preferences and stable tie-breaks. Reserve episode and torrent identity in one
-   transaction, rechecking subscription revision and local availability before
-   external submission. Later better releases cannot displace a reservation.
+6. Keep a valid existing choice, otherwise rank eligible candidates by earliest
+   known publication and stable identity. Automatically select one per episode.
+   Episode/torrent reservations and pre-submission rechecks belong to the pending
+   download phase; candidate selection alone does not create a download intent.
 
 Each stage produces reason codes and readable explanations such as
 `season_conflict`, `language_unknown`, `outside_scope`, `already_available`,
@@ -186,11 +193,10 @@ Each stage produces reason codes and readable explanations such as
 review; reevaluate affected nonterminal candidates after a rule change without
 replaying suppressed or already accepted actions.
 
-Acquisition Review owns remote candidates. Existing Catalog Review continues to
-own actual local-file associations; UI components may be shared, but a release
-never impersonates a local source. Manual selection can explicitly override a
-listed preference/filter with a preview; it cannot bypass path confinement,
-unsupported payload validation, an active reservation or unresolved episode identity.
+Remote release decisions are automatic selected/skipped results with reasons.
+There is no Acquisition Review queue or manual version selection. Existing Catalog
+Review continues to own actual local-file associations; remote releases never
+impersonate local sources.
 
 ## 6. Download Commands and Reconciliation
 
@@ -315,9 +321,9 @@ idempotency keys, revision checks and paginated results. Preview tokens bind sco
 rules and input revisions; reject stale confirmations with an actionable refresh.
 
 Anime detail gains subscription controls and scope/impact preview, including
-remote-only titles. Acquisition provides candidate review and task tabs with
-independent transfer/ingestion feedback and stale observation timestamps. Settings
-provides qBittorrent connectivity and path probes plus feed configuration. Use the
+remote-only titles. Its RSS panel shows automatic selections and skipped reasons,
+with enable/pause, refresh, edit and removal. Settings provides qBittorrent account
+configuration and connection tests. Task controls and path probes remain pending. Use the
 existing design system, query invalidation and task-feedback conventions; opening
 any read view must not initiate a subscription or download.
 

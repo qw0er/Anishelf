@@ -127,6 +127,13 @@
 			"when": 1792281600000,
 			"tag": "0017_tracking_provider_identity",
 			"breakpoints": true
+		},
+		{
+			"idx": 18,
+			"version": "6",
+			"when": 1792462395658,
+			"tag": "0018_rss_subscriptions",
+			"breakpoints": true
 		}
 	]
 }

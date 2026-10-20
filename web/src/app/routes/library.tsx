@@ -1,4 +1,5 @@
 import type { RouteObject } from "react-router";
+import { SubscriptionPanel } from "../../features/acquisition/ui.js";
 import { ReviewPage, TrackedAnimeDetail } from "../../features/anime/ui.js";
 import { HistoryPage } from "../../features/playback/ui.js";
 import App from "../App.js";
@@ -43,7 +44,13 @@ export const libraryRoute: RouteObject = {
 		},
 		{
 			path: "anime/tracked/:mediaId",
-			element: <TrackedAnimeDetail />,
+			element: (
+				<TrackedAnimeDetail
+					renderSubscription={(workKey) => (
+						<SubscriptionPanel key={workKey} workKey={workKey} />
+					)}
+				/>
+			),
 			errorElement: <RouteError kind="directory" />,
 		},
 		{

@@ -61,6 +61,8 @@ export async function createServer(
 	const acquisition = await createAcquisitionModule({
 		dataDir: system.deployment.dataDir,
 		logger,
+		store: database.acquisition,
+		...(anime.api.acquisition ? { anime: anime.api.acquisition } : {}),
 	});
 	const app = createHttpApp({
 		configure: authentication.registerHttp,

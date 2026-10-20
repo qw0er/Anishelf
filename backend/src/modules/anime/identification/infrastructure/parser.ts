@@ -20,36 +20,49 @@ function unique(values: string[]): string[] {
 export class AnitomyIdentificationParser implements IdentificationParser {
 	readonly version =
 		`anitomy-ng@1.0.10:${identificationPolicy.normalizationVersion}`;
-	extract(paths: string[]): ExtractionEvidence[] {
-		const together = animeNameParser.parseTogether(paths);
+	extractRelease(title: string): ExtractionEvidence {
+		const result = this.extract([title], true)[0];
+		if (!result) throw new Error("Missing release extraction.");
+		return result;
+	}
+	extract(paths: string[], release = false): ExtractionEvidence[] {
+		const together = release ? [] : animeNameParser.parseTogether(paths);
 		const contextFingerprint = createHash("sha256")
 			.update(JSON.stringify([...paths].sort()))
 			.digest("hex");
 		return paths.map((relativePath, index) => {
-			const originalName = posix.basename(relativePath);
+			const originalName = release
+				? relativePath
+				: posix.basename(relativePath);
 			const leaf = animeNameParser.parse(originalName);
 			const inputs: ExtractionInput[] = [
 				{ mode: "basename", input: originalName, elements: leaf },
-				...relativePath
-					.split("/")
-					.slice(0, -1)
-					.map(
-						(input): ExtractionInput => ({
-							mode: "ancestor",
-							input,
-							elements: animeNameParser.parse(input),
-						}),
-					),
-				{
-					mode: "path",
-					input: relativePath,
-					elements: animeNameParser.parsePath(relativePath),
-				},
-				{
-					mode: "together",
-					input: relativePath,
-					elements: together[index] ?? [],
-				},
+				...(release
+					? []
+					: relativePath
+							.split("/")
+							.slice(0, -1)
+							.map(
+								(input): ExtractionInput => ({
+									mode: "ancestor",
+									input,
+									elements: animeNameParser.parse(input),
+								}),
+							)),
+				...(release
+					? []
+					: [
+							{
+								mode: "path" as const,
+								input: relativePath,
+								elements: animeNameParser.parsePath(relativePath),
+							},
+							{
+								mode: "together",
+								input: relativePath,
+								elements: together[index] ?? [],
+							} as ExtractionInput,
+						]),
 			];
 			const adapted = inputs.map((input) =>
 				animeNameParser.adapt(input.input, input.elements),

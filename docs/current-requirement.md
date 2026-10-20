@@ -3,8 +3,11 @@
 Date: 2026-10-19.
 
 Implementation update (2026-10-20): the standalone [qBittorrent API adapter](qbittorrent-adapter.md)
-and manual account settings are delivered as a tested foundation. Subscription,
-discovery, durable downloads, path verification and ingestion remain unimplemented;
+and manual account settings are delivered. [RSS subscriptions and automatic selection](rss-subscriptions.md)
+are now implemented with only an RSS address, starting episode and enable/pause
+controls on anime details. One eligible version per episode is chosen automatically;
+uncertain releases are skipped without review. Advanced user filtering is deferred.
+Durable downloads, path verification and ingestion remain unimplemented;
 ACQ01–ACQ11 have not been accepted.
 
 Status: the next iteration targets automatic resource acquisition. This report

@@ -1,7 +1,14 @@
 import type { Logger } from "pino";
+import { DomainError } from "../../shared/errors.js";
+import type { ReleaseAssessmentApi } from "../anime/public.js";
 import { QbittorrentConnection } from "./connection/application.js";
 import { QbittorrentConfigurationFile } from "./connection/infrastructure/configuration.js";
+import { DiscoveryApplication } from "./discovery/application.js";
+import { parseRss } from "./discovery/infrastructure/rss.js";
+import { RssTransport, rssUrl } from "./discovery/infrastructure/transport.js";
+import type { FeedTransport } from "./discovery/public.js";
 import { registerAcquisitionHttp } from "./http.js";
+import type { DiscoveryStore } from "./persistence.js";
 import type { AcquisitionApi } from "./public.js";
 import { QbittorrentClient } from "./qbittorrent/client.js";
 import type {
@@ -20,6 +27,11 @@ export async function createAcquisitionModule(options: {
 	dataDir: string;
 	logger: Logger;
 	createClient?: (options: QbittorrentOptions) => QbittorrentApi;
+	store?: DiscoveryStore;
+	anime?: ReleaseAssessmentApi;
+	transport?: FeedTransport;
+	now?: () => number;
+	autoStart?: boolean;
 }) {
 	const connection = new QbittorrentConnection(
 		new QbittorrentConfigurationFile(options.dataDir),
@@ -27,11 +39,43 @@ export async function createAcquisitionModule(options: {
 		options.logger.child({ module: "acquisition" }),
 	);
 	await connection.initialize();
-	const api: AcquisitionApi = { connection };
+	const discovery = options.store
+		? new DiscoveryApplication({
+				store: options.store,
+				anime: options.anime ?? {
+					target: async () => {
+						throw new DomainError(
+							"METADATA_UNAVAILABLE",
+							"Subscription metadata is unavailable.",
+						);
+					},
+					assess: () => {
+						throw new DomainError(
+							"METADATA_UNAVAILABLE",
+							"Subscription metadata is unavailable.",
+						);
+					},
+				},
+				transport: options.transport ?? new RssTransport(),
+				parse: parseRss,
+				normalizeUrl: rssUrl,
+				downloads: (signal) => connection.activeHashes(signal),
+				logger: options.logger,
+				...(options.now ? { now: options.now } : {}),
+			})
+		: undefined;
+	if (options.autoStart !== false) discovery?.start();
+	const api: AcquisitionApi = {
+		connection,
+		...(discovery ? { discovery } : {}),
+	};
 	return {
 		api,
 		registerHttp: (app: Parameters<typeof registerAcquisitionHttp>[0]) =>
 			registerAcquisitionHttp(app, api),
-		close: () => connection.close(),
+		close: async () => {
+			await discovery?.close();
+			await connection.close();
+		},
 	};
 }
