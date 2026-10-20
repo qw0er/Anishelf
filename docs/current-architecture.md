@@ -1,7 +1,7 @@
 # Automatic Acquisition: Current Iteration Architecture
 
 Date: 2026-10-20. Status: proposed workflow design with a standalone
-[qBittorrent adapter foundation](qbittorrent-adapter.md) implemented. Acquisition
+[qBittorrent adapter and manual account settings](qbittorrent-adapter.md) implemented. Acquisition
 orchestration and end-to-end acceptance remain pending. This document defines the target architecture for
 [current requirements](current-requirement.md). [Architecture](architecture.md)
 continues to describe the implemented system. No release number is assigned.
@@ -43,8 +43,9 @@ limits still require implementation-time validation.
 ## 2. Module Ownership
 
 Add `backend/src/modules/acquisition` as a sixth encapsulated business module.
-The directory currently contains only the standalone qBittorrent adapter and its
-construction entry; bootstrap, persistence and workflow owners remain unimplemented.
+The directory currently contains the qBittorrent adapter, private manual connection
+configuration and connection-test HTTP API. Bootstrap registers and closes this
+module; database-backed acquisition records and workflow owners remain unimplemented.
 It owns acquisition intent and workflow, not anime identity, local file identity,
 playability, viewing state or the BitTorrent engine. Keep HTTP between browser and
 backend, and direct in-process Public API calls between backend modules. Do not
@@ -330,7 +331,20 @@ must not inherit downloader cookies or use release links as unrestricted interna
 network requests. Keep separate endpoint policies for LAN integrations and feed
 payload retrieval; enforce destination restrictions across redirects and DNS resolution.
 
-### 9.1 qBittorrent WebUI Access
+### 9.1 qBittorrent API Account Settings (Implemented)
+
+Settings accepts a backend-reachable API base URL, username and password through
+Acquisition-owned authenticated/CSRF-protected routes. Acquisition atomically
+persists credentials in a private `acquisition/qbittorrent.json` file under the
+application data directory; plaintext is recoverable for API login, with `0700`
+directory and `0600` file permissions. Public responses expose only account metadata
+and a password-configured flag. Blank passwords preserve the existing credential
+only for an unchanged endpoint and username; changing identity requires reentry.
+Generation checks reject stale edits and invalidate in-flight connection tests.
+Explicit save, test and remove actions do not submit or modify downloads.
+See the [adapter contract and security boundary](qbittorrent-adapter.md#manual-account-settings).
+
+### 9.2 qBittorrent WebUI Access
 
 Provide an **Open qBittorrent WebUI** link in integration settings. Open the
 explicitly configured absolute HTTP/HTTPS URL directly in a new tab with

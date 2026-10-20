@@ -23,6 +23,14 @@ test("saves a direct browser address and clearing hides the link", async () => {
 	const request = vi
 		.spyOn(api, "request")
 		.mockImplementation(async (_path, method, _options, payload) => {
+			if (_path === "/api/acquisition/qbittorrent")
+				return {
+					generation: "empty",
+					state: "unconfigured",
+					url: null,
+					username: "",
+					passwordConfigured: false,
+				};
 			if (method === "PUT") {
 				const url =
 					(
@@ -65,13 +73,25 @@ test("saves a direct browser address and clearing hides the link", async () => {
 	fireEvent.change(input, { target: { value: "" } });
 	fireEvent.click(screen.getByRole("button", { name: "Save" }));
 	await waitFor(() => expect(screen.queryByRole("link")).toBeNull());
-	expect(request.mock.calls.every((call) => call[0] === "/api/settings")).toBe(
-		true,
-	);
+	expect(
+		request.mock.calls.every((call) =>
+			["/api/settings", "/api/acquisition/qbittorrent"].includes(call[0]),
+		),
+	).toBe(true);
 });
 
 test("shows configuration guidance when no WebUI URL is saved", async () => {
-	vi.spyOn(api, "request").mockResolvedValue({ resourceRoots: [] });
+	vi.spyOn(api, "request").mockImplementation(async (path) =>
+		path === "/api/acquisition/qbittorrent"
+			? {
+					generation: "empty",
+					state: "unconfigured",
+					url: null,
+					username: "",
+					passwordConfigured: false,
+				}
+			: { resourceRoots: [] },
+	);
 	render(<QbittorrentSettings />);
 	expect(
 		await screen.findByText("Save a WebUI URL to open qBittorrent."),

@@ -249,7 +249,7 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| D01 | Connect to qBittorrent and validate configuration and download-path mappings | Partial: standalone authenticated API adapter and preference probe; persisted integration, path validation and live acceptance pending | Current (adapter only) | Unassigned |
+| D01 | Connect to qBittorrent and validate configuration and download-path mappings | Partial: authenticated API adapter, manually entered private account settings and connection test; path validation and live acceptance pending | Current (adapter and connection settings) | Unassigned |
 | D02 | Submit releases, persist task associations, and prevent duplicate submissions | Later | — | Unassigned |
 | D03 | Display progress, speed, task status, and errors | Later | — | Unassigned |
 | D04 | Pause, resume, cancel, and retry downloads | Later | — | Unassigned |
@@ -259,8 +259,8 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | D08 | Multiple download clients, seeding policies, bandwidth schedules, and storage policies | Optional | — | Unassigned |
 
 The [qBittorrent adapter foundation](qbittorrent-adapter.md) also supplies low-level
-submission, observations and control commands. It is not connected to application
-bootstrap or Web controls and does not deliver D02–D07 orchestration, persistence,
+submission, observations and control commands. Bootstrap and Settings expose account
+configuration and connection testing; download controls do not yet deliver D02–D07 orchestration, persistence,
 reconciliation or verified ingestion. Existing WebUI navigation is independent.
 
 ### 2.7 Desktop and Other Clients

@@ -141,6 +141,11 @@ folder at `/data/incomplete` so unfinished data stays outside the watched librar
 These qBittorrent preferences must be configured in its WebUI; mounting the volume
 does not set them automatically. Anishelf keeps original media read-only at the
 application level; the shared volume itself is writable by both containers.
+In Anishelf Settings, configure the qBittorrent **API connection** with
+`http://qbittorrent:8080`, your qBittorrent username and password, save, then use
+**Test connection**. This account is separate from Anishelf login, and the API
+URL is separate from the browser WebUI URL. Saved passwords are never returned;
+leave the field blank to retain one for the same API URL and username.
 See [qBittorrent deployment details](docs/deployment.md#qbittorrent-webui-access).
 
 The Compose file also names the release images `ghcr.io/qw0er/anishelf-backend:latest`

@@ -157,6 +157,15 @@ directory keeps partial files outside the watched root once that preference is
 enabled. Retain `anishelf-data` and `anishelf-qbittorrent-config` across recreations
 and stop both writers before backing them up.
 
+In Anishelf **Settings → qBittorrent → API connection**, enter API URL
+`http://qbittorrent:8080`, username `admin` (or your configured account) and the
+password you set in qBittorrent. Save, then choose **Test connection**. This URL
+is reached by the backend and is separate from the browser WebUI URL below.
+Passwords are stored privately in `/data/app/acquisition/qbittorrent.json` with
+mode `0600`, never returned by the settings API. An empty password keeps the saved
+one only for the same URL and username; changing either requires reentry.
+Protect volume backups because they contain recoverable downloader credentials.
+
 See the [LinuxServer qBittorrent image documentation](https://docs.linuxserver.io/images/docker-qbittorrent/)
 for its login, port and directory settings.
 

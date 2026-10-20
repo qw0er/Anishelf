@@ -1,7 +1,7 @@
 # qBittorrent adapter
 
-The standalone server-side adapter is the first automatic-acquisition code
-foundation. It uses `@ctrl/qbittorrent` behind an Acquisition-owned interface;
+The server-side adapter and manual connection settings are the first automatic-acquisition
+code foundation. It uses `@ctrl/qbittorrent` behind an Acquisition-owned interface;
 SDK types and response bodies do not become browser or workflow contracts.
 The protocol baseline is qBittorrent 5.x with WebAPI v2, based on the
 [official API documentation](https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-%28qBittorrent-5.0%29).
@@ -42,6 +42,42 @@ The SDK owns cookie authentication, session renewal after explicit authenticatio
 rejection, multipart encoding and 5.x command names. Initial login is shared by
 concurrent callers. There are no transport retries after ambiguous failures;
 the SDK permits one reauthentication/replay after a 401/403 rejection.
+The selected SDK sends HTTP Basic credentials alongside its SID cookie on API
+requests. Base64 encoding does not encrypt credentials; the configured endpoint's
+transport determines network confidentiality.
+
+## Manual account settings
+
+Settings now contains API URL, Username and Password fields. Users enter their
+own qBittorrent account credentials; these are independent from Anishelf login.
+For Compose, use `http://qbittorrent:8080` as the backend-reachable API URL and
+keep the browser WebUI URL separately configured. The address field accepts the
+base URL, not an `/api/v2` suffix. Saving does not contact the downloader or start
+any tasks. **Test connection** explicitly tests the saved account and reports
+authentication, unsupported-version and connectivity failures.
+
+The application bootstrap registers Acquisition and its authenticated,
+CSRF-protected `/api/acquisition/qbittorrent` GET/PUT/DELETE and `/check` POST
+routes. Public responses include URL, username, generation and a
+`passwordConfigured` flag; passwords are never returned. Passwords are not stored
+in ordinary settings, browser query caches or mutation variables. The password
+input is cleared after save. Omitting it or submitting an empty value preserves
+the saved password only when URL and username are unchanged. Changing either
+requires a new password. **Remove API connection** removes saved credentials
+without deleting downloader tasks or media.
+
+Acquisition stores the recoverable plaintext password in
+`ANISHELF_DATA_DIR/acquisition/qbittorrent.json` (Compose:
+`/data/app/acquisition/qbittorrent.json`), with directory mode `0700` and file
+mode `0600`. These permissions are not encryption; protect the shared volume
+and backups. Writes use a temporary file, fsync and atomic rename. Restart reloads
+the account without a network call. Malformed private configuration reports an
+unavailable state and can be replaced without blocking local playback.
+
+Updates and removal require the displayed configuration generation. Successful
+changes replace the generation and abort active checks; old check results cannot
+be published against a new account. Closing Acquisition aborts checks before other
+modules and persistence close. No downloading or background polling is enabled.
 
 Undici supplies connection pooling and response-size enforcement. The wrapper adds
 an operation deadline (30 seconds by default), caller cancellation, shutdown abort,
@@ -74,8 +110,11 @@ requests, safe removal, rejected and uncertain commands, cancellation, shutdown,
 timeouts, response limits, redirects, malformed responses and log redaction.
 Run it in an environment permitting localhost listeners.
 
-No adapter is instantiated by application bootstrap yet. Credential settings,
-path mapping/probes, durable intent and command storage, reconciliation workers,
-RSS/subscriptions, HTTP/UI controls and verified ingestion remain future work.
+`backend/test/qbittorrent-connection.test.ts` and Web connection tests cover manual
+save/retention/removal, private permissions, restart, failed writes, generation
+conflicts, stale checks, authentication/CSRF, redaction and password input/cache behavior.
+
+Path mapping/probes, durable intent and command storage, reconciliation workers,
+RSS/subscriptions, download controls and verified ingestion remain future work.
 No live qBittorrent, real torrent download or complete ACQ acceptance was run for
 this foundation. D01–D07 are not complete.

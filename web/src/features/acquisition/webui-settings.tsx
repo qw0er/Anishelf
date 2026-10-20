@@ -14,6 +14,7 @@ import {
 	settingsKeys,
 	settingsQuery,
 } from "../settings/public.js";
+import { QbittorrentApiSettings } from "./api-settings.js";
 
 export function QbittorrentSettings() {
 	const client = useQueryClient();
@@ -32,9 +33,12 @@ export function QbittorrentSettings() {
 		<Card className="settings-section lg:grid">
 			<CardHeader>
 				<CardTitle>qBittorrent</CardTitle>
-				<CardDescription>Open the full download client WebUI.</CardDescription>
+				<CardDescription>
+					Configure API access and open the download client WebUI.
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
+				<QbittorrentApiSettings />
 				{configuration.isPending ? (
 					<p role="status">Loading qBittorrent settings…</p>
 				) : configuration.isError ? (
