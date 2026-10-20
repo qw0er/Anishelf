@@ -13,6 +13,19 @@ export type {
 import type { ReleaseAssessmentApi } from "./release-assessment/public.js";
 export interface AnimeApi {
 	readonly acquisition?: ReleaseAssessmentApi;
+	readonly ingestion?: {
+		available(
+			key: string,
+			episode: number,
+			identity: import("../resources/public.js").SourceIdentity,
+		): Promise<boolean>;
+		ingest(
+			key: string,
+			episode: number,
+			identity: import("../resources/public.js").SourceIdentity,
+			signal: AbortSignal,
+		): Promise<"available" | "review">;
+	};
 	readonly library?: AnimeLibraryApi | undefined;
 	readonly tracking?: TrackingApi | undefined;
 	readonly metadata:

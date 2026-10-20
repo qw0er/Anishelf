@@ -55,6 +55,13 @@ export async function createResourcesModule(options: {
 	};
 	const api: ResourcesApi = {
 		sources,
+		acquisition: {
+			roots: () => library.downloadRoots(),
+			validate: (scope, incomplete) =>
+				library.validateDownloadRoot(scope, incomplete),
+			inspect: (scope, path) => library.inspectDownload(scope, path),
+			refresh: (scope, path) => library.refreshDownload(scope, path),
+		},
 		applySettingsChange: (input, save) =>
 			library.settings.applySettingsChange(input, save),
 		onSnapshotChanged: (listener) => library.onSnapshotChanged(listener),

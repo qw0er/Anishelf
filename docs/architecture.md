@@ -93,7 +93,7 @@ The backend source has six responsibility roots:
 | Media | Inspection, Planning, Processing, Preparation, Subtitles | Compatibility, published-copy views, media information, preparation and subtitle HTTP services |
 | Playback | Progress, Playback Selection | Resource selection, source sessions/resume/history and durable automatic observations |
 | Anime | Identification, Metadata, Anime Catalog, Tracking, Anime Library, AniList protocol | Recognition, provider cache, review/associations, account/list lifecycle, unified viewing updates, combined Library reads and shared provider access |
-| Acquisition | qBittorrent adapter, Connection, Discovery | Private downloader credentials, detail-page RSS subscriptions, bounded polling, persisted evidence and automatic single-version selection; no automatic downloads yet |
+| Acquisition | qBittorrent adapter, Connection, Discovery, Downloads | Private credentials, RSS subscriptions, automatic selection, persisted destination/intent/reservations, reconciliation and verified ingestion orchestration |
 
 `modules/acquisition` contains the [qBittorrent adapter and manual account settings](qbittorrent-adapter.md)
 with an Acquisition-owned contract, private credential file, HTTP routes and
@@ -101,8 +101,10 @@ bootstrap/shutdown integration. Its [RSS discovery](rss-subscriptions.md) owns t
 SQLite tables and bounded background workers. Anime supplies a provider-neutral
 release-assessment API and Catalog supplies current episode availability; remote
 releases never impersonate local source identities.
-The complete download workflow remains the
-[current iteration design](current-architecture.md).
+The [current acquisition architecture](current-architecture.md) adds durable download
+records, per-anime placement, restart reconciliation and verified import through
+Resources and Anime public capabilities. Transfer controls remain in qBittorrent
+WebUI; the detail-page Activity is a compact status/recovery view.
 
 The six directories are API boundaries, not categorization folders. External
 consumers cannot import any child entry, including a child's `public.ts`.

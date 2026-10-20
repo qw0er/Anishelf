@@ -19,6 +19,7 @@
 		"@types/better-sqlite3": "^9.6.0",
 		"@types/fontkit": "^2.0.9",
 		"@types/node": "^26.6.5",
+		"@types/parse-torrent": "^11.0.1",
 		"drizzle-kit": "^0.31.11",
 		"pino-pretty": "^13.2.0",
 		"vitest": "^5.0.4"
@@ -43,6 +44,7 @@
 		"fontkit": "^2.0.4",
 		"ipaddr.js": "2.5.0",
 		"opencc-js": "1.4.2",
+		"parse-torrent": "^11.0.24",
 		"pino": "^10.4.0",
 		"platformdirs": "4.3.7",
 		"rotating-file-stream": "^3.2.10",

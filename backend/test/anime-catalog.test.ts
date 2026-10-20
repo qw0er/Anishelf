@@ -1818,7 +1818,7 @@ test("multi-root versions preserve confirmed associations through identity upgra
 			.run(createResourceId("file", original.relativePath), original.id);
 		// Rewind later schema along with its migration records.
 		raw.exec(
-			"DROP TABLE acquisition_candidates; DROP TABLE acquisition_subscriptions; DROP TABLE acquisition_feeds;",
+			"DROP TABLE acquisition_intents; DROP TABLE acquisition_directories; DROP TABLE acquisition_authorizations; DROP TABLE acquisition_destination; DROP TABLE acquisition_candidates; DROP TABLE acquisition_subscriptions; DROP TABLE acquisition_feeds;",
 		);
 		raw
 			.prepare("DELETE FROM __drizzle_migrations WHERE created_at >= ?")

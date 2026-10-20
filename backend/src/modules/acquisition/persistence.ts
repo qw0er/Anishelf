@@ -10,3 +10,11 @@ export type { DiscoveryStore } from "./discovery/ports.js";
 export function createAcquisitionPersistence(store: Store) {
 	return new DiscoveryRepository(store);
 }
+
+export * from "./downloads/infrastructure/schema.js";
+export type { DownloadStore } from "./downloads/public.js";
+
+import { DownloadRepository } from "./downloads/infrastructure/repository.js";
+export function createDownloadPersistence(store: Store) {
+	return new DownloadRepository(store);
+}

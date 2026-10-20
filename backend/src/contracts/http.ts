@@ -216,3 +216,10 @@ export type TrackingEpisodeCommandRequest = Static<
 export type TrackingEpisodeResolutionResponse = Static<
 	typeof import("./schemas/tracking-update.js").TrackingEpisodeResolutionSchema
 >;
+
+export type DownloadSettings = Static<
+	typeof import("./schemas/downloads.js").DownloadSettingsSchema
+>;
+export type DownloadActivity = Static<
+	typeof import("./schemas/downloads.js").DownloadActivitySchema
+>;

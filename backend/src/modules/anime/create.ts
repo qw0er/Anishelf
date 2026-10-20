@@ -20,6 +20,7 @@ import type { MetadataApplication } from "./metadata/application/metadata.js";
 import type { AnimePersistence } from "./persistence.js";
 import type { AnimeApi } from "./public.js";
 import { AnimeReleaseAssessment } from "./release-assessment/application.js";
+import { AcquisitionIngestion } from "./release-assessment/ingestion.js";
 import { TrackingViewingCommands } from "./tracking/application/viewing.js";
 export async function createAnimeModule(options: {
 	system: SystemApi;
@@ -70,16 +71,25 @@ export async function createAnimeModule(options: {
 				}
 			: {}),
 	});
+	const assessment = metadata
+		? new AnimeReleaseAssessment(
+				new AnitomyIdentificationParser(),
+				metadata,
+				catalog,
+			)
+		: undefined;
 	const api: AnimeApi = {
-		...(metadata
+		...(assessment && catalog
 			? {
-					acquisition: new AnimeReleaseAssessment(
+					ingestion: new AcquisitionIngestion(
+						assessment,
 						new AnitomyIdentificationParser(),
-						metadata,
 						catalog,
+						library.sources,
 					),
 				}
 			: {}),
+		...(assessment ? { acquisition: assessment } : {}),
 		tracking,
 		library: libraryQueries,
 		metadata: metadata

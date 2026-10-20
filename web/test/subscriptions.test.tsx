@@ -58,6 +58,16 @@ function fixture(
 	return vi
 		.spyOn(api, "request")
 		.mockImplementation(async (path, method, _options, payload) => {
+			if (path.startsWith("/api/acquisition/downloads"))
+				return {
+					authorized: true,
+					destination: null,
+					items: [],
+					total: 0,
+					active: 0,
+					page: 1,
+				};
+			if (path === "/api/settings") return { qbittorrentWebUiUrl: "" };
 			if (method === "GET") return view;
 			if (path.endsWith("/preview"))
 				return {
@@ -133,9 +143,7 @@ test("anime detail subscription has only RSS and episode inputs, with explicit s
 		{},
 		{ workKey, token: "preview" },
 	);
-	expect(
-		screen.getByText("Episode 3 · Selected · awaiting download integration"),
-	).toBeTruthy();
+	expect(screen.getByText("Episode 3 · Selected")).toBeTruthy();
 	expect(
 		screen.queryByRole("button", { name: /review|choose|download/i }),
 	).toBeNull();
@@ -164,23 +172,35 @@ test("pause, resume, edit and remove use the current subscription revision", asy
 	const request = fixture(saved);
 	render(<SubscriptionPanel workKey={workKey} />);
 	fireEvent.click(
-		await screen.findByRole("button", { name: "Pause subscription" }),
+		await screen.findByRole("button", { name: "Subscription actions" }),
 	);
-	await screen.findByRole("button", { name: "Resume subscription" });
+	fireEvent.click(
+		await screen.findByRole("menuitem", { name: "Pause subscription" }),
+	);
+	await waitFor(() =>
+		expect(request.mock.calls.some((call) => call[1] === "PATCH")).toBe(true),
+	);
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Subscription actions" }),
+	);
+	await screen.findByRole("menuitem", { name: "Resume subscription" });
 	expect(request).toHaveBeenCalledWith(
 		"/api/acquisition/subscriptions",
 		"PATCH",
 		{},
 		{ workKey, revision: "one", enabled: false },
 	);
-	fireEvent.click(screen.getByRole("button", { name: "Edit subscription" }));
+	fireEvent.click(screen.getByRole("menuitem", { name: "Edit subscription" }));
 	expect(
 		((await screen.findByLabelText("RSS URL")) as HTMLInputElement).value,
 	).toBe("");
-	fireEvent.click(screen.getByRole("button", { name: "Remove subscription" }));
+	fireEvent.click(screen.getByRole("button", { name: "Subscription actions" }));
+	fireEvent.click(
+		await screen.findByRole("menuitem", { name: "Remove subscription" }),
+	);
 	await waitFor(() =>
 		expect(
-			screen.queryByRole("button", { name: "Resume subscription" }),
+			screen.queryByRole("button", { name: "Subscription actions" }),
 		).toBeNull(),
 	);
 	expect(request).toHaveBeenCalledWith(

@@ -29,6 +29,7 @@ function conflict(): never {
 	);
 }
 interface Preview {
+	downloadRevision: string | null;
 	session: string;
 	input: PreviewInput;
 	feed: FeedRecord;
@@ -56,6 +57,14 @@ export class DiscoveryApplication implements DiscoveryApi {
 			downloads: (signal: AbortSignal) => Promise<string[] | null>;
 			logger: Logger;
 			now?: () => number;
+			downloadPreview?: (
+				key: string,
+				target: AcquisitionTarget,
+			) => { revision: string; path: string } | null;
+			authorizeDownloads?: (
+				subscription: Subscription,
+				revision: string,
+			) => Promise<void>;
 		},
 	) {}
 	private now() {
@@ -208,7 +217,10 @@ export class DiscoveryApplication implements DiscoveryApi {
 		this.open();
 		const token = randomUUID(),
 			expiresAt = this.now() + policy.previewLifetimeMs;
+		const download =
+			this.options.downloadPreview?.(input.workKey, target) ?? null;
 		this.previews.set(token, {
+			downloadRevision: download?.revision ?? null,
 			session,
 			input: { ...input },
 			feed,
@@ -224,6 +236,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 			startEpisode: input.startEpisode,
 			availableEpisodes: target.availableEpisodes,
 			knownEpisodeCount: target.work.episodeCount,
+			downloadDestination: download?.path ?? null,
 			candidates: candidates.slice(0, policy.pageSize),
 			total: candidates.length,
 		};
@@ -260,6 +273,8 @@ export class DiscoveryApplication implements DiscoveryApi {
 					"ACQUISITION_UNAVAILABLE",
 					"Subscription limit reached.",
 				);
+			const download = this.options.downloadPreview?.(workKey, target) ?? null;
+			if ((download?.revision ?? null) !== preview.downloadRevision) conflict();
 			const subscription = {
 				workKey,
 				feedId: preview.feed.id,
@@ -272,6 +287,11 @@ export class DiscoveryApplication implements DiscoveryApi {
 				preview.feed,
 				preview.candidates,
 			);
+			if (preview.downloadRevision)
+				await this.options.authorizeDownloads?.(
+					subscription,
+					preview.downloadRevision,
+				);
 			this.previews.delete(token);
 			this.options.logger.info(
 				{

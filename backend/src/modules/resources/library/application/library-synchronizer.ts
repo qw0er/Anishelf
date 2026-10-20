@@ -280,6 +280,14 @@ export class LibrarySynchronizer {
 		}
 		return true;
 	}
+	async refreshPaths(scopeId: string, paths: readonly string[]): Promise<void> {
+		const root = await this.options.roots.resolve(this.getSettings(), scopeId);
+		if (!(await this.applyChanges(root, paths)))
+			throw new DomainError(
+				"ACQUISITION_UNAVAILABLE",
+				"Resource synchronization is busy. Retry import.",
+			);
+	}
 	private applyChanges(
 		root: ResourceRoot,
 		paths: readonly string[],

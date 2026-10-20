@@ -17,6 +17,8 @@ export type {
 	CompatibilityQuery,
 	CompatibilityResult,
 	DirectoryResponse,
+	DownloadActivity,
+	DownloadSettings,
 	FileDto,
 	FileResponse,
 	HistoryResponse,

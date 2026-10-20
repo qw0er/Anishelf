@@ -2,6 +2,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { QbittorrentSettings } from "../src/features/acquisition/webui-settings.js";
 import * as api from "../src/shared/api/client.js";
+import { queryClient } from "../src/shared/api/query-client.js";
 import {
 	cleanup,
 	fireEvent,
@@ -12,6 +13,7 @@ import {
 
 afterEach(() => {
 	cleanup();
+	queryClient.clear();
 	vi.restoreAllMocks();
 });
 
@@ -23,6 +25,8 @@ test("saves a direct browser address and clearing hides the link", async () => {
 	const request = vi
 		.spyOn(api, "request")
 		.mockImplementation(async (_path, method, _options, payload) => {
+			if (_path === "/api/acquisition/downloads/settings")
+				return { destination: null, roots: [] };
 			if (_path === "/api/acquisition/qbittorrent")
 				return {
 					generation: "empty",
@@ -75,22 +79,28 @@ test("saves a direct browser address and clearing hides the link", async () => {
 	await waitFor(() => expect(screen.queryByRole("link")).toBeNull());
 	expect(
 		request.mock.calls.every((call) =>
-			["/api/settings", "/api/acquisition/qbittorrent"].includes(call[0]),
+			[
+				"/api/settings",
+				"/api/acquisition/qbittorrent",
+				"/api/acquisition/downloads/settings",
+			].includes(call[0]),
 		),
 	).toBe(true);
 });
 
 test("shows configuration guidance when no WebUI URL is saved", async () => {
 	vi.spyOn(api, "request").mockImplementation(async (path) =>
-		path === "/api/acquisition/qbittorrent"
-			? {
-					generation: "empty",
-					state: "unconfigured",
-					url: null,
-					username: "",
-					passwordConfigured: false,
-				}
-			: { resourceRoots: [] },
+		path === "/api/acquisition/downloads/settings"
+			? { destination: null, roots: [] }
+			: path === "/api/acquisition/qbittorrent"
+				? {
+						generation: "empty",
+						state: "unconfigured",
+						url: null,
+						username: "",
+						passwordConfigured: false,
+					}
+				: { resourceRoots: [] },
 	);
 	render(<QbittorrentSettings />);
 	expect(

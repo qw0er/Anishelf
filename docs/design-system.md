@@ -221,3 +221,19 @@ conflicts expose Keep AniList value/Submit my change. Confirmed values and pendi
 stay visually distinct. Player and detail share operation queries, cache updates and
 notifications, and both follow remote confirmation instead of stopping at queued.
 Keep controls wrapping at narrow widths. Unmapped sources show no tracking command.
+
+## Automatic Acquisition
+
+Keep the RSS subscription summary compact and place secondary subscription actions
+in its menu. Its policy Tooltip explains that pausing stops future acquisition,
+while existing downloads continue and AniList status does not change subscription
+state. Preview confirmation shows starting scope and the per-anime destination.
+
+Activity is an on-demand disclosure containing release decisions and acquisition
+outcomes, with a visible attention count even while collapsed. Show true download
+percentages and distinct verification/import/availability states; retain actionable
+errors in their rows. Use deduplicated Toasts for operation results and failures.
+Do not add a global Downloads page or another floating task monitor. Open WebUI
+for transfer control and seeding details; Anishelf offers acquisition/import retry,
+Review and Settings only when relevant. Keep original playback controls in the
+existing episode list.

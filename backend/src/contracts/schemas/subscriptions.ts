@@ -44,6 +44,7 @@ export const SubscriptionPreviewInputSchema = Type.Object(
 	{ additionalProperties: false },
 );
 export const SubscriptionPreviewSchema = Type.Object({
+	downloadDestination: Type.Optional(Type.Union([Type.String(), Type.Null()])),
 	token: Type.String(),
 	expiresAt: Type.Number(),
 	source: Type.String(),

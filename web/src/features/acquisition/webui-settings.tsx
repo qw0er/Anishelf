@@ -15,6 +15,7 @@ import {
 	settingsQuery,
 } from "../settings/public.js";
 import { QbittorrentApiSettings } from "./api-settings.js";
+import { DownloadDestinationSettings } from "./destination-settings.js";
 
 export function QbittorrentSettings() {
 	const client = useQueryClient();
@@ -39,6 +40,7 @@ export function QbittorrentSettings() {
 			</CardHeader>
 			<CardContent className="space-y-4">
 				<QbittorrentApiSettings />
+				<DownloadDestinationSettings />
 				{configuration.isPending ? (
 					<p role="status">Loading qBittorrent settings…</p>
 				) : configuration.isError ? (

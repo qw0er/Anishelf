@@ -70,13 +70,47 @@ export class RssTransport implements FeedTransport {
 			new Agent({
 				connections: 2,
 				connect: { lookup: publicLookup },
-				maxResponseSize: policy.maximumBodyBytes,
+				maxResponseSize: 10 * 1024 * 1024,
 			});
 	}
 	async fetch(
 		input: string,
 		validators: { etag: string | null; lastModified: string | null },
 		signal: AbortSignal,
+	) {
+		const response = await this.body(
+			input,
+			validators,
+			signal,
+			policy.maximumBodyBytes,
+		);
+		return {
+			xml:
+				response.bytes === null
+					? null
+					: Buffer.from(response.bytes).toString("utf8"),
+			etag: response.etag,
+			lastModified: response.lastModified,
+		};
+	}
+	async read(
+		input: string,
+		signal: AbortSignal,
+	): Promise<Uint8Array<ArrayBuffer>> {
+		const response = await this.body(
+			input,
+			{ etag: null, lastModified: null },
+			signal,
+			10 * 1024 * 1024,
+		);
+		if (response.bytes === null) throw new RssError("http_failed");
+		return response.bytes;
+	}
+	private async body(
+		input: string,
+		validators: { etag: string | null; lastModified: string | null },
+		signal: AbortSignal,
+		maximumBytes: number,
 	) {
 		const combined = AbortSignal.any([
 			signal,
@@ -91,7 +125,8 @@ export class RssTransport implements FeedTransport {
 					dispatcher: this.agent,
 					signal: combined,
 					headers: {
-						accept: "application/rss+xml, application/xml, text/xml",
+						accept:
+							"application/rss+xml, application/xml, application/x-bittorrent, application/octet-stream, text/xml",
 						"accept-encoding": "identity",
 						...(new URL(url).origin === origin && validators.etag
 							? { "if-none-match": validators.etag }
@@ -125,7 +160,7 @@ export class RssTransport implements FeedTransport {
 				if (response.statusCode === 304) {
 					response.body.destroy();
 					return {
-						xml: null,
+						bytes: null,
 						etag: etag ?? validators.etag,
 						lastModified: lastModified ?? validators.lastModified,
 					};
@@ -142,14 +177,14 @@ export class RssTransport implements FeedTransport {
 				let size = 0;
 				for await (const chunk of response.body) {
 					size += chunk.length;
-					if (size > policy.maximumBodyBytes) {
+					if (size > maximumBytes) {
 						response.body.destroy();
 						throw new RssError("feed_too_large");
 					}
 					chunks.push(Buffer.from(chunk));
 				}
-				const xml = Buffer.concat(chunks).toString("utf8");
-				return { xml, etag, lastModified };
+				const bytes = new Uint8Array(Buffer.concat(chunks));
+				return { bytes, etag, lastModified };
 			}
 			throw new RssError("redirect_failed");
 		} catch (error) {

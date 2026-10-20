@@ -139,7 +139,7 @@ Preserve raw parsed numbering separately from confirmed episode associations, in
 - Initially exclude batch downloads, directory archives, and managed offline libraries.
 - Acceptance: the downloaded file matches the source contents and filename, the server original remains unchanged, and unavailable or unauthorized resources cannot be downloaded.
 
-This is a user-facing file download, separate from acquiring new releases through qBittorrent (D01–D08). File actions and the player's More playback options menu provide **Download video**. The action rechecks file access and starts a native browser download from the original-media route with the original filename, without buffering the complete file in JavaScript. Download acquisition through qBittorrent remains unassigned.
+This is a user-facing file download, separate from acquiring new releases through qBittorrent (D01–D08). File actions and the player's More playback options menu provide **Download video**. The action rechecks file access and starts a native browser download from the original-media route with the original filename, without buffering the complete file in JavaScript. Automatic acquisition through qBittorrent is delivered separately under D01–D07, with live acceptance pending.
 
 ### 2.2 Anime Metadata
 
@@ -240,32 +240,33 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | S03 | Configure RSS and discover releases periodically | Implemented: one RSS per anime, shared conditional fetches and durable scheduling; live feed acceptance pending | Current | Unassigned |
 | S04 | Match releases to titles and episodes and explain uncertain matches | Implemented: uncertain releases are automatically skipped without review | Current | Unassigned |
 | S05 | Filter by subtitle language, release group, resolution, codec, and keywords | Deferred: choose a source RSS representing these preferences; no advanced configuration UI | — | Unassigned |
-| S06 | Deduplicate and exclude existing files, active downloads, and unwanted episodes | Partial: feed/hash/URL identity, accessible local episodes and known qBittorrent hashes; canonical submission identity and reservations pending | Current (discovery) | Unassigned |
+| S06 | Deduplicate and exclude existing files, active downloads, and unwanted episodes | Implemented: discovery identities, accessible local episodes and downloader hashes; durable canonical-hash and work/episode reservations before submission; live acceptance pending | Current | Current |
 | S07 | Explain decisions and automatically choose one release per episode | Implemented: stable selection and skipped reasons; manual selection/dismissal outside the simplified scope | Current | Unassigned |
-| S08 | Coordinate tracking-status changes with subscriptions and explain their effect on existing tasks | Later | — | Unassigned |
+| S08 | Coordinate tracking-status changes with subscriptions and explain their effect on existing tasks | Implemented minimal policy: AniList changes do not change subscriptions/tasks; subscription pause stops new submissions and preserves existing tasks/imports | Current | Current |
 | S09 | Search multiple sources, rank releases, process season packs, and upgrade quality | Optional | — | Unassigned |
 
 See [RSS subscriptions](rss-subscriptions.md) for the implemented first two stages.
-These stages select candidates automatically without per-release approval. They do
-not submit torrents or complete download-to-playback acceptance.
+RSS selects candidates automatically without per-release approval. Separately confirmed
+acquisition scopes enable the download worker; complete live acceptance remains pending.
 
 ### 2.6 Downloads and Automatic Ingestion
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| D01 | Connect to qBittorrent and validate configuration and download-path mappings | Partial: authenticated API adapter, manually entered private account settings and connection test; path validation and live acceptance pending | Current (adapter and connection settings) | Unassigned |
-| D02 | Submit releases, persist task associations, and prevent duplicate submissions | Later | — | Unassigned |
-| D03 | Display progress, speed, task status, and errors | Later | — | Unassigned |
-| D04 | Pause, resume, cancel, and retry downloads | Later | — | Unassigned |
-| D05 | Check completed files, scan them, and associate them with episodes | Later | — | Unassigned |
-| D06 | Recover from disconnections, externally removed tasks, and server restarts | Later | — | Unassigned |
-| D07 | Distinguish task cancellation, downloaded-data deletion, and library-record removal | Later | — | Unassigned |
+| D01 | Connect to qBittorrent and validate configuration and download-path mappings | Implemented: private API settings, connection test and one root/path mapping with incomplete-directory validation; actual shared visibility verified during import; live acceptance pending | Current | Current |
+| D02 | Submit releases, persist task associations, and prevent duplicate submissions | Implemented: persisted intent, canonical identity/reservations, per-anime placement and uncertain-outcome reconciliation; live acceptance pending | Current | Current |
+| D03 | Display acquisition state, progress and errors | Implemented: compact detail Activity; real percentage and import states; speed/seeding details in WebUI | Current | Current |
+| D04 | Manage downloads and recover acquisitions | Implemented: transfer pause/resume/removal delegated to WebUI; scoped acquisition/import retries in Anishelf | Current | Current |
+| D05 | Check completed files, scan them, and associate them with episodes | Implemented: confined file verification, targeted Resources refresh, Anime association/Review and independent import retry; live acceptance pending | Current | Current |
+| D06 | Recover from disconnections, externally removed tasks, and server restarts | Implemented: stale observations, durable bindings, restart reconciliation and external-removal suppression; live acceptance pending | Current | Current |
+| D07 | Distinguish task cancellation, downloaded-data deletion, and library-record removal | Implemented boundary: task/data deletion in WebUI, Catalog decisions in existing local workflows; deletion never triggers automatic re-adding | Current | Current |
 | D08 | Multiple download clients, seeding policies, bandwidth schedules, and storage policies | Optional | — | Unassigned |
 
 The [qBittorrent adapter foundation](qbittorrent-adapter.md) also supplies low-level
-submission, observations and control commands. Bootstrap and Settings expose account
-configuration and connection testing; download controls do not yet deliver D02–D07 orchestration, persistence,
-reconciliation or verified ingestion. Existing WebUI navigation is independent.
+submission, observations and control commands. The current acquisition workflow adds
+persistence, reconciliation, per-anime placement and verified ingestion. Transfer
+controls use WebUI; compact detail Activity supplies status and recovery without a
+global download-management page. See [current requirements](current-requirement.md).
 
 ### 2.7 Desktop and Other Clients
 
@@ -306,7 +307,7 @@ AniList is the viewing-state authority. This iteration selects account connectio
 | --- | --- | --- | --- | --- |
 | O03 | Dashboard for continued viewing, new episodes, downloads, and exceptions | Later | — | Unassigned |
 | O04 | Unified settings for directories and integrations | Later | — | Unassigned |
-| O05 | Task history, logs, and automation decision explanations | Later | — | Unassigned |
+| O05 | Task history, logs, and automation decision explanations | Partial: durable per-anime acquisition activity, decision reasons, safe correlated logs and terminal-detail retention; broader product history remains later | Current (acquisition) | Unassigned |
 | O06 | Back up and restore metadata, viewing history, and configuration | Later | — | Unassigned |
 | O07 | LAN access, single-user authentication, and credential protection | Implemented: single password, independent hash file, persistent Cookie sessions, CSRF, login limits, local recovery and 24-hour scoped media links; remote access through TLS proxy | Current | Current |
 | O08 | In-app completion and failure feedback | Implemented: scan result Toasts and preparation results in the floating task monitor | Current | Current |
