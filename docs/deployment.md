@@ -242,7 +242,8 @@ npm run auth --workspace @anishelf/backend -- hash-password
 Replace `auth.json` with the printed JSON as the runtime account, preserve mode
 `0600`, and restart. The document contains version `1`, algorithm `scrypt`, a
 hexadecimal `salt` and `hash`, and parameters `N=32768`, `r=8`, `p=1`. Passwords
-contain 12–128 Unicode characters and are never trimmed. No plaintext password,
+contain 8–128 Unicode characters. Leading and trailing whitespace is removed
+before hashing and verification. No plaintext password,
 initial-password environment variable or initial-password import file is stored.
 
 ### Sessions and external players

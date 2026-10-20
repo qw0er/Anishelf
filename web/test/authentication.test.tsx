@@ -84,7 +84,7 @@ test("login bootstraps anonymous CSRF and displays wrong-password errors", async
 	routers.push(router);
 	render(<RouterProvider router={router} />);
 	fireEvent.change(screen.getByLabelText("Password"), {
-		target: { value: "wrong" },
+		target: { value: "  wrong  " },
 	});
 	fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 	await screen.findByText("Incorrect password.");
@@ -96,7 +96,7 @@ test("login bootstraps anonymous CSRF and displays wrong-password errors", async
 		}),
 	);
 });
-test("password form confirms passwords and submits the current password without trimming", async () => {
+test("password form trims outer spaces before confirming and submitting", async () => {
 	fetcher.mockImplementation(async (input) =>
 		input === "/api/auth/session"
 			? json({ authenticated: true, csrfToken: "change-csrf" })
@@ -115,9 +115,14 @@ test("password form confirms passwords and submits the current password without 
 	fireEvent.change(screen.getByLabelText("Current password"), {
 		target: { value: " old password " },
 	});
-	fireEvent.change(screen.getByLabelText("New password (12–128 characters)"), {
-		target: { value: " new password long " },
-	});
+	fireEvent.change(
+		screen.getByLabelText(
+			"New password (8–128 characters, outer spaces trimmed)",
+		),
+		{
+			target: { value: " new password long " },
+		},
+	);
 	fireEvent.change(screen.getByLabelText("Confirm new password"), {
 		target: { value: "different" },
 	});
@@ -125,7 +130,7 @@ test("password form confirms passwords and submits the current password without 
 	await screen.findByText("Passwords do not match.");
 	expect(fetcher).not.toHaveBeenCalled();
 	fireEvent.change(screen.getByLabelText("Confirm new password"), {
-		target: { value: " new password long " },
+		target: { value: "new password long" },
 	});
 	fireEvent.click(screen.getByRole("button", { name: "Change password" }));
 	await screen.findByText("Incorrect current password.");
@@ -133,11 +138,32 @@ test("password form confirms passwords and submits the current password without 
 		"/api/auth/password",
 		expect.objectContaining({
 			body: JSON.stringify({
-				currentPassword: " old password ",
-				password: " new password long ",
+				currentPassword: "old password",
+				password: "new password long",
 			}),
 		}),
 	);
+});
+test("password form rejects fewer than eight characters", async () => {
+	fetcher.mockImplementation(async () =>
+		json({ authenticated: true, csrfToken: "change-csrf" }),
+	);
+	render(<SecuritySettings />);
+	fireEvent.change(screen.getByLabelText("Current password"), {
+		target: { value: "current-password" },
+	});
+	fireEvent.change(
+		screen.getByLabelText(
+			"New password (8–128 characters, outer spaces trimmed)",
+		),
+		{ target: { value: "  short  " } },
+	);
+	fireEvent.change(screen.getByLabelText("Confirm new password"), {
+		target: { value: "short" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Change password" }));
+	await screen.findByText("Password must contain at least 8 characters.");
+	expect(fetcher).not.toHaveBeenCalled();
 });
 test("business 401 signals session loss while wrong login passwords do not", async () => {
 	const expired = vi.fn();

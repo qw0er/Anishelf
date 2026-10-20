@@ -19,7 +19,13 @@ export function LoginPage() {
 					setPending(true);
 					setError("");
 					try {
-						await request("/api/auth/login", "POST", {}, { password });
+						const normalizedPassword = password.trim();
+						await request(
+							"/api/auth/login",
+							"POST",
+							{},
+							{ password: normalizedPassword },
+						);
 						queryClient.clear();
 						clearAuthToken();
 						window.location.replace(

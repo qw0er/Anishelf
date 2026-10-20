@@ -138,6 +138,20 @@ test("credentials initialize once, privately and without storing the password", 
 	expect(await readFile(join(path, "auth.json"), "utf8")).toBe("broken");
 });
 
+test("passwords trim outer whitespace and require eight characters", async () => {
+	const credential = await hashPassword("  correct-horse  ");
+	expect(await verifyPassword("correct-horse", credential)).toBe(true);
+	expect(await verifyPassword("  correct-horse  ", credential)).toBe(true);
+	const internal = await hashPassword("pass word");
+	expect(await verifyPassword("pass word", internal)).toBe(true);
+	expect(await verifyPassword("password", internal)).toBe(false);
+	await expect(hashPassword("       ")).rejects.toThrow("8–128");
+	await expect(hashPassword("1234567")).rejects.toThrow("8–128");
+	await expect(hashPassword("12345678")).resolves.toMatchObject({
+		algorithm: "scrypt",
+	});
+});
+
 test("anonymous API and media requests are blocked, including HEAD and Range", async () => {
 	const { app } = await application();
 	for (const url of [
@@ -301,7 +315,7 @@ test("sessions and scoped links survive restart; replacing auth.json revokes bot
 	await browser(third.app, "replacement-password");
 });
 
-test("password change invalidates all sessions and links, rejects incorrect current password", async () => {
+test("password change invalidates sessions, rejects incorrect current password and trims outer spaces", async () => {
 	const { app, password } = await application();
 	const first = await browser(app, password ?? "");
 	const second = await browser(app, password ?? "");
@@ -312,15 +326,19 @@ test("password change invalidates all sessions and links, rejects incorrect curr
 			headers: { ...headers, cookie: first.cookie, "x-csrf-token": first.csrf },
 		})
 	).json().url;
-	const change = (currentPassword: string) =>
+	const change = (currentPassword: string, next = "new-password-long") =>
 		app.inject({
 			url: "/api/auth/password",
 			method: "PUT",
 			headers: { ...headers, cookie: first.cookie, "x-csrf-token": first.csrf },
-			payload: { currentPassword, password: "new-password-long" },
+			payload: { currentPassword, password: next },
 		});
 	expect((await change("wrong-password")).statusCode).toBe(401);
-	expect((await change(password ?? "")).statusCode).toBe(204);
+	expect((await change(password ?? "", "1234567")).statusCode).toBe(400);
+	expect((await change(password ?? "", "        ")).statusCode).toBe(400);
+	expect(
+		(await change(`  ${password ?? ""}  `, "  new-password-long  ")).statusCode,
+	).toBe(204);
 	for (const cookie of [first.cookie, second.cookie])
 		expect(
 			(
@@ -331,7 +349,7 @@ test("password change invalidates all sessions and links, rejects incorrect curr
 			).statusCode,
 		).toBe(401);
 	expect((await app.inject({ url: link, headers })).statusCode).toBe(401);
-	await browser(app, "new-password-long");
+	await browser(app, "  new-password-long  ");
 });
 
 test("login attempts are limited and include Retry-After", async () => {

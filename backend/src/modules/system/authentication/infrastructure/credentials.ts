@@ -36,12 +36,16 @@ export interface Credential {
 export function randomPassword() {
 	return randomBytes(24).toString("base64url");
 }
+export function normalizePassword(password: string) {
+	return password.trim();
+}
 export async function hashPassword(password: string): Promise<Credential> {
-	if ([...password].length < 12 || [...password].length > 128)
-		throw new Error("Password must contain 12–128 characters.");
+	const normalized = normalizePassword(password);
+	if ([...normalized].length < 8 || [...normalized].length > 128)
+		throw new Error("Password must contain 8–128 characters.");
 	const salt = randomBytes(16).toString("hex");
 	const hash = (
-		(await derive(password, salt, 32, parameters)) as Buffer
+		(await derive(normalized, salt, 32, parameters)) as Buffer
 	).toString("hex");
 	return {
 		version: 1,
@@ -81,7 +85,7 @@ export function credentialFingerprint(value: Credential) {
 }
 export async function verifyPassword(password: string, credential: Credential) {
 	const hash = (await derive(
-		password,
+		normalizePassword(password),
 		credential.salt,
 		32,
 		parameters,
