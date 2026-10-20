@@ -206,8 +206,13 @@ request validation and safe response projections.
 | `GET /api/acquisition/downloads?workKey=…&page=1` | Paginated safe per-work activity and authorization |
 | `POST /api/acquisition/downloads/:id/retry` | Revision/command-ID checked acquisition or import recovery |
 
-There is no global Downloads page. The detail RSS panel keeps compact status,
-secondary subscription actions, Open WebUI and collapsed Activity. Reuse each
+There is no global Downloads page. The detail subscription section uses a compact
+divider and status row instead of a standalone card. Unsubscribed works show a
+Subscribe action without an inline form or empty activity. Subscribe and Manage
+open a scrollable dialog containing the RSS address, starting episode and explicit
+preview/confirmation flow; successful confirmation closes the dialog. The saved
+feed source is shown only in that dialog. Keep compact status, secondary
+subscription actions, Open WebUI and collapsed Activity on the detail page. Reuse each
 release row for acquisition state; omit duplicate transfer statistics and playback
 buttons. Show true progress or named states. Error counts remain visible while
 collapsed, and affected rows expose Retry acquisition, Retry import, Review or

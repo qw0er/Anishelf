@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router";
 import type {
 	DownloadActivity,
@@ -81,11 +81,13 @@ export function DownloadActivityPanel({
 	view,
 	reason,
 	onConfigure,
+	releasePagination,
 }: {
 	workKey: string;
 	view: SubscriptionView;
 	reason(code: string): string;
 	onConfigure(): void;
+	releasePagination?: ReactNode;
 }) {
 	const client = useQueryClient(),
 		[page, setPage] = useState(1);
@@ -138,23 +140,33 @@ export function DownloadActivityPanel({
 	const webui = settings.data?.qbittorrentWebUiUrl;
 	return (
 		<div className="space-y-2">
-			<div className="action-row justify-between text-sm">
-				<span>
-					{query.data?.active
-						? `${query.data.active} active`
-						: "Automatic acquisition"}
-				</span>
-				{webui && (
-					<a
-						className={buttonStyles("outline")}
-						href={webui}
-						target="_blank"
-						rel="noopener noreferrer"
-					>
-						Open WebUI
-					</a>
-				)}
-			</div>
+			{(view.subscription || tasks.length > 0 || query.isError) && (
+				<div className="action-row justify-between text-sm">
+					<span>
+						{query.data?.active
+							? `${query.data.active} active`
+							: query.isPending
+								? "Loading acquisition status…"
+								: query.isError
+									? "Acquisition status unavailable"
+									: query.data?.authorized && view.subscription?.enabled
+										? "Automatic download"
+										: view.subscription?.enabled
+											? "Discovery only"
+											: "Automatic acquisition paused"}
+					</span>
+					{webui && (
+						<a
+							className={buttonStyles("ghost")}
+							href={webui}
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							Open WebUI
+						</a>
+					)}
+				</div>
+			)}
 			{query.isError && (
 				<p role="alert" className="text-sm">
 					Acquisition status unavailable.{" "}
@@ -174,125 +186,132 @@ export function DownloadActivityPanel({
 						</Button>
 					</p>
 				)}
-			<details>
-				<summary className="cursor-pointer text-sm">
-					Activity · {query.data?.total ?? 0} acquisitions · {view.total}{" "}
-					releases
-					{query.data?.attention
-						? ` · ${query.data.attention} need attention`
-						: ""}
-				</summary>
-				<div className="space-y-3 pt-3">
-					{tasks.map((item) => (
-						<div className="space-y-1 border-b py-2 text-sm" key={item.id}>
-							<p>
-								Episode {item.episode} · {status(item)}
-							</p>
-							{item.title && (
-								<p
-									className="truncate text-muted-foreground"
-									title={item.title}
-								>
-									{item.title}
+			{(view.subscription ||
+				(query.data?.total ?? 0) > 0 ||
+				view.total > 0) && (
+				<details>
+					<summary className="cursor-pointer text-sm">
+						Activity · {query.data?.total ?? 0} acquisitions · {view.total}{" "}
+						releases
+						{query.data?.attention
+							? ` · ${query.data.attention} need attention`
+							: ""}
+					</summary>
+					<div className="space-y-3 pt-3">
+						{tasks.map((item) => (
+							<div className="space-y-1 border-b py-2 text-sm" key={item.id}>
+								<p>
+									Episode {item.episode} · {status(item)}
 								</p>
-							)}
-							{item.observedAt !== null &&
-								Date.now() - item.observedAt > 60_000 &&
-								item.state === "bound" && (
-									<p className="text-muted-foreground">
-										Downloader observation is stale.
+								{item.title && (
+									<p
+										className="truncate text-muted-foreground"
+										title={item.title}
+									>
+										{item.title}
 									</p>
 								)}
-							{item.error && (
-								<p role="status">
-									{errors[item.error] ??
-										"Check the downloader connection and mapped files, then retry."}
-								</p>
-							)}
-							<div className="action-row">
-								{item.ingestion === "review" && (
-									<Link className={buttonStyles("outline")} to="/review">
-										Open Review
-									</Link>
-								)}
+								{item.observedAt !== null &&
+									Date.now() - item.observedAt > 60_000 &&
+									item.state === "bound" && (
+										<p className="text-muted-foreground">
+											Downloader observation is stale.
+										</p>
+									)}
 								{item.error && (
-									<Link className={buttonStyles("outline")} to="/settings">
-										Settings
-									</Link>
+									<p role="status">
+										{errors[item.error] ??
+											"Check the downloader connection and mapped files, then retry."}
+									</p>
 								)}
-								{(item.ingestion === "failed" ||
-									item.ingestion === "review") && (
-									<Button
-										variant="outline"
-										disabled={retry.isPending}
-										onClick={() =>
-											retry.mutate({
-												id: item.id,
-												revision: item.revision,
-												kind: "import",
-											})
-										}
-									>
-										Retry import
-									</Button>
-								)}
-								{(["missing", "blocked", "unknown"].includes(item.state) ||
-									(item.state === "pending" && item.error !== null)) && (
-									<Button
-										variant="outline"
-										disabled={
-											retry.isPending || !query.data?.authorized || !item.title
-										}
-										onClick={() =>
-											retry.mutate({
-												id: item.id,
-												revision: item.revision,
-												kind: "acquisition",
-											})
-										}
-									>
-										Retry acquisition
-									</Button>
-								)}
-							</div>
-						</div>
-					))}
-					{(query.data?.total ?? 0) > 20 && (
-						<div className="action-row">
-							<Button
-								variant="outline"
-								disabled={page === 1}
-								onClick={() => setPage(page - 1)}
-							>
-								Previous acquisitions
-							</Button>
-							<span>Page {page}</span>
-							<Button
-								variant="outline"
-								disabled={page * 20 >= (query.data?.total ?? 0)}
-								onClick={() => setPage(page + 1)}
-							>
-								Next acquisitions
-							</Button>
-						</div>
-					)}
-					{view.candidates
-						.filter((candidate) => !ids.has(candidate.id))
-						.map((candidate) => (
-							<div className="border-b py-2 text-sm" key={candidate.id}>
-								<p className="truncate" title={candidate.title}>
-									{candidate.title}
-								</p>
-								<p className="text-muted-foreground">
-									{candidate.episode ? `Episode ${candidate.episode} · ` : ""}
-									{candidate.status === "selected"
-										? "Selected"
-										: `Skipped · ${candidate.reasons.map(reason).join("; ")}`}
-								</p>
+								<div className="action-row">
+									{item.ingestion === "review" && (
+										<Link className={buttonStyles("outline")} to="/review">
+											Open Review
+										</Link>
+									)}
+									{item.error && (
+										<Link className={buttonStyles("outline")} to="/settings">
+											Settings
+										</Link>
+									)}
+									{(item.ingestion === "failed" ||
+										item.ingestion === "review") && (
+										<Button
+											variant="outline"
+											disabled={retry.isPending}
+											onClick={() =>
+												retry.mutate({
+													id: item.id,
+													revision: item.revision,
+													kind: "import",
+												})
+											}
+										>
+											Retry import
+										</Button>
+									)}
+									{(["missing", "blocked", "unknown"].includes(item.state) ||
+										(item.state === "pending" && item.error !== null)) && (
+										<Button
+											variant="outline"
+											disabled={
+												retry.isPending ||
+												!query.data?.authorized ||
+												!item.title
+											}
+											onClick={() =>
+												retry.mutate({
+													id: item.id,
+													revision: item.revision,
+													kind: "acquisition",
+												})
+											}
+										>
+											Retry acquisition
+										</Button>
+									)}
+								</div>
 							</div>
 						))}
-				</div>
-			</details>
+						{(query.data?.total ?? 0) > 20 && (
+							<div className="action-row">
+								<Button
+									variant="outline"
+									disabled={page === 1}
+									onClick={() => setPage(page - 1)}
+								>
+									Previous acquisitions
+								</Button>
+								<span>Page {page}</span>
+								<Button
+									variant="outline"
+									disabled={page * 20 >= (query.data?.total ?? 0)}
+									onClick={() => setPage(page + 1)}
+								>
+									Next acquisitions
+								</Button>
+							</div>
+						)}
+						{view.candidates
+							.filter((candidate) => !ids.has(candidate.id))
+							.map((candidate) => (
+								<div className="border-b py-2 text-sm" key={candidate.id}>
+									<p className="truncate" title={candidate.title}>
+										{candidate.title}
+									</p>
+									<p className="text-muted-foreground">
+										{candidate.episode ? `Episode ${candidate.episode} · ` : ""}
+										{candidate.status === "selected"
+											? "Selected"
+											: `Skipped · ${candidate.reasons.map(reason).join("; ")}`}
+									</p>
+								</div>
+							))}
+						{releasePagination}
+					</div>
+				</details>
+			)}
 		</div>
 	);
 }

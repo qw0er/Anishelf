@@ -106,6 +106,11 @@ function fixture(
 test("anime detail subscription has only RSS and episode inputs, with explicit scope confirmation", async () => {
 	const request = fixture();
 	render(<SubscriptionPanel workKey={workKey} />);
+	await screen.findByRole("button", { name: "Subscribe" });
+	expect(screen.queryByLabelText("RSS URL")).toBeNull();
+	expect(screen.queryByText(/Activity ·/)).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Subscribe" }));
+	await screen.findByRole("dialog", { name: "Subscribe via RSS" });
 	const url = await screen.findByLabelText("RSS URL");
 	fireEvent.change(url, {
 		target: { value: "https://feeds.example.org/rss?passkey=private" },
@@ -136,6 +141,7 @@ test("anime detail subscription has only RSS and episode inputs, with explicit s
 		false,
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Enable subscription" }));
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	await screen.findByText(selected.title);
 	expect(request).toHaveBeenCalledWith(
 		"/api/acquisition/subscriptions/confirm",
@@ -156,6 +162,7 @@ test("anime detail subscription has only RSS and episode inputs, with explicit s
 test("editing the preview inputs requires checking RSS again", async () => {
 	fixture();
 	render(<SubscriptionPanel workKey={workKey} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Subscribe" }));
 	fireEvent.change(await screen.findByLabelText("RSS URL"), {
 		target: { value: "https://feeds.example.org/rss" },
 	});
@@ -194,6 +201,8 @@ test("pause, resume, edit and remove use the current subscription revision", asy
 	expect(
 		((await screen.findByLabelText("RSS URL")) as HTMLInputElement).value,
 	).toBe("");
+	fireEvent.click(screen.getByRole("button", { name: "Close" }));
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	fireEvent.click(screen.getByRole("button", { name: "Subscription actions" }));
 	fireEvent.click(
 		await screen.findByRole("menuitem", { name: "Remove subscription" }),
@@ -222,4 +231,18 @@ test("skipped candidates explain automatic decisions without review actions", as
 		await screen.findByText(/Skipped · another version was selected/),
 	).toBeTruthy();
 	expect(screen.queryByRole("button", { name: /review|approve/i })).toBeNull();
+});
+
+test("Manage opens saved configuration without exposing the feed in the summary", async () => {
+	fixture(saved);
+	render(<SubscriptionPanel workKey={workKey} />);
+	await screen.findByRole("button", { name: "Manage" });
+	expect(screen.queryByText(saved.subscription?.source ?? "")).toBeNull();
+	expect(screen.queryByLabelText("RSS URL")).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Manage" }));
+	await screen.findByRole("dialog", { name: "Manage RSS subscription" });
+	expect(screen.getByText(saved.subscription?.source ?? "")).toBeTruthy();
+	fireEvent.click(screen.getByRole("button", { name: "Close" }));
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	expect(screen.getByRole("button", { name: "Manage" })).toBeTruthy();
 });

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, Rss } from "lucide-react";
 import { useId, useState } from "react";
 import type {
 	SubscriptionPreview,
@@ -7,6 +7,14 @@ import type {
 } from "../../shared/api/contracts.js";
 import { boundedSignal } from "../../shared/api/queries.js";
 import { Button } from "../../shared/components/ui/button.js";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "../../shared/components/ui/dialog.js";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -73,132 +81,159 @@ export function SubscriptionPanel({ workKey }: { workKey: string }) {
 		},
 	});
 	return (
-		<section className="surface-panel space-y-4" aria-label="RSS subscription">
-			<div className="action-row justify-between">
-				<h2 className="text-lg font-semibold">RSS subscription</h2>
-				{subscription && (
-					<div className="action-row">
-						<Tooltip
-							openOnClick
-							content="Pausing stops future acquisitions; existing downloads continue. AniList status changes do not alter subscriptions or downloads."
-						>
-							<button
-								type="button"
-								className="text-sm text-muted-foreground underline decoration-dotted"
-								aria-label="Subscription policy"
-							>
-								{subscription.enabled ? "Enabled" : "Paused"}
-							</button>
-						</Tooltip>{" "}
-						<DropdownMenu>
-							<Tooltip content="Subscription actions">
-								<DropdownMenuTrigger
-									render={
-										<Button
-											variant="ghost"
-											className="size-9 shrink-0 p-0"
-											aria-label="Subscription actions"
-										/>
-									}
-								>
-									<Ellipsis className="size-4" aria-hidden="true" />
-								</DropdownMenuTrigger>
-							</Tooltip>
-							<DropdownMenuContent>
-								<DropdownMenuItem
-									disabled={action.isPending}
-									onClick={() => action.mutate("toggle")}
-								>
-									{subscription.enabled
-										? "Pause subscription"
-										: "Resume subscription"}
-								</DropdownMenuItem>
-								<DropdownMenuItem
-									disabled={action.isPending || !subscription.enabled}
-									onClick={() => action.mutate("refresh")}
-								>
-									Check now
-								</DropdownMenuItem>
-								<DropdownMenuItem
-									disabled={action.isPending}
-									onClick={() => setEditing(!editing)}
-								>
-									Edit subscription
-								</DropdownMenuItem>
-								<DropdownMenuItem
-									disabled={action.isPending}
-									onClick={() => action.mutate("remove")}
-								>
-									Remove subscription
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
+		<section className="space-y-2 border-t pt-3" aria-label="RSS subscription">
+			<Dialog open={editing} onOpenChange={setEditing}>
+				<div className="action-row justify-between">
+					<div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+						<h2 className="flex items-center gap-2 font-medium">
+							<Rss
+								className="size-4 text-muted-foreground"
+								aria-hidden="true"
+							/>
+							Subscription
+						</h2>
+						{subscription && (
+							<span className="text-muted-foreground">
+								From episode {subscription.startEpisode}
+							</span>
+						)}
 					</div>
-				)}
-			</div>
-			{query.isPending ? (
-				<p role="status">Loading subscription…</p>
-			) : query.isError ? (
-				<div role="alert">
-					Subscription unavailable.{" "}
-					<Button variant="outline" onClick={() => void query.refetch()}>
-						Retry subscription
-					</Button>
+					<div className="action-row">
+						{!query.isPending && !query.isError && (
+							<DialogTrigger
+								render={<Button variant="ghost" disabled={action.isPending} />}
+							>
+								{subscription ? "Manage" : "Subscribe"}
+							</DialogTrigger>
+						)}
+						{subscription && (
+							<div className="action-row">
+								<Tooltip
+									openOnClick
+									content="Pausing stops future acquisitions; existing downloads continue. AniList status changes do not alter subscriptions or downloads."
+								>
+									<button
+										type="button"
+										className="text-sm text-muted-foreground underline decoration-dotted"
+										aria-label="Subscription policy"
+									>
+										{subscription.enabled ? "Enabled" : "Paused"}
+									</button>
+								</Tooltip>{" "}
+								<DropdownMenu>
+									<Tooltip content="Subscription actions">
+										<DropdownMenuTrigger
+											render={
+												<Button
+													variant="ghost"
+													className="size-9 shrink-0 p-0"
+													aria-label="Subscription actions"
+												/>
+											}
+										>
+											<Ellipsis className="size-4" aria-hidden="true" />
+										</DropdownMenuTrigger>
+									</Tooltip>
+									<DropdownMenuContent>
+										<DropdownMenuItem
+											disabled={action.isPending}
+											onClick={() => action.mutate("toggle")}
+										>
+											{subscription.enabled
+												? "Pause subscription"
+												: "Resume subscription"}
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											disabled={action.isPending || !subscription.enabled}
+											onClick={() => action.mutate("refresh")}
+										>
+											Check now
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											disabled={action.isPending}
+											onClick={() => setEditing(!editing)}
+										>
+											Edit subscription
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											disabled={action.isPending}
+											onClick={() => action.mutate("remove")}
+										>
+											Remove subscription
+										</DropdownMenuItem>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
+						)}
+					</div>
 				</div>
-			) : (
-				<>
-					{subscription && (
-						<>
-							<p className="break-all text-sm">
-								{subscription.source} · From episode {subscription.startEpisode}
+				<DialogContent className="max-h-[85dvh] overflow-y-auto">
+					<DialogHeader>
+						<DialogTitle>
+							{subscription ? "Manage RSS subscription" : "Subscribe via RSS"}
+						</DialogTitle>
+						<DialogDescription>
+							Choose a feed and starting episode, then check the preview before
+							confirming.
+						</DialogDescription>
+					</DialogHeader>
+					<SubscriptionForm
+						key={subscription?.revision ?? "new"}
+						workKey={workKey}
+						current={subscription ?? null}
+						onSaved={updated}
+					/>
+				</DialogContent>
+				{query.isPending ? (
+					<p role="status">Loading subscription…</p>
+				) : query.isError ? (
+					<div role="alert">
+						Subscription unavailable.{" "}
+						<Button variant="outline" onClick={() => void query.refetch()}>
+							Retry subscription
+						</Button>
+					</div>
+				) : (
+					<>
+						{subscription?.error && (
+							<p role="status" className="text-sm">
+								Could not update candidates ({reason(subscription.error)}).
+								Previous results are retained; automatic retry is scheduled.
 							</p>
-
-							{subscription.error && (
-								<p role="status" className="text-sm">
-									Could not update candidates ({reason(subscription.error)}).
-									Previous results are retained; automatic retry is scheduled.
-								</p>
-							)}
-						</>
-					)}
-					{(!subscription || editing) && (
-						<SubscriptionForm
-							key={subscription?.revision ?? "new"}
-							workKey={workKey}
-							current={subscription ?? null}
-							onSaved={updated}
-						/>
-					)}
-					{query.data && (
-						<DownloadActivityPanel
-							key={workKey}
-							workKey={workKey}
-							view={query.data}
-							reason={reason}
-							onConfigure={() => setEditing(true)}
-						/>
-					)}
-					{query.data && query.data.total > 20 && (
-						<div className="action-row">
-							<Button
-								variant="outline"
-								disabled={page <= 1}
-								onClick={() => setPage(page - 1)}
-							>
-								Previous releases
-							</Button>
-							<span className="text-sm">Page {page}</span>
-							<Button
-								variant="outline"
-								disabled={page * 20 >= query.data.total}
-								onClick={() => setPage(page + 1)}
-							>
-								Next releases
-							</Button>
-						</div>
-					)}
-				</>
-			)}
+						)}
+						{query.data && (
+							<DownloadActivityPanel
+								key={workKey}
+								workKey={workKey}
+								view={query.data}
+								reason={reason}
+								onConfigure={() => setEditing(true)}
+								releasePagination={
+									query.data.total > 20 ? (
+										<div className="action-row">
+											<Button
+												variant="outline"
+												disabled={page <= 1}
+												onClick={() => setPage(page - 1)}
+											>
+												Previous releases
+											</Button>
+											<span className="text-sm">Page {page}</span>
+											<Button
+												variant="outline"
+												disabled={page * 20 >= query.data.total}
+												onClick={() => setPage(page + 1)}
+											>
+												Next releases
+											</Button>
+										</div>
+									) : null
+								}
+							/>
+						)}
+					</>
+				)}
+			</Dialog>
 		</section>
 	);
 }
@@ -261,6 +296,11 @@ function SubscriptionForm({
 				check.mutate();
 			}}
 		>
+			{current && (
+				<p className="break-all text-sm text-muted-foreground">
+					{current.source}
+				</p>
+			)}
 			<label htmlFor={`${id}-url`} className="block space-y-2">
 				<span className="text-sm font-medium">RSS URL</span>
 				<Input
@@ -319,7 +359,7 @@ function SubscriptionForm({
 						The first check includes releases currently returned by this feed.
 						Eligible versions are selected automatically; no review is required.
 					</p>
-					<p className="break-words text-sm">
+					<p className="wrap-break-word text-sm">
 						{preview.downloadDestination
 							? `Automatic download destination: ${preview.downloadDestination}`
 							: "Discovery only. Configure and validate a download destination in Settings to enable automatic downloads."}
