@@ -1810,7 +1810,7 @@ retain their output router. File output now has a bounded asynchronous queue and
 a two-second shutdown drain; O13 remains partial because stdout and stderr are
 synchronous. Current contracts and deployment instructions live in
 [requirements](requirements.md#logging-maintenance-o11o13),
-[development](development.md#logging-choice) and [README](../README.md#logging).
+[development](development.md#logging-choice) and [logging configuration](development.md#environment-variables).
 
 File modes now default to `anishelf.log` in `platformdirs.userLogDir("anishelf", false)`.
 `ANISHELF_LOG_PATH` is optional and overrides that platform-specific location;
