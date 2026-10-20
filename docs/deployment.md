@@ -156,6 +156,15 @@ Enable startup without login with `sudo loginctl enable-linger "$USER"`.
 `WantedBy=default.target` handles startup; do not enable generated services.
 See the [Quadlet reference](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html).
 
+## Optional deployment settings
+
+Compose settings are listed in the [README](../README.md#deploy-with-a-container)
+and [deployment .env example](../package/deploy/.env.example). Quadlet uses the
+corresponding `Image`, `PublishPort`, `Environment` and `Volume` entries directly;
+it does not read Compose `.env` files. Keep WebUI internal port 8080 for the
+suggested API address. Change peer `TORRENTING_PORT` and both peer publications
+together.
+
 ## Network and qBittorrent
 
 Backend stays private; Web and the optional downloader publish their own ports. For HTTPS, set
