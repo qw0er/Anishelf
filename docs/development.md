@@ -159,7 +159,7 @@ Source installations can omit the public origin for local access to the backend 
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory for Anishelf | Absolute directory; overrides the platform default. |
 | `ANISHELF_QBITTORRENT_API_URL` | Unset | Optional HTTP(S) backend address without credentials, query or fragment. Prefills the API account form only when no account is saved; never logs in or saves credentials automatically. Blank means unset. |
 | `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` | Unset | Absolute HTTP(S) browser address without embedded credentials; seeds `qbittorrentWebUiUrl` only when `settings.json` is missing. Blank means unset. No connection probe or API login. |
-| `ANISHELF_INITIAL_RESOURCE_ROOT` | Unset | Absolute readable media directory used only when `settings.json` is missing; existing settings take precedence. |
+| `ANISHELF_INITIAL_RESOURCE_ROOTS` | Unset | One readable absolute media path or up to 64 paths separated by `;`, used only when `settings.json` is missing; existing settings take precedence. |
 | `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
 | `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout`, `file`, or `both`. |
 | `ANISHELF_LOG_PATH` | `anishelf.log` in the platformdirs user log directory | Optional absolute path override for `file` / `both`; rejected with `stdout`. |
@@ -195,7 +195,7 @@ The loader creates a missing directory with mode 0700 (subject to umask), preser
 permissions of existing directories, and checks writability. The persistent settings
 manager creates `settings.json` on the first settings save, including a transcode
 profile selection before a resource directory is configured, or initializes it
-on startup when `ANISHELF_INITIAL_RESOURCE_ROOT` is supplied and the file is missing. See
+on startup when `ANISHELF_INITIAL_RESOURCE_ROOTS` is supplied and the file is missing. See
 [Transcode profiles](transcode-profiles.md) for the optional administrator-authored
 `dataDir/transcode-profiles.json`, catalog API and persistent selection.
 
@@ -397,10 +397,12 @@ settings load into the array format; the next save writes that format. Existing
 settings always win over startup initializers, including an explicitly empty list.
 Malformed or unreadable files fail startup without replacement.
 
-For fresh deployments, `ANISHELF_INITIAL_RESOURCE_ROOTS` accepts a JSON array such
-as `'["/media/anime","/media/movies"]'`. The original
-`ANISHELF_INITIAL_RESOURCE_ROOT=/media` remains a single-path convenience; set only
-one initializer. All initial directories must be readable and separate from the
+For fresh deployments, `ANISHELF_INITIAL_RESOURCE_ROOTS` accepts one absolute path
+such as `/media/anime`, or multiple paths separated by semicolons, such as
+`'/media/anime;/media/movies'`. Up to 64 paths are supported. Surrounding whitespace
+is trimmed; empty entries (including a trailing separator) are rejected. Paths
+containing semicolons cannot be expressed with this initializer. The former singular
+variable and JSON-array input are no longer supported. All initial directories must be readable and separate from the
 data directory. Creation never overwrites an existing settings file, including
 under concurrent initialization. Without an initializer, setup remains available. Native filesystem monitoring replaces
 scheduled scans; obsolete `scanIntervalMinutes` settings are removed on load.

@@ -172,7 +172,7 @@ function contains(parent: string, child: string): boolean {
 /** Existing settings win; missing settings may be initialized before setup mode. */
 async function loadPersistentSettings(
 	dataDir: string,
-	initialResourceRoot?: string | readonly string[],
+	initialResourceRoots?: readonly string[],
 	initialQbittorrentWebUiUrl?: string,
 ): Promise<PersistentSettings> {
 	const path = join(dataDir, storageRules.settingsFile);
@@ -182,15 +182,12 @@ async function loadPersistentSettings(
 	} catch (cause) {
 		if ((cause as NodeJS.ErrnoException).code === "ENOENT") {
 			if (
-				initialResourceRoot === undefined &&
+				initialResourceRoots === undefined &&
 				initialQbittorrentWebUiUrl === undefined
 			)
 				return { resourceRoots: [] };
 			const settings = validatePersistentSettings({
-				resourceRoots:
-					typeof initialResourceRoot === "string"
-						? [initialResourceRoot]
-						: [...(initialResourceRoot ?? [])],
+				resourceRoots: [...(initialResourceRoots ?? [])],
 				...(initialQbittorrentWebUiUrl === undefined
 					? {}
 					: { qbittorrentWebUiUrl: initialQbittorrentWebUiUrl }),
@@ -275,14 +272,14 @@ export class PersistentConfiguration {
 
 	static async load(
 		dataDir: string,
-		initialResourceRoot?: string | readonly string[],
+		initialResourceRoots?: readonly string[],
 		initialQbittorrentWebUiUrl?: string,
 	): Promise<PersistentConfiguration> {
 		return new PersistentConfiguration(
 			dataDir,
 			await loadPersistentSettings(
 				dataDir,
-				initialResourceRoot,
+				initialResourceRoots,
 				initialQbittorrentWebUiUrl,
 			),
 		);

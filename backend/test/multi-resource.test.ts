@@ -319,7 +319,7 @@ test("plural startup initialization validates all paths and preserves existing s
 	const dataDir = join(f.base, "fresh-data");
 	const service = await ConfigurationService.load({
 		ANISHELF_DATA_DIR: dataDir,
-		ANISHELF_INITIAL_RESOURCE_ROOTS: JSON.stringify(f.roots),
+		ANISHELF_INITIAL_RESOURCE_ROOTS: f.roots.join(";"),
 	});
 	expect(service.settings.resourceRoots).toEqual(f.roots);
 	expect(
@@ -328,16 +328,16 @@ test("plural startup initialization validates all paths and preserves existing s
 	).toEqual(f.roots);
 	const reloaded = await ConfigurationService.load({
 		ANISHELF_DATA_DIR: dataDir,
-		ANISHELF_INITIAL_RESOURCE_ROOTS: JSON.stringify([join(f.base, "missing")]),
+		ANISHELF_INITIAL_RESOURCE_ROOTS: join(f.base, "missing"),
 	});
 	expect(reloaded.settings.resourceRoots).toEqual(f.roots);
 	await expect(
 		ConfigurationService.load({
 			ANISHELF_DATA_DIR: join(f.base, "invalid-data"),
-			ANISHELF_INITIAL_RESOURCE_ROOTS: JSON.stringify([
+			ANISHELF_INITIAL_RESOURCE_ROOTS: [
 				f.roots[0],
 				join(f.roots[0] as string, "nested"),
-			]),
+			].join(";"),
 		}),
 	).rejects.toMatchObject({ code: "CONFIG_INVALID" });
 });

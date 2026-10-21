@@ -58,7 +58,7 @@ test("missing settings use current defaults without generating a policy or setti
 test("initial resource root persists once and later UI changes survive reload", async () => {
 	const root = join(directory, "media");
 	await mkdir(root);
-	const env = { ...environment(), ANISHELF_INITIAL_RESOURCE_ROOT: root };
+	const env = { ...environment(), ANISHELF_INITIAL_RESOURCE_ROOTS: root };
 	const service = await ConfigurationService.load(env);
 	expect(service.settings).toEqual({ resourceRoots: [root] });
 	const file = join(dataDir, "settings.json");
@@ -90,7 +90,7 @@ test.each(["missing", "file", "nested", "same", "ancestor", "symlink"])(
 		await expect(
 			ConfigurationService.load({
 				...environment(),
-				ANISHELF_INITIAL_RESOURCE_ROOT: root,
+				ANISHELF_INITIAL_RESOURCE_ROOTS: root,
 			}),
 		).rejects.toMatchObject({ code: "CONFIG_INVALID" });
 		await expect(
@@ -109,7 +109,7 @@ test.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
 			await expect(
 				ConfigurationService.load({
 					...environment(),
-					ANISHELF_INITIAL_RESOURCE_ROOT: root,
+					ANISHELF_INITIAL_RESOURCE_ROOTS: root,
 				}),
 			).rejects.toMatchObject({ code: "CONFIG_INVALID" });
 			await expect(
@@ -126,7 +126,7 @@ test("existing settings win over unavailable initial media; malformed settings a
 	const file = join(dataDir, "settings.json");
 	const env = {
 		...environment(),
-		ANISHELF_INITIAL_RESOURCE_ROOT: join(directory, "missing"),
+		ANISHELF_INITIAL_RESOURCE_ROOTS: join(directory, "missing"),
 	};
 	await writeFile(file, '{"resourceRoots":[]}');
 	expect((await ConfigurationService.load(env)).settings).toEqual({
@@ -146,7 +146,7 @@ test("concurrent initializers publish one complete settings file without overwri
 		roots.map((root) =>
 			ConfigurationService.load({
 				...environment(),
-				ANISHELF_INITIAL_RESOURCE_ROOT: root,
+				ANISHELF_INITIAL_RESOURCE_ROOTS: root,
 			}),
 		),
 	);
@@ -423,7 +423,7 @@ test.each([false, true])(
 		const env = {
 			...environment(),
 			ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL: "http://localhost:8080",
-			...(withRoot ? { ANISHELF_INITIAL_RESOURCE_ROOT: root } : {}),
+			...(withRoot ? { ANISHELF_INITIAL_RESOURCE_ROOTS: root } : {}),
 		};
 		const service = await ConfigurationService.load(env);
 		expect(service.settings).toEqual({
