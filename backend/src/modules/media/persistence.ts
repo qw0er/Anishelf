@@ -1,3 +1,8 @@
+import { InspectionRepository } from "./media-inspection/infrastructure/repository.js";
+import type { InspectionStore } from "./media-inspection/ports.js";
+
+export { mediaInspections } from "./media-inspection/infrastructure/schema.js";
+
 import type { Store } from "../../platform/database/store.js";
 import type { SourceRegistry } from "../resources/public.js";
 import { PreparationRepository } from "./preparation/infrastructure/repository.js";
@@ -15,6 +20,7 @@ export {
 	subtitleFontSets,
 } from "./subtitles/persistence.js";
 export interface MediaPersistence {
+	inspections: InspectionStore;
 	preparation: PreparationStore;
 	subtitles: SubtitleStore;
 }
@@ -23,6 +29,7 @@ export function createMediaPersistence(
 	sources: SourceRegistry,
 ): MediaPersistence {
 	return {
+		inspections: new InspectionRepository(store),
 		preparation: new PreparationRepository(store, sources),
 		subtitles: new SubtitleRepository(store, sources),
 	};

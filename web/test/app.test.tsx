@@ -1,4 +1,5 @@
 import { preparationConstraints } from "@anishelf/backend/contracts/defaults";
+import { clearCompatibilityCache } from "../src/features/media/media-compatibility/cache.js";
 import { queryClient } from "../src/shared/api/query-client.js";
 import { animeFixture, reviewFixture } from "./fixtures/anime.js";
 import { trackingProvider } from "./tracking-fixture.js";
@@ -86,7 +87,8 @@ function json(value: unknown, status = 200) {
 	});
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+	await clearCompatibilityCache();
 	queryClient.removeQueries({ queryKey: ["compatibility"] });
 	preparationTasks = [];
 	library = {

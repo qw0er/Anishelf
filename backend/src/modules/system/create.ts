@@ -1,7 +1,6 @@
 import { join } from "node:path";
 import type { Logger } from "pino";
 import { storageRules } from "../../platform/storage.js";
-import type { DeepReadonly } from "../../shared/policy.js";
 import type { HttpInstance } from "../../transport/instance.js";
 import { AuthenticationService } from "./authentication/application.js";
 import { authenticationCommand } from "./authentication/cli.js";
@@ -13,10 +12,6 @@ import {
 import { loadCredentials } from "./authentication/infrastructure/credentials.js";
 import { ConfigurationService } from "./configuration/application/service.js";
 import { parseDeploymentConfig } from "./configuration/infrastructure/deployment.js";
-import {
-	type ConfigurationPolicy,
-	configurationPolicy,
-} from "./configuration/policy.js";
 import { registerSystemHttp } from "./http.js";
 import type {
 	AuthenticationStore,
@@ -25,9 +20,8 @@ import type {
 } from "./public.js";
 export async function createSystemModule(
 	env: Readonly<Record<string, string | undefined>> = process.env,
-	policy: DeepReadonly<ConfigurationPolicy> = configurationPolicy,
 ) {
-	const service = await ConfigurationService.load(env, policy);
+	const service = await ConfigurationService.load(env);
 	const api: SystemApi = {
 		get settings() {
 			return service.settings;

@@ -22,6 +22,7 @@ import {
 } from "../src/platform/media/index.js";
 import type { MediaProcessingPlan } from "../src/platform/media/specification.js";
 import { settingsStore } from "./settings-store.js";
+import { MemoryInspectionStore } from "./support/inspection-store.js";
 import { createLibraryModule } from "./support/library.js";
 
 const run = promisify(execFile);
@@ -196,6 +197,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 		if (!file) throw new Error("Missing sample");
 		const source = await library.sources.resolveSource(file.id);
 		inspection = new MediaInspectionApplication({
+			repository: new MemoryInspectionStore(),
 			sources: library.sources,
 			tools,
 		});

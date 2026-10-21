@@ -38,7 +38,9 @@ import { MediaToolError } from "../src/platform/media/index.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
+import { MemoryInspectionStore } from "./support/inspection-store.js";
 import { createLibraryModule } from "./support/library.js";
+import { updateResourceSettings } from "./support/settings.js";
 
 const cleanup: Array<() => Promise<unknown>> = [];
 const logger = pino({ enabled: false });
@@ -106,6 +108,7 @@ async function fixture(
 	required(info.streams[0]).codecString = "avc1.640028";
 	required(info.streams[1]).codecString = "mp4a.40.2";
 	const inspection = new MediaInspectionApplication({
+		repository: new MemoryInspectionStore(),
 		sources: library.sources,
 		tools: { probe: vi.fn().mockResolvedValue(info) },
 	});
@@ -1166,7 +1169,7 @@ test("summaries separate source versions and filter the current profile and root
 	).toEqual([]);
 	const otherRoot = join(f.dataDir, "other-root");
 	await mkdir(otherRoot, { recursive: true });
-	await f.library.updateResourceSettings({ resourceRoots: [otherRoot] });
+	await updateResourceSettings(f.library, { resourceRoots: [otherRoot] });
 	expect(
 		(await f.application.summaries([ready.fileId])).files[0]?.versions,
 	).toEqual([]);

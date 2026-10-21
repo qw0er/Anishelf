@@ -9,7 +9,6 @@ import { registerCatalogRoutes } from "../../src/modules/anime/anime-catalog/htt
 import type { AnimeCatalogApi } from "../../src/modules/anime/anime-catalog/public.js";
 import { registerMetadataRoutes } from "../../src/modules/anime/metadata/http/metadata.js";
 import type { MetadataApi } from "../../src/modules/anime/metadata/public.js";
-import { createSubtitleApplication } from "../../src/modules/media/composition/subtitle-application.js";
 import type { MediaInspectionApplication } from "../../src/modules/media/media-inspection/application.js";
 import { registerChapterRoutes } from "../../src/modules/media/media-inspection/http/chapters.js";
 import type { MediaPlanningApplication } from "../../src/modules/media/media-planning/application/planning.js";
@@ -29,6 +28,7 @@ import type { DeploymentConfig } from "../../src/modules/system/configuration/do
 import { registerSettingsRoutes } from "../../src/modules/system/configuration/http/settings.js";
 import { registerTranscodeProfileRoutes } from "../../src/modules/system/configuration/http/transcode-profiles.js";
 import { fixtureSettings } from "./library.js";
+import { createSubtitleApplication } from "./subtitles.js";
 export function createHttpApp(options: {
 	metadata?: MetadataApi;
 	catalog?: AnimeCatalogApi;

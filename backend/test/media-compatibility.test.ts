@@ -19,6 +19,7 @@ import { type MediaInfo, MediaToolError } from "../src/platform/media/index.js";
 import { MediaTools, parseMediaInfo } from "../src/platform/media/tools.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
+import { MemoryInspectionStore } from "./support/inspection-store.js";
 import { createLibraryModule } from "./support/library.js";
 
 function dump(hex: string) {
@@ -182,6 +183,7 @@ async function fixture() {
 	if (!file) throw new Error("fixture missing");
 	const probe = vi.fn().mockResolvedValue(media());
 	const inspection = new MediaInspectionApplication({
+		repository: new MemoryInspectionStore(),
 		sources: library.sources,
 		tools: { probe },
 	});

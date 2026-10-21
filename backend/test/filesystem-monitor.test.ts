@@ -3,13 +3,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { createResourceId } from "../src/modules/resources/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { LibraryScanner } from "../src/modules/resources/library/infrastructure/scanner.js";
 import { libraryRuntimePolicy } from "../src/modules/resources/library/policy.js";
 import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
+import { createLibraryModule } from "./support/library.js";
+import { updateResourceSettings } from "./support/settings.js";
 
 const cleanup: Array<() => Promise<unknown>> = [];
 afterEach(async () => {
@@ -168,7 +169,7 @@ test("switching roots drops old queued events and closes monitoring on shutdown"
 	const next = join(f.base, "next");
 	await mkdir(next);
 	await writeFile(join(next, "new.mkv"), "new");
-	await f.library.updateResourceSettings({ resourceRoots: [next] });
+	await updateResourceSettings(f.library, { resourceRoots: [next] });
 	await f.library.waitForCompletion();
 	await expect
 		.poll(() => f.index.findPath("new.mkv", f.scopeId)?.kind)
@@ -212,7 +213,7 @@ test("multiple native monitors isolate equal paths and keep healthy roots updati
 	await mkdir(other);
 	await writeFile(join(f.root, "same.mkv"), "first");
 	await writeFile(join(other, "same.mkv"), "second");
-	await f.library.updateResourceSettings({ resourceRoots: [f.root, other] });
+	await updateResourceSettings(f.library, { resourceRoots: [f.root, other] });
 	await f.library.waitForCompletion();
 	const firstScope = resourceRootId(f.root);
 	const secondScope = resourceRootId(other);

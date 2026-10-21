@@ -160,7 +160,9 @@ binding. Unrecognized receipts therefore cannot establish a binding on their own
 4. Anime verifies actual title/episode evidence and existing decisions. It creates an
    idempotent association or returns local Review without overriding manual links.
 5. Record availability only after confirmed association and source access. Retry
-   import independently of download submission. Later source loss or manual association changes update availability independently of downloader connectivity.
+   import independently of download submission. Completed imports leave the download worker. Activity retains the import outcome;
+   current file/association availability belongs to Resources and Catalog and is not
+   periodically reverified by Downloads.
 
 Successful indexing does not certify browser compatibility or start transcoding.
 A torrent can continue seeding after ingestion. All transfer controls, removal and
@@ -180,7 +182,9 @@ The download worker reconciles every
 5 seconds with active work and every 60 seconds idle. Process at most two intents
 concurrently; serialize each tick and intent, reload revisions around asynchronous
 boundaries and exponentially back off to one hour. Checks and reads never become
-empty snapshots on failure. No synthetic transfer progress is generated.
+empty snapshots on failure. Completed, missing and blocked intents are excluded
+from automatic work batches; explicit recovery commands re-admit eligible work.
+No synthetic transfer progress is generated.
 
 Keep terminal detail for 90 days, then clear private source payload/title/transfer
 and error detail while retaining reservations, suppression and source identities.

@@ -1,6 +1,7 @@
 import type { AudioEncoding, VideoEncoding } from "./encoding.js";
+
 /** Explicit execution requirements, independent of compatibility recommendations. */
-export type MediaStreamExecution =
+type MediaStreamExecution =
 	| { action: "copy" }
 	| { action: "encode"; encoder: string; codec: string; pixelFormat?: string };
 export interface MediaProcessingPlan {

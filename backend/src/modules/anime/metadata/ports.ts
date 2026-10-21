@@ -13,7 +13,6 @@ import type {
 } from "./domain/model.js";
 export interface ProviderResult<T> {
 	data: T;
-	raw: unknown;
 }
 export interface MetadataProvider {
 	readonly capabilities: ProviderCapabilities;

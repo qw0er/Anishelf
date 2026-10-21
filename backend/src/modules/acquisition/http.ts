@@ -10,5 +10,5 @@ export function registerAcquisitionHttp(
 ) {
 	registerConnectionRoutes(app, api.connection);
 	if (api.downloads) registerDownloadRoutes(app, api.downloads);
-	if (api.discovery) registerSubscriptionRoutes(app, api.discovery);
+	registerSubscriptionRoutes(app, api.discovery);
 }

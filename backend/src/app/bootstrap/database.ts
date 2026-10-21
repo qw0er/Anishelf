@@ -48,6 +48,7 @@ export class ApplicationDatabase {
 	readonly catalog: AnimePersistence["catalog"];
 	readonly playback: PlaybackPersistence["playback"];
 	readonly subtitles: MediaPersistence["subtitles"];
+	readonly inspections: MediaPersistence["inspections"];
 	readonly preparation: MediaPersistence["preparation"];
 	private constructor(
 		private readonly connection: Database.Database,
@@ -69,6 +70,7 @@ export class ApplicationDatabase {
 		this.playback = playback.playback;
 		this.subtitles = media.subtitles;
 		this.preparation = media.preparation;
+		this.inspections = media.inspections;
 	}
 
 	static open(
@@ -98,11 +100,13 @@ export class ApplicationDatabase {
 			connection.pragma(adapterPolicy.sqlite.journal);
 			connection.pragma(adapterPolicy.sqlite.synchronous);
 			const store = drizzle(connection, { schema });
+			connection.pragma("foreign_keys = OFF");
 			migrate(store, {
 				migrationsFolder: fileURLToPath(
 					new URL("../../../migrations/", import.meta.url),
 				),
 			});
+			connection.pragma(adapterPolicy.sqlite.foreignKeys);
 			if ((connection.pragma("foreign_key_check") as unknown[]).length)
 				throw new Error("Database schema contains invalid foreign keys.");
 			return new ApplicationDatabase(connection, store, policy);

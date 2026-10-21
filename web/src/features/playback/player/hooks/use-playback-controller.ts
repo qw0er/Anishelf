@@ -17,22 +17,14 @@ import { usePlaybackSelection } from "./use-playback-selection.js";
 import { usePlaybackSession } from "./use-playback-session.js";
 
 /** Coordinate intent, delivery and progress without allowing task polling to own media lifecycle. */
-export function usePlaybackController(data: FileResponse, scope: string) {
+export function usePlaybackController(data: FileResponse) {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const audio = searchParams.get("audio");
 	const parsed = useMemo(() => parseAudioSelection(audio), [audio]);
 	const playback = usePlaybackSession(data.file.id, playbackPolicy);
 	const prepared = useFilePreparations(data.file.id);
 	const { data: catalog } = useQuery(profilesQuery());
-	// A scan revision refreshes folder facts, not an unchanged player's media/subtitle instances.
-	let root = scope;
-	try {
-		const value: unknown = JSON.parse(scope);
-		if (Array.isArray(value)) root = JSON.stringify(value[0]);
-	} catch {
-		/* Callers may provide an opaque scope. */
-	}
-	const sourceScope = originalCompatibilityKey(data.file, root);
+	const sourceScope = originalCompatibilityKey(data.file);
 	const selected = usePlaybackSelection(
 		data.file.id,
 		searchParams.get("version") ?? playback.session?.sourceVersion,

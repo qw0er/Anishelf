@@ -2,6 +2,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRevalidator } from "react-router";
+import {
+	clearCapabilityCache,
+	clearCompatibilityCache,
+} from "../../features/media/public.js";
 import { toast } from "../../shared/components/ui/toast.js";
 
 export function useManualRefresh(libraryError: string | null) {
@@ -33,8 +37,13 @@ export function useManualRefresh(libraryError: string | null) {
 		setManualRefreshing(true);
 		setPlayerVersion((value) => value + 1);
 		try {
+			clearCapabilityCache();
+			await clearCompatibilityCache();
 			await client.invalidateQueries({
-				predicate: (query) => query.queryKey[0] !== "playback-selection",
+				predicate: (query) =>
+					!["playback-selection", "library", "settings"].includes(
+						String(query.queryKey[0]),
+					),
 			});
 			await revalidate();
 		} finally {

@@ -46,6 +46,7 @@ function fileInfo(entry: FileEntry): FileInfo {
 		sizeBytes: entry.sizeBytes,
 		modifiedAt: entry.modifiedAt,
 		mimeType: entry.mimeType,
+		...(entry.sourceVersion ? { sourceVersion: entry.sourceVersion } : {}),
 	};
 }
 
@@ -77,11 +78,6 @@ export class LibraryApplication<
 	}
 	getSettings() {
 		return this.settings.getSettings();
-	}
-	updateResourceSettings(
-		input: Parameters<ResourceSettingsApplication["updateResourceSettings"]>[0],
-	) {
-		return this.settings.updateResourceSettings(input);
 	}
 	async downloadRoots() {
 		return (await this.options.roots.list(this.getSettings())).map(

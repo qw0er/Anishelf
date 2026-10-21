@@ -502,7 +502,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 			expect(
 				config.columns.some((col) => col.columnType === "SQLiteTextJson"),
 				config.name,
-			).toBe(false);
+			).toBe(["metadata_snapshots", "media_inspections"].includes(config.name));
 		}
 		expect(
 			inspected
@@ -510,7 +510,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 					"SELECT count(*) AS count FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> '__drizzle_migrations'",
 				)
 				.get(),
-		).toEqual({ count: 78 });
+		).toEqual({ count: 66 });
 	} finally {
 		inspected.close();
 	}

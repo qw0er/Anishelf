@@ -15,12 +15,10 @@ import {
 import { PlaybackPlanSchema } from "../src/contracts/schemas/playback.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
-import { resolveHlsExecutionPlan } from "../src/modules/media/media-planning/domain/hls-execution-plan.js";
 import {
 	expectedOutputSpec,
 	resolveExecutionPlan as resolvePreparationExecutionPlan,
 } from "../src/modules/media/media-planning/public.js";
-import { PlaybackApplication } from "../src/modules/playback/progress/application/playback.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import {
 	builtinTranscodeProfiles,
@@ -30,8 +28,9 @@ import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { fingerprint } from "../src/shared/fingerprint.js";
 import { presentCompatibility } from "../src/transport/presenters/compatibility.js";
 import { settingsStore } from "./settings-store.js";
-import { createHttpApp } from "./support/http.js";
+import { MemoryInspectionStore } from "./support/inspection-store.js";
 import { createLibraryModule } from "./support/library.js";
+import { updateResourceSettings } from "./support/settings.js";
 
 const resolveExecutionPlan = (
 	input: Parameters<typeof resolvePreparationExecutionPlan>[0],
@@ -46,6 +45,7 @@ async function fixture(
 	secondAudio = false,
 	profileIndex = 0,
 	preparationMode: () => "compatible" | "fast" = () => "fast",
+	sourceSize?: { width: number; height: number },
 ) {
 	const root = await mkdtemp(join(tmpdir(), "anishelf-planning-"));
 	await writeFile(join(root, "source.mkv"), "source");
@@ -70,8 +70,8 @@ async function fixture(
 					index: 2,
 					codec_type: "video",
 					codec_name: "h264",
-					width: 1920,
-					height: 1080,
+					width: sourceSize?.width ?? 1920,
+					height: sourceSize?.height ?? 1080,
 					avg_frame_rate: "24/1",
 					pix_fmt: "yuv420p",
 				},
@@ -95,6 +95,7 @@ async function fixture(
 			tags: { language: "jpn", title: "Japanese" },
 		});
 	const inspection = new MediaInspectionApplication({
+		repository: new MemoryInspectionStore(),
 		sources: library.sources,
 		tools: { probe: vi.fn().mockResolvedValue(info) },
 	});
@@ -411,10 +412,6 @@ test("resolver consumes an immutable checked snapshot without consulting current
 
 test("media planning validates evidence without opening history or claiming resource readiness", async () => {
 	const f = await fixture();
-	const playback = new PlaybackApplication({
-		sources: f.library.sources,
-		logger: pino({ enabled: false }),
-	});
 	const input = {
 		fileId: f.file.id,
 		sourceVersion: f.source.identity.sourceVersion,
@@ -439,9 +436,6 @@ test("media planning validates evidence without opening history or claiming reso
 	expect(Object.isFrozen(result.execution.plan)).toBe(true);
 	expect(result).not.toHaveProperty("playbackUrl");
 	expect(result).not.toHaveProperty("taskId");
-	await expect(playback.open(f.file.id)).rejects.toMatchObject({
-		code: "PLAYBACK_UNAVAILABLE",
-	});
 	await expect(
 		f.app.plan({ ...input, descriptionId: "stale" }),
 	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
@@ -492,7 +486,7 @@ test("media planning rejects a root change while compatibility is awaited", asyn
 	const original = f.app.check.bind(f.app);
 	vi.spyOn(f.app, "check").mockImplementationOnce(async (input) => {
 		const checked = await original(input);
-		await f.library.updateResourceSettings({ resourceRoots: [otherRoot] });
+		await updateResourceSettings(f.library, { resourceRoots: [otherRoot] });
 		return checked;
 	});
 	await expect(
@@ -620,125 +614,13 @@ test("audio selection binds evidence and execution identity, preserving requeste
 	}
 });
 
-test("HLS planning binds MSE evidence, preserves compatible audio and encodes only the rejected track", async () => {
-	const f = await fixture(true, true);
-	const output = { profileId: f.profile.id, target: "media-source" as const };
-	const description = await f.app.inspect({ fileId: f.file.id, output });
-	const rejected = new Set([
-		"copy-audio-7",
-		"output-copy-copy-7",
-		"output-encode-copy-7",
-	]);
-	const evidence = description.queries.map(
-		(query): CompatibilityEvidence => ({
-			id: query.id,
-			status: rejected.has(query.id) ? "unsupported" : "supported",
-			reason: rejected.has(query.id) ? "browser-rejected" : "browser-supported",
-			smooth: null,
-		}),
-	);
-	const input = {
-		fileId: f.file.id,
-		sourceVersion: description.sourceVersion,
-		descriptionId: description.descriptionId,
-		output,
-		evidence,
-	};
-	const negotiated = await f.app.check(input);
-	if (!negotiated.output) throw new Error("Missing output");
-	const checked = {
-		...negotiated,
-		output: { ...negotiated.output, target: "hls" as const },
-	};
-	expect(
-		description.queries
-			.filter((query) => !query.id.startsWith("original"))
-			.every((query) => query.type === "media-source"),
-	).toBe(true);
-	const plan = resolveHlsExecutionPlan(checked);
-	expect(plan).toMatchObject({
-		kind: "processing",
-		request: {
-			plan: {
-				delivery: "hls",
-				segmentContainer: "fmp4",
-				video: { action: "copy" },
-				audioTracks: [
-					{ sourceStreamIndex: 4, execution: { action: "copy" } },
-					{
-						sourceStreamIndex: 7,
-						execution: { action: "encode", codec: "aac" },
-					},
-				],
-			},
-		},
-	});
-	if (plan.kind !== "processing") throw new Error("Expected HLS plan");
-	expect(Object.isFrozen(plan.request.plan.audioTracks)).toBe(true);
-	const changed = resolveHlsExecutionPlan(checked, 4000);
-	if (changed.kind !== "processing") throw new Error("Expected HLS plan");
-	expect(changed.request.plan.id).not.toBe(plan.request.plan.id);
-	// Native-file acceptance cannot skip offline HLS packaging.
-	expect(
-		resolveHlsExecutionPlan({
-			...checked,
-			direct: { status: "supported", reason: "browser-supported" },
-		}).kind,
-	).toBe("processing");
-	const playback = new PlaybackApplication({
-		sources: f.library.sources,
-		logger: pino({ enabled: false }),
-	});
-	const open = vi.spyOn(playback, "open");
-	const http = createHttpApp({
-		config: { host: "127.0.0.1", port: 3000 },
-		logger: pino({ enabled: false }),
-		playback,
-		mediaPlanning: f.app,
-	});
-	try {
-		const response = await http.inject({
-			method: "POST",
-			url: "/api/media/plans",
-			headers: { host: "127.0.0.1:3000" },
-			payload: input,
-		});
-		expect(response.statusCode).toBe(404);
-		expect(open).not.toHaveBeenCalled();
-		const removed = await http.inject({
-			method: "POST",
-			url: "/api/playback/plans",
-			headers: { host: "127.0.0.1:3000" },
-			payload: input,
-		});
-		expect(removed.statusCode).toBe(404);
-		const unsupportedTarget = await http.inject({
-			method: "POST",
-			url: `/api/files/${f.file.id}/compatibility`,
-			headers: { host: "127.0.0.1:3000" },
-			payload: {
-				...input,
-				fileId: undefined,
-				output: { ...output, target: "hls" },
-			},
-		});
-		expect(unsupportedTarget.statusCode).toBe(400);
-	} finally {
-		await http.close();
-	}
-});
-
 test.each([
 	[160, 90, 60, 106, 60],
 	[2001, 1081, undefined, 2002, 1082],
 ])(
 	"browser, planner and validator agree on dimensions %sx%s at height %s",
 	async (width, height, maxHeight, expectedWidth, expectedHeight) => {
-		const f = await fixture();
-		const sourceVideo = f.info.streams[0];
-		if (!sourceVideo) throw new Error("No source video");
-		sourceVideo.width = width ?? null;
-		sourceVideo.height = height ?? null;
+		const f = await fixture(true, false, 0, () => "fast", { width, height });
 		if (maxHeight === undefined) delete f.profile.video.maxHeight;
 		else f.profile.video.maxHeight = maxHeight;
 		const description = await f.inspectOutput(

@@ -86,17 +86,12 @@ async function fixture() {
 		tasks: vi.fn(async () => (state.task ? [state.task] : [])),
 		files: vi.fn(async () => [
 			{
-				index: 0,
 				path: "Frieren - 03.mkv",
 				sizeBytes: 100,
 				progress: 1,
 				priority: 1,
 			},
 		]),
-		pause: vi.fn(),
-		resume: vi.fn(),
-		remove: vi.fn(),
-		recheck: vi.fn(),
 		close: vi.fn(),
 	};
 	const resources = {
@@ -396,7 +391,7 @@ test("external pause remains paused and external removal suppresses acquisition 
 	if (!f.state.task) throw new Error();
 	f.state.task.state = "stoppedDL";
 	await f.worker.tick();
-	expect(f.client.resume).not.toHaveBeenCalled();
+	expect(f.state.task.state).toBe("stoppedDL");
 	f.state.task = null;
 	await f.worker.tick();
 	expect(f.worker.activity(key).items[0]?.state).toBe("missing");
@@ -449,8 +444,8 @@ test("unsupported multi-video layouts and association conflicts remain reviewabl
 	await f.worker.tick();
 	f.complete();
 	vi.mocked(f.client.files).mockResolvedValue([
-		{ index: 0, path: "01.mkv", sizeBytes: 50, priority: 1, progress: 1 },
-		{ index: 1, path: "02.mkv", sizeBytes: 50, priority: 1, progress: 1 },
+		{ path: "01.mkv", sizeBytes: 50, priority: 1, progress: 1 },
+		{ path: "02.mkv", sizeBytes: 50, priority: 1, progress: 1 },
 	]);
 	await f.worker.tick();
 	expect(f.worker.activity(key).items[0]).toMatchObject({
@@ -727,7 +722,7 @@ test("download endpoints enforce authentication, CSRF, revision checks and safe 
 	expect(activity.body).not.toContain("secret");
 });
 
-test("an ingested resource remains available during downloader outages and reports later Catalog removal without recreating associations", async () => {
+test("an ingested resource leaves the worker and remains historical activity during later outages or removal", async () => {
 	const f = await fixture();
 	await f.configure();
 	await f.authorize();
@@ -744,9 +739,9 @@ test("an ingested resource remains available during downloader outages and repor
 	f.ingestion.available.mockResolvedValueOnce(false);
 	await f.worker.tick();
 	expect(f.worker.activity(key).items[0]).toMatchObject({
-		state: "bound",
-		ingestion: "review",
-		error: "association_changed",
+		state: "available",
+		ingestion: "available",
+		error: null,
 	});
 	expect(f.ingestion.ingest).toHaveBeenCalledTimes(1);
 });
@@ -1018,13 +1013,13 @@ test("worker queries use bounded cursors, retain reservations and redact only ex
 		});
 	}
 	const batch = f.db.acquisitionDownloads.workBatch("", 2, original.updatedAt);
-	expect(batch.map((item) => item.id)).toEqual(["!batch-0", "!batch-1"]);
+	expect(batch.map((item) => item.id)).toEqual(["!batch-0", "!batch-3"]);
 	const next = f.db.acquisitionDownloads.workBatch(
-		"!batch-1",
+		"!batch-3",
 		2,
 		original.updatedAt,
 	);
-	expect(next.map((item) => item.id)).toEqual(["!batch-3", original.id].sort());
+	expect(next.map((item) => item.id)).toEqual([original.id]);
 	expect(f.db.acquisitionDownloads.hasActive()).toBe(true);
 	expect(f.db.acquisitionDownloads.reservedEpisode(key, 104)).toBe(true);
 	expect(
@@ -1124,7 +1119,7 @@ test("successful reservation checks preserve Discovery assessment errors and can
 	expect(f.db.acquisition.candidates(key)).toEqual(candidates);
 });
 
-test("one serial worker tick processes every available source in bounded batches", async () => {
+test("completed downloads are excluded from all subsequent worker batches", async () => {
 	const f = await fixture();
 	await f.configure();
 	await f.authorize();
@@ -1143,32 +1138,12 @@ test("one serial worker tick processes every available source in bounded batches
 			}),
 		).toBe(true);
 	}
-	let active = 0,
-		maximum = 0;
-	f.ingestion.available.mockImplementation(async () => {
-		active++;
-		maximum = Math.max(maximum, active);
-		await Promise.resolve();
-		active--;
-		return true;
-	});
 	const read = vi.spyOn(f.db.acquisitionDownloads, "workBatch");
 	const first = f.worker.tick(),
 		second = f.worker.tick();
 	expect(first).toBe(second);
 	await first;
-	expect(f.ingestion.available).toHaveBeenCalledTimes(8);
-	expect(maximum).toBe(2);
-	const processed = read.mock.results.flatMap((result) =>
-		result.type === "return" ? result.value.map((item) => item.id) : [],
-	);
-	expect(processed).toHaveLength(8);
-	expect(new Set(processed).size).toBe(8);
-	for (const [index, call] of read.mock.calls.entries()) {
-		expect(call[1]).toBe(2);
-		const result = read.mock.results[index];
-		if (result?.type === "return")
-			expect(result.value.length).toBeLessThanOrEqual(2);
-	}
+	expect(f.ingestion.available).not.toHaveBeenCalled();
+	expect(read).toHaveReturnedWith([]);
 	expect(f.db.acquisitionDownloads.hasActive()).toBe(false);
 });

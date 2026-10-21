@@ -2,7 +2,7 @@
 import { TextTrack } from "@vidstack/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { trackFonts } from "../src/features/media/subtitles/fonts.js";
-import { subtitlePolicy } from "../src/features/media/subtitles/public.js";
+import { subtitlePolicy } from "../src/features/media/subtitles/policy.js";
 import { StyledSubtitleRenderer } from "../src/features/media/subtitles/renderer.js";
 
 const renderer = vi.hoisted(() => ({

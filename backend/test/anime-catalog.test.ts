@@ -31,6 +31,7 @@ import { DomainError } from "../src/shared/errors.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
 import { createLibraryModule } from "./support/library.js";
+import { updateResourceSettings } from "./support/settings.js";
 
 const logger = pino({ enabled: false });
 const reference = { provider: "fixture", mediaType: "anime", id: "1" } as const;
@@ -99,7 +100,6 @@ async function fixture(
 					? providerData.titles
 					: details(ref.id).titles,
 		},
-		raw: {},
 	}));
 	const provider: MetadataProvider = {
 		capabilities: {
@@ -115,15 +115,12 @@ async function fixture(
 		get,
 		search: async () => ({
 			data: { items: [providerData], page: 1, perPage: 10, hasNextPage: false },
-			raw: {},
 		}),
 		relations: async () => ({
 			data: { items: [], page: 1, perPage: 10, hasNextPage: false },
-			raw: {},
 		}),
 		airing: async () => ({
 			data: { items: [], page: 1, perPage: 10, hasNextPage: false },
-			raw: {},
 		}),
 	};
 	const index = new LibraryIndex();
@@ -595,7 +592,7 @@ test("changed files and root switches invalidate pending previews without deleti
 	).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
 	const otherRoot = join(f.base, "other");
 	await mkdir(otherRoot);
-	await f.library.updateResourceSettings({ resourceRoots: [otherRoot] });
+	await updateResourceSettings(f.library, { resourceRoots: [otherRoot] });
 	await f.library.waitForCompletion();
 	await f.automatic.waitForCompletion();
 	expect((await f.catalog.list()).items).toEqual([]);
@@ -611,7 +608,7 @@ test("changed files and root switches invalidate pending previews without deleti
 			replace: true,
 		}),
 	).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
-	await f.library.updateResourceSettings({ resourceRoots: [f.root] });
+	await updateResourceSettings(f.library, { resourceRoots: [f.root] });
 	await f.library.waitForCompletion();
 	await f.automatic.waitForCompletion();
 	expect((await f.catalog.list()).items).toHaveLength(1);
@@ -884,7 +881,6 @@ test("failed refresh after an intervening local edit cannot overwrite the edit",
 	);
 	required(resolve)({
 		data: { ...details(), description: "Refreshed" },
-		raw: {},
 	});
 	await expect(refreshing).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
 	expect(
@@ -1031,7 +1027,7 @@ test("poster artwork uses retained snapshots, delivers cached images offline and
 	).toBe(400);
 	const nextRoot = join(f.base, "other-root");
 	await mkdir(nextRoot);
-	await f.library.updateResourceSettings({
+	await updateResourceSettings(f.library, {
 		resourceRoots: [nextRoot],
 	});
 	await f.library.waitForCompletion();
@@ -1467,7 +1463,6 @@ test("expired details return retained data immediately and coalesce automatic up
 	expect(f.get).toHaveBeenCalledTimes(2);
 	required(complete)({
 		data: { ...details(), description: "Automatic update", episodeCount: 13 },
-		raw: {},
 	});
 	await vi.waitFor(() =>
 		expect(f.database.catalog.link(result.workId)?.snapshotId).not.toBe(
@@ -1561,7 +1556,6 @@ test("automatic failure keeps the snapshot and honors persisted retry time acros
 	expect(f.get).toHaveBeenCalledTimes(2);
 	f.get.mockImplementation(async () => ({
 		data: { ...details(), description: "Recovered" },
-		raw: {},
 	}));
 	now += 60_001;
 	await f.catalog.getLocalWorkDetail(result.workId);
@@ -1603,7 +1597,6 @@ test("automatic refresh yields to a concurrent correction then adopts cached met
 	);
 	required(complete)({
 		data: { ...details(), description: "New data" },
-		raw: {},
 	});
 	await vi.waitFor(async () =>
 		expect(
@@ -1644,7 +1637,6 @@ test("quiescing cancels automatic refresh and prevents later catalog writes or t
 	await f.catalog.quiesce();
 	required(complete)({
 		data: { ...details(), description: "Too late" },
-		raw: {},
 	});
 	await Promise.resolve();
 	expect(f.database.catalog.link(result.workId)?.snapshotId).toBe(
@@ -1720,7 +1712,6 @@ test("manual refresh joins an automatic request and accepts its already applied 
 	await vi.waitFor(() => expect(reads).toHaveBeenCalled());
 	required(complete)({
 		data: { ...details(), description: "Shared refresh" },
-		raw: {},
 	});
 	expect((await manual).metadata.data.description).toBe("Shared refresh");
 	expect(f.get).toHaveBeenCalledTimes(2);
@@ -1815,7 +1806,7 @@ test("multi-root versions preserve confirmed associations through removal and re
 	const other = join(f.base, "another-disk");
 	await mkdir(other);
 	await writeFile(join(other, "Anime - 01.mkv"), "another copy");
-	await f.library.updateResourceSettings({ resourceRoots: [f.root, other] });
+	await updateResourceSettings(f.library, { resourceRoots: [f.root, other] });
 	await f.library.waitForCompletion();
 	await f.automatic.waitForCompletion();
 	const second = required(
@@ -1845,11 +1836,11 @@ test("multi-root versions preserve confirmed associations through removal and re
 			(episode) => episode.number === "1",
 		)?.versions;
 	expect(await versions()).toHaveLength(2);
-	await f.library.updateResourceSettings({ resourceRoots: [other] });
+	await updateResourceSettings(f.library, { resourceRoots: [other] });
 	await f.library.waitForCompletion();
 	await f.automatic.waitForCompletion();
 	expect(await versions()).toHaveLength(1);
-	await f.library.updateResourceSettings({ resourceRoots: [other, f.root] });
+	await updateResourceSettings(f.library, { resourceRoots: [other, f.root] });
 	await f.library.waitForCompletion();
 	await f.automatic.waitForCompletion();
 	expect(await versions()).toHaveLength(2);

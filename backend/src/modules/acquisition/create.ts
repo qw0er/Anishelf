@@ -32,8 +32,8 @@ export async function createAcquisitionModule(options: {
 	logger: Logger;
 	createClient?: (options: QbittorrentOptions) => QbittorrentApi;
 	suggestedApiUrl?: string;
-	store?: DiscoveryStore;
-	downloadStore?: DownloadStore;
+	store: DiscoveryStore;
+	downloadStore: DownloadStore;
 	resources?: AcquisitionResources;
 	ingestion?: NonNullable<AnimeApi["ingestion"]>;
 	torrentTransport?: TorrentTransport;
@@ -52,52 +52,41 @@ export async function createAcquisitionModule(options: {
 	await connection.initialize();
 	let downloads: DownloadsApplication | undefined;
 	const discoveryStore = options.store;
-	const discovery = discoveryStore
-		? new DiscoveryApplication({
-				store: discoveryStore,
-				downloadPreview: (key, target) =>
-					downloads?.preview(key, target) ?? null,
-				confirmation: new SubscriptionConfirmation({
-					logger: options.logger,
-					transaction: (operation) => discoveryStore.transaction(operation),
-					authorize: (key, revision, destinationRevision) =>
-						downloads?.authorizeSubscription(
-							key,
-							revision,
-							destinationRevision,
-						),
-				}),
-				anime: options.anime ?? {
-					target: async () => {
-						throw new DomainError(
-							"METADATA_UNAVAILABLE",
-							"Subscription metadata is unavailable.",
-						);
-					},
-					assess: () => {
-						throw new DomainError(
-							"METADATA_UNAVAILABLE",
-							"Subscription metadata is unavailable.",
-						);
-					},
-				},
-				transport: options.transport ?? new RssTransport(),
-				parse: parseRss,
-				...(options.rssRefreshIntervalMinutes
-					? { refreshIntervalMinutes: options.rssRefreshIntervalMinutes }
-					: {}),
-				normalizeUrl: rssUrl,
-				downloads: (signal) => connection.activeHashes(signal),
-				logger: options.logger,
-				...(options.now ? { now: options.now } : {}),
-			})
-		: undefined;
+	const discovery = new DiscoveryApplication({
+		store: discoveryStore,
+		downloadPreview: (key, target) => downloads?.preview(key, target) ?? null,
+		confirmation: new SubscriptionConfirmation({
+			logger: options.logger,
+			transaction: (operation) => discoveryStore.transaction(operation),
+			authorize: (key, revision, destinationRevision) =>
+				downloads?.authorizeSubscription(key, revision, destinationRevision),
+		}),
+		anime: options.anime ?? {
+			target: async () => {
+				throw new DomainError(
+					"METADATA_UNAVAILABLE",
+					"Subscription metadata is unavailable.",
+				);
+			},
+			assess: () => {
+				throw new DomainError(
+					"METADATA_UNAVAILABLE",
+					"Subscription metadata is unavailable.",
+				);
+			},
+		},
+		transport: options.transport ?? new RssTransport(),
+		parse: parseRss,
+		...(options.rssRefreshIntervalMinutes
+			? { refreshIntervalMinutes: options.rssRefreshIntervalMinutes }
+			: {}),
+		normalizeUrl: rssUrl,
+		downloads: (signal) => connection.activeHashes(signal),
+		logger: options.logger,
+		...(options.now ? { now: options.now } : {}),
+	});
 	downloads =
-		options.downloadStore &&
-		discovery &&
-		options.resources &&
-		options.anime &&
-		options.ingestion
+		options.resources && options.anime && options.ingestion
 			? new DownloadsApplication({
 					store: options.downloadStore,
 					selection: discovery.acquisition(),
@@ -113,7 +102,7 @@ export async function createAcquisitionModule(options: {
 				})
 			: undefined;
 	if (options.autoStart !== false) {
-		discovery?.start();
+		discovery.start();
 		downloads?.start();
 	}
 	const downloadApi = downloads;
@@ -135,29 +124,28 @@ export async function createAcquisitionModule(options: {
 					},
 				}
 			: {}),
-		...(discovery
-			? {
-					discovery: {
-						get: (key, page) => discovery.get(key, page),
-						preview: (session, input) => discovery.preview(session, input),
-						confirm: (session, key, token) =>
-							discovery.confirm(session, key, token),
-						setEnabled: (key, revision, enabled) =>
-							discovery.setEnabled(key, revision, enabled),
-						remove: (key, revision) => discovery.remove(key, revision),
-						refresh: (key, revision) => discovery.refresh(key, revision),
-					},
-				}
-			: {}),
+		discovery: {
+			get: (key, page) => discovery.get(key, page),
+			preview: (session, input) => discovery.preview(session, input),
+			confirm: (session, key, token) => discovery.confirm(session, key, token),
+			setEnabled: (key, revision, enabled) =>
+				discovery.setEnabled(key, revision, enabled),
+			remove: (key, revision) => discovery.remove(key, revision),
+			refresh: (key, revision) => discovery.refresh(key, revision),
+		},
 	};
+	let closing: Promise<void> | undefined;
 	return {
 		api,
 		registerHttp: (app: Parameters<typeof registerAcquisitionHttp>[0]) =>
 			registerAcquisitionHttp(app, api),
-		close: async () => {
-			await downloads?.close();
-			await discovery?.close();
-			await connection.close();
+		close: () => {
+			closing ??= (async () => {
+				await downloads?.close();
+				await discovery.close();
+				await connection.close();
+			})();
+			return closing;
 		},
 	};
 }

@@ -112,7 +112,6 @@ export class AniListProvider implements MetadataProvider {
 			this.client.search(query, page, perPage, signal),
 		);
 		return {
-			raw: result.raw,
 			data: { ...result.data, items: result.data.items.map(summary) },
 		};
 	}
@@ -123,7 +122,6 @@ export class AniListProvider implements MetadataProvider {
 		const result = await this.read(() =>
 			this.client.get(this.id(reference), signal),
 		);
-		const raw = result.raw;
 		const media = result.data;
 		const data: WorkDetails = {
 			...summary(media),
@@ -150,7 +148,7 @@ export class AniListProvider implements MetadataProvider {
 			streamingEpisodes: media.streamingEpisodes ?? [],
 			episodeCatalog: "unavailable",
 		};
-		return { raw, data };
+		return { data };
 	}
 	async relations(
 		reference: ProviderReference,
@@ -165,7 +163,6 @@ export class AniListProvider implements MetadataProvider {
 			.filter((edge) => edge.node.type === "ANIME")
 			.map((edge) => ({ type: edge.relationType, work: summary(edge.node) }));
 		return {
-			raw: result.raw,
 			data: {
 				items: items.slice((page - 1) * perPage, page * perPage),
 				page,
@@ -184,7 +181,6 @@ export class AniListProvider implements MetadataProvider {
 			this.client.airing(this.id(reference), page, perPage, signal),
 		);
 		return {
-			raw: result.raw,
 			data: {
 				...result.data,
 				items: result.data.items.map((episode) => ({

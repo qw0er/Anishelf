@@ -44,7 +44,7 @@ export class LibrarySynchronizer {
 	private closing: Promise<void> | undefined;
 	constructor(
 		private readonly options: {
-			configuration: SettingsStore;
+			configuration: Pick<SettingsStore, "settings">;
 			roots: ResourceRootsApi;
 			index: LibraryIndex;
 			scans: ScanRunner;

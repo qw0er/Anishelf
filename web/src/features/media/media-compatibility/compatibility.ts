@@ -4,11 +4,15 @@ import type {
 	FileDto,
 } from "../../../shared/api/contracts.js";
 import { checkMediaCompatibility, inspectMediaCompatibility } from "./api.js";
+import { readCompatibility, saveCompatibility } from "./cache.js";
 import { queryCapabilities } from "./capabilities.js";
 import { mediacompatibilityInteractionPolicy } from "./policy.js";
 
-export function originalCompatibilityKey(file: FileDto, scope: string): string {
-	return JSON.stringify([scope, file.id, file.modifiedAt, file.sizeBytes]);
+export function originalCompatibilityKey(file: FileDto): string {
+	return JSON.stringify([
+		file.id,
+		file.sourceVersion ?? [file.modifiedAt, file.sizeBytes],
+	]);
 }
 
 /** A cancelled folder may leave a shared server probe finishing; retry only bounded unavailable responses. */
@@ -48,12 +52,17 @@ export async function inspectBrowserMedia(
 		}
 	}
 }
-/** Pure negotiation; Query owns completed results, cancellation and deduplication. */
+/** Negotiate on a cache miss; Query owns cancellation and concurrent consumers. */
 export async function checkOriginalMedia(
 	fileId: string,
 	signal: AbortSignal,
-	options: { sourceVersion?: string; cacheKey?: string; fresh?: boolean } = {},
+	options: { sourceVersion?: string; fresh?: boolean } = {},
 ): Promise<CompatibilityResult> {
+	if (options.sourceVersion && !options.fresh) {
+		const cached = await readCompatibility(fileId, options.sourceVersion);
+		signal.throwIfAborted();
+		if (cached) return cached;
+	}
 	const description = await inspectBrowserMedia(
 		{
 			fileId,
@@ -96,5 +105,6 @@ export async function checkOriginalMedia(
 			code: "PLAYBACK_CONFLICT",
 			message: "The source changed. Reopen playback.",
 		});
+	await saveCompatibility(result);
 	return result;
 }

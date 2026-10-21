@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { clearCompatibilityCache } from "../../features/media/public.js";
 import { clearAuthToken, request } from "../../shared/api/client.js";
 import { queryClient } from "../../shared/api/query-client.js";
 import { Button } from "../../shared/components/ui/button.js";
@@ -16,9 +17,10 @@ export function SecuritySettings() {
 	const [confirmation, setConfirmation] = useState("");
 	const [error, setError] = useState("");
 	const [pending, setPending] = useState(false);
-	const leave = () => {
+	const leave = async () => {
 		clearAuthToken();
 		queryClient.clear();
+		await clearCompatibilityCache();
 		window.location.replace("/login");
 	};
 	return (
@@ -58,7 +60,7 @@ export function SecuritySettings() {
 									password: nextPassword,
 								},
 							);
-							leave();
+							await leave();
 						} catch (error) {
 							setError(
 								error instanceof Error
@@ -121,7 +123,7 @@ export function SecuritySettings() {
 						setPending(true);
 						try {
 							await request("/api/auth/logout", "POST");
-							leave();
+							await leave();
 						} catch (error) {
 							setError(
 								error instanceof Error ? error.message : "Sign out failed.",

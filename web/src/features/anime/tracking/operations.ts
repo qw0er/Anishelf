@@ -6,7 +6,6 @@ import { toast } from "../../../shared/components/ui/toast.js";
 import i18n from "../../../shared/i18n.js";
 import type { TrackingIdentity } from "./queries.js";
 
-const generations = new WeakMap<QueryClient, Set<string>>();
 const seen = new WeakMap<QueryClient, Map<string, string>>();
 export const operationsQuery = (
 	identity: TrackingIdentity,
@@ -48,23 +47,23 @@ export function reportTrackingOperations(
 	identity: TrackingIdentity,
 	operations: TrackingOperationsResponse,
 ): void {
-	let observed = generations.get(client);
-	if (!observed) {
-		observed = new Set();
-		generations.set(client, observed);
-	}
-	const established = observed.has(identity.generation);
-	observed.add(identity.generation);
 	let states = seen.get(client);
 	if (!states) {
 		states = new Map();
 		seen.set(client, states);
 	}
+	const current = new Set(
+		operations.map((op) => `${identity.generation}:${op.id}`),
+	);
+	for (const key of states.keys())
+		if (!current.has(key)) {
+			toast.close(`tracking-operation:${key.slice(key.indexOf(":") + 1)}`);
+			states.delete(key);
+		}
 	for (const op of operations) {
 		const key = `${identity.generation}:${op.id}`;
 		const state = `${op.revision}:${op.state}:${op.error}`;
 		if (states.get(key) === state) continue;
-		const prior = states.get(key);
 		states.set(key, state);
 		const id = `tracking-operation:${op.id}`;
 		if (op.state === "cancelled") {
@@ -76,28 +75,27 @@ export function reportTrackingOperations(
 			void client.invalidateQueries({ queryKey: ["tracking", "entry"] });
 		}
 		if (
-			op.state === "succeeded" &&
-			!prior &&
-			!(op.origin === "automatic" && established)
-		)
+			![
+				"failed",
+				"authorization-required",
+				"conflict",
+				"decision-required",
+			].includes(op.state)
+		) {
+			toast.close(id);
 			continue;
+		}
 		const notice = {
 			id,
-			type:
-				op.state === "succeeded"
-					? ("success" as const)
-					: op.state === "pending" || op.state === "submitting"
-						? ("loading" as const)
-						: ("error" as const),
+			type: "error" as const,
 			title: i18n.t(`trackingUpdate.states.${op.state}`),
-			timeout: op.state === "pending" || op.state === "submitting" ? 0 : 10000,
+			timeout: 10000,
 			actionProps: {
 				children: i18n.t("trackingUpdate.edit"),
 				onClick: () => window.location.assign(`/anime/tracked/${op.mediaId}`),
 			},
 		};
-		if (prior) toast.update(id, notice);
-		else toast.add(notice);
+		toast.add(notice);
 		if (op.state === "authorization-required")
 			void client.invalidateQueries({ queryKey: ["tracking", "account"] });
 	}
@@ -106,7 +104,6 @@ export function clearTrackingOperationNotices(
 	client: QueryClient,
 	generation: string,
 ): void {
-	generations.get(client)?.delete(generation);
 	const states = seen.get(client);
 	if (!states) return;
 	for (const key of states.keys())

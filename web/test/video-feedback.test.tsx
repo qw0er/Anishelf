@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { afterEach, expect, test, vi } from "vitest";
-import { subtitlePolicy } from "../src/features/media/subtitles/public.js";
+import { subtitlePolicy } from "../src/features/media/subtitles/policy.js";
 import VideoPlayer from "../src/features/playback/player/components/video-player.js";
 import { toast } from "../src/shared/components/ui/toast.js";
 import {

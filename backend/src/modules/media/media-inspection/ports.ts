@@ -21,3 +21,20 @@ export interface MediaInspectionApi {
 		expectedSourceVersion?: string,
 	): Promise<MediaInspectionResult>;
 }
+
+export interface InspectionRecord {
+	scopeId: string;
+	fileId: string;
+	sourceVersion: string;
+	formatVersion: string;
+	info: MediaInfo;
+}
+export interface InspectionStore {
+	find(scopeId: string, fileId: string): InspectionRecord | null;
+	save(value: InspectionRecord): void;
+	reconcile(
+		scopes: readonly string[],
+		files: ReadonlyMap<string, string>,
+		configuredScopes: readonly string[],
+	): number;
+}

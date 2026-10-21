@@ -1,9 +1,7 @@
 import * as mediacompatibilityApi from "../src/features/media/media-compatibility/api.js";
 import * as preparationApi from "../src/features/media/preparation/api.js";
-import {
-	usePreparationAction,
-	usePreparationContext,
-} from "../src/features/media/preparation/public.js";
+import { usePreparationContext } from "../src/features/media/preparation/context.js";
+import { usePreparationAction } from "../src/features/media/preparation/use-preparations.js";
 import * as settingsApi from "../src/features/settings/api.js";
 // @vitest-environment happy-dom
 

@@ -50,7 +50,7 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 	private closed = false;
 	private checking = false;
 	private writes: Promise<unknown> = Promise.resolve();
-	private readonly clients = new Set<QbittorrentApi>();
+	private client: QbittorrentApi | undefined;
 	private readonly suggestedApiUrl: string | null;
 	constructor(
 		private readonly store: ConnectionStore,
@@ -182,11 +182,11 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 				"INVALID_REQUEST",
 				"Save qBittorrent credentials first.",
 			);
-		const client = this.createClient({ ...connection, logger: this.logger });
-		this.clients.add(client);
 		this.checking = true;
 		try {
-			const result = await client.probe();
+			const result = await this.withClient(generation, (client) =>
+				client.probe(),
+			);
 			this.assertGeneration(generation);
 			return {
 				generation,
@@ -210,13 +210,13 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 				code: error.code,
 			};
 		} finally {
-			await client.close();
 			this.checking = false;
-			this.clients.delete(client);
 		}
 	}
 	private async closeClients() {
-		await Promise.allSettled([...this.clients].map((client) => client.close()));
+		const client = this.client;
+		this.client = undefined;
+		await client?.close();
 	}
 	async withClient<T>(
 		generation: string,
@@ -228,19 +228,13 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 				"ACQUISITION_UNAVAILABLE",
 				"Configure qBittorrent first.",
 			);
-		const client = this.createClient({
+		this.client ??= this.createClient({
 			...this.saved.connection,
 			logger: this.logger,
 		});
-		this.clients.add(client);
-		try {
-			const result = await operation(client);
-			this.assertGeneration(generation);
-			return result;
-		} finally {
-			await client.close();
-			this.clients.delete(client);
-		}
+		const result = await operation(this.client);
+		this.assertGeneration(generation);
+		return result;
 	}
 	async activeHashes(signal: AbortSignal): Promise<string[] | null> {
 		if (this.unreadable)
@@ -249,25 +243,13 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 				"Saved qBittorrent credentials could not be loaded.",
 			);
 		if (!this.saved.connection) return null;
-		const generation = this.saved.generation;
-		this.assertGeneration(generation);
-		const client = this.createClient({
-			...this.saved.connection,
-			logger: this.logger,
-		});
-		this.clients.add(client);
-		try {
-			const tasks = await client.tasks(signal);
-			this.assertGeneration(generation);
-			return tasks.flatMap((task) => [
+		return this.withClient(this.saved.generation, async (client) =>
+			(await client.tasks(signal)).flatMap((task) => [
 				task.hash,
 				...(task.v1Hash ? [task.v1Hash] : []),
 				...(task.v2Hash ? [task.v2Hash] : []),
-			]);
-		} finally {
-			await client.close();
-			this.clients.delete(client);
-		}
+			]),
+		);
 	}
 	async close() {
 		this.closed = true;

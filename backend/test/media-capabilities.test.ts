@@ -13,8 +13,6 @@ import * as processTools from "../src/platform/media/process.js";
 import { MediaTools } from "../src/platform/media/tools.js";
 
 const listings: Record<MediaCapabilityKind, string> = {
-	codecs:
-		"Codecs:\n D..... = Decoding supported\n -------\n DEV.L. hevc HEVC (decoders: hevc hevc_cuvid) (encoders: libx265 hevc_nvenc)\n ..D... bin_data binary data\n DES... subrip SubRip subtitle\n",
 	encoders:
 		"Encoders:\n V..... = Video\n ------\n V....D libx265 libx265 H.265 (codec hevc)\n V....D hevc_nvenc NVIDIA NVENC hevc encoder (codec hevc)\n A....D libopus libopus Opus (codec opus)\n S..... srt SubRip subtitle (codec subrip)\n",
 	decoders:
@@ -25,30 +23,19 @@ const listings: Record<MediaCapabilityKind, string> = {
 		"Formats:\n ---\n D  mov,mp4,m4a,3gp,3g2,mj2 QuickTime / MOV\n D  matroska,webm Matroska / WebM\n",
 	filters:
 		"Filters:\n T.. = Timeline support\n ------\n TS scale V->V Scale input\n ... pad V->V Pad video\n .. anull A->A Pass audio\n .. testsrc |->V Video source\n",
-	bitstreamFilters: "Bitstream filters:\nhevc_mp4toannexb\naac_adtstoasc\n",
 	protocols:
 		"Supported file protocols:\nInput:\n file\n https\nOutput:\n file\n pipe\n",
-	devices:
-		"Devices:\n ---\n DE alsa ALSA audio\n D  video4linux2,v4l2 Video4Linux\n D  libcdio\n",
 	pixelFormats:
 		"Pixel formats:\nFLAGS NAME NB_COMPONENTS BITS_PER_PIXEL BIT_DEPTHS\n-----\nIO... yuv420p 3 12 8-8-8\n..H.. cuda 0 0 0\nIO... rgb24 3 24\n",
-	sampleFormats: "name depth\nu8 8\nfltp 32\ns64p 64\n",
-	hardwareAccelerations:
-		"Hardware acceleration methods:\ncuda\nvaapi\nvulkan\n",
 };
 const switches: Record<string, MediaCapabilityKind> = {
-	"-codecs": "codecs",
 	"-encoders": "encoders",
 	"-decoders": "decoders",
 	"-muxers": "muxers",
 	"-demuxers": "demuxers",
 	"-filters": "filters",
-	"-bsfs": "bitstreamFilters",
 	"-protocols": "protocols",
-	"-devices": "devices",
 	"-pix_fmts": "pixelFormats",
-	"-sample_fmts": "sampleFormats",
-	"-hwaccels": "hardwareAccelerations",
 };
 const available = {
 	available: true as const,
@@ -98,13 +85,6 @@ test("retains codec identities, all stream kinds, format aliases and protocol di
 			}),
 		]),
 	);
-	expect(parseMediaCapabilities("codecs", listings.codecs)).toContainEqual(
-		expect.objectContaining({
-			name: "bin_data",
-			mediaType: "data",
-			flags: "..D...",
-		}),
-	);
 	expect(
 		parseMediaCapabilities("demuxers", listings.demuxers).map(
 			(entry) => entry.name,
@@ -116,12 +96,6 @@ test("retains codec identities, all stream kinds, format aliases and protocol di
 });
 
 test("accepts empty component lists, but rejects malformed or unrecognized output", () => {
-	expect(
-		parseMediaCapabilities(
-			"hardwareAccelerations",
-			"Hardware acceleration methods:\n",
-		),
-	).toEqual([]);
 	expect(parseMediaCapabilities("encoders", "Encoders:\n ------\n")).toEqual(
 		[],
 	);
@@ -171,7 +145,7 @@ test("isolates failed categories, bounds enumeration and distinguishes absent fr
 	});
 	expect(hasMediaCapability(result.inventory.encoders, "libx264")).toBeNull();
 	expect(hasMediaCapability(result.inventory.muxers, "missing")).toBe(false);
-	expect(result.inventory.hardwareAccelerations.status).toBe("ready");
+	expect(result.inventory.muxers.status).toBe("ready");
 	expect(result.runtimeValidation).toBe("unverified");
 	expect(JSON.stringify(result)).not.toContain("/private/");
 });
@@ -239,7 +213,7 @@ test("enumerates the installed FFmpeg build with bounded child processes", async
 	const result = await tools.capabilities();
 	expect(result.status).toBe("ready");
 	expect(result.tools.ffmpeg.version).toMatch(/^ffmpeg version /);
-	expect(result.inventory.codecs.entries.length).toBeGreaterThan(3);
+	expect(result.inventory.decoders.entries.length).toBeGreaterThan(3);
 	expect(
 		result.inventory.encoders.entries.some(
 			(entry) => entry.mediaType === "subtitle",
@@ -255,18 +229,12 @@ test("enumerates the installed FFmpeg build with bounded child processes", async
 	expect(JSON.stringify(result)).not.toContain(tools.status.ffmpeg.path);
 });
 
-test("parses FFmpeg 5 and 7 filters without a separator and two-dash device tables", () => {
+test("parses FFmpeg 5 and 7 filters without a separator", () => {
 	const filters =
 		"Filters:\n T.. = Timeline support\n .S. = Slice threading\n ..C = Command support\n A = Audio input/output\n V = Video input/output\n N = Dynamic number and/or type of input/output\n | = Source or sink filter\n ... scale V->V Scale video\n ..C movie |->N Read a movie\n ... buffersink V->| Buffer frames\n";
 	expect(
 		parseMediaCapabilities("filters", filters).map((entry) => entry.name),
 	).toEqual(["buffersink", "movie", "scale"]);
-	expect(
-		parseMediaCapabilities(
-			"devices",
-			"Devices:\n D. = Demuxing supported\n .E = Muxing supported\n --\n DE alsa ALSA audio\n",
-		),
-	).toContainEqual(expect.objectContaining({ name: "alsa", flags: "DE" }));
 	expect(() =>
 		parseMediaCapabilities("filters", `${filters}corrupt row\n`),
 	).toThrow("Invalid capability table row");

@@ -26,7 +26,6 @@ export default function FilePlayer({
 	returnDirectoryId,
 	returnTo,
 	onRetry,
-	compatibilityScope = "",
 	slots,
 }: {
 	data: FileResponse;
@@ -34,7 +33,6 @@ export default function FilePlayer({
 	returnDirectoryId: string | null;
 	returnTo?: string | null;
 	onRetry(): void;
-	compatibilityScope?: string;
 	slots?: PlaybackUiSlots;
 }) {
 	const { t } = useTranslation();
@@ -52,7 +50,7 @@ export default function FilePlayer({
 		selectAudio,
 		onPrepared,
 		recheck,
-	} = usePlaybackController(data, compatibilityScope);
+	} = usePlaybackController(data);
 	const activeVersion =
 		compatibility.selection?.sourceVersion ??
 		compatibility.result?.sourceVersion;

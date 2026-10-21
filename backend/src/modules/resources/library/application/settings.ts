@@ -8,11 +8,7 @@ import type { LibrarySynchronizer } from "./library-synchronizer.js";
 export class ResourceSettingsApplication {
 	constructor(
 		private readonly options: {
-			configuration: SettingsStore & {
-				patchSettings?(
-					patch: Partial<PersistentSettings>,
-				): Promise<Readonly<PersistentSettings>>;
-			};
+			configuration: Pick<SettingsStore, "settings">;
 			synchronizer: LibrarySynchronizer;
 			rootChanged(): Promise<void>;
 			logger: Logger;
@@ -20,19 +16,6 @@ export class ResourceSettingsApplication {
 	) {}
 	getSettings(): Readonly<PersistentSettings> {
 		return { ...this.options.configuration.settings };
-	}
-	updateResourceSettings(input: {
-		resourceRoots: string[];
-	}): Promise<Readonly<PersistentSettings>> {
-		const patch = structuredClone(input);
-		return this.coordinateSettingsChange(() =>
-			this.options.configuration.patchSettings
-				? this.options.configuration.patchSettings(patch)
-				: this.options.configuration.update({
-						...this.options.configuration.settings,
-						...patch,
-					}),
-		);
 	}
 	applySettingsChange(
 		input: Partial<PersistentSettings>,

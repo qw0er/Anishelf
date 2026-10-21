@@ -16,6 +16,7 @@ import { LibraryIndex } from "../src/modules/resources/library/infrastructure/in
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import { DomainError } from "../src/shared/errors.js";
 import { createLibraryModule } from "./support/library.js";
+import { updateResourceSettings } from "./support/settings.js";
 
 let fixture: string;
 let root: string;
@@ -312,7 +313,7 @@ test("direct callers coalesce root preflight and exclude settings saves before t
 	try {
 		expect(libraryApp.state).toBeNull();
 		await expect(
-			libraryApp.updateResourceSettings({
+			updateResourceSettings(libraryApp, {
 				resourceRoots: [join(fixture, "next")],
 			}),
 		).rejects.toMatchObject({ code: "SETTINGS_BUSY" });
@@ -341,7 +342,7 @@ test("rejected preflight releases the operation without discarding the previous 
 	expect(index.snapshot).toEqual(previous);
 	const next = join(fixture, "next");
 	await mkdir(next);
-	await libraryApp.updateResourceSettings({ resourceRoots: [next] });
+	await updateResourceSettings(libraryApp, { resourceRoots: [next] });
 	expect(libraryApp.state).not.toBeNull();
 	await libraryApp.waitForCompletion();
 	expect(index.getDirectory("root").name).toBe("next");
@@ -374,7 +375,7 @@ test("closing during root preflight waits and prevents a late scan from starting
 	try {
 		await expect(libraryApp.startScan()).rejects.toThrow("shutting down");
 		await expect(
-			libraryApp.updateResourceSettings({ resourceRoots: [root] }),
+			updateResourceSettings(libraryApp, { resourceRoots: [root] }),
 		).rejects.toMatchObject({ code: "SETTINGS_BUSY" });
 		expect(stopped).toBe(false);
 	} finally {
@@ -410,7 +411,7 @@ test("direct settings saves exclude scans and shutdown waits for the save to set
 		logger: pino({ enabled: false }),
 	});
 	const input = { resourceRoots: [join(fixture, "next")] };
-	const save = application.updateResourceSettings(input);
+	const save = updateResourceSettings(application, input);
 	input.resourceRoots = ["/mutated-after-call"];
 	let stopped = false;
 	try {
@@ -418,7 +419,7 @@ test("direct settings saves exclude scans and shutdown waits for the save to set
 			code: "SETTINGS_BUSY",
 		});
 		await expect(
-			application.updateResourceSettings({ resourceRoots: [root] }),
+			updateResourceSettings(application, { resourceRoots: [root] }),
 		).rejects.toMatchObject({ code: "SETTINGS_BUSY" });
 		expect(preflight).not.toHaveBeenCalled();
 		const closing = application.close().then(() => {
@@ -464,7 +465,7 @@ test.each(["getFile", "openMedia"] as const)(
 		const pending = libraryApp[operation](id);
 		await opening;
 		try {
-			await libraryApp.updateResourceSettings({ resourceRoots: [next] });
+			await updateResourceSettings(libraryApp, { resourceRoots: [next] });
 			expect(() => index.getFile(id)).toThrow();
 		} finally {
 			release();

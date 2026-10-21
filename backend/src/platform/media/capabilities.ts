@@ -12,18 +12,13 @@ import type { MediaToolPolicy } from "./policy.js";
 import { runTool } from "./process.js";
 
 const commands: Record<MediaCapabilityKind, string> = {
-	codecs: "-codecs",
 	encoders: "-encoders",
 	decoders: "-decoders",
 	muxers: "-muxers",
 	demuxers: "-demuxers",
 	filters: "-filters",
-	bitstreamFilters: "-bsfs",
 	protocols: "-protocols",
-	devices: "-devices",
 	pixelFormats: "-pix_fmts",
-	sampleFormats: "-sample_fmts",
-	hardwareAccelerations: "-hwaccels",
 };
 const mediaTypes: Record<string, MediaCapabilityEntry["mediaType"]> = {
 	V: "video",
@@ -33,18 +28,13 @@ const mediaTypes: Record<string, MediaCapabilityEntry["mediaType"]> = {
 	T: "attachment",
 };
 const headers: Record<MediaCapabilityKind, RegExp> = {
-	codecs: /^Codecs:/m,
 	encoders: /^Encoders:/m,
 	decoders: /^Decoders:/m,
 	muxers: /^(?:File formats|Formats|Muxers):/m,
 	demuxers: /^(?:File formats|Formats|Demuxers):/m,
 	filters: /^Filters:/m,
-	devices: /^Devices:/m,
 	pixelFormats: /^Pixel formats:/m,
-	sampleFormats: /^name\s+depth\s*$/m,
-	bitstreamFilters: /^Bitstream filters:/m,
 	protocols: /^Supported file protocols:/m,
-	hardwareAccelerations: /^Hardware acceleration methods:/m,
 };
 
 /** Parse FFmpeg's advertised build components, never infer hardware runtime support. */
@@ -81,26 +71,10 @@ export function parseMediaCapabilities(
 			add(value, "", `${entries.get(value)?.flags ?? ""}${direction}`);
 		}
 		if (direction !== "O") throw new Error("Incomplete protocol inventory.");
-	} else if (
-		kind === "bitstreamFilters" ||
-		kind === "hardwareAccelerations" ||
-		kind === "sampleFormats"
-	) {
-		for (const line of lines.slice(
-			lines.findIndex((line) => headers[kind].test(line)) + 1,
-		)) {
-			if (!line.trim()) continue;
-			const match =
-				kind === "sampleFormats"
-					? line.match(/^\s*([\w-]+)\s+(\d+)\s*$/)
-					: line.match(/^\s*([\w-]+)\s*$/);
-			if (!match) throw new Error("Invalid capability entry.");
-			add(match[1] as string, match[2] ?? "");
-		}
 	} else {
 		// Filters in FFmpeg 5/7 have no separator; FFmpeg 6 format/device tables use "--".
 		const separator = lines.findIndex((line) =>
-			(kind === "devices" || kind === "muxers" || kind === "demuxers"
+			(kind === "muxers" || kind === "demuxers"
 				? /^\s*-{2,}\s*$/
 				: /^\s*-{3,}\s*$/
 			).test(line),
@@ -120,15 +94,13 @@ export function parseMediaCapabilities(
 			)
 				continue;
 			const pattern =
-				kind === "codecs"
-					? /^\s*([D.][E.][VASDT.][I.][L.][S.])\s+(\S+)\s+(.*)$/
-					: kind === "encoders" || kind === "decoders"
-						? /^\s*([VAS][FSXBD.]{5})\s+(\S+)\s+(.*)$/
-						: kind === "filters"
-							? /^\s*([TSC.]{2,3})\s+(\S+)\s+([AVN|]+->[AVN|]+)\s+(.*)$/
-							: kind === "pixelFormats"
-								? /^\s*([I.][O.][H.][P.][B.])\s+(\S+)\s+(\d+\s+\d+(?:\s+[\d-]+)?)\s*$/
-								: /^\s*([DEd. ]{1,3})\s+(\S+)(?:\s+(.*))?$/;
+				kind === "encoders" || kind === "decoders"
+					? /^\s*([VAS][FSXBD.]{5})\s+(\S+)\s+(.*)$/
+					: kind === "filters"
+						? /^\s*([TSC.]{2,3})\s+(\S+)\s+([AVN|]+->[AVN|]+)\s+(.*)$/
+						: kind === "pixelFormats"
+							? /^\s*([I.][O.][H.][P.][B.])\s+(\S+)\s+(\d+\s+\d+(?:\s+[\d-]+)?)\s*$/
+							: /^\s*([DEd. ]{1,3})\s+(\S+)(?:\s+(.*))?$/;
 			const match = line.match(pattern);
 			if (!match) throw new Error("Invalid capability table row.");
 			const flags = (match[1] as string).trim();
@@ -138,22 +110,17 @@ export function parseMediaCapabilities(
 					? `${match[3]} ${match[4]}`
 					: (match[3] ?? "").trim();
 			for (const name of names) {
-				const mediaType =
-					mediaTypes[flags[kind === "codecs" ? 2 : 0] ?? ""] ?? null;
+				const mediaType = mediaTypes[flags[0] ?? ""] ?? null;
 				const codec =
-					kind === "codecs"
-						? name
-						: kind === "encoders" || kind === "decoders"
-							? (description.match(/\(codec ([\w-]+)\)/)?.[1] ?? name)
-							: null;
+					kind === "encoders" || kind === "decoders"
+						? (description.match(/\(codec ([\w-]+)\)/)?.[1] ?? name)
+						: null;
 				add(
 					name,
 					description,
 					flags,
 					codec,
-					kind === "codecs" || kind === "encoders" || kind === "decoders"
-						? mediaType
-						: null,
+					kind === "encoders" || kind === "decoders" ? mediaType : null,
 				);
 			}
 		}

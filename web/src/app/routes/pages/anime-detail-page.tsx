@@ -49,7 +49,6 @@ export function AnimeDetailPage() {
 			source={source}
 			summary={byFile.get(source.fileId)}
 			summaryLoading={summaries.isPending}
-			scope={scope}
 			gate={gate}
 		/>
 	);

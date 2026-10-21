@@ -25,40 +25,39 @@ import { TrackingViewingCommands } from "./tracking/application/viewing.js";
 export async function createAnimeModule(options: {
 	system: SystemApi;
 	resources: ResourcesApi;
-	database?: AnimePersistence | undefined;
+	database: AnimePersistence;
 	logger: Logger;
 }) {
 	const { system, resources: library, database, logger } = options;
 	const requests = new AniListWrapper({ logger });
-	const tracking = database
-		? await createTrackingModule({
-				dataDir: system.deployment.dataDir,
-				store: database.tracking,
-				listStore: database.trackingLists,
-				operationStore: database.trackingOperations,
-				...createAniListTracking(requests),
-				logger,
-			})
-		: undefined;
+	const tracking = await createTrackingModule({
+		dataDir: system.deployment.dataDir,
+		store: database.tracking,
+		listStore: database.trackingLists,
+		operationStore: database.trackingOperations,
+		...createAniListTracking(requests),
+		logger,
+	});
 	let metadata: MetadataApplication | undefined;
-	if (database)
-		try {
-			metadata = await createMetadataModule({
-				dataDir: system.deployment.dataDir,
-				store: database.metadata,
-				...createAniListMetadata(requests),
-				logger,
-			});
-		} catch (err) {
-			logger.warn(
-				{ event: "metadata.unavailable", err },
-				"Metadata cache unavailable; local identification remains usable.",
-			);
-		}
+	try {
+		metadata = await createMetadataModule({
+			dataDir: system.deployment.dataDir,
+			store: database.metadata,
+			...createAniListMetadata(requests),
+			logger,
+		});
+	} catch (err) {
+		logger.warn(
+			{ event: "metadata.unavailable", err },
+			"Metadata cache unavailable; local identification remains usable.",
+		);
+	}
 	const catalog = createCatalogModule({ database, metadata, library, logger });
-	const libraryQueries = tracking
-		? new AnimeLibraryQueries({ catalog, lists: tracking, logger })
-		: undefined;
+	const libraryQueries = new AnimeLibraryQueries({
+		catalog,
+		lists: tracking,
+		logger,
+	});
 	const identification = createIdentificationModule({
 		library,
 		sources: library.sources,
@@ -118,10 +117,9 @@ export async function createAnimeModule(options: {
 				}
 			: undefined,
 	};
-	const viewing =
-		catalog && tracking
-			? new TrackingViewingCommands(catalog, tracking, undefined, logger)
-			: undefined;
+	const viewing = catalog
+		? new TrackingViewingCommands(catalog, tracking, undefined, logger)
+		: undefined;
 	let stopped: Promise<void> | undefined;
 	let closed: Promise<void> | undefined;
 	const quiesce = () =>
@@ -129,7 +127,7 @@ export async function createAnimeModule(options: {
 			await Promise.all([
 				identification.close(),
 				catalog?.quiesce(),
-				tracking?.close(),
+				tracking.close(),
 			]);
 		})());
 	return {

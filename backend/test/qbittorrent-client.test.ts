@@ -6,13 +6,18 @@ import {
 import pino from "pino";
 import { afterEach, expect, test } from "vitest";
 import { createQbittorrentClient } from "../src/modules/acquisition/create.js";
-import {
-	type QbittorrentApi,
-	QbittorrentError,
-	type QbittorrentOptions,
+import type {
+	QbittorrentApi,
+	QbittorrentOptions,
 } from "../src/modules/acquisition/public.js";
 
 const hash = "0123456789abcdef0123456789abcdef01234567";
+const addInput = {
+	source: { magnet: `magnet:?xt=urn:btih:${hash}` },
+	savePath: "/downloads",
+	category: "anishelf",
+	tags: [],
+};
 const torrent = {
 	hash,
 	name: "episode.mkv",
@@ -151,11 +156,11 @@ test("lookup distinguishes absent task from a failed or invalid snapshot", async
 	});
 	expect(await client.task(hash)).toBeNull();
 	expect(await client.files(hash)).toEqual([
-		{ index: 0, path: "episode.mkv", sizeBytes: 100, progress: 1, priority: 1 },
+		{ path: "episode.mkv", sizeBytes: 100, progress: 1, priority: 1 },
 	]);
 });
-test("single lookup checks returned identity and validates snapshots", async () => {
-	let body = JSON.stringify([{ ...torrent, hash: "a".repeat(40) }]);
+test("single lookup checks returned identity", async () => {
+	const body = JSON.stringify([{ ...torrent, hash: "a".repeat(40) }]);
 	const { client } = await fixture((request, response) => {
 		if (!request.path.includes("/torrents/info")) return false;
 		response.end(body);
@@ -163,32 +168,6 @@ test("single lookup checks returned identity and validates snapshots", async () 
 	await expect(client.task(hash)).rejects.toMatchObject({
 		code: "invalid-response",
 	});
-	body = JSON.stringify([{ ...torrent, progress: 2 }]);
-	await expect(client.tasks()).rejects.toMatchObject({
-		code: "invalid-response",
-	});
-	body = "<html>proxy login</html>";
-	await expect(client.tasks()).rejects.toMatchObject({
-		code: "invalid-response",
-	});
-});
-test("pause/resume initialize version before choosing 5.x endpoints; remove preserves files", async () => {
-	const { client, requests } = await fixture();
-	await client.pause(hash.toUpperCase());
-	await client.resume(hash);
-	await client.remove(hash);
-	await client.recheck(hash);
-	const writes = requests.filter((request) =>
-		/\/torrents\//.test(request.path),
-	);
-	expect(writes.map((request) => request.path)).toEqual([
-		"/qbt/api/v2/torrents/stop",
-		"/qbt/api/v2/torrents/start",
-		"/qbt/api/v2/torrents/delete",
-		"/qbt/api/v2/torrents/recheck",
-	]);
-	expect(writes[0]?.body).toBe(`hashes=${hash}`);
-	expect(writes[2]?.body).toBe(`hashes=${hash}&deleteFiles=false`);
 });
 test("magnet and torrent multipart submissions preserve explicit placement and tags", async () => {
 	const { client, requests } = await fixture();
@@ -238,15 +217,15 @@ test("server-rejected adds are distinct from unknown delivery and are never retr
 });
 test("lost mutation response is unknown and never automatically resent", async () => {
 	const { client, requests } = await fixture((request, response) => {
-		if (!request.path.endsWith("/torrents/delete")) return false;
+		if (!request.path.endsWith("/torrents/add")) return false;
 		response.destroy();
 	});
-	await expect(client.remove(hash)).rejects.toMatchObject({
+	await expect(client.add(addInput)).rejects.toMatchObject({
 		code: "unavailable",
 		outcome: "unknown",
 	});
 	expect(
-		requests.filter((request) => request.path.endsWith("/torrents/delete")),
+		requests.filter((request) => request.path.endsWith("/torrents/add")),
 	).toHaveLength(1);
 });
 test("login refusal is sanitized and commands remain unsent", async () => {
@@ -254,7 +233,7 @@ test("login refusal is sanitized and commands remain unsent", async () => {
 		if (!request.path.endsWith("/auth/login")) return false;
 		response.end("Fails. password-secret");
 	});
-	await expect(client.pause(hash)).rejects.toMatchObject({
+	await expect(client.add(addInput)).rejects.toMatchObject({
 		code: "unauthorized",
 		outcome: "not-sent",
 	});
@@ -281,7 +260,7 @@ test("unsupported major version blocks mutations", async () => {
 		if (!request.path.endsWith("/app/version")) return false;
 		response.end("v4.6.7");
 	});
-	await expect(client.pause(hash)).rejects.toMatchObject({
+	await expect(client.add(addInput)).rejects.toMatchObject({
 		code: "unsupported-version",
 		outcome: "not-sent",
 	});
@@ -291,10 +270,10 @@ test("unsupported major version blocks mutations", async () => {
 });
 test("SDK request timeout retains unknown mutation outcome", async () => {
 	const { client } = await fixture(
-		(request) => (request.path.endsWith("/torrents/stop") ? undefined : false),
+		(request) => (request.path.endsWith("/torrents/add") ? undefined : false),
 		{ timeoutMs: 150 },
 	);
-	await expect(client.pause(hash)).rejects.toMatchObject({
+	await expect(client.add(addInput)).rejects.toMatchObject({
 		code: "timeout",
 		outcome: "unknown",
 	});
@@ -331,7 +310,7 @@ test("cancelling an in-flight mutation keeps its result unknown without resendin
 	let seen = () => {};
 	let respond = () => {};
 	const { client, requests } = await fixture((request, response) => {
-		if (!request.path.endsWith("/torrents/stop")) return false;
+		if (!request.path.endsWith("/torrents/add")) return false;
 		respond = () => response.end();
 		seen();
 	});
@@ -339,7 +318,7 @@ test("cancelling an in-flight mutation keeps its result unknown without resendin
 	const received = new Promise<void>((resolve) => {
 		seen = resolve;
 	});
-	const mutation = client.pause(hash, controller.signal);
+	const mutation = client.add(addInput, controller.signal);
 	const assertion = expect(mutation).rejects.toMatchObject({
 		code: "cancelled",
 		outcome: "unknown",
@@ -349,7 +328,7 @@ test("cancelling an in-flight mutation keeps its result unknown without resendin
 	respond();
 	await assertion;
 	expect(
-		requests.filter((request) => request.path.endsWith("/torrents/stop")),
+		requests.filter((request) => request.path.endsWith("/torrents/add")),
 	).toHaveLength(1);
 });
 test("cancelling one login waiter does not cancel another operation or send its mutation", async () => {
@@ -367,7 +346,7 @@ test("cancelling one login waiter does not cancel another operation or send its 
 	const received = new Promise<void>((resolve) => {
 		seen = resolve;
 	});
-	const mutation = client.pause(hash, controller.signal);
+	const mutation = client.add(addInput, controller.signal);
 	const assertion = expect(mutation).rejects.toMatchObject({
 		code: "cancelled",
 		outcome: "not-sent",
@@ -382,36 +361,8 @@ test("cancelling one login waiter does not cancel another operation or send its 
 		requests.filter((request) => request.path.endsWith("/auth/login")),
 	).toHaveLength(1);
 	expect(
-		requests.some((request) => request.path.endsWith("/torrents/stop")),
+		requests.some((request) => request.path.endsWith("/torrents/add")),
 	).toBe(false);
-});
-test("invalid endpoint credentials and wildcard hashes are rejected locally", async () => {
-	const { client, requests } = await fixture();
-	expect(() => client.pause("all")).toThrow(QbittorrentError);
-	expect(() => client.remove(`${hash}|${hash}`)).toThrow(QbittorrentError);
-	expect(() =>
-		client.add({
-			source: { magnet: "https://example.org/file.torrent" },
-			savePath: "/downloads",
-			category: "anishelf",
-			tags: [],
-		}),
-	).toThrow(QbittorrentError);
-	expect(requests).toHaveLength(0);
-	for (const url of [
-		"file:///tmp/api",
-		"http://user:secret@localhost",
-		"http://localhost/?secret=x",
-	]) {
-		expect(() =>
-			createQbittorrentClient({
-				url,
-				username: "u",
-				password: "p",
-				logger: pino({ enabled: false }),
-			}),
-		).toThrow(QbittorrentError);
-	}
 });
 
 test("SDK add completion leaves task acceptance to hash reconciliation", async () => {
@@ -436,7 +387,7 @@ test("server errors do not retry writes or become authoritative empty snapshots"
 		if (!request.path.includes("/torrents/")) return false;
 		response.writeHead(503).end("password-secret");
 	});
-	await expect(client.remove(hash)).rejects.toMatchObject({
+	await expect(client.add(addInput)).rejects.toMatchObject({
 		code: "unavailable",
 		outcome: "unknown",
 	});
@@ -450,20 +401,11 @@ test("server errors do not retry writes or become authoritative empty snapshots"
 });
 test("pre-cancelled mutations never send even authentication requests", async () => {
 	const { client, requests } = await fixture();
-	await expect(client.pause(hash, AbortSignal.abort())).rejects.toMatchObject({
-		code: "cancelled",
-		outcome: "not-sent",
-	});
+	await expect(client.add(addInput, AbortSignal.abort())).rejects.toMatchObject(
+		{
+			code: "cancelled",
+			outcome: "not-sent",
+		},
+	);
 	expect(requests).toHaveLength(0);
-});
-test("malformed file indexes fail business response validation", async () => {
-	const { client } = await fixture((request, response) => {
-		if (!request.path.includes("/torrents/files")) return false;
-		response.end(
-			JSON.stringify([{ name: "x.mkv", size: 10, progress: 1, priority: 1 }]),
-		);
-	});
-	await expect(client.files(hash)).rejects.toMatchObject({
-		code: "invalid-response",
-	});
 });

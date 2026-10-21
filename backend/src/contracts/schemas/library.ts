@@ -77,6 +77,7 @@ export const FileDtoSchema = Type.Object(
 		sizeBytes: Type.Number({ minimum: 0 }),
 		modifiedAt: Type.String(),
 		mimeType: Type.String(),
+		sourceVersion: Type.Optional(Type.String()),
 	},
 	{ additionalProperties: false },
 );

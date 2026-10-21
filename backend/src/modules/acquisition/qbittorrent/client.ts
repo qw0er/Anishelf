@@ -1,5 +1,4 @@
 import { QBittorrent, TorrentClientError } from "@ctrl/qbittorrent";
-import { Check } from "typebox/value";
 import {
 	type AddDownload,
 	type DownloadTask,
@@ -8,19 +7,7 @@ import {
 	type QbittorrentFailureCode,
 	type QbittorrentOptions,
 } from "./domain/model.js";
-import {
-	filesSchema,
-	preferencesSchema,
-	tasksSchema,
-} from "./infrastructure/schema.js";
 
-function inputError(): never {
-	throw new QbittorrentError("invalid-input", "not-sent");
-}
-function hashValue(value: string): string {
-	if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i.test(value)) inputError();
-	return value.toLowerCase();
-}
 function text(value: unknown): value is string {
 	return (
 		typeof value === "string" &&
@@ -38,35 +25,11 @@ export class QbittorrentClient implements QbittorrentApi {
 	private readonly logger;
 
 	constructor(options: QbittorrentOptions) {
-		let url: URL;
-		try {
-			url = new URL(options.url);
-		} catch {
-			inputError();
-		}
-		if (
-			!["http:", "https:"].includes(url.protocol) ||
-			url.username ||
-			url.password ||
-			url.search ||
-			url.hash ||
-			!text(options.username) ||
-			!text(options.password)
-		)
-			inputError();
-		url.pathname = `${url.pathname.replace(/\/+$/, "")}/`;
-		const timeoutMs = options.timeoutMs ?? 30_000;
-		if (
-			!Number.isSafeInteger(timeoutMs) ||
-			timeoutMs < 1 ||
-			timeoutMs > 2_147_483_647
-		)
-			inputError();
 		this.sdk = new QBittorrent({
-			baseUrl: url.href,
+			baseUrl: options.url,
 			username: options.username,
 			password: options.password,
-			timeout: timeoutMs,
+			timeout: options.timeoutMs ?? 30_000,
 		});
 		this.logger = options.logger.child({ module: "qbittorrent" });
 		this.logger.debug(
@@ -80,12 +43,13 @@ export class QbittorrentClient implements QbittorrentApi {
 			const version = this.sdk.state.version?.version;
 			const apiVersion = await this.sdk.getApiVersion();
 			const defaultSavePath = await this.sdk.getDefaultSavePath();
-			const preferences: unknown = await this.sdk.getPreferences();
+			const preferences = await this.sdk.getPreferences();
 			if (
 				!text(version) ||
 				!/^2\.\d+\.\d+$/.test(apiVersion) ||
 				!text(defaultSavePath) ||
-				!Check(preferencesSchema, preferences)
+				typeof preferences.temp_path_enabled !== "boolean" ||
+				typeof preferences.temp_path !== "string"
 			)
 				throw new QbittorrentError("invalid-response", "read");
 			return {
@@ -101,7 +65,7 @@ export class QbittorrentClient implements QbittorrentApi {
 		return this.run("tasks", false, signal, () => this.readTasks());
 	}
 	task(hash: string, signal?: AbortSignal) {
-		const normalized = hashValue(hash);
+		const normalized = hash.toLowerCase();
 		return this.run("task", false, signal, async () => {
 			const tasks = await this.readTasks(normalized);
 			if (
@@ -115,16 +79,10 @@ export class QbittorrentClient implements QbittorrentApi {
 		});
 	}
 	files(hash: string, signal?: AbortSignal) {
-		const normalized = hashValue(hash);
+		const normalized = hash.toLowerCase();
 		return this.run("files", false, signal, async () => {
-			const result: unknown = await this.sdk.torrentFiles(normalized);
-			if (
-				!Check(filesSchema, result) ||
-				new Set(result.map((file) => file.index)).size !== result.length
-			)
-				throw new QbittorrentError("invalid-response", "read");
+			const result = await this.sdk.torrentFiles(normalized);
 			return result.map((file) => ({
-				index: file.index,
 				path: file.name,
 				sizeBytes: file.size,
 				progress: file.progress,
@@ -133,38 +91,6 @@ export class QbittorrentClient implements QbittorrentApi {
 		});
 	}
 	add(input: AddDownload, signal?: AbortSignal) {
-		if (
-			!text(input.savePath) ||
-			!text(input.category) ||
-			input.category.length > 256 ||
-			input.tags.length > 32 ||
-			input.tags.some(
-				(tag) => !text(tag) || tag.length > 256 || tag.includes(","),
-			)
-		)
-			inputError();
-		if ("magnet" in input.source) {
-			// Only already-resolved magnets or bounded torrent bytes: never arbitrary URLs.
-			if (!text(input.source.magnet) || input.source.magnet.length > 4096)
-				inputError();
-			let magnet: URL;
-			try {
-				magnet = new URL(input.source.magnet);
-			} catch {
-				inputError();
-			}
-			if (
-				magnet.protocol !== "magnet:" ||
-				!magnet.searchParams
-					.getAll("xt")
-					.some((xt) => /^urn:btih:(?:[a-f0-9]{40}|[a-z2-7]{32})$/i.test(xt))
-			)
-				inputError();
-		} else if (
-			!input.source.torrent.byteLength ||
-			input.source.torrent.byteLength > 10 * 1024 * 1024
-		)
-			inputError();
 		const source =
 			"magnet" in input.source
 				? input.source.magnet
@@ -181,37 +107,9 @@ export class QbittorrentClient implements QbittorrentApi {
 			else await this.sdk.addTorrent(source, options);
 		});
 	}
-	pause(hash: string, signal?: AbortSignal) {
-		const normalized = hashValue(hash);
-		return this.run("pause", true, signal, async () => {
-			await this.sdk.stopTorrent(normalized);
-		});
-	}
-	resume(hash: string, signal?: AbortSignal) {
-		const normalized = hashValue(hash);
-		return this.run("resume", true, signal, async () => {
-			await this.sdk.startTorrent(normalized);
-		});
-	}
-	remove(hash: string, signal?: AbortSignal) {
-		const normalized = hashValue(hash);
-		return this.run("remove", true, signal, () =>
-			this.sdk.removeTorrent(normalized, false),
-		);
-	}
-	recheck(hash: string, signal?: AbortSignal) {
-		const normalized = hashValue(hash);
-		return this.run("recheck", true, signal, async () => {
-			await this.sdk.recheckTorrent(normalized);
-		});
-	}
 
 	private async readTasks(hash?: string): Promise<DownloadTask[]> {
-		const result: unknown = await this.sdk.listTorrents(
-			hash ? { hashes: hash } : {},
-		);
-		if (!Check(tasksSchema, result))
-			throw new QbittorrentError("invalid-response", "read");
+		const result = await this.sdk.listTorrents(hash ? { hashes: hash } : {});
 		return result.map((task) => ({
 			hash: task.hash.toLowerCase(),
 			v1Hash: task.infohash_v1?.toLowerCase() || null,

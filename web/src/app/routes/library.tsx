@@ -14,14 +14,13 @@ import { NotFoundPage } from "./pages/not-found-page.js";
 import { PlayerPage } from "./pages/player-page.js";
 import { SettingsPage } from "./pages/settings-page.js";
 import { directoryLoader, fileLoader } from "./resources-data.js";
-import { libraryLoader, scanAction } from "./root-data.js";
+import { libraryLoader } from "./root-data.js";
 import { settingsAction } from "./settings-data.js";
 export const libraryRoute: RouteObject = {
 	id: "library",
 	path: "/",
 	element: <App />,
 	loader: libraryLoader,
-	action: scanAction,
 	errorElement: <RouteError kind="page" />,
 	hydrateFallbackElement: <InitialLoading />,
 	children: [

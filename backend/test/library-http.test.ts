@@ -112,6 +112,7 @@ test("scans, navigates direct children, and reflects repeat/add/remove scans", a
 			id: expect.any(String),
 			parentId: folder?.id,
 			name: "nested.mp4",
+			sourceVersion: expect.any(String),
 			sizeBytes: 6,
 			modifiedAt: expect.any(String),
 			mimeType: "video/mp4",

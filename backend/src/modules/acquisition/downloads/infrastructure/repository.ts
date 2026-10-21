@@ -132,7 +132,7 @@ export class DownloadRepository implements DownloadStore {
 			.where(
 				and(
 					gt(intents.id, afterId),
-					notInArray(intents.state, ["missing", "blocked"]),
+					notInArray(intents.state, ["available", "missing", "blocked"]),
 					lte(intents.nextAttemptAt, now),
 				),
 			)

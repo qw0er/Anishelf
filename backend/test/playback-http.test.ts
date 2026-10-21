@@ -348,7 +348,7 @@ test("failed persistence uses typed errors and hides internal causes", async () 
 	);
 });
 
-test("unscanned libraries return unknown availability and unavailable storage returns 503", async () => {
+test("unscanned libraries return unknown availability", async () => {
 	await app.close();
 	library = createLibraryModule({
 		configuration: {
@@ -376,22 +376,6 @@ test("unscanned libraries return unknown availability and unavailable storage re
 		availability: "unknown",
 		items: [],
 	});
-	await app.close();
-	playback = new PlaybackApplication({ sources: library.sources, logger });
-	app = createHttpApp({
-		config: { host: "127.0.0.1", port: 3000 },
-		logger,
-		playback,
-	});
-	const unavailable = await app.inject({
-		url: "/api/history",
-		headers,
-	});
-	expect(unavailable.statusCode).toBe(503);
-	expect(unavailable.json().error.code).toBe("PLAYBACK_UNAVAILABLE");
-	expect((await app.inject({ url: "/api/health", headers })).statusCode).toBe(
-		200,
-	);
 });
 
 test("recent history includes completed and zero-position records, but excludes replaced files", async () => {

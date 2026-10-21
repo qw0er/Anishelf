@@ -187,48 +187,25 @@ backend development dependency. `npm run dev` displays colored level names,
 timestamps in the system time zone, and readable structured context and errors.
 Production startup and configured log files use the original JSON output.
 
-`ApplicationLogging.create` creates one Pino logger with a stable output router.
-Business modules and child loggers keep that instance through file rotation and
-output failure. `stdout` writes synchronously to descriptor 1; `file` uses
-`rotating-file-stream`; `both` sends each serialized record to both outputs.
-The application owns `flush`, `reopen` and idempotent `close` lifecycle methods.
-Normal shutdown closes logging after business modules; startup failure also closes
-logging. Output shutdown has a two-second deadline.
+`ApplicationLogging.create` creates one Pino logger. Pino `multistream` routes
+stdout/file/both output, and `rotating-file-stream` owns file buffering, rotation,
+retention and stream behavior. File modes create the parent directory and use mode
+0600. Normal shutdown ends the owned file stream after business modules finish.
+`flush` waits for queued file writes; `close` is idempotent. The application's
+existing overall shutdown deadline still applies.
 
-Logs use ISO UTC timestamps, numeric Pino levels, the `anishelf` service field,
-and newline-delimited JSON. Call sites supply event names. Common secret fields,
-authorization/cookie headers, bodies, and config/settings objects are redacted;
-callers must still avoid secrets under other keys or inside message strings.
+Logs retain ISO UTC timestamps, numeric Pino levels, the `anishelf` service field,
+newline-delimited JSON, child context and secret-field redaction. Callers must
+avoid secrets in unrecognized fields or message strings. File stream errors produce
+a concise stderr diagnostic. Output failures otherwise follow dependency defaults;
+there is no application queue, overflow protocol, stderr record replay, custom
+reopening/recovery or SIGHUP handler. Restart after correcting a failed destination.
 
-Configuration lives in `platform/logging/config.ts`; construction and redaction
-live in `index.ts`; output routing and lifecycle live in `output.ts`.
-File rotation uses the configured byte threshold and hourly/daily interval;
-`maxFiles` bounds archives, excluding the active file and `.txt` history. The
-library preserves complete records across rotation and manages archive retention.
-Retention warnings go to stderr; a failed archive deletion can temporarily exceed
-the limit until later retention succeeds. Use a dedicated path per process and
-retain the history file across restarts.
-
-A file FIFO limits accepted serialized bytes, including the in-flight record, to
-1 MiB. Records that exceed the available budget go directly to stderr rather
-than increasing the queue. File errors from write callbacks, stream events and
-synchronous setup/write operations all switch file output to stderr. The uncertain
-in-flight record is not replayed; its byte count is reported as potential loss.
-Remaining queued records go to stderr. stdout write failures, including EPIPE,
-are caught directly rather than relying on Pino's internal broken-pipe handling.
-The other output continues in `both` mode. When both outputs have failed,
-subsequent records go to stderr once. Emergency diagnostics bypass Pino to avoid
-recursive logging; stderr failure is contained but records are then lost.
-
-Unix `SIGHUP` or `ApplicationLogging.reopen()` serializes file reopening with
-in-flight writes, including explicit recovery from file failure. Signals are
-unregistered on close. There is no automatic retry loop; restart to restore failed
-stdout. Reopening does not replay previously lost records. A shutdown timeout
-reports queued bytes that may be lost and destroys the file stream.
-
-O11 and O12 are implemented. O13 remains partial: file output has bounded
-asynchronous buffering and shutdown draining, but stdout/fallback writes remain
-synchronous. See [Overall Requirements](requirements.md#logging-maintenance-o11o13).
+Construction and redaction live in `platform/logging/index.ts`; configuration lives
+in `config.ts`. File rotation uses the configured size and hourly/daily interval.
+`maxFiles` limits archives, excluding the active file and the library history file.
+Use a dedicated path per process and preserve that history file across restarts.
+See [Overall Requirements](requirements.md#logging-maintenance-o11o13).
 
 Biome respects `.gitignore` through `biome.json`; dependencies and build outputs
 are excluded. `npm run biome:fix` does not apply unsafe fixes.
@@ -456,13 +433,14 @@ The backend opens dataDir/anishelf.sqlite and applies committed versioned SQL
 migrations from backend/migrations. Ship that directory alongside backend/dist.
 The [relational persistence design](database-design.md) documents all 32 original
 tables and the current schema, including constraints, restart verification and
-rejection of unsupported formats. There is no historical database upgrade path.
+rejection of unsupported formats. The supported format-1 upgrade preserves metadata
+snapshots and references while simplifying their payload storage.
 
 Generate changes with `npm run db:generate --workspace backend`, review generated
 SQL and metadata, and commit them; never use destructive schema push at runtime.
 
-Database initialization failure preserves existing files and disables dependent
-persistence; independent browsing/direct media delivery remain usable. No automatic
+Database initialization failure preserves existing files and blocks application
+startup because persistence is part of the required module configuration. No automatic
 replacement or destructive recovery is performed.
 
 For a simple backup, stop the server cleanly and copy the complete data directory

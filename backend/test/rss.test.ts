@@ -89,6 +89,7 @@ async function fixture(
 		dataDir,
 		logger,
 		store: database.acquisition,
+		downloadStore: database.acquisitionDownloads,
 		anime: {
 			target: vi.fn(async () => state.target),
 			assess: (title: string, target: AcquisitionTarget) =>

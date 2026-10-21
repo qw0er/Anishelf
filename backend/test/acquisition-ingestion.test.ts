@@ -13,9 +13,9 @@ import type {
 } from "../src/modules/anime/metadata/public.js";
 import { AnimeReleaseAssessment } from "../src/modules/anime/release-assessment/application.js";
 import { AcquisitionIngestion } from "../src/modules/anime/release-assessment/ingestion.js";
-import { createLibraryModule } from "../src/modules/resources/composition/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { settingsStore } from "./settings-store.js";
+import { createLibraryModule } from "./support/library.js";
 
 const cleanup: (() => Promise<unknown>)[] = [];
 afterEach(async () => {

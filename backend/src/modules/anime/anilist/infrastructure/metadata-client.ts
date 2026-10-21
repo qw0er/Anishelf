@@ -58,7 +58,6 @@ export class AniListMetadataClient implements AniListMetadataApi {
 		)
 			invalid();
 		return {
-			raw,
 			data: {
 				items: raw.Page.media,
 				page,
@@ -85,7 +84,7 @@ export class AniListMetadataClient implements AniListMetadataApi {
 			raw.Media.id !== id
 		)
 			invalid();
-		return { raw, data: raw.Media };
+		return { data: raw.Media };
 	}
 	async relations(
 		id: number,
@@ -109,7 +108,7 @@ export class AniListMetadataClient implements AniListMetadataApi {
 			}),
 		});
 		if (!Check(schema, raw)) invalid();
-		return { raw, data: raw.Media.relations.edges };
+		return { data: raw.Media.relations.edges };
 	}
 	async airing(
 		id: number,
@@ -144,7 +143,6 @@ export class AniListMetadataClient implements AniListMetadataApi {
 		)
 			invalid();
 		return {
-			raw,
 			data: {
 				items: schedule.nodes,
 				page,

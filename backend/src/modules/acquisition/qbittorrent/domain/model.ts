@@ -1,7 +1,6 @@
 import type { Logger } from "pino";
 
 export type QbittorrentFailureCode =
-	| "invalid-input"
 	| "unauthorized"
 	| "unsupported-version"
 	| "unavailable"
@@ -48,7 +47,6 @@ export interface DownloadTask {
 }
 
 interface DownloadFile {
-	index: number;
 	/** Untrusted downloader-relative path; callers must validate mapped access. */
 	path: string;
 	sizeBytes: number;
@@ -79,11 +77,6 @@ export interface QbittorrentApi {
 	files(hash: string, signal?: AbortSignal): Promise<DownloadFile[]>;
 	/** Acceptance only: callers must reconcile by canonical hash before binding. */
 	add(input: AddDownload, signal?: AbortSignal): Promise<void>;
-	pause(hash: string, signal?: AbortSignal): Promise<void>;
-	resume(hash: string, signal?: AbortSignal): Promise<void>;
-	recheck(hash: string, signal?: AbortSignal): Promise<void>;
-	/** Always preserves downloaded data. Destructive deletion is future scope. */
-	remove(hash: string, signal?: AbortSignal): Promise<void>;
 	/** Reject new operations and drain SDK requests before clearing authentication. */
 	close(): Promise<void>;
 }

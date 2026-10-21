@@ -184,7 +184,32 @@ classes. `app/schema.ts` aggregates root schema entries for Drizzle initializati
 and migration tooling. Database connections remain in app/platform. Schema changes use explicit Drizzle migrations; supported upgrades preserve
 source identities, playback history and accepted submission intent.
 [Relational persistence](database-design.md) documents the complete table audit,
-normalized records, constraints and current-only database initialization.
+queried records, JSON snapshot documents, constraints and supported schema migrations.
+
+### Inspection and compatibility caches
+
+Media persists FFprobe information in SQLite, with one row per scope/file and a
+source-version plus inspection/FFprobe-version match. Concurrent consumers still
+share an active probe. Published, healthy library snapshots prune deleted/replaced
+files and removed scopes. Startup before the first publication, unavailable roots,
+partial scans and degraded monitoring cannot establish deletion and defer cleanup.
+Unchanged files survive restart without another probe; access/version checks remain.
+
+The Web interface keeps proactive checks for files in the directory being viewed.
+It persists definitive original-file compatibility results in IndexedDB, bounded
+by `lru-cache` to 1,000 files and 8 MiB of serialized entry data per origin. A file's
+new version replaces its previous result. Browser/user-agent or compatibility-rule
+version changes discard the persisted generation. There is no time-based expiry.
+Browser capability evidence retains only its small session memo; it is not a second
+persistent cache. Playback requests still bind evidence to current server descriptions.
+Refresh, recheck and playback failure clear the relevant predictions; manual recheck
+also clears browser evidence. Decoder/hardware settings not represented in the
+user-agent are refreshed through these existing actions. Storage failures fall back
+to session behavior. The file limit bounds entries for files not visited after deletion.
+
+Persistence is required in Anime, Media, Playback and Acquisition construction. Initialization and tool failures
+retain explicit runtime error handling; they do not require supporting arbitrary
+module assemblies without their repositories.
 
 ### Application responsibilities
 
@@ -664,3 +689,12 @@ also refresh stale data on focus. While the player is mounted, operation discove
 retains a 10-second fallback so automatic viewing commands remain observable.
 Active operations, scans, preparations and subtitle tasks retain their existing
 fast polling intervals and stop or slow down when their work completes.
+
+FFmpeg discovery enumerates only the seven inventories consumed by processing:
+encoders, decoders, muxers, demuxers, filters, protocols and pixel formats. Execution
+preflight and output validation remain. The unused HLS execution branch is removed;
+future delivery work must supply its actual runtime requirements when implemented.
+
+Global Tracking notifications show failures, authorization, conflicts and required
+decisions. Routine pending/submitting/success states stay in the existing detail
+controls; successful updates still invalidate confirmed Library/entry queries.

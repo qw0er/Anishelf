@@ -24,6 +24,7 @@ import { LibraryIndex } from "../src/modules/resources/library/infrastructure/in
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
+import { MemoryInspectionStore } from "./support/inspection-store.js";
 import { createLibraryModule } from "./support/library.js";
 
 const ttf = await readFile(
@@ -321,6 +322,7 @@ test("ASS selection returns font URLs, shares fonts across embedded/external tra
 		"[Script Info]\n[Events]\nDialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,你好 A",
 	);
 	const inspection = new MediaInspectionApplication({
+		repository: new MemoryInspectionStore(),
 		sources: library.sources,
 		tools: { probe: async () => info },
 	});

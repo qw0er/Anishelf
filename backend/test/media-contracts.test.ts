@@ -6,7 +6,6 @@ import {
 	sourceTimeMs,
 } from "../src/contracts/media.js";
 import { PlaybackPlanSchema } from "../src/contracts/schemas/playback.js";
-import { playbackPlanDto } from "../src/transport/presenters/media.js";
 
 test("source mapping survives an offset restart and nonzero media origin", () => {
 	const timeline = {
@@ -51,15 +50,4 @@ test("resource contracts reject unsupported delivery modes and strip private fie
 			mode: "realtime",
 		}),
 	).toBe(false);
-	const privatePlan = {
-		...plan,
-		resource: {
-			...resource,
-			timeline: { ...resource.timeline, secret: "private" },
-			internalPath: "private",
-		},
-	};
-	const dto = playbackPlanDto(privatePlan);
-	expect(JSON.stringify(dto)).not.toContain("private");
-	expect(dto).toEqual(plan);
 });

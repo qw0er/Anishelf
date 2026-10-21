@@ -1,7 +1,6 @@
 import type { Logger } from "pino";
 import { Check } from "typebox/value";
 import { CompatibilityCheckRequestSchema } from "../../../../contracts/schemas/compatibility.js";
-import { TranscodeProfileSchema } from "../../../../contracts/schemas/transcode-profiles.js";
 import { MediaToolError } from "../../../../platform/media/index.js";
 import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
@@ -143,12 +142,12 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 			const configured = this.options.profiles?.find(
 				(profile) => profile.id === input.output?.profileId,
 			);
-			if (!configured || !Check(TranscodeProfileSchema, configured))
+			if (!configured)
 				throw new DomainError(
 					"INVALID_REQUEST",
 					"Selected output profile is unavailable or invalid.",
 				);
-			profile = freeze(structuredClone(configured));
+			profile = structuredClone(configured);
 		}
 		let inspected: MediaInspectionResult;
 		try {

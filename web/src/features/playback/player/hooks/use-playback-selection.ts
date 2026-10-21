@@ -11,6 +11,7 @@ import {
 	clearCapabilityCache,
 	preparationInteractionPolicy,
 	queryCapabilities,
+	removeCompatibility,
 } from "../../../media/public.js";
 import { getPlaybackOptions, selectPlayback } from "../api.js";
 
@@ -88,7 +89,7 @@ export function usePlaybackSelection(
 								target: description.output.target,
 							}
 						: null,
-					evidence: await queryCapabilities(description.queries, signal, true),
+					evidence: await queryCapabilities(description.queries, signal),
 				};
 			}
 
@@ -146,6 +147,7 @@ export function usePlaybackSelection(
 		runtimeFailed,
 		retry: () => {
 			clearCapabilityCache();
+			void removeCompatibility(fileId);
 			failed.current = [];
 			setAttempt(false);
 			setRuntimeFailed(false);
@@ -158,6 +160,8 @@ export function usePlaybackSelection(
 			setRevision((v) => v + 1);
 		},
 		failed: () => {
+			clearCapabilityCache();
+			void removeCompatibility(fileId);
 			const plan = current.selection?.plan;
 			const id = plan?.mode === "prepared" ? plan.artifactId : fileId;
 			if (!failed.current.includes(id))

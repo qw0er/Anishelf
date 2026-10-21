@@ -5,8 +5,8 @@ export type SettingsUpdate = Partial<PersistentSettings>;
 /** System owns every setting write; Resources coordinates only resource-related changes. */
 export class SettingsApplication {
 	constructor(
-		private readonly configuration: SettingsStore & {
-			patchSettings?(
+		private readonly configuration: Pick<SettingsStore, "settings"> & {
+			patchSettings(
 				patch: Partial<PersistentSettings>,
 			): Promise<Readonly<PersistentSettings>>;
 		},
@@ -28,12 +28,7 @@ export class SettingsApplication {
 		);
 		const save = async (patch: Partial<PersistentSettings>) => {
 			try {
-				return await (this.configuration.patchSettings
-					? this.configuration.patchSettings(patch)
-					: this.configuration.update({
-							...this.configuration.settings,
-							...patch,
-						}));
+				return await this.configuration.patchSettings(patch);
 			} catch (err) {
 				this.logger.error(
 					{
