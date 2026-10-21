@@ -55,7 +55,7 @@ async function fixture() {
 	const index = new LibraryIndex();
 	const library = createLibraryModule({ configuration, index, logger });
 	cleanup.push(() => library.close());
-	const database = ApplicationDatabase.open(dataDir);
+	const database = ApplicationDatabase.openMemory();
 	const playback = new PlaybackApplication({
 		sources: library.sources,
 		repository: database.playback,

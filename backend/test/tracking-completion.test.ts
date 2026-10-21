@@ -1,7 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import type { ReviewItem } from "../src/modules/anime/anime-catalog/public.js";
@@ -17,9 +14,7 @@ afterEach(async () => {
 	for (const fn of dispose.splice(0).reverse()) await fn();
 });
 async function fixture(number = "4") {
-	const directory = await mkdtemp(join(tmpdir(), "anishelf-viewing-"));
-	dispose.push(() => rm(directory, { recursive: true, force: true }));
-	const database = ApplicationDatabase.open(directory);
+	const database = ApplicationDatabase.openMemory();
 	dispose.push(() => database.close());
 	const review = {
 		id: "review",

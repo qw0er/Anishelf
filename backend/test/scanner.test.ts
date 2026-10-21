@@ -11,6 +11,11 @@ import { ResourceAccess } from "../src/modules/resources/resource-access/infrast
 
 let fixture: string;
 let resources: ResourceAccess;
+vi.mock("node:fs/promises", async () => {
+	const { memoryFs } = await import("./support/memory-filesystem.js");
+	return memoryFs.promises;
+});
+
 const scanner = new LibraryScanner(pino({ enabled: false }));
 function progress(): ScanTraversalProgress {
 	return {

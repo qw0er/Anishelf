@@ -417,7 +417,7 @@ test("unified Library HTTP validates filters and serializes merged cards", async
 
 test("assembled Tracking facade uses protocol adapters, preserves cache on malformed reads and maps expired authorization", async () => {
 	const dir = await mkdtemp(join(tmpdir(), "anishelf-tracking-boundary-"));
-	const database = ApplicationDatabase.open(dir);
+	const database = ApplicationDatabase.openMemory();
 	let mode = "success";
 	const module = await createTrackingModule({
 		dataDir: dir,

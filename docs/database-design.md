@@ -10,6 +10,12 @@ SQLite `user_version = 1` identifies this supported database family.
 Persistence is required by Anime, Media, Playback and Acquisition assembly. A database startup
 failure blocks startup; module combinations without persistence are not supported.
 
+Business tests can use `ApplicationDatabase.openMemory()` for isolated, ephemeral
+SQLite connections. They run the same schema migrations and repository assembly
+as disk databases. Disk-backed tests remain responsible for migration upgrades,
+WAL behavior and persistence across connection restarts. Application startup
+continues to use the disk-backed `openDatabase()` path and its existing logs.
+
 ## Record Ownership
 
 | Original tables | Relational representation |

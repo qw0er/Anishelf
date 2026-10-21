@@ -49,10 +49,12 @@ const reference = {
 const accountId = externalId("fixture", "user/alpha");
 const mediaId = workKey(reference);
 
-async function fixture() {
+async function fixture(persistent = false) {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-provider-"));
 	cleanup.push(() => rm(directory, { recursive: true, force: true }));
-	let database = ApplicationDatabase.open(directory);
+	let database = persistent
+		? ApplicationDatabase.open(directory)
+		: ApplicationDatabase.openMemory();
 	cleanup.push(() => database.close());
 	// Deliberately different wire codes, opaque IDs, no remote modification timestamp.
 	let remote = {
@@ -140,6 +142,8 @@ async function fixture() {
 		get,
 		save,
 		async restart(provider = descriptor) {
+			if (!persistent)
+				throw new Error("Restart requires a persistent fixture.");
 			await module.close();
 			database.close();
 			database = ApplicationDatabase.open(directory);
@@ -152,7 +156,7 @@ async function fixture() {
 }
 
 test("opaque identities survive HTTP commands, null timestamps, restart and Library projections", async () => {
-	const f = await fixture();
+	const f = await fixture(true);
 	const http = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger: pino({ enabled: false }),
@@ -241,7 +245,7 @@ test("capabilities and namespaces reject unsupported writes before any provider 
 });
 
 test("provider changes fence saved accounts and isolate colliding account and work IDs", async () => {
-	const f = await fixture();
+	const f = await fixture(true);
 	const previousGeneration = f.module.status().generation;
 	f.get.mockRejectedValueOnce(new Error("offline"));
 	const operation = f.module.update(mediaId, {

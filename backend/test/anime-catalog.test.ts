@@ -79,6 +79,7 @@ afterEach(async () => {
 async function fixture(
 	paths = ["Anime - 01.mkv"],
 	artworkFetch?: typeof fetch,
+	persistent = false,
 ) {
 	const base = await mkdtemp(join(tmpdir(), "anishelf-catalog-"));
 	cleanups.push(() => rm(base, { recursive: true, force: true }));
@@ -89,7 +90,9 @@ async function fixture(
 		await mkdir(dirname(join(root, path)), { recursive: true });
 		await writeFile(join(root, path), "original");
 	}
-	let database = ApplicationDatabase.open(join(base, "data"));
+	let database = persistent
+		? ApplicationDatabase.open(join(base, "data"))
+		: ApplicationDatabase.openMemory();
 	let providerData = details();
 	const get = vi.fn<MetadataProvider["get"]>(async (ref) => ({
 		data: {
@@ -173,6 +176,7 @@ async function fixture(
 		await automatic.waitForCompletion();
 	}
 	async function restart() {
+		if (!persistent) throw new Error("Restart requires a persistent fixture.");
 		await catalog.quiesce();
 		catalog.close();
 		await metadata.close();
@@ -308,12 +312,16 @@ test("offset previews preserve release numbering and reject invalid or implicit 
 });
 
 test("corroborated automatic offsets persist once and special zero still needs manual confirmation", async () => {
-	const f = await fixture([
-		"Ocean Season 2/Ocean - 13 (S02E01).mkv",
-		"Ocean Season 2/Ocean - 14 (S02E02).mkv",
-		"Ocean Season 2/Ocean - 15.mkv",
-		"Ocean Season 2/Ocean - 00.mkv",
-	]);
+	const f = await fixture(
+		[
+			"Ocean Season 2/Ocean - 13 (S02E01).mkv",
+			"Ocean Season 2/Ocean - 14 (S02E02).mkv",
+			"Ocean Season 2/Ocean - 15.mkv",
+			"Ocean Season 2/Ocean - 00.mkv",
+		],
+		undefined,
+		true,
+	);
 	f.setData({
 		...details(),
 		titles: [{ value: "Ocean Season 2", kind: "romaji", language: null }],
@@ -383,7 +391,7 @@ test("corroborated automatic offsets persist once and special zero still needs m
 });
 
 test("stable episode IDs, mappings and source progress survive rescan refresh and restart", async () => {
-	const f = await fixture();
+	const f = await fixture(undefined, undefined, true);
 	const result = await confirm(f);
 	let detail = await f.catalog.getLocalWorkDetail(result.workId);
 	const originalTitle = detail.work.displayTitle;
@@ -419,7 +427,7 @@ test("stable episode IDs, mappings and source progress survive rescan refresh an
 test("confirmation operation keys survive restart and cannot be reused for different input", async () => {
 	const info = vi.spyOn(logger, "info");
 	const debug = vi.spyOn(logger, "debug");
-	const f = await fixture();
+	const f = await fixture(undefined, undefined, true);
 	const preview = await f.catalog.preview({ reference, rows: await rows(f) });
 	const request = {
 		operationKey: "retry-key",
@@ -522,7 +530,7 @@ test("atomic confirmation rolls back all associations and decisions when a later
 });
 
 test("rejection survives repeat scans and removal does not erase source history", async () => {
-	const f = await fixture();
+	const f = await fixture(undefined, undefined, true);
 	let review = required((await f.catalog.reviews()).items[0]);
 	await f.catalog.reject(review.id, review.revision, "Wrong title");
 	await f.scan();
@@ -1065,7 +1073,11 @@ async function enableAutomatic(f: Awaited<ReturnType<typeof fixture>>) {
 }
 
 test("unambiguous scanner identification automatically admits sources and preserves corrections across rescan/restart", async () => {
-	const f = await fixture(["Anime - 01.mkv", "Anime - 02.mkv"]);
+	const f = await fixture(
+		["Anime - 01.mkv", "Anime - 02.mkv"],
+		undefined,
+		true,
+	);
 	const automatic = await enableAutomatic(f);
 	const list = await f.catalog.list();
 	expect(list.items).toHaveLength(1);
@@ -1369,7 +1381,7 @@ test("work review filters match qualified candidates without admitting them and 
 
 test("rejection accepts omitted or blank reasons, persists null, and keeps removal explicit", async () => {
 	const info = vi.spyOn(logger, "info");
-	const f = await fixture();
+	const f = await fixture(undefined, undefined, true);
 	let review = required((await f.catalog.reviews()).items[0]);
 	const app = createHttpApp({
 		catalog: f.catalog,
@@ -1487,7 +1499,11 @@ test("expired details return retained data immediately and coalesce automatic up
 });
 
 test("startup refreshes expired releasing works without a detail request and skips finished works", async () => {
-	const f = await fixture(["Anime - 01.mkv", "Anime - 02.mkv"]);
+	const f = await fixture(
+		["Anime - 01.mkv", "Anime - 02.mkv"],
+		undefined,
+		true,
+	);
 	f.setData({ ...details(), status: "RELEASING" });
 	const selected = await rows(f);
 	const releasing = await confirm(f, Promise.resolve([required(selected[0])]));
@@ -1534,7 +1550,7 @@ test("startup refreshes expired releasing works without a detail request and ski
 });
 
 test("automatic failure keeps the snapshot and honors persisted retry time across restart", async () => {
-	const f = await fixture();
+	const f = await fixture(undefined, undefined, true);
 	const result = await confirm(f);
 	const before = await f.catalog.getLocalWorkDetail(result.workId);
 	let now = before.metadata.fetchedAt + 8 * 24 * 60 * 60_000;
@@ -1651,6 +1667,8 @@ test("quiescing cancels automatic refresh and prevents later catalog writes or t
 test("background checks rotate through batches and exclude works without source associations", async () => {
 	const f = await fixture(
 		Array.from({ length: 8 }, (_, i) => `Anime - ${i + 1}.mkv`),
+		undefined,
+		true,
 	);
 	const selected = await rows(f);
 	const committed: Awaited<ReturnType<typeof confirm>>[] = [];
@@ -1792,7 +1810,7 @@ test("Catalog queries and complete publications use opaque scope collections", a
 });
 
 test("multi-root versions preserve confirmed associations through removal and restoration", async () => {
-	const f = await fixture();
+	const f = await fixture(undefined, undefined, true);
 	const preview = await f.catalog.preview({ reference, rows: await rows(f) });
 	const confirmed = await f.catalog.confirm({
 		operationKey: "multi-first",

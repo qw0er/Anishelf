@@ -44,10 +44,12 @@ const target: AcquisitionTarget = {
 	revision: "one",
 };
 const logger = pino({ level: "silent" });
-async function fixture() {
+async function fixture(persistent = false) {
 	const dir = await mkdtemp(join(tmpdir(), "anishelf-downloads-"));
 	cleanup.push(() => rm(dir, { recursive: true, force: true }));
-	let db = ApplicationDatabase.open(dir);
+	let db = persistent
+		? ApplicationDatabase.open(dir)
+		: ApplicationDatabase.openMemory();
 	cleanup.push(async () => db.close());
 	let now = 1_000_000,
 		generation = "account-1";
@@ -251,6 +253,8 @@ async function fixture() {
 			generation = "account-2";
 		},
 		restart: async () => {
+			if (!persistent)
+				throw new Error("Restart requires a persistent fixture.");
 			await worker.close();
 			db.close();
 			db = ApplicationDatabase.open(dir);
@@ -315,7 +319,7 @@ test("old subscriptions stay discovery-only until scoped confirmation and destin
 	expect(f.worker.activity(key).authorized).toBe(false);
 });
 test("repeated polling and restart retain one task, identity and directory", async () => {
-	const f = await fixture();
+	const f = await fixture(true);
 	await f.configure();
 	await f.authorize();
 	await f.worker.tick();
@@ -330,7 +334,7 @@ test("repeated polling and restart retain one task, identity and directory", asy
 	);
 });
 test("remote add success followed by a timeout binds after restart without resending", async () => {
-	const f = await fixture();
+	const f = await fixture(true);
 	await f.configure();
 	await f.authorize();
 	const actual = f.add.getMockImplementation();
@@ -351,7 +355,7 @@ test("remote add success followed by a timeout binds after restart without resen
 	);
 });
 test("successful add without a matching remote task stays unknown and is not resent", async () => {
-	const f = await fixture();
+	const f = await fixture(true);
 	await f.configure();
 	await f.authorize();
 	f.add.mockResolvedValueOnce(undefined);
@@ -384,7 +388,7 @@ test("uncertain absent submissions are not retried automatically; explicit retry
 	expect(f.add).toHaveBeenCalledTimes(2);
 });
 test("external pause remains paused and external removal suppresses acquisition across restart", async () => {
-	const f = await fixture();
+	const f = await fixture(true);
 	await f.configure();
 	await f.authorize();
 	await f.worker.tick();

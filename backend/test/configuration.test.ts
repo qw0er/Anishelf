@@ -325,7 +325,7 @@ test("injected near-end thresholds and batch limits control database selection",
 	policy.playback.nearEndMs = 1000;
 	policy.playback.nearEndRatio = 0.01;
 	policy.playback.candidateBatchSize = 1;
-	const database = ApplicationDatabase.open(dataDir, policy);
+	const database = ApplicationDatabase.openMemory(policy);
 	try {
 		const source = database.playback.registerSource(
 			{

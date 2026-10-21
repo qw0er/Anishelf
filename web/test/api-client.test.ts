@@ -1,3 +1,4 @@
+import "./query-setup.js";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { inspectMediaCompatibility } from "../src/features/media/media-compatibility/public.js";
 import {

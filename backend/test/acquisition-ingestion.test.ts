@@ -27,7 +27,7 @@ async function fixture() {
 	cleanup.push(() => rm(base, { recursive: true, force: true }));
 	const root = join(base, "media");
 	await mkdir(root);
-	const db = ApplicationDatabase.open(join(base, "data"));
+	const db = ApplicationDatabase.openMemory();
 	cleanup.push(async () => db.close());
 	const config = settingsStore(root),
 		library = createLibraryModule({

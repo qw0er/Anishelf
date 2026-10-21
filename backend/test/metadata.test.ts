@@ -134,10 +134,16 @@ afterEach(async () => {
 	vi.useRealTimers();
 	for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
-async function setup(fetcher = transport(), now?: () => number) {
+async function setup(
+	fetcher = transport(),
+	now?: () => number,
+	persistent = false,
+) {
 	const dir = await mkdtemp(join(tmpdir(), "anishelf-metadata-"));
 	cleanups.push(() => rm(dir, { recursive: true, force: true }));
-	const database = ApplicationDatabase.open(dir);
+	const database = persistent
+		? ApplicationDatabase.open(dir)
+		: ApplicationDatabase.openMemory();
 	cleanups.push(async () => database.close());
 	const artwork = new MetadataArtworkCache({
 		hosts: ["s4.anilist.co"],
@@ -202,7 +208,7 @@ test("AniList search/details normalize multilingual titles, unknowns and calenda
 });
 
 test("fresh cache survives database restart and returned values are independent", async () => {
-	const { application, dir, fetcher } = await setup();
+	const { application, dir, fetcher } = await setup(undefined, undefined, true);
 	const first = await application.get(reference);
 	first.data.titles.length = 0;
 	expect((await application.get(reference)).data.titles).toHaveLength(4);
@@ -513,6 +519,7 @@ test("retained snapshot versions survive refresh, LRU pruning and restart", asyn
 	const { application, database, fetcher, dir } = await setup(
 		transport(),
 		() => now,
+		true,
 	);
 	const original = await application.get(reference);
 	application.retain(original.snapshotId, "work-1");
@@ -914,7 +921,7 @@ test("SDK rejects malformed streamed GraphQL responses without Content-Length", 
 	await failure(provider.get(reference, noSignal()), "invalid-response");
 });
 
-test("HTTP disconnect detaches its subscription and aborts unneeded provider work", async () => {
+test("HTTP request cancellation detaches its subscription and aborts unneeded provider work", async () => {
 	const fetcher = vi.fn<typeof fetch>(() => new Promise(() => {}));
 	const { application } = await setup(fetcher);
 	const app = createHttpApp({
@@ -922,10 +929,11 @@ test("HTTP disconnect detaches its subscription and aborts unneeded provider wor
 		logger,
 		metadata: application,
 	});
-	const address = await app.listen({ host: "127.0.0.1", port: 0 });
 	try {
 		const controller = new AbortController();
-		const request = fetch(`${address}/api/metadata/anilist/154587`, {
+		const request = app.inject({
+			url: "/api/metadata/anilist/154587",
+			headers: { host: "localhost" },
 			signal: controller.signal,
 		});
 		const rejected = expect(request).rejects.toMatchObject({

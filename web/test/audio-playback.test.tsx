@@ -3,6 +3,8 @@ import * as mediacompatibilityApi from "../src/features/media/media-compatibilit
 import * as preparationApi from "../src/features/media/preparation/api.js";
 import * as playbackApi from "../src/features/playback/player/api.js";
 import * as settingsApi from "../src/features/settings/api.js";
+import * as api from "../src/shared/api/client.js";
+import { trackingProvider } from "./tracking-fixture.js";
 // @vitest-environment happy-dom
 
 import { MemoryRouter } from "react-router";
@@ -73,6 +75,14 @@ vi.mock("../src/features/playback/player/components/video-player.js", () => ({
 	),
 }));
 beforeEach(() => {
+	vi.spyOn(api, "request").mockResolvedValue({
+		provider: trackingProvider,
+		generation: "fixture",
+		state: "disconnected",
+		account: null,
+		connectivity: "unknown",
+		checkedAt: null,
+	});
 	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([]);
 	vi.spyOn(playbackApi, "getPlaybackOptions").mockImplementation(
 		async (input) => ({

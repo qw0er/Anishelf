@@ -27,7 +27,7 @@ beforeEach(async () => {
 	root = join(directory, "media");
 	await mkdir(root);
 	await writeFile(join(root, "episode.mp4"), "original video");
-	database = ApplicationDatabase.open(join(directory, "data"));
+	database = ApplicationDatabase.openMemory();
 	library = createLibraryModule({
 		configuration: {
 			settings: { resourceRoots: [root] },
