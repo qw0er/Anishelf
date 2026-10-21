@@ -45,8 +45,13 @@ export const libraryRoute: RouteObject = {
 			path: "anime/tracked/:mediaId",
 			element: (
 				<TrackedAnimeDetail
-					renderSubscription={(workKey) => (
-						<SubscriptionPanel key={workKey} workKey={workKey} />
+					renderSubscription={(workKey, detail) => (
+						<SubscriptionPanel
+							key={workKey}
+							workKey={workKey}
+							initialView={detail.subscription}
+							initialActivity={detail.downloads}
+						/>
 					)}
 				/>
 			),

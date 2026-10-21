@@ -3,4 +3,7 @@ export {
 	metadataArtwork,
 	metadataPins,
 	metadataSnapshots,
+	metadataWorks,
 } from "./infrastructure/schema.js";
+
+export { saveWorkSummary } from "./infrastructure/works.js";

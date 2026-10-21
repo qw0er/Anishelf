@@ -269,7 +269,7 @@ test("upgrades normalized metadata without losing ordered payloads, failures, pi
 				inspected
 					.prepare("SELECT count(*) AS count FROM __drizzle_migrations")
 					.get(),
-			).toEqual({ count: 2 });
+			).toEqual({ count: 3 });
 		} finally {
 			inspected.close();
 		}

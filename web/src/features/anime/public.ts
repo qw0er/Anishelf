@@ -4,4 +4,5 @@ export {
 	useAnimePlaybackTitle,
 } from "./catalog/public.js";
 export { fileReviewsQuery } from "./catalog/queries.js";
-export { animeLibraryQueryKey } from "./library/public.js";
+
+export { invalidateAnimeQueries } from "./shared/query-keys.js";

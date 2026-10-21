@@ -6,14 +6,8 @@ import {
 	type WorkDetails,
 } from "../../metadata/public.js";
 import { conflict, target, text } from "../domain/mapping.js";
-import type {
-	LocalEpisode,
-	LocalWork,
-	LocalWorkDetail,
-	ProviderLink,
-} from "../domain/model.js";
+import type { LocalEpisode, LocalWorkDetail } from "../domain/model.js";
 import type { CatalogContext } from "./context.js";
-import { projection } from "./projection.js";
 import type { CatalogQueries } from "./queries.js";
 
 export class WorkApplication {
@@ -92,7 +86,8 @@ export class WorkApplication {
 		});
 		this.context.options.sources.assertAccessRevision(scope.revision);
 		this.context.open();
-		if (!metadata.refreshError) this.apply(work, link, metadata);
+		if (this.context.options.store.work(id)?.revision !== work.revision)
+			conflict();
 		this.context.options.logger.info(
 			{
 				event: "catalog.refresh_completed",
@@ -146,66 +141,6 @@ export class WorkApplication {
 		signal.throwIfAborted();
 		this.context.open();
 		if (metadata.refreshError) return metadata.refreshError;
-		// Automatic updates yield to local edits and confirmations; a later pass adopts the cached result.
-		if (
-			this.context.options.store.work(id)?.revision !== work.revision ||
-			this.context.options.store.link(id)?.snapshotId !== link.snapshotId
-		)
-			return null;
-		this.apply(work, link, metadata);
 		return null;
-	}
-	private apply(
-		work: LocalWork,
-		link: ProviderLink,
-		metadata: CachedMetadata<WorkDetails>,
-	): void {
-		const id = work.id;
-		if (
-			link.snapshotId !== metadata.snapshotId &&
-			this.context.options.store.link(id)?.snapshotId === metadata.snapshotId &&
-			this.context.options.store.work(id)?.revision === work.revision + 1
-		)
-			return;
-		if (this.context.options.store.work(id)?.revision !== work.revision)
-			conflict();
-		const projected = projection(work, metadata.data);
-		if (
-			link.snapshotId === metadata.snapshotId &&
-			JSON.stringify(projected) === JSON.stringify(work)
-		)
-			return;
-		this.context.options.metadata.retain(metadata.snapshotId, id);
-		try {
-			this.context.options.store.transaction((store) => {
-				if (
-					store.work(id)?.revision !== work.revision ||
-					store.link(id)?.snapshotId !== link.snapshotId
-				)
-					conflict();
-				store.saveWork(
-					{ ...projected, revision: work.revision + 1, updatedAt: Date.now() },
-					{ ...link, snapshotId: metadata.snapshotId },
-				);
-			});
-		} catch (error) {
-			if (
-				this.context.options.store.link(id)?.snapshotId !== metadata.snapshotId
-			)
-				this.context.options.metadata.release(metadata.snapshotId, id);
-			throw error;
-		}
-		this.context.options.logger.info(
-			{
-				event: "catalog.metadata_updated",
-				workId: id,
-				provider: link.reference.provider,
-				snapshotId: metadata.snapshotId,
-				revision: work.revision + 1,
-			},
-			"Catalog adopted updated metadata.",
-		);
-		if (link.snapshotId !== metadata.snapshotId)
-			this.context.options.metadata.release(link.snapshotId, id);
 	}
 }

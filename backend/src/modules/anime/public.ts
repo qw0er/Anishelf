@@ -21,6 +21,11 @@ export interface AnimeApi {
 			signal: AbortSignal,
 		): Promise<"available" | "review">;
 	};
+	readonly queries: {
+		detail(
+			input: { localWorkId: string } | { key: string },
+		): Promise<AnimeDetail>;
+	};
 	readonly library: AnimeLibraryApi;
 	readonly tracking: TrackingApi;
 	readonly metadata:
@@ -43,4 +48,20 @@ export interface AnimeApi {
 				| "refresh"
 		  >
 		| undefined;
+}
+
+export interface AnimeDetail {
+	reference: import("../../shared/external-reference.js").ExternalWorkReference;
+	displayTitle: string;
+	metadata:
+		| import("./metadata/public.js").CachedMetadata<
+				import("./metadata/public.js").WorkDetails
+		  >
+		| null;
+	metadataError: import("./metadata/public.js").MetadataFailure | null;
+	local: import("./anime-catalog/public.js").LocalWorkDetail | null;
+	viewing: Omit<
+		import("./tracking/public.js").TrackingListSnapshot,
+		"entries"
+	> & { entry: import("./tracking/public.js").TrackingListEntry | null };
 }

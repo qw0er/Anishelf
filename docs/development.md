@@ -847,3 +847,15 @@ cancellation alongside command coalescing and uncertain remote-write reconciliat
 Browser checks cover focus/visibility deduplication, hidden-tab suspension and the
 five-minute visible-session fallback. See [Architecture](architecture.md#background-scheduling-and-browser-refresh)
 for the active and idle refresh intervals.
+
+### Unified anime information
+
+Use the application detail endpoints in [Architecture](architecture.md#local-work-detail-query-naming)
+for complete browser detail reads. Keep business commands with Catalog, Tracking
+and Acquisition. Do not add independently maintained title, cover, year, format or
+episode-count columns to their records; Metadata owns current work information.
+Preserve confirmation/download evidence by versioned reference rather than treating
+it as a current description. `anime.detail_read` and
+`application.anime_detail_read` trace projection reads without private feed/task
+payloads. Existing Metadata refresh logs describe current-information publication;
+Catalog refresh no longer increments mapping revisions or rewrites descriptions.

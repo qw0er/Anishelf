@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ellipsis, Rss } from "lucide-react";
 import { useId, useState } from "react";
 import type {
+	DownloadActivity,
 	SubscriptionPreview,
 	SubscriptionView,
 } from "../../shared/api/contracts.js";
@@ -24,6 +25,7 @@ import {
 import { Input } from "../../shared/components/ui/input.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import { Tooltip } from "../../shared/components/ui/tooltip.js";
+import { invalidateAnimeQueries } from "../anime/public.js";
 import { DownloadActivityPanel } from "./download-activity.js";
 import { downloadKeys } from "./downloads-api.js";
 import {
@@ -37,22 +39,34 @@ import {
 
 const key = (workKey: string) =>
 	["acquisition", "subscription", workKey] as const;
-export function SubscriptionPanel({ workKey }: { workKey: string }) {
+export function SubscriptionPanel({
+	workKey,
+	initialView,
+	initialActivity,
+}: {
+	workKey: string;
+	initialView?: SubscriptionView;
+	initialActivity?: DownloadActivity | null;
+}) {
 	const client = useQueryClient();
 	const [page, setPage] = useState(1),
 		[editing, setEditing] = useState(false);
 	const query = useQuery({
 		queryKey: [...key(workKey), page],
+		enabled: page !== 1 || !initialView,
+		initialData: page === 1 ? initialView : undefined,
 		queryFn: ({ signal }) =>
 			getSubscription(workKey, page, { signal: boundedSignal(signal) }),
 		refetchInterval: 30_000,
 	});
-	const subscription = query.data?.subscription;
+	const viewData = page === 1 && initialView ? initialView : query.data;
+	const subscription = viewData?.subscription;
 	function updated() {
 		setEditing(false);
 		setPage(1);
 		void client.invalidateQueries({ queryKey: key(workKey) });
 		void client.invalidateQueries({ queryKey: downloadKeys });
+		void invalidateAnimeQueries(client, "acquisition");
 	}
 	const action = useMutation({
 		mutationFn: async (command: "toggle" | "refresh" | "remove") => {
@@ -74,6 +88,7 @@ export function SubscriptionPanel({ workKey }: { workKey: string }) {
 		onError: () => {
 			void client.invalidateQueries({ queryKey: key(workKey) });
 			void client.invalidateQueries({ queryKey: downloadKeys });
+			void invalidateAnimeQueries(client, "acquisition");
 			toast.add({
 				title: "Could not update the subscription. Refresh and retry.",
 				type: "error",
@@ -201,15 +216,16 @@ export function SubscriptionPanel({ workKey }: { workKey: string }) {
 								Previous results are retained; automatic retry is scheduled.
 							</p>
 						)}
-						{query.data && (
+						{viewData && (
 							<DownloadActivityPanel
+								initialActivity={initialActivity}
 								key={workKey}
 								workKey={workKey}
-								view={query.data}
+								view={viewData}
 								reason={reason}
 								onConfigure={() => setEditing(true)}
 								releasePagination={
-									query.data.total > 20 ? (
+									viewData.total > 20 ? (
 										<div className="action-row">
 											<Button
 												variant="outline"
@@ -221,7 +237,7 @@ export function SubscriptionPanel({ workKey }: { workKey: string }) {
 											<span className="text-sm">Page {page}</span>
 											<Button
 												variant="outline"
-												disabled={page * 20 >= query.data.total}
+												disabled={page * 20 >= viewData.total}
 												onClick={() => setPage(page + 1)}
 											>
 												Next releases

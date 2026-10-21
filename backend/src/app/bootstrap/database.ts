@@ -29,6 +29,7 @@ import type { AuthenticationStore } from "../../modules/system/public.js";
 import { adapterPolicy } from "../../platform/adapter-policy.js";
 import type { Store } from "../../platform/database/store.js";
 import { storageRules } from "../../platform/storage.js";
+import { workKey, workReference } from "../../shared/external-reference.js";
 import {
 	type BuiltinPolicy,
 	builtinPolicy,
@@ -116,6 +117,18 @@ export class ApplicationDatabase {
 			connection.pragma(adapterPolicy.sqlite.journal);
 			connection.pragma(adapterPolicy.sqlite.synchronous);
 			const store = drizzle(connection, { schema });
+			// Migration-only identity functions preserve opaque, encoded provider IDs.
+			connection.function("anishelf_work_key", (provider: string, id: string) =>
+				workKey({ provider, mediaType: "anime", id }),
+			);
+			connection.function(
+				"anishelf_provider",
+				(key: string) => workReference(key).provider,
+			);
+			connection.function(
+				"anishelf_provider_id",
+				(key: string) => workReference(key).id,
+			);
 			connection.pragma("foreign_keys = OFF");
 			migrate(store, {
 				migrationsFolder: fileURLToPath(

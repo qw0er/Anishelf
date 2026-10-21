@@ -8,6 +8,7 @@ import { createAuthenticationModule } from "../../modules/system/create.js";
 import { registerSystemHttp } from "../../modules/system/http.js";
 import type { SystemApi } from "../../modules/system/public.js";
 import type { MediaTools } from "../../platform/media/index.js";
+import { registerAnimeDetailRoutes } from "../anime-detail.js";
 import { closeModules } from "../lifecycle.js";
 import { builtinPolicy } from "../policy.js";
 import type { ApplicationDatabase } from "./database.js";
@@ -87,6 +88,8 @@ export async function createServer(
 			playback.registerHttp,
 			anime.registerHttp,
 			acquisition.registerHttp,
+			(app) =>
+				registerAnimeDetailRoutes(app, anime.api, acquisition.api, logger),
 		],
 		closeDependencies: () =>
 			closeModules({

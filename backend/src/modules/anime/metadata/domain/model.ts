@@ -1,9 +1,20 @@
 export type ProviderReference =
 	import("../../../../shared/external-reference.js").ExternalWorkReference;
-interface MetadataTitle {
+export interface MetadataTitle {
 	value: string;
 	language: string | null;
 	kind: "romaji" | "english" | "native" | "alias";
+}
+/** One title preference for every work projection; original title evidence stays ordered. */
+export function workTitle(
+	titles: readonly MetadataTitle[],
+	fallback: string,
+): string {
+	return (
+		titles.find((title) => title.kind === "native")?.value ??
+		titles[0]?.value ??
+		fallback
+	);
 }
 export interface WorkSummary {
 	/** Queried provider fields explicitly returned null, including unknown lists. */

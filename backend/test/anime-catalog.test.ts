@@ -655,6 +655,8 @@ test("preview expiry requires a new preview without keeping transient snapshots 
 			replace: false,
 		}),
 	).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
+	f.setData({ ...details(), description: "New current information" });
+	await f.metadata.get(reference, { refresh: true });
 	f.database.metadata.prune(0, 0);
 	expect(f.database.metadata.get(preview.metadata.snapshotId)).toBeNull();
 });
@@ -851,6 +853,8 @@ test("movies and unknown counts preserve explicit targets without inventing cano
 test("confirmation fails safely if unconfirmed metadata was evicted after preview", async () => {
 	const f = await fixture();
 	const preview = await f.catalog.preview({ reference, rows: await rows(f) });
+	f.setData({ ...details(), description: "New current information" });
+	await f.metadata.get(reference, { refresh: true });
 	f.database.metadata.prune(0, 0);
 	await expect(
 		f.catalog.confirm({
@@ -911,7 +915,7 @@ test("literal wildcard provider titles remain literal local search text", async 
 	expect((await f.catalog.list({ query: "not_found%" })).items).toHaveLength(0);
 });
 
-test("concurrent confirmation retries share one result and do not leak metadata pins", async () => {
+test("concurrent confirmation retries share one result and retain confirmed decision evidence", async () => {
 	const f = await fixture();
 	const preview = await f.catalog.preview({ reference, rows: await rows(f) });
 	const request = {
@@ -930,7 +934,9 @@ test("concurrent confirmation retries share one result and do not leak metadata 
 	);
 	await f.catalog.refresh(detail.work.id, detail.work.revision);
 	f.database.metadata.prune(0, 0);
-	expect(f.database.metadata.get(preview.metadata.snapshotId)).toBeNull();
+	expect(f.database.metadata.get(preview.metadata.snapshotId)?.data).toEqual(
+		preview.metadata.data,
+	);
 	expect(
 		(await f.catalog.getLocalWorkDetail(detail.work.id)).metadata.data
 			.description,
@@ -1477,7 +1483,7 @@ test("expired details return retained data immediately and coalesce automatic up
 		data: { ...details(), description: "Automatic update", episodeCount: 13 },
 	});
 	await vi.waitFor(() =>
-		expect(f.database.catalog.link(result.workId)?.snapshotId).not.toBe(
+		expect(f.metadata.current(reference)?.snapshotId).not.toBe(
 			before.metadata.snapshotId,
 		),
 	);
@@ -1492,7 +1498,9 @@ test("expired details return retained data immediately and coalesce automatic up
 	});
 	expect(f.database.playback.get(review.sourceId)).toEqual(progress);
 	f.database.metadata.prune(0, 0);
-	expect(() => f.metadata.snapshot(before.metadata.snapshotId)).toThrow();
+	expect(f.metadata.snapshot(before.metadata.snapshotId).data).toEqual(
+		before.metadata.data,
+	);
 	expect(f.metadata.snapshot(after.metadata.snapshotId).data).toEqual(
 		after.metadata.data,
 	);
@@ -1534,10 +1542,10 @@ test("startup refreshes expired releasing works without a detail request and ski
 	expect(f.get).not.toHaveBeenCalled();
 	await vi.advanceTimersByTimeAsync(1);
 	expect(f.get).toHaveBeenCalledTimes(1);
-	expect(f.database.catalog.link(releasing.workId)?.snapshotId).not.toBe(
+	expect(f.metadata.current(link.reference)?.snapshotId).not.toBe(
 		link.snapshotId,
 	);
-	expect(f.database.catalog.link(finished.workId)?.snapshotId).toBe(
+	expect(f.metadata.current(finishedLink.reference)?.snapshotId).toBe(
 		finishedLink.snapshotId,
 	);
 	vi.setSystemTime(fetchedAt + 16 * 24 * 60 * 60_000);
@@ -1576,7 +1584,7 @@ test("automatic failure keeps the snapshot and honors persisted retry time acros
 	now += 60_001;
 	await f.catalog.getLocalWorkDetail(result.workId);
 	await vi.waitFor(() =>
-		expect(f.database.catalog.link(result.workId)?.snapshotId).not.toBe(
+		expect(f.metadata.current(reference)?.snapshotId).not.toBe(
 			before.metadata.snapshotId,
 		),
 	);
@@ -1655,7 +1663,7 @@ test("quiescing cancels automatic refresh and prevents later catalog writes or t
 		data: { ...details(), description: "Too late" },
 	});
 	await Promise.resolve();
-	expect(f.database.catalog.link(result.workId)?.snapshotId).toBe(
+	expect(f.metadata.current(reference)?.snapshotId).toBe(
 		before.metadata.snapshotId,
 	);
 	expect(
@@ -1734,7 +1742,7 @@ test("manual refresh joins an automatic request and accepts its already applied 
 	expect((await manual).metadata.data.description).toBe("Shared refresh");
 	expect(f.get).toHaveBeenCalledTimes(2);
 	expect(f.database.catalog.work(result.workId)?.revision).toBe(
-		before.work.revision + 1,
+		before.work.revision,
 	);
 });
 

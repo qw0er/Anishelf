@@ -8,6 +8,7 @@ import type {
 import { boundedSignal } from "../../shared/api/queries.js";
 import { Button, buttonStyles } from "../../shared/components/ui/button.js";
 import { toast } from "../../shared/components/ui/toast.js";
+import { invalidateAnimeQueries } from "../anime/public.js";
 import { settingsQuery } from "../settings/public.js";
 import {
 	downloadKeys,
@@ -78,6 +79,7 @@ const errors: Record<string, string> = {
 };
 export function DownloadActivityPanel({
 	workKey,
+	initialActivity,
 	view,
 	reason,
 	onConfigure,
@@ -88,19 +90,27 @@ export function DownloadActivityPanel({
 	reason(code: string): string;
 	onConfigure(): void;
 	releasePagination?: ReactNode;
+	initialActivity?: DownloadActivity | null | undefined;
 }) {
 	const client = useQueryClient(),
 		[page, setPage] = useState(1);
 	const settings = useQuery(settingsQuery());
 	const query = useQuery({
 		queryKey: [...downloadKeys, workKey, page],
+		enabled:
+			initialActivity !== null && (page !== 1 || initialActivity === undefined),
+		initialData: page === 1 ? (initialActivity ?? undefined) : undefined,
 		queryFn: ({ signal }) =>
 			getDownloadActivity(workKey, page, { signal: boundedSignal(signal) }),
 		refetchInterval: 5_000,
 	});
 
+	const activity =
+		page === 1 && initialActivity !== undefined
+			? (initialActivity ?? undefined)
+			: query.data;
 	useEffect(() => {
-		for (const item of query.data?.items ?? []) {
+		for (const item of activity?.items ?? []) {
 			if (!item.error) {
 				notificationErrors.delete(item.id);
 				continue;
@@ -114,7 +124,7 @@ export function DownloadActivityPanel({
 				type: "error",
 			});
 		}
-	}, [query.data]);
+	}, [activity]);
 	const retry = useMutation({
 		mutationFn: (input: {
 			id: string;
@@ -123,19 +133,21 @@ export function DownloadActivityPanel({
 		}) => retryDownload(input.id, input.revision, input.kind),
 		onSuccess: () => {
 			void client.invalidateQueries({ queryKey: downloadKeys });
+			void invalidateAnimeQueries(client, "acquisition");
 			toast.add({ title: "Retry queued.", type: "success" });
 		},
 		onError: () => {
 			void client.invalidateQueries({ queryKey: downloadKeys });
+			void invalidateAnimeQueries(client, "acquisition");
 			toast.add({
 				title: "Could not retry. Refresh and check configuration.",
 				type: "error",
 			});
 		},
 	});
-	const tasks = query.data?.items ?? [],
+	const tasks = activity?.items ?? [],
 		ids = new Set(
-			query.data?.managedCandidateIds ?? tasks.map((item) => item.candidateId),
+			activity?.managedCandidateIds ?? tasks.map((item) => item.candidateId),
 		);
 	const webui = settings.data?.qbittorrentWebUiUrl;
 	return (
@@ -143,17 +155,19 @@ export function DownloadActivityPanel({
 			{(view.subscription || tasks.length > 0 || query.isError) && (
 				<div className="action-row justify-between text-sm">
 					<span>
-						{query.data?.active
-							? `${query.data.active} active`
-							: query.isPending
-								? "Loading acquisition status…"
-								: query.isError
-									? "Acquisition status unavailable"
-									: query.data?.authorized && view.subscription?.enabled
-										? "Automatic download"
-										: view.subscription?.enabled
-											? "Discovery only"
-											: "Automatic acquisition paused"}
+						{activity?.active
+							? `${activity.active} active`
+							: initialActivity === null
+								? "Acquisition status unavailable"
+								: query.isPending
+									? "Loading acquisition status…"
+									: query.isError
+										? "Acquisition status unavailable"
+										: activity?.authorized && view.subscription?.enabled
+											? "Automatic download"
+											: view.subscription?.enabled
+												? "Discovery only"
+												: "Automatic acquisition paused"}
 					</span>
 					{webui && (
 						<a
@@ -176,8 +190,8 @@ export function DownloadActivityPanel({
 				</p>
 			)}
 			{view.subscription &&
-				query.data &&
-				!query.data.authorized &&
+				activity &&
+				!activity.authorized &&
 				view.subscription.enabled && (
 					<p className="text-sm">
 						Discovery only.{" "}
@@ -186,15 +200,13 @@ export function DownloadActivityPanel({
 						</Button>
 					</p>
 				)}
-			{(view.subscription ||
-				(query.data?.total ?? 0) > 0 ||
-				view.total > 0) && (
+			{(view.subscription || (activity?.total ?? 0) > 0 || view.total > 0) && (
 				<details>
 					<summary className="cursor-pointer text-sm">
-						Activity · {query.data?.total ?? 0} acquisitions · {view.total}{" "}
+						Activity · {activity?.total ?? 0} acquisitions · {view.total}{" "}
 						releases
-						{query.data?.attention
-							? ` · ${query.data.attention} need attention`
+						{activity?.attention
+							? ` · ${activity.attention} need attention`
 							: ""}
 					</summary>
 					<div className="space-y-3 pt-3">
@@ -256,9 +268,7 @@ export function DownloadActivityPanel({
 										<Button
 											variant="outline"
 											disabled={
-												retry.isPending ||
-												!query.data?.authorized ||
-												!item.title
+												retry.isPending || !activity?.authorized || !item.title
 											}
 											onClick={() =>
 												retry.mutate({
@@ -274,7 +284,7 @@ export function DownloadActivityPanel({
 								</div>
 							</div>
 						))}
-						{(query.data?.total ?? 0) > 20 && (
+						{(activity?.total ?? 0) > 20 && (
 							<div className="action-row">
 								<Button
 									variant="outline"
@@ -286,7 +296,7 @@ export function DownloadActivityPanel({
 								<span>Page {page}</span>
 								<Button
 									variant="outline"
-									disabled={page * 20 >= (query.data?.total ?? 0)}
+									disabled={page * 20 >= (activity?.total ?? 0)}
 									onClick={() => setPage(page + 1)}
 								>
 									Next acquisitions

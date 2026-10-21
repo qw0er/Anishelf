@@ -7,6 +7,7 @@ import type {
 	TrackingOperationsResponse,
 } from "../../../shared/api/contracts.js";
 import { toast } from "../../../shared/components/ui/toast.js";
+import { invalidateAnimeQueries } from "../shared/query-keys.js";
 import { operationsQuery, reportTrackingOperations } from "./operations.js";
 import { accountQuery, type TrackingIdentity } from "./queries.js";
 
@@ -39,9 +40,7 @@ export function useTrackingMutation<T>(
 				],
 			);
 			reportTrackingOperations(client, identity, [result]);
-			void client.invalidateQueries({ queryKey: ["tracking", "operations"] });
-			void client.invalidateQueries({ queryKey: ["tracking", "entry"] });
-			void client.invalidateQueries({ queryKey: ["anime-library"] });
+			void invalidateAnimeQueries(client, "viewing");
 		},
 		onError: (error: Error) => {
 			if (

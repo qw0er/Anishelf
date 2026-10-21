@@ -1,5 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
+import { workReference } from "../../../../shared/external-reference.js";
+import { metadataWorks, saveWorkSummary } from "../../metadata/persistence.js";
 import type { TrackingListCache } from "../domain/list.js";
 import type { TrackingOperation } from "../domain/operation.js";
 import * as s from "./schema.js";
@@ -154,96 +156,91 @@ export function writeTrackingOperations(
 	});
 }
 
+/** Summary fields are hydrated with one join, never stored per account. */
 export function readTrackingListCache(
 	store: Store,
 	row: typeof s.trackingListCache.$inferSelect,
 ): TrackingListCache {
+	const entries = store
+		.select({ entry: s.trackingListCacheEntries, info: metadataWorks })
+		.from(s.trackingListCacheEntries)
+		.innerJoin(
+			metadataWorks,
+			eq(metadataWorks.key, s.trackingListCacheEntries.mediaId),
+		)
+		.where(eq(s.trackingListCacheEntries.parentId, row.accountId))
+		.orderBy(asc(s.trackingListCacheEntries.ordinalIndex))
+		.all();
 	return {
-		...(row.invalidated !== null
-			? { invalidated: row.invalidated !== null ? row.invalidated : undefined }
-			: {}),
-		accountId: row.accountId,
-		fetchedAt: row.fetchedAt,
-		entries: store
-			.select()
-			.from(s.trackingListCacheEntries)
-			.where(eq(s.trackingListCacheEntries.parentId, row.accountId))
-			.orderBy(asc(s.trackingListCacheEntries.ordinalIndex))
-			.all()
-			.map((child) => ({
-				id: child.id,
-				mediaId: child.mediaId,
-				progress: child.progress,
-				status: child.status,
-				updatedAt: child.updatedAt,
-				titles: store
-					.select()
-					.from(s.trackingListCacheEntriesTitles)
-					.where(eq(s.trackingListCacheEntriesTitles.parentId, child.rowId))
-					.orderBy(asc(s.trackingListCacheEntriesTitles.ordinalIndex))
-					.all()
-					.map((child) => ({ value: child.value }))
-					.map((item) => item.value),
-				format: child.format,
-				year: child.year,
-				episodeCount: child.episodeCount,
-				coverUrl: child.coverUrl,
-			})),
-	} as TrackingListCache;
+		...row,
+		invalidated: row.invalidated ?? false,
+		entries: entries.map(({ entry, info }) => ({
+			id: entry.id,
+			mediaId: entry.mediaId,
+			progress: entry.progress,
+			status: entry.status,
+			updatedAt: entry.updatedAt,
+			titles: info.titles
+				.toSorted(
+					(a, b) => Number(b.kind === "native") - Number(a.kind === "native"),
+				)
+				.map((title) => title.value),
+			format: info.format,
+			year: info.year,
+			episodeCount: info.episodeCount,
+			coverUrl: info.coverUrl,
+		})),
+	};
 }
-
 export function writeTrackingListCache(
 	connection: Store,
 	value: TrackingListCache,
 ): void {
 	connection.transaction((store) => {
-		const row0 = {
-			invalidated: value?.invalidated ?? null,
-			accountId: value?.accountId,
-			fetchedAt: value?.fetchedAt,
+		const row = {
+			accountId: value.accountId,
+			fetchedAt: value.fetchedAt,
+			invalidated: value.invalidated ?? false,
 		};
 		store
 			.insert(s.trackingListCache)
-			.values(row0)
-			.onConflictDoUpdate({ target: s.trackingListCache.accountId, set: row0 })
+			.values(row)
+			.onConflictDoUpdate({ target: s.trackingListCache.accountId, set: row })
 			.run();
 		store
 			.delete(s.trackingListCacheEntries)
 			.where(eq(s.trackingListCacheEntries.parentId, value.accountId))
 			.run();
-		for (const [index1, item1] of (value?.entries ?? []).entries()) {
-			const parent1 = value.accountId;
-			const id1 = `${parent1}/${index1}`;
-			const row1 = {
-				rowId: id1,
-				parentId: parent1,
-				ordinalIndex: index1,
-				id: item1?.id,
-				mediaId: item1?.mediaId,
-				progress: item1?.progress,
-				status: item1?.status,
-				updatedAt: item1?.updatedAt ?? null,
-				format: item1?.format ?? null,
-				year: item1?.year ?? null,
-				episodeCount: item1?.episodeCount ?? null,
-				coverUrl: item1?.coverUrl ?? null,
-			};
-			store.insert(s.trackingListCacheEntries).values(row1).run();
+		for (const [index, entry] of value.entries.entries()) {
+			saveWorkSummary(
+				store,
+				{
+					reference: workReference(entry.mediaId),
+					titles: entry.titles.map((value) => ({
+						value,
+						language: null,
+						kind: "native" as const,
+					})),
+					format: entry.format,
+					year: entry.year,
+					episodeCount: entry.episodeCount,
+					coverUrl: entry.coverUrl,
+				},
+				value.fetchedAt,
+			);
 			store
-				.delete(s.trackingListCacheEntriesTitles)
-				.where(eq(s.trackingListCacheEntriesTitles.parentId, id1))
+				.insert(s.trackingListCacheEntries)
+				.values({
+					rowId: `${value.accountId}/${index}`,
+					parentId: value.accountId,
+					ordinalIndex: index,
+					id: entry.id,
+					mediaId: entry.mediaId,
+					progress: entry.progress,
+					status: entry.status,
+					updatedAt: entry.updatedAt,
+				})
 				.run();
-			for (const [index2, item2] of (item1?.titles ?? []).entries()) {
-				const parent2 = id1;
-				const id2 = `${parent2}/${index2}`;
-				const row2 = {
-					rowId: id2,
-					parentId: parent2,
-					ordinalIndex: index2,
-					value: { value: item2 }?.value,
-				};
-				store.insert(s.trackingListCacheEntriesTitles).values(row2).run();
-			}
 		}
 	});
 }

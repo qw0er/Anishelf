@@ -19,6 +19,7 @@ import { AnitomyIdentificationParser } from "./identification/infrastructure/par
 import type { MetadataApplication } from "./metadata/application/metadata.js";
 import type { AnimePersistence } from "./persistence.js";
 import type { AnimeApi } from "./public.js";
+import { AnimeQueries } from "./queries.js";
 import { AnimeReleaseAssessment } from "./release-assessment/application.js";
 import { AcquisitionIngestion } from "./release-assessment/ingestion.js";
 import { TrackingViewingCommands } from "./tracking/application/viewing.js";
@@ -78,6 +79,7 @@ export async function createAnimeModule(options: {
 			)
 		: undefined;
 	const api: AnimeApi = {
+		queries: new AnimeQueries(catalog, metadata, tracking, logger),
 		...(assessment && catalog
 			? {
 					ingestion: new AcquisitionIngestion(

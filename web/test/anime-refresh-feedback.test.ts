@@ -7,7 +7,7 @@ import { entryQuery } from "../src/features/anime/tracking/queries.js";
 import type { TrackingListResponse } from "../src/shared/api/contracts.js";
 import { createQueryClient } from "../src/shared/api/query-client.js";
 import { toast } from "../src/shared/components/ui/toast.js";
-import { animeFixture } from "./fixtures/anime.js";
+import { animeDetailFixture, animeFixture } from "./fixtures/anime.js";
 import { trackingProvider } from "./tracking-fixture.js";
 
 const fetcher = vi.fn<typeof fetch>();
@@ -95,7 +95,11 @@ test("metadata failure envelopes notify once across local and provider details, 
 		message: "private provider response",
 	};
 	fetcher.mockImplementation(async (input) =>
-		json(String(input).startsWith("/api/catalog/") ? detail : detail.metadata),
+		json(
+			String(input).startsWith("/api/anime/details/")
+				? animeDetailFixture(detail)
+				: detail.metadata,
+		),
 	);
 	await cache.fetchQuery(localWorkDetailQuery("work-1", "root"));
 	await cache.fetchQuery(metadataDetailQuery("anilist", "154587"));

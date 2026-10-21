@@ -15,10 +15,16 @@ import type {
 	PreparationTaskResponse,
 	ScanStateDto,
 	SettingsResponse,
+	TrackingAccountResponse,
+	TrackingEntryResponse,
 } from "../../src/shared/api/contracts.js";
 import { queryClient } from "../../src/shared/api/query-client.js";
 import { Toaster, toast } from "../../src/shared/components/ui/toast.js";
-import { animeFixture, reviewFixture } from "../fixtures/anime.js";
+import {
+	animeDetailFixture,
+	animeFixture,
+	reviewFixture,
+} from "../fixtures/anime.js";
 import {
 	act,
 	cleanup,
@@ -535,6 +541,20 @@ export async function openFile() {
 	fireEvent.click(await screen.findByRole("link", { name: "Episode 01.mp4" }));
 }
 
+async function fixtureViewing(
+	key: string,
+): Promise<TrackingEntryResponse | undefined> {
+	const implementation = requiredFetch(fetcher.getMockImplementation());
+	const account = (await (
+		await implementation("/api/tracking/account")
+	).json()) as TrackingAccountResponse;
+	if (!account.account) return undefined;
+	return (
+		await implementation(
+			`/api/tracking/entries/${encodeURIComponent(key)}?generation=${account.generation}`,
+		)
+	).json() as Promise<TrackingEntryResponse>;
+}
 export function mockAnime(detail: ReturnType<typeof animeFixture>) {
 	const fallback = fetcher.getMockImplementation();
 	fetcher.mockImplementation(async (input, init) => {
@@ -550,7 +570,30 @@ export function mockAnime(detail: ReturnType<typeof animeFixture>) {
 				localState: "available",
 				tracking: disconnectedList,
 			});
-		if (path === "/api/catalog/works/work-1") return json(detail);
+		if (path === "/api/anime/details/local/work-1") {
+			const key = "anilist:anime:154587";
+			return json(animeDetailFixture(detail, await fixtureViewing(key)));
+		}
+		if (path.startsWith("/api/anime/details/works/")) {
+			const key = decodeURIComponent(
+				path.slice("/api/anime/details/works/".length),
+			);
+			const viewing = await fixtureViewing(key);
+			const id = decodeURIComponent(key.split(":")[2] ?? "");
+			const response = await requiredFetch(fetcher.getMockImplementation())(
+				`/api/metadata/anilist/${encodeURIComponent(id)}`,
+			);
+			return json({
+				...animeDetailFixture(detail, viewing),
+				reference: { provider: "anilist", mediaType: "anime", id },
+				local: null,
+				displayTitle: viewing?.entry?.titles[0] ?? key,
+				metadata: response.ok ? await response.json() : null,
+				metadataError: response.ok
+					? null
+					: { code: "unavailable", message: "Unavailable", retryAt: null },
+			});
+		}
 		if (path === "/api/catalog/works/work-1/refresh") return json(detail);
 		if (path.startsWith("/api/metadata/anilist/154587/relations"))
 			return json({
