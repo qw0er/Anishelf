@@ -2,8 +2,8 @@ import { lookup } from "node:dns";
 import type { LookupFunction } from "node:net";
 import ipaddr from "ipaddr.js";
 import { Agent, type Dispatcher, request } from "undici";
+import { discoveryPolicy as policy } from "../application/policy.js";
 import { RssError } from "../domain/model.js";
-import { discoveryPolicy as policy } from "../policy.js";
 import type { FeedTransport } from "../ports.js";
 
 export function isPublicAddress(address: string): boolean {

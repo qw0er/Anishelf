@@ -46,6 +46,11 @@ uses a `DownloadExecution` that retains its own latest written revision across
 submission and import stages. A delayed failure cannot adopt and overwrite a newer
 command. Structured intent transition logs include the work, intent and new revision.
 
+Discovery and Downloads group their application facades, workflows, workers,
+contexts and operational policies under their respective `application/` directories.
+Their public contracts and ports remain at the submodule root, alongside `domain/`,
+`infrastructure/` and `http/`. qBittorrent keeps its smaller integration flat.
+
 Discovery owns feed evidence, subscription revisions and candidate publication. Its
 application manages session-bound previews and commands; `FeedReader` coalesces
 bounded source requests, the pure `selectCandidates` policy evaluates explicit
@@ -54,7 +59,8 @@ consumer-owned selection port with subscription/candidate/release reads and an e
 reservation-outcome notification. Discovery applies that notification without
 replacing candidates or clearing a separate assessment failure on recovery.
 
-`SubscriptionConfirmation` coordinates the synchronous SQLite transaction that saves
+`SubscriptionConfirmation` in `acquisition/subscription-confirmation.ts` coordinates
+the synchronous SQLite transaction that saves
 the subscription, feed and candidates together with the confirmed download permission.
 A permission failure rolls the complete confirmation back and retains the preview
 for retry. Production repositories share the application database connection; injected

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
+import { discoveryPolicy as policy } from "../application/policy.js";
 import { type FeedEntry, RssError } from "../domain/model.js";
-import { discoveryPolicy as policy } from "../policy.js";
 
 function digest(value: string): string {
 	return createHash("sha256").update(value).digest("hex");

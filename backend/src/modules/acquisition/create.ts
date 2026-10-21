@@ -2,12 +2,11 @@ import type { Logger } from "pino";
 import { DomainError } from "../../shared/errors.js";
 import type { AnimeApi, ReleaseAssessmentApi } from "../anime/public.js";
 import type { AcquisitionResources } from "../resources/public.js";
-import { SubscriptionConfirmation } from "./application/subscription-confirmation.js";
-import { DiscoveryApplication } from "./discovery/application.js";
+import { DiscoveryApplication } from "./discovery/application/application.js";
 import { parseRss } from "./discovery/infrastructure/rss.js";
 import { RssTransport, rssUrl } from "./discovery/infrastructure/transport.js";
 import type { FeedTransport } from "./discovery/public.js";
-import { DownloadsApplication } from "./downloads/application.js";
+import { DownloadsApplication } from "./downloads/application/application.js";
 import type { DownloadStore, TorrentTransport } from "./downloads/public.js";
 import { registerAcquisitionHttp } from "./http.js";
 import type { DiscoveryStore } from "./persistence.js";
@@ -19,6 +18,7 @@ import type {
 	QbittorrentApi,
 	QbittorrentOptions,
 } from "./qbittorrent/public.js";
+import { SubscriptionConfirmation } from "./subscription-confirmation.js";
 
 /** Standalone adapter foundation; no workers or automatic downloads are started. */
 export function createQbittorrentClient(

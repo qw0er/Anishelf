@@ -9,7 +9,7 @@ import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
 import { builtinPolicy } from "../src/app/policy.js";
 import { createAcquisitionModule } from "../src/modules/acquisition/create.js";
-import { DownloadsApplication } from "../src/modules/acquisition/downloads/application.js";
+import { DownloadsApplication } from "../src/modules/acquisition/downloads/application/application.js";
 import {
 	absoluteDownloadPath,
 	relativeDownloadPath,

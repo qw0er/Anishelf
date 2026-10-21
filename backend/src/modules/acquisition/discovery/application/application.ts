@@ -1,8 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
-import { DomainError } from "../../../shared/errors.js";
-import { workReference } from "../../../shared/external-reference.js";
-import type { AcquisitionTarget } from "../../anime/public.js";
-import { DiscoveryContext, type DiscoveryOptions } from "./context.js";
+import { DomainError } from "../../../../shared/errors.js";
+import { workReference } from "../../../../shared/external-reference.js";
+import type { AcquisitionTarget } from "../../../anime/public.js";
 import {
 	type Candidate,
 	type FeedRecord,
@@ -11,11 +10,12 @@ import {
 	type Subscription,
 	type SubscriptionPreview,
 	type SubscriptionView,
-} from "./domain/model.js";
-import { selectCandidates } from "./domain/selection.js";
+} from "../domain/model.js";
+import { selectCandidates } from "../domain/selection.js";
+import type { DiscoveryApi } from "../public.js";
+import { DiscoveryContext, type DiscoveryOptions } from "./context.js";
 import { FeedReader } from "./feed-reader.js";
 import { discoveryPolicy as policy } from "./policy.js";
-import type { DiscoveryApi } from "./public.js";
 import { DiscoveryWorker } from "./worker.js";
 
 function hash(value: string) {

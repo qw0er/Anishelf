@@ -1,8 +1,8 @@
 import { posix } from "node:path";
-import { DomainError } from "../../../shared/errors.js";
+import { DomainError } from "../../../../shared/errors.js";
+import type { DownloadActivity } from "../domain/model.js";
 import type { DownloadContext } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
-import type { DownloadActivity } from "./domain/model.js";
 import { downloadPolicy as policy } from "./policy.js";
 export class DownloadActivityQueries {
 	constructor(

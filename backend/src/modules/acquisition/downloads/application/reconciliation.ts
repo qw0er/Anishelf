@@ -1,9 +1,9 @@
-import { QbittorrentError } from "../qbittorrent/public.js";
+import { QbittorrentError } from "../../qbittorrent/public.js";
+import { DownloadError, type DownloadIntent } from "../domain/model.js";
+import { resolveTorrent } from "../infrastructure/torrent.js";
 import { type DownloadContext, DownloadExecution } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
-import { DownloadError, type DownloadIntent } from "./domain/model.js";
 import type { DownloadImport } from "./import.js";
-import { resolveTorrent } from "./infrastructure/torrent.js";
 import type { DownloadSubmission } from "./submission.js";
 
 export class DownloadReconciliation {

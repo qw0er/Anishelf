@@ -1,14 +1,14 @@
 import { posix } from "node:path";
-import type { DownloadTask } from "../qbittorrent/public.js";
+import type { DownloadTask } from "../../qbittorrent/public.js";
 import {
 	type QbittorrentApi,
 	QbittorrentError,
-} from "../qbittorrent/public.js";
+} from "../../qbittorrent/public.js";
+import { DownloadError, type DownloadIntent } from "../domain/model.js";
+import { absoluteDownloadPath } from "../domain/paths.js";
+import { resolveTorrent } from "../infrastructure/torrent.js";
 import type { DownloadContext, DownloadExecution } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
-import { DownloadError, type DownloadIntent } from "./domain/model.js";
-import { absoluteDownloadPath } from "./domain/paths.js";
-import { resolveTorrent } from "./infrastructure/torrent.js";
 import { downloadPolicy as policy } from "./policy.js";
 
 export class DownloadSubmission {

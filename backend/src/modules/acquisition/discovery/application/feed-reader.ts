@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { type FeedRecord, RssError } from "../domain/model.js";
 import type { DiscoveryContext } from "./context.js";
-import { type FeedRecord, RssError } from "./domain/model.js";
 import { discoveryPolicy as policy } from "./policy.js";
 export class FeedReader {
 	private readonly fetching = new Map<string, Promise<FeedRecord>>();
