@@ -1,15 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
-import type { AnimeApi, ReleaseAssessmentApi } from "../../../anime/public.js";
-import type { AcquisitionResources } from "../../../resources/public.js";
 import type { QbittorrentApi } from "../../qbittorrent/public.js";
 import type { DownloadIntent } from "../domain/model.js";
-import type {
-	DownloadSelection,
-	DownloadStore,
-	TorrentTransport,
-} from "../ports.js";
+import type { DownloadStore, TorrentTransport } from "../ports.js";
 import { downloadPolicy as policy } from "./policy.js";
 
 export function conflict(): never {
@@ -19,11 +13,7 @@ export function conflict(): never {
 	);
 }
 export interface DownloadOptions {
-	store: DownloadStore;
-	selection: DownloadSelection;
-	resources: AcquisitionResources;
-	anime: ReleaseAssessmentApi;
-	ingestion: NonNullable<AnimeApi["ingestion"]>;
+	store: Pick<DownloadStore, "intent" | "saveIntent" | "hashOwner">;
 	transport: TorrentTransport;
 	connectionGeneration(): string;
 	withClient<T>(

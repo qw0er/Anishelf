@@ -11,6 +11,10 @@ import { builtinPolicy } from "../src/app/policy.js";
 import { createAcquisitionModule } from "../src/modules/acquisition/create.js";
 import { DownloadsApplication } from "../src/modules/acquisition/downloads/application/application.js";
 import {
+	DownloadContext,
+	DownloadExecution,
+} from "../src/modules/acquisition/downloads/application/context.js";
+import {
 	absoluteDownloadPath,
 	relativeDownloadPath,
 	workDirectory,
@@ -20,6 +24,7 @@ import {
 	type QbittorrentApi,
 	QbittorrentError,
 } from "../src/modules/acquisition/qbittorrent/public.js";
+import { AcquisitionApplication } from "../src/modules/acquisition/workflows/application.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
 
@@ -172,7 +177,7 @@ async function fixture(persistent = false) {
 	}
 	seed();
 	function create() {
-		const worker = new DownloadsApplication({
+		const worker = new AcquisitionApplication({
 			store: db.acquisitionDownloads,
 			selection: {
 				subscription: (key) => db.acquisition.subscription(key),
@@ -1150,4 +1155,81 @@ test("completed downloads are excluded from all subsequent worker batches", asyn
 	expect(f.ingestion.available).not.toHaveBeenCalled();
 	expect(read).toHaveReturnedWith([]);
 	expect(f.db.acquisitionDownloads.hasActive()).toBe(false);
+});
+
+test("transfer completion returns evidence without invoking resource verification or Anime ingestion", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	f.complete();
+	const item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
+	if (!item) throw new Error("Missing intent");
+	const context = new DownloadContext({
+		store: f.db.acquisitionDownloads,
+		transport: f.transport,
+		connectionGeneration: () => item.destination.connectionGeneration,
+		withClient: async (_generation, operation) => operation(f.client),
+		logger,
+	});
+	const authorize = vi.fn(async () => item.subscriptionRevision);
+	const transfer = new DownloadsApplication(context, { authorize });
+	const completed = await transfer.run(new DownloadExecution(context, item));
+	expect(completed?.files).toHaveLength(1);
+	expect(f.resources.inspect).not.toHaveBeenCalled();
+	expect(f.resources.refresh).not.toHaveBeenCalled();
+	expect(f.ingestion.ingest).not.toHaveBeenCalled();
+	expect(authorize).not.toHaveBeenCalled();
+	expect(await completed?.verify()).toBe(true);
+	vi.mocked(f.client.files).mockResolvedValueOnce([]);
+	expect(await completed?.verify()).toBe(false);
+	expect(f.add).toHaveBeenCalledTimes(1);
+});
+
+test("transfer reconciles uncertain attempts without consulting subscription admission or resending", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	f.add.mockRejectedValueOnce(new QbittorrentError("timeout", "unknown"));
+	await f.worker.tick();
+	const item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
+	if (!item) throw new Error("Missing intent");
+	expect(item.state).toBe("unknown");
+	const context = new DownloadContext({
+		store: f.db.acquisitionDownloads,
+		transport: f.transport,
+		connectionGeneration: () => item.destination.connectionGeneration,
+		withClient: async (_generation, operation) => operation(f.client),
+		logger,
+	});
+	const authorize = vi.fn(async () => {
+		throw new Error("Admission must not run for uncertain attempts");
+	});
+	const transfer = new DownloadsApplication(context, { authorize });
+	expect(await transfer.run(new DownloadExecution(context, item))).toBeNull();
+	expect(authorize).not.toHaveBeenCalled();
+	expect(f.add).toHaveBeenCalledTimes(1);
+	expect(f.db.acquisitionDownloads.intent(item.id)?.state).toBe("unknown");
+});
+
+test("account replacement during ingestion cannot acknowledge the old download as available", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	f.complete();
+	f.ingestion.ingest.mockImplementationOnce(async () => {
+		f.changeAccount();
+		return "available";
+	});
+	await f.worker.tick();
+	expect(f.worker.activity(key).items[0]).toMatchObject({
+		state: "bound",
+		ingestion: "failed",
+		error: "downloader_configuration_changed",
+	});
+	expect(f.db.acquisitionDownloads.destination()?.visibilityVerified).toBe(
+		false,
+	);
+	expect(f.add).toHaveBeenCalledTimes(1);
 });

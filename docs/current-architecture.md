@@ -1,6 +1,6 @@
 # Automatic Acquisition: Current Iteration Architecture
 
-Date: 2026-10-21. RSS-based acquisition is implemented; real deployment/browser
+Date: 2026-10-22. RSS-based acquisition is implemented; real deployment/browser
 acceptance remains pending. The Watching automation and Torznab + Jackett extension
 below is designed but not implemented. [Current requirements](current-requirement.md) define this iteration.
 [Architecture](architecture.md) describes the complete application.
@@ -17,10 +17,13 @@ permissions, canonical reservations, submission attempts and import outcomes.
 ```mermaid
 flowchart LR
     RSS --> Discovery[RSS discovery and selection]
-    Discovery --> Intent[Persisted intent and reservations]
-    Intent --> Q[qBittorrent]
-    Q --> Verify[Completed-file verification]
-    Verify --> Resources[Resources targeted refresh]
+    Discovery --> Plan[Acquisition planning and admission]
+    Catalog[Anime local availability] --> Plan
+    Plan --> Downloads[Downloads task execution]
+    Downloads --> Q[qBittorrent]
+    Q --> Downloads
+    Downloads --> Ingest[Acquisition completion workflow]
+    Ingest --> Resources[Resources verification and targeted refresh]
     Resources --> Anime[Anime source validation and association]
     Anime --> Library[Existing episode playback]
     WebUI[qBittorrent WebUI] --> Q
@@ -38,26 +41,39 @@ without replacing manual decisions. Acquisition does not write their tables.
 
 ## Internal Workflow Boundaries
 
-`DownloadsApplication` is an internal facade over destination settings and authorization,
-recovery commands, activity queries, reservations, remote submission/reconciliation,
-completed-file import and a bounded worker. `DownloadContext` owns cancellation,
-request draining and the single revision-checked intent writer. Each reconciliation
-uses a `DownloadExecution` that retains its own latest written revision across
-submission and import stages. A delayed failure cannot adopt and overwrite a newer
-command. Structured intent transition logs include the work, intent and new revision.
+`AcquisitionApplication` in `acquisition/workflows/` coordinates subscription
+permission, destination validation, candidate admission, local-episode exclusion,
+recovery commands, Activity and the bounded worker. It reads Discovery through a
+consumer-owned selection port and calls Anime for current availability and release
+assessment. Destination and account changes still require explicit confirmation.
 
-Discovery and Downloads group their application facades, workflows, workers,
-contexts and operational policies under their respective `application/` directories.
-Their public contracts and ports remain at the submodule root, alongside `domain/`,
-`infrastructure/` and `http/`. qBittorrent keeps its smaller integration flat.
+`DownloadsApplication` executes persisted tasks: canonical hash resolution and
+deduplication, qBittorrent submission, ownership/path checks and transfer observation.
+It has no Discovery, Anime or Resources business collaborator. A submission-admission
+port lets the upper workflow recheck business eligibility immediately before add,
+using the same remote task snapshot as transfer deduplication. Completed tasks yield
+file evidence and a downloader revalidation capability; they never invoke ingestion.
 
-Discovery owns feed evidence, subscription revisions and candidate publication. Its
-application manages session-bound previews and commands; `FeedReader` coalesces
-bounded source requests, the pure `selectCandidates` policy evaluates explicit
-snapshots, and `DiscoveryWorker` owns polling and scheduling. Downloads consumes a
-consumer-owned selection port with subscription/candidate/release reads and an explicit
-reservation-outcome notification. Discovery applies that notification without
-replacing candidates or clearing a separate assessment failure on recovery.
+The upper `CompletedDownloadIngestion` workflow checks supported layout and calls Resources to
+inspect and refresh confined files, revalidates the download evidence, then asks
+Anime to ingest the source. It persists available, review or failed outcomes and
+supports import retry without another download. `AcquisitionReconciliation` applies
+retry/backoff across the stages. No event bus or additional queue is required.
+
+`DownloadContext` retains cancellation and the single revision-checked intent writer;
+its transfer options only expose task storage, torrent transport and client access.
+`AcquisitionContext` adds the upper collaborators. A `DownloadExecution` preserves
+its latest written revision across transfer and ingestion, preventing late failures
+from overwriting newer commands. Existing tables and state fields are retained for
+restart recovery and Activity; their shared record does not transfer ownership of
+business decisions into Downloads. Transition and ingestion-handoff logs carry the
+intent and work identity.
+
+Discovery keeps its application flows under `application/` and owns feed evidence,
+subscription revisions and candidate publication. `FeedReader` coalesces bounded
+requests, `selectCandidates` evaluates explicit snapshots and `DiscoveryWorker`
+owns polling. Reservation-result notifications do not overwrite separate assessment
+failures. qBittorrent keeps its smaller integration flat.
 
 `SubscriptionConfirmation` in `acquisition/subscription-confirmation.ts` coordinates
 the synchronous SQLite transaction that saves

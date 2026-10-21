@@ -93,7 +93,7 @@ The backend source has six responsibility roots:
 | Media | Inspection, Planning, Processing, Preparation, Subtitles | Compatibility, published-copy views, media information, preparation and subtitle HTTP services |
 | Playback | Progress, Playback Selection | Resource selection, source sessions/resume/history and durable automatic observations |
 | Anime | Identification, Metadata, Anime Catalog, Tracking, Anime Library, AniList protocol | Recognition, provider cache, review/associations, account/list lifecycle, unified viewing updates, combined Library reads and shared provider access |
-| Acquisition | qBittorrent adapter, Connection, Discovery, Downloads | Private credentials, RSS subscriptions, automatic selection, persisted destination/intent/reservations, reconciliation and verified ingestion orchestration |
+| Acquisition | qBittorrent, Discovery, Downloads, acquisition workflows | Private credentials, RSS subscriptions, automatic selection, persisted destination/intent/reservations, reconciliation and verified ingestion orchestration |
 
 `modules/acquisition` contains the [qBittorrent adapter and manual account settings](qbittorrent-adapter.md)
 with an Acquisition-owned contract, private credential file, HTTP routes and
@@ -106,9 +106,11 @@ records, per-anime placement, restart reconciliation and verified import through
 Resources and Anime public capabilities. Transfer controls remain in qBittorrent
 WebUI; the detail-page Activity is a compact status/recovery view.
 
-Acquisition internally separates Discovery preview/selection/polling from download
-configuration, authorization, reservations, submission, import, queries and scheduling.
-A consumer-owned selection port keeps Downloads out of Discovery persistence.
+Acquisition workflows coordinate download configuration, authorization, reservations,
+local-episode exclusion, import, queries and scheduling. Discovery owns previews,
+selection and polling; a consumer-owned selection port keeps workflows out of its
+persistence. Downloads executes tasks and returns completed-file evidence without
+calling Anime or Resources. Submission admission remains an upper workflow decision.
 Subscription confirmation coordinates both owners in one SQLite transaction; download
 state changes use one revision-checked writer across submission/import stages.
 See [Internal workflow boundaries](current-architecture.md#internal-workflow-boundaries).

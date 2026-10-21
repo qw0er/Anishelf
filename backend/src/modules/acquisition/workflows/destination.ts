@@ -1,19 +1,23 @@
 import { randomUUID } from "node:crypto";
 import { posix } from "node:path";
-import { DomainError } from "../../../../shared/errors.js";
-import type { AcquisitionTarget } from "../../../anime/public.js";
-import type { Subscription } from "../../discovery/public.js";
-import type { QbittorrentApi } from "../../qbittorrent/public.js";
-import { type DownloadDestination, DownloadError } from "../domain/model.js";
+import { DomainError } from "../../../shared/errors.js";
+import type { AcquisitionTarget } from "../../anime/public.js";
+import type { Subscription } from "../discovery/public.js";
+import { conflict } from "../downloads/application/context.js";
+import {
+	type DownloadDestination,
+	DownloadError,
+} from "../downloads/domain/model.js";
 import {
 	absoluteDownloadPath,
 	inside,
 	workDirectory,
-} from "../domain/paths.js";
-import { conflict, type DownloadContext } from "./context.js";
+} from "../downloads/domain/paths.js";
+import type { QbittorrentApi } from "../qbittorrent/public.js";
+import type { AcquisitionContext } from "./context.js";
 
 export class DownloadDestinationSettings {
-	constructor(private readonly context: DownloadContext) {}
+	constructor(private readonly context: AcquisitionContext) {}
 	async settings() {
 		const saved = this.context.options.store.destination();
 		const destination =

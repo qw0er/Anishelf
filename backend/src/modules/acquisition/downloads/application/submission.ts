@@ -7,14 +7,14 @@ import {
 import { DownloadError, type DownloadIntent } from "../domain/model.js";
 import { absoluteDownloadPath } from "../domain/paths.js";
 import { resolveTorrent } from "../infrastructure/torrent.js";
+import type { SubmissionAdmission } from "../ports.js";
 import type { DownloadContext, DownloadExecution } from "./context.js";
-import type { DownloadDestinationSettings } from "./destination.js";
 import { downloadPolicy as policy } from "./policy.js";
 
 export class DownloadSubmission {
 	constructor(
 		private readonly context: DownloadContext,
-		private readonly destination: DownloadDestinationSettings,
+		private readonly admission: SubmissionAdmission,
 	) {}
 	async observe(
 		execution: DownloadExecution,
@@ -46,47 +46,11 @@ export class DownloadSubmission {
 			return null;
 		}
 		if (!task) {
-			const subscription = this.context.options.selection.subscription(
-				item.workKey,
-			);
-			if (!subscription || !this.destination.authorized(subscription))
-				return null;
-			if (subscription.startEpisode > item.episode) return null;
-			const destination = this.context.options.store.destination();
-			if (!destination || destination.revision !== item.destination.revision)
-				throw new DownloadError("destination_changed");
-			const target = await this.context.options.anime.target(
-				item.workKey,
-				this.context.signal,
-			);
-			if (target.availableEpisodes.includes(item.episode)) {
-				execution.save({
-					...item,
-					state: "blocked",
-					error: "already_available",
-				});
-				return null;
-			}
-			const assessment = this.context.options.anime.assess(item.title, target);
-			if (!assessment.eligible || assessment.episode !== item.episode) {
-				execution.save({
-					...item,
-					state: "blocked",
-					error: "release_evidence_changed",
-				});
-				return null;
-			}
 			const snapshot = await client.tasks(this.context.signal);
 			if (
-				snapshot.some((task) => {
-					if ([task.hash, task.v1Hash, task.v2Hash].includes(item.hash))
-						return true;
-					const assessment = this.context.options.anime.assess(
-						task.name,
-						target,
-					);
-					return assessment.eligible && assessment.episode === item.episode;
-				})
+				snapshot.some((task) =>
+					[task.hash, task.v1Hash, task.v2Hash].includes(item.hash),
+				)
 			) {
 				execution.save({
 					...item,
@@ -100,37 +64,17 @@ export class DownloadSubmission {
 				this.context.options.transport,
 				this.context.signal,
 			);
-			const probe = await client.probe(this.context.signal);
-			await this.destination.validateIncomplete(probe, item.destination);
-			this.context.open();
-			const before = this.context.options.selection.subscription(item.workKey);
-			if (
-				!before ||
-				before.revision !== subscription.revision ||
-				!this.destination.authorized(before)
-			)
-				return null;
-			const choice = this.context.options.selection
-				.candidates(item.workKey)
-				.find(
-					(candidate) =>
-						candidate.id === item.candidateId &&
-						candidate.episode === item.episode &&
-						candidate.status === "selected",
-				);
-			if (!choice) {
-				execution.save({
-					...item,
-					state: "blocked",
-					error: "selection_changed",
-				});
-				return null;
-			}
+			const subscriptionRevision = await this.admission.authorize(
+				execution,
+				client,
+				snapshot,
+			);
+			if (subscriptionRevision === null) return null;
 			item = execution.save({
 				...item,
 				state: "submitting",
 				attempts: item.attempts + 1,
-				subscriptionRevision: before.revision,
+				subscriptionRevision,
 				error: null,
 			});
 			try {

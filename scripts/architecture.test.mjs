@@ -590,3 +590,18 @@ test("business code cannot hide provider-specific branches behind neutral import
 		/provider-independent-business/,
 	);
 });
+
+test("download execution delegates cross-module business decisions to acquisition workflows", async () => {
+	for (const target of ["anime", "resources"]) {
+		const violations = await scan({
+			"backend/src/modules/acquisition/downloads/application/service.ts": `import type { Value } from '../../../${target}/public.js'; export type { Value };`,
+			[`backend/src/modules/${target}/public.ts`]:
+				"export interface Value { id: string }",
+		});
+		assert.ok(
+			violations.includes(
+				"downloads-execution-does-not-import-business-workflows",
+			),
+		);
+	}
+});

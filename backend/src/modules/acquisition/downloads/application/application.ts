@@ -1,69 +1,83 @@
-import type { AcquisitionTarget } from "../../../anime/public.js";
-import type { DownloadsApi } from "../public.js";
-import { DownloadActivityQueries } from "./activity.js";
-import { DownloadCommands } from "./commands.js";
-import { DownloadContext, type DownloadOptions } from "./context.js";
-import { DownloadDestinationSettings } from "./destination.js";
-import { DownloadImport } from "./import.js";
-import { DownloadReconciliation } from "./reconciliation.js";
-import { DownloadReservations } from "./reservations.js";
+import { resolveTorrent } from "../infrastructure/torrent.js";
+import type { CompletedDownload, SubmissionAdmission } from "../ports.js";
+import type { DownloadContext, DownloadExecution } from "./context.js";
 import { DownloadSubmission } from "./submission.js";
-import { DownloadWorker } from "./worker.js";
-
-/** Internal facade; external capabilities and worker lifecycle remain independently selected. */
-export class DownloadsApplication implements DownloadsApi {
-	private readonly destination: DownloadDestinationSettings;
-	private readonly commands: DownloadCommands;
-	private readonly queries: DownloadActivityQueries;
-	private readonly worker: DownloadWorker;
-	constructor(options: DownloadOptions) {
-		const context = new DownloadContext(options);
-		this.destination = new DownloadDestinationSettings(context);
-		this.commands = new DownloadCommands(context, this.destination);
-		this.queries = new DownloadActivityQueries(context, this.destination);
-		this.worker = new DownloadWorker(
-			context,
-			new DownloadReservations(context, this.destination),
-			new DownloadReconciliation(
-				context,
-				this.destination,
-				new DownloadSubmission(context, this.destination),
-				new DownloadImport(context),
-			),
-		);
-	}
-	settings() {
-		return this.destination.settings();
-	}
-	saveDestination(input: Parameters<DownloadsApi["saveDestination"]>[0]) {
-		return this.destination.saveDestination(input);
-	}
-	validate(revision: string) {
-		return this.destination.validate(revision);
-	}
-	preview(key: string, target: AcquisitionTarget) {
-		return this.destination.preview(key, target);
-	}
-	authorizeSubscription(
-		workKey: string,
-		revision: string,
-		destinationRevision: string,
+/** Executes accepted tasks; no Discovery, Anime or Resources business calls. */
+export class DownloadsApplication {
+	private readonly submission: DownloadSubmission;
+	constructor(
+		private readonly context: DownloadContext,
+		admission: SubmissionAdmission,
 	) {
-		this.destination.authorize(workKey, revision, destinationRevision);
+		this.submission = new DownloadSubmission(context, admission);
 	}
-	activity(workKey: string, page = 1) {
-		return this.queries.activity(workKey, page);
-	}
-	retry(...args: Parameters<DownloadsApi["retry"]>) {
-		this.commands.retry(...args);
-	}
-	tick() {
-		return this.worker.tick();
-	}
-	start() {
-		this.worker.start();
-	}
-	close() {
-		return this.worker.close();
+	async run(execution: DownloadExecution): Promise<CompletedDownload | null> {
+		let item = execution.current;
+		if (
+			item.destination.connectionGeneration !==
+			this.context.options.connectionGeneration()
+		) {
+			execution.save({
+				...item,
+				state: "blocked",
+				error: "downloader_configuration_changed",
+			});
+			return null;
+		}
+		if (item.hash.startsWith("unresolved:")) {
+			const resolved = await resolveTorrent(
+				{ downloadUrl: item.source, hash: item.expectedHash },
+				this.context.options.transport,
+				this.context.signal,
+			);
+			if (this.context.options.store.hashOwner(resolved.hash, item.id)) {
+				execution.save({
+					...item,
+					state: "blocked",
+					error: "torrent_reserved",
+				});
+				return null;
+			}
+			item = execution.save({ ...item, hash: resolved.hash });
+		}
+		return this.context.options.withClient(
+			item.destination.connectionGeneration,
+			async (client) => {
+				const observed = await this.submission.observe(execution, client);
+				if (!observed) return null;
+				const task = observed.task;
+				if (
+					task.progress !== 1 ||
+					task.remainingBytes !== 0 ||
+					/checking|moving|meta|error|missing/i.test(task.state)
+				)
+					return null;
+				const files = await client.files(item.hash, this.context.signal);
+				return {
+					task,
+					files,
+					verify: async () =>
+						this.context.options.withClient(
+							item.destination.connectionGeneration,
+							async (currentClient) => {
+								const current = await currentClient.task(
+									item.hash,
+									this.context.signal,
+								);
+								const currentFiles = await currentClient.files(
+									item.hash,
+									this.context.signal,
+								);
+								return (
+									current?.progress === 1 &&
+									current.remainingBytes === 0 &&
+									current.savePath === task.savePath &&
+									JSON.stringify(currentFiles) === JSON.stringify(files)
+								);
+							},
+						),
+				};
+			},
+		);
 	}
 }
