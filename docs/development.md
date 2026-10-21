@@ -81,6 +81,14 @@ Run `npm run check` and `npm run build` after structural changes. Architecture
 fixtures spawn Node processes; media and HTTP suites also spawn tools and listen
 on localhost. Run them in an environment permitting those operations.
 
+## Filesystem monitor tests
+
+Native watcher fixtures canonicalize temporary paths before deriving root identities,
+including macOS `/var` aliases. Their assertions cover final file state, root
+isolation and the absence of extra baseline scans, allowing duplicate native events.
+The change-processor suite verifies exact subtree read scope using controlled change
+batches against `memfs`, with a fresh in-memory filesystem for each test.
+
 ## Deployment configuration
 
 Startup requires no deployment file or application environment variables:

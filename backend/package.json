@@ -21,6 +21,7 @@
 		"@types/node": "^26.6.5",
 		"@types/parse-torrent": "^11.0.1",
 		"drizzle-kit": "^0.31.11",
+		"memfs": "^4.80.0",
 		"pino-pretty": "^13.2.0",
 		"vitest": "^5.0.4"
 	},
