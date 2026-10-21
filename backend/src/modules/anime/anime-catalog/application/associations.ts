@@ -320,6 +320,10 @@ export class AssociationApplication {
 					revision: work.revision,
 					reviewIds: preview.rows.map((row) => row.reviewId),
 				};
+				this.context.options.metadata.retain(
+					preview.metadata.snapshotId,
+					`catalog-decision:${request.operationKey}`,
+				);
 				store.saveOperation(request.operationKey, fingerprint, committed);
 				return committed;
 			});

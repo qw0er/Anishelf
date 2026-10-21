@@ -34,6 +34,9 @@ export interface AnimeCatalogApi {
 	}>;
 	cards(ids: readonly string[], epoch: number): Promise<WorkCard[]>;
 	getLocalWorkDetail(id: string): Promise<LocalWorkDetail>;
+	findLocalWork(
+		reference: import("../metadata/public.js").ProviderReference,
+	): Promise<string | null>;
 	artwork(
 		id: string,
 		kind: "cover" | "banner",

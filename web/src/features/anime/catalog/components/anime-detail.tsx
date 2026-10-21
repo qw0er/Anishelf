@@ -4,7 +4,10 @@ import { ArrowLeft, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
-import type { LocalWorkDetailResponse } from "../../../../shared/api/contracts.js";
+import type {
+	AnimeDetailResponse,
+	LocalWorkDetailResponse,
+} from "../../../../shared/api/contracts.js";
 import { useQueryScope } from "../../../../shared/api/queries.js";
 import {
 	Button,
@@ -13,7 +16,7 @@ import {
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { Artwork } from "../../shared/components/artwork.js";
-import { useViewingState, ViewingSummary } from "../../tracking/public.js";
+import { useDetailViewing, ViewingSummary } from "../../tracking/public.js";
 import { localWorkDetailQuery } from "../queries.js";
 import type { AnimeResourceActionSlot } from "../resource-actions.js";
 
@@ -29,7 +32,10 @@ export function AnimeDetail({
 	renderSubscription,
 }: {
 	renderResourceActions: AnimeResourceActionSlot;
-	renderSubscription?: (workKey: string) => ReactNode;
+	renderSubscription?: (
+		workKey: string,
+		detail: Pick<AnimeDetailResponse, "subscription" | "downloads">,
+	) => ReactNode;
 }) {
 	const { id = "" } = useParams();
 	const scope = useQueryScope();
@@ -67,15 +73,22 @@ function LocalWorkDetail({
 	renderResourceActions,
 	renderSubscription,
 }: {
-	data: LocalWorkDetailResponse;
+	data: LocalWorkDetailResponse & { detail: AnimeDetailResponse };
 	renderResourceActions: AnimeResourceActionSlot;
-	renderSubscription?: (workKey: string) => ReactNode;
+	renderSubscription?: (
+		workKey: string,
+		detail: Pick<AnimeDetailResponse, "subscription" | "downloads">,
+	) => ReactNode;
 }) {
 	const { t, i18n } = useTranslation();
 	const controller = useLocalWorkDetail(data);
 	const { libraryPath, refresh } = controller;
 	const { work, metadata } = data;
-	const viewing = useViewingState(workKey(work.reference));
+	const viewing = useDetailViewing(
+		data.detail.viewing,
+		workKey(work.reference),
+		() => refresh.mutate(),
+	);
 	return (
 		<section className="stack-page">
 			<div className="action-row justify-between">
@@ -149,7 +162,7 @@ function LocalWorkDetail({
 					<RelatedWorks controller={controller} />
 				</aside>
 			</div>
-			{renderSubscription?.(workKey(work.reference))}
+			{renderSubscription?.(workKey(work.reference), data.detail)}
 			<VersionSelector
 				controller={controller}
 				renderResourceActions={renderResourceActions}

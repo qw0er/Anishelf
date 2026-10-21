@@ -4,6 +4,7 @@ import type { TrackingOperationsResponse } from "../../../shared/api/contracts.j
 import { boundedSignal } from "../../../shared/api/queries.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import i18n from "../../../shared/i18n.js";
+import { invalidateAnimeQueries } from "../shared/query-keys.js";
 import type { TrackingIdentity } from "./queries.js";
 
 const seen = new WeakMap<QueryClient, Map<string, string>>();
@@ -71,8 +72,7 @@ export function reportTrackingOperations(
 			continue;
 		}
 		if (op.state === "succeeded" || op.state === "authorization-required") {
-			void client.invalidateQueries({ queryKey: ["anime-library"] });
-			void client.invalidateQueries({ queryKey: ["tracking", "entry"] });
+			void invalidateAnimeQueries(client, "viewing");
 		}
 		if (
 			![

@@ -1,5 +1,6 @@
 import { type RequestOptions, request } from "../../../shared/api/client.js";
 import type {
+	AnimeDetailResponse,
 	CatalogFileReviewsResponse,
 	CatalogReviewResponse,
 	CatalogSourceResponse,
@@ -9,12 +10,15 @@ import type {
 export function getLocalWorkDetail(
 	id: string,
 	options?: RequestOptions,
-): Promise<LocalWorkDetailResponse> {
-	return request(
-		`/api/catalog/works/${encodeURIComponent(id)}`,
+): Promise<LocalWorkDetailResponse & { detail: AnimeDetailResponse }> {
+	return request<AnimeDetailResponse>(
+		`/api/anime/details/local/${encodeURIComponent(id)}`,
 		"GET",
 		options,
-	);
+	).then((detail) => {
+		if (!detail.local) throw new Error("Local anime detail is unavailable.");
+		return { ...detail.local, detail };
+	});
 }
 export function refreshLocalWorkDetail(
 	id: string,

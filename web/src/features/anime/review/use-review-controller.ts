@@ -12,7 +12,7 @@ import {
 	metadataSearchQuery,
 	resolveMetadataReference,
 } from "../metadata/public.js";
-import { animeLibraryQueryKey } from "../shared/query-keys.js";
+import { invalidateAnimeQueries } from "../shared/query-keys.js";
 import { confirmMapping, decideReview, previewMapping } from "./api.js";
 import { inlineReviewError, reportReviewFailure } from "./feedback.js";
 import { parseMapping } from "./mapping.js";
@@ -51,10 +51,7 @@ export function useReviewController(item: CatalogReviewItem) {
 	});
 	const replacement = Boolean(preview?.rows.some((row) => row.before.length));
 	const invalidate = async () => {
-		await Promise.all([
-			client.invalidateQueries({ queryKey: ["catalog"] }),
-			client.invalidateQueries({ queryKey: animeLibraryQueryKey }),
-		]);
+		await invalidateAnimeQueries(client, "local");
 	};
 	const previewAction = useMutation({
 		onMutate: () => toast.close(noticeId),

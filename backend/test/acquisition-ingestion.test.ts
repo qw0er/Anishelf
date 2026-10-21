@@ -85,6 +85,7 @@ async function fixture() {
 		failure: null,
 	});
 	const metadata: CatalogMetadata = {
+		current: () => snapshot,
 		get: async () => snapshot,
 		snapshot: () => ({ kind: "detail", ...snapshot }),
 		retain: (id, owner) => db.metadata.retain(id, owner),

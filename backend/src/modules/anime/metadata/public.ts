@@ -15,7 +15,7 @@ import type {
 } from "./domain/model.js";
 
 export type { ProviderReference } from "./domain/model.js";
-export { MetadataError } from "./domain/model.js";
+export { MetadataError, workTitle } from "./domain/model.js";
 export interface MetadataApi {
 	providers(): ProviderCapabilities[];
 	resolveReference(value: string, provider?: string): ProviderReference;
@@ -40,6 +40,7 @@ export interface MetadataApi {
 		options?: ReadOptions,
 	): Promise<CachedMetadata<Page<AiringEpisode>>>;
 	snapshot(snapshotId: string): MetadataSnapshot;
+	current(reference: ProviderReference): CachedMetadata<WorkDetails> | null;
 	/** Catalog owns owner IDs; idempotent pins preserve referenced snapshot versions. */
 	retain(snapshotId: string, ownerId: string): void;
 	release(snapshotId: string, ownerId: string): void;

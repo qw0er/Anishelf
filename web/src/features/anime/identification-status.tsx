@@ -5,7 +5,7 @@ import { useQueryScope } from "../../shared/api/queries.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import { interactionPolicy } from "../../shared/config/interaction-policy.js";
 import { identificationQuery } from "./metadata/public.js";
-import { animeLibraryQueryKey } from "./shared/query-keys.js";
+import { invalidateAnimeQueries } from "./shared/query-keys.js";
 
 /** App-level observer; background recognition never occupies page layout. */
 export function IdentificationStatus({
@@ -36,14 +36,12 @@ export function IdentificationStatus({
 		const last = previous.current;
 		previous.current = current;
 		if (last && last.revision !== current.revision) {
-			void client.invalidateQueries({ queryKey: ["catalog"] });
-			void client.invalidateQueries({ queryKey: animeLibraryQueryKey });
+			void invalidateAnimeQueries(client, "local");
 		}
 		if (last?.running === current.running && last?.failed === current.failed)
 			return;
 		if (last?.running && !current.running) {
-			void client.invalidateQueries({ queryKey: ["catalog"] });
-			void client.invalidateQueries({ queryKey: animeLibraryQueryKey });
+			void invalidateAnimeQueries(client, "local");
 		}
 		if (current.incremental && !current.failed) {
 			toast.close(notificationId);

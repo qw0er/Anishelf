@@ -4,6 +4,7 @@ import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
 import { mediaSources } from "../../../resources/persistence.js";
 import type { SourceRegistry } from "../../../resources/public.js";
+import { metadataWorks } from "../../metadata/persistence.js";
 
 import type {
 	Association,
@@ -34,7 +35,6 @@ import {
 	catalogReviews,
 	catalogReviewsResultProposals,
 	catalogWorks,
-	catalogWorksSearchTitles,
 } from "./schema.js";
 
 type Connection = Pick<
@@ -172,13 +172,25 @@ export class CatalogRepository implements CatalogStore {
 			}
 		});
 	}
-	work(id: string): LocalWork | null {
-		const row = this.store
-			.select()
+	private workQuery() {
+		return this.store
+			.select({ work: catalogWorks, info: metadataWorks })
 			.from(catalogWorks)
-			.where(eq(catalogWorks.id, id))
-			.get();
-		return row ? readCatalogWorks(this.store, row) : null;
+			.innerJoin(
+				catalogProviderLinks,
+				eq(catalogProviderLinks.workId, catalogWorks.id),
+			)
+			.innerJoin(
+				metadataWorks,
+				and(
+					eq(metadataWorks.provider, catalogProviderLinks.provider),
+					eq(metadataWorks.providerId, catalogProviderLinks.providerId),
+				),
+			);
+	}
+	work(id: string): LocalWork | null {
+		const row = this.workQuery().where(eq(catalogWorks.id, id)).get();
+		return row ? readCatalogWorks(row.work, row.info) : null;
 	}
 	link(workId: string): ProviderLink | null {
 		const row = this.store
@@ -206,25 +218,17 @@ export class CatalogRepository implements CatalogStore {
 				catalogAssociations,
 				eq(catalogAssociations.episodeId, catalogEpisodes.id),
 			);
-		return this.store
-			.select()
-			.from(catalogWorks)
+		return this.workQuery()
 			.where(
 				and(gt(catalogWorks.id, afterId), inArray(catalogWorks.id, associated)),
 			)
 			.orderBy(asc(catalogWorks.id))
 			.limit(limit)
 			.all()
-			.map((row) => readCatalogWorks(this.store, row));
+			.map((row) => readCatalogWorks(row.work, row.info));
 	}
 	findWork(reference: ProviderLink["reference"]): LocalWork | null {
-		const row = this.store
-			.select({ work: catalogWorks })
-			.from(catalogWorks)
-			.innerJoin(
-				catalogProviderLinks,
-				eq(catalogProviderLinks.workId, catalogWorks.id),
-			)
+		const row = this.workQuery()
 			.where(
 				and(
 					eq(catalogProviderLinks.provider, reference.provider),
@@ -233,7 +237,7 @@ export class CatalogRepository implements CatalogStore {
 				),
 			)
 			.get();
-		return row ? readCatalogWorks(this.store, row.work) : null;
+		return row ? readCatalogWorks(row.work, row.info) : null;
 	}
 	list(
 		scopeIds: readonly string[],
@@ -272,22 +276,20 @@ export class CatalogRepository implements CatalogStore {
 				),
 			);
 		const pattern = `%${(query.query ?? "").replace(/[\\%_]/g, "\\$&")}%`;
-		const title = sql`lower(${catalogWorks.providerTitle})`;
-		const rows = this.store
-			.select()
-			.from(catalogWorks)
+		const title = sql`lower(${metadataWorks.providerTitle})`;
+		const rows = this.workQuery()
 			.where(
 				and(
 					inArray(catalogWorks.id, rootWorks),
 					query.query
 						? or(
 								sql`${title} like ${pattern} escape '\\'`,
-								sql`exists (select 1 from ${catalogWorksSearchTitles} where ${catalogWorksSearchTitles.parentId} = ${catalogWorks.id} and ${catalogWorksSearchTitles.value} like ${pattern} escape '\\')`,
+								sql`exists (select 1 from json_each(${metadataWorks.titles}) where json_extract(value, '$.value') like ${pattern} escape '\\')`,
 							)
 						: undefined,
-					query.format ? eq(catalogWorks.format, query.format) : undefined,
+					query.format ? eq(metadataWorks.format, query.format) : undefined,
 					query.year !== undefined
-						? eq(catalogWorks.year, query.year)
+						? eq(metadataWorks.year, query.year)
 						: undefined,
 					query.availability === "available"
 						? inArray(catalogWorks.id, availableWorks)
@@ -306,7 +308,7 @@ export class CatalogRepository implements CatalogStore {
 		return {
 			items: rows
 				.slice(0, perPage)
-				.map((row) => readCatalogWorks(this.store, row)),
+				.map((row) => readCatalogWorks(row.work, row.info)),
 			page,
 			perPage,
 			hasNextPage: rows.length > perPage,

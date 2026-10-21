@@ -69,39 +69,11 @@ export const catalogWorks = sqliteTable(
 	"catalog_works",
 	{
 		id: text("id").primaryKey().notNull(),
-		providerTitle: text("provider_title").notNull(),
-		format: text("format"),
-		year: integer("year"),
-		episodeCount: integer("episode_count"),
 		revision: integer("revision").notNull(),
 		createdAt: integer("created_at").notNull(),
 		updatedAt: integer("updated_at").notNull(),
 	},
-	(table) => [
-		check("catalog_works_episode_count_0", sql`${table.episodeCount} >= 0`),
-		check("catalog_works_revision_0", sql`${table.revision} >= 0`),
-	],
-);
-export const catalogWorksSearchTitles = sqliteTable(
-	"catalog_works_search_titles",
-	{
-		rowId: text("row_id").primaryKey(),
-		parentId: text("parent_id")
-			.notNull()
-			.references(() => catalogWorks.id, { onDelete: "cascade" }),
-		ordinalIndex: integer("ordinal_index").notNull(),
-		value: text("value").notNull(),
-	},
-	(table) => [
-		check(
-			"catalog_works_search_titles_ordinal",
-			sql`${table.ordinalIndex} >= 0`,
-		),
-		uniqueIndex("catalog_works_search_titles_order").on(
-			table.parentId,
-			table.ordinalIndex,
-		),
-	],
+	(table) => [check("catalog_works_revision_0", sql`${table.revision} >= 0`)],
 );
 export const catalogAssociations = sqliteTable(
 	"catalog_associations",

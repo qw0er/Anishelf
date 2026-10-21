@@ -140,7 +140,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 	const operation = {
 		id: "op",
 		accountId: "account",
-		mediaId: "media",
+		mediaId: "fixture:anime:media",
 		origin: "manual-detail",
 		commandId: "command",
 		intentAt: 1,
@@ -160,7 +160,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 	const entries = [
 		{
 			id: "list-entry",
-			mediaId: "media",
+			mediaId: "fixture:anime:media",
 			progress: 1,
 			status: "watching",
 			updatedAt: null,
@@ -232,7 +232,11 @@ test("persists all normalized aggregates, preserves ordered children and survive
 	const metadata = {
 		reference: { provider: "fixture", mediaType: "anime", id: "1" },
 		unavailableFields: [],
-		titles: [{ value: "Title", kind: "native", language: null }],
+		titles: ["Second", "First"].map((value) => ({
+			value,
+			kind: "native",
+			language: null,
+		})),
 		year: null,
 		format: null,
 		status: null,
@@ -271,7 +275,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 		reviewId: "source",
 		mappingRevision: 1,
 		episodeId: "episode",
-		mediaId: "media",
+		mediaId: "fixture:anime:media",
 		episode: 1,
 	};
 	raw.exec(
@@ -322,7 +326,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 		updatedAt: 2,
 	});
 	raw.exec(
-		"INSERT INTO catalog_episodes VALUES ('episode','work','regular','1','1','confirmed')",
+		"INSERT INTO catalog_provider_links VALUES ('work','fixture','anime','1','snapshot'); INSERT INTO catalog_episodes VALUES ('episode','work','regular','1','1','confirmed')",
 	);
 	writeCatalogAssociations(store, {
 		id: "association",
@@ -502,7 +506,11 @@ test("persists all normalized aggregates, preserves ordered children and survive
 			expect(
 				config.columns.some((col) => col.columnType === "SQLiteTextJson"),
 				config.name,
-			).toBe(["metadata_snapshots", "media_inspections"].includes(config.name));
+			).toBe(
+				["metadata_snapshots", "metadata_works", "media_inspections"].includes(
+					config.name,
+				),
+			);
 		}
 		expect(
 			inspected
@@ -510,7 +518,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 					"SELECT count(*) AS count FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> '__drizzle_migrations'",
 				)
 				.get(),
-		).toEqual({ count: 66 });
+		).toEqual({ count: 65 });
 	} finally {
 		inspected.close();
 	}

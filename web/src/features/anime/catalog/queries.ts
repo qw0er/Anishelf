@@ -10,7 +10,7 @@ import {
 
 export const localWorkDetailQuery = (id: string, scope: string) =>
 	queryOptions({
-		queryKey: ["catalog", scope, "local-work-detail", id],
+		queryKey: ["anime-detail", scope, "local", id],
 		queryFn: async ({ signal, client }) => {
 			const result = await getLocalWorkDetail(id, {
 				signal: boundedSignal(signal),
@@ -19,10 +19,16 @@ export const localWorkDetailQuery = (id: string, scope: string) =>
 			reportMetadataRefresh(client, result.metadata);
 			return result;
 		},
-		staleTime: 0,
+		// Reuse the route loader result when the detail component mounts.
+		staleTime: 1000,
 		refetchOnWindowFocus: true,
 		refetchInterval: (query) =>
-			query.state.data?.metadata.refreshing ? 2000 : 5 * 60_000,
+			query.state.data?.detail.downloads?.active
+				? 5_000
+				: query.state.data?.metadata.refreshing ||
+						query.state.data?.detail.viewing.refreshing
+					? 2000
+					: 30_000,
 	});
 export const sourceQuery = (id: string, scope: string) =>
 	queryOptions({

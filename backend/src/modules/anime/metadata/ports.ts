@@ -59,6 +59,7 @@ export interface ArtworkRecord {
 	accessedAt: number;
 }
 export interface MetadataStore {
+	current(key: string): CacheEntry | null;
 	find(key: string): CacheEntry | null;
 	get(id: string): CacheEntry | null;
 	save(entry: CacheEntry): void;

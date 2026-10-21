@@ -1,39 +1,83 @@
-import { workReference } from "@anishelf/backend/contracts/references";
+import { workKey } from "@anishelf/backend/contracts/references";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams, useSearchParams } from "react-router";
+import type { AnimeDetailResponse } from "../../../../shared/api/contracts.js";
+import { useQueryScope } from "../../../../shared/api/queries.js";
 import {
 	Button,
 	buttonStyles,
 } from "../../../../shared/components/ui/button.js";
 import { libraryReturnPath } from "../../../../shared/navigation.js";
-import { metadataDetailQuery } from "../../metadata/public.js";
 import { Artwork } from "../../shared/components/artwork.js";
-import { useViewingState, ViewingSummary } from "../../tracking/public.js";
+import { useDetailViewing, ViewingSummary } from "../../tracking/public.js";
+import { animeDetailQuery } from "../detail-query.js";
 import { WorkMetadataHeader } from "./work-metadata-header.js";
 import { WorkSynopsis } from "./work-synopsis.js";
 export function TrackedAnimeDetail({
 	renderSubscription,
 }: {
-	renderSubscription?: (workKey: string) => ReactNode;
+	renderSubscription?: (
+		workKey: string,
+		detail: Pick<AnimeDetailResponse, "subscription" | "downloads">,
+	) => ReactNode;
 } = {}) {
 	const { mediaId = "" } = useParams();
 	const [params] = useSearchParams();
 	const { t } = useTranslation();
-	const reference = workReference(mediaId);
-	const metadata = useQuery(
-		metadataDetailQuery(reference.provider, reference.id),
+	const scope = useQueryScope();
+	const query = useQuery(animeDetailQuery(mediaId, scope));
+	if (!query.data)
+		return (
+			<section className="stack-page">
+				<p role={query.error ? "alert" : "status"}>
+					{t(query.error ? "errors.pageLoad" : "anime.loading")}
+				</p>
+				<Button onClick={() => void query.refetch()}>
+					{t("actions.retry")}
+				</Button>
+			</section>
+		);
+	return (
+		<TrackedDetail
+			data={query.data}
+			retry={() => void query.refetch()}
+			library={params.get("library")}
+			{...(renderSubscription ? { renderSubscription } : {})}
+		/>
 	);
-	const viewing = useViewingState(mediaId);
-	const info = metadata.data?.data;
+}
+function TrackedDetail({
+	data,
+	retry,
+	library,
+	renderSubscription,
+}: {
+	data: AnimeDetailResponse;
+	retry: () => void;
+	library: string | null;
+	renderSubscription?: (
+		workKey: string,
+		detail: Pick<AnimeDetailResponse, "subscription" | "downloads">,
+	) => ReactNode;
+}) {
+	const { t } = useTranslation();
+	const mediaId = workKey(data.reference);
+	const viewing = useDetailViewing(data.viewing, mediaId, retry);
+	const metadata = {
+		data: data.metadata,
+		error: data.metadataError,
+		refetch: retry,
+	};
+	const info = data.metadata?.data;
 	const summary = viewing.snapshot?.entry;
-	const title = summary?.titles[0] ?? info?.titles[0]?.value ?? mediaId;
+	const title = data.displayTitle;
 	return (
 		<section className="stack-page">
 			<Link
 				className={buttonStyles("outline")}
-				to={libraryReturnPath(params.get("library"))}
+				to={libraryReturnPath(library)}
 				state={{ focusWork: mediaId }}
 			>
 				{t("anime.back")}
@@ -52,7 +96,7 @@ export function TrackedAnimeDetail({
 						data={{
 							work: {
 								displayTitle: title,
-								coverUrl: summary?.coverUrl ?? info.coverUrl,
+								coverUrl: info.coverUrl,
 								format: info.format,
 								year: info.year,
 								episodeCount: info.episodeCount,
@@ -84,7 +128,7 @@ export function TrackedAnimeDetail({
 					)}
 				</>
 			)}
-			{renderSubscription?.(mediaId)}
+			{renderSubscription?.(mediaId, data)}
 		</section>
 	);
 }

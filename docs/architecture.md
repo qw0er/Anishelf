@@ -55,12 +55,12 @@ Source installations can still explicitly enable Node frontend hosting.
 | Progress | Source-bound playback sessions, resume/history, normal-play completion detection and a durable observation outbox |
 | Preparation | Persistent tasks, scheduling, reusable artifacts and prepared-media delivery |
 | Subtitles | Track discovery, selected-track preparation, delivery and asset lifecycle |
-| Metadata | Provider queries, normalized snapshots, persistent cache, refresh and artwork |
+| Metadata | Shared current work information, provider queries, immutable evidence snapshots, refresh and artwork |
 | Identification | Stateless local extraction, candidate ranking and episode association proposals |
 | Tracking | Account/credential lifecycle, list cache, unified viewing commands, manual intent versions, command deduplication, durable decisions/submission, retry and conflict recovery |
 | Anime Library | Read-only join of Catalog and Tracking, local/all scope, status filters and pagination |
 | AniList protocol | Typed Viewer, list, update and metadata clients, GraphQL schemas, provider response validation; shared bounded pacing, retry, priority fairness and cancellation |
-| Anime Catalog | Durable local works/episodes, review decisions, confirmed associations, corrections and library projections |
+| Anime Catalog | Durable local identities/episodes, review decisions, confirmed associations and corrections; descriptions are read from Metadata |
 
 These are the existing runtime owners. [Identification](architecture.md#internal-ownership) exposes
 a stateless recognition Public API and a consumer-owned Metadata port.
@@ -570,14 +570,43 @@ authorize business APIs or create playback history. Existing streams may finish.
 
 ### Local work detail query naming
 
-The local detail read follows `localWorkDetailQuery` → `getLocalWorkDetail` →
-`GET /api/catalog/works/:id` → `AnimeCatalogApi.getLocalWorkDetail` →
-`CatalogQueries.getLocalWorkDetail`. The HTTP contract is
-`LocalWorkDetailResponse` (`LocalWorkDetailSchema`); the Catalog domain aggregate
-is `LocalWorkDetail`. It combines the local work, metadata snapshot, episodes
-and file versions. Tracking viewing state and provider airing schedules remain
-separate reads. The frontend cache key is
-`["catalog", scope, "local-work-detail", id]`; `scope` isolates client caches.
+Local and remote detail pages use the application-owned `AnimeDetailResponse`
+(`AnimeDetailSchema`). Local routes read `GET /api/anime/details/local/:id`;
+provider-qualified routes read `GET /api/anime/details/works/:key`.
+`app/anime-detail.ts` combines Anime's detail query with Acquisition subscription
+and download activity reads. No Anime-to-Acquisition dependency is introduced.
+The response carries reference, display title, current metadata/freshness, optional
+local episodes/versions, account-scoped viewing, first-page subscription evidence
+and first-page download activity. Account generation is rechecked after asynchronous
+reads. Metadata failure preserves remote viewing and Acquisition information.
+
+The existing Catalog detail capability and scoped command routes remain narrow
+business APIs. Both browser detail routes consume the unified application read;
+viewing controls and Acquisition panels use the returned state rather than issuing
+additional initial entry/subscription/activity reads. Pagination remains owned by
+Acquisition. Airing schedules, related works, unresolved resources and media
+compatibility remain separate specialized reads. The detail query keys start with
+`["anime-detail", scope]`; the shared Anime invalidation capability coordinates
+local, information, viewing and acquisition changes. Account changes cancel and
+remove cached aggregates before the new account is published.
+
+Metadata owns one `metadata_works` current summary index per qualified work and a
+pointer to its complete detail snapshot. Catalog persists local identity/revision/
+timestamps and the confirmation snapshot reference, not title/year/format/count.
+Tracking persists account entries and viewing state, hydrating summaries in one
+join. Complete detail information takes precedence over partial Tracking/search
+responses; partial payloads cannot erase full fields. Current detail pointers and
+summary indexes publish atomically with snapshots. Catalog summary filtering joins
+the shared index before sorting/pagination. JSON title aliases are searched within
+the Metadata-owned summary document.
+
+Metadata refresh changes current information, not local mapping revisions or
+confirmation evidence. Current snapshots survive ordinary cache pruning; historical
+snapshots follow LRU limits unless retained by Catalog decisions. Confirmations pin
+their evidence under `catalog-decision:<operation-key>` independently of preview
+lifetimes. RSS release titles, accepted subscription versions, download directories
+and submission evidence retain their business-specific historical meaning.
+See [Persistence](database-design.md) for the supported upgrade.
 
 ### Anime detail resource actions
 
@@ -684,8 +713,9 @@ a local work detail still requests immediate stale-metadata revalidation.
 Visible browser sessions revalidate on focus/visibility return, coalescing checks
 within 30 seconds, with a 5-minute fallback. Hidden tabs do not run this fallback.
 Every business request continues to enforce server-side authentication and handle
-401 responses immediately. Idle Library, work-detail and tracking-entry queries
-check every 5 minutes; identification and operation monitors use a 60-second idle
+401 responses immediately. Idle Library and player tracking-entry queries check every 5 minutes; unified
+work details check every 30 seconds to observe subscriptions, every 5 seconds with
+active downloads, and every 2 seconds during metadata/list refresh; identification and operation monitors use a 60-second idle
 fallback to discover scheduled scans or changes from another tab. These queries
 also refresh stale data on focus. While the player is mounted, operation discovery
 retains a 10-second fallback so automatic viewing commands remain observable.

@@ -536,7 +536,7 @@ test("retained snapshot versions survive refresh, LRU pruning and restart", asyn
 	expect(application.snapshot(original.snapshotId).data).toMatchObject({
 		description: "Story",
 	});
-	expect(database.metadata.get(refreshed.snapshotId)).toBeNull();
+	expect(application.current(reference)?.snapshotId).toBe(refreshed.snapshotId);
 	const reopened = ApplicationDatabase.open(dir);
 	try {
 		expect(reopened.metadata.get(original.snapshotId)).not.toBeNull();

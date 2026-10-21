@@ -1,6 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import type { IdentificationResult } from "../../identification/public.js";
+import type { metadataWorks } from "../../metadata/persistence.js";
 import type {
 	Association,
 	ConfirmationResult,
@@ -9,62 +10,30 @@ import type {
 import * as s from "./schema.js";
 
 export function readCatalogWorks(
-	store: Store,
 	row: typeof s.catalogWorks.$inferSelect,
+	info: typeof metadataWorks.$inferSelect,
 ): LocalWork {
 	return {
-		id: row.id,
-		providerTitle: row.providerTitle,
-		searchTitles: store
-			.select()
-			.from(s.catalogWorksSearchTitles)
-			.where(eq(s.catalogWorksSearchTitles.parentId, row.id))
-			.orderBy(asc(s.catalogWorksSearchTitles.ordinalIndex))
-			.all()
-			.map((child) => ({ value: child.value }))
-			.map((item) => item.value),
-		format: row.format,
-		year: row.year,
-		episodeCount: row.episodeCount,
-		revision: row.revision,
-		createdAt: row.createdAt,
-		updatedAt: row.updatedAt,
-	} as LocalWork;
+		...row,
+		providerTitle: info.providerTitle,
+		searchTitles: info.titles.map((title) => title.value),
+		format: info.format,
+		year: info.year,
+		episodeCount: info.episodeCount,
+	};
 }
-
-export function writeCatalogWorks(connection: Store, value: LocalWork): void {
-	connection.transaction((store) => {
-		const row0 = {
-			id: value?.id,
-			providerTitle: value?.providerTitle,
-			format: value?.format ?? null,
-			year: value?.year ?? null,
-			episodeCount: value?.episodeCount ?? null,
-			revision: value?.revision,
-			createdAt: value?.createdAt,
-			updatedAt: value?.updatedAt,
-		};
-		store
-			.insert(s.catalogWorks)
-			.values(row0)
-			.onConflictDoUpdate({ target: s.catalogWorks.id, set: row0 })
-			.run();
-		store
-			.delete(s.catalogWorksSearchTitles)
-			.where(eq(s.catalogWorksSearchTitles.parentId, value.id))
-			.run();
-		for (const [index1, item1] of (value?.searchTitles ?? []).entries()) {
-			const parent1 = value.id;
-			const id1 = `${parent1}/${index1}`;
-			const row1 = {
-				rowId: id1,
-				parentId: parent1,
-				ordinalIndex: index1,
-				value: { value: item1 }?.value,
-			};
-			store.insert(s.catalogWorksSearchTitles).values(row1).run();
-		}
-	});
+export function writeCatalogWorks(store: Store, value: LocalWork): void {
+	const row = {
+		id: value.id,
+		revision: value.revision,
+		createdAt: value.createdAt,
+		updatedAt: value.updatedAt,
+	};
+	store
+		.insert(s.catalogWorks)
+		.values(row)
+		.onConflictDoUpdate({ target: s.catalogWorks.id, set: row })
+		.run();
 }
 
 export function readCatalogAssociations(

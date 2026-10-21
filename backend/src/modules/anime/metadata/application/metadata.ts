@@ -1,4 +1,5 @@
 import type { Logger } from "pino";
+import { workKey } from "../../../../shared/external-reference.js";
 import {
 	MetadataError,
 	type MetadataSnapshot,
@@ -191,6 +192,15 @@ export class MetadataApplication implements MetadataApi {
 			(signal) => provider.airing(reference, page, perPage, signal),
 			() => policy.airingFreshMs,
 		);
+	}
+	current(reference: ProviderReference) {
+		const entry = this.options.store.current(workKey(reference));
+		if (!entry) return null;
+		const snapshot = this.cache.snapshot(entry.id);
+		if (snapshot.kind !== "detail")
+			throw new Error("Current work information requires a detail snapshot.");
+		const { kind: _, ...value } = snapshot;
+		return value;
 	}
 	snapshot(id: string): MetadataSnapshot {
 		return this.cache.snapshot(id);

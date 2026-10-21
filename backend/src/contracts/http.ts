@@ -223,3 +223,5 @@ export type DownloadSettings = Static<
 export type DownloadActivity = Static<
 	typeof import("./schemas/downloads.js").DownloadActivitySchema
 >;
+
+export type AnimeDetailResponse = Static<typeof schemas.AnimeDetailSchema>;

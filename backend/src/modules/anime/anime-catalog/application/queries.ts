@@ -159,6 +159,8 @@ export class CatalogQueries {
 	private snapshot(workId: string): CachedMetadata<WorkDetails> {
 		const link = this.context.options.store.link(workId);
 		if (!link) throw new Error("Catalog work is missing its provider link.");
+		const current = this.context.options.metadata.current(link.reference);
+		if (current) return current;
 		const value = this.context.options.metadata.snapshot(link.snapshotId);
 		if (value.kind !== "detail")
 			throw new Error("Catalog work requires a detail snapshot.");

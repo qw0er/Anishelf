@@ -4,7 +4,7 @@ import { isRequestCancelled } from "../../../shared/api/client.js";
 import type { TrackingAccountResponse } from "../../../shared/api/contracts.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
-import { animeLibraryQueryKey } from "../shared/query-keys.js";
+import { invalidateAnimeQueries } from "../shared/query-keys.js";
 import { refreshTrackingList } from "./queries.js";
 import {
 	reportTrackingRefresh,
@@ -39,7 +39,7 @@ export function useTrackingRefresh(data: TrackingAccountResponse | undefined) {
 		onSettled: async () => {
 			await Promise.all([
 				client.invalidateQueries({ queryKey: ["tracking"] }),
-				client.invalidateQueries({ queryKey: animeLibraryQueryKey }),
+				invalidateAnimeQueries(client, "viewing"),
 			]);
 		},
 	});

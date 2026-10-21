@@ -1,8 +1,19 @@
 import { and, asc, desc, eq, ne, notInArray, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import type { MetadataFailure } from "../domain/model.js";
+import type {
+	MetadataFailure,
+	Page,
+	WorkRelation,
+	WorkSummary,
+} from "../domain/model.js";
 import type { ArtworkRecord, CacheEntry, MetadataStore } from "../ports.js";
-import { metadataArtwork, metadataPins, metadataSnapshots } from "./schema.js";
+import {
+	metadataArtwork,
+	metadataPins,
+	metadataSnapshots,
+	metadataWorks,
+} from "./schema.js";
+import { saveWorkSummary } from "./works.js";
 export class MetadataRepository implements MetadataStore {
 	constructor(private readonly store: Store) {}
 	private decode(row: typeof metadataSnapshots.$inferSelect): CacheEntry {
@@ -25,6 +36,18 @@ export class MetadataRepository implements MetadataStore {
 						}
 					: null,
 		};
+	}
+	current(key: string): CacheEntry | null {
+		const row = this.store
+			.select({ snapshot: metadataSnapshots })
+			.from(metadataWorks)
+			.innerJoin(
+				metadataSnapshots,
+				eq(metadataSnapshots.id, metadataWorks.detailSnapshotId),
+			)
+			.where(eq(metadataWorks.key, key))
+			.get();
+		return row ? this.decode(row.snapshot) : null;
 	}
 	find(key: string): CacheEntry | null {
 		const row = this.store
@@ -55,11 +78,27 @@ export class MetadataRepository implements MetadataStore {
 			failureMessage: failure?.message ?? null,
 			failureRetryAt: failure?.retryAt ?? null,
 		};
-		this.store
-			.insert(metadataSnapshots)
-			.values(row)
-			.onConflictDoUpdate({ target: metadataSnapshots.id, set: row })
-			.run();
+		this.store.transaction((store) => {
+			store
+				.insert(metadataSnapshots)
+				.values(row)
+				.onConflictDoUpdate({ target: metadataSnapshots.id, set: row })
+				.run();
+			if (entry.kind === "detail")
+				saveWorkSummary(
+					store,
+					entry.data as WorkSummary,
+					entry.fetchedAt,
+					true,
+					entry.id,
+				);
+			if (entry.kind === "search")
+				for (const work of (entry.data as Page<WorkSummary>).items)
+					saveWorkSummary(store, work, entry.fetchedAt);
+			if (entry.kind === "relations")
+				for (const relation of (entry.data as Page<WorkRelation>).items)
+					saveWorkSummary(store, relation.work, entry.fetchedAt);
+		});
 	}
 	fail(id: string, failure: MetadataFailure): void {
 		this.store
@@ -113,6 +152,7 @@ export class MetadataRepository implements MetadataStore {
 								? eq(metadataSnapshots.kind, "search")
 								: ne(metadataSnapshots.kind, "search"),
 							notInArray(metadataSnapshots.id, pinned),
+							sql`${metadataSnapshots.id} not in (select ${metadataWorks.detailSnapshotId} from ${metadataWorks} where ${metadataWorks.detailSnapshotId} is not null)`,
 						),
 					)
 					.orderBy(

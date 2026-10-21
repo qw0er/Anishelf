@@ -177,7 +177,7 @@ module.exports = {
 			from: {
 				path: "^backend/src/",
 				pathNot:
-					"^backend/src/app/|^backend/src/modules/[^/]+/(?:create|persistence)\\.ts$|^backend/src/modules/[^/]+/composition/|^backend/src/modules/[^/]+/[^/]+/infrastructure/(?:schema|repository)\\.ts$",
+					"^backend/src/app/|^backend/src/modules/[^/]+/(?:create|persistence)\\.ts$|^backend/src/modules/[^/]+/composition/|^backend/src/modules/[^/]+/[^/]+/infrastructure/(?:schema|repository|records)\\.ts$",
 			},
 			to: {
 				path: "^backend/src/modules/[^/]+/persistence\\.ts$|^backend/src/modules/[^/]+/[^/]+/persistence\\.ts$",

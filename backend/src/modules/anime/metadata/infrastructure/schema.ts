@@ -8,6 +8,8 @@ import {
 	text,
 } from "drizzle-orm/sqlite-core";
 
+import type { MetadataTitle } from "../domain/model.js";
+
 export const metadataPins = sqliteTable(
 	"metadata_pins",
 	{
@@ -71,5 +73,31 @@ export const metadataSnapshots = sqliteTable(
 		check("metadata_snapshot_data", sql`json_valid(${table.data})`),
 		index("metadata_cache_key").on(table.key, table.fetchedAt),
 		index("metadata_lru").on(table.kind, table.accessedAt),
+	],
+);
+
+/** Shared current summary index; immutable snapshots retain decision evidence. */
+export const metadataWorks = sqliteTable(
+	"metadata_works",
+	{
+		key: text("key").primaryKey(),
+		provider: text("provider").notNull(),
+		providerId: text("provider_id").notNull(),
+		providerTitle: text("provider_title").notNull(),
+		titles: text("titles", { mode: "json" }).$type<MetadataTitle[]>().notNull(),
+		format: text("format"),
+		year: integer("year"),
+		episodeCount: integer("episode_count"),
+		coverUrl: text("cover_url"),
+		fetchedAt: integer("fetched_at").notNull(),
+		detail: integer("detail", { mode: "boolean" }).notNull(),
+		detailSnapshotId: text("detail_snapshot_id").references(
+			() => metadataSnapshots.id,
+			{ onDelete: "restrict" },
+		),
+	},
+	(table) => [
+		check("metadata_work_titles", sql`json_valid(${table.titles})`),
+		index("metadata_work_filter").on(table.format, table.year),
 	],
 );

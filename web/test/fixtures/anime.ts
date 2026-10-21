@@ -1,7 +1,10 @@
 import type {
+	AnimeDetailResponse,
 	CatalogReviewItem,
 	LocalWorkDetailResponse,
+	TrackingEntryResponse,
 } from "../../src/shared/api/contracts.js";
+import { trackingProvider } from "../tracking-fixture.js";
 
 export function animeFixture(): LocalWorkDetailResponse {
 	const reference = {
@@ -172,5 +175,40 @@ export function reviewFixture(confirmed = false): CatalogReviewItem {
 					},
 				]
 			: [],
+	};
+}
+
+export function animeDetailFixture(
+	local: LocalWorkDetailResponse,
+	viewing?: TrackingEntryResponse,
+): AnimeDetailResponse {
+	return {
+		reference: local.work.reference,
+		displayTitle: local.work.displayTitle,
+		metadata: local.metadata,
+		metadataError: null,
+		local,
+		viewing: viewing ?? {
+			provider: trackingProvider,
+			accountId: null,
+			generation: "fixture",
+			state: "disconnected",
+			fetchedAt: null,
+			stale: false,
+			refreshing: false,
+			error: null,
+			entry: null,
+		},
+		subscription: { subscription: null, candidates: [], total: 0, page: 1 },
+		downloads: {
+			authorized: false,
+			destination: null,
+			items: [],
+			total: 0,
+			active: 0,
+			attention: 0,
+			managedCandidateIds: [],
+			page: 1,
+		},
 	};
 }

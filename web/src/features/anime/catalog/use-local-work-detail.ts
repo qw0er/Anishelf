@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 import { isRequestCancelled } from "../../../shared/api/client.js";
 import type { LocalWorkDetailResponse } from "../../../shared/api/contracts.js";
-import { useQueryScope } from "../../../shared/api/queries.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
 import {
@@ -16,26 +15,23 @@ import {
 	relationsQuery,
 	reportMetadataRefresh,
 } from "../metadata/public.js";
-import { animeLibraryQueryKey } from "../shared/query-keys.js";
+import { invalidateAnimeQueries } from "../shared/query-keys.js";
 import { refreshLocalWorkDetail } from "./api.js";
 import type { Episode, Version } from "./detail-format.js";
-import { localWorkDetailQuery } from "./queries.js";
 export function useLocalWorkDetail(data: LocalWorkDetailResponse) {
-	const scope = useQueryScope();
 	const client = useQueryClient();
 	const { t } = useTranslation();
 	const [params] = useSearchParams();
 	const libraryPath = libraryReturnPath(params.get("library"));
 	const { work, episodes } = data;
-	const previousRevision = useRef(work.revision);
+	const version = `${work.revision}:${data.metadata.snapshotId}`;
+	const previousVersion = useRef(version);
 	useEffect(() => {
-		if (previousRevision.current !== work.revision) {
-			previousRevision.current = work.revision;
-			void client.invalidateQueries({
-				queryKey: [...animeLibraryQueryKey, scope],
-			});
+		if (previousVersion.current !== version) {
+			previousVersion.current = version;
+			void invalidateAnimeQueries(client, "local");
 		}
-	}, [client, scope, work.revision]);
+	}, [client, version]);
 
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const selected = episodes.find((episode) => episode.id === selectedId);
@@ -62,13 +58,7 @@ export function useLocalWorkDetail(data: LocalWorkDetailResponse) {
 		mutationFn: () => refreshLocalWorkDetail(work.id, work.revision),
 		onSuccess: async (result) => {
 			reportMetadataRefresh(client, result.metadata, true);
-			client.setQueryData(
-				localWorkDetailQuery(work.id, scope).queryKey,
-				result,
-			);
-			await client.invalidateQueries({
-				queryKey: [...animeLibraryQueryKey, scope],
-			});
+			await invalidateAnimeQueries(client, "info");
 		},
 	});
 	function playPath(version: Version, episode: Episode) {

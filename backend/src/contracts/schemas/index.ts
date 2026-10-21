@@ -1,5 +1,6 @@
 export * from "./acquisition.js";
 export * from "./anime-catalog.js";
+export * from "./anime-detail.js";
 export * from "./anime-library.js";
 export * from "./authentication.js";
 export * from "./chapters.js";

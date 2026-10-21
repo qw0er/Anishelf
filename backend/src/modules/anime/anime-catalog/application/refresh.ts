@@ -35,6 +35,8 @@ export class CatalogRefresh {
 	private snapshot(id: string) {
 		const link = this.context.options.store.link(id);
 		if (!link) return null;
+		const current = this.context.options.metadata.current(link.reference);
+		if (current) return current;
 		const snapshot = this.context.options.metadata.snapshot(link.snapshotId);
 		return snapshot.kind === "detail" ? snapshot : null;
 	}

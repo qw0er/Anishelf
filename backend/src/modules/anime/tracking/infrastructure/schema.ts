@@ -308,10 +308,6 @@ export const trackingListCacheEntries = sqliteTable(
 			],
 		}).notNull(),
 		updatedAt: integer("updated_at"),
-		format: text("format"),
-		year: integer("year"),
-		episodeCount: integer("episode_count"),
-		coverUrl: text("cover_url"),
 	},
 	(table) => [
 		check(
@@ -328,29 +324,6 @@ export const trackingListCacheEntries = sqliteTable(
 		),
 		uniqueIndex("tracking_list_entry_media").on(table.parentId, table.mediaId),
 		uniqueIndex("tracking_list_cache_entries_order").on(
-			table.parentId,
-			table.ordinalIndex,
-		),
-	],
-);
-export const trackingListCacheEntriesTitles = sqliteTable(
-	"tracking_list_cache_entries_titles",
-	{
-		rowId: text("row_id").primaryKey(),
-		parentId: text("parent_id")
-			.notNull()
-			.references(() => trackingListCacheEntries.rowId, {
-				onDelete: "cascade",
-			}),
-		ordinalIndex: integer("ordinal_index").notNull(),
-		value: text("value").notNull(),
-	},
-	(table) => [
-		check(
-			"tracking_list_cache_entries_titles_ordinal",
-			sql`${table.ordinalIndex} >= 0`,
-		),
-		uniqueIndex("tracking_list_cache_entries_titles_order").on(
 			table.parentId,
 			table.ordinalIndex,
 		),

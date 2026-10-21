@@ -20,6 +20,7 @@ export interface CatalogMetadata
 	extends Pick<
 		MetadataApi,
 		| "get"
+		| "current"
 		| "snapshot"
 		| "retain"
 		| "release"

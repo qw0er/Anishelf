@@ -347,8 +347,6 @@ test("automatic metadata updates appear in an open detail and invalidate the cac
 	expect(screen.getByText("Refreshing metadata…")).toBeTruthy();
 	detail.work = {
 		...detail.work,
-		revision: 2,
-		updatedAt: Date.now(),
 		providerTitle: "Updated Frieren",
 		displayTitle: "Updated Frieren",
 	};
@@ -381,6 +379,7 @@ test("automatic metadata updates appear in an open detail and invalidate the cac
 
 test("AniList library shows status and remote-only details, keeps filters and refreshes", async () => {
 	const detail = animeFixture();
+	mockAnime(detail);
 	const fallback = fetcher.getMockImplementation();
 	const tracking: AnimeLibraryResponse["tracking"] = {
 		provider: trackingProvider,
@@ -903,4 +902,23 @@ test("poster sorting defaults to unwatched first and exposes all four choices", 
 			sort === "unwatched" ? null : sort,
 		);
 	}
+});
+
+test("detail reads viewing, subscription and activity through one aggregate request", async () => {
+	mockAnime(animeFixture());
+	renderApp("/anime/work-1");
+	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+	const paths = fetcher.mock.calls.map(([input]) => String(input));
+	expect(
+		paths.filter((path) => path === "/api/anime/details/local/work-1"),
+	).toHaveLength(1);
+	expect(
+		paths.filter(
+			(path) =>
+				path.startsWith("/api/tracking/entries/") ||
+				path.startsWith("/api/acquisition/subscriptions?") ||
+				path.startsWith("/api/acquisition/downloads?") ||
+				path === "/api/catalog/works/work-1",
+		),
+	).toEqual([]);
 });

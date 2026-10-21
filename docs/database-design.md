@@ -4,7 +4,9 @@ SQLite and Drizzle remain the persistence mechanisms. The initial migration
 `0000_relational_schema` creates the original 78 business tables.
 `0001_snapshot_payloads` replaces thirteen metadata collection tables and detail
 columns with a JSON projection and adds durable media inspections. The current
-schema has 66 business tables; Drizzle's journal is infrastructure.
+schema has 65 business tables; Drizzle's journal is infrastructure.
+`0002_anime_work_information` centralizes current work summaries and removes
+the Catalog and per-account Tracking description copies.
 SQLite `user_version = 1` identifies this supported database family.
 
 Persistence is required by Anime, Media, Playback and Acquisition assembly. A database startup
@@ -27,19 +29,20 @@ continues to use the disk-backed `openDatabase()` path and its existing logs.
 | `acquisition_authorizations` | Work-scoped feed, starting episode, destination revision and connection generation |
 | `acquisition_intents` | Identity/reservations, state, retry, progress, timestamps, captured destination, source identity and last command columns |
 | `acquisition_directories` | Work primary key and unique stable directory; no representation change |
-| `catalog_works` | Scalar work attributes and ordered search titles |
+| `catalog_works` | Local identity, mapping revision and creation/update times; descriptive fields come from Metadata |
 | `catalog_provider_links` | Work/snapshot foreign keys, qualified unique identity and constrained media type |
 | `catalog_episodes` | Work foreign key, unique episode identity, constrained kind and provenance |
 | `catalog_associations` | Explicit primary key, unique source/episode association, foreign keys and ordered original episode tokens |
 | `catalog_reviews` | Source foreign key, decision/revision, scalar identification evidence, ordered extraction inputs/elements, titles, proposals, mapping targets and explanations |
 | `catalog_operations` | Command identity/fingerprint, confirmed work/revision and ordered review receipts |
 | `metadata_snapshots` | Snapshot/cache identity, kind, indexed freshness/failure columns and one JSON `data` projection for search/detail/relation/airing payloads |
+| `metadata_works` | Qualified work key, indexed current description fields, ordered JSON titles and current detail snapshot foreign key |
 | `metadata_pins` | Composite snapshot/owner primary key and cascading snapshot foreign key |
 | `media_inspections` | One JSON FFprobe result per scope/file, source version and inspection/FFprobe format version |
 | `metadata_artwork` | Existing scalar asset attributes, nonnegative size and LRU index |
 | `tracking_operations` | Account/media identity, revision, origin, delivery/retry state, baseline, desired fields, attempted payload, target and remote-state columns |
 | `tracking_connection` | One constrained row, valid connection states, paired account fields and required connected credentials |
-| `tracking_list_cache` | Account snapshot header and ordered list entries/titles; unique media identity within each snapshot |
+| `tracking_list_cache` | Account snapshot header and ordered viewing entries; summaries join the shared Metadata index |
 | `tracking_intent_versions` | Existing composite identity and nonnegative manual version |
 | `tracking_commands` | Existing composite command identity and nonnegative revision |
 | `preparation_tasks` | Immutable encoding specification, execution/encoder parameters and progress columns; ordered audio selections and filters; constrained lifecycle combinations |
@@ -63,7 +66,8 @@ Metadata projections and FFprobe results are immutable documents that the
 application reads as a whole. They use JSON rather than child-table mappers; their
 identity, retention and invalidation fields stay relational. Mutable commands,
 state transitions and queried relationships retain explicit columns and constraints.
-There is no runtime business query using SQLite JSON functions. Composite cache keys and
+The shared summary index uses SQLite JSON functions for alias-title matching;
+immutable detail and recognition payloads are not queried for ordinary filtering. Composite cache keys and
 command fingerprints are stored as digests, not serialized request tuples.
 
 ## Preserved Semantics
@@ -76,7 +80,8 @@ in-flight task, and pruning an operation must not erase command deduplication.
 Provider-qualified identities remain opaque text. Catalog episode numbers remain
 text because their domain permits more than integer download episode positions.
 
-Each account list header, its entries and titles replace atomically. Metadata and
+Each account list header, its viewing entries and imported Metadata summaries replace
+atomically. Partial account/search summaries cannot replace complete details. Metadata and
 recognition snapshots retain their version ownership; collections do not become
 shared mutable records. Recognition comparison uses canonical content fingerprints
 so column reconstruction order cannot create new review revisions.
@@ -100,6 +105,18 @@ foreign keys, then removes obsolete metadata tables. Foreign-key enforcement is
 suspended only around migration table rebuilding and restored before integrity
 checking and repository construction. Normal operation enforces foreign keys.
 
+The `0002` upgrade first seeds account/local summaries and then selects complete
+detail snapshots in fetched-time order. Migration-scoped identity functions preserve
+encoded opaque provider IDs, including Unicode, slashes and colons. It removes the
+two obsolete title tables and descriptive columns from Catalog/Tracking only after
+seeding their replacement. Existing local IDs/revisions, episodes, decisions,
+snapshot IDs/pins, tracking progress, commands and Acquisition records survive.
+`metadata_works.detail_snapshot_id` references the current complete document;
+Catalog provider links retain their confirmation evidence. The current summary is
+a Metadata-owned query index, not another independently refreshed business copy.
+Current detail snapshots are durable; LRU limits apply to unreferenced historical
+snapshots. Confirmed decision evidence has a separate durable pin.
+
 Unsupported format markers are rejected before migrations or WAL configuration;
 existing records are preserved. `database.ready` logs readiness and
 `database.unavailable` reports a startup-blocking failure without private payloads.
@@ -112,11 +129,15 @@ matching database backup. See [Database Migrations and Backups](development.md#d
 reopens the database to verify ordered collections, optional/null semantics,
 metadata, recognition, task specifications, observations and sessions. It compares
 every declared table's columns with the initialized database and checks primary keys,
-foreign keys and the two deliberate JSON document tables. Additional fixtures reject
+foreign keys and the deliberate metadata, summary-title and inspection JSON documents. Additional fixtures reject
 invalid state/singleton/version/size values and verify that unsupported-format
 rejection preserves existing data. `metadata-migration.test.ts` starts from the previous schema and verifies ordered
 payloads, booleans, nulls, provider identities, snapshot pins, references and repeated
-startup. Inspection tests verify restart reuse, version invalidation and cleanup.
+startup. `anime-work-information.test.ts` verifies opaque-identity migration, deleted duplicate
+columns, account isolation, partial/detail precedence and immediate shared summary
+updates without mapping revision changes. `anime-detail.test.ts` covers combined
+HTTP reads, provider failure and account generation fencing. Inspection tests verify
+restart reuse, version invalidation and cleanup.
 
 These are local schema and application regressions. They do not establish
 production-data acceptance or a database load benchmark.
