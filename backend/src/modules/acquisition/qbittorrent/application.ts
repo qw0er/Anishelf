@@ -1,16 +1,16 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
-import {
-	type QbittorrentApi,
-	QbittorrentError,
-	type QbittorrentOptions,
-} from "../qbittorrent/public.js";
 import type {
 	ConnectionInput,
 	ConnectionSettings,
 	SavedConnection,
-} from "./domain/model.js";
+} from "./model.js";
+import {
+	type QbittorrentApi,
+	QbittorrentError,
+	type QbittorrentOptions,
+} from "./model.js";
 import type { ConnectionStore } from "./ports.js";
 import type { QbittorrentConnectionApi } from "./public.js";
 

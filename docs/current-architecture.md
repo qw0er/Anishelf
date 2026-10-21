@@ -126,7 +126,15 @@ the new connection before any possible resend. Available local sources remain
 independent of downloader connectivity. Definitively rejected
 or unsent submissions can back off; unknown mutations require reconciliation.
 
-### qBittorrent SDK boundary
+### qBittorrent integration boundary
+
+`acquisition/qbittorrent` owns account configuration, credential-file persistence,
+settings HTTP routes and the SDK client behind one public entry point.
+`QbittorrentConnection` owns configuration generations and lazily reuses one client
+until configuration changes or shutdown. `QbittorrentClient` owns SDK operations;
+it does not read configuration files or register routes. Downloads receives client
+access through `withClient`, which checks the generation before and after work.
+Existing configuration and operation logs remain at their respective owners.
 
 `QbittorrentClient` uses `@ctrl/qbittorrent` directly. The SDK owns HTTP requests,
 cookies, authentication recovery, multipart encoding and per-request timeouts.

@@ -3,8 +3,6 @@ import { DomainError } from "../../shared/errors.js";
 import type { AnimeApi, ReleaseAssessmentApi } from "../anime/public.js";
 import type { AcquisitionResources } from "../resources/public.js";
 import { SubscriptionConfirmation } from "./application/subscription-confirmation.js";
-import { QbittorrentConnection } from "./connection/application.js";
-import { QbittorrentConfigurationFile } from "./connection/infrastructure/configuration.js";
 import { DiscoveryApplication } from "./discovery/application.js";
 import { parseRss } from "./discovery/infrastructure/rss.js";
 import { RssTransport, rssUrl } from "./discovery/infrastructure/transport.js";
@@ -14,11 +12,13 @@ import type { DownloadStore, TorrentTransport } from "./downloads/public.js";
 import { registerAcquisitionHttp } from "./http.js";
 import type { DiscoveryStore } from "./persistence.js";
 import type { AcquisitionApi } from "./public.js";
+import { QbittorrentConnection } from "./qbittorrent/application.js";
 import { QbittorrentClient } from "./qbittorrent/client.js";
+import { QbittorrentConfigurationFile } from "./qbittorrent/configuration.js";
 import type {
 	QbittorrentApi,
 	QbittorrentOptions,
-} from "./qbittorrent/domain/model.js";
+} from "./qbittorrent/public.js";
 
 /** Standalone adapter foundation; no workers or automatic downloads are started. */
 export function createQbittorrentClient(

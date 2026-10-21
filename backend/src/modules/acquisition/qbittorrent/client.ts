@@ -6,7 +6,7 @@ import {
 	QbittorrentError,
 	type QbittorrentFailureCode,
 	type QbittorrentOptions,
-} from "./domain/model.js";
+} from "./model.js";
 
 function text(value: unknown): value is string {
 	return (
