@@ -140,11 +140,6 @@ export class QbittorrentClient implements QbittorrentApi {
 				});
 			await this.authentication;
 		}
-		// A known baseline also initializes SDK version-dependent command names before dispatch.
-		if (
-			!/^v?5\.\d+\.\d+(?:[-+].*)?$/.test(this.sdk.state.version?.version ?? "")
-		)
-			throw new QbittorrentError("unsupported-version", "not-sent");
 	}
 	private run<T>(
 		operation: string,

@@ -130,9 +130,10 @@ or unsent submissions can back off; unknown mutations require reconciliation.
 
 `QbittorrentClient` uses `@ctrl/qbittorrent` directly. The SDK owns HTTP requests,
 cookies, authentication recovery, multipart encoding and per-request timeouts.
-The client retains input/response validation, domain mapping, shared initial login,
-the supported-version check and sanitized operation logs. It does not install a
-custom dispatcher, enforce a response byte limit or validate raw add receipts.
+The client retains input/response validation, domain mapping, shared initial login
+and sanitized operation logs. Version-dependent API behavior is delegated to the
+SDK. The client does not install a custom dispatcher, enforce a response byte
+limit or validate raw add receipts.
 SDK redirect and response-decoding behavior applies.
 
 Cancellation is cooperative: it is checked before authentication, before the SDK

@@ -3,7 +3,7 @@ PartOf=anishelf.target
 Description=Anishelf optional qBittorrent
 
 [Container]
-# Pin the required qBittorrent 5.x image tag here.
+# Pin the desired qBittorrent image tag here.
 Image=docker.io/linuxserver/qbittorrent:latest
 ContainerName=anishelf-qbittorrent
 Network=anishelf.network

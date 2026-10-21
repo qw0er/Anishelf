@@ -220,8 +220,6 @@ function ConnectionForm({
 function failureDescription(code: string | null): string {
 	if (code === "unauthorized")
 		return "Authentication failed. Check your qBittorrent username and password.";
-	if (code === "unsupported-version")
-		return "This integration requires qBittorrent 5.x.";
 	if (code === "timeout")
 		return "The backend could not reach qBittorrent before the request timed out.";
 	return "Check the API address, credentials and backend network access.";

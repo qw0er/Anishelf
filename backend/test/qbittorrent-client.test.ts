@@ -255,18 +255,15 @@ test("expired session reauthenticates once after an explicit authentication reje
 		requests.filter((request) => request.path.endsWith("/auth/login")),
 	).toHaveLength(2);
 });
-test("unsupported major version blocks mutations", async () => {
+test("older qBittorrent versions use the SDK compatibility handling", async () => {
 	const { client, requests } = await fixture((request, response) => {
 		if (!request.path.endsWith("/app/version")) return false;
 		response.end("v4.6.7");
 	});
-	await expect(client.add(addInput)).rejects.toMatchObject({
-		code: "unsupported-version",
-		outcome: "not-sent",
-	});
-	expect(requests.some((request) => request.path.includes("/torrents/"))).toBe(
-		false,
-	);
+	await expect(client.add(addInput)).resolves.toBeUndefined();
+	expect(
+		requests.some((request) => request.path.endsWith("/torrents/add")),
+	).toBe(true);
 });
 test("SDK request timeout retains unknown mutation outcome", async () => {
 	const { client } = await fixture(
