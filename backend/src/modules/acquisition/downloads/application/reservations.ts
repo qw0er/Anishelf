@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
+import { DownloadError, type DownloadIntent } from "../domain/model.js";
+import { workDirectory } from "../domain/paths.js";
 import type { DownloadContext } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
-import { DownloadError, type DownloadIntent } from "./domain/model.js";
-import { workDirectory } from "./domain/paths.js";
 
 export class DownloadReservations {
 	constructor(

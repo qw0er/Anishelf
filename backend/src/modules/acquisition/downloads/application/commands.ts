@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { DomainError } from "../../../shared/errors.js";
+import { DomainError } from "../../../../shared/errors.js";
 import { conflict, type DownloadContext } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
 

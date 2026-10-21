@@ -1,5 +1,5 @@
 import type { Logger } from "pino";
-import type { Subscription } from "../discovery/public.js";
+import type { Subscription } from "./discovery/public.js";
 
 /** One synchronous transaction admits both the subscription and its download permission. */
 export class SubscriptionConfirmation {

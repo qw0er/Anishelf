@@ -1,8 +1,8 @@
 import parseTorrent from "parse-torrent";
 import type { FeedEntry } from "../../discovery/public.js";
+import { downloadPolicy } from "../application/policy.js";
 import { DownloadError } from "../domain/model.js";
 import { relativeDownloadPath } from "../domain/paths.js";
-import { downloadPolicy } from "../policy.js";
 import type { TorrentTransport } from "../ports.js";
 
 function rawPaths(info: unknown) {

@@ -1,11 +1,11 @@
-import type { AcquisitionTarget } from "../../anime/public.js";
-import type { DiscoveryContext } from "./context.js";
+import type { AcquisitionTarget } from "../../../anime/public.js";
 import {
 	type Candidate,
 	type FeedRecord,
 	RssError,
 	type Subscription,
-} from "./domain/model.js";
+} from "../domain/model.js";
+import type { DiscoveryContext } from "./context.js";
 import type { FeedReader } from "./feed-reader.js";
 import { discoveryPolicy as policy } from "./policy.js";
 export class DiscoveryWorker {

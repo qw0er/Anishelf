@@ -1,10 +1,10 @@
-import type { AcquisitionTarget } from "../../anime/public.js";
+import type { AcquisitionTarget } from "../../../anime/public.js";
+import type { DownloadsApi } from "../public.js";
 import { DownloadActivityQueries } from "./activity.js";
 import { DownloadCommands } from "./commands.js";
 import { DownloadContext, type DownloadOptions } from "./context.js";
 import { DownloadDestinationSettings } from "./destination.js";
 import { DownloadImport } from "./import.js";
-import type { DownloadsApi } from "./public.js";
 import { DownloadReconciliation } from "./reconciliation.js";
 import { DownloadReservations } from "./reservations.js";
 import { DownloadSubmission } from "./submission.js";

@@ -1,12 +1,12 @@
 import type { Logger } from "pino";
-import { rssConstraints } from "../../../contracts/defaults.js";
-import { DomainError } from "../../../shared/errors.js";
+import { rssConstraints } from "../../../../contracts/defaults.js";
+import { DomainError } from "../../../../shared/errors.js";
 import type {
 	AcquisitionTarget,
 	ReleaseAssessmentApi,
-} from "../../anime/public.js";
-import type { FeedRecord, Subscription } from "./domain/model.js";
-import type { DiscoveryStore, FeedTransport } from "./ports.js";
+} from "../../../anime/public.js";
+import type { FeedRecord, Subscription } from "../domain/model.js";
+import type { DiscoveryStore, FeedTransport } from "../ports.js";
 export type DiscoveryOptions = {
 	store: DiscoveryStore;
 	transport: FeedTransport;

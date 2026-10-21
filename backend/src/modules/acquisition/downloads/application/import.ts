@@ -1,8 +1,8 @@
 import { posix } from "node:path";
-import type { DownloadTask, QbittorrentApi } from "../qbittorrent/public.js";
+import type { DownloadTask, QbittorrentApi } from "../../qbittorrent/public.js";
+import { DownloadError } from "../domain/model.js";
+import { relativeDownloadPath } from "../domain/paths.js";
 import type { DownloadContext, DownloadExecution } from "./context.js";
-import { DownloadError } from "./domain/model.js";
-import { relativeDownloadPath } from "./domain/paths.js";
 
 export class DownloadImport {
 	constructor(private readonly context: DownloadContext) {}

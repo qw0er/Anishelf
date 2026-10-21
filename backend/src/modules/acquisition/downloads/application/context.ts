@@ -1,16 +1,16 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
-import { DomainError } from "../../../shared/errors.js";
-import type { AnimeApi, ReleaseAssessmentApi } from "../../anime/public.js";
-import type { AcquisitionResources } from "../../resources/public.js";
-import type { QbittorrentApi } from "../qbittorrent/public.js";
-import type { DownloadIntent } from "./domain/model.js";
-import { downloadPolicy as policy } from "./policy.js";
+import { DomainError } from "../../../../shared/errors.js";
+import type { AnimeApi, ReleaseAssessmentApi } from "../../../anime/public.js";
+import type { AcquisitionResources } from "../../../resources/public.js";
+import type { QbittorrentApi } from "../../qbittorrent/public.js";
+import type { DownloadIntent } from "../domain/model.js";
 import type {
 	DownloadSelection,
 	DownloadStore,
 	TorrentTransport,
-} from "./ports.js";
+} from "../ports.js";
+import { downloadPolicy as policy } from "./policy.js";
 
 export function conflict(): never {
 	throw new DomainError(
