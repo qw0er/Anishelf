@@ -2,7 +2,6 @@ import type { Logger } from "pino";
 
 export type QbittorrentFailureCode =
 	| "unauthorized"
-	| "unsupported-version"
 	| "unavailable"
 	| "timeout"
 	| "cancelled"

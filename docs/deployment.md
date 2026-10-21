@@ -131,7 +131,7 @@ PartOf=anishelf.target
 Description=Anishelf optional qBittorrent
 
 [Container]
-# Pin the required qBittorrent 5.x image tag here.
+# Pin the desired qBittorrent image tag here.
 Image=docker.io/linuxserver/qbittorrent:latest
 ContainerName=anishelf-qbittorrent
 Network=anishelf.network
@@ -218,7 +218,7 @@ anime.example.com {
 }
 ```
 
-Configure the bundled or an existing qBittorrent 5.x instance in Anishelf Settings: API address,
+Configure the bundled or an existing qBittorrent instance in Anishelf Settings: API address,
 credentials, Test connection, then Download destination. Its completed directory
 must map to the same files mounted at `/data/media`; incomplete downloads must
 stay outside watched media. Configure the optional browser WebUI link separately.
