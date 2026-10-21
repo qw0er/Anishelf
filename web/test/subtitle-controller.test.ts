@@ -1,3 +1,4 @@
+import "./query-setup.js";
 // @vitest-environment happy-dom
 import { type TextTrack, TextTrackList } from "@vidstack/react";
 import { afterEach, expect, test, vi } from "vitest";

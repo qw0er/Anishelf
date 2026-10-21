@@ -78,7 +78,23 @@ export class ApplicationDatabase {
 		policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
 	): ApplicationDatabase {
 		mkdirSync(dataDir, { recursive: true, mode: storageRules.directoryMode });
-		const connection = new Database(join(dataDir, storageRules.databaseFile));
+		return ApplicationDatabase.initialize(
+			new Database(join(dataDir, storageRules.databaseFile)),
+			policy,
+		);
+	}
+
+	/** Isolated SQLite connection for consumers that do not need disk persistence. */
+	static openMemory(
+		policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
+	): ApplicationDatabase {
+		return ApplicationDatabase.initialize(new Database(":memory:"), policy);
+	}
+
+	private static initialize(
+		connection: Database.Database,
+		policy: DeepReadonly<BuiltinPolicy>,
+	): ApplicationDatabase {
 		try {
 			const schemaVersion = connection.pragma("user_version", { simple: true });
 			const existingTables = connection

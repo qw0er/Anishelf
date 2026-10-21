@@ -24,6 +24,11 @@ import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../src/modules/anime/release-assessment/application.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
 
+vi.mock("node:fs/promises", async () => {
+	const { memoryFs } = await import("./support/memory-filesystem.js");
+	return memoryFs.promises;
+});
+
 const cleanup: (() => Promise<unknown>)[] = [];
 afterEach(async () => {
 	vi.useRealTimers();
@@ -71,7 +76,7 @@ async function fixture(
 ) {
 	const dataDir = await mkdtemp(join(tmpdir(), "anishelf-rss-"));
 	cleanup.push(() => rm(dataDir, { recursive: true, force: true }));
-	const database = ApplicationDatabase.open(dataDir);
+	const database = ApplicationDatabase.openMemory();
 	cleanup.push(async () => database.close());
 	let clock = 1_000_000;
 	const state = {

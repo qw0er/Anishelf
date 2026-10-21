@@ -97,16 +97,22 @@ test("browser submits all server candidates and exact selection, and uses only r
 	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
 });
 test("session arriving and background rerenders preserve an active resource without renegotiation", async () => {
+	vi.useFakeTimers();
 	const { result, rerender } = renderHook(
 		({ version }) => usePlaybackSelection("file", version, "root"),
 		{ initialProps: { version: undefined as string | undefined } },
 	);
-	await waitFor(() => expect(result.current.loading).toBe(false));
+	await act(async () => {
+		await vi.advanceTimersByTimeAsync(0);
+	});
+	expect(result.current.selection?.plan.mode).toBe("direct");
 	const selection = result.current.selection;
 	rerender({ version: "version" });
 	expect(result.current.selection).toBe(selection);
 	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(1);
-	await new Promise((resolve) => setTimeout(resolve, 1100));
+	await act(async () => {
+		await vi.advanceTimersByTimeAsync(5000);
+	});
 	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(1);
 });
 test("failed artifact is reported for server reselection and never creates work", async () => {
@@ -154,6 +160,7 @@ test("failed artifact is reported for server reselection and never creates work"
 	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
 });
 test("only blocked pending selection polls and newly ready bytes stop that polling", async () => {
+	vi.useFakeTimers();
 	vi.mocked(playbackApi.selectPlayback)
 		.mockResolvedValueOnce({
 			...direct,
@@ -164,11 +171,17 @@ test("only blocked pending selection polls and newly ready bytes stop that polli
 	const { result } = renderHook(() =>
 		usePlaybackSelection("file", undefined, "root"),
 	);
-	await waitFor(() => expect(result.current.selection?.pending).toBe(true));
-	await waitFor(
-		() => expect(result.current.selection?.plan.mode).toBe("direct"),
-		{ timeout: 2500 },
-	);
+	await act(async () => {
+		await vi.advanceTimersByTimeAsync(0);
+	});
+	expect(result.current.selection?.pending).toBe(true);
+	await act(async () => {
+		await vi.advanceTimersByTimeAsync(1000);
+	});
+	expect(result.current.selection?.plan.mode).toBe("direct");
+	await act(async () => {
+		await vi.advanceTimersByTimeAsync(5000);
+	});
 	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(2);
 	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
 });

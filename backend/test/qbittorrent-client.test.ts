@@ -4,6 +4,7 @@ import {
 	type ServerResponse,
 } from "node:http";
 import pino from "pino";
+import { getGlobalDispatcher, MockAgent, setGlobalDispatcher } from "undici";
 import { afterEach, expect, test } from "vitest";
 import { createQbittorrentClient } from "../src/modules/acquisition/create.js";
 import type {
@@ -32,6 +33,33 @@ const torrent = {
 	category: "anishelf",
 	tags: "intent:1, managed",
 };
+function defaultResponse(path: string): string {
+	const bodies: Record<string, string> = {
+		"/qbt/api/v2/auth/login": "Ok.",
+		"/qbt/api/v2/app/version": "v5.0.5",
+		"/qbt/api/v2/app/webapiVersion": "2.11.4",
+		"/qbt/api/v2/app/defaultSavePath": "/downloads/",
+		"/qbt/api/v2/app/preferences": JSON.stringify({
+			temp_path_enabled: true,
+			temp_path: "/incomplete",
+		}),
+		"/qbt/api/v2/torrents/info": JSON.stringify([torrent]),
+		"/qbt/api/v2/torrents/files": JSON.stringify([
+			{
+				index: 0,
+				name: "episode.mkv",
+				size: 100,
+				progress: 1,
+				priority: 1,
+			},
+		]),
+		"/qbt/api/v2/torrents/add": "Ok.",
+	};
+	const body = bodies[path.split("?")[0] ?? ""];
+	if (body === undefined) throw new Error(`Unexpected SDK request: ${path}`);
+	return body;
+}
+
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {
 	for (const close of cleanup.splice(0).reverse()) await close();
@@ -40,12 +68,13 @@ type Request = {
 	path: string;
 	body: string;
 	headers: IncomingMessage["headers"];
+	form?: FormData;
 };
 type Handler = (
 	request: Request,
 	response: ServerResponse,
 ) => boolean | undefined;
-async function fixture(
+async function networkFixture(
 	handler: Handler = () => false,
 	options: Partial<QbittorrentOptions> = {},
 ) {
@@ -57,47 +86,9 @@ async function fixture(
 		const request = { path: req.url ?? "", body, headers: req.headers };
 		requests.push(request);
 		if (handler(request, res) !== false) return;
-		switch (request.path.split("?")[0]) {
-			case "/qbt/api/v2/auth/login":
-				res.setHeader("set-cookie", "SID=session-secret; HttpOnly; Path=/");
-				res.end("Ok.");
-				break;
-			case "/qbt/api/v2/app/version":
-				res.end("v5.0.5");
-				break;
-			case "/qbt/api/v2/app/webapiVersion":
-				res.end("2.11.4");
-				break;
-			case "/qbt/api/v2/app/defaultSavePath":
-				res.end("/downloads/");
-				break;
-			case "/qbt/api/v2/app/preferences":
-				res.end(
-					JSON.stringify({ temp_path_enabled: true, temp_path: "/incomplete" }),
-				);
-				break;
-			case "/qbt/api/v2/torrents/info":
-				res.end(JSON.stringify([torrent]));
-				break;
-			case "/qbt/api/v2/torrents/files":
-				res.end(
-					JSON.stringify([
-						{
-							index: 0,
-							name: "episode.mkv",
-							size: 100,
-							progress: 1,
-							priority: 1,
-						},
-					]),
-				);
-				break;
-			case "/qbt/api/v2/torrents/add":
-				res.end("Ok.");
-				break;
-			default:
-				res.end();
-		}
+		if (request.path.endsWith("/auth/login"))
+			res.setHeader("set-cookie", "SID=session-secret; HttpOnly; Path=/");
+		res.end(defaultResponse(request.path));
 	});
 	await new Promise<void>((resolve, reject) => {
 		server.once("error", reject);
@@ -122,8 +113,70 @@ async function fixture(
 	return { client, requests, logs, url };
 }
 
+// Response mapping and request serialization do not require a listening server.
+// The real SDK still builds requests, including cookies and multipart fields.
+async function fixture(
+	handler: (
+		request: Request,
+	) => false | { body: string; statusCode?: number } = () => false,
+	options: Partial<QbittorrentOptions> = {},
+) {
+	const requests: Request[] = [];
+	const logs: string[] = [];
+	const previous = getGlobalDispatcher();
+	const agent = new MockAgent();
+	agent.disableNetConnect();
+	setGlobalDispatcher(agent);
+	cleanup.push(async () => {
+		setGlobalDispatcher(previous);
+		await agent.close();
+	});
+	const url = "http://qbittorrent.test/qbt/";
+	agent
+		.get("http://qbittorrent.test")
+		.intercept({
+			path: /./,
+			method: /./,
+		})
+		.reply((options) => {
+			const request: Request = {
+				path: options.path,
+				body: String(options.body ?? ""),
+				...(options.body instanceof FormData ? { form: options.body } : {}),
+				headers: Object.fromEntries(new Headers(options.headers)),
+			};
+			requests.push(request);
+			const custom = handler(request);
+			if (custom !== false)
+				return {
+					statusCode: custom.statusCode ?? 200,
+					data: custom.body,
+				};
+
+			return {
+				statusCode: 200,
+				data: defaultResponse(request.path),
+				responseOptions: request.path.endsWith("/auth/login")
+					? {
+							headers: { "set-cookie": "SID=session-secret; HttpOnly; Path=/" },
+						}
+					: {},
+			};
+		})
+		.persist();
+	const client = createQbittorrentClient({
+		url,
+		username: "user-secret",
+		password: "password-secret",
+		logger: pino({ level: "debug" }, { write: (line) => logs.push(line) }),
+		...options,
+	});
+	cleanup.push(() => client.close());
+	return { client, requests, logs, url };
+}
+
 test("SDK cookie login is shared by concurrent operations and preserves proxy prefix", async () => {
-	const { client, requests } = await fixture();
+	const { client, requests } = await networkFixture();
 	const [probe, tasks] = await Promise.all([client.probe(), client.tasks()]);
 	expect(probe).toEqual({
 		version: "v5.0.5",
@@ -148,11 +201,18 @@ test("SDK cookie login is shared by concurrent operations and preserves proxy pr
 	for (const request of requests.slice(1)) {
 		expect(request.headers.cookie).toBe("SID=session-secret");
 	}
+	// One real connection also verifies multipart wire encoding by the SDK.
+	await client.add(addInput);
+	const write = requests.find((request) =>
+		request.path.endsWith("/torrents/add"),
+	);
+	expect(write?.body).toContain(`magnet:?xt=urn:btih:${hash}`);
+	expect(write?.body).toContain('name="useAutoTMM"\r\n\r\nfalse');
 });
 test("lookup distinguishes absent task from a failed or invalid snapshot", async () => {
-	const { client } = await fixture((request, response) => {
+	const { client } = await fixture((request) => {
 		if (!request.path.includes("/torrents/info")) return false;
-		response.end("[]");
+		return { body: "[]" };
 	});
 	expect(await client.task(hash)).toBeNull();
 	expect(await client.files(hash)).toEqual([
@@ -161,15 +221,15 @@ test("lookup distinguishes absent task from a failed or invalid snapshot", async
 });
 test("single lookup checks returned identity", async () => {
 	const body = JSON.stringify([{ ...torrent, hash: "a".repeat(40) }]);
-	const { client } = await fixture((request, response) => {
+	const { client } = await fixture((request) => {
 		if (!request.path.includes("/torrents/info")) return false;
-		response.end(body);
+		return { body };
 	});
 	await expect(client.task(hash)).rejects.toMatchObject({
 		code: "invalid-response",
 	});
 });
-test("magnet and torrent multipart submissions preserve explicit placement and tags", async () => {
+test("magnet and torrent multipart fields preserve explicit placement and tags", async () => {
 	const { client, requests } = await fixture();
 	const common = {
 		savePath: "/downloads/anime",
@@ -190,18 +250,21 @@ test("magnet and torrent multipart submissions preserve explicit placement and t
 	);
 	expect(writes).toHaveLength(2);
 	for (const request of writes) {
-		expect(request.body).toContain('name="savepath"\r\n\r\n/downloads/anime');
-		expect(request.body).toContain('name="tags"\r\n\r\nintent:42');
-		expect(request.body).toContain('name="stopped"\r\n\r\ntrue');
-		expect(request.body).toContain('name="useAutoTMM"\r\n\r\nfalse');
+		expect(request.form?.get("savepath")).toBe("/downloads/anime");
+		expect(request.form?.get("tags")).toBe("intent:42");
+		expect(request.form?.get("stopped")).toBe("true");
+		expect(request.form?.get("useAutoTMM")).toBe("false");
 	}
-	expect(writes[0]?.body).toContain(`magnet:?xt=urn:btih:${hash}`);
-	expect(writes[1]?.body).toContain("torrent-fixture");
+	expect(writes[0]?.form?.get("urls")).toBe(`magnet:?xt=urn:btih:${hash}`);
+	const upload = writes[1]?.form?.get("file");
+	expect(upload).toBeInstanceOf(Blob);
+	if (!(upload instanceof Blob)) throw new Error("Missing torrent upload.");
+	expect(await upload.text()).toBe("torrent-fixture");
 });
 test("server-rejected adds are distinct from unknown delivery and are never retried", async () => {
-	const { client, requests } = await fixture((request, response) => {
+	const { client, requests } = await fixture((request) => {
 		if (!request.path.endsWith("/torrents/add")) return false;
-		response.end("Fails.");
+		return { body: "Fails." };
 	});
 	await expect(
 		client.add({
@@ -216,7 +279,7 @@ test("server-rejected adds are distinct from unknown delivery and are never retr
 	).toHaveLength(1);
 });
 test("lost mutation response is unknown and never automatically resent", async () => {
-	const { client, requests } = await fixture((request, response) => {
+	const { client, requests } = await networkFixture((request, response) => {
 		if (!request.path.endsWith("/torrents/add")) return false;
 		response.destroy();
 	});
@@ -229,9 +292,9 @@ test("lost mutation response is unknown and never automatically resent", async (
 	).toHaveLength(1);
 });
 test("login refusal is sanitized and commands remain unsent", async () => {
-	const { client, logs, requests } = await fixture((request, response) => {
+	const { client, logs, requests } = await fixture((request) => {
 		if (!request.path.endsWith("/auth/login")) return false;
-		response.end("Fails. password-secret");
+		return { body: "Fails. password-secret" };
 	});
 	await expect(client.add(addInput)).rejects.toMatchObject({
 		code: "unauthorized",
@@ -242,11 +305,10 @@ test("login refusal is sanitized and commands remain unsent", async () => {
 });
 test("expired session reauthenticates once after an explicit authentication rejection", async () => {
 	let rejected = false;
-	const { client, requests } = await fixture((request, response) => {
+	const { client, requests } = await fixture((request) => {
 		if (request.path.includes("/torrents/info") && !rejected) {
 			rejected = true;
-			response.writeHead(403).end();
-			return;
+			return { statusCode: 403, body: "" };
 		}
 		return false;
 	});
@@ -256,9 +318,9 @@ test("expired session reauthenticates once after an explicit authentication reje
 	).toHaveLength(2);
 });
 test("older qBittorrent versions use the SDK compatibility handling", async () => {
-	const { client, requests } = await fixture((request, response) => {
+	const { client, requests } = await fixture((request) => {
 		if (!request.path.endsWith("/app/version")) return false;
-		response.end("v4.6.7");
+		return { body: "v4.6.7" };
 	});
 	await expect(client.add(addInput)).resolves.toBeUndefined();
 	expect(
@@ -266,7 +328,7 @@ test("older qBittorrent versions use the SDK compatibility handling", async () =
 	).toBe(true);
 });
 test("SDK request timeout retains unknown mutation outcome", async () => {
-	const { client } = await fixture(
+	const { client } = await networkFixture(
 		(request) => (request.path.endsWith("/torrents/add") ? undefined : false),
 		{ timeoutMs: 150 },
 	);
@@ -278,7 +340,7 @@ test("SDK request timeout retains unknown mutation outcome", async () => {
 test("cancellation waits for the SDK request; close drains it and blocks reuse", async () => {
 	let seen = () => {};
 	let respond = () => {};
-	const { client, requests } = await fixture((request, response) => {
+	const { client, requests } = await networkFixture((request, response) => {
 		if (!request.path.includes("/torrents/info")) return false;
 		respond = () => response.end(JSON.stringify([torrent]));
 		seen();
@@ -306,7 +368,7 @@ test("cancellation waits for the SDK request; close drains it and blocks reuse",
 test("cancelling an in-flight mutation keeps its result unknown without resending", async () => {
 	let seen = () => {};
 	let respond = () => {};
-	const { client, requests } = await fixture((request, response) => {
+	const { client, requests } = await networkFixture((request, response) => {
 		if (!request.path.endsWith("/torrents/add")) return false;
 		respond = () => response.end();
 		seen();
@@ -331,7 +393,7 @@ test("cancelling an in-flight mutation keeps its result unknown without resendin
 test("cancelling one login waiter does not cancel another operation or send its mutation", async () => {
 	let seen = () => {};
 	let respond = () => {};
-	const { client, requests } = await fixture((request, response) => {
+	const { client, requests } = await networkFixture((request, response) => {
 		if (!request.path.endsWith("/auth/login")) return false;
 		respond = () => {
 			response.setHeader("set-cookie", "SID=session-secret; Path=/");
@@ -363,9 +425,9 @@ test("cancelling one login waiter does not cancel another operation or send its 
 });
 
 test("SDK add completion leaves task acceptance to hash reconciliation", async () => {
-	const { client, requests } = await fixture((request, response) => {
+	const { client, requests } = await fixture((request) => {
 		if (!request.path.endsWith("/torrents/add")) return false;
-		response.end("<html>login page</html>");
+		return { body: "<html>login page</html>" };
 	});
 	await expect(
 		client.add({
@@ -380,9 +442,9 @@ test("SDK add completion leaves task acceptance to hash reconciliation", async (
 	).toHaveLength(1);
 });
 test("server errors do not retry writes or become authoritative empty snapshots", async () => {
-	const { client, requests } = await fixture((request, response) => {
+	const { client, requests } = await fixture((request) => {
 		if (!request.path.includes("/torrents/")) return false;
-		response.writeHead(503).end("password-secret");
+		return { statusCode: 503, body: "password-secret" };
 	});
 	await expect(client.add(addInput)).rejects.toMatchObject({
 		code: "unavailable",

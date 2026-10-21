@@ -22,7 +22,7 @@ const headers = { host: "127.0.0.1:3000" };
 async function fixture() {
 	const dataDir = await mkdtemp(join(tmpdir(), "anishelf-qbt-"));
 	cleanup.push(() => rm(dataDir, { recursive: true, force: true }));
-	const database = ApplicationDatabase.open(dataDir);
+	const database = ApplicationDatabase.openMemory();
 	const logger = pino({ enabled: false });
 	const auth = await createAuthenticationModule({
 		logger,

@@ -62,7 +62,7 @@ async function setup(
 ) {
 	const dataDir = await mkdtemp(join(tmpdir(), "anishelf-tracking-"));
 	cleanup.push(() => rm(dataDir, { recursive: true, force: true }));
-	const database = ApplicationDatabase.open(dataDir);
+	const database = ApplicationDatabase.openMemory();
 	cleanup.push(() => database.close());
 	const app = await createTrackingModule({
 		dataDir,

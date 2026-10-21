@@ -81,6 +81,41 @@ Run `npm run check` and `npm run build` after structural changes. Architecture
 fixtures spawn Node processes; media and HTTP suites also spawn tools and listen
 on localhost. Run them in an environment permitting those operations.
 
+## Test storage
+
+Business tests use `ApplicationDatabase.openMemory()` when they need SQL queries,
+constraints and transactions without persistence across connections. This uses
+real SQLite and the production migrations; migration source files are still read
+from disk. Each connection is isolated and closing it discards its data. Fixtures
+that verify database restart recovery explicitly request a disk database.
+
+The RSS, scanner and change-processor suites opt into `memfs` for asynchronous
+filesystem calls. Their virtual filesystem resets before each test. This is local to those suites;
+it does not intercept native filesystem access or external processes.
+
+Keep real temporary directories for native filesystem monitoring, resource-access
+integration, permissions, atomic publication, credential/configuration persistence,
+SQLite migrations and restart recovery, and FFmpeg/FFprobe processing. These tests
+verify operating-system behavior that an in-memory filesystem cannot establish.
+Do not apply the filesystem mock globally.
+
+## Test networking
+
+HTTP route tests use Fastify `app.inject()` without binding a port, including
+request cancellation via an injected `AbortSignal`. qBittorrent response mapping,
+error handling and multipart field tests run the real SDK against an Undici
+`MockAgent` with real network access disabled. The fixture restores the previous
+dispatcher after each test. Frontend tests start with a rejecting fetch stub and
+record unmocked paths. Teardown fails on these requests even if application error
+handling catches the rejection, so omitted mocks cannot silently contact a server
+or pass unnoticed. Mock expected error responses explicitly in the owning suite.
+
+Keep loopback servers only for the SDK cookie/multipart wire smoke test, lost
+socket responses, native request timeouts, in-flight cancellation/draining, and
+streaming file-handle cleanup after a client socket disconnect. These fixtures
+bind to `127.0.0.1` on an ephemeral port and close their connections after use.
+They do not require a running backend or a real qBittorrent service.
+
 ## Filesystem monitor tests
 
 Native watcher fixtures canonicalize temporary paths before deriving root identities,
@@ -345,9 +380,9 @@ rate-header backoff and the default 2400 ms spacing. Shutting down Tracking
 invalidates previews and active account checks before the shared scheduler closes.
 
 Run `npm run test --workspace @anishelf/backend -- test/anilist-account.test.ts
-test/anilist-scheduler.test.ts test/metadata.test.ts` and
+test/anilist-wrapper.test.ts test/metadata.test.ts` and
 `npm run test --workspace @anishelf/web -- test/anilist-account.test.tsx` for focused
-regressions. Metadata HTTP-disconnect tests require localhost listening permission.
+regressions. Metadata cancellation tests use HTTP injection without listening on a port.
 See [the design](history.md#anilist-design-implemented-account-foundation) for
 API/status and real-provider verification boundaries.
 
@@ -471,9 +506,11 @@ Tailwind directives. The active UI uses English; further localization is planned
 ## Verification and Troubleshooting
 
 Run `npm run check` for Biome, lint/architecture checks, typechecks and all tests.
-`npm test` runs architecture, backend and web tests concurrently, prefixes each
-suite's output, and succeeds only when all three suites pass. Both workspaces use the root
-TypeScript dependencies: `@typescript/native` aliases TypeScript 7 and provides
+`npm test` runs architecture, backend and web suites in sequence and succeeds only
+when all three pass. Both Vitest suites use at most four workers by default,
+preventing nested workspace parallelism from oversubscribing the machine.
+Use the Vitest CLI `--maxWorkers` option to override the limit when needed.
+Both workspaces use the root TypeScript dependencies: `@typescript/native` aliases TypeScript 7 and provides
 `tsc` for builds and typechecks; `typescript` aliases `@typescript/typescript6`
 and provides the TypeScript 6 API required by dependency-cruiser. An unsupported
 compiler or empty workspace scan fails explicitly.
@@ -482,6 +519,17 @@ Run workspace tests with `npm run test --workspace @anishelf/backend` or
 injection; stream/disconnect tests also require permission to bind a local port.
 Media integration tests require FFmpeg/FFprobe and spawn real child processes;
 codec cases are skipped when tools are unavailable.
+
+Frontend base setup installs the offline fetch guard without loading QueryClient
+or bootstrapping an authentication session. Tests using `query-test-utils` opt into
+query-cache cleanup and CSRF bootstrap; standalone API tests import `query-setup`
+when they require an authenticated transport. Pure logic tests use only base setup.
+Application integration coverage is split into navigation, playback, catalog and
+review suites with shared fixtures in `web/test/support/app-fixture.tsx`. Keep
+cross-page flows there and boundary conditions in focused component/hook suites.
+Polling and negative timing assertions should advance fake timers inside React
+`act` rather than sleep against wall-clock time. Native filesystem and process
+integration tests retain real timing where operating-system events are required.
 
 DOM tests use React Testing Library and Happy DOM for interactions; they cannot
 prove browser media decoding, fullscreen geometry or subtitle visibility. Inspect

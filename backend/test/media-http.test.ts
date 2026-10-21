@@ -215,7 +215,7 @@ test.each(["files", "media"])(
 	},
 );
 
-test("releases file handles on HEAD, failed range, completed stream, and disconnect", async () => {
+test("releases file handles on HEAD, failed range, and completed stream", async () => {
 	const opened: Awaited<ReturnType<ResourceAccess["openFile"]>>[] = [];
 	const original = ResourceAccess.prototype.openFile;
 	vi.spyOn(ResourceAccess.prototype, "openFile").mockImplementation(
@@ -235,6 +235,18 @@ test("releases file handles on HEAD, failed range, completed stream, and disconn
 	await vi.waitFor(() =>
 		expect(opened.every((file) => file.handle.fd === -1)).toBe(true),
 	);
+});
+
+test("client socket disconnect releases a streaming file handle", async () => {
+	const opened: Awaited<ReturnType<ResourceAccess["openFile"]>>[] = [];
+	const original = ResourceAccess.prototype.openFile;
+	vi.spyOn(ResourceAccess.prototype, "openFile").mockImplementation(
+		async function (this: ResourceAccess, path) {
+			const file = await original.call(this, path);
+			opened.push(file);
+			return file;
+		},
+	);
 	await truncate(path, 32 * 1024 * 1024);
 	const address = await app.listen({ host: "127.0.0.1", port: 0 });
 	await new Promise<void>((resolve, reject) => {
@@ -248,7 +260,7 @@ test("releases file handles on HEAD, failed range, completed stream, and disconn
 		request.on("error", reject);
 	});
 	await vi.waitFor(() => {
-		expect(opened).toHaveLength(5);
+		expect(opened).toHaveLength(1);
 		expect(opened.every((file) => file.handle.fd === -1)).toBe(true);
 	});
 });

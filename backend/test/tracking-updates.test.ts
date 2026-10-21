@@ -27,10 +27,15 @@ const initial: TrackingRemoteState = {
 	status: "watching",
 	updatedAt: 100,
 };
-async function fixture() {
-	const dir = await mkdtemp(join(tmpdir(), "anishelf-updates-"));
-	disposals.push(() => rm(dir, { recursive: true, force: true }));
-	let database = ApplicationDatabase.open(dir);
+async function fixture(persistent = false) {
+	const dir = persistent
+		? await mkdtemp(join(tmpdir(), "anishelf-updates-"))
+		: "";
+	if (persistent)
+		disposals.push(() => rm(dir, { recursive: true, force: true }));
+	let database = persistent
+		? ApplicationDatabase.open(dir)
+		: ApplicationDatabase.openMemory();
 	disposals.push(() => database.close());
 	let remote: TrackingRemoteState | null = { ...initial };
 	let now = 1000;
@@ -111,6 +116,8 @@ async function fixture() {
 			status.generation = randomUUID();
 		},
 		async restart() {
+			if (!persistent)
+				throw new Error("Restart requires a persistent fixture.");
 			await worker.close();
 			database.close();
 			database = ApplicationDatabase.open(dir);
@@ -141,7 +148,7 @@ test("coalesces unsent progress and status without losing explicit correction", 
 	expect(f.save.mock.calls[0]?.[3]).toEqual({ progress: 2, status: "paused" });
 });
 test("offline failure survives real database restart and reconciles before delivery", async () => {
-	const f = await fixture();
+	const f = await fixture(true);
 	f.get.mockRejectedValueOnce(new TrackingProviderError("unavailable", null));
 	f.worker.update("anilist:anime:1", f.input({ progress: 4 }));
 	await f.worker.flush();
@@ -152,7 +159,7 @@ test("offline failure survives real database restart and reconciles before deliv
 	expect(f.get).toHaveBeenCalledTimes(2);
 });
 test("lost successful mutation response is reconciled after restart without duplicate write", async () => {
-	const f = await fixture();
+	const f = await fixture(true);
 	f.save.mockImplementationOnce(async () => {
 		f.setRemote({ ...initial, progress: 4 });
 		throw new TrackingProviderError("unavailable", null);
