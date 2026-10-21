@@ -63,7 +63,7 @@ UserNS=keep-id:uid=1000,gid=1000
 # Set the exact browser origin, including HTTPS or a changed host port.
 Environment=ANISHELF_PUBLIC_ORIGIN=http://localhost:3000
 # Initial root for new settings only; change existing roots in Settings.
-Environment=ANISHELF_INITIAL_RESOURCE_ROOT=/data/media
+Environment=ANISHELF_INITIAL_RESOURCE_ROOTS=/data/media
 # Optional API form hint; use Settings for external endpoints and credentials.
 Environment=ANISHELF_QBITTORRENT_API_URL=http://qbittorrent:8080
 Volume=anishelf-app.volume:/data/app

@@ -105,9 +105,9 @@ test.each([
 	["ANISHELF_DATA_DIR", "relative"],
 	["ANISHELF_DATA_DIR", ""],
 	["ANISHELF_DATA_DIR", "/tmp/\0"],
-	["ANISHELF_INITIAL_RESOURCE_ROOT", "relative"],
-	["ANISHELF_INITIAL_RESOURCE_ROOT", ""],
-	["ANISHELF_INITIAL_RESOURCE_ROOT", "/tmp/\0"],
+	["ANISHELF_INITIAL_RESOURCE_ROOTS", "relative"],
+	["ANISHELF_INITIAL_RESOURCE_ROOTS", ""],
+	["ANISHELF_INITIAL_RESOURCE_ROOTS", "/tmp/\0"],
 	["ANISHELF_LOG_LEVEL", "verbose"],
 	["ANISHELF_LOG_LEVEL", ""],
 	["ANISHELF_LOG_DESTINATION", "stderr"],
@@ -214,11 +214,11 @@ test("frontend hosting is opt-in through an absolute directory", () => {
 
 test("parses an optional initial resource root without filesystem effects", () => {
 	const root = join(fixture, "not-created");
-	expect(parseDeploymentConfig({}).initialResourceRoot).toBeUndefined();
+	expect(parseDeploymentConfig({}).initialResourceRoots).toBeUndefined();
 	expect(
-		parseDeploymentConfig({ ANISHELF_INITIAL_RESOURCE_ROOT: root })
-			.initialResourceRoot,
-	).toBe(root);
+		parseDeploymentConfig({ ANISHELF_INITIAL_RESOURCE_ROOTS: root })
+			.initialResourceRoots,
+	).toEqual([root]);
 });
 
 test("supports both output and explicit rotation limits", () => {
@@ -314,4 +314,27 @@ test.each([
 	).toThrow(
 		"ANISHELF_QBITTORRENT_API_URL must be an absolute HTTP(S) URL without credentials, query or fragment.",
 	);
+});
+
+test("parses semicolon-separated resource roots and rejects empty or excessive entries", () => {
+	expect(
+		parseDeploymentConfig({
+			ANISHELF_INITIAL_RESOURCE_ROOTS: " /media/anime ; /media/movies ",
+		}).initialResourceRoots,
+	).toEqual(["/media/anime", "/media/movies"]);
+	for (const value of [
+		"/media;",
+		";/media",
+		"/media;;/movies",
+		'["/media"]',
+		Array(65).fill("/media").join(";"),
+	]) {
+		expect(() =>
+			parseDeploymentConfig({ ANISHELF_INITIAL_RESOURCE_ROOTS: value }),
+		).toThrow();
+	}
+	expect(
+		parseDeploymentConfig({ ANISHELF_INITIAL_RESOURCE_ROOT: "/ignored" })
+			.initialResourceRoots,
+	).toBeUndefined();
 });

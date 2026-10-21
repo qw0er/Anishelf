@@ -26,7 +26,7 @@ async function fixture() {
 	await mkdir(other);
 	const system = await createSystemModule({
 		ANISHELF_DATA_DIR: join(directory, "data"),
-		ANISHELF_INITIAL_RESOURCE_ROOT: root,
+		ANISHELF_INITIAL_RESOURCE_ROOTS: root,
 	});
 	const resources = await createResourcesModule({ system: system.api, logger });
 	cleanup.push(() => resources.close());

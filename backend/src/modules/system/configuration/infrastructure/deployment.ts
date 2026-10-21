@@ -30,28 +30,14 @@ function absolutePath(value: string, name: string): string {
 }
 
 function initialRoots(env: Environment): string[] | undefined {
-	if (env.ANISHELF_INITIAL_RESOURCE_ROOTS === undefined) return undefined;
-	if (env.ANISHELF_INITIAL_RESOURCE_ROOT !== undefined)
+	const value = env.ANISHELF_INITIAL_RESOURCE_ROOTS;
+	if (value === undefined) return undefined;
+	const paths = value.split(";").map((path) => path.trim());
+	if (paths.length > 64)
 		invalid(
-			"Set only one resource initializer: ANISHELF_INITIAL_RESOURCE_ROOTS or ANISHELF_INITIAL_RESOURCE_ROOT.",
+			"ANISHELF_INITIAL_RESOURCE_ROOTS must contain at most 64 semicolon-separated absolute paths.",
 		);
-	let value: unknown;
-	try {
-		value = JSON.parse(env.ANISHELF_INITIAL_RESOURCE_ROOTS);
-	} catch {
-		invalid(
-			"ANISHELF_INITIAL_RESOURCE_ROOTS must be a JSON array of absolute paths.",
-		);
-	}
-	if (
-		!Array.isArray(value) ||
-		value.length > 64 ||
-		value.some((path) => typeof path !== "string")
-	)
-		invalid(
-			"ANISHELF_INITIAL_RESOURCE_ROOTS must be a JSON array of at most 64 absolute paths.",
-		);
-	return (value as string[]).map((path) =>
+	return paths.map((path) =>
 		absolutePath(path, "ANISHELF_INITIAL_RESOURCE_ROOTS"),
 	);
 }
@@ -230,14 +216,6 @@ export function parseDeploymentConfig(
 					),
 				}),
 		dataDir,
-		...(env.ANISHELF_INITIAL_RESOURCE_ROOT === undefined
-			? {}
-			: {
-					initialResourceRoot: absolutePath(
-						env.ANISHELF_INITIAL_RESOURCE_ROOT,
-						"ANISHELF_INITIAL_RESOURCE_ROOT",
-					),
-				}),
 		...(resourceInitializers === undefined
 			? {}
 			: { initialResourceRoots: resourceInitializers }),

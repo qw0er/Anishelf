@@ -55,7 +55,7 @@ test("large modules expose capability objects and quiesce without destroying sha
 	const logger = pino({ enabled: false });
 	const system = await createSystemModule({
 		ANISHELF_DATA_DIR: join(directory, "data"),
-		ANISHELF_INITIAL_RESOURCE_ROOT: root,
+		ANISHELF_INITIAL_RESOURCE_ROOTS: root,
 	});
 	const database = ApplicationDatabase.open(system.api.deployment.dataDir);
 	const tools = await initializeMediaTools(
