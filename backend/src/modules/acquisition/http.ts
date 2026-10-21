@@ -1,8 +1,8 @@
 import type { HttpInstance } from "../../transport/instance.js";
-import { registerConnectionRoutes } from "./connection/http/connection.js";
 import { registerSubscriptionRoutes } from "./discovery/http/subscriptions.js";
 import { registerDownloadRoutes } from "./downloads/http/downloads.js";
 import type { AcquisitionApi } from "./public.js";
+import { registerConnectionRoutes } from "./qbittorrent/http.js";
 
 export function registerAcquisitionHttp(
 	app: HttpInstance,
