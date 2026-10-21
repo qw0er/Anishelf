@@ -3,6 +3,14 @@ const implementation = `${modulePath}(?:(?:application|infrastructure|http)(?:/|
 module.exports = {
 	forbidden: [
 		{
+			name: "downloads-execution-does-not-import-business-workflows",
+			severity: "error",
+			from: { path: "^backend/src/modules/acquisition/downloads/application/" },
+			to: {
+				path: "^backend/src/modules/(?:anime|resources)/|^backend/src/modules/acquisition/(?:discovery|workflows)/",
+			},
+		},
+		{
 			name: "anime-applications-use-ports",
 			severity: "error",
 			from: {

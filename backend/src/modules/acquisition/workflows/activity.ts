@@ -1,12 +1,12 @@
 import { posix } from "node:path";
-import { DomainError } from "../../../../shared/errors.js";
-import type { DownloadActivity } from "../domain/model.js";
-import type { DownloadContext } from "./context.js";
+import { DomainError } from "../../../shared/errors.js";
+import { downloadPolicy as policy } from "../downloads/application/policy.js";
+import type { DownloadActivity } from "../downloads/domain/model.js";
+import type { AcquisitionContext } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
-import { downloadPolicy as policy } from "./policy.js";
 export class DownloadActivityQueries {
 	constructor(
-		private readonly context: DownloadContext,
+		private readonly context: AcquisitionContext,
 		private readonly destination: DownloadDestinationSettings,
 	) {}
 	activity(workKey: string, page = 1): DownloadActivity {

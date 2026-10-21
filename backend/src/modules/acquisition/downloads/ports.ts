@@ -1,25 +1,8 @@
 import type {
-	Candidate,
-	FeedEntry,
-	Subscription,
-} from "../discovery/public.js";
-import type {
 	DownloadAuthorization,
 	DownloadDestination,
 	DownloadIntent,
 } from "./domain/model.js";
-
-/** Consumer-owned reads and an explicit result notification; no Discovery persistence access. */
-export interface DownloadSelection {
-	subscription(workKey: string): Subscription | null;
-	subscriptions(): Subscription[];
-	candidates(workKey: string): Candidate[];
-	release(
-		feedId: string,
-		entryId: string,
-	): Pick<FeedEntry, "downloadUrl" | "hash"> | null;
-	reservationOutcome(subscription: Subscription, failed: boolean): void;
-}
 export interface DownloadStore {
 	destination(): DownloadDestination | null;
 	saveDestination(value: DownloadDestination): void;
@@ -50,4 +33,22 @@ export interface DownloadStore {
 export interface TorrentTransport {
 	read(url: string, signal: AbortSignal): Promise<Uint8Array<ArrayBuffer>>;
 	close(): Promise<void>;
+}
+
+export interface SubmissionAdmission {
+	authorize(
+		execution: {
+			current: DownloadIntent;
+			save(value: DownloadIntent): DownloadIntent;
+		},
+		client: import("../qbittorrent/public.js").QbittorrentApi,
+		snapshot: import("../qbittorrent/public.js").DownloadTask[],
+	): Promise<string | null>;
+}
+export interface CompletedDownload {
+	task: import("../qbittorrent/public.js").DownloadTask;
+	files: Awaited<
+		ReturnType<import("../qbittorrent/public.js").QbittorrentApi["files"]>
+	>;
+	verify(): Promise<boolean>;
 }

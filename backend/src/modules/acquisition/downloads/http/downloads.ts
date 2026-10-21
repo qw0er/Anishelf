@@ -8,10 +8,10 @@ import {
 	DownloadValidationSchema,
 } from "../../../../contracts/schemas/downloads.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
-import type { DownloadsApi } from "../public.js";
+import type { AcquisitionDownloadsApi } from "../../public.js";
 export function registerDownloadRoutes(
 	app: HttpInstance,
-	downloads: DownloadsApi,
+	downloads: AcquisitionDownloadsApi,
 ) {
 	const path = "/api/acquisition/downloads";
 	app.get(

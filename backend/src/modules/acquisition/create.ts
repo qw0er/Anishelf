@@ -6,7 +6,6 @@ import { DiscoveryApplication } from "./discovery/application/application.js";
 import { parseRss } from "./discovery/infrastructure/rss.js";
 import { RssTransport, rssUrl } from "./discovery/infrastructure/transport.js";
 import type { FeedTransport } from "./discovery/public.js";
-import { DownloadsApplication } from "./downloads/application/application.js";
 import type { DownloadStore, TorrentTransport } from "./downloads/public.js";
 import { registerAcquisitionHttp } from "./http.js";
 import type { DiscoveryStore } from "./persistence.js";
@@ -19,6 +18,7 @@ import type {
 	QbittorrentOptions,
 } from "./qbittorrent/public.js";
 import { SubscriptionConfirmation } from "./subscription-confirmation.js";
+import { AcquisitionApplication } from "./workflows/application.js";
 
 /** Standalone adapter foundation; no workers or automatic downloads are started. */
 export function createQbittorrentClient(
@@ -50,16 +50,16 @@ export async function createAcquisitionModule(options: {
 		options.suggestedApiUrl,
 	);
 	await connection.initialize();
-	let downloads: DownloadsApplication | undefined;
+	let workflow: AcquisitionApplication | undefined;
 	const discoveryStore = options.store;
 	const discovery = new DiscoveryApplication({
 		store: discoveryStore,
-		downloadPreview: (key, target) => downloads?.preview(key, target) ?? null,
+		downloadPreview: (key, target) => workflow?.preview(key, target) ?? null,
 		confirmation: new SubscriptionConfirmation({
 			logger: options.logger,
 			transaction: (operation) => discoveryStore.transaction(operation),
 			authorize: (key, revision, destinationRevision) =>
-				downloads?.authorizeSubscription(key, revision, destinationRevision),
+				workflow?.authorizeSubscription(key, revision, destinationRevision),
 		}),
 		anime: options.anime ?? {
 			target: async () => {
@@ -85,9 +85,9 @@ export async function createAcquisitionModule(options: {
 		logger: options.logger,
 		...(options.now ? { now: options.now } : {}),
 	});
-	downloads =
+	workflow =
 		options.resources && options.anime && options.ingestion
-			? new DownloadsApplication({
+			? new AcquisitionApplication({
 					store: options.downloadStore,
 					selection: discovery.acquisition(),
 					resources: options.resources,
@@ -103,9 +103,9 @@ export async function createAcquisitionModule(options: {
 			: undefined;
 	if (options.autoStart !== false) {
 		discovery.start();
-		downloads?.start();
+		workflow?.start();
 	}
-	const downloadApi = downloads;
+	const downloadApi = workflow;
 	const api: AcquisitionApi = {
 		connection: {
 			settings: () => connection.settings(),
@@ -141,7 +141,7 @@ export async function createAcquisitionModule(options: {
 			registerAcquisitionHttp(app, api),
 		close: () => {
 			closing ??= (async () => {
-				await downloads?.close();
+				await workflow?.close();
 				await discovery.close();
 				await connection.close();
 			})();

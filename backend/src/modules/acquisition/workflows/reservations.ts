@@ -1,12 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { DownloadError, type DownloadIntent } from "../domain/model.js";
-import { workDirectory } from "../domain/paths.js";
-import type { DownloadContext } from "./context.js";
+import {
+	DownloadError,
+	type DownloadIntent,
+} from "../downloads/domain/model.js";
+import { workDirectory } from "../downloads/domain/paths.js";
+import type { AcquisitionContext } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
 
-export class DownloadReservations {
+export class DownloadPlanning {
 	constructor(
-		private readonly context: DownloadContext,
+		private readonly context: AcquisitionContext,
 		private readonly destination: DownloadDestinationSettings,
 	) {}
 	private readonly failures = new Map<
