@@ -116,14 +116,14 @@ test("folder navigation reuses completed checks in the same metadata and root sc
 		1,
 	);
 });
-test("unknown results are distinct from request failures and a changed scope triggers new checks", async () => {
+test("unknown results are distinct from request failures and retry triggers a new check", async () => {
 	vi.mocked(
 		mediacompatibilityApi.checkMediaCompatibility,
 	).mockResolvedValueOnce({
 		sourceVersion: "version",
 		direct: { status: "unknown", reason: "missing-evidence" },
 	} as CompatibilityResult);
-	const { result, rerender } = renderHook(
+	const { result } = renderHook(
 		({ scope }) => useDirectoryCompatibility(listing(["a"]), scope),
 		{ initialProps: { scope: "root-1" } },
 	);
@@ -132,11 +132,11 @@ test("unknown results are distinct from request failures and a changed scope tri
 	vi.mocked(
 		mediacompatibilityApi.inspectMediaCompatibility,
 	).mockRejectedValueOnce(new Error("Unavailable"));
-	rerender({ scope: "root-2" });
+	await act(async () => result.current.retry());
 	await waitFor(() =>
 		expect(result.current.get("a").error).toBeInstanceOf(Error),
 	);
-	expect(result.current.get("a").result).toBeNull();
+	expect(result.current.get("a").result?.direct.status).toBe("unknown");
 });
 
 test("temporary inspection unavailability receives bounded retry before completing", async () => {
@@ -184,4 +184,37 @@ test("leaving a folder cancels an inspection retry delay without starting anothe
 	expect(mediacompatibilityApi.inspectMediaCompatibility).toHaveBeenCalledTimes(
 		1,
 	);
+});
+
+test("reuses a persisted file-version result after Query eviction and bypasses it on manual recheck", async () => {
+	const { clearCompatibilityCache } = await import(
+		"../src/features/media/media-compatibility/cache.js"
+	);
+	await clearCompatibilityCache();
+	const data = listing(["cached-file"]);
+	const entry = data.children[0];
+	if (entry?.kind !== "file") throw new Error("Missing file");
+	entry.sourceVersion = "version";
+	const first = renderHook(() => useDirectoryCompatibility(data, "revision-1"));
+	await waitFor(() =>
+		expect(first.result.current.get("cached-file").loading).toBe(false),
+	);
+	first.unmount();
+	queryClient.removeQueries({ queryKey: ["compatibility"] });
+	const reopened = renderHook(() =>
+		useDirectoryCompatibility(data, "revision-2"),
+	);
+	await waitFor(() =>
+		expect(reopened.result.current.get("cached-file").loading).toBe(false),
+	);
+	expect(mediacompatibilityApi.inspectMediaCompatibility).toHaveBeenCalledTimes(
+		1,
+	);
+	await act(async () => reopened.result.current.retry());
+	await waitFor(() =>
+		expect(
+			mediacompatibilityApi.inspectMediaCompatibility,
+		).toHaveBeenCalledTimes(2),
+	);
+	await clearCompatibilityCache();
 });

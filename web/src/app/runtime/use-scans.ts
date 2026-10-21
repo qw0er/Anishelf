@@ -49,11 +49,6 @@ export function useScans(library: LibraryResponse | null) {
 		if (previous?.id === scan.id && previous.status === scan.status) return;
 		const id = `scan-result:${scan.id}`;
 		if (scan.status === "completed") {
-			void client.invalidateQueries({ queryKey: ["directory"] });
-			void client.invalidateQueries({ queryKey: ["history"] });
-			void client.invalidateQueries({ queryKey: ["catalog"] });
-			void client.invalidateQueries({ queryKey: animeLibraryQueryKey });
-			void client.invalidateQueries({ queryKey: ["identification"] });
 			const warningDetails = scan.warnings.messages
 				.map((message) => {
 					const key = getScanWarningTranslationKey(message);
@@ -93,7 +88,7 @@ export function useScans(library: LibraryResponse | null) {
 				id,
 			});
 		}
-	}, [library?.scan, t, client]);
+	}, [library?.scan, t]);
 	const scanSubmitting = scanMutation.isPending;
 	const scanPending = scanMutation.isPending;
 	function startScan() {

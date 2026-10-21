@@ -40,7 +40,7 @@ export class PlaybackApplication implements PlaybackApi {
 		private readonly options: {
 			sources: ResourceAccessApi;
 			completionObserver?: PlaybackCompletionObserver | undefined;
-			repository?: PlaybackStore;
+			repository: PlaybackStore;
 			logger: Logger;
 			now?: () => number;
 			policy?: DeepReadonly<PlaybackPolicy>;
@@ -48,7 +48,7 @@ export class PlaybackApplication implements PlaybackApi {
 	) {
 		this.policy = options.policy ?? playbackPolicy;
 		this.logger = options.logger.child({ module: "playback" });
-		if (options.repository && options.completionObserver)
+		if (options.completionObserver)
 			this.completionsWorker = new PlaybackCompletions(
 				options.repository,
 				options.completionObserver,
@@ -272,7 +272,7 @@ export class PlaybackApplication implements PlaybackApi {
 		return this.options.now?.() ?? Date.now();
 	}
 	private repository(): PlaybackStore {
-		if (this.closed || !this.options.repository)
+		if (this.closed)
 			throw new DomainError(
 				"PLAYBACK_UNAVAILABLE",
 				"Playback persistence is unavailable.",

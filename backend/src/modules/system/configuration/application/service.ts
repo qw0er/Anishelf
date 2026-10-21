@@ -12,52 +12,31 @@ import {
 import { loadDeploymentConfig } from "../infrastructure/deployment.js";
 import { PersistentConfiguration } from "../infrastructure/persistent.js";
 import { loadTranscodeProfiles } from "../infrastructure/transcode-profiles.js";
-import {
-	type ConfigurationPolicy,
-	configurationPolicy,
-	validateConfigurationPolicy,
-} from "../policy.js";
 import type { PreparationMode } from "../settings.js";
 
-export interface EffectiveConfiguration<
-	TPolicy extends ConfigurationPolicy = ConfigurationPolicy,
-> {
+export interface EffectiveConfiguration {
 	deployment: DeploymentConfig;
-	policy: TPolicy;
 	settings: PersistentSettings & {
 		defaultTranscodeProfileId: string;
 		preparationMode: PreparationMode;
 	};
 }
 /** The composition root owns one service; consumers receive immutable snapshots. */
-export class ConfigurationService<
-	TPolicy extends ConfigurationPolicy = ConfigurationPolicy,
-> {
-	private current: DeepReadonly<EffectiveConfiguration<TPolicy>>;
+export class ConfigurationService {
+	private current: DeepReadonly<EffectiveConfiguration>;
 	private pendingChange: Promise<void> = Promise.resolve();
 	private constructor(
 		readonly deployment: DeepReadonly<DeploymentConfig>,
 		private readonly persistent: PersistentConfiguration,
 		readonly environment: RuntimeEnvironment,
-		readonly policy: DeepReadonly<TPolicy>,
 		readonly transcodeProfiles: DeepReadonly<TranscodeProfile[]>,
 	) {
 		this.current = this.resolve();
 	}
-	static load(
-		env?: Readonly<Record<string, string | undefined>>,
-	): Promise<ConfigurationService>;
-	static load<TPolicy extends ConfigurationPolicy>(
-		env: Readonly<Record<string, string | undefined>>,
-		policy: DeepReadonly<TPolicy>,
-	): Promise<ConfigurationService<TPolicy>>;
 	static async load(
 		env: Readonly<Record<string, string | undefined>> = process.env,
-		policy: DeepReadonly<ConfigurationPolicy> = configurationPolicy,
 	): Promise<ConfigurationService> {
-		validateConfigurationPolicy(policy);
 		const deployment = freeze(await loadDeploymentConfig(env));
-		const ownedPolicy = freeze(structuredClone(policy));
 		const persistent = await PersistentConfiguration.load(
 			deployment.dataDir,
 			deployment.initialResourceRoots ?? deployment.initialResourceRoot,
@@ -67,14 +46,13 @@ export class ConfigurationService<
 			deployment,
 			persistent,
 			captureRuntimeEnvironment(env),
-			ownedPolicy,
 			await loadTranscodeProfiles(deployment.dataDir),
 		);
 	}
 	get settings(): Readonly<PersistentSettings> {
 		return this.persistent.settings;
 	}
-	get snapshot(): DeepReadonly<EffectiveConfiguration<TPolicy>> {
+	get snapshot(): DeepReadonly<EffectiveConfiguration> {
 		return this.current;
 	}
 	patchSettings(
@@ -142,10 +120,9 @@ export class ConfigurationService<
 		);
 		return result;
 	}
-	private resolve(): DeepReadonly<EffectiveConfiguration<TPolicy>> {
+	private resolve(): DeepReadonly<EffectiveConfiguration> {
 		return Object.freeze({
 			deployment: this.deployment,
-			policy: this.policy,
 			settings: freeze({
 				...this.settings,
 				preparationMode: this.settings.preparationMode ?? "compatible",

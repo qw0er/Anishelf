@@ -332,9 +332,9 @@ AniList is the viewing-state authority. This iteration selects account connectio
 | O08 | In-app completion and failure feedback | Implemented: scan result Toasts and preparation results in the floating task monitor | Current | Current |
 | O09 | Multiple users, permissions, public deployment support, and remote access | Optional | — | Unassigned |
 | O10 | Plugin extensions and public integration APIs | Optional | — | Unassigned |
-| O11 | Log rotation, retention, and reopening files without restarting the application | Implemented: size/time rotation, archive count retention, Unix SIGHUP reopening | Current | Current |
-| O12 | Automatic log-output fallback after destination failure | Implemented: per-output stderr fallback; stdout/file/both modes | Current | Current |
-| O13 | Asynchronous log output with bounded buffering and shutdown flushing | Partial: bounded asynchronous file queue and shutdown draining; stdout/stderr remain synchronous | Current (partial) | Unassigned |
+| O11 | Log rotation, retention, and reopening files without restarting the application | Implemented: dependency-managed size/time rotation and archive retention; custom reopening removed | Current | Current |
+| O12 | Automatic log-output fallback after destination failure | Simplified: stdout/file/both routing; output failures follow dependency defaults | Current | Current |
+| O13 | Asynchronous log output with bounded buffering and shutdown flushing | Simplified: dependency-owned buffering and file-stream shutdown; no custom queue guarantees | Current (partial) | Unassigned |
 | O14 | Interface localization and language preferences | Partial: English catalog, message keys and fallback implemented; additional locales and language selection remain unassigned | V2 (English foundation) | V2 (partial) |
 | O15 | Manage API-backed frontend state and caching with TanStack Query | Implemented | Current | Current |
 | O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access; built-in cache budget | V2 | V2 |
@@ -374,15 +374,18 @@ The Web interface emits in-app Toasts when library scans complete or fail, provi
 
 #### Logging Maintenance (O11–O13)
 
-- O11: Define rotation and retention policies using external deployment tooling or a suitable Pino transport. If rotation renames the active file, support reopening the configured path and a deployment trigger such as a Unix signal.
-- O12: Switch subsequent log records to a fallback destination after runtime output failure. Specify buffered-record loss, failure reporting, and whether/how the original destination is restored; cover errors handled internally by Pino as well as emitted stream errors.
-- O13: Introduce asynchronous Pino output when measured log volume or write latency affects application responsiveness. Bound buffered memory, define backpressure or overflow behavior, and flush pending records within a bounded shutdown period.
-- Acceptance: asynchronous output avoids synchronous destination writes on the application path, buffers remain bounded under a slow destination, and normal shutdown writes pending records; timeout or overflow reports any potential record loss.
-- Acceptance: rotation directs subsequent logs to the new file without restarting the application; destination failure triggers the defined fallback without replacing existing business-module loggers.
+The selected scope is stdout, file and simultaneous stdout/file output with Pino
+routing and `rotating-file-stream` rotation/retention. File modes default to
+`anishelf.log` in the platformdirs user log directory; `ANISHELF_LOG_PATH` is an
+optional absolute override. Levels, JSON context, timestamps and redaction remain.
+Dependencies own buffering, backpressure and output behavior. Shutdown ends the
+owned file stream within the existing application shutdown lifecycle.
 
-Current logging supports stdout, file and simultaneous stdout/file output. File modes default to `anishelf.log` in the platformdirs user log directory; `ANISHELF_LOG_PATH` is an optional absolute path override. File output rotates by size or hourly/daily interval and retains a configured archive count through `rotating-file-stream`. Unix SIGHUP reopens the file or retries a failed file destination without replacing business loggers. Each failed output falls back to stderr; healthy outputs continue. The uncertain in-flight failed record is not replayed, queued file records go to stderr, and stderr failure can lose records. Recovery is explicit for files and requires restart for stdout. Rotation, output failure, overflow and shutdown timeout diagnostics bypass the application logger.
-
-File output accepts up to 1 MiB of serialized queued/in-flight records; overflow goes to stderr. Normal shutdown allows two seconds to drain and close file output, then reports potential loss. O13 remains partial because stdout and stderr writes are synchronous. See [development logging](development.md#logging-choice) for lifecycle details and [deployment logging](../README.md#logging) for configuration.
+Custom reopening/SIGHUP handling, recovery, stderr record fallback, bounded queues
+and potential-loss accounting are removed. A file stream error reports a concise
+stderr diagnostic; restart after fixing the destination. These extra guarantees
+are outside the current requirements. See [development logging](development.md#logging-choice)
+and [deployment logging](../README.md#logging).
 
 ## 3. Rules for Future Features
 

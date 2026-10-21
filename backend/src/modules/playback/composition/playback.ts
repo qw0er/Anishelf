@@ -17,7 +17,7 @@ export function createPlaybackModule({
 }: {
 	configuration: SystemApi;
 	library: LibraryCapability;
-	database?: PlaybackPersistence | undefined;
+	database: PlaybackPersistence;
 	logger: Logger;
 	completionObserver?:
 		| import("../progress/domain/completion.js").PlaybackCompletionObserver
@@ -31,6 +31,6 @@ export function createPlaybackModule({
 		completionObserver,
 		sources: library.sources,
 		logger,
-		...(database ? { repository: database.playback } : {}),
+		repository: database.playback,
 	});
 }

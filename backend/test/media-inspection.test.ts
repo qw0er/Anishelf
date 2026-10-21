@@ -4,7 +4,6 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { type BuiltinPolicy, builtinPolicy } from "../src/app/policy.js";
-import { createSubtitleApplication } from "../src/modules/media/composition/subtitle-application.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import { MediaInspectionBusyError } from "../src/modules/media/media-inspection/public.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
@@ -17,7 +16,10 @@ import {
 } from "../src/platform/media/index.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
+import { MemoryInspectionStore } from "./support/inspection-store.js";
 import { createLibraryModule } from "./support/library.js";
+import { updateResourceSettings } from "./support/settings.js";
+import { createSubtitleApplication } from "./support/subtitles.js";
 
 const info: MediaInfo = {
 	format: "matroska",
@@ -57,6 +59,7 @@ beforeEach(async () => {
 		.map((entry) => entry.id);
 	probe = vi.fn<MediaTools["probe"]>().mockResolvedValue(info);
 	inspection = new MediaInspectionApplication({
+		repository: new MemoryInspectionStore(),
 		sources: library.sources,
 		tools: { probe },
 		policy,
@@ -150,7 +153,7 @@ test("rejects a root-epoch change while probing", async () => {
 		code: "PLAYBACK_CONFLICT",
 	});
 	await vi.waitFor(() => expect(probe).toHaveBeenCalledTimes(1));
-	await library.settings.updateResourceSettings({
+	await updateResourceSettings(library, {
 		resourceRoots: [`${root}/.`],
 	});
 	await library.waitForCompletion();
@@ -172,8 +175,7 @@ test("retries failed probes and releases the slot", async () => {
 	expect(probe).toHaveBeenCalledTimes(3);
 });
 
-test("bounds cached entries while retaining cached access when slots are occupied", async () => {
-	policy.maximumProbeCacheEntries = 1;
+test("retains persisted entries when probe slots are occupied", async () => {
 	await inspection.inspect(fileId());
 	const finish = deferredProbe();
 	const second = inspection.inspect(fileId(1));
@@ -182,7 +184,7 @@ test("bounds cached entries while retaining cached access when slots are occupie
 	finish();
 	await second;
 	await inspection.inspect(fileId());
-	expect(probe).toHaveBeenCalledTimes(3);
+	expect(probe).toHaveBeenCalledTimes(2);
 });
 
 test("shutdown aborts and awaits active probes and rejects new work", async () => {
@@ -285,4 +287,144 @@ test("serves version-bound chapters with access validation and shared cache", as
 	} finally {
 		await app.close();
 	}
+});
+
+test("reuses SQLite inspections after reopen, replaces changed versions and prunes only confirmed deletions", async () => {
+	const { ApplicationDatabase } = await import(
+		"../src/app/bootstrap/database.js"
+	);
+	const directory = join(root, "database");
+	let database = ApplicationDatabase.open(directory);
+	await inspection.close();
+	const create = (cacheVersion = "probe:test") =>
+		new MediaInspectionApplication({
+			sources: library.sources,
+			tools: { probe },
+			repository: database.inspections,
+			cacheVersion,
+		});
+	inspection = create();
+	const first = await inspection.inspect(fileId());
+	await inspection.close();
+	database.close();
+	database = ApplicationDatabase.open(directory);
+	try {
+		inspection = create();
+		await inspection.inspect(fileId());
+		expect(probe).toHaveBeenCalledTimes(1);
+		await inspection.close();
+		inspection = create("probe:updated");
+		await inspection.inspect(fileId());
+		expect(probe).toHaveBeenCalledTimes(2);
+		const record = database.inspections.find(
+			first.source.identity.scopeId,
+			fileId(),
+		);
+		expect(record?.formatVersion).toBe("probe:updated");
+		await writeFile(
+			join(root, first.source.identity.relativePath),
+			"replacement with new dimensions",
+		);
+		const replacement = await inspection.inspect(fileId());
+		expect(probe).toHaveBeenCalledTimes(3);
+		expect(
+			database.inspections.find(first.source.identity.scopeId, fileId())
+				?.sourceVersion,
+		).toBe(replacement.source.identity.sourceVersion);
+		await rm(join(root, first.source.identity.relativePath));
+		await library.startScan();
+		await library.waitForCompletion();
+		const status = await library.getStatus();
+		await inspection.reconcile({
+			getStatus: async () => ({ ...status, stale: true }),
+			readFilePage: library.readFilePage.bind(library),
+		});
+		expect(
+			database.inspections.find(first.source.identity.scopeId, fileId()),
+		).not.toBeNull();
+		await inspection.reconcile(library);
+		expect(
+			database.inspections.find(first.source.identity.scopeId, fileId()),
+		).toBeNull();
+		database.inspections.save({
+			scopeId: "offline-root",
+			fileId: "offline",
+			sourceVersion: "v",
+			formatVersion: "probe:test",
+			info,
+		});
+		database.inspections.save({
+			scopeId: "removed-root",
+			fileId: "removed",
+			sourceVersion: "v",
+			formatVersion: "probe:test",
+			info,
+		});
+		expect(
+			database.inspections.reconcile([], new Map(), ["offline-root"]),
+		).toBe(1);
+		expect(database.inspections.find("offline-root", "offline")).not.toBeNull();
+	} finally {
+		await inspection.close();
+		database.close();
+	}
+});
+
+test("cache storage errors do not discard a successful probe", async () => {
+	await inspection.close();
+	const repository = new MemoryInspectionStore();
+	vi.spyOn(repository, "find").mockImplementation(() => {
+		throw new Error("Read failed");
+	});
+	vi.spyOn(repository, "save").mockImplementation(() => {
+		throw new Error("Disk full");
+	});
+	inspection = new MediaInspectionApplication({
+		sources: library.sources,
+		tools: { probe },
+		repository,
+	});
+	expect((await inspection.inspect(fileId())).info).toEqual(info);
+	expect(probe).toHaveBeenCalledTimes(1);
+});
+
+test("startup without a published library cannot establish cache deletion", async () => {
+	const sources = library.sources;
+	const repository = new MemoryInspectionStore();
+	const first = await inspection.inspect(fileId());
+	repository.save({
+		scopeId: first.source.identity.scopeId,
+		fileId: fileId(),
+		sourceVersion: first.source.identity.sourceVersion,
+		formatVersion: "probe:1",
+		info,
+	});
+	const unscanned = createLibraryModule({
+		index: new LibraryIndex(),
+		configuration: settingsStore(root),
+		logger: pino({ enabled: false }),
+	});
+	await inspection.close();
+	inspection = new MediaInspectionApplication({
+		sources: unscanned.sources,
+		tools: { probe },
+		repository,
+	});
+	try {
+		await inspection.reconcile(unscanned);
+		expect(
+			repository.find(first.source.identity.scopeId, fileId()),
+		).not.toBeNull();
+		await unscanned.startScan();
+		await unscanned.waitForCompletion();
+		await inspection.reconcile(unscanned);
+		expect(
+			repository.find(first.source.identity.scopeId, fileId()),
+		).not.toBeNull();
+		expect((await inspection.inspect(fileId())).info).toEqual(info);
+		expect(probe).toHaveBeenCalledTimes(1);
+	} finally {
+		await unscanned.close();
+	}
+	expect(sources.hasSnapshot).toBe(true);
 });

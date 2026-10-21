@@ -70,7 +70,6 @@ export interface AniListPage<T> {
 	hasNextPage: boolean;
 }
 export interface AniListResult<T> {
-	raw: unknown;
 	data: T;
 }
 type AniListViewingStatus =

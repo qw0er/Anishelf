@@ -22,7 +22,9 @@ import { ResourceAccess } from "../src/modules/resources/resource-access/infrast
 import { ConfigurationService } from "../src/modules/system/configuration/application/service.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { createHttpApp } from "./support/http.js";
+import { MemoryInspectionStore } from "./support/inspection-store.js";
 import { createLibraryModule } from "./support/library.js";
+import { updateResourceSettings } from "./support/settings.js";
 
 const cleanup: (() => Promise<unknown>)[] = [];
 afterEach(async () => {
@@ -101,6 +103,7 @@ test("same-named files and sidecars are isolated across roots, including media t
 	);
 	const probe = vi.fn().mockResolvedValue(info);
 	const inspection = new MediaInspectionApplication({
+		repository: new MemoryInspectionStore(),
 		sources: f.library.sources,
 		tools: { probe },
 	});
@@ -158,12 +161,12 @@ test("reordering, removing and restoring roots preserves identity and playback h
 		positionMs: 20000,
 		durationMs: 60000,
 	});
-	await f.library.updateResourceSettings({
+	await updateResourceSettings(f.library, {
 		resourceRoots: [...f.roots].reverse(),
 	});
 	await f.library.waitForCompletion();
 	expect((await f.playback.history()).items[0]?.file.id).toBe(file.id);
-	await f.library.updateResourceSettings({
+	await updateResourceSettings(f.library, {
 		resourceRoots: [f.roots[1] as string],
 	});
 	await f.library.waitForCompletion();
@@ -178,7 +181,7 @@ test("reordering, removing and restoring roots preserves identity and playback h
 			},
 		}),
 	).rejects.toMatchObject({ code: "RESOURCE_NOT_FOUND" });
-	await f.library.updateResourceSettings({ resourceRoots: f.roots });
+	await updateResourceSettings(f.library, { resourceRoots: f.roots });
 	await f.library.waitForCompletion();
 	expect((await f.playback.open(file.id)).progress.positionMs).toBe(20000);
 	expect(
@@ -266,7 +269,7 @@ test("settings reject duplicate, nested, aliased and data-overlapping roots with
 	const snapshot = f.configuration.settings;
 	snapshot.resourceRoots.push("/caller-owned");
 	expect(f.configuration.settings.resourceRoots).toEqual(f.roots);
-	await f.library.updateResourceSettings({ resourceRoots: [] });
+	await updateResourceSettings(f.library, { resourceRoots: [] });
 	expect(
 		f.index.readFilePage.bind(f.index, f.index.revision, 0, 100),
 	).toThrow();
@@ -347,7 +350,7 @@ test("adding a path retains unchanged offline-root entries while invalidating ol
 	await rename(f.roots[0] as string, `${f.roots[0]}-offline`);
 	const third = join(f.base, "disk-c");
 	await mkdir(third);
-	await f.library.updateResourceSettings({
+	await updateResourceSettings(f.library, {
 		resourceRoots: [...f.roots, third],
 	});
 	await f.library.waitForCompletion();
@@ -366,7 +369,7 @@ test("retargeting a configured root alias during access cannot cross source scop
 	const f = await fixture();
 	const alias = join(f.base, "selected-media");
 	await symlink(f.roots[0] as string, alias);
-	await f.library.updateResourceSettings({ resourceRoots: [alias] });
+	await updateResourceSettings(f.library, { resourceRoots: [alias] });
 	await f.library.waitForCompletion();
 	const open = ResourceAccess.create;
 	vi.spyOn(ResourceAccess, "create").mockImplementationOnce(async (...args) => {

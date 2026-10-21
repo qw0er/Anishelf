@@ -18,29 +18,6 @@ export class AcquisitionIngestion {
 		private readonly catalog: AnimeCatalogApi,
 		private readonly sources: ResourceAccessApi,
 	) {}
-	async available(key: string, episode: number, identity: SourceIdentity) {
-		const resolved = await this.sources.resolveSource(
-			identity.fileId,
-			identity.sourceVersion,
-		);
-		if (
-			resolved.identity.scopeId !== identity.scopeId ||
-			resolved.identity.relativePath !== identity.relativePath
-		)
-			return false;
-		const source = await this.catalog.source(identity.fileId);
-		return (
-			source.sourceVersion === identity.sourceVersion &&
-			source.associations.length > 0 &&
-			source.associations.every(
-				(item) =>
-					item.reference &&
-					workKey(item.reference) === key &&
-					item.kind === "regular" &&
-					item.number === String(episode),
-			)
-		);
-	}
 	async ingest(
 		key: string,
 		episode: number,

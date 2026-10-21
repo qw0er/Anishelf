@@ -18,7 +18,7 @@ import { ResourceRoots } from "../resource-access/application/roots.js";
 
 /** Constructs collaborators; source access and library synchronization share one directory owner. */
 export function createLibraryModule(options: {
-	configuration: SettingsStore;
+	configuration: Pick<SettingsStore, "settings">;
 	index: LibraryIndex;
 	logger: Logger;
 	policy?: DeepReadonly<LibraryRuntimePolicy>;

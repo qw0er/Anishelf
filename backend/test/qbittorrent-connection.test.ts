@@ -42,27 +42,36 @@ const probeResult = {
 async function fixture() {
 	const dataDir = await mkdtemp(join(tmpdir(), "anishelf-qbt-connection-"));
 	cleanup.push(() => rm(dataDir, { recursive: true, force: true }));
+	const database = ApplicationDatabase.open(dataDir);
+	cleanup.push(async () => database.close());
 	const logs: string[] = [];
 	const logger = pino({ level: "trace" }, { write: (line) => logs.push(line) });
 	const calls: QbittorrentOptions[] = [];
+	const closes: ReturnType<typeof vi.spyOn>[] = [];
 	const probe = vi.fn(async () => probeResult);
 	const createClient = (options: QbittorrentOptions) => {
 		calls.push(options);
 		const client = createQbittorrentClient(options);
 		vi.spyOn(client, "probe").mockImplementation(probe);
+		closes.push(vi.spyOn(client, "close"));
 		return client;
 	};
 	const module = await createAcquisitionModule({
 		dataDir,
+		store: database.acquisition,
+		downloadStore: database.acquisitionDownloads,
+		autoStart: false,
 		logger,
 		createClient,
 	});
 	cleanup.push(() => module.close());
 	return {
+		database,
 		dataDir,
 		logger,
 		logs,
 		calls,
+		closes,
 		probe,
 		module,
 		createClient,
@@ -92,6 +101,9 @@ test("manual credentials persist privately across restart and never appear in pu
 	);
 	const reopened = await createAcquisitionModule({
 		dataDir: f.dataDir,
+		store: f.database.acquisition,
+		downloadStore: f.database.acquisitionDownloads,
+		autoStart: false,
 		logger: f.logger,
 		createClient: f.createClient,
 	});
@@ -207,6 +219,9 @@ test("invalid private configuration does not prevent local startup and can be re
 	await writeFile(f.file, "malformed-private-qbt-password");
 	const reopened = await createAcquisitionModule({
 		dataDir: f.dataDir,
+		store: f.database.acquisition,
+		downloadStore: f.database.acquisitionDownloads,
+		autoStart: false,
 		logger: f.logger,
 	});
 	cleanup.push(() => reopened.close());
@@ -337,6 +352,9 @@ test("deployment API hint never configures an account and saved accounts overrid
 	const f = await fixture();
 	const suggested = await createAcquisitionModule({
 		dataDir: f.dataDir,
+		store: f.database.acquisition,
+		downloadStore: f.database.acquisitionDownloads,
+		autoStart: false,
 		logger: f.logger,
 		createClient: f.createClient,
 		suggestedApiUrl: "http://qbittorrent:8080",
@@ -358,6 +376,9 @@ test("deployment API hint never configures an account and saved accounts overrid
 	});
 	const restarted = await createAcquisitionModule({
 		dataDir: f.dataDir,
+		store: f.database.acquisition,
+		downloadStore: f.database.acquisitionDownloads,
+		autoStart: false,
 		logger: f.logger,
 		createClient: f.createClient,
 		suggestedApiUrl: "http://another:8080",
@@ -372,4 +393,29 @@ test("deployment API hint never configures an account and saved accounts overrid
 	});
 	expect(f.calls).toHaveLength(0);
 	expect(f.logs.join("")).not.toContain("another:8080");
+});
+
+test("reuses one authenticated client per configuration generation and closes it on replacement", async () => {
+	const f = await fixture();
+	const first = await f.connection.save({
+		...details,
+		generation: f.connection.settings().generation,
+	});
+	await f.connection.probe(first.generation);
+	await f.connection.probe(first.generation);
+	expect(f.calls).toHaveLength(1);
+	expect(f.closes[0]).not.toHaveBeenCalled();
+	const next = await f.connection.save({
+		...details,
+		password: "replacement",
+		generation: first.generation,
+	});
+	expect(f.closes[0]).toHaveBeenCalledTimes(1);
+	await f.connection.probe(next.generation);
+	expect(f.calls).toHaveLength(2);
+	await expect(f.connection.probe(first.generation)).rejects.toMatchObject({
+		code: "ACQUISITION_CONFLICT",
+	});
+	await f.module.close();
+	expect(f.closes[1]).toHaveBeenCalledTimes(1);
 });

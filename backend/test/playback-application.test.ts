@@ -11,6 +11,7 @@ import { LibraryIndex } from "../src/modules/resources/library/infrastructure/in
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
 import type { PersistentSettings } from "../src/modules/system/configuration/domain/model.js";
 import { createLibraryModule } from "./support/library.js";
+import { updateResourceSettings } from "./support/settings.js";
 
 let directory: string;
 let root: string;
@@ -118,7 +119,7 @@ test("invalidates sessions across root switches and reports unknown availability
 	await playback.save(update(session));
 	const other = join(directory, "other");
 	await mkdir(other);
-	await library.updateResourceSettings({ resourceRoots: [other] });
+	await updateResourceSettings(library, { resourceRoots: [other] });
 	await library.waitForCompletion();
 	const create = ResourceAccess.create;
 	let release = () => {};
@@ -131,7 +132,7 @@ test("invalidates sessions across root switches and reports unknown availability
 			return create(settings);
 		},
 	);
-	await library.updateResourceSettings({ resourceRoots: [root] });
+	await updateResourceSettings(library, { resourceRoots: [root] });
 	try {
 		expect(await playback.history(undefined, "continue")).toEqual({
 			availability: "unknown",
@@ -170,18 +171,11 @@ test("failed history reads never open a generation; invalid times and persistenc
 	expect(database.playback.get(session.progress.sourceId)?.positionMs).toBe(0);
 });
 
-test("expires idle sessions and handles unavailable persistence", async () => {
+test("expires idle sessions", async () => {
 	const session = await playback.open(fileId);
 	now += 30 * 60 * 1000;
 	await expect(playback.save(update(session))).rejects.toMatchObject({
 		code: "PLAYBACK_CONFLICT",
-	});
-	const unavailable = new PlaybackApplication({
-		sources: library.sources,
-		logger,
-	});
-	await expect(unavailable.open(fileId)).rejects.toMatchObject({
-		code: "PLAYBACK_UNAVAILABLE",
 	});
 });
 

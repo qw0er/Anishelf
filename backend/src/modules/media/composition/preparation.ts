@@ -23,7 +23,7 @@ export function createPreparationModule({
 }: {
 	configuration: SystemApi;
 	library: LibraryCapability;
-	database?: MediaPersistence | undefined;
+	database: MediaPersistence;
 	planning: ReturnType<typeof createMediaExecutionModule>["planning"];
 	processing: ReturnType<typeof createMediaExecutionModule>["processing"];
 	logger: Logger;
@@ -43,7 +43,7 @@ export function createPreparationModule({
 			(configuration.settings.transcodeCacheBudgetGiB ??
 				preparationConstraints.defaultCacheBudgetGiB) *
 			1024 ** 3,
-		...(database ? { repository: database.preparation } : {}),
+		repository: database.preparation,
 	});
 }
 

@@ -85,10 +85,7 @@ async function main(): Promise<void> {
 	let app: HttpApp | undefined;
 	try {
 		validatePolicy(builtinPolicy);
-		const { api: configuration } = await createSystemModule(
-			process.env,
-			builtinPolicy,
-		);
+		const { api: configuration } = await createSystemModule(process.env);
 		const config = configuration.deployment;
 		logging = ApplicationLogging.create(config.logging);
 		const logger = logging.logger;

@@ -9,5 +9,6 @@ export function fileDto(file: FileInfo): FileDto {
 		sizeBytes: file.sizeBytes,
 		modifiedAt: file.modifiedAt,
 		mimeType: file.mimeType,
+		...(file.sourceVersion ? { sourceVersion: file.sourceVersion } : {}),
 	};
 }

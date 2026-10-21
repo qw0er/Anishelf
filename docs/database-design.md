@@ -1,10 +1,14 @@
-# Relational Persistence
+# Persistence
 
-SQLite and Drizzle remain the persistence mechanisms. The single initialization
-migration `0000_relational_schema` creates 78 business tables: the 32 audited
-record tables and 46 ordered collection tables. Drizzle's journal is infrastructure.
-SQLite `user_version = 1` identifies the current database format. Historical table
-migrations, JSON backfill, identity conversion and old credential readers are removed.
+SQLite and Drizzle remain the persistence mechanisms. The initial migration
+`0000_relational_schema` creates the original 78 business tables.
+`0001_snapshot_payloads` replaces thirteen metadata collection tables and detail
+columns with a JSON projection and adds durable media inspections. The current
+schema has 66 business tables; Drizzle's journal is infrastructure.
+SQLite `user_version = 1` identifies this supported database family.
+
+Persistence is required by Anime, Media, Playback and Acquisition assembly. A database startup
+failure blocks startup; module combinations without persistence are not supported.
 
 ## Record Ownership
 
@@ -23,8 +27,9 @@ migrations, JSON backfill, identity conversion and old credential readers are re
 | `catalog_associations` | Explicit primary key, unique source/episode association, foreign keys and ordered original episode tokens |
 | `catalog_reviews` | Source foreign key, decision/revision, scalar identification evidence, ordered extraction inputs/elements, titles, proposals, mapping targets and explanations |
 | `catalog_operations` | Command identity/fingerprint, confirmed work/revision and ordered review receipts |
-| `metadata_snapshots` | Snapshot/cache identity, kind, freshness/failure columns, typed detail attributes and ordered search/relation/airing projections and metadata collections |
+| `metadata_snapshots` | Snapshot/cache identity, kind, indexed freshness/failure columns and one JSON `data` projection for search/detail/relation/airing payloads |
 | `metadata_pins` | Composite snapshot/owner primary key and cascading snapshot foreign key |
+| `media_inspections` | One JSON FFprobe result per scope/file, source version and inspection/FFprobe format version |
 | `metadata_artwork` | Existing scalar asset attributes, nonnegative size and LRU index |
 | `tracking_operations` | Account/media identity, revision, origin, delivery/retry state, baseline, desired fields, attempted payload, target and remote-state columns |
 | `tracking_connection` | One constrained row, valid connection states, paired account fields and required connected credentials |
@@ -48,8 +53,11 @@ and unique parent/position indexes. Replacement and reconstruction preserve orde
 duplicates where meaningful, nullable values and absent optional fields. Presence
 flags distinguish absent objects and optional nullable attributes. Repository
 mappers expose domain objects; database record types remain inside infrastructure.
-There is no generic property/value store, serialized payload replacement or
-runtime business query using SQLite JSON functions. Composite cache keys and
+Metadata projections and FFprobe results are immutable documents that the
+application reads as a whole. They use JSON rather than child-table mappers; their
+identity, retention and invalidation fields stay relational. Mutable commands,
+state transitions and queried relationships retain explicit columns and constraints.
+There is no runtime business query using SQLite JSON functions. Composite cache keys and
 command fingerprints are stored as digests, not serialized request tuples.
 
 ## Preserved Semantics
@@ -79,19 +87,18 @@ payloads, rather than moving them into a differently named text/blob column.
 
 ## Initialization and Failure Handling
 
-An empty database is initialized with the current schema in a transaction. On
-subsequent startup its format marker must match before migrations or WAL settings
-are applied. A nonempty database with an unsupported marker is rejected without
-modifying its tables or records. It is not automatically upgraded, deleted or
-recreated. Foreign-key enforcement remains enabled during initialization and normal
-operation. Startup checks referential integrity after initialization.
+An empty database applies committed migrations transactionally. Existing format-1
+installations apply `0001_snapshot_payloads` once. This upgrade reconstructs ordered
+metadata payloads, preserves snapshot IDs, failure metadata, pins and Catalog
+foreign keys, then removes obsolete metadata tables. Foreign-key enforcement is
+suspended only around migration table rebuilding and restored before integrity
+checking and repository construction. Normal operation enforces foreign keys.
 
-`database.ready` logs the supported schema version. `database.unavailable` reports
-failure without logging private record payloads. To use this version with a previous
-installation, preserve a backup and provide a new data directory/database explicitly.
-No production data directory is reset by this change. Follow
-[Database Migrations and Backups](development.md#database-migrations-and-backups)
-when copying a stopped installation; older executables require their matching backup.
+Unsupported format markers are rejected before migrations or WAL configuration;
+existing records are preserved. `database.ready` logs readiness and
+`database.unavailable` reports a startup-blocking failure without private payloads.
+Back up a stopped installation before upgrading. Older executables require their
+matching database backup. See [Database Migrations and Backups](development.md#database-migrations-and-backups).
 
 ## Verification
 
@@ -99,9 +106,11 @@ when copying a stopped installation; older executables require their matching ba
 reopens the database to verify ordered collections, optional/null semantics,
 metadata, recognition, task specifications, observations and sessions. It compares
 every declared table's columns with the initialized database and checks primary keys,
-foreign keys and the absence of Drizzle JSON columns. Additional fixtures reject
+foreign keys and the two deliberate JSON document tables. Additional fixtures reject
 invalid state/singleton/version/size values and verify that unsupported-format
-rejection preserves existing data. Historical upgrade fixtures are removed.
+rejection preserves existing data. `metadata-migration.test.ts` starts from the previous schema and verifies ordered
+payloads, booleans, nulls, provider identities, snapshot pins, references and repeated
+startup. Inspection tests verify restart reuse, version invalidation and cleanup.
 
 These are local schema and application regressions. They do not establish
 production-data acceptance or a database load benchmark.

@@ -6,6 +6,7 @@ export interface FileInfo {
 	sizeBytes: number;
 	modifiedAt: string;
 	mimeType: string;
+	sourceVersion?: string;
 }
 
 /** Identifies one file version within an opaque Resources scope. Backend only. */

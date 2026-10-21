@@ -27,24 +27,6 @@ export class DownloadReconciliation {
 		)
 			return;
 		try {
-			if (item.state === "available") {
-				if (
-					item.sourceIdentity &&
-					(await this.context.options.ingestion.available(
-						item.workKey,
-						item.episode,
-						item.sourceIdentity,
-					))
-				)
-					return;
-				execution.save({
-					...item,
-					state: "bound",
-					ingestion: "review",
-					error: "association_changed",
-				});
-				return;
-			}
 			if (
 				item.destination.connectionGeneration !==
 				this.context.options.connectionGeneration()

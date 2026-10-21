@@ -48,7 +48,7 @@ test("missing settings use current defaults without generating a policy or setti
 	await expect(readFile(join(dataDir, "settings.json"))).rejects.toMatchObject({
 		code: "ENOENT",
 	});
-	expect(Object.isFrozen(service.snapshot.policy.subtitles.formats)).toBe(true);
+	expect(Object.isFrozen(service.snapshot.settings.resourceRoots)).toBe(true);
 	expect(() => {
 		(service.snapshot.settings as { preparationMode: string }).preparationMode =
 			"fast";
@@ -170,9 +170,9 @@ test("old settings adopt updated defaults; explicit choices persist and snapshot
 	const service = await ConfigurationService.load(environment(), policy);
 	const previous = service.snapshot;
 	policy.library.changeDebounceMs = 9900;
-	expect(service.snapshot.policy.library.changeDebounceMs).toBe(700);
+	expect(Object.isFrozen(service.snapshot.settings)).toBe(true);
 	await service.update({ resourceRoots: [root] });
-	expect(previous.policy.library.changeDebounceMs).toBe(700);
+	expect(previous.settings.resourceRoots).toEqual([root]);
 	expect(service.snapshot.settings).not.toHaveProperty("scanIntervalMinutes");
 	expect(
 		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),
@@ -232,13 +232,13 @@ test("removed client configuration endpoint returns 404 and settings enforce inj
 	const configuration = await ConfigurationService.load(environment(), policy);
 	const library = createLibraryModule({
 		configuration,
-		policy: configuration.policy,
+		policy,
 		index: new LibraryIndex(),
 		logger,
 	});
 	const app = createHttpApp({
 		config: configuration.deployment,
-		policy: configuration.policy,
+		policy,
 		logger,
 		library,
 	});

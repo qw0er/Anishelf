@@ -24,6 +24,7 @@ function fileInfo(entry: FileInfo): FileInfo {
 		sizeBytes: entry.sizeBytes,
 		modifiedAt: entry.modifiedAt,
 		mimeType: entry.mimeType,
+		...(entry.sourceVersion ? { sourceVersion: entry.sourceVersion } : {}),
 	};
 }
 /** Owns resource membership, source validity and access invalidation. */
@@ -82,7 +83,9 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 		const entry = this.options.catalog.getFile(id);
 		const settings = this.getSettings();
 		const resources = await this.openConfigured(settings, entry.scopeId);
-		const current = await resources.inspectVideoFile(entry.relativePath);
+		const current = await resources.inspectVideoFileWithVersion(
+			entry.relativePath,
+		);
 		return {
 			kind: "file",
 			id: entry.id,
@@ -91,6 +94,7 @@ export class ResourceAccessApplication implements ResourceAccessApi {
 			sizeBytes: current.sizeBytes,
 			modifiedAt: current.modifiedAt,
 			mimeType: current.mimeType,
+			sourceVersion: current.sourceVersion,
 		};
 	}
 

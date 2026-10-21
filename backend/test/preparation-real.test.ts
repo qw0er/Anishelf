@@ -32,6 +32,7 @@ import {
 } from "../src/platform/media/index.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
+import { MemoryInspectionStore } from "./support/inspection-store.js";
 import { createLibraryModule } from "./support/library.js";
 
 const run = promisify(execFile);
@@ -61,6 +62,7 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 		logger,
 	});
 	const inspection = new MediaInspectionApplication({
+		repository: new MemoryInspectionStore(),
 		sources: library.sources,
 		tools,
 	});

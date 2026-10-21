@@ -34,7 +34,6 @@ export class AutomaticIdentificationCoordinator {
 	private incremental = false;
 	private closed = false;
 	private cache = new Map<string, DirectoryResult>();
-	private results: IdentificationResult[] = [];
 	private retryTimer: ReturnType<typeof setTimeout> | undefined;
 	constructor(
 		private readonly options: {
@@ -271,7 +270,6 @@ export class AutomaticIdentificationCoordinator {
 				.filter(([, entry]) => entry.fingerprint === "")
 				.map(([id]) => id),
 		);
-		this.results = [...next.values()].flatMap((entry) => entry.results);
 		this.options.logger.info(
 			{
 				event: "identification.automatic_completed",
@@ -298,7 +296,9 @@ export class AutomaticIdentificationCoordinator {
 		};
 	}
 	getResults(): IdentificationResult[] {
-		return structuredClone(this.results);
+		return structuredClone(
+			[...this.cache.values()].flatMap((entry) => entry.results),
+		);
 	}
 	async waitForCompletion(): Promise<void> {
 		await this.active;
@@ -310,6 +310,5 @@ export class AutomaticIdentificationCoordinator {
 		this.controller?.abort();
 		await this.active;
 		this.cache.clear();
-		this.results = [];
 	}
 }

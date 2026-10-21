@@ -1,5 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { sourceCompatibilityQuery } from "../../features/media/public.js";
+import {
+	clearCapabilityCache,
+	removeCompatibility,
+	sourceCompatibilityQuery,
+} from "../../features/media/public.js";
 import { ApiClientError } from "../../shared/api/client.js";
 import type { PreparationSummaryResponse } from "../../shared/api/contracts.js";
 import type { queryGate } from "../../shared/lib/query-gate.js";
@@ -9,16 +13,14 @@ export function AnimeFileActions({
 	source,
 	summary,
 	summaryLoading,
-	scope,
 	gate,
 }: {
 	source: { fileId: string; sourceVersion: string };
 	summary: PreparationSummaryResponse["files"][number] | undefined;
 	summaryLoading: boolean;
-	scope: string;
 	gate: ReturnType<typeof queryGate>;
 }) {
-	const compatibility = useQuery(sourceCompatibilityQuery(source, scope, gate));
+	const compatibility = useQuery(sourceCompatibilityQuery(source, gate));
 	const changed =
 		compatibility.error instanceof ApiClientError &&
 		compatibility.error.status === 409;
@@ -31,7 +33,9 @@ export function AnimeFileActions({
 			result={compatibility.data ?? null}
 			error={compatibility.error}
 			disabled={changed}
-			onRecheck={() => {
+			onRecheck={async () => {
+				clearCapabilityCache();
+				await removeCompatibility(source.fileId);
 				void compatibility.refetch();
 			}}
 		/>

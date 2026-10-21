@@ -15,11 +15,9 @@ import { createHttpApp } from "./http.js";
 export async function createServer(
 	system: SystemApi,
 	logger: Logger,
-	database: ApplicationDatabase | undefined,
+	database: ApplicationDatabase,
 	tools: MediaTools,
 ) {
-	if (!database)
-		throw new Error("Authentication requires an available database.");
 	const authentication = await createAuthenticationModule({
 		logger,
 		dataDir: system.deployment.dataDir,

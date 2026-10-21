@@ -6,17 +6,10 @@ import { mediacompatibilityInteractionPolicy } from "./policy.js";
 /** Catalog supplies a confirmed source version instead of a directory's stat identity. */
 export function sourceCompatibilityQuery(
 	source: { fileId: string; sourceVersion: string },
-	scope: string,
 	gate: ReturnType<typeof queryGate>,
 ) {
 	return queryOptions({
-		queryKey: [
-			"compatibility",
-			"source",
-			scope,
-			source.fileId,
-			source.sourceVersion,
-		],
+		queryKey: ["compatibility", "source", source.fileId, source.sourceVersion],
 		staleTime: Infinity,
 		retry: false,
 		queryFn: ({ signal }) =>

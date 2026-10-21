@@ -31,7 +31,9 @@ import {
 import { runTool } from "../src/platform/media/process.js";
 import { settingsStore } from "./settings-store.js";
 import { createHttpApp } from "./support/http.js";
+import { MemoryInspectionStore } from "./support/inspection-store.js";
 import { createLibraryModule } from "./support/library.js";
+import { updateResourceSettings } from "./support/settings.js";
 
 let directory: string;
 let root: string;
@@ -91,6 +93,7 @@ const info: MediaInfo = {
 };
 function server() {
 	const inspection = new MediaInspectionApplication({
+		repository: new MemoryInspectionStore(),
 		sources: library.sources,
 		tools: { probe },
 		policy: policy.mediaInspection,
@@ -477,7 +480,7 @@ test("changing roots during extraction invalidates the old task", async () => {
 		const other = join(directory, "other");
 		await mkdir(other);
 		await writeFile(join(other, "episode.mkv"), "other video");
-		await library.updateResourceSettings({ resourceRoots: [other] });
+		await updateResourceSettings(library, { resourceRoots: [other] });
 		return { streamIndex: 2, format: "srt", text };
 	});
 	const response = await prepare();

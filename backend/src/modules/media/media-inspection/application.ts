@@ -9,6 +9,7 @@ import type {
 } from "../../resources/public.js";
 import { type MediaInspectionPolicy, mediaInspectionPolicy } from "./policy.js";
 import {
+	type InspectionStore,
 	MediaInspectionBusyError,
 	type MediaInspectionResult,
 	type MediaProbe,
@@ -17,7 +18,6 @@ import type { MediaInspectionApi } from "./public.js";
 
 /** Shared, on-demand inspection of validated and version-bound media sources. */
 export class MediaInspectionApplication implements MediaInspectionApi {
-	private readonly cache = new Map<string, MediaInfo>();
 	private readonly active = new Map<string, Promise<MediaInspectionResult>>();
 	private readonly controller = new AbortController();
 	private readonly logger: Logger | undefined;
@@ -27,6 +27,8 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 		private readonly options: {
 			sources: ResourceAccessApi;
 			tools: MediaProbe;
+			repository: InspectionStore;
+			cacheVersion?: string;
 			policy?: DeepReadonly<MediaInspectionPolicy>;
 			logger?: Logger;
 		},
@@ -43,10 +45,7 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 			);
 	}
 
-	private async probe(
-		source: ResolvedSource,
-		key: string,
-	): Promise<MediaInspectionResult> {
+	private async probe(source: ResolvedSource): Promise<MediaInspectionResult> {
 		this.options.sources.assertAccessRevision(source.accessRevision);
 		const info = await this.options.tools.probe(
 			await this.options.sources.filePath(source),
@@ -54,10 +53,22 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 		);
 		const current = await this.options.sources.revalidateSource(source);
 		this.assertOpen();
-		this.cache.set(key, info);
-		if (this.cache.size > this.policy.maximumProbeCacheEntries) {
-			const oldest = this.cache.keys().next().value;
-			if (oldest !== undefined) this.cache.delete(oldest);
+		try {
+			this.options.repository.save({
+				scopeId: current.identity.scopeId,
+				fileId: current.identity.fileId,
+				sourceVersion: current.identity.sourceVersion,
+				formatVersion: this.options.cacheVersion ?? "probe:1",
+				info,
+			});
+		} catch {
+			this.logger?.warn(
+				{
+					event: "media.inspection_cache_write_failed",
+					fileId: current.identity.fileId,
+				},
+				"Media inspection was not cached; playback can continue.",
+			);
 		}
 		return { source: current, info };
 	}
@@ -77,7 +88,20 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 			fileId,
 			source.identity.sourceVersion,
 		]);
-		let info = this.cache.get(key);
+		let cached: import("./ports.js").InspectionRecord | null = null;
+		try {
+			cached = this.options.repository.find(source.identity.scopeId, fileId);
+		} catch {
+			this.logger?.warn(
+				{ event: "media.inspection_cache_read_failed", fileId },
+				"Media inspection cache unavailable; probing the source.",
+			);
+		}
+		let info =
+			cached?.sourceVersion === source.identity.sourceVersion &&
+			cached.formatVersion === (this.options.cacheVersion ?? "probe:1")
+				? cached.info
+				: undefined;
 		if (info) {
 			this.logger?.trace(
 				{ event: "media.inspection_cache_hit", fileId },
@@ -96,7 +120,7 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 				pending = Promise.resolve()
 					.then(() => {
 						this.assertOpen();
-						return this.probe(source, key);
+						return this.probe(source);
 					})
 					.finally(() => this.active.delete(key));
 				this.active.set(key, pending);
@@ -136,9 +160,46 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 		}
 	}
 
+	async reconcile(
+		library: Pick<
+			import("../../resources/public.js").LibraryApi,
+			"getStatus" | "readFilePage"
+		>,
+	): Promise<void> {
+		const status = await library.getStatus();
+		if (
+			!this.options.sources.hasSnapshot ||
+			!status.ready ||
+			status.stale ||
+			status.monitor?.status === "degraded" ||
+			(status.scan?.warnings.count ?? 0) > 0
+		)
+			return;
+		const files = new Map<string, string>();
+		let offset: number | null = 0;
+		while (offset !== null) {
+			const page = library.readFilePage(status.revision, offset, 500);
+			for (const file of page.files)
+				if (file.sourceVersion) files.set(file.id, file.sourceVersion);
+			offset = page.nextOffset;
+		}
+		this.assertOpen();
+		const scopes =
+			status.roots?.filter((root) => root.available).map((root) => root.id) ??
+			[];
+		const removed = this.options.repository.reconcile(
+			scopes,
+			files,
+			status.roots?.map((root) => root.id) ?? [],
+		);
+		if (removed)
+			this.logger?.debug(
+				{ event: "media.inspection_cache_pruned", removed },
+				"Deleted or replaced resource inspection cache entries removed.",
+			);
+	}
 	async close(): Promise<void> {
 		this.controller.abort();
 		await Promise.allSettled(this.active.values());
-		this.cache.clear();
 	}
 }

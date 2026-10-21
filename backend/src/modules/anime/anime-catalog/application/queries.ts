@@ -64,11 +64,12 @@ export class CatalogQueries {
 			if (episode.kind === "regular")
 				availableRegularEpisodes += Number(usable);
 		}
+		const snapshot = this.snapshot(work.id);
 		return {
 			...work,
 			displayTitle: work.providerTitle,
-			hasCover: this.hasArtwork(work.id, "cover"),
-			metadataStale: this.snapshot(work.id).stale,
+			hasCover: Boolean(snapshot.data.coverUrl),
+			metadataStale: snapshot.stale,
 			reference: link.reference,
 			availableEpisodes,
 			availableRegularEpisodes,
@@ -164,12 +165,6 @@ export class CatalogQueries {
 		const { kind: _, ...metadata } = value;
 		return metadata;
 	}
-	private hasArtwork(id: string, kind: "cover" | "banner"): boolean {
-		const snapshot = this.snapshot(id);
-		return Boolean(
-			kind === "cover" ? snapshot.data.coverUrl : snapshot.data.bannerUrl,
-		);
-	}
 	async artwork(id: string, kind: "cover" | "banner") {
 		const scope = await this.context.scope();
 		this.context.requireWork(id, scope.ids);
@@ -239,12 +234,13 @@ export class CatalogQueries {
 		if (!link) throw new Error("Catalog work is missing its provider link.");
 		if (this.context.options.store.work(id)?.revision !== work.revision)
 			conflict("The work changed while loading its detail. Reload it.");
+		const snapshot = this.snapshot(id);
 		return {
 			work: {
 				...work,
 				displayTitle: work.providerTitle,
-				hasCover: this.hasArtwork(id, "cover"),
-				metadataStale: this.snapshot(id).stale,
+				hasCover: Boolean(snapshot.data.coverUrl),
+				metadataStale: snapshot.stale,
 				reference: link.reference,
 				availableEpisodes: episodes.filter(
 					(episode) => episode.availability === "available",
@@ -254,8 +250,8 @@ export class CatalogQueries {
 						episode.kind === "regular" && episode.availability === "available",
 				).length,
 			},
-			metadata: this.snapshot(id),
-			hasBanner: this.hasArtwork(id, "banner"),
+			metadata: snapshot,
+			hasBanner: Boolean(snapshot.data.bannerUrl),
 			episodes,
 			episodeCountProvenance:
 				work.episodeCount === null ? "unknown" : "provider-count",

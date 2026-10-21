@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { inspectMediaCompatibility } from "../src/features/media/media-compatibility/public.js";
-import { createMediaAccessLink } from "../src/features/playback/player/api.js";
 import {
+	createMediaAccessLink,
 	openPlaybackSession,
 	releasePlaybackSession,
 	savePlaybackProgress,
-} from "../src/features/playback/player/public.js";
+} from "../src/features/playback/player/api.js";
 import {
 	getDirectory,
 	getLibrary,

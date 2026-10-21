@@ -48,7 +48,7 @@ export interface MediaModulePolicy {
 export async function createMediaModule(options: {
 	system: SystemApi;
 	resources: ResourcesApi;
-	database?: MediaPersistence | undefined;
+	database: MediaPersistence;
 	tools: MediaTools;
 	logger: Logger;
 	policy?: import("../../shared/policy.js").DeepReadonly<MediaModulePolicy>;
@@ -63,9 +63,24 @@ export async function createMediaModule(options: {
 	const inspection = new MediaInspectionApplication({
 		sources: library.sources,
 		tools,
+		repository: database.inspections,
+		cacheVersion: `probe:1:${tools.status.ffprobe.available ? tools.status.ffprobe.version : "unavailable"}`,
 		logger,
 		policy: options.policy?.mediaInspection ?? mediaInspectionPolicy,
 	});
+	const reconcileInspections = () =>
+		void inspection.reconcile(library).catch((error) =>
+			logger.debug(
+				{
+					event: "media.inspection_cache_reconcile_deferred",
+					errorName: error instanceof Error ? error.name : "unknown",
+				},
+				"Inspection cache cleanup deferred until the next resource publication.",
+			),
+		);
+	const unsubscribeInspections =
+		library.onSnapshotChanged(reconcileInspections);
+	reconcileInspections();
 	const execution = createMediaExecutionModule({
 		configuration,
 		sources: library.sources,
@@ -129,6 +144,7 @@ export async function createMediaModule(options: {
 		quiesce,
 		close: () =>
 			(closed ??= (async () => {
+				unsubscribeInspections();
 				await quiesce();
 				await subtitles.close();
 				await execution.close();

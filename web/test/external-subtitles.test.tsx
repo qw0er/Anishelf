@@ -4,7 +4,7 @@ import { TextTrack } from "@vidstack/react";
 import { StrictMode } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { useSubtitleDiscovery } from "../src/features/media/subtitles/hooks/use-subtitle-discovery.js";
-import { subtitlePolicy } from "../src/features/media/subtitles/public.js";
+import { subtitlePolicy } from "../src/features/media/subtitles/policy.js";
 import { StyledSubtitleRenderer } from "../src/features/media/subtitles/renderer.js";
 import type { SubtitleDiscoveryResponse } from "../src/shared/api/contracts.js";
 import { act, cleanup, renderHook, waitFor } from "./query-test-utils.js";

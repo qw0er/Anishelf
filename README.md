@@ -284,7 +284,8 @@ ANISHELF_LOG_PATH=/data/logs/anishelf.log
 Use an absolute writable path; `/data/logs/anishelf.log` persists in the container's
 data mount. Without an explicit path, file logs use the platform's user log
 directory. Files rotate daily or at 10 MiB, retaining seven archives by default.
-Adjust the logging variables above as needed; failed file output falls back to stderr.
+Adjust the logging variables above as needed. Pino and rotating-file-stream own output
+behavior; file errors produce a stderr diagnostic. Restart after fixing a failed destination.
 
 ## Preparation modes
 

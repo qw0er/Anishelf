@@ -1,47 +1,29 @@
 import { and, asc, desc, eq, ne, notInArray, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import type {
-	AiringEpisode,
-	MetadataFailure,
-	Page,
-	WorkDetails,
-	WorkRelation,
-	WorkSummary,
-} from "../domain/model.js";
+import type { MetadataFailure } from "../domain/model.js";
 import type { ArtworkRecord, CacheEntry, MetadataStore } from "../ports.js";
-import { readMetadataSnapshots, writeMetadataSnapshots } from "./records.js";
 import { metadataArtwork, metadataPins, metadataSnapshots } from "./schema.js";
-import type { NormalizedSnapshot } from "./snapshot-record.js";
 export class MetadataRepository implements MetadataStore {
 	constructor(private readonly store: Store) {}
 	private decode(row: typeof metadataSnapshots.$inferSelect): CacheEntry {
-		const value = readMetadataSnapshots(this.store, row);
-		const {
-			detail,
-			items,
-			relations,
-			airing,
-			page,
-			perPage,
-			hasNextPage,
-			...entry
-		} = value;
 		return {
-			...entry,
-			data:
-				value.kind === "detail"
-					? detail
-					: {
-							items:
-								value.kind === "search"
-									? items
-									: value.kind === "relations"
-										? relations
-										: airing,
-							page: page ?? 1,
-							perPage: perPage ?? 50,
-							hasNextPage: hasNextPage ?? false,
-						},
+			id: row.id,
+			key: row.key,
+			kind: row.kind,
+			data: row.data,
+			fetchedAt: row.fetchedAt,
+			expiresAt: row.expiresAt,
+			accessedAt: row.accessedAt,
+			failure:
+				row.failurePresent &&
+				row.failureCode !== null &&
+				row.failureMessage !== null
+					? {
+							code: row.failureCode,
+							message: row.failureMessage,
+							retryAt: row.failureRetryAt,
+						}
+					: null,
 		};
 	}
 	find(key: string): CacheEntry | null {
@@ -65,19 +47,19 @@ export class MetadataRepository implements MetadataStore {
 		return row ? this.decode(row) : null;
 	}
 	save(entry: CacheEntry): void {
-		const data = entry.data as Page<WorkSummary | WorkRelation | AiringEpisode>;
-		const value: NormalizedSnapshot = {
-			...entry,
-			page: entry.kind === "detail" ? null : data.page,
-			perPage: entry.kind === "detail" ? null : data.perPage,
-			hasNextPage: entry.kind === "detail" ? null : data.hasNextPage,
-			detail: entry.kind === "detail" ? (entry.data as WorkDetails) : null,
-			items: entry.kind === "search" ? (data.items as WorkSummary[]) : [],
-			relations:
-				entry.kind === "relations" ? (data.items as WorkRelation[]) : [],
-			airing: entry.kind === "airing" ? (data.items as AiringEpisode[]) : [],
+		const { failure, ...value } = entry;
+		const row = {
+			...value,
+			failurePresent: Boolean(failure),
+			failureCode: failure?.code ?? null,
+			failureMessage: failure?.message ?? null,
+			failureRetryAt: failure?.retryAt ?? null,
 		};
-		writeMetadataSnapshots(this.store, value);
+		this.store
+			.insert(metadataSnapshots)
+			.values(row)
+			.onConflictDoUpdate({ target: metadataSnapshots.id, set: row })
+			.run();
 	}
 	fail(id: string, failure: MetadataFailure): void {
 		this.store

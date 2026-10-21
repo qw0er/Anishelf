@@ -1,4 +1,8 @@
 export {
+	clearCompatibilityCache,
+	removeCompatibility,
+} from "./media-compatibility/cache.js";
+export {
 	clearCapabilityCache,
 	queryCapabilities,
 } from "./media-compatibility/capabilities.js";

@@ -37,7 +37,7 @@ export class PreparationApplication implements PreparationApi {
 		private readonly options: {
 			planning: PreparationPlanner;
 			policy: DeepReadonly<PreparationPolicy>;
-			services?: PreparationServices;
+			services: PreparationServices;
 		},
 	) {
 		this.policy = options.policy;
@@ -49,11 +49,6 @@ export class PreparationApplication implements PreparationApi {
 				new DomainError("PREPARATION_UNAVAILABLE", "Preparation is closed."),
 			);
 		this.initialization ??= Promise.resolve().then(async () => {
-			if (!this.options.services)
-				throw new DomainError(
-					"PREPARATION_UNAVAILABLE",
-					"Preparation persistence is unavailable.",
-				);
 			const system = this.options.services;
 			system.context.closed = this.closed;
 			this.system = system;

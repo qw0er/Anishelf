@@ -25,7 +25,7 @@ export function createPreparationApplication(options: {
 	sources: ResourceAccessApi;
 	planning: PreparationPlanner;
 	processing: MediaProcessingApi;
-	repository?: PreparationStore;
+	repository: PreparationStore;
 	profiles: DeepReadonly<TranscodeProfile[]>;
 	dataDir: string;
 	logger: Logger;
@@ -35,7 +35,6 @@ export function createPreparationApplication(options: {
 	const policy = freeze(structuredClone(options.policy ?? preparationPolicy));
 	validatePreparationPolicy(policy);
 	function services() {
-		if (!options.repository) return undefined;
 		const context = new PreparationContext(
 			options.repository,
 			options.sources,
@@ -65,6 +64,6 @@ export function createPreparationApplication(options: {
 	return new PreparationApplication({
 		planning: options.planning,
 		policy,
-		...(system ? { services: system } : {}),
+		services: system,
 	});
 }

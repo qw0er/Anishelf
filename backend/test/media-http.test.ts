@@ -64,6 +64,7 @@ test("returns current file metadata and a working same-origin playback URL", asy
 	expect(body).toEqual({
 		file: {
 			kind: "file",
+			sourceVersion: expect.any(String),
 			id,
 			parentId: expect.any(String),
 			name: "episode 01.MP4",

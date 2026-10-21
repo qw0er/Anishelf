@@ -1,17 +1,12 @@
 /** Internal FFmpeg build inventory; no HTTP or browser contract. */
 export const mediaCapabilityKinds = [
-	"codecs",
 	"encoders",
 	"decoders",
 	"muxers",
 	"demuxers",
 	"filters",
-	"bitstreamFilters",
 	"protocols",
-	"devices",
 	"pixelFormats",
-	"sampleFormats",
-	"hardwareAccelerations",
 ] as const;
 
 export type MediaCapabilityKind = (typeof mediaCapabilityKinds)[number];
@@ -54,18 +49,13 @@ export function unknownMediaCapabilities(): ServerMediaCapabilities {
 			ffprobe: { available: null, version: null },
 		},
 		inventory: {
-			codecs: unknownInventory(),
 			encoders: unknownInventory(),
 			decoders: unknownInventory(),
 			muxers: unknownInventory(),
 			demuxers: unknownInventory(),
 			filters: unknownInventory(),
-			bitstreamFilters: unknownInventory(),
 			protocols: unknownInventory(),
-			devices: unknownInventory(),
 			pixelFormats: unknownInventory(),
-			sampleFormats: unknownInventory(),
-			hardwareAccelerations: unknownInventory(),
 		},
 	};
 }

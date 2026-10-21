@@ -13,9 +13,9 @@ import type { TrackingApi, TrackingViewingApi } from "./tracking/public.js";
 export function registerAnimeHttp(
 	app: HttpInstance,
 	owners: {
-		tracking?: TrackingApi | undefined;
+		tracking: TrackingApi;
 		viewing?: TrackingViewingApi | undefined;
-		library?: AnimeLibraryApi | undefined;
+		library: AnimeLibraryApi;
 		identification?: {
 			getStatus(): {
 				running: boolean;
@@ -37,12 +37,10 @@ export function registerAnimeHttp(
 				return owners.identification?.getStatus();
 			},
 		);
-	if (owners.tracking) {
-		registerTrackingRoutes(app, owners.tracking);
-		registerTrackingListRoutes(app, owners.tracking);
-		registerTrackingUpdateRoutes(app, owners.tracking, owners.viewing);
-	}
-	if (owners.library) registerAnimeLibraryRoutes(app, owners.library);
+	registerTrackingRoutes(app, owners.tracking);
+	registerTrackingListRoutes(app, owners.tracking);
+	registerTrackingUpdateRoutes(app, owners.tracking, owners.viewing);
+	registerAnimeLibraryRoutes(app, owners.library);
 	if (owners.metadata) registerMetadataRoutes(app, owners.metadata);
 	if (owners.catalog) registerCatalogRoutes(app, owners.catalog);
 }

@@ -1,31 +1,11 @@
-import { once } from "node:events";
-import { writeSync } from "node:fs";
-import {
-	mkdtemp,
-	readdir,
-	readFile,
-	rename,
-	rm,
-	writeFile,
-} from "node:fs/promises";
-import { createRequire } from "node:module";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Writable } from "node:stream";
-import { createStream } from "rotating-file-stream";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { deploymentDefaults } from "../src/contracts/defaults.js";
 import { ApplicationLogging } from "../src/platform/logging/index.js";
 
 let fixture: string;
-vi.mock("node:fs", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("node:fs")>();
-	return { ...actual, writeSync: vi.fn(actual.writeSync) };
-});
-vi.mock("rotating-file-stream", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("rotating-file-stream")>();
-	return { ...actual, createStream: vi.fn(actual.createStream) };
-});
 const instances: ApplicationLogging[] = [];
 const rotation = {
 	maxSizeBytes: deploymentDefaults.logMaxSizeBytes,
@@ -132,30 +112,11 @@ test("redacts common sensitive fields and serializes errors", async () => {
 	});
 });
 
-test("unusable file output falls back at startup and can be explicitly recovered", async () => {
-	const output = vi.mocked(writeSync).mockImplementation(() => 1);
-	const parent = join(fixture, "occupied");
-	await writeFile(parent, "occupied");
-	const instance = create({
-		level: "info",
-		destination: "file",
-		path: join(parent, "log"),
-		rotation,
-	});
-	const child = instance.logger.child({ module: "test" });
-	child.info({ event: "fallback" });
-	expect(output.mock.calls.some((call) => call[0] === 2)).toBe(true);
-	await rm(parent);
-	await instance.reopen();
-	child.info({ event: "recovered" });
-	expect((await records(join(parent, "log")))[0]?.event).toBe("recovered");
-});
-
 test("both writes the same redacted record to stdout and file", async () => {
 	const lines: string[] = [];
-	vi.mocked(writeSync).mockImplementation((_fd, buffer) => {
+	vi.spyOn(process.stdout, "write").mockImplementation((buffer) => {
 		lines.push(buffer.toString());
-		return Buffer.byteLength(buffer.toString());
+		return true;
 	});
 	const path = join(fixture, "both.log");
 	const instance = create({
@@ -200,255 +161,9 @@ test("size rotation retains only the configured number of archives", async () =>
 	).toEqual([3, 4]);
 });
 
-test("reopening after external rotation preserves existing child loggers", async () => {
-	const instance = await logging();
-	const child = instance.logger.child({ module: "same-child" });
-	child.info({ event: "before" });
-	await instance.flush();
-	await rename(instance.path, `${instance.path}.old`);
-	await instance.reopen();
-	child.info({ event: "after" });
-	expect((await records(instance.path))[0]?.event).toBe("after");
-	expect((await records(`${instance.path}.old`))[0]?.event).toBe("before");
-});
-
-test("file stream errors redirect subsequent child records and keep stdout working", async () => {
-	const writes: { fd: number; line: string }[] = [];
-	vi.mocked(writeSync).mockImplementation((fd, buffer) => {
-		writes.push({ fd, line: buffer.toString() });
-		return Buffer.byteLength(buffer.toString());
-	});
-	vi.mocked(createStream).mockReturnValueOnce(
-		new Writable({
-			write(_chunk, _encoding, callback) {
-				callback(new Error("disk failure"));
-			},
-		}) as ReturnType<typeof createStream>,
-	);
-	const instance = create({
-		level: "info",
-		destination: "both",
-		path: join(fixture, "failed.log"),
-		rotation,
-	});
-	const child = instance.logger.child({ module: "child" });
-	child.info({ event: "first" });
-	await instance.flush();
-	child.info({ event: "second" });
-	expect(
-		writes
-			.filter((record) => record.fd === 1)
-			.map((record) => JSON.parse(record.line).event),
-	).toEqual(["first", "second"]);
-	expect(
-		writes
-			.filter((record) => record.fd === 2)
-			.map((record) => JSON.parse(record.line).event),
-	).toContain("second");
-});
-
-test("stdout EPIPE is contained and file output continues", async () => {
-	const fallback: string[] = [];
-	vi.mocked(writeSync).mockImplementation((fd, buffer) => {
-		if (fd === 1)
-			throw Object.assign(new Error("broken pipe"), { code: "EPIPE" });
-		fallback.push(buffer.toString());
-		return Buffer.byteLength(buffer.toString());
-	});
-	const path = join(fixture, "working.log");
-	const instance = create({
-		level: "info",
-		destination: "both",
-		path,
-		rotation,
-	});
-	instance.logger.info({ event: "first" });
-	instance.logger.info({ event: "second" });
-	expect((await records(path)).map((record) => record.event)).toEqual([
-		"first",
-		"second",
-	]);
-	expect(fallback.map((line) => JSON.parse(line).event)).toContain("second");
-});
-
-test("slow output bounds the queue and reports overflow to stderr", async () => {
-	vi.mocked(writeSync).mockImplementation((_fd, buffer) =>
-		Buffer.byteLength(buffer.toString()),
-	);
-	let complete: ((error?: Error | null) => void) | undefined;
-	vi.mocked(createStream).mockReturnValueOnce(
-		new Writable({
-			write(_chunk, _encoding, callback) {
-				complete = callback;
-			},
-		}) as ReturnType<typeof createStream>,
-	);
-	const instance = create({
-		level: "info",
-		destination: "file",
-		path: join(fixture, "slow.log"),
-		rotation,
-	});
-	instance.logger.info({ event: "large", message: "x".repeat(700_000) });
-	instance.logger.info({ event: "overflow", message: "x".repeat(700_000) });
-	expect(
-		vi
-			.mocked(writeSync)
-			.mock.calls.some((call) =>
-				call[1].toString().includes("logging.buffer_overflow"),
-			),
-	).toBe(true);
-	complete?.();
-	await instance.close();
-});
-
-test("time rotation archives a file below the size threshold", async () => {
-	const actual = createRequire(import.meta.url)(
-		"rotating-file-stream",
-	) as typeof import("rotating-file-stream");
-	vi.useFakeTimers({ toFake: ["Date"] });
-	const timers = createRequire(import.meta.url)(
-		"node:timers",
-	) as typeof import("node:timers");
-	let triggerRotation!: () => void;
-	const schedule = timers.setTimeout;
-	vi.spyOn(timers, "setTimeout").mockImplementationOnce(
-		(callback, delay, ...args) => {
-			triggerRotation = () => callback(...args);
-			return schedule(callback, delay, ...args);
-		},
-	);
-	vi.setSystemTime(new Date("2026-10-16T12:00:00.000Z"));
-	let stream!: ReturnType<typeof createStream>;
-	vi.mocked(createStream).mockImplementationOnce((filename, options) => {
-		expect(options?.interval).toBe("1h");
-		stream = actual.createStream(filename, options);
-		return stream;
-	});
-	const path = join(fixture, "hourly.log");
-	const instance = create({
-		level: "info",
-		destination: "file",
-		path,
-		rotation: { ...rotation, interval: "1h" },
-	});
-	instance.logger.info({ event: "before" });
-	await instance.flush();
-	// Reopening completes the asynchronous archive operation after the hour boundary.
-	const reopened = once(stream, "open");
-	vi.setSystemTime(new Date("2026-10-16T13:00:00.000Z"));
-	triggerRotation();
-	await reopened;
-	instance.logger.info({ event: "after" });
-	await instance.flush();
-	expect((await records(path)).map((record) => record.event)).toEqual([
-		"after",
-	]);
-	await instance.close();
-	const archives = (await readdir(fixture)).filter((name) =>
-		name.endsWith("-hourly.log"),
-	);
-	expect(archives).toHaveLength(1);
-	expect(
-		(await records(join(fixture, archives[0] ?? ""))).map(
-			(record) => record.event,
-		),
-	).toEqual(["before"]);
-});
-
-test("SIGHUP reopens a renamed file and closing removes the handler", async () => {
-	const initial = process.listenerCount("SIGHUP");
-	const instance = await logging();
-	instance.logger.info({ event: "before" });
-	await instance.flush();
-	await rename(instance.path, `${instance.path}.old`);
-	process.emit("SIGHUP");
-	await instance.flush();
-	instance.logger.info({ event: "after" });
-	expect((await records(instance.path))[0]?.event).toBe("after");
-	await instance.close();
-	expect(process.listenerCount("SIGHUP")).toBe(initial);
-});
-
 test("shutdown flushes pending records without an explicit flush", async () => {
 	const instance = await logging();
 	instance.logger.info({ event: "pending" });
 	await instance.close();
 	expect((await records(instance.path))[0]?.event).toBe("pending");
-});
-
-test("a stalled output times out during shutdown and reports potential loss", async () => {
-	vi.useFakeTimers();
-	vi.mocked(writeSync).mockImplementation((_fd, buffer) =>
-		Buffer.byteLength(buffer.toString()),
-	);
-	vi.mocked(createStream).mockReturnValueOnce(
-		new Writable({ write() {} }) as ReturnType<typeof createStream>,
-	);
-	const instance = create({
-		level: "info",
-		destination: "file",
-		path: join(fixture, "stalled.log"),
-		rotation,
-	});
-	instance.logger.info({ event: "pending" });
-	const closing = instance.close();
-	await vi.advanceTimersByTimeAsync(2000);
-	await closing;
-	const diagnostics = vi
-		.mocked(writeSync)
-		.mock.calls.map((call) => JSON.parse(call[1].toString()));
-	expect(diagnostics).toContainEqual(
-		expect.objectContaining({
-			event: "logging.shutdown_timeout",
-			potentialLostBytes: expect.any(Number),
-		}),
-	);
-});
-
-test("stderr failure is contained after stdout failure", () => {
-	vi.mocked(writeSync).mockImplementation(() => {
-		throw Object.assign(new Error("broken pipe"), { code: "EPIPE" });
-	});
-	const instance = create({ level: "info", destination: "stdout" });
-	expect(() => {
-		instance.logger.info({ event: "first" });
-		instance.logger.info({ event: "second" });
-	}).not.toThrow();
-});
-
-test("file failure reports the uncertain record and redirects queued records", async () => {
-	const lines: string[] = [];
-	vi.mocked(writeSync).mockImplementation((_fd, buffer) => {
-		lines.push(buffer.toString());
-		return Buffer.byteLength(buffer.toString());
-	});
-	let complete: ((error?: Error | null) => void) | undefined;
-	vi.mocked(createStream).mockReturnValueOnce(
-		new Writable({
-			write(_chunk, _encoding, callback) {
-				complete = callback;
-			},
-		}) as ReturnType<typeof createStream>,
-	);
-	const instance = create({
-		level: "info",
-		destination: "file",
-		path: join(fixture, "queued.log"),
-		rotation,
-	});
-	instance.logger.info({ event: "uncertain" });
-	instance.logger.info({ event: "queued" });
-	complete?.(Object.assign(new Error("full"), { code: "ENOSPC" }));
-	await instance.flush();
-	const events = lines.map((line) => JSON.parse(line));
-	expect(events).toContainEqual(
-		expect.objectContaining({
-			event: "logging.output_failed",
-			errorCode: "ENOSPC",
-			potentialLostBytes: expect.any(Number),
-		}),
-	);
-	expect(events.map((event) => event.event)).toContain("queued");
-	expect(events.map((event) => event.event)).not.toContain("uncertain");
 });

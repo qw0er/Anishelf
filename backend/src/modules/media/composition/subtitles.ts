@@ -22,7 +22,7 @@ export function createSubtitleModule({
 }: {
 	configuration: SystemApi;
 	library: LibraryCapability;
-	database?: MediaPersistence | undefined;
+	database: MediaPersistence;
 	tools: MediaTools;
 	inspection: MediaInspectionApplication;
 	logger: Logger;
@@ -37,7 +37,7 @@ export function createSubtitleModule({
 		inspection,
 		tools,
 		dataDir: configuration.deployment.dataDir,
-		...(database ? { repository: database.subtitles } : {}),
+		repository: database.subtitles,
 	});
 }
 

@@ -13,12 +13,12 @@ export function createCatalogModule({
 	library,
 	logger,
 }: {
-	database: AnimePersistence | undefined;
+	database: AnimePersistence;
 	metadata: MetadataApplication | undefined;
 	library: LibraryCapability;
 	logger: Logger;
 }) {
-	return database && metadata
+	return metadata
 		? new AnimeCatalogApplication({
 				store: database.catalog,
 				metadata,

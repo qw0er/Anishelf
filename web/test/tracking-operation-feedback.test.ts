@@ -31,17 +31,14 @@ function completed(): TrackingOperationResponse {
 	};
 }
 afterEach(() => vi.restoreAllMocks());
-test("reports a playback operation completed between polls once and refreshes confirmed state", () => {
+test("silently refreshes confirmed state when a playback operation completes", () => {
 	const client = new QueryClient();
 	const notify = vi.spyOn(toast, "add").mockReturnValue("notice");
 	const invalidate = vi.spyOn(client, "invalidateQueries").mockResolvedValue();
 	reportTrackingOperations(client, identity, []);
 	reportTrackingOperations(client, identity, [completed()]);
 	reportTrackingOperations(client, identity, [completed()]);
-	expect(notify).toHaveBeenCalledTimes(1);
-	expect(notify).toHaveBeenCalledWith(
-		expect.objectContaining({ type: "success" }),
-	);
+	expect(notify).not.toHaveBeenCalled();
 	expect(invalidate).toHaveBeenCalledWith({ queryKey: ["tracking", "entry"] });
 	client.clear();
 });
@@ -56,5 +53,33 @@ test("does not replay old completed notices on first read or after account repla
 		[{ ...completed(), accountId: "anilist:8" }],
 	);
 	expect(notify).not.toHaveBeenCalled();
+	client.clear();
+});
+
+test("shows an actionable failure after a silent pending state, and clears it after success", () => {
+	const client = new QueryClient();
+	const notify = vi.spyOn(toast, "add").mockReturnValue("notice");
+	const close = vi.spyOn(toast, "close");
+	const invalidate = vi.spyOn(client, "invalidateQueries").mockResolvedValue();
+	reportTrackingOperations(client, identity, [
+		{ ...completed(), state: "pending" },
+	]);
+	expect(notify).not.toHaveBeenCalled();
+	const failed = {
+		...completed(),
+		state: "failed" as const,
+		error: "provider-unavailable" as const,
+		revision: 2,
+	};
+	reportTrackingOperations(client, identity, [failed]);
+	reportTrackingOperations(client, identity, [failed]);
+	expect(notify).toHaveBeenCalledTimes(1);
+	expect(notify).toHaveBeenCalledWith(
+		expect.objectContaining({ type: "error" }),
+	);
+	reportTrackingOperations(client, identity, [{ ...completed(), revision: 3 }]);
+	expect(close).toHaveBeenCalledWith("tracking-operation:operation");
+	expect(invalidate).toHaveBeenCalledWith({ queryKey: ["tracking", "entry"] });
+	expect(notify).toHaveBeenCalledTimes(1);
 	client.clear();
 });

@@ -6,6 +6,8 @@ import type {
 } from "../../../shared/api/contracts.js";
 import { boundedSignal } from "../../../shared/api/queries.js";
 import { queryGate } from "../../../shared/lib/query-gate.js";
+import { removeCompatibility } from "./cache.js";
+import { clearCapabilityCache } from "./capabilities.js";
 import {
 	checkOriginalMedia,
 	originalCompatibilityKey,
@@ -25,7 +27,7 @@ export function useDirectoryCompatibility(
 	const files = listing.children.filter((entry) => entry.kind === "file");
 	const identity = JSON.stringify([
 		scope,
-		files.map((file) => originalCompatibilityKey(file, scope)),
+		files.map((file) => originalCompatibilityKey(file)),
 	]);
 	// A departed directory cannot occupy the new directory's admission slots.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: metadata identifies the negotiation group
@@ -36,9 +38,7 @@ export function useDirectoryCompatibility(
 	);
 	const queries = useQueries({
 		queries: files.map((file) => ({
-			queryKey: compatibilityKeys.compatibility(
-				originalCompatibilityKey(file, scope),
-			),
+			queryKey: compatibilityKeys.compatibility(originalCompatibilityKey(file)),
 			staleTime: Infinity,
 			queryFn: ({ signal }: { signal: AbortSignal }) =>
 				gate(signal, () =>
@@ -48,6 +48,7 @@ export function useDirectoryCompatibility(
 							signal,
 							mediacompatibilityInteractionPolicy.compatibilityRequestTimeoutMs,
 						),
+						file.sourceVersion ? { sourceVersion: file.sourceVersion } : {},
 					),
 				),
 		})),
@@ -61,14 +62,17 @@ export function useDirectoryCompatibility(
 				error: result?.error ?? null,
 			};
 		},
-		retry: () => {
-			for (const file of files)
+		retry: async () => {
+			clearCapabilityCache();
+			for (const file of files) {
+				await removeCompatibility(file.id);
 				void client.invalidateQueries({
 					queryKey: compatibilityKeys.compatibility(
-						originalCompatibilityKey(file, scope),
+						originalCompatibilityKey(file),
 					),
 					exact: true,
 				});
+			}
 		},
 	};
 }

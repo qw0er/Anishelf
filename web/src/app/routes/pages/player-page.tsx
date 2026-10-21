@@ -35,7 +35,6 @@ export function PlayerPage() {
 			returnDirectoryId={searchParams.get("directory")}
 			returnTo={animeReturnPath(searchParams)}
 			onRetry={reload}
-			compatibilityScope={resources.scope}
 		/>
 	);
 }

@@ -28,6 +28,7 @@ import { settingsStore } from "./settings-store.js";
 import { loadCorpus } from "./support/anime-corpus.js";
 import { createHttpApp } from "./support/http.js";
 import { createLibraryModule } from "./support/library.js";
+import { updateResourceSettings } from "./support/settings.js";
 
 const parser = new AnitomyIdentificationParser();
 const logger = pino({ enabled: false });
@@ -505,7 +506,7 @@ test("root switching cancels stale recognition and processes the newly published
 	await f.library.startScan();
 	await f.library.waitForCompletion();
 	await gate;
-	await f.library.updateResourceSettings({
+	await updateResourceSettings(f.library, {
 		resourceRoots: [nextRoot],
 	});
 	await f.library.waitForCompletion();

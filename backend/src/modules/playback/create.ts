@@ -15,7 +15,7 @@ export function createPlaybackModule(options: {
 	system: SystemApi;
 	resources: ResourcesApi;
 	media: MediaApi;
-	database?: PlaybackPersistence | undefined;
+	database: PlaybackPersistence;
 	logger: Logger;
 	completionObserver?:
 		| import("./progress/domain/completion.js").PlaybackCompletionObserver

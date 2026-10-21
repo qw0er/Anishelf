@@ -10,6 +10,7 @@ import { unknownMediaCapabilities } from "../src/platform/media/capability-model
 import type { MediaProcessingPlan } from "../src/platform/media/specification.js";
 import { parseMediaInfo } from "../src/platform/media/tools.js";
 import { settingsStore } from "./settings-store.js";
+import { MemoryInspectionStore } from "./support/inspection-store.js";
 import { createLibraryModule } from "./support/library.js";
 
 const cleanup: Array<() => Promise<unknown>> = [];
@@ -39,6 +40,7 @@ async function fixture(block = false, maximumProcessedBytes?: () => number) {
 		}),
 	);
 	const inspection = new MediaInspectionApplication({
+		repository: new MemoryInspectionStore(),
 		sources: library.sources,
 		tools: { probe: vi.fn().mockResolvedValue(info) },
 	});

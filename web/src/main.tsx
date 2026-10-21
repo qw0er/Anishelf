@@ -5,6 +5,7 @@ import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import { authenticatedRoute } from "./app/auth/guard.js";
 import { LoginPage } from "./app/auth/login-page.js";
+import { clearCompatibilityCache } from "./features/media/public.js";
 import { queryClient } from "./shared/api/query-client.js";
 import "./index.css";
 import { Toaster } from "./shared/components/ui/toast.js";
@@ -18,8 +19,9 @@ const router = createBrowserRouter([
 	authenticatedRoute(libraryRoute),
 ]);
 let redirectingToLogin = false;
-window.addEventListener("anishelf:auth-required", () => {
+window.addEventListener("anishelf:auth-required", async () => {
 	queryClient.clear();
+	await clearCompatibilityCache();
 	if (window.location.pathname !== "/login" && !redirectingToLogin) {
 		redirectingToLogin = true;
 		window.location.replace(

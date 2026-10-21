@@ -11,6 +11,6 @@ export const ConfigurationService = {
 		policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
 	) {
 		validatePolicy(policy);
-		return Service.load(env, policy);
+		return Service.load(env);
 	},
 };
