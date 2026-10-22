@@ -6,6 +6,16 @@ import type {
 
 export type { FeedTransport } from "./ports.js";
 export interface DiscoveryApi {
+	profiles(): {
+		profiles: {
+			id: string;
+			name: string;
+			description: string;
+			source: "builtin" | "custom";
+		}[];
+		selectedProfileId: string;
+		selectionAvailable: boolean;
+	};
 	get(workKey: string, page?: number): SubscriptionView;
 	preview(session: string, input: PreviewInput): Promise<SubscriptionPreview>;
 	confirm(

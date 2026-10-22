@@ -18,9 +18,25 @@ import {
 	settingsQuery,
 } from "../settings/public.js";
 
+import { acquisitionProfilesQuery } from "./subscriptions-api.js";
+
 export function RssSettings() {
 	const client = useQueryClient();
 	const configuration = useQuery(settingsQuery());
+	const profiles = useQuery(acquisitionProfilesQuery());
+	const [profileDraft, setProfileDraft] = useState<string | null>(null);
+	const profileSave = useMutation({
+		mutationFn: (defaultAcquisitionProfileId: string) =>
+			saveSettings({ defaultAcquisitionProfileId }),
+		onSuccess: (settings) => {
+			client.setQueryData(settingsKeys.settings, settings);
+			void client.invalidateQueries({ queryKey: ["acquisition"] });
+			setProfileDraft(null);
+			toast.add({ type: "success", title: "Release profile saved." });
+		},
+		onError: () =>
+			toast.add({ type: "error", title: "Could not save release profile." }),
+	});
 	const [draft, setDraft] = useState<string | null>(null);
 	const save = useMutation({
 		mutationFn: (rssRefreshIntervalMinutes: number) =>
@@ -47,10 +63,75 @@ export function RssSettings() {
 			<CardHeader>
 				<CardTitle>RSS</CardTitle>
 				<CardDescription>
-					Set how often enabled subscriptions check for releases.
+					Choose a release selection profile and refresh interval.
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4 lg:max-w-2xl">
+				{profiles.data && (
+					<form
+						className="space-y-3"
+						onSubmit={(event) => {
+							event.preventDefault();
+							profileSave.mutate(
+								profileDraft ?? profiles.data.selectedProfileId,
+							);
+						}}
+					>
+						<label htmlFor="acquisition-profile" className="block space-y-2">
+							<span className="text-sm font-medium">
+								Default release selection profile
+							</span>
+							<select
+								id="acquisition-profile"
+								className="w-full rounded-md border bg-background p-2 text-sm"
+								value={profileDraft ?? profiles.data.selectedProfileId}
+								disabled={profileSave.isPending}
+								onChange={(event) => setProfileDraft(event.target.value)}
+							>
+								{!profiles.data.selectionAvailable && (
+									<option value={profiles.data.selectedProfileId}>
+										Unavailable: {profiles.data.selectedProfileId}
+									</option>
+								)}
+								{profiles.data.profiles.map((profile) => (
+									<option key={profile.id} value={profile.id}>
+										{profile.name}
+										{profile.source === "custom" ? " (Custom)" : ""}
+									</option>
+								))}
+							</select>
+						</label>
+						<p className="text-sm text-muted-foreground">
+							{profiles.data.profiles.find(
+								(profile) =>
+									profile.id ===
+									(profileDraft ?? profiles.data.selectedProfileId),
+							)?.description ??
+								"Select an available profile to resume new selections."}
+						</p>
+						<Button
+							type="submit"
+							disabled={
+								profileSave.isPending ||
+								!profiles.data.profiles.some(
+									(profile) =>
+										profile.id ===
+										(profileDraft ?? profiles.data.selectedProfileId),
+								)
+							}
+						>
+							Save release profile
+						</Button>
+					</form>
+				)}
+				{profiles.isError && (
+					<p role="alert">
+						Could not load release profiles.{" "}
+						<Button variant="outline" onClick={() => void profiles.refetch()}>
+							Retry profiles
+						</Button>
+					</p>
+				)}
 				{configuration.isPending ? (
 					<p role="status">Loading RSS settings…</p>
 				) : configuration.isError ? (

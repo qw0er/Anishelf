@@ -106,9 +106,22 @@ export function parseRss(xml: string): FeedEntry[] {
 				: downloadUrl
 					? `download:${downloadUrl}`
 					: `entry:${guid || link || title}`;
-			const published = Date.parse(text(item.pubDate));
+			const nestedTorrent = object(item.torrent);
+			const published = Date.parse(
+				text(item.pubDate) || text(nestedTorrent.pubDate),
+			);
+			const seedersText =
+				text(item["nyaa:seeders"]) ||
+				text(attrs.find((attr) => attr["@name"] === "seeders")?.["@value"]);
+			const seeders =
+				/^\d+$/u.test(seedersText) &&
+				Number.isSafeInteger(Number(seedersText)) &&
+				Number(seedersText) <= 2147483647
+					? Number(seedersText)
+					: null;
 			const entry = {
 				id: digest(identity),
+				seeders,
 				observationId: digest(guid || link || identity),
 				title,
 				publishedAt: Number.isFinite(published) ? published : null,

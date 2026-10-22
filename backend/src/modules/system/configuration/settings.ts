@@ -6,6 +6,7 @@ export interface PersistentSettings {
 	preparationMode?: PreparationMode;
 	transcodeCacheBudgetGiB?: number;
 	defaultTranscodeProfileId?: string;
+	defaultAcquisitionProfileId?: string;
 	qbittorrentWebUiUrl?: string | null;
 	rssRefreshIntervalMinutes?: number;
 }

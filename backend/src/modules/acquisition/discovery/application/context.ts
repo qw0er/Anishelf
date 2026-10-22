@@ -6,8 +6,12 @@ import type {
 	ReleaseAssessmentApi,
 } from "../../../anime/public.js";
 import type { FeedRecord, Subscription } from "../domain/model.js";
+import type { AcquisitionProfile } from "../domain/profiles.js";
 import type { DiscoveryStore, FeedTransport } from "../ports.js";
 export type DiscoveryOptions = {
+	profiles?: readonly AcquisitionProfile[];
+	defaultProfileId?: () => string | undefined;
+	lockedCandidates?: (workKey: string) => string[];
 	store: DiscoveryStore;
 	transport: FeedTransport;
 	anime: ReleaseAssessmentApi;

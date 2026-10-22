@@ -1,5 +1,6 @@
 // Type-only imports share the API contract without bundling backend code.
 export type {
+	AcquisitionProfileCatalog,
 	AnimeDetailResponse,
 	AnimeLibraryResponse,
 	ApiErrorResponse,

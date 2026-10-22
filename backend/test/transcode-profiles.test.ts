@@ -404,7 +404,7 @@ test("preparation mode defaults to compatibility and persists with profile selec
 
 test("the documented YAML example loads with comments and native scalar types", async () => {
 	const source = await readFile(
-		new URL("../../docs/transcode-profiles.yaml", import.meta.url),
+		new URL("../../docs/transcode-profiles-example.yaml", import.meta.url),
 		"utf8",
 	);
 	const profiles = parseTranscodeProfiles(source);

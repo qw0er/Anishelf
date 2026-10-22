@@ -7,6 +7,7 @@ import {
 	text,
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import type { Candidate } from "../domain/model.js";
 
 export const acquisitionFeeds = sqliteTable(
 	"acquisition_feeds",
@@ -39,6 +40,8 @@ export const acquisitionFeedsEntries = sqliteTable(
 		ordinalIndex: integer("ordinal_index").notNull(),
 		id: text("id").notNull(),
 		observationId: text("observation_id").notNull(),
+		seeders: integer("seeders"),
+		seedersObservedAt: integer("seeders_observed_at"),
 		title: text("title").notNull(),
 		publishedAt: integer("published_at"),
 		downloadUrl: text("download_url"),
@@ -64,6 +67,7 @@ export const acquisitionSubscriptions = sqliteTable(
 			.notNull()
 			.references(() => acquisitionFeeds.id, { onDelete: "restrict" }),
 		startEpisode: integer("start_episode").notNull(),
+		profileId: text("profile_id"),
 		enabled: integer("enabled", { mode: "boolean" }).notNull(),
 		revision: text("revision").notNull(),
 	},
@@ -87,6 +91,9 @@ export const acquisitionCandidates = sqliteTable(
 	"acquisition_candidates",
 	{
 		chosen: integer("chosen", { mode: "boolean" }),
+		selection: text("selection", { mode: "json" }).$type<
+			Candidate["selection"]
+		>(),
 		id: text("id").primaryKey().notNull(),
 		workKey: text("work_key")
 			.notNull()

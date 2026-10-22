@@ -26,6 +26,8 @@ export function readAcquisitionFeeds(
 			.map((child) => ({
 				id: child.id,
 				observationId: child.observationId,
+				seeders: child.seeders,
+				seedersObservedAt: child.seedersObservedAt,
 				title: child.title,
 				publishedAt: child.publishedAt,
 				downloadUrl: child.downloadUrl,
@@ -68,6 +70,8 @@ export function writeAcquisitionFeeds(
 				ordinalIndex: index1,
 				id: item1?.id,
 				observationId: item1?.observationId,
+				seeders: item1.seeders ?? null,
+				seedersObservedAt: item1.seedersObservedAt ?? null,
 				title: item1?.title,
 				publishedAt: item1?.publishedAt ?? null,
 				downloadUrl: item1?.downloadUrl ?? null,
@@ -89,6 +93,7 @@ export function readAcquisitionSubscriptions(
 		workKey: row.workKey,
 		feedId: row.feedId,
 		startEpisode: row.startEpisode,
+		profileId: row.profileId,
 		enabled: row.enabled,
 		revision: row.revision,
 	} as Subscription;
@@ -105,6 +110,7 @@ export function writeAcquisitionSubscriptions(
 			workKey: value?.workKey,
 			feedId: value?.feedId,
 			startEpisode: value?.startEpisode,
+			profileId: value.profileId ?? null,
 			enabled: value?.enabled,
 			revision: value?.revision,
 		};
@@ -128,6 +134,7 @@ export function readAcquisitionCandidates(
 			? { chosen: row.chosen !== null ? row.chosen : undefined }
 			: {}),
 		id: row.id,
+		...(row.selection ? { selection: row.selection } : {}),
 		workKey: row.workKey,
 		entryId: row.entryId,
 		title: row.title,
@@ -154,6 +161,7 @@ export function writeAcquisitionCandidates(
 	connection.transaction((store) => {
 		const row0 = {
 			chosen: value?.chosen ?? null,
+			selection: value.selection ?? null,
 			id: value?.id,
 			workKey: value?.workKey,
 			entryId: value?.entryId,

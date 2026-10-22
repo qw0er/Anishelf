@@ -1,5 +1,6 @@
 import { type RequestOptions, request } from "../../shared/api/client.js";
 import type {
+	AcquisitionProfileCatalog,
 	SubscriptionPreview,
 	SubscriptionPreviewInput,
 	SubscriptionView,
@@ -41,3 +42,11 @@ export const removeSubscription = (
 	revision: string,
 ): Promise<{ removed: true }> =>
 	request(path, "DELETE", {}, { workKey, revision });
+
+export const acquisitionProfilesQuery = () => ({
+	queryKey: ["acquisition", "profiles"] as const,
+	queryFn: ({ signal }: { signal: AbortSignal }) =>
+		request<AcquisitionProfileCatalog>("/api/acquisition/profiles", "GET", {
+			signal,
+		}),
+});

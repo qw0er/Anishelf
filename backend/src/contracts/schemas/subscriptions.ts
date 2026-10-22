@@ -3,8 +3,36 @@ import { Type } from "typebox";
 const workKey = Type.String({ minLength: 1, maxLength: 1024 });
 const revision = Type.String({ minLength: 1, maxLength: 64 });
 const nullableNumber = Type.Union([Type.Number(), Type.Null()]);
+export const AcquisitionProfileCatalogSchema = Type.Object({
+	profiles: Type.Array(
+		Type.Object({
+			id: Type.String(),
+			name: Type.String(),
+			description: Type.String(),
+			source: Type.Union([Type.Literal("builtin"), Type.Literal("custom")]),
+		}),
+	),
+	selectedProfileId: Type.String(),
+	selectionAvailable: Type.Boolean(),
+});
+const profileId = Type.Optional(
+	Type.Union([
+		Type.String({ pattern: "^(builtin|custom):[a-z][a-z0-9-]{0,63}$" }),
+		Type.Null(),
+	]),
+);
 const AcquisitionCandidateSchema = Type.Object({
 	id: Type.String(),
+	selection: Type.Optional(
+		Type.Object({
+			profileId: Type.String(),
+			fingerprint: Type.String(),
+			level: Type.Union([Type.String(), Type.Null()]),
+			firstSeenAt: nullableNumber,
+			eligibleAt: nullableNumber,
+			seeders: nullableNumber,
+		}),
+	),
 	workKey,
 	entryId: Type.String(),
 	title: Type.String(),
@@ -22,6 +50,7 @@ export const SubscriptionViewSchema = Type.Object({
 			workKey,
 			feedId: Type.String(),
 			startEpisode: Type.Integer(),
+			profileId,
 			enabled: Type.Boolean(),
 			revision,
 			source: Type.String(),
@@ -38,6 +67,7 @@ export const SubscriptionPreviewInputSchema = Type.Object(
 	{
 		workKey,
 		rssUrl: Type.String({ maxLength: 4096 }),
+		profileId,
 		startEpisode: Type.Integer({ minimum: 1, maximum: 10000 }),
 		revision: Type.Union([revision, Type.Null()]),
 	},
@@ -49,6 +79,7 @@ export const SubscriptionPreviewSchema = Type.Object({
 	expiresAt: Type.Number(),
 	source: Type.String(),
 	startEpisode: Type.Integer(),
+	profileId,
 	availableEpisodes: Type.Array(Type.Integer()),
 	knownEpisodeCount: nullableNumber,
 	candidates: Type.Array(AcquisitionCandidateSchema),

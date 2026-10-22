@@ -68,6 +68,8 @@ test("persists all normalized aggregates, preserves ordered children and survive
 			{
 				id: "entry",
 				observationId: "obs",
+				seeders: null,
+				seedersObservedAt: null,
 				title: "Episode 1",
 				publishedAt: 1,
 				downloadUrl: null,
@@ -76,6 +78,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 		],
 	};
 	const subscription = {
+		profileId: null,
 		workKey: "work",
 		feedId: "feed",
 		startEpisode: 1,
@@ -507,9 +510,12 @@ test("persists all normalized aggregates, preserves ordered children and survive
 				config.columns.some((col) => col.columnType === "SQLiteTextJson"),
 				config.name,
 			).toBe(
-				["metadata_snapshots", "metadata_works", "media_inspections"].includes(
-					config.name,
-				),
+				[
+					"metadata_snapshots",
+					"metadata_works",
+					"media_inspections",
+					"acquisition_candidates",
+				].includes(config.name),
 			);
 		}
 		expect(

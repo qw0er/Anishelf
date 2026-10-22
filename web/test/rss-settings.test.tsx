@@ -27,6 +27,25 @@ test("shows the RSS default and saves drafts only on explicit Save", async () =>
 	const request = vi
 		.spyOn(api, "request")
 		.mockImplementation(async (_path, method, _options, payload) => {
+			if (_path === "/api/acquisition/profiles")
+				return {
+					profiles: [
+						{
+							id: "builtin:general",
+							name: "General",
+							description: "Any codec",
+							source: "builtin",
+						},
+						{
+							id: "builtin:efficient",
+							name: "Efficient codecs preferred",
+							description: "Prefer HEVC / AV1",
+							source: "builtin",
+						},
+					],
+					selectedProfileId: "builtin:general",
+					selectionAvailable: true,
+				};
 			if (method === "PUT")
 				settings = {
 					...settings,
@@ -66,6 +85,12 @@ test("shows the RSS default and saves drafts only on explicit Save", async () =>
 
 test("failed RSS saves retain the draft and allow retry", async () => {
 	vi.spyOn(api, "request").mockImplementation(async (_path, method) => {
+		if (_path === "/api/acquisition/profiles")
+			return {
+				profiles: [],
+				selectedProfileId: "builtin:general",
+				selectionAvailable: false,
+			};
 		if (method === "PUT") throw new Error("unavailable");
 		return { resourceRoots: [], rssRefreshIntervalMinutes: 45 };
 	});
@@ -83,4 +108,41 @@ test("failed RSS saves retain the draft and allow retry", async () => {
 	expect(
 		screen.getByRole("button", { name: "Save" }).hasAttribute("disabled"),
 	).toBe(false);
+});
+
+test("profile choice is saved separately from the RSS interval", async () => {
+	const request = vi.spyOn(api, "request").mockImplementation(async (path) =>
+		path === "/api/acquisition/profiles"
+			? {
+					profiles: [
+						{
+							id: "builtin:general",
+							name: "General",
+							description: "General",
+							source: "builtin",
+						},
+						{
+							id: "custom:mine",
+							name: "Mine",
+							description: "My custom profile",
+							source: "custom",
+						},
+					],
+					selectedProfileId: "builtin:general",
+					selectionAvailable: true,
+				}
+			: { resourceRoots: [] },
+	);
+	render(<RssSettings />);
+	const select = await screen.findByRole("combobox", {
+		name: "Default release selection profile",
+	});
+	fireEvent.change(select, { target: { value: "custom:mine" } });
+	expect(request.mock.calls.some((call) => call[1] === "PUT")).toBe(false);
+	fireEvent.click(screen.getByRole("button", { name: "Save release profile" }));
+	await waitFor(() =>
+		expect(request).toHaveBeenCalledWith("/api/settings", "PUT", undefined, {
+			defaultAcquisitionProfileId: "custom:mine",
+		}),
+	);
 });
