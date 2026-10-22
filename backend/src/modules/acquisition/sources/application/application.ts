@@ -1,63 +1,37 @@
 import { createHash, randomUUID } from "node:crypto";
-import { type FeedRecord, SourceError } from "../domain/model.js";
+import type { Logger } from "pino";
+import { SourceContext } from "../context.js";
+import { SourceError } from "../domain/model.js";
+import type { JackettConnection } from "../jackett/connection.js";
 import type { JackettPlan } from "../jackett/model.js";
-import { sourcePolicy as policy } from "../policy.js";
 import type { SourceReference, SourceSnapshot, SourcesApi } from "../public.js";
-import { SourceContext, type SourceOptions } from "./context.js";
-import { FeedReader } from "./feed-reader.js";
-import { SourceScheduler } from "./scheduler.js";
+import { RssSource, type RssSourceOptions } from "../rss/public.js";
+
+export interface SourcesApplicationOptions {
+	rss: RssSourceOptions;
+	jackett?: JackettConnection;
+	logger: Logger;
+	now?: () => number;
+	refreshIntervalMinutes?: () => number | undefined;
+}
 
 export class SourcesApplication implements SourcesApi {
 	private readonly context: SourceContext;
-	private readonly reader: FeedReader;
-	private readonly prepared = new WeakMap<
-		SourceSnapshot,
-		{
-			feed: FeedRecord;
-			previousRevision: string | null;
-		}
-	>();
-	private readonly references = new WeakMap<
-		SourceReference,
-		| { kind: "rss"; url: string; persisted: boolean }
-		| { kind: "jackett"; plan: JackettPlan }
-	>();
+	private readonly rss: RssSource;
+	private readonly references = new WeakMap<SourceReference, JackettPlan>();
 	private readonly queryResults = new WeakMap<SourceSnapshot, string>();
 	private readonly searching = new Map<string, Promise<SourceSnapshot>>();
-	private scheduler: SourceScheduler | undefined;
 	private closing: Promise<void> | undefined;
-	constructor(private readonly options: SourceOptions) {
+	constructor(private readonly options: SourcesApplicationOptions) {
 		this.context = new SourceContext(options);
-		this.reader = new FeedReader(this.context);
-	}
-	private project(feed: FeedRecord): SourceSnapshot {
-		return Object.freeze({
-			id: feed.id,
-			revision: feed.revision,
-			label: new URL(feed.url).origin,
-			entries: Object.freeze(
-				structuredClone(feed.entries).map((entry) => Object.freeze(entry)),
-			),
-			checkedAt: feed.checkedAt,
-			nextAttemptAt: feed.nextAttemptAt,
-			error: feed.error,
-		});
+		this.rss = new RssSource(this.context, options.rss);
 	}
 	snapshot(id: string) {
-		const feed = this.options.store.feed(id);
-		return feed ? this.project(feed) : null;
+		return this.rss.snapshot(id);
 	}
 	/** Configuration entry used by composition, never by Discovery. No I/O or writes. */
 	rssReference(input: string): SourceReference {
-		this.context.open();
-		let url: string;
-		try {
-			url = this.options.normalizeUrl(input);
-		} catch {
-			throw new SourceError("invalid_source_url");
-		}
-		const id = createHash("sha256").update(url).digest("hex");
-		return this.bind(id, url, false);
+		return this.rss.createReference(input);
 	}
 	jackettReference(input: JackettPlan): SourceReference {
 		this.context.open();
@@ -65,7 +39,7 @@ export class SourcesApplication implements SourcesApi {
 		const plan = this.options.jackett.plan(input);
 		const id = createHash("sha256").update(JSON.stringify(plan)).digest("hex");
 		const reference = Object.freeze({ id });
-		this.references.set(reference, { kind: "jackett", plan });
+		this.references.set(reference, plan);
 		return reference;
 	}
 	private refreshQuery(
@@ -109,65 +83,15 @@ export class SourcesApplication implements SourcesApi {
 			.catch(() => {});
 		return task;
 	}
-	private bind(id: string, url: string, persisted: boolean): SourceReference {
-		const reference = Object.freeze({ id });
-		this.references.set(reference, { kind: "rss", url, persisted });
-		this.options.logger.debug(
-			{
-				event: "acquisition.source_reference_created",
-				sourceId: id,
-				persisted,
-			},
-			"Source reference prepared without exposing protocol configuration.",
-		);
-		return reference;
-	}
 	reference(id: string): SourceReference {
-		this.context.open();
-		const feed = this.options.store.feed(id);
-		if (!feed) throw new SourceError("source_missing");
-		return this.bind(id, feed.url, true);
+		return this.rss.reference(id);
 	}
-	async refresh(reference: SourceReference) {
+	refresh(reference: SourceReference) {
 		this.context.open();
-		const binding = this.references.get(reference);
-		if (!binding) throw new SourceError("invalid_source_reference");
-		if (binding.kind === "jackett")
-			return this.refreshQuery(reference, binding.plan);
-		const existing = this.options.store.feed(reference.id);
-		if (!existing && binding.persisted) throw new SourceError("source_missing");
-		return this.prepare(
-			existing ?? {
-				id: reference.id,
-				revision: randomUUID(),
-				url: binding.url,
-				etag: null,
-				lastModified: null,
-				entries: [],
-				checkedAt: null,
-				nextAttemptAt: 0,
-				failures: 0,
-				error: null,
-			},
-			existing?.revision ?? null,
-		);
-	}
-	private async prepare(feed: FeedRecord, previousRevision: string | null) {
-		const prepared = await this.reader.fetch(feed, previousRevision);
-		const updated = prepared.feed;
-		this.context.open();
-		const result = this.project(updated);
-		this.prepared.set(result, prepared);
-		this.options.logger.debug(
-			{
-				event: "acquisition.source_prepared",
-				sourceId: feed.id,
-				revision: updated.revision,
-				entries: updated.entries.length,
-			},
-			"Source evidence prepared without publication.",
-		);
-		return result;
+		const plan = this.references.get(reference);
+		return plan
+			? this.refreshQuery(reference, plan)
+			: this.rss.refresh(reference);
 	}
 	isCurrent(result: SourceSnapshot) {
 		const generation = this.queryResults.get(result);
@@ -176,68 +100,35 @@ export class SourcesApplication implements SourcesApi {
 				!this.context.signal.aborted &&
 				Boolean(this.options.jackett?.current(generation))
 			);
-		const prepared = this.prepared.get(result);
-		if (!prepared || this.context.signal.aborted) return false;
-		const current = this.options.store.feed(prepared.feed.id)?.revision ?? null;
-		return (
-			current === prepared.previousRevision ||
-			current === prepared.feed.revision
-		);
+		return this.rss.isCurrent(result);
 	}
 	publish(result: SourceSnapshot) {
 		this.context.open();
 		// Query bindings and permissions migrate together in the manual subscription stage.
 		if (this.queryResults.has(result))
 			throw new SourceError("query_subscription_unavailable");
-		const prepared = this.prepared.get(result);
-		if (!prepared || !this.isCurrent(result)) {
-			this.options.logger.debug(
-				{ event: "acquisition.source_result_stale" },
-				"Source evidence publication rejected.",
-			);
-			throw new SourceError("source_conflict");
-		}
-		this.options.store.saveFeed(prepared.feed);
+		this.rss.publish(result);
 	}
 	failed(previous: SourceSnapshot, code: string) {
-		if (this.context.signal.aborted) return;
-		const feed = this.options.store.feed(previous.id);
-		if (!feed || feed.revision !== previous.revision) return;
-		const failures = feed.failures + 1;
-		this.options.store.saveFeed({
-			...feed,
-			failures,
-			error: code,
-			nextAttemptAt:
-				this.context.now() +
-				Math.min(policy.retryMaximumMs, 60_000 * 2 ** Math.min(failures, 6)),
-		});
+		this.rss.failed(previous, code);
 	}
 	start(
 		activeIds: () => string[],
 		poll: (source: SourceSnapshot) => Promise<void>,
 	) {
 		this.context.open();
-		if (this.scheduler) return;
-		this.scheduler = new SourceScheduler(this.context, activeIds, (feed) =>
-			poll(this.project(feed)),
-		);
-		this.scheduler.start();
+		this.rss.start(activeIds, poll);
 	}
 	close() {
 		this.closing ??= (async () => {
 			this.context.shutdown.abort();
 			try {
 				await Promise.allSettled([
-					this.options.transport.close(),
+					this.rss.close(),
 					this.options.jackett?.close(),
 				]);
 			} finally {
-				await Promise.allSettled([
-					this.reader.close(),
-					...this.searching.values(),
-					this.scheduler?.close(),
-				]);
+				await Promise.allSettled(this.searching.values());
 			}
 		})();
 		return this.closing;

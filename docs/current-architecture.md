@@ -351,6 +351,14 @@ flowchart LR
   `recent` and `readTorrent` operations. Return normalized results and typed failures
   rather than XML, raw URLs or Jackett errors through business APIs. Keep the
   existing XML parser and HTTP library where suitable; no new generic crawler.
+- Keep the source protocols in sibling adapters under `sources/rss/` and
+  `sources/jackett/`. The RSS adapter owns feed URL validation, RSS parsing and
+  transport, conditional requests, retained feed evidence, refresh scheduling and
+  retry state. Jackett owns its credentials, Torznab parsing and saved-origin
+  transport. `SourcesApplication` coordinates their shared reference, freshness,
+  publication and lifecycle contract; Discovery continues to own subscriptions,
+  assessments and acquisition decisions. Both adapters use the shared bounded
+  request gate.
 - Discovery owns both manual RSS and managed search subscriptions, evidence,
   assessments and preferences. Replace the feed-only subscription contract with
   a discriminated source (`rss` or `torznab-query`). Manual RSS retains its workflow.

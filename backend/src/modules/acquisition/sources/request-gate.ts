@@ -1,5 +1,5 @@
 import { setTimeout as delay } from "node:timers/promises";
-import { SourceError } from "../domain/model.js";
+import { SourceError } from "./domain/model.js";
 
 /** Shared by RSS and Torznab. Reject excess work rather than growing a queue. */
 export class SourceRequestGate {

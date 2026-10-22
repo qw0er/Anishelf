@@ -1,12 +1,12 @@
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { SourcesApplication } from "../src/modules/acquisition/sources/application/application.js";
-import { rssUrl } from "../src/modules/acquisition/sources/infrastructure/transport.js";
 import type {
 	FeedRecord,
 	SourceStore,
 } from "../src/modules/acquisition/sources/persistence.js";
 import type { FeedTransport } from "../src/modules/acquisition/sources/public.js";
+import { rssUrl } from "../src/modules/acquisition/sources/rss/public.js";
 
 const cleanup: (() => Promise<unknown>)[] = [];
 afterEach(async () => {
@@ -36,20 +36,23 @@ function fixture() {
 	const transport = { fetch, close: vi.fn(async () => {}) };
 	const logs: string[] = [];
 	const sources = new SourcesApplication({
-		store,
-		transport,
-		normalizeUrl: rssUrl,
-		parse: () => [
-			{
-				id: "release",
-				observationId: "observation",
-				title: "Frieren - 03",
-				publishedAt: null,
-				downloadUrl:
-					"magnet:?xt=urn:btih:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-				hash: "a".repeat(40),
-			},
-		],
+		rss: {
+			store,
+			transport,
+			normalizeUrl: rssUrl,
+			parse: () => [
+				{
+					id: "release",
+					observationId: "observation",
+					title: "Frieren - 03",
+					publishedAt: null,
+					downloadUrl:
+						"magnet:?xt=urn:btih:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+					hash: "a".repeat(40),
+				},
+			],
+			logger: pino({ level: "debug" }, { write: (line) => logs.push(line) }),
+		},
 		logger: pino({ level: "debug" }, { write: (line) => logs.push(line) }),
 		now: () => 1000,
 	});

@@ -16,9 +16,6 @@ import type {
 	QbittorrentOptions,
 } from "./qbittorrent/public.js";
 import { SourcesApplication } from "./sources/application/application.js";
-import { SourceRequestGate } from "./sources/application/request-gate.js";
-import { parseRss } from "./sources/infrastructure/rss.js";
-import { RssTransport, rssUrl } from "./sources/infrastructure/transport.js";
 import { JackettClient } from "./sources/jackett/client.js";
 import { JackettConfigurationFile } from "./sources/jackett/configuration.js";
 import {
@@ -27,6 +24,8 @@ import {
 } from "./sources/jackett/connection.js";
 import { JackettTransport } from "./sources/jackett/transport.js";
 import { type FeedTransport, SourceError } from "./sources/public.js";
+import { SourceRequestGate } from "./sources/request-gate.js";
+import { parseRss, RssTransport, rssUrl } from "./sources/rss/public.js";
 import { SubscriptionConfirmation } from "./subscription-confirmation.js";
 import { AcquisitionApplication } from "./workflows/application.js";
 
@@ -89,12 +88,15 @@ export async function createAcquisitionModule(options: {
 	);
 	await jackett.initialize();
 	const sources = new SourcesApplication({
-		gate,
+		rss: {
+			gate,
+			store: discoveryStore,
+			transport: options.transport ?? new RssTransport(),
+			parse: parseRss,
+			normalizeUrl: rssUrl,
+			logger: options.logger,
+		},
 		jackett,
-		store: discoveryStore,
-		transport: options.transport ?? new RssTransport(),
-		parse: parseRss,
-		normalizeUrl: rssUrl,
 		logger: options.logger,
 		...(options.now ? { now: options.now } : {}),
 		...(options.rssRefreshIntervalMinutes

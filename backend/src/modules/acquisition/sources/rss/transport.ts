@@ -4,7 +4,7 @@ import ipaddr from "ipaddr.js";
 import { Agent, type Dispatcher, request } from "undici";
 import { SourceError } from "../domain/model.js";
 import { sourcePolicy as policy } from "../policy.js";
-import type { FeedTransport } from "../ports.js";
+import type { FeedTransport } from "./ports.js";
 
 export function isPublicAddress(address: string): boolean {
 	try {
