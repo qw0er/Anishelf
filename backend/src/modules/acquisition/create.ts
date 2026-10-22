@@ -16,8 +16,16 @@ import type {
 	QbittorrentOptions,
 } from "./qbittorrent/public.js";
 import { SourcesApplication } from "./sources/application/application.js";
+import { SourceRequestGate } from "./sources/application/request-gate.js";
 import { parseRss } from "./sources/infrastructure/rss.js";
 import { RssTransport, rssUrl } from "./sources/infrastructure/transport.js";
+import { JackettClient } from "./sources/jackett/client.js";
+import { JackettConfigurationFile } from "./sources/jackett/configuration.js";
+import {
+	JackettConnection,
+	sourceCommand,
+} from "./sources/jackett/connection.js";
+import { JackettTransport } from "./sources/jackett/transport.js";
 import { type FeedTransport, SourceError } from "./sources/public.js";
 import { SubscriptionConfirmation } from "./subscription-confirmation.js";
 import { AcquisitionApplication } from "./workflows/application.js";
@@ -62,7 +70,27 @@ export async function createAcquisitionModule(options: {
 	await connection.initialize();
 	let workflow: AcquisitionApplication | undefined;
 	const discoveryStore = options.store;
+	const gate = new SourceRequestGate();
+	const jackett = new JackettConnection(
+		new JackettConfigurationFile(options.dataDir),
+		(configuration) => {
+			const connection = configuration.connection;
+			if (!connection?.apiKey) throw new SourceError("source_unconfigured");
+			return new JackettClient(
+				new JackettTransport(
+					connection.url,
+					connection.apiKey,
+					configuration.generation,
+				),
+				gate,
+			);
+		},
+		options.logger,
+	);
+	await jackett.initialize();
 	const sources = new SourcesApplication({
+		gate,
+		jackett,
 		store: discoveryStore,
 		transport: options.transport ?? new RssTransport(),
 		parse: parseRss,
@@ -131,6 +159,37 @@ export async function createAcquisitionModule(options: {
 	}
 	const downloadApi = workflow;
 	const api: AcquisitionApi = {
+		sources: {
+			settings: () => jackett.settings(),
+			save: (input) => sourceCommand(() => jackett.save(input)),
+			clear: (generation) => sourceCommand(() => jackett.clear(generation)),
+			indexers: (generation) =>
+				sourceCommand(() => jackett.indexers(generation)),
+			probe: (generation, id) =>
+				sourceCommand(() => jackett.probe(generation, id)),
+			search: (plan) =>
+				sourceCommand(async () => {
+					const result = await sources.refresh(sources.jackettReference(plan));
+					if (!sources.isCurrent(result))
+						throw new SourceError("source_conflict");
+					if (!result.coverage || !result.outcome)
+						throw new SourceError("malformed_response");
+					return {
+						source: result.label,
+						outcome: result.outcome,
+						coverage: result.coverage,
+						entries: result.entries.map((entry) => ({
+							id: entry.id,
+							title: entry.title,
+							publishedAt: entry.publishedAt,
+							size: entry.size ?? null,
+							seeders: entry.seeders ?? null,
+							peers: entry.peers ?? null,
+							downloadAvailable: Boolean(entry.download),
+						})),
+					};
+				}),
+		},
 		connection: {
 			settings: () => connection.settings(),
 			credentials: (generation) => connection.credentials(generation),

@@ -2,8 +2,12 @@ import type { Logger } from "pino";
 import { rssConstraints } from "../../../../contracts/defaults.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { FeedRecord } from "../domain/model.js";
+import type { JackettConnection } from "../jackett/connection.js";
 import type { FeedTransport, SourceStore } from "../ports.js";
+import type { SourceRequestGate } from "./request-gate.js";
 export interface SourceOptions {
+	gate?: SourceRequestGate;
+	jackett?: JackettConnection;
 	store: SourceStore;
 	transport: FeedTransport;
 	parse: (xml: string) => FeedRecord["entries"];

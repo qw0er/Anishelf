@@ -17,11 +17,15 @@ export class FeedReader {
 		if (this.fetching.size >= 2)
 			return Promise.reject(new SourceError("source_busy"));
 		const task = (async () => {
-			const response = await this.context.options.transport.fetch(
-				feed.url,
-				feed,
-				this.context.signal,
-			);
+			const fetch = () =>
+				this.context.options.transport.fetch(
+					feed.url,
+					feed,
+					this.context.signal,
+				);
+			const response = await (this.context.options.gate
+				? this.context.options.gate.run(null, this.context.signal, fetch)
+				: fetch());
 			if (response.xml === null && feed.checkedAt === null)
 				throw new SourceError("invalid_response");
 			const entries =
