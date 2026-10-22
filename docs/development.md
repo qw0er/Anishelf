@@ -159,7 +159,7 @@ Source installations can omit the public origin for local access to the backend 
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory for Anishelf | Absolute directory; overrides the platform default. |
 | `ANISHELF_QBITTORRENT_API_URL` | Unset | Optional HTTP(S) backend address without credentials, query or fragment. Prefills the API account form only when no account is saved; never logs in or saves credentials automatically. Blank means unset. |
 | `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` | Unset | Absolute HTTP(S) browser address without embedded credentials; seeds `qbittorrentWebUiUrl` only when `settings.json` is missing. Blank means unset. No connection probe or API login. |
-| `ANISHELF_INITIAL_RESOURCE_ROOTS` | Unset | One readable absolute media path or up to 64 paths separated by `;`, used only when `settings.json` is missing; existing settings take precedence. |
+| `ANISHELF_INITIAL_RESOURCE_ROOTS` | Unset | One readable absolute media path or up to 64 paths separated by `:`, used only when `settings.json` is missing; existing settings take precedence. |
 | `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
 | `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout`, `file`, or `both`. |
 | `ANISHELF_LOG_PATH` | `anishelf.log` in the platformdirs user log directory | Optional absolute path override for `file` / `both`; rejected with `stdout`. |
@@ -398,10 +398,10 @@ settings always win over startup initializers, including an explicitly empty lis
 Malformed or unreadable files fail startup without replacement.
 
 For fresh deployments, `ANISHELF_INITIAL_RESOURCE_ROOTS` accepts one absolute path
-such as `/media/anime`, or multiple paths separated by semicolons, such as
-`'/media/anime;/media/movies'`. Up to 64 paths are supported. Surrounding whitespace
+such as `/media/anime`, or multiple paths separated by colons, such as
+`'/media/anime:/media/movies'`. Up to 64 paths are supported. Surrounding whitespace
 is trimmed; empty entries (including a trailing separator) are rejected. Paths
-containing semicolons cannot be expressed with this initializer. The former singular
+containing colons cannot be expressed with this initializer. The former singular
 variable and JSON-array input are no longer supported. All initial directories must be readable and separate from the
 data directory. Creation never overwrites an existing settings file, including
 under concurrent initialization. Without an initializer, setup remains available. Native filesystem monitoring replaces

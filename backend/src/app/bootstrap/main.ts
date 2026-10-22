@@ -94,6 +94,7 @@ async function main(): Promise<void> {
 				event: "application.starting",
 				logLevel: config.logging.level,
 				logDestination: config.logging.destination,
+				resourceRootCount: configuration.settings.resourceRoots.length,
 			},
 			"Application starting.",
 		);

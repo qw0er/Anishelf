@@ -32,10 +32,10 @@ function absolutePath(value: string, name: string): string {
 function initialRoots(env: Environment): string[] | undefined {
 	const value = env.ANISHELF_INITIAL_RESOURCE_ROOTS;
 	if (value === undefined) return undefined;
-	const paths = value.split(";").map((path) => path.trim());
+	const paths = value.split(":").map((path) => path.trim());
 	if (paths.length > 64)
 		invalid(
-			"ANISHELF_INITIAL_RESOURCE_ROOTS must contain at most 64 semicolon-separated absolute paths.",
+			"ANISHELF_INITIAL_RESOURCE_ROOTS must contain at most 64 colon-separated absolute paths.",
 		);
 	return paths.map((path) =>
 		absolutePath(path, "ANISHELF_INITIAL_RESOURCE_ROOTS"),
