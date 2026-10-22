@@ -319,7 +319,7 @@ test("plural startup initialization validates all paths and preserves existing s
 	const dataDir = join(f.base, "fresh-data");
 	const service = await ConfigurationService.load({
 		ANISHELF_DATA_DIR: dataDir,
-		ANISHELF_INITIAL_RESOURCE_ROOTS: f.roots.join(";"),
+		ANISHELF_INITIAL_RESOURCE_ROOTS: f.roots.join(":"),
 	});
 	expect(service.settings.resourceRoots).toEqual(f.roots);
 	expect(

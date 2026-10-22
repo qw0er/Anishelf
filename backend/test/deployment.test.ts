@@ -316,18 +316,18 @@ test.each([
 	);
 });
 
-test("parses semicolon-separated resource roots and rejects empty or excessive entries", () => {
+test("parses colon-separated resource roots and rejects empty or excessive entries", () => {
 	expect(
 		parseDeploymentConfig({
-			ANISHELF_INITIAL_RESOURCE_ROOTS: " /media/anime ; /media/movies ",
+			ANISHELF_INITIAL_RESOURCE_ROOTS: " /media/anime : /media/movies ",
 		}).initialResourceRoots,
 	).toEqual(["/media/anime", "/media/movies"]);
 	for (const value of [
-		"/media;",
-		";/media",
-		"/media;;/movies",
+		"/media:",
+		":/media",
+		"/media::/movies",
 		'["/media"]',
-		Array(65).fill("/media").join(";"),
+		Array(65).fill("/media").join(":"),
 	]) {
 		expect(() =>
 			parseDeploymentConfig({ ANISHELF_INITIAL_RESOURCE_ROOTS: value }),
