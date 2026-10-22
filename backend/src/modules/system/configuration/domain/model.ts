@@ -9,6 +9,7 @@ export interface DeploymentConfig {
 	initialResourceRoots?: string[];
 	initialQbittorrentWebUiUrl?: string;
 	qbittorrentApiUrl?: string;
+	bundledQbittorrentConnectionFile?: string;
 	frontendDir?: string;
 	logging: LoggingConfig;
 	mediaTools: MediaToolsConfig;

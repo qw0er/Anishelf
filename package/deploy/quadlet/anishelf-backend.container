@@ -15,6 +15,8 @@ Environment=ANISHELF_PUBLIC_ORIGIN=http://localhost:3000
 Environment=ANISHELF_INITIAL_RESOURCE_ROOTS=/data/media
 # Optional API form hint; use Settings for external endpoints and credentials.
 Environment=ANISHELF_QBITTORRENT_API_URL=http://qbittorrent:8080
+Environment=ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE=/run/anishelf-qbittorrent/connection.json
+Volume=anishelf-qbittorrent-connection.volume:/run/anishelf-qbittorrent:ro
 Volume=anishelf-app.volume:/data/app
 # Optional host media: replace with /absolute/media:/data/media:ro,z.
 Volume=anishelf-media.volume:/data/media:ro

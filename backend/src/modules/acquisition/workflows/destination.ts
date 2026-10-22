@@ -18,6 +18,35 @@ import type { AcquisitionContext } from "./context.js";
 
 export class DownloadDestinationSettings {
 	constructor(private readonly context: AcquisitionContext) {}
+	async initializeBundled() {
+		if (!(await this.context.options.initializeBundled?.())) return;
+		const saved = this.context.options.store.destination();
+		if (
+			saved &&
+			saved.connectionGeneration !== this.context.options.connectionGeneration()
+		)
+			return;
+		if (saved?.validated) return;
+		try {
+			const root = (await this.context.options.resources.roots()).find(
+				(root) => root.path === "/data/media",
+			);
+			if (!root) return;
+			const destination =
+				saved ??
+				(await this.saveDestination({
+					revision: null,
+					scopeId: root.scopeId,
+					path: "/data/media",
+				}));
+			await this.validate(destination.revision);
+		} catch {
+			this.context.options.logger.warn(
+				{ event: "acquisition.bundled_setup_pending" },
+				"Bundled destination setup will retry; check connection credentials and directory settings.",
+			);
+		}
+	}
 	async settings() {
 		const saved = this.context.options.store.destination();
 		const destination =

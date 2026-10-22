@@ -31,6 +31,8 @@ function mockConnection(initial?: Partial<QbittorrentConnectionSettings>) {
 	const request = vi
 		.spyOn(api, "request")
 		.mockImplementation(async (path, method, _options, payload) => {
+			if (path.endsWith("/credentials"))
+				return { username: "admin", password: "bundled-secret" };
 			if (path.endsWith("/check"))
 				return {
 					generation: settings.generation,
@@ -190,4 +192,46 @@ test("a deployment URL is prefilled without a saved account or automatic connect
 		screen.queryByRole("button", { name: "Remove API connection" }),
 	).toBeNull();
 	expect(request.mock.calls.every((call) => call[1] === "GET")).toBe(true);
+});
+
+test("bundled WebUI credentials are fetched on demand, hidden, and excluded from caches", async () => {
+	const { request } = mockConnection({
+		bundled: true,
+		state: "configured",
+		username: "admin",
+		passwordConfigured: true,
+		url: "http://qbittorrent:8080/",
+	});
+	render(<QbittorrentApiSettings />);
+	const show = await screen.findByRole("button", {
+		name: "Show WebUI password",
+	});
+	expect(screen.queryByLabelText("API URL")).toBeNull();
+	expect(
+		request.mock.calls.some((call) => call[0].endsWith("/credentials")),
+	).toBe(false);
+	fireEvent.click(show);
+	expect(
+		((await screen.findByLabelText("Saved WebUI password")) as HTMLInputElement)
+			.value,
+	).toBe("bundled-secret");
+	expect(
+		JSON.stringify(
+			queryClient
+				.getQueryCache()
+				.getAll()
+				.map((query) => query.state.data),
+		),
+	).not.toContain("bundled-secret");
+	expect(JSON.stringify(queryClient.getMutationCache().getAll())).not.toContain(
+		"bundled-secret",
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Hide WebUI password" }));
+	expect(screen.queryByLabelText("Saved WebUI password")).toBeNull();
+	fireEvent.click(
+		screen.getByRole("button", {
+			name: "Update password or use an external instance",
+		}),
+	);
+	expect(screen.getByLabelText("API URL")).toBeTruthy();
 });

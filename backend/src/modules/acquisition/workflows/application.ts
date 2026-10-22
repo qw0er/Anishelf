@@ -34,6 +34,7 @@ export class AcquisitionApplication implements AcquisitionDownloadsApi {
 				),
 				new CompletedDownloadIngestion(context),
 			),
+			this.destination,
 		);
 	}
 	settings() {

@@ -23,6 +23,7 @@ interface DownloadSelection {
 }
 
 export interface AcquisitionOptions extends DownloadOptions {
+	initializeBundled?: () => Promise<boolean>;
 	store: import("../downloads/public.js").DownloadStore;
 	selection: DownloadSelection;
 	resources: AcquisitionResources;

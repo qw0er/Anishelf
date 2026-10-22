@@ -49,7 +49,7 @@ const target: AcquisitionTarget = {
 	revision: "one",
 };
 const logger = pino({ level: "silent" });
-async function fixture(persistent = false) {
+async function fixture(persistent = false, bundled = false) {
 	const dir = await mkdtemp(join(tmpdir(), "anishelf-downloads-"));
 	cleanup.push(() => rm(dir, { recursive: true, force: true }));
 	let db = persistent
@@ -102,7 +102,14 @@ async function fixture(persistent = false) {
 		close: vi.fn(),
 	};
 	const resources = {
-		roots: vi.fn(async () => [{ scopeId: "root", name: "Anime" }]),
+		roots: vi.fn(async () =>
+			bundled
+				? [
+						{ scopeId: "other", name: "Other", path: "/other" },
+						{ scopeId: "root", name: "Anime", path: "/data/media" },
+					]
+				: [{ scopeId: "root", name: "Anime" }],
+		),
 		validate: vi.fn(async () => {}),
 		inspect: vi.fn(async () => ({ sizeBytes: 100, sourceVersion: "v1" })),
 		refresh: vi.fn(async (_scope: string, path: string) => ({
@@ -195,6 +202,7 @@ async function fixture(persistent = false) {
 			ingestion,
 			transport,
 			connectionGeneration: () => generation,
+			initializeBundled: async () => bundled,
 			withClient: async (expected, operation) => {
 				if (expected !== generation) throw new Error("changed");
 				return operation(client);
@@ -1232,4 +1240,28 @@ test("account replacement during ingestion cannot acknowledge the old download a
 		false,
 	);
 	expect(f.add).toHaveBeenCalledTimes(1);
+});
+
+test("bundled destination selects the matching root, retries failed validation, and keeps its revision", async () => {
+	const f = await fixture(false, true);
+	f.probe.mockRejectedValueOnce(new QbittorrentError("unavailable", "read"));
+	await f.worker.tick();
+	const pending = (await f.worker.settings()).destination;
+	expect(pending).toMatchObject({
+		scopeId: "root",
+		path: "/data/media",
+		validated: false,
+	});
+	await f.worker.tick();
+	const ready = (await f.worker.settings()).destination;
+	expect(ready).toMatchObject({
+		revision: pending?.revision,
+		validated: true,
+		visibilityVerified: false,
+	});
+	await f.worker.tick();
+	expect((await f.worker.settings()).destination?.revision).toBe(
+		ready?.revision,
+	);
+	expect(f.add).not.toHaveBeenCalled();
 });

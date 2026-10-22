@@ -81,7 +81,7 @@ export class LibraryApplication<
 	}
 	async downloadRoots() {
 		return (await this.options.roots.list(this.getSettings())).map(
-			({ scopeId, name }) => ({ scopeId, name }),
+			({ scopeId, name, path }) => ({ scopeId, name, path }),
 		);
 	}
 	async validateDownloadRoot(scopeId: string, incompletePath: string) {

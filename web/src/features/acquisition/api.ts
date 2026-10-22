@@ -20,3 +20,8 @@ export const checkQbittorrentConnection = (
 	generation: string,
 ): Promise<QbittorrentConnectionProbe> =>
 	request(`${url}/check`, "POST", {}, { generation });
+
+export const getQbittorrentCredentials = (
+	generation: string,
+): Promise<{ username: string; password: string }> =>
+	request(`${url}/credentials`, "POST", {}, { generation });

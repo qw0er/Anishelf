@@ -1,3 +1,4 @@
+import { Type } from "typebox";
 import {
 	QbittorrentConnectionCommandSchema,
 	QbittorrentConnectionProbeSchema,
@@ -12,6 +13,24 @@ export function registerConnectionRoutes(
 	connection: QbittorrentConnectionApi,
 ) {
 	const url = "/api/acquisition/qbittorrent";
+	app.post(
+		`${url}/credentials`,
+		{
+			schema: {
+				body: QbittorrentConnectionCommandSchema,
+				response: {
+					200: Type.Object({
+						username: Type.String(),
+						password: Type.String(),
+					}),
+				},
+			},
+		},
+		async (request, reply) => {
+			reply.header("Cache-Control", "no-store");
+			return connection.credentials(request.body.generation);
+		},
+	);
 	app.get(
 		url,
 		{ schema: { response: { 200: QbittorrentConnectionSettingsSchema } } },

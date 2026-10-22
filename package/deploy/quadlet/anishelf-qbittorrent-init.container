@@ -1,0 +1,17 @@
+[Unit]
+Description=Initialize bundled qBittorrent credentials and paths
+PartOf=anishelf.target
+
+[Container]
+Image=ghcr.io/qw0er/anishelf-backend:latest
+UserNS=keep-id:uid=1000,gid=1000
+User=0
+Group=0
+Volume=anishelf-qbittorrent-config.volume:/config
+Volume=anishelf-qbittorrent-connection.volume:/connection
+Exec=node /app/package/qbittorrent-init.mjs
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+TimeoutStartSec=900

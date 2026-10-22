@@ -39,7 +39,7 @@ const probeResult = {
 	incompletePathEnabled: true,
 	incompletePath: "/data/incomplete",
 };
-async function fixture() {
+async function fixture(bundled = false) {
 	const dataDir = await mkdtemp(join(tmpdir(), "anishelf-qbt-connection-"));
 	cleanup.push(() => rm(dataDir, { recursive: true, force: true }));
 	const database = ApplicationDatabase.open(dataDir);
@@ -56,10 +56,22 @@ async function fixture() {
 		closes.push(vi.spyOn(client, "close"));
 		return client;
 	};
+	const seed = join(dataDir, "bundled.json");
+	if (bundled)
+		await writeFile(
+			seed,
+			JSON.stringify({
+				version: 1,
+				bundled: true,
+				generation: "seed",
+				connection: details,
+			}),
+		);
 	const module = await createAcquisitionModule({
 		dataDir,
 		store: database.acquisition,
 		downloadStore: database.acquisitionDownloads,
+		...(bundled ? { bundledConnectionFile: seed } : {}),
 		autoStart: false,
 		logger,
 		createClient,
@@ -251,7 +263,7 @@ test("failed credential publication preserves the previously saved connection", 
 	expect(f.connection.settings()).toEqual(saved);
 });
 test("authenticated HTTP endpoints enforce CSRF, validate inputs and never echo passwords", async () => {
-	const f = await fixture();
+	const f = await fixture(true);
 	const database = ApplicationDatabase.open(f.dataDir);
 	cleanup.push(async () => database.close());
 	const auth = await createAuthenticationModule({
@@ -293,6 +305,29 @@ test("authenticated HTTP endpoints enforce CSRF, validate inputs and never echo 
 		"x-csrf-token": login.json().csrfToken,
 	};
 	const current = (await app.inject({ url, headers: authenticated })).json();
+	const credentialRequest = {
+		url: `${url}/credentials`,
+		method: "POST" as const,
+		payload: { generation: current.generation },
+	};
+	expect((await app.inject({ ...credentialRequest, headers })).statusCode).toBe(
+		401,
+	);
+	expect(
+		(await app.inject({ ...credentialRequest, headers: authenticated }))
+			.statusCode,
+	).toBe(403);
+	const credentials = await app.inject({
+		...credentialRequest,
+		headers: mutationHeaders,
+	});
+	expect(credentials.statusCode).toBe(200);
+	expect(credentials.headers["cache-control"]).toBe("no-store");
+	expect(credentials.json()).toEqual({
+		username: details.username,
+		password: details.password,
+	});
+
 	expect(
 		(
 			await app.inject({
@@ -418,4 +453,64 @@ test("reuses one authenticated client per configuration generation and closes it
 	});
 	await f.module.close();
 	expect(f.closes[1]).toHaveBeenCalledTimes(1);
+});
+
+test("bundled credentials seed once, remain private, and preserve manual replacement across restarts", async () => {
+	const f = await fixture();
+	const seed = join(f.dataDir, "bundled.json");
+	await writeFile(
+		seed,
+		JSON.stringify({
+			version: 1,
+			bundled: true,
+			generation: "bundled-first",
+			connection: { ...details, url: `${details.url}/` },
+		}),
+	);
+	const open = () =>
+		createAcquisitionModule({
+			dataDir: f.dataDir,
+			store: f.database.acquisition,
+			downloadStore: f.database.acquisitionDownloads,
+			logger: f.logger,
+			autoStart: false,
+			createClient: f.createClient,
+			bundledConnectionFile: seed,
+		});
+	const first = await open();
+	const settings = first.api.connection.settings();
+	expect(settings.bundled).toBe(true);
+	expect(JSON.stringify(settings)).not.toContain(details.password);
+	expect(first.api.connection.credentials(settings.generation)).toEqual({
+		username: details.username,
+		password: details.password,
+	});
+	await first.close();
+	const second = await open();
+	expect(second.api.connection.settings().generation).toBe(settings.generation);
+	const updated = await second.api.connection.save({
+		...details,
+		generation: settings.generation,
+		password: "new-webui-password",
+	});
+	expect(updated.bundled).toBe(true);
+	expect(second.api.connection.credentials(updated.generation).password).toBe(
+		"new-webui-password",
+	);
+	const external = await second.api.connection.save({
+		...details,
+		generation: updated.generation,
+		url: "http://external:8080",
+	});
+	expect(external.bundled).toBeUndefined();
+	expect(() =>
+		second.api.connection.credentials(external.generation),
+	).toThrow();
+	await second.api.connection.clear(external.generation);
+	await second.close();
+	const third = await open();
+	expect(third.api.connection.settings().state).toBe("unconfigured");
+	await third.close();
+	expect(f.logs.join("\n")).not.toContain(details.password);
+	expect(f.logs.join("\n")).not.toContain("new-webui-password");
 });

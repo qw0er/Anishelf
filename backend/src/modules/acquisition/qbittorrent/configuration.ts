@@ -16,6 +16,7 @@ import type { SavedConnection } from "./model.js";
 
 const valueSchema = Type.Object({
 	version: Type.Literal(1),
+	bundled: Type.Optional(Type.Boolean()),
 	generation: Type.String({ minLength: 1, maxLength: 64 }),
 	connection: Type.Union([
 		Type.Null(),
@@ -26,6 +27,35 @@ const valueSchema = Type.Object({
 		}),
 	]),
 });
+
+export async function readBundledConnection(
+	path: string,
+): Promise<SavedConnection | null> {
+	try {
+		if ((await stat(path)).size > 64 * 1024)
+			throw new Error("Invalid bundled connection.");
+		const value: unknown = JSON.parse(await readFile(path, "utf8"));
+		if (
+			!Check(valueSchema, value) ||
+			!value.connection ||
+			value.bundled !== true
+		)
+			throw new Error("Invalid bundled connection.");
+		return value;
+	} catch (error) {
+		if (
+			error &&
+			typeof error === "object" &&
+			"code" in error &&
+			error.code === "ENOENT"
+		)
+			return null;
+		throw new DomainError(
+			"ACQUISITION_UNAVAILABLE",
+			"Bundled qBittorrent credentials could not be loaded.",
+		);
+	}
+}
 
 /** Private plaintext credentials, like tracker tokens; never part of settings.json. */
 export class QbittorrentConfigurationFile {
