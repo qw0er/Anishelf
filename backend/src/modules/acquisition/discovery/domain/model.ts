@@ -1,25 +1,3 @@
-export interface FeedEntry {
-	seeders?: number | null;
-	seedersObservedAt?: number | null;
-	id: string;
-	observationId: string;
-	title: string;
-	publishedAt: number | null;
-	downloadUrl: string | null;
-	hash: string | null;
-}
-export interface FeedRecord {
-	revision: string;
-	id: string;
-	url: string;
-	etag: string | null;
-	lastModified: string | null;
-	checkedAt: number | null;
-	nextAttemptAt: number;
-	failures: number;
-	error: string | null;
-	entries: FeedEntry[];
-}
 export interface Subscription {
 	profileId?: string | null;
 	lastError?: string | null;
@@ -80,10 +58,4 @@ export interface SubscriptionPreview {
 	knownEpisodeCount: number | null;
 	candidates: Candidate[];
 	total: number;
-}
-export class RssError extends Error {
-	constructor(readonly code: string) {
-		super("RSS operation failed.");
-		this.name = "RssError";
-	}
 }

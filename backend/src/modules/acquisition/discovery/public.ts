@@ -4,7 +4,6 @@ import type {
 	SubscriptionView,
 } from "./domain/model.js";
 
-export type { FeedTransport } from "./ports.js";
 export interface DiscoveryApi {
 	profiles(): {
 		profiles: {
@@ -32,4 +31,4 @@ export interface DiscoveryApi {
 	refresh(workKey: string, revision: string): Promise<SubscriptionView>;
 }
 
-export type { Candidate, FeedEntry, Subscription } from "./domain/model.js";
+export type { Candidate, Subscription } from "./domain/model.js";

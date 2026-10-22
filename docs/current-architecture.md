@@ -16,7 +16,8 @@ permissions, canonical reservations, submission attempts and import outcomes.
 
 ```mermaid
 flowchart LR
-    RSS --> Discovery[RSS discovery and selection]
+    RSS --> Sources[Sources transport and evidence]
+    Sources --> Discovery[Discovery assessment and selection]
     Discovery --> Plan[Acquisition planning and admission]
     Catalog[Anime local availability] --> Plan
     Plan --> Downloads[Downloads task execution]
@@ -46,6 +47,19 @@ permission, destination validation, candidate admission, local-episode exclusion
 recovery commands, Activity and the bounded worker. It reads Discovery through a
 consumer-owned selection port and calls Anime for current availability and release
 assessment. Destination and account changes still require explicit confirmation.
+
+`SourcesApplication` in `acquisition/sources/` owns RSS URL validation, public-only
+HTTP transport, XML normalization into `ReleaseEvidence`, shared feed evidence,
+conditional requests, in-flight coalescing, retention limits and refresh/backoff
+scheduling. Its persistence adapter owns feed tables and mappings; table names and
+stored identities are unchanged. Discovery consumes the Sources public API and
+provides active feed IDs and an assessment callback. Subscription confirmation
+still saves evidence, subscription, candidates and authorization atomically through
+the existing Acquisition transaction. Discovery retains metadata assessment,
+profile selection and revision-checked candidate publication. Sources has no
+subscription, Anime or download business dependency. Torrent reads use the same
+public transport implementation; hash/path validation remains in Downloads.
+Jackett adapters, source descriptors and Watching remain planned extensions.
 
 `DownloadsApplication` executes persisted tasks: canonical hash resolution and
 deduplication, qBittorrent submission, ownership/path checks and transfer observation.

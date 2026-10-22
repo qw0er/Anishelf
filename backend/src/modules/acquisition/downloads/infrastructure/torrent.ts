@@ -1,5 +1,5 @@
 import parseTorrent from "parse-torrent";
-import type { FeedEntry } from "../../discovery/public.js";
+import type { ReleaseEvidence } from "../../sources/public.js";
 import { downloadPolicy } from "../application/policy.js";
 import { DownloadError } from "../domain/model.js";
 import { relativeDownloadPath } from "../domain/paths.js";
@@ -44,7 +44,7 @@ function rawPaths(info: unknown) {
 	if (data["file tree"]) tree(data["file tree"], 0);
 }
 export async function resolveTorrent(
-	entry: Pick<FeedEntry, "downloadUrl" | "hash">,
+	entry: Pick<ReleaseEvidence, "downloadUrl" | "hash">,
 	transport: TorrentTransport,
 	signal: AbortSignal,
 ) {

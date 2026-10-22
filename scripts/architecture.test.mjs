@@ -75,6 +75,15 @@ test("allows policy and public contracts, same-module implementation, and bootst
 
 for (const [name, files] of [
 	[
+		"acquisition-sources-do-not-import-business-consumers",
+		{
+			"backend/src/modules/acquisition/sources/application/service.ts":
+				"import type { Subscription } from '../../discovery/public.js'; export type Value = Subscription;",
+			"backend/src/modules/acquisition/discovery/public.ts":
+				"export interface Subscription { workKey: string }",
+		},
+	],
+	[
 		"anime-applications-use-ports",
 		{
 			"backend/src/modules/anime/tracking/application/account.ts":

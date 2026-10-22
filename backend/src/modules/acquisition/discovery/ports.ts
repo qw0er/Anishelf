@@ -1,12 +1,11 @@
-import type { Candidate, FeedRecord, Subscription } from "./domain/model.js";
+import type { FeedRecord } from "../sources/public.js";
+import type { Candidate, Subscription } from "./domain/model.js";
 export interface DiscoveryStore {
 	transaction(operation: () => void): void;
 	reservationOutcome(subscription: Subscription, failed: boolean): void;
 	subscription(workKey: string): Subscription | null;
 	subscriptions(): Subscription[];
-	feed(id: string): FeedRecord | null;
 	candidates(workKey: string): Candidate[];
-	saveFeed(feed: FeedRecord): void;
 	saveSubscription(
 		subscription: Subscription,
 		feed: FeedRecord,
@@ -18,17 +17,4 @@ export interface DiscoveryStore {
 		error?: string | null,
 	): boolean;
 	remove(workKey: string, revision: string): boolean;
-}
-interface FeedResponse {
-	xml: string | null;
-	etag: string | null;
-	lastModified: string | null;
-}
-export interface FeedTransport {
-	fetch(
-		url: string,
-		validators: { etag: string | null; lastModified: string | null },
-		signal: AbortSignal,
-	): Promise<FeedResponse>;
-	close(): Promise<void>;
 }

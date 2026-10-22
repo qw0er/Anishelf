@@ -3,10 +3,14 @@ import { DiscoveryRepository } from "./discovery/infrastructure/repository.js";
 
 export {
 	acquisitionCandidates,
-	acquisitionFeeds,
 	acquisitionSubscriptions,
 } from "./discovery/infrastructure/schema.js";
-export type { DiscoveryStore } from "./discovery/ports.js";
+
+import type { DiscoveryStore } from "./discovery/ports.js";
+import type { SourceStore } from "./sources/public.js";
+
+/** Shared-connection facade keeps subscription confirmation atomic. */
+export type AcquisitionStore = DiscoveryStore & SourceStore;
 export function createAcquisitionPersistence(store: Store) {
 	return new DiscoveryRepository(store);
 }
@@ -22,3 +26,5 @@ export function createDownloadPersistence(store: Store) {
 export * from "./discovery/infrastructure/schema.js";
 
 export * from "./downloads/infrastructure/schema.js";
+
+export * from "./sources/persistence.js";

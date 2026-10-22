@@ -4,12 +4,9 @@ import type { AnimeApi, ReleaseAssessmentApi } from "../anime/public.js";
 import type { AcquisitionResources } from "../resources/public.js";
 import { DiscoveryApplication } from "./discovery/application/application.js";
 import { loadAcquisitionProfiles } from "./discovery/infrastructure/profiles.js";
-import { parseRss } from "./discovery/infrastructure/rss.js";
-import { RssTransport, rssUrl } from "./discovery/infrastructure/transport.js";
-import type { FeedTransport } from "./discovery/public.js";
 import type { DownloadStore, TorrentTransport } from "./downloads/public.js";
 import { registerAcquisitionHttp } from "./http.js";
-import type { DiscoveryStore } from "./persistence.js";
+import type { AcquisitionStore } from "./persistence.js";
 import type { AcquisitionApi } from "./public.js";
 import { QbittorrentConnection } from "./qbittorrent/application.js";
 import { QbittorrentClient } from "./qbittorrent/client.js";
@@ -18,6 +15,10 @@ import type {
 	QbittorrentApi,
 	QbittorrentOptions,
 } from "./qbittorrent/public.js";
+import { SourcesApplication } from "./sources/application/application.js";
+import { parseRss } from "./sources/infrastructure/rss.js";
+import { RssTransport, rssUrl } from "./sources/infrastructure/transport.js";
+import type { FeedTransport } from "./sources/public.js";
 import { SubscriptionConfirmation } from "./subscription-confirmation.js";
 import { AcquisitionApplication } from "./workflows/application.js";
 
@@ -34,7 +35,7 @@ export async function createAcquisitionModule(options: {
 	createClient?: (options: QbittorrentOptions) => QbittorrentApi;
 	suggestedApiUrl?: string;
 	bundledConnectionFile?: string;
-	store: DiscoveryStore;
+	store: AcquisitionStore;
 	downloadStore: DownloadStore;
 	resources?: AcquisitionResources;
 	ingestion?: NonNullable<AnimeApi["ingestion"]>;
@@ -61,6 +62,17 @@ export async function createAcquisitionModule(options: {
 	await connection.initialize();
 	let workflow: AcquisitionApplication | undefined;
 	const discoveryStore = options.store;
+	const sources = new SourcesApplication({
+		store: discoveryStore,
+		transport: options.transport ?? new RssTransport(),
+		parse: parseRss,
+		normalizeUrl: rssUrl,
+		logger: options.logger,
+		...(options.now ? { now: options.now } : {}),
+		...(options.rssRefreshIntervalMinutes
+			? { refreshIntervalMinutes: options.rssRefreshIntervalMinutes }
+			: {}),
+	});
 	const discovery = new DiscoveryApplication({
 		store: discoveryStore,
 		profiles,
@@ -88,12 +100,7 @@ export async function createAcquisitionModule(options: {
 				);
 			},
 		},
-		transport: options.transport ?? new RssTransport(),
-		parse: parseRss,
-		...(options.rssRefreshIntervalMinutes
-			? { refreshIntervalMinutes: options.rssRefreshIntervalMinutes }
-			: {}),
-		normalizeUrl: rssUrl,
+		sources,
 		downloads: (signal) => connection.activeHashes(signal),
 		logger: options.logger,
 		...(options.now ? { now: options.now } : {}),

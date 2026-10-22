@@ -3,7 +3,8 @@ import type {
 	AcquisitionTarget,
 	ReleaseAssessmentApi,
 } from "../../../anime/public.js";
-import type { Candidate, FeedRecord, Subscription } from "./model.js";
+import type { FeedRecord } from "../../sources/public.js";
+import type { Candidate, Subscription } from "./model.js";
 import { matchesRelease } from "./profile-matching.js";
 import {
 	type AcquisitionProfile,
