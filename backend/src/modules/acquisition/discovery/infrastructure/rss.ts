@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { XMLParser, XMLValidator } from "fast-xml-parser";
+import { XMLParser } from "fast-xml-parser";
+import { SyntaxValidator } from "fast-xml-validator";
 import { discoveryPolicy as policy } from "../application/policy.js";
 import { type FeedEntry, RssError } from "../domain/model.js";
 
@@ -54,7 +55,7 @@ export function parseRss(xml: string): FeedEntry[] {
 			/<!DOCTYPE|<!ENTITY/i.test(xml)
 		)
 			throw new RssError("invalid_xml");
-		if (XMLValidator.validate(xml) !== true) throw new RssError("invalid_xml");
+		SyntaxValidator.validate(xml);
 		const parsed: unknown = new XMLParser({
 			ignoreAttributes: false,
 			attributeNamePrefix: "@",
