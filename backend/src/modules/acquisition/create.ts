@@ -168,7 +168,9 @@ export async function createAcquisitionModule(options: {
 		close: () => {
 			closing ??= (async () => {
 				await workflow?.close();
-				await discovery.close();
+				const closingDiscovery = discovery.close();
+				await sources.close();
+				await closingDiscovery;
 				await connection.close();
 			})();
 			return closing;

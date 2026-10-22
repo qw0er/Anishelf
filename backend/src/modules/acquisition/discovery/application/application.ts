@@ -1,8 +1,8 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { DomainError } from "../../../../shared/errors.js";
 import { workReference } from "../../../../shared/external-reference.js";
 import type { AcquisitionTarget } from "../../../anime/public.js";
-import { type FeedRecord, RssError } from "../../sources/public.js";
+import { SourceError, type SourceSnapshot } from "../../sources/public.js";
 import type {
 	Candidate,
 	PreviewInput,
@@ -21,9 +21,6 @@ import { DiscoveryContext, type DiscoveryOptions } from "./context.js";
 import { discoveryPolicy as policy } from "./policy.js";
 import { DiscoveryWorker } from "./worker.js";
 
-function hash(value: string) {
-	return createHash("sha256").update(value).digest("hex");
-}
 function conflict(): never {
 	throw new DomainError(
 		"ACQUISITION_CONFLICT",
@@ -35,11 +32,10 @@ interface Preview {
 	downloadRevision: string | null;
 	session: string;
 	input: PreviewInput;
-	feed: FeedRecord;
+	feed: SourceSnapshot;
 	candidates: Candidate[];
 	targetRevision: string;
 	expiresAt: number;
-	feedRevision: string | null;
 }
 export class DiscoveryApplication implements DiscoveryApi {
 	private readonly context: DiscoveryContext;
@@ -87,7 +83,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 			throw new DomainError("INVALID_REQUEST", "Invalid candidate page.");
 		const subscription = this.options.store.subscription(workKey);
 		const feed = subscription
-			? this.options.sources.feed(subscription.feedId)
+			? this.options.sources.snapshot(subscription.feedId)
 			: null;
 		const candidates = this.options.store
 			.candidates(workKey)
@@ -101,7 +97,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 				subscription && feed
 					? {
 							...subscription,
-							source: this.source(feed.url),
+							source: feed.label,
 							checkedAt: feed.checkedAt,
 							nextAttemptAt: feed.nextAttemptAt,
 							error: feed.error ?? subscription.lastError ?? null,
@@ -115,10 +111,6 @@ export class DiscoveryApplication implements DiscoveryApi {
 			page,
 		};
 	}
-	private source(url: string) {
-		const parsed = new URL(url);
-		return parsed.origin;
-	}
 	preview(session: string, input: PreviewInput) {
 		return this.context.tracked(async () => {
 			if (this.preparing >= 2)
@@ -130,7 +122,12 @@ export class DiscoveryApplication implements DiscoveryApi {
 			try {
 				return await this.preparePreview(session, input);
 			} catch (error) {
-				if (!(error instanceof RssError)) throw error;
+				if (!(error instanceof SourceError)) throw error;
+				if (error.code === "invalid_source_url")
+					throw new DomainError(
+						"INVALID_REQUEST",
+						"Enter a public HTTP(S) RSS URL.",
+					);
 				this.options.logger.warn(
 					{ event: "acquisition.preview_failed", code: error.code },
 					"RSS preview could not be read.",
@@ -157,18 +154,9 @@ export class DiscoveryApplication implements DiscoveryApi {
 			throw new DomainError("INVALID_REQUEST", "Invalid starting episode.");
 		const current = this.options.store.subscription(input.workKey);
 		if ((current?.revision ?? null) !== input.revision) conflict();
-		let url: string;
-		try {
-			url = input.rssUrl.trim()
-				? this.options.sources.normalizeUrl(input.rssUrl.trim())
-				: (this.options.sources.feed(current?.feedId ?? "")?.url ?? "");
-		} catch {
-			throw new DomainError(
-				"INVALID_REQUEST",
-				"Enter a public HTTP(S) RSS URL.",
-			);
-		}
-		if (!url) throw new DomainError("INVALID_REQUEST", "Enter an RSS URL.");
+		const url = input.rssUrl.trim();
+		if (!url && !current)
+			throw new DomainError("INVALID_REQUEST", "Enter an RSS URL.");
 		for (const [token, preview] of this.previews)
 			if (preview.expiresAt <= this.context.now()) this.previews.delete(token);
 		if (this.previews.size >= policy.maximumPreviews)
@@ -176,21 +164,9 @@ export class DiscoveryApplication implements DiscoveryApi {
 				"ACQUISITION_UNAVAILABLE",
 				"Too many pending previews.",
 			);
-		const existing = this.options.sources.feed(hash(url));
-		const feed = await this.options.sources.fetch(
-			existing ?? {
-				revision: randomUUID(),
-				id: hash(url),
-				url,
-				etag: null,
-				lastModified: null,
-				entries: [],
-				checkedAt: null,
-				nextAttemptAt: 0,
-				failures: 0,
-				error: null,
-			},
-		);
+		const feed = url
+			? await this.options.sources.read({ kind: "rss", url })
+			: await this.options.sources.refresh(current?.feedId ?? "");
 		const target = await this.options.anime.target(
 			input.workKey,
 			this.context.signal,
@@ -232,12 +208,11 @@ export class DiscoveryApplication implements DiscoveryApi {
 			candidates,
 			targetRevision: target.revision,
 			expiresAt,
-			feedRevision: existing?.revision ?? null,
 		});
 		return {
 			token,
 			expiresAt,
-			source: this.source(url),
+			source: feed.label,
 			startEpisode: input.startEpisode,
 			availableEpisodes: target.availableEpisodes,
 			knownEpisodeCount: target.work.episodeCount,
@@ -277,9 +252,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 			if (
 				(current?.revision ?? null) !== preview.input.revision ||
 				target.revision !== preview.targetRevision ||
-				![preview.feedRevision, preview.feed.revision].includes(
-					this.options.sources.feed(preview.feed.id)?.revision ?? null,
-				)
+				!this.options.sources.isCurrent(preview.feed)
 			)
 				conflict();
 			if (
@@ -304,11 +277,9 @@ export class DiscoveryApplication implements DiscoveryApi {
 				subscription,
 				preview.downloadRevision,
 				() => {
-					this.options.store.saveSubscription(
-						subscription,
-						preview.feed,
-						preview.candidates,
-					);
+					if (!this.options.sources.isCurrent(preview.feed)) conflict();
+					this.options.sources.publish(preview.feed);
+					this.options.store.saveSubscription(subscription, preview.candidates);
 				},
 			);
 			this.previews.delete(token);
@@ -327,11 +298,10 @@ export class DiscoveryApplication implements DiscoveryApi {
 		this.key(workKey);
 		const current = this.options.store.subscription(workKey);
 		if (!current || current.revision !== revision) conflict();
-		const feed = this.options.sources.feed(current.feedId);
+		const feed = this.options.sources.snapshot(current.feedId);
 		if (!feed) conflict();
 		this.options.store.saveSubscription(
 			{ ...current, enabled, revision: randomUUID() },
-			feed,
 			this.options.store.candidates(workKey),
 		);
 		this.options.logger.info(
@@ -354,7 +324,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 			const subscription = this.options.store.subscription(workKey);
 			if (!subscription?.enabled || subscription.revision !== revision)
 				conflict();
-			const feed = this.options.sources.feed(subscription.feedId);
+			const feed = this.options.sources.snapshot(subscription.feedId);
 			if (!feed) conflict();
 			if (
 				feed.checkedAt !== null &&
@@ -368,7 +338,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 
 	private async evaluateFeedCandidates(
 		subscription: Subscription,
-		feed: FeedRecord,
+		feed: SourceSnapshot,
 		target: AcquisitionTarget,
 	): Promise<Candidate[]> {
 		let hashes: string[] | null = null,
@@ -452,7 +422,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 			},
 			release: (feedId: string, entryId: string) =>
 				this.options.sources
-					.feed(feedId)
+					.snapshot(feedId)
 					?.entries.find((entry) => entry.id === entryId) ?? null,
 			reservationOutcome: (subscription: Subscription, failed: boolean) =>
 				this.options.store.reservationOutcome(subscription, failed),
@@ -470,7 +440,6 @@ export class DiscoveryApplication implements DiscoveryApi {
 	}
 	async close() {
 		this.context.shutdown.abort();
-		await this.options.sources.close();
 		await Promise.allSettled([...this.context.pending, this.worker.close()]);
 		this.previews.clear();
 	}

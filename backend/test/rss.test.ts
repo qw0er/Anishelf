@@ -761,3 +761,24 @@ test("changing the inherited profile invalidates a pending preview", async () =>
 	).rejects.toMatchObject({ code: "ACQUISITION_CONFLICT" });
 	expect(f.discovery.get(key).subscription).toBeNull();
 });
+
+test("scope previews can refresh the saved source without revealing or resubmitting its URL", async () => {
+	const f = await fixture();
+	const saved = await f.subscribe();
+	const sourceId = saved.subscription?.feedId ?? "";
+	const preview = await f.discovery.preview("session", {
+		workKey: key,
+		rssUrl: "",
+		startEpisode: 4,
+		revision: saved.subscription?.revision ?? null,
+	});
+	expect(preview.source).toBe("https://feeds.example.org");
+	expect(f.database.acquisition.feed(sourceId)?.revision).toBeDefined();
+	const updated = await f.discovery.confirm("session", key, preview.token);
+	expect(updated.subscription).toMatchObject({
+		feedId: sourceId,
+		startEpisode: 4,
+	});
+	expect(f.fetch.mock.calls[1]?.[0]).toContain("private-feed-token");
+	expect(JSON.stringify(updated)).not.toContain("private-feed-token");
+});

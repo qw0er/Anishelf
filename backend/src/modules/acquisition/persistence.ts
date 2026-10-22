@@ -7,12 +7,16 @@ export {
 } from "./discovery/infrastructure/schema.js";
 
 import type { DiscoveryStore } from "./discovery/ports.js";
-import type { SourceStore } from "./sources/public.js";
+import {
+	type FeedRecord,
+	SourceRepository,
+	type SourceStore,
+} from "./sources/persistence.js";
 
 /** Shared-connection facade keeps subscription confirmation atomic. */
 export type AcquisitionStore = DiscoveryStore & SourceStore;
 export function createAcquisitionPersistence(store: Store) {
-	return new DiscoveryRepository(store);
+	return new AcquisitionRepository(store);
 }
 
 export * from "./downloads/infrastructure/schema.js";
@@ -28,3 +32,18 @@ export * from "./discovery/infrastructure/schema.js";
 export * from "./downloads/infrastructure/schema.js";
 
 export * from "./sources/persistence.js";
+
+/** Source and Discovery repositories participate in the same admission transaction. */
+class AcquisitionRepository extends DiscoveryRepository implements SourceStore {
+	private readonly sources: SourceRepository;
+	constructor(store: Store) {
+		super(store);
+		this.sources = new SourceRepository(store);
+	}
+	feed(id: string) {
+		return this.sources.feed(id);
+	}
+	saveFeed(feed: FeedRecord) {
+		this.sources.saveFeed(feed);
+	}
+}

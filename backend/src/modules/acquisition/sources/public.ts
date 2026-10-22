@@ -1,17 +1,44 @@
-export type { FeedRecord, ReleaseEvidence } from "./domain/model.js";
-export { RssError } from "./domain/model.js";
-export type { FeedTransport, SourceStore } from "./ports.js";
+export type { ReleaseEvidence } from "./domain/model.js";
+export { SourceError } from "./domain/model.js";
+export type { FeedTransport } from "./ports.js";
 
-import type { FeedRecord } from "./domain/model.js";
+import type { ReleaseEvidence } from "./domain/model.js";
+
+/** RSS reads and work-derived queries have distinct protocol semantics. */
+export type SourceRequest =
+	| { kind: "rss"; url: string }
+	| {
+			kind: "query";
+			sourceId: string;
+			generation: string;
+			titles: readonly string[];
+	  };
+
+/** Consumer evidence excludes feed URLs, HTTP validators and protocol cursors. */
+export interface SourceSnapshot {
+	readonly id: string;
+	readonly revision: string;
+	readonly label: string;
+	readonly entries: readonly Readonly<ReleaseEvidence>[];
+	readonly checkedAt: number | null;
+	readonly nextAttemptAt: number;
+	readonly error: string | null;
+}
+
 export interface SourcesApi {
-	normalizeUrl(url: string): string;
-	feed(id: string): FeedRecord | null;
-	saveFeed(feed: FeedRecord): void;
-	fetch(feed: FeedRecord): Promise<FeedRecord>;
-	failed(feed: FeedRecord, code: string): void;
+	/** Saved evidence only; no remote request. */
+	snapshot(id: string): SourceSnapshot | null;
+	/** Prepare isolated evidence. Neither method persists or authorizes work. */
+	read(request: SourceRequest): Promise<SourceSnapshot>;
+	refresh(id: string): Promise<SourceSnapshot>;
+	/** Recheck immediately before publication and inside admission transactions. */
+	isCurrent(result: SourceSnapshot): boolean;
+	/** Publish only a prepared, current result, using the caller's transaction. */
+	publish(result: SourceSnapshot): void;
+	failed(previous: SourceSnapshot, code: string): void;
 	start(
 		activeIds: () => string[],
-		poll: (feed: FeedRecord) => Promise<void>,
+		poll: (source: SourceSnapshot) => Promise<void>,
 	): void;
 	close(): Promise<void>;
 }

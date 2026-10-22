@@ -1,4 +1,3 @@
-import type { FeedRecord } from "../sources/public.js";
 import type { Candidate, Subscription } from "./domain/model.js";
 export interface DiscoveryStore {
 	transaction(operation: () => void): void;
@@ -6,11 +5,7 @@ export interface DiscoveryStore {
 	subscription(workKey: string): Subscription | null;
 	subscriptions(): Subscription[];
 	candidates(workKey: string): Candidate[];
-	saveSubscription(
-		subscription: Subscription,
-		feed: FeedRecord,
-		candidates: Candidate[],
-	): void;
+	saveSubscription(subscription: Subscription, candidates: Candidate[]): void;
 	updateCandidates(
 		subscription: Subscription,
 		candidates: Candidate[],

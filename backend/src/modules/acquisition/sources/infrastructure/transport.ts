@@ -2,7 +2,7 @@ import { lookup } from "node:dns";
 import type { LookupFunction } from "node:net";
 import ipaddr from "ipaddr.js";
 import { Agent, type Dispatcher, request } from "undici";
-import { RssError } from "../domain/model.js";
+import { SourceError } from "../domain/model.js";
 import { sourcePolicy as policy } from "../policy.js";
 import type { FeedTransport } from "../ports.js";
 
@@ -32,7 +32,7 @@ export function rssUrl(input: string): string {
 			throw new Error();
 		return url.href;
 	} catch {
-		throw new RssError("invalid_url");
+		throw new SourceError("invalid_url");
 	}
 }
 const publicLookup: LookupFunction = (hostname, options, callback) => {
@@ -103,7 +103,7 @@ export class RssTransport implements FeedTransport {
 			signal,
 			10 * 1024 * 1024,
 		);
-		if (response.bytes === null) throw new RssError("http_failed");
+		if (response.bytes === null) throw new SourceError("http_failed");
 		return response.bytes;
 	}
 	private async body(
@@ -139,13 +139,13 @@ export class RssTransport implements FeedTransport {
 				if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
 					response.body.destroy();
 					if (redirects === 3 || typeof response.headers.location !== "string")
-						throw new RssError("redirect_failed");
+						throw new SourceError("redirect_failed");
 					const next = rssUrl(new URL(response.headers.location, url).href);
 					if (
 						new URL(url).protocol === "https:" &&
 						new URL(next).protocol !== "https:"
 					)
-						throw new RssError("redirect_failed");
+						throw new SourceError("redirect_failed");
 					url = next;
 					continue;
 				}
@@ -171,7 +171,7 @@ export class RssTransport implements FeedTransport {
 						response.headers["content-encoding"] !== "identity")
 				) {
 					response.body.destroy();
-					throw new RssError("http_failed");
+					throw new SourceError("http_failed");
 				}
 				const chunks: Buffer[] = [];
 				let size = 0;
@@ -179,17 +179,17 @@ export class RssTransport implements FeedTransport {
 					size += chunk.length;
 					if (size > maximumBytes) {
 						response.body.destroy();
-						throw new RssError("feed_too_large");
+						throw new SourceError("feed_too_large");
 					}
 					chunks.push(Buffer.from(chunk));
 				}
 				const bytes = new Uint8Array(Buffer.concat(chunks));
 				return { bytes, etag, lastModified };
 			}
-			throw new RssError("redirect_failed");
+			throw new SourceError("redirect_failed");
 		} catch (error) {
-			if (error instanceof RssError) throw error;
-			throw new RssError(
+			if (error instanceof SourceError) throw error;
+			throw new SourceError(
 				combined.aborted ? "request_cancelled" : "fetch_failed",
 			);
 		}
