@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { XMLParser } from "fast-xml-parser";
 import { SyntaxValidator } from "fast-xml-validator";
-import { type ReleaseEvidence, RssError } from "../domain/model.js";
+import { type ReleaseEvidence, SourceError } from "../domain/model.js";
 import { sourcePolicy as policy } from "../policy.js";
 
 function digest(value: string): string {
@@ -54,7 +54,7 @@ export function parseRss(xml: string): ReleaseEvidence[] {
 			Buffer.byteLength(xml) > policy.maximumBodyBytes ||
 			/<!DOCTYPE|<!ENTITY/i.test(xml)
 		)
-			throw new RssError("invalid_xml");
+			throw new SourceError("invalid_xml");
 		SyntaxValidator.validate(xml);
 		const parsed: unknown = new XMLParser({
 			ignoreAttributes: false,
@@ -66,15 +66,15 @@ export function parseRss(xml: string): ReleaseEvidence[] {
 		}).parse(xml);
 		const rss = object(object(parsed).rss);
 		if (rss["@version"] !== "2.0" || !rss.channel || Array.isArray(rss.channel))
-			throw new RssError("unsupported_feed");
+			throw new SourceError("unsupported_feed");
 		const items = list(object(rss.channel).item);
 		if (items.length > policy.maximumItems)
-			throw new RssError("feed_too_large");
+			throw new SourceError("feed_too_large");
 		const result = new Map<string, ReleaseEvidence>();
 		for (const value of items) {
 			const item = object(value),
 				title = text(item.title);
-			if (!title || title.length > 4096) throw new RssError("invalid_item");
+			if (!title || title.length > 4096) throw new SourceError("invalid_item");
 			const enclosures = list(item.enclosure).map(object);
 			const enclosure = enclosures.find(
 				(entry) =>
@@ -100,7 +100,7 @@ export function parseRss(xml: string): ReleaseEvidence[] {
 			const guid = text(item.guid),
 				link = text(item.link);
 			if (guid.length > 8192 || link.length > 8192)
-				throw new RssError("invalid_item");
+				throw new SourceError("invalid_item");
 			const identity = hash
 				? `hash:${hash}`
 				: downloadUrl
@@ -132,7 +132,7 @@ export function parseRss(xml: string): ReleaseEvidence[] {
 		}
 		return [...result.values()];
 	} catch (error) {
-		if (error instanceof RssError) throw error;
-		throw new RssError("invalid_xml");
+		if (error instanceof SourceError) throw error;
+		throw new SourceError("invalid_xml");
 	}
 }

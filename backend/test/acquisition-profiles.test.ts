@@ -9,10 +9,7 @@ import {
 import { selectCandidates } from "../src/modules/acquisition/discovery/domain/selection.js";
 import { parseAcquisitionProfiles } from "../src/modules/acquisition/discovery/infrastructure/profiles.js";
 import { parseRss } from "../src/modules/acquisition/sources/infrastructure/rss.js";
-import type {
-	FeedRecord,
-	ReleaseEvidence,
-} from "../src/modules/acquisition/sources/public.js";
+import type { ReleaseEvidence } from "../src/modules/acquisition/sources/public.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../src/modules/anime/release-assessment/application.js";
@@ -71,7 +68,7 @@ function select(
 			enabled: true,
 			revision: "1",
 		},
-		feed: { entries } as FeedRecord,
+		feed: { entries },
 		target,
 		active: new Set(),
 		downloadsUnknown: false,

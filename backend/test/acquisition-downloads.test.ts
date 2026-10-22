@@ -137,7 +137,8 @@ async function fixture(persistent = false, bundled = false) {
 		close: vi.fn(async () => {}),
 	};
 	function seed() {
-		db.acquisition.saveSubscription(
+		seedSubscription(
+			db.acquisition,
 			{
 				workKey: key,
 				feedId: "feed",
@@ -497,7 +498,8 @@ test("scope pause during asynchronous submission preparation prevents add", asyn
 			const sub = f.db.acquisition.subscription(key),
 				feed = f.db.acquisition.feed("feed");
 			if (sub && feed)
-				f.db.acquisition.saveSubscription(
+				seedSubscription(
+					f.db.acquisition,
 					{ ...sub, enabled: false, revision: "paused" },
 					feed,
 					f.db.acquisition.candidates(key),
@@ -788,7 +790,8 @@ test("changed release selection cannot submit a previously reserved publication;
 			const sub = f.db.acquisition.subscription(key),
 				feed = f.db.acquisition.feed("feed");
 			if (!sub || !feed) throw new Error();
-			f.db.acquisition.saveSubscription(
+			seedSubscription(
+				f.db.acquisition,
 				sub,
 				{
 					...feed,
@@ -1265,3 +1268,15 @@ test("bundled destination selects the matching root, retries failed validation, 
 	);
 	expect(f.add).not.toHaveBeenCalled();
 });
+
+function seedSubscription(
+	store: import("../src/modules/acquisition/persistence.js").AcquisitionStore,
+	subscription: Parameters<typeof store.saveSubscription>[0],
+	feed: import("../src/modules/acquisition/sources/persistence.js").FeedRecord,
+	candidates: Parameters<typeof store.saveSubscription>[1],
+) {
+	store.transaction(() => {
+		store.saveFeed(feed);
+		store.saveSubscription(subscription, candidates);
+	});
+}

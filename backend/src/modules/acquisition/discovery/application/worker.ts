@@ -1,5 +1,5 @@
 import type { AcquisitionTarget } from "../../../anime/public.js";
-import { type FeedRecord, RssError } from "../../sources/public.js";
+import { SourceError, type SourceSnapshot } from "../../sources/public.js";
 import type { Candidate, Subscription } from "../domain/model.js";
 import type { DiscoveryContext } from "./context.js";
 export class DiscoveryWorker {
@@ -8,11 +8,11 @@ export class DiscoveryWorker {
 		private readonly context: DiscoveryContext,
 		private readonly evaluateFeedCandidates: (
 			subscription: Subscription,
-			feed: FeedRecord,
+			feed: SourceSnapshot,
 			target: AcquisitionTarget,
 		) => Promise<Candidate[]>,
 	) {}
-	pollFeed(feed: FeedRecord): Promise<void> {
+	pollFeed(feed: SourceSnapshot): Promise<void> {
 		const current = this.polling.get(feed.id);
 		if (current) return current;
 		const task = this.runFeed(feed);
@@ -20,15 +20,14 @@ export class DiscoveryWorker {
 		void task.finally(() => this.polling.delete(feed.id)).catch(() => {});
 		return task;
 	}
-	private async runFeed(feed: FeedRecord) {
-		const canPublish = (revision = feed.revision) => {
-			const current = this.context.options.sources.feed(feed.id);
-			return current && [feed.revision, revision].includes(current.revision);
-		};
+	private async runFeed(feed: SourceSnapshot) {
+		const canPublish = () =>
+			this.context.options.sources.snapshot(feed.id)?.revision ===
+			feed.revision;
 		try {
-			const updated = await this.context.options.sources.fetch(feed);
+			const updated = await this.context.options.sources.refresh(feed.id);
 			this.context.open();
-			if (!canPublish(updated.revision)) return;
+			if (!this.context.options.sources.isCurrent(updated)) return;
 			const subscriptions = this.context.options.store
 				.subscriptions()
 				.filter(
@@ -48,10 +47,13 @@ export class DiscoveryWorker {
 						target,
 					);
 					this.context.open();
-					if (!canPublish(updated.revision)) return;
+					if (!this.context.options.sources.isCurrent(updated)) return;
 					this.context.options.store.updateCandidates(subscription, candidates);
 				} catch {
-					if (this.context.signal.aborted || !canPublish(updated.revision))
+					if (
+						this.context.signal.aborted ||
+						!this.context.options.sources.isCurrent(updated)
+					)
 						return;
 					this.context.options.store.updateCandidates(
 						subscription,
@@ -64,8 +66,8 @@ export class DiscoveryWorker {
 					);
 				}
 			}
-			if (!canPublish(updated.revision)) return;
-			this.context.options.sources.saveFeed(updated);
+			if (!this.context.options.sources.isCurrent(updated)) return;
+			this.context.options.sources.publish(updated);
 			this.context.options.logger.info(
 				{
 					event: "acquisition.discovery_completed",
@@ -77,7 +79,7 @@ export class DiscoveryWorker {
 		} catch (error) {
 			if (this.context.signal.aborted || !canPublish()) return;
 			const code =
-				error instanceof RssError ? error.code : "assessment_unavailable";
+				error instanceof SourceError ? error.code : "assessment_unavailable";
 			this.context.options.sources.failed(feed, code);
 			this.context.options.logger.warn(
 				{ event: "acquisition.discovery_failed", feedId: feed.id, code },

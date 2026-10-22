@@ -20,9 +20,9 @@ export interface FeedRecord {
 	error: string | null;
 	entries: ReleaseEvidence[];
 }
-export class RssError extends Error {
+export class SourceError extends Error {
 	constructor(readonly code: string) {
-		super("RSS operation failed.");
-		this.name = "RssError";
+		super("Source operation failed.");
+		this.name = "SourceError";
 	}
 }

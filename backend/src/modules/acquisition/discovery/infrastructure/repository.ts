@@ -1,10 +1,6 @@
 import { eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import {
-	acquisitionFeeds as feeds,
-	SourceRepository,
-} from "../../sources/persistence.js";
-import type { FeedRecord } from "../../sources/public.js";
+import { acquisitionFeeds as feeds } from "../../sources/persistence.js";
 import type { Candidate, Subscription } from "../domain/model.js";
 import type { DiscoveryStore } from "../ports.js";
 import {
@@ -48,9 +44,6 @@ export class DiscoveryRepository implements DiscoveryStore {
 			.all()
 			.map((row) => readAcquisitionSubscriptions(this.store, row));
 	}
-	feed(id: string) {
-		return new SourceRepository(this.store).feed(id);
-	}
 
 	candidates(workKey: string) {
 		return this.store
@@ -60,24 +53,16 @@ export class DiscoveryRepository implements DiscoveryStore {
 			.all()
 			.map((row) => readAcquisitionCandidates(this.store, row));
 	}
-	saveFeed(feed: FeedRecord) {
-		new SourceRepository(this.store).saveFeed(feed);
-	}
 
-	saveSubscription(
-		subscription: Subscription,
-		feed: FeedRecord,
-		result: Candidate[],
-	) {
+	saveSubscription(subscription: Subscription, result: Candidate[]) {
 		this.store.transaction((store) => {
 			const repository = new DiscoveryRepository(store);
 			const previous = repository.subscription(subscription.workKey);
-			repository.saveFeed(feed);
 			writeAcquisitionSubscriptions(store, subscription);
 			repository.replaceCandidates(subscription.workKey, result);
 			if (
 				previous &&
-				previous.feedId !== feed.id &&
+				previous.feedId !== subscription.feedId &&
 				!repository
 					.subscriptions()
 					.some((item) => item.feedId === previous.feedId)

@@ -3,7 +3,7 @@ import type {
 	AcquisitionTarget,
 	ReleaseAssessmentApi,
 } from "../../../anime/public.js";
-import type { FeedRecord } from "../../sources/public.js";
+import type { SourceSnapshot } from "../../sources/public.js";
 import type { Candidate, Subscription } from "./model.js";
 import { matchesRelease } from "./profile-matching.js";
 import {
@@ -23,7 +23,7 @@ const stableOrder = (a: Candidate, b: Candidate) =>
 /** Explicit snapshots only: no transport, persistence or clock access. */
 export function selectCandidates(input: {
 	subscription: Subscription;
-	feed: FeedRecord;
+	feed: Pick<SourceSnapshot, "entries">;
 	target: AcquisitionTarget;
 	history?: Candidate[];
 	profile?: AcquisitionProfile | null;
