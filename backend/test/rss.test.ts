@@ -97,8 +97,8 @@ async function fixture(
 		downloadStore: database.acquisitionDownloads,
 		anime: {
 			target: vi.fn(async () => state.target),
-			assess: (title: string, target: AcquisitionTarget) =>
-				assessor.assess(title, target),
+			assessReleaseTitle: (title: string, target: AcquisitionTarget) =>
+				assessor.assessReleaseTitle(title, target),
 		},
 		transport: { fetch, close: async () => {} },
 		now: () => clock,
@@ -240,7 +240,9 @@ test("actual RSS transport handles conditional responses and rejects private red
 	).rejects.toMatchObject({ code: "feed_too_large" });
 });
 test("release assessment uses leaf evidence only and skips identity, season, pack and numbering ambiguity", () => {
-	expect(assessor.assess("[G] Frieren - 03 [1080p]", target)).toMatchObject({
+	expect(
+		assessor.assessReleaseTitle("[G] Frieren - 03 [1080p]", target),
+	).toMatchObject({
 		eligible: true,
 		episode: 3,
 	});
@@ -253,7 +255,9 @@ test("release assessment uses leaf evidence only and skips identity, season, pac
 		"Frieren - 29",
 		"Frieren Complete Batch",
 	])
-		expect(assessor.assess(title, target).eligible, title).toBe(false);
+		expect(assessor.assessReleaseTitle(title, target).eligible, title).toBe(
+			false,
+		);
 	const extraction = new AnitomyIdentificationParser().extractRelease(
 		"[G] Frieren / Extra - 03",
 	);

@@ -196,8 +196,8 @@ permissions of existing directories, and checks writability. The persistent sett
 manager creates `settings.json` on the first settings save, including a transcode
 profile selection before a resource directory is configured, or initializes it
 on startup when `ANISHELF_INITIAL_RESOURCE_ROOTS` is supplied and the file is missing. See
-[Transcode profiles](transcode-profiles.md) for the optional administrator-authored
-`dataDir/transcode-profiles.json`, catalog API and persistent selection.
+[Transcode profiles](transcode-profiles.yaml) for the optional administrator-authored
+`dataDir/transcode-profiles.yaml`, catalog API and persistent selection.
 
 The optional `settings.json` field `transcodeCacheBudgetGiB` configures the total
 prepared-media cache budget in whole GiB (default: 10). It is also editable in

@@ -114,7 +114,7 @@ async function fixture(persistent = false) {
 	};
 	const anime = {
 		target: vi.fn(async () => target),
-		assess: vi.fn(() => ({
+		assessReleaseTitle: vi.fn(() => ({
 			episode: 3,
 			eligible: true,
 			reasons: [] as string[],
@@ -855,7 +855,7 @@ test("pre-submission checks exclude another active version and reject stale rele
 	if (!item) throw new Error();
 	expect(item.error).toBe("episode_downloading");
 	f.worker.retry(item.id, item.revision, "retry-evidence", "acquisition");
-	f.anime.assess.mockReturnValueOnce({
+	f.anime.assessReleaseTitle.mockReturnValueOnce({
 		episode: 3,
 		eligible: false,
 		reasons: ["identity_unconfirmed"],

@@ -1,0 +1,117 @@
+# Transcode profiles — copy this file to <dataDir>/transcode-profiles.yaml.
+# Loaded once at startup; restart after edits. Missing file uses built-ins only.
+# The application does not create this file. There is no profile-path override.
+# Migration: convert the old transcode-profiles.json contents to YAML and save
+# under the new name. The old JSON filename is no longer read.
+#
+# All fields below are required except video.maxHeight. No defaults are inserted.
+# Unknown fields, duplicate IDs, unsupported versions, invalid YAML (including
+# multiple documents, duplicate mapping keys and unknown tags) fail startup with
+# CONFIG_INVALID. At most 100 custom profiles are accepted; profiles: [] is valid.
+# Raw FFmpeg arguments and overriding built-in profiles are unsupported.
+#
+# Built-ins (all preparation-only, yuv420p, preserve channels, allow stream copy):
+#   builtin:balanced (default): MP4, libx264 CRF 23 medium, AAC 192 kbit/s.
+#   builtin:fast: MP4, libx264 CRF 23 veryfast, AAC 192 kbit/s.
+#   builtin:efficient: WebM, VP9 CRF 32 cpuUsed 4, Opus 128 kbit/s.
+#   builtin:compact: WebM, VP9 CRF 32 cpuUsed 2, Opus 128 kbit/s.
+#
+# Validation certifies declaration shape only, not installed FFmpeg encoders,
+# hardware/drivers, pixel-format support, container combinations, HDR or browser
+# playback. Runtime planning/preflight/output validation may reject a valid profile.
+#
+# ### Video encoder parameters
+#
+# Every video variant declares `encoder`, its matching `codec`, `pixelFormat`, and
+# optionally `maxHeight`. Pixel formats are FFmpeg identifiers, such as `yuv420p`,
+# `yuv420p10le`, `nv12` or `p010le`; they are not restricted to 8-bit YUV 4:2:0.
+# Identifiers must start with a lowercase letter, followed by at most 63 lowercase
+# letters, digits or underscores. This syntax check does not certify that an encoder
+# supports that pixel format. `maxHeight` remains an even integer from 2 to 8192.
+#
+# | Encoder | Codec | Required encoder-specific fields |
+# | --- | --- | --- |
+# | `libx264` | `h264` | Integer `crf` 0–51; string `preset` |
+# | `libx265` | `hevc` | Integer `crf` 0–51; string `preset` |
+# | `libsvtav1` | `av1` | Integer `crf` 0–63; integer `preset` 0–13 |
+# | `libaom-av1` | `av1` | Integer `crf` 0–63; integer `cpuUsed` 0–8 |
+# | `libvpx-vp9` | `vp9` | Integer `crf` 0–63; integer `cpuUsed` 0–5 |
+# | `h264_nvenc`, `hevc_nvenc`, `av1_nvenc` | `h264`, `hevc`, `av1`, respectively | Integer `bitrateKbps` 1–1,000,000 |
+# | `h264_qsv`, `hevc_qsv`, `av1_qsv` | `h264`, `hevc`, `av1`, respectively | Integer `bitrateKbps` 1–1,000,000 |
+# | `h264_videotoolbox`, `hevc_videotoolbox` | `h264`, `hevc`, respectively | Integer `bitrateKbps` 1–1,000,000 |
+#
+# x264/x265 presets are `ultrafast`, `superfast`, `veryfast`, `faster`, `fast`,
+# `medium`, `slow`, `slower` or `veryslow`. VP9 uses the application's quality-mode
+# CPU speed subset, 0–5. Hardware variants currently expose bitrate control only;
+# software CRF/preset fields are rejected for them. New encoder families require
+# an explicit schema variant rather than arbitrary argument strings.
+#
+# The parameters are based on [FFmpeg's encoder documentation](https://ffmpeg.org/ffmpeg-codecs.html).
+# Values are specific to the encoder: CRF values are not comparable across codecs,
+# and string x264 presets must not be reused for SVT-AV1.
+#
+# ### Audio encoder parameters
+#
+# Every audio variant declares `encoder`, its matching `codec`, and `channels`
+# (`preserve` or `stereo`). Lossless variants do not accept lossy bitrate parameters.
+#
+# | Encoder | Codec | Required encoder-specific fields |
+# | --- | --- | --- |
+# | `aac` | `aac` | Integer `bitrateKbps` 32–512 |
+# | `libopus` | `opus` | Integer `bitrateKbps` 6–510 |
+# | `libvorbis` | `vorbis` | Integer `bitrateKbps` 32–500 |
+# | `flac` | `flac` | Integer `compressionLevel` 0–12 |
+# | `alac` | `alac` | None |
+# | `pcm_s16le` | `pcm_s16le` | None |
+#
+#
+# Selection and preparation mode are saved separately in settings.json:
+#   defaultTranscodeProfileId: selected ID (default builtin:balanced).
+#   preparationMode: compatible (default) or fast.
+#   transcodeCacheBudgetGiB: prepared-media cache budget, not a profile parameter.
+# Compatible mode encodes both audio and video when preparation is needed.
+# Fast mode permits compatible stream copying when copyCompatibleStreams is true.
+# Copying also requires compatible packaging/client evidence and no required
+# size/channel transformation. Playable originals still use direct playback.
+# Mode changes affect new preparation requests, not existing tasks or files.
+# A missing saved custom profile keeps its ID with selectionAvailable: false.
+#
+# GET /api/transcode-profiles exposes display metadata, container, videoEncoder,
+# audioEncoder, source and usage; selectedProfileId, preparationMode and
+# selectionAvailable accompany the catalog. Full encoding options are omitted.
+# PUT /api/transcode-profiles/selection accepts profileId (existing ID or null to
+# reset to the default), and optional preparationMode. Unknown IDs are rejected.
+# Profiles are immutable startup snapshots; encoding policy changes invalidate
+# cache reuse through profile fingerprints, excluding display metadata.
+
+# File format version; only 1 is supported.
+version: 1
+profiles:
+  # Unique custom: ID; suffix matches [a-z][a-z0-9-]{0,63}.
+  - id: custom:small
+    # Name and description: 1–240 characters, not whitespace-only.
+    name: Small Web copy
+    description: Limit encoded video to 720p for a smaller Web copy.
+    # Only completed-file preparation is supported.
+    usage: preparation
+    # mp4 | webm | matroska | mov
+    container: mp4
+    # Boolean; effective copying also depends on preparation mode (see above).
+    copyCompatibleStreams: true
+    video:
+      # Encoder and codec must be a matching pair from the table above.
+      encoder: libx264
+      codec: h264
+      # Required FFmpeg pixel-format token; syntax [a-z][a-z0-9_]{0,63}.
+      pixelFormat: yuv420p
+      # Encoder-specific required parameters; see the table above.
+      crf: 25
+      preset: medium
+      # Optional height ceiling: even integer 2–8192; never upscale.
+      maxHeight: 720
+    audio:
+      encoder: aac
+      codec: aac
+      bitrateKbps: 128
+      # preserve | stereo
+      channels: stereo

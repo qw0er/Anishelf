@@ -13,7 +13,7 @@ export function selectCandidates(input: {
 	previous: ReadonlySet<string>;
 	active: ReadonlySet<string>;
 	downloadsUnknown: boolean;
-	assess: ReleaseAssessmentApi["assess"];
+	assessReleaseTitle: ReleaseAssessmentApi["assessReleaseTitle"];
 }): Candidate[] {
 	const {
 		subscription,
@@ -22,13 +22,13 @@ export function selectCandidates(input: {
 		previous,
 		active,
 		downloadsUnknown,
-		assess,
+		assessReleaseTitle,
 	} = input;
 	const hash = (value: string) =>
 		createHash("sha256").update(value).digest("hex");
 
 	const candidates = feed.entries.map((entry): Candidate => {
-		const assessment = assess(entry.title, target),
+		const assessment = assessReleaseTitle(entry.title, target),
 			reasons = [...assessment.reasons];
 		if (!entry.downloadUrl) reasons.push("download_unavailable");
 		if (

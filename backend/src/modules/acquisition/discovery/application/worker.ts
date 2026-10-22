@@ -15,7 +15,7 @@ export class DiscoveryWorker {
 	constructor(
 		private readonly context: DiscoveryContext,
 		private readonly reader: FeedReader,
-		private readonly assess: (
+		private readonly evaluateFeedCandidates: (
 			subscription: Subscription,
 			feed: FeedRecord,
 			target: AcquisitionTarget,
@@ -51,7 +51,11 @@ export class DiscoveryWorker {
 						subscription.workKey,
 						this.context.signal,
 					);
-					const candidates = await this.assess(subscription, updated, target);
+					const candidates = await this.evaluateFeedCandidates(
+						subscription,
+						updated,
+						target,
+					);
 					this.context.open();
 					if (!canPublish(updated.revision)) return;
 					this.context.options.store.updateCandidates(subscription, candidates);
