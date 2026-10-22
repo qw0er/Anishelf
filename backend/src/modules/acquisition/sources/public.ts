@@ -1,3 +1,7 @@
+export type { SourceConnectionApi } from "./settings.js";
+
+import type { SearchCoverage } from "./jackett/model.js";
+
 export type { ReleaseEvidence } from "./domain/model.js";
 export { SourceError } from "./domain/model.js";
 export type { FeedTransport } from "./ports.js";
@@ -11,6 +15,8 @@ export interface SourceReference {
 
 /** Consumer evidence excludes feed URLs, HTTP validators and protocol cursors. */
 export interface SourceSnapshot {
+	readonly coverage?: SearchCoverage;
+	readonly outcome?: "matches" | "no_match";
 	readonly id: string;
 	readonly revision: string;
 	readonly label: string;

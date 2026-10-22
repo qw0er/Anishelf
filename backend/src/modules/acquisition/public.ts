@@ -1,3 +1,5 @@
+import type { SourceConnectionApi } from "./sources/public.js";
+
 export type {
 	QbittorrentApi,
 	QbittorrentOptions,
@@ -7,6 +9,7 @@ export { QbittorrentError } from "./qbittorrent/public.js";
 import type { DiscoveryApi, PreviewInput } from "./discovery/public.js";
 import type { QbittorrentConnectionApi } from "./qbittorrent/public.js";
 export interface AcquisitionApi {
+	readonly sources: SourceConnectionApi;
 	readonly connection: QbittorrentConnectionApi;
 	readonly discovery: SubscriptionApi;
 	readonly downloads?: AcquisitionDownloadsApi;
