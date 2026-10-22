@@ -1,3 +1,5 @@
+import type { SourceReference } from "../../sources/public.js";
+
 export interface Subscription {
 	profileId?: string | null;
 	lastError?: string | null;
@@ -44,7 +46,7 @@ export interface SubscriptionView {
 export interface PreviewInput {
 	profileId?: string | null;
 	workKey: string;
-	rssUrl: string;
+	source: SourceReference | null;
 	startEpisode: number;
 	revision: string | null;
 }

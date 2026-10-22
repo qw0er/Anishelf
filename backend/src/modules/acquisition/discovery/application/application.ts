@@ -116,25 +116,20 @@ export class DiscoveryApplication implements DiscoveryApi {
 			if (this.preparing >= 2)
 				throw new DomainError(
 					"ACQUISITION_UNAVAILABLE",
-					"RSS previews are busy.",
+					"Source previews are busy.",
 				);
 			this.preparing++;
 			try {
 				return await this.preparePreview(session, input);
 			} catch (error) {
 				if (!(error instanceof SourceError)) throw error;
-				if (error.code === "invalid_source_url")
-					throw new DomainError(
-						"INVALID_REQUEST",
-						"Enter a public HTTP(S) RSS URL.",
-					);
 				this.options.logger.warn(
 					{ event: "acquisition.preview_failed", code: error.code },
-					"RSS preview could not be read.",
+					"Source preview could not be read.",
 				);
 				throw new DomainError(
 					"ACQUISITION_UNAVAILABLE",
-					"RSS preview could not be read.",
+					"Source preview could not be read.",
 				);
 			} finally {
 				this.preparing--;
@@ -154,9 +149,8 @@ export class DiscoveryApplication implements DiscoveryApi {
 			throw new DomainError("INVALID_REQUEST", "Invalid starting episode.");
 		const current = this.options.store.subscription(input.workKey);
 		if ((current?.revision ?? null) !== input.revision) conflict();
-		const url = input.rssUrl.trim();
-		if (!url && !current)
-			throw new DomainError("INVALID_REQUEST", "Enter an RSS URL.");
+		if (!input.source && !current)
+			throw new DomainError("INVALID_REQUEST", "Choose a source.");
 		for (const [token, preview] of this.previews)
 			if (preview.expiresAt <= this.context.now()) this.previews.delete(token);
 		if (this.previews.size >= policy.maximumPreviews)
@@ -164,9 +158,9 @@ export class DiscoveryApplication implements DiscoveryApi {
 				"ACQUISITION_UNAVAILABLE",
 				"Too many pending previews.",
 			);
-		const feed = url
-			? await this.options.sources.read({ kind: "rss", url })
-			: await this.options.sources.refresh(current?.feedId ?? "");
+		const source =
+			input.source ?? this.options.sources.reference(current?.feedId ?? "");
+		const feed = await this.options.sources.refresh(source);
 		const target = await this.options.anime.target(
 			input.workKey,
 			this.context.signal,
@@ -289,7 +283,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 					feedId: preview.feed.id,
 					revision: subscription.revision,
 				},
-				"RSS subscription enabled.",
+				"Subscription enabled.",
 			);
 			return this.get(workKey);
 		});
@@ -306,7 +300,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 		);
 		this.options.logger.info(
 			{ event: "acquisition.subscription_toggled", enabled, feedId: feed.id },
-			"RSS subscription state changed.",
+			"Subscription state changed.",
 		);
 		return this.get(workKey);
 	}
@@ -315,7 +309,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 		if (!this.options.store.remove(workKey, revision)) conflict();
 		this.options.logger.info(
 			{ event: "acquisition.subscription_removed" },
-			"RSS subscription removed.",
+			"Subscription removed.",
 		);
 	}
 	refresh(workKey: string, revision: string) {

@@ -12,10 +12,7 @@ const cleanup: (() => Promise<unknown>)[] = [];
 afterEach(async () => {
 	for (const close of cleanup.splice(0).reverse()) await close();
 });
-const request = {
-	kind: "rss" as const,
-	url: "https://feeds.example.org/private/rss?key=private-key",
-};
+const url = "https://feeds.example.org/private/rss?key=private-key";
 function deferred<T>() {
 	let resolve!: (value: T) => void;
 	const promise = new Promise<T>((done) => {
@@ -62,7 +59,7 @@ function fixture() {
 
 test("prepared evidence stays isolated and immutable while protocol state remains private", async () => {
 	const { sources, records, transport, logs } = fixture();
-	const prepared = await sources.read(request);
+	const prepared = await sources.refresh(sources.rssReference(url));
 	expect(records.size).toBe(0);
 	expect(sources.snapshot(prepared.id)).toBeNull();
 	expect(prepared).toMatchObject({
@@ -97,7 +94,7 @@ test("prepared evidence stays isolated and immutable while protocol state remain
 		etag: "private-etag",
 		lastModified: "private-validator",
 	});
-	const unchanged = await sources.refresh(prepared.id);
+	const unchanged = await sources.refresh(sources.reference(prepared.id));
 	expect(transport.fetch.mock.calls[1]?.[1]).toMatchObject({
 		etag: "private-etag",
 		lastModified: "private-validator",
@@ -109,8 +106,8 @@ test("prepared evidence stays isolated and immutable while protocol state remain
 test("coalesced reads share evidence and either result can publish the same revision", async () => {
 	const { sources, transport, records } = fixture();
 	const [one, two] = await Promise.all([
-		sources.read(request),
-		sources.read(request),
+		sources.refresh(sources.rssReference(url)),
+		sources.refresh(sources.rssReference(url)),
 	]);
 	expect(transport.fetch).toHaveBeenCalledTimes(1);
 	expect(one.revision).toBe(two.revision);
@@ -122,11 +119,11 @@ test("coalesced reads share evidence and either result can publish the same revi
 
 test("a coalesced in-flight request cannot inherit a newer saved revision", async () => {
 	const { sources, transport, store } = fixture();
-	const original = await sources.read(request);
+	const original = await sources.refresh(sources.rssReference(url));
 	sources.publish(original);
 	const pending = deferred<Awaited<ReturnType<FeedTransport["fetch"]>>>();
 	transport.fetch.mockImplementationOnce(() => pending.promise);
-	const first = sources.refresh(original.id);
+	const first = sources.refresh(sources.reference(original.id));
 	const saved = store.feed(original.id);
 	if (!saved) throw new Error("Missing saved source.");
 	store.saveFeed({
@@ -134,7 +131,7 @@ test("a coalesced in-flight request cannot inherit a newer saved revision", asyn
 		revision: "newer-publication",
 		etag: "newer-etag",
 	});
-	const second = sources.refresh(original.id);
+	const second = sources.refresh(sources.reference(original.id));
 	pending.resolve({
 		xml: "old response",
 		etag: "old-etag",
@@ -151,18 +148,27 @@ test("a coalesced in-flight request cannot inherit a newer saved revision", asyn
 	expect(store.feed(original.id)?.error).toBeNull();
 });
 
-test("query requests never turn into RSS reads or persisted speculative sources", async () => {
-	const { sources, transport, records } = fixture();
-	await expect(
-		sources.read({
-			kind: "query",
-			sourceId: "indexer",
-			generation: "generation",
-			titles: ["Frieren S02"],
-		}),
-	).rejects.toMatchObject({ code: "unsupported_capability" });
-	expect(records.size).toBe(0);
-	expect(transport.fetch).not.toHaveBeenCalled();
+test("source references hide configuration and cannot be forged or reused across instances", async () => {
+	const one = fixture(),
+		two = fixture();
+	const reference = one.sources.rssReference(url);
+	expect(Object.keys(reference)).toEqual(["id"]);
+	expect(JSON.stringify(reference)).not.toContain("private-key");
+	expect(one.records.size).toBe(0);
+	expect(one.transport.fetch).not.toHaveBeenCalled();
+	await expect(one.sources.refresh({ ...reference })).rejects.toMatchObject({
+		code: "invalid_source_reference",
+	});
+	await expect(two.sources.refresh(reference)).rejects.toMatchObject({
+		code: "invalid_source_reference",
+	});
+	const result = await one.sources.refresh(reference);
+	one.sources.publish(result);
+	const savedReference = one.sources.reference(result.id);
+	one.records.delete(result.id);
+	await expect(one.sources.refresh(savedReference)).rejects.toMatchObject({
+		code: "source_missing",
+	});
 });
 
 test("shutdown aborts and drains in-flight reads and closes the transport once", async () => {
@@ -174,7 +180,8 @@ test("shutdown aborts and drains in-flight reads and closes the transport once",
 		await released.promise;
 		return { xml: "response after shutdown", etag: null, lastModified: null };
 	});
-	const reading = sources.read(request);
+	const reference = sources.rssReference(url);
+	const reading = sources.refresh(reference);
 	const rejected = expect(reading).rejects.toMatchObject({
 		code: "ACQUISITION_UNAVAILABLE",
 	});
@@ -191,16 +198,14 @@ test("shutdown aborts and drains in-flight reads and closes the transport once",
 	await rejected;
 	expect(transport.close).toHaveBeenCalledTimes(1);
 	expect(records.size).toBe(0);
-	await expect(sources.read(request)).rejects.toMatchObject({
+	await expect(sources.refresh(reference)).rejects.toMatchObject({
 		code: "ACQUISITION_UNAVAILABLE",
 	});
 });
 
 test("invalid RSS input is rejected before transport or persistence", async () => {
 	const { sources, transport, records } = fixture();
-	await expect(
-		sources.read({ kind: "rss", url: "http://127.0.0.1/rss" }),
-	).rejects.toMatchObject({ code: "invalid_source_url" });
+	expect(() => sources.rssReference("http://127.0.0.1/rss")).toThrowError();
 	expect(transport.fetch).not.toHaveBeenCalled();
 	expect(records.size).toBe(0);
 });

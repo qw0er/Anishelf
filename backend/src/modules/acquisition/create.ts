@@ -18,7 +18,7 @@ import type {
 import { SourcesApplication } from "./sources/application/application.js";
 import { parseRss } from "./sources/infrastructure/rss.js";
 import { RssTransport, rssUrl } from "./sources/infrastructure/transport.js";
-import type { FeedTransport } from "./sources/public.js";
+import { type FeedTransport, SourceError } from "./sources/public.js";
 import { SubscriptionConfirmation } from "./subscription-confirmation.js";
 import { AcquisitionApplication } from "./workflows/application.js";
 
@@ -152,7 +152,24 @@ export async function createAcquisitionModule(options: {
 		discovery: {
 			profiles: () => discovery.profiles(),
 			get: (key, page) => discovery.get(key, page),
-			preview: (session, input) => discovery.preview(session, input),
+			preview: async (session, { rssUrl, ...input }) => {
+				try {
+					const source = rssUrl.trim()
+						? sources.rssReference(rssUrl.trim())
+						: null;
+					return await discovery.preview(session, { ...input, source });
+				} catch (error) {
+					if (
+						error instanceof SourceError &&
+						error.code === "invalid_source_url"
+					)
+						throw new DomainError(
+							"INVALID_REQUEST",
+							"Enter a public HTTP(S) RSS URL.",
+						);
+					throw error;
+				}
+			},
 			confirm: (session, key, token) => discovery.confirm(session, key, token),
 			setEnabled: (key, revision, enabled) =>
 				discovery.setEnabled(key, revision, enabled),

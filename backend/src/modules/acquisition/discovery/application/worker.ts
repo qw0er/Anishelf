@@ -25,7 +25,9 @@ export class DiscoveryWorker {
 			this.context.options.sources.snapshot(feed.id)?.revision ===
 			feed.revision;
 		try {
-			const updated = await this.context.options.sources.refresh(feed.id);
+			const updated = await this.context.options.sources.refresh(
+				this.context.options.sources.reference(feed.id),
+			);
 			this.context.open();
 			if (!this.context.options.sources.isCurrent(updated)) return;
 			const subscriptions = this.context.options.store
@@ -74,7 +76,7 @@ export class DiscoveryWorker {
 					feedId: feed.id,
 					entries: updated.entries.length,
 				},
-				"RSS discovery completed.",
+				"Source discovery completed.",
 			);
 		} catch (error) {
 			if (this.context.signal.aborted || !canPublish()) return;
@@ -83,7 +85,7 @@ export class DiscoveryWorker {
 			this.context.options.sources.failed(feed, code);
 			this.context.options.logger.warn(
 				{ event: "acquisition.discovery_failed", feedId: feed.id, code },
-				"RSS discovery will retry.",
+				"Source discovery will retry.",
 			);
 		}
 	}

@@ -9,11 +9,11 @@ import {
 	SubscriptionViewSchema,
 } from "../../../../contracts/schemas/subscriptions.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
-import type { DiscoveryApi } from "../public.js";
+import type { SubscriptionApi } from "../../public.js";
 
 export function registerSubscriptionRoutes(
 	app: HttpInstance,
-	discovery: DiscoveryApi,
+	discovery: SubscriptionApi,
 ) {
 	const path = "/api/acquisition/subscriptions";
 	app.get(
