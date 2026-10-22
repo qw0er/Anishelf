@@ -82,6 +82,7 @@ async function fixture(
 	const state = {
 		target: structuredClone(target),
 		refreshIntervalMinutes: undefined as number | undefined,
+		profileId: undefined as string | undefined,
 	};
 	const fetch = vi.fn<FeedTransport["fetch"]>(async () => ({
 		xml: feed(),
@@ -103,6 +104,7 @@ async function fixture(
 		transport: { fetch, close: async () => {} },
 		now: () => clock,
 		rssRefreshIntervalMinutes: () => state.refreshIntervalMinutes,
+		defaultAcquisitionProfileId: () => state.profileId,
 		autoStart: false,
 		...(createClient ? { createClient } : {}),
 	};
@@ -263,7 +265,7 @@ test("release assessment uses leaf evidence only and skips identity, season, pac
 	);
 	expect(extraction.inputs.map((input) => input.mode)).toEqual(["basename"]);
 });
-test("subscriptions preview without writes, confirm explicit scope and select one stable version without review", async () => {
+test("subscriptions preview without writes, confirm explicit scope and rank versions before reservation without review", async () => {
 	const f = await fixture();
 	f.fetch.mockResolvedValueOnce({
 		xml: feed(
@@ -287,17 +289,17 @@ test("subscriptions preview without writes, confirm explicit scope and select on
 	expect(f.discovery.get(key).subscription).toBeNull();
 	expect(
 		preview.candidates.filter((candidate) => candidate.status === "selected"),
-	).toHaveLength(1);
+	).toHaveLength(0);
 	expect(
 		preview.candidates.find(
 			(candidate) => candidate.status === "skipped" && candidate.episode === 3,
 		)?.reasons,
-	).toContain("another_version_selected");
+	).toContain("waiting_for_level");
 	const saved = await f.discovery.confirm("session", key, preview.token);
 	expect(saved.subscription).toMatchObject({ enabled: true, startEpisode: 2 });
 	expect(JSON.stringify(saved)).not.toContain("private-feed-token");
 	expect(f.logs.join("")).not.toContain("private-feed-token");
-	f.advance();
+	f.advance(60 * 60_000);
 	f.fetch.mockResolvedValueOnce({
 		xml: feed(
 			item(
@@ -317,8 +319,9 @@ test("subscriptions preview without writes, confirm explicit scope and select on
 		refreshed.candidates.find((candidate) => candidate.status === "selected")
 			?.entryId,
 	).toBe(
-		saved.candidates.find((candidate) => candidate.status === "selected")
-			?.entryId,
+		refreshed.candidates.find((candidate) =>
+			candidate.title.includes("[2160p]"),
+		)?.entryId,
 	);
 });
 test("scope, accessible local episodes and unknown download links are automatically excluded", async () => {
@@ -376,7 +379,7 @@ test("known downloader hashes exclude alternate versions, while failed snapshots
 		password: "private-password",
 	});
 	f.fetch.mockResolvedValue({
-		xml: feed(item() + item("Frieren - 03", secondHash)),
+		xml: feed(item() + item("Frieren - 03 [1080p]", secondHash)),
 		etag: "one",
 		lastModified: null,
 	});
@@ -655,7 +658,8 @@ test("subscription HTTP routes are authenticated, CSRF protected and redact priv
 		payload: { workKey: key, token: preview.json().token },
 	});
 	expect(saved.statusCode).toBe(200);
-	expect(saved.json().candidates[0].status).toBe("selected");
+	expect(saved.json().candidates[0].status).toBe("skipped");
+	expect(saved.json().candidates[0].reasons).toContain("waiting_for_level");
 	expect(saved.body).not.toContain("private-token");
 	expect(saved.body).not.toContain("downloadUrl");
 	expect(
@@ -741,4 +745,19 @@ test("changing the RSS interval preserves failure retry deadlines and restart re
 	expect(recovered?.nextAttemptAt).toBe(
 		(recovered?.checkedAt ?? 0) + 1440 * 60_000,
 	);
+});
+
+test("changing the inherited profile invalidates a pending preview", async () => {
+	const f = await fixture();
+	const preview = await f.discovery.preview("session", {
+		workKey: key,
+		rssUrl: "https://example.org/rss",
+		startEpisode: 1,
+		revision: null,
+	});
+	f.state.profileId = "builtin:efficient";
+	await expect(
+		f.discovery.confirm("session", key, preview.token),
+	).rejects.toMatchObject({ code: "ACQUISITION_CONFLICT" });
+	expect(f.discovery.get(key).subscription).toBeNull();
 });

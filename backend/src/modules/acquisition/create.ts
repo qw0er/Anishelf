@@ -3,6 +3,7 @@ import { DomainError } from "../../shared/errors.js";
 import type { AnimeApi, ReleaseAssessmentApi } from "../anime/public.js";
 import type { AcquisitionResources } from "../resources/public.js";
 import { DiscoveryApplication } from "./discovery/application/application.js";
+import { loadAcquisitionProfiles } from "./discovery/infrastructure/profiles.js";
 import { parseRss } from "./discovery/infrastructure/rss.js";
 import { RssTransport, rssUrl } from "./discovery/infrastructure/transport.js";
 import type { FeedTransport } from "./discovery/public.js";
@@ -42,7 +43,13 @@ export async function createAcquisitionModule(options: {
 	now?: () => number;
 	autoStart?: boolean;
 	rssRefreshIntervalMinutes?: () => number | undefined;
+	defaultAcquisitionProfileId?: () => string | undefined;
 }) {
+	const profiles = await loadAcquisitionProfiles(options.dataDir);
+	options.logger.info(
+		{ event: "acquisition.profiles_loaded", count: profiles.length },
+		"Acquisition profiles loaded.",
+	);
 	const connection = new QbittorrentConnection(
 		new QbittorrentConfigurationFile(options.dataDir),
 		options.createClient ?? createQbittorrentClient,
@@ -54,6 +61,10 @@ export async function createAcquisitionModule(options: {
 	const discoveryStore = options.store;
 	const discovery = new DiscoveryApplication({
 		store: discoveryStore,
+		profiles,
+		defaultProfileId: () => options.defaultAcquisitionProfileId?.(),
+		lockedCandidates: (key) =>
+			options.downloadStore.activity(key, 1, 1).candidateIds,
 		downloadPreview: (key, target) => workflow?.preview(key, target) ?? null,
 		confirmation: new SubscriptionConfirmation({
 			logger: options.logger,
@@ -125,6 +136,7 @@ export async function createAcquisitionModule(options: {
 				}
 			: {}),
 		discovery: {
+			profiles: () => discovery.profiles(),
 			get: (key, page) => discovery.get(key, page),
 			preview: (session, input) => discovery.preview(session, input),
 			confirm: (session, key, token) => discovery.confirm(session, key, token),

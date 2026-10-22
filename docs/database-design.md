@@ -129,7 +129,7 @@ matching database backup. See [Database Migrations and Backups](development.md#d
 reopens the database to verify ordered collections, optional/null semantics,
 metadata, recognition, task specifications, observations and sessions. It compares
 every declared table's columns with the initialized database and checks primary keys,
-foreign keys and the deliberate metadata, summary-title and inspection JSON documents. Additional fixtures reject
+foreign keys and the deliberate metadata, summary-title, inspection and acquisition-selection JSON documents. Additional fixtures reject
 invalid state/singleton/version/size values and verify that unsupported-format
 rejection preserves existing data. `metadata-migration.test.ts` starts from the previous schema and verifies ordered
 payloads, booleans, nulls, provider identities, snapshot pins, references and repeated
@@ -141,3 +141,8 @@ restart reuse, version invalidation and cleanup.
 
 These are local schema and application regressions. They do not establish
 production-data acceptance or a database load benchmark.
+
+Acquisition candidate `selection` is a small JSON decision snapshot (profile identity,
+level, first-seen/eligible times and effective seed count), read as a whole rather
+than queried by JSON paths. Feed seed observations and subscription profile IDs
+remain columns; candidate identity/status and episode are also columns.

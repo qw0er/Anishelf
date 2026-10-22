@@ -225,3 +225,7 @@ export type DownloadActivity = Static<
 >;
 
 export type AnimeDetailResponse = Static<typeof schemas.AnimeDetailSchema>;
+
+export type AcquisitionProfileCatalog = Static<
+	typeof schemas.AcquisitionProfileCatalogSchema
+>;

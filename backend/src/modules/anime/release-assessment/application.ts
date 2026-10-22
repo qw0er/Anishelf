@@ -8,6 +8,7 @@ import {
 	titleEvidence,
 } from "../identification/public.js";
 import type { MetadataApi } from "../metadata/public.js";
+import { releaseAttributes } from "./attributes.js";
 import type {
 	AcquisitionTarget,
 	ReleaseAssessmentApi,
@@ -94,6 +95,7 @@ export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 			reasons.push("episode_unconfirmed");
 		return {
 			episode,
+			attributes: releaseAttributes(evidence),
 			eligible: reasons.length === 0,
 			reasons: [...new Set(reasons)],
 			version,

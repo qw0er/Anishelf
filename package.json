@@ -19,6 +19,7 @@
 		"typescript": "npm:@typescript/typescript6@^6.0.2"
 	},
 	"scripts": {
+		"dependencies:check": "ncu",
 		"typecheck": "npm run typecheck --workspaces",
 		"biome:check": "biome check .",
 		"biome:fix": "biome check --write .",

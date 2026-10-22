@@ -23,7 +23,17 @@ export class FeedReader {
 					? feed.entries
 					: this.context.options.parse(response.xml);
 			const retained = new Map(feed.entries.map((entry) => [entry.id, entry]));
-			for (const entry of entries) retained.set(entry.id, entry);
+			for (const entry of entries)
+				retained.set(
+					entry.id,
+					response.xml === null
+						? entry
+						: {
+								...entry,
+								seedersObservedAt:
+									entry.seeders == null ? null : this.context.now(),
+							},
+				);
 			if (retained.size > policy.maximumRetainedItems)
 				throw new RssError("storage_limit");
 			return {

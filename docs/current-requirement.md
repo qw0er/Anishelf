@@ -68,8 +68,10 @@ its permission and status policy under the explicit enablement described above.
 
 - Keep the existing RSS URL, starting episode, explicit scope preview and
   enable/pause controls. RSS does not guarantee a complete historical backlog.
-- Select one supported regular-episode release automatically; preserve a valid
-  previous choice, otherwise use publication time and stable identity. Skip
+- Select one supported regular-episode release automatically using
+  [selection profiles](acquisition-profiles.md): hard conditions, ordered levels,
+  persisted waiting and optional seed-count tie-breaking. Reconsider unreserved
+  choices; preserve download reservations. Skip
   uncertain identity/numbering, packs, specials and unsupported links visibly.
 - Exclude accessible local episodes and known downloader tasks. Reserve canonical
   torrent hashes and work/episode identities before automatic submission.
@@ -167,3 +169,7 @@ Manual release approval/dismissal, ranking across multiple sources, season packs
 quality upgrades, multiple clients, seeding/bandwidth/storage policy,
 per-anime destination selection and automatic file renaming remain outside this
 iteration. See [current architecture](current-architecture.md) for implementation.
+
+The in-app editor for hand-written configuration files (including custom acquisition
+and transcode profile YAML) is deferred under [O19](requirements.md#configuration-file-editor-o19).
+Current profile loading and selection do not include file editing in the UI.

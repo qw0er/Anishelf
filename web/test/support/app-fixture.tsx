@@ -183,6 +183,19 @@ beforeEach(async () => {
 				localState: "available",
 				tracking: disconnectedList,
 			});
+		if (path === "/api/acquisition/profiles")
+			return json({
+				profiles: [
+					{
+						id: "builtin:general",
+						name: "General",
+						description: "Any codec",
+						source: "builtin",
+					},
+				],
+				selectedProfileId: "builtin:general",
+				selectionAvailable: true,
+			});
 		if (path === "/api/transcode-profiles")
 			return json({
 				profiles: [

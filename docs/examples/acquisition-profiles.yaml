@@ -1,0 +1,72 @@
+# Copy this file to <application-data-directory>/acquisition-profiles.yaml.
+# Optional file: without it, only the three built-in profiles are loaded.
+# Restart after editing. The application never rewrites this file.
+# This example adds one profile; select it in Settings > RSS, or on a subscription.
+version: 1
+
+profiles:
+  # Custom IDs must be unique and begin with custom:. Built-ins cannot be replaced.
+  - id: custom:chinese-efficient
+    name: Chinese efficient
+    description: Prefer Chinese soft subtitles and efficient codecs, with delayed alternatives.
+
+    # Hard requirements apply to EVERY level. Unknown values cannot satisfy an
+    # explicit positive condition. Omit a field to leave that attribute unrestricted.
+    requirements:
+      # Any listed language is sufficient; dual subtitles also match.
+      subtitleLanguages: [zh-Hans, zh-Hant]
+      excludeKeywords: ["合集", "全集", "预告"]
+      # Optional allowed/blocked groups. Joint groups match their individual names too.
+      # releaseGroups: ["桜都字幕组", "LoliHouse"]
+      # excludeReleaseGroups: ["Example Group"]
+      # All includeKeywords must appear in the title; any excludeKeyword rejects it.
+      # includeKeywords: ["WebRip"]
+      # Seed counts are optional and source-reported, NOT download guarantees.
+      # Mikan Classic does not supply them. Missing/stale counts remain unknown.
+      # minSeeders: 1
+      # unknownSeeders: allow # allow | reject; default reject when minSeeders is set
+    # Only compares candidates INSIDE the best unlocked level; default true.
+    # Known positive counts rank above unknown, which ranks above reported zero.
+    preferMoreSeeders: true
+
+    # Array order is priority. A candidate belongs to its FIRST matching level.
+    # Lists are alternatives, not ordered preferences: 1080p and 2160p are equal.
+    # Different fields within one condition must ALL match.
+    levels:
+      - name: Chinese soft subtitles and efficient codecs
+        match:
+          subtitleFormats: [soft] # hard | soft | external
+          resolutions: [1080, 2160]
+          videoCodecs: [hevc, av1] # avc | hevc | av1 | vp9 | mpeg2 | mpeg4
+          sources: [web, bluray] # web | bluray | hdtv | dvd
+        acceptAfterMinutes: 0 # This level can be selected immediately.
+
+      - name: Chinese efficient alternatives
+        match:
+          # anyOf accepts any branch; fields within each branch are ANDed.
+          # Do not mix anyOf with ordinary fields or nest anyOf expressions.
+          anyOf:
+            - resolutions: [1080, 2160]
+              videoCodecs: [hevc, av1]
+            - resolutions: [1080, 2160]
+              subtitleFormats: [soft]
+        acceptAfterMinutes: 30
+
+      - name: Chinese at any codec
+        match:
+          resolutions: [1080, 2160]
+        acceptAfterMinutes: 60
+
+      - name: Chinese 720p fallback
+        match:
+          resolutions: [720]
+        acceptAfterMinutes: 90
+
+    # Waiting starts when this episode first has a candidate passing hard checks
+    # and matching ANY level. The persisted clock survives restarts/new versions.
+    # Wait times must not decrease down the levels. Downloads are checked on RSS
+    # refresh, so a threshold is not an exact submission deadline.
+    # match: {} would accept any release passing requirements, including unknown
+    # attributes. No matching level means no automatic download, even after waiting.
+    # Chinese remains mandatory here: no level can relax a hard requirement.
+    # Already reserved/downloaded episodes are never upgraded automatically.

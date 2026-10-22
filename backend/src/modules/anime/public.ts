@@ -8,6 +8,7 @@ import type { TrackingApi } from "./tracking/public.js";
 export type {
 	AcquisitionTarget,
 	ReleaseAssessmentApi,
+	ReleaseAttributes,
 } from "./release-assessment/public.js";
 
 import type { ReleaseAssessmentApi } from "./release-assessment/public.js";

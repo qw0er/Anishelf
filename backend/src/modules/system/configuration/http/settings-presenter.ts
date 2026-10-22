@@ -6,6 +6,9 @@ export function settingsResponse(
 ): SettingsResponse {
 	return {
 		resourceRoots: settings.resourceRoots,
+		...(settings.defaultAcquisitionProfileId === undefined
+			? {}
+			: { defaultAcquisitionProfileId: settings.defaultAcquisitionProfileId }),
 		...(settings.rssRefreshIntervalMinutes === undefined
 			? {}
 			: { rssRefreshIntervalMinutes: settings.rssRefreshIntervalMinutes }),

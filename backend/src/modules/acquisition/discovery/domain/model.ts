@@ -1,4 +1,6 @@
 export interface FeedEntry {
+	seeders?: number | null;
+	seedersObservedAt?: number | null;
 	id: string;
 	observationId: string;
 	title: string;
@@ -19,6 +21,7 @@ export interface FeedRecord {
 	entries: FeedEntry[];
 }
 export interface Subscription {
+	profileId?: string | null;
 	lastError?: string | null;
 	workKey: string;
 	feedId: string;
@@ -27,6 +30,14 @@ export interface Subscription {
 	revision: string;
 }
 export interface Candidate {
+	selection?: {
+		profileId: string;
+		fingerprint: string;
+		level: string | null;
+		firstSeenAt: number | null;
+		eligibleAt: number | null;
+		seeders: number | null;
+	};
 	chosen?: boolean;
 	id: string;
 	workKey: string;
@@ -53,6 +64,7 @@ export interface SubscriptionView {
 	page: number;
 }
 export interface PreviewInput {
+	profileId?: string | null;
 	workKey: string;
 	rssUrl: string;
 	startEpisode: number;

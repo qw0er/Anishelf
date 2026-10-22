@@ -72,7 +72,12 @@ intent and work identity.
 Discovery keeps its application flows under `application/` and owns feed evidence,
 subscription revisions and candidate publication. `FeedReader` coalesces bounded
 requests, `selectCandidates` evaluates explicit snapshots and `DiscoveryWorker`
-owns polling. Reservation-result notifications do not overwrite separate assessment
+owns polling. [Selection profiles](acquisition-profiles.md) provide built-in and
+external YAML policies, global/per-subscription choices, hard conditions and ordered
+wait levels. Anime exposes normalized release declarations; Discovery persists
+seed observations and per-episode waiting evidence with decisions. Reserved
+candidates stay locked; unreserved candidates may improve.
+Reservation-result notifications do not overwrite separate assessment
 failures. qBittorrent keeps its smaller integration flat.
 
 `SubscriptionConfirmation` in `acquisition/subscription-confirmation.ts` coordinates
@@ -495,9 +500,10 @@ Honor retry hints without logging response bodies or credential-bearing URLs.
    are hard constraints. Unknown required attributes yield `preference_unknown`;
    an absent preference imposes no constraint. Parse subtitle language separately
    from audio language and retain evidence, not a guess from the site/category.
-4. Among eligible versions on the pinned source, preserve a still-valid prior
-   choice; otherwise compare ordered group/resolution/codec preferences, then known
-   seed count, publication time and stable release identity. Missing seed count is
+4. Among eligible versions on the pinned source, use the implemented [profile selection](acquisition-profiles.md) rules:
+   apply hard conditions and ordered wait levels, then optional seed counts,
+   same-group revision, publication time and stable identity. Reconsider
+   unreserved choices while preserving reserved choices. Missing seed count is
    unknown, not zero, and cannot prove downloadability. Do not replace reserved,
    active or available episodes with a later higher-ranked version. Keep packs,
    specials and uncertain numbering excluded with explicit reasons.

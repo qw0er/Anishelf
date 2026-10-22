@@ -314,7 +314,19 @@ export function DownloadActivityPanel({
 										{candidate.episode ? `Episode ${candidate.episode} · ` : ""}
 										{candidate.status === "selected"
 											? "Selected"
-											: `Skipped · ${candidate.reasons.map(reason).join("; ")}`}
+											: candidate.reasons.includes("waiting_for_level")
+												? "Waiting for preferred release"
+												: `Skipped · ${candidate.reasons.map(reason).join("; ")}`}
+										{candidate.selection && (
+											<>
+												{" "}
+												· {candidate.selection.level ?? "No matching level"}
+												{candidate.reasons.includes("waiting_for_level") &&
+												candidate.selection.eligibleAt !== null
+													? ` · Eligible after ${new Date(candidate.selection.eligibleAt).toLocaleString()}`
+													: ""}
+											</>
+										)}
 									</p>
 								</div>
 							))}

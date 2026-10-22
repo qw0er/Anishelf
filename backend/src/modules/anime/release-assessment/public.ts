@@ -8,7 +8,17 @@ export interface AcquisitionTarget {
 	availableEpisodes: number[];
 	revision: string;
 }
+export interface ReleaseAttributes {
+	subtitleLanguages: string[];
+	subtitleFormats: string[];
+	resolutions: number[];
+	videoCodecs: string[];
+	sources: string[];
+	releaseGroups: string[];
+	revision: number;
+}
 interface ReleaseAssessment {
+	attributes?: ReleaseAttributes;
 	episode: number | null;
 	eligible: boolean;
 	reasons: string[];

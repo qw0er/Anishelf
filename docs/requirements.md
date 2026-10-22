@@ -239,9 +239,9 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | S02 | Set the starting episode and backlog scope with an impact preview | Implemented: default 1, session-bound revision checks | Current | Unassigned |
 | S03 | Configure RSS and discover releases periodically | Implemented: one RSS per anime, shared conditional fetches and durable scheduling with a configurable global interval (default 30 minutes); live feed acceptance pending | Current | Unassigned |
 | S04 | Match releases to titles and episodes and explain uncertain matches | Implemented: uncertain releases are automatically skipped without review | Current | Unassigned |
-| S05 | Filter by subtitle language, release group, resolution, codec, and keywords | Pending implementation: reusable preferences for automatic source discovery; current workaround is a source RSS representing these preferences | — | Current |
+| S05 | Filter by subtitle language, release group, resolution, codec, and keywords | Implemented for manual RSS: built-in/custom YAML selection profiles; automatic-source integration remains pending | — | Current |
 | S06 | Deduplicate and exclude existing files, active downloads, and unwanted episodes | Implemented: discovery identities, accessible local episodes and downloader hashes; durable canonical-hash and work/episode reservations before submission; live acceptance pending | Current | Current |
-| S07 | Explain decisions and automatically choose one release per episode | Implemented: stable selection and skipped reasons; manual selection/dismissal outside the simplified scope | Current | Unassigned |
+| S07 | Explain decisions and automatically choose one release per episode | Implemented: profile levels, persisted waiting, seed-count tie-breaking and skipped reasons; manual selection/dismissal outside the simplified scope | Current | Unassigned |
 | S08 | Coordinate tracking-status changes with subscriptions and explain their effect on existing tasks | Implemented minimal policy: AniList changes do not change subscriptions/tasks; subscription pause stops new submissions and preserves existing tasks/imports | Current | Current |
 | S09 | Search multiple sources, rank releases, process season packs, and upgrade quality | Optional | — | Unassigned |
 | S10 | Automatically subscribe to anime in AniList Watching | Pending implementation: explicitly enabled automation reconciles the remote list with managed subscriptions and an agreed starting-episode/backlog policy | — | Current |
@@ -339,10 +339,30 @@ AniList is the viewing-state authority. This iteration selects account connectio
 | O15 | Manage API-backed frontend state and caching with TanStack Query | Implemented | Current | Current |
 | O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access; built-in cache budget | V2 | V2 |
 | O18 | User-editable prepared-media cache budget | Implemented; Settings control, validation and persisted disk-space limit | Current | Current |
+| O19 | In-app editor for hand-written configuration files | Later: edit and validate supported custom profile files, including acquisition and transcode profiles | — | Unassigned |
 
 #### User-editable Prepared-media Cache Budget (O18)
 
 Allow users to configure the total disk-space limit for generated prepared-media copies through Settings. Validate and persist the explicit choice, preserve it across upgrades and enforce it for future preparation output. Account for retained in-use artifacts, distinguish cache exhaustion from insufficient disk space and preserve originals, history and settings. Lowering the limit must not silently delete existing copies; show exhaustion and allow explicit cleanup. Settings provides a validated, persisted transcode cache budget in GiB. Preparation reads the current limit when starting work and accounts for retained copies; cache exhaustion and insufficient disk space have distinct feedback. Existing copies can be deleted explicitly.
+
+#### Configuration File Editor (O19)
+
+Provide an in-app editing panel for supported configuration files that currently
+require manual file editing, initially custom acquisition and transcode profile
+YAML files. Show the current content, documented examples and field guidance;
+allow users to edit a draft, validate it with the owning module's schema, explicitly
+save it or discard changes. Preserve comments and formatting when saving. Display
+syntax and validation errors with field paths and line/column locations where
+available, and explain whether a restart is required for changes to take effect.
+Detect concurrent file changes before saving and keep the previous valid file on
+validation or write failure. Built-in profiles remain read-only.
+
+Acceptance: a user can create or edit a supported custom profile without accessing
+the host filesystem; invalid drafts leave saved configuration unchanged; successful
+saves preserve the user's text and report activation/restart status. Existing
+external-file loading and profile-selection controls do not constitute delivery of
+this editor. This is future work with no assigned release and is outside the current
+automatic-acquisition iteration.
 
 #### Unified Configuration (O17)
 

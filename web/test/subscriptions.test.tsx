@@ -58,6 +58,25 @@ function fixture(
 	return vi
 		.spyOn(api, "request")
 		.mockImplementation(async (path, method, _options, payload) => {
+			if (path === "/api/acquisition/profiles")
+				return {
+					profiles: [
+						{
+							id: "builtin:general",
+							name: "General",
+							description: "Any codec",
+							source: "builtin",
+						},
+						{
+							id: "builtin:efficient",
+							name: "Efficient codecs preferred",
+							description: "Prefer HEVC / AV1",
+							source: "builtin",
+						},
+					],
+					selectedProfileId: "builtin:general",
+					selectionAvailable: true,
+				};
 			if (path.startsWith("/api/acquisition/downloads"))
 				return {
 					authorized: true,
@@ -134,6 +153,7 @@ test("anime detail subscription has only RSS and episode inputs, with explicit s
 			workKey,
 			rssUrl: "https://feeds.example.org/rss?passkey=private",
 			startEpisode: 2,
+			profileId: null,
 			revision: null,
 		},
 	);
@@ -245,4 +265,31 @@ test("Manage opens saved configuration without exposing the feed in the summary"
 	fireEvent.click(screen.getByRole("button", { name: "Close" }));
 	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	expect(screen.getByRole("button", { name: "Manage" })).toBeTruthy();
+});
+
+test("changing a release profile invalidates the pending preview and sends the override", async () => {
+	const request = fixture();
+	render(<SubscriptionPanel workKey={workKey} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Subscribe" }));
+	fireEvent.change(await screen.findByLabelText("RSS URL"), {
+		target: { value: "https://feeds.example.org/rss" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Check RSS" }));
+	await screen.findByRole("button", { name: "Enable subscription" });
+	const select = await screen.findByRole("combobox", {
+		name: "Release selection profile",
+	});
+	fireEvent.change(select, { target: { value: "builtin:efficient" } });
+	expect(
+		screen.queryByRole("button", { name: "Enable subscription" }),
+	).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Check RSS" }));
+	await waitFor(() =>
+		expect(request).toHaveBeenCalledWith(
+			"/api/acquisition/subscriptions/preview",
+			"POST",
+			{},
+			expect.objectContaining({ profileId: "builtin:efficient" }),
+		),
+	);
 });

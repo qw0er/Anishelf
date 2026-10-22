@@ -11,6 +11,11 @@ import {
 	type SubscriptionPreview,
 	type SubscriptionView,
 } from "../domain/model.js";
+import {
+	acquisitionProfileFingerprint,
+	builtinAcquisitionProfiles,
+	defaultAcquisitionProfileId,
+} from "../domain/profiles.js";
 import { selectCandidates } from "../domain/selection.js";
 import type { DiscoveryApi } from "../public.js";
 import { DiscoveryContext, type DiscoveryOptions } from "./context.js";
@@ -28,6 +33,7 @@ function conflict(): never {
 	);
 }
 interface Preview {
+	profileFingerprint: string;
 	downloadRevision: string | null;
 	session: string;
 	input: PreviewInput;
@@ -60,6 +66,25 @@ export class DiscoveryApplication implements DiscoveryApi {
 		} catch {
 			throw new DomainError("INVALID_REQUEST", "Invalid anime reference.");
 		}
+	}
+	profiles() {
+		const selectedProfileId =
+			this.options.defaultProfileId?.() ?? defaultAcquisitionProfileId;
+		const profiles = this.options.profiles ?? builtinAcquisitionProfiles;
+		return {
+			profiles: profiles.map((profile) => ({
+				id: profile.id,
+				name: profile.name,
+				description: profile.description ?? "",
+				source: profile.id.startsWith("builtin:")
+					? ("builtin" as const)
+					: ("custom" as const),
+			})),
+			selectedProfileId,
+			selectionAvailable: profiles.some(
+				(profile) => profile.id === selectedProfileId,
+			),
+		};
 	}
 	get(workKey: string, page = 1): SubscriptionView {
 		this.key(workKey);
@@ -175,7 +200,18 @@ export class DiscoveryApplication implements DiscoveryApi {
 			input.workKey,
 			this.context.signal,
 		);
+		const profileId = input.profileId ?? null;
+		const resolvedId = profileId ?? this.profiles().selectedProfileId;
+		const selectedProfile = (
+			this.options.profiles ?? builtinAcquisitionProfiles
+		).find((profile) => profile.id === resolvedId);
+		if (!selectedProfile)
+			throw new DomainError(
+				"INVALID_REQUEST",
+				"The acquisition profile is unavailable. Choose an existing profile.",
+			);
 		const prospective: Subscription = {
+			profileId,
 			workKey: input.workKey,
 			feedId: feed.id,
 			startEpisode: input.startEpisode,
@@ -193,6 +229,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 		const download =
 			this.options.downloadPreview?.(input.workKey, target) ?? null;
 		this.previews.set(token, {
+			profileFingerprint: acquisitionProfileFingerprint(selectedProfile),
 			downloadRevision: download?.revision ?? null,
 			session,
 			input: { ...input },
@@ -230,6 +267,18 @@ export class DiscoveryApplication implements DiscoveryApi {
 			);
 			this.context.open();
 			const current = this.options.store.subscription(workKey);
+			const profile = (
+				this.options.profiles ?? builtinAcquisitionProfiles
+			).find(
+				(profile) =>
+					profile.id ===
+					(preview.input.profileId ?? this.profiles().selectedProfileId),
+			);
+			if (
+				!profile ||
+				acquisitionProfileFingerprint(profile) !== preview.profileFingerprint
+			)
+				conflict();
 			if (
 				(current?.revision ?? null) !== preview.input.revision ||
 				target.revision !== preview.targetRevision ||
@@ -252,6 +301,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 				workKey,
 				feedId: preview.feed.id,
 				startEpisode: preview.input.startEpisode,
+				profileId: preview.input.profileId ?? null,
 				enabled: true,
 				revision: randomUUID(),
 			};
@@ -333,23 +383,48 @@ export class DiscoveryApplication implements DiscoveryApi {
 		} catch {
 			downloadsUnknown = true;
 		}
-		return selectCandidates({
+		const current = this.options.store.subscription(subscription.workKey);
+		const history =
+			current?.feedId === subscription.feedId
+				? this.options.store.candidates(subscription.workKey)
+				: [];
+		const profileId =
+			subscription.profileId ?? this.profiles().selectedProfileId;
+		const candidates = selectCandidates({
+			history,
+			now: this.context.now(),
+			locked: new Set(
+				this.options.lockedCandidates?.(subscription.workKey) ?? [],
+			),
+			profile:
+				(this.options.profiles ?? builtinAcquisitionProfiles).find(
+					(profile) => profile.id === profileId,
+				) ?? null,
 			subscription,
 			feed,
 			target,
 			downloadsUnknown,
 			active: new Set(hashes ?? []),
-			previous: new Set(
-				this.options.store
-					.candidates(subscription.workKey)
-					.filter(
-						(candidate) => candidate.chosen || candidate.status === "selected",
-					)
-					.map((candidate) => candidate.entryId),
-			),
 			assessReleaseTitle: (title, work) =>
 				this.options.anime.assessReleaseTitle(title, work),
 		});
+		for (const candidate of candidates) {
+			const prior = history.find((other) => other.id === candidate.id);
+			if (JSON.stringify(prior) !== JSON.stringify(candidate))
+				this.options.logger.info(
+					{
+						event: "acquisition.release_decided",
+						workKey: subscription.workKey,
+						candidateId: candidate.id,
+						episode: candidate.episode,
+						status: candidate.status,
+						reasons: candidate.reasons,
+						...candidate.selection,
+					},
+					"Release selection evaluated.",
+				);
+		}
+		return candidates;
 	}
 	/** Discovery owns the projection and reservation-result writes exposed to Downloads. */
 	acquisition() {
@@ -357,7 +432,29 @@ export class DiscoveryApplication implements DiscoveryApi {
 			subscription: (workKey: string) =>
 				this.options.store.subscription(workKey),
 			subscriptions: () => this.options.store.subscriptions(),
-			candidates: (workKey: string) => this.options.store.candidates(workKey),
+			candidates: (workKey: string) => {
+				const subscription = this.options.store.subscription(workKey);
+				const profile = (
+					this.options.profiles ?? builtinAcquisitionProfiles
+				).find(
+					(profile) =>
+						profile.id ===
+						(subscription?.profileId ?? this.profiles().selectedProfileId),
+				);
+				const locked = new Set(this.options.lockedCandidates?.(workKey) ?? []);
+				return this.options.store.candidates(workKey).map((candidate) =>
+					locked.has(candidate.id) ||
+					(profile &&
+						candidate.selection?.fingerprint ===
+							acquisitionProfileFingerprint(profile))
+						? candidate
+						: {
+								...candidate,
+								status: "skipped" as const,
+								reasons: ["profile_unavailable"],
+							},
+				);
+			},
 			release: (feedId: string, entryId: string) =>
 				this.options.store
 					.feed(feedId)

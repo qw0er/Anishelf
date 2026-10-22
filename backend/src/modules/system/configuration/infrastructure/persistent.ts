@@ -60,6 +60,7 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 			key !== "resourceRoot" &&
 			key !== "scanIntervalMinutes" &&
 			key !== "defaultTranscodeProfileId" &&
+			key !== "defaultAcquisitionProfileId" &&
 			key !== "preparationMode" &&
 			key !== "transcodeCacheBudgetGiB" &&
 			key !== "qbittorrentWebUiUrl" &&
@@ -108,6 +109,16 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		cacheBudget === undefined
 			? {}
 			: { transcodeCacheBudgetGiB: cacheBudget as number };
+	const acquisitionId = settings.defaultAcquisitionProfileId;
+	if (
+		acquisitionId !== undefined &&
+		(typeof acquisitionId !== "string" ||
+			!/^(builtin|custom):[a-z][a-z0-9-]{0,63}$/u.test(acquisitionId))
+	)
+		throw new DomainError(
+			"CONFIG_INVALID",
+			"settings.json defaultAcquisitionProfileId must be a valid profile ID.",
+		);
 	const profileId = settings.defaultTranscodeProfileId;
 	if (profileId !== undefined && !Check(TranscodeProfileIdSchema, profileId))
 		throw new DomainError(
@@ -145,6 +156,9 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		throw new DomainError("CONFIG_INVALID", "Resource paths must be distinct.");
 	return {
 		resourceRoots: [...roots],
+		...(typeof acquisitionId === "string"
+			? { defaultAcquisitionProfileId: acquisitionId }
+			: {}),
 		...(rssInterval === undefined
 			? {}
 			: { rssRefreshIntervalMinutes: rssInterval as number }),

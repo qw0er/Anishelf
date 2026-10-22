@@ -1,5 +1,6 @@
 import { Type } from "typebox";
 import {
+	AcquisitionProfileCatalogSchema,
 	SubscriptionCommandSchema,
 	SubscriptionConfirmSchema,
 	SubscriptionPreviewInputSchema,
@@ -15,6 +16,11 @@ export function registerSubscriptionRoutes(
 	discovery: DiscoveryApi,
 ) {
 	const path = "/api/acquisition/subscriptions";
+	app.get(
+		"/api/acquisition/profiles",
+		{ schema: { response: { 200: AcquisitionProfileCatalogSchema } } },
+		async () => discovery.profiles(),
+	);
 	app.get(
 		path,
 		{
