@@ -68,7 +68,7 @@ export async function createAcquisitionModule(options: {
 					"Subscription metadata is unavailable.",
 				);
 			},
-			assess: () => {
+			assessReleaseTitle: () => {
 				throw new DomainError(
 					"METADATA_UNAVAILABLE",
 					"Subscription metadata is unavailable.",

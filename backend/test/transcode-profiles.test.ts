@@ -4,6 +4,7 @@ import { join } from "node:path";
 import pino from "pino";
 import { Check } from "typebox/value";
 import { afterEach, beforeEach, expect, test } from "vitest";
+import { stringify } from "yaml";
 import { TranscodeProfileSchema } from "../src/contracts/schemas/transcode-profiles.js";
 import { builtinTranscodeProfiles } from "../src/modules/system/configuration/domain/transcode-profiles.js";
 import { transcodeProfileCatalog } from "../src/modules/system/configuration/http/profile-presenter.js";
@@ -28,8 +29,8 @@ const customProfile = () => ({
 });
 const writeProfiles = (profiles: unknown[]) =>
 	writeFile(
-		join(directory, "transcode-profiles.json"),
-		JSON.stringify({ version: 1, profiles }),
+		join(directory, "transcode-profiles.yaml"),
+		stringify({ version: 1, profiles }),
 	);
 
 test("built-ins use the shared schema and missing external files create no configuration files", async () => {
@@ -54,7 +55,7 @@ test("built-ins use the shared schema and missing external files create no confi
 		readFile(join(directory, "settings.json")),
 	).rejects.toMatchObject({ code: "ENOENT" });
 	await expect(
-		readFile(join(directory, "transcode-profiles.json")),
+		readFile(join(directory, "transcode-profiles.yaml")),
 	).rejects.toMatchObject({ code: "ENOENT" });
 });
 
@@ -93,20 +94,20 @@ test("external profiles merge into an immutable startup snapshot and choices sur
 
 test.each([
 	"{",
-	JSON.stringify({ version: 2, profiles: [] }),
-	JSON.stringify({ version: 1, profiles: [builtinTranscodeProfiles[0]] }),
-	JSON.stringify({ version: 1, profiles: [customProfile(), customProfile()] }),
-	JSON.stringify({
+	stringify({ version: 2, profiles: [] }),
+	stringify({ version: 1, profiles: [builtinTranscodeProfiles[0]] }),
+	stringify({ version: 1, profiles: [customProfile(), customProfile()] }),
+	stringify({
 		version: 1,
 		profiles: [{ ...customProfile(), args: ["-i", "other"] }],
 	}),
-	JSON.stringify({
+	stringify({
 		version: 1,
 		profiles: [
 			{ ...customProfile(), video: { ...customProfile().video, crf: 52 } },
 		],
 	}),
-	JSON.stringify({
+	stringify({
 		version: 1,
 		profiles: [
 			{
@@ -115,15 +116,15 @@ test.each([
 			},
 		],
 	}),
-	JSON.stringify({
+	stringify({
 		version: 1,
 		profiles: [{ ...customProfile(), id: "custom:../file" }],
 	}),
-	JSON.stringify({
+	stringify({
 		version: 1,
 		profiles: [{ ...customProfile(), name: "   " }],
 	}),
-	JSON.stringify({
+	stringify({
 		version: 1,
 		profiles: [
 			{
@@ -138,15 +139,15 @@ test.each([
 		expect(() => parseTranscodeProfiles(source)).toThrowError(
 			expect.objectContaining({ code: "CONFIG_INVALID" }),
 		);
-		await writeFile(join(directory, "transcode-profiles.json"), source);
+		await writeFile(join(directory, "transcode-profiles.yaml"), source);
 		await expect(load()).rejects.toMatchObject({ code: "CONFIG_INVALID" });
 	},
 );
 
 test("unreadable external file and failed selection writes fail without changing the snapshot", async () => {
-	await mkdir(join(directory, "transcode-profiles.json"));
+	await mkdir(join(directory, "transcode-profiles.yaml"));
 	await expect(load()).rejects.toMatchObject({ code: "CONFIG_INVALID" });
-	await rm(join(directory, "transcode-profiles.json"), { recursive: true });
+	await rm(join(directory, "transcode-profiles.yaml"), { recursive: true });
 	const service = await load();
 	const before = service.snapshot;
 	await mkdir(join(directory, "settings.json"));
@@ -281,9 +282,7 @@ test.each(audioVariants)(
 			audio: { ...audio, channels: "preserve" },
 		};
 		expect(
-			parseTranscodeProfiles(
-				JSON.stringify({ version: 1, profiles: [profile] }),
-			),
+			parseTranscodeProfiles(stringify({ version: 1, profiles: [profile] })),
 		).toEqual([profile]);
 	},
 );
@@ -330,7 +329,7 @@ test.each([
 		video: { ...video, pixelFormat: "yuv420p" },
 	};
 	expect(() =>
-		parseTranscodeProfiles(JSON.stringify({ version: 1, profiles: [profile] })),
+		parseTranscodeProfiles(stringify({ version: 1, profiles: [profile] })),
 	).toThrowError(expect.objectContaining({ code: "CONFIG_INVALID" }));
 });
 
@@ -401,4 +400,40 @@ test("preparation mode defaults to compatibility and persists with profile selec
 	} finally {
 		await app.close();
 	}
+});
+
+test("the documented YAML example loads with comments and native scalar types", async () => {
+	const source = await readFile(
+		new URL("../../docs/transcode-profiles.yaml", import.meta.url),
+		"utf8",
+	);
+	const profiles = parseTranscodeProfiles(source);
+	expect(profiles).toHaveLength(1);
+	expect(profiles[0]).toMatchObject({
+		id: "custom:small",
+		copyCompatibleStreams: true,
+		video: { crf: 25, maxHeight: 720 },
+	});
+	await writeFile(join(directory, "transcode-profiles.yaml"), source);
+	expect((await load()).transcodeProfiles).toContainEqual(profiles[0]);
+});
+
+test.each([
+	"version: 1\nversion: 1\nprofiles: []",
+	"version: 1\nprofiles: []\n---\nversion: 1\nprofiles: []",
+	"version: 1\nprofiles: !unsupported []",
+	"version: 1\nprofiles: *missing",
+	"version: 1\nprofiles:\n  - [broken",
+])("rejects invalid YAML documents: %s", (source) => {
+	expect(() => parseTranscodeProfiles(source)).toThrowError(
+		expect.objectContaining({ code: "CONFIG_INVALID" }),
+	);
+});
+
+test("the old JSON filename is no longer loaded", async () => {
+	await writeFile(
+		join(directory, "transcode-profiles.json"),
+		JSON.stringify({ version: 1, profiles: [customProfile()] }),
+	);
+	expect((await load()).transcodeProfiles).toEqual(builtinTranscodeProfiles);
 });

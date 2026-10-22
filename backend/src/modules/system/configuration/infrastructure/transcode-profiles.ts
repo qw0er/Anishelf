@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Check, Errors } from "typebox/value";
+import { parseDocument } from "yaml";
 import { TranscodeProfilesFileSchema } from "../../../../contracts/schemas/transcode-profiles.js";
 import { DomainError } from "../../../../shared/errors.js";
 import { freeze } from "../../../../shared/policy.js";
@@ -12,17 +13,20 @@ import {
 export function parseTranscodeProfiles(source: string): TranscodeProfile[] {
 	let value: unknown;
 	try {
-		value = JSON.parse(source);
+		const document = parseDocument(source);
+		if (document.errors.length || document.warnings.length)
+			throw new Error("Invalid YAML document.");
+		value = document.toJS({ maxAliasCount: 100 });
 	} catch {
 		throw new DomainError(
 			"CONFIG_INVALID",
-			"transcode-profiles.json is not valid JSON.",
+			"transcode-profiles.yaml is not valid YAML.",
 		);
 	}
 	if (!Check(TranscodeProfilesFileSchema, value)) {
 		throw new DomainError(
 			"CONFIG_INVALID",
-			`Invalid transcode-profiles.json: ${JSON.stringify(Errors(TranscodeProfilesFileSchema, value))}`,
+			`Invalid transcode-profiles.yaml: ${JSON.stringify(Errors(TranscodeProfilesFileSchema, value))}`,
 		);
 	}
 	const ids = new Set<string>();
@@ -39,7 +43,7 @@ export function parseTranscodeProfiles(source: string): TranscodeProfile[] {
 
 /** Startup snapshot. Missing external file is normal; malformed files fail startup. */
 export async function loadTranscodeProfiles(dataDir: string) {
-	const path = join(dataDir, "transcode-profiles.json");
+	const path = join(dataDir, "transcode-profiles.yaml");
 	let custom: TranscodeProfile[];
 	try {
 		custom = parseTranscodeProfiles(await readFile(path, "utf8"));

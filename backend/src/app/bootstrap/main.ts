@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { createSystemModule } from "../../modules/system/create.js";
 import { ApplicationLogging } from "../../platform/logging/index.js";
 import { DomainError } from "../../shared/errors.js";
@@ -95,6 +96,8 @@ async function main(): Promise<void> {
 				logLevel: config.logging.level,
 				logDestination: config.logging.destination,
 				resourceRootCount: configuration.settings.resourceRoots.length,
+				transcodeProfileCount: configuration.transcodeProfiles.length,
+				transcodeProfilesPath: join(config.dataDir, "transcode-profiles.yaml"),
 			},
 			"Application starting.",
 		);

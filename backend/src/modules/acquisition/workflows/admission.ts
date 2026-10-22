@@ -36,7 +36,10 @@ export class SubmissionAdmission {
 			});
 			return null;
 		}
-		const assessment = this.context.options.anime.assess(item.title, target);
+		const assessment = this.context.options.anime.assessReleaseTitle(
+			item.title,
+			target,
+		);
 		if (!assessment.eligible || assessment.episode !== item.episode) {
 			execution.save({
 				...item,
@@ -47,7 +50,10 @@ export class SubmissionAdmission {
 		}
 		if (
 			snapshot.some((task) => {
-				const assessment = this.context.options.anime.assess(task.name, target);
+				const assessment = this.context.options.anime.assessReleaseTitle(
+					task.name,
+					target,
+				);
 				return assessment.eligible && assessment.episode === item.episode;
 			})
 		) {

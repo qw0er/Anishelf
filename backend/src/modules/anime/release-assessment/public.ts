@@ -16,7 +16,10 @@ interface ReleaseAssessment {
 }
 export interface ReleaseAssessmentApi {
 	target(key: string, signal?: AbortSignal): Promise<AcquisitionTarget>;
-	assess(title: string, target: AcquisitionTarget): ReleaseAssessment;
+	assessReleaseTitle(
+		title: string,
+		target: AcquisitionTarget,
+	): ReleaseAssessment;
 }
 export interface ReleaseParser {
 	extractRelease(title: string): ExtractionEvidence;

@@ -37,7 +37,7 @@ export class AcquisitionIngestion {
 				"ACQUISITION_CONFLICT",
 				"The downloaded source changed.",
 			);
-		const assessment = this.assessment.assess(
+		const assessment = this.assessment.assessReleaseTitle(
 			basename(identity.relativePath),
 			target,
 		);

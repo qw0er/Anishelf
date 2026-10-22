@@ -225,4 +225,4 @@ docker compose --profile qbittorrent up -d --build
 - [Container packaging](package/README.md)
 - [Architecture](docs/architecture.md)
 - [Requirements](docs/requirements.md) and [current iteration](docs/current-requirement.md)
-- [Transcode profiles and preparation modes](docs/transcode-profiles.md)
+- [Transcode profiles and preparation modes](docs/transcode-profiles.yaml)

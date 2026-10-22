@@ -1108,7 +1108,7 @@ Allow users to configure the total disk-space limit for generated prepared-media
 
 ##### V2 Inventory Unified Configuration (O17)
 
-Implemented foundation: unified startup/settings composition, immutable typed policy views for current scanning, playback, subtitles, media tools, HTTP and database behavior, and browser-safe build-time client policy. The [transcode profile foundation](transcode-profiles.md) provides built-in and external preparation profiles, a catalog API and persistent default selection. Profile execution, user-facing profile selection, built-in cache budgets and profile-content invalidation are implemented. V2 uses a built-in prepared-media cache budget; user editing is deferred to O18.
+Implemented foundation: unified startup/settings composition, immutable typed policy views for current scanning, playback, subtitles, media tools, HTTP and database behavior, and browser-safe build-time client policy. The [transcode profile foundation](transcode-profiles.yaml) provides built-in and external preparation profiles, a catalog API and persistent default selection. Profile execution, user-facing profile selection, built-in cache budgets and profile-content invalidation are implemented. V2 uses a built-in prepared-media cache budget; user editing is deferred to O18.
 
 Use environment variables for startup options. Define container/MIME capabilities, transcode profiles, subtitle handling and resource limits/timers in TypeScript; bundle English messages as a read-only resource. Save user choices and any exposed custom profile overrides in `settings.json`. Merge only explicit user values with current defaults, validate the effective result and write settings atomically. Unset choices adopt new defaults on update; explicit choices remain. Cache keys include effective profile content. Configuration cannot bypass access checks or create unsupported codec/delivery capabilities. See the current design for ownership and upgrade rules.
 
@@ -1190,8 +1190,8 @@ Startup environment values configure deployment. `settings.json` stores explicit
 user choices; omitted values use current program defaults. Commit settings
 atomically before publishing the new snapshot. Failed writes preserve the prior
 configuration. Program defaults are not copied into the data directory.
-Custom profiles load at startup from `dataDir/transcode-profiles.json`; see
-[Transcode profiles](transcode-profiles.md) for their configuration contract.
+Custom profiles load at startup from `dataDir/transcode-profiles.yaml`; see
+[Transcode profiles](transcode-profiles.yaml) for their configuration contract.
 
 The Web workspace owns presentation timing and media-controller preferences.
 It imports only browser-safe shared constraints and has no runtime client-policy

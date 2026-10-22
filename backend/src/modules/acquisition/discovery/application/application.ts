@@ -49,7 +49,8 @@ export class DiscoveryApplication implements DiscoveryApi {
 		this.worker = new DiscoveryWorker(
 			this.context,
 			this.reader,
-			(subscription, feed, target) => this.assess(subscription, feed, target),
+			(subscription, feed, target) =>
+				this.evaluateFeedCandidates(subscription, feed, target),
 		);
 	}
 	private key(value: string) {
@@ -181,7 +182,11 @@ export class DiscoveryApplication implements DiscoveryApi {
 			revision: current?.revision ?? randomUUID(),
 			enabled: true,
 		};
-		const candidates = await this.assess(prospective, feed, target);
+		const candidates = await this.evaluateFeedCandidates(
+			prospective,
+			feed,
+			target,
+		);
 		this.context.open();
 		const token = randomUUID(),
 			expiresAt = this.context.now() + policy.previewLifetimeMs;
@@ -316,7 +321,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 		});
 	}
 
-	private async assess(
+	private async evaluateFeedCandidates(
 		subscription: Subscription,
 		feed: FeedRecord,
 		target: AcquisitionTarget,
@@ -342,7 +347,8 @@ export class DiscoveryApplication implements DiscoveryApi {
 					)
 					.map((candidate) => candidate.entryId),
 			),
-			assess: (title, work) => this.options.anime.assess(title, work),
+			assessReleaseTitle: (title, work) =>
+				this.options.anime.assessReleaseTitle(title, work),
 		});
 	}
 	/** Discovery owns the projection and reservation-result writes exposed to Downloads. */

@@ -62,7 +62,7 @@ export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 			revision: JSON.stringify([snapshot.snapshotId, availability.revision]),
 		};
 	}
-	assess(title: string, target: AcquisitionTarget) {
+	assessReleaseTitle(title: string, target: AcquisitionTarget) {
 		const evidence = this.parser.extractRelease(title);
 		const candidate = rankCandidates(evidence, [target.work])[0];
 		const version = `${evidence.parserVersion}:${evidence.normalizationVersion}:${candidate?.matcherVersion ?? "unknown"}:rss-single-v1`;
