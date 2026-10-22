@@ -1,6 +1,6 @@
 import { Agent, type Dispatcher, request } from "undici";
 import { SourceError } from "../domain/model.js";
-import { RssTransport, rssUrl } from "../infrastructure/transport.js";
+import { RssTransport, rssUrl } from "../rss/public.js";
 import type { ReleaseDownload, TorrentRead } from "./model.js";
 import { indexerId, jackettUrl } from "./validation.js";
 

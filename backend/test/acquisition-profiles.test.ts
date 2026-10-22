@@ -8,8 +8,8 @@ import {
 } from "../src/modules/acquisition/discovery/domain/profiles.js";
 import { selectCandidates } from "../src/modules/acquisition/discovery/domain/selection.js";
 import { parseAcquisitionProfiles } from "../src/modules/acquisition/discovery/infrastructure/profiles.js";
-import { parseRss } from "../src/modules/acquisition/sources/infrastructure/rss.js";
 import type { ReleaseEvidence } from "../src/modules/acquisition/sources/public.js";
+import { parseRss } from "../src/modules/acquisition/sources/rss/public.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../src/modules/anime/release-assessment/application.js";

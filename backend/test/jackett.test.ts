@@ -5,8 +5,6 @@ import pino from "pino";
 import { MockAgent } from "undici";
 import { afterEach, expect, test } from "vitest";
 import { SourcesApplication } from "../src/modules/acquisition/sources/application/application.js";
-import { SourceRequestGate } from "../src/modules/acquisition/sources/application/request-gate.js";
-import { RssTransport } from "../src/modules/acquisition/sources/infrastructure/transport.js";
 import { JackettClient } from "../src/modules/acquisition/sources/jackett/client.js";
 import { JackettConfigurationFile } from "../src/modules/acquisition/sources/jackett/configuration.js";
 import { JackettConnection } from "../src/modules/acquisition/sources/jackett/connection.js";
@@ -18,6 +16,8 @@ import {
 	indexers,
 	releases,
 } from "../src/modules/acquisition/sources/jackett/xml.js";
+import { SourceRequestGate } from "../src/modules/acquisition/sources/request-gate.js";
+import { RssTransport } from "../src/modules/acquisition/sources/rss/public.js";
 
 const cleanup: (() => Promise<unknown>)[] = [];
 afterEach(async () => {
@@ -314,18 +314,21 @@ test("private config survives restart; generations fence stale queries and unifi
 	});
 	const options = {
 		jackett: connection,
-		store: {
-			feed: () => null,
-			saveFeed: () => {
-				throw new Error("query must not persist as RSS");
+		rss: {
+			store: {
+				feed: () => null,
+				saveFeed: () => {
+					throw new Error("query must not persist as RSS");
+				},
 			},
+			transport: {
+				fetch: async () => ({ xml: null, etag: null, lastModified: null }),
+				close: async () => {},
+			},
+			parse: () => [],
+			normalizeUrl: (s: string) => s,
+			logger,
 		},
-		transport: {
-			fetch: async () => ({ xml: null, etag: null, lastModified: null }),
-			close: async () => {},
-		},
-		parse: () => [],
-		normalizeUrl: (s: string) => s,
 		logger,
 	};
 	const sources = new SourcesApplication(options);

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import type { SourceRequestGate } from "../application/request-gate.js";
 import { type ReleaseEvidence, SourceError } from "../domain/model.js";
+import type { SourceRequestGate } from "../request-gate.js";
 import type {
 	JackettCapabilities,
 	JackettPlan,

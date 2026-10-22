@@ -1,11 +1,13 @@
+import type { SourceContext } from "../context.js";
 import type { FeedRecord } from "../domain/model.js";
 import { sourcePolicy as policy } from "../policy.js";
-import type { SourceContext } from "./context.js";
+import type { RssSourceOptions } from "./ports.js";
 export class SourceScheduler {
 	private timer: ReturnType<typeof setInterval> | undefined;
 	private ticking: Promise<void> | undefined;
 	constructor(
 		private readonly context: SourceContext,
+		private readonly options: RssSourceOptions,
 		private readonly activeIds: () => string[],
 		private readonly poll: (feed: FeedRecord) => Promise<void>,
 	) {}
@@ -23,15 +25,15 @@ export class SourceScheduler {
 			const ids = [...new Set(this.activeIds())];
 			const due = ids
 				.map((id) => {
-					const feed = this.context.options.store.feed(id);
+					const feed = this.options.store.feed(id);
 					if (!feed || feed.failures > 0 || feed.checkedAt === null)
 						return feed;
 					const nextAttemptAt =
 						feed.checkedAt + this.context.refreshIntervalMs();
 					if (nextAttemptAt === feed.nextAttemptAt) return feed;
 					const updated = { ...feed, nextAttemptAt };
-					this.context.options.store.saveFeed(updated);
-					this.context.options.logger.debug(
+					this.options.store.saveFeed(updated);
+					this.options.logger.debug(
 						{
 							event: "acquisition.feed_rescheduled",
 							feedId: feed.id,
@@ -53,7 +55,7 @@ export class SourceScheduler {
 					due.slice(index, index + 2).map((feed) => this.poll(feed)),
 				);
 		})().catch(() => {
-			this.context.options.logger.warn(
+			this.options.logger.warn(
 				{ event: "acquisition.scheduler_failed" },
 				"RSS scheduler will retry.",
 			);
