@@ -6,9 +6,9 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import type { Logger } from "pino";
 import {
+	type AcquisitionStore,
 	createAcquisitionPersistence,
 	createDownloadPersistence,
-	type DiscoveryStore,
 	type DownloadStore,
 } from "../../modules/acquisition/persistence.js";
 import {
@@ -39,7 +39,7 @@ import * as schema from "../schema.js";
 
 /** Owns the connection; repositories must not outlive this object. */
 export class ApplicationDatabase {
-	readonly acquisition: DiscoveryStore;
+	readonly acquisition: AcquisitionStore;
 	readonly acquisitionDownloads: DownloadStore;
 	readonly authentication: AuthenticationStore;
 	readonly trackingOperations: AnimePersistence["trackingOperations"];

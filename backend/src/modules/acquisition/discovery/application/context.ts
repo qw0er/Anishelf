@@ -1,26 +1,23 @@
 import type { Logger } from "pino";
-import { rssConstraints } from "../../../../contracts/defaults.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type {
 	AcquisitionTarget,
 	ReleaseAssessmentApi,
 } from "../../../anime/public.js";
-import type { FeedRecord, Subscription } from "../domain/model.js";
+import type { SourcesApi } from "../../sources/public.js";
+import type { Subscription } from "../domain/model.js";
 import type { AcquisitionProfile } from "../domain/profiles.js";
-import type { DiscoveryStore, FeedTransport } from "../ports.js";
+import type { DiscoveryStore } from "../ports.js";
 export type DiscoveryOptions = {
 	profiles?: readonly AcquisitionProfile[];
 	defaultProfileId?: () => string | undefined;
 	lockedCandidates?: (workKey: string) => string[];
 	store: DiscoveryStore;
-	transport: FeedTransport;
+	sources: SourcesApi;
 	anime: ReleaseAssessmentApi;
-	parse: (xml: string) => FeedRecord["entries"];
-	normalizeUrl: (url: string) => string;
 	downloads: (signal: AbortSignal) => Promise<string[] | null>;
 	logger: Logger;
 	now?: () => number;
-	refreshIntervalMinutes?: () => number | undefined;
 	downloadPreview?: (
 		key: string,
 		target: AcquisitionTarget,
@@ -40,12 +37,7 @@ export class DiscoveryContext {
 	get signal(): AbortSignal {
 		return this.shutdown.signal;
 	}
-	refreshIntervalMs() {
-		return (
-			(this.options.refreshIntervalMinutes?.() ??
-				rssConstraints.defaultRefreshIntervalMinutes) * 60_000
-		);
-	}
+
 	now() {
 		return this.options.now?.() ?? Date.now();
 	}

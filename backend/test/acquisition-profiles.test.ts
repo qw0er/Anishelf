@@ -1,10 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "vitest";
-import type {
-	Candidate,
-	FeedEntry,
-	FeedRecord,
-} from "../src/modules/acquisition/discovery/domain/model.js";
+import type { Candidate } from "../src/modules/acquisition/discovery/domain/model.js";
 import { matchesRelease } from "../src/modules/acquisition/discovery/domain/profile-matching.js";
 import {
 	type AcquisitionProfile,
@@ -12,7 +8,11 @@ import {
 } from "../src/modules/acquisition/discovery/domain/profiles.js";
 import { selectCandidates } from "../src/modules/acquisition/discovery/domain/selection.js";
 import { parseAcquisitionProfiles } from "../src/modules/acquisition/discovery/infrastructure/profiles.js";
-import { parseRss } from "../src/modules/acquisition/discovery/infrastructure/rss.js";
+import { parseRss } from "../src/modules/acquisition/sources/infrastructure/rss.js";
+import type {
+	FeedRecord,
+	ReleaseEvidence,
+} from "../src/modules/acquisition/sources/public.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../src/modules/anime/release-assessment/application.js";
@@ -41,7 +41,7 @@ const entry = (
 	id: string,
 	suffix: string,
 	seeders: number | null = null,
-): FeedEntry => ({
+): ReleaseEvidence => ({
 	id,
 	observationId: id,
 	title: `[G] Frieren - 03 ${suffix}`,
@@ -57,7 +57,7 @@ const immediate = (profile: AcquisitionProfile): AcquisitionProfile => ({
 	levels: profile.levels.map((level) => ({ ...level, acceptAfterMinutes: 0 })),
 });
 function select(
-	entries: FeedEntry[],
+	entries: ReleaseEvidence[],
 	profile = immediate(builtinAcquisitionProfiles[0]),
 	now = 1000,
 	history: Candidate[] = [],

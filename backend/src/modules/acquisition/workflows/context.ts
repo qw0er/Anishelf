@@ -1,14 +1,11 @@
 import type { AnimeApi, ReleaseAssessmentApi } from "../../anime/public.js";
 import type { AcquisitionResources } from "../../resources/public.js";
-import type {
-	Candidate,
-	FeedEntry,
-	Subscription,
-} from "../discovery/public.js";
+import type { Candidate, Subscription } from "../discovery/public.js";
 import {
 	DownloadContext,
 	type DownloadOptions,
 } from "../downloads/application/context.js";
+import type { ReleaseEvidence } from "../sources/public.js";
 
 /** Consumer-owned reads and an explicit result notification; no Discovery persistence access. */
 interface DownloadSelection {
@@ -18,7 +15,7 @@ interface DownloadSelection {
 	release(
 		feedId: string,
 		entryId: string,
-	): Pick<FeedEntry, "downloadUrl" | "hash"> | null;
+	): Pick<ReleaseEvidence, "downloadUrl" | "hash"> | null;
 	reservationOutcome(subscription: Subscription, failed: boolean): void;
 }
 

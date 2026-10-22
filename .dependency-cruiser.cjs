@@ -3,6 +3,14 @@ const implementation = `${modulePath}(?:(?:application|infrastructure|http)(?:/|
 module.exports = {
 	forbidden: [
 		{
+			name: "acquisition-sources-do-not-import-business-consumers",
+			severity: "error",
+			from: { path: "^backend/src/modules/acquisition/sources/" },
+			to: {
+				path: "^backend/src/modules/acquisition/(?:discovery|downloads|workflows|watching|qbittorrent)/|^backend/src/modules/(?:anime|resources)/",
+			},
+		},
+		{
 			name: "downloads-execution-does-not-import-business-workflows",
 			severity: "error",
 			from: { path: "^backend/src/modules/acquisition/downloads/application/" },

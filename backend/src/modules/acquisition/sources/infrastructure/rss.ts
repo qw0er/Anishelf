@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { XMLParser } from "fast-xml-parser";
 import { SyntaxValidator } from "fast-xml-validator";
-import { discoveryPolicy as policy } from "../application/policy.js";
-import { type FeedEntry, RssError } from "../domain/model.js";
+import { type ReleaseEvidence, RssError } from "../domain/model.js";
+import { sourcePolicy as policy } from "../policy.js";
 
 function digest(value: string): string {
 	return createHash("sha256").update(value).digest("hex");
@@ -48,7 +48,7 @@ function download(value: string): string | null {
 		return null;
 	}
 }
-export function parseRss(xml: string): FeedEntry[] {
+export function parseRss(xml: string): ReleaseEvidence[] {
 	try {
 		if (
 			Buffer.byteLength(xml) > policy.maximumBodyBytes ||
@@ -70,7 +70,7 @@ export function parseRss(xml: string): FeedEntry[] {
 		const items = list(object(rss.channel).item);
 		if (items.length > policy.maximumItems)
 			throw new RssError("feed_too_large");
-		const result = new Map<string, FeedEntry>();
+		const result = new Map<string, ReleaseEvidence>();
 		for (const value of items) {
 			const item = object(value),
 				title = text(item.title);

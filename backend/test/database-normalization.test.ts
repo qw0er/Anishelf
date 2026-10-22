@@ -10,7 +10,6 @@ import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import * as schema from "../src/app/schema.js";
 import {
 	writeAcquisitionCandidates,
-	writeAcquisitionFeeds,
 	writeAcquisitionSubscriptions,
 } from "../src/modules/acquisition/discovery/infrastructure/records.js";
 import {
@@ -18,6 +17,7 @@ import {
 	writeAcquisitionDestination,
 	writeAcquisitionIntents,
 } from "../src/modules/acquisition/downloads/infrastructure/records.js";
+import { writeAcquisitionFeeds } from "../src/modules/acquisition/sources/infrastructure/records.js";
 import {
 	writeCatalogAssociations,
 	writeCatalogOperations,

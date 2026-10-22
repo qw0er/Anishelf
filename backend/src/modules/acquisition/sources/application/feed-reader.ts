@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { type FeedRecord, RssError } from "../domain/model.js";
-import type { DiscoveryContext } from "./context.js";
-import { discoveryPolicy as policy } from "./policy.js";
+import { sourcePolicy as policy } from "../policy.js";
+import type { SourceContext } from "./context.js";
 export class FeedReader {
 	private readonly fetching = new Map<string, Promise<FeedRecord>>();
-	constructor(private readonly context: DiscoveryContext) {}
+	constructor(private readonly context: SourceContext) {}
 	fetch(feed: FeedRecord): Promise<FeedRecord> {
+		this.context.open();
 		const current = this.fetching.get(feed.id);
 		if (current) return current;
 		if (this.fetching.size >= 2)
@@ -51,5 +52,8 @@ export class FeedReader {
 		this.fetching.set(feed.id, task);
 		void task.finally(() => this.fetching.delete(feed.id)).catch(() => {});
 		return task;
+	}
+	async close() {
+		await Promise.allSettled(this.fetching.values());
 	}
 }

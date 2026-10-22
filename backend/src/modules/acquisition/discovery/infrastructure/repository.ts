@@ -1,18 +1,20 @@
 import { eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import type { Candidate, FeedRecord, Subscription } from "../domain/model.js";
+import {
+	acquisitionFeeds as feeds,
+	SourceRepository,
+} from "../../sources/persistence.js";
+import type { FeedRecord } from "../../sources/public.js";
+import type { Candidate, Subscription } from "../domain/model.js";
 import type { DiscoveryStore } from "../ports.js";
 import {
 	readAcquisitionCandidates,
-	readAcquisitionFeeds,
 	readAcquisitionSubscriptions,
 	writeAcquisitionCandidates,
-	writeAcquisitionFeeds,
 	writeAcquisitionSubscriptions,
 } from "./records.js";
 import {
 	acquisitionCandidates as candidates,
-	acquisitionFeeds as feeds,
 	acquisitionSubscriptions as subscriptions,
 } from "./schema.js";
 
@@ -47,9 +49,9 @@ export class DiscoveryRepository implements DiscoveryStore {
 			.map((row) => readAcquisitionSubscriptions(this.store, row));
 	}
 	feed(id: string) {
-		const row = this.store.select().from(feeds).where(eq(feeds.id, id)).get();
-		return row ? readAcquisitionFeeds(this.store, row) : null;
+		return new SourceRepository(this.store).feed(id);
 	}
+
 	candidates(workKey: string) {
 		return this.store
 			.select()
@@ -59,7 +61,7 @@ export class DiscoveryRepository implements DiscoveryStore {
 			.map((row) => readAcquisitionCandidates(this.store, row));
 	}
 	saveFeed(feed: FeedRecord) {
-		writeAcquisitionFeeds(this.store, feed);
+		new SourceRepository(this.store).saveFeed(feed);
 	}
 
 	saveSubscription(
