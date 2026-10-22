@@ -24,8 +24,10 @@ services:
       ANISHELF_DATA_DIR: /data/app
       ANISHELF_INITIAL_RESOURCE_ROOTS: /data/media
       ANISHELF_QBITTORRENT_API_URL: http://qbittorrent:8080
+      ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE: /run/anishelf-qbittorrent/connection.json
     volumes:
       - anishelf-app:/data/app
+      - qbittorrent-connection:/run/anishelf-qbittorrent:ro
       - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media:ro
     # Podman's default OCI build format drops Dockerfile HEALTHCHECK metadata.
     # Declaring it here keeps depends_on.service_healthy working under Podman.
@@ -49,7 +51,22 @@ services:
       backend:
         condition: service_healthy
 
+  qbittorrent-init:
+    profiles: [qbittorrent]
+    image: ghcr.io/qw0er/anishelf-backend:${ANISHELF_TAG:-latest}
+    user: "0:0"
+    restart: "no"
+    command: ["node", "/app/package/qbittorrent-init.mjs"]
+    healthcheck:
+      disable: true
+    volumes:
+      - qbittorrent-config:/config
+      - qbittorrent-connection:/connection
+
   qbittorrent:
+    depends_on:
+      qbittorrent-init:
+        condition: service_completed_successfully
     profiles: [qbittorrent]
     # Initialize only the mount roots before LinuxServer's normal init process.
     entrypoint:
@@ -84,6 +101,8 @@ volumes:
     name: anishelf-media
   qbittorrent-incomplete:
     name: anishelf-qbittorrent-incomplete
+  qbittorrent-connection:
+    name: anishelf-qbittorrent-connection
   qbittorrent-config:
     name: anishelf-qbittorrent-config
 ```
@@ -112,7 +131,7 @@ Optional `.env` settings:
 See [the optional deployment environment file](package/deploy/.env.example).
 
 - Backend runs as UID/GID 1000 and reads original media without modifying it.
-- Keep all four data volumes. Stop services and back up before updating; never use `down --volumes` to update.
+- Keep all five data volumes. Stop services and back up before updating; never use `down --volumes` to update.
 - On SELinux hosts, add `z` to shared media bind mounts.
 - Remote access: `ssh -L 3000:127.0.0.1:3000 user@server`.
 - [Quadlet, HTTPS, backup and password recovery](docs/deployment.md).
@@ -130,15 +149,37 @@ Enable `COMPOSE_PROFILES=qbittorrent`, then run `docker compose up -d`.
 
 | Setting | Bundled downloader |
 | --- | --- |
-| Initial password | `docker compose logs qbittorrent` |
+| WebUI credentials | Anishelf Settings → qBittorrent → Show WebUI password |
 | API address | `http://qbittorrent:8080` |
 | Browser WebUI | `http://localhost:<QBITTORRENT_WEBUI_PORT>` (default 8080) |
 | Completed directory | `/data/media` |
 | Enabled incomplete directory | `/data/incomplete` |
 
-Set a permanent password in WebUI. In Anishelf Settings, save the API credentials,
-test the connection and validate Download destination. Save the browser WebUI link separately.
-For an external downloader, replace the API address and map its completed directory to the same media files.
+For new installations, the initialization service generates a random permanent password,
+configures both directories, and publishes credentials in the private
+`anishelf-qbittorrent-connection` volume. Anishelf automatically connects and validates
+the `/data/media` resource mapping. Subscription scope still requires confirmation;
+shared file visibility is proven when a completed download is imported.
+
+In Settings, use **Show WebUI password**, **Copy WebUI password** and **Copy username**
+to sign into qBittorrent. The password is hidden after 30 seconds or when the page is
+backgrounded. Save a browser-reachable WebUI URL separately and use **Open WebUI**.
+If you change credentials inside qBittorrent, use **Update password or use an external
+instance** to save the new credentials in Anishelf, then test the connection and
+save/validate the destination again. Changed connection generations require renewed
+subscription confirmation.
+
+Existing qBittorrent configurations are preserved and need one manual connection
+setup, including the separate incomplete directory. Initialization never resets an
+existing password. A manually saved or removed Anishelf connection takes precedence
+over deployment credentials, including after restart. External downloaders continue
+to require their API credentials and completed-directory mapping.
+
+Back up the app, qBittorrent configuration and connection volumes together. The
+connection volume contains the initial password; the app privately stores subsequent
+credential updates. Restore missing credentials from backup, or enter the current
+qBittorrent credentials manually. Never delete only the configuration volume while
+retaining the connection volume; initialization rejects this inconsistent state.
 
 ## Development
 
@@ -152,6 +193,8 @@ Requires Node.js 24, npm and FFmpeg/FFprobe.
 | `ANISHELF_FRONTEND_DIR` | Unset | Absolute frontend build directory containing `index.html`; enables page hosting. |
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory | Absolute writable directory for settings, the database and caches. |
 | `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` | Unset | Initial absolute browser WebUI address; seeds missing `settings.json`, without replacing existing settings. |
+| `ANISHELF_QBITTORRENT_API_URL` | Unset | Suggested backend API address; external instances still require saved credentials. |
+| `ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE` | Unset | Absolute path to deployment-generated initial credentials; missing files are retried without blocking startup. |
 | `ANISHELF_INITIAL_RESOURCE_ROOTS` | Unset | One readable absolute media path or up to 64 non-overlapping paths separated by `:`; only creates missing settings. |
 | `ANISHELF_FFMPEG_PATH` | `ffmpeg` from PATH | Optional absolute FFmpeg executable path. |
 | `ANISHELF_FFPROBE_PATH` | `ffprobe` from PATH | Optional absolute FFprobe executable path. |
@@ -226,3 +269,8 @@ docker compose --profile qbittorrent up -d --build
 - [Architecture](docs/architecture.md)
 - [Requirements](docs/requirements.md) and [current iteration](docs/current-requirement.md)
 - [Transcode profiles and preparation modes](docs/transcode-profiles.yaml)
+
+
+The bundled initializer allows container port translation by disabling qBittorrent's
+Host-header port check. Account authentication, localhost authentication and CSRF
+protection remain enabled. The WebUI host binding defaults to `127.0.0.1`.

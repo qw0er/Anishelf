@@ -223,6 +223,14 @@ export function parseDeploymentConfig(
 			? {}
 			: { initialQbittorrentWebUiUrl: webUiInitializer }),
 		...(apiUrl === undefined ? {} : { qbittorrentApiUrl: apiUrl }),
+		...(env.ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE === undefined
+			? {}
+			: {
+					bundledQbittorrentConnectionFile: absolutePath(
+						env.ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE,
+						"ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE",
+					),
+				}),
 		logging,
 		mediaTools,
 		...(env.ANISHELF_FRONTEND_DIR === undefined

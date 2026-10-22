@@ -9,7 +9,7 @@ Both deployment methods pull separate Web and Backend images from GHCR.
 Use rootless Podman with Quadlet and cgroup v2. Copy the core files from
 [package/deploy/quadlet](../package/deploy/quadlet/) to
 `~/.config/containers/systemd/`: `anishelf.network`, `anishelf-app.volume`,
-`anishelf-media.volume`, `anishelf-backend.container` and `anishelf-web.container`.
+`anishelf-media.volume`, `anishelf-qbittorrent-connection.volume`, `anishelf-backend.container` and `anishelf-web.container`.
 Use the same published image tag in both application containers.
 
 Save `anishelf.target` in `~/.config/systemd/user/` (regular systemd units use
@@ -66,6 +66,8 @@ Environment=ANISHELF_PUBLIC_ORIGIN=http://localhost:3000
 Environment=ANISHELF_INITIAL_RESOURCE_ROOTS=/data/media
 # Optional API form hint; use Settings for external endpoints and credentials.
 Environment=ANISHELF_QBITTORRENT_API_URL=http://qbittorrent:8080
+Environment=ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE=/run/anishelf-qbittorrent/connection.json
+Volume=anishelf-qbittorrent-connection.volume:/run/anishelf-qbittorrent:ro
 Volume=anishelf-app.volume:/data/app
 # Optional host media: replace with /absolute/media:/data/media:ro,z.
 Volume=anishelf-media.volume:/data/media:ro
@@ -123,10 +125,41 @@ VolumeName=anishelf-qbittorrent-config
 VolumeName=anishelf-qbittorrent-incomplete
 ```
 
+`anishelf-qbittorrent-connection.volume`:
+
+```ini
+[Volume]
+VolumeName=anishelf-qbittorrent-connection
+```
+
+`anishelf-qbittorrent-init.container`:
+
+```ini
+[Unit]
+Description=Initialize bundled qBittorrent credentials and paths
+PartOf=anishelf.target
+
+[Container]
+Image=ghcr.io/qw0er/anishelf-backend:latest
+UserNS=keep-id:uid=1000,gid=1000
+User=0
+Group=0
+Volume=anishelf-qbittorrent-config.volume:/config
+Volume=anishelf-qbittorrent-connection.volume:/connection
+Exec=node /app/package/qbittorrent-init.mjs
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+TimeoutStartSec=900
+```
+
 `anishelf-qbittorrent.container`:
 
 ```ini
 [Unit]
+Requires=anishelf-qbittorrent-init.service
+After=anishelf-qbittorrent-init.service
 PartOf=anishelf.target
 Description=Anishelf optional qBittorrent
 
@@ -176,7 +209,7 @@ journalctl --user -u anishelf-backend.service -f
 ```
 
 Open `http://localhost:3000`. The backend journal contains the initial password.
-Read the downloader password with `journalctl --user -u anishelf-qbittorrent.service`.
+Read and copy the downloader credentials in Anishelf Settings. Existing downloader configurations require manual connection setup. Install the optional init container together with qBittorrent; its oneshot service must succeed before qBittorrent starts.
 `UserNS=keep-id` maps your user to container UID/GID 1000; downloader initialization
 runs as container root to prepare writable mount roots, then drops privileges.
 For host media, replace the media volume mount in both containers with the same
@@ -218,7 +251,7 @@ anime.example.com {
 }
 ```
 
-Configure the bundled or an existing qBittorrent instance in Anishelf Settings: API address,
+Configure an existing or external qBittorrent instance in Anishelf Settings: API address,
 credentials, Test connection, then Download destination. Its completed directory
 must map to the same files mounted at `/data/media`; incomplete downloads must
 stay outside watched media. Configure the optional browser WebUI link separately.
@@ -228,8 +261,7 @@ listener and firewall allow it. Confirm each subscription's preview to authorize
 automatic downloads. Destination validation alone does not prove shared visibility.
 
 The optional bundled qBittorrent uses `http://qbittorrent:8080`, completed path
-`/data/media` and an enabled incomplete path `/data/incomplete`. Read its temporary
-password with `docker compose logs qbittorrent` and set a permanent one in WebUI.
+`/data/media` and an enabled incomplete path `/data/incomplete`. New configurations get a random permanent password and automatic destination validation. In Anishelf Settings, show/copy WebUI credentials and configure the browser WebUI link. After changing credentials in WebUI, update the Anishelf connection and revalidate the destination. Existing configurations and saved manual connections are preserved.
 
 ## Storage, updates and recovery
 
@@ -237,14 +269,16 @@ password with `docker compose logs qbittorrent` and set a permanent one in WebUI
   settings, credentials and generated caches. Do not share it between backends.
 - Stop the application and optional downloader before backing up the entire app volume. Back up media and
   downloader state separately. Preserve ownership and protect credential backups.
-- Quadlet updates: run `systemctl --user stop anishelf.target`, back up, change both image tags, run
-  `podman pull` for both images, then `systemctl --user daemon-reload` and
+- Quadlet updates: run `systemctl --user stop anishelf.target`, back up, change the backend, initialization and web image tags, run
+  `podman pull` for the application images, then `systemctl --user daemon-reload` and
   `systemctl --user start anishelf.target`. Reverting images does not undo
   database migrations; retain the matching pre-update backup.
 - Extra media roots need read-only mounts and matching entries in Settings.
   Network filesystems require checking watcher behavior; manual scans reconcile drift.
-- The four volumes match Compose: `anishelf-app`, `anishelf-media`,
-  `anishelf-qbittorrent-config` and `anishelf-qbittorrent-incomplete`.
+- The five volumes match Compose: `anishelf-app`, `anishelf-media`,
+  `anishelf-qbittorrent-config`, `anishelf-qbittorrent-incomplete` and
+  `anishelf-qbittorrent-connection`. Back up the connection volume together with app
+  and downloader configuration. It contains the initial WebUI password.
 
 Reset a forgotten password, then restart Backend:
 
@@ -257,3 +291,8 @@ docker compose restart backend
 podman exec anishelf-backend node backend/dist/cli.js auth reset-password
 systemctl --user restart anishelf-backend.service
 ```
+
+
+The bundled initializer allows container port translation by disabling qBittorrent's
+Host-header port check. Account authentication, localhost authentication and CSRF
+protection remain enabled. The WebUI host binding defaults to `127.0.0.1`.

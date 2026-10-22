@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
+import { readBundledConnection } from "./configuration.js";
 import type {
 	ConnectionInput,
 	ConnectionSettings,
@@ -59,19 +60,32 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 		) => QbittorrentApi,
 		private readonly logger: Logger,
 		suggestedApiUrl?: string,
+		private readonly bundledConnectionFile?: string,
 	) {
 		this.suggestedApiUrl = suggestedApiUrl ? normalize(suggestedApiUrl) : null;
 	}
 	async initialize() {
 		try {
-			const saved = await this.store.read();
+			let saved = await this.store.read();
+			let imported = false;
+			if (!saved && this.bundledConnectionFile) {
+				saved = await readBundledConnection(this.bundledConnectionFile);
+				imported = saved !== null;
+			}
 			if (saved?.connection) {
-				normalize(saved.connection.url);
+				saved.connection.url = normalize(saved.connection.url);
 				if (
 					!validCredential(saved.connection.username, 256) ||
 					!validCredential(saved.connection.password, 4096)
 				)
 					throw new Error();
+			}
+			if (saved && imported) {
+				await this.store.write(saved);
+				this.logger.info(
+					{ event: "qbittorrent.bundled_initialized" },
+					"Bundled qBittorrent credentials initialized.",
+				);
 			}
 			if (saved) this.saved = saved;
 		} catch {
@@ -98,6 +112,28 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 			url: this.saved.connection?.url ?? this.suggestedApiUrl,
 			username: this.saved.connection?.username ?? "",
 			passwordConfigured: Boolean(this.saved.connection),
+			...(this.saved.bundled ? { bundled: true } : {}),
+		};
+	}
+	async initializeBundled() {
+		if (!this.bundledConnectionFile || this.saved.connection || this.unreadable)
+			return;
+		await this.enqueue(() => this.initialize());
+	}
+	credentials(generation: string) {
+		this.assertGeneration(generation);
+		if (!this.saved.bundled || !this.saved.connection || this.unreadable)
+			throw new DomainError(
+				"INVALID_REQUEST",
+				"No bundled WebUI credentials are available.",
+			);
+		this.logger.info(
+			{ event: "qbittorrent.credentials_viewed" },
+			"Bundled WebUI credentials requested.",
+		);
+		return {
+			username: this.saved.connection.username,
+			password: this.saved.connection.password,
 		};
 	}
 	private assertGeneration(generation: string) {
@@ -135,6 +171,9 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 				version: 1,
 				generation: randomUUID(),
 				connection: { url, username, password },
+				...(this.saved.bundled && previous?.url === url
+					? { bundled: true }
+					: {}),
 			};
 			await this.store.write(next);
 			this.saved = next;

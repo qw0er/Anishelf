@@ -23,7 +23,7 @@ export interface ResourcesApi extends LibraryApi, ResourceSettingsCoordinator {
 }
 
 export interface AcquisitionResources {
-	roots(): Promise<{ scopeId: string; name: string }[]>;
+	roots(): Promise<{ scopeId: string; name: string; path?: string }[]>;
 	validate(scopeId: string, incompletePath: string): Promise<void>;
 	inspect(
 		scopeId: string,

@@ -69,6 +69,12 @@ export async function createServer(
 			? { resources: resources.api.acquisition }
 			: {}),
 		...(anime.api.ingestion ? { ingestion: anime.api.ingestion } : {}),
+		...(system.deployment.bundledQbittorrentConnectionFile
+			? {
+					bundledConnectionFile:
+						system.deployment.bundledQbittorrentConnectionFile,
+				}
+			: {}),
 		...(system.deployment.qbittorrentApiUrl
 			? { suggestedApiUrl: system.deployment.qbittorrentApiUrl }
 			: {}),

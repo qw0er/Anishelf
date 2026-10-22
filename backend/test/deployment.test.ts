@@ -338,3 +338,17 @@ test("parses colon-separated resource roots and rejects empty or excessive entri
 			.initialResourceRoots,
 	).toBeUndefined();
 });
+
+test("validates the optional bundled qBittorrent credential file path", () => {
+	const path = join(fixture, "connection.json");
+	expect(
+		parseDeploymentConfig({
+			ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE: path,
+		}).bundledQbittorrentConnectionFile,
+	).toBe(path);
+	expect(() =>
+		parseDeploymentConfig({
+			ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE: "relative.json",
+		}),
+	).toThrow();
+});

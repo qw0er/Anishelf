@@ -1,5 +1,6 @@
 import { downloadPolicy as policy } from "../downloads/application/policy.js";
 import type { AcquisitionContext } from "./context.js";
+import type { DownloadDestinationSettings } from "./destination.js";
 import type { AcquisitionReconciliation } from "./reconciliation.js";
 import type { DownloadPlanning } from "./reservations.js";
 
@@ -12,6 +13,7 @@ export class AcquisitionWorker {
 		private readonly context: AcquisitionContext,
 		private readonly reservations: DownloadPlanning,
 		private readonly reconciliation: AcquisitionReconciliation,
+		private readonly destination: DownloadDestinationSettings,
 	) {}
 	tick(): Promise<void> {
 		if (this.running || this.context.signal.aborted)
@@ -19,6 +21,7 @@ export class AcquisitionWorker {
 		// Reserve the running slot before any collaborator can yield or request another tick.
 		const task = Promise.resolve()
 			.then(async () => {
+				await this.destination.initializeBundled();
 				await this.reservations.run();
 				let afterId = "";
 				while (!this.context.signal.aborted) {

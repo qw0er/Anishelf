@@ -33,6 +33,7 @@ export async function createAcquisitionModule(options: {
 	logger: Logger;
 	createClient?: (options: QbittorrentOptions) => QbittorrentApi;
 	suggestedApiUrl?: string;
+	bundledConnectionFile?: string;
 	store: DiscoveryStore;
 	downloadStore: DownloadStore;
 	resources?: AcquisitionResources;
@@ -55,6 +56,7 @@ export async function createAcquisitionModule(options: {
 		options.createClient ?? createQbittorrentClient,
 		options.logger.child({ module: "acquisition" }),
 		options.suggestedApiUrl,
+		options.bundledConnectionFile,
 	);
 	await connection.initialize();
 	let workflow: AcquisitionApplication | undefined;
@@ -106,6 +108,10 @@ export async function createAcquisitionModule(options: {
 					ingestion: options.ingestion,
 					transport: options.torrentTransport ?? new RssTransport(),
 					connectionGeneration: () => connection.settings().generation,
+					initializeBundled: async () => {
+						await connection.initializeBundled();
+						return Boolean(connection.settings().bundled);
+					},
 					withClient: (generation, operation) =>
 						connection.withClient(generation, operation),
 					logger: options.logger,
@@ -120,6 +126,7 @@ export async function createAcquisitionModule(options: {
 	const api: AcquisitionApi = {
 		connection: {
 			settings: () => connection.settings(),
+			credentials: (generation) => connection.credentials(generation),
 			save: (input) => connection.save(input),
 			clear: (generation) => connection.clear(generation),
 			probe: (generation) => connection.probe(generation),

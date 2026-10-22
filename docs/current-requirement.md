@@ -173,3 +173,31 @@ iteration. See [current architecture](current-architecture.md) for implementatio
 The in-app editor for hand-written configuration files (including custom acquisition
 and transcode profile YAML) is deferred under [O19](requirements.md#configuration-file-editor-o19).
 Current profile loading and selection do not include file editing in the UI.
+
+
+## Bundled qBittorrent Setup
+
+The bundled deployment initializes a new qBittorrent configuration before the
+service starts. It creates a random permanent password using qBittorrent's native
+PBKDF2 representation, enables `/data/incomplete`, and sets `/data/media` as the
+completed directory. A private connection volume carries the initial credentials;
+Backend mounts it read-only. Development Compose, published Compose and Quadlet
+share the same initialization script. Existing qBittorrent configurations are never
+overwritten. Interrupted credential publication resumes from the pending file.
+
+Acquisition imports deployment credentials only when no local connection record
+exists. Saved manual configuration, including an explicit removal, wins on restart.
+The worker retries initial setup without blocking application startup, selects the
+resource root by its actual `/data/media` path, and reuses the existing destination
+revision while retrying validation. Existing destinations from another connection
+generation require explicit reconfiguration. Automatic setup grants no subscription
+permission and does not assert completed-file visibility.
+
+Authenticated users can request bundled WebUI credentials through a dedicated
+CSRF-protected POST endpoint with `Cache-Control: no-store`. Normal connection
+responses never include passwords. The UI keeps revealed credentials outside query
+and mutation caches, hides them after 30 seconds or on backgrounding, and provides
+copy controls. The separately configured browser WebUI URL remains independent of
+the internal API address. Users changing credentials in WebUI must update the
+Anishelf connection and reconfirm destination-bound permissions. Initialization,
+validation, connection replacement and credential access emit sanitized events.

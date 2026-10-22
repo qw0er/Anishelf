@@ -92,6 +92,7 @@ export interface ConnectionSettings {
 	url: string | null;
 	username: string;
 	passwordConfigured: boolean;
+	bundled?: boolean;
 }
 export interface ConnectionProbe {
 	generation: string;
@@ -102,6 +103,7 @@ export interface ConnectionProbe {
 }
 export interface SavedConnection {
 	version: 1;
+	bundled?: boolean;
 	generation: string;
 	connection: { url: string; username: string; password: string } | null;
 }

@@ -1,4 +1,6 @@
 [Unit]
+Requires=anishelf-qbittorrent-init.service
+After=anishelf-qbittorrent-init.service
 PartOf=anishelf.target
 Description=Anishelf optional qBittorrent
 

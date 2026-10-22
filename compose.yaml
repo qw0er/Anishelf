@@ -15,8 +15,10 @@ services:
       ANISHELF_DATA_DIR: /data/app
       ANISHELF_INITIAL_RESOURCE_ROOTS: /data/media
       ANISHELF_QBITTORRENT_API_URL: http://qbittorrent:8080
+      ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE: /run/anishelf-qbittorrent/connection.json
     volumes:
       - anishelf-app:/data/app
+      - qbittorrent-connection:/run/anishelf-qbittorrent:ro
       - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media:ro
     # Podman's default OCI build format drops Dockerfile HEALTHCHECK metadata.
     # Declaring it here keeps depends_on.service_healthy working under Podman.
@@ -45,7 +47,27 @@ services:
       backend:
         condition: service_healthy
 
+  qbittorrent-init:
+    profiles: [qbittorrent]
+    image: localhost/anishelf-backend:dev
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: package/Dockerfile
+      target: backend
+    user: "0:0"
+    restart: "no"
+    command: ["node", "/app/package/qbittorrent-init.mjs"]
+    healthcheck:
+      disable: true
+    volumes:
+      - qbittorrent-config:/config
+      - qbittorrent-connection:/connection
+
   qbittorrent:
+    depends_on:
+      qbittorrent-init:
+        condition: service_completed_successfully
     profiles: [qbittorrent]
     # Initialize only the mount roots before LinuxServer's normal init process.
     entrypoint:
@@ -80,5 +102,7 @@ volumes:
     name: anishelf-media
   qbittorrent-incomplete:
     name: anishelf-qbittorrent-incomplete
+  qbittorrent-connection:
+    name: anishelf-qbittorrent-connection
   qbittorrent-config:
     name: anishelf-qbittorrent-config
