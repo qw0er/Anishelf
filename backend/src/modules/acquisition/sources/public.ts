@@ -4,15 +4,10 @@ export type { FeedTransport } from "./ports.js";
 
 import type { ReleaseEvidence } from "./domain/model.js";
 
-/** RSS reads and work-derived queries have distinct protocol semantics. */
-export type SourceRequest =
-	| { kind: "rss"; url: string }
-	| {
-			kind: "query";
-			sourceId: string;
-			generation: string;
-			titles: readonly string[];
-	  };
+/** Opaque binding issued by Sources; protocol configuration stays private. */
+export interface SourceReference {
+	readonly id: string;
+}
 
 /** Consumer evidence excludes feed URLs, HTTP validators and protocol cursors. */
 export interface SourceSnapshot {
@@ -28,9 +23,10 @@ export interface SourceSnapshot {
 export interface SourcesApi {
 	/** Saved evidence only; no remote request. */
 	snapshot(id: string): SourceSnapshot | null;
-	/** Prepare isolated evidence. Neither method persists or authorizes work. */
-	read(request: SourceRequest): Promise<SourceSnapshot>;
-	refresh(id: string): Promise<SourceSnapshot>;
+	/** Resolve a previously published binding without making a network request. */
+	reference(id: string): SourceReference;
+	/** Refresh any configured source without persisting evidence or authorizing work. */
+	refresh(reference: SourceReference): Promise<SourceSnapshot>;
 	/** Recheck immediately before publication and inside admission transactions. */
 	isCurrent(result: SourceSnapshot): boolean;
 	/** Publish only a prepared, current result, using the caller's transaction. */

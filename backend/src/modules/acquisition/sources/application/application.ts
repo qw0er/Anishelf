@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { type FeedRecord, SourceError } from "../domain/model.js";
 import { sourcePolicy as policy } from "../policy.js";
-import type { SourceRequest, SourceSnapshot, SourcesApi } from "../public.js";
+import type { SourceReference, SourceSnapshot, SourcesApi } from "../public.js";
 import { SourceContext, type SourceOptions } from "./context.js";
 import { FeedReader } from "./feed-reader.js";
 import { SourceScheduler } from "./scheduler.js";
@@ -15,6 +15,10 @@ export class SourcesApplication implements SourcesApi {
 			feed: FeedRecord;
 			previousRevision: string | null;
 		}
+	>();
+	private readonly references = new WeakMap<
+		SourceReference,
+		{ url: string; persisted: boolean }
 	>();
 	private scheduler: SourceScheduler | undefined;
 	private closing: Promise<void> | undefined;
@@ -39,23 +43,48 @@ export class SourcesApplication implements SourcesApi {
 		const feed = this.options.store.feed(id);
 		return feed ? this.project(feed) : null;
 	}
-	async read(request: SourceRequest) {
+	/** Configuration entry used by composition, never by Discovery. No I/O or writes. */
+	rssReference(input: string): SourceReference {
 		this.context.open();
-		if (request.kind === "query")
-			throw new SourceError("unsupported_capability");
 		let url: string;
 		try {
-			url = this.options.normalizeUrl(request.url);
+			url = this.options.normalizeUrl(input);
 		} catch {
 			throw new SourceError("invalid_source_url");
 		}
 		const id = createHash("sha256").update(url).digest("hex");
-		const existing = this.options.store.feed(id);
+		return this.bind(id, url, false);
+	}
+	private bind(id: string, url: string, persisted: boolean): SourceReference {
+		const reference = Object.freeze({ id });
+		this.references.set(reference, { url, persisted });
+		this.options.logger.debug(
+			{
+				event: "acquisition.source_reference_created",
+				sourceId: id,
+				persisted,
+			},
+			"Source reference prepared without exposing protocol configuration.",
+		);
+		return reference;
+	}
+	reference(id: string): SourceReference {
+		this.context.open();
+		const feed = this.options.store.feed(id);
+		if (!feed) throw new SourceError("source_missing");
+		return this.bind(id, feed.url, true);
+	}
+	async refresh(reference: SourceReference) {
+		this.context.open();
+		const binding = this.references.get(reference);
+		if (!binding) throw new SourceError("invalid_source_reference");
+		const existing = this.options.store.feed(reference.id);
+		if (!existing && binding.persisted) throw new SourceError("source_missing");
 		return this.prepare(
 			existing ?? {
-				id,
+				id: reference.id,
 				revision: randomUUID(),
-				url,
+				url: binding.url,
 				etag: null,
 				lastModified: null,
 				entries: [],
@@ -66,12 +95,6 @@ export class SourcesApplication implements SourcesApi {
 			},
 			existing?.revision ?? null,
 		);
-	}
-	async refresh(id: string) {
-		this.context.open();
-		const feed = this.options.store.feed(id);
-		if (!feed) throw new SourceError("source_missing");
-		return this.prepare(feed, feed.revision);
 	}
 	private async prepare(feed: FeedRecord, previousRevision: string | null) {
 		const prepared = await this.reader.fetch(feed, previousRevision);

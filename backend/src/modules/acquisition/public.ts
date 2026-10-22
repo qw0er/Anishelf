@@ -4,11 +4,11 @@ export type {
 } from "./qbittorrent/public.js";
 export { QbittorrentError } from "./qbittorrent/public.js";
 
-import type { DiscoveryApi } from "./discovery/public.js";
+import type { DiscoveryApi, PreviewInput } from "./discovery/public.js";
 import type { QbittorrentConnectionApi } from "./qbittorrent/public.js";
 export interface AcquisitionApi {
 	readonly connection: QbittorrentConnectionApi;
-	readonly discovery: DiscoveryApi;
+	readonly discovery: SubscriptionApi;
 	readonly downloads?: AcquisitionDownloadsApi;
 }
 
@@ -35,3 +35,11 @@ export interface AcquisitionDownloadsApi {
 		kind: "acquisition" | "import",
 	): void;
 }
+
+/** Manual source configuration is translated before entering Discovery. */
+export type SubscriptionApi = Omit<DiscoveryApi, "preview"> & {
+	preview(
+		session: string,
+		input: Omit<PreviewInput, "source"> & { rssUrl: string },
+	): ReturnType<DiscoveryApi["preview"]>;
+};
