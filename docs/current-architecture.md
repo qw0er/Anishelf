@@ -59,7 +59,9 @@ the existing Acquisition transaction. Discovery retains metadata assessment,
 profile selection and revision-checked candidate publication. Sources has no
 subscription, Anime or download business dependency. Torrent reads use the same
 public transport implementation; hash/path validation remains in Downloads.
-Jackett adapters, source descriptors and Watching remain planned extensions.
+Jackett search and shared source lifecycle are implemented; see
+[the lifecycle contract](source-lifecycle.md). Query subscriptions, download admission
+and Watching remain planned extensions.
 
 `DownloadsApplication` executes persisted tasks: canonical hash resolution and
 deduplication, qBittorrent submission, ownership/path checks and transfer observation.
@@ -285,6 +287,11 @@ Actual RSS/qBittorrent/mapped-media/browser tests remain separate acceptance gat
 
 ## Watching Automation with Torznab and Jackett (Planned)
 
+Implementation status (2026-10-23): Jackett connection/search and the
+[shared Sources lifecycle](source-lifecycle.md) are delivered. The following design
+also describes later subscription, deployment and automation work; it is not an
+inventory of delivered behavior.
+
 ### Selected Approach and Deployment
 
 Use Jackett as a separately deployed site adapter and Torznab as the acquisition
@@ -353,21 +360,23 @@ flowchart LR
   existing XML parser and HTTP library where suitable; no new generic crawler.
 - Keep the source protocols in sibling adapters under `sources/rss/` and
   `sources/jackett/`. The RSS adapter owns feed URL validation, RSS parsing and
-  transport, conditional requests, retained feed evidence, refresh scheduling and
-  retry state. Jackett owns its credentials, Torznab parsing and saved-origin
-  transport. `SourcesApplication` coordinates their shared reference, freshness,
-  publication and lifecycle contract; Discovery continues to own subscriptions,
+  transport, conditional requests and retained feed evidence. Jackett owns its
+  credentials, Torznab parsing and saved-origin transport. `SourcesApplication`
+  owns shared recurring scheduling, Jackett evidence persistence and retry state,
+  and coordinates reference, freshness and checked publication; Discovery continues to own subscriptions,
   assessments and acquisition decisions. Both adapters use the shared bounded
   request gate.
 - Discovery owns both manual RSS and managed search subscriptions, evidence,
-  assessments and preferences. Replace the feed-only subscription contract with
-  a discriminated source (`rss` or `torznab-query`). Manual RSS retains its workflow.
+  assessments and preferences. Subscriptions reference the common source identity;
+  protocol-specific binding configuration stays inside Sources. Manual RSS retains
+  its workflow; query configuration UI remains later work.
   Downloads reads source-neutral release evidence through `DownloadSelection`;
   it never reads Watching or Torznab persistence directly. Replace its raw download
-  URL projection with a descriptor for `magnet`, `public-torrent` or
-  `jackett-torrent` (source ID, generation and opaque locator). Bootstrap supplies
-  a descriptor-aware torrent reader; Downloads still owns parsing/hash verification
-  and byte submission. The reader exposes neither source storage nor credentials.
+  URL projection with an opaque download reference. Sources retains protocol
+  descriptors privately; bootstrap supplies a source-neutral torrent reader returning
+  magnet content or bytes. Downloads retains parsing/hash verification, validates
+  reference currentness after admission and owns submission. The reader exposes
+  neither source storage nor credentials. See the [shared Sources contract](source-lifecycle.md).
 - Anime retains title/season/episode assessment through `ReleaseAssessmentApi`.
   Reuse its target metadata and release parser. Extend the assessment projection
   with versioned release attributes and provenance needed for preference decisions;

@@ -101,7 +101,7 @@ export function selectCandidates(input: {
 			if (levelIndex < 0) reasons.push("no_matching_level");
 		}
 		levels.set(entry.id, levelIndex);
-		if (!entry.downloadUrl) reasons.push("download_unavailable");
+		if (!entry.download) reasons.push("download_unavailable");
 		if (
 			assessment.episode !== null &&
 			assessment.episode < subscription.startEpisode

@@ -1,5 +1,6 @@
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
+import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { SourcesApplication } from "../src/modules/acquisition/sources/application/application.js";
 import type {
 	FeedRecord,
@@ -35,7 +36,10 @@ function fixture() {
 	}));
 	const transport = { fetch, close: vi.fn(async () => {}) };
 	const logs: string[] = [];
+	const database = ApplicationDatabase.openMemory();
+	cleanup.push(async () => database.close());
 	const sources = new SourcesApplication({
+		store: database.acquisition,
 		rss: {
 			store,
 			transport,
@@ -169,9 +173,8 @@ test("source references hide configuration and cannot be forged or reused across
 	one.sources.publish(result);
 	const savedReference = one.sources.reference(result.id);
 	one.records.delete(result.id);
-	await expect(one.sources.refresh(savedReference)).rejects.toMatchObject({
-		code: "source_missing",
-	});
+	// The durable binding can recover an absent RSS evidence row.
+	expect((await one.sources.refresh(savedReference)).id).toBe(result.id);
 });
 
 test("shutdown aborts and drains in-flight reads and closes the transport once", async () => {

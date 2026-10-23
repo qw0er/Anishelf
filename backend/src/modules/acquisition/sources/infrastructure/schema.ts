@@ -52,3 +52,27 @@ export const acquisitionFeedsEntries = sqliteTable(
 		),
 	],
 );
+
+export const acquisitionSources = sqliteTable("acquisition_sources", {
+	id: text("id").primaryKey().notNull(),
+	binding: text("binding", { mode: "json" })
+		.$type<import("../lifecycle.js").ManagedSource["binding"]>()
+		.notNull(),
+	enabled: integer("enabled", { mode: "boolean" }).notNull(),
+	failures: integer("failures").notNull(),
+	snapshot: text("snapshot", { mode: "json" }).$type<
+		import("../domain/model.js").SourceRecord
+	>(),
+});
+
+export const acquisitionSourceDownloads = sqliteTable(
+	"acquisition_source_downloads",
+	{
+		id: text("id").primaryKey().notNull(),
+		sourceId: text("source_id").notNull(),
+		generation: text("generation"),
+		descriptor: text("descriptor", { mode: "json" })
+			.$type<import("../jackett/model.js").ReleaseDownload>()
+			.notNull(),
+	},
+);

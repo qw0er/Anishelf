@@ -82,7 +82,11 @@ export class DiscoveryWorker {
 			if (this.context.signal.aborted || !canPublish()) return;
 			const code =
 				error instanceof SourceError ? error.code : "assessment_unavailable";
-			this.context.options.sources.failed(feed, code);
+			this.context.options.sources.failed(
+				feed,
+				code,
+				error instanceof SourceError ? error.retryAt : undefined,
+			);
 			this.context.options.logger.warn(
 				{ event: "acquisition.discovery_failed", feedId: feed.id, code },
 				"Source discovery will retry.",

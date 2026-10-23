@@ -3,7 +3,7 @@ import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { QbittorrentApi } from "../../qbittorrent/public.js";
 import type { DownloadIntent } from "../domain/model.js";
-import type { DownloadStore, TorrentTransport } from "../ports.js";
+import type { DownloadStore, TorrentReader } from "../ports.js";
 import { downloadPolicy as policy } from "./policy.js";
 
 export function conflict(): never {
@@ -14,7 +14,7 @@ export function conflict(): never {
 }
 export interface DownloadOptions {
 	store: Pick<DownloadStore, "intent" | "saveIntent" | "hashOwner">;
-	transport: TorrentTransport;
+	transport: TorrentReader;
 	connectionGeneration(): string;
 	withClient<T>(
 		generation: string,

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { XMLParser } from "fast-xml-parser";
 import { SyntaxValidator } from "fast-xml-validator";
-import { type ReleaseEvidence, SourceError } from "../domain/model.js";
+import { type SourceEntry, SourceError } from "../domain/model.js";
 import type { JackettCapabilities, ReleaseDownload } from "./model.js";
 import { indexerId } from "./validation.js";
 
@@ -111,7 +111,7 @@ export function releases(
 		throw new SourceError("malformed_response");
 	const items = list(channel.item);
 	if (items.length > 1000) throw new SourceError("item_limit");
-	const entries = items.map((item): ReleaseEvidence => {
+	const entries = items.map((item): SourceEntry => {
 		const row = object(item),
 			title = text(row.title),
 			guid = text(row.guid);

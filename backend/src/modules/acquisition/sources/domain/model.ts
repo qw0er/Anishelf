@@ -1,19 +1,23 @@
 import type { ReleaseDownload } from "../jackett/model.js";
-export interface ReleaseEvidence {
+import type { ReleaseAttributes, SearchCoverage } from "./evidence.js";
+/** Private adapter evidence. Locators must never cross the consumer boundary. */
+export interface SourceEntry extends ReleaseAttributes {
 	guid?: string;
 	sourceId?: string;
 	generation?: string;
-	size?: number | null;
-	peers?: number | null;
 	download?: ReleaseDownload | null;
-	seeders?: number | null;
-	seedersObservedAt?: number | null;
-	id: string;
-	observationId: string;
-	title: string;
-	publishedAt: number | null;
 	downloadUrl: string | null;
-	hash: string | null;
+}
+export interface SourceRecord {
+	coverage?: SearchCoverage;
+	outcome?: "matches" | "no_match";
+	id: string;
+	revision: string;
+	label: string;
+	entries: readonly SourceEntry[];
+	checkedAt: number | null;
+	nextAttemptAt: number;
+	error: string | null;
 }
 export interface FeedRecord {
 	revision: string;
@@ -25,7 +29,7 @@ export interface FeedRecord {
 	nextAttemptAt: number;
 	failures: number;
 	error: string | null;
-	entries: ReleaseEvidence[];
+	entries: SourceEntry[];
 }
 export class SourceError extends Error {
 	constructor(

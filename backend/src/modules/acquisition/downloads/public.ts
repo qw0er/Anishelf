@@ -3,5 +3,5 @@ export { DownloadError } from "./domain/model.js";
 export type {
 	CompletedDownload,
 	DownloadStore,
-	TorrentTransport,
+	TorrentReader,
 } from "./ports.js";

@@ -4,7 +4,7 @@ import type { AnimeApi, ReleaseAssessmentApi } from "../anime/public.js";
 import type { AcquisitionResources } from "../resources/public.js";
 import { DiscoveryApplication } from "./discovery/application/application.js";
 import { loadAcquisitionProfiles } from "./discovery/infrastructure/profiles.js";
-import type { DownloadStore, TorrentTransport } from "./downloads/public.js";
+import type { DownloadStore } from "./downloads/public.js";
 import { registerAcquisitionHttp } from "./http.js";
 import type { AcquisitionStore } from "./persistence.js";
 import type { AcquisitionApi } from "./public.js";
@@ -46,7 +46,7 @@ export async function createAcquisitionModule(options: {
 	downloadStore: DownloadStore;
 	resources?: AcquisitionResources;
 	ingestion?: NonNullable<AnimeApi["ingestion"]>;
-	torrentTransport?: TorrentTransport;
+	torrentTransport?: import("./sources/downloads.js").SourceTorrentTransport;
 	anime?: ReleaseAssessmentApi;
 	transport?: FeedTransport;
 	now?: () => number;
@@ -88,6 +88,10 @@ export async function createAcquisitionModule(options: {
 	);
 	await jackett.initialize();
 	const sources = new SourcesApplication({
+		store: discoveryStore,
+		...(options.torrentTransport
+			? { torrentTransport: options.torrentTransport }
+			: {}),
 		rss: {
 			gate,
 			store: discoveryStore,
@@ -143,7 +147,12 @@ export async function createAcquisitionModule(options: {
 					resources: options.resources,
 					anime: options.anime,
 					ingestion: options.ingestion,
-					transport: options.torrentTransport ?? new RssTransport(),
+					transport: {
+						read: (reference, signal) =>
+							sources.readDownload(reference, signal),
+						isCurrent: (reference) => sources.isDownloadCurrent(reference),
+						close: async () => {},
+					},
 					connectionGeneration: () => connection.settings().generation,
 					initializeBundled: async () => {
 						await connection.initializeBundled();

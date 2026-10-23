@@ -1,6 +1,7 @@
 import type { Logger } from "pino";
 import { rssConstraints } from "../../../contracts/defaults.js";
 import { DomainError } from "../../../shared/errors.js";
+import { sourcePolicy } from "./policy.js";
 export interface SourceRuntimeOptions {
 	logger: Logger;
 	now?: () => number;
@@ -19,6 +20,16 @@ export class SourceContext {
 		return (
 			(this.options.refreshIntervalMinutes?.() ??
 				rssConstraints.defaultRefreshIntervalMinutes) * 60_000
+		);
+	}
+	retryAt(failures: number, hint?: number) {
+		return Math.max(
+			this.now() +
+				Math.min(
+					sourcePolicy.retryMaximumMs,
+					60_000 * 2 ** Math.min(failures, 6),
+				),
+			hint && Number.isFinite(hint) ? hint : 0,
 		);
 	}
 	open() {

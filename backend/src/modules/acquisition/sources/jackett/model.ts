@@ -24,17 +24,7 @@ export interface JackettCapabilities {
 	search: boolean;
 	limit: number;
 }
-export interface SearchCoverage {
-	limited: boolean;
-	reason:
-		| "page_limit"
-		| "repeated_page"
-		| "missing_pagination"
-		| "item_limit"
-		| null;
-	pages: number;
-	queries: number;
-}
+export type { SearchCoverage } from "../domain/evidence.js";
 export type ReleaseDownload =
 	| { kind: "magnet"; uri: string }
 	| { kind: "public-torrent"; url: string }
@@ -45,6 +35,4 @@ export type ReleaseDownload =
 			path: string;
 			file: string;
 	  };
-export type TorrentRead =
-	| { kind: "bytes"; bytes: Uint8Array }
-	| { kind: "magnet"; uri: string };
+export type { DownloadContent as TorrentRead } from "../domain/evidence.js";

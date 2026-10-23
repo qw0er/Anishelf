@@ -1,12 +1,16 @@
 export type { SourceConnectionApi } from "./settings.js";
 
-import type { SearchCoverage } from "./jackett/model.js";
+import type { DownloadContent, SearchCoverage } from "./domain/evidence.js";
 
-export type { ReleaseEvidence } from "./domain/model.js";
+export type {
+	DownloadContent,
+	ReleaseEvidence,
+	SearchCoverage,
+} from "./domain/evidence.js";
 export { SourceError } from "./domain/model.js";
 export type { FeedTransport } from "./ports.js";
 
-import type { ReleaseEvidence } from "./domain/model.js";
+import type { ReleaseEvidence } from "./domain/evidence.js";
 
 /** Opaque binding issued by Sources; protocol configuration stays private. */
 export interface SourceReference {
@@ -27,9 +31,20 @@ export interface SourceSnapshot {
 }
 
 export interface SourcesApi {
+	/** Resolve only a published download reference, never an arbitrary URL. */
+	readDownload(
+		reference: string,
+		signal: AbortSignal,
+	): Promise<DownloadContent>;
+	isDownloadCurrent(reference: string): boolean;
+	/** Explicit recurring evidence collection, independent of download permission. */
+	register(reference: SourceReference): void;
+	setEnabled(id: string, enabled: boolean): void;
+	/** Release recurring management; preserve evidence and accepted download references. */
+	remove(id: string): void;
 	/** Saved evidence only; no remote request. */
 	snapshot(id: string): SourceSnapshot | null;
-	/** Resolve a previously published binding without making a network request. */
+	/** Resolve a saved binding without making a network request. */
 	reference(id: string): SourceReference;
 	/** Refresh any configured source without persisting evidence or authorizing work. */
 	refresh(reference: SourceReference): Promise<SourceSnapshot>;
@@ -37,7 +52,7 @@ export interface SourcesApi {
 	isCurrent(result: SourceSnapshot): boolean;
 	/** Publish only a prepared, current result, using the caller's transaction. */
 	publish(result: SourceSnapshot): void;
-	failed(previous: SourceSnapshot, code: string): void;
+	failed(previous: SourceSnapshot, code: string, retryAt?: number): void;
 	start(
 		activeIds: () => string[],
 		poll: (source: SourceSnapshot) => Promise<void>,

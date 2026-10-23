@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { type ReleaseEvidence, SourceError } from "../domain/model.js";
+import { type SourceEntry, SourceError } from "../domain/model.js";
 import type { SourceRequestGate } from "../request-gate.js";
 import type {
 	JackettCapabilities,
@@ -52,7 +52,7 @@ export class JackettClient {
 			pages: 0,
 			queries: 0,
 		};
-		const found = new Map<string, ReleaseEvidence>();
+		const found = new Map<string, SourceEntry>();
 		let itemCount = 0;
 		outer: for (const title of titles) {
 			coverage.queries++;
@@ -96,7 +96,7 @@ export class JackettClient {
 						coverage.reason = "item_limit";
 						break outer;
 					}
-					const safe: ReleaseEvidence = {
+					const safe: SourceEntry = {
 						...entry,
 						title: this.transport.redact(entry.title),
 						guid: this.transport.redact(entry.guid ?? ""),

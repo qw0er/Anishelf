@@ -7,7 +7,7 @@ import {
 	text,
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
-import { acquisitionFeeds } from "../../sources/persistence.js";
+import { acquisitionSources } from "../../sources/persistence.js";
 import type { Candidate } from "../domain/model.js";
 export const acquisitionSubscriptions = sqliteTable(
 	"acquisition_subscriptions",
@@ -19,7 +19,7 @@ export const acquisitionSubscriptions = sqliteTable(
 		workKey: text("work_key").primaryKey().notNull(),
 		feedId: text("feed_id")
 			.notNull()
-			.references(() => acquisitionFeeds.id, { onDelete: "restrict" }),
+			.references(() => acquisitionSources.id, { onDelete: "restrict" }),
 		startEpisode: integer("start_episode").notNull(),
 		profileId: text("profile_id"),
 		enabled: integer("enabled", { mode: "boolean" }).notNull(),

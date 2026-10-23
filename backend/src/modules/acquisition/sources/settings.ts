@@ -2,8 +2,8 @@ import type {
 	JackettCapabilities,
 	JackettPlan,
 	JackettUpdate,
-	SearchCoverage,
 } from "./jackett/model.js";
+import type { SearchCoverage } from "./public.js";
 
 interface SourceConnectionSettings {
 	generation: string;

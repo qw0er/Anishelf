@@ -1,30 +1,31 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { SourceContext } from "../context.js";
-import { type FeedRecord, SourceError } from "../domain/model.js";
-import { sourcePolicy as policy } from "../policy.js";
-import type { SourceReference, SourceSnapshot } from "../public.js";
+import {
+	type FeedRecord,
+	SourceError,
+	type SourceRecord,
+} from "../domain/model.js";
+import type { SourceReference } from "../public.js";
 import { FeedReader } from "./feed-reader.js";
 import type { RssSourceOptions } from "./ports.js";
-import { SourceScheduler } from "./scheduler.js";
 
 export class RssSource {
 	private readonly reader: FeedReader;
 	private readonly prepared = new WeakMap<
-		SourceSnapshot,
+		SourceRecord,
 		{ feed: FeedRecord; previousRevision: string | null }
 	>();
 	private readonly references = new WeakMap<
 		SourceReference,
 		{ url: string; persisted: boolean }
 	>();
-	private scheduler: SourceScheduler | undefined;
 	constructor(
 		private readonly context: SourceContext,
 		private readonly options: RssSourceOptions,
 	) {
 		this.reader = new FeedReader(context, options);
 	}
-	private project(feed: FeedRecord): SourceSnapshot {
+	private project(feed: FeedRecord): SourceRecord {
 		return Object.freeze({
 			id: feed.id,
 			revision: feed.revision,
@@ -71,6 +72,11 @@ export class RssSource {
 		);
 		return reference;
 	}
+	configuration(reference: SourceReference) {
+		const binding = this.references.get(reference);
+		if (!binding) throw new SourceError("invalid_source_reference");
+		return binding.url;
+	}
 	async refresh(reference: SourceReference) {
 		this.context.open();
 		const binding = this.references.get(reference);
@@ -106,7 +112,7 @@ export class RssSource {
 		);
 		return result;
 	}
-	isCurrent(result: SourceSnapshot) {
+	isCurrent(result: SourceRecord) {
 		const prepared = this.prepared.get(result);
 		if (!prepared || this.context.signal.aborted) return false;
 		const current = this.options.store.feed(prepared.feed.id)?.revision ?? null;
@@ -115,7 +121,7 @@ export class RssSource {
 			current === prepared.feed.revision
 		);
 	}
-	publish(result: SourceSnapshot) {
+	publish(result: SourceRecord) {
 		this.context.open();
 		const prepared = this.prepared.get(result);
 		if (!prepared || !this.isCurrent(result)) {
@@ -127,39 +133,23 @@ export class RssSource {
 		}
 		this.options.store.saveFeed(prepared.feed);
 	}
-	failed(previous: SourceSnapshot, code: string) {
+	failed(previous: SourceRecord, code: string, retryAt?: number) {
 		if (this.context.signal.aborted) return;
 		const feed = this.options.store.feed(previous.id);
 		if (!feed || feed.revision !== previous.revision) return;
 		const failures = feed.failures + 1;
 		this.options.store.saveFeed({
 			...feed,
+			revision: randomUUID(),
 			failures,
 			error: code,
-			nextAttemptAt:
-				this.context.now() +
-				Math.min(policy.retryMaximumMs, 60_000 * 2 ** Math.min(failures, 6)),
+			nextAttemptAt: this.context.retryAt(failures, retryAt),
 		});
-	}
-	start(
-		activeIds: () => string[],
-		poll: (source: SourceSnapshot) => Promise<void>,
-	) {
-		this.context.open();
-		if (this.scheduler) return;
-		this.scheduler = new SourceScheduler(
-			this.context,
-			this.options,
-			activeIds,
-			(feed) => poll(this.project(feed)),
-		);
-		this.scheduler.start();
 	}
 	async close() {
 		await Promise.allSettled([
 			this.options.transport.close(),
 			this.reader.close(),
-			this.scheduler?.close(),
 		]);
 	}
 }
