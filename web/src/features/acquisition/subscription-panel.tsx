@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ellipsis, Rss } from "lucide-react";
 import { useId, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type {
 	DownloadActivity,
 	SubscriptionView,
@@ -48,7 +49,10 @@ export function SubscriptionPanel({
 	initialView?: SubscriptionView;
 	initialActivity?: DownloadActivity | null;
 }) {
+	const { t } = useTranslation();
 	const client = useQueryClient();
+	const reason = (code: string) =>
+		t(reasonKeys[code] ?? "acquisition.reason.fallback");
 	const [page, setPage] = useState(1),
 		[editing, setEditing] = useState(false);
 	const query = useQuery({
@@ -83,14 +87,17 @@ export function SubscriptionPanel({
 		},
 		onSuccess: () => {
 			updated();
-			toast.add({ title: "Subscription updated.", type: "success" });
+			toast.add({
+				title: t("acquisition.subscription.updated"),
+				type: "success",
+			});
 		},
 		onError: () => {
 			void client.invalidateQueries({ queryKey: key(workKey) });
 			void client.invalidateQueries({ queryKey: downloadKeys });
 			void invalidateAnimeQueries(client, "acquisition");
 			toast.add({
-				title: "Could not update the subscription. Refresh and retry.",
+				title: t("acquisition.subscription.updateFailed"),
 				type: "error",
 			});
 		},
@@ -98,7 +105,7 @@ export function SubscriptionPanel({
 	return (
 		<section
 			className="space-y-2 border-t pt-3"
-			aria-label="Acquisition subscription"
+			aria-label={t("acquisition.subscription.aria")}
 		>
 			<Dialog open={editing} onOpenChange={setEditing}>
 				<div className="action-row justify-between">
@@ -108,11 +115,13 @@ export function SubscriptionPanel({
 								className="size-4 text-muted-foreground"
 								aria-hidden="true"
 							/>
-							Subscription
+							{t("acquisition.subscription.title")}
 						</h2>
 						{subscription && (
 							<span className="text-muted-foreground">
-								From episode {subscription.startEpisode}
+								{t("acquisition.subscription.fromEpisode", {
+									episode: subscription.startEpisode,
+								})}
 							</span>
 						)}
 					</div>
@@ -121,31 +130,35 @@ export function SubscriptionPanel({
 							<DialogTrigger
 								render={<Button variant="ghost" disabled={action.isPending} />}
 							>
-								{subscription ? "Manage" : "Subscribe"}
+								{subscription
+									? t("acquisition.subscription.manage")
+									: t("acquisition.subscription.subscribe")}
 							</DialogTrigger>
 						)}
 						{subscription && (
 							<div className="action-row">
 								<Tooltip
 									openOnClick
-									content="Pausing stops future acquisitions; existing downloads continue. AniList status changes do not alter subscriptions or downloads."
+									content={t("acquisition.subscription.policyTooltip")}
 								>
 									<button
 										type="button"
 										className="text-sm text-muted-foreground underline decoration-dotted"
-										aria-label="Subscription policy"
+										aria-label={t("acquisition.subscription.policy")}
 									>
-										{subscription.enabled ? "Enabled" : "Paused"}
+										{subscription.enabled
+											? t("acquisition.subscription.enabled")
+											: t("acquisition.subscription.paused")}
 									</button>
 								</Tooltip>{" "}
 								<DropdownMenu>
-									<Tooltip content="Subscription actions">
+									<Tooltip content={t("acquisition.subscription.actions")}>
 										<DropdownMenuTrigger
 											render={
 												<Button
 													variant="ghost"
 													className="size-9 shrink-0 p-0"
-													aria-label="Subscription actions"
+													aria-label={t("acquisition.subscription.actions")}
 												/>
 											}
 										>
@@ -158,26 +171,26 @@ export function SubscriptionPanel({
 											onClick={() => action.mutate("toggle")}
 										>
 											{subscription.enabled
-												? "Pause subscription"
-												: "Resume subscription"}
+												? t("acquisition.subscription.pause")
+												: t("acquisition.subscription.resume")}
 										</DropdownMenuItem>
 										<DropdownMenuItem
 											disabled={action.isPending || !subscription.enabled}
 											onClick={() => action.mutate("refresh")}
 										>
-											Check now
+											{t("acquisition.subscription.checkNow")}
 										</DropdownMenuItem>
 										<DropdownMenuItem
 											disabled={action.isPending}
 											onClick={() => setEditing(!editing)}
 										>
-											Edit subscription
+											{t("acquisition.subscription.edit")}
 										</DropdownMenuItem>
 										<DropdownMenuItem
 											disabled={action.isPending}
 											onClick={() => action.mutate("remove")}
 										>
-											Remove subscription
+											{t("acquisition.subscription.remove")}
 										</DropdownMenuItem>
 									</DropdownMenuContent>
 								</DropdownMenu>
@@ -188,11 +201,12 @@ export function SubscriptionPanel({
 				<DialogContent className="max-h-[85dvh] overflow-y-auto">
 					<DialogHeader>
 						<DialogTitle>
-							{subscription ? "Manage subscription" : "Subscribe to releases"}
+							{subscription
+								? t("acquisition.subscription.manageTitle")
+								: t("acquisition.subscription.subscribeTitle")}
 						</DialogTitle>
 						<DialogDescription>
-							Choose a source and starting episode. Saving enables automatic
-							acquisition to the configured destination.
+							{t("acquisition.subscription.dialogDescription")}
 						</DialogDescription>
 					</DialogHeader>
 					<SubscriptionForm
@@ -203,26 +217,23 @@ export function SubscriptionPanel({
 					/>
 				</DialogContent>
 				{query.isPending ? (
-					<p role="status">Loading subscription…</p>
+					<p role="status">{t("acquisition.subscription.loading")}</p>
 				) : query.isError ? (
 					<div role="alert">
-						Subscription unavailable.{" "}
+						{t("acquisition.subscription.unavailable")}{" "}
 						<Button variant="outline" onClick={() => void query.refetch()}>
-							Retry subscription
+							{t("acquisition.subscription.retry")}
 						</Button>
 					</div>
 				) : (
 					<>
 						{subscription?.error && (
 							<p role="status" className="text-sm">
-								{subscription.error === "source_changed" ? (
-									"Source connection changed. Open Manage and choose a source again before saving."
-								) : (
-									<>
-										Could not update candidates ({reason(subscription.error)}).
-										Previous results are retained; automatic retry is scheduled.
-									</>
-								)}
+								{subscription.error === "source_changed"
+									? t("acquisition.subscription.sourceChanged")
+									: t("acquisition.subscription.candidatesFailed", {
+											reason: reason(subscription.error),
+										})}
 							</p>
 						)}
 						{viewData && (
@@ -241,15 +252,17 @@ export function SubscriptionPanel({
 												disabled={page <= 1}
 												onClick={() => setPage(page - 1)}
 											>
-												Previous releases
+												{t("acquisition.subscription.previousReleases")}
 											</Button>
-											<span className="text-sm">Page {page}</span>
+											<span className="text-sm">
+												{t("acquisition.subscription.page", { page })}
+											</span>
 											<Button
 												variant="outline"
 												disabled={page * 20 >= viewData.total}
 												onClick={() => setPage(page + 1)}
 											>
-												Next releases
+												{t("acquisition.subscription.nextReleases")}
 											</Button>
 										</div>
 									) : null
@@ -272,6 +285,9 @@ function SubscriptionForm({
 	current: SubscriptionView["subscription"];
 	onSaved(): void;
 }) {
+	const { t } = useTranslation();
+	const reason = (code: string) =>
+		t(reasonKeys[code] ?? "acquisition.reason.fallback");
 	const profiles = useQuery(acquisitionProfilesQuery());
 	const [profileId, setProfileId] = useState(current?.profileId ?? "");
 	const [mode, setMode] = useState<"feed" | "search" | "keep">(
@@ -320,16 +336,14 @@ function SubscriptionForm({
 			setUrl("");
 			onSaved();
 			toast.add({
-				title:
-					"Subscription enabled. Releases will be checked in the background.",
+				title: t("acquisition.subscription.enabledToast"),
 				type: "success",
 			});
 		},
 		onError: () => {
 			void destination.refetch();
 			toast.add({
-				title:
-					"Could not save the subscription. Check the source and current download settings, then retry.",
+				title: t("acquisition.subscription.saveFailed"),
 				type: "error",
 			});
 		},
@@ -349,7 +363,9 @@ function SubscriptionForm({
 				</p>
 			)}
 			<label htmlFor={`${id}-mode`} className="block space-y-2">
-				<span className="text-sm font-medium">Source</span>
+				<span className="text-sm font-medium">
+					{t("acquisition.subscription.source")}
+				</span>
 				<select
 					id={`${id}-mode`}
 					value={mode}
@@ -360,14 +376,22 @@ function SubscriptionForm({
 						search.reset();
 					}}
 				>
-					{current && <option value="keep">Keep current source</option>}
-					<option value="feed">RSS URL</option>
-					<option value="search">Search configured sites</option>
+					{current && (
+						<option value="keep">
+							{t("acquisition.subscription.keepCurrent")}
+						</option>
+					)}
+					<option value="feed">{t("acquisition.subscription.rssUrl")}</option>
+					<option value="search">
+						{t("acquisition.subscription.searchSites")}
+					</option>
 				</select>
 			</label>
 			{mode === "feed" && (
 				<label htmlFor={`${id}-url`} className="block space-y-2">
-					<span className="text-sm font-medium">RSS URL</span>
+					<span className="text-sm font-medium">
+						{t("acquisition.subscription.rssUrl")}
+					</span>
 					<Input
 						id={`${id}-url`}
 						type="url"
@@ -380,19 +404,15 @@ function SubscriptionForm({
 						disabled={busy}
 						placeholder={
 							current
-								? "Leave blank to keep the saved RSS address"
-								: "https://example.org/rss.xml"
+								? t("acquisition.subscription.leaveBlank")
+								: t("acquisition.subscription.rssPlaceholder")
 						}
 					/>
 				</label>
 			)}
 			{mode === "search" && (
 				<div className="space-y-2 text-sm">
-					<p>
-						Searches use this anime's titles and aliases, checking sites in your
-						configured order. Saving pins the selected site; later failures do
-						not switch sites.
-					</p>
+					<p>{t("acquisition.subscription.searchHelp")}</p>
 					<Button
 						type="button"
 						variant="outline"
@@ -406,50 +426,58 @@ function SubscriptionForm({
 						}
 						onClick={() => search.mutate()}
 					>
-						{search.isPending ? "Searching sites…" : "Find a source"}
+						{search.isPending
+							? t("acquisition.subscription.searchingSites")
+							: t("acquisition.subscription.findSource")}
 					</Button>
 					{search.isError && (
-						<p role="alert">
-							Source discovery failed. Check source sites and downloader
-							availability in Settings, then retry.
-						</p>
+						<p role="alert">{t("acquisition.subscription.discoveryFailed")}</p>
 					)}
 					{search.isSuccess && search.data && (
 						<>
-							<ul aria-label="Source discovery results">
+							<ul aria-label={t("acquisition.subscription.sourceResults")}>
 								{search.data.attempts.map((attempt) => (
 									<li key={attempt.providerId}>
 										{attempt.providerId}:{" "}
 										{attempt.outcome === "matched"
-											? "Eligible releases found"
+											? t("acquisition.subscription.matched")
 											: attempt.outcome === "no_match"
-												? "No matching releases"
+												? t("acquisition.subscription.noMatch")
 												: attempt.outcome === "no_eligible"
-													? "No eligible releases"
-													: `Unavailable (${attempt.code})`}
+													? t("acquisition.subscription.noEligible")
+													: t("acquisition.subscription.unavailableSite", {
+															code: attempt.code,
+														})}
 										{attempt.reasons?.length
 											? ` · ${attempt.reasons.map(reason).join(", ")}`
 											: ""}
-										{attempt.limited ? " · Limited search coverage" : ""}
+										{attempt.limited
+											? t("acquisition.subscription.limitedCoverage")
+											: ""}
 									</li>
 								))}
 							</ul>
 							{search.data.source?.kind === "search" ? (
 								<p role="status">
-									Selected site: {search.data.source.providerId}. Saving enables
-									acquisition from this site.
+									{t("acquisition.subscription.selectedSite", {
+										site: search.data.source.providerId,
+									})}
 								</p>
 							) : (
 								<p role="status">
-									No eligible source found. Review the starting episode, release
-									profile and configured sites before trying again.
+									{t("acquisition.subscription.noEligibleLong")}
 								</p>
 							)}
-							<ul aria-label="Matching releases">
+							<ul aria-label={t("acquisition.subscription.matchingReleases")}>
 								{search.data.releases.map((release) => (
 									<li key={release.id}>
-										{release.title} · Episode {release.episode}
-										{release.waiting ? " · Waiting for release preference" : ""}
+										{t("acquisition.subscription.releaseLine", {
+											title: release.title,
+											episode: release.episode,
+										})}
+										{release.waiting
+											? t("acquisition.subscription.waitingForPreference")
+											: ""}
 									</li>
 								))}
 							</ul>
@@ -458,7 +486,9 @@ function SubscriptionForm({
 				</div>
 			)}
 			<label htmlFor={`${id}-start`} className="block space-y-2">
-				<span className="text-sm font-medium">Starting episode</span>
+				<span className="text-sm font-medium">
+					{t("acquisition.subscription.startingEpisode")}
+				</span>
 				<Input
 					id={`${id}-start`}
 					type="number"
@@ -474,7 +504,9 @@ function SubscriptionForm({
 				/>
 			</label>
 			<label htmlFor={`${id}-profile`} className="block space-y-2">
-				<span className="text-sm font-medium">Release selection profile</span>
+				<span className="text-sm font-medium">
+					{t("acquisition.subscription.releaseProfile")}
+				</span>
 				<select
 					id={`${id}-profile`}
 					className="w-full rounded-md border bg-background p-2 text-sm"
@@ -486,32 +518,38 @@ function SubscriptionForm({
 					}}
 				>
 					<option value="">
-						Follow global default
+						{t("acquisition.subscription.followDefault")}
 						{profiles.data
-							? ` (${profiles.data.profiles.find((profile) => profile.id === profiles.data.selectedProfileId)?.name ?? "Unavailable"})`
+							? ` (${profiles.data.profiles.find((profile) => profile.id === profiles.data.selectedProfileId)?.name ?? t("acquisition.subscription.unavailableLabel")})`
 							: ""}
 					</option>
 					{profileId &&
 						!profiles.data?.profiles.some(
 							(profile) => profile.id === profileId,
-						) && <option value={profileId}>Unavailable: {profileId}</option>}
+						) && (
+							<option value={profileId}>
+								{t("acquisition.subscription.unavailableName", {
+									name: profileId,
+								})}
+							</option>
+						)}
 					{profiles.data?.profiles.map((profile) => (
 						<option key={profile.id} value={profile.id}>
 							{profile.name}
-							{profile.source === "custom" ? " (Custom)" : ""}
+							{profile.source === "custom" ? t("acquisition.rss.custom") : ""}
 						</option>
 					))}
 				</select>
 			</label>
 			{profiles.isError && (
 				<p role="alert">
-					Could not load release profiles.{" "}
+					{t("acquisition.subscription.loadProfilesFailed")}{" "}
 					<Button
 						type="button"
 						variant="outline"
 						onClick={() => void profiles.refetch()}
 					>
-						Retry profiles
+						{t("acquisition.subscription.retryProfiles")}
 					</Button>
 				</p>
 			)}
@@ -525,31 +563,31 @@ function SubscriptionForm({
 			</p>
 			{mode === "feed" && (
 				<p className="text-sm text-muted-foreground">
-					Choose your preferred release source on the torrent site and paste its
-					RSS address. RSS may not include older episodes.
+					{t("acquisition.subscription.feedHelp")}
 				</p>
 			)}
 			{destination.isPending ? (
-				<p role="status">Loading download destination…</p>
+				<p role="status">{t("acquisition.subscription.loadingDestination")}</p>
 			) : target?.validated ? (
 				<p className="wrap-break-word text-sm">
-					Automatic download destination: {target.path}. A directory is created
-					for this anime. Eligible releases from episode {start || "1"} will be
-					downloaded automatically.
+					{t("acquisition.subscription.destinationInfo", {
+						path: target.path,
+						episode: start || "1",
+					})}
 				</p>
 			) : (
 				<p role="alert">
-					Configure and validate a download destination in{" "}
+					{t("acquisition.subscription.destinationRequiredBefore")}{" "}
 					<a className="underline" href="/settings">
-						Settings
+						{t("acquisition.subscription.settings")}
 					</a>{" "}
-					before enabling this subscription.{" "}
+					{t("acquisition.subscription.destinationRequiredAfter")}{" "}
 					<Button
 						type="button"
 						variant="outline"
 						onClick={() => void destination.refetch()}
 					>
-						Retry destination
+						{t("acquisition.subscription.retryDestination")}
 					</Button>
 				</p>
 			)}
@@ -564,40 +602,33 @@ function SubscriptionForm({
 				}
 			>
 				{save.isPending
-					? "Saving subscription…"
-					: "Save and enable subscription"}
+					? t("acquisition.subscription.saving")
+					: t("acquisition.subscription.save")}
 			</Button>
 		</form>
 	);
 }
 
-function reason(code: string): string {
-	const messages: Record<string, string> = {
-		acquisition_unavailable:
-			"automatic acquisition could not be queued; check metadata and destination settings",
-		identity_unconfirmed: "animation or season could not be confirmed",
-		unsupported_content: "special, pack or unsupported content",
-		episode_unconfirmed: "single regular episode could not be confirmed",
-		download_unavailable: "no supported download link",
-		outside_scope: "before the starting episode",
-		already_available: "already in your library",
-		existing_download: "already present in qBittorrent",
-		episode_downloading:
-			"another version of this episode is already in qBittorrent",
-		downloader_unavailable: "downloader status could not be checked",
-		another_version_selected: "another version was selected",
-		newer_revision_available:
-			"a newer revision from the same group is available",
-		waiting_for_level: "waiting for this profile level to become available",
-		requirements_not_met: "release does not satisfy the profile requirements",
-		no_matching_level: "release does not match any profile level",
-		profile_unavailable: "selected release profile is unavailable",
-		episode_reserved: "another version is already reserved for this episode",
-		fetch_failed: "source could not be reached",
-		invalid_xml: "invalid RSS XML",
-		storage_limit: "source history limit reached",
-		assessment_unavailable:
-			"animation metadata or local availability could not be checked",
-	};
-	return messages[code] ?? "source could not be refreshed";
-}
+const reasonKeys: Record<string, string> = {
+	acquisition_unavailable: "acquisition.reason.acquisition_unavailable",
+	identity_unconfirmed: "acquisition.reason.identity_unconfirmed",
+	unsupported_content: "acquisition.reason.unsupported_content",
+	episode_unconfirmed: "acquisition.reason.episode_unconfirmed",
+	download_unavailable: "acquisition.reason.download_unavailable",
+	outside_scope: "acquisition.reason.outside_scope",
+	already_available: "acquisition.reason.already_available",
+	existing_download: "acquisition.reason.existing_download",
+	episode_downloading: "acquisition.reason.episode_downloading",
+	downloader_unavailable: "acquisition.reason.downloader_unavailable",
+	another_version_selected: "acquisition.reason.another_version_selected",
+	newer_revision_available: "acquisition.reason.newer_revision_available",
+	waiting_for_level: "acquisition.reason.waiting_for_level",
+	requirements_not_met: "acquisition.reason.requirements_not_met",
+	no_matching_level: "acquisition.reason.no_matching_level",
+	profile_unavailable: "acquisition.reason.profile_unavailable",
+	episode_reserved: "acquisition.reason.episode_reserved",
+	fetch_failed: "acquisition.reason.fetch_failed",
+	invalid_xml: "acquisition.reason.invalid_xml",
+	storage_limit: "acquisition.reason.storage_limit",
+	assessment_unavailable: "acquisition.reason.assessment_unavailable",
+};

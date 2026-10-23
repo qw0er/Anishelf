@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import { type ReactNode, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type {
 	DownloadActivity,
@@ -17,65 +19,64 @@ import {
 } from "./downloads-api.js";
 
 const notificationErrors = new Map<string, string>();
-function status(item: DownloadActivity["items"][number]) {
+function status(item: DownloadActivity["items"][number], t: TFunction): string {
 	if (item.error && item.state !== "missing")
 		return item.ingestion === "failed"
-			? "Import failed"
+			? t("acquisition.activity.importFailed")
 			: item.ingestion === "review"
-				? "Review required"
-				: "Acquisition needs attention";
-	if (item.state === "available") return "Available";
-	if (item.state === "missing") return "Removed in qBittorrent";
-	if (item.ingestion === "validating") return "Importing";
+				? t("acquisition.activity.reviewRequired")
+				: t("acquisition.activity.needsAttention");
+	if (item.state === "available") return t("acquisition.activity.available");
+	if (item.state === "missing")
+		return t("acquisition.activity.removedInQbittorrent");
+	if (item.ingestion === "validating")
+		return t("acquisition.activity.importing");
 	if (item.state === "unknown" || item.state === "submitting")
-		return "Confirming submission";
-	if (item.state === "pending") return "Waiting to submit";
+		return t("acquisition.activity.confirmingSubmission");
+	if (item.state === "pending")
+		return t("acquisition.activity.waitingToSubmit");
 	if (/paused|stopped/i.test(item.transfer ?? ""))
-		return "Paused in qBittorrent";
+		return t("acquisition.activity.paused");
 	if (/error|missing/i.test(item.transfer ?? ""))
-		return "Download error · Open WebUI";
-	if (/checking/i.test(item.transfer ?? "")) return "Checking in qBittorrent";
-	if (/meta/i.test(item.transfer ?? "")) return "Fetching torrent metadata";
-	if (/queued/i.test(item.transfer ?? "")) return "Queued in qBittorrent";
-	if (item.progress === 1) return "Downloaded · Awaiting verification";
+		return t("acquisition.activity.downloadError");
+	if (/checking/i.test(item.transfer ?? ""))
+		return t("acquisition.activity.checking");
+	if (/meta/i.test(item.transfer ?? ""))
+		return t("acquisition.activity.fetchingMetadata");
+	if (/queued/i.test(item.transfer ?? ""))
+		return t("acquisition.activity.queued");
+	if (item.progress === 1) return t("acquisition.activity.downloaded");
 	return item.progress === null
-		? "Downloading"
-		: `Downloading ${Math.round(item.progress * 100)}%`;
+		? t("acquisition.activity.downloading")
+		: t("acquisition.activity.downloadingPercent", {
+				percent: Math.round(item.progress * 100),
+			});
 }
-const errors: Record<string, string> = {
+const errorKeys: Record<string, string> = {
 	downloader_configuration_changed:
-		"Save and validate the destination for the new API connection, confirm the subscription scope, then retry acquisition to reconcile the saved task.",
+		"acquisition.activity.errors.downloader_configuration_changed",
 	release_evidence_changed:
-		"Current metadata no longer confirms this release and episode. Refresh the subscription scope.",
-	episode_downloading:
-		"Another download already covers this episode. Check WebUI before retrying.",
-	selection_changed:
-		"The selected release changed. Confirm the current subscription scope and retry acquisition.",
-	association_changed:
-		"The library association changed. Check local Review before retrying import.",
-	torrent_reserved: "This torrent is already reserved by another acquisition.",
+		"acquisition.activity.errors.release_evidence_changed",
+	episode_downloading: "acquisition.activity.errors.episode_downloading",
+	selection_changed: "acquisition.activity.errors.selection_changed",
+	association_changed: "acquisition.activity.errors.association_changed",
+	torrent_reserved: "acquisition.activity.errors.torrent_reserved",
 	torrent_identity_conflict:
-		"The torrent identity differs from the feed evidence.",
-	invalid_file_path: "The torrent contains an unsupported file path.",
-	torrent_unavailable:
-		"The torrent could not be read. Acquisition will retry automatically.",
-	externally_removed: "Use Retry acquisition to add this episode again.",
-	external_task_conflict:
-		"An existing task is not managed by Anishelf. Resolve it in WebUI.",
-	submission_unconfirmed:
-		"The submission result is uncertain. Automatic resubmission is stopped; check WebUI before retrying.",
+		"acquisition.activity.errors.torrent_identity_conflict",
+	invalid_file_path: "acquisition.activity.errors.invalid_file_path",
+	torrent_unavailable: "acquisition.activity.errors.torrent_unavailable",
+	externally_removed: "acquisition.activity.errors.externally_removed",
+	external_task_conflict: "acquisition.activity.errors.external_task_conflict",
+	submission_unconfirmed: "acquisition.activity.errors.submission_unconfirmed",
 	unsupported_file_layout:
-		"The downloaded files are not a supported single-episode layout.",
+		"acquisition.activity.errors.unsupported_file_layout",
 	association_requires_review:
-		"The actual file needs local Review before it can be linked.",
-	source_changed:
-		"The source file changed. Verify the files before retrying import.",
-	file_size_conflict:
-		"The local file size differs from the completed download.",
-	task_path_changed:
-		"The task save path changed in qBittorrent. Restore it before retrying.",
+		"acquisition.activity.errors.association_requires_review",
+	source_changed: "acquisition.activity.errors.source_changed",
+	file_size_conflict: "acquisition.activity.errors.file_size_conflict",
+	task_path_changed: "acquisition.activity.errors.task_path_changed",
 	incomplete_directory_required:
-		"Configure a separate incomplete directory and validate the destination in Settings.",
+		"acquisition.activity.errors.incomplete_directory_required",
 };
 export function DownloadActivityPanel({
 	workKey,
@@ -92,6 +93,7 @@ export function DownloadActivityPanel({
 	releasePagination?: ReactNode;
 	initialActivity?: DownloadActivity | null | undefined;
 }) {
+	const { t } = useTranslation();
 	const client = useQueryClient(),
 		[page, setPage] = useState(1);
 	const settings = useQuery(settingsQuery());
@@ -120,11 +122,14 @@ export function DownloadActivityPanel({
 			if (notificationErrors.size > 2000)
 				notificationErrors.delete(notificationErrors.keys().next().value ?? "");
 			toast.add({
-				title: `Episode ${item.episode}: ${status(item)}.`,
+				title: t("acquisition.activity.toastEpisode", {
+					episode: item.episode,
+					status: status(item, t),
+				}),
 				type: "error",
 			});
 		}
-	}, [activity]);
+	}, [activity, t]);
 	const retry = useMutation({
 		mutationFn: (input: {
 			id: string;
@@ -134,13 +139,16 @@ export function DownloadActivityPanel({
 		onSuccess: () => {
 			void client.invalidateQueries({ queryKey: downloadKeys });
 			void invalidateAnimeQueries(client, "acquisition");
-			toast.add({ title: "Retry queued.", type: "success" });
+			toast.add({
+				title: t("acquisition.activity.retryQueued"),
+				type: "success",
+			});
 		},
 		onError: () => {
 			void client.invalidateQueries({ queryKey: downloadKeys });
 			void invalidateAnimeQueries(client, "acquisition");
 			toast.add({
-				title: "Could not retry. Refresh and check configuration.",
+				title: t("acquisition.activity.retryFailed"),
 				type: "error",
 			});
 		},
@@ -154,26 +162,27 @@ export function DownloadActivityPanel({
 		<div className="space-y-2">
 			{activity?.planningError && (
 				<p role="status" className="text-sm">
-					Automatic acquisition could not be queued. Metadata and destination
-					checks will retry automatically.
+					{t("acquisition.activity.planningFailed")}
 				</p>
 			)}
 			{(view.subscription || tasks.length > 0 || query.isError) && (
 				<div className="action-row justify-between text-sm">
 					<span>
 						{activity?.active
-							? `${activity.active} active`
+							? t("acquisition.activity.active", {
+									count: activity.active,
+								})
 							: initialActivity === null
-								? "Acquisition status unavailable"
+								? t("acquisition.activity.statusUnavailable")
 								: query.isPending
-									? "Loading acquisition status…"
+									? t("acquisition.activity.loading")
 									: query.isError
-										? "Acquisition status unavailable"
+										? t("acquisition.activity.statusUnavailable")
 										: activity?.authorized && view.subscription?.enabled
-											? "Automatic download"
+											? t("acquisition.activity.automaticDownload")
 											: view.subscription?.enabled
-												? "Discovery only"
-												: "Automatic acquisition paused"}
+												? t("acquisition.activity.discoveryOnly")
+												: t("acquisition.activity.pausedStatus")}
 					</span>
 					{webui && (
 						<a
@@ -182,16 +191,16 @@ export function DownloadActivityPanel({
 							target="_blank"
 							rel="noopener noreferrer"
 						>
-							Open WebUI
+							{t("acquisition.activity.openWebui")}
 						</a>
 					)}
 				</div>
 			)}
 			{query.isError && (
 				<p role="alert" className="text-sm">
-					Acquisition status unavailable.{" "}
+					{t("acquisition.activity.statusUnavailable")}{" "}
 					<Button variant="outline" onClick={() => void query.refetch()}>
-						Retry status
+						{t("acquisition.activity.retryStatus")}
 					</Button>
 				</p>
 			)}
@@ -200,26 +209,33 @@ export function DownloadActivityPanel({
 				!activity.authorized &&
 				view.subscription.enabled && (
 					<p className="text-sm">
-						Discovery only.{" "}
+						{t("acquisition.activity.discoveryOnlyHint")}{" "}
 						<Button variant="outline" onClick={onConfigure}>
-							Enable automatic downloads
+							{t("acquisition.activity.enableAutomatic")}
 						</Button>
 					</p>
 				)}
 			{(view.subscription || (activity?.total ?? 0) > 0 || view.total > 0) && (
 				<details>
 					<summary className="cursor-pointer text-sm">
-						Activity · {activity?.total ?? 0} acquisitions · {view.total}{" "}
-						releases
+						{t("acquisition.activity.summary", {
+							acquisitions: activity?.total ?? 0,
+							releases: view.total,
+						})}
 						{activity?.attention
-							? ` · ${activity.attention} need attention`
+							? ` · ${t("acquisition.activity.attention", {
+									count: activity.attention,
+								})}`
 							: ""}
 					</summary>
 					<div className="space-y-3 pt-3">
 						{tasks.map((item) => (
 							<div className="space-y-1 border-b py-2 text-sm" key={item.id}>
 								<p>
-									Episode {item.episode} · {status(item)}
+									{t("acquisition.activity.episodeLine", {
+										episode: item.episode,
+										status: status(item, t),
+									})}
 								</p>
 								{item.title && (
 									<p
@@ -233,24 +249,26 @@ export function DownloadActivityPanel({
 									Date.now() - item.observedAt > 60_000 &&
 									item.state === "bound" && (
 										<p className="text-muted-foreground">
-											Downloader observation is stale.
+											{t("acquisition.activity.staleObservation")}
 										</p>
 									)}
 								{item.error && (
 									<p role="status">
-										{errors[item.error] ??
-											"Check the downloader connection and mapped files, then retry."}
+										{t(
+											errorKeys[item.error] ??
+												"acquisition.activity.errorFallback",
+										)}
 									</p>
 								)}
 								<div className="action-row">
 									{item.ingestion === "review" && (
 										<Link className={buttonStyles("outline")} to="/review">
-											Open Review
+											{t("acquisition.activity.openReview")}
 										</Link>
 									)}
 									{item.error && (
 										<Link className={buttonStyles("outline")} to="/settings">
-											Settings
+											{t("acquisition.activity.settings")}
 										</Link>
 									)}
 									{(item.ingestion === "failed" ||
@@ -266,7 +284,7 @@ export function DownloadActivityPanel({
 												})
 											}
 										>
-											Retry import
+											{t("acquisition.activity.retryImport")}
 										</Button>
 									)}
 									{(["missing", "blocked", "unknown"].includes(item.state) ||
@@ -284,7 +302,7 @@ export function DownloadActivityPanel({
 												})
 											}
 										>
-											Retry acquisition
+											{t("acquisition.activity.retryAcquisition")}
 										</Button>
 									)}
 								</div>
@@ -297,15 +315,15 @@ export function DownloadActivityPanel({
 									disabled={page === 1}
 									onClick={() => setPage(page - 1)}
 								>
-									Previous acquisitions
+									{t("acquisition.activity.previous")}
 								</Button>
-								<span>Page {page}</span>
+								<span>{t("acquisition.activity.page", { page })}</span>
 								<Button
 									variant="outline"
 									disabled={page * 20 >= (activity?.total ?? 0)}
 									onClick={() => setPage(page + 1)}
 								>
-									Next acquisitions
+									{t("acquisition.activity.next")}
 								</Button>
 							</div>
 						)}
@@ -317,19 +335,31 @@ export function DownloadActivityPanel({
 										{candidate.title}
 									</p>
 									<p className="text-muted-foreground">
-										{candidate.episode ? `Episode ${candidate.episode} · ` : ""}
+										{candidate.episode
+											? t("acquisition.activity.candidateEpisode", {
+													episode: candidate.episode,
+												})
+											: ""}
 										{candidate.status === "selected"
-											? "Selected"
+											? t("acquisition.activity.selected")
 											: candidate.reasons.includes("waiting_for_level")
-												? "Waiting for preferred release"
-												: `Skipped · ${candidate.reasons.map(reason).join("; ")}`}
+												? t("acquisition.activity.waitingForPreferred")
+												: t("acquisition.activity.skipped", {
+														reasons: candidate.reasons.map(reason).join("; "),
+													})}
 										{candidate.selection && (
 											<>
 												{" "}
-												· {candidate.selection.level ?? "No matching level"}
+												·{" "}
+												{candidate.selection.level ??
+													t("acquisition.activity.noMatchingLevel")}
 												{candidate.reasons.includes("waiting_for_level") &&
 												candidate.selection.eligibleAt !== null
-													? ` · Eligible after ${new Date(candidate.selection.eligibleAt).toLocaleString()}`
+													? ` · ${t("acquisition.activity.eligibleAfter", {
+															date: new Date(
+																candidate.selection.eligibleAt,
+															).toLocaleString(),
+														})}`
 													: ""}
 											</>
 										)}

@@ -14,6 +14,7 @@ import {
 	screen,
 	waitFor,
 } from "./query-test-utils.js";
+import "../src/shared/i18n.js";
 
 const fetcher = vi.fn<typeof fetch>();
 const routers: ReturnType<typeof createMemoryRouter>[] = [];

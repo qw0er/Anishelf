@@ -126,7 +126,9 @@ export function MappingForm({
 							id="target-numbers"
 							name="numbers"
 							placeholder={
-								details.data.data.format === "MOVIE" ? "whole" : "1, 2, 3"
+								details.data.data.format === "MOVIE"
+									? t("review.whole")
+									: t("review.numbersPlaceholder")
 							}
 							defaultValue={defaults.numbers}
 							required
@@ -164,7 +166,7 @@ export function MappingForm({
 							id="correction-reason"
 							name="reason"
 							maxLength={500}
-							defaultValue="Manual correction"
+							defaultValue={t("review.manualCorrection")}
 							required
 						/>
 					</label>

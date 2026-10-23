@@ -11,6 +11,7 @@ import {
 	screen,
 	waitFor,
 } from "./query-test-utils.js";
+import "../src/shared/i18n.js";
 
 afterEach(() => {
 	cleanup();

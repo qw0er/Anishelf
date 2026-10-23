@@ -2,6 +2,7 @@ import { rssConstraints } from "@anishelf/backend/contracts/defaults";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Save } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "../../shared/components/ui/button.js";
 import {
 	Card,
@@ -21,6 +22,7 @@ import {
 import { acquisitionProfilesQuery } from "./subscriptions-api.js";
 
 export function RssSettings() {
+	const { t } = useTranslation();
 	const client = useQueryClient();
 	const configuration = useQuery(settingsQuery());
 	const profiles = useQuery(acquisitionProfilesQuery());
@@ -32,10 +34,16 @@ export function RssSettings() {
 			client.setQueryData(settingsKeys.settings, settings);
 			void client.invalidateQueries({ queryKey: ["acquisition"] });
 			setProfileDraft(null);
-			toast.add({ type: "success", title: "Release profile saved." });
+			toast.add({
+				type: "success",
+				title: t("acquisition.rss.profileSaved"),
+			});
 		},
 		onError: () =>
-			toast.add({ type: "error", title: "Could not save release profile." }),
+			toast.add({
+				type: "error",
+				title: t("acquisition.rss.profileSaveFailed"),
+			}),
 	});
 	const [draft, setDraft] = useState<string | null>(null);
 	const save = useMutation({
@@ -46,14 +54,14 @@ export function RssSettings() {
 			setDraft(null);
 			toast.add({
 				type: "success",
-				title: "RSS settings saved.",
+				title: t("acquisition.rss.saved"),
 				id: "rss-settings-save",
 			});
 		},
 		onError: () => {
 			toast.add({
 				type: "error",
-				title: "Could not save RSS settings. Try again.",
+				title: t("acquisition.rss.saveFailed"),
 				id: "rss-settings-save",
 			});
 		},
@@ -61,10 +69,8 @@ export function RssSettings() {
 	return (
 		<Card className="settings-section lg:grid">
 			<CardHeader>
-				<CardTitle>RSS</CardTitle>
-				<CardDescription>
-					Choose a release selection profile and refresh interval.
-				</CardDescription>
+				<CardTitle>{t("acquisition.rss.title")}</CardTitle>
+				<CardDescription>{t("acquisition.rss.description")}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4 lg:max-w-2xl">
 				{profiles.data && (
@@ -79,7 +85,7 @@ export function RssSettings() {
 					>
 						<label htmlFor="acquisition-profile" className="block space-y-2">
 							<span className="text-sm font-medium">
-								Default release selection profile
+								{t("acquisition.rss.defaultProfile")}
 							</span>
 							<select
 								id="acquisition-profile"
@@ -90,13 +96,17 @@ export function RssSettings() {
 							>
 								{!profiles.data.selectionAvailable && (
 									<option value={profiles.data.selectedProfileId}>
-										Unavailable: {profiles.data.selectedProfileId}
+										{t("acquisition.rss.unavailableProfile", {
+											id: profiles.data.selectedProfileId,
+										})}
 									</option>
 								)}
 								{profiles.data.profiles.map((profile) => (
 									<option key={profile.id} value={profile.id}>
 										{profile.name}
-										{profile.source === "custom" ? " (Custom)" : ""}
+										{profile.source === "custom"
+											? t("acquisition.rss.custom")
+											: ""}
 									</option>
 								))}
 							</select>
@@ -106,8 +116,7 @@ export function RssSettings() {
 								(profile) =>
 									profile.id ===
 									(profileDraft ?? profiles.data.selectedProfileId),
-							)?.description ??
-								"Select an available profile to resume new selections."}
+							)?.description ?? t("acquisition.rss.resumePrompt")}
 						</p>
 						<Button
 							type="submit"
@@ -120,30 +129,30 @@ export function RssSettings() {
 								)
 							}
 						>
-							Save release profile
+							{t("acquisition.rss.saveProfile")}
 						</Button>
 					</form>
 				)}
 				{profiles.isError && (
 					<p role="alert">
-						Could not load release profiles.{" "}
+						{t("acquisition.rss.loadProfilesFailed")}{" "}
 						<Button variant="outline" onClick={() => void profiles.refetch()}>
-							Retry profiles
+							{t("acquisition.rss.retryProfiles")}
 						</Button>
 					</p>
 				)}
 				{configuration.isPending ? (
-					<p role="status">Loading RSS settings…</p>
+					<p role="status">{t("acquisition.rss.loading")}</p>
 				) : configuration.isError ? (
 					<div role="alert">
-						Could not load RSS settings.{" "}
+						{t("acquisition.rss.loadFailed")}{" "}
 						<Button
 							variant="outline"
 							onClick={() => {
 								void configuration.refetch();
 							}}
 						>
-							Retry
+							{t("actions.retry")}
 						</Button>
 					</div>
 				) : configuration.data ? (
@@ -162,7 +171,7 @@ export function RssSettings() {
 					>
 						<label htmlFor="rss-refresh-interval" className="block space-y-2">
 							<span className="text-sm font-medium">
-								Refresh interval (minutes)
+								{t("acquisition.rss.refreshInterval")}
 							</span>
 							<Input
 								id="rss-refresh-interval"
@@ -182,9 +191,9 @@ export function RssSettings() {
 							/>
 						</label>
 						<p id="rss-refresh-help" className="text-sm text-muted-foreground">
-							Applies to all RSS subscriptions. Default:{" "}
-							{rssConstraints.defaultRefreshIntervalMinutes} minutes. Changes
-							apply without a restart.
+							{t("acquisition.rss.refreshHelp", {
+								minutes: rssConstraints.defaultRefreshIntervalMinutes,
+							})}
 						</p>
 						<Button
 							type="submit"
@@ -192,7 +201,9 @@ export function RssSettings() {
 							aria-busy={save.isPending}
 						>
 							<Save size={16} aria-hidden="true" />
-							{save.isPending ? "Saving…" : "Save"}
+							{save.isPending
+								? t("acquisition.rss.saving")
+								: t("acquisition.rss.save")}
 						</Button>
 					</form>
 				) : null}
