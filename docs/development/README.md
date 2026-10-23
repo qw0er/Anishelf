@@ -679,3 +679,28 @@ it as a current description. `anime.detail_read` and
 `application.anime_detail_read` trace projection reads without private feed/task
 payloads. Existing Metadata refresh logs describe current-information publication;
 Catalog refresh no longer increments mapping revisions or rewrites descriptions.
+
+
+## Deployment installer maintenance
+
+package/install.sh is a standalone Bash entry point delivered from GitHub. It reads
+interactive answers independently of script stdin, stages canonical package/deploy
+assets from one GitHub commit (or an explicit local template directory), writes only
+a fresh deployment bundle, and starts Docker/Podman Compose or installs rootless Quadlet
+units. Engine detection auto-selects one available command and prompts only when both
+exist. Podman alone exposes the Compose/Quadlet choice. Basic prompts retain default
+network/image values unless the user opts into advanced settings. Rootless Podman
+Compose rendering adds the canonical keep-id mapping and LinuxServer init users.
+Keep template rendering narrow; source templates remain authoritative for service
+ownership, credentials/bootstrap, namespaces, mounts and shutdown dependencies.
+
+Run `bash -n package/install.sh` and `node --test package/install.test.mjs` after
+changes; the latter is included in npm run test:deployment. Fixtures use real Bash
+and temporary files with isolated fake runtime/network commands, exercising Compose
+YAML, engine detection/provider failures, default/advanced prompts, optional units,
+ports, namespace mapping, immutable template downloads, refusal
+of existing files, cancellation/failures, startup sequencing and SELinux label/host
+ownership preservation. They do not start a Docker daemon, execute Podman's generator
+or prove SELinux enforcement on Linux. Perform a Linux/container runtime smoke check
+before claiming those deployment paths live-verified. Do not log passwords, source
+shell code from .env or disable host/container security labels in recovery paths.

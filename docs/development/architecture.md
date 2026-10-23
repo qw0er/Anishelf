@@ -1133,3 +1133,25 @@ There are no separate RSS/Jackett business HTTP routes. Settings require authent
 and mutations require CSRF. Responses/logs exclude API keys, raw download addresses,
 validators and torrent payloads. Diagnostic test responses expose download availability,
 not private content references. Source configuration fields are accepted only at setup.
+
+
+## Interactive deployment bootstrap
+
+package/install.sh is a deployment client, separate from application bootstrap. It
+collects non-secret configuration, pins GitHub templates to one commit, renders a
+fresh private bundle and delegates execution to Docker/Podman Compose or rootless Quadlet.
+One detected engine is selected automatically; multiple engines require a choice.
+Only Podman exposes a deployment-method question. Basic configuration uses documented
+defaults, with optional advanced image/network/port/SELinux overrides. Rootless Podman
+Compose rendering mirrors Quadlet's keep-id mapping and root LinuxServer initialization;
+provider availability is verified before publishing configuration.
+It does not own application settings/credentials, enable Watching or modify existing
+service configuration. Compose environment answers are literal; no .env file is
+sourced as shell code. Generation-only mode does not contact engines or install units.
+
+SELinux relabeling defaults from detected host policy, is shown before confirmation
+and can be overridden in advanced options. It uses shared z for dedicated media, retaining
+Backend read-only access and qBittorrent write access. Generated host-media mounts
+avoid the template's media-root chown. Managed volume setup and credential publication
+remain the existing container/bootstrap responsibility. Installer logs correlate
+stages and template revisions; runtime/application logs remain with their owners.
