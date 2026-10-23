@@ -1,6 +1,6 @@
 import type { Logger } from "pino";
+import { sourcePolicy } from "../domain/model.js";
 import type { SourceContext } from "./context.js";
-import { sourcePolicy } from "./policy.js";
 
 /** One bounded scheduler for managed evidence and existing subscription consumers. */
 export class SourceScheduler {

@@ -24,6 +24,17 @@ request gates, failed/publish/start/close methods or client classes. The narrowl
 scoped transaction integration is in `sources/integration.ts`, outside the business
 API. Only explicit module entries may be imported across this boundary.
 
+## File organization
+
+The module root contains only `public.ts`, `create.ts`, `persistence.ts` and
+`integration.ts`. Public configuration and connector types live in `public.ts`.
+`application/` contains collection orchestration, context, scheduling and download
+content resolution (`content.ts`). `domain/` contains models, collection limits and
+the private prepared-read contract. `infrastructure/` contains persistence contracts,
+repositories and the shared request gate. RSS and Jackett adapters remain private
+in their respective directories. Moving these files does not change runtime behavior,
+HTTP contracts, database tables or existing structured lifecycle logs.
+
 ## Source configuration
 
 SourceInput is either `{kind: "feed", url}` or `{kind: "search", connectionRevision,

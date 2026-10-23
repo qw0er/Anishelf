@@ -1,22 +1,22 @@
 import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
 import { SourcesApplication } from "./application/application.js";
+import type { SourceTorrentTransport } from "./application/content.js";
 import { SourceError } from "./domain/model.js";
-import type { SourceTorrentTransport } from "./downloads.js";
 import { registerSourceRoutes } from "./http/routes.js";
+import { SourceRequestGate } from "./infrastructure/request-gate.js";
+import type { SourceLifecycleStore } from "./infrastructure/store.js";
 import type { SourceCollection, SourcesRuntime } from "./integration.js";
 import { JackettClient } from "./jackett/client.js";
 import { JackettConfigurationFile } from "./jackett/configuration.js";
 import { JackettConnection } from "./jackett/connection.js";
 import { JackettTransport } from "./jackett/transport.js";
-import type { SourceLifecycleStore } from "./lifecycle.js";
 import type {
 	SourceConnectorApi,
 	SourceContentApi,
 	SourceManagementApi,
 	SourcesApi,
 } from "./public.js";
-import { SourceRequestGate } from "./request-gate.js";
 import { parseRss } from "./rss/parser.js";
 import type { FeedTransport, SourceStore } from "./rss/ports.js";
 import { RssTransport, rssUrl } from "./rss/transport.js";

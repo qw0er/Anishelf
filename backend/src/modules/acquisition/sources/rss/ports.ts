@@ -1,6 +1,6 @@
 import type { Logger } from "pino";
 import type { FeedRecord } from "../domain/model.js";
-import type { SourceRequestGate } from "../request-gate.js";
+import type { SourceRequestGate } from "../infrastructure/request-gate.js";
 
 export interface SourceStore {
 	feed(id: string): FeedRecord | null;

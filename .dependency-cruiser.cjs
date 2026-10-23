@@ -16,7 +16,7 @@ module.exports = {
 			name: "sources-domain-does-not-import-adapters",
 			severity: "error",
 			from: {
-				path: "^backend/src/modules/acquisition/sources/(?:domain/|public\\.ts$|settings\\.ts$|integration\\.ts$|lifecycle\\.ts$)",
+				path: "^backend/src/modules/acquisition/sources/(?:domain/|public\\.ts$|integration\\.ts$|infrastructure/store\\.ts$)",
 			},
 			to: { path: "^backend/src/modules/acquisition/sources/(?:rss|jackett)/" },
 		},

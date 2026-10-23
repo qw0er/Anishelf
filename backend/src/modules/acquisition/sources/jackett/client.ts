@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { SourceQuery } from "../domain/binding.js";
 import type { ReleaseDownload } from "../domain/download.js";
 import { type SourceEntry, SourceError } from "../domain/model.js";
-import type { SourceRequestGate } from "../request-gate.js";
+import type { SourceRequestGate } from "../infrastructure/request-gate.js";
 import type { JackettCapabilities, SearchCoverage } from "./model.js";
 import type { JackettTransport } from "./transport.js";
 import { indexerId, titleQueries } from "./validation.js";

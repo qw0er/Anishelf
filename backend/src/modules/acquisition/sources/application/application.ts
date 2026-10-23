@@ -1,20 +1,20 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
-import type { SourceRead } from "../adapter.js";
-import { SourceContext } from "../context.js";
+import type { SourceRead } from "../domain/adapter.js";
 import { SourceError } from "../domain/model.js";
 import type { SourceReference } from "../domain/reference.js";
-import { SourceDownloads, type SourceTorrentTransport } from "../downloads.js";
 import { SourceEvidence } from "../infrastructure/evidence.js";
+import type { SourceLifecycleStore } from "../infrastructure/store.js";
 import type { SourceCollection, SourcePublication } from "../integration.js";
 import { JackettSource } from "../jackett/application.js";
 import type { JackettConnection } from "../jackett/connection.js";
-import type { SourceLifecycleStore } from "../lifecycle.js";
 import type { SourceInput, SourceSnapshot, SourcesApi } from "../public.js";
 import { RssSource } from "../rss/application.js";
 import type { RssSourceOptions } from "../rss/ports.js";
 import { RssTransport } from "../rss/transport.js";
-import { SourceScheduler } from "../scheduler.js";
+import { SourceContent, type SourceTorrentTransport } from "./content.js";
+import { SourceContext } from "./context.js";
+import { SourceScheduler } from "./scheduler.js";
 
 export interface SourcesApplicationOptions {
 	rss: RssSourceOptions;
@@ -31,7 +31,7 @@ export class SourcesApplication implements SourcesApi, SourceCollection {
 	private readonly context: SourceContext;
 	private readonly rss: RssSource;
 	private readonly query: JackettSource;
-	private readonly downloads: SourceDownloads;
+	private readonly downloads: SourceContent;
 	private readonly evidence: SourceEvidence;
 	private readonly prepared = new WeakMap<
 		SourceSnapshot,
@@ -53,7 +53,7 @@ export class SourcesApplication implements SourcesApi, SourceCollection {
 			options.rss.store,
 			this.context,
 		);
-		this.downloads = new SourceDownloads(
+		this.downloads = new SourceContent(
 			options.store,
 			options.torrentTransport ?? new RssTransport(),
 			options.jackett,
