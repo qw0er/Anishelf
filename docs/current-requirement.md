@@ -186,3 +186,18 @@ copy controls. The separately configured browser WebUI URL remains independent o
 the internal API address. Users changing credentials in WebUI must update the
 Anishelf connection and reconfirm destination-bound permissions. Initialization,
 validation, connection replacement and credential access emit sanitized events.
+
+
+## Subscription interaction completion
+
+The Header row is the work-level entry for unified subscriptions. An open editor
+keeps inputs and its accepted revision through background refresh; stale saves fail
+inline. Check updates retries pending source discovery without waiting for its local
+scheduled retry delay. Activity lazily shows the last persisted source check, ordered
+site outcomes, rejection reasons and limited coverage. Diagnostics survives restart.
+
+When the authoritative work-detail response first includes a local work, remote-only
+details switch automatically to the local episode/resource interface, retaining the
+library return filters. No manual reload or return to the library is required.
+These interaction behaviors have offline regression coverage; live AniList/Jackett/
+qBittorrent/shared-storage/playback acceptance remains explicitly pending.

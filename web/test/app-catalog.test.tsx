@@ -1,8 +1,13 @@
 // @vitest-environment happy-dom
 import { expect, test, vi } from "vitest";
 import type { AnimeLibraryResponse } from "../src/shared/api/contracts.js";
-import { animeFixture, reviewFixture } from "./fixtures/anime.js";
-import { fireEvent, screen, waitFor, within } from "./query-test-utils.js";
+import { queryClient } from "../src/shared/api/query-client.js";
+import {
+	animeDetailFixture,
+	animeFixture,
+	reviewFixture,
+} from "./fixtures/anime.js";
+import { act, fireEvent, screen, waitFor, within } from "./query-test-utils.js";
 import {
 	appFixture,
 	fetcher,
@@ -1113,4 +1118,41 @@ test("detail reads viewing, subscription and activity through one aggregate requ
 				path === "/api/catalog/works/work-1",
 		),
 	).toEqual([]);
+});
+
+test("a tracked detail refetch switches to local episodes while preserving library context", async () => {
+	const local = animeFixture();
+	mockAnime(local);
+	const fallback = requiredFetch(fetcher.getMockImplementation());
+	let available = false;
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === "/api/anime/details/works/anilist%3Aanime%3A154587") {
+			const detail = animeDetailFixture(local);
+			return json({ ...detail, local: available ? local : null });
+		}
+		return fallback(input, init);
+	});
+	const library = "/?scope=all&viewingStatus=watching&query=Frieren";
+	renderApp(
+		`/anime/tracked/anilist%3Aanime%3A154587?${new URLSearchParams({ library })}`,
+	);
+	await screen.findByText("No local resources are associated with this work.");
+	expect(screen.queryByText("Episode 1")).toBeNull();
+	available = true;
+	await act(async () => {
+		await queryClient.refetchQueries({
+			queryKey: ["anime-detail"],
+			type: "active",
+		});
+	});
+	await screen.findByText("Episode 1");
+	expect(
+		screen.queryByText("No local resources are associated with this work."),
+	).toBeNull();
+	expect(screen.getByTestId("location").textContent).toContain(
+		"/anime/work-1?",
+	);
+	expect(
+		screen.getByRole("link", { name: "Back to library" }).getAttribute("href"),
+	).toBe(library);
 });

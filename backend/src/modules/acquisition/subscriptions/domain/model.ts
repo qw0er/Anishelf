@@ -1,6 +1,10 @@
 import type { SourceInput } from "../../sources/public.js";
 
 export interface Subscription {
+	discovery?: {
+		checkedAt: number;
+		attempts: SubscriptionSearchResult["attempts"];
+	};
 	createdBy?: "watching";
 	automatic?: {
 		sourceGeneration: string;
@@ -42,6 +46,7 @@ export interface Candidate {
 	publishedAt: number | null;
 }
 export interface SubscriptionView {
+	discovery?: NonNullable<Subscription["discovery"]>;
 	subscription:
 		| (Omit<Subscription, "sourceInput"> & {
 				source: string;

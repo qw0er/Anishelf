@@ -1,0 +1,1 @@
+ALTER TABLE `acquisition_subscriptions` ADD `discovery` text;

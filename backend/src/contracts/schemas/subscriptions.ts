@@ -46,7 +46,25 @@ const AcquisitionCandidateSchema = Type.Object({
 	snapshotId: Type.String(),
 	publishedAt: nullableNumber,
 });
+const DiscoveryAttemptSchema = Type.Object({
+	providerId: Type.String(),
+	reasons: Type.Array(Type.String()),
+	outcome: Type.Union([
+		Type.Literal("matched"),
+		Type.Literal("no_match"),
+		Type.Literal("no_eligible"),
+		Type.Literal("unavailable"),
+	]),
+	code: Type.Union([Type.String(), Type.Null()]),
+	limited: Type.Boolean(),
+});
 export const SubscriptionViewSchema = Type.Object({
+	discovery: Type.Optional(
+		Type.Object({
+			checkedAt: Type.Number(),
+			attempts: Type.Array(DiscoveryAttemptSchema),
+		}),
+	),
 	subscription: Type.Union([
 		Type.Null(),
 		Type.Object({
@@ -110,20 +128,7 @@ export const SubscriptionSearchInputSchema = Type.Object(
 );
 export const SubscriptionSearchResultSchema = Type.Object({
 	source: Type.Union([SourceInputSchema, Type.Null()]),
-	attempts: Type.Array(
-		Type.Object({
-			providerId: Type.String(),
-			reasons: Type.Array(Type.String()),
-			outcome: Type.Union([
-				Type.Literal("matched"),
-				Type.Literal("no_match"),
-				Type.Literal("no_eligible"),
-				Type.Literal("unavailable"),
-			]),
-			code: Type.Union([Type.String(), Type.Null()]),
-			limited: Type.Boolean(),
-		}),
-	),
+	attempts: Type.Array(DiscoveryAttemptSchema),
 	releases: Type.Array(
 		Type.Object({
 			id: Type.String(),

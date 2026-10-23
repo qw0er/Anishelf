@@ -50,15 +50,19 @@ export function DownloadActivityPanel({
 	view,
 	reason,
 	onConfigure,
+	onCheckUpdates,
+	checking = false,
 }: {
 	workKey: string;
 	initialActivity?: DownloadActivity | null | undefined;
 	view: SubscriptionView;
 	reason(code: string): string;
 	onConfigure(): void;
+	onCheckUpdates?: () => void;
+	checking?: boolean;
 	releasePagination?: ReactNode;
 }) {
-	const { t } = useTranslation(),
+	const { t, i18n } = useTranslation(),
 		client = useQueryClient();
 	const [page, setPage] = useState(1),
 		[diagnostics, setDiagnostics] = useState(false),
@@ -80,6 +84,7 @@ export function DownloadActivityPanel({
 			releasePage,
 		],
 		enabled: diagnostics,
+		refetchInterval: 30000,
 		queryFn: ({ signal }) =>
 			getSubscription(workKey, releasePage, { signal }, true),
 	});
@@ -209,11 +214,21 @@ export function DownloadActivityPanel({
 							<Button variant="outline" onClick={onConfigure}>
 								{t("acquisition.subscription.edit")}
 							</Button>
-						) : (
+						) : ["source_changed", "source_disabled"].includes(
+								view.subscription.error,
+							) ? (
 							<a className="underline" href="/settings?section=downloads">
 								{t("acquisition.activity.settings")}
 							</a>
-						)}
+						) : onCheckUpdates && view.subscription.enabled ? (
+							<Button
+								variant="outline"
+								disabled={checking}
+								onClick={onCheckUpdates}
+							>
+								{t("acquisition.subscription.checkNow")}
+							</Button>
+						) : null}
 					</p>
 				)}
 			{activity?.planningError && (
@@ -270,6 +285,35 @@ export function DownloadActivityPanel({
 								episode: view.subscription.startEpisode,
 							})}
 						</p>
+					)}
+					{releases.data?.discovery && (
+						<div className="space-y-2 text-sm">
+							<p className="text-muted-foreground">
+								{t("acquisition.subscription.lastDiscovery", {
+									time: new Date(
+										releases.data.discovery.checkedAt,
+									).toLocaleString(i18n.language),
+								})}
+							</p>
+							{releases.data.discovery.attempts.map((attempt) => (
+								<div key={attempt.providerId}>
+									<p>
+										{attempt.providerId} ·{" "}
+										{t(`acquisition.subscription.attempt.${attempt.outcome}`)}
+										{attempt.limited &&
+											t("acquisition.subscription.limitedCoverage")}
+									</p>
+									{attempt.reasons.length > 0 && (
+										<p className="text-muted-foreground">
+											{attempt.reasons.map(reason).join(" · ")}
+										</p>
+									)}
+								</div>
+							))}
+							{releases.data.discovery.attempts.length === 0 && (
+								<p>{t("acquisition.subscription.discoveryUnavailable")}</p>
+							)}
+						</div>
 					)}
 					{releases.isPending ? (
 						<p role="status">{t("acquisition.subscription.loading")}</p>

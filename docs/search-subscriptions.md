@@ -1,93 +1,83 @@
-# Search subscriptions (stage 4)
+# Automatic Source Discovery
 
-Date: 2026-10-23. Manual RSS and search subscriptions share the existing acquisition,
-authorization, reservation, download and verified-ingestion workflow. Watching
-reconciliation and real-service playback acceptance remain later work.
+Date: 2026-10-24. Manual and Watching-created subscriptions share one persistence,
+source discovery, authorization, reservation, download and verified-ingestion workflow.
+This document supersedes the stage-4 Find a source / save-preview interaction.
 
 ## User workflow
 
-1. Configure Jackett sites and their order in Settings. Configure and validate the
-   downloader destination.
-2. Open an anime's **Subscribe** or **Manage** dialog. Choose **Search configured
-   sites**, a starting episode and a release selection profile.
-3. Select **Find a source**. Review each attempted site's outcome, rejection reasons
-   and limited-coverage indicator. The first site with a verified matching regular
-   episode satisfying the scope and profile becomes the proposed source.
-4. Select **Save and enable subscription** to accept acquisition to the displayed
-   destination. Searches alone never grant permission or submit downloads.
+1. Configure ordered Jackett sites, subscription defaults and a validated download
+   destination in Settings → Downloads.
+2. Open Subscribe on a work, set the starting episode and save. Automatic source
+   selection is the default. More options exposes profile overrides and RSS entry.
+3. The subscription is persisted immediately, before a matching release exists.
+   Background discovery searches configured sites in order and pins the first site
+   with an eligible identity/episode/profile match. No release selection is required.
+4. Empty results retain intent and show Waiting for releases. Failures are distinct.
+   Check updates retries pending discovery immediately without waiting for the local
+   five-minute discovery delay; Sources still owns transport limits and backoff.
 
-A profile's deliberate waiting period does not disqualify an otherwise matching
-source; its releases are marked as waiting. Preview does not start or persist that
-waiting clock. Normal background collection establishes the clock after saving.
-Changing the starting episode, profile or source mode clears the preview and requires
-another search. Search uses up to four distinct normalized metadata titles/aliases;
-season and part information are retained. Ambiguous identities, packs, unsupported
-episodes, locally available episodes and known active torrent hashes do not qualify.
-If the downloader cannot provide active hashes, discovery fails rather than assuming
-there are no tasks.
+The starting episode is fixed at creation. Watching uses confirmed progress plus one
+or episode 1 at that point. Tracking changes do not move an existing subscription's
+lower bound. Manual and Watching-created work share the same editor and actions.
 
-The selected site and title query are persisted as the subscription source definition.
-Later empty results or failures retry that site; collection never moves to another
-site or merges results across sites. Editing a saved search subscription defaults to
-**Keep current source**. An explicit new discovery and save, or an RSS replacement,
-is required to change it. Existing manual RSS entry remains available.
+A profile's deliberate waiting period does not disqualify an otherwise eligible
+source. Discovery does not establish the persisted selection waiting clock. Normal
+background collection establishes it after binding. Search uses up to four distinct
+normalized metadata titles/aliases, retaining season and part information. Ambiguous
+identities, packs, unsupported/out-of-scope episodes, locally available episodes and
+known active torrent hashes do not qualify. Unknown downloader hashes fail discovery
+rather than implying that there are no tasks.
 
-## Contract and ownership
+A selected site/query stays pinned through empty results or outages. Collection does
+not merge/rank sites or silently switch providers. An explicit editor save may keep
+that source, restart automatic selection or replace it with RSS.
 
-`POST /api/acquisition/subscriptions/search` accepts `workKey`, nullable current
-subscription `revision`, `startEpisode` and optional `profileId`. It requires the
-same authentication and CSRF protection as other acquisition mutations and returns
-`Cache-Control: no-store`.
+## Persistence, contracts and ownership
 
-The result contains a nullable proposed `source`, bounded safe release summaries
-and ordered provider attempts (`matched`, `no_match`, `no_eligible`, `unavailable`).
-Attempts include safe error/rejection codes and whether search coverage is limited.
-A failed or incomplete site is never reported as proof that all releases are absent.
-Provider failures are visible; later configured providers may still qualify during
-this explicit discovery operation. No provider beyond the first qualifying one is
-searched. Discovery permits two concurrent operations, with one per work, and uses
-the existing bounded Sources requests and rate limits.
+PUT /api/acquisition/subscriptions accepts an automatic choice, explicit source or
+null (keep the current choice), starting episode, profile, expected subscription
+revision and the validated destination/downloader stamp. Saving intent is local.
+Pending intent stores accepted source generation, profile fingerprint and target.
+Binding and permission are committed atomically only after rechecking those stamps
+and the current subscription revision. Late edits, cancellation or pause fence old
+results. A discovery result by itself never grants download permission.
 
 Subscriptions owns metadata identity/profile assessment and ordered source selection.
-It calls only the common `SourcesApi` and its connector setup interface; protocol
-clients, authentication and download locators stay inside Sources. A preview may
-create private pending cache/backoff bindings, but does not publish release evidence,
-download references, subscription candidates, permissions or intents.
+It calls Sources' public API; transport, credentials and opaque download references
+stay inside Sources. The optional POST /api/acquisition/subscriptions/search remains
+a non-authorizing diagnostic operation. It is not required by the editor and has no
+preview token or confirmation session. Watching activation separately retains its
+session-bound global impact preview.
 
-The existing save endpoint accepts the returned search definition. Save remains a
-local atomic subscription/permission write, with destination and downloader generation
-checks. There is no separate preview token or confirmation session. Background refresh
-fetches the pinned definition and atomically publishes evidence, durable opaque download
-references and assessed candidates. Source definitions and permission source identities
-already support this through the existing schema; no additional migration is needed.
+Each background attempt saves one bounded diagnostic snapshot on the subscription:
+check time, provider IDs, outcomes, safe error/rejection codes and limited-coverage
+flags. Migration 0011 adds this JSON field. The next check replaces it; deleting the
+subscription deletes it. No credentials, raw responses or private locators are saved
+there. Successful binding retains the last attempt; saving a new automatic scope
+clears previous diagnostics. GET with diagnostics=false omits the snapshot and release
+rows. Activity loads the snapshot and grouped release decisions only when Diagnostics
+opens. Empty or truncated searches are never proof of full backlog coverage.
 
-Discovery checks the captured connector and subscription revisions before and after
-asynchronous work. Changing either rejects a late result. Saving an obsolete search
-definition also fails. Connector changes are surfaced as `source_changed` on saved
-subscriptions; the user must choose and save a source again. Existing submitted
-transfers continue through reconciliation independently of Jackett.
+Source definitions and permission checks remain generation-bound. Destination/account
+changes require validation and a newly accepted scope. Existing submitted transfers
+continue independent reconciliation. Downloads resolves opaque content through Sources,
+validates canonical hashes/paths and reserves work/episode before submission.
 
-Downloads consumes the same opaque content reference used for RSS. Sources resolves
-private authenticated torrent routes into bytes or magnet content; Downloads validates
-canonical hash/paths, reserves the work/episode and rechecks source currency before
-submission. Old unsent references cannot inherit changed connector credentials.
-Destination/account changes still require validation and a new accepted scope.
-
-Structured events include `acquisition.source_discovery_evaluated`,
-`acquisition.source_discovery_failed`, `acquisition.subscription_saved` and the existing
-source/candidate/download lifecycle events. They exclude API keys, cookies, raw service
-responses and private download locators.
+Structured events include acquisition.source_discovery_evaluated,
+acquisition.source_discovery_failed, acquisition.subscription_discovery_deferred,
+acquisition.subscription_source_bound and acquisition.subscription_saved. They exclude
+API keys, cookies, raw service responses and private download locators.
 
 ## Verification boundary
 
-Automated tests cover ordered selection, no-match and identity/scope rejection,
-profile waiting, provider failures, non-authorizing previews, stale revisions,
-pinning and no fallback, HTTP authentication/CSRF/input validation, UI activation and
-preview invalidation. An integration fixture uses actual Sources persistence/content,
-Subscriptions and Downloads with a fake Jackett adapter and qBittorrent client: it
-resolves a private reference, submits once, reconciles and invokes ingestion. Changing
-the connector before submission prevents the request.
+Automated fixtures cover ordered selection, identity/profile/scope rejection,
+non-authorizing diagnostic searches, pending intent across restart, fixed starting
+scope, stale configuration/revision results, atomic binding/permission rollback,
+manual refresh during local retry delay, persisted/lazy diagnostics and source pinning.
+UI regressions cover ordinary management, editor input preservation during background
+revision changes and remote-to-local detail transitions after refreshed data arrives.
 
-These fixtures are not live tracker/downloader/shared-storage/browser acceptance.
-Stage 5 must verify search → explicit activation → qBittorrent → actual file verification
-and ingestion → browser playback, including restart and relevant failure recovery.
+These checks do not establish live AniList, Jackett, qBittorrent, shared-storage
+verification/ingestion or browser playback acceptance. See Watching setup for the
+remaining real-service acceptance boundary.

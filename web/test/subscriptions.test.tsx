@@ -5,6 +5,7 @@ import * as api from "../src/shared/api/client.js";
 import type { SubscriptionView } from "../src/shared/api/contracts.js";
 import { queryClient } from "../src/shared/api/query-client.js";
 import {
+	act,
 	cleanup,
 	fireEvent,
 	render,
@@ -345,4 +346,105 @@ test("subscriptions can be created only after destination validation", async () 
 	expect(request.mock.calls.filter((call) => call[1] !== "GET")).toHaveLength(
 		0,
 	);
+});
+
+test("background subscription revisions preserve the open editor and its accepted revision", async () => {
+	const request = fixture(saved);
+	render(<SubscriptionPanel workKey={workKey} />);
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Subscription actions" }),
+	);
+	fireEvent.click(
+		await screen.findByRole("menuitem", { name: "Edit subscription" }),
+	);
+	fireEvent.change(await screen.findByLabelText("Starting episode"), {
+		target: { value: "9" },
+	});
+	fireEvent.click(screen.getByText("More options"));
+	await act(async () => {
+		queryClient.setQueryData(["acquisition", "subscription", workKey], {
+			...saved,
+			subscription: {
+				...saved.subscription,
+				revision: "bound-in-background",
+				startEpisode: 4,
+			},
+		});
+	});
+	expect(
+		(screen.getByLabelText("Starting episode") as HTMLInputElement).value,
+	).toBe("9");
+	expect(screen.getByText("More options").closest("details")?.open).toBe(true);
+	await waitFor(() =>
+		expect(
+			(
+				screen.getByRole("button", {
+					name: "Save changes",
+				}) as HTMLButtonElement
+			).disabled,
+		).toBe(false),
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+	await waitFor(() =>
+		expect(request).toHaveBeenCalledWith(
+			"/api/acquisition/subscriptions",
+			"PUT",
+			{},
+			expect.objectContaining({ revision: "one", startEpisode: 9 }),
+		),
+	);
+});
+
+test("source attempts appear only in lazy diagnostics with outcomes and coverage", async () => {
+	fixture({
+		...saved,
+		discovery: {
+			checkedAt: 1000000,
+			attempts: [
+				{
+					providerId: "site-empty",
+					outcome: "no_match",
+					reasons: [],
+					code: null,
+					limited: true,
+				},
+				{
+					providerId: "site-offline",
+					outcome: "unavailable",
+					reasons: [],
+					code: "unavailable",
+					limited: false,
+				},
+			],
+		},
+	});
+	render(<SubscriptionPanel workKey={workKey} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Activity" }));
+	expect(screen.queryByText(/site-empty/)).toBeNull();
+	fireEvent.click(screen.getByText("Diagnostics"));
+	await screen.findByText(/site-empty · No matching releases/);
+	expect(screen.getByText(/site-offline · Site unavailable/)).toBeTruthy();
+	expect(screen.getByText(/Limited search coverage/)).toBeTruthy();
+});
+
+test("a discovery outage offers a direct check instead of generic configuration guidance", async () => {
+	if (!saved.subscription) throw new Error("Missing subscription fixture");
+	const request = fixture({
+		...saved,
+		subscription: {
+			...saved.subscription,
+			error: "discovery_unavailable",
+		},
+	});
+	render(<SubscriptionPanel workKey={workKey} />);
+	fireEvent.click(await screen.findByRole("button", { name: /Activity/ }));
+	fireEvent.click(await screen.findByRole("button", { name: "Check now" }));
+	await waitFor(() =>
+		expect(
+			request.mock.calls.some(
+				([path, method]) => path.endsWith("/refresh") && method === "POST",
+			),
+		).toBe(true),
+	);
+	expect(screen.queryByRole("link", { name: "Settings" })).toBeNull();
 });

@@ -44,7 +44,9 @@ export function SubscriptionPanel({
 }) {
 	const { t } = useTranslation();
 	const client = useQueryClient();
-	const [editing, setEditing] = useState(false),
+	const [editor, setEditor] = useState<{
+			current: SubscriptionView["subscription"];
+		} | null>(null),
 		[activityOpen, setActivityOpen] = useState(false);
 	const query = useQuery({
 		queryKey: ["acquisition", "subscription", workKey],
@@ -94,7 +96,7 @@ export function SubscriptionPanel({
 				: "acquisition.subscription.findingSource",
 		);
 	const updated = () => {
-		setEditing(false);
+		setEditor(null);
 		void client.invalidateQueries({
 			queryKey: ["acquisition", "subscription", workKey],
 		});
@@ -159,7 +161,10 @@ export function SubscriptionPanel({
 						</Button>
 					)}
 					{!sub && !query.isPending && !query.isError && (
-						<Button variant="outline" onClick={() => setEditing(true)}>
+						<Button
+							variant="outline"
+							onClick={() => setEditor({ current: sub ?? null })}
+						>
 							{t("acquisition.subscription.subscribe")}
 						</Button>
 					)}
@@ -178,7 +183,9 @@ export function SubscriptionPanel({
 								<Ellipsis className="size-4" aria-hidden="true" />
 							</DropdownMenuTrigger>
 							<DropdownMenuContent>
-								<DropdownMenuItem onClick={() => setEditing(true)}>
+								<DropdownMenuItem
+									onClick={() => setEditor({ current: sub ?? null })}
+								>
 									{t("acquisition.subscription.edit")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
@@ -207,23 +214,29 @@ export function SubscriptionPanel({
 					)}
 				</div>
 			</div>
-			<Dialog open={editing} onOpenChange={setEditing}>
+			<Dialog
+				open={editor !== null}
+				onOpenChange={(open) =>
+					setEditor(open ? { current: sub ?? null } : null)
+				}
+			>
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>
 							{t(
-								sub
+								editor?.current
 									? "acquisition.subscription.manageTitle"
 									: "acquisition.subscription.subscribeTitle",
 							)}
 						</DialogTitle>
 					</DialogHeader>
-					<SubscriptionForm
-						key={sub?.revision ?? "new"}
-						workKey={workKey}
-						current={sub ?? null}
-						onSaved={updated}
-					/>
+					{editor && (
+						<SubscriptionForm
+							workKey={workKey}
+							current={editor.current}
+							onSaved={updated}
+						/>
+					)}
 				</DialogContent>
 			</Dialog>
 			<Dialog open={activityOpen} onOpenChange={setActivityOpen}>
@@ -236,6 +249,8 @@ export function SubscriptionPanel({
 							workKey={workKey}
 							view={view}
 							initialActivity={activity.data}
+							onCheckUpdates={() => action.mutate("refresh")}
+							checking={action.isPending}
 							reason={(code) =>
 								t(`acquisition.reason.${code}`, {
 									defaultValue: t("acquisition.reason.fallback"),
@@ -243,7 +258,7 @@ export function SubscriptionPanel({
 							}
 							onConfigure={() => {
 								setActivityOpen(false);
-								setEditing(true);
+								setEditor({ current: sub ?? null });
 							}}
 						/>
 					)}

@@ -37,14 +37,14 @@ export class PendingSubscriptions {
 			await this.resolve(sub);
 		}
 	}
-	async resolve(sub: Subscription) {
+	async resolve(sub: Subscription, force = false) {
 		const { options } = this.context,
 			scope = sub.automatic;
 		if (
 			!scope ||
 			sub.feedId ||
 			!sub.enabled ||
-			scope.retryAt > this.context.now()
+			(!force && scope.retryAt > this.context.now())
 		)
 			return;
 		const current = () =>
@@ -70,12 +70,14 @@ export class PendingSubscriptions {
 						target.connectionGeneration === scope.target.connectionGeneration))
 			);
 		};
+		let discovery = sub.discovery;
 		const retain = (reason: string) => {
 			if (!current()) return;
 			options.store.saveSubscription(
 				{
 					...sub,
 					lastError: reason,
+					...(discovery ? { discovery } : {}),
 					automatic: { ...scope, retryAt: this.context.now() + 300000 },
 				},
 				[],
@@ -94,6 +96,7 @@ export class PendingSubscriptions {
 			retain("authorization_required");
 			return;
 		}
+		discovery = { checkedAt: this.context.now(), attempts: [] };
 		try {
 			const result = await this.discovery.search({
 				workKey: sub.workKey,
@@ -106,6 +109,7 @@ export class PendingSubscriptions {
 				retain("authorization_required");
 				return;
 			}
+			discovery = { checkedAt: this.context.now(), attempts: result.attempts };
 			if (!result.source) {
 				retain(
 					result.attempts.some((attempt) => attempt.outcome === "unavailable")
@@ -124,6 +128,7 @@ export class PendingSubscriptions {
 					sourceInput: result.source,
 					feedId: feed.id,
 					lastError: null,
+					...(discovery ? { discovery } : {}),
 					revision: randomUUID(),
 					automatic: null,
 				};
