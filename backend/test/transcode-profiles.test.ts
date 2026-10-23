@@ -134,19 +134,37 @@ test.each([
 		],
 	}),
 ])(
-	"rejects malformed or conflicting administrator configuration: %s",
+	"falls back to built-ins for malformed or conflicting administrator configuration: %s",
 	async (source) => {
 		expect(() => parseTranscodeProfiles(source)).toThrowError(
 			expect.objectContaining({ code: "CONFIG_INVALID" }),
 		);
 		await writeFile(join(directory, "transcode-profiles.yaml"), source);
-		await expect(load()).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+		const service = await load();
+		expect(service.transcodeProfiles.map((profile) => profile.id)).toEqual([
+			"builtin:balanced",
+			"builtin:fast",
+			"builtin:efficient",
+			"builtin:compact",
+		]);
+		expect(service.transcodeProfileIssue).toMatchObject({
+			file: "transcode-profiles.yaml",
+		});
+		expect(transcodeProfileCatalog(service).issue).toMatchObject({
+			file: "transcode-profiles.yaml",
+		});
 	},
 );
 
-test("unreadable external file and failed selection writes fail without changing the snapshot", async () => {
+test("unreadable external file falls back without changing the snapshot", async () => {
 	await mkdir(join(directory, "transcode-profiles.yaml"));
-	await expect(load()).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+	const unreadable = await load();
+	expect(unreadable.transcodeProfiles).toHaveLength(
+		builtinTranscodeProfiles.length,
+	);
+	expect(unreadable.transcodeProfileIssue).toMatchObject({
+		file: "transcode-profiles.yaml",
+	});
 	await rm(join(directory, "transcode-profiles.yaml"), { recursive: true });
 	const service = await load();
 	const before = service.snapshot;
@@ -404,7 +422,10 @@ test("preparation mode defaults to compatibility and persists with profile selec
 
 test("the documented YAML example loads with comments and native scalar types", async () => {
 	const source = await readFile(
-		new URL("../../docs/transcode-profiles-example.yaml", import.meta.url),
+		new URL(
+			"../../docs/examples/transcode-profiles-example.yaml",
+			import.meta.url,
+		),
 		"utf8",
 	);
 	const profiles = parseTranscodeProfiles(source);

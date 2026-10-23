@@ -35,6 +35,9 @@ export async function createSystemModule(
 		get transcodeProfiles() {
 			return service.transcodeProfiles;
 		},
+		get transcodeProfileIssue() {
+			return service.transcodeProfileIssue;
+		},
 		get snapshot() {
 			return { settings: service.snapshot.settings };
 		},

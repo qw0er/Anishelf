@@ -9,6 +9,7 @@ export { transcodeProfileFingerprint } from "./configuration/public.js";
 
 import type { RuntimeEnvironment } from "../../platform/environment.js";
 import type { DeepReadonly } from "../../shared/policy.js";
+import type { ProfileCatalogIssue } from "../../shared/profile-issue.js";
 import type {
 	DeploymentConfig,
 	PersistentSettings,
@@ -20,6 +21,7 @@ export interface SystemApi extends SettingsStore {
 	readonly deployment: DeepReadonly<DeploymentConfig>;
 	readonly environment: RuntimeEnvironment;
 	readonly transcodeProfiles: DeepReadonly<TranscodeProfile[]>;
+	readonly transcodeProfileIssue: ProfileCatalogIssue | undefined;
 	readonly snapshot: {
 		readonly settings: DeepReadonly<
 			PersistentSettings & {

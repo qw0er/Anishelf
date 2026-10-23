@@ -1,4 +1,6 @@
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { expect, test } from "vitest";
 import type { ReleaseEvidence } from "../src/modules/acquisition/sources/public.js";
 import { parseRss } from "../src/modules/acquisition/sources/rss/parser.js";
@@ -9,7 +11,10 @@ import {
 	builtinAcquisitionProfiles,
 } from "../src/modules/acquisition/subscriptions/domain/profiles.js";
 import { selectCandidates } from "../src/modules/acquisition/subscriptions/domain/selection.js";
-import { parseAcquisitionProfiles } from "../src/modules/acquisition/subscriptions/infrastructure/profiles.js";
+import {
+	loadAcquisitionProfiles,
+	parseAcquisitionProfiles,
+} from "../src/modules/acquisition/subscriptions/infrastructure/profiles.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../src/modules/anime/release-assessment/application.js";
@@ -86,7 +91,10 @@ const chosen = (candidates: Candidate[]) =>
 
 test("the commented example validates; configuration rejects ambiguity and invalid rules", async () => {
 	const example = await readFile(
-		new URL("../../docs/examples/acquisition-profiles.yaml", import.meta.url),
+		new URL(
+			"../../docs/examples/acquisition-profiles-example.yaml",
+			import.meta.url,
+		),
 		"utf8",
 	);
 	expect(parseAcquisitionProfiles(example)[0]?.id).toBe(
@@ -486,5 +494,22 @@ test("built-in collection windows unlock at their declared thresholds", () => {
 				"episode",
 			]);
 		}
+	}
+});
+
+test("invalid custom acquisition profiles fall back to built-ins and report an issue", async () => {
+	const directory = await mkdtemp(join(tmpdir(), "anishelf-acquisition-"));
+	try {
+		await writeFile(
+			join(directory, "acquisition-profiles.yaml"),
+			"version: 2\nprofiles: []\n",
+		);
+		const loaded = await loadAcquisitionProfiles(directory);
+		expect(loaded.profiles).toEqual([...builtinAcquisitionProfiles]);
+		expect(loaded.issue).toMatchObject({
+			file: "acquisition-profiles.yaml",
+		});
+	} finally {
+		await rm(directory, { recursive: true, force: true });
 	}
 });

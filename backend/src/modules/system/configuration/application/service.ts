@@ -4,6 +4,7 @@ import {
 } from "../../../../platform/environment.js";
 import { DomainError } from "../../../../shared/errors.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
+import type { ProfileCatalogIssue } from "../../../../shared/profile-issue.js";
 import type { DeploymentConfig, PersistentSettings } from "../domain/model.js";
 import {
 	defaultTranscodeProfileId,
@@ -30,6 +31,7 @@ export class ConfigurationService {
 		private readonly persistent: PersistentConfiguration,
 		readonly environment: RuntimeEnvironment,
 		readonly transcodeProfiles: DeepReadonly<TranscodeProfile[]>,
+		readonly transcodeProfileIssue: ProfileCatalogIssue | undefined,
 	) {
 		this.current = this.resolve();
 	}
@@ -42,11 +44,13 @@ export class ConfigurationService {
 			deployment.initialResourceRoots,
 			deployment.initialQbittorrentWebUiUrl,
 		);
+		const transcode = await loadTranscodeProfiles(deployment.dataDir);
 		return new ConfigurationService(
 			deployment,
 			persistent,
 			captureRuntimeEnvironment(env),
-			await loadTranscodeProfiles(deployment.dataDir),
+			transcode.profiles,
+			transcode.issue,
 		);
 	}
 	get settings(): Readonly<PersistentSettings> {

@@ -5,6 +5,7 @@ import { parseDocument } from "yaml";
 import { TranscodeProfilesFileSchema } from "../../../../contracts/schemas/transcode-profiles.js";
 import { DomainError } from "../../../../shared/errors.js";
 import { freeze } from "../../../../shared/policy.js";
+import type { ProfileCatalogIssue } from "../../../../shared/profile-issue.js";
 import {
 	builtinTranscodeProfiles,
 	type TranscodeProfile,
@@ -41,21 +42,28 @@ export function parseTranscodeProfiles(source: string): TranscodeProfile[] {
 	return value.profiles;
 }
 
-/** Startup snapshot. Missing external file is normal; malformed files fail startup. */
+/** Startup snapshot. Missing files are normal; invalid custom files fall back to built-ins. */
 export async function loadTranscodeProfiles(dataDir: string) {
 	const path = join(dataDir, "transcode-profiles.yaml");
-	let custom: TranscodeProfile[];
+	let custom: TranscodeProfile[] = [];
+	let issue: ProfileCatalogIssue | undefined;
 	try {
 		custom = parseTranscodeProfiles(await readFile(path, "utf8"));
 	} catch (cause) {
-		if ((cause as NodeJS.ErrnoException).code === "ENOENT") custom = [];
-		else if (cause instanceof DomainError) throw cause;
-		else
-			throw new DomainError(
-				"CONFIG_INVALID",
-				`Cannot read ${path}. Check the file permissions.`,
-				{ cause },
-			);
+		const code = (cause as NodeJS.ErrnoException).code;
+		if (code !== "ENOENT") {
+			if (!(cause instanceof DomainError) && code === undefined) throw cause;
+			issue = {
+				file: "transcode-profiles.yaml",
+				detail: (cause instanceof DomainError
+					? cause.message
+					: "The file could not be read. Check its permissions."
+				).slice(0, 2000),
+			};
+		}
 	}
-	return freeze([...builtinTranscodeProfiles, ...custom]);
+	return {
+		profiles: freeze([...builtinTranscodeProfiles, ...custom]),
+		...(issue ? { issue } : {}),
+	};
 }

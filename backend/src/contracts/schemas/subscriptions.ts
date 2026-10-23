@@ -1,4 +1,5 @@
 import { Type } from "typebox";
+import { ProfileCatalogIssueSchema } from "./profile-issues.js";
 import { SourceInputSchema } from "./sources.js";
 
 const workKey = Type.String({ minLength: 1, maxLength: 1024 });
@@ -15,6 +16,7 @@ export const AcquisitionProfileCatalogSchema = Type.Object({
 	),
 	selectedProfileId: Type.String(),
 	selectionAvailable: Type.Boolean(),
+	issue: Type.Optional(ProfileCatalogIssueSchema),
 });
 const profileId = Type.Optional(
 	Type.Union([

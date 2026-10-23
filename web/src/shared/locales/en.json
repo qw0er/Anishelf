@@ -998,5 +998,13 @@
 			"assessment_unavailable": "animation metadata or local availability could not be checked",
 			"fallback": "source could not be refreshed"
 		}
+	},
+	"profileIssue": {
+		"transcodeTitle": "Custom transcode profiles could not be loaded",
+		"transcodeDescription": "Built-in transcode profiles are still available. Your custom profiles were ignored.",
+		"acquisitionTitle": "Custom acquisition profiles could not be loaded",
+		"acquisitionDescription": "Built-in acquisition profiles are still available. Your custom profiles were ignored.",
+		"details": "Details",
+		"fixAndRestart": "Fix the file and restart Anishelf."
 	}
 }

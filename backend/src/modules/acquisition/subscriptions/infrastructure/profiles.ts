@@ -4,6 +4,7 @@ import { Check, Errors } from "typebox/value";
 import { isAlias, LineCounter, parseDocument, visit } from "yaml";
 import { DomainError } from "../../../../shared/errors.js";
 import { freeze } from "../../../../shared/policy.js";
+import type { ProfileCatalogIssue } from "../../../../shared/profile-issue.js";
 import {
 	type AcquisitionProfile,
 	AcquisitionProfilesFileSchema,
@@ -78,12 +79,26 @@ export function parseAcquisitionProfiles(source: string): AcquisitionProfile[] {
 }
 export async function loadAcquisitionProfiles(dataDir: string) {
 	let custom: AcquisitionProfile[] = [];
+	let issue: ProfileCatalogIssue | undefined;
 	try {
 		custom = parseAcquisitionProfiles(
 			await readFile(join(dataDir, filename), "utf8"),
 		);
 	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+		const code = (error as NodeJS.ErrnoException).code;
+		if (code !== "ENOENT") {
+			if (!(error instanceof DomainError) && code === undefined) throw error;
+			issue = {
+				file: filename,
+				detail: (error instanceof Error
+					? error.message
+					: "The file could not be read. Check its permissions."
+				).slice(0, 2000),
+			};
+		}
 	}
-	return freeze([...builtinAcquisitionProfiles, ...custom]);
+	return {
+		profiles: freeze([...builtinAcquisitionProfiles, ...custom]),
+		...(issue ? { issue } : {}),
+	};
 }

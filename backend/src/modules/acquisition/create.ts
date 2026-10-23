@@ -47,7 +47,16 @@ export async function createAcquisitionModule(options: {
 	rssRefreshIntervalMinutes?: () => number | undefined;
 	defaultAcquisitionProfileId?: () => string | undefined;
 }) {
-	const profiles = await loadAcquisitionProfiles(options.dataDir);
+	const profileCatalog = await loadAcquisitionProfiles(options.dataDir);
+	const profiles = profileCatalog.profiles;
+	if (profileCatalog.issue)
+		options.logger.warn(
+			{
+				event: "acquisition.profiles_invalid",
+				...profileCatalog.issue,
+			},
+			"Custom acquisition profiles could not be loaded; using built-in profiles.",
+		);
 	options.logger.info(
 		{ event: "acquisition.profiles_loaded", count: profiles.length },
 		"Acquisition profiles loaded.",
@@ -80,6 +89,7 @@ export async function createAcquisitionModule(options: {
 	const subscriptions = new SubscriptionsApplication({
 		store: subscriptionStore,
 		profiles,
+		...(profileCatalog.issue ? { profileIssue: profileCatalog.issue } : {}),
 		defaultProfileId: () => options.defaultAcquisitionProfileId?.(),
 		lockedCandidates: (key) => options.downloadStore.lockedCandidates(key),
 		downloadTarget: () => {

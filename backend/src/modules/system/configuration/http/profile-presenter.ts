@@ -1,7 +1,10 @@
 import type { TranscodeProfileCatalog } from "../../../../contracts/http.js";
 import type { SystemApi } from "../../public.js";
 export function transcodeProfileCatalog(
-	configuration: Pick<SystemApi, "snapshot" | "transcodeProfiles">,
+	configuration: Pick<
+		SystemApi,
+		"snapshot" | "transcodeProfiles" | "transcodeProfileIssue"
+	>,
 ): TranscodeProfileCatalog {
 	const selectedProfileId =
 		configuration.snapshot.settings.defaultTranscodeProfileId;
@@ -23,5 +26,8 @@ export function transcodeProfileCatalog(
 		selectionAvailable: configuration.transcodeProfiles.some(
 			(profile) => profile.id === selectedProfileId,
 		),
+		...(configuration.transcodeProfileIssue
+			? { issue: configuration.transcodeProfileIssue }
+			: {}),
 	};
 }

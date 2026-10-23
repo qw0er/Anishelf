@@ -27,6 +27,9 @@ export type ResourceDto = Static<typeof schemas.ResourceDtoSchema>;
 export type LibraryResponse = Static<typeof schemas.LibraryResponseSchema>;
 export type ScanResponse = Static<typeof schemas.ScanResponseSchema>;
 export type SettingsResponse = Static<typeof schemas.SettingsResponseSchema>;
+export type ProfileCatalogIssue = Static<
+	typeof schemas.ProfileCatalogIssueSchema
+>;
 export type UpdateSettingsRequest = Static<
 	typeof schemas.UpdateSettingsRequestSchema
 >;
