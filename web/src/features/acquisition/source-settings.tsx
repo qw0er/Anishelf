@@ -194,69 +194,77 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					save.mutate();
 				}}
 			>
-				<div className="flex flex-col gap-2">
-					<label className="text-sm font-medium" htmlFor="source-api-url">
-						{t("acquisition.sources.apiUrl")}
-					</label>
-					<Input
-						id="source-api-url"
-						type="url"
-						required
-						maxLength={2048}
-						placeholder="http://jackett:9117/"
-						value={url}
-						disabled={busy}
-						aria-describedby="source-api-url-help"
-						onChange={(event) => setUrl(event.target.value)}
-					/>
-					<p id="source-api-url-help" className="text-sm text-muted-foreground">
-						{t("acquisition.sources.apiUrlHelp")}
-					</p>
-				</div>
-				<div className="flex flex-col gap-2">
-					<label className="text-sm font-medium" htmlFor="source-api-key">
-						{t("acquisition.sources.apiKey")}
-					</label>
-					<Input
-						id="source-api-key"
-						type="password"
-						autoComplete="new-password"
-						maxLength={4096}
-						required={!settings.hasApiKey || url !== settings.url}
-						value={apiKey}
-						disabled={busy}
-						aria-describedby="source-api-key-help"
-						onChange={(event) => setApiKey(event.target.value)}
-					/>
-					<p id="source-api-key-help" className="text-sm text-muted-foreground">
-						{settings.hasApiKey
-							? t("acquisition.sources.keySaved")
-							: t("acquisition.sources.keyHelp")}
-					</p>
-				</div>
-				<div className="flex flex-col gap-2">
-					<label
-						className="text-sm font-medium"
-						htmlFor="source-management-url"
-					>
-						{t("acquisition.sources.managementUrl")}
-					</label>
-					<Input
-						id="source-management-url"
-						type="url"
-						maxLength={2048}
-						placeholder="http://localhost:9117/"
-						value={managementUrl}
-						disabled={busy}
-						aria-describedby="source-management-url-help"
-						onChange={(event) => setManagementUrl(event.target.value)}
-					/>
-					<p
-						id="source-management-url-help"
-						className="text-sm text-muted-foreground"
-					>
-						{t("acquisition.sources.managementHelp")}
-					</p>
+				<div className="grid gap-4 sm:grid-cols-2">
+					<div className="flex flex-col gap-2">
+						<label className="text-sm font-medium" htmlFor="source-api-url">
+							{t("acquisition.sources.apiUrl")}
+						</label>
+						<Input
+							id="source-api-url"
+							type="url"
+							required
+							maxLength={2048}
+							placeholder="http://jackett:9117/"
+							value={url}
+							disabled={busy}
+							aria-describedby="source-api-url-help"
+							onChange={(event) => setUrl(event.target.value)}
+						/>
+						<p
+							id="source-api-url-help"
+							className="text-sm text-muted-foreground"
+						>
+							{t("acquisition.sources.apiUrlHelp")}
+						</p>
+					</div>
+					<div className="flex flex-col gap-2">
+						<label className="text-sm font-medium" htmlFor="source-api-key">
+							{t("acquisition.sources.apiKey")}
+						</label>
+						<Input
+							id="source-api-key"
+							type="password"
+							autoComplete="new-password"
+							maxLength={4096}
+							required={!settings.hasApiKey || url !== settings.url}
+							value={apiKey}
+							disabled={busy}
+							aria-describedby="source-api-key-help"
+							onChange={(event) => setApiKey(event.target.value)}
+						/>
+						<p
+							id="source-api-key-help"
+							className="text-sm text-muted-foreground"
+						>
+							{settings.hasApiKey
+								? t("acquisition.sources.keySaved")
+								: t("acquisition.sources.keyHelp")}
+						</p>
+					</div>
+					<div className="flex flex-col gap-2 sm:col-span-2">
+						<label
+							className="text-sm font-medium"
+							htmlFor="source-management-url"
+						>
+							{t("acquisition.sources.managementUrl")}
+						</label>
+						<Input
+							id="source-management-url"
+							type="url"
+							maxLength={2048}
+							placeholder="http://localhost:9117/"
+							value={managementUrl}
+							disabled={busy}
+							aria-describedby="source-management-url-help"
+							onChange={(event) => setManagementUrl(event.target.value)}
+						/>
+						<p
+							id="source-management-url-help"
+							className="text-sm text-muted-foreground"
+						>
+							{t("acquisition.sources.managementHelp")}
+						</p>
+					</div>
 				</div>
 				<div className="action-row">
 					<Button
@@ -344,7 +352,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				{providers.length > 0 ? (
 					<ul
 						aria-label={t("acquisition.sources.selectedSites")}
-						className="min-w-0 divide-y rounded-lg border"
+						className="max-h-64 min-w-0 divide-y overflow-y-auto rounded-lg border"
 					>
 						{providers.map((id, index) => (
 							<li
@@ -423,7 +431,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 						<legend className="text-sm font-medium">
 							{t("acquisition.sources.availableSites")}
 						</legend>
-						<ul className="min-w-0 divide-y rounded-lg border">
+						<ul className="max-h-64 min-w-0 divide-y overflow-y-auto rounded-lg border">
 							{selectableSites.map((site) => (
 								<li key={site.id}>
 									<label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm">

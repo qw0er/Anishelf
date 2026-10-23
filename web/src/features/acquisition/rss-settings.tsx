@@ -13,6 +13,10 @@ import {
 	CardTitle,
 } from "../../shared/components/ui/card.js";
 import { Input } from "../../shared/components/ui/input.js";
+import {
+	RadioCard,
+	RadioCardGroup,
+} from "../../shared/components/ui/radio-card.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import {
 	saveSettings,
@@ -79,7 +83,7 @@ export function RssSettings() {
 				)}
 				{profiles.data && (
 					<form
-						className="space-y-3"
+						className="space-y-4"
 						onSubmit={(event) => {
 							event.preventDefault();
 							profileSave.mutate(
@@ -87,41 +91,48 @@ export function RssSettings() {
 							);
 						}}
 					>
-						<label htmlFor="acquisition-profile" className="block space-y-2">
-							<span className="text-sm font-medium">
-								{t("acquisition.rss.defaultProfile")}
-							</span>
-							<select
-								id="acquisition-profile"
-								className="w-full rounded-md border bg-background p-2 text-sm"
-								value={profileDraft ?? profiles.data.selectedProfileId}
-								disabled={profileSave.isPending}
-								onChange={(event) => setProfileDraft(event.target.value)}
-							>
-								{!profiles.data.selectionAvailable && (
-									<option value={profiles.data.selectedProfileId}>
-										{t("acquisition.rss.unavailableProfile", {
+						<RadioCardGroup
+							legend={t("acquisition.rss.defaultProfile")}
+							disabled={profileSave.isPending}
+						>
+							{!profiles.data.selectionAvailable &&
+								!profiles.data.profiles.some(
+									(profile) =>
+										profile.id ===
+										(profileDraft ?? profiles.data.selectedProfileId),
+								) && (
+									<RadioCard
+										name="acquisition-profile"
+										checked
+										disabled
+										onChange={() => {}}
+										className="border-dashed"
+										title={t("acquisition.rss.unavailableProfile", {
 											id: profiles.data.selectedProfileId,
 										})}
-									</option>
+										description={t("acquisition.rss.resumePrompt")}
+									/>
 								)}
-								{profiles.data.profiles.map((profile) => (
-									<option key={profile.id} value={profile.id}>
-										{profile.name}
-										{profile.source === "custom"
-											? t("acquisition.rss.custom")
-											: ""}
-									</option>
-								))}
-							</select>
-						</label>
-						<p className="text-sm text-muted-foreground">
-							{profiles.data.profiles.find(
-								(profile) =>
-									profile.id ===
-									(profileDraft ?? profiles.data.selectedProfileId),
-							)?.description ?? t("acquisition.rss.resumePrompt")}
-						</p>
+							{profiles.data.profiles.map((profile) => (
+								<RadioCard
+									key={profile.id}
+									name="acquisition-profile"
+									value={profile.id}
+									checked={
+										(profileDraft ?? profiles.data.selectedProfileId) ===
+										profile.id
+									}
+									onChange={() => setProfileDraft(profile.id)}
+									title={profile.name}
+									badge={
+										profile.source === "custom"
+											? t("acquisition.rss.customBadge")
+											: undefined
+									}
+									description={profile.description}
+								/>
+							))}
+						</RadioCardGroup>
 						<Button
 							type="submit"
 							disabled={

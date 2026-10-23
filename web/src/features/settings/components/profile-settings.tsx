@@ -10,6 +10,10 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../../shared/components/ui/card.js";
+import {
+	RadioCard,
+	RadioCardGroup,
+} from "../../../shared/components/ui/radio-card.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
 import { selectTranscodeProfile } from "../api.js";
@@ -77,68 +81,42 @@ export function PreparationProfileSettings({
 							});
 						}}
 					>
-						<fieldset className="space-y-2" disabled={action.busy}>
-							<legend className="mb-2 text-sm font-medium">
-								{t("preparation.preparationMode")}
-							</legend>
+						<RadioCardGroup
+							legend={t("preparation.preparationMode")}
+							disabled={action.busy}
+						>
 							{(["compatible", "fast"] as const).map((value) => (
-								<label
+								<RadioCard
 									key={value}
-									className="flex cursor-pointer items-start gap-3 rounded-md border p-3 has-[:checked]:border-primary has-[:checked]:bg-accent/50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50"
-								>
-									<input
-										type="radio"
-										name="preparation-mode"
-										checked={mode === value}
-										onChange={() => setMode(value)}
-										className="mt-1 accent-primary"
-									/>
-									<span>
-										<span className="block text-sm font-medium">
-											{t(`preparation.${value}Mode`)}
-										</span>
-										<span className="mt-1 block text-xs text-muted-foreground">
-											{t(`preparation.${value}Description`)}
-										</span>
-									</span>
-								</label>
+									name="preparation-mode"
+									checked={mode === value}
+									onChange={() => setMode(value)}
+									title={t(`preparation.${value}Mode`)}
+									description={t(`preparation.${value}Description`)}
+								/>
 							))}
-						</fieldset>
-						<fieldset className="space-y-2" disabled={action.busy}>
-							<legend className="mb-2 text-sm font-medium">
-								{t("preparation.chooseProfile")}
-							</legend>
+						</RadioCardGroup>
+						<RadioCardGroup
+							legend={t("preparation.chooseProfile")}
+							disabled={action.busy}
+						>
 							{preparation.catalog.profiles.map((profile) => (
-								<label
+								<RadioCard
 									key={profile.id}
-									className="flex cursor-pointer items-start gap-3 rounded-md border p-3 has-[:checked]:border-primary has-[:checked]:bg-accent/50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50"
-								>
-									<input
-										type="radio"
-										name="transcode-profile"
-										value={profile.id}
-										checked={profileId === profile.id}
-										onChange={() => setProfileId(profile.id)}
-										className="mt-1 accent-primary"
-									/>
-									<span className="min-w-0">
-										<span className="block text-sm font-medium">
-											{profile.name}
-										</span>
-										<span className="block text-xs text-muted-foreground">
-											{t("preparation.profileFormat", {
-												container: profile.container.toUpperCase(),
-												videoEncoder: profile.videoEncoder,
-												audioEncoder: profile.audioEncoder,
-											})}
-										</span>
-										<span className="mt-1 block text-xs text-muted-foreground">
-											{profile.description}
-										</span>
-									</span>
-								</label>
+									name="transcode-profile"
+									value={profile.id}
+									checked={profileId === profile.id}
+									onChange={() => setProfileId(profile.id)}
+									title={profile.name}
+									meta={t("preparation.profileFormat", {
+										container: profile.container.toUpperCase(),
+										videoEncoder: profile.videoEncoder,
+										audioEncoder: profile.audioEncoder,
+									})}
+									description={profile.description}
+								/>
 							))}
-						</fieldset>
+						</RadioCardGroup>
 						<Button type="submit" disabled={!profileId || action.busy}>
 							{t("preparation.saveProfile")}
 						</Button>

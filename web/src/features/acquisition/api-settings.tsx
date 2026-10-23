@@ -26,7 +26,7 @@ export function QbittorrentApiSettings() {
 	});
 	return (
 		<section
-			className="space-y-3 border-b pb-4"
+			className="space-y-3"
 			aria-label={t("acquisition.api.ariaConnection")}
 		>
 			<h3 className="text-sm font-medium">{t("acquisition.api.connection")}</h3>
@@ -166,7 +166,7 @@ function ConnectionForm({
 	const busy = save.isPending || clear.isPending || check.isPending;
 	return (
 		<form
-			className="space-y-3"
+			className="flex flex-col gap-4"
 			onSubmit={(event) => {
 				event.preventDefault();
 				save.mutate();
@@ -176,13 +176,15 @@ function ConnectionForm({
 				<p role="alert">{t("acquisition.api.credentialsUnavailable")}</p>
 			)}
 			{settings.bundled && (
-				<div className="space-y-3">
-					<p>{t("acquisition.api.bundledDescription")}</p>
-					<p>
-						{t("acquisition.api.webuiUsername")}{" "}
-						<strong>{settings.username}</strong>
+				<div className="flex flex-col gap-3">
+					<p className="text-sm text-muted-foreground">
+						{t("acquisition.api.bundledDescription")}
 					</p>
-					<div className="action-row">
+					<div className="flex flex-wrap items-center gap-2 text-sm">
+						<span>
+							{t("acquisition.api.webuiUsername")}{" "}
+							<strong>{settings.username}</strong>
+						</span>
 						<Button
 							type="button"
 							variant="outline"
@@ -223,6 +225,87 @@ function ConnectionForm({
 					<p className="text-sm text-muted-foreground">
 						{t("acquisition.api.bundledHelp")}
 					</p>
+				</div>
+			)}
+			{editing && (
+				<div className="grid gap-4 sm:grid-cols-2">
+					<div className="flex flex-col gap-2 sm:col-span-2">
+						<label
+							className="text-sm font-medium"
+							htmlFor="qbittorrent-api-url"
+						>
+							{t("acquisition.api.url")}
+						</label>
+						<Input
+							id="qbittorrent-api-url"
+							type="url"
+							required
+							maxLength={2048}
+							value={url}
+							onChange={(event) => setUrl(event.target.value)}
+							disabled={busy}
+							placeholder="http://qbittorrent:8080"
+							aria-describedby="qbittorrent-api-help"
+						/>
+						<p
+							id="qbittorrent-api-help"
+							className="text-sm text-muted-foreground"
+						>
+							{t("acquisition.api.urlHelp")}
+						</p>
+					</div>
+					<div className="flex flex-col gap-2">
+						<label
+							className="text-sm font-medium"
+							htmlFor="qbittorrent-api-username"
+						>
+							{t("acquisition.api.username")}
+						</label>
+						<Input
+							id="qbittorrent-api-username"
+							autoComplete="username"
+							required
+							maxLength={256}
+							value={username}
+							onChange={(event) => setUsername(event.target.value)}
+							disabled={busy}
+						/>
+					</div>
+					<div className="flex flex-col gap-2">
+						<label
+							className="text-sm font-medium"
+							htmlFor="qbittorrent-api-password"
+						>
+							{t("acquisition.api.password")}
+						</label>
+						<Input
+							id="qbittorrent-api-password"
+							type="password"
+							autoComplete="new-password"
+							maxLength={4096}
+							required={!settings.passwordConfigured || !sameAccount}
+							value={password}
+							onChange={(event) => setPassword(event.target.value)}
+							disabled={busy}
+							aria-describedby={
+								settings.passwordConfigured
+									? "qbittorrent-password-help"
+									: undefined
+							}
+						/>
+						{settings.passwordConfigured && (
+							<p
+								id="qbittorrent-password-help"
+								className="text-sm text-muted-foreground"
+							>
+								{t("acquisition.api.passwordSaved")}
+							</p>
+						)}
+					</div>
+				</div>
+			)}
+			<div className="action-row">
+				{settings.bundled && (
 					<Button
 						type="button"
 						variant="outline"
@@ -235,73 +318,7 @@ function ConnectionForm({
 							? t("acquisition.api.hideSettings")
 							: t("acquisition.api.updateSettings")}
 					</Button>
-				</div>
-			)}
-			{editing && (
-				<>
-					<label htmlFor="qbittorrent-api-url" className="block space-y-2">
-						<span className="text-sm font-medium">
-							{t("acquisition.api.url")}
-						</span>
-						<Input
-							id="qbittorrent-api-url"
-							type="url"
-							required
-							maxLength={2048}
-							value={url}
-							onChange={(event) => setUrl(event.target.value)}
-							disabled={busy}
-							placeholder="http://qbittorrent:8080"
-							aria-describedby="qbittorrent-api-help"
-						/>
-					</label>
-					<p
-						id="qbittorrent-api-help"
-						className="text-sm text-muted-foreground"
-					>
-						{t("acquisition.api.urlHelp")}
-					</p>
-					<label htmlFor="qbittorrent-api-username" className="block space-y-2">
-						<span className="text-sm font-medium">
-							{t("acquisition.api.username")}
-						</span>
-						<Input
-							id="qbittorrent-api-username"
-							autoComplete="username"
-							required
-							maxLength={256}
-							value={username}
-							onChange={(event) => setUsername(event.target.value)}
-							disabled={busy}
-						/>
-					</label>
-					<label htmlFor="qbittorrent-api-password" className="block space-y-2">
-						<span className="text-sm font-medium">
-							{t("acquisition.api.password")}
-						</span>
-						<Input
-							id="qbittorrent-api-password"
-							type="password"
-							autoComplete="new-password"
-							maxLength={4096}
-							required={!settings.passwordConfigured || !sameAccount}
-							value={password}
-							onChange={(event) => setPassword(event.target.value)}
-							disabled={busy}
-							aria-describedby="qbittorrent-password-help"
-						/>
-					</label>
-					<p
-						id="qbittorrent-password-help"
-						className="text-sm text-muted-foreground"
-					>
-						{settings.passwordConfigured
-							? t("acquisition.api.passwordSaved")
-							: t("acquisition.api.passwordNew")}
-					</p>
-				</>
-			)}
-			<div className="action-row">
+				)}
 				{editing && (
 					<Button type="submit" disabled={busy}>
 						{save.isPending

@@ -123,7 +123,14 @@
 		"removePath": "Delete {{path}}",
 		"duplicatePath": "This directory is already in the list.",
 		"noPaths": "No resource directories added.",
-		"pathsLimitReached": "The list has reached the limit of 64 directories. Remove an entry to add another."
+		"pathsLimitReached": "The list has reached the limit of 64 directories. Remove an entry to add another.",
+		"sections": {
+			"label": "Settings sections",
+			"library": "Library",
+			"playback": "Playback",
+			"downloads": "Downloads",
+			"account": "Account"
+		}
 	},
 	"externalPlayers": {
 		"open": "Open in external player",
@@ -722,7 +729,6 @@
 			"username": "Username",
 			"password": "Password",
 			"passwordSaved": "Password saved. Leave blank to keep it; enter it again when changing the API URL or username.",
-			"passwordNew": "Enter your qBittorrent account password.",
 			"saving": "Saving API connection…",
 			"save": "Save API connection",
 			"testing": "Testing connection…",
@@ -838,7 +844,8 @@
 			"refreshInterval": "Refresh interval (minutes)",
 			"refreshHelp": "Applies to all RSS subscriptions. Default: {{minutes}} minutes. Changes apply without a restart.",
 			"saving": "Saving…",
-			"save": "Save"
+			"save": "Save",
+			"customBadge": "Custom"
 		},
 		"sources": {
 			"title": "Jackett sources",
@@ -974,7 +981,8 @@
 			"save": "Save",
 			"open": "Open qBittorrent WebUI",
 			"ownAccess": "This address uses its own access controls.",
-			"savePrompt": "Save a WebUI URL to open qBittorrent."
+			"savePrompt": "Save a WebUI URL to open qBittorrent.",
+			"browserLink": "Browser link"
 		},
 		"reason": {
 			"acquisition_unavailable": "automatic acquisition could not be queued; check metadata and destination settings",

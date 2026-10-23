@@ -170,7 +170,10 @@ test("tests the saved connection and removes credentials explicitly", async () =
 	fireEvent.click(
 		screen.getByRole("button", { name: "Remove API connection" }),
 	);
-	await screen.findByText("Enter your qBittorrent account password.");
+	await waitFor(() => expect(screen.queryByText(/Password saved/)).toBeNull());
+	expect(
+		screen.queryByText("Enter your qBittorrent account password."),
+	).toBeNull();
 	expect(request).toHaveBeenCalledWith(
 		"/api/acquisition/qbittorrent",
 		"DELETE",

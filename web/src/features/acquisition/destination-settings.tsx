@@ -66,52 +66,59 @@ export function DownloadDestinationSettings() {
 		);
 	return (
 		<form
-			className="space-y-3 border-t pt-4"
+			className="flex flex-col gap-4 border-t pt-4"
 			onSubmit={(event) => {
 				event.preventDefault();
 				action.mutate("save");
 			}}
 		>
-			<h3 className="font-medium">{t("acquisition.destination.title")}</h3>
-			<label className="block space-y-2" htmlFor={`${id}-root`}>
-				<span className="text-sm">
-					{t("acquisition.destination.resourceDirectory")}
-				</span>
-				<select
-					className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-					id={`${id}-root`}
-					required
-					disabled={action.isPending}
-					value={
-						root ?? destination?.scopeId ?? query.data?.roots[0]?.scopeId ?? ""
-					}
-					onChange={(event) => setRoot(event.target.value)}
-				>
-					{!query.data?.roots.length && (
-						<option value="">
-							{t("acquisition.destination.addDirectoryFirst")}
-						</option>
-					)}
-					{query.data?.roots.map((item) => (
-						<option key={item.scopeId} value={item.scopeId}>
-							{item.name}
-						</option>
-					))}
-				</select>
-			</label>
-			<label className="block space-y-2" htmlFor={`${id}-path`}>
-				<span className="text-sm">
-					{t("acquisition.destination.completedPath")}
-				</span>
-				<Input
-					id={`${id}-path`}
-					required
-					maxLength={2048}
-					value={path ?? destination?.path ?? "/data/media"}
-					onChange={(event) => setPath(event.target.value)}
-					disabled={action.isPending}
-				/>
-			</label>
+			<h3 className="text-sm font-medium">
+				{t("acquisition.destination.title")}
+			</h3>
+			<div className="grid gap-4 sm:grid-cols-2">
+				<div className="flex flex-col gap-2">
+					<label className="text-sm font-medium" htmlFor={`${id}-root`}>
+						{t("acquisition.destination.resourceDirectory")}
+					</label>
+					<select
+						className="form-select"
+						id={`${id}-root`}
+						required
+						disabled={action.isPending}
+						value={
+							root ??
+							destination?.scopeId ??
+							query.data?.roots[0]?.scopeId ??
+							""
+						}
+						onChange={(event) => setRoot(event.target.value)}
+					>
+						{!query.data?.roots.length && (
+							<option value="">
+								{t("acquisition.destination.addDirectoryFirst")}
+							</option>
+						)}
+						{query.data?.roots.map((item) => (
+							<option key={item.scopeId} value={item.scopeId}>
+								{item.name}
+							</option>
+						))}
+					</select>
+				</div>
+				<div className="flex flex-col gap-2">
+					<label className="text-sm font-medium" htmlFor={`${id}-path`}>
+						{t("acquisition.destination.completedPath")}
+					</label>
+					<Input
+						id={`${id}-path`}
+						required
+						maxLength={2048}
+						value={path ?? destination?.path ?? "/data/media"}
+						onChange={(event) => setPath(event.target.value)}
+						disabled={action.isPending}
+					/>
+				</div>
+			</div>
 			<p className="text-sm text-muted-foreground">
 				{t("acquisition.destination.help")}
 			</p>
@@ -125,7 +132,7 @@ export function DownloadDestinationSettings() {
 				</p>
 			)}
 			{action.isError && (
-				<p role="alert" className="text-sm">
+				<p role="alert" className="text-sm text-destructive">
 					{t("acquisition.destination.updateFailed")}
 				</p>
 			)}

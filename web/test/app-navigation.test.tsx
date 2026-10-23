@@ -87,6 +87,34 @@ test("first-run setup saves the server directory and shows the automatic scan", 
 	).toBe(true);
 });
 
+test("settings sections are deep-linked and keep inactive panels mounted", async () => {
+	renderApp("/settings?section=downloads");
+	const nav = await screen.findByRole("navigation", {
+		name: "Settings sections",
+	});
+	const downloads = within(nav).getByRole("link", { name: "Downloads" });
+	expect(downloads.getAttribute("aria-current")).toBe("page");
+	expect(await screen.findByText("Jackett sources")).toBeTruthy();
+	expect(within(nav).queryByRole("link", { name: "Sources" })).toBeNull();
+	expect(
+		document.querySelector('[data-settings-section="library"]')?.className,
+	).toContain("hidden");
+
+	fireEvent.click(within(nav).getByRole("link", { name: "Library" }));
+
+	await waitFor(() =>
+		expect(screen.getByTestId("location").textContent).toBe(
+			"/settings?section=library",
+		),
+	);
+	expect(
+		document.querySelector('[data-settings-section="library"]')?.className,
+	).not.toContain("hidden");
+	expect(
+		document.querySelector('[data-settings-section="downloads"]')?.className,
+	).toContain("hidden");
+});
+
 test("saving a new directory returns from the player and unloads old media", async () => {
 	renderApp();
 	await openFile();
