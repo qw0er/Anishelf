@@ -18,6 +18,7 @@ export class JackettConnection {
 		connection: null,
 	};
 	private unreadable = false;
+	private hasSavedConfiguration = false;
 	private closed = false;
 	private client: JackettClient | undefined;
 	private writes: Promise<unknown> = Promise.resolve();
@@ -35,6 +36,7 @@ export class JackettConnection {
 		try {
 			const value = await this.store.read();
 			if (value) {
+				this.hasSavedConfiguration = true;
 				if (value.connection) this.validate(value.connection);
 				this.saved = value;
 			}
@@ -51,6 +53,7 @@ export class JackettConnection {
 		return {
 			generation: this.saved.generation,
 			url: connection?.url ?? null,
+			managementUrl: connection?.managementUrl ?? null,
 			origin: connection?.origin ?? null,
 			indexers: [...(connection?.indexers ?? [])],
 			hasApiKey: Boolean(connection?.apiKey),
@@ -64,6 +67,8 @@ export class JackettConnection {
 		connection: NonNullable<JackettConfiguration["connection"]>,
 	) {
 		connection.url = jackettUrl(connection.url);
+		if (connection.managementUrl)
+			connection.managementUrl = jackettUrl(connection.managementUrl);
 		if (
 			!["bundled", "external"].includes(connection.origin) ||
 			connection.indexers.length > 32 ||
@@ -90,10 +95,34 @@ export class JackettConnection {
 			!this.closed && !this.unreadable && generation === this.saved.generation
 		);
 	}
+	matchesBundled(url: string, apiKey: string) {
+		return (
+			!this.closed &&
+			!this.unreadable &&
+			this.saved.connection?.origin === "bundled" &&
+			this.saved.connection.url === url &&
+			this.saved.connection.apiKey === apiKey
+		);
+	}
+	signal(generation: string): AbortSignal {
+		this.check(generation);
+		return this.generationAbort.signal;
+	}
+
 	save(input: JackettUpdate) {
 		return this.mutate(input.generation, () => {
+			if (
+				this.saved.connection?.apiKey &&
+				jackettUrl(input.url) !== this.saved.connection.url &&
+				input.apiKey === undefined
+			)
+				throw new SourceError("invalid_configuration");
 			const connection = {
 				url: input.url,
+				managementUrl:
+					input.managementUrl === undefined
+						? (this.saved.connection?.managementUrl ?? null)
+						: input.managementUrl,
 				origin: input.origin,
 				indexers: [...input.indexers],
 				apiKey:
@@ -105,6 +134,34 @@ export class JackettConnection {
 			return connection;
 		});
 	}
+	async importBundled(value: JackettConfiguration, generation?: string) {
+		if (value.connection?.origin !== "bundled")
+			throw new SourceError("invalid_configuration");
+		if (
+			generation === undefined &&
+			(this.hasSavedConfiguration || this.unreadable || this.closed)
+		)
+			return;
+		try {
+			await this.mutate(generation ?? this.saved.generation, () => {
+				if (generation === undefined && this.hasSavedConfiguration)
+					throw new SourceError("source_conflict");
+				const connection = structuredClone(value.connection);
+				if (!connection) throw new SourceError("source_unconfigured");
+				this.validate(connection);
+				return connection;
+			});
+		} catch (error) {
+			if (
+				generation === undefined &&
+				error instanceof SourceError &&
+				error.code === "source_conflict"
+			)
+				return;
+			throw error;
+		}
+	}
+
 	clear(generation: string) {
 		return this.mutate(generation, () => null);
 	}
@@ -124,6 +181,7 @@ export class JackettConnection {
 			this.generationAbort.abort();
 			this.generationAbort = new AbortController();
 			this.saved = value;
+			this.hasSavedConfiguration = true;
 			this.client = undefined;
 			await old?.close();
 			this.logger.info(

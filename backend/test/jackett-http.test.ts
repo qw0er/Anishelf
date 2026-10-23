@@ -70,10 +70,28 @@ test("Source connector settings and unified diagnostics require authentication a
 	};
 	const current = await app.inject({ url, headers: authenticated });
 	expect(current.headers["cache-control"]).toBe("no-store");
+	for (const [testHeaders, expected] of [
+		[headers, 401],
+		[authenticated, 403],
+		[mutationHeaders, 503],
+	] as const) {
+		expect(
+			(
+				await app.inject({
+					url: `${url}/bundled`,
+					method: "POST",
+					headers: testHeaders,
+					payload: { generation: current.json().generation },
+				})
+			).statusCode,
+		).toBe(expected);
+	}
+
 	const secret = "private-http-key";
 	const payload = {
 		generation: current.json().generation,
 		url: "http://jackett:9117",
+		managementUrl: "https://sites.example.org/",
 		origin: "external",
 		apiKey: secret,
 		providers: ["example"],
@@ -91,6 +109,7 @@ test("Source connector settings and unified diagnostics require authentication a
 	expect(saved.statusCode).toBe(200);
 	expect(saved.body).not.toContain(secret);
 	expect(saved.json().ready).toBe(true);
+	expect(saved.json().managementUrl).toBe("https://sites.example.org/");
 	expect(
 		(
 			await app.inject({

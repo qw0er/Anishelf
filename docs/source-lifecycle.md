@@ -146,3 +146,16 @@ Integration tests cover source settings authentication/CSRF, common HTTP setup,
 subscription saves/refresh, reservations, reopen/upgrade, coalescing and shutdown.
 These fixtures do not establish real tracker/downloader/shared-storage/browser playback
 acceptance. Retention/garbage collection of inactive evidence remains separate work.
+
+
+## Stage 3 service setup
+
+[Jackett setup](jackett-setup.md) adds external connector settings, an optional
+management link, ordered enabled providers, separate connection/capability/search
+diagnostics and optional Compose/Quadlet deployment. A background worker reads the
+native Jackett config volume read-only, imports private credentials and initializes
+the default site only after observing native config creation. Existing installations
+require manual site setup. Credentials are imported only before any connector configuration has been saved;
+explicit disconnects are retained. `connector.useBundled(generation)` and
+`POST /api/acquisition/sources/connector/bundled` provide explicit re-selection.
+The Sources consumer API and evidence/publication/content boundaries are unchanged.

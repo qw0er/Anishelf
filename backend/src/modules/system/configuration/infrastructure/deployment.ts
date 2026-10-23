@@ -231,6 +231,14 @@ export function parseDeploymentConfig(
 						"ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE",
 					),
 				}),
+		...(env.ANISHELF_BUNDLED_JACKETT_CONFIG_FILE === undefined
+			? {}
+			: {
+					bundledJackettConfigFile: absolutePath(
+						env.ANISHELF_BUNDLED_JACKETT_CONFIG_FILE,
+						"ANISHELF_BUNDLED_JACKETT_CONFIG_FILE",
+					),
+				}),
 		logging,
 		mediaTools,
 		...(env.ANISHELF_FRONTEND_DIR === undefined

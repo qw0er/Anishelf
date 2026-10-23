@@ -405,6 +405,16 @@ beforeEach(async () => {
 			});
 		if (path.startsWith("/api/acquisition/subscriptions?"))
 			return json({ subscription: null, candidates: [], total: 0, page: 1 });
+		if (path === "/api/acquisition/sources/connector")
+			return json({
+				generation: "fixture",
+				url: null,
+				origin: null,
+				providers: [],
+				hasApiKey: false,
+				ready: false,
+				error: null,
+			});
 		if (path === "/api/acquisition/qbittorrent")
 			return json({
 				generation: "fixture",

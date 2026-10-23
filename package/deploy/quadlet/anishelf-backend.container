@@ -17,6 +17,8 @@ Environment=ANISHELF_INITIAL_RESOURCE_ROOTS=/data/media
 Environment=ANISHELF_QBITTORRENT_API_URL=http://qbittorrent:8080
 Environment=ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE=/run/anishelf-qbittorrent/connection.json
 Volume=anishelf-qbittorrent-connection.volume:/run/anishelf-qbittorrent:ro
+Environment=ANISHELF_BUNDLED_JACKETT_CONFIG_FILE=/run/jackett-config/Jackett/ServerConfig.json
+Volume=anishelf-jackett-config.volume:/run/jackett-config:ro
 Volume=anishelf-app.volume:/data/app
 # Optional host media: replace with /absolute/media:/data/media:ro,z.
 Volume=anishelf-media.volume:/data/media:ro

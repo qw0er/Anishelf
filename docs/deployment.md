@@ -9,7 +9,8 @@ Both deployment methods pull separate Web and Backend images from GHCR.
 Use rootless Podman with Quadlet and cgroup v2. Copy the core files from
 [package/deploy/quadlet](../package/deploy/quadlet/) to
 `~/.config/containers/systemd/`: `anishelf.network`, `anishelf-app.volume`,
-`anishelf-media.volume`, `anishelf-qbittorrent-connection.volume`, `anishelf-backend.container` and `anishelf-web.container`.
+`anishelf-media.volume`, `anishelf-qbittorrent-connection.volume`,
+`anishelf-jackett-config.volume`, `anishelf-backend.container` and `anishelf-web.container`.
 Use the same published image tag in both application containers.
 
 Save `anishelf.target` in `~/.config/systemd/user/` (regular systemd units use
@@ -68,6 +69,8 @@ Environment=ANISHELF_INITIAL_RESOURCE_ROOTS=/data/media
 Environment=ANISHELF_QBITTORRENT_API_URL=http://qbittorrent:8080
 Environment=ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE=/run/anishelf-qbittorrent/connection.json
 Volume=anishelf-qbittorrent-connection.volume:/run/anishelf-qbittorrent:ro
+Environment=ANISHELF_BUNDLED_JACKETT_CONFIG_FILE=/run/jackett-config/Jackett/ServerConfig.json
+Volume=anishelf-jackett-config.volume:/run/jackett-config:ro
 Volume=anishelf-app.volume:/data/app
 # Optional host media: replace with /absolute/media:/data/media:ro,z.
 Volume=anishelf-media.volume:/data/media:ro
@@ -296,3 +299,14 @@ systemctl --user restart anishelf-backend.service
 The bundled initializer allows container port translation by disabling qBittorrent's
 Host-header port check. Account authentication, localhost authentication and CSRF
 protection remain enabled. The WebUI host binding defaults to `127.0.0.1`.
+
+
+## Jackett source service
+
+Settings now includes external Jackett connection, ordered site selection and
+separate service/capability/search diagnostics. An optional `jackett` profile is
+available in both Compose files, with matching optional rootless Quadlet units.
+See [Jackett setup](jackett-setup.md) for the image configuration, private bootstrap,
+first-run public-site provisioning, preservation rules and verification limits.
+The backend starts independently of Jackett and keeps saved external configuration
+or an explicit disconnect when a bundled credential file becomes available.
