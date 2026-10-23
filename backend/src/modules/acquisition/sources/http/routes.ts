@@ -56,6 +56,16 @@ export function registerSourceRoutes(app: HttpInstance, sources: SourcesApi) {
 			return sources.connector.settings();
 		},
 	);
+	app.post(
+		`${path}/connector/bundled`,
+		{
+			schema: {
+				body: SourceGenerationSchema,
+				response: { 200: SourceSettingsSchema },
+			},
+		},
+		(request) => sources.connector.useBundled(request.body.generation),
+	);
 	app.put(
 		connector,
 		{

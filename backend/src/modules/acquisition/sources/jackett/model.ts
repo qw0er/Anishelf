@@ -3,6 +3,7 @@ export interface JackettConfiguration {
 	generation: string;
 	connection: {
 		url: string;
+		managementUrl?: string | null;
 		apiKey: string | null;
 		origin: "bundled" | "external";
 		indexers: string[];
@@ -11,6 +12,7 @@ export interface JackettConfiguration {
 export interface JackettUpdate {
 	generation: string;
 	url: string;
+	managementUrl?: string | null;
 	apiKey?: string | null;
 	origin: "bundled" | "external";
 	indexers: string[];

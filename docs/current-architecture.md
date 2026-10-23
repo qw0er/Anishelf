@@ -208,14 +208,16 @@ on the pinned source; changing it is an explicit per-work override or policy pre
 This keeps S09 multi-source ranking and upgrades deferred while supporting multiple
 configured sites. Prowlarr-specific integration is outside this iteration.
 
-Add an optional `jackett` Compose profile at implementation time to both development
-and published deployment examples. Use the existing Compose network and service
-DNS (`http://jackett:9117`), a persistent Jackett configuration volume, and an optional
-loopback-published management port. Jackett needs no media mount. Select and verify
-a maintained container image/version during implementation; do not change the
-backend image to include Jackett. An external instance remains supported. Update
-deployment documentation and CI/configuration checks alongside that change.
-Jackett failure must not prevent backend startup, library browsing or local playback.
+Stage 3 service setup is implemented in both Compose files and optional rootless
+Quadlet units. Jackett is one separate service using `latest` and generates its
+own native configuration. A Sources background worker reads the config volume
+read-only, imports credentials and performs authorized one-time Nyaa.si setup.
+Existing native installations require manual site setup. Sources preserves saved
+connections/disconnects and exposes
+explicit bundled selection. The Settings page separates connection/site enumeration,
+capability probes and diagnostic searches. Backend startup and playback do not
+depend on Jackett readiness. See [Jackett setup](jackett-setup.md) for deployment,
+credential ownership, preservation and verification limits.
 
 Protocol references: [Jackett query syntax](https://github.com/Jackett/Jackett#jackett-torznab-query-syntax)
 and the [Torznab specification](https://torznab.github.io/spec-1.3-draft/torznab/Specification-v1.3.html).

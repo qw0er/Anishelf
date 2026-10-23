@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import {
 	QbittorrentSettings,
 	RssSettings,
+	SourceSettings,
 } from "../../../features/acquisition/ui.js";
 import { TrackingAccountSettings } from "../../../features/anime/ui.js";
 import {
@@ -36,6 +37,7 @@ export function SettingsPage() {
 			<ExternalPlayerSettings />
 			<TrackingAccountSettings />
 			<RssSettings />
+			<SourceSettings />
 			<QbittorrentSettings />
 			<SecuritySettings />
 		</div>

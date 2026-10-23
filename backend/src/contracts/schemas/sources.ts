@@ -37,6 +37,16 @@ export const SourceTestInputSchema = Type.Union([
 	),
 ]);
 export const SourceSettingsSchema = Type.Object({
+	bundledAvailable: Type.Optional(Type.Boolean()),
+	bundledSetup: Type.Optional(
+		Type.Union([
+			Type.Literal("waiting"),
+			Type.Literal("pending"),
+			Type.Literal("complete"),
+			Type.Literal("manual"),
+		]),
+	),
+	managementUrl: Type.Optional(Type.Union([Type.String(), Type.Null()])),
 	generation: Generation,
 	url: Type.Union([Type.String(), Type.Null()]),
 	origin: Type.Union([Origin, Type.Null()]),
@@ -47,6 +57,9 @@ export const SourceSettingsSchema = Type.Object({
 });
 export const SourceUpdateSchema = Type.Object(
 	{
+		managementUrl: Type.Optional(
+			Type.Union([Type.String({ maxLength: 2048 }), Type.Null()]),
+		),
 		generation: Generation,
 		url: Type.String({ minLength: 1, maxLength: 2048 }),
 		origin: Origin,

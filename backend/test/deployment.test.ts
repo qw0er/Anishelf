@@ -1,8 +1,16 @@
-import { chmod, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
+import {
+	chmod,
+	mkdtemp,
+	readFile,
+	rm,
+	stat,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { userDataDir, userLogDir } from "platformdirs";
 import { afterEach, beforeEach, expect, test } from "vitest";
+import { parse } from "yaml";
 import {
 	loadDeploymentConfig,
 	parseDeploymentConfig,
@@ -351,4 +359,62 @@ test("validates the optional bundled qBittorrent credential file path", () => {
 			ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE: "relative.json",
 		}),
 	).toThrow();
+});
+
+test("validates the optional bundled source credential file path without requiring the service", () => {
+	const path = join(fixture, "ServerConfig.json");
+	expect(
+		parseDeploymentConfig({ ANISHELF_BUNDLED_JACKETT_CONFIG_FILE: path })
+			.bundledJackettConfigFile,
+	).toBe(path);
+	expect(() =>
+		parseDeploymentConfig({
+			ANISHELF_BUNDLED_JACKETT_CONFIG_FILE: "relative.json",
+		}),
+	).toThrow();
+});
+
+test("development and published Jackett profiles use the latest image and keep backend startup independent", async () => {
+	for (const relative of [
+		"../../compose.yaml",
+		"../../package/deploy/compose.yaml",
+	]) {
+		const config = parse(
+			await readFile(new URL(relative, import.meta.url), "utf8"),
+		) as {
+			services: Record<
+				string,
+				{
+					profiles?: string[];
+					image: string;
+					volumes?: string[];
+					environment?: Record<string, string>;
+					depends_on?: Record<string, unknown>;
+					command?: string[];
+				}
+			>;
+		};
+		const jackett = config.services.jackett;
+		const backend = config.services.backend;
+		if (!jackett || !backend) throw new Error("Missing deployment services");
+		expect(
+			Object.keys(config.services).filter((name) => name.startsWith("jackett")),
+		).toEqual(["jackett"]);
+		expect(jackett.profiles).toEqual(["jackett"]);
+		expect(jackett.image).toBe("ghcr.io/linuxserver/jackett:latest");
+		expect(jackett.environment?.AUTO_UPDATE).toBe("false");
+		expect(jackett.environment?.UMASK).toBe("077");
+		expect(jackett.volumes).toEqual(["jackett-config:/config"]);
+		expect(jackett.depends_on).toBeUndefined();
+		expect(backend.depends_on?.jackett).toBeUndefined();
+		expect(backend.environment?.ANISHELF_BUNDLED_JACKETT_CONFIG_FILE).toBe(
+			"/run/jackett-config/Jackett/ServerConfig.json",
+		);
+		expect(backend.volumes).toContain("jackett-config:/run/jackett-config:ro");
+	}
+	const dockerfile = await readFile(
+		new URL("../../package/Dockerfile", import.meta.url),
+		"utf8",
+	);
+	expect(dockerfile).not.toContain("jackett-init.mjs");
 });

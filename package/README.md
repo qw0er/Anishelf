@@ -27,7 +27,7 @@ the backend's `ANISHELF_PUBLIC_ORIGIN` to your
 browser-facing origin before starting. The default is `http://localhost:3000`.
 The repository-root Compose builds development images.
 [Deployment Compose](deploy/compose.yaml) pulls matching Web/Backend images using
-`ANISHELF_TAG`. Both optionally include qBittorrent and use the same storage and
+`ANISHELF_TAG`. Both optionally include qBittorrent and Jackett and use the same storage and
 port settings; see [deployment environment options](deploy/.env.example).
 
 Application state and completed media have separate named volumes. qBittorrent
@@ -73,3 +73,16 @@ docker compose up -d --no-build
 For source installations before the split images have been published, use
 `docker compose up -d --build` instead. Keep a matching release pair and a data
 backup available for rollback.
+
+
+## Optional Jackett
+
+Use `--profile jackett` with either Compose file. One Jackett container generates
+its own private API key. Backend reads its config volume read-only and initializes
+Nyaa.si once if it observed native config creation; existing native installations
+require manual site setup. Existing settings and removed sites
+are preserved. The backend imports the private local connection without depending
+on Jackett availability. The Settings page supports external instances, explicit
+bundled selection and service/site/search diagnostics. See
+[Jackett service setup](../docs/jackett-setup.md) for the latest image,
+rootless Quadlet units, restart/recovery behavior and acceptance limits.

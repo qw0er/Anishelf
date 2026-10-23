@@ -226,3 +226,12 @@ export type AnimeDetailResponse = Static<typeof schemas.AnimeDetailSchema>;
 export type AcquisitionProfileCatalog = Static<
 	typeof schemas.AcquisitionProfileCatalogSchema
 >;
+
+export type SourceConnectorSettings = Static<
+	typeof schemas.SourceSettingsSchema
+>;
+export type SourceConnectorUpdate = Static<typeof schemas.SourceUpdateSchema>;
+export type SourceProviders = Static<typeof schemas.SourceProvidersSchema>;
+export type SourceProbe = Static<typeof schemas.SourceProbeSchema>;
+export type SourceTestInput = Static<typeof schemas.SourceTestInputSchema>;
+export type SourceTestResult = Static<typeof schemas.SourceTestSchema>;

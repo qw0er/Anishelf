@@ -9,8 +9,9 @@ qBittorrent instance.
 Jackett connection/search and [shared source evidence persistence and recurring
 collection](source-lifecycle.md) are implemented. Source consumers now use opaque evidence/download references and a common reader;
 feed and query definitions share the subscription-save contract. The search subscription
-UI, ordered indexer selection, service setup and end-to-end playback acceptance
-remain pending.
+UI, automatic ordered indexer selection and end-to-end playback acceptance remain
+pending. [Stage 3 setup](jackett-setup.md) provides connector/site settings, diagnostics,
+optional deployment and private first-run bootstrap/provisioning.
 
 ## Workflow
 

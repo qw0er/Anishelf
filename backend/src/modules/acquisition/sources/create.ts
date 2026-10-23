@@ -7,6 +7,7 @@ import { registerSourceRoutes } from "./http/routes.js";
 import { SourceRequestGate } from "./infrastructure/request-gate.js";
 import type { SourceLifecycleStore } from "./infrastructure/store.js";
 import type { SourcesRuntime } from "./integration.js";
+import { BundledJackett } from "./jackett/bundled.js";
 import { JackettClient } from "./jackett/client.js";
 import { JackettConfigurationFile } from "./jackett/configuration.js";
 import { JackettConnection } from "./jackett/connection.js";
@@ -18,6 +19,7 @@ import { RssTransport, rssUrl } from "./rss/transport.js";
 
 export interface SourcesModuleOptions {
 	dataDir: string;
+	bundledConfigFile?: string;
 	logger: Logger;
 	store: SourceStore & SourceLifecycleStore;
 	transport?: FeedTransport;
@@ -70,6 +72,13 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 		options.logger,
 	);
 	await connection.initialize();
+	const bundled = new BundledJackett({
+		...(options.bundledConfigFile ? { path: options.bundledConfigFile } : {}),
+		dataDir: options.dataDir,
+		connection,
+		logger: options.logger,
+	});
+	bundled.start();
 	const application = new SourcesApplication({
 		store: options.store,
 		rss: {
@@ -92,11 +101,18 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 	});
 	const runtime: SourcesRuntime = Object.freeze<SourcesRuntime>({
 		start: (activeIds, poll) => application.start(activeIds, poll),
-		close: () => application.close(),
+		close: async () => {
+			await Promise.allSettled([bundled.close(), application.close()]);
+		},
 	});
 	const settings = () => {
 		const { indexers, ...value } = connection.settings();
-		return { ...value, providers: indexers };
+		return {
+			...value,
+			providers: indexers,
+			bundledAvailable: bundled.available,
+			...(options.bundledConfigFile ? { bundledSetup: bundled.setup } : {}),
+		};
 	};
 	const api: SourcesApi = Object.freeze<SourcesApi>({
 		snapshot: (input) => command(() => application.snapshot(input)),
@@ -106,6 +122,11 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 		isContentCurrent: (reference) => application.isDownloadCurrent(reference),
 		connector: Object.freeze<SourceConnectorApi>({
 			settings,
+			useBundled: (generation) =>
+				asyncCommand(async () => {
+					await bundled.activate(generation);
+					return settings();
+				}),
 			save: (input) =>
 				asyncCommand(async () => {
 					const { providers, ...value } = input;

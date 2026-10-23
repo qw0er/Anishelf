@@ -34,6 +34,7 @@ export async function createAcquisitionModule(options: {
 	createClient?: (options: QbittorrentOptions) => QbittorrentApi;
 	suggestedApiUrl?: string;
 	bundledConnectionFile?: string;
+	bundledSourcesConfigFile?: string;
 	store: AcquisitionStore;
 	downloadStore: DownloadStore;
 	resources?: AcquisitionResources;
@@ -61,6 +62,9 @@ export async function createAcquisitionModule(options: {
 	await connection.initialize();
 	const subscriptionStore = options.store;
 	const sources = await createSourcesModule({
+		...(options.bundledSourcesConfigFile
+			? { bundledConfigFile: options.bundledSourcesConfigFile }
+			: {}),
 		dataDir: options.dataDir,
 		logger: options.logger,
 		store: subscriptionStore,

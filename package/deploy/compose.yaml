@@ -9,9 +9,11 @@ services:
       ANISHELF_INITIAL_RESOURCE_ROOTS: /data/media
       ANISHELF_QBITTORRENT_API_URL: http://qbittorrent:8080
       ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE: /run/anishelf-qbittorrent/connection.json
+      ANISHELF_BUNDLED_JACKETT_CONFIG_FILE: /run/jackett-config/Jackett/ServerConfig.json
     volumes:
       - anishelf-app:/data/app
       - qbittorrent-connection:/run/anishelf-qbittorrent:ro
+      - jackett-config:/run/jackett-config:ro
       - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media:ro
     # Podman's default OCI build format drops Dockerfile HEALTHCHECK metadata.
     # Declaring it here keeps depends_on.service_healthy working under Podman.
@@ -78,6 +80,21 @@ services:
       - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media
       - qbittorrent-incomplete:/data/incomplete
 
+  jackett:
+    profiles: [jackett]
+    image: ghcr.io/linuxserver/jackett:latest
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      AUTO_UPDATE: "false"
+      UMASK: "077"
+    ports:
+      - "${JACKETT_BIND_ADDRESS:-127.0.0.1}:${JACKETT_PORT:-9117}:9117"
+    volumes:
+      - jackett-config:/config
+
 volumes:
   anishelf-app:
     name: anishelf-app
@@ -89,3 +106,5 @@ volumes:
     name: anishelf-qbittorrent-connection
   qbittorrent-config:
     name: anishelf-qbittorrent-config
+  jackett-config:
+    name: anishelf-jackett-config

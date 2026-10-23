@@ -1,5 +1,11 @@
 # Jackett Sources adapter (stage 2)
 
+Historical stage-2 notes. The current API/lifecycle is documented in
+[Sources boundary](source-lifecycle.md), and delivered stage-3 deployment/settings
+are documented in [Jackett setup](jackett-setup.md). The old interface, HTTP routes,
+persistence restrictions and pending-stage statements below describe that earlier
+implementation and are superseded by those documents.
+
 ## Delivered scope
 
 Sources now supports an RSS binding or a Jackett query behind the same opaque

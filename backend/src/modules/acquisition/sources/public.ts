@@ -45,6 +45,9 @@ export type SourceInput =
 			titles: readonly string[];
 	  };
 interface SourceConnectorSettings {
+	bundledAvailable?: boolean;
+	bundledSetup?: "waiting" | "pending" | "complete" | "manual";
+	managementUrl?: string | null;
 	generation: string;
 	url: string | null;
 	origin: "bundled" | "external" | null;
@@ -54,6 +57,7 @@ interface SourceConnectorSettings {
 	error: string | null;
 }
 interface SourceConnectorUpdate {
+	managementUrl?: string | null;
 	generation: string;
 	url: string;
 	apiKey?: string | null;
@@ -62,6 +66,7 @@ interface SourceConnectorUpdate {
 }
 export interface SourceConnectorApi {
 	settings(): SourceConnectorSettings;
+	useBundled(generation: string): Promise<SourceConnectorSettings>;
 	save(input: SourceConnectorUpdate): Promise<SourceConnectorSettings>;
 	clear(generation: string): Promise<SourceConnectorSettings>;
 	providers(generation: string): Promise<{ id: string; name: string }[]>;

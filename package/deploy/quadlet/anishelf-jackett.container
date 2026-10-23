@@ -1,0 +1,26 @@
+[Unit]
+Description=Anishelf optional Jackett
+PartOf=anishelf.target
+
+[Container]
+Image=ghcr.io/linuxserver/jackett:latest
+ContainerName=anishelf-jackett
+Network=anishelf.network
+NetworkAlias=jackett
+UserNS=keep-id:uid=1000,gid=1000
+User=0
+Group=0
+Environment=PUID=1000
+Environment=PGID=1000
+Environment=AUTO_UPDATE=false
+Environment=UMASK=077
+Volume=anishelf-jackett-config.volume:/config
+PublishPort=127.0.0.1:9117:9117
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+TimeoutStopSec=45
+
+[Install]
+WantedBy=anishelf.target

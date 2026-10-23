@@ -10,6 +10,7 @@ export interface DeploymentConfig {
 	initialQbittorrentWebUiUrl?: string;
 	qbittorrentApiUrl?: string;
 	bundledQbittorrentConnectionFile?: string;
+	bundledJackettConfigFile?: string;
 	frontendDir?: string;
 	logging: LoggingConfig;
 	mediaTools: MediaToolsConfig;

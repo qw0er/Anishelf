@@ -14,13 +14,16 @@ import { Check } from "typebox/value";
 import { DomainError } from "../../../../shared/errors.js";
 import type { JackettConfiguration } from "./model.js";
 
-const valueSchema = Type.Object({
+const jackettConfigurationSchema = Type.Object({
 	version: Type.Literal(1),
 	generation: Type.String({ minLength: 1, maxLength: 64 }),
 	connection: Type.Union([
 		Type.Null(),
 		Type.Object({
 			url: Type.String({ minLength: 1, maxLength: 2048 }),
+			managementUrl: Type.Optional(
+				Type.Union([Type.String({ maxLength: 2048 }), Type.Null()]),
+			),
 			apiKey: Type.Union([
 				Type.Null(),
 				Type.String({ minLength: 1, maxLength: 4096 }),
@@ -48,7 +51,8 @@ export class JackettConfigurationFile {
 			await chmod(this.directory, 0o700);
 			await chmod(this.path, 0o600);
 			const value: unknown = JSON.parse(await readFile(this.path, "utf8"));
-			if (!Check(valueSchema, value)) throw new Error("Invalid configuration.");
+			if (!Check(jackettConfigurationSchema, value))
+				throw new Error("Invalid configuration.");
 			return value;
 		} catch (error) {
 			if (

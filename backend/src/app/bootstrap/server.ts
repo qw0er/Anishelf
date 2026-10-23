@@ -58,6 +58,11 @@ export async function createServer(
 		logger,
 	});
 	const acquisition = await createAcquisitionModule({
+		...(system.deployment.bundledJackettConfigFile
+			? {
+					bundledSourcesConfigFile: system.deployment.bundledJackettConfigFile,
+				}
+			: {}),
 		rssRefreshIntervalMinutes: () => system.settings.rssRefreshIntervalMinutes,
 		defaultAcquisitionProfileId: () =>
 			system.settings.defaultAcquisitionProfileId,

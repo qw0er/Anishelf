@@ -44,6 +44,7 @@ test("Subscriptions save and refresh an opaque source without protocol configura
 		isContentCurrent: vi.fn(),
 		test: vi.fn(),
 		connector: {
+			useBundled: vi.fn(),
 			settings: vi.fn(),
 			save: vi.fn(),
 			clear: vi.fn(),
