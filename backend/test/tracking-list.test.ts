@@ -69,6 +69,14 @@ const raw = (mediaId = 1) => ({
 const chunk = (entries: unknown[], hasNextChunk = false) => ({
 	MediaListCollection: { hasNextChunk, lists: [{ entries }] },
 });
+const target = (number: number, ...versions: [string, string][]) => ({
+	episodeId: `episode-${number}`,
+	number: String(number),
+	versions: versions.map(([fileId, sourceVersion]) => ({
+		fileId,
+		sourceVersion,
+	})),
+});
 
 test("provider reads every chunk, deduplicates custom lists and strips unsafe covers", async () => {
 	const request = vi
@@ -303,6 +311,7 @@ test("remote lists can be browsed without a local catalog", async () => {
 	expect(result.localState).toBe("unavailable");
 	expect(result.items).toHaveLength(2);
 	expect(result.items.every((entry) => entry.localWorkId === null)).toBe(true);
+	expect(result.items.every((entry) => entry.nextPlayback === null)).toBe(true);
 });
 
 test("a later chunk failure prevents publishing a partial list; an empty complete list clears it", async () => {
@@ -510,12 +519,59 @@ test("available-unwatched counts use actual episode numbers rather than availabi
 			metadataStale: false,
 			availableEpisodes: 4,
 			availableRegularEpisodes: 3,
-			availableTrackingEpisodes: [1, 4, 7],
+			availableEpisodeTargets: [
+				target(1, ["file-1", "v1"]),
+				target(4, ["file-4", "v4"]),
+				target(7, ["file-7", "v7"]),
+			],
 		},
 	]);
-	expect((await f.app.list()).items[0]?.availableUnwatchedEpisodes).toBe(2);
+	const [card] = (await f.app.list()).items;
+	expect(card?.availableUnwatchedEpisodes).toBe(2);
+	expect(card?.nextPlayback).toEqual({
+		episodeId: "episode-4",
+		episodeNumber: "4",
+		versionCount: 1,
+		fileId: "file-4",
+		sourceVersion: "v4",
+	});
 	f.snapshot.entries = [];
-	expect((await f.app.list()).items[0]?.availableUnwatchedEpisodes).toBeNull();
+	const [untracked] = (await f.app.list()).items;
+	expect(untracked?.availableUnwatchedEpisodes).toBeNull();
+	expect(untracked?.nextPlayback).toBeNull();
+});
+
+test("next playback points at the first available unwatched episode and leaves multi-version choice to the detail page", async () => {
+	const f = projection();
+	const indexed = f.index.items[0];
+	if (!indexed) throw new Error("Missing local work");
+	f.cards.mockResolvedValue([
+		{
+			...indexed,
+			displayTitle: indexed.providerTitle,
+			hasCover: false,
+			metadataStale: false,
+			availableEpisodes: 3,
+			availableRegularEpisodes: 3,
+			availableEpisodeTargets: [
+				target(1, ["file-1", "v1"]),
+				target(4, ["file-4a", "v4a"], ["file-4b", "v4b"]),
+				target(8, ["file-8", "v8"]),
+			],
+		},
+	]);
+	const [card] = (await f.app.list()).items;
+	expect(card?.nextPlayback).toEqual({
+		episodeId: "episode-4",
+		episodeNumber: "4",
+		versionCount: 2,
+		fileId: null,
+		sourceVersion: null,
+	});
+	f.snapshot.entries = [{ ...item(), progress: 8 }];
+	const [caughtUp] = (await f.app.list()).items;
+	expect(caughtUp?.nextPlayback).toBeNull();
+	expect(caughtUp?.availableUnwatchedEpisodes).toBe(0);
 });
 
 test("unwatched sorting uses all available episode mappings before pagination and batches card reads", async () => {
@@ -539,9 +595,12 @@ test("unwatched sorting uses all available episode mappings before pagination an
 				metadataStale: false,
 				availableEpisodes: 2,
 				availableRegularEpisodes: 2,
-				availableTrackingEpisodes: [
-					1,
-					work.id === "work-53" || work.id === "work-52" ? 7 : 3,
+				availableEpisodeTargets: [
+					target(1, ["file-1", "v1"]),
+					target(work.id === "work-53" || work.id === "work-52" ? 7 : 3, [
+						`file-${work.id}`,
+						`v-${work.id}`,
+					]),
 				],
 			})),
 	);

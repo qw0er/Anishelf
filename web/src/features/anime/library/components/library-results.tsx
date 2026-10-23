@@ -1,9 +1,11 @@
 import { workKey } from "@anishelf/backend/contracts/references";
+import { Play } from "lucide-react";
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { AnimeLibraryResponse } from "../../../../shared/api/contracts.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
+import { animePlayerPath } from "../../../../shared/navigation.js";
 import { Artwork } from "../../shared/components/artwork.js";
 import {
 	sentenceViewingProgress,
@@ -66,13 +68,47 @@ export function LibraryResults({
 				]
 					.filter(Boolean)
 					.join(" ");
+				const next = work.nextPlayback ?? null;
+				const directPlayback =
+					next !== null &&
+					next.versionCount === 1 &&
+					next.fileId !== null &&
+					next.sourceVersion !== null
+						? { fileId: next.fileId, sourceVersion: next.sourceVersion }
+						: null;
+				const detailParams = new URLSearchParams({
+					library: `/${librarySearch}`,
+				});
+				const detailHref = `${
+					work.localWorkId === null
+						? `/anime/tracked/${encodeURIComponent(workKey(work.reference))}`
+						: `/anime/${encodeURIComponent(work.id)}`
+				}?${detailParams}`;
+				const playHref =
+					next === null
+						? null
+						: directPlayback
+							? animePlayerPath(
+									directPlayback.fileId,
+									work.id,
+									next.episodeId,
+									`/${librarySearch}`,
+									directPlayback.sourceVersion,
+								)
+							: `${detailHref}&play=next`;
+				const playLabel =
+					next === null
+						? null
+						: work.format === "MOVIE"
+							? t("anime.playMovie")
+							: t("anime.playEpisode", { episode: next.episodeNumber });
 				return (
-					<li key={work.id} className="min-w-0">
+					<li key={work.id} className="relative min-w-0">
 						<Tooltip content={description}>
 							<Link
 								id={`work-${work.id}`}
 								className="group flex h-full min-w-0 flex-col overflow-hidden rounded-lg border bg-card transition-[box-shadow,border-color] hover:border-foreground/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring motion-reduce:transition-none"
-								to={`${work.localWorkId === null ? `/anime/tracked/${encodeURIComponent(workKey(work.reference))}` : `/anime/${encodeURIComponent(work.id)}`}?${new URLSearchParams({ library: `/${librarySearch}` })}`}
+								to={detailHref}
 								aria-label={work.displayTitle}
 								aria-describedby={descriptionId}
 							>
@@ -113,6 +149,17 @@ export function LibraryResults({
 								</div>
 							</Link>
 						</Tooltip>
+						{next !== null && playHref !== null && playLabel !== null && (
+							<Tooltip content={playLabel}>
+								<Link
+									to={playHref}
+									aria-label={`${playLabel}: ${work.displayTitle}`}
+									className="absolute top-2 right-2 z-10 inline-flex size-10 items-center justify-center rounded-full border border-border/70 bg-background/90 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+								>
+									<Play className="size-4 fill-current" aria-hidden="true" />
+								</Link>
+							</Tooltip>
+						)}
 						<span id={descriptionId} className="sr-only">
 							{description}
 						</span>

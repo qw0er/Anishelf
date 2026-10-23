@@ -1,36 +1,39 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import type {
+	InfiniteData,
+	UseInfiniteQueryResult,
+} from "@tanstack/react-query";
 import { Info, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import type { LocalWorkDetailResponse } from "../../../../shared/api/contracts.js";
+import type {
+	LocalWorkDetailResponse,
+	MetadataAiringResponse,
+} from "../../../../shared/api/contracts.js";
 import {
 	Button,
 	buttonStyles,
 } from "../../../../shared/components/ui/button.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
-import { airingQuery } from "../../metadata/public.js";
 import { episodeViewing, episodeViewingCounts } from "../../tracking/public.js";
 import type { AnimeResourceActionSlot } from "../resource-actions.js";
 import type { LocalWorkDetailController } from "../use-local-work-detail.js";
-import { AiringStatus } from "./airing-status.js";
 import { UnresolvedResources } from "./unresolved-resources.js";
 export function EpisodeList({
 	data,
 	controller,
 	renderResourceActions,
 	trackingProgress,
+	airing,
 }: {
 	data: LocalWorkDetailResponse;
 	trackingProgress: number | null;
 	renderResourceActions: AnimeResourceActionSlot;
 	controller: Pick<LocalWorkDetailController, "playPath" | "selectEpisode">;
+	airing: UseInfiniteQueryResult<InfiniteData<MetadataAiringResponse>>;
 }) {
 	const { t } = useTranslation();
 	const { work, episodes } = data;
 	const { playPath, selectEpisode } = controller;
-	const airing = useInfiniteQuery(
-		airingQuery(work.reference.provider, work.reference.id),
-	);
 	const counts = episodeViewingCounts(episodes, trackingProgress);
 	const schedules =
 		airing.data?.pages
@@ -157,7 +160,6 @@ export function EpisodeList({
 					</section>
 				) : null;
 			})}
-			<AiringStatus query={airing} />
 			<UnresolvedResources workId={work.id} />
 			<p className="text-sm text-muted-foreground">
 				<Link to="/review?decision=confirmed" className="underline">

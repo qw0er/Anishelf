@@ -57,6 +57,16 @@ export const AnimeLibrarySchema = Type.Object({
 				Type.Literal("untracked"),
 			]),
 			viewing: Type.Union([ViewingStateSchema, Type.Null()]),
+			nextPlayback: Type.Union([
+				Type.Object({
+					episodeId: Type.String(),
+					episodeNumber: Type.String(),
+					versionCount: Type.Integer(),
+					fileId: text,
+					sourceVersion: text,
+				}),
+				Type.Null(),
+			]),
 		}),
 	),
 	page: Type.Integer(),

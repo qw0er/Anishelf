@@ -3,6 +3,7 @@ import type { CachedMetadata, WorkDetails } from "../../metadata/public.js";
 import { conflict, integer, invalid, text } from "../domain/mapping.js";
 import type {
 	CatalogQuery,
+	EpisodePlaybackTarget,
 	LocalWork,
 	LocalWorkDetail,
 	WorkCard,
@@ -17,8 +18,10 @@ export class CatalogQueries {
 		const scope = await this.context.scope();
 		const work = this.context.options.store.findWork(reference);
 		const episodes = work
-			? ((await this.card(work, scope.ids, scope.revision))
-					.availableTrackingEpisodes ?? [])
+			? (
+					(await this.card(work, scope.ids, scope.revision))
+						.availableEpisodeTargets ?? []
+				).map((target) => Number(target.number))
 			: [];
 		return {
 			episodes,
@@ -36,12 +39,12 @@ export class CatalogQueries {
 	): Promise<WorkCard> {
 		const link = this.context.options.store.link(work.id);
 		if (!link) throw new Error("Catalog work is missing its provider link.");
-		const availableTrackingEpisodes: number[] = [];
+		const availableEpisodeTargets: EpisodePlaybackTarget[] = [];
 		let availableEpisodes = 0;
 		let availableRegularEpisodes = 0;
 		const availability = new Map<string, boolean>();
 		for (const episode of this.context.options.store.episodes(work.id)) {
-			let usable = false;
+			const versions: EpisodePlaybackTarget["versions"] = [];
 			for (const { review } of this.context.options.store.versions(
 				episode.id,
 				scopeIds,
@@ -51,20 +54,41 @@ export class CatalogQueries {
 					available = await this.context.available(review, epoch);
 					availability.set(review.id, available);
 				}
-				usable ||= available;
+				if (available)
+					versions.push({
+						fileId: review.fileId,
+						sourceVersion: review.sourceVersion,
+					});
 			}
+			const usable = versions.length > 0;
 			if (
 				usable &&
 				(episode.kind === "regular" ||
 					(episode.kind === "movie" && episode.number === "1")) &&
 				/^[1-9][0-9]*$/.test(episode.number)
 			)
-				availableTrackingEpisodes.push(Number(episode.number));
+				availableEpisodeTargets.push({
+					episodeId: episode.id,
+					number: episode.number,
+					versions: [
+						...new Map(
+							versions.map((version) => [
+								`${version.fileId}:${version.sourceVersion}`,
+								version,
+							]),
+						).values(),
+					],
+				});
 			availableEpisodes += Number(usable);
 			if (episode.kind === "regular")
 				availableRegularEpisodes += Number(usable);
 		}
 		const snapshot = this.snapshot(work.id);
+		availableEpisodeTargets.sort(
+			(a, b) =>
+				Number(a.number) - Number(b.number) ||
+				a.episodeId.localeCompare(b.episodeId),
+		);
 		return {
 			...work,
 			displayTitle: work.providerTitle,
@@ -73,7 +97,7 @@ export class CatalogQueries {
 			reference: link.reference,
 			availableEpisodes,
 			availableRegularEpisodes,
-			availableTrackingEpisodes,
+			availableEpisodeTargets,
 		};
 	}
 	async list(query: CatalogQuery = {}) {

@@ -12,9 +12,17 @@ export interface AnimeLibraryQuery extends Omit<CatalogQuery, "sort"> {
 	scope?: "local" | "all";
 	viewingStatus?: ViewingStatus | "untracked";
 }
+interface LibraryPlaybackTarget {
+	episodeId: string;
+	episodeNumber: string;
+	versionCount: number;
+	fileId: string | null;
+	sourceVersion: string | null;
+}
 export interface LibraryCard {
 	viewingAvailability: "unknown" | "unmapped" | "tracked" | "untracked";
 	availableUnwatchedEpisodes?: number | null;
+	nextPlayback: LibraryPlaybackTarget | null;
 	id: string;
 	localWorkId: string | null;
 	reference: WorkCard["reference"];
