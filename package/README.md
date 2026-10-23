@@ -84,5 +84,5 @@ require manual site setup. Existing settings and removed sites
 are preserved. The backend imports the private local connection without depending
 on Jackett availability. The Settings page supports external instances, explicit
 bundled selection and service/site/search diagnostics. See
-[Jackett service setup](../docs/jackett-setup.md) for the latest image,
+[Jackett service setup](../docs/guide/jackett-setup.md) for the latest image,
 rootless Quadlet units, restart/recovery behavior and acceptance limits.

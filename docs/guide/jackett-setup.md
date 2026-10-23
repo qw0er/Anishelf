@@ -1,8 +1,10 @@
 # Jackett service setup
 
-Date: 2026-10-23. Stage 3 delivers external connection settings and an optional
-bundled service. [Stage 4 search subscriptions](search-subscriptions.md) adds the
-manual acquisition workflow. Watching automation remains later work.
+This maintained guide covers external connector settings and the optional bundled
+service used by the completed acquisition workflow. Configure global defaults in
+Settings → Downloads; [Watching operations](watching-automation.md) covers ordinary
+subscription creation and recovery. [Architecture](../development/architecture.md#acquisition)
+owns the internal contracts. Historical verification is in the acquisition archive.
 
 ## External connection
 
@@ -18,8 +20,8 @@ in Jackett; it proves API access, not successful upstream searches. Choose sites
 order them with the arrows and save. Under **Search diagnostics**, check search
 support and run a title search. The UI distinguishes capability support, matches,
 no matches, limited coverage and failures. Diagnostics never create subscriptions
-or authorize downloads. The order is saved for the later source-selection workflow;
-this stage does not automatically rank or select sites for an anime.
+or authorize downloads. Background discovery uses this saved order and pins the first eligible site. It
+does not rank or merge releases across sites.
 
 Manage tracker credentials, cookies, site configuration and the Jackett administrator
 password in Jackett itself. Anishelf does not provision or modify an external service.

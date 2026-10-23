@@ -1,5 +1,8 @@
 # Watching Subscription Creation
 
+This is a maintained operator guide for the iteration marked complete on 2026-10-24.
+Requirements/design and verification evidence are [archived](../history.md#automatic-acquisition-archive-notes).
+
 Watching is an optional way to create ordinary subscriptions. It is disabled by
 default. Manual and Watching-created subscriptions share the same source discovery,
 editor, pause/resume, cancellation, download and import workflow.
@@ -66,12 +69,10 @@ and old Watching grants are disabled. Review/save each retained subscription and
 resume it explicitly, or unsubscribe. Confirm Watching again only if future automatic
 creation is wanted. This migration does not enable the real account.
 
-## Verification boundary
+## Verification record
 
-Automated fixtures cover pending intent across no results/restart, scope freezing,
-late cancellation/edit/pause, atomic source/permission binding, configuration changes,
-creation exclusions, old-grant migration and continued download/import behavior.
-The UI is checked with isolated data at 390 and 1280 px. The user previously reported
-live acceptance of the manual pipeline. Live Watching creation, real source matching,
-qBittorrent, shared-storage ingestion and actual playback still require separate
-acceptance; fixture actions are not account activation or live playback proof.
+The iteration is complete by the user's decision on 2026-10-24. Automated and
+isolated-browser evidence, earlier user-reported manual acceptance and limits on
+real Watching/source/downloader/playback verification are recorded in
+[History](../history.md#automatic-acquisition-archive-notes). Deployment checks remain
+useful after changing services, storage mappings or browser/media combinations.

@@ -1,13 +1,105 @@
 # Deployment
 
-[README](../README.md#deploy-with-a-container) contains the production Docker
-Compose configuration. The repository-root Compose file is for development.
-Both deployment methods pull separate Web and Backend images from GHCR.
+Use Docker Compose with published images, rootless Podman Quadlet or a source
+installation. Container images support Linux AMD64 and ARM64. Deploy matching Web
+and Backend versions; the backend reads original media without modifying it.
+
+- [Docker Compose](#docker-compose)
+- [Bundled qBittorrent](#bundled-qbittorrent)
+- [Podman Quadlet](#podman-quadlet)
+- [Network and HTTPS](#network-and-qbittorrent)
+- [Storage, updates and recovery](#storage-updates-and-recovery)
+- [Jackett](#jackett-source-service)
+- [Source installation](#source-installation)
+
+## Docker Compose
+
+Save the published-image [compose.yaml](../../package/deploy/compose.yaml) into a
+new deployment directory. Use that file as the canonical service, health-check,
+mount and volume configuration rather than copying a YAML example from this guide.
+Optionally save the [environment example](../../package/deploy/.env.example) beside
+it as `.env` and uncomment the settings you need. The repository-root Compose file
+builds the checkout instead; see [Source installation](#source-installation).
+
+Run from the deployment directory:
+
+```sh
+docker compose pull
+docker compose up -d
+docker compose logs backend
+```
+
+Open [localhost:3000](http://localhost:3000). The initial Anishelf password appears
+in Backend logs. For another machine, use a configured public origin with your
+HTTPS proxy, or forward the loopback listener:
+
+```sh
+ssh -L 3000:127.0.0.1:3000 user@server
+```
+
+Optional `.env` settings:
+
+| Variable | Default / purpose |
+| --- | --- |
+| `ANISHELF_TAG` | `latest`; matching Web/Backend release images |
+| `ANISHELF_BIND_ADDRESS` / `ANISHELF_PORT` | `127.0.0.1` / `3000`; application host address/port |
+| `ANISHELF_PUBLIC_ORIGIN` | `http://localhost:<ANISHELF_PORT>`; override for LAN or HTTPS |
+| `ANISHELF_MEDIA_PATH` | Absolute host media directory; unset uses the media volume |
+| `COMPOSE_PROFILES` | `qbittorrent`, `jackett` or `qbittorrent,jackett` for optional services |
+| `QBITTORRENT_TAG` | `latest`; downloader image version |
+| `QBITTORRENT_BIND_ADDRESS` / `QBITTORRENT_WEBUI_PORT` | `127.0.0.1` / `8080`; host WebUI address/port |
+| `QBITTORRENT_PEER_PORT` | `6881`; synchronized listener and TCP/UDP publication |
+| `JACKETT_BIND_ADDRESS` / `JACKETT_PORT` | `127.0.0.1` / `9117`; Jackett management listener |
+
+Backend runs as UID/GID 1000; give it read/traverse access to bind-mounted media.
+On SELinux hosts, add `z` to shared media bind mounts. Keep persistent application,
+media and optional service volumes. Stop services and back up before updating;
+never use `down --volumes` to update. See [Configuration and operations](operations.md)
+for environment variables, logging, resource settings and database backups, and
+[First use](README.md#first-use) after deployment.
+
+## Bundled qBittorrent
+
+Enable `COMPOSE_PROFILES=qbittorrent`, then run `docker compose up -d`.
+
+| Setting | Bundled downloader |
+| --- | --- |
+| WebUI credentials | Anishelf Settings → qBittorrent → Show WebUI password |
+| API address | `http://qbittorrent:8080` |
+| Browser WebUI | `http://localhost:<QBITTORRENT_WEBUI_PORT>` (default 8080) |
+| Completed directory | `/data/media` |
+| Enabled incomplete directory | `/data/incomplete` |
+
+For new installations, the initialization service generates a random permanent password,
+configures both directories, and publishes credentials in the private
+`anishelf-qbittorrent-connection` volume. Anishelf automatically connects and validates
+the `/data/media` resource mapping. Saving a subscription accepts its scope;
+shared file visibility is proven when a completed download is imported.
+
+In Settings, use **Show WebUI password**, **Copy WebUI password** and **Copy username**
+to sign into qBittorrent. The password is hidden after 30 seconds or when the page is
+backgrounded. Save a browser-reachable WebUI URL separately and use **Open WebUI**.
+If you change credentials inside qBittorrent, use **Update password or use an external
+instance** to save the new credentials in Anishelf, then test the connection and
+save/validate the destination again. Changed connection generations require renewed
+subscription scope acceptance by saving again.
+
+Existing qBittorrent configurations are preserved and need one manual connection
+setup, including the separate incomplete directory. Initialization never resets an
+existing password. A manually saved or removed Anishelf connection takes precedence
+over deployment credentials, including after restart. External downloaders continue
+to require their API credentials and completed-directory mapping.
+
+Back up the app, qBittorrent configuration and connection volumes together. The
+connection volume contains the initial password; the app privately stores subsequent
+credential updates. Restore missing credentials from backup, or enter the current
+qBittorrent credentials manually. Never delete only the configuration volume while
+retaining the connection volume; initialization rejects this inconsistent state.
 
 ## Podman Quadlet
 
 Use rootless Podman with Quadlet and cgroup v2. Copy the core files from
-[package/deploy/quadlet](../package/deploy/quadlet/) to
+[package/deploy/quadlet](../../package/deploy/quadlet) to
 `~/.config/containers/systemd/`: `anishelf.network`, `anishelf-app.volume`,
 `anishelf-media.volume`, `anishelf-qbittorrent-connection.volume`,
 `anishelf-jackett-config.volume`, `anishelf-backend.container` and `anishelf-web.container`.
@@ -235,8 +327,8 @@ See the [Quadlet reference](https://docs.podman.io/en/latest/markdown/podman-sys
 
 ## Optional deployment settings
 
-Compose settings are listed in the [README](../README.md#deploy-with-a-container)
-and [deployment .env example](../package/deploy/.env.example). Quadlet uses the
+Compose settings are listed in the [Docker Compose settings](#docker-compose)
+and [deployment .env example](../../package/deploy/.env.example). Quadlet uses the
 corresponding `Image`, `PublishPort`, `Environment` and `Volume` entries directly;
 it does not read Compose `.env` files. Keep WebUI internal port 8080 for the
 suggested API address. Change peer `TORRENTING_PORT` and both peer publications
@@ -260,8 +352,8 @@ must map to the same files mounted at `/data/media`; incomplete downloads must
 stay outside watched media. Configure the optional browser WebUI link separately.
 Container `localhost` refers to that container, not the host. For rootless Podman,
 a host downloader may be reachable through `host.containers.internal` if its
-listener and firewall allow it. Confirm each subscription's preview to authorize
-automatic downloads. Destination validation alone does not prove shared visibility.
+listener and firewall allow it. Save each subscription against the validated destination to authorize
+automatic downloads; automatic source choices bind permission after discovery. Destination validation alone does not prove shared visibility.
 
 The optional bundled qBittorrent uses `http://qbittorrent:8080`, completed path
 `/data/media` and an enabled incomplete path `/data/incomplete`. New configurations get a random permanent password and automatic destination validation. In Anishelf Settings, show/copy WebUI credentials and configure the browser WebUI link. After changing credentials in WebUI, update the Anishelf connection and revalidate the destination. Existing configurations and saved manual connections are preserved.
@@ -310,3 +402,23 @@ See [Jackett setup](jackett-setup.md) for the image configuration, private boots
 first-run public-site provisioning, preservation rules and verification limits.
 The backend starts independently of Jackett and keeps saved external configuration
 or an explicit disconnect when a bundled credential file becomes available.
+
+## Source installation
+
+Install Node.js 24 and npm, plus FFmpeg and FFprobe for media inspection,
+subtitle extraction and preparation. Direct playback remains available without
+these tools when the browser supports the original media.
+
+Run from the repository root:
+```sh
+npm ci
+npm start
+```
+
+The repository-root [compose.yaml](../../compose.yaml) builds the current checkout:
+
+```sh
+docker compose up -d --build
+# Optional downloader:
+docker compose --profile qbittorrent up -d --build
+```

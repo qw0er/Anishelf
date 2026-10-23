@@ -1,21 +1,24 @@
-# Anishelf Development and Operations
+# Anishelf Development
 
-- [Deployment configuration](#deployment-configuration)
-- [Logging choice](#logging-choice)
-- [Resource Settings and Startup](#resource-settings-and-startup)
-- [Development Proxy and Hosting](#development-proxy-and-hosting)
-- [Database Migrations and Backups](#database-migrations-and-backups)
-- [UI Maintenance](#ui-maintenance)
-- [Verification and Troubleshooting](#verification-and-troubleshooting)
+This guide is for contributors working from the repository root. It owns local
+build/run commands, module maintenance, tests, logging instrumentation and CI.
+[Architecture](architecture.md), [UI design](design-system.md), [database design](database-design.md)
+and [AniList API verification](anilist-api-verification.md) are developer references.
+Installation, environment variables, resource settings, log inspection and backups
+are in the [user and operations guide](../guide/operations.md#deployment-configuration).
+[Requirements](../requirements.md) owns product scope; [History](../history.md) retains
+completed iteration designs and evidence.
 
-Use this guide for local setup, deployment configuration, logging, verification
-and maintenance. [History](history.md#v2-design) contains the archived V2 implementation design;
-[Overall requirements](requirements.md) owns the feature inventory;
-[archived AniList requirements](history.md#anilist-accounts-requirements) and
-[design](history.md#anilist-accounts-design) retain the completed iteration. User acceptance
-was confirmed on 2026-10-17; [Architecture](architecture.md) describes current ownership. The [AniList API verification runbook](anilist-api-verification.md)
-explains the isolated provider check and its evidence boundaries. Production
-hosting instructions are in the [README](../README.md).
+- [Local development](#local-development)
+- [Source maintenance](#source-maintenance)
+- [Test storage](#test-storage) and [networking](#test-networking)
+- [Logging instrumentation](#logging-choice)
+- [Development proxy](#development-proxy-and-hosting)
+- [Database migrations](#database-migrations)
+- [UI maintenance](#ui-maintenance)
+- [Verification](#verification-and-troubleshooting) and [CI](#continuous-integration)
+
+## Local development
 
 Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 `npm ci`.
@@ -28,23 +31,23 @@ Use Node.js 24 (see `.nvmrc`) and install the locked workspace dependencies with
 | `npm start` | Build both workspaces, then start the backend in its normal runtime mode to serve `web/dist` |
 | `npm run dev:web` | Start Vite on 127.0.0.1:5173 with an API proxy |
 | `npm run typecheck` | Check both workspaces, including their tests |
-| `npm test` | Run architecture fixtures and both workspace test suites |
+| `npm test` | Run architecture fixtures, deployment checks and both workspace test suites |
 | `npm run test:watch --workspace @anishelf/backend` | Watch backend tests with Vitest |
 | `npm run biome:check` | Check formatting, lint rules, and import organization with Biome |
 | `npm run biome:fix` | Apply safe Biome fixes |
 | `npm run lint` | Run Biome lint, architecture checks and unused-code checks |
 | `npm run architecture:check` | Check dependency directions, public entries and runtime cycles in both workspaces |
 | `npm run architecture:test` | Verify architecture rules with allowed and forbidden dependency fixtures |
-| `npm run anime:corpus -- summary` | Inspect the offline anime-identification corpus; see its [usage and provenance](../backend/test/fixtures/anime-identification/README.md) for generation and evaluation |
+| `npm run anime:corpus -- summary` | Inspect the offline anime-identification corpus; see its [usage and provenance](../../backend/test/fixtures/anime-identification/README.md) for generation and evaluation |
 | `npm run --silent anime:corpus -- match` | Evaluate production matching/admission against frozen candidates, including independently corroborated local numbering and separate base/scenario statistics; this does not measure live search recall |
 | `npm run check` | Run Biome, lint, type checks, architecture fixtures and both workspace test suites |
 | `npm run build` | Build backend and frontend |
 | `npm run start:backend` | Run the built backend; host pages only when `ANISHELF_FRONTEND_DIR` is set |
 
-The backend [Identification module](identification.md) documents stateless
+The backend [Identification module](architecture.md#delivered-anime-library-workflow) documents stateless
 recognition and automatic scan coordination. It has no task/review HTTP API or
-active database dependency. [Metadata](metadata.md) now provides persistent
-AniList query/artwork caching and supplies cloud candidates. [Anime Catalog](anime-catalog.md)
+active database dependency. [Metadata](architecture.md#internal-ownership) now provides persistent
+AniList query/artwork caching and supplies cloud candidates. [Anime Catalog](architecture.md#delivered-anime-library-workflow)
 provides durable associations, review decisions, previews/confirmation, corrections
 and library HTTP queries. The Web Library, detail/playback and Review workflows are implemented.
 
@@ -53,7 +56,7 @@ resource filenames and explicitly synthetic boundaries. It can generate a separa
 placeholder library for scanning and later identification evaluation. These files
 are not playable videos; the corpus does not declare the selected anime-library
 iteration implemented or accepted.
-The [Nyaa supplement](../backend/test/fixtures/anime-identification/nyaa/README.md)
+The [Nyaa supplement](../../backend/test/fixtures/anime-identification/nyaa/README.md)
 adds 268 locally sourced cases and five directory scenarios. Its curated captures
 are offline test inputs; the complete unreviewed sample archive remains in the
 ignored `.nyaa-corpus.local/` directory.
@@ -124,108 +127,6 @@ isolation and the absence of extra baseline scans, allowing duplicate native eve
 The change-processor suite verifies exact subtree read scope using controlled change
 batches against `memfs`, with a fresh in-memory filesystem for each test.
 
-## Deployment configuration
-
-Startup requires no deployment file or application environment variables:
-
-```sh
-npm run build
-npm run start:backend
-```
-
-For domain access behind an authenticated Caddy proxy, configure the public
-origin when starting the built application:
-
-```sh
-ANISHELF_FRONTEND_DIR="$PWD/web/dist" \
-ANISHELF_PUBLIC_ORIGIN=https://example.com \
-npm run start:backend
-```
-
-Replace the example origin with your domain. For separate backend and Caddy web
-development containers, use the repository-root [compose.yaml](../compose.yaml)
-with `docker compose up -d --build`. Published-image deployment is in the
-[README](../README.md#deploy-with-a-container). Set the backend
-public origin to the browser-facing address; Compose defaults to `http://localhost:3000`.
-Source installations can omit the public origin for local access to the backend port.
-
-### Environment variables
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `ANISHELF_HOST` | `127.0.0.1` | Listener IPv4/IPv6 literal; the container image uses `0.0.0.0`. |
-| `ANISHELF_PORT` | `3000` | Decimal integer listener port from 1 to 65535. |
-| `ANISHELF_PUBLIC_ORIGIN` | Unset | One allowed external HTTP(S) origin; no wildcards, credentials, path, query or fragment. Local access remains available; proxy authentication is required. |
-| `ANISHELF_DATA_DIR` | Platform-specific user data directory for Anishelf | Absolute directory; overrides the platform default. |
-| `ANISHELF_QBITTORRENT_API_URL` | Unset | Optional HTTP(S) backend address without credentials, query or fragment. Prefills the API account form only when no account is saved; never logs in or saves credentials automatically. Blank means unset. |
-| `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` | Unset | Absolute HTTP(S) browser address without embedded credentials; seeds `qbittorrentWebUiUrl` only when `settings.json` is missing. Blank means unset. No connection probe or API login. |
-| `ANISHELF_INITIAL_RESOURCE_ROOTS` | Unset | One readable absolute media path or up to 64 paths separated by `:`, used only when `settings.json` is missing; existing settings take precedence. |
-| `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`. |
-| `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout`, `file`, or `both`. |
-| `ANISHELF_LOG_PATH` | `anishelf.log` in the platformdirs user log directory | Optional absolute path override for `file` / `both`; rejected with `stdout`. |
-| `ANISHELF_LOG_MAX_SIZE_BYTES` | `10485760` | Positive safe integer rotation threshold in bytes; file modes only. |
-| `ANISHELF_LOG_MAX_FILES` | `7` | Positive safe integer archive count, excluding the active file; file modes only. |
-| `ANISHELF_LOG_ROTATE_INTERVAL` | `1d` | `1h` or `1d`; file modes only. |
-| `ANISHELF_FFMPEG_PATH` | `ffmpeg` from process PATH | Optional absolute FFmpeg executable path; resolved independently. |
-| `ANISHELF_FFPROBE_PATH` | `ffprobe` from process PATH | Optional absolute FFprobe executable path; resolved independently. |
-| `ANISHELF_API_TARGET` | `http://127.0.0.1:3000` | Vite proxy target; match any custom backend listener. |
-| `ANISHELF_FRONTEND_DIR` | Unset | Absolute build directory containing `index.html`; enables Node frontend hosting. Invalid or missing builds fail startup. |
-| `NODE_ENV` | Unset | `development` enables the local Vite Origin allowlist. Built-page hosting is independent of this value. |
-
-The same options apply to development and production; changes require restart.
-Without an explicit data directory, `platformdirs` selects the current operating system's
-user data location: XDG data storage on Linux, Application Support on macOS, and Local
-AppData on Windows. Data is independent of the working directory. Paths must be absolute,
-cannot contain NUL, and do not receive application-level tilde expansion. Explicitly
-empty Anishelf variables are invalid rather than treated as defaults.
-On macOS, installations using the previous `~/.local/share/anishelf` default should set
-`ANISHELF_DATA_DIR` to that existing absolute path or move the existing data into the new
-platform-specific location before starting this version.
-
-For file logging, set `ANISHELF_LOG_DESTINATION=file` or `both`. The default path
-is `join(userLogDir("anishelf", false), "anishelf.log")`; `ANISHELF_LOG_PATH`
-optionally overrides it. It is independent of `ANISHELF_DATA_DIR`.
-Logs rotate daily or at 10 MiB, retaining seven archives by default; failed file
-output falls back to stderr. In containers, use a persistent path such as
-`ANISHELF_LOG_PATH=/data/app/anishelf.log` with `ANISHELF_LOG_DESTINATION=both`,
-or read default stdout logs with `docker compose logs -f backend web`.
-Invalid startup parameters or unusable data directories fail startup with exit code 1
-and a terminal diagnostic. All options are validated before creating the data directory.
-The loader creates a missing directory with mode 0700 (subject to umask), preserves
-permissions of existing directories, and checks writability. The persistent settings
-manager creates `settings.json` on the first settings save, including a transcode
-profile selection before a resource directory is configured, or initializes it
-on startup when `ANISHELF_INITIAL_RESOURCE_ROOTS` is supplied and the file is missing. See
-[Transcode profiles](transcode-profiles.yaml) for the optional administrator-authored
-`dataDir/transcode-profiles.yaml`, catalog API and persistent selection.
-
-The optional `settings.json` field `transcodeCacheBudgetGiB` configures the total
-prepared-media cache budget in whole GiB (default: 10). It is also editable in
-Settings and through `PUT /api/settings`. Saved changes apply to subsequently
-started tasks without a restart. Lowering the budget never deletes existing copies;
-new output is blocked when retained copies already consume the budget. Active tasks
-keep their initial output allowance, and free disk space remains an additional bound.
-
-The optional `settings.json` field `rssRefreshIntervalMinutes` controls normal RSS
-polling for all enabled subscriptions (default: 30 minutes; integer range: 1–1440).
-Edit it in the RSS section of Settings or through `PUT /api/settings`. An absent
-field uses the built-in default; saving the displayed value persists that choice.
-The scheduler applies saved changes at its next check (normally every 30 seconds),
-measuring the new interval from each feed's last successful check. A shorter interval can make a
-feed immediately due. Failed feeds retain their existing retry deadline and
-exponential backoff; a successful fetch resumes the configured cadence. Conditional
-HTTP requests and manual refresh remain available.
-
-The task monitor initially requests the latest 10 records. Its **More** button
-requests the latest 100 records. Both limits are declared in preparation policy;
-this display window does not delete task history or cached media.
-
-TOML loading and its parser dependency have been removed. To migrate, unset
-`ANISHELF_CONFIG`, set `ANISHELF_DATA_DIR` to the old TOML `dataDir`, and translate
-custom listener/logging values to the variables above. The loader rejects a remaining
-`ANISHELF_CONFIG` with migration guidance rather than silently selecting a new data
-directory. It does not read TOML or relocate existing data.
-
 ## Logging choice
 
 The backend development script pipes stdout through `pino-pretty`, installed as a
@@ -251,50 +152,13 @@ Construction and redaction live in `platform/logging/index.ts`; configuration li
 in `config.ts`. File rotation uses the configured size and hourly/daily interval.
 `maxFiles` limits archives, excluding the active file and the library history file.
 Use a dedicated path per process and preserve that history file across restarts.
-See [Overall Requirements](requirements.md#logging-maintenance-o11o13).
+See [Overall Requirements](../requirements.md#logging-maintenance-o11o13).
 
 Biome respects `.gitignore` through `biome.json`; dependencies and build outputs
 are excluded. `npm run biome:fix` does not apply unsafe fixes.
 
 `ApplicationLogging` creates and exposes the Pino logger. Logging setup and output lifecycle live
 in `platform/logging/`.
-
-### Operational log levels
-
-Set `ANISHELF_LOG_LEVEL=debug` or `trace` before starting the backend to inspect
-more detail. The default `info` level keeps normal operation concise:
-
-| Level | Events |
-| --- | --- |
-| `info` | Authentication initialization, successful login/logout and password changes; startup/shutdown, scan lifecycle, settings saved, playback session opened, subtitle cache reconciliation and preparation start/completion |
-| `warn` / `error` | Rejected authentication/password changes and login limits; credential/session storage failures, tool failures, discovery degradation, invalid cached assets, persistence failures, preparation failures and server errors |
-| `debug` | Settings/playback requests, history reads, subtitle discovery and asset reuse, FFmpeg/FFprobe start/completion/cancellation, rejected HTTP requests |
-| `trace` | HTTP request start/completion, progress saves, subtitle status polling, probe cache hits and media Range response metadata |
-
-Structured records use `event`, module context, opaque resource/asset IDs and
-elapsed milliseconds where applicable. HTTP records use route templates and
-server-generated `reqId`, not raw URLs or query strings. Routine request logs
-replace Fastify's default info-level access logs. Tool records omit arguments,
-stdout and stderr; application failure records retain serialized errors. Session
-tokens, complete settings objects and subtitle text are not included in events.
-
-Authentication uses `auth.credentials_initialized`, `auth.login_succeeded`,
-`auth.logout_succeeded` and `auth.password_changed` at info level. Invalid passwords
-and rejected current-password checks use `auth.login_failed` and
-`auth.password_change_rejected`; exceeded login budgets use
-`auth.login_rate_limited` with the instance/source scope. These warnings do not
-repeat for ordinary anonymous media or API requests. Successful login is logged
-after the response completes and the session plugin has saved the session.
-
-Credential/session failures use `auth.credentials_load_failed`,
-`auth.credentials_write_failed`, `auth.password_verification_failed` and
-`auth.session_store_failed`. Records retain the operation, known storage paths,
-error category and filesystem/SQLite error code, including codes wrapped by the
-database adapter. Raw exception messages, SQL parameters and causes are omitted
-from these authentication diagnostics. Passwords, credential hashes, cookies,
-CSRF tokens and media-link tokens are never included. Initial plaintext passwords
-continue to appear only in the startup console, independently of these events.
-
 
 ### Anime workflow logging
 
@@ -372,7 +236,7 @@ files live under `<dataDir>/tracking-credentials/` in a 0700 directory. Back up 
 SQLite database and private files consistently while stopped; a missing or
 mismatched credential requires reconnection. Never log or check these files into
 source control. Candidate tokens live only in bounded memory for five minutes.
-No list synchronization runs in this delivery.
+List synchronization and updates are owned by Tracking, using the shared provider scheduler.
 
 Anime composition supplies the same scheduler to Metadata and Tracking. Account
 checks have priority with a three-request fairness limit; both consumers share
@@ -383,42 +247,8 @@ Run `npm run test --workspace @anishelf/backend -- test/anilist-account.test.ts
 test/anilist-wrapper.test.ts test/metadata.test.ts` and
 `npm run test --workspace @anishelf/web -- test/anilist-account.test.tsx` for focused
 regressions. Metadata cancellation tests use HTTP injection without listening on a port.
-See [the design](history.md#anilist-design-implemented-account-foundation) for
+See [the design](../history.md#anilist-design-implemented-account-foundation) for
 API/status and real-provider verification boundaries.
-
-## Resource Settings and Startup
-
-Settings displays up to 64 paths in a list. Delete removes a draft entry; the input
-and Add directory button append a new absolute server path. Save directories
-persists the whole draft list; failed saves retain it for retry. It persists
-`resourceRoots: string[]`; `[]` means setup mode. Duplicate, nested, symlink-aliased
-paths and overlap with dataDir are rejected. Legacy `resourceRoot` string/null
-settings load into the array format; the next save writes that format. Existing
-settings always win over startup initializers, including an explicitly empty list.
-Malformed or unreadable files fail startup without replacement.
-
-For fresh deployments, `ANISHELF_INITIAL_RESOURCE_ROOTS` accepts one absolute path
-such as `/media/anime`, or multiple paths separated by colons, such as
-`'/media/anime:/media/movies'`. Up to 64 paths are supported. Surrounding whitespace
-is trimmed; empty entries (including a trailing separator) are rejected. Paths
-containing colons cannot be expressed with this initializer. The former singular
-variable and JSON-array input are no longer supported. All initial directories must be readable and separate from the
-data directory. Creation never overwrites an existing settings file, including
-under concurrent initialization. Without an initializer, setup remains available. Native filesystem monitoring replaces
-scheduled scans; obsolete `scanIntervalMinutes` settings are removed on load.
-See [Filesystem monitoring](filesystem-monitoring.md) for incremental updates and recovery.
-
-Scans and resource-setting writes exclude each other. Configuration changes revoke
-active access references, remove inactive scopes and remount unchanged entries,
-then scan automatically. Reordering paths retains file IDs. An unavailable root
-retains its old entries while healthy roots update; all-root failure preserves the
-whole previous index. Removing a root hides its resources without deleting accepted
-Catalog associations or playback history. Empty configurations do not start a scan.
-Manual settings-file changes require restart; Web saves take effect immediately.
-
-Resources registers scoped source identities directly. The database stores the
-current relational format only; old database formats are rejected without upgrade
-or automatic replacement. Missing media tools do not block direct playback.
 
 ## Development Proxy and Hosting
 
@@ -442,7 +272,7 @@ variable is set. Without it, the backend serves only APIs/media, even if a front
 build exists. The configured directory must contain `index.html` or startup fails.
 A shared Caddy can proxy the whole application. Configure `ANISHELF_PUBLIC_ORIGIN`
 for its external origin and preserve Host/Origin headers; see the
-[Caddy deployment example](deployment.md#network-and-qbittorrent). Backend listening
+[Caddy deployment example](../guide/deployment.md#network-and-qbittorrent). Backend listening
 defaults to loopback for source installations and `0.0.0.0` in container images.
 Container deployments use two images built from the same revision: Caddy serves
 static files and proxies `/api` to the private backend over the Compose network.
@@ -454,7 +284,7 @@ do not authorize requests. Container forwarding may obscure the client IP withou
 affecting Host/Origin validation or authentication. Local health checks remain available.
 Anishelf authenticates business routes and protects mutations with a CSRF token.
 Caddy supplies TLS; no media-path bypass is needed. External-player URLs include
-24-hour single-file authorization tokens. See [authentication operations](deployment.md#storage-updates-and-recovery).
+24-hour single-file authorization tokens. See [authentication operations](../guide/deployment.md#storage-updates-and-recovery).
 Separately hosted frontend files must use
 the same external origin for API requests.
 
@@ -469,33 +299,23 @@ without Origin remain accepted unless their fetch metadata is cross-site;
 development retains its fixed Vite Origin exceptions. Invalid mutation Origins
 or cross-site metadata fail with `REQUEST_FORBIDDEN`. With the setting unset,
 external domains remain rejected. Host/Origin validation provides no identity
-verification; Caddy owns external authentication and any explicitly configured
-original-media exception.
+verification; Anishelf owns application authentication and scoped media tokens.
+Caddy supplies TLS and proxying without an anonymous media exception.
 
 SIGINT/SIGTERM close HTTP, active application work and the database, with a
 five-second shutdown limit; failure sets a nonzero exit code.
 
-## Database Migrations and Backups
+## Database migrations
 
-The backend opens dataDir/anishelf.sqlite and applies committed versioned SQL
-migrations from backend/migrations. Ship that directory alongside backend/dist.
-The [relational persistence design](database-design.md) documents all 32 original
-tables and the current schema, including constraints, restart verification and
-rejection of unsupported formats. The supported format-1 upgrade preserves metadata
-snapshots and references while simplifying their payload storage.
+The backend opens dataDir/anishelf.sqlite and applies committed SQL migrations from
+backend/migrations. Ship that directory with backend/dist. The
+[database design](database-design.md) owns schema constraints and supported upgrades.
+Generate changes with `npm run db:generate --workspace @anishelf/backend`, review
+SQL and metadata, and commit both. Never use destructive schema push at runtime.
 
-Generate changes with `npm run db:generate --workspace backend`, review generated
-SQL and metadata, and commit them; never use destructive schema push at runtime.
-
-Database initialization failure preserves existing files and blocks application
-startup because persistence is part of the required module configuration. No automatic
-replacement or destructive recovery is performed.
-
-For a simple backup, stop the server cleanly and copy the complete data directory
-before migration or recovery. Do not copy only anishelf.sqlite while it is active:
-WAL files may contain committed data. Settings, durable database records and
-regenerable subtitle payloads have different lifetimes. Cache cleanup must not
-remove history, settings or original media.
+Startup preserves existing files and fails if required persistence cannot open.
+Before migration/recovery, follow the [backup instructions](../guide/operations.md#database-migrations-and-backups).
+Do not treat disposable test databases as production recovery evidence.
 
 ## UI Maintenance
 
@@ -508,8 +328,8 @@ Tailwind directives. The active UI uses English; further localization is planned
 ## Verification and Troubleshooting
 
 Run `npm run check` for Biome, lint/architecture checks, typechecks and all tests.
-`npm test` runs architecture, backend and web suites in sequence and succeeds only
-when all three pass. Both Vitest suites use at most four workers by default,
+`npm test` runs architecture fixtures, deployment checks, backend and web suites
+in sequence and succeeds only when every stage passes. Both Vitest suites use at most four workers by default,
 preventing nested workspace parallelism from oversubscribing the machine.
 Use the Vitest CLI `--maxWorkers` option to override the limit when needed.
 Both workspaces use the root TypeScript dependencies: `@typescript/native` aliases TypeScript 7 and provides
@@ -553,7 +373,7 @@ server configuration or paths into the browser.
 
 ## Video compatibility checks
 
-See [Video compatibility checks](history.md#v2-video-compatibility-checks) for the negotiation API,
+See [Video compatibility checks](../history.md#v2-video-compatibility-checks) for the negotiation API,
 player behavior, conservative unknown states, and processing boundaries. Run
 `npm run check` and `npm run build` after changes. FFmpeg tests need child-process
 permissions; localhost acceptance needs listener permissions. Browser decoding
@@ -685,7 +505,7 @@ formats, all browsers and arbitrary complex ASS scripts remain outside this evid
 
 ## Continuous integration
 
-[Check project](../.github/workflows/check.yml) runs on pull requests targeting
+[Check project](../../.github/workflows/check.yml) runs on pull requests targeting
 `main` and pushes to `main`. It uses Ubuntu 24.04 and Node.js from `.nvmrc`,
 installs FFmpeg/FFprobe and native build dependencies, and runs `npm ci`,
 `npm run check` and `npm run build`. FFmpeg/FFprobe availability is checked
@@ -695,7 +515,7 @@ real media tests. The runner permits child processes and localhost listeners.
 The container publication workflow reuses these checks after confirming that
 the release tag belongs to `main` history. Checks run against the tagged commit;
 failure prevents both architecture builds and image publication. See
-[container packaging](../package/README.md#publication-flow) for the release flow.
+[container packaging](../../package/README.md#publication-flow) for the release flow.
 Local checks remain useful for immediate feedback. CI does not certify browser
 codec support, visual rendering or production deployment behavior.
 
@@ -770,7 +590,7 @@ provider payloads or raw errors. Run `test/tracking-updates.test.ts` and
 `test/anilist-account.test.ts` in the backend workspace and
 `test/viewing-editor.test.tsx` in the web workspace for fixture coverage. These tests
 do not mutate AniList; the subsequent user-confirmed ANI01–ANI10 acceptance is
-recorded in [History](history.md#anilist-accounts-archive-notes).
+recorded in [History](../history.md#anilist-accounts-archive-notes).
 
 
 ### Anime detail file actions
