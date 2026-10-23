@@ -153,6 +153,7 @@ test("Compose generation uses the canonical template and invokes no runtime", as
 	const env = await readFile(join(f.target, ".env"), "utf8");
 	assert.match(env, /ANISHELF_TAG='v0.4.1'/);
 	assert.match(env, /COMPOSE_PROFILES=''/);
+	assert.match(env, /ANISHELF_TRUSTED_PROXIES='loopback,uniquelocal'/);
 	assert.equal((await stat(join(f.target, ".env"))).mode & 0o777, 0o600);
 	assert.deepEqual(
 		(await f.calls()).map((call) => call.name),
@@ -209,6 +210,14 @@ test("Quadlet generation preserves namespaces, quotes media paths and synchroniz
 	const file = (name) => readFile(join(f.target, "quadlet", name), "utf8");
 	const backend = await file("anishelf-backend.container"),
 		qbit = await file("anishelf-qbittorrent.container");
+	assert.match(
+		await file("anishelf-web.container"),
+		/Environment=ANISHELF_PUBLIC_ORIGIN=https:\/\/anime.example.com/,
+	);
+	assert.match(
+		backend,
+		/Environment=ANISHELF_TRUSTED_PROXIES=loopback,uniquelocal/,
+	);
 	assert.match(backend, /Image=ghcr.io\/qw0er\/anishelf-backend:v0.4.1/);
 	assert.ok(
 		backend.includes(`Volume="${await realpath(media)}:/data/media:ro,z"`),

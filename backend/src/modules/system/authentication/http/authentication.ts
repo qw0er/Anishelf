@@ -156,6 +156,16 @@ export async function registerAuthentication(
 		const path = new URL(request.url, "http://localhost").pathname;
 		if (!(path === "/api" || path.startsWith("/api/"))) return;
 		reply.header("Cache-Control", "no-store");
+		if (
+			path === "/api/auth/session" &&
+			options.secure &&
+			request.protocol !== "https"
+		) {
+			request.log.warn(
+				{ event: "auth.session_transport_untrusted" },
+				"Secure session cookie cannot be issued: verify proxy trust and forwarded HTTPS scheme.",
+			);
+		}
 		const safe = ["GET", "HEAD", "OPTIONS"].includes(request.method);
 		if (!anonymousRoutes.has(path) && !authenticated(request)) {
 			const match = /^\/api\/media\/([A-Za-z0-9_-]+)$/.exec(path);

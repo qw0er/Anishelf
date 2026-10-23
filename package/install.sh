@@ -213,7 +213,7 @@ compose() {
   # Shell environment must not override the answers saved in this bundle.
   (
     unset ANISHELF_TAG ANISHELF_BIND_ADDRESS ANISHELF_PORT ANISHELF_PUBLIC_ORIGIN ANISHELF_MEDIA_PATH
-    unset COMPOSE_FILE COMPOSE_PROJECT_NAME COMPOSE_PROFILES
+    unset COMPOSE_FILE COMPOSE_PROJECT_NAME COMPOSE_PROFILES ANISHELF_TRUSTED_PROXIES
     unset QBITTORRENT_WEBUI_PORT QBITTORRENT_PEER_PORT QBITTORRENT_BIND_ADDRESS QBITTORRENT_TAG JACKETT_PORT JACKETT_BIND_ADDRESS
     "$engine" compose --project-name anishelf --env-file "$deploy_dir/.env" -f "$deploy_dir/compose.yaml" "$@"
   )
@@ -359,6 +359,7 @@ main() {
     write_env COMPOSE_PROFILES "$profiles"
     write_env COMPOSE_PROJECT_NAME anishelf
     write_env ANISHELF_DEPLOY_ENGINE "$engine"
+    write_env ANISHELF_TRUSTED_PROXIES loopback,uniquelocal
     write_env QBITTORRENT_WEBUI_PORT "$qbit_port"; write_env QBITTORRENT_PEER_PORT "$peer_port"
     write_env JACKETT_PORT "$jackett_port"
     write_env QBITTORRENT_BIND_ADDRESS 127.0.0.1; write_env JACKETT_BIND_ADDRESS 127.0.0.1

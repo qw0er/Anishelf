@@ -704,3 +704,26 @@ ownership preservation. They do not start a Docker daemon, execute Podman's gene
 or prove SELinux enforcement on Linux. Perform a Linux/container runtime smoke check
 before claiming those deployment paths live-verified. Do not log passwords, source
 shell code from .env or disable host/container security labels in recovery paths.
+
+
+### HTTPS proxy session regression
+
+Container deployments must preserve the configured public HTTPS scheme through the
+host TLS proxy, Web Caddy and HTTP Backend. Both application containers receive the
+same public origin; Backend explicitly trusts its private Web network. Source
+installations retain loopback-only proxy trust. Startup and session-transport warnings
+must never include cookies, passwords or CSRF tokens.
+
+The normal backend authentication tests cover trusted/untrusted container peers,
+Secure cookies, login/session rotation and retained Origin/CSRF rejection. To exercise
+real TLS and two real Caddy processes, install Caddy separately and run:
+
+```sh
+ANISHELF_TEST_CADDY_BIN=/absolute/path/to/caddy npm run test --workspace @anishelf/backend -- test/https-proxy.test.ts
+```
+
+This opt-in test needs child processes and localhost sockets; it is skipped when the
+binary is not explicitly supplied. It reads the packaged Caddyfile, keeps certificates
+in a temporary directory, never installs a root CA into the host trust store, and
+checks that a forged forwarding header cannot change the configured HTTPS scheme.
+It verifies local proxy/session behavior, not a live Podman/SELinux deployment.

@@ -15,7 +15,10 @@ import { checkRequestOrigin } from "../../transport/security.js";
 import { registerFrontend } from "../../transport/static.js";
 import type { BuiltinPolicy } from "../policy.js";
 export function createHttpApp(options: {
-	config: Pick<DeploymentConfig, "host" | "port" | "publicOrigin">;
+	config: Pick<
+		DeploymentConfig,
+		"host" | "port" | "publicOrigin" | "trustedProxies"
+	>;
 	logger: Logger;
 	policy: DeepReadonly<BuiltinPolicy>;
 	development?: boolean;
@@ -25,12 +28,20 @@ export function createHttpApp(options: {
 	closeDependencies: () => Promise<void>;
 }) {
 	const policy = options.policy;
+	options.logger.info(
+		{
+			event: "http.proxy_configured",
+			trustedProxies: options.config.trustedProxies ?? ["loopback"],
+			publicOrigin: options.config.publicOrigin,
+		},
+		"HTTP proxy trust configured.",
+	);
 	const app = Fastify({
 		loggerInstance: options.logger,
 		logController: new LogController({ disableRequestLogging: true }),
 		genReqId: () => randomUUID(),
 		requestIdHeader: false,
-		trustProxy: ["loopback"],
+		trustProxy: [...(options.config.trustedProxies ?? ["loopback"])],
 		bodyLimit: policy.http.httpBodyMaximumBytes,
 		forceCloseConnections: "idle",
 		ajv: { customOptions: { removeAdditional: false, coerceTypes: false } },

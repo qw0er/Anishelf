@@ -418,3 +418,39 @@ test("development and published Jackett profiles use the latest image and keep b
 	);
 	expect(dockerfile).not.toContain("jackett-init.mjs");
 });
+
+test("explicit proxy networks parse without expanding the source-install default", () => {
+	expect(parseDeploymentConfig({}).trustedProxies).toBeUndefined();
+	expect(
+		parseDeploymentConfig({
+			ANISHELF_TRUSTED_PROXIES: "loopback, 10.89.0.0/24, ::1",
+		}).trustedProxies,
+	).toEqual(["loopback", "10.89.0.0/24", "::1"]);
+});
+
+test.each(["", "true", "*", "proxy.example.com", "10.0.0.1/99", "loopback,"])(
+	"rejects invalid proxy trust configuration %s",
+	(value) => {
+		expect(() =>
+			parseDeploymentConfig({ ANISHELF_TRUSTED_PROXIES: value }),
+		).toThrow("ANISHELF_TRUSTED_PROXIES");
+	},
+);
+
+test("Compose wires the same public origin to both services and keeps proxy trust explicit", async () => {
+	for (const relative of [
+		"../../compose.yaml",
+		"../../package/deploy/compose.yaml",
+	]) {
+		const { services } = parse(
+			await readFile(new URL(relative, import.meta.url), "utf8"),
+		);
+		expect(services.web.environment.ANISHELF_PUBLIC_ORIGIN).toBe(
+			services.backend.environment.ANISHELF_PUBLIC_ORIGIN,
+		);
+		expect(services.backend.environment.ANISHELF_TRUSTED_PROXIES).toContain(
+			"loopback,uniquelocal",
+		);
+		expect(services.backend.ports).toBeUndefined();
+	}
+});

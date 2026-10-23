@@ -565,9 +565,19 @@ on `0.0.0.0:3000` on the private Compose network; Caddy in the web container lis
 on port 8080, published on host loopback port 3000. Listener addresses
 must be IPv4/IPv6 literals. Host/Origin validation retains explicit public-origin
 matching, including translated external ports; wildcard listeners do not permit
-arbitrary Host values. Forwarded scheme/client address headers are trusted only
-from loopback proxies. Container forwarding may obscure the client IP; public-origin
-validation and authentication do not depend on trusting forwarded headers.
+arbitrary Host values. Forwarded scheme/client address headers default to loopback-only
+trust. ANISHELF_TRUSTED_PROXIES accepts explicit IP/CIDR networks and the named
+loopback/linklocal/uniquelocal ranges. Packaged deployments explicitly trust private
+container proxies and keep Backend unpublished; custom deployments should narrow
+trust to the actual Web network CIDR. Host/Origin validation still uses the real Host
+and configured public origin, independently of forwarded host headers.
+Both Web and Backend receive the same ANISHELF_PUBLIC_ORIGIN. The Web Caddy maps its
+configured public scheme into X-Forwarded-Proto, overwriting caller-supplied values.
+This preserves external HTTPS through a host TLS proxy and an internal HTTP hop
+without trusting arbitrary incoming forwarded-protocol headers. Secure session cookies
+require Fastify to recognize the trusted Web hop as HTTPS; mismatches emit an
+`auth.session_transport_untrusted` warning. Startup logs include the configured proxy
+trust ranges. Container forwarding can still obscure the original client IP.
 The startup success log records listener configuration.
 HTTPS public origins require Secure cookies. Password changes revoke all sessions
 and media links; logout revokes its current session. Media tokens authorize one

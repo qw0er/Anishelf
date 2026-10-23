@@ -31,7 +31,7 @@ npm run start:backend
 Replace the example origin with your domain. For separate backend and Caddy web
 development containers, use the repository-root [compose.yaml](../../compose.yaml)
 with `docker compose up -d --build`. Published-image deployment is in the
-[deployment guide](deployment.md#docker-compose). Set the backend
+[deployment guide](deployment.md#docker-compose). Set both containers'
 public origin to the browser-facing address; Compose defaults to `http://localhost:3000`.
 Source installations can omit the public origin for local access to the backend port.
 
@@ -42,6 +42,7 @@ Source installations can omit the public origin for local access to the backend 
 | `ANISHELF_HOST` | `127.0.0.1` | Listener IPv4/IPv6 literal; the container image uses `0.0.0.0`. |
 | `ANISHELF_PORT` | `3000` | Decimal integer listener port from 1 to 65535. |
 | `ANISHELF_PUBLIC_ORIGIN` | Unset | One allowed external HTTP(S) origin; no wildcards, credentials, path, query or fragment. Local access remains available; Anishelf authentication remains required. |
+| `ANISHELF_TRUSTED_PROXIES` | `loopback` | Comma-separated trusted proxy IPs/CIDRs or loopback/linklocal/uniquelocal aliases. Packaged container deployments explicitly use loopback,uniquelocal; narrow to the actual Web network for custom deployments. Keep Backend private. |
 | `ANISHELF_DATA_DIR` | Platform-specific user data directory for Anishelf | Absolute directory; overrides the platform default. |
 | `ANISHELF_QBITTORRENT_API_URL` | Unset | Optional HTTP(S) backend address without credentials, query or fragment. Prefills the API account form only when no account is saved; never logs in or saves credentials automatically. Blank means unset. |
 | `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` | Unset | Absolute HTTP(S) browser address without embedded credentials; seeds `qbittorrentWebUiUrl` only when `settings.json` is missing. Blank means unset. No connection probe or API login. |

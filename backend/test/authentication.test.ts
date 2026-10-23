@@ -38,6 +38,7 @@ async function application(
 	dataDir = "",
 	secure = false,
 	logger = pino({ enabled: false }),
+	trustedProxies?: string[],
 ) {
 	dataDir ||= await directory();
 	const database = ApplicationDatabase.open(dataDir);
@@ -54,6 +55,7 @@ async function application(
 			host: "127.0.0.1",
 			port: 3000,
 			...(secure ? { publicOrigin: "https://example.com" } : {}),
+			...(trustedProxies ? { trustedProxies } : {}),
 		},
 		logger,
 		policy: builtinPolicy,
@@ -696,4 +698,94 @@ test("credential read and write failures include safe paths and diagnostics", as
 	);
 	expect(output.join("")).not.toContain(password);
 	expect(output.join("")).not.toContain("next-password-secret-marker");
+});
+
+test("configured container proxy establishes an HTTPS session and retains Origin/CSRF boundaries", async () => {
+	const { app, password } = await application(
+		"",
+		true,
+		pino({ enabled: false }),
+		["loopback", "10.89.0.0/24"],
+	);
+	const proxyHeaders = {
+		host: "example.com",
+		"x-forwarded-proto": "https",
+		origin: "https://example.com",
+	};
+	const init = await app.inject({
+		url: "/api/auth/session",
+		headers: proxyHeaders,
+		remoteAddress: "10.89.0.2",
+	});
+	expect(init.statusCode).toBe(200);
+	expect(init.headers["set-cookie"]).toContain("Secure");
+	expect(init.headers["set-cookie"]).toContain("HttpOnly");
+	const cookie = init.cookies
+		.map((item) => `${item.name}=${encodeURIComponent(item.value)}`)
+		.join("; ");
+	const loginHeaders = {
+		...proxyHeaders,
+		cookie,
+		"x-csrf-token": init.json().csrfToken,
+	};
+	for (const bad of [
+		{ origin: "https://evil.example" },
+		{ "x-csrf-token": "forged" },
+		{ "sec-fetch-site": "cross-site" },
+	]) {
+		const rejected = await app.inject({
+			method: "POST",
+			url: "/api/auth/login",
+			remoteAddress: "10.89.0.2",
+			headers: { ...loginHeaders, ...bad },
+			payload: { password },
+		});
+		expect(rejected.statusCode).toBe(403);
+	}
+	const login = await app.inject({
+		method: "POST",
+		url: "/api/auth/login",
+		remoteAddress: "10.89.0.2",
+		headers: loginHeaders,
+		payload: { password },
+	});
+	expect(login.statusCode, login.body).toBe(200);
+	expect(login.headers["set-cookie"]).toContain("Secure");
+	const rotated = login.cookies
+		.map((item) => `${item.name}=${encodeURIComponent(item.value)}`)
+		.join("; ");
+	expect(rotated).not.toBe(cookie);
+	const authenticated = await app.inject({
+		url: "/api/settings",
+		remoteAddress: "10.89.0.2",
+		headers: { ...proxyHeaders, cookie: rotated },
+	});
+	expect(authenticated.statusCode).toBe(200);
+	const outside = await app.inject({
+		url: "/api/auth/session",
+		remoteAddress: "10.90.0.2",
+		headers: proxyHeaders,
+	});
+	expect(outside.headers["set-cookie"]).toBeUndefined();
+});
+
+test("missing HTTPS transport trust logs an actionable warning without secrets", async () => {
+	const lines: string[] = [];
+	const logger = pino(
+		{ level: "warn" },
+		{
+			write: (line) => {
+				lines.push(line);
+			},
+		},
+	);
+	const { app } = await application("", true, logger);
+	await app.inject({
+		url: "/api/auth/session",
+		remoteAddress: "10.89.0.2",
+		headers: { host: "example.com", "x-forwarded-proto": "https" },
+	});
+	expect(lines.map((line) => JSON.parse(line))).toContainEqual(
+		expect.objectContaining({ event: "auth.session_transport_untrusted" }),
+	);
 });
