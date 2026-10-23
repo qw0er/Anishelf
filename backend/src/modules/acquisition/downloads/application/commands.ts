@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { DomainError } from "../../../shared/errors.js";
-import { conflict } from "../downloads/application/context.js";
-import type { AcquisitionContext } from "./context.js";
+import { DomainError } from "../../../../shared/errors.js";
+import type { DownloadApplicationContext } from "./context.js";
+import { conflict } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
 
 export class DownloadCommands {
 	constructor(
-		private readonly context: AcquisitionContext,
+		private readonly context: DownloadApplicationContext,
 		private readonly destination: DownloadDestinationSettings,
 	) {}
 	retry(

@@ -1,10 +1,18 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import { expect, test } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
+
+const migrationCount: number = JSON.parse(
+	readFileSync(
+		new URL("../migrations/meta/_journal.json", import.meta.url),
+		"utf8",
+	),
+).entries.length;
 
 test("upgrades normalized metadata without losing ordered payloads, failures, pins or Catalog references", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-metadata-upgrade-"));
@@ -269,7 +277,7 @@ test("upgrades normalized metadata without losing ordered payloads, failures, pi
 				inspected
 					.prepare("SELECT count(*) AS count FROM __drizzle_migrations")
 					.get(),
-			).toEqual({ count: 4 });
+			).toEqual({ count: migrationCount });
 		} finally {
 			inspected.close();
 		}

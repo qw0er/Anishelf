@@ -1,9 +1,5 @@
 import type { Store } from "../../../../platform/database/store.js";
-import type {
-	DownloadAuthorization,
-	DownloadDestination,
-	DownloadIntent,
-} from "../domain/model.js";
+import type { DownloadDestination, DownloadIntent } from "../domain/model.js";
 import * as s from "./schema.js";
 
 export function readAcquisitionDestination(
@@ -39,42 +35,6 @@ export function writeAcquisitionDestination(
 			.insert(s.acquisitionDestination)
 			.values(row0)
 			.onConflictDoUpdate({ target: s.acquisitionDestination.id, set: row0 })
-			.run();
-	});
-}
-
-export function readAcquisitionAuthorizations(
-	_store: Store,
-	row: typeof s.acquisitionAuthorizations.$inferSelect,
-): DownloadAuthorization {
-	return {
-		workKey: row.workKey,
-		feedId: row.feedId,
-		startEpisode: row.startEpisode,
-		destinationRevision: row.destinationRevision,
-		connectionGeneration: row.connectionGeneration,
-	} as DownloadAuthorization;
-}
-
-export function writeAcquisitionAuthorizations(
-	connection: Store,
-	value: DownloadAuthorization,
-): void {
-	connection.transaction((store) => {
-		const row0 = {
-			workKey: value?.workKey,
-			feedId: value?.feedId,
-			startEpisode: value?.startEpisode,
-			destinationRevision: value?.destinationRevision,
-			connectionGeneration: value?.connectionGeneration,
-		};
-		store
-			.insert(s.acquisitionAuthorizations)
-			.values(row0)
-			.onConflictDoUpdate({
-				target: s.acquisitionAuthorizations.workKey,
-				set: row0,
-			})
 			.run();
 	});
 }

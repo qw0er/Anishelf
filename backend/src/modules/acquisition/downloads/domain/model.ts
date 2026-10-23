@@ -48,14 +48,8 @@ export interface DownloadIntent {
 	sourceIdentity: SourceIdentity | null;
 	lastCommand: { id: string; kind: "acquisition" | "import" } | null;
 }
-export interface DownloadAuthorization {
-	workKey: string;
-	feedId: string;
-	startEpisode: number;
-	destinationRevision: string;
-	connectionGeneration: string;
-}
 export interface DownloadActivity {
+	planningError?: string | null;
 	authorized: boolean;
 	destination: string | null;
 	items: Omit<

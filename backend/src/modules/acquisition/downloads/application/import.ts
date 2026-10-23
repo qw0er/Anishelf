@@ -1,12 +1,14 @@
 import { posix } from "node:path";
-import type { DownloadExecution } from "../downloads/application/context.js";
-import { DownloadError } from "../downloads/domain/model.js";
-import { relativeDownloadPath } from "../downloads/domain/paths.js";
-import type { CompletedDownload } from "../downloads/public.js";
-import type { AcquisitionContext } from "./context.js";
+import { DownloadError } from "../domain/model.js";
+import { relativeDownloadPath } from "../domain/paths.js";
+import type { CompletedDownload } from "../public.js";
+import type {
+	DownloadApplicationContext,
+	DownloadExecution,
+} from "./context.js";
 
 export class CompletedDownloadIngestion {
-	constructor(private readonly context: AcquisitionContext) {}
+	constructor(private readonly context: DownloadApplicationContext) {}
 	async run(execution: DownloadExecution, completed: CompletedDownload) {
 		let item = execution.current;
 		if (["review", "failed"].includes(item.ingestion)) return;

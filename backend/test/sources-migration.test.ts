@@ -8,13 +8,13 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import pino from "pino";
 import { expect, test } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
-import {
-	writeAcquisitionCandidates,
-	writeAcquisitionSubscriptions,
-} from "../src/modules/acquisition/discovery/infrastructure/records.js";
 import { writeAcquisitionIntents } from "../src/modules/acquisition/downloads/infrastructure/records.js";
 import { SourceDownloads } from "../src/modules/acquisition/sources/downloads.js";
 import { writeAcquisitionFeeds } from "../src/modules/acquisition/sources/infrastructure/records.js";
+import {
+	writeAcquisitionCandidates,
+	writeAcquisitionSubscriptions,
+} from "../src/modules/acquisition/subscriptions/infrastructure/records.js";
 
 test("upgrades the previous lifecycle schema without losing subscriptions, candidates, validators or accepted URL intents", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-source-upgrade-"));

@@ -1,15 +1,12 @@
 import { randomUUID } from "node:crypto";
-import {
-	DownloadError,
-	type DownloadIntent,
-} from "../downloads/domain/model.js";
-import { workDirectory } from "../downloads/domain/paths.js";
-import type { AcquisitionContext } from "./context.js";
+import { DownloadError, type DownloadIntent } from "../domain/model.js";
+import { workDirectory } from "../domain/paths.js";
+import type { DownloadApplicationContext } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
 
 export class DownloadPlanning {
 	constructor(
-		private readonly context: AcquisitionContext,
+		private readonly context: DownloadApplicationContext,
 		private readonly destination: DownloadDestinationSettings,
 	) {}
 	private readonly failures = new Map<
@@ -108,11 +105,14 @@ export class DownloadPlanning {
 							"Download intent reserved.",
 						);
 				}
-				this.context.options.selection.reservationOutcome(subscription, false);
 				this.failures.delete(subscription.workKey);
+				this.context.planningErrors.delete(subscription.workKey);
 			} catch (error) {
 				if (this.context.signal.aborted) return;
-				this.context.options.selection.reservationOutcome(subscription, true);
+				this.context.planningErrors.set(
+					subscription.workKey,
+					"acquisition_unavailable",
+				);
 				const attempts = (throttle?.attempts ?? 0) + 1;
 				this.failures.set(subscription.workKey, {
 					attempts,
@@ -124,7 +124,7 @@ export class DownloadPlanning {
 						workKey: subscription.workKey,
 						code: error instanceof DownloadError ? error.code : "unavailable",
 					},
-					"Could not reserve acquisition; discovery will retry.",
+					"Could not reserve acquisition; download planning will retry.",
 				);
 			}
 		}

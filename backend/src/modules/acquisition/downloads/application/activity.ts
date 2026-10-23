@@ -1,12 +1,12 @@
 import { posix } from "node:path";
-import { DomainError } from "../../../shared/errors.js";
-import { downloadPolicy as policy } from "../downloads/application/policy.js";
-import type { DownloadActivity } from "../downloads/domain/model.js";
-import type { AcquisitionContext } from "./context.js";
+import { DomainError } from "../../../../shared/errors.js";
+import type { DownloadActivity } from "../domain/model.js";
+import type { DownloadApplicationContext } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
+import { downloadPolicy as policy } from "./policy.js";
 export class DownloadActivityQueries {
 	constructor(
-		private readonly context: AcquisitionContext,
+		private readonly context: DownloadApplicationContext,
 		private readonly destination: DownloadDestinationSettings,
 	) {}
 	activity(workKey: string, page = 1): DownloadActivity {
@@ -22,6 +22,9 @@ export class DownloadActivityQueries {
 		const directory = this.context.options.store.directory(workKey),
 			destination = this.context.options.store.destination();
 		return {
+			planningError: subscription?.enabled
+				? (this.context.planningErrors.get(workKey) ?? null)
+				: null,
 			authorized: Boolean(
 				subscription && this.destination.authorized(subscription),
 			),
@@ -52,7 +55,11 @@ export class DownloadActivityQueries {
 				.candidates(workKey)
 				.filter((candidate) => result.candidateIds.includes(candidate.id))
 				.map((candidate) => candidate.id),
-			attention: result.attention,
+			attention:
+				result.attention +
+				(subscription?.enabled && this.context.planningErrors.has(workKey)
+					? 1
+					: 0),
 			active: result.active,
 			page,
 		};

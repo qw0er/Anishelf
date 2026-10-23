@@ -1,12 +1,11 @@
 import type { Store } from "../../platform/database/store.js";
-import { DiscoveryRepository } from "./discovery/infrastructure/repository.js";
+import { SubscriptionRepository } from "./subscriptions/infrastructure/repository.js";
 
 export {
 	acquisitionCandidates,
 	acquisitionSubscriptions,
-} from "./discovery/infrastructure/schema.js";
+} from "./subscriptions/infrastructure/schema.js";
 
-import type { DiscoveryStore } from "./discovery/ports.js";
 import {
 	type FeedRecord,
 	type ManagedSource,
@@ -15,16 +14,16 @@ import {
 	SourceRepository,
 	type SourceStore,
 } from "./sources/persistence.js";
+import type { SubscriptionStore } from "./subscriptions/ports.js";
 
-/** Shared-connection facade keeps subscription confirmation atomic. */
-export type AcquisitionStore = DiscoveryStore &
+/** Shared-connection facade keeps subscription saves and refresh publication atomic. */
+export type AcquisitionStore = SubscriptionStore &
 	SourceStore &
 	SourceLifecycleStore;
 export function createAcquisitionPersistence(store: Store) {
 	return new AcquisitionRepository(store);
 }
 
-export * from "./downloads/infrastructure/schema.js";
 export type { DownloadStore } from "./downloads/public.js";
 
 import { DownloadRepository } from "./downloads/infrastructure/repository.js";
@@ -32,15 +31,13 @@ export function createDownloadPersistence(store: Store) {
 	return new DownloadRepository(store);
 }
 
-export * from "./discovery/infrastructure/schema.js";
-
 export * from "./downloads/infrastructure/schema.js";
-
 export * from "./sources/persistence.js";
+export * from "./subscriptions/persistence.js";
 
-/** Source and Discovery repositories participate in the same admission transaction. */
+/** Source and Subscription repositories participate in the same admission transaction. */
 class AcquisitionRepository
-	extends DiscoveryRepository
+	extends SubscriptionRepository
 	implements SourceStore, SourceLifecycleStore
 {
 	private readonly sourceRepository: SourceRepository;

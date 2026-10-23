@@ -30,14 +30,13 @@ export class SourcesApplication implements SourcesApi {
 	private readonly downloads: SourceDownloads;
 	private readonly prepared = new WeakMap<
 		SourceSnapshot,
-		{ record: SourceRecord; removal: number; previousRevision: string | null }
+		{ record: SourceRecord; previousRevision: string | null }
 	>();
 	private readonly references = new WeakMap<SourceReference, JackettPlan>();
 	private readonly queryResults = new WeakMap<
 		SourceRecord,
-		{ plan: JackettPlan; previousRevision: string | null; removal: number }
+		{ plan: JackettPlan; previousRevision: string | null }
 	>();
-	private readonly removals = new Map<string, number>();
 	private readonly searching = new Map<string, Promise<SourceRecord>>();
 	private scheduler: SourceScheduler | undefined;
 	private closing: Promise<void> | undefined;
@@ -76,13 +75,11 @@ export class SourcesApplication implements SourcesApi {
 	}
 	async refresh(reference: SourceReference): Promise<SourceSnapshot> {
 		this.context.open();
-		const removal = this.removals.get(reference.id) ?? 0;
 		const previousRevision = this.record(reference.id)?.revision ?? null;
 		const record = await this.prepare(reference);
 		const result = this.project(record);
 		this.prepared.set(result, {
 			record,
-			removal,
 			previousRevision,
 		});
 		return result;
@@ -92,7 +89,6 @@ export class SourcesApplication implements SourcesApi {
 		const prepared = this.prepared.get(result);
 		return Boolean(
 			prepared &&
-				prepared.removal === (this.removals.get(result.id) ?? 0) &&
 				((this.record(result.id)?.revision ?? null) ===
 					prepared.previousRevision ||
 					this.record(result.id)?.revision === result.revision) &&
@@ -125,57 +121,38 @@ export class SourcesApplication implements SourcesApi {
 		return this.downloads.isCurrent(reference);
 	}
 
-	register(reference: SourceReference) {
+	bind(reference: SourceReference) {
 		this.context.open();
 		const plan = this.references.get(reference);
 		if (plan) this.options.jackett?.plan(plan);
-
-		const previous = this.options.store.source(reference.id);
 		const binding = plan
 			? { kind: "jackett" as const, plan }
 			: { kind: "rss" as const, url: this.rss.configuration(reference) };
-		this.options.store.saveSource(
-			previous
-				? { ...previous, enabled: true }
-				: {
-						id: reference.id,
-						binding,
-						enabled: true,
-						failures: 0,
-						snapshot: null,
-					},
-		);
-		this.options.logger.info(
-			{ event: "acquisition.source_registered", sourceId: reference.id },
-			"Recurring source evidence collection enabled.",
-		);
-	}
-	setEnabled(id: string, enabled: boolean) {
-		this.context.open();
-		const source = this.options.store.source(id);
-		if (!source) throw new SourceError("source_missing");
-		if (enabled && source.binding.kind === "jackett") {
-			if (!this.options.jackett) throw new SourceError("source_unconfigured");
-			this.options.jackett.plan(source.binding.plan);
-		}
-		this.options.store.saveSource({ ...source, enabled });
-		this.options.logger.info(
-			{ event: "acquisition.source_enabled", sourceId: id, enabled },
-			"Source collection state updated.",
+		if (this.options.store.source(reference.id)) return;
+		this.options.store.saveSource({
+			id: reference.id,
+			binding,
+			enabled: false,
+			failures: 0,
+			snapshot: {
+				id: reference.id,
+				revision: randomUUID(),
+				label:
+					binding.kind === "jackett"
+						? binding.plan.indexerId
+						: new URL(binding.url).origin,
+				entries: [],
+				checkedAt: null,
+				nextAttemptAt: 0,
+				error: null,
+			},
+		});
+		this.options.logger.debug(
+			{ event: "acquisition.source_bound", sourceId: reference.id },
+			"Source binding saved without network access.",
 		);
 	}
-	remove(id: string) {
-		this.context.open();
-		const source = this.options.store.source(id);
-		if (source) this.options.store.saveSource({ ...source, enabled: false });
-		this.removals.set(id, (this.removals.get(id) ?? 0) + 1);
-		this.options.logger.info(
-			{ event: "acquisition.source_removed", sourceId: id },
-			"Recurring source management released; evidence retained.",
-		);
-	}
-
-	/** Configuration entry used by composition, never by Discovery. No I/O or writes. */
+	/** Configuration entry used by composition, never by Subscriptions. No I/O or writes. */
 	rssReference(input: string): SourceReference {
 		return this.rss.createReference(input);
 	}
@@ -205,7 +182,6 @@ export class SourcesApplication implements SourcesApi {
 		if (pending) return pending;
 		if (this.searching.size >= 2)
 			return Promise.reject(new SourceError("source_busy"));
-		const removal = this.removals.get(reference.id) ?? 0;
 		const previousRevision =
 			this.options.store.source(reference.id)?.snapshot?.revision ?? null;
 		const task = (async () => {
@@ -233,7 +209,7 @@ export class SourcesApplication implements SourcesApi {
 				coverage: Object.freeze(result.coverage),
 				outcome: result.outcome,
 			});
-			this.queryResults.set(snapshot, { plan, previousRevision, removal });
+			this.queryResults.set(snapshot, { plan, previousRevision });
 			return snapshot;
 		})();
 		this.searching.set(reference.id, task);
@@ -263,7 +239,6 @@ export class SourcesApplication implements SourcesApi {
 		if (prepared)
 			return (
 				!this.context.signal.aborted &&
-				prepared.removal === (this.removals.get(result.id) ?? 0) &&
 				Boolean(this.options.jackett?.current(prepared.plan.generation)) &&
 				((this.options.store.source(result.id)?.snapshot?.revision ?? null) ===
 					prepared.previousRevision ||
@@ -344,15 +319,7 @@ export class SourcesApplication implements SourcesApi {
 		this.scheduler = new SourceScheduler(
 			this.context,
 			this.options.logger,
-			() => [
-				...new Set([
-					...activeIds(),
-					...this.options.store
-						.sources()
-						.filter((source) => source.enabled)
-						.map((source) => source.id),
-				]),
-			],
+			activeIds,
 			(id) => {
 				const source = this.options.store.source(id);
 				const snapshot = this.record(id);
@@ -386,56 +353,8 @@ export class SourcesApplication implements SourcesApi {
 				return { id, nextAttemptAt };
 			},
 			async (id) => {
-				if (activeIds().includes(id)) {
-					const snapshot = this.snapshot(id);
-					if (snapshot) await poll(snapshot);
-					return;
-				}
-				const previous = this.snapshot(id);
-				const removal = this.removals.get(id) ?? 0;
-				try {
-					const result = await this.refresh(this.reference(id));
-					if (!this.options.store.source(id)?.enabled) return;
-					this.publish(result);
-				} catch (error) {
-					if (
-						this.context.signal.aborted ||
-						removal !== (this.removals.get(id) ?? 0) ||
-						!this.options.store.source(id)?.enabled
-					)
-						return;
-					const retryAt =
-						error instanceof SourceError ? error.retryAt : undefined;
-					const code =
-						error instanceof SourceError ? error.code : "upstream_failure";
-					if (previous) this.failed(previous, code, retryAt);
-					else if (!this.record(id)) {
-						const source = this.options.store.source(id);
-						if (source?.enabled && !source.snapshot) {
-							const failures = source.failures + 1;
-							this.options.store.saveSource({
-								...source,
-								failures,
-								snapshot: {
-									id,
-									revision: randomUUID(),
-									label:
-										source.binding.kind === "jackett"
-											? source.binding.plan.indexerId
-											: new URL(source.binding.url).origin,
-									entries: [],
-									checkedAt: null,
-									error: code,
-									nextAttemptAt: this.context.retryAt(failures, retryAt),
-								},
-							});
-						}
-					}
-					this.options.logger.warn(
-						{ event: "acquisition.source_refresh_failed", sourceId: id, code },
-						"Managed source will retry.",
-					);
-				}
+				const snapshot = this.snapshot(id);
+				if (snapshot) await poll(snapshot);
 			},
 		);
 		this.scheduler.start();

@@ -1,18 +1,18 @@
-import { downloadPolicy as policy } from "../downloads/application/policy.js";
-import type { AcquisitionContext } from "./context.js";
+import type { DownloadApplicationContext } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
-import type { AcquisitionReconciliation } from "./reconciliation.js";
+import { downloadPolicy as policy } from "./policy.js";
+import type { DownloadReconciliation } from "./reconciliation.js";
 import type { DownloadPlanning } from "./reservations.js";
 
 /** Owns serial ticks, bounded batches and shutdown; stages own business decisions. */
-export class AcquisitionWorker {
+export class DownloadWorker {
 	private timer: ReturnType<typeof setTimeout> | undefined;
 	private running: Promise<void> | undefined;
 	private started = false;
 	constructor(
-		private readonly context: AcquisitionContext,
+		private readonly context: DownloadApplicationContext,
 		private readonly reservations: DownloadPlanning,
-		private readonly reconciliation: AcquisitionReconciliation,
+		private readonly reconciliation: DownloadReconciliation,
 		private readonly destination: DownloadDestinationSettings,
 	) {}
 	tick(): Promise<void> {

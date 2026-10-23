@@ -38,6 +38,7 @@ export const DownloadRetrySchema = Type.Object(
 	{ additionalProperties: false },
 );
 export const DownloadActivitySchema = Type.Object({
+	planningError: Type.Optional(nullableString),
 	authorized: Type.Boolean(),
 	destination: nullableString,
 	page: Type.Integer(),

@@ -1,7 +1,15 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
+import type { AnimeApi, ReleaseAssessmentApi } from "../../../anime/public.js";
+import type { AcquisitionResources } from "../../../resources/public.js";
 import type { QbittorrentApi } from "../../qbittorrent/public.js";
+import type { ReleaseEvidence } from "../../sources/public.js";
+import type {
+	Candidate,
+	Subscription,
+	SubscriptionAuthorization,
+} from "../../subscriptions/public.js";
 import type { DownloadIntent } from "../domain/model.js";
 import type { DownloadStore, TorrentReader } from "../ports.js";
 import { downloadPolicy as policy } from "./policy.js";
@@ -9,7 +17,7 @@ import { downloadPolicy as policy } from "./policy.js";
 export function conflict(): never {
 	throw new DomainError(
 		"ACQUISITION_CONFLICT",
-		"Acquisition settings or scope changed. Preview again.",
+		"Acquisition settings or scope changed. Refresh and retry.",
 	);
 }
 export interface DownloadOptions {
@@ -23,11 +31,35 @@ export interface DownloadOptions {
 	logger: Logger;
 	now?: () => number;
 }
+/** Read-only subscription capabilities; task failures remain owned by Downloads. */
+interface DownloadSelection {
+	subscription(workKey: string): Subscription | null;
+	subscriptions(): Subscription[];
+	candidates(workKey: string): Candidate[];
+	release(
+		feedId: string,
+		entryId: string,
+	): Pick<ReleaseEvidence, "download" | "hash"> | null;
+	authorization(workKey: string): SubscriptionAuthorization | null;
+}
+
+export interface DownloadApplicationOptions extends DownloadOptions {
+	initializeBundled?: () => Promise<boolean>;
+	store: DownloadStore;
+	selection: DownloadSelection;
+	resources: AcquisitionResources;
+	anime: ReleaseAssessmentApi;
+	ingestion: NonNullable<AnimeApi["ingestion"]>;
+}
+export type DownloadApplicationContext =
+	DownloadContext<DownloadApplicationOptions>;
+
 /** Shared lifetime and the only revision-checked intent writer. */
-export class DownloadContext {
+export class DownloadContext<T extends DownloadOptions = DownloadOptions> {
+	readonly planningErrors = new Map<string, string>();
 	readonly shutdown = new AbortController();
 	readonly pending = new Set<Promise<unknown>>();
-	constructor(readonly options: DownloadOptions) {}
+	constructor(readonly options: T) {}
 	get signal(): AbortSignal {
 		return this.shutdown.signal;
 	}

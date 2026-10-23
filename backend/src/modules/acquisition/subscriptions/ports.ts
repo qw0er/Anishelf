@@ -1,7 +1,13 @@
-import type { Candidate, Subscription } from "./domain/model.js";
-export interface DiscoveryStore {
+import type {
+	Candidate,
+	Subscription,
+	SubscriptionAuthorization,
+} from "./domain/model.js";
+export interface SubscriptionStore {
 	transaction(operation: () => void): void;
-	reservationOutcome(subscription: Subscription, failed: boolean): void;
+	authorization(workKey: string): SubscriptionAuthorization | null;
+	authorize(value: SubscriptionAuthorization): void;
+	revoke(workKey: string): void;
 	subscription(workKey: string): Subscription | null;
 	subscriptions(): Subscription[];
 	candidates(workKey: string): Candidate[];

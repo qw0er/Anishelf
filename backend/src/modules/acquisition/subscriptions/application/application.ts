@@ -2,12 +2,11 @@ import { randomUUID } from "node:crypto";
 import { DomainError } from "../../../../shared/errors.js";
 import { workReference } from "../../../../shared/external-reference.js";
 import type { AcquisitionTarget } from "../../../anime/public.js";
-import { SourceError, type SourceSnapshot } from "../../sources/public.js";
+import type { SourceSnapshot } from "../../sources/public.js";
 import type {
 	Candidate,
-	PreviewInput,
+	SaveSubscriptionInput,
 	Subscription,
-	SubscriptionPreview,
 	SubscriptionView,
 } from "../domain/model.js";
 import {
@@ -16,38 +15,26 @@ import {
 	defaultAcquisitionProfileId,
 } from "../domain/profiles.js";
 import { selectCandidates } from "../domain/selection.js";
-import type { DiscoveryApi } from "../public.js";
-import { DiscoveryContext, type DiscoveryOptions } from "./context.js";
-import { discoveryPolicy as policy } from "./policy.js";
-import { DiscoveryWorker } from "./worker.js";
+import type { SubscriptionsApi } from "../public.js";
+import { SubscriptionsContext, type SubscriptionsOptions } from "./context.js";
+import { subscriptionPolicy as policy } from "./policy.js";
+import { SubscriptionWorker } from "./worker.js";
 
 function conflict(): never {
 	throw new DomainError(
 		"ACQUISITION_CONFLICT",
-		"Subscription or preview changed. Preview again.",
+		"Subscription changed. Refresh and retry.",
 	);
 }
-interface Preview {
-	profileFingerprint: string;
-	downloadRevision: string | null;
-	session: string;
-	input: PreviewInput;
-	feed: SourceSnapshot;
-	candidates: Candidate[];
-	targetRevision: string;
-	expiresAt: number;
-}
-export class DiscoveryApplication implements DiscoveryApi {
-	private readonly context: DiscoveryContext;
-	private readonly worker: DiscoveryWorker;
-	private readonly previews = new Map<string, Preview>();
-	private preparing = 0;
-	constructor(private readonly options: DiscoveryOptions) {
-		this.context = new DiscoveryContext(options);
-		this.worker = new DiscoveryWorker(
+export class SubscriptionsApplication implements SubscriptionsApi {
+	private readonly context: SubscriptionsContext;
+	private readonly worker: SubscriptionWorker;
+	constructor(private readonly options: SubscriptionsOptions) {
+		this.context = new SubscriptionsContext(options);
+		this.worker = new SubscriptionWorker(
 			this.context,
 			(subscription, feed, target) =>
-				this.evaluateFeedCandidates(subscription, feed, target),
+				this.evaluateCandidates(subscription, feed, target),
 		);
 	}
 	private key(value: string) {
@@ -111,35 +98,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 			page,
 		};
 	}
-	preview(session: string, input: PreviewInput) {
-		return this.context.tracked(async () => {
-			if (this.preparing >= 2)
-				throw new DomainError(
-					"ACQUISITION_UNAVAILABLE",
-					"Source previews are busy.",
-				);
-			this.preparing++;
-			try {
-				return await this.preparePreview(session, input);
-			} catch (error) {
-				if (!(error instanceof SourceError)) throw error;
-				this.options.logger.warn(
-					{ event: "acquisition.preview_failed", code: error.code },
-					"Source preview could not be read.",
-				);
-				throw new DomainError(
-					"ACQUISITION_UNAVAILABLE",
-					"Source preview could not be read.",
-				);
-			} finally {
-				this.preparing--;
-			}
-		});
-	}
-	private async preparePreview(
-		session: string,
-		input: PreviewInput,
-	): Promise<SubscriptionPreview> {
+	async save(input: SaveSubscriptionInput): Promise<SubscriptionView> {
 		this.key(input.workKey);
 		if (
 			!Number.isSafeInteger(input.startEpisode) ||
@@ -149,144 +108,89 @@ export class DiscoveryApplication implements DiscoveryApi {
 			throw new DomainError("INVALID_REQUEST", "Invalid starting episode.");
 		const current = this.options.store.subscription(input.workKey);
 		if ((current?.revision ?? null) !== input.revision) conflict();
-		if (!input.source && !current)
-			throw new DomainError("INVALID_REQUEST", "Choose a source.");
-		for (const [token, preview] of this.previews)
-			if (preview.expiresAt <= this.context.now()) this.previews.delete(token);
-		if (this.previews.size >= policy.maximumPreviews)
+		if (
+			!current &&
+			this.options.store.subscriptions().length >= policy.maximumSubscriptions
+		)
 			throw new DomainError(
 				"ACQUISITION_UNAVAILABLE",
-				"Too many pending previews.",
+				"Subscription limit reached.",
 			);
-		const source =
-			input.source ?? this.options.sources.reference(current?.feedId ?? "");
-		const feed = await this.options.sources.refresh(source);
-		const target = await this.options.anime.target(
-			input.workKey,
-			this.context.signal,
-		);
 		const profileId = input.profileId ?? null;
-		const resolvedId = profileId ?? this.profiles().selectedProfileId;
-		const selectedProfile = (
-			this.options.profiles ?? builtinAcquisitionProfiles
-		).find((profile) => profile.id === resolvedId);
-		if (!selectedProfile)
+		if (
+			!(this.options.profiles ?? builtinAcquisitionProfiles).some(
+				(profile) =>
+					profile.id === (profileId ?? this.profiles().selectedProfileId),
+			)
+		)
 			throw new DomainError(
 				"INVALID_REQUEST",
 				"The acquisition profile is unavailable. Choose an existing profile.",
 			);
-		const prospective: Subscription = {
-			profileId,
+		if (!input.source && !current)
+			throw new DomainError("INVALID_REQUEST", "Choose a source.");
+		const source =
+			input.source ?? this.options.sources.reference(current?.feedId ?? "");
+		const target = input.target;
+		const destination = this.options.downloadTarget?.();
+		if (
+			target &&
+			(!destination?.validated ||
+				destination.revision !== target.destinationRevision ||
+				destination.connectionGeneration !== target.connectionGeneration)
+		)
+			throw new DomainError(
+				"ACQUISITION_CONFLICT",
+				"Configure and validate the current download destination, then save again.",
+			);
+		const subscription: Subscription = {
 			workKey: input.workKey,
-			feedId: feed.id,
+			feedId: source.id,
 			startEpisode: input.startEpisode,
-			revision: current?.revision ?? randomUUID(),
+			profileId,
 			enabled: true,
+			revision: randomUUID(),
 		};
-		const candidates = await this.evaluateFeedCandidates(
-			prospective,
-			feed,
-			target,
-		);
-		this.context.open();
-		const token = randomUUID(),
-			expiresAt = this.context.now() + policy.previewLifetimeMs;
-		const download =
-			this.options.downloadPreview?.(input.workKey, target) ?? null;
-		this.previews.set(token, {
-			profileFingerprint: acquisitionProfileFingerprint(selectedProfile),
-			downloadRevision: download?.revision ?? null,
-			session,
-			input: { ...input },
-			feed,
-			candidates,
-			targetRevision: target.revision,
-			expiresAt,
-		});
-		return {
-			token,
-			expiresAt,
-			source: feed.label,
-			startEpisode: input.startEpisode,
-			availableEpisodes: target.availableEpisodes,
-			knownEpisodeCount: target.work.episodeCount,
-			downloadDestination: download?.path ?? null,
-			candidates: candidates.slice(0, policy.pageSize),
-			total: candidates.length,
-		};
-	}
-	confirm(session: string, workKey: string, token: string) {
-		return this.context.tracked(async () => {
-			const preview = this.previews.get(token);
-			if (
-				!preview ||
-				preview.session !== session ||
-				preview.input.workKey !== workKey ||
-				preview.expiresAt <= this.context.now()
-			)
-				conflict();
-			const target = await this.options.anime.target(
-				workKey,
-				this.context.signal,
-			);
-			this.context.open();
-			const current = this.options.store.subscription(workKey);
-			const profile = (
-				this.options.profiles ?? builtinAcquisitionProfiles
-			).find(
-				(profile) =>
-					profile.id ===
-					(preview.input.profileId ?? this.profiles().selectedProfileId),
-			);
-			if (
-				!profile ||
-				acquisitionProfileFingerprint(profile) !== preview.profileFingerprint
-			)
-				conflict();
-			if (
-				(current?.revision ?? null) !== preview.input.revision ||
-				target.revision !== preview.targetRevision ||
-				!this.options.sources.isCurrent(preview.feed)
-			)
-				conflict();
-			if (
-				!current &&
-				this.options.store.subscriptions().length >= policy.maximumSubscriptions
-			)
-				throw new DomainError(
-					"ACQUISITION_UNAVAILABLE",
-					"Subscription limit reached.",
+		try {
+			this.options.store.transaction(() => {
+				this.options.sources.bind(source);
+				// Preserve existing selection clocks on a configuration edit; changed profiles are fenced until reevaluation.
+				this.options.store.saveSubscription(
+					subscription,
+					current?.feedId === source.id
+						? this.options.store.candidates(input.workKey)
+						: [],
 				);
-			const download = this.options.downloadPreview?.(workKey, target) ?? null;
-			if ((download?.revision ?? null) !== preview.downloadRevision) conflict();
-			const subscription = {
-				workKey,
-				feedId: preview.feed.id,
-				startEpisode: preview.input.startEpisode,
-				profileId: preview.input.profileId ?? null,
-				enabled: true,
-				revision: randomUUID(),
-			};
-			this.options.confirmation.commit(
-				subscription,
-				preview.downloadRevision,
-				() => {
-					if (!this.options.sources.isCurrent(preview.feed)) conflict();
-					this.options.sources.publish(preview.feed);
-					this.options.store.saveSubscription(subscription, preview.candidates);
-				},
-			);
-			this.previews.delete(token);
-			this.options.logger.info(
+				if (target)
+					this.options.store.authorize({
+						workKey: subscription.workKey,
+						feedId: source.id,
+						startEpisode: subscription.startEpisode,
+						...target,
+					});
+				else this.options.store.revoke(subscription.workKey);
+			});
+		} catch (error) {
+			this.options.logger.warn(
 				{
-					event: "acquisition.subscription_saved",
-					feedId: preview.feed.id,
-					revision: subscription.revision,
+					event: "acquisition.subscription_save_failed",
+					workKey: input.workKey,
 				},
-				"Subscription enabled.",
+				"Subscription and permission were rolled back.",
 			);
-			return this.get(workKey);
-		});
+			throw error;
+		}
+		this.options.logger.info(
+			{
+				event: "acquisition.subscription_saved",
+				workKey: subscription.workKey,
+				sourceId: source.id,
+				revision: subscription.revision,
+				acquisitionEnabled: Boolean(target),
+			},
+			"Subscription saved; source collection will run in the background.",
+		);
+		return this.get(input.workKey);
 	}
 	async setEnabled(workKey: string, revision: string, enabled: boolean) {
 		this.key(workKey);
@@ -325,12 +229,12 @@ export class DiscoveryApplication implements DiscoveryApi {
 				this.context.now() - feed.checkedAt < 30_000
 			)
 				return this.get(workKey);
-			await this.worker.pollFeed(feed);
+			await this.worker.pollSource(feed);
 			return this.get(workKey);
 		});
 	}
 
-	private async evaluateFeedCandidates(
+	private async evaluateCandidates(
 		subscription: Subscription,
 		feed: SourceSnapshot,
 		target: AcquisitionTarget,
@@ -385,8 +289,8 @@ export class DiscoveryApplication implements DiscoveryApi {
 		}
 		return candidates;
 	}
-	/** Discovery owns the projection and reservation-result writes exposed to Downloads. */
-	acquisition() {
+	/** Subscriptions exposes read-only selection and permission capabilities to Downloads. */
+	selection() {
 		return {
 			subscription: (workKey: string) =>
 				this.options.store.subscription(workKey),
@@ -418,8 +322,7 @@ export class DiscoveryApplication implements DiscoveryApi {
 				this.options.sources
 					.snapshot(feedId)
 					?.entries.find((entry) => entry.id === entryId) ?? null,
-			reservationOutcome: (subscription: Subscription, failed: boolean) =>
-				this.options.store.reservationOutcome(subscription, failed),
+			authorization: (key: string) => this.options.store.authorization(key),
 		};
 	}
 	start() {
@@ -429,12 +332,11 @@ export class DiscoveryApplication implements DiscoveryApi {
 					.subscriptions()
 					.filter((subscription) => subscription.enabled)
 					.map((subscription) => subscription.feedId),
-			(feed) => this.worker.pollFeed(feed),
+			(feed) => this.worker.pollSource(feed),
 		);
 	}
 	async close() {
 		this.context.shutdown.abort();
 		await Promise.allSettled([...this.context.pending, this.worker.close()]);
-		this.previews.clear();
 	}
 }

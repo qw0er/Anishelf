@@ -43,21 +43,19 @@ export interface SubscriptionView {
 	total: number;
 	page: number;
 }
-export interface PreviewInput {
-	profileId?: string | null;
+export interface SubscriptionAuthorization {
+	workKey: string;
+	feedId: string;
+	startEpisode: number;
+	destinationRevision: string;
+	connectionGeneration: string;
+}
+export interface SaveSubscriptionInput {
 	workKey: string;
 	source: SourceReference | null;
 	startEpisode: number;
+	profileId?: string | null;
 	revision: string | null;
-}
-export interface SubscriptionPreview {
-	downloadDestination?: string | null;
-	token: string;
-	expiresAt: number;
-	source: string;
-	startEpisode: number;
-	availableEpisodes: number[];
-	knownEpisodeCount: number | null;
-	candidates: Candidate[];
-	total: number;
+	/** null explicitly saves a discovery-only subscription; HTTP activation requires a target. */
+	target: { destinationRevision: string; connectionGeneration: string } | null;
 }

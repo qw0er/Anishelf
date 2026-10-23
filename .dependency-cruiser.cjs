@@ -3,19 +3,25 @@ const implementation = `${modulePath}(?:(?:application|infrastructure|http)(?:/|
 module.exports = {
 	forbidden: [
 		{
+			name: "subscriptions-do-not-import-downloads",
+			severity: "error",
+			from: { path: "^backend/src/modules/acquisition/subscriptions/" },
+			to: { path: "^backend/src/modules/acquisition/downloads/" },
+		},
+		{
 			name: "acquisition-sources-do-not-import-business-consumers",
 			severity: "error",
 			from: { path: "^backend/src/modules/acquisition/sources/" },
 			to: {
-				path: "^backend/src/modules/acquisition/(?:discovery|downloads|workflows|watching|qbittorrent)/|^backend/src/modules/(?:anime|resources)/",
+				path: "^backend/src/modules/acquisition/(?:subscriptions|downloads|watching|qbittorrent)/|^backend/src/modules/(?:anime|resources)/",
 			},
 		},
 		{
-			name: "downloads-execution-does-not-import-business-workflows",
+			name: "download-transfers-do-not-import-business-consumers",
 			severity: "error",
-			from: { path: "^backend/src/modules/acquisition/downloads/application/" },
+			from: { path: "^backend/src/modules/acquisition/downloads/transfers/" },
 			to: {
-				path: "^backend/src/modules/(?:anime|resources)/|^backend/src/modules/acquisition/(?:discovery|workflows)/",
+				path: "^backend/src/modules/(?:anime|resources)/|^backend/src/modules/acquisition/(?:subscriptions)/",
 			},
 		},
 		{
@@ -106,7 +112,7 @@ module.exports = {
 			name: "backend-module-entry-points",
 			severity: "error",
 			from: {
-				path: "^backend/src/modules/([^/]+)/(?!composition/|workflows/)([^/]+)/",
+				path: "^backend/src/modules/([^/]+)/(?!composition/)([^/]+)/",
 			},
 			to: {
 				path: "^backend/src/modules/$1/(?!$2/)[^/]+/",

@@ -1,15 +1,15 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "vitest";
-import type { Candidate } from "../src/modules/acquisition/discovery/domain/model.js";
-import { matchesRelease } from "../src/modules/acquisition/discovery/domain/profile-matching.js";
+import type { ReleaseEvidence } from "../src/modules/acquisition/sources/public.js";
+import { parseRss } from "../src/modules/acquisition/sources/rss/public.js";
+import type { Candidate } from "../src/modules/acquisition/subscriptions/domain/model.js";
+import { matchesRelease } from "../src/modules/acquisition/subscriptions/domain/profile-matching.js";
 import {
 	type AcquisitionProfile,
 	builtinAcquisitionProfiles,
-} from "../src/modules/acquisition/discovery/domain/profiles.js";
-import { selectCandidates } from "../src/modules/acquisition/discovery/domain/selection.js";
-import { parseAcquisitionProfiles } from "../src/modules/acquisition/discovery/infrastructure/profiles.js";
-import type { ReleaseEvidence } from "../src/modules/acquisition/sources/public.js";
-import { parseRss } from "../src/modules/acquisition/sources/rss/public.js";
+} from "../src/modules/acquisition/subscriptions/domain/profiles.js";
+import { selectCandidates } from "../src/modules/acquisition/subscriptions/domain/selection.js";
+import { parseAcquisitionProfiles } from "../src/modules/acquisition/subscriptions/infrastructure/profiles.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../src/modules/anime/release-assessment/application.js";
@@ -382,19 +382,29 @@ test("persisted waiting and profile selection survive database/module restart an
 	let module = await create();
 	try {
 		expect(
-			module.api.discovery.profiles().profiles.map((profile) => profile.id),
+			module.api.subscriptions.profiles().profiles.map((profile) => profile.id),
 		).toContain("custom:any");
-		const preview = await module.api.discovery.preview("session", {
+		const stamp = {
+			revision: "target",
+			connectionGeneration: module.api.connection.settings().generation,
+			scopeId: "root",
+			path: "/downloads",
+			validated: true,
+			visibilityVerified: false,
+		};
+		database.acquisitionDownloads.saveDestination(stamp);
+		const subscription = await module.api.subscriptions.save({
 			workKey: "anilist:anime:1",
 			rssUrl: "https://example.org/rss",
 			startEpisode: 1,
 			revision: null,
 			profileId: "builtin:efficient",
+			destinationRevision: stamp.revision,
+			connectionGeneration: stamp.connectionGeneration,
 		});
-		const saved = await module.api.discovery.confirm(
-			"session",
+		const saved = await module.api.subscriptions.refresh(
 			"anilist:anime:1",
-			preview.token,
+			subscription.subscription?.revision ?? "",
 		);
 		expect(saved.candidates[0]?.reasons).toContain("waiting_for_level");
 		await module.close();
@@ -403,7 +413,7 @@ test("persisted waiting and profile selection survive database/module restart an
 		now += 180 * 60_000;
 		xml = null;
 		module = await create();
-		const refreshed = await module.api.discovery.refresh(
+		const refreshed = await module.api.subscriptions.refresh(
 			"anilist:anime:1",
 			saved.subscription?.revision ?? "",
 		);

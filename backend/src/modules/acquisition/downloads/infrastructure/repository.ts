@@ -12,22 +12,15 @@ import {
 	sql,
 } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import type {
-	DownloadAuthorization,
-	DownloadDestination,
-	DownloadIntent,
-} from "../domain/model.js";
+import type { DownloadDestination, DownloadIntent } from "../domain/model.js";
 import type { DownloadStore } from "../ports.js";
 import {
-	readAcquisitionAuthorizations,
 	readAcquisitionDestination,
 	readAcquisitionIntents,
-	writeAcquisitionAuthorizations,
 	writeAcquisitionDestination,
 	writeAcquisitionIntents,
 } from "./records.js";
 import {
-	acquisitionAuthorizations as authorizations,
 	acquisitionDestination as destination,
 	acquisitionDirectories as directories,
 	acquisitionIntents as intents,
@@ -42,17 +35,6 @@ export class DownloadRepository implements DownloadStore {
 	}
 	saveDestination(data: DownloadDestination) {
 		writeAcquisitionDestination(this.store, { ...data, id: "default" });
-	}
-	authorization(workKey: string) {
-		const row = this.store
-			.select()
-			.from(authorizations)
-			.where(eq(authorizations.workKey, workKey))
-			.get();
-		return row ? readAcquisitionAuthorizations(this.store, row) : null;
-	}
-	authorize(data: DownloadAuthorization) {
-		writeAcquisitionAuthorizations(this.store, data);
 	}
 	directory(workKey: string) {
 		return (
@@ -106,6 +88,14 @@ export class DownloadRepository implements DownloadStore {
 			attention: summary?.attention ?? 0,
 			candidateIds,
 		};
+	}
+	lockedCandidates(workKey: string) {
+		return this.store
+			.select({ id: intents.candidateId })
+			.from(intents)
+			.where(eq(intents.workKey, workKey))
+			.all()
+			.map((row) => row.id);
 	}
 	reservedEpisode(workKey: string, episode: number) {
 		return Boolean(

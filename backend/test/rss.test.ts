@@ -110,25 +110,46 @@ async function fixture(
 	};
 	const module = await createAcquisitionModule(options);
 	cleanup.push(() => module.close());
-	const discovery = module.api.discovery ?? missingDiscovery();
+	const discovery = module.api.subscriptions ?? missingDiscovery();
+	function stamp() {
+		const value = {
+			revision: "destination",
+			connectionGeneration: module.api.connection.settings().generation,
+			scopeId: "root",
+			path: "/downloads",
+			validated: true,
+			visibilityVerified: false,
+		};
+		database.acquisitionDownloads.saveDestination(value);
+		return {
+			destinationRevision: value.revision,
+			connectionGeneration: value.connectionGeneration,
+		};
+	}
 	async function subscribe(
 		workKey = key,
 		startEpisode = 1,
 		rss = "https://feeds.example.org/rss?passkey=private-feed-token",
 	) {
-		const preview = await discovery.preview("session", {
+		const saved = await discovery.save({
 			workKey,
 			rssUrl: rss,
 			startEpisode,
 			revision: discovery.get(workKey).subscription?.revision ?? null,
+			...stamp(),
 		});
-		return discovery.confirm("session", workKey, preview.token);
+		// A save is local; explicitly run the background stage in this fixture.
+		const sourceId = saved.subscription?.feedId ?? "";
+		const record = database.acquisition.feed(sourceId);
+		if (record) database.acquisition.saveFeed({ ...record, checkedAt: null });
+		return discovery.refresh(workKey, saved.subscription?.revision ?? "");
 	}
 	return {
 		dataDir,
 		database,
 		module,
 		discovery,
+		stamp,
 		fetch,
 		state,
 		logs,
@@ -265,7 +286,7 @@ test("release assessment uses leaf evidence only and skips identity, season, pac
 	);
 	expect(extraction.inputs.map((input) => input.mode)).toEqual(["basename"]);
 });
-test("subscriptions preview without writes, confirm explicit scope and rank versions before reservation without review", async () => {
+test("subscriptions save and rank versions in background refresh without review", async () => {
 	const f = await fixture();
 	f.fetch.mockResolvedValueOnce({
 		xml: feed(
@@ -280,22 +301,13 @@ test("subscriptions preview without writes, confirm explicit scope and rank vers
 		etag: "a",
 		lastModified: null,
 	});
-	const preview = await f.discovery.preview("session", {
-		workKey: key,
-		rssUrl: "https://feeds.example.org/rss?passkey=private-feed-token",
-		startEpisode: 2,
-		revision: null,
-	});
-	expect(f.discovery.get(key).subscription).toBeNull();
+	const saved = await f.subscribe(key, 2);
 	expect(
-		preview.candidates.filter((candidate) => candidate.status === "selected"),
+		saved.candidates.filter((candidate) => candidate.status === "selected"),
 	).toHaveLength(0);
 	expect(
-		preview.candidates.find(
-			(candidate) => candidate.status === "skipped" && candidate.episode === 3,
-		)?.reasons,
+		saved.candidates.find((candidate) => candidate.episode === 3)?.reasons,
 	).toContain("waiting_for_level");
-	const saved = await f.discovery.confirm("session", key, preview.token);
 	expect(saved.subscription).toMatchObject({ enabled: true, startEpisode: 2 });
 	expect(JSON.stringify(saved)).not.toContain("private-feed-token");
 	expect(f.logs.join("")).not.toContain("private-feed-token");
@@ -426,27 +438,32 @@ test("unchanged feeds reuse parsed evidence; failures retain candidates, validat
 	expect(failed.subscription?.error).toBeTruthy();
 	expect(f.logs.join("")).not.toContain("private-feed-token");
 });
-test("session-bound previews expire and reject scope, metadata and local availability changes", async () => {
+test("saving is local, rejects stale revisions and persists initial source failures for retry", async () => {
 	const f = await fixture();
 	const input = {
 		workKey: key,
 		rssUrl: "https://feeds.example.org/rss",
 		startEpisode: 1,
 		revision: null,
+		...f.stamp(),
 	};
-	const preview = await f.discovery.preview("session", input);
-	await expect(
-		f.discovery.confirm("other", key, preview.token),
-	).rejects.toMatchObject({ code: "ACQUISITION_CONFLICT" });
-	f.state.target.revision = "changed";
-	await expect(
-		f.discovery.confirm("session", key, preview.token),
-	).rejects.toMatchObject({ code: "ACQUISITION_CONFLICT" });
-	f.state.target.revision = target.revision;
+	const saved = await f.discovery.save(input);
+	expect(f.fetch).not.toHaveBeenCalled();
+	expect(f.options.anime.target).not.toHaveBeenCalled();
+	expect(saved.subscription).toMatchObject({ enabled: true, checkedAt: null });
+	expect(saved.candidates).toEqual([]);
+	await expect(f.discovery.save(input)).rejects.toMatchObject({
+		code: "ACQUISITION_CONFLICT",
+	});
+	f.fetch.mockRejectedValueOnce(new Error("offline"));
+	await f.discovery.refresh(key, saved.subscription?.revision ?? "");
+	expect(f.discovery.get(key).subscription?.error).toBeTruthy();
 	f.advance();
-	await expect(
-		f.discovery.confirm("session", key, preview.token),
-	).rejects.toMatchObject({ code: "ACQUISITION_CONFLICT" });
+	const updated = await f.discovery.refresh(
+		key,
+		saved.subscription?.revision ?? "",
+	);
+	expect(updated.subscription?.error).toBeNull();
 });
 test("pause, restart and removal preserve state without fetching on reads", async () => {
 	const f = await fixture();
@@ -476,7 +493,7 @@ test("pause, restart and removal preserve state without fetching on reads", asyn
 	);
 	const reopened = await createAcquisitionModule(f.options);
 	cleanup.push(() => reopened.close());
-	expect(reopened.api.discovery?.get(key)).toEqual(paused);
+	expect(reopened.api.subscriptions?.get(key)).toEqual(paused);
 	expect(
 		JSON.parse(f.database.authentication.readSession("retained", 0) ?? "null"),
 	).toMatchObject({ cookie: { path: "/", httpOnly: true } });
@@ -487,20 +504,22 @@ test("pause, restart and removal preserve state without fetching on reads", asyn
 	expect(f.discovery.get(key).total).toBe(0);
 	expect(f.database.acquisition.subscriptions()).toHaveLength(0);
 });
-test("shared RSS is fetched once for concurrent previews and can bind multiple works", async () => {
+test("shared RSS bindings save locally and concurrent refreshes collect once for both works", async () => {
 	const f = await fixture();
 	const input = {
 		rssUrl: "https://feeds.example.org/shared",
 		startEpisode: 1,
 		revision: null,
+		...f.stamp(),
 	};
-	const [one, two] = await Promise.all([
-		f.discovery.preview("session", { ...input, workKey: key }),
-		f.discovery.preview("session", { ...input, workKey: "anilist:anime:2" }),
+	const one = await f.discovery.save({ ...input, workKey: key });
+	const two = await f.discovery.save({ ...input, workKey: "anilist:anime:2" });
+	expect(f.fetch).not.toHaveBeenCalled();
+	await Promise.all([
+		f.discovery.refresh(key, one.subscription?.revision ?? ""),
+		f.discovery.refresh("anilist:anime:2", two.subscription?.revision ?? ""),
 	]);
 	expect(f.fetch).toHaveBeenCalledTimes(1);
-	await f.discovery.confirm("session", key, one.token);
-	await f.discovery.confirm("session", "anilist:anime:2", two.token);
 	expect(f.database.acquisition.subscriptions()).toHaveLength(2);
 });
 test("pausing during discovery prevents stale candidate publication", async () => {
@@ -539,36 +558,33 @@ test("pausing during discovery prevents stale candidate publication", async () =
 	);
 });
 
-test("a newer source preview cannot be overwritten by an older in-flight poll", async () => {
+test("a source change during metadata assessment rejects all stale candidate and evidence writes", async () => {
 	const f = await fixture();
 	const saved = await f.subscribe();
 	f.advance();
-	let finish: (value: AcquisitionTarget) => void = () => {};
-	const waiting = new Promise<AcquisitionTarget>((resolve) => {
-		finish = resolve;
-	});
-	f.options.anime.target.mockImplementationOnce(() => waiting);
+	let finish!: (value: AcquisitionTarget) => void;
+	f.options.anime.target.mockImplementationOnce(
+		() =>
+			new Promise((resolve) => {
+				finish = resolve;
+			}),
+	);
 	const refreshing = f.discovery.refresh(
 		key,
 		saved.subscription?.revision ?? "",
 	);
-	await vi.waitFor(() =>
-		expect(f.options.anime.target).toHaveBeenCalledTimes(3),
-	);
-	f.fetch.mockResolvedValueOnce({
-		xml: feed(item("Frieren - 04", secondHash)),
-		etag: "new-source",
-		lastModified: null,
+	await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+	const newer = await f.discovery.save({
+		workKey: key,
+		rssUrl: "https://feeds.example.org/another",
+		startEpisode: 1,
+		revision: saved.subscription?.revision ?? null,
+		...f.stamp(),
 	});
-	const newer = await f.subscribe();
 	finish(f.state.target);
 	await refreshing;
 	expect(f.discovery.get(key)).toEqual(newer);
-	expect(
-		f.database.acquisition.feed(newer.subscription?.feedId ?? "")?.etag,
-	).toBe("new-source");
 });
-
 test("startup recovers due subscriptions and a shared feed has one bounded scheduled fetch", async () => {
 	const f = await fixture();
 	await f.subscribe();
@@ -628,6 +644,7 @@ test("subscription HTTP routes are authenticated, CSRF protected and redact priv
 	};
 	const mutation = { ...signed, "x-csrf-token": login.json().csrfToken };
 	const payload = {
+		...f.stamp(),
 		workKey: key,
 		rssUrl: "https://feeds.example.org/private-token/rss?passkey=private-token",
 		startEpisode: 1,
@@ -636,30 +653,32 @@ test("subscription HTTP routes are authenticated, CSRF protected and redact priv
 	expect(
 		(
 			await app.inject({
-				url: `${path}/preview`,
-				method: "POST",
+				url: path,
+				method: "PUT",
 				headers: signed,
 				payload,
 			})
 		).statusCode,
 	).toBe(403);
-	const preview = await app.inject({
-		url: `${path}/preview`,
-		method: "POST",
+	const saved = await app.inject({
+		url: path,
+		method: "PUT",
 		headers: mutation,
 		payload,
 	});
-	expect(preview.statusCode).toBe(200);
-	expect(preview.body).not.toContain("private-token");
-	const saved = await app.inject({
-		url: `${path}/confirm`,
-		method: "POST",
-		headers: mutation,
-		payload: { workKey: key, token: preview.json().token },
-	});
 	expect(saved.statusCode).toBe(200);
-	expect(saved.json().candidates[0].status).toBe("skipped");
-	expect(saved.json().candidates[0].reasons).toContain("waiting_for_level");
+	expect(saved.json().candidates).toEqual([]);
+	expect(f.fetch).not.toHaveBeenCalled();
+	expect(
+		(
+			await app.inject({
+				url: `${path}/preview`,
+				method: "POST",
+				headers: mutation,
+				payload,
+			})
+		).statusCode,
+	).toBe(404);
 	expect(saved.body).not.toContain("private-token");
 	expect(saved.body).not.toContain("downloadUrl");
 	expect(
@@ -747,38 +766,71 @@ test("changing the RSS interval preserves failure retry deadlines and restart re
 	);
 });
 
-test("changing the inherited profile invalidates a pending preview", async () => {
+test("saving rejects an unavailable inherited profile before writing a subscription", async () => {
 	const f = await fixture();
-	const preview = await f.discovery.preview("session", {
-		workKey: key,
-		rssUrl: "https://example.org/rss",
-		startEpisode: 1,
-		revision: null,
-	});
-	f.state.profileId = "builtin:efficient";
+	f.state.profileId = "custom:missing";
 	await expect(
-		f.discovery.confirm("session", key, preview.token),
-	).rejects.toMatchObject({ code: "ACQUISITION_CONFLICT" });
+		f.discovery.save({
+			workKey: key,
+			rssUrl: "https://feeds.example.org/rss",
+			startEpisode: 1,
+			revision: null,
+			...f.stamp(),
+		}),
+	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
 	expect(f.discovery.get(key).subscription).toBeNull();
+	expect(f.fetch).not.toHaveBeenCalled();
 });
-
-test("scope previews can refresh the saved source without revealing or resubmitting its URL", async () => {
+test("scope edits keep a saved source without revealing or resubmitting its URL", async () => {
 	const f = await fixture();
 	const saved = await f.subscribe();
-	const sourceId = saved.subscription?.feedId ?? "";
-	const preview = await f.discovery.preview("session", {
+	const count = f.fetch.mock.calls.length;
+	const updated = await f.discovery.save({
 		workKey: key,
 		rssUrl: "",
 		startEpisode: 4,
 		revision: saved.subscription?.revision ?? null,
+		...f.stamp(),
 	});
-	expect(preview.source).toBe("https://feeds.example.org");
-	expect(f.database.acquisition.feed(sourceId)?.revision).toBeDefined();
-	const updated = await f.discovery.confirm("session", key, preview.token);
 	expect(updated.subscription).toMatchObject({
-		feedId: sourceId,
+		feedId: saved.subscription?.feedId,
 		startEpisode: 4,
 	});
-	expect(f.fetch.mock.calls[1]?.[0]).toContain("private-feed-token");
+	expect(f.fetch).toHaveBeenCalledTimes(count);
 	expect(JSON.stringify(updated)).not.toContain("private-feed-token");
+});
+
+test("shared-source candidate publication rolls back every work and source evidence together", async () => {
+	const f = await fixture();
+	const first = await f.subscribe();
+	const second = await f.discovery.save({
+		workKey: "anilist:anime:2",
+		rssUrl: "https://feeds.example.org/rss?passkey=private-feed-token",
+		startEpisode: 1,
+		revision: null,
+		...f.stamp(),
+	});
+	const sourceId = first.subscription?.feedId ?? "";
+	const before = f.database.acquisition.feed(sourceId),
+		one = f.database.acquisition.candidates(key),
+		two = f.database.acquisition.candidates("anilist:anime:2");
+	f.advance();
+	f.fetch.mockResolvedValueOnce({
+		xml: feed(item("Frieren - 04 [1080p]", secondHash)),
+		etag: "new",
+		lastModified: null,
+	});
+	const update = f.database.acquisition.updateCandidates.bind(
+		f.database.acquisition,
+	);
+	let calls = 0;
+	vi.spyOn(f.database.acquisition, "updateCandidates").mockImplementation(
+		(...args) => (++calls === 2 ? false : update(...args)),
+	);
+	await f.discovery.refresh(key, first.subscription?.revision ?? "");
+	expect(calls).toBe(2);
+	expect(f.database.acquisition.feed(sourceId)).toEqual(before);
+	expect(f.database.acquisition.candidates(key)).toEqual(one);
+	expect(f.database.acquisition.candidates("anilist:anime:2")).toEqual(two);
+	expect(second.subscription?.feedId).toBe(sourceId);
 });

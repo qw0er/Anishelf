@@ -1,6 +1,10 @@
 import { asc, eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import type { Candidate, Subscription } from "../domain/model.js";
+import type {
+	Candidate,
+	Subscription,
+	SubscriptionAuthorization,
+} from "../domain/model.js";
 import * as s from "./schema.js";
 
 export function readAcquisitionSubscriptions(
@@ -113,5 +117,41 @@ export function writeAcquisitionCandidates(
 			};
 			store.insert(s.acquisitionCandidatesReasons).values(row1).run();
 		}
+	});
+}
+
+export function readAcquisitionAuthorizations(
+	_store: Store,
+	row: typeof s.acquisitionAuthorizations.$inferSelect,
+): SubscriptionAuthorization {
+	return {
+		workKey: row.workKey,
+		feedId: row.feedId,
+		startEpisode: row.startEpisode,
+		destinationRevision: row.destinationRevision,
+		connectionGeneration: row.connectionGeneration,
+	} as SubscriptionAuthorization;
+}
+
+export function writeAcquisitionAuthorizations(
+	connection: Store,
+	value: SubscriptionAuthorization,
+): void {
+	connection.transaction((store) => {
+		const row0 = {
+			workKey: value?.workKey,
+			feedId: value?.feedId,
+			startEpisode: value?.startEpisode,
+			destinationRevision: value?.destinationRevision,
+			connectionGeneration: value?.connectionGeneration,
+		};
+		store
+			.insert(s.acquisitionAuthorizations)
+			.values(row0)
+			.onConflictDoUpdate({
+				target: s.acquisitionAuthorizations.workKey,
+				set: row0,
+			})
+			.run();
 	});
 }

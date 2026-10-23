@@ -1,9 +1,18 @@
+import { readFileSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
+
+const migrationCount: number = JSON.parse(
+	readFileSync(
+		new URL("../migrations/meta/_journal.json", import.meta.url),
+		"utf8",
+	),
+).entries.length;
+
 import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 
 let directory: string;
@@ -57,7 +66,7 @@ describe("playback persistence", () => {
 		try {
 			expect(
 				raw.prepare("SELECT count(*) AS count FROM __drizzle_migrations").get(),
-			).toEqual({ count: 4 });
+			).toEqual({ count: migrationCount });
 			expect(raw.pragma("journal_mode", { simple: true })).toBe("wal");
 		} finally {
 			raw.close();

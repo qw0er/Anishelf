@@ -4,12 +4,15 @@ import {
 	type QbittorrentApi,
 	QbittorrentError,
 } from "../../qbittorrent/public.js";
+import type {
+	DownloadContext,
+	DownloadExecution,
+} from "../application/context.js";
+import { downloadPolicy as policy } from "../application/policy.js";
 import { DownloadError, type DownloadIntent } from "../domain/model.js";
 import { absoluteDownloadPath } from "../domain/paths.js";
 import { resolveTorrent } from "../infrastructure/torrent.js";
 import type { SubmissionAdmission } from "../ports.js";
-import type { DownloadContext, DownloadExecution } from "./context.js";
-import { downloadPolicy as policy } from "./policy.js";
 
 export class DownloadSubmission {
 	constructor(
@@ -19,6 +22,7 @@ export class DownloadSubmission {
 	async observe(
 		execution: DownloadExecution,
 		client: QbittorrentApi,
+		resolvedContent?: Awaited<ReturnType<typeof resolveTorrent>>,
 	): Promise<{ item: DownloadIntent; task: DownloadTask } | null> {
 		let item = execution.current;
 		let task = await client.task(item.hash, this.context.signal);
@@ -59,11 +63,13 @@ export class DownloadSubmission {
 				});
 				return null;
 			}
-			const source = await resolveTorrent(
-				{ download: item.source, hash: item.hash },
-				this.context.options.transport,
-				this.context.signal,
-			);
+			const source =
+				resolvedContent ??
+				(await resolveTorrent(
+					{ download: item.source, hash: item.hash },
+					this.context.options.transport,
+					this.context.signal,
+				));
 			const subscriptionRevision = await this.admission.authorize(
 				execution,
 				client,

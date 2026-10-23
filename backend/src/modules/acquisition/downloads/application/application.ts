@@ -1,83 +1,65 @@
-import { resolveTorrent } from "../infrastructure/torrent.js";
-import type { CompletedDownload, SubmissionAdmission } from "../ports.js";
-import type { DownloadContext, DownloadExecution } from "./context.js";
-import { DownloadSubmission } from "./submission.js";
-/** Executes accepted tasks; no Discovery, Anime or Resources business calls. */
-export class DownloadsApplication {
-	private readonly submission: DownloadSubmission;
-	constructor(
-		private readonly context: DownloadContext,
-		admission: SubmissionAdmission,
-	) {
-		this.submission = new DownloadSubmission(context, admission);
-	}
-	async run(execution: DownloadExecution): Promise<CompletedDownload | null> {
-		let item = execution.current;
-		if (
-			item.destination.connectionGeneration !==
-			this.context.options.connectionGeneration()
-		) {
-			execution.save({
-				...item,
-				state: "blocked",
-				error: "downloader_configuration_changed",
-			});
-			return null;
-		}
-		if (item.hash.startsWith("unresolved:")) {
-			const resolved = await resolveTorrent(
-				{ download: item.source, hash: item.expectedHash },
-				this.context.options.transport,
-				this.context.signal,
-			);
-			if (this.context.options.store.hashOwner(resolved.hash, item.id)) {
-				execution.save({
-					...item,
-					state: "blocked",
-					error: "torrent_reserved",
-				});
-				return null;
-			}
-			item = execution.save({ ...item, hash: resolved.hash });
-		}
-		return this.context.options.withClient(
-			item.destination.connectionGeneration,
-			async (client) => {
-				const observed = await this.submission.observe(execution, client);
-				if (!observed) return null;
-				const task = observed.task;
-				if (
-					task.progress !== 1 ||
-					task.remainingBytes !== 0 ||
-					/checking|moving|meta|error|missing/i.test(task.state)
-				)
-					return null;
-				const files = await client.files(item.hash, this.context.signal);
-				return {
-					task,
-					files,
-					verify: async () =>
-						this.context.options.withClient(
-							item.destination.connectionGeneration,
-							async (currentClient) => {
-								const current = await currentClient.task(
-									item.hash,
-									this.context.signal,
-								);
-								const currentFiles = await currentClient.files(
-									item.hash,
-									this.context.signal,
-								);
-								return (
-									current?.progress === 1 &&
-									current.remainingBytes === 0 &&
-									current.savePath === task.savePath &&
-									JSON.stringify(currentFiles) === JSON.stringify(files)
-								);
-							},
-						),
-				};
-			},
+import type { AcquisitionDownloadsApi } from "../../public.js";
+import { DownloadTransfers } from "../transfers/application.js";
+import { DownloadActivityQueries } from "./activity.js";
+import { SubmissionAdmission } from "./admission.js";
+import { DownloadCommands } from "./commands.js";
+import { type DownloadApplicationOptions, DownloadContext } from "./context.js";
+import { DownloadDestinationSettings } from "./destination.js";
+import { CompletedDownloadIngestion } from "./import.js";
+import { DownloadReconciliation } from "./reconciliation.js";
+import { DownloadPlanning } from "./reservations.js";
+import { DownloadWorker } from "./worker.js";
+
+/** Internal facade; external capabilities and worker lifecycle remain independently selected. */
+export class DownloadsApplication implements AcquisitionDownloadsApi {
+	private readonly destination: DownloadDestinationSettings;
+	private readonly commands: DownloadCommands;
+	private readonly queries: DownloadActivityQueries;
+	private readonly worker: DownloadWorker;
+	constructor(options: DownloadApplicationOptions) {
+		const context = new DownloadContext(options);
+		this.destination = new DownloadDestinationSettings(context);
+		this.commands = new DownloadCommands(context, this.destination);
+		this.queries = new DownloadActivityQueries(context, this.destination);
+		this.worker = new DownloadWorker(
+			context,
+			new DownloadPlanning(context, this.destination),
+			new DownloadReconciliation(
+				context,
+				this.destination,
+				new DownloadTransfers(
+					context,
+					new SubmissionAdmission(context, this.destination),
+				),
+				new CompletedDownloadIngestion(context),
+			),
+			this.destination,
 		);
+	}
+	settings() {
+		return this.destination.settings();
+	}
+	saveDestination(
+		input: Parameters<AcquisitionDownloadsApi["saveDestination"]>[0],
+	) {
+		return this.destination.saveDestination(input);
+	}
+	validate(revision: string) {
+		return this.destination.validate(revision);
+	}
+	activity(workKey: string, page = 1) {
+		return this.queries.activity(workKey, page);
+	}
+	retry(...args: Parameters<AcquisitionDownloadsApi["retry"]>) {
+		this.commands.retry(...args);
+	}
+	tick() {
+		return this.worker.tick();
+	}
+	start() {
+		this.worker.start();
+	}
+	close() {
+		return this.worker.close();
 	}
 }

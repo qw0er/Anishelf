@@ -1,5 +1,5 @@
-import { createHash, randomUUID } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { toTorrentFile } from "parse-torrent";
@@ -21,12 +21,12 @@ import {
 } from "../src/modules/acquisition/downloads/domain/paths.js";
 import { resolveTorrent } from "../src/modules/acquisition/downloads/infrastructure/torrent.js";
 import type { TorrentReader } from "../src/modules/acquisition/downloads/public.js";
+import { DownloadTransfers } from "../src/modules/acquisition/downloads/transfers/application.js";
 import {
 	type QbittorrentApi,
 	QbittorrentError,
 } from "../src/modules/acquisition/qbittorrent/public.js";
 import { SourceDownloads } from "../src/modules/acquisition/sources/downloads.js";
-import { AcquisitionApplication } from "../src/modules/acquisition/workflows/application.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
 
@@ -217,7 +217,7 @@ async function fixture(persistent = false, bundled = false) {
 	}
 	seed();
 	function create() {
-		const worker = new AcquisitionApplication({
+		const worker = new DownloadsApplication({
 			store: db.acquisitionDownloads,
 			selection: {
 				subscription: (key) => db.acquisition.subscription(key),
@@ -230,8 +230,7 @@ async function fixture(persistent = false, bundled = false) {
 					sourceDownloads().publish({ ...feed, label: "feed" }, null);
 					return sourceDownloads().project(feedId, entry);
 				},
-				reservationOutcome: (subscription, failed) =>
-					db.acquisition.reservationOutcome(subscription, failed),
+				authorization: (key) => db.acquisition.authorization(key),
 			},
 			resources,
 			anime,
@@ -260,11 +259,17 @@ async function fixture(persistent = false, bundled = false) {
 		return saved;
 	}
 	async function authorize() {
-		worker.authorizeSubscription(
-			key,
-			db.acquisition.subscription(key)?.revision ?? "",
-			db.acquisitionDownloads.destination()?.revision ?? "",
-		);
+		const subscription = db.acquisition.subscription(key),
+			destination = db.acquisitionDownloads.destination();
+		if (!subscription || !destination?.validated)
+			throw new Error("Invalid test authorization");
+		db.acquisition.authorize({
+			workKey: key,
+			feedId: subscription.feedId,
+			startEpisode: subscription.startEpisode,
+			destinationRevision: destination.revision,
+			connectionGeneration: generation,
+		});
 	}
 	function complete() {
 		if (!state.task) throw new Error("No task");
@@ -313,7 +318,10 @@ async function fixture(persistent = false, bundled = false) {
 	};
 }
 
-async function connectedModule(f: Awaited<ReturnType<typeof fixture>>) {
+async function connectedModule(
+	f: Awaited<ReturnType<typeof fixture>>,
+	autoStart = false,
+) {
 	const module = await createAcquisitionModule({
 		dataDir: f.dir,
 		logger,
@@ -332,7 +340,7 @@ async function connectedModule(f: Awaited<ReturnType<typeof fixture>>) {
 			}),
 			close: async () => {},
 		},
-		autoStart: false,
+		autoStart,
 	});
 	cleanup.push(() => module.close());
 	await module.api.connection.save({
@@ -602,43 +610,43 @@ test("destination and torrent paths reject escapes and directory names remain bo
 		workDirectory(key, "Frieren"),
 	);
 });
-test("module subscription confirmation binds the previewed download configuration", async () => {
+test("direct subscription save binds the current target without a source request and rejects stale configuration", async () => {
 	const f = await fixture();
 	const module = await connectedModule(f);
-	const downloads = module.api.downloads,
-		discovery = module.api.discovery;
-	if (!downloads || !discovery) throw new Error();
+	const downloads = module.api.downloads;
+	if (!downloads) throw new Error();
 	const dest = await downloads.saveDestination({
 		revision: null,
 		scopeId: "root",
 		path: "/downloads",
 	});
 	await downloads.validate(dest.revision);
-	const preview = await discovery.preview("session", {
+	const input = {
 		workKey: key,
 		rssUrl: "https://example.org/new-feed",
 		startEpisode: 1,
 		revision: f.db.acquisition.subscription(key)?.revision ?? null,
-	});
-	expect(preview.downloadDestination).toBe("/downloads/Frieren [anilist-1]");
-	await discovery.confirm("session", key, preview.token);
+		destinationRevision: dest.revision,
+		connectionGeneration: module.api.connection.settings().generation,
+	};
+	const saved = await module.api.subscriptions.save(input);
+	expect(saved.candidates).toEqual([]);
+	expect(saved.subscription?.checkedAt).toBeNull();
 	expect(downloads.activity(key).authorized).toBe(true);
-	const second = await discovery.preview("session", {
-		workKey: key,
-		rssUrl: "",
-		startEpisode: 2,
-		revision: f.db.acquisition.subscription(key)?.revision ?? null,
-	});
 	await downloads.saveDestination({
 		revision: dest.revision,
 		scopeId: "root",
 		path: "/other",
 	});
 	await expect(
-		discovery.confirm("session", key, second.token),
+		module.api.subscriptions.save({
+			...input,
+			revision: saved.subscription?.revision ?? null,
+			startEpisode: 2,
+		}),
 	).rejects.toMatchObject({ code: "ACQUISITION_CONFLICT" });
+	expect(f.db.acquisition.subscription(key)?.startEpisode).toBe(1);
 });
-
 test("v1 and hybrid torrent bytes resolve consistently and reject unsafe original path components", async () => {
 	const bytes = (hybrid = false, name = "Frieren - 03.mkv") =>
 		toTorrentFile({
@@ -806,13 +814,11 @@ test("failed pre-reservation metadata checks remain visible and recover without 
 	await f.authorize();
 	f.anime.target.mockRejectedValueOnce(new Error("offline"));
 	await f.worker.tick();
-	expect(f.db.acquisition.subscription(key)?.lastError).toBe(
-		"acquisition_unavailable",
-	);
+	expect(f.worker.activity(key).planningError).toBe("acquisition_unavailable");
 	expect(f.db.acquisition.candidates(key)).toHaveLength(1);
 	f.advance();
 	await f.worker.tick();
-	expect(f.db.acquisition.subscription(key)?.lastError).toBeNull();
+	expect(f.worker.activity(key).planningError).toBeNull();
 	expect(f.add).toHaveBeenCalledTimes(1);
 });
 
@@ -943,57 +949,46 @@ test("account changes block stale bindings until explicit recovery reconciles th
 	expect(f.add).toHaveBeenCalledTimes(1);
 });
 
-test("subscription confirmation rolls back feed, candidates and scope when permission persistence fails", async () => {
+test("subscription save rolls back binding, subscription, candidates and permission together", async () => {
 	const f = await fixture();
 	const module = await connectedModule(f);
-	const downloads = module.api.downloads,
-		discovery = module.api.discovery;
-	if (!downloads || !discovery) throw new Error();
+	const downloads = module.api.downloads;
+	if (!downloads) throw new Error();
 	const destination = await downloads.saveDestination({
 		revision: null,
 		scopeId: "root",
 		path: "/downloads",
 	});
 	await downloads.validate(destination.revision);
-	const beforeFeed = f.db.acquisition.feed("feed");
 	const before = f.db.acquisition.subscription(key),
-		candidates = f.db.acquisition.candidates(key);
-	const preview = await discovery.preview("session", {
+		candidates = f.db.acquisition.candidates(key),
+		sources = f.db.acquisition.sources();
+	const input = {
 		workKey: key,
 		rssUrl: "https://example.org/other-feed",
 		startEpisode: 2,
 		revision: before?.revision ?? null,
-	});
-	const authorize = f.db.acquisitionDownloads.authorize.bind(
-		f.db.acquisitionDownloads,
-	);
-	const writePermission = vi
-		.spyOn(f.db.acquisitionDownloads, "authorize")
-		.mockImplementationOnce((permission) => {
-			authorize(permission);
+		destinationRevision: destination.revision,
+		connectionGeneration: module.api.connection.settings().generation,
+	};
+	const authorize = f.db.acquisition.authorize.bind(f.db.acquisition);
+	const write = vi
+		.spyOn(f.db.acquisition, "authorize")
+		.mockImplementationOnce((value) => {
+			authorize(value);
 			throw new Error("storage failed");
 		});
-	await expect(
-		discovery.confirm("session", key, preview.token),
-	).rejects.toThrow("storage failed");
+	await expect(module.api.subscriptions.save(input)).rejects.toThrow(
+		"storage failed",
+	);
 	expect(f.db.acquisition.subscription(key)).toEqual(before);
-	expect(f.db.acquisition.feed("feed")).toEqual(beforeFeed);
-	expect(
-		f.db.acquisition.feed(
-			createHash("sha256")
-				.update("https://example.org/other-feed")
-				.digest("hex"),
-		),
-	).toBeNull();
 	expect(f.db.acquisition.candidates(key)).toEqual(candidates);
-	expect(f.db.acquisition.subscriptions()).toHaveLength(1);
-	expect(f.db.acquisitionDownloads.authorization(key)).toBeNull();
-	// The same unconsumed preview can be confirmed after recovery.
-	writePermission.mockRestore();
-	await discovery.confirm("session", key, preview.token);
+	expect(f.db.acquisition.sources()).toEqual(sources);
+	expect(f.db.acquisition.authorization(key)).toBeNull();
+	write.mockRestore();
+	await module.api.subscriptions.save(input);
 	expect(downloads.activity(key).authorized).toBe(true);
 });
-
 test("download activity paginates one work with stable ordering and summaries across every page", async () => {
 	const f = await fixture();
 	await f.configure();
@@ -1220,7 +1215,7 @@ test("transfer completion returns evidence without invoking resource verificatio
 		logger,
 	});
 	const authorize = vi.fn(async () => item.subscriptionRevision);
-	const transfer = new DownloadsApplication(context, { authorize });
+	const transfer = new DownloadTransfers(context, { authorize });
 	const completed = await transfer.run(new DownloadExecution(context, item));
 	expect(completed?.files).toHaveLength(1);
 	expect(f.resources.inspect).not.toHaveBeenCalled();
@@ -1252,7 +1247,7 @@ test("transfer reconciles uncertain attempts without consulting subscription adm
 	const authorize = vi.fn(async () => {
 		throw new Error("Admission must not run for uncertain attempts");
 	});
-	const transfer = new DownloadsApplication(context, { authorize });
+	const transfer = new DownloadTransfers(context, { authorize });
 	expect(await transfer.run(new DownloadExecution(context, item))).toBeNull();
 	expect(authorize).not.toHaveBeenCalled();
 	expect(f.add).toHaveBeenCalledTimes(1);
@@ -1327,4 +1322,58 @@ test("source reference is rechecked after subscription admission before submissi
 	expect(f.db.acquisitionDownloads.activity(key, 1, 100).items[0]?.error).toBe(
 		"source_changed",
 	);
+});
+
+test("direct save flows through background selection, one download and verified ingestion", async () => {
+	const f = await fixture();
+	f.db.acquisition.remove(
+		key,
+		f.db.acquisition.subscription(key)?.revision ?? "",
+	);
+	await writeFile(
+		join(f.dir, "acquisition-profiles.yaml"),
+		"version: 1\nprofiles:\n  - id: custom:any\n    name: Any\n    levels:\n      - name: Any\n        match: {}\n        acceptAfterMinutes: 0\n",
+	);
+	vi.useFakeTimers();
+	let module: Awaited<ReturnType<typeof connectedModule>> | undefined;
+	try {
+		module = await connectedModule(f, true);
+		const downloads = module.api.downloads;
+		if (!downloads) throw new Error();
+		const destination = await downloads.saveDestination({
+			revision: null,
+			scopeId: "root",
+			path: "/downloads",
+		});
+		await downloads.validate(destination.revision);
+		const calls = f.anime.target.mock.calls.length;
+		const saved = await module.api.subscriptions.save({
+			workKey: key,
+			rssUrl: "https://example.org/automatic",
+			startEpisode: 1,
+			profileId: "custom:any",
+			revision: null,
+			destinationRevision: destination.revision,
+			connectionGeneration: module.api.connection.settings().generation,
+		});
+		expect(saved.candidates).toEqual([]);
+		expect(f.anime.target).toHaveBeenCalledTimes(calls);
+		expect(f.add).not.toHaveBeenCalled();
+		await vi.advanceTimersByTimeAsync(60_000);
+		expect(f.add).toHaveBeenCalledTimes(1);
+		expect(downloads.activity(key).items[0]?.state).toBe("bound");
+		f.complete();
+		await vi.advanceTimersByTimeAsync(5_000);
+		expect(f.ingestion.ingest).toHaveBeenCalledTimes(1);
+		expect(downloads.activity(key).items[0]).toMatchObject({
+			state: "available",
+			ingestion: "available",
+		});
+		await vi.advanceTimersByTimeAsync(60_000);
+		expect(f.add).toHaveBeenCalledTimes(1);
+		expect(f.ingestion.ingest).toHaveBeenCalledTimes(1);
+	} finally {
+		await module?.close();
+		vi.useRealTimers();
+	}
 });

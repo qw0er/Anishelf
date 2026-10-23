@@ -63,37 +63,23 @@ export const SubscriptionViewSchema = Type.Object({
 	total: Type.Integer(),
 	page: Type.Integer(),
 });
-export const SubscriptionPreviewInputSchema = Type.Object(
+export const SubscriptionSaveSchema = Type.Object(
 	{
 		workKey,
 		rssUrl: Type.String({ maxLength: 4096 }),
 		profileId,
 		startEpisode: Type.Integer({ minimum: 1, maximum: 10000 }),
 		revision: Type.Union([revision, Type.Null()]),
+		destinationRevision: revision,
+		connectionGeneration: revision,
 	},
 	{ additionalProperties: false },
 );
-export const SubscriptionPreviewSchema = Type.Object({
-	downloadDestination: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-	token: Type.String(),
-	expiresAt: Type.Number(),
-	source: Type.String(),
-	startEpisode: Type.Integer(),
-	profileId,
-	availableEpisodes: Type.Array(Type.Integer()),
-	knownEpisodeCount: nullableNumber,
-	candidates: Type.Array(AcquisitionCandidateSchema),
-	total: Type.Integer(),
-});
 export const SubscriptionCommandSchema = Type.Object(
 	{ workKey, revision },
 	{ additionalProperties: false },
 );
 export const SubscriptionToggleSchema = Type.Object(
 	{ workKey, revision, enabled: Type.Boolean() },
-	{ additionalProperties: false },
-);
-export const SubscriptionConfirmSchema = Type.Object(
-	{ workKey, token: Type.String({ minLength: 1, maxLength: 64 }) },
 	{ additionalProperties: false },
 );

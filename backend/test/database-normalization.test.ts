@@ -9,15 +9,15 @@ import { afterEach, expect, test } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import * as schema from "../src/app/schema.js";
 import {
-	writeAcquisitionCandidates,
-	writeAcquisitionSubscriptions,
-} from "../src/modules/acquisition/discovery/infrastructure/records.js";
-import {
-	writeAcquisitionAuthorizations,
 	writeAcquisitionDestination,
 	writeAcquisitionIntents,
 } from "../src/modules/acquisition/downloads/infrastructure/records.js";
 import { writeAcquisitionFeeds } from "../src/modules/acquisition/sources/infrastructure/records.js";
+import {
+	writeAcquisitionAuthorizations,
+	writeAcquisitionCandidates,
+	writeAcquisitionSubscriptions,
+} from "../src/modules/acquisition/subscriptions/infrastructure/records.js";
 import {
 	writeCatalogAssociations,
 	writeCatalogOperations,
@@ -411,9 +411,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 			expect(db.acquisition.subscription("work")).toEqual(subscription);
 			expect(db.acquisition.candidates("work")).toEqual([candidate]);
 			expect(db.acquisitionDownloads.destination()).toEqual(destination);
-			expect(db.acquisitionDownloads.authorization("work")).toEqual(
-				authorization,
-			);
+			expect(db.acquisition.authorization("work")).toEqual(authorization);
 			expect(db.acquisitionDownloads.intent("intent")).toEqual(intent);
 			expect(db.trackingOperations.list("account")).toEqual([operation]);
 			expect(

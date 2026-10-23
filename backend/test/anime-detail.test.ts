@@ -109,7 +109,7 @@ test("unified detail preserves cached viewing and acquisition during a metadata 
 				registerAnimeDetailRoutes(
 					app,
 					{ queries: f.queries, tracking: { status: f.status } },
-					{ discovery, downloads },
+					{ subscriptions: discovery, downloads },
 					logger,
 				),
 		],

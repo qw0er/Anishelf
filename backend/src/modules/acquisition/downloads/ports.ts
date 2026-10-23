@@ -1,14 +1,8 @@
 import type { DownloadContent } from "../sources/public.js";
-import type {
-	DownloadAuthorization,
-	DownloadDestination,
-	DownloadIntent,
-} from "./domain/model.js";
+import type { DownloadDestination, DownloadIntent } from "./domain/model.js";
 export interface DownloadStore {
 	destination(): DownloadDestination | null;
 	saveDestination(value: DownloadDestination): void;
-	authorization(workKey: string): DownloadAuthorization | null;
-	authorize(value: DownloadAuthorization): void;
 	directory(workKey: string): string | null;
 	saveDirectory(workKey: string, directory: string): void;
 	activity(
@@ -22,6 +16,7 @@ export interface DownloadStore {
 		attention: number;
 		candidateIds: string[];
 	};
+	lockedCandidates(workKey: string): string[];
 	reservedEpisode(workKey: string, episode: number): boolean;
 	hashOwner(hash: string, exceptId: string): boolean;
 	workBatch(afterId: string, limit: number, now: number): DownloadIntent[];
