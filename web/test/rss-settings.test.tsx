@@ -135,10 +135,10 @@ test("profile choice is saved separately from the RSS interval", async () => {
 			: { resourceRoots: [] },
 	);
 	render(<RssSettings />);
-	const select = await screen.findByRole("combobox", {
-		name: "Default release selection profile",
-	});
-	fireEvent.change(select, { target: { value: "custom:mine" } });
+	const general = await screen.findByRole("radio", { name: /General/ });
+	expect((general as HTMLInputElement).checked).toBe(true);
+	const custom = screen.getByRole("radio", { name: /Mine/ });
+	fireEvent.click(custom);
 	expect(request.mock.calls.some((call) => call[1] === "PUT")).toBe(false);
 	fireEvent.click(screen.getByRole("button", { name: "Save release profile" }));
 	await waitFor(() =>
