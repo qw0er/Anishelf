@@ -70,7 +70,10 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			throw new DomainError("INVALID_REQUEST", "Invalid candidate page.");
 		const subscription = this.options.store.subscription(workKey);
 		const feed = subscription
-			? this.options.sources.snapshot(subscription.feedId)
+			? (this.options.sources.snapshot(subscription.feedId) ??
+				this.options.sources.snapshot(
+					subscription.sourceInput ?? subscription.feedId,
+				))
 			: null;
 		const candidates = this.options.store
 			.candidates(workKey)
@@ -83,7 +86,12 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			subscription:
 				subscription && feed
 					? {
-							...subscription,
+							workKey: subscription.workKey,
+							feedId: subscription.feedId,
+							startEpisode: subscription.startEpisode,
+							profileId: subscription.profileId ?? null,
+							enabled: subscription.enabled,
+							revision: subscription.revision,
 							source: feed.label,
 							checkedAt: feed.checkedAt,
 							nextAttemptAt: feed.nextAttemptAt,
@@ -145,6 +153,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		const subscription: Subscription = {
 			workKey: input.workKey,
 			feedId: current?.feedId ?? "",
+			sourceInput: input.source ?? current?.sourceInput ?? null,
 			startEpisode: input.startEpisode,
 			profileId,
 			enabled: true,
@@ -152,15 +161,12 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		};
 		try {
 			this.options.store.transaction(() => {
-				const sourceId = input.source
-					? this.options.sources.configure(input.source)
-					: current?.feedId;
-				if (!sourceId || !this.options.sources.snapshot(sourceId))
-					throw new DomainError(
-						"INVALID_REQUEST",
-						"Choose an existing source.",
-					);
-				subscription.feedId = sourceId;
+				const snapshot = this.options.sources.snapshot(
+					subscription.sourceInput ?? subscription.feedId,
+				);
+				if (!snapshot)
+					throw new DomainError("INVALID_REQUEST", "Choose a source.");
+				subscription.feedId = snapshot.id;
 				// Preserve existing selection clocks on a configuration edit; changed profiles are fenced until reevaluation.
 				this.options.store.saveSubscription(
 					subscription,
@@ -203,7 +209,9 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		this.key(workKey);
 		const current = this.options.store.subscription(workKey);
 		if (!current || current.revision !== revision) conflict();
-		const feed = this.options.sources.snapshot(current.feedId);
+		const feed = this.options.sources.snapshot(
+			current.sourceInput ?? current.feedId,
+		);
 		if (!feed) conflict();
 		this.options.store.saveSubscription(
 			{ ...current, enabled, revision: randomUUID() },
@@ -229,7 +237,9 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			const subscription = this.options.store.subscription(workKey);
 			if (!subscription?.enabled || subscription.revision !== revision)
 				conflict();
-			const feed = this.options.sources.snapshot(subscription.feedId);
+			const feed = this.options.sources.snapshot(
+				subscription.sourceInput ?? subscription.feedId,
+			);
 			if (!feed) conflict();
 			if (
 				feed.checkedAt !== null &&
@@ -339,7 +349,12 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			.map((subscription) => subscription.feedId);
 	}
 	refreshSource(id: string) {
-		const snapshot = this.options.sources.snapshot(id);
+		const subscription = this.options.store
+			.subscriptions()
+			.find((item) => item.enabled && item.feedId === id);
+		const snapshot = subscription
+			? this.options.sources.snapshot(subscription.sourceInput ?? id)
+			: null;
 		return snapshot ? this.worker.pollSource(snapshot) : Promise.resolve();
 	}
 	async close() {

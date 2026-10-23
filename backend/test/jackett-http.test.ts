@@ -188,21 +188,14 @@ test("Source connector settings and unified diagnostics require authentication a
 				payload: feedInput,
 			})
 		).statusCode,
-	).toBe(403);
-	const configured = await app.inject({
+	).toBe(404);
+	const removedRegistration = await app.inject({
 		url: "/api/acquisition/sources",
 		method: "POST",
 		headers: mutationHeaders,
 		payload: feedInput,
 	});
-	expect(configured.statusCode).toBe(200);
-	const status = await app.inject({
-		url: `/api/acquisition/sources/${configured.json().id}`,
-		headers: authenticated,
-	});
-	expect(status.statusCode).toBe(200);
-	expect(status.json()).toMatchObject({ checkedAt: null, entries: [] });
-	expect(status.body).not.toContain("private-feed-key");
+	expect(removedRegistration.statusCode).toBe(404);
 	expect(logs.join("\n")).not.toContain(secret);
 	expect(logs.join("\n")).not.toContain("private-feed-key");
 });

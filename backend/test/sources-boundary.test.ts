@@ -66,7 +66,7 @@ async function fixture() {
 }
 
 test.each(["feed", "search"] as const)(
-	"%s uses the same ID-based collection, atomic publication and content interfaces",
+	"%s fetches definitions without registration and preserves retries, atomic publication and content",
 	async (kind) => {
 		const f = await fixture();
 		const input: SourceInput =
@@ -78,18 +78,15 @@ test.each(["feed", "search"] as const)(
 						providerId: "example",
 						titles: ["Example"],
 					};
-		expect(Object.keys(f.module.catalog).sort()).toEqual([
-			"configure",
-			"snapshot",
-		]);
-		expect(Object.keys(f.module.content).sort()).toEqual(["isCurrent", "read"]);
-		expect(Object.keys(f.module.collection)).toEqual(["collect"]);
 		expect(Object.keys(f.module.api).sort()).toEqual([
-			"configure",
 			"connector",
+			"fetch",
+			"isContentCurrent",
+			"readContent",
 			"snapshot",
 			"test",
 		]);
+
 		const diagnostic = await f.module.api.test(input);
 		expect(diagnostic.entries).toHaveLength(1);
 		expect(JSON.stringify(diagnostic)).not.toMatch(
@@ -97,15 +94,27 @@ test.each(["feed", "search"] as const)(
 		);
 		expect(f.database.acquisition.sources()).toEqual([]);
 		const count = f.fetch.mock.calls.length + f.search.mock.calls.length;
-		const id = f.module.catalog.configure(input);
+		const initial = f.module.api.snapshot(input);
+		if (!initial) throw new Error("Missing source snapshot");
+		const id = initial.id;
 		expect(f.fetch.mock.calls.length + f.search.mock.calls.length).toBe(count);
-		const initial = f.module.catalog.snapshot(id);
+		expect(f.database.acquisition.sources()).toEqual([]);
 		expect(initial).toMatchObject({ checkedAt: null, entries: [] });
-		const byId = await f.module.api.test(id);
-		expect(byId.entries).toEqual(diagnostic.entries);
-		expect(f.module.catalog.snapshot(id)).toEqual(initial);
-		const prepared = await f.module.collection.collect(id);
-		expect(f.module.catalog.snapshot(id)).toEqual(initial);
+		if (kind === "feed")
+			f.fetch.mockRejectedValueOnce(new SourceError("upstream_failure"));
+		else f.search.mockRejectedValueOnce(new SourceError("upstream_failure"));
+		await expect(f.module.api.fetch(input)).rejects.toMatchObject({
+			code: "upstream_failure",
+		});
+		expect(f.module.api.snapshot(input)).toMatchObject({
+			checkedAt: null,
+			error: "upstream_failure",
+			nextAttemptAt: 121000,
+		});
+		const prepared = await f.module.api.fetch(input);
+		const unpublished = f.module.api.snapshot(id);
+		expect(unpublished).toMatchObject({ checkedAt: null, entries: [] });
+
 		const subscription = {
 			workKey: "anilist:anime:1",
 			feedId: id,
@@ -119,27 +128,27 @@ test.each(["feed", "search"] as const)(
 				throw new Error("candidate storage failed");
 			}),
 		).toThrow("candidate storage failed");
-		expect(f.module.catalog.snapshot(id)).toEqual(initial);
+		expect(f.module.api.snapshot(id)).toEqual(unpublished);
 		expect(
 			f.database.acquisition.subscription(subscription.workKey),
 		).toBeNull();
 		prepared.commit(() =>
 			f.database.acquisition.saveSubscription(subscription, []),
 		);
-		expect(f.module.catalog.snapshot(id)).toEqual(prepared.snapshot);
+		expect(f.module.api.snapshot(id)).toEqual(prepared.snapshot);
 		const reference = prepared.snapshot.entries[0]?.download;
 		if (!reference) throw new Error("Missing content reference");
-		expect(f.module.content.isCurrent(reference)).toBe(true);
+		expect(f.module.api.isContentCurrent(reference)).toBe(true);
 		expect(
-			await f.module.content.read(reference, new AbortController().signal),
+			await f.module.api.readContent(reference, new AbortController().signal),
 		).toMatchObject({ kind: "magnet" });
 		if (kind === "feed")
 			f.fetch.mockRejectedValueOnce(new SourceError("upstream_failure"));
 		else f.search.mockRejectedValueOnce(new SourceError("upstream_failure"));
-		await expect(f.module.collection.collect(id)).rejects.toMatchObject({
+		await expect(f.module.api.fetch(id)).rejects.toMatchObject({
 			code: "upstream_failure",
 		});
-		expect(f.module.catalog.snapshot(id)).toMatchObject({
+		expect(f.module.api.snapshot(id)).toMatchObject({
 			entries: prepared.snapshot.entries,
 			checkedAt: 1000,
 			error: "upstream_failure",
@@ -150,8 +159,8 @@ test.each(["feed", "search"] as const)(
 		);
 		if (kind === "search") {
 			await f.module.api.connector.clear(f.connector.generation);
-			expect(f.module.content.isCurrent(reference)).toBe(false);
-			await expect(f.module.collection.collect(id)).rejects.toMatchObject({
+			expect(f.module.api.isContentCurrent(reference)).toBe(false);
+			await expect(f.module.api.fetch(id)).rejects.toMatchObject({
 				code: "source_conflict",
 			});
 		}

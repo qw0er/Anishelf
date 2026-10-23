@@ -75,8 +75,14 @@ and browser/media acceptance.
 
 Sources construction, protocol-specific queries, HTTP presentation and error translation
 now live inside the module. Business consumers use source IDs and shared evidence;
-Downloads receives only content read/validity operations. Sources owns collection
-failure/backoff. Atomic candidate publication uses a separate internal collection
-capability, and composition alone owns runtime start/close. The common subscription
+Subscriptions and Downloads share a unified SourcesApi with evidence, direct fetching,
+content and diagnostics. Sources owns collection failure/backoff. Atomic
+candidate publication uses the commit result of fetch on that same interface;
+composition alone owns the separate runtime start/close entry. The common subscription
 save input carries a feed/search definition rather than a dedicated rssUrl field.
 The full boundary is documented in [Sources Boundary and Lifecycle](source-lifecycle.md).
+
+Source registration is no longer a prerequisite. Subscriptions persists the source
+definition locally; Sources.fetch accepts that definition and manages its own cache
+and retry state on demand. Migration 0007 backfills existing subscription definitions
+and removes the foreign key requiring a pre-existing Sources record.

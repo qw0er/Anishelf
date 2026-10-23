@@ -83,8 +83,8 @@ its permission and status policy under the explicit enablement described above.
 - Exclude accessible local episodes and known downloader tasks. Reserve canonical
   torrent hashes and work/episode identities before automatic submission.
 - Existing subscriptions remain discovery-only until explicitly saved against a
-  validated current destination/account. One save atomically stores the source binding,
-  subscription and accepted scope. No preview/token/confirmation session is required.
+  validated current destination/account. One save atomically stores the subscription source definition
+  and accepted scope, without registering a source or requesting it. No preview/token/confirmation session is required.
   Changed scope or destination/account cannot inherit stale permission. The form
   displays the target and sends its revision and connection generation.
 - Pausing stops future submissions while existing transfers and imports continue.

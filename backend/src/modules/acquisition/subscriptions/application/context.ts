@@ -1,7 +1,6 @@
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { ReleaseAssessmentApi } from "../../../anime/public.js";
-import type { SourceCollection } from "../../sources/integration.js";
 import type { SourcesApi } from "../../sources/public.js";
 import type { AcquisitionProfile } from "../domain/profiles.js";
 import type { SubscriptionStore } from "../ports.js";
@@ -11,7 +10,6 @@ export type SubscriptionsOptions = {
 	lockedCandidates?: (workKey: string) => string[];
 	store: SubscriptionStore;
 	sources: SourcesApi;
-	collection: SourceCollection;
 	anime: ReleaseAssessmentApi;
 	downloads: (signal: AbortSignal) => Promise<string[] | null>;
 	logger: Logger;

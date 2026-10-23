@@ -23,7 +23,7 @@ continues to use the disk-backed `openDatabase()` path and its existing logs.
 | Original tables | Relational representation |
 | --- | --- |
 | `acquisition_feeds` | Feed identity, URL, validators, check/retry times, failure count and error columns; ordered feed entries |
-| `acquisition_subscriptions` | Feed foreign key, starting episode, enabled flag, revision and nullable error |
+| `acquisition_subscriptions` | Stable evidence identity, typed source definition, starting episode, enabled flag, revision and nullable error; no source-registration foreign key |
 | `acquisition_candidates` | Candidate identity, title, episode, selection, revision/evidence attributes; ordered reasons |
 | `acquisition_destination` | One constrained `default` row with scope, path, revision, connection generation and verification flags |
 | `acquisition_authorizations` | Subscriptions-owned accepted source/episode scope, destination revision and connection generation |

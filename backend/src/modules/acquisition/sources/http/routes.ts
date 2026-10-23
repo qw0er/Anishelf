@@ -1,7 +1,6 @@
 import { Type } from "typebox";
 import {
 	SourceGenerationSchema,
-	SourceInputSchema,
 	SourceProbeInputSchema,
 	SourceProbeSchema,
 	SourceProvidersSchema,
@@ -12,25 +11,11 @@ import {
 	SourceUpdateSchema,
 } from "../../../../contracts/schemas/sources.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
-import type { SourceManagementApi } from "../public.js";
+import type { SourcesApi } from "../public.js";
 
 /** Source setup is distinct from protocol-neutral collection/content consumers. */
-export function registerSourceRoutes(
-	app: HttpInstance,
-	sources: SourceManagementApi,
-) {
+export function registerSourceRoutes(app: HttpInstance, sources: SourcesApi) {
 	const path = "/api/acquisition/sources";
-	app.post(
-		path,
-		{
-			bodyLimit: 16 * 1024,
-			schema: {
-				body: SourceInputSchema,
-				response: { 200: Type.Object({ id: Type.String() }) },
-			},
-		},
-		(request) => ({ id: sources.configure(request.body) }),
-	);
 	app.get(
 		`${path}/:id`,
 		{
