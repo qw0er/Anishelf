@@ -1,0 +1,303 @@
+{
+	"schemaVersion": 1,
+	"workId": "mushoku-2",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 373247,
+		"sourceUrl": "https://bangumi.tv/subject/373247",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/373247",
+		"subjectResponseSha256": "cb5b1cdfa38e66bf5a58377adcf4f12f99142ce0df8a48cccaa86e023c4f8559",
+		"name": "無職転生Ⅱ ～異世界行ったら本気だす～",
+		"nameCn": "无职转生 第二季 ～到了异世界就拿出真本事～",
+		"date": "2023-07-02",
+		"platform": "TV",
+		"regularEpisodeCount": 13,
+		"totalEpisodeCount": 13,
+		"aliases": [
+			"无职转生 第二季 ～在异世界认真地活下去～",
+			"Mushoku Tensei II: Isekai Ittara Honki Dasu",
+			"Mushoku Tensei: Jobless Reincarnation Season 2"
+		],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/cf/55/373247_aBFR1.jpg",
+		"episodes": [
+			{
+				"id": 1212094,
+				"type": 0,
+				"sort": 0,
+				"ep": 1,
+				"name": "守護術師フィッツ",
+				"name_cn": "守护术师菲兹"
+			},
+			{
+				"id": 1212095,
+				"type": 0,
+				"sort": 1,
+				"ep": 2,
+				"name": "失意の魔術師",
+				"name_cn": "失意的魔术师"
+			},
+			{
+				"id": 1212096,
+				"type": 0,
+				"sort": 2,
+				"ep": 3,
+				"name": "真夜中の森",
+				"name_cn": "深夜里的森林"
+			},
+			{
+				"id": 1212097,
+				"type": 0,
+				"sort": 3,
+				"ep": 4,
+				"name": "急接近",
+				"name_cn": "快速进展"
+			},
+			{
+				"id": 1212098,
+				"type": 0,
+				"sort": 4,
+				"ep": 5,
+				"name": "推薦状",
+				"name_cn": "推荐信"
+			},
+			{
+				"id": 1212099,
+				"type": 0,
+				"sort": 5,
+				"ep": 6,
+				"name": "ラノア魔法大学",
+				"name_cn": "拉诺亚魔法大学"
+			},
+			{
+				"id": 1212100,
+				"type": 0,
+				"sort": 6,
+				"ep": 7,
+				"name": "死にたくない",
+				"name_cn": "我不想死"
+			},
+			{
+				"id": 1212101,
+				"type": 0,
+				"sort": 7,
+				"ep": 8,
+				"name": "獣族令嬢拉致監禁事件",
+				"name_cn": "兽族大小姐绑架监禁事件"
+			},
+			{
+				"id": 1212102,
+				"type": 0,
+				"sort": 8,
+				"ep": 9,
+				"name": "絶望の婚約者",
+				"name_cn": "绝望的婚约者"
+			},
+			{
+				"id": 1212103,
+				"type": 0,
+				"sort": 9,
+				"ep": 10,
+				"name": "白い仮面",
+				"name_cn": "白色面具"
+			},
+			{
+				"id": 1212104,
+				"type": 0,
+				"sort": 10,
+				"ep": 11,
+				"name": "この気持ち",
+				"name_cn": "这份心意"
+			},
+			{
+				"id": 1212105,
+				"type": 0,
+				"sort": 11,
+				"ep": 12,
+				"name": "あなたへ",
+				"name_cn": "给你"
+			},
+			{
+				"id": 1233193,
+				"type": 0,
+				"sort": 12,
+				"ep": 13,
+				"name": "伝えたい",
+				"name_cn": "想告诉你"
+			}
+		],
+		"episodeTotal": 13,
+		"relations": [
+			{
+				"id": 101114,
+				"name": "無職転生 ～異世界行ったら本気だす～",
+				"name_cn": "无职转生 ～到了异世界就拿出真本事～",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 143597,
+				"name": "無職転生 ～異世界行ったら本気だす～",
+				"name_cn": "无职转生 ～到了异世界就拿出真本事～",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 325585,
+				"name": "無職転生 ～異世界行ったら本気だす～ 第2クール",
+				"name_cn": "无职转生～到了异世界就拿出真本事～ 第2部分",
+				"relation": "前传",
+				"type": 2
+			},
+			{
+				"id": 362881,
+				"name": "無職転生 ~異世界行ったら本気だす~ 失意の魔術師編",
+				"name_cn": "无职转生 ~在异世界认真地活下去~ 失意的魔术师篇",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 414751,
+				"name": "無職転生 ~異世界行ったら本気だす~ Quest of Memories",
+				"name_cn": "无职转生 ~到了异世界就拿出真本事~ Quest of Memories",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 444557,
+				"name": "無職転生Ⅱ ～異世界行ったら本気だす～ 第2クール",
+				"name_cn": "无职转生 第二季 ～到了异世界就拿出真本事～ 第2部分",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 444874,
+				"name": "spiral",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 456140,
+				"name": "『無職転生 ～異世界行ったら本気だす～』 第2期 オリジナル・サウンドトラック",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 502085,
+				"name": "TVアニメ『無職転生Ⅱ ～異世界行ったら本気だす～』エンディングテーマコレクション",
+				"name_cn": "『无职转生Ⅱ ～到了异世界就拿出真本事～』Ending Theme  Collection",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 535758,
+				"name": "異世界∞異世界 ～次はどの作品を、集めよう～",
+				"name_cn": "",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 443894,
+				"name": "Clover",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 447661,
+				"name": "『無職転生II ～異世界行ったら本気だす～』Blu-ray Chapter 1 特典CD",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 445917,
+				"name": "ムスビメ",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 456114,
+				"name": "花咲み",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			}
+		]
+	},
+	"anilist": {
+		"id": 146065,
+		"sourceUrl": "https://anilist.co/anime/146065",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Mushoku Tensei II: Isekai Ittara Honki Dasu",
+			"english": "Mushoku Tensei: Jobless Reincarnation Season 2",
+			"native": "無職転生Ⅱ ～異世界行ったら本気だす～"
+		},
+		"synonyms": [
+			"เกิดชาตินี้พี่ต้องเทพ ซีซั่น 2",
+			"Mushoku Tensei: Isekai Ittara Honki Dasu 2nd Season",
+			"Mushoku Tensei II: Jobless Reincarnation",
+			"Mushoku Tensei II: Reencarnación desde cero",
+			"无职转生～到了异世界就拿出真本事～第2季"
+		],
+		"format": "TV",
+		"episodes": 13,
+		"startDate": {
+			"year": 2023,
+			"month": 7,
+			"day": 3
+		},
+		"relations": [
+			{
+				"id": 127720,
+				"titles": {
+					"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+					"native": "無職転生 ～異世界行ったら本気だす～ 第2クール"
+				},
+				"type": "ANIME",
+				"relation": "PREQUEL"
+			},
+			{
+				"id": 85470,
+				"titles": {
+					"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+					"native": "無職転生 ～異世界行ったら本気だす～"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 142989,
+				"titles": {
+					"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu - Shitsui no Majutsushi-hen",
+					"native": "無職転生 ～異世界行ったら本気だす～ 失意の魔術師編"
+				},
+				"type": "MANGA",
+				"relation": "ALTERNATIVE"
+			},
+			{
+				"id": 85564,
+				"titles": {
+					"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+					"native": "無職転生 ～異世界行ったら本気だす～"
+				},
+				"type": "MANGA",
+				"relation": "ALTERNATIVE"
+			},
+			{
+				"id": 166873,
+				"titles": {
+					"romaji": "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
+					"native": "無職転生Ⅱ ～異世界行ったら本気だす～ 第2クール"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

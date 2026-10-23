@@ -1,0 +1,362 @@
+import { createHash, randomUUID } from "node:crypto";
+import type { Logger } from "pino";
+import { DomainError } from "../../../../shared/errors.js";
+import type { DeepReadonly } from "../../../../shared/policy.js";
+import type { ResourceAccessApi } from "../../../resources/public.js";
+import type { PlaybackCompletionObserver } from "../domain/completion.js";
+import type {
+	HistoryItem,
+	HistoryResult,
+	PlaybackSession,
+	ResolvedSource,
+	SavePlaybackProgress,
+	SavePlaybackProgressResult,
+	SourceIdentity,
+} from "../domain/model.js";
+import { type PlaybackPolicy, playbackPolicy } from "../policy.js";
+import type { PlaybackStore } from "../ports.js";
+import type { PlaybackApi } from "../public.js";
+import { PlaybackCompletions } from "./completions.js";
+
+interface PlaybackSessionState {
+	completionContext: string | null;
+	completionQueued: boolean;
+	openedAt: number;
+	sourceId: string;
+	identity: SourceIdentity;
+	accessRevision: number;
+	generation: number;
+	touchedAtMs: number;
+}
+
+/** Coordinates filesystem identity, session authorization and durable progress. */
+export class PlaybackApplication implements PlaybackApi {
+	private readonly sessions = new Map<string, PlaybackSessionState>();
+	private closed = false;
+	private readonly completionsWorker: PlaybackCompletions | undefined;
+	private readonly logger: Logger;
+	private readonly policy: DeepReadonly<PlaybackPolicy>;
+	constructor(
+		private readonly options: {
+			sources: ResourceAccessApi;
+			completionObserver?: PlaybackCompletionObserver | undefined;
+			repository: PlaybackStore;
+			logger: Logger;
+			now?: () => number;
+			policy?: DeepReadonly<PlaybackPolicy>;
+		},
+	) {
+		this.policy = options.policy ?? playbackPolicy;
+		this.logger = options.logger.child({ module: "playback" });
+		if (options.completionObserver)
+			this.completionsWorker = new PlaybackCompletions(
+				options.repository,
+				options.completionObserver,
+				this.logger,
+			);
+	}
+
+	async open(fileId: string): Promise<PlaybackSession> {
+		const started = Date.now();
+		const openedAt = this.now();
+		this.logger.debug(
+			{ event: "playback.open_started", fileId },
+			"Opening playback session.",
+		);
+		this.prune();
+		if (this.sessions.size >= this.policy.maximumSessions)
+			throw new DomainError(
+				"PLAYBACK_UNAVAILABLE",
+				"Too many active playback sessions.",
+			);
+		const source = await this.options.sources.resolveSource(fileId);
+		this.assertEpoch(source.accessRevision);
+		const repository = this.repository();
+		const progress = this.persist(() => {
+			const registered = repository.registerSource(source.identity, this.now());
+			// A failed history read must never create a writable session.
+			repository.get(registered.id);
+			return repository.openGeneration(registered.id);
+		});
+		let completionContext: string | null = null;
+		try {
+			completionContext =
+				(await this.options.completionObserver?.capture(
+					fileId,
+					source.identity.sourceVersion,
+				)) ?? null;
+		} catch {
+			this.logger.warn(
+				{ event: "playback.completion_capture_failed", fileId },
+				"Tracking target unavailable; local playback remains usable.",
+			);
+		}
+		this.assertEpoch(source.accessRevision);
+		const token = randomUUID();
+		for (const [otherToken, session] of this.sessions) {
+			if (session.sourceId === progress.sourceId)
+				this.sessions.delete(otherToken);
+		}
+		this.sessions.set(token, {
+			completionContext,
+			completionQueued: false,
+			openedAt,
+			sourceId: progress.sourceId,
+			identity: source.identity,
+			accessRevision: source.accessRevision,
+			generation: progress.generation,
+			touchedAtMs: this.now(),
+		});
+		this.logger.info(
+			{
+				event: "playback.opened",
+				fileId,
+				sourceId: progress.sourceId,
+				generation: progress.generation,
+				durationMs: Date.now() - started,
+			},
+			"Playback session opened.",
+		);
+		return {
+			token,
+			sourceVersion: source.identity.sourceVersion,
+			file: source.file,
+			progress,
+		};
+	}
+
+	async save(input: SavePlaybackProgress): Promise<SavePlaybackProgressResult> {
+		this.validateTimes(input);
+		const session = this.session(input.token);
+		await this.revalidate(input.token, session);
+		if (
+			input.generation !== session.generation ||
+			input.sourceVersion !== session.identity.sourceVersion
+		)
+			this.conflict();
+		const completed =
+			(input.normalPlayedMs ?? 0) >= this.policy.minimumNormalPlayMs &&
+			(input.normalPlayedMs ?? 0) <=
+				Math.max(0, this.now() - session.openedAt) + 1000 &&
+			(input.naturalEnd === true ||
+				(input.durationMs !== null &&
+					input.positionMs / input.durationMs >= this.policy.completionRatio));
+		const observation =
+			completed && !session.completionQueued && session.completionContext
+				? {
+						id: createHash("sha256")
+							.update(
+								JSON.stringify([
+									session.sourceId,
+									session.generation,
+									session.completionContext,
+								]),
+							)
+							.digest("hex"),
+						context: session.completionContext,
+					}
+				: undefined;
+		const result = this.persist(() =>
+			this.repository().save(
+				{
+					sourceId: session.sourceId,
+					generation: input.generation,
+					sequence: input.sequence,
+					positionMs: input.positionMs,
+					durationMs: input.durationMs,
+					...(observation ? { observation } : {}),
+				},
+				this.now(),
+			),
+		);
+		if (result.status === "stale") this.conflict();
+		session.touchedAtMs = this.now();
+		if (observation && result.status === "saved") {
+			session.completionQueued = true;
+			void this.completionsWorker?.flush();
+		}
+		this.logger.trace(
+			{
+				event: "playback.progress_saved",
+				sourceId: session.sourceId,
+				sequence: input.sequence,
+				status: result.status,
+			},
+			"Playback progress saved.",
+		);
+		return result;
+	}
+
+	async history(
+		limit = this.policy.historyLimit,
+		view: "continue" | "recent" = "recent",
+	): Promise<HistoryResult> {
+		if (
+			!Number.isSafeInteger(limit) ||
+			limit < 1 ||
+			limit > this.policy.maximumListLimit
+		)
+			throw new DomainError("INVALID_REQUEST", "Invalid list limit.");
+		const repository = this.repository();
+		if (!this.options.sources.hasSnapshot)
+			return { availability: "unknown", items: [] };
+		const epoch = this.options.sources.accessRevision;
+		const scope = await this.options.sources.getScope();
+		const items: HistoryItem[] = [];
+		for (
+			let offset = 0;
+			items.length < limit;
+			offset += this.policy.candidateBatchSize
+		) {
+			this.assertEpoch(epoch);
+			const candidates = this.persist(() =>
+				repository.listHistory(
+					scope.ids,
+					this.policy.candidateBatchSize,
+					offset,
+					view,
+				),
+			);
+			for (const candidate of candidates) {
+				let source: ResolvedSource;
+				try {
+					source = await this.options.sources.revalidateSource({
+						identity: { ...candidate.source, scopeId: candidate.source.rootId },
+						accessRevision: epoch,
+					});
+				} catch (error) {
+					this.assertEpoch(epoch);
+					if (
+						error instanceof DomainError &&
+						[
+							"RESOURCE_NOT_FOUND",
+							"RESOURCE_ROOT_UNAVAILABLE",
+							"RESOURCE_MISSING",
+							"RESOURCE_UNREADABLE",
+							"RESOURCE_ACCESS_DENIED",
+							"PLAYBACK_CONFLICT",
+						].includes(error.code)
+					)
+						continue;
+					throw error;
+				}
+				this.assertEpoch(epoch);
+				items.push({ file: source.file, progress: candidate.progress });
+				if (items.length === limit) break;
+			}
+			if (candidates.length < this.policy.candidateBatchSize) break;
+		}
+		this.assertEpoch(epoch);
+		this.logger.debug(
+			{ event: "playback.history_loaded", view, count: items.length },
+			"Playback history loaded.",
+		);
+		return { availability: "checked", items };
+	}
+
+	release(token: string): void {
+		const session = this.sessions.get(token);
+		if (this.sessions.delete(token))
+			this.logger.debug(
+				{ event: "playback.released", sourceId: session?.sourceId },
+				"Playback session released.",
+			);
+	}
+	async close(): Promise<void> {
+		this.closed = true;
+		this.sessions.clear();
+		await this.completionsWorker?.close();
+	}
+
+	private now(): number {
+		return this.options.now?.() ?? Date.now();
+	}
+	private repository(): PlaybackStore {
+		if (this.closed)
+			throw new DomainError(
+				"PLAYBACK_UNAVAILABLE",
+				"Playback persistence is unavailable.",
+			);
+		return this.options.repository;
+	}
+	private persist<T>(operation: () => T): T {
+		try {
+			return operation();
+		} catch (cause) {
+			if (cause instanceof DomainError) throw cause;
+			this.logger.error(
+				{ event: "playback.persistence_failed", err: cause },
+				"Playback persistence failed.",
+			);
+			throw new DomainError(
+				"PLAYBACK_PERSISTENCE_FAILED",
+				"Playback progress could not be loaded or saved.",
+				{ cause },
+			);
+		}
+	}
+	private assertEpoch(epoch: number): void {
+		this.repository();
+		if (epoch !== this.options.sources.accessRevision) this.conflict();
+	}
+	private prune(): void {
+		this.repository();
+		for (const [token, session] of this.sessions) {
+			if (
+				this.now() - session.touchedAtMs >= this.policy.sessionIdleMs ||
+				session.accessRevision !== this.options.sources.accessRevision
+			)
+				this.sessions.delete(token);
+		}
+	}
+	private session(token: string): PlaybackSessionState {
+		this.prune();
+		const session = this.sessions.get(token);
+		if (!session) this.conflict();
+		return session;
+	}
+	private async revalidate(
+		token: string,
+		session: PlaybackSessionState,
+	): Promise<void> {
+		try {
+			await this.options.sources.revalidateSource(session);
+		} catch (error) {
+			if (error instanceof DomainError && error.code === "PLAYBACK_CONFLICT") {
+				this.sessions.delete(token);
+				this.conflict();
+			}
+			throw error;
+		}
+		// Check again after awaiting filesystem access: another open/reset/root change may have intervened.
+		if (this.session(token) !== session) {
+			this.sessions.delete(token);
+			this.conflict();
+		}
+	}
+	private conflict(): never {
+		this.logger.debug(
+			{ event: "playback.conflict" },
+			"Playback session or source changed.",
+		);
+		throw new DomainError(
+			"PLAYBACK_CONFLICT",
+			"The playback session or source changed. Reopen playback.",
+		);
+	}
+	private validateTimes(input: SavePlaybackProgress): void {
+		const values = [input.generation, input.sequence, input.positionMs];
+		if (
+			values.some((value) => !Number.isSafeInteger(value)) ||
+			input.generation < 1 ||
+			input.sequence < 1 ||
+			input.positionMs < 0 ||
+			(input.normalPlayedMs !== undefined &&
+				(!Number.isSafeInteger(input.normalPlayedMs) ||
+					input.normalPlayedMs < 0)) ||
+			(input.durationMs !== null &&
+				(!Number.isSafeInteger(input.durationMs) || input.durationMs <= 0))
+		)
+			throw new DomainError("INVALID_REQUEST", "Invalid playback progress.");
+	}
+}

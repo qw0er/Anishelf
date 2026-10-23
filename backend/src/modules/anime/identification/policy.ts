@@ -1,0 +1,15 @@
+export const identificationPolicy = {
+	maximumFiles: 500,
+	automaticRetryMs: 5000,
+	parserGroupSize: 50,
+	maximumQueries: 3,
+	maximumBatchQueries: 100,
+	metadataTimeoutMs: 15000,
+	maximumCandidates: 10,
+	maximumRange: 100,
+	maximumEpisode: 10000,
+	matcherVersion: "provenance-season-prior-v6",
+	normalizationVersion: "anitomy-title-sources-v5",
+	missingSeasonPrimaryPenalty: 12,
+	missingSeasonAliasPenalty: 3,
+} as const;

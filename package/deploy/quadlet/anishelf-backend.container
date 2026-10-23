@@ -1,0 +1,30 @@
+[Unit]
+PartOf=anishelf.target
+Description=Anishelf backend
+
+[Container]
+# Pin the same release tag in Backend and Web.
+Image=ghcr.io/qw0er/anishelf-backend:latest
+ContainerName=anishelf-backend
+Network=anishelf.network
+NetworkAlias=backend
+UserNS=keep-id:uid=1000,gid=1000
+# Set the exact browser origin, including HTTPS or a changed host port.
+Environment=ANISHELF_PUBLIC_ORIGIN=http://localhost:3000
+# Initial root for new settings only; change existing roots in Settings.
+Environment=ANISHELF_INITIAL_RESOURCE_ROOTS=/data/media
+# Optional API form hint; use Settings for external endpoints and credentials.
+Environment=ANISHELF_QBITTORRENT_API_URL=http://qbittorrent:8080
+Environment=ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE=/run/anishelf-qbittorrent/connection.json
+Volume=anishelf-qbittorrent-connection.volume:/run/anishelf-qbittorrent:ro
+Volume=anishelf-app.volume:/data/app
+# Optional host media: replace with /absolute/media:/data/media:ro,z.
+Volume=anishelf-media.volume:/data/media:ro
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+TimeoutStopSec=30
+
+[Install]
+WantedBy=anishelf.target

@@ -1,0 +1,79 @@
+{
+	"name": "@anishelf/backend",
+	"license": "GPL-3.0-only",
+	"author": "QWER",
+	"version": "1.0.0",
+	"type": "module",
+	"main": "dist/index.js",
+	"scripts": {
+		"dev": "NODE_ENV=development tsx watch src/index.ts | pino-pretty --colorize --translateTime SYS:standard",
+		"typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+		"test": "vitest run",
+		"build": "tsc",
+		"start": "node dist/index.js",
+		"test:watch": "vitest",
+		"db:generate": "drizzle-kit generate",
+		"auth": "tsx src/cli.ts auth"
+	},
+	"devDependencies": {
+		"@types/better-sqlite3": "^9.6.0",
+		"@types/fontkit": "^2.0.9",
+		"@types/node": "^26.6.5",
+		"@types/parse-torrent": "^11.0.1",
+		"drizzle-kit": "^0.31.11",
+		"memfs": "^4.80.0",
+		"pino-pretty": "^13.2.0",
+		"vitest": "^5.0.4"
+	},
+	"dependencies": {
+		"@api-wrappers/anilist-wrapper": "^4.0.1",
+		"@api-wrappers/api-core": "^1.1.1",
+		"@ctrl/qbittorrent": "10.0.1",
+		"@fastify/cookie": "^11.1.3",
+		"@fastify/rate-limit": "^11.2.1",
+		"@fastify/session": "^11.1.4",
+		"@fastify/static": "^10.1.6",
+		"@fastify/type-provider-typebox": "^6.3.0",
+		"anitomy-ng": "1.0.10",
+		"better-sqlite3": "^13.0.3",
+		"chokidar": "^5.0.0",
+		"drizzle-orm": "^0.45.4",
+		"fast-fuzzy": "1.12.0",
+		"fast-xml-parser": "5.11.2",
+		"fast-xml-validator": "1.4.2",
+		"fastify": "^5.12.7",
+		"file-type": "^22.2.0",
+		"fontkit": "^2.0.4",
+		"ipaddr.js": "2.5.0",
+		"opencc-js": "1.4.2",
+		"parse-torrent": "^11.0.24",
+		"pino": "^10.4.0",
+		"platformdirs": "4.3.7",
+		"rotating-file-stream": "^3.2.10",
+		"typebox": "^1.3.37",
+		"undici": "7.30.1",
+		"yaml": "^2.9.1"
+	},
+	"exports": {
+		".": "./dist/index.js",
+		"./contracts/http": {
+			"types": "./src/contracts/http.ts"
+		},
+		"./contracts/subtitles": {
+			"types": "./src/contracts/subtitles.ts",
+			"default": "./src/contracts/subtitles.ts"
+		},
+		"./contracts/defaults": {
+			"types": "./src/contracts/defaults.ts",
+			"default": "./src/contracts/defaults.ts"
+		},
+		"./contracts/media": {
+			"types": "./src/contracts/media.ts",
+			"default": "./src/contracts/media.ts"
+		},
+		"./contracts/references": {
+			"types": "./src/contracts/references.ts",
+			"default": "./src/contracts/references.ts"
+		}
+	}
+}

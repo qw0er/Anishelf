@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>Anishelf — television on a shelf</title>
+  <rect width="128" height="128" rx="28" fill="#F2F0E8"/>
+  <path d="M48 26 62 38 78 24" stroke="#0D9D92" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="25" y="36" width="78" height="54" rx="11" fill="#0D9D92"/>
+  <rect x="33" y="44" width="52" height="38" rx="6" fill="#D3F7EF"/>
+  <path d="m54 54 15 9-15 9V54Z" fill="#0D9D92"/>
+  <circle cx="94" cy="54" r="3" fill="#F2F0E8"/>
+  <rect x="91" y="65" width="6" height="11" rx="3" fill="#70DFCF"/>
+  <path d="M38 90v7m52-7v7" stroke="#0D9D92" stroke-width="6"/>
+  <rect x="16" y="96" width="96" height="9" rx="4.5" fill="#C68D58"/>
+  <path d="M29 105v9m70-9v9" stroke="#9B683E" stroke-width="6" stroke-linecap="round"/>
+</svg>

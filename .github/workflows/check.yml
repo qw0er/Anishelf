@@ -1,0 +1,45 @@
+name: Check project
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install media tools and native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3 make g++
+          ffmpeg -version
+          ffprobe -version
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Check formatting, lint, types and tests
+        run: npm run check
+
+      - name: Build backend and frontend
+        run: npm run build

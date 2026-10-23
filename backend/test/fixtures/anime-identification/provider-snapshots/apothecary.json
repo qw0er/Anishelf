@@ -1,0 +1,387 @@
+{
+	"schemaVersion": 1,
+	"workId": "apothecary",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 420628,
+		"sourceUrl": "https://bangumi.tv/subject/420628",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/420628",
+		"subjectResponseSha256": "c29ef03455485a6d54b44f404d38e30884a817e4949e76d2a028d9d957487668",
+		"name": "薬屋のひとりごと",
+		"nameCn": "药屋少女的呢喃",
+		"date": "2023-10-21",
+		"platform": "TV",
+		"regularEpisodeCount": 24,
+		"totalEpisodeCount": 24,
+		"aliases": [
+			"药师少女的独语",
+			"Kusuriya no Hitorigoto",
+			"The Apothecary Diaries"
+		],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/fe/31/420628_2ZEz0.jpg",
+		"episodes": [
+			{
+				"id": 1244591,
+				"type": 0,
+				"sort": 1,
+				"ep": 1,
+				"name": "猫猫",
+				"name_cn": "猫猫"
+			},
+			{
+				"id": 1244592,
+				"type": 0,
+				"sort": 2,
+				"ep": 2,
+				"name": "無愛想な薬師",
+				"name_cn": "冷漠的药师"
+			},
+			{
+				"id": 1244593,
+				"type": 0,
+				"sort": 3,
+				"ep": 3,
+				"name": "幽霊騒動",
+				"name_cn": "幽灵作祟"
+			},
+			{
+				"id": 1244594,
+				"type": 0,
+				"sort": 4,
+				"ep": 4,
+				"name": "恫喝",
+				"name_cn": "威胁"
+			},
+			{
+				"id": 1244595,
+				"type": 0,
+				"sort": 5,
+				"ep": 5,
+				"name": "暗躍",
+				"name_cn": "秘密行动"
+			},
+			{
+				"id": 1244596,
+				"type": 0,
+				"sort": 6,
+				"ep": 6,
+				"name": "園遊会",
+				"name_cn": "游园会"
+			},
+			{
+				"id": 1244597,
+				"type": 0,
+				"sort": 7,
+				"ep": 7,
+				"name": "里帰り",
+				"name_cn": "返家"
+			},
+			{
+				"id": 1244598,
+				"type": 0,
+				"sort": 8,
+				"ep": 8,
+				"name": "麦稈",
+				"name_cn": "麦秆"
+			},
+			{
+				"id": 1244599,
+				"type": 0,
+				"sort": 9,
+				"ep": 9,
+				"name": "自殺か他殺か",
+				"name_cn": "自杀或他杀？"
+			},
+			{
+				"id": 1244600,
+				"type": 0,
+				"sort": 10,
+				"ep": 10,
+				"name": "蜂蜜",
+				"name_cn": "蜂蜜"
+			},
+			{
+				"id": 1244601,
+				"type": 0,
+				"sort": 11,
+				"ep": 11,
+				"name": "二つを一つに",
+				"name_cn": "减二为一"
+			},
+			{
+				"id": 1244602,
+				"type": 0,
+				"sort": 12,
+				"ep": 12,
+				"name": "宦官と妓女",
+				"name_cn": "宦官与妓女"
+			},
+			{
+				"id": 1253876,
+				"type": 0,
+				"sort": 13,
+				"ep": 13,
+				"name": "外廷勤務",
+				"name_cn": "外廷勤务"
+			},
+			{
+				"id": 1253877,
+				"type": 0,
+				"sort": 14,
+				"ep": 14,
+				"name": "新しい淑妃",
+				"name_cn": "新人淑妃"
+			},
+			{
+				"id": 1253878,
+				"type": 0,
+				"sort": 15,
+				"ep": 15,
+				"name": "鱠",
+				"name_cn": "鱼脍"
+			},
+			{
+				"id": 1253879,
+				"type": 0,
+				"sort": 16,
+				"ep": 16,
+				"name": "鉛",
+				"name_cn": "铅"
+			},
+			{
+				"id": 1253880,
+				"type": 0,
+				"sort": 17,
+				"ep": 17,
+				"name": "街歩き",
+				"name_cn": "游览街市"
+			},
+			{
+				"id": 1253881,
+				"type": 0,
+				"sort": 18,
+				"ep": 18,
+				"name": "羅漢",
+				"name_cn": "罗汉"
+			},
+			{
+				"id": 1253882,
+				"type": 0,
+				"sort": 19,
+				"ep": 19,
+				"name": "偶然か必然か",
+				"name_cn": "偶然或必然"
+			},
+			{
+				"id": 1253883,
+				"type": 0,
+				"sort": 20,
+				"ep": 20,
+				"name": "曼荼羅華",
+				"name_cn": "曼陀罗花"
+			},
+			{
+				"id": 1253884,
+				"type": 0,
+				"sort": 21,
+				"ep": 21,
+				"name": "身請け作戦",
+				"name_cn": "赎身计"
+			},
+			{
+				"id": 1253885,
+				"type": 0,
+				"sort": 22,
+				"ep": 22,
+				"name": "青い薔薇",
+				"name_cn": "蓝玫瑰"
+			},
+			{
+				"id": 1253886,
+				"type": 0,
+				"sort": 23,
+				"ep": 23,
+				"name": "鳳仙花と片喰",
+				"name_cn": "凤仙花与酢浆草"
+			},
+			{
+				"id": 1253887,
+				"type": 0,
+				"sort": 24,
+				"ep": 24,
+				"name": "壬氏と猫猫",
+				"name_cn": "壬氏与猫猫"
+			}
+		],
+		"episodeTotal": 24,
+		"relations": [
+			{
+				"id": 156126,
+				"name": "薬屋のひとりごと",
+				"name_cn": "药屋少女的呢喃",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 461203,
+				"name": "猫猫のひとりごと",
+				"name_cn": "猫猫的呢喃",
+				"relation": "衍生",
+				"type": 2
+			},
+			{
+				"id": 480831,
+				"name": "TVアニメ『薬屋のひとりごと』オリジナル・サウンドトラック",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 486347,
+				"name": "薬屋のひとりごと 第2期",
+				"name_cn": "药屋少女的呢喃 第二季",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 599894,
+				"name": "劇場版 薬屋のひとりごと 亡妃の秘宝",
+				"name_cn": "剧场版 药屋少女的呢喃 亡妃的秘宝",
+				"relation": "番外篇",
+				"type": 2
+			},
+			{
+				"id": 612853,
+				"name": "薬屋のひとりごと",
+				"name_cn": "药屋少女的呢喃",
+				"relation": "三次元",
+				"type": 6
+			},
+			{
+				"id": 620610,
+				"name": "ピアノ・ソロ TVアニメ『薬屋のひとりごと』",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 700402,
+				"name": "薬屋のひとりごと ~偽りの皇弟~",
+				"name_cn": "药屋少女的呢喃 ~真假皇弟~",
+				"relation": "游戏",
+				"type": 4
+			},
+			{
+				"id": 461055,
+				"name": "花になって",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 461058,
+				"name": "アイコトバ",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 472322,
+				"name": "アンビバレント",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 472323,
+				"name": "愛は薬",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			}
+		]
+	},
+	"anilist": {
+		"id": 161645,
+		"sourceUrl": "https://anilist.co/anime/161645",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Kusuriya no Hitorigoto",
+			"english": "The Apothecary Diaries",
+			"native": "薬屋のひとりごと"
+		},
+		"synonyms": [
+			"Drugstore Soliloquy",
+			"Les Carnets de l'Apothicaire",
+			"Zapiski zielarki",
+			"Diários de uma Apotecária",
+			"Il monologo della Speziale",
+			"Los diarios de la boticaria",
+			"สืบคดีปริศนา หมอยาตำรับโคมแดง",
+			"Записки аптекаря",
+			"Die Tagebücher der Apothekerin",
+			"يوميات الصيدلانيّة",
+			"藥師少女的獨語",
+			"药屋少女的呢喃",
+			"Монолог фармацевта",
+			"약사의 혼잣말",
+			"Dược sư tự sự"
+		],
+		"format": "TV",
+		"episodes": 24,
+		"startDate": {
+			"year": 2023,
+			"month": 10,
+			"day": 22
+		},
+		"relations": [
+			{
+				"id": 99026,
+				"titles": {
+					"romaji": "Kusuriya no Hitorigoto",
+					"native": "薬屋のひとりごと"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 99022,
+				"titles": {
+					"romaji": "Kusuriya no Hitorigoto",
+					"native": "薬屋のひとりごと"
+				},
+				"type": "MANGA",
+				"relation": "ALTERNATIVE"
+			},
+			{
+				"id": 113322,
+				"titles": {
+					"romaji": "Kusuriya no Hitorigoto: Maomao no Koukyuu Nazotoki Techou",
+					"native": "薬屋のひとりごと 猫猫の後宮謎解き手帳"
+				},
+				"type": "MANGA",
+				"relation": "ALTERNATIVE"
+			},
+			{
+				"id": 170508,
+				"titles": {
+					"romaji": "Maomao no Hitorigoto",
+					"native": "猫猫のひとりごと"
+				},
+				"type": "ANIME",
+				"relation": "SIDE_STORY"
+			},
+			{
+				"id": 176301,
+				"titles": {
+					"romaji": "Kusuriya no Hitorigoto 2nd Season",
+					"native": "薬屋のひとりごと 第2期"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

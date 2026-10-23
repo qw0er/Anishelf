@@ -1,0 +1,275 @@
+{
+	"schemaVersion": 1,
+	"workId": "mushoku-part-2",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 325585,
+		"sourceUrl": "https://bangumi.tv/subject/325585",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/325585",
+		"subjectResponseSha256": "ea737ee6bf69b869c3f3fbb6f151ff29393eef5be375d3b887337ff4b2316bcc",
+		"name": "無職転生 ～異世界行ったら本気だす～ 第2クール",
+		"nameCn": "无职转生～到了异世界就拿出真本事～ 第2部分",
+		"date": "2021-10-03",
+		"platform": "TV",
+		"regularEpisodeCount": 12,
+		"totalEpisodeCount": 14,
+		"aliases": [
+			"无职转生 ～在异世界认真地活下去～ 第2部分",
+			"Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+			"Mushoku Tensei: Jobless Reincarnation Part 2",
+			"無職轉生 到了異世界就拿出真本事 後半",
+			"无职转生 ～在异世界认真地活下去～ 后半"
+		],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/60/4d/325585_tfU01.jpg",
+		"episodes": [
+			{
+				"id": 1002052,
+				"type": 0,
+				"sort": 12,
+				"ep": 1,
+				"name": "魔眼を持つ女",
+				"name_cn": "持有魔眼的女人"
+			},
+			{
+				"id": 1002053,
+				"type": 0,
+				"sort": 13,
+				"ep": 2,
+				"name": "すれ違い",
+				"name_cn": "擦肩而过"
+			},
+			{
+				"id": 1002054,
+				"type": 0,
+				"sort": 14,
+				"ep": 3,
+				"name": "只より高いものはない",
+				"name_cn": "没有比免费更贵的东西"
+			},
+			{
+				"id": 1002055,
+				"type": 0,
+				"sort": 15,
+				"ep": 4,
+				"name": "ドルディア村のスローライフ",
+				"name_cn": "德路迪亚村的悠哉生活"
+			},
+			{
+				"id": 1002056,
+				"type": 0,
+				"sort": 16,
+				"ep": 5,
+				"name": "親子げんか",
+				"name_cn": "父子吵架"
+			},
+			{
+				"id": 1002057,
+				"type": 0,
+				"sort": 17,
+				"ep": 6,
+				"name": "再会",
+				"name_cn": "再会"
+			},
+			{
+				"id": 1002058,
+				"type": 0,
+				"sort": 18,
+				"ep": 7,
+				"name": "それぞれの旅",
+				"name_cn": "各自的旅行"
+			},
+			{
+				"id": 1002059,
+				"type": 0,
+				"sort": 19,
+				"ep": 8,
+				"name": "ルート選択",
+				"name_cn": "路线选择"
+			},
+			{
+				"id": 1002060,
+				"type": 0,
+				"sort": 20,
+				"ep": 9,
+				"name": "妹侍女の生まれた日",
+				"name_cn": "妹妹女仆诞生之日"
+			},
+			{
+				"id": 1002061,
+				"type": 0,
+				"sort": 21,
+				"ep": 10,
+				"name": "ターニングポイント2",
+				"name_cn": "转折点2"
+			},
+			{
+				"id": 1002062,
+				"type": 0,
+				"sort": 22,
+				"ep": 11,
+				"name": "現実（ユメ）",
+				"name_cn": "现实（梦）"
+			},
+			{
+				"id": 1002063,
+				"type": 0,
+				"sort": 23,
+				"ep": 12,
+				"name": "目覚め、一歩、",
+				"name_cn": "醒来，跨出一步"
+			},
+			{
+				"id": 1066854,
+				"type": 1,
+				"sort": 24,
+				"ep": 0,
+				"name": "エリスのゴブリン討伐",
+				"name_cn": "艾莉丝的哥布林讨伐"
+			},
+			{
+				"id": 1055863,
+				"type": 4,
+				"sort": 0,
+				"ep": 0,
+				"name": "第2クール放送直前スペシャル",
+				"name_cn": ""
+			}
+		],
+		"episodeTotal": 14,
+		"relations": [
+			{
+				"id": 101114,
+				"name": "無職転生 ～異世界行ったら本気だす～",
+				"name_cn": "无职转生 ～到了异世界就拿出真本事～",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 143597,
+				"name": "無職転生 ～異世界行ったら本気だす～",
+				"name_cn": "无职转生 ～到了异世界就拿出真本事～",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 277554,
+				"name": "無職転生 ～異世界行ったら本気だす～",
+				"name_cn": "无职转生～到了异世界就拿出真本事～",
+				"relation": "前传",
+				"type": 2
+			},
+			{
+				"id": 325444,
+				"name": "無職転生 ~異世界行ったら本気だす~ オリジナル・サウンドトラック 2 特別編集版",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 350639,
+				"name": "『無職転生 ～異世界行ったら本気だす～』Theme Song Collection",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 366046,
+				"name": "『無職転生 ～異世界行ったら本気だす～』オリジナル・サウンドトラック2",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 367405,
+				"name": "アニメ 無職転生 ～異世界行ったら本気だす～ 完全設定資料集",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 1
+			},
+			{
+				"id": 373247,
+				"name": "無職転生Ⅱ ～異世界行ったら本気だす～",
+				"name_cn": "无职转生 第二季 ～到了异世界就拿出真本事～",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 414751,
+				"name": "無職転生 ~異世界行ったら本気だす~ Quest of Memories",
+				"name_cn": "无职转生 ~到了异世界就拿出真本事~ Quest of Memories",
+				"relation": "游戏",
+				"type": 4
+			}
+		]
+	},
+	"anilist": {
+		"id": 127720,
+		"sourceUrl": "https://anilist.co/anime/127720",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+			"english": "Mushoku Tensei: Jobless Reincarnation Cour 2",
+			"native": "無職転生 ～異世界行ったら本気だす～ 第2クール"
+		},
+		"synonyms": [
+			"Mushoku Tensei: Jobless Reincarnation Part 2",
+			"เกิดชาตินี้พี่ต้องเทพ พาร์ท 2"
+		],
+		"format": "TV",
+		"episodes": 12,
+		"startDate": {
+			"year": 2021,
+			"month": 10,
+			"day": 4
+		},
+		"relations": [
+			{
+				"id": 108465,
+				"titles": {
+					"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+					"native": "無職転生 ～異世界行ったら本気だす～"
+				},
+				"type": "ANIME",
+				"relation": "PREQUEL"
+			},
+			{
+				"id": 85470,
+				"titles": {
+					"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+					"native": "無職転生 ～異世界行ったら本気だす～"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 85564,
+				"titles": {
+					"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+					"native": "無職転生 ～異世界行ったら本気だす～"
+				},
+				"type": "MANGA",
+				"relation": "ALTERNATIVE"
+			},
+			{
+				"id": 141534,
+				"titles": {
+					"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2 - Eris no Goblin Toubatsu",
+					"native": "無職転生 ～異世界行ったら本気だす～ 第2クール エリスのゴブリン討伐"
+				},
+				"type": "ANIME",
+				"relation": "SIDE_STORY"
+			},
+			{
+				"id": 146065,
+				"titles": {
+					"romaji": "Mushoku Tensei II: Isekai Ittara Honki Dasu",
+					"native": "無職転生Ⅱ ～異世界行ったら本気だす～"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

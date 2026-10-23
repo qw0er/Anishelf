@@ -1,0 +1,366 @@
+{
+	"schemaVersion": 1,
+	"workId": "dungeon",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 395378,
+		"sourceUrl": "https://bangumi.tv/subject/395378",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/395378",
+		"subjectResponseSha256": "751531c2dda6e2fe3c2fe87d66abfdf401e0b3edc6c796307e8bee2c94b9cb90",
+		"name": "ダンジョン飯",
+		"nameCn": "迷宫饭",
+		"date": "2024-01-04",
+		"platform": "TV",
+		"regularEpisodeCount": 24,
+		"totalEpisodeCount": 24,
+		"aliases": ["Dungeon Meshi", "Delicious in Dungeon"],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/c5/88/395378_jztpO.jpg",
+		"episodes": [
+			{
+				"id": 1255123,
+				"type": 0,
+				"sort": 1,
+				"ep": 1,
+				"name": "水炊き/タルト",
+				"name_cn": "清汤锅与挞"
+			},
+			{
+				"id": 1255124,
+				"type": 0,
+				"sort": 2,
+				"ep": 2,
+				"name": "ローストバジリスク/オムレツ/かき揚げ",
+				"name_cn": "烤蛇尾鸡/蛋包饭/什锦天妇罗"
+			},
+			{
+				"id": 1255125,
+				"type": 0,
+				"sort": 3,
+				"ep": 3,
+				"name": "動く鎧",
+				"name_cn": "活动铠甲"
+			},
+			{
+				"id": 1255126,
+				"type": 0,
+				"sort": 4,
+				"ep": 4,
+				"name": "キャベツ煮/オーク",
+				"name_cn": "炖煮卷心菜/兽人"
+			},
+			{
+				"id": 1255127,
+				"type": 0,
+				"sort": 5,
+				"ep": 5,
+				"name": "おやつ/ソルベ",
+				"name_cn": "点心/冰糕"
+			},
+			{
+				"id": 1255128,
+				"type": 0,
+				"sort": 6,
+				"ep": 6,
+				"name": "宮廷料理/塩茹で",
+				"name_cn": "宫廷料理/盐煮"
+			},
+			{
+				"id": 1255129,
+				"type": 0,
+				"sort": 7,
+				"ep": 7,
+				"name": "水棲馬/雑炊/蒲焼き",
+				"name_cn": "水栖马/杂烩粥/蒲烧"
+			},
+			{
+				"id": 1255130,
+				"type": 0,
+				"sort": 8,
+				"ep": 8,
+				"name": "木苺/焼き肉",
+				"name_cn": "木莓/烤肉"
+			},
+			{
+				"id": 1255131,
+				"type": 0,
+				"sort": 9,
+				"ep": 9,
+				"name": "テンタクルス/シチュー",
+				"name_cn": "触手怪/浓汤"
+			},
+			{
+				"id": 1255132,
+				"type": 0,
+				"sort": 10,
+				"ep": 10,
+				"name": "大ガエル/地上にて",
+				"name_cn": "巨蛙/地面诸事"
+			},
+			{
+				"id": 1255133,
+				"type": 0,
+				"sort": 11,
+				"ep": 11,
+				"name": "炎竜1",
+				"name_cn": "炎龙1"
+			},
+			{
+				"id": 1255134,
+				"type": 0,
+				"sort": 12,
+				"ep": 12,
+				"name": "炎竜2",
+				"name_cn": "炎龙2"
+			},
+			{
+				"id": 1255135,
+				"type": 0,
+				"sort": 13,
+				"ep": 13,
+				"name": "炎竜3/良薬",
+				"name_cn": "炎龙3/良药"
+			},
+			{
+				"id": 1255136,
+				"type": 0,
+				"sort": 14,
+				"ep": 14,
+				"name": "シーサーペント",
+				"name_cn": "大海蛇"
+			},
+			{
+				"id": 1255137,
+				"type": 0,
+				"sort": 15,
+				"ep": 15,
+				"name": "ドライアド/コカトリス",
+				"name_cn": "树精/鸡蛇"
+			},
+			{
+				"id": 1255138,
+				"type": 0,
+				"sort": 16,
+				"ep": 16,
+				"name": "掃除屋/みりん干し",
+				"name_cn": "清洁工/味醂鱼干"
+			},
+			{
+				"id": 1255139,
+				"type": 0,
+				"sort": 17,
+				"ep": 17,
+				"name": "ハーピー/キメラ",
+				"name_cn": "鹰身女妖/合成兽"
+			},
+			{
+				"id": 1255140,
+				"type": 0,
+				"sort": 18,
+				"ep": 18,
+				"name": "シェイプシフター",
+				"name_cn": "变形怪"
+			},
+			{
+				"id": 1255141,
+				"type": 0,
+				"sort": 19,
+				"ep": 19,
+				"name": "山姥/夢魔",
+				"name_cn": "山姥/梦魔"
+			},
+			{
+				"id": 1255142,
+				"type": 0,
+				"sort": 20,
+				"ep": 20,
+				"name": "アイスゴーレム/バロメッツ",
+				"name_cn": "冰魔像/植物羊"
+			},
+			{
+				"id": 1255143,
+				"type": 0,
+				"sort": 21,
+				"ep": 21,
+				"name": "卵/黄金郷",
+				"name_cn": "蛋/黄金国"
+			},
+			{
+				"id": 1255144,
+				"type": 0,
+				"sort": 22,
+				"ep": 22,
+				"name": "グリフィン/使い魔",
+				"name_cn": "狮鹫/使魔"
+			},
+			{
+				"id": 1255145,
+				"type": 0,
+				"sort": 23,
+				"ep": 23,
+				"name": "グリフィンのスープ/ダンプリング1",
+				"name_cn": "狮鹫肉汤/饺子1"
+			},
+			{
+				"id": 1255146,
+				"type": 0,
+				"sort": 24,
+				"ep": 24,
+				"name": "ダンプリング2/ベーコンエッグ",
+				"name_cn": "饺子2/培根煎蛋"
+			}
+		],
+		"episodeTotal": 24,
+		"relations": [
+			{
+				"id": 105206,
+				"name": "ダンジョン飯",
+				"name_cn": "迷宫饭",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 470339,
+				"name": "ダンジョン飯Walker TVアニメガイドブック",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 1
+			},
+			{
+				"id": 480062,
+				"name": "ダンジョン飯 迷宮探索ラジオ",
+				"name_cn": "迷宫饭 迷宫探索广播",
+				"relation": "衍生",
+				"type": 6
+			},
+			{
+				"id": 488498,
+				"name": "TVアニメ「ダンジョン飯」オリジナルサウンドトラック",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 499073,
+				"name": "ダンジョン飯 第2期",
+				"name_cn": "迷宫饭 第二季",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 524003,
+				"name": "TVアニメ『ダンジョン飯』メモリアルブック",
+				"name_cn": "",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 697022,
+				"name": "漫画『ダンジョン飯』アニメーションCM",
+				"name_cn": "漫画《迷宫饭》动画CM",
+				"relation": "其他",
+				"type": 2
+			},
+			{
+				"id": 469710,
+				"name": "Sleep Walking Orchestra",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 475875,
+				"name": "Party!!",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 487379,
+				"name": "キラキラの灰",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 487952,
+				"name": "Unmei e.p",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			}
+		]
+	},
+	"anilist": {
+		"id": 153518,
+		"sourceUrl": "https://anilist.co/anime/153518",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Dungeon Meshi",
+			"english": "Delicious in Dungeon",
+			"native": "ダンジョン飯"
+		},
+		"synonyms": [
+			"Dungeon Food",
+			"Dungeon Meal",
+			"Tragones y Mazmorras",
+			"Gloutons et Dragons",
+			"Подземелье вкусностей",
+			"던전밥",
+			"สูตรลับตำรับดันเจียน",
+			"Mỹ vị hầm ngục",
+			"Підземелля смакоти",
+			"迷宫饭",
+			"מבוכים ומטעמים",
+			"Dunmeshi",
+			"Labužníci v kobce",
+			"طعام الدهليز اللذيذ"
+		],
+		"format": "TV",
+		"episodes": 24,
+		"startDate": {
+			"year": 2024,
+			"month": 1,
+			"day": 4
+		},
+		"relations": [
+			{
+				"id": 86082,
+				"titles": {
+					"romaji": "Dungeon Meshi",
+					"native": "ダンジョン飯"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 111516,
+				"titles": {
+					"romaji": "Dungeon Meshi CM",
+					"native": "ダンジョン飯 CM"
+				},
+				"type": "ANIME",
+				"relation": "OTHER"
+			},
+			{
+				"id": 158627,
+				"titles": {
+					"romaji": "Dungeon Meshi: Senshi no Kantan Cooking!",
+					"native": "ダンジョン飯～センシのかんたんクッキング！"
+				},
+				"type": "ANIME",
+				"relation": "OTHER"
+			},
+			{
+				"id": 178031,
+				"titles": {
+					"romaji": "Dungeon Meshi 2nd Season",
+					"native": "ダンジョン飯 第２期"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

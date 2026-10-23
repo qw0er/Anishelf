@@ -1,0 +1,70 @@
+export const defaultLanguage = "en";
+
+/** Global RSS discovery cadence, expressed in whole minutes. */
+export const rssConstraints = Object.freeze({
+	defaultRefreshIntervalMinutes: 30,
+	minimumRefreshIntervalMinutes: 1,
+	maximumRefreshIntervalMinutes: 1440,
+});
+
+/** Program-maintained startup and development defaults. */
+export const deploymentDefaults = Object.freeze({
+	host: "127.0.0.1",
+	port: 3000,
+	logLevel: "info",
+	logDestination: "stdout",
+	logMaxSizeBytes: 10 * 1024 * 1024,
+	logMaxFiles: 7,
+	logRotateInterval: "1d" as const,
+	ffmpeg: "ffmpeg",
+	ffprobe: "ffprobe",
+	windowsExecutableExtension: ".EXE",
+});
+const developmentPort = 5173;
+export const developmentDefaults = Object.freeze({
+	host: deploymentDefaults.host,
+	port: developmentPort,
+	origins: Object.freeze([
+		`http://${deploymentDefaults.host}:${developmentPort}`,
+		`http://localhost:${developmentPort}`,
+	]),
+});
+
+export const logLevels = Object.freeze([
+	"trace",
+	"debug",
+	"info",
+	"warn",
+	"error",
+	"fatal",
+	"silent",
+] as const);
+
+/** Browser-safe business constraints shared by the server and Web build. */
+export const subtitleConstraints = Object.freeze({
+	maximumBytes: 10 * 1024 * 1024,
+});
+
+/** Bounds each browser negotiation independently of the preparation list window. */
+export const playbackSelectionConstraints = Object.freeze({
+	maximumCandidates: 128,
+	maximumFailedResources: 256,
+});
+
+/** Shared preparation list and persistent cache budget defaults. */
+export const preparationConstraints = Object.freeze({
+	initialListLimit: 10,
+	listLimit: 100,
+	defaultCacheBudgetGiB: 50,
+	maximumCacheBudgetGiB: Math.floor(Number.MAX_SAFE_INTEGER / 1024 ** 3),
+});
+
+export const subtitleFontConstraints: Readonly<{
+	maximumBytes: number;
+	maximumSetBytes: number;
+	maximumCount: number;
+}> = Object.freeze({
+	maximumBytes: 24 * 1024 * 1024,
+	maximumSetBytes: 64 * 1024 * 1024,
+	maximumCount: 32,
+});

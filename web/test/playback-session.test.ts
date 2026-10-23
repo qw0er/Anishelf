@@ -1,0 +1,495 @@
+import * as playbackApi from "../src/features/playback/player/api.js";
+import { ApiClientError } from "../src/shared/api/client.js";
+// @vitest-environment happy-dom
+
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { playbackPolicy } from "../src/features/playback/player/policy.js";
+import {
+	PlaybackSessionController,
+	type PlaybackSessionState,
+} from "../src/features/playback/player/session.js";
+import type { PlaybackSessionResponse } from "../src/shared/api/contracts.js";
+
+const session: PlaybackSessionResponse = {
+	token: "token",
+	sourceVersion: "version",
+	file: {
+		kind: "file",
+		id: "file",
+		parentId: "root",
+		name: "Video.mp4",
+		sizeBytes: 100,
+		modifiedAt: "date",
+		mimeType: "video/mp4",
+	},
+	progress: {
+		positionMs: 40000,
+		durationMs: 100000,
+		lastViewedAtMs: 1,
+		generation: 1,
+		lastSequence: 0,
+	},
+};
+let controllers: PlaybackSessionController[];
+beforeEach(() => {
+	controllers = [];
+	vi.spyOn(playbackApi, "openPlaybackSession").mockResolvedValue(session);
+	vi.spyOn(playbackApi, "savePlaybackProgress").mockImplementation(
+		async (_token, input) => ({
+			status: "saved",
+			progress: {
+				...session.progress,
+				...input,
+				lastSequence: input.sequence,
+			},
+		}),
+	);
+	vi.spyOn(playbackApi, "releasePlaybackSession").mockResolvedValue();
+});
+afterEach(async () => {
+	for (const controller of controllers) await controller.dispose();
+	vi.useRealTimers();
+	vi.restoreAllMocks();
+});
+function create(ready = true, policy = playbackPolicy) {
+	let state: PlaybackSessionState | null = null;
+	const controller = new PlaybackSessionController(
+		"file",
+		(next) => {
+			state = next;
+		},
+		policy,
+	);
+	controllers.push(controller);
+	const video = document.createElement("video");
+	Object.defineProperty(video, "duration", { value: 100, configurable: true });
+	Object.defineProperty(video, "readyState", {
+		value: ready ? 1 : 0,
+		configurable: true,
+	});
+	controller.attach(video);
+	return { controller, video, state: () => state };
+}
+async function tick() {
+	for (let i = 0; i < 10; i++) await Promise.resolve();
+}
+function deferred<T>() {
+	let resolve: (value: T) => void = () => {};
+	const promise = new Promise<T>((done) => {
+		resolve = done;
+	});
+	return { promise, resolve };
+}
+
+test("loads history before enabling saves and restores after metadata, clamped to duration", async () => {
+	const { controller, video, state } = create(false);
+	await controller.open();
+	video.currentTime = 0;
+	video.dispatchEvent(new Event("pause"));
+	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
+	Object.defineProperty(video, "duration", { value: 20 });
+	video.dispatchEvent(new Event("loadedmetadata"));
+	expect(video.currentTime).toBe(20);
+	expect(state()?.restored).toBe(true);
+	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
+	video.dispatchEvent(new Event("pause"));
+	await tick();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledWith(
+		"token",
+		expect.objectContaining({ positionMs: 20000, durationMs: 20000 }),
+		expect.anything(),
+	);
+});
+
+test("serializes/coalesces saves while preserving a newer backward seek", async () => {
+	const { controller, video } = create();
+	await controller.open();
+	const first =
+		deferred<Awaited<ReturnType<typeof playbackApi.savePlaybackProgress>>>();
+	vi.mocked(playbackApi.savePlaybackProgress).mockImplementationOnce(
+		() => first.promise,
+	);
+	video.currentTime = 70;
+	video.dispatchEvent(new Event("pause"));
+	video.currentTime = 80;
+	video.dispatchEvent(new Event("seeked"));
+	video.currentTime = 10;
+	video.dispatchEvent(new Event("seeked"));
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledTimes(1);
+	first.resolve({
+		status: "saved",
+		progress: { ...session.progress, positionMs: 70000, lastSequence: 1 },
+	});
+	await controller.flush();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledTimes(2);
+	expect(
+		vi.mocked(playbackApi.savePlaybackProgress).mock.calls[1]?.[1],
+	).toMatchObject({
+		positionMs: 10000,
+		sequence: 3,
+	});
+});
+
+test("failed history reads never save zero and can be retried", async () => {
+	vi.mocked(playbackApi.openPlaybackSession).mockRejectedValueOnce(
+		new Error("load failed"),
+	);
+	const { controller, video, state } = create();
+	await controller.open();
+	video.currentTime = 0;
+	video.dispatchEvent(new Event("pause"));
+	await controller.flush();
+	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
+	expect(state()?.error?.operation).toBe("load");
+	await controller.retry();
+	expect(video.currentTime).toBe(40);
+	expect(state()?.restored).toBe(true);
+});
+
+test("keeps an ambiguous failed payload for retry, or sends a newer position", async () => {
+	const { controller, video, state } = create();
+	await controller.open();
+	vi.mocked(playbackApi.savePlaybackProgress).mockRejectedValueOnce(
+		new Error("network"),
+	);
+	video.currentTime = 30;
+	expect(await controller.flush()).toBe(false);
+	const failed = vi.mocked(playbackApi.savePlaybackProgress).mock.calls[0]?.[1];
+	expect(state()?.error?.operation).toBe("save");
+	await controller.retry();
+	expect(
+		vi.mocked(playbackApi.savePlaybackProgress).mock.calls[1]?.[1],
+	).toEqual(failed);
+	vi.mocked(playbackApi.savePlaybackProgress).mockRejectedValueOnce(
+		new Error("network"),
+	);
+	video.currentTime = 50;
+	await controller.flush();
+	video.currentTime = 10;
+	await controller.retry();
+	expect(
+		vi.mocked(playbackApi.savePlaybackProgress).mock.calls.at(-1)?.[1]
+			.positionMs,
+	).toBe(10000);
+});
+
+test("saves periodically only while playing; ended saves duration and teardown releases after saving", async () => {
+	vi.useFakeTimers();
+	const { controller, video } = create();
+	await controller.open();
+	await vi.advanceTimersByTimeAsync(5000);
+	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
+	Object.defineProperty(video, "paused", { value: false });
+	video.currentTime = 45;
+	await vi.advanceTimersByTimeAsync(5000);
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledTimes(1);
+	video.currentTime = 99;
+	video.dispatchEvent(new Event("ended"));
+	await tick();
+	expect(
+		vi.mocked(playbackApi.savePlaybackProgress).mock.calls.at(-1)?.[1]
+			.positionMs,
+	).toBe(100000);
+	video.currentTime = 100;
+	await controller.dispose();
+	expect(playbackApi.releasePlaybackSession).toHaveBeenCalledWith(
+		"token",
+		expect.anything(),
+	);
+	expect(vi.getTimerCount()).toBe(0);
+});
+
+test("unmounting during open releases the late session without writing progress", async () => {
+	const pending = deferred<PlaybackSessionResponse>();
+	vi.mocked(playbackApi.openPlaybackSession).mockReturnValueOnce(
+		pending.promise,
+	);
+	const { controller } = create();
+	const opening = controller.open();
+	await tick();
+	const disposal = controller.dispose();
+	pending.resolve(session);
+	await opening;
+	await disposal;
+	expect(playbackApi.releasePlaybackSession).toHaveBeenCalled();
+	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
+});
+
+test("StrictMode cleanup before open starts avoids creating an abandoned session", async () => {
+	const { controller } = create();
+	const opening = controller.open();
+	await controller.dispose();
+	await opening;
+	expect(playbackApi.openPlaybackSession).not.toHaveBeenCalled();
+});
+
+test("pagehide flushing uses keepalive and still preserves write ordering", async () => {
+	const { controller, video } = create();
+	await controller.open();
+	video.currentTime = 30;
+	await controller.flush(true);
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledWith(
+		"token",
+		expect.objectContaining({ positionMs: 30000 }),
+		expect.objectContaining({ keepalive: true }),
+	);
+});
+
+test("a changed session requires explicit reopen rather than silently continuing to write", async () => {
+	const { controller, video, state } = create();
+	await controller.open();
+	vi.mocked(playbackApi.savePlaybackProgress).mockRejectedValueOnce(
+		new ApiClientError({
+			kind: "http",
+			code: "PLAYBACK_CONFLICT",
+			status: 409,
+			message: "changed",
+		}),
+	);
+	video.currentTime = 30;
+	await controller.flush();
+	expect(state()?.error).not.toBeNull();
+	vi.mocked(playbackApi.openPlaybackSession).mockResolvedValueOnce({
+		...session,
+		token: "new-token",
+		progress: { ...session.progress, generation: 2, positionMs: 20000 },
+	});
+	await controller.retry();
+	expect(video.currentTime).toBe(20);
+	video.currentTime = 25;
+	await controller.flush();
+	expect(
+		vi.mocked(playbackApi.savePlaybackProgress).mock.calls.at(-1)?.[0],
+	).toBe("new-token");
+});
+
+test("seeking to zero saves normally without pausing or changing generation", async () => {
+	const { controller, video } = create();
+	await controller.open();
+	const pause = vi.spyOn(video, "pause");
+	video.currentTime = 0;
+	video.dispatchEvent(new Event("seeked"));
+	await tick();
+	expect(pause).not.toHaveBeenCalled();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledWith(
+		"token",
+		expect.objectContaining({ generation: 1, sequence: 1, positionMs: 0 }),
+		expect.anything(),
+	);
+	video.currentTime = 3;
+	video.dispatchEvent(new Event("seeked"));
+	await tick();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({ generation: 1, sequence: 2, positionMs: 3000 }),
+		expect.anything(),
+	);
+});
+
+test("injected save interval and request timeout control the progress lifecycle", async () => {
+	vi.useFakeTimers();
+	const { controller, video } = create(true, {
+		progressSaveIntervalMs: 100,
+		requestTimeoutMs: 50,
+	});
+	await controller.open();
+	Object.defineProperty(video, "paused", { value: false });
+	video.currentTime = 45;
+	await vi.advanceTimersByTimeAsync(99);
+	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
+	await vi.advanceTimersByTimeAsync(1);
+	expect(playbackApi.savePlaybackProgress).toHaveBeenCalledTimes(1);
+	let aborted = false;
+	vi.mocked(playbackApi.savePlaybackProgress).mockImplementation(
+		(_token, _progress, options) =>
+			new Promise((_resolve, reject) => {
+				options?.signal?.addEventListener("abort", () => {
+					aborted = true;
+					reject(new DOMException("Aborted", "AbortError"));
+				});
+			}),
+	);
+	video.currentTime = 46;
+	const flush = controller.flush();
+	await vi.advanceTimersByTimeAsync(49);
+	expect(aborted).toBe(false);
+	await vi.advanceTimersByTimeAsync(1);
+	await flush;
+	expect(aborted).toBe(true);
+	vi.mocked(playbackApi.savePlaybackProgress).mockResolvedValue({
+		status: "saved",
+		progress: session.progress,
+	});
+});
+
+test("switching to prepared media retains the original session and captured source-time position", async () => {
+	const { controller, video } = create();
+	await controller.open();
+	video.currentTime = 61;
+	controller.attach(null);
+	const preparedVideo = document.createElement("video");
+	Object.defineProperty(preparedVideo, "readyState", { value: 1 });
+	Object.defineProperty(preparedVideo, "duration", { value: 100 });
+	controller.attach(preparedVideo);
+	expect(preparedVideo.currentTime).toBe(61);
+	preparedVideo.currentTime = 65;
+	preparedVideo.dispatchEvent(new Event("pause"));
+	await controller.flush();
+	expect(playbackApi.openPlaybackSession).toHaveBeenCalledTimes(1);
+	expect(playbackApi.openPlaybackSession).toHaveBeenCalledWith(
+		"file",
+		expect.anything(),
+	);
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		session.token,
+		expect.objectContaining({
+			generation: session.progress.generation,
+			sourceVersion: session.sourceVersion,
+			positionMs: 65000,
+		}),
+		expect.anything(),
+	);
+});
+
+test("offset media restores and persists source time rather than the local segment clock", async () => {
+	const { controller, video } = create();
+	controller.attach(video, {
+		sourceOriginMs: 30000,
+		mediaOriginMs: 2000,
+		sourceDurationMs: 200000,
+	});
+	await controller.open();
+	expect(video.currentTime).toBe(12);
+	video.currentTime = 17;
+	await controller.flush();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({ positionMs: 45000, durationMs: 200000 }),
+		expect.anything(),
+	);
+});
+
+test("an offset stream ending does not mark the whole source watched", async () => {
+	const { controller, video } = create();
+	controller.attach(video, {
+		sourceOriginMs: 30000,
+		mediaOriginMs: 0,
+		sourceDurationMs: 200000,
+	});
+	await controller.open();
+	video.dispatchEvent(new Event("ended"));
+	await tick();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({ positionMs: 130000, durationMs: 200000 }),
+		expect.anything(),
+	);
+});
+
+test("counts normal wall time and excludes forward seeks", async () => {
+	let now = 0;
+	vi.spyOn(performance, "now").mockImplementation(() => now);
+	const { controller, video } = create();
+	await controller.open();
+	video.dispatchEvent(new Event("playing"));
+	now = 1000;
+	video.currentTime = 41;
+	video.dispatchEvent(new Event("timeupdate"));
+	video.dispatchEvent(new Event("seeking"));
+	video.currentTime = 99;
+	video.dispatchEvent(new Event("seeked"));
+	await tick();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({
+			positionMs: 99000,
+			normalPlayedMs: 1000,
+		}),
+		expect.anything(),
+	);
+	video.dispatchEvent(new Event("playing"));
+	now = 2000;
+	video.currentTime = 100;
+	video.dispatchEvent(new Event("pause"));
+	await tick();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({
+			normalPlayedMs: 2000,
+		}),
+		expect.anything(),
+	);
+});
+
+test("retains cumulative normal time when a response is lost and a newer payload is queued", async () => {
+	let now = 0;
+	vi.spyOn(performance, "now").mockImplementation(() => now);
+	const { controller, video } = create();
+	await controller.open();
+	let reject: (error: Error) => void = () => {};
+	vi.mocked(playbackApi.savePlaybackProgress).mockImplementationOnce(
+		() =>
+			new Promise((_resolve, no) => {
+				reject = no;
+			}),
+	);
+	video.dispatchEvent(new Event("playing"));
+	now = 1000;
+	video.currentTime = 41;
+	video.dispatchEvent(new Event("pause"));
+	await tick();
+	video.dispatchEvent(new Event("playing"));
+	now = 2000;
+	video.currentTime = 42;
+	video.dispatchEvent(new Event("pause"));
+	reject(new Error("Lost response"));
+	await tick();
+	await controller.retry();
+	const payload = vi
+		.mocked(playbackApi.savePlaybackProgress)
+		.mock.calls.at(-1)?.[1];
+	expect(payload?.normalPlayedMs).toBe(2000);
+});
+
+test("a natural end updates pending telemetry even when the position is unchanged after an ambiguous failure", async () => {
+	let now = 0;
+	vi.spyOn(performance, "now").mockImplementation(() => now);
+	const { controller, video } = create();
+	Object.defineProperty(video, "duration", {
+		value: Number.NaN,
+		configurable: true,
+	});
+	await controller.open();
+	video.dispatchEvent(new Event("playing"));
+	for (let i = 1; i <= 30; i++) {
+		now = i * 1000;
+		video.currentTime = 40 + i;
+		video.dispatchEvent(new Event("timeupdate"));
+	}
+	vi.mocked(playbackApi.savePlaybackProgress).mockRejectedValueOnce(
+		new Error("Lost response"),
+	);
+	video.dispatchEvent(new Event("pause"));
+	await tick();
+	const failed = vi
+		.mocked(playbackApi.savePlaybackProgress)
+		.mock.calls.at(-1)?.[1];
+	expect(failed).toMatchObject({
+		positionMs: 70000,
+		normalPlayedMs: 30000,
+		naturalEnd: false,
+		durationMs: null,
+	});
+	video.dispatchEvent(new Event("ended"));
+	await controller.retry();
+	const retried = vi
+		.mocked(playbackApi.savePlaybackProgress)
+		.mock.calls.at(-1)?.[1];
+	expect(retried).toMatchObject({
+		positionMs: 70000,
+		normalPlayedMs: 30000,
+		naturalEnd: true,
+		durationMs: null,
+	});
+	expect(retried?.sequence).toBeGreaterThan(failed?.sequence ?? 0);
+});

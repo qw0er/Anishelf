@@ -1,0 +1,398 @@
+{
+	"schemaVersion": 1,
+	"workId": "apothecary-2",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 486347,
+		"sourceUrl": "https://bangumi.tv/subject/486347",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/486347",
+		"subjectResponseSha256": "99c8cf79170c3c933215309487bcc7ece6adc870feced411aedb7e68025590a7",
+		"name": "薬屋のひとりごと 第2期",
+		"nameCn": "药屋少女的呢喃 第二季",
+		"date": "2025-01-10",
+		"platform": "TV",
+		"regularEpisodeCount": 24,
+		"totalEpisodeCount": 24,
+		"aliases": [
+			"Kusuriya no Hitorigoto 2nd Season",
+			"药师少女的独语 第二季",
+			"Kusuriya no Hitorigoto Season 2",
+			"The Apothecary Diaries Season 2"
+		],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/9e/b3/486347_jKVqi.jpg",
+		"episodes": [
+			{
+				"id": 1415053,
+				"type": 0,
+				"sort": 25,
+				"ep": 1,
+				"name": "猫猫と毛毛",
+				"name_cn": "猫猫和毛毛"
+			},
+			{
+				"id": 1415054,
+				"type": 0,
+				"sort": 26,
+				"ep": 2,
+				"name": "隊商",
+				"name_cn": "商队"
+			},
+			{
+				"id": 1415055,
+				"type": 0,
+				"sort": 27,
+				"ep": 3,
+				"name": "冬人夏草",
+				"name_cn": "冬人夏草"
+			},
+			{
+				"id": 1415056,
+				"type": 0,
+				"sort": 28,
+				"ep": 4,
+				"name": "鏡",
+				"name_cn": "镜子"
+			},
+			{
+				"id": 1415057,
+				"type": 0,
+				"sort": 29,
+				"ep": 5,
+				"name": "月精",
+				"name_cn": "月亮精灵"
+			},
+			{
+				"id": 1415058,
+				"type": 0,
+				"sort": 30,
+				"ep": 6,
+				"name": "みたび、水晶宮",
+				"name_cn": "再会水晶宫"
+			},
+			{
+				"id": 1415059,
+				"type": 0,
+				"sort": 31,
+				"ep": 7,
+				"name": "選択の廟",
+				"name_cn": "选定之庙"
+			},
+			{
+				"id": 1415060,
+				"type": 0,
+				"sort": 32,
+				"ep": 8,
+				"name": "皇太后",
+				"name_cn": "皇太后"
+			},
+			{
+				"id": 1415061,
+				"type": 0,
+				"sort": 33,
+				"ep": 9,
+				"name": "先帝",
+				"name_cn": "先帝"
+			},
+			{
+				"id": 1415062,
+				"type": 0,
+				"sort": 34,
+				"ep": 10,
+				"name": "怪談",
+				"name_cn": "怪谈"
+			},
+			{
+				"id": 1415063,
+				"type": 0,
+				"sort": 35,
+				"ep": 11,
+				"name": "狩り",
+				"name_cn": "狩猎"
+			},
+			{
+				"id": 1415064,
+				"type": 0,
+				"sort": 36,
+				"ep": 12,
+				"name": "華瑞月",
+				"name_cn": "华瑞月"
+			},
+			{
+				"id": 1415065,
+				"type": 0,
+				"sort": 37,
+				"ep": 13,
+				"name": "湯殿",
+				"name_cn": "浴场"
+			},
+			{
+				"id": 1415066,
+				"type": 0,
+				"sort": 38,
+				"ep": 14,
+				"name": "踊る幽霊",
+				"name_cn": "跳舞的亡灵"
+			},
+			{
+				"id": 1415067,
+				"type": 0,
+				"sort": 39,
+				"ep": 15,
+				"name": "氷菓",
+				"name_cn": "冰果"
+			},
+			{
+				"id": 1415068,
+				"type": 0,
+				"sort": 40,
+				"ep": 16,
+				"name": "巣食う悪意",
+				"name_cn": "深埋的恶意"
+			},
+			{
+				"id": 1415069,
+				"type": 0,
+				"sort": 41,
+				"ep": 17,
+				"name": "狐の里",
+				"name_cn": "狐狸之里"
+			},
+			{
+				"id": 1415070,
+				"type": 0,
+				"sort": 42,
+				"ep": 18,
+				"name": "鬼灯",
+				"name_cn": "灯笼果"
+			},
+			{
+				"id": 1415071,
+				"type": 0,
+				"sort": 43,
+				"ep": 19,
+				"name": "祭り",
+				"name_cn": "祭典"
+			},
+			{
+				"id": 1415072,
+				"type": 0,
+				"sort": 44,
+				"ep": 20,
+				"name": "砦",
+				"name_cn": "城塞"
+			},
+			{
+				"id": 1415073,
+				"type": 0,
+				"sort": 45,
+				"ep": 21,
+				"name": "蠆盆",
+				"name_cn": "虿盆"
+			},
+			{
+				"id": 1415074,
+				"type": 0,
+				"sort": 46,
+				"ep": 22,
+				"name": "禁軍",
+				"name_cn": "禁军"
+			},
+			{
+				"id": 1415075,
+				"type": 0,
+				"sort": 47,
+				"ep": 23,
+				"name": "子の一族",
+				"name_cn": "子字一族"
+			},
+			{
+				"id": 1415076,
+				"type": 0,
+				"sort": 48,
+				"ep": 24,
+				"name": "はじまり",
+				"name_cn": "开端"
+			}
+		],
+		"episodeTotal": 24,
+		"relations": [
+			{
+				"id": 156126,
+				"name": "薬屋のひとりごと",
+				"name_cn": "药屋少女的呢喃",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 420628,
+				"name": "薬屋のひとりごと",
+				"name_cn": "药屋少女的呢喃",
+				"relation": "前传",
+				"type": 2
+			},
+			{
+				"id": 533096,
+				"name": "猫猫のひとりごと 第2期",
+				"name_cn": "猫猫的呢喃 第二季",
+				"relation": "衍生",
+				"type": 2
+			},
+			{
+				"id": 561978,
+				"name": "薬屋のふたりごと",
+				"name_cn": "",
+				"relation": "衍生",
+				"type": 6
+			},
+			{
+				"id": 567010,
+				"name": "いのちの灯火",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 568244,
+				"name": "薬屋のひとりごと 第3期",
+				"name_cn": "药屋少女的呢喃 第三季",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 599894,
+				"name": "劇場版 薬屋のひとりごと 亡妃の秘宝",
+				"name_cn": "剧场版 药屋少女的呢喃 亡妃的秘宝",
+				"relation": "番外篇",
+				"type": 2
+			},
+			{
+				"id": 620610,
+				"name": "ピアノ・ソロ TVアニメ『薬屋のひとりごと』",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 666744,
+				"name": "TVアニメ『薬屋のひとりごと』スペシャルイベント～夏の園遊会 2026～",
+				"name_cn": "",
+				"relation": "三次元",
+				"type": 6
+			},
+			{
+				"id": 531901,
+				"name": "幸せのレシピ",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 531902,
+				"name": "百花繚乱",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 568273,
+				"name": "TVアニメ『薬屋のひとりごと』第2期 オリジナル・サウンドトラック",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 548450,
+				"name": "ひとりごと",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 548451,
+				"name": "クスシキ",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 554274,
+				"name": "TV アニメ『薬屋のひとりごと』第2期 オリジナル・サウンドトラックVol.1",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 568266,
+				"name": "TV アニメ『薬屋のひとりごと』第2期 オリジナル・サウンドトラックVol.2",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			}
+		]
+	},
+	"anilist": {
+		"id": 176301,
+		"sourceUrl": "https://anilist.co/anime/176301",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Kusuriya no Hitorigoto 2nd Season",
+			"english": "The Apothecary Diaries Season 2",
+			"native": "薬屋のひとりごと 第2期"
+		},
+		"synonyms": [
+			"Die Tagebücher der Apothekerin Season 2",
+			"Diários de uma Apotecária 2ª Temporada",
+			"Монолог фармацевта 2",
+			"Les Carnets de l'apothicaire Saison 2",
+			"Los diarios de la boticaria temporada 2",
+			"Dược sư tự sự"
+		],
+		"format": "TV",
+		"episodes": 24,
+		"startDate": {
+			"year": 2025,
+			"month": 1,
+			"day": 10
+		},
+		"relations": [
+			{
+				"id": 99026,
+				"titles": {
+					"romaji": "Kusuriya no Hitorigoto",
+					"native": "薬屋のひとりごと"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 161645,
+				"titles": {
+					"romaji": "Kusuriya no Hitorigoto",
+					"native": "薬屋のひとりごと"
+				},
+				"type": "ANIME",
+				"relation": "PREQUEL"
+			},
+			{
+				"id": 186148,
+				"titles": {
+					"romaji": "Maomao no Hitorigoto 2nd Season",
+					"native": "猫猫のひとりごと 第2期"
+				},
+				"type": "ANIME",
+				"relation": "SIDE_STORY"
+			},
+			{
+				"id": 195516,
+				"titles": {
+					"romaji": "Kusuriya no Hitorigoto 3rd Season",
+					"native": "薬屋のひとりごと 第3期"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}

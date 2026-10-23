@@ -1,0 +1,56 @@
+{
+	"name": "anishelf",
+	"license": "GPL-3.0-only",
+	"author": "QWER",
+	"version": "0.4.1",
+	"private": true,
+	"workspaces": [
+		"backend",
+		"web"
+	],
+	"devDependencies": {
+		"@biomejs/biome": "^2.6.2",
+		"@typescript/native": "npm:typescript@~7.0.2",
+		"concurrently": "^10.0.6",
+		"dependency-cruiser": "^18.7.0",
+		"knip": "^6.42.1",
+		"npm-check-updates": "^23.1.1",
+		"tsx": "^4.23.15",
+		"typescript": "npm:@typescript/typescript6@^6.0.2"
+	},
+	"scripts": {
+		"dependencies:check": "ncu",
+		"typecheck": "npm run typecheck --workspaces",
+		"biome:check": "biome check .",
+		"biome:fix": "biome check --write .",
+		"lint": "biome lint . && npm run architecture:check && npm run unused:check",
+		"check": "npm run biome:check && npm run lint && npm run typecheck && npm test",
+		"test:deployment": "node --test package/qbittorrent-init.test.mjs",
+		"test": "npm run architecture:test && npm run test:deployment && npm run test --workspace @anishelf/backend && npm run test --workspace @anishelf/web",
+		"build": "npm run build --workspaces",
+		"start": "npm run build && ANISHELF_FRONTEND_DIR=\"./web/dist\" npm run start --workspace @anishelf/backend",
+		"start:backend": "npm run start --workspace @anishelf/backend",
+		"dev:backend": "npm run dev --workspace @anishelf/backend",
+		"dev:web": "npm run dev --workspace @anishelf/web",
+		"dev": "concurrently \"npm run dev:backend\" \"npm run dev:web\"",
+		"dev:host": "concurrently \"npm run dev:backend\" \"npm run dev --workspace @anishelf/web -- --host 0.0.0.0\"",
+		"package_source": " mkdir -p ./dist && git archive --format=tar --prefix=anishelf/ HEAD | zstd -f -o ./dist/anishelf.tar.zst",
+		"architecture:check": "node scripts/check-architecture.mjs",
+		"architecture:test": "node --test scripts/architecture.test.mjs",
+		"unused:check": "knip --no-progress",
+		"anilist:verify:test": "node --test scripts/anilist-verify.test.mjs",
+		"anime:corpus": "node --import tsx scripts/anime-corpus.mts"
+	},
+	"overrides": {
+		"@esbuild-kit/core-utils": {
+			"esbuild": "0.25.12"
+		}
+	},
+	"allowScripts": {
+		"esbuild@0.25.12": true,
+		"esbuild@0.28.2": true,
+		"better-sqlite3@13.0.3": true,
+		"lfa-ponyfill@1.1.1": true,
+		"fsevents@2.3.3": true
+	}
+}

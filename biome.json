@@ -1,0 +1,62 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.6.2/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"markdown": { "formatter": { "enabled": false } },
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
+	"overrides": [
+		{
+			"includes": [
+				"backend/src/modules/*/*/application/**",
+				"backend/src/modules/*/*/application.ts"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["fastify", "@fastify/**"],
+										"message": "Application use cases must be independent of HTTP."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["web/src/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@anishelf/backend/**",
+											"!@anishelf/backend/contracts/**"
+										],
+										"message": "Web may import only browser-safe contracts."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		}
+	]
+}

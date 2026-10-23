@@ -1,0 +1,334 @@
+{
+	"schemaVersion": 1,
+	"workId": "violet",
+	"collectedAt": "2026-10-11",
+	"projection": "Selected public fields; not a raw API response or search-result recording.",
+	"bangumi": {
+		"id": 183878,
+		"sourceUrl": "https://bangumi.tv/subject/183878",
+		"requestUrl": "https://api.bgm.tv/v0/subjects/183878",
+		"subjectResponseSha256": "6303aff078c4f169f5ef64bd0f1e282fc979beff7278e2dedc7dab2d4378612f",
+		"name": "ヴァイオレット・エヴァーガーデン",
+		"nameCn": "紫罗兰永恒花园",
+		"date": "2018-01-10",
+		"platform": "TV",
+		"regularEpisodeCount": 13,
+		"totalEpisodeCount": 14,
+		"aliases": ["薇尔莉特·伊芙加登", "Violet Evergarden", "京紫"],
+		"coverUrl": "https://lain.bgm.tv/pic/cover/l/1e/e2/183878_Fef1o.jpg",
+		"episodes": [
+			{
+				"id": 730523,
+				"type": 0,
+				"sort": 1,
+				"ep": 1,
+				"name": "「愛してる」と自動手記人形",
+				"name_cn": "“爱”与自动手记人偶"
+			},
+			{
+				"id": 730524,
+				"type": 0,
+				"sort": 2,
+				"ep": 2,
+				"name": "「戻ってこない」",
+				"name_cn": "“回不来了”"
+			},
+			{
+				"id": 730525,
+				"type": 0,
+				"sort": 3,
+				"ep": 3,
+				"name": "「あなたが、良き自動手記人形になりますように」",
+				"name_cn": "“希望你成为出色的自动手记人偶”"
+			},
+			{
+				"id": 730526,
+				"type": 0,
+				"sort": 4,
+				"ep": 4,
+				"name": "「君は道具ではなく、その名が似合う人になるんだ」",
+				"name_cn": "“你将不再是道具，而是成为人如其名的人”"
+			},
+			{
+				"id": 730527,
+				"type": 0,
+				"sort": 5,
+				"ep": 5,
+				"name": "「人を結ぶ手紙を書くのか？」",
+				"name_cn": "“写替人结缘的书信吗？”"
+			},
+			{
+				"id": 730528,
+				"type": 0,
+				"sort": 6,
+				"ep": 6,
+				"name": "「どこかの星空の下で」",
+				"name_cn": "“在某处的星空下”"
+			},
+			{
+				"id": 730529,
+				"type": 0,
+				"sort": 7,
+				"ep": 7,
+				"name": "「　　　　」",
+				"name_cn": "“　　　　”"
+			},
+			{
+				"id": 730530,
+				"type": 0,
+				"sort": 8,
+				"ep": 8,
+				"name": "「ヴァイオレット・エヴァーガーデン」前編",
+				"name_cn": "“薇尔莉特・伊芙加登” 前篇"
+			},
+			{
+				"id": 730531,
+				"type": 0,
+				"sort": 9,
+				"ep": 9,
+				"name": "「ヴァイオレット・エヴァーガーデン」後編",
+				"name_cn": "“薇尔莉特・伊芙加登” 后篇"
+			},
+			{
+				"id": 730532,
+				"type": 0,
+				"sort": 10,
+				"ep": 10,
+				"name": "「愛する人は　ずっと見守っている」",
+				"name_cn": "“心爱的人 永远守护着你”"
+			},
+			{
+				"id": 730533,
+				"type": 0,
+				"sort": 11,
+				"ep": 11,
+				"name": "「もう、誰も死なせたくない」",
+				"name_cn": "“再也不想让任何人死去”"
+			},
+			{
+				"id": 730534,
+				"type": 0,
+				"sort": 12,
+				"ep": 12,
+				"name": "自動手記人形と「愛してる」前編",
+				"name_cn": "自动手记人偶与“爱” 前篇"
+			},
+			{
+				"id": 782583,
+				"type": 0,
+				"sort": 13,
+				"ep": 13,
+				"name": "自動手記人形と「愛してる」後編",
+				"name_cn": "自动手记人偶与“爱” 后篇"
+			},
+			{
+				"id": 776248,
+				"type": 1,
+				"sort": 4.5,
+				"ep": 0,
+				"name": "きっと“愛”を知る日が来るのだろう",
+				"name_cn": "了解“爱”的那一天一定会到来"
+			}
+		],
+		"episodeTotal": 14,
+		"relations": [
+			{
+				"id": 355109,
+				"name": "ヴァイオレット・エヴァーガーデン特別編集版",
+				"name_cn": "紫罗兰永恒花园 特别编集版",
+				"relation": "总集篇",
+				"type": 2
+			},
+			{
+				"id": 578474,
+				"name": "ヴァイオレット・エヴァーガーデン STORYBOARD vol.3",
+				"name_cn": "",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 578470,
+				"name": "ヴァイオレット・エヴァーガーデン STORYBOARD vol.2",
+				"name_cn": "",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 578465,
+				"name": "ヴァイオレット・エヴァーガーデン STORYBOARD vol.1",
+				"name_cn": "",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 578460,
+				"name": "ヴァイオレット・エヴァーガーデン Keyframes Collection vol.2",
+				"name_cn": "",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 578456,
+				"name": "ヴァイオレット・エヴァーガーデン Keyframes Collection vol.1",
+				"name_cn": "",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 524002,
+				"name": "ヴァイオレット・エヴァーガーデン 公式設定集",
+				"name_cn": "",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 472175,
+				"name": "第6回京都アニメーションファン感謝イベント KYOANI MUSIC FESTIVAL ―トキメキのキセキ―",
+				"name_cn": "第6届京都动画粉丝感谢活动 京阿尼音乐节 —心跳不已的奇迹—",
+				"relation": "其他",
+				"type": 6
+			},
+			{
+				"id": 439539,
+				"name": "ヴァイオレット・エヴァーガーデン 公式ファンブック",
+				"name_cn": "",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 363079,
+				"name": "Though Seasons Change ~Violet Evergarden Piano Memories~",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 160972,
+				"name": "ヴァイオレット・エヴァーガーデン",
+				"name_cn": "紫罗兰永恒花园",
+				"relation": "书籍",
+				"type": 1
+			},
+			{
+				"id": 312233,
+				"name": "Letters and Doll ~Looking back on the memories of Violet Evergarden~",
+				"name_cn": "",
+				"relation": "其他",
+				"type": 3
+			},
+			{
+				"id": 286921,
+				"name": "アニメ『ヴァイオレット・エヴァーガーデン』制作風景",
+				"name_cn": "动画 紫罗兰永恒花园 制作情景",
+				"relation": "衍生",
+				"type": 6
+			},
+			{
+				"id": 246808,
+				"name": "ヴァイオレット・エヴァーガーデン線画集 KAエスマ文庫CM",
+				"name_cn": "紫罗兰永恒花园线画集  KA Esuma文库CM",
+				"relation": "画集",
+				"type": 1
+			},
+			{
+				"id": 242216,
+				"name": "劇場版 ヴァイオレット・エヴァーガーデン",
+				"name_cn": "剧场版 紫罗兰永恒花园",
+				"relation": "续集",
+				"type": 2
+			},
+			{
+				"id": 237238,
+				"name": "TVアニメ『ヴァイオレット・エヴァーガーデン』オリジナルサウンドトラック Automemories",
+				"name_cn": "",
+				"relation": "原声集",
+				"type": 3
+			},
+			{
+				"id": 235017,
+				"name": "TVアニメ『ヴァイオレット・エヴァーガーデン』ボーカルアルバム Song letters",
+				"name_cn": "",
+				"relation": "插入歌",
+				"type": 3
+			},
+			{
+				"id": 234262,
+				"name": "みちしるべ",
+				"name_cn": "",
+				"relation": "片尾曲",
+				"type": 3
+			},
+			{
+				"id": 231883,
+				"name": "Sincerely",
+				"name_cn": "",
+				"relation": "片头曲",
+				"type": 3
+			},
+			{
+				"id": 280837,
+				"name": "ヴァイオレット・エヴァーガーデン 外伝 - 永遠と自動手記人形 -",
+				"name_cn": "紫罗兰永恒花园 外传 - 永远与自动手记人偶 -",
+				"relation": "番外篇",
+				"type": 2
+			}
+		]
+	},
+	"anilist": {
+		"id": 21827,
+		"sourceUrl": "https://anilist.co/anime/21827",
+		"requestUrl": "https://graphql.anilist.co",
+		"titles": {
+			"romaji": "Violet Evergarden",
+			"english": "Violet Evergarden",
+			"native": "ヴァイオレット・エヴァーガーデン"
+		},
+		"synonyms": ["ויולט אברגרדן", "فيوليت", "紫罗兰永恒花园"],
+		"format": "TV",
+		"episodes": 13,
+		"startDate": {
+			"year": 2018,
+			"month": 1,
+			"day": 11
+		},
+		"relations": [
+			{
+				"id": 101432,
+				"titles": {
+					"romaji": "Violet Evergarden: Kitto \"Ai\" wo Shiru Hi ga Kuru no Darou",
+					"native": "ヴァイオレット・エヴァーガーデン きっと\"愛\"を知る日が来るのだろう"
+				},
+				"type": "ANIME",
+				"relation": "SIDE_STORY"
+			},
+			{
+				"id": 97298,
+				"titles": {
+					"romaji": "Violet Evergarden",
+					"native": "ヴァイオレット・エヴァーガーデン"
+				},
+				"type": "MANGA",
+				"relation": "ADAPTATION"
+			},
+			{
+				"id": 109190,
+				"titles": {
+					"romaji": "Violet Evergarden Gaiden: Eien to Jidou Shuki Ningyou",
+					"native": "ヴァイオレット・エヴァーガーデン 外伝~永遠と自動手記人形~"
+				},
+				"type": "ANIME",
+				"relation": "SEQUEL"
+			},
+			{
+				"id": 154164,
+				"titles": {
+					"romaji": "Violet Evergarden CM",
+					"native": "ヴァイオレット・エヴァーガーデン CM"
+				},
+				"type": "ANIME",
+				"relation": "OTHER"
+			}
+		]
+	},
+	"pairingEvidence": "Native title, format and start year reviewed together; curated cross-provider pairing, not an application mapping rule."
+}
