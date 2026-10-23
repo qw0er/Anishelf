@@ -37,6 +37,8 @@ import {
 	searchSubscriptionSource,
 	toggleSubscription,
 } from "./subscriptions-api.js";
+import { watchingKey } from "./watching-api.js";
+import { watchingReason } from "./watching-reason.js";
 
 const key = (workKey: string) =>
 	["acquisition", "subscription", workKey] as const;
@@ -70,6 +72,7 @@ export function SubscriptionPanel({
 		setPage(1);
 		void client.invalidateQueries({ queryKey: key(workKey) });
 		void client.invalidateQueries({ queryKey: downloadKeys });
+		void client.invalidateQueries({ queryKey: watchingKey });
 		void invalidateAnimeQueries(client, "acquisition");
 	}
 	const action = useMutation({
@@ -213,6 +216,7 @@ export function SubscriptionPanel({
 						key={subscription?.revision ?? "new"}
 						workKey={workKey}
 						current={subscription ?? null}
+						managed={viewData?.automation?.managed ?? false}
 						onSaved={updated}
 					/>
 				</DialogContent>
@@ -227,6 +231,15 @@ export function SubscriptionPanel({
 					</div>
 				) : (
 					<>
+						{viewData?.automation && (
+							<p role="status" className="text-sm">
+								{t("acquisition.watching.title")}:{" "}
+								{watchingReason(viewData.automation.reason)}.{" "}
+								<a className="underline" href="/settings?section=downloads">
+									{t("acquisition.watching.settings")}
+								</a>
+							</p>
+						)}
 						{subscription?.error && (
 							<p role="status" className="text-sm">
 								{subscription.error === "source_changed"
@@ -277,12 +290,14 @@ export function SubscriptionPanel({
 }
 
 function SubscriptionForm({
+	managed,
 	workKey,
 	current,
 	onSaved,
 }: {
 	workKey: string;
 	current: SubscriptionView["subscription"];
+	managed: boolean;
 	onSaved(): void;
 }) {
 	const { t } = useTranslation();
@@ -290,6 +305,7 @@ function SubscriptionForm({
 		t(reasonKeys[code] ?? "acquisition.reason.fallback");
 	const profiles = useQuery(acquisitionProfilesQuery());
 	const [profileId, setProfileId] = useState(current?.profileId ?? "");
+	const [manualConsent, setManualConsent] = useState(false);
 	const [mode, setMode] = useState<"feed" | "search" | "keep">(
 		current?.sourceKind === "search" ? "keep" : "feed",
 	);
@@ -357,6 +373,18 @@ function SubscriptionForm({
 				save.mutate();
 			}}
 		>
+			{managed && (
+				<label className="flex gap-2 text-sm">
+					<input
+						type="checkbox"
+						required
+						checked={manualConsent}
+						disabled={busy}
+						onChange={(event) => setManualConsent(event.target.checked)}
+					/>
+					{t("acquisition.watching.manualConsent")}
+				</label>
+			)}
 			{current && (
 				<p className="break-all text-sm text-muted-foreground">
 					{current.source}
@@ -595,6 +623,7 @@ function SubscriptionForm({
 				type="submit"
 				disabled={
 					busy ||
+					(managed && !manualConsent) ||
 					!target?.validated ||
 					profiles.isPending ||
 					profiles.isError ||

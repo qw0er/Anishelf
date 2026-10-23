@@ -14,6 +14,26 @@ export type {
 import type { ReleaseAssessmentApi } from "./release-assessment/public.js";
 export interface AnimeApi {
 	readonly acquisition?: ReleaseAssessmentApi;
+	readonly acquisitionList?: {
+		snapshot(): {
+			accountId: string | null;
+			generation: string;
+			revision: string | null;
+			complete: boolean;
+			fresh: boolean;
+			refreshAllowed: boolean;
+			retryAt: number | null;
+			entries: {
+				workKey: string;
+				title: string;
+				status: string;
+				progress: number;
+			}[];
+		};
+		refresh(): Promise<
+			ReturnType<NonNullable<AnimeApi["acquisitionList"]>["snapshot"]>
+		>;
+	};
 	readonly ingestion?: {
 		ingest(
 			key: string,

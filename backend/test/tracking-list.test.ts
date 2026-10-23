@@ -230,6 +230,7 @@ test("authorization failure retains cached state and requires reconnect", async 
 	expect(snapshot.state).toBe("authorization-required");
 	expect(snapshot.entries).toHaveLength(1);
 	expect(snapshot.error).toEqual({ code: "unauthorized", retryAt: null });
+	expect(f.reader.acquisitionSnapshot().refreshAllowed).toBe(false);
 	expect(JSON.stringify(snapshot)).not.toContain(lease.credential);
 	await f.reader.close();
 });
@@ -645,4 +646,47 @@ test("recent addition and work update sorts use distinct timestamps and retain r
 		(await f.app.list({ scope: "all" })).items.at(-1)
 			?.availableUnwatchedEpisodes ?? null,
 	).toBeNull();
+});
+
+test("acquisition reads only complete fresh confirmed snapshots with explicit content revisions", async () => {
+	const f = readerFixture();
+	try {
+		expect(f.reader.acquisitionSnapshot()).toMatchObject({
+			complete: false,
+			fresh: false,
+			revision: null,
+		});
+		await f.reader.refresh();
+		const first = f.reader.acquisitionSnapshot();
+		expect(first).toMatchObject({
+			complete: true,
+			fresh: true,
+			accountId: "anilist:7",
+			entries: [
+				{ workKey: "anilist:anime:1", status: "watching", progress: 3 },
+			],
+		});
+		expect(first.revision).toMatch(/^[a-f0-9]{64}$/);
+		expect(f.reader.acquisitionSnapshot().revision).toBe(first.revision);
+		f.reader.confirmed("anilist:7", "anilist:anime:1", {
+			id: "anilist:1",
+			status: "paused",
+			progress: 3,
+			updatedAt: 200000,
+		});
+		expect(f.reader.acquisitionSnapshot()).toMatchObject({
+			complete: false,
+			fresh: false,
+			revision: null,
+		});
+		await f.reader.refresh();
+		f.advance();
+		expect(f.reader.acquisitionSnapshot()).toMatchObject({
+			complete: true,
+			fresh: false,
+		});
+		expect(JSON.stringify(first)).not.toContain(lease.credential);
+	} finally {
+		await f.reader.close();
+	}
 });

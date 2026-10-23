@@ -4,7 +4,7 @@ SQLite and Drizzle remain the persistence mechanisms. The initial migration
 `0000_relational_schema` creates the original 78 business tables.
 `0001_snapshot_payloads` replaces thirteen metadata collection tables and detail
 columns with a JSON projection and adds durable media inspections. The current
-schema has 65 business tables; Drizzle's journal is infrastructure.
+schema has 69 business tables after migrations through `0009`; Drizzle's journal is infrastructure.
 `0002_anime_work_information` centralizes current work summaries and removes
 the Catalog and per-account Tracking description copies.
 SQLite `user_version = 1` identifies this supported database family.
@@ -26,6 +26,8 @@ continues to use the disk-backed `openDatabase()` path and its existing logs.
 | `acquisition_subscriptions` | Stable evidence identity, typed source definition, starting episode, enabled flag, revision and nullable error; no source-registration foreign key |
 | `acquisition_candidates` | Candidate identity, title, episode, selection, revision/evidence attributes; ordered reasons |
 | `acquisition_destination` | One constrained `default` row with scope, path, revision, connection generation and verification flags |
+| `acquisition_watching_policy` | One `default` typed JSON configuration/grant snapshot with policy revision, enabled state, accepted account/source/profile/destination generations and applied snapshot |
+| `acquisition_watching_members` | Normalized account/work primary key, member revision, manual pause/exclusion, owned subscription revision, grant ID, frozen starting episode, decision and retry deadline; partial unique work ownership; exclusion tombstones have no subscription foreign key |
 | `acquisition_authorizations` | Subscriptions-owned accepted source/episode scope, destination revision and connection generation |
 | `acquisition_intents` | Identity/reservations, state, retry, progress, timestamps, captured destination, source identity and last command columns |
 | `acquisition_directories` | Work primary key and unique stable directory; no representation change |

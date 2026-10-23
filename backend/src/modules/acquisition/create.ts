@@ -19,7 +19,10 @@ import {
 	type SourcesModuleOptions,
 } from "./sources/create.js";
 import { SubscriptionsApplication } from "./subscriptions/application/application.js";
+import { acquisitionProfileFingerprint } from "./subscriptions/domain/profiles.js";
 import { loadAcquisitionProfiles } from "./subscriptions/infrastructure/profiles.js";
+import { WatchingApplication } from "./watching/application/application.js";
+import type { WatchingListPort } from "./watching/public.js";
 
 /** Standalone adapter foundation; no workers or automatic downloads are started. */
 export function createQbittorrentClient(
@@ -30,6 +33,7 @@ export function createQbittorrentClient(
 
 export async function createAcquisitionModule(options: {
 	dataDir: string;
+	watching?: WatchingListPort;
 	logger: Logger;
 	createClient?: (options: QbittorrentOptions) => QbittorrentApi;
 	suggestedApiUrl?: string;
@@ -86,7 +90,17 @@ export async function createAcquisitionModule(options: {
 			? { refreshIntervalMinutes: options.rssRefreshIntervalMinutes }
 			: {}),
 	});
+	let watching: WatchingApplication | undefined;
 	const subscriptions = new SubscriptionsApplication({
+		management: {
+			enabled: (subscription) =>
+				watching?.enabled(subscription) ?? subscription.enabled,
+			status: (key) => watching?.management(key) ?? null,
+			saved: (key) => watching?.manualSave(key),
+			toggled: (key, enabled, revision) =>
+				watching?.manualToggle(key, enabled, revision),
+			removed: (key) => watching?.manualRemove(key),
+		},
 		store: subscriptionStore,
 		profiles,
 		...(profileCatalog.issue ? { profileIssue: profileCatalog.issue } : {}),
@@ -123,6 +137,35 @@ export async function createAcquisitionModule(options: {
 		logger: options.logger,
 		...(options.now ? { now: options.now } : {}),
 	});
+	watching = new WatchingApplication({
+		store: options.store.watching,
+		hasCapacity: () => subscriptions.hasCapacity(),
+		transaction: (operation) => options.store.transaction(operation),
+		...(options.watching ? { tracking: options.watching } : {}),
+		sources: sources.api,
+		subscriptions,
+		subscription: (key) => options.store.subscription(key),
+		admit: (input, commit) => {
+			subscriptions.admitManaged(input, commit);
+		},
+		target: () => {
+			const target = options.downloadStore.destination();
+			return target
+				? {
+						...target,
+						validated:
+							target.validated &&
+							target.connectionGeneration === connection.settings().generation,
+					}
+				: null;
+		},
+		profileFingerprint: (id) => {
+			const profile = profiles.find((profile) => profile.id === id);
+			return profile ? acquisitionProfileFingerprint(profile) : null;
+		},
+		logger: options.logger,
+		...(options.now ? { now: options.now } : {}),
+	});
 	const downloads =
 		options.resources && options.anime && options.ingestion
 			? new DownloadsApplication({
@@ -149,6 +192,7 @@ export async function createAcquisitionModule(options: {
 				})
 			: undefined;
 	if (options.autoStart !== false) {
+		watching.start();
 		sources.runtime.start(
 			() => subscriptions.activeSourceIds(),
 			(source) => subscriptions.refreshSource(source.id),
@@ -157,6 +201,7 @@ export async function createAcquisitionModule(options: {
 	}
 	const downloadApi = downloads;
 	const api: AcquisitionApi = {
+		watching,
 		sources: sources.api,
 		connection: {
 			settings: () => connection.settings(),
@@ -198,10 +243,12 @@ export async function createAcquisitionModule(options: {
 			registerAcquisitionHttp(app, api, sources.registerHttp),
 		close: () => {
 			closing ??= (async () => {
+				watching?.stop();
 				await downloads?.close();
 				const closingSubscriptions = subscriptions.close();
 				await sources.runtime.close();
 				await closingSubscriptions;
+				await watching?.close();
 				await connection.close();
 			})();
 			return closing;

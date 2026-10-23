@@ -75,4 +75,8 @@ export type {
 	TrackingUpdateRequest,
 	TranscodeProfileCatalog,
 	UpdateSettingsRequest,
+	WatchingAutomationConfig,
+	WatchingAutomationOverride,
+	WatchingAutomationPreview,
+	WatchingAutomationStatus,
 } from "@anishelf/backend/contracts/http";

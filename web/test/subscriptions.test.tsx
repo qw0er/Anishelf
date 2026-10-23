@@ -467,3 +467,40 @@ test("editing a search subscription retains its pinned source without discoverin
 		request.mock.calls.some(([path]) => path.endsWith("/subscriptions/search")),
 	).toBe(false);
 });
+
+test("editing a managed subscription requires explicit manual conversion consent", async () => {
+	const request = fixture({
+		...saved,
+		automation: {
+			managed: true,
+			excluded: false,
+			paused: false,
+			reason: "managed",
+		},
+	});
+	render(<SubscriptionPanel workKey={workKey} />);
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Subscription actions" }),
+	);
+	fireEvent.click(
+		await screen.findByRole("menuitem", { name: "Edit subscription" }),
+	);
+	const consent = await screen.findByRole("checkbox", {
+		name: /Manage this subscription manually after saving/,
+	});
+	const save = screen.getByRole("button", {
+		name: "Save and enable subscription",
+	}) as HTMLButtonElement;
+	await screen.findByText(/Automatic download destination:.*downloads/);
+	expect(save.disabled).toBe(true);
+	expect(request.mock.calls.filter((call) => call[1] !== "GET")).toHaveLength(
+		0,
+	);
+	fireEvent.click(consent);
+	expect(save.disabled).toBe(false);
+	fireEvent.click(save);
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	expect(request.mock.calls.filter((call) => call[1] === "PUT")).toHaveLength(
+		1,
+	);
+});

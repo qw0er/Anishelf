@@ -6,6 +6,18 @@ import type { SourcesApi } from "../../sources/public.js";
 import type { AcquisitionProfile } from "../domain/profiles.js";
 import type { SubscriptionStore } from "../ports.js";
 export type SubscriptionsOptions = {
+	management?: {
+		enabled(subscription: import("../domain/model.js").Subscription): boolean;
+		status(workKey: string): {
+			managed: boolean;
+			excluded: boolean;
+			paused: boolean;
+			reason: string;
+		} | null;
+		saved(workKey: string): void;
+		toggled(workKey: string, enabled: boolean, revision: string): void;
+		removed(workKey: string): void;
+	};
 	profiles?: readonly AcquisitionProfile[];
 	profileIssue?: ProfileCatalogIssue;
 	defaultProfileId?: () => string | undefined;

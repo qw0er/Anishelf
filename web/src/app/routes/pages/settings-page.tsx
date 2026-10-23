@@ -4,6 +4,7 @@ import {
 	QbittorrentSettings,
 	RssSettings,
 	SourceSettings,
+	WatchingSettings,
 } from "../../../features/acquisition/ui.js";
 import { TrackingAccountSettings } from "../../../features/anime/ui.js";
 import {
@@ -99,6 +100,7 @@ export function SettingsPage() {
 			>
 				<RssSettings />
 				<SourceSettings />
+				<WatchingSettings />
 				<QbittorrentSettings />
 			</div>
 			<div

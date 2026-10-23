@@ -511,6 +511,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 			).toBe(
 				[
 					"acquisition_subscriptions",
+					"acquisition_watching_policy",
 					"metadata_snapshots",
 					"acquisition_sources",
 					"acquisition_source_downloads",
@@ -526,7 +527,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 					"SELECT count(*) AS count FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> '__drizzle_migrations'",
 				)
 				.get(),
-		).toEqual({ count: 67 });
+		).toEqual({ count: 69 });
 	} finally {
 		inspected.close();
 	}

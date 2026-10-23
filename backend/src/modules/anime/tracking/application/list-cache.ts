@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { TrackingListSnapshot } from "../domain/list.js";
@@ -196,6 +197,50 @@ export class TrackingListReader {
 				),
 			});
 		}
+	}
+	acquisitionSnapshot() {
+		const value = this.read(undefined, false);
+		const cache = value.accountId
+			? this.options.store.read(value.accountId)
+			: undefined;
+		const complete = Boolean(cache && !cache.invalidated);
+		return {
+			accountId: value.accountId,
+			generation: value.generation,
+			revision: complete
+				? createHash("sha256")
+						.update(
+							JSON.stringify([
+								value.accountId,
+								value.generation,
+								cache?.fetchedAt,
+								value.entries
+									.map((entry) => [entry.mediaId, entry.status, entry.progress])
+									.sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+							]),
+						)
+						.digest("hex")
+				: null,
+			complete,
+			fresh:
+				complete &&
+				value.state === "connected" &&
+				!value.stale &&
+				!value.refreshing &&
+				!value.error,
+			refreshAllowed:
+				value.state === "connected" &&
+				!value.refreshing &&
+				(!value.error ||
+					(value.error.retryAt !== null && value.error.retryAt <= this.now())),
+			retryAt: value.error?.retryAt ?? null,
+			entries: value.entries.map((entry) => ({
+				workKey: entry.mediaId,
+				title: entry.titles[0] ?? entry.mediaId,
+				status: entry.status,
+				progress: entry.progress,
+			})),
+		};
 	}
 	async close() {
 		this.stopped = true;

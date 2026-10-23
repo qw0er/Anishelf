@@ -13,6 +13,7 @@ import type {
 } from "./subscriptions/public.js";
 export interface AcquisitionApi {
 	readonly sources: SourcesApi;
+	readonly watching?: import("./watching/public.js").WatchingApi;
 	readonly connection: QbittorrentConnectionApi;
 	readonly subscriptions: SubscriptionApi;
 	readonly downloads?: AcquisitionDownloadsApi;

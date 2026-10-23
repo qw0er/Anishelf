@@ -1,3 +1,10 @@
+import {
+	WatchingRepository,
+	type WatchingStore,
+} from "./watching/persistence.js";
+
+export * from "./watching/persistence.js";
+
 import type { Store } from "../../platform/database/store.js";
 import { SubscriptionRepository } from "./subscriptions/infrastructure/repository.js";
 
@@ -19,7 +26,7 @@ import type { SubscriptionStore } from "./subscriptions/ports.js";
 /** Shared-connection facade keeps subscription saves and refresh publication atomic. */
 export type AcquisitionStore = SubscriptionStore &
 	SourceStore &
-	SourceLifecycleStore;
+	SourceLifecycleStore & { readonly watching: WatchingStore };
 export function createAcquisitionPersistence(store: Store) {
 	return new AcquisitionRepository(store);
 }
@@ -40,9 +47,11 @@ class AcquisitionRepository
 	extends SubscriptionRepository
 	implements SourceStore, SourceLifecycleStore
 {
+	readonly watching: WatchingRepository;
 	private readonly sourceRepository: SourceRepository;
 	constructor(store: Store) {
 		super(store);
+		this.watching = new WatchingRepository(store);
 		this.sourceRepository = new SourceRepository(store);
 	}
 	download(id: string) {

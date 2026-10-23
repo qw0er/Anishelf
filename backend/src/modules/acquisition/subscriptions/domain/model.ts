@@ -32,6 +32,12 @@ export interface Candidate {
 	publishedAt: number | null;
 }
 export interface SubscriptionView {
+	automation?: {
+		managed: boolean;
+		excluded: boolean;
+		paused: boolean;
+		reason: string;
+	} | null;
 	subscription:
 		| (Omit<Subscription, "sourceInput"> & {
 				source: string;
