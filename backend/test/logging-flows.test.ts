@@ -21,6 +21,16 @@ test("successful HTTP requests stay quiet at info and expose safe correlation at
 			config: { host: "127.0.0.1", port: 3000 },
 		});
 		try {
+			await app.ready();
+			expect(records).toEqual([
+				expect.objectContaining({
+					event: "http.proxy_configured",
+					level: 30,
+					trustedProxies: ["loopback"],
+				}),
+			]);
+			// Startup diagnostics are expected; successful requests stay quiet at info.
+			records.length = 0;
 			const response = await app.inject({
 				url: "/api/health?token=private-query",
 				headers: { host: "127.0.0.1:3000", authorization: "private-header" },
