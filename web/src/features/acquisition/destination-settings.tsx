@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { boundedSignal } from "../../shared/api/queries.js";
 import { Button } from "../../shared/components/ui/button.js";
 import { Input } from "../../shared/components/ui/input.js";
@@ -11,6 +12,7 @@ import {
 	validateDownloadDestination,
 } from "./downloads-api.js";
 export function DownloadDestinationSettings() {
+	const { t } = useTranslation();
 	const id = useId(),
 		client = useQueryClient();
 	const query = useQuery({
@@ -42,8 +44,8 @@ export function DownloadDestinationSettings() {
 			toast.add({
 				title:
 					kind === "save"
-						? "Download destination saved."
-						: "Destination validated. Shared files are verified during import.",
+						? t("acquisition.destination.saved")
+						: t("acquisition.destination.validated"),
 				type: "success",
 			});
 		},
@@ -52,13 +54,13 @@ export function DownloadDestinationSettings() {
 		},
 	});
 	if (query.isPending)
-		return <p role="status">Loading download destination…</p>;
+		return <p role="status">{t("acquisition.destination.loading")}</p>;
 	if (query.isError)
 		return (
 			<p role="alert">
-				Download destination unavailable.{" "}
+				{t("acquisition.destination.unavailable")}{" "}
 				<Button variant="outline" onClick={() => void query.refetch()}>
-					Retry
+					{t("actions.retry")}
 				</Button>
 			</p>
 		);
@@ -70,9 +72,11 @@ export function DownloadDestinationSettings() {
 				action.mutate("save");
 			}}
 		>
-			<h3 className="font-medium">Download destination</h3>
+			<h3 className="font-medium">{t("acquisition.destination.title")}</h3>
 			<label className="block space-y-2" htmlFor={`${id}-root`}>
-				<span className="text-sm">Resource directory</span>
+				<span className="text-sm">
+					{t("acquisition.destination.resourceDirectory")}
+				</span>
 				<select
 					className="h-9 w-full rounded-md border bg-background px-3 text-sm"
 					id={`${id}-root`}
@@ -84,7 +88,9 @@ export function DownloadDestinationSettings() {
 					onChange={(event) => setRoot(event.target.value)}
 				>
 					{!query.data?.roots.length && (
-						<option value="">Add a resource directory first</option>
+						<option value="">
+							{t("acquisition.destination.addDirectoryFirst")}
+						</option>
 					)}
 					{query.data?.roots.map((item) => (
 						<option key={item.scopeId} value={item.scopeId}>
@@ -94,7 +100,9 @@ export function DownloadDestinationSettings() {
 				</select>
 			</label>
 			<label className="block space-y-2" htmlFor={`${id}-path`}>
-				<span className="text-sm">qBittorrent completed path</span>
+				<span className="text-sm">
+					{t("acquisition.destination.completedPath")}
+				</span>
 				<Input
 					id={`${id}-path`}
 					required
@@ -105,23 +113,20 @@ export function DownloadDestinationSettings() {
 				/>
 			</label>
 			<p className="text-sm text-muted-foreground">
-				Each anime gets its own folder. Enable a separate incomplete directory
-				in qBittorrent. Saving a destination requires subscriptions to be
-				confirmed again.
+				{t("acquisition.destination.help")}
 			</p>
 			{destination && (
 				<p className="text-sm" role="status">
 					{destination.validated
 						? destination.visibilityVerified
-							? "Shared file visibility verified"
-							: "Mapping configured · File visibility not yet verified"
-						: "Validation required"}
+							? t("acquisition.destination.visibilityVerified")
+							: t("acquisition.destination.mappingConfigured")
+						: t("acquisition.destination.validationRequired")}
 				</p>
 			)}
 			{action.isError && (
 				<p role="alert" className="text-sm">
-					Could not update the destination. Check the API connection, resource
-					directory and incomplete directory settings, then retry.
+					{t("acquisition.destination.updateFailed")}
 				</p>
 			)}
 			<div className="action-row">
@@ -129,7 +134,7 @@ export function DownloadDestinationSettings() {
 					type="submit"
 					disabled={action.isPending || !query.data?.roots.length}
 				>
-					Save destination
+					{t("acquisition.destination.save")}
 				</Button>
 				<Button
 					type="button"
@@ -137,7 +142,7 @@ export function DownloadDestinationSettings() {
 					disabled={action.isPending || !destination || changed}
 					onClick={() => action.mutate("validate")}
 				>
-					Validate destination
+					{t("acquisition.destination.validate")}
 				</Button>
 			</div>
 		</form>

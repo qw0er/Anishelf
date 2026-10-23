@@ -2,6 +2,7 @@ import type { MediaTimeline } from "@anishelf/backend/contracts/media";
 import { useQuery } from "@tanstack/react-query";
 import { TextTrack, useMediaPlayer } from "@vidstack/react";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { ApiClientError } from "../../../../shared/api/client.js";
 import {
 	boundedSignal,
@@ -21,6 +22,7 @@ export function ChapterTracks({
 	sourceVersion: string;
 	timeline: MediaTimeline;
 }) {
+	const { t } = useTranslation();
 	const player = useMediaPlayer();
 	const query = useQuery({
 		queryKey: playbackKeys.chapters(useQueryScope(), fileId, sourceVersion),
@@ -39,16 +41,16 @@ export function ChapterTracks({
 		toast.add({
 			id: notificationId,
 			type: "error",
-			title: "Chapters could not be loaded. You can keep watching.",
+			title: t("player.chaptersLoadFailed"),
 			actionProps: {
-				children: "Retry chapters",
+				children: t("player.retryChapters"),
 				onClick: () => {
 					void query.refetch();
 				},
 			},
 		});
 		return () => toast.close(notificationId);
-	}, [query.error, query.refetch, notificationId]);
+	}, [query.error, query.refetch, notificationId, t]);
 	useEffect(() => {
 		if (!player || !query.data || query.data.sourceVersion !== sourceVersion)
 			return;
@@ -57,7 +59,7 @@ export function ChapterTracks({
 		const track = new TextTrack({
 			id: `chapters:${fileId}:${sourceVersion}`,
 			kind: "chapters",
-			label: "Chapters",
+			label: t("player.chapters"),
 			type: "json",
 			content: { cues },
 			default: true,
@@ -67,6 +69,6 @@ export function ChapterTracks({
 		return () => {
 			player.textTracks.remove(track);
 		};
-	}, [player, query.data, fileId, sourceVersion, timeline]);
+	}, [player, query.data, fileId, sourceVersion, timeline, t]);
 	return null;
 }

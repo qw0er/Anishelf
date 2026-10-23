@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { clearCompatibilityCache } from "../../features/media/public.js";
 import { clearAuthToken, request } from "../../shared/api/client.js";
 import { queryClient } from "../../shared/api/query-client.js";
@@ -12,6 +13,7 @@ import {
 } from "../../shared/components/ui/card.js";
 import { Input } from "../../shared/components/ui/input.js";
 export function SecuritySettings() {
+	const { t } = useTranslation();
 	const [currentPassword, setCurrent] = useState("");
 	const [password, setPassword] = useState("");
 	const [confirmation, setConfirmation] = useState("");
@@ -26,13 +28,8 @@ export function SecuritySettings() {
 	return (
 		<Card className="settings-section lg:grid">
 			<CardHeader>
-				<CardTitle>Security</CardTitle>
-				<CardDescription>
-					Change the access password or sign out. Changing the password signs
-					out all devices and revokes media links. External media links expire
-					after 24 hours; anyone holding a link can access that file until it
-					expires.
-				</CardDescription>
+				<CardTitle>{t("auth.security.title")}</CardTitle>
+				<CardDescription>{t("auth.security.description")}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
 				<form
@@ -42,11 +39,11 @@ export function SecuritySettings() {
 						setError("");
 						const nextPassword = password.trim();
 						if (nextPassword !== confirmation.trim()) {
-							setError("Passwords do not match.");
+							setError(t("auth.security.passwordsDoNotMatch"));
 							return;
 						}
 						if ([...nextPassword].length < 8) {
-							setError("Password must contain at least 8 characters.");
+							setError(t("auth.security.passwordTooShort"));
 							return;
 						}
 						setPending(true);
@@ -65,14 +62,14 @@ export function SecuritySettings() {
 							setError(
 								error instanceof Error
 									? error.message
-									: "Password change failed.",
+									: t("auth.security.changeFailed"),
 							);
 							setPending(false);
 						}
 					}}
 				>
 					<label htmlFor="current-password" className="block space-y-2">
-						<span>Current password</span>
+						<span>{t("auth.security.currentPassword")}</span>
 						<Input
 							id="current-password"
 							type="password"
@@ -84,7 +81,7 @@ export function SecuritySettings() {
 						/>
 					</label>
 					<label htmlFor="new-password" className="block space-y-2">
-						<span>New password (8–128 characters, outer spaces trimmed)</span>
+						<span>{t("auth.security.newPassword")}</span>
 						<Input
 							id="new-password"
 							type="password"
@@ -96,7 +93,7 @@ export function SecuritySettings() {
 						/>
 					</label>
 					<label htmlFor="confirm-password" className="block space-y-2">
-						<span>Confirm new password</span>
+						<span>{t("auth.security.confirmPassword")}</span>
 						<Input
 							id="confirm-password"
 							type="password"
@@ -113,7 +110,7 @@ export function SecuritySettings() {
 						</p>
 					)}
 					<Button type="submit" disabled={pending}>
-						Change password
+						{t("auth.security.changePassword")}
 					</Button>
 				</form>
 				<Button
@@ -126,13 +123,15 @@ export function SecuritySettings() {
 							await leave();
 						} catch (error) {
 							setError(
-								error instanceof Error ? error.message : "Sign out failed.",
+								error instanceof Error
+									? error.message
+									: t("auth.security.signOutFailed"),
 							);
 							setPending(false);
 						}
 					}}
 				>
-					Sign out
+					{t("auth.security.signOut")}
 				</Button>
 			</CardContent>
 		</Card>

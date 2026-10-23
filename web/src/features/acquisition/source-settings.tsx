@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type {
 	SourceConnectorSettings,
 	SourceProviders,
@@ -26,6 +27,7 @@ import {
 } from "./sources-api.js";
 
 export function SourceSettings() {
+	const { t } = useTranslation();
 	const query = useQuery<SourceConnectorSettings>({
 		queryKey: sourceSettingsKey,
 		refetchInterval: (query) => (query.state.data?.url ? false : 5000),
@@ -35,20 +37,19 @@ export function SourceSettings() {
 	return (
 		<Card className="settings-panel">
 			<CardHeader>
-				<CardTitle>Jackett sources</CardTitle>
+				<CardTitle>{t("acquisition.sources.title")}</CardTitle>
 				<CardDescription>
-					Connect resource sites through your own Jackett service or the
-					optional bundled service.
+					{t("acquisition.sources.description")}
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
 				{query.isPending ? (
-					<p role="status">Loading source settings…</p>
+					<p role="status">{t("acquisition.sources.loading")}</p>
 				) : query.isError ? (
 					<div role="alert">
-						Could not load source settings.{" "}
+						{t("acquisition.sources.loadFailed")}{" "}
 						<Button variant="outline" onClick={() => void query.refetch()}>
-							Retry source settings
+							{t("acquisition.sources.retry")}
 						</Button>
 					</div>
 				) : (
@@ -59,6 +60,7 @@ export function SourceSettings() {
 	);
 }
 function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
+	const { t } = useTranslation();
 	const client = useQueryClient();
 	const [url, setUrl] = useState(settings.url ?? "");
 	const [managementUrl, setManagementUrl] = useState(
@@ -144,30 +146,24 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 		<div className="space-y-4">
 			<p className="text-sm text-muted-foreground">
 				{settings.origin === "bundled"
-					? "Using bundled Jackett."
+					? t("acquisition.sources.bundled")
 					: settings.url
-						? "Using external Jackett. Sites are managed in Jackett."
-						: "No source connector configured."}{" "}
-				Saving a connection or running a test does not enable subscriptions or
-				downloads.
+						? t("acquisition.sources.external")
+						: t("acquisition.sources.unconfigured")}{" "}
+				{t("acquisition.sources.savingNotice")}
 			</p>
 			{settings.origin === "bundled" && settings.bundledSetup === "manual" && (
 				<p className="text-sm text-muted-foreground">
-					Review site configuration in Jackett, then test the connection and
-					select sites below.
+					{t("acquisition.sources.manualSetup")}
 				</p>
 			)}
 			{settings.origin === "bundled" && settings.bundledSetup === "pending" && (
 				<p className="text-sm text-muted-foreground">
-					First-run site setup is pending. Refresh settings after Jackett is
-					ready.
+					{t("acquisition.sources.setupPending")}
 				</p>
 			)}
 			{settings.error && (
-				<p role="alert">
-					Saved source credentials could not be loaded. Check the configuration
-					file and permissions.
-				</p>
+				<p role="alert">{t("acquisition.sources.credentialsError")}</p>
 			)}
 			<form
 				className="space-y-3"
@@ -177,7 +173,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				}}
 			>
 				<label className="block space-y-2" htmlFor="source-api-url">
-					<span>Jackett API URL</span>
+					<span>{t("acquisition.sources.apiUrl")}</span>
 					<Input
 						id="source-api-url"
 						type="url"
@@ -190,11 +186,10 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					/>
 				</label>
 				<p className="text-sm text-muted-foreground">
-					Use the service address reachable from the backend. Configure your
-					sites in Jackett first.
+					{t("acquisition.sources.apiUrlHelp")}
 				</p>
 				<label className="block space-y-2" htmlFor="source-api-key">
-					<span>Jackett API key</span>
+					<span>{t("acquisition.sources.apiKey")}</span>
 					<Input
 						id="source-api-key"
 						type="password"
@@ -208,11 +203,11 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				</label>
 				<p className="text-sm text-muted-foreground">
 					{settings.hasApiKey
-						? "Key saved. Leave blank to keep it; enter a key when changing the service address."
-						: "Copy the API key from Jackett. Saved keys are never displayed."}
+						? t("acquisition.sources.keySaved")
+						: t("acquisition.sources.keyHelp")}
 				</p>
 				<label className="block space-y-2" htmlFor="source-management-url">
-					<span>Jackett management URL (optional)</span>
+					<span>{t("acquisition.sources.managementUrl")}</span>
 					<Input
 						id="source-management-url"
 						type="url"
@@ -224,12 +219,13 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					/>
 				</label>
 				<p className="text-sm text-muted-foreground">
-					Browser address for managing sites. Use an SSH tunnel or your
-					protected service address for a remote server.
+					{t("acquisition.sources.managementHelp")}
 				</p>
 				<div className="action-row">
 					<Button type="submit" disabled={busy || !changed}>
-						{save.isPending ? "Saving sources…" : "Save source settings"}
+						{save.isPending
+							? t("acquisition.sources.saving")
+							: t("acquisition.sources.save")}
 					</Button>
 					{settings.bundledAvailable && (
 						<Button
@@ -238,7 +234,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							disabled={busy}
 							onClick={() => bundled.mutate()}
 						>
-							Use bundled Jackett
+							{t("acquisition.sources.useBundled")}
 						</Button>
 					)}
 					{settings.url && (
@@ -248,7 +244,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							disabled={busy}
 							onClick={() => clear.mutate()}
 						>
-							Disconnect Jackett
+							{t("acquisition.sources.disconnect")}
 						</Button>
 					)}
 				</div>
@@ -260,27 +256,34 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					target="_blank"
 					rel="noopener noreferrer"
 				>
-					Open Jackett management
+					{t("acquisition.sources.openManagement")}
 				</a>
 			)}
-			<section className="space-y-3" aria-label="Resource sites">
-				<h3 className="text-sm font-medium">Resource sites</h3>
+			<section
+				className="space-y-3"
+				aria-label={t("acquisition.sources.resourceSites")}
+			>
+				<h3 className="text-sm font-medium">
+					{t("acquisition.sources.resourceSites")}
+				</h3>
 				<Button
 					variant="outline"
 					disabled={!canTest}
 					onClick={() => list.mutate()}
 				>
-					{list.isPending ? "Connecting…" : "Test connection and load sites"}
+					{list.isPending
+						? t("acquisition.sources.connecting")
+						: t("acquisition.sources.testAndLoad")}
 				</Button>
 				{list.isSuccess && !changed && (
 					<p role="status">
-						Jackett responded with {available.length} configured sites. This
-						checks the service connection; test a search below to check a site.
+						{t("acquisition.sources.loaded", {
+							count: available.length,
+						})}
 					</p>
 				)}
 				<p className="text-sm text-muted-foreground">
-					Choose sites and use the arrows to set their order. Save changes
-					before testing searches.
+					{t("acquisition.sources.chooseSites")}
 				</p>
 				{available
 					.filter((site) => !providers.includes(site.id))
@@ -295,7 +298,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							{site.name}
 						</label>
 					))}
-				{providers.length === 0 && <p>No sites selected.</p>}
+				{providers.length === 0 && <p>{t("acquisition.sources.noSites")}</p>}
 				<ol className="space-y-2">
 					{providers.map((id, index) => (
 						<li key={id} className="flex flex-wrap items-center gap-2">
@@ -306,7 +309,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							<Button
 								variant="outline"
 								disabled={busy || index === 0}
-								aria-label={`Move ${id} earlier`}
+								aria-label={t("acquisition.sources.moveEarlier", { name: id })}
 								onClick={() => move(index, -1)}
 							>
 								↑
@@ -314,7 +317,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							<Button
 								variant="outline"
 								disabled={busy || index === providers.length - 1}
-								aria-label={`Move ${id} later`}
+								aria-label={t("acquisition.sources.moveLater", { name: id })}
 								onClick={() => move(index, 1)}
 							>
 								↓
@@ -322,12 +325,12 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							<Button
 								variant="outline"
 								disabled={busy}
-								aria-label={`Remove ${id}`}
+								aria-label={t("acquisition.sources.removeAria", { name: id })}
 								onClick={() =>
 									setProviders(providers.filter((value) => value !== id))
 								}
 							>
-								Remove
+								{t("acquisition.sources.remove")}
 							</Button>
 						</li>
 					))}
@@ -335,11 +338,11 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 			</section>
 			<details className="space-y-3">
 				<summary className="cursor-pointer text-sm font-medium">
-					Search diagnostics
+					{t("acquisition.sources.diagnostics")}
 				</summary>
 				<div className="space-y-3 pt-3">
 					<label className="block space-y-2" htmlFor="source-test-provider">
-						<span>Site to test</span>
+						<span>{t("acquisition.sources.siteToTest")}</span>
 						<select
 							id="source-test-provider"
 							className="w-full rounded-md border bg-background p-2"
@@ -352,7 +355,9 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							}}
 						>
 							{!settings.providers.length && (
-								<option value="">Save a selected site first</option>
+								<option value="">
+									{t("acquisition.sources.saveSiteFirst")}
+								</option>
 							)}
 							{settings.providers.map((id) => (
 								<option key={id} value={id}>
@@ -366,13 +371,13 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 						disabled={!canTest || !providerId}
 						onClick={() => probe.mutate()}
 					>
-						Check search support
+						{t("acquisition.sources.checkSupport")}
 					</Button>
 					{probe.data && !changed && (
 						<p role="status">
 							{probe.data.searchSupported
-								? "The site reports search support. Run a search to verify upstream access."
-								: "The site does not report search support."}
+								? t("acquisition.sources.searchSupported")
+								: t("acquisition.sources.searchUnsupported")}
 						</p>
 					)}
 					<form
@@ -383,7 +388,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 						}}
 					>
 						<label className="block space-y-2" htmlFor="source-test-title">
-							<span>Title to search</span>
+							<span>{t("acquisition.sources.titleToSearch")}</span>
 							<Input
 								id="source-test-title"
 								maxLength={256}
@@ -399,19 +404,25 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							type="submit"
 							disabled={!canTest || !providerId || !title.trim()}
 						>
-							{search.isPending ? "Searching…" : "Test search"}
+							{search.isPending
+								? t("acquisition.sources.searching")
+								: t("acquisition.sources.testSearch")}
 						</Button>
 					</form>
 					{search.data && !changed && (
 						<div role="status">
 							<p>
 								{search.data.entries.length
-									? `Search returned ${search.data.entries.length} releases.`
-									: "Search completed with no matching releases."}
+									? t("acquisition.sources.searchReturned", {
+											count: search.data.entries.length,
+										})
+									: t("acquisition.sources.noResults")}
 							</p>
 							{search.data.coverage?.limited && (
 								<p>
-									Results have limited coverage ({search.data.coverage.reason}).
+									{t("acquisition.sources.limitedCoverage", {
+										reason: search.data.coverage.reason,
+									})}
 								</p>
 							)}
 							<ul>
@@ -424,15 +435,9 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				</div>
 			</details>
 			{changed && (
-				<p role="status">Save source settings before running diagnostics.</p>
+				<p role="status">{t("acquisition.sources.saveBeforeDiagnostics")}</p>
 			)}
-			{error && (
-				<p role="alert">
-					Could not complete the source action. Check the service address, API
-					key and site configuration. Reload settings if another session changed
-					them.
-				</p>
-			)}
+			{error && <p role="alert">{t("acquisition.sources.actionFailed")}</p>}
 		</div>
 	);
 }

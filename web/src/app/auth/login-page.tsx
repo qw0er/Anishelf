@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 import { clearCompatibilityCache } from "../../features/media/public.js";
 import { clearAuthToken, request } from "../../shared/api/client.js";
@@ -7,6 +8,7 @@ import { Button } from "../../shared/components/ui/button.js";
 import { Input } from "../../shared/components/ui/input.js";
 import { loginReturnPath } from "./return-path.js";
 export function LoginPage() {
+	const { t } = useTranslation();
 	const [params] = useSearchParams();
 	const [password, setPassword] = useState("");
 	const [pending, setPending] = useState(false);
@@ -35,18 +37,18 @@ export function LoginPage() {
 						);
 					} catch (error) {
 						setError(
-							error instanceof Error ? error.message : "Sign in failed.",
+							error instanceof Error ? error.message : t("auth.login.failed"),
 						);
 						setPending(false);
 					}
 				}}
 			>
-				<h1 className="text-2xl font-semibold">Sign in to Anishelf</h1>
+				<h1 className="text-2xl font-semibold">{t("auth.login.title")}</h1>
 				<p className="text-sm text-muted-foreground">
-					Enter your server’s access password.
+					{t("auth.login.description")}
 				</p>
 				<label htmlFor="login-password" className="block space-y-2">
-					<span>Password</span>
+					<span>{t("auth.login.password")}</span>
 					<Input
 						id="login-password"
 						type="password"
@@ -64,7 +66,7 @@ export function LoginPage() {
 					</p>
 				)}
 				<Button type="submit" disabled={pending} className="w-full">
-					{pending ? "Signing in…" : "Sign in"}
+					{pending ? t("auth.login.signingIn") : t("auth.login.signIn")}
 				</Button>
 			</form>
 		</main>

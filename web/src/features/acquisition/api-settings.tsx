@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { QbittorrentConnectionSettings } from "../../shared/api/contracts.js";
 import { boundedSignal } from "../../shared/api/queries.js";
 import { Button } from "../../shared/components/ui/button.js";
@@ -17,6 +18,7 @@ import { downloadKeys } from "./downloads-api.js";
 const queryKey = ["acquisition", "qbittorrent"] as const;
 
 export function QbittorrentApiSettings() {
+	const { t } = useTranslation();
 	const query = useQuery({
 		queryKey,
 		queryFn: ({ signal }) =>
@@ -25,16 +27,16 @@ export function QbittorrentApiSettings() {
 	return (
 		<section
 			className="space-y-3 border-b pb-4"
-			aria-label="qBittorrent API connection"
+			aria-label={t("acquisition.api.ariaConnection")}
 		>
-			<h3 className="text-sm font-medium">API connection</h3>
+			<h3 className="text-sm font-medium">{t("acquisition.api.connection")}</h3>
 			{query.isPending ? (
-				<p role="status">Loading API connection…</p>
+				<p role="status">{t("acquisition.api.loading")}</p>
 			) : query.isError ? (
 				<div role="alert">
-					Could not load API settings.{" "}
+					{t("acquisition.api.loadFailed")}{" "}
 					<Button variant="outline" onClick={() => void query.refetch()}>
-						Retry API settings
+						{t("acquisition.api.retry")}
 					</Button>
 				</div>
 			) : (
@@ -49,6 +51,7 @@ function ConnectionForm({
 }: {
 	settings: QbittorrentConnectionSettings;
 }) {
+	const { t } = useTranslation();
 	const client = useQueryClient();
 	const [url, setUrl] = useState(settings.url ?? "");
 	const [username, setUsername] = useState(settings.username);
@@ -75,7 +78,7 @@ function ConnectionForm({
 			setRevealed(value.password);
 		} catch {
 			toast.add({
-				title: "Could not load WebUI credentials. Reload settings and retry.",
+				title: t("acquisition.api.credentialsLoadFailed"),
 				type: "error",
 			});
 		} finally {
@@ -85,10 +88,10 @@ function ConnectionForm({
 	async function copy(value: string) {
 		try {
 			await navigator.clipboard.writeText(value);
-			toast.add({ title: "Copied.", type: "success" });
+			toast.add({ title: t("acquisition.api.copied"), type: "success" });
 		} catch {
 			toast.add({
-				title: "Could not copy. Select and copy the displayed value.",
+				title: t("acquisition.api.copyFailed"),
 				type: "error",
 			});
 		}
@@ -115,14 +118,13 @@ function ConnectionForm({
 		onSuccess: (value) => {
 			saved(value);
 			toast.add({
-				title: "qBittorrent API connection saved.",
+				title: t("acquisition.api.saved"),
 				type: "success",
 			});
 		},
 		onError: () => {
 			toast.add({
-				title:
-					"Could not save API settings. Reload if another session changed them.",
+				title: t("acquisition.api.saveFailed"),
 				type: "error",
 			});
 		},
@@ -132,14 +134,13 @@ function ConnectionForm({
 		onSuccess: (value) => {
 			saved(value);
 			toast.add({
-				title: "qBittorrent API connection removed.",
+				title: t("acquisition.api.removed"),
 				type: "success",
 			});
 		},
 		onError: () => {
 			toast.add({
-				title:
-					"Could not remove the API connection. Reload settings and retry.",
+				title: t("acquisition.api.removeFailed"),
 				type: "error",
 			});
 		},
@@ -149,17 +150,15 @@ function ConnectionForm({
 		onSuccess: (value) => {
 			toast.add({
 				title: value.available
-					? `Connected to qBittorrent ${value.version}.`
-					: "qBittorrent connection failed.",
-				description: value.available
-					? undefined
-					: failureDescription(value.code),
+					? t("acquisition.api.connected", { version: value.version })
+					: t("acquisition.api.connectionFailed"),
+				description: value.available ? undefined : t(failureKey(value.code)),
 				type: value.available ? "success" : "error",
 			});
 		},
 		onError: () => {
 			toast.add({
-				title: "Could not test the API connection. Reload settings and retry.",
+				title: t("acquisition.api.testFailed"),
 				type: "error",
 			});
 		},
@@ -174,19 +173,14 @@ function ConnectionForm({
 			}}
 		>
 			{settings.state === "unavailable" && (
-				<p role="alert">
-					Saved credentials could not be loaded. Enter all connection details to
-					replace them.
-				</p>
+				<p role="alert">{t("acquisition.api.credentialsUnavailable")}</p>
 			)}
 			{settings.bundled && (
 				<div className="space-y-3">
+					<p>{t("acquisition.api.bundledDescription")}</p>
 					<p>
-						Bundled qBittorrent. Download paths are configured automatically on
-						first setup.
-					</p>
-					<p>
-						WebUI username: <strong>{settings.username}</strong>
+						{t("acquisition.api.webuiUsername")}{" "}
+						<strong>{settings.username}</strong>
 					</p>
 					<div className="action-row">
 						<Button
@@ -194,7 +188,7 @@ function ConnectionForm({
 							variant="outline"
 							onClick={() => void copy(settings.username)}
 						>
-							Copy username
+							{t("acquisition.api.copyUsername")}
 						</Button>
 						<Button
 							type="button"
@@ -205,8 +199,8 @@ function ConnectionForm({
 							}
 						>
 							{revealed === null
-								? "Show WebUI password"
-								: "Hide WebUI password"}
+								? t("acquisition.api.showPassword")
+								: t("acquisition.api.hidePassword")}
 						</Button>
 						{revealed !== null && (
 							<Button
@@ -214,21 +208,20 @@ function ConnectionForm({
 								variant="outline"
 								onClick={() => void copy(revealed)}
 							>
-								Copy WebUI password
+								{t("acquisition.api.copyPassword")}
 							</Button>
 						)}
 					</div>
 					{revealed !== null && (
 						<Input
-							aria-label="Saved WebUI password"
+							aria-label={t("acquisition.api.savedPassword")}
 							readOnly
 							value={revealed}
 							autoComplete="off"
 						/>
 					)}
 					<p className="text-sm text-muted-foreground">
-						Use these credentials with the Open WebUI link below. After changing
-						your password in qBittorrent, update the connection password here.
+						{t("acquisition.api.bundledHelp")}
 					</p>
 					<Button
 						type="button"
@@ -239,15 +232,17 @@ function ConnectionForm({
 						}}
 					>
 						{editing
-							? "Hide connection settings"
-							: "Update password or use an external instance"}
+							? t("acquisition.api.hideSettings")
+							: t("acquisition.api.updateSettings")}
 					</Button>
 				</div>
 			)}
 			{editing && (
 				<>
 					<label htmlFor="qbittorrent-api-url" className="block space-y-2">
-						<span className="text-sm font-medium">API URL</span>
+						<span className="text-sm font-medium">
+							{t("acquisition.api.url")}
+						</span>
 						<Input
 							id="qbittorrent-api-url"
 							type="url"
@@ -264,11 +259,12 @@ function ConnectionForm({
 						id="qbittorrent-api-help"
 						className="text-sm text-muted-foreground"
 					>
-						Backend connection address. A deployment default may be prefilled;
-						enter your account below and save to connect.
+						{t("acquisition.api.urlHelp")}
 					</p>
 					<label htmlFor="qbittorrent-api-username" className="block space-y-2">
-						<span className="text-sm font-medium">Username</span>
+						<span className="text-sm font-medium">
+							{t("acquisition.api.username")}
+						</span>
 						<Input
 							id="qbittorrent-api-username"
 							autoComplete="username"
@@ -280,7 +276,9 @@ function ConnectionForm({
 						/>
 					</label>
 					<label htmlFor="qbittorrent-api-password" className="block space-y-2">
-						<span className="text-sm font-medium">Password</span>
+						<span className="text-sm font-medium">
+							{t("acquisition.api.password")}
+						</span>
 						<Input
 							id="qbittorrent-api-password"
 							type="password"
@@ -298,15 +296,17 @@ function ConnectionForm({
 						className="text-sm text-muted-foreground"
 					>
 						{settings.passwordConfigured
-							? "Password saved. Leave blank to keep it; enter it again when changing the API URL or username."
-							: "Enter your qBittorrent account password."}
+							? t("acquisition.api.passwordSaved")
+							: t("acquisition.api.passwordNew")}
 					</p>
 				</>
 			)}
 			<div className="action-row">
 				{editing && (
 					<Button type="submit" disabled={busy}>
-						{save.isPending ? "Saving API connection…" : "Save API connection"}
+						{save.isPending
+							? t("acquisition.api.saving")
+							: t("acquisition.api.save")}
 					</Button>
 				)}
 				<Button
@@ -315,7 +315,9 @@ function ConnectionForm({
 					disabled={busy || changed || settings.state !== "configured"}
 					onClick={() => check.mutate()}
 				>
-					{check.isPending ? "Testing connection…" : "Test connection"}
+					{check.isPending
+						? t("acquisition.api.testing")
+						: t("acquisition.api.test")}
 				</Button>
 				{editing && settings.state !== "unconfigured" && (
 					<Button
@@ -324,7 +326,7 @@ function ConnectionForm({
 						disabled={busy}
 						onClick={() => clear.mutate()}
 					>
-						Remove API connection
+						{t("acquisition.api.remove")}
 					</Button>
 				)}
 			</div>
@@ -332,10 +334,8 @@ function ConnectionForm({
 	);
 }
 
-function failureDescription(code: string | null): string {
-	if (code === "unauthorized")
-		return "Authentication failed. Check your qBittorrent username and password.";
-	if (code === "timeout")
-		return "The backend could not reach qBittorrent before the request timed out.";
-	return "Check the API address, credentials and backend network access.";
+function failureKey(code: string | null): string {
+	if (code === "unauthorized") return "acquisition.api.failureUnauthorized";
+	if (code === "timeout") return "acquisition.api.failureTimeout";
+	return "acquisition.api.failureDefault";
 }

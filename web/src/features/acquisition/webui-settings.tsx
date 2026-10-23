@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, buttonStyles } from "../../shared/components/ui/button.js";
 import {
 	Card,
@@ -18,6 +19,7 @@ import { QbittorrentApiSettings } from "./api-settings.js";
 import { DownloadDestinationSettings } from "./destination-settings.js";
 
 export function QbittorrentSettings() {
+	const { t } = useTranslation();
 	const client = useQueryClient();
 	const configuration = useQuery(settingsQuery());
 	const [draft, setDraft] = useState<string | null>(null);
@@ -33,26 +35,24 @@ export function QbittorrentSettings() {
 	return (
 		<Card className="settings-section lg:grid">
 			<CardHeader>
-				<CardTitle>qBittorrent</CardTitle>
-				<CardDescription>
-					Configure API access and open the download client WebUI.
-				</CardDescription>
+				<CardTitle>{t("acquisition.webui.title")}</CardTitle>
+				<CardDescription>{t("acquisition.webui.description")}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
 				<QbittorrentApiSettings />
 				<DownloadDestinationSettings />
 				{configuration.isPending ? (
-					<p role="status">Loading qBittorrent settings…</p>
+					<p role="status">{t("acquisition.webui.loading")}</p>
 				) : configuration.isError ? (
 					<div role="alert">
-						Could not load qBittorrent settings.{" "}
+						{t("acquisition.webui.loadFailed")}{" "}
 						<Button
 							variant="outline"
 							onClick={() => {
 								void configuration.refetch();
 							}}
 						>
-							Retry
+							{t("actions.retry")}
 						</Button>
 					</div>
 				) : settings ? (
@@ -68,7 +68,9 @@ export function QbittorrentSettings() {
 								htmlFor="qbittorrent-webui-url"
 								className="block space-y-2"
 							>
-								<span className="text-sm font-medium">WebUI URL</span>
+								<span className="text-sm font-medium">
+									{t("acquisition.webui.url")}
+								</span>
 								<Input
 									id="qbittorrent-webui-url"
 									type="url"
@@ -87,18 +89,18 @@ export function QbittorrentSettings() {
 								id="qbittorrent-webui-help"
 								className="text-sm text-muted-foreground"
 							>
-								Optional browser address for opening qBittorrent. API access
-								works without this link.
+								{t("acquisition.webui.urlHelp")}
 							</p>
 							{save.isError && (
-								<p role="alert">
-									Could not save. Use an absolute HTTP/HTTPS URL without a
-									username or password, then retry.
-								</p>
+								<p role="alert">{t("acquisition.webui.saveFailed")}</p>
 							)}
-							{save.isSuccess && <p role="status">WebUI URL saved.</p>}
+							{save.isSuccess && (
+								<p role="status">{t("acquisition.webui.saved")}</p>
+							)}
 							<Button type="submit" disabled={save.isPending}>
-								{save.isPending ? "Saving…" : "Save"}
+								{save.isPending
+									? t("acquisition.webui.saving")
+									: t("acquisition.webui.save")}
 							</Button>
 						</form>
 						{settings.qbittorrentWebUiUrl ? (
@@ -109,15 +111,15 @@ export function QbittorrentSettings() {
 									target="_blank"
 									rel="noopener noreferrer"
 								>
-									Open qBittorrent WebUI
+									{t("acquisition.webui.open")}
 								</a>
 								<p className="text-sm text-muted-foreground">
-									This address uses its own access controls.
+									{t("acquisition.webui.ownAccess")}
 								</p>
 							</>
 						) : (
 							<p role="status" className="text-sm text-muted-foreground">
-								Save a WebUI URL to open qBittorrent.
+								{t("acquisition.webui.savePrompt")}
 							</p>
 						)}
 					</>
