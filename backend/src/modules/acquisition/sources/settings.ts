@@ -1,45 +1,54 @@
-import type {
-	JackettCapabilities,
-	JackettPlan,
-	JackettUpdate,
-} from "./jackett/model.js";
-import type { SearchCoverage } from "./public.js";
-
-interface SourceConnectionSettings {
+import type { SearchCoverage } from "./domain/evidence.js";
+export type SourceInput =
+	| { kind: "feed"; url: string }
+	| {
+			kind: "search";
+			connectionRevision: string;
+			providerId: string;
+			titles: readonly string[];
+	  };
+interface SourceConnectorSettings {
 	generation: string;
 	url: string | null;
 	origin: "bundled" | "external" | null;
-	indexers: string[];
+	providers: string[];
 	hasApiKey: boolean;
 	ready: boolean;
 	error: string | null;
 }
-export interface SourceConnectionApi {
-	settings(): SourceConnectionSettings;
-	save(input: JackettUpdate): Promise<SourceConnectionSettings>;
-	clear(generation: string): Promise<SourceConnectionSettings>;
-	indexers(generation: string): Promise<{ id: string; name: string }[]>;
+interface SourceConnectorUpdate {
+	generation: string;
+	url: string;
+	apiKey?: string | null;
+	origin: "bundled" | "external";
+	providers: string[];
+}
+export interface SourceConnectorApi {
+	settings(): SourceConnectorSettings;
+	save(input: SourceConnectorUpdate): Promise<SourceConnectorSettings>;
+	clear(generation: string): Promise<SourceConnectorSettings>;
+	providers(generation: string): Promise<{ id: string; name: string }[]>;
 	probe(
 		generation: string,
-		indexerId: string,
+		providerId: string,
 	): Promise<{
 		generation: string;
-		indexerId: string;
-		capabilities: JackettCapabilities;
+		providerId: string;
+		searchSupported: boolean;
 		searchVerified: false;
 	}>;
-	search(plan: JackettPlan): Promise<{
-		source: string;
-		outcome: "matches" | "no_match";
-		coverage: SearchCoverage;
-		entries: {
-			id: string;
-			title: string;
-			publishedAt: number | null;
-			size: number | null;
-			seeders: number | null;
-			peers: number | null;
-			downloadAvailable: boolean;
-		}[];
-	}>;
+}
+export interface SourceTestResult {
+	source: string;
+	outcome: "matches" | "no_match";
+	coverage?: SearchCoverage;
+	entries: {
+		id: string;
+		title: string;
+		publishedAt: number | null;
+		size: number | null;
+		seeders: number | null;
+		peers: number | null;
+		downloadAvailable: boolean;
+	}[];
 }

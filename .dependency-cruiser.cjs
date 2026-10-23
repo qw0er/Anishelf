@@ -3,6 +3,24 @@ const implementation = `${modulePath}(?:(?:application|infrastructure|http)(?:/|
 module.exports = {
 	forbidden: [
 		{
+			name: "sources-implementation-is-private",
+			severity: "error",
+			from: { path: "^backend/src/modules/acquisition/(?!sources/)" },
+			to: {
+				path: "^backend/src/modules/acquisition/sources/",
+				pathNot:
+					"^backend/src/modules/acquisition/sources/(?:public|persistence|create|integration)\\.ts$",
+			},
+		},
+		{
+			name: "sources-domain-does-not-import-adapters",
+			severity: "error",
+			from: {
+				path: "^backend/src/modules/acquisition/sources/(?:domain/|public\\.ts$|settings\\.ts$|integration\\.ts$|lifecycle\\.ts$)",
+			},
+			to: { path: "^backend/src/modules/acquisition/sources/(?:rss|jackett)/" },
+		},
+		{
 			name: "subscriptions-do-not-import-downloads",
 			severity: "error",
 			from: { path: "^backend/src/modules/acquisition/subscriptions/" },
@@ -116,7 +134,8 @@ module.exports = {
 			},
 			to: {
 				path: "^backend/src/modules/$1/(?!$2/)[^/]+/",
-				pathNot: "(?:public|policy|persistence)\\.ts$",
+				pathNot:
+					"(?:public|policy|persistence)\\.ts$|^backend/src/modules/acquisition/sources/integration\\.ts$",
 			},
 		},
 		{

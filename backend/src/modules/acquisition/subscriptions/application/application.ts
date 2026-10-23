@@ -129,8 +129,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			);
 		if (!input.source && !current)
 			throw new DomainError("INVALID_REQUEST", "Choose a source.");
-		const source =
-			input.source ?? this.options.sources.reference(current?.feedId ?? "");
+
 		const target = input.target;
 		const destination = this.options.downloadTarget?.();
 		if (
@@ -145,7 +144,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			);
 		const subscription: Subscription = {
 			workKey: input.workKey,
-			feedId: source.id,
+			feedId: current?.feedId ?? "",
 			startEpisode: input.startEpisode,
 			profileId,
 			enabled: true,
@@ -153,18 +152,26 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		};
 		try {
 			this.options.store.transaction(() => {
-				this.options.sources.bind(source);
+				const sourceId = input.source
+					? this.options.sources.configure(input.source)
+					: current?.feedId;
+				if (!sourceId || !this.options.sources.snapshot(sourceId))
+					throw new DomainError(
+						"INVALID_REQUEST",
+						"Choose an existing source.",
+					);
+				subscription.feedId = sourceId;
 				// Preserve existing selection clocks on a configuration edit; changed profiles are fenced until reevaluation.
 				this.options.store.saveSubscription(
 					subscription,
-					current?.feedId === source.id
+					current?.feedId === subscription.feedId
 						? this.options.store.candidates(input.workKey)
 						: [],
 				);
 				if (target)
 					this.options.store.authorize({
 						workKey: subscription.workKey,
-						feedId: source.id,
+						feedId: subscription.feedId,
 						startEpisode: subscription.startEpisode,
 						...target,
 					});
@@ -184,7 +191,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			{
 				event: "acquisition.subscription_saved",
 				workKey: subscription.workKey,
-				sourceId: source.id,
+				sourceId: subscription.feedId,
 				revision: subscription.revision,
 				acquisitionEnabled: Boolean(target),
 			},
@@ -325,15 +332,15 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			authorization: (key: string) => this.options.store.authorization(key),
 		};
 	}
-	start() {
-		this.options.sources.start(
-			() =>
-				this.options.store
-					.subscriptions()
-					.filter((subscription) => subscription.enabled)
-					.map((subscription) => subscription.feedId),
-			(feed) => this.worker.pollSource(feed),
-		);
+	activeSourceIds() {
+		return this.options.store
+			.subscriptions()
+			.filter((subscription) => subscription.enabled)
+			.map((subscription) => subscription.feedId);
+	}
+	refreshSource(id: string) {
+		const snapshot = this.options.sources.snapshot(id);
+		return snapshot ? this.worker.pollSource(snapshot) : Promise.resolve();
 	}
 	async close() {
 		this.context.shutdown.abort();

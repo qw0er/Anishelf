@@ -1,7 +1,8 @@
 import { Agent, type Dispatcher, request } from "undici";
+import type { ReleaseDownload } from "../domain/download.js";
 import { SourceError } from "../domain/model.js";
-import { RssTransport, rssUrl } from "../rss/public.js";
-import type { ReleaseDownload, TorrentRead } from "./model.js";
+import { RssTransport, rssUrl } from "../rss/transport.js";
+import type { TorrentRead } from "./model.js";
 import { indexerId, jackettUrl } from "./validation.js";
 
 export class JackettTransport {

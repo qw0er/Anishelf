@@ -14,17 +14,10 @@ import type {
 	QbittorrentApi,
 	QbittorrentOptions,
 } from "./qbittorrent/public.js";
-import { SourcesApplication } from "./sources/application/application.js";
-import { JackettClient } from "./sources/jackett/client.js";
-import { JackettConfigurationFile } from "./sources/jackett/configuration.js";
 import {
-	JackettConnection,
-	sourceCommand,
-} from "./sources/jackett/connection.js";
-import { JackettTransport } from "./sources/jackett/transport.js";
-import { type FeedTransport, SourceError } from "./sources/public.js";
-import { SourceRequestGate } from "./sources/request-gate.js";
-import { parseRss, RssTransport, rssUrl } from "./sources/rss/public.js";
+	createSourcesModule,
+	type SourcesModuleOptions,
+} from "./sources/create.js";
 import { SubscriptionsApplication } from "./subscriptions/application/application.js";
 import { loadAcquisitionProfiles } from "./subscriptions/infrastructure/profiles.js";
 
@@ -45,9 +38,9 @@ export async function createAcquisitionModule(options: {
 	downloadStore: DownloadStore;
 	resources?: AcquisitionResources;
 	ingestion?: NonNullable<AnimeApi["ingestion"]>;
-	torrentTransport?: import("./sources/downloads.js").SourceTorrentTransport;
+	torrentTransport?: SourcesModuleOptions["torrentTransport"];
 	anime?: ReleaseAssessmentApi;
-	transport?: FeedTransport;
+	transport?: SourcesModuleOptions["transport"];
 	now?: () => number;
 	autoStart?: boolean;
 	rssRefreshIntervalMinutes?: () => number | undefined;
@@ -67,39 +60,14 @@ export async function createAcquisitionModule(options: {
 	);
 	await connection.initialize();
 	const subscriptionStore = options.store;
-	const gate = new SourceRequestGate();
-	const jackett = new JackettConnection(
-		new JackettConfigurationFile(options.dataDir),
-		(configuration) => {
-			const connection = configuration.connection;
-			if (!connection?.apiKey) throw new SourceError("source_unconfigured");
-			return new JackettClient(
-				new JackettTransport(
-					connection.url,
-					connection.apiKey,
-					configuration.generation,
-				),
-				gate,
-			);
-		},
-		options.logger,
-	);
-	await jackett.initialize();
-	const sources = new SourcesApplication({
+	const sources = await createSourcesModule({
+		dataDir: options.dataDir,
+		logger: options.logger,
 		store: subscriptionStore,
+		...(options.transport ? { transport: options.transport } : {}),
 		...(options.torrentTransport
 			? { torrentTransport: options.torrentTransport }
 			: {}),
-		rss: {
-			gate,
-			store: subscriptionStore,
-			transport: options.transport ?? new RssTransport(),
-			parse: parseRss,
-			normalizeUrl: rssUrl,
-			logger: options.logger,
-		},
-		jackett,
-		logger: options.logger,
 		...(options.now ? { now: options.now } : {}),
 		...(options.rssRefreshIntervalMinutes
 			? { refreshIntervalMinutes: options.rssRefreshIntervalMinutes }
@@ -136,7 +104,8 @@ export async function createAcquisitionModule(options: {
 				);
 			},
 		},
-		sources,
+		sources: sources.catalog,
+		collection: sources.collection,
 		downloads: (signal) => connection.activeHashes(signal),
 		logger: options.logger,
 		...(options.now ? { now: options.now } : {}),
@@ -149,12 +118,7 @@ export async function createAcquisitionModule(options: {
 					resources: options.resources,
 					anime: options.anime,
 					ingestion: options.ingestion,
-					transport: {
-						read: (reference, signal) =>
-							sources.readDownload(reference, signal),
-						isCurrent: (reference) => sources.isDownloadCurrent(reference),
-						close: async () => {},
-					},
+					transport: { ...sources.content, close: async () => {} },
 					connectionGeneration: () => connection.settings().generation,
 					initializeBundled: async () => {
 						await connection.initializeBundled();
@@ -167,42 +131,15 @@ export async function createAcquisitionModule(options: {
 				})
 			: undefined;
 	if (options.autoStart !== false) {
-		subscriptions.start();
+		sources.runtime.start(
+			() => subscriptions.activeSourceIds(),
+			(source) => subscriptions.refreshSource(source.id),
+		);
 		downloads?.start();
 	}
 	const downloadApi = downloads;
 	const api: AcquisitionApi = {
-		sources: {
-			settings: () => jackett.settings(),
-			save: (input) => sourceCommand(() => jackett.save(input)),
-			clear: (generation) => sourceCommand(() => jackett.clear(generation)),
-			indexers: (generation) =>
-				sourceCommand(() => jackett.indexers(generation)),
-			probe: (generation, id) =>
-				sourceCommand(() => jackett.probe(generation, id)),
-			search: (plan) =>
-				sourceCommand(async () => {
-					const result = await sources.refresh(sources.jackettReference(plan));
-					if (!sources.isCurrent(result))
-						throw new SourceError("source_conflict");
-					if (!result.coverage || !result.outcome)
-						throw new SourceError("malformed_response");
-					return {
-						source: result.label,
-						outcome: result.outcome,
-						coverage: result.coverage,
-						entries: result.entries.map((entry) => ({
-							id: entry.id,
-							title: entry.title,
-							publishedAt: entry.publishedAt,
-							size: entry.size ?? null,
-							seeders: entry.seeders ?? null,
-							peers: entry.peers ?? null,
-							downloadAvailable: Boolean(entry.download),
-						})),
-					};
-				}),
-		},
+		sources: sources.api,
 		connection: {
 			settings: () => connection.settings(),
 			credentials: (generation) => connection.credentials(generation),
@@ -224,40 +161,11 @@ export async function createAcquisitionModule(options: {
 		subscriptions: {
 			profiles: () => subscriptions.profiles(),
 			get: (key, page) => subscriptions.get(key, page),
-			save: async ({
-				rssUrl,
-				destinationRevision,
-				connectionGeneration,
-				...input
-			}) => {
-				try {
-					const source = rssUrl.trim()
-						? sources.rssReference(rssUrl.trim())
-						: null;
-					return await subscriptions.save({
-						...input,
-						source,
-						target: { destinationRevision, connectionGeneration },
-					});
-				} catch (error) {
-					if (
-						error instanceof SourceError &&
-						error.code === "invalid_source_url"
-					)
-						throw new DomainError(
-							"INVALID_REQUEST",
-							"Enter a public HTTP(S) RSS URL.",
-						);
-					if (error instanceof SourceError)
-						throw new DomainError(
-							error.code === "source_conflict"
-								? "ACQUISITION_CONFLICT"
-								: "ACQUISITION_UNAVAILABLE",
-							"The saved source is unavailable or changed. Check its configuration and save again.",
-						);
-					throw error;
-				}
-			},
+			save: ({ destinationRevision, connectionGeneration, ...input }) =>
+				subscriptions.save({
+					...input,
+					target: { destinationRevision, connectionGeneration },
+				}),
 			setEnabled: (key, revision, enabled) =>
 				subscriptions.setEnabled(key, revision, enabled),
 			remove: (key, revision) => subscriptions.remove(key, revision),
@@ -268,12 +176,12 @@ export async function createAcquisitionModule(options: {
 	return {
 		api,
 		registerHttp: (app: Parameters<typeof registerAcquisitionHttp>[0]) =>
-			registerAcquisitionHttp(app, api),
+			registerAcquisitionHttp(app, api, sources.registerHttp),
 		close: () => {
 			closing ??= (async () => {
 				await downloads?.close();
 				const closingSubscriptions = subscriptions.close();
-				await sources.close();
+				await sources.runtime.close();
 				await closingSubscriptions;
 				await connection.close();
 			})();

@@ -75,6 +75,24 @@ test("allows policy and public contracts, same-module implementation, and bootst
 
 for (const [name, files] of [
 	[
+		"sources-implementation-is-private",
+		{
+			"backend/src/modules/acquisition/create.ts":
+				"import { Client } from './sources/jackett/client.js'; export {Client};",
+			"backend/src/modules/acquisition/sources/jackett/client.ts":
+				"export class Client {}",
+		},
+	],
+	[
+		"sources-domain-does-not-import-adapters",
+		{
+			"backend/src/modules/acquisition/sources/domain/model.ts":
+				"import type { Plan } from '../jackett/model.js'; export type Value = Plan;",
+			"backend/src/modules/acquisition/sources/jackett/model.ts":
+				"export interface Plan { id:string }",
+		},
+	],
+	[
 		"subscriptions-do-not-import-downloads",
 		{
 			"backend/src/modules/acquisition/subscriptions/application/service.ts":

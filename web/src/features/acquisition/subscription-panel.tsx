@@ -279,7 +279,7 @@ function SubscriptionForm({
 				throw new Error("Configure and validate a download destination first.");
 			return saveSubscription({
 				workKey,
-				rssUrl: url,
+				source: url.trim() ? { kind: "feed", url: url.trim() } : null,
 				profileId: profileId || null,
 				startEpisode: Number(start),
 				revision: current?.revision ?? null,

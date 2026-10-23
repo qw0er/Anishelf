@@ -1,4 +1,4 @@
-import type { ReleaseDownload } from "../jackett/model.js";
+import type { ReleaseDownload } from "./download.js";
 import type { ReleaseAttributes, SearchCoverage } from "./evidence.js";
 /** Private adapter evidence. Locators must never cross the consumer boundary. */
 export interface SourceEntry extends ReleaseAttributes {

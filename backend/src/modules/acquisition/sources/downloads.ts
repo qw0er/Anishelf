@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { Logger } from "pino";
+import type { ReleaseDownload } from "./domain/download.js";
 import type { DownloadContent, ReleaseEvidence } from "./domain/evidence.js";
 import {
 	type SourceEntry,
@@ -7,7 +8,6 @@ import {
 	type SourceRecord,
 } from "./domain/model.js";
 import type { JackettConnection } from "./jackett/connection.js";
-import type { ReleaseDownload } from "./jackett/model.js";
 import type { SourceDownload, SourceLifecycleStore } from "./lifecycle.js";
 
 export interface SourceTorrentTransport {

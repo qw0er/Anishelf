@@ -1,31 +1,78 @@
+import { Type } from "typebox";
 import {
 	SourceGenerationSchema,
-	SourceIndexersSchema,
+	SourceInputSchema,
 	SourceProbeInputSchema,
 	SourceProbeSchema,
-	SourceSearchInputSchema,
-	SourceSearchSchema,
+	SourceProvidersSchema,
 	SourceSettingsSchema,
+	SourceSnapshotSchema,
+	SourceTestInputSchema,
+	SourceTestSchema,
 	SourceUpdateSchema,
 } from "../../../../contracts/schemas/sources.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
-import type { SourceConnectionApi } from "../public.js";
+import type { SourceManagementApi } from "../public.js";
 
+/** Source setup is distinct from protocol-neutral collection/content consumers. */
 export function registerSourceRoutes(
 	app: HttpInstance,
-	sources: SourceConnectionApi,
+	sources: SourceManagementApi,
 ) {
-	const path = "/api/acquisition/sources/jackett";
-	app.get(
+	const path = "/api/acquisition/sources";
+	app.post(
 		path,
+		{
+			bodyLimit: 16 * 1024,
+			schema: {
+				body: SourceInputSchema,
+				response: { 200: Type.Object({ id: Type.String() }) },
+			},
+		},
+		(request) => ({ id: sources.configure(request.body) }),
+	);
+	app.get(
+		`${path}/:id`,
+		{
+			schema: {
+				params: Type.Object({
+					id: Type.String({ minLength: 1, maxLength: 128 }),
+				}),
+				response: { 200: Type.Union([SourceSnapshotSchema, Type.Null()]) },
+			},
+		},
+		(request) => {
+			const value = sources.snapshot(request.params.id);
+			return value
+				? { ...value, entries: value.entries.map((entry) => ({ ...entry })) }
+				: null;
+		},
+	);
+	app.post(
+		`${path}/test`,
+		{
+			bodyLimit: 16 * 1024,
+			schema: {
+				body: SourceTestInputSchema,
+				response: { 200: SourceTestSchema },
+			},
+		},
+		(request) =>
+			sources.test(
+				"sourceId" in request.body ? request.body.sourceId : request.body,
+			),
+	);
+	const connector = `${path}/connector`;
+	app.get(
+		connector,
 		{ schema: { response: { 200: SourceSettingsSchema } } },
 		async (_request, reply) => {
 			reply.header("Cache-Control", "no-store");
-			return sources.settings();
+			return sources.connector.settings();
 		},
 	);
 	app.put(
-		path,
+		connector,
 		{
 			bodyLimit: 16 * 1024,
 			schema: {
@@ -33,47 +80,37 @@ export function registerSourceRoutes(
 				response: { 200: SourceSettingsSchema },
 			},
 		},
-		async (request) => sources.save(request.body),
+		(request) => sources.connector.save(request.body),
 	);
 	app.delete(
-		path,
+		connector,
 		{
 			schema: {
 				body: SourceGenerationSchema,
 				response: { 200: SourceSettingsSchema },
 			},
 		},
-		async (request) => sources.clear(request.body.generation),
+		(request) => sources.connector.clear(request.body.generation),
 	);
 	app.post(
-		`${path}/indexers`,
+		`${connector}/providers`,
 		{
 			schema: {
 				body: SourceGenerationSchema,
-				response: { 200: SourceIndexersSchema },
+				response: { 200: SourceProvidersSchema },
 			},
 		},
-		async (request) => sources.indexers(request.body.generation),
+		(request) => sources.connector.providers(request.body.generation),
 	);
 	app.post(
-		`${path}/probe`,
+		`${connector}/probe`,
 		{
 			schema: {
 				body: SourceProbeInputSchema,
 				response: { 200: SourceProbeSchema },
 			},
 		},
-		async (request) =>
-			sources.probe(request.body.generation, request.body.indexerId),
-	);
-	app.post(
-		`${path}/search`,
-		{
-			schema: {
-				body: SourceSearchInputSchema,
-				response: { 200: SourceSearchSchema },
-			},
-		},
-		async (request) => sources.search(request.body),
+		(request) =>
+			sources.connector.probe(request.body.generation, request.body.providerId),
 	);
 }

@@ -1,12 +1,9 @@
 import { createHash } from "node:crypto";
+import type { SourceQuery } from "../domain/binding.js";
+import type { ReleaseDownload } from "../domain/download.js";
 import { type SourceEntry, SourceError } from "../domain/model.js";
 import type { SourceRequestGate } from "../request-gate.js";
-import type {
-	JackettCapabilities,
-	JackettPlan,
-	ReleaseDownload,
-	SearchCoverage,
-} from "./model.js";
+import type { JackettCapabilities, SearchCoverage } from "./model.js";
 import type { JackettTransport } from "./transport.js";
 import { indexerId, titleQueries } from "./validation.js";
 import { capabilities, indexers, releases } from "./xml.js";
@@ -39,7 +36,7 @@ export class JackettClient {
 		this.caps.set(id, { value, expiresAt: Date.now() + 15 * 60_000 });
 		return value;
 	}
-	async search(plan: JackettPlan, signal: AbortSignal) {
+	async search(plan: SourceQuery, signal: AbortSignal) {
 		if (plan.generation !== this.transport.generation)
 			throw new SourceError("source_conflict");
 		const titles = titleQueries(plan.titles),

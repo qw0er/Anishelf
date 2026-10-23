@@ -18,7 +18,7 @@ import {
 	releases,
 } from "../src/modules/acquisition/sources/jackett/xml.js";
 import { SourceRequestGate } from "../src/modules/acquisition/sources/request-gate.js";
-import { RssTransport } from "../src/modules/acquisition/sources/rss/public.js";
+import { RssTransport } from "../src/modules/acquisition/sources/rss/transport.js";
 
 const cleanup: (() => Promise<unknown>)[] = [];
 afterEach(async () => {
@@ -342,9 +342,11 @@ test("private config survives restart; generations fence stale queries and unifi
 		{ t: "search", q: "Example Season 2", limit: "2", offset: "0" },
 		page(item("one")),
 	);
-	const reference = sources.jackettReference({
-		...plan,
-		generation: first.generation,
+	const reference = sources.referenceFor({
+		kind: "search",
+		providerId: plan.indexerId,
+		titles: plan.titles,
+		connectionRevision: first.generation,
 	});
 	expect(Object.keys(reference)).toEqual(["id"]);
 	const snapshot = await sources.refresh(reference);

@@ -70,3 +70,13 @@ socket permissions. Focus on direct activation, transactional rollback, asynchro
 collection, stale-result rejection, unchanged selection decisions, restart/upgrade,
 unknown submission and import retry. Keep mocked evidence distinct from real-service
 and browser/media acceptance.
+
+## Sources encapsulation follow-up
+
+Sources construction, protocol-specific queries, HTTP presentation and error translation
+now live inside the module. Business consumers use source IDs and shared evidence;
+Downloads receives only content read/validity operations. Sources owns collection
+failure/backoff. Atomic candidate publication uses a separate internal collection
+capability, and composition alone owns runtime start/close. The common subscription
+save input carries a feed/search definition rather than a dedicated rssUrl field.
+The full boundary is documented in [Sources Boundary and Lifecycle](source-lifecycle.md).

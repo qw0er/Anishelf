@@ -1,14 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
-import { DomainError } from "../../../../shared/errors.js";
+import type { SourceQuery } from "../domain/binding.js";
+import type { ReleaseDownload } from "../domain/download.js";
 import { SourceError } from "../domain/model.js";
 import type { JackettClient } from "./client.js";
-import type {
-	JackettConfiguration,
-	JackettPlan,
-	JackettUpdate,
-	ReleaseDownload,
-} from "./model.js";
+import type { JackettConfiguration, JackettUpdate } from "./model.js";
 import { indexerId, jackettUrl, titleQueries } from "./validation.js";
 
 type Store = {
@@ -143,7 +139,7 @@ export class JackettConnection {
 		this.writes = task.catch(() => {});
 		return task;
 	}
-	plan(input: JackettPlan): JackettPlan {
+	plan(input: SourceQuery): SourceQuery {
 		this.check(input.generation);
 		if (!this.saved.connection?.apiKey)
 			throw new SourceError("source_unconfigured");
@@ -203,7 +199,7 @@ export class JackettConnection {
 			};
 		});
 	}
-	async search(input: JackettPlan) {
+	async search(input: SourceQuery) {
 		const plan = this.plan(input),
 			started = Date.now();
 		try {
@@ -262,25 +258,5 @@ export class JackettConnection {
 		await this.writes;
 		await this.client?.close();
 		await Promise.allSettled(this.pending);
-	}
-}
-
-/** Convert safe source failures at the authenticated API boundary. */
-export async function sourceCommand<T>(
-	operation: () => Promise<T>,
-): Promise<T> {
-	try {
-		return await operation();
-	} catch (error) {
-		if (error instanceof SourceError)
-			throw new DomainError(
-				error.code === "source_conflict"
-					? "ACQUISITION_CONFLICT"
-					: error.code.startsWith("invalid_")
-						? "INVALID_REQUEST"
-						: "ACQUISITION_UNAVAILABLE",
-				error.code,
-			);
-		throw error;
 	}
 }

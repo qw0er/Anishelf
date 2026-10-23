@@ -1,4 +1,4 @@
-import type { SourceReference } from "../../sources/public.js";
+import type { SourceInput } from "../../sources/public.js";
 
 export interface Subscription {
 	profileId?: string | null;
@@ -52,7 +52,7 @@ export interface SubscriptionAuthorization {
 }
 export interface SaveSubscriptionInput {
 	workKey: string;
-	source: SourceReference | null;
+	source: SourceInput | null;
 	startEpisode: number;
 	profileId?: string | null;
 	revision: string | null;

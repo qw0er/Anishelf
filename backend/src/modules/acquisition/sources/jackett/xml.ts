@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import { XMLParser } from "fast-xml-parser";
 import { SyntaxValidator } from "fast-xml-validator";
+import type { ReleaseDownload } from "../domain/download.js";
 import { type SourceEntry, SourceError } from "../domain/model.js";
-import type { JackettCapabilities, ReleaseDownload } from "./model.js";
+import type { JackettCapabilities } from "./model.js";
 import { indexerId } from "./validation.js";
 
 const object = (value: unknown): Record<string, unknown> =>

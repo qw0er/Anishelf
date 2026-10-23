@@ -1,12 +1,11 @@
+import type { SourceBinding } from "./domain/binding.js";
+import type { ReleaseDownload } from "./domain/download.js";
 import type { SourceRecord } from "./domain/model.js";
-import type { JackettPlan, ReleaseDownload } from "./jackett/model.js";
 
 /** Private bindings and evidence; never contains Jackett credentials. */
 export interface ManagedSource {
 	id: string;
-	binding:
-		| { kind: "rss"; url: string }
-		| { kind: "jackett"; plan: JackettPlan };
+	binding: SourceBinding;
 	enabled: boolean;
 	failures: number;
 	snapshot: SourceRecord | null;

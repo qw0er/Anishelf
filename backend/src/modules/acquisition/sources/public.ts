@@ -1,21 +1,23 @@
-export type { SourceConnectionApi } from "./settings.js";
+import type {
+	SourceConnectorApi,
+	SourceInput,
+	SourceTestResult,
+} from "./settings.js";
+
+export type {
+	SourceConnectorApi,
+	SourceInput,
+} from "./settings.js";
 
 import type { DownloadContent, SearchCoverage } from "./domain/evidence.js";
 
 export type {
 	DownloadContent,
 	ReleaseEvidence,
-	SearchCoverage,
 } from "./domain/evidence.js";
 export { SourceError } from "./domain/model.js";
-export type { FeedTransport } from "./ports.js";
 
 import type { ReleaseEvidence } from "./domain/evidence.js";
-
-/** Opaque binding issued by Sources; protocol configuration stays private. */
-export interface SourceReference {
-	readonly id: string;
-}
 
 /** Consumer evidence excludes feed URLs, HTTP validators and protocol cursors. */
 export interface SourceSnapshot {
@@ -30,29 +32,17 @@ export interface SourceSnapshot {
 	readonly error: string | null;
 }
 
+/** Catalog capability used by Subscriptions. Configuration stays at source setup. */
 export interface SourcesApi {
-	/** Resolve only a published download reference, never an arbitrary URL. */
-	readDownload(
-		reference: string,
-		signal: AbortSignal,
-	): Promise<DownloadContent>;
-	isDownloadCurrent(reference: string): boolean;
-	/** Persist a binding for a subscription, without network I/O or recurring ownership. */
-	bind(reference: SourceReference): void;
-	/** Saved evidence only; no remote request. */
+	configure(input: SourceInput): string;
 	snapshot(id: string): SourceSnapshot | null;
-	/** Resolve a saved binding without making a network request. */
-	reference(id: string): SourceReference;
-	/** Refresh any configured source without persisting evidence or authorizing work. */
-	refresh(reference: SourceReference): Promise<SourceSnapshot>;
-	/** Recheck immediately before publication and inside admission transactions. */
-	isCurrent(result: SourceSnapshot): boolean;
-	/** Publish only a prepared, current result, using the caller's transaction. */
-	publish(result: SourceSnapshot): void;
-	failed(previous: SourceSnapshot, code: string, retryAt?: number): void;
-	start(
-		activeIds: () => string[],
-		poll: (source: SourceSnapshot) => Promise<void>,
-	): void;
-	close(): Promise<void>;
+}
+/** Download capability: consumers never receive protocol configuration. */
+export interface SourceContentApi {
+	read(reference: string, signal: AbortSignal): Promise<DownloadContent>;
+	isCurrent(reference: string): boolean;
+}
+export interface SourceManagementApi extends SourcesApi {
+	readonly connector: SourceConnectorApi;
+	test(input: SourceInput | string): Promise<SourceTestResult>;
 }
