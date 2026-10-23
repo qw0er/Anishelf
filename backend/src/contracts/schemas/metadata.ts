@@ -26,6 +26,15 @@ const summary = {
 	format: text,
 	status: text,
 	episodeCount: integer,
+	nextAiringEpisode: Type.Optional(
+		Type.Union([
+			Type.Object({
+				episode: Type.Integer({ minimum: 1 }),
+				airingAt: Type.Integer({ minimum: 0 }),
+			}),
+			Type.Null(),
+		]),
+	),
 	airingSeason: text,
 	coverUrl: text,
 };

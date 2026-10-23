@@ -19,9 +19,10 @@ test("poster library filters local titles, preserves return context and selects 
 	mockAnime(detail);
 	renderApp("/?query=Frieren&sort=recent");
 	const card = await screen.findByRole("link", { name: "Frieren" });
-	expect(within(card).getByText("Local 1 / 3")).toBeTruthy();
 	fireEvent.click(card);
 	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+	expect(screen.getByText("Aired episodes")).toBeTruthy();
+	expect(screen.getByText("3 / 3")).toBeTruthy();
 	const episode = screen.getByText("Episode 1").closest("li");
 	expect(episode).toBeTruthy();
 	fireEvent.click(

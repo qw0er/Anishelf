@@ -9,7 +9,14 @@ export function saveWorkSummary(
 	store: Store,
 	work: Pick<
 		WorkSummary,
-		"reference" | "titles" | "format" | "year" | "episodeCount" | "coverUrl"
+		| "reference"
+		| "titles"
+		| "format"
+		| "year"
+		| "episodeCount"
+		| "status"
+		| "nextAiringEpisode"
+		| "coverUrl"
 	>,
 	fetchedAt: number,
 	detail = false,
@@ -37,6 +44,9 @@ export function saveWorkSummary(
 		format: work.format,
 		year: work.year,
 		episodeCount: work.episodeCount,
+		status: work.status,
+		nextAiringEpisode: work.nextAiringEpisode?.episode ?? null,
+		nextAiringAt: work.nextAiringEpisode?.airingAt ?? null,
 		coverUrl: work.coverUrl,
 		fetchedAt,
 		detail,

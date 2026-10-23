@@ -20,6 +20,7 @@ export interface LocalWork {
 	format: string | null;
 	year: number | null;
 	episodeCount: number | null;
+	airedEpisodeCount: number | null;
 	revision: number;
 	createdAt: number;
 	updatedAt: number;

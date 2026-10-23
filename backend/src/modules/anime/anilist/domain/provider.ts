@@ -26,6 +26,7 @@ export interface AniListMediaSummary {
 	coverImage: { extraLarge: string | null; large: string | null } | null;
 }
 export interface AniListMediaDetails extends AniListMediaSummary {
+	nextAiringEpisode: { episode: number; airingAt: number } | null;
 	description: string | null;
 	bannerImage: string | null;
 	endDate: AniListDate | null;

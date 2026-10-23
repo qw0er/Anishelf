@@ -17,6 +17,7 @@ import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { Artwork } from "../../shared/components/artwork.js";
 import { useDetailViewing, ViewingSummary } from "../../tracking/public.js";
+import { airedEpisodeCount } from "../detail-format.js";
 import { localWorkDetailQuery } from "../queries.js";
 import type { AnimeResourceActionSlot } from "../resource-actions.js";
 
@@ -146,6 +147,7 @@ function LocalWorkDetail({
 					<ViewingSummary
 						state={viewing}
 						episodeCount={metadata.data.episodeCount}
+						airedEpisodeCount={airedEpisodeCount(metadata.data)}
 					/>
 				}
 			/>

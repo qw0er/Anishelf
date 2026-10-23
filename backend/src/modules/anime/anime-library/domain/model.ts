@@ -22,6 +22,7 @@ export interface LibraryCard {
 	format: string | null;
 	year: number | null;
 	episodeCount: number | null;
+	airedEpisodeCount: number | null;
 	updatedAt: number;
 	availableEpisodes: number;
 	availableRegularEpisodes: number;

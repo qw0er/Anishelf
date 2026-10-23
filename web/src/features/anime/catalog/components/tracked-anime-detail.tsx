@@ -12,6 +12,7 @@ import {
 import { libraryReturnPath } from "../../../../shared/navigation.js";
 import { Artwork } from "../../shared/components/artwork.js";
 import { useDetailViewing, ViewingSummary } from "../../tracking/public.js";
+import { airedEpisodeCount } from "../detail-format.js";
 import { animeDetailQuery } from "../detail-query.js";
 import { WorkMetadataHeader } from "./work-metadata-header.js";
 import { WorkSynopsis } from "./work-synopsis.js";
@@ -91,6 +92,7 @@ function TrackedDetail({
 							<ViewingSummary
 								state={viewing}
 								episodeCount={info.episodeCount}
+								airedEpisodeCount={airedEpisodeCount(info)}
 							/>
 						}
 						data={{

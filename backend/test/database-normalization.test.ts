@@ -324,6 +324,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 		format: null,
 		year: null,
 		episodeCount: null,
+		airedEpisodeCount: null,
 		revision: 1,
 		createdAt: 1,
 		updatedAt: 2,

@@ -48,6 +48,7 @@ async function fixture() {
 		format: "TV",
 		status: "FINISHED",
 		episodeCount: 28,
+		nextAiringEpisode: null,
 		airingSeason: "FALL",
 		coverUrl: null,
 		bannerUrl: null,

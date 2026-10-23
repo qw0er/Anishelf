@@ -377,8 +377,6 @@
 		"availableCount_one": "{{count}} episode available",
 		"availableCount_other": "{{count}} episodes available",
 		"regularCount": "{{count}} / {{total}} regular episodes available",
-		"localProgress": "Local {{count}} / {{total}}",
-		"localCount": "{{count}} local",
 		"pagination": "Library pages",
 		"previous": "Previous",
 		"next": "Next",
@@ -456,7 +454,9 @@
 		"activeFilters": "Applied filters",
 		"removeFilter": "Remove {{filter}} filter",
 		"showSynopsis": "Read full synopsis",
-		"hideSynopsis": "Show less"
+		"hideSynopsis": "Show less",
+		"airedEpisodes": "Aired episodes",
+		"regularCountWithAired": "{{count}} / {{aired}} ({{total}}) regular episodes available"
 	},
 	"review": {
 		"title": "Review",
@@ -603,7 +603,12 @@
 		"reconnect": "Reconnect your the tracking service account to refresh its viewing state.",
 		"notLoaded": "the tracking service viewing state has not loaded yet.",
 		"noLocal": "No local resources are associated with this work.",
-		"unmapped": "No confirmed mapping to the tracking provider."
+		"unmapped": "No confirmed mapping to the tracking provider.",
+		"progressWithAired": "{{progress}} / {{aired}} ({{total}})",
+		"progressAired": "{{progress}} / {{aired}}",
+		"progressTotal": "{{progress}} / {{total}}",
+		"episodeProgressWithAired": "{{progress}} / {{aired}} ({{total}}) episodes",
+		"episodeProgressAired": "{{progress}} / {{aired}} episodes"
 	},
 	"trackingUpdate": {
 		"edit": "Edit the tracking service progress",

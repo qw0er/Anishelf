@@ -5,7 +5,10 @@ import { Link } from "react-router";
 import type { AnimeLibraryResponse } from "../../../../shared/api/contracts.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { Artwork } from "../../shared/components/artwork.js";
-import { ViewingBadge } from "../../tracking/public.js";
+import {
+	sentenceViewingProgress,
+	ViewingBadge,
+} from "../../tracking/public.js";
 
 export function LibraryResults({
 	items,
@@ -33,15 +36,24 @@ export function LibraryResults({
 						: total === null
 							? work.availableEpisodes
 							: work.availableRegularEpisodes;
+				const aired = work.format === "MOVIE" ? null : work.airedEpisodeCount;
+				const airedDenominator =
+					aired !== null && total !== null && aired > 0 && aired < total;
 				const localDescription =
 					work.format === "MOVIE"
 						? t(localCount ? "anime.movieAvailable" : "anime.unavailable")
 						: total === null
 							? t("anime.availableCount", { count: localCount })
-							: t("anime.regularCount", { count: localCount, total });
+							: airedDenominator
+								? t("anime.regularCountWithAired", {
+										count: localCount,
+										aired,
+										total,
+									})
+								: t("anime.regularCount", { count: localCount, total });
 				const descriptionId = `${descriptionPrefix}-${work.id}`;
 				const viewingDescription = work.viewing
-					? `${t("trackingList.provider")} · ${t(`trackingList.statuses.${work.viewing.status}`)} · ${work.episodeCount !== null && work.episodeCount > 0 ? t("trackingList.episodeProgress", { progress: work.viewing.progress, total: work.episodeCount }) : t("trackingList.progress", { count: work.viewing.progress })}.`
+					? `${t("trackingList.provider")} · ${t(`trackingList.statuses.${work.viewing.status}`)} · ${sentenceViewingProgress({ progress: work.viewing.progress, aired, total: work.episodeCount }, t)}.`
 					: work.viewingAvailability === "unmapped"
 						? t("trackingList.unmapped")
 						: viewingKnown && work.viewingAvailability === "untracked"
@@ -85,16 +97,9 @@ export function LibraryResults({
 										<ViewingBadge
 											viewing={work.viewing}
 											episodeCount={work.episodeCount}
+											airedEpisodeCount={aired}
 										/>
 									)}
-									{typeof work.availableUnwatchedEpisodes === "number" &&
-										work.availableUnwatchedEpisodes > 0 && (
-											<p className="text-xs text-muted-foreground">
-												{t("episodeViewing.availableUnwatched", {
-													count: work.availableUnwatchedEpisodes,
-												})}
-											</p>
-										)}
 									{work.viewingAvailability === "unmapped" && (
 										<p className="text-xs text-muted-foreground">
 											{t("trackingList.unmapped")}
@@ -105,17 +110,6 @@ export function LibraryResults({
 											{t("trackingList.untracked")}
 										</p>
 									)}
-									<p className="mt-auto min-h-4 text-xs leading-4 tabular-nums">
-										<span aria-hidden="true">
-											{total === null
-												? t("anime.localCount", { count: localCount })
-												: t("anime.localProgress", {
-														count: localCount,
-														total,
-													})}
-										</span>
-										<span className="sr-only">{localDescription}</span>
-									</p>
 								</div>
 							</Link>
 						</Tooltip>

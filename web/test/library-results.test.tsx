@@ -16,6 +16,7 @@ const work: Card = {
 	format: "TV",
 	year: 2026,
 	episodeCount: 12,
+	airedEpisodeCount: 8,
 	updatedAt: 1,
 	availableEpisodes: 0,
 	availableRegularEpisodes: 0,
@@ -36,8 +37,8 @@ test("cards retain compact counts and accessible meaning without zero-count boil
 	show([work]);
 	const card = screen.getByRole("link", { name: "Example" });
 	expect(within(card).getByText("Watching")).toBeTruthy();
-	expect(within(card).getByText("1 / 12")).toBeTruthy();
-	expect(within(card).getByText("Local 0 / 12")).toBeTruthy();
+	expect(within(card).getByText("1 / 8 (12)")).toBeTruthy();
+	expect(within(card).queryByText(/Aired/)).toBeNull();
 	expect(within(card).queryByText(/unwatched available/)).toBeNull();
 	expect(within(card).queryByRole("button")).toBeNull();
 	expect(card.getAttribute("href")).toContain("library=");
@@ -46,10 +47,11 @@ test("cards retain compact counts and accessible meaning without zero-count boil
 		card.getAttribute("aria-describedby") ?? "",
 	);
 	expect(description?.textContent).toContain(
-		"0 / 12 regular episodes available",
+		"0 / 8 (12) regular episodes available",
 	);
+	expect(description?.textContent).toContain("1 / 8 (12) episodes");
 });
-test("unknown totals and movies show meaningful counts, while only positive unwatched hints appear", () => {
+test("unknown totals and movies keep compact viewing counts without local rows", () => {
 	show([
 		{
 			...work,
@@ -69,14 +71,11 @@ test("unknown totals and movies show meaningful counts, while only positive unwa
 		},
 	]);
 	const unknown = screen.getByRole("link", { name: "Unknown" });
-	expect(within(unknown).getByText("1 watched")).toBeTruthy();
-	expect(within(unknown).getByText("2 local")).toBeTruthy();
-	expect(within(unknown).getByText("2 unwatched available")).toBeTruthy();
+	expect(within(unknown).getByText("1 / 8")).toBeTruthy();
+	expect(within(unknown).queryByText(/local|unwatched available/i)).toBeNull();
 	expect(
-		within(screen.getByRole("link", { name: "Movie" })).getByText(
-			"Local 1 / 1",
-		),
-	).toBeTruthy();
+		within(screen.getByRole("link", { name: "Movie" })).queryByText(/Aired/),
+	).toBeNull();
 });
 test("remote-only cards keep their remote route and show local availability once", () => {
 	show([
@@ -91,7 +90,6 @@ test("remote-only cards keep their remote route and show local availability once
 	expect(card.getAttribute("href")).toContain(
 		"/anime/tracked/anilist%3Aanime%3A9?",
 	);
-	expect(within(card).getByText("Local 0 / 12")).toBeTruthy();
 	expect(within(card).getByText("Not on the tracking service")).toBeTruthy();
 	expect(within(card).queryByText("No local resources")).toBeNull();
 });
