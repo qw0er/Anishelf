@@ -27,6 +27,9 @@ import {
 	QbittorrentError,
 } from "../src/modules/acquisition/qbittorrent/public.js";
 import { SourceContent } from "../src/modules/acquisition/sources/application/content.js";
+import { createSourcesModule } from "../src/modules/acquisition/sources/create.js";
+import { JackettConnection } from "../src/modules/acquisition/sources/jackett/connection.js";
+import { SubscriptionsApplication } from "../src/modules/acquisition/subscriptions/application/application.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
 
@@ -786,6 +789,48 @@ test("download endpoints enforce authentication, CSRF, revision checks and safe 
 	expect(activity.statusCode).toBe(200);
 	expect(activity.json()).toMatchObject({ authorized: false, items: [] });
 	expect(activity.body).not.toContain("secret");
+	const discoveryUrl = "/api/acquisition/subscriptions/search";
+	const discoveryInput = { workKey: key, revision: null, startEpisode: 1 };
+	expect(
+		(
+			await app.inject({
+				method: "POST",
+				url: discoveryUrl,
+				headers,
+				payload: discoveryInput,
+			})
+		).statusCode,
+	).toBe(401);
+	expect(
+		(
+			await app.inject({
+				method: "POST",
+				url: discoveryUrl,
+				headers: signed,
+				payload: discoveryInput,
+			})
+		).statusCode,
+	).toBe(403);
+	expect(
+		(
+			await app.inject({
+				method: "POST",
+				url: discoveryUrl,
+				headers: mutation,
+				payload: { ...discoveryInput, startEpisode: 0 },
+			})
+		).statusCode,
+	).toBe(400);
+	expect(
+		(
+			await app.inject({
+				method: "POST",
+				url: discoveryUrl,
+				headers: mutation,
+				payload: discoveryInput,
+			})
+		).statusCode,
+	).toBe(503);
 });
 
 test("an ingested resource leaves the worker and remains historical activity during later outages or removal", async () => {
@@ -1380,3 +1425,147 @@ test("direct save flows through background selection, one download and verified 
 		vi.useRealTimers();
 	}
 });
+
+test.each([false, true])(
+	"search subscriptions use the validated download pipeline; changed connector before submission=%s",
+	async (changeConnector) => {
+		const f = await fixture();
+		const search = vi
+			.spyOn(JackettConnection.prototype, "search")
+			.mockImplementation(async (plan) => ({
+				entries:
+					plan.indexerId === "first"
+						? []
+						: [
+								{
+									id: "query-release",
+									observationId: "query-release",
+									title: "Frieren - 03",
+									publishedAt: null,
+									hash,
+									downloadUrl: null,
+									download: {
+										kind: "jackett-torrent",
+										generation: plan.generation,
+										indexerId: plan.indexerId,
+										path: `/api/v2.0/indexers/${plan.indexerId}/results/torznab/api`,
+										file: "private-locator",
+									},
+								},
+							],
+				coverage: { limited: false, reason: null, pages: 1, queries: 1 },
+				outcome: plan.indexerId === "first" ? "no_match" : "matches",
+			}));
+		const read = vi
+			.spyOn(JackettConnection.prototype, "readTorrent")
+			.mockResolvedValue({
+				kind: "magnet",
+				uri: `magnet:?xt=urn:btih:${hash}`,
+			});
+		try {
+			const sources = await createSourcesModule({
+				dataDir: f.dir,
+				store: f.db.acquisition,
+				logger,
+			});
+			cleanup.push(() => sources.runtime.close());
+			await sources.api.connector.save({
+				generation: sources.api.connector.settings().generation,
+				url: "http://jackett:9117",
+				apiKey: "private-key",
+				origin: "external",
+				providers: ["first", "second"],
+			});
+			const subscriptions = new SubscriptionsApplication({
+				store: f.db.acquisition,
+				sources: sources.api,
+				anime: f.anime,
+				downloads: async () => [],
+				logger,
+				profiles: [
+					{
+						id: "custom:instant",
+						name: "Instant",
+						levels: [{ name: "Any", match: {}, acceptAfterMinutes: 0 }],
+					},
+				],
+				defaultProfileId: () => "custom:instant",
+				downloadTarget: () => f.db.acquisitionDownloads.destination(),
+				lockedCandidates: (workKey) =>
+					f.db.acquisitionDownloads.lockedCandidates(workKey),
+			});
+			cleanup.push(() => subscriptions.close());
+			const worker = new DownloadsApplication({
+				store: f.db.acquisitionDownloads,
+				selection: subscriptions.selection(),
+				resources: f.resources,
+				anime: f.anime,
+				ingestion: f.ingestion,
+				transport: {
+					read: (reference, signal) =>
+						sources.api.readContent(reference, signal),
+					isCurrent: (reference) => sources.api.isContentCurrent(reference),
+					close: async () => {},
+				},
+				connectionGeneration: () => "account-1",
+				withClient: async (_generation, operation) => operation(f.client),
+				logger,
+			});
+			cleanup.push(() => worker.close());
+			const dest = await worker.saveDestination({
+				revision: null,
+				scopeId: "root",
+				path: "/downloads",
+			});
+			await worker.validate(dest.revision);
+			const revision = f.db.acquisition.subscription(key)?.revision ?? null;
+			const result = await subscriptions.search({
+				workKey: key,
+				revision,
+				startEpisode: 1,
+			});
+			expect(result.source?.providerId).toBe("second");
+			expect(f.db.acquisition.authorization(key)).toBeNull();
+			expect(f.add).not.toHaveBeenCalled();
+			const saved = await subscriptions.save({
+				workKey: key,
+				revision,
+				startEpisode: 1,
+				source: result.source,
+				target: {
+					destinationRevision: dest.revision,
+					connectionGeneration: "account-1",
+				},
+			});
+			await subscriptions.refresh(key, saved.subscription?.revision ?? "");
+			expect(worker.activity(key).authorized).toBe(true);
+			expect(subscriptions.get(key).candidates[0]?.status).toBe("selected");
+			if (changeConnector)
+				await sources.api.connector.clear(
+					sources.api.connector.settings().generation,
+				);
+			await worker.tick();
+			if (changeConnector) {
+				expect(subscriptions.get(key).subscription?.error).toBe(
+					"source_changed",
+				);
+				expect(f.add).not.toHaveBeenCalled();
+				expect(read).not.toHaveBeenCalled();
+			} else {
+				expect(read).toHaveBeenCalledTimes(1);
+				expect(f.add).toHaveBeenCalledTimes(1);
+				expect(f.add.mock.calls[0]?.[0].source).toEqual({
+					magnet: `magnet:?xt=urn:btih:${hash}`,
+				});
+				await worker.tick();
+				expect(f.add).toHaveBeenCalledTimes(1);
+				f.complete();
+				await worker.tick();
+				expect(f.ingestion.ingest).toHaveBeenCalled();
+			}
+		} finally {
+			search.mockRestore();
+			read.mockRestore();
+		}
+	},
+);

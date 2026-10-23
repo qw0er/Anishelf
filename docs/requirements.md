@@ -340,6 +340,7 @@ AniList is the viewing-state authority. This iteration selects account connectio
 | O17 | Unified configuration | TypeScript policy defaults, validated user overrides and typed access; built-in cache budget | V2 | V2 |
 | O18 | User-editable prepared-media cache budget | Implemented; Settings control, validation and persisted disk-space limit | Current | Current |
 | O19 | In-app editor for hand-written configuration files | Later: edit and validate supported custom profile files, including acquisition and transcode profiles | — | Unassigned |
+| O20 | Hot reload acquisition profile configuration | Later: validate and activate acquisition-profiles.yaml changes without restarting Backend; retain the last valid configuration on reload failure | — | Unassigned |
 
 #### User-editable Prepared-media Cache Budget (O18)
 
@@ -363,6 +364,28 @@ saves preserve the user's text and report activation/restart status. Existing
 external-file loading and profile-selection controls do not constitute delivery of
 this editor. This is future work with no assigned release and is outside the current
 automatic-acquisition iteration.
+
+#### Acquisition Profile Hot Reload (O20)
+
+Reload changes to `acquisition-profiles.yaml` in the application data directory
+without restarting Backend, including edits saved through atomic file replacement.
+Validate the complete file before activating one consistent profile snapshot.
+Invalid, incomplete or unreadable updates must retain the last valid configuration
+and expose safe reload diagnostics instead of stopping the application or partially
+applying a file. Refresh the available profile choices and make activation status
+visible to the user.
+
+Apply accepted changes to subsequent discovery and unreserved release assessment,
+using profile fingerprints to reject stale decisions. Preserve existing download
+reservations and submitted tasks; reloading must not grant acquisition permission
+or change a subscription's selected source. Preserve existing per-episode waiting
+history when the effective profile policy is unchanged.
+
+Acceptance: a valid edit becomes available without a restart; a failed reload leaves
+the last valid profiles usable and reports the failure; later corrected edits can
+activate successfully. This is future work with no assigned release, separate from
+the configuration editor (O19) and outside the current automatic-acquisition
+iteration. Current acquisition profiles are still loaded only at startup.
 
 #### Unified Configuration (O17)
 

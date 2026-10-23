@@ -30,6 +30,7 @@ const view: SubscriptionView = {
 		enabled: true,
 		revision: "one",
 		source: "https://example.org",
+		sourceKind: "feed",
 		checkedAt: 1,
 		nextAttemptAt: 2,
 		error: null,

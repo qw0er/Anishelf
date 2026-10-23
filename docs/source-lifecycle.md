@@ -51,13 +51,13 @@ identifies or creates the cache/backoff record; no registration call is required
 An existing source ID may also be reused. Snapshot accepts either form; a definition
 with no saved evidence returns a pending snapshot without network or database writes.
 
-The subscription form still enters an RSS URL but sends `source: {kind: "feed",url}`
-in the shared subscription-save contract. Subscriptions stores that definition in
+The subscription form supports manual RSS and ordered search discovery through the
+shared subscription-save contract. Subscriptions stores the selected definition in
 `source_input` alongside its stable evidence identity. Empty input on edits retains
 the saved definition. Saving a subscription and permission is local and does not
 create a Sources record. Refresh passes the saved definition directly to fetch.
-The contract accepts search definitions; search subscription UI, Watching reconciliation
-and automatic source selection remain pending.
+[Search subscriptions](search-subscriptions.md) describes the manual discovery,
+preview and pinning workflow. Watching reconciliation remains pending.
 
 Connector configuration exposes service URL, credentials, connection generation and
 selected provider IDs only at the setup interface. Transport authentication, request

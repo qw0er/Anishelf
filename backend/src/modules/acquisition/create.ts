@@ -168,6 +168,7 @@ export async function createAcquisitionModule(options: {
 			: {}),
 		subscriptions: {
 			profiles: () => subscriptions.profiles(),
+			search: (input) => subscriptions.search(input),
 			get: (key, page) => subscriptions.get(key, page),
 			save: ({ destinationRevision, connectionGeneration, ...input }) =>
 				subscriptions.save({

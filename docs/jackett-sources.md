@@ -2,7 +2,8 @@
 
 Historical stage-2 notes. The current API/lifecycle is documented in
 [Sources boundary](source-lifecycle.md), and delivered stage-3 deployment/settings
-are documented in [Jackett setup](jackett-setup.md). The old interface, HTTP routes,
+are documented in [Jackett setup](jackett-setup.md). Manual acquisition is delivered
+in [Search subscriptions](search-subscriptions.md). The old interface, HTTP routes,
 persistence restrictions and pending-stage statements below describe that earlier
 implementation and are superseded by those documents.
 

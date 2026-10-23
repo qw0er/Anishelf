@@ -33,6 +33,7 @@ import {
 	refreshSubscription,
 	removeSubscription,
 	saveSubscription,
+	searchSubscriptionSource,
 	toggleSubscription,
 } from "./subscriptions-api.js";
 
@@ -82,7 +83,7 @@ export function SubscriptionPanel({
 		},
 		onSuccess: () => {
 			updated();
-			toast.add({ title: "RSS subscription updated.", type: "success" });
+			toast.add({ title: "Subscription updated.", type: "success" });
 		},
 		onError: () => {
 			void client.invalidateQueries({ queryKey: key(workKey) });
@@ -95,7 +96,10 @@ export function SubscriptionPanel({
 		},
 	});
 	return (
-		<section className="space-y-2 border-t pt-3" aria-label="RSS subscription">
+		<section
+			className="space-y-2 border-t pt-3"
+			aria-label="Acquisition subscription"
+		>
 			<Dialog open={editing} onOpenChange={setEditing}>
 				<div className="action-row justify-between">
 					<div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
@@ -184,10 +188,10 @@ export function SubscriptionPanel({
 				<DialogContent className="max-h-[85dvh] overflow-y-auto">
 					<DialogHeader>
 						<DialogTitle>
-							{subscription ? "Manage RSS subscription" : "Subscribe via RSS"}
+							{subscription ? "Manage subscription" : "Subscribe to releases"}
 						</DialogTitle>
 						<DialogDescription>
-							Choose a feed and starting episode. Saving enables automatic
+							Choose a source and starting episode. Saving enables automatic
 							acquisition to the configured destination.
 						</DialogDescription>
 					</DialogHeader>
@@ -211,8 +215,14 @@ export function SubscriptionPanel({
 					<>
 						{subscription?.error && (
 							<p role="status" className="text-sm">
-								Could not update candidates ({reason(subscription.error)}).
-								Previous results are retained; automatic retry is scheduled.
+								{subscription.error === "source_changed" ? (
+									"Source connection changed. Open Manage and choose a source again before saving."
+								) : (
+									<>
+										Could not update candidates ({reason(subscription.error)}).
+										Previous results are retained; automatic retry is scheduled.
+									</>
+								)}
 							</p>
 						)}
 						{viewData && (
@@ -264,6 +274,18 @@ function SubscriptionForm({
 }) {
 	const profiles = useQuery(acquisitionProfilesQuery());
 	const [profileId, setProfileId] = useState(current?.profileId ?? "");
+	const [mode, setMode] = useState<"feed" | "search" | "keep">(
+		current?.sourceKind === "search" ? "keep" : "feed",
+	);
+	const search = useMutation({
+		mutationFn: () =>
+			searchSubscriptionSource({
+				workKey,
+				revision: current?.revision ?? null,
+				startEpisode: Number(start),
+				profileId: profileId || null,
+			}),
+	});
 	const id = useId(),
 		[url, setUrl] = useState(""),
 		[start, setStart] = useState(String(current?.startEpisode ?? 1));
@@ -277,9 +299,16 @@ function SubscriptionForm({
 		mutationFn: () => {
 			if (!target?.validated)
 				throw new Error("Configure and validate a download destination first.");
+			if (mode === "search" && (!search.isSuccess || !search.data?.source))
+				throw new Error("Find an eligible source first.");
 			return saveSubscription({
 				workKey,
-				source: url.trim() ? { kind: "feed", url: url.trim() } : null,
+				source:
+					mode === "search"
+						? (search.data?.source ?? null)
+						: mode === "feed" && url.trim()
+							? { kind: "feed", url: url.trim() }
+							: null,
 				profileId: profileId || null,
 				startEpisode: Number(start),
 				revision: current?.revision ?? null,
@@ -305,7 +334,7 @@ function SubscriptionForm({
 			});
 		},
 	});
-	const busy = save.isPending;
+	const busy = save.isPending || search.isPending;
 	return (
 		<form
 			className="space-y-3"
@@ -319,25 +348,115 @@ function SubscriptionForm({
 					{current.source}
 				</p>
 			)}
-			<label htmlFor={`${id}-url`} className="block space-y-2">
-				<span className="text-sm font-medium">RSS URL</span>
-				<Input
-					id={`${id}-url`}
-					type="url"
-					required={!current}
-					maxLength={4096}
-					value={url}
-					onChange={(event) => {
-						setUrl(event.target.value);
-					}}
+			<label htmlFor={`${id}-mode`} className="block space-y-2">
+				<span className="text-sm font-medium">Source</span>
+				<select
+					id={`${id}-mode`}
+					value={mode}
 					disabled={busy}
-					placeholder={
-						current
-							? "Leave blank to keep the saved RSS address"
-							: "https://example.org/rss.xml"
-					}
-				/>
+					className="w-full rounded-md border bg-background p-2 text-sm"
+					onChange={(event) => {
+						setMode(event.target.value as "feed" | "search" | "keep");
+						search.reset();
+					}}
+				>
+					{current && <option value="keep">Keep current source</option>}
+					<option value="feed">RSS URL</option>
+					<option value="search">Search configured sites</option>
+				</select>
 			</label>
+			{mode === "feed" && (
+				<label htmlFor={`${id}-url`} className="block space-y-2">
+					<span className="text-sm font-medium">RSS URL</span>
+					<Input
+						id={`${id}-url`}
+						type="url"
+						required={current?.sourceKind !== "feed"}
+						maxLength={4096}
+						value={url}
+						onChange={(event) => {
+							setUrl(event.target.value);
+						}}
+						disabled={busy}
+						placeholder={
+							current
+								? "Leave blank to keep the saved RSS address"
+								: "https://example.org/rss.xml"
+						}
+					/>
+				</label>
+			)}
+			{mode === "search" && (
+				<div className="space-y-2 text-sm">
+					<p>
+						Searches use this anime's titles and aliases, checking sites in your
+						configured order. Saving pins the selected site; later failures do
+						not switch sites.
+					</p>
+					<Button
+						type="button"
+						variant="outline"
+						disabled={
+							busy ||
+							profiles.isPending ||
+							profiles.isError ||
+							!Number.isInteger(Number(start)) ||
+							Number(start) < 1 ||
+							Number(start) > 10000
+						}
+						onClick={() => search.mutate()}
+					>
+						{search.isPending ? "Searching sites…" : "Find a source"}
+					</Button>
+					{search.isError && (
+						<p role="alert">
+							Source discovery failed. Check source sites and downloader
+							availability in Settings, then retry.
+						</p>
+					)}
+					{search.isSuccess && search.data && (
+						<>
+							<ul aria-label="Source discovery results">
+								{search.data.attempts.map((attempt) => (
+									<li key={attempt.providerId}>
+										{attempt.providerId}:{" "}
+										{attempt.outcome === "matched"
+											? "Eligible releases found"
+											: attempt.outcome === "no_match"
+												? "No matching releases"
+												: attempt.outcome === "no_eligible"
+													? "No eligible releases"
+													: `Unavailable (${attempt.code})`}
+										{attempt.reasons?.length
+											? ` · ${attempt.reasons.map(reason).join(", ")}`
+											: ""}
+										{attempt.limited ? " · Limited search coverage" : ""}
+									</li>
+								))}
+							</ul>
+							{search.data.source?.kind === "search" ? (
+								<p role="status">
+									Selected site: {search.data.source.providerId}. Saving enables
+									acquisition from this site.
+								</p>
+							) : (
+								<p role="status">
+									No eligible source found. Review the starting episode, release
+									profile and configured sites before trying again.
+								</p>
+							)}
+							<ul aria-label="Matching releases">
+								{search.data.releases.map((release) => (
+									<li key={release.id}>
+										{release.title} · Episode {release.episode}
+										{release.waiting ? " · Waiting for release preference" : ""}
+									</li>
+								))}
+							</ul>
+						</>
+					)}
+				</div>
+			)}
 			<label htmlFor={`${id}-start`} className="block space-y-2">
 				<span className="text-sm font-medium">Starting episode</span>
 				<Input
@@ -349,6 +468,7 @@ function SubscriptionForm({
 					value={start}
 					onChange={(event) => {
 						setStart(event.target.value);
+						search.reset();
 					}}
 					disabled={busy}
 				/>
@@ -362,6 +482,7 @@ function SubscriptionForm({
 					disabled={busy || profiles.isPending || profiles.isError}
 					onChange={(event) => {
 						setProfileId(event.target.value);
+						search.reset();
 					}}
 				>
 					<option value="">
@@ -402,10 +523,12 @@ function SubscriptionForm({
 					)?.description
 				}
 			</p>
-			<p className="text-sm text-muted-foreground">
-				Choose your preferred release source on the torrent site and paste its
-				RSS address. RSS may not include older episodes.
-			</p>
+			{mode === "feed" && (
+				<p className="text-sm text-muted-foreground">
+					Choose your preferred release source on the torrent site and paste its
+					RSS address. RSS may not include older episodes.
+				</p>
+			)}
 			{destination.isPending ? (
 				<p role="status">Loading download destination…</p>
 			) : target?.validated ? (
@@ -433,7 +556,11 @@ function SubscriptionForm({
 			<Button
 				type="submit"
 				disabled={
-					busy || !target?.validated || profiles.isPending || profiles.isError
+					busy ||
+					!target?.validated ||
+					profiles.isPending ||
+					profiles.isError ||
+					(mode === "search" && (!search.isSuccess || !search.data?.source))
 				}
 			>
 				{save.isPending

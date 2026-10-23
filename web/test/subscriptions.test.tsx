@@ -38,6 +38,7 @@ const saved: SubscriptionView = {
 		enabled: true,
 		revision: "one",
 		source: "https://feeds.example.org",
+		sourceKind: "feed",
 		checkedAt: 1,
 		nextAttemptAt: 600001,
 		error: null,
@@ -99,6 +100,31 @@ function fixture(
 					page: 1,
 				};
 			if (path === "/api/settings") return { qbittorrentWebUiUrl: "" };
+			if (path === "/api/acquisition/subscriptions/search")
+				return {
+					source: {
+						kind: "search",
+						connectionRevision: "sources-one",
+						providerId: "nyaasi",
+						titles: ["Frieren"],
+					},
+					attempts: [
+						{
+							providerId: "nyaasi",
+							outcome: "matched",
+							code: null,
+							limited: true,
+						},
+					],
+					releases: [
+						{
+							id: "found",
+							title: "Frieren - 03 [1080p]",
+							episode: 3,
+							waiting: true,
+						},
+					],
+				};
 			if (method === "GET") return view;
 			if (path === "/api/acquisition/subscriptions" && method === "PUT") {
 				view = structuredClone(saved);
@@ -258,7 +284,7 @@ test("Manage opens saved configuration without exposing the feed in the summary"
 	expect(screen.queryByText(saved.subscription?.source ?? "")).toBeNull();
 	expect(screen.queryByLabelText("RSS URL")).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Manage" }));
-	await screen.findByRole("dialog", { name: "Manage RSS subscription" });
+	await screen.findByRole("dialog", { name: "Manage subscription" });
 	expect(screen.getByText(saved.subscription?.source ?? "")).toBeTruthy();
 	fireEvent.click(screen.getByRole("button", { name: "Close" }));
 	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -328,4 +354,116 @@ test("a failed save retains editable inputs and allows a direct retry", async ()
 	);
 	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	expect(attempts).toBe(2);
+});
+
+test("search previews an ordered source without activation, resets when scope changes and saves the pinned choice", async () => {
+	const request = fixture();
+	render(<SubscriptionPanel workKey={workKey} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Subscribe" }));
+	fireEvent.change(await screen.findByLabelText("Source"), {
+		target: { value: "search" },
+	});
+	await screen.findByText(/Automatic download destination:/);
+	const save = screen.getByRole<HTMLButtonElement>("button", {
+		name: "Save and enable subscription",
+	});
+	expect(save.disabled).toBe(true);
+	fireEvent.click(screen.getByRole("button", { name: "Find a source" }));
+	await screen.findByText(/Selected site: nyaasi/);
+	expect(screen.getByText(/Limited search coverage/)).toBeTruthy();
+	expect(
+		request.mock.calls.filter(([, method]) => method === "PUT"),
+	).toHaveLength(0);
+	expect(save.disabled).toBe(false);
+	fireEvent.change(screen.getByLabelText("Starting episode"), {
+		target: { value: "2" },
+	});
+	expect(save.disabled).toBe(true);
+	expect(screen.queryByText(/Selected site:/)).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Find a source" }));
+	await screen.findByText(/Selected site: nyaasi/);
+	fireEvent.click(save);
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	expect(request).toHaveBeenCalledWith(
+		"/api/acquisition/subscriptions",
+		"PUT",
+		{},
+		expect.objectContaining({
+			source: {
+				kind: "search",
+				connectionRevision: "sources-one",
+				providerId: "nyaasi",
+				titles: ["Frieren"],
+			},
+			startEpisode: 2,
+			destinationRevision: "destination",
+			connectionGeneration: "account",
+		}),
+	);
+});
+
+test("no eligible search result cannot enable acquisition", async () => {
+	const request = fixture();
+	const original = request.getMockImplementation();
+	request.mockImplementation(async (...args) =>
+		args[0].endsWith("/subscriptions/search")
+			? {
+					source: null,
+					attempts: [
+						{
+							providerId: "nyaasi",
+							outcome: "no_eligible",
+							limited: false,
+							code: null,
+						},
+					],
+					releases: [],
+				}
+			: original?.(...args),
+	);
+	render(<SubscriptionPanel workKey={workKey} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Subscribe" }));
+	fireEvent.change(await screen.findByLabelText("Source"), {
+		target: { value: "search" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Find a source" }));
+	await screen.findByText(/No eligible source found/);
+	expect(
+		screen.getByRole<HTMLButtonElement>("button", {
+			name: "Save and enable subscription",
+		}).disabled,
+	).toBe(true);
+	expect(request.mock.calls.some(([, method]) => method === "PUT")).toBe(false);
+});
+
+test("editing a search subscription retains its pinned source without discovering again", async () => {
+	if (!saved.subscription) throw new Error("Missing fixture");
+	const request = fixture({
+		...saved,
+		subscription: {
+			...saved.subscription,
+			source: "nyaasi",
+			sourceKind: "search",
+		},
+	});
+	render(<SubscriptionPanel workKey={workKey} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Manage" }));
+	expect(
+		(await screen.findByLabelText<HTMLSelectElement>("Source")).value,
+	).toBe("keep");
+	expect(screen.queryByLabelText("RSS URL")).toBeNull();
+	await screen.findByText(/Automatic download destination:/);
+	fireEvent.click(
+		screen.getByRole("button", { name: "Save and enable subscription" }),
+	);
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	expect(request).toHaveBeenCalledWith(
+		"/api/acquisition/subscriptions",
+		"PUT",
+		{},
+		expect.objectContaining({ source: null, revision: "one" }),
+	);
+	expect(
+		request.mock.calls.some(([path]) => path.endsWith("/subscriptions/search")),
+	).toBe(false);
 });

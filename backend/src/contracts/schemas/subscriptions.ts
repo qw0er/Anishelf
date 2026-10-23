@@ -55,6 +55,7 @@ export const SubscriptionViewSchema = Type.Object({
 			enabled: Type.Boolean(),
 			revision,
 			source: Type.String(),
+			sourceKind: Type.Union([Type.Literal("feed"), Type.Literal("search")]),
 			checkedAt: nullableNumber,
 			nextAttemptAt: Type.Number(),
 			error: Type.Union([Type.String(), Type.Null()]),
@@ -84,3 +85,38 @@ export const SubscriptionToggleSchema = Type.Object(
 	{ workKey, revision, enabled: Type.Boolean() },
 	{ additionalProperties: false },
 );
+
+export const SubscriptionSearchInputSchema = Type.Object(
+	{
+		workKey,
+		revision: Type.Union([revision, Type.Null()]),
+		startEpisode: Type.Integer({ minimum: 1, maximum: 10000 }),
+		profileId,
+	},
+	{ additionalProperties: false },
+);
+export const SubscriptionSearchResultSchema = Type.Object({
+	source: Type.Union([SourceInputSchema, Type.Null()]),
+	attempts: Type.Array(
+		Type.Object({
+			providerId: Type.String(),
+			reasons: Type.Array(Type.String()),
+			outcome: Type.Union([
+				Type.Literal("matched"),
+				Type.Literal("no_match"),
+				Type.Literal("no_eligible"),
+				Type.Literal("unavailable"),
+			]),
+			code: Type.Union([Type.String(), Type.Null()]),
+			limited: Type.Boolean(),
+		}),
+	),
+	releases: Type.Array(
+		Type.Object({
+			id: Type.String(),
+			title: Type.String(),
+			episode: nullableNumber,
+			waiting: Type.Boolean(),
+		}),
+	),
+});

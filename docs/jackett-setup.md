@@ -1,7 +1,8 @@
 # Jackett service setup
 
 Date: 2026-10-23. Stage 3 delivers external connection settings and an optional
-bundled service. Search subscriptions and Watching automation remain later work.
+bundled service. [Stage 4 search subscriptions](search-subscriptions.md) adds the
+manual acquisition workflow. Watching automation remains later work.
 
 ## External connection
 

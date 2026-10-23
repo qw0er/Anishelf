@@ -30,6 +30,8 @@ Create `acquisition-profiles.yaml` in the application data directory. Start with
 only adds custom definitions; built-ins remain available. The application reads a
 validated immutable snapshot at startup, never generates or rewrites this file, and
 requires a restart after edits. Invalid configuration fails startup with diagnostics.
+Hot reload is tracked as future requirement
+[O20](requirements.md#acquisition-profile-hot-reload-o20); it is not implemented.
 YAML 1.2 mappings, lists and scalar values are supported; aliases, custom tags,
 duplicate keys, unknown fields and multiple documents are rejected.
 
