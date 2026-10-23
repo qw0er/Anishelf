@@ -52,10 +52,13 @@ enabled incomplete path `/data/incomplete`.
 ## Publication flow
 
 `.github/workflows/publish-image.yml` publishes both images when a tag matching
-`v*.*.*` points to a commit in `origin/main` history. Ordinary branch pushes do
-not publish images, and changing `package.json` does not create a release tag.
+`v*.*.*` points to a commit in `origin/main` history. It also supports manual test
+publication from main without changing package versions or creating Git tags.
+Ordinary branch pushes do not publish images, and changing package.json does not
+create a release tag.
 
-1. `check-main` verifies the tagged commit belongs to `main` history.
+1. `check-main` verifies the selected commit belongs to main history. Manual runs
+   additionally require selecting the main branch; other branches/tags are skipped.
 2. `verify` calls the reusable project check workflow on that commit, including
    checks, tests and builds. Failures block publication.
 3. `build` builds each component natively on AMD64 (`ubuntu-24.04`) and ARM64
@@ -64,11 +67,46 @@ not publish images, and changing `package.json` does not create a release tag.
 4. After all four builds succeed, `publish` creates a multi-platform manifest
    for each component from its two architecture digests and inspects it.
 
-Both image repositories receive full version tags, `sha-<full-commit-sha>` and,
-for stable releases, `latest`. Prereleases do not update `latest`. Deploy matching
-version or commit tags for the frontend and backend; shared contracts are built
-from the same source revision. The old `ghcr.io/qw0er/anishelf` image is no longer
+Release builds give both image repositories full version tags, sha-<full-commit-sha>
+and, for stable releases, latest. Prereleases do not update latest. Manual builds
+publish only testing and test-<full-commit-sha>, leaving latest and release version
+tags untouched. The testing alias follows the most recently published manual test
+build; use the commit tag or image digest to select a particular build. Republishing
+a commit can rebuild its dependencies/base images, so only the digest identifies the
+exact image bytes.
+
+Deploy matching version or commit tags for Web and Backend; shared contracts are
+built from the same source revision. The old ghcr.io/qw0er/anishelf image is no longer
 published by this workflow.
+
+### Publish a test build
+
+Once the workflow is present on the repository's default branch:
+
+1. Commit and push the changes to main.
+2. Open Actions → Publish container images → Run workflow and select main.
+3. Wait for check-main, verify, all four native builds and both manifest publications.
+4. Read the exact image tags from the run summary and deploy the matching pair.
+
+The equivalent CLI command is:
+
+```sh
+gh workflow run publish-image.yml --ref main
+```
+
+This runs the same project checks and AMD64/ARM64 builds as a release. It neither
+changes package.json nor creates a Git tag or GitHub Release. Do not modify the
+publication settings to bypass a failed check.
+
+For Compose, set ANISHELF_TAG=test-<full-commit-sha> in the saved deployment's .env,
+then pull and recreate both application services with the selected Compose engine.
+For Quadlet, set matching Image tags in anishelf-backend.container and
+anishelf-web.container, pull both images, reload the user manager and restart the
+target. See [deployment upgrades](../docs/guide/deployment.md#storage-updates-and-recovery).
+Keep a data backup before trying a test image, especially when it includes database
+migrations; switching an image tag back does not reverse migrations.
+
+### Publication permissions
 
 The workflow uses `GITHUB_TOKEN` with `packages: write`. Set both GHCR packages
 public after their first publication if anonymous pulls are required. Publication
