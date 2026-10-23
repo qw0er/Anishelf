@@ -11,8 +11,16 @@ subscription downloads.
 
 ## Quick start
 
-See the [deployment guide](docs/guide/deployment.md) for installation options,
-configuration and first login.
+Start the interactive deployment wizard (Bash and curl required):
+
+```sh
+bash <(curl -fsSL https://raw.githubusercontent.com/qw0er/Anishelf/main/package/install.sh)
+```
+
+Docker or Podman is detected automatically; choose an engine only when both are installed.
+Podman supports Compose or rootless Quadlet. See the
+[deployment guide](docs/guide/deployment.md#interactive-installer) for prerequisites,
+SELinux handling and first login.
 
 ## Documentation
 

@@ -1,5 +1,16 @@
 # Container packaging
 
+## Interactive installation
+
+[install.sh](install.sh) is a standalone Bash wizard fetched directly from GitHub.
+It obtains canonical deployment assets from one resolved commit, prompts for the
+instance configuration and supports Docker/Podman Compose and rootless Quadlet.
+A single installed engine is selected automatically; multiple engines produce a
+choice. Defaults remain behind an optional advanced-options step. See the
+[operator guide](../docs/guide/deployment.md#interactive-installer) for the one-line
+command, SELinux handling, prerequisites and generation-only mode. Installer
+regression fixtures live in install.test.mjs and run with npm run test:deployment.
+
 ## Images and build targets
 
 `package/Dockerfile` defines two runtime targets for Linux AMD64 and ARM64:
