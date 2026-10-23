@@ -148,7 +148,10 @@ test("subscription saves and enables with one request carrying the displayed des
 		{},
 		{
 			workKey,
-			rssUrl: "https://feeds.example.org/rss?passkey=private",
+			source: {
+				kind: "feed",
+				url: "https://feeds.example.org/rss?passkey=private",
+			},
 			startEpisode: 2,
 			profileId: null,
 			revision: null,

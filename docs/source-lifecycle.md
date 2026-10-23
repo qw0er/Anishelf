@@ -1,90 +1,129 @@
-# Shared Sources Contract
+# Sources Boundary and Lifecycle
 
-Date: 2026-10-23. Sources serves Subscriptions and Downloads through protocol-neutral
-references, evidence and a content reader. This contract reflects the responsibility
-refactor; standalone recurring registration is no longer an application capability.
+Date: 2026-10-23. Sources hides RSS and Jackett behind one source configuration and
+ID-based evidence/content capabilities. Protocol-specific configuration exists at
+setup; business consumers do not construct protocol references or clients.
 
-## Binding and collection ownership
+## Construction and capabilities
 
-- Composition translates RSS configuration through rssReference(url), or a Jackett
-  query through jackettReference({generation,indexerId,titles}). Consumers receive
-  opaque SourceReference IDs; credentials and protocol configuration stay private.
-- bind(reference) durably stores a subscription's binding without any network request.
-  An initial empty snapshot has null checkedAt and is immediately due. Subscription,
-  binding and accepted permission are saved in one synchronous transaction.
-- Enabled subscriptions provide active IDs to start(activeIds,poll). Only these IDs
-  trigger recurring collection. Pause/removal releases that subscription's ownership;
-  another enabled subscription sharing the source can still collect it.
-- There is no register/setEnabled/remove API for independent recurring management.
-  The legacy acquisition_sources.enabled column is retained for database compatibility
-  and no longer controls scheduling. Stored evidence and locators are retained.
-- One-off search/testing does not create a subscription or recurring ownership.
-  Query subscription persistence is supported internally, while the external form
-  continues to configure RSS. Watching and a Jackett subscription UI remain pending.
+`createSourcesModule` is the production construction entry. It owns configuration
+files, Jackett connection/client/transport, RSS transport/parser, request gate,
+HTTP presentation, error translation and shutdown. Acquisition wires only the
+returned capabilities; no adapter implementations or parsing functions escape.
+
+| Capability | Consumer | Operations |
+| --- | --- | --- |
+| catalog | Subscriptions | configure(input), snapshot(sourceId) |
+| content | Downloads | read(downloadReference, signal), isCurrent(downloadReference) |
+| collection | Subscription refresh integration | collect(sourceId), returning a prepared publication |
+| runtime | Acquisition composition | start(activeIds, poll), close() |
+| management | Authenticated source setup | catalog operations, test(input or sourceId), connector settings/providers/probe |
+
+The catalog and content contracts contain no adapter plans, validators, raw locators,
+request gates, failed/publish/start/close methods or client classes. The narrowly
+scoped transaction integration is in `sources/integration.ts`, outside the business
+API. Only explicit module entries may be imported across this boundary.
+
+## Source configuration
+
+SourceInput is either `{kind: "feed", url}` or `{kind: "search", connectionRevision,
+providerId, titles}`. These describe collection modes. RSS normalization and Jackett
+query planning are private adapter work; consumer code passes setup data through
+without branching on a protocol. configure validates and durably binds the source
+without a network request, and returns its ID. Reusing the same definition retains
+its stable ID. An initial snapshot has null checkedAt and empty entries.
+
+The subscription form still enters an RSS URL but sends `source: {kind: "feed",url}`
+in the shared subscription-save contract. Empty source input on edits is null and
+retains the current binding. Saving a source alone grants no download permission.
+The subscription transaction includes configure, subscription and accepted permission.
+The external contract also accepts a configured search definition, but a search
+subscription UI, Watching reconciliation and automatic source selection remain pending.
+
+Connector configuration exposes service URL, credentials, connection generation and
+selected provider IDs only at the setup interface. Transport authentication, request
+syntax, capabilities pagination limits and download descriptors remain private. The
+current connector is implemented using Jackett. Changing it fences old search source
+bindings and download references rather than silently inheriting new credentials.
 
 ## Evidence and publication
 
-snapshot(id) reads local evidence only. reference(id) resolves saved configuration.
-refresh(reference) performs a bounded remote update; identical in-flight reads are
-coalesced. Returned evidence contains common release attributes, opaque nullable
-content references and optional search coverage, without raw URLs or credentials.
+snapshot(sourceId) performs no network request. The common collector coalesces
+in-flight requests by source ID and permits at most two source collections. It owns
+one result-provenance/revision fence. RSS and Jackett adapters return private prepared
+writes and connection validity, rather than maintaining separate consumer-facing
+publication lifecycles. FeedReader retains RSS parsing/conditional-response/retention
+behavior; JackettSource retains query planning and Torznab result handling.
 
-A refreshed result is temporary until publish(result). Publication validates instance
-provenance, the captured source revision and the applicable connection generation.
-Copies and stale results cannot publish; coalesced results can publish the same
-revision. Source evidence and durable locators publish in a transaction.
+collect(sourceId) resolves the binding internally and returns a SourcePublication
+containing a read-only snapshot and a synchronous commit(writeCandidates) operation.
+Temporary results and diagnostic tests do not publish evidence or resolve their
+unpublished downloads. Commit rechecks source validity, then publishes evidence,
+durable download references and candidate writes in the same SQLite transaction.
+A stale result or candidate write failure rolls everything back.
 
-Subscriptions performs asynchronous assessment before committing. Its outer shared
-transaction rechecks subscription/source/reservation snapshots and publishes evidence
-and candidate decisions together. Changed subscriptions or failed writes leave no
-partial candidate publication. Independent source-removal epochs are unnecessary;
-subscription revision checks fence pause/replacement/removal.
+Subscriptions evaluates outside the transaction, then uses commit to check its own
+subscription/reservation inputs and save its candidates. It neither manages
+source publication internals nor calls a source failed/backoff method. Sources
+records collection failures itself, only against the captured matching revision,
+retaining earlier evidence and retry metadata. Shutdown and generation conflicts
+cannot overwrite newer successful evidence. Subscription assessment errors remain
+owned by Subscriptions.
 
-failed(previous,code,retryAt) updates only the matching saved revision, retains usable
-evidence and advances retry state. Initial failures are durable even before a first
-successful RSS or query response. Success clears failure state. RSS stores validators
-and retained entries in its existing relational tables; Jackett stores query evidence
-in the existing typed snapshot. Pending RSS evidence can use the source snapshot until
-its first successful feed publication.
+The existing protocol storage is normalized by SourceEvidence: RSS validators and
+observations remain in their relational tables, while query evidence and unchecked
+bindings use the existing typed snapshot. This adapter is private. Physical table
+layouts and migrations are unchanged; no second task/subscription database is added.
+
+## Ownership, scheduling and shutdown
+
+Acquisition supplies enabled subscription IDs and a subscription refresh operation
+to the separate runtime capability. The scheduler ticks initially and every 30 seconds.
+Successful refresh follows the configured interval (30 minutes by default); failure
+backoff is capped at one hour and respects upstream retry hints. Live interval changes
+reschedule successful evidence while preserving failure deadlines.
+
+A source is collected only while a subscription owns it. There is no independent
+recurring register/enable/remove feature. Pause/removal does not erase source evidence
+or accepted download references. The legacy enabled column is retained but does not
+drive scheduling. A changed connector generation suspends old bindings.
+
+Downloads stops before Sources. Source shutdown aborts/drains collections, transport
+and content reads before SQLite closes. Runtime methods do not escape through the
+catalog/content/business management interfaces.
 
 ## Download content
 
-ReleaseEvidence.download is opaque. Selection and accepted tasks carry it unchanged.
-Sources retains private locator records independently of later evidence snapshots.
-Downloads receives a TorrentReader whose read delegates to readDownload(reference,
-signal), returning only magnet content or torrent bytes. Arbitrary URL inputs and
-unpublished references are rejected. Legacy accepted RSS locators remain resolvable.
+ReleaseEvidence contains common attributes and an opaque nullable download reference.
+The content capability returns only magnet content or torrent bytes. Private locator
+records survive later result snapshots; arbitrary URL inputs and unpublished references
+are rejected. Legacy accepted RSS references remain resolvable. Both protocols use
+the same content interface, with source/connection validity checked before and after
+reads. Downloads rechecks immediately before submission and owns canonical hash/path
+validation and reservation. Submitted tasks reconcile without a live source service.
 
-Public RSS/torrent addresses use checked public transport. Jackett content uses the
-saved origin/authentication policy. Download references retain their original
-connection generation, including magnets; changed accounts cannot be inherited by
-unsent work. Resolution checks validity before and after network reads, and Downloads
-checks validity immediately before submitting. Already submitted tasks reconcile
-without a live source service. Downloads owns hash/path validation and reservation.
+## HTTP surface
 
-## Scheduling, retry and shutdown
+| Route | Meaning |
+| --- | --- |
+| POST /api/acquisition/sources | Configure either collection mode and return its source ID |
+| GET /api/acquisition/sources/:id | Read saved evidence |
+| POST /api/acquisition/sources/test | Test a definition or `{sourceId}` without publication/permission |
+| GET/PUT/DELETE /api/acquisition/sources/connector | Read/update/clear connector configuration |
+| POST /api/acquisition/sources/connector/providers | List configured service providers |
+| POST /api/acquisition/sources/connector/probe | Check provider search support; not proof of a live search |
 
-The scheduler ticks initially and every 30 seconds and processes at most two sources
-at once. Successful refresh follows the configured interval (30 minutes by default).
-Live interval changes reschedule successful evidence; failure deadlines retain
-exponential backoff capped at one hour and honor later upstream hints. A changed
-Jackett generation suspends old collection without silently replacing its binding.
+There are no separate RSS/Jackett business HTTP routes. Settings require authentication
+and mutations require CSRF. Responses/logs exclude API keys, raw download addresses,
+validators and torrent payloads. Diagnostic test responses expose download availability,
+not private content references. Source configuration fields are accepted only at setup.
 
-Source download reads accept cancellation, permit at most two simultaneous reads and
-are drained at shutdown. Closing Acquisition stops Downloads, cancels Subscriptions,
-then aborts/drains source requests and readers before the database closes. Logs omit
-credentials and raw locators.
+## Verification
 
-## Storage and verification
-
-Migrations 0004 through 0006 remain unchanged. Bindings, evidence, subscriptions,
-candidates, validators, opaque download references and authorization survive upgrade.
-The existing feedId/feed_id fields identify either protocol. Retention/garbage
-collection of inactive evidence and private locators remains separate work.
-
-Tests cover both protocols, inactive bindings, durable initial failure, caller-owned
-collection, reopen, coalescing/stale rejection, generation changes, download-reference
-isolation, authenticated content validation, shutdown and migration preservation.
-Subscription tests cover direct saves, background refresh, pause and transactional
-publication. Real source/downloader/shared-storage/browser playback acceptance
-remains distinct from these fixtures.
+Both feed and search tests exercise the same ID-based configure/collect/commit/content
+contract, temporary diagnostics, failure ownership, transaction rollback and stale
+connection rejection. Adapter fixtures retain HTTP/XML/credential/path coverage.
+Integration tests cover source settings authentication/CSRF, common HTTP setup,
+subscription saves/refresh, reservations, reopen/upgrade, coalescing and shutdown.
+These fixtures do not establish real tracker/downloader/shared-storage/browser playback
+acceptance. Retention/garbage collection of inactive evidence remains separate work.

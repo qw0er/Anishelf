@@ -12,13 +12,13 @@ import {
 	createAcquisitionModule,
 	createQbittorrentClient,
 } from "../src/modules/acquisition/create.js";
-import type { FeedTransport } from "../src/modules/acquisition/sources/public.js";
+import { parseRss } from "../src/modules/acquisition/sources/rss/parser.js";
+import type { FeedTransport } from "../src/modules/acquisition/sources/rss/ports.js";
 import {
 	isPublicAddress,
-	parseRss,
 	RssTransport,
 	rssUrl,
-} from "../src/modules/acquisition/sources/rss/public.js";
+} from "../src/modules/acquisition/sources/rss/transport.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../src/modules/anime/release-assessment/application.js";
@@ -133,7 +133,7 @@ async function fixture(
 	) {
 		const saved = await discovery.save({
 			workKey,
-			rssUrl: rss,
+			source: { kind: "feed" as const, url: rss },
 			startEpisode,
 			revision: discovery.get(workKey).subscription?.revision ?? null,
 			...stamp(),
@@ -442,7 +442,7 @@ test("saving is local, rejects stale revisions and persists initial source failu
 	const f = await fixture();
 	const input = {
 		workKey: key,
-		rssUrl: "https://feeds.example.org/rss",
+		source: { kind: "feed" as const, url: "https://feeds.example.org/rss" },
 		startEpisode: 1,
 		revision: null,
 		...f.stamp(),
@@ -507,7 +507,7 @@ test("pause, restart and removal preserve state without fetching on reads", asyn
 test("shared RSS bindings save locally and concurrent refreshes collect once for both works", async () => {
 	const f = await fixture();
 	const input = {
-		rssUrl: "https://feeds.example.org/shared",
+		source: { kind: "feed" as const, url: "https://feeds.example.org/shared" },
 		startEpisode: 1,
 		revision: null,
 		...f.stamp(),
@@ -576,7 +576,7 @@ test("a source change during metadata assessment rejects all stale candidate and
 	await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
 	const newer = await f.discovery.save({
 		workKey: key,
-		rssUrl: "https://feeds.example.org/another",
+		source: { kind: "feed" as const, url: "https://feeds.example.org/another" },
 		startEpisode: 1,
 		revision: saved.subscription?.revision ?? null,
 		...f.stamp(),
@@ -646,7 +646,10 @@ test("subscription HTTP routes are authenticated, CSRF protected and redact priv
 	const payload = {
 		...f.stamp(),
 		workKey: key,
-		rssUrl: "https://feeds.example.org/private-token/rss?passkey=private-token",
+		source: {
+			kind: "feed" as const,
+			url: "https://feeds.example.org/private-token/rss?passkey=private-token",
+		},
 		startEpisode: 1,
 		revision: null,
 	};
@@ -772,7 +775,7 @@ test("saving rejects an unavailable inherited profile before writing a subscript
 	await expect(
 		f.discovery.save({
 			workKey: key,
-			rssUrl: "https://feeds.example.org/rss",
+			source: { kind: "feed" as const, url: "https://feeds.example.org/rss" },
 			startEpisode: 1,
 			revision: null,
 			...f.stamp(),
@@ -787,7 +790,7 @@ test("scope edits keep a saved source without revealing or resubmitting its URL"
 	const count = f.fetch.mock.calls.length;
 	const updated = await f.discovery.save({
 		workKey: key,
-		rssUrl: "",
+		source: null,
 		startEpisode: 4,
 		revision: saved.subscription?.revision ?? null,
 		...f.stamp(),
@@ -805,7 +808,10 @@ test("shared-source candidate publication rolls back every work and source evide
 	const first = await f.subscribe();
 	const second = await f.discovery.save({
 		workKey: "anilist:anime:2",
-		rssUrl: "https://feeds.example.org/rss?passkey=private-feed-token",
+		source: {
+			kind: "feed" as const,
+			url: "https://feeds.example.org/rss?passkey=private-feed-token",
+		},
 		startEpisode: 1,
 		revision: null,
 		...f.stamp(),

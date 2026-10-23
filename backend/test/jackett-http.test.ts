@@ -15,7 +15,7 @@ afterEach(async () => {
 	vi.restoreAllMocks();
 	for (const close of cleanup.splice(0).reverse()) await close();
 });
-test("Jackett HTTP settings and diagnostics require authentication and CSRF, and project safe evidence", async () => {
+test("Source connector settings and unified diagnostics require authentication and CSRF, and project safe evidence", async () => {
 	const dataDir = await mkdtemp(join(tmpdir(), "anishelf-jackett-http-"));
 	cleanup.push(() => rm(dataDir, { recursive: true, force: true }));
 	const database = ApplicationDatabase.open(dataDir);
@@ -46,7 +46,7 @@ test("Jackett HTTP settings and diagnostics require authentication and CSRF, and
 		closeDependencies: async () => {},
 	});
 	cleanup.push(() => app.close());
-	const url = "/api/acquisition/sources/jackett",
+	const url = "/api/acquisition/sources/connector",
 		headers = { host: "127.0.0.1:3000" };
 	expect((await app.inject({ url, headers })).statusCode).toBe(401);
 	const session = await app.inject({ url: "/api/auth/session", headers });
@@ -76,7 +76,7 @@ test("Jackett HTTP settings and diagnostics require authentication and CSRF, and
 		url: "http://jackett:9117",
 		origin: "external",
 		apiKey: secret,
-		indexers: ["example"],
+		providers: ["example"],
 	};
 	expect(
 		(await app.inject({ url, method: "PUT", headers: authenticated, payload }))
@@ -143,12 +143,13 @@ test("Jackett HTTP settings and diagnostics require authentication and CSRF, and
 		],
 	});
 	const result = await app.inject({
-		url: `${url}/search`,
+		url: "/api/acquisition/sources/test",
 		method: "POST",
 		headers: mutationHeaders,
 		payload: {
-			generation: saved.json().generation,
-			indexerId: "example",
+			kind: "search",
+			connectionRevision: saved.json().generation,
+			providerId: "example",
 			titles: ["Example Season 2"],
 		},
 	});
@@ -162,16 +163,46 @@ test("Jackett HTTP settings and diagnostics require authentication and CSRF, and
 	expect(result.body).not.toContain(secret);
 	expect(search).toHaveBeenCalledOnce();
 	const rejected = await app.inject({
-		url: `${url}/search`,
+		url: "/api/acquisition/sources/test",
 		method: "POST",
 		headers: mutationHeaders,
 		payload: {
-			generation: saved.json().generation,
-			indexerId: "all",
+			kind: "search",
+			connectionRevision: saved.json().generation,
+			providerId: "all",
 			titles: ["Example"],
 		},
 	});
 	expect(rejected.statusCode).toBe(400);
 	expect(search).toHaveBeenCalledOnce();
+	const feedInput = {
+		kind: "feed",
+		url: "https://example.org/rss?key=private-feed-key",
+	};
+	expect(
+		(
+			await app.inject({
+				url: "/api/acquisition/sources",
+				method: "POST",
+				headers: authenticated,
+				payload: feedInput,
+			})
+		).statusCode,
+	).toBe(403);
+	const configured = await app.inject({
+		url: "/api/acquisition/sources",
+		method: "POST",
+		headers: mutationHeaders,
+		payload: feedInput,
+	});
+	expect(configured.statusCode).toBe(200);
+	const status = await app.inject({
+		url: `/api/acquisition/sources/${configured.json().id}`,
+		headers: authenticated,
+	});
+	expect(status.statusCode).toBe(200);
+	expect(status.json()).toMatchObject({ checkedAt: null, entries: [] });
+	expect(status.body).not.toContain("private-feed-key");
 	expect(logs.join("\n")).not.toContain(secret);
+	expect(logs.join("\n")).not.toContain("private-feed-key");
 });

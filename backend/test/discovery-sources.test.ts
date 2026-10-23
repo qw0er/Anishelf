@@ -1,5 +1,6 @@
 import pino from "pino";
 import { expect, test, vi } from "vitest";
+import type { SourceCollection } from "../src/modules/acquisition/sources/integration.js";
 import type {
 	SourceSnapshot,
 	SourcesApi,
@@ -39,24 +40,24 @@ test("Subscriptions save and refresh an opaque source without protocol configura
 		return remote;
 	});
 	const sources: SourcesApi = {
-		readDownload: vi.fn(),
-		isDownloadCurrent: vi.fn(() => true),
-		bind: () => {
+		configure: () => {
 			saved = { ...remote, entries: [], checkedAt: null };
-		},
-		reference: (id) => {
-			expect(id).toBe(reference.id);
-			return reference;
+			return reference.id;
 		},
 		snapshot: () => saved,
-		refresh,
-		isCurrent: () => true,
-		publish: (result) => {
-			saved = result;
+	};
+	const collection: SourceCollection = {
+		collect: async (id) => {
+			expect(id).toBe(reference.id);
+			const result = await refresh(reference);
+			return {
+				snapshot: result,
+				commit: (operation) => {
+					saved = result;
+					operation();
+				},
+			};
 		},
-		failed: vi.fn(),
-		start: vi.fn(),
-		close: vi.fn(async () => {}),
 	};
 	const subscriptions = new Map<string, Subscription>();
 	const candidates = new Map<string, Candidate[]>();
@@ -77,6 +78,7 @@ test("Subscriptions save and refresh an opaque source without protocol configura
 	};
 	const discovery = new SubscriptionsApplication({
 		sources,
+		collection,
 		store: {
 			transaction: (operation) => operation(),
 			subscription: (key) => subscriptions.get(key) ?? null,
@@ -112,7 +114,12 @@ test("Subscriptions save and refresh an opaque source without protocol configura
 		const key = "anilist:anime:1";
 		const created = await discovery.save({
 			workKey: key,
-			source: reference,
+			source: {
+				kind: "search",
+				connectionRevision: "connection",
+				providerId: "example",
+				titles: ["Frieren"],
+			},
 			startEpisode: 1,
 			revision: null,
 			target: null,
@@ -133,7 +140,6 @@ test("Subscriptions save and refresh an opaque source without protocol configura
 		expect(updated.candidates[0]?.episode).toBe(4);
 		expect(refresh).toHaveBeenCalledTimes(2);
 		expect(saved).toEqual(remote);
-		expect(sources.failed).not.toHaveBeenCalled();
 	} finally {
 		await discovery.close();
 	}

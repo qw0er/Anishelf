@@ -1,17 +1,19 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
+import type { SourceRead } from "../adapter.js";
 import { SourceContext } from "../context.js";
-import { SourceError, type SourceRecord } from "../domain/model.js";
+import { SourceError } from "../domain/model.js";
+import type { SourceReference } from "../domain/reference.js";
 import { SourceDownloads, type SourceTorrentTransport } from "../downloads.js";
+import { SourceEvidence } from "../infrastructure/evidence.js";
+import type { SourceCollection, SourcePublication } from "../integration.js";
+import { JackettSource } from "../jackett/application.js";
 import type { JackettConnection } from "../jackett/connection.js";
-import type { JackettPlan } from "../jackett/model.js";
 import type { SourceLifecycleStore } from "../lifecycle.js";
-import type { SourceReference, SourceSnapshot, SourcesApi } from "../public.js";
-import {
-	RssSource,
-	type RssSourceOptions,
-	RssTransport,
-} from "../rss/public.js";
+import type { SourceInput, SourceSnapshot, SourcesApi } from "../public.js";
+import { RssSource } from "../rss/application.js";
+import type { RssSourceOptions } from "../rss/ports.js";
+import { RssTransport } from "../rss/transport.js";
 import { SourceScheduler } from "../scheduler.js";
 
 export interface SourcesApplicationOptions {
@@ -24,45 +26,47 @@ export interface SourcesApplicationOptions {
 	refreshIntervalMinutes?: () => number | undefined;
 }
 
-export class SourcesApplication implements SourcesApi {
+/** Private implementation. Consumers receive selected capabilities from createSourcesModule. */
+export class SourcesApplication implements SourcesApi, SourceCollection {
 	private readonly context: SourceContext;
 	private readonly rss: RssSource;
+	private readonly query: JackettSource;
 	private readonly downloads: SourceDownloads;
+	private readonly evidence: SourceEvidence;
 	private readonly prepared = new WeakMap<
 		SourceSnapshot,
-		{ record: SourceRecord; previousRevision: string | null }
+		{ read: SourceRead; previousRevision: string | null }
 	>();
-	private readonly references = new WeakMap<SourceReference, JackettPlan>();
-	private readonly queryResults = new WeakMap<
-		SourceRecord,
-		{ plan: JackettPlan; previousRevision: string | null }
-	>();
-	private readonly searching = new Map<string, Promise<SourceRecord>>();
+	private readonly fetching = new Map<string, Promise<SourceSnapshot>>();
 	private scheduler: SourceScheduler | undefined;
 	private closing: Promise<void> | undefined;
 	constructor(private readonly options: SourcesApplicationOptions) {
 		this.context = new SourceContext(options);
-		this.rss = new RssSource(this.context, options.rss);
+		this.rss = new RssSource(this.context, options.rss, options.store);
+		this.query = new JackettSource(
+			this.context,
+			options.store,
+			options.jackett,
+		);
+		this.evidence = new SourceEvidence(
+			options.store,
+			options.rss.store,
+			this.context,
+		);
 		this.downloads = new SourceDownloads(
 			options.store,
 			options.torrentTransport ?? new RssTransport(),
 			options.jackett,
 			this.context.signal,
 			options.logger,
-			(id) => this.record(id),
+			(id) => this.evidence.read(id),
 		);
 	}
-	private record(id: string): SourceRecord | null {
-		const saved = this.options.store.source(id);
-		return saved?.binding.kind === "jackett"
-			? saved.snapshot
-			: (this.rss.snapshot(id) ?? saved?.snapshot ?? null);
-	}
 	snapshot(id: string): SourceSnapshot | null {
-		const record = this.record(id);
+		const record = this.evidence.read(id);
 		return record ? this.project(record) : null;
 	}
-	private project(record: SourceRecord): SourceSnapshot {
+	private project(record: SourceRead["record"]): SourceSnapshot {
 		return Object.freeze({
 			...record,
 			...(record.coverage
@@ -73,58 +77,25 @@ export class SourcesApplication implements SourcesApi {
 			),
 		});
 	}
-	async refresh(reference: SourceReference): Promise<SourceSnapshot> {
+	/** One configuration boundary for feeds and search bindings. No network I/O. */
+	configure(input: SourceInput): string {
+		const reference = this.referenceFor(input);
+		this.bind(reference);
+		return reference.id;
+	}
+	referenceFor(input: SourceInput): SourceReference {
 		this.context.open();
-		const previousRevision = this.record(reference.id)?.revision ?? null;
-		const record = await this.prepare(reference);
-		const result = this.project(record);
-		this.prepared.set(result, {
-			record,
-			previousRevision,
-		});
-		return result;
+		return input.kind === "feed"
+			? this.rss.createReference(input.url)
+			: this.query.reference({
+					generation: input.connectionRevision,
+					indexerId: input.providerId,
+					titles: input.titles,
+				});
 	}
-	isCurrent(result: SourceSnapshot) {
-		if (this.context.signal.aborted) return false;
-		const prepared = this.prepared.get(result);
-		return Boolean(
-			prepared &&
-				((this.record(result.id)?.revision ?? null) ===
-					prepared.previousRevision ||
-					this.record(result.id)?.revision === result.revision) &&
-				this.current(prepared.record),
-		);
-	}
-	publish(result: SourceSnapshot) {
-		this.context.open();
-		const prepared = this.prepared.get(result);
-		if (!prepared || !this.isCurrent(result))
-			throw new SourceError("source_conflict");
-		this.options.store.transaction(() => {
-			if (!this.isCurrent(result)) throw new SourceError("source_conflict");
-			this.publishRecord(prepared.record);
-			const generation =
-				this.queryResults.get(prepared.record)?.plan.generation ?? null;
-			this.downloads.publish(prepared.record, generation);
-		});
-	}
-	failed(previous: SourceSnapshot, code: string, retryAt?: number) {
-		if (this.context.signal.aborted) return;
-		const record = this.record(previous.id);
-		if (record?.revision === previous.revision)
-			this.recordFailed(record, code, retryAt);
-	}
-	readDownload(reference: string, signal: AbortSignal) {
-		return this.downloads.read(reference, signal);
-	}
-	isDownloadCurrent(reference: string) {
-		return this.downloads.isCurrent(reference);
-	}
-
 	bind(reference: SourceReference) {
 		this.context.open();
-		const plan = this.references.get(reference);
-		if (plan) this.options.jackett?.plan(plan);
+		const plan = this.query.plan(reference);
 		const binding = plan
 			? { kind: "jackett" as const, plan }
 			: { kind: "rss" as const, url: this.rss.configuration(reference) };
@@ -152,167 +123,98 @@ export class SourcesApplication implements SourcesApi {
 			"Source binding saved without network access.",
 		);
 	}
-	/** Configuration entry used by composition, never by Subscriptions. No I/O or writes. */
-	rssReference(input: string): SourceReference {
-		return this.rss.createReference(input);
-	}
-	jackettReference(input: JackettPlan): SourceReference {
-		this.context.open();
-		if (!this.options.jackett) throw new SourceError("source_unconfigured");
-		const plan = this.options.jackett.plan(input);
-		const id = createHash("sha256")
-			.update(
-				JSON.stringify([
-					"jackett",
-					plan.generation,
-					plan.indexerId,
-					plan.titles,
-				]),
-			)
-			.digest("hex");
-		const reference = Object.freeze({ id });
-		this.references.set(reference, plan);
-		return reference;
-	}
-	private refreshQuery(
-		reference: SourceReference,
-		plan: JackettPlan,
-	): Promise<SourceRecord> {
-		const pending = this.searching.get(reference.id);
-		if (pending) return pending;
-		if (this.searching.size >= 2)
-			return Promise.reject(new SourceError("source_busy"));
-		const previousRevision =
-			this.options.store.source(reference.id)?.snapshot?.revision ?? null;
-		const task = (async () => {
-			if (!this.options.jackett) throw new SourceError("source_unconfigured");
-			const result = await this.options.jackett.search(plan);
-			this.context.open();
-			if (!this.options.jackett.current(plan.generation))
-				throw new SourceError("source_conflict");
-			const snapshot: SourceRecord = Object.freeze({
-				id: reference.id,
-				revision: randomUUID(),
-				label: plan.indexerId,
-				entries: Object.freeze(
-					result.entries.map((entry) =>
-						Object.freeze({
-							...entry,
-							generation: plan.generation,
-							download: entry.download ? Object.freeze(entry.download) : null,
-						}),
-					),
-				),
-				checkedAt: this.context.now(),
-				nextAttemptAt: this.context.now() + this.context.refreshIntervalMs(),
-				error: null,
-				coverage: Object.freeze(result.coverage),
-				outcome: result.outcome,
-			});
-			this.queryResults.set(snapshot, { plan, previousRevision });
-			return snapshot;
-		})();
-		this.searching.set(reference.id, task);
-		void task
-			.finally(() => this.searching.delete(reference.id))
-			.catch(() => {});
-		return task;
-	}
 	reference(id: string): SourceReference {
 		this.context.open();
-		const source = this.options.store.source(id);
-		return source?.binding.kind === "jackett"
-			? this.jackettReference(source.binding.plan)
-			: source?.binding.kind === "rss"
-				? this.rss.createReference(source.binding.url)
-				: this.rss.reference(id);
+		const binding = this.options.store.source(id)?.binding;
+		if (!binding) return this.rss.reference(id);
+		return binding.kind === "rss"
+			? this.rss.createReference(binding.url)
+			: this.query.reference(binding.plan);
 	}
-	private async prepare(reference: SourceReference) {
+	async refresh(reference: SourceReference): Promise<SourceSnapshot> {
 		this.context.open();
-		const plan = this.references.get(reference);
-		return plan
-			? this.refreshQuery(reference, plan)
-			: this.rss.refresh(reference);
+		// Validate provenance before coalescing: another instance cannot borrow an in-flight reference.
+		const query = Boolean(this.query.plan(reference));
+		if (!query) this.rss.configuration(reference);
+		const current = this.fetching.get(reference.id);
+		if (current) return current;
+		if (this.fetching.size >= 2) throw new SourceError("source_busy");
+		const previousRevision = this.evidence.read(reference.id)?.revision ?? null;
+		const task = (async () => {
+			const read = await (query
+				? this.query.refresh(reference)
+				: this.rss.refresh(reference));
+			this.context.open();
+			const result = this.project(read.record);
+			this.prepared.set(result, { read, previousRevision });
+			return result;
+		})();
+		this.fetching.set(reference.id, task);
+		void task.finally(() => this.fetching.delete(reference.id)).catch(() => {});
+		return task;
 	}
-	private current(result: SourceRecord) {
-		const prepared = this.queryResults.get(result);
-		if (prepared)
-			return (
-				!this.context.signal.aborted &&
-				Boolean(this.options.jackett?.current(prepared.plan.generation)) &&
-				((this.options.store.source(result.id)?.snapshot?.revision ?? null) ===
-					prepared.previousRevision ||
-					this.options.store.source(result.id)?.snapshot?.revision ===
-						result.revision)
-			);
-		return this.rss.isCurrent(result);
+	isCurrent(result: SourceSnapshot) {
+		const prepared = this.prepared.get(result);
+		if (this.context.signal.aborted || !prepared || !prepared.read.valid())
+			return false;
+		const revision = this.evidence.read(result.id)?.revision ?? null;
+		return (
+			revision === prepared.previousRevision || revision === result.revision
+		);
 	}
-	private publishRecord(result: SourceRecord) {
+	/** Private publication primitive; the collection capability supplies the shared transaction. */
+	publish(result: SourceSnapshot, writeCandidates: () => void = () => {}) {
 		this.context.open();
-		const prepared = this.queryResults.get(result);
-		if (prepared) {
-			if (!this.current(result)) throw new SourceError("source_conflict");
-			const previous = this.options.store.source(result.id);
-			this.options.store.saveSource({
-				id: result.id,
-				binding: { kind: "jackett", plan: prepared.plan },
-				enabled: previous?.enabled ?? false,
-				failures: 0,
-				snapshot: structuredClone(result),
-			});
-			this.options.logger.debug(
-				{
-					event: "acquisition.source_published",
-					sourceId: result.id,
-					revision: result.revision,
-				},
-				"Query evidence published without download authorization.",
-			);
-			return;
-		}
-		this.rss.publish(result);
-		const previous = this.options.store.source(result.id);
-		const feed = this.options.rss.store.feed(result.id);
-		if (!feed) throw new SourceError("source_missing");
-		this.options.store.saveSource({
-			id: result.id,
-			binding: { kind: "rss", url: feed.url },
-			enabled: previous?.enabled ?? false,
-			failures: 0,
-			snapshot: null,
+		const prepared = this.prepared.get(result);
+		if (!prepared || !this.isCurrent(result))
+			throw new SourceError("source_conflict");
+		this.options.store.transaction(() => {
+			if (!this.isCurrent(result)) throw new SourceError("source_conflict");
+			prepared.read.persist();
+			this.downloads.publish(prepared.read.record, prepared.read.generation);
+			writeCandidates();
 		});
+		this.options.logger.debug(
+			{
+				event: "acquisition.source_published",
+				sourceId: result.id,
+				revision: result.revision,
+			},
+			"Source evidence published.",
+		);
 	}
-	private recordFailed(previous: SourceRecord, code: string, retryAt?: number) {
-		if (this.context.signal.aborted) return;
-		const source = this.options.store.source(previous.id);
-		if (
-			source &&
-			(source.binding.kind === "jackett" ||
-				!this.options.rss.store.feed(previous.id))
-		) {
-			if (source.snapshot?.revision !== previous.revision) return;
-			const failures = source.failures + 1;
-			this.options.store.saveSource({
-				...source,
-				failures,
-				snapshot: {
-					...source.snapshot,
-					revision: randomUUID(),
-					error: code,
-					nextAttemptAt: this.context.retryAt(failures, retryAt),
-				},
+	async collect(id: string): Promise<SourcePublication> {
+		const previous = this.snapshot(id);
+		try {
+			const result = await this.refresh(this.reference(id));
+			return Object.freeze({
+				snapshot: result,
+				commit: (writeCandidates: () => void) =>
+					this.publish(result, writeCandidates),
 			});
-			this.options.logger.warn(
-				{ event: "acquisition.source_retry", sourceId: previous.id, code },
-				"Source refresh failed; previous evidence retained.",
-			);
-			return;
+		} catch (error) {
+			if (
+				previous &&
+				!this.context.signal.aborted &&
+				!(error instanceof SourceError && error.code === "source_conflict")
+			)
+				this.evidence.failed(
+					previous,
+					error instanceof SourceError ? error.code : "upstream_failure",
+					error instanceof SourceError ? error.retryAt : undefined,
+				);
+			throw error;
 		}
-		this.rss.failed(previous, code, retryAt);
+	}
+	readDownload(reference: string, signal: AbortSignal) {
+		return this.downloads.read(reference, signal);
+	}
+	isDownloadCurrent(reference: string) {
+		return this.downloads.isCurrent(reference);
 	}
 	start(
 		activeIds: () => string[],
-		poll: (source: SourceSnapshot) => Promise<void>,
+		poll: (snapshot: SourceSnapshot) => Promise<void>,
 	) {
 		this.context.open();
 		if (this.scheduler) return;
@@ -321,36 +223,10 @@ export class SourcesApplication implements SourcesApi {
 			this.options.logger,
 			activeIds,
 			(id) => {
-				const source = this.options.store.source(id);
-				const snapshot = this.record(id);
-				if (!source && !snapshot) return null;
-				if (
-					source?.binding.kind === "jackett" &&
-					!this.options.jackett?.current(source.binding.plan.generation)
-				)
-					return null;
-				const failures =
-					source?.binding.kind === "jackett"
-						? source.failures
-						: (this.options.rss.store.feed(id)?.failures ?? source?.failures);
-				if (!snapshot) return { id, nextAttemptAt: 0 };
-				const nextAttemptAt =
-					failures || snapshot.checkedAt === null
-						? snapshot.nextAttemptAt
-						: snapshot.checkedAt + this.context.refreshIntervalMs();
-				if (nextAttemptAt !== snapshot.nextAttemptAt) {
-					if (source?.binding.kind === "jackett")
-						this.options.store.saveSource({
-							...source,
-							snapshot: { ...snapshot, nextAttemptAt },
-						});
-					else {
-						const feed = this.options.rss.store.feed(id);
-						if (feed)
-							this.options.rss.store.saveFeed({ ...feed, nextAttemptAt });
-					}
-				}
-				return { id, nextAttemptAt };
+				const generation = this.evidence.generation(id);
+				return generation && !this.query.current(generation)
+					? null
+					: this.evidence.due(id);
 			},
 			async (id) => {
 				const snapshot = this.snapshot(id);
@@ -362,16 +238,13 @@ export class SourcesApplication implements SourcesApi {
 	close() {
 		this.closing ??= (async () => {
 			this.context.shutdown.abort();
-			try {
-				await Promise.allSettled([
-					this.rss.close(),
-					this.downloads.close(),
-					this.scheduler?.close(),
-					this.options.jackett?.close(),
-				]);
-			} finally {
-				await Promise.allSettled(this.searching.values());
-			}
+			await Promise.allSettled([
+				this.rss.close(),
+				this.downloads.close(),
+				this.scheduler?.close(),
+				this.query.close(),
+			]);
+			await Promise.allSettled(this.fetching.values());
 		})();
 		return this.closing;
 	}

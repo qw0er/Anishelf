@@ -113,9 +113,10 @@ async function fixture() {
 		return { database, sources, fetch, torrentRead };
 	};
 	const first = opened();
-	const reference = first.sources.jackettReference({
-		generation: settings.generation,
-		indexerId: "nyaasi",
+	const reference = first.sources.referenceFor({
+		kind: "search",
+		connectionRevision: settings.generation,
+		providerId: "nyaasi",
 		titles: ["Frieren", "Sousou no Frieren"],
 	});
 	return {
@@ -171,7 +172,6 @@ test("coalesced requests share one revision; older same-query results and delaye
 	f.sources.publish(newer);
 	expect(f.sources.isCurrent(one)).toBe(false);
 	expect(() => f.sources.publish(same)).toThrow();
-	f.sources.failed(one, "late_failure");
 	expect(f.sources.snapshot(newer.id)).toEqual(newer);
 	expect(() => f.sources.publish({ ...newer })).toThrow();
 });
@@ -203,7 +203,10 @@ test.each(["rss", "jackett"] as const)(
 		vi.useFakeTimers();
 		const reference =
 			kind === "rss"
-				? f.sources.rssReference("https://example.org/feed")
+				? f.sources.referenceFor({
+						kind: "feed",
+						url: "https://example.org/feed",
+					})
 				: f.reference;
 		f.sources.bind(reference);
 		expect(f.sources.snapshot(reference.id)).toMatchObject({
@@ -216,17 +219,10 @@ test.each(["rss", "jackett"] as const)(
 				() => [...active],
 				async (previous) => {
 					try {
-						const result = await sources.refresh(
-							sources.reference(previous.id),
-						);
-						if (active.has(previous.id)) sources.publish(result);
-					} catch (error) {
-						if (active.has(previous.id))
-							sources.failed(
-								previous,
-								error instanceof SourceError ? error.code : "upstream_failure",
-								error instanceof SourceError ? error.retryAt : undefined,
-							);
+						const publication = await sources.collect(previous.id);
+						if (active.has(previous.id)) publication.commit(() => {});
+					} catch {
+						/* Sources records failures itself. */
 					}
 				},
 			);
@@ -279,7 +275,10 @@ test.each(["rss", "jackett"] as const)(
 		const f = await fixture();
 		const reference =
 			kind === "rss"
-				? f.sources.rssReference("https://example.org/feed")
+				? f.sources.referenceFor({
+						kind: "feed",
+						url: "https://example.org/feed",
+					})
 				: f.reference;
 		const prepared = await f.sources.refresh(reference);
 		const download = prepared.entries[0]?.download;
@@ -449,7 +448,10 @@ test.each(["rss", "jackett"] as const)(
 		vi.useFakeTimers();
 		const reference =
 			kind === "rss"
-				? f.sources.rssReference("https://example.org/feed")
+				? f.sources.referenceFor({
+						kind: "feed",
+						url: "https://example.org/feed",
+					})
 				: f.reference;
 		f.sources.bind(reference);
 		const prepared = await f.sources.refresh(reference);
@@ -463,11 +465,10 @@ test.each(["rss", "jackett"] as const)(
 			() => [reference.id],
 			async (previous) => {
 				try {
-					f.sources.publish(
-						await f.sources.refresh(f.sources.reference(previous.id)),
-					);
+					const publication = await f.sources.collect(previous.id);
+					publication.commit(() => {});
 				} catch {
-					f.sources.failed(previous, "upstream_failure");
+					/* The stale failure must remain ignored by Sources. */
 				}
 			},
 		);

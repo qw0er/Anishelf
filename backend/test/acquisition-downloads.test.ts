@@ -623,7 +623,7 @@ test("direct subscription save binds the current target without a source request
 	await downloads.validate(dest.revision);
 	const input = {
 		workKey: key,
-		rssUrl: "https://example.org/new-feed",
+		source: { kind: "feed" as const, url: "https://example.org/new-feed" },
 		startEpisode: 1,
 		revision: f.db.acquisition.subscription(key)?.revision ?? null,
 		destinationRevision: dest.revision,
@@ -965,7 +965,7 @@ test("subscription save rolls back binding, subscription, candidates and permiss
 		sources = f.db.acquisition.sources();
 	const input = {
 		workKey: key,
-		rssUrl: "https://example.org/other-feed",
+		source: { kind: "feed" as const, url: "https://example.org/other-feed" },
 		startEpisode: 2,
 		revision: before?.revision ?? null,
 		destinationRevision: destination.revision,
@@ -1349,7 +1349,7 @@ test("direct save flows through background selection, one download and verified 
 		const calls = f.anime.target.mock.calls.length;
 		const saved = await module.api.subscriptions.save({
 			workKey: key,
-			rssUrl: "https://example.org/automatic",
+			source: { kind: "feed" as const, url: "https://example.org/automatic" },
 			startEpisode: 1,
 			profileId: "custom:any",
 			revision: null,

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "vitest";
 import type { ReleaseEvidence } from "../src/modules/acquisition/sources/public.js";
-import { parseRss } from "../src/modules/acquisition/sources/rss/public.js";
+import { parseRss } from "../src/modules/acquisition/sources/rss/parser.js";
 import type { Candidate } from "../src/modules/acquisition/subscriptions/domain/model.js";
 import { matchesRelease } from "../src/modules/acquisition/subscriptions/domain/profile-matching.js";
 import {
@@ -395,7 +395,7 @@ test("persisted waiting and profile selection survive database/module restart an
 		database.acquisitionDownloads.saveDestination(stamp);
 		const subscription = await module.api.subscriptions.save({
 			workKey: "anilist:anime:1",
-			rssUrl: "https://example.org/rss",
+			source: { kind: "feed" as const, url: "https://example.org/rss" },
 			startEpisode: 1,
 			revision: null,
 			profileId: "builtin:efficient",

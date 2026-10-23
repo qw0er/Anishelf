@@ -72,7 +72,7 @@ export const acquisitionSourceDownloads = sqliteTable(
 		sourceId: text("source_id").notNull(),
 		generation: text("generation"),
 		descriptor: text("descriptor", { mode: "json" })
-			.$type<import("../jackett/model.js").ReleaseDownload>()
+			.$type<import("../domain/download.js").ReleaseDownload>()
 			.notNull(),
 	},
 );

@@ -39,7 +39,8 @@ flowchart LR
     Sub -->|release assessment| Anime
 ```
 
-Composition wires public capabilities and registers HTTP routes. Subscriptions does
+Sources owns its creation and HTTP registration through `createSourcesModule`.
+Composition wires selected capabilities without importing protocol implementations. Subscriptions does
 not depend on the Downloads application. Read-only configuration stamps, locked
 candidate IDs and active downloader hashes are supplied at assembly. The dedicated
 locked-candidate query does not load Activity payloads. There are no application
@@ -48,9 +49,10 @@ callback cycles, shared context inheritance, internal HTTP calls or event bus.
 ## Direct subscription save
 
 The detail form displays the validated destination and sends one
-`PUT /api/acquisition/subscriptions`. Its body contains workKey, rssUrl,
+`PUT /api/acquisition/subscriptions`. Its body contains workKey, source (a feed/search definition or null),
 startEpisode, optional profileId, expected subscription revision, destinationRevision
-and connectionGeneration. An empty RSS input keeps the existing source on edits.
+and connectionGeneration. A null source keeps the existing binding on edits. The form translates its RSS URL
+to the common feed definition.
 Save validates identity syntax, scope, profile availability and the current target
 stamp; it performs no RSS, Anime metadata or qBittorrent network request.
 
@@ -81,13 +83,16 @@ default); failures retain evidence and use exponential backoff/upstream hints.
 There is no standalone register/enable/remove lifecycle for recurring sources.
 Bindings/evidence persist independently of subscription ownership.
 
-SubscriptionWorker obtains source evidence and evaluates affected subscriptions
-asynchronously. Only after evaluation does one synchronous transaction recheck
+SubscriptionWorker obtains a prepared publication through the Sources collection
+capability and evaluates affected subscriptions
+asynchronously. Only after evaluation does its synchronous commit operation recheck
 source/subscription revisions and reserved-candidate snapshots, publish the source
 and its download references, and update candidates. A paused/changed subscription,
 new reservation or storage error cannot leave candidates published without their
 corresponding source result. Assessment failures retain candidates and are recorded
-on the subscription; source failures retain evidence and retry state in Sources.
+on the subscription; Sources records source failures and retry state internally.
+Catalog, content, transaction integration and runtime capabilities are separate;
+Subscriptions does not call source failure/publication/lifecycle primitives.
 
 `selectCandidates` retains the existing explicit-snapshot algorithm and all
 [profile semantics](acquisition-profiles.md). Already reserved choices stay locked;
@@ -159,7 +164,8 @@ seeding, task removal and data deletion remain in qBittorrent WebUI.
 | GET/PUT /api/acquisition/downloads/settings and POST .../validate | Downloads |
 | GET /api/acquisition/downloads?workKey=... and POST .../:id/retry | Downloads |
 | /api/acquisition/qbittorrent settings/check/credentials | qBittorrent adapter |
-| /api/acquisition/sources/jackett settings/indexers/probe/search | Sources |
+| /api/acquisition/sources configuration/status/test | Sources |
+| /api/acquisition/sources/connector settings/providers/probe | Sources setup |
 
 Shutdown stops/drains Downloads first, cancels Subscriptions, aborts/drains Sources
 and closes the downloader connection before database/dependent modules close.

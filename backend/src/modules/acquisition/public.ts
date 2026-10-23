@@ -1,4 +1,4 @@
-import type { SourceConnectionApi } from "./sources/public.js";
+import type { SourceManagementApi } from "./sources/public.js";
 
 export type {
 	QbittorrentApi,
@@ -12,7 +12,7 @@ import type {
 	SubscriptionsApi,
 } from "./subscriptions/public.js";
 export interface AcquisitionApi {
-	readonly sources: SourceConnectionApi;
+	readonly sources: SourceManagementApi;
 	readonly connection: QbittorrentConnectionApi;
 	readonly subscriptions: SubscriptionApi;
 	readonly downloads?: AcquisitionDownloadsApi;
@@ -42,11 +42,10 @@ export interface AcquisitionDownloadsApi {
 	): void;
 }
 
-/** HTTP activation supplies an explicit current destination/account stamp. */
+/** HTTP activation requires a current target; source setup uses the unified Sources input. */
 export type SubscriptionApi = Omit<SubscriptionsApi, "save"> & {
 	save(
-		input: Omit<SaveSubscriptionInput, "source" | "target"> & {
-			rssUrl: string;
+		input: Omit<SaveSubscriptionInput, "target"> & {
 			destinationRevision: string;
 			connectionGeneration: string;
 		},

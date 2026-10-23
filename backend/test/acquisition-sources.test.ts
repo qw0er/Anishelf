@@ -6,8 +6,8 @@ import type {
 	FeedRecord,
 	SourceStore,
 } from "../src/modules/acquisition/sources/persistence.js";
-import type { FeedTransport } from "../src/modules/acquisition/sources/public.js";
-import { rssUrl } from "../src/modules/acquisition/sources/rss/public.js";
+import type { FeedTransport } from "../src/modules/acquisition/sources/rss/ports.js";
+import { rssUrl } from "../src/modules/acquisition/sources/rss/transport.js";
 
 const cleanup: (() => Promise<unknown>)[] = [];
 afterEach(async () => {
@@ -66,7 +66,9 @@ function fixture() {
 
 test("prepared evidence stays isolated and immutable while protocol state remains private", async () => {
 	const { sources, records, transport, logs } = fixture();
-	const prepared = await sources.refresh(sources.rssReference(url));
+	const prepared = await sources.refresh(
+		sources.referenceFor({ kind: "feed", url: url }),
+	);
 	expect(records.size).toBe(0);
 	expect(sources.snapshot(prepared.id)).toBeNull();
 	expect(prepared).toMatchObject({
@@ -113,8 +115,8 @@ test("prepared evidence stays isolated and immutable while protocol state remain
 test("coalesced reads share evidence and either result can publish the same revision", async () => {
 	const { sources, transport, records } = fixture();
 	const [one, two] = await Promise.all([
-		sources.refresh(sources.rssReference(url)),
-		sources.refresh(sources.rssReference(url)),
+		sources.refresh(sources.referenceFor({ kind: "feed", url: url })),
+		sources.refresh(sources.referenceFor({ kind: "feed", url: url })),
 	]);
 	expect(transport.fetch).toHaveBeenCalledTimes(1);
 	expect(one.revision).toBe(two.revision);
@@ -126,7 +128,9 @@ test("coalesced reads share evidence and either result can publish the same revi
 
 test("a coalesced in-flight request cannot inherit a newer saved revision", async () => {
 	const { sources, transport, store } = fixture();
-	const original = await sources.refresh(sources.rssReference(url));
+	const original = await sources.refresh(
+		sources.referenceFor({ kind: "feed", url: url }),
+	);
 	sources.publish(original);
 	const pending = deferred<Awaited<ReturnType<FeedTransport["fetch"]>>>();
 	transport.fetch.mockImplementationOnce(() => pending.promise);
@@ -151,14 +155,13 @@ test("a coalesced in-flight request cannot inherit a newer saved revision", asyn
 	}
 	expect(store.feed(original.id)?.etag).toBe("newer-etag");
 	// Delayed failures must not replace newer refresh state either.
-	sources.failed(original, "upstream_failure");
 	expect(store.feed(original.id)?.error).toBeNull();
 });
 
 test("source references hide configuration and cannot be forged or reused across instances", async () => {
 	const one = fixture(),
 		two = fixture();
-	const reference = one.sources.rssReference(url);
+	const reference = one.sources.referenceFor({ kind: "feed", url: url });
 	expect(Object.keys(reference)).toEqual(["id"]);
 	expect(JSON.stringify(reference)).not.toContain("private-key");
 	expect(one.records.size).toBe(0);
@@ -186,7 +189,7 @@ test("shutdown aborts and drains in-flight reads and closes the transport once",
 		await released.promise;
 		return { xml: "response after shutdown", etag: null, lastModified: null };
 	});
-	const reference = sources.rssReference(url);
+	const reference = sources.referenceFor({ kind: "feed", url: url });
 	const reading = sources.refresh(reference);
 	const rejected = expect(reading).rejects.toMatchObject({
 		code: "ACQUISITION_UNAVAILABLE",
@@ -211,7 +214,9 @@ test("shutdown aborts and drains in-flight reads and closes the transport once",
 
 test("invalid RSS input is rejected before transport or persistence", async () => {
 	const { sources, transport, records } = fixture();
-	expect(() => sources.rssReference("http://127.0.0.1/rss")).toThrowError();
+	expect(() =>
+		sources.referenceFor({ kind: "feed", url: "http://127.0.0.1/rss" }),
+	).toThrowError();
 	expect(transport.fetch).not.toHaveBeenCalled();
 	expect(records.size).toBe(0);
 });

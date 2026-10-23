@@ -21,15 +21,12 @@ export class SubscriptionWorker {
 		return task;
 	}
 	private async runSource(feed: SourceSnapshot) {
-		const canPublish = () =>
-			this.context.options.sources.snapshot(feed.id)?.revision ===
-			feed.revision;
 		try {
-			const updated = await this.context.options.sources.refresh(
-				this.context.options.sources.reference(feed.id),
+			const publication = await this.context.options.collection.collect(
+				feed.id,
 			);
+			const updated = publication.snapshot;
 			this.context.open();
-			if (!this.context.options.sources.isCurrent(updated)) return;
 			const subscriptions = this.context.options.store
 				.subscriptions()
 				.filter(
@@ -78,8 +75,7 @@ export class SubscriptionWorker {
 				}
 			}
 			this.context.open();
-			if (!this.context.options.sources.isCurrent(updated)) return;
-			this.context.options.store.transaction(() => {
+			publication.commit(() => {
 				// No await between final checks and all writes. Newly reserved choices invalidate this evaluation.
 				for (const result of results) {
 					const current = this.context.options.store.subscription(
@@ -96,9 +92,6 @@ export class SubscriptionWorker {
 					)
 						throw new SourceError("source_conflict");
 				}
-				if (!this.context.options.sources.isCurrent(updated))
-					throw new SourceError("source_conflict");
-				this.context.options.sources.publish(updated);
 				for (const result of results) {
 					if (
 						!this.context.options.store.updateCandidates(
@@ -121,24 +114,19 @@ export class SubscriptionWorker {
 		} catch (error) {
 			if (
 				this.context.signal.aborted ||
-				!canPublish() ||
 				(error instanceof SourceError && error.code === "source_conflict")
 			)
 				return;
-			const code =
-				error instanceof SourceError ? error.code : "assessment_unavailable";
-			this.context.options.sources.failed(
-				feed,
-				code,
-				error instanceof SourceError ? error.retryAt : undefined,
-			);
 			this.context.options.logger.warn(
 				{
 					event: "acquisition.subscription_refresh_failed",
-					feedId: feed.id,
-					code,
+					sourceId: feed.id,
+					code:
+						error instanceof SourceError
+							? error.code
+							: "assessment_unavailable",
 				},
-				"Subscription refresh will retry.",
+				"Subscription refresh will retry; source failures are owned by Sources.",
 			);
 		}
 	}

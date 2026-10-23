@@ -15,24 +15,11 @@ export interface JackettUpdate {
 	origin: "bundled" | "external";
 	indexers: string[];
 }
-export interface JackettPlan {
-	generation: string;
-	indexerId: string;
-	titles: readonly string[];
-}
 export interface JackettCapabilities {
 	search: boolean;
 	limit: number;
 }
-export type { SearchCoverage } from "../domain/evidence.js";
-export type ReleaseDownload =
-	| { kind: "magnet"; uri: string }
-	| { kind: "public-torrent"; url: string }
-	| {
-			kind: "jackett-torrent";
-			generation: string;
-			indexerId: string;
-			path: string;
-			file: string;
-	  };
-export type { DownloadContent as TorrentRead } from "../domain/evidence.js";
+export type {
+	DownloadContent as TorrentRead,
+	SearchCoverage,
+} from "../domain/evidence.js";

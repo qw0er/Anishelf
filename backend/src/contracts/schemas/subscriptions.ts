@@ -1,4 +1,5 @@
 import { Type } from "typebox";
+import { SourceInputSchema } from "./sources.js";
 
 const workKey = Type.String({ minLength: 1, maxLength: 1024 });
 const revision = Type.String({ minLength: 1, maxLength: 64 });
@@ -66,7 +67,7 @@ export const SubscriptionViewSchema = Type.Object({
 export const SubscriptionSaveSchema = Type.Object(
 	{
 		workKey,
-		rssUrl: Type.String({ maxLength: 4096 }),
+		source: Type.Union([SourceInputSchema, Type.Null()]),
 		profileId,
 		startEpisode: Type.Integer({ minimum: 1, maximum: 10000 }),
 		revision: Type.Union([revision, Type.Null()]),

@@ -1,1 +1,1 @@
-export type { FeedTransport, SourceStore } from "./rss/ports.js";
+export type { SourceStore } from "./rss/ports.js";
