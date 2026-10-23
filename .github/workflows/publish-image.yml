@@ -1,6 +1,7 @@
 name: Publish container images
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*.*.*"
@@ -25,10 +26,15 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Check that the release commit belongs to main
+      - name: Check publication source
         id: check
         shell: bash
         run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "allowed=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping test image publication: select the main branch when running this workflow."
+            exit 0
+          fi
           if git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
             echo "allowed=true" >> "$GITHUB_OUTPUT"
           else
@@ -37,7 +43,7 @@ jobs:
               exit "$status"
             fi
             echo "allowed=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping image publication: the release commit is not in main."
+            echo "Skipping image publication: the selected commit is not in main."
           fi
 
   verify:
@@ -76,9 +82,13 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/qw0er/anishelf-${{ matrix.component }}
+          flavor: |
+            latest=${{ github.event_name == 'workflow_dispatch' && 'false' || 'auto' }}
           tags: |
-            type=semver,pattern={{version}}
-            type=sha,format=long
+            type=semver,pattern={{version}},enable=${{ github.event_name == 'push' }}
+            type=sha,format=long,enable=${{ github.event_name == 'push' }}
+            type=raw,value=testing,enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=raw,value=test-${{ github.sha }},enable=${{ github.event_name == 'workflow_dispatch' }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -141,9 +151,13 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/qw0er/anishelf-${{ matrix.component }}
+          flavor: |
+            latest=${{ github.event_name == 'workflow_dispatch' && 'false' || 'auto' }}
           tags: |
-            type=semver,pattern={{version}}
-            type=sha,format=long
+            type=semver,pattern={{version}},enable=${{ github.event_name == 'push' }}
+            type=sha,format=long,enable=${{ github.event_name == 'push' }}
+            type=raw,value=testing,enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=raw,value=test-${{ github.sha }},enable=${{ github.event_name == 'workflow_dispatch' }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -169,3 +183,12 @@ jobs:
           done
           docker buildx imagetools create "${args[@]}" "${images[@]}"
           docker buildx imagetools inspect "${tags[0]}"
+          {
+            echo "### Published $IMAGE"
+            echo
+            echo 'Platforms: linux/amd64 and linux/arm64'
+            echo
+            for tag in "${tags[@]}"; do
+              printf -- '- `%s`\n' "$tag"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
