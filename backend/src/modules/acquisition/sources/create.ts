@@ -6,17 +6,12 @@ import { SourceError } from "./domain/model.js";
 import { registerSourceRoutes } from "./http/routes.js";
 import { SourceRequestGate } from "./infrastructure/request-gate.js";
 import type { SourceLifecycleStore } from "./infrastructure/store.js";
-import type { SourceCollection, SourcesRuntime } from "./integration.js";
+import type { SourcesRuntime } from "./integration.js";
 import { JackettClient } from "./jackett/client.js";
 import { JackettConfigurationFile } from "./jackett/configuration.js";
 import { JackettConnection } from "./jackett/connection.js";
 import { JackettTransport } from "./jackett/transport.js";
-import type {
-	SourceConnectorApi,
-	SourceContentApi,
-	SourceManagementApi,
-	SourcesApi,
-} from "./public.js";
+import type { SourceConnectorApi, SourcesApi } from "./public.js";
 import { parseRss } from "./rss/parser.js";
 import type { FeedTransport, SourceStore } from "./rss/ports.js";
 import { RssTransport, rssUrl } from "./rss/transport.js";
@@ -95,17 +90,6 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 			? { refreshIntervalMinutes: options.refreshIntervalMinutes }
 			: {}),
 	});
-	const catalog: SourcesApi = Object.freeze<SourcesApi>({
-		configure: (input) => command(() => application.configure(input)),
-		snapshot: (id) => application.snapshot(id),
-	});
-	const content: SourceContentApi = Object.freeze<SourceContentApi>({
-		read: (reference, signal) => application.readDownload(reference, signal),
-		isCurrent: (reference) => application.isDownloadCurrent(reference),
-	});
-	const collection: SourceCollection = Object.freeze<SourceCollection>({
-		collect: (id) => application.collect(id),
-	});
 	const runtime: SourcesRuntime = Object.freeze<SourcesRuntime>({
 		start: (activeIds, poll) => application.start(activeIds, poll),
 		close: () => application.close(),
@@ -114,8 +98,12 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 		const { indexers, ...value } = connection.settings();
 		return { ...value, providers: indexers };
 	};
-	const api: SourceManagementApi = Object.freeze<SourceManagementApi>({
-		...catalog,
+	const api: SourcesApi = Object.freeze<SourcesApi>({
+		snapshot: (input) => command(() => application.snapshot(input)),
+		fetch: (input) => application.fetch(input),
+		readContent: (reference, signal) =>
+			application.readDownload(reference, signal),
+		isContentCurrent: (reference) => application.isDownloadCurrent(reference),
 		connector: Object.freeze<SourceConnectorApi>({
 			settings,
 			save: (input) =>
@@ -171,9 +159,6 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 	});
 	return {
 		api,
-		catalog,
-		content,
-		collection,
 		runtime,
 		registerHttp: (app: Parameters<typeof registerSourceRoutes>[0]) =>
 			registerSourceRoutes(app, api),

@@ -219,7 +219,7 @@ test.each(["rss", "jackett"] as const)(
 				() => [...active],
 				async (previous) => {
 					try {
-						const publication = await sources.collect(previous.id);
+						const publication = await sources.fetch(previous.id);
 						if (active.has(previous.id)) publication.commit(() => {});
 					} catch {
 						/* Sources records failures itself. */
@@ -465,7 +465,7 @@ test.each(["rss", "jackett"] as const)(
 			() => [reference.id],
 			async (previous) => {
 				try {
-					const publication = await f.sources.collect(previous.id);
+					const publication = await f.sources.fetch(previous.id);
 					publication.commit(() => {});
 				} catch {
 					/* The stale failure must remain ignored by Sources. */

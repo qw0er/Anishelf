@@ -509,6 +509,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 				config.name,
 			).toBe(
 				[
+					"acquisition_subscriptions",
 					"metadata_snapshots",
 					"acquisition_sources",
 					"acquisition_source_downloads",

@@ -1,4 +1,4 @@
-import type { SourceManagementApi } from "./sources/public.js";
+import type { SourcesApi } from "./sources/public.js";
 
 export type {
 	QbittorrentApi,
@@ -12,7 +12,7 @@ import type {
 	SubscriptionsApi,
 } from "./subscriptions/public.js";
 export interface AcquisitionApi {
-	readonly sources: SourceManagementApi;
+	readonly sources: SourcesApi;
 	readonly connection: QbittorrentConnectionApi;
 	readonly subscriptions: SubscriptionApi;
 	readonly downloads?: AcquisitionDownloadsApi;

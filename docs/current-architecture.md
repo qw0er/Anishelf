@@ -40,7 +40,7 @@ flowchart LR
 ```
 
 Sources owns its creation and HTTP registration through `createSourcesModule`.
-Composition wires selected capabilities without importing protocol implementations. Subscriptions does
+Composition shares the unified SourcesApi without importing protocol implementations. Subscriptions does
 not depend on the Downloads application. Read-only configuration stamps, locked
 candidate IDs and active downloader hashes are supplied at assembly. The dedicated
 locked-candidate query does not load Activity payloads. There are no application
@@ -56,9 +56,10 @@ to the common feed definition.
 Save validates identity syntax, scope, profile availability and the current target
 stamp; it performs no RSS, Anime metadata or qBittorrent network request.
 
-A synchronous shared-connection transaction binds the source and persists the
-subscription and accepted permission. Source binding stores an empty, unchecked
-snapshot when evidence does not exist yet. A permission failure rolls the whole
+A synchronous shared-connection transaction persists the subscription source definition
+and accepted permission. No Sources record or network request is required. Sources
+creates internal cache/backoff state when fetch first receives the definition.
+A permission failure rolls the whole
 save back. Saving the same source preserves selection history/waiting evidence;
 changed profiles remain fenced by the existing fingerprint rules until reevaluation.
 There are no preview caches, tokens, expiry rules, preview or confirm endpoints.
@@ -83,16 +84,16 @@ default); failures retain evidence and use exponential backoff/upstream hints.
 There is no standalone register/enable/remove lifecycle for recurring sources.
 Bindings/evidence persist independently of subscription ownership.
 
-SubscriptionWorker obtains a prepared publication through the Sources collection
-capability and evaluates affected subscriptions
+SubscriptionWorker obtains a prepared publication through SourcesApi.fetch and evaluates affected subscriptions
 asynchronously. Only after evaluation does its synchronous commit operation recheck
 source/subscription revisions and reserved-candidate snapshots, publish the source
 and its download references, and update candidates. A paused/changed subscription,
 new reservation or storage error cannot leave candidates published without their
 corresponding source result. Assessment failures retain candidates and are recorded
 on the subscription; Sources records source failures and retry state internally.
-Catalog, content, transaction integration and runtime capabilities are separate;
-Subscriptions does not call source failure/publication/lifecycle primitives.
+All source operations share one SourcesApi, including fetch and its atomic commit result.
+Runtime start/close is separate and belongs to composition. Subscriptions does not
+call source failure handling or private publication primitives.
 
 `selectCandidates` retains the existing explicit-snapshot algorithm and all
 [profile semantics](acquisition-profiles.md). Already reserved choices stay locked;
@@ -147,8 +148,9 @@ operator responsibility. Work directories retain the initial sanitized
 
 Subscriptions owns the existing acquisition_authorizations table and its mappings.
 Downloads owns destination, directories and intents. Sources owns source/feed and
-locator storage. The physical schema and applied migrations are unchanged by this
-refactor. Repositories share one SQLite connection for subscription saves and
+locator storage. Migration 0007 adds the subscription source definition and removes
+the foreign key that required a Sources record before saving. Existing definitions
+are backfilled from source bindings. Repositories share one SQLite connection for subscription saves and
 source/candidate publication. See [database design](database-design.md).
 
 The detail Activity view combines subscription candidates and download/import tasks.

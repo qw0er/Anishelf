@@ -22,8 +22,12 @@ export class SubscriptionWorker {
 	}
 	private async runSource(feed: SourceSnapshot) {
 		try {
-			const publication = await this.context.options.collection.collect(
-				feed.id,
+			const owner = this.context.options.store
+				.subscriptions()
+				.find((item) => item.enabled && item.feedId === feed.id);
+			if (!owner) return;
+			const publication = await this.context.options.sources.fetch(
+				owner.sourceInput ?? feed.id,
 			);
 			const updated = publication.snapshot;
 			this.context.open();

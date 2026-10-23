@@ -1,6 +1,7 @@
 import type { SourceInput } from "../../sources/public.js";
 
 export interface Subscription {
+	sourceInput?: SourceInput | null;
 	profileId?: string | null;
 	lastError?: string | null;
 	workKey: string;
@@ -32,7 +33,7 @@ export interface Candidate {
 }
 export interface SubscriptionView {
 	subscription:
-		| (Subscription & {
+		| (Omit<Subscription, "sourceInput"> & {
 				source: string;
 				checkedAt: number | null;
 				nextAttemptAt: number;

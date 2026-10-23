@@ -1,6 +1,5 @@
 import pino from "pino";
 import { expect, test, vi } from "vitest";
-import type { SourceCollection } from "../src/modules/acquisition/sources/integration.js";
 import type {
 	SourceSnapshot,
 	SourcesApi,
@@ -40,15 +39,19 @@ test("Subscriptions save and refresh an opaque source without protocol configura
 		return remote;
 	});
 	const sources: SourcesApi = {
-		configure: () => {
-			saved = { ...remote, entries: [], checkedAt: null };
-			return reference.id;
+		snapshot: () => saved ?? { ...remote, entries: [], checkedAt: null },
+		readContent: vi.fn(),
+		isContentCurrent: vi.fn(),
+		test: vi.fn(),
+		connector: {
+			settings: vi.fn(),
+			save: vi.fn(),
+			clear: vi.fn(),
+			providers: vi.fn(),
+			probe: vi.fn(),
 		},
-		snapshot: () => saved,
-	};
-	const collection: SourceCollection = {
-		collect: async (id) => {
-			expect(id).toBe(reference.id);
+		fetch: async (input) => {
+			expect(input).toMatchObject({ kind: "search" });
 			const result = await refresh(reference);
 			return {
 				snapshot: result,
@@ -78,7 +81,6 @@ test("Subscriptions save and refresh an opaque source without protocol configura
 	};
 	const discovery = new SubscriptionsApplication({
 		sources,
-		collection,
 		store: {
 			transaction: (operation) => operation(),
 			subscription: (key) => subscriptions.get(key) ?? null,

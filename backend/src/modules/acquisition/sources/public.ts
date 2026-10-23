@@ -21,19 +21,19 @@ export interface SourceSnapshot {
 	readonly error: string | null;
 }
 
-/** Catalog capability used by Subscriptions. Configuration stays at source setup. */
+/** Unified source operations; adapter implementations remain private. */
 export interface SourcesApi {
-	configure(input: SourceInput): string;
-	snapshot(id: string): SourceSnapshot | null;
-}
-/** Download capability: consumers never receive protocol configuration. */
-export interface SourceContentApi {
-	read(reference: string, signal: AbortSignal): Promise<DownloadContent>;
-	isCurrent(reference: string): boolean;
-}
-export interface SourceManagementApi extends SourcesApi {
+	snapshot(input: SourceInput | string): SourceSnapshot | null;
+	fetch(input: SourceInput | string): Promise<SourcePublication>;
+	readContent(reference: string, signal: AbortSignal): Promise<DownloadContent>;
+	isContentCurrent(reference: string): boolean;
 	readonly connector: SourceConnectorApi;
 	test(input: SourceInput | string): Promise<SourceTestResult>;
+}
+/** Source evidence and candidate writes share one synchronous transaction. */
+export interface SourcePublication {
+	readonly snapshot: SourceSnapshot;
+	commit(writeCandidates: () => void): void;
 }
 
 export type SourceInput =

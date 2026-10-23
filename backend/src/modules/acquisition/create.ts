@@ -104,8 +104,7 @@ export async function createAcquisitionModule(options: {
 				);
 			},
 		},
-		sources: sources.catalog,
-		collection: sources.collection,
+		sources: sources.api,
 		downloads: (signal) => connection.activeHashes(signal),
 		logger: options.logger,
 		...(options.now ? { now: options.now } : {}),
@@ -118,7 +117,12 @@ export async function createAcquisitionModule(options: {
 					resources: options.resources,
 					anime: options.anime,
 					ingestion: options.ingestion,
-					transport: { ...sources.content, close: async () => {} },
+					transport: {
+						read: (reference, signal) =>
+							sources.api.readContent(reference, signal),
+						isCurrent: (reference) => sources.api.isContentCurrent(reference),
+						close: async () => {},
+					},
 					connectionGeneration: () => connection.settings().generation,
 					initializeBundled: async () => {
 						await connection.initializeBundled();

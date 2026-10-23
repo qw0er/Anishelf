@@ -11,10 +11,7 @@ import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { writeAcquisitionIntents } from "../src/modules/acquisition/downloads/infrastructure/records.js";
 import { SourceContent } from "../src/modules/acquisition/sources/application/content.js";
 import { writeAcquisitionFeeds } from "../src/modules/acquisition/sources/infrastructure/records.js";
-import {
-	writeAcquisitionCandidates,
-	writeAcquisitionSubscriptions,
-} from "../src/modules/acquisition/subscriptions/infrastructure/records.js";
+import { writeAcquisitionCandidates } from "../src/modules/acquisition/subscriptions/infrastructure/records.js";
 
 test("upgrades the previous lifecycle schema without losing subscriptions, candidates, validators or accepted URL intents", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-source-upgrade-"));
@@ -77,13 +74,12 @@ test("upgrades the previous lifecycle schema without losing subscriptions, candi
 		raw.exec(
 			"DELETE FROM acquisition_sources; INSERT INTO acquisition_sources VALUES ('feed', '{\"kind\":\"rss\"}', 1, 0, NULL);",
 		);
-		writeAcquisitionSubscriptions(store, {
-			workKey: "anilist:anime:1",
-			feedId: "feed",
-			startEpisode: 1,
-			enabled: true,
-			revision: "subscription",
-		});
+		raw
+			.prepare(
+				"INSERT INTO acquisition_subscriptions (work_key, feed_id, start_episode, enabled, revision, last_error_present) VALUES (?, ?, ?, ?, ?, ?)",
+			)
+			.run("anilist:anime:1", "feed", 1, 1, "subscription", 0);
+
 		writeAcquisitionCandidates(store, {
 			id: "candidate",
 			workKey: "anilist:anime:1",
@@ -150,6 +146,12 @@ test("upgrades the previous lifecycle schema without losing subscriptions, candi
 		expect(database.acquisition.subscription("anilist:anime:1")?.revision).toBe(
 			"subscription",
 		);
+		expect(
+			database.acquisition.subscription("anilist:anime:1")?.sourceInput,
+		).toEqual({
+			kind: "feed",
+			url: "https://example.org/private/feed?key=secret",
+		});
 		expect(database.acquisition.candidates("anilist:anime:1")).toHaveLength(1);
 		expect(database.acquisitionDownloads.intent("magnet-intent")?.source).toBe(
 			"legacy:magnet-intent",
@@ -184,17 +186,48 @@ test("upgrades the previous lifecycle schema without losing subscriptions, candi
 			expect(inspected.pragma("foreign_key_check")).toEqual([]);
 			expect(
 				inspected.pragma("foreign_key_list(acquisition_subscriptions)"),
-			).toEqual(
-				expect.arrayContaining([
-					expect.objectContaining({ table: "acquisition_sources" }),
-				]),
-			);
+			).toEqual([]);
 		} finally {
 			inspected.close();
 		}
 	} finally {
 		if (raw.open) raw.close();
 		database?.close();
+		await rm(directory, { recursive: true, force: true });
+	}
+});
+
+test("subscription definitions survive reopen without a pre-registered source", async () => {
+	const directory = await mkdtemp(
+		join(tmpdir(), "anishelf-subscription-definition-"),
+	);
+	let database = ApplicationDatabase.open(directory);
+	try {
+		const sourceInput = {
+			kind: "feed" as const,
+			url: "https://example.org/rss",
+		};
+		database.acquisition.saveSubscription(
+			{
+				workKey: "anilist:anime:2",
+				feedId: "not-yet-fetched",
+				sourceInput,
+				startEpisode: 1,
+				enabled: true,
+				revision: "saved",
+			},
+			[],
+		);
+		expect(database.acquisition.sources()).toEqual([]);
+		database.close();
+		database = ApplicationDatabase.open(directory);
+		expect(database.acquisition.subscription("anilist:anime:2")).toMatchObject({
+			sourceInput,
+			revision: "saved",
+		});
+		expect(database.acquisition.sources()).toEqual([]);
+	} finally {
+		database.close();
 		await rm(directory, { recursive: true, force: true });
 	}
 });

@@ -632,6 +632,9 @@ test("direct subscription save binds the current target without a source request
 	const saved = await module.api.subscriptions.save(input);
 	expect(saved.candidates).toEqual([]);
 	expect(saved.subscription?.checkedAt).toBeNull();
+	const stored = f.db.acquisition.subscription(key);
+	expect(stored?.sourceInput).toEqual(input.source);
+	expect(stored && f.db.acquisition.source(stored.feedId)).toBeNull();
 	expect(downloads.activity(key).authorized).toBe(true);
 	await downloads.saveDestination({
 		revision: dest.revision,

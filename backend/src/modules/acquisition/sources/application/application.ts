@@ -5,10 +5,13 @@ import { SourceError } from "../domain/model.js";
 import type { SourceReference } from "../domain/reference.js";
 import { SourceEvidence } from "../infrastructure/evidence.js";
 import type { SourceLifecycleStore } from "../infrastructure/store.js";
-import type { SourceCollection, SourcePublication } from "../integration.js";
 import { JackettSource } from "../jackett/application.js";
 import type { JackettConnection } from "../jackett/connection.js";
-import type { SourceInput, SourceSnapshot, SourcesApi } from "../public.js";
+import type {
+	SourceInput,
+	SourcePublication,
+	SourceSnapshot,
+} from "../public.js";
 import { RssSource } from "../rss/application.js";
 import type { RssSourceOptions } from "../rss/ports.js";
 import { RssTransport } from "../rss/transport.js";
@@ -26,8 +29,8 @@ export interface SourcesApplicationOptions {
 	refreshIntervalMinutes?: () => number | undefined;
 }
 
-/** Private implementation. Consumers receive selected capabilities from createSourcesModule. */
-export class SourcesApplication implements SourcesApi, SourceCollection {
+/** Private implementation. Consumers receive the unified API from createSourcesModule. */
+export class SourcesApplication {
 	private readonly context: SourceContext;
 	private readonly rss: RssSource;
 	private readonly query: JackettSource;
@@ -62,9 +65,29 @@ export class SourcesApplication implements SourcesApi, SourceCollection {
 			(id) => this.evidence.read(id),
 		);
 	}
-	snapshot(id: string): SourceSnapshot | null {
-		const record = this.evidence.read(id);
-		return record ? this.project(record) : null;
+	snapshot(input: SourceInput | string): SourceSnapshot | null {
+		const reference =
+			typeof input === "string" ? null : this.referenceFor(input);
+		const record = this.evidence.read(reference?.id ?? (input as string));
+		return record
+			? this.project(record)
+			: reference
+				? this.pending(reference)
+				: null;
+	}
+	private pending(reference: SourceReference): SourceSnapshot {
+		const plan = this.query.plan(reference);
+		return Object.freeze({
+			id: reference.id,
+			revision: `pending:${reference.id}`,
+			label: plan
+				? plan.indexerId
+				: new URL(this.rss.configuration(reference)).origin,
+			entries: Object.freeze([]),
+			checkedAt: null,
+			nextAttemptAt: 0,
+			error: null,
+		});
 	}
 	private project(record: SourceRead["record"]): SourceSnapshot {
 		return Object.freeze({
@@ -76,12 +99,6 @@ export class SourcesApplication implements SourcesApi, SourceCollection {
 				record.entries.map((entry) => this.downloads.project(record.id, entry)),
 			),
 		});
-	}
-	/** One configuration boundary for feeds and search bindings. No network I/O. */
-	configure(input: SourceInput): string {
-		const reference = this.referenceFor(input);
-		this.bind(reference);
-		return reference.id;
 	}
 	referenceFor(input: SourceInput): SourceReference {
 		this.context.open();
@@ -183,10 +200,16 @@ export class SourcesApplication implements SourcesApi, SourceCollection {
 			"Source evidence published.",
 		);
 	}
-	async collect(id: string): Promise<SourcePublication> {
-		const previous = this.snapshot(id);
+	async fetch(input: SourceInput | string): Promise<SourcePublication> {
+		const reference =
+			typeof input === "string"
+				? this.reference(input)
+				: this.referenceFor(input);
+		// Register private cache/backoff state on demand; callers never register sources.
+		this.bind(reference);
+		const previous = this.snapshot(reference.id);
 		try {
-			const result = await this.refresh(this.reference(id));
+			const result = await this.refresh(reference);
 			return Object.freeze({
 				snapshot: result,
 				commit: (writeCandidates: () => void) =>
@@ -226,11 +249,21 @@ export class SourcesApplication implements SourcesApi, SourceCollection {
 				const generation = this.evidence.generation(id);
 				return generation && !this.query.current(generation)
 					? null
-					: this.evidence.due(id);
+					: (this.evidence.due(id) ?? { id, nextAttemptAt: 0 });
 			},
 			async (id) => {
 				const snapshot = this.snapshot(id);
-				if (snapshot) await poll(snapshot);
+				await poll(
+					snapshot ?? {
+						id,
+						revision: `pending:${id}`,
+						label: "",
+						entries: [],
+						checkedAt: null,
+						nextAttemptAt: 0,
+						error: null,
+					},
+				);
 			},
 		);
 		this.scheduler.start();
