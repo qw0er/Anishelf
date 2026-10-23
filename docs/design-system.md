@@ -76,7 +76,11 @@ availability line (`Local 0 / 12`). Unknown totals omit the denominator. Movies
 use a single local-availability slot. Show an additional unwatched-availability
 hint only when its count is positive. Card Tooltips and screen-reader text retain
 the source and full meaning of the compact counts; do not add nested buttons to
-whole-card links or repeat the remote-only availability sentence.
+whole-card links or repeat the remote-only availability sentence. When the server
+resolves a next unwatched playback target, show a separate poster-corner Play
+control as a sibling of the card link. Hide it when no target exists. Link directly
+to the player only when the target has one available version; multiple versions
+open the detail version chooser. Never auto-select a version on the card.
 
 Catalog search submits with Enter or its search button. Sorting and discrete
 filters apply immediately and reset pagination. Put secondary filters in an
@@ -95,6 +99,11 @@ navigation horizontally; keep the brand visible and preserve keyboard access.
 
 Work detail prioritizes the header and episode list. AniList viewing state is a
 compact row inside the title/metadata header on both local and remote details.
+Local details place a primary `Play episode N` action directly below that row.
+It targets the first available unwatched episode and opens the version chooser
+when several versions are usable. Disable it with an explanatory Tooltip when
+tracking progress is unavailable, the work is caught up, or no unwatched episode
+is available locally. Remote-only details omit the action.
 Use a status Badge, cumulative progress and the provider's total episode count;
 unknown totals show only the watched count. Keep the cumulative-progress explanation
 in a keyboard/touch-accessible Tooltip. Episode lists do not repeat the header's
@@ -132,16 +141,19 @@ keyboard/touch-accessible Tooltip. Files needing review use a compact disclosure
 with a current-page count, candidate links and pagination inside. Keep loading
 and errors visible while collapsed; candidate guidance belongs in a Tooltip.
 
-Provider airing schedules use a compact disclosure with a loaded-record count.
-Keep the provider numbering explanation in an accessible Tooltip. Expanded records
-show episode, local date/time and status in aligned rows sorted by broadcast time.
-Cached records are unverified; pagination must not imply a complete schedule or
-identify the next broadcast from an unordered partial response. Loading, cache
-markers and read failures remain visible while collapsed.
+Provider airing schedules use a compact table in the detail sidebar, beside the
+episode list, with a loaded-record count. Keep the provider numbering explanation
+in an accessible Tooltip. The table shows episode, local date/time and status in
+aligned columns sorted by broadcast time; cap its height and scroll it rather than
+pushing the remaining sidebar sections away. Cached records are unverified;
+pagination must not imply a complete schedule or identify the next broadcast from
+an unordered partial response. Loading, cache markers, partial warnings and read
+failures remain visible in the panel.
 
-Group secondary metadata,
-synopsis, schedules and relationships into on-demand sections; keep actionable
-errors and unresolved candidates discoverable. Files identification uses a compact focusable status icon with a Tooltip.
+Group secondary metadata, synopsis and relationships into on-demand sections; keep
+the airing schedule visible in the sidebar and actionable errors and unresolved
+candidates discoverable. Files identification uses a compact focusable status icon
+with a Tooltip.
 Review and associated work/episode links belong in the file action menu.
 Keep action menus focused on choices and commands; put explanatory guidance in
 Settings and report invocation failures through Toasts.

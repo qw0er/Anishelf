@@ -508,7 +508,11 @@ hydrate only the selected page.
 `recent` uses local work creation time, while `updated` uses local Catalog update
 time. Remote-only entries use their provider update time or the snapshot fetch time
 for both chronological sorts and never gain locally available-unwatched priority.
-The projection read log includes the effective sort.
+The projection read log includes the effective sort. Local cards also expose the
+first available unwatched playback target (`nextPlayback`) from the same batched
+card reads. A target with one available version includes its file and source
+version for direct playback; multiple versions expose only the episode identity
+so the detail version chooser remains authoritative.
 
 The default Web entry is the confirmed poster library, with cached search/filter
 controls, work details, ordered episodes and explicit resource-version selection.

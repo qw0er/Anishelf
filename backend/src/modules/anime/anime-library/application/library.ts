@@ -4,7 +4,11 @@ import {
 	workKey,
 	workReference,
 } from "../../../../shared/external-reference.js";
-import type { AnimeCatalogApi, WorkCard } from "../../anime-catalog/public.js";
+import type {
+	AnimeCatalogApi,
+	EpisodePlaybackTarget,
+	WorkCard,
+} from "../../anime-catalog/public.js";
 import type {
 	TrackingListEntry,
 	TrackingListsApi,
@@ -88,6 +92,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 				metadataStale: false,
 				hasCover: false,
 				remoteCoverUrl: null,
+				nextPlayback: null,
 				viewing: viewing ? viewingState(viewing) : null,
 				viewingAvailability:
 					work.reference.provider !== tracking.provider.key
@@ -119,6 +124,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 					metadataStale: tracking.stale,
 					hasCover: false,
 					remoteCoverUrl: entry.coverUrl,
+					nextPlayback: null,
 					viewing: viewingState(entry),
 					viewingAvailability: "tracked",
 				});
@@ -192,6 +198,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 				remoteCount: items.length - localIds.length,
 				trackingState: tracking.state,
 				localState: index ? "available" : "unavailable",
+				nextPlaybackCount: items.filter((card) => card.nextPlayback).length,
 			},
 			"Anime library projection read.",
 		);
@@ -260,19 +267,35 @@ function matches(entry: TrackingListEntry, query: AnimeLibraryQuery) {
 	);
 }
 function localCard(card: LibraryCard, work: WorkCard | undefined): LibraryCard {
-	return work
-		? {
-				...card,
-				availableEpisodes: work.availableEpisodes,
-				availableUnwatchedEpisodes:
-					card.viewing && work.availableTrackingEpisodes
-						? work.availableTrackingEpisodes.filter(
-								(number) => number > (card.viewing?.progress ?? 0),
-							).length
-						: null,
-				availableRegularEpisodes: work.availableRegularEpisodes,
-				hasCover: work.hasCover,
-				metadataStale: work.metadataStale,
-			}
-		: card;
+	if (!work) return { ...card, nextPlayback: null };
+	const targets = work.availableEpisodeTargets ?? [];
+	const progress = card.viewing?.progress ?? null;
+	const unwatched =
+		progress === null
+			? []
+			: targets.filter((target) => Number(target.number) > progress);
+	return {
+		...card,
+		availableEpisodes: work.availableEpisodes,
+		availableUnwatchedEpisodes: progress === null ? null : unwatched.length,
+		availableRegularEpisodes: work.availableRegularEpisodes,
+		hasCover: work.hasCover,
+		metadataStale: work.metadataStale,
+		nextPlayback: nextPlayback(unwatched[0]),
+	};
+}
+function nextPlayback(
+	target: EpisodePlaybackTarget | undefined,
+): LibraryCard["nextPlayback"] {
+	if (!target) return null;
+	const versions = target.versions;
+	if (versions.length === 0) return null;
+	const only = versions.length === 1 ? versions[0] : undefined;
+	return {
+		episodeId: target.episodeId,
+		episodeNumber: target.number,
+		versionCount: versions.length,
+		fileId: only?.fileId ?? null,
+		sourceVersion: only?.sourceVersion ?? null,
+	};
 }

@@ -6,8 +6,10 @@ import { airedEpisodeCount, fuzzyDate, safeLink } from "../detail-format.js";
 export function WorkMetadataHeader({
 	data,
 	viewing,
+	action,
 }: {
 	viewing?: ReactNode;
+	action?: ReactNode;
 	data: {
 		metadata: LocalWorkDetailResponse["metadata"];
 		work: Pick<
@@ -49,6 +51,9 @@ export function WorkMetadataHeader({
 						.join(" · ")}
 				</p>
 				{viewing}
+				{action && (
+					<div className="flex flex-wrap items-center gap-2">{action}</div>
+				)}
 				<dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
 					{[
 						["format", work.format?.replaceAll("_", " ")],

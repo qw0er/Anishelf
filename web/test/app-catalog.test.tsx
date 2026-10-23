@@ -14,6 +14,57 @@ import {
 } from "./support/app-fixture.js";
 import { trackingProvider } from "./tracking-fixture.js";
 
+test("library cards expose the server next playback target", async () => {
+	const detail = animeFixture();
+	mockAnime(detail);
+	const fallback = requiredFetch(fetcher.getMockImplementation());
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input).startsWith("/api/anime/library?"))
+			return json({
+				items: [
+					{
+						...detail.work,
+						localWorkId: detail.work.id,
+						viewing: { status: "watching", progress: 0, updatedAt: 1 },
+						availableUnwatchedEpisodes: 2,
+						nextPlayback: {
+							episodeId: "ep-1",
+							episodeNumber: "1",
+							versionCount: 1,
+							fileId: "file-1",
+							sourceVersion: "source-v1",
+						},
+					},
+				],
+				page: 1,
+				perPage: 24,
+				hasNextPage: false,
+				localState: "available",
+				tracking: {
+					provider: trackingProvider,
+					accountId: null,
+					generation: "fixture",
+					state: "disconnected",
+					fetchedAt: null,
+					stale: true,
+					refreshing: false,
+					error: null,
+				},
+			});
+		return fallback(input, init);
+	});
+	renderApp("/");
+	const play = await screen.findByRole("link", {
+		name: "Play episode 1: Frieren",
+	});
+	const href = play.getAttribute("href") ?? "";
+	expect(href).toContain("/files/file-1");
+	expect(href).toContain("anime=work-1");
+	expect(href).toContain("episode=ep-1");
+	expect(href).toContain("version=source-v1");
+	expect(href).toContain("library=%2F");
+});
+
 test("poster library filters local titles, preserves return context and selects an actual source version", async () => {
 	const detail = animeFixture();
 	mockAnime(detail);
@@ -321,11 +372,11 @@ test("airing pagination retains browsing and unknown schedule evidence never mar
 		return fallback(input, init);
 	});
 	renderApp("/anime/work-1");
-	await screen.findByText("Episode 3");
+	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+	expect(screen.getByText("Provider airing schedule")).toBeTruthy();
 	expect(document.getElementById("episode-ep-3")?.textContent).toContain(
 		"Airing information is unknown",
 	);
-	fireEvent.click(screen.getByText("Provider airing schedule"));
 	fireEvent.click(
 		await screen.findByRole("button", { name: "Load more airing records" }),
 	);
@@ -334,6 +385,10 @@ test("airing pagination retains browsing and unknown schedule evidence never mar
 			"Not yet aired",
 		),
 	);
+	const table = await screen.findByRole("table", {
+		name: "Provider airing schedule",
+	});
+	expect(within(table).getByText("Episode 3")).toBeTruthy();
 	expect(screen.getByRole("button", { name: "Play: Episode 1" })).toBeTruthy();
 });
 
@@ -903,6 +958,96 @@ test("poster sorting defaults to unwatched first and exposes all four choices", 
 			sort === "unwatched" ? null : sort,
 		);
 	}
+});
+
+function connectAnimeViewing(progress: number) {
+	const fallback = requiredFetch(fetcher.getMockImplementation());
+	const tracking: AnimeLibraryResponse["tracking"] = {
+		provider: trackingProvider,
+		accountId: "anilist:7",
+		generation: "detail-fixture",
+		state: "connected",
+		fetchedAt: 1000,
+		stale: false,
+		refreshing: false,
+		error: null,
+	};
+	fetcher.mockImplementation(async (input, init) => {
+		const path = String(input);
+		if (path === "/api/tracking/account")
+			return json({
+				provider: trackingProvider,
+				generation: tracking.generation,
+				account: { id: "anilist:7", name: "Fixture" },
+				state: "connected",
+				connectivity: "available",
+				checkedAt: 0,
+			});
+		if (path.startsWith("/api/tracking/entries/anilist%3Aanime%3A154587?"))
+			return json({
+				...tracking,
+				entry: {
+					id: "anilist:1",
+					mediaId: "anilist:anime:154587",
+					progress,
+					status: "watching",
+					updatedAt: 1,
+					titles: ["Frieren"],
+					format: "TV",
+					year: 2023,
+					episodeCount: 3,
+					coverUrl: null,
+				},
+			});
+		return fallback(input, init);
+	});
+}
+
+test("detail keeps next playback visible but disabled without tracking progress", async () => {
+	mockAnime(animeFixture());
+	renderApp("/anime/work-1");
+	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+	const action = screen.getByRole("button", { name: "Play next episode" });
+	expect(action.hasAttribute("disabled")).toBe(true);
+});
+
+test("detail next playback opens the version chooser for the next unwatched episode", async () => {
+	mockAnime(animeFixture());
+	connectAnimeViewing(0);
+	renderApp("/anime/work-1");
+	const action = await screen.findByRole("button", { name: "Play episode 1" });
+	fireEvent.click(action);
+	const dialog = await screen.findByRole("dialog", {
+		name: /Choose a file version/,
+	});
+	expect(within(dialog).getAllByText(/1080p · Group A/)).toHaveLength(3);
+});
+
+test("detail next playback navigates directly when the target has one version", async () => {
+	const detail = animeFixture();
+	const episode = detail.episodes[0];
+	if (!episode) throw new Error("Missing fixture episode");
+	episode.versions = episode.versions.slice(0, 1);
+	mockAnime(detail);
+	connectAnimeViewing(0);
+	renderApp("/anime/work-1");
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Play episode 1" }),
+	);
+	await screen.findByLabelText("Video: Episode 01.mp4");
+});
+
+test("the card play link opens the next episode chooser through the detail route", async () => {
+	mockAnime(animeFixture());
+	connectAnimeViewing(0);
+	renderApp("/anime/work-1?play=next");
+	const dialog = await screen.findByRole("dialog", {
+		name: /Choose a file version/,
+	});
+	expect(within(dialog).getAllByText(/1080p · Group A/)).toHaveLength(3);
+	await waitFor(() =>
+		expect(screen.getByTestId("location").textContent).not.toContain("play="),
+	);
 });
 
 test("detail reads viewing, subscription and activity through one aggregate request", async () => {

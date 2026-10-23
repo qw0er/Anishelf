@@ -142,8 +142,16 @@ export interface Page<T> {
 	perPage: number;
 	hasNextPage: boolean;
 }
+export interface EpisodePlaybackTarget {
+	episodeId: string;
+	number: string;
+	versions: {
+		fileId: string;
+		sourceVersion: string;
+	}[];
+}
 export interface WorkCard extends LocalWork {
-	availableTrackingEpisodes?: number[];
+	availableEpisodeTargets?: EpisodePlaybackTarget[];
 	displayTitle: string;
 	hasCover: boolean;
 	metadataStale: boolean;

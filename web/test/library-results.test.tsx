@@ -21,6 +21,7 @@ const work: Card = {
 	availableEpisodes: 0,
 	availableRegularEpisodes: 0,
 	availableUnwatchedEpisodes: 0,
+	nextPlayback: null,
 	metadataStale: false,
 	coverUrl: null,
 	viewingAvailability: "tracked",
@@ -41,6 +42,7 @@ test("cards retain compact counts and accessible meaning without zero-count boil
 	expect(within(card).queryByText(/Aired/)).toBeNull();
 	expect(within(card).queryByText(/unwatched available/)).toBeNull();
 	expect(within(card).queryByRole("button")).toBeNull();
+	expect(screen.queryByRole("link", { name: /Play episode/ })).toBeNull();
 	expect(card.getAttribute("href")).toContain("library=");
 	expect(card.getAttribute("aria-describedby")).toBeTruthy();
 	const description = document.getElementById(
@@ -101,4 +103,53 @@ test("a missing cross-provider mapping is visible and is never presented as untr
 		within(card).getByText("No confirmed mapping to the tracking provider."),
 	).toBeTruthy();
 	expect(within(card).queryByText("Not on the tracking service")).toBeNull();
+});
+
+test("a unique next playback links from the card directly to the player and remains outside the card link", () => {
+	show([
+		{
+			...work,
+			availableUnwatchedEpisodes: 2,
+			nextPlayback: {
+				episodeId: "episode-4",
+				episodeNumber: "4",
+				versionCount: 1,
+				fileId: "file-4",
+				sourceVersion: "source-v4",
+			},
+		},
+	]);
+	const card = screen.getByRole("link", { name: "Example" });
+	const play = screen.getByRole("link", { name: "Play episode 4: Example" });
+	const href = play.getAttribute("href") ?? "";
+	expect(href).toContain("/files/file-4");
+	expect(href).toContain("anime=work");
+	expect(href).toContain("episode=episode-4");
+	expect(href).toContain("version=source-v4");
+	expect(href).toContain("library=%2F%3Fscope%3Dall");
+	expect(card.contains(play)).toBe(false);
+});
+
+test("a multi-version next playback sends the card to the detail version chooser", () => {
+	show([
+		{
+			...work,
+			availableUnwatchedEpisodes: 2,
+			nextPlayback: {
+				episodeId: "episode-4",
+				episodeNumber: "4",
+				versionCount: 2,
+				fileId: null,
+				sourceVersion: null,
+			},
+		},
+	]);
+	const play = screen.getByRole("link", { name: "Play episode 4: Example" });
+	const href = play.getAttribute("href") ?? "";
+	expect(href).toContain("/anime/work?");
+	expect(href).toContain("play=next");
+	expect(href).toContain("library=%2F%3Fscope%3Dall");
+	expect(
+		screen.getByRole("link", { name: "Example" }).getAttribute("href"),
+	).not.toContain("play=");
 });
