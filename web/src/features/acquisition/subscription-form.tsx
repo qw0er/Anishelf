@@ -184,7 +184,8 @@ export function SubscriptionForm({
 				!validProfile ||
 				!sourceReady) &&
 				!destination.isPending &&
-				!profiles.isPending && (
+				!profiles.isPending &&
+				(!needsSource || !sources.isPending) && (
 					<p role="alert" className="text-sm">
 						{t(
 							!target?.validated

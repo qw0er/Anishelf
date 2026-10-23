@@ -28,7 +28,8 @@ progress (at least 10000) does not create a progress-based subscription.
   eligible release. A later site outage does not silently switch the pin.
 - Watching checks every 30 seconds and creates at most five subscriptions per pass.
   Subscriptions separately resolves at most five pending sources per 30-second pass;
-  unresolved discovery retries after five minutes. Configured source refresh is
+  unresolved discovery retries after five minutes. Check updates retries pending
+  discovery immediately, subject to Sources transport limits. Configured source refresh is
   30 minutes by default. Capacity is 64 subscriptions and 500 current Watching works.
 - Turning Watching off stops new subscription creation. Existing subscriptions keep
   working. Changing Tracking status, progress or account does not overwrite or stop
@@ -41,7 +42,9 @@ The Header row in work details shows one short state, Activity and an actions me
 The editor initially shows starting episode and effective defaults. Activity shows
 active downloads/imports and actionable failures. History and grouped Diagnostics
 are secondary; release filenames and skipped reasons do not fill the page by default.
-Use qBittorrent WebUI for transfer controls and seeding.
+Diagnostics also shows the most recent source check, attempted sites and their
+outcomes/coverage. It survives restart. Use qBittorrent WebUI for transfer controls
+and seeding. Refreshed work details switch to the local episode view after ingestion.
 
 ## Recovery and upgrade
 

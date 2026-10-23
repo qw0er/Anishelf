@@ -1,6 +1,6 @@
 # Automatic Acquisition: Current Iteration Architecture
 
-Date: 2026-10-23. The responsibility refactor and direct subscription-save path are
+Date: 2026-10-24. The responsibility refactor and direct subscription-save path are
 implemented, including opt-in Watching reconciliation, ordered source discovery and
 search subscriptions. Automated checks, user-reported manual pipeline acceptance
 and pending live Watching acceptance are separate. See
@@ -51,7 +51,7 @@ callback cycles, shared context inheritance, internal HTTP calls or event bus.
 ## Direct subscription save
 
 The detail form displays the validated destination and sends one
-`PUT /api/acquisition/subscriptions`. Its body contains workKey, source (a feed/search definition or null),
+`PUT /api/acquisition/subscriptions`. Its body contains workKey, source (automatic, a feed/search definition or null),
 startEpisode, optional profileId, expected subscription revision, destinationRevision
 and connectionGeneration. A null source keeps the existing binding on edits. The form translates its RSS URL
 to the common feed definition.
@@ -61,10 +61,12 @@ stamp; it performs no RSS, Anime metadata or qBittorrent network request.
 A synchronous shared-connection transaction persists the subscription source definition
 and accepted permission. No Sources record or network request is required. Sources
 creates internal cache/backoff state when fetch first receives the definition.
-A permission failure rolls the whole
+Automatic choices retain a nullable source and defer permission until atomic background
+binding; explicit sources accept permission during save. A permission failure rolls the whole
 save back. Saving the same source preserves selection history/waiting evidence;
 changed profiles remain fenced by the existing fingerprint rules until reevaluation.
-There are no preview caches, tokens, expiry rules, preview or confirm endpoints.
+Per-work saving needs no preview token or confirmation session. Global Watching
+activation separately retains its session-bound preview/confirmation endpoints.
 
 HTTP activation requires a validated destination belonging to the current downloader
 account. Internal subscription commands can explicitly save a discovery-only scope;
@@ -74,8 +76,8 @@ acquisition only by saving against the displayed current target. New source/epis
 scope or destination/account changes require a matching permission before submission.
 
 Pausing stops new reservations/submissions while transfers and imports continue.
-Removal preserves accepted tasks and source/download evidence. AniList status has
-no automatic acquisition effect until Watching reconciliation is implemented.
+Removal preserves accepted tasks and source/download evidence. Watching creates missing ordinary subscriptions. Later AniList status changes do
+not change existing subscriptions.
 
 ## Background collection and publication
 
@@ -255,3 +257,19 @@ Watching creation-only behavior, user management, activity ordering, HTTP/sessio
 CSRF and frontend defaults/diagnostics. These checks are separate from real-service
 acceptance. Source/import fixtures and browser fixture actions do not enable the
 user's actual account or prove real media playback.
+
+
+### Subscription interaction completion (2026-10-24)
+
+The editor keeps an opening snapshot until close/save, so background binding revisions
+cannot remount it or discard unsaved values. Optimistic revision checks still reject
+stale saves instead of silently rebasing permission. Check updates explicitly bypasses
+the pending subscription's local retry delay while retaining Sources transport limits.
+Migration 0011 stores the latest bounded source-discovery diagnostic snapshot; normal
+detail reads omit it and Activity requests it lazily. Backend lifecycle logs retain
+attempt/defer/bind outcomes without exposing credentials or private download URLs.
+
+Tracked work details switch with replace navigation to the local detail route as soon
+as refreshed aggregate data includes a local work. The local work ID is authoritative;
+library filters and other query context survive the transition. Existing local detail
+polling updates episodes without remounting the playback or episode-selection owner.

@@ -967,6 +967,14 @@
 			"findSource": "Find a source",
 			"discoveryFailed": "Source discovery failed. Check source sites and downloader availability in Settings, then retry.",
 			"sourceResults": "Source discovery results",
+			"lastDiscovery": "Last source check: {{time}}",
+			"discoveryUnavailable": "Source discovery could not finish. Retry after the service recovers.",
+			"attempt": {
+				"matched": "Eligible releases found",
+				"no_match": "No matching releases",
+				"no_eligible": "No eligible releases",
+				"unavailable": "Site unavailable"
+			},
 			"matched": "Eligible releases found",
 			"noMatch": "No matching releases",
 			"noEligible": "No eligible releases",

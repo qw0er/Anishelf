@@ -1,7 +1,7 @@
 # Subscription Interaction Redesign Plan
 
 Date: 2026-10-24 (Asia/Shanghai).
-Status: implemented on 2026-10-24. The user selected the Header row layout.
+Status: implementation delivered on 2026-10-24; real-service acceptance remains pending. The user selected the Header row layout.
 Application regression and responsive fixture verification are recorded below.
 
 ## Problem and intended experience
@@ -224,6 +224,32 @@ would leave the underlying workflow problem unchanged.
   isolated browser checks are used for delivery verification. Fixture proof does not
   establish real Jackett/qBittorrent/shared-storage/playback acceptance. No real
   account automation was activated during this refactor.
-- Final regression: 82 backend files (1,178 passed, one skipped), 48 frontend files
-  (369 passed) and 64 architecture checks passed. Biome, lint, type checks and the
+- Final regression: 82 backend files (1,179 passed, one skipped), 48 frontend files
+  (373 passed) and 64 architecture checks passed. Biome, lint, type checks and the
   production build passed. The build retains its existing large-chunk warning.
+
+
+## Completion audit follow-up
+
+- Open editors retain their accepted revision and local inputs through background
+  binding/refetch; closing and reopening loads current saved values. Stale saves
+  remain revision-checked and show inline errors.
+- Check updates retries pending discovery during the subscription's local retry delay;
+  scheduled retries retain that delay and Sources still enforces transport limits.
+- Migration 0011 persists the latest source attempt snapshot, including time, provider
+  outcomes, reasons and coverage. It survives restart/binding and is fetched only in
+  Diagnostics. New automatic scope edits clear the old snapshot.
+- Tracked detail refetch switches to the authoritative local work route when local
+  resources appear, preserving the library return context and showing episode controls.
+- Search subscriptions, architecture, requirements and database documentation now
+  describe the unified background-discovery model. Live Watching/source/downloader/
+  ingestion/playback acceptance remains a separate, explicitly pending check.
+
+
+Follow-up verification on 2026-10-24: backend 1,179 passed/one skipped, frontend 373
+passed, architecture 64 passed, Biome/lint/type checks and production build passed.
+An isolated browser exercised the real detail components: simulated verified import
+was detected by the existing five-second poll and automatically replaced the remote
+view with local episodes. Desktop and 390 px Diagnostics showed saved provider
+outcomes and coverage without overflow. Temporary fixture pages and server were
+removed. These observations use fake service responses, not a live account or download.

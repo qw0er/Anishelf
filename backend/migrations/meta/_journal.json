@@ -78,6 +78,13 @@
 			"when": 1792773533517,
 			"tag": "0010_unified_subscriptions",
 			"breakpoints": true
+		},
+		{
+			"idx": 11,
+			"version": "6",
+			"when": 1792778179346,
+			"tag": "0011_subscription_discovery_diagnostics",
+			"breakpoints": true
 		}
 	]
 }

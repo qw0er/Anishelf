@@ -280,3 +280,16 @@ Keep an attention indicator in the collapsed header row. Show Settings only for
 configuration-related failures and acquisition/import retry or Review only when
 appropriate. Use Toasts for operation results; retain form validation/conflicts
 inline without discarding user input. qBittorrent WebUI owns transfer controls.
+
+
+Keep an open subscription editor's input and disclosure state stable when background
+queries report a new revision. Capture the accepted edit revision at opening; stale
+saves fail inline without discarding input. Closing and reopening loads current values.
+Check updates must attempt pending discovery immediately while respecting service
+transport limits. Diagnostics shows the last source-check time, attempted sites,
+outcomes, coverage warnings and rejection reasons only on demand.
+
+When refreshed tracked detail data acquires a local work, replace the remote-only
+route with its local detail route and expose the episode/resource controls immediately.
+Preserve library return filters and query context. A remote-only message must not
+remain visible after the authoritative detail response includes local resources.

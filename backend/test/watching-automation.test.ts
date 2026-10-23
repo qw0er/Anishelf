@@ -9,6 +9,7 @@ import { builtinPolicy } from "../src/app/policy.js";
 import { createSourcesModule } from "../src/modules/acquisition/sources/create.js";
 import { JackettConnection } from "../src/modules/acquisition/sources/jackett/connection.js";
 import { SubscriptionsApplication } from "../src/modules/acquisition/subscriptions/application/application.js";
+import { SubscriptionDiscovery } from "../src/modules/acquisition/subscriptions/application/discovery.js";
 import { WatchingApplication } from "../src/modules/acquisition/watching/application/application.js";
 import { registerWatchingRoutes } from "../src/modules/acquisition/watching/http/routes.js";
 import type { WatchingSnapshot } from "../src/modules/acquisition/watching/public.js";
@@ -225,6 +226,12 @@ test("empty discovery retains intent, freezes its creation scope, retries and su
 	await f.sources.runtime.close();
 	f.db.close();
 	const reopened = await f.open();
+	expect(reopened.subscriptions.get(workKey).discovery?.attempts).toEqual([
+		expect.objectContaining({ providerId: "nyaasi", outcome: "no_match" }),
+	]);
+	expect(
+		reopened.subscriptions.get(workKey, 1, false).discovery,
+	).toBeUndefined();
 	f.advance();
 	await reopened.subscriptions.resolvePending();
 	expect(reopened.db.acquisition.authorization(workKey)?.startEpisode).toBe(3);
@@ -561,4 +568,31 @@ test("Watching HTTP routes require login, CSRF and the preview's actual session"
 	});
 	expect(disabled.statusCode).toBe(200);
 	expect(disabled.json().enabled).toBe(false);
+});
+
+test("manual refresh retries pending discovery during its local backoff and preserves diagnostics", async () => {
+	const f = await fixture();
+	const discover = vi.spyOn(SubscriptionDiscovery.prototype, "search");
+	await f.enable();
+	await f.watching.tick();
+	f.search.mockResolvedValueOnce({
+		entries: [],
+		outcome: "no_match",
+		coverage: { limited: true, reason: "item_limit", pages: 1, queries: 1 },
+	});
+	await f.subscriptions.resolvePending();
+	expect(discover).toHaveBeenCalledTimes(1);
+	expect(f.subscriptions.get(workKey).discovery?.attempts[0]).toMatchObject({
+		outcome: "no_match",
+		limited: true,
+	});
+	await f.subscriptions.resolvePending();
+	expect(discover).toHaveBeenCalledTimes(1);
+	const revision = required(f.db.acquisition.subscription(workKey)).revision;
+	await f.subscriptions.refresh(workKey, revision);
+	expect(discover).toHaveBeenCalledTimes(2);
+	expect(f.subscriptions.get(workKey).discovery?.attempts[0]).toMatchObject({
+		outcome: "matched",
+	});
+	expect(f.db.acquisition.authorization(workKey)).not.toBeNull();
 });

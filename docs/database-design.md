@@ -4,7 +4,7 @@ SQLite and Drizzle remain the persistence mechanisms. The initial migration
 `0000_relational_schema` creates the original 78 business tables.
 `0001_snapshot_payloads` replaces thirteen metadata collection tables and detail
 columns with a JSON projection and adds durable media inspections. The current
-schema has 69 business tables after migrations through `0010`; Drizzle's journal is infrastructure.
+schema has 69 business tables after migrations through `0011`; Drizzle's journal is infrastructure.
 `0002_anime_work_information` centralizes current work summaries and removes
 the Catalog and per-account Tracking description copies.
 SQLite `user_version = 1` identifies this supported database family.
@@ -148,3 +148,12 @@ Acquisition candidate `selection` is a small JSON decision snapshot (profile ide
 level, first-seen/eligible times and effective seed count), read as a whole rather
 than queried by JSON paths. Feed seed observations and subscription profile IDs
 remain columns; candidate identity/status and episode are also columns.
+
+
+Migration 0011 adds acquisition_subscriptions.discovery, a nullable JSON snapshot of
+the last background source-discovery check. It contains a check timestamp and bounded
+provider attempts (safe outcome/code/reasons and coverage flags). Each check replaces
+the previous snapshot; subscription deletion removes it. Credentials, raw responses
+and download locators are excluded. It survives restart and successful binding but
+is reset when a new automatic scope is saved. Ordinary detail responses omit it;
+explicit diagnostics reads return it.

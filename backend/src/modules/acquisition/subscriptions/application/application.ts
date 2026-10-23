@@ -136,8 +136,10 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 						sourceKind:
 							subscription.sourceInput?.kind ??
 							(subscription.automatic ? "automatic" : "feed"),
-						checkedAt: feed?.checkedAt ?? null,
-						nextAttemptAt: feed?.nextAttemptAt ?? 0,
+						checkedAt:
+							feed?.checkedAt ?? subscription.discovery?.checkedAt ?? null,
+						nextAttemptAt:
+							feed?.nextAttemptAt ?? subscription.automatic?.retryAt ?? 0,
 						error: sourceError ?? feed?.error ?? subscription.lastError ?? null,
 					}
 				: null,
@@ -146,6 +148,9 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				: [],
 			total: candidates.length,
 			page,
+			...(diagnostics && subscription?.discovery
+				? { discovery: subscription.discovery }
+				: {}),
 		};
 	}
 	async save(input: SaveSubscriptionInput): Promise<SubscriptionView> {
@@ -223,6 +228,9 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				: input.source?.kind !== "automatic"
 					? (input.source ?? current?.sourceInput ?? null)
 					: null,
+			...(current?.discovery && !automatic
+				? { discovery: current.discovery }
+				: {}),
 			...(current?.createdBy ? { createdBy: current.createdBy } : {}),
 			...(automatic && selectedProfile
 				? {
@@ -327,7 +335,11 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			if (!subscription?.enabled || subscription.revision !== revision)
 				conflict();
 			if (!subscription.feedId && subscription.automatic) {
-				await this.pending.resolve(subscription);
+				this.options.logger.info(
+					{ event: "acquisition.subscription_discovery_requested", workKey },
+					"Manual check retries pending source discovery without its local delay.",
+				);
+				await this.pending.resolve(subscription, true);
 				const resolved = this.options.store.subscription(workKey);
 				if (resolved?.enabled && resolved.feedId) {
 					const feed = this.options.sources.snapshot(

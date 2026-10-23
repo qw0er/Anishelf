@@ -2,7 +2,7 @@ import { workKey } from "@anishelf/backend/contracts/references";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useParams, useSearchParams } from "react-router";
+import { Link, Navigate, useParams, useSearchParams } from "react-router";
 import type { AnimeDetailResponse } from "../../../../shared/api/contracts.js";
 import { useQueryScope } from "../../../../shared/api/queries.js";
 import {
@@ -40,6 +40,16 @@ export function TrackedAnimeDetail({
 					{t("actions.retry")}
 				</Button>
 			</section>
+		);
+	if (query.data.local)
+		return (
+			<Navigate
+				replace
+				to={{
+					pathname: `/anime/${encodeURIComponent(query.data.local.work.id)}`,
+					search: params.toString() ? `?${params}` : "",
+				}}
+			/>
 		);
 	return (
 		<TrackedDetail
