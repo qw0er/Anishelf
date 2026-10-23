@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, useLocation } from "react-router";
+import LanguageToggle from "../../shared/components/language-toggle.js";
 import ThemeToggle from "../../shared/components/theme-toggle.js";
 import { buttonStyles } from "../../shared/components/ui/button.js";
 import { Tooltip } from "../../shared/components/ui/tooltip.js";
@@ -78,6 +79,7 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 									</NavLink>
 								</Tooltip>
 							))}
+							<LanguageToggle />
 							<ThemeToggle />
 						</div>
 					</nav>
