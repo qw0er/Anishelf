@@ -56,7 +56,7 @@ export const acquisitionFeedsEntries = sqliteTable(
 export const acquisitionSources = sqliteTable("acquisition_sources", {
 	id: text("id").primaryKey().notNull(),
 	binding: text("binding", { mode: "json" })
-		.$type<import("../lifecycle.js").ManagedSource["binding"]>()
+		.$type<import("./store.js").ManagedSource["binding"]>()
 		.notNull(),
 	enabled: integer("enabled", { mode: "boolean" }).notNull(),
 	failures: integer("failures").notNull(),

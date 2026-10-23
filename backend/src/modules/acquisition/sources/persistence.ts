@@ -5,5 +5,5 @@ export type {
 	ManagedSource,
 	SourceDownload,
 	SourceLifecycleStore,
-} from "./lifecycle.js";
+} from "./infrastructure/store.js";
 export type { SourceStore } from "./rss/ports.js";

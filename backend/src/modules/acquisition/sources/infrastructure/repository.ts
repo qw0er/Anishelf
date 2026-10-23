@@ -1,18 +1,18 @@
 import { eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import type { FeedRecord } from "../domain/model.js";
-import type {
-	ManagedSource,
-	SourceDownload,
-	SourceLifecycleStore,
-} from "../lifecycle.js";
-import type { SourceStore } from "../ports.js";
+import type { SourceStore } from "../rss/ports.js";
 import { readAcquisitionFeeds, writeAcquisitionFeeds } from "./records.js";
 import {
 	acquisitionSourceDownloads,
 	acquisitionSources,
 	acquisitionFeeds as feeds,
 } from "./schema.js";
+import type {
+	ManagedSource,
+	SourceDownload,
+	SourceLifecycleStore,
+} from "./store.js";
 export class SourceRepository implements SourceStore, SourceLifecycleStore {
 	constructor(private readonly store: Store) {}
 	transaction(operation: () => void) {

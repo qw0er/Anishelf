@@ -26,7 +26,7 @@ import {
 	type QbittorrentApi,
 	QbittorrentError,
 } from "../src/modules/acquisition/qbittorrent/public.js";
-import { SourceDownloads } from "../src/modules/acquisition/sources/downloads.js";
+import { SourceContent } from "../src/modules/acquisition/sources/application/content.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
 
@@ -152,7 +152,7 @@ async function fixture(persistent = false, bundled = false) {
 		close: vi.fn(async () => {}),
 	};
 	const sourceDownloads = () =>
-		new SourceDownloads(
+		new SourceContent(
 			db.acquisition,
 			transport,
 			undefined,

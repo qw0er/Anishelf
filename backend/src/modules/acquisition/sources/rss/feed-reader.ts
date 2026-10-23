@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
-import type { SourceContext } from "../context.js";
-import { type FeedRecord, SourceError } from "../domain/model.js";
-import { sourcePolicy as policy } from "../policy.js";
+import type { SourceContext } from "../application/context.js";
+import {
+	type FeedRecord,
+	sourcePolicy as policy,
+	SourceError,
+} from "../domain/model.js";
 import type { RssSourceOptions } from "./ports.js";
 
 export class FeedReader {

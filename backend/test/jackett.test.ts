@@ -6,6 +6,7 @@ import { MockAgent } from "undici";
 import { afterEach, expect, test } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { SourcesApplication } from "../src/modules/acquisition/sources/application/application.js";
+import { SourceRequestGate } from "../src/modules/acquisition/sources/infrastructure/request-gate.js";
 import { JackettClient } from "../src/modules/acquisition/sources/jackett/client.js";
 import { JackettConfigurationFile } from "../src/modules/acquisition/sources/jackett/configuration.js";
 import { JackettConnection } from "../src/modules/acquisition/sources/jackett/connection.js";
@@ -17,7 +18,6 @@ import {
 	indexers,
 	releases,
 } from "../src/modules/acquisition/sources/jackett/xml.js";
-import { SourceRequestGate } from "../src/modules/acquisition/sources/request-gate.js";
 import { RssTransport } from "../src/modules/acquisition/sources/rss/transport.js";
 
 const cleanup: (() => Promise<unknown>)[] = [];

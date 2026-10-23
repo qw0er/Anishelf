@@ -1,8 +1,11 @@
 import { createHash } from "node:crypto";
 import { XMLParser } from "fast-xml-parser";
 import { SyntaxValidator } from "fast-xml-validator";
-import { type SourceEntry, SourceError } from "../domain/model.js";
-import { sourcePolicy as policy } from "../policy.js";
+import {
+	sourcePolicy as policy,
+	type SourceEntry,
+	SourceError,
+} from "../domain/model.js";
 
 function digest(value: string): string {
 	return createHash("sha256").update(value).digest("hex");

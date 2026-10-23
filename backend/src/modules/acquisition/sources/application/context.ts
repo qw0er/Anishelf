@@ -1,7 +1,7 @@
 import type { Logger } from "pino";
-import { rssConstraints } from "../../../contracts/defaults.js";
-import { DomainError } from "../../../shared/errors.js";
-import { sourcePolicy } from "./policy.js";
+import { rssConstraints } from "../../../../contracts/defaults.js";
+import { DomainError } from "../../../../shared/errors.js";
+import { sourcePolicy } from "../domain/model.js";
 export interface SourceRuntimeOptions {
 	logger: Logger;
 	now?: () => number;

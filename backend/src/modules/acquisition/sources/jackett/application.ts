@@ -1,10 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
-import type { SourceRead } from "../adapter.js";
-import type { SourceContext } from "../context.js";
+import type { SourceContext } from "../application/context.js";
+import type { SourceRead } from "../domain/adapter.js";
 import type { SourceQuery } from "../domain/binding.js";
 import { SourceError } from "../domain/model.js";
 import type { SourceReference } from "../domain/reference.js";
-import type { SourceLifecycleStore } from "../lifecycle.js";
+import type { SourceLifecycleStore } from "../infrastructure/store.js";
 import type { JackettConnection } from "./connection.js";
 
 /** Private query adapter. It owns plans and connection validity, not the consumer API. */

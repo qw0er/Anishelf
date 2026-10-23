@@ -1,6 +1,6 @@
-import type { SourceBinding } from "./domain/binding.js";
-import type { ReleaseDownload } from "./domain/download.js";
-import type { SourceRecord } from "./domain/model.js";
+import type { SourceBinding } from "../domain/binding.js";
+import type { ReleaseDownload } from "../domain/download.js";
+import type { SourceRecord } from "../domain/model.js";
 
 /** Private bindings and evidence; never contains Jackett credentials. */
 export interface ManagedSource {

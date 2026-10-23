@@ -1,21 +1,24 @@
 import { createHash } from "node:crypto";
 import type { Logger } from "pino";
-import type { ReleaseDownload } from "./domain/download.js";
-import type { DownloadContent, ReleaseEvidence } from "./domain/evidence.js";
+import type { ReleaseDownload } from "../domain/download.js";
+import type { DownloadContent, ReleaseEvidence } from "../domain/evidence.js";
 import {
 	type SourceEntry,
 	SourceError,
 	type SourceRecord,
-} from "./domain/model.js";
-import type { JackettConnection } from "./jackett/connection.js";
-import type { SourceDownload, SourceLifecycleStore } from "./lifecycle.js";
+} from "../domain/model.js";
+import type {
+	SourceDownload,
+	SourceLifecycleStore,
+} from "../infrastructure/store.js";
+import type { JackettConnection } from "../jackett/connection.js";
 
 export interface SourceTorrentTransport {
 	read(url: string, signal: AbortSignal): Promise<Uint8Array<ArrayBuffer>>;
 	close(): Promise<void>;
 }
 /** Private durable locator ownership; consumers retain only opaque IDs. */
-export class SourceDownloads {
+export class SourceContent {
 	private readonly pending = new Set<Promise<DownloadContent>>();
 	constructor(
 		private readonly store: SourceLifecycleStore,
@@ -70,7 +73,7 @@ export class SourceDownloads {
 	private lookup(reference: string): SourceDownload | null {
 		const saved = this.store.download(reference);
 		if (saved) return saved;
-		const separator = reference.indexOf(".");
+		const separator = reference.indexOf("..");
 		if (separator < 1) return null;
 		const sourceId = reference.slice(0, separator);
 		const record = this.record?.(sourceId);

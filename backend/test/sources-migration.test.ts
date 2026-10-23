@@ -9,7 +9,7 @@ import pino from "pino";
 import { expect, test } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { writeAcquisitionIntents } from "../src/modules/acquisition/downloads/infrastructure/records.js";
-import { SourceDownloads } from "../src/modules/acquisition/sources/downloads.js";
+import { SourceContent } from "../src/modules/acquisition/sources/application/content.js";
 import { writeAcquisitionFeeds } from "../src/modules/acquisition/sources/infrastructure/records.js";
 import {
 	writeAcquisitionCandidates,
@@ -163,7 +163,7 @@ test("upgrades the previous lifecycle schema without losing subscriptions, candi
 			kind: "public-torrent",
 			url: "https://example.org/private.torrent?key=secret",
 		});
-		const reader = new SourceDownloads(
+		const reader = new SourceContent(
 			database.acquisition,
 			{
 				read: async () => {

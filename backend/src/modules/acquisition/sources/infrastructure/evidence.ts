@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
-import type { SourceContext } from "../context.js";
+import type { SourceContext } from "../application/context.js";
 import type { SourceRecord } from "../domain/model.js";
-import type { SourceLifecycleStore } from "../lifecycle.js";
 import type { SourceStore } from "../rss/ports.js";
+import type { SourceLifecycleStore } from "./store.js";
 
 /** Normalizes existing protocol storage behind one evidence-state owner. */
 export class SourceEvidence {

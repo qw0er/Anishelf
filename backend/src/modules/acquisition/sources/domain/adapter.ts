@@ -1,4 +1,4 @@
-import type { SourceRecord } from "./domain/model.js";
+import type { SourceRecord } from "./model.js";
 export interface SourceRead {
 	readonly record: SourceRecord;
 	readonly generation: string | null;
