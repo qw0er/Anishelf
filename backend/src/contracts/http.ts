@@ -235,3 +235,10 @@ export type SourceProviders = Static<typeof schemas.SourceProvidersSchema>;
 export type SourceProbe = Static<typeof schemas.SourceProbeSchema>;
 export type SourceTestInput = Static<typeof schemas.SourceTestInputSchema>;
 export type SourceTestResult = Static<typeof schemas.SourceTestSchema>;
+
+export type SubscriptionSearchInput = Static<
+	typeof import("./schemas/subscriptions.js").SubscriptionSearchInputSchema
+>;
+export type SubscriptionSearchResult = Static<
+	typeof import("./schemas/subscriptions.js").SubscriptionSearchResultSchema
+>;

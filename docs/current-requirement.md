@@ -2,15 +2,17 @@
 
 Date: 2026-10-23. RSS-based acquisition is implemented; real deployment acceptance
 remains pending. The current iteration also requires AniList Watching reconciliation,
-automatic source discovery and tracking-status policy, which are not implemented.
+Watching-driven source discovery and tracking-status policy, which are not implemented.
 No release number is assigned. Use one selected subscription source per anime and one
 qBittorrent instance.
 
 Jackett connection/search and [shared source evidence persistence and recurring
 collection](source-lifecycle.md) are implemented. Source consumers now use opaque evidence/download references and a common reader;
-feed and query definitions share the subscription-save contract. The search subscription
-UI, automatic ordered indexer selection and end-to-end playback acceptance remain
-pending. [Stage 3 setup](jackett-setup.md) provides connector/site settings, diagnostics,
+feed and query definitions share the subscription-save contract. The
+[manual search subscription workflow](search-subscriptions.md), including
+ordered indexer discovery and source pinning, is implemented. Real end-to-end
+playback acceptance remains pending. [Stage 3 setup](jackett-setup.md) provides
+connector/site settings, diagnostics,
 optional deployment and private first-run bootstrap/provisioning.
 
 ## Workflow
@@ -22,7 +24,8 @@ through qBittorrent → verify and associate the completed file → expose the e
 in the library. Routine Watching additions require no manual per-anime RSS entry
 or per-release approval.
 
-Implemented manual setup: choose an anime → enter its RSS and starting episode → save and enable
+Implemented manual setup: choose an anime → enter an RSS URL or discover a search
+source using configured site order → choose a starting episode → save and enable
 acquisition against the displayed validated destination → collect and select one eligible release per regular episode in the background
 → submit reliably → observe qBittorrent → verify completed files → associate actual
 resources → expose playback through the existing episode list.
@@ -70,7 +73,7 @@ implemented behavior; explicit activation previews the accepted scope.
 
 ## Subscription and Selection
 
-The following describes the implemented RSS path. Watching automation will extend
+The following describes the implemented RSS and manual search paths. Watching automation will extend
 its permission and status policy under the explicit enablement described above.
 
 - Keep RSS URL, starting episode, explicit save-and-enable and pause controls.

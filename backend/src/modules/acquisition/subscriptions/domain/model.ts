@@ -35,6 +35,7 @@ export interface SubscriptionView {
 	subscription:
 		| (Omit<Subscription, "sourceInput"> & {
 				source: string;
+				sourceKind: "feed" | "search";
 				checkedAt: number | null;
 				nextAttemptAt: number;
 				error: string | null;
@@ -59,4 +60,32 @@ export interface SaveSubscriptionInput {
 	revision: string | null;
 	/** null explicitly saves a discovery-only subscription; HTTP activation requires a target. */
 	target: { destinationRevision: string; connectionGeneration: string } | null;
+}
+
+export interface SubscriptionSearchInput {
+	workKey: string;
+	revision: string | null;
+	startEpisode: number;
+	profileId?: string | null;
+}
+export interface SubscriptionSearchResult {
+	source: {
+		kind: "search";
+		connectionRevision: string;
+		providerId: string;
+		titles: string[];
+	} | null;
+	attempts: {
+		providerId: string;
+		outcome: "matched" | "no_match" | "no_eligible" | "unavailable";
+		reasons: string[];
+		code: string | null;
+		limited: boolean;
+	}[];
+	releases: {
+		id: string;
+		title: string;
+		episode: number | null;
+		waiting: boolean;
+	}[];
 }

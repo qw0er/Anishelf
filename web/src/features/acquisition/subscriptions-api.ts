@@ -2,6 +2,8 @@ import { type RequestOptions, request } from "../../shared/api/client.js";
 import type {
 	AcquisitionProfileCatalog,
 	SubscriptionSaveInput,
+	SubscriptionSearchInput,
+	SubscriptionSearchResult,
 	SubscriptionView,
 } from "../../shared/api/contracts.js";
 
@@ -43,3 +45,8 @@ export const acquisitionProfilesQuery = () => ({
 			signal,
 		}),
 });
+
+export const searchSubscriptionSource = (
+	input: SubscriptionSearchInput,
+): Promise<SubscriptionSearchResult> =>
+	request(`${path}/search`, "POST", {}, input);

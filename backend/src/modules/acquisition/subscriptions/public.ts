@@ -1,5 +1,7 @@
 import type {
 	SaveSubscriptionInput,
+	SubscriptionSearchInput,
+	SubscriptionSearchResult,
 	SubscriptionView,
 } from "./domain/model.js";
 
@@ -14,6 +16,7 @@ export interface SubscriptionsApi {
 		selectedProfileId: string;
 		selectionAvailable: boolean;
 	};
+	search(input: SubscriptionSearchInput): Promise<SubscriptionSearchResult>;
 	get(workKey: string, page?: number): SubscriptionView;
 	save(input: SaveSubscriptionInput): Promise<SubscriptionView>;
 	setEnabled(

@@ -57,6 +57,8 @@ export type {
 	SourceTestInput,
 	SourceTestResult,
 	SubscriptionSaveInput,
+	SubscriptionSearchInput,
+	SubscriptionSearchResult,
 	SubscriptionView,
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,

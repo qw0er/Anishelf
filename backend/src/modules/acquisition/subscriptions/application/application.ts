@@ -7,6 +7,7 @@ import type {
 	Candidate,
 	SaveSubscriptionInput,
 	Subscription,
+	SubscriptionSearchInput,
 	SubscriptionView,
 } from "../domain/model.js";
 import {
@@ -17,6 +18,7 @@ import {
 import { selectCandidates } from "../domain/selection.js";
 import type { SubscriptionsApi } from "../public.js";
 import { SubscriptionsContext, type SubscriptionsOptions } from "./context.js";
+import { SubscriptionDiscovery } from "./discovery.js";
 import { subscriptionPolicy as policy } from "./policy.js";
 import { SubscriptionWorker } from "./worker.js";
 
@@ -29,8 +31,10 @@ function conflict(): never {
 export class SubscriptionsApplication implements SubscriptionsApi {
 	private readonly context: SubscriptionsContext;
 	private readonly worker: SubscriptionWorker;
+	private readonly discovery: SubscriptionDiscovery;
 	constructor(private readonly options: SubscriptionsOptions) {
 		this.context = new SubscriptionsContext(options);
+		this.discovery = new SubscriptionDiscovery(this.context);
 		this.worker = new SubscriptionWorker(
 			this.context,
 			(subscription, feed, target) =>
@@ -44,6 +48,16 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		} catch {
 			throw new DomainError("INVALID_REQUEST", "Invalid anime reference.");
 		}
+	}
+	search(input: SubscriptionSearchInput) {
+		this.key(input.workKey);
+		if (
+			!Number.isSafeInteger(input.startEpisode) ||
+			input.startEpisode < 1 ||
+			input.startEpisode > 10000
+		)
+			throw new DomainError("INVALID_REQUEST", "Invalid starting episode.");
+		return this.discovery.search(input);
 	}
 	profiles() {
 		const selectedProfileId =
@@ -69,12 +83,20 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		if (!Number.isSafeInteger(page) || page < 1 || page > 10000)
 			throw new DomainError("INVALID_REQUEST", "Invalid candidate page.");
 		const subscription = this.options.store.subscription(workKey);
-		const feed = subscription
-			? (this.options.sources.snapshot(subscription.feedId) ??
-				this.options.sources.snapshot(
-					subscription.sourceInput ?? subscription.feedId,
-				))
+		let feed = subscription
+			? this.options.sources.snapshot(subscription.feedId)
 			: null;
+		let sourceError: string | null = null;
+		if (subscription?.sourceInput) {
+			try {
+				const snapshot = this.options.sources.snapshot(
+					subscription.sourceInput,
+				);
+				feed ??= snapshot;
+			} catch {
+				sourceError = "source_changed";
+			}
+		}
 		const candidates = this.options.store
 			.candidates(workKey)
 			.sort(
@@ -83,21 +105,21 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 					a.id.localeCompare(b.id),
 			);
 		return {
-			subscription:
-				subscription && feed
-					? {
-							workKey: subscription.workKey,
-							feedId: subscription.feedId,
-							startEpisode: subscription.startEpisode,
-							profileId: subscription.profileId ?? null,
-							enabled: subscription.enabled,
-							revision: subscription.revision,
-							source: feed.label,
-							checkedAt: feed.checkedAt,
-							nextAttemptAt: feed.nextAttemptAt,
-							error: feed.error ?? subscription.lastError ?? null,
-						}
-					: null,
+			subscription: subscription
+				? {
+						workKey: subscription.workKey,
+						feedId: subscription.feedId,
+						startEpisode: subscription.startEpisode,
+						profileId: subscription.profileId ?? null,
+						enabled: subscription.enabled,
+						revision: subscription.revision,
+						source: feed?.label ?? "Source unavailable",
+						sourceKind: subscription.sourceInput?.kind ?? "feed",
+						checkedAt: feed?.checkedAt ?? null,
+						nextAttemptAt: feed?.nextAttemptAt ?? 0,
+						error: sourceError ?? feed?.error ?? subscription.lastError ?? null,
+					}
+				: null,
 			candidates: candidates.slice(
 				(page - 1) * policy.pageSize,
 				page * policy.pageSize,

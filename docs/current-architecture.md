@@ -2,7 +2,8 @@
 
 Date: 2026-10-23. The responsibility refactor and direct subscription-save path are
 implemented. Automated checks and real deployment acceptance are separate. Watching
-reconciliation, automatic source selection and its UI remain pending. See
+reconciliation and Watching-driven source discovery remain pending. Manual ordered
+source discovery and search subscriptions are implemented. See
 [current requirements](current-requirement.md) and the
 [refactor decisions](acquisition-redesign.md).
 
@@ -187,8 +188,9 @@ not establish real Jackett/RSS/qBittorrent/shared-media/browser playback accepta
 
 Implementation status (2026-10-23): Jackett connection/search and the
 [shared Sources lifecycle](source-lifecycle.md) are delivered. The following design
-also describes later subscription, deployment and automation work; it is not an
-inventory of delivered behavior.
+also describes later automation work. Manual ordered discovery, search subscriptions
+and pinning are delivered in [stage 4](search-subscriptions.md); real-service
+playback acceptance remains pending.
 
 ### Selected Approach and Deployment
 
@@ -218,6 +220,17 @@ explicit bundled selection. The Settings page separates connection/site enumerat
 capability probes and diagnostic searches. Backend startup and playback do not
 depend on Jackett readiness. See [Jackett setup](jackett-setup.md) for deployment,
 credential ownership, preservation and verification limits.
+
+Manual discovery lives in Subscriptions and uses only Sources' public setup and
+collection operations. It searches configured providers in order and evaluates each
+using Anime identity evidence and the accepted release profile/scope. A preview
+returns a proposed definition and safe summaries without publishing candidates or
+granting download permission. The existing save operation atomically accepts the
+pinned definition and validated destination; background refresh and Downloads use
+the existing evidence/content, reservation and ingestion pipeline. A connection
+change rejects stale previews and saved search bindings. Existing transfers continue
+reconciliation. See [Search subscriptions](search-subscriptions.md) for the contract
+and automated-versus-live verification boundary.
 
 Protocol references: [Jackett query syntax](https://github.com/Jackett/Jackett#jackett-torznab-query-syntax)
 and the [Torznab specification](https://torznab.github.io/spec-1.3-draft/torznab/Specification-v1.3.html).
@@ -269,7 +282,8 @@ flowchart LR
 - Subscriptions owns both manual RSS and managed search subscriptions, evidence,
   assessments and preferences. Subscriptions reference the common source identity;
   protocol-specific binding configuration stays inside Sources. Manual RSS retains
-  its workflow; query configuration UI remains later work.
+  its workflow; manual query discovery and save are delivered, while Watching-driven
+  subscription ownership remains later work.
   Downloads reads source-neutral release evidence through `DownloadSelection`;
   it never reads Watching or Torznab persistence directly. Replace its raw download
   URL projection with an opaque download reference. Sources retains protocol
