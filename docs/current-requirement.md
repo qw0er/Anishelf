@@ -1,6 +1,6 @@
 # Automatic Acquisition: Current Iteration Requirements
 
-Date: 2026-10-23. RSS/manual search acquisition and opt-in Watching automation
+Date: 2026-10-23. RSS/manual search acquisition and opt-in Watching subscription creation
 are implemented. The user reported live acceptance of the preceding manual pipeline;
 real Watching-account acceptance remains pending.
 No release number is assigned. Use one selected subscription source per anime and one
@@ -35,66 +35,36 @@ Anishelf owns acquisition intent and verified ingestion. qBittorrent WebUI owns
 transfer controls, seeding, task removal and downloaded-data deletion. There is no
 global Downloads page or duplicate transfer-management interface in Anishelf.
 
-## Watching Automation and Source Discovery (Implemented; Live Acceptance Pending)
+## Unified Subscription Creation and Discovery
 
-These requirements correspond to S05 and S10–S12 in the [product requirements](requirements.md).
+- Manual and Watching-created subscriptions have the same management behavior.
+  A user can subscribe before any release exists. Save the fixed starting episode,
+  profile and accepted destination; discover the source asynchronously. Explicit
+  RSS and per-work source/profile overrides remain available.
+- Automatic discovery searches configured sites in order, verifies work/episode and
+  profile eligibility, then pins one source. Empty results retain intent. Failed
+  site reads remain distinct from healthy absence; neither may guess a download.
+- Watching is default-off and uses an explicit session-bound activation preview.
+  It creates missing subscriptions using confirmed progress plus one or episode 1.
+  Existing subscriptions are never adopted or overwritten. Turning it off stops
+  future creation; subsequent Tracking status/account changes do not stop existing
+  subscriptions. Tracking-driven ongoing enablement is outside this creation-only
+  policy.
+- Users edit, pause/resume and unsubscribe identically regardless of creation origin.
+  Unsubscribe records an automatic-recreation exclusion. Existing transfers/imports
+  continue. Scope/source/target changes require current validation/permission and
+  fence late discovery results. No separate ownership-conversion consent exists.
+- Settings owns global setup/help. The work header shows one compact subscription
+  summary with Activity and an actions menu. The editor initially shows starting
+  episode and effective defaults; More options exposes overrides. Activity contains
+  active/error task rows, secondary History and lazy grouped Diagnostics.
+- Upgrading old automation grants does not expand their permission. Migration 0010
+  preserves old pins/scope, pauses previously managed subscriptions and requires
+  explicit save/resume under the unified model. Existing manual permissions remain.
 
-- Explicitly enable automation and preview its effect on existing Watching entries.
-  Accept a starting-episode/backlog policy: AniList cumulative progress
-  plus one (default) or episode 1. Explicit per-work scope edits use the manual subscription
-  form and require consent to convert ownership. Future Watching entries use the
-  accepted policy. AniList progress does not prove local file availability.
-- Periodically reconcile the authenticated AniList list. Persist managed-subscription
-  ownership and reconciliation state; refreshes, retries and restarts must not create
-  duplicate subscriptions, permissions or downloads. Outages and incomplete list
-  refreshes must not be treated as removals. Account changes do not inherit prior
-  automation permission.
-- Configure resource sites once in Jackett and search them through Torznab
-  using provider-qualified identity, titles, aliases and season/episode evidence.
-  Apply reusable subtitle-language, release-group, resolution, codec and keyword
-  preferences. Explain source selection, no matches, unsupported sources and
-  authentication/network failures. Uncertain identity remains unresolved rather
-  than authorizing a guessed download. Keep manually configured RSS usable.
-- Define whether Paused, Dropped and Completed stop new acquisitions and whether
-  returning to Watching resumes them. Preserve manual pauses, source choices and
-  scope overrides. Distinguish managed subscriptions from manual subscriptions;
-  status changes must not delete files, cancel existing transfers/imports or
-  recreate externally removed tasks.
-- Reuse validated destination, permission, reservation and ingestion boundaries.
-  Automation grants download permission only within its accepted scope; destination
-  or downloader-account changes still require validation and renewed confirmation.
-- Show compact per-anime discovery/subscription decisions and unresolved states.
-  Log reconciliation, policy decisions and failures with correlated identifiers,
-  excluding credentials, private RSS/Magnet URLs and torrent payloads.
-
-The [current design](current-architecture.md#watching-automation-with-torznab-and-jackett)
-selects Torznab + Jackett, a progress-plus-one backlog default, and suspension outside
-Watching with manual overrides preserved. These defaults are implemented; explicit activation previews the accepted scope.
-See the [operator guide](watching-automation.md) for setup, limits and recovery.
-
-## Subscription and Selection
-
-RSS and manual search keep their existing permission path. Managed subscriptions
-also follow the explicitly accepted Watching policy described above.
-
-- Keep RSS URL, starting episode, explicit save-and-enable and pause controls.
-  Saving performs no remote reads; collection and selection run in the background.
-  RSS does not guarantee a complete historical backlog.
-- Select one supported regular-episode release automatically using
-  [selection profiles](acquisition-profiles.md): hard conditions, ordered levels,
-  persisted waiting and optional seed-count tie-breaking. Reconsider unreserved
-  choices; preserve download reservations. Skip
-  uncertain identity/numbering, packs, specials and unsupported links visibly.
-- Exclude accessible local episodes and known downloader tasks. Reserve canonical
-  torrent hashes and work/episode identities before automatic submission.
-- Existing subscriptions remain discovery-only until explicitly saved against a
-  validated current destination/account. One save atomically stores the subscription source definition
-  and accepted scope, without registering a source or requesting it. No preview/token/confirmation session is required.
-  Changed scope or destination/account cannot inherit stale permission. The form
-  displays the target and sends its revision and connection generation.
-- Pausing stops future submissions while existing transfers and imports continue.
-  AniList status changes suspend or resume only automation-owned acquisition;
-  manual subscriptions retain their own settings. Existing transfers/imports continue.
+See [current architecture](current-architecture.md#unified-subscriptions-and-watching-creation),
+[the interaction delivery record](subscription-interaction-redesign.md) and
+[Watching setup](watching-automation.md).
 
 ## Destination and Placement
 
@@ -162,12 +132,12 @@ command and ingestion outcomes without credentials or complete private URLs.
 | ACQ07 | Disconnect, restart and externally removed/paused tasks preserve intent and user actions. |
 | ACQ08 | Activity explains selected, skipped, uncertain and failed outcomes with appropriate recovery actions. |
 | ACQ09 | WebUI task removal/data deletion and Anishelf library associations remain separate; suppression prevents automatic re-adding. |
-| ACQ10 | With Watching automation disabled, tracking reads/status changes cause no acquisition changes; subscription pause preserves existing tasks. |
+| ACQ10 | With Watching automation disabled, Tracking reads/status changes cause no ongoing subscription changes; the disabled Watching worker creates no subscriptions; user pause preserves existing tasks. |
 | ACQ11 | Safe correlated logs and actionable errors preserve local browsing/playback during remote failure. |
 | ACQ12 | Enabling Watching automation previews existing entries and backlog scope; a newly Watching anime discovers a matching source without manual RSS entry, downloads a new episode and exposes it only after verified ingestion. |
 | ACQ13 | Configured release preferences determine eligible sources/releases; no-match, ambiguous identity and site authentication/network failures remain visible without guessed downloads. |
-| ACQ14 | Repeated list refreshes, restart and remote outages preserve managed-subscription ownership and accepted scope without duplicate subscriptions/downloads or false removals; account changes do not reuse prior permission. |
-| ACQ15 | Paused, Dropped, Completed and re-entry follow the selected status policy; manual overrides, existing transfers/imports and external-removal suppression survive reconciliation. |
+| ACQ14 | Repeated refreshes, restart and remote outages preserve subscription intent, user settings and accepted scope without duplicate subscriptions/downloads; account changes do not reuse grants for new automatic creation. |
+| ACQ15 | Watching creates missing subscriptions only; later status changes and automation disable do not change existing subscriptions; user overrides, transfers/imports and external-removal suppression survive reconciliation. |
 
 Automated fixtures cover implementation behavior. Real RSS, supported qBittorrent,
 shared-storage paths and browser playback remain required for ACQ01–ACQ11 acceptance;

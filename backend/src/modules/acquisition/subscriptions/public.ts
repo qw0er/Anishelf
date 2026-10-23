@@ -17,7 +17,7 @@ export interface SubscriptionsApi {
 		selectionAvailable: boolean;
 	};
 	search(input: SubscriptionSearchInput): Promise<SubscriptionSearchResult>;
-	get(workKey: string, page?: number): SubscriptionView;
+	get(workKey: string, page?: number, diagnostics?: boolean): SubscriptionView;
 	save(input: SaveSubscriptionInput): Promise<SubscriptionView>;
 	setEnabled(
 		workKey: string,

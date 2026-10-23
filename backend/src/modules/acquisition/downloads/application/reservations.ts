@@ -15,7 +15,8 @@ export class DownloadPlanning {
 	>();
 	async run() {
 		for (const subscription of this.context.options.selection.subscriptions()) {
-			if (!this.destination.authorized(subscription)) continue;
+			if (!subscription.feedId || !this.destination.authorized(subscription))
+				continue;
 			const throttle = this.failures.get(subscription.workKey);
 			if (throttle && throttle.next > this.context.now()) continue;
 			try {

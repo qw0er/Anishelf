@@ -43,10 +43,14 @@ export function AnimeDetailPage() {
 			queryGate(mediacompatibilityInteractionPolicy.compatibilityConcurrency),
 		[id, scope],
 	);
-	const renderResourceActions: AnimeResourceActionSlot = (source) => (
+	const renderResourceActions: AnimeResourceActionSlot = (
+		source,
+		identificationMenu,
+	) => (
 		<AnimeFileActions
 			key={`${scope}:${source.fileId}:${source.sourceVersion}`}
 			source={source}
+			identificationMenu={identificationMenu}
 			summary={byFile.get(source.fileId)}
 			summaryLoading={summaries.isPending}
 			gate={gate}

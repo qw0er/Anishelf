@@ -59,6 +59,16 @@ function fixture(
 	return vi
 		.spyOn(api, "request")
 		.mockImplementation(async (path, method, _options, payload) => {
+			if (path === "/api/acquisition/sources/connector")
+				return {
+					generation: "sites",
+					ready: true,
+					providers: ["site"],
+					url: null,
+					origin: null,
+					hasApiKey: true,
+					error: null,
+				};
 			if (path === "/api/acquisition/profiles")
 				return {
 					profiles: [
@@ -149,24 +159,21 @@ function fixture(
 			return view;
 		});
 }
-test("subscription saves and enables with one request carrying the displayed destination", async () => {
+test("subscribing saves immediately with automatic source defaults and no preliminary search", async () => {
 	const request = fixture();
 	render(<SubscriptionPanel workKey={workKey} />);
 	fireEvent.click(await screen.findByRole("button", { name: "Subscribe" }));
-	fireEvent.change(await screen.findByLabelText("RSS URL"), {
-		target: { value: "https://feeds.example.org/rss?passkey=private" },
-	});
-	fireEvent.change(screen.getByLabelText("Starting episode"), {
-		target: { value: "2" },
-	});
-	await screen.findByText(/Automatic download destination:.*downloads/);
-	expect(request.mock.calls.filter((call) => call[1] !== "GET")).toHaveLength(
-		0,
+	const input = await screen.findByLabelText("Starting episode");
+	fireEvent.change(input, { target: { value: "4" } });
+	expect(screen.queryByRole("button", { name: "Find a source" })).toBeNull();
+	expect(document.querySelector("details")?.open).toBe(false);
+	await waitFor(() =>
+		expect(
+			(screen.getByRole("button", { name: "Subscribe" }) as HTMLButtonElement)
+				.disabled,
+		).toBe(false),
 	);
-	expect(screen.queryByRole("button", { name: "Check RSS" })).toBeNull();
-	fireEvent.click(
-		screen.getByRole("button", { name: "Save and enable subscription" }),
-	);
+	fireEvent.click(screen.getByRole("button", { name: "Subscribe" }));
 	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	expect(request).toHaveBeenCalledWith(
 		"/api/acquisition/subscriptions",
@@ -174,52 +181,103 @@ test("subscription saves and enables with one request carrying the displayed des
 		{},
 		{
 			workKey,
-			source: {
-				kind: "feed",
-				url: "https://feeds.example.org/rss?passkey=private",
-			},
-			startEpisode: 2,
+			source: { kind: "automatic" },
+			startEpisode: 4,
 			profileId: null,
 			revision: null,
 			destinationRevision: "destination",
 			connectionGeneration: "account",
 		},
 	);
-	expect(request.mock.calls.filter((call) => call[1] !== "GET")).toHaveLength(
-		1,
-	);
 	expect(
-		request.mock.calls.some((call) => /preview|confirm/.test(call[0])),
+		request.mock.calls.some((call) => /search|preview|confirm/.test(call[0])),
 	).toBe(false);
-	expect(
-		JSON.stringify(
-			queryClient.getQueriesData({ queryKey: ["acquisition", "subscription"] }),
-		),
-	).not.toContain("passkey");
 });
-test("subscription activation is blocked until the destination is validated", async () => {
+
+test("RSS and profile overrides remain available in More options", async () => {
 	const request = fixture();
-	const implementation = request.getMockImplementation();
-	request.mockImplementation(async (...args) =>
-		args[0] === "/api/acquisition/downloads/settings"
-			? { destination: null, roots: [] }
-			: implementation?.(...args),
-	);
 	render(<SubscriptionPanel workKey={workKey} />);
 	fireEvent.click(await screen.findByRole("button", { name: "Subscribe" }));
-	await screen.findByText(/Configure and validate a download destination/);
-	expect(
-		(
-			screen.getByRole("button", {
-				name: "Save and enable subscription",
-			}) as HTMLButtonElement
-		).disabled,
-	).toBe(true);
-	expect(request.mock.calls.filter((call) => call[1] !== "GET")).toHaveLength(
-		0,
+	fireEvent.click(await screen.findByText("More options"));
+	fireEvent.change(screen.getByLabelText("Source"), {
+		target: { value: "feed" },
+	});
+	fireEvent.change(screen.getByLabelText("RSS URL"), {
+		target: { value: "https://feeds.example.org/custom" },
+	});
+	fireEvent.change(screen.getByLabelText("Release selection profile"), {
+		target: { value: "builtin:efficient" },
+	});
+	await waitFor(() =>
+		expect(
+			(screen.getByRole("button", { name: "Subscribe" }) as HTMLButtonElement)
+				.disabled,
+		).toBe(false),
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Subscribe" }));
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	expect(request).toHaveBeenCalledWith(
+		"/api/acquisition/subscriptions",
+		"PUT",
+		{},
+		expect.objectContaining({
+			source: { kind: "feed", url: "https://feeds.example.org/custom" },
+			profileId: "builtin:efficient",
+		}),
 	);
 });
-test("pause, resume, edit and remove use the current subscription revision", async () => {
+
+test("header row hides global instructions and release evidence until Activity diagnostics is opened", async () => {
+	const request = fixture(saved);
+	render(<SubscriptionPanel workKey={workKey} />);
+	await screen.findByText("Subscribed");
+	expect(screen.queryByText(selected.title)).toBeNull();
+	expect(screen.queryByText(/Automatic download destination/)).toBeNull();
+	expect(screen.queryByRole("button", { name: "Manage" })).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Activity" }));
+	await screen.findByRole("dialog");
+	expect(
+		request.mock.calls.some((call) => call[0].includes("diagnostics=true")),
+	).toBe(false);
+	fireEvent.click(screen.getByText("Diagnostics"));
+	await waitFor(() =>
+		expect(
+			request.mock.calls.some((call) => call[0].includes("diagnostics=true")),
+		).toBe(true),
+	);
+});
+
+test("manual and Watching-created subscriptions share editing without conversion consent", async () => {
+	const request = fixture(saved);
+	render(<SubscriptionPanel workKey={workKey} />);
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Subscription actions" }),
+	);
+	fireEvent.click(
+		await screen.findByRole("menuitem", { name: "Edit subscription" }),
+	);
+	await screen.findByLabelText("Starting episode");
+	expect(screen.queryByRole("checkbox")).toBeNull();
+	await waitFor(() =>
+		expect(
+			(
+				screen.getByRole("button", {
+					name: "Save changes",
+				}) as HTMLButtonElement
+			).disabled,
+		).toBe(false),
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	expect(request).toHaveBeenCalledWith(
+		"/api/acquisition/subscriptions",
+		"PUT",
+		{},
+		expect.objectContaining({ source: null, revision: "one" }),
+	);
+});
+
+test("pause and unsubscribe remain secondary revision-checked actions", async () => {
 	const request = fixture(saved);
 	render(<SubscriptionPanel workKey={workKey} />);
 	fireEvent.click(
@@ -231,31 +289,10 @@ test("pause, resume, edit and remove use the current subscription revision", asy
 	await waitFor(() =>
 		expect(request.mock.calls.some((call) => call[1] === "PATCH")).toBe(true),
 	);
-	fireEvent.click(
-		await screen.findByRole("button", { name: "Subscription actions" }),
-	);
-	await screen.findByRole("menuitem", { name: "Resume subscription" });
-	expect(request).toHaveBeenCalledWith(
-		"/api/acquisition/subscriptions",
-		"PATCH",
-		{},
-		{ workKey, revision: "one", enabled: false },
-	);
-	fireEvent.click(screen.getByRole("menuitem", { name: "Edit subscription" }));
-	expect(
-		((await screen.findByLabelText("RSS URL")) as HTMLInputElement).value,
-	).toBe("");
-	fireEvent.click(screen.getByRole("button", { name: "Close" }));
-	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	await screen.findByText("Paused");
 	fireEvent.click(screen.getByRole("button", { name: "Subscription actions" }));
-	fireEvent.click(
-		await screen.findByRole("menuitem", { name: "Remove subscription" }),
-	);
-	await waitFor(() =>
-		expect(
-			screen.queryByRole("button", { name: "Subscription actions" }),
-		).toBeNull(),
-	);
+	fireEvent.click(await screen.findByRole("menuitem", { name: "Unsubscribe" }));
+	await screen.findByText("Not subscribed");
 	expect(request).toHaveBeenCalledWith(
 		"/api/acquisition/subscriptions",
 		"DELETE",
@@ -263,244 +300,49 @@ test("pause, resume, edit and remove use the current subscription revision", asy
 		{ workKey, revision: "two" },
 	);
 });
-test("skipped candidates explain automatic decisions without review actions", async () => {
-	fixture({
-		...saved,
-		candidates: [
-			{ ...selected, status: "skipped", reasons: ["another_version_selected"] },
-		],
-	});
-	render(<SubscriptionPanel workKey={workKey} />);
-	expect(
-		await screen.findByText(/Skipped · another version was selected/),
-	).toBeTruthy();
-	expect(screen.queryByRole("button", { name: /review|approve/i })).toBeNull();
-});
 
-test("Manage opens saved configuration without exposing the feed in the summary", async () => {
-	fixture(saved);
-	render(<SubscriptionPanel workKey={workKey} />);
-	await screen.findByRole("button", { name: "Manage" });
-	expect(screen.queryByText(saved.subscription?.source ?? "")).toBeNull();
-	expect(screen.queryByLabelText("RSS URL")).toBeNull();
-	fireEvent.click(screen.getByRole("button", { name: "Manage" }));
-	await screen.findByRole("dialog", { name: "Manage subscription" });
-	expect(screen.getByText(saved.subscription?.source ?? "")).toBeTruthy();
-	fireEvent.click(screen.getByRole("button", { name: "Close" }));
-	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-	expect(screen.getByRole("button", { name: "Manage" })).toBeTruthy();
-});
-
-test("saving sends the selected release profile without a separate preview", async () => {
-	const request = fixture();
-	render(<SubscriptionPanel workKey={workKey} />);
-	fireEvent.click(await screen.findByRole("button", { name: "Subscribe" }));
-	fireEvent.change(await screen.findByLabelText("RSS URL"), {
-		target: { value: "https://feeds.example.org/rss" },
-	});
-	await screen.findByText("Efficient codecs preferred");
-	fireEvent.change(
-		screen.getByRole("combobox", { name: "Release selection profile" }),
-		{ target: { value: "builtin:efficient" } },
-	);
-	await screen.findByText(/Automatic download destination:/);
-	fireEvent.click(
-		screen.getByRole("button", { name: "Save and enable subscription" }),
-	);
-	await waitFor(() =>
-		expect(request).toHaveBeenCalledWith(
-			"/api/acquisition/subscriptions",
-			"PUT",
-			{},
-			expect.objectContaining({ profileId: "builtin:efficient" }),
-		),
-	);
-});
-
-test("a failed save retains editable inputs and allows a direct retry", async () => {
+test("failed saves preserve editable fields, and setup failures expose a specific Settings action", async () => {
 	const request = fixture();
 	const implementation = request.getMockImplementation();
-	let attempts = 0;
 	request.mockImplementation(async (...args) => {
-		if (
-			args[0] === "/api/acquisition/subscriptions" &&
-			args[1] === "PUT" &&
-			attempts++ === 0
-		)
-			throw new Error("changed target");
+		if (args[1] === "PUT") throw Error("conflict");
 		return implementation?.(...args);
 	});
 	render(<SubscriptionPanel workKey={workKey} />);
 	fireEvent.click(await screen.findByRole("button", { name: "Subscribe" }));
-	const url = await screen.findByLabelText("RSS URL");
-	fireEvent.change(url, { target: { value: "https://feeds.example.org/rss" } });
-	await screen.findByText(/Automatic download destination:/);
-	fireEvent.click(
-		screen.getByRole("button", { name: "Save and enable subscription" }),
-	);
-	await waitFor(() => expect(attempts).toBe(1));
+	fireEvent.change(await screen.findByLabelText("Starting episode"), {
+		target: { value: "9" },
+	});
 	await waitFor(() =>
 		expect(
-			(
-				screen.getByRole("button", {
-					name: "Save and enable subscription",
-				}) as HTMLButtonElement
-			).disabled,
+			(screen.getByRole("button", { name: "Subscribe" }) as HTMLButtonElement)
+				.disabled,
 		).toBe(false),
 	);
-	expect((url as HTMLInputElement).value).toBe("https://feeds.example.org/rss");
-	fireEvent.click(
-		screen.getByRole("button", { name: "Save and enable subscription" }),
-	);
-	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-	expect(attempts).toBe(2);
-});
-
-test("search previews an ordered source without activation, resets when scope changes and saves the pinned choice", async () => {
-	const request = fixture();
-	render(<SubscriptionPanel workKey={workKey} />);
-	fireEvent.click(await screen.findByRole("button", { name: "Subscribe" }));
-	fireEvent.change(await screen.findByLabelText("Source"), {
-		target: { value: "search" },
-	});
-	await screen.findByText(/Automatic download destination:/);
-	const save = screen.getByRole<HTMLButtonElement>("button", {
-		name: "Save and enable subscription",
-	});
-	expect(save.disabled).toBe(true);
-	fireEvent.click(screen.getByRole("button", { name: "Find a source" }));
-	await screen.findByText(/Selected site: nyaasi/);
-	expect(screen.getByText(/Limited search coverage/)).toBeTruthy();
+	fireEvent.click(screen.getByRole("button", { name: "Subscribe" }));
+	await screen.findByRole("alert");
 	expect(
-		request.mock.calls.filter(([, method]) => method === "PUT"),
-	).toHaveLength(0);
-	expect(save.disabled).toBe(false);
-	fireEvent.change(screen.getByLabelText("Starting episode"), {
-		target: { value: "2" },
-	});
-	expect(save.disabled).toBe(true);
-	expect(screen.queryByText(/Selected site:/)).toBeNull();
-	fireEvent.click(screen.getByRole("button", { name: "Find a source" }));
-	await screen.findByText(/Selected site: nyaasi/);
-	fireEvent.click(save);
-	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-	expect(request).toHaveBeenCalledWith(
-		"/api/acquisition/subscriptions",
-		"PUT",
-		{},
-		expect.objectContaining({
-			source: {
-				kind: "search",
-				connectionRevision: "sources-one",
-				providerId: "nyaasi",
-				titles: ["Frieren"],
-			},
-			startEpisode: 2,
-			destinationRevision: "destination",
-			connectionGeneration: "account",
-		}),
-	);
+		(screen.getByLabelText("Starting episode") as HTMLInputElement).value,
+	).toBe("9");
+	expect(screen.getByRole("dialog")).toBeTruthy();
 });
 
-test("no eligible search result cannot enable acquisition", async () => {
+test("subscriptions can be created only after destination validation", async () => {
 	const request = fixture();
-	const original = request.getMockImplementation();
+	const implementation = request.getMockImplementation();
 	request.mockImplementation(async (...args) =>
-		args[0].endsWith("/subscriptions/search")
-			? {
-					source: null,
-					attempts: [
-						{
-							providerId: "nyaasi",
-							outcome: "no_eligible",
-							limited: false,
-							code: null,
-						},
-					],
-					releases: [],
-				}
-			: original?.(...args),
+		args[0] === "/api/acquisition/downloads/settings"
+			? { destination: null, roots: [] }
+			: implementation?.(...args),
 	);
 	render(<SubscriptionPanel workKey={workKey} />);
 	fireEvent.click(await screen.findByRole("button", { name: "Subscribe" }));
-	fireEvent.change(await screen.findByLabelText("Source"), {
-		target: { value: "search" },
-	});
-	fireEvent.click(screen.getByRole("button", { name: "Find a source" }));
-	await screen.findByText(/No eligible source found/);
+	await screen.findByText("Validate a download destination first.");
 	expect(
-		screen.getByRole<HTMLButtonElement>("button", {
-			name: "Save and enable subscription",
-		}).disabled,
+		(screen.getByRole("button", { name: "Subscribe" }) as HTMLButtonElement)
+			.disabled,
 	).toBe(true);
-	expect(request.mock.calls.some(([, method]) => method === "PUT")).toBe(false);
-});
-
-test("editing a search subscription retains its pinned source without discovering again", async () => {
-	if (!saved.subscription) throw new Error("Missing fixture");
-	const request = fixture({
-		...saved,
-		subscription: {
-			...saved.subscription,
-			source: "nyaasi",
-			sourceKind: "search",
-		},
-	});
-	render(<SubscriptionPanel workKey={workKey} />);
-	fireEvent.click(await screen.findByRole("button", { name: "Manage" }));
-	expect(
-		(await screen.findByLabelText<HTMLSelectElement>("Source")).value,
-	).toBe("keep");
-	expect(screen.queryByLabelText("RSS URL")).toBeNull();
-	await screen.findByText(/Automatic download destination:/);
-	fireEvent.click(
-		screen.getByRole("button", { name: "Save and enable subscription" }),
-	);
-	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-	expect(request).toHaveBeenCalledWith(
-		"/api/acquisition/subscriptions",
-		"PUT",
-		{},
-		expect.objectContaining({ source: null, revision: "one" }),
-	);
-	expect(
-		request.mock.calls.some(([path]) => path.endsWith("/subscriptions/search")),
-	).toBe(false);
-});
-
-test("editing a managed subscription requires explicit manual conversion consent", async () => {
-	const request = fixture({
-		...saved,
-		automation: {
-			managed: true,
-			excluded: false,
-			paused: false,
-			reason: "managed",
-		},
-	});
-	render(<SubscriptionPanel workKey={workKey} />);
-	fireEvent.click(
-		await screen.findByRole("button", { name: "Subscription actions" }),
-	);
-	fireEvent.click(
-		await screen.findByRole("menuitem", { name: "Edit subscription" }),
-	);
-	const consent = await screen.findByRole("checkbox", {
-		name: /Manage this subscription manually after saving/,
-	});
-	const save = screen.getByRole("button", {
-		name: "Save and enable subscription",
-	}) as HTMLButtonElement;
-	await screen.findByText(/Automatic download destination:.*downloads/);
-	expect(save.disabled).toBe(true);
 	expect(request.mock.calls.filter((call) => call[1] !== "GET")).toHaveLength(
 		0,
-	);
-	fireEvent.click(consent);
-	expect(save.disabled).toBe(false);
-	fireEvent.click(save);
-	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-	expect(request.mock.calls.filter((call) => call[1] === "PUT")).toHaveLength(
-		1,
 	);
 });

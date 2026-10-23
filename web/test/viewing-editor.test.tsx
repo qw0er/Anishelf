@@ -97,9 +97,7 @@ afterEach(() => {
 });
 async function open() {
 	render(<ViewingEditor state={state} mediaId="anilist:anime:1" />);
-	fireEvent.click(
-		screen.getByRole("button", { name: "Edit the tracking service progress" }),
-	);
+	fireEvent.click(screen.getByRole("button", { name: "Edit progress" }));
 	await screen.findByRole("spinbutton", { name: "Episodes watched" });
 }
 test("manual backward correction submits only changed progress and shows pending separately", async () => {
@@ -218,9 +216,7 @@ test("a refreshed remote progress value is not unintentionally included in a sta
 	const view = render(
 		<ViewingEditor state={state} mediaId="anilist:anime:1" />,
 	);
-	fireEvent.click(
-		screen.getByRole("button", { name: "Edit the tracking service progress" }),
-	);
+	fireEvent.click(screen.getByRole("button", { name: "Edit progress" }));
 	await screen.findByRole("spinbutton", { name: "Episodes watched" });
 	fireEvent.change(screen.getByRole("combobox", { name: "Tracking status" }), {
 		target: { value: "paused" },
@@ -318,9 +314,7 @@ test("the editor uses provider capabilities for supported states and progress li
 			mediaId="fixture:anime:show-alpha"
 		/>,
 	);
-	fireEvent.click(
-		screen.getByRole("button", { name: "Edit the tracking service progress" }),
-	);
+	fireEvent.click(screen.getByRole("button", { name: "Edit progress" }));
 	const progress = await screen.findByRole("spinbutton", {
 		name: "Episodes watched",
 	});

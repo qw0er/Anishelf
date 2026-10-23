@@ -132,7 +132,7 @@ test("unified detail preserves cached viewing and acquisition during a metadata 
 			subscription,
 			downloads: { active: 2 },
 		});
-		expect(discovery.get).toHaveBeenCalledExactlyOnceWith(key);
+		expect(discovery.get).toHaveBeenCalledExactlyOnceWith(key, 1, false);
 		expect(downloads.activity).toHaveBeenCalledExactlyOnceWith(key);
 		expect(f.getLocalWorkDetail).not.toHaveBeenCalled();
 		expect(f.get).toHaveBeenCalledTimes(1);

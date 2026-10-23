@@ -97,7 +97,7 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 				workKey: work.workKey,
 				revision: work.revision,
 				excluded: work.excluded,
-				paused: work.paused,
+				paused: false,
 			});
 		},
 		onSuccess: update,
@@ -195,22 +195,27 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 							count: preview.data.works.length,
 						})}
 					</p>
-					<ul
-						className="max-h-64 overflow-auto text-sm"
-						aria-label={t("acquisition.watching.previewLabel")}
-					>
-						{preview.data.works.map((work) => (
-							<li key={work.workKey}>
-								{work.title} ·{" "}
-								{work.startEpisode === null
-									? t("acquisition.watching.unsupportedStart")
-									: t("acquisition.watching.fromEpisode", {
-											episode: work.startEpisode,
-										})}{" "}
-								· {watchingReason(work.reason)}
-							</li>
-						))}
-					</ul>
+					<details>
+						<summary className="cursor-pointer text-sm">
+							{t("acquisition.watching.previewLabel")}
+						</summary>
+						<ul
+							className="max-h-64 overflow-auto text-sm"
+							aria-label={t("acquisition.watching.previewLabel")}
+						>
+							{preview.data.works.map((work) => (
+								<li key={work.workKey}>
+									{work.title} ·{" "}
+									{work.startEpisode === null
+										? t("acquisition.watching.unsupportedStart")
+										: t("acquisition.watching.fromEpisode", {
+												episode: work.startEpisode,
+											})}{" "}
+									· {watchingReason(work.reason)}
+								</li>
+							))}
+						</ul>
+					</details>
 					<Button
 						className="h-auto min-h-9 whitespace-normal py-2"
 						disabled={busy || preview.data.expiresAt <= Date.now()}
@@ -220,61 +225,49 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 					</Button>
 				</div>
 			)}
-			{status.works.length > 0 && (
+			{status.works.some((work) => work.excluded) && (
 				<details>
 					<summary>
 						{t("acquisition.watching.management", {
-							count: status.works.length,
+							count: status.works.filter((work) => work.excluded).length,
 						})}
 					</summary>
 					<div className="max-h-96 space-y-3 overflow-auto pt-3">
-						{status.works.map((work) => (
-							<div
-								key={work.workKey}
-								className="space-y-1 border-b pb-2 text-sm"
-							>
-								<p>
-									<a
-										className="underline break-words"
-										href={`/anime/tracked/${encodeURIComponent(work.workKey)}`}
-									>
-										{work.title}
-									</a>
-									{work.startEpisode !== null
-										? ` · ${t("acquisition.watching.fromEpisode", { episode: work.startEpisode })}`
-										: ""}
-								</p>
-								<p>{watchingReason(work.reason)}</p>
-								<div className="action-row">
-									<Button
-										className="h-auto min-h-9 whitespace-normal py-2"
-										variant="ghost"
-										disabled={busy || !status.accountId}
-										onClick={() =>
-											override.mutate({ ...work, excluded: !work.excluded })
-										}
-									>
-										{work.excluded
-											? t("acquisition.watching.include")
-											: t("acquisition.watching.exclude")}
-									</Button>
-									{work.managed && !work.excluded && (
+						{status.works
+							.filter((work) => work.excluded)
+							.map((work) => (
+								<div
+									key={work.workKey}
+									className="space-y-1 border-b pb-2 text-sm"
+								>
+									<p>
+										<a
+											className="underline break-words"
+											href={`/anime/tracked/${encodeURIComponent(work.workKey)}`}
+										>
+											{work.title}
+										</a>
+										{work.startEpisode !== null
+											? ` · ${t("acquisition.watching.fromEpisode", { episode: work.startEpisode })}`
+											: ""}
+									</p>
+									<p>{watchingReason(work.reason)}</p>
+									<div className="action-row">
 										<Button
 											className="h-auto min-h-9 whitespace-normal py-2"
 											variant="ghost"
-											disabled={busy}
+											disabled={busy || !status.accountId}
 											onClick={() =>
-												override.mutate({ ...work, paused: !work.paused })
+												override.mutate({ ...work, excluded: !work.excluded })
 											}
 										>
-											{work.paused
-												? t("acquisition.watching.resume")
-												: t("acquisition.watching.pause")}
+											{work.excluded
+												? t("acquisition.watching.include")
+												: t("acquisition.watching.exclude")}
 										</Button>
-									)}
+									</div>
 								</div>
-							</div>
-						))}
+							))}
 					</div>
 				</details>
 			)}

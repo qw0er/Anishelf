@@ -87,11 +87,7 @@ export class WatchingApplication implements WatchingApi {
 			: null;
 	}
 	private subscriptionReason(key: string): string | null {
-		if (!this.options.subscription(key)) return null;
-		const owner = this.owner(key);
-		if (owner && owner.accountId !== this.snapshot().accountId)
-			return "different_account_owner";
-		return owner ? null : "manual_subscription_present";
+		return this.options.subscription(key) ? "subscription_present" : null;
 	}
 	private now() {
 		return this.options.now?.() ?? Date.now();
@@ -111,9 +107,6 @@ export class WatchingApplication implements WatchingApi {
 	}
 	private member(accountId: string, key: string) {
 		return this.options.store.member(accountId, key);
-	}
-	private owner(key: string) {
-		return this.options.store.owner(key);
 	}
 	private put(row: WatchingMember) {
 		if (this.member(row.accountId, row.workKey)?.reason !== row.reason)
@@ -177,73 +170,33 @@ export class WatchingApplication implements WatchingApi {
 			return "destination_changed";
 		return "ready";
 	}
-	private workReason(row: WatchingMember): string {
-		if (row.excluded) return "excluded";
-		if (row.paused) return "manually_paused";
-		const reason = this.reason();
-		if (reason !== "ready") return reason;
-		const policy = this.policy();
-		if (row.accountId !== policy.grant?.accountId)
-			return "tracking_account_changed";
-		const entry = this.snapshot().entries.find(
-			(entry) => entry.workKey === row.workKey,
-		);
-		if (!entry) return "tracking_entry_removed";
-		if (entry.status !== "watching") return `tracking_${entry.status}`;
-		if (row.reason === "source_reselection_required") return row.reason;
-		if (row.subscriptionRevision && row.grantId !== policy.grant?.id)
-			return "authorization_required";
-		return row.reason;
-	}
-	enabled(subscription: Subscription): boolean {
-		const owner = this.owner(subscription.workKey);
-		if (!owner) return subscription.enabled;
-		return (
-			owner.subscriptionRevision === subscription.revision &&
-			this.workReason(owner) === "managed"
-		);
-	}
-	management(key: string) {
-		const row =
-			this.owner(key) ?? this.member(this.snapshot().accountId ?? "", key);
-		return row
-			? {
-					managed: row.subscriptionRevision !== null,
-					excluded: row.excluded,
-					paused: row.paused,
-					reason: this.workReason(row),
-				}
-			: null;
-	}
-	manualSave(key: string) {
-		const owner = this.owner(key);
-		if (owner)
-			this.put({
-				...owner,
-				excluded: true,
-				subscriptionRevision: null,
-				grantId: null,
-				reason: "manual_subscription_present",
-			});
-	}
-	manualToggle(key: string, enabled: boolean, revision: string) {
-		const owner = this.owner(key);
-		if (owner)
-			this.put({ ...owner, paused: !enabled, subscriptionRevision: revision });
-	}
 	manualRemove(key: string) {
 		const snapshot = this.snapshot();
-		const owner =
-			this.owner(key) ??
-			(snapshot.accountId ? this.member(snapshot.accountId, key) : undefined);
-		if (owner)
+		const accounts = new Set(
+			this.options.store
+				.members()
+				.filter((row) => row.workKey === key)
+				.map((row) => row.accountId),
+		);
+		const accountId = snapshot.accountId ?? this.policy().grant?.accountId;
+		if (accountId) accounts.add(accountId);
+		for (const accountId of accounts) {
+			const row =
+				this.member(accountId, key) ??
+				this.make(
+					accountId,
+					key,
+					snapshot.entries.find((entry) => entry.workKey === key)?.title ?? key,
+				);
 			this.put({
-				...owner,
+				...row,
 				excluded: true,
+				paused: false,
 				subscriptionRevision: null,
 				grantId: null,
 				reason: "excluded",
 			});
+		}
 	}
 	status(): WatchingStatus {
 		const snapshot = this.snapshot(),
@@ -277,13 +230,13 @@ export class WatchingApplication implements WatchingApi {
 					workKey,
 					title: entry?.title ?? row?.title ?? workKey,
 					revision: row?.revision ?? null,
-					managed: row?.subscriptionRevision != null,
+					managed: false,
 					excluded: row?.excluded ?? false,
-					paused: row?.paused ?? false,
+					paused: false,
 					startEpisode: row?.startEpisode ?? null,
-					reason: row
-						? this.workReason(row)
-						: (this.subscriptionReason(workKey) ?? "pending"),
+					reason:
+						this.subscriptionReason(workKey) ??
+						(row?.excluded ? "excluded" : (row?.reason ?? "pending")),
 				};
 			}),
 		};
@@ -477,7 +430,7 @@ export class WatchingApplication implements WatchingApi {
 					entry?.title ?? input.workKey,
 				)),
 			excluded: input.excluded,
-			paused: input.paused,
+			paused: false,
 			retryAt: 0,
 		});
 		this.options.logger.info(
@@ -485,7 +438,7 @@ export class WatchingApplication implements WatchingApi {
 				event: "acquisition.watching_override_saved",
 				workKey: input.workKey,
 				excluded: input.excluded,
-				paused: input.paused,
+				paused: false,
 			},
 			"Manual Watching override saved.",
 		);
@@ -521,94 +474,32 @@ export class WatchingApplication implements WatchingApi {
 			(entry) => entry.status === "watching",
 		)) {
 			this.guard(policy, snapshot);
-			let row = this.member(grant.accountId, entry.workKey);
-			const subscription = this.options.subscription(entry.workKey);
-			if (row?.excluded || row?.paused) continue;
-			const subscriptionReason = this.subscriptionReason(entry.workKey);
-			if (subscriptionReason) {
-				if (row?.reason !== subscriptionReason)
-					this.put({
-						...(row ?? this.make(grant.accountId, entry.workKey, entry.title)),
-						reason: subscriptionReason,
-					});
-				continue;
-			}
-			if (row?.subscriptionRevision && row.grantId === grant.id) continue;
-			if (row && row.retryAt > this.now()) continue;
-			row ??= this.make(grant.accountId, entry.workKey, entry.title);
-			if (!subscription && this.options.hasCapacity?.() === false) {
+			const existing = this.options.subscription(entry.workKey);
+			const row =
+				this.member(grant.accountId, entry.workKey) ??
+				this.make(grant.accountId, entry.workKey, entry.title);
+			if (existing || row.excluded) continue;
+			if (this.options.hasCapacity?.() === false) {
 				if (row.reason !== "subscription_limit")
 					this.put({ ...row, reason: "subscription_limit" });
 				continue;
 			}
-			const startEpisode =
-				row.startEpisode ?? this.startEpisode(entry.progress, grant.backlog);
+			const startEpisode = this.startEpisode(entry.progress, grant.backlog);
 			if (startEpisode === null) {
 				if (row.reason !== "invalid_progress")
 					this.put({ ...row, reason: "invalid_progress" });
-				continue;
-			}
-			const pinnedSource = subscription?.sourceInput;
-			if (
-				pinnedSource?.kind === "search" &&
-				!this.options.sources.connector
-					.settings()
-					.providers.includes(pinnedSource.providerId)
-			) {
-				if (row.reason !== "source_reselection_required")
-					this.put({ ...row, reason: "source_reselection_required" });
 				continue;
 			}
 			if (attempted++ >= 5) {
 				deferred = true;
 				continue;
 			}
-			row = { ...row, reason: "search_pending" };
-			this.put(row);
-			row = this.member(grant.accountId, entry.workKey);
-			if (!row) throw new Error("Missing managed admission record");
-			const captured = row;
 			try {
-				let pinned = subscription?.sourceInput;
-				if (
-					pinned?.kind === "search" &&
-					pinned.connectionRevision !== grant.sourceRevision
-				) {
-					// Explicit renewed grant permits the same pinned site under the accepted generation.
-					pinned = { ...pinned, connectionRevision: grant.sourceRevision };
-				}
-				const discovery = pinned
-					? null
-					: await this.options.subscriptions.search({
-							workKey: entry.workKey,
-							revision: subscription?.revision ?? null,
-							startEpisode,
-							profileId: grant.profileId,
-						});
-				const source = pinned ?? discovery?.source;
-				this.guard(policy, snapshot);
-				if (
-					this.member(grant.accountId, entry.workKey)?.revision !==
-					captured.revision
-				)
-					continue;
-				if (!source) {
-					this.put({
-						...captured,
-						reason: discovery?.attempts.some(
-							(attempt) => attempt.outcome === "unavailable",
-						)
-							? "discovery_unavailable"
-							: "no_eligible_source",
-						retryAt: this.now() + 300000,
-					});
-					continue;
-				}
 				this.options.admit(
 					{
 						workKey: entry.workKey,
-						revision: subscription?.revision ?? null,
-						source,
+						revision: null,
+						source: { kind: "automatic" },
 						startEpisode,
 						profileId: grant.profileId,
 						target: {
@@ -618,59 +509,40 @@ export class WatchingApplication implements WatchingApi {
 					},
 					(saved) => {
 						this.guard(policy, snapshot);
-						if (
-							this.member(grant.accountId, entry.workKey)?.revision !==
-							captured.revision
-						)
-							conflict();
+						const current = this.member(grant.accountId, entry.workKey);
+						if (current && current.revision !== row.revision) conflict();
+						saved.createdBy = "watching";
 						this.put({
-							...captured,
+							...row,
 							startEpisode,
-							subscriptionRevision: saved.revision,
-							grantId: grant.id,
-							reason: "managed",
+							subscriptionRevision: null,
+							grantId: null,
+							reason: "created",
 							retryAt: 0,
 						});
 					},
 				);
 				this.options.logger.info(
 					{
-						event: "acquisition.watching_admitted",
+						event: "acquisition.watching_subscription_created",
 						workKey: entry.workKey,
 						grantId: grant.id,
 					},
-					"Watching subscription and scoped permission admitted atomically.",
+					"Watching created an ordinary subscription; discovery will run in the background.",
 				);
 			} catch (error) {
-				if (
-					this.shutdown.signal.aborted ||
-					this.policy().revision !== policy.revision ||
-					this.snapshot().revision !== snapshot.revision
-				)
-					return;
-				if (
-					this.member(grant.accountId, entry.workKey)?.revision !==
-					captured.revision
-				)
-					continue;
-				this.put({
-					...captured,
-					reason: "discovery_unavailable",
-					retryAt: this.now() + 300000,
-				});
 				this.options.logger.warn(
 					{
-						event: "acquisition.watching_admission_failed",
+						event: "acquisition.watching_creation_failed",
 						workKey: entry.workKey,
-						code:
-							error instanceof DomainError ? error.code : "source_unavailable",
+						code: error instanceof DomainError ? error.code : "unavailable",
 					},
-					"Managed admission retained for a later retry.",
+					"Watching subscription creation deferred.",
 				);
 			}
 		}
 		this.guard(policy, snapshot);
-		if (!deferred && policy.appliedSnapshot !== snapshot.revision)
+		if (!deferred)
 			this.options.store.savePolicy({
 				...policy,
 				appliedSnapshot: snapshot.revision,

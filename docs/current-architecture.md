@@ -13,9 +13,9 @@ Acquisition has four business units and a qBittorrent adapter:
 
 | Unit | Responsibilities and owned state |
 | --- | --- |
-| Watching | Explicit activation grants, Tracking reconciliation, managed ownership, manual pause/exclusion and effective managed eligibility |
+| Watching | Explicit activation grants, confirmed Watching list reconciliation, ordinary subscription creation and recreation exclusions |
 | Sources | RSS/Jackett bindings, credentials, transport, evidence, retry metadata and opaque download references |
-| Subscriptions | Per-work source, starting episode, profile, enable/pause/remove, accepted download scope, candidate selection and waiting evidence |
+| Subscriptions | User subscription intent, pending source discovery, source pinning, starting episode, profile, enable/pause/remove, accepted download scope and candidate selection |
 | Downloads | Global destination, stable directories, accepted tasks, episode/hash reservations, submission, remote observation, recovery and import outcomes |
 | qBittorrent adapter | Private account configuration, connection generations, client lifetime and SDK operations |
 
@@ -187,415 +187,71 @@ source upgrades, shutdown and HTTP/UI contracts. Run Biome, lint, type checks an
 project tests with localhost/subprocess permissions where required. These checks do
 not establish real Jackett/RSS/qBittorrent/shared-media/browser playback acceptance.
 
-## Watching Automation with Torznab and Jackett
+## Unified Subscriptions and Watching Creation
 
-Implementation status (2026-10-23): Jackett, shared Sources, manual ordered discovery
-and opt-in Watching reconciliation are implemented. Watching is disabled until a
-session-bound preview is explicitly confirmed. Manual pipeline live acceptance was
-reported by the user; live Watching acceptance is still pending. See the
-[operator guide](watching-automation.md) and [delivery record](watching-automation-handoff.md).
+Implementation status (2026-10-24): manually requested and Watching-created
+subscriptions use the same persisted model, editor and execution path. See
+[subscription interaction](subscription-interaction-redesign.md), [Watching setup](watching-automation.md)
+and [shared Sources lifecycle](source-lifecycle.md).
 
-### Selected Approach and Deployment
+Saving an automatic-source subscription persists user intent before searching:
+`feed_id` is null, `automatic` stores the accepted source generation, profile
+fingerprint, destination/downloader binding and retry deadline. Starting episode is
+fixed at creation. No fabricated feed identity or pre-search download permission is
+created. Explicit RSS remains available and resolved source choices remain pinned.
 
-Use Jackett as a separately deployed site adapter and Torznab as the acquisition
-search protocol. Jackett owns site definitions, site credentials, cookies and
-site-specific HTTP/HTML handling. Anishelf owns Watching reconciliation, work and
-episode verification, preferences, subscription permission, release selection and
-the existing download/import workflow. Do not embed Jackett, scrape site pages in
-Anishelf, or let Jackett submit downloads independently of Anishelf reservations.
+A serial Subscriptions worker runs every 30 seconds and resolves at most five
+pending subscriptions per pass. Empty/failed discovery retains intent and retries
+after five minutes. It uses the existing ordered-site discovery and Anime release
+assessment; ambiguous identities, packs and unsupported content do not authorize
+downloads. Source/profile/target changes invalidate the pending scope until it is
+explicitly saved again. Every asynchronous result rechecks subscription revision,
+configuration and shutdown before binding source and download authorization in one
+SQLite transaction. Edits, pause and deletion fence late discovery results.
 
-Configure one Jackett instance with an ordered list of explicit indexer endpoints.
-Each work pins one indexer after discovery; subsequent results remain release
-evidence, not a newly discovered permanent per-anime RSS URL. Search indexers in
-configured order until one yields an eligible release. Do not merge/rank releases
-across sites or silently replace a pinned source. A missing release triggers retry
-on the pinned source; changing it is an explicit per-work override or policy preview.
-This keeps S09 multi-source ranking and upgrades deferred while supporting multiple
-configured sites. Prowlarr-specific integration is outside this iteration.
+Resolved sources use the existing Sources scheduler and selection/download/import
+pipeline. Explicit Check updates can resolve and collect a pending source. Site
+failure does not silently replace an established pin. Existing reservation,
+unknown-submission recovery, external-removal suppression and verified ingestion
+boundaries remain in Downloads.
 
-Stage 3 service setup is implemented in both Compose files and optional rootless
-Quadlet units. Jackett is one separate service using `latest` and generates its
-own native configuration. A Sources background worker reads the config volume
-read-only, imports credentials and performs authorized one-time Nyaa.si setup.
-Existing native installations require manual site setup. Sources preserves saved
-connections/disconnects and exposes
-explicit bundled selection. The Settings page separates connection/site enumeration,
-capability probes and diagnostic searches. Backend startup and playback do not
-depend on Jackett readiness. See [Jackett setup](jackett-setup.md) for deployment,
-credential ownership, preservation and verification limits.
+Watching is default-off and retains its five-minute session-bound activation preview.
+Its grant controls creation of missing subscriptions from a fresh complete confirmed
+Watching list; pending local Tracking commands cannot authorize creation. Existing
+subscriptions are skipped regardless of their origin, so progress/status changes,
+account changes and global disable never overwrite user settings or stop their
+execution. Future creation still requires current accepted account/source/profile/
+destination generations and a valid list. Creation uses confirmed progress plus one
+or episode 1 and fixes that lower bound immediately, even while source discovery is
+pending. Invalid/excessive progress produces a visible decision instead of clamping.
 
-Manual discovery lives in Subscriptions and uses only Sources' public setup and
-collection operations. It searches configured providers in order and evaluates each
-using Anime identity evidence and the accepted release profile/scope. A preview
-returns a proposed definition and safe summaries without publishing candidates or
-granting download permission. The existing save operation atomically accepts the
-pinned definition and validated destination; background refresh and Downloads use
-the existing evidence/content, reservation and ingestion pipeline. A connection
-change rejects stale previews and saved search bindings. Existing transfers continue
-reconciliation. See [Search subscriptions](search-subscriptions.md) for the contract
-and automated-versus-live verification boundary.
+Manual edits and pause/resume work identically for every subscription. Unsubscribe
+removes intent and records creation exclusions for the known account/work records;
+this prevents immediate automatic recreation. Exclusions survive restart and can be
+cleared explicitly. Submitted transfers and imports continue independently.
 
-Protocol references: [Jackett query syntax](https://github.com/Jackett/Jackett#jackett-torznab-query-syntax)
-and the [Torznab specification](https://torznab.github.io/spec-1.3-draft/torznab/Specification-v1.3.html).
-Jackett documents `t=caps`, `t=search` and per-indexer endpoints; its aggregate
-`all` endpoint has per-site control and result-limit tradeoffs. Use explicit indexers
-and capability negotiation rather than relying on aggregate behavior.
+Migration `0010_unified_subscriptions` preserves manual permissions and existing
+pins/lower bounds/candidates. Previously managed grants were conditional ongoing
+permissions, so migrated managed subscriptions are paused and their authorization
+is revoked until the operator reviews/saves/resumes them. Old Watching grants are
+disabled. No account permission is silently broadened during this conversion.
 
-### Module Boundaries and Contracts
+HTTP uses the existing authenticated/CSRF/revision-checked routes. Subscription
+save accepts `{ kind: "automatic" }`, explicit source input, or null to retain an
+existing source. `GET /api/acquisition/subscriptions?diagnostics=false` returns a
+compact view without release evidence. Unified work detail uses this summary; full
+candidate diagnostics are loaded on demand. The source-search endpoint remains an
+optional diagnostic operation, not a prerequisite for saving.
 
-```mermaid
-flowchart LR
-    AniList --> Tracking[Anime Tracking: complete confirmed list]
-    Tracking --> Watching[Acquisition Watching reconciliation]
-    Watching --> Managed[Managed subscription and scoped permission]
-    Managed --> Search[Subscriptions search plan]
-    Search --> Torznab[Torznab adapter]
-    Torznab --> Jackett
-    Jackett --> Sites[Configured BT sites]
-    Torznab --> Evidence[Normalized release evidence]
-    RSS[Manual RSS] --> Evidence
-    Evidence --> Assess[Anime assessment and preference selection]
-    Assess --> Selection[DownloadSelection]
-    Selection --> Downloads[Existing Downloads workflow]
-    Downloads --> Q[qBittorrent]
-    Q --> Import[Existing verified ingestion]
-```
+The Header row lives inside the work header, preserving playback priority. One
+summary and Activity action replace the overlapping information blocks. The short
+editor reveals overrides under More options. Activity prioritizes failures/active
+work; History and lazy grouped Diagnostics are secondary. See the
+[design system](design-system.md#automatic-acquisition).
 
-- Add an internal Acquisition Watching application and bounded reconciler. It
-  depends on a consumer-owned `WatchingListPort` supplied by bootstrap, not on
-  Tracking repositories or provider adapters. Anime exposes a narrow projection
-  of its existing Tracking list/refresh capability: provider-qualified account and
-  work references, connection generation, immutable complete-snapshot revision,
-  freshness/completeness, refresh eligibility/backoff, confirmed status and progress.
-  The public boundary exposes completeness/revision explicitly; `fetchedAt` alone is not a revision.
-  Tracking publishes a complete snapshot only after all provider pages succeed.
-  Pending local status commands are not confirmed remote list state.
-- Add an internal `torznab` adapter with `capabilities`, `search`, optional
-  `recent` and `readTorrent` operations. Return normalized results and typed failures
-  rather than XML, raw URLs or Jackett errors through business APIs. Keep the
-  existing XML parser and HTTP library where suitable; no new generic crawler.
-- Keep the source protocols in sibling adapters under `sources/rss/` and
-  `sources/jackett/`. The RSS adapter owns feed URL validation, RSS parsing and
-  transport, conditional requests and retained feed evidence. Jackett owns its
-  credentials, Torznab parsing and saved-origin transport. `SourcesApplication`
-  owns shared recurring scheduling, Jackett evidence persistence and retry state,
-  and coordinates reference, freshness and checked publication; Subscriptions continues to own subscriptions,
-  assessments and acquisition decisions. Both adapters use the shared bounded
-  request gate.
-- Subscriptions owns both manual RSS and managed search subscriptions, evidence,
-  assessments and preferences. Subscriptions reference the common source identity;
-  protocol-specific binding configuration stays inside Sources. Manual RSS retains
-  its workflow; manual query discovery and save are delivered, and Watching-driven
-  subscription ownership uses the same atomic admission path.
-  Downloads reads source-neutral release evidence through `DownloadSelection`;
-  it never reads Watching or Torznab persistence directly. Replace its raw download
-  URL projection with an opaque download reference. Sources retains protocol
-  descriptors privately; bootstrap supplies a source-neutral torrent reader returning
-  magnet content or bytes. Downloads retains parsing/hash verification, validates
-  reference currentness after admission and owns submission. The reader exposes
-  neither source storage nor credentials. See the [shared Sources contract](source-lifecycle.md).
-- Anime retains title/season/episode assessment through `ReleaseAssessmentApi`.
-  Reuse its target metadata and release parser. Extend the assessment projection
-  with versioned release attributes and provenance needed for preference decisions;
-  do not duplicate anime recognition in Jackett or Acquisition.
-- Extend `SubscriptionConfirmation` into an admission coordinator supporting a
-  session preview or a persisted automation grant. Save managed-subscription state,
-  source plan, confirmed work scope and download permission in one synchronous
-  database transaction. Perform remote calls before that transaction and recheck
-  all input revisions inside it. No worker may bypass this coordinator.
-
-### Configuration, Policy and Permission
-
-Store Jackett credentials in an Acquisition-owned private configuration file using
-the existing credential-file permissions and atomic replacement pattern. Keep the
-API key separate from the endpoint, expose only `hasApiKey`, and never return it to
-the browser. An omitted key on update retains it; replacement and clearing are
-explicit commands. Database records reference a configuration generation rather
-than copying the key. Authenticated configuration saves and connection tests alone
-grant no download permission.
-
-Store a revisioned automation policy containing enabled state, tracking account and
-generation, ordered indexer IDs/configuration generations, preference revision,
-destination revision, downloader generation and backlog mode. Default automation
-to disabled. Use `progress + 1` as the selected backlog default, with `from 1`
-as an explicit alternative. Per-work starting-episode/source edits use the manual
-subscription form with explicit consent to release automation ownership. Freeze a
-work's starting episode only at successful admission so later progress changes
-cannot silently expand or shrink accepted scope. Do not generate a bulk episode
-queue from a missing/unknown episode count; acquire only verified published episodes
-within that lower bound and any known valid upper bound.
-
-Activation uses a five-minute, authenticated-session-bound preview, showing the
-complete Watching snapshot, affected works, effective starting episodes, preferences,
-source order and destination. Confirm a persisted grant only if the preview's
-tracking/source/preference/destination revisions still match. Future Watching
-entries inherit this grant and need no per-title preview. New metadata or search
-results may populate evidence but cannot broaden the accepted grant. Preview
-does not search an unbounded number of titles or submit downloads; report unresolved
-metadata explicitly and resolve it asynchronously after confirmation. Progress-based
-starting episodes are estimates until admission; unresolved retries use the latest
-complete confirmed progress. Invalid/noninteger progress or progress at least 10000
-blocks admission with `invalid_progress`, rather than inventing a lower bound.
-
-Download permission becomes source-neutral: work, subscription/scope revision,
-source binding and generation, start episode, grant ID/revision (managed only),
-preference revision, destination revision and downloader generation. Source additions,
-preference changes, backlog expansion, account changes or destination changes
-require a new preview/confirmation before affecting managed acquisition. Disabling
-automation or a source takes effect immediately. Retain the current manual grant
-path and recheck effective permission immediately before external submission.
-Changing the API key or endpoint advances source generation and blocks old unsent
-permissions until validation and confirmation. A new preview/confirmation may renew
-the same pinned site under the newly accepted generation if it is still configured.
-A removed site remains suspended with `source_reselection_required`; the user must
-choose a source through explicit manual conversion. Another account's managed work
-remains blocked with `different_account_owner`, never mislabeled as manual; credentials are never inherited by
-an old intent solely because its URL has the same host.
-
-### Watching Reconciliation and Manual Overrides
-
-Use confirmed provider-neutral `watching` status, currently mapped from AniList
-`CURRENT`. Apply these selected defaults only to automation-owned subscriptions:
-
-| Observed state | Effect on new acquisitions |
-| --- | --- |
-| Watching | Admit or reactivate within the accepted grant and frozen scope |
-| Paused, Dropped, Completed, Planned or Rewatching | Suspend new reservations/submissions; do not opt into rewatch acquisition |
-| Entry absent from a new complete, healthy snapshot | Suspend with `tracking_entry_removed`; retain subscription and history |
-| Stale, partial, failed or disconnected snapshot | Retain last confirmed state, block new admissions/submissions, and show tracking unavailable |
-| Return to Watching | Resume a suspension caused by tracking policy, preserving manual overrides |
-| Different account or connection generation | Block managed work until a new activation preview is confirmed |
-
-Represent status eligibility, manual pause, per-work opt-out, source readiness and
-authorization separately; effective enablement is their conjunction, not a single
-boolean overwritten by polling. A manual pause survives a later Watching transition.
-Removing a managed subscription writes an account/work opt-out tombstone so the
-next list poll does not recreate it. Explicit re-enable clears that tombstone.
-Global disable stops new work while existing transfers and imports continue.
-
-One active subscription remains unique per work. If a manual RSS subscription
-exists, record `manual_subscription_present` and leave it untouched; it does not
-inherit global automation permission. Converting a managed subscription to manual
-requires explicit confirmation and removes automatic ownership. Pinning a different
-source or changing scope uses the revision-checked manual subscription form and persists the
-manual decision. Never reset an override from list reconciliation or a metadata refresh.
-
-The reconciler obtains a complete snapshot, resolves work metadata, then commits
-revision-checked per-work admissions in bounded batches. Record an applied snapshot
-revision only after all entries and removals are processed; restart resumes the
-persisted member state idempotently. Up to five admissions run per 30-second pass;
-unresolved discovery retries after five minutes. Invalid progress and capacity
-failures do not consume the remote admission batch. Current Watching scope is capped
-at 500; retained ownership/exclusion tombstones do not consume that scope or block
-overrides on newer works. Tracking alone owns refresh eligibility and provider backoff. Recheck account generation, current snapshot and
-policy revisions after every await. No partial batch authorizes an absent work.
-Retain the existing maximum of 64 subscriptions; surface excess work as
-`subscription_limit` rather than silently discarding or replacing entries. Keep
-overflow state lightweight and retry it when capacity becomes available.
-
-### Torznab Transport and Normalized Evidence
-
-Configure explicit per-indexer API endpoints such as
-`http://jackett:9117/api/v2.0/indexers/<id>/results/torznab/api`.
-Reject embedded credentials, fragments and supplied API-key/query parameters;
-the adapter constructs queries with `URLSearchParams` and adds its private key.
-Probe `t=caps` to validate free-text search, supported categories and page limits.
-Use only advertised categories/parameters; a healthy capabilities response does not
-prove that the upstream site can return usable results. Validate with a bounded
-search as a separate step, and distinguish empty results from connection failure.
-
-Use `t=search&q=...` as the baseline. Do not send AniList IDs as TVDB IDs, or infer
-TV `season`/`ep` parameters from Japanese airing seasons or absolute numbering.
-Indexed TV search remains unused until an explicit verified mapping exists.
-Generate up to four unique title queries from current metadata in stable language
-and primary/alias order; preserve distinguishing season/part tokens. Use aliases
-to improve recall, then assess each result against the actual target.
-
-Normalize results to source/generation, upstream GUID, observation ID, title,
-publication time, byte size, nullable seed/peer counts, nullable claimed v1 hash,
-private torrent locator or magnet, and parsed attributes with provenance/version.
-Reuse RSS item normalization where possible but explicitly add Torznab response
-metadata, errors, namespaces and extended attributes. Support only the current
-v1/hybrid download policy. Prefer a validated hash for cross-query deduplication;
-otherwise use source-scoped GUID or normalized locator identity. Treat locator/hash
-claims as untrusted until Downloads verifies torrent identity. Never use a detail
-page link as a torrent download automatically.
-
-The existing `RssTransport` rejects private networks and cannot be reused unchanged
-for Jackett. Introduce a dedicated transport restricted to the saved Jackett origin
-and configured API/download route families, supporting private service DNS. API
-requests do not follow redirects. Jackett torrent locators must match the configured
-origin and accepted download route; store a validated opaque locator and resolve
-credentials at fetch time. Strip configured API keys from query strings and any
-Jackett route path carrying the key when normalizing locators; reconstruct these
-only inside the transport for the captured generation. Do not treat every
-same-origin URL as a download route.
-For a redirect to a public torrent host, remove Jackett credentials and apply existing
-public-address/DNS/redirect checks on each hop. Reject redirects to other private
-origins and credential-bearing external URLs. A public direct torrent URL follows
-the existing public transport. Magnet URIs use the existing validation path.
-
-Pass torrent bytes through the existing bounded parser/hash verification before
-qBittorrent submission. Never send Jackett's authenticated proxy URL to qBittorrent
-as an unchecked URL. Retain the existing public-only RSS policy; browser requests
-cannot supply arbitrary proxy targets. Bound XML bodies to 5 MiB/1000 items,
-torrent bodies to 10 MiB and requests to 30 seconds. Reject DTD/entities and parse
-Torznab error documents even on HTTP 200. Classify authentication, rate limiting,
-unsupported capability, malformed response, timeout and upstream failure separately.
-Honor retry hints without logging response bodies or credential-bearing URLs.
-
-### Source Search, Release Selection and Scheduling
-
-1. On admission, search allowed indexers sequentially in configured order using
-   metadata title queries. Pin the first indexer with an identity-confirmed release
-   satisfying scope and hard preferences. No result means `no_match`, not removal
-   or authorization of a weaker identity. Pinning does not itself submit a task.
-2. Persist a query plan keyed by work, metadata revision, indexer generation and
-   policy revision. Store query cursors and bounded observations; do not invent an
-   RSS URL or freeze the first response as a permanent feed. Reassess retained
-   evidence after metadata changes before reserving any new download.
-3. Require existing Anime identity/season and single-episode checks, accepted scope,
-   supported download format, local-availability and reservation checks first.
-   Required language, allowed group, resolution, codec and include/exclude keywords
-   are hard constraints. Unknown required attributes yield `preference_unknown`;
-   an absent preference imposes no constraint. Parse subtitle language separately
-   from audio language and retain evidence, not a guess from the site/category.
-4. Among eligible versions on the pinned source, use the implemented [profile selection](acquisition-profiles.md) rules:
-   apply hard conditions and ordered wait levels, then optional seed counts,
-   same-group revision, publication time and stable identity. Reconsider
-   unreserved choices while preserving reserved choices. Missing seed count is
-   unknown, not zero, and cannot prove downloadability. Do not replace reserved,
-   active or available episodes with a later higher-ranked version. Keep packs,
-   specials and uncertain numbering excluded with explicit reasons.
-5. Publish selected candidates through `DownloadSelection`. Downloads performs its
-   existing final authorization/availability check, hash and work/episode reservation,
-   uncertain-submission reconciliation and independent verified import.
-
-Watching ticks every 30 seconds and refreshes a stale Tracking list only when the
-Tracking owner permits it, respecting coalescing, authorization state and retry
-hints. Tracking freshness is five minutes. A stale, refreshing or failed snapshot
-cannot authorize new admission or submission. Confirmed local writes invalidate
-completeness until a full provider read succeeds.
-
-Initial discovery runs before admission. Once admitted, the pinned source uses the
-[shared Sources lifecycle](source-lifecycle.md): a 30-second scheduler, configured
-successful refresh interval (default 30 minutes), bounded evidence, shared request
-gate and failure backoff capped at one hour with upstream retry hints. Unresolved
-Watching admissions retry after five minutes. Failed reads retain prior evidence
-and cannot publish an empty successful removal. Query coverage limits remain
-visible and do not prove complete backlog coverage. Keywordless aggregate recent
-polling, automatic gap repair and durable cross-run pagination cursors are future
-scheduler refinements, not delivered guarantees of this iteration.
-
-### Persistence and Migration
-
-Migration `0009_watching_automation` adds the following records. Existing Sources,
-Subscriptions and Downloads keep their own persistence; no separate reconciler-run
-or duplicate download-permission table is introduced.
-
-| Record | Durable fields and invariants |
-| --- | --- |
-| `acquisition_watching_policy` | Singleton typed JSON configuration/grant: revision, enabled state, account/generations, source/profile fingerprint, backlog and destination/downloader binding, applied snapshot |
-| `acquisition_watching_members` | Normalized account/work primary key, revision, title, pause/exclusion, owned subscription revision, grant ID, frozen start episode, decision and retry deadline; a partial unique index permits one active owner per work |
-| Existing subscription/authorization | Source plan, starting episode, selected profile, scope revision and destination/downloader binding; atomically saved with ownership |
-| Existing source evidence/download intent | Retain bounded observations, private source-neutral references, reservations and accepted transfer provenance |
-
-Keep sensitive source configuration in its private file. Pair DB bindings with its
-generation so a crash between file replacement and DB writes blocks stale work
-rather than admitting it. Use transactional compare-and-swap updates after remote
-calls; source/account/policy changes fence late results. Unique account/work ownership, revision checks and single-use session previews
-make reconciliation and confirmation idempotent. Existing intent
-records remain independent of subscriptions and keep their captured provenance.
-
-Migrate existing subscriptions to manual RSS ownership without granting additional
-permission; preserve already confirmed destination-bound permissions and existing
-intents, reservations, source identities and suppression. Adapt their feed references
-to source bindings explicitly. Default automation off and preserve removal
-tombstones independently of evidence pruning. Bound observations to the existing
-2000 retained-item limit per work/source; overflow is visible and blocks new
-selection until bounded recovery, not silent eviction of unresolved evidence.
-Apply the existing 90-day private terminal-detail retention to completed query
-diagnostics while retaining active plans, permission provenance and deduplication
-reservations. No migration starts a worker-triggered download on its own.
-
-### HTTP and Compact Interface
-
-All new mutations use existing authentication, CSRF, TypeBox validation and
-revision checks. Safe responses omit private locators and credentials.
-
-| Route | Purpose |
-| --- | --- |
-| `GET/PUT /api/acquisition/sources/connector` | Safe Jackett configuration, private credential update and ordered site selection |
-| `POST /api/acquisition/sources/test` | Bounded source diagnostics without download permission |
-| `GET /api/acquisition/watching` | Policy validity and per-work decisions |
-| `POST /api/acquisition/watching/preview` | Session-bound Watching/backlog preview |
-| `POST /api/acquisition/watching/confirm` | Accept the exact preview and enable its grant |
-| `POST /api/acquisition/watching/disable` | Stop new managed acquisition |
-| `PUT /api/acquisition/watching/works` | Account/generation/member-revision-checked exclusion and pause |
-| Existing subscription routes | Project ownership/reasons and support explicit manual conversion, pause and removal |
-
-Settings separates source setup, release profiles, destination validation and Watching
-activation. Watching has a distinct preview/confirm action, a global disable control
-and a compact management disclosure with per-work overrides and detail links.
-All visible Watching text uses the translation catalog. See [the design system](design-system.md).
-
-Subscription details show ownership and the effective block reason with a Settings
-link. Source/scope edits require explicit manual conversion. Existing Activity
-continues to show download/import outcomes; uncertain search identity does not
-create a fabricated local-file Review record. File conflicts keep the existing
-Review flow. Transfer controls remain in qBittorrent WebUI.
-
-### Delivery and Verification
-
-Implementation fixtures cover source protocols/preferences, complete versus stale
-Tracking snapshots, status transitions, ownership, source/account generations,
-manual overrides, scoped grant rollback, restart recovery, bounded admission,
-capacity, HTTP/session/CSRF and explicit frontend activation/manual conversion.
-Managed Downloads integration checks disable/status changes after reservation and
-before sending, and verifies submitted transfers still reach ingestion callbacks.
-See the [delivery record](watching-automation-handoff.md) for checks and limits.
-
-Watching emits `acquisition.watching_previewed`, `watching_enabled`,
-`watching_disabled`, `watching_decision`, `watching_override_saved`,
-`watching_admitted`, `watching_admission_failed` and
-`watching_reconciliation_failed` events under the `acquisition.` prefix. Work/account,
-grant identifiers and sanitized reason/error codes correlate decisions. Existing
-source-discovery, source-refresh and Downloads logs retain their own identifiers.
-Never log credentials, private URLs/locators, raw provider errors or torrent content.
-
-ACQ12–ACQ15 require a real AniList account, a verified target site through Jackett,
-qBittorrent and shared media storage. Demonstrate activation, a new Watching entry,
-automatic matching/download/ingestion without per-anime RSS input, status and manual
-override behavior, source/tracking outages and restart. Run ACQ01–ACQ11 as regression
-acceptance, including actual browser playback separately from successful ingestion.
-Passing mocked Torznab tests or a healthy Jackett API does not establish site or
-end-to-end reliability. Season packs, quality upgrades and cross-site ranking remain
-outside the selected single-episode workflow.
-
-
-## Bundled qBittorrent Setup
-
-The bundled deployment initializes a new qBittorrent configuration before the
-service starts. It creates a random permanent password using qBittorrent's native
-PBKDF2 representation, enables `/data/incomplete`, and sets `/data/media` as the
-completed directory. A private connection volume carries the initial credentials;
-Backend mounts it read-only. Development Compose, published Compose and Quadlet
-share the same initialization script. Existing qBittorrent configurations are never
-overwritten. Interrupted credential publication resumes from the pending file.
-
-Acquisition imports deployment credentials only when no local connection record
-exists. Saved manual configuration, including an explicit removal, wins on restart.
-The worker retries initial setup without blocking application startup, selects the
-resource root by its actual `/data/media` path, and reuses the existing destination
-revision while retrying validation. Existing destinations from another connection
-generation require explicit reconfiguration. Automatic setup grants no subscription
-permission and does not assert completed-file visibility.
-
-Authenticated users can request bundled WebUI credentials through a dedicated
-CSRF-protected POST endpoint with `Cache-Control: no-store`. Normal connection
-responses never include passwords. The UI keeps revealed credentials outside query
-and mutation caches, hides them after 30 seconds or on backgrounding, and provides
-copy controls. The separately configured browser WebUI URL remains independent of
-the internal API address. Users changing credentials in WebUI must update the
-Anishelf connection and reconfirm destination-bound permissions. Initialization,
-validation, connection replacement and credential access emit sanitized events.
+Fixtures verify persisted no-result intent, scope freezing, cancellation/edit/pause
+races, configuration fences, atomic authorization rollback, migration preservation,
+Watching creation-only behavior, user management, activity ordering, HTTP/session/
+CSRF and frontend defaults/diagnostics. These checks are separate from real-service
+acceptance. Source/import fixtures and browser fixture actions do not enable the
+user's actual account or prove real media playback.

@@ -91,7 +91,7 @@ function fixture(override: Partial<typeof item> = {}) {
 }
 test("compact activity is collapsed, reports real progress and delegates transfer controls to WebUI", async () => {
 	const request = fixture();
-	await screen.findByText("Episode 3 · Downloading 42%");
+	await screen.findByText("Downloading 42%");
 	expect(document.querySelector("details")?.open).toBe(false);
 	expect(
 		screen.getByRole("link", { name: "Open WebUI" }).getAttribute("href"),
@@ -103,8 +103,7 @@ test("compact activity is collapsed, reports real progress and delegates transfe
 });
 test("import failure offers only import recovery and settings, without resubmitting a download", async () => {
 	const request = fixture({ ingestion: "failed", error: "file_size_conflict" });
-	await screen.findByText("Episode 3 · Import failed");
-	fireEvent.click(document.querySelector("summary") as HTMLElement);
+	await screen.findByText("Import failed");
 	fireEvent.click(await screen.findByRole("button", { name: "Retry import" }));
 	await waitFor(() =>
 		expect(
@@ -128,8 +127,7 @@ test("externally removed tasks require explicit acquisition retry", async () => 
 		transfer: "missing",
 		error: "externally_removed",
 	});
-	await screen.findByText("Episode 3 · Removed in qBittorrent");
-	fireEvent.click(document.querySelector("summary") as HTMLElement);
+	await screen.findByText("Removed in qBittorrent");
 	expect(
 		screen.getByRole("button", { name: "Retry acquisition" }),
 	).toBeTruthy();

@@ -17,6 +17,7 @@ import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { episodeViewing, episodeViewingCounts } from "../../tracking/public.js";
 import type { AnimeResourceActionSlot } from "../resource-actions.js";
 import type { LocalWorkDetailController } from "../use-local-work-detail.js";
+import { AssociationCorrectionMenuItem } from "./association-correction-menu-item.js";
 import { UnresolvedResources } from "./unresolved-resources.js";
 export function EpisodeList({
 	data,
@@ -76,6 +77,7 @@ export function EpisodeList({
 					</Tooltip>
 				)}
 			</div>
+			<UnresolvedResources key={work.id} workId={work.id} />
 			{episodes.length === 0 && <p>{t("anime.noEpisodes")}</p>}
 			{(["regular", "special", "movie"] as const).map((kind) => {
 				const group = episodes.filter((episode) => episode.kind === kind);
@@ -133,7 +135,12 @@ export function EpisodeList({
 										</div>
 										{usable.length === 1 && usable[0] ? (
 											<div className="flex shrink-0 items-center gap-1">
-												{renderResourceActions(usable[0])}
+												{renderResourceActions(
+													usable[0],
+													<AssociationCorrectionMenuItem
+														reviewId={usable[0].reviewId}
+													/>,
+												)}
 												<Link
 													className={buttonStyles()}
 													to={playPath(usable[0], episode)}
@@ -160,16 +167,6 @@ export function EpisodeList({
 					</section>
 				) : null;
 			})}
-			<UnresolvedResources workId={work.id} />
-			<p className="text-sm text-muted-foreground">
-				<Link to="/review?decision=confirmed" className="underline">
-					{t("review.correct")}
-				</Link>{" "}
-				· {t("anime.unresolvedHint")}{" "}
-				<Link to="/directories/root" className="underline">
-					{t("app.files")}
-				</Link>
-			</p>
 		</section>
 	);
 }

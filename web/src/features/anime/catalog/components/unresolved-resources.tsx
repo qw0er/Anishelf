@@ -13,25 +13,35 @@ export function UnresolvedResources({ workId }: { workId: string }) {
 	const { t } = useTranslation();
 	const [page, setPage] = useState(1);
 	const query = useQuery(workReviewsQuery(workId, page, useQueryScope()));
+	if (
+		query.data?.items.length === 0 &&
+		!query.data.hasNextPage &&
+		page === 1 &&
+		!query.error
+	)
+		return null;
 	return (
 		<section className="space-y-2" aria-label={t("anime.unresolvedResources")}>
-			<div className="flex items-start gap-2 text-sm">
-				<details className="group min-w-0 flex-1">
-					<summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 rounded-sm py-1 focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+			<div className="flex items-start gap-1 text-xs text-muted-foreground">
+				<details
+					className="group min-w-0"
+					onToggle={(event) => {
+						console.debug("[AnimeReview] Candidate disclosure toggled.", {
+							workId,
+							open: event.currentTarget.open,
+						});
+					}}
+				>
+					<summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-sm py-1 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
 						<span className="font-medium">
 							{t("anime.unresolvedResources")}
 						</span>
-						{query.data && (
-							<span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-								{t("anime.reviewPageCount", { count: query.data.items.length })}
-							</span>
-						)}
 						<ChevronDown
 							className="size-3.5 text-muted-foreground transition-transform group-open:rotate-180"
 							aria-hidden="true"
 						/>
 					</summary>
-					<div className="mt-2 space-y-3">
+					<div className="mt-2 space-y-3 text-foreground">
 						{query.data && (
 							<>
 								{query.data.items.length ? (

@@ -46,7 +46,7 @@ export class DownloadCommands {
 				item.workKey,
 			);
 			if (
-				!subscription ||
+				!subscription?.feedId ||
 				!this.destination.authorized(subscription) ||
 				item.state === "available" ||
 				item.state === "bound"

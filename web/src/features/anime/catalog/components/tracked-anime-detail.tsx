@@ -14,6 +14,7 @@ import { Artwork } from "../../shared/components/artwork.js";
 import { useDetailViewing, ViewingSummary } from "../../tracking/public.js";
 import { airedEpisodeCount } from "../detail-format.js";
 import { animeDetailQuery } from "../detail-query.js";
+import { WorkMetadataExtras } from "./work-metadata-extras.js";
 import { WorkMetadataHeader } from "./work-metadata-header.js";
 import { WorkSynopsis } from "./work-synopsis.js";
 export function TrackedAnimeDetail({
@@ -88,6 +89,7 @@ function TrackedDetail({
 				<>
 					<Artwork url={info.bannerUrl} title={title} banner />
 					<WorkMetadataHeader
+						subscription={renderSubscription?.(mediaId, data)}
 						viewing={
 							<ViewingSummary
 								state={viewing}
@@ -108,6 +110,7 @@ function TrackedDetail({
 						}}
 					/>
 					<WorkSynopsis data={{ metadata: metadata.data }} />
+					<WorkMetadataExtras data={{ metadata: metadata.data }} />
 				</>
 			) : (
 				<>
@@ -130,7 +133,7 @@ function TrackedDetail({
 					)}
 				</>
 			)}
-			{renderSubscription?.(mediaId, data)}
+			{!metadata.data && renderSubscription?.(mediaId, data)}
 		</section>
 	);
 }

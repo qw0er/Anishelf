@@ -68,7 +68,11 @@ export class DownloadRepository implements DownloadStore {
 			.select()
 			.from(intents)
 			.where(scope)
-			.orderBy(desc(intents.createdAt), asc(intents.id))
+			.orderBy(
+				sql`case when ${intents.error} is not null then 0 when ${intents.state} not in ('available', 'missing', 'blocked') then 1 else 2 end`,
+				desc(intents.createdAt),
+				asc(intents.id),
+			)
 			.limit(pageSize)
 			.offset((page - 1) * pageSize)
 			.all()

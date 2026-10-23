@@ -67,11 +67,18 @@ test("library cards expose the server next playback target", async () => {
 
 test("poster library filters local titles, preserves return context and selects an actual source version", async () => {
 	const detail = animeFixture();
+	detail.metadata.data.titles.push({
+		value: "Short alias",
+		language: "en",
+		kind: "alias",
+	});
 	mockAnime(detail);
 	renderApp("/?query=Frieren&sort=recent");
 	const card = await screen.findByRole("link", { name: "Frieren" });
 	fireEvent.click(card);
 	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+	expect(screen.queryByRole("button", { name: "Show all titles" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Collapse titles" })).toBeNull();
 	expect(screen.getByText("Aired episodes")).toBeTruthy();
 	expect(screen.getByText("3 / 3")).toBeTruthy();
 	const episode = screen.getByText("Episode 1").closest("li");
@@ -116,9 +123,33 @@ test("poster library filters local titles, preserves return context and selects 
 
 test("detail renders unknown/missing/unavailable separately and sanitizes provider descriptions", async () => {
 	const detail = animeFixture();
+	const titleHeight = vi
+		.spyOn(HTMLElement.prototype, "scrollHeight", "get")
+		.mockImplementation(function (this: HTMLElement) {
+			return this.textContent ===
+				"An alternative title long enough to wrap on narrow screens"
+				? 80
+				: 0;
+		});
+	detail.metadata.data.titles.push({
+		value: "An alternative title long enough to wrap on narrow screens",
+		language: "en",
+		kind: "alias",
+	});
 	mockAnime(detail);
 	renderApp("/anime/work-1");
 	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+	const expandTitles = screen.getByRole("button", { name: "Show all titles" });
+	expect(expandTitles.getAttribute("aria-expanded")).toBe("false");
+	fireEvent.click(expandTitles);
+	expect(
+		screen
+			.getByRole("button", { name: "Collapse titles" })
+			.getAttribute("aria-expanded"),
+	).toBe("true");
+	fireEvent.click(screen.getByRole("button", { name: "Collapse titles" }));
+	titleHeight.mockRestore();
+
 	expect(screen.getByText("Safe synopsis").tagName).toBe("B");
 	expect(document.querySelector("main script")).toBeNull();
 	expect(
@@ -163,6 +194,21 @@ test("a single usable version links directly to playback and provider refresh fa
 	});
 	renderApp("/anime/work-1?library=https%3A%2F%2Fevil.invalid");
 	const play = await screen.findByRole("link", { name: "Play: Episode 1" });
+	fireEvent.click(
+		within(play.closest("li") as HTMLElement).getByRole("button", {
+			name: "File actions",
+		}),
+	);
+	expect(
+		(
+			await screen.findByRole("menuitem", { name: "Correct associations" })
+		).getAttribute("href"),
+	).toBe(`/review?item=${episode.versions[0]?.reviewId}&decision=confirmed`);
+	fireEvent.keyDown(
+		screen.getByRole("menuitem", { name: "Correct associations" }),
+		{ key: "Escape" },
+	);
+
 	expect(play.getAttribute("href")).toContain("library=%2F");
 	expect(
 		screen.getByRole("link", { name: "Back to library" }).getAttribute("href"),
