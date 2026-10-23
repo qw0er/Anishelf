@@ -71,6 +71,13 @@
 			"when": 1792767240188,
 			"tag": "0009_watching_automation",
 			"breakpoints": true
+		},
+		{
+			"idx": 10,
+			"version": "6",
+			"when": 1792773533517,
+			"tag": "0010_unified_subscriptions",
+			"breakpoints": true
 		}
 	]
 }

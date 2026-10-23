@@ -31,7 +31,7 @@ function fixture() {
 				title: "Frieren",
 				revision: "member",
 				managed: true,
-				excluded: false,
+				excluded: true,
 				paused: false,
 				startEpisode: 3,
 				reason: "disabled",
@@ -164,39 +164,26 @@ test("changing activation policy discards the preview; work overrides carry curr
 			name: "Confirm and enable Watching automation",
 		}),
 	).toBeNull();
-	fireEvent.click(screen.getByText("Watching management · 1 work"));
+	fireEvent.click(screen.getByText("Automatic creation exclusions · 1 work"));
 	fireEvent.click(
-		screen.getByRole("button", { name: "Pause automated acquisition" }),
+		screen.getByRole("button", { name: "Include in automation" }),
 	);
-	await screen.findByRole("button", { name: "Resume automated acquisition" });
-	expect(request).toHaveBeenCalledWith(
-		`${base}/works`,
-		"PUT",
-		{},
-		{
-			accountId: "account",
-			trackingGeneration: "generation",
-			workKey: "anilist:anime:1",
-			revision: "member",
-			excluded: false,
-			paused: true,
-		},
+	await waitFor(() =>
+		expect(request).toHaveBeenCalledWith(
+			`${base}/works`,
+			"PUT",
+			{},
+			{
+				accountId: "account",
+				trackingGeneration: "generation",
+				workKey: "anilist:anime:1",
+				revision: "member",
+				excluded: false,
+				paused: false,
+			},
+		),
 	);
-	fireEvent.click(
-		screen.getByRole("button", { name: "Exclude from automation" }),
-	);
-	await screen.findByRole("button", { name: "Include in automation" });
-	expect(request).toHaveBeenCalledWith(
-		`${base}/works`,
-		"PUT",
-		{},
-		{
-			accountId: "account",
-			trackingGeneration: "generation",
-			workKey: "anilist:anime:1",
-			revision: "member-next",
-			excluded: true,
-			paused: true,
-		},
-	);
+	expect(
+		screen.queryByRole("button", { name: "Pause automated acquisition" }),
+	).toBeNull();
 });

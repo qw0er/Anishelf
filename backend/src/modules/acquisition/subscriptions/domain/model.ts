@@ -1,11 +1,21 @@
 import type { SourceInput } from "../../sources/public.js";
 
 export interface Subscription {
+	createdBy?: "watching";
+	automatic?: {
+		sourceGeneration: string;
+		profileFingerprint: string;
+		target: {
+			destinationRevision: string;
+			connectionGeneration: string;
+		} | null;
+		retryAt: number;
+	} | null;
 	sourceInput?: SourceInput | null;
 	profileId?: string | null;
 	lastError?: string | null;
 	workKey: string;
-	feedId: string;
+	feedId: string | null;
 	startEpisode: number;
 	enabled: boolean;
 	revision: string;
@@ -32,16 +42,10 @@ export interface Candidate {
 	publishedAt: number | null;
 }
 export interface SubscriptionView {
-	automation?: {
-		managed: boolean;
-		excluded: boolean;
-		paused: boolean;
-		reason: string;
-	} | null;
 	subscription:
 		| (Omit<Subscription, "sourceInput"> & {
 				source: string;
-				sourceKind: "feed" | "search";
+				sourceKind: "feed" | "search" | "automatic";
 				checkedAt: number | null;
 				nextAttemptAt: number;
 				error: string | null;
@@ -60,7 +64,7 @@ export interface SubscriptionAuthorization {
 }
 export interface SaveSubscriptionInput {
 	workKey: string;
-	source: SourceInput | null;
+	source: SourceInput | { kind: "automatic" } | null;
 	startEpisode: number;
 	profileId?: string | null;
 	revision: string | null;

@@ -242,11 +242,11 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | S05 | Filter by subtitle language, release group, resolution, codec, and keywords | Implemented for RSS, manual search and opt-in Watching: built-in/custom YAML selection profiles; live Watching acceptance pending | — | Current |
 | S06 | Deduplicate and exclude existing files, active downloads, and unwanted episodes | Implemented: discovery identities, accessible local episodes and downloader hashes; durable canonical-hash and work/episode reservations before submission; live acceptance pending | Current | Current |
 | S07 | Explain decisions and automatically choose one release per episode | Implemented: profile levels, persisted waiting, seed-count tie-breaking and skipped reasons; manual selection/dismissal outside the simplified scope | Current | Unassigned |
-| S08 | Coordinate tracking-status changes with subscriptions and explain their effect on existing tasks | Implemented: Watching policy controls managed subscriptions only; manual settings and existing transfers/imports are preserved | Current | Current |
+| S08 | Coordinate tracking-status changes with subscriptions and explain their effect on existing tasks | Implemented: Watching creates ordinary subscriptions; subsequent status changes do not alter them, and user settings/transfers/imports are preserved | Current | Current |
 | S09 | Search multiple sources, rank releases, process season packs, and upgrade quality | Optional | — | Unassigned |
-| S10 | Automatically subscribe to anime in AniList Watching | Implemented: default-off automation with session-bound scope preview, persisted ownership, progress-plus-one/episode-one policy and per-work overrides; live acceptance pending | — | Current |
+| S10 | Automatically subscribe to anime in AniList Watching | Implemented: default-off Watching creation with session-bound preview, fixed starting scope and recreation exclusions; existing subscriptions remain user-managed; live acceptance pending | — | Current |
 | S11 | Find a suitable release source without entering an RSS URL for each anime | Implemented: ordered configured-site discovery with Anime identity assessment, S05 profiles, pinned sources and unresolved states; live Watching acceptance pending | — | Current |
-| S12 | Apply tracking-status changes to automatically managed subscriptions | Implemented: suspend outside Watching and resume on return while preserving manual pauses/exclusions and existing transfers/imports; live acceptance pending | — | Current |
+| S12 | Preserve ordinary subscription management after Watching creation | Implemented: Tracking status changes and automation disable stop no existing subscription; edits, pause/resume and cancellation share the manual workflow | — | Current |
 
 See [RSS subscriptions](rss-subscriptions.md) for the implemented first two stages.
 RSS selects candidates automatically without per-release approval. Separately confirmed
@@ -256,21 +256,27 @@ acquisition scopes enable the download worker; complete live acceptance remains 
 
 The intended workflow is: add an anime to AniList Watching, let Anishelf find a suitable resource source and maintain its subscription, then automatically download new episodes through qBittorrent and verify their ingestion into the local library. Users configure resource sites, release preferences, destination and automation scope once; routine additions to Watching should not require finding and entering a per-anime RSS URL or approving every episode.
 
-The workflow is implemented behind explicit default-off activation. Tracking exposes
-complete confirmed list snapshots; Watching owns scoped grants, reconciliation,
-managed ownership and manual overrides. It reuses ordered Jackett discovery,
-profile selection, download reservations and verified ingestion. Manual subscriptions
-retain their explicit save-and-enable workflow. The user reported live acceptance
-of the preceding manual pipeline; live Watching acceptance is still pending. See
-[current requirements](current-requirement.md) and the [operator guide](watching-automation.md).
+The workflow uses one subscription model. Users can save subscription intent before
+any eligible release exists; source discovery runs in the background. Watching is a
+default-off creation trigger with a session-bound activation preview. It creates
+missing subscriptions using confirmed progress plus one or episode 1 and then leaves
+them under ordinary user control. Existing subscriptions are skipped. Later Tracking
+status/account changes or disabling Watching do not stop those subscriptions.
 
-The implemented requirements and live acceptance obligations are:
+Manual and Watching-created work share Edit, Pause/Resume and Unsubscribe. User edits
+are never overwritten by reconciliation. Unsubscribe records automatic-recreation
+exclusions while submitted transfers/imports continue. The starting episode freezes
+at creation, including during unresolved discovery. Site/profile/target changes and
+late responses must respect accepted scope and revision checks. Source identity must
+be verified before binding download permission; empty or ambiguous results do not
+block saving intent and do not authorize guessed downloads.
 
-- **Watching reconciliation (S10):** periodically reconcile the authenticated AniList list and identify newly Watching works. Persist ownership and reconciliation state so repeated refreshes, retries and restarts do not duplicate subscriptions or download permission. Tracking outages and incomplete refreshes must not be treated as an empty list or cancel subscriptions. Account changes must not inherit the previous account's automation permission.
-- **Automation scope and backlog (S10):** require explicit enablement of Watching automation and show the impact on existing Watching entries. Define whether acquisition starts at episode 1, at AniList cumulative progress plus one, or at an explicit starting episode. Show the resulting backlog scope before activation; future entries use the accepted policy without repeated per-title confirmation. AniList progress remains viewing state and does not prove local file availability. Destination or downloader-account changes must respect existing validation and permission boundaries.
-- **Automatic source discovery (S05, S11):** search configured resource sites through supported APIs or RSS search feeds and resolve results against provider-qualified work identity, titles, aliases and season/episode evidence. Support reusable subtitle-language, release-group, resolution, codec and keyword preferences. Explain the chosen source and release, no matching releases, unsupported sources, authentication/network failures and ambiguous identity. Uncertain results must remain unresolved rather than authorize a guessed download. Existing manually configured RSS subscriptions remain usable; multi-source ranking, quality upgrades and season-pack processing under S09 are separate extensions.
-- **Status policy and manual control (S12):** define whether Paused, Dropped and Completed stop new acquisitions, and whether returning to Watching resumes them. Distinguish automatically managed subscriptions from manual ones. Preserve explicit manual pauses, source choices and scope overrides across reconciliation; never delete files, cancel existing transfers/imports or recreate externally removed tasks solely because tracking status changes. Keep tracking, subscription, download and local availability states independent.
-- **Feedback and logs:** reuse compact per-anime subscription/Activity feedback and qBittorrent WebUI controls. Explain source-search, subscription and download decisions, including blocked or unresolved states. Emit correlated structured logs for reconciliation, policy decisions and failures without exposing credentials, private RSS/Magnet URLs or torrent payloads.
+Settings owns global configuration and help. Work details use a compact Header row,
+a short defaults-first editor and an on-demand Activity dialog with secondary History
+and lazy grouped Diagnostics. No source-search/resource-sample step is required before
+subscribing. See [the interaction design](subscription-interaction-redesign.md) and
+[current requirements](current-requirement.md). The user reported manual live pipeline
+acceptance; real Watching acceptance remains pending.
 
 Acceptance requires a real AniList account, supported resource feed/site, qBittorrent and mapped media storage. After automation is enabled, a newly Watching anime must acquire a matching new episode without manual RSS entry, download it into its per-anime directory, and expose it in the library only after verified association and access. Also verify initial backlog scope, duplicate list refreshes, restart recovery, tracking/source/downloader outages, ambiguous results, manual overrides and status transitions. Existing single-episode RSS-to-download-to-ingestion behavior needs its own live acceptance; full season-pack ingestion is not supported by the current one-selected-video import path and is not implied by this workflow. Successful ingestion does not certify browser playback compatibility.
 

@@ -43,7 +43,11 @@ export function ViewingEditor({
 		return null;
 	return (
 		<>
-			<Button variant="outline" onClick={() => setOpen(true)}>
+			<Button
+				variant="ghost"
+				className="h-7 px-2 text-xs text-muted-foreground"
+				onClick={() => setOpen(true)}
+			>
 				{t("trackingUpdate.edit")}
 			</Button>
 			<Dialog open={open} onOpenChange={setOpen}>

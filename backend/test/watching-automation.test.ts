@@ -103,6 +103,7 @@ async function fixture() {
 			});
 		let watching: WatchingApplication;
 		const subscriptions = new SubscriptionsApplication({
+			now: () => clock,
 			store: db.acquisition,
 			sources: sources.api,
 			anime: {
@@ -125,14 +126,7 @@ async function fixture() {
 			],
 			defaultProfileId: () => config.profileId,
 			downloadTarget: () => destination,
-			management: {
-				enabled: (sub) => watching?.enabled(sub) ?? sub.enabled,
-				status: (key) => watching?.management(key) ?? null,
-				saved: (key) => watching?.manualSave(key),
-				removed: (key) => watching?.manualRemove(key),
-				toggled: (key, enabled, revision) =>
-					watching?.manualToggle(key, enabled, revision),
-			},
+			onRemoved: (key) => watching?.manualRemove(key),
 		});
 		cleanup.push(() => subscriptions.close());
 		watching = new WatchingApplication({
@@ -144,7 +138,7 @@ async function fixture() {
 			subscriptions,
 			subscription: (key) => db.acquisition.subscription(key),
 			admit: (input, commit) => {
-				subscriptions.admitManaged(input, commit);
+				subscriptions.saveAtomically(input, commit);
 			},
 			target: () => destination,
 			profileFingerprint: () => fingerprint,
@@ -183,116 +177,143 @@ async function fixture() {
 	};
 }
 
-test("automation is disabled by default; session-bound previews do not authorize or search", async () => {
+test("default-off previews do not search; Watching creates an ordinary pending subscription", async () => {
 	const f = await fixture();
 	await f.watching.tick();
 	expect(f.refresh).not.toHaveBeenCalled();
-	expect(f.search).not.toHaveBeenCalled();
 	const preview = await f.watching.preview("session", "unconfigured", config);
-	expect(preview.works[0]?.startEpisode).toBe(3);
-	expect(f.db.acquisition.subscription(workKey)).toBeNull();
 	expect(f.search).not.toHaveBeenCalled();
-	expect(() => f.watching.confirm("other-session", preview.id)).toThrow();
+	expect(() => f.watching.confirm("other", preview.id)).toThrow();
 	f.watching.confirm("session", preview.id);
 	await f.watching.tick();
+	expect(f.db.acquisition.subscription(workKey)).toMatchObject({
+		feedId: null,
+		startEpisode: 3,
+		enabled: true,
+		createdBy: "watching",
+	});
+	expect(f.db.acquisition.authorization(workKey)).toBeNull();
+	expect(f.search).not.toHaveBeenCalled();
+	await f.subscriptions.resolvePending();
 	expect(f.db.acquisition.authorization(workKey)).toMatchObject({
 		startEpisode: 3,
 		destinationRevision: "destination",
-		connectionGeneration: "downloader",
 	});
-	expect(f.subscriptions.get(workKey).automation).toMatchObject({
-		managed: true,
-		reason: "managed",
-	});
-	expect(f.subscriptions.get(workKey).subscription?.enabled).toBe(true);
 });
 
-test("reconciliation is idempotent, freezes starting scope and survives reopen", async () => {
+test("empty discovery retains intent, freezes its creation scope, retries and survives reopen", async () => {
 	const f = await fixture();
 	await f.enable();
 	await f.watching.tick();
-	const sub = f.db.acquisition.subscription(workKey);
+	f.search.mockResolvedValueOnce({
+		entries: [],
+		outcome: "no_match",
+		coverage: { limited: false, reason: null, pages: 1, queries: 1 },
+	});
+	await f.subscriptions.resolvePending();
+	expect(f.subscriptions.get(workKey).subscription).toMatchObject({
+		sourceKind: "automatic",
+		startEpisode: 3,
+		error: "no_eligible_source",
+	});
 	required(f.snapshot.entries[0]).progress = 10;
-	f.snapshot.revision = "snapshot-two";
+	f.snapshot.revision = "new";
 	await f.watching.tick();
-	expect(f.db.acquisition.subscription(workKey)).toEqual(sub);
-	expect(f.search).toHaveBeenCalledTimes(1);
+	expect(f.db.acquisition.subscription(workKey)?.startEpisode).toBe(3);
 	await f.watching.close();
 	await f.subscriptions.close();
 	await f.sources.runtime.close();
 	f.db.close();
 	const reopened = await f.open();
+	f.advance();
+	await reopened.subscriptions.resolvePending();
+	expect(reopened.db.acquisition.authorization(workKey)?.startEpisode).toBe(3);
+	const saved = reopened.db.acquisition.subscription(workKey);
 	await reopened.watching.tick();
-	expect(reopened.db.acquisition.subscription(workKey)).toEqual(sub);
-	expect(reopened.watching.status().enabled).toBe(true);
-	expect(f.search).toHaveBeenCalledTimes(1);
+	await reopened.subscriptions.resolvePending();
+	expect(reopened.db.acquisition.subscription(workKey)).toEqual(saved);
+	expect(f.search).toHaveBeenCalledTimes(2);
 });
 
-test("tracking statuses suspend only managed acquisition and manual pauses survive returning to Watching", async () => {
+test("Watching status, account changes and disable affect creation only; manual pause survives edits", async () => {
 	const f = await fixture();
 	await f.enable();
 	await f.watching.tick();
-	required(f.snapshot.entries[0]).status = "paused";
-	f.snapshot.revision = "two";
-	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
-		false,
-	);
-	required(f.snapshot.entries[0]).status = "watching";
-	f.snapshot.revision = "three";
-	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(true);
-	const sub = required(f.db.acquisition.subscription(workKey));
-	await f.subscriptions.setEnabled(workKey, sub.revision, false);
-	required(f.snapshot.entries[0]).status = "completed";
-	await f.watching.tick();
-	required(f.snapshot.entries[0]).status = "watching";
-	await f.watching.tick();
-	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
-		false,
-	);
-	expect(f.watching.status().works[0]?.paused).toBe(true);
-});
-
-test("outages, partial snapshots, removals and account changes never erase subscriptions or inherit permission", async () => {
-	const f = await fixture();
-	await f.enable();
-	await f.watching.tick();
-	const sub = f.db.acquisition.subscription(workKey);
-	for (const changes of [
-		{ fresh: false },
-		{ fresh: true, complete: false },
-		{ complete: true, accountId: "different-account" },
-	]) {
-		Object.assign(f.snapshot, changes);
+	await f.subscriptions.resolvePending();
+	const saved = required(f.db.acquisition.subscription(workKey));
+	for (const status of ["paused", "completed", "dropped", "watching"]) {
+		required(f.snapshot.entries[0]).status = status;
+		f.snapshot.revision = status;
 		await f.watching.tick();
 		expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
-			false,
+			true,
 		);
-		expect(f.db.acquisition.subscription(workKey)).toEqual(sub);
 	}
-	Object.assign(f.snapshot, {
-		accountId: "tracking-account",
-		fresh: true,
-		complete: true,
-		revision: "removed",
-		entries: [],
-	});
-	await f.watching.tick();
-	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
+	f.watching.disable(f.watching.status().revision);
+	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(true);
+	f.snapshot.accountId = "different";
+	f.snapshot.generation = "different";
+	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(true);
+	const paused = await f.subscriptions.setEnabled(
+		workKey,
+		saved.revision,
 		false,
 	);
-	expect(f.db.acquisition.subscription(workKey)).toEqual(sub);
+	const edited = await f.subscriptions.save({
+		workKey,
+		revision: paused.subscription?.revision ?? null,
+		source: null,
+		startEpisode: 2,
+		profileId: config.profileId,
+		target: {
+			destinationRevision: "destination",
+			connectionGeneration: "downloader",
+		},
+	});
+	expect(edited.subscription?.enabled).toBe(false);
+	expect(edited.subscription?.startEpisode).toBe(2);
 });
 
-test("removing a managed subscription records a durable exclusion; only explicit inclusion allows recreation", async () => {
+test("manual automatic-source subscriptions save before discovery and share the same pipeline", async () => {
+	const f = await fixture();
+	const saved = await f.subscriptions.save({
+		workKey,
+		revision: null,
+		source: { kind: "automatic" },
+		startEpisode: 1,
+		profileId: config.profileId,
+		target: {
+			destinationRevision: "destination",
+			connectionGeneration: "downloader",
+		},
+	});
+	expect(saved.subscription).toMatchObject({
+		sourceKind: "automatic",
+		feedId: null,
+		startEpisode: 1,
+	});
+	expect(f.search).not.toHaveBeenCalled();
+	await f.enable();
+	await f.watching.tick();
+	expect(f.db.acquisition.subscription(workKey)?.revision).toBe(
+		saved.subscription?.revision,
+	);
+	await f.subscriptions.resolvePending();
+	expect(f.db.acquisition.authorization(workKey)?.startEpisode).toBe(1);
+});
+
+test("unsubscribe suppresses automatic recreation; explicit inclusion allows a new subscription", async () => {
 	const f = await fixture();
 	await f.enable();
 	await f.watching.tick();
-	const revision = required(f.db.acquisition.subscription(workKey)).revision;
-	await f.subscriptions.remove(workKey, revision);
+	await f.subscriptions.remove(
+		workKey,
+		required(f.db.acquisition.subscription(workKey)).revision,
+	);
 	await f.watching.tick();
 	expect(f.db.acquisition.subscription(workKey)).toBeNull();
-	expect(f.watching.status().works[0]?.excluded).toBe(true);
 	const row = required(f.watching.status().works[0]);
+	expect(row.excluded).toBe(true);
 	f.watching.override({
 		accountId: required(f.snapshot.accountId),
 		trackingGeneration: f.snapshot.generation,
@@ -305,290 +326,129 @@ test("removing a managed subscription records a durable exclusion; only explicit
 	expect(f.db.acquisition.subscription(workKey)).not.toBeNull();
 });
 
-test("global disable stops new managed eligibility immediately while preserving manual subscriptions", async () => {
-	const f = await fixture();
-	await f.enable();
-	await f.watching.tick();
-	f.watching.disable(f.watching.status().revision);
-	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
-		false,
-	);
-	const sub = required(f.db.acquisition.subscription(workKey));
-	await f.subscriptions.save({
-		workKey,
-		revision: sub.revision,
-		startEpisode: 3,
-		source: null,
-		profileId: config.profileId,
-		target: {
-			destinationRevision: "destination",
-			connectionGeneration: "downloader",
-		},
-	});
-	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(true);
-	expect(f.watching.status().works[0]?.managed).toBe(false);
-});
-
-test("source, profile and destination changes invalidate accepted grants and stale previews", async () => {
-	const f = await fixture();
-	const preview = await f.enable();
-	await f.watching.tick();
-	f.setFingerprint("new-policy");
-	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
-		false,
-	);
-	expect(f.watching.status().reason).toBe("profile_changed");
-	f.setFingerprint("profile-one");
-	f.destination.revision = "changed";
-	expect(f.watching.status().reason).toBe("destination_changed");
-	f.destination.revision = "destination";
-	await f.sources.api.connector.clear(
-		f.sources.api.connector.settings().generation,
-	);
-	expect(f.watching.status().reason).toBe("source_changed");
-	expect(() => f.watching.confirm("session", preview.id)).toThrow();
-});
-
-test("late discovery cannot admit a work after disable or manual exclusion", async () => {
-	const f = await fixture();
-	await f.enable();
-	let release: (() => void) | undefined;
-	f.search.mockImplementationOnce(async () => {
-		await new Promise<void>((resolve) => {
-			release = resolve;
-		});
-		return {
-			entries: [],
-			outcome: "no_match",
-			coverage: { limited: false, reason: null, pages: 1, queries: 1 },
-		};
-	});
-	const pending = f.watching.tick();
-	await vi.waitFor(() => expect(release).toBeTypeOf("function"));
-	f.watching.disable(f.watching.status().revision);
-	release?.();
-	await pending;
-	expect(f.db.acquisition.subscription(workKey)).toBeNull();
-	expect(f.db.acquisition.authorization(workKey)).toBeNull();
-});
-
-test("existing manual subscriptions are never adopted and changed preview scope must be reviewed again", async () => {
-	const f = await fixture();
-	const preview = await f.watching.preview("session", "unconfigured", config);
-	await f.subscriptions.save({
-		workKey,
-		revision: null,
-		startEpisode: 1,
-		source: { kind: "feed", url: "https://example.org/feed" },
-		target: null,
-	});
-	expect(() => f.watching.confirm("session", preview.id)).toThrow();
-	const before = f.db.acquisition.subscription(workKey);
-	await f.enable();
-	await f.watching.tick();
-	expect(f.db.acquisition.subscription(workKey)).toEqual(before);
-	expect(f.db.acquisition.authorization(workKey)).toBeNull();
-	expect(f.search).not.toHaveBeenCalled();
-});
-
-test("unresolved discovery follows current progress until admission, then freezes it", async () => {
-	const f = await fixture();
-	await f.enable();
-	f.search.mockResolvedValueOnce({
-		entries: [],
-		outcome: "no_match",
-		coverage: { limited: false, reason: null, pages: 1, queries: 1 },
-	});
-	await f.watching.tick();
-	expect(f.watching.status().works[0]?.startEpisode).toBeNull();
-	required(f.snapshot.entries[0]).progress = 1;
-	f.snapshot.revision = "advanced";
-	f.advance();
-	await f.watching.tick();
-	expect(f.db.acquisition.authorization(workKey)?.startEpisode).toBe(2);
-	required(f.snapshot.entries[0]).progress = 0;
-	f.snapshot.revision = "later";
-	await f.watching.tick();
-	expect(f.db.acquisition.authorization(workKey)?.startEpisode).toBe(2);
-});
-
-test.each([-1, 1.5, 10000, Number.MAX_SAFE_INTEGER])(
-	"invalid progress %s never authorizes an invented episode",
-	async (progress) => {
+test.each(["destination", "source"])(
+	"pending discovery cannot inherit changed %s configuration",
+	async (change) => {
 		const f = await fixture();
-		required(f.snapshot.entries[0]).progress = progress;
-		const preview = await f.enable();
-		expect(preview.works[0]).toMatchObject({
-			startEpisode: null,
-			reason: "invalid_progress",
-		});
+		await f.enable();
 		await f.watching.tick();
-		expect(f.search).not.toHaveBeenCalled();
+		if (change === "destination") f.destination.revision = "changed";
+		else
+			await f.sources.api.connector.clear(
+				f.sources.api.connector.settings().generation,
+			);
+		await f.subscriptions.resolvePending();
 		expect(f.db.acquisition.authorization(workKey)).toBeNull();
-		expect(f.watching.status().works[0]?.reason).toBe("invalid_progress");
+		expect(f.subscriptions.get(workKey).subscription?.error).toBe(
+			"authorization_required",
+		);
+		expect(f.search).not.toHaveBeenCalled();
 	},
 );
 
-test("new account cannot adopt another account's managed subscription", async () => {
-	const f = await fixture();
-	await f.enable();
-	await f.watching.tick();
-	const before = f.db.acquisition.subscription(workKey);
-	f.snapshot.accountId = "second-account";
-	f.snapshot.generation = "second-generation";
-	f.snapshot.revision = "second-snapshot";
-	const preview = await f.enable();
-	expect(preview.works[0]?.reason).toBe("different_account_owner");
-	await f.watching.tick();
-	expect(f.watching.status().works[0]?.reason).toBe("different_account_owner");
-	expect(f.db.acquisition.subscription(workKey)).toEqual(before);
-	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
-		false,
-	);
-});
-
-test.each([true, false])(
-	"source renewal retains the pin only if still accepted: %s",
-	async (retained) => {
+test.each(["remove", "edit", "pause"])(
+	"late discovery cannot bind after user %s",
+	async (action) => {
 		const f = await fixture();
 		await f.enable();
 		await f.watching.tick();
-		const before = required(f.db.acquisition.subscription(workKey));
-		const settings = f.sources.api.connector.settings();
-		await f.sources.api.connector.save({
-			generation: settings.generation,
-			url: "http://new-jackett:9117",
-			apiKey: "new-private-key",
-			origin: "external",
-			providers: retained ? ["nyaasi"] : ["other"],
+		let release: (() => void) | undefined;
+		const implementation = required(f.search.getMockImplementation());
+		f.search.mockImplementationOnce(async (...args) => {
+			await new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			return implementation(...args);
 		});
-		expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
-			false,
-		);
-		await f.enable();
-		await f.watching.tick();
-		if (retained) {
-			expect(f.db.acquisition.subscription(workKey)?.sourceInput).toMatchObject(
-				{
-					kind: "search",
-					providerId: "nyaasi",
-					connectionRevision: f.sources.api.connector.settings().generation,
-				},
-			);
-			expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
-				true,
-			);
-		} else {
-			expect(f.db.acquisition.subscription(workKey)).toEqual(before);
-			expect(f.watching.status().works[0]?.reason).toBe(
-				"source_reselection_required",
-			);
-			expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
-				false,
-			);
-		}
-		expect(f.search).toHaveBeenCalledTimes(1);
+		const pending = f.subscriptions.resolvePending();
+		await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+		const sub = required(f.db.acquisition.subscription(workKey));
+		if (action === "remove")
+			await f.subscriptions.remove(workKey, sub.revision);
+		else if (action === "pause")
+			await f.subscriptions.setEnabled(workKey, sub.revision, false);
+		else
+			await f.subscriptions.save({
+				workKey,
+				revision: sub.revision,
+				source: { kind: "feed", url: "https://example.org/new" },
+				startEpisode: 1,
+				target: null,
+			});
+		release?.();
+		await pending;
+		expect(f.db.acquisition.authorization(workKey)).toBeNull();
+		if (action === "remove")
+			expect(f.db.acquisition.subscription(workKey)).toBeNull();
+		else
+			expect(
+				f.db.acquisition.subscription(workKey)?.sourceInput?.kind,
+			).not.toBe("search");
 	},
 );
 
-test("expired and stale previews and stale override revisions are rejected", async () => {
+test("failed authorization rolls back source binding while keeping pending intent", async () => {
+	const f = await fixture();
+	await f.enable();
+	await f.watching.tick();
+	vi.spyOn(f.db.acquisition, "authorize").mockImplementationOnce(() => {
+		throw Error("injected failure");
+	});
+	await f.subscriptions.resolvePending();
+	expect(f.db.acquisition.subscription(workKey)).toMatchObject({
+		feedId: null,
+		lastError: "discovery_unavailable",
+		startEpisode: 3,
+	});
+	expect(f.db.acquisition.authorization(workKey)).toBeNull();
+});
+
+test("invalid progress does not starve eligible work or fabricate a starting episode", async () => {
+	const f = await fixture();
+	f.snapshot.entries = [
+		...Array.from({ length: 5 }, (_, i) => ({
+			workKey: `anilist:anime:${i + 2}`,
+			title: "Invalid",
+			status: "watching",
+			progress: 10000,
+		})),
+		...f.snapshot.entries,
+	];
+	await f.enable();
+	await f.watching.tick();
+	expect(f.db.acquisition.subscription(workKey)?.startEpisode).toBe(3);
+	expect(f.db.acquisition.subscriptions()).toHaveLength(1);
+});
+
+test("stale, expired and changed-account activation scopes cannot create subscriptions", async () => {
 	const f = await fixture();
 	const preview = await f.watching.preview("session", "unconfigured", config);
 	f.advance();
 	expect(() => f.watching.confirm("session", preview.id)).toThrow();
-	const next = await f.watching.preview("session", "unconfigured", config);
-	f.snapshot.revision = "different-content";
-	expect(() => f.watching.confirm("session", next.id)).toThrow();
 	await f.enable();
+	f.snapshot.accountId = "other";
 	await f.watching.tick();
-	const row = required(f.watching.status().works[0]);
-	const input = {
-		accountId: required(f.snapshot.accountId),
-		trackingGeneration: f.snapshot.generation,
-		workKey,
-		revision: row.revision,
-		excluded: true,
-		paused: false,
-	};
-	f.watching.override(input);
-	expect(() => f.watching.override(input)).toThrow();
+	expect(f.db.acquisition.subscription(workKey)).toBeNull();
 });
 
-test("Tracking backoff and non-retryable failures do not refresh on every tick; shutdown drains without waiting for a shared refresh", async () => {
+test("capacity and Tracking backoff are respected without discovery", async () => {
 	const f = await fixture();
 	await f.enable();
-	f.refresh.mockClear();
+	const capacity = vi
+		.spyOn(f.subscriptions, "hasCapacity")
+		.mockReturnValue(false);
+	await f.watching.tick();
+	expect(f.watching.status().works[0]?.reason).toBe("subscription_limit");
+	capacity.mockReturnValue(true);
 	f.snapshot.fresh = false;
 	f.snapshot.refreshAllowed = false;
-	await f.watching.tick();
-	await f.watching.tick();
-	expect(f.refresh).not.toHaveBeenCalled();
-	f.snapshot.refreshAllowed = true;
-	f.snapshot.retryAt = Number.MAX_SAFE_INTEGER;
+	f.refresh.mockClear();
 	await f.watching.tick();
 	expect(f.refresh).not.toHaveBeenCalled();
-	f.snapshot.retryAt = null;
-	let resolve: ((snapshot: WatchingSnapshot) => void) | undefined;
-	f.refresh.mockImplementationOnce(
-		() =>
-			new Promise((done) => {
-				resolve = done;
-			}),
-	);
-	const tick = f.watching.tick();
-	await vi.waitFor(() => expect(resolve).toBeTypeOf("function"));
-	await f.watching.close();
-	await tick;
-	resolve?.(f.snapshot);
-	expect(f.db.acquisition.subscription(workKey)).toBeNull();
-});
-
-test("permission failure rolls back subscription and ownership together", async () => {
-	const f = await fixture();
-	await f.enable();
-	vi.spyOn(f.db.acquisition, "authorize").mockImplementationOnce(() => {
-		throw new Error("injected write failure");
-	});
+	f.snapshot.fresh = true;
 	await f.watching.tick();
-	expect(f.db.acquisition.subscription(workKey)).toBeNull();
-	expect(f.db.acquisition.authorization(workKey)).toBeNull();
-	expect(f.watching.status().works[0]).toMatchObject({
-		managed: false,
-		startEpisode: null,
-		reason: "discovery_unavailable",
-	});
+	expect(f.db.acquisition.subscription(workKey)).not.toBeNull();
 });
-
-test("old tombstones do not exhaust the current Watching override limit", async () => {
-	const f = await fixture();
-	for (let i = 2; i <= 502; i++)
-		f.db.acquisition.watching.saveMember({
-			accountId: required(f.snapshot.accountId),
-			workKey: `anilist:anime:${i}`,
-			title: "Old",
-			revision: String(i),
-			excluded: true,
-			paused: false,
-			subscriptionRevision: null,
-			grantId: null,
-			startEpisode: null,
-			reason: "excluded",
-			retryAt: 0,
-		});
-	f.watching.override({
-		accountId: required(f.snapshot.accountId),
-		trackingGeneration: f.snapshot.generation,
-		workKey,
-		revision: null,
-		excluded: true,
-		paused: false,
-	});
-	expect(
-		f.db.acquisition.watching.member(required(f.snapshot.accountId), workKey)
-			?.excluded,
-	).toBe(true);
-});
-
 test("Watching HTTP routes require login, CSRF and the preview's actual session", async () => {
 	const f = await fixture();
 	const auth = await createAuthenticationModule({
@@ -701,56 +561,4 @@ test("Watching HTTP routes require login, CSRF and the preview's actual session"
 	});
 	expect(disabled.statusCode).toBe(200);
 	expect(disabled.json().enabled).toBe(false);
-});
-
-test("invalid progress does not consume the bounded admission batch or starve eligible work", async () => {
-	const f = await fixture();
-	f.snapshot.entries = [
-		...Array.from({ length: 5 }, (_, i) => ({
-			workKey: `anilist:anime:${i + 2}`,
-			title: "Invalid",
-			status: "watching",
-			progress: 10000,
-		})),
-		...f.snapshot.entries,
-	];
-	await f.enable();
-	await f.watching.tick();
-	expect(f.db.acquisition.subscription(workKey)).not.toBeNull();
-	expect(f.search).toHaveBeenCalledTimes(1);
-});
-
-test("more than 500 current Watching entries blocks admission and preview without discarding state", async () => {
-	const f = await fixture();
-	await f.enable();
-	await f.watching.tick();
-	const before = f.db.acquisition.subscription(workKey);
-	f.snapshot.entries = Array.from({ length: 501 }, (_, i) => ({
-		workKey: `anilist:anime:${i + 1}`,
-		title: "Work",
-		status: "watching",
-		progress: 0,
-	}));
-	f.snapshot.revision = "overflow";
-	expect(f.watching.status().reason).toBe("work_limit");
-	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
-		false,
-	);
-	await f.watching.tick();
-	await expect(f.enable()).rejects.toThrow("at most 500");
-	expect(f.db.acquisition.subscription(workKey)).toEqual(before);
-});
-
-test("subscription capacity is actionable without searching and resumes after capacity is freed", async () => {
-	const f = await fixture();
-	const capacity = vi
-		.spyOn(f.subscriptions, "hasCapacity")
-		.mockReturnValue(false);
-	await f.enable();
-	await f.watching.tick();
-	expect(f.watching.status().works[0]?.reason).toBe("subscription_limit");
-	expect(f.search).not.toHaveBeenCalled();
-	capacity.mockReturnValue(true);
-	await f.watching.tick();
-	expect(f.db.acquisition.subscription(workKey)).not.toBeNull();
 });

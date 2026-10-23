@@ -1,5 +1,9 @@
 # Watching Automation Handoff
 
+Superseded on 2026-10-24 by [unified subscriptions](subscription-interaction-redesign.md)
+and the [current Watching guide](watching-automation.md). The following is the historical
+2026-10-23 delivery record, not current creation/status policy.
+
 Date: 2026-10-23 (Asia/Shanghai).
 Workspace: `/Users/qwer/Project/Code/Anishelf`.
 Branch: `next`. Continuation baseline: `7c92d72`.

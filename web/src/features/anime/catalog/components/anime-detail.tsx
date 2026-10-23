@@ -229,6 +229,10 @@ function LocalWorkDetail({
 				banner
 			/>
 			<WorkMetadataHeader
+				subscription={renderSubscription?.(
+					workKey(work.reference),
+					data.detail,
+				)}
 				action={
 					<PlayNextButton
 						episode={nextEpisode}
@@ -260,7 +264,6 @@ function LocalWorkDetail({
 					<RelatedWorks controller={controller} />
 				</aside>
 			</div>
-			{renderSubscription?.(workKey(work.reference), data.detail)}
 			<VersionSelector
 				controller={controller}
 				renderResourceActions={renderResourceActions}

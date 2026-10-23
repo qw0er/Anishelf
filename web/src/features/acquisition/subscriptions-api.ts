@@ -2,8 +2,6 @@ import { type RequestOptions, request } from "../../shared/api/client.js";
 import type {
 	AcquisitionProfileCatalog,
 	SubscriptionSaveInput,
-	SubscriptionSearchInput,
-	SubscriptionSearchResult,
 	SubscriptionView,
 } from "../../shared/api/contracts.js";
 
@@ -12,9 +10,10 @@ export const getSubscription = (
 	workKey: string,
 	page: number,
 	options?: RequestOptions,
+	diagnostics = false,
 ): Promise<SubscriptionView> =>
 	request(
-		`${path}?${new URLSearchParams({ workKey, page: String(page) })}`,
+		`${path}?${new URLSearchParams({ workKey, page: String(page), diagnostics: String(diagnostics) })}`,
 		"GET",
 		options,
 	);
@@ -45,8 +44,3 @@ export const acquisitionProfilesQuery = () => ({
 			signal,
 		}),
 });
-
-export const searchSubscriptionSource = (
-	input: SubscriptionSearchInput,
-): Promise<SubscriptionSearchResult> =>
-	request(`${path}/search`, "POST", {}, input);

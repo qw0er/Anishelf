@@ -47,28 +47,21 @@ const AcquisitionCandidateSchema = Type.Object({
 	publishedAt: nullableNumber,
 });
 export const SubscriptionViewSchema = Type.Object({
-	automation: Type.Optional(
-		Type.Union([
-			Type.Null(),
-			Type.Object({
-				managed: Type.Boolean(),
-				excluded: Type.Boolean(),
-				paused: Type.Boolean(),
-				reason: Type.String(),
-			}),
-		]),
-	),
 	subscription: Type.Union([
 		Type.Null(),
 		Type.Object({
 			workKey,
-			feedId: Type.String(),
+			feedId: Type.Union([Type.String(), Type.Null()]),
 			startEpisode: Type.Integer(),
 			profileId,
 			enabled: Type.Boolean(),
 			revision,
 			source: Type.String(),
-			sourceKind: Type.Union([Type.Literal("feed"), Type.Literal("search")]),
+			sourceKind: Type.Union([
+				Type.Literal("feed"),
+				Type.Literal("search"),
+				Type.Literal("automatic"),
+			]),
 			checkedAt: nullableNumber,
 			nextAttemptAt: Type.Number(),
 			error: Type.Union([Type.String(), Type.Null()]),
@@ -81,7 +74,14 @@ export const SubscriptionViewSchema = Type.Object({
 export const SubscriptionSaveSchema = Type.Object(
 	{
 		workKey,
-		source: Type.Union([SourceInputSchema, Type.Null()]),
+		source: Type.Union([
+			SourceInputSchema,
+			Type.Object(
+				{ kind: Type.Literal("automatic") },
+				{ additionalProperties: false },
+			),
+			Type.Null(),
+		]),
 		profileId,
 		startEpisode: Type.Integer({ minimum: 1, maximum: 10000 }),
 		revision: Type.Union([revision, Type.Null()]),

@@ -266,7 +266,7 @@ async function fixture(persistent = false, bundled = false) {
 	async function authorize() {
 		const subscription = db.acquisition.subscription(key),
 			destination = db.acquisitionDownloads.destination();
-		if (!subscription || !destination?.validated)
+		if (!subscription?.feedId || !destination?.validated)
 			throw new Error("Invalid test authorization");
 		db.acquisition.authorize({
 			workKey: key,
@@ -639,7 +639,7 @@ test("direct subscription save binds the current target without a source request
 	expect(saved.subscription?.checkedAt).toBeNull();
 	const stored = f.db.acquisition.subscription(key);
 	expect(stored?.sourceInput).toEqual(input.source);
-	expect(stored && f.db.acquisition.source(stored.feedId)).toBeNull();
+	expect(stored?.feedId && f.db.acquisition.source(stored.feedId)).toBeNull();
 	expect(downloads.activity(key).authorized).toBe(true);
 	await downloads.saveDestination({
 		revision: dest.revision,
@@ -1069,9 +1069,14 @@ test("download activity paginates one work with stable ordering and summaries ac
 			hash: "unresolved:foreign",
 		}),
 	).toBe(true);
-	const expected = records.sort(
+	const newestFirst = [...records].sort(
 		(a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id),
 	);
+	const expected = [
+		...newestFirst.filter((item) => item.error),
+		original,
+		...newestFirst.filter((item) => !item.error && item.id !== original.id),
+	];
 	const pages = [1, 2, 3, 4].map((page) =>
 		f.db.acquisitionDownloads.activity(key, page, 7),
 	);
@@ -1578,7 +1583,7 @@ test.each([
 	{ change: "disable", submitted: true },
 	{ change: "paused", submitted: true },
 ])(
-	"managed downloads respect $change after reservation; submitted=$submitted",
+	"ordinary Watching-created downloads continue after $change; submitted=$submitted",
 	async ({ change, submitted }) => {
 		const f = await fixture();
 		const old = f.db.acquisition.subscription(key);
@@ -1645,14 +1650,7 @@ test.each([
 			downloadTarget: () => f.db.acquisitionDownloads.destination(),
 			lockedCandidates: (workKey) =>
 				f.db.acquisitionDownloads.lockedCandidates(workKey),
-			management: {
-				enabled: (sub) => watching?.enabled(sub) ?? sub.enabled,
-				status: (key) => watching?.management(key) ?? null,
-				saved: (key) => watching?.manualSave(key),
-				removed: (key) => watching?.manualRemove(key),
-				toggled: (key, enabled, revision) =>
-					watching?.manualToggle(key, enabled, revision),
-			},
+			onRemoved: (key) => watching?.manualRemove(key),
 		});
 		cleanup.push(() => subscriptions.close());
 		const suspend = () => {
@@ -1700,7 +1698,7 @@ test.each([
 			subscriptions,
 			subscription: (key) => f.db.acquisition.subscription(key),
 			admit: (input, commit) => {
-				subscriptions.admitManaged(input, commit);
+				subscriptions.saveAtomically(input, commit);
 			},
 			target: () => f.db.acquisitionDownloads.destination(),
 			profileFingerprint: () => "instant-v1",
@@ -1725,7 +1723,7 @@ test.each([
 		await worker.tick();
 		if (!submitted) {
 			expect(reservedBeforeSuspend).toBe(true);
-			expect(f.add).not.toHaveBeenCalled();
+			expect(f.add).toHaveBeenCalledTimes(1);
 			expect(f.ingestion.ingest).not.toHaveBeenCalled();
 		} else {
 			expect(f.add).toHaveBeenCalledTimes(1);
@@ -1740,6 +1738,30 @@ test.each([
 			await worker.tick();
 			expect(f.add).toHaveBeenCalledTimes(1);
 		}
-		expect(subscriptions.selection().subscription(key)?.enabled).toBe(false);
+		expect(subscriptions.selection().subscription(key)?.enabled).toBe(true);
 	},
 );
+
+test("Activity keeps older active work on the first page instead of burying it under completed history", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	const id = f.worker.activity(key).items[0]?.id;
+	if (!id) throw Error("Missing download");
+	const original = f.db.acquisitionDownloads.intent(id);
+	if (!original) throw Error("Missing intent");
+	for (let i = 0; i < 25; i++)
+		f.db.acquisitionDownloads.reserve({
+			...original,
+			id: `history-${i}`,
+			hash: `history-${i}`,
+			candidateId: `history-candidate-${i}`,
+			episode: 100 + i,
+			state: "available",
+			ingestion: "available",
+			createdAt: original.createdAt + i + 1,
+		});
+	expect(f.worker.activity(key).items[0]?.id).toBe(id);
+	expect(f.worker.activity(key).total).toBe(26);
+});

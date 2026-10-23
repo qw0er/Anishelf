@@ -39,7 +39,7 @@ export function registerAnimeDetailRoutes(
 							: null,
 					}
 				: null,
-			subscription: acquisition.subscriptions.get(key),
+			subscription: acquisition.subscriptions.get(key, 1, false),
 			downloads: acquisition.downloads?.activity(key) ?? null,
 		};
 		// Revalidate account generation after every asynchronous detail read.

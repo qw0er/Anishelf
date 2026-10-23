@@ -19,6 +19,7 @@ import { selectCandidates } from "../domain/selection.js";
 import type { SubscriptionsApi } from "../public.js";
 import { SubscriptionsContext, type SubscriptionsOptions } from "./context.js";
 import { SubscriptionDiscovery } from "./discovery.js";
+import { PendingSubscriptions } from "./pending.js";
 import { subscriptionPolicy as policy } from "./policy.js";
 import { SubscriptionWorker } from "./worker.js";
 
@@ -35,12 +36,15 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		);
 	}
 
+	private timer: ReturnType<typeof setInterval> | undefined;
+	private readonly pending: PendingSubscriptions;
 	private readonly context: SubscriptionsContext;
 	private readonly worker: SubscriptionWorker;
 	private readonly discovery: SubscriptionDiscovery;
 	constructor(private readonly options: SubscriptionsOptions) {
 		this.context = new SubscriptionsContext(options);
 		this.discovery = new SubscriptionDiscovery(this.context);
+		this.pending = new PendingSubscriptions(this.context, this.discovery);
 		this.worker = new SubscriptionWorker(
 			this.context,
 			(subscription, feed, target) =>
@@ -87,13 +91,15 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				: {}),
 		};
 	}
-	get(workKey: string, page = 1): SubscriptionView {
+	get(workKey: string, page = 1, diagnostics = true): SubscriptionView {
 		this.key(workKey);
 		if (!Number.isSafeInteger(page) || page < 1 || page > 10000)
 			throw new DomainError("INVALID_REQUEST", "Invalid candidate page.");
 		const subscription = this.options.store.subscription(workKey);
 		let feed = subscription
-			? this.options.sources.snapshot(subscription.feedId)
+			? subscription.feedId
+				? this.options.sources.snapshot(subscription.feedId)
+				: null
 			: null;
 		let sourceError: string | null = null;
 		if (subscription?.sourceInput) {
@@ -114,28 +120,30 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 					a.id.localeCompare(b.id),
 			);
 		return {
-			automation: this.options.management?.status(workKey) ?? null,
 			subscription: subscription
 				? {
 						workKey: subscription.workKey,
 						feedId: subscription.feedId,
 						startEpisode: subscription.startEpisode,
 						profileId: subscription.profileId ?? null,
-						enabled:
-							this.options.management?.enabled(subscription) ??
-							subscription.enabled,
+						enabled: subscription.enabled,
 						revision: subscription.revision,
-						source: feed?.label ?? "Source unavailable",
-						sourceKind: subscription.sourceInput?.kind ?? "feed",
+						source:
+							feed?.label ??
+							(subscription.automatic
+								? "Automatic source"
+								: "Source unavailable"),
+						sourceKind:
+							subscription.sourceInput?.kind ??
+							(subscription.automatic ? "automatic" : "feed"),
 						checkedAt: feed?.checkedAt ?? null,
 						nextAttemptAt: feed?.nextAttemptAt ?? 0,
 						error: sourceError ?? feed?.error ?? subscription.lastError ?? null,
 					}
 				: null,
-			candidates: candidates.slice(
-				(page - 1) * policy.pageSize,
-				page * policy.pageSize,
-			),
+			candidates: diagnostics
+				? candidates.slice((page - 1) * policy.pageSize, page * policy.pageSize)
+				: [],
 			total: candidates.length,
 			page,
 		};
@@ -143,7 +151,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 	async save(input: SaveSubscriptionInput): Promise<SubscriptionView> {
 		return this.persist(input);
 	}
-	admitManaged(
+	saveAtomically(
 		input: SaveSubscriptionInput,
 		commit: (subscription: Subscription) => void,
 	): SubscriptionView {
@@ -151,7 +159,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 	}
 	private persist(
 		input: SaveSubscriptionInput,
-		managed?: (subscription: Subscription) => void,
+		commit?: (subscription: Subscription) => void,
 	): SubscriptionView {
 		this.key(input.workKey);
 		if (
@@ -178,8 +186,6 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				"INVALID_REQUEST",
 				"The acquisition profile is unavailable. Choose an existing profile.",
 			);
-		if (!input.source && !current)
-			throw new DomainError("INVALID_REQUEST", "Choose a source.");
 
 		const target = input.target;
 		const destination = this.options.downloadTarget?.();
@@ -193,23 +199,59 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				"ACQUISITION_CONFLICT",
 				"Configure and validate the current download destination, then save again.",
 			);
+		const automatic =
+			input.source?.kind === "automatic" ||
+			(!input.source && !current) ||
+			(!input.source && !!current?.automatic && !current.feedId);
+		const selectedProfile = (
+			this.options.profiles ?? builtinAcquisitionProfiles
+		).find(
+			(profile) =>
+				profile.id === (profileId ?? this.profiles().selectedProfileId),
+		);
+		const settings = this.options.sources.connector.settings();
+		if (automatic && (!settings.ready || !settings.providers.length))
+			throw new DomainError(
+				"ACQUISITION_UNAVAILABLE",
+				"Configure source sites in Settings first.",
+			);
 		const subscription: Subscription = {
 			workKey: input.workKey,
-			feedId: current?.feedId ?? "",
-			sourceInput: input.source ?? current?.sourceInput ?? null,
+			feedId: automatic ? null : (current?.feedId ?? null),
+			sourceInput: automatic
+				? null
+				: input.source?.kind !== "automatic"
+					? (input.source ?? current?.sourceInput ?? null)
+					: null,
+			...(current?.createdBy ? { createdBy: current.createdBy } : {}),
+			...(automatic && selectedProfile
+				? {
+						automatic: {
+							sourceGeneration: settings.generation,
+							profileFingerprint:
+								acquisitionProfileFingerprint(selectedProfile),
+							target,
+							retryAt: 0,
+						},
+					}
+				: {}),
 			startEpisode: input.startEpisode,
 			profileId,
-			enabled: true,
+			enabled: current?.enabled ?? true,
 			revision: randomUUID(),
 		};
 		try {
 			this.options.store.transaction(() => {
-				const snapshot = this.options.sources.snapshot(
-					subscription.sourceInput ?? subscription.feedId,
-				);
-				if (!snapshot)
-					throw new DomainError("INVALID_REQUEST", "Choose a source.");
-				subscription.feedId = snapshot.id;
+				if (!automatic) {
+					const source = subscription.sourceInput ?? subscription.feedId;
+					const snapshot = source
+						? this.options.sources.snapshot(source)
+						: null;
+					if (!snapshot)
+						throw new DomainError("INVALID_REQUEST", "Choose a source.");
+					subscription.feedId = snapshot.id;
+				}
+				if (commit) commit(subscription);
 				// Preserve existing selection clocks on a configuration edit; changed profiles are fenced until reevaluation.
 				this.options.store.saveSubscription(
 					subscription,
@@ -217,9 +259,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 						? this.options.store.candidates(input.workKey)
 						: [],
 				);
-				if (managed) managed(subscription);
-				else this.options.management?.saved(input.workKey);
-				if (target)
+				if (target && subscription.feedId)
 					this.options.store.authorize({
 						workKey: subscription.workKey,
 						feedId: subscription.feedId,
@@ -254,20 +294,15 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		this.key(workKey);
 		const current = this.options.store.subscription(workKey);
 		if (!current || current.revision !== revision) conflict();
-		const feed = this.options.sources.snapshot(
-			current.sourceInput ?? current.feedId,
-		);
-		if (!feed) conflict();
 		this.options.store.transaction(() => {
 			const updated = { ...current, enabled, revision: randomUUID() };
 			this.options.store.saveSubscription(
 				updated,
 				this.options.store.candidates(workKey),
 			);
-			this.options.management?.toggled(workKey, enabled, updated.revision);
 		});
 		this.options.logger.info(
-			{ event: "acquisition.subscription_toggled", enabled, feedId: feed.id },
+			{ event: "acquisition.subscription_toggled", enabled, workKey },
 			"Subscription state changed.",
 		);
 		return this.get(workKey);
@@ -277,7 +312,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		this.options.store.transaction(() => {
 			if (this.options.store.subscription(workKey)?.revision !== revision)
 				conflict();
-			this.options.management?.removed(workKey);
+			this.options.onRemoved?.(workKey);
 			if (!this.options.store.remove(workKey, revision)) conflict();
 		});
 		this.options.logger.info(
@@ -291,9 +326,19 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			const subscription = this.options.store.subscription(workKey);
 			if (!subscription?.enabled || subscription.revision !== revision)
 				conflict();
-			const feed = this.options.sources.snapshot(
-				subscription.sourceInput ?? subscription.feedId,
-			);
+			if (!subscription.feedId && subscription.automatic) {
+				await this.pending.resolve(subscription);
+				const resolved = this.options.store.subscription(workKey);
+				if (resolved?.enabled && resolved.feedId) {
+					const feed = this.options.sources.snapshot(
+						resolved.sourceInput ?? resolved.feedId,
+					);
+					if (feed) await this.worker.pollSource(feed);
+				}
+				return this.get(workKey);
+			}
+			const source = subscription.sourceInput ?? subscription.feedId;
+			const feed = source ? this.options.sources.snapshot(source) : null;
 			if (!feed) conflict();
 			if (
 				feed.checkedAt !== null &&
@@ -369,18 +414,14 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 					return subscription
 						? {
 								...subscription,
-								enabled:
-									this.options.management?.enabled(subscription) ??
-									subscription.enabled,
+								enabled: subscription.enabled,
 							}
 						: null;
 				})(),
 			subscriptions: () =>
 				this.options.store.subscriptions().map((subscription) => ({
 					...subscription,
-					enabled:
-						this.options.management?.enabled(subscription) ??
-						subscription.enabled,
+					enabled: subscription.enabled,
 				})),
 			candidates: (workKey: string) => {
 				const subscription = this.options.store.subscription(workKey);
@@ -412,15 +453,30 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			authorization: (key: string) => this.options.store.authorization(key),
 		};
 	}
-	activeSourceIds() {
+	start() {
+		if (this.timer || this.context.signal.aborted) return;
+		const tick = () => {
+			void this.resolvePending().catch(() => {
+				if (!this.context.signal.aborted)
+					this.options.logger.warn(
+						{ event: "acquisition.subscription_discovery_failed" },
+						"Background discovery will retry.",
+					);
+			});
+		};
+		this.timer = setInterval(tick, 30000);
+		this.timer.unref();
+		tick();
+	}
+	resolvePending() {
+		return this.context.tracked(() => this.pending.tick());
+	}
+	activeSourceIds(): string[] {
 		return this.options.store
 			.subscriptions()
-			.filter(
-				(subscription) =>
-					this.options.management?.enabled(subscription) ??
-					subscription.enabled,
-			)
-			.map((subscription) => subscription.feedId);
+			.filter((sub) => sub.enabled && sub.feedId !== null)
+			.map((sub) => sub.feedId)
+			.filter((id): id is string => id !== null);
 	}
 	refreshSource(id: string) {
 		const subscription = this.options.store
@@ -432,6 +488,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		return snapshot ? this.worker.pollSource(snapshot) : Promise.resolve();
 	}
 	async close() {
+		if (this.timer) clearInterval(this.timer);
 		this.context.shutdown.abort();
 		await Promise.allSettled([...this.context.pending, this.worker.close()]);
 	}

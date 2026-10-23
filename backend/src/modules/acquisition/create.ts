@@ -92,15 +92,7 @@ export async function createAcquisitionModule(options: {
 	});
 	let watching: WatchingApplication | undefined;
 	const subscriptions = new SubscriptionsApplication({
-		management: {
-			enabled: (subscription) =>
-				watching?.enabled(subscription) ?? subscription.enabled,
-			status: (key) => watching?.management(key) ?? null,
-			saved: (key) => watching?.manualSave(key),
-			toggled: (key, enabled, revision) =>
-				watching?.manualToggle(key, enabled, revision),
-			removed: (key) => watching?.manualRemove(key),
-		},
+		onRemoved: (key) => watching?.manualRemove(key),
 		store: subscriptionStore,
 		profiles,
 		...(profileCatalog.issue ? { profileIssue: profileCatalog.issue } : {}),
@@ -146,7 +138,7 @@ export async function createAcquisitionModule(options: {
 		subscriptions,
 		subscription: (key) => options.store.subscription(key),
 		admit: (input, commit) => {
-			subscriptions.admitManaged(input, commit);
+			subscriptions.saveAtomically(input, commit);
 		},
 		target: () => {
 			const target = options.downloadStore.destination();
@@ -193,6 +185,7 @@ export async function createAcquisitionModule(options: {
 			: undefined;
 	if (options.autoStart !== false) {
 		watching.start();
+		subscriptions.start();
 		sources.runtime.start(
 			() => subscriptions.activeSourceIds(),
 			(source) => subscriptions.refreshSource(source.id),
@@ -224,7 +217,8 @@ export async function createAcquisitionModule(options: {
 		subscriptions: {
 			profiles: () => subscriptions.profiles(),
 			search: (input) => subscriptions.search(input),
-			get: (key, page) => subscriptions.get(key, page),
+			get: (key, page, diagnostics) =>
+				subscriptions.get(key, page, diagnostics),
 			save: ({ destinationRevision, connectionGeneration, ...input }) =>
 				subscriptions.save({
 					...input,

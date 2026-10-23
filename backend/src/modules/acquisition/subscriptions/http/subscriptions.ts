@@ -27,13 +27,18 @@ export function registerSubscriptionRoutes(
 			schema: {
 				querystring: Type.Object({
 					workKey: Type.String({ minLength: 1, maxLength: 1024 }),
+					diagnostics: Type.Optional(Type.String({ enum: ["true", "false"] })),
 					page: Type.Optional(Type.String({ pattern: "^[1-9][0-9]{0,3}$" })),
 				}),
 				response: { 200: SubscriptionViewSchema },
 			},
 		},
 		async (request) =>
-			subscriptions.get(request.query.workKey, Number(request.query.page ?? 1)),
+			subscriptions.get(
+				request.query.workKey,
+				Number(request.query.page ?? 1),
+				request.query.diagnostics !== "false",
+			),
 	);
 	app.post(
 		`${path}/search`,

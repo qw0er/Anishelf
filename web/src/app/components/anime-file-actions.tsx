@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import {
 	clearCapabilityCache,
 	removeCompatibility,
@@ -14,7 +15,9 @@ export function AnimeFileActions({
 	summary,
 	summaryLoading,
 	gate,
+	identificationMenu,
 }: {
+	identificationMenu?: ReactNode;
 	source: { fileId: string; sourceVersion: string };
 	summary: PreparationSummaryResponse["files"][number] | undefined;
 	summaryLoading: boolean;
@@ -26,6 +29,7 @@ export function AnimeFileActions({
 		compatibility.error.status === 409;
 	return (
 		<FileActions
+			identificationMenu={identificationMenu}
 			fileId={source.fileId}
 			sourceVersion={source.sourceVersion}
 			summary={summary}

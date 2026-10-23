@@ -8,16 +8,20 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import type { SourceInput } from "../../sources/public.js";
-import type { Candidate } from "../domain/model.js";
+import type { Candidate, Subscription } from "../domain/model.js";
 export const acquisitionSubscriptions = sqliteTable(
 	"acquisition_subscriptions",
 	{
+		automatic: text("automatic", { mode: "json" }).$type<
+			Subscription["automatic"]
+		>(),
+		createdBy: text("created_by"),
 		lastError: text("last_error"),
 		lastErrorPresent: integer("last_error_present", {
 			mode: "boolean",
 		}).notNull(),
 		workKey: text("work_key").primaryKey().notNull(),
-		feedId: text("feed_id").notNull(),
+		feedId: text("feed_id"),
 		sourceInput: text("source_input", { mode: "json" }).$type<SourceInput>(),
 		startEpisode: integer("start_episode").notNull(),
 		profileId: text("profile_id"),

@@ -10,6 +10,7 @@ import {
 import { releaseInfo } from "../detail-format.js";
 import type { AnimeResourceActionSlot } from "../resource-actions.js";
 import type { LocalWorkDetailController } from "../use-local-work-detail.js";
+import { AssociationCorrectionMenuItem } from "./association-correction-menu-item.js";
 export function VersionSelector({
 	controller,
 	renderResourceActions,
@@ -54,15 +55,22 @@ export function VersionSelector({
 								{version.mapping.rawNumbers.length > 1 && (
 									<p className="text-sm">{t("anime.multiEpisode")}</p>
 								)}
-								<Link
-									className={buttonStyles("outline")}
-									to={`/review?${new URLSearchParams({ item: version.reviewId, decision: "confirmed" })}`}
-								>
-									{t("review.correct")}
-								</Link>
+								{!version.available && (
+									<Link
+										className={buttonStyles("outline")}
+										to={`/review?${new URLSearchParams({ item: version.reviewId, decision: "confirmed" })}`}
+									>
+										{t("review.correct")}
+									</Link>
+								)}
 								{version.available ? (
 									<div className="inline-flex items-center gap-1">
-										{renderResourceActions(version)}
+										{renderResourceActions(
+											version,
+											<AssociationCorrectionMenuItem
+												reviewId={version.reviewId}
+											/>,
+										)}
 										<Link
 											className={buttonStyles()}
 											to={playPath(version, selected)}

@@ -1,57 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { TFunction } from "i18next";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
 import type {
 	DownloadActivity,
 	SubscriptionView,
 } from "../../shared/api/contracts.js";
-import { boundedSignal } from "../../shared/api/queries.js";
 import { Button, buttonStyles } from "../../shared/components/ui/button.js";
 import { toast } from "../../shared/components/ui/toast.js";
+import { Tooltip } from "../../shared/components/ui/tooltip.js";
 import { invalidateAnimeQueries } from "../anime/public.js";
 import { settingsQuery } from "../settings/public.js";
+import { activityStatus } from "./activity-status.js";
 import {
 	downloadKeys,
 	getDownloadActivity,
 	retryDownload,
 } from "./downloads-api.js";
+import { getSubscription } from "./subscriptions-api.js";
 
-const notificationErrors = new Map<string, string>();
-function status(item: DownloadActivity["items"][number], t: TFunction): string {
-	if (item.error && item.state !== "missing")
-		return item.ingestion === "failed"
-			? t("acquisition.activity.importFailed")
-			: item.ingestion === "review"
-				? t("acquisition.activity.reviewRequired")
-				: t("acquisition.activity.needsAttention");
-	if (item.state === "available") return t("acquisition.activity.available");
-	if (item.state === "missing")
-		return t("acquisition.activity.removedInQbittorrent");
-	if (item.ingestion === "validating")
-		return t("acquisition.activity.importing");
-	if (item.state === "unknown" || item.state === "submitting")
-		return t("acquisition.activity.confirmingSubmission");
-	if (item.state === "pending")
-		return t("acquisition.activity.waitingToSubmit");
-	if (/paused|stopped/i.test(item.transfer ?? ""))
-		return t("acquisition.activity.paused");
-	if (/error|missing/i.test(item.transfer ?? ""))
-		return t("acquisition.activity.downloadError");
-	if (/checking/i.test(item.transfer ?? ""))
-		return t("acquisition.activity.checking");
-	if (/meta/i.test(item.transfer ?? ""))
-		return t("acquisition.activity.fetchingMetadata");
-	if (/queued/i.test(item.transfer ?? ""))
-		return t("acquisition.activity.queued");
-	if (item.progress === 1) return t("acquisition.activity.downloaded");
-	return item.progress === null
-		? t("acquisition.activity.downloading")
-		: t("acquisition.activity.downloadingPercent", {
-				percent: Math.round(item.progress * 100),
-			});
-}
 const errorKeys: Record<string, string> = {
 	downloader_configuration_changed:
 		"acquisition.activity.errors.downloader_configuration_changed",
@@ -84,291 +50,293 @@ export function DownloadActivityPanel({
 	view,
 	reason,
 	onConfigure,
-	releasePagination,
 }: {
 	workKey: string;
+	initialActivity?: DownloadActivity | null | undefined;
 	view: SubscriptionView;
 	reason(code: string): string;
 	onConfigure(): void;
 	releasePagination?: ReactNode;
-	initialActivity?: DownloadActivity | null | undefined;
 }) {
-	const { t } = useTranslation();
-	const client = useQueryClient(),
-		[page, setPage] = useState(1);
+	const { t } = useTranslation(),
+		client = useQueryClient();
+	const [page, setPage] = useState(1),
+		[diagnostics, setDiagnostics] = useState(false),
+		[releasePage, setReleasePage] = useState(1);
 	const settings = useQuery(settingsQuery());
 	const query = useQuery({
 		queryKey: [...downloadKeys, workKey, page],
-		enabled:
-			initialActivity !== null && (page !== 1 || initialActivity === undefined),
 		initialData: page === 1 ? (initialActivity ?? undefined) : undefined,
-		queryFn: ({ signal }) =>
-			getDownloadActivity(workKey, page, { signal: boundedSignal(signal) }),
-		refetchInterval: 5_000,
+		enabled: initialActivity !== null,
+		queryFn: ({ signal }) => getDownloadActivity(workKey, page, { signal }),
+		refetchInterval: 5000,
 	});
-
-	const activity =
-		page === 1 && initialActivity !== undefined
-			? (initialActivity ?? undefined)
-			: query.data;
-	useEffect(() => {
-		for (const item of activity?.items ?? []) {
-			if (!item.error) {
-				notificationErrors.delete(item.id);
-				continue;
-			}
-			if (notificationErrors.get(item.id) === item.error) continue;
-			notificationErrors.set(item.id, item.error);
-			if (notificationErrors.size > 2000)
-				notificationErrors.delete(notificationErrors.keys().next().value ?? "");
-			toast.add({
-				title: t("acquisition.activity.toastEpisode", {
-					episode: item.episode,
-					status: status(item, t),
-				}),
-				type: "error",
-			});
-		}
-	}, [activity, t]);
+	const releases = useQuery({
+		queryKey: [
+			"acquisition",
+			"subscription",
+			workKey,
+			"diagnostics",
+			releasePage,
+		],
+		enabled: diagnostics,
+		queryFn: ({ signal }) =>
+			getSubscription(workKey, releasePage, { signal }, true),
+	});
 	const retry = useMutation({
-		mutationFn: (input: {
-			id: string;
-			revision: string;
+		mutationFn: ({
+			item,
+			kind,
+		}: {
+			item: DownloadActivity["items"][number];
 			kind: "import" | "acquisition";
-		}) => retryDownload(input.id, input.revision, input.kind),
+		}) => retryDownload(item.id, item.revision, kind),
 		onSuccess: () => {
 			void client.invalidateQueries({ queryKey: downloadKeys });
 			void invalidateAnimeQueries(client, "acquisition");
 			toast.add({
-				title: t("acquisition.activity.retryQueued"),
 				type: "success",
+				title: t("acquisition.activity.retryQueued"),
 			});
 		},
-		onError: () => {
-			void client.invalidateQueries({ queryKey: downloadKeys });
-			void invalidateAnimeQueries(client, "acquisition");
+		onError: () =>
 			toast.add({
-				title: t("acquisition.activity.retryFailed"),
 				type: "error",
-			});
-		},
+				title: t("acquisition.activity.retryFailed"),
+			}),
 	});
-	const tasks = activity?.items ?? [],
-		ids = new Set(
-			activity?.managedCandidateIds ?? tasks.map((item) => item.candidateId),
-		);
-	const webui = settings.data?.qbittorrentWebUiUrl;
+	const activity = query.data,
+		tasks = activity?.items ?? [];
+	const historical = (item: (typeof tasks)[number]) =>
+		item.state === "available" || (item.state === "missing" && !item.error);
+	const ids = new Set(
+		activity?.managedCandidateIds ?? tasks.map((item) => item.candidateId),
+	);
+	const candidates =
+		releases.data?.candidates.filter((candidate) => !ids.has(candidate.id)) ??
+		[];
+	const groups = new Map<string, typeof candidates>();
+	for (const candidate of candidates) {
+		const key = candidate.reasons.join(",") || candidate.status;
+		groups.set(key, [...(groups.get(key) ?? []), candidate]);
+	}
+	const row = (item: (typeof tasks)[number]) => (
+		<div key={item.id} className="space-y-2 border-b py-3 text-sm">
+			<div className="flex flex-wrap items-center justify-between gap-2">
+				<span>
+					{t("acquisition.activity.candidateEpisode", {
+						episode: item.episode,
+					})}
+				</span>
+				<span>{activityStatus(item, t)}</span>
+			</div>
+			{item.progress !== null &&
+				item.state === "bound" &&
+				item.progress < 1 && (
+					<progress
+						className="h-1 w-full"
+						aria-label={t("acquisition.activity.episodeProgress", {
+							episode: item.episode,
+						})}
+						max={1}
+						value={item.progress}
+					/>
+				)}
+			{item.error && (
+				<p role="status" className="text-muted-foreground">
+					{t(errorKeys[item.error] ?? "acquisition.activity.errorFallback")}
+				</p>
+			)}
+			<div className="flex flex-wrap items-center gap-2">
+				{item.ingestion === "review" && (
+					<a className={buttonStyles("outline")} href="/review">
+						{t("acquisition.activity.openReview")}
+					</a>
+				)}
+				{item.ingestion === "failed" && (
+					<Button
+						variant="outline"
+						disabled={retry.isPending}
+						onClick={() => retry.mutate({ item, kind: "import" })}
+					>
+						{t("acquisition.activity.retryImport")}
+					</Button>
+				)}
+				{(["missing", "blocked", "unknown"].includes(item.state) ||
+					(item.state === "pending" && item.error)) && (
+					<Button
+						variant="outline"
+						disabled={retry.isPending || !activity?.authorized || !item.title}
+						onClick={() => retry.mutate({ item, kind: "acquisition" })}
+					>
+						{t("acquisition.activity.retryAcquisition")}
+					</Button>
+				)}
+				{item.error &&
+					[
+						"downloader_configuration_changed",
+						"source_changed",
+						"incomplete_directory_required",
+					].includes(item.error) && (
+						<a
+							className={buttonStyles("ghost")}
+							href="/settings?section=downloads"
+						>
+							{t("acquisition.activity.settings")}
+						</a>
+					)}
+			</div>
+		</div>
+	);
 	return (
-		<div className="space-y-2">
+		<div className="space-y-3">
+			{query.isPending && !activity && (
+				<p role="status">{t("acquisition.activity.loading")}</p>
+			)}
+			{(query.isError || initialActivity === null) && (
+				<p role="alert">
+					{t("acquisition.activity.statusUnavailable")}{" "}
+					<Button variant="ghost" onClick={() => void query.refetch()}>
+						{t("acquisition.activity.retryStatus")}
+					</Button>
+				</p>
+			)}
+			{view.subscription?.error &&
+				view.subscription.error !== "no_eligible_source" && (
+					<p role="status" className="text-sm">
+						{reason(view.subscription.error)}{" "}
+						{view.subscription.error === "authorization_required" ? (
+							<Button variant="outline" onClick={onConfigure}>
+								{t("acquisition.subscription.edit")}
+							</Button>
+						) : (
+							<a className="underline" href="/settings?section=downloads">
+								{t("acquisition.activity.settings")}
+							</a>
+						)}
+					</p>
+				)}
 			{activity?.planningError && (
 				<p role="status" className="text-sm">
 					{t("acquisition.activity.planningFailed")}
 				</p>
 			)}
-			{(view.subscription || tasks.length > 0 || query.isError) && (
-				<div className="action-row justify-between text-sm">
-					<span>
-						{activity?.active
-							? t("acquisition.activity.active", {
-									count: activity.active,
-								})
-							: initialActivity === null
-								? t("acquisition.activity.statusUnavailable")
-								: query.isPending
-									? t("acquisition.activity.loading")
-									: query.isError
-										? t("acquisition.activity.statusUnavailable")
-										: activity?.authorized && view.subscription?.enabled
-											? t("acquisition.activity.automaticDownload")
-											: view.subscription?.enabled
-												? t("acquisition.activity.discoveryOnly")
-												: t("acquisition.activity.pausedStatus")}
-					</span>
-					{webui && (
-						<a
-							className={buttonStyles("ghost")}
-							href={webui}
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							{t("acquisition.activity.openWebui")}
-						</a>
-					)}
-				</div>
-			)}
-			{query.isError && (
-				<p role="alert" className="text-sm">
-					{t("acquisition.activity.statusUnavailable")}{" "}
-					<Button variant="outline" onClick={() => void query.refetch()}>
-						{t("acquisition.activity.retryStatus")}
-					</Button>
-				</p>
-			)}
-			{view.subscription &&
-				activity &&
-				!activity.authorized &&
-				view.subscription.enabled && (
-					<p className="text-sm">
-						{t("acquisition.activity.discoveryOnlyHint")}{" "}
-						<Button variant="outline" onClick={onConfigure}>
-							{t("acquisition.activity.enableAutomatic")}
-						</Button>
+			{tasks.filter((item) => !historical(item)).map(row)}
+			{!tasks.some((item) => !historical(item)) &&
+				!query.isPending &&
+				!query.isError && (
+					<p className="text-sm text-muted-foreground">
+						{t("acquisition.activity.noActiveTasks")}
 					</p>
 				)}
-			{(view.subscription || (activity?.total ?? 0) > 0 || view.total > 0) && (
+			{tasks.some(historical) && (
 				<details>
 					<summary className="cursor-pointer text-sm">
-						{t("acquisition.activity.summary", {
-							acquisitions: activity?.total ?? 0,
-							releases: view.total,
-						})}
-						{activity?.attention
-							? ` · ${t("acquisition.activity.attention", {
-									count: activity.attention,
-								})}`
-							: ""}
+						{t("acquisition.activity.history")}
 					</summary>
-					<div className="space-y-3 pt-3">
-						{tasks.map((item) => (
-							<div className="space-y-1 border-b py-2 text-sm" key={item.id}>
-								<p>
-									{t("acquisition.activity.episodeLine", {
-										episode: item.episode,
-										status: status(item, t),
-									})}
-								</p>
-								{item.title && (
-									<p
-										className="truncate text-muted-foreground"
-										title={item.title}
-									>
-										{item.title}
-									</p>
-								)}
-								{item.observedAt !== null &&
-									Date.now() - item.observedAt > 60_000 &&
-									item.state === "bound" && (
-										<p className="text-muted-foreground">
-											{t("acquisition.activity.staleObservation")}
-										</p>
-									)}
-								{item.error && (
-									<p role="status">
-										{t(
-											errorKeys[item.error] ??
-												"acquisition.activity.errorFallback",
-										)}
-									</p>
-								)}
-								<div className="action-row">
-									{item.ingestion === "review" && (
-										<Link className={buttonStyles("outline")} to="/review">
-											{t("acquisition.activity.openReview")}
-										</Link>
-									)}
-									{item.error && (
-										<Link className={buttonStyles("outline")} to="/settings">
-											{t("acquisition.activity.settings")}
-										</Link>
-									)}
-									{(item.ingestion === "failed" ||
-										item.ingestion === "review") && (
-										<Button
-											variant="outline"
-											disabled={retry.isPending}
-											onClick={() =>
-												retry.mutate({
-													id: item.id,
-													revision: item.revision,
-													kind: "import",
-												})
-											}
-										>
-											{t("acquisition.activity.retryImport")}
-										</Button>
-									)}
-									{(["missing", "blocked", "unknown"].includes(item.state) ||
-										(item.state === "pending" && item.error !== null)) && (
-										<Button
-											variant="outline"
-											disabled={
-												retry.isPending || !activity?.authorized || !item.title
-											}
-											onClick={() =>
-												retry.mutate({
-													id: item.id,
-													revision: item.revision,
-													kind: "acquisition",
-												})
-											}
-										>
-											{t("acquisition.activity.retryAcquisition")}
-										</Button>
-									)}
-								</div>
-							</div>
-						))}
-						{(activity?.total ?? 0) > 20 && (
-							<div className="action-row">
-								<Button
-									variant="outline"
-									disabled={page === 1}
-									onClick={() => setPage(page - 1)}
-								>
-									{t("acquisition.activity.previous")}
-								</Button>
-								<span>{t("acquisition.activity.page", { page })}</span>
-								<Button
-									variant="outline"
-									disabled={page * 20 >= (activity?.total ?? 0)}
-									onClick={() => setPage(page + 1)}
-								>
-									{t("acquisition.activity.next")}
-								</Button>
-							</div>
-						)}
-						{view.candidates
-							.filter((candidate) => !ids.has(candidate.id))
-							.map((candidate) => (
-								<div className="border-b py-2 text-sm" key={candidate.id}>
-									<p className="truncate" title={candidate.title}>
-										{candidate.title}
-									</p>
-									<p className="text-muted-foreground">
-										{candidate.episode
-											? t("acquisition.activity.candidateEpisode", {
-													episode: candidate.episode,
-												})
-											: ""}
-										{candidate.status === "selected"
-											? t("acquisition.activity.selected")
-											: candidate.reasons.includes("waiting_for_level")
-												? t("acquisition.activity.waitingForPreferred")
-												: t("acquisition.activity.skipped", {
-														reasons: candidate.reasons.map(reason).join("; "),
-													})}
-										{candidate.selection && (
-											<>
-												{" "}
-												·{" "}
-												{candidate.selection.level ??
-													t("acquisition.activity.noMatchingLevel")}
-												{candidate.reasons.includes("waiting_for_level") &&
-												candidate.selection.eligibleAt !== null
-													? ` · ${t("acquisition.activity.eligibleAfter", {
-															date: new Date(
-																candidate.selection.eligibleAt,
-															).toLocaleString(),
-														})}`
-													: ""}
-											</>
-										)}
-									</p>
-								</div>
-							))}
-						{releasePagination}
-					</div>
+					{tasks.filter(historical).map(row)}
 				</details>
+			)}
+			{(activity?.total ?? 0) > 20 && (
+				<div className="action-row">
+					<Button
+						variant="ghost"
+						disabled={page <= 1}
+						onClick={() => setPage(page - 1)}
+					>
+						{t("acquisition.activity.previous")}
+					</Button>
+					<span className="text-sm">
+						{t("acquisition.activity.page", { page })}
+					</span>
+					<Button
+						variant="ghost"
+						disabled={page * 20 >= (activity?.total ?? 0)}
+						onClick={() => setPage(page + 1)}
+					>
+						{t("acquisition.activity.next")}
+					</Button>
+				</div>
+			)}
+			<details onToggle={(event) => setDiagnostics(event.currentTarget.open)}>
+				<summary className="cursor-pointer text-sm">
+					{t("acquisition.activity.diagnostics")}
+				</summary>
+				<div className="space-y-3 pt-3">
+					{view.subscription && (
+						<p className="text-sm text-muted-foreground">
+							{view.subscription.source} ·{" "}
+							{t("acquisition.subscription.fromEpisode", {
+								episode: view.subscription.startEpisode,
+							})}
+						</p>
+					)}
+					{releases.isPending ? (
+						<p role="status">{t("acquisition.subscription.loading")}</p>
+					) : releases.isError ? (
+						<p role="alert">
+							{t("acquisition.subscription.unavailable")}{" "}
+							<Button variant="ghost" onClick={() => void releases.refetch()}>
+								{t("acquisition.subscription.retry")}
+							</Button>
+						</p>
+					) : (
+						[...groups].map(([group, entries]) => (
+							<details key={group}>
+								<summary className="cursor-pointer text-sm">
+									{entries[0]?.reasons.length
+										? entries[0].reasons.map(reason).join(" · ")
+										: t("acquisition.activity.selected")}{" "}
+									· {entries.length}
+								</summary>
+								{entries.map((candidate) => (
+									<div className="border-b py-2 text-sm" key={candidate.id}>
+										<Tooltip content={candidate.title} openOnClick>
+											<button
+												type="button"
+												className="block max-w-full truncate text-left"
+												aria-label={candidate.title}
+											>
+												{candidate.title}
+											</button>
+										</Tooltip>
+									</div>
+								))}
+							</details>
+						))
+					)}
+					{(releases.data?.total ?? 0) > 20 && (
+						<div className="action-row">
+							<Button
+								variant="ghost"
+								disabled={releasePage <= 1}
+								onClick={() => setReleasePage(releasePage - 1)}
+							>
+								{t("acquisition.subscription.previousReleases")}
+							</Button>
+							<span className="text-sm">
+								{t("acquisition.subscription.page", { page: releasePage })}
+							</span>
+							<Button
+								variant="ghost"
+								disabled={releasePage * 20 >= (releases.data?.total ?? 0)}
+								onClick={() => setReleasePage(releasePage + 1)}
+							>
+								{t("acquisition.subscription.nextReleases")}
+							</Button>
+						</div>
+					)}
+				</div>
+			</details>
+			{settings.data?.qbittorrentWebUiUrl && (
+				<a
+					className={buttonStyles("ghost")}
+					href={settings.data.qbittorrentWebUiUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					{t("acquisition.activity.openWebui")}
+				</a>
 			)}
 		</div>
 	);

@@ -97,7 +97,19 @@ Navigation uses text when its container is wide enough, otherwise icons with
 Tooltips and accessible names. If icons still do not fit, scroll only the
 navigation horizontally; keep the brand visible and preserve keyboard access.
 
-Work detail prioritizes the header and episode list. AniList viewing state is a
+Work detail prioritizes the header and episode list. Align the cover and core
+information at the top; the cover keeps its 2:3 aspect ratio and does not stretch
+with the information column. Show the title, alternative titles, viewing state and
+a short strip of format/year/release-status badges and inline labeled episode
+counts and known dates. Bound the information column to a readable width; do not
+spread metadata across equal columns spanning the page. Use readable release
+status labels. Keep unknown dates in More metadata instead of empty header cells.
+Place viewing state and the primary playback action together below a short divider;
+the progress edit action is a small tertiary button. Alternative titles use two lines;
+show an expansion control only when the rendered text exceeds that height, and
+remeasure when its width changes. Keep provider attribution/links and secondary
+metadata in More metadata on both local and remote-only details. Label the viewing
+edit action "Edit progress". Long titles and actionable errors may grow the header naturally. AniList viewing state is a
 compact row inside the title/metadata header on both local and remote details.
 Local details place a primary `Play episode N` action directly below that row.
 It targets the first available unwatched episode and opens the version chooser
@@ -124,12 +136,14 @@ in deduplicated app-level Toasts with a work-detail recovery action. Network fai
 must retain editable input and persisted intent.
 
 Anime details keep Web playback as the primary episode action. A single available
-version orders controls as compatibility status, shared Files action menu, then
-Play. The version chooser uses the same order.
+version orders controls as compatibility status, shared Files action menu, then Play.
+Association correction is a menu item targeting the specific file review, composed
+by Anime through the resource-action slot. The version chooser uses the same menu;
+unavailable versions retain their correction link without file commands.
 Multiple available versions open the version chooser; each available version has
 its own Play and file-action controls. Unavailable versions expose no file commands.
 The same menu provides external players, original links/downloads/playlists and
-preparation controls, while association corrections remain in the Anime context.
+preparation controls, while Anime supplies the association-correction menu item.
 App supplies the cross-feature composition through a typed resource-action slot;
 Anime does not depend on App or Media/Playback UI internals. Compatibility queries
 are bounded, account for resource scope and the selected source version, and known
@@ -137,9 +151,14 @@ source conflicts disable the affected menu. Web playback retains work, episode,
 source-version and Library return context. Existing command feedback and logs apply.
 
 Episode numbering guidance is an info icon beside the episode heading with a
-keyboard/touch-accessible Tooltip. Files needing review use a compact disclosure
-with a current-page count, candidate links and pagination inside. Keep loading
-and errors visible while collapsed; candidate guidance belongs in a Tooltip.
+keyboard/touch-accessible Tooltip. Files to review use a secondary compact disclosure
+below the episode heading, with candidate links and pagination inside. Hide the
+disclosure after a successful empty first-page response; omit page-size counts
+rather than implying a total. Keep loading and errors visible while collapsed,
+and retain pagination when a later page becomes empty. Candidate guidance belongs
+in a Tooltip. Do not add persistent instructional footnotes or global review/Files
+links below the episode list; corrections use the file action menu and
+version chooser, and Files remains accessible through the main navigation.
 
 Provider airing schedules use a compact table in the detail sidebar, beside the
 episode list, with a loaded-record count. Keep the provider numbering explanation
@@ -240,16 +259,24 @@ Settings includes a compact RSS section with one global refresh interval in whol
 minutes (1–1440, default 30). Keep edits local until Save, show the unit in the input
 label, and use Toasts for save results. Saving applies without a restart.
 
-Keep the RSS subscription summary compact and place secondary subscription actions
-in its menu. Its policy Tooltip explains that pausing stops future acquisition,
-while existing downloads continue and AniList status does not change subscription
-state. Preview confirmation shows starting scope and the per-anime destination.
+Place the unified subscription summary inside the work metadata header, after the
+viewing/playback actions. Use the Header row layout: subscription label, one primary
+outcome, an on-demand Activity action and a secondary menu. Permit wrapping on mobile;
+do not place a second subscription panel below the episode list. Normal controls
+are Subscribe, Edit, Check updates and Unsubscribe; existing Pause/Resume stays in
+the menu. Creation origin does not change the editor or require conversion consent.
 
-Activity is an on-demand disclosure containing release decisions and acquisition
-outcomes, with a visible attention count even while collapsed. Show true download
-percentages and distinct verification/import/availability states; retain actionable
-errors in their rows. Use deduplicated Toasts for operation results and failures.
-Do not add a global Downloads page or another floating task monitor. Open WebUI
-for transfer control and seeding details; Anishelf offers acquisition/import retry,
-Review and Settings only when relevant. Keep original playback controls in the
-existing episode list.
+The editor initially shows only the starting episode and a short effective-defaults
+summary. Put profile/source overrides and RSS entry behind More options. Keep global
+explanations, site order, credentials and refresh policy in Settings. A validated
+destination and configured automatic sources are required, with a specific setup
+message/action when missing. Saving does not require a successful resource search.
+
+Open Activity in one responsive dialog. Show active downloads/imports and actionable
+failures first, with actual progress and concise episode/status/action rows. Finished
+history is secondary. Move grouped release decisions and full release names into
+lazy-loaded Diagnostics; do not expose resource samples as a required selection.
+Keep an attention indicator in the collapsed header row. Show Settings only for
+configuration-related failures and acquisition/import retry or Review only when
+appropriate. Use Toasts for operation results; retain form validation/conflicts
+inline without discarding user input. qBittorrent WebUI owns transfer controls.

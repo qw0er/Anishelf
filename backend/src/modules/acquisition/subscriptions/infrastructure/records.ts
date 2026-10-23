@@ -15,6 +15,8 @@ export function readAcquisitionSubscriptions(
 		...(row.lastErrorPresent
 			? { lastError: row.lastErrorPresent ? row.lastError : undefined }
 			: {}),
+		...(row.automatic ? { automatic: row.automatic } : {}),
+		...(row.createdBy === "watching" ? { createdBy: "watching" as const } : {}),
 		workKey: row.workKey,
 		feedId: row.feedId,
 		...(row.sourceInput ? { sourceInput: row.sourceInput } : {}),
@@ -31,6 +33,8 @@ export function writeAcquisitionSubscriptions(
 ): void {
 	connection.transaction((store) => {
 		const row0 = {
+			automatic: value.automatic ?? null,
+			createdBy: value.createdBy ?? null,
 			lastError: value?.lastError ?? null,
 			lastErrorPresent: value?.lastError !== undefined,
 			workKey: value?.workKey,

@@ -4,7 +4,7 @@ SQLite and Drizzle remain the persistence mechanisms. The initial migration
 `0000_relational_schema` creates the original 78 business tables.
 `0001_snapshot_payloads` replaces thirteen metadata collection tables and detail
 columns with a JSON projection and adds durable media inspections. The current
-schema has 69 business tables after migrations through `0009`; Drizzle's journal is infrastructure.
+schema has 69 business tables after migrations through `0010`; Drizzle's journal is infrastructure.
 `0002_anime_work_information` centralizes current work summaries and removes
 the Catalog and per-account Tracking description copies.
 SQLite `user_version = 1` identifies this supported database family.
@@ -23,7 +23,7 @@ continues to use the disk-backed `openDatabase()` path and its existing logs.
 | Original tables | Relational representation |
 | --- | --- |
 | `acquisition_feeds` | Feed identity, URL, validators, check/retry times, failure count and error columns; ordered feed entries |
-| `acquisition_subscriptions` | Stable evidence identity, typed source definition, starting episode, enabled flag, revision and nullable error; no source-registration foreign key |
+| `acquisition_subscriptions` | Nullable resolved evidence identity, typed source definition, pending automatic-discovery scope JSON, optional Watching creation provenance, fixed starting episode, enabled flag, revision and nullable error; no source-registration foreign key |
 | `acquisition_candidates` | Candidate identity, title, episode, selection, revision/evidence attributes; ordered reasons |
 | `acquisition_destination` | One constrained `default` row with scope, path, revision, connection generation and verification flags |
 | `acquisition_watching_policy` | One `default` typed JSON configuration/grant snapshot with policy revision, enabled state, accepted account/source/profile/destination generations and applied snapshot |
