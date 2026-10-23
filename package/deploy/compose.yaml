@@ -5,6 +5,8 @@ services:
     stop_grace_period: 15s
     environment:
       ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:${ANISHELF_PORT:-3000}}
+      # Trust only proxies on this private container network; keep Backend unpublished.
+      ANISHELF_TRUSTED_PROXIES: ${ANISHELF_TRUSTED_PROXIES:-loopback,uniquelocal}
       ANISHELF_DATA_DIR: /data/app
       ANISHELF_INITIAL_RESOURCE_ROOTS: /data/media
       ANISHELF_QBITTORRENT_API_URL: http://qbittorrent:8080
@@ -31,6 +33,8 @@ services:
     image: ghcr.io/qw0er/anishelf-web:${ANISHELF_TAG:-latest}
     restart: unless-stopped
     stop_grace_period: 15s
+    environment:
+      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:${ANISHELF_PORT:-3000}}
     ports:
       - "${ANISHELF_BIND_ADDRESS:-127.0.0.1}:${ANISHELF_PORT:-3000}:8080"
     depends_on:

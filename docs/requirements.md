@@ -349,7 +349,7 @@ AniList is the viewing-state authority. This iteration selects account connectio
 | O04 | Unified settings for directories and integrations | Later | — | Unassigned |
 | O05 | Task history, logs, and automation decision explanations | Partial: durable per-anime acquisition activity, decision reasons, safe correlated logs and terminal-detail retention; broader product history remains later | Current (acquisition) | Unassigned |
 | O06 | Back up and restore metadata, viewing history, and configuration | Later | — | Unassigned |
-| O07 | LAN access, single-user authentication, and credential protection | Implemented: single password, independent hash file, persistent Cookie sessions, CSRF, login limits, local recovery and 24-hour scoped media links; remote access through TLS proxy | Current | Current |
+| O07 | LAN access, single-user authentication, and credential protection | Implemented: single password, independent hash file, persistent Cookie sessions, CSRF, login limits, local recovery and 24-hour scoped media links; remote access through TLS proxy with explicit container proxy trust and Secure session cookies | Current | Current |
 | O08 | In-app completion and failure feedback | Implemented: scan result Toasts and preparation results in the floating task monitor | Current | Current |
 | O09 | Multiple users, permissions, public deployment support, and remote access | Optional | — | Unassigned |
 | O10 | Plugin extensions and public integration APIs | Optional | — | Unassigned |

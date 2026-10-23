@@ -10,6 +10,8 @@ Image=ghcr.io/qw0er/anishelf-web:latest
 ContainerName=anishelf-web
 Network=anishelf.network
 UserNS=keep-id:uid=1000,gid=1000
+# Match Backend so forwarded HTTPS and Secure session cookies agree.
+Environment=ANISHELF_PUBLIC_ORIGIN=http://localhost:3000
 # Host address:host port:container port. Keep container port 8080.
 # Change the host address for LAN access; update Backend public origin too.
 PublishPort=127.0.0.1:3000:8080

@@ -164,6 +164,7 @@ Optional `.env` settings:
 | `ANISHELF_TAG` | `latest`; matching Web/Backend release images |
 | `ANISHELF_BIND_ADDRESS` / `ANISHELF_PORT` | `127.0.0.1` / `3000`; application host address/port |
 | `ANISHELF_PUBLIC_ORIGIN` | `http://localhost:<ANISHELF_PORT>`; override for LAN or HTTPS |
+| `ANISHELF_TRUSTED_PROXIES` | `loopback,uniquelocal` for the private container backend; narrow to the actual Web network CIDR for custom networks |
 | `ANISHELF_MEDIA_PATH` | Absolute host media directory; unset uses the media volume |
 | `COMPOSE_PROFILES` | `qbittorrent`, `jackett` or `qbittorrent,jackett` for optional services |
 | `QBITTORRENT_TAG` | `latest`; downloader image version |
@@ -358,6 +359,8 @@ NetworkAlias=backend
 UserNS=keep-id:uid=1000,gid=1000
 # Set the exact browser origin, including HTTPS or a changed host port.
 Environment=ANISHELF_PUBLIC_ORIGIN=http://localhost:3000
+# Backend stays private; narrow to the Web network CIDR for custom networks.
+Environment=ANISHELF_TRUSTED_PROXIES=loopback,uniquelocal
 # Initial root for new settings only; change existing roots in Settings.
 Environment=ANISHELF_INITIAL_RESOURCE_ROOTS=/data/media
 # Optional API form hint; use Settings for external endpoints and credentials.
@@ -394,6 +397,8 @@ Image=ghcr.io/qw0er/anishelf-web:latest
 ContainerName=anishelf-web
 Network=anishelf.network
 UserNS=keep-id:uid=1000,gid=1000
+# Match Backend public origin, including HTTPS.
+Environment=ANISHELF_PUBLIC_ORIGIN=http://localhost:3000
 # Host address:host port:container port. Keep container port 8080.
 # Change the host address for LAN access; update Backend public origin too.
 PublishPort=127.0.0.1:3000:8080
@@ -540,7 +545,7 @@ together.
 ## Network and qBittorrent
 
 Backend stays private; Web and the optional downloader publish their own ports. For HTTPS, set
-`ANISHELF_PUBLIC_ORIGIN=https://anime.example.com` in the backend environment and
+`ANISHELF_PUBLIC_ORIGIN=https://anime.example.com` in **both Web and Backend** and
 forward your host reverse proxy to `127.0.0.1:3000`:
 
 ```caddyfile
@@ -548,6 +553,46 @@ anime.example.com {
     reverse_proxy 127.0.0.1:3000
 }
 ```
+
+The host port above belongs to Web, which serves the frontend and forwards /api to
+the private Backend. Preserve the original Host and Origin. Web derives the forwarded
+scheme from its configured public origin, so both containers must use the same value.
+Packaged Backend units/Compose set ANISHELF_TRUSTED_PROXIES=loopback,uniquelocal to
+recognize the private Web proxy. For a custom network, replace uniquelocal with the
+actual Web network CIDR. Keep Backend unpublished; trust only proxies you control.
+
+For existing Quadlet deployments, update **both application images** to a release
+containing the HTTPS session fix, then add these environment entries to the installed
+units (retain the other settings):
+
+```ini
+# anishelf-backend.container
+Environment=ANISHELF_PUBLIC_ORIGIN=https://anime.example.com
+Environment=ANISHELF_TRUSTED_PROXIES=loopback,uniquelocal
+
+# anishelf-web.container
+Environment=ANISHELF_PUBLIC_ORIGIN=https://anime.example.com
+```
+
+As the service account, pull the matching backend and web image tags, run
+`systemctl --user daemon-reload`, then `systemctl --user restart anishelf.target`.
+For Compose, use the updated template, set the public origin in .env, and pull/recreate
+both application services. Changing an environment file alone does not update an
+already running container or an older image's behavior.
+
+To check session bootstrap without displaying the Cookie value:
+
+```sh
+curl -sS -D - -o /dev/null https://anime.example.com/api/auth/session | grep -ic '^set-cookie:'
+```
+
+A fresh successful response should include a session cookie (count 1). If the API
+returns 200 without a Cookie and login reports “This request is not allowed”, check
+both containers' running public-origin values and Backend proxy trust. Backend's
+`auth.session_transport_untrusted` warning means it cannot issue the required Secure
+Cookie over the recognized request protocol. Correct the proxy chain while retaining
+HTTPS, Origin and CSRF checks. Never paste session cookies, passwords or CSRF tokens
+into diagnostic reports.
 
 Configure an existing or external qBittorrent instance in Anishelf Settings: API address,
 credentials, Test connection, then Download destination. Its completed directory

@@ -11,6 +11,8 @@ NetworkAlias=backend
 UserNS=keep-id:uid=1000,gid=1000
 # Set the exact browser origin, including HTTPS or a changed host port.
 Environment=ANISHELF_PUBLIC_ORIGIN=http://localhost:3000
+# Backend is private; narrow this to the Web network CIDR on custom networks.
+Environment=ANISHELF_TRUSTED_PROXIES=loopback,uniquelocal
 # Initial root for new settings only; change existing roots in Settings.
 Environment=ANISHELF_INITIAL_RESOURCE_ROOTS=/data/media
 # Optional API form hint; use Settings for external endpoints and credentials.

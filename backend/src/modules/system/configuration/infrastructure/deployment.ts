@@ -2,6 +2,7 @@ import { constants } from "node:fs";
 import { access, mkdir, stat } from "node:fs/promises";
 import { isIP } from "node:net";
 import { isAbsolute, join } from "node:path";
+import ipaddr from "ipaddr.js";
 import { userDataDir, userLogDir } from "platformdirs";
 import {
 	deploymentDefaults,
@@ -27,6 +28,24 @@ function absolutePath(value: string, name: string): string {
 		invalid(`${name} must be an absolute filesystem path.`);
 	}
 	return value;
+}
+
+function trustedProxies(value: string): string[] {
+	const entries = value.split(",").map((entry) => entry.trim());
+	if (entries.length > 64)
+		invalid("ANISHELF_TRUSTED_PROXIES allows at most 64 entries.");
+	for (const entry of entries) {
+		if (["loopback", "linklocal", "uniquelocal"].includes(entry)) continue;
+		try {
+			if (entry.includes("/")) ipaddr.parseCIDR(entry);
+			else ipaddr.parse(entry);
+		} catch {
+			invalid(
+				"ANISHELF_TRUSTED_PROXIES must contain comma-separated IP addresses, CIDRs or loopback/linklocal/uniquelocal aliases.",
+			);
+		}
+	}
+	return entries;
 }
 
 function initialRoots(env: Environment): string[] | undefined {
@@ -215,6 +234,9 @@ export function parseDeploymentConfig(
 						"ANISHELF_PUBLIC_ORIGIN",
 					),
 				}),
+		...(env.ANISHELF_TRUSTED_PROXIES === undefined
+			? {}
+			: { trustedProxies: trustedProxies(env.ANISHELF_TRUSTED_PROXIES) }),
 		dataDir,
 		...(resourceInitializers === undefined
 			? {}

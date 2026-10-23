@@ -33,7 +33,10 @@ export function createHttpApp(options: {
 	metadata?: MetadataApi;
 	catalog?: AnimeCatalogApi;
 	playbackSelection?: PlaybackSelectionApi;
-	config: Pick<DeploymentConfig, "host" | "port" | "publicOrigin">;
+	config: Pick<
+		DeploymentConfig,
+		"host" | "port" | "publicOrigin" | "trustedProxies"
+	>;
 	logger: Logger;
 	policy?: DeepReadonly<BuiltinPolicy>;
 	development?: boolean;

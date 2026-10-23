@@ -16,6 +16,11 @@
 }
 
 :8080 {
+	# The deployment's public origin is authoritative, not caller-supplied forwarding headers.
+	map {$ANISHELF_PUBLIC_ORIGIN:http://localhost:3000} {public_scheme} {
+		~^https:// https
+		default http
+	}
 	root * /srv
 	header Referrer-Policy no-referrer
 	log {
@@ -38,6 +43,7 @@
 	handle @api {
 		# Preserve the browser's Host/Origin, cookies, CSRF tokens and Range headers.
 		reverse_proxy backend:3000 {
+			header_up X-Forwarded-Proto {public_scheme}
 			flush_interval 100ms
 			transport http {
 				keepalive 5s
