@@ -29,6 +29,12 @@ function conflict(): never {
 	);
 }
 export class SubscriptionsApplication implements SubscriptionsApi {
+	hasCapacity(): boolean {
+		return (
+			this.options.store.subscriptions().length < policy.maximumSubscriptions
+		);
+	}
+
 	private readonly context: SubscriptionsContext;
 	private readonly worker: SubscriptionWorker;
 	private readonly discovery: SubscriptionDiscovery;
@@ -108,13 +114,16 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 					a.id.localeCompare(b.id),
 			);
 		return {
+			automation: this.options.management?.status(workKey) ?? null,
 			subscription: subscription
 				? {
 						workKey: subscription.workKey,
 						feedId: subscription.feedId,
 						startEpisode: subscription.startEpisode,
 						profileId: subscription.profileId ?? null,
-						enabled: subscription.enabled,
+						enabled:
+							this.options.management?.enabled(subscription) ??
+							subscription.enabled,
 						revision: subscription.revision,
 						source: feed?.label ?? "Source unavailable",
 						sourceKind: subscription.sourceInput?.kind ?? "feed",
@@ -132,6 +141,18 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		};
 	}
 	async save(input: SaveSubscriptionInput): Promise<SubscriptionView> {
+		return this.persist(input);
+	}
+	admitManaged(
+		input: SaveSubscriptionInput,
+		commit: (subscription: Subscription) => void,
+	): SubscriptionView {
+		return this.persist(input, commit);
+	}
+	private persist(
+		input: SaveSubscriptionInput,
+		managed?: (subscription: Subscription) => void,
+	): SubscriptionView {
 		this.key(input.workKey);
 		if (
 			!Number.isSafeInteger(input.startEpisode) ||
@@ -141,10 +162,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			throw new DomainError("INVALID_REQUEST", "Invalid starting episode.");
 		const current = this.options.store.subscription(input.workKey);
 		if ((current?.revision ?? null) !== input.revision) conflict();
-		if (
-			!current &&
-			this.options.store.subscriptions().length >= policy.maximumSubscriptions
-		)
+		if (!current && !this.hasCapacity())
 			throw new DomainError(
 				"ACQUISITION_UNAVAILABLE",
 				"Subscription limit reached.",
@@ -199,6 +217,8 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 						? this.options.store.candidates(input.workKey)
 						: [],
 				);
+				if (managed) managed(subscription);
+				else this.options.management?.saved(input.workKey);
 				if (target)
 					this.options.store.authorize({
 						workKey: subscription.workKey,
@@ -238,10 +258,14 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			current.sourceInput ?? current.feedId,
 		);
 		if (!feed) conflict();
-		this.options.store.saveSubscription(
-			{ ...current, enabled, revision: randomUUID() },
-			this.options.store.candidates(workKey),
-		);
+		this.options.store.transaction(() => {
+			const updated = { ...current, enabled, revision: randomUUID() };
+			this.options.store.saveSubscription(
+				updated,
+				this.options.store.candidates(workKey),
+			);
+			this.options.management?.toggled(workKey, enabled, updated.revision);
+		});
 		this.options.logger.info(
 			{ event: "acquisition.subscription_toggled", enabled, feedId: feed.id },
 			"Subscription state changed.",
@@ -250,7 +274,12 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 	}
 	async remove(workKey: string, revision: string) {
 		this.key(workKey);
-		if (!this.options.store.remove(workKey, revision)) conflict();
+		this.options.store.transaction(() => {
+			if (this.options.store.subscription(workKey)?.revision !== revision)
+				conflict();
+			this.options.management?.removed(workKey);
+			if (!this.options.store.remove(workKey, revision)) conflict();
+		});
 		this.options.logger.info(
 			{ event: "acquisition.subscription_removed" },
 			"Subscription removed.",
@@ -335,8 +364,24 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 	selection() {
 		return {
 			subscription: (workKey: string) =>
-				this.options.store.subscription(workKey),
-			subscriptions: () => this.options.store.subscriptions(),
+				(() => {
+					const subscription = this.options.store.subscription(workKey);
+					return subscription
+						? {
+								...subscription,
+								enabled:
+									this.options.management?.enabled(subscription) ??
+									subscription.enabled,
+							}
+						: null;
+				})(),
+			subscriptions: () =>
+				this.options.store.subscriptions().map((subscription) => ({
+					...subscription,
+					enabled:
+						this.options.management?.enabled(subscription) ??
+						subscription.enabled,
+				})),
 			candidates: (workKey: string) => {
 				const subscription = this.options.store.subscription(workKey);
 				const profile = (
@@ -370,7 +415,11 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 	activeSourceIds() {
 		return this.options.store
 			.subscriptions()
-			.filter((subscription) => subscription.enabled)
+			.filter(
+				(subscription) =>
+					this.options.management?.enabled(subscription) ??
+					subscription.enabled,
+			)
 			.map((subscription) => subscription.feedId);
 	}
 	refreshSource(id: string) {

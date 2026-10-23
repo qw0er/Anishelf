@@ -52,6 +52,9 @@ export class TrackingModule implements TrackingApi {
 	refreshList(generation?: string): Promise<TrackingListSnapshot> {
 		return this.lists.refresh(generation);
 	}
+	acquisitionSnapshot() {
+		return this.lists.acquisitionSnapshot();
+	}
 	operations(generation: string) {
 		return this.updates.operations(generation);
 	}

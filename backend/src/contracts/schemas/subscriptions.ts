@@ -47,6 +47,17 @@ const AcquisitionCandidateSchema = Type.Object({
 	publishedAt: nullableNumber,
 });
 export const SubscriptionViewSchema = Type.Object({
+	automation: Type.Optional(
+		Type.Union([
+			Type.Null(),
+			Type.Object({
+				managed: Type.Boolean(),
+				excluded: Type.Boolean(),
+				paused: Type.Boolean(),
+				reason: Type.String(),
+			}),
+		]),
+	),
 	subscription: Type.Union([
 		Type.Null(),
 		Type.Object({

@@ -58,6 +58,9 @@ export async function createServer(
 		logger,
 	});
 	const acquisition = await createAcquisitionModule({
+		...(anime.api.acquisitionList
+			? { watching: anime.api.acquisitionList }
+			: {}),
 		...(system.deployment.bundledJackettConfigFile
 			? {
 					bundledSourcesConfigFile: system.deployment.bundledJackettConfigFile,

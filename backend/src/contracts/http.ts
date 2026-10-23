@@ -245,3 +245,14 @@ export type SubscriptionSearchInput = Static<
 export type SubscriptionSearchResult = Static<
 	typeof import("./schemas/subscriptions.js").SubscriptionSearchResultSchema
 >;
+
+export type WatchingAutomationStatus = Static<
+	typeof import("./schemas/watching.js").WatchingStatusSchema
+>;
+export type WatchingAutomationConfig = WatchingAutomationPreview["config"];
+export type WatchingAutomationPreview = Static<
+	typeof import("./schemas/watching.js").WatchingPreviewSchema
+>;
+export type WatchingAutomationOverride = Static<
+	typeof import("./schemas/watching.js").WatchingOverrideSchema
+>;

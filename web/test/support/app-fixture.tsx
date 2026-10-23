@@ -183,6 +183,16 @@ beforeEach(async () => {
 				localState: "available",
 				tracking: disconnectedList,
 			});
+		if (path === "/api/acquisition/watching")
+			return json({
+				revision: "unconfigured",
+				enabled: false,
+				reason: "disabled",
+				accountId: null,
+				trackingGeneration: "fixture",
+				config: null,
+				works: [],
+			});
 		if (path === "/api/acquisition/profiles")
 			return json({
 				profiles: [

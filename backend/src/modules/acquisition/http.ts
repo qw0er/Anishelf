@@ -3,6 +3,7 @@ import { registerDownloadRoutes } from "./downloads/http/downloads.js";
 import type { AcquisitionApi } from "./public.js";
 import { registerConnectionRoutes } from "./qbittorrent/http.js";
 import { registerSubscriptionRoutes } from "./subscriptions/http/subscriptions.js";
+import { registerWatchingRoutes } from "./watching/http/routes.js";
 
 export function registerAcquisitionHttp(
 	app: HttpInstance,
@@ -11,6 +12,7 @@ export function registerAcquisitionHttp(
 ) {
 	registerConnectionRoutes(app, api.connection);
 	registerSources(app);
+	if (api.watching) registerWatchingRoutes(app, api.watching);
 	if (api.downloads) registerDownloadRoutes(app, api.downloads);
 	registerSubscriptionRoutes(app, api.subscriptions);
 }

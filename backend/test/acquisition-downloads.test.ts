@@ -30,6 +30,8 @@ import { SourceContent } from "../src/modules/acquisition/sources/application/co
 import { createSourcesModule } from "../src/modules/acquisition/sources/create.js";
 import { JackettConnection } from "../src/modules/acquisition/sources/jackett/connection.js";
 import { SubscriptionsApplication } from "../src/modules/acquisition/subscriptions/application/application.js";
+import { WatchingApplication } from "../src/modules/acquisition/watching/application/application.js";
+import type { WatchingSnapshot } from "../src/modules/acquisition/watching/public.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
 
@@ -1567,5 +1569,177 @@ test.each([false, true])(
 			search.mockRestore();
 			read.mockRestore();
 		}
+	},
+);
+
+test.each([
+	{ change: "disable", submitted: false },
+	{ change: "paused", submitted: false },
+	{ change: "disable", submitted: true },
+	{ change: "paused", submitted: true },
+])(
+	"managed downloads respect $change after reservation; submitted=$submitted",
+	async ({ change, submitted }) => {
+		const f = await fixture();
+		const old = f.db.acquisition.subscription(key);
+		if (!old) throw Error("Missing initial subscription");
+		f.db.acquisition.remove(key, old.revision);
+		const search = vi
+			.spyOn(JackettConnection.prototype, "search")
+			.mockResolvedValue({
+				entries: [
+					{
+						id: "managed",
+						observationId: "managed",
+						title: "Frieren - 03",
+						publishedAt: null,
+						hash,
+						downloadUrl: null,
+						download: { kind: "magnet", uri: `magnet:?xt=urn:btih:${hash}` },
+					},
+				],
+				outcome: "matches",
+				coverage: { limited: false, reason: null, pages: 1, queries: 1 },
+			});
+		cleanup.push(async () => search.mockRestore());
+		const sources = await createSourcesModule({
+			dataDir: f.dir,
+			store: f.db.acquisition,
+			logger,
+		});
+		cleanup.push(() => sources.runtime.close());
+		await sources.api.connector.save({
+			generation: sources.api.connector.settings().generation,
+			url: "http://jackett:9117",
+			apiKey: "private-key",
+			origin: "external",
+			providers: ["nyaasi"],
+		});
+		const snapshot: WatchingSnapshot = {
+			accountId: "tracking-account",
+			generation: "tracking-generation",
+			revision: "list",
+			fresh: true,
+			complete: true,
+			refreshAllowed: true,
+			retryAt: null,
+			entries: [
+				{ workKey: key, title: "Frieren", status: "watching", progress: 2 },
+			],
+		};
+		let watching: WatchingApplication;
+		const subscriptions = new SubscriptionsApplication({
+			store: f.db.acquisition,
+			sources: sources.api,
+			anime: f.anime,
+			downloads: async () => [],
+			logger,
+			profiles: [
+				{
+					id: "custom:instant",
+					name: "Instant",
+					levels: [{ name: "Any", match: {}, acceptAfterMinutes: 0 }],
+				},
+			],
+			defaultProfileId: () => "custom:instant",
+			downloadTarget: () => f.db.acquisitionDownloads.destination(),
+			lockedCandidates: (workKey) =>
+				f.db.acquisitionDownloads.lockedCandidates(workKey),
+			management: {
+				enabled: (sub) => watching?.enabled(sub) ?? sub.enabled,
+				status: (key) => watching?.management(key) ?? null,
+				saved: (key) => watching?.manualSave(key),
+				removed: (key) => watching?.manualRemove(key),
+				toggled: (key, enabled, revision) =>
+					watching?.manualToggle(key, enabled, revision),
+			},
+		});
+		cleanup.push(() => subscriptions.close());
+		const suspend = () => {
+			if (change === "disable") watching.disable(watching.status().revision);
+			else {
+				snapshot.entries = snapshot.entries.map((entry) => ({
+					...entry,
+					status: "paused",
+				}));
+				snapshot.revision = "paused-list";
+			}
+		};
+		let reservedBeforeSuspend = false;
+		const worker = new DownloadsApplication({
+			store: f.db.acquisitionDownloads,
+			selection: subscriptions.selection(),
+			resources: f.resources,
+			anime: f.anime,
+			ingestion: f.ingestion,
+			transport: {
+				read: async (reference, signal) => {
+					if (!submitted) {
+						reservedBeforeSuspend =
+							f.db.acquisitionDownloads.activity(key, 1, 100).items.length > 0;
+						suspend();
+					}
+					return sources.api.readContent(reference, signal);
+				},
+				isCurrent: (reference) => sources.api.isContentCurrent(reference),
+				close: async () => {},
+			},
+			connectionGeneration: () => "account-1",
+			withClient: async (_generation, operation) => operation(f.client),
+			logger,
+		});
+		cleanup.push(() => worker.close());
+		watching = new WatchingApplication({
+			store: f.db.acquisition.watching,
+			transaction: (operation) => f.db.acquisition.transaction(operation),
+			tracking: {
+				snapshot: () => structuredClone(snapshot),
+				refresh: async () => structuredClone(snapshot),
+			},
+			sources: sources.api,
+			subscriptions,
+			subscription: (key) => f.db.acquisition.subscription(key),
+			admit: (input, commit) => {
+				subscriptions.admitManaged(input, commit);
+			},
+			target: () => f.db.acquisitionDownloads.destination(),
+			profileFingerprint: () => "instant-v1",
+			logger,
+		});
+		cleanup.push(() => watching.close());
+		const destination = await worker.saveDestination({
+			revision: null,
+			scopeId: "root",
+			path: "/downloads",
+		});
+		await worker.validate(destination.revision);
+		const preview = await watching.preview("session", "unconfigured", {
+			backlog: "progress",
+			profileId: "custom:instant",
+		});
+		watching.confirm("session", preview.id);
+		await watching.tick();
+		const subscription = f.db.acquisition.subscription(key);
+		if (!subscription) throw Error("Managed admission failed");
+		await subscriptions.refresh(key, subscription.revision);
+		await worker.tick();
+		if (!submitted) {
+			expect(reservedBeforeSuspend).toBe(true);
+			expect(f.add).not.toHaveBeenCalled();
+			expect(f.ingestion.ingest).not.toHaveBeenCalled();
+		} else {
+			expect(f.add).toHaveBeenCalledTimes(1);
+			suspend();
+			f.complete();
+			await worker.tick();
+			expect(f.ingestion.ingest).toHaveBeenCalledTimes(1);
+			expect(worker.activity(key).items[0]).toMatchObject({
+				state: "available",
+				ingestion: "available",
+			});
+			await worker.tick();
+			expect(f.add).toHaveBeenCalledTimes(1);
+		}
+		expect(subscriptions.selection().subscription(key)?.enabled).toBe(false);
 	},
 );

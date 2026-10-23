@@ -79,6 +79,13 @@ export async function createAnimeModule(options: {
 			)
 		: undefined;
 	const api: AnimeApi = {
+		acquisitionList: {
+			snapshot: () => tracking.acquisitionSnapshot(),
+			refresh: async () => {
+				await tracking.refreshList();
+				return tracking.acquisitionSnapshot();
+			},
+		},
 		queries: new AnimeQueries(catalog, metadata, tracking, logger),
 		...(assessment && catalog
 			? {

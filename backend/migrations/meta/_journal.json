@@ -64,6 +64,13 @@
 			"when": 1792762298682,
 			"tag": "0008_metadata_airing_progress",
 			"breakpoints": true
+		},
+		{
+			"idx": 9,
+			"version": "6",
+			"when": 1792767240188,
+			"tag": "0009_watching_automation",
+			"breakpoints": true
 		}
 	]
 }

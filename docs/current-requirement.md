@@ -1,8 +1,8 @@
 # Automatic Acquisition: Current Iteration Requirements
 
-Date: 2026-10-23. RSS-based acquisition is implemented; real deployment acceptance
-remains pending. The current iteration also requires AniList Watching reconciliation,
-Watching-driven source discovery and tracking-status policy, which are not implemented.
+Date: 2026-10-23. RSS/manual search acquisition and opt-in Watching automation
+are implemented. The user reported live acceptance of the preceding manual pipeline;
+real Watching-account acceptance remains pending.
 No release number is assigned. Use one selected subscription source per anime and one
 qBittorrent instance.
 
@@ -10,8 +10,8 @@ Jackett connection/search and [shared source evidence persistence and recurring
 collection](source-lifecycle.md) are implemented. Source consumers now use opaque evidence/download references and a common reader;
 feed and query definitions share the subscription-save contract. The
 [manual search subscription workflow](search-subscriptions.md), including
-ordered indexer discovery and source pinning, is implemented. Real end-to-end
-playback acceptance remains pending. [Stage 3 setup](jackett-setup.md) provides
+ordered indexer discovery and source pinning, is implemented. Manual end-to-end playback acceptance was reported by the user; this is separate
+from the automated fixtures and pending live Watching acceptance. [Stage 3 setup](jackett-setup.md) provides
 connector/site settings, diagnostics,
 optional deployment and private first-run bootstrap/provisioning.
 
@@ -35,13 +35,14 @@ Anishelf owns acquisition intent and verified ingestion. qBittorrent WebUI owns
 transfer controls, seeding, task removal and downloaded-data deletion. There is no
 global Downloads page or duplicate transfer-management interface in Anishelf.
 
-## Watching Automation and Source Discovery (Pending Implementation)
+## Watching Automation and Source Discovery (Implemented; Live Acceptance Pending)
 
 These requirements correspond to S05 and S10–S12 in the [product requirements](requirements.md).
 
 - Explicitly enable automation and preview its effect on existing Watching entries.
-  Accept a starting-episode/backlog policy: episode 1, AniList cumulative progress
-  plus one, or an explicit starting episode. Future Watching entries use the
+  Accept a starting-episode/backlog policy: AniList cumulative progress
+  plus one (default) or episode 1. Explicit per-work scope edits use the manual subscription
+  form and require consent to convert ownership. Future Watching entries use the
   accepted policy. AniList progress does not prove local file availability.
 - Periodically reconcile the authenticated AniList list. Persist managed-subscription
   ownership and reconciliation state; refreshes, retries and restarts must not create
@@ -66,15 +67,15 @@ These requirements correspond to S05 and S10–S12 in the [product requirements]
   Log reconciliation, policy decisions and failures with correlated identifiers,
   excluding credentials, private RSS/Magnet URLs and torrent payloads.
 
-The [current design](current-architecture.md#watching-automation-with-torznab-and-jackett-planned)
+The [current design](current-architecture.md#watching-automation-with-torznab-and-jackett)
 selects Torznab + Jackett, a progress-plus-one backlog default, and suspension outside
-Watching with manual overrides preserved. These are planned defaults, not already
-implemented behavior; explicit activation previews the accepted scope.
+Watching with manual overrides preserved. These defaults are implemented; explicit activation previews the accepted scope.
+See the [operator guide](watching-automation.md) for setup, limits and recovery.
 
 ## Subscription and Selection
 
-The following describes the implemented RSS and manual search paths. Watching automation will extend
-its permission and status policy under the explicit enablement described above.
+RSS and manual search keep their existing permission path. Managed subscriptions
+also follow the explicitly accepted Watching policy described above.
 
 - Keep RSS URL, starting episode, explicit save-and-enable and pause controls.
   Saving performs no remote reads; collection and selection run in the background.
@@ -92,7 +93,8 @@ its permission and status policy under the explicit enablement described above.
   Changed scope or destination/account cannot inherit stale permission. The form
   displays the target and sends its revision and connection generation.
 - Pausing stops future submissions while existing transfers and imports continue.
-  AniList status changes do not enable, pause, cancel or delete acquisition.
+  AniList status changes suspend or resume only automation-owned acquisition;
+  manual subscriptions retain their own settings. Existing transfers/imports continue.
 
 ## Destination and Placement
 
@@ -171,7 +173,7 @@ Automated fixtures cover implementation behavior. Real RSS, supported qBittorren
 shared-storage paths and browser playback remain required for ACQ01–ACQ11 acceptance;
 these scenarios are not recorded as accepted by code delivery alone.
 
-ACQ12–ACQ15 require implementation and live acceptance with a real AniList account,
+ACQ12–ACQ15 have automated implementation coverage and still require live acceptance with a real AniList account,
 supported resource site/feed, qBittorrent and shared media storage. Existing RSS
 fixtures do not establish acceptance of the Watching workflow. Current import
 supports one selected episode video; season-pack ingestion remains deferred.
