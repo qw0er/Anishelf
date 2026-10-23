@@ -147,3 +147,32 @@ test("profile choice is saved separately from the RSS interval", async () => {
 		}),
 	);
 });
+
+test("shows a warning when custom acquisition profiles could not be loaded", async () => {
+	vi.spyOn(api, "request").mockImplementation(async (path) =>
+		path === "/api/acquisition/profiles"
+			? {
+					profiles: [
+						{
+							id: "builtin:general",
+							name: "General",
+							description: "",
+							source: "builtin",
+						},
+					],
+					selectedProfileId: "builtin:general",
+					selectionAvailable: true,
+					issue: {
+						file: "acquisition-profiles.yaml",
+						detail: "acquisition-profiles.yaml: invalid YAML.",
+					},
+				}
+			: { resourceRoots: [] },
+	);
+	render(<RssSettings />);
+	const alert = await screen.findByRole("alert");
+	expect(alert.textContent).toContain(
+		"Custom acquisition profiles could not be loaded",
+	);
+	expect(alert.textContent).toContain("acquisition-profiles.yaml");
+});

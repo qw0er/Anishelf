@@ -90,6 +90,14 @@ async function main(): Promise<void> {
 		const config = configuration.deployment;
 		logging = ApplicationLogging.create(config.logging);
 		const logger = logging.logger;
+		if (configuration.transcodeProfileIssue)
+			logger.warn(
+				{
+					event: "configuration.transcode_profiles_invalid",
+					...configuration.transcodeProfileIssue,
+				},
+				"Custom transcode profiles could not be loaded; using built-in profiles.",
+			);
 		logger.info(
 			{
 				event: "application.starting",

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Save } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ProfileIssueNotice } from "../../shared/components/profile-issue-notice.js";
 import { Button } from "../../shared/components/ui/button.js";
 import {
 	Card,
@@ -73,6 +74,9 @@ export function RssSettings() {
 				<CardDescription>{t("acquisition.rss.description")}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4 lg:max-w-2xl">
+				{profiles.data?.issue && (
+					<ProfileIssueNotice kind="acquisition" issue={profiles.data.issue} />
+				)}
 				{profiles.data && (
 					<form
 						className="space-y-3"

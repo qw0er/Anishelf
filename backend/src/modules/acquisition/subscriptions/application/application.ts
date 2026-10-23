@@ -76,6 +76,9 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			selectionAvailable: profiles.some(
 				(profile) => profile.id === selectedProfileId,
 			),
+			...(this.options.profileIssue
+				? { issue: this.options.profileIssue }
+				: {}),
 		};
 	}
 	get(workKey: string, page = 1): SubscriptionView {

@@ -209,6 +209,27 @@ test("explicit directory preparation negotiates fresh evidence and opens the glo
 	view.unmount();
 	expect(preparationApi.cancelPreparation).not.toHaveBeenCalled();
 });
+test("shows a profile configuration issue without hiding built-in choices", async () => {
+	vi.mocked(settingsApi.getTranscodeProfiles).mockResolvedValueOnce({
+		...catalog,
+		issue: {
+			file: "transcode-profiles.yaml",
+			detail: "transcode-profiles.yaml is not valid YAML.",
+		},
+	});
+	const view = render(
+		<Wrapper>
+			<PreparationProfileSettings />
+		</Wrapper>,
+	);
+	const alert = await view.findByRole("alert");
+	expect(alert.textContent).toContain(
+		"Custom transcode profiles could not be loaded",
+	);
+	expect(alert.textContent).toContain("transcode-profiles.yaml");
+	expect(await view.findByRole("radio", { name: /Browser copy/ })).toBeTruthy();
+});
+
 test("target profile is saved in Settings through the persistent selection API", async () => {
 	const view = render(
 		<Wrapper>

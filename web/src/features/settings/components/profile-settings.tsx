@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TranscodeProfileCatalog } from "../../../shared/api/contracts.js";
+import { ProfileIssueNotice } from "../../../shared/components/profile-issue-notice.js";
 import { Button } from "../../../shared/components/ui/button.js";
 import {
 	Card,
@@ -49,6 +50,12 @@ export function PreparationProfileSettings({
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
+				{preparation.catalog?.issue && (
+					<ProfileIssueNotice
+						kind="transcode"
+						issue={preparation.catalog.issue}
+					/>
+				)}
 				{preparation.catalog ? (
 					<form
 						className="space-y-4"

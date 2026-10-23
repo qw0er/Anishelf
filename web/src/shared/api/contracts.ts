@@ -41,6 +41,7 @@ export type {
 	PreparationStartResponse,
 	PreparationSummaryResponse,
 	PreparationTaskResponse,
+	ProfileCatalogIssue,
 	QbittorrentConnectionProbe,
 	QbittorrentConnectionSettings,
 	QbittorrentConnectionUpdate,
