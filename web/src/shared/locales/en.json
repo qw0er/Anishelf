@@ -888,7 +888,9 @@
 			"noResults": "Search completed with no matching releases.",
 			"limitedCoverage": "Results have limited coverage ({{reason}}).",
 			"saveBeforeDiagnostics": "Save source settings before running diagnostics.",
-			"actionFailed": "Could not complete the source action. Check the service address, API key and site configuration. Reload settings if another session changed them."
+			"actionFailed": "Could not complete the source action. Check the service address, API key and site configuration. Reload settings if another session changed them.",
+			"availableSites": "Available sites",
+			"selectedSites": "Selected sites"
 		},
 		"subscription": {
 			"updated": "Subscription updated.",
