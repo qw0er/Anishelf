@@ -92,3 +92,20 @@ export const acquisitionCandidatesReasons = sqliteTable(
 		),
 	],
 );
+
+export const acquisitionAuthorizations = sqliteTable(
+	"acquisition_authorizations",
+	{
+		workKey: text("work_key").primaryKey().notNull(),
+		feedId: text("feed_id").notNull(),
+		startEpisode: integer("start_episode").notNull(),
+		destinationRevision: text("destination_revision").notNull(),
+		connectionGeneration: text("connection_generation").notNull(),
+	},
+	(table) => [
+		check(
+			"acquisition_authorizations_start_episode_0",
+			sql`${table.startEpisode} >= 1`,
+		),
+	],
+);

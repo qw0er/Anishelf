@@ -75,11 +75,20 @@ test("allows policy and public contracts, same-module implementation, and bootst
 
 for (const [name, files] of [
 	[
+		"subscriptions-do-not-import-downloads",
+		{
+			"backend/src/modules/acquisition/subscriptions/application/service.ts":
+				"import type { Task } from '../../downloads/public.js'; export type Value = Task;",
+			"backend/src/modules/acquisition/downloads/public.ts":
+				"export interface Task {id:string}",
+		},
+	],
+	[
 		"acquisition-sources-do-not-import-business-consumers",
 		{
 			"backend/src/modules/acquisition/sources/application/service.ts":
-				"import type { Subscription } from '../../discovery/public.js'; export type Value = Subscription;",
-			"backend/src/modules/acquisition/discovery/public.ts":
+				"import type { Subscription } from '../../subscriptions/public.js'; export type Value = Subscription;",
+			"backend/src/modules/acquisition/subscriptions/public.ts":
 				"export interface Subscription { workKey: string }",
 		},
 	],
@@ -600,16 +609,16 @@ test("business code cannot hide provider-specific branches behind neutral import
 	);
 });
 
-test("download execution delegates cross-module business decisions to acquisition workflows", async () => {
+test("download transfer stage excludes business collaborators", async () => {
 	for (const target of ["anime", "resources"]) {
 		const violations = await scan({
-			"backend/src/modules/acquisition/downloads/application/service.ts": `import type { Value } from '../../../${target}/public.js'; export type { Value };`,
+			"backend/src/modules/acquisition/downloads/transfers/service.ts": `import type { Value } from '../../../${target}/public.js'; export type { Value };`,
 			[`backend/src/modules/${target}/public.ts`]:
 				"export interface Value { id: string }",
 		});
 		assert.ok(
 			violations.includes(
-				"downloads-execution-does-not-import-business-workflows",
+				"download-transfers-do-not-import-business-consumers",
 			),
 		);
 	}

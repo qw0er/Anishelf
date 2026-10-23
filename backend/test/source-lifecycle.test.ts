@@ -176,75 +176,10 @@ test("coalesced requests share one revision; older same-query results and delaye
 	expect(() => f.sources.publish({ ...newer })).toThrow();
 });
 
-test("managed query refreshes when due and after restart, backs off with prior evidence, and respects disable/removal", async () => {
-	const f = await fixture();
-	vi.useFakeTimers();
-	f.sources.register(f.reference);
-	const consumer = vi.fn(async () => {});
-	f.sources.start(() => [], consumer);
-	await vi.advanceTimersByTimeAsync(0);
-	expect(f.search).toHaveBeenCalledTimes(1);
-	const saved = f.sources.snapshot(f.reference.id);
-	f.search.mockRejectedValueOnce(new SourceError("rate_limited", 500_000));
-	f.setClock(61_000);
-	await vi.advanceTimersByTimeAsync(30_000);
-	expect(f.sources.snapshot(f.reference.id)).toMatchObject({
-		entries: saved?.entries,
-		checkedAt: saved?.checkedAt,
-		error: "rate_limited",
-	});
-	expect(
-		f.sources.snapshot(f.reference.id)?.nextAttemptAt,
-	).toBeGreaterThanOrEqual(500_000);
-	const reopened = f.opened();
-	reopened.sources.start(() => [], consumer);
-	await vi.advanceTimersByTimeAsync(0);
-	expect(f.search).toHaveBeenCalledTimes(2);
-	f.sources.setEnabled(f.reference.id, false);
-	f.setClock(600_000);
-	await vi.advanceTimersByTimeAsync(30_000);
-	expect(f.search).toHaveBeenCalledTimes(2);
-	reopened.sources.setEnabled(f.reference.id, true);
-	await vi.advanceTimersByTimeAsync(30_000);
-	expect(f.search).toHaveBeenCalledTimes(3);
-	reopened.sources.remove(f.reference.id);
-	await vi.advanceTimersByTimeAsync(60_000);
-	expect(f.search).toHaveBeenCalledTimes(3);
-	expect(reopened.sources.snapshot(f.reference.id)?.entries).toEqual(
-		saved?.entries,
-	);
-	expect(consumer).not.toHaveBeenCalled();
-});
-
-test("first refresh failure is durable and retries without a previous successful snapshot", async () => {
-	const f = await fixture();
-	vi.useFakeTimers();
-	f.search.mockRejectedValueOnce(new SourceError("upstream_failure"));
-	f.sources.register(f.reference);
-	f.sources.start(
-		() => [],
-		async () => {},
-	);
-	await vi.advanceTimersByTimeAsync(0);
-	expect(f.sources.snapshot(f.reference.id)).toMatchObject({
-		checkedAt: null,
-		entries: [],
-		error: "upstream_failure",
-		nextAttemptAt: 121_000,
-	});
-	const reopened = f.opened();
-	expect(reopened.sources.snapshot(f.reference.id)).toEqual(
-		f.sources.snapshot(f.reference.id),
-	);
-	f.setClock(121_000);
-	await vi.advanceTimersByTimeAsync(30_000);
-	expect(f.sources.snapshot(f.reference.id)?.error).toBeNull();
-});
-
 test("generation changes fence saved bindings and in-flight evidence without inheriting new credentials", async () => {
 	const f = await fixture();
 	vi.useFakeTimers();
-	f.sources.register(f.reference);
+	f.sources.bind(f.reference);
 	const prepared = await f.sources.refresh(f.reference);
 	f.sources.publish(prepared);
 	await f.connection.clear(f.connection.settings().generation);
@@ -261,61 +196,8 @@ test("generation changes fence saved bindings and in-flight evidence without inh
 	expect(f.sources.snapshot(prepared.id)).toEqual(prepared);
 });
 
-test("removing a source invalidates pending publication; disabling prevents background publication", async () => {
-	const f = await fixture();
-	vi.useFakeTimers();
-	let resolve!: (value: typeof f.result) => void;
-	f.search.mockImplementationOnce(
-		() =>
-			new Promise((done) => {
-				resolve = done;
-			}),
-	);
-	f.sources.register(f.reference);
-	const pending = f.sources.refresh(f.reference);
-	f.sources.remove(f.reference.id);
-	resolve(f.result);
-	const result = await pending;
-	expect(() => f.sources.publish(result)).toThrow();
-	expect(f.sources.snapshot(result.id)).toBeNull();
-	f.sources.register(f.reference);
-	f.search.mockImplementationOnce(
-		() =>
-			new Promise((done) => {
-				resolve = done;
-			}),
-	);
-	f.sources.start(
-		() => [],
-		async () => {},
-	);
-	f.sources.setEnabled(f.reference.id, false);
-	resolve(f.result);
-	await vi.advanceTimersByTimeAsync(0);
-	expect(f.sources.snapshot(f.reference.id)).toBeNull();
-});
-
-test("published RSS can use the same managed scheduler without subscribing or authorizing downloads", async () => {
-	const f = await fixture();
-	vi.useFakeTimers();
-	const reference = f.sources.rssReference("https://example.org/feed");
-	f.sources.publish(await f.sources.refresh(reference));
-	f.sources.register(reference);
-	f.setClock(61_000);
-	f.sources.start(
-		() => [],
-		async () => {},
-	);
-	await vi.advanceTimersByTimeAsync(0);
-	expect(f.fetch).toHaveBeenCalledTimes(2);
-	expect(f.sources.snapshot(reference.id)?.checkedAt).toBe(61_000);
-	expect(f.database.acquisition.subscriptions()).toEqual([]);
-	f.sources.remove(reference.id);
-	expect(f.sources.snapshot(reference.id)).not.toBeNull();
-});
-
 test.each(["rss", "jackett"] as const)(
-	"%s supports registration before evidence, durable initial failure, recovery and evidence-preserving removal",
+	"%s collects only caller-owned subscriptions, persists first failures and resumes after reopen",
 	async (kind) => {
 		const f = await fixture();
 		vi.useFakeTimers();
@@ -323,46 +205,71 @@ test.each(["rss", "jackett"] as const)(
 			kind === "rss"
 				? f.sources.rssReference("https://example.org/feed")
 				: f.reference;
+		f.sources.bind(reference);
+		expect(f.sources.snapshot(reference.id)).toMatchObject({
+			checkedAt: null,
+			entries: [],
+		});
+		const active = new Set<string>();
+		const start = (sources: typeof f.sources) =>
+			sources.start(
+				() => [...active],
+				async (previous) => {
+					try {
+						const result = await sources.refresh(
+							sources.reference(previous.id),
+						);
+						if (active.has(previous.id)) sources.publish(result);
+					} catch (error) {
+						if (active.has(previous.id))
+							sources.failed(
+								previous,
+								error instanceof SourceError ? error.code : "upstream_failure",
+								error instanceof SourceError ? error.retryAt : undefined,
+							);
+					}
+				},
+			);
+		start(f.sources);
+		await vi.advanceTimersByTimeAsync(0);
+		expect(f.fetch).not.toHaveBeenCalled();
+		expect(f.search).not.toHaveBeenCalled();
 		if (kind === "rss")
 			f.fetch.mockRejectedValueOnce(new SourceError("upstream_failure"));
 		else f.search.mockRejectedValueOnce(new SourceError("upstream_failure"));
-		f.sources.register(reference);
-		expect(f.sources.snapshot(reference.id)).toBeNull();
-		f.sources.start(
-			() => [],
-			async () => {},
-		);
-		await vi.advanceTimersByTimeAsync(0);
+		active.add(reference.id);
+		await vi.advanceTimersByTimeAsync(30_000);
 		expect(f.sources.snapshot(reference.id)).toMatchObject({
 			checkedAt: null,
 			error: "upstream_failure",
 			nextAttemptAt: 121_000,
 		});
+		// The fixture shares a fake connection between source instances; retain it across this reopen.
+		vi.spyOn(f.connection, "close").mockResolvedValueOnce();
+		await f.sources.close();
 		const reopened = f.opened();
-		expect(reopened.sources.reference(reference.id)).toEqual(reference);
 		expect(reopened.sources.snapshot(reference.id)?.error).toBe(
 			"upstream_failure",
 		);
 		f.setClock(121_000);
-		await vi.advanceTimersByTimeAsync(30_000);
-		const saved = f.sources.snapshot(reference.id);
+		start(reopened.sources);
+		await vi.advanceTimersByTimeAsync(0);
+		const saved = reopened.sources.snapshot(reference.id);
 		expect(saved?.error).toBeNull();
 		expect(saved?.entries).toHaveLength(1);
-		const download = saved?.entries[0]?.download;
-		expect(typeof download).toBe("string");
-		expect(JSON.stringify(saved)).not.toMatch(
-			/downloadUrl|jackett-torrent|magnet:|opaque-file|private-key|indexerId|generation/,
-		);
-		f.sources.remove(reference.id);
-		expect(f.database.acquisition.source(reference.id)?.enabled).toBe(false);
-		expect(f.sources.snapshot(reference.id)).toEqual(saved);
-		if (!download) throw new Error("Missing reference");
-		expect(
-			await f.sources.readDownload(download, new AbortController().signal),
-		).toMatchObject({ kind: "magnet" });
+		active.clear();
 		f.setClock(500_000);
 		await vi.advanceTimersByTimeAsync(60_000);
-		expect(f.sources.snapshot(reference.id)).toEqual(saved);
+		expect(reopened.sources.snapshot(reference.id)).toEqual(saved);
+		const download = saved?.entries[0]?.download;
+		if (!download) throw new Error();
+		expect(
+			await reopened.sources.readDownload(
+				download,
+				new AbortController().signal,
+			),
+		).toMatchObject({ kind: "magnet" });
+		expect(f.database.acquisition.subscriptions()).toEqual([]);
 	},
 );
 
@@ -448,7 +355,7 @@ test("query evidence can back a persisted subscription without an RSS row", asyn
 	expect(f.database.acquisition.subscription("anilist:anime:1")?.feedId).toBe(
 		prepared.id,
 	);
-	f.sources.remove(prepared.id);
+	// Binding/evidence retention is independent of subscription ownership.
 	expect(f.database.acquisition.subscription("anilist:anime:1")?.enabled).toBe(
 		true,
 	);
@@ -544,8 +451,8 @@ test.each(["rss", "jackett"] as const)(
 			kind === "rss"
 				? f.sources.rssReference("https://example.org/feed")
 				: f.reference;
+		f.sources.bind(reference);
 		const prepared = await f.sources.refresh(reference);
-		f.sources.register(reference);
 		let reject!: (reason: Error) => void;
 		const pending = new Promise<never>((_done, fail) => {
 			reject = fail;
@@ -553,8 +460,16 @@ test.each(["rss", "jackett"] as const)(
 		if (kind === "rss") f.fetch.mockImplementationOnce(() => pending);
 		else f.search.mockImplementationOnce(() => pending);
 		f.sources.start(
-			() => [],
-			async () => {},
+			() => [reference.id],
+			async (previous) => {
+				try {
+					f.sources.publish(
+						await f.sources.refresh(f.sources.reference(previous.id)),
+					);
+				} catch {
+					f.sources.failed(previous, "upstream_failure");
+				}
+			},
 		);
 		f.sources.publish(prepared);
 		reject(new SourceError("upstream_failure"));

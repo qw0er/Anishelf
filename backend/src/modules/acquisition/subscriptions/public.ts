@@ -1,10 +1,9 @@
 import type {
-	PreviewInput,
-	SubscriptionPreview,
+	SaveSubscriptionInput,
 	SubscriptionView,
 } from "./domain/model.js";
 
-export interface DiscoveryApi {
+export interface SubscriptionsApi {
 	profiles(): {
 		profiles: {
 			id: string;
@@ -16,12 +15,7 @@ export interface DiscoveryApi {
 		selectionAvailable: boolean;
 	};
 	get(workKey: string, page?: number): SubscriptionView;
-	preview(session: string, input: PreviewInput): Promise<SubscriptionPreview>;
-	confirm(
-		session: string,
-		workKey: string,
-		token: string,
-	): Promise<SubscriptionView>;
+	save(input: SaveSubscriptionInput): Promise<SubscriptionView>;
 	setEnabled(
 		workKey: string,
 		revision: string,
@@ -31,4 +25,9 @@ export interface DiscoveryApi {
 	refresh(workKey: string, revision: string): Promise<SubscriptionView>;
 }
 
-export type { Candidate, PreviewInput, Subscription } from "./domain/model.js";
+export type {
+	Candidate,
+	SaveSubscriptionInput,
+	Subscription,
+	SubscriptionAuthorization,
+} from "./domain/model.js";

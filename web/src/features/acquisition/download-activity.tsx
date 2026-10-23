@@ -152,6 +152,12 @@ export function DownloadActivityPanel({
 	const webui = settings.data?.qbittorrentWebUiUrl;
 	return (
 		<div className="space-y-2">
+			{activity?.planningError && (
+				<p role="status" className="text-sm">
+					Automatic acquisition could not be queued. Metadata and destination
+					checks will retry automatically.
+				</p>
+			)}
 			{(view.subscription || tasks.length > 0 || query.isError) && (
 				<div className="action-row justify-between text-sm">
 					<span>
@@ -196,7 +202,7 @@ export function DownloadActivityPanel({
 					<p className="text-sm">
 						Discovery only.{" "}
 						<Button variant="outline" onClick={onConfigure}>
-							Confirm download scope
+							Enable automatic downloads
 						</Button>
 					</p>
 				)}

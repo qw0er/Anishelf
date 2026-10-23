@@ -2,8 +2,7 @@ import type { Logger } from "pino";
 import { DomainError } from "../../shared/errors.js";
 import type { AnimeApi, ReleaseAssessmentApi } from "../anime/public.js";
 import type { AcquisitionResources } from "../resources/public.js";
-import { DiscoveryApplication } from "./discovery/application/application.js";
-import { loadAcquisitionProfiles } from "./discovery/infrastructure/profiles.js";
+import { DownloadsApplication } from "./downloads/application/application.js";
 import type { DownloadStore } from "./downloads/public.js";
 import { registerAcquisitionHttp } from "./http.js";
 import type { AcquisitionStore } from "./persistence.js";
@@ -26,8 +25,8 @@ import { JackettTransport } from "./sources/jackett/transport.js";
 import { type FeedTransport, SourceError } from "./sources/public.js";
 import { SourceRequestGate } from "./sources/request-gate.js";
 import { parseRss, RssTransport, rssUrl } from "./sources/rss/public.js";
-import { SubscriptionConfirmation } from "./subscription-confirmation.js";
-import { AcquisitionApplication } from "./workflows/application.js";
+import { SubscriptionsApplication } from "./subscriptions/application/application.js";
+import { loadAcquisitionProfiles } from "./subscriptions/infrastructure/profiles.js";
 
 /** Standalone adapter foundation; no workers or automatic downloads are started. */
 export function createQbittorrentClient(
@@ -67,8 +66,7 @@ export async function createAcquisitionModule(options: {
 		options.bundledConnectionFile,
 	);
 	await connection.initialize();
-	let workflow: AcquisitionApplication | undefined;
-	const discoveryStore = options.store;
+	const subscriptionStore = options.store;
 	const gate = new SourceRequestGate();
 	const jackett = new JackettConnection(
 		new JackettConfigurationFile(options.dataDir),
@@ -88,13 +86,13 @@ export async function createAcquisitionModule(options: {
 	);
 	await jackett.initialize();
 	const sources = new SourcesApplication({
-		store: discoveryStore,
+		store: subscriptionStore,
 		...(options.torrentTransport
 			? { torrentTransport: options.torrentTransport }
 			: {}),
 		rss: {
 			gate,
-			store: discoveryStore,
+			store: subscriptionStore,
 			transport: options.transport ?? new RssTransport(),
 			parse: parseRss,
 			normalizeUrl: rssUrl,
@@ -107,19 +105,23 @@ export async function createAcquisitionModule(options: {
 			? { refreshIntervalMinutes: options.rssRefreshIntervalMinutes }
 			: {}),
 	});
-	const discovery = new DiscoveryApplication({
-		store: discoveryStore,
+	const subscriptions = new SubscriptionsApplication({
+		store: subscriptionStore,
 		profiles,
 		defaultProfileId: () => options.defaultAcquisitionProfileId?.(),
-		lockedCandidates: (key) =>
-			options.downloadStore.activity(key, 1, 1).candidateIds,
-		downloadPreview: (key, target) => workflow?.preview(key, target) ?? null,
-		confirmation: new SubscriptionConfirmation({
-			logger: options.logger,
-			transaction: (operation) => discoveryStore.transaction(operation),
-			authorize: (key, revision, destinationRevision) =>
-				workflow?.authorizeSubscription(key, revision, destinationRevision),
-		}),
+		lockedCandidates: (key) => options.downloadStore.lockedCandidates(key),
+		downloadTarget: () => {
+			const destination = options.downloadStore.destination();
+			return destination
+				? {
+						...destination,
+						validated:
+							destination.validated &&
+							destination.connectionGeneration ===
+								connection.settings().generation,
+					}
+				: null;
+		},
 		anime: options.anime ?? {
 			target: async () => {
 				throw new DomainError(
@@ -139,11 +141,11 @@ export async function createAcquisitionModule(options: {
 		logger: options.logger,
 		...(options.now ? { now: options.now } : {}),
 	});
-	workflow =
+	const downloads =
 		options.resources && options.anime && options.ingestion
-			? new AcquisitionApplication({
+			? new DownloadsApplication({
 					store: options.downloadStore,
-					selection: discovery.acquisition(),
+					selection: subscriptions.selection(),
 					resources: options.resources,
 					anime: options.anime,
 					ingestion: options.ingestion,
@@ -165,10 +167,10 @@ export async function createAcquisitionModule(options: {
 				})
 			: undefined;
 	if (options.autoStart !== false) {
-		discovery.start();
-		workflow?.start();
+		subscriptions.start();
+		downloads?.start();
 	}
-	const downloadApi = workflow;
+	const downloadApi = downloads;
 	const api: AcquisitionApi = {
 		sources: {
 			settings: () => jackett.settings(),
@@ -219,15 +221,24 @@ export async function createAcquisitionModule(options: {
 					},
 				}
 			: {}),
-		discovery: {
-			profiles: () => discovery.profiles(),
-			get: (key, page) => discovery.get(key, page),
-			preview: async (session, { rssUrl, ...input }) => {
+		subscriptions: {
+			profiles: () => subscriptions.profiles(),
+			get: (key, page) => subscriptions.get(key, page),
+			save: async ({
+				rssUrl,
+				destinationRevision,
+				connectionGeneration,
+				...input
+			}) => {
 				try {
 					const source = rssUrl.trim()
 						? sources.rssReference(rssUrl.trim())
 						: null;
-					return await discovery.preview(session, { ...input, source });
+					return await subscriptions.save({
+						...input,
+						source,
+						target: { destinationRevision, connectionGeneration },
+					});
 				} catch (error) {
 					if (
 						error instanceof SourceError &&
@@ -237,14 +248,20 @@ export async function createAcquisitionModule(options: {
 							"INVALID_REQUEST",
 							"Enter a public HTTP(S) RSS URL.",
 						);
+					if (error instanceof SourceError)
+						throw new DomainError(
+							error.code === "source_conflict"
+								? "ACQUISITION_CONFLICT"
+								: "ACQUISITION_UNAVAILABLE",
+							"The saved source is unavailable or changed. Check its configuration and save again.",
+						);
 					throw error;
 				}
 			},
-			confirm: (session, key, token) => discovery.confirm(session, key, token),
 			setEnabled: (key, revision, enabled) =>
-				discovery.setEnabled(key, revision, enabled),
-			remove: (key, revision) => discovery.remove(key, revision),
-			refresh: (key, revision) => discovery.refresh(key, revision),
+				subscriptions.setEnabled(key, revision, enabled),
+			remove: (key, revision) => subscriptions.remove(key, revision),
+			refresh: (key, revision) => subscriptions.refresh(key, revision),
 		},
 	};
 	let closing: Promise<void> | undefined;
@@ -254,10 +271,10 @@ export async function createAcquisitionModule(options: {
 			registerAcquisitionHttp(app, api),
 		close: () => {
 			closing ??= (async () => {
-				await workflow?.close();
-				const closingDiscovery = discovery.close();
+				await downloads?.close();
+				const closingSubscriptions = subscriptions.close();
 				await sources.close();
-				await closingDiscovery;
+				await closingSubscriptions;
 				await connection.close();
 			})();
 			return closing;

@@ -1,23 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { posix } from "node:path";
-import { DomainError } from "../../../shared/errors.js";
-import type { AcquisitionTarget } from "../../anime/public.js";
-import type { Subscription } from "../discovery/public.js";
-import { conflict } from "../downloads/application/context.js";
-import {
-	type DownloadDestination,
-	DownloadError,
-} from "../downloads/domain/model.js";
-import {
-	absoluteDownloadPath,
-	inside,
-	workDirectory,
-} from "../downloads/domain/paths.js";
-import type { QbittorrentApi } from "../qbittorrent/public.js";
-import type { AcquisitionContext } from "./context.js";
+import { DomainError } from "../../../../shared/errors.js";
+import type { QbittorrentApi } from "../../qbittorrent/public.js";
+import type { Subscription } from "../../subscriptions/public.js";
+import { type DownloadDestination, DownloadError } from "../domain/model.js";
+import { absoluteDownloadPath, inside } from "../domain/paths.js";
+import type { DownloadApplicationContext } from "./context.js";
+import { conflict } from "./context.js";
 
 export class DownloadDestinationSettings {
-	constructor(private readonly context: AcquisitionContext) {}
+	constructor(private readonly context: DownloadApplicationContext) {}
 	async initializeBundled() {
 		if (!(await this.context.options.initializeBundled?.())) return;
 		const saved = this.context.options.store.destination();
@@ -105,7 +96,7 @@ export class DownloadDestinationSettings {
 					event: "acquisition.destination_saved",
 					revision: destination.revision,
 				},
-				"Download destination saved; validation and subscription confirmation are required.",
+				"Download destination saved; validation and subscription enablement are required.",
 			);
 			return destination;
 		});
@@ -153,53 +144,8 @@ export class DownloadDestinationSettings {
 			}
 		});
 	}
-	preview(
-		key: string,
-		target: AcquisitionTarget,
-	): { revision: string; path: string } | null {
-		const destination = this.context.options.store.destination();
-		if (
-			!destination?.validated ||
-			destination.connectionGeneration !==
-				this.context.options.connectionGeneration()
-		)
-			return null;
-		return {
-			revision: destination.revision,
-			path: posix.join(
-				destination.path,
-				this.context.options.store.directory(key) ??
-					workDirectory(key, target.work.titles[0] ?? "Anime"),
-			),
-		};
-	}
-	authorize(workKey: string, revision: string, destinationRevision: string) {
-		this.context.open();
-		const subscription = this.context.options.selection.subscription(workKey),
-			destination = this.context.options.store.destination();
-		if (
-			!subscription ||
-			subscription.revision !== revision ||
-			!destination?.validated ||
-			destination.revision !== destinationRevision ||
-			destination.connectionGeneration !==
-				this.context.options.connectionGeneration()
-		)
-			conflict();
-		this.context.options.store.authorize({
-			workKey,
-			feedId: subscription.feedId,
-			startEpisode: subscription.startEpisode,
-			destinationRevision,
-			connectionGeneration: destination.connectionGeneration,
-		});
-		this.context.options.logger.info(
-			{ event: "acquisition.authorized", workKey, revision },
-			"Automatic acquisition scope confirmed.",
-		);
-	}
 	authorized(subscription: Subscription) {
-		const authorization = this.context.options.store.authorization(
+		const authorization = this.context.options.selection.authorization(
 				subscription.workKey,
 			),
 			destination = this.context.options.store.destination();

@@ -1,8 +1,7 @@
 import { type RequestOptions, request } from "../../shared/api/client.js";
 import type {
 	AcquisitionProfileCatalog,
-	SubscriptionPreview,
-	SubscriptionPreviewInput,
+	SubscriptionSaveInput,
 	SubscriptionView,
 } from "../../shared/api/contracts.js";
 
@@ -17,15 +16,9 @@ export const getSubscription = (
 		"GET",
 		options,
 	);
-export const previewSubscription = (
-	input: SubscriptionPreviewInput,
-): Promise<SubscriptionPreview> =>
-	request(`${path}/preview`, "POST", {}, input);
-export const confirmSubscription = (
-	workKey: string,
-	token: string,
-): Promise<SubscriptionView> =>
-	request(`${path}/confirm`, "POST", {}, { workKey, token });
+export const saveSubscription = (
+	input: SubscriptionSaveInput,
+): Promise<SubscriptionView> => request(path, "PUT", {}, input);
 export const toggleSubscription = (
 	workKey: string,
 	revision: string,

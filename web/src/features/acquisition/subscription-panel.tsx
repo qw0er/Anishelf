@@ -3,7 +3,6 @@ import { Ellipsis, Rss } from "lucide-react";
 import { useId, useState } from "react";
 import type {
 	DownloadActivity,
-	SubscriptionPreview,
 	SubscriptionView,
 } from "../../shared/api/contracts.js";
 import { boundedSignal } from "../../shared/api/queries.js";
@@ -27,14 +26,13 @@ import { toast } from "../../shared/components/ui/toast.js";
 import { Tooltip } from "../../shared/components/ui/tooltip.js";
 import { invalidateAnimeQueries } from "../anime/public.js";
 import { DownloadActivityPanel } from "./download-activity.js";
-import { downloadKeys } from "./downloads-api.js";
+import { downloadKeys, getDownloadSettings } from "./downloads-api.js";
 import {
 	acquisitionProfilesQuery,
-	confirmSubscription,
 	getSubscription,
-	previewSubscription,
 	refreshSubscription,
 	removeSubscription,
+	saveSubscription,
 	toggleSubscription,
 } from "./subscriptions-api.js";
 
@@ -189,8 +187,8 @@ export function SubscriptionPanel({
 							{subscription ? "Manage RSS subscription" : "Subscribe via RSS"}
 						</DialogTitle>
 						<DialogDescription>
-							Choose a feed and starting episode, then check the preview before
-							confirming.
+							Choose a feed and starting episode. Saving enables automatic
+							acquisition to the configured destination.
 						</DialogDescription>
 					</DialogHeader>
 					<SubscriptionForm
@@ -269,51 +267,51 @@ function SubscriptionForm({
 	const id = useId(),
 		[url, setUrl] = useState(""),
 		[start, setStart] = useState(String(current?.startEpisode ?? 1));
-	const [preview, setPreview] = useState<SubscriptionPreview | null>(null);
-	const check = useMutation({
-		mutationFn: () =>
-			previewSubscription({
+	const destination = useQuery({
+		queryKey: [...downloadKeys, "settings"],
+		queryFn: ({ signal }) =>
+			getDownloadSettings({ signal: boundedSignal(signal) }),
+	});
+	const target = destination.data?.destination;
+	const save = useMutation({
+		mutationFn: () => {
+			if (!target?.validated)
+				throw new Error("Configure and validate a download destination first.");
+			return saveSubscription({
 				workKey,
 				rssUrl: url,
 				profileId: profileId || null,
 				startEpisode: Number(start),
 				revision: current?.revision ?? null,
-			}),
-		onSuccess: setPreview,
-		onError: () => {
-			setPreview(null);
-			toast.add({
-				title: "Could not read RSS. Check the address and try again.",
-				type: "error",
+				destinationRevision: target.revision,
+				connectionGeneration: target.connectionGeneration,
 			});
-		},
-	});
-	const save = useMutation({
-		mutationFn: () => {
-			if (!preview) throw new Error("Missing subscription preview.");
-			return confirmSubscription(workKey, preview.token);
 		},
 		onSuccess: () => {
 			setUrl("");
 			onSaved();
-			toast.add({ title: "RSS subscription enabled.", type: "success" });
+			toast.add({
+				title:
+					"Subscription enabled. Releases will be checked in the background.",
+				type: "success",
+			});
 		},
 		onError: () => {
-			setPreview(null);
+			void destination.refetch();
 			toast.add({
-				title: "The preview changed or expired. Check RSS again.",
+				title:
+					"Could not save the subscription. Check the source and current download settings, then retry.",
 				type: "error",
 			});
 		},
 	});
-	const busy = check.isPending || save.isPending;
+	const busy = save.isPending;
 	return (
 		<form
 			className="space-y-3"
 			onSubmit={(event) => {
 				event.preventDefault();
-				setPreview(null);
-				check.mutate();
+				save.mutate();
 			}}
 		>
 			{current && (
@@ -331,7 +329,6 @@ function SubscriptionForm({
 					value={url}
 					onChange={(event) => {
 						setUrl(event.target.value);
-						setPreview(null);
 					}}
 					disabled={busy}
 					placeholder={
@@ -352,7 +349,6 @@ function SubscriptionForm({
 					value={start}
 					onChange={(event) => {
 						setStart(event.target.value);
-						setPreview(null);
 					}}
 					disabled={busy}
 				/>
@@ -366,7 +362,6 @@ function SubscriptionForm({
 					disabled={busy || profiles.isPending || profiles.isError}
 					onChange={(event) => {
 						setProfileId(event.target.value);
-						setPreview(null);
 					}}
 				>
 					<option value="">
@@ -411,34 +406,40 @@ function SubscriptionForm({
 				Choose your preferred release source on the torrent site and paste its
 				RSS address. RSS may not include older episodes.
 			</p>
-			<Button type="submit" variant="outline" disabled={busy}>
-				{check.isPending ? "Reading RSS…" : "Check RSS"}
-			</Button>
-			{preview && (
-				<div className="space-y-3">
-					<p className="break-all text-sm">{preview.source}</p>
-					<p className="text-sm">
-						From episode {preview.startEpisode}
-						{preview.knownEpisodeCount
-							? ` · ${preview.knownEpisodeCount} known episodes`
-							: " · Episode count unknown"}
-						. {preview.availableEpisodes.length} episodes already available.{" "}
-						{preview.total} releases found.
-					</p>
-					<p className="text-sm text-muted-foreground">
-						The first check includes releases currently returned by this feed.
-						Eligible versions are selected automatically; no review is required.
-					</p>
-					<p className="wrap-break-word text-sm">
-						{preview.downloadDestination
-							? `Automatic download destination: ${preview.downloadDestination}`
-							: "Discovery only. Configure and validate a download destination in Settings to enable automatic downloads."}
-					</p>
-					<Button type="button" disabled={busy} onClick={() => save.mutate()}>
-						{save.isPending ? "Enabling subscription…" : "Enable subscription"}
+			{destination.isPending ? (
+				<p role="status">Loading download destination…</p>
+			) : target?.validated ? (
+				<p className="wrap-break-word text-sm">
+					Automatic download destination: {target.path}. A directory is created
+					for this anime. Eligible releases from episode {start || "1"} will be
+					downloaded automatically.
+				</p>
+			) : (
+				<p role="alert">
+					Configure and validate a download destination in{" "}
+					<a className="underline" href="/settings">
+						Settings
+					</a>{" "}
+					before enabling this subscription.{" "}
+					<Button
+						type="button"
+						variant="outline"
+						onClick={() => void destination.refetch()}
+					>
+						Retry destination
 					</Button>
-				</div>
+				</p>
 			)}
+			<Button
+				type="submit"
+				disabled={
+					busy || !target?.validated || profiles.isPending || profiles.isError
+				}
+			>
+				{save.isPending
+					? "Saving subscription…"
+					: "Save and enable subscription"}
+			</Button>
 		</form>
 	);
 }

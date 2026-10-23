@@ -93,12 +93,13 @@ The backend source has six responsibility roots:
 | Media | Inspection, Planning, Processing, Preparation, Subtitles | Compatibility, published-copy views, media information, preparation and subtitle HTTP services |
 | Playback | Progress, Playback Selection | Resource selection, source sessions/resume/history and durable automatic observations |
 | Anime | Identification, Metadata, Anime Catalog, Tracking, Anime Library, AniList protocol | Recognition, provider cache, review/associations, account/list lifecycle, unified viewing updates, combined Library reads and shared provider access |
-| Acquisition | qBittorrent, Discovery, Downloads, acquisition workflows | Private credentials, RSS subscriptions, automatic selection, persisted destination/intent/reservations, reconciliation and verified ingestion orchestration |
+| Acquisition | Sources, Subscriptions, Downloads, qBittorrent adapter | Private credentials, RSS subscriptions, automatic selection, persisted destination/intent/reservations, reconciliation and verified ingestion orchestration |
 
-`modules/acquisition` contains the [qBittorrent adapter and manual account settings](qbittorrent-adapter.md)
+`modules/acquisition` contains the [qBittorrent adapter and manual account settings](current-architecture.md#business-ownership)
 with an Acquisition-owned contract, private credential file, HTTP routes and
-bootstrap/shutdown integration. Its [RSS discovery](rss-subscriptions.md) owns Feed, Subscription and Candidate
-records and their ordered collection tables and bounded background workers. Anime supplies a provider-neutral
+bootstrap/shutdown integration. Its [subscription acquisition](current-architecture.md#background-collection-and-publication)
+uses Sources-owned evidence and Subscriptions-owned subscription/candidate records
+with bounded background workers. Anime supplies a provider-neutral
 release-assessment API and Catalog supplies current episode availability; remote
 releases never impersonate local source identities.
 The [current acquisition architecture](current-architecture.md) adds durable download
@@ -106,14 +107,13 @@ records, per-anime placement, restart reconciliation and verified import through
 Resources and Anime public capabilities. Transfer controls remain in qBittorrent
 WebUI; the detail-page Activity is a compact status/recovery view.
 
-Acquisition workflows coordinate download configuration, authorization, reservations,
-local-episode exclusion, import, queries and scheduling. Discovery owns previews,
-selection and polling; a consumer-owned selection port keeps workflows out of its
-persistence. Downloads executes tasks and returns completed-file evidence without
-calling Anime or Resources. Submission admission remains an upper workflow decision.
-Subscription confirmation coordinates both owners in one SQLite transaction; download
-state changes use one revision-checked writer across submission/import stages.
-See [Internal workflow boundaries](current-architecture.md#internal-workflow-boundaries).
+Subscriptions owns direct save/enable, accepted scope, candidate selection and source
+refresh. Sources owns protocol evidence and download references. Downloads owns
+destination configuration, reservations, submission, remote observation, task
+recovery and verified ingestion coordination. Source/candidate publication and
+subscription/permission saves use shared SQLite transactions. The detail form uses
+one save request; no preview session or confirmation token is required. See the
+[current acquisition architecture](current-architecture.md).
 
 The six directories are API boundaries, not categorization folders. External
 consumers cannot import any child entry, including a child's `public.ts`.

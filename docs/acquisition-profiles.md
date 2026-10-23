@@ -35,17 +35,17 @@ duplicate keys, unknown fields and multiple documents are rejected.
 
 Settings > RSS selects the global default. `settings.json` stores only the optional
 `defaultAcquisitionProfileId`; omission uses `builtin:general`. Each subscription
-can override it in its preview/confirmation dialog or follow the global default.
-Changing a preview input invalidates its confirmation. Preview confirmation checks
-the effective profile fingerprint again, including a changed inherited default.
+can override it in its subscription form or follow the global default.
+Subscription save validates the effective profile. Publication and task admission
+retain profile fingerprint checks, including a changed inherited default.
 An unavailable saved profile ID is preserved and blocks new selections until an
 available profile is chosen. Configuration changes invalidate unreserved published
 choices until discovery evaluates them again; existing reservations stay locked.
 
 `GET /api/acquisition/profiles` publishes profile IDs, names, descriptions, sources
 and the global selection's availability. Settings writes use the existing
-`PUT /api/settings`. Subscription preview accepts optional `profileId` (null/omitted
-means follow global), and confirmation persists it with the subscription revision.
+`PUT /api/settings`. Subscription save accepts optional `profileId` (null/omitted
+means follow global), and persists it with the subscription revision.
 
 ## File fields
 
@@ -123,7 +123,7 @@ operators must avoid seed thresholds for such sources. No tracker scrape is issu
    No matching level means no automatic download.
 3. Start a per-episode clock when a candidate passes the checks and matches any
    level. Persist the earliest time with candidate decisions. Feed evidence is
-   retained, and new versions, repeated previews, pauses and restarts do not reset
+   retained, and new versions, subscription edits, pauses and restarts do not reset
    the clock for the same feed/episode. Switching feeds starts a new clock.
 4. Among levels whose wait has elapsed, choose the highest priority. A preferred
    level with a zero-minute wait can select immediately. Re-evaluation runs on RSS
@@ -145,5 +145,5 @@ The database migration adds nullable subscription profile IDs, candidate decisio
 snapshots and optional feed seed observations. Existing subscriptions inherit the
 global profile; old candidate snapshots are re-evaluated before new reservations.
 Existing downloads retain their reservations. Automated tests cover parsing,
-selection, persistence/restart, confirmation and UI interactions. Live feeds,
+selection, persistence/restart, direct saves and UI interactions. Live feeds,
 qBittorrent and browser visual acceptance remain separate checks.

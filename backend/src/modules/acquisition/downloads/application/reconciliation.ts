@@ -1,15 +1,15 @@
-import type { DownloadsApplication } from "../downloads/application/application.js";
-import { DownloadExecution } from "../downloads/application/context.js";
-import { DownloadError, type DownloadIntent } from "../downloads/public.js";
-import { QbittorrentError } from "../qbittorrent/public.js";
-import type { AcquisitionContext } from "./context.js";
+import { QbittorrentError } from "../../qbittorrent/public.js";
+import { DownloadError, type DownloadIntent } from "../public.js";
+import type { DownloadTransfers } from "../transfers/application.js";
+import type { DownloadApplicationContext } from "./context.js";
+import { DownloadExecution } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
 import type { CompletedDownloadIngestion } from "./import.js";
-export class AcquisitionReconciliation {
+export class DownloadReconciliation {
 	constructor(
-		private readonly context: AcquisitionContext,
+		private readonly context: DownloadApplicationContext,
 		private readonly destination: DownloadDestinationSettings,
-		private readonly downloads: DownloadsApplication,
+		private readonly downloads: DownloadTransfers,
 		private readonly importer: CompletedDownloadIngestion,
 	) {}
 	async run(item: DownloadIntent) {

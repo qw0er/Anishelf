@@ -6,12 +6,15 @@ export type {
 } from "./qbittorrent/public.js";
 export { QbittorrentError } from "./qbittorrent/public.js";
 
-import type { DiscoveryApi, PreviewInput } from "./discovery/public.js";
 import type { QbittorrentConnectionApi } from "./qbittorrent/public.js";
+import type {
+	SaveSubscriptionInput,
+	SubscriptionsApi,
+} from "./subscriptions/public.js";
 export interface AcquisitionApi {
 	readonly sources: SourceConnectionApi;
 	readonly connection: QbittorrentConnectionApi;
-	readonly discovery: SubscriptionApi;
+	readonly subscriptions: SubscriptionApi;
 	readonly downloads?: AcquisitionDownloadsApi;
 }
 
@@ -39,10 +42,13 @@ export interface AcquisitionDownloadsApi {
 	): void;
 }
 
-/** Manual source configuration is translated before entering Discovery. */
-export type SubscriptionApi = Omit<DiscoveryApi, "preview"> & {
-	preview(
-		session: string,
-		input: Omit<PreviewInput, "source"> & { rssUrl: string },
-	): ReturnType<DiscoveryApi["preview"]>;
+/** HTTP activation supplies an explicit current destination/account stamp. */
+export type SubscriptionApi = Omit<SubscriptionsApi, "save"> & {
+	save(
+		input: Omit<SaveSubscriptionInput, "source" | "target"> & {
+			rssUrl: string;
+			destinationRevision: string;
+			connectionGeneration: string;
+		},
+	): Promise<ReturnType<SubscriptionsApi["get"]>>;
 };

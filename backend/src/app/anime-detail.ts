@@ -14,7 +14,7 @@ export function registerAnimeDetailRoutes(
 		tracking: Pick<AnimeApi["tracking"], "status">;
 	},
 	acquisition: {
-		discovery: Pick<AcquisitionApi["discovery"], "get">;
+		subscriptions: Pick<AcquisitionApi["subscriptions"], "get">;
 		downloads?: Pick<NonNullable<AcquisitionApi["downloads"]>, "activity">;
 	},
 	logger: Logger,
@@ -39,7 +39,7 @@ export function registerAnimeDetailRoutes(
 							: null,
 					}
 				: null,
-			subscription: acquisition.discovery.get(key),
+			subscription: acquisition.subscriptions.get(key),
 			downloads: acquisition.downloads?.activity(key) ?? null,
 		};
 		// Revalidate account generation after every asynchronous detail read.

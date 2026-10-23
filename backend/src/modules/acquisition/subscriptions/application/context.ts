@@ -1,39 +1,30 @@
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
-import type {
-	AcquisitionTarget,
-	ReleaseAssessmentApi,
-} from "../../../anime/public.js";
+import type { ReleaseAssessmentApi } from "../../../anime/public.js";
 import type { SourcesApi } from "../../sources/public.js";
-import type { Subscription } from "../domain/model.js";
 import type { AcquisitionProfile } from "../domain/profiles.js";
-import type { DiscoveryStore } from "../ports.js";
-export type DiscoveryOptions = {
+import type { SubscriptionStore } from "../ports.js";
+export type SubscriptionsOptions = {
 	profiles?: readonly AcquisitionProfile[];
 	defaultProfileId?: () => string | undefined;
 	lockedCandidates?: (workKey: string) => string[];
-	store: DiscoveryStore;
+	store: SubscriptionStore;
 	sources: SourcesApi;
 	anime: ReleaseAssessmentApi;
 	downloads: (signal: AbortSignal) => Promise<string[] | null>;
 	logger: Logger;
 	now?: () => number;
-	downloadPreview?: (
-		key: string,
-		target: AcquisitionTarget,
-	) => { revision: string; path: string } | null;
-	confirmation: {
-		commit(
-			subscription: Subscription,
-			destinationRevision: string | null,
-			persist: () => void,
-		): void;
-	};
+	/** Read-only configuration stamp, not a dependency on the Downloads application. */
+	downloadTarget?: () => {
+		revision: string;
+		connectionGeneration: string;
+		validated: boolean;
+	} | null;
 };
-export class DiscoveryContext {
+export class SubscriptionsContext {
 	readonly shutdown = new AbortController();
 	readonly pending = new Set<Promise<unknown>>();
-	constructor(readonly options: DiscoveryOptions) {}
+	constructor(readonly options: SubscriptionsOptions) {}
 	get signal(): AbortSignal {
 		return this.shutdown.signal;
 	}
@@ -45,7 +36,7 @@ export class DiscoveryContext {
 		if (this.shutdown.signal.aborted)
 			throw new DomainError(
 				"ACQUISITION_UNAVAILABLE",
-				"Discovery is stopping.",
+				"Subscriptions are stopping.",
 			);
 	}
 	tracked<T>(operation: () => Promise<T>): Promise<T> {

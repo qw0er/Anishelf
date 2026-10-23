@@ -1,289 +1,179 @@
 # Automatic Acquisition: Current Iteration Architecture
 
-Date: 2026-10-22. RSS-based acquisition is implemented; real deployment/browser
-acceptance remains pending. The Watching automation and Torznab + Jackett extension
-below is designed but not implemented. [Current requirements](current-requirement.md) define this iteration.
-[Architecture](architecture.md) describes the complete application.
+Date: 2026-10-23. The responsibility refactor and direct subscription-save path are
+implemented. Automated checks and real deployment acceptance are separate. Watching
+reconciliation, automatic source selection and its UI remain pending. See
+[current requirements](current-requirement.md) and the
+[refactor decisions](acquisition-redesign.md).
 
-## Ownership and Data Flow
+## Business ownership
 
-The following sections describe the implemented RSS path. The final section designs
-its pending extension; proposed contracts, tables and routes are not current APIs.
+Acquisition has three business units and a qBittorrent adapter:
 
-Acquisition is the sixth encapsulated module. It owns private qBittorrent account
-settings, RSS evidence, subscriptions, destination configuration, download
-permissions, canonical reservations, submission attempts and import outcomes.
+| Unit | Responsibilities and owned state |
+| --- | --- |
+| Sources | RSS/Jackett bindings, credentials, transport, evidence, retry metadata and opaque download references |
+| Subscriptions | Per-work source, starting episode, profile, enable/pause/remove, accepted download scope, candidate selection and waiting evidence |
+| Downloads | Global destination, stable directories, accepted tasks, episode/hash reservations, submission, remote observation, recovery and import outcomes |
+| qBittorrent adapter | Private account configuration, connection generations, client lifetime and SDK operations |
+
+The former Discovery code lives in `subscriptions/`. Selection profiles, schemas,
+algorithms and waiting/ranking behavior are unchanged. There is no top-level
+workflows, Fulfillment or Imports business module. `downloads/application/` owns
+the full task lifecycle; `downloads/transfers/` implements transfer execution and
+`downloads/application/import.ts` coordinates completed-file ingestion.
+
+Resources owns roots, confinement, source versions, inspection and targeted refresh
+through its LibrarySynchronizer gate. Anime owns title/file recognition, current
+local episode availability, Catalog association and Review. Acquisition never
+writes their tables or duplicates their recognition implementations.
 
 ```mermaid
 flowchart LR
-    RSS --> Sources[Sources transport and evidence]
-    Sources --> Discovery[Discovery assessment and selection]
-    Discovery --> Plan[Acquisition planning and admission]
-    Catalog[Anime local availability] --> Plan
-    Plan --> Downloads[Downloads task execution]
-    Downloads --> Q[qBittorrent]
-    Q --> Downloads
-    Downloads --> Ingest[Acquisition completion workflow]
-    Ingest --> Resources[Resources verification and targeted refresh]
-    Resources --> Anime[Anime source validation and association]
-    Anime --> Library[Existing episode playback]
-    WebUI[qBittorrent WebUI] --> Q
+    Sub[Subscriptions] --> Sources
+    Downloads -->|selection and permission reads| Sub
+    Downloads -->|download content| Sources
+    Downloads --> Q[qBittorrent adapter]
+    Downloads -->|completed file verification| Resources
+    Downloads -->|availability and ingestion| Anime
+    Sub -->|release assessment| Anime
 ```
 
-Resources owns configured roots, confinement, source versions, indexing and the
-single `LibrarySynchronizer` mutation gate. Its Acquisition capability lists roots,
-validates access, inspects completed paths and refreshes an affected file. Busy
-synchronization returns a retryable import failure instead of a full-library scan.
+Composition wires public capabilities and registers HTTP routes. Subscriptions does
+not depend on the Downloads application. Read-only configuration stamps, locked
+candidate IDs and active downloader hashes are supplied at assembly. The dedicated
+locked-candidate query does not load Activity payloads. There are no application
+callback cycles, shared context inheritance, internal HTTP calls or event bus.
 
-Anime owns actual-file recognition, Catalog/Review and associations. Its ingestion
-capability checks the accepted episode against leaf filename evidence, publishes
-conflicting files into local Review and uses revision-checked Catalog confirmation
-without replacing manual decisions. Acquisition does not write their tables.
+## Direct subscription save
 
-## Internal Workflow Boundaries
+The detail form displays the validated destination and sends one
+`PUT /api/acquisition/subscriptions`. Its body contains workKey, rssUrl,
+startEpisode, optional profileId, expected subscription revision, destinationRevision
+and connectionGeneration. An empty RSS input keeps the existing source on edits.
+Save validates identity syntax, scope, profile availability and the current target
+stamp; it performs no RSS, Anime metadata or qBittorrent network request.
 
-`AcquisitionApplication` in `acquisition/workflows/` coordinates subscription
-permission, destination validation, candidate admission, local-episode exclusion,
-recovery commands, Activity and the bounded worker. It reads Discovery through a
-consumer-owned selection port and calls Anime for current availability and release
-assessment. Destination and account changes still require explicit confirmation.
+A synchronous shared-connection transaction binds the source and persists the
+subscription and accepted permission. Source binding stores an empty, unchecked
+snapshot when evidence does not exist yet. A permission failure rolls the whole
+save back. Saving the same source preserves selection history/waiting evidence;
+changed profiles remain fenced by the existing fingerprint rules until reevaluation.
+There are no preview caches, tokens, expiry rules, preview or confirm endpoints.
 
-`SourcesApplication` in `acquisition/sources/` owns RSS URL validation, public-only
-HTTP transport, XML normalization into `ReleaseEvidence`, shared feed evidence,
-conditional requests, in-flight coalescing, retention limits and refresh/backoff
-scheduling. Its persistence adapter owns feed tables and mappings; table names and
-stored identities are unchanged. Discovery consumes the Sources public API and
-provides active feed IDs and an assessment callback. Subscription confirmation
-still saves evidence, subscription, candidates and authorization atomically through
-the existing Acquisition transaction. Discovery retains metadata assessment,
-profile selection and revision-checked candidate publication. Sources has no
-subscription, Anime or download business dependency. Torrent reads use the same
-public transport implementation; hash/path validation remains in Downloads.
-Jackett search and shared source lifecycle are implemented; see
-[the lifecycle contract](source-lifecycle.md). Query subscriptions, download admission
-and Watching remain planned extensions.
+HTTP activation requires a validated destination belonging to the current downloader
+account. Internal subscription commands can explicitly save a discovery-only scope;
+this revokes previous permission. Existing migrated subscriptions do not acquire
+permission merely by being read, refreshed or resumed. The UI enables automatic
+acquisition only by saving against the displayed current target. New source/episode
+scope or destination/account changes require a matching permission before submission.
 
-`DownloadsApplication` executes persisted tasks: canonical hash resolution and
-deduplication, qBittorrent submission, ownership/path checks and transfer observation.
-It has no Discovery, Anime or Resources business collaborator. A submission-admission
-port lets the upper workflow recheck business eligibility immediately before add,
-using the same remote task snapshot as transfer deduplication. Completed tasks yield
-file evidence and a downloader revalidation capability; they never invoke ingestion.
+Pausing stops new reservations/submissions while transfers and imports continue.
+Removal preserves accepted tasks and source/download evidence. AniList status has
+no automatic acquisition effect until Watching reconciliation is implemented.
 
-The upper `CompletedDownloadIngestion` workflow checks supported layout and calls Resources to
-inspect and refresh confined files, revalidates the download evidence, then asks
-Anime to ingest the source. It persists available, review or failed outcomes and
-supports import retry without another download. `AcquisitionReconciliation` applies
-retry/backoff across the stages. No event bus or additional queue is required.
+## Background collection and publication
 
-`DownloadContext` retains cancellation and the single revision-checked intent writer;
-its transfer options only expose task storage, torrent transport and client access.
-`AcquisitionContext` adds the upper collaborators. A `DownloadExecution` preserves
-its latest written revision across transfer and ingestion, preventing late failures
-from overwriting newer commands. Existing tables and state fields are retained for
-restart recovery and Activity; their shared record does not transfer ownership of
-business decisions into Downloads. Transition and ingestion-handoff logs carry the
-intent and work identity.
+Subscriptions supplies enabled source IDs to the bounded Sources scheduler. The
+initial tick and subsequent 30-second ticks collect due sources, at most two at a
+time. Successful evidence follows the configured refresh interval (30 minutes by
+default); failures retain evidence and use exponential backoff/upstream hints.
+There is no standalone register/enable/remove lifecycle for recurring sources.
+Bindings/evidence persist independently of subscription ownership.
 
-Discovery keeps its application flows under `application/` and owns feed evidence,
-subscription revisions and candidate publication. `FeedReader` coalesces bounded
-requests, `selectCandidates` evaluates explicit snapshots and `DiscoveryWorker`
-owns polling. [Selection profiles](acquisition-profiles.md) provide built-in and
-external YAML policies, global/per-subscription choices, hard conditions and ordered
-wait levels. Anime exposes normalized release declarations; Discovery persists
-seed observations and per-episode waiting evidence with decisions. Reserved
-candidates stay locked; unreserved candidates may improve.
-Reservation-result notifications do not overwrite separate assessment
-failures. qBittorrent keeps its smaller integration flat.
+SubscriptionWorker obtains source evidence and evaluates affected subscriptions
+asynchronously. Only after evaluation does one synchronous transaction recheck
+source/subscription revisions and reserved-candidate snapshots, publish the source
+and its download references, and update candidates. A paused/changed subscription,
+new reservation or storage error cannot leave candidates published without their
+corresponding source result. Assessment failures retain candidates and are recorded
+on the subscription; source failures retain evidence and retry state in Sources.
 
-`SubscriptionConfirmation` in `acquisition/subscription-confirmation.ts` coordinates
-the synchronous SQLite transaction that saves
-the subscription, feed and candidates together with the confirmed download permission.
-A permission failure rolls the complete confirmation back and retains the preview
-for retry. Production repositories share the application database connection; injected
-persistence implementations must preserve that transaction boundary.
+`selectCandidates` retains the existing explicit-snapshot algorithm and all
+[profile semantics](acquisition-profiles.md). Already reserved choices stay locked;
+unreserved choices can improve. Source URLs, credentials and protocol descriptors
+remain private; consumers receive evidence and opaque download references.
 
-Module assembly exposes selected method capabilities. Internal workflow objects,
-stores, workers and lifecycle methods do not escape through the business API.
+## Task execution and recovery
 
-## Destination and Authorization
+Downloads periodically reads eligible selections and accepted permission. It checks
+current Anime availability, persists one work/episode reservation and a stable
+work directory, resolves source content, validates canonical torrent hash/paths,
+and claims the hash. Existing unique indexes preserve deduplication after restart.
+Parsed content is reused within that execution rather than fetched/parsed twice.
 
-One destination maps a qBittorrent absolute POSIX prefix to a configured Resources
-scope. Store a revision, connection generation and separate configured/visibility
-verification flags. Validate the account, root and enabled incomplete directory
-outside watched roots. This is configuration validation; only a completed mapped
-file proves shared visibility. The operator must provide equivalent mounts.
+Immediately before remote add, Downloads rechecks permission, scope, selection,
+local availability, other active versions, destination/incomplete configuration and
+source validity. A persisted submitting state precedes the external mutation.
+Category `anishelf` and tag `anishelf-<intent-id>` prove task ownership; matching
+hash alone does not authorize controlling another task. Automatic Torrent Management
+is disabled and the explicit stable directory is passed as savePath.
 
-Persist each work's first `Title [provider-id]` directory. Clean invalid components,
-bound UTF-8 bytes, retain Unicode and use stable provider-qualified identity.
-Title refreshes do not move data. qBittorrent receives the work-specific save path,
-`useAutoTMM=false`, category `anishelf` and tag `anishelf-<intent-id>`. Preserve the
-torrent's internal layout. Anishelf never moves or renames downloaded originals.
+Submission states remain pending, submitting, unknown, bound, blocked, missing and
+available. Transfer observation and import states remain distinct. Unknown attempts
+are queried before further action and never automatically resent when absent.
+Explicit retry uses revision/command IDs and queries remotely before possible add.
+An external pause stays paused; external removal is suppressed until explicit retry.
+An outage means stale observation, not removal. A changed account cannot inherit
+old tasks/permissions. Terminal tasks retain reservation identities after detail
+redaction. These behaviors and their SQL state fields are retained.
 
-RSS previews include the destination directory when validated configuration exists.
-Preview confirmation binds the authenticated session, metadata/availability,
-subscription/feed revisions and destination revision. Existing subscriptions have
-no acquisition permission after migration. Confirming a fresh preview grants a
-permission for its feed, starting episode, destination revision and account
-generation. Reads and configuration saves start no downloads. Destination or
-account changes require confirmation again. Pausing stops pending submission,
-not existing transfers/imports. AniList status has no automatic acquisition effects.
+DownloadContext is the single revision-checked task writer. Transfer stages receive
+the narrow transfer context; business stages use its explicit full options type,
+without inheriting another application's context. Late asynchronous failures cannot
+overwrite a newer user command. Planning failures are exposed as Downloads Activity
+planningError/attention and never overwrite a subscription assessment error. Their
+in-memory retry/diagnostic state is recomputed after restart.
 
-## Persistence and Commands
+A completed transfer provides task/files plus a revalidation capability. The
+internal import stage requires one selected supported video, complete files and
+safe paths. It asks Resources to inspect/refresh the confined path, verifies size
+and source version, rechecks downloader evidence, then asks Anime to validate and
+associate the actual source. Review/failed/available outcomes stay on the same task.
+Import retry does not resubmit or transcode. Busy resource synchronization is retryable.
 
-The current schema defines destination, permission, work-directory and intent tables.
-Intent records are independent of subscription foreign keys, so removal does not
-lose in-flight tasks. Unique indexes reserve work/episode and canonical torrent
-hashes. Unresolved release identities receive a provisional unique reservation
-until the bounded torrent parser resolves them. Duplicate canonical identities
-remain blocked rather than silently controlling another work's task.
+## Destination, persistence and feedback
 
-Download persistence provides work-scoped activity pagination and aggregate counts,
-indexed work/episode and hash reservation lookups, and cursor-ordered due-task batches.
-The worker loads at most two intent payloads per batch, while including available
-sources for subsequent availability checks. Idle detection uses an existence query.
-Retention redacts terminal detail in SQL and preserves reservations. State filters,
-retry deadlines and activity ordering use explicit columns and indexes in the current schema. See [Relational persistence](database-design.md). These
-changes do not establish a load benchmark.
+One global destination maps a downloader absolute POSIX prefix to a Resources root.
+Configured validation and proven file visibility remain separate. A separate enabled
+incomplete directory must be outside watched roots. Real shared mounts remain an
+operator responsibility. Work directories retain the initial sanitized
+`Title [provider-id]` identity; metadata renames never move originals.
 
-Private intent evidence includes source URL, expected feed hash, canonical hash,
-destination snapshot, stable directory, accepted subscription revision, submission
-state/attempts, transfer observation, import result and actual source identity.
-A persisted submitting record precedes the external add. Successful HTTP receipt
-alone does not bind a task: query by hash and require category/tag ownership.
+Subscriptions owns the existing acquisition_authorizations table and its mappings.
+Downloads owns destination, directories and intents. Sources owns source/feed and
+locator storage. The physical schema and applied migrations are unchanged by this
+refactor. Repositories share one SQLite connection for subscription saves and
+source/candidate publication. See [database design](database-design.md).
 
-Submission states are pending, submitting, unknown, bound, blocked, missing and
-available. Transfer observations and import states remain separate. On interruption,
-query unknown/submitting attempts before doing anything else; absent uncertain
-attempts are never automatically resent. Explicit Retry acquisition first checks
-for the hash before a new add. Unsent reservations whose selection changed are
-blocked; explicit recovery can adopt the newly confirmed choice. Recheck fresh
-metadata and other active versions immediately before submission. Existing unowned tasks become conflicts.
+The detail Activity view combines subscription candidates and download/import tasks.
+It preserves source/assessment errors separately from download planning/task errors,
+shows actionable retries and stays compact when collapsed. Transfer controls,
+seeding, task removal and data deletion remain in qBittorrent WebUI.
 
-Connection failure retains intent and marks observations stale. External removal
-marks missing and suppresses automatic recreation. External pauses remain paused.
-User retries carry command IDs and revisions; replaying the last accepted command
-is harmless, while reusing its ID for a different command is rejected. A changed account does not inherit old bindings. Save/validate its destination and
-reconfirm scope; Retry acquisition explicitly reconciles the retained hash/tag in
-the new connection before any possible resend. Available local sources remain
-independent of downloader connectivity. Definitively rejected
-or unsent submissions can back off; unknown mutations require reconciliation.
-
-### qBittorrent integration boundary
-
-`acquisition/qbittorrent` owns account configuration, credential-file persistence,
-settings HTTP routes and the SDK client behind one public entry point.
-`QbittorrentConnection` owns configuration generations and lazily reuses one client
-until configuration changes or shutdown. `QbittorrentClient` owns SDK operations;
-it does not read configuration files or register routes. Downloads receives client
-access through `withClient`, which checks the generation before and after work.
-Existing configuration and operation logs remain at their respective owners.
-
-`QbittorrentClient` uses `@ctrl/qbittorrent` directly. The SDK owns HTTP requests,
-cookies, authentication recovery, multipart encoding and per-request timeouts.
-The client retains input/response validation, domain mapping, shared initial login
-and sanitized operation logs. Version-dependent API behavior is delegated to the
-SDK. The client does not install a custom dispatcher, enforce a response byte
-limit or validate raw add receipts.
-SDK redirect and response-decoding behavior applies.
-
-Cancellation is cooperative: it is checked before authentication, before the SDK
-action and after that action completes. It does not abort an in-flight HTTP request;
-that request finishes or reaches the SDK timeout. Closing blocks new operations,
-drains pending operations and clears local authentication. Cancellation of one
-operation does not interrupt shared login for other operations.
-
-Once a mutation action starts, failures without an explicit rejection are treated
-as unknown, even if the request might not have reached the server. The SDK may
-re-authenticate and repeat a request after an explicit authentication rejection;
-the client adds no mutation retries. A successful add call is only a receipt:
-submission must still query by hash and validate category/tag ownership before
-binding. Unrecognized receipts therefore cannot establish a binding on their own.
-
-## Completion and Ingestion
-
-1. Observe full completion with no remaining bytes and no metadata/check/move/error
-   state. Read selected-file completion; only one selected episode video is supported.
-2. Validate original relative path components and map the task's captured save prefix
-   to its captured root. Open through confined Resources access, rejecting symlinks,
-   traversal, inaccessible roots and unexpected size/version.
-3. Refresh the affected path through the shared synchronization gate and obtain a
-   real `SourceIdentity`. Recheck downloader state/file layout before association.
-4. Anime verifies actual title/episode evidence and existing decisions. It creates an
-   idempotent association or returns local Review without overriding manual links.
-5. Record availability only after confirmed association and source access. Retry
-   import independently of download submission. Completed imports leave the download worker. Activity retains the import outcome;
-   current file/association availability belongs to Resources and Catalog and is not
-   periodically reverified by Downloads.
-
-Successful indexing does not certify browser compatibility or start transcoding.
-A torrent can continue seeding after ingestion. All transfer controls, removal and
-destructive file deletion belong to WebUI, independently from Catalog operations.
-
-## Scheduling, Retention and Lifecycle
-
-RSS discovery uses a global `rssRefreshIntervalMinutes` setting, defaulting to
-30 minutes with a range of 1–1440 whole minutes. Its 30-second scheduler reads the
-current setting and recalculates healthy feed deadlines from their last successful
-check, including after restart. Failure retry deadlines remain independent of this
-setting. The shared feed reader uses the current interval after successful requests,
-including HTTP 304 responses. Settings updates and schedule changes emit structured
-logs without source URLs.
-
-The download worker reconciles every
-5 seconds with active work and every 60 seconds idle. Process at most two intents
-concurrently; serialize each tick and intent, reload revisions around asynchronous
-boundaries and exponentially back off to one hour. Checks and reads never become
-empty snapshots on failure. Completed, missing and blocked intents are excluded
-from automatic work batches; explicit recovery commands re-admit eligible work.
-No synthetic transfer progress is generated.
-
-Keep terminal detail for 90 days, then clear private source payload/title/transfer
-and error detail while retaining reservations, suppression and source identities.
-Expired evidence cannot be used for acquisition retry. Feed evidence retains the
-existing explicit limits; exceeding them reports an error instead of silently
-losing release identities. Acquisition closes workers and aborts/drains transport
-before dependent modules and SQLite close.
-
-## HTTP and Compact Web Interface
-
-All routes use existing authentication and CSRF protection. TypeBox contracts own
-request validation and safe response projections.
-
-| Route | Capability |
+| HTTP capability | Owner |
 | --- | --- |
-| Existing `/api/acquisition/subscriptions` routes | Preview/confirm scope and destination, pause/resume, refresh and remove |
-| `GET/PUT /api/acquisition/downloads/settings` | Read/select the single global destination |
-| `POST /api/acquisition/downloads/validate` | Validate current saved mapping/account/incomplete settings |
-| `GET /api/acquisition/downloads?workKey=…&page=1` | Paginated safe per-work activity and authorization |
-| `POST /api/acquisition/downloads/:id/retry` | Revision/command-ID checked acquisition or import recovery |
+| GET /api/acquisition/profiles | Subscriptions |
+| GET/PUT/PATCH/DELETE /api/acquisition/subscriptions | Subscriptions |
+| POST /api/acquisition/subscriptions/refresh | Subscriptions |
+| GET/PUT /api/acquisition/downloads/settings and POST .../validate | Downloads |
+| GET /api/acquisition/downloads?workKey=... and POST .../:id/retry | Downloads |
+| /api/acquisition/qbittorrent settings/check/credentials | qBittorrent adapter |
+| /api/acquisition/sources/jackett settings/indexers/probe/search | Sources |
 
-There is no global Downloads page. The detail subscription section uses a compact
-divider and status row instead of a standalone card. Unsubscribed works show a
-Subscribe action without an inline form or empty activity. Subscribe and Manage
-open a scrollable dialog containing the RSS address, starting episode and explicit
-preview/confirmation flow; successful confirmation closes the dialog. The saved
-feed source is shown only in that dialog. Keep compact status, secondary
-subscription actions, Open WebUI and collapsed Activity on the detail page. Reuse each
-release row for acquisition state; omit duplicate transfer statistics and playback
-buttons. Show true progress or named states. Error counts remain visible while
-collapsed, and affected rows expose Retry acquisition, Retry import, Review or
-Settings only when applicable. Deduplicated Toasts report failures without replacing
-persistent error context. qBittorrent WebUI owns pause/resume, removal and deletion.
+Shutdown stops/drains Downloads first, cancels Subscriptions, aborts/drains Sources
+and closes the downloader connection before database/dependent modules close.
+Structured logs correlate work/source/task/revision/command decisions without
+credentials, raw private locators or torrent payloads.
 
-## Validation and Observability
+## Verification boundary
 
-Use safe structured events for destination changes, authorization, reservations,
-state transitions and recoverable failures. Correlate intent/work IDs and revisions;
-never log private RSS/Magnet URLs, tokens, torrent payloads or SDK raw responses.
-
-Fixtures cover identity/path validation, SQLite reservations/restart, uncertain
-submission, external task changes, confined refresh, Catalog association/manual
-preservation, HTTP authentication/CSRF/revisions and compact UI recovery. Regression coverage also
-checks atomic confirmation rollback, activity pagination and summaries, bounded
-worker cursors, retained reservations and late failures after a newer retry command. Run Biome,
-lint, type checks and project tests with required localhost/subprocess permissions.
-Actual RSS/qBittorrent/mapped-media/browser tests remain separate acceptance gates.
+Fixtures cover direct saves, rejected stale targets, atomic rollback, background
+collection, profile/waiting persistence, source changes during assessment, pause,
+reservations, uncertain mutation recovery, account replacement, import-only retry,
+source upgrades, shutdown and HTTP/UI contracts. Run Biome, lint, type checks and
+project tests with localhost/subprocess permissions where required. These checks do
+not establish real Jackett/RSS/qBittorrent/shared-media/browser playback acceptance.
 
 ## Watching Automation with Torznab and Jackett (Planned)
 
@@ -332,7 +222,7 @@ flowchart LR
     AniList --> Tracking[Anime Tracking: complete confirmed list]
     Tracking --> Watching[Acquisition Watching reconciliation]
     Watching --> Managed[Managed subscription and scoped permission]
-    Managed --> Search[Discovery search plan]
+    Managed --> Search[Subscriptions search plan]
     Search --> Torznab[Torznab adapter]
     Torznab --> Jackett
     Jackett --> Sites[Configured BT sites]
@@ -363,10 +253,10 @@ flowchart LR
   transport, conditional requests and retained feed evidence. Jackett owns its
   credentials, Torznab parsing and saved-origin transport. `SourcesApplication`
   owns shared recurring scheduling, Jackett evidence persistence and retry state,
-  and coordinates reference, freshness and checked publication; Discovery continues to own subscriptions,
+  and coordinates reference, freshness and checked publication; Subscriptions continues to own subscriptions,
   assessments and acquisition decisions. Both adapters use the shared bounded
   request gate.
-- Discovery owns both manual RSS and managed search subscriptions, evidence,
+- Subscriptions owns both manual RSS and managed search subscriptions, evidence,
   assessments and preferences. Subscriptions reference the common source identity;
   protocol-specific binding configuration stays inside Sources. Manual RSS retains
   its workflow; query configuration UI remains later work.

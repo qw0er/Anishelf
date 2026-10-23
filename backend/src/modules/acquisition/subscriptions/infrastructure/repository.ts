@@ -1,32 +1,46 @@
 import { eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import type { Candidate, Subscription } from "../domain/model.js";
-import type { DiscoveryStore } from "../ports.js";
+import type {
+	Candidate,
+	Subscription,
+	SubscriptionAuthorization,
+} from "../domain/model.js";
+import type { SubscriptionStore } from "../ports.js";
 import {
+	readAcquisitionAuthorizations,
 	readAcquisitionCandidates,
 	readAcquisitionSubscriptions,
+	writeAcquisitionAuthorizations,
 	writeAcquisitionCandidates,
 	writeAcquisitionSubscriptions,
 } from "./records.js";
 import {
+	acquisitionAuthorizations as authorizations,
 	acquisitionCandidates as candidates,
 	acquisitionSubscriptions as subscriptions,
 } from "./schema.js";
 
-export class DiscoveryRepository implements DiscoveryStore {
+export class SubscriptionRepository implements SubscriptionStore {
 	constructor(private readonly store: Store) {}
 	transaction(operation: () => void) {
 		this.store.transaction(() => operation(), { behavior: "immediate" });
 	}
-	reservationOutcome(subscription: Subscription, failed: boolean) {
-		const current = this.subscription(subscription.workKey);
-		if (!current?.enabled || current.revision !== subscription.revision) return;
-		// Reservation recovery must not erase a separate assessment error or replace candidates.
-		if (!failed && current.lastError !== "acquisition_unavailable") return;
-		writeAcquisitionSubscriptions(this.store, {
-			...current,
-			lastError: failed ? "acquisition_unavailable" : null,
-		});
+	authorization(workKey: string) {
+		const row = this.store
+			.select()
+			.from(authorizations)
+			.where(eq(authorizations.workKey, workKey))
+			.get();
+		return row ? readAcquisitionAuthorizations(this.store, row) : null;
+	}
+	authorize(value: SubscriptionAuthorization) {
+		writeAcquisitionAuthorizations(this.store, value);
+	}
+	revoke(workKey: string) {
+		this.store
+			.delete(authorizations)
+			.where(eq(authorizations.workKey, workKey))
+			.run();
 	}
 	subscription(workKey: string) {
 		const row = this.store
@@ -55,7 +69,7 @@ export class DiscoveryRepository implements DiscoveryStore {
 
 	saveSubscription(subscription: Subscription, result: Candidate[]) {
 		this.store.transaction((store) => {
-			const repository = new DiscoveryRepository(store);
+			const repository = new SubscriptionRepository(store);
 			writeAcquisitionSubscriptions(store, subscription);
 			repository.replaceCandidates(subscription.workKey, result);
 		});
@@ -71,7 +85,7 @@ export class DiscoveryRepository implements DiscoveryStore {
 		error: string | null = null,
 	) {
 		return this.store.transaction((store) => {
-			const repository = new DiscoveryRepository(store);
+			const repository = new SubscriptionRepository(store);
 			const current = repository.subscription(subscription.workKey);
 			if (!current?.enabled || current.revision !== subscription.revision)
 				return false;
@@ -82,7 +96,7 @@ export class DiscoveryRepository implements DiscoveryStore {
 	}
 	remove(workKey: string, revision: string) {
 		return this.store.transaction((store) => {
-			const repository = new DiscoveryRepository(store);
+			const repository = new SubscriptionRepository(store);
 			const current = repository.subscription(workKey);
 			if (!current || current.revision !== revision) return false;
 			store

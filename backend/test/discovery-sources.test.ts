@@ -1,24 +1,24 @@
 import pino from "pino";
 import { expect, test, vi } from "vitest";
-import { DiscoveryApplication } from "../src/modules/acquisition/discovery/application/application.js";
-import type {
-	Candidate,
-	Subscription,
-} from "../src/modules/acquisition/discovery/public.js";
 import type {
 	SourceSnapshot,
 	SourcesApi,
 } from "../src/modules/acquisition/sources/public.js";
+import { SubscriptionsApplication } from "../src/modules/acquisition/subscriptions/application/application.js";
+import type {
+	Candidate,
+	Subscription,
+} from "../src/modules/acquisition/subscriptions/public.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 
-test("Discovery previews, confirms and refreshes an opaque source without protocol configuration", async () => {
+test("Subscriptions save and refresh an opaque source without protocol configuration", async () => {
 	// A query adapter can supply this boundary without an RSS URL or discriminator.
 	const reference = Object.freeze({ id: "indexer-query-plan" });
 	const makeSnapshot = (revision: string, episode: number): SourceSnapshot => ({
 		id: reference.id,
 		revision,
 		label: "Configured indexer",
-		checkedAt: 0,
+		checkedAt: null,
 		nextAttemptAt: 0,
 		error: null,
 		entries: [
@@ -41,9 +41,9 @@ test("Discovery previews, confirms and refreshes an opaque source without protoc
 	const sources: SourcesApi = {
 		readDownload: vi.fn(),
 		isDownloadCurrent: vi.fn(() => true),
-		register: vi.fn(),
-		setEnabled: vi.fn(),
-		remove: vi.fn(),
+		bind: () => {
+			saved = { ...remote, entries: [], checkedAt: null };
+		},
 		reference: (id) => {
 			expect(id).toBe(reference.id);
 			return reference;
@@ -75,7 +75,7 @@ test("Discovery previews, confirms and refreshes an opaque source without protoc
 		availableEpisodes: [],
 		revision: "target",
 	};
-	const discovery = new DiscoveryApplication({
+	const discovery = new SubscriptionsApplication({
 		sources,
 		store: {
 			transaction: (operation) => operation(),
@@ -90,7 +90,9 @@ test("Discovery previews, confirms and refreshes an opaque source without protoc
 				candidates.set(subscription.workKey, result);
 				return true;
 			},
-			reservationOutcome: vi.fn(),
+			authorization: () => null,
+			authorize: vi.fn(),
+			revoke: vi.fn(),
 			remove: () => false,
 		},
 		anime: {
@@ -103,26 +105,25 @@ test("Discovery previews, confirms and refreshes an opaque source without protoc
 			}),
 		},
 		downloads: async () => [],
-		confirmation: {
-			commit: (_subscription, _destination, persist) => persist(),
-		},
 		logger: pino({ level: "silent" }),
 		now: () => 1_000_000,
 	});
 	try {
 		const key = "anilist:anime:1";
-		const preview = await discovery.preview("session", {
+		const created = await discovery.save({
 			workKey: key,
 			source: reference,
 			startEpisode: 1,
 			revision: null,
+			target: null,
 		});
-		expect(preview.source).toBe("Configured indexer");
-		expect(preview.candidates[0]?.episode).toBe(3);
-		expect(subscriptions.size).toBe(0);
-		expect(saved).toBeNull();
-		const confirmed = await discovery.confirm("session", key, preview.token);
-		expect(confirmed.subscription?.feedId).toBe(reference.id);
+		expect(created.subscription?.feedId).toBe(reference.id);
+		expect(refresh).not.toHaveBeenCalled();
+		const confirmed = await discovery.refresh(
+			key,
+			created.subscription?.revision ?? "",
+		);
+		expect(confirmed.candidates[0]?.episode).toBe(3);
 		expect(saved).toEqual(remote);
 		remote = makeSnapshot("next", 4);
 		const updated = await discovery.refresh(

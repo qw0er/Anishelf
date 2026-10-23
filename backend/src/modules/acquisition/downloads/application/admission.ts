@@ -1,12 +1,14 @@
-import type { DownloadExecution } from "../downloads/application/context.js";
-import { DownloadError } from "../downloads/public.js";
-import type { QbittorrentApi } from "../qbittorrent/public.js";
-import type { AcquisitionContext } from "./context.js";
+import type { QbittorrentApi } from "../../qbittorrent/public.js";
+import { DownloadError } from "../public.js";
+import type {
+	DownloadApplicationContext,
+	DownloadExecution,
+} from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
 /** Business eligibility and destination checks immediately before an external mutation. */
 export class SubmissionAdmission {
 	constructor(
-		private readonly context: AcquisitionContext,
+		private readonly context: DownloadApplicationContext,
 		private readonly destination: DownloadDestinationSettings,
 	) {}
 	async authorize(

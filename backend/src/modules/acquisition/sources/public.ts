@@ -37,11 +37,8 @@ export interface SourcesApi {
 		signal: AbortSignal,
 	): Promise<DownloadContent>;
 	isDownloadCurrent(reference: string): boolean;
-	/** Explicit recurring evidence collection, independent of download permission. */
-	register(reference: SourceReference): void;
-	setEnabled(id: string, enabled: boolean): void;
-	/** Release recurring management; preserve evidence and accepted download references. */
-	remove(id: string): void;
+	/** Persist a binding for a subscription, without network I/O or recurring ownership. */
+	bind(reference: SourceReference): void;
 	/** Saved evidence only; no remote request. */
 	snapshot(id: string): SourceSnapshot | null;
 	/** Resolve a saved binding without making a network request. */

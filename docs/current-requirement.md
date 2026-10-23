@@ -8,7 +8,7 @@ qBittorrent instance.
 
 Jackett connection/search and [shared source evidence persistence and recurring
 collection](source-lifecycle.md) are implemented. Source consumers now use opaque evidence/download references and a common reader;
-query subscriptions can persist internally. The Jackett configuration/confirmation
+query subscriptions can persist internally. The Jackett configuration/subscription
 UI, ordered indexer selection, service setup and end-to-end playback acceptance
 remain pending.
 
@@ -21,8 +21,8 @@ through qBittorrent → verify and associate the completed file → expose the e
 in the library. Routine Watching additions require no manual per-anime RSS entry
 or per-release approval.
 
-Implemented manual setup: choose an anime → preview its RSS and starting episode → confirm automatic
-acquisition and its destination → select one eligible release per regular episode
+Implemented manual setup: choose an anime → enter its RSS and starting episode → save and enable
+acquisition against the displayed validated destination → collect and select one eligible release per regular episode in the background
 → submit reliably → observe qBittorrent → verify completed files → associate actual
 resources → expose playback through the existing episode list.
 
@@ -72,8 +72,9 @@ implemented behavior; explicit activation previews the accepted scope.
 The following describes the implemented RSS path. Watching automation will extend
 its permission and status policy under the explicit enablement described above.
 
-- Keep the existing RSS URL, starting episode, explicit scope preview and
-  enable/pause controls. RSS does not guarantee a complete historical backlog.
+- Keep RSS URL, starting episode, explicit save-and-enable and pause controls.
+  Saving performs no remote reads; collection and selection run in the background.
+  RSS does not guarantee a complete historical backlog.
 - Select one supported regular-episode release automatically using
   [selection profiles](acquisition-profiles.md): hard conditions, ordered levels,
   persisted waiting and optional seed-count tie-breaking. Reconsider unreserved
@@ -81,9 +82,11 @@ its permission and status policy under the explicit enablement described above.
   uncertain identity/numbering, packs, specials and unsupported links visibly.
 - Exclude accessible local episodes and known downloader tasks. Reserve canonical
   torrent hashes and work/episode identities before automatic submission.
-- Existing subscriptions remain discovery-only until a fresh scope preview is
-  confirmed. A new confirmation enables acquisition only when a validated download
-  destination is included in that preview. Configuration changes invalidate it.
+- Existing subscriptions remain discovery-only until explicitly saved against a
+  validated current destination/account. One save atomically stores the source binding,
+  subscription and accepted scope. No preview/token/confirmation session is required.
+  Changed scope or destination/account cannot inherit stale permission. The form
+  displays the target and sends its revision and connection generation.
 - Pausing stops future submissions while existing transfers and imports continue.
   AniList status changes do not enable, pause, cancel or delete acquisition.
 
@@ -144,7 +147,7 @@ command and ingestion outcomes without credentials or complete private URLs.
 
 | ID | Required evidence |
 | --- | --- |
-| ACQ01 | Old subscriptions require confirmation; new previews show scope and destination; paused/out-of-range episodes are not submitted. |
+| ACQ01 | Old subscriptions require explicit activation; direct saves bind the displayed scope and destination without remote reads; paused/out-of-range episodes are not submitted. |
 | ACQ02 | Supported RSS releases select automatically; uncertain titles, episodes and unsupported torrents remain unsubmitted with reasons. |
 | ACQ03 | Repeated discovery, concurrency, timeout and restart do not create duplicate managed downloads. |
 | ACQ04 | Destination and connection errors remain distinct; progress is truthful; transfer controls operate through WebUI. |
