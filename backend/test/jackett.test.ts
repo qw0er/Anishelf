@@ -4,6 +4,7 @@ import { join } from "node:path";
 import pino from "pino";
 import { MockAgent } from "undici";
 import { afterEach, expect, test } from "vitest";
+import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { SourcesApplication } from "../src/modules/acquisition/sources/application/application.js";
 import { JackettClient } from "../src/modules/acquisition/sources/jackett/client.js";
 import { JackettConfigurationFile } from "../src/modules/acquisition/sources/jackett/configuration.js";
@@ -312,7 +313,10 @@ test("private config survives restart; generations fence stale queries and unifi
 		apiKey: secret,
 		indexers: ["example"],
 	});
+	const database = ApplicationDatabase.openMemory();
+	cleanup.push(async () => database.close());
 	const options = {
+		store: database.acquisition,
 		jackett: connection,
 		rss: {
 			store: {
@@ -345,9 +349,8 @@ test("private config survives restart; generations fence stale queries and unifi
 	expect(Object.keys(reference)).toEqual(["id"]);
 	const snapshot = await sources.refresh(reference);
 	expect(sources.isCurrent(snapshot)).toBe(true);
-	expect(() => sources.publish(snapshot)).toThrow(
-		expect.objectContaining({ code: "query_subscription_unavailable" }),
-	);
+	sources.publish(snapshot);
+	expect(sources.snapshot(snapshot.id)).toEqual(snapshot);
 	const next = await connection.save({
 		generation: first.generation,
 		url: "http://jackett:9117",

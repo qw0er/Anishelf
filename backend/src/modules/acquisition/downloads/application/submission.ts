@@ -60,7 +60,7 @@ export class DownloadSubmission {
 				return null;
 			}
 			const source = await resolveTorrent(
-				{ downloadUrl: item.source, hash: item.hash },
+				{ download: item.source, hash: item.hash },
 				this.context.options.transport,
 				this.context.signal,
 			);
@@ -70,6 +70,8 @@ export class DownloadSubmission {
 				snapshot,
 			);
 			if (subscriptionRevision === null) return null;
+			if (!this.context.options.transport.isCurrent(item.source))
+				throw new DownloadError("source_changed");
 			item = execution.save({
 				...item,
 				state: "submitting",

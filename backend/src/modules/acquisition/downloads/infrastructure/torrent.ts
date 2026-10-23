@@ -3,7 +3,7 @@ import type { ReleaseEvidence } from "../../sources/public.js";
 import { downloadPolicy } from "../application/policy.js";
 import { DownloadError } from "../domain/model.js";
 import { relativeDownloadPath } from "../domain/paths.js";
-import type { TorrentTransport } from "../ports.js";
+import type { TorrentReader } from "../ports.js";
 
 function rawPaths(info: unknown) {
 	if (!info || typeof info !== "object")
@@ -44,19 +44,18 @@ function rawPaths(info: unknown) {
 	if (data["file tree"]) tree(data["file tree"], 0);
 }
 export async function resolveTorrent(
-	entry: Pick<ReleaseEvidence, "downloadUrl" | "hash">,
-	transport: TorrentTransport,
+	entry: Pick<ReleaseEvidence, "download" | "hash">,
+	transport: TorrentReader,
 	signal: AbortSignal,
 ) {
-	if (!entry.downloadUrl) throw new DownloadError("missing_download");
+	if (!entry.download) throw new DownloadError("missing_download");
 	try {
-		const magnet = entry.downloadUrl.startsWith("magnet:?");
-		const bytes = magnet
-			? null
-			: await transport.read(entry.downloadUrl, signal);
+		const content = await transport.read(entry.download, signal);
+		const bytes = content.kind === "bytes" ? content.bytes : null;
+		const magnet = content.kind === "magnet" ? content.uri : null;
 		if (bytes && bytes.byteLength > downloadPolicy.maximumTorrentBytes)
 			throw new DownloadError("torrent_too_large");
-		const parsed = await parseTorrent(bytes ?? entry.downloadUrl);
+		const parsed = await parseTorrent(bytes ?? magnet ?? "");
 		if (!/^[a-f0-9]{40}$/.test(parsed.infoHash))
 			throw new DownloadError("unsupported_torrent");
 		if (entry.hash && parsed.infoHash !== entry.hash.toLowerCase())
@@ -67,7 +66,7 @@ export async function resolveTorrent(
 			hash: parsed.infoHash,
 			source: bytes
 				? { torrent: new Uint8Array(bytes) }
-				: { magnet: entry.downloadUrl },
+				: { magnet: magnet ?? "" },
 		};
 	} catch (error) {
 		if (error instanceof DownloadError) throw error;

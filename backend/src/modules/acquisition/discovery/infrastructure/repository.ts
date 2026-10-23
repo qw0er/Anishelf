@@ -1,6 +1,5 @@
 import { eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import { acquisitionFeeds as feeds } from "../../sources/persistence.js";
 import type { Candidate, Subscription } from "../domain/model.js";
 import type { DiscoveryStore } from "../ports.js";
 import {
@@ -57,17 +56,8 @@ export class DiscoveryRepository implements DiscoveryStore {
 	saveSubscription(subscription: Subscription, result: Candidate[]) {
 		this.store.transaction((store) => {
 			const repository = new DiscoveryRepository(store);
-			const previous = repository.subscription(subscription.workKey);
 			writeAcquisitionSubscriptions(store, subscription);
 			repository.replaceCandidates(subscription.workKey, result);
-			if (
-				previous &&
-				previous.feedId !== subscription.feedId &&
-				!repository
-					.subscriptions()
-					.some((item) => item.feedId === previous.feedId)
-			)
-				store.delete(feeds).where(eq(feeds.id, previous.feedId)).run();
 		});
 	}
 	private replaceCandidates(workKey: string, result: Candidate[]) {
@@ -99,12 +89,6 @@ export class DiscoveryRepository implements DiscoveryStore {
 				.delete(subscriptions)
 				.where(eq(subscriptions.workKey, workKey))
 				.run();
-			if (
-				!repository
-					.subscriptions()
-					.some((subscription) => subscription.feedId === current.feedId)
-			)
-				store.delete(feeds).where(eq(feeds.id, current.feedId)).run();
 			return true;
 		});
 	}

@@ -43,7 +43,7 @@ const entry = (
 	observationId: id,
 	title: `[G] Frieren - 03 ${suffix}`,
 	publishedAt: 1,
-	downloadUrl: `https://example.org/${id}.torrent`,
+	download: `download-${id}`,
 	hash: null,
 	seeders,
 	seedersObservedAt: seeders === null ? null : 1000,

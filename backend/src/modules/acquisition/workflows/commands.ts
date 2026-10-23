@@ -69,7 +69,7 @@ export class DownloadCommands {
 			if (recoveringConnection && destination) item = { ...item, destination };
 			if (
 				choice &&
-				entry?.downloadUrl &&
+				entry?.download &&
 				destination &&
 				(item.state === "missing" ||
 					item.state === "pending" ||
@@ -80,9 +80,9 @@ export class DownloadCommands {
 					...item,
 					candidateId: choice.id,
 					title: choice.title.slice(0, 1024),
-					source: entry.downloadUrl,
+					source: entry.download,
 					hash:
-						entry.downloadUrl === item.source
+						entry.download === item.source
 							? item.hash
 							: `unresolved:${randomUUID()}`,
 					expectedHash: entry.hash,

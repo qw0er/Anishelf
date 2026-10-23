@@ -17,6 +17,7 @@ export interface DownloadIntent {
 	title: string;
 	hash: string;
 	expectedHash: string | null;
+	/** Opaque Sources download reference; never a URL or adapter descriptor. */
 	source: string;
 	destination: DownloadDestination;
 	directory: string;

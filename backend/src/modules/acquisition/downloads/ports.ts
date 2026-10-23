@@ -1,3 +1,4 @@
+import type { DownloadContent } from "../sources/public.js";
 import type {
 	DownloadAuthorization,
 	DownloadDestination,
@@ -30,8 +31,9 @@ export interface DownloadStore {
 	saveIntent(value: DownloadIntent): void;
 	prune(before: number): void;
 }
-export interface TorrentTransport {
-	read(url: string, signal: AbortSignal): Promise<Uint8Array<ArrayBuffer>>;
+export interface TorrentReader {
+	read(reference: string, signal: AbortSignal): Promise<DownloadContent>;
+	isCurrent(reference: string): boolean;
 	close(): Promise<void>;
 }
 

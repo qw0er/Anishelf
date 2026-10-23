@@ -20,10 +20,12 @@ import {
 	workDirectory,
 } from "../src/modules/acquisition/downloads/domain/paths.js";
 import { resolveTorrent } from "../src/modules/acquisition/downloads/infrastructure/torrent.js";
+import type { TorrentReader } from "../src/modules/acquisition/downloads/public.js";
 import {
 	type QbittorrentApi,
 	QbittorrentError,
 } from "../src/modules/acquisition/qbittorrent/public.js";
+import { SourceDownloads } from "../src/modules/acquisition/sources/downloads.js";
 import { AcquisitionApplication } from "../src/modules/acquisition/workflows/application.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
@@ -49,6 +51,19 @@ const target: AcquisitionTarget = {
 	revision: "one",
 };
 const logger = pino({ level: "silent" });
+function readerFor(transport: {
+	read(url: string, signal: AbortSignal): Promise<Uint8Array<ArrayBuffer>>;
+	close(): Promise<void>;
+}): TorrentReader {
+	return {
+		read: async (reference, signal) =>
+			reference.startsWith("magnet:?")
+				? { kind: "magnet", uri: reference }
+				: { kind: "bytes", bytes: await transport.read(reference, signal) },
+		isCurrent: () => true,
+		close: () => transport.close(),
+	};
+}
 async function fixture(persistent = false, bundled = false) {
 	const dir = await mkdtemp(join(tmpdir(), "anishelf-downloads-"));
 	cleanup.push(() => rm(dir, { recursive: true, force: true }));
@@ -136,6 +151,23 @@ async function fixture(persistent = false, bundled = false) {
 		read: vi.fn(async () => new Uint8Array()),
 		close: vi.fn(async () => {}),
 	};
+	const sourceDownloads = () =>
+		new SourceDownloads(
+			db.acquisition,
+			transport,
+			undefined,
+			new AbortController().signal,
+			logger,
+			(id) => {
+				const feed = db.acquisition.feed(id);
+				return feed ? { ...feed, label: "feed" } : null;
+			},
+		);
+	const reader: TorrentReader = {
+		read: (reference, signal) => sourceDownloads().read(reference, signal),
+		isCurrent: (reference) => sourceDownloads().isCurrent(reference),
+		close: () => transport.close(),
+	};
 	function seed() {
 		seedSubscription(
 			db.acquisition,
@@ -191,17 +223,20 @@ async function fixture(persistent = false, bundled = false) {
 				subscription: (key) => db.acquisition.subscription(key),
 				subscriptions: () => db.acquisition.subscriptions(),
 				candidates: (key) => db.acquisition.candidates(key),
-				release: (feedId, entryId) =>
-					db.acquisition
-						.feed(feedId)
-						?.entries.find((entry) => entry.id === entryId) ?? null,
+				release: (feedId, entryId) => {
+					const feed = db.acquisition.feed(feedId);
+					const entry = feed?.entries.find((entry) => entry.id === entryId);
+					if (!feed || !entry) return null;
+					sourceDownloads().publish({ ...feed, label: "feed" }, null);
+					return sourceDownloads().project(feedId, entry);
+				},
 				reservationOutcome: (subscription, failed) =>
 					db.acquisition.reservationOutcome(subscription, failed),
 			},
 			resources,
 			anime,
 			ingestion,
-			transport,
+			transport: reader,
 			connectionGeneration: () => generation,
 			initializeBundled: async () => bundled,
 			withClient: async (expected, operation) => {
@@ -256,6 +291,7 @@ async function fixture(persistent = false, bundled = false) {
 		anime,
 		ingestion,
 		transport,
+		reader,
 		seed,
 		configure,
 		authorize,
@@ -532,23 +568,23 @@ test("torrent parser verifies canonical magnet identity and rejects pure v2 and 
 	expect(
 		(
 			await resolveTorrent(
-				{ downloadUrl: `magnet:?xt=urn:btih:${hash.toUpperCase()}`, hash },
-				transport,
+				{ download: `magnet:?xt=urn:btih:${hash.toUpperCase()}`, hash },
+				readerFor(transport),
 				signal,
 			)
 		).hash,
 	).toBe(hash);
 	await expect(
 		resolveTorrent(
-			{ downloadUrl: `magnet:?xt=urn:btih:${hash}`, hash: "b".repeat(40) },
-			transport,
+			{ download: `magnet:?xt=urn:btih:${hash}`, hash: "b".repeat(40) },
+			readerFor(transport),
 			signal,
 		),
 	).rejects.toMatchObject({ code: "torrent_identity_conflict" });
 	await expect(
 		resolveTorrent(
-			{ downloadUrl: `magnet:?xt=urn:btmh:1220${"a".repeat(64)}`, hash: null },
-			transport,
+			{ download: `magnet:?xt=urn:btmh:1220${"a".repeat(64)}`, hash: null },
+			readerFor(transport),
 			signal,
 		),
 	).rejects.toThrow();
@@ -631,15 +667,15 @@ test("v1 and hybrid torrent bytes resolve consistently and reject unsafe origina
 		close: async () => {},
 	};
 	const first = await resolveTorrent(
-		{ downloadUrl: "https://example.org/episode.torrent", hash: null },
-		transport,
+		{ download: "https://example.org/episode.torrent", hash: null },
+		readerFor(transport),
 		new AbortController().signal,
 	);
 	expect(first.hash).toMatch(/^[a-f0-9]{40}$/);
 	transport.read.mockResolvedValueOnce(new Uint8Array(bytes(true)));
 	const hybrid = await resolveTorrent(
-		{ downloadUrl: "https://example.org/episode.torrent", hash: null },
-		transport,
+		{ download: "https://example.org/episode.torrent", hash: null },
+		readerFor(transport),
 		new AbortController().signal,
 	);
 	expect(hybrid.hash).toMatch(/^[a-f0-9]{40}$/);
@@ -648,8 +684,8 @@ test("v1 and hybrid torrent bytes resolve consistently and reject unsafe origina
 	);
 	await expect(
 		resolveTorrent(
-			{ downloadUrl: "https://example.org/episode.torrent", hash: null },
-			transport,
+			{ download: "https://example.org/episode.torrent", hash: null },
+			readerFor(transport),
 			new AbortController().signal,
 		),
 	).rejects.toMatchObject({ code: "invalid_file_path" });
@@ -1178,7 +1214,7 @@ test("transfer completion returns evidence without invoking resource verificatio
 	if (!item) throw new Error("Missing intent");
 	const context = new DownloadContext({
 		store: f.db.acquisitionDownloads,
-		transport: f.transport,
+		transport: f.reader,
 		connectionGeneration: () => item.destination.connectionGeneration,
 		withClient: async (_generation, operation) => operation(f.client),
 		logger,
@@ -1208,7 +1244,7 @@ test("transfer reconciles uncertain attempts without consulting subscription adm
 	expect(item.state).toBe("unknown");
 	const context = new DownloadContext({
 		store: f.db.acquisitionDownloads,
-		transport: f.transport,
+		transport: f.reader,
 		connectionGeneration: () => item.destination.connectionGeneration,
 		withClient: async (_generation, operation) => operation(f.client),
 		logger,
@@ -1280,3 +1316,15 @@ function seedSubscription(
 		store.saveSubscription(subscription, candidates);
 	});
 }
+
+test("source reference is rechecked after subscription admission before submission", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	vi.spyOn(f.reader, "isCurrent").mockReturnValue(false);
+	await f.worker.tick();
+	expect(f.add).not.toHaveBeenCalled();
+	expect(f.db.acquisitionDownloads.activity(key, 1, 100).items[0]?.error).toBe(
+		"source_changed",
+	);
+});

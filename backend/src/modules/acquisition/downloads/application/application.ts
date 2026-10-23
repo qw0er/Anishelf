@@ -26,7 +26,7 @@ export class DownloadsApplication {
 		}
 		if (item.hash.startsWith("unresolved:")) {
 			const resolved = await resolveTorrent(
-				{ downloadUrl: item.source, hash: item.expectedHash },
+				{ download: item.source, hash: item.expectedHash },
 				this.context.options.transport,
 				this.context.signal,
 			);

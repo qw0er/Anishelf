@@ -235,7 +235,11 @@ export class JackettConnection {
 			throw error;
 		}
 	}
-	readTorrent(generation: string, descriptor: ReleaseDownload) {
+	readTorrent(
+		generation: string,
+		descriptor: ReleaseDownload,
+		signal?: AbortSignal,
+	) {
 		if (descriptor.kind === "jackett-torrent") {
 			if (descriptor.generation !== generation)
 				throw new SourceError("source_conflict");
@@ -245,8 +249,11 @@ export class JackettConnection {
 				titles: ["download"],
 			});
 		}
-		return this.run(generation, (client, signal) =>
-			client.readTorrent(descriptor, signal),
+		return this.run(generation, (client, abort) =>
+			client.readTorrent(
+				descriptor,
+				signal ? AbortSignal.any([signal, abort]) : abort,
+			),
 		);
 	}
 	async close() {

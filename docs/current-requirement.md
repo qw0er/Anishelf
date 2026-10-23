@@ -1,10 +1,16 @@
 # Automatic Acquisition: Current Iteration Requirements
 
-Date: 2026-10-21. RSS-based acquisition is implemented; real deployment acceptance
+Date: 2026-10-23. RSS-based acquisition is implemented; real deployment acceptance
 remains pending. The current iteration also requires AniList Watching reconciliation,
 automatic source discovery and tracking-status policy, which are not implemented.
 No release number is assigned. Use one selected subscription source per anime and one
 qBittorrent instance.
+
+Jackett connection/search and [shared source evidence persistence and recurring
+collection](source-lifecycle.md) are implemented. Source consumers now use opaque evidence/download references and a common reader;
+query subscriptions can persist internally. The Jackett configuration/confirmation
+UI, ordered indexer selection, service setup and end-to-end playback acceptance
+remain pending.
 
 ## Workflow
 

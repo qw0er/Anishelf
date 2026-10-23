@@ -40,6 +40,17 @@ export function writeAcquisitionFeeds(
 	value: FeedRecord,
 ): void {
 	connection.transaction((store) => {
+		store
+			.insert(s.acquisitionSources)
+			.values({
+				id: value.id,
+				binding: { kind: "rss", url: value.url },
+				enabled: false,
+				failures: 0,
+				snapshot: null,
+			})
+			.onConflictDoNothing()
+			.run();
 		const row0 = {
 			revision: value?.revision,
 			id: value?.id,

@@ -27,7 +27,7 @@ test("Discovery previews, confirms and refreshes an opaque source without protoc
 				observationId: `observation-${episode}`,
 				title: `Frieren - ${episode}`,
 				publishedAt: null,
-				downloadUrl: `magnet:?xt=urn:btih:${"a".repeat(40)}`,
+				download: `magnet:?xt=urn:btih:${"a".repeat(40)}`,
 				hash: "a".repeat(40),
 			},
 		],
@@ -39,6 +39,11 @@ test("Discovery previews, confirms and refreshes an opaque source without protoc
 		return remote;
 	});
 	const sources: SourcesApi = {
+		readDownload: vi.fn(),
+		isDownloadCurrent: vi.fn(() => true),
+		register: vi.fn(),
+		setEnabled: vi.fn(),
+		remove: vi.fn(),
 		reference: (id) => {
 			expect(id).toBe(reference.id);
 			return reference;

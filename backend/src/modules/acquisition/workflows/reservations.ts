@@ -47,7 +47,7 @@ export class DownloadPlanning {
 						subscription.feedId,
 						candidate.entryId,
 					);
-					if (!entry?.downloadUrl) continue;
+					if (!entry?.download) continue;
 
 					this.context.open();
 					const current = this.context.options.selection.subscription(
@@ -81,7 +81,7 @@ export class DownloadPlanning {
 						title: candidate.title.slice(0, 1024),
 						hash: `unresolved:${randomUUID()}`,
 						expectedHash: entry.hash,
-						source: entry.downloadUrl,
+						source: entry.download,
 						destination,
 						directory,
 						subscriptionRevision: subscription.revision,

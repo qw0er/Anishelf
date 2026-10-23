@@ -15,7 +15,7 @@ interface DownloadSelection {
 	release(
 		feedId: string,
 		entryId: string,
-	): Pick<ReleaseEvidence, "downloadUrl" | "hash"> | null;
+	): Pick<ReleaseEvidence, "download" | "hash"> | null;
 	reservationOutcome(subscription: Subscription, failed: boolean): void;
 }
 
