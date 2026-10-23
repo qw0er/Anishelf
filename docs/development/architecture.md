@@ -1,15 +1,17 @@
 # Anishelf Architecture
 
 This document describes the implemented system structure, module ownership and
-architectural constraints. [Requirements](requirements.md) owns the current feature
+architectural constraints. [Requirements](../requirements.md) owns the current feature
 inventory and future work. The AniList accounts iteration (T01–T05, W03–W05;
 ANI01–ANI10) was accepted by the user on **2026-10-17**; its completed requirements,
-acceptance record and design are retained in [History](history.md#anilist-accounts-archive-notes).
+acceptance record and design are retained in [History](../history.md#anilist-accounts-archive-notes).
 The anime-library iteration was accepted on 2026-10-14 and is also archived there.
-No next iteration or new release number has been selected.
+Automatic acquisition and subscription interaction were marked complete by the user
+on 2026-10-24; their [requirements and final design](../history.md#automatic-acquisition-archive-notes)
+are archived. No next iteration or new release number has been selected.
 
-[Design system](design-system.md) owns shared UI conventions; [Development](development.md)
-and [Deployment](deployment.md) cover setup and operations. Source contracts and database
+[Design system](design-system.md) owns shared UI conventions; [Development](README.md)
+and [Deployment](../guide/deployment.md) cover setup and operations. Source contracts and database
 schemas remain authoritative for exact fields, routes and policy values. Historical
 verification limits remain attached to the archived evidence; they are not current
 iteration acceptance blockers.
@@ -62,13 +64,13 @@ Source installations can still explicitly enable Node frontend hosting.
 | AniList protocol | Typed Viewer, list, update and metadata clients, GraphQL schemas, provider response validation; shared bounded pacing, retry, priority fairness and cancellation |
 | Anime Catalog | Durable local identities/episodes, review decisions, confirmed associations and corrections; descriptions are read from Metadata |
 
-These are the existing runtime owners. [Identification](architecture.md#internal-ownership) exposes
+These are the existing runtime owners. [Identification](#internal-ownership) exposes
 a stateless recognition Public API and a consumer-owned Metadata port.
-[Metadata](architecture.md#internal-ownership) implements AniList access behind its own Public API, and
+[Metadata](#internal-ownership) implements AniList access behind its own Public API, and
 Anime assembly adapts cached summaries into recognition candidates.
 An Anime workflow uses Resources publication/read and source-access APIs to
 automatically supply validated sources. Identification has no HTTP, database or
-Catalog dependency. AniList supplies metadata-assisted matching through the persistent Metadata cache. [Anime Catalog](architecture.md#internal-ownership) consumes complete publications,
+Catalog dependency. AniList supplies metadata-assisted matching through the persistent Metadata cache. [Anime Catalog](#internal-ownership) consumes complete publications,
 preserves manual decisions and owns confirmation/query HTTP APIs. The Web poster, detail, playback and Review workflows are implemented.
 
 ## Source organization and dependency boundaries
@@ -95,14 +97,14 @@ The backend source has six responsibility roots:
 | Anime | Identification, Metadata, Anime Catalog, Tracking, Anime Library, AniList protocol | Recognition, provider cache, review/associations, account/list lifecycle, unified viewing updates, combined Library reads and shared provider access |
 | Acquisition | Sources, Subscriptions, Downloads, qBittorrent adapter | Private credentials, RSS subscriptions, automatic selection, persisted destination/intent/reservations, reconciliation and verified ingestion orchestration |
 
-`modules/acquisition` contains the [qBittorrent adapter and manual account settings](current-architecture.md#business-ownership)
+`modules/acquisition` contains the [qBittorrent adapter and manual account settings](#acquisition-business-ownership)
 with an Acquisition-owned contract, private credential file, HTTP routes and
-bootstrap/shutdown integration. Its [subscription acquisition](current-architecture.md#background-collection-and-publication)
+bootstrap/shutdown integration. Its [subscription acquisition](#background-collection-and-publication)
 uses Sources-owned evidence and Subscriptions-owned subscription/candidate records
 with bounded background workers. Anime supplies a provider-neutral
 release-assessment API and Catalog supplies current episode availability; remote
 releases never impersonate local source identities.
-The [current acquisition architecture](current-architecture.md) adds durable download
+The [current acquisition architecture](#acquisition) adds durable download
 records, per-anime placement, restart reconciliation and verified import through
 Resources and Anime public capabilities. Transfer controls remain in qBittorrent
 WebUI; the detail-page Activity is a compact status/recovery view.
@@ -113,7 +115,7 @@ destination configuration, reservations, submission, remote observation, task
 recovery and verified ingestion coordination. Source/candidate publication and
 subscription/permission saves use shared SQLite transactions. The detail form uses
 one save request; no preview session or confirmation token is required. See the
-[current acquisition architecture](current-architecture.md).
+[current acquisition architecture](#acquisition).
 
 The six directories are API boundaries, not categorization folders. External
 consumers cannot import any child entry, including a child's `public.ts`.
@@ -127,7 +129,7 @@ infrastructure adapters convert typed protocol results/errors into their own
 contracts. Their Applications depend on consumer-owned ports, not provider
 implementations or the AniList transport. Provider descriptors, credential-entry authorization, capabilities and adapters
 are injected into Tracking during assembly. AniList is the production provider.
-See [Provider-independent anime integration](tracking-provider-design.md) for
+See [Provider-independent anime integration](#source-organization-and-dependency-boundaries) for
 identity encoding, mapping outcomes and provider replacement.
 
 `tracking/application/tracking.ts` owns the named `TrackingModule` facade and its
@@ -235,7 +237,7 @@ coalescing/retry, and infrastructure `FilesystemWatcher` only adapts native even
 root owner while retaining access revisions, confinement and version validation.
 Status queries inspect roots once, and root descriptors carry their path explicitly
 rather than relying on configuration-array positions. See
-[Filesystem monitoring](filesystem-monitoring.md) for lifecycle details.
+[Filesystem monitoring](#resource-directory-isolation) for lifecycle details.
 
 ### Resource directory isolation
 
@@ -442,7 +444,7 @@ preserve the original source numbers and show the proposal's unresolved reasons.
 Resources publishes baseline snapshots and directory-scoped changes to Anime's bounded
 recognition coordinator. Incremental publications read affected directory groups and
 update only explicitly scoped Catalog sources; full scans remain for startup, manual
-reconciliation and monitoring recovery. See [Filesystem monitoring](filesystem-monitoring.md). Identification uses `anitomy-ng` and cached AniList
+reconciliation and monitoring recovery. See [Filesystem monitoring](#resource-directory-isolation). Identification uses `anitomy-ng` and cached AniList
 candidates to return evidence and candidate-specific episode proposals. Catalog
 automatically admits unambiguous matches and persists review decisions, stable
 local work/episode identities and source associations in SQLite. Ambiguous or
@@ -734,3 +736,400 @@ future delivery work must supply its actual runtime requirements when implemente
 Global Tracking notifications show failures, authorization, conflicts and required
 decisions. Routine pending/submitting/success states stay in the existing detail
 controls; successful updates still invalidate confirmed Library/entry queries.
+
+
+## Acquisition
+
+This section is the maintained runtime reference for the completed automatic-acquisition
+iteration. Historical verification is retained in [the archive](../history.md#automatic-acquisition-archive-notes).
+
+### Acquisition business ownership
+
+Acquisition has four business units and a qBittorrent adapter:
+
+| Unit | Responsibilities and owned state |
+| --- | --- |
+| Watching | Explicit activation grants, confirmed Watching list reconciliation, ordinary subscription creation and recreation exclusions |
+| Sources | RSS/Jackett bindings, credentials, transport, evidence, retry metadata and opaque download references |
+| Subscriptions | User subscription intent, pending source discovery, source pinning, starting episode, profile, enable/pause/remove, accepted download scope and candidate selection |
+| Downloads | Global destination, stable directories, accepted tasks, episode/hash reservations, submission, remote observation, recovery and import outcomes |
+| qBittorrent adapter | Private account configuration, connection generations, client lifetime and SDK operations |
+
+The former Discovery code lives in `subscriptions/`. Selection profiles, schemas,
+algorithms and waiting/ranking behavior are unchanged. There is no top-level
+workflows, Fulfillment or Imports business module. `downloads/application/` owns
+the full task lifecycle; `downloads/transfers/` implements transfer execution and
+`downloads/application/import.ts` coordinates completed-file ingestion.
+
+Resources owns roots, confinement, source versions, inspection and targeted refresh
+through its LibrarySynchronizer gate. Anime owns title/file recognition, current
+local episode availability, Catalog association and Review. Acquisition never
+writes their tables or duplicates their recognition implementations.
+
+```mermaid
+flowchart LR
+    Sub[Subscriptions] --> Sources
+    Downloads -->|selection and permission reads| Sub
+    Downloads -->|download content| Sources
+    Downloads --> Q[qBittorrent adapter]
+    Downloads -->|completed file verification| Resources
+    Downloads -->|availability and ingestion| Anime
+    Sub -->|release assessment| Anime
+```
+
+Sources owns its creation and HTTP registration through `createSourcesModule`.
+Composition shares the unified SourcesApi without importing protocol implementations. Subscriptions does
+not depend on the Downloads application. Read-only configuration stamps, locked
+candidate IDs and active downloader hashes are supplied at assembly. The dedicated
+locked-candidate query does not load Activity payloads. There are no application
+callback cycles, shared context inheritance, internal HTTP calls or event bus.
+
+### Direct subscription save
+
+The detail form displays the validated destination and sends one
+`PUT /api/acquisition/subscriptions`. Its body contains workKey, source (automatic, a feed/search definition or null),
+startEpisode, optional profileId, expected subscription revision, destinationRevision
+and connectionGeneration. A null source keeps the existing binding on edits. The form translates its RSS URL
+to the common feed definition.
+Save validates identity syntax, scope, profile availability and the current target
+stamp; it performs no RSS, Anime metadata or qBittorrent network request.
+
+A synchronous shared-connection transaction persists the subscription source definition
+and accepted permission. No Sources record or network request is required. Sources
+creates internal cache/backoff state when fetch first receives the definition.
+Automatic choices retain a nullable source and defer permission until atomic background
+binding; explicit sources accept permission during save. A permission failure rolls the whole
+save back. Saving the same source preserves selection history/waiting evidence;
+changed profiles remain fenced by the existing fingerprint rules until reevaluation.
+Per-work saving needs no preview token or confirmation session. Global Watching
+activation separately retains its session-bound preview/confirmation endpoints.
+
+HTTP activation requires a validated destination belonging to the current downloader
+account. Internal subscription commands can explicitly save a discovery-only scope;
+this revokes previous permission. Existing migrated subscriptions do not acquire
+permission merely by being read, refreshed or resumed. The UI enables automatic
+acquisition only by saving against the displayed current target. New source/episode
+scope or destination/account changes require a matching permission before submission.
+
+Pausing stops new reservations/submissions while transfers and imports continue.
+Removal preserves accepted tasks and source/download evidence. Watching creates missing ordinary subscriptions. Later AniList status changes do
+not change existing subscriptions.
+
+### Background collection and publication
+
+Subscriptions supplies enabled source IDs to the bounded Sources scheduler. The
+initial tick and subsequent 30-second ticks collect due sources, at most two at a
+time. Successful evidence follows the configured refresh interval (30 minutes by
+default); failures retain evidence and use exponential backoff/upstream hints.
+There is no standalone register/enable/remove lifecycle for recurring sources.
+Bindings/evidence persist independently of subscription ownership.
+
+SubscriptionWorker obtains a prepared publication through SourcesApi.fetch and evaluates affected subscriptions
+asynchronously. Only after evaluation does its synchronous commit operation recheck
+source/subscription revisions and reserved-candidate snapshots, publish the source
+and its download references, and update candidates. A paused/changed subscription,
+new reservation or storage error cannot leave candidates published without their
+corresponding source result. Assessment failures retain candidates and are recorded
+on the subscription; Sources records source failures and retry state internally.
+All source operations share one SourcesApi, including fetch and its atomic commit result.
+Runtime start/close is separate and belongs to composition. Subscriptions does not
+call source failure handling or private publication primitives.
+
+`selectCandidates` retains the existing explicit-snapshot algorithm and all
+[profile semantics](../guide/acquisition-profiles.md). Already reserved choices stay locked;
+unreserved choices can improve. Source URLs, credentials and protocol descriptors
+remain private; consumers receive evidence and opaque download references.
+
+### Task execution and recovery
+
+Downloads periodically reads eligible selections and accepted permission. It checks
+current Anime availability, persists one work/episode reservation and a stable
+work directory, resolves source content, validates canonical torrent hash/paths,
+and claims the hash. Existing unique indexes preserve deduplication after restart.
+Parsed content is reused within that execution rather than fetched/parsed twice.
+
+Immediately before remote add, Downloads rechecks permission, scope, selection,
+local availability, other active versions, destination/incomplete configuration and
+source validity. A persisted submitting state precedes the external mutation.
+Category `anishelf` and tag `anishelf-<intent-id>` prove task ownership; matching
+hash alone does not authorize controlling another task. Automatic Torrent Management
+is disabled and the explicit stable directory is passed as savePath.
+
+Submission states remain pending, submitting, unknown, bound, blocked, missing and
+available. Transfer observation and import states remain distinct. Unknown attempts
+are queried before further action and never automatically resent when absent.
+Explicit retry uses revision/command IDs and queries remotely before possible add.
+An external pause stays paused; external removal is suppressed until explicit retry.
+An outage means stale observation, not removal. A changed account cannot inherit
+old tasks/permissions. Terminal tasks retain reservation identities after detail
+redaction. These behaviors and their SQL state fields are retained.
+
+DownloadContext is the single revision-checked task writer. Transfer stages receive
+the narrow transfer context; business stages use its explicit full options type,
+without inheriting another application's context. Late asynchronous failures cannot
+overwrite a newer user command. Planning failures are exposed as Downloads Activity
+planningError/attention and never overwrite a subscription assessment error. Their
+in-memory retry/diagnostic state is recomputed after restart.
+
+A completed transfer provides task/files plus a revalidation capability. The
+internal import stage requires one selected supported video, complete files and
+safe paths. It asks Resources to inspect/refresh the confined path, verifies size
+and source version, rechecks downloader evidence, then asks Anime to validate and
+associate the actual source. Review/failed/available outcomes stay on the same task.
+Import retry does not resubmit or transcode. Busy resource synchronization is retryable.
+
+### Destination, persistence and feedback
+
+One global destination maps a downloader absolute POSIX prefix to a Resources root.
+Configured validation and proven file visibility remain separate. A separate enabled
+incomplete directory must be outside watched roots. Real shared mounts remain an
+operator responsibility. Work directories retain the initial sanitized
+`Title [provider-id]` identity; metadata renames never move originals.
+
+Subscriptions owns the existing acquisition_authorizations table and its mappings.
+Downloads owns destination, directories and intents. Sources owns source/feed and
+locator storage. Migration 0007 adds the subscription source definition and removes
+the foreign key that required a Sources record before saving. Existing definitions
+are backfilled from source bindings. Repositories share one SQLite connection for subscription saves and
+source/candidate publication. See [database design](database-design.md).
+
+The detail Activity view combines subscription candidates and download/import tasks.
+It preserves source/assessment errors separately from download planning/task errors,
+shows actionable retries and stays compact when collapsed. Transfer controls,
+seeding, task removal and data deletion remain in qBittorrent WebUI.
+
+| HTTP capability | Owner |
+| --- | --- |
+| GET /api/acquisition/profiles | Subscriptions |
+| GET/PUT/PATCH/DELETE /api/acquisition/subscriptions | Subscriptions |
+| POST /api/acquisition/subscriptions/refresh | Subscriptions |
+| GET/PUT /api/acquisition/downloads/settings and POST .../validate | Downloads |
+| GET /api/acquisition/downloads?workKey=... and POST .../:id/retry | Downloads |
+| /api/acquisition/qbittorrent settings/check/credentials | qBittorrent adapter |
+| /api/acquisition/sources configuration/status/test | Sources |
+| /api/acquisition/sources/connector settings/providers/probe | Sources setup |
+
+Shutdown stops Watching first, stops/drains Downloads, cancels Subscriptions, aborts/drains Sources
+and drains Watching before closing the downloader connection and dependent modules.
+Watching stops waiting for shared Tracking refreshes through its shutdown signal;
+Anime subsequently cancels/drains Tracking before the shared database closes.
+Structured logs correlate work/source/task/revision/command decisions without
+credentials, raw private locators or torrent payloads.
+
+### Unified Subscriptions and Watching Creation
+
+Manually requested and Watching-created
+subscriptions use the same persisted model, editor and execution path. See
+[subscription interaction](design-system.md#automatic-acquisition), [Watching setup](../guide/watching-automation.md)
+and [shared Sources lifecycle](#sources-api-and-lifecycle).
+
+Saving an automatic-source subscription persists user intent before searching:
+`feed_id` is null, `automatic` stores the accepted source generation, profile
+fingerprint, destination/downloader binding and retry deadline. Starting episode is
+fixed at creation. No fabricated feed identity or pre-search download permission is
+created. Explicit RSS remains available and resolved source choices remain pinned.
+
+A serial Subscriptions worker runs every 30 seconds and resolves at most five
+pending subscriptions per pass. Empty/failed discovery retains intent and retries
+after five minutes. It uses the existing ordered-site discovery and Anime release
+assessment; ambiguous identities, packs and unsupported content do not authorize
+downloads. Source/profile/target changes invalidate the pending scope until it is
+explicitly saved again. Every asynchronous result rechecks subscription revision,
+configuration and shutdown before binding source and download authorization in one
+SQLite transaction. Edits, pause and deletion fence late discovery results.
+
+Resolved sources use the existing Sources scheduler and selection/download/import
+pipeline. Explicit Check updates can resolve and collect a pending source. Site
+failure does not silently replace an established pin. Existing reservation,
+unknown-submission recovery, external-removal suppression and verified ingestion
+boundaries remain in Downloads.
+
+Watching is default-off and retains its five-minute session-bound activation preview.
+Its grant controls creation of missing subscriptions from a fresh complete confirmed
+Watching list; pending local Tracking commands cannot authorize creation. Existing
+subscriptions are skipped regardless of their origin, so progress/status changes,
+account changes and global disable never overwrite user settings or stop their
+execution. Future creation still requires current accepted account/source/profile/
+destination generations and a valid list. Creation uses confirmed progress plus one
+or episode 1 and fixes that lower bound immediately, even while source discovery is
+pending. Invalid/excessive progress produces a visible decision instead of clamping.
+
+Manual edits and pause/resume work identically for every subscription. Unsubscribe
+removes intent and records creation exclusions for the known account/work records;
+this prevents immediate automatic recreation. Exclusions survive restart and can be
+cleared explicitly. Submitted transfers and imports continue independently.
+
+Migration `0010_unified_subscriptions` preserves manual permissions and existing
+pins/lower bounds/candidates. Previously managed grants were conditional ongoing
+permissions, so migrated managed subscriptions are paused and their authorization
+is revoked until the operator reviews/saves/resumes them. Old Watching grants are
+disabled. No account permission is silently broadened during this conversion.
+
+HTTP uses the existing authenticated/CSRF/revision-checked routes. Subscription
+save accepts `{ kind: "automatic" }`, explicit source input, or null to retain an
+existing source. `GET /api/acquisition/subscriptions?diagnostics=false` returns a
+compact view without release evidence. Unified work detail uses this summary; full
+candidate diagnostics are loaded on demand. The source-search endpoint remains an
+optional diagnostic operation, not a prerequisite for saving.
+
+The Header row lives inside the work header, preserving playback priority. One
+summary and Activity action replace the overlapping information blocks. The short
+editor reveals overrides under More options. Activity prioritizes failures/active
+work; History and lazy grouped Diagnostics are secondary. See the
+[design system](design-system.md#automatic-acquisition).
+
+Fixtures verify persisted no-result intent, scope freezing, cancellation/edit/pause
+races, configuration fences, atomic authorization rollback, migration preservation,
+Watching creation-only behavior, user management, activity ordering, HTTP/session/
+CSRF and frontend defaults/diagnostics. These checks are separate from real-service
+acceptance. Source/import fixtures and browser fixture actions do not enable the
+user's actual account or prove real media playback.
+
+
+#### Subscription editor and detail refresh
+
+The editor keeps an opening snapshot until close/save, so background binding revisions
+cannot remount it or discard unsaved values. Optimistic revision checks still reject
+stale saves instead of silently rebasing permission. Check updates explicitly bypasses
+the pending subscription's local retry delay while retaining Sources transport limits.
+Migration 0011 stores the latest bounded source-discovery diagnostic snapshot; normal
+detail reads omit it and Activity requests it lazily. Backend lifecycle logs retain
+attempt/defer/bind outcomes without exposing credentials or private download URLs.
+
+Tracked work details switch with replace navigation to the local detail route as soon
+as refreshed aggregate data includes a local work. The local work ID is authoritative;
+library filters and other query context survive the transition. Existing local detail
+polling updates episodes without remounting the playback or episode-selection owner.
+
+
+### Sources API and lifecycle
+
+#### Construction and API
+
+`createSourcesModule` is the production construction entry. It owns configuration
+files, Jackett connection/client/transport, RSS transport/parser, request gate,
+HTTP presentation, error translation and shutdown. It returns one `api` object,
+one internal `runtime` object and HTTP registration. Adapter implementations never escape.
+
+Subscriptions and Downloads share the same `SourcesApi`; there are no separate
+catalog, collection, content or management facades. Consumers call the operations
+needed for their responsibilities through that single interface.
+
+| SourcesApi operation | Purpose |
+| --- | --- |
+| snapshot(input or sourceId) | Read saved evidence, or describe a definition as pending without network/persistence |
+| fetch(input or sourceId) | Prepare evidence and return snapshot/commit for atomic candidate publication |
+| readContent(reference, signal) | Read magnet content or torrent bytes |
+| isContentCurrent(reference) | Check a download reference before submission |
+| test(input or sourceId) | Diagnose a source without publishing results |
+| connector.settings/save/clear/providers/probe | Configure and inspect the source connector |
+
+`SourcePublication` is part of `public.ts` alongside `SourcesApi`. Its synchronous
+commit preserves the transaction shared by source evidence and subscription candidates.
+It does not require a separate collection facade. Runtime start/close remains in
+`sources/integration.ts` and is owned by Acquisition composition. Private adapter
+plans, validators, raw locators and client classes remain hidden.
+
+#### File organization
+
+The module root contains only `public.ts`, `create.ts`, `persistence.ts` and
+`integration.ts`. Public configuration and connector types live in `public.ts`.
+`application/` contains collection orchestration, context, scheduling and download
+content resolution (`content.ts`). `domain/` contains models, collection limits and
+the private prepared-read contract. `infrastructure/` contains persistence contracts,
+repositories and the shared request gate. RSS and Jackett adapters remain private
+in their respective directories. Moving these files does not change runtime behavior,
+HTTP contracts, database tables or existing structured lifecycle logs.
+
+#### Source configuration
+
+SourceInput is either `{kind: "feed", url}` or `{kind: "search", connectionRevision,
+providerId, titles}`. These describe collection modes. RSS normalization and Jackett
+query planning are private adapter work; consumer code passes setup data through
+without branching on a protocol. Fetch accepts a definition directly and internally
+identifies or creates the cache/backoff record; no registration call is required.
+An existing source ID may also be reused. Snapshot accepts either form; a definition
+with no saved evidence returns a pending snapshot without network or database writes.
+
+Subscriptions persists an automatic pending intent or an explicit feed/search source
+through one save contract. A successful discovery pins a site before recurring
+collection. Saving intent is local; source binding and permission are revision-fenced.
+Manual and Watching-created subscriptions share this lifecycle.
+
+Connector configuration exposes service URL, credentials, connection generation and
+selected provider IDs only at the setup interface. Transport authentication, request
+syntax, capabilities pagination limits and download descriptors remain private. The
+current connector is implemented using Jackett. Changing it fences old search source
+bindings and download references rather than silently inheriting new credentials.
+
+#### Evidence and publication
+
+snapshot(sourceId) performs no network request. The common collector coalesces
+in-flight requests by source ID and permits at most two source collections. It owns
+one result-provenance/revision fence. RSS and Jackett adapters return private prepared
+writes and connection validity, rather than maintaining separate consumer-facing
+publication lifecycles. FeedReader retains RSS parsing/conditional-response/retention
+behavior; JackettSource retains query planning and Torznab result handling.
+
+fetch(input or sourceId) resolves the definition internally and returns a SourcePublication
+containing a read-only snapshot and a synchronous commit(writeCandidates) operation.
+Temporary results and diagnostic tests do not publish evidence or resolve their
+unpublished downloads. Commit rechecks source validity, then publishes evidence,
+durable download references and candidate writes in the same SQLite transaction.
+A stale result or candidate write failure rolls everything back.
+
+Subscriptions evaluates outside the transaction, then uses commit to check its own
+subscription/reservation inputs and save its candidates. It neither manages
+source publication internals nor calls a source failed/backoff method. Sources
+records collection failures itself, only against the captured matching revision,
+retaining earlier evidence and retry metadata. Shutdown and generation conflicts
+cannot overwrite newer successful evidence. Subscription assessment errors remain
+owned by Subscriptions.
+
+The existing protocol storage is normalized by SourceEvidence: RSS validators and
+observations remain in their relational tables, while query evidence and unchecked
+bindings use the existing typed snapshot. This adapter is private. Migration 0007 stores source definitions on subscriptions and removes the source-row
+foreign key. Existing RSS/search bindings backfill those definitions. Evidence and
+accepted download references remain unchanged.
+
+#### Ownership, scheduling and shutdown
+
+Acquisition supplies enabled subscription IDs and a subscription refresh operation
+to the internal runtime. The scheduler ticks initially and every 30 seconds.
+Successful refresh follows the configured interval (30 minutes by default); failure
+backoff is capped at one hour and respects upstream retry hints. Live interval changes
+reschedule successful evidence while preserving failure deadlines.
+
+A source is collected only while a subscription owns it. There is no independent
+recurring register/enable/remove feature. Pause/removal does not erase source evidence
+or accepted download references. The legacy enabled column is retained but does not
+drive scheduling. A changed connector generation suspends old bindings.
+
+Downloads stops before Sources. Source shutdown aborts/drains collections, transport
+and content reads before SQLite closes. Runtime methods do not escape through the
+business API.
+
+#### Download content
+
+ReleaseEvidence contains common attributes and an opaque nullable download reference.
+readContent returns only magnet content or torrent bytes. Private locator
+records survive later result snapshots; arbitrary URL inputs and unpublished references
+are rejected. Legacy accepted RSS references remain resolvable. Both protocols use
+the same content interface, with source/connection validity checked before and after
+reads. Downloads rechecks immediately before submission and owns canonical hash/path
+validation and reservation. Submitted tasks reconcile without a live source service.
+
+#### HTTP surface
+
+| Route | Meaning |
+| --- | --- |
+| GET /api/acquisition/sources/:id | Read saved evidence |
+| POST /api/acquisition/sources/test | Test a definition or `{sourceId}` without publication/permission |
+| GET/PUT/DELETE /api/acquisition/sources/connector | Read/update/clear connector configuration |
+| POST /api/acquisition/sources/connector/providers | List configured service providers |
+| POST /api/acquisition/sources/connector/probe | Check provider search support; not proof of a live search |
+
+There are no separate RSS/Jackett business HTTP routes. Settings require authentication
+and mutations require CSRF. Responses/logs exclude API keys, raw download addresses,
+validators and torrent payloads. Diagnostic test responses expose download availability,
+not private content references. Source configuration fields are accepted only at setup.

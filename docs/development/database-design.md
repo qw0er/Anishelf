@@ -123,7 +123,7 @@ Unsupported format markers are rejected before migrations or WAL configuration;
 existing records are preserved. `database.ready` logs readiness and
 `database.unavailable` reports a startup-blocking failure without private payloads.
 Back up a stopped installation before upgrading. Older executables require their
-matching database backup. See [Database Migrations and Backups](development.md#database-migrations-and-backups).
+matching database backup. See [Database Migrations and Backups](../guide/operations.md#database-migrations-and-backups).
 
 ## Verification
 

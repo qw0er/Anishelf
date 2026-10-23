@@ -4,6 +4,7 @@
 - [2. Feature Inventory and Version Tracking](#2-feature-inventory-and-version-tracking)
 - [3. Rules for Future Features](#3-rules-for-future-features)
 - [4. Release Plan and Suggested Evolution](#4-release-plan-and-suggested-evolution)
+- [Completed automatic acquisition requirements and design](history.md#automatic-acquisition-archive-notes)
 - [Completed AniList accounts requirements and acceptance](history.md#anilist-accounts-requirements)
 - [Completed anime library requirements and acceptance](history.md#anime-library-requirements)
 - [Archived V2 requirements and acceptance](history.md#v2-requirements)
@@ -21,7 +22,9 @@ Completed requirements, acceptance and detailed designs are retained in [History
 The anime-library iteration (L07–L10, M01–M05, M07; CAT01–CAT08) was accepted by the user
 on 2026-10-14. The AniList accounts iteration (T01–T05, W03–W05; ANI01–ANI10) was accepted
 by the user on 2026-10-17 and is now [archived](history.md#anilist-accounts-archive-notes).
-Neither iteration was assigned a release number. Multi-root resource management (L12)
+Automatic acquisition and subscription interaction were marked complete by the user
+on 2026-10-24 and are [archived](history.md#automatic-acquisition-archive-notes).
+These completed iterations have no assigned release number. Multi-root resource management (L12)
 is implemented in the current unnumbered scope; user acceptance remains pending. No
 new release number has been selected;
 Later/Unassigned items remain future work. The retained V2 implementation status remains
@@ -30,7 +33,7 @@ recorded separately in History.
 ## 2. Feature Inventory and Version Tracking
 
 - **Implemented in** records the delivered implementation and its version; `—` means not implemented. Partial delivery is explicitly identified.
-- **Target version** records the selected or delivered iteration; `Unassigned` means no release commitment. `Anime library` names the completed unnumbered iteration archived on 2026-10-14; `Current` is retained for other unnumbered deliveries.
+- **Target version** records the selected or delivered iteration; `Unassigned` means no release commitment. `Anime library` names the completed unnumbered iteration archived on 2026-10-14; `Automatic acquisition` names the completed iteration archived on 2026-10-24; `Current` is retained for other unnumbered deliveries.
 - **Selected** identifies planned work for the next iteration, not delivered implementation.
 - **Later** identifies a subsequent core capability; **Optional** identifies a possible longer-term extension.
 - A target version is not evidence of implementation. Implementation status and acceptance status are separate: delivered code does not certify acceptance. Record outstanding acceptance explicitly; for partial delivery, describe the delivered boundary and keep the remainder explicit. The retained V2 scenarios are recorded as implemented in [History](history.md#v2-requirements), independently of new verification evidence.
@@ -97,7 +100,7 @@ Watch the configured resource root recursively for file and directory additions,
 
 Keep startup scanning and explicit manual rescans for initial discovery and reconciliation. Scheduled full scans are removed; known monitoring failures trigger recovery reconciliation. Detect unavailable monitoring or lost events, report degraded monitoring and provide reconciliation and retry; an inaccessible root must not be treated as an empty library.
 
-Acceptance: after files stabilize, additions, changes and removals appear automatically without waiting for the scan interval; nested directory changes are covered; bursts do not create duplicate entries or overlapping full scans; monitoring failures are visible and reconciliation restores the library. Existing manual associations and viewing history remain intact. The implementation is described in [Filesystem monitoring](filesystem-monitoring.md); live deployment acceptance, particularly on network mounts, remains pending.
+Acceptance: after files stabilize, additions, changes and removals appear automatically without waiting for the scan interval; nested directory changes are covered; bursts do not create duplicate entries or overlapping full scans; monitoring failures are visible and reconciliation restores the library. Existing manual associations and viewing history remain intact. The implementation is described in [Filesystem monitoring](development/architecture.md#resource-directory-isolation); live deployment acceptance, particularly on network mounts, remains pending.
 
 #### Batch Review (L15)
 
@@ -139,7 +142,7 @@ Preserve raw parsed numbering separately from confirmed episode associations, in
 - Initially exclude batch downloads, directory archives, and managed offline libraries.
 - Acceptance: the downloaded file matches the source contents and filename, the server original remains unchanged, and unavailable or unauthorized resources cannot be downloaded.
 
-This is a user-facing file download, separate from acquiring new releases through qBittorrent (D01–D08). File actions and the player's More playback options menu provide **Download video**. The action rechecks file access and starts a native browser download from the original-media route with the original filename, without buffering the complete file in JavaScript. Automatic acquisition through qBittorrent is delivered separately under D01–D07, with live acceptance pending.
+This is a user-facing file download, separate from acquiring new releases through qBittorrent (D01–D08). File actions and the player's More playback options menu provide **Download video**. The action rechecks file access and starts a native browser download from the original-media route with the original filename, without buffering the complete file in JavaScript. Automatic acquisition through qBittorrent is delivered separately under D01–D07; its completed iteration and verification record are archived in History.
 
 ### 2.2 Anime Metadata
 
@@ -211,7 +214,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 ### Provider integration boundary
 
-Metadata and Tracking use provider-owned adapters behind application-owned contracts. AniList remains the production provider and authority for its viewing state. Opaque provider-qualified identities, product-owned viewing statuses, explicit target resolution outcomes and provider capability checks isolate Library and Playback from provider protocols. One tracking account and cumulative episode progress are supported. Additional production providers, simultaneous accounts and evidence-backed cross-provider episode mappings remain Later/Unassigned. See [the provider integration design](tracking-provider-design.md).
+Metadata and Tracking use provider-owned adapters behind application-owned contracts. AniList remains the production provider and authority for its viewing state. Opaque provider-qualified identities, product-owned viewing statuses, explicit target resolution outcomes and provider capability checks isolate Library and Playback from provider protocols. One tracking account and cumulative episode progress are supported. Additional production providers, simultaneous accounts and evidence-backed cross-provider episode mappings remain Later/Unassigned. See [the provider integration design](development/architecture.md#source-organization-and-dependency-boundaries).
 
 ### 2.4 Viewing History and Tracking
 
@@ -235,26 +238,26 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| S01 | Enable or pause RSS discovery from an anime's own page | Implemented; download submission separate | Current | Unassigned |
-| S02 | Set and preserve a subscription starting episode and backlog scope | Implemented: fixed creation lower bound and revision-checked edits; global Watching activation previews impact | Current | Unassigned |
-| S03 | Configure RSS and discover releases periodically | Implemented: one RSS per anime, shared conditional fetches and durable scheduling with a configurable global interval (default 30 minutes); live feed acceptance pending | Current | Unassigned |
-| S04 | Match releases to titles and episodes and explain uncertain matches | Implemented: uncertain releases are automatically skipped without review | Current | Unassigned |
-| S05 | Filter by subtitle language, release group, resolution, codec, and keywords | Implemented for RSS, manual search and opt-in Watching: built-in/custom YAML selection profiles; live Watching acceptance pending | — | Current |
-| S06 | Deduplicate and exclude existing files, active downloads, and unwanted episodes | Implemented: discovery identities, accessible local episodes and downloader hashes; durable canonical-hash and work/episode reservations before submission; live acceptance pending | Current | Current |
-| S07 | Explain decisions and automatically choose one release per episode | Implemented: profile levels, persisted waiting, seed-count tie-breaking and skipped reasons; manual selection/dismissal outside the simplified scope | Current | Unassigned |
-| S08 | Coordinate tracking-status changes with subscriptions and explain their effect on existing tasks | Implemented: Watching creates ordinary subscriptions; subsequent status changes do not alter them, and user settings/transfers/imports are preserved | Current | Current |
+| S01 | Enable or pause RSS discovery from an anime's own page | Implemented; download submission separate | Automatic acquisition | Automatic acquisition |
+| S02 | Set and preserve a subscription starting episode and backlog scope | Implemented: fixed creation lower bound and revision-checked edits; global Watching activation previews impact | Automatic acquisition | Automatic acquisition |
+| S03 | Configure RSS and discover releases periodically | Implemented: one RSS per anime, shared conditional fetches and durable scheduling with a configurable global interval (default 30 minutes) | Automatic acquisition | Automatic acquisition |
+| S04 | Match releases to titles and episodes and explain uncertain matches | Implemented: uncertain releases are automatically skipped without review | Automatic acquisition | Automatic acquisition |
+| S05 | Filter by subtitle language, release group, resolution, codec, and keywords | Implemented for RSS, manual search and opt-in Watching: built-in/custom YAML selection profiles | Automatic acquisition | Automatic acquisition |
+| S06 | Deduplicate and exclude existing files, active downloads, and unwanted episodes | Implemented: discovery identities, accessible local episodes and downloader hashes; durable canonical-hash and work/episode reservations before submission | Automatic acquisition | Automatic acquisition |
+| S07 | Explain decisions and automatically choose one release per episode | Implemented: profile levels, persisted waiting, seed-count tie-breaking and skipped reasons; manual selection/dismissal outside the simplified scope | Automatic acquisition | Automatic acquisition |
+| S08 | Coordinate tracking-status changes with subscriptions and explain their effect on existing tasks | Implemented: Watching creates ordinary subscriptions; subsequent status changes do not alter them, and user settings/transfers/imports are preserved | Automatic acquisition | Automatic acquisition |
 | S09 | Search multiple sources, rank releases, process season packs, and upgrade quality | Optional | — | Unassigned |
-| S10 | Automatically subscribe to anime in AniList Watching | Implemented: default-off Watching creation with session-bound preview, fixed starting scope and recreation exclusions; existing subscriptions remain user-managed; live acceptance pending | — | Current |
-| S11 | Find a suitable release source without entering an RSS URL for each anime | Implemented: ordered configured-site discovery with Anime identity assessment, S05 profiles, pinned sources and unresolved states; live Watching acceptance pending | — | Current |
-| S12 | Preserve ordinary subscription management after Watching creation | Implemented: Tracking status changes and automation disable stop no existing subscription; edits, pause/resume and cancellation share the manual workflow | — | Current |
+| S10 | Automatically subscribe to anime in AniList Watching | Implemented: default-off Watching creation with session-bound preview, fixed starting scope and recreation exclusions; existing subscriptions remain user-managed | Automatic acquisition | Automatic acquisition |
+| S11 | Find a suitable release source without entering an RSS URL for each anime | Implemented: ordered configured-site discovery with Anime identity assessment, S05 profiles, pinned sources and unresolved states | Automatic acquisition | Automatic acquisition |
+| S12 | Preserve ordinary subscription management after Watching creation | Implemented: Tracking status changes and automation disable stop no existing subscription; edits, pause/resume and cancellation share the manual workflow | Automatic acquisition | Automatic acquisition |
 
-See [RSS subscriptions](rss-subscriptions.md) for the implemented first two stages.
-RSS selects candidates automatically without per-release approval. Separately confirmed
-acquisition scopes enable the download worker; complete live acceptance remains pending.
+The completed subscription scope is [archived](history.md#automatic-acquisition-requirements).
+RSS selects candidates automatically without per-release approval; accepted scopes
+enable the download worker. Historical validation limits are recorded with the archive.
 
 #### AniList Watching to Automatic Acquisition (S05, S10–S12)
 
-The intended workflow is: add an anime to AniList Watching, let Anishelf find a suitable resource source and maintain its subscription, then automatically download new episodes through qBittorrent and verify their ingestion into the local library. Users configure resource sites, release preferences, destination and automation scope once; routine additions to Watching should not require finding and entering a per-anime RSS URL or approving every episode.
+The delivered workflow is: add an anime to AniList Watching, let Anishelf find a suitable resource source and maintain its subscription, then automatically download new episodes through qBittorrent and verify their ingestion into the local library. Users configure resource sites, release preferences, destination and automation scope once; routine additions to Watching should not require finding and entering a per-anime RSS URL or approving every episode.
 
 The workflow uses one subscription model. Users can save subscription intent before
 any eligible release exists; source discovery runs in the background. Watching is a
@@ -274,30 +277,36 @@ block saving intent and do not authorize guessed downloads.
 Settings owns global configuration and help. Work details use a compact Header row,
 a short defaults-first editor and an on-demand Activity dialog with secondary History
 and lazy grouped Diagnostics. No source-search/resource-sample step is required before
-subscribing. See [the interaction design](subscription-interaction-redesign.md) and
-[current requirements](current-requirement.md). The user reported manual live pipeline
-acceptance; real Watching acceptance remains pending.
+subscribing. The user marked this iteration complete on 2026-10-24. See the
+[archived requirements/design and verification record](history.md#automatic-acquisition-archive-notes)
+and the maintained [UI conventions](development/design-system.md#automatic-acquisition).
 
-Acceptance requires a real AniList account, supported resource feed/site, qBittorrent and mapped media storage. After automation is enabled, a newly Watching anime must acquire a matching new episode without manual RSS entry, download it into its per-anime directory, and expose it in the library only after verified association and access. Also verify initial backlog scope, duplicate list refreshes, restart recovery, tracking/source/downloader outages, ambiguous results, manual overrides and status transitions. Existing single-episode RSS-to-download-to-ingestion behavior needs its own live acceptance; full season-pack ingestion is not supported by the current one-selected-video import path and is not implied by this workflow. Successful ingestion does not certify browser playback compatibility.
+Background subscription updates preserve an open editor's inputs and accepted revision.
+Check now retries pending discovery without its local scheduling delay. Diagnostics
+retains the latest site attempts across restart. Once refreshed detail data includes
+local resources, the page automatically opens local episodes and preserves the
+library's return filters.
+
+Deployment verification uses a real AniList account, supported resource feed/site, qBittorrent and mapped media storage; the archive records which evidence was actually obtained. After automation is enabled, a newly Watching anime must acquire a matching new episode without manual RSS entry, download it into its per-anime directory, and expose it in the library only after verified association and access. Also verify initial backlog scope, duplicate list refreshes, restart recovery, tracking/source/downloader outages, ambiguous results, manual overrides and status transitions. Existing single-episode RSS-to-download-to-ingestion behavior needs its own live acceptance; full season-pack ingestion is not supported by the current one-selected-video import path and is not implied by this workflow. Successful ingestion does not certify browser playback compatibility.
 
 ### 2.6 Downloads and Automatic Ingestion
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| D01 | Connect to qBittorrent and validate configuration and download-path mappings | Implemented: private API settings, connection test and one root/path mapping with incomplete-directory validation; actual shared visibility verified during import; live acceptance pending | Current | Current |
-| D02 | Submit releases, persist task associations, and prevent duplicate submissions | Implemented: persisted intent, canonical identity/reservations, per-anime placement and uncertain-outcome reconciliation; live acceptance pending | Current | Current |
-| D03 | Display acquisition state, progress and errors | Implemented: compact detail Activity; real percentage and import states; speed/seeding details in WebUI | Current | Current |
-| D04 | Manage downloads and recover acquisitions | Implemented: transfer pause/resume/removal delegated to WebUI; scoped acquisition/import retries in Anishelf | Current | Current |
-| D05 | Check completed files, scan them, and associate them with episodes | Implemented: confined file verification, targeted Resources refresh, Anime association/Review and independent import retry; live acceptance pending | Current | Current |
-| D06 | Recover from disconnections, externally removed tasks, and server restarts | Implemented: stale observations, durable bindings, restart reconciliation and external-removal suppression; live acceptance pending | Current | Current |
-| D07 | Distinguish task cancellation, downloaded-data deletion, and library-record removal | Implemented boundary: task/data deletion in WebUI, Catalog decisions in existing local workflows; deletion never triggers automatic re-adding | Current | Current |
+| D01 | Connect to qBittorrent and validate configuration and download-path mappings | Implemented: private API settings, connection test and one root/path mapping with incomplete-directory validation; actual shared visibility verified during import | Automatic acquisition | Automatic acquisition |
+| D02 | Submit releases, persist task associations, and prevent duplicate submissions | Implemented: persisted intent, canonical identity/reservations, per-anime placement and uncertain-outcome reconciliation | Automatic acquisition | Automatic acquisition |
+| D03 | Display acquisition state, progress and errors | Implemented: compact detail Activity; real percentage and import states; speed/seeding details in WebUI | Automatic acquisition | Automatic acquisition |
+| D04 | Manage downloads and recover acquisitions | Implemented: transfer pause/resume/removal delegated to WebUI; scoped acquisition/import retries in Anishelf | Automatic acquisition | Automatic acquisition |
+| D05 | Check completed files, scan them, and associate them with episodes | Implemented: confined file verification, targeted Resources refresh, Anime association/Review and independent import retry | Automatic acquisition | Automatic acquisition |
+| D06 | Recover from disconnections, externally removed tasks, and server restarts | Implemented: stale observations, durable bindings, restart reconciliation and external-removal suppression | Automatic acquisition | Automatic acquisition |
+| D07 | Distinguish task cancellation, downloaded-data deletion, and library-record removal | Implemented boundary: task/data deletion in WebUI, Catalog decisions in existing local workflows; deletion never triggers automatic re-adding | Automatic acquisition | Automatic acquisition |
 | D08 | Multiple download clients, seeding policies, bandwidth schedules, and storage policies | Optional | — | Unassigned |
 
-The [qBittorrent adapter foundation](qbittorrent-adapter.md) also supplies low-level
+The [qBittorrent adapter foundation](development/architecture.md#task-execution-and-recovery) also supplies low-level
 submission, observations and control commands. The current acquisition workflow adds
 persistence, reconciliation, per-anime placement and verified ingestion. Transfer
 controls use WebUI; compact detail Activity supplies status and recovery without a
-global download-management page. See [current requirements](current-requirement.md).
+global download-management page. See [archived acquisition requirements](history.md#automatic-acquisition-requirements).
 
 ### 2.7 Desktop and Other Clients
 
@@ -330,7 +339,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 AniList is the viewing-state authority. This iteration selects account connection, cached list access, progress/status submissions, durable retries and remote-conflict handling. It reuses existing work/episode mappings and keeps local playback history independent. Independent local tracking, list import/export and reimport merging are excluded.
 
-[Archived AniList accounts requirements](history.md#anilist-accounts-requirements) retains the completed scope, consistency rules and ANI01–ANI10 scenarios. [The final acceptance record](history.md#anilist-accounts-archive-notes) records user acceptance on 2026-10-17; current implementation ownership is maintained in [Architecture](architecture.md).
+[Archived AniList accounts requirements](history.md#anilist-accounts-requirements) retains the completed scope, consistency rules and ANI01–ANI10 scenarios. [The final acceptance record](history.md#anilist-accounts-archive-notes) records user acceptance on 2026-10-17; current implementation ownership is maintained in [Architecture](development/architecture.md).
 
 ### 2.9 Interface, Settings, and Maintenance
 
@@ -439,8 +448,8 @@ owned file stream within the existing application shutdown lifecycle.
 Custom reopening/SIGHUP handling, recovery, stderr record fallback, bounded queues
 and potential-loss accounting are removed. A file stream error reports a concise
 stderr diagnostic; restart after fixing the destination. These extra guarantees
-are outside the current requirements. See [development logging](development.md#logging-choice)
-and [deployment logging](../README.md#logging).
+are outside the current requirements. See [development logging](development/README.md#logging-choice)
+and [deployment logging](guide/operations.md#operational-log-levels).
 
 ## 3. Rules for Future Features
 
@@ -448,7 +457,7 @@ These rules apply to the relevant capabilities as they are implemented. V2 appli
 
 - **Keep states separate:** tracking, subscriptions, downloads, file availability, and viewing status are independent. Deleting a watched file must not erase its history.
 - **Verify ingestion:** download completion alone does not prove that a file exists or is playable.
-- **Make subscription scope explicit:** show the starting episode and backlog range. Reading an AniList list must not silently start bulk downloads. Future Watching automation may create subscriptions only within an explicitly enabled policy and accepted backlog scope (S10).
+- **Make subscription scope explicit:** show the starting episode and backlog range. Reading an AniList list must not silently start bulk downloads. Watching creates subscriptions only within an explicitly enabled policy and accepted backlog scope (S10).
 - **Allow uncertainty:** uncertain title or episode matches require review rather than forced association.
 - **Recover without duplication:** polling, retries, and restarts must not create duplicate active downloads.
 - **Protect original files:** cancellation and deletion are distinct. Moving files must account for seeding and path associations.
@@ -465,11 +474,12 @@ V1 is implemented. The archived V2 scope selected saved progress and resume (W01
 | --- | --- | --- |
 | Completed: anime library | Confirmed anime and episode library from existing files; requirements and acceptance complete | L07–L10, M01–M05, M07; CAT01–CAT08 archived |
 | Completed: AniList accounts | AniList-owned viewing state, unified progress/status commands and recoverable submission; accepted on 2026-10-17 | W03–W05, T01–T05; ANI01–ANI10 archived |
-| Current: automatic acquisition | Can AniList Watching titles acquire new episodes without manual RSS setup? | S05, S10–S12 Watching reconciliation, source discovery and status policy; live acceptance of existing RSS/download/ingestion paths; S09 extensions remain separate |
+| Completed: automatic acquisition | Watching creates ordinary subscriptions with background discovery, scoped downloads and verified ingestion; compact work-detail UI | S01–S08, S10–S12, D01–D07; requirements/design archived on 2026-10-24; S09 remains optional |
 | Optional tracking extensions | Are additional tracker capabilities needed? | T06; possible future read-only native-player state reporting (C03) |
 
-The anime-library and AniList accounts iterations are complete and archived. No next
-release number is assigned. The current automatic-acquisition iteration includes the pending Watching-to-acquisition workflow (S05, S10–S12) and live acceptance of the implemented RSS/download/ingestion path. See [current iteration requirements](current-requirement.md).
+The anime-library, AniList accounts and automatic-acquisition iterations are complete
+and archived. No next active iteration or release number is selected. Historical
+validation limits remain in [the acquisition archive](history.md#automatic-acquisition-archive-notes).
 Playback enhancements such as HLS, next-episode continuation and broader subtitle
 compatibility are separate candidates. Select one independently verifiable user workflow
 before promoting future requirements into an active iteration. AniList remains the

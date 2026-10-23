@@ -1,10 +1,10 @@
 # Anishelf Design System
 
 This document owns the shared UI principles, visual conventions, interaction,
-feedback and accessibility rules. [Requirements](requirements.md) owns product
+feedback and accessibility rules. [Requirements](../requirements.md) owns product
 scope, [Architecture](architecture.md) retains module boundaries, and
-[Archived anime-library design](history.md#anime-library-design) records the delivered poster
-wall, work details, Files and Review screens. [History](history.md#v2-design)
+[Archived anime-library design](../history.md#anime-library-design) records the delivered poster
+wall, work details, Files and Review screens. [History](../history.md#v2-design)
 preserves earlier version-specific implementation design.
 
 - [UI principles](#ui-principles)
@@ -254,6 +254,10 @@ notifications, and both follow remote confirmation instead of stopping at queued
 Keep controls wrapping at narrow widths. Unmapped sources show no tracking command.
 
 ## Automatic Acquisition
+
+The subscription interaction iteration was marked complete on 2026-10-24. Its
+[final design and delivery evidence](../history.md#subscription-interaction-design) are
+archived; this section remains the maintained UI convention.
 
 Settings includes a compact RSS section with one global refresh interval in whole
 minutes (1–1440, default 30). Keep edits local until Save, show the unit in the input
