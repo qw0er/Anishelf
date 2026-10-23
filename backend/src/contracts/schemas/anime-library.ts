@@ -43,6 +43,7 @@ export const AnimeLibrarySchema = Type.Object({
 			format: text,
 			year: integer,
 			episodeCount: integer,
+			airedEpisodeCount: integer,
 			updatedAt: Type.Integer(),
 			availableEpisodes: Type.Integer(),
 			availableUnwatchedEpisodes: Type.Optional(integer),

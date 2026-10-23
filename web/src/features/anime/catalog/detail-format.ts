@@ -1,4 +1,7 @@
-import type { LocalWorkDetailResponse } from "../../../shared/api/contracts.js";
+import type {
+	LocalWorkDetailResponse,
+	MetadataDetailsResponse,
+} from "../../../shared/api/contracts.js";
 export type Episode = LocalWorkDetailResponse["episodes"][number];
 export type Version = Episode["versions"][number];
 export function safeLink(value: string | null): string | undefined {
@@ -51,4 +54,24 @@ export function fuzzyDate(
 	]
 		.filter((value) => value !== null && value !== undefined)
 		.join("-");
+}
+
+export function airedEpisodeCount(
+	info: Pick<
+		MetadataDetailsResponse["data"],
+		"status" | "episodeCount" | "nextAiringEpisode"
+	>,
+	now = Date.now(),
+): number | null {
+	if (info.status === "NOT_YET_RELEASED") return 0;
+	if (info.status === "FINISHED") return info.episodeCount;
+	const next = info.nextAiringEpisode;
+	if (!next) return null;
+	const aired = Math.max(
+		0,
+		next.episode - (next.airingAt * 1000 > now ? 1 : 0),
+	);
+	return info.episodeCount === null
+		? aired
+		: Math.min(aired, info.episodeCount);
 }

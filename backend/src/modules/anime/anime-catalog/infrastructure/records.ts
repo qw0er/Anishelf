@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import type { IdentificationResult } from "../../identification/public.js";
 import type { metadataWorks } from "../../metadata/persistence.js";
+import { airedEpisodeCount } from "../../metadata/public.js";
 import type {
 	Association,
 	ConfirmationResult,
@@ -13,6 +14,10 @@ export function readCatalogWorks(
 	row: typeof s.catalogWorks.$inferSelect,
 	info: typeof metadataWorks.$inferSelect,
 ): LocalWork {
+	const nextAiringEpisode =
+		info.nextAiringEpisode !== null && info.nextAiringAt !== null
+			? { episode: info.nextAiringEpisode, airingAt: info.nextAiringAt }
+			: null;
 	return {
 		...row,
 		providerTitle: info.providerTitle,
@@ -20,6 +25,11 @@ export function readCatalogWorks(
 		format: info.format,
 		year: info.year,
 		episodeCount: info.episodeCount,
+		airedEpisodeCount: airedEpisodeCount({
+			status: info.status,
+			episodeCount: info.episodeCount,
+			nextAiringEpisode,
+		}),
 	};
 }
 export function writeCatalogWorks(store: Store, value: LocalWork): void {

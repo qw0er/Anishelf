@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { LocalWorkDetailResponse } from "../../../../shared/api/contracts.js";
 import { Artwork } from "../../shared/components/artwork.js";
-import { fuzzyDate, safeLink } from "../detail-format.js";
+import { airedEpisodeCount, fuzzyDate, safeLink } from "../detail-format.js";
 export function WorkMetadataHeader({
 	data,
 	viewing,
@@ -25,6 +25,13 @@ export function WorkMetadataHeader({
 	const { work, metadata } = data;
 	const info = metadata.data;
 	const providerUrl = safeLink(info.siteUrl);
+	const aired = airedEpisodeCount(info);
+	const airedValue =
+		aired === null
+			? null
+			: info.episodeCount === null
+				? String(aired)
+				: `${aired} / ${info.episodeCount}`;
 	return (
 		<div className="grid min-w-0 gap-6 sm:grid-cols-[10rem_minmax(0,1fr)]">
 			<div className="w-32 overflow-hidden rounded-lg sm:w-full">
@@ -48,6 +55,9 @@ export function WorkMetadataHeader({
 						["year", work.year],
 						["releaseStatus", info.status?.replaceAll("_", " ")],
 						["episodeCount", work.episodeCount],
+						...(airedValue === null
+							? []
+							: ([["airedEpisodes", airedValue]] as const)),
 						["startDate", fuzzyDate(info.startDate)],
 						["endDate", fuzzyDate(info.endDate)],
 					].map(([key, value]) => (

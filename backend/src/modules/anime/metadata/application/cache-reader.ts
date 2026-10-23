@@ -142,6 +142,8 @@ export class MetadataCacheReader {
 	}
 	private expiresAt(entry: CacheEntry): number {
 		if (entry.kind !== "detail") return entry.expiresAt;
+		// Older snapshots need one refresh to backfill aired progress from nextAiringEpisode.
+		if (!("nextAiringEpisode" in (entry.data as WorkDetails))) return 0;
 		// Apply shorter policy intervals to snapshots persisted before a policy change.
 		return Math.min(
 			entry.expiresAt,

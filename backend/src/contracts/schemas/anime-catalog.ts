@@ -177,6 +177,7 @@ const work = {
 	format: nullableText,
 	year: nullableInteger,
 	episodeCount: nullableInteger,
+	airedEpisodeCount: nullableInteger,
 	revision,
 	createdAt: Type.Integer(),
 	updatedAt: Type.Integer(),

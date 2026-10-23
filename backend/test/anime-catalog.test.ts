@@ -47,6 +47,7 @@ function details(id = "1"): WorkDetails {
 		format: "TV",
 		status: "FINISHED",
 		episodeCount: 12,
+		nextAiringEpisode: null,
 		airingSeason: "FALL",
 		coverUrl: null,
 		description: "Original provider text",

@@ -5,6 +5,7 @@ import type { TrackingEntryResponse } from "../../../shared/api/contracts.js";
 import { Button } from "../../../shared/components/ui/button.js";
 import { Skeleton } from "../../../shared/components/ui/skeleton.js";
 import { Tooltip } from "../../../shared/components/ui/tooltip.js";
+import { sentenceViewingProgress } from "./progress-format.js";
 import { TrackingRefreshHint } from "./refresh-hint.js";
 import type { ViewingState } from "./use-viewing-state.js";
 import { ViewingEditor } from "./viewing-editor.js";
@@ -22,9 +23,11 @@ const statusStyles: Record<ViewingStatus, string> = {
 export function ViewingSummary({
 	state,
 	episodeCount,
+	airedEpisodeCount,
 }: {
 	state: ViewingState;
 	episodeCount?: number | null;
+	airedEpisodeCount?: number | null;
 }) {
 	const { t } = useTranslation();
 	if (!state.visible) return null;
@@ -56,12 +59,14 @@ export function ViewingSummary({
 						{t(`trackingList.statuses.${entry.status}`)}
 					</span>
 					<span className="tabular-nums">
-						{typeof total === "number" && total > 0
-							? t("trackingList.episodeProgress", {
-									progress: entry.progress,
-									total,
-								})
-							: t("trackingList.episodes", { count: entry.progress })}
+						{sentenceViewingProgress(
+							{
+								progress: entry.progress,
+								aired: airedEpisodeCount,
+								total,
+							},
+							t,
+						)}
 					</span>
 					<Tooltip content={t("trackingList.cumulative")} openOnClick>
 						<Button

@@ -1,4 +1,5 @@
 export { episodeViewing, episodeViewingCounts } from "./episode-viewing.js";
+export { sentenceViewingProgress } from "./progress-format.js";
 export type { TrackingIdentity } from "./queries.js";
 export {
 	accountQuery,

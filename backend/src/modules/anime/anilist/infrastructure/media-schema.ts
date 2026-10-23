@@ -26,6 +26,13 @@ export const summarySchema = Type.Object({
 });
 export const detailSchema = Type.Object({
 	...summarySchema.properties,
+	nextAiringEpisode: Type.Union([
+		Type.Object({
+			episode: Type.Integer({ minimum: 1 }),
+			airingAt: Type.Integer({ minimum: 0 }),
+		}),
+		Type.Null(),
+	]),
 	description: text,
 	bannerImage: text,
 	endDate: date,
@@ -66,7 +73,7 @@ export const pageInfo = Type.Object({
 });
 const summaryFields = `id type title { romaji english native } synonyms startDate { year month day } seasonYear format status episodes season coverImage { extraLarge large }`;
 export const queries = {
-	detail: `query AnimeDetails($id: Int!) { Media(id: $id, type: ANIME) { ${summaryFields} description(asHtml: false) bannerImage endDate { year month day } duration countryOfOrigin source(version: 3) genres tags { name rank isGeneralSpoiler isMediaSpoiler } studios(isMain: true) { nodes { id name } } averageScore siteUrl updatedAt streamingEpisodes { title url site thumbnail } } }`,
+	detail: `query AnimeDetails($id: Int!) { Media(id: $id, type: ANIME) { ${summaryFields} nextAiringEpisode { episode airingAt } description(asHtml: false) bannerImage endDate { year month day } duration countryOfOrigin source(version: 3) genres tags { name rank isGeneralSpoiler isMediaSpoiler } studios(isMain: true) { nodes { id name } } averageScore siteUrl updatedAt streamingEpisodes { title url site thumbnail } } }`,
 	relations: `query AnimeRelations($id: Int!) { Media(id: $id, type: ANIME) { relations { edges { relationType(version: 2) node { ${summaryFields} } } } } }`,
 	airing: `query AnimeAiring($id: Int!, $page: Int!, $perPage: Int!) { Media(id: $id, type: ANIME) { airingSchedule(page: $page, perPage: $perPage) { pageInfo { currentPage perPage hasNextPage } nodes { id episode airingAt } } } }`,
 };

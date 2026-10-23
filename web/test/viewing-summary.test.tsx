@@ -61,6 +61,20 @@ test("the compact summary uses the provider total and moves cumulative explanati
 	).toBe(tooltip.id);
 });
 
+test("episode progress uses aired episodes as the denominator and keeps the total in parentheses", () => {
+	render(
+		<ViewingSummary
+			state={viewing()}
+			episodeCount={12}
+			airedEpisodeCount={10}
+		/>,
+		{
+			wrapper: MemoryRouter,
+		},
+	);
+	expect(screen.getByText("8 / 10 (12) episodes")).toBeTruthy();
+});
+
 test("an unknown total never invents a denominator or hides cumulative progress", () => {
 	const state = viewing();
 	render(<ViewingSummary state={state} episodeCount={null} />, {

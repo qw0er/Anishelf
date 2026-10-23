@@ -1,12 +1,15 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { TrackingEntryResponse } from "../../../shared/api/contracts.js";
+import { compactViewingProgress } from "./progress-format.js";
 export function ViewingBadge({
 	viewing,
 	episodeCount,
+	airedEpisodeCount,
 }: {
 	viewing: { status: string; progress: number };
 	episodeCount?: number | null;
+	airedEpisodeCount?: number | null;
 }) {
 	const { t } = useTranslation();
 	return (
@@ -16,9 +19,14 @@ export function ViewingBadge({
 				{t(`trackingList.statuses.${viewing.status}`)}
 			</span>
 			<span className="tabular-nums text-muted-foreground">
-				{typeof episodeCount === "number" && episodeCount > 0
-					? `${viewing.progress} / ${episodeCount}`
-					: t("trackingList.watchedCount", { count: viewing.progress })}
+				{compactViewingProgress(
+					{
+						progress: viewing.progress,
+						aired: airedEpisodeCount,
+						total: episodeCount,
+					},
+					t,
+				)}
 			</span>
 		</p>
 	);

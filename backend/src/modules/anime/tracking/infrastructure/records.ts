@@ -224,6 +224,8 @@ export function writeTrackingListCache(
 					format: entry.format,
 					year: entry.year,
 					episodeCount: entry.episodeCount,
+					status: null,
+					nextAiringEpisode: null,
 					coverUrl: entry.coverUrl,
 				},
 				value.fetchedAt,

@@ -19,6 +19,7 @@ export function animeFixture(): LocalWorkDetailResponse {
 		format: "TV",
 		year: 2023,
 		episodeCount: 3,
+		airedEpisodeCount: 3,
 		revision: 1,
 		createdAt: 1,
 		updatedAt: 1,
@@ -81,6 +82,7 @@ export function animeFixture(): LocalWorkDetailResponse {
 				format: "TV",
 				status: "FINISHED",
 				episodeCount: 3,
+				nextAiringEpisode: null,
 				airingSeason: "FALL",
 				coverUrl:
 					"https://s4.anilist.co/file/anilistcdn/media/anime/cover/test.jpg",

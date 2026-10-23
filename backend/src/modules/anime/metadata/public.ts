@@ -15,7 +15,11 @@ import type {
 } from "./domain/model.js";
 
 export type { ProviderReference } from "./domain/model.js";
-export { MetadataError, workTitle } from "./domain/model.js";
+export {
+	airedEpisodeCount,
+	MetadataError,
+	workTitle,
+} from "./domain/model.js";
 export interface MetadataApi {
 	providers(): ProviderCapabilities[];
 	resolveReference(value: string, provider?: string): ProviderReference;

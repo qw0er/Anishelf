@@ -248,6 +248,7 @@ function projection() {
 				format: "TV",
 				year: 2025,
 				episodeCount: 12,
+				airedEpisodeCount: null,
 				revision: 1,
 				createdAt: 1,
 				updatedAt: 2,

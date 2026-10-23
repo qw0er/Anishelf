@@ -16,6 +16,29 @@ export function workTitle(
 		fallback
 	);
 }
+
+/** Derive aired regular episodes from provider status and the next scheduled episode. */
+export function airedEpisodeCount(
+	input: Pick<WorkSummary, "status" | "episodeCount" | "nextAiringEpisode">,
+	now = Date.now(),
+): number | null {
+	if (input.status === "NOT_YET_RELEASED") return 0;
+	if (input.status === "FINISHED") return input.episodeCount;
+	const next = input.nextAiringEpisode;
+	if (!next) return null;
+	const aired = Math.max(
+		0,
+		next.episode - (next.airingAt * 1000 > now ? 1 : 0),
+	);
+	return input.episodeCount === null
+		? aired
+		: Math.min(aired, input.episodeCount);
+}
+interface NextAiringEpisode {
+	episode: number;
+	airingAt: number;
+}
+
 export interface WorkSummary {
 	/** Queried provider fields explicitly returned null, including unknown lists. */
 	unavailableFields: string[];
@@ -25,6 +48,7 @@ export interface WorkSummary {
 	format: string | null;
 	status: string | null;
 	episodeCount: number | null;
+	nextAiringEpisode: NextAiringEpisode | null;
 	/** Calendar season, never a series ordinal. */
 	airingSeason: string | null;
 	coverUrl: string | null;

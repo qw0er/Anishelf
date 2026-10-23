@@ -21,7 +21,10 @@ import { AniListProvider } from "../src/modules/anime/metadata/infrastructure/an
 import { MetadataArtworkCache } from "../src/modules/anime/metadata/infrastructure/artwork.js";
 import { metadataPolicy } from "../src/modules/anime/metadata/policy.js";
 import type { CacheEntry } from "../src/modules/anime/metadata/ports.js";
-import { MetadataError } from "../src/modules/anime/metadata/public.js";
+import {
+	airedEpisodeCount,
+	MetadataError,
+} from "../src/modules/anime/metadata/public.js";
 import { createHttpApp } from "./support/http.js";
 
 const logger = pino({ enabled: false });
@@ -47,6 +50,7 @@ function media(id = 154587) {
 		format: "TV",
 		status: "FINISHED",
 		episodes: 28,
+		nextAiringEpisode: null,
 		season: "FALL",
 		coverImage: {
 			extraLarge:
@@ -205,6 +209,28 @@ test("AniList search/details normalize multilingual titles, unknowns and calenda
 		expect(init?.headers).not.toHaveProperty("Authorization");
 		expect(JSON.parse(String(init?.body)).query).toContain("type: ANIME");
 	}
+});
+
+test("details expose the next scheduled episode for aired progress", async () => {
+	const fetcher = transport();
+	fetcher.mockImplementationOnce(async () =>
+		Response.json({
+			data: {
+				Media: {
+					...media(),
+					status: "RELEASING",
+					episodes: 12,
+					nextAiringEpisode: { episode: 8, airingAt: 1700000000 },
+				},
+			},
+		}),
+	);
+	const { application } = await setup(fetcher);
+	const detail = (await application.get(reference)).data;
+	expect(detail.nextAiringEpisode).toEqual({
+		episode: 8,
+		airingAt: 1700000000,
+	});
 });
 
 test("fresh cache survives database restart and returned values are independent", async () => {
@@ -979,6 +1005,28 @@ test.each([
 	},
 );
 
+test("legacy detail snapshots missing nextAiringEpisode refresh to backfill aired progress", async () => {
+	let now = 1000;
+	const fetcher = vi.fn<typeof fetch>(async () =>
+		Response.json({ data: { Media: media() } }),
+	);
+	const { application, database } = await setup(fetcher, () => now);
+	const first = await application.get(reference);
+	const entry = database.metadata.get(first.snapshotId);
+	if (!entry) throw new Error("Missing cached detail");
+	const { nextAiringEpisode: _removed, ...legacy } = entry.data as Record<
+		string,
+		unknown
+	>;
+	database.metadata.save({ ...entry, data: legacy });
+	now = first.fetchedAt + 1000;
+	expect((await application.get(reference)).stale).toBe(true);
+	await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+	const refreshed = await application.get(reference);
+	expect(refreshed.stale).toBe(false);
+	expect(refreshed.data.nextAiringEpisode).toBeNull();
+});
+
 test("persisted releasing snapshots with the former 24-hour expiry use the new six-hour policy", async () => {
 	let now = 1000;
 	const fetcher = vi.fn<typeof fetch>(async () =>
@@ -1038,4 +1086,46 @@ test("manual lookup delegates provider ID and URL parsing to the configured adap
 	} finally {
 		await app.close();
 	}
+});
+
+test("aired episode count uses provider status and the next scheduled episode", () => {
+	const now = 1_000_000;
+	expect(
+		airedEpisodeCount(
+			{
+				status: "RELEASING",
+				episodeCount: 12,
+				nextAiringEpisode: { episode: 8, airingAt: now / 1000 + 60 },
+			},
+			now,
+		),
+	).toBe(7);
+	expect(
+		airedEpisodeCount(
+			{
+				status: "RELEASING",
+				episodeCount: 12,
+				nextAiringEpisode: { episode: 8, airingAt: now / 1000 - 60 },
+			},
+			now,
+		),
+	).toBe(8);
+	expect(
+		airedEpisodeCount(
+			{ status: "FINISHED", episodeCount: 12, nextAiringEpisode: null },
+			now,
+		),
+	).toBe(12);
+	expect(
+		airedEpisodeCount(
+			{ status: "NOT_YET_RELEASED", episodeCount: 12, nextAiringEpisode: null },
+			now,
+		),
+	).toBe(0);
+	expect(
+		airedEpisodeCount(
+			{ status: "HIATUS", episodeCount: 12, nextAiringEpisode: null },
+			now,
+		),
+	).toBeNull();
 });

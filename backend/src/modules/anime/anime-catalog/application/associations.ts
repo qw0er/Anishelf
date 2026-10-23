@@ -221,6 +221,7 @@ export class AssociationApplication {
 						format: null,
 						year: null,
 						episodeCount: null,
+						airedEpisodeCount: null,
 						revision: 0,
 						createdAt: now,
 						updatedAt: now,

@@ -44,6 +44,7 @@ function summary(raw: AniListMediaSummary): WorkSummary {
 		format: raw.format,
 		status: raw.status,
 		episodeCount: raw.episodes,
+		nextAiringEpisode: null,
 		airingSeason: raw.season,
 		coverUrl: raw.coverImage?.extraLarge ?? raw.coverImage?.large ?? null,
 	};
@@ -125,6 +126,12 @@ export class AniListProvider implements MetadataProvider {
 		const media = result.data;
 		const data: WorkDetails = {
 			...summary(media),
+			nextAiringEpisode: media.nextAiringEpisode
+				? {
+						episode: media.nextAiringEpisode.episode,
+						airingAt: media.nextAiringEpisode.airingAt,
+					}
+				: null,
 			description: media.description,
 			bannerUrl: media.bannerImage,
 			startDate: media.startDate,
