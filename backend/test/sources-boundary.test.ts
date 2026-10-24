@@ -47,12 +47,13 @@ async function fixture() {
 		uri: `magnet:?xt=urn:btih:${hash}`,
 	});
 	const logs: string[] = [];
+	let clock = 1000;
 	const module = await createSourcesModule({
 		dataDir: directory,
 		store: database.acquisition,
 		logger: pino({ level: "debug" }, { write: (line) => logs.push(line) }),
 		transport: { fetch, close: async () => {} },
-		now: () => 1000,
+		now: () => clock,
 	});
 	cleanup.push(() => module.runtime.close());
 	const connector = await module.api.connector.save({
@@ -62,7 +63,18 @@ async function fixture() {
 		origin: "external",
 		providers: ["example"],
 	});
-	return { module, database, fetch, search, logs, connector };
+	return {
+		module,
+		database,
+		fetch,
+		search,
+		logs,
+		connector,
+		advance: (milliseconds = 3600000) => {
+			clock += milliseconds;
+		},
+		now: () => clock,
+	};
 }
 
 test.each(["feed", "search"] as const)(
@@ -100,6 +112,10 @@ test.each(["feed", "search"] as const)(
 		expect(f.fetch.mock.calls.length + f.search.mock.calls.length).toBe(count);
 		expect(f.database.acquisition.sources()).toEqual([]);
 		expect(initial).toMatchObject({ checkedAt: null, entries: [] });
+		const reused = await f.module.api.fetch(input);
+		expect(reused.snapshot.entries).toHaveLength(1);
+		expect(f.fetch.mock.calls.length + f.search.mock.calls.length).toBe(count);
+		f.advance();
 		if (kind === "feed")
 			f.fetch.mockRejectedValueOnce(new SourceError("upstream_failure"));
 		else f.search.mockRejectedValueOnce(new SourceError("upstream_failure"));
@@ -109,8 +125,16 @@ test.each(["feed", "search"] as const)(
 		expect(f.module.api.snapshot(input)).toMatchObject({
 			checkedAt: null,
 			error: "upstream_failure",
-			nextAttemptAt: 121000,
+			nextAttemptAt: f.now() + 120000,
 		});
+		const failedCount = f.fetch.mock.calls.length + f.search.mock.calls.length;
+		await expect(f.module.api.fetch(input)).rejects.toMatchObject({
+			code: "upstream_failure",
+		});
+		expect(f.fetch.mock.calls.length + f.search.mock.calls.length).toBe(
+			failedCount,
+		);
+		f.advance(120000);
 		const prepared = await f.module.api.fetch(input);
 		const unpublished = f.module.api.snapshot(id);
 		expect(unpublished).toMatchObject({ checkedAt: null, entries: [] });
@@ -142,6 +166,7 @@ test.each(["feed", "search"] as const)(
 		expect(
 			await f.module.api.readContent(reference, new AbortController().signal),
 		).toMatchObject({ kind: "magnet" });
+		f.advance();
 		if (kind === "feed")
 			f.fetch.mockRejectedValueOnce(new SourceError("upstream_failure"));
 		else f.search.mockRejectedValueOnce(new SourceError("upstream_failure"));
@@ -150,9 +175,9 @@ test.each(["feed", "search"] as const)(
 		});
 		expect(f.module.api.snapshot(id)).toMatchObject({
 			entries: prepared.snapshot.entries,
-			checkedAt: 1000,
+			checkedAt: prepared.snapshot.checkedAt,
 			error: "upstream_failure",
-			nextAttemptAt: 121000,
+			nextAttemptAt: f.now() + 120000,
 		});
 		expect(f.logs.join("")).not.toMatch(
 			/private-api-key|private-feed-key|private-validator/,

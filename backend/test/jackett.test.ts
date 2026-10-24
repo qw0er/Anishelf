@@ -38,7 +38,7 @@ const page = (
 	response = '<torznab:response offset="0" total="1"/>',
 ) =>
 	`<rss version="2.0" xmlns:torznab="http://torznab.com/schemas/2015/feed"><channel>${response}${items}</channel></rss>`;
-function wire() {
+function wire(options: { now?: () => number } = {}) {
 	const agent = new MockAgent();
 	agent.disableNetConnect();
 	const transport = new JackettTransport(
@@ -62,7 +62,7 @@ function wire() {
 		pool,
 		transport,
 		api,
-		client: new JackettClient(transport, new SourceRequestGate(0)),
+		client: new JackettClient(transport, new SourceRequestGate(0), options),
 	};
 }
 const plan = {
@@ -76,6 +76,16 @@ test("Torznab normalizes zero versus unknown counts and season-preserving titles
 	expect(
 		titleQueries([" Example Season 2 ", "Example Season 2", "Example II"]),
 	).toEqual(["Example Season 2", "Example II"]);
+	expect(
+		titleQueries([
+			" Ｅｘａｍｐｌｅ   Season 2 ",
+			"example season 2",
+			"Example II",
+		]),
+	).toEqual(["Example Season 2", "Example II"]);
+	expect(() => titleQueries(["Example\nSeason 2"])).toThrow(
+		expect.objectContaining({ code: "invalid_query" }),
+	);
 	const result = releases(
 		page(item("one")),
 		{ id: "example", generation: "g" },
@@ -135,8 +145,9 @@ test("bounded pagination de-duplicates aliases and detects a repeated page", asy
 	});
 	f.agent.assertNoPendingInterceptors();
 });
-test("no match is successful; missing pagination is limited; caps alone never searches", async () => {
-	const f = wire();
+test("empty search is cached briefly; missing pagination remains limited after expiry", async () => {
+	let now = 1000;
+	const f = wire({ now: () => now });
 	f.api({ t: "caps" }, caps);
 	await f.client.capabilities("example", signal());
 	f.api(
@@ -144,6 +155,8 @@ test("no match is successful; missing pagination is limited; caps alone never se
 		page("", ""),
 	);
 	expect((await f.client.search(plan, signal())).outcome).toBe("no_match");
+	expect((await f.client.search(plan, signal())).outcome).toBe("no_match");
+	now += 5 * 60_000;
 	f.api(
 		{ t: "search", q: "Example Season 2", limit: "2", offset: "0" },
 		page(item("one"), ""),
@@ -151,6 +164,128 @@ test("no match is successful; missing pagination is limited; caps alone never se
 	expect((await f.client.search(plan, signal())).coverage.reason).toBe(
 		"missing_pagination",
 	);
+	f.agent.assertNoPendingInterceptors();
+});
+
+test("concurrent equivalent searches share capabilities and pages without renewing observations", async () => {
+	let now = 1000;
+	const f = wire({ now: () => now });
+	f.api({ t: "caps" }, caps).delay(10);
+	f.api(
+		{ t: "search", q: "Example Season 2", limit: "2", offset: "0" },
+		page(item("one")),
+	).delay(10);
+	const [first, second] = await Promise.all([
+		f.client.search(plan, signal()),
+		f.client.search(plan, signal()),
+	]);
+	expect(first).toEqual(second);
+	expect(first.entries[0]?.seedersObservedAt).toBe(1000);
+	if (first.entries[0]?.download?.kind === "magnet")
+		first.entries[0].download.uri = "mutated";
+	now += 9 * 60_000;
+	const cached = await f.client.search(
+		{ ...plan, titles: ["example  season 2", "Ｅｘａｍｐｌｅ Season 2"] },
+		signal(),
+	);
+	expect(cached.entries[0]).toMatchObject({
+		seedersObservedAt: 1000,
+		download: { kind: "magnet", uri: magnet },
+	});
+	f.api(
+		{ t: "search", q: "Example Season 2", limit: "2", offset: "0" },
+		page(item("one")),
+	);
+	now += 60_000;
+	expect((await f.client.search(plan, signal())).entries[0]).toMatchObject({
+		seedersObservedAt: now,
+	});
+	f.agent.assertNoPendingInterceptors();
+});
+
+test("business acceptance stops progressive search and later full collection completes coverage", async () => {
+	const f = wire();
+	f.api({ t: "caps" }, caps);
+	f.api(
+		{ t: "search", q: "Example Season 2", limit: "2", offset: "0" },
+		page(
+			"<item><title>Example Episode 1</title><guid>one</guid></item>",
+			'<torznab:response offset="0" total="2"/>',
+		),
+	);
+	const input = { ...plan, titles: [...plan.titles, "Example II"] };
+	const accepted = await f.client.search(input, signal(), (entries) =>
+		entries.some((entry) => entry.title === "Example Episode 1"),
+	);
+	expect(accepted.coverage).toEqual({
+		limited: true,
+		reason: "accepted",
+		pages: 1,
+		queries: 1,
+	});
+	// A full collection reuses the accepted page, then reads the remaining page and alias.
+	f.api(
+		{ t: "search", q: "Example Season 2", limit: "2", offset: "1" },
+		page(
+			"<item><title>Example Episode 2</title><guid>two</guid></item>",
+			'<torznab:response offset="1" total="2"/>',
+		),
+	);
+	f.api(
+		{ t: "search", q: "Example II", limit: "2", offset: "0" },
+		page("", '<torznab:response offset="0" total="0"/>'),
+	);
+	const full = await f.client.search(input, signal());
+	expect(full.entries).toHaveLength(2);
+	expect(full.coverage).toEqual({
+		limited: false,
+		reason: null,
+		pages: 3,
+		queries: 2,
+	});
+	f.agent.assertNoPendingInterceptors();
+});
+
+test("nonempty unrelated pages do not stop progressive search", async () => {
+	const f = wire();
+	f.api({ t: "caps" }, caps);
+	f.api(
+		{ t: "search", q: "Example Season 2", limit: "2", offset: "0" },
+		page("<item><title>Unrelated</title><guid>one</guid></item>"),
+	);
+	f.api(
+		{ t: "search", q: "Example II", limit: "2", offset: "0" },
+		page("<item><title>Expected</title><guid>two</guid></item>"),
+	);
+	const result = await f.client.search(
+		{ ...plan, titles: [...plan.titles, "Example II"] },
+		signal(),
+		(entries) => entries.some((entry) => entry.title === "Expected"),
+	);
+	expect(result.entries).toHaveLength(2);
+	expect(result.coverage.queries).toBe(2);
+	f.agent.assertNoPendingInterceptors();
+});
+
+test("failed capability or page responses are never cached", async () => {
+	const f = wire();
+	f.api({ t: "caps" }, "<caps>");
+	await expect(f.client.search(plan, signal())).rejects.toMatchObject({
+		code: "malformed_response",
+	});
+	f.api({ t: "caps" }, caps);
+	f.api(
+		{ t: "search", q: "Example Season 2", limit: "2", offset: "0" },
+		"<rss>",
+	);
+	await expect(f.client.search(plan, signal())).rejects.toMatchObject({
+		code: "malformed_response",
+	});
+	f.api(
+		{ t: "search", q: "Example Season 2", limit: "2", offset: "0" },
+		page(item("one")),
+	);
+	expect((await f.client.search(plan, signal())).entries).toHaveLength(1);
 	f.agent.assertNoPendingInterceptors();
 });
 
@@ -265,22 +400,34 @@ test("public torrent redirects use RSS transport without Jackett credentials", a
 	publicAgent.assertNoPendingInterceptors();
 });
 
-test("shared gate bounds RSS plus Jackett concurrency and serializes each indexer", async () => {
+test("shared gate queues excess RSS plus Jackett work and serializes each indexer", async () => {
 	const gate = new SourceRequestGate(0);
+	const started: string[] = [];
 	let finish!: () => void;
 	const pending = new Promise<void>((resolve) => {
 		finish = resolve;
 	});
-	const a = gate.run("jackett:example", signal(), () => pending),
-		b = gate.run(null, signal(), () => pending);
-	await expect(gate.run(null, signal(), async () => {})).rejects.toThrow(
-		expect.objectContaining({ code: "source_busy" }),
+	const a = gate.run("jackett:example", signal(), () => {
+		started.push("first-indexer");
+		return pending;
+	});
+	const b = gate.run(null, signal(), () => {
+		started.push("rss");
+		return pending;
+	});
+	const c = gate.run(null, signal(), async () => started.push("queued-rss"));
+	const d = gate.run("jackett:example", signal(), async () =>
+		started.push("queued-indexer"),
 	);
-	await expect(
-		gate.run("jackett:example", signal(), async () => {}),
-	).rejects.toThrow(expect.objectContaining({ code: "source_busy" }));
+	expect(started).toEqual(["first-indexer", "rss"]);
 	finish();
-	await Promise.all([a, b]);
+	await Promise.all([a, b, c, d]);
+	expect(started).toEqual([
+		"first-indexer",
+		"rss",
+		"queued-rss",
+		"queued-indexer",
+	]);
 	await expect(gate.run(null, signal(), async () => "ok")).resolves.toBe("ok");
 });
 

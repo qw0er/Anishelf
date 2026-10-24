@@ -71,14 +71,17 @@ export class PendingSubscriptions {
 			);
 		};
 		let discovery = sub.discovery;
-		const retain = (reason: string) => {
+		const retain = (reason: string, retryAt = 0) => {
 			if (!current()) return;
 			options.store.saveSubscription(
 				{
 					...sub,
 					lastError: reason,
 					...(discovery ? { discovery } : {}),
-					automatic: { ...scope, retryAt: this.context.now() + 300000 },
+					automatic: {
+						...scope,
+						retryAt: Math.max(this.context.now() + 300000, retryAt),
+					},
 				},
 				[],
 			);
@@ -111,6 +114,20 @@ export class PendingSubscriptions {
 			}
 			discovery = { checkedAt: this.context.now(), attempts: result.attempts };
 			if (!result.source) {
+				const limited =
+					result.attempts.length > 0 &&
+					result.attempts.every((attempt) => attempt.code === "rate_limited");
+				if (limited) {
+					retain(
+						"rate_limited",
+						Math.min(
+							...result.attempts.map(
+								(attempt) => attempt.retryAt ?? this.context.now() + 300000,
+							),
+						),
+					);
+					return;
+				}
 				retain(
 					result.attempts.some((attempt) => attempt.outcome === "unavailable")
 						? "discovery_unavailable"

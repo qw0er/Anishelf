@@ -14,6 +14,8 @@ interface FeedResponse {
 }
 
 export interface FeedTransport {
+	/** Admission is owned by the transport, including redirected requests. */
+	readonly requestGate?: SourceRequestGate | undefined;
 	fetch(
 		url: string,
 		validators: { etag: string | null; lastModified: string | null },

@@ -250,7 +250,7 @@ and [selection profiles](../guide/acquisition-profiles.md) cover configuration.
 | Public operation | Purpose |
 | --- | --- |
 | `snapshot` | Read saved evidence or describe a pending definition without network writes |
-| `fetch` | Prepare evidence and return a snapshot plus synchronous commit capability |
+| `fetch` | Reuse fresh evidence or collect it, then return a snapshot plus synchronous commit capability |
 | `readContent` / `isContentCurrent` | Resolve accepted magnet/torrent content and validate its reference |
 | `test` | Diagnose a source without publishing candidates or permission |
 | `connector` | Configure connection, selected providers and capability probes |
@@ -265,6 +265,47 @@ RSS and Jackett adapters, credentials, raw locators and runtime scheduling remai
 private to Sources. Downloads and Subscriptions share one `SourcesApi`. Connector
 changes fence old search bindings and unsent references. Existing submitted tasks
 can reconcile without a live source service.
+
+### Outbound collection budgets and reuse
+
+Sources uses the platform outbound scheduler (`p-queue`) with two global network
+slots, bounded waiting and keyed serialization. RSS uses a five-second minimum
+dispatch interval per origin. Jackett uses a ten-second connection and site budget
+across search, capability probes, torrent retrieval and bundled management. Redirects
+are admitted independently; public torrent redirects retain their Jackett budgets.
+A permit covers the response body, not merely its headers. Queued requests recheck
+cancellation and remote cooldown before dispatch. AniList retains its separate SDK
+limiter and service-specific response-header policy.
+
+HTTP 429, retryable 503 and Torznab XML throttle responses apply `Retry-After`
+cooldown to the applicable buckets. `acquisition/source-cooldowns.json` persists
+only opaque bucket hashes and deadlines, so reconnecting or restarting does not
+reset a known upstream cooldown. Expired records are removed; unreadable state
+briefly defers collection. Local queue pressure and consumer assessment failures
+do not increase a source's upstream failure counter. Normal source refresh and
+explicit checks share freshness/cooldown admission; checks can reevaluate cached
+evidence without sending a new upstream request.
+
+Prepared and published evidence is reused for the configured refresh interval
+(default 30 minutes); empty results are reusable for at most five minutes. Prepared
+reuse is bounded to 64 sources / 10,000 entries and preserves source revision and
+connection fences. Diagnostic/discovery results remain uncommitted until an
+ordinary candidate transaction publishes them. Every cache hit still runs the
+consumer's current local/profile assessment and permission checks.
+
+Jackett raw pages have bounded, connection-scoped caches (10 minutes for matches,
+five for empty pages, at most 128 pages / 10 MiB); capability results last 15 minutes.
+Identical in-flight requests coalesce, and canceling one reader leaves other
+readers running. Discovery evaluates pages progressively and stops only after
+business acceptance; partial coverage is explicit. Full recurring collection does
+not treat those partial snapshots as complete, but reuses their raw pages. RSS
+continues conditional ETag/Last-Modified requests and retains evidence on 304.
+Torrent contents share a separate bounded 10-minute cache (64 entries / 32 MiB),
+with connection/authorization validation before reuse and independent cancellation.
+
+Structured `network.request_*`, `acquisition.source_cache_hit` and
+`acquisition.jackett_query_cache` events distinguish queueing, dispatch, cooldown
+and reuse without logging credentials or private locators.
 
 ### Task execution and recovery
 

@@ -220,7 +220,11 @@ export function DownloadActivityPanel({
 						) : onCheckUpdates && view.subscription.enabled ? (
 							<Button
 								variant="outline"
-								disabled={checking}
+								disabled={
+									checking ||
+									(view.subscription.error === "rate_limited" &&
+										view.subscription.nextAttemptAt > Date.now())
+								}
 								onClick={onCheckUpdates}
 							>
 								{t("acquisition.subscription.checkNow")}

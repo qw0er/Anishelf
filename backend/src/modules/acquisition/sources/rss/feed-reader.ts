@@ -16,7 +16,8 @@ export class FeedReader {
 		this.context.open();
 		const fetch = () =>
 			this.options.transport.fetch(feed.url, feed, this.context.signal);
-		const response = await (this.options.gate
+		const response = await (this.options.gate &&
+		this.options.transport.requestGate !== this.options.gate
 			? this.options.gate.run(null, this.context.signal, fetch)
 			: fetch());
 		if (response.xml === null && feed.checkedAt === null)

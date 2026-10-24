@@ -56,6 +56,7 @@ const DiscoveryAttemptSchema = Type.Object({
 		Type.Literal("unavailable"),
 	]),
 	code: Type.Union([Type.String(), Type.Null()]),
+	retryAt: Type.Optional(Type.Number()),
 	limited: Type.Boolean(),
 });
 export const SubscriptionViewSchema = Type.Object({

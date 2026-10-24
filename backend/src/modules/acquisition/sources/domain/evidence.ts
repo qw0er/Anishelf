@@ -17,6 +17,7 @@ export interface ReleaseEvidence extends ReleaseAttributes {
 export interface SearchCoverage {
 	limited: boolean;
 	reason:
+		| "accepted"
 		| "page_limit"
 		| "repeated_page"
 		| "missing_pagination"

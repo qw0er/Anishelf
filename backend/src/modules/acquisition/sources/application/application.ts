@@ -8,6 +8,7 @@ import type { SourceLifecycleStore } from "../infrastructure/store.js";
 import { JackettSource } from "../jackett/application.js";
 import type { JackettConnection } from "../jackett/connection.js";
 import type {
+	SourceFetchOptions,
 	SourceInput,
 	SourcePublication,
 	SourceSnapshot,
@@ -18,6 +19,13 @@ import { RssTransport } from "../rss/transport.js";
 import { SourceContent, type SourceTorrentTransport } from "./content.js";
 import { SourceContext } from "./context.js";
 import { SourceScheduler } from "./scheduler.js";
+
+/** Consumer cancellation/assessment failure must not be recorded as upstream health. */
+class SourceDecisionError extends Error {
+	constructor(readonly decisionError: unknown) {
+		super("Source consumer evaluation failed.");
+	}
+}
 
 export interface SourcesApplicationOptions {
 	rss: RssSourceOptions;
@@ -41,6 +49,10 @@ export class SourcesApplication {
 		{ read: SourceRead; previousRevision: string | null }
 	>();
 	private readonly fetching = new Map<string, Promise<SourceSnapshot>>();
+	private readonly reusable = new Map<
+		string,
+		{ read: SourceRead; previousRevision: string | null }
+	>();
 	private scheduler: SourceScheduler | undefined;
 	private closing: Promise<void> | undefined;
 	constructor(private readonly options: SourcesApplicationOptions) {
@@ -63,6 +75,7 @@ export class SourcesApplication {
 			this.context.signal,
 			options.logger,
 			(id) => this.evidence.read(id),
+			() => this.context.now(),
 		);
 	}
 	snapshot(input: SourceInput | string): SourceSnapshot | null {
@@ -148,23 +161,140 @@ export class SourcesApplication {
 			? this.rss.createReference(binding.url)
 			: this.query.reference(binding.plan);
 	}
-	async refresh(reference: SourceReference): Promise<SourceSnapshot> {
+	private prepare(
+		read: SourceRead,
+		previousRevision = this.evidence.read(read.record.id)?.revision ?? null,
+	): SourceSnapshot {
+		const result = this.project(read.record);
+		this.prepared.set(result, { read, previousRevision });
+		return result;
+	}
+	private usable(record: SourceRead["record"], options: SourceFetchOptions) {
+		const age = record.entries.length
+			? this.context.refreshIntervalMs()
+			: Math.min(this.context.refreshIntervalMs(), 5 * 60_000);
+		if (
+			record.checkedAt === null ||
+			record.error ||
+			record.checkedAt + age <= this.context.now()
+		)
+			return false;
+		return (
+			record.coverage?.reason !== "accepted" ||
+			Boolean(options.accept?.(this.project(record)))
+		);
+	}
+	private remember(read: SourceRead, previousRevision: string | null) {
+		this.reusable.delete(read.record.id);
+		this.reusable.set(read.record.id, { read, previousRevision });
+		let entries = [...this.reusable.values()].reduce(
+			(count, value) => count + value.read.record.entries.length,
+			0,
+		);
+		while (this.reusable.size > 64 || entries > 10_000) {
+			const first = this.reusable.entries().next().value;
+			if (!first) break;
+			this.reusable.delete(first[0]);
+			entries -= first[1].read.record.entries.length;
+		}
+	}
+	/** Collection cache never grants permission: every consumer must still commit its own candidate transaction. */
+	async collect(
+		reference: SourceReference,
+		options: SourceFetchOptions = {},
+	): Promise<SourceSnapshot> {
+		this.context.open();
+		const plan = this.query.plan(reference);
+		if (!plan) this.rss.configuration(reference);
+		const saved = this.evidence.read(reference.id);
+		if (saved?.error && saved.nextAttemptAt > this.context.now())
+			throw new SourceError(saved.error, saved.nextAttemptAt);
+		const cached = this.reusable.get(reference.id);
+		const cachedCurrent =
+			cached &&
+			(saved?.revision === cached.previousRevision ||
+				saved?.revision === cached.read.record.revision ||
+				(cached.previousRevision === null &&
+					(!saved || (saved.checkedAt === null && !saved.error))));
+		const cachedUsable =
+			cachedCurrent &&
+			cached.read.valid() &&
+			this.usable(cached.read.record, options);
+		if (
+			cached &&
+			cachedUsable &&
+			(cached.read.record.checkedAt ?? 0) >= (saved?.checkedAt ?? 0)
+		) {
+			this.options.logger.debug(
+				{
+					event: "acquisition.source_cache_hit",
+					sourceId: reference.id,
+					prepared: true,
+				},
+				"Prepared source evidence reused.",
+			);
+			return this.prepare(cached.read);
+		}
+		if (cached && !cachedUsable) this.reusable.delete(reference.id);
+		if (saved && this.usable(saved, options)) {
+			const read: SourceRead = {
+				record: saved,
+				generation: plan?.generation ?? null,
+				valid: () =>
+					!this.context.signal.aborted &&
+					(!plan || this.query.current(plan.generation)) &&
+					this.evidence.read(saved.id)?.revision === saved.revision,
+				persist: () => {},
+			};
+			this.options.logger.debug(
+				{
+					event: "acquisition.source_cache_hit",
+					sourceId: reference.id,
+					prepared: false,
+				},
+				"Published source evidence reused.",
+			);
+			return this.prepare(read);
+		}
+		return this.refresh(reference, options);
+	}
+	async refresh(
+		reference: SourceReference,
+		options: SourceFetchOptions = {},
+	): Promise<SourceSnapshot> {
 		this.context.open();
 		// Validate provenance before coalescing: another instance cannot borrow an in-flight reference.
 		const query = Boolean(this.query.plan(reference));
 		if (!query) this.rss.configuration(reference);
 		const current = this.fetching.get(reference.id);
-		if (current) return current;
-		if (this.fetching.size >= 2) throw new SourceError("source_busy");
+		if (current) {
+			let result: SourceSnapshot;
+			try {
+				result = await current;
+			} catch (error) {
+				// A caller's acceptance/identity decision cannot fail another consumer.
+				if (error instanceof SourceDecisionError)
+					return this.refresh(reference, options);
+				throw error;
+			}
+			if (result.coverage?.reason !== "accepted" || options.accept?.(result))
+				return result;
+			return this.refresh(reference, options);
+		}
+		if (this.fetching.size >= 32) throw new SourceError("source_busy");
 		const previousRevision = this.evidence.read(reference.id)?.revision ?? null;
 		const task = (async () => {
 			const read = await (query
-				? this.query.refresh(reference)
+				? this.query.refresh(
+						reference,
+						options.accept
+							? (record) => options.accept?.(this.project(record)) ?? false
+							: undefined,
+					)
 				: this.rss.refresh(reference));
 			this.context.open();
-			const result = this.project(read.record);
-			this.prepared.set(result, { read, previousRevision });
-			return result;
+			this.remember(read, previousRevision);
+			return this.prepare(read, previousRevision);
 		})();
 		this.fetching.set(reference.id, task);
 		void task.finally(() => this.fetching.delete(reference.id)).catch(() => {});
@@ -200,7 +330,10 @@ export class SourcesApplication {
 			"Source evidence published.",
 		);
 	}
-	async fetch(input: SourceInput | string): Promise<SourcePublication> {
+	async fetch(
+		input: SourceInput | string,
+		options: SourceFetchOptions = {},
+	): Promise<SourcePublication> {
 		const reference =
 			typeof input === "string"
 				? this.reference(input)
@@ -209,17 +342,37 @@ export class SourcesApplication {
 		this.bind(reference);
 		const previous = this.snapshot(reference.id);
 		try {
-			const result = await this.refresh(reference);
+			const result = await this.collect(
+				reference,
+				options.accept
+					? {
+							accept: (snapshot) => {
+								try {
+									return options.accept?.(snapshot) ?? false;
+								} catch (error) {
+									throw new SourceDecisionError(error);
+								}
+							},
+						}
+					: options,
+			);
 			return Object.freeze({
 				snapshot: result,
 				commit: (writeCandidates: () => void) =>
 					this.publish(result, writeCandidates),
 			});
 		} catch (error) {
+			if (error instanceof SourceDecisionError) throw error.decisionError;
 			if (
 				previous &&
 				!this.context.signal.aborted &&
-				!(error instanceof SourceError && error.code === "source_conflict")
+				!(
+					error instanceof SourceError &&
+					["source_conflict", "source_busy", "request_cancelled"].includes(
+						error.code,
+					)
+				) &&
+				!(previous.error && previous.nextAttemptAt > this.context.now())
 			)
 				this.evidence.failed(
 					previous,
@@ -271,6 +424,7 @@ export class SourcesApplication {
 	close() {
 		this.closing ??= (async () => {
 			this.context.shutdown.abort();
+			this.reusable.clear();
 			await Promise.allSettled([
 				this.rss.close(),
 				this.downloads.close(),

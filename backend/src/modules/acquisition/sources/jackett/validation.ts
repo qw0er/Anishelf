@@ -25,14 +25,26 @@ export function indexerId(input: string): string {
 	return input;
 }
 export function titleQueries(values: readonly string[]): string[] {
-	if (!values.length || values.length > 4)
+	if (
+		!values.length ||
+		values.length > 4 ||
+		values.some((value) => /[\r\n\0]/.test(value))
+	)
 		throw new SourceError("invalid_query");
-	const titles = values.map((value) => value.normalize("NFKC").trim());
+	const titles = values.map((value) =>
+		value.normalize("NFKC").trim().replace(/\s+/g, " "),
+	);
 	if (
 		titles.some(
 			(title) => !title || title.length > 256 || /[\r\n\0]/.test(title),
 		)
 	)
 		throw new SourceError("invalid_query");
-	return [...new Set(titles)];
+	const seen = new Set<string>();
+	return titles.filter((title) => {
+		const key = title.toLowerCase();
+		if (seen.has(key)) return false;
+		seen.add(key);
+		return true;
+	});
 }

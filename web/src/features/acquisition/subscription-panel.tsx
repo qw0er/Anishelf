@@ -54,6 +54,8 @@ export function SubscriptionPanel({
 	const view = query.data?.subscription,
 		sub = view?.subscription;
 	const activity = query.data?.downloads;
+	const cooling =
+		sub?.error === "rate_limited" && sub.nextAttemptAt > Date.now();
 	const needsAttention =
 		query.isError ||
 		(activity?.attention ?? 0) > 0 ||
@@ -64,7 +66,11 @@ export function SubscriptionPanel({
 			? "acquisition.subscription.subscribed"
 			: "acquisition.subscription.notSubscribed",
 	);
-	if (needsAttention) summary = t("acquisition.activity.needsAttention");
+	if (cooling)
+		summary = t("acquisition.subscription.cooldownUntil", {
+			time: new Date(sub.nextAttemptAt).toLocaleString(i18n.language),
+		});
+	else if (needsAttention) summary = t("acquisition.activity.needsAttention");
 	else if (activity?.active)
 		summary = t("acquisition.activity.activeCount", { count: activity.active });
 	else if (sub && !sub.enabled) summary = t("acquisition.subscription.paused");
@@ -197,7 +203,7 @@ export function SubscriptionPanel({
 									{t("acquisition.subscription.edit")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
-									disabled={!sub.enabled}
+									disabled={!sub.enabled || cooling}
 									onClick={() => action.mutate("refresh")}
 								>
 									{t("acquisition.subscription.checkNow")}
