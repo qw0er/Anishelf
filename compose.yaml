@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 15s
     environment:
-      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:${ANISHELF_PORT:-3000}}
+      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:3000}
       # Trust only proxies on this private container network; keep Backend unpublished.
       ANISHELF_TRUSTED_PROXIES: ${ANISHELF_TRUSTED_PROXIES:-loopback,uniquelocal}
       ANISHELF_DATA_DIR: /data/app
@@ -46,7 +46,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 15s
     environment:
-      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:${ANISHELF_PORT:-3000}}
+      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:3000}
     ports:
       - "${ANISHELF_BIND_ADDRESS:-127.0.0.1}:${ANISHELF_PORT:-3000}:8080"
     depends_on:

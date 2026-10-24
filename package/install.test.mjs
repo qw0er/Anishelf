@@ -774,3 +774,21 @@ test("Testing Quadlet coexists with production and removes only testing units", 
 		),
 	);
 });
+
+test("Compose origins avoid nested defaults rejected by podman-compose", async () => {
+	for (const template of [
+		new URL("../compose.yaml", import.meta.url),
+		new URL("./deploy/compose.yaml", import.meta.url),
+	]) {
+		const yaml = await readFile(template, "utf8");
+		assert.doesNotMatch(yaml, /\$\{[^}]*\$\{/);
+		const config = parse(yaml);
+		for (const service of ["backend", "web"]) {
+			assert.equal(
+				config.services[service].environment.ANISHELF_PUBLIC_ORIGIN,
+				// biome-ignore lint/suspicious/noTemplateCurlyInString: literal Compose configuration
+				"${ANISHELF_PUBLIC_ORIGIN:-http://localhost:3000}",
+			);
+		}
+	}
+});
