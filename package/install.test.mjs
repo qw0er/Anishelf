@@ -32,6 +32,11 @@ async function fixture(t, engines = ["docker", "podman"]) {
 const fs = require('node:fs'); const path = require('node:path');
 const name = path.basename(process.argv[1]); const args = process.argv.slice(2);
 fs.appendFileSync(process.env.INSTALL_TEST_TRACE, JSON.stringify({name,args,tag:process.env.ANISHELF_TAG??null})+'\\n');
+if(name==='mv') {
+ if(args[0]==='--version') { console.log('mv (GNU coreutils) fixture'); process.exit(0); }
+ if(args[0]==='-T') { fs.renameSync(args.at(-2),args.at(-1)); process.exit(0); }
+ const result=require('node:child_process').spawnSync('/bin/mv',args,{stdio:'inherit'}); process.exit(result.status??1);
+}
 if(name==='getenforce') console.log(process.env.INSTALL_TEST_SELINUX??'Disabled');
 if(name==='uname') console.log('Linux');
 if(name==='id') console.log(args[0]==='-un'?'fixture-user':process.env.INSTALL_TEST_UID??'1001');
@@ -56,6 +61,7 @@ if(name==='curl') {
 		"getenforce",
 		"loginctl",
 		"sleep",
+		"mv",
 	]) {
 		await writeFile(join(bin, name), implementation, { mode: 0o700 });
 	}
@@ -64,7 +70,6 @@ if(name==='curl') {
 		"cp",
 		"mkdir",
 		"sed",
-		"mv",
 		"rm",
 		"cat",
 		"mktemp",
@@ -673,5 +678,99 @@ test("Quadlet explicitly pulls every selected image once before installing or re
 	);
 	assert.ok(
 		(await stat(join(f.target, "quadlet/anishelf-backend.container"))).isFile(),
+	);
+});
+
+test("Testing Compose isolates all volumes and retains its identity during removal", async (t) => {
+	const f = await fixture(t, ["docker"]);
+	success(
+		f.run(`${f.target}\nn\nn\nn\ny\n`, { args: ["--test"], start: true }),
+	);
+	const config = parse(await readFile(join(f.target, "compose.yaml"), "utf8"));
+	for (const volume of Object.values(config.volumes)) {
+		assert.ok(volume.name.startsWith("anishelf-test-"));
+	}
+	const env = await readFile(join(f.target, ".env"), "utf8");
+	assert.match(env, /ANISHELF_TAG='testing'/);
+	assert.match(env, /ANISHELF_PORT='3001'/);
+	assert.match(env, /ANISHELF_MEDIA_PATH=''/);
+	assert.match(env, /COMPOSE_PROJECT_NAME='anishelf-test'/);
+	success(
+		f.run("n\nn\nn\ny\n", { args: ["--reconfigure", f.target], start: true }),
+	);
+	assert.equal(
+		await readFile(join(f.target, ".deployment-profile"), "utf8"),
+		"testing\n",
+	);
+	success(f.run("y\n", { args: ["--remove", f.target], start: true }));
+	const composeCalls = (await f.calls()).filter(
+		(call) =>
+			call.args[0] === "compose" && call.args.includes("--project-name"),
+	);
+	assert.ok(composeCalls.some((call) => call.args.includes("down")));
+	assert.ok(
+		composeCalls.every(
+			(call) =>
+				call.args[call.args.indexOf("--project-name") + 1] === "anishelf-test",
+		),
+	);
+});
+
+test("Testing Quadlet coexists with production and removes only testing units", async (t) => {
+	const f = await fixture(t, ["podman"]);
+	const units = join(f.env.XDG_CONFIG_HOME, "containers/systemd");
+	const userUnits = join(f.env.XDG_CONFIG_HOME, "systemd/user");
+	await mkdir(units, { recursive: true });
+	await mkdir(userUnits, { recursive: true });
+	await writeFile(
+		join(units, "anishelf-backend.container"),
+		"production backend",
+	);
+	await writeFile(join(userUnits, "anishelf.target"), "production target");
+	success(
+		f.run(`2\n${f.target}\ny\ny\nn\ny\n`, { args: ["--test"], start: true }),
+	);
+	const backend = await readFile(
+		join(units, "anishelf-test-backend.container"),
+		"utf8",
+	);
+	assert.match(backend, /Image=ghcr.io\/qw0er\/anishelf-backend:testing/);
+	assert.match(backend, /Volume=anishelf-test-app.volume:/);
+	assert.match(backend, /Network=anishelf-test.network/);
+	assert.equal(
+		await readFile(join(units, "anishelf-test.network"), "utf8"),
+		"[Network]\nNetworkName=anishelf-test\n",
+	);
+	assert.match(
+		await readFile(join(units, "anishelf-test-web.container"), "utf8"),
+		/PublishPort=127.0.0.1:3001:8080/,
+	);
+	assert.match(
+		await readFile(join(units, "anishelf-test-qbittorrent.container"), "utf8"),
+		/PublishPort=127.0.0.1:8081:8080/,
+	);
+
+	success(
+		f.run("n\nn\nn\ny\n", { args: ["--reconfigure", f.target], start: true }),
+	);
+	assert.equal(
+		await readFile(join(f.target, ".deployment-profile"), "utf8"),
+		"testing\n",
+	);
+	success(f.run("y\n", { args: ["--remove", f.target], start: true }));
+	await absent(join(units, "anishelf-test-backend.container"));
+	assert.equal(
+		await readFile(join(units, "anishelf-backend.container"), "utf8"),
+		"production backend",
+	);
+	assert.equal(
+		await readFile(join(userUnits, "anishelf.target"), "utf8"),
+		"production target",
+	);
+	assert.ok(
+		!(await f.calls()).some(
+			(call) =>
+				call.args.includes("stop") && call.args.includes("anishelf.target"),
+		),
 	);
 });

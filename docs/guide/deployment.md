@@ -98,6 +98,80 @@ commands below. The installer records its engine in `.env` as `ANISHELF_DEPLOY_E
 The environment example lists optional WebUI and peer ports. Container/backend
 variables are documented in [Configuration](operations.md#environment-variables).
 
+## Isolated testing deployment
+
+Use the installer testing profile to run a test build beside production with
+Docker/Podman Compose or rootless Podman Quadlet:
+
+```sh
+bash package/install.sh --test
+```
+
+From a source checkout, add `--templates-dir package/deploy` to use its local
+templates. `--ref` selects deployment templates, not the container image tag.
+Choose the engine and deployment method in the wizard. Advanced options let you
+select a matching `test-<full-SHA>` image tag instead of the moving `testing` tag.
+Wait for both test image manifests to publish before installing.
+
+| Setting | Testing default |
+| --- | --- |
+| Deployment directory | `~/anishelf-test` |
+| Image tag | `testing` |
+| Web address | `http://localhost:3001` (loopback only) |
+| Compose project | `anishelf-test` |
+| Quadlet target | `anishelf-test.target` |
+| Containers, network and named volumes | Separate testing namespace |
+| Optional qBittorrent WebUI / peer ports | `8081` / `6882` |
+| Optional Jackett WebUI port | `9118` |
+
+The profile creates a fresh application database and dedicated media volume.
+It does not offer host media mounts, preventing downloader writes or SELinux
+relabeling of production media. Copy sample files into the testing media volume
+for playback checks. Optional bundled qBittorrent and Jackett use their own
+configuration and download volumes. Configure only independent test credentials;
+do not import the production database, which can contain active subscriptions
+and production service credentials. This profile isolates storage, not outbound
+network access. Advanced port overrides must remain distinct from production.
+
+From your computer, forward the test port and open `http://localhost:3001`:
+
+```sh
+ssh -N -L 3001:127.0.0.1:3001 user@server
+```
+
+For Compose, update the image tag in the test directory's `.env`, then run:
+
+```sh
+cd ~/anishelf-test
+docker compose pull
+docker compose up -d
+docker compose logs --tail=100 backend web
+```
+
+Use `podman compose` for a Podman installation. For Quadlet, use the installer to
+render and apply a new tag without editing individual units:
+
+```sh
+bash package/install.sh --reconfigure "$HOME/anishelf-test"
+```
+
+The saved profile retains the testing namespace; reconfiguration collects settings
+again and preserves test data. Read logs with
+`journalctl --user -u anishelf-test-backend.service`. Stop only the test stack with
+`systemctl --user stop anishelf-test.target` (Quadlet) or `docker compose down`
+(from the test Compose directory).
+
+To remove the test deployment configuration while preserving its volumes:
+
+```sh
+bash package/install.sh --remove "$HOME/anishelf-test"
+```
+
+The installer reads the saved profile for removal/reconfiguration; do not add
+`--test` to a production bundle. Keep the `.deployment-profile` file with the
+saved deployment configuration. Each engine/account supports one installer-managed
+testing namespace; a different directory alone does not create another instance.
+
 ## Podman Quadlet
 
 Run the installer as the service account and select **Podman → Quadlet**. It installs:
