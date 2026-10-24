@@ -209,6 +209,7 @@ export async function createAcquisitionModule(options: {
 						settings: () => downloadApi.settings(),
 						saveDestination: (input) => downloadApi.saveDestination(input),
 						validate: (revision) => downloadApi.validate(revision),
+						summary: (key) => downloadApi.summary(key),
 						activity: (key, page) => downloadApi.activity(key, page),
 						retry: (...args) => downloadApi.retry(...args),
 					},

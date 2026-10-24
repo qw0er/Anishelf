@@ -4,26 +4,32 @@ import { invalidateAnimeQueries } from "../shared/query-keys.js";
 import { refreshTrackingList } from "./queries.js";
 import type { ViewingState } from "./use-viewing-state.js";
 export function useDetailViewing(
-	snapshot: TrackingEntryResponse,
+	snapshot: TrackingEntryResponse | undefined,
 	mediaId: string,
 	retry: () => void,
+	error: Error | null = null,
 ): ViewingState {
 	const client = useQueryClient();
 	const refresh = useMutation({
-		mutationFn: () => refreshTrackingList(snapshot.generation),
+		mutationFn: () =>
+			snapshot
+				? refreshTrackingList(snapshot.generation)
+				: Promise.reject(new Error("Viewing state is unavailable.")),
 		onSettled: () => invalidateAnimeQueries(client, "viewing"),
 	});
 	return {
 		mediaId,
-		visible: snapshot.accountId !== null,
-		unmapped: !mediaId.startsWith(
-			`${encodeURIComponent(snapshot.provider.key)}:anime:`,
-		),
-		loading: false,
-		refreshing: refresh.isPending || snapshot.refreshing,
-		reconnect: snapshot.state === "authorization-required",
+		visible: snapshot === undefined || snapshot.accountId !== null,
+		unmapped:
+			snapshot !== undefined &&
+			!mediaId.startsWith(
+				`${encodeURIComponent(snapshot.provider.key)}:anime:`,
+			),
+		loading: snapshot === undefined && !error,
+		refreshing: refresh.isPending || Boolean(snapshot?.refreshing),
+		reconnect: snapshot?.state === "authorization-required",
 		snapshot,
-		error: refresh.error,
+		error: error ?? refresh.error,
 		retry,
 		refresh: () => refresh.mutate(),
 	};

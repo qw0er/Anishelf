@@ -47,6 +47,9 @@ export class DownloadsApplication implements AcquisitionDownloadsApi {
 	validate(revision: string) {
 		return this.destination.validate(revision);
 	}
+	summary(workKey: string) {
+		return this.queries.summary(workKey);
+	}
 	activity(workKey: string, page = 1) {
 		return this.queries.activity(workKey, page);
 	}

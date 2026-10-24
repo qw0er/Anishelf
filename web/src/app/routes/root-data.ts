@@ -8,8 +8,8 @@ import { getErrorTranslationKey } from "../../shared/lib/error-translation.js";
 export async function libraryLoader({ request }: LoaderFunctionArgs) {
 	try {
 		const [library, settings] = await Promise.all([
-			loadQuery({ ...libraryQuery(), staleTime: 0 }, request.signal),
-			loadQuery({ ...settingsQuery(), staleTime: 0 }, request.signal),
+			loadQuery(libraryQuery(), request.signal),
+			loadQuery(settingsQuery(), request.signal),
 		]);
 		return {
 			library,

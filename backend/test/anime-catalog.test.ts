@@ -717,7 +717,9 @@ test("HTTP exposes safe typed DTOs, explicit confirmations and actionable valida
 	});
 	expect(response.statusCode).toBe(200);
 	const detail = await app.inject({
-		url: `/api/catalog/works/${response.json().workId}`,
+		url: `/api/catalog/works/${response.json().workId}/refresh`,
+		method: "POST",
+		payload: { revision: response.json().revision },
 	});
 	expect(detail.statusCode).toBe(200);
 	expect(detail.body).not.toContain(f.root);
@@ -749,7 +751,7 @@ test("HTTP exposes safe typed DTOs, explicit confirmations and actionable valida
 	const missing = await app.inject({ url: "/api/catalog/works/missing" });
 	expect(missing.statusCode).toBe(404);
 	const malformed = await app.inject({ url: "/api/catalog/works?perPage=100" });
-	expect(malformed.statusCode).toBe(400);
+	expect(malformed.statusCode).toBe(404);
 });
 
 test("root epoch conflicts remain visible rather than being disguised as unavailable sources", async () => {
@@ -1012,9 +1014,9 @@ test("poster artwork uses retained snapshots, delivers cached images offline and
 		logger,
 	});
 	cleanups.push(() => app.close());
-	const list = await app.inject({ url: "/api/catalog/works" });
+	const list = await f.catalog.getLocalWorkDetail(confirmed.workId);
 	const cover = `/api/catalog/works/${confirmed.workId}/artwork/cover`;
-	const pinnedUrl = list.json().items[0].coverUrl as string;
+	const pinnedUrl = `${cover}?v=${list.work.coverVersion}`;
 	expect(pinnedUrl).toMatch(new RegExp(`^${cover}\\?v=[a-f0-9]{16}$`));
 	expect(fetchArtwork).not.toHaveBeenCalled();
 	const image = await app.inject({ url: cover });

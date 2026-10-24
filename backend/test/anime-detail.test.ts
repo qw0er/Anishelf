@@ -78,7 +78,7 @@ function fixture() {
 	);
 	return { queries, list, status, get, findLocalWork, getLocalWorkDetail };
 }
-test("unified detail preserves cached viewing and acquisition during a metadata outage", async () => {
+test("detail and lightweight status remain independent during a metadata outage", async () => {
 	const f = fixture();
 	const subscription = {
 		subscription: null,
@@ -88,7 +88,7 @@ test("unified detail preserves cached viewing and acquisition during a metadata 
 	};
 	const discovery = { get: vi.fn(() => subscription) };
 	const downloads = {
-		activity: vi.fn(() => ({
+		summary: vi.fn(() => ({
 			authorized: true,
 			destination: "Anime [fixture-1]",
 			items: [],
@@ -108,7 +108,7 @@ test("unified detail preserves cached viewing and acquisition during a metadata 
 			(app) =>
 				registerAnimeDetailRoutes(
 					app,
-					{ queries: f.queries, tracking: { status: f.status } },
+					{ queries: f.queries, tracking: { status: f.status, list: f.list } },
 					{ subscriptions: discovery, downloads },
 					logger,
 				),
@@ -128,12 +128,29 @@ test("unified detail preserves cached viewing and acquisition during a metadata 
 			local: null,
 			metadata: null,
 			metadataError: { code: "unavailable" },
-			viewing: { entry: { progress: 4 } },
-			subscription,
-			downloads: { active: 2 },
 		});
+		expect(discovery.get).not.toHaveBeenCalled();
+		expect(downloads.summary).not.toHaveBeenCalled();
+		expect(response.json()).not.toHaveProperty("viewing");
+		const status = await app.inject({
+			url: `/api/anime/status/${encodeURIComponent(key)}`,
+			headers: { host: "127.0.0.1" },
+		});
+		expect(status.statusCode).toBe(200);
+		expect(status.headers["cache-control"]).toBe("no-store");
+		expect(status.json()).toMatchObject({
+			viewing: { entry: { progress: 4 } },
+			subscription: { subscription: null },
+			downloads: { total: 3, active: 2, attention: 1 },
+		});
+		expect(status.json().downloads).not.toHaveProperty("items");
 		expect(discovery.get).toHaveBeenCalledExactlyOnceWith(key, 1, false);
-		expect(downloads.activity).toHaveBeenCalledExactlyOnceWith(key);
+		const invalid = await app.inject({
+			url: "/api/anime/status/malformed",
+			headers: { host: "127.0.0.1" },
+		});
+		expect(invalid.statusCode).toBe(400);
+		expect(downloads.summary).toHaveBeenCalledExactlyOnceWith(key);
 		expect(f.getLocalWorkDetail).not.toHaveBeenCalled();
 		expect(f.get).toHaveBeenCalledTimes(1);
 	} finally {

@@ -133,12 +133,8 @@ export type MetadataRelationsResponse = Static<
 export type MetadataAiringResponse = Static<
 	typeof schemas.MetadataAiringResponseSchema
 >;
-export type MetadataArtworkResponse = Static<
-	typeof schemas.MetadataArtworkResponseSchema
->;
 
 export type CatalogSourceResponse = Static<typeof schemas.CatalogSourceSchema>;
-export type CatalogListResponse = Static<typeof schemas.CatalogListSchema>;
 export type LocalWorkDetailResponse = Static<
 	typeof schemas.LocalWorkDetailSchema
 >;
@@ -161,14 +157,8 @@ export type CatalogConfirmationResponse = Static<
 export type CatalogDecisionRequest = Static<
 	typeof schemas.CatalogDecisionRequestSchema
 >;
-export type CatalogEpisodeEditRequest = Static<
-	typeof schemas.CatalogEpisodeEditSchema
->;
 export type CatalogRefreshRequest = Static<typeof schemas.CatalogRefreshSchema>;
 export type CatalogReviewItem = Static<typeof schemas.CatalogReviewSchema>;
-export type CatalogEpisodeResponse = Static<
-	typeof schemas.CatalogEpisodeSchema
->;
 
 export type IdentificationStatusResponse = Static<
 	typeof schemas.IdentificationStatusSchema
@@ -225,6 +215,7 @@ export type DownloadActivity = Static<
 >;
 
 export type AnimeDetailResponse = Static<typeof schemas.AnimeDetailSchema>;
+export type AnimeStatusResponse = Static<typeof schemas.AnimeStatusSchema>;
 
 export type AcquisitionProfileCatalog = Static<
 	typeof schemas.AcquisitionProfileCatalogSchema
@@ -238,13 +229,6 @@ export type SourceProviders = Static<typeof schemas.SourceProvidersSchema>;
 export type SourceProbe = Static<typeof schemas.SourceProbeSchema>;
 export type SourceTestInput = Static<typeof schemas.SourceTestInputSchema>;
 export type SourceTestResult = Static<typeof schemas.SourceTestSchema>;
-
-export type SubscriptionSearchInput = Static<
-	typeof import("./schemas/subscriptions.js").SubscriptionSearchInputSchema
->;
-export type SubscriptionSearchResult = Static<
-	typeof import("./schemas/subscriptions.js").SubscriptionSearchResultSchema
->;
 
 export type WatchingAutomationStatus = Static<
 	typeof import("./schemas/watching.js").WatchingStatusSchema

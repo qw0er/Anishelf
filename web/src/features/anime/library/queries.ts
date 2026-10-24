@@ -1,4 +1,4 @@
-import { queryOptions, skipToken } from "@tanstack/react-query";
+import { hashKey, queryOptions, skipToken } from "@tanstack/react-query";
 import type { AnimeLibraryResponse } from "../../../shared/api/contracts.js";
 import { boundedSignal } from "../../../shared/api/queries.js";
 import { animeLibraryQueryKey } from "../shared/query-keys.js";
@@ -44,6 +44,22 @@ export const animeLibraryQuery = (
 					}
 				}
 			: skipToken,
+		placeholderData: (previous, query) => {
+			if (
+				!query ||
+				query.queryKey[1] !== scope ||
+				query.queryKey[2] !== (identity?.accountId ?? null) ||
+				query.queryKey[3] !== (identity?.generation ?? null)
+			)
+				return undefined;
+			const { page: _previousPage, ...previousFilters } = query
+				.queryKey[4] as LibraryFilters;
+			const { page: _page, ...currentFilters } = filters;
+			return hashKey([previousFilters]) === hashKey([currentFilters])
+				? previous
+				: undefined;
+		},
+		gcTime: 15 * 60_000,
 		refetchOnWindowFocus: true,
 		refetchInterval: (query) =>
 			query.state.data?.tracking.refreshing ? 1500 : 5 * 60_000,

@@ -3,6 +3,7 @@ export type {
 	AcquisitionProfileCatalog,
 	AnimeDetailResponse,
 	AnimeLibraryResponse,
+	AnimeStatusResponse,
 	ApiErrorResponse,
 	BuildInfo,
 	CatalogConfirmationRequest,

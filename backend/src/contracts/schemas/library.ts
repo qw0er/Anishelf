@@ -176,11 +176,9 @@ export function createSettingsSchemas() {
 					maximum: preparationConstraints.maximumCacheBudgetGiB,
 				}),
 			),
-			defaultTranscodeProfileId: Type.Optional(TranscodeProfileIdSchema),
 			defaultAcquisitionProfileId: Type.Optional(
 				Type.String({ pattern: "^(builtin|custom):[a-z][a-z0-9-]{0,63}$" }),
 			),
-			preparationMode: Type.Optional(PreparationModeSchema),
 			qbittorrentWebUiUrl: Type.Optional(
 				Type.Union([Type.String({ maxLength: 2048 }), Type.Null()]),
 			),

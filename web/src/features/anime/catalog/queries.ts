@@ -1,3 +1,4 @@
+import { workKey } from "@anishelf/backend/contracts/references";
 import { queryOptions } from "@tanstack/react-query";
 import { boundedSignal } from "../../../shared/api/queries.js";
 import { reportMetadataRefresh } from "../metadata/public.js";
@@ -7,31 +8,34 @@ import {
 	getSource,
 	getWorkReviews,
 } from "./api.js";
+import { animeDetailQuery } from "./detail-query.js";
 
 export const localWorkDetailQuery = (id: string, scope: string) =>
 	queryOptions({
 		queryKey: ["anime-detail", scope, "local", id],
 		queryFn: async ({ signal, client }) => {
+			const startedAt = Date.now();
 			const result = await getLocalWorkDetail(id, {
 				signal: boundedSignal(signal),
 			});
 			signal.throwIfAborted();
 			reportMetadataRefresh(client, result.metadata);
+			const canonicalKey = animeDetailQuery(
+				workKey(result.detail.reference),
+				scope,
+			).queryKey;
+			if ((client.getQueryState(canonicalKey)?.dataUpdatedAt ?? 0) <= startedAt)
+				client.setQueryData(canonicalKey, result.detail, {
+					updatedAt: startedAt,
+				});
 			return result;
 		},
 		// Reuse the route loader result when the detail component mounts.
-		staleTime: 1000,
+		staleTime: 60_000,
+		gcTime: 15 * 60_000,
 		refetchOnWindowFocus: true,
-		refetchInterval: (query) => {
-			if (query.state.data?.detail.downloads?.active) return 5_000;
-			if (
-				query.state.data?.metadata.refreshing ||
-				query.state.data?.detail.viewing.refreshing
-			)
-				return 2000;
-			// Idle detail pages need no polling; focus refetch resynchronizes instead.
-			return false;
-		},
+		refetchInterval: (query) =>
+			query.state.data?.metadata.refreshing ? 2000 : false,
 	});
 export const sourceQuery = (id: string, scope: string) =>
 	queryOptions({

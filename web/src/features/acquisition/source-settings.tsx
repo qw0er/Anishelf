@@ -49,6 +49,8 @@ export function SourceSettings() {
 	const { t } = useTranslation();
 	const query = useQuery<SourceConnectorSettings>({
 		queryKey: sourceSettingsKey,
+		staleTime: 5 * 60_000,
+		refetchOnWindowFocus: true,
 		refetchInterval: (query) =>
 			!query.state.data?.url || query.state.data.bundledSetup === "pending"
 				? 5000

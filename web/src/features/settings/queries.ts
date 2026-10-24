@@ -9,11 +9,15 @@ import * as api from "./api.js";
 
 export const settingsQuery = () =>
 	queryOptions({
+		staleTime: 5 * 60_000,
+		refetchOnWindowFocus: true,
 		queryKey: settingsKeys.settings,
 		queryFn: ({ signal }) => api.getSettings({ signal: boundedSignal(signal) }),
 	});
 export const profilesQuery = () =>
 	queryOptions({
+		staleTime: 5 * 60_000,
+		refetchOnWindowFocus: true,
 		queryKey: settingsKeys.profiles,
 		queryFn: ({ signal }) =>
 			api.getTranscodeProfiles({ signal: boundedSignal(signal) }),

@@ -2,10 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ellipsis, Rss } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type {
-	DownloadActivity,
-	SubscriptionView,
-} from "../../shared/api/contracts.js";
+import type { SubscriptionView } from "../../shared/api/contracts.js";
+import { useQueryScope } from "../../shared/api/queries.js";
 import { Button } from "../../shared/components/ui/button.js";
 import {
 	Dialog,
@@ -20,13 +18,15 @@ import {
 	DropdownMenuTrigger,
 } from "../../shared/components/ui/dropdown-menu.js";
 import { toast } from "../../shared/components/ui/toast.js";
-import { invalidateAnimeQueries } from "../anime/public.js";
-import { activityStatus } from "./activity-status.js";
+import {
+	type AnimeStatusState,
+	animeStatusQuery,
+	invalidateAnimeQueries,
+} from "../anime/public.js";
 import { DownloadActivityPanel } from "./download-activity.js";
-import { downloadKeys, getDownloadActivity } from "./downloads-api.js";
+import { downloadKeys } from "./downloads-api.js";
 import { SubscriptionForm } from "./subscription-form.js";
 import {
-	getSubscription,
 	refreshSubscription,
 	removeSubscription,
 	toggleSubscription,
@@ -35,59 +35,38 @@ import { watchingKey } from "./watching-api.js";
 
 export function SubscriptionPanel({
 	workKey,
-	initialView,
-	initialActivity,
+	status,
 }: {
 	workKey: string;
-	initialView?: SubscriptionView;
-	initialActivity?: DownloadActivity | null;
+	status?: AnimeStatusState;
 }) {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
 	const client = useQueryClient();
 	const [editor, setEditor] = useState<{
 			current: SubscriptionView["subscription"];
 		} | null>(null),
 		[activityOpen, setActivityOpen] = useState(false);
-	const query = useQuery({
-		queryKey: ["acquisition", "subscription", workKey],
-		...(initialView ? { initialData: initialView } : {}),
-		queryFn: ({ signal }) => getSubscription(workKey, 1, { signal }),
-		refetchInterval: 30000,
+	const fallback = useQuery({
+		...animeStatusQuery(workKey, useQueryScope()),
+		enabled: !status,
 	});
-	const activity = useQuery({
-		queryKey: [...downloadKeys, workKey, 1],
-		initialData: initialActivity ?? undefined,
-		enabled: initialActivity !== null,
-		queryFn: ({ signal }) => getDownloadActivity(workKey, 1, { signal }),
-		refetchInterval: 5000,
-	});
-	const view = query.data,
-		sub = view?.subscription,
-		tasks = activity.data?.items ?? [];
+	const query = status ?? fallback;
+	const view = query.data?.subscription,
+		sub = view?.subscription;
+	const activity = query.data?.downloads;
 	const needsAttention =
-		activity.isError ||
-		(activity.data?.attention ?? 0) > 0 ||
+		query.isError ||
+		(activity?.attention ?? 0) > 0 ||
 		!!(sub?.error && sub.error !== "no_eligible_source");
-	const active = tasks.find(
-		(item) =>
-			item.state !== "available" &&
-			(item.error ||
-				item.state === "bound" ||
-				item.state === "pending" ||
-				item.state === "submitting" ||
-				item.state === "unknown"),
-	);
+
 	let summary = t(
 		sub
 			? "acquisition.subscription.subscribed"
 			: "acquisition.subscription.notSubscribed",
 	);
 	if (needsAttention) summary = t("acquisition.activity.needsAttention");
-	else if (active)
-		summary = t("acquisition.activity.episodeLine", {
-			episode: active.episode,
-			status: activityStatus(active, t),
-		});
+	else if (activity?.active)
+		summary = t("acquisition.activity.activeCount", { count: activity.active });
 	else if (sub && !sub.enabled) summary = t("acquisition.subscription.paused");
 	else if (sub?.sourceKind === "automatic")
 		summary = t(
@@ -95,26 +74,54 @@ export function SubscriptionPanel({
 				? "acquisition.subscription.waitingForReleases"
 				: "acquisition.subscription.findingSource",
 		);
-	const updated = () => {
+	const updated = async (result?: SubscriptionView) => {
+		await client.cancelQueries({
+			queryKey: ["anime-status"],
+			predicate: (query) => query.queryKey[2] === workKey,
+		});
+		if (result)
+			client.setQueriesData<
+				import("../../shared/api/contracts.js").AnimeStatusResponse
+			>(
+				{
+					queryKey: ["anime-status"],
+					predicate: (query) => query.queryKey[2] === workKey,
+				},
+				(previous) =>
+					previous
+						? {
+								...previous,
+								subscription: { subscription: result.subscription },
+							}
+						: undefined,
+			);
 		setEditor(null);
 		void client.invalidateQueries({
 			queryKey: ["acquisition", "subscription", workKey],
 		});
-		void client.invalidateQueries({ queryKey: downloadKeys });
+		void client.invalidateQueries({ queryKey: [...downloadKeys, workKey] });
 		void client.invalidateQueries({ queryKey: watchingKey });
-		void invalidateAnimeQueries(client, "acquisition");
+		void invalidateAnimeQueries(client, "acquisition", workKey);
 	};
 	const action = useMutation({
 		mutationFn: async (command: "toggle" | "refresh" | "remove") => {
 			if (!sub) return;
 			if (command === "toggle")
-				await toggleSubscription(workKey, sub.revision, !sub.enabled);
+				return toggleSubscription(workKey, sub.revision, !sub.enabled);
 			else if (command === "refresh")
-				await refreshSubscription(workKey, sub.revision);
-			else await removeSubscription(workKey, sub.revision);
+				return refreshSubscription(workKey, sub.revision);
+			else {
+				await removeSubscription(workKey, sub.revision);
+				return {
+					subscription: null,
+					candidates: [],
+					total: 0,
+					page: 1,
+				} satisfies SubscriptionView;
+			}
 		},
-		onSuccess: () => {
-			updated();
+		onSuccess: async (result) => {
+			await updated(result);
 			toast.add({
 				type: "success",
 				title: t("acquisition.subscription.updated"),
@@ -132,6 +139,7 @@ export function SubscriptionPanel({
 		<section
 			className="min-w-0 border-t pt-3"
 			aria-label={t("acquisition.subscription.aria")}
+			aria-busy={query.isFetching}
 		>
 			<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
 				<div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -154,7 +162,7 @@ export function SubscriptionPanel({
 					</span>
 				</div>
 				<div className="flex items-center gap-1">
-					{(sub || (activity.data?.total ?? 0) > 0 || needsAttention) && (
+					{(sub || (activity?.total ?? 0) > 0 || needsAttention) && (
 						<Button variant="ghost" onClick={() => setActivityOpen(true)}>
 							{t("acquisition.subscription.activity")}
 							{needsAttention ? " · !" : ""}
@@ -214,6 +222,19 @@ export function SubscriptionPanel({
 					)}
 				</div>
 			</div>
+			{query.isError && view && (
+				<p role="status" className="text-sm text-muted-foreground">
+					{t("acquisition.activity.statusUnavailable")}{" "}
+					{query.dataUpdatedAt > 0 &&
+						t("acquisition.activity.lastUpdated", {
+							time: new Date(query.dataUpdatedAt).toLocaleString(i18n.language),
+						})}
+					<Button variant="ghost" onClick={() => void query.refetch()}>
+						{t("actions.retry")}
+					</Button>
+				</p>
+			)}
+
 			<Dialog
 				open={editor !== null}
 				onOpenChange={(open) =>
@@ -234,7 +255,9 @@ export function SubscriptionPanel({
 						<SubscriptionForm
 							workKey={workKey}
 							current={editor.current}
-							onSaved={updated}
+							onSaved={(result) => {
+								void updated(result);
+							}}
 						/>
 					)}
 				</DialogContent>
@@ -248,7 +271,6 @@ export function SubscriptionPanel({
 						<DownloadActivityPanel
 							workKey={workKey}
 							view={view}
-							initialActivity={activity.data}
 							onCheckUpdates={() => action.mutate("refresh")}
 							checking={action.isPending}
 							reason={(code) =>

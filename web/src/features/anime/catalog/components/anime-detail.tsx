@@ -27,6 +27,7 @@ import { airedEpisodeCount } from "../detail-format.js";
 import { nextPlayableEpisode } from "../next-playback.js";
 import { localWorkDetailQuery } from "../queries.js";
 import type { AnimeResourceActionSlot } from "../resource-actions.js";
+import { type AnimeStatusState, animeStatusQuery } from "../status-query.js";
 
 import { useLocalWorkDetail } from "../use-local-work-detail.js";
 import { AiringStatus } from "./airing-status.js";
@@ -42,10 +43,7 @@ export function AnimeDetail({
 	renderSubscription,
 }: {
 	renderResourceActions: AnimeResourceActionSlot;
-	renderSubscription?: (
-		workKey: string,
-		detail: Pick<AnimeDetailResponse, "subscription" | "downloads">,
-	) => ReactNode;
+	renderSubscription?: (workKey: string, detail: AnimeStatusState) => ReactNode;
 }) {
 	const { id = "" } = useParams();
 	const scope = useQueryScope();
@@ -85,10 +83,7 @@ function LocalWorkDetail({
 }: {
 	data: LocalWorkDetailResponse & { detail: AnimeDetailResponse };
 	renderResourceActions: AnimeResourceActionSlot;
-	renderSubscription?: (
-		workKey: string,
-		detail: Pick<AnimeDetailResponse, "subscription" | "downloads">,
-	) => ReactNode;
+	renderSubscription?: (workKey: string, detail: AnimeStatusState) => ReactNode;
 }) {
 	const { t, i18n } = useTranslation();
 	const controller = useLocalWorkDetail(data);
@@ -97,10 +92,16 @@ function LocalWorkDetail({
 	const navigate = useNavigate();
 	const [params, setParams] = useSearchParams();
 	const handledPlay = useRef<string | null>(null);
+	const status = useQuery(
+		animeStatusQuery(workKey(work.reference), useQueryScope()),
+	);
 	const viewing = useDetailViewing(
-		data.detail.viewing,
+		status.data?.viewing,
 		workKey(work.reference),
-		() => refresh.mutate(),
+		() => {
+			void status.refetch();
+		},
+		status.error,
 	);
 	const airing = useInfiniteQuery(
 		airingQuery(work.reference.provider, work.reference.id),
@@ -143,7 +144,12 @@ function LocalWorkDetail({
 	}
 	useEffect(() => {
 		const play = params.get("play");
-		if (!play || handledPlay.current === play) return;
+		if (
+			!play ||
+			handledPlay.current === play ||
+			(play === "next" && status.isPending)
+		)
+			return;
 		handledPlay.current = play;
 		const target =
 			play === "next"
@@ -169,6 +175,7 @@ function LocalWorkDetail({
 		setParams(cleaned, { replace: true });
 	}, [
 		params,
+		status.isPending,
 		nextEpisode,
 		data.episodes,
 		navigate,
@@ -229,10 +236,7 @@ function LocalWorkDetail({
 				banner
 			/>
 			<WorkMetadataHeader
-				subscription={renderSubscription?.(
-					workKey(work.reference),
-					data.detail,
-				)}
+				subscription={renderSubscription?.(workKey(work.reference), status)}
 				action={
 					<PlayNextButton
 						episode={nextEpisode}

@@ -14,16 +14,14 @@ import { Artwork } from "../../shared/components/artwork.js";
 import { useDetailViewing, ViewingSummary } from "../../tracking/public.js";
 import { airedEpisodeCount } from "../detail-format.js";
 import { animeDetailQuery } from "../detail-query.js";
+import { type AnimeStatusState, animeStatusQuery } from "../status-query.js";
 import { WorkMetadataExtras } from "./work-metadata-extras.js";
 import { WorkMetadataHeader } from "./work-metadata-header.js";
 import { WorkSynopsis } from "./work-synopsis.js";
 export function TrackedAnimeDetail({
 	renderSubscription,
 }: {
-	renderSubscription?: (
-		workKey: string,
-		detail: Pick<AnimeDetailResponse, "subscription" | "downloads">,
-	) => ReactNode;
+	renderSubscription?: (workKey: string, detail: AnimeStatusState) => ReactNode;
 } = {}) {
 	const { mediaId = "" } = useParams();
 	const [params] = useSearchParams();
@@ -69,14 +67,19 @@ function TrackedDetail({
 	data: AnimeDetailResponse;
 	retry: () => void;
 	library: string | null;
-	renderSubscription?: (
-		workKey: string,
-		detail: Pick<AnimeDetailResponse, "subscription" | "downloads">,
-	) => ReactNode;
+	renderSubscription?: (workKey: string, detail: AnimeStatusState) => ReactNode;
 }) {
 	const { t } = useTranslation();
 	const mediaId = workKey(data.reference);
-	const viewing = useDetailViewing(data.viewing, mediaId, retry);
+	const status = useQuery(animeStatusQuery(mediaId, useQueryScope()));
+	const viewing = useDetailViewing(
+		status.data?.viewing,
+		mediaId,
+		() => {
+			void status.refetch();
+		},
+		status.error,
+	);
 	const metadata = {
 		data: data.metadata,
 		error: data.metadataError,
@@ -106,7 +109,7 @@ function TrackedDetail({
 						banner
 					/>
 					<WorkMetadataHeader
-						subscription={renderSubscription?.(mediaId, data)}
+						subscription={renderSubscription?.(mediaId, status)}
 						viewing={
 							<ViewingSummary
 								state={viewing}
@@ -150,7 +153,7 @@ function TrackedDetail({
 					)}
 				</>
 			)}
-			{!metadata.data && renderSubscription?.(mediaId, data)}
+			{!metadata.data && renderSubscription?.(mediaId, status)}
 		</section>
 	);
 }

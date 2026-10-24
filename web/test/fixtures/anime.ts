@@ -1,5 +1,6 @@
 import type {
 	AnimeDetailResponse,
+	AnimeStatusResponse,
 	CatalogReviewItem,
 	LocalWorkDetailResponse,
 	TrackingEntryResponse,
@@ -182,7 +183,7 @@ export function reviewFixture(confirmed = false): CatalogReviewItem {
 
 export function animeDetailFixture(
 	local: LocalWorkDetailResponse,
-	viewing?: TrackingEntryResponse,
+	_viewing?: TrackingEntryResponse,
 ): AnimeDetailResponse {
 	return {
 		reference: local.work.reference,
@@ -190,6 +191,12 @@ export function animeDetailFixture(
 		metadata: local.metadata,
 		metadataError: null,
 		local,
+	};
+}
+export function animeStatusFixture(
+	viewing?: TrackingEntryResponse,
+): AnimeStatusResponse {
+	return {
 		viewing: viewing ?? {
 			provider: trackingProvider,
 			accountId: null,
@@ -201,16 +208,7 @@ export function animeDetailFixture(
 			error: null,
 			entry: null,
 		},
-		subscription: { subscription: null, candidates: [], total: 0, page: 1 },
-		downloads: {
-			authorized: false,
-			destination: null,
-			items: [],
-			total: 0,
-			active: 0,
-			attention: 0,
-			managedCandidateIds: [],
-			page: 1,
-		},
+		subscription: { subscription: null },
+		downloads: { total: 0, active: 0, attention: 0 },
 	};
 }

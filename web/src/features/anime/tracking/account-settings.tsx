@@ -77,7 +77,9 @@ export function TrackingAccountSettings() {
 			await client.cancelQueries({ queryKey: ["tracking"] });
 			await client.cancelQueries({ queryKey: animeLibraryQueryKey });
 			await client.cancelQueries({ queryKey: ["anime-detail"] });
+			await client.cancelQueries({ queryKey: ["anime-status"] });
 			client.removeQueries({ queryKey: ["anime-detail"] });
+			client.removeQueries({ queryKey: ["anime-status"] });
 			client.removeQueries({ queryKey: animeLibraryQueryKey });
 			client.removeQueries({
 				queryKey: ["tracking"],

@@ -2,17 +2,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRevalidator } from "react-router";
-import {
-	clearCapabilityCache,
-	clearCompatibilityCache,
-} from "../../features/media/public.js";
 import { toast } from "../../shared/components/ui/toast.js";
 
 export function useManualRefresh(libraryError: string | null) {
 	const { t } = useTranslation();
 	const client = useQueryClient();
 	const { revalidate, state: revalidationState } = useRevalidator();
-	const [playerVersion, setPlayerVersion] = useState(0);
 	const [manualRefreshing, setManualRefreshing] = useState(false);
 	const refreshRequested = useRef(false);
 	useEffect(() => {
@@ -35,12 +30,18 @@ export function useManualRefresh(libraryError: string | null) {
 		refreshRequested.current = true;
 		toast.close("library-refresh");
 		setManualRefreshing(true);
-		setPlayerVersion((value) => value + 1);
 		try {
-			clearCapabilityCache();
-			await clearCompatibilityCache();
+			await client.invalidateQueries({
+				queryKey: ["library"],
+				refetchType: "none",
+			});
+			await client.invalidateQueries({
+				queryKey: ["settings"],
+				refetchType: "none",
+			});
 			await client.invalidateQueries({
 				predicate: (query) =>
+					query.isActive() &&
 					!["playback-selection", "library", "settings"].includes(
 						String(query.queryKey[0]),
 					),
@@ -51,5 +52,5 @@ export function useManualRefresh(libraryError: string | null) {
 		}
 	}
 
-	return { playerVersion, reload, refreshing: manualRefreshing };
+	return { reload, refreshing: manualRefreshing };
 }

@@ -53,7 +53,7 @@ export class DownloadRepository implements DownloadStore {
 			.run();
 	}
 
-	activity(workKey: string, page: number, pageSize: number) {
+	summary(workKey: string) {
 		const scope = eq(intents.workKey, workKey);
 		const summary = this.store
 			.select({
@@ -64,6 +64,16 @@ export class DownloadRepository implements DownloadStore {
 			.from(intents)
 			.where(scope)
 			.get();
+		return {
+			total: summary?.total ?? 0,
+			active: summary?.active ?? 0,
+			attention: summary?.attention ?? 0,
+		};
+	}
+
+	activity(workKey: string, page: number, pageSize: number) {
+		const scope = eq(intents.workKey, workKey);
+		const summary = this.summary(workKey);
 		const items = this.store
 			.select()
 			.from(intents)

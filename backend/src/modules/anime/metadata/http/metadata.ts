@@ -2,7 +2,6 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { Type } from "typebox";
 import {
 	MetadataAiringResponseSchema,
-	MetadataArtworkResponseSchema,
 	MetadataDetailsResponseSchema,
 	MetadataPageQuerySchema,
 	MetadataReadQuerySchema,
@@ -52,7 +51,6 @@ export function registerMetadataRoutes(
 	app: HttpInstance,
 	metadata: MetadataApi,
 ): void {
-	app.get("/api/metadata/providers", async () => metadata.providers());
 	app.get(
 		"/api/metadata/reference",
 		{
@@ -114,21 +112,6 @@ export function registerMetadataRoutes(
 			);
 		},
 	);
-	app.post(
-		"/api/metadata/:provider/:id/refresh",
-		{
-			schema: {
-				params: MetadataReferenceParamsSchema,
-				response: { 200: MetadataDetailsResponseSchema },
-			},
-		},
-		async (request, reply) => {
-			reply.header("Cache-Control", "no-store");
-			return withSignal(request, reply, (signal) =>
-				metadata.get(reference(request.params), { signal, refresh: true }),
-			);
-		},
-	);
 	app.get(
 		"/api/metadata/:provider/:id/relations",
 		{
@@ -168,28 +151,6 @@ export function registerMetadataRoutes(
 					Number(request.query.perPage ?? 25),
 					{ signal, cachedOnly: request.query.cachedOnly === "true" },
 				),
-			);
-		},
-	);
-	app.get(
-		"/api/metadata/:provider/:id/artwork/:kind",
-		{
-			schema: {
-				params: Type.Object({
-					...MetadataReferenceParamsSchema.properties,
-					kind: Type.Union([Type.Literal("cover"), Type.Literal("banner")]),
-				}),
-				querystring: MetadataReadQuerySchema,
-				response: { 200: MetadataArtworkResponseSchema },
-			},
-		},
-		async (request, reply) => {
-			reply.header("Cache-Control", "no-store");
-			return withSignal(request, reply, (signal) =>
-				metadata.artwork(reference(request.params), request.params.kind, {
-					signal,
-					cachedOnly: request.query.cachedOnly === "true",
-				}),
 			);
 		},
 	);
