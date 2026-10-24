@@ -13,11 +13,14 @@ export const animeDetailQuery = (key: string, scope: string) =>
 			),
 		staleTime: 0,
 		refetchOnWindowFocus: true,
-		refetchInterval: (query) =>
-			query.state.data?.downloads?.active
-				? 5_000
-				: query.state.data?.metadata?.refreshing ||
-						query.state.data?.viewing.refreshing
-					? 2000
-					: 30_000,
+		refetchInterval: (query) => {
+			if (query.state.data?.downloads?.active) return 5_000;
+			if (
+				query.state.data?.metadata?.refreshing ||
+				query.state.data?.viewing.refreshing
+			)
+				return 2000;
+			// Idle detail pages need no polling; focus refetch resynchronizes instead.
+			return false;
+		},
 	});

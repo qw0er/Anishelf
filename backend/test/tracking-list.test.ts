@@ -426,6 +426,66 @@ test("unified Library HTTP validates filters and serializes merged cards", async
 	}
 });
 
+test("tracked library cards use cached artwork when warm and the provider URL when cold", async () => {
+	const { app: library } = projection();
+	const remote =
+		"https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/frieren.png";
+	const reference = {
+		provider: "anilist",
+		mediaType: "anime" as const,
+		id: "1",
+	};
+	const api = {
+		list: async (query?: Parameters<AnimeLibraryQueries["list"]>[0]) => {
+			const result = await library.list(query);
+			return {
+				...result,
+				items: result.items.map((card) => ({
+					...card,
+					localWorkId: null,
+					hasCover: false,
+					coverVersion: null,
+					remoteCoverUrl: remote,
+					reference,
+				})),
+			};
+		},
+	} as unknown as AnimeLibraryQueries;
+	const artworkId = "a".repeat(64);
+	const coverUrl = async (resolver?: {
+		cachedArtworkId(): Promise<string | null>;
+	}) => {
+		const http = createHttpApp({
+			config: { host: "127.0.0.1", port: 3000 },
+			logger: pino({ enabled: false }),
+			policy: builtinPolicy,
+			registrations: [(app) => registerAnimeLibraryRoutes(app, api, resolver)],
+			closeDependencies: async () => {},
+		});
+		try {
+			const response = await http.inject({
+				url: "/api/anime/library?scope=all",
+				headers: { host: "127.0.0.1:3000" },
+			});
+			expect(response.statusCode).toBe(200);
+			return response.json().items[0].coverUrl;
+		} finally {
+			await http.close();
+		}
+	};
+	expect(await coverUrl()).toBe(remote);
+	expect(await coverUrl({ cachedArtworkId: async () => artworkId })).toBe(
+		`/api/metadata/artwork/${artworkId}`,
+	);
+	expect(
+		await coverUrl({
+			cachedArtworkId: async () => {
+				throw new Error("cache unavailable");
+			},
+		}),
+	).toBe(remote);
+});
+
 test("assembled Tracking facade uses protocol adapters, preserves cache on malformed reads and maps expired authorization", async () => {
 	const dir = await mkdtemp(join(tmpdir(), "anishelf-tracking-boundary-"));
 	const database = ApplicationDatabase.openMemory();
@@ -517,6 +577,7 @@ test("available-unwatched counts use actual episode numbers rather than availabi
 			...indexed,
 			displayTitle: indexed.providerTitle,
 			hasCover: false,
+			coverVersion: null,
 			metadataStale: false,
 			availableEpisodes: 4,
 			availableRegularEpisodes: 3,
@@ -551,6 +612,7 @@ test("next playback points at the first available unwatched episode and leaves m
 			...indexed,
 			displayTitle: indexed.providerTitle,
 			hasCover: false,
+			coverVersion: null,
 			metadataStale: false,
 			availableEpisodes: 3,
 			availableRegularEpisodes: 3,
@@ -593,6 +655,7 @@ test("unwatched sorting uses all available episode mappings before pagination an
 				...work,
 				displayTitle: work.providerTitle,
 				hasCover: false,
+				coverVersion: null,
 				metadataStale: false,
 				availableEpisodes: 2,
 				availableRegularEpisodes: 2,

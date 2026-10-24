@@ -50,7 +50,17 @@ export interface AnimeApi {
 	readonly library: AnimeLibraryApi;
 	readonly tracking: TrackingApi;
 	readonly metadata:
-		| Pick<MetadataApi, "search" | "get" | "relations" | "airing" | "snapshot">
+		| Pick<
+				MetadataApi,
+				| "search"
+				| "get"
+				| "relations"
+				| "airing"
+				| "snapshot"
+				| "artwork"
+				| "readArtwork"
+				| "cachedArtworkId"
+		  >
 		| undefined;
 	readonly catalog:
 		| Pick<

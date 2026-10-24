@@ -69,6 +69,8 @@ export interface MetadataStore {
 	release(id: string, owner: string): void;
 	prune(searchLimit: number, snapshotLimit: number): void;
 	artworks(): ArtworkRecord[];
+	artwork(id: string): ArtworkRecord | null;
+	artworkByKey(key: string): ArtworkRecord | null;
 	saveArtwork(record: ArtworkRecord): void;
 	removeArtwork(id: string): void;
 }
@@ -80,5 +82,7 @@ export interface MetadataArtwork {
 		options: ReadOptions,
 	): Promise<ArtworkStatus>;
 	read(id: string): Promise<ArtworkAsset>;
+	/** Newest usable artwork for a key without contacting the provider. */
+	cached(key: string): Promise<string | null>;
 	close(): Promise<void>;
 }

@@ -1,6 +1,12 @@
 import { DomainError } from "../../../../shared/errors.js";
 import type { CachedMetadata, WorkDetails } from "../../metadata/public.js";
-import { conflict, integer, invalid, text } from "../domain/mapping.js";
+import {
+	artworkVersion,
+	conflict,
+	integer,
+	invalid,
+	text,
+} from "../domain/mapping.js";
 import type {
 	CatalogQuery,
 	EpisodePlaybackTarget,
@@ -93,6 +99,7 @@ export class CatalogQueries {
 			...work,
 			displayTitle: work.providerTitle,
 			hasCover: Boolean(snapshot.data.coverUrl),
+			coverVersion: artworkVersion(snapshot.data.coverUrl),
 			metadataStale: snapshot.stale,
 			reference: link.reference,
 			availableEpisodes,
@@ -205,7 +212,13 @@ export class CatalogQueries {
 				"CATALOG_NOT_FOUND",
 				"Artwork is unavailable. Retry later.",
 			);
-		return this.context.options.metadata.readArtwork(status.id);
+		const asset = await this.context.options.metadata.readArtwork(status.id);
+		return {
+			...asset,
+			version: artworkVersion(
+				kind === "cover" ? snapshot.data.coverUrl : snapshot.data.bannerUrl,
+			),
+		};
 	}
 	async getLocalWorkDetail(id: string): Promise<LocalWorkDetail> {
 		const scope = await this.context.scope();
@@ -266,6 +279,7 @@ export class CatalogQueries {
 				...work,
 				displayTitle: work.providerTitle,
 				hasCover: Boolean(snapshot.data.coverUrl),
+				coverVersion: artworkVersion(snapshot.data.coverUrl),
 				metadataStale: snapshot.stale,
 				reference: link.reference,
 				availableEpisodes: episodes.filter(
@@ -278,6 +292,7 @@ export class CatalogQueries {
 			},
 			metadata: snapshot,
 			hasBanner: Boolean(snapshot.data.bannerUrl),
+			bannerVersion: artworkVersion(snapshot.data.bannerUrl),
 			episodes,
 			episodeCountProvenance:
 				work.episodeCount === null ? "unknown" : "provider-count",

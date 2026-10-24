@@ -40,7 +40,12 @@ export interface AnimeCatalogApi {
 	artwork(
 		id: string,
 		kind: "cover" | "banner",
-	): ReturnType<MetadataApi["readArtwork"]>;
+	): Promise<
+		Awaited<ReturnType<MetadataApi["readArtwork"]>> & {
+			/** Provider artwork URL digest; clients pin it as `?v=` for long caching. */
+			version: string | null;
+		}
+	>;
 	source(fileId: string): Promise<{
 		sourceVersion: string;
 		associations: ReviewItem["associations"];

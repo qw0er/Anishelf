@@ -168,6 +168,26 @@ export class MetadataRepository implements MetadataStore {
 			}
 		});
 	}
+	artwork(id: string): ArtworkRecord | null {
+		return (
+			this.store
+				.select()
+				.from(metadataArtwork)
+				.where(eq(metadataArtwork.id, id))
+				.get() ?? null
+		);
+	}
+	artworkByKey(key: string): ArtworkRecord | null {
+		return (
+			this.store
+				.select()
+				.from(metadataArtwork)
+				.where(eq(metadataArtwork.key, key))
+				.orderBy(desc(metadataArtwork.accessedAt))
+				.limit(1)
+				.get() ?? null
+		);
+	}
 	artworks(): ArtworkRecord[] {
 		return this.store
 			.select()

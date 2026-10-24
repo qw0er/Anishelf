@@ -1145,6 +1145,10 @@ test("a tracked detail refetch switches to local episodes while preserving libra
 	);
 	await screen.findByText("No local resources are associated with this work.");
 	expect(screen.queryByText("Episode 1")).toBeNull();
+	// Provider posters are proxied through the backend artwork cache.
+	expect(screen.getByRole("img", { name: "Frieren" }).getAttribute("src")).toBe(
+		"/api/metadata/anilist/154587/artwork/cover/image",
+	);
 	available = true;
 	await act(async () => {
 		await queryClient.refetchQueries({

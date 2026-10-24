@@ -36,6 +36,8 @@ export interface LibraryCard {
 	availableRegularEpisodes: number;
 	metadataStale: boolean;
 	hasCover: boolean;
+	/** Provider artwork URL digest used to pin the poster URL. */
+	coverVersion: string | null;
 	remoteCoverUrl: string | null;
 	viewing: {
 		status: ViewingStatus;

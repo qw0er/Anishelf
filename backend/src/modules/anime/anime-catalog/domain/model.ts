@@ -154,6 +154,8 @@ export interface WorkCard extends LocalWork {
 	availableEpisodeTargets?: EpisodePlaybackTarget[];
 	displayTitle: string;
 	hasCover: boolean;
+	/** Provider artwork URL digest; it changes whenever the poster is replaced. */
+	coverVersion: string | null;
 	metadataStale: boolean;
 	reference: ProviderReference;
 	availableEpisodes: number;
@@ -173,6 +175,7 @@ export interface LocalWorkDetail {
 	work: WorkCard;
 	metadata: CachedMetadata<WorkDetails>;
 	hasBanner: boolean;
+	bannerVersion: string | null;
 	episodes: (LocalEpisode & {
 		versions: SourceVersion[];
 		availability: "available" | "unavailable" | "missing";

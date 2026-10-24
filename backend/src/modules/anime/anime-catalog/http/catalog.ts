@@ -21,25 +21,38 @@ import {
 	CatalogSourceSchema,
 	LocalWorkDetailSchema,
 } from "../../../../contracts/schemas/anime-catalog.js";
+import { sendCachedAsset } from "../../../../transport/cache.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { AnimeCatalogApi } from "../public.js";
+
+const artworkRoute = "/api/catalog/works/:id/artwork/:kind";
 
 export function registerCatalogRoutes(
 	app: HttpInstance,
 	catalog: AnimeCatalogApi,
 ): void {
 	app.addHook("onSend", async (request, reply) => {
-		if (request.routeOptions.url?.startsWith("/api/catalog"))
+		const route = request.routeOptions.url;
+		// Artwork is content-addressed binary data and carries its own cache policy.
+		if (route?.startsWith("/api/catalog") && route !== artworkRoute)
 			reply.header("Cache-Control", "no-store");
 	});
 	app.get(
-		"/api/catalog/works/:id/artwork/:kind",
+		artworkRoute,
 		{
 			schema: {
 				params: Type.Object(
 					{
 						id: CatalogIdParamsSchema.properties.id,
 						kind: Type.Union([Type.Literal("cover"), Type.Literal("banner")]),
+					},
+					{ additionalProperties: false },
+				),
+				querystring: Type.Object(
+					{
+						v: Type.Optional(
+							Type.String({ pattern: "^[a-f0-9]{8,64}$", maxLength: 64 }),
+						),
 					},
 					{ additionalProperties: false },
 				),
@@ -50,8 +63,12 @@ export function registerCatalogRoutes(
 				request.params.id,
 				request.params.kind,
 			);
-			reply.header("X-Content-Type-Options", "nosniff");
-			return reply.type(asset.mimeType).send(Buffer.from(asset.bytes));
+			// A URL that still pins the current artwork can be cached far longer.
+			const pinned =
+				request.query.v !== undefined && request.query.v === asset.version;
+			return sendCachedAsset(request, reply, asset, {
+				maxAgeSeconds: pinned ? 24 * 60 * 60 : 60 * 60,
+			});
 		},
 	);
 	app.post(
@@ -220,22 +237,30 @@ export function registerCatalogRoutes(
 	);
 }
 
-function artworkUrl(id: string, kind: "cover" | "banner"): string {
-	return `/api/catalog/works/${encodeURIComponent(id)}/artwork/${kind}`;
+function artworkUrl(
+	id: string,
+	kind: "cover" | "banner",
+	version: string | null,
+): string {
+	const path = `/api/catalog/works/${encodeURIComponent(id)}/artwork/${kind}`;
+	return version ? `${path}?v=${version}` : path;
 }
 function presentCard(
 	work: Awaited<ReturnType<AnimeCatalogApi["list"]>>["items"][number],
 ) {
-	const { hasCover, ...card } = work;
-	return { ...card, coverUrl: hasCover ? artworkUrl(work.id, "cover") : null };
+	const { hasCover, coverVersion, ...card } = work;
+	return {
+		...card,
+		coverUrl: hasCover ? artworkUrl(work.id, "cover", coverVersion) : null,
+	};
 }
 function presentLocalWorkDetail(
 	value: Awaited<ReturnType<AnimeCatalogApi["getLocalWorkDetail"]>>,
 ) {
-	const { hasBanner, work, ...detail } = value;
+	const { hasBanner, bannerVersion, work, ...detail } = value;
 	return {
 		...detail,
 		work: presentCard(work),
-		bannerUrl: hasBanner ? artworkUrl(work.id, "banner") : null,
+		bannerUrl: hasBanner ? artworkUrl(work.id, "banner", bannerVersion) : null,
 	};
 }

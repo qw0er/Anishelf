@@ -243,6 +243,13 @@ export class MetadataApplication implements MetadataApi {
 	readArtwork(id: string) {
 		return this.options.artwork.read(id);
 	}
+	cachedArtworkId(reference: ProviderReference, kind: "cover" | "banner") {
+		if (kind !== "cover" && kind !== "banner")
+			throw this.invalid("Unknown artwork kind.");
+		return this.options.artwork.cached(
+			JSON.stringify([reference.provider, reference.id, kind]),
+		);
+	}
 	async close(): Promise<void> {
 		await this.cache.close();
 		await this.options.artwork.close();

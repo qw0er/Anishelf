@@ -611,6 +611,9 @@ test("artwork is validated, atomically cached, served offline and reconciled on 
 	expect(ready.status).toBe("ready");
 	if (!ready.id) throw new Error("Missing artwork ID");
 	expect((await artwork.read(ready.id)).bytes).toEqual(png);
+	// Warm lookups stay provider-free so list cards can link content addresses.
+	expect(await artwork.cached("work-cover")).toBe(ready.id);
+	expect(await artwork.cached("unknown-cover")).toBeNull();
 	expect(
 		(
 			await artwork.get("work-cover", media().coverImage.extraLarge, {
@@ -666,6 +669,80 @@ test("artwork denies arbitrary hosts/redirects, non-images and excessive bytes",
 			?.code,
 	).toBe("invalid-response");
 	await failure(artwork.read("../../private"), "not-found");
+});
+
+test("artwork downloads keep bounded concurrency and deduplicate identical requests", async () => {
+	const { dir, database } = await setup();
+	let active = 0;
+	let peak = 0;
+	const releases: (() => void)[] = [];
+	const fetcher = vi.fn<typeof fetch>(async () => {
+		active++;
+		peak = Math.max(peak, active);
+		await new Promise<void>((resolve) => releases.push(resolve));
+		active--;
+		return new Response(png);
+	});
+	const artwork = new MetadataArtworkCache({
+		hosts: ["s4.anilist.co"],
+		dataDir: dir,
+		store: database.metadata,
+		fetch: fetcher,
+	});
+	await artwork.initialize();
+	cleanups.push(() => artwork.close());
+	const url = (name: string) => `https://s4.anilist.co/${name}.png`;
+	const requests = Array.from({ length: 6 }, (_, index) =>
+		artwork.get(`key-${index}`, url(`art-${index}`), {}),
+	);
+	// A second request for an in-flight image joins that download instead of fetching.
+	const duplicate = artwork.get("key-0", url("art-0"), {});
+	const settled = Promise.all([...requests, duplicate]);
+	for (let round = 0; round < 10; round++) {
+		while (releases.length > 0) releases.shift()?.();
+		await new Promise((resolve) => setTimeout(resolve, 5));
+	}
+	const statuses = await settled;
+	expect(fetcher).toHaveBeenCalledTimes(6);
+	expect(peak).toBe(4);
+	expect(statuses.every((status) => status.status === "ready")).toBe(true);
+});
+
+test("a requested artwork refresh serves cached bytes and refreshes in the background", async () => {
+	const { dir, database } = await setup();
+	const debug = vi.spyOn(logger, "debug");
+	const fetcher = vi.fn<typeof fetch>(async () => new Response(png));
+	const artwork = new MetadataArtworkCache({
+		hosts: ["s4.anilist.co"],
+		dataDir: dir,
+		store: database.metadata,
+		logger,
+		fetch: fetcher,
+	});
+	await artwork.initialize();
+	cleanups.push(() => artwork.close());
+	const url = media().coverImage.extraLarge;
+	const first = await artwork.get("key", url, {});
+	if (!first.id) throw new Error("Missing artwork ID");
+	let release!: () => void;
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	fetcher.mockImplementationOnce(async () => {
+		await gate;
+		return new Response(png);
+	});
+	const refreshed = await artwork.get("key", url, { refresh: true });
+	expect(refreshed).toMatchObject({ id: first.id, status: "ready" });
+	await new Promise((resolve) => setTimeout(resolve, 20));
+	expect(fetcher).toHaveBeenCalledTimes(2);
+	expect(debug).toHaveBeenCalledWith(
+		expect.objectContaining({ event: "metadata.artwork_refresh_started" }),
+		expect.any(String),
+	);
+	release();
+	await new Promise((resolve) => setTimeout(resolve, 20));
+	expect(database.metadata.artworks()).toHaveLength(1);
 });
 
 test("artwork failure preserves the previous usable URL version and budget evicts LRU", async () => {
@@ -834,12 +911,45 @@ test("HTTP exposes normalized cache envelopes, refresh, artwork and safe failure
 			url: "/api/metadata/anilist/154587/artwork/cover",
 		});
 		expect(status.statusCode).toBe(200);
+		const artworkId = status.json().id;
 		const image = await app.inject({
-			url: `/api/metadata/artwork/${status.json().id}`,
+			url: `/api/metadata/artwork/${artworkId}`,
 		});
 		expect(image.statusCode).toBe(200);
 		expect(image.headers["content-type"]).toBe("image/png");
+		expect(image.headers["cache-control"]).toBe("private, max-age=604800");
+		expect(image.headers.etag).toBe(`"${artworkId}"`);
 		expect(image.rawPayload).toEqual(png);
+		const revalidated = await app.inject({
+			url: `/api/metadata/artwork/${artworkId}`,
+			headers: { "if-none-match": image.headers.etag as string },
+		});
+		expect(revalidated.statusCode).toBe(304);
+		expect(revalidated.rawPayload).toHaveLength(0);
+		// Provider references resolve the same cached bytes for tracked works.
+		const proxied = await app.inject({
+			url: "/api/metadata/anilist/154587/artwork/cover/image",
+		});
+		expect(proxied.statusCode).toBe(200);
+		expect(proxied.headers["content-type"]).toBe("image/png");
+		expect(proxied.headers["cache-control"]).toBe("private, max-age=3600");
+		expect(proxied.headers.etag).toBe(`"${artworkId}"`);
+		expect(proxied.rawPayload).toEqual(png);
+		expect(
+			(
+				await app.inject({
+					url: "/api/metadata/anilist/154587/artwork/cover/image",
+					headers: { "if-none-match": proxied.headers.etag as string },
+				})
+			).statusCode,
+		).toBe(304);
+		expect(
+			(
+				await app.inject({
+					url: "/api/metadata/anilist/154587/artwork/banner/image",
+				})
+			).statusCode,
+		).toBe(404);
 	} finally {
 		await app.close();
 	}

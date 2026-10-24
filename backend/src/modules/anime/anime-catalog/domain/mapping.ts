@@ -1,8 +1,15 @@
+import { createHash } from "node:crypto";
 import { DomainError } from "../../../../shared/errors.js";
 import type { WorkDetails } from "../../metadata/public.js";
 import { catalogPolicy as policy } from "../policy.js";
 import type { EpisodeTarget, MappingSelection } from "./model.js";
 
+/** Short digest of the provider artwork URL; provider CDNs rotate it on re-upload. */
+export function artworkVersion(url: string | null): string | null {
+	return url
+		? createHash("sha256").update(url).digest("hex").slice(0, 16)
+		: null;
+}
 export function invalid(message: string): never {
 	throw new DomainError("INVALID_REQUEST", message);
 }

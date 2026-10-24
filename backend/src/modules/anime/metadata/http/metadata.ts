@@ -12,8 +12,13 @@ import {
 	MetadataSearchQuerySchema,
 	MetadataSearchResponseSchema,
 } from "../../../../contracts/schemas/metadata.js";
+import { sendCachedAsset } from "../../../../transport/cache.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
-import type { MetadataApi, ProviderReference } from "../public.js";
+import {
+	type MetadataApi,
+	MetadataError,
+	type ProviderReference,
+} from "../public.js";
 
 const reference = (params: {
 	provider: string;
@@ -189,6 +194,33 @@ export function registerMetadataRoutes(
 		},
 	);
 	app.get(
+		"/api/metadata/:provider/:id/artwork/:kind/image",
+		{
+			schema: {
+				params: Type.Object({
+					...MetadataReferenceParamsSchema.properties,
+					kind: Type.Union([Type.Literal("cover"), Type.Literal("banner")]),
+				}),
+			},
+		},
+		async (request, reply) => {
+			const status = await metadata.artwork(
+				reference(request.params),
+				request.params.kind,
+				{},
+			);
+			if (!status.id)
+				throw new MetadataError({
+					code: status.status === "missing" ? "not-found" : "unavailable",
+					message: "Provider artwork is unavailable.",
+					retryAt: status.failure?.retryAt ?? null,
+				});
+			const asset = await metadata.readArtwork(status.id);
+			// The URL is stable per reference, so bound staleness; the ETag is the content hash.
+			return sendCachedAsset(request, reply, asset, { maxAgeSeconds: 60 * 60 });
+		},
+	);
+	app.get(
 		"/api/metadata/artwork/:id",
 		{
 			schema: {
@@ -197,10 +229,10 @@ export function registerMetadataRoutes(
 		},
 		async (request, reply) => {
 			const asset = await metadata.readArtwork(request.params.id);
-			reply
-				.header("Cache-Control", "private, max-age=3600")
-				.header("X-Content-Type-Options", "nosniff");
-			return reply.type(asset.mimeType).send(Buffer.from(asset.bytes));
+			// The id is the content hash, so a cached copy can never go stale.
+			return sendCachedAsset(request, reply, asset, {
+				maxAgeSeconds: 7 * 24 * 60 * 60,
+			});
 		},
 	);
 }
