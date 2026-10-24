@@ -100,8 +100,6 @@
 
 @utility action-row {
 	@apply flex flex-wrap items-center gap-2;
-	container-type: inline-size;
-	container-name: actions;
 }
 
 @layer base {
@@ -181,6 +179,14 @@
 }
 
 /* Measure the toolbar itself so side panels also compact on wide screens. */
+.action-row:has(.responsive-action) {
+	/* Size containment needs an explicit width; generic rows size to content. */
+	width: 100%;
+	min-width: 0;
+	container-type: inline-size;
+	container-name: actions;
+}
+
 .responsive-action {
 	padding-inline: 0.75rem;
 }

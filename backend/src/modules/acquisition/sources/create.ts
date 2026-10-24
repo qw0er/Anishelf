@@ -65,7 +65,12 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 			const saved = configuration.connection;
 			if (!saved?.apiKey) throw new SourceError("source_unconfigured");
 			return new JackettClient(
-				new JackettTransport(saved.url, saved.apiKey, configuration.generation),
+				new JackettTransport(
+					saved.url,
+					saved.apiKey,
+					configuration.generation,
+					options.logger,
+				),
 				gate,
 			);
 		},

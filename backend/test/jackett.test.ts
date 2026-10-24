@@ -1,4 +1,5 @@
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
@@ -25,6 +26,7 @@ afterEach(async () => {
 	for (const close of cleanup.splice(0).reverse()) await close();
 });
 const secret = "private-test-api-key";
+const logger = pino({ level: "silent" });
 const signal = () => new AbortController().signal;
 const caps =
 	'<caps><limits max="100" default="2"/><searching><search available="yes" supportedParams="q"/></searching></caps>';
@@ -43,6 +45,7 @@ function wire() {
 		"http://jackett:9117",
 		secret,
 		"generation",
+		logger,
 		agent,
 	);
 	cleanup.push(() => transport.close());
@@ -233,6 +236,7 @@ test("public torrent redirects use RSS transport without Jackett credentials", a
 		"http://jackett:9117",
 		secret,
 		"generation",
+		logger,
 		agent,
 		new RssTransport(publicAgent),
 	);
@@ -297,6 +301,7 @@ test("private config survives restart; generations fence stale queries and unifi
 					"http://jackett:9117",
 					secret,
 					generation,
+					logger,
 					f.agent,
 				),
 				new SourceRequestGate(0),
@@ -453,6 +458,7 @@ test("generation rotation cancels a request waiting for indexer spacing", async 
 					"http://jackett:9117",
 					secret,
 					configuration.generation,
+					logger,
 					f.agent,
 				),
 				gate,
@@ -516,4 +522,78 @@ test.each([
 	expect(() => wire().transport.download(input, "example")).toThrow(
 		expect.objectContaining({ code: "invalid_download_locator" }),
 	);
+});
+
+test("error and redirect responses release their bodies without an unhandled stream error", async () => {
+	const server = createServer((request, response) => {
+		const query = new URL(request.url ?? "/", "http://fixture").searchParams;
+		switch (query.get("q")) {
+			case "redirect":
+				response.writeHead(302, { location: "/elsewhere" });
+				break;
+			case "unauthorized":
+				response.writeHead(401);
+				break;
+			case "limited":
+				response.writeHead(429, { "retry-after": "120" });
+				break;
+			case "encoded":
+				response.writeHead(200, { "content-encoding": "gzip" });
+				break;
+			default:
+				response.writeHead(502);
+		}
+		response.end();
+	});
+	await new Promise<void>((resolve, reject) => {
+		server.once("error", reject);
+		server.listen(0, "127.0.0.1", () => resolve());
+	});
+	cleanup.push(async () => {
+		server.closeAllConnections();
+		await new Promise<void>((resolve) => server.close(() => resolve()));
+	});
+	const address = server.address();
+	if (!address || typeof address === "string")
+		throw new Error("Missing fixture address.");
+	const logs: Record<string, unknown>[] = [];
+	const transport = new JackettTransport(
+		`http://127.0.0.1:${address.port}`,
+		secret,
+		"generation",
+		pino({ level: "warn" }, { write: (line) => logs.push(JSON.parse(line)) }),
+	);
+	cleanup.push(() => transport.close());
+	const search = (q: string) =>
+		transport.api(
+			"example",
+			{ t: "search", q, limit: "10", offset: "0" },
+			signal(),
+		);
+	await expect(search("failure")).rejects.toMatchObject({
+		code: "upstream_failure",
+	});
+	await expect(search("redirect")).rejects.toMatchObject({
+		code: "redirect_rejected",
+	});
+	await expect(search("unauthorized")).rejects.toMatchObject({
+		code: "authentication_failed",
+	});
+	await expect(search("limited")).rejects.toMatchObject({
+		code: "rate_limited",
+	});
+	await expect(search("encoded")).rejects.toMatchObject({
+		code: "upstream_failure",
+	});
+	// The discarded body reports its abort on a later tick; crashing here fails the run.
+	await new Promise((resolve) => setTimeout(resolve, 50));
+	expect(
+		logs
+			.filter((entry) => entry.event === "acquisition.upstream_status")
+			.map((entry) => entry.statusCode),
+	).toEqual([502, 401, 429, 200]);
+	expect(logs.at(-1)).toMatchObject({
+		code: "upstream_failure",
+		contentType: null,
+	});
 });

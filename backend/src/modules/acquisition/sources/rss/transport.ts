@@ -3,6 +3,7 @@ import type { LookupFunction } from "node:net";
 import ipaddr from "ipaddr.js";
 import { Agent, type Dispatcher, request } from "undici";
 import { sourcePolicy as policy, SourceError } from "../domain/model.js";
+import { discardBody } from "../infrastructure/response-body.js";
 import type { FeedTransport } from "./ports.js";
 
 export function isPublicAddress(address: string): boolean {
@@ -136,7 +137,7 @@ export class RssTransport implements FeedTransport {
 					},
 				});
 				if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
-					response.body.destroy();
+					await discardBody(response);
 					if (redirects === 3 || typeof response.headers.location !== "string")
 						throw new SourceError("redirect_failed");
 					const next = rssUrl(new URL(response.headers.location, url).href);
@@ -157,7 +158,7 @@ export class RssTransport implements FeedTransport {
 						? response.headers["last-modified"].slice(0, 256)
 						: null;
 				if (response.statusCode === 304) {
-					response.body.destroy();
+					await discardBody(response);
 					return {
 						bytes: null,
 						etag: etag ?? validators.etag,
@@ -169,7 +170,7 @@ export class RssTransport implements FeedTransport {
 					(response.headers["content-encoding"] &&
 						response.headers["content-encoding"] !== "identity")
 				) {
-					response.body.destroy();
+					await discardBody(response);
 					throw new SourceError("http_failed");
 				}
 				const chunks: Buffer[] = [];
@@ -177,6 +178,7 @@ export class RssTransport implements FeedTransport {
 				for await (const chunk of response.body) {
 					size += chunk.length;
 					if (size > maximumBytes) {
+						// The async iterator owns the stream here, so it reports this abort itself.
 						response.body.destroy();
 						throw new SourceError("feed_too_large");
 					}
