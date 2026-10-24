@@ -9,6 +9,19 @@ export class DownloadActivityQueries {
 		private readonly context: DownloadApplicationContext,
 		private readonly destination: DownloadDestinationSettings,
 	) {}
+	summary(workKey: string) {
+		this.context.open();
+		const subscription = this.context.options.selection.subscription(workKey);
+		const result = this.context.options.store.summary(workKey);
+		const planningError = subscription?.enabled
+			? (this.context.planningErrors.get(workKey) ?? null)
+			: null;
+		return {
+			...result,
+			planningError,
+			attention: result.attention + (planningError ? 1 : 0),
+		};
+	}
 	activity(workKey: string, page = 1): DownloadActivity {
 		this.context.open();
 		if (!Number.isSafeInteger(page) || page < 1 || page > 10000)

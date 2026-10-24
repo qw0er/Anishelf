@@ -39,6 +39,8 @@ export const removeSubscription = (
 
 export const acquisitionProfilesQuery = () => ({
 	queryKey: ["acquisition", "profiles"] as const,
+	staleTime: 5 * 60_000,
+	refetchOnWindowFocus: true,
 	queryFn: ({ signal }: { signal: AbortSignal }) =>
 		request<AcquisitionProfileCatalog>("/api/acquisition/profiles", "GET", {
 			signal,

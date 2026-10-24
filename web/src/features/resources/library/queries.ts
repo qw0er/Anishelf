@@ -12,8 +12,8 @@ import * as api from "./api.js";
 export const libraryQuery = () =>
 	queryOptions({
 		queryKey: libraryKeys.library,
-		refetchOnWindowFocus: "always",
-		refetchOnReconnect: "always",
+		refetchOnWindowFocus: true,
+		refetchOnReconnect: true,
 		queryFn: ({ signal }) => api.getLibrary({ signal: boundedSignal(signal) }),
 		refetchInterval: (query) =>
 			query.state.data?.scan?.status === "running"

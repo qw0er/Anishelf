@@ -5,22 +5,28 @@ import { boundedSignal } from "../../../shared/api/queries.js";
 export const animeDetailQuery = (key: string, scope: string) =>
 	queryOptions({
 		queryKey: ["anime-detail", scope, "work", key],
-		queryFn: ({ signal }) =>
-			request<AnimeDetailResponse>(
+		queryFn: async ({ signal, client }) => {
+			const startedAt = Date.now();
+			const detail = await request<AnimeDetailResponse>(
 				`/api/anime/details/works/${encodeURIComponent(key)}`,
 				"GET",
 				{ signal: boundedSignal(signal) },
-			),
-		staleTime: 0,
-		refetchOnWindowFocus: true,
-		refetchInterval: (query) => {
-			if (query.state.data?.downloads?.active) return 5_000;
-			if (
-				query.state.data?.metadata?.refreshing ||
-				query.state.data?.viewing.refreshing
-			)
-				return 2000;
-			// Idle detail pages need no polling; focus refetch resynchronizes instead.
-			return false;
+			);
+			signal.throwIfAborted();
+			if (detail.local) {
+				const aliasKey = ["anime-detail", scope, "local", detail.local.work.id];
+				if ((client.getQueryState(aliasKey)?.dataUpdatedAt ?? 0) <= startedAt)
+					client.setQueryData(
+						aliasKey,
+						{ ...detail.local, detail },
+						{ updatedAt: startedAt },
+					);
+			}
+			return detail;
 		},
+		staleTime: 60_000,
+		gcTime: 15 * 60_000,
+		refetchOnWindowFocus: true,
+		refetchInterval: (query) =>
+			query.state.data?.metadata?.refreshing ? 2000 : false,
 	});

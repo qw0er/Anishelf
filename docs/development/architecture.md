@@ -125,10 +125,17 @@ subtitles, preparation, resume and history available.
 
 ### Local work detail query naming
 
-App's [detail adapter](../../backend/src/app/anime-detail.ts) composes work information,
-local resources, Tracking and subscription summaries. Local IDs become authoritative
+App's [detail adapter](../../backend/src/app/anime-detail.ts) exposes descriptive work
+details separately from `/api/anime/status/:key`, which combines cached Tracking,
+subscription summaries and download counts. Status reads do not load metadata or
+download task pages. Activity and candidate diagnostics load when opened. Local IDs become authoritative
 when a tracked work acquires a local Catalog entry; replace navigation preserves
-query context and mounted playback state. Heavy candidate diagnostics load on demand.
+query context and mounted playback state. Heavy candidate diagnostics load on demand. Local-ID and provider-key detail reads
+seed each other's cache using the original request timestamp; loaders and components
+share freshness policies. Download activity only drives lightweight status polling.
+Subscription commands invalidate the affected work rather than every detail.
+Account changes cancel and remove both detail and status queries; ordinary page
+refresh preserves playback sessions and versioned compatibility caches.
 
 ## Core collaboration
 

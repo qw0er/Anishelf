@@ -108,15 +108,6 @@ export const MetadataAiringResponseSchema = envelope(
 		}),
 	),
 );
-export const MetadataArtworkResponseSchema = Type.Object({
-	id: text,
-	status: Type.Union([
-		Type.Literal("ready"),
-		Type.Literal("missing"),
-		Type.Literal("failed"),
-	]),
-	failure: Type.Union([failure, Type.Null()]),
-});
 export const MetadataReferenceParamsSchema = Type.Object(
 	{
 		provider: Type.String({ minLength: 1, maxLength: 50 }),

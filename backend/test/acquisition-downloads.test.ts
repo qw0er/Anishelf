@@ -791,48 +791,16 @@ test("download endpoints enforce authentication, CSRF, revision checks and safe 
 	expect(activity.statusCode).toBe(200);
 	expect(activity.json()).toMatchObject({ authorized: false, items: [] });
 	expect(activity.body).not.toContain("secret");
-	const discoveryUrl = "/api/acquisition/subscriptions/search";
-	const discoveryInput = { workKey: key, revision: null, startEpisode: 1 };
 	expect(
 		(
 			await app.inject({
 				method: "POST",
-				url: discoveryUrl,
-				headers,
-				payload: discoveryInput,
-			})
-		).statusCode,
-	).toBe(401);
-	expect(
-		(
-			await app.inject({
-				method: "POST",
-				url: discoveryUrl,
-				headers: signed,
-				payload: discoveryInput,
-			})
-		).statusCode,
-	).toBe(403);
-	expect(
-		(
-			await app.inject({
-				method: "POST",
-				url: discoveryUrl,
+				url: "/api/acquisition/subscriptions/search",
 				headers: mutation,
-				payload: { ...discoveryInput, startEpisode: 0 },
+				payload: { workKey: key, revision: null, startEpisode: 1 },
 			})
 		).statusCode,
-	).toBe(400);
-	expect(
-		(
-			await app.inject({
-				method: "POST",
-				url: discoveryUrl,
-				headers: mutation,
-				payload: discoveryInput,
-			})
-		).statusCode,
-	).toBe(503);
+	).toBe(404);
 });
 
 test("an ingested resource leaves the worker and remains historical activity during later outages or removal", async () => {

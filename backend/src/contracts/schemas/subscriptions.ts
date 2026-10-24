@@ -116,25 +116,3 @@ export const SubscriptionToggleSchema = Type.Object(
 	{ workKey, revision, enabled: Type.Boolean() },
 	{ additionalProperties: false },
 );
-
-export const SubscriptionSearchInputSchema = Type.Object(
-	{
-		workKey,
-		revision: Type.Union([revision, Type.Null()]),
-		startEpisode: Type.Integer({ minimum: 1, maximum: 10000 }),
-		profileId,
-	},
-	{ additionalProperties: false },
-);
-export const SubscriptionSearchResultSchema = Type.Object({
-	source: Type.Union([SourceInputSchema, Type.Null()]),
-	attempts: Type.Array(DiscoveryAttemptSchema),
-	releases: Type.Array(
-		Type.Object({
-			id: Type.String(),
-			title: Type.String(),
-			episode: nullableNumber,
-			waiting: Type.Boolean(),
-		}),
-	),
-});

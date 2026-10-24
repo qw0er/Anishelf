@@ -63,17 +63,28 @@ test("System settings HTTP updates media settings while Resources reserves its s
 			payload: {
 				resourceRoots: [root],
 				transcodeCacheBudgetGiB: 12,
-				defaultTranscodeProfileId: "builtin:fast",
-				preparationMode: "fast",
 			},
 		});
 		expect(response.statusCode).toBe(200);
 		expect(response.json()).toMatchObject({
 			resourceRoots: [root],
 			transcodeCacheBudgetGiB: 12,
-			defaultTranscodeProfileId: "builtin:fast",
-			preparationMode: "fast",
 		});
+		const selection = await app.inject({
+			method: "PUT",
+			url: "/api/transcode-profiles/selection",
+			headers,
+			payload: { profileId: "builtin:fast", preparationMode: "fast" },
+		});
+		expect(selection.statusCode).toBe(200);
+		const duplicateWrite = await app.inject({
+			method: "PUT",
+			url: "/api/settings",
+			headers,
+			payload: { defaultTranscodeProfileId: "builtin:fast" },
+		});
+		expect(duplicateWrite.statusCode).toBe(400);
+
 		const webUi = await app.inject({
 			method: "PUT",
 			url: "/api/settings",

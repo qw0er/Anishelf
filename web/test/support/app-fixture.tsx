@@ -23,6 +23,7 @@ import { Toaster, toast } from "../../src/shared/components/ui/toast.js";
 import {
 	animeDetailFixture,
 	animeFixture,
+	animeStatusFixture,
 	reviewFixture,
 } from "../fixtures/anime.js";
 import {
@@ -603,6 +604,11 @@ export function mockAnime(detail: ReturnType<typeof animeFixture>) {
 				localState: "available",
 				tracking: disconnectedList,
 			});
+		if (path.startsWith("/api/anime/status/")) {
+			const key = decodeURIComponent(path.slice("/api/anime/status/".length));
+			return json(animeStatusFixture(await fixtureViewing(key)));
+		}
+
 		if (path === "/api/anime/details/local/work-1") {
 			const key = "anilist:anime:154587";
 			return json(animeDetailFixture(detail, await fixtureViewing(key)));

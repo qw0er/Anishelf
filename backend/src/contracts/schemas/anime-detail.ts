@@ -20,7 +20,17 @@ export const AnimeDetailSchema = Type.Object({
 		Type.Null(),
 	]),
 	local: Type.Union([LocalWorkDetailSchema, Type.Null()]),
+});
+export const AnimeStatusSchema = Type.Object({
 	viewing: TrackingEntrySchema,
-	subscription: SubscriptionViewSchema,
-	downloads: Type.Union([DownloadActivitySchema, Type.Null()]),
+	subscription: Type.Pick(SubscriptionViewSchema, ["subscription"]),
+	downloads: Type.Union([
+		Type.Pick(DownloadActivitySchema, [
+			"total",
+			"active",
+			"attention",
+			"planningError",
+		]),
+		Type.Null(),
+	]),
 });

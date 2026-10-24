@@ -5,6 +5,11 @@ export interface DownloadStore {
 	saveDestination(value: DownloadDestination): void;
 	directory(workKey: string): string | null;
 	saveDirectory(workKey: string, directory: string): void;
+	summary(workKey: string): {
+		total: number;
+		active: number;
+		attention: number;
+	};
 	activity(
 		workKey: string,
 		page: number,

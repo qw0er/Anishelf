@@ -46,7 +46,41 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 				{ signal: request.signal },
 			),
 		);
-		await queryClient.invalidateQueries({ refetchType: "none" });
+		await queryClient.invalidateQueries({
+			queryKey: ["settings"],
+			refetchType: "none",
+		});
+		await queryClient.cancelQueries({
+			predicate: (query) =>
+				[
+					"library",
+					"directory",
+					"file",
+					"anime-detail",
+					"anime-status",
+					"anime-library",
+					"catalog",
+					"preparations",
+					"playback-selection",
+					"history",
+				].includes(String(query.queryKey[0])),
+		});
+		await queryClient.invalidateQueries({
+			refetchType: "none",
+			predicate: (query) =>
+				[
+					"library",
+					"directory",
+					"file",
+					"anime-detail",
+					"anime-status",
+					"anime-library",
+					"catalog",
+					"preparations",
+					"playback-selection",
+					"history",
+				].includes(String(query.queryKey[0])),
+		});
 		toast.add({
 			type: "success",
 			title: i18n.t("settingsPage.saved"),

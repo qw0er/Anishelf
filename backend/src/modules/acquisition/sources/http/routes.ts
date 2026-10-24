@@ -1,4 +1,3 @@
-import { Type } from "typebox";
 import {
 	SourceBundledInputSchema,
 	SourceGenerationSchema,
@@ -6,7 +5,6 @@ import {
 	SourceProbeSchema,
 	SourceProvidersSchema,
 	SourceSettingsSchema,
-	SourceSnapshotSchema,
 	SourceTestInputSchema,
 	SourceTestSchema,
 	SourceUpdateSchema,
@@ -17,23 +15,6 @@ import type { SourcesApi } from "../public.js";
 /** Source setup is distinct from protocol-neutral collection/content consumers. */
 export function registerSourceRoutes(app: HttpInstance, sources: SourcesApi) {
 	const path = "/api/acquisition/sources";
-	app.get(
-		`${path}/:id`,
-		{
-			schema: {
-				params: Type.Object({
-					id: Type.String({ minLength: 1, maxLength: 128 }),
-				}),
-				response: { 200: Type.Union([SourceSnapshotSchema, Type.Null()]) },
-			},
-		},
-		(request) => {
-			const value = sources.snapshot(request.params.id);
-			return value
-				? { ...value, entries: value.entries.map((entry) => ({ ...entry })) }
-				: null;
-		},
-	);
 	app.post(
 		`${path}/test`,
 		{

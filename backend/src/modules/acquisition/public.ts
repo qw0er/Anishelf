@@ -34,6 +34,9 @@ export interface AcquisitionDownloadsApi {
 		path: string;
 	}): Promise<DownloadDestination>;
 	validate(revision: string): Promise<DownloadDestination>;
+	summary(
+		workKey: string,
+	): Pick<DownloadActivity, "total" | "active" | "attention" | "planningError">;
 	activity(workKey: string, page?: number): DownloadActivity;
 	retry(
 		id: string,

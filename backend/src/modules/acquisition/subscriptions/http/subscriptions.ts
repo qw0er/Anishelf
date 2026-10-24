@@ -3,8 +3,6 @@ import {
 	AcquisitionProfileCatalogSchema,
 	SubscriptionCommandSchema,
 	SubscriptionSaveSchema,
-	SubscriptionSearchInputSchema,
-	SubscriptionSearchResultSchema,
 	SubscriptionToggleSchema,
 	SubscriptionViewSchema,
 } from "../../../../contracts/schemas/subscriptions.js";
@@ -39,19 +37,6 @@ export function registerSubscriptionRoutes(
 				Number(request.query.page ?? 1),
 				request.query.diagnostics !== "false",
 			),
-	);
-	app.post(
-		`${path}/search`,
-		{
-			schema: {
-				body: SubscriptionSearchInputSchema,
-				response: { 200: SubscriptionSearchResultSchema },
-			},
-		},
-		async (request, reply) => {
-			reply.header("Cache-Control", "no-store");
-			return subscriptions.search(request.body);
-		},
 	);
 	app.put(
 		path,

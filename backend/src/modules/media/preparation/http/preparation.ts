@@ -84,17 +84,6 @@ export function registerPreparationRoutes(
 				).tasks.map(preparationTaskResponse),
 			}),
 		);
-		scope.get(
-			"/api/preparations/:id",
-			{
-				schema: {
-					params: PreparationTaskParamsSchema,
-					response: { 200: PreparationTaskSchema },
-				},
-			},
-			async (request) =>
-				preparationTaskResponse(await preparation.get(request.params.id)),
-		);
 		scope.post(
 			"/api/preparations/:id/cancel",
 			{

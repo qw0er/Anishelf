@@ -113,29 +113,3 @@ export const SourceTestSchema = Type.Object({
 		}),
 	),
 });
-export const SourceSnapshotSchema = Type.Object({
-	id: Type.String(),
-	revision: Type.String(),
-	label: Type.String(),
-	checkedAt: NullableNumber,
-	nextAttemptAt: Type.Number(),
-	error: Type.Union([Type.String(), Type.Null()]),
-	outcome: Type.Optional(
-		Type.Union([Type.Literal("matches"), Type.Literal("no_match")]),
-	),
-	coverage: Type.Optional(Coverage),
-	entries: Type.Array(
-		Type.Object({
-			id: Type.String(),
-			observationId: Type.String(),
-			title: Type.String(),
-			publishedAt: NullableNumber,
-			hash: Type.Union([Type.String(), Type.Null()]),
-			size: Type.Optional(NullableNumber),
-			peers: Type.Optional(NullableNumber),
-			seeders: Type.Optional(NullableNumber),
-			seedersObservedAt: Type.Optional(NullableNumber),
-			download: Type.Union([Type.String(), Type.Null()]),
-		}),
-	),
-});

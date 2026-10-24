@@ -293,7 +293,6 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 	).toBe(401);
 
 	for (const url of [
-		"/api/tracking/list",
 		"/api/tracking/entries/anilist%3Aanime%3A1",
 		"/api/tracking/operations",
 	]) {
@@ -434,7 +433,10 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 	expect(operations.body).not.toContain("fixture-token");
 	expect(operations.json()[0]).not.toHaveProperty("attempt");
 
-	const cached = await http.inject({ url: "/api/tracking/list", headers: one });
+	const cached = await http.inject({
+		url: "/api/tracking/entries/anilist%3Aanime%3A1",
+		headers: one,
+	});
 	expect(cached.statusCode).toBe(200);
 	expect(cached.headers["cache-control"]).toBe("no-store");
 	expect(cached.body).not.toContain("fixture-token");
@@ -451,7 +453,7 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 	expect(
 		(
 			await http.inject({
-				url: `/api/tracking/list?generation=${body.generation}`,
+				url: `/api/tracking/entries/anilist%3Aanime%3A1?generation=${body.generation}`,
 				headers: one,
 			})
 		).statusCode,

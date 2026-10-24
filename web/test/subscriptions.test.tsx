@@ -4,6 +4,7 @@ import { SubscriptionPanel } from "../src/features/acquisition/subscription-pane
 import * as api from "../src/shared/api/client.js";
 import type { SubscriptionView } from "../src/shared/api/contracts.js";
 import { queryClient } from "../src/shared/api/query-client.js";
+import { animeStatusFixture } from "./fixtures/anime.js";
 import {
 	act,
 	cleanup,
@@ -60,6 +61,12 @@ function fixture(
 	return vi
 		.spyOn(api, "request")
 		.mockImplementation(async (path, method, _options, payload) => {
+			if (path.startsWith("/api/anime/status/"))
+				return {
+					...animeStatusFixture(),
+					subscription: { subscription: view.subscription },
+				};
+
 			if (path === "/api/acquisition/sources/connector")
 				return {
 					generation: "sites",

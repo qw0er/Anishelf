@@ -202,7 +202,6 @@ const episode = {
 		Type.Literal("count-derived"),
 	]),
 };
-export const CatalogEpisodeSchema = Type.Object(episode);
 export const CatalogReviewSchema = review;
 export const CatalogFileReviewsRequestSchema = Type.Object(
 	{ fileIds: Type.Array(id, { maxItems: 100, uniqueItems: true }) },
@@ -255,7 +254,6 @@ const page = <T extends ReturnType<typeof Type.Object>>(item: T) =>
 		perPage: Type.Integer(),
 		hasNextPage: Type.Boolean(),
 	});
-export const CatalogListSchema = page(card);
 export const CatalogReviewListSchema = page(review);
 export const CatalogPreviewRequestSchema = Type.Object(
 	{
@@ -317,24 +315,12 @@ export const CatalogDecisionRequestSchema = Type.Object(
 	{ revision, reason: text },
 	{ additionalProperties: false },
 );
-export const CatalogEpisodeEditSchema = Type.Object(
-	{
-		revision,
-		number: Type.String({ minLength: 1, maxLength: 100 }),
-		label: text,
-	},
-	{ additionalProperties: false },
-);
 export const CatalogRefreshSchema = Type.Object(
 	{ revision },
 	{ additionalProperties: false },
 );
 export const CatalogIdParamsSchema = Type.Object(
 	{ id },
-	{ additionalProperties: false },
-);
-export const CatalogEpisodeParamsSchema = Type.Object(
-	{ id, episodeId: id },
 	{ additionalProperties: false },
 );
 const pagination = {

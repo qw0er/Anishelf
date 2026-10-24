@@ -59,13 +59,8 @@ export function AnimeDetailPage() {
 	return (
 		<AnimeDetail
 			renderResourceActions={renderResourceActions}
-			renderSubscription={(workKey, detail) => (
-				<SubscriptionPanel
-					key={workKey}
-					workKey={workKey}
-					initialView={detail.subscription}
-					initialActivity={detail.downloads}
-				/>
+			renderSubscription={(workKey, status) => (
+				<SubscriptionPanel key={workKey} workKey={workKey} status={status} />
 			)}
 		/>
 	);

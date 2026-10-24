@@ -24,7 +24,7 @@ export function SubscriptionForm({
 }: {
 	workKey: string;
 	current: SubscriptionView["subscription"];
-	onSaved(): void;
+	onSaved(result: SubscriptionView): void;
 }) {
 	const { t } = useTranslation();
 	const id = useId();
@@ -68,8 +68,8 @@ export function SubscriptionForm({
 				connectionGeneration: target.connectionGeneration,
 			});
 		},
-		onSuccess: () => {
-			onSaved();
+		onSuccess: (result) => {
+			onSaved(result);
 			toast.add({
 				type: "success",
 				title: t("acquisition.subscription.updated"),

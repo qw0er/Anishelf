@@ -406,10 +406,13 @@ test("HTTP only delivers completed media, supports ranges/HEAD, rejects arbitrar
 	expect(head.headers["content-length"]).toBe("10");
 	expect(head.body).toBe("");
 	const status = await f.app.inject({
-		url: `/api/preparations/${task.id}`,
+		url: `/api/preparations?fileId=${fileId}`,
 		headers,
 	});
-	expect(status.json().status).toBe("ready");
+	expect(
+		status.json().tasks.find((item: { id: string }) => item.id === task.id)
+			.status,
+	).toBe("ready");
 	expect(JSON.stringify(status.json())).not.toContain("scopeId");
 	expect(
 		(

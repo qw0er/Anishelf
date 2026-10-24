@@ -890,8 +890,12 @@ test("HTTP exposes normalized cache envelopes, refresh, artwork and safe failure
 			method: "POST",
 			url: "/api/metadata/anilist/154587/refresh",
 		});
-		expect(refresh.statusCode).toBe(200);
-		expect(refresh.json().refreshError.code).toBe("unavailable");
+		expect(refresh.statusCode).toBe(404);
+		const refreshed = await application.get(
+			{ provider: "anilist", mediaType: "anime", id: "154587" },
+			{ refresh: true },
+		);
+		expect(refreshed.refreshError?.code).toBe("unavailable");
 		fetcher.mockImplementationOnce(
 			async () => new Response(null, { status: 503 }),
 		);
@@ -910,8 +914,14 @@ test("HTTP exposes normalized cache envelopes, refresh, artwork and safe failure
 		const status = await app.inject({
 			url: "/api/metadata/anilist/154587/artwork/cover",
 		});
-		expect(status.statusCode).toBe(200);
-		const artworkId = status.json().id;
+		expect(status.statusCode).toBe(404);
+		const artworkId = (
+			await application.artwork(
+				{ provider: "anilist", mediaType: "anime", id: "154587" },
+				"cover",
+				{},
+			)
+		).id;
 		const image = await app.inject({
 			url: `/api/metadata/artwork/${artworkId}`,
 		});

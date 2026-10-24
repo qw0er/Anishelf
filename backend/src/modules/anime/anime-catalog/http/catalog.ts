@@ -3,14 +3,9 @@ import {
 	CatalogConfirmationRequestSchema,
 	CatalogConfirmationSchema,
 	CatalogDecisionRequestSchema,
-	CatalogEpisodeEditSchema,
-	CatalogEpisodeParamsSchema,
-	CatalogEpisodeSchema,
 	CatalogFileReviewsRequestSchema,
 	CatalogFileReviewsSchema,
 	CatalogIdParamsSchema,
-	CatalogListQuerySchema,
-	CatalogListSchema,
 	CatalogPreviewRequestSchema,
 	CatalogPreviewSchema,
 	CatalogRefreshSchema,
@@ -80,38 +75,6 @@ export function registerCatalogRoutes(
 			},
 		},
 		async (request) => catalog.fileReviews(request.body.fileIds),
-	);
-	app.get(
-		"/api/catalog/works",
-		{
-			schema: {
-				querystring: CatalogListQuerySchema,
-				response: { 200: CatalogListSchema },
-			},
-		},
-		async (request) => {
-			const { page, perPage, year, ...query } = request.query;
-			const result = await catalog.list({
-				...query,
-				...(page ? { page: Number(page) } : {}),
-				...(perPage ? { perPage: Number(perPage) } : {}),
-				...(year ? { year: Number(year) } : {}),
-			});
-			return { ...result, items: result.items.map(presentCard) };
-		},
-	);
-	app.get(
-		"/api/catalog/works/:id",
-		{
-			schema: {
-				params: CatalogIdParamsSchema,
-				response: { 200: LocalWorkDetailSchema },
-			},
-		},
-		async (request) =>
-			presentLocalWorkDetail(
-				await catalog.getLocalWorkDetail(request.params.id),
-			),
 	);
 	app.get(
 		"/api/catalog/sources/:id",
@@ -201,24 +164,6 @@ export function registerCatalogRoutes(
 				request.params.id,
 				request.body.revision,
 				request.body.reason,
-			),
-	);
-	app.patch(
-		"/api/catalog/works/:id/episodes/:episodeId",
-		{
-			schema: {
-				params: CatalogEpisodeParamsSchema,
-				body: CatalogEpisodeEditSchema,
-				response: { 200: CatalogEpisodeSchema },
-			},
-		},
-		async (request) =>
-			catalog.editEpisode(
-				request.params.id,
-				request.params.episodeId,
-				request.body.revision,
-				request.body.number,
-				request.body.label,
 			),
 	);
 	app.post(

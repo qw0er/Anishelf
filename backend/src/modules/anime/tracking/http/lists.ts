@@ -10,16 +10,6 @@ export function registerTrackingListRoutes(
 	app: HttpInstance,
 	lists: TrackingListsApi,
 ) {
-	app.get(
-		"/api/tracking/list",
-		{
-			schema: {
-				querystring: TrackingGenerationSchema,
-				response: { 200: TrackingListSchema },
-			},
-		},
-		async (request) => lists.list(request.query.generation),
-	);
 	app.post(
 		"/api/tracking/refresh",
 		{

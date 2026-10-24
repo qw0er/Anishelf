@@ -46,7 +46,6 @@ const errorKeys: Record<string, string> = {
 };
 export function DownloadActivityPanel({
 	workKey,
-	initialActivity,
 	view,
 	reason,
 	onConfigure,
@@ -54,8 +53,7 @@ export function DownloadActivityPanel({
 	checking = false,
 }: {
 	workKey: string;
-	initialActivity?: DownloadActivity | null | undefined;
-	view: SubscriptionView;
+	view: Pick<SubscriptionView, "subscription">;
 	reason(code: string): string;
 	onConfigure(): void;
 	onCheckUpdates?: () => void;
@@ -70,10 +68,9 @@ export function DownloadActivityPanel({
 	const settings = useQuery(settingsQuery());
 	const query = useQuery({
 		queryKey: [...downloadKeys, workKey, page],
-		initialData: page === 1 ? (initialActivity ?? undefined) : undefined,
-		enabled: initialActivity !== null,
+		staleTime: 5_000,
 		queryFn: ({ signal }) => getDownloadActivity(workKey, page, { signal }),
-		refetchInterval: 5000,
+		refetchInterval: (query) => (query.state.data?.active ? 5000 : 60000),
 	});
 	const releases = useQuery({
 		queryKey: [
@@ -84,7 +81,7 @@ export function DownloadActivityPanel({
 			releasePage,
 		],
 		enabled: diagnostics,
-		refetchInterval: 30000,
+		refetchInterval: diagnostics ? 30000 : false,
 		queryFn: ({ signal }) =>
 			getSubscription(workKey, releasePage, { signal }, true),
 	});
@@ -97,8 +94,8 @@ export function DownloadActivityPanel({
 			kind: "import" | "acquisition";
 		}) => retryDownload(item.id, item.revision, kind),
 		onSuccess: () => {
-			void client.invalidateQueries({ queryKey: downloadKeys });
-			void invalidateAnimeQueries(client, "acquisition");
+			void client.invalidateQueries({ queryKey: [...downloadKeys, workKey] });
+			void invalidateAnimeQueries(client, "acquisition", workKey);
 			toast.add({
 				type: "success",
 				title: t("acquisition.activity.retryQueued"),
@@ -198,7 +195,7 @@ export function DownloadActivityPanel({
 			{query.isPending && !activity && (
 				<p role="status">{t("acquisition.activity.loading")}</p>
 			)}
-			{(query.isError || initialActivity === null) && (
+			{query.isError && (
 				<p role="alert">
 					{t("acquisition.activity.statusUnavailable")}{" "}
 					<Button variant="ghost" onClick={() => void query.refetch()}>
