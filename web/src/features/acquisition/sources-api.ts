@@ -28,8 +28,14 @@ export const clearSourceConnector = (
 	request(`${path}/connector`, "DELETE", {}, { generation });
 export const activateBundledSourceConnector = (
 	generation: string,
+	initializeSite = false,
 ): Promise<SourceConnectorSettings> =>
-	request(`${path}/connector/bundled`, "POST", {}, { generation });
+	request(
+		`${path}/connector/bundled`,
+		"POST",
+		{},
+		{ generation, initializeSite },
+	);
 export const getSourceProviders = (
 	generation: string,
 ): Promise<SourceProviders> =>

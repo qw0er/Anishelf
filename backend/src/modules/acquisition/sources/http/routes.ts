@@ -1,5 +1,6 @@
 import { Type } from "typebox";
 import {
+	SourceBundledInputSchema,
 	SourceGenerationSchema,
 	SourceProbeInputSchema,
 	SourceProbeSchema,
@@ -60,11 +61,15 @@ export function registerSourceRoutes(app: HttpInstance, sources: SourcesApi) {
 		`${path}/connector/bundled`,
 		{
 			schema: {
-				body: SourceGenerationSchema,
+				body: SourceBundledInputSchema,
 				response: { 200: SourceSettingsSchema },
 			},
 		},
-		(request) => sources.connector.useBundled(request.body.generation),
+		(request) =>
+			sources.connector.useBundled(
+				request.body.generation,
+				request.body.initializeSite,
+			),
 	);
 	app.put(
 		connector,

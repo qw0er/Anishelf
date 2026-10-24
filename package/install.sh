@@ -368,7 +368,7 @@ main() {
     mkdir "$stage_dir/bundle/quadlet"
     local -a units=(anishelf.network anishelf-app.volume anishelf-media.volume anishelf-qbittorrent-connection.volume anishelf-jackett-config.volume anishelf-backend.container anishelf-web.container anishelf.target)
     if [[ "$qbit" == yes ]]; then units+=(anishelf-qbittorrent-config.volume anishelf-qbittorrent-incomplete.volume anishelf-qbittorrent-init.container anishelf-qbittorrent.container); fi
-    if [[ "$jackett" == yes ]]; then units+=(anishelf-jackett.container); fi
+    if [[ "$jackett" == yes ]]; then units+=(anishelf-jackett-init.container anishelf-jackett.container); fi
     local unit
     for unit in "${units[@]}"; do asset "quadlet/$unit" "$stage_dir/$unit"; render_unit "$unit"; done
   fi

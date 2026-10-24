@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import type { Logger } from "pino";
 import { Type } from "typebox";
 import { Check } from "typebox/value";
@@ -74,25 +75,48 @@ export class BundledJackett {
 	private async update(state: BootstrapState) {
 		this.shutdown.signal.throwIfAborted();
 		await this.store.write(state);
-		this.setup = state.phase === "attempted" ? "manual" : state.phase;
+		this.setup = state.phase === "attempted" ? "pending" : state.phase;
 	}
 	private async run(): Promise<void> {
 		let state = await this.store.read();
-		let native: Awaited<ReturnType<BundledJackett["read"]>>;
-		try {
-			native = await this.read();
-		} catch (error) {
-			if (missing(error) && !state)
-				await this.update({ version: 1, instance: null, phase: "waiting" });
-			throw error;
-		}
+		const native = await this.read();
 		this.shutdown.signal.throwIfAborted();
 		this.available = true;
 		const instance = createHash("sha256").update(native.APIKey).digest("hex");
 		if (!state) {
-			// An already-existing installation is never treated as a fresh service.
-			state = { version: 1, instance, phase: "manual" };
+			let authorized = false;
+			try {
+				const marker: unknown = JSON.parse(
+					await readFile(
+						resolve(
+							dirname(this.options.path ?? ""),
+							"../.anishelf-bootstrap.json",
+						),
+						"utf8",
+					),
+				);
+				authorized = Check(
+					Type.Object({
+						version: Type.Literal(1),
+						initialize: Type.Literal(true),
+					}),
+					marker,
+				);
+			} catch (error) {
+				if (!missing(error)) throw error;
+			}
+			state = {
+				version: 1,
+				instance,
+				phase: authorized ? "pending" : "manual",
+			};
 			await this.update(state);
+			this.options.logger.info(
+				{ event: "acquisition.jackett_setup_classified", phase: state.phase },
+				authorized
+					? "Bundled first-run site setup authorized by the deployment marker."
+					: "No first-run marker; review existing Jackett sites or explicitly retry setup.",
+			);
 		} else if (state.instance && state.instance !== instance) {
 			await this.update({ ...state, instance, phase: "manual" });
 			this.options.logger.warn(
@@ -100,11 +124,8 @@ export class BundledJackett {
 				"Bundled credentials changed; select the connection explicitly and review site setup.",
 			);
 			return;
-		} else if (state.phase === "waiting") {
-			state = { ...state, instance, phase: "pending" };
-			await this.update(state);
 		}
-		this.setup = state.phase === "attempted" ? "manual" : state.phase;
+		this.setup = state.phase === "attempted" ? "pending" : state.phase;
 		const connection = this.options.connection;
 		const indexers = connection.matchesBundled(this.url, native.APIKey)
 			? connection.settings().indexers
@@ -115,14 +136,13 @@ export class BundledJackett {
 		this.shutdown.signal.throwIfAborted();
 		if (!connection.matchesBundled(this.url, native.APIKey)) return;
 		if (state.phase === "attempted") {
-			await this.update({ ...state, phase: "manual" });
-			this.options.logger.warn(
-				{ event: "acquisition.jackett_setup_review_required" },
-				"A previous site write is uncertain; finish setup in Jackett management.",
+			this.options.logger.info(
+				{ event: "acquisition.jackett_setup_reconciling" },
+				"Checking the configured site before retrying an uncertain setup request.",
 			);
-			return;
 		}
-		if (state.phase !== "pending") return;
+		if (state.phase !== "pending" && state.phase !== "attempted") return;
+		this.setup = "pending";
 		if (native.AdminPassword) {
 			await this.update({ ...state, phase: "manual" });
 			this.options.logger.warn(
@@ -190,9 +210,14 @@ export class BundledJackett {
 			} catch (error) {
 				if (this.shutdown.signal.aborted) return;
 				this.failures++;
-				if (!missing(error) && this.failures === 1)
+				if (!missing(error))
 					this.options.logger.warn(
-						{ event: "acquisition.jackett_bootstrap_unavailable" },
+						{
+							event: "acquisition.jackett_bootstrap_unavailable",
+							code:
+								error instanceof SourceError ? error.code : "upstream_failure",
+							attempt: this.failures,
+						},
 						"Bundled source setup will retry; existing connections are preserved.",
 					);
 				this.schedule(
@@ -212,9 +237,11 @@ export class BundledJackett {
 		this.started = true;
 		this.schedule(0);
 	}
-	async activate(generation: string) {
+	async activate(generation: string, initializeSite = false) {
 		try {
 			const native = await this.read();
+			if (initializeSite && native.AdminPassword)
+				throw new SourceError("bundled_management_required");
 			this.shutdown.signal.throwIfAborted();
 			const connection = this.options.connection;
 			const indexers = connection.matchesBundled(this.url, native.APIKey)
@@ -224,10 +251,26 @@ export class BundledJackett {
 				this.value(native.APIKey, indexers),
 				generation,
 			);
+			const activatedGeneration = connection.settings().generation;
 			this.available = true;
 			if (this.timer) clearTimeout(this.timer);
-			// Restart the worker without changing its durable first-run authorization.
+			// Drain the old revision before changing durable setup authorization.
 			if (this.running) await this.running;
+			if (this.timer) clearTimeout(this.timer);
+			if (!connection.current(activatedGeneration))
+				throw new SourceError("source_conflict");
+			if (initializeSite) {
+				await this.update({
+					version: 1,
+					instance: createHash("sha256").update(native.APIKey).digest("hex"),
+					phase: "pending",
+				});
+				this.options.logger.info(
+					{ event: "acquisition.jackett_setup_requested" },
+					"Bundled public site setup explicitly requested.",
+				);
+			}
+			this.failures = 0;
 			this.schedule(0);
 		} catch (error) {
 			if (error instanceof SourceError) throw error;

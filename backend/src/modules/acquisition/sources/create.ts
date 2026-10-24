@@ -122,9 +122,9 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 		isContentCurrent: (reference) => application.isDownloadCurrent(reference),
 		connector: Object.freeze<SourceConnectorApi>({
 			settings,
-			useBundled: (generation) =>
+			useBundled: (generation, initializeSite) =>
 				asyncCommand(async () => {
-					await bundled.activate(generation);
+					await bundled.activate(generation, initializeSite);
 					return settings();
 				}),
 			save: (input) =>

@@ -8,7 +8,6 @@ const schema = Type.Object({
 	version: Type.Literal(1),
 	instance: Type.Union([Type.String(), Type.Null()]),
 	phase: Type.Union([
-		Type.Literal("waiting"),
 		Type.Literal("pending"),
 		Type.Literal("attempted"),
 		Type.Literal("complete"),
@@ -18,7 +17,7 @@ const schema = Type.Object({
 export interface BootstrapState {
 	version: 1;
 	instance: string | null;
-	phase: "waiting" | "pending" | "attempted" | "complete" | "manual";
+	phase: "pending" | "attempted" | "complete" | "manual";
 }
 /** Stored in application state, never in the service's read-only volume. */
 export class JackettBootstrapStateFile {
@@ -29,6 +28,14 @@ export class JackettBootstrapStateFile {
 	async read(): Promise<BootstrapState | null> {
 		try {
 			const value: unknown = JSON.parse(await readFile(this.path, "utf8"));
+			// Legacy absence observations are not first-run authorization.
+			if (
+				value &&
+				typeof value === "object" &&
+				"phase" in value &&
+				value.phase === "waiting"
+			)
+				return null;
 			if (!Check(schema, value)) throw new Error("Invalid bootstrap state");
 			return value;
 		} catch (error) {

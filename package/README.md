@@ -60,9 +60,9 @@ publishes both multi-platform manifests. Any failed check/build blocks publicati
 | Trigger | Published tags |
 | --- | --- |
 | Stable `v*.*.*` tag in main history | Version, `sha-<full-SHA>`, `latest` |
-| Prerelease tag | Version and commit; leaves `latest` unchanged |
-| Manual workflow from main | `testing`, `test-<full-SHA>` |
-| Ordinary branch push / manual run from another ref | No images |
+| Prerelease `v*.*.*` tag in main history | Version and commit; leaves `latest` unchanged |
+| Manual workflow from any branch | `testing`, `test-<full-SHA>` |
+| Ordinary branch push | No images |
 
 Deploy matching Web/Backend tags. `testing` moves with manual builds; only an image
 digest identifies exact bytes. Package-version changes do not create release tags,
@@ -70,11 +70,11 @@ and publication does not create a GitHub Release or update running deployments.
 
 ### Publish a test build
 
-Commit/push to main, then run **Actions → Publish container images → Run workflow**,
+Select any branch and run **Actions → Publish container images → Run workflow**,
 or:
 
 ```sh
-gh workflow run publish-image.yml --ref main
+gh workflow run publish-image.yml --ref <branch>
 ```
 
 Wait for checks, all four native builds and both manifests. Use the matching tags

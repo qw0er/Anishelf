@@ -63,9 +63,15 @@ export async function provisionPublicSite(options: {
 	const configuration = await call("api/v2.0/indexers/nyaasi/config");
 	if (!Array.isArray(configuration)) throw new SourceError("invalid_response");
 	options.guard();
-	// A lost response or restart must not cause the site to be recreated.
+	// Journal before dispatch; recovery queries configured sites before retrying.
 	await options.beforeWrite();
 	options.guard();
 	await call("api/v2.0/indexers/nyaasi/config", "POST", configuration);
 	options.guard();
+	const verified = await call("api/v2.0/indexers?configured=true");
+	if (
+		!Array.isArray(verified) ||
+		!verified.some((row) => row && row.id === "nyaasi" && row.configured)
+	)
+		throw new SourceError("source_unavailable");
 }

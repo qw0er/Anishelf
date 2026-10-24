@@ -240,6 +240,14 @@ test("Quadlet generation preserves namespaces, quotes media paths and synchroniz
 		await file("anishelf-jackett.container"),
 		/PublishPort=127.0.0.1:9217:9117/,
 	);
+	assert.match(
+		await file("anishelf-jackett.container"),
+		/Requires=anishelf-jackett-init.service/,
+	);
+	assert.match(
+		await file("anishelf-jackett-init.container"),
+		/Exec=node \/app\/package\/jackett-init.mjs/,
+	);
 	await absent(join(f.env.XDG_CONFIG_HOME, "containers"));
 });
 

@@ -1,4 +1,6 @@
 [Unit]
+Requires=anishelf-jackett-init.service
+After=anishelf-jackett-init.service
 Description=Anishelf optional Jackett
 PartOf=anishelf.target
 
