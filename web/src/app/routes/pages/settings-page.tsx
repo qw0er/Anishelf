@@ -1,3 +1,4 @@
+import { Download, FolderOpen, Play, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
 import {
@@ -18,6 +19,7 @@ import {
 } from "../../../features/settings/ui.js";
 import { PageHeader } from "../../../shared/components/page-header.js";
 import { buttonStyles } from "../../../shared/components/ui/button.js";
+import { Tooltip } from "../../../shared/components/ui/tooltip.js";
 import { SecuritySettings } from "../../auth/security-settings.js";
 import { useAppRuntime } from "../../runtime/context.js";
 
@@ -27,6 +29,12 @@ const settingsSections = [
 	"downloads",
 	"account",
 ] as const;
+const sectionIcons = {
+	library: FolderOpen,
+	playback: Play,
+	downloads: Download,
+	account: UserRound,
+};
 type SettingsSection = (typeof settingsSections)[number];
 
 function isSettingsSection(value: string | null): value is SettingsSection {
@@ -54,27 +62,36 @@ export function SettingsPage() {
 	const { settings, scanning, scanPending } = useAppRuntime();
 	return settings ? (
 		<div className="stack-page">
-			<PageHeader
-				title={t("settingsPage.title")}
-				description={t("settingsPage.description")}
-			/>
+			<PageHeader title={t("settingsPage.title")} />
 			<nav
 				aria-label={t("settingsPage.sections.label")}
-				className="-mx-1 overflow-x-auto px-1"
+				className="action-row -mx-1 overflow-x-auto px-1"
 			>
 				<div className="flex w-max items-center gap-1">
-					{settingsSections.map((section) => (
-						<Link
-							key={section}
-							to={sectionPath(params, section)}
-							aria-current={activeSection === section ? "page" : undefined}
-							className={buttonStyles(
-								activeSection === section ? "secondary" : "ghost",
-							)}
-						>
-							{t(`settingsPage.sections.${section}`)}
-						</Link>
-					))}
+					{settingsSections.map((section) => {
+						const Icon = sectionIcons[section];
+						return (
+							<Tooltip
+								key={section}
+								content={t(`settingsPage.sections.${section}`)}
+							>
+								<Link
+									aria-label={t(`settingsPage.sections.${section}`)}
+									to={sectionPath(params, section)}
+									aria-current={activeSection === section ? "page" : undefined}
+									className={buttonStyles(
+										activeSection === section ? "secondary" : "ghost",
+										"responsive-action",
+									)}
+								>
+									<Icon size={16} aria-hidden="true" />
+									<span className="responsive-action-label">
+										{t(`settingsPage.sections.${section}`)}
+									</span>
+								</Link>
+							</Tooltip>
+						);
+					})}
 				</div>
 			</nav>
 			<div
@@ -98,10 +115,10 @@ export function SettingsPage() {
 				className={activeSection === "downloads" ? "stack-page" : "hidden"}
 				data-settings-section="downloads"
 			>
+				<WatchingSettings />
+				<RssSettings />
 				<SourceSettings />
 				<QbittorrentSettings />
-				<RssSettings />
-				<WatchingSettings />
 			</div>
 			<div
 				className={activeSection === "account" ? "stack-page" : "hidden"}

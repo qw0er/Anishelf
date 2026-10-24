@@ -4,6 +4,11 @@ import { useTranslation } from "react-i18next";
 import type { SubscriptionView } from "../../shared/api/contracts.js";
 import { Button } from "../../shared/components/ui/button.js";
 import { Input } from "../../shared/components/ui/input.js";
+import {
+	RadioCard,
+	RadioCardGroup,
+} from "../../shared/components/ui/radio-card.js";
+import { RadioOptions } from "../../shared/components/ui/radio-options.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import { downloadKeys, getDownloadSettings } from "./downloads-api.js";
 import { getSourceConnector, sourceSettingsKey } from "./sources-api.js";
@@ -114,45 +119,50 @@ export function SubscriptionForm({
 					{t("acquisition.subscription.moreOptions")}
 				</summary>
 				<div className="space-y-3 pt-3">
-					<label className="block space-y-1">
-						<span>{t("acquisition.subscription.releaseProfile")}</span>
-						<select
-							className="form-select w-full"
-							value={profileId}
-							disabled={save.isPending || profiles.isPending}
-							onChange={(event) => setProfileId(event.target.value)}
-						>
-							<option value="">
-								{t("acquisition.subscription.followDefault")}
-							</option>
-							{profiles.data?.profiles.map((profile) => (
-								<option key={profile.id} value={profile.id}>
-									{profile.name}
-								</option>
-							))}
-						</select>
-					</label>
-					<label className="block space-y-1">
-						<span>{t("acquisition.subscription.source")}</span>
-						<select
-							className="form-select w-full"
-							value={mode}
-							disabled={save.isPending}
-							onChange={(event) => setMode(event.target.value as typeof mode)}
-						>
-							{current && (
-								<option value="keep">
-									{t("acquisition.subscription.keepCurrent")}
-								</option>
-							)}
-							<option value="automatic">
-								{t("acquisition.subscription.automaticSource")}
-							</option>
-							<option value="feed">
-								{t("acquisition.subscription.rssUrl")}
-							</option>
-						</select>
-					</label>
+					<RadioCardGroup
+						legend={t("acquisition.subscription.releaseProfile")}
+						disabled={save.isPending || profiles.isPending}
+					>
+						<RadioCard
+							name={`${id}-profile`}
+							value=""
+							checked={!profileId}
+							onChange={() => setProfileId("")}
+							title={t("acquisition.subscription.followDefault")}
+						/>
+						{profiles.data?.profiles.map((profile) => (
+							<RadioCard
+								key={profile.id}
+								name={`${id}-profile`}
+								value={profile.id}
+								checked={profileId === profile.id}
+								onChange={() => setProfileId(profile.id)}
+								title={profile.name}
+								description={profile.description}
+							/>
+						))}
+					</RadioCardGroup>
+					<RadioOptions<"keep" | "automatic" | "feed">
+						legend={t("acquisition.subscription.source")}
+						value={mode}
+						disabled={save.isPending}
+						onChange={setMode}
+						options={[
+							...(current
+								? [
+										{
+											value: "keep" as const,
+											label: t("acquisition.subscription.keepCurrent"),
+										},
+									]
+								: []),
+							{
+								value: "automatic",
+								label: t("acquisition.subscription.automaticSource"),
+							},
+							{ value: "feed", label: t("acquisition.subscription.rssUrl") },
+						]}
+					/>
 					{mode === "feed" && (
 						<label htmlFor={`${id}-rss`} className="block space-y-1">
 							<span>{t("acquisition.subscription.rssUrl")}</span>

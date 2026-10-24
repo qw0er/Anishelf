@@ -8,7 +8,6 @@ import { Artwork } from "../../shared/components/artwork.js";
 import { mappingDefaults } from "../mapping-defaults.js";
 import type { ReviewController } from "../use-review-controller.js";
 
-const selectStyle = "form-select w-full";
 export function MappingForm({
 	item,
 	controller,
@@ -105,18 +104,23 @@ export function MappingForm({
 					</details>
 				)}
 				<div className="grid min-w-0 gap-4 sm:grid-cols-2">
-					<label className="flex min-w-0 flex-col gap-1.5 text-sm">
-						{t("review.kind")}
-						<select
-							name="kind"
-							className={selectStyle}
-							defaultValue={defaults.kind}
-						>
-							<option value="regular">{t("anime.regular")}</option>
-							<option value="special">{t("anime.special")}</option>
-							<option value="movie">{t("anime.movie")}</option>
-						</select>
-					</label>
+					<fieldset className="space-y-2">
+						<legend className="text-sm font-medium">{t("review.kind")}</legend>
+						<div className="flex flex-wrap gap-3">
+							{(["regular", "special", "movie"] as const).map((value) => (
+								<label key={value} className="flex items-center gap-2 text-sm">
+									<input
+										type="radio"
+										name="kind"
+										value={value}
+										defaultChecked={defaults.kind === value}
+										className="accent-primary"
+									/>
+									{t(`anime.${value}`)}
+								</label>
+							))}
+						</div>
+					</fieldset>
 					<label
 						htmlFor="target-numbers"
 						className="min-w-0 space-y-1.5 text-sm"

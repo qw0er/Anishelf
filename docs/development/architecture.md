@@ -232,7 +232,10 @@ flowchart LR
 
 Changing account/status/progress or disabling Watching does not stop existing
 subscriptions. Starting episode is fixed at creation. Check updates can retry pending
-discovery immediately, subject to source limits. [Operator behavior](../guide/watching-automation.md)
+discovery immediately, subject to source limits. Watching activation uses the saved
+subscription-default release profile. A default change fences pending activation
+and future creation until a new preview is confirmed, without changing existing
+subscriptions. [Operator behavior](../guide/watching-automation.md)
 and [selection profiles](../guide/acquisition-profiles.md) cover configuration.
 
 ### Sources API and lifecycle

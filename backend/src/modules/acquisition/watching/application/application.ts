@@ -157,8 +157,10 @@ export class WatchingApplication implements WatchingApi {
 		)
 			return "source_changed";
 		if (
+			grant.profileId !==
+				this.options.subscriptions.profiles().selectedProfileId ||
 			this.options.profileFingerprint(grant.profileId) !==
-			grant.profileFingerprint
+				grant.profileFingerprint
 		)
 			return "profile_changed";
 		const target = this.options.target();
@@ -264,6 +266,11 @@ export class WatchingApplication implements WatchingApi {
 	): Promise<WatchingPreview> {
 		if (this.shutdown.signal.aborted || revision !== this.policy().revision)
 			conflict();
+		if (
+			config.profileId !==
+			this.options.subscriptions.profiles().selectedProfileId
+		)
+			conflict();
 		const snapshot = this.options.tracking
 			? await abortable(this.options.tracking.refresh(), this.shutdown.signal)
 			: undefined;
@@ -350,7 +357,12 @@ export class WatchingApplication implements WatchingApi {
 			},
 		});
 		this.options.logger.info(
-			{ event: "acquisition.watching_previewed", works: entries.length },
+			{
+				event: "acquisition.watching_previewed",
+				works: entries.length,
+				profileId: config.profileId,
+				backlog: config.backlog,
+			},
 			"Watching activation scope prepared without authorizing downloads.",
 		);
 		return structuredClone(result);

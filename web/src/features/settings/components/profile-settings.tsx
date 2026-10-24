@@ -1,12 +1,12 @@
+import { RefreshCw, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TranscodeProfileCatalog } from "../../../shared/api/contracts.js";
 import { ProfileIssueNotice } from "../../../shared/components/profile-issue-notice.js";
-import { Button } from "../../../shared/components/ui/button.js";
+import { ActionButton } from "../../../shared/components/ui/action-button.js";
 import {
 	Card,
 	CardContent,
-	CardDescription,
 	CardHeader,
 	CardTitle,
 } from "../../../shared/components/ui/card.js";
@@ -49,9 +49,6 @@ export function PreparationProfileSettings({
 		<Card className="settings-section lg:grid">
 			<CardHeader>
 				<CardTitle>{t("preparation.profile")}</CardTitle>
-				<CardDescription>
-					{t("preparation.settingsDescription")}
-				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
 				{preparation.catalog?.issue && (
@@ -83,6 +80,7 @@ export function PreparationProfileSettings({
 					>
 						<RadioCardGroup
 							legend={t("preparation.preparationMode")}
+							className="grid gap-2 space-y-0 sm:grid-cols-2"
 							disabled={action.busy}
 						>
 							{(["compatible", "fast"] as const).map((value) => (
@@ -98,6 +96,7 @@ export function PreparationProfileSettings({
 						</RadioCardGroup>
 						<RadioCardGroup
 							legend={t("preparation.chooseProfile")}
+							className="grid gap-2 space-y-0 sm:grid-cols-2"
 							disabled={action.busy}
 						>
 							{preparation.catalog.profiles.map((profile) => (
@@ -117,9 +116,16 @@ export function PreparationProfileSettings({
 								/>
 							))}
 						</RadioCardGroup>
-						<Button type="submit" disabled={!profileId || action.busy}>
-							{t("preparation.saveProfile")}
-						</Button>
+						<div className="action-row">
+							<ActionButton
+								icon={Save}
+								label={t("preparation.saveProfile")}
+								aria-busy={action.busy}
+								shortLabel={t("actions.save")}
+								type="submit"
+								disabled={!profileId || action.busy}
+							/>
+						</div>
 					</form>
 				) : preparation.catalogError ? (
 					<>
@@ -129,9 +135,13 @@ export function PreparationProfileSettings({
 									"errors.requestFailed",
 							)}
 						</p>
-						<Button variant="outline" onClick={preparation.refreshCatalog}>
-							{t("actions.retry")}
-						</Button>
+						<ActionButton
+							icon={RefreshCw}
+							label={t("actions.retry")}
+							shortLabel={t("actions.retry")}
+							variant="outline"
+							onClick={preparation.refreshCatalog}
+						/>
 					</>
 				) : (
 					<p role="status">{t("preparation.loadingProfiles")}</p>

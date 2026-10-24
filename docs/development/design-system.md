@@ -58,12 +58,76 @@ keyboard focus.
 When space allows, label buttons with an icon and text. When space is constrained,
 use an icon-only button with a Tooltip that names the action. The Tooltip must not
 replace the control's accessible name or visible keyboard focus.
+Use short visible verbs such as Save, Edit, Test and Disconnect; retain the specific
+action in the accessible name and Tooltip. Measure the action container, rather
+than only the viewport, so bounded forms and side panels compact correctly.
+Keep busy feedback on the action's existing icon and `aria-busy` state.
+
+Labels, units and inputs should explain ordinary fields without repeating their
+meaning in helper paragraphs. Keep non-obvious behavior in keyboard/touch-accessible
+info Tooltips beside the label. Keep errors and required recovery steps visible.
+Use inline native radios for short finite choices, including viewing states,
+subscription source modes and catalog filters. Use the shared transcode-style radio
+cards when choices have descriptions. Keep service-populated lists such as source
+sites and resource directories as selectors; do not render an unbounded radio list.
 
 Use one shared page container (72rem maximum) and title alignment for Library,
 Files, Review, History and Settings. Use the shared page header for title,
 description and page actions; keep scan/stale status beneath it. Settings uses
 full-width section panels with a desktop description column and a bounded form
 column, stacking on mobile. Do not narrow the entire Settings page.
+Section descriptions are optional: omit text that only repeats the heading and
+field labels. All four Settings tabs use the same spacing, concise action controls
+and visible validation rules. Tab navigation retains every destination on narrow
+screens through icons, Tooltips and accessible names.
+
+Library settings uses 36px read-only directory fields matching the add-path input,
+aligned add/remove actions, a single add-path row and a compact
+cache-budget input. Long paths have a full-value Tooltip; directory rules and cache
+semantics are available through label help. Scan locks and directory limits remain
+visible. Playback lays out descriptive mode and profile cards in two columns when
+space permits, stacking on narrow screens. Custom-player entries use separated rows
+with their templates available on demand; name and template fields share a row on
+wide screens. Keep browser-only storage scope visible.
+
+Account settings places account identity and a concise Connected/Disconnected state
+in the left title/description column, with authorization and credential-preview
+actions together in the form column. Connection-check details use an info Tooltip;
+reconnection requirements and failed connection checks stay visible. Credential instructions
+belong in label help; account replacement consequences stay visible in confirmation.
+Security places current password above a responsive new-password/confirmation pair,
+with equal-height label rows so help icons do not offset the inputs,
+then Change password and Sign out on one action row. Keep password-change consequences
+visible and limits/link-access details available through info controls. Never hide
+validation failures or change credential submission and confirmation semantics.
+
+Downloads orders Watching automation first, then Subscription defaults, Jackett
+sources and qBittorrent. Watching has no independent release-profile selector:
+activation previews use the saved Subscription defaults profile, never an unsaved
+draft or an older automation profile. Discard the visible confirmation when that
+default changes. A preview and explicit confirmation still authorize the captured
+scope; existing subscriptions retain their saved profile and starting episode.
+Show Watching status in the left title/description column as Enabled or Disabled.
+Keep blocking reasons beside that status; do not repeat the state above the form.
+On mobile, the same header summary stacks above the controls. Show the two
+starting-episode choices as the same bordered radio cards used by profile selection,
+side by side where space allows.
+The server accepts only the current subscription default for activation and fences
+both pending confirmations and future creation when that default changes. The
+existing `profile_changed` state prompts a fresh preview and confirmation.
+
+Jackett and qBittorrent use the same shared connection disclosure, field grid and
+Save/Test/Disconnect action styling. Connection settings show a concise
+configured/unconfigured summary. Open first-time
+setup by default and disclose saved connection fields on demand. Jackett keeps site
+priority and its Save action available independently of connection editing; search
+diagnostics remain collapsed. qBittorrent groups API access, destination and the
+optional browser URL in one panel. Saved credentials remain blank; a short placeholder
+explains keeping them, and label help explains when re-entry is required. Showing,
+hiding and copying bundled credentials retain their existing lifetime and cache
+restrictions. A saved connection is not evidence of successful network access.
+Service-test counts and successful saves use Toasts, without adding persistent
+confirmation rows; unresolved setup and validation failures stay in context.
 
 Use 24px section gaps, compact list rows and consistent rounded-lg bordered
 panels. Browsing lists use separators rather than a card around every row.
@@ -89,7 +153,9 @@ return focus and scroll. Restore the last applied Library filters when returning
 to Library in the same tab session; explicit URL filters take precedence. The
 Library defaults its AniList viewing-state filter to Watching and offers All
 viewing states as an explicit choice. The Library toolbar keeps search, Filters,
-sort and the AniList action on one row. Refresh uses an icon button with a Tooltip and an
+sort and the AniList action on one row. Sort opens a compact radio-choice menu with
+the current choice marked; fixed filters use visible radio groups in the expandable
+panel. Refresh uses an icon button with a Tooltip and an
 accessible name. On narrow screens, compact action icons and a bounded sort
 control preserve search space. AniList account actions share one row when space
 allows and wrap naturally on narrower screens. The application header always stays on one line.

@@ -1,8 +1,10 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "../../../shared/components/ui/button.js";
+import { ActionButton } from "../../../shared/components/ui/action-button.js";
+import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
+import { Tooltip } from "../../../shared/components/ui/tooltip.js";
 
 export function ResourcePathList({
 	paths,
@@ -34,25 +36,38 @@ export function ResourcePathList({
 		<fieldset disabled={disabled} className="flex min-w-0 flex-col gap-2">
 			<legend className="mb-2 text-sm font-medium">
 				{t("settingsPage.pathLabel")}
+				<FieldHelp
+					label={t("settingsPage.pathHelpLabel")}
+					help={t("settingsPage.pathsHelp")}
+				/>
 			</legend>
 			<input type="hidden" name="resourceRoots" value={entries.join("\n")} />
 			{entries.length > 0 ? (
 				<ul
 					aria-label={t("settingsPage.pathLabel")}
-					className="min-w-0 divide-y rounded-lg border"
+					className="max-h-64 min-w-0 space-y-2 overflow-auto"
 				>
 					{entries.map((path) => (
 						<li
 							key={path}
-							className="flex min-w-0 items-center gap-3 px-3 py-2"
+							className="action-row flex-nowrap min-w-0 items-center gap-2"
 						>
-							<span className="min-w-0 flex-1 break-all text-sm">{path}</span>
-							<Button
+							<Tooltip content={path} openOnClick>
+								<Input
+									readOnly
+									value={path}
+									aria-label={path}
+									className="min-w-0 flex-1"
+								/>
+							</Tooltip>
+							<ActionButton
+								icon={Trash2}
+								shortLabel={t("settingsPage.deletePath")}
+								label={t("settingsPage.removePath", { path })}
 								type="button"
 								variant="ghost"
 								className="shrink-0 px-2"
 								disabled={disabled}
-								aria-label={t("settingsPage.removePath", { path })}
 								onClick={() => {
 									const next = entries.filter((entry) => entry !== path);
 									setEntries(next);
@@ -62,10 +77,7 @@ export function ResourcePathList({
 										{ count: next.length },
 									);
 								}}
-							>
-								<Trash2 size={16} aria-hidden="true" />
-								{t("settingsPage.deletePath")}
-							</Button>
+							/>
 						</li>
 					))}
 				</ul>
@@ -84,7 +96,9 @@ export function ResourcePathList({
 					value={draft}
 					placeholder={t("settingsPage.pathPlaceholder")}
 					disabled={disabled || entries.length >= 64}
-					aria-describedby="resource-roots-help"
+					aria-describedby={
+						entries.length >= 64 ? "resource-roots-help" : undefined
+					}
 					aria-invalid={error || undefined}
 					onChange={(event) => {
 						setDraft(event.target.value);
@@ -97,29 +111,26 @@ export function ResourcePathList({
 						}
 					}}
 				/>
-				<Button
+				<ActionButton
+					icon={Plus}
+					label={t("settingsPage.addPath")}
+					shortLabel={t("actions.add")}
 					type="button"
 					variant="outline"
-					className="shrink-0"
 					disabled={disabled || !draft.trim() || entries.length >= 64}
 					onClick={addPath}
-				>
-					<Plus size={16} aria-hidden="true" />
-					{t("settingsPage.addPath")}
-				</Button>
+				/>
 			</div>
 			{error && (
 				<p role="alert" className="text-sm text-destructive">
 					{t("settingsPage.duplicatePath")}
 				</p>
 			)}
-			<p id="resource-roots-help" className="text-sm text-muted-foreground">
-				{t(
-					entries.length >= 64
-						? "settingsPage.pathsLimitReached"
-						: "settingsPage.pathsHelp",
-				)}
-			</p>
+			{entries.length >= 64 && (
+				<p id="resource-roots-help" className="text-sm text-muted-foreground">
+					{t("settingsPage.pathsLimitReached")}
+				</p>
+			)}
 		</fieldset>
 	);
 }

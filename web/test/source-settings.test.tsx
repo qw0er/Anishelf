@@ -4,6 +4,7 @@ import { SourceSettings } from "../src/features/acquisition/source-settings.js";
 import * as api from "../src/shared/api/client.js";
 import type { SourceConnectorSettings } from "../src/shared/api/contracts.js";
 import { queryClient } from "../src/shared/api/query-client.js";
+import { toast } from "../src/shared/components/ui/toast.js";
 import {
 	cleanup,
 	fireEvent,
@@ -95,18 +96,17 @@ function fixture(initial?: Partial<SourceConnectorSettings>) {
 	return { request };
 }
 test("saves an external connection without retaining the key in UI caches, then checks service and search separately", async () => {
+	const notice = vi.spyOn(toast, "add");
 	const f = fixture();
-	fireEvent.change(await screen.findByLabelText("Jackett API URL"), {
+	fireEvent.change(await screen.findByLabelText("API URL"), {
 		target: { value: "http://external:9117/" },
 	});
-	fireEvent.change(screen.getByLabelText("Jackett API key"), {
+	fireEvent.change(screen.getByLabelText("API key"), {
 		target: { value: "private-key" },
 	});
-	fireEvent.click(screen.getByText("Save source settings"));
+	fireEvent.click(screen.getByRole("button", { name: "Save source settings" }));
 	await waitFor(() =>
-		expect(
-			screen.getByLabelText<HTMLInputElement>("Jackett API key").value,
-		).toBe(""),
+		expect(screen.getByLabelText<HTMLInputElement>("API key").value).toBe(""),
 	);
 	expect(
 		JSON.stringify(
@@ -121,17 +121,26 @@ test("saves an external connection without retaining the key in UI caches, then 
 				.map((m) => m.state.variables),
 		),
 	).not.toContain("private-key");
-	fireEvent.click(screen.getByText("Test connection and load sites"));
-	await screen.findByText(/Jackett responded with 2 configured sites/);
+	fireEvent.click(
+		screen.getByRole("button", { name: "Test connection and load sites" }),
+	);
+	await waitFor(() =>
+		expect(notice).toHaveBeenCalledWith(
+			expect.objectContaining({
+				title: "Jackett responded · 2 configured sites",
+			}),
+		),
+	);
 	fireEvent.click(screen.getByLabelText("Nyaa.si"));
-	fireEvent.click(screen.getByText("Save source settings"));
+	fireEvent.click(screen.getByRole("button", { name: "Save source settings" }));
+	fireEvent.click(screen.getByText("Search diagnostics"));
 	await screen.findByRole("option", { name: "nyaasi" });
 	fireEvent.click(screen.getByText("Check search support"));
 	await screen.findByText(/Run a search to verify upstream access/);
 	fireEvent.change(screen.getByLabelText("Title to search"), {
 		target: { value: "Frieren" },
 	});
-	fireEvent.click(screen.getByText("Test search"));
+	fireEvent.click(screen.getByRole("button", { name: "Test search" }));
 	await screen.findByText("Search completed with no matching releases.");
 	expect(screen.getByText(/Results have limited coverage/)).toBeTruthy();
 	expect(
@@ -153,7 +162,7 @@ test("uses bundled setup explicitly and preserves selected site order on save", 
 	fireEvent.click(
 		await screen.findByRole("button", { name: "Move other earlier" }),
 	);
-	fireEvent.click(screen.getByText("Save source settings"));
+	fireEvent.click(screen.getByRole("button", { name: "Save source settings" }));
 	await waitFor(() =>
 		expect(
 			f.request.mock.calls.some(
@@ -170,10 +179,10 @@ test("uses bundled setup explicitly and preserves selected site order on save", 
 			}).disabled,
 		).toBe(false),
 	);
-	fireEvent.click(screen.getByText("Use bundled Jackett"));
-	await screen.findByText(/Using bundled Jackett/);
-	fireEvent.click(screen.getByText("Disconnect Jackett"));
-	await screen.findByText(/No source connector configured/);
+	fireEvent.click(screen.getByRole("button", { name: "Use bundled Jackett" }));
+	await screen.findByText("Bundled");
+	fireEvent.click(screen.getByRole("button", { name: "Disconnect Jackett" }));
+	await screen.findByText("Not configured");
 });
 
 test("an existing bundled installation asks for site review without starting setup from the browser", async () => {

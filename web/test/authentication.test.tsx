@@ -116,14 +116,9 @@ test("password form trims outer spaces before confirming and submitting", async 
 	fireEvent.change(screen.getByLabelText("Current password"), {
 		target: { value: " old password " },
 	});
-	fireEvent.change(
-		screen.getByLabelText(
-			"New password (8–128 characters, outer spaces trimmed)",
-		),
-		{
-			target: { value: " new password long " },
-		},
-	);
+	fireEvent.change(screen.getByLabelText("New password"), {
+		target: { value: " new password long " },
+	});
 	fireEvent.change(screen.getByLabelText("Confirm new password"), {
 		target: { value: "different" },
 	});
@@ -153,12 +148,9 @@ test("password form rejects fewer than eight characters", async () => {
 	fireEvent.change(screen.getByLabelText("Current password"), {
 		target: { value: "current-password" },
 	});
-	fireEvent.change(
-		screen.getByLabelText(
-			"New password (8–128 characters, outer spaces trimmed)",
-		),
-		{ target: { value: "  short  " } },
-	);
+	fireEvent.change(screen.getByLabelText("New password"), {
+		target: { value: "  short  " },
+	});
 	fireEvent.change(screen.getByLabelText("Confirm new password"), {
 		target: { value: "short" },
 	});

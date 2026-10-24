@@ -2,17 +2,15 @@ import { Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useFetcher } from "react-router";
 import type { SettingsResponse } from "../../../shared/api/contracts.js";
-import { Button } from "../../../shared/components/ui/button.js";
+import { ActionButton } from "../../../shared/components/ui/action-button.js";
 import {
 	Card,
 	CardContent,
-	CardDescription,
 	CardHeader,
 	CardTitle,
 } from "../../../shared/components/ui/card.js";
+import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
-import { Spinner } from "../../../shared/components/ui/spinner.js";
-import { useDelayedPending } from "../../../shared/hooks/use-delayed-pending.js";
 import { preparationPolicy } from "../policy.js";
 import { ResourcePathList } from "./resource-path-list.js";
 
@@ -29,15 +27,12 @@ export default function ResourceSettings({
 		error: string | null;
 	}>();
 	const saving = fetcher.state !== "idle";
-	const showSaving = useDelayedPending(saving);
+
 	return (
 		<section className="stack-page" aria-label={t("settingsPage.label")}>
 			<Card className="settings-section lg:grid">
 				<CardHeader>
 					<CardTitle>{t("settingsPage.resourceDirectory")}</CardTitle>
-					<CardDescription>
-						{t("settingsPage.resourceDescription")}
-					</CardDescription>
 				</CardHeader>
 				<CardContent className="flex min-w-0 flex-col gap-4 lg:max-w-2xl">
 					<fetcher.Form
@@ -49,13 +44,21 @@ export default function ResourceSettings({
 							paths={settings.resourceRoots}
 							disabled={disabled || saving}
 						/>
-						<div className="flex min-w-0 flex-col gap-2">
-							<label
-								className="text-sm font-medium"
-								htmlFor="transcode-cache-budget"
-							>
-								{t("settingsPage.transcodeCacheBudget")}
-							</label>
+						<div className="flex min-w-0 max-w-sm flex-col gap-2">
+							<div className="flex items-center justify-between gap-2">
+								<label
+									className="text-sm font-medium"
+									htmlFor="transcode-cache-budget"
+								>
+									{t("settingsPage.transcodeCacheBudget")}
+								</label>
+								<FieldHelp
+									label={t("settingsPage.cacheHelpLabel")}
+									help={t("settingsPage.transcodeCacheBudgetHelp", {
+										defaultGiB: preparationPolicy.defaultCacheBudgetGiB,
+									})}
+								/>
+							</div>
 							<Input
 								id="transcode-cache-budget"
 								name="transcodeCacheBudgetGiB"
@@ -69,30 +72,17 @@ export default function ResourceSettings({
 									preparationPolicy.defaultCacheBudgetGiB
 								}
 								disabled={disabled || saving}
-								aria-describedby="transcode-cache-budget-help"
 							/>
-							<p
-								id="transcode-cache-budget-help"
-								className="text-sm text-muted-foreground"
-							>
-								{t("settingsPage.transcodeCacheBudgetHelp", {
-									defaultGiB: preparationPolicy.defaultCacheBudgetGiB,
-								})}
-							</p>
 						</div>
 						<div className="action-row">
-							<Button
+							<ActionButton
+								icon={Save}
+								label={t("settingsPage.save")}
+								shortLabel={t("actions.save")}
 								type="submit"
 								disabled={disabled || saving}
 								aria-busy={saving}
-							>
-								{showSaving ? (
-									<Spinner />
-								) : (
-									<Save size={16} aria-hidden="true" />
-								)}
-								{t("settingsPage.save")}
-							</Button>
+							/>
 						</div>
 					</fetcher.Form>
 					{disabled && (

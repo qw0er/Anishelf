@@ -3,6 +3,25 @@ import { Menu } from "@base-ui/react/menu";
 export const DropdownMenu = Menu.Root;
 export const DropdownMenuTrigger = Menu.Trigger;
 export const DropdownMenuSub = Menu.SubmenuRoot;
+export const DropdownMenuRadioGroup = Menu.RadioGroup;
+
+export function DropdownMenuRadioItem(props: Menu.RadioItem.Props) {
+	return (
+		<Menu.RadioItem
+			{...props}
+			closeOnClick
+			className="flex cursor-default items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground"
+		>
+			<span
+				aria-hidden="true"
+				className="flex size-4 items-center justify-center rounded-full border"
+			>
+				<Menu.RadioItemIndicator className="size-2 rounded-full bg-current" />
+			</span>
+			{props.children}
+		</Menu.RadioItem>
+	);
+}
 
 export function DropdownMenuSubTrigger(props: Menu.SubmenuTrigger.Props) {
 	return (

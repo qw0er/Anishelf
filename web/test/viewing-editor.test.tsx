@@ -143,9 +143,7 @@ test("status-only change omits progress and rejects negative progress in the for
 		screen.getByRole("spinbutton", { name: "Episodes watched" }),
 		{ target: { value: "3" } },
 	);
-	fireEvent.change(screen.getByRole("combobox", { name: "Tracking status" }), {
-		target: { value: "paused" },
-	});
+	fireEvent.click(screen.getByRole("radio", { name: "Paused" }));
 	fireEvent.click(
 		screen.getByRole("button", { name: "Save to the tracking service" }),
 	);
@@ -218,9 +216,7 @@ test("a refreshed remote progress value is not unintentionally included in a sta
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Edit progress" }));
 	await screen.findByRole("spinbutton", { name: "Episodes watched" });
-	fireEvent.change(screen.getByRole("combobox", { name: "Tracking status" }), {
-		target: { value: "paused" },
-	});
+	fireEvent.click(screen.getByRole("radio", { name: "Paused" }));
 	if (!snapshot.entry) throw Error("missing entry");
 	view.rerender(
 		<ViewingEditor
@@ -319,7 +315,7 @@ test("the editor uses provider capabilities for supported states and progress li
 		name: "Episodes watched",
 	});
 	expect(progress.getAttribute("max")).toBe("50");
-	expect(screen.getByRole("option", { name: "Watching" })).toBeTruthy();
-	expect(screen.getByRole("option", { name: "Completed" })).toBeTruthy();
-	expect(screen.queryByRole("option", { name: "Paused" })).toBeNull();
+	expect(screen.getByRole("radio", { name: "Watching" })).toBeTruthy();
+	expect(screen.getByRole("radio", { name: "Completed" })).toBeTruthy();
+	expect(screen.queryByRole("radio", { name: "Paused" })).toBeNull();
 });

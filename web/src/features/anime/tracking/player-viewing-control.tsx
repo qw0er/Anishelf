@@ -10,6 +10,7 @@ import type {
 } from "../../../shared/api/contracts.js";
 import { boundedSignal } from "../../../shared/api/queries.js";
 import { Button } from "../../../shared/components/ui/button.js";
+import { RadioOptions } from "../../../shared/components/ui/radio-options.js";
 import { operationsQuery } from "./operations.js";
 import { accountQuery, trackingIdentity } from "./queries.js";
 import { useTrackingMutation } from "./use-tracking-mutation.js";
@@ -164,20 +165,17 @@ function TargetControl({
 						)}
 					</span>
 					{operation.decisionReason === "initial-status-required" && (
-						<select
-							aria-label={t("playbackCompletion.status")}
+						<RadioOptions<typeof status>
+							legend={t("playbackCompletion.status")}
 							value={status}
-							onChange={(e) => setStatus(e.target.value as typeof status)}
-							className="rounded-md border bg-background p-2"
-						>
-							{(viewing.snapshot?.provider.capabilities.statuses ?? []).map(
-								(value) => (
-									<option key={value} value={value}>
-										{t(`trackingList.statuses.${value}`)}
-									</option>
-								),
-							)}
-						</select>
+							onChange={setStatus}
+							options={(
+								viewing.snapshot?.provider.capabilities.statuses ?? []
+							).map((value) => ({
+								value,
+								label: t(`trackingList.statuses.${value}`),
+							}))}
+						/>
 					)}
 					<Button
 						variant="outline"

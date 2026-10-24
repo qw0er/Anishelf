@@ -1,8 +1,21 @@
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import {
+	ArrowDownWideNarrow,
+	Search,
+	SlidersHorizontal,
+	X,
+} from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../../../shared/components/ui/button.js";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuTrigger,
+} from "../../../../shared/components/ui/dropdown-menu.js";
 import { Input } from "../../../../shared/components/ui/input.js";
+import { RadioOptions } from "../../../../shared/components/ui/radio-options.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import type { LibraryFilters } from "../api.js";
 import { libraryFilters, librarySearch } from "../api.js";
@@ -70,14 +83,16 @@ export function LibraryFiltersForm({
 						value={search}
 						onChange={(event) => setSearch(event.target.value)}
 					/>
-					<Button
-						type="submit"
-						variant="outline"
-						className="size-9 shrink-0 p-0"
-						aria-label={t("anime.searchSubmit")}
-					>
-						<Search size={16} aria-hidden="true" />
-					</Button>
+					<Tooltip content={t("anime.searchSubmit")}>
+						<Button
+							type="submit"
+							variant="outline"
+							className="size-9 shrink-0 p-0"
+							aria-label={t("anime.searchSubmit")}
+						>
+							<Search size={16} aria-hidden="true" />
+						</Button>
+					</Tooltip>
 				</form>
 				<Tooltip content={t("anime.filters")}>
 					<Button
@@ -92,44 +107,62 @@ export function LibraryFiltersForm({
 						<span className="hidden sm:inline">{t("anime.filters")}</span>
 					</Button>
 				</Tooltip>
-				<label className="w-24 min-w-0 sm:w-auto">
-					<span className="sr-only">{t("anime.sort")}</span>
-					<select
-						className="form-select w-full"
-						value={filters.sort}
-						onChange={(event) => change("sort", event.target.value)}
-					>
-						<option value="unwatched">{t("anime.unwatchedSort")}</option>
-						<option value="updated">{t("anime.updatedSort")}</option>
-						<option value="title">{t("anime.titleSort")}</option>
-						<option value="recent">{t("anime.recentSort")}</option>
-					</select>
-				</label>
+				<DropdownMenu>
+					<Tooltip content={t("anime.sort")}>
+						<DropdownMenuTrigger
+							render={
+								<Button
+									variant="outline"
+									aria-label={t("anime.sort")}
+									className="size-9 p-0 sm:w-auto sm:px-3"
+								/>
+							}
+						>
+							<ArrowDownWideNarrow size={16} aria-hidden="true" />
+							<span className="hidden sm:inline">
+								{t(
+									`anime.${filters.sort === "unwatched" ? "unwatchedSort" : filters.sort === "updated" ? "updatedSort" : filters.sort === "title" ? "titleSort" : "recentSort"}`,
+								)}
+							</span>
+						</DropdownMenuTrigger>
+					</Tooltip>
+					<DropdownMenuContent>
+						<DropdownMenuRadioGroup
+							value={filters.sort}
+							onValueChange={(value: string) => change("sort", value)}
+							aria-label={t("anime.sort")}
+						>
+							{(["unwatched", "updated", "title", "recent"] as const).map(
+								(value) => (
+									<DropdownMenuRadioItem key={value} value={value}>
+										{t(`anime.${value}Sort`)}
+									</DropdownMenuRadioItem>
+								),
+							)}
+						</DropdownMenuRadioGroup>
+					</DropdownMenuContent>
+				</DropdownMenu>
 				{actions}
 			</fieldset>
 			<div id="catalog-filters" hidden={!expanded}>
-				<div className="surface-panel grid gap-4 sm:grid-cols-3">
-					<label className="min-w-0 space-y-1 text-sm">
-						<span>{t("trackingList.scope")}</span>
-						<select
-							className="form-select block w-full"
-							value={filters.scope ?? "local"}
-							onChange={(event) => change("scope", event.target.value)}
-						>
-							<option value="local">{t("trackingList.local")}</option>
-							<option value="all">{t("trackingList.all")}</option>
-						</select>
-					</label>
-					<label className="min-w-0 space-y-1 text-sm">
-						<span>{t("trackingList.viewingState")}</span>
-						<select
-							className="form-select block w-full"
-							value={filters.viewingStatus ?? "watching"}
-							onChange={(event) => change("viewingStatus", event.target.value)}
-							disabled={!viewingEnabled}
-						>
-							<option value="all">{t("trackingList.allStatuses")}</option>
-							{[
+				<div className="surface-panel grid gap-4 sm:grid-cols-2">
+					<RadioOptions
+						legend={t("trackingList.scope")}
+						value={filters.scope ?? "local"}
+						onChange={(value) => change("scope", value)}
+						options={[
+							{ value: "local", label: t("trackingList.local") },
+							{ value: "all", label: t("trackingList.all") },
+						]}
+					/>
+					<RadioOptions
+						legend={t("trackingList.viewingState")}
+						value={filters.viewingStatus ?? "watching"}
+						disabled={!viewingEnabled}
+						onChange={(value) => change("viewingStatus", value)}
+						options={[
+							{ value: "all", label: t("trackingList.allStatuses") },
+							...[
 								"watching",
 								"planned",
 								"completed",
@@ -137,27 +170,23 @@ export function LibraryFiltersForm({
 								"dropped",
 								"rewatching",
 								"untracked",
-							].map((status) => (
-								<option key={status} value={status}>
-									{t(
-										status === "untracked"
-											? "trackingList.untracked"
-											: `trackingList.statuses.${status}`,
-									)}
-								</option>
-							))}
-						</select>
-					</label>
-
-					<label className="space-y-1 text-sm">
-						{t("anime.format")}
-						<select
-							className="form-select w-full"
-							value={filters.format ?? ""}
-							onChange={(event) => change("format", event.target.value)}
-						>
-							<option value="">{t("anime.allFormats")}</option>
-							{[
+							].map((value) => ({
+								value,
+								label: t(
+									value === "untracked"
+										? "trackingList.untracked"
+										: `trackingList.statuses.${value}`,
+								),
+							})),
+						]}
+					/>
+					<RadioOptions
+						legend={t("anime.format")}
+						value={filters.format ?? ""}
+						onChange={(value) => change("format", value)}
+						options={[
+							{ value: "", label: t("anime.allFormats") },
+							...[
 								"TV",
 								"TV_SHORT",
 								"MOVIE",
@@ -165,13 +194,9 @@ export function LibraryFiltersForm({
 								"OVA",
 								"ONA",
 								"MUSIC",
-							].map((format) => (
-								<option key={format} value={format}>
-									{format.replaceAll("_", " ")}
-								</option>
-							))}
-						</select>
-					</label>
+							].map((value) => ({ value, label: value.replaceAll("_", " ") })),
+						]}
+					/>
 					<label htmlFor="anime-year" className="space-y-1 text-sm">
 						{t("anime.year")}
 						<Input
@@ -193,18 +218,16 @@ export function LibraryFiltersForm({
 							}}
 						/>
 					</label>
-					<label className="space-y-1 text-sm">
-						{t("anime.availability")}
-						<select
-							className="form-select w-full"
-							value={filters.availability ?? ""}
-							onChange={(event) => change("availability", event.target.value)}
-						>
-							<option value="">{t("anime.allAvailability")}</option>
-							<option value="available">{t("anime.available")}</option>
-							<option value="unavailable">{t("anime.unavailable")}</option>
-						</select>
-					</label>
+					<RadioOptions
+						legend={t("anime.availability")}
+						value={filters.availability ?? ""}
+						onChange={(value) => change("availability", value)}
+						options={[
+							{ value: "", label: t("anime.allAvailability") },
+							{ value: "available", label: t("anime.available") },
+							{ value: "unavailable", label: t("anime.unavailable") },
+						]}
+					/>
 				</div>
 			</div>
 			{filtered && (

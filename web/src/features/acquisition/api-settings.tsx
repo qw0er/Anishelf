@@ -1,9 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Copy, Eye, PlugZap, Save, Unplug } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { QbittorrentConnectionSettings } from "../../shared/api/contracts.js";
 import { boundedSignal } from "../../shared/api/queries.js";
+import { ActionButton } from "../../shared/components/ui/action-button.js";
 import { Button } from "../../shared/components/ui/button.js";
+import { ConnectionSettings } from "../../shared/components/ui/connection-settings.js";
+import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import {
@@ -29,7 +33,6 @@ export function QbittorrentApiSettings() {
 			className="space-y-3"
 			aria-label={t("acquisition.api.ariaConnection")}
 		>
-			<h3 className="text-sm font-medium">{t("acquisition.api.connection")}</h3>
 			{query.isPending ? (
 				<p role="status">{t("acquisition.api.loading")}</p>
 			) : query.isError ? (
@@ -56,7 +59,6 @@ function ConnectionForm({
 	const [url, setUrl] = useState(settings.url ?? "");
 	const [username, setUsername] = useState(settings.username);
 	const [password, setPassword] = useState("");
-	const [editing, setEditing] = useState(!settings.bundled);
 	const [revealed, setRevealed] = useState<string | null>(null);
 	const [revealing, setRevealing] = useState(false);
 	useEffect(() => {
@@ -175,178 +177,186 @@ function ConnectionForm({
 			{settings.state === "unavailable" && (
 				<p role="alert">{t("acquisition.api.credentialsUnavailable")}</p>
 			)}
-			{settings.bundled && (
-				<div className="flex flex-col gap-3">
-					<p className="text-sm text-muted-foreground">
-						{t("acquisition.api.bundledDescription")}
-					</p>
-					<div className="flex flex-wrap items-center gap-2 text-sm">
-						<span>
-							{t("acquisition.api.webuiUsername")}{" "}
-							<strong>{settings.username}</strong>
-						</span>
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => void copy(settings.username)}
-						>
-							{t("acquisition.api.copyUsername")}
-						</Button>
-						<Button
-							type="button"
-							variant="outline"
-							disabled={revealing}
-							onClick={() =>
-								revealed === null ? void reveal() : setRevealed(null)
-							}
-						>
-							{revealed === null
-								? t("acquisition.api.showPassword")
-								: t("acquisition.api.hidePassword")}
-						</Button>
-						{revealed !== null && (
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => void copy(revealed)}
-							>
-								{t("acquisition.api.copyPassword")}
-							</Button>
-						)}
-					</div>
-					{revealed !== null && (
-						<Input
-							aria-label={t("acquisition.api.savedPassword")}
-							readOnly
-							value={revealed}
-							autoComplete="off"
-						/>
-					)}
-					<p className="text-sm text-muted-foreground">
-						{t("acquisition.api.bundledHelp")}
-					</p>
-				</div>
-			)}
-			{editing && (
-				<div className="grid gap-4 sm:grid-cols-2">
-					<div className="flex flex-col gap-2 sm:col-span-2">
+
+			<ConnectionSettings
+				configured={settings.state === "configured"}
+				label={t("acquisition.sources.connectionSettings")}
+				status={
+					settings.state === "configured"
+						? t(
+								settings.bundled
+									? "acquisition.connection.bundled"
+									: "acquisition.connection.external",
+							)
+						: t("acquisition.connection.unconfigured")
+				}
+			>
+				<div className="flex flex-col gap-2 sm:col-span-2">
+					<div className="flex items-center justify-between gap-2">
 						<label
 							className="text-sm font-medium"
 							htmlFor="qbittorrent-api-url"
 						>
 							{t("acquisition.api.url")}
 						</label>
-						<Input
-							id="qbittorrent-api-url"
-							type="url"
-							required
-							maxLength={2048}
-							value={url}
-							onChange={(event) => setUrl(event.target.value)}
-							disabled={busy}
-							placeholder="http://qbittorrent:8080"
-							aria-describedby="qbittorrent-api-help"
-						/>
-						<p
-							id="qbittorrent-api-help"
-							className="text-sm text-muted-foreground"
-						>
-							{t("acquisition.api.urlHelp")}
-						</p>
-					</div>
-					<div className="flex flex-col gap-2">
-						<label
-							className="text-sm font-medium"
-							htmlFor="qbittorrent-api-username"
-						>
-							{t("acquisition.api.username")}
-						</label>
-						<Input
-							id="qbittorrent-api-username"
-							autoComplete="username"
-							required
-							maxLength={256}
-							value={username}
-							onChange={(event) => setUsername(event.target.value)}
-							disabled={busy}
+						<FieldHelp
+							label={`${t("acquisition.api.url")} · ${t("actions.help")}`}
+							help={t("acquisition.api.urlHelp")}
 						/>
 					</div>
-					<div className="flex flex-col gap-2">
+					<Input
+						id="qbittorrent-api-url"
+						type="url"
+						required
+						maxLength={2048}
+						value={url}
+						onChange={(event) => setUrl(event.target.value)}
+						disabled={busy}
+						placeholder="http://qbittorrent:8080"
+					/>
+				</div>
+				<div className="flex flex-col gap-2">
+					<label
+						className="text-sm font-medium"
+						htmlFor="qbittorrent-api-username"
+					>
+						{t("acquisition.api.username")}
+					</label>
+					<Input
+						id="qbittorrent-api-username"
+						autoComplete="username"
+						required
+						maxLength={256}
+						value={username}
+						onChange={(event) => setUsername(event.target.value)}
+						disabled={busy}
+					/>
+				</div>
+				<div className="flex flex-col gap-2">
+					<div className="flex items-center justify-between gap-2">
 						<label
 							className="text-sm font-medium"
 							htmlFor="qbittorrent-api-password"
 						>
 							{t("acquisition.api.password")}
 						</label>
-						<Input
-							id="qbittorrent-api-password"
-							type="password"
-							autoComplete="new-password"
-							maxLength={4096}
-							required={!settings.passwordConfigured || !sameAccount}
-							value={password}
-							onChange={(event) => setPassword(event.target.value)}
-							disabled={busy}
-							aria-describedby={
-								settings.passwordConfigured
-									? "qbittorrent-password-help"
-									: undefined
-							}
+						<FieldHelp
+							label={`${t("acquisition.api.password")} · ${t("actions.help")}`}
+							help={t("acquisition.api.passwordHelp")}
 						/>
-						{settings.passwordConfigured && (
-							<p
-								id="qbittorrent-password-help"
-								className="text-sm text-muted-foreground"
-							>
-								{t("acquisition.api.passwordSaved")}
-							</p>
-						)}
 					</div>
+					<Input
+						id="qbittorrent-api-password"
+						type="password"
+						autoComplete="new-password"
+						maxLength={4096}
+						required={!settings.passwordConfigured || !sameAccount}
+						placeholder={
+							settings.passwordConfigured && sameAccount
+								? t("acquisition.api.passwordSaved")
+								: undefined
+						}
+						value={password}
+						onChange={(event) => setPassword(event.target.value)}
+						disabled={busy}
+					/>
 				</div>
-			)}
+			</ConnectionSettings>
 			<div className="action-row">
-				{settings.bundled && (
-					<Button
-						type="button"
-						variant="outline"
-						onClick={() => {
-							setRevealed(null);
-							setEditing(!editing);
-						}}
-					>
-						{editing
-							? t("acquisition.api.hideSettings")
-							: t("acquisition.api.updateSettings")}
-					</Button>
-				)}
-				{editing && (
-					<Button type="submit" disabled={busy}>
-						{save.isPending
-							? t("acquisition.api.saving")
-							: t("acquisition.api.save")}
-					</Button>
-				)}
-				<Button
+				<ActionButton
+					icon={Save}
+					label={t("acquisition.api.save")}
+					shortLabel={t("actions.save")}
+					type="submit"
+					disabled={busy || !changed}
+					aria-busy={save.isPending}
+				/>
+				<ActionButton
+					icon={PlugZap}
+					label={t("acquisition.api.test")}
+					shortLabel={t("actions.test")}
 					type="button"
 					variant="outline"
 					disabled={busy || changed || settings.state !== "configured"}
+					aria-busy={check.isPending}
 					onClick={() => check.mutate()}
-				>
-					{check.isPending
-						? t("acquisition.api.testing")
-						: t("acquisition.api.test")}
-				</Button>
-				{editing && settings.state !== "unconfigured" && (
-					<Button
+				/>
+				{settings.state !== "unconfigured" && (
+					<ActionButton
+						icon={Unplug}
+						label={t("acquisition.api.remove")}
+						shortLabel={t("actions.disconnect")}
 						type="button"
 						variant="outline"
 						disabled={busy}
 						onClick={() => clear.mutate()}
-					>
-						{t("acquisition.api.remove")}
-					</Button>
+					/>
 				)}
 			</div>
+			{settings.bundled && (
+				<details
+					onToggle={(event) => {
+						if (!event.currentTarget.open) setRevealed(null);
+					}}
+				>
+					<summary className="cursor-pointer text-sm font-medium">
+						{t("acquisition.api.credentials")}
+					</summary>
+					<div className="flex flex-col gap-3 pt-3">
+						<div className="flex flex-wrap items-center gap-2 text-sm">
+							<span>
+								{t("acquisition.api.webuiUsername")}{" "}
+								<strong>{settings.username}</strong>
+							</span>
+							<ActionButton
+								icon={Copy}
+								label={t("acquisition.api.copyUsername")}
+								shortLabel={t("actions.copy")}
+								type="button"
+								variant="outline"
+								onClick={() => void copy(settings.username)}
+							/>
+							<ActionButton
+								icon={Eye}
+								label={t(
+									revealed === null
+										? "acquisition.api.showPassword"
+										: "acquisition.api.hidePassword",
+								)}
+								shortLabel={t(
+									revealed === null
+										? "acquisition.api.showPassword"
+										: "acquisition.api.hidePassword",
+								)}
+								type="button"
+								variant="outline"
+								disabled={revealing}
+								onClick={() =>
+									revealed === null ? void reveal() : setRevealed(null)
+								}
+							/>
+							{revealed !== null && (
+								<ActionButton
+									icon={Copy}
+									label={t("acquisition.api.copyPassword")}
+									shortLabel={t("actions.copy")}
+									type="button"
+									variant="outline"
+									onClick={() => void copy(revealed)}
+								/>
+							)}
+						</div>
+						{revealed !== null && (
+							<Input
+								aria-label={t("acquisition.api.savedPassword")}
+								readOnly
+								value={revealed}
+								autoComplete="off"
+							/>
+						)}
+					</div>
+				</details>
+			)}
 		</form>
 	);
 }

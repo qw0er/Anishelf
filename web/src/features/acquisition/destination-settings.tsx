@@ -1,8 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, Save } from "lucide-react";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { boundedSignal } from "../../shared/api/queries.js";
+import { ActionButton } from "../../shared/components/ui/action-button.js";
 import { Button } from "../../shared/components/ui/button.js";
+import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import {
@@ -72,9 +75,15 @@ export function DownloadDestinationSettings() {
 				action.mutate("save");
 			}}
 		>
-			<h3 className="text-sm font-medium">
-				{t("acquisition.destination.title")}
-			</h3>
+			<div className="flex items-center gap-1">
+				<h3 className="text-sm font-medium">
+					{t("acquisition.destination.title")}
+				</h3>
+				<FieldHelp
+					label={`${t("acquisition.destination.title")} · ${t("actions.help")}`}
+					help={t("acquisition.destination.help")}
+				/>
+			</div>
 			<div className="grid gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-2">
 					<label className="text-sm font-medium" htmlFor={`${id}-root`}>
@@ -119,11 +128,8 @@ export function DownloadDestinationSettings() {
 					/>
 				</div>
 			</div>
-			<p className="text-sm text-muted-foreground">
-				{t("acquisition.destination.help")}
-			</p>
 			{destination && (
-				<p className="text-sm" role="status">
+				<p className="w-fit rounded-md border px-2 py-1 text-sm" role="status">
 					{destination.validated
 						? destination.visibilityVerified
 							? t("acquisition.destination.visibilityVerified")
@@ -137,20 +143,22 @@ export function DownloadDestinationSettings() {
 				</p>
 			)}
 			<div className="action-row">
-				<Button
+				<ActionButton
+					icon={Save}
+					label={t("acquisition.destination.save")}
+					shortLabel={t("actions.save")}
 					type="submit"
 					disabled={action.isPending || !query.data?.roots.length}
-				>
-					{t("acquisition.destination.save")}
-				</Button>
-				<Button
+				/>
+				<ActionButton
+					icon={Check}
+					label={t("acquisition.destination.validate")}
+					shortLabel={t("actions.validate")}
 					type="button"
 					variant="outline"
 					disabled={action.isPending || !destination || changed}
 					onClick={() => action.mutate("validate")}
-				>
-					{t("acquisition.destination.validate")}
-				</Button>
+				/>
 			</div>
 		</form>
 	);

@@ -79,7 +79,13 @@ test("manual credentials remain drafts until Save and password clears without en
 		0,
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Save API connection" }));
-	await screen.findByText(/Password saved/);
+	fireEvent.click(
+		await screen.findByText("Connection settings", {
+			exact: false,
+			selector: "summary",
+		}),
+	);
+	await screen.findByPlaceholderText("Saved · leave blank to keep");
 	expect(request).toHaveBeenCalledWith(
 		"/api/acquisition/qbittorrent",
 		"PUT",
@@ -112,26 +118,23 @@ test("saved passwords are not populated and changing accounts requires a fresh p
 		passwordConfigured: true,
 	});
 	render(<QbittorrentApiSettings />);
+	fireEvent.click(
+		await screen.findByText("Connection settings", {
+			exact: false,
+			selector: "summary",
+		}),
+	);
 	const password = (await screen.findByLabelText(
 		"Password",
 	)) as HTMLInputElement;
 	expect(password.value).toBe("");
 	expect(password.required).toBe(false);
-	fireEvent.click(screen.getByRole("button", { name: "Save API connection" }));
-	await waitFor(() =>
-		expect(request.mock.calls.some((call) => call[1] === "PUT")).toBe(true),
-	);
-	const saved = request.mock.calls.find((call) => call[1] === "PUT");
-	expect(saved?.[3]).not.toHaveProperty("password");
-	await waitFor(() =>
-		expect(
-			(
-				screen.getByRole("button", {
-					name: "Test connection",
-				}) as HTMLButtonElement
-			).disabled,
-		).toBe(false),
-	);
+	expect(
+		screen.getByRole<HTMLButtonElement>("button", {
+			name: "Save API connection",
+		}).disabled,
+	).toBe(true);
+	expect(request.mock.calls.every((call) => call[1] === "GET")).toBe(true);
 	fireEvent.change(screen.getByLabelText("Username"), {
 		target: { value: "other" },
 	});
@@ -154,6 +157,12 @@ test("tests the saved connection and removes credentials explicitly", async () =
 		passwordConfigured: true,
 	});
 	render(<QbittorrentApiSettings />);
+	fireEvent.click(
+		await screen.findByText("Connection settings", {
+			exact: false,
+			selector: "summary",
+		}),
+	);
 	await screen.findByLabelText("Password");
 	fireEvent.click(screen.getByRole("button", { name: "Test connection" }));
 	await waitFor(() =>
@@ -208,9 +217,9 @@ test("bundled WebUI credentials are fetched on demand, hidden, and excluded from
 	});
 	render(<QbittorrentApiSettings />);
 	const show = await screen.findByRole("button", {
-		name: "Show WebUI password",
+		name: "Show password",
 	});
-	expect(screen.queryByLabelText("API URL")).toBeNull();
+	expect(screen.getByLabelText("API URL").closest("details")?.open).toBe(false);
 	expect(
 		request.mock.calls.some((call) => call[0].endsWith("/credentials")),
 	).toBe(false);
@@ -230,11 +239,12 @@ test("bundled WebUI credentials are fetched on demand, hidden, and excluded from
 	expect(JSON.stringify(queryClient.getMutationCache().getAll())).not.toContain(
 		"bundled-secret",
 	);
-	fireEvent.click(screen.getByRole("button", { name: "Hide WebUI password" }));
+	fireEvent.click(screen.getByRole("button", { name: "Hide password" }));
 	expect(screen.queryByLabelText("Saved WebUI password")).toBeNull();
 	fireEvent.click(
-		screen.getByRole("button", {
-			name: "Update password or use an external instance",
+		screen.getByText("Connection settings", {
+			exact: false,
+			selector: "summary",
 		}),
 	);
 	expect(screen.getByLabelText("API URL")).toBeTruthy();
