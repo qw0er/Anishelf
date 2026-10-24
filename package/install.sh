@@ -12,6 +12,9 @@ podman_rootless=false
 stage_dir=
 log_file=
 phase='collecting configuration'
+action=install
+existing_dir=
+backup_dir=
 
 log() {
   printf '[anishelf] %s\n' "$*" >&2
@@ -33,10 +36,16 @@ trap 'exit 143' TERM
 usage() {
   cat <<'HELP'
 Usage: bash install.sh [--generate-only] [--ref REF] [--templates-dir DIRECTORY] [--engine docker|podman]
+       bash install.sh --remove DIRECTORY
+       bash install.sh --reconfigure DIRECTORY [--ref REF] [--templates-dir DIRECTORY]
 
 Configure Docker/Podman Compose or rootless Podman Quadlet interactively.
 --generate-only  Write a new deployment bundle without contacting a container engine
                  or installing systemd units. No existing files are overwritten.
+--remove DIRECTORY       Stop a saved deployment and archive/remove its active configuration.
+--reconfigure DIRECTORY  Prepare fresh configuration, then stop/archive the saved
+                         deployment and start the replacement in the same directory.
+                         Both modes preserve all volumes and host media.
 --ref REF        GitHub branch, tag or commit for deployment templates (default main).
                  Branch/tag names containing slashes are not supported.
 --templates-dir  Use local package/deploy templates instead of GitHub (maintainers).
@@ -165,14 +174,14 @@ preflight() {
   if [[ "$engine" == podman ]]; then
     podman info >/dev/null
     podman_rootless=$(podman info --format '{{.Host.Security.Rootless}}')
-    [[ -z "$(podman ps -aq --filter volume=anishelf-app)" ]] || die 'Existing containers already use anishelf-app. Reuse their deployment configuration.'
+    [[ "${1:-}" == replacement || -z "$(podman ps -aq --filter volume=anishelf-app)" ]] || die 'Existing containers already use anishelf-app. Reuse their deployment configuration.'
   fi
   if [[ "$method" == compose ]]; then
     "$engine" compose version >/dev/null || die "$engine compose is unavailable. Install its Compose provider before retrying."
     "$engine" info >/dev/null
-    [[ -z "$("$engine" ps -aq --filter label=com.docker.compose.project=anishelf)" ]] ||
+    [[ "${1:-}" == replacement || -z "$("$engine" ps -aq --filter label=com.docker.compose.project=anishelf)" ]] ||
       die 'An anishelf Compose project already exists. Use its existing configuration to update it.'
-    [[ -z "$("$engine" ps -aq --filter volume=anishelf-app)" ]] || die 'Existing containers already use anishelf-app. Reuse their deployment configuration.'
+    [[ "${1:-}" == replacement || -z "$("$engine" ps -aq --filter volume=anishelf-app)" ]] || die 'Existing containers already use anishelf-app. Reuse their deployment configuration.'
     if [[ "$podman_rootless" == true ]]; then
       local candidate
       for candidate in "$app_port" "$qbit_port" "$peer_port" "$jackett_port"; do
@@ -188,7 +197,9 @@ preflight() {
     systemctl --user show-environment >/dev/null
     local file
     for file in "$quadlet_dir"/anishelf* "$systemd_dir"/anishelf*; do
-      exists "$file" && die "Existing Anishelf unit is preserved: $file"
+      if exists "$file"; then
+        [[ "${1:-}" == replacement && -f "$existing_dir/quadlet/${file##*/}" && ! -L "$file" ]] && cmp -s "$file" "$existing_dir/quadlet/${file##*/}" || die "Existing Anishelf unit is preserved: $file"
+      fi
     done
   fi
   return 0
@@ -224,10 +235,89 @@ publish_unit() {
   exists "$destination" && die "Existing unit is preserved: $destination"
   (set -C; cat "$source" > "$destination")
 }
+# Manage only a saved installer bundle, never an arbitrary source checkout.
+load_existing() {
+  valid_path "$existing_dir" && [[ -d "$existing_dir" && ! -L "$existing_dir" ]] || die 'Choose a real absolute saved deployment directory.'
+  existing_dir=$(cd "$existing_dir" && pwd -P)
+  if exists "$existing_dir/compose.yaml" && exists "$existing_dir/quadlet"; then die 'Mixed deployment bundles must be reconciled manually.'; fi
+  if [[ -f "$existing_dir/compose.yaml" && ! -L "$existing_dir/compose.yaml" && -f "$existing_dir/.env" && ! -L "$existing_dir/.env" ]]; then
+    old_method=compose
+    old_engine=$(sed -n "s/^ANISHELF_DEPLOY_ENGINE='\(docker\|podman\)'$/\1/p" "$existing_dir/.env")
+    [[ "$old_engine" == docker || "$old_engine" == podman ]] || die 'Not a recognized installer Compose bundle.'
+    [[ -z "$engine" || "$engine" == "$old_engine" ]] || die 'Use the original engine to preserve its volumes.'
+  elif [[ -d "$existing_dir/quadlet" && ! -L "$existing_dir/quadlet" && -f "$existing_dir/quadlet/anishelf-backend.container" && -f "$existing_dir/quadlet/anishelf-web.container" && -f "$existing_dir/quadlet/anishelf.target" ]]; then
+    old_method=quadlet; old_engine=podman
+    [[ -z "$engine" || "$engine" == podman ]] || die 'Use the original engine to preserve its volumes.'
+    local unit name destination
+    for unit in "$existing_dir/quadlet/"*; do
+      name=${unit##*/}
+      case "$name" in
+        anishelf.network|anishelf.target|anishelf-app.volume|anishelf-media.volume|anishelf-qbittorrent-connection.volume|anishelf-qbittorrent-config.volume|anishelf-qbittorrent-incomplete.volume|anishelf-jackett-config.volume|anishelf-backend.container|anishelf-web.container|anishelf-qbittorrent-init.container|anishelf-qbittorrent.container|anishelf-jackett-init.container|anishelf-jackett.container) ;;
+        *) die "Unrecognized bundle unit: $name";;
+      esac
+      [[ -f "$unit" && ! -L "$unit" ]] || die "Bundle unit must be a regular file: $unit"
+      destination="${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd/$name"
+      [[ "$name" != anishelf.target ]] || destination="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$name"
+      if exists "$destination"; then
+        [[ -f "$destination" && ! -L "$destination" ]] && cmp -s "$unit" "$destination" || die "Installed unit differs from the bundle; reconcile it first: $destination"
+      fi
+    done
+  else die 'Not a recognized saved installer deployment; source checkouts cannot be removed.'; fi
+  engine=$old_engine
+  log "Selected saved deployment: $existing_dir ($old_engine/$old_method). Volumes and media will be preserved."
+}
+remove_configuration() {
+  phase='archiving existing deployment configuration'
+  # Recheck installed units immediately before stopping/removing anything.
+  load_existing
+  mv --version >/dev/null 2>&1 || die 'Configuration archival requires GNU mv (coreutils).'
+  backup_dir=$(mktemp -d "$existing_dir.backup.XXXXXX")
+  log_file="$existing_dir/removal.log"
+  log "Archiving configuration in $backup_dir before stopping services."
+  if [[ "$old_method" == compose ]]; then
+    phase='stopping existing Compose deployment'
+    local saved_dir=${deploy_dir:-}
+    deploy_dir=$existing_dir
+    compose --profile qbittorrent --profile jackett config --quiet
+    compose --profile qbittorrent --profile jackett down --remove-orphans
+    deploy_dir=$saved_dir
+  else
+    need systemctl; need podman
+    [[ "$(id -u)" != 0 ]] || die 'Manage rootless Quadlet as the original non-root service user.'
+    phase='stopping existing Quadlet deployment'
+    if exists "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/anishelf.target"; then systemctl --user stop anishelf.target; fi
+    # Stop optional and oneshot services too, including ones outside target dependencies.
+    local unit name destination
+    for unit in "$existing_dir/quadlet/"*.container; do
+      name=${unit##*/}
+      if exists "${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd/$name"; then systemctl --user stop "${name%.container}.service"; fi
+    done
+    if exists "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/anishelf.target"; then systemctl --user disable anishelf.target; fi
+    for unit in "$existing_dir/quadlet/"*; do
+      name=${unit##*/}
+      destination="${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd/$name"
+      [[ "$name" != anishelf.target ]] || destination="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$name"
+      if exists "$destination"; then
+        [[ ! -L "$destination" ]] && cmp -s "$unit" "$destination" || die "Installed unit changed during removal: $destination"
+        rm -- "$destination"
+      fi
+    done
+    systemctl --user daemon-reload
+  fi
+  phase='renaming the entire old deployment directory'
+  # GNU mv replaces only the reserved empty directory, never nests the old bundle.
+  mv -T -- "$existing_dir" "$backup_dir"
+  log_file="$backup_dir/removal.log"
+  log "Active configuration removed; backup: $backup_dir. All volumes and host media are preserved."
+}
 main() {
   while (($#)); do
     case "$1" in
       --generate-only) generate_only=true; shift;;
+      --remove|--reconfigure)
+        (($# >= 2)) || die "Missing directory for $1"
+        [[ "$action" == install ]] || die 'Choose only one deployment action.'
+        action=${1#--}; existing_dir=$2; shift 2;;
       --ref|--templates-dir|--engine)
         (($# >= 2)) || die "Missing value for $1"
         if [[ "$1" == --ref ]]; then source_ref=$2
@@ -238,16 +328,33 @@ main() {
       *) die "Unknown option: $1";;
     esac
   done
+  [[ "$action" == install || "$generate_only" == false ]] || die 'Existing deployment actions cannot use --generate-only.'
   [[ "$source_ref" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || die 'Invalid source ref.'
   if [[ -n "$templates_dir" ]]; then
     [[ -d "$templates_dir" ]] || die 'Template directory does not exist.'
     templates_dir=$(cd "$templates_dir" && pwd -P)
-  else need curl; fi
+  elif [[ "$action" != remove ]]; then need curl; fi
   # Works when downloaded through a pipe; local/automated runs may supply stdin.
   if ! { exec 3</dev/tty; } 2>/dev/null; then exec 3<&0; fi
-  log 'Interactive deployment: existing configurations and media permissions are never overwritten.'
-  detect_engine
+  if [[ "$action" != install ]]; then
+    load_existing
+    if [[ "$action" == remove ]]; then
+      yes_no 'Stop this deployment and remove its active configuration (data is preserved)' no
+      [[ "$answer" == yes ]] || { log 'Cancelled; nothing was changed.'; return; }
+      remove_configuration
+      return
+    fi
+  fi
+  log 'Interactive deployment: review the configuration before applying changes.'
+  if [[ "$action" == reconfigure ]]; then
+    method=$old_method
+    if [[ "$engine" == podman && "$(id -u)" != 0 ]]; then podman_rootless=true; fi
+  else detect_engine; fi
   while :; do
+    if [[ "$action" == reconfigure ]]; then
+      [[ "$method" == "$old_method" ]] || die 'Reconfiguration must retain the deployment method to preserve volume identities.'
+      deploy_dir=$existing_dir; break
+    fi
     ask 'New deployment directory (absolute path)' "$HOME/anishelf"
     if valid_path "$answer" && ! exists "$answer"; then deploy_dir=$answer; break; fi
     log 'Choose a new absolute directory. Quotes, $, %, backslashes, colons and control characters are unsupported.'
@@ -324,9 +431,13 @@ main() {
   log "Media: ${media_path:-managed volume}; SELinux shared relabel=${selinux_suffix:-no}; qBittorrent=$qbit; Jackett=$jackett"
   if [[ "$generate_only" == true ]]; then
     yes_no 'Write configuration only (no engine or systemd changes)' yes
+  elif [[ "$action" == reconfigure ]]; then yes_no 'Archive the old configuration and restart with these new settings' no
   else yes_no 'Create configuration and start this deployment' yes; fi
   [[ "$answer" == yes ]] || { log 'Cancelled; nothing was written.'; return; }
-  if [[ "$generate_only" != true ]]; then phase='checking runtime prerequisites'; need curl; preflight; fi
+  if [[ "$generate_only" != true ]]; then
+    phase='checking runtime prerequisites'; need curl
+    if [[ "$action" == install ]]; then preflight; else preflight replacement; fi
+  fi
   phase='preparing deployment templates'
   stage_dir=$(mktemp -d "${TMPDIR:-/tmp}/anishelf-install.XXXXXX")
   mkdir "$stage_dir/bundle"
@@ -371,6 +482,15 @@ main() {
     if [[ "$jackett" == yes ]]; then units+=(anishelf-jackett-init.container anishelf-jackett.container); fi
     local unit
     for unit in "${units[@]}"; do asset "quadlet/$unit" "$stage_dir/$unit"; render_unit "$unit"; done
+  fi
+  if [[ "$action" == reconfigure ]]; then
+    if [[ "$method" == compose ]]; then
+      phase='validating replacement Compose configuration'
+      (deploy_dir="$stage_dir/bundle"; compose config --quiet)
+    fi
+    remove_configuration
+    phase='checking replacement runtime prerequisites'
+    preflight
   fi
   phase='writing the new deployment bundle'
   # mkdir refuses existing/symlink destinations, even if they appeared after prompting.
