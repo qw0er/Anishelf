@@ -95,6 +95,11 @@ commands below. The installer records its engine in `.env` as `ANISHELF_DEPLOY_E
 | `ANISHELF_BIND_ADDRESS` / `ANISHELF_PORT` | Host listener; defaults to `127.0.0.1:3000` |
 | `ANISHELF_PUBLIC_ORIGIN` | Browser-facing origin, such as `https://anime.example.com` |
 
+Manual Compose deployments default to `http://localhost:3000` for the public
+origin. Set `ANISHELF_PUBLIC_ORIGIN` explicitly when changing the host port or
+browser address; the installer writes the selected origin automatically. Compose
+templates use flat variable defaults for compatibility with `podman-compose`.
+
 The environment example lists optional WebUI and peer ports. Container/backend
 variables are documented in [Configuration](operations.md#environment-variables).
 
