@@ -399,13 +399,22 @@ test("development and published Jackett profiles use the latest image and keep b
 		if (!jackett || !backend) throw new Error("Missing deployment services");
 		expect(
 			Object.keys(config.services).filter((name) => name.startsWith("jackett")),
-		).toEqual(["jackett"]);
+		).toEqual(["jackett-init", "jackett"]);
 		expect(jackett.profiles).toEqual(["jackett"]);
 		expect(jackett.image).toBe("ghcr.io/linuxserver/jackett:latest");
 		expect(jackett.environment?.AUTO_UPDATE).toBe("false");
 		expect(jackett.environment?.UMASK).toBe("077");
 		expect(jackett.volumes).toEqual(["jackett-config:/config"]);
-		expect(jackett.depends_on).toBeUndefined();
+		expect(jackett.depends_on).toEqual({
+			"jackett-init": { condition: "service_completed_successfully" },
+		});
+		expect(config.services["jackett-init"]?.command).toEqual([
+			"node",
+			"/app/package/jackett-init.mjs",
+		]);
+		expect(config.services["jackett-init"]?.volumes).toEqual([
+			"jackett-config:/config",
+		]);
 		expect(backend.depends_on?.jackett).toBeUndefined();
 		expect(backend.environment?.ANISHELF_BUNDLED_JACKETT_CONFIG_FILE).toBe(
 			"/run/jackett-config/Jackett/ServerConfig.json",
@@ -416,7 +425,7 @@ test("development and published Jackett profiles use the latest image and keep b
 		new URL("../../package/Dockerfile", import.meta.url),
 		"utf8",
 	);
-	expect(dockerfile).not.toContain("jackett-init.mjs");
+	expect(dockerfile).toContain("COPY package/jackett-init.mjs");
 });
 
 test("explicit proxy networks parse without expanding the source-install default", () => {

@@ -1,4 +1,11 @@
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import {
+	mkdir,
+	mkdtemp,
+	readFile,
+	rm,
+	stat,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
@@ -16,8 +23,10 @@ async function fixture() {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-jackett-native-"));
 	cleanup.push(() => rm(directory, { recursive: true, force: true }));
 	const logger = pino({ level: "silent" });
-	const file = join(directory, "ServerConfig.json");
+	await mkdir(join(directory, "Jackett"));
+	const file = join(directory, "Jackett/ServerConfig.json");
 	const state = new JackettBootstrapStateFile(directory);
+	let configured = false;
 	const request = vi.fn<typeof fetch>(async (input, init) => {
 		const url = String(input);
 		if (url.includes("UI/Login"))
@@ -28,7 +37,12 @@ async function fixture() {
 		expect(new Headers(init?.headers).get("Cookie")).toBe(
 			"Jackett=private-cookie",
 		);
-		if (init?.method === "POST") return new Response(null, { status: 204 });
+		if (init?.method === "POST") {
+			configured = true;
+			return new Response(null, { status: 204 });
+		}
+		if (url.includes("?configured=true") && configured)
+			return Response.json([{ id: "nyaasi", configured: true }]);
 		return Response.json([]);
 	});
 	const open = async () => {
@@ -67,12 +81,11 @@ async function fixture() {
 	};
 }
 async function fresh(f: Awaited<ReturnType<typeof fixture>>) {
-	const waiting = await f.open();
-	waiting.bootstrap.start();
-	await vi.waitFor(async () =>
-		expect((await f.state.read())?.phase).toBe("waiting"),
+	await writeFile(
+		join(f.directory, ".anishelf-bootstrap.json"),
+		JSON.stringify({ version: 1, initialize: true }),
 	);
-	await waiting.bootstrap.close();
+	// Jackett has already started before Backend first observes its configuration.
 	await f.write();
 	const active = await f.open();
 	active.bootstrap.start();
@@ -132,9 +145,50 @@ test("existing native config is imported without changing sites; disconnect pers
 	).rejects.toMatchObject({ code: "source_conflict" });
 });
 
+test.each([false, true])(
+	"legacy waiting records require a deployment marker (marker=%s)",
+	async (authorized) => {
+		const f = await fixture();
+		await f.state.write({ version: 1, instance: null, phase: "manual" });
+		await writeFile(
+			join(f.directory, "acquisition/jackett-bootstrap.json"),
+			JSON.stringify({ version: 1, instance: null, phase: "waiting" }),
+		);
+		if (authorized)
+			await writeFile(
+				join(f.directory, ".anishelf-bootstrap.json"),
+				JSON.stringify({ version: 1, initialize: true }),
+			);
+		await f.write();
+		const active = await f.open();
+		active.bootstrap.start();
+		await vi.waitFor(() =>
+			expect(active.bootstrap.setup).toBe(authorized ? "complete" : "manual"),
+		);
+		if (!authorized) expect(f.request).not.toHaveBeenCalled();
+	},
+);
+
+test("Backend starting before Jackett waits without creating a legacy waiting journal", async () => {
+	const f = await fixture();
+	await writeFile(
+		join(f.directory, ".anishelf-bootstrap.json"),
+		JSON.stringify({ version: 1, initialize: true }),
+	);
+	const active = await f.open();
+	active.bootstrap.start();
+	await new Promise((resolve) => setTimeout(resolve, 100));
+	expect(await f.state.read()).toBeNull();
+	expect(active.connection.settings().origin).toBeNull();
+	await f.write();
+	await vi.waitFor(() => expect(active.bootstrap.setup).toBe("complete"), {
+		timeout: 6500,
+	});
+}, 10_000);
+
 test("external connections survive delayed native configuration and no site is modified", async () => {
 	const f = await fixture();
-	await f.state.write({ version: 1, phase: "waiting", instance: null });
+	await f.state.write({ version: 1, phase: "pending", instance: null });
 	await f.write();
 	const active = await f.open();
 	await active.connection.save({
@@ -152,9 +206,10 @@ test("external connections survive delayed native configuration and no site is m
 	expect(f.request).not.toHaveBeenCalled();
 });
 
-test("an uncertain management write is journaled before dispatch and never repeated", async () => {
+test("an uncertain failed write is queried before retrying and succeeds after restart", async () => {
 	const f = await fixture();
 	const original = f.request.getMockImplementation();
+	if (!original) throw new Error("Missing request mock");
 	f.request.mockImplementation(async (input, init) => {
 		if (init?.method === "POST") {
 			expect((await f.state.read())?.phase).toBe("attempted");
@@ -169,23 +224,108 @@ test("an uncertain management write is journaled before dispatch and never repea
 	);
 	await first.bootstrap.close();
 	f.request.mockClear();
+	f.request.mockImplementation(original);
 	const reopened = await f.open();
 	reopened.bootstrap.start();
 	await vi.waitFor(async () =>
-		expect((await f.state.read())?.phase).toBe("manual"),
+		expect((await f.state.read())?.phase).toBe("complete"),
 	);
-	expect(f.request).not.toHaveBeenCalled();
+	const calls = f.request.mock.calls;
+	expect(String(calls[1]?.[0])).toContain("?configured=true");
+	expect(calls.filter(([, init]) => init?.method === "POST")).toHaveLength(1);
 });
 
 test("an administrator password requires manual site setup", async () => {
 	const f = await fixture();
-	await f.state.write({ version: 1, instance: null, phase: "waiting" });
+	await f.state.write({ version: 1, instance: null, phase: "pending" });
 	await f.write("password-hash");
 	const active = await f.open();
 	active.bootstrap.start();
 	await vi.waitFor(() => expect(active.bootstrap.setup).toBe("manual"));
 	expect(active.connection.settings().origin).toBe("bundled");
 	expect(f.request).not.toHaveBeenCalled();
+	await expect(
+		active.bootstrap.activate(active.connection.settings().generation, true),
+	).rejects.toMatchObject({ code: "bundled_management_required" });
+});
+
+test("an uncertain successful write is discovered after restart without another POST", async () => {
+	const f = await fixture();
+	const original = f.request.getMockImplementation();
+	if (!original) throw new Error("Missing request mock");
+	f.request.mockImplementation(async (input, init) => {
+		const response = await original(input, init);
+		if (init?.method === "POST") throw new Error("Response lost after commit");
+		return response;
+	});
+	const first = await fresh(f);
+	await vi.waitFor(async () =>
+		expect((await f.state.read())?.phase).toBe("attempted"),
+	);
+	await first.bootstrap.close();
+	f.request.mockClear();
+	f.request.mockImplementation(original);
+	const reopened = await f.open();
+	reopened.bootstrap.start();
+	await vi.waitFor(() => expect(reopened.bootstrap.setup).toBe("complete"));
+	expect(f.request.mock.calls.some(([, init]) => init?.method === "POST")).toBe(
+		false,
+	);
+});
+
+test("a transient site write failure retries in the same process", async () => {
+	const f = await fixture();
+	const original = f.request.getMockImplementation();
+	if (!original) throw new Error("Missing request mock");
+	let failed = false;
+	f.request.mockImplementation(async (input, init) => {
+		if (init?.method === "POST" && !failed) {
+			failed = true;
+			throw new Error("Temporary network failure");
+		}
+		return original(input, init);
+	});
+	const active = await fresh(f);
+	await vi.waitFor(() => expect(active.bootstrap.setup).toBe("complete"), {
+		timeout: 6500,
+	});
+	expect(
+		f.request.mock.calls.filter(([, init]) => init?.method === "POST"),
+	).toHaveLength(2);
+}, 10_000);
+
+test("an acknowledged POST without a configured site does not complete setup", async () => {
+	const f = await fixture();
+	const original = f.request.getMockImplementation();
+	if (!original) throw new Error("Missing request mock");
+	f.request.mockImplementation(async (input, init) => {
+		if (init?.method === "POST") return new Response(null, { status: 204 });
+		return original(input, init);
+	});
+	const warning = vi.spyOn(f.logger, "warn");
+	const active = await fresh(f);
+	await vi.waitFor(() => expect(warning).toHaveBeenCalled());
+	expect(active.bootstrap.setup).toBe("pending");
+	expect((await f.state.read())?.phase).toBe("attempted");
+});
+
+test("manual setup requires explicit authorization; activating the connection alone does not add sites", async () => {
+	const f = await fixture();
+	await f.write();
+	const active = await f.open();
+	active.bootstrap.start();
+	await vi.waitFor(() => expect(active.bootstrap.setup).toBe("manual"));
+	await active.bootstrap.activate(active.connection.settings().generation);
+	await vi.waitFor(() => expect(active.bootstrap.setup).toBe("manual"));
+	expect(f.request).not.toHaveBeenCalled();
+	await active.bootstrap.activate(
+		active.connection.settings().generation,
+		true,
+	);
+	await vi.waitFor(() => expect(active.bootstrap.setup).toBe("complete"));
+	expect(
+		f.request.mock.calls.filter(([, init]) => init?.method === "POST"),
+	).toHaveLength(1);
 });
 
 test("changing connections aborts management requests before a site write; shutdown drains the worker", async () => {

@@ -183,8 +183,17 @@ test("an existing bundled installation asks for site review without starting set
 		hasApiKey: true,
 		bundledSetup: "manual",
 	});
-	await screen.findByText(/Review site configuration in Jackett/);
+	await screen.findByText(/Review sites in Jackett or retry adding Nyaa.si/);
 	expect(f.request.mock.calls.every(([, method]) => method === "GET")).toBe(
 		true,
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Retry adding Nyaa.si" }));
+	await waitFor(() =>
+		expect(f.request).toHaveBeenCalledWith(
+			"/api/acquisition/sources/connector/bundled",
+			"POST",
+			{},
+			{ generation: "one", initializeSite: true },
+		),
 	);
 });

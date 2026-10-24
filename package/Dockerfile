@@ -44,6 +44,7 @@ COPY --from=backend-build /app/backend/node_modules ./backend/node_modules
 COPY --from=backend-build /app/backend/dist ./backend/dist
 COPY --from=backend-build /app/backend/migrations ./backend/migrations
 COPY package/qbittorrent-init.mjs ./package/qbittorrent-init.mjs
+COPY package/jackett-init.mjs ./package/jackett-init.mjs
 EXPOSE 3000
 USER node
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

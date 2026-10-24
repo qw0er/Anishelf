@@ -75,16 +75,18 @@ test("Source connector settings and unified diagnostics require authentication a
 		[authenticated, 403],
 		[mutationHeaders, 503],
 	] as const) {
-		expect(
-			(
-				await app.inject({
-					url: `${url}/bundled`,
-					method: "POST",
-					headers: testHeaders,
-					payload: { generation: current.json().generation },
-				})
-			).statusCode,
-		).toBe(expected);
+		for (const initializeSite of [false, true]) {
+			expect(
+				(
+					await app.inject({
+						url: `${url}/bundled`,
+						method: "POST",
+						headers: testHeaders,
+						payload: { generation: current.json().generation, initializeSite },
+					})
+				).statusCode,
+			).toBe(expected);
+		}
 	}
 
 	const secret = "private-http-key";

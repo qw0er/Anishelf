@@ -33,7 +33,8 @@ Compose `.env` (`qbittorrent,jackett` enables both), then run:
 docker compose up -d
 ```
 
-For Quadlet, install `anishelf-jackett.container` alongside its config volume,
+For Quadlet, install `anishelf-jackett-init.container` and
+`anishelf-jackett.container` alongside the config volume,
 reload systemd and restart `anishelf.target`. See [Deployment](deployment.md#podman-quadlet).
 
 | Setting | Value |
@@ -55,11 +56,17 @@ Backend/playback remain available while Jackett is unavailable.
 | --- | --- |
 | No saved connection | Native bundled credentials can be imported automatically |
 | Saved external connection or disconnect | Preserved across restart; choose **Use bundled Jackett** to switch explicitly |
-| Backend observes native config creation | May initialize Nyaa.si once; verify/load/select the site afterward |
-| Config already exists when first observed | Connection import only; configure sites manually, including on a fresh install if Jackett started first |
+| Empty config volume at deployment | Initializer records first-run permission before Jackett starts; Backend adds Nyaa.si once regardless of startup timing |
+| Existing volume without a first-run marker | Connection import only; configure sites manually or choose **Retry adding Nyaa.si** in Settings |
 | Removed site | Remains removed after restart |
 | Key rotation or administrator password set | Review manually; existing saved credentials are not silently replaced |
-| Uncertain initialization response | Manual review; the mutation is not repeated automatically |
+| Temporary outage or uncertain initialization response | Retry with backoff; check configured sites before another add, and verify the site after adding |
+
+For an installation already reporting manual setup, choose **Use bundled Jackett**
+if needed, then **Retry adding Nyaa.si**. This explicitly authorizes site setup;
+it requires no Jackett administrator password. Refresh Settings after setup, then
+load/select sites and save. With an administrator password, add the site in Jackett
+management instead. Selecting the bundled connection alone does not retry setup.
 
 Back up Jackett configuration together with app state. App state includes the
 private one-time initialization journal. Inspect Backend/Jackett logs and the
@@ -70,7 +77,7 @@ Settings diagnostics when setup stalls.
 | Deployment | Cleanup |
 | --- | --- |
 | Compose | Recreate with `--remove-orphans` after updating the template |
-| Quadlet | Stop/remove old `anishelf-jackett-init.container` and `anishelf-jackett-provision.container`, then reload |
+| Quadlet | Replace the old `anishelf-jackett-init.container` with the current initializer; stop/remove old `anishelf-jackett-provision.container`, then reload |
 | Backend config | Replace the old connection-file variable with `ANISHELF_BUNDLED_JACKETT_CONFIG_FILE` |
 | Old connection volume | Keep until verified; `anishelf-jackett-connection` is no longer used |
 

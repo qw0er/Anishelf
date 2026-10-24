@@ -84,7 +84,21 @@ services:
       - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media
       - qbittorrent-incomplete:/data/incomplete
 
+  jackett-init:
+    profiles: [jackett]
+    image: ghcr.io/qw0er/anishelf-backend:${ANISHELF_TAG:-latest}
+    user: "0:0"
+    restart: "no"
+    command: ["node", "/app/package/jackett-init.mjs"]
+    healthcheck:
+      disable: true
+    volumes:
+      - jackett-config:/config
+
   jackett:
+    depends_on:
+      jackett-init:
+        condition: service_completed_successfully
     profiles: [jackett]
     image: ghcr.io/linuxserver/jackett:latest
     restart: unless-stopped

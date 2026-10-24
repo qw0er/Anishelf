@@ -33,7 +33,10 @@ export function SourceSettings() {
 	const { t } = useTranslation();
 	const query = useQuery<SourceConnectorSettings>({
 		queryKey: sourceSettingsKey,
-		refetchInterval: (query) => (query.state.data?.url ? false : 5000),
+		refetchInterval: (query) =>
+			!query.state.data?.url || query.state.data.bundledSetup === "pending"
+				? 5000
+				: false,
 		queryFn: ({ signal }) =>
 			getSourceConnector({ signal: boundedSignal(signal) }),
 	});
@@ -110,7 +113,8 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 		onSuccess: saved,
 	});
 	const bundled = useMutation({
-		mutationFn: () => activateBundledSourceConnector(settings.generation),
+		mutationFn: (initializeSite: boolean) =>
+			activateBundledSourceConnector(settings.generation, initializeSite),
 		onSuccess: saved,
 	});
 	const list = useMutation({
@@ -286,11 +290,22 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							type="button"
 							variant="outline"
 							disabled={busy}
-							onClick={() => bundled.mutate()}
+							onClick={() => bundled.mutate(false)}
 						>
 							{t("acquisition.sources.useBundled")}
 						</Button>
 					)}
+					{settings.origin === "bundled" &&
+						settings.bundledSetup === "manual" && (
+							<Button
+								type="button"
+								variant="outline"
+								disabled={busy || changed}
+								onClick={() => bundled.mutate(true)}
+							>
+								{t("acquisition.sources.retrySetup")}
+							</Button>
+						)}
 					{settings.url && (
 						<Button
 							type="button"

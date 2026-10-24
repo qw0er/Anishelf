@@ -66,7 +66,10 @@ interface SourceConnectorUpdate {
 }
 export interface SourceConnectorApi {
 	settings(): SourceConnectorSettings;
-	useBundled(generation: string): Promise<SourceConnectorSettings>;
+	useBundled(
+		generation: string,
+		initializeSite?: boolean,
+	): Promise<SourceConnectorSettings>;
 	save(input: SourceConnectorUpdate): Promise<SourceConnectorSettings>;
 	clear(generation: string): Promise<SourceConnectorSettings>;
 	providers(generation: string): Promise<{ id: string; name: string }[]>;

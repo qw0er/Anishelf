@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  check-main:
+  check-source:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -30,9 +30,9 @@ jobs:
         id: check
         shell: bash
         run: |
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$GITHUB_REF" != refs/heads/main ]; then
-            echo "allowed=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping test image publication: select the main branch when running this workflow."
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            echo "allowed=true" >> "$GITHUB_OUTPUT"
+            echo "Publishing test images from $GITHUB_REF."
             exit 0
           fi
           if git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
@@ -43,12 +43,12 @@ jobs:
               exit "$status"
             fi
             echo "allowed=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping image publication: the selected commit is not in main."
+            echo "Skipping release image publication: the tagged commit is not in main."
           fi
 
   verify:
-    needs: check-main
-    if: needs.check-main.outputs.allowed == 'true'
+    needs: check-source
+    if: needs.check-source.outputs.allowed == 'true'
     uses: ./.github/workflows/check.yml
 
   build:

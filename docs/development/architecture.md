@@ -319,3 +319,20 @@ source access, provider scheduling and persistence outlive their consumers.
 The installer generates a fresh deployment bundle and delegates to the container
 runtime/systemd. Application bootstrap owns settings and credentials. Exact fields,
 routes and defaults remain defined by source contracts and policy.
+
+Bundled Jackett starts after a one-shot initializer. Only an empty config volume
+receives `/config/.anishelf-bootstrap.json` authorizing first-run Nyaa.si setup.
+Backend reads this marker beside the native `Jackett/ServerConfig.json`; observing
+a missing native file does not grant initialization permission. Backend can start
+before or after Jackett without changing the decision. Existing volumes without
+the marker remain manual, and saved external connections/disconnects are preserved.
+The application-data journal fences completed setup, so deleting a site does not
+cause it to be recreated on restart. Back up the journal and config volume together.
+
+Before each authorized attempt, Backend lists configured sites. An uncertain write
+is reconciled by listing again before any retry, including after restart; setup
+completes only after the configured site is observed. Connection revisions and
+shutdown signals fence management requests. The authenticated, CSRF-protected
+bundled connector command accepts `initializeSite: true` as explicit permission to
+retry manual setup; selecting the bundled connection alone does not grant it.
+An administrator password still requires site setup in Jackett management.

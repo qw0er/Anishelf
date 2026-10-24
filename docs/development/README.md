@@ -174,6 +174,7 @@ not install a root CA. It is skipped unless the binary path is supplied.
 | [Check project](../../.github/workflows/check.yml) | PRs/pushes to main; Node from `.nvmrc`, media tools, `npm ci`, check and build |
 | [Publish images](../../.github/workflows/publish-image.yml) | Reuses checks; builds native AMD64/ARM64 Web and Backend images |
 
-Release tags publish version/commit images. Manual runs from main publish test tags.
+Version tags on commits in main publish release images. Manual runs from any branch
+publish test tags.
 See [packaging](../../package/README.md#publication-flow). CI does not establish browser
 codec support or production deployment acceptance.

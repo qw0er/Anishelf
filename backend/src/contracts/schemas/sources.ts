@@ -8,6 +8,10 @@ const Provider = Type.String({
 });
 const Origin = Type.Union([Type.Literal("bundled"), Type.Literal("external")]);
 const NullableNumber = Type.Union([Type.Number(), Type.Null()]);
+export const SourceBundledInputSchema = Type.Object(
+	{ generation: Generation, initializeSite: Type.Optional(Type.Boolean()) },
+	{ additionalProperties: false },
+);
 export const SourceInputSchema = Type.Union([
 	Type.Object(
 		{
