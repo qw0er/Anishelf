@@ -24,27 +24,15 @@ SELinux handling and first login.
 
 ## Documentation
 
-### Use and operate Anishelf
-
-- [User guide and first use](docs/guide/README.md)
-- [Configuration, media directories, logs and backups](docs/guide/operations.md)
-- [Jackett setup](docs/guide/jackett-setup.md)
-- [Watching and subscriptions](docs/guide/watching-automation.md)
-- [Release selection profiles](docs/guide/acquisition-profiles.md)
-
-### Develop Anishelf
-
-- [Development environment, tests and CI](docs/development/README.md)
-- [Architecture](docs/development/architecture.md)
-- [UI design system](docs/development/design-system.md)
-- [Database design](docs/development/database-design.md)
-- [AniList API verification](docs/development/anilist-api-verification.md)
-- [Container packaging](package/README.md)
-
-### Project records
-
-- [Requirements and future scope](docs/requirements.md)
-- [Completed iterations and verification](docs/history.md)
+| Task | Start here |
+| --- | --- |
+| Deploy, maintain, update or uninstall | [Deployment](docs/guide/deployment.md) |
+| Use Anishelf and configure services | [User guide](docs/guide/README.md) |
+| Configure paths, logs and preparation | [Configuration](docs/guide/operations.md) |
+| Contribute and run checks | [Development](docs/development/README.md) |
+| Understand modules and data flow | [Architecture](docs/development/architecture.md) |
+| Change UI / storage / images | [UI design](docs/development/design-system.md) · [Database](docs/development/database-design.md) · [Packaging](package/README.md) |
+| Review scope and completed work | [Requirements](docs/requirements.md) · [History](docs/history.md) |
 
 ## License
 

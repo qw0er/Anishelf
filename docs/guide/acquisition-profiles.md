@@ -1,53 +1,42 @@
 # Acquisition Selection Profiles
 
-Acquisition profiles select one supported regular-episode release from a manually
-configured RSS feed. They do not search new sites, handle packs, certify playback
-compatibility, or upgrade reserved downloads. Watching/Torznab automation remains
-planned separately.
+Profiles select supported regular-episode releases from RSS or Jackett evidence.
+They control release preferences and waiting; identity, episode, destination and
+download-authorization checks still apply. Packs and automatic upgrades of reserved
+downloads are not supported.
 
 ## Built-in profiles
 
-| ID | Name | Levels, in priority order |
-| --- | --- | --- |
-| `builtin:general` | General (default) | 1080p / 2160p after 60 minutes; 720p after 120 minutes |
-| `builtin:efficient` | Efficient codecs preferred | HEVC / AV1 at 1080p / 2160p after 120 minutes; any codec at those resolutions after 180 minutes; 720p after 240 minutes |
-| `builtin:chinese` | Chinese subtitles | Require explicitly declared Simplified or Traditional Chinese subtitles; 1080p / 2160p after 60 minutes; 720p after 120 minutes |
+| ID | Preference and wait from first eligible observation |
+| --- | --- |
+| `builtin:general` (default) | 1080p/2160p after 60 minutes; 720p after 120 |
+| `builtin:efficient` | HEVC/AV1 at 1080p/2160p after 120 minutes; any codec at those resolutions after 180; 720p after 240 |
+| `builtin:chinese` | Explicit Simplified/Traditional Chinese subtitles required; 1080p/2160p after 60 minutes; 720p after 120 |
 
-These thresholds all run from the first eligible observation of an episode; they
-are not accumulated between levels. The defaults allow time for later releases
-to appear. They are initial tradeoffs, not guarantees that a preferred release
-will be published within the window. Custom profiles can still use zero-minute waits.
-
-1080p and 2160p are equal inside a level, as are HEVC and AV1. General and Efficient
-accept unknown subtitle language. None of the built-ins requires a seed count or
-restricts groups, source or subtitle format. Unknown resolution cannot satisfy
-these built-ins. Codec efficiency does not guarantee quality, size or playback.
+Waits run from the same episode clock, not consecutively. Values within a level are
+equal preferences: 2160p does not outrank 1080p. Unknown resolution fails these
+built-ins; General/Efficient accept unknown subtitle language. Codec labels do not
+certify quality, size or device compatibility.
 
 ## External configuration and selection
 
-Create `acquisition-profiles.yaml` in the application data directory. Start with the
-[commented example](../examples/acquisition-profiles-example.yaml). The file is optional and
-only adds custom definitions; built-ins remain available. The application reads a
-validated immutable snapshot at startup, never generates or rewrites this file, and
-requires a restart after edits. Invalid configuration fails startup with diagnostics.
-Hot reload is tracked as future requirement
-[O20](../requirements.md#acquisition-profile-hot-reload-o20); it is not implemented.
-YAML 1.2 mappings, lists and scalar values are supported; aliases, custom tags,
-duplicate keys, unknown fields and multiple documents are rejected.
+1. Create `<dataDir>/acquisition-profiles.yaml` using the
+   [commented example](../examples/acquisition-profiles-example.yaml).
+2. Restart Backend to load it.
+3. Choose a global default in Settings or override it in a subscription's More options.
 
-Settings > RSS selects the global default. `settings.json` stores only the optional
-`defaultAcquisitionProfileId`; omission uses `builtin:general`. Each subscription
-can override it in its subscription form or follow the global default.
-Subscription save validates the effective profile. Publication and task admission
-retain profile fingerprint checks, including a changed inherited default.
-An unavailable saved profile ID is preserved and blocks new selections until an
-available profile is chosen. Configuration changes invalidate unreserved published
-choices until discovery evaluates them again; existing reservations stay locked.
+| Situation | Behavior |
+| --- | --- |
+| No custom file | Built-in profiles remain available |
+| Invalid/unreadable custom file | Report the configuration issue and use built-ins |
+| Saved profile no longer available | Preserve the ID and block new selections until an available profile is chosen |
+| Profile/default changed | Re-evaluate unreserved choices; accepted scope/fingerprint checks still apply |
+| Download already reserved | Retain its selection |
 
-`GET /api/acquisition/profiles` publishes profile IDs, names, descriptions, sources
-and the global selection's availability. Settings writes use the existing
-`PUT /api/settings`. Subscription save accepts optional `profileId` (null/omitted
-means follow global), and persists it with the subscription revision.
+The app reads an immutable startup snapshot and never rewrites the YAML. Hot reload
+is [future work](../requirements.md#acquisition-profile-hot-reload-o20).
+YAML aliases, custom tags, duplicate keys, unknown fields and multiple documents
+are rejected. Built-ins cannot be overwritten.
 
 ## File fields
 
@@ -98,54 +87,37 @@ wait overrides.
 
 ## Evidence and seed counts
 
-Anime reuses its existing Anitomy parser for group, resolution, codec, source and
-revision evidence. Supplementary rules recognize explicit Chinese language/format
-annotations such as CHS/CHT, simplified/traditional labels, bilingual Chinese/Japanese
-and soft/hard/external subtitle labels. These are release declarations, not verified
-media tracks. The supported language list is bounded; absent or unrecognized
-annotations remain unknown. Do not infer language from a group name or website.
+| Evidence | Interpretation |
+| --- | --- |
+| Group, resolution, codec, source, revision | Parsed from release titles |
+| Subtitle language/format | Explicit labels only; no inference from group or site |
+| Seed count | Source-reported; malformed/missing counts are unknown |
+| Freshness | Counts expire one hour after the last XML item observation; HTTP 304 does not renew them |
 
-RSS reads `nyaa:seeders` and Torznab `seeders` attributes when present. Missing,
-negative, malformed or out-of-range counts are null. Counts expire one hour after
-the last XML observation carrying the item. HTTP 304 responses and retained items
-absent from a new response do not renew their observation times. The Mikan Classic
-sample has no seed counts; its nested `torrent/pubDate` is supported. Dates without
-a timezone retain JavaScript Date parsing semantics; they do not establish a
-source timezone.
-
-Reported counts are not download guarantees. The generic Torznab reader cannot
-detect fabricated adapter values (for example an indexer hardcoding one seeder);
-operators must avoid seed thresholds for such sources. No tracker scrape is issued.
+Labels describe releases, not verified media tracks. No tracker scrape is issued;
+avoid seed thresholds for sites whose adapters report artificial counts.
 
 ## Decision and recovery rules
 
-1. Keep existing work/season/episode, scope, supported-link, local-availability and
-   downloader checks. Profile conditions never bypass them.
-2. Apply hard requirements and assign each candidate to its first matching level.
-   No matching level means no automatic download.
-3. Start a per-episode clock when a candidate passes the checks and matches any
-   level. Persist the earliest time with candidate decisions. Feed evidence is
-   retained, and new versions, subscription edits, pauses and restarts do not reset
-   the clock for the same feed/episode. Switching feeds starts a new clock.
-4. Among levels whose wait has elapsed, choose the highest priority. A preferred
-   level with a zero-minute wait can select immediately. Re-evaluation runs on RSS
-   refresh (including 304), so thresholds are not exact submission deadlines.
-5. Within that level, prefer larger known positive seed counts when enabled, then
-   unknown counts, then reported zero. Otherwise equal candidates prefer a newer
-   declared revision within the same group set, then earlier publication and stable
-   entry identity. Resolution list order never breaks ties.
-6. Reconsider unreserved choices whenever evidence changes. Once Downloads reserves
-   an episode/candidate, preserve that decision. Existing final authorization,
-   identity/availability checks, uniqueness and verified import still apply.
+```mermaid
+flowchart LR
+    Candidate[Release evidence] --> Guard[Identity / episode / scope checks]
+    Guard --> Hard[Hard requirements]
+    Hard --> Level[First matching priority level]
+    Level --> Wait[Episode wait elapsed?]
+    Wait --> Rank[Best unlocked level and tie-breaks]
+    Rank --> Reserve[Downloads reservation and final validation]
+```
 
-Candidate responses include profile ID/fingerprint, level, first observation,
-eligibility threshold and effective seed count. Activity shows the level and wait
-threshold or rejection reason. Structured decision logs contain work/candidate IDs,
-profile/level, timings and reason codes without feed URLs, release titles or tokens.
+| Rule | Effect |
+| --- | --- |
+| Clock | Starts at first eligible observation; persists through pause, edits and restart for the same source/episode |
+| Wait | Highest-priority unlocked level wins; zero permits immediate selection |
+| Re-evaluation | Occurs on source refresh; thresholds are not exact submission deadlines |
+| Seed tie-break, when enabled | Larger positive known counts, then unknown, then zero |
+| Remaining ties | Newer revision within the same group set, then earlier publication and stable identity |
+| Reservation | Locks the choice; later evidence cannot replace an accepted download |
 
-The database migration adds nullable subscription profile IDs, candidate decision
-snapshots and optional feed seed observations. Existing subscriptions inherit the
-global profile; old candidate snapshots are re-evaluated before new reservations.
-Existing downloads retain their reservations. Automated tests cover parsing,
-selection, persistence/restart, direct saves and UI interactions. Live feeds,
-qBittorrent and browser visual acceptance remain separate checks.
+Activity shows profile level, wait threshold or rejection reason. Use Diagnostics
+for evidence and [subscription recovery](watching-automation.md#recovery-and-upgrade)
+for stalled work.

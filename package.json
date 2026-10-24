@@ -28,6 +28,8 @@
 		"test:deployment": "node --test package/qbittorrent-init.test.mjs package/install.test.mjs",
 		"test": "npm run architecture:test && npm run test:deployment && npm run test --workspace @anishelf/backend && npm run test --workspace @anishelf/web",
 		"build": "npm run build --workspaces",
+		"compose:up": "docker compose up -d --build",
+		"compose:up:full": "docker compose --profile qbittorrent --profile jackett up -d --build",
 		"start": "npm run build && ANISHELF_FRONTEND_DIR=\"./web/dist\" npm run start --workspace @anishelf/backend",
 		"start:backend": "npm run start --workspace @anishelf/backend",
 		"dev:backend": "npm run dev --workspace @anishelf/backend",
@@ -38,7 +40,6 @@
 		"architecture:check": "node scripts/check-architecture.mjs",
 		"architecture:test": "node --test scripts/architecture.test.mjs",
 		"unused:check": "knip --no-progress",
-		"anilist:verify:test": "node --test scripts/anilist-verify.test.mjs",
 		"anime:corpus": "node --import tsx scripts/anime-corpus.mts"
 	},
 	"overrides": {
