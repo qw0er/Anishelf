@@ -1,9 +1,17 @@
+import type { Logger } from "pino";
 import { Agent, type Dispatcher, request } from "undici";
 import type { ReleaseDownload } from "../domain/download.js";
 import { SourceError } from "../domain/model.js";
+import { discardBody } from "../infrastructure/response-body.js";
 import { RssTransport, rssUrl } from "../rss/transport.js";
 import type { TorrentRead } from "./model.js";
 import { indexerId, jackettUrl } from "./validation.js";
+
+/** Transport failures carry platform codes such as `ECONNREFUSED` or `UND_ERR_SOCKET`. */
+function causeCode(error: unknown): string {
+	const code = (error as { code?: unknown } | null)?.code;
+	return typeof code === "string" ? code : "unknown";
+}
 
 export class JackettTransport {
 	readonly base: string;
@@ -14,6 +22,7 @@ export class JackettTransport {
 		url: string,
 		private readonly apiKey: string,
 		readonly generation: string,
+		private readonly logger: Logger,
 		dispatcher?: Dispatcher,
 		publicTransport?: RssTransport,
 	) {
@@ -215,17 +224,19 @@ export class JackettTransport {
 			});
 			const status = response.statusCode;
 			if ([301, 302, 303, 307, 308].includes(status)) {
-				response.body.destroy();
+				await discardBody(response);
 				if (typeof response.headers.location !== "string")
 					throw new SourceError("redirect_rejected");
 				return { bytes: new Uint8Array(), redirect: response.headers.location };
 			}
 			if (status === 401 || status === 403) {
-				response.body.destroy();
+				this.reportStatus(url, response, "authentication_failed");
+				await discardBody(response);
 				throw new SourceError("authentication_failed");
 			}
 			if (status === 429) {
-				response.body.destroy();
+				this.reportStatus(url, response, "rate_limited");
+				await discardBody(response);
 				const value = String(response.headers["retry-after"] ?? "60");
 				const retryAt = /^\d+$/.test(value)
 					? Date.now() + Number(value) * 1000
@@ -242,7 +253,8 @@ export class JackettTransport {
 				(response.headers["content-encoding"] &&
 					response.headers["content-encoding"] !== "identity")
 			) {
-				response.body.destroy();
+				this.reportStatus(url, response, "upstream_failure");
+				await discardBody(response);
 				throw new SourceError("upstream_failure");
 			}
 			const chunks: Buffer[] = [];
@@ -250,6 +262,7 @@ export class JackettTransport {
 			for await (const chunk of response.body) {
 				size += chunk.length;
 				if (size > maximumBytes) {
+					// The async iterator owns the stream here, so it reports this abort itself.
 					response.body.destroy();
 					throw new SourceError("response_too_large");
 				}
@@ -258,14 +271,45 @@ export class JackettTransport {
 			return { bytes: new Uint8Array(Buffer.concat(chunks)), redirect: null };
 		} catch (error) {
 			if (error instanceof SourceError) throw error;
-			throw new SourceError(
-				combined.aborted
-					? signal.aborted || this.shutdown.signal.aborted
-						? "request_cancelled"
-						: "request_timeout"
-					: "upstream_failure",
-			);
+			const reason = combined.aborted
+				? signal.aborted || this.shutdown.signal.aborted
+					? "request_cancelled"
+					: "request_timeout"
+				: "upstream_failure";
+			const fields = {
+				event: "acquisition.transport_failed",
+				host: url.host,
+				endpoint: url.pathname,
+				reason,
+				cause: causeCode(error),
+			};
+			if (reason === "request_cancelled")
+				this.logger.debug(fields, "Source request cancelled.");
+			else
+				this.logger.warn(
+					fields,
+					"Source request failed before a response arrived.",
+				);
+			throw new SourceError(reason);
 		}
+	}
+	private reportStatus(
+		url: URL,
+		response: Dispatcher.ResponseData,
+		code: string,
+	) {
+		this.logger.warn(
+			{
+				event: "acquisition.upstream_status",
+				host: url.host,
+				endpoint: url.pathname,
+				statusCode: response.statusCode,
+				contentType: response.headers["content-type"] ?? null,
+				contentLength: response.headers["content-length"] ?? null,
+				code,
+			},
+			"Source endpoint returned an unexpected status.",
+		);
 	}
 	async close() {
 		this.shutdown.abort();
