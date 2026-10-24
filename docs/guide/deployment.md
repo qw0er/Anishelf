@@ -36,7 +36,8 @@ Review the summary and confirm to start. Keep the generated directory for mainte
 | Preview only | Add `--generate-only` to save configuration without starting services |
 
 The installer needs Bash and curl. It does not install packages or configure host
-users. It refuses existing deployment files; use [Updates](#updates) for upgrades.
+users. Ordinary installation refuses existing deployment files. Use the explicit
+maintenance actions below to remove or replace a saved installer configuration.
 Installer failures are recorded in the generated `install.log`.
 
 ### Prepare a dedicated service account
@@ -238,7 +239,45 @@ journalctl --user -u anishelf-backend.service -n 100
 Pull optional qBittorrent/Jackett images too when updating those services. For
 releases with template changes, merge the new [Compose](../../package/deploy/compose.yaml)
 or [Quadlet](../../package/deploy/quadlet/) settings into the saved configuration.
-Do not rerun the installer over an existing deployment or delete volumes to upgrade.
+Do not run ordinary installation over an existing deployment or delete volumes to upgrade.
+
+### Remove or replace deployment configuration
+
+Run the installer as the original deployment user, using the same Docker/Podman
+context. These actions manage saved installer bundles only, not source checkouts.
+
+```sh
+# Stop services and remove their active configuration, keeping all data.
+bash package/install.sh --remove "$HOME/anishelf"
+
+# Collect fresh settings from current templates and replace the saved deployment.
+bash package/install.sh --reconfigure "$HOME/anishelf"
+```
+
+Both actions require confirmation (default No) and save the previous configuration
+by renaming the entire old deployment directory to a sibling such as
+`anishelf.backup.XXXXXX`, including custom files and a removal log. These maintenance
+actions require GNU `mv` (coreutils). They never remove named volumes, images, host media or unrelated files.
+Removal leaves the original deployment path absent. Reconfiguration creates a fresh
+directory at that path after archiving the old directory. Reconfiguration performs
+removal itself; do not run removal first when replacing a working deployment.
+
+Reconfiguration retains the original engine, deployment method and standard volume
+names. Enter the same host media path to keep using a bind-mounted library; review
+all optional services, ports, origin and image tag because settings are collected
+afresh. It renders new templates and validates Compose before stopping old services.
+Use `--ref VERSION` to select templates from a release or `--templates-dir` for local
+templates. These actions cannot be combined with `--generate-only`.
+
+Compose removal runs `down --remove-orphans` with both optional profiles, without
+`--volumes`. Quadlet removal stops services, disables the target, removes matching
+installed unit files and reloads systemd. Locally changed installed Quadlet units
+must be reconciled with the saved bundle first. Configuration backups are not data
+backups: take an application-data backup before an upgrade. If replacement fails
+after stopping services, the old configuration remains in the reported backup;
+rename the backup directory back to the original deployment path before restarting
+the old deployment, with matching data if migrations
+have already run.
 
 ## Uninstall
 

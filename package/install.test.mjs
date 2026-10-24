@@ -68,6 +68,7 @@ if(name==='curl') {
 		"cat",
 		"mktemp",
 		"dirname",
+		"cmp",
 	]) {
 		const location = spawnSync("/bin/sh", ["-c", `command -v ${name}`], {
 			encoding: "utf8",
@@ -110,7 +111,7 @@ if(name==='curl') {
 		return `${values.join("\n")}\n`;
 	}
 	function run(input = answers(), options = {}) {
-		const args = [installer];
+		const args = [installer, ...(options.args ?? [])];
 		if (options.engine) args.push("--engine", options.engine);
 		if (!options.start) args.push("--generate-only");
 		if (!options.remote) args.push("--templates-dir", templates);
@@ -453,4 +454,185 @@ test("no detected engine fails clearly while explicit engine permits offline gen
 			engine: "docker",
 		}),
 	);
+});
+
+test("removing a saved Compose configuration archives it and never removes volumes or unrelated files", async (t) => {
+	const f = await fixture(t, ["docker"]);
+	success(f.run(f.answers({ advanced: false })));
+	const original = await readFile(join(f.target, "compose.yaml"), "utf8");
+	await writeFile(join(f.target, "keep.txt"), "user data");
+	success(f.run("y\n", { start: true, args: ["--remove", f.target] }));
+	await absent(join(f.target, "compose.yaml"));
+	await absent(join(f.target, ".env"));
+	await absent(f.target);
+	const { readdir } = await import("node:fs/promises");
+	const backup = (await readdir(f.directory)).find((name) =>
+		name.startsWith("deployment.backup."),
+	);
+	assert.equal(
+		await readFile(join(f.directory, backup, "compose.yaml"), "utf8"),
+		original,
+	);
+	assert.equal(
+		await readFile(join(f.directory, backup, "keep.txt"), "utf8"),
+		"user data",
+	);
+	const down = (await f.calls()).find((call) => call.args.includes("down"));
+	assert.ok(down);
+	assert.ok(!down.args.includes("--volumes") && !down.args.includes("-v"));
+});
+
+test("removal cancellation and unrecognized bundles leave existing files intact", async (t) => {
+	const f = await fixture(t, ["docker"]);
+	success(f.run(f.answers({ advanced: false })));
+	success(f.run("n\n", { start: true, args: ["--remove", f.target] }));
+	assert.ok((await stat(join(f.target, "compose.yaml"))).isFile());
+	assert.ok(!(await f.calls()).some((call) => call.args.includes("down")));
+	await writeFile(join(f.target, ".env"), "COMPOSE_PROJECT_NAME=other\n");
+	assert.notEqual(
+		f.run("y\n", { start: true, args: ["--remove", f.target] }).status,
+		0,
+	);
+	assert.ok((await stat(join(f.target, "compose.yaml"))).isFile());
+});
+
+test("reconfiguration renders before removal and starts a replacement with the same engine and volumes", async (t) => {
+	const f = await fixture(t, ["docker"]);
+	success(f.run(f.answers({ advanced: false })));
+	await writeFile(join(f.target, "custom.txt"), "old configuration notes");
+	// Reconfiguration retains the directory and engine, then collects fresh settings.
+	const result = f.run("\ny\ny\nn\ny\n", {
+		start: true,
+		args: ["--reconfigure", f.target],
+	});
+	success(result);
+	const env = await readFile(join(f.target, ".env"), "utf8");
+	assert.match(env, /COMPOSE_PROFILES='qbittorrent,jackett'/);
+	await absent(join(f.target, "custom.txt"));
+	const { readdir } = await import("node:fs/promises");
+	const backup = (await readdir(f.directory)).find((name) =>
+		name.startsWith("deployment.backup."),
+	);
+	assert.equal(
+		await readFile(join(f.directory, backup, "custom.txt"), "utf8"),
+		"old configuration notes",
+	);
+	const calls = await f.calls();
+	const down = calls.findIndex((call) => call.args.includes("down"));
+	const up = calls.findIndex((call) => call.args.includes("up"));
+	assert.ok(down >= 0 && up > down);
+	assert.ok(calls.slice(0, down).some((call) => call.args.includes("config")));
+	assert.ok(
+		!calls.some(
+			(call) => call.args.includes("--volumes") || call.args.includes("volume"),
+		),
+	);
+});
+
+test("failed replacement template download leaves the current deployment running", async (t) => {
+	const f = await fixture(t, ["docker"]);
+	success(f.run(f.answers({ advanced: false })));
+	const original = await readFile(join(f.target, "compose.yaml"), "utf8");
+	const result = f.run("\nn\nn\nn\ny\n", {
+		start: true,
+		remote: true,
+		args: ["--reconfigure", f.target],
+		env: { INSTALL_TEST_FETCH_FAIL: "yes" },
+	});
+	assert.notEqual(result.status, 0);
+	assert.equal(
+		await readFile(join(f.target, "compose.yaml"), "utf8"),
+		original,
+	);
+	assert.ok(!(await f.calls()).some((call) => call.args.includes("down")));
+});
+
+test("Quadlet removal stops matching services, removes installed units and retains unrelated units", async (t) => {
+	const f = await fixture(t, ["podman"]);
+	success(
+		f.run(
+			f.answers({ method: "2", qbit: true, jackett: true, advanced: false }),
+			{ start: true },
+		),
+	);
+	const unitDir = join(f.env.XDG_CONFIG_HOME, "containers/systemd");
+	await writeFile(join(unitDir, "unrelated.container"), "user service");
+	success(f.run("y\n", { start: true, args: ["--remove", f.target] }));
+	await absent(join(unitDir, "anishelf-backend.container"));
+	await absent(f.target);
+	const { readdir } = await import("node:fs/promises");
+	const backup = (await readdir(f.directory)).find((name) =>
+		name.startsWith("deployment.backup."),
+	);
+	assert.ok(
+		(
+			await stat(
+				join(f.directory, backup, "quadlet/anishelf-backend.container"),
+			)
+		).isFile(),
+	);
+	await absent(join(f.env.XDG_CONFIG_HOME, "systemd/user/anishelf.target"));
+	assert.equal(
+		await readFile(join(unitDir, "unrelated.container"), "utf8"),
+		"user service",
+	);
+	const calls = await f.calls();
+	assert.ok(
+		calls.some(
+			(call) =>
+				call.args.includes("stop") &&
+				call.args.includes("anishelf-jackett.service"),
+		),
+	);
+	assert.ok(
+		!calls.some((call) => call.name === "podman" && call.args.includes("rm")),
+	);
+});
+
+test("Quadlet reconfiguration preserves its method and refuses changed installed units", async (t) => {
+	const f = await fixture(t, ["podman"]);
+	success(
+		f.run(f.answers({ method: "2", qbit: true, advanced: false }), {
+			start: true,
+		}),
+	);
+	success(
+		f.run("\nn\ny\nn\ny\n", { start: true, args: ["--reconfigure", f.target] }),
+	);
+	const unitDir = join(f.env.XDG_CONFIG_HOME, "containers/systemd");
+	await absent(join(unitDir, "anishelf-qbittorrent.container"));
+	assert.ok((await stat(join(unitDir, "anishelf-jackett.container"))).isFile());
+	await writeFile(join(unitDir, "anishelf-backend.container"), "local edits");
+	const before = (await f.calls()).length;
+	assert.notEqual(
+		f.run("y\n", { start: true, args: ["--remove", f.target] }).status,
+		0,
+	);
+	assert.equal(
+		await readFile(join(unitDir, "anishelf-backend.container"), "utf8"),
+		"local edits",
+	);
+	assert.ok(
+		!(await f.calls()).slice(before).some((call) => call.args.includes("stop")),
+	);
+});
+
+test("reconfiguration rejects unrelated Anishelf units before stopping services", async (t) => {
+	const f = await fixture(t, ["podman"]);
+	success(f.run(f.answers({ method: "2", advanced: false }), { start: true }));
+	const path = join(
+		f.env.XDG_CONFIG_HOME,
+		"containers/systemd/anishelf-custom.container",
+	);
+	await writeFile(path, "custom service");
+	const before = (await f.calls()).length;
+	const result = f.run("\nn\nn\nn\ny\n", {
+		start: true,
+		args: ["--reconfigure", f.target],
+	});
+	assert.notEqual(result.status, 0);
+	assert.ok(
+		!(await f.calls()).slice(before).some((call) => call.args.includes("stop")),
+	);
+	assert.equal(await readFile(path, "utf8"), "custom service");
 });

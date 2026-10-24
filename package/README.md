@@ -37,7 +37,11 @@ storage; Jackett has config storage only. See [volume ownership](../docs/guide/d
 
 The standalone Bash wizard resolves templates to one GitHub commit, renders a
 private bundle and delegates startup to Docker/Podman Compose or rootless Quadlet.
-It does not collect credentials or overwrite deployments. Generation-only mode
+It does not collect credentials. Ordinary installation never overwrites deployments;
+explicit `--remove DIRECTORY` and `--reconfigure DIRECTORY` actions archive saved
+configuration by renaming the entire old deployment directory to a sibling backup
+and preserve volumes/media. Replacement configuration uses a fresh original path. Reconfiguration retains the deployment
+engine and method, preparing templates before stopping the old services. Generation-only mode
 writes configuration without contacting an engine.
 
 Installer options, SELinux and host permissions are in
