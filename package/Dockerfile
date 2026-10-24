@@ -9,6 +9,15 @@ RUN apt-get update \
 COPY package.json package-lock.json ./
 COPY backend/package.json ./backend/package.json
 COPY web/package.json ./web/package.json
+COPY scripts/build-info.mjs ./scripts/build-info.mjs
+ARG ANISHELF_BUILD_TAG
+ARG ANISHELF_BUILD_COMMIT
+ARG ANISHELF_BUILD_CHANNEL=development
+ARG ANISHELF_BUILD_TIME
+ENV ANISHELF_BUILD_TAG=$ANISHELF_BUILD_TAG \
+    ANISHELF_BUILD_COMMIT=$ANISHELF_BUILD_COMMIT \
+    ANISHELF_BUILD_CHANNEL=$ANISHELF_BUILD_CHANNEL \
+    ANISHELF_BUILD_TIME=$ANISHELF_BUILD_TIME
 RUN npm ci && npm rebuild better-sqlite3
 
 FROM dependencies AS backend-build
@@ -40,6 +49,7 @@ RUN apt-get update \
     && chown -R node:node /data
 COPY --from=backend-build /app/node_modules ./node_modules
 COPY --from=backend-build /app/backend/package.json ./backend/package.json
+COPY --from=backend-build /app/backend/build-info.json ./backend/build-info.json
 COPY --from=backend-build /app/backend/node_modules ./backend/node_modules
 COPY --from=backend-build /app/backend/dist ./backend/dist
 COPY --from=backend-build /app/backend/migrations ./backend/migrations

@@ -16,6 +16,7 @@ export * from "./profile-issues.js";
 export * from "./sources.js";
 export * from "./subscriptions.js";
 export * from "./subtitles.js";
+export { BuildInfoSchema, UpdateCheckSchema } from "./system-info.js";
 export * from "./tracking.js";
 export * from "./tracking-list.js";
 export * from "./transcode-profiles.js";

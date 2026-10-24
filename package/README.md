@@ -66,7 +66,9 @@ publishes both multi-platform manifests. Any failed check/build blocks publicati
 
 Deploy matching Web/Backend tags. `testing` moves with manual builds; only an image
 digest identifies exact bytes. Package-version changes do not create release tags,
-and publication does not create a GitHub Release or update running deployments.
+and publication does not update running deployments. After both image manifests
+succeed, tagged publications create a GitHub Release (prereleases remain marked as
+such). Existing Releases are preserved on retries.
 
 ### Publish a test build
 
@@ -92,3 +94,23 @@ One optional container generates native configuration and its API key. Backend
 reads that config volume read-only; existing saved connections/disconnects retain
 precedence. First-run site initialization is conditional; see
 [Jackett setup](../docs/guide/jackett-setup.md) for operator actions and preservation rules.
+
+## Build identity and update checks
+
+The root `package.json` is the source version. `scripts/build-info.mjs` writes
+ignored build manifests before each workspace build or development startup.
+Both Docker targets receive `ANISHELF_BUILD_TAG`, `ANISHELF_BUILD_COMMIT`,
+`ANISHELF_BUILD_CHANNEL` and optional ISO `ANISHELF_BUILD_TIME` build arguments.
+A release tag must equal `v` plus the root package version; stable builds require
+a tag. Manual workflow builds use the testing channel. Untagged local builds use
+the development channel. Git metadata is optional for source archives.
+
+Settings → About displays each component's embedded identity and flags mismatches.
+The authenticated `GET /api/system/info` endpoint returns the backend identity.
+`POST /api/system/updates/check` queries the fixed public GitHub repository's latest
+stable Release with a ten-second timeout. Successful checks are cached for five
+minutes; concurrent checks share a request and failures back off for thirty seconds.
+No GitHub credential is required. Network/rate-limit failures remain failures,
+while a missing latest Release is shown separately. SemVer comparison applies only
+to stable builds. Upgrade links lead to release notes and the deployment guide;
+checking never changes the running deployment.

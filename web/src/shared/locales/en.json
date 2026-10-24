@@ -70,7 +70,8 @@
 			"PLAYBACK_PERSISTENCE_FAILED": "Playback progress could not be loaded or saved. Please retry.",
 			"SUBTITLE_TOO_LARGE": "The subtitle exceeds the {{maximumMiB}} MiB limit.",
 			"SUBTITLE_INVALID_ENCODING": "Save the subtitle as UTF-8 or UTF-16 with a byte-order mark.",
-			"MEDIA_INSPECTION_UNAVAILABLE": "Media inspection is unavailable or busy. Retry shortly."
+			"MEDIA_INSPECTION_UNAVAILABLE": "Media inspection is unavailable or busy. Retry shortly.",
+			"UPDATE_CHECK_FAILED": "Could not check GitHub for updates. Try again later."
 		},
 		"mediaPictureUnavailable": "This browser could not decode the video picture. Audio alone may still play.",
 		"resourcePathsInvalid": "Enter up to 64 distinct resource paths, one per line."
@@ -127,7 +128,8 @@
 			"library": "Library",
 			"playback": "Playback",
 			"downloads": "Downloads",
-			"account": "Account"
+			"account": "Account",
+			"about": "About"
 		},
 		"pathHelpLabel": "Directory rules",
 		"cacheHelpLabel": "Cache budget help"

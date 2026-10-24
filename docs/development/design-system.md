@@ -77,7 +77,7 @@ description and page actions; keep scan/stale status beneath it. Settings uses
 full-width section panels with a desktop description column and a bounded form
 column, stacking on mobile. Do not narrow the entire Settings page.
 Section descriptions are optional: omit text that only repeats the heading and
-field labels. All four Settings tabs use the same spacing, concise action controls
+field labels. All five Settings tabs use the same spacing, concise action controls
 and visible validation rules. Tab navigation retains every destination on narrow
 screens through icons, Tooltips and accessible names.
 
@@ -245,6 +245,15 @@ Settings and report invocation failures through Toasts.
 Keep compatibility and task status outside action menus. Put shared choices in
 Settings. The preparation panel is a nonblocking active-task monitor, not a dedicated
 page.
+
+Settings ends with an About tab at `/settings?section=about`, using one compact
+Settings panel. Keep the project description, links and license in the left column;
+place the current version and Check action on one row in the right column. Collapse
+separate Web/Backend commits and build dates under Build details, opening them when
+builds differ; keep the mismatch warning visible. Update checks
+are manual; keep the last successful result and its timestamp visible, distinguish
+failed checks from current versions, and use the existing action spinner and Toasts.
+Development, testing and prerelease builds never claim to be the latest stable build.
 
 ## Feedback and interface states
 
