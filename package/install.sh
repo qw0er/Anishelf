@@ -235,6 +235,20 @@ publish_unit() {
   exists "$destination" && die "Existing unit is preserved: $destination"
   (set -C; cat "$source" > "$destination")
 }
+pull_quadlet_images() {
+  local unit line image
+  local -a pulled=()
+  for unit in "$stage_dir/bundle/quadlet/"*.container; do
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      [[ "$line" == Image=* ]] || continue
+      image=${line#Image=}
+      [[ " ${pulled[*]} " != *" $image "* ]] || continue
+      log "Pulling Quadlet image: $image"
+      podman pull "$image"
+      pulled+=("$image")
+    done < "$unit"
+  done
+}
 # Manage only a saved installer bundle, never an arbitrary source checkout.
 load_existing() {
   valid_path "$existing_dir" && [[ -d "$existing_dir" && ! -L "$existing_dir" ]] || die 'Choose a real absolute saved deployment directory.'
@@ -482,6 +496,10 @@ main() {
     if [[ "$jackett" == yes ]]; then units+=(anishelf-jackett-init.container anishelf-jackett.container); fi
     local unit
     for unit in "${units[@]}"; do asset "quadlet/$unit" "$stage_dir/$unit"; render_unit "$unit"; done
+  fi
+  if [[ "$generate_only" != true && "$method" == quadlet ]]; then
+    phase='pulling Quadlet container images'
+    pull_quadlet_images
   fi
   if [[ "$action" == reconfigure ]]; then
     if [[ "$method" == compose ]]; then

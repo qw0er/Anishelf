@@ -266,6 +266,10 @@ Reconfiguration retains the original engine, deployment method and standard volu
 names. Enter the same host media path to keep using a bind-mounted library; review
 all optional services, ports, origin and image tag because settings are collected
 afresh. It renders new templates and validates Compose before stopping old services.
+For Quadlet, installation and reconfiguration explicitly pull every selected image
+from the rendered units, including optional services, before installing units or
+stopping the old deployment. Pull failure aborts without replacing the old configuration;
+repeated initializer images are pulled only once. Generation-only mode never pulls.
 Use `--ref VERSION` to select templates from a release or `--templates-dir` for local
 templates. These actions cannot be combined with `--generate-only`.
 

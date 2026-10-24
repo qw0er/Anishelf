@@ -37,6 +37,7 @@ if(name==='uname') console.log('Linux');
 if(name==='id') console.log(args[0]==='-un'?'fixture-user':process.env.INSTALL_TEST_UID??'1001');
 if(name==='loginctl') console.log('yes');
 if(name==='podman'&&args[0]==='compose'&&args[1]==='version'&&process.env.INSTALL_TEST_PROVIDER_FAIL==='yes') process.exit(1);
+if(name==='podman'&&args[0]==='pull'&&process.env.INSTALL_TEST_PULL_FAIL==='yes') process.exit(1);
 if(name==='podman'&&args[0]==='info') console.log(args.at(-1).includes('CgroupsVersion')?'v2':'true');
 if(name==='curl') {
  const url=args.find(v=>v.startsWith('http')); const output=args[args.indexOf('-o')+1];
@@ -635,4 +636,42 @@ test("reconfiguration rejects unrelated Anishelf units before stopping services"
 		!(await f.calls()).slice(before).some((call) => call.args.includes("stop")),
 	);
 	assert.equal(await readFile(path, "utf8"), "custom service");
+});
+
+test("Quadlet explicitly pulls every selected image once before installing or replacing units", async (t) => {
+	const f = await fixture(t, ["podman"]);
+	success(
+		f.run(
+			f.answers({ method: "2", qbit: true, jackett: true, advanced: false }),
+			{ start: true },
+		),
+	);
+	const calls = await f.calls();
+	const pulls = calls.filter(
+		(call) => call.name === "podman" && call.args[0] === "pull",
+	);
+	assert.deepEqual(
+		pulls.map((call) => call.args[1]).sort(),
+		[
+			"ghcr.io/qw0er/anishelf-backend:latest",
+			"ghcr.io/qw0er/anishelf-web:latest",
+			"docker.io/linuxserver/qbittorrent:latest",
+			"ghcr.io/linuxserver/jackett:latest",
+		].sort(),
+	);
+	const start = calls.findIndex((call) => call.args.includes("enable"));
+	assert.ok(pulls.every((call) => calls.indexOf(call) < start));
+	const before = calls.length;
+	const failed = f.run("\nn\nn\nn\ny\n", {
+		start: true,
+		args: ["--reconfigure", f.target],
+		env: { INSTALL_TEST_PULL_FAIL: "yes" },
+	});
+	assert.notEqual(failed.status, 0);
+	assert.ok(
+		!(await f.calls()).slice(before).some((call) => call.args.includes("stop")),
+	);
+	assert.ok(
+		(await stat(join(f.target, "quadlet/anishelf-backend.container"))).isFile(),
+	);
 });
