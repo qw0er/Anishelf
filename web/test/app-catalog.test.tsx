@@ -236,19 +236,16 @@ test("search and immediate filters reset pagination and preserve applied criteri
 	});
 	fireEvent.click(screen.getByRole("button", { name: /^Search$/ }));
 	fireEvent.click(screen.getByRole("button", { name: "Filters" }));
-	fireEvent.change(screen.getByLabelText("Format"), {
-		target: { value: "TV" },
-	});
+	fireEvent.click(screen.getByRole("radio", { name: "TV" }));
 	fireEvent.change(screen.getByLabelText("Release year"), {
 		target: { value: "2023" },
 	});
 	fireEvent.blur(screen.getByLabelText("Release year"));
-	fireEvent.change(screen.getByLabelText("Availability"), {
-		target: { value: "available" },
-	});
-	fireEvent.change(screen.getByLabelText("Sort by"), {
-		target: { value: "recent" },
-	});
+	fireEvent.click(screen.getByRole("radio", { name: "Available locally" }));
+	fireEvent.click(screen.getByRole("button", { name: "Sort by" }));
+	fireEvent.click(
+		await screen.findByRole("menuitemradio", { name: "Recently added" }),
+	);
 	await waitFor(() => expect(screen.getByText("Page 1")).toBeTruthy());
 	await waitFor(() =>
 		expect(
@@ -578,7 +575,7 @@ test("AniList library shows status and remote-only details, keeps filters and re
 	);
 	expect(toolbar.getByRole("button", { name: "Search" })).toBeTruthy();
 	expect(toolbar.getByRole("button", { name: "Filters" })).toBeTruthy();
-	expect(toolbar.getByRole("combobox", { name: "Sort by" })).toBeTruthy();
+	expect(toolbar.getByRole("button", { name: "Sort by" })).toBeTruthy();
 	const refreshButton = toolbar.getByRole("button", {
 		name: "Refresh the tracking service list",
 	});
@@ -594,19 +591,17 @@ test("AniList library shows status and remote-only details, keeps filters and re
 		}),
 	).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Filters" }));
-	fireEvent.change(screen.getByRole("combobox", { name: "Library scope" }), {
-		target: { value: "all" },
-	});
+	fireEvent.click(
+		within(screen.getByRole("group", { name: "Library scope" })).getByRole(
+			"radio",
+			{ name: "All works" },
+		),
+	);
 	const remoteLink = await screen.findByRole("link", { name: "Remote work" });
 	expect(remoteLink.getAttribute("href")).toContain(
 		"/anime/tracked/anilist%3Aanime%3A2?",
 	);
-	fireEvent.change(
-		screen.getByRole("combobox", {
-			name: "the tracking service viewing state",
-		}),
-		{ target: { value: "planned" } },
-	);
+	fireEvent.click(screen.getByRole("radio", { name: "Planning" }));
 	await waitFor(() =>
 		expect(screen.getByTestId("location").textContent).toContain(
 			"viewingStatus=planned",
@@ -706,13 +701,16 @@ test("Library filters allow All works before local setup and disable viewing sta
 	const filters = await screen.findByRole("button", { name: "Filters" });
 	expect(screen.queryByRole("combobox", { name: "Library scope" })).toBeNull();
 	fireEvent.click(filters);
-	const viewing = screen.getByRole("combobox", {
+	const viewing = screen.getByRole("group", {
 		name: "the tracking service viewing state",
 	});
 	expect(viewing.hasAttribute("disabled")).toBe(true);
-	fireEvent.change(screen.getByRole("combobox", { name: "Library scope" }), {
-		target: { value: "all" },
-	});
+	fireEvent.click(
+		within(screen.getByRole("group", { name: "Library scope" })).getByRole(
+			"radio",
+			{ name: "All works" },
+		),
+	);
 	await waitFor(() =>
 		expect(
 			fetcher.mock.calls.some(([path]) => {
@@ -993,21 +991,30 @@ test("poster sorting defaults to unwatched first and exposes all four choices", 
 	mockAnime(animeFixture());
 	renderApp("/");
 	await screen.findByRole("link", { name: "Frieren" });
-	const select = screen.getByLabelText("Sort by") as HTMLSelectElement;
-	expect(select.value).toBe("unwatched");
-	expect(Array.from(select.options, (option) => option.text)).toEqual([
-		"Unwatched first",
-		"Recently updated",
-		"Title",
-		"Recently added",
-	]);
-	for (const sort of ["updated", "title", "recent", "unwatched"]) {
-		fireEvent.change(select, { target: { value: sort } });
-		await waitFor(() => expect(select.value).toBe(sort));
-		const location = screen.getByTestId("location").textContent ?? "";
-		expect(new URL(location, "http://localhost").searchParams.get("sort")).toBe(
-			sort === "unwatched" ? null : sort,
-		);
+	const choices = {
+		updated: "Recently updated",
+		title: "Title",
+		recent: "Recently added",
+		unwatched: "Unwatched first",
+	};
+	for (const sort of ["updated", "title", "recent", "unwatched"] as const) {
+		fireEvent.click(screen.getByRole("button", { name: "Sort by" }));
+		await screen.findByRole("menuitemradio", { name: "Unwatched first" });
+		expect(
+			screen.getAllByRole("menuitemradio").map((item) => item.textContent),
+		).toEqual([
+			"Unwatched first",
+			"Recently updated",
+			"Title",
+			"Recently added",
+		]);
+		fireEvent.click(screen.getByRole("menuitemradio", { name: choices[sort] }));
+		await waitFor(() => {
+			const location = screen.getByTestId("location").textContent ?? "";
+			expect(
+				new URL(location, "http://localhost").searchParams.get("sort"),
+			).toBe(sort === "unwatched" ? null : sort);
+		});
 	}
 });
 

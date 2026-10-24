@@ -200,15 +200,13 @@ test("RSS and profile overrides remain available in More options", async () => {
 	render(<SubscriptionPanel workKey={workKey} />);
 	fireEvent.click(await screen.findByRole("button", { name: "Subscribe" }));
 	fireEvent.click(await screen.findByText("More options"));
-	fireEvent.change(screen.getByLabelText("Source"), {
-		target: { value: "feed" },
-	});
-	fireEvent.change(screen.getByLabelText("RSS URL"), {
+	fireEvent.click(screen.getByRole("radio", { name: "RSS URL" }));
+	fireEvent.change(screen.getByRole("textbox", { name: "RSS URL" }), {
 		target: { value: "https://feeds.example.org/custom" },
 	});
-	fireEvent.change(screen.getByLabelText("Release selection profile"), {
-		target: { value: "builtin:efficient" },
-	});
+	fireEvent.click(
+		screen.getByRole("radio", { name: /Efficient codecs preferred/ }),
+	);
 	await waitFor(() =>
 		expect(
 			(screen.getByRole("button", { name: "Subscribe" }) as HTMLButtonElement)

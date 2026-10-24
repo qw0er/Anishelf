@@ -77,6 +77,7 @@ async function fixture() {
 		revision: "target",
 	};
 	let fingerprint = "profile-one";
+	let defaultProfileId = config.profileId;
 	const destination = {
 		revision: "destination",
 		connectionGeneration: "downloader",
@@ -125,7 +126,7 @@ async function fixture() {
 					levels: [{ name: "Any", match: {}, acceptAfterMinutes: 0 }],
 				},
 			],
-			defaultProfileId: () => config.profileId,
+			defaultProfileId: () => defaultProfileId,
 			downloadTarget: () => destination,
 			onRemoved: (key) => watching?.manualRemove(key),
 		});
@@ -172,11 +173,49 @@ async function fixture() {
 		setFingerprint: (value: string) => {
 			fingerprint = value;
 		},
+		setDefaultProfile: (value: string) => {
+			defaultProfileId = value;
+		},
 		advance: () => {
 			clock += 3600000;
 		},
 	};
 }
+
+test("Watching only accepts the subscription default and fences default changes before confirmation and new creation", async () => {
+	const f = await fixture();
+	await expect(
+		f.watching.preview("session", f.watching.status().revision, {
+			...config,
+			profileId: "custom:independent",
+		}),
+	).rejects.toThrow(/Preview and confirm/);
+	const preview = await f.watching.preview(
+		"session",
+		f.watching.status().revision,
+		config,
+	);
+	f.setDefaultProfile("custom:new-default");
+	expect(() => f.watching.confirm("session", preview.id)).toThrow(
+		/Preview and confirm/,
+	);
+	f.setDefaultProfile(config.profileId);
+	await f.enable();
+	await f.watching.tick();
+	const existing = f.db.acquisition.subscription(workKey);
+	f.setDefaultProfile("custom:new-default");
+	f.snapshot.entries.push({
+		workKey: "anilist:anime:2",
+		title: "Another work",
+		status: "watching",
+		progress: 0,
+	});
+	f.snapshot.revision = "default-changed";
+	expect(f.watching.status().reason).toBe("profile_changed");
+	await f.watching.tick();
+	expect(f.db.acquisition.subscription("anilist:anime:2")).toBeNull();
+	expect(f.db.acquisition.subscription(workKey)).toEqual(existing);
+});
 
 test("default-off previews do not search; Watching creates an ordinary pending subscription", async () => {
 	const f = await fixture();

@@ -4,6 +4,7 @@ import { Save } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ProfileIssueNotice } from "../../shared/components/profile-issue-notice.js";
+import { ActionButton } from "../../shared/components/ui/action-button.js";
 import { Button } from "../../shared/components/ui/button.js";
 import {
 	Card,
@@ -133,7 +134,10 @@ export function RssSettings() {
 								/>
 							))}
 						</RadioCardGroup>
-						<Button
+						<ActionButton
+							icon={Save}
+							label={t("acquisition.rss.saveProfile")}
+							shortLabel={t("actions.save")}
 							type="submit"
 							disabled={
 								profileSave.isPending ||
@@ -143,9 +147,7 @@ export function RssSettings() {
 										(profileDraft ?? profiles.data.selectedProfileId),
 								)
 							}
-						>
-							{t("acquisition.rss.saveProfile")}
-						</Button>
+						/>
 					</form>
 				)}
 				{profiles.isError && (
@@ -202,24 +204,17 @@ export function RssSettings() {
 								}
 								onChange={(event) => setDraft(event.target.value)}
 								disabled={save.isPending}
-								aria-describedby="rss-refresh-help"
 							/>
 						</label>
-						<p id="rss-refresh-help" className="text-sm text-muted-foreground">
-							{t("acquisition.rss.refreshHelp", {
-								minutes: rssConstraints.defaultRefreshIntervalMinutes,
-							})}
-						</p>
-						<Button
+
+						<ActionButton
+							icon={Save}
+							label={t("acquisition.rss.save")}
+							shortLabel={t("actions.save")}
 							type="submit"
 							disabled={save.isPending}
 							aria-busy={save.isPending}
-						>
-							<Save size={16} aria-hidden="true" />
-							{save.isPending
-								? t("acquisition.rss.saving")
-								: t("acquisition.rss.save")}
-						</Button>
+						/>
 					</form>
 				) : null}
 			</CardContent>

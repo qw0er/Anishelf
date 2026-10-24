@@ -1,7 +1,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "../../../shared/components/ui/button.js";
+import { ActionButton } from "../../../shared/components/ui/action-button.js";
 import {
 	Card,
 	CardContent,
@@ -9,7 +9,9 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../../shared/components/ui/card.js";
+import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
+import { Tooltip } from "../../../shared/components/ui/tooltip.js";
 import { externalPlayerPolicy } from "../external-player-policy.js";
 import { validPlayerTemplate } from "../external-players.js";
 import { useExternalPlayers } from "../hooks/use-external-players.js";
@@ -30,7 +32,7 @@ export function ExternalPlayerSettings() {
 			</CardHeader>
 			<CardContent className="space-y-4">
 				{custom.error && (
-					<p role="alert" className="text-sm text-destructive">
+					<p role="alert" className="text-sm text-destructive sm:col-span-2">
 						{t("externalPlayers.storageError")}
 					</p>
 				)}
@@ -39,42 +41,46 @@ export function ExternalPlayerSettings() {
 						{t("externalPlayers.empty")}
 					</p>
 				)}
-				<ul className="space-y-2">
+				<ul className="max-h-64 divide-y overflow-auto">
 					{custom.players.map((player) => (
 						<li
 							key={player.id}
-							className="flex min-w-0 flex-wrap items-center gap-3 rounded-md border p-3"
+							className="action-row flex-nowrap min-w-0 items-center gap-3 py-2"
 						>
 							<div className="min-w-0 flex-1 basis-40">
-								<p className="wrap-break-word text-sm font-medium">
-									{player.name}
-								</p>
-								<p className="break-all text-xs text-muted-foreground">
-									{player.template}
-								</p>
+								<Tooltip content={player.template} openOnClick>
+									<button
+										type="button"
+										className="max-w-full truncate rounded text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring"
+									>
+										{player.name}
+									</button>
+								</Tooltip>
 							</div>
-							<Button
+							<ActionButton
+								icon={Trash2}
+								shortLabel={t("externalPlayers.delete")}
 								variant="outline"
-								aria-label={t("externalPlayers.deleteNamed", {
+								label={t("externalPlayers.deleteNamed", {
 									name: player.name,
 								})}
 								onClick={() => {
 									try {
 										custom.remove(player.id);
+										console.debug("[Settings] Custom player removed.", {
+											count: custom.players.length - 1,
+										});
 										setError(null);
 									} catch {
 										setError("externalPlayers.saveError");
 									}
 								}}
-							>
-								<Trash2 size={16} aria-hidden="true" />
-								{t("externalPlayers.delete")}
-							</Button>
+							/>
 						</li>
 					))}
 				</ul>
 				<form
-					className="space-y-4"
+					className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
 					onSubmit={(event) => {
 						event.preventDefault();
 						if (!name.trim() || !validPlayerTemplate(template.trim())) {
@@ -83,6 +89,9 @@ export function ExternalPlayerSettings() {
 						}
 						try {
 							custom.add(name.trim(), template.trim());
+							console.debug("[Settings] Custom player added.", {
+								count: custom.players.length + 1,
+							});
 							setName("");
 							setTemplate("");
 							setError(null);
@@ -113,6 +122,10 @@ export function ExternalPlayerSettings() {
 						>
 							{t("externalPlayers.template")}
 						</label>
+						<FieldHelp
+							label={t("externalPlayers.templateHelpLabel")}
+							help={t("externalPlayers.templateHelp")}
+						/>
 						<Input
 							id="external-player-template"
 							required
@@ -120,19 +133,17 @@ export function ExternalPlayerSettings() {
 							value={template}
 							onChange={(event) => setTemplate(event.target.value)}
 							placeholder="infuse://x-callback-url/play?url={urlEncoded}"
-							aria-describedby="external-player-template-help"
 						/>
-						<p
-							id="external-player-template-help"
-							className="text-sm text-muted-foreground"
-						>
-							{t("externalPlayers.templateHelp")}
-						</p>
 					</div>
-					<Button type="submit" disabled={custom.error || full}>
-						<Plus size={16} aria-hidden="true" />
-						{t("externalPlayers.add")}
-					</Button>
+					<div className="action-row sm:col-span-2">
+						<ActionButton
+							icon={Plus}
+							label={t("externalPlayers.add")}
+							shortLabel={t("actions.add")}
+							type="submit"
+							disabled={custom.error || full}
+						/>
+					</div>
 					{full && (
 						<p role="status" className="text-sm text-muted-foreground">
 							{t("externalPlayers.limit", {
@@ -141,7 +152,7 @@ export function ExternalPlayerSettings() {
 						</p>
 					)}
 					{error && (
-						<p role="alert" className="text-sm text-destructive">
+						<p role="alert" className="text-sm text-destructive sm:col-span-2">
 							{t(error)}
 						</p>
 					)}

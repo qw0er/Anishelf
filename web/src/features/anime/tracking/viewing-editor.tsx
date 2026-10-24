@@ -14,7 +14,9 @@ import {
 	DialogDescription,
 	DialogTitle,
 } from "../../../shared/components/ui/dialog.js";
+import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
+import { RadioOptions } from "../../../shared/components/ui/radio-options.js";
 import { operationsQuery } from "./operations.js";
 import { useTrackingMutation } from "./use-tracking-mutation.js";
 import type { ViewingState } from "./use-viewing-state.js";
@@ -213,8 +215,14 @@ function ViewingForm({
 						})
 					: t("trackingList.untracked")}
 			</p>
-			<label htmlFor={progressId} className="grid gap-1">
-				{t("trackingUpdate.progress")}
+			<div className="grid gap-1">
+				<div className="flex items-center gap-1">
+					<label htmlFor={progressId}>{t("trackingUpdate.progress")}</label>
+					<FieldHelp
+						label={t("trackingUpdate.progressHelp")}
+						help={t("trackingUpdate.cumulative")}
+					/>
+				</div>
 				<Input
 					id={progressId}
 					type="number"
@@ -228,27 +236,19 @@ function ViewingForm({
 						setProgress(event.target.value);
 					}}
 				/>
-			</label>
-			<label className="grid gap-1">
-				{t("trackingUpdate.status")}
-				<select
-					className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-					value={status}
-					onChange={(event) => {
-						setStatusEdited(true);
-						setStatus(event.target.value as Status);
-					}}
-				>
-					{snapshot.provider.capabilities.statuses.map((value) => (
-						<option key={value} value={value}>
-							{t(`trackingList.statuses.${value}`)}
-						</option>
-					))}
-				</select>
-			</label>
-			<p className="text-xs text-muted-foreground">
-				{t("trackingUpdate.cumulative")}
-			</p>
+			</div>
+			<RadioOptions
+				legend={t("trackingUpdate.status")}
+				value={status}
+				onChange={(value) => {
+					setStatusEdited(true);
+					setStatus(value);
+				}}
+				options={snapshot.provider.capabilities.statuses.map((value) => ({
+					value,
+					label: t(`trackingList.statuses.${value}`),
+				}))}
+			/>
 			{operation && (
 				<div role="status" className="text-sm">
 					<p>{t(`trackingUpdate.states.${operation.state}`)}</p>

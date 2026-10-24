@@ -11,6 +11,13 @@ AniList Watching list. Both produce the same editable subscription.
 3. Optionally enable **Watching automation**: choose progress plus one or episode 1,
    preview the scope and confirm within five minutes in the same login session.
 
+Watching automation appears first in Downloads. Its activation preview uses the
+saved release profile in **Subscription defaults**; there is no separate automation
+profile to configure. Save a changed default before previewing again. Existing
+subscriptions retain their saved profile and starting episode.
+Changing that default stops future automatic creation until you preview and confirm
+the new scope; a preview prepared against the old default cannot be confirmed.
+
 Watching is off by default. Its preview creates no subscriptions/downloads. Changed
 account/site/profile/target scope requires a new preview. Invalid or fractional
 progress, or progress of at least 10000, cannot create a progress-based subscription.

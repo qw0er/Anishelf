@@ -1,15 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ExternalLink, Save } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, buttonStyles } from "../../shared/components/ui/button.js";
+import {
+	ActionButton,
+	ActionLink,
+} from "../../shared/components/ui/action-button.js";
+import { Button } from "../../shared/components/ui/button.js";
 import {
 	Card,
 	CardContent,
-	CardDescription,
 	CardHeader,
 	CardTitle,
 } from "../../shared/components/ui/card.js";
+import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
+import { toast } from "../../shared/components/ui/toast.js";
 import {
 	saveSettings,
 	settingsKeys,
@@ -29,6 +35,7 @@ export function QbittorrentSettings() {
 		onSuccess: (settings) => {
 			client.setQueryData(settingsKeys.settings, settings);
 			setDraft(null);
+			toast.add({ type: "success", title: t("acquisition.webui.saved") });
 		},
 	});
 	const settings = configuration.data;
@@ -36,7 +43,6 @@ export function QbittorrentSettings() {
 		<Card className="settings-section lg:grid">
 			<CardHeader>
 				<CardTitle>{t("acquisition.webui.title")}</CardTitle>
-				<CardDescription>{t("acquisition.webui.description")}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex min-w-0 flex-col gap-5 lg:max-w-2xl">
 				<QbittorrentApiSettings />
@@ -63,17 +69,20 @@ export function QbittorrentSettings() {
 							save.mutate(draft ?? settings.qbittorrentWebUiUrl ?? "");
 						}}
 					>
-						<h3 className="text-sm font-medium">
-							{t("acquisition.webui.browserLink")}
-						</h3>
 						<div className="flex flex-col gap-3 sm:flex-row sm:items-end">
 							<div className="flex min-w-0 flex-1 flex-col gap-2">
-								<label
-									className="text-sm font-medium"
-									htmlFor="qbittorrent-webui-url"
-								>
-									{t("acquisition.webui.url")}
-								</label>
+								<div className="flex items-center justify-between gap-2">
+									<label
+										className="text-sm font-medium"
+										htmlFor="qbittorrent-webui-url"
+									>
+										{t("acquisition.webui.url")}
+									</label>
+									<FieldHelp
+										label={`${t("acquisition.webui.url")} · ${t("actions.help")}`}
+										help={t("acquisition.webui.urlHelp")}
+									/>
+								</div>
 								<Input
 									id="qbittorrent-webui-url"
 									type="url"
@@ -84,51 +93,35 @@ export function QbittorrentSettings() {
 										save.reset();
 									}}
 									disabled={save.isPending}
-									aria-describedby="qbittorrent-webui-help"
 									placeholder="https://downloads.example.com/"
 								/>
 							</div>
-							<Button type="submit" disabled={save.isPending}>
-								{save.isPending
-									? t("acquisition.webui.saving")
-									: t("acquisition.webui.save")}
-							</Button>
+							<ActionButton
+								icon={Save}
+								label={t("acquisition.webui.save")}
+								shortLabel={t("actions.save")}
+								type="submit"
+								disabled={save.isPending}
+							/>
 						</div>
-						<p
-							id="qbittorrent-webui-help"
-							className="text-sm text-muted-foreground"
-						>
-							{t("acquisition.webui.urlHelp")}
-						</p>
+
 						{save.isError && (
 							<p role="alert" className="text-sm text-destructive">
 								{t("acquisition.webui.saveFailed")}
 							</p>
 						)}
-						{save.isSuccess && (
-							<p role="status" className="text-sm text-muted-foreground">
-								{t("acquisition.webui.saved")}
-							</p>
-						)}
 						{settings.qbittorrentWebUiUrl ? (
 							<div className="flex flex-wrap items-center gap-2">
-								<a
-									className={buttonStyles("outline")}
+								<ActionLink
+									icon={ExternalLink}
+									label={t("acquisition.webui.open")}
+									shortLabel={t("actions.open")}
 									href={settings.qbittorrentWebUiUrl}
 									target="_blank"
 									rel="noopener noreferrer"
-								>
-									{t("acquisition.webui.open")}
-								</a>
-								<span className="text-sm text-muted-foreground">
-									{t("acquisition.webui.ownAccess")}
-								</span>
+								/>
 							</div>
-						) : (
-							<p role="status" className="text-sm text-muted-foreground">
-								{t("acquisition.webui.savePrompt")}
-							</p>
-						)}
+						) : null}
 					</form>
 				) : null}
 			</CardContent>

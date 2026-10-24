@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { Eye, Pause, Play, Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { WatchingAutomationStatus } from "../../shared/api/contracts.js";
-import { Button } from "../../shared/components/ui/button.js";
+import { ActionButton } from "../../shared/components/ui/action-button.js";
 import {
 	Card,
 	CardContent,
@@ -10,6 +11,10 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../shared/components/ui/card.js";
+import {
+	RadioCard,
+	RadioCardGroup,
+} from "../../shared/components/ui/radio-card.js";
 import { invalidateAnimeQueries } from "../anime/public.js";
 import { acquisitionProfilesQuery } from "./subscriptions-api.js";
 import {
@@ -32,6 +37,23 @@ export function WatchingSettings() {
 				<CardDescription>
 					{t("acquisition.watching.description")}
 				</CardDescription>
+				{query.data && (
+					<div role="status" className="space-y-2 text-sm">
+						<span className="inline-flex rounded-md border px-2 py-1">
+							{t(
+								query.data.enabled
+									? "acquisition.watching.enabled"
+									: "acquisition.watching.disabled",
+							)}
+						</span>
+						{query.data.reason !== "ready" &&
+							query.data.reason !== "disabled" && (
+								<p className="text-muted-foreground">
+									{watchingReason(query.data.reason)}
+								</p>
+							)}
+					</div>
+				)}
 			</CardHeader>
 			<CardContent className="flex min-w-0 flex-col gap-4 lg:max-w-2xl">
 				{query.data ? (
@@ -54,14 +76,21 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 	const [backlog, setBacklog] = useState<"progress" | "beginning">(
 		status.config?.backlog ?? "progress",
 	);
-	const [profileId, setProfileId] = useState(status.config?.profileId ?? "");
+	const profileId = profiles.data?.selectedProfileId ?? "";
 	const preview = useMutation({
 		mutationFn: () =>
 			previewWatching(status.revision, {
 				backlog,
-				profileId: profileId || profiles.data?.selectedProfileId || "",
+				profileId,
 			}),
 	});
+	const resetPreview = preview.reset;
+	const previousProfile = useRef(profileId);
+	useEffect(() => {
+		if (previousProfile.current === profileId) return;
+		previousProfile.current = profileId;
+		resetPreview();
+	}, [profileId, resetPreview]);
 	const update = (updated: WatchingAutomationStatus) => {
 		client.setQueryData(watchingKey, updated);
 		void client.invalidateQueries({ queryKey: watchingKey });
@@ -109,67 +138,55 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 		override.isPending;
 	return (
 		<div className="space-y-3">
-			<p role="status">{watchingReason(status.reason)}</p>
-			<p className="text-sm text-muted-foreground">
-				{t("acquisition.watching.scopeHelp")}
-			</p>
-			<label className="block space-y-1">
-				<span>{t("acquisition.watching.backlog")}</span>
-				<select
-					className="w-full rounded-md border bg-background p-2"
-					value={backlog}
-					disabled={busy}
-					onChange={(event) => {
-						setBacklog(event.target.value as "progress" | "beginning");
-						preview.reset();
-					}}
-				>
-					<option value="progress">
-						{t("acquisition.watching.progress")}{" "}
-					</option>
-					<option value="beginning">
-						{t("acquisition.watching.beginning")}{" "}
-					</option>
-				</select>
-			</label>
-			<label className="block space-y-1">
-				<span>{t("acquisition.watching.profile")}</span>
-				<select
-					className="w-full rounded-md border bg-background p-2"
-					value={profileId || profiles.data?.selectedProfileId || ""}
-					disabled={busy || profiles.isPending || profiles.isError}
-					onChange={(event) => {
-						setProfileId(event.target.value);
-						preview.reset();
-					}}
-				>
-					{profiles.data?.profiles.map((profile) => (
-						<option key={profile.id} value={profile.id}>
-							{profile.name}
-						</option>
-					))}
-				</select>
-			</label>
+			<RadioCardGroup
+				legend={t("acquisition.watching.backlog")}
+				disabled={busy}
+				className="grid gap-2 space-y-0 sm:grid-cols-2"
+			>
+				{(["progress", "beginning"] as const).map((value) => (
+					<RadioCard
+						key={value}
+						name="watching-backlog"
+						value={value}
+						checked={backlog === value}
+						title={t(`acquisition.watching.${value}`)}
+						onChange={() => {
+							setBacklog(value);
+							preview.reset();
+						}}
+					/>
+				))}
+			</RadioCardGroup>
+			{profiles.isError ||
+			(profiles.data && !profiles.data.selectionAvailable) ? (
+				<p role="alert" className="text-sm text-destructive">
+					{t("acquisition.rss.loadProfilesFailed")}
+				</p>
+			) : null}
 			<div className="action-row">
-				<Button
-					className="h-auto min-h-9 whitespace-normal py-2"
+				<ActionButton
+					icon={Eye}
+					aria-busy={preview.isPending}
+					label={t("acquisition.watching.preview")}
+					shortLabel={t("actions.preview")}
 					variant="outline"
-					disabled={busy || profiles.isPending || profiles.isError}
+					disabled={
+						busy ||
+						!profileId ||
+						!profiles.data?.selectionAvailable ||
+						profiles.isError
+					}
 					onClick={() => preview.mutate()}
-				>
-					{preview.isPending
-						? t("acquisition.watching.preparing")
-						: t("acquisition.watching.preview")}
-				</Button>
+				/>
 				{status.enabled && (
-					<Button
-						className="h-auto min-h-9 whitespace-normal py-2"
+					<ActionButton
+						icon={Pause}
+						label={t("acquisition.watching.disable")}
+						shortLabel={t("actions.disable")}
 						variant="outline"
 						disabled={busy}
 						onClick={() => disable.mutate()}
-					>
-						{t("acquisition.watching.disable")}{" "}
-					</Button>
+					/>
 				)}
 			</div>
 			{(preview.isError ||
@@ -178,53 +195,64 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 				override.isError) && (
 				<p role="alert">{t("acquisition.watching.updateFailed")}</p>
 			)}
-			{preview.isSuccess && preview.data && (
-				<div className="space-y-2 rounded-md border p-3">
-					<p>
-						{t("acquisition.watching.destination", {
-							path: preview.data.destination,
-						})}
-					</p>
-					<p>
-						{t("acquisition.watching.sites", {
-							sites: preview.data.providers.join(" → "),
-						})}
-					</p>
-					<p>
-						{t("acquisition.watching.previewHelp", {
-							count: preview.data.works.length,
-						})}
-					</p>
-					<details>
-						<summary className="cursor-pointer text-sm">
-							{t("acquisition.watching.previewLabel")}
-						</summary>
-						<ul
-							className="max-h-64 overflow-auto text-sm"
-							aria-label={t("acquisition.watching.previewLabel")}
-						>
-							{preview.data.works.map((work) => (
-								<li key={work.workKey}>
-									{work.title} ·{" "}
-									{work.startEpisode === null
-										? t("acquisition.watching.unsupportedStart")
-										: t("acquisition.watching.fromEpisode", {
-												episode: work.startEpisode,
-											})}{" "}
-									· {watchingReason(work.reason)}
-								</li>
-							))}
-						</ul>
-					</details>
-					<Button
-						className="h-auto min-h-9 whitespace-normal py-2"
-						disabled={busy || preview.data.expiresAt <= Date.now()}
-						onClick={() => confirm.mutate()}
-					>
-						{t("acquisition.watching.confirm")}{" "}
-					</Button>
-				</div>
-			)}
+			{preview.isSuccess &&
+				preview.data &&
+				preview.data.config.profileId === profileId && (
+					<div className="space-y-2 rounded-md border p-3 text-sm">
+						<p>
+							{t("acquisition.watching.previewProfile", {
+								name:
+									profiles.data?.profiles.find(
+										(profile) => profile.id === profileId,
+									)?.name ?? profileId,
+							})}
+						</p>
+						<p>
+							{t("acquisition.watching.destination", {
+								path: preview.data.destination,
+							})}
+						</p>
+						<p>
+							{t("acquisition.watching.sites", {
+								sites: preview.data.providers.join(" → "),
+							})}
+						</p>
+						<p>
+							{t("acquisition.watching.previewHelp", {
+								count: preview.data.works.length,
+							})}
+						</p>
+						<details>
+							<summary className="cursor-pointer text-sm">
+								{t("acquisition.watching.previewLabel")}
+							</summary>
+							<ul
+								className="max-h-64 overflow-auto text-sm"
+								aria-label={t("acquisition.watching.previewLabel")}
+							>
+								{preview.data.works.map((work) => (
+									<li key={work.workKey}>
+										{work.title} ·{" "}
+										{work.startEpisode === null
+											? t("acquisition.watching.unsupportedStart")
+											: t("acquisition.watching.fromEpisode", {
+													episode: work.startEpisode,
+												})}{" "}
+										· {watchingReason(work.reason)}
+									</li>
+								))}
+							</ul>
+						</details>
+						<ActionButton
+							icon={Play}
+							aria-busy={confirm.isPending}
+							label={t("acquisition.watching.confirm")}
+							shortLabel={t("actions.enable")}
+							disabled={busy || preview.data.expiresAt <= Date.now()}
+							onClick={() => confirm.mutate()}
+						/>
+					</div>
+				)}
 			{status.works.some((work) => work.excluded) && (
 				<details>
 					<summary>
@@ -253,18 +281,16 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 									</p>
 									<p>{watchingReason(work.reason)}</p>
 									<div className="action-row">
-										<Button
-											className="h-auto min-h-9 whitespace-normal py-2"
+										<ActionButton
+											icon={Plus}
+											label={t("acquisition.watching.include")}
+											shortLabel={t("actions.include")}
 											variant="ghost"
 											disabled={busy || !status.accountId}
 											onClick={() =>
 												override.mutate({ ...work, excluded: !work.excluded })
 											}
-										>
-											{work.excluded
-												? t("acquisition.watching.include")
-												: t("acquisition.watching.exclude")}
-										</Button>
+										/>
 									</div>
 								</div>
 							))}

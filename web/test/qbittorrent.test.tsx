@@ -49,9 +49,9 @@ test("saves a direct browser address and clearing hides the link", async () => {
 			return settings;
 		});
 	render(<QbittorrentSettings />);
-	await screen.findByText("Save a WebUI URL to open qBittorrent.");
+	await screen.findByLabelText("Browser WebUI URL (optional)");
 	expect(screen.queryByRole("link")).toBeNull();
-	const input = screen.getByLabelText("WebUI URL");
+	const input = screen.getByLabelText("Browser WebUI URL (optional)");
 	fireEvent.change(input, {
 		target: { value: "https://downloads.example.com/" },
 	});
@@ -89,7 +89,7 @@ test("saves a direct browser address and clearing hides the link", async () => {
 	).toBe(true);
 });
 
-test("shows configuration guidance when no WebUI URL is saved", async () => {
+test("shows an optional browser URL field without redundant setup instructions", async () => {
 	vi.spyOn(api, "request").mockImplementation(async (path) =>
 		path === "/api/acquisition/downloads/settings"
 			? { destination: null, roots: [] }
@@ -105,7 +105,7 @@ test("shows configuration guidance when no WebUI URL is saved", async () => {
 	);
 	render(<QbittorrentSettings />);
 	expect(
-		await screen.findByText("Save a WebUI URL to open qBittorrent."),
+		await screen.findByLabelText("Browser WebUI URL (optional)"),
 	).toBeTruthy();
 	expect(screen.queryByRole("link")).toBeNull();
 });

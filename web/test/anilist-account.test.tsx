@@ -87,13 +87,9 @@ test("previews without retaining token, requires confirmation and clears former 
 		public: true,
 	});
 	render(<TrackingAccountSettings />);
+	expect(await screen.findByText("Disconnected")).toBeTruthy();
 	expect(
-		await screen.findByText("No the tracking service account connected."),
-	).toBeTruthy();
-	expect(
-		screen
-			.getByRole("link", { name: "Open provider authorization" })
-			.getAttribute("href"),
+		screen.getByRole("link", { name: "Authorize" }).getAttribute("href"),
 	).toBe(disconnected.provider.authorization.url);
 	const input = screen.getByLabelText("Access token") as HTMLInputElement;
 	fireEvent.change(input, { target: { value: "fixture-token" } });
@@ -176,10 +172,9 @@ test("disconnect uses connection generation and authorization failure offers rec
 	await screen.findByText("Account: Fixture");
 	fireEvent.click(screen.getByRole("button", { name: "Check connection" }));
 	await screen.findByRole("alert");
-	await screen.findByText("Reconnect required · Connection check failed");
-	expect(
-		screen.getByRole("link", { name: "Open provider authorization" }),
-	).toBeTruthy();
+	await screen.findByText("Reconnect required");
+	expect(screen.getByText("Connection check failed")).toBeTruthy();
+	expect(screen.getByRole("link", { name: "Authorize" })).toBeTruthy();
 	await waitFor(() =>
 		expect(
 			(screen.getByRole("button", { name: "Disconnect" }) as HTMLButtonElement)
@@ -187,5 +182,5 @@ test("disconnect uses connection generation and authorization failure offers rec
 		).toBe(false),
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
-	await screen.findByText("No the tracking service account connected.");
+	await screen.findByText("Disconnected");
 });

@@ -100,6 +100,8 @@
 
 @utility action-row {
 	@apply flex flex-wrap items-center gap-2;
+	container-type: inline-size;
+	container-name: actions;
 }
 
 @layer base {
@@ -176,7 +178,25 @@
 	.header-nav-label {
 		display: inline;
 	}
-	.header-nav-icon {
+}
+
+/* Measure the toolbar itself so side panels also compact on wide screens. */
+.responsive-action {
+	padding-inline: 0.75rem;
+}
+@container actions (max-width: 30rem) {
+	.responsive-action {
+		width: 2.25rem;
+		padding-inline: 0;
+	}
+	.responsive-action-label {
 		display: none;
 	}
+}
+.settings-section {
+	container-type: inline-size;
+}
+.settings-section > [data-slot="card-header"],
+.settings-section > [data-slot="card-content"] {
+	padding-inline: 1rem;
 }

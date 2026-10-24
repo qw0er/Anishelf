@@ -1,4 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	Check,
+	ExternalLink,
+	Eye,
+	PlugZap,
+	RefreshCw,
+	Unplug,
+	X,
+} from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { request } from "../../../shared/api/client.js";
@@ -6,7 +15,10 @@ import type {
 	TrackingAccountResponse,
 	TrackingPreviewResponse,
 } from "../../../shared/api/contracts.js";
-import { Button, buttonStyles } from "../../../shared/components/ui/button.js";
+import {
+	ActionButton,
+	ActionLink,
+} from "../../../shared/components/ui/action-button.js";
 import {
 	Card,
 	CardContent,
@@ -14,6 +26,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../../shared/components/ui/card.js";
+import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
 
 import { animeLibraryQueryKey } from "../shared/query-keys.js";
@@ -86,25 +99,42 @@ export function TrackingAccountSettings() {
 					{current?.provider.name ?? t("trackingAccount.title")}
 				</CardTitle>
 				<CardDescription>{t("trackingAccount.description")}</CardDescription>
+				{current && (
+					<div className="space-y-2 text-sm">
+						{current.account && (
+							<p>
+								{t("trackingAccount.account", { name: current.account.name })}
+							</p>
+						)}
+						<div role="status" className="flex flex-wrap items-center gap-1">
+							<span className="rounded-md border px-2 py-1">
+								{t(`trackingAccount.states.${current.state}`)}
+							</span>
+							{current.account && (
+								<FieldHelp
+									label={t("trackingAccount.connectionStatusHelp")}
+									help={t(
+										`trackingAccount.connectivity.${current.connectivity}`,
+									)}
+								/>
+							)}
+							{current.connectivity === "unavailable" && (
+								<span className="text-destructive">
+									{t("trackingAccount.connectivity.unavailable")}
+								</span>
+							)}
+						</div>
+					</div>
+				)}
 			</CardHeader>
 			<CardContent className="min-w-0 space-y-4">
 				{account.isPending && (
-					<p role="status">{t("trackingAccount.loading")}</p>
+					<p role="status" className="rounded-md border px-2 py-1">
+						{t("trackingAccount.loading")}
+					</p>
 				)}
 				{current && (
 					<>
-						<p>
-							{current.account
-								? t("trackingAccount.account", { name: current.account.name })
-								: t("trackingAccount.disconnected")}
-						</p>
-						<p role="status">
-							{t(`trackingAccount.states.${current.state}`)} ·{" "}
-							{t(`trackingAccount.connectivity.${current.connectivity}`)}
-						</p>
-						<p className="text-sm text-muted-foreground">
-							{t("trackingAccount.instructions")}
-						</p>
 						<form
 							id="tracking-credential-form"
 							className="space-y-3"
@@ -113,23 +143,32 @@ export function TrackingAccountSettings() {
 								command.mutate("preview");
 							}}
 						>
-							<label htmlFor="tracking-credential" className="block space-y-2">
-								<span>{current.provider.authorization.label}</span>
-								<Input
-									id="tracking-credential"
-									name="tracking-credential"
-									type="password"
-									autoComplete="off"
-									maxLength={8192}
-									value={credential}
-									onChange={(event) => {
-										setCredential(event.target.value);
-										setPreview(null);
-									}}
-									disabled={busy}
-									required
+							<div className="flex items-center gap-1">
+								<label
+									htmlFor="tracking-credential"
+									className="text-sm font-medium"
+								>
+									{current.provider.authorization.label}
+								</label>
+								<FieldHelp
+									label={t("trackingAccount.credentialHelpLabel")}
+									help={t("trackingAccount.instructions")}
 								/>
-							</label>
+							</div>
+							<Input
+								id="tracking-credential"
+								name="tracking-credential"
+								type="password"
+								autoComplete="off"
+								maxLength={8192}
+								value={credential}
+								onChange={(event) => {
+									setCredential(event.target.value);
+									setPreview(null);
+								}}
+								disabled={busy}
+								required
+							/>
 						</form>
 						{preview && (
 							<section
@@ -150,75 +189,81 @@ export function TrackingAccountSettings() {
 				)}
 				<fieldset
 					aria-label={t("trackingAccount.actions")}
-					className="flex min-w-0 flex-wrap items-center gap-2"
+					className="action-row"
 				>
 					{current && (
 						<>
 							{current.provider.authorization.url && (
-								<a
+								<ActionLink
+									icon={ExternalLink}
+									label={t("trackingAccount.authorize")}
+									shortLabel={t("trackingAccount.authorize")}
 									href={current.provider.authorization.url}
 									target="_blank"
 									rel="noreferrer"
-									className={buttonStyles("outline")}
-								>
-									{t("trackingAccount.authorize")}
-								</a>
+								/>
 							)}
-							<Button
+							<ActionButton
+								icon={Eye}
+								label={t("trackingAccount.preview")}
+								shortLabel={t("actions.preview")}
 								type="submit"
 								form="tracking-credential-form"
 								disabled={busy || !credential.trim()}
-							>
-								{t("trackingAccount.preview")}
-							</Button>
+							/>
 							{preview && (
 								<>
-									<Button
+									<ActionButton
+										icon={Check}
+										label={t("trackingAccount.confirm")}
+										shortLabel={t("actions.connect")}
 										disabled={busy}
 										onClick={() => command.mutate("confirm")}
-									>
-										{t("trackingAccount.confirm")}
-									</Button>
-									<Button
+									/>
+									<ActionButton
+										icon={X}
+										label={t("trackingAccount.cancel")}
+										shortLabel={t("actions.cancel")}
 										variant="outline"
 										disabled={busy}
 										onClick={() => setPreview(null)}
-									>
-										{t("trackingAccount.cancel")}
-									</Button>
+									/>
 								</>
 							)}
 							{current.account && (
 								<>
-									<Button
+									<ActionButton
+										icon={PlugZap}
+										label={t("trackingAccount.check")}
+										shortLabel={t("actions.test")}
 										variant="outline"
 										disabled={busy}
 										onClick={() => command.mutate("check")}
-									>
-										{t("trackingAccount.check")}
-									</Button>
-									<Button
+									/>
+									<ActionButton
+										icon={Unplug}
+										label={t("trackingAccount.disconnect")}
+										shortLabel={t("actions.disconnect")}
 										variant="outline"
 										disabled={busy}
 										onClick={() => command.mutate("disconnect")}
-									>
-										{t("trackingAccount.disconnect")}
-									</Button>
+									/>
 								</>
 							)}
 						</>
 					)}
 					{(account.error || command.error) && (
-						<Button
+						<ActionButton
+							icon={RefreshCw}
+							label={t("trackingAccount.refresh")}
+							shortLabel={t("actions.retry")}
 							variant="outline"
 							disabled={busy}
 							onClick={() => {
 								command.reset();
 								void account.refetch();
 							}}
-						>
-							{t("trackingAccount.refresh")}
-						</Button>
+						/>
 					)}
 				</fieldset>
 				{(account.error || command.error) && (

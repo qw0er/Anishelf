@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { WatchingSettings } from "../src/features/acquisition/watching-settings.js";
 import * as api from "../src/shared/api/client.js";
 import type { WatchingAutomationStatus } from "../src/shared/api/contracts.js";
+import { queryClient } from "../src/shared/api/query-client.js";
 import {
 	cleanup,
 	fireEvent,
@@ -14,10 +15,11 @@ import "../src/shared/i18n.js";
 
 afterEach(() => {
 	cleanup();
+	queryClient.clear();
 	vi.restoreAllMocks();
 });
 const base = "/api/acquisition/watching";
-function fixture() {
+function fixture(overrides: Partial<WatchingAutomationStatus> = {}) {
 	let status: WatchingAutomationStatus = {
 		revision: "one",
 		enabled: false,
@@ -37,6 +39,7 @@ function fixture() {
 				reason: "disabled",
 			},
 		],
+		...overrides,
 	};
 	const request = vi
 		.spyOn(api, "request")
@@ -156,9 +159,7 @@ test("changing activation policy discards the preview; work overrides carry curr
 	await screen.findByRole("button", {
 		name: "Confirm and enable Watching automation",
 	});
-	fireEvent.change(screen.getByLabelText("Starting episode policy"), {
-		target: { value: "beginning" },
-	});
+	fireEvent.click(screen.getByRole("radio", { name: "From episode 1" }));
 	expect(
 		screen.queryByRole("button", {
 			name: "Confirm and enable Watching automation",
@@ -186,4 +187,65 @@ test("changing activation policy discards the preview; work overrides carry curr
 	expect(
 		screen.queryByRole("button", { name: "Pause automated acquisition" }),
 	).toBeNull();
+});
+
+test("activation uses the saved subscription default instead of an older automation profile and discards previews when the default changes", async () => {
+	const request = fixture({
+		config: { backlog: "progress", profileId: "custom:old-automation" },
+	});
+	render(<WatchingSettings />);
+	const preview = await screen.findByRole("button", {
+		name: "Preview Watching automation",
+	});
+	await waitFor(() =>
+		expect((preview as HTMLButtonElement).disabled).toBe(false),
+	);
+	expect(screen.queryByRole("combobox")).toBeNull();
+	fireEvent.click(preview);
+	await screen.findByRole("button", {
+		name: "Confirm and enable Watching automation",
+	});
+	expect(request).toHaveBeenCalledWith(
+		`${base}/preview`,
+		"POST",
+		{},
+		{
+			revision: "one",
+			config: { backlog: "progress", profileId: "builtin:general" },
+		},
+	);
+	queryClient.setQueryData(["acquisition", "profiles"], {
+		selectedProfileId: "custom:new-default",
+		selectionAvailable: true,
+		profiles: [
+			{
+				id: "custom:new-default",
+				name: "New default",
+				description: "New",
+				source: "custom",
+			},
+		],
+	});
+	await waitFor(() =>
+		expect(
+			screen.queryByRole("button", {
+				name: "Confirm and enable Watching automation",
+			}),
+		).toBeNull(),
+	);
+	fireEvent.click(preview);
+	await waitFor(() =>
+		expect(request).toHaveBeenCalledWith(
+			`${base}/preview`,
+			"POST",
+			{},
+			{
+				revision: "one",
+				config: { backlog: "progress", profileId: "custom:new-default" },
+			},
+		),
+	);
+	expect(request.mock.calls.some((call) => call[0] === `${base}/confirm`)).toBe(
+		false,
+	);
 });

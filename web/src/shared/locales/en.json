@@ -105,9 +105,7 @@
 	"settingsPage": {
 		"label": "Resource settings",
 		"title": "Settings",
-		"description": "Configure the server directories used by the library.",
 		"resourceDirectory": "Resource directories",
-		"resourceDescription": "Add absolute paths on the server. Saving changes starts a scan automatically.",
 		"pathLabel": "Resource directory paths",
 		"pathPlaceholder": "/path/to/media",
 		"save": "Save directories",
@@ -116,7 +114,7 @@
 		"transcodeCacheBudget": "Transcode cache budget (GiB)",
 		"transcodeCacheBudgetHelp": "Default: {{defaultGiB}} GiB. Applies to new tasks; lowering the budget does not delete existing copies.",
 		"invalidCacheBudget": "Enter a positive whole number for the transcode cache budget.",
-		"pathsHelp": "Add directories to the list, then save your changes. Paths must not overlap. Remove all entries to return to setup mode.",
+		"pathsHelp": "Use non-overlapping absolute server paths. Add directories, then Save to start a scan. Removing every directory returns to setup mode.",
 		"newPathLabel": "New resource directory path",
 		"addPath": "Add directory",
 		"deletePath": "Delete",
@@ -130,14 +128,16 @@
 			"playback": "Playback",
 			"downloads": "Downloads",
 			"account": "Account"
-		}
+		},
+		"pathHelpLabel": "Directory rules",
+		"cacheHelpLabel": "Cache budget help"
 	},
 	"externalPlayers": {
 		"open": "Open in external player",
 		"moreActions": "More playback options",
 		"manage": "Manage custom players",
 		"title": "External players",
-		"description": "Built-in players are shown for this device’s platform. Custom players are saved only in this browser. Install the player and any required protocol handler before opening media.",
+		"description": "Custom players are saved in this browser. Install the player before opening media.",
 		"empty": "No custom players added.",
 		"name": "Player name",
 		"template": "URL template",
@@ -148,7 +148,8 @@
 		"invalidTemplate": "Enter a name and a valid external-protocol template containing {url} or {urlEncoded}.",
 		"storageError": "Custom player settings could not be read. Browser storage may be unavailable or the saved data may be invalid.",
 		"saveError": "Could not save custom player settings in this browser.",
-		"limit": "Up to {{count}} custom players can be saved."
+		"limit": "Up to {{count}} custom players can be saved.",
+		"templateHelpLabel": "URL template help"
 	},
 	"player": {
 		"unavailableTitle": "Unable to play this video",
@@ -170,7 +171,23 @@
 	},
 	"actions": {
 		"retry": "Retry",
-		"close": "Close"
+		"close": "Close",
+		"preview": "Preview",
+		"disable": "Disable",
+		"enable": "Enable",
+		"include": "Include",
+		"useBundled": "Use bundled",
+		"disconnect": "Disconnect",
+		"edit": "Edit",
+		"test": "Test",
+		"validate": "Validate",
+		"copy": "Copy",
+		"help": "Help",
+		"save": "Save",
+		"add": "Add",
+		"connect": "Connect",
+		"cancel": "Cancel",
+		"open": "Open"
 	},
 	"history": {
 		"title": "Playback history",
@@ -330,12 +347,11 @@
 		"activeCount_other": "{{count}} active",
 		"totalCount_one": "{{count}} task",
 		"totalCount_other": "{{count}} tasks",
-		"settingsDescription": "Choose how pre-transcoding prepares files and which output profile it uses.",
 		"preparationMode": "Preparation mode",
 		"compatibleMode": "Compatibility (default)",
 		"fastMode": "Fast preparation",
-		"compatibleDescription": "Encode both video and audio using the selected profile for predictable output across devices. Playback support still depends on the device and profile.",
-		"fastDescription": "Save processing time by preserving streams supported by this browser when the profile allows it. Other devices may not support the prepared file.",
+		"compatibleDescription": "Encode video and audio with the selected profile for predictable output.",
+		"fastDescription": "Preserve supported streams when allowed. Other devices may need a different copy.",
 		"profileSaved": "Preparation settings saved.",
 		"saveProfile": "Save preparation settings",
 		"loadingProfiles": "Loading output profiles…",
@@ -556,13 +572,13 @@
 	"trackingAccount": {
 		"title": "Tracking account",
 		"actions": "the tracking service account actions",
-		"description": "Connect the tracking service to use your personal viewing state. Public metadata and local playback work without a connection.",
+		"description": "Connect your viewing history and progress.",
 		"loading": "Loading the tracking service connection…",
 		"account": "Account: {{name}}",
-		"disconnected": "No the tracking service account connected.",
+		"disconnected": "No account connected.",
 		"states": {
 			"disconnected": "Disconnected",
-			"connected": "Authorized",
+			"connected": "Connected",
 			"authorization-required": "Reconnect required"
 		},
 		"connectivity": {
@@ -570,7 +586,7 @@
 			"available": "Connection verified",
 			"unavailable": "Connection check failed"
 		},
-		"authorize": "Open provider authorization",
+		"authorize": "Authorize",
 		"instructions": "Enter the credential requested by your tracking provider. Preview the account before confirming. Credentials are stored only on this server after confirmation.",
 		"token": "the tracking service access token",
 		"preview": "Preview account",
@@ -581,7 +597,9 @@
 		"cancel": "Cancel",
 		"check": "Check connection",
 		"disconnect": "Disconnect",
-		"refresh": "Refresh connection"
+		"refresh": "Refresh connection",
+		"credentialHelpLabel": "Credential help",
+		"connectionStatusHelp": "Connection check details"
 	},
 	"trackingList": {
 		"scope": "Library scope",
@@ -653,7 +671,8 @@
 			"authorization-required": "Reconnect the tracking service to continue submission",
 			"succeeded": "the tracking service change confirmed",
 			"cancelled": "Kept the tracking service value"
-		}
+		},
+		"progressHelp": "Episode progress help"
 	},
 	"playbackCompletion": {
 		"label": "the tracking service playback update",
@@ -708,16 +727,20 @@
 		},
 		"security": {
 			"title": "Security",
-			"description": "Change the access password or sign out. Changing the password signs out all devices and revokes media links. External media links expire after 24 hours; anyone holding a link can access that file until it expires.",
+			"description": "Changing the password signs out all devices and revokes media links.",
 			"passwordsDoNotMatch": "Passwords do not match.",
 			"passwordTooShort": "Password must contain at least 8 characters.",
 			"changeFailed": "Password change failed.",
 			"currentPassword": "Current password",
-			"newPassword": "New password (8–128 characters, outer spaces trimmed)",
+			"newPassword": "New password",
 			"confirmPassword": "Confirm new password",
 			"changePassword": "Change password",
 			"signOutFailed": "Sign out failed.",
-			"signOut": "Sign out"
+			"signOut": "Sign out",
+			"passwordHelpLabel": "Password requirements",
+			"passwordHelp": "Use 8–128 characters. Outer spaces are trimmed.",
+			"linksHelpLabel": "Media link access",
+			"linksHelp": "External media links expire after 24 hours. Anyone holding a link can access that file until it expires."
 		}
 	},
 	"acquisition": {
@@ -741,18 +764,16 @@
 			"bundledDescription": "Bundled qBittorrent. Download paths are configured automatically on first setup.",
 			"webuiUsername": "WebUI username:",
 			"copyUsername": "Copy username",
-			"showPassword": "Show WebUI password",
-			"hidePassword": "Hide WebUI password",
+			"showPassword": "Show password",
+			"hidePassword": "Hide password",
 			"copyPassword": "Copy WebUI password",
 			"savedPassword": "Saved WebUI password",
 			"bundledHelp": "Use these credentials with the Open WebUI link below. After changing your password in qBittorrent, update the connection password here.",
-			"hideSettings": "Hide connection settings",
-			"updateSettings": "Update password or use an external instance",
 			"url": "API URL",
 			"urlHelp": "Backend connection address. A deployment default may be prefilled; enter your account below and save to connect.",
 			"username": "Username",
 			"password": "Password",
-			"passwordSaved": "Password saved. Leave blank to keep it; enter it again when changing the API URL or username.",
+			"passwordSaved": "Saved · leave blank to keep",
 			"saving": "Saving API connection…",
 			"save": "Save API connection",
 			"testing": "Testing connection…",
@@ -760,7 +781,10 @@
 			"remove": "Remove API connection",
 			"failureUnauthorized": "Authentication failed. Check your qBittorrent username and password.",
 			"failureTimeout": "The backend could not reach qBittorrent before the request timed out.",
-			"failureDefault": "Check the API address, credentials and backend network access."
+			"failureDefault": "Check the API address, credentials and backend network access.",
+			"unconfigured": "Not configured",
+			"passwordHelp": "Leave blank to keep the saved password. Enter it again when changing the API URL or username. After changing the password in qBittorrent, update it here.",
+			"credentials": "WebUI credentials"
 		},
 		"destination": {
 			"saved": "Download destination saved.",
@@ -859,8 +883,8 @@
 			"saved": "RSS settings saved.",
 			"saveFailed": "Could not save RSS settings. Try again.",
 			"title": "Subscription defaults",
-			"description": "Default release preferences and source refresh interval.",
-			"defaultProfile": "Default release selection profile",
+			"description": "Release preferences for new subscriptions and Watching automation.",
+			"defaultProfile": "Release profile",
 			"unavailableProfile": "Unavailable: {{id}}",
 			"custom": " (Custom)",
 			"resumePrompt": "Select an available profile to resume new selections.",
@@ -877,24 +901,22 @@
 		},
 		"sources": {
 			"title": "Jackett sources",
-			"description": "Connect resource sites through your own Jackett service or the optional bundled service.",
 			"loading": "Loading source settings…",
 			"loadFailed": "Could not load source settings.",
 			"retry": "Retry source settings",
-			"bundled": "Using bundled Jackett.",
-			"external": "Using external Jackett. Sites are managed in Jackett.",
+			"bundled": "Bundled Jackett",
+			"external": "External Jackett",
 			"unconfigured": "No source connector configured.",
-			"savingNotice": "Saving a connection or running a test does not enable subscriptions or downloads.",
 			"manualSetup": "Review sites in Jackett or retry adding Nyaa.si (requires no Jackett administrator password), then load and select sites below.",
 			"retrySetup": "Retry adding Nyaa.si",
 			"setupPending": "First-run site setup is pending. Refresh settings after Jackett is ready.",
 			"credentialsError": "Saved source credentials could not be loaded. Check the configuration file and permissions.",
-			"apiUrl": "Jackett API URL",
+			"apiUrl": "API URL",
 			"apiUrlHelp": "Use the service address reachable from the backend. Configure your sites in Jackett first.",
-			"apiKey": "Jackett API key",
-			"keySaved": "Key saved. Leave blank to keep it; enter a key when changing the service address.",
-			"keyHelp": "Copy the API key from Jackett. Saved keys are never displayed.",
-			"managementUrl": "Jackett management URL (optional)",
+			"apiKey": "API key",
+			"keySaved": "Saved · leave blank to keep",
+			"keyHelp": "Copy the API key from Jackett. Leave blank to keep the saved key; enter it again when changing the API URL.",
+			"managementUrl": "Browser URL (optional)",
 			"managementHelp": "Browser address for managing sites. Use an SSH tunnel or your protected service address for a remote server.",
 			"saving": "Saving sources…",
 			"save": "Save source settings",
@@ -904,8 +926,7 @@
 			"resourceSites": "Resource sites",
 			"connecting": "Connecting…",
 			"testAndLoad": "Test connection and load sites",
-			"loaded": "Jackett responded with {{count}} configured sites. This checks the service connection; test a search below to check a site.",
-			"chooseSites": "Choose sites and use the arrows to set their order. Save changes before testing searches.",
+			"loaded": "Jackett responded · {{count}} configured sites",
 			"noSites": "No sites selected.",
 			"moveEarlier": "Move {{name}} earlier",
 			"moveLater": "Move {{name}} later",
@@ -926,7 +947,11 @@
 			"saveBeforeDiagnostics": "Save source settings before running diagnostics.",
 			"actionFailed": "Could not complete the source action. Check the service address, API key and site configuration. Reload settings if another session changed them.",
 			"availableSites": "Available sites",
-			"selectedSites": "Selected sites"
+			"selectedSites": "Selected sites",
+			"connectionSettings": "Connection settings",
+			"loadSites": "Load sites",
+			"connectionHelp": "Connection help",
+			"saved": "Source settings saved."
 		},
 		"subscription": {
 			"updated": "Subscription updated.",
@@ -1020,16 +1045,15 @@
 		},
 		"webui": {
 			"title": "qBittorrent",
-			"description": "Configure API access and open the download client WebUI.",
 			"loading": "Loading qBittorrent settings…",
 			"loadFailed": "Could not load qBittorrent settings.",
-			"url": "WebUI URL",
+			"url": "Browser WebUI URL (optional)",
 			"urlHelp": "Optional browser address for opening qBittorrent. API access works without this link.",
 			"saveFailed": "Could not save. Use an absolute HTTP/HTTPS URL without a username or password, then retry.",
 			"saved": "WebUI URL saved.",
 			"saving": "Saving…",
 			"save": "Save",
-			"open": "Open qBittorrent WebUI",
+			"open": "Open WebUI",
 			"ownAccess": "This address uses its own access controls.",
 			"savePrompt": "Save a WebUI URL to open qBittorrent.",
 			"browserLink": "Browser link"
@@ -1063,12 +1087,11 @@
 		},
 		"watching": {
 			"title": "Watching automation",
-			"description": "Create subscriptions for Watching anime using these defaults. Existing subscriptions remain under your control.",
+			"description": "Create subscriptions from AniList Watching using Subscription defaults. Existing subscriptions continue when disabled.",
 			"loadFailed": "Could not load Watching automation.",
 			"loading": "Loading Watching automation…",
 			"scopeHelp": "Disabling stops new subscription creation. Existing subscriptions and downloads continue.",
 			"backlog": "Starting episode policy",
-			"profile": "Automation release profile",
 			"progress": "Tracking progress + 1",
 			"beginning": "From episode 1",
 			"preparing": "Preparing preview…",
@@ -1124,7 +1147,15 @@
 			"management_one": "Automatic creation exclusions · {{count}} work",
 			"management_other": "Automatic creation exclusions · {{count}} works",
 			"previewHelp_one": "Create missing subscriptions for {{count}} Watching work. Existing subscriptions are preserved.",
-			"previewHelp_other": "Create missing subscriptions for {{count}} Watching works. Existing subscriptions are preserved."
+			"previewHelp_other": "Create missing subscriptions for {{count}} Watching works. Existing subscriptions are preserved.",
+			"previewProfile": "Release profile: {{name}}",
+			"enabled": "Enabled",
+			"disabled": "Disabled"
+		},
+		"connection": {
+			"bundled": "Bundled",
+			"external": "External",
+			"unconfigured": "Not configured"
 		}
 	},
 	"profileIssue": {

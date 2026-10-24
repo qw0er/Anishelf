@@ -1,5 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Save, Trash2 } from "lucide-react";
+import {
+	ArrowDown,
+	ArrowUp,
+	ExternalLink,
+	PlugZap,
+	RefreshCw,
+	Save,
+	Search,
+	Server,
+	Trash2,
+	Unplug,
+} from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
@@ -7,16 +18,21 @@ import type {
 	SourceProviders,
 } from "../../shared/api/contracts.js";
 import { boundedSignal } from "../../shared/api/queries.js";
-import { Button, buttonStyles } from "../../shared/components/ui/button.js";
+import {
+	ActionButton,
+	ActionLink,
+} from "../../shared/components/ui/action-button.js";
+import { Button } from "../../shared/components/ui/button.js";
 import {
 	Card,
 	CardContent,
-	CardDescription,
 	CardHeader,
 	CardTitle,
 } from "../../shared/components/ui/card.js";
+import { ConnectionSettings } from "../../shared/components/ui/connection-settings.js";
+import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
-import { Spinner } from "../../shared/components/ui/spinner.js";
+import { toast } from "../../shared/components/ui/toast.js";
 import { Tooltip } from "../../shared/components/ui/tooltip.js";
 import {
 	activateBundledSourceConnector,
@@ -44,9 +60,6 @@ export function SourceSettings() {
 		<Card className="settings-section lg:grid">
 			<CardHeader>
 				<CardTitle>{t("acquisition.sources.title")}</CardTitle>
-				<CardDescription>
-					{t("acquisition.sources.description")}
-				</CardDescription>
 			</CardHeader>
 			<CardContent className="flex min-w-0 flex-col gap-4 lg:max-w-2xl">
 				{query.isPending ? (
@@ -92,6 +105,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 	const saved = (value: SourceConnectorSettings) => {
 		setApiKey("");
 		client.setQueryData(sourceSettingsKey, value);
+		toast.add({ type: "success", title: t("acquisition.sources.saved") });
 	};
 	const save = useMutation({
 		mutationFn: () =>
@@ -119,7 +133,13 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 	});
 	const list = useMutation({
 		mutationFn: () => getSourceProviders(settings.generation),
-		onSuccess: setAvailable,
+		onSuccess: (sites) => {
+			setAvailable(sites);
+			toast.add({
+				type: "success",
+				title: t("acquisition.sources.loaded", { count: sites.length }),
+			});
+		},
 	});
 	const probe = useMutation({
 		mutationFn: () => probeSourceProvider(settings.generation, providerId),
@@ -161,35 +181,36 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 	}
 	const status =
 		settings.origin === "bundled"
-			? t("acquisition.sources.bundled")
+			? t("acquisition.connection.bundled")
 			: settings.url
-				? t("acquisition.sources.external")
-				: t("acquisition.sources.unconfigured");
+				? t("acquisition.connection.external")
+				: t("acquisition.connection.unconfigured");
 	return (
-		<div className="flex min-w-0 flex-col gap-6">
-			<div className="flex flex-col gap-2 text-sm">
-				<p className="text-muted-foreground">
-					<span className="font-medium text-foreground">{status}</span>{" "}
-					{t("acquisition.sources.savingNotice")}
-				</p>
-				{settings.origin === "bundled" &&
-					settings.bundledSetup === "manual" && (
-						<p className="text-muted-foreground">
-							{t("acquisition.sources.manualSetup")}
+		<div className="flex min-w-0 flex-col gap-4">
+			{(settings.error ||
+				(settings.origin === "bundled" &&
+					(settings.bundledSetup === "manual" ||
+						settings.bundledSetup === "pending"))) && (
+				<div className="flex flex-col gap-2 text-sm">
+					{settings.origin === "bundled" &&
+						settings.bundledSetup === "manual" && (
+							<p className="text-muted-foreground">
+								{t("acquisition.sources.manualSetup")}
+							</p>
+						)}
+					{settings.origin === "bundled" &&
+						settings.bundledSetup === "pending" && (
+							<p className="text-muted-foreground">
+								{t("acquisition.sources.setupPending")}
+							</p>
+						)}
+					{settings.error && (
+						<p role="alert" className="text-destructive">
+							{t("acquisition.sources.credentialsError")}
 						</p>
 					)}
-				{settings.origin === "bundled" &&
-					settings.bundledSetup === "pending" && (
-						<p className="text-muted-foreground">
-							{t("acquisition.sources.setupPending")}
-						</p>
-					)}
-				{settings.error && (
-					<p role="alert" className="text-destructive">
-						{t("acquisition.sources.credentialsError")}
-					</p>
-				)}
-			</div>
+				</div>
+			)}
 
 			<form
 				className="flex min-w-0 flex-col gap-4"
@@ -198,11 +219,23 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					save.mutate();
 				}}
 			>
-				<div className="grid gap-4 sm:grid-cols-2">
-					<div className="flex flex-col gap-2">
-						<label className="text-sm font-medium" htmlFor="source-api-url">
-							{t("acquisition.sources.apiUrl")}
-						</label>
+				<ConnectionSettings
+					configured={
+						Boolean(settings.url) && settings.hasApiKey && !settings.error
+					}
+					label={t("acquisition.sources.connectionSettings")}
+					status={status}
+				>
+					<div className="flex flex-col gap-2 sm:col-span-2">
+						<div className="flex items-center justify-between gap-2">
+							<label className="text-sm font-medium" htmlFor="source-api-url">
+								{t("acquisition.sources.apiUrl")}
+							</label>
+							<FieldHelp
+								label={`${t("acquisition.sources.apiUrl")} · ${t("actions.help")}`}
+								help={t("acquisition.sources.apiUrlHelp")}
+							/>
+						</div>
 						<Input
 							id="source-api-url"
 							type="url"
@@ -211,47 +244,52 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							placeholder="http://jackett:9117/"
 							value={url}
 							disabled={busy}
-							aria-describedby="source-api-url-help"
 							onChange={(event) => setUrl(event.target.value)}
 						/>
-						<p
-							id="source-api-url-help"
-							className="text-sm text-muted-foreground"
-						>
-							{t("acquisition.sources.apiUrlHelp")}
-						</p>
 					</div>
 					<div className="flex flex-col gap-2">
-						<label className="text-sm font-medium" htmlFor="source-api-key">
-							{t("acquisition.sources.apiKey")}
-						</label>
+						<div className="flex items-center justify-between gap-2">
+							<label className="text-sm font-medium" htmlFor="source-api-key">
+								{t("acquisition.sources.apiKey")}
+							</label>
+							<FieldHelp
+								label={`${t("acquisition.sources.apiKey")} · ${t("actions.help")}`}
+								help={t("acquisition.sources.keyHelp")}
+							/>
+						</div>
 						<Input
 							id="source-api-key"
 							type="password"
 							autoComplete="new-password"
 							maxLength={4096}
 							required={!settings.hasApiKey || url !== settings.url}
+							placeholder={
+								settings.hasApiKey && url === settings.url
+									? t("acquisition.sources.keySaved")
+									: undefined
+							}
 							value={apiKey}
 							disabled={busy}
-							aria-describedby="source-api-key-help"
 							onChange={(event) => setApiKey(event.target.value)}
 						/>
-						<p
-							id="source-api-key-help"
-							className="text-sm text-muted-foreground"
-						>
-							{settings.hasApiKey
-								? t("acquisition.sources.keySaved")
-								: t("acquisition.sources.keyHelp")}
-						</p>
 					</div>
-					<div className="flex flex-col gap-2 sm:col-span-2">
-						<label
-							className="text-sm font-medium"
-							htmlFor="source-management-url"
-						>
-							{t("acquisition.sources.managementUrl")}
-						</label>
+					<div className="flex flex-col gap-2">
+						<div className="flex items-center justify-between gap-2">
+							<label
+								className="text-sm font-medium"
+								htmlFor="source-management-url"
+							>
+								{t("acquisition.sources.managementUrl")}
+							</label>
+							<FieldHelp
+								label={
+									t("acquisition.sources.managementUrl") +
+									" · " +
+									t("actions.help")
+								}
+								help={t("acquisition.sources.managementHelp")}
+							/>
+						</div>
 						<Input
 							id="source-management-url"
 							type="url"
@@ -259,72 +297,62 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							placeholder="http://localhost:9117/"
 							value={managementUrl}
 							disabled={busy}
-							aria-describedby="source-management-url-help"
 							onChange={(event) => setManagementUrl(event.target.value)}
 						/>
-						<p
-							id="source-management-url-help"
-							className="text-sm text-muted-foreground"
-						>
-							{t("acquisition.sources.managementHelp")}
-						</p>
 					</div>
-				</div>
+				</ConnectionSettings>
 				<div className="action-row">
-					<Button
+					<ActionButton
+						icon={Save}
+						label={t("acquisition.sources.save")}
+						shortLabel={t("actions.save")}
 						type="submit"
 						disabled={busy || !changed}
 						aria-busy={save.isPending}
-					>
-						{save.isPending ? (
-							<Spinner />
-						) : (
-							<Save size={16} aria-hidden="true" />
-						)}
-						{save.isPending
-							? t("acquisition.sources.saving")
-							: t("acquisition.sources.save")}
-					</Button>
+					/>
 					{settings.bundledAvailable && (
-						<Button
+						<ActionButton
+							icon={Server}
+							label={t("acquisition.sources.useBundled")}
+							shortLabel={t("actions.useBundled")}
 							type="button"
 							variant="outline"
 							disabled={busy}
 							onClick={() => bundled.mutate(false)}
-						>
-							{t("acquisition.sources.useBundled")}
-						</Button>
+						/>
 					)}
 					{settings.origin === "bundled" &&
 						settings.bundledSetup === "manual" && (
-							<Button
+							<ActionButton
+								icon={RefreshCw}
+								label={t("acquisition.sources.retrySetup")}
+								shortLabel={t("actions.retry")}
 								type="button"
 								variant="outline"
 								disabled={busy || changed}
 								onClick={() => bundled.mutate(true)}
-							>
-								{t("acquisition.sources.retrySetup")}
-							</Button>
+							/>
 						)}
 					{settings.url && (
-						<Button
+						<ActionButton
+							icon={Unplug}
+							label={t("acquisition.sources.disconnect")}
+							shortLabel={t("actions.disconnect")}
 							type="button"
 							variant="outline"
 							disabled={busy}
 							onClick={() => clear.mutate()}
-						>
-							{t("acquisition.sources.disconnect")}
-						</Button>
+						/>
 					)}
 					{settings.managementUrl && (
-						<a
-							className={buttonStyles("outline")}
+						<ActionLink
+							icon={ExternalLink}
+							label={t("acquisition.sources.openManagement")}
+							shortLabel={t("actions.open")}
 							href={settings.managementUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-						>
-							{t("acquisition.sources.openManagement")}
-						</a>
+						/>
 					)}
 				</div>
 			</form>
@@ -338,32 +366,22 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 						<h3 className="text-sm font-medium">
 							{t("acquisition.sources.resourceSites")}
 						</h3>
-						<p className="text-sm text-muted-foreground">
-							{t("acquisition.sources.chooseSites")}
-						</p>
+
 						{changed && (
 							<p role="status" className="text-sm text-muted-foreground">
 								{t("acquisition.sources.saveBeforeDiagnostics")}
 							</p>
 						)}
 					</div>
-					<Button
+					<ActionButton
+						icon={RefreshCw}
+						label={t("acquisition.sources.testAndLoad")}
+						shortLabel={t("acquisition.sources.loadSites")}
 						variant="outline"
 						disabled={!canTest}
 						onClick={() => list.mutate()}
-					>
-						{list.isPending
-							? t("acquisition.sources.connecting")
-							: t("acquisition.sources.testAndLoad")}
-					</Button>
+					/>
 				</div>
-				{list.isSuccess && !changed && (
-					<p role="status" className="text-sm text-muted-foreground">
-						{t("acquisition.sources.loaded", {
-							count: available.length,
-						})}
-					</p>
-				)}
 				{providers.length > 0 ? (
 					<ul
 						aria-label={t("acquisition.sources.selectedSites")}
@@ -501,13 +519,14 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 						</select>
 					</div>
 					<div className="action-row">
-						<Button
+						<ActionButton
+							icon={PlugZap}
+							label={t("acquisition.sources.checkSupport")}
+							shortLabel={t("acquisition.sources.checkSupport")}
 							variant="outline"
 							disabled={!canTest || !providerId}
 							onClick={() => probe.mutate()}
-						>
-							{t("acquisition.sources.checkSupport")}
-						</Button>
+						/>
 					</div>
 					{probe.data && !changed && (
 						<p role="status" className="text-sm text-muted-foreground">
@@ -542,15 +561,14 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							/>
 						</div>
 						<div className="action-row">
-							<Button
+							<ActionButton
+								icon={Search}
+								label={t("acquisition.sources.testSearch")}
+								shortLabel={t("acquisition.sources.testSearch")}
 								type="submit"
 								variant="outline"
 								disabled={!canTest || !providerId || !title.trim()}
-							>
-								{search.isPending
-									? t("acquisition.sources.searching")
-									: t("acquisition.sources.testSearch")}
-							</Button>
+							/>
 						</div>
 					</form>
 					{search.data && !changed && (
