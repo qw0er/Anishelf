@@ -15,6 +15,8 @@ phase='collecting configuration'
 action=install
 existing_dir=
 backup_dir=
+stack=anishelf
+test_mode=false
 
 log() {
   printf '[anishelf] %s\n' "$*" >&2
@@ -35,11 +37,13 @@ trap 'exit 143' TERM
 
 usage() {
   cat <<'HELP'
-Usage: bash install.sh [--generate-only] [--ref REF] [--templates-dir DIRECTORY] [--engine docker|podman]
+Usage: bash install.sh [--generate-only] [--test] [--ref REF] [--templates-dir DIRECTORY] [--engine docker|podman]
        bash install.sh --remove DIRECTORY
        bash install.sh --reconfigure DIRECTORY [--ref REF] [--templates-dir DIRECTORY]
 
 Configure Docker/Podman Compose or rootless Podman Quadlet interactively.
+--test           Isolated testing deployment: testing images, port 3001, separate
+                 anishelf-test services/volumes. Host media mounts are disabled.
 --generate-only  Write a new deployment bundle without contacting a container engine
                  or installing systemd units. No existing files are overwritten.
 --remove DIRECTORY       Stop a saved deployment and archive/remove its active configuration.
@@ -174,14 +178,14 @@ preflight() {
   if [[ "$engine" == podman ]]; then
     podman info >/dev/null
     podman_rootless=$(podman info --format '{{.Host.Security.Rootless}}')
-    [[ "${1:-}" == replacement || -z "$(podman ps -aq --filter volume=anishelf-app)" ]] || die 'Existing containers already use anishelf-app. Reuse their deployment configuration.'
+    [[ "${1:-}" == replacement || -z "$(podman ps -aq --filter volume="$stack-app")" ]] || die 'Existing containers already use anishelf-app. Reuse their deployment configuration.'
   fi
   if [[ "$method" == compose ]]; then
     "$engine" compose version >/dev/null || die "$engine compose is unavailable. Install its Compose provider before retrying."
     "$engine" info >/dev/null
-    [[ "${1:-}" == replacement || -z "$("$engine" ps -aq --filter label=com.docker.compose.project=anishelf)" ]] ||
+    [[ "${1:-}" == replacement || -z "$("$engine" ps -aq --filter label=com.docker.compose.project="$stack")" ]] ||
       die 'An anishelf Compose project already exists. Use its existing configuration to update it.'
-    [[ "${1:-}" == replacement || -z "$("$engine" ps -aq --filter volume=anishelf-app)" ]] || die 'Existing containers already use anishelf-app. Reuse their deployment configuration.'
+    [[ "${1:-}" == replacement || -z "$("$engine" ps -aq --filter volume="$stack-app")" ]] || die 'Existing containers already use anishelf-app. Reuse their deployment configuration.'
     if [[ "$podman_rootless" == true ]]; then
       local candidate
       for candidate in "$app_port" "$qbit_port" "$peer_port" "$jackett_port"; do
@@ -196,7 +200,8 @@ preflight() {
     [[ "$podman_rootless" == true ]] || die 'Podman must be rootless.'
     systemctl --user show-environment >/dev/null
     local file
-    for file in "$quadlet_dir"/anishelf* "$systemd_dir"/anishelf*; do
+    for file in "$quadlet_dir"/"$stack"* "$systemd_dir"/"$stack"*; do
+      [[ "$stack" != anishelf || "${file##*/}" != anishelf-test* ]] || continue
       if exists "$file"; then
         [[ "${1:-}" == replacement && -f "$existing_dir/quadlet/${file##*/}" && ! -L "$file" ]] && cmp -s "$file" "$existing_dir/quadlet/${file##*/}" || die "Existing Anishelf unit is preserved: $file"
       fi
@@ -226,7 +231,7 @@ compose() {
     unset ANISHELF_TAG ANISHELF_BIND_ADDRESS ANISHELF_PORT ANISHELF_PUBLIC_ORIGIN ANISHELF_MEDIA_PATH
     unset COMPOSE_FILE COMPOSE_PROJECT_NAME COMPOSE_PROFILES ANISHELF_TRUSTED_PROXIES
     unset QBITTORRENT_WEBUI_PORT QBITTORRENT_PEER_PORT QBITTORRENT_BIND_ADDRESS QBITTORRENT_TAG JACKETT_PORT JACKETT_BIND_ADDRESS
-    "$engine" compose --project-name anishelf --env-file "$deploy_dir/.env" -f "$deploy_dir/compose.yaml" "$@"
+    "$engine" compose --project-name "$stack" --env-file "$deploy_dir/.env" -f "$deploy_dir/compose.yaml" "$@"
   )
 }
 publish_unit() {
@@ -242,7 +247,7 @@ pull_quadlet_images() {
     while IFS= read -r line || [[ -n "$line" ]]; do
       [[ "$line" == Image=* ]] || continue
       image=${line#Image=}
-      [[ " ${pulled[*]} " != *" $image "* ]] || continue
+      [[ " ${pulled[*]-} " != *" $image "* ]] || continue
       log "Pulling Quadlet image: $image"
       podman pull "$image"
       pulled+=("$image")
@@ -253,25 +258,34 @@ pull_quadlet_images() {
 load_existing() {
   valid_path "$existing_dir" && [[ -d "$existing_dir" && ! -L "$existing_dir" ]] || die 'Choose a real absolute saved deployment directory.'
   existing_dir=$(cd "$existing_dir" && pwd -P)
+  if [[ -f "$existing_dir/.deployment-profile" && ! -L "$existing_dir/.deployment-profile" ]]; then
+    local saved_profile
+    saved_profile=$(cat "$existing_dir/.deployment-profile")
+    case "$saved_profile" in
+      testing) stack=anishelf-test; test_mode=true;;
+      production) [[ "$test_mode" == false ]] || die 'Cannot apply --test to a production bundle.'; stack=anishelf;;
+      *) die 'Unrecognized deployment profile.';;
+    esac
+  elif [[ "$test_mode" == true ]]; then die 'Cannot apply --test to an existing production bundle.'; fi
   if exists "$existing_dir/compose.yaml" && exists "$existing_dir/quadlet"; then die 'Mixed deployment bundles must be reconciled manually.'; fi
   if [[ -f "$existing_dir/compose.yaml" && ! -L "$existing_dir/compose.yaml" && -f "$existing_dir/.env" && ! -L "$existing_dir/.env" ]]; then
     old_method=compose
-    old_engine=$(sed -n "s/^ANISHELF_DEPLOY_ENGINE='\(docker\|podman\)'$/\1/p" "$existing_dir/.env")
+    old_engine=$(sed -En "s/^ANISHELF_DEPLOY_ENGINE='(docker|podman)'$/\1/p" "$existing_dir/.env")
     [[ "$old_engine" == docker || "$old_engine" == podman ]] || die 'Not a recognized installer Compose bundle.'
     [[ -z "$engine" || "$engine" == "$old_engine" ]] || die 'Use the original engine to preserve its volumes.'
-  elif [[ -d "$existing_dir/quadlet" && ! -L "$existing_dir/quadlet" && -f "$existing_dir/quadlet/anishelf-backend.container" && -f "$existing_dir/quadlet/anishelf-web.container" && -f "$existing_dir/quadlet/anishelf.target" ]]; then
+  elif [[ -d "$existing_dir/quadlet" && ! -L "$existing_dir/quadlet" && -f "$existing_dir/quadlet/$stack-backend.container" && -f "$existing_dir/quadlet/$stack-web.container" && -f "$existing_dir/quadlet/$stack.target" ]]; then
     old_method=quadlet; old_engine=podman
     [[ -z "$engine" || "$engine" == podman ]] || die 'Use the original engine to preserve its volumes.'
     local unit name destination
     for unit in "$existing_dir/quadlet/"*; do
       name=${unit##*/}
-      case "$name" in
+      case "${name/#$stack/anishelf}" in
         anishelf.network|anishelf.target|anishelf-app.volume|anishelf-media.volume|anishelf-qbittorrent-connection.volume|anishelf-qbittorrent-config.volume|anishelf-qbittorrent-incomplete.volume|anishelf-jackett-config.volume|anishelf-backend.container|anishelf-web.container|anishelf-qbittorrent-init.container|anishelf-qbittorrent.container|anishelf-jackett-init.container|anishelf-jackett.container) ;;
         *) die "Unrecognized bundle unit: $name";;
       esac
       [[ -f "$unit" && ! -L "$unit" ]] || die "Bundle unit must be a regular file: $unit"
       destination="${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd/$name"
-      [[ "$name" != anishelf.target ]] || destination="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$name"
+      [[ "$name" != "$stack.target" ]] || destination="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$name"
       if exists "$destination"; then
         [[ -f "$destination" && ! -L "$destination" ]] && cmp -s "$unit" "$destination" || die "Installed unit differs from the bundle; reconcile it first: $destination"
       fi
@@ -299,18 +313,18 @@ remove_configuration() {
     need systemctl; need podman
     [[ "$(id -u)" != 0 ]] || die 'Manage rootless Quadlet as the original non-root service user.'
     phase='stopping existing Quadlet deployment'
-    if exists "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/anishelf.target"; then systemctl --user stop anishelf.target; fi
+    if exists "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$stack.target"; then systemctl --user stop "$stack.target"; fi
     # Stop optional and oneshot services too, including ones outside target dependencies.
     local unit name destination
     for unit in "$existing_dir/quadlet/"*.container; do
       name=${unit##*/}
       if exists "${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd/$name"; then systemctl --user stop "${name%.container}.service"; fi
     done
-    if exists "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/anishelf.target"; then systemctl --user disable anishelf.target; fi
+    if exists "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$stack.target"; then systemctl --user disable "$stack.target"; fi
     for unit in "$existing_dir/quadlet/"*; do
       name=${unit##*/}
       destination="${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd/$name"
-      [[ "$name" != anishelf.target ]] || destination="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$name"
+      [[ "$name" != "$stack.target" ]] || destination="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$name"
       if exists "$destination"; then
         [[ ! -L "$destination" ]] && cmp -s "$unit" "$destination" || die "Installed unit changed during removal: $destination"
         rm -- "$destination"
@@ -327,6 +341,7 @@ remove_configuration() {
 main() {
   while (($#)); do
     case "$1" in
+      --test) test_mode=true; stack=anishelf-test; shift;;
       --generate-only) generate_only=true; shift;;
       --remove|--reconfigure)
         (($# >= 2)) || die "Missing directory for $1"
@@ -369,7 +384,7 @@ main() {
       [[ "$method" == "$old_method" ]] || die 'Reconfiguration must retain the deployment method to preserve volume identities.'
       deploy_dir=$existing_dir; break
     fi
-    ask 'New deployment directory (absolute path)' "$HOME/anishelf"
+    ask 'New deployment directory (absolute path)' "$HOME/$stack"
     if valid_path "$answer" && ! exists "$answer"; then deploy_dir=$answer; break; fi
     log 'Choose a new absolute directory. Quotes, $, %, backslashes, colons and control characters are unsupported.'
   done
@@ -378,7 +393,13 @@ main() {
   app_port=3000
   public_origin=http://localhost:3000
   qbit_port=8080; peer_port=6881; jackett_port=9117
+  if [[ "$test_mode" == true ]]; then
+    image_tag=testing; app_port=3001; public_origin=http://localhost:3001
+    qbit_port=8081; peer_port=6882; jackett_port=9118
+    log 'Testing profile: isolated services, network and volumes; no host media mounts. Use independent test service credentials.'
+  fi
   while :; do
+    if [[ "$test_mode" == true ]]; then media_path=; break; fi
     ask 'Existing dedicated media directory; leave blank for a managed volume' ''
     if [[ -z "$answer" ]]; then media_path=; break; fi
     if valid_path "$answer" && [[ -d "$answer" && -r "$answer" && -x "$answer" ]]; then
@@ -455,6 +476,7 @@ main() {
   phase='preparing deployment templates'
   stage_dir=$(mktemp -d "${TMPDIR:-/tmp}/anishelf-install.XXXXXX")
   mkdir "$stage_dir/bundle"
+  if [[ "$test_mode" == true ]]; then printf 'testing\n'; else printf 'production\n'; fi > "$stage_dir/bundle/.deployment-profile"
   source_commit=local
   if [[ -z "$templates_dir" ]]; then
     fetch "https://api.github.com/repos/$repository/commits/$source_ref" "$stage_dir/commit.json"
@@ -482,7 +504,7 @@ main() {
     [[ "$qbit" != yes ]] || profiles=qbittorrent
     if [[ "$jackett" == yes ]]; then profiles="${profiles:+$profiles,}jackett"; fi
     write_env COMPOSE_PROFILES "$profiles"
-    write_env COMPOSE_PROJECT_NAME anishelf
+    write_env COMPOSE_PROJECT_NAME "$stack"
     write_env ANISHELF_DEPLOY_ENGINE "$engine"
     write_env ANISHELF_TRUSTED_PROXIES loopback,uniquelocal
     write_env QBITTORRENT_WEBUI_PORT "$qbit_port"; write_env QBITTORRENT_PEER_PORT "$peer_port"
@@ -496,6 +518,21 @@ main() {
     if [[ "$jackett" == yes ]]; then units+=(anishelf-jackett-init.container anishelf-jackett.container); fi
     local unit
     for unit in "${units[@]}"; do asset "quadlet/$unit" "$stage_dir/$unit"; render_unit "$unit"; done
+  fi
+  if [[ "$test_mode" == true ]]; then
+    phase='isolating testing deployment resources'
+    if [[ "$method" == compose ]]; then
+      sed 's/name: anishelf-/name: anishelf-test-/g' "$stage_dir/bundle/compose.yaml" > "$stage_dir/testing-compose.yaml"
+      mv "$stage_dir/testing-compose.yaml" "$stage_dir/bundle/compose.yaml"
+    else
+      local rendered rendered_name
+      for rendered in "$stage_dir/bundle/quadlet/"*; do
+        rendered_name=${rendered##*/}
+        # Namespace resources while preserving registry image names.
+        sed -e '/^Image=/!s/anishelf-/anishelf-test-/g' -e 's/^NetworkName=anishelf$/NetworkName=anishelf-test/' -e 's/anishelf\.network/anishelf-test.network/g' -e 's/anishelf\.target/anishelf-test.target/g' "$rendered" > "$stage_dir/bundle/quadlet/${rendered_name/#anishelf/anishelf-test}"
+        rm "$rendered"
+      done
+    fi
   fi
   if [[ "$generate_only" != true && "$method" == quadlet ]]; then
     phase='pulling Quadlet container images'
@@ -516,32 +553,32 @@ main() {
   mkdir "$deploy_dir"
   cp -R "$stage_dir/bundle/." "$deploy_dir/"
   log_file="$deploy_dir/install.log"
-  log "Configuration saved. Engine=$engine; method=$method; rootless=$podman_rootless; template revision=$source_commit; SELinux=$selinux_mode."
+  log "Configuration saved. Namespace=$stack; image=$image_tag; Engine=$engine; method=$method; rootless=$podman_rootless; template revision=$source_commit; SELinux=$selinux_mode."
   if [[ "$generate_only" == true ]]; then log 'Generation complete; no services or systemd units were changed.'; return; fi
   if [[ "$method" == compose ]]; then
     phase='validating Compose configuration'; compose config --quiet
     phase='pulling container images'; compose pull
     phase='starting Compose services'; compose up -d
-    log "Read the initial password with: $engine compose --project-name anishelf --project-directory \"$deploy_dir\" logs backend"
+    log "Read the initial password with: $engine compose --project-name $stack --project-directory \"$deploy_dir\" logs backend"
   else
     phase='installing rootless Quadlet units'
     preflight
     mkdir -p "$quadlet_dir" "$systemd_dir"
     for unit in "$deploy_dir/quadlet/"*; do
-      if [[ "${unit##*/}" == anishelf.target ]]; then publish_unit "$unit" "$systemd_dir/anishelf.target"
+      if [[ "${unit##*/}" == "$stack.target" ]]; then publish_unit "$unit" "$systemd_dir/$stack.target"
       else publish_unit "$unit" "$quadlet_dir/${unit##*/}"; fi
     done
     systemctl --user daemon-reload
-    systemctl --user cat anishelf-backend.service >/dev/null
+    systemctl --user cat "$stack-backend.service" >/dev/null
     phase='starting rootless Quadlet services'
-    systemctl --user enable --now anishelf.target
-    systemctl --user is-active --quiet anishelf-backend.service anishelf-web.service
-    if [[ "$qbit" == yes ]]; then systemctl --user is-active --quiet anishelf-qbittorrent.service; fi
-    if [[ "$jackett" == yes ]]; then systemctl --user is-active --quiet anishelf-jackett.service; fi
+    systemctl --user enable --now "$stack.target"
+    systemctl --user is-active --quiet "$stack-backend.service" "$stack-web.service"
+    if [[ "$qbit" == yes ]]; then systemctl --user is-active --quiet "$stack-qbittorrent.service"; fi
+    if [[ "$jackett" == yes ]]; then systemctl --user is-active --quiet "$stack-jackett.service"; fi
     if command -v loginctl >/dev/null 2>&1 && [[ "$(loginctl show-user "$(id -u)" -p Linger --value)" != yes ]]; then
       log "For operation after logout/reboot, an administrator must enable lingering for $(id -un)."
     fi
-    log 'Read the initial password with: journalctl --user -u anishelf-backend.service'
+    log "Read the initial password with: journalctl --user -u $stack-backend.service"
   fi
   phase='checking application health'
   local attempt health_host=$bind_address
