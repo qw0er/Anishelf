@@ -1,4 +1,4 @@
-import { Download, FolderOpen, Play, UserRound } from "lucide-react";
+import { Download, FolderOpen, Info, Play, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
 import {
@@ -13,6 +13,7 @@ import {
 	usePreparationContext,
 } from "../../../features/media/public.js";
 import {
+	AboutSettings,
 	ExternalPlayerSettings,
 	PreparationProfileSettings,
 	ResourceSettings,
@@ -28,12 +29,14 @@ const settingsSections = [
 	"playback",
 	"downloads",
 	"account",
+	"about",
 ] as const;
 const sectionIcons = {
 	library: FolderOpen,
 	playback: Play,
 	downloads: Download,
 	account: UserRound,
+	about: Info,
 };
 type SettingsSection = (typeof settingsSections)[number];
 
@@ -94,6 +97,7 @@ export function SettingsPage() {
 					})}
 				</div>
 			</nav>
+			{activeSection === "about" && <AboutSettings />}
 			<div
 				className={activeSection === "library" ? "stack-page" : "hidden"}
 				data-settings-section="library"

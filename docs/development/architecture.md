@@ -18,7 +18,7 @@ can enable Node frontend hosting with `ANISHELF_FRONTEND_DIR`.
 
 | Module | Owns | Main collaborators |
 | --- | --- | --- |
-| System | Authentication, sessions, settings, profiles | Platform configuration and persistence |
+| System | Authentication, sessions, settings, profiles, build identity and update checks | Platform configuration and persistence |
 | Resources | Roots, filesystem monitoring, atomic index, confined source access | System |
 | Media | Inspection, compatibility planning, processing, preparation, subtitles | Resources, System, FFprobe/FFmpeg |
 | Playback | Resource selection, sessions, resume/history, completion observations | Resources, Media, System; injected Anime observation port |

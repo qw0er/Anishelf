@@ -256,3 +256,5 @@ export type WatchingAutomationPreview = Static<
 export type WatchingAutomationOverride = Static<
 	typeof import("./schemas/watching.js").WatchingOverrideSchema
 >;
+export type BuildInfo = Static<typeof schemas.BuildInfoSchema>;
+export type UpdateCheck = Static<typeof schemas.UpdateCheckSchema>;

@@ -3,6 +3,10 @@ import { MetadataError } from "../modules/anime/public.js";
 import { DomainError, type ErrorCode } from "../shared/errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	UPDATE_CHECK_FAILED: {
+		status: 502,
+		message: "Could not check GitHub for updates. Try again later.",
+	},
 	ACQUISITION_CONFLICT: {
 		status: 409,
 		message:

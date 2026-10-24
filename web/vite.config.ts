@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import {
 	deploymentDefaults,
 	developmentDefaults,
@@ -13,6 +14,12 @@ const apiTarget =
 	`http://${deploymentDefaults.host}:${deploymentDefaults.port}`;
 
 export default defineConfig({
+	define: {
+		__ANISHELF_BUILD__: readFileSync(
+			new URL("./build-info.json", import.meta.url),
+			"utf8",
+		),
+	},
 	resolve: { tsconfigPaths: true },
 	server: {
 		host: developmentDefaults.host,
