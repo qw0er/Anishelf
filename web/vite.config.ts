@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import {
 	deploymentDefaults,
 	developmentDefaults,
@@ -12,13 +12,22 @@ import { defineConfig } from "vite";
 const apiTarget =
 	process.env.ANISHELF_API_TARGET ??
 	`http://${deploymentDefaults.host}:${deploymentDefaults.port}`;
+const buildInfoPath = new URL("./build-info.json", import.meta.url);
+// Static analysis loads this config before npm's prebuild generates the manifest.
+const buildInfo = existsSync(buildInfoPath)
+	? readFileSync(buildInfoPath, "utf8")
+	: JSON.stringify({
+			version: JSON.parse(
+				readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+			).version,
+			commit: null,
+			channel: "development",
+			builtAt: null,
+		});
 
 export default defineConfig({
 	define: {
-		__ANISHELF_BUILD__: readFileSync(
-			new URL("./build-info.json", import.meta.url),
-			"utf8",
-		),
+		__ANISHELF_BUILD__: buildInfo,
 	},
 	resolve: { tsconfigPaths: true },
 	server: {
