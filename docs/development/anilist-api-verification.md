@@ -133,18 +133,12 @@ before attempting a mutation. Keep an interrupted report for reconciliation.
 user's PIN authorization page. Record real authorization evidence only after
 checking the actual registered app and its output.
 
-Run local regression checks with:
+Run the project checks with:
 
 ```sh
-npm run anilist:verify:test
 npm run biome:check
 npm run lint
 ```
-
-The fixture suite verifies fixed-origin credential delivery, withheld errors,
-chunk completion/deduplication, account isolation, read-only preview, changed
-baseline rejection, explicit backward corrections, no retry after uncertain
-mutation and independent read-back mismatch detection.
 
 References: [official authentication/PIN guide](https://raw.githubusercontent.com/AniList/docs/master/docs/guide/auth/index.md),
 [implicit flow and its client-side guidance](https://raw.githubusercontent.com/AniList/docs/master/docs/guide/auth/implicit.md),

@@ -1,78 +1,57 @@
-# Watching Subscription Creation
+# Subscriptions and Watching
 
-This is a maintained operator guide for the iteration marked complete on 2026-10-24.
-Requirements/design and verification evidence are [archived](../history.md#automatic-acquisition-archive-notes).
-
-Watching is an optional way to create ordinary subscriptions. It is disabled by
-default. Manual and Watching-created subscriptions share the same source discovery,
-editor, pause/resume, cancellation, download and import workflow.
+Subscribe manually from a work's details, or opt into automatic creation from your
+AniList Watching list. Both produce the same editable subscription.
 
 ## Setup
 
-In Settings → Downloads, configure Sources and their order, validate the downloader
-and destination, then choose subscription defaults. In Watching automation, choose
-confirmed progress plus one or episode 1, preview the scope, and confirm within five
-minutes in the same authenticated session. The preview creates no subscriptions or
-downloads; changed account/site/profile/target scope requires a new preview.
+1. In **Settings → Downloads**, configure [Sources](jackett-setup.md), their order,
+   the downloader, a validated destination and subscription defaults.
+2. On a work, choose **Subscribe**, review the starting episode and save.
+3. Optionally enable **Watching automation**: choose progress plus one or episode 1,
+   preview the scope and confirm within five minutes in the same login session.
 
-Existing Watching entries and future additions are eligible for creation. Existing
-subscriptions are always preserved. Starting episode is fixed when the subscription
-is created, even if source discovery must wait. Invalid, fractional or excessive
-progress (at least 10000) does not create a progress-based subscription.
+Watching is off by default. Its preview creates no subscriptions/downloads. Changed
+account/site/profile/target scope requires a new preview. Invalid or fractional
+progress, or progress of at least 10000, cannot create a progress-based subscription.
 
 ## Everyday behavior
 
-- Click Subscribe on a work to create a subscription without a preliminary search.
-  Automatic source selection uses the configured sites/profile; More options exposes
-  an explicit RSS feed, per-work profile and source changes.
-- Empty discovery shows Waiting for releases and retries. Service failures remain
-  distinct from healthy absence. No match does not remove the subscription.
-- Successful discovery pins the first configured site with an identity/episode/profile
-  eligible release. A later site outage does not silently switch the pin.
-- Watching checks every 30 seconds and creates at most five subscriptions per pass.
-  Subscriptions separately resolves at most five pending sources per 30-second pass;
-  unresolved discovery retries after five minutes. Check updates retries pending
-  discovery immediately, subject to Sources transport limits. Configured source refresh is
-  30 minutes by default. Capacity is 64 subscriptions and 500 current Watching works.
-- Turning Watching off stops new subscription creation. Existing subscriptions keep
-  working. Changing Tracking status, progress or account does not overwrite or stop
-  existing subscriptions; use their ordinary controls.
-- Edit, pause/resume and unsubscribe work identically regardless of origin. A manual
-  pause survives edits. Unsubscribe records automatic-recreation exclusions, which
-  can be cleared in Watching settings. Existing transfers/imports continue.
+| Action / state | Result |
+| --- | --- |
+| Subscribe | Save intent immediately; no preliminary search needed |
+| More options | Override profile, use an explicit RSS feed or edit the source |
+| No eligible releases | Retain intent and retry discovery; distinguish empty results from service failures |
+| Successful discovery | Pin the first eligible configured site; later outages do not switch it |
+| Starting episode | Fixed at creation, even while waiting for discovery |
+| Pause/resume/edit | Same controls for every subscription; manual pause survives edits |
+| Unsubscribe | Record a Watching recreation exclusion; submitted transfers/imports continue |
+| Disable Watching / change Tracking status, progress or account | Stop/alter future creation; existing subscriptions continue with their saved settings |
 
-The Header row in work details shows one short state, Activity and an actions menu.
-The editor initially shows starting episode and effective defaults. Activity shows
-active downloads/imports and actionable failures. History and grouped Diagnostics
-are secondary; release filenames and skipped reasons do not fill the page by default.
-Diagnostics also shows the most recent source check, attempted sites and their
-outcomes/coverage. It survives restart. Use qBittorrent WebUI for transfer controls
-and seeding. Refreshed work details switch to the local episode view after ingestion.
+Watching and pending-source discovery each run every 30 seconds, at most five works
+per pass. Unresolved discovery retries after five minutes; **Check updates** bypasses
+that local wait while respecting transport limits. Source refresh defaults to 30
+minutes. Limits are 64 subscriptions and 500 current Watching works.
+
+Use **Activity** for active tasks and recovery, **History** for past work, and
+**Diagnostics** for the latest source attempts, results and skip reasons. Transfer
+controls and seeding stay in qBittorrent WebUI. Imported files appear in the local
+episode view after verification.
 
 ## Recovery and upgrade
 
 | State | Action |
 | --- | --- |
-| Waiting for releases | No action required; discovery will retry. |
-| Discovery unavailable | Check site/downloader connectivity; existing intent is retained. |
-| Source/profile/target changed while waiting | Review and save the subscription against the current configuration; late results cannot inherit stale permission. |
-| Established pinned source changed | Explicitly edit the source; do not expect automatic source replacement. |
-| Download/import failure | Open Activity and use the relevant retry/Review/Settings action. |
-| Automatic creation excluded | Explicitly include the work again in Watching settings. |
-| Subscription/work limit | Free subscription capacity or reduce Watching scope. |
+| Waiting for releases | Wait for retry, or use Check updates |
+| Discovery unavailable | Check service/site connectivity; intent is retained |
+| Source/profile/target changed | Review and save against current configuration |
+| Pinned source unavailable | Repair it or explicitly edit the source |
+| Download/import failure | Use Activity's retry, Review or Settings action |
+| Automatic creation excluded | Include the work again in Watching settings |
+| Capacity reached | Free subscription capacity or reduce Watching scope |
+| Previously managed subscription paused after migration | Review/save and resume; confirm Watching again if future creation is wanted |
 
-Migration `0010_unified_subscriptions` preserves pins, starting scope, candidates,
-manual permissions and submitted task history. Previous automation grants controlled
-ongoing enablement; they cannot silently become independent subscription permission.
-Previously managed subscriptions therefore start paused with authorization required,
-and old Watching grants are disabled. Review/save each retained subscription and
-resume it explicitly, or unsubscribe. Confirm Watching again only if future automatic
-creation is wanted. This migration does not enable the real account.
-
-## Verification record
-
-The iteration is complete by the user's decision on 2026-10-24. Automated and
-isolated-browser evidence, earlier user-reported manual acceptance and limits on
-real Watching/source/downloader/playback verification are recorded in
-[History](../history.md#automatic-acquisition-archive-notes). Deployment checks remain
-useful after changing services, storage mappings or browser/media combinations.
+Migration `0010_unified_subscriptions` retains pins, starting bounds, candidates,
+manual permissions and task history. Old automation grants are disabled and formerly
+managed subscriptions require review. See [History](../history.md#automatic-acquisition-archive-notes)
+for archived design and acceptance evidence.
