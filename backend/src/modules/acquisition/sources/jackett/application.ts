@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { SourceContext } from "../application/context.js";
 import type { SourceRead } from "../domain/adapter.js";
 import type { SourceQuery } from "../domain/binding.js";
-import { SourceError } from "../domain/model.js";
+import { SourceError, type SourceRecord } from "../domain/model.js";
 import type { SourceReference } from "../domain/reference.js";
 import type { SourceLifecycleStore } from "../infrastructure/store.js";
 import type { JackettConnection } from "./connection.js";
@@ -39,11 +39,32 @@ export class JackettSource {
 	current(generation: string) {
 		return this.connection?.current(generation) ?? false;
 	}
-	async refresh(reference: SourceReference): Promise<SourceRead> {
+	async refresh(
+		reference: SourceReference,
+		accept?: (record: SourceRecord) => boolean,
+	): Promise<SourceRead> {
 		const plan = this.references.get(reference);
 		if (!plan) throw new SourceError("invalid_source_reference");
 		if (!this.connection) throw new SourceError("source_unconfigured");
-		const result = await this.connection.search(plan);
+		const result = await this.connection.search(
+			plan,
+			accept
+				? (entries) =>
+						accept({
+							id: reference.id,
+							revision: "preview",
+							label: plan.indexerId,
+							entries: entries.map((entry) => ({
+								...entry,
+								generation: plan.generation,
+							})),
+							checkedAt: this.context.now(),
+							nextAttemptAt:
+								this.context.now() + this.context.refreshIntervalMs(),
+							error: null,
+						})
+				: undefined,
+		);
 		this.context.open();
 		if (!this.current(plan.generation))
 			throw new SourceError("source_conflict");

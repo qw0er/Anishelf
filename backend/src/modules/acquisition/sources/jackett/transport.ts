@@ -2,10 +2,18 @@ import type { Logger } from "pino";
 import { Agent, type Dispatcher, request } from "undici";
 import type { ReleaseDownload } from "../domain/download.js";
 import { SourceError } from "../domain/model.js";
+import type { SourceRequestGate } from "../infrastructure/request-gate.js";
+import {
+	jackettConnectionKey,
+	jackettIndexerKey,
+	sourceOriginKey,
+} from "../infrastructure/request-keys.js";
 import { discardBody } from "../infrastructure/response-body.js";
+import { sourceRetryAt } from "../infrastructure/retry-after.js";
 import { RssTransport, rssUrl } from "../rss/transport.js";
 import type { TorrentRead } from "./model.js";
 import { indexerId, jackettUrl } from "./validation.js";
+import { document } from "./xml.js";
 
 /** Transport failures carry platform codes such as `ECONNREFUSED` or `UND_ERR_SOCKET`. */
 function causeCode(error: unknown): string {
@@ -25,12 +33,23 @@ export class JackettTransport {
 		private readonly logger: Logger,
 		dispatcher?: Dispatcher,
 		publicTransport?: RssTransport,
+		readonly requestGate?: SourceRequestGate,
 	) {
 		this.base = jackettUrl(url);
 		this.agent =
 			dispatcher ??
 			new Agent({ connections: 2, maxResponseSize: 10 * 1024 * 1024 });
-		this.publicTransport = publicTransport ?? new RssTransport();
+		this.publicTransport =
+			publicTransport ?? new RssTransport(undefined, requestGate);
+	}
+	requestKeys(indexer: string | null): string[] {
+		return [
+			sourceOriginKey(this.base),
+			jackettConnectionKey(this.base),
+			...(indexer === null
+				? []
+				: [jackettIndexerKey(this.base, indexerId(indexer))]),
+		];
 	}
 	redact(value: string): string {
 		return value
@@ -60,7 +79,13 @@ export class JackettTransport {
 			url.searchParams.set(key, value);
 		}
 		url.searchParams.set("apikey", this.apiKey);
-		const response = await this.body(url, 5 * 1024 * 1024, signal);
+		const response = await this.body(
+			url,
+			5 * 1024 * 1024,
+			signal,
+			this.requestKeys(indexer),
+			true,
+		);
 		if (response.redirect) throw new SourceError("redirect_rejected");
 		return Buffer.from(response.bytes).toString("utf8");
 	}
@@ -165,11 +190,10 @@ export class JackettTransport {
 		descriptor: ReleaseDownload,
 		signal: AbortSignal,
 	): Promise<TorrentRead> {
-		const combined = AbortSignal.any([
-			signal,
-			this.shutdown.signal,
-			AbortSignal.timeout(30000),
-		]);
+		const combined = AbortSignal.any([signal, this.shutdown.signal]);
+		const keys = this.requestKeys(
+			descriptor.kind === "jackett-torrent" ? descriptor.indexerId : null,
+		);
 		let current = descriptor;
 		for (let hop = 0; hop < 4; hop++) {
 			if (current.kind === "magnet") {
@@ -181,7 +205,7 @@ export class JackettTransport {
 					throw new SourceError("invalid_download_locator");
 				return {
 					kind: "bytes",
-					bytes: await this.publicTransport.read(current.url, combined),
+					bytes: await this.readPublicTorrent(current.url, combined, keys),
 				};
 			}
 			if (current.generation !== this.generation)
@@ -194,7 +218,12 @@ export class JackettTransport {
 			}).toString();
 			// Validate even descriptors supplied by an internal caller before reconstructing credentials.
 			this.download(url.href, current.indexerId);
-			const response = await this.body(url, 10 * 1024 * 1024, combined);
+			const response = await this.body(
+				url,
+				10 * 1024 * 1024,
+				combined,
+				this.requestKeys(current.indexerId),
+			);
 			if (!response.redirect) return { kind: "bytes", bytes: response.bytes };
 			if (this.hasSecret(response.redirect))
 				throw new SourceError("invalid_download_locator");
@@ -207,7 +236,30 @@ export class JackettTransport {
 		}
 		throw new SourceError("redirect_rejected");
 	}
-	private async body(url: URL, maximumBytes: number, signal: AbortSignal) {
+	private readPublicTorrent(url: string, signal: AbortSignal, keys: string[]) {
+		return this.publicTransport.read(url, signal, keys, this.requestGate);
+	}
+	private body(
+		url: URL,
+		maximumBytes: number,
+		signal: AbortSignal,
+		keys: string[],
+		validateXml = false,
+	) {
+		const combined = AbortSignal.any([signal, this.shutdown.signal]);
+		const exchange = async () => {
+			const response = await this.exchange(url, maximumBytes, combined);
+			// Torznab can report throttling in HTTP 200 XML. Publish its cooldown
+			// before releasing admission to another request on the connection.
+			if (validateXml && !response.redirect)
+				document(Buffer.from(response.bytes).toString("utf8"));
+			return response;
+		};
+		return this.requestGate
+			? this.requestGate.runMany(keys, combined, exchange)
+			: exchange();
+	}
+	private async exchange(url: URL, maximumBytes: number, signal: AbortSignal) {
 		const combined = AbortSignal.any([
 			signal,
 			this.shutdown.signal,
@@ -234,18 +286,12 @@ export class JackettTransport {
 				await discardBody(response);
 				throw new SourceError("authentication_failed");
 			}
-			if (status === 429) {
+			if (status === 429 || status === 503) {
 				this.reportStatus(url, response, "rate_limited");
 				await discardBody(response);
-				const value = String(response.headers["retry-after"] ?? "60");
-				const retryAt = /^\d+$/.test(value)
-					? Date.now() + Number(value) * 1000
-					: Date.parse(value);
 				throw new SourceError(
 					"rate_limited",
-					Number.isFinite(retryAt)
-						? Math.max(Date.now(), retryAt)
-						: Date.now() + 60000,
+					sourceRetryAt(response.headers["retry-after"]),
 				);
 			}
 			if (

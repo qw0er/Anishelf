@@ -1044,6 +1044,7 @@
 			"subscribed": "Subscribed",
 			"notSubscribed": "Not subscribed",
 			"activity": "Activity",
+			"cooldownUntil": "Source rate limited; retry after {{time}}",
 			"waitingForReleases": "Waiting for releases",
 			"findingSource": "Finding a source",
 			"setupSources": "Configure resource sites first."
@@ -1082,6 +1083,8 @@
 			"profile_unavailable": "selected release profile is unavailable",
 			"episode_reserved": "another version is already reserved for this episode",
 			"fetch_failed": "source could not be reached",
+			"rate_limited": "The source is rate limited. Requests will resume after its cooldown.",
+			"source_busy": "Source requests are waiting for capacity.",
 			"invalid_xml": "invalid RSS XML",
 			"storage_limit": "source history limit reached",
 			"assessment_unavailable": "animation metadata or local availability could not be checked",

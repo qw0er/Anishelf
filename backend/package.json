@@ -49,6 +49,7 @@
 		"fontkit": "^2.0.4",
 		"ipaddr.js": "2.5.0",
 		"opencc-js": "1.4.2",
+		"p-queue": "^10.0.0",
 		"parse-torrent": "^11.0.24",
 		"pino": "^10.4.0",
 		"platformdirs": "4.3.7",

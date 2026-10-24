@@ -115,33 +115,43 @@ export class SubscriptionDiscovery {
 				titles,
 			};
 			try {
-				const publication = await options.sources.fetch(source);
-				guard();
-				const candidates = selectCandidates({
-					subscription: {
-						workKey: input.workKey,
-						feedId: publication.snapshot.id,
-						startEpisode: input.startEpisode,
-						profileId,
-						enabled: false,
-						revision: "discovery",
+				const assess = (
+					feed: import("../../sources/public.js").SourceSnapshot,
+				) =>
+					selectCandidates({
+						subscription: {
+							workKey: input.workKey,
+							feedId: feed.id,
+							startEpisode: input.startEpisode,
+							profileId,
+							enabled: false,
+							revision: "discovery",
+						},
+						feed,
+						target,
+						profile,
+						now: this.context.now(),
+						active: new Set(hashes),
+						downloadsUnknown: false,
+						assessReleaseTitle: (title, work) =>
+							options.anime.assessReleaseTitle(title, work),
+					});
+				const eligibleCandidates = (candidates: ReturnType<typeof assess>) =>
+					candidates.filter(
+						(candidate) =>
+							candidate.status === "selected" ||
+							(candidate.reasons.length === 1 &&
+								candidate.reasons[0] === "waiting_for_level"),
+					);
+				const publication = await options.sources.fetch(source, {
+					accept: (snapshot) => {
+						guard();
+						return eligibleCandidates(assess(snapshot)).length > 0;
 					},
-					feed: publication.snapshot,
-					target,
-					profile,
-					now: this.context.now(),
-					active: new Set(hashes),
-					downloadsUnknown: false,
-					assessReleaseTitle: (title, work) =>
-						options.anime.assessReleaseTitle(title, work),
 				});
-				// A profile's intentional wait does not make a verified matching source ineligible.
-				const eligible = candidates.filter(
-					(candidate) =>
-						candidate.status === "selected" ||
-						(candidate.reasons.length === 1 &&
-							candidate.reasons[0] === "waiting_for_level"),
-				);
+				guard();
+				const candidates = assess(publication.snapshot);
+				const eligible = eligibleCandidates(candidates);
 				attempts.push({
 					providerId,
 					outcome: eligible.length
@@ -199,6 +209,7 @@ export class SubscriptionDiscovery {
 					outcome: "unavailable",
 					reasons: [],
 					code: error.code,
+					...(error.retryAt ? { retryAt: error.retryAt } : {}),
 					limited: false,
 				});
 				options.logger.warn(
@@ -207,6 +218,7 @@ export class SubscriptionDiscovery {
 						workKey: input.workKey,
 						providerId,
 						code: error.code,
+						...(error.retryAt ? { retryAt: error.retryAt } : {}),
 					},
 					"Source discovery could not read a configured provider.",
 				);

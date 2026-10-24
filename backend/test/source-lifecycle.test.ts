@@ -455,6 +455,7 @@ test.each(["rss", "jackett"] as const)(
 				: f.reference;
 		f.sources.bind(reference);
 		const prepared = await f.sources.refresh(reference);
+		f.setClock(61001);
 		let reject!: (reason: Error) => void;
 		const pending = new Promise<never>((_done, fail) => {
 			reject = fail;

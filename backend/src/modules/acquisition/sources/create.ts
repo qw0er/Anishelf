@@ -2,8 +2,9 @@ import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
 import { SourcesApplication } from "./application/application.js";
 import type { SourceTorrentTransport } from "./application/content.js";
-import { SourceError } from "./domain/model.js";
+import { SourceError, sourcePolicy } from "./domain/model.js";
 import { registerSourceRoutes } from "./http/routes.js";
+import { SourceCooldownFile } from "./infrastructure/cooldown-file.js";
 import { SourceRequestGate } from "./infrastructure/request-gate.js";
 import type { SourceLifecycleStore } from "./infrastructure/store.js";
 import type { SourcesRuntime } from "./integration.js";
@@ -58,7 +59,25 @@ async function asyncCommand<T>(operation: () => Promise<T>): Promise<T> {
 
 /** The only production construction boundary; protocol implementations never escape. */
 export async function createSourcesModule(options: SourcesModuleOptions) {
-	const gate = new SourceRequestGate();
+	const cooldownFile = new SourceCooldownFile(
+		options.dataDir,
+		options.logger,
+		options.now ?? Date.now,
+	);
+	const cooldowns = await cooldownFile.read();
+	const gate = new SourceRequestGate(
+		sourcePolicy.requestIntervalMs,
+		options.now ?? Date.now,
+		{
+			minimumIntervalForKey: (key) =>
+				key.startsWith("jackett:") || key.startsWith("jackett-indexer:")
+					? sourcePolicy.jackettRequestIntervalMs
+					: sourcePolicy.requestIntervalMs,
+			logger: options.logger,
+			cooldowns,
+			onCooldown: (key, until) => cooldownFile.set(key, until),
+		},
+	);
 	const connection = new JackettConnection(
 		new JackettConfigurationFile(options.dataDir),
 		(configuration) => {
@@ -70,8 +89,12 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 					saved.apiKey,
 					configuration.generation,
 					options.logger,
+					undefined,
+					undefined,
+					gate,
 				),
 				gate,
+				{ logger: options.logger },
 			);
 		},
 		options.logger,
@@ -80,6 +103,7 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 	const bundled = new BundledJackett({
 		...(options.bundledConfigFile ? { path: options.bundledConfigFile } : {}),
 		dataDir: options.dataDir,
+		gate,
 		connection,
 		logger: options.logger,
 	});
@@ -89,16 +113,15 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 		rss: {
 			gate,
 			store: options.store,
-			transport: options.transport ?? new RssTransport(),
+			transport: options.transport ?? new RssTransport(undefined, gate),
 			parse: parseRss,
 			normalizeUrl: rssUrl,
 			logger: options.logger,
 		},
 		jackett: connection,
 		logger: options.logger,
-		...(options.torrentTransport
-			? { torrentTransport: options.torrentTransport }
-			: {}),
+		torrentTransport:
+			options.torrentTransport ?? new RssTransport(undefined, gate),
 		...(options.now ? { now: options.now } : {}),
 		...(options.refreshIntervalMinutes
 			? { refreshIntervalMinutes: options.refreshIntervalMinutes }
@@ -108,6 +131,7 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 		start: (activeIds, poll) => application.start(activeIds, poll),
 		close: async () => {
 			await Promise.allSettled([bundled.close(), application.close()]);
+			await cooldownFile.close();
 		},
 	});
 	const settings = () => {
@@ -121,7 +145,7 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 	};
 	const api: SourcesApi = Object.freeze<SourcesApi>({
 		snapshot: (input) => command(() => application.snapshot(input)),
-		fetch: (input) => application.fetch(input),
+		fetch: (input, requestOptions) => application.fetch(input, requestOptions),
 		readContent: (reference, signal) =>
 			application.readDownload(reference, signal),
 		isContentCurrent: (reference) => application.isDownloadCurrent(reference),
@@ -158,7 +182,7 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 		}),
 		test: (input) =>
 			asyncCommand(async () => {
-				const result = await application.refresh(
+				const result = await application.collect(
 					typeof input === "string"
 						? application.reference(input)
 						: application.referenceFor(input),

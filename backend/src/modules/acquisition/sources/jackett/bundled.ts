@@ -5,6 +5,7 @@ import type { Logger } from "pino";
 import { Type } from "typebox";
 import { Check } from "typebox/value";
 import { SourceError } from "../domain/model.js";
+import type { SourceRequestGate } from "../infrastructure/request-gate.js";
 import {
 	type BootstrapState,
 	JackettBootstrapStateFile,
@@ -36,6 +37,7 @@ interface BundledOptions {
 	/** Fixed service address in production; injectable for isolated acceptance tests. */
 	url?: string;
 	request?: typeof fetch;
+	gate?: SourceRequestGate;
 }
 /** A single background worker owns native credential import and first-run setup. */
 export class BundledJackett {
@@ -171,6 +173,7 @@ export class BundledJackett {
 				beforeWrite: () =>
 					this.update({ version: 1, instance, phase: "attempted" }),
 				...(this.options.request ? { request: this.options.request } : {}),
+				...(this.options.gate ? { gate: this.options.gate } : {}),
 			});
 			guard();
 			await this.update({ version: 1, instance, phase: "complete" });
@@ -217,11 +220,21 @@ export class BundledJackett {
 							code:
 								error instanceof SourceError ? error.code : "upstream_failure",
 							attempt: this.failures,
+							retryAt:
+								error instanceof SourceError ? (error.retryAt ?? null) : null,
 						},
 						"Bundled source setup will retry; existing connections are preserved.",
 					);
 				this.schedule(
-					Math.min(300_000, 5000 * 2 ** Math.min(this.failures - 1, 6)),
+					Math.min(
+						2_147_483_647,
+						Math.max(
+							Math.min(300_000, 5000 * 2 ** Math.min(this.failures - 1, 6)),
+							error instanceof SourceError
+								? (error.retryAt ?? 0) - Date.now()
+								: 0,
+						),
+					),
 				);
 			}
 		})();

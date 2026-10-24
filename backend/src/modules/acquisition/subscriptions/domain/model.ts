@@ -95,6 +95,7 @@ export interface SubscriptionSearchResult {
 		outcome: "matched" | "no_match" | "no_eligible" | "unavailable";
 		reasons: string[];
 		code: string | null;
+		retryAt?: number;
 		limited: boolean;
 	}[];
 	releases: {

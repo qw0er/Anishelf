@@ -189,7 +189,6 @@ test("saving pins the chosen site; no-match refreshes never fall back to another
 		"first",
 		"second",
 		"second",
-		"second",
 	]);
 	expect(f.db.acquisition.subscription(workKey)?.sourceInput).toEqual(
 		stored?.sourceInput,

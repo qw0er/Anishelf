@@ -609,7 +609,7 @@ test("Watching HTTP routes require login, CSRF and the preview's actual session"
 	expect(disabled.json().enabled).toBe(false);
 });
 
-test("manual refresh retries pending discovery during its local backoff and preserves diagnostics", async () => {
+test("manual refresh reevaluates cached discovery and refetches only after expiry", async () => {
 	const f = await fixture();
 	const discover = vi.spyOn(SubscriptionDiscovery.prototype, "search");
 	await f.enable();
@@ -630,6 +630,13 @@ test("manual refresh retries pending discovery during its local backoff and pres
 	const revision = required(f.db.acquisition.subscription(workKey)).revision;
 	await f.subscriptions.refresh(workKey, revision);
 	expect(discover).toHaveBeenCalledTimes(2);
+	expect(f.subscriptions.get(workKey).discovery?.attempts[0]).toMatchObject({
+		outcome: "no_match",
+	});
+	expect(f.search).toHaveBeenCalledTimes(1);
+	f.advance();
+	await f.subscriptions.refresh(workKey, revision);
+	expect(f.search).toHaveBeenCalledTimes(2);
 	expect(f.subscriptions.get(workKey).discovery?.attempts[0]).toMatchObject({
 		outcome: "matched",
 	});
