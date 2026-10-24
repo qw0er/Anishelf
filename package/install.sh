@@ -231,6 +231,17 @@ compose() {
     unset ANISHELF_TAG ANISHELF_BIND_ADDRESS ANISHELF_PORT ANISHELF_PUBLIC_ORIGIN ANISHELF_MEDIA_PATH
     unset COMPOSE_FILE COMPOSE_PROJECT_NAME COMPOSE_PROFILES ANISHELF_TRUSTED_PROXIES
     unset QBITTORRENT_WEBUI_PORT QBITTORRENT_PEER_PORT QBITTORRENT_BIND_ADDRESS QBITTORRENT_TAG JACKETT_PORT JACKETT_BIND_ADDRESS
+    # Older podman-compose providers do not activate profiles from --env-file.
+    # Read only the installer's validated field; never source the saved file.
+    local saved_profiles
+    saved_profiles=$(sed -n "s/^COMPOSE_PROFILES='\([^']*\)'$/\1/p" "$deploy_dir/.env")
+    case "$saved_profiles" in
+      ''|qbittorrent|jackett|qbittorrent,jackett) ;;
+      *) die 'Unrecognized saved Compose profiles.';;
+    esac
+    case ",$saved_profiles," in *,qbittorrent,*) set -- --profile qbittorrent "$@";; esac
+    case ",$saved_profiles," in *,jackett,*) set -- --profile jackett "$@";; esac
+    log "Compose project=$stack; enabled profiles=${saved_profiles:-none}"
     "$engine" compose --project-name "$stack" --env-file "$deploy_dir/.env" -f "$deploy_dir/compose.yaml" "$@"
   )
 }
@@ -559,7 +570,7 @@ main() {
     phase='validating Compose configuration'; compose config --quiet
     phase='pulling container images'; compose pull
     phase='starting Compose services'; compose up -d
-    log "Read the initial password with: $engine compose --project-name $stack --project-directory \"$deploy_dir\" logs backend"
+    log "Read the initial password with: $engine compose --project-name $stack --env-file \"$deploy_dir/.env\" -f \"$deploy_dir/compose.yaml\" logs backend"
   else
     phase='installing rootless Quadlet units'
     preflight

@@ -86,6 +86,13 @@ docker compose logs backend
 
 Use `podman compose` instead for a Podman deployment, including all maintenance
 commands below. The installer records its engine in `.env` as `ANISHELF_DEPLOY_ENGINE`.
+Some `podman-compose` versions do not enable services from `COMPOSE_PROFILES` in
+`.env`. The installer passes selected profiles explicitly. For manual maintenance,
+also pass `--profile qbittorrent --profile jackett` before `pull` or `up` when both
+bundled services are selected; omit any profile you did not select. Use `--env-file`
+and `-f` for commands outside the deployment directory; some providers do not
+support `--project-directory`.
+
 
 | `.env` setting | Purpose |
 | --- | --- |

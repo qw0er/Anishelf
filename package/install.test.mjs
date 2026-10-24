@@ -792,3 +792,39 @@ test("Compose origins avoid nested defaults rejected by podman-compose", async (
 		}
 	}
 });
+
+test("Podman Compose explicitly activates only saved optional service profiles", async (t) => {
+	for (const selection of [
+		{ qbit: false, jackett: false },
+		{ qbit: true, jackett: false },
+		{ qbit: false, jackett: true },
+		{ qbit: true, jackett: true },
+	]) {
+		const f = await fixture(t, ["podman"]);
+		const result = f.run(f.answers({ ...selection, advanced: false }), {
+			start: true,
+			env: { COMPOSE_PROFILES: "unwanted-inherited-profile" },
+		});
+		success(result);
+		const calls = (await f.calls()).filter(
+			(call) =>
+				call.args[0] === "compose" && call.args.includes("--project-name"),
+		);
+		assert.ok(calls.some((call) => call.args.includes("pull")));
+		assert.ok(calls.some((call) => call.args.includes("up")));
+		for (const call of calls) {
+			const profiles = call.args.filter(
+				(_, index) => call.args[index - 1] === "--profile",
+			);
+			assert.deepEqual(profiles.sort(), [
+				...(selection.jackett ? ["jackett"] : []),
+				...(selection.qbit ? ["qbittorrent"] : []),
+			]);
+		}
+		assert.doesNotMatch(result.stderr, /--project-directory/);
+		assert.match(
+			result.stderr,
+			/Read the initial password with: .*--env-file .* -f .* logs backend/,
+		);
+	}
+});
