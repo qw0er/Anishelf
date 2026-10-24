@@ -154,6 +154,8 @@ export interface ArtworkStatus {
 	failure: MetadataFailure | null;
 }
 export interface ArtworkAsset {
+	/** Content identity; also the strong HTTP validator. */
+	id: string;
 	bytes: Uint8Array;
 	mimeType: string;
 }

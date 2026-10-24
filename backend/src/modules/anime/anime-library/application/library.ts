@@ -91,6 +91,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 				availableRegularEpisodes: 0,
 				metadataStale: false,
 				hasCover: false,
+				coverVersion: null,
 				remoteCoverUrl: null,
 				nextPlayback: null,
 				viewing: viewing ? viewingState(viewing) : null,
@@ -123,6 +124,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 					availableRegularEpisodes: 0,
 					metadataStale: tracking.stale,
 					hasCover: false,
+					coverVersion: null,
 					remoteCoverUrl: entry.coverUrl,
 					nextPlayback: null,
 					viewing: viewingState(entry),
@@ -280,6 +282,7 @@ function localCard(card: LibraryCard, work: WorkCard | undefined): LibraryCard {
 		availableUnwatchedEpisodes: progress === null ? null : unwatched.length,
 		availableRegularEpisodes: work.availableRegularEpisodes,
 		hasCover: work.hasCover,
+		coverVersion: work.coverVersion,
 		metadataStale: work.metadataStale,
 		nextPlayback: nextPlayback(unwatched[0]),
 	};

@@ -3,10 +3,17 @@ import {
 	AnimeLibrarySchema,
 } from "../../../../contracts/schemas/anime-library.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
+import type { LibraryCard } from "../domain/model.js";
 import type { AnimeLibraryApi } from "../public.js";
 export function registerAnimeLibraryRoutes(
 	app: HttpInstance,
 	library: AnimeLibraryApi,
+	artwork?: {
+		cachedArtworkId(
+			reference: LibraryCard["reference"],
+			kind: "cover",
+		): Promise<string | null>;
+	},
 ) {
 	app.get(
 		"/api/anime/library",
@@ -29,14 +36,47 @@ export function registerAnimeLibraryRoutes(
 			);
 			return {
 				...result,
-				items: result.items.map(({ hasCover, remoteCoverUrl, ...card }) => ({
-					...card,
-					coverUrl:
-						card.localWorkId && hasCover
-							? `/api/catalog/works/${encodeURIComponent(card.localWorkId)}/artwork/cover`
-							: remoteCoverUrl,
-				})),
+				items: await Promise.all(
+					result.items.map(
+						async ({ hasCover, coverVersion, remoteCoverUrl, ...card }) => ({
+							...card,
+							coverUrl: await coverUrl(
+								card,
+								{ hasCover, coverVersion, remoteCoverUrl },
+								artwork,
+							),
+						}),
+					),
+				),
 			};
 		},
 	);
+}
+
+/** Local posters stay on the catalog proxy; tracked posters use cached bytes when warm. */
+async function coverUrl(
+	card: Pick<LibraryCard, "localWorkId" | "reference">,
+	local: {
+		hasCover: boolean;
+		coverVersion: string | null;
+		remoteCoverUrl: string | null;
+	},
+	artwork:
+		| {
+				cachedArtworkId(
+					reference: LibraryCard["reference"],
+					kind: "cover",
+				): Promise<string | null>;
+		  }
+		| undefined,
+): Promise<string | null> {
+	if (card.localWorkId && local.hasCover) {
+		const version = local.coverVersion ? `?v=${local.coverVersion}` : "";
+		return `/api/catalog/works/${encodeURIComponent(card.localWorkId)}/artwork/cover${version}`;
+	}
+	if (!local.remoteCoverUrl) return null;
+	const cached = await artwork
+		?.cachedArtworkId(card.reference, "cover")
+		.catch(() => null);
+	return cached ? `/api/metadata/artwork/${cached}` : local.remoteCoverUrl;
 }

@@ -1014,13 +1014,28 @@ test("poster artwork uses retained snapshots, delivers cached images offline and
 	cleanups.push(() => app.close());
 	const list = await app.inject({ url: "/api/catalog/works" });
 	const cover = `/api/catalog/works/${confirmed.workId}/artwork/cover`;
-	expect(list.json().items[0].coverUrl).toBe(cover);
+	const pinnedUrl = list.json().items[0].coverUrl as string;
+	expect(pinnedUrl).toMatch(new RegExp(`^${cover}\\?v=[a-f0-9]{16}$`));
 	expect(fetchArtwork).not.toHaveBeenCalled();
 	const image = await app.inject({ url: cover });
 	expect(image.statusCode).toBe(200);
 	expect(image.headers["content-type"]).toBe("image/png");
 	expect(image.headers["x-content-type-options"]).toBe("nosniff");
+	expect(image.headers["cache-control"]).toBe("private, max-age=3600");
 	expect(image.rawPayload).toEqual(png);
+	const etag = image.headers.etag;
+	expect(etag).toMatch(/^"[a-f0-9]{64}"$/);
+	const revalidated = await app.inject({
+		url: cover,
+		headers: { "if-none-match": etag as string },
+	});
+	expect(revalidated.statusCode).toBe(304);
+	expect(revalidated.rawPayload).toHaveLength(0);
+	expect(revalidated.headers.etag).toBe(etag);
+	const pinned = await app.inject({ url: pinnedUrl });
+	expect(pinned.headers["cache-control"]).toBe("private, max-age=86400");
+	const stale = await app.inject({ url: `${cover}?v=${"0".repeat(16)}` });
+	expect(stale.headers["cache-control"]).toBe("private, max-age=3600");
 	fetchArtwork.mockRejectedValue(new Error("offline"));
 	f.get.mockRejectedValue(new Error("provider offline"));
 	expect((await app.inject({ url: cover })).statusCode).toBe(200);

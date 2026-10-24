@@ -18,6 +18,7 @@ export function Artwork({
 			src={url}
 			alt={banner ? "" : title}
 			loading="lazy"
+			decoding="async"
 			className={`${style} bg-muted`}
 			onError={() => setFailedUrl(url)}
 		/>

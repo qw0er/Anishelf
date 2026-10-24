@@ -107,6 +107,9 @@ export async function createAnimeModule(options: {
 					relations: (...args) => metadata.relations(...args),
 					airing: (...args) => metadata.airing(...args),
 					snapshot: (id) => metadata.snapshot(id),
+					artwork: (...args) => metadata.artwork(...args),
+					readArtwork: (id) => metadata.readArtwork(id),
+					cachedArtworkId: (...args) => metadata.cachedArtworkId(...args),
 				}
 			: undefined,
 		catalog: catalog

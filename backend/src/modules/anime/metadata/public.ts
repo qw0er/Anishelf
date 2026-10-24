@@ -59,6 +59,11 @@ export interface MetadataApi {
 		kind: "cover" | "banner",
 	): Promise<ArtworkStatus>;
 	readArtwork(id: string): Promise<ArtworkAsset>;
+	/** Cached artwork identity for a provider reference, without contacting the provider. */
+	cachedArtworkId(
+		reference: ProviderReference,
+		kind: "cover" | "banner",
+	): Promise<string | null>;
 }
 
 export type {

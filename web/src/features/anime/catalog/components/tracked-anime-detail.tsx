@@ -82,6 +82,9 @@ function TrackedDetail({
 		error: data.metadataError,
 		refetch: retry,
 	};
+	// Provider images are proxied so they share the backend artwork cache and HTTP policy.
+	const artwork = (kind: "cover" | "banner") =>
+		`/api/metadata/${encodeURIComponent(data.reference.provider)}/${encodeURIComponent(data.reference.id)}/artwork/${kind}/image`;
 	const info = data.metadata?.data;
 	const summary = viewing.snapshot?.entry;
 	const title = data.displayTitle;
@@ -97,7 +100,11 @@ function TrackedDetail({
 			<p className="surface-panel">{t("trackingList.noLocal")}</p>
 			{metadata.data && info ? (
 				<>
-					<Artwork url={info.bannerUrl} title={title} banner />
+					<Artwork
+						url={info.bannerUrl ? artwork("banner") : null}
+						title={title}
+						banner
+					/>
 					<WorkMetadataHeader
 						subscription={renderSubscription?.(mediaId, data)}
 						viewing={
@@ -110,7 +117,7 @@ function TrackedDetail({
 						data={{
 							work: {
 								displayTitle: title,
-								coverUrl: info.coverUrl,
+								coverUrl: info.coverUrl ? artwork("cover") : null,
 								format: info.format,
 								year: info.year,
 								episodeCount: info.episodeCount,

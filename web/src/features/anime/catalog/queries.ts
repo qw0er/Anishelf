@@ -22,13 +22,16 @@ export const localWorkDetailQuery = (id: string, scope: string) =>
 		// Reuse the route loader result when the detail component mounts.
 		staleTime: 1000,
 		refetchOnWindowFocus: true,
-		refetchInterval: (query) =>
-			query.state.data?.detail.downloads?.active
-				? 5_000
-				: query.state.data?.metadata.refreshing ||
-						query.state.data?.detail.viewing.refreshing
-					? 2000
-					: 30_000,
+		refetchInterval: (query) => {
+			if (query.state.data?.detail.downloads?.active) return 5_000;
+			if (
+				query.state.data?.metadata.refreshing ||
+				query.state.data?.detail.viewing.refreshing
+			)
+				return 2000;
+			// Idle detail pages need no polling; focus refetch resynchronizes instead.
+			return false;
+		},
 	});
 export const sourceQuery = (id: string, scope: string) =>
 	queryOptions({

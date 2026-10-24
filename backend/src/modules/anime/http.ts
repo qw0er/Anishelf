@@ -40,7 +40,17 @@ export function registerAnimeHttp(
 	registerTrackingRoutes(app, owners.tracking);
 	registerTrackingListRoutes(app, owners.tracking);
 	registerTrackingUpdateRoutes(app, owners.tracking, owners.viewing);
-	registerAnimeLibraryRoutes(app, owners.library);
+	const metadata = owners.metadata;
+	registerAnimeLibraryRoutes(
+		app,
+		owners.library,
+		metadata
+			? {
+					cachedArtworkId: (reference, kind) =>
+						metadata.cachedArtworkId(reference, kind),
+				}
+			: undefined,
+	);
 	if (owners.metadata) registerMetadataRoutes(app, owners.metadata);
 	if (owners.catalog) registerCatalogRoutes(app, owners.catalog);
 }
