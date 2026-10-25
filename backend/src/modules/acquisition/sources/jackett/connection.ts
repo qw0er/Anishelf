@@ -187,6 +187,7 @@ export class JackettConnection {
 			this.logger.info(
 				{
 					event: "acquisition.jackett_connection_saved",
+					indexerCount: value.connection?.indexers.length ?? 0,
 					generation: value.generation,
 					origin: value.connection?.origin ?? null,
 				},

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Eye, PlugZap, Save, Unplug } from "lucide-react";
+import { Copy, Eye, MoreHorizontal, PlugZap, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { QbittorrentConnectionSettings } from "../../shared/api/contracts.js";
@@ -7,6 +7,12 @@ import { boundedSignal } from "../../shared/api/queries.js";
 import { ActionButton } from "../../shared/components/ui/action-button.js";
 import { Button } from "../../shared/components/ui/button.js";
 import { ConnectionSettings } from "../../shared/components/ui/connection-settings.js";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "../../shared/components/ui/dropdown-menu.js";
 import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
 import { toast } from "../../shared/components/ui/toast.js";
@@ -179,6 +185,24 @@ function ConnectionForm({
 			)}
 
 			<ConnectionSettings
+				onCancel={() => {
+					setUrl(settings.url ?? "");
+					setUsername(settings.username);
+					setPassword("");
+				}}
+				endpoint={settings.url}
+				actions={
+					<div className="action-row">
+						<ActionButton
+							icon={Save}
+							label={t("acquisition.api.save")}
+							shortLabel={t("actions.save")}
+							type="submit"
+							disabled={busy || !changed}
+							aria-busy={save.isPending}
+						/>
+					</div>
+				}
 				configured={settings.state === "configured"}
 				label={t("acquisition.sources.connectionSettings")}
 				status={
@@ -264,14 +288,6 @@ function ConnectionForm({
 			</ConnectionSettings>
 			<div className="action-row">
 				<ActionButton
-					icon={Save}
-					label={t("acquisition.api.save")}
-					shortLabel={t("actions.save")}
-					type="submit"
-					disabled={busy || !changed}
-					aria-busy={save.isPending}
-				/>
-				<ActionButton
 					icon={PlugZap}
 					label={t("acquisition.api.test")}
 					shortLabel={t("actions.test")}
@@ -282,15 +298,24 @@ function ConnectionForm({
 					onClick={() => check.mutate()}
 				/>
 				{settings.state !== "unconfigured" && (
-					<ActionButton
-						icon={Unplug}
-						label={t("acquisition.api.remove")}
-						shortLabel={t("actions.disconnect")}
-						type="button"
-						variant="outline"
-						disabled={busy}
-						onClick={() => clear.mutate()}
-					/>
+					<DropdownMenu>
+						<DropdownMenuTrigger
+							render={
+								<Button
+									type="button"
+									variant="ghost"
+									aria-label={t("acquisition.connection.more")}
+								/>
+							}
+						>
+							<MoreHorizontal size={16} />
+						</DropdownMenuTrigger>
+						<DropdownMenuContent>
+							<DropdownMenuItem disabled={busy} onClick={() => clear.mutate()}>
+								{t("acquisition.api.remove")}
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				)}
 			</div>
 			{settings.bundled && (

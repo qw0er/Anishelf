@@ -12,8 +12,11 @@ import ThemeToggle from "../../shared/components/theme-toggle.js";
 import { buttonStyles } from "../../shared/components/ui/button.js";
 import { Tooltip } from "../../shared/components/ui/tooltip.js";
 
+import { useCompactNavigation } from "../../shared/hooks/use-compact-navigation.js";
+
 export default function AppHeader({ pending = false }: { pending?: boolean }) {
 	const { t } = useTranslation();
+	const navigationRef = useCompactNavigation();
 	const { pathname } = useLocation();
 	const entries = [
 		{
@@ -58,8 +61,9 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 						{t("app.name")}
 					</Link>
 					<nav
+						ref={navigationRef}
 						aria-label={t("app.primaryNavigation")}
-						className="min-w-0 flex-1 overflow-x-auto p-1"
+						className="compact-navigation min-w-0 flex-1 overflow-x-auto p-1"
 					>
 						<div className="ml-auto flex w-max flex-nowrap items-center gap-1">
 							{entries.map(({ to, label, icon: Icon, active }) => (

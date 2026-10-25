@@ -21,6 +21,7 @@ import {
 import { PageHeader } from "../../../shared/components/page-header.js";
 import { buttonStyles } from "../../../shared/components/ui/button.js";
 import { Tooltip } from "../../../shared/components/ui/tooltip.js";
+import { useCompactNavigation } from "../../../shared/hooks/use-compact-navigation.js";
 import { SecuritySettings } from "../../auth/security-settings.js";
 import { useAppRuntime } from "../../runtime/context.js";
 
@@ -54,6 +55,7 @@ function sectionPath(
 }
 
 export function SettingsPage() {
+	const navigationRef = useCompactNavigation();
 	const preparation = usePreparationContext();
 	const action = usePreparationAction();
 	const { t } = useTranslation();
@@ -67,8 +69,9 @@ export function SettingsPage() {
 		<div className="stack-page">
 			<PageHeader title={t("settingsPage.title")} />
 			<nav
+				ref={navigationRef}
 				aria-label={t("settingsPage.sections.label")}
-				className="action-row -mx-1 overflow-x-auto px-1"
+				className="compact-navigation overflow-x-auto p-1"
 			>
 				<div className="flex w-max items-center gap-1">
 					{settingsSections.map((section) => {
@@ -84,11 +87,11 @@ export function SettingsPage() {
 									aria-current={activeSection === section ? "page" : undefined}
 									className={buttonStyles(
 										activeSection === section ? "secondary" : "ghost",
-										"responsive-action",
+										"header-nav-link",
 									)}
 								>
 									<Icon size={16} aria-hidden="true" />
-									<span className="responsive-action-label">
+									<span className="header-nav-label">
 										{t(`settingsPage.sections.${section}`)}
 									</span>
 								</Link>

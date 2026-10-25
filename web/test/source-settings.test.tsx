@@ -131,8 +131,10 @@ test("saves an external connection without retaining the key in UI caches, then 
 			}),
 		),
 	);
-	fireEvent.click(screen.getByLabelText("Nyaa.si"));
-	fireEvent.click(screen.getByRole("button", { name: "Save source settings" }));
+	fireEvent.change(screen.getByLabelText("Available sites"), {
+		target: { value: "nyaasi" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Save sites" }));
 	fireEvent.click(screen.getByText("Search diagnostics"));
 	await screen.findByRole("option", { name: "nyaasi" });
 	fireEvent.click(screen.getByText("Check search support"));
@@ -162,7 +164,7 @@ test("uses bundled setup explicitly and preserves selected site order on save", 
 	fireEvent.click(
 		await screen.findByRole("button", { name: "Move other earlier" }),
 	);
-	fireEvent.click(screen.getByRole("button", { name: "Save source settings" }));
+	fireEvent.click(screen.getByRole("button", { name: "Save sites" }));
 	await waitFor(() =>
 		expect(
 			f.request.mock.calls.some(
@@ -172,16 +174,15 @@ test("uses bundled setup explicitly and preserves selected site order on save", 
 			),
 		).toBe(true),
 	);
-	await waitFor(() =>
-		expect(
-			screen.getByRole<HTMLButtonElement>("button", {
-				name: "Use bundled Jackett",
-			}).disabled,
-		).toBe(false),
+	fireEvent.click(screen.getByRole("button", { name: "More service actions" }));
+	fireEvent.click(
+		await screen.findByRole("menuitem", { name: "Use bundled Jackett" }),
 	);
-	fireEvent.click(screen.getByRole("button", { name: "Use bundled Jackett" }));
 	await screen.findByText("Bundled");
-	fireEvent.click(screen.getByRole("button", { name: "Disconnect Jackett" }));
+	fireEvent.click(screen.getByRole("button", { name: "More service actions" }));
+	fireEvent.click(
+		await screen.findByRole("menuitem", { name: "Disconnect Jackett" }),
+	);
 	await screen.findByText("Not configured");
 });
 
@@ -205,4 +206,57 @@ test("an existing bundled installation asks for site review without starting set
 			{ generation: "one", initializeSite: true },
 		),
 	);
+});
+
+test("site and connection saves preserve the other editor's draft", async () => {
+	const { request } = fixture({
+		url: "http://jackett:9117/",
+		origin: "external",
+		hasApiKey: true,
+		providers: ["nyaasi", "other"],
+	});
+	await screen.findByLabelText("API URL");
+	fireEvent.click(screen.getByLabelText("Edit connection"));
+	fireEvent.change(screen.getByLabelText("API URL"), {
+		target: { value: "http://replacement:9117/" },
+	});
+	fireEvent.change(screen.getByLabelText("API key"), {
+		target: { value: "draft-secret" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Move other earlier" }));
+	fireEvent.click(screen.getByRole("button", { name: "Save sites" }));
+	await waitFor(() =>
+		expect(screen.queryByRole("button", { name: "Save sites" })).toBeNull(),
+	);
+	expect(
+		request.mock.calls.filter((call) => call[1] === "PUT")[0]?.[3],
+	).toEqual({
+		generation: "one",
+		url: "http://jackett:9117/",
+		managementUrl: null,
+		origin: "external",
+		providers: ["other", "nyaasi"],
+	});
+	expect(screen.getByLabelText<HTMLInputElement>("API key").value).toBe(
+		"draft-secret",
+	);
+	expect(screen.getByLabelText<HTMLInputElement>("API URL").value).toBe(
+		"http://replacement:9117/",
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Move nyaasi earlier" }));
+	fireEvent.click(screen.getByRole("button", { name: "Save source settings" }));
+	await waitFor(() =>
+		expect(screen.getByLabelText<HTMLInputElement>("API key").value).toBe(""),
+	);
+	expect(
+		request.mock.calls.filter((call) => call[1] === "PUT")[1]?.[3],
+	).toEqual({
+		generation: "one-saved",
+		url: "http://replacement:9117/",
+		managementUrl: null,
+		origin: "external",
+		providers: ["other", "nyaasi"],
+		apiKey: "draft-secret",
+	});
+	expect(screen.getByRole("button", { name: "Save sites" })).toBeTruthy();
 });

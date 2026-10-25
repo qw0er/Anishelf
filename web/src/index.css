@@ -168,14 +168,18 @@
 .header-nav-icon {
 	flex-shrink: 0;
 }
-@container app-header (min-width: 40rem) {
-	.header-nav-link {
-		width: auto;
-		padding-inline: 1rem;
-	}
-	.header-nav-label {
-		display: inline;
-	}
+.compact-navigation[data-compact="false"] .header-nav-link {
+	width: auto;
+	padding-inline: 1rem;
+}
+.compact-navigation[data-compact="false"] .header-nav-label {
+	display: inline;
+}
+.compact-navigation {
+	scrollbar-width: none;
+}
+.compact-navigation::-webkit-scrollbar {
+	display: none;
 }
 
 /* Measure the toolbar itself so side panels also compact on wide screens. */

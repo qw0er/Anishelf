@@ -62,54 +62,61 @@ export function QbittorrentSettings() {
 						</Button>
 					</div>
 				) : settings ? (
-					<form
-						className="flex flex-col gap-3 border-t pt-4"
-						onSubmit={(event) => {
-							event.preventDefault();
-							save.mutate(draft ?? settings.qbittorrentWebUiUrl ?? "");
-						}}
-					>
-						<div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-							<div className="flex min-w-0 flex-1 flex-col gap-2">
-								<div className="flex items-center justify-between gap-2">
-									<label
-										className="text-sm font-medium"
-										htmlFor="qbittorrent-webui-url"
-									>
-										{t("acquisition.webui.url")}
-									</label>
-									<FieldHelp
-										label={`${t("acquisition.webui.url")} · ${t("actions.help")}`}
-										help={t("acquisition.webui.urlHelp")}
+					<div className="border-t pt-4">
+						<details>
+							<summary className="cursor-pointer text-sm font-medium">
+								{t("acquisition.webui.settings")}
+							</summary>
+							<form
+								className="flex flex-col gap-3 pt-4"
+								onSubmit={(event) => {
+									event.preventDefault();
+									save.mutate(draft ?? settings.qbittorrentWebUiUrl ?? "");
+								}}
+							>
+								<div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+									<div className="flex min-w-0 flex-1 flex-col gap-2">
+										<div className="flex items-center justify-between gap-2">
+											<label
+												className="text-sm font-medium"
+												htmlFor="qbittorrent-webui-url"
+											>
+												{t("acquisition.webui.url")}
+											</label>
+											<FieldHelp
+												label={`${t("acquisition.webui.url")} · ${t("actions.help")}`}
+												help={t("acquisition.webui.urlHelp")}
+											/>
+										</div>
+										<Input
+											id="qbittorrent-webui-url"
+											type="url"
+											maxLength={2048}
+											value={draft ?? settings.qbittorrentWebUiUrl ?? ""}
+											onChange={(event) => {
+												setDraft(event.target.value);
+												save.reset();
+											}}
+											disabled={save.isPending}
+											placeholder="https://downloads.example.com/"
+										/>
+									</div>
+									<ActionButton
+										icon={Save}
+										label={t("acquisition.webui.save")}
+										shortLabel={t("actions.save")}
+										type="submit"
+										disabled={save.isPending}
 									/>
 								</div>
-								<Input
-									id="qbittorrent-webui-url"
-									type="url"
-									maxLength={2048}
-									value={draft ?? settings.qbittorrentWebUiUrl ?? ""}
-									onChange={(event) => {
-										setDraft(event.target.value);
-										save.reset();
-									}}
-									disabled={save.isPending}
-									placeholder="https://downloads.example.com/"
-								/>
-							</div>
-							<ActionButton
-								icon={Save}
-								label={t("acquisition.webui.save")}
-								shortLabel={t("actions.save")}
-								type="submit"
-								disabled={save.isPending}
-							/>
-						</div>
 
-						{save.isError && (
-							<p role="alert" className="text-sm text-destructive">
-								{t("acquisition.webui.saveFailed")}
-							</p>
-						)}
+								{save.isError && (
+									<p role="alert" className="text-sm text-destructive">
+										{t("acquisition.webui.saveFailed")}
+									</p>
+								)}
+							</form>
+						</details>
 						{settings.qbittorrentWebUiUrl ? (
 							<div className="flex flex-wrap items-center gap-2">
 								<ActionLink
@@ -122,7 +129,7 @@ export function QbittorrentSettings() {
 								/>
 							</div>
 						) : null}
-					</form>
+					</div>
 				) : null}
 			</CardContent>
 		</Card>
