@@ -558,7 +558,7 @@ test("AniList library shows status and remote-only details, keeps filters and re
 					coverUrl: null,
 				},
 			});
-		if (path.startsWith("/api/metadata/anilist/2"))
+		if (path.startsWith("/api/metadata/missing-2"))
 			return json(
 				{ message: "Unavailable", code: "METADATA_UNAVAILABLE" },
 				503,
@@ -1147,7 +1147,7 @@ test("a tracked detail refetch switches to local episodes while preserving libra
 	expect(screen.queryByText("Episode 1")).toBeNull();
 	// Provider posters are proxied through the backend artwork cache.
 	expect(screen.getByRole("img", { name: "Frieren" }).getAttribute("src")).toBe(
-		"/api/metadata/anilist/154587/artwork/cover/image",
+		"/api/metadata/metadata-work-1/artwork/cover/image",
 	);
 	available = true;
 	await act(async () => {

@@ -1,14 +1,15 @@
 import { Type } from "typebox";
 import { LocalWorkDetailSchema } from "./anime-catalog.js";
 import { DownloadActivitySchema } from "./downloads.js";
-import {
-	MetadataDetailsResponseSchema,
-	MetadataReferenceSchema,
-} from "./metadata.js";
+import { MetadataDetailsResponseSchema } from "./metadata.js";
 import { SubscriptionViewSchema } from "./subscriptions.js";
 import { TrackingEntrySchema } from "./tracking-list.js";
 export const AnimeDetailSchema = Type.Object({
-	reference: MetadataReferenceSchema,
+	reference: Type.Object({
+		provider: Type.String(),
+		mediaType: Type.Literal("anime"),
+		id: Type.String(),
+	}),
 	displayTitle: Type.String(),
 	metadata: Type.Union([MetadataDetailsResponseSchema, Type.Null()]),
 	metadataError: Type.Union([

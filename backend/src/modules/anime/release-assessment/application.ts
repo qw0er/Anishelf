@@ -1,13 +1,15 @@
 import { DomainError } from "../../../shared/errors.js";
 import { workReference } from "../../../shared/external-reference.js";
-import type { AnimeCatalogApi } from "../anime-catalog/public.js";
+import type {
+	AnimeCatalogApi,
+	CatalogMetadata,
+} from "../anime-catalog/public.js";
 import {
 	matchingTitle,
 	proposeMapping,
 	rankCandidates,
 	titleEvidence,
 } from "../identification/public.js";
-import type { MetadataApi } from "../metadata/public.js";
 import { releaseAttributes } from "./attributes.js";
 import type {
 	AcquisitionTarget,
@@ -19,7 +21,7 @@ import type {
 export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 	constructor(
 		private readonly parser: ReleaseParser,
-		private readonly metadata: MetadataApi,
+		private readonly metadata: Pick<CatalogMetadata, "get">,
 		private readonly catalog:
 			| Pick<AnimeCatalogApi, "availableEpisodes">
 			| undefined,

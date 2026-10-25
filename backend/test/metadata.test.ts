@@ -16,7 +16,8 @@ import {
 } from "../src/modules/anime/composition/metadata.js";
 import { IdentificationApplication } from "../src/modules/anime/identification/application/identification.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
-import { MetadataApplication } from "../src/modules/anime/metadata/application/metadata.js";
+import { MetadataApplication as PublicMetadataApplication } from "../src/modules/anime/metadata/application/metadata.js";
+import { SourceMetadataApplication as MetadataApplication } from "../src/modules/anime/metadata/application/source-metadata.js";
 import { AniListProvider } from "../src/modules/anime/metadata/infrastructure/anilist.js";
 import { MetadataArtworkCache } from "../src/modules/anime/metadata/infrastructure/artwork.js";
 import { metadataPolicy } from "../src/modules/anime/metadata/policy.js";
@@ -170,7 +171,18 @@ async function setup(
 		...(now ? { now } : {}),
 	});
 	cleanups.push(() => application.close());
-	return { dir, database, application, fetcher, provider, artwork };
+	return {
+		dir,
+		database,
+		application,
+		fetcher,
+		provider,
+		artwork,
+		publicMetadata: new PublicMetadataApplication(
+			application,
+			database.metadata,
+		),
+	};
 }
 async function failure(task: Promise<unknown>, code: string) {
 	await expect(task).rejects.toMatchObject({ failure: { code } });
@@ -257,9 +269,10 @@ test("fresh cache survives database restart and returned values are independent"
 			),
 		});
 		try {
-			expect((await next.get(reference, { cachedOnly: true })).snapshotId).toBe(
-				first.snapshotId,
-			);
+			expect(
+				(await next.get(next.resolveReference("154587"), { cachedOnly: true }))
+					.snapshotId,
+			).toBe(first.snapshotId);
 			expect(offline).not.toHaveBeenCalled();
 		} finally {
 			await next.close();
@@ -798,10 +811,10 @@ test("artwork failure preserves the previous usable URL version and budget evict
 });
 
 test("actual Metadata supplies Identification proposals without calendar season inference", async () => {
-	const { application } = await setup();
+	const { publicMetadata } = await setup();
 	const identification = new IdentificationApplication({
 		parser: new AnitomyIdentificationParser(),
-		metadata: createIdentificationMetadata(application),
+		metadata: createIdentificationMetadata(publicMetadata),
 	});
 	const results = await identification.identify([
 		{
@@ -849,8 +862,8 @@ test("metadata projects only explicit provider-title season and part ordinals", 
 			},
 		});
 	});
-	const { application } = await setup(fetcher);
-	const projection = createIdentificationMetadata(application);
+	const { publicMetadata } = await setup(fetcher);
+	const projection = createIdentificationMetadata(publicMetadata);
 	const candidates = await projection.search(
 		"Ocean",
 		new AbortController().signal,
@@ -868,11 +881,11 @@ test("metadata projects only explicit provider-title season and part ordinals", 
 });
 
 test("HTTP exposes normalized cache envelopes, refresh, artwork and safe failures", async () => {
-	const { application, fetcher } = await setup();
+	const { application, publicMetadata, fetcher } = await setup();
 	const app = createHttpApp({
 		config: { host: "localhost", port: 80, publicOrigin: "http://localhost" },
 		logger,
-		metadata: application,
+		metadata: publicMetadata,
 	});
 	try {
 		const search = await app.inject({
@@ -881,7 +894,11 @@ test("HTTP exposes normalized cache envelopes, refresh, artwork and safe failure
 		expect(search.statusCode).toBe(200);
 		expect(search.json()).not.toHaveProperty("raw");
 		expect(
-			(await app.inject({ url: "/api/metadata/anilist/154587" })).statusCode,
+			(
+				await app.inject({
+					url: `/api/metadata/${publicMetadata.resolveReference("154587").id}`,
+				})
+			).statusCode,
 		).toBe(200);
 		fetcher.mockImplementationOnce(async () =>
 			Response.json({ errors: [{ status: 500, message: "internal secret" }] }),
@@ -899,7 +916,9 @@ test("HTTP exposes normalized cache envelopes, refresh, artwork and safe failure
 		fetcher.mockImplementationOnce(
 			async () => new Response(null, { status: 503 }),
 		);
-		const uncached = await app.inject({ url: "/api/metadata/anilist/999" });
+		const uncached = await app.inject({
+			url: `/api/metadata/${publicMetadata.resolveReference("999").id}`,
+		});
 		expect(uncached.statusCode).toBe(503);
 		expect(uncached.json().error.code).toBe("METADATA_UNAVAILABLE");
 		expect(
@@ -907,8 +926,11 @@ test("HTTP exposes normalized cache envelopes, refresh, artwork and safe failure
 				.statusCode,
 		).toBe(400);
 		expect(
-			(await app.inject({ url: "/api/metadata/anilist/1?cachedOnly=true" }))
-				.statusCode,
+			(
+				await app.inject({
+					url: `/api/metadata/${publicMetadata.resolveReference("1").id}?cachedOnly=true`,
+				})
+			).statusCode,
 		).toBe(404);
 		fetcher.mockImplementationOnce(async () => new Response(png));
 		const status = await app.inject({
@@ -938,7 +960,7 @@ test("HTTP exposes normalized cache envelopes, refresh, artwork and safe failure
 		expect(revalidated.rawPayload).toHaveLength(0);
 		// Provider references resolve the same cached bytes for tracked works.
 		const proxied = await app.inject({
-			url: "/api/metadata/anilist/154587/artwork/cover/image",
+			url: `/api/metadata/${publicMetadata.resolveReference("154587").id}/artwork/cover/image`,
 		});
 		expect(proxied.statusCode).toBe(200);
 		expect(proxied.headers["content-type"]).toBe("image/png");
@@ -948,7 +970,7 @@ test("HTTP exposes normalized cache envelopes, refresh, artwork and safe failure
 		expect(
 			(
 				await app.inject({
-					url: "/api/metadata/anilist/154587/artwork/cover/image",
+					url: `/api/metadata/${publicMetadata.resolveReference("154587").id}/artwork/cover/image`,
 					headers: { "if-none-match": proxied.headers.etag as string },
 				})
 			).statusCode,
@@ -956,7 +978,7 @@ test("HTTP exposes normalized cache envelopes, refresh, artwork and safe failure
 		expect(
 			(
 				await app.inject({
-					url: "/api/metadata/anilist/154587/artwork/banner/image",
+					url: `/api/metadata/${publicMetadata.resolveReference("154587").id}/artwork/banner/image`,
 				})
 			).statusCode,
 		).toBe(404);
@@ -1069,16 +1091,16 @@ test("SDK rejects malformed streamed GraphQL responses without Content-Length", 
 
 test("HTTP request cancellation detaches its subscription and aborts unneeded provider work", async () => {
 	const fetcher = vi.fn<typeof fetch>(() => new Promise(() => {}));
-	const { application } = await setup(fetcher);
+	const { publicMetadata } = await setup(fetcher);
 	const app = createHttpApp({
 		config: { host: "127.0.0.1", port: 0, publicOrigin: "http://localhost" },
 		logger,
-		metadata: application,
+		metadata: publicMetadata,
 	});
 	try {
 		const controller = new AbortController();
 		const request = app.inject({
-			url: "/api/metadata/anilist/154587",
+			url: `/api/metadata/${publicMetadata.resolveReference("154587").id}`,
 			headers: { host: "localhost" },
 			signal: controller.signal,
 		});
@@ -1177,11 +1199,11 @@ test("persisted releasing snapshots with the former 24-hour expiry use the new s
 });
 
 test("manual lookup delegates provider ID and URL parsing to the configured adapter without a network request", async () => {
-	const { application, fetcher } = await setup();
+	const { publicMetadata, fetcher } = await setup();
 	const app = createHttpApp({
 		config: { host: "localhost", port: 80, publicOrigin: "http://localhost" },
 		logger,
-		metadata: application,
+		metadata: publicMetadata,
 	});
 	try {
 		for (const value of ["154587", "https://anilist.co/anime/154587/Frieren"]) {
@@ -1189,11 +1211,9 @@ test("manual lookup delegates provider ID and URL parsing to the configured adap
 				url: `/api/metadata/reference?${new URLSearchParams({ value })}`,
 			});
 			expect(response.statusCode, response.body).toBe(200);
-			expect(response.json()).toEqual({
-				provider: "anilist",
-				mediaType: "anime",
-				id: "154587",
-			});
+			expect(response.json()).toEqual(
+				publicMetadata.resolveReference("154587"),
+			);
 		}
 		expect(
 			(
@@ -1248,4 +1268,169 @@ test("aired episode count uses provider status and the next scheduled episode", 
 			now,
 		),
 	).toBeNull();
+});
+
+test("public metadata uses durable project identities across search, detail, snapshots and restart", async () => {
+	const { application, publicMetadata, database, dir, fetcher } = await setup(
+		transport(),
+		undefined,
+		true,
+	);
+	const search = await publicMetadata.search({ query: "Frieren" });
+	const identity = search.data.items[0]?.reference;
+	expect(identity).toEqual({ id: expect.any(String) });
+	expect(identity?.id).not.toBe(reference.id);
+	if (!identity) throw new Error("Missing metadata identity");
+	const detail = await publicMetadata.get(identity);
+	expect(detail.data.reference).toEqual(identity);
+	expect(publicMetadata.current(identity)?.data.reference).toEqual(identity);
+	expect(publicMetadata.snapshot(detail.snapshotId).data).toEqual(detail.data);
+	expect(detail.data.coverUrl).toBe(
+		`/api/metadata/${identity.id}/artwork/cover/image`,
+	);
+	expect(detail.data).not.toHaveProperty("siteUrl");
+	expect(detail.data).not.toHaveProperty("providerUpdatedAt");
+	expect(detail.data.unavailableFields).toContain("bannerUrl");
+	for (const result of [
+		search,
+		detail,
+		publicMetadata.snapshot(search.snapshotId),
+	]) {
+		const value = JSON.stringify(result);
+		expect(value).not.toContain('"provider"');
+		expect(value).not.toContain("anilist");
+		expect(value).not.toContain("bannerImage");
+	}
+	// Identities are not evictable search/snapshot evidence.
+	database.metadata.prune(0, 0);
+	const reopened = ApplicationDatabase.open(dir);
+	try {
+		const projection = new PublicMetadataApplication(
+			application,
+			reopened.metadata,
+		);
+		expect(projection.resolveReference("154587")).toEqual(identity);
+		expect(projection.externalReference(identity)).toEqual(reference);
+	} finally {
+		reopened.close();
+	}
+	expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+test("public metadata rejects source selection and unknown project IDs without upstream requests", async () => {
+	const { publicMetadata, fetcher } = await setup();
+	const app = createHttpApp({
+		config: { host: "localhost", port: 80, publicOrigin: "http://localhost" },
+		logger,
+		metadata: publicMetadata,
+	});
+	try {
+		for (const url of [
+			"/api/metadata/search?query=Frieren&provider=anilist",
+			"/api/metadata/reference?value=154587&provider=anilist",
+		]) {
+			expect((await app.inject({ url })).statusCode).toBe(400);
+		}
+		expect(
+			(await app.inject({ url: "/api/metadata/unknown-work" })).statusCode,
+		).toBe(404);
+		expect(
+			(await app.inject({ url: "/api/metadata/anilist/154587" })).statusCode,
+		).toBe(404);
+		expect(fetcher).not.toHaveBeenCalled();
+	} finally {
+		await app.close();
+	}
+});
+
+test("relations and airing snapshots use project references and episode identities", async () => {
+	const { publicMetadata } = await setup();
+	const identity = publicMetadata.resolveReference("154587");
+	const relations = await publicMetadata.relations(identity);
+	const related = relations.data.items[0]?.work.reference;
+	expect(related).toEqual(publicMetadata.resolveReference("200"));
+	expect(JSON.stringify(relations)).not.toContain("anilist");
+	expect(publicMetadata.snapshot(relations.snapshotId).data).toEqual(
+		relations.data,
+	);
+	const airing = await publicMetadata.airing(identity);
+	expect(airing.data.items).toEqual([
+		{ id: "1", episode: 1, airingAt: 1700000000 },
+	]);
+	expect(publicMetadata.snapshot(airing.snapshotId).data).toEqual(airing.data);
+});
+
+test("public metadata hides source failure messages while preserving retry semantics", async () => {
+	const { publicMetadata, application } = await setup();
+	vi.spyOn(application, "get").mockRejectedValueOnce(
+		new MetadataError({
+			code: "rate-limited",
+			message: "AniList request failed at https://anilist.co/internal",
+			retryAt: 12345,
+		}),
+	);
+	await expect(
+		publicMetadata.get(publicMetadata.resolveReference("154587")),
+	).rejects.toMatchObject({
+		failure: {
+			code: "rate-limited",
+			retryAt: 12345,
+			message: "Metadata could not be loaded. Retry shortly.",
+		},
+	});
+});
+
+test("different configured sources produce the same project contract without source selectors", async () => {
+	const { application, database, artwork, provider } = await setup();
+	const raw = (await application.get(reference)).data;
+	const alternateReference = {
+		provider: "alternate",
+		mediaType: "anime",
+		id: "42",
+	} as const;
+	const alternateWork = { ...raw, reference: alternateReference };
+	const alternate = {
+		capabilities: { ...provider.capabilities, key: "alternate" },
+		resolveReference: (value: string) =>
+			value === "https://example.com/work/42" ? alternateReference : null,
+		search: async () => ({
+			data: {
+				items: [alternateWork],
+				page: 1,
+				perPage: 10,
+				hasNextPage: false,
+			},
+		}),
+		get: async () => ({ data: alternateWork }),
+		relations: async () => ({
+			data: { items: [], page: 1, perPage: 25, hasNextPage: false },
+		}),
+		airing: async () => ({
+			data: { items: [], page: 1, perPage: 25, hasNextPage: false },
+		}),
+	};
+	const source = new MetadataApplication({
+		defaultProvider: "alternate",
+		store: database.metadata,
+		providers: [alternate, provider],
+		artwork,
+		logger,
+	});
+	cleanups.push(() => source.close());
+	const api = new PublicMetadataApplication(source, database.metadata);
+	const search = await api.search({ query: "Frieren" });
+	const found = search.data.items[0]?.reference;
+	expect(api.resolveReference("https://example.com/work/42")).toEqual(found);
+	if (!found) throw new Error("Missing work");
+	const alternateDetail = await api.get(found);
+	const other = api.resolveReference("https://anilist.co/anime/154587");
+	const otherDetail = await api.get(other);
+	expect(found).not.toEqual(other);
+	expect(Object.keys(alternateDetail.data).sort()).toEqual(
+		Object.keys(otherDetail.data).sort(),
+	);
+	expect(JSON.stringify(search)).not.toMatch(/anilist|alternate|provider/);
+	expect(JSON.stringify(alternateDetail)).not.toMatch(
+		/anilist|alternate|provider/,
+	);
 });

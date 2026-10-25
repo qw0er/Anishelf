@@ -11,7 +11,7 @@ import {
 	type WorkDetails,
 	type WorkRelation,
 	type WorkSummary,
-} from "../domain/model.js";
+} from "../domain/source-model.js";
 import type { MetadataProvider, ProviderResult } from "../ports.js";
 
 function invalid(): MetadataError {

@@ -10,7 +10,7 @@ import { AnitomyIdentificationParser } from "../src/modules/anime/identification
 import type {
 	CachedMetadata,
 	WorkDetails,
-} from "../src/modules/anime/metadata/public.js";
+} from "../src/modules/anime/metadata/domain/source-model.js";
 import { AnimeReleaseAssessment } from "../src/modules/anime/release-assessment/application.js";
 import { AcquisitionIngestion } from "../src/modules/anime/release-assessment/ingestion.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";

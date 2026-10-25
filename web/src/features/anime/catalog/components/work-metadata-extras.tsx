@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { LocalWorkDetailResponse } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
-import { fuzzyDate, safeLink } from "../detail-format.js";
+import { fuzzyDate } from "../detail-format.js";
 import type { LocalWorkDetailController } from "../use-local-work-detail.js";
 export function WorkMetadataExtras({
 	data,
@@ -21,7 +21,6 @@ export function WorkMetadataExtras({
 	const showSpoilers = controller?.showSpoilers ?? localSpoilers;
 	const toggleSpoilers =
 		controller?.toggleSpoilers ?? (() => setLocalSpoilers((value) => !value));
-	const providerUrl = safeLink(info.siteUrl);
 	return (
 		<details className="space-y-3 rounded-lg border p-4">
 			<summary className="cursor-pointer font-medium">
@@ -54,23 +53,6 @@ export function WorkMetadataExtras({
 					</div>
 				))}
 			</dl>
-			<p className="text-sm text-muted-foreground">
-				{t("anime.provider", { provider: info.reference.provider })}
-				{providerUrl && (
-					<>
-						{" "}
-						·{" "}
-						<a
-							className="underline"
-							href={providerUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							{t("anime.providerPage")}
-						</a>
-					</>
-				)}
-			</p>
 			<p className="text-sm">
 				{info.tags
 					.filter((tag) => showSpoilers || !tag.spoiler)

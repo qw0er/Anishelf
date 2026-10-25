@@ -1,10 +1,16 @@
+import type { ExternalWorkReference } from "../../../shared/external-reference.js";
 import type {
 	RegisteredSource,
 	SourceIdentity,
 	SourceRegistry,
 } from "../../resources/public.js";
 import type { IdentificationResult } from "../identification/public.js";
-import type { MetadataApi } from "../metadata/public.js";
+import type {
+	CachedMetadata,
+	MetadataApi,
+	ReadOptions,
+	WorkDetails,
+} from "../metadata/public.js";
 import type {
 	Association,
 	CatalogQuery,
@@ -19,14 +25,14 @@ import type {
 export interface CatalogMetadata
 	extends Pick<
 		MetadataApi,
-		| "get"
-		| "current"
-		| "snapshot"
-		| "retain"
-		| "release"
-		| "snapshotArtwork"
-		| "readArtwork"
-	> {}
+		"snapshot" | "retain" | "release" | "snapshotArtwork" | "readArtwork"
+	> {
+	get(
+		reference: ExternalWorkReference,
+		options?: ReadOptions,
+	): Promise<CachedMetadata<WorkDetails>>;
+	current(reference: ExternalWorkReference): CachedMetadata<WorkDetails> | null;
+}
 export interface CatalogStore extends SourceRegistry {
 	transaction<T>(operation: (store: CatalogStore) => T): T;
 	publish(

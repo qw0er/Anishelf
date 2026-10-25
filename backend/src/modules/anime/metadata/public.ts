@@ -5,51 +5,49 @@ import type {
 	CachedMetadata,
 	MetadataSnapshot,
 	Page,
-	ProviderCapabilities,
-	ProviderReference,
 	ReadOptions,
 	SearchRequest,
 	WorkDetails,
+	WorkReference,
 	WorkRelation,
 	WorkSummary,
 } from "./domain/model.js";
 
-export type { ProviderReference } from "./domain/model.js";
+export type { WorkReference } from "./domain/model.js";
 export {
 	airedEpisodeCount,
 	MetadataError,
 	workTitle,
 } from "./domain/model.js";
 export interface MetadataApi {
-	providers(): ProviderCapabilities[];
-	resolveReference(value: string, provider?: string): ProviderReference;
+	resolveReference(value: string): WorkReference;
 	search(
 		request: SearchRequest,
 		options?: ReadOptions,
 	): Promise<CachedMetadata<Page<WorkSummary>>>;
 	get(
-		reference: ProviderReference,
+		reference: WorkReference,
 		options?: ReadOptions,
 	): Promise<CachedMetadata<WorkDetails>>;
 	relations(
-		reference: ProviderReference,
+		reference: WorkReference,
 		page?: number,
 		perPage?: number,
 		options?: ReadOptions,
 	): Promise<CachedMetadata<Page<WorkRelation>>>;
 	airing(
-		reference: ProviderReference,
+		reference: WorkReference,
 		page?: number,
 		perPage?: number,
 		options?: ReadOptions,
 	): Promise<CachedMetadata<Page<AiringEpisode>>>;
 	snapshot(snapshotId: string): MetadataSnapshot;
-	current(reference: ProviderReference): CachedMetadata<WorkDetails> | null;
+	current(reference: WorkReference): CachedMetadata<WorkDetails> | null;
 	/** Catalog owns owner IDs; idempotent pins preserve referenced snapshot versions. */
 	retain(snapshotId: string, ownerId: string): void;
 	release(snapshotId: string, ownerId: string): void;
 	artwork(
-		reference: ProviderReference,
+		reference: WorkReference,
 		kind: "cover" | "banner",
 		options?: ReadOptions,
 	): Promise<ArtworkStatus>;
@@ -59,9 +57,9 @@ export interface MetadataApi {
 		kind: "cover" | "banner",
 	): Promise<ArtworkStatus>;
 	readArtwork(id: string): Promise<ArtworkAsset>;
-	/** Cached artwork identity for a provider reference, without contacting the provider. */
+	/** Cached artwork identity for a project work, without a network request. */
 	cachedArtworkId(
-		reference: ProviderReference,
+		reference: WorkReference,
 		kind: "cover" | "banner",
 	): Promise<string | null>;
 }
@@ -69,5 +67,6 @@ export interface MetadataApi {
 export type {
 	CachedMetadata,
 	MetadataFailure,
+	ReadOptions,
 	WorkDetails,
 } from "./domain/model.js";

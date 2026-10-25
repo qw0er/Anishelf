@@ -25,6 +25,7 @@ export {
 export {
 	metadataArtwork,
 	metadataPins,
+	metadataReferences,
 	metadataSnapshots,
 } from "./metadata/persistence.js";
 export {

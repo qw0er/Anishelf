@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import { workKey } from "../../../../shared/external-reference.js";
-import { type WorkSummary, workTitle } from "../domain/model.js";
+import { type WorkSummary, workTitle } from "../domain/source-model.js";
 import { metadataWorks } from "./schema.js";
 
 /** Only the Metadata adapter writes the shared index, including summaries supplied by Tracking. */

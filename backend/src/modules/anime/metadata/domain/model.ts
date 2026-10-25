@@ -1,5 +1,6 @@
-export type ProviderReference =
-	import("../../../../shared/external-reference.js").ExternalWorkReference;
+export interface WorkReference {
+	id: string;
+}
 export interface MetadataTitle {
 	value: string;
 	language: string | null;
@@ -40,9 +41,9 @@ interface NextAiringEpisode {
 }
 
 export interface WorkSummary {
-	/** Queried provider fields explicitly returned null, including unknown lists. */
+	/** Unavailable fields, named using the project metadata vocabulary. */
 	unavailableFields: string[];
-	reference: ProviderReference;
+	reference: WorkReference;
 	titles: MetadataTitle[];
 	year: number | null;
 	format: string | null;
@@ -68,10 +69,8 @@ export interface WorkDetails extends WorkSummary {
 	source: string | null;
 	genres: string[];
 	tags: { name: string; rank: number | null; spoiler: boolean }[];
-	studios: { id: string; name: string }[];
+	studios: { name: string }[];
 	averageScore: number | null;
-	siteUrl: string | null;
-	providerUpdatedAt: number | null;
 	streamingEpisodes: {
 		title: string | null;
 		url: string | null;
@@ -134,19 +133,8 @@ export interface ReadOptions {
 }
 export interface SearchRequest {
 	query: string;
-	provider?: string;
 	page?: number;
 	perPage?: number;
-}
-export interface ProviderCapabilities {
-	key: string;
-	version: string;
-	search: true;
-	details: true;
-	relations: boolean;
-	airing: boolean;
-	streamingLinks: boolean;
-	canonicalEpisodes: false;
 }
 export interface ArtworkStatus {
 	id: string | null;

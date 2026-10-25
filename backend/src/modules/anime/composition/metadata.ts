@@ -4,9 +4,9 @@ import {
 	titleEvidence,
 } from "../identification/public.js";
 import { MetadataApplication } from "../metadata/application/metadata.js";
+import { SourceMetadataApplication } from "../metadata/application/source-metadata.js";
 import { MetadataArtworkCache } from "../metadata/infrastructure/artwork.js";
 import type { MetadataProvider, MetadataStore } from "../metadata/ports.js";
-import type { MetadataApi } from "../metadata/public.js";
 export async function createMetadataModule(options: {
 	dataDir: string;
 	store: MetadataStore;
@@ -24,18 +24,19 @@ export async function createMetadataModule(options: {
 		...(options.fetch ? { fetch: options.fetch } : {}),
 	});
 	await artwork.initialize();
-	return new MetadataApplication({
+	const source = new SourceMetadataApplication({
 		defaultProvider: options.defaultProvider,
 		store: options.store,
 		logger: options.logger,
 		artwork,
 		providers: options.providers,
 	});
+	return new MetadataApplication(source, options.store, options.logger);
 }
 
 /** Explicit provider title ordinals only; calendar seasons/relations are not ordinals. */
 export function createIdentificationMetadata(
-	metadata: MetadataApi,
+	metadata: MetadataApplication,
 ): IdentificationMetadata {
 	return {
 		search: async (query, signal) => {
@@ -46,7 +47,7 @@ export function createIdentificationMetadata(
 				const seasons = [...new Set(evidence.flatMap((item) => item.seasons))];
 				const parts = [...new Set(evidence.flatMap((item) => item.parts))];
 				return {
-					reference: work.reference,
+					reference: metadata.externalReference(work.reference),
 					snapshotId: result.snapshotId,
 					titles: work.titles.map((title) => title.value),
 					titleVariants: work.titles.map((title) => ({
@@ -66,5 +67,22 @@ export function createIdentificationMetadata(
 				};
 			});
 		},
+	};
+}
+
+/** Adapt explicit Catalog/Tracking associations on input; results remain source-independent. */
+export function createCatalogMetadata(
+	metadata: import("../metadata/application/metadata.js").MetadataApplication,
+): import("../anime-catalog/ports.js").CatalogMetadata {
+	return {
+		get: (reference, options) =>
+			metadata.get(metadata.referenceForExternal(reference), options),
+		current: (reference) =>
+			metadata.current(metadata.referenceForExternal(reference)),
+		snapshot: (id) => metadata.snapshot(id),
+		retain: (id, owner) => metadata.retain(id, owner),
+		release: (id, owner) => metadata.release(id, owner),
+		snapshotArtwork: (id, kind) => metadata.snapshotArtwork(id, kind),
+		readArtwork: (id) => metadata.readArtwork(id),
 	};
 }

@@ -1,21 +1,55 @@
+import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, ne, notInArray, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
+import type { ExternalWorkReference } from "../../../../shared/external-reference.js";
 import type {
 	MetadataFailure,
 	Page,
 	WorkRelation,
 	WorkSummary,
-} from "../domain/model.js";
+} from "../domain/source-model.js";
 import type { ArtworkRecord, CacheEntry, MetadataStore } from "../ports.js";
 import {
 	metadataArtwork,
 	metadataPins,
+	metadataReferences,
 	metadataSnapshots,
 	metadataWorks,
 } from "./schema.js";
 import { saveWorkSummary } from "./works.js";
 export class MetadataRepository implements MetadataStore {
 	constructor(private readonly store: Store) {}
+	identify(reference: ExternalWorkReference): string {
+		return this.store.transaction(() => {
+			const existing = this.store
+				.select()
+				.from(metadataReferences)
+				.where(
+					and(
+						eq(metadataReferences.provider, reference.provider),
+						eq(metadataReferences.providerId, reference.id),
+					),
+				)
+				.get();
+			if (existing) return existing.id;
+			const id = randomUUID();
+			this.store
+				.insert(metadataReferences)
+				.values({ id, provider: reference.provider, providerId: reference.id })
+				.run();
+			return id;
+		});
+	}
+	reference(id: string): ExternalWorkReference | null {
+		const row = this.store
+			.select()
+			.from(metadataReferences)
+			.where(eq(metadataReferences.id, id))
+			.get();
+		return row
+			? { provider: row.provider, id: row.providerId, mediaType: "anime" }
+			: null;
+	}
 	private decode(row: typeof metadataSnapshots.$inferSelect): CacheEntry {
 		return {
 			id: row.id,

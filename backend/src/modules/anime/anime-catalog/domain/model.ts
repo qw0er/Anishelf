@@ -1,12 +1,9 @@
+import type { ExternalWorkReference as ProviderReference } from "../../../../shared/external-reference.js";
 import type {
 	ExtractionEvidence,
 	IdentificationResult,
 } from "../../identification/public.js";
-import type {
-	CachedMetadata,
-	ProviderReference,
-	WorkDetails,
-} from "../../metadata/public.js";
+import type { CachedMetadata, WorkDetails } from "../../metadata/public.js";
 
 export interface EpisodeTarget {
 	kind: "regular" | "special" | "movie";

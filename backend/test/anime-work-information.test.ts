@@ -5,7 +5,7 @@ import { join } from "node:path";
 import Database from "better-sqlite3";
 import { expect, test } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
-import type { WorkDetails } from "../src/modules/anime/metadata/public.js";
+import type { WorkDetails } from "../src/modules/anime/metadata/domain/source-model.js";
 import { workKey } from "../src/shared/external-reference.js";
 
 const reference = {

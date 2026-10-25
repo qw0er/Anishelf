@@ -95,7 +95,7 @@ export class AssociationApplication {
 		const value: CatalogPreview = {
 			id: randomUUID(),
 			expiresAt: Date.now() + policy.previewTtlMs,
-			reference: metadata.data.reference,
+			reference: request.reference,
 			workId: work?.id ?? null,
 			workRevision: work?.revision ?? null,
 			metadata,

@@ -1,7 +1,7 @@
 import type { Logger } from "pino";
 import type { LibraryApi, ResourceAccessApi } from "../../resources/public.js";
 import { AnimeCatalogApplication } from "../anime-catalog/application/catalog.js";
-import type { MetadataApplication } from "../metadata/application/metadata.js";
+import type { CatalogMetadata } from "../anime-catalog/ports.js";
 
 type LibraryCapability = LibraryApi & { readonly sources: ResourceAccessApi };
 
@@ -14,7 +14,7 @@ export function createCatalogModule({
 	logger,
 }: {
 	database: AnimePersistence;
-	metadata: MetadataApplication | undefined;
+	metadata: CatalogMetadata | undefined;
 	library: LibraryCapability;
 	logger: Logger;
 }) {

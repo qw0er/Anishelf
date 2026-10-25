@@ -23,12 +23,7 @@ export function WorkMetadataHeader({
 		metadata: LocalWorkDetailResponse["metadata"];
 		work: Pick<
 			LocalWorkDetailResponse["work"],
-			| "displayTitle"
-			| "coverUrl"
-			| "format"
-			| "year"
-			| "episodeCount"
-			| "reference"
+			"displayTitle" | "coverUrl" | "format" | "year" | "episodeCount"
 		>;
 	};
 }) {

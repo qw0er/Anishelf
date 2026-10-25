@@ -20,7 +20,7 @@ export function RelatedWorks({
 				<ul className="space-y-1 text-sm">
 					{relations.data.data.items.map((relation) => (
 						<li
-							key={`${relation.type}:${relation.work.reference.provider}:${relation.work.reference.id}`}
+							key={`${relation.type}:${relation.work.reference.id}`}
 							className="wrap-anywhere"
 						>
 							{relation.type.replaceAll("_", " ")} ·{" "}

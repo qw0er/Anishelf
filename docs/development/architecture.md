@@ -118,8 +118,19 @@ flowchart LR
 | Anime Library | Read-only join of Catalog and Tracking with filtering/pagination |
 | AniList protocol | Typed provider clients, response validation, shared pacing/retry/cancellation |
 
-Provider-qualified IDs remain opaque outside adapters. Metadata and Tracking use
-consumer-owned ports; provider protocol code does not import their business types.
+Metadata's public API uses permanent project work IDs (`reference: { id }`). Search,
+detail, relations, schedules, retained snapshots and artwork all use this identity.
+Callers cannot select a metadata provider. Supported external links and IDs are
+resolved internally; source mappings and source cache evidence stay private.
+Returned descriptions use the project vocabulary, source page/update fields and
+source studio/schedule IDs are omitted, and artwork uses project proxy URLs.
+
+Catalog and Tracking keep their explicit external associations for viewing-state
+submission. Composition translates those associations into metadata work IDs on
+input; descriptive results remain source-independent. Identification retains the
+external association needed to confirm a Tracking target, separately from metadata
+provenance. Metadata and Tracking use consumer-owned ports; provider protocol code
+does not import their business types.
 Manual decisions survive recognition refreshes. AniList outages leave local playback,
 subtitles, preparation, resume and history available.
 

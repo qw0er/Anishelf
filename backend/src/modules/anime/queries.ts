@@ -1,12 +1,10 @@
 import type { Logger } from "pino";
 import { DomainError } from "../../shared/errors.js";
 import { workKey, workReference } from "../../shared/external-reference.js";
+import type { CatalogMetadata as MetadataApi } from "./anime-catalog/ports.js";
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
-import {
-	type MetadataApi,
-	MetadataError,
-	workTitle,
-} from "./metadata/public.js";
+import { MetadataError, workTitle } from "./metadata/public.js";
+
 import type { AnimeApi, AnimeDetail } from "./public.js";
 import type { TrackingApi } from "./tracking/public.js";
 

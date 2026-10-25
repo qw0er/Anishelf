@@ -16,15 +16,10 @@ import type { HttpInstance } from "../../../../transport/instance.js";
 import {
 	type MetadataApi,
 	MetadataError,
-	type ProviderReference,
+	type WorkReference,
 } from "../public.js";
 
-const reference = (params: {
-	provider: string;
-	id: string;
-}): ProviderReference => ({
-	provider: params.provider,
-	mediaType: "anime",
+const reference = (params: { id: string }): WorkReference => ({
 	id: params.id,
 });
 async function withSignal<T>(
@@ -58,15 +53,13 @@ export function registerMetadataRoutes(
 				querystring: Type.Object(
 					{
 						value: Type.String({ minLength: 1, maxLength: 2000 }),
-						provider: Type.Optional(Type.String({ minLength: 1 })),
 					},
 					{ additionalProperties: false },
 				),
 				response: { 200: MetadataReferenceSchema },
 			},
 		},
-		async (request) =>
-			metadata.resolveReference(request.query.value, request.query.provider),
+		async (request) => metadata.resolveReference(request.query.value),
 	);
 	app.get(
 		"/api/metadata/search",
@@ -82,9 +75,6 @@ export function registerMetadataRoutes(
 				metadata.search(
 					{
 						query: request.query.query,
-						...(request.query.provider
-							? { provider: request.query.provider }
-							: {}),
 						page: Number(request.query.page ?? 1),
 						perPage: Number(request.query.perPage ?? 10),
 					},
@@ -94,7 +84,7 @@ export function registerMetadataRoutes(
 		},
 	);
 	app.get(
-		"/api/metadata/:provider/:id",
+		"/api/metadata/:id",
 		{
 			schema: {
 				params: MetadataReferenceParamsSchema,
@@ -113,7 +103,7 @@ export function registerMetadataRoutes(
 		},
 	);
 	app.get(
-		"/api/metadata/:provider/:id/relations",
+		"/api/metadata/:id/relations",
 		{
 			schema: {
 				params: MetadataReferenceParamsSchema,
@@ -134,7 +124,7 @@ export function registerMetadataRoutes(
 		},
 	);
 	app.get(
-		"/api/metadata/:provider/:id/airing",
+		"/api/metadata/:id/airing",
 		{
 			schema: {
 				params: MetadataReferenceParamsSchema,
@@ -155,7 +145,7 @@ export function registerMetadataRoutes(
 		},
 	);
 	app.get(
-		"/api/metadata/:provider/:id/artwork/:kind/image",
+		"/api/metadata/:id/artwork/:kind/image",
 		{
 			schema: {
 				params: Type.Object({
@@ -173,7 +163,7 @@ export function registerMetadataRoutes(
 			if (!status.id)
 				throw new MetadataError({
 					code: status.status === "missing" ? "not-found" : "unavailable",
-					message: "Provider artwork is unavailable.",
+					message: "Work artwork is unavailable.",
 					retryAt: status.failure?.retryAt ?? null,
 				});
 			const asset = await metadata.readArtwork(status.id);
