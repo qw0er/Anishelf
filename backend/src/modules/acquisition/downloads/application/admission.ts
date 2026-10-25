@@ -11,6 +11,18 @@ export class SubmissionAdmission {
 		private readonly context: DownloadApplicationContext,
 		private readonly destination: DownloadDestinationSettings,
 	) {}
+	private stopped(execution: DownloadExecution): null {
+		if (execution.current.state === "pending")
+			this.context.options.logger.info(
+				{
+					event: "acquisition.submission_stopped",
+					intentId: execution.current.id,
+					workKey: execution.current.workKey,
+				},
+				"Subscription permission changed before submission; no new download was submitted.",
+			);
+		return null;
+	}
 	async authorize(
 		execution: DownloadExecution,
 		client: QbittorrentApi,
@@ -21,7 +33,7 @@ export class SubmissionAdmission {
 			item.workKey,
 		);
 		if (!subscription || !this.destination.authorized(subscription))
-			return null;
+			return this.stopped(execution);
 		if (subscription.startEpisode > item.episode) return null;
 		const destination = this.context.options.store.destination();
 		if (!destination || destination.revision !== item.destination.revision)
@@ -75,7 +87,7 @@ export class SubmissionAdmission {
 			before.revision !== subscription.revision ||
 			!this.destination.authorized(before)
 		)
-			return null;
+			return this.stopped(execution);
 		const choice = this.context.options.selection
 			.candidates(item.workKey)
 			.find(

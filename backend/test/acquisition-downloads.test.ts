@@ -1551,7 +1551,7 @@ test.each([
 	{ change: "disable", submitted: true },
 	{ change: "paused", submitted: true },
 ])(
-	"ordinary Watching-created downloads continue after $change; submitted=$submitted",
+	"Watching gates new submissions and preserves submitted downloads after $change; submitted=$submitted",
 	async ({ change, submitted }) => {
 		const f = await fixture();
 		const old = f.db.acquisition.subscription(key);
@@ -1619,6 +1619,8 @@ test.each([
 			lockedCandidates: (workKey) =>
 				f.db.acquisitionDownloads.lockedCandidates(workKey),
 			onRemoved: (key) => watching?.manualRemove(key),
+			managedStopReason: (subscription) =>
+				watching ? watching.stopReason(subscription) : "authorization_required",
 		});
 		cleanup.push(() => subscriptions.close());
 		const suspend = () => {
@@ -1691,7 +1693,7 @@ test.each([
 		await worker.tick();
 		if (!submitted) {
 			expect(reservedBeforeSuspend).toBe(true);
-			expect(f.add).toHaveBeenCalledTimes(1);
+			expect(f.add).not.toHaveBeenCalled();
 			expect(f.ingestion.ingest).not.toHaveBeenCalled();
 		} else {
 			expect(f.add).toHaveBeenCalledTimes(1);
@@ -1706,7 +1708,7 @@ test.each([
 			await worker.tick();
 			expect(f.add).toHaveBeenCalledTimes(1);
 		}
-		expect(subscriptions.selection().subscription(key)?.enabled).toBe(true);
+		expect(subscriptions.selection().subscription(key)?.enabled).toBe(false);
 	},
 );
 

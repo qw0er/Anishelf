@@ -70,3 +70,51 @@ test("unification preserves manual permissions, pins, candidates and frozen scop
 		db.close();
 	}
 });
+
+test("lifecycle migration binds only unambiguous automatic ownership and preserves manual state and old pauses", async () => {
+	const db = new Database(":memory:");
+	try {
+		db.exec(`
+			CREATE TABLE acquisition_subscriptions (work_key TEXT PRIMARY KEY, created_by TEXT, enabled INTEGER, revision TEXT);
+			CREATE TABLE acquisition_watching_members (account_id TEXT, work_key TEXT, excluded INTEGER, paused INTEGER);
+			CREATE TABLE acquisition_watching_policy (id TEXT PRIMARY KEY, value TEXT);
+			INSERT INTO acquisition_watching_policy VALUES ('default', '{"grant":{"accountId":"current"}}');
+			INSERT INTO acquisition_subscriptions VALUES ('manual', NULL, 0, 'manual'), ('managed', 'watching', 1, 'managed'), ('paused', 'watching', 0, 'paused'), ('ambiguous', 'watching', 1, 'ambiguous'), ('unrecorded', 'watching', 1, 'unrecorded');
+			INSERT INTO acquisition_watching_members VALUES ('owner', 'managed', 0, 0), ('owner', 'paused', 0, 0), ('one', 'ambiguous', 0, 0), ('two', 'ambiguous', 0, 0);
+		`);
+		const sql = await readFile(
+			new URL("../migrations/0012_subscription_lifecycle.sql", import.meta.url),
+			"utf8",
+		);
+		db.transaction(() => db.exec(sql))();
+		expect(
+			db
+				.prepare(
+					"SELECT work_key, enabled, watching_account_id FROM acquisition_subscriptions ORDER BY work_key",
+				)
+				.all(),
+		).toEqual([
+			{ work_key: "ambiguous", enabled: 1, watching_account_id: null },
+			{ work_key: "managed", enabled: 1, watching_account_id: "owner" },
+			{ work_key: "manual", enabled: 0, watching_account_id: null },
+			{ work_key: "paused", enabled: 1, watching_account_id: "owner" },
+			{ work_key: "unrecorded", enabled: 1, watching_account_id: "current" },
+		]);
+		expect(
+			db
+				.prepare(
+					"SELECT excluded, paused FROM acquisition_watching_members WHERE work_key = 'paused'",
+				)
+				.get(),
+		).toEqual({ excluded: 1, paused: 0 });
+		expect(
+			db
+				.prepare(
+					"SELECT completion FROM acquisition_subscriptions WHERE work_key = 'managed'",
+				)
+				.get(),
+		).toEqual({ completion: null });
+	} finally {
+		db.close();
+	}
+});

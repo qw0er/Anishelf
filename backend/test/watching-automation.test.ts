@@ -85,6 +85,7 @@ async function fixture() {
 		path: "/downloads",
 	};
 	const refresh = vi.fn(async () => structuredClone(snapshot));
+	const downloads = vi.fn(async (): Promise<string[]> => []);
 	async function open() {
 		const db = ApplicationDatabase.open(directory);
 		cleanup.push(() => db.close());
@@ -117,7 +118,7 @@ async function fixture() {
 					version: "v1",
 				}),
 			},
-			downloads: async () => [],
+			downloads,
 			logger,
 			profiles: [
 				{
@@ -129,11 +130,15 @@ async function fixture() {
 			defaultProfileId: () => defaultProfileId,
 			downloadTarget: () => destination,
 			onRemoved: (key) => watching?.manualRemove(key),
+			managedStopReason: (subscription) =>
+				watching ? watching.stopReason(subscription) : "authorization_required",
 		});
 		cleanup.push(() => subscriptions.close());
 		watching = new WatchingApplication({
 			store: db.acquisition.watching,
 			hasCapacity: () => subscriptions.hasCapacity(),
+			renewManaged: (accountId, target, workKeys) =>
+				subscriptions.renewManaged(accountId, target, workKeys),
 			transaction: (operation) => db.acquisition.transaction(operation),
 			tracking: { snapshot: () => structuredClone(snapshot), refresh },
 			sources: sources.api,
@@ -166,10 +171,12 @@ async function fixture() {
 		logger,
 		snapshot,
 		search,
+		downloads,
 		refresh,
 		open,
 		enable,
 		destination,
+		target,
 		setFingerprint: (value: string) => {
 			fingerprint = value;
 		},
@@ -217,7 +224,7 @@ test("Watching only accepts the subscription default and fences default changes 
 	expect(f.db.acquisition.subscription(workKey)).toEqual(existing);
 });
 
-test("default-off previews do not search; Watching creates an ordinary pending subscription", async () => {
+test("default-off previews do not search; Watching creates a group-managed pending subscription", async () => {
 	const f = await fixture();
 	await f.watching.tick();
 	expect(f.refresh).not.toHaveBeenCalled();
@@ -281,7 +288,7 @@ test("empty discovery retains intent, freezes its creation scope, retries and su
 	expect(f.search).toHaveBeenCalledTimes(2);
 });
 
-test("Watching status, account changes and disable affect creation only; manual pause survives edits", async () => {
+test("Watching group gates existing subscriptions while manual takeover and pause remain independent", async () => {
 	const f = await fixture();
 	await f.enable();
 	await f.watching.tick();
@@ -292,17 +299,43 @@ test("Watching status, account changes and disable affect creation only; manual 
 		f.snapshot.revision = status;
 		await f.watching.tick();
 		expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
-			true,
+			status === "watching",
 		);
 	}
+	f.snapshot.fresh = false;
+	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
+		false,
+	);
+	f.snapshot.fresh = true;
 	f.watching.disable(f.watching.status().revision);
-	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(true);
+	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
+		false,
+	);
+	expect(f.subscriptions.activeSourceIds()).toEqual([]);
+	await expect(
+		f.subscriptions.setEnabled(workKey, saved.revision, true),
+	).rejects.toThrow(/Watching settings/);
+	const taken = await f.subscriptions.save({
+		workKey,
+		revision: saved.revision,
+		source: null,
+		startEpisode: 2,
+		profileId: config.profileId,
+		target: {
+			destinationRevision: "destination",
+			connectionGeneration: "downloader",
+		},
+	});
+	expect(taken.subscription).toMatchObject({
+		management: "manual",
+		runState: "active",
+	});
 	f.snapshot.accountId = "different";
 	f.snapshot.generation = "different";
 	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(true);
 	const paused = await f.subscriptions.setEnabled(
 		workKey,
-		saved.revision,
+		required(taken.subscription).revision,
 		false,
 	);
 	const edited = await f.subscriptions.save({
@@ -317,7 +350,6 @@ test("Watching status, account changes and disable affect creation only; manual 
 		},
 	});
 	expect(edited.subscription?.enabled).toBe(false);
-	expect(edited.subscription?.startEpisode).toBe(2);
 });
 
 test("manual automatic-source subscriptions save before discovery and share the same pipeline", async () => {
@@ -348,10 +380,21 @@ test("manual automatic-source subscriptions save before discovery and share the 
 	expect(f.db.acquisition.authorization(workKey)?.startEpisode).toBe(1);
 });
 
-test("unsubscribe suppresses automatic recreation; explicit inclusion allows a new subscription", async () => {
+test("manual unsubscribe suppresses automatic recreation; explicit inclusion allows a new subscription", async () => {
 	const f = await fixture();
 	await f.enable();
 	await f.watching.tick();
+	await f.subscriptions.save({
+		workKey,
+		revision: required(f.db.acquisition.subscription(workKey)).revision,
+		source: { kind: "automatic" },
+		startEpisode: 3,
+		profileId: config.profileId,
+		target: {
+			destinationRevision: "destination",
+			connectionGeneration: "downloader",
+		},
+	});
 	await f.subscriptions.remove(
 		workKey,
 		required(f.db.acquisition.subscription(workKey)).revision,
@@ -385,8 +428,8 @@ test.each(["destination", "source"])(
 			);
 		await f.subscriptions.resolvePending();
 		expect(f.db.acquisition.authorization(workKey)).toBeNull();
-		expect(f.subscriptions.get(workKey).subscription?.error).toBe(
-			"authorization_required",
+		expect(f.subscriptions.get(workKey).subscription?.runState).toBe(
+			`${change}_changed`,
 		);
 		expect(f.search).not.toHaveBeenCalled();
 	},
@@ -398,6 +441,17 @@ test.each(["remove", "edit", "pause"])(
 		const f = await fixture();
 		await f.enable();
 		await f.watching.tick();
+		await f.subscriptions.save({
+			workKey,
+			revision: required(f.db.acquisition.subscription(workKey)).revision,
+			source: { kind: "automatic" },
+			startEpisode: 3,
+			profileId: config.profileId,
+			target: {
+				destinationRevision: "destination",
+				connectionGeneration: "downloader",
+			},
+		});
 		let release: (() => void) | undefined;
 		const implementation = required(f.search.getMockImplementation());
 		f.search.mockImplementationOnce(async (...args) => {
@@ -641,4 +695,198 @@ test("manual refresh reevaluates cached discovery and refetches only after expir
 		outcome: "matched",
 	});
 	expect(f.db.acquisition.authorization(workKey)).not.toBeNull();
+});
+
+test("exclusion stops an existing automatic subscription and inclusion restores it without recreation", async () => {
+	const f = await fixture();
+	await f.enable();
+	await f.watching.tick();
+	const sub = required(f.db.acquisition.subscription(workKey));
+	const row = required(f.watching.status().works[0]);
+	f.watching.override({
+		accountId: required(f.snapshot.accountId),
+		trackingGeneration: f.snapshot.generation,
+		workKey,
+		revision: row.revision,
+		excluded: true,
+		paused: false,
+	});
+	await f.subscriptions.resolvePending();
+	expect(f.search).not.toHaveBeenCalled();
+	expect(f.subscriptions.get(workKey).subscription?.runState).toBe("excluded");
+	const excluded = required(f.watching.status().works[0]);
+	f.watching.override({
+		accountId: required(f.snapshot.accountId),
+		trackingGeneration: f.snapshot.generation,
+		workKey,
+		revision: excluded.revision,
+		excluded: false,
+		paused: false,
+	});
+	await f.subscriptions.resolvePending();
+	expect(f.db.acquisition.subscription(workKey)?.startEpisode).toBe(
+		sub.startEpisode,
+	);
+	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(true);
+});
+
+test("disabling during discovery prevents a late source binding and permission", async () => {
+	const f = await fixture();
+	await f.enable();
+	await f.watching.tick();
+	const search = f.search.getMockImplementation();
+	f.search.mockImplementationOnce(async (...args) => {
+		f.watching.disable(f.watching.status().revision);
+		return required(search)(...args);
+	});
+	await f.subscriptions.resolvePending();
+	expect(f.db.acquisition.subscription(workKey)?.feedId).toBeNull();
+	expect(f.db.acquisition.authorization(workKey)).toBeNull();
+});
+
+test("full local coverage completes both ownership kinds; count growth reopens, manual pauses survive", async () => {
+	const f = await fixture();
+	await f.enable();
+	await f.watching.tick();
+	f.target.work.episodeCount = 4;
+	f.target.availableEpisodes = [3];
+	await f.subscriptions.resolvePending();
+	expect(f.subscriptions.get(workKey).subscription?.runState).toBe("active");
+	f.target.availableEpisodes = [3, 4];
+	await f.subscriptions.checkCompletion();
+	expect(f.subscriptions.get(workKey).subscription?.runState).toBe("completed");
+	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
+		false,
+	);
+	expect(f.subscriptions.activeSourceIds()).toEqual([]);
+	f.watching.disable(f.watching.status().revision);
+	f.target.work.episodeCount = 5;
+	await f.subscriptions.checkCompletion();
+	expect(f.subscriptions.get(workKey).subscription?.runState).toBe("disabled");
+	const current = required(f.db.acquisition.subscription(workKey));
+	await f.subscriptions.save({
+		workKey,
+		revision: current.revision,
+		source: null,
+		startEpisode: 3,
+		profileId: config.profileId,
+		target: {
+			destinationRevision: "destination",
+			connectionGeneration: "downloader",
+		},
+	});
+	f.target.availableEpisodes = [3, 4, 5];
+	await f.subscriptions.checkCompletion();
+	const completed = required(f.subscriptions.get(workKey).subscription);
+	expect(completed.runState).toBe("completed");
+	await f.subscriptions.setEnabled(workKey, completed.revision, true);
+	await f.subscriptions.checkCompletion();
+	expect(f.subscriptions.get(workKey).subscription?.runState).toBe("active");
+	const resumed = required(f.subscriptions.get(workKey).subscription);
+	await f.subscriptions.setEnabled(workKey, resumed.revision, false);
+	f.target.work.episodeCount = 6;
+	await f.subscriptions.checkCompletion();
+	expect(f.subscriptions.get(workKey).subscription?.runState).toBe("paused");
+});
+
+test("completed automatic records survive restart and explicit resume still obeys the group switch", async () => {
+	const f = await fixture();
+	await f.enable();
+	await f.watching.tick();
+	f.target.work.episodeCount = 3;
+	f.target.availableEpisodes = [3];
+	await f.subscriptions.checkCompletion();
+	const completed = required(f.db.acquisition.subscription(workKey));
+	expect(f.subscriptions.get(workKey).subscription?.runState).toBe("completed");
+	await f.watching.tick();
+	expect(f.db.acquisition.subscription(workKey)?.revision).toBe(
+		completed.revision,
+	);
+	await f.watching.close();
+	await f.subscriptions.close();
+	await f.sources.runtime.close();
+	f.db.close();
+	const reopened = await f.open();
+	expect(reopened.subscriptions.get(workKey).subscription?.runState).toBe(
+		"completed",
+	);
+	reopened.watching.disable(reopened.watching.status().revision);
+	await reopened.subscriptions.setEnabled(workKey, completed.revision, true);
+	await reopened.subscriptions.checkCompletion();
+	expect(reopened.subscriptions.get(workKey).subscription?.runState).toBe(
+		"disabled",
+	);
+	const preview = await reopened.watching.preview(
+		"resume",
+		reopened.watching.status().revision,
+		config,
+	);
+	reopened.watching.confirm("resume", preview.id);
+	expect(reopened.subscriptions.get(workKey).subscription?.runState).toBe(
+		"active",
+	);
+});
+
+test.each([null, 0, 2, 3.5, 10001])(
+	"unknown or invalid total %s never completes a subscription",
+	async (total) => {
+		const f = await fixture();
+		await f.enable();
+		await f.watching.tick();
+		f.target.work.episodeCount = total;
+		f.target.availableEpisodes = [1, 2, 3, 4];
+		await f.subscriptions.checkCompletion();
+		expect(f.subscriptions.get(workKey).subscription?.runState).toBe("active");
+	},
+);
+
+test("renewal preserves manual priority and repairs managed pending scope after source and destination changes", async () => {
+	const f = await fixture();
+	await f.enable();
+	await f.watching.tick();
+	f.destination.revision = "new-destination";
+	expect(f.subscriptions.get(workKey).subscription?.runState).toBe(
+		"destination_changed",
+	);
+	const preview = await f.enable();
+	expect(preview.destination).toBe("/downloads");
+	await f.subscriptions.resolvePending();
+	expect(f.db.acquisition.authorization(workKey)?.destinationRevision).toBe(
+		"new-destination",
+	);
+});
+
+test("stopping an automatic subscription during assessment still publishes its shared manual source", async () => {
+	const f = await fixture();
+	await f.enable();
+	await f.watching.tick();
+	await f.subscriptions.resolvePending();
+	const automatic = required(f.db.acquisition.subscription(workKey));
+	const manualKey = "anilist:anime:2";
+	await f.subscriptions.save({
+		workKey: manualKey,
+		revision: null,
+		source: automatic.sourceInput ?? null,
+		startEpisode: 1,
+		profileId: config.profileId,
+		target: {
+			destinationRevision: "destination",
+			connectionGeneration: "downloader",
+		},
+	});
+	const before = f.db.acquisition.candidates(workKey);
+	f.downloads.mockImplementationOnce(async () => {
+		f.watching.disable(f.watching.status().revision);
+		return [];
+	});
+	await f.subscriptions.refreshSource(required(automatic.feedId));
+	expect(f.db.acquisition.candidates(workKey)).toEqual(before);
+	expect(f.db.acquisition.candidates(manualKey)).toHaveLength(1);
+	expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
+		false,
+	);
+	expect(f.subscriptions.selection().subscription(manualKey)?.enabled).toBe(
+		true,
+	);
+	expect(f.subscriptions.activeSourceIds()).toEqual([automatic.feedId]);
 });

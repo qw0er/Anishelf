@@ -209,7 +209,11 @@ export function DownloadActivityPanel({
 						{reason(view.subscription.error)}{" "}
 						{view.subscription.error === "authorization_required" ? (
 							<Button variant="outline" onClick={onConfigure}>
-								{t("acquisition.subscription.edit")}
+								{t(
+									view.subscription.management === "watching"
+										? "acquisition.subscription.convertToManual"
+										: "acquisition.subscription.edit",
+								)}
 							</Button>
 						) : ["source_changed", "source_disabled"].includes(
 								view.subscription.error,
@@ -222,6 +226,8 @@ export function DownloadActivityPanel({
 								variant="outline"
 								disabled={
 									checking ||
+									(!!view.subscription.runState &&
+										view.subscription.runState !== "active") ||
 									(view.subscription.error === "rate_limited" &&
 										view.subscription.nextAttemptAt > Date.now())
 								}

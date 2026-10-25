@@ -32,6 +32,7 @@ import {
 	toggleSubscription,
 } from "./subscriptions-api.js";
 import { watchingKey } from "./watching-api.js";
+import { watchingReason } from "./watching-reason.js";
 
 export function SubscriptionPanel({
 	workKey,
@@ -59,14 +60,22 @@ export function SubscriptionPanel({
 	const needsAttention =
 		query.isError ||
 		(activity?.attention ?? 0) > 0 ||
-		!!(sub?.error && sub.error !== "no_eligible_source");
+		!!(
+			sub?.error &&
+			sub.runState !== "completed" &&
+			sub.error !== "no_eligible_source"
+		);
 
 	let summary = t(
 		sub
 			? "acquisition.subscription.subscribed"
 			: "acquisition.subscription.notSubscribed",
 	);
-	if (cooling)
+	if (sub?.runState === "completed")
+		summary = t("acquisition.subscription.completed");
+	else if (sub?.management === "watching")
+		summary = `${t("acquisition.subscription.automaticManaged")} · ${watchingReason(sub.runState === "active" ? "managed" : (sub.runState ?? "managed"))}`;
+	else if (cooling)
 		summary = t("acquisition.subscription.cooldownUntil", {
 			time: new Date(sub.nextAttemptAt).toLocaleString(i18n.language),
 		});
@@ -113,7 +122,11 @@ export function SubscriptionPanel({
 		mutationFn: async (command: "toggle" | "refresh" | "remove") => {
 			if (!sub) return;
 			if (command === "toggle")
-				return toggleSubscription(workKey, sub.revision, !sub.enabled);
+				return toggleSubscription(
+					workKey,
+					sub.revision,
+					sub.runState === "completed" || !sub.enabled,
+				);
 			else if (command === "refresh")
 				return refreshSubscription(workKey, sub.revision);
 			else {
@@ -197,27 +210,49 @@ export function SubscriptionPanel({
 								<Ellipsis className="size-4" aria-hidden="true" />
 							</DropdownMenuTrigger>
 							<DropdownMenuContent>
+								{sub.management === "watching" && (
+									<DropdownMenuItem
+										onClick={() => {
+											window.location.href = "/settings?section=downloads";
+										}}
+									>
+										{t("acquisition.subscription.manageAutomatic")}
+									</DropdownMenuItem>
+								)}
 								<DropdownMenuItem
 									onClick={() => setEditor({ current: sub ?? null })}
 								>
-									{t("acquisition.subscription.edit")}
+									{t(
+										sub.management === "watching"
+											? "acquisition.subscription.convertToManual"
+											: "acquisition.subscription.edit",
+									)}
 								</DropdownMenuItem>
 								<DropdownMenuItem
-									disabled={!sub.enabled || cooling}
+									disabled={
+										!sub.enabled ||
+										(!!sub.runState && sub.runState !== "active") ||
+										cooling
+									}
 									onClick={() => action.mutate("refresh")}
 								>
 									{t("acquisition.subscription.checkNow")}
 								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => action.mutate("toggle")}>
-									{t(
-										sub.enabled
-											? "acquisition.subscription.pause"
-											: "acquisition.subscription.resume",
-									)}
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => action.mutate("remove")}>
-									{t("acquisition.subscription.remove")}
-								</DropdownMenuItem>
+								{(sub.management !== "watching" ||
+									sub.runState === "completed") && (
+									<DropdownMenuItem onClick={() => action.mutate("toggle")}>
+										{t(
+											sub.enabled && sub.runState !== "completed"
+												? "acquisition.subscription.pause"
+												: "acquisition.subscription.resume",
+										)}
+									</DropdownMenuItem>
+								)}
+								{sub.management !== "watching" && (
+									<DropdownMenuItem onClick={() => action.mutate("remove")}>
+										{t("acquisition.subscription.remove")}
+									</DropdownMenuItem>
+								)}
 							</DropdownMenuContent>
 						</DropdownMenu>
 					)}

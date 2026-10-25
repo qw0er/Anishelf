@@ -27,6 +27,11 @@ import type {
 interface Options {
 	store: WatchingStore;
 	hasCapacity?(): boolean;
+	renewManaged?(
+		accountId: string,
+		target: { destinationRevision: string; connectionGeneration: string },
+		workKeys: readonly string[],
+	): void;
 	transaction(operation: () => void): void;
 	tracking?: WatchingListPort;
 	sources: SourcesApi;
@@ -172,6 +177,36 @@ export class WatchingApplication implements WatchingApi {
 			return "destination_changed";
 		return "ready";
 	}
+	stopReason(subscription: Subscription): string | null {
+		if (subscription.createdBy !== "watching") return null;
+		const policy = this.policy();
+		const reason = this.reason(policy);
+		if (reason !== "ready") return reason;
+		if (
+			!subscription.watchingAccountId ||
+			subscription.watchingAccountId !== policy.grant?.accountId
+		)
+			return "authorization_required";
+		if (
+			subscription.sourceInput?.kind === "search" &&
+			subscription.sourceInput.connectionRevision !==
+				this.options.sources.connector.settings().generation
+		)
+			return "source_reselection_required";
+		const row = this.member(
+			subscription.watchingAccountId,
+			subscription.workKey,
+		);
+		if (row?.excluded || row?.paused) return "excluded";
+		if (
+			!this.snapshot().entries.some(
+				(entry) =>
+					entry.workKey === subscription.workKey && entry.status === "watching",
+			)
+		)
+			return "not_watching";
+		return null;
+	}
 	manualRemove(key: string) {
 		const snapshot = this.snapshot();
 		const accounts = new Set(
@@ -225,6 +260,7 @@ export class WatchingApplication implements WatchingApi {
 				: null,
 			works: keys.map((workKey) => {
 				const row = rows.find((row) => row.workKey === workKey);
+				const subscription = this.options.subscription(workKey);
 				const entry = snapshot.entries.find(
 					(entry) => entry.workKey === workKey,
 				);
@@ -232,16 +268,25 @@ export class WatchingApplication implements WatchingApi {
 					workKey,
 					title: entry?.title ?? row?.title ?? workKey,
 					revision: row?.revision ?? null,
-					managed: false,
+					managed: subscription?.createdBy === "watching",
 					excluded: row?.excluded ?? false,
-					paused: false,
-					startEpisode: row?.startEpisode ?? null,
+					paused:
+						subscription?.createdBy === "watching" &&
+						Boolean(this.stopReason(subscription)),
+					startEpisode: subscription?.startEpisode ?? row?.startEpisode ?? null,
 					reason:
-						this.subscriptionReason(workKey) ??
+						(subscription?.createdBy === "watching"
+							? this.managedReason(subscription)
+							: this.subscriptionReason(workKey)) ??
 						(row?.excluded ? "excluded" : (row?.reason ?? "pending")),
 				};
 			}),
 		};
+	}
+	private managedReason(subscription: Subscription) {
+		if (subscription.completion && !subscription.completion.resumed)
+			return "completed";
+		return this.stopReason(subscription) ?? "managed";
 	}
 	private scope(snapshot: WatchingSnapshot) {
 		return createHash("sha256")
@@ -392,6 +437,33 @@ export class WatchingApplication implements WatchingApi {
 		this.options.transaction(() => {
 			if (this.policy().revision !== candidate.result.revision) conflict();
 			this.options.store.savePolicy(policy);
+			for (const work of candidate.result.works) {
+				const subscription = this.options.subscription(work.workKey);
+				if (
+					subscription?.createdBy === "watching" &&
+					!subscription.enabled &&
+					(!subscription.watchingAccountId ||
+						subscription.watchingAccountId === candidate.grant.accountId)
+				) {
+					const row =
+						this.member(candidate.grant.accountId, work.workKey) ??
+						this.make(candidate.grant.accountId, work.workKey, work.title);
+					this.put({
+						...row,
+						excluded: true,
+						paused: false,
+						reason: "excluded",
+					});
+				}
+			}
+			this.options.renewManaged?.(
+				candidate.grant.accountId,
+				{
+					destinationRevision: candidate.grant.destinationRevision,
+					connectionGeneration: candidate.grant.downloaderGeneration,
+				},
+				candidate.result.works.map((work) => work.workKey),
+			);
 		});
 		this.previews.delete(id);
 		this.options.logger.info(
@@ -480,6 +552,18 @@ export class WatchingApplication implements WatchingApi {
 			);
 		if (this.reason(policy, snapshot) !== "ready") return;
 		const grant = policy.grant;
+		for (const row of this.options.store.members()) {
+			if (row.accountId !== grant.accountId) continue;
+			const subscription = this.options.subscription(row.workKey);
+			if (
+				subscription?.createdBy !== "watching" ||
+				subscription.watchingAccountId !== grant.accountId
+			)
+				continue;
+			const reason = this.managedReason(subscription);
+			if (row.reason !== reason)
+				this.put({ ...row, reason, startEpisode: subscription.startEpisode });
+		}
 		let attempted = 0,
 			deferred = false;
 		for (const entry of snapshot.entries.filter(
@@ -490,7 +574,18 @@ export class WatchingApplication implements WatchingApi {
 			const row =
 				this.member(grant.accountId, entry.workKey) ??
 				this.make(grant.accountId, entry.workKey, entry.title);
-			if (existing || row.excluded) continue;
+			if (existing) {
+				if (
+					existing.createdBy === "watching" &&
+					existing.watchingAccountId === grant.accountId
+				) {
+					const reason = this.managedReason(existing);
+					if (row.reason !== reason)
+						this.put({ ...row, reason, startEpisode: existing.startEpisode });
+				}
+				continue;
+			}
+			if (row.excluded) continue;
 			if (this.options.hasCapacity?.() === false) {
 				if (row.reason !== "subscription_limit")
 					this.put({ ...row, reason: "subscription_limit" });
@@ -524,6 +619,7 @@ export class WatchingApplication implements WatchingApi {
 						const current = this.member(grant.accountId, entry.workKey);
 						if (current && current.revision !== row.revision) conflict();
 						saved.createdBy = "watching";
+						saved.watchingAccountId = grant.accountId;
 						this.put({
 							...row,
 							startEpisode,
@@ -540,7 +636,7 @@ export class WatchingApplication implements WatchingApi {
 						workKey: entry.workKey,
 						grantId: grant.id,
 					},
-					"Watching created an ordinary subscription; discovery will run in the background.",
+					"Watching created a group-managed subscription; discovery will run in the background.",
 				);
 			} catch (error) {
 				this.options.logger.warn(

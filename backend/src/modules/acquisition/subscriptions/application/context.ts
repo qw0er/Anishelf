@@ -3,10 +3,12 @@ import { DomainError } from "../../../../shared/errors.js";
 import type { ProfileCatalogIssue } from "../../../../shared/profile-issue.js";
 import type { ReleaseAssessmentApi } from "../../../anime/public.js";
 import type { SourcesApi } from "../../sources/public.js";
+import type { Subscription } from "../domain/model.js";
 import type { AcquisitionProfile } from "../domain/profiles.js";
 import type { SubscriptionStore } from "../ports.js";
 export type SubscriptionsOptions = {
 	onRemoved?(workKey: string): void;
+	managedStopReason?(subscription: Subscription): string | null;
 	profiles?: readonly AcquisitionProfile[];
 	profileIssue?: ProfileCatalogIssue;
 	defaultProfileId?: () => string | undefined;
@@ -32,6 +34,19 @@ export class SubscriptionsContext {
 		return this.shutdown.signal;
 	}
 
+	stopReason(subscription: Subscription): string | null {
+		if (!subscription.enabled) return "paused";
+		if (subscription.completion && !subscription.completion.resumed)
+			return "completed";
+		if (subscription.createdBy === "watching")
+			return this.options.managedStopReason
+				? this.options.managedStopReason(subscription)
+				: "authorization_required";
+		return null;
+	}
+	runnable(subscription: Subscription) {
+		return this.stopReason(subscription) === null;
+	}
 	now() {
 		return this.options.now?.() ?? Date.now();
 	}

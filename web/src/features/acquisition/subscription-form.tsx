@@ -177,6 +177,11 @@ export function SubscriptionForm({
 							/>
 						</label>
 					)}
+					{current?.management === "watching" && (
+						<p className="text-sm text-muted-foreground">
+							{t("acquisition.watching.manualConsent")}
+						</p>
+					)}
 					{current && (
 						<p className="break-all text-sm text-muted-foreground">
 							{current.source}

@@ -3,6 +3,7 @@ import { DomainError } from "../../../../shared/errors.js";
 import { workReference } from "../../../../shared/external-reference.js";
 import type { AcquisitionTarget } from "../../../anime/public.js";
 import type { SourceSnapshot } from "../../sources/public.js";
+import { coveredEpisodeCount } from "../domain/completion.js";
 import type {
 	Candidate,
 	SaveSubscriptionInput,
@@ -127,6 +128,9 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 						startEpisode: subscription.startEpisode,
 						profileId: subscription.profileId ?? null,
 						enabled: subscription.enabled,
+						management:
+							subscription.createdBy === "watching" ? "watching" : "manual",
+						runState: this.context.stopReason(subscription) ?? "active",
 						revision: subscription.revision,
 						source:
 							feed?.label ??
@@ -231,7 +235,10 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			...(current?.discovery && !automatic
 				? { discovery: current.discovery }
 				: {}),
-			...(current?.createdBy ? { createdBy: current.createdBy } : {}),
+			// A save from the work editor explicitly takes manual ownership.
+			...(current?.completion && current.startEpisode === input.startEpisode
+				? { completion: current.completion }
+				: {}),
 			...(automatic && selectedProfile
 				? {
 						automatic: {
@@ -288,7 +295,10 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		}
 		this.options.logger.info(
 			{
-				event: "acquisition.subscription_saved",
+				event:
+					current?.createdBy === "watching" && !commit
+						? "acquisition.subscription_taken_over"
+						: "acquisition.subscription_saved",
 				workKey: subscription.workKey,
 				sourceId: subscription.feedId,
 				revision: subscription.revision,
@@ -302,8 +312,23 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		this.key(workKey);
 		const current = this.options.store.subscription(workKey);
 		if (!current || current.revision !== revision) conflict();
+		if (
+			current.createdBy === "watching" &&
+			!(enabled && current.completion && !current.completion.resumed)
+		)
+			throw new DomainError(
+				"INVALID_REQUEST",
+				"Manage automatic subscriptions in Watching settings or convert to manual first.",
+			);
 		this.options.store.transaction(() => {
-			const updated = { ...current, enabled, revision: randomUUID() };
+			const updated = {
+				...current,
+				enabled,
+				...(enabled && current.completion
+					? { completion: { ...current.completion, resumed: true } }
+					: {}),
+				revision: randomUUID(),
+			};
 			this.options.store.saveSubscription(
 				updated,
 				this.options.store.candidates(workKey),
@@ -318,8 +343,13 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 	async remove(workKey: string, revision: string) {
 		this.key(workKey);
 		this.options.store.transaction(() => {
-			if (this.options.store.subscription(workKey)?.revision !== revision)
-				conflict();
+			const current = this.options.store.subscription(workKey);
+			if (current?.revision !== revision) conflict();
+			if (current.createdBy === "watching")
+				throw new DomainError(
+					"INVALID_REQUEST",
+					"Exclude automatic subscriptions in Watching settings.",
+				);
 			this.options.onRemoved?.(workKey);
 			if (!this.options.store.remove(workKey, revision)) conflict();
 		});
@@ -332,7 +362,11 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		return this.context.tracked(async () => {
 			this.key(workKey);
 			const subscription = this.options.store.subscription(workKey);
-			if (!subscription?.enabled || subscription.revision !== revision)
+			if (
+				!subscription ||
+				!this.context.runnable(subscription) ||
+				subscription.revision !== revision
+			)
 				conflict();
 			if (!subscription.feedId && subscription.automatic) {
 				this.options.logger.info(
@@ -341,7 +375,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				);
 				await this.pending.resolve(subscription, true);
 				const resolved = this.options.store.subscription(workKey);
-				if (resolved?.enabled && resolved.feedId) {
+				if (resolved && this.context.runnable(resolved) && resolved.feedId) {
 					const feed = this.options.sources.snapshot(
 						resolved.sourceInput ?? resolved.feedId,
 					);
@@ -426,14 +460,14 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 					return subscription
 						? {
 								...subscription,
-								enabled: subscription.enabled,
+								enabled: this.context.runnable(subscription),
 							}
 						: null;
 				})(),
 			subscriptions: () =>
 				this.options.store.subscriptions().map((subscription) => ({
 					...subscription,
-					enabled: subscription.enabled,
+					enabled: this.context.runnable(subscription),
 				})),
 			candidates: (workKey: string) => {
 				const subscription = this.options.store.subscription(workKey);
@@ -481,24 +515,159 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		tick();
 	}
 	resolvePending() {
-		return this.context.tracked(() => this.pending.tick());
+		return this.context.tracked(async () => {
+			await this.checkCompletion();
+			await this.pending.tick();
+		});
 	}
 	activeSourceIds(): string[] {
 		return this.options.store
 			.subscriptions()
-			.filter((sub) => sub.enabled && sub.feedId !== null)
+			.filter((sub) => this.context.runnable(sub) && sub.feedId !== null)
 			.map((sub) => sub.feedId)
 			.filter((id): id is string => id !== null);
 	}
 	refreshSource(id: string) {
 		const subscription = this.options.store
 			.subscriptions()
-			.find((item) => item.enabled && item.feedId === id);
+			.find((item) => this.context.runnable(item) && item.feedId === id);
 		const snapshot = subscription
 			? this.options.sources.snapshot(subscription.sourceInput ?? id)
 			: null;
 		return snapshot ? this.worker.pollSource(snapshot) : Promise.resolve();
 	}
+
+	private completionCheck: Promise<void> | undefined;
+	checkCompletion(): Promise<void> {
+		if (this.completionCheck) return this.completionCheck;
+		const task = this.updateCompletion().finally(() => {
+			this.completionCheck = undefined;
+		});
+		this.completionCheck = task;
+		return task;
+	}
+	private async updateCompletion() {
+		for (const subscription of this.options.store.subscriptions()) {
+			if (!subscription.enabled) continue;
+			try {
+				const target = await this.options.anime.target(
+					subscription.workKey,
+					this.context.signal,
+				);
+				this.context.open();
+				const current = this.options.store.subscription(subscription.workKey);
+				if (!current || current.revision !== subscription.revision) continue;
+				const total = target.work.episodeCount;
+				const previous = current.completion;
+				const covered = coveredEpisodeCount(current, target);
+				const expanded =
+					previous && total !== null && total > previous.episodeCount;
+				if (previous && !expanded) continue;
+				if (covered === null && !expanded) continue;
+				const updated = {
+					...current,
+					completion:
+						covered === null
+							? null
+							: { episodeCount: covered, completedAt: this.context.now() },
+					revision: randomUUID(),
+				};
+				this.options.store.saveSubscription(
+					updated,
+					this.options.store.candidates(current.workKey),
+				);
+				this.options.logger.info(
+					{
+						event:
+							covered === null
+								? "acquisition.subscription_reopened"
+								: "acquisition.subscription_completed",
+						workKey: current.workKey,
+						episodeCount: total,
+					},
+					"Subscription coverage state changed.",
+				);
+			} catch {
+				if (this.context.signal.aborted) return;
+				this.options.logger.debug(
+					{
+						event: "acquisition.subscription_coverage_unavailable",
+						workKey: subscription.workKey,
+					},
+					"Coverage check will retry without changing subscription state.",
+				);
+			}
+		}
+	}
+
+	/** Explicit confirmation renews managed permissions without changing saved release settings. */
+	renewManaged(
+		accountId: string,
+		target: NonNullable<SaveSubscriptionInput["target"]>,
+		workKeys: readonly string[],
+	) {
+		for (const sub of this.options.store.subscriptions()) {
+			if (
+				sub.createdBy !== "watching" ||
+				(sub.watchingAccountId !== accountId &&
+					(sub.watchingAccountId != null || !workKeys.includes(sub.workKey)))
+			)
+				continue;
+			const profile = (
+				this.options.profiles ?? builtinAcquisitionProfiles
+			).find(
+				(profile) =>
+					profile.id === (sub.profileId ?? this.profiles().selectedProfileId),
+			);
+			if (!profile) continue;
+			const settings = this.options.sources.connector.settings();
+			const sourceInput =
+				sub.sourceInput?.kind === "search" &&
+				settings.providers.includes(sub.sourceInput.providerId)
+					? { ...sub.sourceInput, connectionRevision: settings.generation }
+					: sub.sourceInput;
+			const feedId =
+				sourceInput &&
+				!(
+					sourceInput.kind === "search" &&
+					sourceInput.connectionRevision !== settings.generation
+				)
+					? (this.options.sources.snapshot(sourceInput)?.id ?? sub.feedId)
+					: sub.feedId;
+			const updated = {
+				...sub,
+				sourceInput: sourceInput ?? null,
+				feedId,
+				watchingAccountId: accountId,
+				enabled: true,
+				revision: randomUUID(),
+				...(sub.automatic
+					? {
+							automatic: {
+								...sub.automatic,
+								sourceGeneration:
+									this.options.sources.connector.settings().generation,
+								profileFingerprint: acquisitionProfileFingerprint(profile),
+								target,
+								retryAt: 0,
+							},
+						}
+					: {}),
+			};
+			this.options.store.saveSubscription(
+				updated,
+				sub.feedId === feedId ? this.options.store.candidates(sub.workKey) : [],
+			);
+			if (feedId)
+				this.options.store.authorize({
+					workKey: sub.workKey,
+					feedId,
+					startEpisode: sub.startEpisode,
+					...target,
+				});
+		}
+	}
+
 	async close() {
 		if (this.timer) clearInterval(this.timer);
 		this.context.shutdown.abort();

@@ -24,7 +24,7 @@ export class SubscriptionWorker {
 		try {
 			const owner = this.context.options.store
 				.subscriptions()
-				.find((item) => item.enabled && item.feedId === feed.id);
+				.find((item) => this.context.runnable(item) && item.feedId === feed.id);
 			if (!owner) return;
 			const publication = await this.context.options.sources.fetch(
 				owner.sourceInput ?? feed.id,
@@ -35,7 +35,8 @@ export class SubscriptionWorker {
 				.subscriptions()
 				.filter(
 					(subscription) =>
-						subscription.enabled && subscription.feedId === feed.id,
+						this.context.runnable(subscription) &&
+						subscription.feedId === feed.id,
 				);
 			if (!subscriptions.length) return;
 			const results: {
@@ -80,8 +81,16 @@ export class SubscriptionWorker {
 			}
 			this.context.open();
 			publication.commit(() => {
+				// A stopped automatic owner must not prevent a shared manual source from publishing.
+				const active = results.filter((result) => {
+					const current = this.context.options.store.subscription(
+						result.subscription.workKey,
+					);
+					return current && this.context.runnable(current);
+				});
+				if (!active.length) throw new SourceError("source_conflict");
 				// No await between final checks and all writes. Newly reserved choices invalidate this evaluation.
-				for (const result of results) {
+				for (const result of active) {
 					const current = this.context.options.store.subscription(
 						result.subscription.workKey,
 					);
@@ -90,13 +99,14 @@ export class SubscriptionWorker {
 							result.subscription.workKey,
 						) ?? [];
 					if (
-						!current?.enabled ||
+						!current ||
+						!this.context.runnable(current) ||
 						current.revision !== result.subscription.revision ||
 						JSON.stringify(locked) !== JSON.stringify(result.locked)
 					)
 						throw new SourceError("source_conflict");
 				}
-				for (const result of results) {
+				for (const result of active) {
 					if (
 						!this.context.options.store.updateCandidates(
 							result.subscription,

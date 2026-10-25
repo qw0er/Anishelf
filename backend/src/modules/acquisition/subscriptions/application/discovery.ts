@@ -16,7 +16,10 @@ import type { SubscriptionsContext } from "./context.js";
 export class SubscriptionDiscovery {
 	private readonly running = new Set<string>();
 	constructor(private readonly context: SubscriptionsContext) {}
-	search(input: SubscriptionSearchInput): Promise<SubscriptionSearchResult> {
+	search(
+		input: SubscriptionSearchInput,
+		permitted?: () => boolean,
+	): Promise<SubscriptionSearchResult> {
 		if (this.running.has(input.workKey) || this.running.size >= 2)
 			throw new DomainError(
 				"ACQUISITION_UNAVAILABLE",
@@ -24,11 +27,12 @@ export class SubscriptionDiscovery {
 			);
 		this.running.add(input.workKey);
 		return this.context
-			.tracked(() => this.run(input))
+			.tracked(() => this.run(input, permitted))
 			.finally(() => this.running.delete(input.workKey));
 	}
 	private async run(
 		input: SubscriptionSearchInput,
+		permitted?: () => boolean,
 	): Promise<SubscriptionSearchResult> {
 		const { options } = this.context;
 		const settings = options.sources.connector.settings();
@@ -52,6 +56,11 @@ export class SubscriptionDiscovery {
 		const fingerprint = acquisitionProfileFingerprint(profile);
 		const guard = () => {
 			this.context.open();
+			if (permitted && !permitted())
+				throw new DomainError(
+					"ACQUISITION_CONFLICT",
+					"Subscription acquisition stopped.",
+				);
 			if (
 				(options.store.subscription(input.workKey)?.revision ?? null) !==
 					input.revision ||

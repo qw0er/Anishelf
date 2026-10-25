@@ -18,6 +18,10 @@ export function readAcquisitionSubscriptions(
 		...(row.discovery ? { discovery: row.discovery } : {}),
 		...(row.automatic ? { automatic: row.automatic } : {}),
 		...(row.createdBy === "watching" ? { createdBy: "watching" as const } : {}),
+		...(row.watchingAccountId
+			? { watchingAccountId: row.watchingAccountId }
+			: {}),
+		...(row.completion ? { completion: row.completion } : {}),
 		workKey: row.workKey,
 		feedId: row.feedId,
 		...(row.sourceInput ? { sourceInput: row.sourceInput } : {}),
@@ -37,6 +41,8 @@ export function writeAcquisitionSubscriptions(
 			discovery: value.discovery ?? null,
 			automatic: value.automatic ?? null,
 			createdBy: value.createdBy ?? null,
+			watchingAccountId: value.watchingAccountId ?? null,
+			completion: value.completion ?? null,
 			lastError: value?.lastError ?? null,
 			lastErrorPresent: value?.lastError !== undefined,
 			workKey: value?.workKey,
