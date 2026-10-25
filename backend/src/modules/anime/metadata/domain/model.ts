@@ -132,6 +132,8 @@ export interface ReadOptions {
 	cachedOnly?: boolean;
 }
 export interface SearchRequest {
+	/** Select an independent source search; omitted uses the default source. */
+	provider?: string;
 	query: string;
 	page?: number;
 	perPage?: number;

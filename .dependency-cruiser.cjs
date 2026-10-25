@@ -49,14 +49,14 @@ module.exports = {
 				path: "^backend/src/modules/anime/(?:tracking|metadata|anime-library|anime-catalog|identification)/(?:application/|domain/|ports\\.ts$|public\\.ts$)",
 			},
 			to: {
-				path: "^backend/src/modules/anime/(?:[^/]+/infrastructure/|anilist/)",
+				path: "^backend/src/modules/anime/(?:[^/]+/infrastructure/|(?:anilist|bangumi)/)",
 			},
 		},
 		{
-			name: "anilist-protocol-does-not-import-business",
+			name: "provider-protocol-does-not-import-business",
 			severity: "error",
-			from: { path: "^backend/src/modules/anime/anilist/" },
-			to: { path: "^backend/src/modules/anime/(?!anilist/)[^/]+/" },
+			from: { path: "^backend/src/modules/anime/(anilist|bangumi)/" },
+			to: { path: "^backend/src/modules/anime/(?!$1/)[^/]+/" },
 		},
 		{
 			name: "configuration-application-does-not-project-http",

@@ -128,6 +128,7 @@ export const MetadataSearchQuerySchema = Type.Object(
 	{
 		...MetadataPageQuerySchema.properties,
 		query: Type.String({ minLength: 1, maxLength: 200 }),
+		provider: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
 	},
 	{ additionalProperties: false },
 );

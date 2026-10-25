@@ -1317,7 +1317,7 @@ test("public metadata uses durable project identities across search, detail, sna
 	expect(fetcher).toHaveBeenCalledTimes(2);
 });
 
-test("public metadata rejects source selection and unknown project IDs without upstream requests", async () => {
+test("public metadata rejects unknown search providers and unknown project IDs without upstream requests", async () => {
 	const { publicMetadata, fetcher } = await setup();
 	const app = createHttpApp({
 		config: { host: "localhost", port: 80, publicOrigin: "http://localhost" },
@@ -1326,7 +1326,7 @@ test("public metadata rejects source selection and unknown project IDs without u
 	});
 	try {
 		for (const url of [
-			"/api/metadata/search?query=Frieren&provider=anilist",
+			"/api/metadata/search?query=Frieren&provider=unknown",
 			"/api/metadata/reference?value=154587&provider=anilist",
 		]) {
 			expect((await app.inject({ url })).statusCode).toBe(400);

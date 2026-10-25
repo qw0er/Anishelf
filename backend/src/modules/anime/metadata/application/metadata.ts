@@ -172,6 +172,7 @@ export class MetadataApplication implements MetadataApi {
 				this.source.search(
 					{
 						query: request.query,
+						...(request.provider ? { provider: request.provider } : {}),
 						page: request.page ?? 1,
 						perPage: request.perPage ?? 10,
 					},

@@ -13,6 +13,7 @@
 		"start": "node dist/index.js",
 		"test:watch": "vitest",
 		"db:generate": "drizzle-kit generate",
+		"generate:bangumi": "openapi-typescript src/modules/anime/bangumi/openapi.yaml -o src/modules/anime/bangumi/openapi.gen.ts && biome check --write src/modules/anime/bangumi/openapi.gen.ts",
 		"auth": "tsx src/cli.ts auth",
 		"prebuild": "node ../scripts/build-info.mjs",
 		"predev": "node ../scripts/build-info.mjs"
@@ -25,6 +26,7 @@
 		"@types/semver": "^7.8.0",
 		"drizzle-kit": "^0.31.11",
 		"memfs": "^4.80.0",
+		"openapi-typescript": "^7.13.0",
 		"pino-pretty": "^13.2.0",
 		"vitest": "^5.0.4"
 	},
@@ -48,6 +50,7 @@
 		"file-type": "^22.2.0",
 		"fontkit": "^2.0.4",
 		"ipaddr.js": "2.5.0",
+		"openapi-fetch": "^0.17.0",
 		"opencc-js": "1.4.2",
 		"p-queue": "^10.0.0",
 		"parse-torrent": "^11.0.24",

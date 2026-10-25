@@ -120,7 +120,7 @@ for (const [name, files] of [
 		},
 	],
 	[
-		"anilist-protocol-does-not-import-business",
+		"provider-protocol-does-not-import-business",
 		{
 			"backend/src/modules/anime/anilist/domain/model.ts":
 				"import type { Entry } from '../../tracking/public.js'; export type Response = Entry;",
@@ -640,4 +640,14 @@ test("download transfer stage excludes business collaborators", async () => {
 			),
 		);
 	}
+});
+
+test("Bangumi protocol cannot import Metadata business contracts", async () => {
+	const violations = await scan({
+		"backend/src/modules/anime/bangumi/domain/model.ts":
+			"import type { Entry } from '../../metadata/public.js'; export type Response = Entry;",
+		"backend/src/modules/anime/metadata/public.ts":
+			"export interface Entry { id: string }",
+	});
+	assert.ok(violations.includes("provider-protocol-does-not-import-business"));
 });

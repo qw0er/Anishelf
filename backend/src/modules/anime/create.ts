@@ -7,6 +7,7 @@ import {
 	createAniListMetadata,
 	createAniListTracking,
 } from "./composition/anilist.js";
+import { createBangumiMetadata } from "./composition/bangumi.js";
 import { createCatalogModule } from "./composition/catalog.js";
 import { createIdentificationModule } from "./composition/identification.js";
 import {
@@ -40,12 +41,16 @@ export async function createAnimeModule(options: {
 		...createAniListTracking(requests),
 		logger,
 	});
+	const bangumi = createBangumiMetadata(logger);
+	const metadataSources = createAniListMetadata(requests);
 	let metadata: MetadataApplication | undefined;
 	try {
 		metadata = await createMetadataModule({
 			dataDir: system.deployment.dataDir,
 			store: database.metadata,
-			...createAniListMetadata(requests),
+			...metadataSources,
+			providers: [...metadataSources.providers, bangumi.provider],
+			artworkHosts: [...metadataSources.artworkHosts, "lain.bgm.tv"],
 			logger,
 		});
 	} catch (err) {
@@ -169,6 +174,7 @@ export async function createAnimeModule(options: {
 				await quiesce();
 				catalog?.close();
 				await metadata?.close();
+				await bangumi.close();
 				await requests.close();
 			})()),
 	};
