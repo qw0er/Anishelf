@@ -113,7 +113,7 @@ On mobile, the same header summary stacks above the controls. Show the two
 starting-episode choices as the same bordered radio cards used by profile selection,
 side by side where space allows.
 The server accepts only the current subscription default for activation and fences
-both pending confirmations and future creation when that default changes. The
+both pending confirmations and automatic acquisition when that default changes. The
 existing `profile_changed` state prompts a fresh preview and confirmation.
 
 Jackett and qBittorrent use the same shared connection disclosure, field grid and
@@ -343,7 +343,11 @@ viewing/playback actions. Use the Header row layout: subscription label, one pri
 outcome, an on-demand Activity action and a secondary menu. Permit wrapping on mobile;
 do not place a second subscription panel below the episode list. Normal controls
 are Subscribe, Edit, Check updates and Unsubscribe; existing Pause/Resume stays in
-the menu. Creation origin does not change the editor or require conversion consent.
+the manual subscription menu. Automatic subscriptions show their group state and link
+to Watching management; their editor is explicitly labeled Convert to manual subscription
+and explains that saving ends automatic management. Automatic works share a group switch
+and per-work exclusion controls. Completed subscriptions show Completed and expose an
+explicit Resume action; regular automatic pause/resume remains group-managed.
 
 The editor initially shows only the starting episode and a short effective-defaults
 summary. Put profile/source overrides and RSS entry behind More options. Keep global

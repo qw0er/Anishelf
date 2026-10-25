@@ -204,7 +204,7 @@ between read and write remain possible.
 
 | Owner | Responsibility |
 | --- | --- |
-| Watching | Opt-in creation of missing ordinary subscriptions from a fresh confirmed list; recreation exclusions |
+| Watching | Opt-in automatic subscription group, current Watching membership, account-bound permissions and exclusions |
 | Subscriptions | Saved intent, pending discovery, pinned site/feed, starting episode, profile, accepted scope and candidate selection |
 | Sources | RSS/Jackett configuration, transport, cached evidence, backoff, opaque download references |
 | Downloads | Destination, stable directories, reservations, submission, observation, recovery and verified import |
@@ -225,7 +225,7 @@ flowchart LR
     Ingest --> Library[Local Library or Review]
 ```
 
-### Unified Subscriptions and Watching Creation
+### Subscription Ownership and Completion
 
 | Stage | Behavior |
 | --- | --- |
@@ -234,15 +234,18 @@ flowchart LR
 | Select | Apply episode bounds, recognition, profile priority/wait windows, local availability and reservations |
 | Fence | Recheck subscription revision and account/source/profile/destination scope before binding permission |
 | Pause/remove | Fence late discovery; submitted tasks/imports continue independently |
-| Watching | Default off; creates missing subscriptions only; existing subscriptions retain their settings |
+| Watching | Default off; manages automatic subscriptions together, skips manual subscriptions and pauses works outside the current Watching list |
 | Unsubscribe | Records recreation exclusions so Watching cannot immediately recreate the subscription |
 
-Changing account/status/progress or disabling Watching does not stop existing
-subscriptions. Starting episode is fixed at creation. Check updates can retry pending
+Disabling Watching or leaving its current list stops automatic acquisition while
+manual subscriptions remain independent. Account/scope changes require renewed confirmation. Starting episode is fixed at creation. Check updates can retry pending
 discovery immediately, subject to source limits. Watching activation uses the saved
 subscription-default release profile. A default change fences pending activation
-and future creation until a new preview is confirmed, without changing existing
-subscriptions. [Operator behavior](../guide/watching-automation.md)
+and automatic acquisition until a new preview is confirmed. Saved profiles and starting
+episodes remain stable; the work editor explicitly converts automatic ownership to manual.
+Both ownership types become completed after full verified local coverage of their known
+episode range. Completed records retain history and stop source polling; metadata checks
+can reopen expanded ranges, while explicit resume overrides completion of the same range. [Operator behavior](../guide/watching-automation.md)
 and [selection profiles](../guide/acquisition-profiles.md) cover configuration.
 
 ### Sources API and lifecycle

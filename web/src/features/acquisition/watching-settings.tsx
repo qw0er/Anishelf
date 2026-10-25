@@ -253,16 +253,18 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 						/>
 					</div>
 				)}
-			{status.works.some((work) => work.excluded) && (
+			{status.works.some((work) => work.managed || work.excluded) && (
 				<details>
 					<summary>
 						{t("acquisition.watching.management", {
-							count: status.works.filter((work) => work.excluded).length,
+							count: status.works.filter(
+								(work) => work.managed || work.excluded,
+							).length,
 						})}
 					</summary>
 					<div className="max-h-96 space-y-3 overflow-auto pt-3">
 						{status.works
-							.filter((work) => work.excluded)
+							.filter((work) => work.managed || work.excluded)
 							.map((work) => (
 								<div
 									key={work.workKey}
@@ -283,8 +285,14 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 									<div className="action-row">
 										<ActionButton
 											icon={Plus}
-											label={t("acquisition.watching.include")}
-											shortLabel={t("actions.include")}
+											label={t(
+												work.excluded
+													? "acquisition.watching.include"
+													: "acquisition.watching.exclude",
+											)}
+											shortLabel={t(
+												work.excluded ? "actions.include" : "actions.exclude",
+											)}
 											variant="ghost"
 											disabled={busy || !status.accountId}
 											onClick={() =>

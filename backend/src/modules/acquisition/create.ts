@@ -93,6 +93,8 @@ export async function createAcquisitionModule(options: {
 	let watching: WatchingApplication | undefined;
 	const subscriptions = new SubscriptionsApplication({
 		onRemoved: (key) => watching?.manualRemove(key),
+		managedStopReason: (subscription) =>
+			watching ? watching.stopReason(subscription) : "authorization_required",
 		store: subscriptionStore,
 		profiles,
 		...(profileCatalog.issue ? { profileIssue: profileCatalog.issue } : {}),
@@ -132,6 +134,8 @@ export async function createAcquisitionModule(options: {
 	watching = new WatchingApplication({
 		store: options.store.watching,
 		hasCapacity: () => subscriptions.hasCapacity(),
+		renewManaged: (accountId, target, workKeys) =>
+			subscriptions.renewManaged(accountId, target, workKeys),
 		transaction: (operation) => options.store.transaction(operation),
 		...(options.watching ? { tracking: options.watching } : {}),
 		sources: sources.api,

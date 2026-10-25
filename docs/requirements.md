@@ -245,11 +245,11 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | S05 | Filter by subtitle language, release group, resolution, codec, and keywords | Implemented for RSS, manual search and opt-in Watching: built-in/custom YAML selection profiles | Automatic acquisition | Automatic acquisition |
 | S06 | Deduplicate and exclude existing files, active downloads, and unwanted episodes | Implemented: discovery identities, accessible local episodes and downloader hashes; durable canonical-hash and work/episode reservations before submission | Automatic acquisition | Automatic acquisition |
 | S07 | Explain decisions and automatically choose one release per episode | Implemented: profile levels, persisted waiting, seed-count tie-breaking and skipped reasons; manual selection/dismissal outside the simplified scope | Automatic acquisition | Automatic acquisition |
-| S08 | Coordinate tracking-status changes with subscriptions and explain their effect on existing tasks | Implemented: Watching creates ordinary subscriptions; subsequent status changes do not alter them, and user settings/transfers/imports are preserved | Automatic acquisition | Automatic acquisition |
+| S08 | Coordinate tracking-status changes with subscriptions and explain their effect on existing tasks | Implemented: Watching controls automatic subscriptions by current list membership; manual subscriptions and submitted transfers/imports remain independent | Automatic acquisition | Automatic acquisition |
 | S09 | Search multiple sources, rank releases, process season packs, and upgrade quality | Optional | — | Unassigned |
-| S10 | Automatically subscribe to anime in AniList Watching | Implemented: default-off Watching creation with session-bound preview, fixed starting scope and recreation exclusions; existing subscriptions remain user-managed | Automatic acquisition | Automatic acquisition |
+| S10 | Automatically subscribe to anime in AniList Watching | Implemented: default-off Watching creation with session-bound preview, fixed starting scope and recreation exclusions; automatic subscriptions remain group-managed; manual subscriptions take precedence | Automatic acquisition | Automatic acquisition |
 | S11 | Find a suitable release source without entering an RSS URL for each anime | Implemented: ordered configured-site discovery with Anime identity assessment, S05 profiles, pinned sources and unresolved states | Automatic acquisition | Automatic acquisition |
-| S12 | Preserve ordinary subscription management after Watching creation | Implemented: Tracking status changes and automation disable stop no existing subscription; edits, pause/resume and cancellation share the manual workflow | Automatic acquisition | Automatic acquisition |
+| S12 | Keep manual and automatic subscription management independent | Implemented: Tracking status changes and automation disable stop automatic acquisition; manual controls remain independent and completed ranges stop source polling | Automatic acquisition | Automatic acquisition |
 
 The completed subscription scope is [archived](history.md#automatic-acquisition-requirements).
 RSS selects candidates automatically without per-release approval; accepted scopes
@@ -259,20 +259,24 @@ enable the download worker. Historical validation limits are recorded with the a
 
 The delivered workflow is: add an anime to AniList Watching, let Anishelf find a suitable resource source and maintain its subscription, then automatically download new episodes through qBittorrent and verify their ingestion into the local library. Users configure resource sites, release preferences, destination and automation scope once; routine additions to Watching should not require finding and entering a per-anime RSS URL or approving every episode.
 
-The workflow uses one subscription model. Users can save subscription intent before
-any eligible release exists; source discovery runs in the background. Watching is a
-default-off creation trigger with a session-bound activation preview. It creates
-missing subscriptions using confirmed progress plus one or episode 1 and then leaves
-them under ordinary user control. Existing subscriptions are skipped. Later Tracking
-status/account changes or disabling Watching do not stop those subscriptions.
+Subscriptions share a source-selection/download engine but have separate management
+ownership. Watching is a default-off automatic group with a session-bound activation
+preview, account binding, a group switch and per-work exclusions. Manual subscriptions
+take precedence; saving an automatic subscription in the explicitly labeled work editor
+converts it to manual ownership. Manual pause, resume and cancellation remain independent.
+Disabling the group, excluding a work or leaving Watching stops automatic discovery,
+refresh and new download submissions; submitted transfers/imports continue. List outages
+retain records and suspend automatic acquisition until a fresh complete snapshot returns.
+The starting episode freezes at creation; progress changes never reset it. Account,
+source/profile/target scope changes and late responses respect accepted scope and revision
+checks. Unsubscribe records automatic-recreation exclusions. Empty or ambiguous source
+results retain intent without authorizing guessed downloads.
 
-Manual and Watching-created work share Edit, Pause/Resume and Unsubscribe. User edits
-are never overwritten by reconciliation. Unsubscribe records automatic-recreation
-exclusions while submitted transfers/imports continue. The starting episode freezes
-at creation, including during unresolved discovery. Site/profile/target changes and
-late responses must respect accepted scope and revision checks. Source identity must
-be verified before binding download permission; empty or ambiguous results do not
-block saving intent and do not authorize guessed downloads.
+Both management types complete when every episode in the saved range through a known
+total is locally available. Completion preserves records and stops source polling; it does
+not follow tracking progress or pending downloads. Explicit resume overrides the completed
+range, while a larger metadata total rechecks coverage and may reopen acquisition subject
+to the manual pause and automatic group gates. Unknown totals never auto-complete.
 
 Settings owns global configuration and help. Work details use a compact Header row,
 a short defaults-first editor and an on-demand Activity dialog with secondary History

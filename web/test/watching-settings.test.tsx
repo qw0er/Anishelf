@@ -165,7 +165,7 @@ test("changing activation policy discards the preview; work overrides carry curr
 			name: "Confirm and enable Watching automation",
 		}),
 	).toBeNull();
-	fireEvent.click(screen.getByText("Automatic creation exclusions · 1 work"));
+	fireEvent.click(screen.getByText("Automatic subscriptions · 1 work"));
 	fireEvent.click(
 		screen.getByRole("button", { name: "Include in automation" }),
 	);

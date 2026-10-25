@@ -453,3 +453,67 @@ test("a discovery outage offers a direct check instead of generic configuration 
 	);
 	expect(screen.queryByRole("link", { name: "Settings" })).toBeNull();
 });
+
+test("automatic subscriptions show group management and manual takeover without individual pause or unsubscribe", async () => {
+	if (!saved.subscription) throw Error("Missing fixture");
+	fixture({
+		...saved,
+		subscription: {
+			...saved.subscription,
+			management: "watching",
+			runState: "disabled",
+		},
+	});
+	render(<SubscriptionPanel workKey={workKey} />);
+	await screen.findByText(/Automatic subscription/);
+	fireEvent.click(screen.getByRole("button", { name: "Subscription actions" }));
+	expect(
+		await screen.findByRole("menuitem", {
+			name: "Manage automatic subscriptions",
+		}),
+	).toBeTruthy();
+	expect(
+		screen.getByRole("menuitem", { name: "Convert to manual subscription" }),
+	).toBeTruthy();
+	expect(
+		screen.queryByRole("menuitem", { name: "Pause subscription" }),
+	).toBeNull();
+	expect(screen.queryByRole("menuitem", { name: "Unsubscribe" })).toBeNull();
+});
+
+test.each(["manual", "watching"] as const)(
+	"completed %s subscriptions show resume and block source checks",
+	async (management) => {
+		if (!saved.subscription) throw Error("Missing fixture");
+		const request = fixture({
+			...saved,
+			subscription: {
+				...saved.subscription,
+				management,
+				runState: "completed",
+			},
+		});
+		render(<SubscriptionPanel workKey={workKey} />);
+		await screen.findByText("Completed · acquisition stopped");
+		fireEvent.click(
+			screen.getByRole("button", { name: "Subscription actions" }),
+		);
+		const resume = await screen.findByRole("menuitem", {
+			name: "Resume subscription",
+		});
+		expect(
+			screen
+				.getByRole("menuitem", { name: "Check now" })
+				.getAttribute("aria-disabled"),
+		).toBe("true");
+		fireEvent.click(resume);
+		await waitFor(() =>
+			expect(request).toHaveBeenCalledWith(
+				"/api/acquisition/subscriptions",
+				"PATCH",
+				{},
+				{ workKey, revision: "one", enabled: true },
+			),
+		);
+	},
+);

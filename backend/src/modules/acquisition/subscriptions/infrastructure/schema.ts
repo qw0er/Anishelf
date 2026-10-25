@@ -19,6 +19,10 @@ export const acquisitionSubscriptions = sqliteTable(
 			Subscription["automatic"]
 		>(),
 		createdBy: text("created_by"),
+		watchingAccountId: text("watching_account_id"),
+		completion: text("completion", { mode: "json" }).$type<
+			Subscription["completion"]
+		>(),
 		lastError: text("last_error"),
 		lastErrorPresent: integer("last_error_present", {
 			mode: "boolean",

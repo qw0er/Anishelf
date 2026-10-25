@@ -1,7 +1,7 @@
 # Subscriptions and Watching
 
 Subscribe manually from a work's details, or opt into automatic creation from your
-AniList Watching list. Both produce the same editable subscription.
+AniList Watching list. Manual subscriptions are independent; Watching subscriptions belong to an automatic group. Both share source selection, download and import processing.
 
 ## Setup
 
@@ -15,7 +15,7 @@ Watching automation appears first in Downloads. Its activation preview uses the
 saved release profile in **Subscription defaults**; there is no separate automation
 profile to configure. Save a changed default before previewing again. Existing
 subscriptions retain their saved profile and starting episode.
-Changing that default stops future automatic creation until you preview and confirm
+Changing that default stops automatic acquisition until you preview and confirm
 the new scope; a preview prepared against the old default cannot be confirmed.
 
 Watching is off by default. Its preview creates no subscriptions/downloads. Changed
@@ -31,14 +31,29 @@ progress, or progress of at least 10000, cannot create a progress-based subscrip
 | No eligible releases | Retain intent and retry discovery; distinguish empty results from service failures |
 | Successful discovery | Pin the first eligible configured site; later outages do not switch it |
 | Starting episode | Fixed at creation, even while waiting for discovery |
-| Pause/resume/edit | Same controls for every subscription; manual pause survives edits |
+| Manual pause/resume/edit | Independent controls; manual pause survives edits |
+| Automatic subscription | Managed together in Watching settings; exclude/include individual works |
+| Convert to manual | Review and save the work editor; automatic management ends and the saved settings take precedence |
 | Unsubscribe | Record a Watching recreation exclusion; submitted transfers/imports continue |
-| Disable Watching / change Tracking status, progress or account | Stop/alter future creation; existing subscriptions continue with their saved settings |
+| Disable Watching | Stop automatic creation, discovery, refresh and new submissions; manual subscriptions and submitted downloads/imports continue |
+| Leave/rejoin Watching | Pause/resume automatic acquisition; preserve the starting episode and saved profile |
+| Account or accepted scope changes | Stop automatic acquisition until a fresh preview is confirmed; never adopt another account’s subscriptions |
+| Full local coverage | Mark completed and stop acquisition for either subscription type; keep configuration and history |
 
 Watching and pending-source discovery each run every 30 seconds, at most five works
 per pass. Unresolved discovery retries after five minutes; **Check updates** bypasses
 that local wait while respecting transport limits. Source refresh defaults to 30
 minutes. Limits are 64 subscriptions and 500 current Watching works.
+
+Completion requires every episode from the saved starting episode through a known
+integer total to be verified and locally available. Unknown totals, tracking progress,
+downloading and pending imports do not establish completion. Completed subscriptions
+are not recreated by Watching. **Resume subscription** explicitly resumes acquisition
+without immediately completing the same range again. A later increase in the metadata
+episode total rechecks coverage and can reopen acquisition, subject to manual pause
+and automatic-group controls. Removing files alone does not resume a completed subscription.
+Coverage is checked every 30 seconds using metadata and local availability; completed
+subscriptions stop source polling, not metadata checks.
 
 Use **Activity** for active tasks and recovery, **History** for past work, and
 **Diagnostics** for the latest source attempts, results and skip reasons. Transfer
@@ -56,9 +71,16 @@ episode view after verification.
 | Download/import failure | Use Activity's retry, Review or Settings action |
 | Automatic creation excluded | Include the work again in Watching settings |
 | Capacity reached | Free subscription capacity or reduce Watching scope |
-| Previously managed subscription paused after migration | Review/save and resume; confirm Watching again if future creation is wanted |
+| Automatic subscription paused before migration | Confirm Watching settings and explicitly include the excluded work again |
 
 Migration `0010_unified_subscriptions` retains pins, starting bounds, candidates,
 manual permissions and task history. Old automation grants are disabled and formerly
 managed subscriptions require review. See [History](../history.md#automatic-acquisition-archive-notes)
 for archived design and acceptance evidence.
+
+Migration `0012_subscription_lifecycle` moves Watching-created records into the automatic
+group, preserves manual subscriptions and maps old automatic pauses to exclusions.
+Ambiguous account ownership stays stopped until an explicit activation preview binds
+an unowned record; known ownership is never reassigned across accounts. Review automatic
+settings after upgrade, especially if an old automatically created record was edited
+manually without changing its creation marker.

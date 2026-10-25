@@ -6,6 +6,12 @@ export interface Subscription {
 		attempts: SubscriptionSearchResult["attempts"];
 	};
 	createdBy?: "watching";
+	watchingAccountId?: string | null;
+	completion?: {
+		episodeCount: number;
+		completedAt: number;
+		resumed?: boolean;
+	} | null;
 	automatic?: {
 		sourceGeneration: string;
 		profileFingerprint: string;
@@ -49,6 +55,8 @@ export interface SubscriptionView {
 	discovery?: NonNullable<Subscription["discovery"]>;
 	subscription:
 		| (Omit<Subscription, "sourceInput"> & {
+				management?: "manual" | "watching";
+				runState?: string;
 				source: string;
 				sourceKind: "feed" | "search" | "automatic";
 				checkedAt: number | null;

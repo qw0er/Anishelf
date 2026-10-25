@@ -74,6 +74,10 @@ export const SubscriptionViewSchema = Type.Object({
 			startEpisode: Type.Integer(),
 			profileId,
 			enabled: Type.Boolean(),
+			management: Type.Optional(
+				Type.Union([Type.Literal("manual"), Type.Literal("watching")]),
+			),
+			runState: Type.Optional(Type.String()),
 			revision,
 			source: Type.String(),
 			sourceKind: Type.Union([

@@ -967,7 +967,7 @@
 			"manage": "Manage",
 			"subscribe": "Subscribe",
 			"policy": "Subscription policy",
-			"policyTooltip": "Pausing stops future acquisitions; existing downloads continue. AniList status changes do not alter subscriptions or downloads.",
+			"policyTooltip": "Pausing stops future acquisitions; existing downloads continue. Manual subscriptions are independent of Watching. Full local coverage completes a subscription and stops acquisition.",
 			"enabled": "Enabled",
 			"paused": "Paused",
 			"actions": "Subscription actions",
@@ -1047,7 +1047,11 @@
 			"cooldownUntil": "Source rate limited; retry after {{time}}",
 			"waitingForReleases": "Waiting for releases",
 			"findingSource": "Finding a source",
-			"setupSources": "Configure resource sites first."
+			"setupSources": "Configure resource sites first.",
+			"completed": "Completed · acquisition stopped",
+			"automaticManaged": "Automatic subscription",
+			"convertToManual": "Convert to manual subscription",
+			"manageAutomatic": "Manage automatic subscriptions"
 		},
 		"webui": {
 			"title": "qBittorrent",
@@ -1095,10 +1099,10 @@
 		},
 		"watching": {
 			"title": "Watching automation",
-			"description": "Create subscriptions from AniList Watching using Subscription defaults. Existing subscriptions continue when disabled.",
+			"description": "Manage automatic subscriptions from AniList Watching. Manual subscriptions remain independent.",
 			"loadFailed": "Could not load Watching automation.",
 			"loading": "Loading Watching automation…",
-			"scopeHelp": "Disabling stops new subscription creation. Existing subscriptions and downloads continue.",
+			"scopeHelp": "Disabling stops automatic discovery, refresh and new downloads. Submitted downloads and imports continue.",
 			"backlog": "Starting episode policy",
 			"progress": "Tracking progress + 1",
 			"beginning": "From episode 1",
@@ -1120,7 +1124,7 @@
 			"manualConsent": "Manage this subscription manually after saving. Watching automation will stop managing it.",
 			"settings": "Automation settings",
 			"reasons": {
-				"disabled": "Automatic creation disabled",
+				"disabled": "Automatic acquisition disabled",
 				"ready": "Enabled",
 				"managed": "Automatically managed",
 				"pending": "Waiting for reconciliation",
@@ -1150,12 +1154,16 @@
 				"will_renew_source": "Existing subscription preserved",
 				"subscription_limit": "The 64-subscription limit is reached. Remove an unused subscription to retry.",
 				"subscription_present": "Subscription already exists",
-				"created": "Subscription created"
+				"created": "Subscription created",
+				"not_watching": "No longer Watching · acquisition stopped",
+				"completed": "Completed · acquisition stopped",
+				"paused": "Paused",
+				"active": "Acquiring releases"
 			},
-			"management_one": "Automatic creation exclusions · {{count}} work",
-			"management_other": "Automatic creation exclusions · {{count}} works",
-			"previewHelp_one": "Create missing subscriptions for {{count}} Watching work. Existing subscriptions are preserved.",
-			"previewHelp_other": "Create missing subscriptions for {{count}} Watching works. Existing subscriptions are preserved.",
+			"management_one": "Automatic subscriptions · {{count}} work",
+			"management_other": "Automatic subscriptions · {{count}} works",
+			"previewHelp_one": "Enable automatic acquisition for {{count}} Watching work. Manual subscriptions and completed records are preserved.",
+			"previewHelp_other": "Enable automatic acquisition for {{count}} Watching works. Manual subscriptions and completed records are preserved.",
 			"previewProfile": "Release profile: {{name}}",
 			"enabled": "Enabled",
 			"disabled": "Disabled"

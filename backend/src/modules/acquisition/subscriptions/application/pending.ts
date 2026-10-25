@@ -27,7 +27,7 @@ export class PendingSubscriptions {
 		let attempted = 0;
 		for (const sub of this.context.options.store.subscriptions()) {
 			if (
-				!sub.enabled ||
+				!this.context.runnable(sub) ||
 				sub.feedId ||
 				!sub.automatic ||
 				sub.automatic.retryAt > this.context.now()
@@ -43,13 +43,14 @@ export class PendingSubscriptions {
 		if (
 			!scope ||
 			sub.feedId ||
-			!sub.enabled ||
+			!this.context.runnable(sub) ||
 			(!force && scope.retryAt > this.context.now())
 		)
 			return;
 		const current = () =>
 			!this.context.signal.aborted &&
-			options.store.subscription(sub.workKey)?.revision === sub.revision;
+			options.store.subscription(sub.workKey)?.revision === sub.revision &&
+			this.context.runnable(sub);
 		const permitted = () => {
 			const profile = (options.profiles ?? builtinAcquisitionProfiles).find(
 				(profile) =>
@@ -101,12 +102,15 @@ export class PendingSubscriptions {
 		}
 		discovery = { checkedAt: this.context.now(), attempts: [] };
 		try {
-			const result = await this.discovery.search({
-				workKey: sub.workKey,
-				revision: sub.revision,
-				startEpisode: sub.startEpisode,
-				profileId: sub.profileId ?? null,
-			});
+			const result = await this.discovery.search(
+				{
+					workKey: sub.workKey,
+					revision: sub.revision,
+					startEpisode: sub.startEpisode,
+					profileId: sub.profileId ?? null,
+				},
+				current,
+			);
 			if (!current()) return;
 			if (!permitted()) {
 				retain("authorization_required");
