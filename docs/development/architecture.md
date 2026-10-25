@@ -116,12 +116,13 @@ flowchart LR
 | Catalog | Local work/episode identity, confirmed associations, manual decisions and Review |
 | Tracking | Account credentials, confirmed list cache, viewing intent, submission/conflicts |
 | Anime Library | Read-only join of Catalog and Tracking with filtering/pagination |
-| AniList protocol | Typed provider clients, response validation, shared pacing/retry/cancellation |
+| Provider protocols | AniList and Bangumi typed clients, response validation, shared pacing and cancellation |
 
 Metadata's public API uses permanent project work IDs (`reference: { id }`). Search,
 detail, relations, schedules, retained snapshots and artwork all use this identity.
-Callers cannot select a metadata provider. Supported external links and IDs are
-resolved internally; source mappings and source cache evidence stay private.
+Search accepts an optional provider key for independent source retrieval; omitted
+keys use AniList. Search results are not federated or merged across sources.
+Supported external links and qualified IDs are resolved internally; source mappings and source cache evidence stay private.
 Returned descriptions use the project vocabulary, source page/update fields and
 source studio/schedule IDs are omitted, and artwork uses project proxy URLs.
 
@@ -401,3 +402,50 @@ shutdown signals fence management requests. The authenticated, CSRF-protected
 bundled connector command accepts `initializeSite: true` as explicit permission to
 retry manual setup; selecting the bundled connection alone does not grant it.
 An administrator password still requires site setup in Jackett management.
+
+### Independent Bangumi metadata
+
+Bangumi implements the Metadata provider port through a separate protocol client.
+`GET /api/metadata/search?provider=bangumi&query=...` searches anime subjects only.
+`GET /api/metadata/reference?value=https://bgm.tv/subject/400602` (also `bangumi.tv`,
+`chii.in`, or `bangumi:anime:400602`) resolves a permanent project ID; details and
+artwork then use the existing project-ID routes. Unqualified numeric inputs still
+resolve against the default provider. AniList remains the default search and the
+only Tracking provider. Bangumi and AniList entries remain separate identities.
+
+The consumed OpenAPI subset is checked in at
+`backend/src/modules/anime/bangumi/openapi.yaml`, copied from the
+[official v0 schema](https://github.com/bangumi/api/blob/master/open-api/v0.yaml).
+Regenerate types with:
+
+```sh
+npm run generate:bangumi --workspace @anishelf/backend
+```
+
+OpenAPI types describe the wire API; runtime TypeBox schemas validate consumed
+fields before they enter Metadata. Responses must contain anime subjects, valid
+IDs and matching pagination. The search endpoint is experimental upstream.
+
+One Bangumi client shares a strict PQueue limiter between search and detail:
+concurrency one, at most one request start per second, and at most 50 queued
+requests. This conservative local policy is not a statement of upstream quota.
+Each active request has an eight-second timeout; queued and active work supports
+cancellation and shutdown. There is no automatic inline retry. HTTP 429 and 5xx
+responses establish a shared cooldown of at least 60 seconds, extended by a valid
+`Retry-After` seconds value or HTTP date. Other queued/new requests fail locally
+until that time. Client configuration, request outcomes and cooldowns are logged
+without search strings or response bodies. A project/version/homepage User-Agent
+follows the [upstream policy](https://github.com/bangumi/api/blob/master/docs-raw/user%20agent.md).
+
+The existing source-keyed persistent cache coalesces identical requests and retains
+usable stale snapshots after failures. Successful searches stay fresh for 24 hours,
+empty searches for 15 minutes, and Bangumi details for 24 hours. Refresh failure
+cooldowns are retained on existing snapshots. Artwork uses the existing bounded
+cache and only allows `lain.bgm.tv` in addition to AniList's image host.
+
+Bangumi's `eps` supplies the declared episode count; `total_episodes` counts database
+chapters and is not used as a regular-episode count. Premiere dates never imply
+finished/releasing status. Unsupported schedules, relations and canonical episode
+catalogs remain unavailable. Scores are projected to the existing 0–100 scale.
+Cross-source mapping, merged descriptions, Bangumi Tracking and a source-selection
+UI are outside this phase.

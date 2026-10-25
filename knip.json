@@ -1,6 +1,11 @@
 {
 	"$schema": "https://unpkg.com/knip@6/schema.json",
 	"workspaces": {
+		"backend": {
+			"ignoreIssues": {
+				"src/modules/anime/bangumi/openapi.gen.ts": ["types"]
+			}
+		},
 		"web": {
 			"ignoreIssues": {
 				"src/shared/components/ui/**": ["exports", "types"]
