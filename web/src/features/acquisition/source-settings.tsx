@@ -3,13 +3,11 @@ import {
 	ArrowDown,
 	ArrowUp,
 	ExternalLink,
+	MoreHorizontal,
 	PlugZap,
 	RefreshCw,
 	Save,
 	Search,
-	Server,
-	Trash2,
-	Unplug,
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -30,6 +28,12 @@ import {
 	CardTitle,
 } from "../../shared/components/ui/card.js";
 import { ConnectionSettings } from "../../shared/components/ui/connection-settings.js";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "../../shared/components/ui/dropdown-menu.js";
 import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
 import { toast } from "../../shared/components/ui/toast.js";
@@ -80,7 +84,7 @@ export function SourceSettings() {
 						</div>
 					</div>
 				) : (
-					<ConnectorForm key={query.data.generation} settings={query.data} />
+					<ConnectorForm settings={query.data} />
 				)}
 			</CardContent>
 		</Card>
@@ -99,13 +103,20 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 	const [available, setAvailable] = useState<SourceProviders>([]);
 	const [providerId, setProviderId] = useState(settings.providers[0] ?? "");
 	const [title, setTitle] = useState("");
-	const changed =
+	const connectionChanged =
 		url !== (settings.url ?? "") ||
 		managementUrl !== (settings.managementUrl ?? "") ||
-		Boolean(apiKey) ||
+		Boolean(apiKey);
+	const sitesChanged =
 		JSON.stringify(providers) !== JSON.stringify(settings.providers);
+	const changed = connectionChanged || sitesChanged;
 	const saved = (value: SourceConnectorSettings) => {
 		setApiKey("");
+		setAvailable([]);
+		probe.reset();
+		search.reset();
+		setUrl(value.url ?? "");
+		setManagementUrl(value.managementUrl ?? "");
 		client.setQueryData(sourceSettingsKey, value);
 		toast.add({ type: "success", title: t("acquisition.sources.saved") });
 	};
@@ -119,19 +130,47 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					settings.origin === "bundled" && url === settings.url
 						? "bundled"
 						: "external",
-				providers,
+				providers: settings.providers,
 				...(apiKey ? { apiKey } : {}),
 			}),
 		onSuccess: saved,
 	});
+	const saveSites = useMutation({
+		mutationFn: () =>
+			saveSourceConnector({
+				generation: settings.generation,
+				url: settings.url ?? "",
+				managementUrl: settings.managementUrl ?? null,
+				origin: settings.origin ?? "external",
+				providers,
+			}),
+		onSuccess: (value) => {
+			setProviderId(
+				value.providers.includes(providerId)
+					? providerId
+					: (value.providers[0] ?? ""),
+			);
+			probe.reset();
+			search.reset();
+			client.setQueryData(sourceSettingsKey, value);
+			toast.add({ type: "success", title: t("acquisition.sources.saved") });
+		},
+	});
+
 	const clear = useMutation({
 		mutationFn: () => clearSourceConnector(settings.generation),
-		onSuccess: saved,
+		onSuccess: (value) => {
+			saved(value);
+			setProviders(value.providers);
+		},
 	});
 	const bundled = useMutation({
 		mutationFn: (initializeSite: boolean) =>
 			activateBundledSourceConnector(settings.generation, initializeSite),
-		onSuccess: saved,
+		onSuccess: (value) => {
+			saved(value);
+			setProviders(value.providers);
+		},
 	});
 	const list = useMutation({
 		mutationFn: () => getSourceProviders(settings.generation),
@@ -157,6 +196,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 	});
 	const busy =
 		save.isPending ||
+		saveSites.isPending ||
 		clear.isPending ||
 		bundled.isPending ||
 		list.isPending ||
@@ -164,6 +204,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 		search.isPending;
 	const error =
 		save.isError ||
+		saveSites.isError ||
 		clear.isError ||
 		bundled.isError ||
 		list.isError ||
@@ -222,6 +263,24 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				}}
 			>
 				<ConnectionSettings
+					onCancel={() => {
+						setUrl(settings.url ?? "");
+						setManagementUrl(settings.managementUrl ?? "");
+						setApiKey("");
+					}}
+					actions={
+						<div className="action-row">
+							<ActionButton
+								icon={Save}
+								label={t("acquisition.sources.save")}
+								shortLabel={t("actions.save")}
+								type="submit"
+								disabled={busy || !connectionChanged}
+								aria-busy={save.isPending}
+							/>
+						</div>
+					}
+					endpoint={settings.url}
 					configured={
 						Boolean(settings.url) && settings.hasApiKey && !settings.error
 					}
@@ -303,61 +362,59 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 						/>
 					</div>
 				</ConnectionSettings>
-				<div className="action-row">
-					<ActionButton
-						icon={Save}
-						label={t("acquisition.sources.save")}
-						shortLabel={t("actions.save")}
-						type="submit"
-						disabled={busy || !changed}
-						aria-busy={save.isPending}
-					/>
-					{settings.bundledAvailable && (
-						<ActionButton
-							icon={Server}
-							label={t("acquisition.sources.useBundled")}
-							shortLabel={t("actions.useBundled")}
-							type="button"
-							variant="outline"
-							disabled={busy}
-							onClick={() => bundled.mutate(false)}
-						/>
-					)}
-					{settings.origin === "bundled" &&
-						settings.bundledSetup === "manual" && (
-							<ActionButton
-								icon={RefreshCw}
-								label={t("acquisition.sources.retrySetup")}
-								shortLabel={t("actions.retry")}
-								type="button"
-								variant="outline"
-								disabled={busy || changed}
-								onClick={() => bundled.mutate(true)}
-							/>
-						)}
-					{settings.url && (
-						<ActionButton
-							icon={Unplug}
-							label={t("acquisition.sources.disconnect")}
-							shortLabel={t("actions.disconnect")}
-							type="button"
-							variant="outline"
-							disabled={busy}
-							onClick={() => clear.mutate()}
-						/>
-					)}
-					{settings.managementUrl && (
-						<ActionLink
-							icon={ExternalLink}
-							label={t("acquisition.sources.openManagement")}
-							shortLabel={t("actions.open")}
-							href={settings.managementUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-						/>
-					)}
-				</div>
 			</form>
+			<div className="action-row">
+				{settings.managementUrl && (
+					<ActionLink
+						icon={ExternalLink}
+						label={t("acquisition.sources.openManagement")}
+						shortLabel={t("actions.open")}
+						href={settings.managementUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+					/>
+				)}
+				{settings.origin === "bundled" &&
+					settings.bundledSetup === "manual" && (
+						<ActionButton
+							icon={RefreshCw}
+							label={t("acquisition.sources.retrySetup")}
+							shortLabel={t("actions.retry")}
+							type="button"
+							variant="outline"
+							disabled={busy || changed}
+							onClick={() => bundled.mutate(true)}
+						/>
+					)}
+				<DropdownMenu>
+					<DropdownMenuTrigger
+						render={
+							<Button
+								type="button"
+								variant="ghost"
+								aria-label={t("acquisition.connection.more")}
+							/>
+						}
+					>
+						<MoreHorizontal size={16} />
+					</DropdownMenuTrigger>
+					<DropdownMenuContent>
+						{settings.bundledAvailable && (
+							<DropdownMenuItem
+								disabled={busy}
+								onClick={() => bundled.mutate(false)}
+							>
+								{t("acquisition.sources.useBundled")}
+							</DropdownMenuItem>
+						)}
+						{settings.url && (
+							<DropdownMenuItem disabled={busy} onClick={() => clear.mutate()}>
+								{t("acquisition.sources.disconnect")}
+							</DropdownMenuItem>
+						)}
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</div>
 
 			<section
 				className="flex min-w-0 flex-col gap-3 border-t pt-4"
@@ -394,7 +451,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 								key={id}
 								className="flex min-w-0 items-center gap-2 px-3 py-2"
 							>
-								<span className="min-w-0 flex-1 break-all text-sm">
+								<span className="min-w-0 flex-1 truncate text-sm" title={id}>
 									<span className="mr-2 text-muted-foreground">
 										{index + 1}.
 									</span>
@@ -434,25 +491,32 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 										<ArrowDown size={16} aria-hidden="true" />
 									</Button>
 								</Tooltip>
-								<Tooltip
-									content={t("acquisition.sources.removeAria", {
-										name: id,
-									})}
-								>
-									<Button
-										variant="ghost"
-										className="size-8 shrink-0 p-0"
-										disabled={busy}
-										aria-label={t("acquisition.sources.removeAria", {
-											name: id,
-										})}
-										onClick={() =>
-											setProviders(providers.filter((value) => value !== id))
+								<DropdownMenu>
+									<DropdownMenuTrigger
+										render={
+											<Button
+												type="button"
+												variant="ghost"
+												className="size-8 shrink-0 p-0"
+												aria-label={t("acquisition.sources.siteActions", {
+													name: id,
+												})}
+											/>
 										}
 									>
-										<Trash2 size={16} aria-hidden="true" />
-									</Button>
-								</Tooltip>
+										<MoreHorizontal size={16} aria-hidden="true" />
+									</DropdownMenuTrigger>
+									<DropdownMenuContent>
+										<DropdownMenuItem
+											disabled={busy}
+											onClick={() =>
+												setProviders(providers.filter((value) => value !== id))
+											}
+										>
+											{t("acquisition.sources.removeAria", { name: id })}
+										</DropdownMenuItem>
+									</DropdownMenuContent>
+								</DropdownMenu>
 							</li>
 						))}
 					</ul>
@@ -462,26 +526,39 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					</p>
 				)}
 				{selectableSites.length > 0 && (
-					<fieldset className="flex min-w-0 flex-col gap-2">
-						<legend className="text-sm font-medium">
+					<div className="flex flex-col gap-2">
+						<label htmlFor="source-add-site" className="text-sm font-medium">
 							{t("acquisition.sources.availableSites")}
-						</legend>
-						<ul className="max-h-64 min-w-0 divide-y overflow-y-auto rounded-lg border">
+						</label>
+						<select
+							id="source-add-site"
+							className="form-select"
+							value=""
+							disabled={busy || providers.length >= 32}
+							onChange={(event) => {
+								if (event.target.value)
+									setProviders([...providers, event.target.value]);
+							}}
+						>
+							<option value="">{t("acquisition.sources.addSite")}</option>
 							{selectableSites.map((site) => (
-								<li key={site.id}>
-									<label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm">
-										<input
-											type="checkbox"
-											disabled={busy || providers.length >= 32}
-											checked={false}
-											onChange={() => setProviders([...providers, site.id])}
-										/>
-										{site.name}
-									</label>
-								</li>
+								<option key={site.id} value={site.id}>
+									{site.name}
+								</option>
 							))}
-						</ul>
-					</fieldset>
+						</select>
+					</div>
+				)}
+				{sitesChanged && (
+					<div className="action-row">
+						<ActionButton
+							icon={Save}
+							label={t("acquisition.sources.saveSites")}
+							disabled={busy || !settings.url || !settings.hasApiKey}
+							aria-busy={saveSites.isPending}
+							onClick={() => saveSites.mutate()}
+						/>
+					</div>
 				)}
 			</section>
 

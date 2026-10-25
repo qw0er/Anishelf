@@ -953,7 +953,10 @@
 			"actionFailed": "Could not complete the source action. Check the service address, API key and site configuration. Reload settings if another session changed them.",
 			"availableSites": "Available sites",
 			"selectedSites": "Selected sites",
-			"connectionSettings": "Connection settings",
+			"connectionSettings": "Edit connection",
+			"addSite": "Add a site…",
+			"siteActions": "Actions for {{name}}",
+			"saveSites": "Save sites",
 			"loadSites": "Load sites",
 			"connectionHelp": "Connection help",
 			"saved": "Source settings saved."
@@ -1054,6 +1057,7 @@
 			"manageAutomatic": "Manage automatic subscriptions"
 		},
 		"webui": {
+			"settings": "WebUI settings",
 			"title": "qBittorrent",
 			"loading": "Loading qBittorrent settings…",
 			"loadFailed": "Could not load qBittorrent settings.",
@@ -1169,6 +1173,7 @@
 			"disabled": "Disabled"
 		},
 		"connection": {
+			"more": "More service actions",
 			"bundled": "Bundled",
 			"external": "External",
 			"unconfigured": "Not configured"

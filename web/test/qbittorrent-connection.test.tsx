@@ -79,12 +79,7 @@ test("manual credentials remain drafts until Save and password clears without en
 		0,
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Save API connection" }));
-	fireEvent.click(
-		await screen.findByText("Connection settings", {
-			exact: false,
-			selector: "summary",
-		}),
-	);
+	fireEvent.click(await screen.findByLabelText("Edit connection"));
 	await screen.findByPlaceholderText("Saved · leave blank to keep");
 	expect(request).toHaveBeenCalledWith(
 		"/api/acquisition/qbittorrent",
@@ -118,12 +113,7 @@ test("saved passwords are not populated and changing accounts requires a fresh p
 		passwordConfigured: true,
 	});
 	render(<QbittorrentApiSettings />);
-	fireEvent.click(
-		await screen.findByText("Connection settings", {
-			exact: false,
-			selector: "summary",
-		}),
-	);
+	fireEvent.click(await screen.findByLabelText("Edit connection"));
 	const password = (await screen.findByLabelText(
 		"Password",
 	)) as HTMLInputElement;
@@ -157,12 +147,7 @@ test("tests the saved connection and removes credentials explicitly", async () =
 		passwordConfigured: true,
 	});
 	render(<QbittorrentApiSettings />);
-	fireEvent.click(
-		await screen.findByText("Connection settings", {
-			exact: false,
-			selector: "summary",
-		}),
-	);
+	fireEvent.click(await screen.findByLabelText("Edit connection"));
 	await screen.findByLabelText("Password");
 	fireEvent.click(screen.getByRole("button", { name: "Test connection" }));
 	await waitFor(() =>
@@ -176,8 +161,9 @@ test("tests the saved connection and removes credentials explicitly", async () =
 		{},
 		{ generation: "one" },
 	);
+	fireEvent.click(screen.getByRole("button", { name: "More service actions" }));
 	fireEvent.click(
-		screen.getByRole("button", { name: "Remove API connection" }),
+		await screen.findByRole("menuitem", { name: "Remove API connection" }),
 	);
 	await waitFor(() => expect(screen.queryByText(/Password saved/)).toBeNull());
 	expect(
@@ -241,11 +227,6 @@ test("bundled WebUI credentials are fetched on demand, hidden, and excluded from
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Hide password" }));
 	expect(screen.queryByLabelText("Saved WebUI password")).toBeNull();
-	fireEvent.click(
-		screen.getByText("Connection settings", {
-			exact: false,
-			selector: "summary",
-		}),
-	);
+	fireEvent.click(screen.getByLabelText("Edit connection"));
 	expect(screen.getByLabelText("API URL")).toBeTruthy();
 });

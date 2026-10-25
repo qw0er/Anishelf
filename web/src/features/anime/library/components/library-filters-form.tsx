@@ -15,7 +15,7 @@ import {
 	DropdownMenuTrigger,
 } from "../../../../shared/components/ui/dropdown-menu.js";
 import { Input } from "../../../../shared/components/ui/input.js";
-import { RadioOptions } from "../../../../shared/components/ui/radio-options.js";
+
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import type { LibraryFilters } from "../api.js";
 import { libraryFilters, librarySearch } from "../api.js";
@@ -146,8 +146,8 @@ export function LibraryFiltersForm({
 			</fieldset>
 			<div id="catalog-filters" hidden={!expanded}>
 				<div className="surface-panel grid gap-4 sm:grid-cols-2">
-					<RadioOptions
-						legend={t("trackingList.scope")}
+					<FilterSelect
+						label={t("trackingList.scope")}
 						value={filters.scope ?? "local"}
 						onChange={(value) => change("scope", value)}
 						options={[
@@ -155,8 +155,8 @@ export function LibraryFiltersForm({
 							{ value: "all", label: t("trackingList.all") },
 						]}
 					/>
-					<RadioOptions
-						legend={t("trackingList.viewingState")}
+					<FilterSelect
+						label={t("trackingList.viewingState")}
 						value={filters.viewingStatus ?? "watching"}
 						disabled={!viewingEnabled}
 						onChange={(value) => change("viewingStatus", value)}
@@ -180,8 +180,8 @@ export function LibraryFiltersForm({
 							})),
 						]}
 					/>
-					<RadioOptions
-						legend={t("anime.format")}
+					<FilterSelect
+						label={t("anime.format")}
 						value={filters.format ?? ""}
 						onChange={(value) => change("format", value)}
 						options={[
@@ -218,8 +218,8 @@ export function LibraryFiltersForm({
 							}}
 						/>
 					</label>
-					<RadioOptions
-						legend={t("anime.availability")}
+					<FilterSelect
+						label={t("anime.availability")}
 						value={filters.availability ?? ""}
 						onChange={(value) => change("availability", value)}
 						options={[
@@ -289,5 +289,37 @@ export function LibraryFiltersForm({
 				</fieldset>
 			)}
 		</div>
+	);
+}
+
+function FilterSelect({
+	label,
+	value,
+	options,
+	onChange,
+	disabled,
+}: {
+	label: string;
+	value: string;
+	options: readonly { value: string; label: string }[];
+	onChange(value: string): void;
+	disabled?: boolean;
+}) {
+	return (
+		<label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
+			{label}
+			<select
+				className="form-select w-full font-normal"
+				value={value}
+				disabled={disabled}
+				onChange={(event) => onChange(event.target.value)}
+			>
+				{options.map((option) => (
+					<option key={option.value} value={option.value}>
+						{option.label}
+					</option>
+				))}
+			</select>
+		</label>
 	);
 }

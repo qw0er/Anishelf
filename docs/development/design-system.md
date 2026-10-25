@@ -67,7 +67,7 @@ Labels, units and inputs should explain ordinary fields without repeating their
 meaning in helper paragraphs. Keep non-obvious behavior in keyboard/touch-accessible
 info Tooltips beside the label. Keep errors and required recovery steps visible.
 Use inline native radios for short finite choices, including viewing states,
-subscription source modes and catalog filters. Use the shared transcode-style radio
+and subscription source modes. Catalog filters use labeled dropdown selectors. Use the shared transcode-style radio
 cards when choices have descriptions. Keep service-populated lists such as source
 sites and resource directories as selectors; do not render an unbounded radio list.
 
@@ -116,13 +116,13 @@ The server accepts only the current subscription default for activation and fenc
 both pending confirmations and automatic acquisition when that default changes. The
 existing `profile_changed` state prompts a fresh preview and confirmation.
 
-Jackett and qBittorrent use the same shared connection disclosure, field grid and
+Jackett and qBittorrent show a compact endpoint/source summary above their shared connection disclosure, field grid and
 Save/Test/Disconnect action styling. Connection settings show a concise
 configured/unconfigured summary. Open first-time
-setup by default and disclose saved connection fields on demand. Jackett keeps site
-priority and its Save action available independently of connection editing; search
+setup by default and disclose saved connection fields on demand. Connection Save appears only inside the editor; Test and management links remain available while collapsed. Disconnect and bundled-service switching belong in a More menu. Jackett keeps site
+priority and its separate Save sites action available independently of connection editing; adding sites uses a bounded selector instead of a second list. Connection and site saves preserve the other editor’s draft; search
 diagnostics remain collapsed. qBittorrent groups API access, destination and the
-optional browser URL in one panel. Saved credentials remain blank; a short placeholder
+optional browser URL in one panel. Saved destinations show a directory/path summary with Edit and Validate actions; first-time setup opens the fields. Optional browser URL fields remain collapsed while the saved WebUI link stays accessible. Saved credentials remain blank; a short placeholder
 explains keeping them, and label help explains when re-entry is required. Showing,
 hiding and copying bundled credentials retain their existing lifetime and cache
 restrictions. A saved connection is not evidence of successful network access.
@@ -154,14 +154,16 @@ to Library in the same tab session; explicit URL filters take precedence. The
 Library defaults its AniList viewing-state filter to Watching and offers All
 viewing states as an explicit choice. The Library toolbar keeps search, Filters,
 sort and the AniList action on one row. Sort opens a compact radio-choice menu with
-the current choice marked; fixed filters use visible radio groups in the expandable
+the current choice marked; fixed filters use labeled dropdown selectors in the expandable
 panel. Refresh uses an icon button with a Tooltip and an
 accessible name. On narrow screens, compact action icons and a bounded sort
 control preserve search space. AniList account actions share one row when space
 allows and wrap naturally on narrower screens. The application header always stays on one line.
-Navigation uses text when its container is wide enough, otherwise icons with
+Navigation measures the full translated content against its available width and uses
+text when it fits, otherwise icons with
 Tooltips and accessible names. If icons still do not fit, scroll only the
-navigation horizontally; keep the brand visible and preserve keyboard access.
+navigation horizontally with its scrollbar hidden; keep the brand visible and preserve keyboard access.
+Omit routine filesystem-monitoring confirmation; retain degraded-monitor warnings.
 
 Work detail prioritizes the header and episode list. Align the cover and core
 information at the top; the cover keeps its 2:3 aspect ratio and does not stretch
