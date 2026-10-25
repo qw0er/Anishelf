@@ -38,12 +38,9 @@ export function useLocalWorkDetail(data: LocalWorkDetailResponse) {
 	const [showSpoilers, setShowSpoilers] = useState(false);
 	const [relationsPage, setRelationsPage] = useState(1);
 	const relations = useQuery(
-		relationsQuery(work.reference.provider, work.reference.id, relationsPage),
+		relationsQuery(data.metadata.data.reference.id, relationsPage),
 	);
-	const noticeId = metadataRefreshNoticeId(
-		work.reference.provider,
-		work.reference.id,
-	);
+	const noticeId = metadataRefreshNoticeId(data.metadata.data.reference.id);
 	const refresh = useMutation({
 		onMutate: () => toast.close(noticeId),
 		onError: (error) => {

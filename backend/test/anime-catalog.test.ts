@@ -15,16 +15,20 @@ import { AnimeCatalogApplication } from "../src/modules/anime/anime-catalog/appl
 import { catalogPolicy } from "../src/modules/anime/anime-catalog/policy.js";
 import type { MappingSelection } from "../src/modules/anime/anime-catalog/public.js";
 import { createIdentificationModule } from "../src/modules/anime/composition/identification.js";
-import { createIdentificationMetadata } from "../src/modules/anime/composition/metadata.js";
+import {
+	createCatalogMetadata,
+	createIdentificationMetadata,
+} from "../src/modules/anime/composition/metadata.js";
 import { IdentificationApplication } from "../src/modules/anime/identification/application/identification.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
-import { MetadataApplication } from "../src/modules/anime/metadata/application/metadata.js";
-import { MetadataArtworkCache } from "../src/modules/anime/metadata/infrastructure/artwork.js";
-import type { MetadataProvider } from "../src/modules/anime/metadata/ports.js";
+import { MetadataApplication as PublicMetadataApplication } from "../src/modules/anime/metadata/application/metadata.js";
+import { SourceMetadataApplication as MetadataApplication } from "../src/modules/anime/metadata/application/source-metadata.js";
 import {
 	MetadataError,
 	type WorkDetails,
-} from "../src/modules/anime/metadata/public.js";
+} from "../src/modules/anime/metadata/domain/source-model.js";
+import { MetadataArtworkCache } from "../src/modules/anime/metadata/infrastructure/artwork.js";
+import type { MetadataProvider } from "../src/modules/anime/metadata/ports.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import { DomainError } from "../src/shared/errors.js";
@@ -150,7 +154,9 @@ async function fixture(
 	function makeCatalog() {
 		return new AnimeCatalogApplication({
 			store: database.catalog,
-			metadata,
+			metadata: createCatalogMetadata(
+				new PublicMetadataApplication(metadata, database.metadata),
+			),
 			sources: library.sources,
 			logger,
 		});
@@ -201,6 +207,9 @@ async function fixture(
 		},
 		get catalog() {
 			return catalog;
+		},
+		get publicMetadata() {
+			return new PublicMetadataApplication(metadata, database.metadata);
 		},
 		get database() {
 			return database;
@@ -937,7 +946,7 @@ test("concurrent confirmation retries share one result and retain confirmed deci
 	);
 	await f.catalog.refresh(detail.work.id, detail.work.revision);
 	f.database.metadata.prune(0, 0);
-	expect(f.database.metadata.get(preview.metadata.snapshotId)?.data).toEqual(
+	expect(f.publicMetadata.snapshot(preview.metadata.snapshotId).data).toEqual(
 		preview.metadata.data,
 	);
 	expect(
@@ -1087,7 +1096,9 @@ async function enableAutomatic(f: Awaited<ReturnType<typeof fixture>>) {
 		library: f.library,
 		sources: f.library.sources,
 		logger,
-		metadata: createIdentificationMetadata(f.metadata),
+		metadata: createIdentificationMetadata(
+			new PublicMetadataApplication(f.metadata, f.database.metadata),
+		),
 		onPublication: (results, root, signal) =>
 			f.catalog.publish(results, root, signal),
 	});
@@ -1516,10 +1527,10 @@ test("expired details return retained data immediately and coalesce automatic up
 	});
 	expect(f.database.playback.get(review.sourceId)).toEqual(progress);
 	f.database.metadata.prune(0, 0);
-	expect(f.metadata.snapshot(before.metadata.snapshotId).data).toEqual(
+	expect(f.publicMetadata.snapshot(before.metadata.snapshotId).data).toEqual(
 		before.metadata.data,
 	);
-	expect(f.metadata.snapshot(after.metadata.snapshotId).data).toEqual(
+	expect(f.publicMetadata.snapshot(after.metadata.snapshotId).data).toEqual(
 		after.metadata.data,
 	);
 });

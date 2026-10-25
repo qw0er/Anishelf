@@ -22,8 +22,8 @@ export function useReviewController(item: CatalogReviewItem) {
 	const navigate = useNavigate();
 	const noticeId = `review-operation:${item.id}`;
 	const [reference, setReference] = useState<{
-		provider: string;
-		mediaType: "anime";
+		provider?: string;
+		mediaType?: "anime";
 		id: string;
 	} | null>(() =>
 		item.available
@@ -46,7 +46,7 @@ export function useReviewController(item: CatalogReviewItem) {
 		enabled: search.length > 0,
 	});
 	const details = useQuery({
-		...metadataDetailQuery(reference?.provider ?? "", reference?.id ?? ""),
+		...metadataDetailQuery(reference ?? { id: "" }),
 		enabled: Boolean(reference),
 	});
 	const replacement = Boolean(preview?.rows.some((row) => row.before.length));
@@ -109,7 +109,7 @@ export function useReviewController(item: CatalogReviewItem) {
 		},
 	});
 	const lookup = useMutation({
-		mutationFn: resolveMetadataReference,
+		mutationFn: (value: string) => resolveMetadataReference(value),
 		onSuccess: selectWork,
 		onError: () => setValidation(t("review.invalidId")),
 	});

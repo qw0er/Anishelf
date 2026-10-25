@@ -2,6 +2,7 @@
 export {
 	metadataArtwork,
 	metadataPins,
+	metadataReferences,
 	metadataSnapshots,
 	metadataWorks,
 } from "./infrastructure/schema.js";

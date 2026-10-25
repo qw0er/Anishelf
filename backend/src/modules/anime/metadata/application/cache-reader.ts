@@ -8,7 +8,7 @@ import {
 	type MetadataSnapshot,
 	type ReadOptions,
 	type WorkDetails,
-} from "../domain/model.js";
+} from "../domain/source-model.js";
 import { detailFreshnessMs, metadataPolicy as policy } from "../policy.js";
 import type {
 	CacheEntry,

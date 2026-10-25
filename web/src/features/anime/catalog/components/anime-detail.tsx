@@ -103,9 +103,7 @@ function LocalWorkDetail({
 		},
 		status.error,
 	);
-	const airing = useInfiniteQuery(
-		airingQuery(work.reference.provider, work.reference.id),
-	);
+	const airing = useInfiniteQuery(airingQuery(data.metadata.data.reference.id));
 	const progress = viewing.snapshot?.entry?.progress ?? null;
 	const nextEpisode = nextPlayableEpisode(data.episodes, progress);
 	const checkingProgress =

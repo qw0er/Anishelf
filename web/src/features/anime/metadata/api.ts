@@ -1,3 +1,4 @@
+import { workKey } from "@anishelf/backend/contracts/references";
 import { type RequestOptions, request } from "../../../shared/api/client.js";
 import type {
 	IdentificationStatusResponse,
@@ -8,13 +9,12 @@ import type {
 } from "../../../shared/api/contracts.js";
 
 export function getRelations(
-	provider: string,
 	id: string,
 	page: number,
 	options?: RequestOptions,
 ): Promise<MetadataRelationsResponse> {
 	return request(
-		`/api/metadata/${encodeURIComponent(provider)}/${encodeURIComponent(id)}/relations?cachedOnly=true&perPage=25&page=${page}`,
+		`/api/metadata/${encodeURIComponent(id)}/relations?cachedOnly=true&perPage=25&page=${page}`,
 		"GET",
 		options,
 	);
@@ -30,34 +30,46 @@ export const searchMetadata = (
 		"GET",
 		options,
 	);
-export const metadataDetail = (
-	provider: string,
-	id: string,
+export const metadataDetail = async (
+	reference: { id: string; provider?: string; mediaType?: "anime" },
 	options?: RequestOptions,
-): Promise<MetadataDetailsResponse> =>
-	request(
-		`/api/metadata/${encodeURIComponent(provider)}/${encodeURIComponent(id)}`,
-		"GET",
-		options,
-	);
+): Promise<MetadataDetailsResponse> => {
+	const { id } = reference.provider
+		? await resolveMetadataReference(
+				workKey({
+					provider: reference.provider,
+					mediaType: "anime",
+					id: reference.id,
+				}),
+				options,
+			)
+		: reference;
+	return request(`/api/metadata/${encodeURIComponent(id)}`, "GET", options);
+};
 export const getIdentificationStatus = (
 	options?: RequestOptions,
 ): Promise<IdentificationStatusResponse> =>
 	request("/api/anime/identification", "GET", options);
 
 export const getAiring = (
-	provider: string,
 	id: string,
 	page: number,
 	options?: RequestOptions,
 ): Promise<MetadataAiringResponse> =>
 	request(
-		`/api/metadata/${encodeURIComponent(provider)}/${encodeURIComponent(id)}/airing?perPage=25&page=${page}`,
+		`/api/metadata/${encodeURIComponent(id)}/airing?perPage=25&page=${page}`,
 		"GET",
 		options,
 	);
 
-export const resolveMetadataReference = (value: string) =>
+export const resolveMetadataReference = (
+	value: string,
+	options?: RequestOptions,
+) =>
 	request<
-		import("../../../shared/api/contracts.js").CatalogPreviewRequest["reference"]
-	>(`/api/metadata/reference?${new URLSearchParams({ value })}`, "GET");
+		import("../../../shared/api/contracts.js").MetadataDetailsResponse["data"]["reference"]
+	>(
+		`/api/metadata/reference?${new URLSearchParams({ value })}`,
+		"GET",
+		options,
+	);

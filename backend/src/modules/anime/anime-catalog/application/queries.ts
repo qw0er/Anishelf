@@ -19,7 +19,7 @@ import { type CatalogContext, page } from "./context.js";
 export class CatalogQueries {
 	constructor(private readonly context: CatalogContext) {}
 	async availableEpisodes(
-		reference: import("../../metadata/public.js").ProviderReference,
+		reference: import("../../../../shared/external-reference.js").ExternalWorkReference,
 	) {
 		const scope = await this.context.scope();
 		const work = this.context.options.store.findWork(reference);

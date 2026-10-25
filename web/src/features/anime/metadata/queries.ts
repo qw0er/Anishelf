@@ -9,11 +9,11 @@ import {
 } from "./api.js";
 import { reportMetadataRefresh } from "./refresh-feedback.js";
 
-export const relationsQuery = (provider: string, id: string, page: number) =>
+export const relationsQuery = (id: string, page: number) =>
 	queryOptions({
-		queryKey: ["metadata-relations", provider, id, page],
+		queryKey: ["metadata-relations", id, page],
 		queryFn: ({ signal }) =>
-			getRelations(provider, id, page, { signal: boundedSignal(signal) }),
+			getRelations(id, page, { signal: boundedSignal(signal) }),
 	});
 
 export const metadataSearchQuery = (query: string, page: number) =>
@@ -22,11 +22,15 @@ export const metadataSearchQuery = (query: string, page: number) =>
 		queryFn: ({ signal }) =>
 			searchMetadata(query, page, { signal: boundedSignal(signal) }),
 	});
-export const metadataDetailQuery = (provider: string, id: string) =>
+export const metadataDetailQuery = (reference: {
+	id: string;
+	provider?: string;
+	mediaType?: "anime";
+}) =>
 	queryOptions({
-		queryKey: ["metadata-detail", provider, id],
+		queryKey: ["metadata-detail", reference],
 		queryFn: async ({ signal, client }) => {
-			const result = await metadataDetail(provider, id, {
+			const result = await metadataDetail(reference, {
 				signal: boundedSignal(signal),
 			});
 			signal.throwIfAborted();
@@ -45,12 +49,12 @@ export const identificationQuery = (scope: string) =>
 		refetchInterval: (query) => (query.state.data?.running ? 1500 : 60_000),
 	});
 
-export const airingQuery = (provider: string, id: string) =>
+export const airingQuery = (id: string) =>
 	infiniteQueryOptions({
-		queryKey: ["metadata-airing", provider, id],
+		queryKey: ["metadata-airing", id],
 		initialPageParam: 1,
 		queryFn: ({ signal, pageParam }) =>
-			getAiring(provider, id, pageParam, { signal: boundedSignal(signal) }),
+			getAiring(id, pageParam, { signal: boundedSignal(signal) }),
 		getNextPageParam: (last) =>
 			last.data.hasNextPage ? last.data.page + 1 : undefined,
 		staleTime: 60_000,

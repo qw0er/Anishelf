@@ -39,6 +39,7 @@ continues to use the disk-backed `openDatabase()` path and its existing logs.
 | `catalog_operations` | Command identity/fingerprint, confirmed work/revision and ordered review receipts |
 | `metadata_snapshots` | Snapshot/cache identity, kind, indexed freshness/failure columns and one JSON `data` projection for search/detail/relation/airing payloads |
 | `metadata_works` | Qualified work key, indexed current description fields, ordered JSON titles and current detail snapshot foreign key |
+| `metadata_references` | Permanent project UUID and unique private source/ID mapping, independent of snapshot eviction |
 | `metadata_pins` | Composite snapshot/owner primary key and cascading snapshot foreign key |
 | `media_inspections` | One JSON FFprobe result per scope/file, source version and inspection/FFprobe format version |
 | `metadata_artwork` | Existing scalar asset attributes, nonnegative size and LRU index |
@@ -157,3 +158,14 @@ the previous snapshot; subscription deletion removes it. Credentials, raw respon
 and download locators are excluded. It survives restart and successful binding but
 is reset when a new automatic scope is saved. Ordinary detail responses omit it;
 explicit diagnostics reads return it.
+
+### Project metadata identities
+
+Migration `0013_metadata_work_identities` adds a permanent identity registry without
+rewriting existing snapshots, Catalog links or Tracking state. Metadata registers
+source references lazily when it projects a work or resolves an external input.
+The unique source/ID constraint keeps search, detail and relation identities stable
+across cache eviction and restarts. Cached evidence retains its original internal
+source identity; public reads translate it through the registry and omit provenance.
+Separate source identities are not merged by title similarity. Cross-source identity
+reconciliation requires an explicit verified mapping rather than a guessed match.

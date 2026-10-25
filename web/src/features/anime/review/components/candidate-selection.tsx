@@ -73,8 +73,7 @@ export function CandidateSelection({
 										</p>
 										<p className="text-xs text-muted-foreground">
 											{candidate.work.format ?? t("anime.unknown")} ·{" "}
-											{candidate.work.year ?? t("anime.unknown")} ·{" "}
-											{candidate.work.reference.provider}
+											{candidate.work.year ?? t("anime.unknown")}
 										</p>
 									</div>
 									<span
@@ -210,7 +209,7 @@ export function CandidateSelection({
 							<ul className="space-y-2">
 								{searchQuery.data.data.items.map((candidate) => (
 									<li
-										key={`${candidate.reference.provider}:${candidate.reference.id}`}
+										key={`${candidate.reference.id}`}
 										className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
 									>
 										<p className="min-w-0 flex-1 wrap-anywhere">

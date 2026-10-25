@@ -6,6 +6,7 @@ import {
 	primaryKey,
 	sqliteTable,
 	text,
+	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
 import type { MetadataTitle } from "../domain/model.js";
@@ -102,5 +103,21 @@ export const metadataWorks = sqliteTable(
 	(table) => [
 		check("metadata_work_titles", sql`json_valid(${table.titles})`),
 		index("metadata_work_filter").on(table.format, table.year),
+	],
+);
+
+/** Permanent private source mappings, independent of evictable snapshots. */
+export const metadataReferences = sqliteTable(
+	"metadata_references",
+	{
+		id: text("id").primaryKey(),
+		provider: text("provider").notNull(),
+		providerId: text("provider_id").notNull(),
+	},
+	(table) => [
+		uniqueIndex("metadata_reference_source").on(
+			table.provider,
+			table.providerId,
+		),
 	],
 );

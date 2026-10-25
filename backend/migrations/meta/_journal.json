@@ -92,6 +92,13 @@
 			"when": 1792937780528,
 			"tag": "0012_subscription_lifecycle",
 			"breakpoints": true
+		},
+		{
+			"idx": 13,
+			"version": "6",
+			"when": 1792939361139,
+			"tag": "0013_metadata_work_identities",
+			"breakpoints": true
 		}
 	]
 }

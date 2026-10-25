@@ -16,8 +16,10 @@ import {
 	CatalogSourceSchema,
 	LocalWorkDetailSchema,
 } from "../../../../contracts/schemas/anime-catalog.js";
+import type { ExternalWorkReference } from "../../../../shared/external-reference.js";
 import { sendCachedAsset } from "../../../../transport/cache.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
+import type { WorkReference } from "../../metadata/public.js";
 import type { AnimeCatalogApi } from "../public.js";
 
 const artworkRoute = "/api/catalog/works/:id/artwork/:kind";
@@ -25,6 +27,9 @@ const artworkRoute = "/api/catalog/works/:id/artwork/:kind";
 export function registerCatalogRoutes(
 	app: HttpInstance,
 	catalog: AnimeCatalogApi,
+	resolveMetadataReference?: (
+		reference: WorkReference,
+	) => ExternalWorkReference,
 ): void {
 	app.addHook("onSend", async (request, reply) => {
 		const route = request.routeOptions.url;
@@ -122,7 +127,14 @@ export function registerCatalogRoutes(
 				response: { 200: CatalogPreviewSchema },
 			},
 		},
-		async (request) => catalog.preview(request.body),
+		async (request) => {
+			const reference =
+				"provider" in request.body.reference
+					? request.body.reference
+					: resolveMetadataReference?.(request.body.reference);
+			if (!reference) throw new Error("Metadata is unavailable.");
+			return catalog.preview({ ...request.body, reference });
+		},
 	);
 	app.post(
 		"/api/catalog/confirmations",

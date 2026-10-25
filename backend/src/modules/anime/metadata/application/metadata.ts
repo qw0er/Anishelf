@@ -1,257 +1,307 @@
 import type { Logger } from "pino";
-import { workKey } from "../../../../shared/external-reference.js";
-import {
-	MetadataError,
-	type MetadataSnapshot,
-	type ProviderReference,
-	type ReadOptions,
-	type SearchRequest,
-	type WorkDetails,
-} from "../domain/model.js";
-import { detailFreshnessMs, metadataPolicy as policy } from "../policy.js";
+import type { ExternalWorkReference } from "../../../../shared/external-reference.js";
+import { workReference } from "../../../../shared/external-reference.js";
 import type {
-	MetadataArtwork,
-	MetadataProvider,
-	MetadataStore,
-} from "../ports.js";
+	CachedMetadata,
+	MetadataSnapshot,
+	Page,
+	ReadOptions,
+	SearchRequest,
+	WorkDetails,
+	WorkReference,
+	WorkRelation,
+	WorkSummary,
+} from "../domain/model.js";
+import { MetadataError } from "../domain/model.js";
+import type * as Source from "../domain/source-model.js";
+import type { MetadataStore, SourceMetadataApi } from "../ports.js";
 import type { MetadataApi } from "../public.js";
-import { MetadataCacheReader } from "./cache-reader.js";
 
-/** Owns provider-facing use cases; the cache reader owns refresh and snapshot lifecycle. */
+/** The public Metadata boundary projects source evidence into project-owned identities. */
 export class MetadataApplication implements MetadataApi {
-	private readonly cache: MetadataCacheReader;
-	private readonly providerMap: Map<string, MetadataProvider>;
 	constructor(
-		private readonly options: {
-			providers: MetadataProvider[];
-			defaultProvider: string;
-			store: MetadataStore;
-			artwork: MetadataArtwork;
-			logger: Logger;
-			now?: () => number;
-		},
-	) {
-		this.cache = new MetadataCacheReader(options);
-		this.providerMap = new Map(
-			options.providers.map((provider) => [
-				provider.capabilities.key,
-				provider,
-			]),
+		private readonly source: SourceMetadataApi,
+		private readonly store: MetadataStore,
+		private readonly logger?: Logger,
+	) {}
+	referenceForExternal(reference: ExternalWorkReference): WorkReference {
+		const id = this.storage(() => this.store.identify(reference));
+		this.logger?.trace(
+			{ event: "metadata.work_identity_resolved", workId: id },
+			"Project metadata identity resolved.",
 		);
-		if (this.providerMap.size !== options.providers.length)
-			throw new Error("Duplicate metadata provider key.");
-		if (!this.providerMap.has(options.defaultProvider))
-			throw new Error("Unknown default metadata provider.");
+		return { id };
 	}
-	resolveReference(
-		value: string,
-		provider = this.options.defaultProvider,
-	): ProviderReference {
-		const input = value.trim();
-		if (!input || input.length > 2000)
-			throw this.invalid("Enter a provider ID or supported work URL.");
-		const adapter = this.provider({
-			provider,
-			mediaType: "anime",
-			id: "lookup",
-		});
-		const reference = adapter.resolveReference
-			? adapter.resolveReference(input)
-			: { provider, mediaType: "anime" as const, id: input };
-		if (!reference || reference.provider !== provider)
-			throw this.invalid(
-				"Enter a valid ID or supported work URL for this provider.",
+	/** Composition-only bridge for Catalog and Tracking's explicit external associations. */
+	externalReference(reference: WorkReference): ExternalWorkReference {
+		const result = this.storage(() => this.store.reference(reference.id));
+		if (!result)
+			throw new MetadataError({
+				code: "not-found",
+				message: "Metadata work was not found.",
+				retryAt: null,
+			});
+		return result;
+	}
+	resolveReference(value: string): WorkReference {
+		let external: ExternalWorkReference | null = null;
+		try {
+			external = workReference(value);
+		} catch {}
+		if (external)
+			return this.referenceForExternal(
+				this.source.resolveReference(external.id, external.provider),
 			);
-		this.provider(reference);
-		this.options.logger.debug(
-			{ event: "metadata.reference_resolved", provider },
-			"Metadata work reference resolved.",
-		);
-		return reference;
+		const existing = this.storage(() => this.store.reference(value));
+		return existing
+			? { id: value }
+			: this.referenceForExternal(this.source.resolveReference(value));
 	}
-	providers() {
-		return [...this.providerMap.values()].map((provider) => ({
-			...provider.capabilities,
-		}));
-	}
-	private provider(reference: ProviderReference): MetadataProvider {
-		if (
-			reference.mediaType !== "anime" ||
-			!reference.id ||
-			reference.id.length > 200
-		)
-			throw this.invalid("Supply a qualified anime reference.");
-		const provider = this.providerMap.get(reference.provider);
-		if (!provider) throw this.invalid("Unknown metadata provider.");
-		return provider;
-	}
-	private invalid(message: string) {
-		return new MetadataError({
-			code: "invalid-request",
-			message,
-			retryAt: null,
-		});
-	}
-	private page(page: number, perPage: number, max = 50): void {
-		if (
-			!Number.isSafeInteger(page) ||
-			page < 1 ||
-			page > 10000 ||
-			!Number.isSafeInteger(perPage) ||
-			perPage < 1 ||
-			perPage > max
-		)
-			throw this.invalid("Invalid metadata pagination.");
-	}
-	search(request: SearchRequest, options: ReadOptions = {}) {
-		const query = request.query.normalize("NFKC").trim().replace(/\s+/gu, " ");
-		if (
-			!query ||
-			query.length > 200 ||
-			[...query].some((character) => character.charCodeAt(0) < 32)
-		)
-			throw this.invalid("Search requires a title of 1–200 characters.");
-		const provider = this.provider({
-			provider: request.provider ?? this.options.defaultProvider,
-			mediaType: "anime",
-			id: "search",
-		});
-		const page = request.page ?? 1,
-			perPage = request.perPage ?? 10;
-		this.page(page, perPage);
-		return this.cache.read(
-			provider,
-			"search",
-			{ query, page, perPage },
-			options,
-			(signal) => provider.search(query, page, perPage, signal),
-			(data) =>
-				data.items.length ? policy.searchFreshMs : policy.emptySearchFreshMs,
-		);
-	}
-	get(reference: ProviderReference, options: ReadOptions = {}) {
-		reference = {
-			provider: reference.provider,
-			mediaType: reference.mediaType,
-			id: reference.id,
+	private summary(work: Source.WorkSummary): WorkSummary {
+		const data: WorkSummary = {
+			unavailableFields: [] as string[],
+			reference: this.referenceForExternal(work.reference),
+			titles: work.titles,
+			year: work.year,
+			format: work.format,
+			status: work.status,
+			episodeCount: work.episodeCount,
+			nextAiringEpisode: work.nextAiringEpisode,
+			airingSeason: work.airingSeason,
+			coverUrl: work.coverUrl ? this.artworkUrl(work.reference, "cover") : null,
 		};
-		const provider = this.provider(reference);
-		return this.cache.read(
-			provider,
-			"detail",
-			reference,
-			options,
-			(signal) => provider.get(reference, signal),
-			(data) => detailFreshnessMs(data.status),
-		);
+		data.unavailableFields = [
+			...new Set([
+				...Object.entries(data)
+					.filter(([, value]) => value === null)
+					.map(([field]) => field),
+				...work.unavailableFields.filter((field) => Object.hasOwn(data, field)),
+			]),
+		];
+		return data;
 	}
-	relations(
-		reference: ProviderReference,
-		page = 1,
-		perPage = 25,
-		options: ReadOptions = {},
-	) {
-		reference = {
-			provider: reference.provider,
-			mediaType: reference.mediaType,
-			id: reference.id,
-		};
-		this.page(page, perPage, 25);
-		const provider = this.provider(reference);
-		if (!provider.capabilities.relations)
-			throw this.invalid("Provider does not supply relations.");
-		return this.cache.read(
-			provider,
-			"relations",
-			{ reference, page, perPage },
-			options,
-			(signal) => provider.relations(reference, page, perPage, signal),
-			() => policy.detailFreshMs,
-		);
-	}
-	airing(
-		reference: ProviderReference,
-		page = 1,
-		perPage = 25,
-		options: ReadOptions = {},
-	) {
-		reference = {
-			provider: reference.provider,
-			mediaType: reference.mediaType,
-			id: reference.id,
-		};
-		this.page(page, perPage, 25);
-		const provider = this.provider(reference);
-		if (!provider.capabilities.airing)
-			throw this.invalid("Provider does not supply airing schedules.");
-		return this.cache.read(
-			provider,
-			"airing",
-			{ reference, page, perPage },
-			options,
-			(signal) => provider.airing(reference, page, perPage, signal),
-			() => policy.airingFreshMs,
-		);
-	}
-	current(reference: ProviderReference) {
-		const entry = this.options.store.current(workKey(reference));
-		if (!entry) return null;
-		const snapshot = this.cache.snapshot(entry.id);
-		if (snapshot.kind !== "detail")
-			throw new Error("Current work information requires a detail snapshot.");
-		const { kind: _, ...value } = snapshot;
-		return value;
-	}
-	snapshot(id: string): MetadataSnapshot {
-		return this.cache.snapshot(id);
-	}
-	retain(id: string, ownerId: string): void {
-		this.cache.retain(id, ownerId);
-	}
-	release(id: string, ownerId: string): void {
-		this.cache.release(id, ownerId);
-	}
-
-	async artwork(
-		reference: ProviderReference,
+	private artworkUrl(
+		reference: ExternalWorkReference,
 		kind: "cover" | "banner",
-		options: ReadOptions = {},
 	) {
-		if (kind !== "cover" && kind !== "banner")
-			throw this.invalid("Unknown artwork kind.");
-		const details = await this.get(reference, options);
-		const data: WorkDetails = details.data;
-		return this.options.artwork.get(
-			JSON.stringify([reference.provider, reference.id, kind]),
-			kind === "cover" ? data.coverUrl : data.bannerUrl,
-			options,
+		return `/api/metadata/${this.referenceForExternal(reference).id}/artwork/${kind}/image`;
+	}
+	private details(work: Source.WorkDetails): WorkDetails {
+		const data: WorkDetails = {
+			...this.summary(work),
+			description: work.description,
+			bannerUrl: work.bannerUrl
+				? this.artworkUrl(work.reference, "banner")
+				: null,
+			startDate: work.startDate,
+			endDate: work.endDate,
+			durationMinutes: work.durationMinutes,
+			country: work.country,
+			source: work.source,
+			genres: work.genres,
+			tags: work.tags,
+			studios: work.studios.map(({ name }) => ({ name })),
+			averageScore: work.averageScore,
+			streamingEpisodes: work.streamingEpisodes,
+			episodeCatalog: work.episodeCatalog,
+		};
+		data.unavailableFields = [
+			...new Set([
+				...Object.entries(data)
+					.filter(([, value]) => value === null)
+					.map(([field]) => field),
+				...work.unavailableFields.filter((field) => Object.hasOwn(data, field)),
+			]),
+		];
+		return data;
+	}
+	private storage<T>(operation: () => T): T {
+		try {
+			return operation();
+		} catch (cause) {
+			if (cause instanceof MetadataError) throw cause;
+			this.logger?.error(
+				{ event: "metadata.identity_storage_failed", err: cause },
+				"Metadata identity storage is unavailable.",
+			);
+			throw new MetadataError(
+				{
+					code: "storage-unavailable",
+					message: "Metadata identity storage is unavailable.",
+					retryAt: null,
+				},
+				{ cause },
+			);
+		}
+	}
+	private async read<T>(operation: () => Promise<T>): Promise<T> {
+		try {
+			return await operation();
+		} catch (cause) {
+			if (!(cause instanceof MetadataError)) throw cause;
+			throw new MetadataError(
+				{
+					...cause.failure,
+					message: "Metadata could not be loaded. Retry shortly.",
+				},
+				{ cause },
+			);
+		}
+	}
+	private envelope<T, U>(
+		value: CachedMetadata<T>,
+		project: (data: T) => U,
+	): CachedMetadata<U> {
+		return {
+			...value,
+			refreshError: value.refreshError
+				? {
+						...value.refreshError,
+						message: "Metadata refresh failed. Retry shortly.",
+					}
+				: null,
+			data: project(value.data),
+		};
+	}
+	private page<T, U>(page: Page<T>, project: (item: T) => U): Page<U> {
+		return { ...page, items: page.items.map(project) };
+	}
+	async search(request: SearchRequest, options?: ReadOptions) {
+		return this.envelope(
+			await this.read(() =>
+				this.source.search(
+					{
+						query: request.query,
+						page: request.page ?? 1,
+						perPage: request.perPage ?? 10,
+					},
+					options,
+				),
+			),
+			(data) => this.page(data, (item) => this.summary(item)),
 		);
 	}
-	snapshotArtwork(snapshotId: string, kind: "cover" | "banner") {
-		if (kind !== "cover" && kind !== "banner")
-			throw this.invalid("Unknown artwork kind.");
-		const snapshot = this.snapshot(snapshotId);
-		if (snapshot.kind !== "detail")
-			throw this.invalid("Artwork requires a detail snapshot.");
-		const { reference, coverUrl, bannerUrl } = snapshot.data;
-		return this.options.artwork.get(
-			JSON.stringify([reference.provider, reference.id, kind]),
-			kind === "cover" ? coverUrl : bannerUrl,
-			{},
+	async get(reference: WorkReference, options?: ReadOptions) {
+		return this.envelope(
+			await this.read(() =>
+				this.source.get(this.externalReference(reference), options),
+			),
+			(data) => this.details(data),
 		);
+	}
+	async relations(
+		reference: WorkReference,
+		page?: number,
+		perPage?: number,
+		options?: ReadOptions,
+	) {
+		return this.envelope(
+			await this.read(() =>
+				this.source.relations(
+					this.externalReference(reference),
+					page,
+					perPage,
+					options,
+				),
+			),
+			(data) =>
+				this.page(
+					data,
+					(item): WorkRelation => ({
+						type: item.type,
+						work: this.summary(item.work),
+					}),
+				),
+		);
+	}
+	async airing(
+		reference: WorkReference,
+		page?: number,
+		perPage?: number,
+		options?: ReadOptions,
+	) {
+		return this.envelope(
+			await this.read(() =>
+				this.source.airing(
+					this.externalReference(reference),
+					page,
+					perPage,
+					options,
+				),
+			),
+			(data) =>
+				this.page(data, (item) => ({
+					...item,
+					id: String(item.episode),
+				})),
+		);
+	}
+	/** Project retained evidence as well as live reads; provenance never crosses this boundary. */
+	private project(snapshot: Source.MetadataSnapshot): MetadataSnapshot {
+		switch (snapshot.kind) {
+			case "search":
+				return {
+					kind: "search",
+					...this.envelope(snapshot, (data) =>
+						this.page(data, (item) => this.summary(item)),
+					),
+				};
+			case "detail":
+				return {
+					kind: "detail",
+					...this.envelope(snapshot, (data) => this.details(data)),
+				};
+			case "relations":
+				return {
+					kind: "relations",
+					...this.envelope(snapshot, (data) =>
+						this.page(data, (item) => ({
+							type: item.type,
+							work: this.summary(item.work),
+						})),
+					),
+				};
+			case "airing":
+				return {
+					kind: "airing",
+					...this.envelope(snapshot, (data) =>
+						this.page(data, (item) => ({ ...item, id: String(item.episode) })),
+					),
+				};
+		}
+	}
+	snapshot(id: string) {
+		return this.project(this.source.snapshot(id));
+	}
+	current(reference: WorkReference) {
+		const value = this.source.current(this.externalReference(reference));
+		return value ? this.envelope(value, (data) => this.details(data)) : null;
+	}
+	retain(id: string, owner: string) {
+		this.source.retain(id, owner);
+	}
+	release(id: string, owner: string) {
+		this.source.release(id, owner);
+	}
+	artwork(
+		reference: WorkReference,
+		kind: "cover" | "banner",
+		options?: ReadOptions,
+	) {
+		return this.read(() =>
+			this.source.artwork(this.externalReference(reference), kind, options),
+		);
+	}
+	snapshotArtwork(id: string, kind: "cover" | "banner") {
+		return this.read(() => this.source.snapshotArtwork(id, kind));
 	}
 	readArtwork(id: string) {
-		return this.options.artwork.read(id);
+		return this.source.readArtwork(id);
 	}
-	cachedArtworkId(reference: ProviderReference, kind: "cover" | "banner") {
-		if (kind !== "cover" && kind !== "banner")
-			throw this.invalid("Unknown artwork kind.");
-		return this.options.artwork.cached(
-			JSON.stringify([reference.provider, reference.id, kind]),
-		);
+	close() {
+		return this.source.close();
 	}
-	async close(): Promise<void> {
-		await this.cache.close();
-		await this.options.artwork.close();
+	cachedArtworkId(reference: WorkReference, kind: "cover" | "banner") {
+		return this.source.cachedArtworkId(this.externalReference(reference), kind);
 	}
 }

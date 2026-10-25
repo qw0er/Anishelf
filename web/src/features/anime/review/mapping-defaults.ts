@@ -3,11 +3,11 @@ import type { CatalogReviewItem } from "../../../shared/api/contracts.js";
 /** Candidate-specific suggestions; submitting still requires preview and confirmation. */
 export function mappingDefaults(
 	item: CatalogReviewItem,
-	reference: { provider: string; id: string },
+	reference: { provider?: string; id: string },
 	format: string | null,
 	count: number | null,
 ) {
-	const sameReference = (value?: { provider: string; id: string }) =>
+	const sameReference = (value?: { provider?: string; id: string }) =>
 		value?.provider === reference.provider && value?.id === reference.id;
 	const existing = item.associations.filter((link) =>
 		sameReference(link.reference),

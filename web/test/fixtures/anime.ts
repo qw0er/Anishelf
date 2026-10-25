@@ -76,7 +76,7 @@ export function animeFixture(): LocalWorkDetailResponse {
 			refreshing: false,
 			refreshError: null,
 			data: {
-				reference,
+				reference: { id: "metadata-work-1" },
 				titles: [{ value: "Frieren", language: "en", kind: "english" }],
 				unavailableFields: ["endDate"],
 				year: 2023,
@@ -85,8 +85,7 @@ export function animeFixture(): LocalWorkDetailResponse {
 				episodeCount: 3,
 				nextAiringEpisode: null,
 				airingSeason: "FALL",
-				coverUrl:
-					"https://s4.anilist.co/file/anilistcdn/media/anime/cover/test.jpg",
+				coverUrl: "/api/metadata/metadata-work-1/artwork/cover/image",
 				bannerUrl: null,
 				description:
 					'<b>Safe synopsis</b><script>alert(1)</script><img src="https://tracking.invalid/pixel" onerror="alert(2)"><a href="javascript:alert(3)">Bad link</a>',
@@ -97,10 +96,8 @@ export function animeFixture(): LocalWorkDetailResponse {
 				source: "MANGA",
 				genres: ["Adventure"],
 				tags: [{ name: "Hidden spoiler", rank: 50, spoiler: true }],
-				studios: [{ id: "1", name: "Madhouse" }],
+				studios: [{ name: "Madhouse" }],
 				averageScore: 90,
-				siteUrl: "https://anilist.co/anime/154587",
-				providerUpdatedAt: null,
 				streamingEpisodes: [],
 				episodeCatalog: "unavailable",
 			},

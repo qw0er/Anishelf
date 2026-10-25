@@ -398,7 +398,7 @@ beforeEach(async () => {
 		)
 			return new Response(null, { status: 204 });
 		if (path.startsWith("/api/metadata/reference?"))
-			return json({ provider: "anilist", mediaType: "anime", id: "154587" });
+			return json({ id: "metadata-work-1" });
 		if (path === "/api/acquisition/downloads/settings")
 			return json({
 				destination: null,
@@ -620,7 +620,9 @@ export function mockAnime(detail: ReturnType<typeof animeFixture>) {
 			const viewing = await fixtureViewing(key);
 			const id = decodeURIComponent(key.split(":")[2] ?? "");
 			const response = await requiredFetch(fetcher.getMockImplementation())(
-				`/api/metadata/anilist/${encodeURIComponent(id)}`,
+				id === "154587"
+					? "/api/metadata/metadata-work-1"
+					: `/api/metadata/missing-${encodeURIComponent(id)}`,
 			);
 			return json({
 				...animeDetailFixture(detail, viewing),
@@ -634,7 +636,7 @@ export function mockAnime(detail: ReturnType<typeof animeFixture>) {
 			});
 		}
 		if (path === "/api/catalog/works/work-1/refresh") return json(detail);
-		if (path.startsWith("/api/metadata/anilist/154587/relations"))
+		if (path.startsWith("/api/metadata/metadata-work-1/relations"))
 			return json({
 				snapshotId: "relations",
 				fetchedAt: 1,
@@ -667,7 +669,7 @@ export function mockReview(confirmed = false) {
 					hasNextPage: false,
 				},
 			});
-		if (path === "/api/metadata/anilist/154587") return json(detail.metadata);
+		if (path === "/api/metadata/metadata-work-1") return json(detail.metadata);
 		if (path === "/api/catalog/previews") {
 			const body = JSON.parse(String(init?.body));
 			const row = body.rows[0];

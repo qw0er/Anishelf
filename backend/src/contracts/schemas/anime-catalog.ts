@@ -1,5 +1,8 @@
 import { Type } from "typebox";
-import { MetadataDetailsResponseSchema } from "./metadata.js";
+import {
+	MetadataDetailsResponseSchema,
+	MetadataReferenceSchema,
+} from "./metadata.js";
 
 const id = Type.String({ minLength: 1, maxLength: 200 });
 const text = Type.String({ minLength: 1, maxLength: 500 });
@@ -257,7 +260,7 @@ const page = <T extends ReturnType<typeof Type.Object>>(item: T) =>
 export const CatalogReviewListSchema = page(review);
 export const CatalogPreviewRequestSchema = Type.Object(
 	{
-		reference,
+		reference: Type.Union([reference, MetadataReferenceSchema]),
 		rows: Type.Array(
 			Type.Object(
 				{

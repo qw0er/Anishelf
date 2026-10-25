@@ -10,6 +10,7 @@ import {
 import { createCatalogModule } from "./composition/catalog.js";
 import { createIdentificationModule } from "./composition/identification.js";
 import {
+	createCatalogMetadata,
 	createIdentificationMetadata,
 	createMetadataModule,
 } from "./composition/metadata.js";
@@ -53,7 +54,15 @@ export async function createAnimeModule(options: {
 			"Metadata cache unavailable; local identification remains usable.",
 		);
 	}
-	const catalog = createCatalogModule({ database, metadata, library, logger });
+	const catalogMetadata = metadata
+		? createCatalogMetadata(metadata)
+		: undefined;
+	const catalog = createCatalogModule({
+		database,
+		metadata: catalogMetadata,
+		library,
+		logger,
+	});
 	const libraryQueries = new AnimeLibraryQueries({
 		catalog,
 		lists: tracking,
@@ -71,10 +80,10 @@ export async function createAnimeModule(options: {
 				}
 			: {}),
 	});
-	const assessment = metadata
+	const assessment = catalogMetadata
 		? new AnimeReleaseAssessment(
 				new AnitomyIdentificationParser(),
-				metadata,
+				catalogMetadata,
 				catalog,
 			)
 		: undefined;
@@ -86,7 +95,7 @@ export async function createAnimeModule(options: {
 				return tracking.acquisitionSnapshot();
 			},
 		},
-		queries: new AnimeQueries(catalog, metadata, tracking, logger),
+		queries: new AnimeQueries(catalog, catalogMetadata, tracking, logger),
 		...(assessment && catalog
 			? {
 					ingestion: new AcquisitionIngestion(

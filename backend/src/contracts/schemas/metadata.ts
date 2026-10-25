@@ -3,8 +3,6 @@ import { Type } from "typebox";
 const text = Type.Union([Type.String(), Type.Null()]);
 const integer = Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]);
 export const MetadataReferenceSchema = Type.Object({
-	provider: Type.String(),
-	mediaType: Type.Literal("anime"),
 	id: Type.String(),
 });
 const summary = {
@@ -84,12 +82,8 @@ export const MetadataDetailsResponseSchema = envelope(
 				spoiler: Type.Boolean(),
 			}),
 		),
-		studios: Type.Array(
-			Type.Object({ id: Type.String(), name: Type.String() }),
-		),
+		studios: Type.Array(Type.Object({ name: Type.String() })),
 		averageScore: integer,
-		siteUrl: text,
-		providerUpdatedAt: integer,
 		streamingEpisodes: Type.Array(
 			Type.Object({ title: text, url: text, site: text, thumbnail: text }),
 		),
@@ -110,7 +104,6 @@ export const MetadataAiringResponseSchema = envelope(
 );
 export const MetadataReferenceParamsSchema = Type.Object(
 	{
-		provider: Type.String({ minLength: 1, maxLength: 50 }),
 		id: Type.String({ minLength: 1, maxLength: 200 }),
 	},
 	{ additionalProperties: false },
@@ -135,7 +128,6 @@ export const MetadataSearchQuerySchema = Type.Object(
 	{
 		...MetadataPageQuerySchema.properties,
 		query: Type.String({ minLength: 1, maxLength: 200 }),
-		provider: Type.Optional(Type.String({ minLength: 1, maxLength: 50 })),
 	},
 	{ additionalProperties: false },
 );

@@ -4,8 +4,7 @@ import { toast } from "../../../shared/components/ui/toast.js";
 import i18n from "../../../shared/i18n.js";
 import { reportRefreshFailure } from "../shared/refresh-feedback.js";
 
-export const metadataRefreshNoticeId = (provider: string, id: string) =>
-	`metadata-refresh:${provider}:${id}`;
+export const metadataRefreshNoticeId = (id: string) => `metadata-refresh:${id}`;
 
 export function reportMetadataRefresh(
 	client: QueryClient,
@@ -14,7 +13,7 @@ export function reportMetadataRefresh(
 ): void {
 	if (metadata.refreshing) return;
 	const { reference } = metadata.data;
-	const id = metadataRefreshNoticeId(reference.provider, reference.id);
+	const id = metadataRefreshNoticeId(reference.id);
 	reportRefreshFailure(client, {
 		id,
 		failure: metadata.refreshError,

@@ -102,7 +102,7 @@ test("metadata failure envelopes notify once across local and provider details, 
 		),
 	);
 	await cache.fetchQuery(localWorkDetailQuery("work-1", "root"));
-	await cache.fetchQuery(metadataDetailQuery("anilist", "154587"));
+	await cache.fetchQuery(metadataDetailQuery({ id: "154587" }));
 	await cache.fetchQuery({
 		...localWorkDetailQuery("work-1", "root"),
 		staleTime: 0,

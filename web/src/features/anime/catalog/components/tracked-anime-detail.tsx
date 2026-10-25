@@ -87,7 +87,9 @@ function TrackedDetail({
 	};
 	// Provider images are proxied so they share the backend artwork cache and HTTP policy.
 	const artwork = (kind: "cover" | "banner") =>
-		`/api/metadata/${encodeURIComponent(data.reference.provider)}/${encodeURIComponent(data.reference.id)}/artwork/${kind}/image`;
+		kind === "cover"
+			? (data.metadata?.data.coverUrl ?? null)
+			: (data.metadata?.data.bannerUrl ?? null);
 	const info = data.metadata?.data;
 	const summary = viewing.snapshot?.entry;
 	const title = data.displayTitle;
@@ -124,7 +126,6 @@ function TrackedDetail({
 								format: info.format,
 								year: info.year,
 								episodeCount: info.episodeCount,
-								reference: info.reference,
 							},
 							metadata: metadata.data,
 						}}
