@@ -389,7 +389,10 @@ test("supported media shows compatibility information in a dialog below the play
 	expect(
 		screen.queryByText("This browser reports support for this file."),
 	).toBeNull();
-	const trigger = screen.getByRole("button", {
+	fireEvent.click(
+		screen.getByRole("button", { name: "More playback options" }),
+	);
+	const trigger = await screen.findByRole("menuitem", {
 		name: "Playback compatibility info",
 	});
 	expect(
@@ -437,7 +440,12 @@ test("unknown media keeps an explicit original attempt and manual compatibility 
 	fireEvent.click(screen.getByRole("button", { name: "Try original file" }));
 	await screen.findByLabelText("Video: Episode 01.mp4");
 	fireEvent.click(
-		screen.getByRole("button", { name: "Playback compatibility info" }),
+		screen.getByRole("button", { name: "More playback options" }),
+	);
+	fireEvent.click(
+		await screen.findByRole("menuitem", {
+			name: "Playback compatibility info",
+		}),
 	);
 	await screen.findByRole("dialog", { name: "Playback compatibility" });
 });

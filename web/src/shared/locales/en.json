@@ -78,6 +78,7 @@
 	},
 	"library": {
 		"fileActions": "File actions",
+		"showInFiles": "Show in Files",
 		"filesLabel": "Library files",
 		"directoryTitle": "Directory: {{name}}",
 		"emptyDirectory": "This directory is empty. Scan the library to discover video files."
@@ -154,6 +155,11 @@
 		"templateHelpLabel": "URL template help"
 	},
 	"player": {
+		"options": "Playback options",
+		"more": "More",
+		"audio": "Audio",
+		"tracking": "Progress",
+		"watched": "Watched",
 		"unavailableTitle": "Unable to play this video",
 		"label": "Player",
 		"videoLabel": "Video: {{name}}",

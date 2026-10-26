@@ -14,11 +14,14 @@ export function AudioSelection({
 }) {
 	const { t, i18n } = useTranslation();
 	return audioTracks.length > 1 ? (
-		<div className="min-w-0">
-			<label className="flex flex-wrap items-center gap-3">
-				<span className="font-medium">{t("audioTracks.playback")}</span>
+		<div className="min-w-0 max-w-full">
+			<label className="flex min-w-0 items-center gap-2">
+				<span className="shrink-0 text-sm text-muted-foreground">
+					{t("player.audio")}
+				</span>
 				<select
-					className="min-w-0 max-w-full rounded-md border bg-background px-3 py-2 text-sm"
+					className="h-11 min-w-0 max-w-40 rounded-md bg-transparent px-2 text-sm sm:max-w-72"
+					aria-label={t("audioTracks.playback")}
 					value={audio ?? "all"}
 					onChange={(event) =>
 						selectAudio(

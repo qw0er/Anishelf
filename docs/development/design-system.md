@@ -206,7 +206,9 @@ must retain editable input and persisted intent.
 Anime details keep Web playback as the primary episode action. A single available
 version orders controls as compatibility status, shared Files action menu, then Play.
 Association correction is a menu item targeting the specific file review, composed
-by Anime through the resource-action slot. The version chooser uses the same menu;
+by Anime through the resource-action slot. The same menu includes Show in Files, which resolves the current parent directory
+on demand and scrolls to, focuses and highlights the corresponding file row without
+starting playback. The version chooser uses the same menu;
 unavailable versions retain their correction link without file commands.
 Multiple available versions open the version chooser; each available version has
 its own Play and file-action controls. Unavailable versions expose no file commands.
@@ -311,6 +313,24 @@ Keep labels and feedback in English. Preserve original filenames. Do not show
 placeholder metadata, nonfunctional controls, invented posters, or incomplete
 integrations as completed features.
 
+
+## Player layout
+
+Keep the player page focused on the picture. Combine the icon-only Back action and
+an at-most-two-line title in one compact header; preserve its accessible name and
+Tooltip. At mobile widths the video extends to the page edges, while desktop uses
+the normal container. Keep the native Vidstack subtitle and playback controls.
+Below the video, place a bounded audio selector and a short More action together.
+Use 44px touch targets without large outlined buttons; allow wrapping when needed.
+
+More owns manual playback retry, compatibility information, playback options and
+existing external-player/link commands. Playback options discloses the full filename,
+prepared-copy state and manual preparation action. Keep the recovery controls visible
+when playback is unavailable. Routine technical explanations must not occupy the
+normal playback page. Progress editing and unmapped-target explanations use a compact
+Progress disclosure; pending decisions, conflicts, failures and recovery actions remain
+visible. Preserve command logging and log explicit manual playback retries without
+media URLs or credentials.
 
 ## Episode Viewing and Playback Completion
 

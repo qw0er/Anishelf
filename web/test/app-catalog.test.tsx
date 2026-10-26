@@ -938,6 +938,11 @@ test("multi-version menus act on the chosen file and omit unavailable file actio
 		).toBeTruthy(),
 	);
 	fireEvent.click(within(chosen).getByRole("button", { name: "File actions" }));
+	expect(
+		(
+			await screen.findByRole("menuitem", { name: "Show in Files" })
+		).getAttribute("href"),
+	).toBe("/files/file-2/locate");
 	fireEvent.click(
 		await screen.findByRole("menuitem", { name: "Copy media link" }),
 	);
@@ -1166,4 +1171,32 @@ test("a tracked detail refetch switches to local episodes while preserving libra
 	expect(
 		screen.getByRole("link", { name: "Back to library" }).getAttribute("href"),
 	).toBe(library);
+});
+
+test("anime file actions locate and focus the file in its parent directory without starting playback", async () => {
+	const detail = animeFixture();
+	const episode = detail.episodes[0];
+	if (!episode) throw Error("Missing episode");
+	episode.versions = episode.versions.slice(0, 1);
+	mockAnime(detail);
+	renderApp("/anime/work-1");
+	fireEvent.click(await screen.findByRole("button", { name: "File actions" }));
+	const action = await screen.findByRole("menuitem", { name: "Show in Files" });
+	expect(action.getAttribute("href")).toBe("/files/file-1/locate");
+	fireEvent.click(action);
+	await waitFor(() =>
+		expect(screen.getByTestId("location").textContent).toBe(
+			"/directories/season-1",
+		),
+	);
+	const row = (
+		await screen.findByRole("link", { name: "Episode 01.mp4" })
+	).closest("li");
+	expect(row?.id).toBe("file-file-1");
+	expect(document.activeElement).toBe(row);
+	expect(
+		fetcher.mock.calls.some(
+			([url]) => String(url) === "/api/playback/sessions",
+		),
+	).toBe(false);
 });

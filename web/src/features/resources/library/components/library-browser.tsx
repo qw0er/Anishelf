@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FileVideo, Folder } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import type { DirectoryResponse } from "../../../../shared/api/contracts.js";
 import { useQueryScope } from "../../../../shared/api/queries.js";
 import { EmptyState } from "../../../../shared/components/empty-state.js";
@@ -31,6 +31,13 @@ export default function LibraryBrowser({
 	identificationStatus?: ReactNode;
 }) {
 	const { t, i18n } = useTranslation();
+	const { hash } = useLocation();
+	const focusedRow = useRef<HTMLLIElement>(null);
+	useEffect(() => {
+		if (!hash || !focusedRow.current) return;
+		focusedRow.current.scrollIntoView?.({ block: "center" });
+		focusedRow.current.focus({ preventScroll: true });
+	}, [hash]);
 	const parentId = listing.directory.parentId;
 	const ids = listing.children
 		.filter((entry) => entry.kind === "file")
@@ -89,7 +96,14 @@ export default function LibraryBrowser({
 								{listing.children.map((entry) => (
 									<li
 										key={entry.id}
-										className="grid grid-cols-[minmax(0,1fr)_auto] items-center py-2 first:pt-0 last:pb-0"
+										id={`file-${entry.id}`}
+										ref={
+											hash === `#${encodeURIComponent(`file-${entry.id}`)}`
+												? focusedRow
+												: undefined
+										}
+										tabIndex={-1}
+										className="grid scroll-mt-4 grid-cols-[minmax(0,1fr)_auto] items-center py-2 first:pt-0 last:pb-0 target:rounded-md target:bg-accent target:ring-2 target:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 									>
 										<Link
 											aria-label={entry.name}

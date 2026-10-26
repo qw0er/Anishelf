@@ -16,21 +16,25 @@ export function CompatibilityDialog({
 	setOpen: setCompatibilityOpen,
 	tryOrigin,
 	tryingOrigin,
+	showTrigger = true,
 }: {
 	compatibility: ReturnType<typeof usePlaybackController>["compatibility"];
 	open: boolean;
 	setOpen(value: boolean): void;
 	tryOrigin(): void;
 	tryingOrigin: boolean;
+	showTrigger?: boolean;
 }) {
 	const { t, i18n } = useTranslation();
 	const audioTracks = compatibility.result?.audioTracks ?? [];
 	return (
 		<Dialog open={compatibilityOpen} onOpenChange={setCompatibilityOpen}>
-			<DialogTrigger render={<Button type="button" variant="outline" />}>
-				<Info size={16} aria-hidden="true" />
-				{t("compatibility.showInfo")}
-			</DialogTrigger>
+			{showTrigger && (
+				<DialogTrigger render={<Button type="button" variant="outline" />}>
+					<Info size={16} aria-hidden="true" />
+					{t("compatibility.showInfo")}
+				</DialogTrigger>
+			)}
 			<DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{t("compatibility.label")}</DialogTitle>
