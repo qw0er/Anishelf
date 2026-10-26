@@ -193,7 +193,7 @@ export function compileFfmpegArguments(
 /** Local complete-file adapter. Publication and source checks belong to the application. */
 export class FfmpegExecutionAdapter {
 	constructor(
-		private readonly ffmpeg: ToolStatus,
+		private readonly ffmpeg: () => Promise<ToolStatus>,
 		private readonly policy: DeepReadonly<MediaToolPolicy> = mediaToolPolicy,
 		private readonly logger?: Logger,
 	) {}
@@ -203,9 +203,10 @@ export class FfmpegExecutionAdapter {
 		options: MediaProcessingOptions,
 		info: MediaInfo,
 	): Promise<void> {
-		if (!this.ffmpeg.available)
-			throw new MediaToolError("TOOL_UNAVAILABLE", this.ffmpeg.message);
-		if (!isAbsolute(this.ffmpeg.path))
+		const ffmpeg = await this.ffmpeg();
+		if (!ffmpeg.available)
+			throw new MediaToolError("TOOL_UNAVAILABLE", ffmpeg.message);
+		if (!isAbsolute(ffmpeg.path))
 			throw new MediaToolError(
 				"INVALID_INPUT",
 				"FFmpeg must be a resolved executable.",
@@ -218,7 +219,7 @@ export class FfmpegExecutionAdapter {
 			);
 		const args = compileFfmpegArguments(input, output, options);
 		const child = startMediaProcess(
-			this.ffmpeg.path,
+			ffmpeg.path,
 			args,
 			{
 				...(options.signal ? { signal: options.signal } : {}),

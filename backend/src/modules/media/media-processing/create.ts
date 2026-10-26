@@ -28,7 +28,7 @@ export function createMediaProcessingModule(options: {
 		inspection,
 		tools,
 		executor: new FfmpegExecutionAdapter(
-			tools.status.ffmpeg,
+			() => tools.toolStatus("ffmpeg"),
 			options.toolPolicy ?? mediaToolPolicy,
 			options.logger,
 		),

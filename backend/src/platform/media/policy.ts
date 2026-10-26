@@ -5,7 +5,8 @@ import {
 } from "../../shared/policy.js";
 
 const defaults = {
-	detectionTimeoutMs: 5000,
+	detectionTimeoutMs: 30000,
+	detectionRetryIntervalMs: 10000,
 	detectionMaximumBytes: 64 * 1024,
 	capabilityMaximumBytes: 1024 * 1024,
 	capabilityConcurrency: 2,
