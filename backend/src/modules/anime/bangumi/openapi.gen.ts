@@ -119,9 +119,9 @@ export interface components {
 			locked: boolean;
 			/**
 			 * Date
-			 * @description air date in `YYYY-MM-DD` format
+			 * @description air date in `YYYY-MM-DD` format, or null when unknown
 			 */
-			date?: string;
+			date?: string | null;
 			/**
 			 * Platform
 			 * @description TV, Web, 欧美剧, DLC...

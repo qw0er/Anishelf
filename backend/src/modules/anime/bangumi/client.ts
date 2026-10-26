@@ -1,11 +1,12 @@
 import createClient from "openapi-fetch";
 import PQueue from "p-queue";
 import type { Logger } from "pino";
-import { Check } from "typebox/value";
+import { Check, Errors } from "typebox/value";
 import { buildInfo } from "../../../platform/build-info.js";
 import {
 	BangumiError,
 	type BangumiMetadataApi,
+	type BangumiSubject,
 	searchSchema,
 	subjectSchema,
 } from "./domain/model.js";
@@ -155,46 +156,83 @@ export class BangumiClient implements BangumiMetadataApi {
 			{ signal: combined },
 		);
 	}
-	search(query: string, page: number, perPage: number, signal: AbortSignal) {
-		return this.request(signal, async (activeSignal) => {
-			const offset = (page - 1) * perPage;
-			const { data } = await this.client.POST("/v0/search/subjects", {
-				params: { query: { limit: perPage, offset } },
-				body: { keyword: query, sort: "match", filter: { type: [2] } },
-				signal: activeSignal,
+	async search(
+		query: string,
+		page: number,
+		perPage: number,
+		signal: AbortSignal,
+	) {
+		const items: BangumiSubject[] = [];
+		const start = (page - 1) * perPage;
+		let total = start;
+		// The live endpoint caps each wire page at 20, while Metadata uses pages of 50.
+		while (items.length < perPage) {
+			const offset = start + items.length;
+			const limit = Math.min(20, perPage - items.length);
+			const result = await this.request(signal, async (activeSignal) => {
+				const { data } = await this.client.POST("/v0/search/subjects", {
+					params: { query: { limit, offset } },
+					body: { keyword: query, sort: "match", filter: { type: [2] } },
+					signal: activeSignal,
+				});
+				if (!Check(searchSchema, data))
+					throw this.invalid("search", "schema", Errors(searchSchema, data));
+				if (
+					data.limit !== limit ||
+					data.offset !== offset ||
+					data.data.length > limit
+				)
+					throw this.invalid("search", "pagination", [], {
+						requestedLimit: limit,
+						requestedOffset: offset,
+						returnedLimit: data.limit,
+						returnedOffset: data.offset,
+						itemCount: data.data.length,
+					});
+				if (data.data.some((item) => !item.name.trim() && !item.name_cn.trim()))
+					throw this.invalid("search", "missing_title");
+				return data;
 			});
-			if (
-				!Check(searchSchema, data) ||
-				data.limit !== perPage ||
-				data.offset !== offset ||
-				data.data.length > perPage ||
-				data.data.some((item) => !item.name.trim() && !item.name_cn.trim())
-			)
-				throw this.invalid();
-			return {
-				items: data.data,
-				page,
-				perPage,
-				hasNextPage: offset + data.data.length < data.total,
-			};
-		});
+			items.push(...result.data);
+			total = result.total;
+			if (start + items.length >= total || result.data.length < limit) break;
+		}
+		return { items, page, perPage, hasNextPage: start + items.length < total };
 	}
+
 	get(id: number, signal: AbortSignal) {
 		return this.request(signal, async (activeSignal) => {
 			const { data } = await this.client.GET("/v0/subjects/{subject_id}", {
 				params: { path: { subject_id: id } },
 				signal: activeSignal,
 			});
-			if (
-				!Check(subjectSchema, data) ||
-				data.id !== id ||
-				(!data.name.trim() && !data.name_cn.trim())
-			)
-				throw this.invalid();
+			if (!Check(subjectSchema, data))
+				throw this.invalid("detail", "schema", Errors(subjectSchema, data));
+			if (data.id !== id) throw this.invalid("detail", "subject_id");
+			if (!data.name.trim() && !data.name_cn.trim())
+				throw this.invalid("detail", "missing_title");
 			return data;
 		});
 	}
-	private invalid() {
+	private invalid(
+		operation: "search" | "detail",
+		reason: "schema" | "pagination" | "subject_id" | "missing_title",
+		issues: readonly { instancePath: string; message: string }[] = [],
+		pagination?: Record<string, number>,
+	) {
+		this.options.logger.warn(
+			{
+				event: "bangumi.response_invalid",
+				operation,
+				reason,
+				pagination,
+				issues: issues.slice(0, 10).map(({ instancePath, message }) => ({
+					path: instancePath,
+					message,
+				})),
+			},
+			"Bangumi response failed validation.",
+		);
 		return new BangumiError({
 			code: "invalid-response",
 			message: "Bangumi returned invalid metadata.",

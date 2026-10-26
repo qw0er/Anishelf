@@ -8,7 +8,7 @@ export const subjectSchema = Type.Object({
 	name: Type.String(),
 	name_cn: Type.String(),
 	summary: Type.String(),
-	date: Type.Optional(Type.String()),
+	date: Type.Optional(Type.Union([Type.String(), Type.Null()])),
 	platform: Type.String(),
 	eps: Type.Integer({ minimum: 0 }),
 	images: Type.Union([

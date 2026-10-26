@@ -67,6 +67,187 @@ test("typed OpenAPI search sends anime filter, pagination and identifying User-A
 	);
 	expect(result.hasNextPage).toBe(true);
 });
+test.each([null, undefined, "2026-01-16"])(
+	"search preserves mixed results when an air date is %s",
+	async (date) => {
+		const provider = new BangumiProvider(
+			client(async () =>
+				Response.json({
+					total: 2,
+					limit: 10,
+					offset: 0,
+					data: [subject(), { ...subject(638133), date }],
+				}),
+			),
+		);
+		const result = await provider.search("Frieren", 1, 10, signal());
+		expect(result.data.items).toHaveLength(2);
+		expect(result.data.items[0]?.year).toBe(2023);
+		expect(result.data.items[1]).toMatchObject({
+			reference: { id: "638133" },
+			year: date ? 2026 : null,
+		});
+		expect(result.data.hasNextPage).toBe(false);
+	},
+);
+test.each([null, undefined])(
+	"detail projects an unknown air date %s without inventing a year",
+	async (date) => {
+		const provider = new BangumiProvider(
+			client(async () => Response.json({ ...subject(), date })),
+		);
+		const result = await provider.get(
+			{ provider: "bangumi", mediaType: "anime", id: "400602" },
+			signal(),
+		);
+		expect(result.data).toMatchObject({ year: null, startDate: null });
+	},
+);
+test("invalid search logs field paths without search strings or response bodies", async () => {
+	const logs: string[] = [];
+	const diagnosticLogger = pino(
+		{ level: "warn" },
+		{ write: (line) => logs.push(line) },
+	);
+	const api = new BangumiClient({
+		logger: diagnosticLogger,
+		fetch: async () =>
+			Response.json({
+				total: 1,
+				limit: 10,
+				offset: 0,
+				data: [{ ...subject(), date: 2026 }],
+			}),
+	});
+	cleanup.push(() => api.close());
+	await expect(
+		api.search("private query", 1, 10, signal()),
+	).rejects.toMatchObject({
+		failure: { code: "invalid-response" },
+	});
+	expect(logs.map((line) => JSON.parse(line))).toContainEqual(
+		expect.objectContaining({
+			event: "bangumi.response_invalid",
+			operation: "search",
+			reason: "schema",
+			issues: expect.arrayContaining([
+				expect.objectContaining({ path: "/data/0/date" }),
+			]),
+		}),
+	);
+	expect(logs.join("")).not.toContain("private query");
+	expect(logs.join("")).not.toContain(subject().name);
+	expect(logs.join("")).not.toContain(subject().summary);
+});
+test.each([
+	{ limit: 20 },
+	{ offset: 10 },
+	{ data: Array.from({ length: 11 }, () => subject()) },
+	{ data: [{ ...subject(), name: "", name_cn: "" }] },
+	{ data: [{ ...subject(), type: 1 }] },
+])(
+	"search still rejects invalid pagination and subjects: %j",
+	async (overrides) => {
+		await expect(
+			client(async () =>
+				Response.json({
+					total: 20,
+					limit: 10,
+					offset: 0,
+					data: [subject()],
+					...overrides,
+				}),
+			).search("Frieren", 1, 10, signal()),
+		).rejects.toMatchObject({
+			failure: { code: "invalid-response" },
+		});
+	},
+);
+test.each([
+	{
+		page: 1,
+		total: 120,
+		offsets: [0, 20, 40],
+		limits: [20, 20, 10],
+		count: 50,
+	},
+	{
+		page: 2,
+		total: 95,
+		offsets: [50, 70, 90],
+		limits: [20, 20, 10],
+		count: 45,
+	},
+	{ page: 1, total: 5, offsets: [0], limits: [20], count: 5 },
+	{ page: 1, total: 0, offsets: [0], limits: [20], count: 0 },
+])(
+	"assembles logical pages across the live 20-item cap: %j",
+	async ({ page, total, offsets, limits, count }) => {
+		vi.useFakeTimers();
+		const starts: number[] = [];
+		const fetcher = vi.fn<typeof fetch>(async (input) => {
+			starts.push(Date.now());
+			const url = new URL((input as Request).url);
+			const offset = Number(url.searchParams.get("offset"));
+			const limit = Math.min(20, Number(url.searchParams.get("limit")));
+			return Response.json({
+				total,
+				limit,
+				offset,
+				data: Array.from(
+					{ length: Math.max(0, Math.min(limit, total - offset)) },
+					(_, index) => ({
+						...subject(offset + index + 1),
+						date: null,
+					}),
+				),
+			});
+		});
+		const pending = client(fetcher).search("Frieren", page, 50, signal());
+		await vi.advanceTimersByTimeAsync(3000);
+		const result = await pending;
+		expect(result.items).toHaveLength(count);
+		expect(result.items.map((item) => item.id)).toEqual(
+			Array.from({ length: count }, (_, i) => (page - 1) * 50 + i + 1),
+		);
+		expect(result).toMatchObject({
+			page,
+			perPage: 50,
+			hasNextPage: (page - 1) * 50 + count < total,
+		});
+		const urls = fetcher.mock.calls.map(
+			([input]) => new URL((input as Request).url),
+		);
+		expect(urls.map((url) => Number(url.searchParams.get("offset")))).toEqual(
+			offsets,
+		);
+		expect(urls.map((url) => Number(url.searchParams.get("limit")))).toEqual(
+			limits,
+		);
+		for (let i = 1; i < starts.length; i++)
+			expect((starts[i] ?? 0) - (starts[i - 1] ?? 0)).toBeGreaterThanOrEqual(
+				1000,
+			);
+	},
+);
+test("canceling a multi-request search prevents remaining wire pages", async () => {
+	vi.useFakeTimers();
+	const controller = new AbortController();
+	const fetcher = vi.fn<typeof fetch>(async () => {
+		controller.abort();
+		return Response.json({
+			total: 100,
+			limit: 20,
+			offset: 0,
+			data: Array.from({ length: 20 }, (_, i) => subject(i + 1)),
+		});
+	});
+	await expect(
+		client(fetcher).search("Frieren", 1, 50, controller.signal),
+	).rejects.toBeDefined();
+	await vi.advanceTimersByTimeAsync(3000);
+	expect(fetcher).toHaveBeenCalledTimes(1);
+});
 test("search and detail share a strict one-request-per-second queue", async () => {
 	vi.useFakeTimers();
 	const fetcher = transport();

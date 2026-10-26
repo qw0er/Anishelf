@@ -516,7 +516,13 @@ npm run generate:bangumi --workspace @anishelf/backend
 
 OpenAPI types describe the wire API; runtime TypeBox schemas validate consumed
 fields before they enter Metadata. Responses must contain anime subjects, valid
-IDs and matching pagination. The search endpoint is experimental upstream.
+IDs and matching pagination. Unknown air dates may be omitted or null, including
+in search results; the local OpenAPI subset records this observed wire behavior.
+The client assembles Metadata pages of up to 50 items from wire pages of at most
+20 items, matching the live endpoint cap. Each wire request uses the shared limiter
+and cancellation signal. Validation failures log requested/returned pagination,
+the operation, reason and up to ten field paths without
+search strings or response bodies. The search endpoint is experimental upstream.
 
 One Bangumi client shares a strict PQueue limiter between search and detail:
 concurrency one, at most one request start per second, and at most 50 queued
