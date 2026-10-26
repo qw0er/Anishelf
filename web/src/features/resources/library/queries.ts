@@ -1,4 +1,4 @@
-import { libraryInteractionPolicy } from "./policy.js";
+import { libraryInteractionDefaults } from "./defaults.js";
 
 const libraryKeys = {
 	library: ["library"] as const,
@@ -17,8 +17,8 @@ export const libraryQuery = () =>
 		queryFn: ({ signal }) => api.getLibrary({ signal: boundedSignal(signal) }),
 		refetchInterval: (query) =>
 			query.state.data?.scan?.status === "running"
-				? libraryInteractionPolicy.scanPollIntervalMs
-				: libraryInteractionPolicy.statusPollIntervalMs,
+				? libraryInteractionDefaults.scanPollIntervalMs
+				: libraryInteractionDefaults.statusPollIntervalMs,
 	});
 export const directoryQuery = (id: string, scope: string) =>
 	queryOptions({

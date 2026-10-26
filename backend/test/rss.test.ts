@@ -6,7 +6,6 @@ import { MockAgent } from "undici";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import { rssConstraints } from "../src/contracts/defaults.js";
 import {
 	createAcquisitionModule,
@@ -618,7 +617,6 @@ test("subscription HTTP routes are authenticated, CSRF protected and redact priv
 	const app = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger: f.options.logger,
-		policy: builtinPolicy,
 		configure: auth.registerHttp,
 		registrations: [f.module.registerHttp],
 		closeDependencies: async () => {},

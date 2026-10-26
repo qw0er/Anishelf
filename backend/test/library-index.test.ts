@@ -1,6 +1,5 @@
 import { join } from "node:path";
 import { expect, test } from "vitest";
-import { builtinPolicy } from "../src/app/policy.js";
 import type {
 	DirectoryEntry,
 	FileEntry,
@@ -8,6 +7,7 @@ import type {
 } from "../src/modules/resources/library/domain/model.js";
 import { createResourceId } from "../src/modules/resources/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import { libraryPolicy } from "../src/modules/resources/library/policy.js";
 
 const root: DirectoryEntry = {
 	kind: "directory",
@@ -205,7 +205,7 @@ test("injected sorting changes directory priority and numeric ordering", () => {
 		"episode10.mp4",
 	]);
 	index.configure({
-		...builtinPolicy.library,
+		...libraryPolicy,
 		directoriesFirst: false,
 		sortNumeric: false,
 	});

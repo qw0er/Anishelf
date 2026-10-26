@@ -1,4 +1,4 @@
-export const catalogPolicy = {
+export const catalogDefaults = {
 	automaticMinimumScore: 70,
 	automaticMinimumMargin: 10,
 	maximumRows: 100,

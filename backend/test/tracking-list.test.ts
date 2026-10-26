@@ -5,7 +5,6 @@ import pino from "pino";
 import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import { AniListError } from "../src/modules/anime/anilist/public.js";
 import type { AnimeCatalogApi } from "../src/modules/anime/anime-catalog/public.js";
 import { AnimeLibraryQueries } from "../src/modules/anime/anime-library/application/library.js";
@@ -386,7 +385,6 @@ test("unified Library HTTP validates filters and serializes merged cards", async
 	const http = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger: pino({ enabled: false }),
-		policy: builtinPolicy,
 		registrations: [(app) => registerAnimeLibraryRoutes(app, library)],
 		closeDependencies: async () => {},
 	});
@@ -461,7 +459,6 @@ test("tracked library cards use cached artwork when warm and the provider URL wh
 		const http = createHttpApp({
 			config: { host: "127.0.0.1", port: 3000 },
 			logger: pino({ enabled: false }),
-			policy: builtinPolicy,
 			registrations: [(app) => registerAnimeLibraryRoutes(app, api, resolver)],
 			closeDependencies: async () => {},
 		});

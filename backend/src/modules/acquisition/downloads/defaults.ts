@@ -1,4 +1,4 @@
-export const downloadPolicy = {
+export const downloadDefaults = {
 	activeIntervalMs: 5_000,
 	idleIntervalMs: 60_000,
 	maximumConcurrent: 2,

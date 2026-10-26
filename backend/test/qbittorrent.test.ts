@@ -5,7 +5,6 @@ import pino from "pino";
 import { afterEach, expect, test } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import { PersistentConfiguration } from "../src/modules/system/configuration/infrastructure/persistent.js";
 import {
 	createAuthenticationModule,
@@ -35,7 +34,6 @@ async function fixture() {
 	const app = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger,
-		policy: builtinPolicy,
 		configure: auth.registerHttp,
 		registrations: [
 			(app) =>

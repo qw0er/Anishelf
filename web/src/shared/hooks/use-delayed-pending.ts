@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { interactionPolicy } from "../config/interaction-policy.js";
+import { interactionDefaults } from "../config/interaction-defaults.js";
 
 /** Delay visual feedback without delaying requests, results, or disabled controls. */
 export function useDelayedPending(pending: boolean, identity = "") {
@@ -10,7 +10,7 @@ export function useDelayedPending(pending: boolean, identity = "") {
 		if (!pending) return;
 		const timer = setTimeout(
 			() => setVisibleFor(identity),
-			interactionPolicy.pendingDelayMs,
+			interactionDefaults.pendingDelayMs,
 		);
 		return () => clearTimeout(timer);
 	}, [pending, identity]);

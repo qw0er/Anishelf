@@ -8,7 +8,7 @@ import type {
 	DownloadContext,
 	DownloadExecution,
 } from "../application/context.js";
-import { downloadPolicy as policy } from "../application/policy.js";
+import { downloadDefaults as policy } from "../defaults.js";
 import { DownloadError, type DownloadIntent } from "../domain/model.js";
 import { absoluteDownloadPath } from "../domain/paths.js";
 import { resolveTorrent } from "../infrastructure/torrent.js";

@@ -1,3 +1,4 @@
+import { preparationConstraints } from "@anishelf/backend/contracts/defaults";
 import { Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useFetcher } from "react-router";
@@ -11,7 +12,6 @@ import {
 } from "../../../shared/components/ui/card.js";
 import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
-import { preparationPolicy } from "../policy.js";
 import { ResourcePathList } from "./resource-path-list.js";
 
 export default function ResourceSettings({
@@ -55,7 +55,7 @@ export default function ResourceSettings({
 								<FieldHelp
 									label={t("settingsPage.cacheHelpLabel")}
 									help={t("settingsPage.transcodeCacheBudgetHelp", {
-										defaultGiB: preparationPolicy.defaultCacheBudgetGiB,
+										defaultGiB: preparationConstraints.defaultCacheBudgetGiB,
 									})}
 								/>
 							</div>
@@ -64,12 +64,12 @@ export default function ResourceSettings({
 								name="transcodeCacheBudgetGiB"
 								type="number"
 								min={1}
-								max={preparationPolicy.maximumCacheBudgetGiB}
+								max={preparationConstraints.maximumCacheBudgetGiB}
 								step={1}
 								required
 								defaultValue={
 									settings.transcodeCacheBudgetGiB ??
-									preparationPolicy.defaultCacheBudgetGiB
+									preparationConstraints.defaultCacheBudgetGiB
 								}
 								disabled={disabled || saving}
 							/>

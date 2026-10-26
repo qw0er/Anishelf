@@ -11,7 +11,6 @@ import pino from "pino";
 import { expect, test } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
 
 async function port() {
@@ -51,7 +50,6 @@ test.skipIf(!process.env.ANISHELF_TEST_CADDY_BIN)(
 				trustedProxies: ["127.0.0.1/32"],
 			},
 			logger,
-			policy: builtinPolicy,
 			configure: auth.registerHttp,
 			registrations: [],
 			closeDependencies: async () => database.close(),

@@ -1,5 +1,5 @@
 import { matchingTitle } from "../../identification/public.js";
-import { catalogPolicy } from "../policy.js";
+import { catalogDefaults } from "../defaults.js";
 import type { ReviewRecord } from "./model.js";
 
 /** The same diagnosis powers admission, Review and offline evaluation. */
@@ -21,12 +21,12 @@ function workBlockers(item: ReviewRecord): string[] {
 				),
 			]),
 		];
-	if (best.candidate.score < catalogPolicy.automaticMinimumScore)
+	if (best.candidate.score < catalogDefaults.automaticMinimumScore)
 		blockers.push("Ranking score below admission minimum.");
 	if (
 		next &&
 		best.candidate.score - next.candidate.score <
-			catalogPolicy.automaticMinimumMargin
+			catalogDefaults.automaticMinimumMargin
 	)
 		blockers.push("Insufficient ranking margin.");
 	blockers.push(

@@ -6,7 +6,7 @@ import type {
 import { checkMediaCompatibility, inspectMediaCompatibility } from "./api.js";
 import { readCompatibility, saveCompatibility } from "./cache.js";
 import { queryCapabilities } from "./capabilities.js";
-import { mediacompatibilityInteractionPolicy } from "./policy.js";
+import { mediaCompatibilityDefaults } from "./defaults.js";
 
 export function originalCompatibilityKey(file: FileDto): string {
 	return JSON.stringify([
@@ -29,7 +29,7 @@ export async function inspectBrowserMedia(
 				!(error instanceof ApiClientError) ||
 				error.code !== "MEDIA_INSPECTION_UNAVAILABLE" ||
 				error.status !== 503 ||
-				attempt >= mediacompatibilityInteractionPolicy.compatibilityBusyRetries
+				attempt >= mediaCompatibilityDefaults.compatibilityBusyRetries
 			)
 				throw error;
 			await new Promise<void>((resolve, reject) => {
@@ -43,7 +43,7 @@ export async function inspectBrowserMedia(
 						signal.removeEventListener("abort", abort);
 						resolve();
 					},
-					mediacompatibilityInteractionPolicy.compatibilityBusyRetryDelayMs *
+					mediaCompatibilityDefaults.compatibilityBusyRetryDelayMs *
 						(attempt + 1),
 				);
 				signal.addEventListener("abort", abort, { once: true });

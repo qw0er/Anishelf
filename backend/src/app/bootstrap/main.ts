@@ -2,11 +2,12 @@ import { join } from "node:path";
 import { createSystemModule } from "../../modules/system/create.js";
 import { ApplicationLogging } from "../../platform/logging/index.js";
 import { DomainError } from "../../shared/errors.js";
-import { builtinPolicy, validatePolicy } from "../policy.js";
 import { type ApplicationDatabase, openDatabase } from "./database.js";
 import type { createHttpApp } from "./http.js";
 import { initializeMediaTools } from "./media-tools.js";
 import { createServer } from "./server.js";
+
+const shutdownTimeoutMs = 5000;
 
 type HttpApp = ReturnType<typeof createHttpApp>;
 
@@ -85,7 +86,6 @@ async function main(): Promise<void> {
 	let logging: ApplicationLogging | undefined;
 	let app: HttpApp | undefined;
 	try {
-		validatePolicy(builtinPolicy);
 		const { api: configuration } = await createSystemModule(process.env);
 		const config = configuration.deployment;
 		logging = ApplicationLogging.create(config.logging);
@@ -112,10 +112,9 @@ async function main(): Promise<void> {
 		const tools = await initializeMediaTools(
 			config.mediaTools,
 			logger,
-			builtinPolicy,
 			configuration.environment.executableSearch,
 		);
-		database = openDatabase(config.dataDir, logger, builtinPolicy);
+		database = openDatabase(config.dataDir, logger);
 		app = await createServer(configuration, logger, database, tools);
 		await app.listen({ host: config.host, port: config.port });
 		logger.info(
@@ -126,7 +125,7 @@ async function main(): Promise<void> {
 			},
 			"HTTP application started.",
 		);
-		registerShutdown(app, logging, builtinPolicy.runtime.shutdownTimeoutMs);
+		registerShutdown(app, logging, shutdownTimeoutMs);
 	} catch (error) {
 		await handleStartupFailure(error, logging, app, database);
 	}

@@ -33,7 +33,7 @@ applications. Original media is read-only to Backend; qBittorrent writes downloa
 
 | Backend root | Responsibility |
 | --- | --- |
-| `app/` | Composition, global policy, HTTP setup, staged shutdown |
+| `app/` | Composition, HTTP setup, staged shutdown |
 | `modules/` | Six business modules and their private implementations |
 | `contracts/` | Browser-safe protocol types, schemas and shared limits |
 | `platform/` | SQLite, filesystem/process mechanisms, media tools, logging |
@@ -50,6 +50,28 @@ Only root entries cross a module boundary, including from app. Public contracts
 hide application/repository constructors and protocol adapters. Modules cannot
 import app; platform/shared cannot import modules. Runtime cycles are rejected by
 `npm run architecture:check` and its dependency fixtures.
+
+### Defaults and behavior policies
+
+Keep fixed implementation choices next to their consumer (for example SQLite
+pragmas, HTTP body limits, log redaction and shutdown timing). A value used by one
+implementation does not need a separate policy file.
+
+Use a feature-local `defaults.ts` for parameters shared by several files in that
+feature, such as download scheduling or metadata cache freshness. These defaults
+are imported directly; they are not part of a global configuration object.
+
+Keep `policy.ts` for injectable behavior with related limits or semantic
+constraints, such as playback completion, resource monitoring and media workflows.
+Module constructors select their own defaults and validate their policies before
+starting work. Tests can override the relevant module or section without building
+an application-wide policy object. Debug logs record which sections were overridden.
+Persistence accepts only the playback policy it uses; media tools own their process
+limits. App composes capabilities rather than aggregating all policy values.
+
+Browser/server limits belong in `contracts/` and consumers import them directly.
+Avoid aliases or forwarding files that only rename a contract constant. Frontend
+presentation timings shared within a feature live in its `defaults.ts`.
 
 ### Frontend ownership
 

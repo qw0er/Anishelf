@@ -9,7 +9,7 @@ import type {
 } from "../../../../shared/api/contracts.js";
 import {
 	clearCapabilityCache,
-	preparationInteractionPolicy,
+	preparationInteractionDefaults,
 	queryCapabilities,
 	removeCompatibility,
 } from "../../../media/public.js";
@@ -62,7 +62,7 @@ export function usePlaybackSelection(
 			const signal = AbortSignal.any([
 				querySignal,
 				AbortSignal.timeout(
-					preparationInteractionPolicy.preparationRequestTimeoutMs,
+					preparationInteractionDefaults.preparationRequestTimeoutMs,
 				),
 			]);
 			const intent = {
@@ -118,7 +118,7 @@ export function usePlaybackSelection(
 		},
 		refetchInterval: (query) =>
 			query.state.data?.plan.mode === "blocked" && query.state.data.pending
-				? preparationInteractionPolicy.preparationPollIntervalMs
+				? preparationInteractionDefaults.preparationPollIntervalMs
 				: false,
 	});
 	const current = {

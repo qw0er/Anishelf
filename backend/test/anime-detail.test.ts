@@ -2,7 +2,6 @@ import pino from "pino";
 import { expect, test, vi } from "vitest";
 import { registerAnimeDetailRoutes } from "../src/app/anime-detail.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import { MetadataError } from "../src/modules/anime/metadata/public.js";
 import { AnimeQueries } from "../src/modules/anime/queries.js";
 import type { TrackingListSnapshot } from "../src/modules/anime/tracking/public.js";
@@ -103,7 +102,6 @@ test("detail and lightweight status remain independent during a metadata outage"
 	};
 	const app = createHttpApp({
 		config: { host: "127.0.0.1", port: 80 },
-		policy: builtinPolicy,
 		closeDependencies: async () => {},
 		logger,
 		registrations: [

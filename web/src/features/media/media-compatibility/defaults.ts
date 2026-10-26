@@ -1,4 +1,4 @@
-export const mediacompatibilityInteractionPolicy = Object.freeze({
+export const mediaCompatibilityDefaults = Object.freeze({
 	compatibilityConcurrency: 2,
 	compatibilityBusyRetries: 2,
 	compatibilityBusyRetryDelayMs: 500,

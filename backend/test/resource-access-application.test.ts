@@ -2,10 +2,10 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
-import { builtinPolicy } from "../src/app/policy.js";
 import { ResourceAccessApplication } from "../src/modules/resources/resource-access/application/access.js";
 import { ResourceRoots } from "../src/modules/resources/resource-access/application/roots.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
+import { resourceAccessRuntimePolicy } from "../src/modules/resources/resource-access/policy.js";
 import type {
 	ResourceAccessApi,
 	SourceCatalog,
@@ -50,7 +50,7 @@ async function fixture() {
 				return settings;
 			},
 		},
-		roots: new ResourceRoots(builtinPolicy),
+		roots: new ResourceRoots(resourceAccessRuntimePolicy),
 	});
 	return {
 		source,

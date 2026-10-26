@@ -340,7 +340,7 @@ test("same-account reconnect uses the current generation and unsupported mapping
 
 test("HTTP player commands serialize the real admission and final operation with a minimal remote baseline", async () => {
 	const { createHttpApp } = await import("../src/app/bootstrap/http.js");
-	const { builtinPolicy } = await import("../src/app/policy.js");
+
 	const { registerTrackingUpdateRoutes } = await import(
 		"../src/modules/anime/tracking/http/updates.js"
 	);
@@ -349,7 +349,6 @@ test("HTTP player commands serialize the real admission and final operation with
 	const http = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger: pino({ enabled: false }),
-		policy: builtinPolicy,
 		registrations: [
 			(scope) => registerTrackingUpdateRoutes(scope, f.updates, f.service),
 		],

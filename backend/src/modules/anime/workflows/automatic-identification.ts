@@ -8,7 +8,7 @@ import type {
 	ResourceAccessApi,
 	SourceIdentity,
 } from "../../resources/public.js";
-import { identificationPolicy } from "../identification/policy.js";
+import { identificationDefaults } from "../identification/defaults.js";
 import type {
 	IdentificationApi,
 	IdentificationResult,
@@ -113,7 +113,7 @@ export class AutomaticIdentificationCoordinator {
 					this.retryTimer = setTimeout(() => {
 						for (const id of this.retryDirectories) this.pending.add(id);
 						this.request();
-					}, identificationPolicy.automaticRetryMs);
+					}, identificationDefaults.automaticRetryMs);
 					this.retryTimer.unref();
 				}
 			});
@@ -220,13 +220,13 @@ export class AutomaticIdentificationCoordinator {
 				for (
 					let start = 0;
 					start < sources.length;
-					start += identificationPolicy.parserGroupSize
+					start += identificationDefaults.parserGroupSize
 				)
 					results.push(
 						...(await this.options.identification.identify(
 							sources.slice(
 								start,
-								start + identificationPolicy.parserGroupSize,
+								start + identificationDefaults.parserGroupSize,
 							),
 							signal,
 						)),

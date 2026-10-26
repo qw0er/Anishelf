@@ -24,7 +24,7 @@ export async function checkArchitecture(baseDir = process.cwd()) {
 			if (!file.endsWith(".ts") && !file.endsWith(".tsx")) continue;
 			if (
 				relative.startsWith("backend") &&
-				!/^(?:tracking|metadata|anime-library|anime-catalog|identification)\/(?:application\/|domain\/|(?:ports|public|policy)\.ts$)/.test(
+				!/^(?:tracking|metadata|anime-library|anime-catalog|identification)\/(?:application\/|domain\/|(?:ports|public|policy|defaults)\.ts$)/.test(
 					file,
 				)
 			)

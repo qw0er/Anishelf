@@ -8,31 +8,29 @@ import Fastify, {
 import type { Logger } from "pino";
 import { HealthResponseSchema } from "../../contracts/schemas/index.js";
 import type { DeploymentConfig } from "../../modules/system/public.js";
-import type { DeepReadonly } from "../../shared/policy.js";
 import { apiError, classifyHttpError } from "../../transport/errors.js";
 import type { HttpInstance } from "../../transport/instance.js";
 import { checkRequestOrigin } from "../../transport/security.js";
 import { registerFrontend } from "../../transport/static.js";
-import type { BuiltinPolicy } from "../policy.js";
 export function createHttpApp(options: {
 	config: Pick<
 		DeploymentConfig,
 		"host" | "port" | "publicOrigin" | "trustedProxies"
 	>;
 	logger: Logger;
-	policy: DeepReadonly<BuiltinPolicy>;
+	bodyLimit?: number;
 	development?: boolean;
 	frontendRoot?: string;
 	configure?: (app: HttpInstance) => Promise<void>;
 	registrations: readonly ((app: HttpInstance) => void)[];
 	closeDependencies: () => Promise<void>;
 }) {
-	const policy = options.policy;
 	options.logger.info(
 		{
 			event: "http.proxy_configured",
 			trustedProxies: options.config.trustedProxies ?? ["loopback"],
 			publicOrigin: options.config.publicOrigin,
+			bodyLimit: options.bodyLimit ?? 64 * 1024,
 		},
 		"HTTP proxy trust configured.",
 	);
@@ -42,7 +40,7 @@ export function createHttpApp(options: {
 		genReqId: () => randomUUID(),
 		requestIdHeader: false,
 		trustProxy: [...(options.config.trustedProxies ?? ["loopback"])],
-		bodyLimit: policy.http.httpBodyMaximumBytes,
+		bodyLimit: options.bodyLimit ?? 64 * 1024,
 		forceCloseConnections: "idle",
 		ajv: { customOptions: { removeAdditional: false, coerceTypes: false } },
 	}).withTypeProvider<TypeBoxTypeProvider>();

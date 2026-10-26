@@ -1,5 +1,6 @@
 import type { Logger } from "pino";
 import { workKey } from "../../../../shared/external-reference.js";
+import { detailFreshnessMs, metadataDefaults as policy } from "../defaults.js";
 import {
 	MetadataError,
 	type MetadataSnapshot,
@@ -8,7 +9,6 @@ import {
 	type SearchRequest,
 	type WorkDetails,
 } from "../domain/source-model.js";
-import { detailFreshnessMs, metadataPolicy as policy } from "../policy.js";
 import type {
 	MetadataArtwork,
 	MetadataProvider,

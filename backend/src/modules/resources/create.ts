@@ -1,13 +1,3 @@
-import type { ResourceAccessApi } from "./public.js";
-
-export type { LibraryPolicy } from "./library/policy.js";
-export { libraryPolicy, validateLibraryPolicy } from "./library/policy.js";
-export type { ResourceAccessPolicy } from "./resource-access/policy.js";
-export {
-	resourceAccessPolicy,
-	validateResourceAccessPolicy,
-} from "./resource-access/policy.js";
-
 import type { Logger } from "pino";
 import type { DeepReadonly } from "../../shared/policy.js";
 import type { SystemApi } from "../system/public.js";
@@ -17,24 +7,30 @@ import { LibraryIndex } from "./library/infrastructure/index.js";
 import {
 	type LibraryRuntimePolicy,
 	libraryRuntimePolicy,
+	validateLibraryPolicy,
 } from "./library/policy.js";
-import type { ResourcesApi } from "./public.js";
+import type { ResourceAccessApi, ResourcesApi } from "./public.js";
+import { validateResourceAccessPolicy } from "./resource-access/policy.js";
 export async function createResourcesModule(options: {
 	system: SystemApi;
 	logger: Logger;
-	policy?: DeepReadonly<LibraryRuntimePolicy>;
+	policy?: DeepReadonly<Partial<LibraryRuntimePolicy>>;
 }) {
+	const policy = { ...libraryRuntimePolicy, ...options.policy };
+	validateLibraryPolicy(policy.library);
+	validateResourceAccessPolicy(policy.resourceAccess);
+	options.logger.debug(
+		{
+			event: "resources.policy_resolved",
+			overrides: Object.keys(options.policy ?? {}),
+		},
+		"Resource policies validated.",
+	);
 	const library = createLibraryModule({
 		configuration: options.system,
 		index: new LibraryIndex(),
 		logger: options.logger,
-		policy: {
-			library: (options.policy ?? libraryRuntimePolicy).library,
-			resourceAccess: (options.policy ?? libraryRuntimePolicy).resourceAccess,
-			subtitles: {
-				formats: (options.policy ?? libraryRuntimePolicy).subtitles.formats,
-			},
-		},
+		policy,
 	});
 	const sources: ResourceAccessApi = {
 		get accessRevision() {

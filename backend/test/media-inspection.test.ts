@@ -3,8 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { type BuiltinPolicy, builtinPolicy } from "../src/app/policy.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
+import {
+	type MediaInspectionPolicy,
+	mediaInspectionPolicy,
+} from "../src/modules/media/media-inspection/policy.js";
 import { MediaInspectionBusyError } from "../src/modules/media/media-inspection/public.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
@@ -37,12 +40,10 @@ let library: LibraryApplication;
 let inspection: MediaInspectionApplication;
 let probe: ReturnType<typeof vi.fn<MediaTools["probe"]>>;
 let ids: string[];
-const policy = structuredClone(
-	builtinPolicy.mediaInspection,
-) as BuiltinPolicy["mediaInspection"];
+const policy = structuredClone(mediaInspectionPolicy) as MediaInspectionPolicy;
 
 beforeEach(async () => {
-	Object.assign(policy, builtinPolicy.mediaInspection);
+	Object.assign(policy, mediaInspectionPolicy);
 	root = await mkdtemp(join(tmpdir(), "anishelf-media-inspection-"));
 	await writeFile(join(root, "first.mkv"), "first source");
 	await writeFile(join(root, "second.mkv"), "second source");

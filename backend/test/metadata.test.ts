@@ -18,9 +18,9 @@ import { IdentificationApplication } from "../src/modules/anime/identification/a
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
 import { MetadataApplication as PublicMetadataApplication } from "../src/modules/anime/metadata/application/metadata.js";
 import { SourceMetadataApplication as MetadataApplication } from "../src/modules/anime/metadata/application/source-metadata.js";
+import { metadataDefaults } from "../src/modules/anime/metadata/defaults.js";
 import { AniListProvider } from "../src/modules/anime/metadata/infrastructure/anilist.js";
 import { MetadataArtworkCache } from "../src/modules/anime/metadata/infrastructure/artwork.js";
-import { metadataPolicy } from "../src/modules/anime/metadata/policy.js";
 import type { CacheEntry } from "../src/modules/anime/metadata/ports.js";
 import {
 	airedEpisodeCount,
@@ -296,7 +296,7 @@ test("stale snapshots return immediately, coalesce refresh and expose failures",
 	let now = 1000;
 	const { application, fetcher } = await setup(transport(), () => now);
 	const original = await application.get(reference);
-	now += metadataPolicy.finishedFreshMs + 1;
+	now += metadataDefaults.finishedFreshMs + 1;
 	let resolve!: (value: Response) => void;
 	fetcher.mockImplementationOnce(
 		() =>
@@ -362,9 +362,9 @@ test("empty searches have short TTL and failures never create negative cache ent
 	const empty = await application.search({ query: "absent" });
 	expect(empty.data.items).toEqual([]);
 	expect(database.metadata.get(empty.snapshotId)?.expiresAt).toBe(
-		metadataPolicy.emptySearchFreshMs,
+		metadataDefaults.emptySearchFreshMs,
 	);
-	now = metadataPolicy.emptySearchFreshMs - 1;
+	now = metadataDefaults.emptySearchFreshMs - 1;
 	await application.search({ query: "absent" });
 	expect(fetcher).toHaveBeenCalledTimes(1);
 	fetcher.mockImplementationOnce(
@@ -680,7 +680,7 @@ test("artwork denies arbitrary hosts/redirects, non-images and excessive bytes",
 		async () =>
 			new Response(png, {
 				headers: {
-					"content-length": String(metadataPolicy.artworkMaximumBytes + 1),
+					"content-length": String(metadataDefaults.artworkMaximumBytes + 1),
 				},
 			}),
 	);
@@ -1053,7 +1053,7 @@ test("uncached work is bounded and queued cancellation does not launch extra req
 	const { application } = await setup(fetcher);
 	const controller = new AbortController();
 	const tasks = Array.from(
-		{ length: metadataPolicy.maximumPending + 1 },
+		{ length: metadataDefaults.maximumPending + 1 },
 		(_, index) =>
 			application
 				.get(

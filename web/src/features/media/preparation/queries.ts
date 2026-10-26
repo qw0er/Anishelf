@@ -1,4 +1,4 @@
-import { preparationInteractionPolicy } from "./policy.js";
+import { preparationInteractionDefaults } from "./defaults.js";
 export const preparationKeys = {
 	preparations: ["preparations"] as const,
 	tasks: (scope: string, fileId?: string, more?: boolean) =>
@@ -30,7 +30,7 @@ export const tasksQuery = (scope: string, fileId?: string, more = false) =>
 					["queued", "processing", "cancelling"].includes(task.status) ||
 					(fileId !== undefined && task.playbackAvailability === "unknown"),
 			)
-				? preparationInteractionPolicy.preparationPollIntervalMs
+				? preparationInteractionDefaults.preparationPollIntervalMs
 				: false,
 	});
 export const summariesQuery = (scope: string, ids: string[]) =>
@@ -54,6 +54,6 @@ export const summariesQuery = (scope: string, ids: string[]) =>
 			query.state.data?.files.some((file) =>
 				file.versions.some((version) => version.pendingTasks > 0),
 			)
-				? preparationInteractionPolicy.preparationPollIntervalMs
+				? preparationInteractionDefaults.preparationPollIntervalMs
 				: false,
 	});

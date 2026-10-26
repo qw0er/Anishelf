@@ -11,7 +11,21 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
-import { type BuiltinPolicy, builtinPolicy } from "../src/app/policy.js";
+import { mediaInspectionPolicy } from "../src/modules/media/media-inspection/policy.js";
+import {
+	type SubtitlePolicy,
+	subtitlePolicy,
+} from "../src/modules/media/subtitles/policy.js";
+import { libraryRuntimePolicy } from "../src/modules/resources/library/policy.js";
+
+function createPolicy() {
+	return {
+		...libraryRuntimePolicy,
+		subtitles: structuredClone(subtitlePolicy) as SubtitlePolicy,
+		mediaInspection: { ...mediaInspectionPolicy },
+	};
+}
+
 import type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
@@ -44,7 +58,7 @@ let subtitles: SubtitleApplication;
 let app: ReturnType<typeof createHttpApp>;
 let fileId: string;
 let extract: ReturnType<typeof vi.fn<MediaTools["extractSubtitle"]>>;
-let policy: BuiltinPolicy;
+let policy: ReturnType<typeof createPolicy>;
 let probe: ReturnType<typeof vi.fn<MediaTools["probe"]>>;
 const logRecords: Record<string, unknown>[] = [];
 const logger = pino(
@@ -123,7 +137,7 @@ beforeEach(async () => {
 	dataDir = join(directory, "data");
 	await mkdir(root);
 	await writeFile(join(root, "episode.mkv"), "original video");
-	policy = structuredClone(builtinPolicy) as BuiltinPolicy;
+	policy = createPolicy();
 	database = ApplicationDatabase.open(dataDir);
 	const index = new LibraryIndex();
 	library = createLibraryModule({

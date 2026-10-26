@@ -3,7 +3,7 @@ import { useMediaPlayer } from "@vidstack/react";
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "../../../../shared/components/ui/toast.js";
-import { interactionPolicy } from "../../../../shared/config/interaction-policy.js";
+import { interactionDefaults } from "../../../../shared/config/interaction-defaults.js";
 import { SubtitleController } from "../controller.js";
 import { useSubtitleDiscovery } from "../hooks/use-subtitle-discovery.js";
 import type { SubtitlePolicy } from "../policy.js";
@@ -62,8 +62,8 @@ export function SubtitleTracks({
 					id: notificationId,
 					type: preparing || feedback.status === "warning" ? "info" : "error",
 					timeout: preparing
-						? interactionPolicy.persistentToastTimeoutMs
-						: interactionPolicy.errorToastTimeoutMs,
+						? interactionDefaults.persistentToastTimeoutMs
+						: interactionDefaults.errorToastTimeoutMs,
 					title: t(
 						preparing
 							? "subtitles.preparing"

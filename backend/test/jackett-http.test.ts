@@ -5,7 +5,6 @@ import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import { createAcquisitionModule } from "../src/modules/acquisition/create.js";
 import { JackettClient } from "../src/modules/acquisition/sources/jackett/client.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
@@ -40,7 +39,6 @@ test("Source connector settings and unified diagnostics require authentication a
 	const app = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger,
-		policy: builtinPolicy,
 		configure: auth.registerHttp,
 		registrations: [module.registerHttp],
 		closeDependencies: async () => {},

@@ -21,8 +21,11 @@ import type { SubscriptionsApi } from "../public.js";
 import { SubscriptionsContext, type SubscriptionsOptions } from "./context.js";
 import { SubscriptionDiscovery } from "./discovery.js";
 import { PendingSubscriptions } from "./pending.js";
-import { subscriptionPolicy as policy } from "./policy.js";
+
 import { SubscriptionWorker } from "./worker.js";
+
+const maximumSubscriptions = 64;
+const pageSize = 20;
 
 function conflict(): never {
 	throw new DomainError(
@@ -32,9 +35,7 @@ function conflict(): never {
 }
 export class SubscriptionsApplication implements SubscriptionsApi {
 	hasCapacity(): boolean {
-		return (
-			this.options.store.subscriptions().length < policy.maximumSubscriptions
-		);
+		return this.options.store.subscriptions().length < maximumSubscriptions;
 	}
 
 	private timer: ReturnType<typeof setInterval> | undefined;
@@ -148,7 +149,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 					}
 				: null,
 			candidates: diagnostics
-				? candidates.slice((page - 1) * policy.pageSize, page * policy.pageSize)
+				? candidates.slice((page - 1) * pageSize, page * pageSize)
 				: [],
 			total: candidates.length,
 			page,

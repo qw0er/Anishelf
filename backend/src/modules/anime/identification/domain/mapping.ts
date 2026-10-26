@@ -1,4 +1,4 @@
-import { identificationPolicy } from "../policy.js";
+import { identificationDefaults } from "../defaults.js";
 import type {
 	ExtractionEvidence,
 	MappingProposal,
@@ -46,8 +46,8 @@ export function proposeMapping(
 		if (
 			start < 1 ||
 			end < start ||
-			end > identificationPolicy.maximumEpisode ||
-			end - start >= identificationPolicy.maximumRange
+			end > identificationDefaults.maximumEpisode ||
+			end - start >= identificationDefaults.maximumRange
 		)
 			result.unresolved.push(
 				"The episode range is descending, invalid or too large.",

@@ -1,5 +1,5 @@
 import { MetadataError, type MetadataFailure } from "../../metadata/public.js";
-import { catalogPolicy as policy } from "../policy.js";
+import { catalogDefaults as policy } from "../defaults.js";
 import type { CatalogContext } from "./context.js";
 import type { WorkApplication } from "./work.js";
 

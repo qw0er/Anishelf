@@ -4,9 +4,9 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import type { PlaybackSessionResponse } from "../src/contracts/http.js";
 import { PlaybackApplication } from "../src/modules/playback/progress/application/playback.js";
+import { playbackPolicy } from "../src/modules/playback/progress/policy.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { createHttpApp } from "./support/http.js";
@@ -40,7 +40,7 @@ beforeEach(async () => {
 	});
 	playback = new PlaybackApplication({
 		sources: library.sources,
-		policy: builtinPolicy.playback,
+		policy: playbackPolicy,
 		repository: database.playback,
 		logger,
 	});
@@ -362,7 +362,7 @@ test("unscanned libraries return unknown availability", async () => {
 	});
 	playback = new PlaybackApplication({
 		sources: library.sources,
-		policy: builtinPolicy.playback,
+		policy: playbackPolicy,
 		repository: database.playback,
 		logger,
 	});
@@ -422,7 +422,7 @@ test("history without a query uses the injected application default", async () =
 		repository: database.playback,
 		logger,
 		policy: {
-			...builtinPolicy.playback,
+			...playbackPolicy,
 			historyLimit: 1,
 			maximumListLimit: 1,
 		},

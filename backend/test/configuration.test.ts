@@ -14,18 +14,28 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	validatePolicy,
-} from "../src/app/policy.js";
 import { readSubtitleText } from "../src/modules/media/subtitles/infrastructure/content.js";
 import { discoverExternalSubtitles } from "../src/modules/media/subtitles/infrastructure/discovery.js";
+import {
+	type SubtitlePolicy,
+	subtitlePolicy,
+	validateSubtitlePolicy,
+} from "../src/modules/media/subtitles/policy.js";
+import {
+	playbackPolicy,
+	validatePlaybackPolicy,
+} from "../src/modules/playback/progress/policy.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
+import { libraryRuntimePolicy } from "../src/modules/resources/library/policy.js";
 import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
+import {
+	resourceAccessPolicy,
+	validateResourceAccessPolicy,
+} from "../src/modules/resources/resource-access/policy.js";
+import { ConfigurationService } from "../src/modules/system/configuration/application/service.js";
+import { mediaToolPolicy } from "../src/platform/media/policy.js";
 import { runTool } from "../src/platform/media/process.js";
-import { ConfigurationService } from "./support/configuration.js";
 import { createHttpApp } from "./support/http.js";
 import { createLibraryModule } from "./support/library.js";
 
@@ -165,11 +175,8 @@ test("old settings adopt updated defaults; explicit choices persist and snapshot
 		join(dataDir, "settings.json"),
 		JSON.stringify({ resourceRoots: [root] }),
 	);
-	const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
-	policy.library.changeDebounceMs = 700;
-	const service = await ConfigurationService.load(environment(), policy);
+	const service = await ConfigurationService.load(environment());
 	const previous = service.snapshot;
-	policy.library.changeDebounceMs = 9900;
 	expect(Object.isFrozen(service.snapshot.settings)).toBe(true);
 	await service.update({ resourceRoots: [root] });
 	expect(previous.settings.resourceRoots).toEqual([root]);
@@ -177,7 +184,7 @@ test("old settings adopt updated defaults; explicit choices persist and snapshot
 	expect(
 		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),
 	).toEqual({ resourceRoots: [root] });
-	const reload = await ConfigurationService.load(environment(), policy);
+	const reload = await ConfigurationService.load(environment());
 	expect(reload.snapshot.settings).not.toHaveProperty("scanIntervalMinutes");
 	await reload.update({ resourceRoots: [root] });
 	expect(
@@ -215,30 +222,28 @@ test.each([
 	},
 );
 test("rejects unsupported capabilities, invalid limits and timing values", () => {
-	const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
-	policy.resourceAccess.videoMimeTypes = {
-		...policy.resourceAccess.videoMimeTypes,
-		".avi": "video/avi",
-	};
-	expect(() => validatePolicy(policy)).toThrow("videoMimeTypes..avi");
-	policy.resourceAccess.videoMimeTypes =
-		builtinPolicy.resourceAccess.videoMimeTypes;
-	policy.playback.sessionIdleMs = Infinity;
-	expect(() => validatePolicy(policy)).toThrow("sessionIdleMs");
+	expect(() =>
+		validateResourceAccessPolicy({
+			videoMimeTypes: {
+				...resourceAccessPolicy.videoMimeTypes,
+				".avi": "video/avi",
+			},
+		}),
+	).toThrow("videoMimeTypes..avi");
+	expect(() =>
+		validatePlaybackPolicy({ ...playbackPolicy, sessionIdleMs: Infinity }),
+	).toThrow("sessionIdleMs");
 });
 test("removed client configuration endpoint returns 404 and settings enforce injected constraints", async () => {
-	const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
-	policy.http.httpBodyMaximumBytes = 128;
-	const configuration = await ConfigurationService.load(environment(), policy);
+	const configuration = await ConfigurationService.load(environment());
 	const library = createLibraryModule({
 		configuration,
-		policy,
 		index: new LibraryIndex(),
 		logger,
 	});
 	const app = createHttpApp({
 		config: configuration.deployment,
-		policy,
+		bodyLimit: 128,
 		logger,
 		library,
 	});
@@ -283,8 +288,10 @@ test("injected subtitle bounds govern discovery and reads at the exact boundary"
 	await mkdir(root);
 	await writeFile(join(root, "episode.mp4"), "media");
 	await writeFile(join(root, "episode.srt"), "abc");
-	const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
-	policy.subtitles.maximumBytes = 3;
+	const policy = {
+		...libraryRuntimePolicy,
+		subtitles: { ...subtitlePolicy, maximumBytes: 3 },
+	};
 	const resources = await ResourceAccess.create(
 		{ resourceRoots: [root] },
 		policy,
@@ -321,10 +328,12 @@ test("injected subtitle bounds govern discovery and reads at the exact boundary"
 	).toBe("SUBTITLE_TOO_LARGE");
 });
 test("injected near-end thresholds and batch limits control database selection", () => {
-	const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
-	policy.playback.nearEndMs = 1000;
-	policy.playback.nearEndRatio = 0.01;
-	policy.playback.candidateBatchSize = 1;
+	const policy = {
+		...playbackPolicy,
+		nearEndMs: 1000,
+		nearEndRatio: 0.01,
+		candidateBatchSize: 1,
+	};
 	const database = ApplicationDatabase.openMemory(policy);
 	try {
 		const source = database.playback.registerSource(
@@ -359,7 +368,7 @@ test("injected near-end thresholds and batch limits control database selection",
 });
 test("tool execution uses injected output and timeout defaults", async () => {
 	const policy = {
-		...builtinPolicy.mediaTools,
+		...mediaToolPolicy,
 		executionTimeoutMs: 30,
 		maximumOutputBytes: 100,
 	};
@@ -409,9 +418,9 @@ test("subtitle reads use the supplied chunk size and still detect a growing sour
 test.each(["readChunkBytes", "extractionConcurrency"] as const)(
 	"rejects invalid subtitle %s",
 	(key) => {
-		const policy = structuredClone(builtinPolicy) as BuiltinPolicy;
-		policy.subtitles[key] = 0;
-		expect(() => validatePolicy(policy)).toThrow(key);
+		const policy = structuredClone(subtitlePolicy) as SubtitlePolicy;
+		policy[key] = 0;
+		expect(() => validateSubtitlePolicy(policy)).toThrow(key);
 	},
 );
 

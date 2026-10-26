@@ -12,7 +12,7 @@ import {
 	checkOriginalMedia,
 	originalCompatibilityKey,
 } from "./compatibility.js";
-import { mediacompatibilityInteractionPolicy } from "./policy.js";
+import { mediaCompatibilityDefaults } from "./defaults.js";
 import { compatibilityKeys } from "./queries.js";
 export type DirectoryCompatibilityState = {
 	loading: boolean;
@@ -32,8 +32,7 @@ export function useDirectoryCompatibility(
 	// A departed directory cannot occupy the new directory's admission slots.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: metadata identifies the negotiation group
 	const gate = useMemo(
-		() =>
-			queryGate(mediacompatibilityInteractionPolicy.compatibilityConcurrency),
+		() => queryGate(mediaCompatibilityDefaults.compatibilityConcurrency),
 		[identity],
 	);
 	const queries = useQueries({
@@ -46,7 +45,7 @@ export function useDirectoryCompatibility(
 						file.id,
 						boundedSignal(
 							signal,
-							mediacompatibilityInteractionPolicy.compatibilityRequestTimeoutMs,
+							mediaCompatibilityDefaults.compatibilityRequestTimeoutMs,
 						),
 						file.sourceVersion ? { sourceVersion: file.sourceVersion } : {},
 					),

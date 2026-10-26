@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { DomainError } from "../../../../shared/errors.js";
 import type { WorkDetails } from "../../metadata/public.js";
-import { catalogPolicy as policy } from "../policy.js";
+import { catalogDefaults as policy } from "../defaults.js";
 import type { EpisodeTarget, MappingSelection } from "./model.js";
 
 /** Short digest of the provider artwork URL; provider CDNs rotate it on re-upload. */

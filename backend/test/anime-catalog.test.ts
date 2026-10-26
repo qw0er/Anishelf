@@ -12,7 +12,7 @@ import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { AnimeCatalogApplication } from "../src/modules/anime/anime-catalog/application/catalog.js";
-import { catalogPolicy } from "../src/modules/anime/anime-catalog/policy.js";
+import { catalogDefaults } from "../src/modules/anime/anime-catalog/defaults.js";
 import type { MappingSelection } from "../src/modules/anime/anime-catalog/public.js";
 import { createIdentificationModule } from "../src/modules/anime/composition/identification.js";
 import {
@@ -1597,7 +1597,7 @@ test("startup refreshes expired releasing works without a detail request and ski
 	f.get.mockClear();
 	await vi.advanceTimersByTimeAsync(5000);
 	expect(f.get).not.toHaveBeenCalled();
-	await vi.advanceTimersByTimeAsync(catalogPolicy.refreshIntervalMs - 1);
+	await vi.advanceTimersByTimeAsync(catalogDefaults.refreshIntervalMs - 1);
 	expect(f.get).not.toHaveBeenCalled();
 	await vi.advanceTimersByTimeAsync(1);
 	expect(f.get).toHaveBeenCalledTimes(1);
@@ -1608,7 +1608,7 @@ test("startup refreshes expired releasing works without a detail request and ski
 		finishedLink.snapshotId,
 	);
 	vi.setSystemTime(fetchedAt + 16 * 24 * 60 * 60_000);
-	await vi.advanceTimersByTimeAsync(catalogPolicy.refreshIntervalMs);
+	await vi.advanceTimersByTimeAsync(catalogDefaults.refreshIntervalMs);
 	expect(f.get).toHaveBeenCalledTimes(1);
 	const oldFinished = await f.catalog.getLocalWorkDetail(finished.workId);
 	expect(oldFinished.metadata.refreshing).toBe(true);
@@ -1767,9 +1767,9 @@ test("background checks rotate through batches and exclude works without source 
 	f.get.mockClear();
 	await vi.advanceTimersByTimeAsync(5000);
 	expect(f.get).toHaveBeenCalledTimes(5);
-	await vi.advanceTimersByTimeAsync(catalogPolicy.refreshIntervalMs);
+	await vi.advanceTimersByTimeAsync(catalogDefaults.refreshIntervalMs);
 	expect(f.get).toHaveBeenCalledTimes(7);
-	await vi.advanceTimersByTimeAsync(catalogPolicy.refreshIntervalMs);
+	await vi.advanceTimersByTimeAsync(catalogDefaults.refreshIntervalMs);
 	expect(f.get).toHaveBeenCalledTimes(7);
 	expect(f.get.mock.calls.some(([ref]) => ref.id === "8")).toBe(false);
 });

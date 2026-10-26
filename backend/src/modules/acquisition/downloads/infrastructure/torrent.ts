@@ -1,6 +1,6 @@
 import parseTorrent from "parse-torrent";
 import type { ReleaseEvidence } from "../../sources/public.js";
-import { downloadPolicy } from "../application/policy.js";
+import { downloadDefaults } from "../defaults.js";
 import { DownloadError } from "../domain/model.js";
 import { relativeDownloadPath } from "../domain/paths.js";
 import type { TorrentReader } from "../ports.js";
@@ -53,7 +53,7 @@ export async function resolveTorrent(
 		const content = await transport.read(entry.download, signal);
 		const bytes = content.kind === "bytes" ? content.bytes : null;
 		const magnet = content.kind === "magnet" ? content.uri : null;
-		if (bytes && bytes.byteLength > downloadPolicy.maximumTorrentBytes)
+		if (bytes && bytes.byteLength > downloadDefaults.maximumTorrentBytes)
 			throw new DownloadError("torrent_too_large");
 		const parsed = await parseTorrent(bytes ?? magnet ?? "");
 		if (!/^[a-f0-9]{40}$/.test(parsed.infoHash))

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint as commandFingerprint } from "../../../../shared/fingerprint.js";
 import { MetadataError } from "../../metadata/public.js";
+import { catalogDefaults as policy } from "../defaults.js";
 import { conflict, invalid, targets, text } from "../domain/mapping.js";
 import type {
 	CatalogPreview,
@@ -11,7 +12,6 @@ import type {
 	PreviewRequest,
 	ReviewRecord,
 } from "../domain/model.js";
-import { catalogPolicy as policy } from "../policy.js";
 import type { CatalogContext } from "./context.js";
 import { projection } from "./projection.js";
 

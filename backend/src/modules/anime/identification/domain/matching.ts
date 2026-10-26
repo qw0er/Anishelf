@@ -1,5 +1,5 @@
 import { fuzzy } from "fast-fuzzy";
-import { identificationPolicy } from "../policy.js";
+import { identificationDefaults } from "../defaults.js";
 import type {
 	ExtractionEvidence,
 	RankedCandidate,
@@ -256,13 +256,13 @@ export function rankCandidates(
 					),
 				);
 				if (primaryLater.length && !completeOrdinalSource) {
-					score -= identificationPolicy.missingSeasonPrimaryPenalty;
+					score -= identificationDefaults.missingSeasonPrimaryPenalty;
 					assumptions.push(
 						"No source season is specified; an explicitly numbered sequel is less likely than a locally in-scope base work.",
 					);
 				} else if (!primaryLater.length && aliasLater.length) {
 					score -=
-						(identificationPolicy.missingSeasonAliasPenalty *
+						(identificationDefaults.missingSeasonAliasPenalty *
 							aliasLater.length) /
 						Math.max(
 							1,
@@ -344,7 +344,7 @@ export function rankCandidates(
 				identityConflicts,
 				identityUnresolved,
 				assumptions,
-				matcherVersion: identificationPolicy.matcherVersion,
+				matcherVersion: identificationDefaults.matcherVersion,
 			};
 		})
 		.sort(
@@ -354,5 +354,5 @@ export function rankCandidates(
 					JSON.stringify(b.work.reference),
 				),
 		)
-		.slice(0, identificationPolicy.maximumCandidates);
+		.slice(0, identificationDefaults.maximumCandidates);
 }
