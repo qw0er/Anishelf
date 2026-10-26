@@ -91,8 +91,9 @@ retain their previous index and report availability/warnings; all-root failure
 must not publish an empty library. Removing a root hides its resources while
 preserving accepted associations and playback history. Restoring it makes those
 records reusable. Legacy single-path settings and durable source records upgrade
-without discarding history. Filesystem watching and moved-file relinking remain
-separate future scope (L06 and L11).
+without discarding history. Filesystem watching is delivered separately under L06,
+with deployment acceptance pending. Identity-preserving moved-file relinking remains
+future scope under L11.
 
 #### Filesystem Monitoring and Incremental Updates (L06)
 
@@ -148,19 +149,23 @@ This is a user-facing file download, separate from acquiring new releases throug
 
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
-| M01 | Search external anime metadata and store provider identifiers | Implemented: AniList search and provider-qualified identifiers | Anime library | Anime library |
+| M01 | Search external anime metadata and store provider identifiers | Implemented: AniList and Bangumi search behind permanent project work IDs; external source identifiers retained through associations | Anime library; Current (multi-source extension) | Current |
 | M02 | Display covers, aliases, descriptions, seasons, episode counts, airing information, and available same-provider work relations | Implemented: cached details, artwork, available episode data and same-provider relations | Anime library | Anime library |
-| M03 | Provide anime detail and episode views, organizing the library by title | Implemented: default poster library, work details and episode/version playback | Anime library | Anime library |
+| M03 | Provide anime detail and episode views, organizing the library by title | Implemented: default poster library, work details, episode/version playback and file-list location from available-version actions | Anime library; Current (file location) | Current |
 | M04 | Manually select, correct, and refresh metadata mappings | Implemented: Review selection/reassociation, episode corrections and metadata refresh | Anime library | Anime library |
 | M05 | Cache metadata so external outages do not prevent browsing or playback | Implemented: durable metadata/artwork caching, refresh/retry and retained snapshots during outages | Anime library | Anime library |
 | M07 | Preserve multilingual program titles, aliases and descriptions with language tags, original language and locale-independent IDs | Implemented: available provider language information and stable local identities; no invented translations | Anime library | Anime library |
-| M06 | Multiple metadata providers and cross-provider ID mapping | Optional; same-provider related works belong to M02 | — | Unassigned |
+| M06 | Multiple metadata providers and cross-provider ID mapping | Partial: AniList/Bangumi search, explicit verified work associations, combined descriptions and permanent ID aliases; automatic cross-source matching, association management UI and cross-source episode mappings remain unassigned | Current (partial; acceptance not recorded) | Unassigned (remaining scope) |
 
 #### External Metadata and Local Catalog (M01–M07)
 
-External anime metadata is a dependency of the delivered identification workflow, not a later tracker integration. Start with one provider supporting search and details; retain its stable identifiers and available aliases, language information, episode data and work relations. Use local anime and episode identities independent of provider IDs. Cache fetched metadata with refresh status and preserve user corrections. Outages must not block already-cached browsing or existing file playback; unavailable candidate or episode information remains explicitly unresolved.
+External anime metadata is a dependency of the delivered identification workflow, not a later tracker integration. Metadata searches AniList and Bangumi behind application-owned contracts. Ordinary search, detail, relation, schedule and artwork access uses permanent project work IDs; external source identifiers are translated through a separate association capability. Retain available aliases, language information, episode data and work relations according to source capabilities. Keep local Catalog work and episode identities separate from external source IDs. Cache fetched metadata with refresh status and preserve user corrections. Outages must not block already-cached browsing or existing file playback; unavailable candidate or episode information remains explicitly unresolved.
 
-Provider and parser uncertainty is handled through Review; representative recognition accuracy measurement is not required for the completed anime-library iteration. Seanime is a workflow reference, not a mandated dependency. Multiple providers and cross-provider mappings remain M06. Provider-required service access is distinct from T01–T05 personal account authorization, personal list access and viewing-state updates; basic identification must not require the user to authorize a personal tracker account.
+Explicit cross-source work association requires confirmation of both work identity and equivalent regular-episode numbering. The target project ID remains canonical and previously issued IDs remain resolvable aliases. Associated sources contribute descriptions in stable source order; equal titles alone never establish identity. Associations do not merge local Catalog works, episodes or files, and conflicting existing local works must be reconciled first. Automatic cross-source matching, an association management UI and independent cross-source episode mappings remain unassigned. Bangumi schedules, relations and a canonical episode catalog are not currently supplied. These implementation boundaries do not establish user acceptance of M06.
+
+Provider and parser uncertainty is handled through Review; representative recognition accuracy measurement is not required for the completed anime-library iteration. Seanime is a workflow reference, not a mandated dependency. Provider-required service access is distinct from T01–T05 personal account authorization, personal list access and viewing-state updates; basic identification must not require the user to authorize a personal tracker account.
+
+Available episode versions expose Show in Files through their file action menu. It resolves the current parent directory on demand, opens Files and scrolls to, focuses and highlights the corresponding file row without starting playback. Multiple versions target their own files; unavailable versions expose no file commands. Detailed interaction conventions remain in the [design system](development/design-system.md).
 
 ### 2.3 Web Playback and Subtitles
 
@@ -173,13 +178,20 @@ Provider and parser uncertainty is handled through Review; representative recogn
 | P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | Partial: text-track discovery, selection, extraction and delivery implemented; font attachments supported; bitmap extraction deferred | V2 (text subtitles); Current (fonts) | V2 (partial) |
 | P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | Partial: styled ASS/SSA and fallback fonts implemented, with embedded TTF/OTF support; bitmap handling deferred | V2 (styles and fallback fonts); Current (embedded fonts) | V2 (partial) |
 | P14 | HLS/fMP4 delivery and real-time transcoding, including seeking, leases, source-time mapping and interactive scheduling | Later | — | Unassigned |
-| P15 | Extract, validate and load embedded font attachments | Implemented | Source-shared TTF/OTF preparation, validated cache and JASSUB loading | Current |
+| P15 | Extract, validate and load embedded font attachments | Implemented: source-shared TTF/OTF preparation, validated cache and JASSUB loading | Current | Current |
 | P16 | Extract embedded PGS/VobSub bitmap subtitle assets with explicit unsupported-Web feedback | Later | — | Unassigned |
 | P17 | Automatically prepare full-file Web-compatible copies in the background before playback | Later | — | Unassigned |
 | P10 | Select audio tracks, adjust subtitle timing, change playback speed, and use shortcuts | Implemented | Current | Current |
 | P11 | Next-episode navigation and automatic continuation | Later | — | Unassigned |
 | P12 | Hardware transcoding, HDR handling, broader browser support, and advanced concurrency policies beyond the V2 bounded scheduler | Optional | — | Unassigned |
 | P13 | Chapter navigation | Implemented and accepted: chapter discovery, source-time mapping, player chapter tracks and real-browser interaction acceptance (2026-10-19) | Current | Current |
+
+The player prioritizes video and common playback controls on desktop and narrow screens.
+Secondary commands and routine technical explanations are available on demand through
+More and playback options; unavailable-playback recovery and consequential tracking
+decisions remain discoverable. Subtitle controls stay in Vidstack. The compact layout
+is implemented; real-browser visual acceptance of this layout remains pending.
+See the [player layout conventions](development/design-system.md#player-layout).
 
 #### FFmpeg Full-file Preparation (P05–P07)
 
@@ -214,7 +226,16 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 ### Provider integration boundary
 
-Metadata and Tracking use provider-owned adapters behind application-owned contracts. AniList remains the production provider and authority for its viewing state. Opaque provider-qualified identities, product-owned viewing statuses, explicit target resolution outcomes and provider capability checks isolate Library and Playback from provider protocols. One tracking account and cumulative episode progress are supported. Additional production providers, simultaneous accounts and evidence-backed cross-provider episode mappings remain Later/Unassigned. See [the provider integration design](development/architecture.md#source-organization-and-dependency-boundaries).
+Metadata and Tracking use provider-owned adapters behind application-owned contracts.
+Metadata currently supports AniList and Bangumi through permanent project work IDs;
+source identities and explicit associations are separate from ordinary content access.
+Tracking supports one AniList account, with AniList authoritative for its viewing state
+and cumulative episode progress. Product-owned viewing statuses, explicit target
+resolution outcomes and capability checks isolate Library and Playback from provider
+protocols. Additional Tracking providers, simultaneous accounts and evidence-backed
+cross-source episode mappings remain Later/Unassigned. Metadata work association does
+not provide Bangumi Tracking or arbitrary episode-number conversion. See the
+[provider integration design](development/architecture.md#source-organization-and-dependency-boundaries).
 
 ### 2.4 Viewing History and Tracking
 
@@ -350,7 +371,7 @@ AniList is the viewing-state authority. This iteration selects account connectio
 | ID | Feature | Scope | Implemented in | Target version |
 | --- | --- | --- | --- | --- |
 | O03 | Dashboard for continued viewing, new episodes, downloads, and exceptions | Later | — | Unassigned |
-| O04 | Unified settings for directories and integrations | Later | — | Unassigned |
+| O04 | Unified settings for directories and integrations | Implemented: shared Settings sections for resource roots, playback/preparation, external players, acquisition services, tracking account, security and About; no new acceptance recorded | Current | Current |
 | O05 | Task history, logs, and automation decision explanations | Partial: durable per-anime acquisition activity, decision reasons, safe correlated logs and terminal-detail retention; broader product history remains later | Current (acquisition) | Unassigned |
 | O06 | Back up and restore metadata, viewing history, and configuration | Later | — | Unassigned |
 | O07 | LAN access, single-user authentication, and credential protection | Implemented: single password, independent hash file, persistent Cookie sessions, CSRF, login limits, local recovery and 24-hour scoped media links; remote access through TLS proxy with explicit container proxy trust and Secure session cookies | Current | Current |
