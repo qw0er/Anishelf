@@ -277,7 +277,9 @@ components:
         date:
           title: Date
           type: string
-          description: air date in `YYYY-MM-DD` format
+          nullable: true
+          # Live search responses return null for subjects without an air date.
+          description: air date in `YYYY-MM-DD` format, or null when unknown
         platform:
           title: Platform
           type: string
