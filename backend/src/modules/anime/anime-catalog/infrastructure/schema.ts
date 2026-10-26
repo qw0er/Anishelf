@@ -11,26 +11,19 @@ import {
 import { mediaSources } from "../../../resources/persistence.js";
 import { metadataSnapshots } from "../../metadata/persistence.js";
 
-export const catalogProviderLinks = sqliteTable(
+export const catalogMetadataLinks = sqliteTable(
 	"catalog_provider_links",
 	{
 		workId: text("work_id")
 			.primaryKey()
 			.references(() => catalogWorks.id, { onDelete: "restrict" }),
-		provider: text("provider").notNull(),
-		mediaType: text("media_type", { enum: ["anime"] }).notNull(),
-		providerId: text("provider_id").notNull(),
+		metadataWorkId: text("metadata_work_id").notNull(),
 		snapshotId: text("snapshot_id")
 			.notNull()
 			.references(() => metadataSnapshots.id, { onDelete: "restrict" }),
 	},
 	(table) => [
-		check("catalog_provider_media_type", sql`${table.mediaType} = 'anime'`),
-		uniqueIndex("catalog_provider_identity").on(
-			table.provider,
-			table.mediaType,
-			table.providerId,
-		),
+		uniqueIndex("catalog_metadata_identity").on(table.metadataWorkId),
 	],
 );
 
@@ -419,13 +412,6 @@ export const catalogReviewsResultProposals = sqliteTable(
 			.notNull()
 			.references(() => catalogReviews.id, { onDelete: "cascade" }),
 		ordinalIndex: integer("ordinal_index").notNull(),
-		candidateWorkReferenceProvider: text(
-			"candidate_work_reference_provider",
-		).notNull(),
-		candidateWorkReferenceMediaType: text(
-			"candidate_work_reference_media_type",
-			{ enum: ["anime"] },
-		).notNull(),
 		candidateWorkReferenceId: text("candidate_work_reference_id").notNull(),
 		candidateWorkSnapshotId: text("candidate_work_snapshot_id").notNull(),
 		candidateWorkTitleVariantsPresent: integer(
@@ -467,10 +453,6 @@ export const catalogReviewsResultProposals = sqliteTable(
 			sql`${table.ordinalIndex} >= 0`,
 		),
 		check(
-			"catalog_reviews_result_proposals_candidate_work_reference_media_type_0",
-			sql`${table.candidateWorkReferenceMediaType} IN ('anime')`,
-		),
-		check(
 			"catalog_reviews_result_proposals_candidate_work_title_variants_present_0",
 			sql`${table.candidateWorkTitleVariantsPresent} IN (0, 1)`,
 		),
@@ -499,8 +481,6 @@ export const catalogReviewsResultProposals = sqliteTable(
 			sql`${table.mappingNumberingSource} IN ('directory-anchors')`,
 		),
 		index("catalog_review_candidate_reference").on(
-			table.candidateWorkReferenceProvider,
-			table.candidateWorkReferenceMediaType,
 			table.candidateWorkReferenceId,
 			table.parentId,
 		),

@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import { workKey } from "../../../../shared/external-reference.js";
 import { type WorkSummary, workTitle } from "../domain/source-model.js";
-import { metadataWorks } from "./schema.js";
+import { metadataReferences, metadataWorks } from "./schema.js";
 
 /** Only the Metadata adapter writes the shared index, including summaries supplied by Tracking. */
 export function saveWorkSummary(
@@ -57,4 +57,40 @@ export function saveWorkSummary(
 		.values(value)
 		.onConflictDoUpdate({ target: metadataWorks.key, set: value })
 		.run();
+	// A single-source project can adopt current evidence immediately. Multi-source projections
+	// are composed by MetadataApplication so a partial response cannot erase other content.
+	if (work.reference.provider !== "metadata") {
+		const identity = store
+			.select()
+			.from(metadataReferences)
+			.where(
+				and(
+					eq(metadataReferences.provider, work.reference.provider),
+					eq(metadataReferences.providerId, work.reference.id),
+				),
+			)
+			.get();
+		if (identity) {
+			const refs = store
+				.select()
+				.from(metadataReferences)
+				.where(eq(metadataReferences.workId, identity.workId))
+				.all();
+			if (refs.length === 1)
+				saveWorkSummary(
+					store,
+					{
+						...work,
+						reference: {
+							provider: "metadata",
+							mediaType: "anime",
+							id: identity.workId,
+						},
+					},
+					fetchedAt,
+					detail,
+					detailSnapshotId,
+				);
+		}
+	}
 }

@@ -251,6 +251,17 @@ export class SourceMetadataApplication implements SourceMetadataApi {
 			{},
 		);
 	}
+	artworkEvidence(
+		data: WorkDetails,
+		kind: "cover" | "banner",
+		options: ReadOptions = {},
+	) {
+		return this.options.artwork.get(
+			JSON.stringify([data.reference.provider, data.reference.id, kind]),
+			kind === "cover" ? data.coverUrl : data.bannerUrl,
+			options,
+		);
+	}
 	readArtwork(id: string) {
 		return this.options.artwork.read(id);
 	}

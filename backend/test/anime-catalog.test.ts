@@ -219,6 +219,9 @@ async function fixture(
 		},
 	};
 }
+function project(f: Awaited<ReturnType<typeof fixture>>, id = "1") {
+	return f.publicMetadata.resolveReference(id);
+}
 async function rows(
 	f: Awaited<ReturnType<typeof fixture>>,
 	numbers = ["1"],
@@ -237,7 +240,7 @@ async function confirm(
 	id = "1",
 ) {
 	const preview = await f.catalog.preview({
-		reference: { ...reference, id },
+		reference: project(f, id),
 		rows: await selected,
 	});
 	return f.catalog.confirm({
@@ -301,7 +304,10 @@ test("offset previews preserve release numbering and reject invalid or implicit 
 	const f = await fixture(["Anime - 29.mkv"]);
 	const selected = await rows(f, ["29"]);
 	required(selected[0]).offset = -24;
-	const preview = await f.catalog.preview({ reference, rows: selected });
+	const preview = await f.catalog.preview({
+		reference: project(f),
+		rows: selected,
+	});
 	expect(preview.rows[0]).toMatchObject({
 		rawNumbers: ["29"],
 		targets: [{ kind: "regular", number: "5" }],
@@ -309,12 +315,12 @@ test("offset previews preserve release numbering and reject invalid or implicit 
 	});
 	expect((await f.catalog.reviews()).items[0]?.decision).toBe("pending");
 	await expect(
-		f.catalog.preview({ reference, rows: await rows(f, ["29"]) }),
+		f.catalog.preview({ reference: project(f), rows: await rows(f, ["29"]) }),
 	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
 	const invalid = await rows(f);
 	required(invalid[0]).targets = [{ kind: "special", number: "12.5" }];
 	await expect(
-		f.catalog.preview({ reference, rows: invalid }),
+		f.catalog.preview({ reference: project(f), rows: invalid }),
 	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
 	required(required(invalid[0]).targets[0]).label = "Special 12.5";
 	await confirm(f, Promise.resolve(invalid));
@@ -342,7 +348,7 @@ test("corroborated automatic offsets persist once and special zero still needs m
 		metadata: {
 			search: async () => [
 				{
-					reference,
+					reference: project(f),
 					snapshotId: "test-search",
 					titles: ["Ocean Season 2"],
 					year: null,
@@ -375,7 +381,7 @@ test("corroborated automatic offsets persist once and special zero still needs m
 	);
 	expect(zero.decision).toBe("pending");
 	const preview = await f.catalog.preview({
-		reference,
+		reference: project(f),
 		rows: [
 			{
 				reviewId: zero.id,
@@ -438,7 +444,10 @@ test("confirmation operation keys survive restart and cannot be reused for diffe
 	const info = vi.spyOn(logger, "info");
 	const debug = vi.spyOn(logger, "debug");
 	const f = await fixture(undefined, undefined, true);
-	const preview = await f.catalog.preview({ reference, rows: await rows(f) });
+	const preview = await f.catalog.preview({
+		reference: project(f),
+		rows: await rows(f),
+	});
 	const request = {
 		operationKey: "retry-key",
 		previewId: preview.id,
@@ -469,8 +478,14 @@ test("confirmation operation keys survive restart and cannot be reused for diffe
 test("stale review and work revisions block confirmation and explicit replacement previews affected links", async () => {
 	const f = await fixture();
 	const selected = await rows(f);
-	const first = await f.catalog.preview({ reference, rows: selected });
-	const stale = await f.catalog.preview({ reference, rows: selected });
+	const first = await f.catalog.preview({
+		reference: project(f),
+		rows: selected,
+	});
+	const stale = await f.catalog.preview({
+		reference: project(f),
+		rows: selected,
+	});
 	const confirmed = await f.catalog.confirm({
 		operationKey: "first",
 		previewId: first.id,
@@ -484,7 +499,7 @@ test("stale review and work revisions block confirmation and explicit replacemen
 		}),
 	).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
 	const second = await f.catalog.preview({
-		reference: { ...reference, id: "2" },
+		reference: project(f, "2"),
 		rows: await rows(f, ["2"]),
 	});
 	expect(second.rows[0]?.before[0]?.workId).toBe(confirmed.workId);
@@ -507,7 +522,7 @@ test("stale review and work revisions block confirmation and explicit replacemen
 test("atomic confirmation rolls back all associations and decisions when a later row fails", async () => {
 	const f = await fixture(["Anime - 01.mkv", "Anime - 02.mkv"]);
 	const preview = await f.catalog.preview({
-		reference,
+		reference: project(f),
 		rows: await rows(f, ["1", "2"]),
 	});
 	const original = f.database.catalog.transaction.bind(f.database.catalog);
@@ -599,7 +614,10 @@ test("replaced sources require new confirmation and missing files retain unavail
 test("changed files and root switches invalidate pending previews without deleting other roots", async () => {
 	const f = await fixture();
 	const initial = await confirm(f);
-	const preview = await f.catalog.preview({ reference, rows: await rows(f) });
+	const preview = await f.catalog.preview({
+		reference: project(f),
+		rows: await rows(f),
+	});
 	await writeFile(join(f.root, "Anime - 01.mkv"), "changed");
 	await expect(
 		f.catalog.confirm({
@@ -656,7 +674,10 @@ test("cached browsing stays offline and refresh failures preserve confirmed meta
 
 test("preview expiry requires a new preview without keeping transient snapshots pinned", async () => {
 	const f = await fixture();
-	const preview = await f.catalog.preview({ reference, rows: await rows(f) });
+	const preview = await f.catalog.preview({
+		reference: project(f),
+		rows: await rows(f),
+	});
 	vi.spyOn(Date, "now").mockReturnValue(preview.expiresAt + 1);
 	await expect(
 		f.catalog.confirm({
@@ -666,7 +687,7 @@ test("preview expiry requires a new preview without keeping transient snapshots 
 		}),
 	).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
 	f.setData({ ...details(), description: "New current information" });
-	await f.metadata.get(reference, { refresh: true });
+	await f.publicMetadata.get(project(f), { refresh: true });
 	f.database.metadata.prune(0, 0);
 	expect(f.database.metadata.get(preview.metadata.snapshotId)).toBeNull();
 });
@@ -712,7 +733,7 @@ test("HTTP exposes safe typed DTOs, explicit confirmations and actionable valida
 	const preview = await app.inject({
 		method: "POST",
 		url: "/api/catalog/previews",
-		payload: { reference, rows: selected },
+		payload: { reference: project(f), rows: selected },
 	});
 	expect(preview.statusCode).toBe(200);
 	const response = await app.inject({
@@ -753,7 +774,7 @@ test("HTTP exposes safe typed DTOs, explicit confirmations and actionable valida
 	const stale = await app.inject({
 		method: "POST",
 		url: "/api/catalog/previews",
-		payload: { reference, rows: selected },
+		payload: { reference: project(f), rows: selected },
 	});
 	expect(stale.statusCode).toBe(409);
 	expect(stale.json().error.code).toBe("CATALOG_CONFLICT");
@@ -786,7 +807,7 @@ test("separate confirmations reuse provider identity and disjoint stale previews
 		(await f.catalog.reviews({ decision: "pending" })).items[0],
 	);
 	const request = {
-		reference,
+		reference: project(f),
 		rows: [
 			{
 				reviewId: pending.id,
@@ -848,7 +869,7 @@ test("movies and unknown counts preserve explicit targets without inventing cano
 	f.setData({ ...details(), episodeCount: null });
 	const regularRows = await rows(f, ["75"]);
 	const preview = await f.catalog.preview({
-		reference: { ...reference, id: "2" },
+		reference: project(f, "2"),
 		rows: regularRows,
 	});
 	const unknown = await f.catalog.confirm({
@@ -864,9 +885,12 @@ test("movies and unknown counts preserve explicit targets without inventing cano
 
 test("confirmation fails safely if unconfirmed metadata was evicted after preview", async () => {
 	const f = await fixture();
-	const preview = await f.catalog.preview({ reference, rows: await rows(f) });
+	const preview = await f.catalog.preview({
+		reference: project(f),
+		rows: await rows(f),
+	});
 	f.setData({ ...details(), description: "New current information" });
-	await f.metadata.get(reference, { refresh: true });
+	await f.publicMetadata.get(project(f), { refresh: true });
 	f.database.metadata.prune(0, 0);
 	await expect(
 		f.catalog.confirm({
@@ -929,7 +953,10 @@ test("literal wildcard provider titles remain literal local search text", async 
 
 test("concurrent confirmation retries share one result and retain confirmed decision evidence", async () => {
 	const f = await fixture();
-	const preview = await f.catalog.preview({ reference, rows: await rows(f) });
+	const preview = await f.catalog.preview({
+		reference: project(f),
+		rows: await rows(f),
+	});
 	const request = {
 		operationKey: "concurrent",
 		previewId: preview.id,
@@ -960,7 +987,10 @@ test("closing Catalog stops every composed use case before reading or mutating s
 	const committed = await confirm(f);
 	const selected = await rows(f);
 	const row = required(selected[0]);
-	const preview = await f.catalog.preview({ reference, rows: selected });
+	const preview = await f.catalog.preview({
+		reference: project(f),
+		rows: selected,
+	});
 	const before = f.database.catalog.work(committed.workId);
 	const providerCalls = f.get.mock.calls.length;
 	f.catalog.close();
@@ -976,7 +1006,7 @@ test("closing Catalog stops every composed use case before reading or mutating s
 		() => f.catalog.getLocalWorkDetail(committed.workId),
 		() => f.catalog.reviews(),
 		() => f.catalog.fileReviews([]),
-		() => f.catalog.preview({ reference, rows: selected }),
+		() => f.catalog.preview({ reference: project(f), rows: selected }),
 		() =>
 			f.catalog.confirm({
 				operationKey: "closed",
@@ -1125,7 +1155,7 @@ test("unambiguous scanner identification automatically admits sources and preser
 		work.id,
 	);
 	const preview = await f.catalog.preview({
-		reference,
+		reference: project(f),
 		rows: [
 			{
 				reviewId: review.id,
@@ -1166,7 +1196,7 @@ test("ambiguous candidates, specials and provider failure remain pending rather 
 			{
 				candidate: {
 					work: {
-						reference,
+						reference: project(f),
 						snapshotId: "search",
 						titles: ["Anime"],
 						year: 2023,
@@ -1197,7 +1227,7 @@ test("ambiguous candidates, specials and provider failure remain pending rather 
 			...original.candidate,
 			work: {
 				...original.candidate.work,
-				reference: { ...reference, id: "2" },
+				reference: project(f, "2"),
 			},
 			score: 69,
 		},
@@ -1262,7 +1292,7 @@ test("source playback metadata follows local edits, removal and replacement", as
 			{
 				workId: confirmed.workId,
 				workTitle: detail.work.providerTitle,
-				reference,
+				reference: project(f),
 				episodeId: episode.id,
 				kind: "regular",
 				number: "3",
@@ -1357,7 +1387,7 @@ test("work review filters match qualified candidates without admitting them and 
 			{
 				candidate: {
 					work: {
-						reference,
+						reference: project(f),
 						snapshotId: "fixture",
 						season: null,
 						part: null,
@@ -1374,10 +1404,10 @@ test("work review filters match qualified candidates without admitting them and 
 				mapping: { targets: [], reasons: [], unresolved: ["Unknown episode"] },
 			},
 		];
-	required(excluded.proposals[0]).candidate.work.reference = {
-		...reference,
-		provider: "other",
-	};
+	required(excluded.proposals[0]).candidate.work.reference = project(
+		f,
+		"other",
+	);
 	await f.catalog.publish(results, [resourceRootId(f.root)]);
 	const first = await f.catalog.reviews({
 		workId: confirmed.workId,
@@ -1391,7 +1421,7 @@ test("work review filters match qualified candidates without admitting them and 
 	await expect(
 		f.catalog.reviews({ workId: "unknown-work", decision: "pending" }),
 	).rejects.toMatchObject({ code: "CATALOG_NOT_FOUND" });
-	required(excluded.proposals[0]).candidate.work.reference = reference;
+	required(excluded.proposals[0]).candidate.work.reference = project(f);
 	await f.catalog.publish(results, [resourceRootId(f.root)]);
 	expect(
 		(
@@ -1512,7 +1542,7 @@ test("expired details return retained data immediately and coalesce automatic up
 		data: { ...details(), description: "Automatic update", episodeCount: 13 },
 	});
 	await vi.waitFor(() =>
-		expect(f.metadata.current(reference)?.snapshotId).not.toBe(
+		expect(f.publicMetadata.current(project(f))?.snapshotId).not.toBe(
 			before.metadata.snapshotId,
 		),
 	);
@@ -1555,7 +1585,7 @@ test("startup refreshes expired releasing works without a detail request and ski
 	const finishedLink = required(
 		f.database.catalog.link(finished.workId) ?? undefined,
 	);
-	const fetchedAt = f.metadata.snapshot(link.snapshotId).fetchedAt;
+	const fetchedAt = f.publicMetadata.snapshot(link.snapshotId).fetchedAt;
 	vi.useFakeTimers();
 	vi.setSystemTime(fetchedAt + 6 * 60 * 60_000 - 5001);
 	f.setData({
@@ -1571,10 +1601,10 @@ test("startup refreshes expired releasing works without a detail request and ski
 	expect(f.get).not.toHaveBeenCalled();
 	await vi.advanceTimersByTimeAsync(1);
 	expect(f.get).toHaveBeenCalledTimes(1);
-	expect(f.metadata.current(link.reference)?.snapshotId).not.toBe(
+	expect(f.publicMetadata.current(link.reference)?.snapshotId).not.toBe(
 		link.snapshotId,
 	);
-	expect(f.metadata.current(finishedLink.reference)?.snapshotId).toBe(
+	expect(f.publicMetadata.current(finishedLink.reference)?.snapshotId).toBe(
 		finishedLink.snapshotId,
 	);
 	vi.setSystemTime(fetchedAt + 16 * 24 * 60 * 60_000);
@@ -1596,7 +1626,7 @@ test("automatic failure keeps the snapshot and honors persisted retry time acros
 	await f.catalog.getLocalWorkDetail(result.workId);
 	await vi.waitFor(() =>
 		expect(
-			f.metadata.snapshot(before.metadata.snapshotId).refreshError,
+			f.publicMetadata.snapshot(before.metadata.snapshotId).refreshError,
 		).not.toBeNull(),
 	);
 	await f.restart();
@@ -1613,7 +1643,7 @@ test("automatic failure keeps the snapshot and honors persisted retry time acros
 	now += 60_001;
 	await f.catalog.getLocalWorkDetail(result.workId);
 	await vi.waitFor(() =>
-		expect(f.metadata.current(reference)?.snapshotId).not.toBe(
+		expect(f.publicMetadata.current(project(f))?.snapshotId).not.toBe(
 			before.metadata.snapshotId,
 		),
 	);
@@ -1692,7 +1722,7 @@ test("quiescing cancels automatic refresh and prevents later catalog writes or t
 		data: { ...details(), description: "Too late" },
 	});
 	await Promise.resolve();
-	expect(f.metadata.current(reference)?.snapshotId).toBe(
+	expect(f.publicMetadata.current(project(f))?.snapshotId).toBe(
 		before.metadata.snapshotId,
 	);
 	expect(
@@ -1730,7 +1760,7 @@ test("background checks rotate through batches and exclude works without source 
 	const link = required(
 		f.database.catalog.link(required(committed[0]).workId) ?? undefined,
 	);
-	const fetchedAt = f.metadata.snapshot(link.snapshotId).fetchedAt;
+	const fetchedAt = f.publicMetadata.snapshot(link.snapshotId).fetchedAt;
 	vi.useFakeTimers();
 	vi.setSystemTime(fetchedAt + 25 * 60 * 60_000);
 	await f.restart();
@@ -1812,7 +1842,9 @@ test("unchanged provider details renew freshness without incrementing the local 
 	vi.spyOn(Date, "now").mockReturnValue(now);
 	await f.catalog.getLocalWorkDetail(result.workId);
 	await vi.waitFor(() =>
-		expect(f.metadata.snapshot(before.metadata.snapshotId).stale).toBe(false),
+		expect(f.publicMetadata.snapshot(before.metadata.snapshotId).stale).toBe(
+			false,
+		),
 	);
 	const after = await f.catalog.getLocalWorkDetail(result.workId);
 	expect(after.work.revision).toBe(before.work.revision);
@@ -1848,7 +1880,10 @@ test("Catalog queries and complete publications use opaque scope collections", a
 
 test("multi-root versions preserve confirmed associations through removal and restoration", async () => {
 	const f = await fixture(undefined, undefined, true);
-	const preview = await f.catalog.preview({ reference, rows: await rows(f) });
+	const preview = await f.catalog.preview({
+		reference: project(f),
+		rows: await rows(f),
+	});
 	const confirmed = await f.catalog.confirm({
 		operationKey: "multi-first",
 		previewId: preview.id,
@@ -1871,7 +1906,7 @@ test("multi-root versions preserve confirmed associations through removal and re
 	);
 	expect(second.fileId).not.toBe(original.fileId);
 	const extra = await f.catalog.preview({
-		reference,
+		reference: project(f),
 		rows: [
 			{
 				reviewId: second.id,

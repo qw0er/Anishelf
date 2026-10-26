@@ -1,6 +1,7 @@
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { AnimeCatalogApi } from "../../anime-catalog/public.js";
+import type { MetadataAssociations } from "../../metadata/public.js";
 import type {
 	TrackingEpisodeTarget,
 	TrackingOperation,
@@ -37,6 +38,7 @@ export class TrackingViewingCommands {
 		>,
 		private readonly resolver: TrackingTargetResolver = new ExactTrackingTargets(),
 		private readonly logger?: Logger,
+		private readonly associations?: MetadataAssociations,
 	) {}
 	async resolveTarget(
 		fileId: string,
@@ -64,11 +66,17 @@ export class TrackingViewingCommands {
 					)
 						state = "unsupported";
 					else {
-						const result = this.resolver.resolve(
+						const reference = this.associations?.externalReference(
 							association.reference,
-							Number(association.number),
-							account.provider,
+							account.provider.key,
 						);
+						const result = reference
+							? this.resolver.resolve(
+									reference,
+									Number(association.number),
+									account.provider,
+								)
+							: { state: "unmapped" as const };
 						if (result.state === "resolved")
 							target = {
 								fileId,

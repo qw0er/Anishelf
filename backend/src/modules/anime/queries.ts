@@ -3,6 +3,7 @@ import { DomainError } from "../../shared/errors.js";
 import { workKey, workReference } from "../../shared/external-reference.js";
 import type { CatalogMetadata as MetadataApi } from "./anime-catalog/ports.js";
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
+import type { MetadataAssociations } from "./metadata/public.js";
 import { MetadataError, workTitle } from "./metadata/public.js";
 
 import type { AnimeApi, AnimeDetail } from "./public.js";
@@ -18,6 +19,7 @@ export class AnimeQueries implements Queries {
 		private readonly metadata: Pick<MetadataApi, "get"> | undefined,
 		private readonly tracking: Pick<TrackingApi, "list" | "status">,
 		private readonly logger: Logger,
+		private readonly associations?: MetadataAssociations,
 	) {}
 	async detail(
 		input: { localWorkId: string } | { key: string },
@@ -36,8 +38,17 @@ export class AnimeQueries implements Queries {
 				"CATALOG_UNAVAILABLE",
 				"Local Catalog is unavailable.",
 			);
-		const reference =
-			local?.work.reference ?? this.reference("key" in input ? input.key : "");
+		const reference = local
+			? (this.associations?.externalReference(
+					local.work.reference,
+					tracking.provider.key,
+				) ?? this.associations?.externalReference(local.work.reference))
+			: this.reference("key" in input ? input.key : "");
+		if (!reference)
+			throw new DomainError(
+				"INVALID_REQUEST",
+				"Work association was not found.",
+			);
 		const key = workKey(reference);
 		let metadata = local?.metadata ?? null;
 		let metadataError: AnimeDetail["metadataError"] =
@@ -50,7 +61,7 @@ export class AnimeQueries implements Queries {
 				: null;
 		if (!local && this.metadata) {
 			try {
-				metadata = await this.metadata.get(reference);
+				metadata = await this.metadata.get(this.projectReference(reference));
 			} catch (error) {
 				if (!(error instanceof MetadataError)) throw error;
 				metadataError = error.failure;
@@ -87,6 +98,17 @@ export class AnimeQueries implements Queries {
 			viewing: { ...envelope, entry },
 		};
 	}
+	private projectReference(
+		reference: import("../../shared/external-reference.js").ExternalWorkReference,
+	) {
+		if (!this.associations)
+			throw new MetadataError({
+				code: "unavailable",
+				message: "Work identity resolution is unavailable.",
+				retryAt: null,
+			});
+		return this.associations.referenceForExternal(reference);
+	}
 	private reference(key: string) {
 		try {
 			return workReference(key);
@@ -97,8 +119,12 @@ export class AnimeQueries implements Queries {
 
 	private async findLocal(key: string): Promise<string | null> {
 		const reference = this.reference(key);
+		if (!this.catalog) return null;
 		try {
-			return (await this.catalog?.findLocalWork(reference)) ?? null;
+			return (
+				(await this.catalog?.findLocalWork(this.projectReference(reference))) ??
+				null
+			);
 		} catch (error) {
 			if (
 				error instanceof DomainError &&

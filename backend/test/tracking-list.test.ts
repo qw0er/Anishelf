@@ -28,6 +28,7 @@ import {
 	AniListListsClient,
 	createAniListTracking,
 } from "./anilist-fixture.js";
+import { fixtureAssociations } from "./support/metadata-associations.js";
 
 const lease: TrackingLease = {
 	accountId: "anilist:7",
@@ -261,13 +262,14 @@ function projection() {
 				revision: 1,
 				createdAt: 1,
 				updatedAt: 2,
-				reference: { provider: "anilist", mediaType: "anime", id: "1" },
+				reference: { id: "1" },
 				available: true,
 			},
 		],
 	};
 	const cards = vi.fn<AnimeCatalogApi["cards"]>(async () => []);
 	const app = new AnimeLibraryQueries({
+		associations: fixtureAssociations("anilist"),
 		catalog: { index: async () => index, cards },
 		lists: { list: () => snapshot, refreshList: async () => snapshot },
 		logger: pino({ enabled: false }),
@@ -303,6 +305,7 @@ test("library merges only exact IDs, preserves local identity, and paginates aft
 test("remote lists can be browsed without a local catalog", async () => {
 	const { snapshot } = projection();
 	const app = new AnimeLibraryQueries({
+		associations: fixtureAssociations("anilist"),
 		catalog: undefined,
 		lists: { list: () => snapshot, refreshList: async () => snapshot },
 		logger: pino({ enabled: false }),

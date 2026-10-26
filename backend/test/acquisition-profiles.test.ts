@@ -18,10 +18,11 @@ import {
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../src/modules/anime/release-assessment/application.js";
+import { fixtureAssociations } from "./support/metadata-associations.js";
 
 const target: AcquisitionTarget = {
 	work: {
-		reference: { provider: "anilist", mediaType: "anime", id: "1" },
+		reference: { id: "1" },
 		snapshotId: "snapshot",
 		titles: ["Frieren"],
 		year: 2023,
@@ -37,6 +38,7 @@ const assessor = new AnimeReleaseAssessment(
 	new AnitomyIdentificationParser(),
 	{} as never,
 	undefined,
+	fixtureAssociations(),
 );
 const assessReleaseTitle = assessor.assessReleaseTitle.bind(assessor);
 const entry = (

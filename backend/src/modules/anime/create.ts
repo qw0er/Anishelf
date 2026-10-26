@@ -51,6 +51,11 @@ export async function createAnimeModule(options: {
 			...metadataSources,
 			providers: [...metadataSources.providers, bangumi.provider],
 			artworkHosts: [...metadataSources.artworkHosts, "lain.bgm.tv"],
+			canAssociate: (target, other) => {
+				const left = database.catalog.findWork(target),
+					right = database.catalog.findWork(other);
+				return !left || !right || left.id === right.id;
+			},
 			logger,
 		});
 	} catch (err) {
@@ -72,6 +77,7 @@ export async function createAnimeModule(options: {
 		catalog,
 		lists: tracking,
 		logger,
+		...(metadata ? { associations: metadata } : {}),
 	});
 	const identification = createIdentificationModule({
 		library,
@@ -85,13 +91,15 @@ export async function createAnimeModule(options: {
 				}
 			: {}),
 	});
-	const assessment = catalogMetadata
-		? new AnimeReleaseAssessment(
-				new AnitomyIdentificationParser(),
-				catalogMetadata,
-				catalog,
-			)
-		: undefined;
+	const assessment =
+		catalogMetadata && metadata
+			? new AnimeReleaseAssessment(
+					new AnitomyIdentificationParser(),
+					catalogMetadata,
+					catalog,
+					metadata,
+				)
+			: undefined;
 	const api: AnimeApi = {
 		acquisitionList: {
 			snapshot: () => tracking.acquisitionSnapshot(),
@@ -100,7 +108,13 @@ export async function createAnimeModule(options: {
 				return tracking.acquisitionSnapshot();
 			},
 		},
-		queries: new AnimeQueries(catalog, catalogMetadata, tracking, logger),
+		queries: new AnimeQueries(
+			catalog,
+			catalogMetadata,
+			tracking,
+			logger,
+			metadata,
+		),
 		...(assessment && catalog
 			? {
 					ingestion: new AcquisitionIngestion(
@@ -144,7 +158,13 @@ export async function createAnimeModule(options: {
 			: undefined,
 	};
 	const viewing = catalog
-		? new TrackingViewingCommands(catalog, tracking, undefined, logger)
+		? new TrackingViewingCommands(
+				catalog,
+				tracking,
+				undefined,
+				logger,
+				metadata,
+			)
 		: undefined;
 	let stopped: Promise<void> | undefined;
 	let closed: Promise<void> | undefined;

@@ -1,5 +1,13 @@
 import { afterEach, expect, vi } from "vitest";
 
+// Happy DOM does not implement the font readiness promise used by navigation measurements.
+if (typeof document !== "undefined" && !document.fonts) {
+	Object.defineProperty(document, "fonts", {
+		configurable: true,
+		value: { ready: Promise.resolve() },
+	});
+}
+
 const unexpectedRequests: string[] = [];
 
 // Per-test fetch stubs restore this offline baseline, never native fetch.

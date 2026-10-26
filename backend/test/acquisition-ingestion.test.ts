@@ -16,6 +16,7 @@ import { AcquisitionIngestion } from "../src/modules/anime/release-assessment/in
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { settingsStore } from "./settings-store.js";
 import { createLibraryModule } from "./support/library.js";
+import { fixtureAssociations } from "./support/metadata-associations.js";
 
 const cleanup: (() => Promise<unknown>)[] = [];
 afterEach(async () => {
@@ -112,6 +113,7 @@ async function fixture() {
 			parser,
 			metadata as never,
 			catalog,
+			fixtureAssociations(),
 		),
 		ingestion = new AcquisitionIngestion(
 			assessment,
@@ -140,7 +142,7 @@ test("targeted refresh and acquisition ingest create real source associations id
 	const source = await f.catalog.source(identity.fileId);
 	expect(source.associations).toHaveLength(1);
 	expect(source.associations[0]).toMatchObject({
-		reference: { provider: "fixture", id: "1" },
+		reference: { id: "1" },
 		number: "3",
 		kind: "regular",
 	});

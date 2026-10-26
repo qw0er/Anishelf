@@ -75,9 +75,6 @@ export function registerMetadataRoutes(
 				metadata.search(
 					{
 						query: request.query.query,
-						...(request.query.provider
-							? { provider: request.query.provider }
-							: {}),
 						page: Number(request.query.page ?? 1),
 						perPage: Number(request.query.perPage ?? 10),
 					},

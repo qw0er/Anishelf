@@ -22,6 +22,7 @@ import {
 	workKey,
 	workReference,
 } from "../src/shared/external-reference.js";
+import { fixtureAssociations } from "./support/metadata-associations.js";
 
 const cleanup: (() => unknown)[] = [];
 afterEach(async () => {
@@ -284,12 +285,24 @@ test("episode resolution reports unmapped, ambiguous and unsupported independent
 		sourceVersion: "v1",
 		revision: 1,
 		associations: [
-			{ reference, kind: "regular", number: "4", episodeId: "episode" },
+			{
+				reference: { id: reference.id },
+				kind: "regular",
+				number: "4",
+				episodeId: "episode",
+			},
 		],
 	} as ReviewItem;
 	const viewing = new TrackingViewingCommands(
 		{ fileReviews: async () => [review] },
 		f.module,
+		undefined,
+		undefined,
+		{
+			...fixtureAssociations("fixture"),
+			externalReference: (ref) =>
+				ref.id === "unmapped" ? null : { ...reference, id: ref.id },
+		},
 	);
 	expect(await viewing.resolveTarget("file", "v1")).toMatchObject({
 		state: "resolved",
@@ -309,7 +322,7 @@ test("episode resolution reports unmapped, ambiguous and unsupported independent
 	});
 	const association = review.associations[0];
 	if (!association?.reference) throw new Error("Missing association.");
-	association.reference = { ...reference, provider: "other" };
+	association.reference = { id: "unmapped" };
 	expect(await viewing.resolveTarget("file", "v1")).toEqual({
 		state: "unmapped",
 		target: null,

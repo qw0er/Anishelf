@@ -8,6 +8,7 @@ import type { TrackingStatus } from "../src/modules/anime/tracking/domain/model.
 import type { TrackingRemoteState } from "../src/modules/anime/tracking/domain/operation.js";
 import { aniListTracking } from "../src/modules/anime/tracking/infrastructure/provider-mapping.js";
 import type { TrackingEpisodeCommand } from "../src/modules/anime/tracking/public.js";
+import { fixtureAssociations } from "./support/metadata-associations.js";
 
 const dispose: (() => unknown)[] = [];
 afterEach(async () => {
@@ -24,7 +25,7 @@ async function fixture(number = "4") {
 		revision: 1,
 		associations: [
 			{
-				reference: { provider: "anilist", mediaType: "anime", id: "9" },
+				reference: { id: "9" },
 				kind: "regular",
 				number,
 				episodeId: "ep",
@@ -119,6 +120,9 @@ async function fixture(number = "4") {
 			manualVersion: (id, g) => updates.manualVersion(id, g),
 			replayCommand: (id, g) => updates.replayCommand(id, g),
 		},
+		undefined,
+		undefined,
+		fixtureAssociations("anilist"),
 	);
 	const current = () => updates.operations(status.generation)[0];
 	const required = () => {

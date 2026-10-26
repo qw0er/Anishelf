@@ -54,16 +54,14 @@ export function CandidateSelection({
 				>
 					{item.proposals.map((proposal) => {
 						const candidate = proposal.candidate;
-						const selected =
-							reference?.provider === candidate.work.reference.provider &&
-							reference.id === candidate.work.reference.id;
+						const selected = reference?.id === candidate.work.reference.id;
 						const warnings = [
 							...candidate.conflicts,
 							...proposal.mapping.unresolved,
 						];
 						return (
 							<li
-								key={`${candidate.work.reference.provider}:${candidate.work.reference.id}`}
+								key={candidate.work.reference.id}
 								className={`flex min-w-0 flex-col gap-3 rounded-lg border p-4 ${selected ? "border-primary bg-primary/5" : "bg-background"}`}
 							>
 								<div className="flex items-start justify-between gap-2">

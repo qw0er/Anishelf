@@ -63,8 +63,6 @@ export async function matchingCorpusCandidates() {
 				workId: work.id,
 				candidate: {
 					reference: {
-						provider: "anilist",
-						mediaType: "anime" as const,
 						id: String(anilist.id),
 					},
 					snapshotId: work.snapshot,

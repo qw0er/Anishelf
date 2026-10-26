@@ -63,7 +63,10 @@ export interface ArtworkRecord {
 }
 export interface MetadataStore {
 	identify(reference: ProviderReference): string;
-	reference(id: string): ProviderReference | null;
+	originalIdentity(reference: ProviderReference): string;
+	identity(id: string): string | null;
+	references(id: string): ProviderReference[];
+	merge(target: string, other: string): void;
 	current(key: string): CacheEntry | null;
 	find(key: string): CacheEntry | null;
 	get(id: string): CacheEntry | null;
@@ -93,6 +96,11 @@ export interface MetadataArtwork {
 }
 
 export interface SourceMetadataApi {
+	artworkEvidence(
+		data: WorkDetails,
+		kind: "cover" | "banner",
+		options?: ReadOptions,
+	): Promise<ArtworkStatus>;
 	close(): Promise<void>;
 	providers(): ProviderCapabilities[];
 	resolveReference(value: string, provider?: string): ProviderReference;

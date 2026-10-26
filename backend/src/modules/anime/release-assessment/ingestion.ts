@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { basename } from "node:path";
 import { DomainError } from "../../../shared/errors.js";
-import { workKey } from "../../../shared/external-reference.js";
 import type {
 	ResourceAccessApi,
 	SourceIdentity,
@@ -42,12 +41,12 @@ export class AcquisitionIngestion {
 			target,
 		);
 		const matches = (item: {
-			reference?: { provider: string; mediaType: "anime"; id: string };
+			reference?: { id: string };
 			kind: string;
 			number: string;
 		}) =>
 			item.reference &&
-			workKey(item.reference) === key &&
+			item.reference.id === target.work.reference.id &&
 			item.kind === "regular" &&
 			item.number === String(episode);
 		const existing = await this.catalog.source(identity.fileId);

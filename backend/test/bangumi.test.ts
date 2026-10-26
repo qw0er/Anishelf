@@ -222,7 +222,7 @@ test("HTTP independent searches and details use isolated persistent snapshots an
 	});
 	cleanup.push(() => app.close());
 	try {
-		const url = "/api/metadata/search?provider=bangumi&query=Frieren";
+		const url = "/api/metadata/search?query=Frieren";
 		const [first, second] = await Promise.all([
 			app.inject({ url }),
 			app.inject({ url }),
@@ -270,12 +270,8 @@ test("HTTP independent searches and details use isolated persistent snapshots an
 		const cached = await metadata.get(work.reference, { cachedOnly: true });
 		expect(cached.snapshotId).toBe(details.json().snapshotId);
 		expect(
-			(
-				await metadata.search(
-					{ query: "Frieren", provider: "bangumi" },
-					{ cachedOnly: true },
-				)
-			).data.items[0]?.reference,
+			(await metadata.search({ query: "Frieren" }, { cachedOnly: true })).data
+				.items[0]?.reference,
 		).toEqual(work.reference);
 		expect(fetcher).toHaveBeenCalledTimes(2);
 	} finally {
@@ -335,7 +331,7 @@ test("a failed stale refresh preserves the snapshot and communicates the shared 
 	cleanup.push(() => metadata.close());
 	const reference = metadata.resolveReference("bangumi:anime:400602");
 	const original = await metadata.get(reference);
-	const stored = database.metadata.get(original.snapshotId);
+	const stored = database.metadata.current("bangumi:anime:400602");
 	if (!stored) throw new Error("Expected cached snapshot.");
 	database.metadata.save({ ...stored, expiresAt: 0 });
 	fetcher.mockImplementation(
@@ -355,8 +351,8 @@ test("a failed stale refresh preserves the snapshot and communicates the shared 
 	const retained = await metadata.get(reference);
 	expect(retained.snapshotId).toBe(original.snapshotId);
 	expect(retained.refreshError?.retryAt).toBeGreaterThan(Date.now() + 110000);
-	await expect(
-		metadata.search({ query: "different", provider: "bangumi" }),
-	).rejects.toMatchObject({ failure: { code: "rate-limited" } });
+	await expect(metadata.search({ query: "different" })).rejects.toMatchObject({
+		failure: { code: "rate-limited" },
+	});
 	expect(fetcher).toHaveBeenCalledTimes(2);
 });

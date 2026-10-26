@@ -16,7 +16,7 @@ import type { WorkCandidate } from "../src/modules/anime/identification/public.j
 
 const work = (titles: string[], id = "1"): WorkCandidate => ({
 	titles,
-	reference: { provider: "test", mediaType: "anime", id },
+	reference: { id },
 	snapshotId: "frozen",
 	year: null,
 	format: "TV",

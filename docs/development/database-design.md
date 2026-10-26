@@ -32,14 +32,14 @@ continues to use the disk-backed `openDatabase()` path and its existing logs.
 | `acquisition_intents` | Identity/reservations, state, retry, progress, timestamps, captured destination, source identity and last command columns |
 | `acquisition_directories` | Work primary key and unique stable directory; no representation change |
 | `catalog_works` | Local identity, mapping revision and creation/update times; descriptive fields come from Metadata |
-| `catalog_provider_links` | Work/snapshot foreign keys, qualified unique identity and constrained media type |
+| `catalog_provider_links` | Local work/snapshot foreign keys and a unique project metadata work ID |
 | `catalog_episodes` | Work foreign key, unique episode identity, constrained kind and provenance |
 | `catalog_associations` | Explicit primary key, unique source/episode association, foreign keys and ordered original episode tokens |
 | `catalog_reviews` | Source foreign key, decision/revision, scalar identification evidence, ordered extraction inputs/elements, titles, proposals, mapping targets and explanations |
 | `catalog_operations` | Command identity/fingerprint, confirmed work/revision and ordered review receipts |
 | `metadata_snapshots` | Snapshot/cache identity, kind, indexed freshness/failure columns and one JSON `data` projection for search/detail/relation/airing payloads |
 | `metadata_works` | Qualified work key, indexed current description fields, ordered JSON titles and current detail snapshot foreign key |
-| `metadata_references` | Permanent project UUID and unique private source/ID mapping, independent of snapshot eviction |
+| `metadata_references` | Permanent issued UUIDs, canonical work IDs and unique private source/ID mappings; independent of cache eviction |
 | `metadata_pins` | Composite snapshot/owner primary key and cascading snapshot foreign key |
 | `media_inspections` | One JSON FFprobe result per scope/file, source version and inspection/FFprobe format version |
 | `metadata_artwork` | Existing scalar asset attributes, nonnegative size and LRU index |
@@ -115,7 +115,7 @@ two obsolete title tables and descriptive columns from Catalog/Tracking only aft
 seeding their replacement. Existing local IDs/revisions, episodes, decisions,
 snapshot IDs/pins, tracking progress, commands and Acquisition records survive.
 `metadata_works.detail_snapshot_id` references the current complete document;
-Catalog provider links retain their confirmation evidence. The current summary is
+Catalog metadata links retain their confirmation evidence. The current summary is
 a Metadata-owned query index, not another independently refreshed business copy.
 Current detail snapshots are durable; LRU limits apply to unreferenced historical
 snapshots. Confirmed decision evidence has a separate durable pin.
@@ -161,11 +161,29 @@ explicit diagnostics reads return it.
 
 ### Project metadata identities
 
-Migration `0013_metadata_work_identities` adds a permanent identity registry without
-rewriting existing snapshots, Catalog links or Tracking state. Metadata registers
-source references lazily when it projects a work or resolves an external input.
-The unique source/ID constraint keeps search, detail and relation identities stable
-across cache eviction and restarts. Cached evidence retains its original internal
-source identity; public reads translate it through the registry and omit provenance.
-Separate source identities are not merged by title similarity. Cross-source identity
-reconciliation requires an explicit verified mapping rather than a guessed match.
+Migration `0013_metadata_work_identities` adds a permanent identity registry.
+Migration `0014_metadata_source_associations` adds `metadata_references.work_id`
+without regenerating existing UUIDs. Every row retains its originally issued `id`;
+`work_id` selects the canonical project identity. Several source rows may share a
+canonical identity, and old row IDs remain permanent aliases. The unique source/ID
+constraint prevents duplicate source registrations. Association updates every member
+of the other group transactionally, rejects conflicting sources, and never deletes
+identity records. Cache pruning does not touch this registry.
+
+Migration `0015_catalog_metadata_identities` registers any legacy Catalog/proposal
+references missing from the registry, replaces Catalog external link columns with
+`metadata_work_id`, and converts proposal references to project IDs. It preserves
+local work/episode IDs, review children, snapshot pins and Tracking state. The
+private description index also retains project projections for Catalog queries;
+source indexes continue to serve Tracking independently. Project descriptions fill
+missing fields across explicitly associated sources; scalar conflicts keep a stable
+primary source. Ordinary business ports never read the source association columns.
+
+Source evidence stays private. Public composite documents use `project:` snapshot
+keys and contain their projected content plus private artwork evidence and source
+snapshot IDs for freshness. They share the existing pin/prune tables but are not
+interpreted as provider payloads. Source-cache eviction cannot change their retained
+content or artwork URLs. Old source snapshots still project their original issued
+identity, even after an association; new reads resolve the canonical identity.
+Cross-source reconciliation requires explicit verified identity and episode-number
+agreement, never a guessed title match.

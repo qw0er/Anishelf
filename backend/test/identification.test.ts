@@ -34,7 +34,7 @@ const parser = new AnitomyIdentificationParser();
 const logger = pino({ enabled: false });
 const work: WorkCandidate = {
 	snapshotId: "snapshot-1",
-	reference: { provider: "anilist", mediaType: "anime", id: "1" },
+	reference: { id: "1" },
 	titles: ["Frieren", "葬送のフリーレン", "葬送的芙莉莲"],
 	year: 2023,
 	format: "TV",

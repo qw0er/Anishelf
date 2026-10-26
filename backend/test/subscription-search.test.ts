@@ -27,7 +27,7 @@ const attributes = {
 };
 const target: AcquisitionTarget = {
 	work: {
-		reference: { provider: "anilist", mediaType: "anime", id: "1" },
+		reference: { id: "1" },
 		snapshotId: "snapshot",
 		titles: ["Frieren Season 2", "Sousou no Frieren Season 2"],
 		year: 2026,

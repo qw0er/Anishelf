@@ -58,6 +58,7 @@ function snapshot(data = details(), id = "detail", fetchedAt = 100) {
 test("one current summary serves Catalog and every account without changing local revisions", () => {
 	const database = ApplicationDatabase.openMemory();
 	try {
+		const project = { id: database.metadata.identify(reference) };
 		const initial = {
 			...details(),
 			titles: [
@@ -101,7 +102,7 @@ test("one current summary serves Catalog and every account without changing loca
 				createdAt: 1,
 				updatedAt: 2,
 			},
-			{ workId: "local", reference, snapshotId: "detail" },
+			{ workId: "local", reference: project, snapshotId: "detail" },
 		);
 		expect(database.catalog.work("local")).toMatchObject({
 			providerTitle: "Canonical",
@@ -124,7 +125,7 @@ test("one current summary serves Catalog and every account without changing loca
 		if (!local) throw new Error("Missing local work");
 		database.catalog.saveWork(local, {
 			workId: "local",
-			reference,
+			reference: project,
 			snapshotId: "detail",
 		});
 		expect(database.catalog.work("local")).toMatchObject({
@@ -214,7 +215,7 @@ test("the supported upgrade moves summaries and preserves opaque identities, sna
 			expect(inspected.pragma("foreign_key_check")).toEqual([]);
 			expect(
 				inspected.prepare("SELECT count(*) AS count FROM metadata_works").get(),
-			).toEqual({ count: 1 });
+			).toEqual({ count: 2 });
 			expect(
 				inspected
 					.prepare(

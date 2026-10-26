@@ -1,11 +1,11 @@
 import { IdentificationStatusSchema } from "../../contracts/schemas/anime-catalog.js";
-import { workKey } from "../../shared/external-reference.js";
 import type { HttpInstance } from "../../transport/instance.js";
 import { registerCatalogRoutes } from "./anime-catalog/http/catalog.js";
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
 import { registerAnimeLibraryRoutes } from "./anime-library/http/library.js";
 import type { AnimeLibraryApi } from "./anime-library/public.js";
 import type { MetadataApplication } from "./metadata/application/metadata.js";
+import { registerMetadataAssociationRoutes } from "./metadata/http/associations.js";
 import { registerMetadataRoutes } from "./metadata/http/metadata.js";
 import { registerTrackingListRoutes } from "./tracking/http/lists.js";
 import { registerTrackingRoutes } from "./tracking/http/tracking.js";
@@ -48,20 +48,13 @@ export function registerAnimeHttp(
 		metadata
 			? {
 					cachedArtworkId: (reference, kind) =>
-						metadata.cachedArtworkId(
-							metadata.resolveReference(workKey(reference)),
-							kind,
-						),
+						metadata.cachedArtworkId(reference, kind),
 				}
 			: undefined,
 	);
-	if (owners.metadata) registerMetadataRoutes(app, owners.metadata);
-	if (owners.catalog)
-		registerCatalogRoutes(
-			app,
-			owners.catalog,
-			metadata
-				? (reference) => metadata.externalReference(reference)
-				: undefined,
-		);
+	if (owners.metadata) {
+		registerMetadataRoutes(app, owners.metadata);
+		registerMetadataAssociationRoutes(app, owners.metadata);
+	}
+	if (owners.catalog) registerCatalogRoutes(app, owners.catalog);
 }

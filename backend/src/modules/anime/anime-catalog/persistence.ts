@@ -2,8 +2,8 @@
 export {
 	catalogAssociations,
 	catalogEpisodes,
+	catalogMetadataLinks,
 	catalogOperations,
-	catalogProviderLinks,
 	catalogReviews,
 	catalogWorks,
 } from "./infrastructure/schema.js";

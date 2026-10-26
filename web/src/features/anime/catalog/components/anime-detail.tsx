@@ -93,11 +93,11 @@ function LocalWorkDetail({
 	const [params, setParams] = useSearchParams();
 	const handledPlay = useRef<string | null>(null);
 	const status = useQuery(
-		animeStatusQuery(workKey(work.reference), useQueryScope()),
+		animeStatusQuery(workKey(data.detail.reference), useQueryScope()),
 	);
 	const viewing = useDetailViewing(
 		status.data?.viewing,
-		workKey(work.reference),
+		workKey(data.detail.reference),
 		() => {
 			void status.refetch();
 		},
@@ -234,7 +234,10 @@ function LocalWorkDetail({
 				banner
 			/>
 			<WorkMetadataHeader
-				subscription={renderSubscription?.(workKey(work.reference), status)}
+				subscription={renderSubscription?.(
+					workKey(data.detail.reference),
+					status,
+				)}
 				action={
 					<PlayNextButton
 						episode={nextEpisode}

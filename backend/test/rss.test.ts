@@ -23,6 +23,7 @@ import { AnitomyIdentificationParser } from "../src/modules/anime/identification
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../src/modules/anime/release-assessment/application.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
+import { fixtureAssociations } from "./support/metadata-associations.js";
 
 vi.mock("node:fs/promises", async () => {
 	const { memoryFs } = await import("./support/memory-filesystem.js");
@@ -52,7 +53,7 @@ function feed(items = item()) {
 }
 const target: AcquisitionTarget = {
 	work: {
-		reference: { provider: "anilist", mediaType: "anime", id: "1" },
+		reference: { id: "1" },
 		snapshotId: "snapshot",
 		titles: ["Frieren"],
 		titleVariants: [{ value: "Frieren", kind: "primary", language: "en" }],
@@ -69,6 +70,7 @@ const assessor = new AnimeReleaseAssessment(
 	new AnitomyIdentificationParser(),
 	{} as never,
 	undefined,
+	fixtureAssociations(),
 );
 
 async function fixture(
