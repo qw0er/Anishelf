@@ -4,10 +4,10 @@ import type { Logger } from "pino";
 import type { MediaApi } from "../media/public.js";
 import type { ResourcesApi } from "../resources/public.js";
 import type { SystemApi } from "../system/public.js";
-import { createPlaybackModule as createProgressModule } from "./composition/playback.js";
 import { registerPlaybackHttp } from "./http.js";
 import type { PlaybackPersistence } from "./persistence.js";
 import { PlaybackSelectionApplication } from "./playback-selection/application/selection.js";
+import { PlaybackApplication } from "./progress/application/playback.js";
 import { playbackPolicy, validatePlaybackPolicy } from "./progress/policy.js";
 import type { PlaybackApi } from "./public.js";
 export function createPlaybackModule(options: {
@@ -38,42 +38,38 @@ export function createPlaybackModule(options: {
 		database,
 		logger,
 	} = options;
-	const playback = createProgressModule({
-		configuration,
+	const playback = new PlaybackApplication({
 		completionObserver: options.completionObserver,
-		library,
-		database,
+		sources: library.sources,
+		repository: database.playback,
 		logger,
 		...(options.policy ? { policy: options.policy } : {}),
 	});
 	const selection = new PlaybackSelectionApplication({
 		sources: library.sources,
 		planning: {
-			inspect: (input) => media.inspectCompatibility(input),
-			check: (input) => media.checkCompatibility(input),
+			inspect: media.inspectCompatibility.bind(media),
+			check: media.checkCompatibility.bind(media),
 		},
 		copies: {
-			list: (id) => media.listPlaybackCopies(id),
-			get: (id) => media.getPlaybackCopy(id),
+			list: media.listPlaybackCopies.bind(media),
+			get: media.getPlaybackCopy.bind(media),
 		},
 		selectedProfileId: () =>
 			configuration.snapshot.settings.defaultTranscodeProfileId,
 	});
 	const api: PlaybackApi = {
-		open: (id: string) => playback.open(id),
-		save: (input: Parameters<typeof playback.save>[0]) => playback.save(input),
-		release: (token: string) => playback.release(token),
-		history: (limit?: number, view?: "continue" | "recent") =>
-			playback.history(limit, view),
-		inspect: (input: Parameters<typeof selection.inspect>[0]) =>
-			selection.inspect(input),
-		select: (input: Parameters<typeof selection.select>[0]) =>
-			selection.select(input),
+		open: playback.open.bind(playback),
+		save: playback.save.bind(playback),
+		release: playback.release.bind(playback),
+		history: playback.history.bind(playback),
+		inspect: selection.inspect.bind(selection),
+		select: selection.select.bind(selection),
 	};
 	return {
 		api,
 		registerHttp: (app: import("../../transport/instance.js").HttpInstance) =>
 			registerPlaybackHttp(app, playback, selection),
-		close: () => playback.close(),
+		close: playback.close.bind(playback),
 	};
 }

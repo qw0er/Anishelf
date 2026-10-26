@@ -1,25 +1,37 @@
-import type { TrackingListSnapshot } from "../domain/list.js";
-import type { TrackingPreview, TrackingStatus } from "../domain/model.js";
-import type {
-	TrackingOperationCommand,
-	TrackingUpdate,
-} from "../domain/operation.js";
+import type { TrackingStatus } from "../domain/model.js";
 import type { TrackingApi } from "../public.js";
 import type { TrackingAccountApplication } from "./account.js";
 import type { TrackingListReader } from "./list-cache.js";
 import type { TrackingUpdates } from "./updates.js";
 /** Module boundary: account commands and list reads expose no internal credential access. */
 export class TrackingModule implements TrackingApi {
+	readonly status: TrackingApi["status"];
+	readonly preview: TrackingApi["preview"];
+	readonly list: TrackingApi["list"];
+	readonly refreshList: TrackingApi["refreshList"];
+	readonly acquisitionSnapshot: TrackingListReader["acquisitionSnapshot"];
+	readonly operations: TrackingApi["operations"];
+	readonly replayCommand: TrackingApi["replayCommand"];
+	readonly manualVersion: TrackingApi["manualVersion"];
+	readonly update: TrackingApi["update"];
+	readonly retryOperation: TrackingApi["retryOperation"];
+	readonly resolveOperation: TrackingApi["resolveOperation"];
 	constructor(
 		private readonly accounts: TrackingAccountApplication,
 		private readonly lists: TrackingListReader,
 		private readonly updates: TrackingUpdates,
-	) {}
-	status(): TrackingStatus {
-		return this.accounts.status();
-	}
-	preview(sessionId: string, credential: string): Promise<TrackingPreview> {
-		return this.accounts.preview(sessionId, credential);
+	) {
+		this.status = accounts.status;
+		this.preview = accounts.preview.bind(accounts);
+		this.list = lists.read.bind(lists);
+		this.refreshList = lists.refresh.bind(lists);
+		this.acquisitionSnapshot = lists.acquisitionSnapshot.bind(lists);
+		this.operations = updates.operations.bind(updates);
+		this.replayCommand = updates.replayCommand.bind(updates);
+		this.manualVersion = updates.manualVersion.bind(updates);
+		this.update = updates.update.bind(updates);
+		this.retryOperation = updates.retryOperation.bind(updates);
+		this.resolveOperation = updates.resolveOperation.bind(updates);
 	}
 	async confirm(
 		sessionId: string,
@@ -45,37 +57,6 @@ export class TrackingModule implements TrackingApi {
 		} finally {
 			this.updates.connectionChanged();
 		}
-	}
-	list(generation?: string, refreshStale = true): TrackingListSnapshot {
-		return this.lists.read(generation, refreshStale);
-	}
-	refreshList(generation?: string): Promise<TrackingListSnapshot> {
-		return this.lists.refresh(generation);
-	}
-	acquisitionSnapshot() {
-		return this.lists.acquisitionSnapshot();
-	}
-	operations(generation: string) {
-		return this.updates.operations(generation);
-	}
-	replayCommand(commandId: string, generation: string) {
-		return this.updates.replayCommand(commandId, generation);
-	}
-	manualVersion(mediaId: string, generation: string) {
-		return this.updates.manualVersion(mediaId, generation);
-	}
-	update(mediaId: string, input: TrackingUpdate) {
-		return this.updates.update(mediaId, input);
-	}
-	retryOperation(id: string, input: TrackingOperationCommand) {
-		return this.updates.retryOperation(id, input);
-	}
-	resolveOperation(
-		id: string,
-		input: TrackingOperationCommand,
-		keepRemote: boolean,
-	) {
-		return this.updates.resolveOperation(id, input, keepRemote);
 	}
 	async close(): Promise<void> {
 		await this.updates.close();

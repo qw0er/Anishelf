@@ -51,6 +51,22 @@ hide application/repository constructors and protocol adapters. Modules cannot
 import app; platform/shared cannot import modules. Runtime cycles are rejected by
 `npm run architecture:check` and its dependency fixtures.
 
+Submodules with multiple internal collaborators assemble them in their own
+`create.ts` (Metadata, Tracking, Identification, Preparation, Subtitles and Library).
+These factories receive storage ports, configuration values and collaborator APIs;
+they do not receive an entire parent database or configuration service just to
+extract a field. A single application that already constructs its collaborators
+can be instantiated directly; no forwarding factory is needed.
+
+Parent `create.ts` files select implementations, connect submodules and coordinate
+startup, degradation and shutdown. Cross-submodule translations live in
+`integration/`; automatic identification publication is an Anime workflow.
+Business code cannot import construction entries or integration adapters, including
+through type-only dependencies. Public contracts remain separate from factories.
+Public capability objects select existing bound methods or bind a method once;
+they retain wrappers only for data/error conversion, orchestration or live getters.
+Internal lifecycle and mutation capabilities remain private.
+
 ### Defaults and behavior policies
 
 Keep fixed implementation choices next to their consumer (for example SQLite
@@ -175,7 +191,7 @@ do not import Metadata or Tracking business contracts.
 
 ### Metadata implementation responsibilities
 
-Composition assembles Metadata's collaborators and binds their methods once into
+`metadata/create.ts` assembles Metadata's collaborators and binds their methods once into
 `MetadataApi`. Anime and HTTP consumers use these bound functions directly; there
 is no forwarding facade or repeated content-method wrapper. The external identity
 bridge is injected into Tracking and other integrations separately from ordinary

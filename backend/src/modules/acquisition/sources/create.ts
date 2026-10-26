@@ -75,7 +75,7 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 					: sourcePolicy.requestIntervalMs,
 			logger: options.logger,
 			cooldowns,
-			onCooldown: (key, until) => cooldownFile.set(key, until),
+			onCooldown: cooldownFile.set.bind(cooldownFile),
 		},
 	);
 	const connection = new JackettConnection(
@@ -128,7 +128,7 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 			: {}),
 	});
 	const runtime: SourcesRuntime = Object.freeze<SourcesRuntime>({
-		start: (activeIds, poll) => application.start(activeIds, poll),
+		start: application.start.bind(application),
 		close: async () => {
 			await Promise.allSettled([bundled.close(), application.close()]);
 			await cooldownFile.close();
@@ -145,10 +145,9 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 	};
 	const api: SourcesApi = Object.freeze<SourcesApi>({
 		snapshot: (input) => command(() => application.snapshot(input)),
-		fetch: (input, requestOptions) => application.fetch(input, requestOptions),
-		readContent: (reference, signal) =>
-			application.readDownload(reference, signal),
-		isContentCurrent: (reference) => application.isDownloadCurrent(reference),
+		fetch: application.fetch.bind(application),
+		readContent: application.readDownload.bind(application),
+		isContentCurrent: application.isDownloadCurrent.bind(application),
 		connector: Object.freeze<SourceConnectorApi>({
 			settings,
 			useBundled: (generation, initializeSite) =>

@@ -6,7 +6,7 @@ import Database from "better-sqlite3";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
-import { createMetadataModule } from "../src/modules/anime/composition/metadata.js";
+import { createMetadataModule } from "../src/modules/anime/metadata/create.js";
 import { composeDetails } from "../src/modules/anime/metadata/domain/composition.js";
 import { projectDetails } from "../src/modules/anime/metadata/domain/projection.js";
 import type { WorkDetails } from "../src/modules/anime/metadata/domain/source-model.js";

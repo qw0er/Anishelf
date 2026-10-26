@@ -7,11 +7,11 @@ import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
 import { AniListError } from "../src/modules/anime/anilist/public.js";
+import type { TrackingAccountApplication } from "../src/modules/anime/tracking/application/account.js";
 import {
 	createTrackingAccounts,
 	createTrackingModule,
-} from "../src/modules/anime/composition/tracking.js";
-import type { TrackingAccountApplication } from "../src/modules/anime/tracking/application/account.js";
+} from "../src/modules/anime/tracking/create.js";
 import { registerTrackingListRoutes } from "../src/modules/anime/tracking/http/lists.js";
 import { registerTrackingRoutes } from "../src/modules/anime/tracking/http/tracking.js";
 import { registerTrackingUpdateRoutes } from "../src/modules/anime/tracking/http/updates.js";

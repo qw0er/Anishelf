@@ -4,7 +4,7 @@ import type {
 	CompatibilityInspection,
 	PlaybackSelectionRequest,
 } from "../src/contracts/http.js";
-import { createPlaybackCopies } from "../src/modules/media/composition/playback-selection.js";
+import { createPlaybackCopies } from "../src/modules/media/integration/playback-copies.js";
 import type { CheckedCompatibility } from "../src/modules/media/media-planning/public.js";
 import type { PreparationView } from "../src/modules/media/preparation/public.js";
 import { PlaybackSelectionApplication } from "../src/modules/playback/playback-selection/application/selection.js";

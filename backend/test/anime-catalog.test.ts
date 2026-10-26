@@ -14,20 +14,18 @@ import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { AnimeCatalogApplication } from "../src/modules/anime/anime-catalog/application/catalog.js";
 import { catalogDefaults } from "../src/modules/anime/anime-catalog/defaults.js";
 import type { MappingSelection } from "../src/modules/anime/anime-catalog/public.js";
-import { createIdentificationModule } from "../src/modules/anime/composition/identification.js";
-import {
-	createIdentificationMetadata,
-	createMetadataApplication as createPublicMetadata,
-} from "../src/modules/anime/composition/metadata.js";
 import { IdentificationApplication } from "../src/modules/anime/identification/application/identification.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
+import { createIdentificationMetadata } from "../src/modules/anime/integration/identification-metadata.js";
 import { SourceMetadataApplication as MetadataApplication } from "../src/modules/anime/metadata/application/source-metadata.js";
+import { createMetadataApplication as createPublicMetadata } from "../src/modules/anime/metadata/create.js";
 import {
 	MetadataError,
 	type WorkDetails,
 } from "../src/modules/anime/metadata/domain/source-model.js";
 import { MetadataArtworkCache } from "../src/modules/anime/metadata/infrastructure/artwork.js";
 import type { MetadataProvider } from "../src/modules/anime/metadata/ports.js";
+import { createIdentificationModule } from "../src/modules/anime/workflows/create-identification.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import { DomainError } from "../src/shared/errors.js";

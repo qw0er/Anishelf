@@ -1,4 +1,5 @@
 import type { Logger } from "pino";
+import { preparationConstraints } from "../../contracts/defaults.js";
 import type { MediaTools } from "../../platform/media/index.js";
 import {
 	mediaToolPolicy,
@@ -7,32 +8,33 @@ import {
 import { defaultSortingPolicy } from "../../shared/sorting.js";
 import type { ResourcesApi } from "../resources/public.js";
 import type { SystemApi } from "../system/public.js";
-import { createMediaExecutionModule } from "./composition/media-execution.js";
-import { createPlaybackCopies } from "./composition/playback-selection.js";
-import {
-	createPreparationModule,
-	initializePreparationModule,
-} from "./composition/preparation.js";
-import {
-	createSubtitleModule,
-	initializeSubtitleModule,
-} from "./composition/subtitles.js";
 import { registerMediaHttp } from "./http.js";
+import { createPlaybackCopies } from "./integration/playback-copies.js";
 import { MediaInspectionApplication } from "./media-inspection/application.js";
 import {
 	mediaInspectionPolicy,
 	validateMediaInspectionPolicy,
 } from "./media-inspection/policy.js";
+import { MediaPlanningApplication } from "./media-planning/application/planning.js";
+import { createMediaProcessingModule } from "./media-processing/create.js";
 import {
 	mediaProcessingPolicy,
 	validateMediaProcessingPolicy,
 } from "./media-processing/policy.js";
 import type { MediaPersistence } from "./persistence.js";
 import {
+	createPreparationApplication,
+	initializePreparationModule,
+} from "./preparation/create.js";
+import {
 	preparationPolicy,
 	validatePreparationPolicy,
 } from "./preparation/policy.js";
 import type { MediaApi } from "./public.js";
+import {
+	createSubtitleApplication,
+	initializeSubtitleModule,
+} from "./subtitles/create.js";
 import { subtitlePolicy, validateSubtitlePolicy } from "./subtitles/policy.js";
 import { compatibilityView } from "./views.js";
 
@@ -103,28 +105,44 @@ export async function createMediaModule(options: {
 	const unsubscribeInspections =
 		library.onSnapshotChanged(reconcileInspections);
 	reconcileInspections();
-	const execution = createMediaExecutionModule({
-		configuration,
+	const planning = new MediaPlanningApplication({
+		sources: library.sources,
+		inspection,
+		logger,
+		profiles: configuration.transcodeProfiles,
+		preparationMode: () => configuration.snapshot.settings.preparationMode,
+	});
+	const processing = createMediaProcessingModule({
+		dataDir: configuration.deployment.dataDir,
+		maximumProcessedBytes: () =>
+			(configuration.settings.transcodeCacheBudgetGiB ??
+				preparationConstraints.defaultCacheBudgetGiB) *
+			1024 ** 3,
 		sources: library.sources,
 		inspection,
 		tools,
 		logger,
 		toolPolicy: policy.mediaTools,
-		processingPolicy: policy.mediaProcessing,
+		policy: policy.mediaProcessing,
 	});
-	const preparation = createPreparationModule({
-		configuration,
-		library,
-		database,
-		planning: execution.planning,
-		processing: execution.processing,
+	const preparation = createPreparationApplication({
+		sources: library.sources,
+		repository: database.preparation,
+		profiles: configuration.transcodeProfiles,
+		dataDir: configuration.deployment.dataDir,
+		maximumCacheBytes: () =>
+			(configuration.settings.transcodeCacheBudgetGiB ??
+				preparationConstraints.defaultCacheBudgetGiB) *
+			1024 ** 3,
+		planning,
+		processing,
 		logger,
 		policy: policy.preparation,
 	});
-	const subtitles = createSubtitleModule({
-		configuration,
-		library,
-		database,
+	const subtitles = createSubtitleApplication({
+		sources: library.sources,
+		repository: database.subtitles,
+		dataDir: configuration.deployment.dataDir,
 		tools,
 		inspection,
 		logger,
@@ -134,11 +152,11 @@ export async function createMediaModule(options: {
 	await initializeSubtitleModule(subtitles, logger);
 	const copies = createPlaybackCopies(preparation);
 	const api: MediaApi = {
-		inspectCompatibility: (input) => execution.planning.inspect(input),
+		inspectCompatibility: planning.inspect.bind(planning),
 		checkCompatibility: async (input) =>
-			compatibilityView(await execution.planning.check(input)),
-		listPlaybackCopies: (id) => copies.list(id),
-		getPlaybackCopy: (id) => copies.get(id),
+			compatibilityView(await planning.check(input)),
+		listPlaybackCopies: copies.list,
+		getPlaybackCopy: copies.get,
 	};
 	let stopped: Promise<void> | undefined;
 	let closed: Promise<void> | undefined;
@@ -148,7 +166,7 @@ export async function createMediaModule(options: {
 		registerHttp: (app: import("../../transport/instance.js").HttpInstance) =>
 			registerMediaHttp(app, {
 				inspection,
-				planning: execution.planning,
+				planning,
 				preparation,
 				subtitles,
 			}),
@@ -158,7 +176,8 @@ export async function createMediaModule(options: {
 				unsubscribeInspections();
 				await quiesce();
 				await subtitles.close();
-				await execution.close();
+				planning.close();
+				await processing.close();
 				await inspection.close();
 			})()),
 	};

@@ -1,14 +1,14 @@
 import type { Logger } from "pino";
-import { TrackingAccountApplication } from "../tracking/application/account.js";
-import { TrackingAuthorizations } from "../tracking/application/authorizations.js";
-import { TrackingConnectionState } from "../tracking/application/connection.js";
-import { TrackingConnectionCheck } from "../tracking/application/connection-check.js";
-import { TrackingDiagnostics } from "../tracking/application/diagnostics.js";
-import { TrackingListReader } from "../tracking/application/list-cache.js";
-import { TrackingModule } from "../tracking/application/tracking.js";
-import { TrackingUpdates } from "../tracking/application/updates.js";
-import type { TrackingProviderDescriptor } from "../tracking/domain/model.js";
-import { TrackingCredentialFiles } from "../tracking/infrastructure/credentials.js";
+import { TrackingAccountApplication } from "./application/account.js";
+import { TrackingAuthorizations } from "./application/authorizations.js";
+import { TrackingConnectionState } from "./application/connection.js";
+import { TrackingConnectionCheck } from "./application/connection-check.js";
+import { TrackingDiagnostics } from "./application/diagnostics.js";
+import { TrackingListReader } from "./application/list-cache.js";
+import { TrackingModule } from "./application/tracking.js";
+import { TrackingUpdates } from "./application/updates.js";
+import type { TrackingProviderDescriptor } from "./domain/model.js";
+import { TrackingCredentialFiles } from "./infrastructure/credentials.js";
 import type {
 	TrackingAccountProvider,
 	TrackingCredentials,
@@ -17,7 +17,7 @@ import type {
 	TrackingOperationStore,
 	TrackingStore,
 	TrackingUpdateProvider,
-} from "../tracking/ports.js";
+} from "./ports.js";
 
 export interface TrackingAccountAssemblyOptions {
 	descriptor: TrackingProviderDescriptor;
@@ -103,5 +103,9 @@ export async function createTrackingModule(
 			lists.confirmed(accountId, mediaId, remote),
 		...(logger ? { logger } : {}),
 	});
+	logger?.debug(
+		{ event: "tracking.services_configured" },
+		"Tracking account, list and update services configured.",
+	);
 	return new TrackingModule(accounts, lists, updates);
 }

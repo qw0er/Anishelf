@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createSubtitleApplication as createApplication } from "../../src/modules/media/composition/subtitle-application.js";
+import { createSubtitleApplication as createApplication } from "../../src/modules/media/subtitles/create.js";
 import type {
 	SubtitleAsset,
 	SubtitleFontSet,

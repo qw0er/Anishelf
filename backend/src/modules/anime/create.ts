@@ -2,21 +2,17 @@ import type { Logger } from "pino";
 import type { ResourcesApi } from "../resources/public.js";
 import type { SystemApi } from "../system/public.js";
 import { AniListWrapper } from "./anilist/public.js";
+import { AnimeCatalogApplication } from "./anime-catalog/application/catalog.js";
 import { AnimeLibraryQueries } from "./anime-library/application/library.js";
+import { registerAnimeHttp } from "./http.js";
+import { AnitomyIdentificationParser } from "./identification/infrastructure/parser.js";
 import {
 	createAniListMetadata,
 	createAniListTracking,
-} from "./composition/anilist.js";
-import { createBangumiMetadata } from "./composition/bangumi.js";
-import { createCatalogModule } from "./composition/catalog.js";
-import { createIdentificationModule } from "./composition/identification.js";
-import {
-	createIdentificationMetadata,
-	createMetadataModule,
-} from "./composition/metadata.js";
-import { createTrackingModule } from "./composition/tracking.js";
-import { registerAnimeHttp } from "./http.js";
-import { AnitomyIdentificationParser } from "./identification/infrastructure/parser.js";
+} from "./integration/anilist.js";
+import { createBangumiMetadata } from "./integration/bangumi.js";
+import { createIdentificationMetadata } from "./integration/identification-metadata.js";
+import { createMetadataModule } from "./metadata/create.js";
 import type { MetadataModule } from "./metadata/public.js";
 import type { AnimePersistence } from "./persistence.js";
 import type { AnimeApi } from "./public.js";
@@ -24,6 +20,8 @@ import { AnimeQueries } from "./queries.js";
 import { AnimeReleaseAssessment } from "./release-assessment/application.js";
 import { AcquisitionIngestion } from "./release-assessment/ingestion.js";
 import { TrackingViewingCommands } from "./tracking/application/viewing.js";
+import { createTrackingModule } from "./tracking/create.js";
+import { createIdentificationModule } from "./workflows/create-identification.js";
 export async function createAnimeModule(options: {
 	system: SystemApi;
 	resources: ResourcesApi;
@@ -63,12 +61,14 @@ export async function createAnimeModule(options: {
 			"Metadata cache unavailable; local identification remains usable.",
 		);
 	}
-	const catalog = createCatalogModule({
-		database,
-		metadata,
-		library,
-		logger,
-	});
+	const catalog = metadata
+		? new AnimeCatalogApplication({
+				store: database.catalog,
+				metadata,
+				sources: library.sources,
+				logger,
+			})
+		: undefined;
 	const libraryQueries = new AnimeLibraryQueries({
 		catalog,
 		lists: tracking,
@@ -82,8 +82,7 @@ export async function createAnimeModule(options: {
 		...(metadata ? { metadata: createIdentificationMetadata(metadata) } : {}),
 		...(catalog
 			? {
-					onPublication: (results, scopeIds, signal, fileIds) =>
-						catalog.publish(results, scopeIds, signal, fileIds),
+					onPublication: catalog.publish,
 				}
 			: {}),
 	});
@@ -97,7 +96,7 @@ export async function createAnimeModule(options: {
 		: undefined;
 	const api: AnimeApi = {
 		acquisitionList: {
-			snapshot: () => tracking.acquisitionSnapshot(),
+			snapshot: tracking.acquisitionSnapshot,
 			refresh: async () => {
 				await tracking.refreshList();
 				return tracking.acquisitionSnapshot();
@@ -126,18 +125,18 @@ export async function createAnimeModule(options: {
 		metadata,
 		catalog: catalog
 			? {
-					list: (input) => catalog.list(input),
-					getLocalWorkDetail: (id) => catalog.getLocalWorkDetail(id),
-					source: (id) => catalog.source(id),
-					review: (id) => catalog.review(id),
-					fileReviews: (ids) => catalog.fileReviews(ids),
-					reviews: (input) => catalog.reviews(input),
-					preview: (input) => catalog.preview(input),
-					confirm: (input) => catalog.confirm(input),
-					reject: (...args) => catalog.reject(...args),
-					remove: (...args) => catalog.remove(...args),
-					editEpisode: (...args) => catalog.editEpisode(...args),
-					refresh: (...args) => catalog.refresh(...args),
+					list: catalog.list,
+					getLocalWorkDetail: catalog.getLocalWorkDetail,
+					source: catalog.source,
+					review: catalog.review,
+					fileReviews: catalog.fileReviews,
+					reviews: catalog.reviews,
+					preview: catalog.preview,
+					confirm: catalog.confirm,
+					reject: catalog.reject,
+					remove: catalog.remove,
+					editEpisode: catalog.editEpisode,
+					refresh: catalog.refresh,
 				}
 			: undefined,
 	};

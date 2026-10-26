@@ -585,14 +585,40 @@ test("Web data public entries cannot load a UI barrel through an intermediate en
 	assert.ok(violations.includes("web-public-does-not-load-ui-barrels"));
 });
 
-test("Tracking business cannot depend on its composition even through types", async () => {
+test("Tracking business cannot depend on its factory even through types", async () => {
 	const violations = await scan({
 		"backend/src/modules/anime/tracking/application/account.ts":
-			"import type { Assembly } from '../../composition/tracking.js'; export type Account = Assembly;",
-		"backend/src/modules/anime/composition/tracking.ts":
+			"import type { Assembly } from '../create.js'; export type Account = Assembly;",
+		"backend/src/modules/anime/tracking/create.ts":
 			"export interface Assembly { id: string }",
 	});
 	assert.ok(violations.includes("business-does-not-use-assembly-entries"));
+});
+
+test("submodule factories can connect through sibling factories and public contracts", async () => {
+	assert.deepEqual(
+		await scan({
+			"backend/src/modules/resources/create.ts":
+				"import {create} from './library/create.js'; export const resources = create();",
+			"backend/src/modules/resources/library/create.ts":
+				"import {access} from '../resource-access/create.js'; export const create = () => access();",
+			"backend/src/modules/resources/resource-access/create.ts":
+				"import {Access} from './application/access.js'; export const access = () => new Access();",
+			"backend/src/modules/resources/resource-access/application/access.ts":
+				"export class Access {}",
+		}),
+		[],
+	);
+});
+
+test("public entries cannot expose submodule factories", async () => {
+	const violations = await scan({
+		"backend/src/modules/anime/public.ts":
+			"export { create } from './metadata/create.js';",
+		"backend/src/modules/anime/metadata/create.ts":
+			"export const create = () => ({});",
+	});
+	assert.ok(violations.includes("large-public-does-not-load-implementation"));
 });
 
 test("Tracking module owns its facade and provider dependencies arrive through ports", async () => {
@@ -604,8 +630,8 @@ test("Tracking module owns its facade and provider dependencies arrive through p
 				"import type { Provider } from '../ports.js'; export class Account { constructor(readonly provider: Provider) {} }",
 			"backend/src/modules/anime/tracking/application/tracking.ts":
 				"import { Account } from './account.js'; export class TrackingModule { constructor(readonly account: Account) {} }",
-			"backend/src/modules/anime/composition/tracking.ts":
-				"import { Account } from '../tracking/application/account.js'; import { TrackingModule } from '../tracking/application/tracking.js'; export const create = () => new TrackingModule(new Account({viewer: () => 'fixture'}));",
+			"backend/src/modules/anime/tracking/create.ts":
+				"import { Account } from './application/account.js'; import { TrackingModule } from './application/tracking.js'; export const create = () => new TrackingModule(new Account({viewer: () => 'fixture'}));",
 		}),
 		[],
 	);

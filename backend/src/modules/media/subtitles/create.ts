@@ -2,16 +2,13 @@ import type { Logger } from "pino";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../resources/public.js";
 import type { MediaInspectionApi } from "../media-inspection/public.js";
-import { SubtitleDiscoveryService } from "../subtitles/application/discovery.js";
-import { SubtitleFontPreparation } from "../subtitles/application/font-preparation.js";
-import { SubtitlePreparationApplication } from "../subtitles/application/subtitle-preparation.js";
-import { SubtitleApplication } from "../subtitles/application/subtitles.js";
-import {
-	type SubtitleRuntimePolicy,
-	subtitleRuntimePolicy,
-} from "../subtitles/policy.js";
-import type { SubtitleExtractor } from "../subtitles/ports.js";
-import type { SubtitleStore } from "../subtitles/storage.js";
+import { SubtitleDiscoveryService } from "./application/discovery.js";
+import { SubtitleFontPreparation } from "./application/font-preparation.js";
+import { SubtitlePreparationApplication } from "./application/subtitle-preparation.js";
+import { SubtitleApplication } from "./application/subtitles.js";
+import { type SubtitleRuntimePolicy, subtitleRuntimePolicy } from "./policy.js";
+import type { SubtitleExtractor } from "./ports.js";
+import type { SubtitleStore } from "./storage.js";
 
 export function createSubtitleApplication(options: {
 	logger?: Logger;
@@ -43,6 +40,10 @@ export function createSubtitleApplication(options: {
 			extractSubtitle: options.tools.extractSubtitle.bind(options.tools),
 		},
 	});
+	logger?.debug(
+		{ event: "subtitles.services_configured" },
+		"Subtitle discovery, font and preparation services configured.",
+	);
 	return new SubtitleApplication({
 		sources: options.sources,
 		policy,
@@ -56,4 +57,18 @@ export function createSubtitleApplication(options: {
 		fonts,
 		preparation,
 	});
+}
+
+export async function initializeSubtitleModule(
+	subtitles: SubtitleApplication,
+	logger: Logger,
+): Promise<void> {
+	try {
+		await subtitles.initialize();
+	} catch (err) {
+		logger.warn(
+			{ event: "subtitles.cache_unavailable", err },
+			"Subtitle preparation is unavailable; direct playback and external subtitles remain usable.",
+		);
+	}
 }
