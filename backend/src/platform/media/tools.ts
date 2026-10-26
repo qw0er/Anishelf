@@ -26,7 +26,8 @@ import { parseMediaInfo, probeRecord } from "./probe-parser.js";
 export { parseMediaInfo } from "./probe-parser.js";
 
 import { mediaToolPolicy, validateMediaToolPolicy } from "./policy.js";
-import { MediaToolError, resolveExecutable, runTool } from "./process.js";
+import { MediaToolError, runTool } from "./process.js";
+import { MediaToolDiscovery } from "./tool-discovery.js";
 
 async function localFile(path: string): Promise<void> {
 	if (!isAbsolute(path) || path.includes("\0"))
@@ -47,7 +48,7 @@ async function localFile(path: string): Promise<void> {
 
 export class MediaTools {
 	private constructor(
-		readonly status: Readonly<{ ffmpeg: ToolStatus; ffprobe: ToolStatus }>,
+		private readonly discovery: MediaToolDiscovery,
 		private readonly policy: DeepReadonly<MediaToolsPolicy>,
 		private readonly logger?: Logger,
 	) {}
@@ -65,63 +66,56 @@ export class MediaTools {
 		logger?: Logger,
 	): Promise<MediaTools> {
 		validateMediaToolPolicy(policy.mediaTools);
-		async function discover(
-			command: string,
-			tool: string,
-		): Promise<ToolStatus> {
-			try {
-				const path = await resolveExecutable(command, environment);
-				const output = await runTool(
-					path,
-					["-version"],
-					{
-						timeoutMs: policy.mediaTools.detectionTimeoutMs,
-						maxBytes: policy.mediaTools.detectionMaximumBytes,
-					},
-					policy.mediaTools,
-					logger,
-				);
-				const version = output.split(/\r?\n/)[0] ?? "";
-				if (!version.startsWith(`${tool} version `))
-					throw new Error("Unexpected executable");
-				return { available: true, path, version };
-			} catch {
-				return {
-					available: false,
-					message: `Cannot run ${tool} at ${command}. Install the tool or check PATH / ANISHELF_${tool.toUpperCase()}_PATH, then restart.`,
-				};
-			}
-		}
-		const [ffmpeg, ffprobe] = await Promise.all([
-			discover(config.ffmpegPath, "ffmpeg"),
-			discover(config.ffprobePath, "ffprobe"),
-		]);
+		const discovery = new MediaToolDiscovery(
+			config,
+			policy.mediaTools,
+			environment,
+			logger?.child({ module: "media-tools" }),
+		);
+		await Promise.all([discovery.get("ffmpeg"), discovery.get("ffprobe")]);
 		return new MediaTools(
-			{ ffmpeg, ffprobe },
+			discovery,
 			policy,
 			logger?.child({ module: "media-tools" }),
 		);
 	}
 
-	private executable(tool: "ffmpeg" | "ffprobe"): string {
-		const status = this.status[tool];
+	get status(): Readonly<{ ffmpeg: ToolStatus; ffprobe: ToolStatus }> {
+		return this.discovery.status;
+	}
+
+	toolStatus(tool: "ffmpeg" | "ffprobe"): Promise<ToolStatus> {
+		return this.discovery.get(tool);
+	}
+
+	private async executable(tool: "ffmpeg" | "ffprobe"): Promise<string> {
+		const status = await this.toolStatus(tool);
 		if (!status.available)
 			throw new MediaToolError("TOOL_UNAVAILABLE", status.message);
 		return status.path;
 	}
 
 	private capabilityInventory: Promise<ServerMediaCapabilities> | undefined;
-	/** Enumerate once per service lifetime; callers receive isolated snapshots. */
+	private capabilityTools: string | undefined;
+	/** Rebuild cached capabilities when a failed tool recovers. */
 	async capabilities(): Promise<ServerMediaCapabilities> {
-		this.capabilityInventory ??= detectMediaCapabilities(
-			this.status,
-			this.policy.mediaTools,
-			this.logger,
-		);
+		const [ffmpeg, ffprobe] = await Promise.all([
+			this.toolStatus("ffmpeg"),
+			this.toolStatus("ffprobe"),
+		]);
+		const key = JSON.stringify([ffmpeg, ffprobe]);
+		if (!this.capabilityInventory || this.capabilityTools !== key) {
+			this.capabilityTools = key;
+			this.capabilityInventory = detectMediaCapabilities(
+				{ ffmpeg, ffprobe },
+				this.policy.mediaTools,
+				this.logger,
+			);
+		}
 		return structuredClone(await this.capabilityInventory);
 	}
 	async probe(path: string, signal?: AbortSignal): Promise<MediaInfo> {
-		const executable = this.executable("ffprobe");
+		const executable = await this.executable("ffprobe");
 		await localFile(path);
 		// Signature detection is supplemental; incomplete headers must not suppress FFprobe.
 		const detectionTimeout = AbortSignal.timeout(

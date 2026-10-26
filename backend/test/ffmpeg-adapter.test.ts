@@ -210,7 +210,9 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			inspection,
 			profiles: [profile],
 		});
-		const adapter = new FfmpegExecutionAdapter(tools.status.ffmpeg);
+		const adapter = new FfmpegExecutionAdapter(() =>
+			tools.toolStatus("ffmpeg"),
+		);
 		processing = new MediaProcessingApplication({
 			sources: library.sources,
 			inspection,

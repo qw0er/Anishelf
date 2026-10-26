@@ -88,7 +88,7 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 			sources: library.sources,
 			inspection,
 			tools,
-			executor: new FfmpegExecutionAdapter(tools.status.ffmpeg),
+			executor: new FfmpegExecutionAdapter(() => tools.toolStatus("ffmpeg")),
 			dataDir,
 		});
 		preparation = createPreparationApplication({

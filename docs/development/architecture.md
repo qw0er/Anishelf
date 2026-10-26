@@ -259,6 +259,13 @@ flowchart LR
 | Reuse | Validate source version before inspection-cache reuse, artifact delivery and restart recovery |
 | Browser cache | Definitive compatibility results persist in bounded IndexedDB; source/browser/rule changes invalidate them |
 
+FFmpeg/FFprobe discovery runs at startup with a thirty-second timeout. Failed
+discovery retries on demand after a ten-second cooldown, with concurrent callers
+sharing one attempt per tool. Successful discovery remains cached. Recovery
+refreshes the build-capability inventory and execution uses current tool status.
+Detection failures log their underlying error and retry timing; recovery is logged
+separately. Explicit executable overrides never fall back to another PATH entry.
+
 ## Playback Completion Observation
 
 Playback records eligible normal-play completion observations durably alongside

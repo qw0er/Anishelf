@@ -7,7 +7,7 @@ import type { ExtractedSubtitle, MediaInfo, SubtitleFormat } from "./model.js";
 import { MediaToolError, runTool } from "./process.js";
 
 interface ExtractionTools {
-	executable(tool: "ffmpeg" | "ffprobe"): string;
+	executable(tool: "ffmpeg" | "ffprobe"): Promise<string>;
 	policy: DeepReadonly<MediaToolsPolicy>;
 	probe(path: string, signal?: AbortSignal): Promise<MediaInfo>;
 	logger: Logger | undefined;
@@ -32,7 +32,7 @@ export async function extractAttachment(
 		throw new MediaToolError("INVALID_INPUT", "Invalid attachment request.");
 	const output = JSON.parse(
 		await runTool(
-			dependencies.executable("ffprobe"),
+			await dependencies.executable("ffprobe"),
 			[
 				"-v",
 				"error",
@@ -92,7 +92,7 @@ export async function extractSubtitle(
 	streamIndex: number,
 	options: { format?: SubtitleFormat; signal?: AbortSignal } = {},
 ): Promise<ExtractedSubtitle> {
-	const executable = dependencies.executable("ffmpeg");
+	const executable = await dependencies.executable("ffmpeg");
 	if (!Number.isSafeInteger(streamIndex) || streamIndex < 0)
 		throw new MediaToolError(
 			"INVALID_INPUT",
