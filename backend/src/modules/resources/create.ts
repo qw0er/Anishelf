@@ -1,15 +1,14 @@
 import type { Logger } from "pino";
 import type { DeepReadonly } from "../../shared/policy.js";
 import type { SystemApi } from "../system/public.js";
-import { createLibraryModule } from "./composition/library.js";
 import { registerResourcesHttp } from "./http.js";
-import { LibraryIndex } from "./library/infrastructure/index.js";
+import { createLibraryModule } from "./library/create.js";
 import {
 	type LibraryRuntimePolicy,
 	libraryRuntimePolicy,
 	validateLibraryPolicy,
 } from "./library/policy.js";
-import type { ResourceAccessApi, ResourcesApi } from "./public.js";
+import type { ResourcesApi } from "./public.js";
 import { validateResourceAccessPolicy } from "./resource-access/policy.js";
 export async function createResourcesModule(options: {
 	system: SystemApi;
@@ -28,47 +27,29 @@ export async function createResourcesModule(options: {
 	);
 	const library = createLibraryModule({
 		configuration: options.system,
-		index: new LibraryIndex(),
 		logger: options.logger,
 		policy,
 	});
-	const sources: ResourceAccessApi = {
-		get accessRevision() {
-			return library.sources.accessRevision;
-		},
-		get hasSnapshot() {
-			return library.sources.hasSnapshot;
-		},
-		resolveSource: (id, version) => library.sources.resolveSource(id, version),
-		revalidateSource: (source) => library.sources.revalidateSource(source),
-		assertAccessRevision: (epoch) =>
-			library.sources.assertAccessRevision(epoch),
-		getScope: () => library.sources.getScope(),
-		filePath: (expected) => library.sources.filePath(expected),
-		getFile: (id) => library.sources.getFile(id),
-		openMedia: (id) => library.sources.openMedia(id),
-		openResources: (source) => library.sources.openResources(source),
-	};
+	const sources = library.sources;
 	const api: ResourcesApi = {
 		sources,
 		acquisition: {
-			roots: () => library.downloadRoots(),
-			validate: (scope, incomplete) =>
-				library.validateDownloadRoot(scope, incomplete),
-			inspect: (scope, path) => library.inspectDownload(scope, path),
-			refresh: (scope, path) => library.refreshDownload(scope, path),
+			roots: library.downloadRoots.bind(library),
+			validate: library.validateDownloadRoot.bind(library),
+			inspect: library.inspectDownload.bind(library),
+			refresh: library.refreshDownload.bind(library),
 		},
-		applySettingsChange: (input, save) =>
-			library.settings.applySettingsChange(input, save),
-		onSnapshotChanged: (listener) => library.onSnapshotChanged(listener),
-		readDirectoryFiles: (id) => library.readDirectoryFiles(id),
-		readFilePage: (revision, offset, limit) =>
-			library.readFilePage(revision, offset, limit),
-		getStatus: () => library.getStatus(),
-		getDirectory: (id) => library.getDirectory(id),
-		getFile: (id) => library.getFile(id),
-		startScan: () => library.startScan(),
-		cancelScan: () => library.cancelScan(),
+		applySettingsChange: library.settings.applySettingsChange.bind(
+			library.settings,
+		),
+		onSnapshotChanged: library.onSnapshotChanged.bind(library),
+		readDirectoryFiles: library.readDirectoryFiles.bind(library),
+		readFilePage: library.readFilePage.bind(library),
+		getStatus: library.getStatus.bind(library),
+		getDirectory: library.getDirectory.bind(library),
+		getFile: library.getFile.bind(library),
+		startScan: library.startScan.bind(library),
+		cancelScan: library.cancelScan.bind(library),
 	};
 	try {
 		const status = await api.getStatus();
@@ -102,7 +83,7 @@ export async function createResourcesModule(options: {
 		api,
 		registerHttp: (app: import("../../transport/instance.js").HttpInstance) =>
 			registerResourcesHttp(app, library),
-		quiesce: () => library.close(),
-		close: () => library.close(),
+		quiesce: library.close.bind(library),
+		close: library.close.bind(library),
 	};
 }

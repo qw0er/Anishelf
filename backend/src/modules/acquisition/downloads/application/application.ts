@@ -12,57 +12,42 @@ import { DownloadWorker } from "./worker.js";
 
 /** Internal facade; external capabilities and worker lifecycle remain independently selected. */
 export class DownloadsApplication implements AcquisitionDownloadsApi {
-	private readonly destination: DownloadDestinationSettings;
-	private readonly commands: DownloadCommands;
-	private readonly queries: DownloadActivityQueries;
-	private readonly worker: DownloadWorker;
+	readonly settings: AcquisitionDownloadsApi["settings"];
+	readonly saveDestination: AcquisitionDownloadsApi["saveDestination"];
+	readonly validate: AcquisitionDownloadsApi["validate"];
+	readonly summary: AcquisitionDownloadsApi["summary"];
+	readonly activity: AcquisitionDownloadsApi["activity"];
+	readonly retry: AcquisitionDownloadsApi["retry"];
+	readonly tick: DownloadWorker["tick"];
+	readonly start: DownloadWorker["start"];
+	readonly close: DownloadWorker["close"];
 	constructor(options: DownloadApplicationOptions) {
 		const context = new DownloadContext(options);
-		this.destination = new DownloadDestinationSettings(context);
-		this.commands = new DownloadCommands(context, this.destination);
-		this.queries = new DownloadActivityQueries(context, this.destination);
-		this.worker = new DownloadWorker(
+		const destination = new DownloadDestinationSettings(context);
+		const commands = new DownloadCommands(context, destination);
+		const queries = new DownloadActivityQueries(context, destination);
+		const worker = new DownloadWorker(
 			context,
-			new DownloadPlanning(context, this.destination),
+			new DownloadPlanning(context, destination),
 			new DownloadReconciliation(
 				context,
-				this.destination,
+				destination,
 				new DownloadTransfers(
 					context,
-					new SubmissionAdmission(context, this.destination),
+					new SubmissionAdmission(context, destination),
 				),
 				new CompletedDownloadIngestion(context),
 			),
-			this.destination,
+			destination,
 		);
-	}
-	settings() {
-		return this.destination.settings();
-	}
-	saveDestination(
-		input: Parameters<AcquisitionDownloadsApi["saveDestination"]>[0],
-	) {
-		return this.destination.saveDestination(input);
-	}
-	validate(revision: string) {
-		return this.destination.validate(revision);
-	}
-	summary(workKey: string) {
-		return this.queries.summary(workKey);
-	}
-	activity(workKey: string, page = 1) {
-		return this.queries.activity(workKey, page);
-	}
-	retry(...args: Parameters<AcquisitionDownloadsApi["retry"]>) {
-		this.commands.retry(...args);
-	}
-	tick() {
-		return this.worker.tick();
-	}
-	start() {
-		this.worker.start();
-	}
-	close() {
-		return this.worker.close();
+		this.settings = destination.settings.bind(destination);
+		this.saveDestination = destination.saveDestination.bind(destination);
+		this.validate = destination.validate.bind(destination);
+		this.summary = queries.summary.bind(queries);
+		this.activity = queries.activity.bind(queries);
+		this.retry = commands.retry.bind(commands);
+		this.tick = worker.tick.bind(worker);
+		this.start = worker.start.bind(worker);
+		this.close = worker.close.bind(worker);
 	}
 }

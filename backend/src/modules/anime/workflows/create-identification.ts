@@ -1,12 +1,11 @@
 import type { Logger } from "pino";
 import type { LibraryApi, ResourceAccessApi } from "../../resources/public.js";
-import { IdentificationApplication } from "../identification/application/identification.js";
-import { AnitomyIdentificationParser } from "../identification/infrastructure/parser.js";
+import { createIdentificationApplication } from "../identification/create.js";
 import type {
 	IdentificationMetadata,
 	IdentificationResult,
 } from "../identification/public.js";
-import { AutomaticIdentificationCoordinator } from "../workflows/automatic-identification.js";
+import { AutomaticIdentificationCoordinator } from "./automatic-identification.js";
 
 /** Recognition needs neither database availability nor an HTTP entry point. */
 export function createIdentificationModule(options: {
@@ -21,10 +20,7 @@ export function createIdentificationModule(options: {
 		fileIds?: readonly string[],
 	) => void | Promise<void>;
 }): AutomaticIdentificationCoordinator {
-	const identification = new IdentificationApplication({
-		parser: new AnitomyIdentificationParser(),
-		...(options.metadata ? { metadata: options.metadata } : {}),
-	});
+	const identification = createIdentificationApplication(options.metadata);
 	const coordinator = new AutomaticIdentificationCoordinator({
 		library: options.library,
 		sources: options.sources,

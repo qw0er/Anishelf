@@ -6,7 +6,7 @@ import type {
 	AniListRequestOptions,
 	AniListClient as SdkClient,
 } from "../src/modules/anime/anilist/public.js";
-import { createAniListTracking as createTracking } from "../src/modules/anime/composition/anilist.js";
+import { createAniListTracking as createTracking } from "../src/modules/anime/integration/anilist.js";
 
 /** In-memory GraphQL fixture adapter. Production always uses the SDK transport. */
 export interface AniListClient {

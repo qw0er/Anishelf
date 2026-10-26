@@ -10,8 +10,8 @@ import type { AnimeCatalogApi } from "../src/modules/anime/anime-catalog/public.
 import { AnimeLibraryQueries } from "../src/modules/anime/anime-library/application/library.js";
 import type { LocalIndex } from "../src/modules/anime/anime-library/domain/model.js";
 import { registerAnimeLibraryRoutes } from "../src/modules/anime/anime-library/http/library.js";
-import { createTrackingModule } from "../src/modules/anime/composition/tracking.js";
 import { TrackingListReader } from "../src/modules/anime/tracking/application/list-cache.js";
+import { createTrackingModule } from "../src/modules/anime/tracking/create.js";
 import type {
 	TrackingLease,
 	TrackingListCache,

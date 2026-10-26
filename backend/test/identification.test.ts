@@ -11,7 +11,6 @@ import { dirname, join } from "node:path";
 import { parse } from "anitomy-ng";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
-import { createIdentificationModule } from "../src/modules/anime/composition/identification.js";
 import { IdentificationApplication } from "../src/modules/anime/identification/application/identification.js";
 import { proposeMapping } from "../src/modules/anime/identification/domain/mapping.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
@@ -21,6 +20,7 @@ import type {
 	WorkCandidate,
 } from "../src/modules/anime/identification/public.js";
 import { AutomaticIdentificationCoordinator } from "../src/modules/anime/workflows/automatic-identification.js";
+import { createIdentificationModule } from "../src/modules/anime/workflows/create-identification.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import type { SourceIdentity } from "../src/modules/resources/resource-access/public.js";

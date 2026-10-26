@@ -12,12 +12,12 @@ import type {
 	PlaybackSelectionResponse,
 	PlaybackSessionResponse,
 } from "../src/contracts/http.js";
-import { createPlaybackCopies } from "../src/modules/media/composition/playback-selection.js";
-import { createPreparationApplication } from "../src/modules/media/composition/preparation-application.js";
+import { createPlaybackCopies } from "../src/modules/media/integration/playback-copies.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
 import { MediaProcessingApplication } from "../src/modules/media/media-processing/application/processing.js";
 import type { PreparationApplication } from "../src/modules/media/preparation/application/preparation.js";
+import { createPreparationApplication } from "../src/modules/media/preparation/create.js";
 import {
 	preparationStartResponse,
 	preparationTaskResponse,

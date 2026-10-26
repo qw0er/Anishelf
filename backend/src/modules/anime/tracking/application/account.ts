@@ -1,5 +1,4 @@
 import type { Logger } from "pino";
-import type { TrackingLease } from "../domain/list.js";
 import type { TrackingPreview, TrackingStatus } from "../domain/model.js";
 import type { TrackingListAccess } from "../ports.js";
 import type { TrackingAccountsApi } from "../public.js";
@@ -19,15 +18,24 @@ export interface TrackingAccountApplicationOptions {
 export class TrackingAccountApplication
 	implements TrackingAccountsApi, TrackingListAccess
 {
+	readonly initialize: TrackingConnectionState["initialize"];
+	readonly status: TrackingConnectionState["status"];
+	readonly acquire: TrackingConnectionState["acquire"];
+	readonly assertCurrent: TrackingConnectionState["assertCurrent"];
+	readonly authorizationFailed: TrackingConnectionState["authorizationFailed"];
 	private tail: Promise<unknown> = Promise.resolve();
-	constructor(private readonly options: TrackingAccountApplicationOptions) {}
+	constructor(private readonly options: TrackingAccountApplicationOptions) {
+		this.initialize = options.connection.initialize.bind(options.connection);
+		this.status = options.connection.status.bind(options.connection);
+		this.acquire = options.connection.acquire.bind(options.connection);
+		this.assertCurrent = options.connection.assertCurrent.bind(
+			options.connection,
+		);
+		this.authorizationFailed = options.connection.authorizationFailed.bind(
+			options.connection,
+		);
+	}
 
-	initialize(): Promise<void> {
-		return this.options.connection.initialize();
-	}
-	status(): TrackingStatus {
-		return this.options.connection.status();
-	}
 	preview(sessionId: string, credential: string): Promise<TrackingPreview> {
 		return this.options.diagnostics.observe("preview", () =>
 			this.options.authorizations.preview(sessionId, credential),
@@ -60,15 +68,6 @@ export class TrackingAccountApplication
 		return this.options.diagnostics.observe("check", () =>
 			this.options.checks.check(),
 		);
-	}
-	acquire(): Promise<TrackingLease> {
-		return this.options.connection.acquire();
-	}
-	assertCurrent(generation: string): void {
-		this.options.connection.assertCurrent(generation);
-	}
-	authorizationFailed(generation: string): void {
-		this.options.connection.authorizationFailed(generation);
 	}
 	private exclusive<T>(operation: () => Promise<T>): Promise<T> {
 		const task = this.tail.then(operation);

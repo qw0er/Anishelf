@@ -41,10 +41,9 @@ export async function createSystemModule(
 		get snapshot() {
 			return { settings: service.snapshot.settings };
 		},
-		update: (input) => service.update(input),
-		patchSettings: (input) => service.patchSettings(input),
-		selectTranscodeProfile: (id, mode) =>
-			service.selectTranscodeProfile(id, mode),
+		update: service.update.bind(service),
+		patchSettings: service.patchSettings.bind(service),
+		selectTranscodeProfile: service.selectTranscodeProfile.bind(service),
 	};
 	return {
 		api,

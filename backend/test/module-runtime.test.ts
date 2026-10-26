@@ -115,7 +115,18 @@ test("large modules expose capability objects and quiesce without destroying sha
 		expect(anime.api.catalog).toBeDefined();
 		expect(anime.api.catalog).not.toHaveProperty("publish");
 		expect(anime.api.catalog).not.toHaveProperty("close");
-		expect((await anime.api.catalog?.list())?.items).toEqual([]);
+		// Public capabilities remain usable when passed directly to another owner.
+		const { getStatus } = resources.api;
+		const { getScope, assertAccessRevision } = resources.api.sources;
+		const { history } = playback.api;
+		const { list } = anime.api.catalog as NonNullable<typeof anime.api.catalog>;
+		await getStatus();
+		assertAccessRevision(resources.api.sources.accessRevision);
+		expect((await getScope()).ids).toEqual([
+			resourceRootId(await realpath(root)),
+		]);
+		expect((await history()).items).toEqual([]);
+		expect((await list()).items).toEqual([]);
 		await anime.quiesce();
 		await Promise.all([media.quiesce(), media.quiesce()]);
 		await resources.quiesce();

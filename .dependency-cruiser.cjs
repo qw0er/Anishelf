@@ -130,12 +130,12 @@ module.exports = {
 			name: "backend-module-entry-points",
 			severity: "error",
 			from: {
-				path: "^backend/src/modules/([^/]+)/(?!composition/)([^/]+)/",
+				path: "^backend/src/modules/([^/]+)/(?!integration/|workflows/)([^/]+)/",
 			},
 			to: {
 				path: "^backend/src/modules/$1/(?!$2/)[^/]+/",
 				pathNot:
-					"(?:public|policy|defaults|persistence)\\.ts$|^backend/src/modules/acquisition/sources/integration\\.ts$",
+					"(?:public|policy|defaults|persistence|create)\\.ts$|^backend/src/modules/acquisition/sources/integration\\.ts$",
 			},
 		},
 		{
@@ -143,7 +143,7 @@ module.exports = {
 			severity: "error",
 			from: { path: "^backend/src/modules/[^/]+/public\\.ts$" },
 			to: {
-				path: "^backend/src/modules/[^/]+/(?:composition/|create\\.ts$|http\\.ts$|persistence\\.ts$)|^backend/src/modules/[^/]+/[^/]+/(?:application(?:/|\\.ts$)|infrastructure/|http/)",
+				path: "^backend/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|create\\.ts$|http\\.ts$|persistence\\.ts$)|^backend/src/modules/[^/]+/[^/]+/(?:create\\.ts$|application(?:/|\\.ts$)|infrastructure/|http/)",
 			},
 		},
 
@@ -181,10 +181,10 @@ module.exports = {
 			from: {
 				path: "^backend/src/modules/",
 				pathNot:
-					"^backend/src/modules/[^/]+/(?:create|http|persistence)\\.ts$|^backend/src/modules/[^/]+/composition/",
+					"^backend/src/modules/[^/]+/(?:create|http|persistence)\\.ts$|^backend/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|[^/]+/create\\.ts$)",
 			},
 			to: {
-				path: "^backend/src/modules/[^/]+/(?:(?:create|http)\\.ts$|composition/)",
+				path: "^backend/src/modules/[^/]+/(?:(?:create|http)\\.ts$|[^/]+/create\\.ts$|integration/|workflows/create-[^/]+\\.ts$)",
 			},
 		},
 
@@ -210,7 +210,7 @@ module.exports = {
 			from: {
 				path: "^backend/src/",
 				pathNot:
-					"^backend/src/app/|^backend/src/modules/[^/]+/(?:create|persistence)\\.ts$|^backend/src/modules/[^/]+/composition/|^backend/src/modules/[^/]+/[^/]+/infrastructure/(?:schema|repository|records)\\.ts$",
+					"^backend/src/app/|^backend/src/modules/[^/]+/(?:create|persistence)\\.ts$|^backend/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|[^/]+/create\\.ts$)|^backend/src/modules/[^/]+/[^/]+/infrastructure/(?:schema|repository|records)\\.ts$",
 			},
 			to: {
 				path: "^backend/src/modules/[^/]+/persistence\\.ts$|^backend/src/modules/[^/]+/[^/]+/persistence\\.ts$",

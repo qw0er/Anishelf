@@ -99,7 +99,9 @@ export async function createAcquisitionModule(options: {
 		profiles,
 		...(profileCatalog.issue ? { profileIssue: profileCatalog.issue } : {}),
 		defaultProfileId: () => options.defaultAcquisitionProfileId?.(),
-		lockedCandidates: (key) => options.downloadStore.lockedCandidates(key),
+		lockedCandidates: options.downloadStore.lockedCandidates.bind(
+			options.downloadStore,
+		),
 		downloadTarget: () => {
 			const destination = options.downloadStore.destination();
 			return destination
@@ -127,23 +129,20 @@ export async function createAcquisitionModule(options: {
 			},
 		},
 		sources: sources.api,
-		downloads: (signal) => connection.activeHashes(signal),
+		downloads: connection.activeHashes.bind(connection),
 		logger: options.logger,
 		...(options.now ? { now: options.now } : {}),
 	});
 	watching = new WatchingApplication({
 		store: options.store.watching,
-		hasCapacity: () => subscriptions.hasCapacity(),
-		renewManaged: (accountId, target, workKeys) =>
-			subscriptions.renewManaged(accountId, target, workKeys),
-		transaction: (operation) => options.store.transaction(operation),
+		hasCapacity: subscriptions.hasCapacity.bind(subscriptions),
+		renewManaged: subscriptions.renewManaged.bind(subscriptions),
+		transaction: options.store.transaction.bind(options.store),
 		...(options.watching ? { tracking: options.watching } : {}),
 		sources: sources.api,
 		subscriptions,
-		subscription: (key) => options.store.subscription(key),
-		admit: (input, commit) => {
-			subscriptions.saveAtomically(input, commit);
-		},
+		subscription: options.store.subscription.bind(options.store),
+		admit: subscriptions.saveAtomically.bind(subscriptions),
 		target: () => {
 			const target = options.downloadStore.destination();
 			return target
@@ -171,9 +170,8 @@ export async function createAcquisitionModule(options: {
 					anime: options.anime,
 					ingestion: options.ingestion,
 					transport: {
-						read: (reference, signal) =>
-							sources.api.readContent(reference, signal),
-						isCurrent: (reference) => sources.api.isContentCurrent(reference),
+						read: sources.api.readContent,
+						isCurrent: sources.api.isContentCurrent,
 						close: async () => {},
 					},
 					connectionGeneration: () => connection.settings().generation,
@@ -181,8 +179,7 @@ export async function createAcquisitionModule(options: {
 						await connection.initializeBundled();
 						return Boolean(connection.settings().bundled);
 					},
-					withClient: (generation, operation) =>
-						connection.withClient(generation, operation),
+					withClient: connection.withClient.bind(connection),
 					logger: options.logger,
 					...(options.now ? { now: options.now } : {}),
 				})
@@ -201,38 +198,36 @@ export async function createAcquisitionModule(options: {
 		watching,
 		sources: sources.api,
 		connection: {
-			settings: () => connection.settings(),
-			credentials: (generation) => connection.credentials(generation),
-			save: (input) => connection.save(input),
-			clear: (generation) => connection.clear(generation),
-			probe: (generation) => connection.probe(generation),
+			settings: connection.settings.bind(connection),
+			credentials: connection.credentials.bind(connection),
+			save: connection.save.bind(connection),
+			clear: connection.clear.bind(connection),
+			probe: connection.probe.bind(connection),
 		},
 		...(downloadApi
 			? {
 					downloads: {
-						settings: () => downloadApi.settings(),
-						saveDestination: (input) => downloadApi.saveDestination(input),
-						validate: (revision) => downloadApi.validate(revision),
-						summary: (key) => downloadApi.summary(key),
-						activity: (key, page) => downloadApi.activity(key, page),
-						retry: (...args) => downloadApi.retry(...args),
+						settings: downloadApi.settings,
+						saveDestination: downloadApi.saveDestination,
+						validate: downloadApi.validate,
+						summary: downloadApi.summary,
+						activity: downloadApi.activity,
+						retry: downloadApi.retry,
 					},
 				}
 			: {}),
 		subscriptions: {
-			profiles: () => subscriptions.profiles(),
-			search: (input) => subscriptions.search(input),
-			get: (key, page, diagnostics) =>
-				subscriptions.get(key, page, diagnostics),
+			profiles: subscriptions.profiles.bind(subscriptions),
+			search: subscriptions.search.bind(subscriptions),
+			get: subscriptions.get.bind(subscriptions),
 			save: ({ destinationRevision, connectionGeneration, ...input }) =>
 				subscriptions.save({
 					...input,
 					target: { destinationRevision, connectionGeneration },
 				}),
-			setEnabled: (key, revision, enabled) =>
-				subscriptions.setEnabled(key, revision, enabled),
-			remove: (key, revision) => subscriptions.remove(key, revision),
-			refresh: (key, revision) => subscriptions.refresh(key, revision),
+			setEnabled: subscriptions.setEnabled.bind(subscriptions),
+			remove: subscriptions.remove.bind(subscriptions),
+			refresh: subscriptions.refresh.bind(subscriptions),
 		},
 	};
 	let closing: Promise<void> | undefined;

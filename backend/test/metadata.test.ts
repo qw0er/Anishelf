@@ -9,15 +9,15 @@ import {
 	type AniListOptions,
 	AniListWrapper,
 } from "../src/modules/anime/anilist/public.js";
-import { createAniListMetadata } from "../src/modules/anime/composition/anilist.js";
-import {
-	createIdentificationMetadata,
-	createMetadataModule,
-	createMetadataApplication as createPublicMetadata,
-} from "../src/modules/anime/composition/metadata.js";
 import { IdentificationApplication } from "../src/modules/anime/identification/application/identification.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
+import { createAniListMetadata } from "../src/modules/anime/integration/anilist.js";
+import { createIdentificationMetadata } from "../src/modules/anime/integration/identification-metadata.js";
 import { SourceMetadataApplication as MetadataApplication } from "../src/modules/anime/metadata/application/source-metadata.js";
+import {
+	createMetadataModule,
+	createMetadataApplication as createPublicMetadata,
+} from "../src/modules/anime/metadata/create.js";
 import { metadataDefaults } from "../src/modules/anime/metadata/defaults.js";
 import { AniListProvider } from "../src/modules/anime/metadata/infrastructure/anilist.js";
 import { MetadataArtworkCache } from "../src/modules/anime/metadata/infrastructure/artwork.js";

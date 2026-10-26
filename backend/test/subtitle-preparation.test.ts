@@ -30,9 +30,9 @@ import type {
 	SubtitleDiscoveryResponse,
 	SubtitlePreparationResponse,
 } from "../src/contracts/http.js";
-import { createSubtitleApplication } from "../src/modules/media/composition/subtitle-application.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import type { SubtitleApplication } from "../src/modules/media/subtitles/application/subtitles.js";
+import { createSubtitleApplication } from "../src/modules/media/subtitles/create.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
 import { createResourceId } from "../src/modules/resources/library/domain/model.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
