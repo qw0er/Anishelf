@@ -52,9 +52,12 @@ export function PlayerViewingControl({
 	if (!target.data) return null;
 	if (!target.data.target)
 		return (
-			<p className="text-xs text-muted-foreground">
-				{t(`trackingTarget.${target.data.state}`)}
-			</p>
+			<details className="text-sm text-muted-foreground">
+				<summary className="cursor-pointer py-3">
+					{t("player.tracking")}
+				</summary>
+				<p>{t(`trackingTarget.${target.data.state}`)}</p>
+			</details>
 		);
 	return (
 		<TargetControl
@@ -143,11 +146,15 @@ function TargetControl({
 			aria-label={t("playbackCompletion.label")}
 		>
 			<Button
-				variant="outline"
+				variant="ghost"
+				className="h-11 px-3"
+				aria-label={t(
+					known ? "playbackCompletion.watched" : "playbackCompletion.mark",
+				)}
 				disabled={busy || Boolean(operations.error)}
 				onClick={() => mutation.mutate("mark")}
 			>
-				{t(known ? "playbackCompletion.watched" : "playbackCompletion.mark")}
+				{t(known ? "player.watched" : "playbackCompletion.mark")}
 			</Button>
 			{operation && (
 				<span role="status" className="text-sm text-muted-foreground">
@@ -233,7 +240,12 @@ function TargetControl({
 					)}
 				</p>
 			)}
-			<ViewingEditor mediaId={String(target.mediaId)} state={viewing} />
+			<details className="text-sm">
+				<summary className="cursor-pointer py-3 text-muted-foreground">
+					{t("player.tracking")}
+				</summary>
+				<ViewingEditor mediaId={String(target.mediaId)} state={viewing} />
+			</details>
 		</fieldset>
 	);
 }

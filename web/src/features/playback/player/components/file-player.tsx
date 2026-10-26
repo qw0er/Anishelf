@@ -8,7 +8,14 @@ import {
 	Button,
 	buttonStyles,
 } from "../../../../shared/components/ui/button.js";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "../../../../shared/components/ui/dialog.js";
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
+import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { directoryPath } from "../../../../shared/navigation.js";
 import { subtitlePolicy } from "../../../media/public.js";
 import type { PlaybackUiSlots } from "../../public.js";
@@ -63,6 +70,7 @@ export default function FilePlayer({
 	const blocked = !compatibility.loading && !resource;
 	const unsupported = compatibility.result?.direct.status === "unsupported";
 	const tryingOrigin = selectedPlan?.mode === "direct";
+	const [optionsOpen, setOptionsOpen] = useState(false);
 	const [compatibilityOpen, setCompatibilityOpen] = useState(false);
 	function tryOrigin() {
 		compatibility.tryDirect();
@@ -81,22 +89,32 @@ export default function FilePlayer({
 	});
 
 	return (
-		<section className="stack-page" aria-label={t("player.label")}>
-			<div className="action-row">
-				<Link
-					className={buttonStyles("outline")}
-					to={
-						returnTo ?? directoryPath(returnDirectoryId || data.file.parentId)
-					}
+		<section
+			className="flex min-w-0 flex-col gap-3 sm:gap-4"
+			aria-label={t("player.label")}
+		>
+			<header className="flex min-w-0 items-center gap-2">
+				<Tooltip
+					content={t(
+						returnTo ? "anime.backToDetail" : "navigation.backToFiles",
+					)}
 				>
-					<ArrowLeft size={16} aria-hidden="true" />
-					{t(returnTo ? "anime.backToDetail" : "navigation.backToFiles")}
-				</Link>
-				<Button type="button" variant="outline" onClick={onRetry}>
-					<RefreshCw size={16} aria-hidden="true" />
-					{t("player.retry")}
-				</Button>
-			</div>
+					<Link
+						className={buttonStyles("ghost", "size-11 shrink-0 p-0")}
+						aria-label={t(
+							returnTo ? "anime.backToDetail" : "navigation.backToFiles",
+						)}
+						to={
+							returnTo ?? directoryPath(returnDirectoryId || data.file.parentId)
+						}
+					>
+						<ArrowLeft size={20} aria-hidden="true" />
+					</Link>
+				</Tooltip>
+				<h1 className="line-clamp-2 min-w-0 break-all text-base font-semibold sm:text-xl">
+					{title}
+				</h1>
+			</header>
 			{compatibility.loading && (
 				<div role="status" aria-label={t("compatibility.checking")}>
 					<Skeleton className="aspect-video w-full" />
@@ -140,48 +158,68 @@ export default function FilePlayer({
 					</div>
 				</section>
 			)}
-			<h1 className="page-title">{title}</h1>
-			{preparedCurrent && (
-				<p className="text-sm text-muted-foreground">
-					{t("preparation.playing")}
-				</p>
-			)}
 			{resource && (
-				<QueryScope value={sourceScope}>
-					<VideoPlayer
-						key={`video:${data.file.id}:${resource.url}`}
-						{...data}
-						displayTitle={title}
-						subtitlePolicy={subtitlePolicy}
-						renderSubtitles={slots?.renderSubtitles}
-						playbackUrl={resource.url}
-						sourceVersion={compatibility.selection?.sourceVersion}
-						timeline={resource.timeline}
-						onMedia={playback.attach}
-						onPlaybackFailure={compatibility.failed}
-						expectsVideo={Boolean(compatibility.result?.selectedVideo)}
-					/>
-				</QueryScope>
+				<div className="-mx-4 sm:mx-0">
+					<QueryScope value={sourceScope}>
+						<VideoPlayer
+							key={`video:${data.file.id}:${resource.url}`}
+							{...data}
+							displayTitle={title}
+							subtitlePolicy={subtitlePolicy}
+							renderSubtitles={slots?.renderSubtitles}
+							playbackUrl={resource.url}
+							sourceVersion={compatibility.selection?.sourceVersion}
+							timeline={resource.timeline}
+							onMedia={playback.attach}
+							onPlaybackFailure={compatibility.failed}
+							expectsVideo={Boolean(compatibility.result?.selectedVideo)}
+						/>
+					</QueryScope>
+				</div>
 			)}
-			<AudioSelection
-				audio={audio}
-				audioTracks={audioTracks}
-				audioStreamIndices={audioStreamIndices}
-				selectAudio={selectAudio}
-			/>
-			<div className="action-row">
-				{!blocked && preparationAction}
-				<CompatibilityDialog
-					compatibility={compatibility}
-					open={compatibilityOpen}
-					setOpen={setCompatibilityOpen}
-					tryOrigin={tryOrigin}
-					tryingOrigin={tryingOrigin}
+			<div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+				<AudioSelection
+					audio={audio}
+					audioTracks={audioTracks}
+					audioStreamIndices={audioStreamIndices}
+					selectAudio={selectAudio}
 				/>
 				<PlaybackActionsMenu
 					key={`actions:${data.file.id}`}
 					fileId={data.file.id}
+					onOptions={() => setOptionsOpen(true)}
+					onCompatibility={() => setCompatibilityOpen(true)}
+					onRetry={() => {
+						console.info("[playback] Manual playback retry requested.");
+						onRetry();
+					}}
 				/>
+			</div>
+			<Dialog open={optionsOpen} onOpenChange={setOptionsOpen}>
+				<DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+					<DialogHeader>
+						<DialogTitle>{t("player.options")}</DialogTitle>
+					</DialogHeader>
+					<p className="break-all text-sm text-muted-foreground">
+						{data.file.name}
+					</p>
+					{preparedCurrent && (
+						<p className="text-sm text-muted-foreground">
+							{t("preparation.playing")}
+						</p>
+					)}
+					<div className="action-row">{!blocked && preparationAction}</div>
+				</DialogContent>
+			</Dialog>
+			<CompatibilityDialog
+				showTrigger={false}
+				compatibility={compatibility}
+				open={compatibilityOpen}
+				setOpen={setCompatibilityOpen}
+				tryOrigin={tryOrigin}
+				tryingOrigin={tryingOrigin}
+			/>
+			<div className="min-w-0">
 				{playback.session &&
 					slots?.renderViewing?.({
 						fileId: data.file.id,

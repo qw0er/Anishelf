@@ -223,8 +223,9 @@ test("changing playback audio verifies only matching copies and never enqueues a
 		),
 	);
 	expect(create).not.toHaveBeenCalled();
+	fireEvent.click(view.getByRole("button", { name: "More playback options" }));
 	fireEvent.click(
-		view.getByRole("button", { name: "Playback compatibility info" }),
+		await view.findByRole("menuitem", { name: "Playback compatibility info" }),
 	);
 	const dialog = await view.findByRole("dialog");
 	expect(

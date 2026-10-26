@@ -13,7 +13,11 @@ import { DirectoryPage } from "./pages/directory-page.js";
 import { NotFoundPage } from "./pages/not-found-page.js";
 import { PlayerPage } from "./pages/player-page.js";
 import { SettingsPage } from "./pages/settings-page.js";
-import { directoryLoader, fileLoader } from "./resources-data.js";
+import {
+	directoryLoader,
+	fileLoader,
+	locateFileLoader,
+} from "./resources-data.js";
 import { libraryLoader } from "./root-data.js";
 import { settingsAction } from "./settings-data.js";
 export const libraryRoute: RouteObject = {
@@ -67,6 +71,11 @@ export const libraryRoute: RouteObject = {
 			loader: directoryLoader,
 			element: <DirectoryPage />,
 			errorElement: <RouteError kind="directory" />,
+		},
+		{
+			path: "files/:id/locate",
+			loader: locateFileLoader,
+			errorElement: <RouteError kind="file" />,
 		},
 		{
 			path: "files/:id",

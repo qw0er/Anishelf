@@ -107,15 +107,49 @@ export function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 	);
 }
 
-export function PlaybackActionsMenu({ fileId }: { fileId: string }) {
+export function PlaybackActionsMenu({
+	fileId,
+	onOptions,
+	onCompatibility,
+	onRetry,
+}: {
+	fileId: string;
+	onOptions?(): void;
+	onCompatibility?(): void;
+	onRetry?(): void;
+}) {
 	const { t } = useTranslation();
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger render={<Button variant="outline" />}>
+			<DropdownMenuTrigger
+				render={
+					<Button
+						variant="ghost"
+						className="h-11 px-3"
+						aria-label={t("externalPlayers.moreActions")}
+					/>
+				}
+			>
 				<Ellipsis size={16} aria-hidden="true" />
-				{t("externalPlayers.moreActions")}
+				{t("player.more")}
 			</DropdownMenuTrigger>
 			<DropdownMenuContent>
+				{onCompatibility && (
+					<DropdownMenuItem onClick={onCompatibility}>
+						{t("compatibility.showInfo")}
+					</DropdownMenuItem>
+				)}
+				{onOptions && (
+					<DropdownMenuItem onClick={onOptions}>
+						<Settings size={16} aria-hidden="true" />
+						{t("player.options")}
+					</DropdownMenuItem>
+				)}
+				{onRetry && (
+					<DropdownMenuItem onClick={onRetry}>
+						{t("player.retry")}
+					</DropdownMenuItem>
+				)}
 				<ExternalPlayerSubmenu fileId={fileId} />
 				<MediaLink fileId={fileId} menuItem />
 				<MediaLink fileId={fileId} menuItem download />
