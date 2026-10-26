@@ -236,12 +236,16 @@ test("search and immediate filters reset pagination and preserve applied criteri
 	});
 	fireEvent.click(screen.getByRole("button", { name: /^Search$/ }));
 	fireEvent.click(screen.getByRole("button", { name: "Filters" }));
-	fireEvent.click(screen.getByRole("radio", { name: "TV" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Format" }), {
+		target: { value: "TV" },
+	});
 	fireEvent.change(screen.getByLabelText("Release year"), {
 		target: { value: "2023" },
 	});
 	fireEvent.blur(screen.getByLabelText("Release year"));
-	fireEvent.click(screen.getByRole("radio", { name: "Available locally" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Availability" }), {
+		target: { value: "available" },
+	});
 	fireEvent.click(screen.getByRole("button", { name: "Sort by" }));
 	fireEvent.click(
 		await screen.findByRole("menuitemradio", { name: "Recently added" }),
@@ -591,17 +595,21 @@ test("AniList library shows status and remote-only details, keeps filters and re
 		}),
 	).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Filters" }));
-	fireEvent.click(
-		within(screen.getByRole("group", { name: "Library scope" })).getByRole(
-			"radio",
-			{ name: "All works" },
-		),
-	);
+	fireEvent.change(screen.getByRole("combobox", { name: "Library scope" }), {
+		target: { value: "all" },
+	});
 	const remoteLink = await screen.findByRole("link", { name: "Remote work" });
 	expect(remoteLink.getAttribute("href")).toContain(
 		"/anime/tracked/anilist%3Aanime%3A2?",
 	);
-	fireEvent.click(screen.getByRole("radio", { name: "Planning" }));
+	fireEvent.change(
+		screen.getByRole("combobox", {
+			name: "the tracking service viewing state",
+		}),
+		{
+			target: { value: "planned" },
+		},
+	);
 	await waitFor(() =>
 		expect(screen.getByTestId("location").textContent).toContain(
 			"viewingStatus=planned",
@@ -701,16 +709,13 @@ test("Library filters allow All works before local setup and disable viewing sta
 	const filters = await screen.findByRole("button", { name: "Filters" });
 	expect(screen.queryByRole("combobox", { name: "Library scope" })).toBeNull();
 	fireEvent.click(filters);
-	const viewing = screen.getByRole("group", {
+	const viewing = screen.getByRole("combobox", {
 		name: "the tracking service viewing state",
 	});
 	expect(viewing.hasAttribute("disabled")).toBe(true);
-	fireEvent.click(
-		within(screen.getByRole("group", { name: "Library scope" })).getByRole(
-			"radio",
-			{ name: "All works" },
-		),
-	);
+	fireEvent.change(screen.getByRole("combobox", { name: "Library scope" }), {
+		target: { value: "all" },
+	});
 	await waitFor(() =>
 		expect(
 			fetcher.mock.calls.some(([path]) => {
