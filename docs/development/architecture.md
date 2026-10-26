@@ -173,6 +173,32 @@ Library/detail views may expose explicit Tracking associations for viewing comma
 this does not make source selection part of metadata retrieval. Provider protocols
 do not import Metadata or Tracking business contracts.
 
+### Metadata implementation responsibilities
+
+Composition assembles Metadata's collaborators and binds their methods once into
+`MetadataApi`. Anime and HTTP consumers use these bound functions directly; there
+is no forwarding facade or repeated content-method wrapper. The external identity
+bridge is injected into Tracking and other integrations separately from ordinary
+content reads. The public content contract, project UUIDs and persisted snapshot
+format do not depend on this internal split.
+
+| Implementation | Responsibility |
+| --- | --- |
+| `application/identities.ts` | Register project IDs, resolve aliases/external inputs, translate external identities and validate explicit associations |
+| `application/search.ts` | Federate source searches, preserve pagination/order, deduplicate verified identities and report partial results |
+| `application/work-reader.ts` | Read current/detail content and select supported relation/schedule capabilities |
+| `domain/projection.ts`, `domain/composition.ts` | Pure content projection and field merge policy; no database, requests or UUID generation |
+| `application/snapshots.ts` | Persist/read immutable project documents, adapt retained legacy evidence and expose artwork evidence |
+| `application/artwork.ts` | Select current or historical artwork and delegate binary caching/downloads to the existing artwork adapter |
+| `application/results.ts`, `application/operations.ts` | Project safe result envelopes and normalize storage/read/partial-failure outcomes |
+
+Application collaborators receive only the source/store methods they need. The
+source-facing application, cache reader, provider adapters and binary artwork cache
+retain their existing responsibilities. Snapshot serialization and database-index
+maintenance continue to use the same persistent format; no migration is needed.
+Snapshot retain/release and binary artwork reads bind directly to the existing source
+cache lifecycle instead of passing through content services.
+
 Manual decisions survive recognition refreshes. AniList outages leave local playback,
 subtitles, preparation, resume and history available.
 

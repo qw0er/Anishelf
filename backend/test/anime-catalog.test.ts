@@ -16,12 +16,11 @@ import { catalogDefaults } from "../src/modules/anime/anime-catalog/defaults.js"
 import type { MappingSelection } from "../src/modules/anime/anime-catalog/public.js";
 import { createIdentificationModule } from "../src/modules/anime/composition/identification.js";
 import {
-	createCatalogMetadata,
 	createIdentificationMetadata,
+	createMetadataApplication as createPublicMetadata,
 } from "../src/modules/anime/composition/metadata.js";
 import { IdentificationApplication } from "../src/modules/anime/identification/application/identification.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
-import { MetadataApplication as PublicMetadataApplication } from "../src/modules/anime/metadata/application/metadata.js";
 import { SourceMetadataApplication as MetadataApplication } from "../src/modules/anime/metadata/application/source-metadata.js";
 import {
 	MetadataError,
@@ -154,9 +153,7 @@ async function fixture(
 	function makeCatalog() {
 		return new AnimeCatalogApplication({
 			store: database.catalog,
-			metadata: createCatalogMetadata(
-				new PublicMetadataApplication(metadata, database.metadata),
-			),
+			metadata: createPublicMetadata(metadata, database.metadata),
 			sources: library.sources,
 			logger,
 		});
@@ -209,7 +206,7 @@ async function fixture(
 			return catalog;
 		},
 		get publicMetadata() {
-			return new PublicMetadataApplication(metadata, database.metadata);
+			return createPublicMetadata(metadata, database.metadata);
 		},
 		get database() {
 			return database;
@@ -1127,7 +1124,7 @@ async function enableAutomatic(f: Awaited<ReturnType<typeof fixture>>) {
 		sources: f.library.sources,
 		logger,
 		metadata: createIdentificationMetadata(
-			new PublicMetadataApplication(f.metadata, f.database.metadata),
+			createPublicMetadata(f.metadata, f.database.metadata),
 		),
 		onPublication: (results, root, signal) =>
 			f.catalog.publish(results, root, signal),

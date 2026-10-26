@@ -13,10 +13,10 @@ import { createAniListMetadata } from "../src/modules/anime/composition/anilist.
 import {
 	createIdentificationMetadata,
 	createMetadataModule,
+	createMetadataApplication as createPublicMetadata,
 } from "../src/modules/anime/composition/metadata.js";
 import { IdentificationApplication } from "../src/modules/anime/identification/application/identification.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
-import { MetadataApplication as PublicMetadataApplication } from "../src/modules/anime/metadata/application/metadata.js";
 import { SourceMetadataApplication as MetadataApplication } from "../src/modules/anime/metadata/application/source-metadata.js";
 import { metadataDefaults } from "../src/modules/anime/metadata/defaults.js";
 import { AniListProvider } from "../src/modules/anime/metadata/infrastructure/anilist.js";
@@ -178,10 +178,7 @@ async function setup(
 		fetcher,
 		provider,
 		artwork,
-		publicMetadata: new PublicMetadataApplication(
-			application,
-			database.metadata,
-		),
+		publicMetadata: createPublicMetadata(application, database.metadata),
 	};
 }
 async function failure(task: Promise<unknown>, code: string) {
@@ -1312,12 +1309,11 @@ test("public metadata uses durable project identities across search, detail, sna
 	database.metadata.prune(0, 0);
 	const reopened = ApplicationDatabase.open(dir);
 	try {
-		const projection = new PublicMetadataApplication(
-			application,
-			reopened.metadata,
-		);
+		const projection = createPublicMetadata(application, reopened.metadata);
 		expect(projection.resolveReference("154587")).toEqual(identity);
-		expect(projection.externalReference(identity)).toEqual(reference);
+		expect(projection.associations.externalReference(identity)).toEqual(
+			reference,
+		);
 	} finally {
 		reopened.close();
 	}
@@ -1424,7 +1420,7 @@ test("different configured sources produce the same project contract without sou
 		logger,
 	});
 	cleanups.push(() => source.close());
-	const api = new PublicMetadataApplication(source, database.metadata);
+	const api = createPublicMetadata(source, database.metadata);
 	const search = await api.search({ query: "Frieren" });
 	const found = search.data.items[0]?.reference;
 	expect(api.resolveReference("https://example.com/work/42")).toEqual(found);

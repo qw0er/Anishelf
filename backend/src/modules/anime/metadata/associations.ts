@@ -9,3 +9,12 @@ export interface MetadataAssociations {
 		provider?: string,
 	): ExternalWorkReference | null;
 }
+
+/** Explicit management capability, never required by ordinary content consumers. */
+export interface MetadataManagement {
+	associate(
+		target: WorkReference,
+		other: WorkReference,
+		confirmation: { sameEpisodeNumbering: true },
+	): WorkReference;
+}
