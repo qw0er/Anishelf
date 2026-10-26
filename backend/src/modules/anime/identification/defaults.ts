@@ -1,4 +1,4 @@
-export const identificationPolicy = {
+export const identificationDefaults = {
 	maximumFiles: 500,
 	automaticRetryMs: 5000,
 	parserGroupSize: 50,

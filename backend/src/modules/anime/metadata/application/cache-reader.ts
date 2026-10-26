@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { Logger } from "pino";
+import { detailFreshnessMs, metadataDefaults as policy } from "../defaults.js";
 import { abortable } from "../domain/async.js";
 import {
 	type CachedMetadata,
@@ -9,7 +10,6 @@ import {
 	type ReadOptions,
 	type WorkDetails,
 } from "../domain/source-model.js";
-import { detailFreshnessMs, metadataPolicy as policy } from "../policy.js";
 import type {
 	CacheEntry,
 	MetadataProvider,

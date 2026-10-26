@@ -4,7 +4,6 @@ import {
 	workKey,
 	workReference,
 } from "../../../../shared/external-reference.js";
-import { aniListAuthorization } from "../../anilist/policy.js";
 import type {
 	AniListListEntry,
 	AniListRemoteState,
@@ -18,7 +17,7 @@ export const aniListTracking: TrackingProviderDescriptor = {
 	authorization: {
 		kind: "credential",
 		label: "Access token",
-		url: aniListAuthorization.authorizationUrl,
+		url: "https://anilist.co/api/v2/oauth/authorize?client_id=53902&response_type=token",
 	},
 	capabilities: {
 		progress: "cumulative-episodes",

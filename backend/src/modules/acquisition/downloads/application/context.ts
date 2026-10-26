@@ -10,9 +10,9 @@ import type {
 	Subscription,
 	SubscriptionAuthorization,
 } from "../../subscriptions/public.js";
+import { downloadDefaults as policy } from "../defaults.js";
 import type { DownloadIntent } from "../domain/model.js";
 import type { DownloadStore, TorrentReader } from "../ports.js";
-import { downloadPolicy as policy } from "./policy.js";
 
 export function conflict(): never {
 	throw new DomainError(

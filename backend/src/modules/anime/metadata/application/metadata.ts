@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { Logger } from "pino";
 import type { ExternalWorkReference } from "../../../../shared/external-reference.js";
 import { workReference } from "../../../../shared/external-reference.js";
+import { metadataDefaults } from "../defaults.js";
 import type {
 	AiringEpisode,
 	CachedMetadata,
@@ -16,7 +17,6 @@ import type {
 } from "../domain/model.js";
 import { MetadataError } from "../domain/model.js";
 import type * as Source from "../domain/source-model.js";
-import { metadataPolicy } from "../policy.js";
 import type { MetadataStore, SourceMetadataApi } from "../ports.js";
 import type { MetadataApi } from "../public.js";
 
@@ -258,13 +258,13 @@ export class MetadataApplication implements MetadataApi {
 				fetchedAt: value.fetchedAt,
 				expiresAt: entries.length
 					? Math.min(...entries.map((entry) => entry.expiresAt))
-					: Date.now() + metadataPolicy.detailFreshMs,
+					: Date.now() + metadataDefaults.detailFreshMs,
 				accessedAt: Date.now(),
 				failure: null,
 			}),
 		);
 		this.storage(() =>
-			this.store.prune(metadataPolicy.searchKeys, metadataPolicy.snapshots),
+			this.store.prune(metadataDefaults.searchKeys, metadataDefaults.snapshots),
 		);
 		return result;
 	}

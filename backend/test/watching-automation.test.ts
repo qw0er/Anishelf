@@ -5,7 +5,6 @@ import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import { createSourcesModule } from "../src/modules/acquisition/sources/create.js";
 import { JackettConnection } from "../src/modules/acquisition/sources/jackett/connection.js";
 import { SubscriptionsApplication } from "../src/modules/acquisition/subscriptions/application/application.js";
@@ -561,7 +560,6 @@ test("Watching HTTP routes require login, CSRF and the preview's actual session"
 	const app = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger: f.logger,
-		policy: builtinPolicy,
 		configure: auth.registerHttp,
 		registrations: [(app) => registerWatchingRoutes(app, f.watching)],
 		closeDependencies: async () => {},

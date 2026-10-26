@@ -1,6 +1,6 @@
 import pino from "pino";
 import { expect, test } from "vitest";
-import { builtinPolicy } from "../src/app/policy.js";
+import { mediaToolPolicy } from "../src/platform/media/policy.js";
 import { runTool } from "../src/platform/media/process.js";
 import { createHttpApp } from "./support/http.js";
 
@@ -63,7 +63,7 @@ test("external tool logs completion metadata without arguments or output", async
 		process.execPath,
 		["-e", "process.stdout.write('private-output')"],
 		{},
-		builtinPolicy.mediaTools,
+		mediaToolPolicy,
 		logger,
 	);
 	expect(output).toBe("private-output");
@@ -86,7 +86,7 @@ test("external tool failures remain visible at info with exit status", async () 
 			process.execPath,
 			["-e", "process.exit(7)"],
 			{},
-			builtinPolicy.mediaTools,
+			mediaToolPolicy,
 			logger,
 		),
 	).rejects.toMatchObject({ code: "TOOL_FAILED" });

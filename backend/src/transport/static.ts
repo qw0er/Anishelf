@@ -1,7 +1,6 @@
 import { access } from "node:fs/promises";
 import { join } from "node:path";
 import fastifyStatic from "@fastify/static";
-import { adapterPolicy } from "../platform/adapter-policy.js";
 import { apiError } from "./errors.js";
 import type { HttpInstance } from "./instance.js";
 
@@ -17,9 +16,9 @@ export async function registerFrontend(app: HttpInstance, root: string) {
 	await app.register(fastifyStatic, {
 		root,
 		serve: false,
-		dotfiles: adapterPolicy.static.dotfiles,
+		dotfiles: "deny",
 		cacheControl: true,
-		maxAge: adapterPolicy.static.maximumAgeMs,
+		maxAge: 0,
 	});
 	app.get("/*", async (request, reply) => {
 		const pathname = new URL(request.url, "http://localhost").pathname;
@@ -33,7 +32,7 @@ export async function registerFrontend(app: HttpInstance, root: string) {
 				request.headers.accept?.includes("text/html"))
 		) {
 			return reply
-				.header("Cache-Control", adapterPolicy.static.pageCacheControl)
+				.header("Cache-Control", "no-cache")
 				.sendFile("index.html", { cacheControl: false });
 		}
 		return reply.sendFile(decodeURIComponent(pathname.slice(1)));

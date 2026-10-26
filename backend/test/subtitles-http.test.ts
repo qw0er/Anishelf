@@ -10,9 +10,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { builtinPolicy } from "../src/app/policy.js";
 import type { SubtitleDiscoveryResponse } from "../src/contracts/http.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
+import { subtitlePolicy } from "../src/modules/media/subtitles/policy.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
@@ -26,7 +26,7 @@ import { createLibraryModule } from "./support/library.js";
 import { updateResourceSettings } from "./support/settings.js";
 import { createSubtitleApplication } from "./support/subtitles.js";
 
-const maximumSubtitleBytes = builtinPolicy.subtitles.maximumBytes;
+const maximumSubtitleBytes = subtitlePolicy.maximumBytes;
 
 import { settingsStore } from "./settings-store.js";
 

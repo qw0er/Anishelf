@@ -1,7 +1,4 @@
-import type { PlaybackApi } from "./public.js";
-
 export type { PlaybackPolicy } from "./progress/policy.js";
-export { playbackPolicy, validatePlaybackPolicy } from "./progress/policy.js";
 
 import type { Logger } from "pino";
 import type { MediaApi } from "../media/public.js";
@@ -11,6 +8,8 @@ import { createPlaybackModule as createProgressModule } from "./composition/play
 import { registerPlaybackHttp } from "./http.js";
 import type { PlaybackPersistence } from "./persistence.js";
 import { PlaybackSelectionApplication } from "./playback-selection/application/selection.js";
+import { playbackPolicy, validatePlaybackPolicy } from "./progress/policy.js";
+import type { PlaybackApi } from "./public.js";
 export function createPlaybackModule(options: {
 	system: SystemApi;
 	resources: ResourcesApi;
@@ -24,6 +23,14 @@ export function createPlaybackModule(options: {
 		import("./progress/policy.js").PlaybackPolicy
 	>;
 }) {
+	validatePlaybackPolicy(options.policy ?? playbackPolicy);
+	options.logger.debug(
+		{
+			event: "playback.policy_resolved",
+			overridden: options.policy !== undefined,
+		},
+		"Playback policy validated.",
+	);
 	const {
 		system: configuration,
 		resources: library,

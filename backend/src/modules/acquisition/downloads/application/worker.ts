@@ -1,6 +1,6 @@
+import { downloadDefaults as policy } from "../defaults.js";
 import type { DownloadApplicationContext } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
-import { downloadPolicy as policy } from "./policy.js";
 import type { DownloadReconciliation } from "./reconciliation.js";
 import type { DownloadPlanning } from "./reservations.js";
 

@@ -4,8 +4,8 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import { PlaybackApplication } from "../src/modules/playback/progress/application/playback.js";
+import { playbackPolicy } from "../src/modules/playback/progress/policy.js";
 import type { LibraryApplication } from "../src/modules/resources/library/application/library.js";
 import { LibraryIndex } from "../src/modules/resources/library/infrastructure/index.js";
 import { ResourceAccess } from "../src/modules/resources/resource-access/infrastructure/access.js";
@@ -44,7 +44,7 @@ beforeEach(async () => {
 	now = 1000;
 	playback = new PlaybackApplication({
 		sources: library.sources,
-		policy: builtinPolicy.playback,
+		policy: playbackPolicy,
 		repository: database.playback,
 		logger,
 		now: () => now,
@@ -186,7 +186,7 @@ test("injected session and list policies govern capacity, expiry and limits", as
 		logger,
 		now: () => now,
 		policy: {
-			...builtinPolicy.playback,
+			...playbackPolicy,
 			sessionIdleMs: 10,
 			maximumSessions: 1,
 			maximumListLimit: 2,

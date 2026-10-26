@@ -4,8 +4,25 @@ import type { Writable } from "node:stream";
 import { finished } from "node:stream/promises";
 import pino, { type Logger } from "pino";
 import { createStream } from "rotating-file-stream";
-import { adapterPolicy } from "../adapter-policy.js";
 import type { LoggingConfig } from "./config.js";
+
+const redactPaths = [
+	"password",
+	"token",
+	"secret",
+	"authorization",
+	"req.headers.authorization",
+	"req.headers.cookie",
+	'req.headers["x-csrf-token"]',
+	'res.headers["set-cookie"]',
+	"csrfToken",
+	"currentPassword",
+	"credential",
+	"req.body",
+	"res.body",
+	"config",
+	"settings",
+];
 
 /** Pino owns routing; rotating-file-stream owns buffering, rotation and stream behavior. */
 export class ApplicationLogging {
@@ -36,7 +53,7 @@ export class ApplicationLogging {
 				timestamp: pino.stdTimeFunctions.isoTime,
 				base: { service: "anishelf" },
 				serializers: { err: pino.stdSerializers.err },
-				redact: { paths: [...adapterPolicy.logging.redactPaths], remove: true },
+				redact: { paths: redactPaths, remove: true },
 			},
 			pino.multistream(streams, { levels: pino.levels.values }),
 		);

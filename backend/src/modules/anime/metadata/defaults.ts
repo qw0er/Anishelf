@@ -1,4 +1,4 @@
-export const metadataPolicy = {
+export const metadataDefaults = {
 	projectionVersion: "metadata-v1",
 	searchFreshMs: 24 * 60 * 60 * 1000,
 	emptySearchFreshMs: 15 * 60 * 1000,
@@ -15,7 +15,7 @@ export const metadataPolicy = {
 } as const;
 
 export function detailFreshnessMs(status: string | null): number {
-	if (status === "RELEASING") return metadataPolicy.releasingFreshMs;
-	if (status === "FINISHED") return metadataPolicy.finishedFreshMs;
-	return metadataPolicy.detailFreshMs;
+	if (status === "RELEASING") return metadataDefaults.releasingFreshMs;
+	if (status === "FINISHED") return metadataDefaults.finishedFreshMs;
+	return metadataDefaults.detailFreshMs;
 }

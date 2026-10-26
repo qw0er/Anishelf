@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import type * as React from "react";
 import { useTranslation } from "react-i18next";
-import { interactionPolicy } from "../../config/interaction-policy.js";
+import { interactionDefaults } from "../../config/interaction-defaults.js";
 
 import { Button } from "./button.js";
 
@@ -204,7 +204,7 @@ function Toaster({
 	return (
 		<ToastProvider
 			toastManager={toastManager}
-			timeout={interactionPolicy.toastTimeoutMs}
+			timeout={interactionDefaults.toastTimeoutMs}
 			{...props}
 		>
 			{children}

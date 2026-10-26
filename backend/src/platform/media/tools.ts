@@ -25,7 +25,7 @@ import { parseMediaInfo, probeRecord } from "./probe-parser.js";
 
 export { parseMediaInfo } from "./probe-parser.js";
 
-import { mediaToolPolicy } from "./policy.js";
+import { mediaToolPolicy, validateMediaToolPolicy } from "./policy.js";
 import { MediaToolError, resolveExecutable, runTool } from "./process.js";
 
 async function localFile(path: string): Promise<void> {
@@ -64,6 +64,7 @@ export class MediaTools {
 		environment = captureRuntimeEnvironment().executableSearch,
 		logger?: Logger,
 	): Promise<MediaTools> {
+		validateMediaToolPolicy(policy.mediaTools);
 		async function discover(
 			command: string,
 			tool: string,

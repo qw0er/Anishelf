@@ -4,13 +4,13 @@ import type {
 	ResourceAccessApi,
 	ResourceScope,
 } from "../../../resources/public.js";
+import { catalogDefaults as policy } from "../defaults.js";
 import {
 	automaticBlockers,
 	recognizedWorkProposal,
 } from "../domain/admission.js";
 import { conflict, integer, text } from "../domain/mapping.js";
 import type { LocalWork, ReviewItem, ReviewRecord } from "../domain/model.js";
-import { catalogPolicy as policy } from "../policy.js";
 import type { CatalogMetadata, CatalogStore } from "../ports.js";
 
 export function page(options: { page?: number; perPage?: number }) {

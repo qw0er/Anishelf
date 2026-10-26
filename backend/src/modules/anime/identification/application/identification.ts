@@ -1,6 +1,7 @@
 import { posix } from "node:path";
 import { DomainError } from "../../../../shared/errors.js";
 import type { SourceIdentity } from "../../../resources/public.js";
+import { identificationDefaults as policy } from "../defaults.js";
 import { proposeMapping } from "../domain/mapping.js";
 import { rankCandidates } from "../domain/matching.js";
 import type {
@@ -9,7 +10,6 @@ import type {
 	WorkCandidate,
 } from "../domain/model.js";
 import { applyNumberingContext } from "../domain/numbering-context.js";
-import { identificationPolicy as policy } from "../policy.js";
 import type { IdentificationMetadata, IdentificationParser } from "../ports.js";
 import type { IdentificationApi } from "../public.js";
 

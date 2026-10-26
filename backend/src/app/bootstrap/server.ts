@@ -10,7 +10,6 @@ import type { SystemApi } from "../../modules/system/public.js";
 import type { MediaTools } from "../../platform/media/index.js";
 import { registerAnimeDetailRoutes } from "../anime-detail.js";
 import { closeModules } from "../lifecycle.js";
-import { builtinPolicy } from "../policy.js";
 import type { ApplicationDatabase } from "./database.js";
 import { createHttpApp } from "./http.js";
 export async function createServer(
@@ -32,12 +31,10 @@ export async function createServer(
 	const resources = await createResourcesModule({
 		system,
 		logger,
-		policy: builtinPolicy,
 	});
 	const media = await createMediaModule({
 		system,
 		resources: resources.api,
-		policy: builtinPolicy,
 		database,
 		tools,
 		logger,
@@ -53,7 +50,6 @@ export async function createServer(
 		completionObserver: anime.completionObserver,
 		resources: resources.api,
 		media: media.api,
-		policy: builtinPolicy.playback,
 		database,
 		logger,
 	});
@@ -92,7 +88,6 @@ export async function createServer(
 		configure: authentication.registerHttp,
 		config: system.deployment,
 		logger,
-		policy: builtinPolicy,
 		development: system.environment.development,
 		...(system.deployment.frontendDir
 			? { frontendRoot: system.deployment.frontendDir }

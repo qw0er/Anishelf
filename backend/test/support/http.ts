@@ -1,10 +1,5 @@
 import type { Logger } from "pino";
 import { createHttpApp as createProtocolHttpApp } from "../../src/app/bootstrap/http.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../../src/app/policy.js";
 import { registerCatalogRoutes } from "../../src/modules/anime/anime-catalog/http/catalog.js";
 import type { AnimeCatalogApi } from "../../src/modules/anime/anime-catalog/public.js";
 import { registerMetadataRoutes } from "../../src/modules/anime/metadata/http/metadata.js";
@@ -17,6 +12,7 @@ import type { PreparationApplication } from "../../src/modules/media/preparation
 import { registerPreparationRoutes } from "../../src/modules/media/preparation/http/preparation.js";
 import type { SubtitleApplication } from "../../src/modules/media/subtitles/application/subtitles.js";
 import { registerSubtitleRoutes } from "../../src/modules/media/subtitles/http/subtitles.js";
+import { subtitlePolicy } from "../../src/modules/media/subtitles/policy.js";
 import { registerPlaybackSelectionRoutes } from "../../src/modules/playback/playback-selection/http/selection.js";
 import type { PlaybackSelectionApi } from "../../src/modules/playback/playback-selection/public.js";
 import type { PlaybackApplication } from "../../src/modules/playback/progress/application/playback.js";
@@ -38,7 +34,7 @@ export function createHttpApp(options: {
 		"host" | "port" | "publicOrigin" | "trustedProxies"
 	>;
 	logger: Logger;
-	policy?: DeepReadonly<BuiltinPolicy>;
+	bodyLimit?: number;
 	development?: boolean;
 	library?: LibraryApplication;
 	playback?: PlaybackApplication;
@@ -51,19 +47,13 @@ export function createHttpApp(options: {
 	/** Bootstrap can own shutdown of shared dependencies. */
 	closeDependencies?: () => Promise<void>;
 }) {
-	const policy = options.policy ?? {
-		...builtinPolicy,
-		...options.library?.policy,
-		subtitles: {
-			...builtinPolicy.subtitles,
-			...options.library?.policy.subtitles,
-		},
-	};
 	let ownedSubtitles = options.subtitles;
 	return createProtocolHttpApp({
 		config: options.config,
 		logger: options.logger,
-		policy,
+		...(options.bodyLimit === undefined
+			? {}
+			: { bodyLimit: options.bodyLimit }),
 		...(options.development === undefined
 			? {}
 			: { development: options.development }),
@@ -82,7 +72,10 @@ export function createHttpApp(options: {
 						createSubtitleApplication({
 							sources: library.sources,
 							logger: options.logger,
-							policy,
+							policy: {
+								library: library.policy.library,
+								subtitles: { ...subtitlePolicy, ...library.policy.subtitles },
+							},
 						});
 					ownedSubtitles = subtitles;
 					registerSubtitleRoutes(app, subtitles);

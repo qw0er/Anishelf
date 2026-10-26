@@ -19,6 +19,7 @@ import {
 	createMediaPersistence,
 	type MediaPersistence,
 } from "../../modules/media/persistence.js";
+import type { PlaybackPolicy } from "../../modules/playback/create.js";
 import {
 	createPlaybackPersistence,
 	type PlaybackPersistence,
@@ -26,16 +27,14 @@ import {
 import { createResourcesPersistence } from "../../modules/resources/persistence.js";
 import { createAuthenticationPersistence } from "../../modules/system/persistence.js";
 import type { AuthenticationStore } from "../../modules/system/public.js";
-import { adapterPolicy } from "../../platform/adapter-policy.js";
 import type { Store } from "../../platform/database/store.js";
 import { storageRules } from "../../platform/storage.js";
 import { workKey, workReference } from "../../shared/external-reference.js";
-import {
-	type BuiltinPolicy,
-	builtinPolicy,
-	type DeepReadonly,
-} from "../policy.js";
+import type { DeepReadonly } from "../../shared/policy.js";
+
 import * as schema from "../schema.js";
+
+const databaseBusyTimeoutMs = 5000;
 
 /** Owns the connection; repositories must not outlive this object. */
 export class ApplicationDatabase {
@@ -54,7 +53,7 @@ export class ApplicationDatabase {
 	private constructor(
 		private readonly connection: Database.Database,
 		store: Store,
-		policy: DeepReadonly<BuiltinPolicy>,
+		playbackPolicy?: DeepReadonly<PlaybackPolicy>,
 	) {
 		this.authentication = createAuthenticationPersistence(store);
 		this.acquisition = createAcquisitionPersistence(store);
@@ -62,7 +61,7 @@ export class ApplicationDatabase {
 		const { sources } = createResourcesPersistence(store);
 		const anime = createAnimePersistence(store, sources);
 		const media = createMediaPersistence(store, sources);
-		const playback = createPlaybackPersistence(store, sources, policy.playback);
+		const playback = createPlaybackPersistence(store, sources, playbackPolicy);
 		this.catalog = anime.catalog;
 		this.tracking = anime.tracking;
 		this.trackingLists = anime.trackingLists;
@@ -76,25 +75,28 @@ export class ApplicationDatabase {
 
 	static open(
 		dataDir: string,
-		policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
+		playbackPolicy?: DeepReadonly<PlaybackPolicy>,
 	): ApplicationDatabase {
 		mkdirSync(dataDir, { recursive: true, mode: storageRules.directoryMode });
 		return ApplicationDatabase.initialize(
 			new Database(join(dataDir, storageRules.databaseFile)),
-			policy,
+			playbackPolicy,
 		);
 	}
 
 	/** Isolated SQLite connection for consumers that do not need disk persistence. */
 	static openMemory(
-		policy: DeepReadonly<BuiltinPolicy> = builtinPolicy,
+		playbackPolicy?: DeepReadonly<PlaybackPolicy>,
 	): ApplicationDatabase {
-		return ApplicationDatabase.initialize(new Database(":memory:"), policy);
+		return ApplicationDatabase.initialize(
+			new Database(":memory:"),
+			playbackPolicy,
+		);
 	}
 
 	private static initialize(
 		connection: Database.Database,
-		policy: DeepReadonly<BuiltinPolicy>,
+		playbackPolicy?: DeepReadonly<PlaybackPolicy>,
 	): ApplicationDatabase {
 		try {
 			const schemaVersion = connection.pragma("user_version", { simple: true });
@@ -110,12 +112,10 @@ export class ApplicationDatabase {
 				throw new Error(
 					"Unsupported database format. This application requires a new relational database; existing files were preserved.",
 				);
-			connection.pragma(adapterPolicy.sqlite.foreignKeys);
-			connection.pragma(
-				`busy_timeout = ${policy.database.databaseBusyTimeoutMs}`,
-			);
-			connection.pragma(adapterPolicy.sqlite.journal);
-			connection.pragma(adapterPolicy.sqlite.synchronous);
+			connection.pragma("foreign_keys = ON");
+			connection.pragma(`busy_timeout = ${databaseBusyTimeoutMs}`);
+			connection.pragma("journal_mode = WAL");
+			connection.pragma("synchronous = FULL");
 			const store = drizzle(connection, { schema });
 			// Migration-only identity functions preserve opaque, encoded provider IDs.
 			connection.function("anishelf_work_key", (provider: string, id: string) =>
@@ -135,10 +135,10 @@ export class ApplicationDatabase {
 					new URL("../../../migrations/", import.meta.url),
 				),
 			});
-			connection.pragma(adapterPolicy.sqlite.foreignKeys);
+			connection.pragma("foreign_keys = ON");
 			if ((connection.pragma("foreign_key_check") as unknown[]).length)
 				throw new Error("Database schema contains invalid foreign keys.");
-			return new ApplicationDatabase(connection, store, policy);
+			return new ApplicationDatabase(connection, store, playbackPolicy);
 		} catch (error) {
 			connection.close();
 			throw error;
@@ -153,12 +153,16 @@ export class ApplicationDatabase {
 export function openDatabase(
 	dataDir: string,
 	logger: Logger,
-	policy: DeepReadonly<BuiltinPolicy>,
+	playbackPolicy?: DeepReadonly<PlaybackPolicy>,
 ): ApplicationDatabase {
 	try {
-		const database = ApplicationDatabase.open(dataDir, policy);
+		const database = ApplicationDatabase.open(dataDir, playbackPolicy);
 		logger.info(
-			{ event: "database.ready", schemaVersion: 1 },
+			{
+				event: "database.ready",
+				schemaVersion: 1,
+				busyTimeoutMs: databaseBusyTimeoutMs,
+			},
 			"Relational database is ready.",
 		);
 		return database;

@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "../../../../shared/components/ui/toast.js";
-import { interactionPolicy } from "../../../../shared/config/interaction-policy.js";
+import { interactionDefaults } from "../../../../shared/config/interaction-defaults.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import type { PlaybackPolicy } from "../policy.js";
 import {
@@ -61,7 +61,7 @@ export function usePlaybackSession(fileId: string, policy: PlaybackPolicy) {
 					priority: "high",
 					title: t(key),
 					id: notificationId,
-					timeout: interactionPolicy.errorToastTimeoutMs,
+					timeout: interactionDefaults.errorToastTimeoutMs,
 					actionProps: {
 						children: t("actions.retry"),
 						onClick: () => {

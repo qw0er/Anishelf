@@ -7,8 +7,8 @@ import {
 } from "../../src/modules/anime/anime-catalog/domain/admission.js";
 import type { ReviewRecord } from "../../src/modules/anime/anime-catalog/domain/model.js";
 import { IdentificationApplication } from "../../src/modules/anime/identification/application/identification.js";
+import { identificationDefaults } from "../../src/modules/anime/identification/defaults.js";
 import { AnitomyIdentificationParser } from "../../src/modules/anime/identification/infrastructure/parser.js";
-import { identificationPolicy } from "../../src/modules/anime/identification/policy.js";
 import type {
 	IdentificationResult,
 	WorkCandidate,
@@ -326,7 +326,7 @@ export async function evaluateMatchingCorpus() {
 		corpusVersion: corpus.version,
 		productionNumberingVersion: production.version,
 		productionNumberingBasis: production.basis,
-		matcherVersion: identificationPolicy.matcherVersion,
+		matcherVersion: identificationDefaults.matcherVersion,
 		candidateSource:
 			"All 20 frozen AniList projections; no live search or answer-based filtering.",
 		summary,

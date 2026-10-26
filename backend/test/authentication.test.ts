@@ -8,7 +8,6 @@ import {
 	openDatabase,
 } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import {
 	hashPassword,
 	loadCredentials,
@@ -58,7 +57,6 @@ async function application(
 			...(trustedProxies ? { trustedProxies } : {}),
 		},
 		logger,
-		policy: builtinPolicy,
 		configure: auth.registerHttp,
 		registrations: [
 			(scope) => {
@@ -444,9 +442,7 @@ test("session and media authorization expire at fixed deadlines", async () => {
 test("corrupt authentication persistence blocks startup without initializing a password", async () => {
 	const path = await directory();
 	await writeFile(join(path, "anishelf.sqlite"), "broken database");
-	expect(() =>
-		openDatabase(path, pino({ enabled: false }), builtinPolicy),
-	).toThrow();
+	expect(() => openDatabase(path, pino({ enabled: false }))).toThrow();
 	await expect(readFile(join(path, "auth.json"))).rejects.toMatchObject({
 		code: "ENOENT",
 	});

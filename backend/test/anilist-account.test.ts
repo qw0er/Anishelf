@@ -6,7 +6,6 @@ import pino, { type Logger } from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import { AniListError } from "../src/modules/anime/anilist/public.js";
 import {
 	createTrackingAccounts,
@@ -271,7 +270,6 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 	const http = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger,
-		policy: builtinPolicy,
 		configure: auth.registerHttp,
 		registrations: [
 			(scope) => {

@@ -12,7 +12,6 @@ import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import {
 	createAcquisitionModule,
 	createQbittorrentClient,
@@ -276,7 +275,6 @@ test("authenticated HTTP endpoints enforce CSRF, validate inputs and never echo 
 	const app = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger: f.logger,
-		policy: builtinPolicy,
 		configure: auth.registerHttp,
 		registrations: [f.module.registerHttp],
 		closeDependencies: async () => {},

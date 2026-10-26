@@ -123,7 +123,7 @@ module.exports = {
 		{
 			name: "public-and-policy-do-not-load-implementation",
 			severity: "error",
-			from: { path: `^${modulePath}(?:public|policy|ports)\\.ts$` },
+			from: { path: `^${modulePath}(?:public|policy|defaults|ports)\\.ts$` },
 			to: { path: `^${implementation}` },
 		},
 		{
@@ -135,7 +135,7 @@ module.exports = {
 			to: {
 				path: "^backend/src/modules/$1/(?!$2/)[^/]+/",
 				pathNot:
-					"(?:public|policy|persistence)\\.ts$|^backend/src/modules/acquisition/sources/integration\\.ts$",
+					"(?:public|policy|defaults|persistence)\\.ts$|^backend/src/modules/acquisition/sources/integration\\.ts$",
 			},
 		},
 		{

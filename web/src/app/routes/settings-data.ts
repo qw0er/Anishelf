@@ -1,5 +1,5 @@
+import { preparationConstraints } from "@anishelf/backend/contracts/defaults";
 import { type ActionFunctionArgs, redirect } from "react-router";
-import { preparationPolicy } from "../../features/media/public.js";
 import { saveSettings } from "../../features/settings/public.js";
 import { isRequestCancelled } from "../../shared/api/client.js";
 import { executeMutation, queryClient } from "../../shared/api/query-client.js";
@@ -31,7 +31,8 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 			cache.trim() === "" ||
 			!Number.isSafeInteger(transcodeCacheBudgetGiB) ||
 			Number(transcodeCacheBudgetGiB) < 1 ||
-			Number(transcodeCacheBudgetGiB) > preparationPolicy.maximumCacheBudgetGiB)
+			Number(transcodeCacheBudgetGiB) >
+				preparationConstraints.maximumCacheBudgetGiB)
 	)
 		return { error: "settingsPage.invalidCacheBudget" };
 	try {

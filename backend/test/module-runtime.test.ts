@@ -5,13 +5,14 @@ import pino from "pino";
 import { expect, test } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { initializeMediaTools } from "../src/app/bootstrap/media-tools.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import { createAnimeModule } from "../src/modules/anime/create.js";
 import { createMediaModule } from "../src/modules/media/create.js";
+import { mediaProcessingPolicy } from "../src/modules/media/media-processing/policy.js";
 import type { CompatibilityResult } from "../src/modules/media/public.js";
 import { compatibilityView } from "../src/modules/media/views.js";
 import { createPlaybackModule } from "../src/modules/playback/create.js";
 import { createResourcesModule } from "../src/modules/resources/create.js";
+import { libraryPolicy } from "../src/modules/resources/library/policy.js";
 import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import { createSystemModule } from "../src/modules/system/create.js";
 
@@ -61,10 +62,31 @@ test("large modules expose capability objects and quiesce without destroying sha
 	const tools = await initializeMediaTools(
 		system.api.deployment.mediaTools,
 		logger,
-		builtinPolicy,
 		system.api.environment.executableSearch,
 	);
+	await expect(
+		createResourcesModule({
+			system: system.api,
+			logger,
+			policy: {
+				library: {
+					...libraryPolicy,
+					monitorRetryMs: libraryPolicy.monitorMaximumRetryMs + 1,
+				},
+			},
+		}),
+	).rejects.toMatchObject({ code: "CONFIG_INVALID" });
 	const resources = await createResourcesModule({ system: system.api, logger });
+	await expect(
+		createMediaModule({
+			system: system.api,
+			resources: resources.api,
+			database,
+			tools,
+			logger,
+			policy: { mediaProcessing: { ...mediaProcessingPolicy, concurrency: 2 } },
+		}),
+	).rejects.toMatchObject({ code: "CONFIG_INVALID" });
 	const media = await createMediaModule({
 		system: system.api,
 		resources: resources.api,

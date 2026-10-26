@@ -6,7 +6,6 @@ import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import type { ReviewItem } from "../src/modules/anime/anime-catalog/public.js";
 import { AnimeLibraryQueries } from "../src/modules/anime/anime-library/application/library.js";
 import { createTrackingModule } from "../src/modules/anime/composition/tracking.js";
@@ -161,7 +160,6 @@ test("opaque identities survive HTTP commands, null timestamps, restart and Libr
 	const http = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger: pino({ enabled: false }),
-		policy: builtinPolicy,
 		registrations: [
 			(app) => {
 				registerTrackingListRoutes(app, f.module);

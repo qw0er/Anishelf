@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryScope } from "../../shared/api/queries.js";
 import { toast } from "../../shared/components/ui/toast.js";
-import { interactionPolicy } from "../../shared/config/interaction-policy.js";
+import { interactionDefaults } from "../../shared/config/interaction-defaults.js";
 import { identificationQuery } from "./metadata/public.js";
 import { invalidateAnimeQueries } from "./shared/query-keys.js";
 
@@ -52,15 +52,15 @@ export function IdentificationStatus({
 			toast.add({
 				id: notificationId,
 				type: "loading",
-				timeout: interactionPolicy.persistentToastTimeoutMs,
+				timeout: interactionDefaults.persistentToastTimeoutMs,
 				title: t("review.identifying"),
 			});
 		} else if (current.failed || last?.running) {
 			const options = {
 				type: current.failed ? "error" : "success",
 				timeout: current.failed
-					? interactionPolicy.errorToastTimeoutMs
-					: interactionPolicy.toastTimeoutMs,
+					? interactionDefaults.errorToastTimeoutMs
+					: interactionDefaults.toastTimeoutMs,
 				title: t(
 					current.failed
 						? "review.identificationFailed"

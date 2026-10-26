@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 import { posix } from "node:path";
 import { animeNameParser } from "../anitomy-adapter.js";
+import { identificationDefaults } from "../defaults.js";
 import type {
 	ExtractionElement,
 	ExtractionEvidence,
 	ExtractionInput,
 } from "../domain/model.js";
-import { identificationPolicy } from "../policy.js";
 import type { IdentificationParser } from "../ports.js";
 
 function values(elements: ExtractionElement[], kind: string): string[] {
@@ -19,7 +19,7 @@ function unique(values: string[]): string[] {
 }
 export class AnitomyIdentificationParser implements IdentificationParser {
 	readonly version =
-		`anitomy-ng@1.0.10:${identificationPolicy.normalizationVersion}`;
+		`anitomy-ng@1.0.10:${identificationDefaults.normalizationVersion}`;
 	extractRelease(title: string): ExtractionEvidence {
 		const result = this.extract([title], true)[0];
 		if (!result) throw new Error("Missing release extraction.");
@@ -140,7 +140,7 @@ export class AnitomyIdentificationParser implements IdentificationParser {
 			return {
 				parser: "anitomy-ng",
 				parserVersion: "1.0.10",
-				normalizationVersion: identificationPolicy.normalizationVersion,
+				normalizationVersion: identificationDefaults.normalizationVersion,
 				contextFingerprint,
 				originalName,
 				relativePath,

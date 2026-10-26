@@ -52,18 +52,19 @@ async function scan(files) {
 	}
 }
 
-test("allows policy and public contracts, same-module implementation, and bootstrap composition", async () => {
+test("allows defaults, policy and public contracts, same-module implementation, and bootstrap composition", async () => {
 	assert.deepEqual(
 		await scan({
 			"backend/src/modules/test/a/domain/model.ts":
 				"export interface Value { id: string }",
 			"backend/src/modules/test/a/policy.ts": "export const policy = 1;",
+			"backend/src/modules/test/a/defaults.ts": "export const defaults = 2;",
 			"backend/src/modules/test/a/public.ts":
 				"export type { Value } from './domain/model.js';",
 			"backend/src/modules/test/a/application/service.ts":
 				"export const value = 1;",
 			"backend/src/modules/test/b/application/service.ts":
-				"import type { Value } from '../../a/public.js'; import { policy } from '../../a/policy.js'; export const value: Value = { id: String(policy) };",
+				"import type { Value } from '../../a/public.js'; import { policy } from '../../a/policy.js'; import { defaults } from '../../a/defaults.js'; export const value: Value = { id: String(policy + defaults) };",
 			"backend/src/modules/test/create.ts":
 				"export { value } from './a/application/service.js';",
 			"backend/src/app/bootstrap/main.ts":
@@ -650,4 +651,16 @@ test("Bangumi protocol cannot import Metadata business contracts", async () => {
 			"export interface Entry { id: string }",
 	});
 	assert.ok(violations.includes("provider-protocol-does-not-import-business"));
+});
+
+test("defaults cannot load application implementations", async () => {
+	const violations = await scan({
+		"backend/src/modules/test/a/defaults.ts":
+			"export { value } from './application/service.js';",
+		"backend/src/modules/test/a/application/service.ts":
+			"export const value = 1;",
+	});
+	assert.ok(
+		violations.includes("public-and-policy-do-not-load-implementation"),
+	);
 });

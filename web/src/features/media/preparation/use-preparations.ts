@@ -1,3 +1,4 @@
+import { preparationConstraints } from "@anishelf/backend/contracts/defaults";
 import {
 	keepPreviousData,
 	useMutation,
@@ -9,7 +10,7 @@ import { useTranslation } from "react-i18next";
 import { useQueryScope } from "../../../shared/api/queries.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
-import { preparationInteractionPolicy, preparationPolicy } from "./policy.js";
+import { preparationInteractionDefaults } from "./defaults.js";
 import { preparationKeys, tasksQuery } from "./queries.js";
 
 export function usePreparations(fileId?: string, enabled = true) {
@@ -33,7 +34,7 @@ export function usePreparations(fileId?: string, enabled = true) {
 		canLoadMore:
 			(!more &&
 				(query.data?.tasks.length ?? 0) >=
-					preparationPolicy.initialListLimit) ||
+					preparationConstraints.initialListLimit) ||
 			(more && query.isError),
 		loadMore: () => {
 			if (more) void query.refetch();
@@ -80,7 +81,7 @@ export function usePreparationAction() {
 					AbortSignal.any([
 						controller.signal,
 						AbortSignal.timeout(
-							preparationInteractionPolicy.preparationRequestTimeoutMs,
+							preparationInteractionDefaults.preparationRequestTimeoutMs,
 						),
 					]),
 				),

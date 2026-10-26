@@ -4,7 +4,6 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, expect, test } from "vitest";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
-import { builtinPolicy } from "../src/app/policy.js";
 import { createResourcesModule } from "../src/modules/resources/create.js";
 import { SettingsApplication } from "../src/modules/system/configuration/application/settings.js";
 import { createSystemModule } from "../src/modules/system/create.js";
@@ -39,7 +38,6 @@ test("System settings HTTP updates media settings while Resources reserves its s
 	const app = createHttpApp({
 		config: system.api.deployment,
 		logger,
-		policy: builtinPolicy,
 		registrations: [
 			(app) => registerSystemHttp(app, system.api, resources.api),
 		],

@@ -11,6 +11,7 @@ import {
 import { join } from "node:path";
 import { fileTypeFromBuffer } from "file-type";
 import type { Logger } from "pino";
+import { metadataDefaults as policy } from "../defaults.js";
 import { abortable } from "../domain/async.js";
 import {
 	type ArtworkAsset,
@@ -18,7 +19,6 @@ import {
 	MetadataError,
 	type ReadOptions,
 } from "../domain/model.js";
-import { metadataPolicy as policy } from "../policy.js";
 import type { ArtworkRecord, MetadataStore } from "../ports.js";
 import { boundedBody } from "./transport.js";
 
