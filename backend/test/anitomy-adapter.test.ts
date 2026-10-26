@@ -7,7 +7,7 @@ import type { WorkCandidate } from "../src/modules/anime/identification/public.j
 
 const parser = new AnitomyIdentificationParser();
 const work: WorkCandidate = {
-	reference: { provider: "anilist", mediaType: "anime", id: "1" },
+	reference: { id: "1" },
 	snapshotId: "test",
 	titles: ["Show"],
 	year: null,

@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { mappingDefaults } from "../src/features/anime/review/mapping-defaults.js";
 import { reviewFixture } from "./fixtures/anime.js";
 
-const reference = { provider: "anilist", id: "154587" };
+const reference = { id: "metadata-work-1" };
 test("explicit local filename numbering is preferred to both raw numbers", () => {
 	const item = reviewFixture();
 	item.evidence.rawEpisodes = ["29", "01"];
@@ -27,7 +27,7 @@ test("manual zero and unknown TV numbering do not become regular episode one", (
 	item.evidence.numbering = "unknown";
 	expect(mappingDefaults(item, reference, "TV", 10).numbers).toBe("");
 });
-test("saved mappings default only for their provider-qualified work", () => {
+test("saved mappings default only for their project work", () => {
 	const item = reviewFixture(true);
 	const link = item.associations[0];
 	if (!link) throw new Error("Missing association");
@@ -43,7 +43,7 @@ test("corroborated offset suggestions are applied exactly once by preview", () =
 		{
 			candidate: {
 				work: {
-					reference: { ...reference, mediaType: "anime" },
+					reference: { id: reference.id },
 					snapshotId: "frozen",
 					titles: ["Ocean Season 2"],
 					year: null,

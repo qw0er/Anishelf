@@ -22,8 +22,6 @@ export function useReviewController(item: CatalogReviewItem) {
 	const navigate = useNavigate();
 	const noticeId = `review-operation:${item.id}`;
 	const [reference, setReference] = useState<{
-		provider?: string;
-		mediaType?: "anime";
 		id: string;
 	} | null>(() =>
 		item.available

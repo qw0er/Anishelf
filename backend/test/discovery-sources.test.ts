@@ -67,7 +67,7 @@ test("Subscriptions save and refresh an opaque source without protocol configura
 	const candidates = new Map<string, Candidate[]>();
 	const target: AcquisitionTarget = {
 		work: {
-			reference: { provider: "anilist", mediaType: "anime", id: "1" },
+			reference: { id: "1" },
 			snapshotId: "metadata",
 			titles: ["Frieren"],
 			titleVariants: [],

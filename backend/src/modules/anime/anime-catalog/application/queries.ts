@@ -19,7 +19,7 @@ import { type CatalogContext, page } from "./context.js";
 export class CatalogQueries {
 	constructor(private readonly context: CatalogContext) {}
 	async availableEpisodes(
-		reference: import("../../../../shared/external-reference.js").ExternalWorkReference,
+		reference: import("../../metadata/public.js").WorkReference,
 	) {
 		const scope = await this.context.scope();
 		const work = this.context.options.store.findWork(reference);
@@ -44,7 +44,7 @@ export class CatalogQueries {
 		epoch: number,
 	): Promise<WorkCard> {
 		const link = this.context.options.store.link(work.id);
-		if (!link) throw new Error("Catalog work is missing its provider link.");
+		if (!link) throw new Error("Catalog work is missing its metadata link.");
 		const availableEpisodeTargets: EpisodePlaybackTarget[] = [];
 		let availableEpisodes = 0;
 		let availableRegularEpisodes = 0;
@@ -159,7 +159,7 @@ export class CatalogQueries {
 			);
 			for (const work of result.items) {
 				const link = this.context.options.store.link(work.id);
-				if (!link) throw new Error("Catalog provider link is missing.");
+				if (!link) throw new Error("Catalog metadata link is missing.");
 				items.push({
 					...work,
 					reference: link.reference,
@@ -189,7 +189,7 @@ export class CatalogQueries {
 	}
 	private snapshot(workId: string): CachedMetadata<WorkDetails> {
 		const link = this.context.options.store.link(workId);
-		if (!link) throw new Error("Catalog work is missing its provider link.");
+		if (!link) throw new Error("Catalog work is missing its metadata link.");
 		const current = this.context.options.metadata.current(link.reference);
 		if (current) return current;
 		const value = this.context.options.metadata.snapshot(link.snapshotId);
@@ -270,7 +270,7 @@ export class CatalogQueries {
 		);
 		this.context.options.sources.assertAccessRevision(scope.revision);
 		const link = this.context.options.store.link(id);
-		if (!link) throw new Error("Catalog work is missing its provider link.");
+		if (!link) throw new Error("Catalog work is missing its metadata link.");
 		if (this.context.options.store.work(id)?.revision !== work.revision)
 			conflict("The work changed while loading its detail. Reload it.");
 		const snapshot = this.snapshot(id);

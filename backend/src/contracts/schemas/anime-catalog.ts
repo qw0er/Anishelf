@@ -1,8 +1,5 @@
 import { Type } from "typebox";
-import {
-	MetadataDetailsResponseSchema,
-	MetadataReferenceSchema,
-} from "./metadata.js";
+import { MetadataDetailsResponseSchema } from "./metadata.js";
 
 const id = Type.String({ minLength: 1, maxLength: 200 });
 const text = Type.String({ minLength: 1, maxLength: 500 });
@@ -19,10 +16,7 @@ const decision = Type.Union([
 	Type.Literal("confirmed"),
 	Type.Literal("rejected"),
 ]);
-const reference = Type.Object(
-	{ provider: id, mediaType: Type.Literal("anime"), id },
-	{ additionalProperties: false },
-);
+const reference = Type.Object({ id }, { additionalProperties: false });
 const target = Type.Object(
 	{
 		kind,
@@ -260,7 +254,7 @@ const page = <T extends ReturnType<typeof Type.Object>>(item: T) =>
 export const CatalogReviewListSchema = page(review);
 export const CatalogPreviewRequestSchema = Type.Object(
 	{
-		reference: Type.Union([reference, MetadataReferenceSchema]),
+		reference: reference,
 		rows: Type.Array(
 			Type.Object(
 				{

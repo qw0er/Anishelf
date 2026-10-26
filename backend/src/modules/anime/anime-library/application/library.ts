@@ -9,6 +9,7 @@ import type {
 	EpisodePlaybackTarget,
 	WorkCard,
 } from "../../anime-catalog/public.js";
+import type { MetadataAssociations } from "../../metadata/public.js";
 import type {
 	TrackingListEntry,
 	TrackingListsApi,
@@ -27,6 +28,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			catalog: Pick<AnimeCatalogApi, "index" | "cards"> | undefined;
 			lists: TrackingListsApi;
 			logger: Logger;
+			associations?: MetadataAssociations;
 		},
 	) {}
 	async list(
@@ -54,11 +56,24 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 		const addedAt = new Map<string, number>();
 		const cards = new Map<string, LibraryCard>();
 		const localKeys = new Set(
-			index?.items.map((work) => workKey(work.reference)) ?? [],
+			index?.items.flatMap((work) => {
+				const ref = this.options.associations?.externalReference(
+					work.reference,
+					tracking.provider.key,
+				);
+				return ref ? [workKey(ref)] : [];
+			}) ?? [],
 		);
 		for (const work of index?.items ?? []) {
-			const viewing = tracked.get(workKey(work.reference));
-			const key = workKey(work.reference);
+			const mapped = this.options.associations?.externalReference(
+				work.reference,
+				tracking.provider.key,
+			);
+			const reference =
+				mapped ?? this.options.associations?.externalReference(work.reference);
+			if (!reference) continue;
+			const viewing = mapped ? tracked.get(workKey(mapped)) : undefined;
+			const key = workKey(reference);
 			if (
 				(query.availability === "available" && !work.available) ||
 				(query.availability === "unavailable" && work.available) ||
@@ -80,7 +95,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			cards.set(key, {
 				id: work.id,
 				localWorkId: work.id,
-				reference: work.reference,
+				reference,
 				displayTitle: work.providerTitle,
 				format: work.format,
 				year: work.year,
@@ -95,14 +110,13 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 				remoteCoverUrl: null,
 				nextPlayback: null,
 				viewing: viewing ? viewingState(viewing) : null,
-				viewingAvailability:
-					work.reference.provider !== tracking.provider.key
-						? "unmapped"
-						: tracking.fetchedAt === null
-							? "unknown"
-							: viewing
-								? "tracked"
-								: "untracked",
+				viewingAvailability: !mapped
+					? "unmapped"
+					: tracking.fetchedAt === null
+						? "unknown"
+						: viewing
+							? "tracked"
+							: "untracked",
 			});
 		}
 		if (query.scope === "all" && query.availability !== "available")

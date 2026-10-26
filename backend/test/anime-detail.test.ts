@@ -8,6 +8,7 @@ import { AnimeQueries } from "../src/modules/anime/queries.js";
 import type { TrackingListSnapshot } from "../src/modules/anime/tracking/public.js";
 import { DomainError } from "../src/shared/errors.js";
 import { workKey } from "../src/shared/external-reference.js";
+import { fixtureAssociations } from "./support/metadata-associations.js";
 
 const logger = pino({ enabled: false });
 const reference = {
@@ -75,6 +76,7 @@ function fixture() {
 		{ get },
 		{ list, status },
 		logger,
+		fixtureAssociations(),
 	);
 	return { queries, list, status, get, findLocalWork, getLocalWorkDetail };
 }

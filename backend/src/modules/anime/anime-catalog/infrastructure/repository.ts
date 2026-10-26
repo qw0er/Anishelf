@@ -4,7 +4,10 @@ import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
 import { mediaSources } from "../../../resources/persistence.js";
 import type { SourceRegistry } from "../../../resources/public.js";
-import { metadataWorks } from "../../metadata/persistence.js";
+import {
+	metadataReferences,
+	metadataWorks,
+} from "../../metadata/persistence.js";
 
 import type {
 	Association,
@@ -12,8 +15,8 @@ import type {
 	ConfirmationResult,
 	LocalEpisode,
 	LocalWork,
+	MetadataLink,
 	Page,
-	ProviderLink,
 	ReviewRecord,
 } from "../domain/model.js";
 import type { CatalogStore } from "../ports.js";
@@ -30,8 +33,8 @@ import {
 import {
 	catalogAssociations,
 	catalogEpisodes,
+	catalogMetadataLinks,
 	catalogOperations,
-	catalogProviderLinks,
 	catalogReviews,
 	catalogReviewsResultProposals,
 	catalogWorks,
@@ -97,7 +100,7 @@ export class CatalogRepository implements CatalogStore {
 		decision: ReviewRecord["decision"] | undefined,
 		page: number,
 		perPage: number,
-		reference?: ProviderLink["reference"],
+		reference?: MetadataLink["reference"],
 	): Page<ReviewRecord> {
 		const rows = this.reviewQuery()
 			.where(
@@ -105,7 +108,7 @@ export class CatalogRepository implements CatalogStore {
 					inArray(mediaSources.rootId, [...scopeIds]),
 					decision ? eq(catalogReviews.decision, decision) : undefined,
 					reference
-						? sql`exists (select 1 from ${catalogReviewsResultProposals} where ${catalogReviewsResultProposals.parentId} = ${catalogReviews.id} and ${catalogReviewsResultProposals.candidateWorkReferenceProvider} = ${reference.provider} and ${catalogReviewsResultProposals.candidateWorkReferenceMediaType} = ${reference.mediaType} and ${catalogReviewsResultProposals.candidateWorkReferenceId} = ${reference.id})`
+						? sql`exists (select 1 from ${catalogReviewsResultProposals} where ${catalogReviewsResultProposals.parentId} = ${catalogReviews.id} and ${catalogReviewsResultProposals.candidateWorkReferenceId} = ${reference.id})`
 						: undefined,
 				),
 			)
@@ -177,14 +180,14 @@ export class CatalogRepository implements CatalogStore {
 			.select({ work: catalogWorks, info: metadataWorks })
 			.from(catalogWorks)
 			.innerJoin(
-				catalogProviderLinks,
-				eq(catalogProviderLinks.workId, catalogWorks.id),
+				catalogMetadataLinks,
+				eq(catalogMetadataLinks.workId, catalogWorks.id),
 			)
 			.innerJoin(
 				metadataWorks,
 				and(
-					eq(metadataWorks.provider, catalogProviderLinks.provider),
-					eq(metadataWorks.providerId, catalogProviderLinks.providerId),
+					eq(metadataWorks.provider, "metadata"),
+					eq(metadataWorks.providerId, catalogMetadataLinks.metadataWorkId),
 				),
 			);
 	}
@@ -192,20 +195,18 @@ export class CatalogRepository implements CatalogStore {
 		const row = this.workQuery().where(eq(catalogWorks.id, id)).get();
 		return row ? readCatalogWorks(row.work, row.info) : null;
 	}
-	link(workId: string): ProviderLink | null {
+	link(workId: string): MetadataLink | null {
 		const row = this.store
 			.select()
-			.from(catalogProviderLinks)
-			.where(eq(catalogProviderLinks.workId, workId))
+			.from(catalogMetadataLinks)
+			.where(eq(catalogMetadataLinks.workId, workId))
 			.get();
 		return row
 			? {
 					workId,
 					snapshotId: row.snapshotId,
 					reference: {
-						provider: row.provider,
-						mediaType: row.mediaType,
-						id: row.providerId,
+						id: row.metadataWorkId,
 					},
 				}
 			: null;
@@ -227,14 +228,16 @@ export class CatalogRepository implements CatalogStore {
 			.all()
 			.map((row) => readCatalogWorks(row.work, row.info));
 	}
-	findWork(reference: ProviderLink["reference"]): LocalWork | null {
+	findWork(reference: MetadataLink["reference"]): LocalWork | null {
 		const row = this.workQuery()
 			.where(
 				and(
-					eq(catalogProviderLinks.provider, reference.provider),
-					eq(catalogProviderLinks.mediaType, reference.mediaType),
-					eq(catalogProviderLinks.providerId, reference.id),
+					sql`(${catalogMetadataLinks.metadataWorkId} = ${reference.id} or ${catalogMetadataLinks.metadataWorkId} in (select ${metadataReferences.id} from ${metadataReferences} where ${metadataReferences.workId} = (select ${metadataReferences.workId} from ${metadataReferences} where ${metadataReferences.id} = ${reference.id})))`,
 				),
+			)
+			.orderBy(
+				sql`case when ${catalogMetadataLinks.metadataWorkId} = ${reference.id} then 0 else 1 end`,
+				asc(catalogWorks.id),
 			)
 			.get();
 		return row ? readCatalogWorks(row.work, row.info) : null;
@@ -314,20 +317,18 @@ export class CatalogRepository implements CatalogStore {
 			hasNextPage: rows.length > perPage,
 		};
 	}
-	saveWork(work: LocalWork, link: ProviderLink): void {
+	saveWork(work: LocalWork, link: MetadataLink): void {
 		this.store.transaction((store) => {
 			writeCatalogWorks(store, work);
 			store
-				.insert(catalogProviderLinks)
+				.insert(catalogMetadataLinks)
 				.values({
 					workId: work.id,
 					snapshotId: link.snapshotId,
-					provider: link.reference.provider,
-					mediaType: link.reference.mediaType,
-					providerId: link.reference.id,
+					metadataWorkId: link.reference.id,
 				})
 				.onConflictDoUpdate({
-					target: catalogProviderLinks.workId,
+					target: catalogMetadataLinks.workId,
 					set: { snapshotId: link.snapshotId },
 				})
 				.run();

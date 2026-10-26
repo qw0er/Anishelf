@@ -8,11 +8,7 @@ import type {
 import { trackingProvider } from "../tracking-fixture.js";
 
 export function animeFixture(): LocalWorkDetailResponse {
-	const reference = {
-		provider: "anilist",
-		mediaType: "anime",
-		id: "154587",
-	} as const;
+	const reference = { id: "metadata-work-1" };
 	const work = {
 		id: "work-1",
 		providerTitle: "Frieren",
@@ -183,7 +179,11 @@ export function animeDetailFixture(
 	_viewing?: TrackingEntryResponse,
 ): AnimeDetailResponse {
 	return {
-		reference: local.work.reference,
+		reference: {
+			provider: "anilist",
+			mediaType: "anime",
+			id: "154587",
+		},
 		displayTitle: local.work.displayTitle,
 		metadata: local.metadata,
 		metadataError: null,

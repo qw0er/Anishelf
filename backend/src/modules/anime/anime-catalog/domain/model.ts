@@ -1,9 +1,12 @@
-import type { ExternalWorkReference as ProviderReference } from "../../../../shared/external-reference.js";
 import type {
 	ExtractionEvidence,
 	IdentificationResult,
 } from "../../identification/public.js";
-import type { CachedMetadata, WorkDetails } from "../../metadata/public.js";
+import type {
+	CachedMetadata,
+	WorkReference as ProviderReference,
+	WorkDetails,
+} from "../../metadata/public.js";
 
 export interface EpisodeTarget {
 	kind: "regular" | "special" | "movie";
@@ -22,7 +25,7 @@ export interface LocalWork {
 	createdAt: number;
 	updatedAt: number;
 }
-export interface ProviderLink {
+export interface MetadataLink {
 	workId: string;
 	reference: ProviderReference;
 	snapshotId: string;

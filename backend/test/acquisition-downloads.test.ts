@@ -43,7 +43,7 @@ const key = "anilist:anime:1",
 	hash = "a".repeat(40);
 const target: AcquisitionTarget = {
 	work: {
-		reference: { provider: "anilist", mediaType: "anime", id: "1" },
+		reference: { id: "1" },
 		snapshotId: "snapshot",
 		titles: ["Frieren"],
 		year: 2023,

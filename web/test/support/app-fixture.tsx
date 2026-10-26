@@ -595,7 +595,14 @@ export function mockAnime(detail: ReturnType<typeof animeFixture>) {
 		const path = String(input);
 		if (path.startsWith("/api/anime/library?"))
 			return json({
-				items: [{ ...detail.work, localWorkId: detail.work.id, viewing: null }],
+				items: [
+					{
+						...detail.work,
+						reference: animeDetailFixture(detail).reference,
+						localWorkId: detail.work.id,
+						viewing: null,
+					},
+				],
 				page: Number(
 					new URL(path, "http://localhost").searchParams.get("page") ?? 1,
 				),

@@ -64,9 +64,10 @@ export interface MetadataApi {
 	): Promise<string | null>;
 }
 
+/** Explicit external integration boundary, separate from MetadataApi content reads. */
+export type { MetadataAssociations } from "./associations.js";
 export type {
 	CachedMetadata,
 	MetadataFailure,
-	ReadOptions,
 	WorkDetails,
 } from "./domain/model.js";

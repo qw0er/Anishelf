@@ -262,8 +262,6 @@ export function readCatalogReviews(
 					candidate: {
 						work: {
 							reference: {
-								provider: child.candidateWorkReferenceProvider,
-								mediaType: child.candidateWorkReferenceMediaType,
 								id: child.candidateWorkReferenceId,
 							},
 							snapshotId: child.candidateWorkSnapshotId,
@@ -780,10 +778,6 @@ export function writeCatalogReviews(
 				rowId: id1,
 				parentId: parent1,
 				ordinalIndex: index1,
-				candidateWorkReferenceProvider:
-					item1?.candidate?.work?.reference?.provider,
-				candidateWorkReferenceMediaType:
-					item1?.candidate?.work?.reference?.mediaType,
 				candidateWorkReferenceId: item1?.candidate?.work?.reference?.id,
 				candidateWorkSnapshotId: item1?.candidate?.work?.snapshotId,
 				candidateWorkTitleVariantsPresent:

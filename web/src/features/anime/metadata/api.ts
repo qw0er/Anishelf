@@ -1,4 +1,3 @@
-import { workKey } from "@anishelf/backend/contracts/references";
 import { type RequestOptions, request } from "../../../shared/api/client.js";
 import type {
 	IdentificationStatusResponse,
@@ -30,22 +29,11 @@ export const searchMetadata = (
 		"GET",
 		options,
 	);
-export const metadataDetail = async (
-	reference: { id: string; provider?: string; mediaType?: "anime" },
+export const metadataDetail = (
+	reference: { id: string },
 	options?: RequestOptions,
-): Promise<MetadataDetailsResponse> => {
-	const { id } = reference.provider
-		? await resolveMetadataReference(
-				workKey({
-					provider: reference.provider,
-					mediaType: "anime",
-					id: reference.id,
-				}),
-				options,
-			)
-		: reference;
-	return request(`/api/metadata/${encodeURIComponent(id)}`, "GET", options);
-};
+): Promise<MetadataDetailsResponse> =>
+	request(`/api/metadata/${encodeURIComponent(reference.id)}`, "GET", options);
 export const getIdentificationStatus = (
 	options?: RequestOptions,
 ): Promise<IdentificationStatusResponse> =>

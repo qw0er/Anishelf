@@ -56,6 +56,7 @@ const envelope = <T extends ReturnType<typeof Type.Object>>(data: T) =>
 	});
 const page = <T extends ReturnType<typeof Type.Object>>(item: T) =>
 	Type.Object({
+		unavailable: Type.Optional(Type.Boolean()),
 		items: Type.Array(item),
 		page: Type.Integer(),
 		perPage: Type.Integer(),
@@ -128,7 +129,6 @@ export const MetadataSearchQuerySchema = Type.Object(
 	{
 		...MetadataPageQuerySchema.properties,
 		query: Type.String({ minLength: 1, maxLength: 200 }),
-		provider: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
 	},
 	{ additionalProperties: false },
 );

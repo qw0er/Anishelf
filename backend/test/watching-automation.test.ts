@@ -64,7 +64,7 @@ async function fixture() {
 		}));
 	const target: AcquisitionTarget = {
 		work: {
-			reference: { provider: "anilist", mediaType: "anime", id: "1" },
+			reference: { id: "1" },
 			snapshotId: "metadata",
 			titles: ["Frieren"],
 			year: 2023,

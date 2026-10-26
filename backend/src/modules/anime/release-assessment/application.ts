@@ -10,6 +10,7 @@ import {
 	rankCandidates,
 	titleEvidence,
 } from "../identification/public.js";
+import type { MetadataAssociations } from "../metadata/public.js";
 import { releaseAttributes } from "./attributes.js";
 import type {
 	AcquisitionTarget,
@@ -25,6 +26,7 @@ export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 		private readonly catalog:
 			| Pick<AnimeCatalogApi, "availableEpisodes">
 			| undefined,
+		private readonly associations: MetadataAssociations,
 	) {}
 	async target(key: string, signal?: AbortSignal): Promise<AcquisitionTarget> {
 		let reference: ReturnType<typeof workReference>;
@@ -33,20 +35,25 @@ export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 		} catch {
 			throw new DomainError("INVALID_REQUEST", "Invalid subscription target.");
 		}
-		const snapshot = await this.metadata.get(reference, {
-			...(signal ? { signal } : {}),
-		});
+		const snapshot = await this.metadata.get(
+			this.associations.referenceForExternal(reference),
+			{
+				...(signal ? { signal } : {}),
+			},
+		);
 		const data = snapshot.data;
 		const ordinals = data.titles.map((title) => titleEvidence(title.value));
 		const seasons = [...new Set(ordinals.flatMap((title) => title.seasons))];
 		const parts = [...new Set(ordinals.flatMap((title) => title.parts))];
-		const availability = (await this.catalog?.availableEpisodes(reference)) ?? {
+		const availability = (await this.catalog?.availableEpisodes(
+			snapshot.data.reference,
+		)) ?? {
 			episodes: [],
 			revision: "no-catalog",
 		};
 		return {
 			work: {
-				reference,
+				reference: snapshot.data.reference,
 				snapshotId: snapshot.snapshotId,
 				titles: data.titles.map((title) => title.value),
 				titleVariants: data.titles.map((title) => ({

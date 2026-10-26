@@ -1,38 +1,32 @@
-import type { ExternalWorkReference } from "../../../shared/external-reference.js";
 import type {
 	RegisteredSource,
 	SourceIdentity,
 	SourceRegistry,
 } from "../../resources/public.js";
 import type { IdentificationResult } from "../identification/public.js";
-import type {
-	CachedMetadata,
-	MetadataApi,
-	ReadOptions,
-	WorkDetails,
-} from "../metadata/public.js";
+import type { MetadataApi } from "../metadata/public.js";
 import type {
 	Association,
 	CatalogQuery,
 	ConfirmationResult,
 	LocalEpisode,
 	LocalWork,
+	MetadataLink,
 	Page,
-	ProviderLink,
 	ReviewRecord,
 } from "./domain/model.js";
 
 export interface CatalogMetadata
 	extends Pick<
 		MetadataApi,
-		"snapshot" | "retain" | "release" | "snapshotArtwork" | "readArtwork"
-	> {
-	get(
-		reference: ExternalWorkReference,
-		options?: ReadOptions,
-	): Promise<CachedMetadata<WorkDetails>>;
-	current(reference: ExternalWorkReference): CachedMetadata<WorkDetails> | null;
-}
+		| "get"
+		| "current"
+		| "snapshot"
+		| "retain"
+		| "release"
+		| "snapshotArtwork"
+		| "readArtwork"
+	> {}
 export interface CatalogStore extends SourceRegistry {
 	transaction<T>(operation: (store: CatalogStore) => T): T;
 	publish(
@@ -46,20 +40,20 @@ export interface CatalogStore extends SourceRegistry {
 		decision: ReviewRecord["decision"] | undefined,
 		page: number,
 		perPage: number,
-		reference?: ProviderLink["reference"],
+		reference?: MetadataLink["reference"],
 	): Page<ReviewRecord>;
 	work(id: string): LocalWork | null;
 	/** Associated works across saved roots, paged by stable ID for background work. */
 	refreshWorks(afterId: string, limit: number): LocalWork[];
-	link(workId: string): ProviderLink | null;
-	findWork(reference: ProviderLink["reference"]): LocalWork | null;
+	link(workId: string): MetadataLink | null;
+	findWork(reference: MetadataLink["reference"]): LocalWork | null;
 	list(
 		scopeIds: readonly string[],
 		query: CatalogQuery,
 		page: number,
 		perPage: number,
 	): Page<LocalWork>;
-	saveWork(work: LocalWork, link: ProviderLink): void;
+	saveWork(work: LocalWork, link: MetadataLink): void;
 	episodes(workId: string): LocalEpisode[];
 	saveEpisode(episode: LocalEpisode): void;
 	associations(sourceId: string): (Association & { episode: LocalEpisode })[];

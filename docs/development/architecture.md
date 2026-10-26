@@ -118,20 +118,39 @@ flowchart LR
 | Anime Library | Read-only join of Catalog and Tracking with filtering/pagination |
 | Provider protocols | AniList and Bangumi typed clients, response validation, shared pacing and cancellation |
 
-Metadata's public API uses permanent project work IDs (`reference: { id }`). Search,
-detail, relations, schedules, retained snapshots and artwork all use this identity.
-Search accepts an optional provider key for independent source retrieval; omitted
-keys use AniList. Search results are not federated or merged across sources.
-Supported external links and qualified IDs are resolved internally; source mappings and source cache evidence stay private.
-Returned descriptions use the project vocabulary, source page/update fields and
-source studio/schedule IDs are omitted, and artwork uses project proxy URLs.
+Metadata's ordinary content API uses permanent project work IDs (`reference: { id }`).
+Search, detail, relations, schedules, retained snapshots and artwork use this identity.
+Search accepts a query and pagination, never a provider selector. Metadata searches
+its configured sources, interleaves results in stable source order and deduplicates
+only verified associations. Equal titles alone never establish identity. Source
+prefix pages are cached independently; the public search window is bounded to 500
+results, with at most 50 items per page. One source failing leaves available results
+with a generic partial-failure status; all sources failing returns a Metadata error.
 
-Catalog and Tracking keep their explicit external associations for viewing-state
-submission. Composition translates those associations into metadata work IDs on
-input; descriptive results remain source-independent. Identification retains the
-external association needed to confirm a Tracking target, separately from metadata
-provenance. Metadata and Tracking use consumer-owned ports; provider protocol code
-does not import their business types.
+A project identity may have several source associations. Explicit association keeps
+the target ID canonical and every previously issued ID as a permanent alias. It
+requires confirmation that the entries describe the same work with equivalent
+regular-episode numbering, and rejects conflicting entries from the same source.
+No automatic title matching or episode-offset inference is performed. Detail reads
+combine only associated sources in stable order: the first available source owns
+conflicting scalar values and ratings, later sources fill missing fields, and titles
+are deduplicated. Cache state, freshness and safe failures remain visible without
+exposing source identities. Unsupported schedules/relations return an empty page
+with `unavailable: true`, rather than requiring consumers to inspect a provider.
+
+Project documents retain their exact projected content and artwork evidence inside
+immutable snapshots, independently of source cache eviction or later associations.
+Snapshot pins and pruning use the existing Metadata lifecycle. Descriptive results
+omit source page/update fields and studio/schedule IDs; artwork uses project URLs.
+
+Identification and Catalog use project references, including persisted proposals
+and confirmed metadata links. They read the ordinary Metadata port. External
+Tracking and Acquisition identities are translated through the separate
+`MetadataAssociations` integration capability, not the content API. Combined
+Library/detail views may expose explicit Tracking associations for viewing commands;
+this does not make source selection part of metadata retrieval. Provider protocols
+do not import Metadata or Tracking business contracts.
+
 Manual decisions survive recognition refreshes. AniList outages leave local playback,
 subtitles, preparation, resume and history available.
 
@@ -403,15 +422,24 @@ bundled connector command accepts `initializeSite: true` as explicit permission 
 retry manual setup; selecting the bundled connection alone does not grant it.
 An administrator password still requires site setup in Jackett management.
 
-### Independent Bangumi metadata
+### Bangumi protocol and project metadata
 
-Bangumi implements the Metadata provider port through a separate protocol client.
-`GET /api/metadata/search?provider=bangumi&query=...` searches anime subjects only.
+Bangumi implements the internal Metadata provider port through a separate protocol
+client. `GET /api/metadata/search?query=...` includes configured sources automatically.
 `GET /api/metadata/reference?value=https://bgm.tv/subject/400602` (also `bangumi.tv`,
 `chii.in`, or `bangumi:anime:400602`) resolves a permanent project ID; details and
-artwork then use the existing project-ID routes. Unqualified numeric inputs still
-resolve against the default provider. AniList remains the default search and the
-only Tracking provider. Bangumi and AniList entries remain separate identities.
+artwork use project-ID routes. Unqualified numeric inputs resolve against the
+default source at this external-input boundary. AniList remains the only Tracking
+provider. Independent source entries remain distinct until explicitly associated.
+
+`POST /api/metadata/associations` is an authenticated management command, subject to
+the normal mutation protections. Its body contains `target: { id }`, `other: { id }`
+and `sameEpisodeNumbering: true`. The operator must verify both work identity and
+numbering first. The response is the canonical target reference; old IDs continue
+to resolve. This operation does not merge local Catalog works, episodes or files. App composition
+rejects association when both groups already own different local Catalog works; those
+local decisions must be reconciled first.
+There is no source-management UI or automatic cross-source matching in this change.
 
 The consumed OpenAPI subset is checked in at
 `backend/src/modules/anime/bangumi/openapi.yaml`, copied from the
@@ -447,5 +475,5 @@ Bangumi's `eps` supplies the declared episode count; `total_episodes` counts dat
 chapters and is not used as a regular-episode count. Premiere dates never imply
 finished/releasing status. Unsupported schedules, relations and canonical episode
 catalogs remain unavailable. Scores are projected to the existing 0–100 scale.
-Cross-source mapping, merged descriptions, Bangumi Tracking and a source-selection
-UI are outside this phase.
+Bangumi Tracking and a canonical cross-source episode catalog remain unavailable.
+Source-specific capabilities are handled inside the project Metadata boundary.

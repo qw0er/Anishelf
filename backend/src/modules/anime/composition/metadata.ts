@@ -15,6 +15,10 @@ export async function createMetadataModule(options: {
 	providers: MetadataProvider[];
 	defaultProvider: string;
 	artworkHosts: readonly string[];
+	canAssociate?: (
+		target: import("../metadata/public.js").WorkReference,
+		other: import("../metadata/public.js").WorkReference,
+	) => boolean;
 }): Promise<MetadataApplication> {
 	const artwork = new MetadataArtworkCache({
 		hosts: options.artworkHosts,
@@ -31,12 +35,17 @@ export async function createMetadataModule(options: {
 		artwork,
 		providers: options.providers,
 	});
-	return new MetadataApplication(source, options.store, options.logger);
+	return new MetadataApplication(
+		source,
+		options.store,
+		options.logger,
+		options.canAssociate,
+	);
 }
 
 /** Explicit provider title ordinals only; calendar seasons/relations are not ordinals. */
 export function createIdentificationMetadata(
-	metadata: MetadataApplication,
+	metadata: Pick<import("../metadata/public.js").MetadataApi, "search">,
 ): IdentificationMetadata {
 	return {
 		search: async (query, signal) => {
@@ -47,7 +56,7 @@ export function createIdentificationMetadata(
 				const seasons = [...new Set(evidence.flatMap((item) => item.seasons))];
 				const parts = [...new Set(evidence.flatMap((item) => item.parts))];
 				return {
-					reference: metadata.externalReference(work.reference),
+					reference: work.reference,
 					snapshotId: result.snapshotId,
 					titles: work.titles.map((title) => title.value),
 					titleVariants: work.titles.map((title) => ({
@@ -70,19 +79,9 @@ export function createIdentificationMetadata(
 	};
 }
 
-/** Adapt explicit Catalog/Tracking associations on input; results remain source-independent. */
+/** Ordinary content consumers only receive the project Metadata API. */
 export function createCatalogMetadata(
-	metadata: import("../metadata/application/metadata.js").MetadataApplication,
+	metadata: import("../metadata/public.js").MetadataApi,
 ): import("../anime-catalog/ports.js").CatalogMetadata {
-	return {
-		get: (reference, options) =>
-			metadata.get(metadata.referenceForExternal(reference), options),
-		current: (reference) =>
-			metadata.current(metadata.referenceForExternal(reference)),
-		snapshot: (id) => metadata.snapshot(id),
-		retain: (id, owner) => metadata.retain(id, owner),
-		release: (id, owner) => metadata.release(id, owner),
-		snapshotArtwork: (id, kind) => metadata.snapshotArtwork(id, kind),
-		readArtwork: (id) => metadata.readArtwork(id),
-	};
+	return metadata;
 }

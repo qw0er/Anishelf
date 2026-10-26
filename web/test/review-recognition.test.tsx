@@ -21,8 +21,8 @@ vi.mock("../src/features/anime/metadata/public.js", () => ({
 		queryKey: ["test-search"],
 		queryFn: async () => null,
 	}),
-	metadataDetailQuery: (provider: string, id: string) => ({
-		queryKey: ["test-detail", provider, id],
+	metadataDetailQuery: (reference: { id: string }) => ({
+		queryKey: ["test-detail", reference.id],
 		queryFn: async () => null,
 	}),
 }));
@@ -34,7 +34,7 @@ afterEach(() => {
 function identified() {
 	const item = reviewFixture();
 	item.recognizedWork = {
-		reference: { provider: "anilist", mediaType: "anime", id: "123" },
+		reference: { id: "123" },
 		title: "Ocean",
 		mappingStatus: "pending",
 	};
@@ -50,8 +50,6 @@ test("recognized work preselects details while preserving the user's later selec
 	expect(result.current.preview).toBeNull();
 	act(() =>
 		result.current.selectWork({
-			provider: "anilist",
-			mediaType: "anime",
 			id: "456",
 		}),
 	);
@@ -67,7 +65,7 @@ test("unavailable sources do not preselect, and confirmed associations take prec
 	).toBeNull();
 	const confirmed = reviewFixture(true);
 	confirmed.recognizedWork = item.recognizedWork ?? {
-		reference: { provider: "anilist", mediaType: "anime", id: "123" },
+		reference: { id: "123" },
 		title: "Ocean",
 		mappingStatus: "pending",
 	};

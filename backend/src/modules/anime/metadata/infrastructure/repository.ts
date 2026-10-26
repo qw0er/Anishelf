@@ -31,24 +31,83 @@ export class MetadataRepository implements MetadataStore {
 					),
 				)
 				.get();
-			if (existing) return existing.id;
+			if (existing) return existing.workId;
 			const id = randomUUID();
 			this.store
 				.insert(metadataReferences)
-				.values({ id, provider: reference.provider, providerId: reference.id })
+				.values({
+					id,
+					workId: id,
+					provider: reference.provider,
+					providerId: reference.id,
+				})
 				.run();
 			return id;
 		});
 	}
-	reference(id: string): ExternalWorkReference | null {
+	originalIdentity(reference: ExternalWorkReference): string {
+		this.identify(reference);
 		const row = this.store
 			.select()
 			.from(metadataReferences)
-			.where(eq(metadataReferences.id, id))
+			.where(
+				and(
+					eq(metadataReferences.provider, reference.provider),
+					eq(metadataReferences.providerId, reference.id),
+				),
+			)
 			.get();
-		return row
-			? { provider: row.provider, id: row.providerId, mediaType: "anime" }
-			: null;
+		if (!row) throw new Error("Metadata identity was not registered.");
+		return row.id;
+	}
+	identity(id: string): string | null {
+		return (
+			this.store
+				.select()
+				.from(metadataReferences)
+				.where(eq(metadataReferences.id, id))
+				.get()?.workId ?? null
+		);
+	}
+	references(id: string): ExternalWorkReference[] {
+		const workId = this.identity(id);
+		if (!workId) return [];
+		return this.store
+			.select()
+			.from(metadataReferences)
+			.where(eq(metadataReferences.workId, workId))
+			.orderBy(
+				asc(metadataReferences.provider),
+				asc(metadataReferences.providerId),
+			)
+			.all()
+			.map((row) => ({
+				provider: row.provider,
+				id: row.providerId,
+				mediaType: "anime",
+			}));
+	}
+	merge(target: string, other: string): void {
+		this.store.transaction(() => {
+			const targetId = this.identity(target),
+				otherId = this.identity(other);
+			if (!targetId || !otherId)
+				throw new Error("Unknown metadata work identity.");
+			if (targetId === otherId) return;
+			const sources = this.references(target),
+				others = this.references(other);
+			if (
+				others.some((other) =>
+					sources.some((source) => source.provider === other.provider),
+				)
+			)
+				throw new Error("Conflicting metadata source associations.");
+			this.store
+				.update(metadataReferences)
+				.set({ workId: targetId })
+				.where(eq(metadataReferences.workId, otherId))
+				.run();
+		});
 	}
 	private decode(row: typeof metadataSnapshots.$inferSelect): CacheEntry {
 		return {
@@ -118,6 +177,43 @@ export class MetadataRepository implements MetadataStore {
 				.values(row)
 				.onConflictDoUpdate({ target: metadataSnapshots.id, set: row })
 				.run();
+			if (entry.key.startsWith("project:")) {
+				if (entry.kind === "detail") {
+					const document = entry.data as {
+						project: { data: import("../domain/model.js").WorkDetails };
+						sourceIds: string[];
+						artwork: { cover?: WorkSummary };
+					};
+					const work = document.project.data;
+					const aliases = store
+						.select()
+						.from(metadataReferences)
+						.where(eq(metadataReferences.workId, work.reference.id))
+						.all();
+					for (const id of new Set([
+						work.reference.id,
+						...aliases.map((alias) => alias.id),
+					]))
+						saveWorkSummary(
+							store,
+							{
+								...work,
+								coverUrl: document.artwork.cover?.coverUrl ?? null,
+								reference: { provider: "metadata", mediaType: "anime", id },
+							},
+							Math.max(
+								entry.fetchedAt,
+								...(document.sourceIds ?? []).map(
+									(sourceId) =>
+										this.get(sourceId)?.fetchedAt ?? entry.fetchedAt,
+								),
+							),
+							true,
+							entry.id,
+						);
+				}
+				return;
+			}
 			if (entry.kind === "detail")
 				saveWorkSummary(
 					store,

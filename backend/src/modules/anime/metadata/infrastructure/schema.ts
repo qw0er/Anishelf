@@ -113,8 +113,10 @@ export const metadataReferences = sqliteTable(
 		id: text("id").primaryKey(),
 		provider: text("provider").notNull(),
 		providerId: text("provider_id").notNull(),
+		workId: text("work_id").notNull(),
 	},
 	(table) => [
+		index("metadata_reference_work").on(table.workId),
 		uniqueIndex("metadata_reference_source").on(
 			table.provider,
 			table.providerId,

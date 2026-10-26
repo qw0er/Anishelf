@@ -206,7 +206,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 			{
 				candidate: {
 					work: {
-						reference: { provider: "fixture", mediaType: "anime", id: "1" },
+						reference: { id: "1" },
 						snapshotId: "snapshot",
 						titles: ["Title"],
 						titleVariants: [
@@ -307,7 +307,13 @@ test("persists all normalized aggregates, preserves ordered children and survive
 		fetchedAt: 5,
 		entries,
 	} as Parameters<typeof writeTrackingListCache>[1]);
-	new MetadataRepository(store).save({
+	const metadataRepository = new MetadataRepository(store);
+	const metadataId = metadataRepository.identify({
+		provider: "fixture",
+		mediaType: "anime",
+		id: "1",
+	});
+	metadataRepository.save({
 		id: "snapshot",
 		key: "key",
 		kind: "search",
@@ -329,8 +335,11 @@ test("persists all normalized aggregates, preserves ordered children and survive
 		createdAt: 1,
 		updatedAt: 2,
 	});
+	raw
+		.prepare("INSERT INTO catalog_provider_links VALUES ('work',?,'snapshot')")
+		.run(metadataId);
 	raw.exec(
-		"INSERT INTO catalog_provider_links VALUES ('work','fixture','anime','1','snapshot'); INSERT INTO catalog_episodes VALUES ('episode','work','regular','1','1','confirmed')",
+		"INSERT INTO catalog_episodes VALUES ('episode','work','regular','1','1','confirmed')",
 	);
 	writeCatalogAssociations(store, {
 		id: "association",

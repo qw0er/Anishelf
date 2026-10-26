@@ -246,7 +246,14 @@ test("details expose the next scheduled episode for aired progress", async () =>
 });
 
 test("fresh cache survives database restart and returned values are independent", async () => {
-	const { application, dir, fetcher } = await setup(undefined, undefined, true);
+	const { application, dir, fetcher, publicMetadata } = await setup(
+		undefined,
+		undefined,
+		true,
+	);
+	const publicFirst = await publicMetadata.get(
+		publicMetadata.resolveReference("154587"),
+	);
 	const first = await application.get(reference);
 	first.data.titles.length = 0;
 	expect((await application.get(reference)).data.titles).toHaveLength(4);
@@ -272,7 +279,7 @@ test("fresh cache survives database restart and returned values are independent"
 			expect(
 				(await next.get(next.resolveReference("154587"), { cachedOnly: true }))
 					.snapshotId,
-			).toBe(first.snapshotId);
+			).toBe(publicFirst.snapshotId);
 			expect(offline).not.toHaveBeenCalled();
 		} finally {
 			await next.close();
@@ -829,7 +836,7 @@ test("actual Metadata supplies Identification proposals without calendar season 
 		status: "proposed",
 	});
 	expect(results[0]?.proposals[0]?.candidate.work).toMatchObject({
-		reference,
+		reference: { id: expect.any(String) },
 		season: null,
 		part: null,
 	});

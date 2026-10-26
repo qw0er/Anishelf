@@ -22,11 +22,7 @@ export const metadataSearchQuery = (query: string, page: number) =>
 		queryFn: ({ signal }) =>
 			searchMetadata(query, page, { signal: boundedSignal(signal) }),
 	});
-export const metadataDetailQuery = (reference: {
-	id: string;
-	provider?: string;
-	mediaType?: "anime";
-}) =>
+export const metadataDetailQuery = (reference: { id: string }) =>
 	queryOptions({
 		queryKey: ["metadata-detail", reference],
 		queryFn: async ({ signal, client }) => {

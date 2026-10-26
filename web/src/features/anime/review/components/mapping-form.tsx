@@ -33,8 +33,7 @@ export function MappingForm({
 		previewPending,
 	} = controller;
 	const mappingRef = useRef<HTMLFormElement>(null);
-	const loadedReference =
-		reference && details.data ? `${reference.provider}:${reference.id}` : null;
+	const loadedReference = reference && details.data ? reference.id : null;
 	useEffect(() => {
 		if (loadedReference)
 			mappingRef.current?.scrollIntoView?.({
@@ -51,7 +50,7 @@ export function MappingForm({
 	);
 	return (
 		<form
-			key={`${reference.provider}:${reference.id}:${item.revision}`}
+			key={`${reference.id}:${item.revision}`}
 			ref={mappingRef}
 			className="min-w-0 scroll-mt-6 space-y-4 rounded-lg border bg-card p-4 sm:p-5"
 			onChange={clearPreview}

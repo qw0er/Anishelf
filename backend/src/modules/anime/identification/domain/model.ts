@@ -1,13 +1,11 @@
 import type { SourceIdentity } from "../../../resources/public.js";
 
-interface ProviderReference {
-	provider: string;
-	mediaType: "anime";
+interface WorkReference {
 	id: string;
 }
 /** Consumer-owned metadata projection, independent of provider transport types. */
 export interface WorkCandidate {
-	reference: ProviderReference;
+	reference: WorkReference;
 	snapshotId: string;
 	titles: string[];
 	titleVariants?: {
