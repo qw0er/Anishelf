@@ -1,4 +1,8 @@
 import type {
+	MetadataAssociations,
+	MetadataManagement,
+} from "./associations.js";
+import type {
 	AiringEpisode,
 	ArtworkAsset,
 	ArtworkStatus,
@@ -62,6 +66,13 @@ export interface MetadataApi {
 		reference: WorkReference,
 		kind: "cover" | "banner",
 	): Promise<string | null>;
+}
+
+/** Assembly result; ordinary consumers depend on MetadataApi or narrower ports. */
+export interface MetadataModule extends MetadataApi {
+	readonly associations: MetadataAssociations;
+	readonly management: MetadataManagement;
+	close(): Promise<void>;
 }
 
 /** Explicit external integration boundary, separate from MetadataApi content reads. */

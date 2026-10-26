@@ -58,7 +58,7 @@ export function saveWorkSummary(
 		.onConflictDoUpdate({ target: metadataWorks.key, set: value })
 		.run();
 	// A single-source project can adopt current evidence immediately. Multi-source projections
-	// are composed by MetadataApplication so a partial response cannot erase other content.
+	// are composed by MetadataWorkReader so a partial response cannot erase other content.
 	if (work.reference.provider !== "metadata") {
 		const identity = store
 			.select()

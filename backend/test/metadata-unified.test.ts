@@ -7,6 +7,8 @@ import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createMetadataModule } from "../src/modules/anime/composition/metadata.js";
+import { composeDetails } from "../src/modules/anime/metadata/domain/composition.js";
+import { projectDetails } from "../src/modules/anime/metadata/domain/projection.js";
 import type { WorkDetails } from "../src/modules/anime/metadata/domain/source-model.js";
 import { registerMetadataAssociationRoutes } from "../src/modules/anime/metadata/http/associations.js";
 import type { MetadataProvider } from "../src/modules/anime/metadata/ports.js";
@@ -150,7 +152,9 @@ test("search is federated, explicit associations combine content, and all old ID
 	expect(first.id).not.toBe(second.id);
 	const old = await f.metadata.get(second);
 	f.metadata.retain(old.snapshotId, "old-decision");
-	f.metadata.associate(first, second, { sameEpisodeNumbering: true });
+	f.metadata.management.associate(first, second, {
+		sameEpisodeNumbering: true,
+	});
 	const combined = await f.metadata.get(second);
 	expect(combined.data).toMatchObject({
 		reference: first,
@@ -198,7 +202,9 @@ test("a failed source leaves useful content and a source-independent partial fai
 	expect(JSON.stringify(search)).not.toContain("private AniList error");
 	const first = f.metadata.resolveReference("anilist:anime:10"),
 		second = f.metadata.resolveReference("bangumi:anime:20");
-	f.metadata.associate(first, second, { sameEpisodeNumbering: true });
+	f.metadata.management.associate(first, second, {
+		sameEpisodeNumbering: true,
+	});
 	f.first.get.mockRejectedValue(
 		new MetadataError({
 			code: "unavailable",
@@ -269,7 +275,7 @@ test("management requires explicit numbering confirmation and ordinary search re
 		metadata: f.metadata,
 		closeDependencies: async () => {},
 	});
-	registerMetadataAssociationRoutes(app, f.metadata);
+	registerMetadataAssociationRoutes(app, f.metadata.management);
 	cleanup.push(() => app.close());
 	const target = f.metadata.resolveReference("anilist:anime:10"),
 		other = f.metadata.resolveReference("bangumi:anime:20");
@@ -300,7 +306,9 @@ test("management requires explicit numbering confirmation and ordinary search re
 	).toEqual(target);
 	const conflicting = f.metadata.resolveReference("anilist:anime:11");
 	expect(() =>
-		f.metadata.associate(target, conflicting, { sameEpisodeNumbering: true }),
+		f.metadata.management.associate(target, conflicting, {
+			sameEpisodeNumbering: true,
+		}),
 	).toThrow(/conflicting source/);
 	expect(f.metadata.resolveReference(conflicting.id)).toEqual(conflicting);
 });
@@ -371,7 +379,9 @@ test("retained artwork uses its original URL after source eviction and associati
 	f.metadata.retain(old.snapshotId, "retained-artwork");
 	f.second.data.coverUrl = "https://images.example/new.png";
 	await f.metadata.get(second, { refresh: true });
-	f.metadata.associate(first, second, { sameEpisodeNumbering: true });
+	f.metadata.management.associate(first, second, {
+		sameEpisodeNumbering: true,
+	});
 	await f.metadata.get(first);
 	f.database.metadata.prune(0, 0);
 	const artwork = await f.metadata.snapshotArtwork(old.snapshotId, "cover");
@@ -387,7 +397,9 @@ test("the application can fence conflicting local identities without changing ei
 	const first = f.metadata.resolveReference("anilist:anime:10"),
 		second = f.metadata.resolveReference("bangumi:anime:20");
 	expect(() =>
-		f.metadata.associate(first, second, { sameEpisodeNumbering: true }),
+		f.metadata.management.associate(first, second, {
+			sameEpisodeNumbering: true,
+		}),
 	).toThrow(/duplicate local Catalog/);
 	expect(f.metadata.resolveReference(second.id)).toEqual(second);
 	expect(f.metadata.resolveReference(first.id)).toEqual(first);
@@ -416,4 +428,89 @@ test("retained project evidence stops reporting an in-flight refresh when it fin
 		expect(f.metadata.current(reference)?.data.description).toBe("Fresh"),
 	);
 	expect(f.metadata.snapshot(stale.snapshotId).refreshing).toBe(false);
+});
+
+test("pure composition fills missing content without mutating inputs or exposing source identities", () => {
+	const primary = provider("anilist", "10", {
+		description: "Primary description",
+		averageScore: 90,
+		genres: ["Adventure"],
+		studios: [{ id: "private-studio-id", name: "Studio" }],
+		unavailableFields: ["country", "coverUrl"],
+	}).data;
+	const secondary = provider("bangumi", "20", {
+		description: "Secondary description",
+		averageScore: 87,
+		country: "JP",
+		genres: ["Fantasy"],
+		coverUrl: "https://images.example/cover.png",
+		titles: [
+			...primary.titles,
+			{ value: "中文名", language: "zh-Hans", kind: "alias" },
+		],
+	}).data;
+	const reference = { id: "project-work" };
+	const inputs = [primary, secondary].map((evidence) => ({
+		content: Object.freeze(projectDetails(evidence, reference)),
+		evidence,
+	}));
+	const before = structuredClone(inputs);
+	const { data, artwork } = composeDetails(inputs);
+	expect(inputs).toEqual(before);
+	expect(data).toMatchObject({
+		reference,
+		description: "Primary description",
+		averageScore: 90,
+		country: "JP",
+		genres: ["Adventure"],
+		studios: [{ name: "Studio" }],
+		coverUrl: "/api/metadata/project-work/artwork/cover/image",
+	});
+	expect(data.titles).toEqual(secondary.titles);
+	expect(data.unavailableFields).not.toContain("country");
+	expect(data.unavailableFields).not.toContain("coverUrl");
+	expect(artwork.cover).toBe(secondary);
+	expect(JSON.stringify(data)).not.toMatch(
+		/private-studio-id|"provider"|"siteUrl"|"providerUpdatedAt"/,
+	);
+});
+
+test("pure composition requires at least one available work", () => {
+	expect(() => composeDetails([])).toThrow(
+		expect.objectContaining({
+			failure: expect.objectContaining({ code: "unavailable" }),
+		}),
+	);
+});
+
+test("assembled content methods keep their service receivers when passed directly to consumers", async () => {
+	const f = await fixture();
+	const {
+		resolveReference,
+		get,
+		current,
+		search,
+		snapshot,
+		retain,
+		release,
+		artwork,
+		snapshotArtwork,
+		cachedArtworkId,
+		relations,
+		airing,
+	} = f.metadata;
+	const reference = resolveReference("anilist:anime:10");
+	const details = await get(reference);
+	expect(current(reference)?.data).toEqual(details.data);
+	expect((await search({ query: "Title" })).data.items).toHaveLength(2);
+	retain(details.snapshotId, "detached-consumer");
+	expect(snapshot(details.snapshotId).data).toEqual(details.data);
+	expect((await artwork(reference, "cover")).status).toBe("missing");
+	expect((await snapshotArtwork(details.snapshotId, "cover")).status).toBe(
+		"missing",
+	);
+	expect(await cachedArtworkId(reference, "cover")).toBeNull();
+	expect((await relations(reference)).data.unavailable).toBe(true);
+	expect((await airing(reference)).data.unavailable).toBe(true);
+	release(details.snapshotId, "detached-consumer");
 });

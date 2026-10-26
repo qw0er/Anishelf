@@ -11,14 +11,13 @@ import { createBangumiMetadata } from "./composition/bangumi.js";
 import { createCatalogModule } from "./composition/catalog.js";
 import { createIdentificationModule } from "./composition/identification.js";
 import {
-	createCatalogMetadata,
 	createIdentificationMetadata,
 	createMetadataModule,
 } from "./composition/metadata.js";
 import { createTrackingModule } from "./composition/tracking.js";
 import { registerAnimeHttp } from "./http.js";
 import { AnitomyIdentificationParser } from "./identification/infrastructure/parser.js";
-import type { MetadataApplication } from "./metadata/application/metadata.js";
+import type { MetadataModule } from "./metadata/public.js";
 import type { AnimePersistence } from "./persistence.js";
 import type { AnimeApi } from "./public.js";
 import { AnimeQueries } from "./queries.js";
@@ -43,7 +42,7 @@ export async function createAnimeModule(options: {
 	});
 	const bangumi = createBangumiMetadata(logger);
 	const metadataSources = createAniListMetadata(requests);
-	let metadata: MetadataApplication | undefined;
+	let metadata: MetadataModule | undefined;
 	try {
 		metadata = await createMetadataModule({
 			dataDir: system.deployment.dataDir,
@@ -64,12 +63,9 @@ export async function createAnimeModule(options: {
 			"Metadata cache unavailable; local identification remains usable.",
 		);
 	}
-	const catalogMetadata = metadata
-		? createCatalogMetadata(metadata)
-		: undefined;
 	const catalog = createCatalogModule({
 		database,
-		metadata: catalogMetadata,
+		metadata,
 		library,
 		logger,
 	});
@@ -77,7 +73,7 @@ export async function createAnimeModule(options: {
 		catalog,
 		lists: tracking,
 		logger,
-		...(metadata ? { associations: metadata } : {}),
+		...(metadata ? { associations: metadata.associations } : {}),
 	});
 	const identification = createIdentificationModule({
 		library,
@@ -91,15 +87,14 @@ export async function createAnimeModule(options: {
 				}
 			: {}),
 	});
-	const assessment =
-		catalogMetadata && metadata
-			? new AnimeReleaseAssessment(
-					new AnitomyIdentificationParser(),
-					catalogMetadata,
-					catalog,
-					metadata,
-				)
-			: undefined;
+	const assessment = metadata
+		? new AnimeReleaseAssessment(
+				new AnitomyIdentificationParser(),
+				metadata,
+				catalog,
+				metadata.associations,
+			)
+		: undefined;
 	const api: AnimeApi = {
 		acquisitionList: {
 			snapshot: () => tracking.acquisitionSnapshot(),
@@ -110,10 +105,10 @@ export async function createAnimeModule(options: {
 		},
 		queries: new AnimeQueries(
 			catalog,
-			catalogMetadata,
+			metadata,
 			tracking,
 			logger,
-			metadata,
+			metadata?.associations,
 		),
 		...(assessment && catalog
 			? {
@@ -128,18 +123,7 @@ export async function createAnimeModule(options: {
 		...(assessment ? { acquisition: assessment } : {}),
 		tracking,
 		library: libraryQueries,
-		metadata: metadata
-			? {
-					search: (...args) => metadata.search(...args),
-					get: (...args) => metadata.get(...args),
-					relations: (...args) => metadata.relations(...args),
-					airing: (...args) => metadata.airing(...args),
-					snapshot: (id) => metadata.snapshot(id),
-					artwork: (...args) => metadata.artwork(...args),
-					readArtwork: (id) => metadata.readArtwork(id),
-					cachedArtworkId: (...args) => metadata.cachedArtworkId(...args),
-				}
-			: undefined,
+		metadata,
 		catalog: catalog
 			? {
 					list: (input) => catalog.list(input),
@@ -163,7 +147,7 @@ export async function createAnimeModule(options: {
 				tracking,
 				undefined,
 				logger,
-				metadata,
+				metadata?.associations,
 			)
 		: undefined;
 	let stopped: Promise<void> | undefined;

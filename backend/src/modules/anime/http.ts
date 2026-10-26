@@ -4,9 +4,9 @@ import { registerCatalogRoutes } from "./anime-catalog/http/catalog.js";
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
 import { registerAnimeLibraryRoutes } from "./anime-library/http/library.js";
 import type { AnimeLibraryApi } from "./anime-library/public.js";
-import type { MetadataApplication } from "./metadata/application/metadata.js";
 import { registerMetadataAssociationRoutes } from "./metadata/http/associations.js";
 import { registerMetadataRoutes } from "./metadata/http/metadata.js";
+import type { MetadataModule } from "./metadata/public.js";
 import { registerTrackingListRoutes } from "./tracking/http/lists.js";
 import { registerTrackingRoutes } from "./tracking/http/tracking.js";
 import { registerTrackingUpdateRoutes } from "./tracking/http/updates.js";
@@ -25,7 +25,7 @@ export function registerAnimeHttp(
 				incremental?: boolean;
 			};
 		};
-		metadata: MetadataApplication | undefined;
+		metadata: MetadataModule | undefined;
 		catalog: AnimeCatalogApi | undefined;
 	},
 ): void {
@@ -42,19 +42,10 @@ export function registerAnimeHttp(
 	registerTrackingListRoutes(app, owners.tracking);
 	registerTrackingUpdateRoutes(app, owners.tracking, owners.viewing);
 	const metadata = owners.metadata;
-	registerAnimeLibraryRoutes(
-		app,
-		owners.library,
-		metadata
-			? {
-					cachedArtworkId: (reference, kind) =>
-						metadata.cachedArtworkId(reference, kind),
-				}
-			: undefined,
-	);
+	registerAnimeLibraryRoutes(app, owners.library, metadata);
 	if (owners.metadata) {
 		registerMetadataRoutes(app, owners.metadata);
-		registerMetadataAssociationRoutes(app, owners.metadata);
+		registerMetadataAssociationRoutes(app, owners.metadata.management);
 	}
 	if (owners.catalog) registerCatalogRoutes(app, owners.catalog);
 }
