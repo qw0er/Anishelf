@@ -27,7 +27,7 @@ export class DownloadCommands {
 		if (!item.source && kind === "acquisition" && !recoveringConnection)
 			throw new DomainError(
 				"INVALID_REQUEST",
-				"Release evidence expired. Manage this download in qBittorrent WebUI.",
+				"Release evidence expired. Manage this download in the downloader interface.",
 			);
 		if (item.revision !== revision || !commandId || commandId.length > 64)
 			conflict();

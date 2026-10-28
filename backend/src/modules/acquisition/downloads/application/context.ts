@@ -3,13 +3,13 @@ import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { AnimeApi, ReleaseAssessmentApi } from "../../../anime/public.js";
 import type { AcquisitionResources } from "../../../resources/public.js";
-import type { QbittorrentApi } from "../../qbittorrent/public.js";
 import type { ReleaseEvidence } from "../../sources/public.js";
 import type {
 	Candidate,
 	Subscription,
 	SubscriptionAuthorization,
 } from "../../subscriptions/public.js";
+import type { TorrentConnection } from "../../torrent-clients/public.js";
 import { downloadDefaults as policy } from "../defaults.js";
 import type { DownloadIntent } from "../domain/model.js";
 import type { DownloadStore, TorrentReader } from "../ports.js";
@@ -20,14 +20,9 @@ export function conflict(): never {
 		"Acquisition settings or scope changed. Refresh and retry.",
 	);
 }
-export interface DownloadOptions {
+export interface DownloadOptions extends TorrentConnection {
 	store: Pick<DownloadStore, "intent" | "saveIntent" | "hashOwner">;
 	transport: TorrentReader;
-	connectionGeneration(): string;
-	withClient<T>(
-		generation: string,
-		operation: (client: QbittorrentApi) => Promise<T>,
-	): Promise<T>;
 	logger: Logger;
 	now?: () => number;
 }

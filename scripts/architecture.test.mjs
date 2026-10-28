@@ -76,6 +76,42 @@ test("allows defaults, policy and public contracts, same-module implementation, 
 
 for (const [name, files] of [
 	[
+		"torrent-clients-implementation-is-private",
+		{
+			"backend/src/modules/acquisition/create.ts":
+				"import { Client } from './torrent-clients/qbittorrent/client.js'; export { Client };",
+			"backend/src/modules/acquisition/torrent-clients/qbittorrent/client.ts":
+				"export class Client {}",
+		},
+	],
+	[
+		"torrent-clients-do-not-import-business-consumers",
+		{
+			"backend/src/modules/acquisition/torrent-clients/domain/model.ts":
+				"import type { Intent } from '../../downloads/public.js'; export type Owner = Intent;",
+			"backend/src/modules/acquisition/downloads/public.ts":
+				"export interface Intent { id: string }",
+		},
+	],
+	[
+		"torrent-connection-uses-configuration-port",
+		{
+			"backend/src/modules/acquisition/torrent-clients/application/connection.ts":
+				"import type { Configuration } from '../qbittorrent/model.js'; export type Config = Configuration;",
+			"backend/src/modules/acquisition/torrent-clients/qbittorrent/model.ts":
+				"export interface Configuration { url: string }",
+		},
+	],
+	[
+		"downloads-do-not-import-downloader-adapters",
+		{
+			"backend/src/modules/acquisition/downloads/application/service.ts":
+				"import type { Client } from '../../torrent-clients/qbittorrent/public.js'; export type Value = Client;",
+			"backend/src/modules/acquisition/torrent-clients/qbittorrent/public.ts":
+				"export interface Client { add(): Promise<void> }",
+		},
+	],
+	[
 		"sources-implementation-is-private",
 		{
 			"backend/src/modules/acquisition/create.ts":

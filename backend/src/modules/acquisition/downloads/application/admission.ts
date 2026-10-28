@@ -1,4 +1,4 @@
-import type { QbittorrentApi } from "../../qbittorrent/public.js";
+import type { TorrentClient } from "../../torrent-clients/public.js";
 import { DownloadError } from "../public.js";
 import type {
 	DownloadApplicationContext,
@@ -25,8 +25,8 @@ export class SubmissionAdmission {
 	}
 	async authorize(
 		execution: DownloadExecution,
-		client: QbittorrentApi,
-		snapshot: Awaited<ReturnType<QbittorrentApi["tasks"]>>,
+		client: TorrentClient,
+		snapshot: Awaited<ReturnType<TorrentClient["tasks"]>>,
 	): Promise<string | null> {
 		const item = execution.current;
 		const subscription = this.context.options.selection.subscription(

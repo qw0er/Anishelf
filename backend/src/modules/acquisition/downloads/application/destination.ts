@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { DomainError } from "../../../../shared/errors.js";
-import type { QbittorrentApi } from "../../qbittorrent/public.js";
 import type { Subscription } from "../../subscriptions/public.js";
+import type { TorrentClient } from "../../torrent-clients/public.js";
 import { type DownloadDestination, DownloadError } from "../domain/model.js";
 import { absoluteDownloadPath, inside } from "../domain/paths.js";
 import type { DownloadApplicationContext } from "./context.js";
@@ -67,7 +67,7 @@ export class DownloadDestinationSettings {
 			} catch {
 				throw new DomainError(
 					"INVALID_REQUEST",
-					"Enter an absolute qBittorrent destination path.",
+					"Enter an absolute downloader destination path.",
 				);
 			}
 			if (
@@ -138,8 +138,8 @@ export class DownloadDestinationSettings {
 				throw new DomainError(
 					"ACQUISITION_UNAVAILABLE",
 					error instanceof DownloadError
-						? "Enable an incomplete directory outside resource roots in qBittorrent, then validate again."
-						: "Could not validate the destination. Check qBittorrent and resource configuration.",
+						? "Enable an incomplete directory outside resource roots in the downloader, then validate again."
+						: "Could not validate the destination. Check the downloader and resource configuration.",
 				);
 			}
 		});
@@ -164,19 +164,21 @@ export class DownloadDestinationSettings {
 	}
 
 	async validateIncomplete(
-		probe: Awaited<ReturnType<QbittorrentApi["probe"]>>,
+		probe: Awaited<ReturnType<TorrentClient["probe"]>>,
 		destination: DownloadDestination,
 	) {
 		if (
-			!probe.incompletePathEnabled ||
-			!probe.incompletePath ||
-			inside(absoluteDownloadPath(probe.incompletePath), destination.path) ||
-			inside(destination.path, absoluteDownloadPath(probe.incompletePath))
+			!probe.incompleteDirectory ||
+			inside(
+				absoluteDownloadPath(probe.incompleteDirectory),
+				destination.path,
+			) ||
+			inside(destination.path, absoluteDownloadPath(probe.incompleteDirectory))
 		)
 			throw new DownloadError("incomplete_directory_required");
 		await this.context.options.resources.validate(
 			destination.scopeId,
-			probe.incompletePath,
+			probe.incompleteDirectory,
 		);
 	}
 }

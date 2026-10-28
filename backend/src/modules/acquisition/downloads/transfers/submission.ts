@@ -1,9 +1,9 @@
 import { posix } from "node:path";
-import type { DownloadTask } from "../../qbittorrent/public.js";
+import type { TorrentTask } from "../../torrent-clients/public.js";
 import {
-	type QbittorrentApi,
-	QbittorrentError,
-} from "../../qbittorrent/public.js";
+	type TorrentClient,
+	TorrentError,
+} from "../../torrent-clients/public.js";
 import type {
 	DownloadContext,
 	DownloadExecution,
@@ -21,9 +21,9 @@ export class DownloadSubmission {
 	) {}
 	async observe(
 		execution: DownloadExecution,
-		client: QbittorrentApi,
+		client: TorrentClient,
 		resolvedContent?: Awaited<ReturnType<typeof resolveTorrent>>,
-	): Promise<{ item: DownloadIntent; task: DownloadTask } | null> {
+	): Promise<{ item: DownloadIntent; task: TorrentTask } | null> {
 		let item = execution.current;
 		let task = await client.task(item.hash, this.context.signal);
 		this.context.open();
@@ -85,18 +85,21 @@ export class DownloadSubmission {
 				subscriptionRevision,
 				error: null,
 			});
+			this.context.options.logger.info(
+				{ event: "acquisition.submission_requested", intentId: item.id },
+				"Download submission requested.",
+			);
 			try {
 				await client.add(
 					{
 						source: source.source,
 						savePath: posix.join(item.destination.path, item.directory),
-						category: "anishelf",
-						tags: [`anishelf-${item.id}`],
+						ownerKey: item.id,
 					},
 					this.context.signal,
 				);
 			} catch (error) {
-				if (error instanceof QbittorrentError && error.outcome !== "unknown")
+				if (error instanceof TorrentError && error.outcome !== "unknown")
 					throw error;
 				execution.save({
 					...item,
@@ -116,10 +119,7 @@ export class DownloadSubmission {
 				return null;
 			}
 		}
-		if (
-			task.category !== "anishelf" ||
-			!task.tags.includes(`anishelf-${item.id}`)
-		) {
+		if (task.ownerKey !== item.id) {
 			execution.save({
 				...item,
 				state: "blocked",

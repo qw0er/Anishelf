@@ -21,14 +21,14 @@ import {
 import { resolveTorrent } from "../src/modules/acquisition/downloads/infrastructure/torrent.js";
 import type { TorrentReader } from "../src/modules/acquisition/downloads/public.js";
 import { DownloadTransfers } from "../src/modules/acquisition/downloads/transfers/application.js";
-import {
-	type QbittorrentApi,
-	QbittorrentError,
-} from "../src/modules/acquisition/qbittorrent/public.js";
 import { SourceContent } from "../src/modules/acquisition/sources/application/content.js";
 import { createSourcesModule } from "../src/modules/acquisition/sources/create.js";
 import { JackettConnection } from "../src/modules/acquisition/sources/jackett/connection.js";
 import { SubscriptionsApplication } from "../src/modules/acquisition/subscriptions/application/application.js";
+import {
+	type TorrentClient,
+	TorrentError,
+} from "../src/modules/acquisition/torrent-clients/public.js";
 import { WatchingApplication } from "../src/modules/acquisition/watching/application/application.js";
 import type { WatchingSnapshot } from "../src/modules/acquisition/watching/public.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
@@ -77,17 +77,14 @@ async function fixture(persistent = false, bundled = false) {
 	cleanup.push(async () => db.close());
 	let now = 1_000_000,
 		generation = "account-1";
-	const state: { task: Awaited<ReturnType<QbittorrentApi["task"]>> } = {
+	const state: { task: Awaited<ReturnType<TorrentClient["task"]>> } = {
 		task: null,
 	};
-	const probe = vi.fn<QbittorrentApi["probe"]>(async () => ({
+	const probe = vi.fn<TorrentClient["probe"]>(async () => ({
 		version: "5.0.5",
-		apiVersion: "2.11.4",
-		defaultSavePath: "/downloads",
-		incompletePathEnabled: true,
-		incompletePath: "/incomplete",
+		incompleteDirectory: "/incomplete",
 	}));
-	const add = vi.fn<QbittorrentApi["add"]>(async (input) => {
+	const add = vi.fn<TorrentClient["add"]>(async (input) => {
 		state.task = {
 			hash,
 			v1Hash: hash,
@@ -101,11 +98,10 @@ async function fixture(persistent = false, bundled = false) {
 			uploadBytesPerSecond: 0,
 			savePath: input.savePath,
 			contentPath: `${input.savePath}/Frieren - 03.mkv`,
-			category: input.category,
-			tags: input.tags,
+			ownerKey: input.ownerKey,
 		};
 	});
-	const client: QbittorrentApi = {
+	const client: TorrentClient = {
 		probe,
 		add,
 		task: vi.fn(async () => state.task),
@@ -115,7 +111,7 @@ async function fixture(persistent = false, bundled = false) {
 				path: "Frieren - 03.mkv",
 				sizeBytes: 100,
 				progress: 1,
-				priority: 1,
+				selected: true,
 			},
 		]),
 		close: vi.fn(),
@@ -279,7 +275,7 @@ async function fixture(persistent = false, bundled = false) {
 		if (!state.task) throw new Error("No task");
 		state.task = {
 			...state.task,
-			state: "uploading",
+			state: "seeding",
 			progress: 1,
 			remainingBytes: 0,
 		};
@@ -368,8 +364,7 @@ test("old subscriptions stay discovery-only until scoped confirmation and destin
 	expect(f.add).toHaveBeenCalledTimes(1);
 	expect(f.add.mock.calls[0]?.[0]).toMatchObject({
 		savePath: "/downloads/Frieren [anilist-1]",
-		category: "anishelf",
-		tags: [expect.stringMatching(/^anishelf-/)],
+		ownerKey: f.worker.activity(key).items[0]?.id,
 	});
 	expect(f.worker.activity(key).authorized).toBe(true);
 	const settings = await f.worker.saveDestination({
@@ -402,7 +397,7 @@ test("remote add success followed by a timeout binds after restart without resen
 	const actual = f.add.getMockImplementation();
 	f.add.mockImplementationOnce(async (input) => {
 		await actual?.(input);
-		throw new QbittorrentError("timeout", "unknown");
+		throw new TorrentError("timeout", "unknown");
 	});
 	await f.worker.tick();
 	expect(f.db.acquisitionDownloads.activity(key, 1, 100).items[0]?.state).toBe(
@@ -437,7 +432,7 @@ test("uncertain absent submissions are not retried automatically; explicit retry
 	const f = await fixture();
 	await f.configure();
 	await f.authorize();
-	f.add.mockRejectedValueOnce(new QbittorrentError("timeout", "unknown"));
+	f.add.mockRejectedValueOnce(new TorrentError("timeout", "unknown"));
 	await f.worker.tick();
 	f.advance();
 	await f.worker.tick();
@@ -455,9 +450,9 @@ test("external pause remains paused and external removal suppresses acquisition 
 	await f.authorize();
 	await f.worker.tick();
 	if (!f.state.task) throw new Error();
-	f.state.task.state = "stoppedDL";
+	f.state.task.state = "paused";
 	await f.worker.tick();
-	expect(f.state.task.state).toBe("stoppedDL");
+	expect(f.state.task.state).toBe("paused");
 	f.state.task = null;
 	await f.worker.tick();
 	expect(f.worker.activity(key).items[0]?.state).toBe("missing");
@@ -510,8 +505,8 @@ test("unsupported multi-video layouts and association conflicts remain reviewabl
 	await f.worker.tick();
 	f.complete();
 	vi.mocked(f.client.files).mockResolvedValue([
-		{ path: "01.mkv", sizeBytes: 50, priority: 1, progress: 1 },
-		{ path: "02.mkv", sizeBytes: 50, priority: 1, progress: 1 },
+		{ path: "01.mkv", sizeBytes: 50, selected: true, progress: 1 },
+		{ path: "02.mkv", sizeBytes: 50, selected: true, progress: 1 },
 	]);
 	await f.worker.tick();
 	expect(f.worker.activity(key).items[0]).toMatchObject({
@@ -526,7 +521,7 @@ test("disconnection is not task removal and account replacement does not control
 	await f.authorize();
 	await f.worker.tick();
 	vi.mocked(f.client.task).mockRejectedValueOnce(
-		new QbittorrentError("unavailable", "read"),
+		new TorrentError("unavailable", "read"),
 	);
 	await f.worker.tick();
 	expect(f.worker.activity(key).items[0]?.state).toBe("bound");
@@ -566,10 +561,7 @@ test("invalid incomplete directories and removed resource roots prevent validati
 	});
 	f.probe.mockResolvedValueOnce({
 		version: "5",
-		apiVersion: "2",
-		defaultSavePath: "/downloads",
-		incompletePathEnabled: true,
-		incompletePath: "/downloads/partial",
+		incompleteDirectory: "/downloads/partial",
 	});
 	await expect(f.worker.validate(saved.revision)).rejects.toThrow();
 	expect((await f.worker.settings()).destination?.validated).toBe(false);
@@ -810,7 +802,7 @@ test("an ingested resource leaves the worker and remains historical activity dur
 	await f.worker.tick();
 	const calls = vi.mocked(f.client.task).mock.calls.length;
 	vi.mocked(f.client.task).mockRejectedValue(
-		new QbittorrentError("unavailable", "read"),
+		new TorrentError("unavailable", "read"),
 	);
 	await f.worker.tick();
 	expect(f.worker.activity(key).items[0]?.state).toBe("available");
@@ -914,8 +906,7 @@ test("pre-submission checks exclude another active version and reject stale rele
 			uploadBytesPerSecond: 0,
 			savePath: "/elsewhere",
 			contentPath: "/elsewhere/file",
-			category: "external",
-			tags: [],
+			ownerKey: null,
 		},
 	]);
 	await f.worker.tick();
@@ -1130,14 +1121,14 @@ test("late remote failures cannot overwrite a newer explicit acquisition retry",
 	const f = await fixture();
 	await f.configure();
 	await f.authorize();
-	f.add.mockRejectedValueOnce(new QbittorrentError("timeout", "unknown"));
+	f.add.mockRejectedValueOnce(new TorrentError("timeout", "unknown"));
 	await f.worker.tick();
 	f.advance();
 	vi.mocked(f.client.task).mockImplementationOnce(async () => {
 		const item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
 		if (!item) throw new Error();
 		f.worker.retry(item.id, item.revision, "newer-command", "acquisition");
-		throw new QbittorrentError("unavailable", "read");
+		throw new TorrentError("unavailable", "read");
 	});
 	await f.worker.tick();
 	expect(
@@ -1157,7 +1148,7 @@ test("definitive submission failures retain retryable intent after the submittin
 	const f = await fixture();
 	await f.configure();
 	await f.authorize();
-	f.add.mockRejectedValueOnce(new QbittorrentError("unavailable", "rejected"));
+	f.add.mockRejectedValueOnce(new TorrentError("unavailable", "rejected"));
 	await f.worker.tick();
 	expect(f.worker.activity(key).items[0]).toMatchObject({
 		state: "pending",
@@ -1253,7 +1244,7 @@ test("transfer reconciles uncertain attempts without consulting subscription adm
 	const f = await fixture();
 	await f.configure();
 	await f.authorize();
-	f.add.mockRejectedValueOnce(new QbittorrentError("timeout", "unknown"));
+	f.add.mockRejectedValueOnce(new TorrentError("timeout", "unknown"));
 	await f.worker.tick();
 	const item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
 	if (!item) throw new Error("Missing intent");
@@ -1299,7 +1290,7 @@ test("account replacement during ingestion cannot acknowledge the old download a
 
 test("bundled destination selects the matching root, retries failed validation, and keeps its revision", async () => {
 	const f = await fixture(false, true);
-	f.probe.mockRejectedValueOnce(new QbittorrentError("unavailable", "read"));
+	f.probe.mockRejectedValueOnce(new TorrentError("unavailable", "read"));
 	await f.worker.tick();
 	const pending = (await f.worker.settings()).destination;
 	expect(pending).toMatchObject({
@@ -1732,4 +1723,79 @@ test("Activity keeps older active work on the first page instead of burying it u
 		});
 	expect(f.worker.activity(key).items[0]?.id).toBe(id);
 	expect(f.worker.activity(key).total).toBe(26);
+});
+
+test.each([
+	"checking",
+	"moving",
+	"metadata",
+	"error",
+	"missing",
+	"unknown",
+] as const)(
+	"a complete byte count in %s state never authorizes ingestion",
+	async (state) => {
+		const f = await fixture();
+		await f.configure();
+		await f.authorize();
+		await f.worker.tick();
+		f.complete();
+		if (!f.state.task) throw new Error("Missing task");
+		f.state.task.state = state;
+		await f.worker.tick();
+		expect(f.ingestion.ingest).not.toHaveBeenCalled();
+		expect(f.resources.inspect).not.toHaveBeenCalled();
+		expect(f.add).toHaveBeenCalledTimes(1);
+	},
+);
+
+test.each(["owner", "state"] as const)(
+	"ingestion rechecks %s after resource inspection",
+	async (change) => {
+		const f = await fixture();
+		await f.configure();
+		await f.authorize();
+		await f.worker.tick();
+		f.complete();
+		f.resources.inspect.mockImplementationOnce(async () => {
+			if (!f.state.task) throw new Error("Missing task");
+			if (change === "owner") f.state.task.ownerKey = "another-intent";
+			else f.state.task.state = "moving";
+			return { sizeBytes: 100, sourceVersion: "v1" };
+		});
+		await f.worker.tick();
+		expect(f.ingestion.ingest).not.toHaveBeenCalled();
+		expect(f.worker.activity(key).items[0]).toMatchObject({
+			ingestion: "failed",
+			error: "download_changed",
+		});
+	},
+);
+
+test("a downloader without isolated staging cannot validate a destination", async () => {
+	const f = await fixture();
+	f.probe.mockResolvedValue({
+		version: "another-engine",
+		incompleteDirectory: null,
+	});
+	await expect(f.configure()).rejects.toThrow();
+	expect((await f.worker.settings()).destination?.validated).toBe(false);
+	expect(f.add).not.toHaveBeenCalled();
+});
+
+test("a different engine's completed state imports only selected files", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	f.complete();
+	if (!f.state.task) throw new Error("Missing task");
+	f.state.task.state = "completed";
+	vi.mocked(f.client.files).mockResolvedValue([
+		{ path: "Frieren - 03.mkv", sizeBytes: 100, progress: 1, selected: true },
+		{ path: "extra.mkv", sizeBytes: 100, progress: 0, selected: false },
+	]);
+	await f.worker.tick();
+	expect(f.ingestion.ingest).toHaveBeenCalledTimes(1);
+	expect(f.worker.activity(key).items[0]?.state).toBe("available");
 });

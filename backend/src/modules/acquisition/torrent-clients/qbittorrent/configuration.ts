@@ -11,7 +11,7 @@ import {
 import { join } from "node:path";
 import { Type } from "typebox";
 import { Check } from "typebox/value";
-import { DomainError } from "../../../shared/errors.js";
+import { DomainError } from "../../../../shared/errors.js";
 import type { SavedConnection } from "./model.js";
 
 const valueSchema = Type.Object({
