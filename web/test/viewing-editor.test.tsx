@@ -109,13 +109,16 @@ test("manual backward correction submits only changed progress and shows pending
 	fireEvent.click(
 		screen.getByRole("button", { name: "Save to the tracking service" }),
 	);
-	await screen.findByText("the tracking service change queued");
-	expect(
-		screen.getByText(
-			"Confirmed on the tracking service: 3 episodes · Watching",
-		),
-	).toBeTruthy();
-	expect(screen.getByText("Pending change: 1 episode · Watching")).toBeTruthy();
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(
+				([url]) =>
+					String(url).endsWith("/updates") || String(url).endsWith("/retry"),
+			),
+		).toBe(true),
+	);
+	expect(screen.getByText("Current: 3 episodes · Watching")).toBeTruthy();
+	expect(screen.queryByText("Pending change: 1 episode · Watching")).toBeNull();
 	const call = fetcher.mock.calls.find(([url]) =>
 		String(url).endsWith("/updates"),
 	);
@@ -143,7 +146,9 @@ test("status-only change omits progress and rejects negative progress in the for
 		screen.getByRole("spinbutton", { name: "Episodes watched" }),
 		{ target: { value: "3" } },
 	);
-	fireEvent.click(screen.getByRole("radio", { name: "Paused" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Tracking status" }), {
+		target: { value: "paused" },
+	});
 	fireEvent.click(
 		screen.getByRole("button", { name: "Save to the tracking service" }),
 	);
@@ -174,18 +179,18 @@ test("conflict exposes explicit choices with the current operation revision", as
 		},
 	];
 	await open();
-	expect(
-		screen.getByText(
-			"Confirmed on the tracking service: 6 episodes · Watching",
-		),
-	).toBeTruthy();
+	expect(screen.getByText("Current: 6 episodes · Watching")).toBeTruthy();
 	expect(
 		screen.queryByRole("button", { name: "Save to the tracking service" }),
 	).toBeNull();
 	fireEvent.click(
 		screen.getByRole("button", { name: "Keep the tracking service value" }),
 	);
-	await screen.findByText("Kept the tracking service value");
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(([url]) => String(url).endsWith("/resolve")),
+		).toBe(true),
+	);
 	const call = fetcher.mock.calls.find(([url]) =>
 		String(url).endsWith("/resolve"),
 	);
@@ -204,7 +209,14 @@ test("failed operation keeps intent and exposes retry", async () => {
 		}).value,
 	).toBe("1");
 	fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-	await screen.findByText("the tracking service change queued");
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(
+				([url]) =>
+					String(url).endsWith("/updates") || String(url).endsWith("/retry"),
+			),
+		).toBe(true),
+	);
 	expect(
 		fetcher.mock.calls.some(([url]) => String(url).endsWith("/retry")),
 	).toBe(true);
@@ -216,7 +228,9 @@ test("a refreshed remote progress value is not unintentionally included in a sta
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Edit progress" }));
 	await screen.findByRole("spinbutton", { name: "Episodes watched" });
-	fireEvent.click(screen.getByRole("radio", { name: "Paused" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Tracking status" }), {
+		target: { value: "paused" },
+	});
 	if (!snapshot.entry) throw Error("missing entry");
 	view.rerender(
 		<ViewingEditor
@@ -315,7 +329,24 @@ test("the editor uses provider capabilities for supported states and progress li
 		name: "Episodes watched",
 	});
 	expect(progress.getAttribute("max")).toBe("50");
-	expect(screen.getByRole("radio", { name: "Watching" })).toBeTruthy();
-	expect(screen.getByRole("radio", { name: "Completed" })).toBeTruthy();
-	expect(screen.queryByRole("radio", { name: "Paused" })).toBeNull();
+	expect(screen.getByRole("option", { name: "Watching" })).toBeTruthy();
+	expect(screen.getByRole("option", { name: "Completed" })).toBeTruthy();
+	expect(screen.queryByRole("option", { name: "Paused" })).toBeNull();
+});
+
+test("episode stepper changes progress and respects its lower bound", async () => {
+	await open();
+	const progress = screen.getByRole<HTMLInputElement>("spinbutton", {
+		name: "Episodes watched",
+	});
+	fireEvent.click(
+		screen.getByRole("button", { name: "Increase episodes watched" }),
+	);
+	expect(progress.value).toBe("4");
+	fireEvent.change(progress, { target: { value: "0" } });
+	expect(
+		screen.getByRole<HTMLButtonElement>("button", {
+			name: "Decrease episodes watched",
+		}).disabled,
+	).toBe(true);
 });

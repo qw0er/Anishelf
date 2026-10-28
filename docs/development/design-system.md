@@ -66,8 +66,8 @@ Keep busy feedback on the action's existing icon and `aria-busy` state.
 Labels, units and inputs should explain ordinary fields without repeating their
 meaning in helper paragraphs. Keep non-obvious behavior in keyboard/touch-accessible
 info Tooltips beside the label. Keep errors and required recovery steps visible.
-Use inline native radios for short finite choices, including viewing states,
-and subscription source modes. Catalog filters use labeled dropdown selectors. Use the shared transcode-style radio
+Use inline native radios for short finite choices, including subscription source modes.
+The viewing progress editor uses a status dropdown and a numeric stepper. Catalog filters use labeled dropdown selectors. Use the shared transcode-style radio
 cards when choices have descriptions. Keep service-populated lists such as source
 sites and resource directories as selectors; do not render an unbounded radio list.
 
