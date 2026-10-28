@@ -83,3 +83,20 @@ test("shows an actionable failure after a silent pending state, and clears it af
 	expect(notify).toHaveBeenCalledTimes(1);
 	client.clear();
 });
+
+test("reports manual submission progress and completion without replaying old results", () => {
+	const client = new QueryClient();
+	const notify = vi.spyOn(toast, "add").mockReturnValue("notice");
+	const manual = { ...completed(), origin: "manual-detail" as const };
+	reportTrackingOperations(client, identity, [{ ...manual, state: "pending" }]);
+	expect(notify).toHaveBeenLastCalledWith(
+		expect.objectContaining({ type: "loading", timeout: 0 }),
+	);
+	reportTrackingOperations(client, identity, [{ ...manual, revision: 2 }]);
+	expect(notify).toHaveBeenLastCalledWith(
+		expect.objectContaining({ type: "success" }),
+	);
+	reportTrackingOperations(client, identity, [{ ...manual, revision: 2 }]);
+	expect(notify).toHaveBeenCalledTimes(2);
+	client.clear();
+});

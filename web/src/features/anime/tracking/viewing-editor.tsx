@@ -11,12 +11,10 @@ import { Button } from "../../../shared/components/ui/button.js";
 import {
 	Dialog,
 	DialogContent,
-	DialogDescription,
 	DialogTitle,
 } from "../../../shared/components/ui/dialog.js";
 import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
-import { RadioOptions } from "../../../shared/components/ui/radio-options.js";
 import { operationsQuery } from "./operations.js";
 import { useTrackingMutation } from "./use-tracking-mutation.js";
 import type { ViewingState } from "./use-viewing-state.js";
@@ -55,9 +53,6 @@ export function ViewingEditor({
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent>
 					<DialogTitle>{t("trackingUpdate.edit")}</DialogTitle>
-					<DialogDescription>
-						{t("trackingUpdate.description")}
-					</DialogDescription>
 					{operations.isPending ? (
 						<p role="status">{t("anime.loading")}</p>
 					) : operations.error ? (
@@ -91,6 +86,7 @@ function ViewingForm({
 }) {
 	const { t } = useTranslation();
 	const progressId = useId();
+	const statusId = useId();
 	const pending =
 		operation && !["succeeded", "cancelled"].includes(operation.state);
 	const remote =
@@ -223,60 +219,85 @@ function ViewingForm({
 						help={t("trackingUpdate.cumulative")}
 					/>
 				</div>
-				<Input
-					id={progressId}
-					type="number"
-					min={0}
-					max={snapshot.provider.capabilities.maximumProgress}
-					step={1}
-					required
-					value={progress}
-					onChange={(event) => {
-						setProgressEdited(true);
-						setProgress(event.target.value);
-					}}
-				/>
-			</div>
-			<RadioOptions
-				legend={t("trackingUpdate.status")}
-				value={status}
-				onChange={(value) => {
-					setStatusEdited(true);
-					setStatus(value);
-				}}
-				options={snapshot.provider.capabilities.statuses.map((value) => ({
-					value,
-					label: t(`trackingList.statuses.${value}`),
-				}))}
-			/>
-			{operation && (
-				<div role="status" className="text-sm">
-					<p>{t(`trackingUpdate.states.${operation.state}`)}</p>
-					{pending && (
-						<p>
-							{t("trackingUpdate.desired", {
-								count: operation.desired.progress ?? remote?.progress ?? 0,
-								progress: operation.desired.progress ?? remote?.progress ?? "—",
-								status: operation.desired.status
-									? t(`trackingList.statuses.${operation.desired.status}`)
-									: remote
-										? t(`trackingList.statuses.${remote.status}`)
-										: "—",
-							})}
-						</p>
-					)}
-					{operation.error && (
-						<p>{t("trackingUpdate.failure", { code: operation.error })}</p>
-					)}
-					{operation.retryAt !== null && (
-						<p>
-							{t("trackingUpdate.retryAt", {
-								time: new Date(operation.retryAt).toLocaleTimeString(),
-							})}
-						</p>
-					)}
+				<div className="flex items-center gap-2">
+					<Button
+						type="button"
+						variant="outline"
+						aria-label={t("trackingUpdate.decrease")}
+						disabled={!valid || Number(progress) <= 0}
+						onClick={() => {
+							setProgressEdited(true);
+							setProgress(String(Number(progress) - 1));
+						}}
+					>
+						−
+					</Button>
+					<Input
+						id={progressId}
+						type="number"
+						min={0}
+						max={snapshot.provider.capabilities.maximumProgress}
+						step={1}
+						required
+						value={progress}
+						onChange={(event) => {
+							setProgressEdited(true);
+							setProgress(event.target.value);
+						}}
+					/>
+					<Button
+						type="button"
+						variant="outline"
+						aria-label={t("trackingUpdate.increase")}
+						disabled={
+							!valid ||
+							Number(progress) >= snapshot.provider.capabilities.maximumProgress
+						}
+						onClick={() => {
+							setProgressEdited(true);
+							setProgress(String(Number(progress) + 1));
+						}}
+					>
+						+
+					</Button>
 				</div>
-			)}
+			</div>
+			<div className="grid gap-1">
+				<label htmlFor={statusId}>{t("trackingUpdate.status")}</label>
+				<select
+					id={statusId}
+					className="form-select w-full"
+					value={status}
+					onChange={(event) => {
+						setStatusEdited(true);
+						setStatus(event.target.value as Status);
+					}}
+				>
+					{snapshot.provider.capabilities.statuses.map((value) => (
+						<option key={value} value={value}>
+							{t(`trackingList.statuses.${value}`)}
+						</option>
+					))}
+				</select>
+			</div>
+			{operation &&
+				["conflict", "failed", "authorization-required"].includes(
+					operation.state,
+				) && (
+					<div role="status" className="text-sm">
+						<p>{t(`trackingUpdate.states.${operation.state}`)}</p>
+						{operation.error && (
+							<p>{t("trackingUpdate.failure", { code: operation.error })}</p>
+						)}
+						{operation.retryAt !== null && (
+							<p>
+								{t("trackingUpdate.retryAt", {
+									time: new Date(operation.retryAt).toLocaleTimeString(),
+								})}
+							</p>
+						)}
+					</div>
+				)}
 			{mutation.error instanceof ApiClientError &&
 				(mutation.error.status === 400 || mutation.error.status === 409) && (
 					<p role="alert">{mutation.error.message}</p>

@@ -64,9 +64,31 @@ export function reportTrackingOperations(
 	for (const op of operations) {
 		const key = `${identity.generation}:${op.id}`;
 		const state = `${op.revision}:${op.state}:${op.error}`;
-		if (states.get(key) === state) continue;
+		const previous = states.get(key);
+		if (previous === state) continue;
 		states.set(key, state);
 		const id = `tracking-operation:${op.id}`;
+		if (
+			op.origin === "manual-detail" &&
+			(["pending", "submitting"].includes(op.state) ||
+				(previous && ["succeeded", "cancelled"].includes(op.state)))
+		) {
+			toast.close(id);
+			toast.add({
+				id,
+				type:
+					op.state === "succeeded" || op.state === "cancelled"
+						? "success"
+						: "loading",
+				title: i18n.t(`trackingUpdate.states.${op.state}`),
+				...(op.state === "pending" || op.state === "submitting"
+					? { timeout: 0 }
+					: {}),
+			});
+			if (op.state === "succeeded")
+				void invalidateAnimeQueries(client, "viewing");
+			continue;
+		}
 		if (op.state === "cancelled") {
 			toast.close(id);
 			continue;
