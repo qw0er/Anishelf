@@ -6,14 +6,15 @@ import { DomainError } from "../shared/errors.js";
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const devOrigins = new Set<string>(developmentDefaults.origins);
 
-type RequestOriginConfig = Pick<
-	DeploymentConfig,
-	"host" | "port" | "publicOrigin"
->;
+type RequestOriginConfig = Pick<DeploymentConfig, "allowedHosts">;
 
 function parseRequestHost(request: FastifyRequest, protocol = "http:"): URL {
 	const host = request.headers.host;
-	if (!host || !/^[a-zA-Z0-9.[\]:-]+$/.test(host))
+	if (
+		!host ||
+		!/^[a-zA-Z0-9.[\]:-]+$/.test(host) ||
+		!["http:", "https:"].includes(protocol)
+	)
 		throw new DomainError("INVALID_REQUEST", "Invalid Host header.");
 	try {
 		return new URL(`${protocol}//${host}`);
@@ -26,27 +27,18 @@ function checkRequestHost(
 	request: FastifyRequest,
 	config: RequestOriginConfig,
 ): string {
-	if (config.publicOrigin) {
-		const publicUrl = new URL(config.publicOrigin);
-		const publicHost = parseRequestHost(request, publicUrl.protocol);
-		if (publicHost.host === publicUrl.host) return config.publicOrigin;
-	}
-	const host = parseRequestHost(request);
-	const expectedHostname = config.host.includes(":")
-		? `[${config.host}]`
-		: config.host;
-	const localHostnames =
-		config.host === "0.0.0.0" || config.host === "::"
-			? ["127.0.0.1", "[::1]", "localhost"]
-			: [expectedHostname, "localhost"];
-	const expectedPort = request.raw.socket.localPort ?? config.port;
+	const host = parseRequestHost(request, `${request.protocol}:`);
 	if (
-		!localHostnames.includes(host.hostname) ||
-		Number(host.port || 80) !== expectedPort
+		config.allowedHosts?.length &&
+		!config.allowedHosts.includes(host.hostname)
 	) {
-		throw new DomainError("INVALID_REQUEST", "Unexpected Host header.");
+		request.log.warn(
+			{ event: "http.host_rejected" },
+			"Request hostname is not in ANISHELF_ALLOWED_HOSTS.",
+		);
+		throw new DomainError("NETWORK_HOST_REJECTED", "Hostname is not allowed.");
 	}
-	return `${request.protocol}://${host.host}`;
+	return host.origin;
 }
 
 function isSafeMethod(method: string): boolean {
@@ -62,8 +54,16 @@ function checkOrigin(
 	if (origin === undefined) return;
 	const sameOrigin = origin === expectedOrigin;
 	const allowedDevelopmentOrigin = development && devOrigins.has(origin);
-	if (!sameOrigin && !allowedDevelopmentOrigin)
-		throw new DomainError("REQUEST_FORBIDDEN", "Untrusted request origin.");
+	if (!sameOrigin && !allowedDevelopmentOrigin) {
+		request.log.warn(
+			{ event: "http.origin_rejected" },
+			"Request Origin does not match its access address and trusted transport. Check proxy configuration.",
+		);
+		throw new DomainError(
+			"NETWORK_ORIGIN_REJECTED",
+			"Untrusted request origin.",
+		);
+	}
 }
 
 function checkFetchMetadata(request: FastifyRequest): void {

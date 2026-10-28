@@ -22,7 +22,6 @@ export async function createServer(
 		logger,
 		dataDir: system.deployment.dataDir,
 		store: database.authentication,
-		secure: system.deployment.publicOrigin?.startsWith("https:") ?? false,
 		sources: {
 			version: async (id) =>
 				(await resources.api.sources.resolveSource(id)).identity.sourceVersion,

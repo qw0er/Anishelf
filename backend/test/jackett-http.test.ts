@@ -33,7 +33,7 @@ test("Source connector settings and unified diagnostics require authentication a
 		logger,
 		dataDir,
 		store: database.authentication,
-		secure: false,
+
 		sources: { version: async () => "one" },
 	});
 	const app = createHttpApp({

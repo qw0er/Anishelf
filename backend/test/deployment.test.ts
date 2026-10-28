@@ -28,6 +28,7 @@ test("starts with defaults without application environment variables", () => {
 	expect(parseDeploymentConfig({})).toEqual({
 		host: "127.0.0.1",
 		port: 3000,
+		allowedHosts: [],
 		dataDir: userDataDir("anishelf", false),
 		logging: { level: "info", destination: "stdout" },
 		mediaTools: { ffmpegPath: "ffmpeg", ffprobePath: "ffprobe" },
@@ -52,7 +53,6 @@ test.each([
 });
 
 test.each([
-	"",
 	"anime.example.com",
 	"ftp://anime.example.com",
 	"https://user:pass@anime.example.com",
@@ -446,7 +446,7 @@ test.each(["", "true", "*", "proxy.example.com", "10.0.0.1/99", "loopback,"])(
 	},
 );
 
-test("Compose wires the same public origin to both services and keeps proxy trust explicit", async () => {
+test("Compose uses optional Backend origin and explicit proxy trust at each hop", async () => {
 	for (const relative of [
 		"../../compose.yaml",
 		"../../package/deploy/compose.yaml",
@@ -457,9 +457,48 @@ test("Compose wires the same public origin to both services and keeps proxy trus
 		expect(services.web.environment.ANISHELF_PUBLIC_ORIGIN).toBe(
 			services.backend.environment.ANISHELF_PUBLIC_ORIGIN,
 		);
+		expect(services.backend.environment.ANISHELF_PUBLIC_ORIGIN).toBe(
+			// biome-ignore lint/suspicious/noTemplateCurlyInString: literal Compose interpolation
+			"${ANISHELF_PUBLIC_ORIGIN:-}",
+		);
+		expect(services.web.environment.ANISHELF_WEB_TRUSTED_PROXIES).toContain(
+			"127.0.0.1/32 ::1/128",
+		);
 		expect(services.backend.environment.ANISHELF_TRUSTED_PROXIES).toContain(
 			"loopback,uniquelocal",
 		);
 		expect(services.backend.ports).toBeUndefined();
 	}
+});
+
+test("blank public origin enables automatic access", () => {
+	expect(
+		parseDeploymentConfig({ ANISHELF_PUBLIC_ORIGIN: "" }).publicOrigin,
+	).toBeUndefined();
+});
+
+test("Host allowlist is optional and accepts domain/IP names without ports", () => {
+	expect(parseDeploymentConfig({}).allowedHosts).toEqual([]);
+	expect(
+		parseDeploymentConfig({ ANISHELF_ALLOWED_HOSTS: "" }).allowedHosts,
+	).toEqual([]);
+	expect(
+		parseDeploymentConfig({
+			ANISHELF_ALLOWED_HOSTS: "Anime.Example.com, 127.0.0.1, [::1]",
+		}).allowedHosts,
+	).toEqual(["anime.example.com", "127.0.0.1", "[::1]"]);
+});
+test.each([
+	"*",
+	"https://anime.example",
+	"anime.example:80",
+	"anime.example:8787",
+	"anime.example/path",
+	"anime.example,",
+	"user@anime.example",
+	"::1",
+])("invalid Host allowlist %s is rejected", (value) => {
+	expect(() =>
+		parseDeploymentConfig({ ANISHELF_ALLOWED_HOSTS: value }),
+	).toThrow("ANISHELF_ALLOWED_HOSTS");
 });

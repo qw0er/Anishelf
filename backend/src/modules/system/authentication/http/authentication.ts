@@ -43,7 +43,6 @@ export async function registerAuthentication(
 		sessionPath: string;
 		secret: string;
 		store: AuthenticationStore;
-		secure: boolean;
 		sources: MediaLinkSources;
 	},
 ) {
@@ -71,7 +70,7 @@ export async function registerAuthentication(
 			path: "/",
 			httpOnly: true,
 			sameSite: "lax",
-			secure: options.secure,
+			secure: "auto",
 			maxAge: sessionLifetime,
 		},
 		store: {
@@ -156,14 +155,14 @@ export async function registerAuthentication(
 		const path = new URL(request.url, "http://localhost").pathname;
 		if (!(path === "/api" || path.startsWith("/api/"))) return;
 		reply.header("Cache-Control", "no-store");
-		if (
-			path === "/api/auth/session" &&
-			options.secure &&
-			request.protocol !== "https"
-		) {
-			request.log.warn(
-				{ event: "auth.session_transport_untrusted" },
-				"Secure session cookie cannot be issued: verify proxy trust and forwarded HTTPS scheme.",
+		// Cookie-only changes are excluded from @fastify/session's dirty tracking.
+		// Persist the upgrade explicitly so the browser receives Secure immediately.
+		if (request.protocol === "https" && !request.session.cookie.secure) {
+			request.session.options({ secure: true });
+			await request.session.save();
+			request.log.info(
+				{ event: "auth.session_transport_upgraded" },
+				"Session cookie upgraded to HTTPS transport.",
 			);
 		}
 		const safe = ["GET", "HEAD", "OPTIONS"].includes(request.method);
@@ -259,7 +258,7 @@ export async function registerAuthentication(
 		await request.session.destroy();
 		reply.clearCookie("anishelf_session", {
 			path: "/",
-			secure: options.secure,
+			secure: "auto",
 			httpOnly: true,
 			sameSite: "lax",
 		});
@@ -300,7 +299,7 @@ export async function registerAuthentication(
 			await request.session.destroy();
 			reply.clearCookie("anishelf_session", {
 				path: "/",
-				secure: options.secure,
+				secure: "auto",
 				httpOnly: true,
 				sameSite: "lax",
 			});

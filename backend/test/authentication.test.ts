@@ -45,7 +45,7 @@ async function application(
 	const auth = await createAuthenticationModule({
 		logger,
 		dataDir,
-		secure,
+
 		store: database.authentication,
 		sources: { version: async () => version },
 	});
@@ -389,7 +389,7 @@ test("login attempts are limited and include Retry-After", async () => {
 	);
 });
 
-test("HTTPS proxy uses secure cookie while direct untrusted forwarded headers do not establish sessions", async () => {
+test("HTTPS proxy uses Secure cookies while untrusted forwarded headers cannot force HTTPS", async () => {
 	const { app } = await application("", true);
 	const response = await app.inject({
 		url: "/api/auth/session",
@@ -402,7 +402,8 @@ test("HTTPS proxy uses secure cookie while direct untrusted forwarded headers do
 		headers: { host: "example.com", "x-forwarded-proto": "https" },
 		remoteAddress: "10.0.0.2",
 	});
-	expect(untrusted.headers["set-cookie"]).toBeUndefined();
+	expect(untrusted.headers["set-cookie"]).not.toContain("Secure");
+	expect(untrusted.statusCode).toBe(200);
 });
 
 test("session and media authorization expire at fixed deadlines", async () => {
@@ -680,7 +681,7 @@ test("credential read and write failures include safe paths and diagnostics", as
 			dataDir,
 			logger,
 			store: database.authentication,
-			secure: false,
+
 			sources: { version: async () => "version" },
 		}),
 	).rejects.toThrow();
@@ -762,26 +763,69 @@ test("configured container proxy establishes an HTTPS session and retains Origin
 		remoteAddress: "10.90.0.2",
 		headers: proxyHeaders,
 	});
-	expect(outside.headers["set-cookie"]).toBeUndefined();
+	expect(outside.headers["set-cookie"]).not.toContain("Secure");
 });
 
-test("missing HTTPS transport trust logs an actionable warning without secrets", async () => {
-	const lines: string[] = [];
-	const logger = pino(
-		{ level: "warn" },
-		{
-			write: (line) => {
-				lines.push(line);
-			},
-		},
-	);
-	const { app } = await application("", true, logger);
-	await app.inject({
+test.each([
+	"192.168.1.20:8787",
+	"[fd00::42]:8787",
+	"nas.local:8787",
+	"anime.example.com:8787",
+])("complete login at %s needs no fixed origin", async (host) => {
+	const { app, password } = await application();
+	const address = { host, origin: `http://${host}` };
+	const initial = await app.inject({
 		url: "/api/auth/session",
-		remoteAddress: "10.89.0.2",
-		headers: { host: "example.com", "x-forwarded-proto": "https" },
+		headers: address,
 	});
-	expect(lines.map((line) => JSON.parse(line))).toContainEqual(
-		expect.objectContaining({ event: "auth.session_transport_untrusted" }),
-	);
+	expect(initial.statusCode).toBe(200);
+	expect(initial.headers["set-cookie"]).not.toContain("Secure");
+	const cookie = initial.cookies
+		.map((item) => `${item.name}=${encodeURIComponent(item.value)}`)
+		.join("; ");
+	const rejected = await app.inject({
+		method: "POST",
+		url: "/api/auth/login",
+		headers: { ...address, cookie },
+		payload: { password },
+	});
+	expect(rejected.statusCode).toBe(403);
+	const login = await app.inject({
+		method: "POST",
+		url: "/api/auth/login",
+		headers: { ...address, cookie, "x-csrf-token": initial.json().csrfToken },
+		payload: { password },
+	});
+	expect(login.statusCode, login.body).toBe(200);
+	const signedIn = login.cookies
+		.map((item) => `${item.name}=${encodeURIComponent(item.value)}`)
+		.join("; ");
+	expect(
+		(
+			await app.inject({
+				url: "/api/settings",
+				headers: { ...address, cookie: signedIn },
+			})
+		).statusCode,
+	).toBe(200);
+});
+
+test("automatic cookies upgrade existing HTTP sessions on a trusted HTTPS connection", async () => {
+	const { app, password } = await application();
+	const { cookie } = await browser(app, password ?? "");
+	const upgraded = await app.inject({
+		url: "/api/auth/session",
+		headers: { ...headers, cookie, "x-forwarded-proto": "https" },
+		remoteAddress: "127.0.0.1",
+	});
+	expect(upgraded.statusCode).toBe(200);
+	expect(upgraded.json().authenticated).toBe(true);
+	expect(upgraded.headers["set-cookie"]).toContain("Secure");
+	const direct = await app.inject({
+		url: "/api/auth/session",
+		headers: { ...headers, "x-forwarded-proto": "https" },
+		remoteAddress: "192.168.1.55",
+	});
+	expect(direct.statusCode).toBe(200);
+	expect(direct.headers["set-cookie"]).not.toContain("Secure");
 });

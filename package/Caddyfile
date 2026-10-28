@@ -1,5 +1,9 @@
 {
 	admin off
+	servers {
+		trusted_proxies static {$ANISHELF_WEB_TRUSTED_PROXIES:127.0.0.1/32 ::1/128}
+		trusted_proxies_strict
+	}
 	auto_https off
 	persist_config off
 	# Apply the same filtering to runtime errors and access logs.
@@ -15,12 +19,21 @@
 	}
 }
 
-:8080 {
-	# The deployment's public origin is authoritative, not caller-supplied forwarding headers.
-	map {$ANISHELF_PUBLIC_ORIGIN:http://localhost:3000} {public_scheme} {
-		~^https:// https
-		default http
+# This snippet is shared by fixed-origin and automatic proxy routes.
+(backend_transport) {
+	flush_interval 100ms
+	transport http {
+		keepalive 5s
 	}
+}
+
+:8080 {
+	map "{$ANISHELF_PUBLIC_ORIGIN:}" {public_scheme} {public_authority} {
+		~^https://([^/]+)/?$ https ${1}
+		~^http://([^/]+)/?$ http ${1}
+		default "" ""
+	}
+	@fixed_origin expression `{public_authority} != "" && ({http.request.hostport}.lowerAscii() == {public_authority}.lowerAscii() || ({public_scheme} == "https" && ({http.request.hostport}.lowerAscii() == {public_authority}.lowerAscii() + ":443" || {public_authority}.lowerAscii() == {http.request.hostport}.lowerAscii() + ":443")) || ({public_scheme} == "http" && ({http.request.hostport}.lowerAscii() == {public_authority}.lowerAscii() + ":80" || {public_authority}.lowerAscii() == {http.request.hostport}.lowerAscii() + ":80")))`
 	root * /srv
 	header Referrer-Policy no-referrer
 	log {
@@ -42,11 +55,13 @@
 	@api path /api /api/*
 	handle @api {
 		# Preserve the browser's Host/Origin, cookies, CSRF tokens and Range headers.
-		reverse_proxy backend:3000 {
-			header_up X-Forwarded-Proto {public_scheme}
-			flush_interval 100ms
-			transport http {
-				keepalive 5s
+		route {
+			reverse_proxy @fixed_origin backend:3000 {
+				import backend_transport
+				header_up X-Forwarded-Proto {public_scheme}
+			}
+			reverse_proxy backend:3000 {
+				import backend_transport
 			}
 		}
 	}

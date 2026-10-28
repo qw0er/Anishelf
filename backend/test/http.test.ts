@@ -9,12 +9,14 @@ function application(
 	development = false,
 	host = "127.0.0.1",
 	publicOrigin?: string,
+	allowedHosts?: readonly string[],
 ) {
 	const app = createHttpApp({
 		config: {
 			host,
 			port: 3000,
 			...(publicOrigin === undefined ? {} : { publicOrigin }),
+			...(allowedHosts ? { allowedHosts } : {}),
 		},
 		logger: pino({ enabled: false }),
 		development,
@@ -67,20 +69,17 @@ test("unknown endpoints return the public error contract", async () => {
 	});
 });
 
-test.each([
-	"evil.example:3000",
-	"127.0.0.1:9999",
-	"127.0.0.1:3000@evil.example",
-	"127.0.0.1:3000/path",
-	"[",
-])("rejects unexpected or malformed Host: %s", async (host) => {
-	const response = await application().inject({
-		url: "/api/health",
-		headers: { host, "x-forwarded-host": headers.host },
-	});
-	expect(response.statusCode).toBe(400);
-	expect(response.json().error.code).toBe("INVALID_REQUEST");
-});
+test.each(["127.0.0.1:3000@evil.example", "127.0.0.1:3000/path", "["])(
+	"rejects unexpected or malformed Host: %s",
+	async (host) => {
+		const response = await application().inject({
+			url: "/api/health",
+			headers: { host, "x-forwarded-host": headers.host },
+		});
+		expect(response.statusCode).toBe(400);
+		expect(response.json().error.code).toBe("INVALID_REQUEST");
+	},
+);
 
 test.each(["127.0.0.1:3000", "localhost:3000"])(
 	"accepts expected Host: %s",
@@ -119,7 +118,12 @@ test.each([
 		const response = await app.inject({
 			method: "POST",
 			url: "/api/test",
-			headers: { host, origin, "sec-fetch-site": "same-origin" },
+			headers: {
+				host,
+				origin,
+				"x-forwarded-proto": new URL(origin).protocol.slice(0, -1),
+				"sec-fetch-site": "same-origin",
+			},
 			payload: { count: 1 },
 		});
 		expect(response.statusCode).toBe(200);
@@ -130,18 +134,14 @@ test.each([
 	},
 );
 
-test.each([
-	"evil.example.com",
-	"anime.example.com:8443",
-	"anime.example.com:80",
-	"anime.example.com@evil.example.com",
-])(
-	"rejects other proxy Hosts even with forged forwarded headers: %s",
+test.each(["evil.example.com", "anime.example.com@evil.example.com"])(
+	"optional Host allowlist ignores forged forwarded headers: %s",
 	async (host) => {
 		const response = await application(
 			false,
 			"127.0.0.1",
 			"https://anime.example.com",
+			["anime.example.com"],
 		).inject({
 			url: "/api/health",
 			headers: {
@@ -168,7 +168,11 @@ test.each([
 	).inject({
 		method: "POST",
 		url: "/api/test",
-		headers: { host: "anime.example.com", ...mutationHeaders },
+		headers: {
+			host: "anime.example.com",
+			"x-forwarded-proto": "https",
+			...mutationHeaders,
+		},
 		payload: { count: 1 },
 	});
 	expect(response.statusCode).toBe(403);
@@ -198,7 +202,7 @@ test.each(["https://evil.example", "null", "http://127.0.0.1:5173"])(
 			payload: { count: 1 },
 		});
 		expect(response.statusCode).toBe(403);
-		expect(response.json().error.code).toBe("REQUEST_FORBIDDEN");
+		expect(response.json().error.code).toBe("NETWORK_ORIGIN_REJECTED");
 	},
 );
 
@@ -314,7 +318,7 @@ test("bootstrap owns one awaited dependency shutdown", async () => {
 });
 
 test.each(["0.0.0.0", "::"])(
-	"wildcard listener %s retains Host restrictions",
+	"wildcard listener %s accepts custom domains",
 	async (host) => {
 		const app = application(false, host);
 		expect((await app.inject({ url: "/api/health", headers })).statusCode).toBe(
@@ -327,7 +331,7 @@ test.each(["0.0.0.0", "::"])(
 					headers: { host: "evil.example:3000" },
 				})
 			).statusCode,
-		).toBe(400);
+		).toBe(200);
 	},
 );
 
@@ -388,4 +392,96 @@ test("wildcard host configuration serves health through injection", async () => 
 	const response = await app.inject({ url: "/api/health", headers });
 	expect(response.statusCode).toBe(200);
 	expect(response.json()).toEqual({ status: "ok" });
+});
+
+// Host admission must survive container port mapping without accepting public DNS.
+test.each([
+	"192.168.1.20:8787",
+	"10.0.0.5:9999",
+	"[fd00::42]:8787",
+	"[2001:db8::1]:4000",
+	"localhost:9999",
+	"nas:8787",
+	"nas.local:8787",
+	"nas.lan:8787",
+	"nas.home.arpa:8787",
+])("mapped access address %s uses its own Origin", async (host) => {
+	const app = application(false, "0.0.0.0");
+	expect(
+		(await app.inject({ url: "/api/health", headers: { host } })).statusCode,
+	).toBe(200);
+	const response = await app.inject({
+		method: "POST",
+		url: "/api/test",
+		headers: { host, origin: `http://${host}` },
+		payload: { count: 1 },
+	});
+	expect(response.statusCode, response.body).toBe(200);
+	const forged = await app.inject({
+		method: "POST",
+		url: "/api/test",
+		headers: { host, origin: "http://evil.example" },
+		payload: { count: 1 },
+	});
+	expect(forged.statusCode).toBe(403);
+});
+
+test.each([
+	"anime.example.com",
+	"nas.local.evil.example",
+	"nas.home.arpa.evil.example",
+])("custom domain %s works without a public origin", async (host) => {
+	const app = application();
+	expect(
+		(await app.inject({ url: "/api/health", headers: { host } })).statusCode,
+	).toBe(200);
+	const response = await app.inject({
+		method: "POST",
+		url: "/api/test",
+		headers: { host, origin: `http://${host}` },
+		payload: { count: 1 },
+	});
+	expect(response.statusCode).toBe(200);
+});
+
+test("optional Host allowlist restricts every route and is independent of public origin and port", async () => {
+	const app = application(false, "0.0.0.0", "https://unrelated.example", [
+		"anime.example",
+		"127.0.0.1",
+		"[::1]",
+	]);
+	for (const host of ["anime.example:8787", "127.0.0.1:4000", "[::1]:8787"]) {
+		expect(
+			(await app.inject({ url: "/api/health", headers: { host } })).statusCode,
+		).toBe(200);
+	}
+	for (const host of [
+		"evil.example",
+		"unrelated.example",
+		"anime.example.evil.example",
+	]) {
+		const response = await app.inject({
+			url: "/api/health",
+			headers: { host },
+		});
+		expect(response.statusCode).toBe(400);
+		expect(response.json().error.code).toBe("NETWORK_HOST_REJECTED");
+		expect(response.json().error.message).toContain("ANISHELF_ALLOWED_HOSTS");
+	}
+});
+
+// URL default ports must be normalized against the actual trusted protocol.
+test.each([
+	["http", "nas.local:80", "http://nas.local"],
+	["https", "nas.local:443", "https://nas.local"],
+	["https", "nas.local:80", "https://nas.local:80"],
+	["http", "nas.local:443", "http://nas.local:443"],
+])("normalizes %s access through %s", async (protocol, host, origin) => {
+	const response = await application().inject({
+		method: "POST",
+		url: "/api/test",
+		headers: { host, origin, "x-forwarded-proto": protocol },
+		payload: { count: 1 },
+	});
+	expect(response.statusCode, response.body).toBe(200);
 });

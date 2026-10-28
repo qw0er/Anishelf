@@ -3,6 +3,7 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { request as httpRequest } from "node:http";
 import { request } from "node:https";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -26,19 +27,27 @@ async function port() {
 	return address.port;
 }
 
-test.skipIf(!process.env.ANISHELF_TEST_CADDY_BIN)(
-	"real TLS -> packaged Web -> HTTP Backend supports Secure session login",
-	async () => {
+test.skipIf(!process.env.ANISHELF_TEST_CADDY_BIN).each([
+	{ fixedOrigin: false, proxyTrusted: true, defaultPort: "" },
+	{ fixedOrigin: true, proxyTrusted: true, defaultPort: "" },
+	{ fixedOrigin: false, proxyTrusted: false, defaultPort: "" },
+	{ fixedOrigin: true, proxyTrusted: false, defaultPort: "" },
+	{ fixedOrigin: true, proxyTrusted: false, defaultPort: "config" },
+	{ fixedOrigin: true, proxyTrusted: false, defaultPort: "request" },
+])(
+	"real TLS -> Web -> Backend (fixed origin: $fixedOrigin, trusted proxy: $proxyTrusted, default port: $defaultPort)",
+	async ({ fixedOrigin, proxyTrusted, defaultPort }) => {
 		const directory = await mkdtemp(join(tmpdir(), "anishelf-proxy-"));
 		const database = ApplicationDatabase.openMemory();
 		const logger = pino({ enabled: false });
 		const webPort = await port(),
 			outerPort = await port();
-		const origin = `https://localhost:${outerPort}`;
+		const origin = `https://anime.example.com${defaultPort ? "" : `:${outerPort}`}`;
+		const requestHost = `anime.example.com${defaultPort === "request" ? ":443" : defaultPort ? "" : `:${outerPort}`}`;
 		const auth = await createAuthenticationModule({
 			dataDir: directory,
 			logger,
-			secure: true,
+
 			store: database.authentication,
 			sources: { version: async () => "v1" },
 		});
@@ -46,7 +55,7 @@ test.skipIf(!process.env.ANISHELF_TEST_CADDY_BIN)(
 			config: {
 				host: "127.0.0.1",
 				port: 3000,
-				publicOrigin: origin,
+				...(fixedOrigin ? { publicOrigin: origin } : {}),
 				trustedProxies: ["127.0.0.1/32"],
 			},
 			logger,
@@ -73,8 +82,8 @@ test.skipIf(!process.env.ANISHELF_TEST_CADDY_BIN)(
 				)
 			)
 				.replace(":8080 {", `:${webPort} {`)
-				.replace("backend:3000", backendUrl);
-			const outer = `{\nadmin off\nskip_install_trust\nauto_https disable_redirects\n}\n${origin} {\ntls internal\nreverse_proxy 127.0.0.1:${webPort}\n}\n`;
+				.replaceAll("backend:3000", backendUrl);
+			const outer = `{\nadmin off\nskip_install_trust\nauto_https disable_redirects\n}\nhttps://anime.example.com:${outerPort} {\ntls internal\nreverse_proxy 127.0.0.1:${webPort}\n}\n`;
 			for (const [name, config] of [
 				["web", web],
 				["outer", outer],
@@ -90,7 +99,12 @@ test.skipIf(!process.env.ANISHELF_TEST_CADDY_BIN)(
 							HOME: directory,
 							XDG_DATA_HOME: join(directory, "data"),
 							XDG_CONFIG_HOME: join(directory, "config"),
-							ANISHELF_PUBLIC_ORIGIN: origin,
+							ANISHELF_PUBLIC_ORIGIN: fixedOrigin
+								? `${origin.replace("anime.", "Anime.")}${defaultPort === "config" ? ":443" : ""}/`
+								: "",
+							ANISHELF_WEB_TRUSTED_PROXIES: proxyTrusted
+								? "127.0.0.1/32"
+								: "192.0.2.1/32",
 						},
 						stdio: ["ignore", "pipe", "pipe"],
 					},
@@ -116,14 +130,14 @@ test.skipIf(!process.env.ANISHELF_TEST_CADDY_BIN)(
 						const req = request(
 							{
 								hostname: "127.0.0.1",
-								servername: "localhost",
+								servername: "anime.example.com",
 								port: outerPort,
 								path:
 									method === "GET" ? "/api/auth/session" : "/api/auth/login",
 								method,
 								rejectUnauthorized: false,
 								headers: {
-									host: `localhost:${outerPort}`,
+									host: requestHost,
 									origin,
 									"content-type": "application/json",
 									...headers,
@@ -155,7 +169,7 @@ test.skipIf(!process.env.ANISHELF_TEST_CADDY_BIN)(
 			for (let attempt = 0; attempt < 50; attempt++) {
 				try {
 					session = await send("GET", { "x-forwarded-proto": "http" });
-					if (session.status === 200) break;
+					if (session.status === 200 || session.status === 400) break;
 				} catch {
 					/* Wait for the two local proxies and internal TLS certificate. */
 				}
@@ -163,6 +177,24 @@ test.skipIf(!process.env.ANISHELF_TEST_CADDY_BIN)(
 			}
 			expect(session?.status, logs).toBe(200);
 			if (!session) throw new Error(logs);
+			if (!proxyTrusted && !fixedOrigin) {
+				expect(session.cookie[0]).not.toContain("Secure");
+				const login = await send(
+					"POST",
+					{
+						cookie: session.cookie
+							.map((value) => value.split(";")[0])
+							.join("; "),
+						"x-csrf-token": JSON.parse(session.body).csrfToken,
+					},
+					{ password: auth.initialPassword },
+				);
+				expect(login.status).toBe(403);
+				expect(JSON.parse(login.body).error.code).toBe(
+					"NETWORK_ORIGIN_REJECTED",
+				);
+				return;
+			}
 			expect(session.cookie[0], JSON.stringify(observed)).toContain("Secure");
 			const cookie = session.cookie
 				.map((value) => value.split(";")[0])
@@ -179,6 +211,62 @@ test.skipIf(!process.env.ANISHELF_TEST_CADDY_BIN)(
 				cookie: login.cookie.map((value) => value.split(";")[0]).join("; "),
 			});
 			expect(JSON.parse(signedIn.body).authenticated).toBe(true);
+			// A declared external HTTPS address must not turn local HTTP cookies Secure.
+			async function local(
+				method = "GET",
+				headers: Record<string, string> = {},
+				payload?: object,
+			) {
+				return new Promise<{ status: number; cookie: string[]; body: string }>(
+					(resolve, reject) => {
+						const req = httpRequest(
+							{
+								hostname: "127.0.0.1",
+								port: webPort,
+								path:
+									method === "GET" ? "/api/auth/session" : "/api/auth/login",
+								method,
+								headers: {
+									host: `127.0.0.1:${webPort}`,
+									origin: `http://127.0.0.1:${webPort}`,
+									"content-type": "application/json",
+									...headers,
+								},
+							},
+							(response) => {
+								let body = "";
+								response.on("data", (chunk) => {
+									body += chunk;
+								});
+								response.on("end", () =>
+									resolve({
+										status: response.statusCode ?? 0,
+										cookie: response.headers["set-cookie"] ?? [],
+										body,
+									}),
+								);
+							},
+						);
+						req.on("error", reject);
+						req.end(payload ? JSON.stringify(payload) : undefined);
+					},
+				);
+			}
+			const localSession = await local();
+			expect(localSession.status).toBe(200);
+			expect(localSession.cookie[0]).not.toContain("Secure");
+			const localLogin = await local(
+				"POST",
+				{
+					cookie: localSession.cookie
+						.map((value) => value.split(";")[0])
+						.join("; "),
+					"x-csrf-token": JSON.parse(localSession.body).csrfToken,
+				},
+				{ password: auth.initialPassword },
+			);
+			expect(localLogin.status, localLogin.body).toBe(200);
+			expect(localLogin.cookie[0]).not.toContain("Secure");
 		} finally {
 			await Promise.all(
 				children.map(async (child) => {

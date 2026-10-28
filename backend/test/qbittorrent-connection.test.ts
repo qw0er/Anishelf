@@ -264,7 +264,7 @@ test("authenticated HTTP endpoints enforce CSRF, validate inputs and never echo 
 		logger: f.logger,
 		dataDir: f.dataDir,
 		store: database.authentication,
-		secure: false,
+
 		sources: { version: async () => "one" },
 	});
 	const app = createHttpApp({

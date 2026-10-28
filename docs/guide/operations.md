@@ -25,7 +25,9 @@ templates for container wiring.
 | Variable | Backend default | Purpose |
 | --- | --- | --- |
 | `ANISHELF_HOST` / `ANISHELF_PORT` | `127.0.0.1` / `3000` | Listener; image uses `0.0.0.0` |
-| `ANISHELF_PUBLIC_ORIGIN` | Unset | Browser HTTP(S) origin, without path/query; set in both Web and Backend |
+| `ANISHELF_PUBLIC_ORIGIN` | Unset | Optional fixed external HTTP(S) address; standard HTTPS proxy mode; passed to both Web and Backend |
+| `ANISHELF_ALLOWED_HOSTS` | Unset | Optional Backend exact hostname/IP allowlist, comma-separated, without ports or wildcards; blank accepts any valid Host |
+| `ANISHELF_WEB_TRUSTED_PROXIES` | `127.0.0.1/32 ::1/128` | Advanced automatic/multi-origin HTTPS or original client IP: Web external proxy IPs/CIDRs, space-separated; use the source address seen by Web |
 | `ANISHELF_TRUSTED_PROXIES` | `loopback` | Trusted proxy IPs/CIDRs; packaged containers also trust `uniquelocal` |
 | `ANISHELF_DATA_DIR` | OS user data directory | Persistent app state |
 | `ANISHELF_INITIAL_RESOURCE_ROOTS` | Unset | Up to 64 colon-separated media paths; initializes missing settings only |
@@ -118,7 +120,7 @@ startup. Stop the stack and back up the **complete** app data plus optional serv
 state before upgrading. Active SQLite WAL files may contain committed data; copying
 only the database is insufficient. Protect credential backups and preserve ownership.
 
-[Deployment storage/recovery](deployment.md#storage-updates-and-recovery) lists volumes
+[Deployment storage/recovery](deployment.md#backup-and-recovery) lists volumes
 and password reset commands. Restore matching app/database versions for rollback;
 reverting an image alone does not undo migrations.
 
@@ -127,8 +129,10 @@ reverting an image alone does not undo migrations.
 | Symptom | Next step |
 | --- | --- |
 | Startup fails | Read Backend diagnostic; check data permissions, migrations and executable paths |
-| Login fails behind HTTPS | Match public origin in Web/Backend and verify proxy trust; `auth.session_transport_untrusted` identifies an untrusted transport |
-| Forgotten Anishelf password | Use [password recovery](deployment.md#storage-updates-and-recovery), then restart Backend |
+| Login fails behind HTTPS | Standard mode: match `PUBLIC_ORIGIN` in Web/Backend; automatic mode: verify Web external proxy trust; Backend must trust the private Web hop |
+| Access address rejected | Check explicit `ANISHELF_ALLOWED_HOSTS`; domains/IPs work automatically when unset; `http.host_rejected` identifies this check |
+| Request origin rejected | Match the browser address and trusted protocol; inspect proxy configuration and `http.origin_rejected` |
+| Forgotten Anishelf password | Use [password recovery](deployment.md#maintenance), then restart Backend |
 | Files absent | Check mounted paths, Settings roots, access and scan state |
 | Acquisition stalled | Open work Activity/Diagnostics; use the [recovery table](watching-automation.md#recovery-and-upgrade) |
 | Jackett lists sites but finds no releases | Run title-search diagnostics; connection/capability checks alone do not prove results |

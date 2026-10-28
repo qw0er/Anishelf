@@ -41,7 +41,7 @@ Usage: bash install.sh [--generate-only] [--test] [--ref REF] [--templates-dir D
        bash install.sh --remove DIRECTORY
        bash install.sh --reconfigure DIRECTORY [--ref REF] [--templates-dir DIRECTORY]
 
-Configure Docker/Podman Compose or rootless Podman Quadlet interactively.
+Configure Docker Compose or rootless Podman Quadlet interactively.
 --test           Isolated testing deployment: testing images, port 3001, separate
                  anishelf-test services/volumes. Host media mounts are disabled.
 --generate-only  Write a new deployment bundle without contacting a container engine
@@ -56,8 +56,7 @@ Configure Docker/Podman Compose or rootless Podman Quadlet interactively.
 --engine         Explicit engine for automated generation; normally auto-detected.
 --help           Show this help.
 
-Requires Bash and curl; Compose needs Docker Compose v2 or Podman with an external
-Compose provider. Quadlet needs Linux with rootless Podman, cgroup v2, Quadlet
+Requires Bash and curl; Docker deployments need Docker Compose v2. Quadlet needs Linux with rootless Podman, cgroup v2, Quadlet
 and an active systemd user session.
 HELP
 }
@@ -127,6 +126,7 @@ render_unit() {
       *:Image=ghcr.io/qw0er/anishelf-backend:*) line="Image=ghcr.io/qw0er/anishelf-backend:$image_tag";;
       *:Image=ghcr.io/qw0er/anishelf-web:*) line="Image=ghcr.io/qw0er/anishelf-web:$image_tag";;
       *:Environment=ANISHELF_PUBLIC_ORIGIN=*) line="Environment=ANISHELF_PUBLIC_ORIGIN=$public_origin";;
+      anishelf-web.container:Environment=\"ANISHELF_WEB_TRUSTED_PROXIES=*) line="Environment=\"ANISHELF_WEB_TRUSTED_PROXIES=$web_trusted_proxies\"";;
       anishelf-web.container:PublishPort=*) line="PublishPort=$bind_address:$app_port:8080";;
       anishelf-jackett.container:PublishPort=*) line="PublishPort=127.0.0.1:$jackett_port:9117";;
       anishelf-qbittorrent.container:Environment=TORRENTING_PORT=*) line="Environment=TORRENTING_PORT=$peer_port";;
@@ -167,10 +167,9 @@ detect_engine() {
   method=compose
   if [[ "$engine" == podman ]]; then
     [[ "$(id -u)" == 0 ]] || podman_rootless=true
-    while :; do
-      ask 'Deployment: 1 Podman Compose, 2 rootless Podman Quadlet' 1
-      case "$answer" in 1|compose) break;; 2|quadlet) method=quadlet; break;; esac
-    done
+    method=quadlet
+    [[ "$podman_rootless" == true ]] || die 'Run rootless Quadlet as a non-root service user, not through sudo.'
+    log 'Podman selected; using rootless Quadlet.'
   fi
 }
 preflight() {
@@ -181,17 +180,12 @@ preflight() {
     [[ "${1:-}" == replacement || -z "$(podman ps -aq --filter volume="$stack-app")" ]] || die 'Existing containers already use anishelf-app. Reuse their deployment configuration.'
   fi
   if [[ "$method" == compose ]]; then
-    "$engine" compose version >/dev/null || die "$engine compose is unavailable. Install its Compose provider before retrying."
+    docker compose version >/dev/null || die 'Docker Compose v2 is required.'
     "$engine" info >/dev/null
     [[ "${1:-}" == replacement || -z "$("$engine" ps -aq --filter label=com.docker.compose.project="$stack")" ]] ||
       die 'An anishelf Compose project already exists. Use its existing configuration to update it.'
     [[ "${1:-}" == replacement || -z "$("$engine" ps -aq --filter volume="$stack-app")" ]] || die 'Existing containers already use anishelf-app. Reuse their deployment configuration.'
-    if [[ "$podman_rootless" == true ]]; then
-      local candidate
-      for candidate in "$app_port" "$qbit_port" "$peer_port" "$jackett_port"; do
-        ((candidate >= 1024)) || die 'Rootless Podman host ports must be 1024 or higher.'
-      done
-    fi
+
   else
     [[ "$(uname -s)" == Linux ]] || die 'Quadlet startup requires Linux.'
     [[ "$(id -u)" != 0 ]] || die 'Run rootless Quadlet as a non-root service user, not through sudo.'
@@ -209,29 +203,14 @@ preflight() {
   fi
   return 0
 }
-render_podman_compose() {
-  # Rootless containers share the same keep-id mapping as the canonical Quadlets.
-  # LinuxServer init still runs as container root, as does the credential initializer.
-  local line service= in_services=yes
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    [[ "$line" != volumes: ]] || in_services=no
-    printf '%s\n' "$line"
-    if [[ "$in_services" == yes && "$line" =~ ^\ \ ([a-z][a-z0-9-]*):$ ]]; then
-      service=${BASH_REMATCH[1]}
-      printf '    userns_mode: keep-id:uid=1000,gid=1000\n'
-      case "$service" in qbittorrent|jackett) printf '    user: "0:0"\n';; esac
-    fi
-  done < "$stage_dir/bundle/compose.yaml" > "$stage_dir/podman-compose.yaml"
-  mv "$stage_dir/podman-compose.yaml" "$stage_dir/bundle/compose.yaml"
-}
 
 compose() {
   # Shell environment must not override the answers saved in this bundle.
   (
     unset ANISHELF_TAG ANISHELF_BIND_ADDRESS ANISHELF_PORT ANISHELF_PUBLIC_ORIGIN ANISHELF_MEDIA_PATH
+    unset ANISHELF_ALLOWED_HOSTS ANISHELF_WEB_TRUSTED_PROXIES
     unset COMPOSE_FILE COMPOSE_PROJECT_NAME COMPOSE_PROFILES ANISHELF_TRUSTED_PROXIES
     unset QBITTORRENT_WEBUI_PORT QBITTORRENT_PEER_PORT QBITTORRENT_BIND_ADDRESS QBITTORRENT_TAG JACKETT_PORT JACKETT_BIND_ADDRESS
-    # Older podman-compose providers do not activate profiles from --env-file.
     # Read only the installer's validated field; never source the saved file.
     local saved_profiles
     saved_profiles=$(sed -n "s/^COMPOSE_PROFILES='\([^']*\)'$/\1/p" "$deploy_dir/.env")
@@ -242,7 +221,7 @@ compose() {
     case ",$saved_profiles," in *,qbittorrent,*) set -- --profile qbittorrent "$@";; esac
     case ",$saved_profiles," in *,jackett,*) set -- --profile jackett "$@";; esac
     log "Compose project=$stack; enabled profiles=${saved_profiles:-none}"
-    "$engine" compose --project-name "$stack" --env-file "$deploy_dir/.env" -f "$deploy_dir/compose.yaml" "$@"
+    docker compose --project-name "$stack" --env-file "$deploy_dir/.env" -f "$deploy_dir/compose.yaml" "$@"
   )
 }
 publish_unit() {
@@ -282,7 +261,8 @@ load_existing() {
   if [[ -f "$existing_dir/compose.yaml" && ! -L "$existing_dir/compose.yaml" && -f "$existing_dir/.env" && ! -L "$existing_dir/.env" ]]; then
     old_method=compose
     old_engine=$(sed -En "s/^ANISHELF_DEPLOY_ENGINE='(docker|podman)'$/\1/p" "$existing_dir/.env")
-    [[ "$old_engine" == docker || "$old_engine" == podman ]] || die 'Not a recognized installer Compose bundle.'
+    [[ "$old_engine" != podman ]] || die 'Podman Compose is no longer supported. Manage this existing deployment manually; no files or services were changed.'
+    [[ "$old_engine" == docker ]] || die 'Not a recognized installer Compose bundle.'
     [[ -z "$engine" || "$engine" == "$old_engine" ]] || die 'Use the original engine to preserve its volumes.'
   elif [[ -d "$existing_dir/quadlet" && ! -L "$existing_dir/quadlet" && -f "$existing_dir/quadlet/$stack-backend.container" && -f "$existing_dir/quadlet/$stack-web.container" && -f "$existing_dir/quadlet/$stack.target" ]]; then
     old_method=quadlet; old_engine=podman
@@ -402,10 +382,11 @@ main() {
   image_tag=latest
   bind_address=127.0.0.1
   app_port=3000
-  public_origin=http://localhost:3000
+  public_origin=
+  web_trusted_proxies="127.0.0.1/32 ::1/128"
   qbit_port=8080; peer_port=6881; jackett_port=9117
   if [[ "$test_mode" == true ]]; then
-    image_tag=testing; app_port=3001; public_origin=http://localhost:3001
+    image_tag=testing; app_port=3001; public_origin=
     qbit_port=8081; peer_port=6882; jackett_port=9118
     log 'Testing profile: isolated services, network and volumes; no host media mounts. Use independent test service credentials.'
   fi
@@ -426,6 +407,11 @@ main() {
   local relabel_default=no
   case "$selinux_mode" in Enforcing|Permissive) relabel_default=yes;; esac
   if [[ -n "$media_path" && "$relabel_default" == yes ]]; then selinux_suffix=,z; fi
+  if [[ "$test_mode" != true ]]; then
+    yes_no 'Allow access from other devices on the local network' no
+    [[ "$answer" != yes ]] || bind_address=0.0.0.0
+  fi
+  port 'Application host port' "$app_port"; app_port=$answer
   yes_no 'Include bundled qBittorrent' no; qbit=$answer
   yes_no 'Include bundled Jackett' no; jackett=$answer
   yes_no 'Adjust advanced options (image tag, networking, ports and SELinux)' no
@@ -440,10 +426,9 @@ main() {
       valid_ipv4 "$answer" && { bind_address=$answer; break; }
       log 'Enter an IPv4 address, for example 127.0.0.1 or 0.0.0.0.'
     done
-    port 'Application host port' "$app_port"; app_port=$answer
     while :; do
-      ask 'Browser origin (scheme, hostname and optional port only)' "http://localhost:$app_port"
-      valid_origin "$answer" && { public_origin=$answer; break; }
+      ask 'Optional fixed browser origin for HTTPS; blank enables automatic access' ''
+      if [[ -z "$answer" ]] || valid_origin "$answer"; then public_origin=$answer; break; fi
       log 'Enter an HTTP(S) origin without credentials, paths, query or fragment.'
     done
     if [[ "$qbit" == yes ]]; then
@@ -473,7 +458,8 @@ main() {
   done
   quadlet_dir=${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd
   systemd_dir=${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user
-  log "Plan: $engine/$method; directory=$deploy_dir; image=$image_tag; bind=$bind_address:$app_port; origin=$public_origin"
+  log "Plan: $engine/$method; directory=$deploy_dir; image=$image_tag; bind=$bind_address:$app_port; origin=${public_origin:-automatic}"
+  log "External proxy trust: $web_trusted_proxies"
   log "Media: ${media_path:-managed volume}; SELinux shared relabel=${selinux_suffix:-no}; qBittorrent=$qbit; Jackett=$jackett"
   if [[ "$generate_only" == true ]]; then
     yes_no 'Write configuration only (no engine or systemd changes)' yes
@@ -506,7 +492,6 @@ main() {
         "$stage_dir/bundle/compose.yaml" > "$stage_dir/compose-no-host-chown.yaml"
       mv "$stage_dir/compose-no-host-chown.yaml" "$stage_dir/bundle/compose.yaml"
     fi
-    if [[ "$engine" == podman && "$podman_rootless" == true ]]; then render_podman_compose; fi
     : > "$stage_dir/bundle/.env"
     write_env ANISHELF_TAG "$image_tag"; write_env ANISHELF_BIND_ADDRESS "$bind_address"
     write_env ANISHELF_PORT "$app_port"; write_env ANISHELF_PUBLIC_ORIGIN "$public_origin"
@@ -518,6 +503,7 @@ main() {
     write_env COMPOSE_PROJECT_NAME "$stack"
     write_env ANISHELF_DEPLOY_ENGINE "$engine"
     write_env ANISHELF_TRUSTED_PROXIES loopback,uniquelocal
+    write_env ANISHELF_WEB_TRUSTED_PROXIES "$web_trusted_proxies"
     write_env QBITTORRENT_WEBUI_PORT "$qbit_port"; write_env QBITTORRENT_PEER_PORT "$peer_port"
     write_env JACKETT_PORT "$jackett_port"
     write_env QBITTORRENT_BIND_ADDRESS 127.0.0.1; write_env JACKETT_BIND_ADDRESS 127.0.0.1
@@ -596,7 +582,10 @@ main() {
   [[ "$health_host" != 0.0.0.0 ]] || health_host=127.0.0.1
   for attempt in {1..30}; do
     if curl --fail --silent --max-time 3 -H "Host: localhost:$app_port" "http://$health_host:$app_port/api/health" >/dev/null; then
-      log "Deployment is healthy. Open $public_origin; configure external services in Settings."
+      log "Deployment is healthy. Open ${public_origin:-http://localhost:$app_port}; configure external services in Settings."
+      if [[ "$bind_address" == 0.0.0.0 && -z "$public_origin" ]]; then
+        log "LAN access: open http://SERVER_IP:$app_port from another device."
+      fi
       return
     fi
     sleep 2

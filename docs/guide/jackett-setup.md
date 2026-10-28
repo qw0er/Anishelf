@@ -35,7 +35,7 @@ docker compose up -d
 
 For Quadlet, install `anishelf-jackett-init.container` and
 `anishelf-jackett.container` alongside the config volume,
-reload systemd and restart `anishelf.target`. See [Deployment](deployment.md#podman-quadlet).
+reload systemd and restart `anishelf.target`. See [Deployment](deployment.md#rootless-podman-quadlet).
 
 | Setting | Value |
 | --- | --- |

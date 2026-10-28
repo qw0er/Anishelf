@@ -15,7 +15,7 @@ import { registerFrontend } from "../../transport/static.js";
 export function createHttpApp(options: {
 	config: Pick<
 		DeploymentConfig,
-		"host" | "port" | "publicOrigin" | "trustedProxies"
+		"host" | "port" | "publicOrigin" | "trustedProxies" | "allowedHosts"
 	>;
 	logger: Logger;
 	bodyLimit?: number;
@@ -30,6 +30,11 @@ export function createHttpApp(options: {
 			event: "http.proxy_configured",
 			trustedProxies: options.config.trustedProxies ?? ["loopback"],
 			publicOrigin: options.config.publicOrigin,
+			allowedHosts: options.config.allowedHosts ?? [],
+			accessMode: options.config.allowedHosts?.length
+				? "restricted-hosts"
+				: "automatic",
+			cookieTransport: "automatic",
 			bodyLimit: options.bodyLimit ?? 64 * 1024,
 		},
 		"HTTP proxy trust configured.",

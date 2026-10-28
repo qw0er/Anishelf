@@ -250,7 +250,7 @@ test("rejects malformed release tokens", async () => {
 	).toBe(400);
 });
 
-test("checks Host and Origin on playback mutations before executing use cases", async () => {
+test("rejects malformed Host and cross-site playback mutations before executing use cases", async () => {
 	const session = await open();
 	const operations = [
 		{
@@ -295,7 +295,7 @@ test("checks Host and Origin on playback mutations before executing use cases", 
 			(
 				await app.inject({
 					...operation,
-					headers: { host: "foreign.example:3000" },
+					headers: { host: "foreign.example:3000/path" },
 				})
 			).statusCode,
 		).toBe(400);
