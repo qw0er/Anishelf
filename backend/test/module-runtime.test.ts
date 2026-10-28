@@ -8,46 +8,11 @@ import { initializeMediaTools } from "../src/app/bootstrap/media-tools.js";
 import { createAnimeModule } from "../src/modules/anime/create.js";
 import { createMediaModule } from "../src/modules/media/create.js";
 import { mediaProcessingPolicy } from "../src/modules/media/media-processing/policy.js";
-import type { CompatibilityResult } from "../src/modules/media/public.js";
-import { compatibilityView } from "../src/modules/media/views.js";
 import { createPlaybackModule } from "../src/modules/playback/create.js";
 import { createResourcesModule } from "../src/modules/resources/create.js";
 import { libraryPolicy } from "../src/modules/resources/library/policy.js";
 import { resourceRootId } from "../src/modules/resources/resource-access/domain/identity.js";
 import { createSystemModule } from "../src/modules/system/create.js";
-
-test("Media publishes an immutable independent view without planner-private fields", () => {
-	const result: CompatibilityResult & {
-		scopeId: string;
-		profile: object;
-		privateFutureField: string;
-	} = {
-		fileId: "file",
-		sourceVersion: "version",
-		rulesVersion: "4",
-		direct: { status: "supported", reason: "supported" },
-		video: { status: "supported", reason: "supported" },
-		audio: { status: "supported", reason: "supported" },
-		container: { status: "supported", reason: "supported" },
-		selectedVideo: null,
-		defaultAudioStreamIndex: null,
-		selectedAudioStreamIndices: [],
-		audioTracks: [],
-		output: null,
-		warnings: ["warning"],
-		scopeId: "/private/root",
-		profile: { encoder: "private" },
-		privateFutureField: "private",
-	};
-	const view = compatibilityView(result);
-	expect(view).not.toHaveProperty("scopeId");
-	expect(view).not.toHaveProperty("profile");
-	expect(view).not.toHaveProperty("privateFutureField");
-	expect(Object.isFrozen(view)).toBe(true);
-	expect(Object.isFrozen(view.warnings)).toBe(true);
-	result.warnings.push("changed");
-	expect(view.warnings).toEqual(["warning"]);
-});
 
 test("large modules expose capability objects and quiesce without destroying shared sources", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-module-runtime-"));
@@ -95,7 +60,6 @@ test("large modules expose capability objects and quiesce without destroying sha
 		logger,
 	});
 	const playback = createPlaybackModule({
-		system: system.api,
 		resources: resources.api,
 		media: media.api,
 		database,

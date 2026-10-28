@@ -242,3 +242,14 @@ export type WatchingAutomationOverride = Static<
 >;
 export type BuildInfo = Static<typeof schemas.BuildInfoSchema>;
 export type UpdateCheck = Static<typeof schemas.UpdateCheckSchema>;
+
+export type MediaAsset = Static<typeof schemas.MediaAssetSchema>;
+export type PlaybackSource = Static<typeof schemas.PlaybackSourceSchema>;
+export type AssetCompatibility = Static<
+	typeof schemas.AssetCompatibilitySchema
+>;
+export type AssetInspection = Static<typeof schemas.AssetInspectionSchema>;
+export type ActivePlayback = Static<typeof schemas.ActivePlaybackSchema>;
+export type PlaybackAssetChoice = Static<
+	typeof schemas.PlaybackAssetChoiceSchema
+>;

@@ -9,7 +9,7 @@ import { defaultSortingPolicy } from "../../shared/sorting.js";
 import type { ResourcesApi } from "../resources/public.js";
 import type { SystemApi } from "../system/public.js";
 import { registerMediaHttp } from "./http.js";
-import { createPlaybackCopies } from "./integration/playback-copies.js";
+import { MediaAssetsApplication } from "./media-assets/application.js";
 import { MediaInspectionApplication } from "./media-inspection/application.js";
 import {
 	mediaInspectionPolicy,
@@ -36,7 +36,6 @@ import {
 	initializeSubtitleModule,
 } from "./subtitles/create.js";
 import { subtitlePolicy, validateSubtitlePolicy } from "./subtitles/policy.js";
-import { compatibilityView } from "./views.js";
 
 export interface MediaModulePolicy {
 	mediaInspection: import("./media-inspection/policy.js").MediaInspectionPolicy;
@@ -126,6 +125,7 @@ export async function createMediaModule(options: {
 		policy: policy.mediaProcessing,
 	});
 	const preparation = createPreparationApplication({
+		probe: tools.probe.bind(tools),
 		sources: library.sources,
 		repository: database.preparation,
 		profiles: configuration.transcodeProfiles,
@@ -150,14 +150,13 @@ export async function createMediaModule(options: {
 	});
 	await initializePreparationModule(preparation, logger);
 	await initializeSubtitleModule(subtitles, logger);
-	const copies = createPlaybackCopies(preparation);
-	const api: MediaApi = {
-		inspectCompatibility: planning.inspect.bind(planning),
-		checkCompatibility: async (input) =>
-			compatibilityView(await planning.check(input)),
-		listPlaybackCopies: copies.list,
-		getPlaybackCopy: copies.get,
-	};
+	const assets = new MediaAssetsApplication({
+		inspection,
+		preparation,
+		sources: library.sources,
+		logger,
+	});
+	const api: MediaApi = { listPlaybackAssets: assets.list.bind(assets) };
 	let stopped: Promise<void> | undefined;
 	let closed: Promise<void> | undefined;
 	const quiesce = () => (stopped ??= preparation.close());

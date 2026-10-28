@@ -1,3 +1,4 @@
+import type { MediaInfo } from "../../../platform/media/model.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type {
 	CompatibilityCheckRequest,
@@ -30,6 +31,7 @@ export interface PreparationStore {
 	publish(task: PreparationTask, artifact: PreparedArtifact): void;
 	artifact(id: string): PreparedArtifact | undefined;
 	artifacts(): PreparedArtifact[];
+	saveArtifactInfo(id: string, info: MediaInfo): void;
 	removeArtifact(task: PreparationTask): void;
 }
 

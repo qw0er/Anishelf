@@ -68,7 +68,7 @@ const audioQuery = Type.Object(
 	},
 	{ additionalProperties: false },
 );
-const query = Type.Object(
+export const MediaCapabilityQuerySchema = Type.Object(
 	{
 		id: Type.String({ maxLength: 64 }),
 		type: Type.Union([Type.Literal("file"), Type.Literal("media-source")]),
@@ -95,7 +95,7 @@ const evidence = Type.Object(
 	},
 	{ additionalProperties: false },
 );
-const decision = Type.Object(
+export const CompatibilityDecisionSchema = Type.Object(
 	{
 		status: CompatibilityStatusSchema,
 		reason: Type.String({ maxLength: 128 }),
@@ -122,7 +122,7 @@ const identity = {
 	sourceVersion: SourceVersionSchema,
 	rulesVersion: Type.Literal("4"),
 };
-const CompatibilityEvidenceListSchema = Type.Array(evidence, {
+export const CompatibilityEvidenceListSchema = Type.Array(evidence, {
 	maxItems: 1024,
 });
 export const CompatibilityInspectionQuerySchema = Type.Object(
@@ -151,7 +151,7 @@ export const CompatibilityInspectionSchema = Type.Object(
 			Type.Null(),
 		]),
 		selectedAudioStreamIndices: AudioStreamSelectionSchema,
-		queries: Type.Array(query, { maxItems: 1024 }),
+		queries: Type.Array(MediaCapabilityQuerySchema, { maxItems: 1024 }),
 		output: Type.Union([outputDescription, Type.Null()]),
 	},
 	{ additionalProperties: false },
@@ -199,10 +199,10 @@ const outputResult = Type.Object(
 export const CompatibilityResultSchema = Type.Object(
 	{
 		...identity,
-		direct: decision,
-		video: decision,
-		audio: decision,
-		container: decision,
+		direct: CompatibilityDecisionSchema,
+		video: CompatibilityDecisionSchema,
+		audio: CompatibilityDecisionSchema,
+		container: CompatibilityDecisionSchema,
 		selectedVideo: Type.Union([VideoStreamDescriptionSchema, Type.Null()]),
 		defaultAudioStreamIndex: Type.Union([
 			Type.Integer({ minimum: 0 }),
@@ -211,7 +211,10 @@ export const CompatibilityResultSchema = Type.Object(
 		selectedAudioStreamIndices: AudioStreamSelectionSchema,
 		audioTracks: Type.Array(
 			Type.Object(
-				{ stream: AudioStreamDescriptionSchema, compatibility: decision },
+				{
+					stream: AudioStreamDescriptionSchema,
+					compatibility: CompatibilityDecisionSchema,
+				},
 				{ additionalProperties: false },
 			),
 		),

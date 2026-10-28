@@ -149,13 +149,14 @@ test.each(["1,1", "-1", "1.5", "NaN", "1,", " 1", "9007199254740992"])(
 		expect(parseAudioSelection(value).valid).toBe(false);
 	},
 );
-test("audio intent preserves default, silent and ordered explicit selections", () => {
+test("audio intent preserves automatic and one track, independently of retention arrays", () => {
 	expect(parseAudioSelection(null)).toEqual({
 		valid: true,
-		indices: undefined,
+		index: undefined,
 	});
-	expect(parseAudioSelection("")).toEqual({ valid: true, indices: [] });
-	expect(parseAudioSelection("2,1")).toEqual({ valid: true, indices: [2, 1] });
+	expect(parseAudioSelection("none")).toEqual({ valid: true, index: null });
+	expect(parseAudioSelection("2")).toEqual({ valid: true, index: 2 });
+	expect(parseAudioSelection("2,1").valid).toBe(false);
 	expect(queryClient.getDefaultOptions().mutations?.retry).toBe(false);
 });
 

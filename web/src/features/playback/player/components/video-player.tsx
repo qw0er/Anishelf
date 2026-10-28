@@ -1,8 +1,4 @@
-import {
-	type MediaTimeline,
-	originalTimeline,
-} from "@anishelf/backend/contracts/media";
-import { useQueryClient } from "@tanstack/react-query";
+import type { MediaTimeline } from "@anishelf/backend/contracts/media";
 import {
 	isVideoProvider,
 	MediaPlayer,
@@ -15,83 +11,72 @@ import {
 	DefaultVideoLayout,
 	defaultLayoutIcons,
 } from "@vidstack/react/player/layouts/default";
-import { useQueryScope } from "../../../../shared/api/queries.js";
-import { loadQuery } from "../../../../shared/api/query-client.js";
-import { fileQuery } from "../../../resources/public.js";
-import type { PlaybackUiSlots } from "../../public.js";
-import { playbackInteractionPolicy } from "../policy.js";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import { useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import {
-	ApiClientError,
-	isRequestCancelled,
-} from "../../../../shared/api/client.js";
-import type { FileResponse } from "../../../../shared/api/contracts.js";
+import type { ActivePlayback } from "../../../../shared/api/contracts.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
-import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
-
+import type { PlaybackUiSlots } from "../../public.js";
+import { playbackInteractionPolicy } from "../policy.js";
+import {
+	nativeAudioTracks,
+	type PlaybackFailure,
+	playbackFailure,
+	selectNativeAudio,
+} from "../runtime.js";
 import { ChapterTracks } from "./chapter-tracks.js";
 
-// The API URL has no file extension; route all original files to native video.
 class DirectVideoLoader extends VideoProviderLoader {
 	canPlay(source: Src) {
 		return typeof source.src === "string";
 	}
 }
 const directVideoLoaders = [DirectVideoLoader];
-const defaultTimeline = originalTimeline();
-
+/** Consumes one concrete binding. Never re-queries the original file to explain a copy failure. */
 export default function VideoPlayer({
-	file,
-	displayTitle = file.name,
-	playbackUrl,
+	fileId,
+	displayTitle,
+	active,
 	sourceVersion,
-	timeline = defaultTimeline,
 	onMedia,
 	onPlaybackFailure,
-	expectsVideo,
+	onAudioChange,
 	renderSubtitles,
-	subtitlePolicy,
-}: Pick<FileResponse, "file"> & {
-	displayTitle?: string;
-	subtitlePolicy: { readonly maximumBytes: number };
-	renderSubtitles?: PlaybackUiSlots["renderSubtitles"] | undefined;
-	playbackUrl: string;
-	sourceVersion?: string | undefined;
-	timeline?: MediaTimeline;
+}: {
+	fileId: string;
+	displayTitle: string;
+	active: ActivePlayback;
+	sourceVersion: string;
 	onMedia?(video: HTMLVideoElement | null, timeline: MediaTimeline): void;
-	onPlaybackFailure?(): void;
-	expectsVideo?: boolean;
+	onPlaybackFailure?(failure: PlaybackFailure): void;
+	onAudioChange?(sourceStreamIndex: number): void;
+	renderSubtitles?: PlaybackUiSlots["renderSubtitles"] | undefined;
 }) {
 	const { t } = useTranslation();
-	const client = useQueryClient();
-	const scope = useQueryScope();
+	const timeline = active.resource.timeline;
 	const videoRef = useRef<HTMLVideoElement | null>(null);
-	const errorRequest = useRef<AbortController | null>(null);
-	const notificationId = `video-playback:${file.id}`;
-	const notifiedError = useRef<string | null>(null);
-
+	const detachAudio = useRef<(() => void) | null>(null);
+	const notified = useRef<string | null>(null);
+	const notificationId = `video-playback:${fileId}`;
 	useLayoutEffect(() => {
 		toast.close(notificationId);
 		onMedia?.(videoRef.current, timeline);
 		return () => {
-			if (!notifiedError.current) toast.close(notificationId);
-			errorRequest.current?.abort();
-			// Capture progress before Vidstack unloads the provider's source.
+			if (!notified.current) toast.close(notificationId);
+			detachAudio.current?.();
 			onMedia?.(null, timeline);
 		};
 	}, [onMedia, notificationId, timeline]);
-
 	useLayoutEffect(() => {
 		videoRef.current?.setAttribute(
 			"aria-label",
 			t("player.videoLabel", { name: displayTitle }),
 		);
 	}, [displayTitle, t]);
-
 	function providerChanged(provider: MediaProviderAdapter | null) {
+		detachAudio.current?.();
+		detachAudio.current = null;
 		const video = isVideoProvider(provider) ? provider.video : null;
 		video?.setAttribute(
 			"aria-label",
@@ -100,46 +85,70 @@ export default function VideoPlayer({
 		videoRef.current = video;
 		onMedia?.(video, timeline);
 	}
-
-	async function playbackFailed(missingPicture = false) {
-		let message = t(
-			missingPicture
-				? "errors.mediaPictureUnavailable"
-				: "errors.mediaPlayback",
-		);
-		errorRequest.current?.abort();
-		const controller = new AbortController();
-		errorRequest.current = controller;
-		try {
-			await loadQuery(
-				{ ...fileQuery(file.id, scope), staleTime: 0 },
-				controller.signal,
-				client,
-			);
-		} catch (cause) {
-			if (controller.signal.aborted || isRequestCancelled(cause)) return;
-			if (cause instanceof ApiClientError)
-				message = t(getErrorTranslationKey(cause) ?? "errors.requestFailed", {
-					maximumMiB: subtitlePolicy.maximumBytes / (1024 * 1024),
-				});
-		}
-		if (controller.signal.aborted || notifiedError.current === message) return;
-		notifiedError.current = message;
+	function failed(failure = playbackFailure(videoRef.current?.error ?? null)) {
+		const signature = `${failure.kind}:${failure.code}`;
+		if (notified.current === signature) return;
+		notified.current = signature;
+		console.warn("[playback] Media attempt failed.", {
+			fileId,
+			assetId: active.asset.id,
+			kind: failure.kind,
+			code: failure.code,
+		});
 		toast.close(notificationId);
 		toast.add({
 			id: notificationId,
 			type: "error",
 			priority: "high",
-			title: message,
+			title: t(`player.failures.${failure.kind}`),
 		});
-		onPlaybackFailure?.();
+		onPlaybackFailure?.(failure);
 	}
-
+	function metadataLoaded() {
+		const video = videoRef.current;
+		if (!video) return;
+		if (
+			active.asset.video &&
+			video.videoWidth === 0 &&
+			video.videoHeight === 0
+		) {
+			failed({ kind: "decode", code: 3 });
+			return;
+		}
+		const audio = active.audio;
+		if (audio && active.asset.audioTracks.length > 1) {
+			if (
+				!selectNativeAudio(video, audio.position) &&
+				audio.streamIndex !== active.asset.defaultAudioStreamIndex
+			) {
+				failed({ kind: "unsupported", code: 4 });
+				return;
+			}
+			const tracks = nativeAudioTracks(video);
+			if (tracks) {
+				const changed = () => {
+					const index = Array.from(
+						{ length: tracks.length },
+						(_, position) => position,
+					).find((position) => tracks[position]?.enabled);
+					const source =
+						index === undefined
+							? undefined
+							: active.asset.audioTracks[index]?.sourceStreamIndex;
+					if (source !== undefined && source !== audio.sourceStreamIndex)
+						onAudioChange?.(source);
+				};
+				tracks.addEventListener("change", changed);
+				detachAudio.current = () =>
+					tracks.removeEventListener("change", changed);
+			}
+		}
+	}
 	return (
 		<MediaPlayer
 			className="anishelf-player aspect-video max-h-[75vh] w-full bg-black"
 			title={displayTitle}
-			src={playbackUrl}
+			src={active.resource.url}
 			viewType="video"
 			load={playbackInteractionPolicy.playerLoad}
 			preload={playbackInteractionPolicy.playerPreload}
@@ -150,29 +159,16 @@ export default function VideoPlayer({
 				if (!provider) providerChanged(null);
 			}}
 			onProviderSetup={providerChanged}
-			onError={() => {
-				void playbackFailed();
-			}}
-			onLoadedMetadata={() => {
-				const video = videoRef.current;
-				if (
-					expectsVideo &&
-					video &&
-					video.videoWidth === 0 &&
-					video.videoHeight === 0
-				)
-					void playbackFailed(true);
-			}}
+			onError={() => failed()}
+			onLoadedMetadata={metadataLoaded}
 		>
 			<MediaProvider loaders={directVideoLoaders} />
-			{sourceVersion && (
-				<ChapterTracks
-					fileId={file.id}
-					sourceVersion={sourceVersion}
-					timeline={timeline}
-				/>
-			)}
-			{renderSubtitles?.(file.id)}
+			<ChapterTracks
+				fileId={fileId}
+				sourceVersion={sourceVersion}
+				timeline={timeline}
+			/>
+			{renderSubtitles?.(fileId)}
 			<DefaultVideoLayout
 				icons={defaultLayoutIcons}
 				seekStep={playbackInteractionPolicy.seekStepSeconds}

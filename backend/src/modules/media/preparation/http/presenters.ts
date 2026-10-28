@@ -6,7 +6,7 @@ import type { PreparationCreation } from "../public.js";
 
 /** Transport owns URLs and the small user-visible progress projection. */
 export function preparationTaskResponse(
-	view: import("../public.js").PreparationView,
+	view: import("../domain/model.js").PreparationView,
 ): import("../../../../contracts/http.js").PreparationTaskResponse {
 	const { task, artifact, availability } = view;
 	const progress = task.state.progress;

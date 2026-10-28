@@ -86,9 +86,10 @@ const catalog = {
 	preparationMode: "compatible" as const,
 };
 const unsupported = {
+	audioTracks: [],
 	sourceVersion: "version",
 	direct: { status: "unsupported" },
-} as CompatibilityResult;
+} as unknown as CompatibilityResult;
 function Wrapper({ children }: { children: ReactNode }) {
 	return (
 		<MemoryRouter>
@@ -126,14 +127,24 @@ afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
 });
-function button(props = {}) {
+function preparationSource(result: CompatibilityResult | null) {
+	return result
+		? {
+				sourceVersion: result.sourceVersion,
+				audioTracks: result.audioTracks.map(({ stream }) => stream),
+			}
+		: null;
+}
+function button(props: Record<string, unknown> = {}) {
 	return render(
 		<Wrapper>
 			<PreparationButton
 				fileId="file"
-				loading={false}
-				result={unsupported}
-				error={null}
+				source={preparationSource(
+					"result" in props
+						? (props.result as CompatibilityResult | null)
+						: unsupported,
+				)}
 				onRecheck={vi.fn()}
 				{...props}
 			/>
@@ -500,9 +511,7 @@ test.each(["all", "subset", "none"])(
 		const view = render(
 			<PreparationButton
 				fileId="file"
-				loading={false}
-				result={multiAudio}
-				error={null}
+				source={preparationSource(multiAudio)}
 				onRecheck={vi.fn()}
 				showLabel
 			/>,
@@ -553,12 +562,7 @@ test("an existing all-audio copy does not disable preparing a selected audio tra
 	const view = render(
 		<PreparationButton
 			fileId="file"
-			loading={false}
-			result={{
-				...multiAudio,
-				direct: { status: "supported", reason: "browser-supported" },
-			}}
-			error={null}
+			source={preparationSource(multiAudio)}
 			onRecheck={vi.fn()}
 			audioStreamIndices={[7]}
 			showLabel
@@ -603,12 +607,7 @@ test.each([undefined, [7], []])(
 		const view = render(
 			<PreparationButton
 				fileId="file"
-				loading={false}
-				result={{
-					...multiAudio,
-					direct: { status: "unknown", reason: "browser-uncertain" },
-				}}
-				error={null}
+				source={preparationSource(multiAudio)}
 				onRecheck={vi.fn()}
 				{...(audioStreamIndices !== undefined ? { audioStreamIndices } : {})}
 				showLabel

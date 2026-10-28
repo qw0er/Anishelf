@@ -1,56 +1,48 @@
 import { playbackSelectionConstraints } from "@anishelf/backend/contracts/defaults";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
-import type {
-	CompatibilityCheckRequest,
-	CompatibilityInspection,
-	CompatibilityResult,
-	PlaybackSelectionResponse,
-} from "../../../../shared/api/contracts.js";
+import type { PlaybackSelectionResponse } from "../../../../shared/api/contracts.js";
 import {
 	clearCapabilityCache,
 	preparationInteractionDefaults,
 	queryCapabilities,
-	removeCompatibility,
 } from "../../../media/public.js";
 import { getPlaybackOptions, selectPlayback } from "../api.js";
+import { canSelectNativeAudio, type PlaybackFailure } from "../runtime.js";
 
-/** Browser collects evidence; the server alone filters and chooses delivery resources. */
+/** Negotiate actual assets once per intent. Background jobs cannot replace an active binding. */
 export function usePlaybackSelection(
 	fileId: string,
 	sourceVersion: string | undefined,
 	scope: string,
-	audioStreamIndices?: number[],
-	preparationRevision = "",
+	audioStreamIndex?: number | null,
 	enabled = true,
+	assetId?: string,
 ) {
 	const instance = useId();
 	const [revision, setRevision] = useState(0);
-	const [attempt, setAttempt] = useState(false);
-	const [runtimeFailed, setRuntimeFailed] = useState(false);
+	const [runtimeFailure, setRuntimeFailure] = useState<PlaybackFailure | null>(
+		null,
+	);
 	const failed = useRef<string[]>([]);
-	const identity = JSON.stringify([
-		instance,
-		failed.current,
-		fileId,
-		scope,
-		audioStreamIndices,
-		revision,
-		attempt,
-	]);
-	const lastCompatibility = useRef<CompatibilityResult | null>(null);
-	const client = useQueryClient();
-	// biome-ignore lint/correctness/useExhaustiveDependencies: a changed playback intent resets runtime failures
+	// biome-ignore lint/correctness/useExhaustiveDependencies: a new user intent resets attempt-local failures
 	useEffect(() => {
 		failed.current = [];
-		lastCompatibility.current = null;
-		setAttempt(false);
-		setRuntimeFailed(false);
-	}, [fileId, scope, JSON.stringify(audioStreamIndices)]);
-	const baseKey = ["playback-selection", identity] as const;
+		setRuntimeFailure(null);
+	}, [fileId, scope, audioStreamIndex, assetId]);
+	const baseKey = [
+		"playback-selection",
+		instance,
+		fileId,
+		scope,
+		audioStreamIndex,
+		assetId,
+		revision,
+	] as const;
+	const client = useQueryClient();
 	const cached = client.getQueryData<PlaybackSelectionResponse>(baseKey);
 	const queryKey =
-		sourceVersion && cached && cached.sourceVersion !== sourceVersion
+		sourceVersion && cached && cached.source.sourceVersion !== sourceVersion
 			? [...baseKey, sourceVersion]
 			: baseKey;
 	const query = useQuery({
@@ -59,6 +51,8 @@ export function usePlaybackSelection(
 		staleTime: Infinity,
 		refetchOnMount: false,
 		queryFn: async ({ signal: querySignal }) => {
+			const active = client.getQueryData<PlaybackSelectionResponse>(queryKey);
+			if (active?.active) return active;
 			const signal = AbortSignal.any([
 				querySignal,
 				AbortSignal.timeout(
@@ -68,109 +62,62 @@ export function usePlaybackSelection(
 			const intent = {
 				fileId,
 				...(sourceVersion ? { sourceVersion } : {}),
-				...(audioStreamIndices !== undefined ? { audioStreamIndices } : {}),
-				tryOriginal: attempt,
-				failedResourceIds: failed.current,
+				...(audioStreamIndex !== undefined ? { audioStreamIndex } : {}),
+				...(assetId ? { assetId, allowUnverified: true } : {}),
+				canSelectAudio: canSelectNativeAudio(),
+				failedResourceIds: [...failed.current],
 			};
-			async function check(
-				description: CompatibilityInspection,
-				original = false,
-			): Promise<CompatibilityCheckRequest> {
-				const selection = original
-					? audioStreamIndices
-					: description.selectedAudioStreamIndices;
-				return {
-					sourceVersion: description.sourceVersion,
-					descriptionId: description.descriptionId,
-					...(selection !== undefined ? { audioStreamIndices: selection } : {}),
-					output: description.output
-						? {
-								profileId: description.output.profileId,
-								target: description.output.target,
-							}
-						: null,
-					evidence: await queryCapabilities(description.queries, signal),
-				};
-			}
-
-			if (attempt) {
-				const selection = await selectPlayback(
-					{ ...intent, candidates: [] },
-					{ signal },
-				);
-				signal.throwIfAborted();
-				return selection;
-			}
 			const options = await getPlaybackOptions(intent, { signal });
-			const original = await check(options.original, true);
-			const candidates = await Promise.all(
-				options.candidates.map(async (candidate) => ({
-					taskId: candidate.taskId,
-					check: await check(candidate.description),
+			const evidence = await Promise.all(
+				options.assets.map(async (inspection) => ({
+					assetId: inspection.asset.id,
+					descriptionId: inspection.descriptionId,
+					evidence: await queryCapabilities(inspection.queries, signal),
 				})),
 			);
 			const selection = await selectPlayback(
-				{ ...intent, original, candidates },
+				{ ...intent, sourceVersion: options.source.sourceVersion, evidence },
 				{ signal },
 			);
 			signal.throwIfAborted();
 			return selection;
 		},
-		refetchInterval: (query) =>
-			query.state.data?.plan.mode === "blocked" && query.state.data.pending
+		refetchInterval: (current) =>
+			current.state.data &&
+			!current.state.data.active &&
+			current.state.data.pending
 				? preparationInteractionDefaults.preparationPollIntervalMs
 				: false,
 	});
 	const current = {
-		identity,
-		loading: query.isPending,
+		loading: enabled && query.isPending,
 		selection: query.data ?? null,
 		error: query.error,
 	};
-	if (current.selection?.compatibility)
-		lastCompatibility.current = current.selection.compatibility;
 	const currentRef = useRef(current);
 	currentRef.current = current;
-	const previousPreparationRevision = useRef(preparationRevision);
-	useEffect(() => {
-		if (previousPreparationRevision.current === preparationRevision) return;
-		previousPreparationRevision.current = preparationRevision;
-		if (currentRef.current.selection?.plan.mode === "blocked")
-			setRevision((value) => value + 1);
-	}, [preparationRevision]);
 
 	return {
 		...current,
-		result:
-			current.selection?.compatibility ??
-			(attempt ? lastCompatibility.current : null),
-		runtimeFailed,
+		runtimeFailure,
 		retry: () => {
 			clearCapabilityCache();
-			void removeCompatibility(fileId);
 			failed.current = [];
-			setAttempt(false);
-			setRuntimeFailed(false);
-			setRevision((v) => v + 1);
+			setRuntimeFailure(null);
+			setRevision((value) => value + 1);
 		},
-		tryDirect: () => {
-			setAttempt(true);
-			setRuntimeFailed(false);
-			failed.current = failed.current.filter((id) => id !== fileId);
-			setRevision((v) => v + 1);
-		},
-		failed: () => {
-			clearCapabilityCache();
-			void removeCompatibility(fileId);
-			const plan = current.selection?.plan;
-			const id = plan?.mode === "prepared" ? plan.artifactId : fileId;
-			if (!failed.current.includes(id))
-				failed.current = [...failed.current, id].slice(
-					-playbackSelectionConstraints.maximumFailedResources,
-				);
-			setRuntimeFailed(true);
-			setAttempt(false);
-			setRevision((v) => v + 1);
+		failed: (failure: PlaybackFailure) => {
+			setRuntimeFailure(failure);
+			const active = currentRef.current.selection?.active;
+			if (
+				!active ||
+				(failure.kind !== "decode" && failure.kind !== "unsupported")
+			)
+				return;
+			failed.current = [...new Set([...failed.current, active.asset.id])].slice(
+				-playbackSelectionConstraints.maximumFailedResources,
+			);
+			setRevision((value) => value + 1);
 		},
 	};
 }

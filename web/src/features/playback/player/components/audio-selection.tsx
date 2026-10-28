@@ -1,50 +1,56 @@
 import { useTranslation } from "react-i18next";
-import type { CompatibilityResult } from "../../../../shared/api/contracts.js";
+import type { ActivePlayback } from "../../../../shared/api/contracts.js";
 import { audioTrackLabel } from "../../../media/public.js";
+import { canSelectNativeAudio } from "../runtime.js";
 export function AudioSelection({
-	audio,
-	audioTracks,
-	audioStreamIndices,
+	active,
 	selectAudio,
 }: {
-	audio: string | null;
-	audioTracks: CompatibilityResult["audioTracks"];
-	audioStreamIndices: number[] | undefined;
-	selectAudio(value: string | null): void;
+	active: ActivePlayback | null;
+	selectAudio(value: string): void;
 }) {
 	const { t, i18n } = useTranslation();
-	return audioTracks.length > 1 ? (
-		<div className="min-w-0 max-w-full">
-			<label className="flex min-w-0 items-center gap-2">
-				<span className="shrink-0 text-sm text-muted-foreground">
-					{t("player.audio")}
-				</span>
+	if (!active) return null;
+	const tracks = active.asset.audioTracks;
+	const selected = tracks.find(
+		(track) => track.stream.index === active.audio?.streamIndex,
+	);
+	const label = (position: number) => {
+		const track = tracks[position];
+		return track
+			? audioTrackLabel(track.stream, position, t, i18n.language)
+			: t("audioTracks.none");
+	};
+	return (
+		<div className="flex min-w-0 max-w-full items-center gap-2">
+			<span className="shrink-0 text-sm text-muted-foreground">
+				{t("player.audio")}
+			</span>
+			{tracks.length > 1 && canSelectNativeAudio() ? (
 				<select
 					className="h-11 min-w-0 max-w-40 rounded-md bg-transparent px-2 text-sm sm:max-w-72"
 					aria-label={t("audioTracks.playback")}
-					value={audio ?? "all"}
-					onChange={(event) =>
-						selectAudio(
-							event.target.value === "all" ? null : event.target.value,
-						)
-					}
+					value={active.audio ? String(active.audio.sourceStreamIndex) : "none"}
+					onChange={(event) => selectAudio(event.target.value)}
 				>
-					<option value="all">{t("audioTracks.defaultPlayback")}</option>
-					{audioTracks.map(({ stream }, position) => (
-						<option key={stream.index} value={String(stream.index)}>
-							{audioTrackLabel(stream, position, t, i18n.language)}
+					{tracks.map((track, position) => (
+						<option
+							key={track.stream.index}
+							value={String(track.sourceStreamIndex)}
+						>
+							{label(position)}
 						</option>
 					))}
-					{audio?.includes(",") && (
-						<option value={audio}>
-							{t("audioTracks.selected", {
-								count: audioStreamIndices?.length,
-							})}
-						</option>
-					)}
-					<option value="">{t("audioTracks.none")}</option>
 				</select>
-			</label>
+			) : (
+				<span
+					role="status"
+					className="min-w-0 text-sm"
+					aria-label={t("audioTracks.playback")}
+				>
+					{label(selected ? tracks.indexOf(selected) : -1)}
+				</span>
+			)}
 		</div>
-	) : null;
+	);
 }

@@ -113,6 +113,13 @@
 			"when": 1793013617969,
 			"tag": "0015_catalog_metadata_identities",
 			"breakpoints": true
+		},
+		{
+			"idx": 16,
+			"version": "6",
+			"when": 1793202502182,
+			"tag": "0016_prepared_media_descriptions",
+			"breakpoints": true
 		}
 	]
 }

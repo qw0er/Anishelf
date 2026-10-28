@@ -12,6 +12,7 @@ import {
 	preparationFailureReasons,
 	preparationStatuses,
 } from "../../../../contracts/schemas/preparation.js";
+import type { MediaInfo } from "../../../../platform/media/model.js";
 import { mediaSources } from "../../../resources/persistence.js";
 
 export const preparedArtifacts = sqliteTable(
@@ -24,8 +25,15 @@ export const preparedArtifacts = sqliteTable(
 			.references(() => preparationTasks.id, { onDelete: "restrict" }),
 		sizeBytes: integer("size_bytes").notNull(),
 		mimeType: text("mime_type").notNull(),
+		info: text("info", { mode: "json" }).$type<MediaInfo>(),
 	},
-	(table) => [check("prepared_size", sql`${table.sizeBytes} > 0`)],
+	(table) => [
+		check("prepared_size", sql`${table.sizeBytes} > 0`),
+		check(
+			"prepared_info",
+			sql`${table.info} IS NULL OR json_valid(${table.info})`,
+		),
+	],
 );
 
 export const preparationTasks = sqliteTable(

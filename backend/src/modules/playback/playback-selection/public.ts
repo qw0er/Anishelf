@@ -1,33 +1,56 @@
-import type { DeepReadonly } from "../../../shared/policy.js";
 import type {
-	CompatibilityCheckRequest,
-	CompatibilityInspection,
-	CompatibilityResult,
+	AssetInspection,
+	CompatibilityEvidence,
+	MediaAsset,
+	PlaybackSource,
 } from "../../media/public.js";
-/** User intent and browser evidence are independent of their HTTP encoding. */
+/** A listening preference is independent of the tracks retained by preparation. */
 export interface PlaybackOptionsRequest {
 	fileId: string;
 	sourceVersion?: string;
-	audioStreamIndices?: number[];
-	tryOriginal?: boolean;
+	audioStreamIndex?: number | null;
+	assetId?: string;
+	allowUnverified?: boolean;
+	canSelectAudio: boolean;
 	failedResourceIds?: string[];
 }
 export interface PlaybackOptionsResponse {
-	original: CompatibilityInspection;
-	candidates: { taskId: string; description: CompatibilityInspection }[];
+	source: PlaybackSource;
+	resolvedAudioStreamIndex: number | null;
+	assets: AssetInspection[];
+	pending: boolean;
 }
 export interface PlaybackSelectionRequest extends PlaybackOptionsRequest {
-	original?: CompatibilityCheckRequest;
-	candidates: { taskId: string; check: CompatibilityCheckRequest }[];
+	evidence: {
+		assetId: string;
+		descriptionId: string;
+		evidence: CompatibilityEvidence[];
+	}[];
+}
+interface CompatibilityDecision {
+	status: "supported" | "unsupported" | "unknown";
+	reason: string;
+}
+export interface AssetCompatibility {
+	overall: CompatibilityDecision;
+	container: CompatibilityDecision;
+	video: CompatibilityDecision;
+	audio: CompatibilityDecision;
+	warnings: string[];
+}
+export interface PlaybackAssetChoice {
+	asset: MediaAsset;
+	audio: AssetInspection["audio"];
+	compatibility: AssetCompatibility;
+	unavailableReason: string | null;
 }
 export interface PlaybackSelection {
-	sourceVersion: string;
-	compatibility: DeepReadonly<CompatibilityResult> | null;
+	source: PlaybackSource;
+	resolvedAudioStreamIndex: number | null;
+	choices: PlaybackAssetChoice[];
+	active: PlaybackAssetChoice | null;
 	pending: boolean;
-	choice:
-		| { kind: "direct"; fileId: string; mimeType: string }
-		| { kind: "prepared"; artifactId: string; mimeType: string }
-		| { kind: "blocked"; reason: string };
+	reason: string | null;
 }
 export interface PlaybackSelectionApi {
 	inspect(input: PlaybackOptionsRequest): Promise<PlaybackOptionsResponse>;

@@ -1,36 +1,19 @@
 export type {
-	CompatibilityCheckRequest,
-	CompatibilityInspectInput,
-	CompatibilityInspection,
+	AssetInspection,
+	MediaAsset,
+	MediaAssetCatalog,
+	PlaybackSource,
+} from "./media-assets/public.js";
+export type {
+	CompatibilityEvidence,
+	CompatibilityQuery,
 	CompatibilityResult,
 } from "./media-planning/public.js";
 
-import type { DeepReadonly } from "../../shared/policy.js";
-import type { SourceIdentity } from "../resources/public.js";
-import type {
-	CompatibilityCheckRequest,
-	CompatibilityInspectInput,
-	CompatibilityInspection,
-	CompatibilityResult,
-} from "./media-planning/public.js";
-export interface PlaybackCopy {
-	taskId: string;
-	profileId: string;
-	source: SourceIdentity;
-	audioStreamIndices: readonly number[];
-	mode: "remux" | "transcode-audio" | "transcode-video" | "transcode";
-	pending: boolean;
-	updatedAtMs: number;
-	artifact: { id: string; mimeType: string } | null;
-	availability: "ready" | "unknown" | "unavailable";
-}
+import type { MediaAssetCatalog } from "./media-assets/public.js";
 export interface MediaApi {
-	inspectCompatibility(
-		input: CompatibilityInspectInput,
-	): Promise<CompatibilityInspection>;
-	checkCompatibility(
-		input: CompatibilityCheckRequest & { fileId: string },
-	): Promise<DeepReadonly<CompatibilityResult>>;
-	listPlaybackCopies(fileId: string): Promise<{ tasks: PlaybackCopy[] }>;
-	getPlaybackCopy(id: string): Promise<PlaybackCopy>;
+	listPlaybackAssets(
+		fileId: string,
+		sourceVersion?: string,
+	): Promise<MediaAssetCatalog>;
 }

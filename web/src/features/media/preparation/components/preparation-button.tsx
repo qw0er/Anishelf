@@ -2,7 +2,6 @@ import { Check, Film, Settings2 } from "lucide-react";
 import { type ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import type { CompatibilityResult } from "../../../../shared/api/contracts.js";
 import {
 	Button,
 	buttonStyles,
@@ -10,12 +9,13 @@ import {
 import { DropdownMenuItem } from "../../../../shared/components/ui/dropdown-menu.js";
 import { Spinner } from "../../../../shared/components/ui/spinner.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
+import type { PreparationSource } from "../audio-tracks.js";
 import { usePreparationCommand } from "../use-preparation-command.js";
 import { AudioTrackDialog } from "./audio-track-dialog.js";
 
 export function PreparationButton({
 	fileId,
-	result,
+	source,
 	onRecheck,
 	menuItem = false,
 	tasks,
@@ -24,9 +24,7 @@ export function PreparationButton({
 	onPrepared,
 }: {
 	fileId: string;
-	loading: boolean;
-	result: CompatibilityResult | null;
-	error: unknown;
+	source: PreparationSource | null;
 	onRecheck(): void;
 	menuItem?: boolean;
 	audioStreamIndices?: number[];
@@ -41,7 +39,7 @@ export function PreparationButton({
 	const [dialogSelection, setDialogSelection] = useState<number[] | undefined>(
 		undefined,
 	);
-	const tracks = result?.audioTracks ?? [];
+	const tracks = source?.audioTracks ?? [];
 	const chooseTracks = tracks.length > 1 && audioStreamIndices === undefined;
 	const selection = chooseTracks ? dialogSelection : audioStreamIndices;
 	function control(label: string, element: ReactElement, disabled = false) {
@@ -59,7 +57,7 @@ export function PreparationButton({
 	const { profileLoading, profile, task, pending, busy, start } =
 		usePreparationCommand({
 			fileId,
-			result,
+			source,
 			...(tasks ? { tasks } : {}),
 			...(selection !== undefined ? { audioStreamIndices: selection } : {}),
 			...(onPrepared ? { onPrepared } : {}),

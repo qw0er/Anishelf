@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
-
-import { afterEach, expect, test, vi } from "vitest";
-import { subtitlePolicy } from "../src/features/media/subtitles/policy.js";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import VideoPlayer from "../src/features/playback/player/components/video-player.js";
+import * as resourcesApi from "../src/features/resources/resource-access/api.js";
 import { toast } from "../src/shared/components/ui/toast.js";
+import { preparedActive, required } from "./playback-fixture.js";
 import {
 	act,
 	cleanup,
@@ -45,92 +45,121 @@ vi.mock("@vidstack/react/player/layouts/default", () => ({
 	DefaultVideoLayout: () => null,
 	defaultLayoutIcons: {},
 }));
-vi.mock(
-	"../src/features/media/subtitles/components/subtitle-tracks.js",
-	() => ({
-		SubtitleTracks: () => null,
-	}),
-);
+vi.mock("../src/features/playback/player/components/chapter-tracks.js", () => ({
+	ChapterTracks: () => null,
+}));
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
 }));
-vi.mock("../src/shared/api/client.js", () => ({
-	getFile: vi.fn(async () => ({})),
-	isRequestCancelled: () => false,
-	ApiClientError: class extends Error {},
-}));
-
+beforeEach(() => {
+	vi.spyOn(console, "warn").mockImplementation(() => {});
+});
 afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
 });
-
-test("playback errors use one Toast and preserve it through resource reselection", async () => {
-	const add = vi.spyOn(toast, "add").mockReturnValue("video-playback:file-1");
+test("copy failures report one scoped Toast without re-querying original metadata", async () => {
+	const get = vi.spyOn(resourcesApi, "getFile");
+	const add = vi.spyOn(toast, "add").mockReturnValue("notice");
 	const close = vi.spyOn(toast, "close").mockImplementation(() => {});
-	const { getByRole, queryByRole, unmount } = render(
+	const failure = vi.fn();
+	const view = render(
 		<VideoPlayer
-			file={{
-				id: "file-1",
-				kind: "file",
-				parentId: "root",
-				name: "episode.mp4",
-				sizeBytes: 1,
-				modifiedAt: "2026-10-03T00:00:00Z",
-				mimeType: "video/mp4",
-			}}
-			playbackUrl="/api/media/file-1"
-			subtitlePolicy={subtitlePolicy}
+			fileId="file"
+			displayTitle="Episode"
+			active={preparedActive}
+			sourceVersion="v1"
+			onPlaybackFailure={failure}
 		/>,
 	);
-	fireEvent.click(getByRole("button"));
+	fireEvent.click(view.getByRole("button"));
 	await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
 	expect(add).toHaveBeenCalledWith(
 		expect.objectContaining({
-			id: "video-playback:file-1",
-			type: "error",
-			title: "errors.mediaPlayback",
+			id: "video-playback:file",
+			title: "player.failures.unknown",
 		}),
 	);
-	expect(queryByRole("alert")).toBeNull();
-	fireEvent.click(getByRole("button"));
-	await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
+	expect(get).not.toHaveBeenCalled();
+	fireEvent.click(view.getByRole("button"));
+	expect(add).toHaveBeenCalledTimes(1);
+	expect(failure).toHaveBeenCalledWith({ kind: "unknown", code: null });
 	close.mockClear();
-	unmount();
-	expect(close).not.toHaveBeenCalledWith("video-playback:file-1");
+	view.unmount();
+	expect(close).not.toHaveBeenCalledWith("video-playback:file");
 });
-
-test("known video sources without a decoded picture report failure even when audio plays", async () => {
+test("a known video with no decoded picture reports a decode failure for that asset", async () => {
 	const failure = vi.fn();
-	const add = vi.spyOn(toast, "add").mockReturnValue("notice");
+	vi.spyOn(toast, "add").mockReturnValue("notice");
 	render(
 		<VideoPlayer
-			file={{
-				id: "file-2",
-				kind: "file",
-				parentId: "root",
-				name: "Audio only.mkv",
-				sizeBytes: 1,
-				modifiedAt: "date",
-				mimeType: "video/x-matroska",
-			}}
-			playbackUrl="/api/media/file-2"
-			subtitlePolicy={subtitlePolicy}
-			expectsVideo
+			fileId="file"
+			displayTitle="Episode"
+			active={preparedActive}
+			sourceVersion="v1"
 			onPlaybackFailure={failure}
 		/>,
 	);
 	const video = document.createElement("video");
-	Object.defineProperty(video, "videoWidth", { value: 0 });
-	Object.defineProperty(video, "videoHeight", { value: 0 });
+	Object.defineProperty(video, "videoWidth", { value: 0, configurable: true });
+	Object.defineProperty(video, "videoHeight", { value: 0, configurable: true });
 	act(() => {
 		playerEvents.setup?.({ video });
 		playerEvents.metadata?.();
 	});
-	await waitFor(() =>
-		expect(add).toHaveBeenCalledWith(
-			expect.objectContaining({ title: "errors.mediaPictureUnavailable" }),
-		),
+	expect(failure).toHaveBeenCalledWith({ kind: "decode", code: 3 });
+});
+test("native audio selection uses output position and maps changes back to the source track", () => {
+	const changed = vi.fn();
+	const active = {
+		...preparedActive,
+		asset: {
+			...preparedActive.asset,
+			audioTracks: [
+				{
+					...required(preparedActive.asset.audioTracks[0]),
+					sourceStreamIndex: 7,
+				},
+				{
+					...required(preparedActive.asset.audioTracks[0]),
+					stream: {
+						...required(preparedActive.asset.audioTracks[0]).stream,
+						index: 2,
+					},
+					sourceStreamIndex: 9,
+				},
+			],
+		},
+		audio: { streamIndex: 2, sourceStreamIndex: 9, position: 1 },
+	};
+	render(
+		<VideoPlayer
+			fileId="file"
+			displayTitle="Episode"
+			active={active}
+			sourceVersion="v1"
+			onAudioChange={changed}
+		/>,
 	);
-	expect(failure).toHaveBeenCalledTimes(1);
+	const video = document.createElement("video");
+	Object.defineProperty(video, "videoWidth", { value: 1920 });
+	Object.defineProperty(video, "videoHeight", { value: 1080 });
+	const tracks = Object.assign(new EventTarget(), {
+		0: { enabled: true },
+		1: { enabled: false },
+		length: 2,
+	});
+	Object.defineProperty(video, "audioTracks", { value: tracks });
+	act(() => {
+		playerEvents.setup?.({ video });
+		playerEvents.metadata?.();
+	});
+	expect(tracks[0].enabled).toBe(false);
+	expect(tracks[1].enabled).toBe(true);
+	act(() => {
+		tracks[1].enabled = false;
+		tracks[0].enabled = true;
+		tracks.dispatchEvent(new Event("change"));
+	});
+	expect(changed).toHaveBeenCalledWith(7);
 });

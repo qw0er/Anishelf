@@ -1,4 +1,5 @@
 import type { Logger } from "pino";
+import type { MediaInfo } from "../../../platform/media/model.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../resources/public.js";
 import type { TranscodeProfile } from "../../system/public.js";
@@ -26,6 +27,7 @@ export function createPreparationApplication(options: {
 	profiles: DeepReadonly<TranscodeProfile[]>;
 	dataDir: string;
 	logger: Logger;
+	probe: (path: string) => Promise<MediaInfo>;
 	policy?: DeepReadonly<PreparationPolicy>;
 	maximumCacheBytes?: () => number;
 }): PreparationApplication {
@@ -40,6 +42,7 @@ export function createPreparationApplication(options: {
 			options.profiles,
 			policy,
 			options.logger,
+			options.probe,
 			options.maximumCacheBytes,
 		);
 

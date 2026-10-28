@@ -561,7 +561,7 @@ test("a missing file shows safe feedback and can be retried", async () => {
 });
 
 test.each([false, true])(
-	"media errors recheck access with missing=%s",
+	"media errors remain scoped to the selected asset with missing=%s",
 	async (missing) => {
 		renderApp();
 		await openFile();
@@ -573,15 +573,13 @@ test.each([false, true])(
 		});
 		fireEvent.error(video);
 		await screen.findByText(
-			missing
-				? "This file is no longer available. Scan the library again."
-				: "This media could not be played in this browser.",
+			"This media version could not be decoded. Try another version or prepare a new copy.",
 			{ selector: "[data-slot=toast-title]" },
 		);
 		await waitFor(() =>
 			expect(
 				fetcher.mock.calls.filter(([path]) => path === "/api/files/file-1"),
-			).toHaveLength(2),
+			).toHaveLength(1),
 		);
 	},
 );

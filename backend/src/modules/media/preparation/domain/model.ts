@@ -1,4 +1,5 @@
 import type { MediaExecutionProgress } from "../../../../platform/media/events.js";
+import type { MediaInfo } from "../../../../platform/media/model.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import type { SourceIdentity } from "../../../resources/public.js";
 import type { PreparationSettingsSnapshot } from "../snapshot.js";
@@ -62,4 +63,6 @@ export interface PreparedArtifact {
 	taskId: string;
 	sizeBytes: number;
 	mimeType: string;
+	/** Actual validated output; null only until an existing cache entry is inspected. */
+	info: MediaInfo | null;
 }

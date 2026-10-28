@@ -177,7 +177,25 @@
 		"mediaLinkError": "Could not generate a media link. Please retry.",
 		"chaptersLoadFailed": "Chapters could not be loaded. You can keep watching.",
 		"retryChapters": "Retry chapters",
-		"chapters": "Chapters"
+		"chapters": "Chapters",
+		"noMatchingAsset": "No available version has confirmed playback support for the selected audio. Choose a version to try or prepare a copy.",
+		"assetSelection": "Playback version",
+		"automaticAsset": "Automatic selection",
+		"currentAsset": "Current playback",
+		"sourceDetails": "Original file details",
+		"selectedTrack": "Selected audio",
+		"assets": {
+			"original": "Original file",
+			"prepared": "Prepared copy"
+		},
+		"failures": {
+			"network": "Media transfer failed. Check the connection and retry playback.",
+			"decode": "This media version could not be decoded. Try another version or prepare a new copy.",
+			"unsupported": "This media version or audio selection could not be played. Try another version.",
+			"unknown": "Playback failed. Retry playback or check the selected media version."
+		},
+		"versionsUnavailable": "Available playback versions could not be refreshed. Current playback is unchanged.",
+		"unavailableTrack": "Requested track unavailable"
 	},
 	"actions": {
 		"retry": "Retry",
@@ -262,7 +280,12 @@
 			"audio-encoding-required": "The audio needs conversion; retain the original video.",
 			"video-encoding-required": "The video needs conversion; retain compatible audio.",
 			"audio-video-encoding-required": "Both audio and video need conversion.",
-			"stream-combination-unverified": "The browser has not confirmed support for the unchanged audio and video together."
+			"stream-combination-unverified": "The browser has not confirmed support for the unchanged audio and video together.",
+			"audio-track-missing": "This version does not contain the requested audio track.",
+			"audio-track-selection-unavailable": "This browser cannot reliably select the requested track in this version. Prepare a copy with that track.",
+			"asset-playback-failed": "This version failed in the current playback attempt. Retry or choose another version.",
+			"asset-unavailable": "This media version is no longer available.",
+			"inspection-unavailable": "Media inspection is unavailable. The original file can be tried explicitly."
 		},
 		"details": "Compatibility details",
 		"kinds": {
@@ -290,7 +313,7 @@
 		"prepareTitle": "Choose audio tracks",
 		"prepareDescription": "All audio tracks are included by default. Choose which tracks to keep in the prepared copy.",
 		"playback": "Playback audio",
-		"defaultPlayback": "Default audio / all tracks",
+		"defaultPlayback": "Automatic",
 		"playbackDescription": "Choosing an audio track uses a prepared copy. Prepare it once if no matching copy is available.",
 		"selected": "{{count}} selected audio tracks",
 		"retained_one": "{{count}} audio track retained",

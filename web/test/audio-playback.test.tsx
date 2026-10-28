@@ -1,80 +1,78 @@
-import { playbackUiSlots } from "../src/app/composition/playback-ui.js";
-import * as mediacompatibilityApi from "../src/features/media/media-compatibility/api.js";
-import * as preparationApi from "../src/features/media/preparation/api.js";
-import * as playbackApi from "../src/features/playback/player/api.js";
-import * as settingsApi from "../src/features/settings/api.js";
-import * as api from "../src/shared/api/client.js";
-import { trackingProvider } from "./tracking-fixture.js";
 // @vitest-environment happy-dom
-
+import { useEffect } from "react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { playbackUiSlots } from "../src/app/composition/playback-ui.js";
 import * as capabilities from "../src/features/media/media-compatibility/capabilities.js";
+import * as preparationApi from "../src/features/media/preparation/api.js";
 import { preparedWatchPath } from "../src/features/media/preparation/audio-tracks.js";
 import { PreparationProvider } from "../src/features/media/preparation/context.js";
+import * as playbackApi from "../src/features/playback/player/api.js";
 import FilePlayer from "../src/features/playback/player/components/file-player.js";
+import * as runtime from "../src/features/playback/player/runtime.js";
+import * as settingsApi from "../src/features/settings/api.js";
+import * as api from "../src/shared/api/client.js";
 import type {
-	CompatibilityResult,
+	ActivePlayback,
 	PreparationTaskResponse,
 } from "../src/shared/api/contracts.js";
+import { queryClient } from "../src/shared/api/query-client.js";
 import {
+	options,
+	originalActive,
+	preparedActive,
+	preparedAsset,
+	required,
+	selection,
+	source,
+} from "./playback-fixture.js";
+import {
+	act,
 	cleanup,
 	fireEvent,
 	render,
 	waitFor,
 	within,
 } from "./query-test-utils.js";
+import { trackingProvider } from "./tracking-fixture.js";
 import "../src/shared/i18n.js";
 
-const original = {
-	sourceVersion: "v1",
-	selectedVideo: { index: 0 },
-	warnings: [],
-	direct: { status: "unknown", reason: "native-track-selection-uncertain" },
-	container: { status: "supported", reason: "browser-supported" },
-	video: { status: "supported", reason: "browser-supported" },
-	audio: { status: "supported", reason: "browser-supported" },
-	audioTracks: [
-		{
-			stream: {
-				index: 1,
-				label: "English",
-				language: "eng",
-				codec: "aac",
-				channels: 2,
-				default: true,
-			},
-			compatibility: { status: "supported", reason: "browser-supported" },
-		},
-		{
-			stream: {
-				index: 2,
-				label: "Japanese",
-				language: "jpn",
-				codec: "aac",
-				channels: 2,
-			},
-			compatibility: { status: "supported", reason: "browser-supported" },
-		},
-	],
-} as unknown as CompatibilityResult;
+const mounted = vi.hoisted(() => vi.fn());
 vi.mock(
 	"../src/features/playback/player/hooks/use-playback-session.js",
 	() => ({
 		usePlaybackSession: () => ({
 			session: { sourceVersion: "v1" },
-			attach: vi.fn(),
+			attach: () => {},
 		}),
 	}),
 );
 vi.mock("../src/features/playback/player/components/video-player.js", () => ({
-	default: ({ playbackUrl }: { playbackUrl: string }) => (
-		<div role="status" aria-label="Active video">
-			{playbackUrl}
-		</div>
-	),
+	default: ({ active }: { active: ActivePlayback }) => {
+		useEffect(() => {
+			mounted();
+		}, []);
+		return (
+			<div role="status" aria-label="Active video">
+				{active.resource.url}
+			</div>
+		);
+	},
 }));
+const task = {
+	id: "job",
+	fileId: "file",
+	filename: "Two tracks.mkv",
+	sourceVersion: "v1",
+	profileId: "builtin:balanced",
+	mode: "transcode",
+	status: "ready",
+	artifactId: "artifact",
+	audioStreamIndices: [1],
+	updatedAtMs: 1,
+} as PreparationTaskResponse;
 beforeEach(() => {
+	mounted.mockClear();
 	vi.spyOn(api, "request").mockResolvedValue({
 		provider: trackingProvider,
 		generation: "fixture",
@@ -84,80 +82,19 @@ beforeEach(() => {
 		checkedAt: null,
 	});
 	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([]);
-	vi.spyOn(playbackApi, "getPlaybackOptions").mockImplementation(
-		async (input) => ({
-			original: {
-				sourceVersion: "v1",
-				descriptionId: "fresh",
-				queries: [],
-				selectedAudioStreamIndices: input.audioStreamIndices ?? [1, 2],
-				output: null,
-			} as unknown as apiReturn,
-			candidates: [],
-		}),
+	vi.spyOn(playbackApi, "getPlaybackOptions").mockResolvedValue(options());
+	vi.spyOn(playbackApi, "selectPlayback").mockImplementation(async (input) =>
+		input.audioStreamIndex === 2
+			? selection(null)
+			: input.assetId === "file"
+				? selection(originalActive)
+				: selection(),
 	);
-	vi.spyOn(playbackApi, "selectPlayback").mockImplementation(async (input) => ({
-		sourceVersion: "v1",
-		compatibility: original,
-		pending: false,
-		plan: input.tryOriginal
-			? {
-					mode: "direct",
-					resource: {
-						delivery: "file",
-						url: "/api/media/file",
-						mimeType: "video/mp4",
-						timeline: {
-							sourceOriginMs: 0,
-							mediaOriginMs: 0,
-							sourceDurationMs: null,
-						},
-					},
-				}
-			: input.audioStreamIndices?.[0] === 2
-				? {
-						mode: "prepared",
-						artifactId: "jp-artifact",
-						resource: task.resource as NonNullable<
-							PreparationTaskResponse["resource"]
-						>,
-					}
-				: { mode: "blocked", reason: "audio-selection-requires-copy" },
-	}));
-});
-afterEach(() => {
-	cleanup();
-	vi.restoreAllMocks();
-	original.direct = {
-		status: "unknown",
-		reason: "native-track-selection-uncertain",
-	};
-});
-const task = {
-	id: "jp",
-	fileId: "file",
-	filename: "Two tracks.mkv",
-	sourceVersion: "v1",
-	profileId: "builtin:balanced",
-	mode: "remux",
-	status: "ready",
-	artifactId: "jp-artifact",
-	resource: {
-		delivery: "file" as const,
-		url: "/api/prepared-media/jp-artifact",
-		mimeType: "video/mp4",
-		timeline: { sourceOriginMs: 0, mediaOriginMs: 0, sourceDurationMs: null },
-	},
-	updatedAtMs: 1,
-	audioStreamIndices: [2],
-} as PreparationTaskResponse;
-
-test("changing playback audio verifies only matching copies and never enqueues automatically", async () => {
 	vi.spyOn(settingsApi, "getTranscodeProfiles").mockResolvedValue({
 		profiles: [],
 		selectedProfileId: "builtin:balanced",
 		selectionAvailable: true,
-		preparationMode: "compatible" as const,
+		preparationMode: "compatible",
 	});
 	vi.spyOn(preparationApi, "getPreparations").mockResolvedValue({
 		tasks: [task],
@@ -165,21 +102,15 @@ test("changing playback audio verifies only matching copies and never enqueues a
 	vi.spyOn(preparationApi, "getFilePreparations").mockResolvedValue({
 		tasks: [task],
 	});
-	vi.spyOn(
-		mediacompatibilityApi,
-		"inspectMediaCompatibility",
-	).mockResolvedValue({
-		sourceVersion: "v1",
-		descriptionId: "fresh",
-		queries: [],
-	} as unknown as apiReturn);
-	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([]);
-	vi.spyOn(mediacompatibilityApi, "checkMediaCompatibility").mockResolvedValue({
-		output: { combinations: { "copy-copy": "supported" } },
-	} as unknown as CompatibilityResult);
-	const create = vi.spyOn(preparationApi, "createPreparation");
-	const view = render(
-		<MemoryRouter initialEntries={["/files/file?audio=2"]}>
+	vi.spyOn(preparationApi, "createPreparation");
+});
+afterEach(() => {
+	cleanup();
+	vi.restoreAllMocks();
+});
+function page(path = "/files/file") {
+	return render(
+		<MemoryRouter initialEntries={[path]}>
 			<PreparationProvider>
 				<FilePlayer
 					slots={playbackUiSlots}
@@ -201,119 +132,196 @@ test("changing playback audio verifies only matching copies and never enqueues a
 			</PreparationProvider>
 		</MemoryRouter>,
 	);
+}
+test("the current Japanese AAC copy never offers original-only English or automatic as audio tracks", async () => {
+	const view = page();
 	await waitFor(() =>
 		expect(view.getByLabelText("Active video").textContent).toBe(
-			task.resource?.url,
+			"/api/prepared-media/artifact",
 		),
 	);
-	expect(playbackApi.selectPlayback).toHaveBeenCalledWith(
-		expect.objectContaining({ audioStreamIndices: [2] }),
+	expect(view.getByLabelText("Playback audio").textContent).toMatch(
+		/Japanese.*AAC/,
+	);
+	expect(view.queryByRole("combobox", { name: "Playback audio" })).toBeNull();
+	expect(view.queryByText(/English/)).toBeNull();
+	expect(view.queryByRole("option", { name: "Automatic" })).toBeNull();
+	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
+});
+test("an explicit English link is blocked without exposing source audio as current-file controls", async () => {
+	const view = page("/files/file?audio=2");
+	await view.findByText(/No available version has confirmed playback support/);
+	expect(view.queryByLabelText("Active video")).toBeNull();
+	expect(view.queryByLabelText("Playback audio")).toBeNull();
+	expect(playbackApi.selectPlayback).toHaveBeenLastCalledWith(
+		expect.objectContaining({ audioStreamIndex: 2 }),
 		expect.anything(),
 	);
-	fireEvent.change(view.getByRole("combobox", { name: "Playback audio" }), {
-		target: { value: "1" },
-	});
-	await waitFor(() => expect(view.queryByLabelText("Active video")).toBeNull());
-	expect(create).not.toHaveBeenCalled();
-	expect(view.getByRole("button", { name: "Pre-transcode" })).toBeTruthy();
-	fireEvent.click(view.getByRole("button", { name: "Try original file" }));
+	expect(
+		await view.findByText(
+			/No available version has confirmed playback support/,
+		),
+	).toBeTruthy();
+	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
+});
+function dualAudioActive(): ActivePlayback {
+	return {
+		...preparedActive,
+		asset: {
+			...preparedAsset,
+			audioTracks: [
+				...preparedAsset.audioTracks,
+				{
+					stream: {
+						...required(source.audioTracks[1]),
+						index: 5,
+						codec: "aac",
+						codecString: "mp4a.40.2",
+					},
+					sourceStreamIndex: 2,
+				},
+			],
+		},
+	};
+}
+test("switching actual output audio retains the current file and maps to source intent", async () => {
+	vi.spyOn(runtime, "canSelectNativeAudio").mockReturnValue(true);
+	const dual = dualAudioActive();
+	vi.mocked(playbackApi.selectPlayback).mockImplementation(async (input) =>
+		selection({
+			...dual,
+			audio:
+				input.audioStreamIndex === 2
+					? { streamIndex: 5, sourceStreamIndex: 2, position: 1 }
+					: dual.audio,
+		}),
+	);
+	const view = page();
+	const control = await view.findByRole("combobox", { name: "Playback audio" });
+	expect(within(control).getAllByRole("option")).toHaveLength(2);
+	expect(
+		within(control).getByRole("option", { name: /English.*AAC/ }),
+	).toBeTruthy();
+	fireEvent.change(control, { target: { value: "2" } });
 	await waitFor(() =>
-		expect(view.getByLabelText("Active video").textContent).toBe(
-			"/api/media/file",
+		expect(playbackApi.selectPlayback).toHaveBeenLastCalledWith(
+			expect.objectContaining({ audioStreamIndex: 2, assetId: "artifact" }),
+			expect.anything(),
 		),
 	);
-	expect(create).not.toHaveBeenCalled();
+	expect(view.getByLabelText("Active video").textContent).toBe(
+		"/api/prepared-media/artifact",
+	);
+});
+test("a browser without native audio switching shows only the current track", async () => {
+	vi.spyOn(runtime, "canSelectNativeAudio").mockReturnValue(false);
+	vi.mocked(playbackApi.selectPlayback).mockResolvedValue(
+		selection(dualAudioActive()),
+	);
+	const view = page();
+	await view.findByLabelText("Active video");
+	expect(view.queryByRole("combobox", { name: "Playback audio" })).toBeNull();
+	expect(view.getByLabelText("Playback audio").textContent).toMatch(
+		/Japanese.*AAC/,
+	);
+	expect(view.queryByText(/English/)).toBeNull();
+});
+test("compatibility details display the active AAC copy separately from original Opus", async () => {
+	const view = page();
+	await view.findByLabelText("Active video");
 	fireEvent.click(view.getByRole("button", { name: "More playback options" }));
 	fireEvent.click(
 		await view.findByRole("menuitem", { name: "Playback compatibility info" }),
 	);
 	const dialog = await view.findByRole("dialog");
-	expect(
-		within(dialog).getByText(/English · AAC · 2 channels · Default/),
-	).toBeTruthy();
-	expect(within(dialog).getByText(/Japanese · AAC · 2 channels/)).toBeTruthy();
+	const report = within(dialog).getByRole("region", {
+		name: "Current playback",
+	});
+	expect(within(report).getByText(/Audio · AAC/)).toBeTruthy();
+	expect(report.textContent).not.toContain("OPUS");
+	expect(within(dialog).getByText("Original file details")).toBeTruthy();
 });
-type apiReturn = Awaited<
-	ReturnType<typeof mediacompatibilityApi.inspectMediaCompatibility>
->;
-
-test("watch links preserve selected, all and silent task audio", () => {
-	expect(preparedWatchPath(task)).toBe("/files/file?audio=2");
-	expect(preparedWatchPath({ ...task, audioStreamIndices: [1, 2] })).toBe(
-		"/files/file?audio=1%2C2",
+test("background preparation completion preserves the current player and intent", async () => {
+	const view = page();
+	await view.findByLabelText("Active video");
+	expect(mounted).toHaveBeenCalledTimes(1);
+	vi.mocked(preparationApi.getFilePreparations).mockResolvedValue({
+		tasks: [
+			task,
+			{
+				...task,
+				id: "new-job",
+				artifactId: "new-copy",
+				audioStreamIndices: [2],
+				updatedAtMs: 2,
+			},
+		],
+	});
+	await act(async () => {
+		await queryClient.invalidateQueries({ queryKey: ["preparations"] });
+	});
+	expect(view.getByLabelText("Active video").textContent).toBe(
+		"/api/prepared-media/artifact",
 	);
-	expect(preparedWatchPath({ ...task, audioStreamIndices: [] })).toBe(
-		"/files/file?audio=",
+	expect(mounted).toHaveBeenCalledTimes(1);
+	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(1);
+});
+test("prepared watch links pin actual bytes and one source track instead of all retained tracks", () => {
+	const parsed = new URL(preparedWatchPath(task), "http://localhost");
+	expect(parsed.searchParams.get("asset")).toBe("artifact");
+	expect(parsed.searchParams.get("audio")).toBe("1");
+	expect(parsed.searchParams.get("version")).toBe("v1");
+	const multiple = new URL(
+		preparedWatchPath({ ...task, audioStreamIndices: [2, 1] }),
+		"http://localhost",
 	);
+	expect(multiple.searchParams.get("audio")).toBe("2");
+	const silent = new URL(
+		preparedWatchPath({ ...task, audioStreamIndices: [] }),
+		"http://localhost",
+	);
+	expect(silent.searchParams.get("audio")).toBe("none");
 });
 
-test.each(["unknown", "unsupported", "list-error"])(
-	"Try original file starts the original for %s playback",
-	async (state) => {
-		original.direct = {
-			status: state === "unknown" ? "unknown" : "unsupported",
-			reason: "browser-rejected",
-		};
-		vi.spyOn(settingsApi, "getTranscodeProfiles").mockResolvedValue({
-			profiles: [],
-			selectedProfileId: "builtin:balanced",
-			selectionAvailable: true,
-			preparationMode: "compatible" as const,
-		});
-		vi.spyOn(preparationApi, "getPreparations").mockResolvedValue({
-			tasks: [],
-		});
-		const list = vi.spyOn(preparationApi, "getFilePreparations");
-		if (state === "list-error")
-			list.mockRejectedValue(new Error("Server error"));
-		else list.mockResolvedValue({ tasks: [] });
-		const create = vi.spyOn(preparationApi, "createPreparation");
-		const view = render(
-			<MemoryRouter>
-				<PreparationProvider>
-					<FilePlayer
-						slots={playbackUiSlots}
-						data={{
-							file: {
-								id: "file",
-								kind: "file",
-								name: "Two tracks.mkv",
-								parentId: "root",
-								sizeBytes: 1,
-								modifiedAt: "now",
-								mimeType: "video/x-matroska",
-							},
-							originalMediaUrl: "/api/media/file",
-						}}
-						returnDirectoryId="root"
-						onRetry={vi.fn()}
-					/>
-				</PreparationProvider>
-			</MemoryRouter>,
-		);
-		const attempt = await view.findByRole("button", {
-			name: "Try original file",
-		});
-		const notice = view.getByRole("region", {
-			name: "Unable to play this video",
-		});
-		expect(
-			within(notice).queryByRole("link", { name: "Back to files" }),
-		).toBeNull();
-		expect(
-			within(notice).getByRole("button", { name: "Check again" }),
-		).toBeTruthy();
-		expect(
-			await within(notice).findByRole("button", { name: "Pre-transcode" }),
-		).toBeTruthy();
-		expect(view.queryByLabelText("Active video")).toBeNull();
-		expect(attempt.parentElement?.classList.contains("action-row")).toBe(true);
-		fireEvent.click(attempt);
-		await waitFor(() =>
-			expect(view.getByLabelText("Active video").textContent).toBe(
-				"/api/media/file",
-			),
-		);
-		expect(create).not.toHaveBeenCalled();
-	},
-);
+test("version inventory refreshes independently and explicit selection changes the active asset", async () => {
+	const view = page();
+	await view.findByLabelText("Active video");
+	const nextAsset = {
+		...preparedAsset,
+		id: "new-copy",
+		video: { ...required(preparedAsset.video), height: 720 },
+	};
+	const fresh = options();
+	fresh.assets.push({ ...required(fresh.assets[1]), asset: nextAsset });
+	vi.mocked(playbackApi.getPlaybackOptions).mockResolvedValue(fresh);
+	fireEvent.click(view.getByRole("button", { name: "More playback options" }));
+	fireEvent.click(
+		await view.findByRole("menuitem", { name: "Playback options" }),
+	);
+	await view.findByRole("option", { name: /720p/ });
+	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(1);
+	expect(mounted).toHaveBeenCalledTimes(1);
+	vi.mocked(playbackApi.selectPlayback).mockResolvedValueOnce(
+		selection({
+			...preparedActive,
+			asset: nextAsset,
+			resource: {
+				...preparedActive.resource,
+				url: "/api/prepared-media/new-copy",
+			},
+		}),
+	);
+	fireEvent.change(view.getByRole("combobox", { name: "Playback version" }), {
+		target: { value: "new-copy" },
+	});
+	await waitFor(() =>
+		expect(view.getByLabelText("Active video").textContent).toBe(
+			"/api/prepared-media/new-copy",
+		),
+	);
+	expect(playbackApi.selectPlayback).toHaveBeenLastCalledWith(
+		expect.objectContaining({ assetId: "new-copy" }),
+		expect.anything(),
+	);
+	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
+});

@@ -1,18 +1,18 @@
 import { useTranslation } from "react-i18next";
-import type {
-	CompatibilityResult,
-	PreparationTaskResponse,
-} from "../../../shared/api/contracts.js";
+import type { PreparationTaskResponse } from "../../../shared/api/contracts.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import { createPreparation, retryPreparation } from "./api.js";
-import { matchesAudioSelection } from "./audio-tracks.js";
+import {
+	matchesAudioSelection,
+	type PreparationSource,
+} from "./audio-tracks.js";
 import { usePreparationContext } from "./context.js";
 import { negotiatePreparation } from "./negotiation.js";
 import { usePreparationAction } from "./use-preparations.js";
 
 export function usePreparationCommand({
 	fileId,
-	result,
+	source,
 	tasks,
 	audioStreamIndices,
 	onPrepared,
@@ -20,7 +20,7 @@ export function usePreparationCommand({
 	onComplete,
 }: {
 	fileId: string;
-	result: CompatibilityResult | null;
+	source: PreparationSource | null;
 	tasks?: PreparationTaskResponse[];
 	audioStreamIndices?: number[];
 	onPrepared?(task: PreparationTaskResponse): void;
@@ -30,11 +30,9 @@ export function usePreparationCommand({
 	const { t } = useTranslation();
 	const preparation = usePreparationContext();
 	const action = usePreparationAction();
-	const allTracks = (result?.audioTracks ?? []).map(
-		({ stream }) => stream.index,
-	);
+	const allTracks = (source?.audioTracks ?? []).map((stream) => stream.index);
 	const profileLoading = !preparation.catalog && !preparation.catalogError;
-	const sourceVersion = result?.sourceVersion;
+	const sourceVersion = source?.sourceVersion;
 	const profile = preparation.catalog?.selectionAvailable
 		? preparation.catalog.selectedProfileId
 		: null;

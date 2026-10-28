@@ -14,7 +14,10 @@ export class PreparationRecovery {
 		for (const task of this.context.repository.list()) {
 			if (["queued", "processing", "cancelling"].includes(task.state.status))
 				await this.artifacts.invalidate(task, "interrupted");
-			else if (!this.context.profileValid(task))
+			else if (
+				task.state.status !== "ready" &&
+				!this.context.profileValid(task)
+			)
 				await this.artifacts.invalidate(task, "profile-changed");
 			else if (
 				task.state.status === "ready" &&

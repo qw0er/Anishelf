@@ -10,6 +10,7 @@ import {
 	statfs,
 } from "node:fs/promises";
 import { join } from "node:path";
+import type { MediaInfo } from "../../../../platform/media/model.js";
 import { storageRules } from "../../../../platform/storage.js";
 import type { PreparedArtifact } from "../domain/model.js";
 
@@ -106,6 +107,17 @@ export class PreparedMediaFiles {
 	}
 	open(artifact: PreparedArtifact) {
 		return this.openAt(this.path(artifact.id), artifact.sizeBytes);
+	}
+	async inspect(
+		artifact: PreparedArtifact,
+		probe: (path: string) => Promise<MediaInfo>,
+	) {
+		const handle = await this.open(artifact);
+		try {
+			return await probe(this.path(artifact.id));
+		} finally {
+			await handle.close();
+		}
 	}
 	async remove(id: string): Promise<void> {
 		await rm(this.path(id), { force: true });
