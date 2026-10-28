@@ -56,7 +56,6 @@ export async function createAuthenticationModule(options: {
 	logger: Logger;
 	dataDir: string;
 	store: AuthenticationStore;
-	secure: boolean;
 	sources: MediaLinkSources;
 }) {
 	const logger = options.logger.child({ module: "system.authentication" });

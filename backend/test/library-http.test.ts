@@ -317,7 +317,7 @@ test("unknown and file IDs are not directories; foreign Origin cannot start scan
 		headers: { ...headers, origin: "https://evil.example" },
 	});
 	expect(denied.statusCode).toBe(403);
-	expect(denied.json().error.code).toBe("REQUEST_FORBIDDEN");
+	expect(denied.json().error.code).toBe("NETWORK_ORIGIN_REJECTED");
 	expect(index.revision).toBe(1);
 });
 

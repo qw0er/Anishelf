@@ -263,7 +263,7 @@ test("HTTP routes require the Anishelf session and CSRF, bind previews to sessio
 	const auth = await createAuthenticationModule({
 		logger,
 		dataDir,
-		secure: false,
+
 		store: database.authentication,
 		sources: { version: async () => "one" },
 	});

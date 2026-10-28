@@ -387,7 +387,7 @@ AniList is the viewing-state authority. This iteration selects account connectio
 | O18 | User-editable prepared-media cache budget | Implemented; Settings control, validation and persisted disk-space limit | Current | Current |
 | O19 | In-app editor for hand-written configuration files | Later: edit and validate supported custom profile files, including acquisition and transcode profiles | — | Unassigned |
 | O20 | Hot reload acquisition profile configuration | Later: validate and activate acquisition-profiles.yaml changes without restarting Backend; retain the last valid configuration on reload failure | — | Unassigned |
-| O21 | Interactive remote deployment without a repository checkout | Implemented: GitHub-delivered Bash wizard, Docker/Podman auto-detection (choice only when both exist), Compose/rootless Quadlet, optional advanced settings, fresh-file generation, shared SELinux labeling, optional services and runtime health checks; Linux/SELinux live deployment verification remains separate | Current | Current |
+| O21 | Interactive remote deployment without a repository checkout | Implemented: GitHub-delivered Bash wizard, Docker/Podman auto-detection (choice only when both exist), Docker Compose/rootless Podman Quadlet, optional advanced settings, fresh-file generation, shared SELinux labeling, optional services and runtime health checks; Linux/SELinux live deployment verification remains separate | Current | Current |
 
 #### User-editable Prepared-media Cache Budget (O18)
 

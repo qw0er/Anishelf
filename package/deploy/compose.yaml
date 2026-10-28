@@ -4,7 +4,8 @@ services:
     restart: unless-stopped
     stop_grace_period: 15s
     environment:
-      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:3000}
+      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-}
+      ANISHELF_ALLOWED_HOSTS: ${ANISHELF_ALLOWED_HOSTS:-}
       # Trust only proxies on this private container network; keep Backend unpublished.
       ANISHELF_TRUSTED_PROXIES: ${ANISHELF_TRUSTED_PROXIES:-loopback,uniquelocal}
       ANISHELF_DATA_DIR: /data/app
@@ -17,8 +18,7 @@ services:
       - qbittorrent-connection:/run/anishelf-qbittorrent:ro
       - jackett-config:/run/jackett-config:ro
       - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media:ro
-    # Podman's default OCI build format drops Dockerfile HEALTHCHECK metadata.
-    # Declaring it here keeps depends_on.service_healthy working under Podman.
+    # Keep the Backend readiness dependency explicit in this deployment.
     healthcheck:
       test:
         - CMD-SHELL
@@ -34,7 +34,8 @@ services:
     restart: unless-stopped
     stop_grace_period: 15s
     environment:
-      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-http://localhost:3000}
+      ANISHELF_PUBLIC_ORIGIN: ${ANISHELF_PUBLIC_ORIGIN:-}
+      ANISHELF_WEB_TRUSTED_PROXIES: ${ANISHELF_WEB_TRUSTED_PROXIES:-127.0.0.1/32 ::1/128}
     ports:
       - "${ANISHELF_BIND_ADDRESS:-127.0.0.1}:${ANISHELF_PORT:-3000}:8080"
     depends_on:

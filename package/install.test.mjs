@@ -41,7 +41,6 @@ if(name==='getenforce') console.log(process.env.INSTALL_TEST_SELINUX??'Disabled'
 if(name==='uname') console.log('Linux');
 if(name==='id') console.log(args[0]==='-un'?'fixture-user':process.env.INSTALL_TEST_UID??'1001');
 if(name==='loginctl') console.log('yes');
-if(name==='podman'&&args[0]==='compose'&&args[1]==='version'&&process.env.INSTALL_TEST_PROVIDER_FAIL==='yes') process.exit(1);
 if(name==='podman'&&args[0]==='pull'&&process.env.INSTALL_TEST_PULL_FAIL==='yes') process.exit(1);
 if(name==='podman'&&args[0]==='info') console.log(args.at(-1).includes('CgroupsVersion')?'v2':'true');
 if(name==='curl') {
@@ -94,10 +93,12 @@ if(name==='curl') {
 			options.engine ?? (options.method === "2" ? "podman" : engines[0]);
 		const values = [];
 		if (engines.length > 1) values.push(selected === "podman" ? "2" : "1");
-		if (selected === "podman") values.push(options.method ?? "1");
+
 		values.push(
 			options.target ?? target,
 			options.media ?? "",
+			options.lan ? "y" : "n",
+			options.port ?? (options.advanced === false ? "" : "3300"),
 			options.qbit ? "y" : "n",
 			options.jackett ? "y" : "n",
 			options.advanced === false ? "n" : "y",
@@ -106,7 +107,6 @@ if(name==='curl') {
 			values.push(
 				options.tag ?? "v0.4.1",
 				"127.0.0.1",
-				"3300",
 				"https://anime.example.com",
 			);
 			if (options.qbit) values.push("8181", "6991");
@@ -409,44 +409,56 @@ test("single engines are selected automatically and defaults skip advanced quest
 			result.stderr,
 			/Container engine:|Matching Anishelf Web\/Backend image tag|Application bind IPv4 address/,
 		);
-		const env = await readFile(join(f.target, ".env"), "utf8");
-		assert.match(env, new RegExp(`ANISHELF_DEPLOY_ENGINE='${engine}'`));
-		assert.match(env, /ANISHELF_TAG='latest'/);
-		assert.match(env, /ANISHELF_PORT='3000'/);
-		assert.match(env, /ANISHELF_PUBLIC_ORIGIN='http:\/\/localhost:3000'/);
+		if (engine === "docker") {
+			const env = await readFile(join(f.target, ".env"), "utf8");
+			assert.match(env, /ANISHELF_PORT='3000'/);
+			assert.match(env, /ANISHELF_PUBLIC_ORIGIN=''/);
+		} else {
+			await absent(join(f.target, "compose.yaml"));
+			assert.match(
+				await readFile(
+					join(f.target, "quadlet/anishelf-web.container"),
+					"utf8",
+				),
+				/PublishPort=127.0.0.1:3000:8080/,
+			);
+		}
 	}
 });
 
-test("multiple engines prompt for a choice and Podman Compose retains rootless mappings", async (t) => {
+test("Podman selects Quadlet without invoking a Compose provider", async (t) => {
 	const f = await fixture(t);
 	const result = f.run(
 		f.answers({ engine: "podman", qbit: true, jackett: true }),
 		{ start: true },
 	);
 	success(result);
-	assert.match(result.stderr, /Container engine: 1 Docker, 2 Podman/);
-	const config = parse(await readFile(join(f.target, "compose.yaml"), "utf8"));
-	for (const service of Object.values(config.services))
-		assert.equal(service.userns_mode, "keep-id:uid=1000,gid=1000");
-	assert.equal(config.services.qbittorrent.user, "0:0");
-	assert.equal(config.services.jackett.user, "0:0");
+	assert.match(result.stderr, /Podman selected; using rootless Quadlet/);
+	await absent(join(f.target, "compose.yaml"));
 	const calls = await f.calls();
+	assert.ok(calls.some((call) => call.name === "systemctl"));
 	assert.ok(
-		calls.some((call) => call.name === "podman" && call.args.includes("pull")),
+		!calls.some((call) => call.name === "docker" || call.args[0] === "compose"),
 	);
-	assert.ok(!calls.some((call) => ["docker", "systemctl"].includes(call.name)));
 });
 
-test("missing Podman Compose provider stops without Docker fallback or output files", async (t) => {
-	const f = await fixture(t);
-	const result = f.run(f.answers({ engine: "podman" }), {
-		start: true,
-		env: { INSTALL_TEST_PROVIDER_FAIL: "yes" },
-	});
-	assert.equal(result.status, 1);
-	assert.match(result.stderr, /Install its Compose provider/);
-	await absent(f.target);
-	assert.ok(!(await f.calls()).some((call) => call.name === "docker"));
+test("legacy Podman Compose bundles are rejected without changing services or files", async (t) => {
+	const f = await fixture(t, ["docker"]);
+	success(f.run(f.answers({ advanced: false })));
+	const envFile = join(f.target, ".env");
+	const env = (await readFile(envFile, "utf8")).replace(
+		"ANISHELF_DEPLOY_ENGINE='docker'",
+		"ANISHELF_DEPLOY_ENGINE='podman'",
+	);
+	await writeFile(envFile, env);
+	const before = (await f.calls()).length;
+	for (const action of ["--remove", "--reconfigure"]) {
+		const result = f.run("y\n", { start: true, args: [action, f.target] });
+		assert.equal(result.status, 1);
+		assert.match(result.stderr, /Podman Compose is no longer supported/);
+	}
+	assert.equal(await readFile(envFile, "utf8"), env);
+	assert.equal((await f.calls()).length, before);
 });
 
 test("no detected engine fails clearly while explicit engine permits offline generation", async (t) => {
@@ -507,7 +519,7 @@ test("reconfiguration renders before removal and starts a replacement with the s
 	success(f.run(f.answers({ advanced: false })));
 	await writeFile(join(f.target, "custom.txt"), "old configuration notes");
 	// Reconfiguration retains the directory and engine, then collects fresh settings.
-	const result = f.run("\ny\ny\nn\ny\n", {
+	const result = f.run("\nn\n\ny\ny\nn\ny\n", {
 		start: true,
 		args: ["--reconfigure", f.target],
 	});
@@ -539,7 +551,7 @@ test("failed replacement template download leaves the current deployment running
 	const f = await fixture(t, ["docker"]);
 	success(f.run(f.answers({ advanced: false })));
 	const original = await readFile(join(f.target, "compose.yaml"), "utf8");
-	const result = f.run("\nn\nn\nn\ny\n", {
+	const result = f.run("\nn\n\nn\nn\nn\ny\n", {
 		start: true,
 		remote: true,
 		args: ["--reconfigure", f.target],
@@ -603,7 +615,10 @@ test("Quadlet reconfiguration preserves its method and refuses changed installed
 		}),
 	);
 	success(
-		f.run("\nn\ny\nn\ny\n", { start: true, args: ["--reconfigure", f.target] }),
+		f.run("\nn\n\nn\ny\nn\ny\n", {
+			start: true,
+			args: ["--reconfigure", f.target],
+		}),
 	);
 	const unitDir = join(f.env.XDG_CONFIG_HOME, "containers/systemd");
 	await absent(join(unitDir, "anishelf-qbittorrent.container"));
@@ -632,7 +647,7 @@ test("reconfiguration rejects unrelated Anishelf units before stopping services"
 	);
 	await writeFile(path, "custom service");
 	const before = (await f.calls()).length;
-	const result = f.run("\nn\nn\nn\ny\n", {
+	const result = f.run("\nn\n\nn\nn\nn\ny\n", {
 		start: true,
 		args: ["--reconfigure", f.target],
 	});
@@ -667,7 +682,7 @@ test("Quadlet explicitly pulls every selected image once before installing or re
 	const start = calls.findIndex((call) => call.args.includes("enable"));
 	assert.ok(pulls.every((call) => calls.indexOf(call) < start));
 	const before = calls.length;
-	const failed = f.run("\nn\nn\nn\ny\n", {
+	const failed = f.run("\nn\n\nn\nn\nn\ny\n", {
 		start: true,
 		args: ["--reconfigure", f.target],
 		env: { INSTALL_TEST_PULL_FAIL: "yes" },
@@ -684,7 +699,7 @@ test("Quadlet explicitly pulls every selected image once before installing or re
 test("Testing Compose isolates all volumes and retains its identity during removal", async (t) => {
 	const f = await fixture(t, ["docker"]);
 	success(
-		f.run(`${f.target}\nn\nn\nn\ny\n`, { args: ["--test"], start: true }),
+		f.run(`${f.target}\n\nn\nn\nn\ny\n`, { args: ["--test"], start: true }),
 	);
 	const config = parse(await readFile(join(f.target, "compose.yaml"), "utf8"));
 	for (const volume of Object.values(config.volumes)) {
@@ -696,7 +711,7 @@ test("Testing Compose isolates all volumes and retains its identity during remov
 	assert.match(env, /ANISHELF_MEDIA_PATH=''/);
 	assert.match(env, /COMPOSE_PROJECT_NAME='anishelf-test'/);
 	success(
-		f.run("n\nn\nn\ny\n", { args: ["--reconfigure", f.target], start: true }),
+		f.run("\nn\nn\nn\ny\n", { args: ["--reconfigure", f.target], start: true }),
 	);
 	assert.equal(
 		await readFile(join(f.target, ".deployment-profile"), "utf8"),
@@ -728,7 +743,7 @@ test("Testing Quadlet coexists with production and removes only testing units", 
 	);
 	await writeFile(join(userUnits, "anishelf.target"), "production target");
 	success(
-		f.run(`2\n${f.target}\ny\ny\nn\ny\n`, { args: ["--test"], start: true }),
+		f.run(`${f.target}\n\ny\ny\nn\ny\n`, { args: ["--test"], start: true }),
 	);
 	const backend = await readFile(
 		join(units, "anishelf-test-backend.container"),
@@ -751,7 +766,7 @@ test("Testing Quadlet coexists with production and removes only testing units", 
 	);
 
 	success(
-		f.run("n\nn\nn\ny\n", { args: ["--reconfigure", f.target], start: true }),
+		f.run("\nn\nn\nn\ny\n", { args: ["--reconfigure", f.target], start: true }),
 	);
 	assert.equal(
 		await readFile(join(f.target, ".deployment-profile"), "utf8"),
@@ -775,7 +790,7 @@ test("Testing Quadlet coexists with production and removes only testing units", 
 	);
 });
 
-test("Compose origins avoid nested defaults rejected by podman-compose", async () => {
+test("Compose templates retain optional flat origin defaults", async () => {
 	for (const template of [
 		new URL("../compose.yaml", import.meta.url),
 		new URL("./deploy/compose.yaml", import.meta.url),
@@ -783,24 +798,24 @@ test("Compose origins avoid nested defaults rejected by podman-compose", async (
 		const yaml = await readFile(template, "utf8");
 		assert.doesNotMatch(yaml, /\$\{[^}]*\$\{/);
 		const config = parse(yaml);
-		for (const service of ["backend", "web"]) {
+		for (const service of ["backend"]) {
 			assert.equal(
 				config.services[service].environment.ANISHELF_PUBLIC_ORIGIN,
 				// biome-ignore lint/suspicious/noTemplateCurlyInString: literal Compose configuration
-				"${ANISHELF_PUBLIC_ORIGIN:-http://localhost:3000}",
+				"${ANISHELF_PUBLIC_ORIGIN:-}",
 			);
 		}
 	}
 });
 
-test("Podman Compose explicitly activates only saved optional service profiles", async (t) => {
+test("Docker Compose activates only saved optional service profiles", async (t) => {
 	for (const selection of [
 		{ qbit: false, jackett: false },
 		{ qbit: true, jackett: false },
 		{ qbit: false, jackett: true },
 		{ qbit: true, jackett: true },
 	]) {
-		const f = await fixture(t, ["podman"]);
+		const f = await fixture(t, ["docker"]);
 		const result = f.run(f.answers({ ...selection, advanced: false }), {
 			start: true,
 			env: { COMPOSE_PROFILES: "unwanted-inherited-profile" },
@@ -827,4 +842,13 @@ test("Podman Compose explicitly activates only saved optional service profiles",
 			/Read the initial password with: .*--env-file .* -f .* logs backend/,
 		);
 	}
+});
+
+test("LAN installation exposes the chosen port without requiring an origin", async (t) => {
+	const f = await fixture(t, ["docker"]);
+	success(f.run(f.answers({ advanced: false, lan: true, port: "8787" })));
+	const env = await readFile(join(f.target, ".env"), "utf8");
+	assert.match(env, /ANISHELF_BIND_ADDRESS='0.0.0.0'/);
+	assert.match(env, /ANISHELF_PORT='8787'/);
+	assert.match(env, /ANISHELF_PUBLIC_ORIGIN=''/);
 });

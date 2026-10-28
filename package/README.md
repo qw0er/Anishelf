@@ -31,12 +31,12 @@ docker build -f package/Dockerfile --target web -t anishelf-web:local .
 
 Keep application data separate from media. Development and production must not use
 the same app volume. Optional qBittorrent writes shared media and private incomplete
-storage; Jackett has config storage only. See [volume ownership](../docs/guide/deployment.md#storage-updates-and-recovery).
+storage; Jackett has config storage only. See [volume ownership](../docs/guide/deployment.md#backup-and-recovery).
 
 ## Interactive installation
 
 The standalone Bash wizard resolves templates to one GitHub commit, renders a
-private bundle and delegates startup to Docker/Podman Compose or rootless Quadlet.
+private bundle and delegates startup to Docker Compose or rootless Podman Quadlet.
 It does not collect credentials. Ordinary installation never overwrites deployments;
 explicit `--remove DIRECTORY` and `--reconfigure DIRECTORY` actions archive saved
 configuration by renaming the entire old deployment directory to a sibling backup
@@ -84,7 +84,7 @@ gh workflow run publish-image.yml --ref <branch>
 ```
 
 Wait for checks, all four native builds and both manifests. Use the matching tags
-from the run summary, following [deployment updates](../docs/guide/deployment.md#updates).
+from the run summary, following [deployment updates](../docs/guide/deployment.md#manual-updates).
 Keep a pre-update backup for database rollback.
 
 ### Publication permissions

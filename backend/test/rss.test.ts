@@ -481,7 +481,7 @@ test("pause, restart and removal preserve state without fetching on reads", asyn
 				expires: null,
 				originalMaxAge: null,
 				sameSite: "lax",
-				secure: false,
+
 				path: "/",
 				httpOnly: true,
 				domain: null,
@@ -608,7 +608,7 @@ test("subscription HTTP routes are authenticated, CSRF protected and redact priv
 		logger: f.options.logger,
 		dataDir: f.dataDir,
 		store: f.database.authentication,
-		secure: false,
+
 		sources: { version: async () => "one" },
 	});
 	const app = createHttpApp({

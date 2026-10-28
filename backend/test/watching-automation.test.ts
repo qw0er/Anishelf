@@ -554,7 +554,7 @@ test("Watching HTTP routes require login, CSRF and the preview's actual session"
 		logger: f.logger,
 		dataDir: f.directory,
 		store: f.db.authentication,
-		secure: false,
+
 		sources: { version: async () => "one" },
 	});
 	const app = createHttpApp({

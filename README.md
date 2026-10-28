@@ -18,9 +18,41 @@ bash <(curl -fsSL https://raw.githubusercontent.com/qw0er/Anishelf/main/package/
 ```
 
 Docker or Podman is detected automatically; choose an engine only when both are installed.
-Podman supports Compose or rootless Quadlet. See the
+Podman uses rootless Quadlet. See the
 [deployment guide](docs/guide/deployment.md#interactive-installer) for prerequisites,
 SELinux handling and first login.
+
+## Updates
+
+Stop the stack and [back up data and configuration](docs/guide/deployment.md#backup-and-recovery)
+before updating. Keep Web and Backend on matching image tags and apply any
+release-specific template changes.
+
+### Docker Compose
+
+From the deployment folder, set `ANISHELF_TAG` in `.env`, then:
+
+```sh
+docker compose stop
+# Back up data and configuration before continuing.
+docker compose pull
+docker compose up -d
+```
+
+### Rootless Podman Quadlet
+
+Run as the service account, using the default `latest` image tags:
+
+```sh
+systemctl --user stop anishelf.target
+# Back up data and configuration before continuing.
+podman pull ghcr.io/qw0er/anishelf-backend:latest
+podman pull ghcr.io/qw0er/anishelf-web:latest
+systemctl --user start anishelf.target
+```
+
+Pull optional service images when updating them. See [Deployment](docs/guide/deployment.md#updates)
+for details and recovery instructions.
 
 ## Documentation
 

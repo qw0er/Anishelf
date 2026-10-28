@@ -27,7 +27,7 @@ async function fixture() {
 		logger,
 		dataDir,
 		store: database.authentication,
-		secure: false,
+
 		sources: { version: async () => "one" },
 	});
 	const system = await createSystemModule({ ANISHELF_DATA_DIR: dataDir });

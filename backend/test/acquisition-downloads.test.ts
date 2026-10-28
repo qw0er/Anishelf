@@ -717,7 +717,7 @@ test("download endpoints enforce authentication, CSRF, revision checks and safe 
 		logger,
 		dataDir: f.dir,
 		store: f.db.authentication,
-		secure: false,
+
 		sources: { version: async () => "one" },
 	});
 	const app = createHttpApp({

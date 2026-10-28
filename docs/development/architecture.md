@@ -489,9 +489,41 @@ Activity exposes status/recovery; qBittorrent owns transfer controls and deletio
 | Surface | Protection |
 | --- | --- |
 | Business APIs | Single-user login, persistent sessions; mutations require CSRF and allowed Origin |
-| HTTPS proxy | Matching public origin in Web/Backend; forwarded scheme/address trusted only from configured proxies |
+| HTTP access | Valid domain/IP Hosts at any published port; an optional exact hostname allowlist is independent of the public URL |
+| HTTPS proxy | A configured external origin declares its scheme to Web; automatic deployments use trusted proxy headers; Backend trusts the private Web hop |
 | Original-media external links | Expiring, source-bound scoped tokens |
 | Credentials | Private files; responses/logs omit passwords, tokens and raw private download locators |
+
+Host admission is independent of socket bind address, container port and the public
+URL. Any syntactically valid HTTP(S) hostname is accepted by default.
+`ANISHELF_ALLOWED_HOSTS` optionally restricts requests to comma-separated exact
+hostnames/IP literals without ports (brackets required for IPv6). It applies to
+all routes, including health, so restricted container deployments must include
+`127.0.0.1` for Backend health and `localhost` for installer health checks. No
+implicit localhost or configured-origin exception bypasses an enabled allowlist.
+Mutation Origin is compared with the actual Host and recognized protocol;
+forwarded Host is never used to bypass the allowlist. CSRF tokens, browser Fetch
+Metadata, authentication and login limits remain enabled. Default deployments do
+not claim DNS rebinding protection through a hostname allowlist; explicit Host
+restriction is available when required.
+
+`ANISHELF_PUBLIC_ORIGIN` is an optional fixed external address, not a Host
+allowlist or a Backend login gate. Standard Compose passes it to both Web and
+Backend; Quadlet renders it into both units. For requests matching its authority,
+Web uses the configured scheme instead of caller-supplied forwarding headers.
+This mode declares the external URL rather than detecting TLS, so HTTPS must be
+terminated/enforced at the external proxy. Other Hosts, including local HTTP
+access, retain normal transport handling. Matching ignores domain case, accepts
+a trailing slash in configuration and normalizes explicit default ports.
+
+Without a fixed origin, Caddy's native forwarded-header handling recognizes
+HTTPS only from `ANISHELF_WEB_TRUSTED_PROXIES` (space-separated source IPs/CIDRs,
+loopback by default). This is the advanced mode for automatic/multiple external
+addresses, or for preserving original client IPs. Backend's
+`ANISHELF_TRUSTED_PROXIES` describes the private Web hop.
+Cookies follow the recognized protocol, with persisted HTTP sessions upgraded to
+Secure on HTTPS. Configuration/rejection/upgrade events are logged without raw
+headers or credentials; an Origin mismatch returns actionable proxy guidance.
 
 ## Background scheduling and browser refresh
 

@@ -31,7 +31,7 @@ export function createHttpApp(options: {
 	playbackSelection?: PlaybackSelectionApi;
 	config: Pick<
 		DeploymentConfig,
-		"host" | "port" | "publicOrigin" | "trustedProxies"
+		"host" | "port" | "publicOrigin" | "trustedProxies" | "allowedHosts"
 	>;
 	logger: Logger;
 	bodyLimit?: number;

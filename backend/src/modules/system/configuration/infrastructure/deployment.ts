@@ -48,6 +48,28 @@ function trustedProxies(value: string): string[] {
 	return entries;
 }
 
+function allowedHosts(value: string): string[] {
+	if (!value.trim()) return [];
+	const entries = value.split(",").map((entry) => entry.trim());
+	if (entries.length > 64)
+		invalid("ANISHELF_ALLOWED_HOSTS allows at most 64 entries.");
+	return entries.map((entry) => {
+		try {
+			if (!/^[a-zA-Z0-9.[\]:-]+$/.test(entry))
+				throw new Error("Invalid hostname");
+			const url = new URL(`http://${entry}`);
+			// Require a hostname/IP only, with bracketed IPv6. Reject ports, even :80.
+			if (entry.toLowerCase() !== url.hostname)
+				throw new Error("Expected a hostname without a port");
+			return url.hostname;
+		} catch {
+			return invalid(
+				"ANISHELF_ALLOWED_HOSTS must contain comma-separated hostnames or IP addresses without ports or wildcards.",
+			);
+		}
+	});
+}
+
 function initialRoots(env: Environment): string[] | undefined {
 	const value = env.ANISHELF_INITIAL_RESOURCE_ROOTS;
 	if (value === undefined) return undefined;
@@ -226,7 +248,7 @@ export function parseDeploymentConfig(
 	return {
 		host,
 		port,
-		...(env.ANISHELF_PUBLIC_ORIGIN === undefined
+		...(!env.ANISHELF_PUBLIC_ORIGIN
 			? {}
 			: {
 					publicOrigin: parseHttpOrigin(
@@ -237,6 +259,7 @@ export function parseDeploymentConfig(
 		...(env.ANISHELF_TRUSTED_PROXIES === undefined
 			? {}
 			: { trustedProxies: trustedProxies(env.ANISHELF_TRUSTED_PROXIES) }),
+		allowedHosts: allowedHosts(env.ANISHELF_ALLOWED_HOSTS ?? ""),
 		dataDir,
 		...(resourceInitializers === undefined
 			? {}

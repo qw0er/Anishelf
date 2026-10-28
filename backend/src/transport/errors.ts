@@ -3,6 +3,15 @@ import { MetadataError } from "../modules/anime/public.js";
 import { DomainError, type ErrorCode } from "../shared/errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	NETWORK_ORIGIN_REJECTED: {
+		status: 403,
+		message:
+			"The request origin does not match the access address. Check the URL and trusted proxy configuration.",
+	},
+	NETWORK_HOST_REJECTED: {
+		status: 400,
+		message: "This hostname is not allowed. Check ANISHELF_ALLOWED_HOSTS.",
+	},
 	UPDATE_CHECK_FAILED: {
 		status: 502,
 		message: "Could not check GitHub for updates. Try again later.",
