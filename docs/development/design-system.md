@@ -320,12 +320,17 @@ Keep the player page focused on the picture. Combine the icon-only Back action a
 an at-most-two-line title in one compact header; preserve its accessible name and
 Tooltip. At mobile widths the video extends to the page edges, while desktop uses
 the normal container. Keep the native Vidstack subtitle and playback controls.
-Below the video, place a bounded audio selector and a short More action together.
+Below the video, place current-file audio controls and a short More action together.
+Only the active asset supplies audio labels and choices. Show the selected track as
+text when only one track is playable or native audio switching is unavailable.
+Switching audio stays within the current asset. Choose a different file version or
+prepare another copy to access audio absent from the active file; source tracks
+and retained-track checkboxes belong only to preparation.
 Use 44px touch targets without large outlined buttons; allow wrapping when needed.
 
 More owns manual playback retry, compatibility information, playback options and
 existing external-player/link commands. Playback options discloses the full filename,
-prepared-copy state and manual preparation action. Keep the recovery controls visible
+the current media version, a version selector and the manual preparation action. Compatibility information describes the active resource; original-file facts are disclosed separately. Keep the recovery controls visible
 when playback is unavailable. Routine technical explanations must not occupy the
 normal playback page. Progress editing and unmapped-target explanations use a compact
 Progress disclosure; pending decisions, conflicts, failures and recovery actions remain

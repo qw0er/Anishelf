@@ -1,379 +1,262 @@
 import pino from "pino";
 import { beforeEach, expect, test, vi } from "vitest";
-import type {
-	CompatibilityInspection,
-	PlaybackSelectionRequest,
-} from "../src/contracts/http.js";
-import { createPlaybackCopies } from "../src/modules/media/integration/playback-copies.js";
-import type { CheckedCompatibility } from "../src/modules/media/media-planning/public.js";
-import type { PreparationView } from "../src/modules/media/preparation/public.js";
+import type { PlaybackSelectionRequest } from "../src/contracts/http.js";
 import { PlaybackSelectionApplication } from "../src/modules/playback/playback-selection/application/selection.js";
 import { DomainError } from "../src/shared/errors.js";
 import { createHttpApp } from "./support/http.js";
+import {
+	asset,
+	audio,
+	catalog,
+	copyId,
+	fileId,
+} from "./support/playback-assets.js";
 
-const fileId = "a".repeat(64);
-const source = {
-	identity: {
-		fileId,
-		scopeId: "/media",
-		relativePath: "video.mkv",
-		sourceVersion: "version",
-	},
-	accessRevision: 1,
-	file: {
-		id: fileId,
-		kind: "file" as const,
-		parentId: "b".repeat(64),
-		name: "Video.mkv",
-		sizeBytes: 100,
-		modifiedAt: "date",
-		mimeType: "video/x-matroska",
-	},
-};
-const decision = { status: "supported" as const, reason: "browser-supported" };
-const original: CheckedCompatibility = {
-	fileId,
-	sourceVersion: "version",
-	rulesVersion: "4",
-	selectedVideo: null,
-	defaultAudioStreamIndex: 1,
-	selectedAudioStreamIndices: [1, 2],
-	audioTracks: [1, 2].map((index) => ({
-		stream: {
-			kind: "audio" as const,
-			index,
-			codec: "aac",
-			codecString: "mp4a.40.2",
-			profile: null,
-			bitrate: null,
-			sampleRate: 48000,
-			channels: 2,
-		},
-		compatibility: decision,
-	})),
-	direct: { status: "unknown", reason: "native-track-selection-uncertain" },
-	container: decision,
-	video: decision,
-	audio: decision,
-	output: null,
-	warnings: [],
-	scopeId: "/media",
-	profile: null,
-};
-const description = {
-	fileId,
-	sourceVersion: "version",
-	rulesVersion: "4",
-	descriptionId: "d".repeat(64),
-	container: "matroska",
-	video: null,
-	defaultAudioStreamIndex: 1,
-	selectedAudioStreamIndices: [1, 2],
-	audioTracks: original.audioTracks.map((t) => t.stream),
-	multipleTracks: true,
-	queries: [],
-	output: null,
-} as CompatibilityInspection;
-function copy(
-	id: string,
-	profileId = "builtin:web",
-	audio = [1, 2],
-): PreparationView {
-	return {
-		availability: "ready",
-		artifact: {
-			delivery: "file",
-			id,
-			taskId: id,
-			sizeBytes: 100,
-			mimeType: "video/mp4",
-		},
-		task: {
-			id,
-			profileId,
-			filename: "Video.mkv",
-			createdAtMs: 1,
-			state: {
-				status: "ready",
-				progress: null,
-				failureReason: null,
-				updatedAtMs: 1,
-			},
-			spec: {
-				source: source.identity,
-				executionPlanId: id,
-				profileFingerprint: "fp",
-				settings: {
-					version: 1,
-					mode: "remux",
-					reasons: { video: "copy", audio: "copy" },
-					videoStreamIndex: 0,
-					audioStreamIndices: audio,
-					plan: {
-						container: "mp4",
-						video: { action: "copy" },
-						audio: { action: "copy" },
-						filters: [],
-						outputFormat: "mp4",
-					},
-				},
-			},
-		},
-	} as PreparationView;
-}
-let tasks: PreparationView[];
-const sources = {
-	resolveSource: vi.fn(async (_id: string, _version?: string) => source),
-	revalidateSource: vi.fn(async () => source),
-	assertAccessRevision: vi.fn(),
-};
-const planning = {
-	inspect: vi.fn(async () => description),
-	check: vi.fn(
-		async (
-			input: NonNullable<PlaybackSelectionRequest["original"]> & {
-				fileId: string;
-			},
-		) =>
-			({
-				...original,
-				selectedAudioStreamIndices: input.audioStreamIndices ?? [1, 2],
-				output: input.output
-					? {
-							profileId: input.output.profileId,
-							target: "file",
-							combinations: { "copy-copy": "supported" },
-						}
-					: null,
-			}) as CheckedCompatibility,
-	),
-};
-const copies = {
-	list: vi.fn(async () => ({ tasks })),
-	get: vi.fn(
-		async (id: string) => tasks.find((t) => t.task.id === id) ?? copy(id),
-	),
-};
+let data = catalog();
+const logger = pino({ level: "silent" });
+const list = vi.fn(async (_fileId: string, version?: string) => {
+	if (version && version !== data.source.sourceVersion)
+		throw new DomainError("PLAYBACK_CONFLICT", "Source changed");
+	return structuredClone(data);
+});
 let application: PlaybackSelectionApplication;
-function request(audio?: number[]): PlaybackSelectionRequest & {
-	original: NonNullable<PlaybackSelectionRequest["original"]>;
-} {
+beforeEach(() => {
+	vi.clearAllMocks();
+	data = catalog();
+	application = new PlaybackSelectionApplication({ assets: { list }, logger });
+});
+async function request(
+	overrides: Partial<PlaybackSelectionRequest> = {},
+): Promise<PlaybackSelectionRequest> {
+	const input = { fileId, canSelectAudio: false, ...overrides };
+	const options = await application.inspect(input);
 	return {
-		fileId,
-		...(audio !== undefined ? { audioStreamIndices: audio } : {}),
-		original: {
-			sourceVersion: "version",
-			descriptionId: description.descriptionId,
-			...(audio !== undefined ? { audioStreamIndices: audio } : {}),
-			output: null,
-			evidence: [],
-		},
-		candidates: tasks.map(({ task }) => ({
-			taskId: task.id,
-			check: {
-				sourceVersion: "version",
-				descriptionId: description.descriptionId,
-				audioStreamIndices: audio ?? [1, 2],
-				output: { profileId: task.profileId, target: "file" },
-				evidence: [],
-			},
+		...input,
+		sourceVersion: options.source.sourceVersion,
+		evidence: options.assets.map((inspection) => ({
+			assetId: inspection.asset.id,
+			descriptionId: inspection.descriptionId,
+			evidence: inspection.queries.map((query) => ({
+				id: query.id,
+				status: "supported",
+				reason: "browser-supported",
+				smooth: true,
+			})),
 		})),
 	};
 }
-beforeEach(() => {
-	vi.clearAllMocks();
-	tasks = [];
-	application = new PlaybackSelectionApplication({
-		sources,
-		planning,
-		copies: createPlaybackCopies(copies),
-		selectedProfileId: () => "builtin:preferred",
-	});
+test("automatic audio chooses the existing Japanese-only copy, using its actual AAC description", async () => {
+	const result = await application.select(await request());
+	expect(result.resolvedAudioStreamIndex).toBe(1);
+	expect(result.active?.asset.id).toBe(copyId);
+	expect(result.active?.asset.audioTracks[0]?.stream.codec).toBe("aac");
+	expect(result.choices[0]?.asset.audioTracks[0]?.stream.codec).toBe("opus");
+	expect(result.active).not.toHaveProperty("resource");
+	expect(result).not.toHaveProperty("compatibility");
 });
-test("server chooses selected profile, independent of submitted order, without creating tasks", async () => {
-	tasks = [copy("other"), copy("preferred", "builtin:preferred")];
-	expect((await application.select(request())).choice).toMatchObject({
-		kind: "prepared",
-		artifactId: "preferred",
-	});
-	expect(copies.get).toHaveBeenCalledWith("preferred");
-});
-test.each([[[]], [[2]], [[2, 1]]])(
-	"exact ordered audio %s excludes default and other subsets",
-	async (audio) => {
-		tasks = [
-			copy("all"),
-			copy("one", "builtin:web", [1]),
-			copy("selected", "builtin:web", audio),
-		];
-		expect((await application.select(request(audio))).choice).toMatchObject({
-			kind: "prepared",
-			artifactId: "selected",
-		});
-	},
-);
-test("default-all excludes subset and wrong-root copies", async () => {
-	const wrongRoot = copy("root");
-	wrongRoot.task = {
-		...wrongRoot.task,
-		spec: {
-			...wrongRoot.task.spec,
-			source: { ...source.identity, scopeId: "/old" },
-		},
-	};
-	tasks = [copy("one", "builtin:web", [2]), wrongRoot];
-	expect((await application.select(request())).choice.kind).toBe("blocked");
-});
-test("failed bytes are excluded and unsupported output cannot become ready playback", async () => {
-	tasks = [copy("failed"), copy("unsupported")];
-	planning.check
-		.mockImplementationOnce(async () => original)
-		.mockImplementationOnce(
-			async () =>
-				({
-					...original,
-					output: { combinations: { "copy-copy": "unsupported" } },
-				}) as CheckedCompatibility,
-		);
+test("an explicit English intent cannot silently select a Japanese copy", async () => {
+	const result = await application.select(
+		await request({ audioStreamIndex: 2 }),
+	);
+	expect(result.active).toBeNull();
 	expect(
-		(await application.select({ ...request(), failedResourceIds: ["failed"] }))
-			.choice.kind,
-	).toBe("blocked");
+		result.choices.find((choice) => choice.asset.id === copyId)
+			?.unavailableReason,
+	).toBe("audio-track-missing");
 });
-test("availability is re-read after evidence; deleted or invalidated copies are not selected", async () => {
-	tasks = [copy("copy")];
-	copies.get.mockResolvedValueOnce({
-		...copy("copy"),
-		availability: "unavailable",
-		artifact: null,
-	});
-	expect((await application.select(request())).choice.kind).toBe("blocked");
-});
-test("pending is guidance and never a playable URL or an implicit command", async () => {
-	const pending = copy("pending");
-	tasks = [pending];
-	pending.task.state = {
-		status: "queued",
-		progress: null,
-		failureReason: null,
-		updatedAtMs: 1,
+test("source audio 2 maps to actual output audio 1", async () => {
+	data.assets[1] = {
+		...asset(),
+		audioTracks: [{ stream: audio(1, "eng", "aac"), sourceStreamIndex: 2 }],
 	};
-	pending.availability = "unavailable";
-	pending.artifact = null;
-	expect(await application.select(request())).toMatchObject({
+	const result = await application.select(
+		await request({ audioStreamIndex: 2 }),
+	);
+	expect(result.active?.audio).toEqual({
+		streamIndex: 1,
+		sourceStreamIndex: 2,
+		position: 0,
+	});
+});
+test("extra retained tracks do not reject a copy when native selection is available", async () => {
+	data.assets[1] = {
+		...asset(),
+		audioTracks: [
+			{ stream: audio(1, "eng", "aac"), sourceStreamIndex: 2 },
+			{ stream: audio(2, "jpn", "aac"), sourceStreamIndex: 1 },
+		],
+	};
+	const input = await request({
+		audioStreamIndex: 1,
+		canSelectAudio: true,
+		assetId: copyId,
+	});
+	expect((await application.select(input)).active?.audio).toEqual({
+		streamIndex: 2,
+		sourceStreamIndex: 1,
+		position: 1,
+	});
+	const unavailable = await application.select(
+		await request({
+			audioStreamIndex: 1,
+			canSelectAudio: false,
+			assetId: copyId,
+			allowUnverified: true,
+		}),
+	);
+	expect(unavailable.active).toBeNull();
+});
+test("the original is preferred when it can satisfy the audio intent", async () => {
+	const original = data.assets[0];
+	if (!original) throw new Error("Missing original");
+	original.audioTracks = original.audioTracks.slice(0, 1);
+	expect((await application.select(await request())).active?.asset.kind).toBe(
+		"original",
+	);
+});
+test("a pinned copy remains selected independently of task or profile preference", async () => {
+	expect(
+		(await application.select(await request({ assetId: copyId }))).active?.asset
+			.id,
+	).toBe(copyId);
+	data.assets[1] = { ...asset(), profileId: "custom:removed" };
+	expect(
+		(await application.select(await request({ assetId: copyId }))).active?.asset
+			.id,
+	).toBe(copyId);
+});
+test("pending guidance follows the requested track and never yields a pending URL", async () => {
+	data.assets = data.assets.slice(0, 1);
+	data.pendingAudioSelections = [[1]];
+	expect(await application.select(await request())).toMatchObject({
+		active: null,
 		pending: true,
-		choice: { kind: "blocked", reason: "preparation-pending" },
+		reason: "preparation-pending",
 	});
-});
-test("explicit original attempt bypasses unavailable preparation but still validates source and evidence", async () => {
-	copies.list.mockRejectedValueOnce(
-		new DomainError("PREPARATION_UNAVAILABLE", "Unavailable"),
-	);
 	expect(
-		(await application.select({ ...request(), tryOriginal: true })).choice.kind,
-	).toBe("direct");
-	expect(copies.list).not.toHaveBeenCalled();
-	expect(planning.check).not.toHaveBeenCalled();
-	expect(sources.revalidateSource).toHaveBeenCalled();
-	copies.list.mockReset().mockImplementation(async () => ({ tasks }));
+		(await application.select(await request({ audioStreamIndex: 2 }))).pending,
+	).toBe(false);
 });
-test("supported single-audio source selects original unless an explicit selection requires a copy", async () => {
-	planning.check.mockResolvedValueOnce({
-		...original,
-		direct: decision,
-		audioTracks: original.audioTracks.slice(0, 1),
-		selectedAudioStreamIndices: [1],
-	});
-	const input = request();
-	expect((await application.select(input)).choice.kind).toBe("direct");
-	expect((await application.select(request([1]))).choice.kind).toBe("blocked");
-});
-test("stale browser evidence and post-selection root switch fail rather than leaking a URL", async () => {
-	planning.check.mockRejectedValueOnce(
-		new DomainError("PLAYBACK_CONFLICT", "Stale evidence"),
+test("explicit trial can attempt uncertain original bytes but cannot override a missing audio track", async () => {
+	const trial = await application.select(
+		await request({ assetId: fileId, allowUnverified: true }),
 	);
-	await expect(application.select(request())).rejects.toMatchObject({
+	expect(trial.active?.asset.kind).toBe("original");
+	expect(
+		(
+			await application.select(
+				await request({
+					assetId: copyId,
+					audioStreamIndex: 2,
+					allowUnverified: true,
+				}),
+			)
+		).active,
+	).toBeNull();
+});
+test("failed attempts exclude only the failed asset", async () => {
+	const result = await application.select(
+		await request({ failedResourceIds: [copyId] }),
+	);
+	expect(result.active).toBeNull();
+	expect(
+		result.choices.find((choice) => choice.asset.id === copyId)
+			?.unavailableReason,
+	).toBe("asset-playback-failed");
+	expect(result.choices[0]?.compatibility.video.status).toBe("supported");
+});
+test("stale asset revisions, source versions and duplicate evidence are fenced", async () => {
+	const stale = await request();
+	data.assets[1] = { ...asset(), revision: "e".repeat(64) };
+	await expect(application.select(stale)).rejects.toMatchObject({
 		code: "PLAYBACK_CONFLICT",
 	});
-	sources.assertAccessRevision.mockImplementationOnce(() => {
-		throw new DomainError("PLAYBACK_CONFLICT", "Root changed");
-	});
-	await expect(
-		application.select({ ...request(), tryOriginal: true }),
-	).rejects.toMatchObject({ code: "PLAYBACK_CONFLICT" });
-});
-test("intent mismatch and duplicate candidate evidence are rejected", async () => {
-	await expect(
-		application.select({ ...request(), audioStreamIndices: [2] }),
-	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
-	tasks = [copy("copy")];
-	const input = request();
-	input.candidates.push(...input.candidates);
-	await expect(application.select(input)).rejects.toMatchObject({
+	const duplicate = await request();
+	const entry = duplicate.evidence[0];
+	if (entry) duplicate.evidence.push(entry);
+	await expect(application.select(duplicate)).rejects.toMatchObject({
 		code: "INVALID_REQUEST",
 	});
+	const changed = await request();
+	data.source.sourceVersion = "changed";
+	await expect(application.select(changed)).rejects.toMatchObject({
+		code: "PLAYBACK_CONFLICT",
+	});
 });
-test("HTTP projects the selected URL with no progress generation or private source paths", async () => {
+test("a silent prepared asset can be explicitly played without a retention array", async () => {
+	data.assets[1] = {
+		...asset(),
+		audioTracks: [],
+		defaultAudioStreamIndex: null,
+	};
+	const result = await application.select(
+		await request({ audioStreamIndex: null, assetId: copyId }),
+	);
+	expect(result.active?.asset.id).toBe(copyId);
+	expect(result.active?.audio).toBeNull();
+});
+test("browser reports for an unavailable inspection do not manufacture a known video stream", async () => {
+	data.assets = [
+		{
+			...asset(fileId),
+			kind: "original",
+			inspection: "unavailable",
+			container: null,
+			video: null,
+			audioTracks: [],
+			defaultAudioStreamIndex: null,
+		},
+	];
+	data.source.audioTracks = [];
+	data.source.defaultAudioStreamIndex = null;
+	expect((await application.select(await request())).active).toBeNull();
+	expect(
+		(
+			await application.select(
+				await request({ assetId: fileId, allowUnverified: true }),
+			)
+		).active?.compatibility.overall.status,
+	).toBe("unknown");
+});
+test("HTTP returns the current asset, preserves source identity, and rejects retention-array intent", async () => {
 	const app = createHttpApp({
 		config: { host: "127.0.0.1", port: 80 },
-		logger: pino({ level: "silent" }),
+		logger,
 		playbackSelection: application,
 	});
 	try {
 		const response = await app.inject({
 			method: "POST",
 			url: "/api/playback/selection",
-			payload: { ...request(), tryOriginal: true },
+			payload: await request(),
 		});
-		expect(response.statusCode).toBe(200);
-		expect(response.headers["cache-control"]).toBe("no-store");
-		expect(response.json().plan.resource.url).toBe(`/api/media/${fileId}`);
-		expect(response.json()).not.toHaveProperty("generation");
-		expect(response.body).not.toContain('"scopeId"');
+		expect(response.statusCode, response.body).toBe(200);
+		expect(response.json().active.asset.audioTracks[0].stream.codec).toBe(
+			"aac",
+		);
+		expect(response.body).not.toContain("scopeId");
+		expect(response.body).not.toContain("profileFingerprint");
 		const invalid = await app.inject({
 			method: "POST",
-			url: "/api/playback/selection",
-			payload: { ...request(), audioStreamIndices: [-1] },
+			url: "/api/playback/options",
+			payload: { fileId, canSelectAudio: false, audioStreamIndices: [1, 2] },
 		});
 		expect(invalid.statusCode).toBe(400);
 	} finally {
 		await app.close();
 	}
 });
-
-test("candidate descriptions are bounded after server priority, not by browser request size", async () => {
-	tasks = Array.from({ length: 140 }, (_, i) => copy(`copy-${i}`));
-	tasks.push(copy("preferred", "builtin:preferred"));
-	const options = await application.inspect({ fileId });
-	expect(options.candidates).toHaveLength(128);
-	expect(options.candidates[0]?.taskId).toBe("preferred");
-	expect(planning.inspect).toHaveBeenCalledTimes(129);
-});
-
-test("composition gives selection only copy metadata, detached from mutable owner state", async () => {
-	tasks = [copy("copy")];
-	const adapter = createPlaybackCopies(copies);
-	const snapshot = await adapter.get("copy");
-	expect(Object.keys(snapshot).sort()).toEqual(
-		[
-			"artifact",
-			"audioStreamIndices",
-			"availability",
-			"mode",
-			"pending",
-			"profileId",
-			"source",
-			"taskId",
-			"updatedAtMs",
-		].sort(),
-	);
-	expect(snapshot.artifact).toEqual({ id: "copy", mimeType: "video/mp4" });
-	expect(snapshot).not.toHaveProperty("task");
-	expect(snapshot).not.toHaveProperty("spec");
-	const task = tasks[0];
-	if (!task) throw new Error("Missing fixture");
-	task.task.profileId = "changed";
-	snapshot.source.scopeId = "/changed";
-	expect(snapshot.profileId).toBe("builtin:web");
-	expect(task.task.spec.source.scopeId).toBe("/media");
+test("candidate descriptions are bounded while explicitly selected assets retain priority", async () => {
+	data.assets = [
+		...data.assets,
+		...Array.from({ length: 140 }, (_, index) => asset(`extra-${index}`)),
+		asset("pinned"),
+	];
+	const result = await application.inspect({
+		fileId,
+		canSelectAudio: false,
+		assetId: "pinned",
+	});
+	expect(result.assets).toHaveLength(128);
+	expect(result.assets[0]?.asset.id).toBe("pinned");
 });

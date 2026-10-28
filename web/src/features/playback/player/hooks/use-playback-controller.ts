@@ -1,94 +1,98 @@
-import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import type {
 	FileResponse,
-	PreparationTaskResponse,
+	MediaAsset,
 } from "../../../../shared/api/contracts.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
-import {
-	originalCompatibilityKey,
-	useFilePreparations,
-} from "../../../media/public.js";
-import { profilesQuery } from "../../../settings/public.js";
+import { originalCompatibilityKey } from "../../../media/public.js";
 import { parseAudioSelection } from "../playback-params.js";
 import { playbackPolicy } from "../policy.js";
 import { usePlaybackSelection } from "./use-playback-selection.js";
 import { usePlaybackSession } from "./use-playback-session.js";
 
-/** Coordinate intent, delivery and progress without allowing task polling to own media lifecycle. */
 export function usePlaybackController(data: FileResponse) {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const audio = searchParams.get("audio");
 	const parsed = useMemo(() => parseAudioSelection(audio), [audio]);
 	const playback = usePlaybackSession(data.file.id, playbackPolicy);
-	const prepared = useFilePreparations(data.file.id);
-	const { data: catalog } = useQuery(profilesQuery());
-	const sourceScope = originalCompatibilityKey(data.file);
+	const scope = originalCompatibilityKey(data.file);
 	const selected = usePlaybackSelection(
 		data.file.id,
 		searchParams.get("version") ?? playback.session?.sourceVersion,
-		sourceScope,
-		parsed.indices,
-		JSON.stringify([
-			catalog?.selectedProfileId,
-			prepared.tasks.map((task) => [task.id, task.status, task.updatedAtMs]),
-		]),
+		scope,
+		parsed.index,
 		parsed.valid,
+		searchParams.get("asset") ?? undefined,
 	);
-	const compatibility = parsed.valid
+	const selection = parsed.valid
 		? selected
 		: {
 				...selected,
 				loading: false,
 				selection: null,
-				result: null,
 				error: new Error("INVALID_AUDIO_SELECTION"),
 			};
 	useEffect(
 		() => () => toast.close(`video-playback:${data.file.id}`),
 		[data.file.id],
 	);
-	const audioTracks = compatibility.result?.audioTracks ?? [];
-	const selectedPlan = compatibility.selection?.plan;
-	const resource =
-		selectedPlan?.mode === "direct" || selectedPlan?.mode === "prepared"
-			? selectedPlan.resource
-			: null;
-	function selectAudio(value: string | null) {
+	function selectAudio(value: string) {
+		const active = selection.selection?.active;
+		if (!active) return;
 		const next = new URLSearchParams(searchParams);
-		if (value === null) next.delete("audio");
-		else next.set("audio", value);
+		next.set("audio", value);
+		next.set("asset", active.asset.id);
+		console.info("[playback] Current asset audio selected.", {
+			assetId: active.asset.id,
+			sourceAudioStreamIndex: Number(value),
+		});
 		setSearchParams(next, { replace: true });
 	}
-	function onPrepared(task: PreparationTaskResponse) {
-		if (task.audioStreamIndices === undefined) return;
-		const all = audioTracks.map(({ stream }) => stream.index);
-		selectAudio(
-			JSON.stringify(task.audioStreamIndices) === JSON.stringify(all)
-				? null
-				: task.audioStreamIndices.join(","),
-		);
+
+	function selectAsset(asset: MediaAsset | null) {
+		const next = new URLSearchParams(searchParams);
+		if (asset === null) next.delete("asset");
+		else {
+			next.set("asset", asset.id);
+			const wanted = selection.selection?.resolvedAudioStreamIndex;
+			if (
+				!asset.audioTracks.some((track) => track.sourceStreamIndex === wanted)
+			) {
+				const track = asset.audioTracks[0];
+				next.set("audio", track ? String(track.sourceStreamIndex) : "none");
+			}
+		}
+		setSearchParams(next, { replace: true });
 	}
+	function tryOrigin() {
+		const next = new URLSearchParams(searchParams);
+		next.set("asset", data.file.id);
+		if (!parsed.valid) next.delete("audio");
+		setSearchParams(next, { replace: true });
+		selection.retry();
+	}
+
 	return {
 		audio,
 		audioValid: parsed.valid,
-		audioStreamIndices: parsed.indices,
 		playback,
-		prepared,
-		compatibility,
-		audioTracks,
-		selectedPlan,
-		resource,
+		selection,
+		source: selection.selection?.source ?? null,
+		active: selection.selection?.active ?? null,
+		selectedAssetId: searchParams.get("asset") ?? "auto",
 		sourceScope: JSON.stringify([
-			sourceScope,
-			compatibility.selection?.sourceVersion,
+			scope,
+			selection.selection?.source.sourceVersion,
 		]),
 		selectAudio,
-		onPrepared,
+		selectAsset,
+		tryOrigin,
+		onAssetsChanged: () => {
+			if (!selection.selection?.active) selection.retry();
+		},
 		recheck: () => {
-			compatibility.retry();
-			prepared.refresh();
+			selection.retry();
 		},
 	};
 }

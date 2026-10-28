@@ -17,19 +17,16 @@ import {
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { directoryPath } from "../../../../shared/navigation.js";
-import { subtitlePolicy } from "../../../media/public.js";
 import type { PlaybackUiSlots } from "../../public.js";
 import { usePlaybackController } from "../hooks/use-playback-controller.js";
 import { AudioSelection } from "./audio-selection.js";
 import { CompatibilityDialog } from "./compatibility-dialog.js";
-
 import { PlaybackActionsMenu } from "./external-player-menu.js";
+import { PlaybackVersionSelection } from "./version-selection.js";
 import VideoPlayer from "./video-player.js";
-
 export default function FilePlayer({
 	data,
 	displayTitle,
-
 	returnDirectoryId,
 	returnTo,
 	onRetry,
@@ -44,50 +41,35 @@ export default function FilePlayer({
 }) {
 	const { t } = useTranslation();
 	const {
-		audio,
 		audioValid,
-		audioStreamIndices,
 		playback,
-		prepared,
-		compatibility,
-		audioTracks,
-		selectedPlan,
-		resource,
+		selection,
+		source,
+		active,
+		selectedAssetId,
 		sourceScope,
 		selectAudio,
-		onPrepared,
+		selectAsset,
+		tryOrigin,
+		onAssetsChanged,
 		recheck,
 	} = usePlaybackController(data);
-	const activeVersion =
-		compatibility.selection?.sourceVersion ??
-		compatibility.result?.sourceVersion;
 	const title =
 		displayTitle &&
-		(!activeVersion || displayTitle.sourceVersion === activeVersion)
+		(!source || displayTitle.sourceVersion === source.sourceVersion)
 			? displayTitle.title
 			: data.file.name;
-	const preparedCurrent = selectedPlan?.mode === "prepared";
-	const blocked = !compatibility.loading && !resource;
-	const unsupported = compatibility.result?.direct.status === "unsupported";
-	const tryingOrigin = selectedPlan?.mode === "direct";
+	const blocked = !selection.loading && !active;
 	const [optionsOpen, setOptionsOpen] = useState(false);
 	const [compatibilityOpen, setCompatibilityOpen] = useState(false);
-	function tryOrigin() {
-		compatibility.tryDirect();
-	}
 	const preparationAction = slots?.renderPreparation({
-		key: audio ?? "all",
+		key: data.file.id,
 		fileId: data.file.id,
-		loading: compatibility.loading,
-		result: compatibility.result,
-		error: compatibility.error,
+		source,
 		onRecheck: recheck,
-		tasks: prepared.tasks,
-		onPrepared: onPrepared,
-		...(audioStreamIndices !== undefined ? { audioStreamIndices } : {}),
+		onAssetsChanged,
 		showLabel: true,
 	});
-
 	return (
 		<section
 			className="flex min-w-0 flex-col gap-3 sm:gap-4"
@@ -115,7 +97,7 @@ export default function FilePlayer({
 					{title}
 				</h1>
 			</header>
-			{compatibility.loading && (
+			{selection.loading && (
 				<div role="status" aria-label={t("compatibility.checking")}>
 					<Skeleton className="aspect-video w-full" />
 				</div>
@@ -132,17 +114,13 @@ export default function FilePlayer({
 						{t(
 							!audioValid
 								? "audioTracks.invalidSelection"
-								: compatibility.error
+								: selection.error
 									? "compatibility.failed"
-									: compatibility.runtimeFailed
-										? "compatibility.runtimeFailed"
-										: compatibility.selection?.pending
+									: selection.runtimeFailure
+										? `player.failures.${selection.runtimeFailure.kind}`
+										: selection.selection?.pending
 											? "preparation.waitForCopy"
-											: audioStreamIndices !== undefined
-												? "audioTracks.copyRequired"
-												: unsupported
-													? "compatibility.unsupported"
-													: "compatibility.unknown",
+											: "player.noMatchingAsset",
 						)}
 					</p>
 					<div className="action-row">
@@ -158,32 +136,25 @@ export default function FilePlayer({
 					</div>
 				</section>
 			)}
-			{resource && (
+			{active && source && (
 				<div className="-mx-4 sm:mx-0">
 					<QueryScope value={sourceScope}>
 						<VideoPlayer
-							key={`video:${data.file.id}:${resource.url}`}
-							{...data}
+							key={`${active.asset.id}:${active.asset.revision}:${active.audio?.streamIndex ?? "none"}`}
+							fileId={data.file.id}
 							displayTitle={title}
-							subtitlePolicy={subtitlePolicy}
+							active={active}
+							sourceVersion={source.sourceVersion}
 							renderSubtitles={slots?.renderSubtitles}
-							playbackUrl={resource.url}
-							sourceVersion={compatibility.selection?.sourceVersion}
-							timeline={resource.timeline}
 							onMedia={playback.attach}
-							onPlaybackFailure={compatibility.failed}
-							expectsVideo={Boolean(compatibility.result?.selectedVideo)}
+							onPlaybackFailure={selection.failed}
+							onAudioChange={(index) => selectAudio(String(index))}
 						/>
 					</QueryScope>
 				</div>
 			)}
 			<div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-				<AudioSelection
-					audio={audio}
-					audioTracks={audioTracks}
-					audioStreamIndices={audioStreamIndices}
-					selectAudio={selectAudio}
-				/>
+				<AudioSelection active={active} selectAudio={selectAudio} />
 				<PlaybackActionsMenu
 					key={`actions:${data.file.id}`}
 					fileId={data.file.id}
@@ -203,21 +174,35 @@ export default function FilePlayer({
 					<p className="break-all text-sm text-muted-foreground">
 						{data.file.name}
 					</p>
-					{preparedCurrent && (
+					{active && (
 						<p className="text-sm text-muted-foreground">
-							{t("preparation.playing")}
+							{t(`player.assets.${active.asset.kind}`)} ·{" "}
+							{active.asset.video?.codec?.toUpperCase()} /{" "}
+							{active.asset.audioTracks
+								.find(
+									(track) => track.stream.index === active.audio?.streamIndex,
+								)
+								?.stream.codec?.toUpperCase() ?? t("audioTracks.none")}
 						</p>
+					)}
+					{source && (
+						<PlaybackVersionSelection
+							source={source}
+							audioStreamIndex={
+								selection.selection?.resolvedAudioStreamIndex ?? null
+							}
+							selectedAssetId={selectedAssetId}
+							onSelect={selectAsset}
+						/>
 					)}
 					<div className="action-row">{!blocked && preparationAction}</div>
 				</DialogContent>
 			</Dialog>
 			<CompatibilityDialog
-				showTrigger={false}
-				compatibility={compatibility}
+				selection={selection}
+				tryOrigin={tryOrigin}
 				open={compatibilityOpen}
 				setOpen={setCompatibilityOpen}
-				tryOrigin={tryOrigin}
-				tryingOrigin={tryingOrigin}
 			/>
 			<div className="min-w-0">
 				{playback.session &&

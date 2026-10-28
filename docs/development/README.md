@@ -1,6 +1,6 @@
 # Anishelf Development
 
-[Architecture](architecture.md) · [UI design](design-system.md) · [Database](database-design.md) · [Operations](../guide/operations.md)
+[Architecture](architecture.md) · [Playback assets](playback.md) · [UI design](design-system.md) · [Database](database-design.md) · [Operations](../guide/operations.md)
 
 ## Local development
 

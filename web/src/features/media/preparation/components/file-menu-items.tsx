@@ -36,7 +36,17 @@ export function PreparationFileMenuItems({
 		<>
 			<PreparationButton
 				fileId={fileId}
-				{...compatibility}
+				source={
+					compatibility.result
+						? {
+								sourceVersion: compatibility.result.sourceVersion,
+								audioTracks: compatibility.result.audioTracks.map(
+									({ stream }) => stream,
+								),
+							}
+						: null
+				}
+				onRecheck={compatibility.onRecheck}
 				menuItem
 				tasks={tasks}
 			/>

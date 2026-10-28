@@ -81,8 +81,9 @@
 # selectionAvailable accompany the catalog. Full encoding options are omitted.
 # PUT /api/transcode-profiles/selection accepts profileId (existing ID or null to
 # reset to the default), and optional preparationMode. Unknown IDs are rejected.
-# Profiles are immutable startup snapshots; encoding policy changes invalidate
-# cache reuse through profile fingerprints, excluding display metadata.
+# Profiles are immutable startup snapshots; encoding policy changes create new
+# preparation identities through profile fingerprints, excluding display metadata.
+# Existing completed copies keep their actual output descriptions and remain playable.
 
 # File format version; only 1 is supported.
 version: 1

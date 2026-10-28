@@ -1,72 +1,18 @@
-import * as preparationApi from "../src/features/media/preparation/api.js";
-import * as playbackApi from "../src/features/playback/player/api.js";
 // @vitest-environment happy-dom
-
 import { type ReactNode, StrictMode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as capabilities from "../src/features/media/media-compatibility/capabilities.js";
+import * as preparationApi from "../src/features/media/preparation/api.js";
+import * as playbackApi from "../src/features/playback/player/api.js";
 import { usePlaybackSelection } from "../src/features/playback/player/hooks/use-playback-selection.js";
-import type {
-	CompatibilityInspection,
-	CompatibilityResult,
-	PlaybackSelectionResponse,
-} from "../src/shared/api/contracts.js";
+import type { PlaybackSelectionResponse } from "../src/shared/api/contracts.js";
+import { queryClient } from "../src/shared/api/query-client.js";
+import { options, originalActive, selection } from "./playback-fixture.js";
 import { act, cleanup, renderHook, waitFor } from "./query-test-utils.js";
 
-const description = {
-	sourceVersion: "version",
-	descriptionId: "d".repeat(64),
-	selectedAudioStreamIndices: [1, 2],
-	queries: [],
-	output: null,
-} as unknown as CompatibilityInspection;
-const compatibility = {
-	sourceVersion: "version",
-	selectedAudioStreamIndices: [1, 2],
-	audioTracks: [],
-	direct: { status: "supported" },
-} as unknown as CompatibilityResult;
-const direct: PlaybackSelectionResponse = {
-	sourceVersion: "version",
-	compatibility,
-	pending: false,
-	plan: {
-		mode: "direct",
-		resource: {
-			delivery: "file",
-			url: "/api/media/file",
-			mimeType: "video/mp4",
-			timeline: { sourceOriginMs: 0, mediaOriginMs: 0, sourceDurationMs: null },
-		},
-	},
-};
 beforeEach(() => {
-	vi.spyOn(playbackApi, "getPlaybackOptions").mockResolvedValue({
-		original: description,
-		candidates: [
-			{
-				taskId: "one",
-				description: {
-					...description,
-					output: {
-						profileId: "builtin:web",
-						target: "file",
-					} as CompatibilityInspection["output"],
-				},
-			},
-			{
-				taskId: "two",
-				description: {
-					...description,
-					output: {
-						profileId: "builtin:web",
-						target: "file",
-					} as CompatibilityInspection["output"],
-				},
-			},
-		],
-	});
-	vi.spyOn(playbackApi, "selectPlayback").mockResolvedValue(direct);
+	vi.spyOn(playbackApi, "getPlaybackOptions").mockResolvedValue(options());
+	vi.spyOn(playbackApi, "selectPlayback").mockResolvedValue(selection());
 	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([]);
 	vi.spyOn(preparationApi, "createPreparation");
 });
@@ -75,99 +21,77 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	vi.useRealTimers();
 });
-test("browser submits all server candidates and exact selection, and uses only returned resource", async () => {
+test("browser checks actual assets and submits a single-track listening intent without preparation", async () => {
 	const { result } = renderHook(() =>
-		usePlaybackSelection("file", undefined, "root"),
+		usePlaybackSelection("file", undefined, "root", 1),
 	);
 	await waitFor(() => expect(result.current.loading).toBe(false));
 	expect(playbackApi.selectPlayback).toHaveBeenCalledWith(
 		expect.objectContaining({
-			original: expect.objectContaining({ output: null }),
-			candidates: [
-				expect.objectContaining({ taskId: "one" }),
-				expect.objectContaining({ taskId: "two" }),
+			audioStreamIndex: 1,
+			evidence: [
+				expect.objectContaining({ assetId: "file" }),
+				expect.objectContaining({ assetId: "artifact" }),
 			],
 		}),
 		expect.anything(),
 	);
+	const input = vi.mocked(playbackApi.selectPlayback).mock.calls[0]?.[0];
+	expect(input).not.toHaveProperty("original");
+	expect(input).not.toHaveProperty("audioStreamIndices");
 	expect(
-		vi.mocked(playbackApi.selectPlayback).mock.calls[0]?.[0].original,
-	).not.toHaveProperty("audioStreamIndices");
-	expect(result.current.selection?.plan).toEqual(direct.plan);
+		result.current.selection?.active?.asset.audioTracks[0]?.stream.codec,
+	).toBe("aac");
 	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
 });
-test("session arriving and background rerenders preserve an active resource without renegotiation", async () => {
-	vi.useFakeTimers();
+test("a matching session and background invalidation preserve the active binding", async () => {
 	const { result, rerender } = renderHook(
 		({ version }) => usePlaybackSelection("file", version, "root"),
 		{ initialProps: { version: undefined as string | undefined } },
 	);
+	await waitFor(() => expect(result.current.selection?.active).toBeTruthy());
+	const active = result.current.selection?.active;
+	rerender({ version: "v1" });
 	await act(async () => {
-		await vi.advanceTimersByTimeAsync(0);
+		await queryClient.invalidateQueries({ queryKey: ["playback-selection"] });
 	});
-	expect(result.current.selection?.plan.mode).toBe("direct");
-	const selection = result.current.selection;
-	rerender({ version: "version" });
-	expect(result.current.selection).toBe(selection);
-	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(1);
-	await act(async () => {
-		await vi.advanceTimersByTimeAsync(5000);
-	});
+	expect(result.current.selection?.active).toBe(active);
 	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(1);
 });
-test("failed artifact is reported for server reselection and never creates work", async () => {
-	const prepared: PlaybackSelectionResponse = {
-		...direct,
-		plan: {
-			mode: "prepared",
-			artifactId: "artifact",
-			resource: {
-				...(direct.plan.mode === "direct"
-					? direct.plan.resource
-					: {
-							delivery: "file" as const,
-							url: "",
-							mimeType: "",
-							timeline: {
-								sourceOriginMs: 0,
-								mediaOriginMs: 0,
-								sourceDurationMs: null,
-							},
-						}),
-				url: "/api/prepared-media/artifact",
-			},
-		},
-	};
-	vi.mocked(playbackApi.selectPlayback)
-		.mockResolvedValueOnce(prepared)
-		.mockResolvedValueOnce({
-			...direct,
-			plan: { mode: "blocked", reason: "browser-rejected" },
-		});
+test("a network failure retains the resource and does not poison browser capability evidence", async () => {
+	const clear = vi.spyOn(capabilities, "clearCapabilityCache");
 	const { result } = renderHook(() =>
 		usePlaybackSelection("file", undefined, "root"),
 	);
-	await waitFor(() => expect(result.current.loading).toBe(false));
-	act(() => result.current.failed());
-	await waitFor(() =>
-		expect(result.current.selection?.plan.mode).toBe("blocked"),
+	await waitFor(() => expect(result.current.selection?.active).toBeTruthy());
+	const active = result.current.selection?.active;
+	act(() => result.current.failed({ kind: "network", code: 2 }));
+	expect(result.current.selection?.active).toBe(active);
+	expect(result.current.runtimeFailure?.kind).toBe("network");
+	expect(clear).not.toHaveBeenCalled();
+	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(1);
+});
+test("decode failure excludes only the failed asset for this attempt", async () => {
+	vi.mocked(playbackApi.selectPlayback)
+		.mockResolvedValueOnce(selection())
+		.mockResolvedValueOnce(selection(null));
+	const { result } = renderHook(() =>
+		usePlaybackSelection("file", undefined, "root"),
 	);
+	await waitFor(() => expect(result.current.selection?.active).toBeTruthy());
+	act(() => result.current.failed({ kind: "decode", code: 3 }));
+	await waitFor(() => expect(result.current.selection?.active).toBeNull());
 	expect(playbackApi.selectPlayback).toHaveBeenLastCalledWith(
 		expect.objectContaining({ failedResourceIds: ["artifact"] }),
 		expect.anything(),
 	);
-	expect(result.current.runtimeFailed).toBe(true);
 	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
 });
-test("only blocked pending selection polls and newly ready bytes stop that polling", async () => {
+test("blocked pending selection polls until an actual asset becomes available", async () => {
 	vi.useFakeTimers();
 	vi.mocked(playbackApi.selectPlayback)
-		.mockResolvedValueOnce({
-			...direct,
-			pending: true,
-			plan: { mode: "blocked", reason: "preparation-pending" },
-		})
-		.mockResolvedValueOnce(direct);
+		.mockResolvedValueOnce({ ...selection(null), pending: true })
+		.mockResolvedValueOnce(selection());
 	const { result } = renderHook(() =>
 		usePlaybackSelection("file", undefined, "root"),
 	);
@@ -178,32 +102,47 @@ test("only blocked pending selection polls and newly ready bytes stop that polli
 	await act(async () => {
 		await vi.advanceTimersByTimeAsync(1000);
 	});
-	expect(result.current.selection?.plan.mode).toBe("direct");
+	expect(result.current.selection?.active).toBeTruthy();
 	await act(async () => {
 		await vi.advanceTimersByTimeAsync(5000);
 	});
 	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(2);
-	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
 });
-test("explicit original attempt succeeds with inspection unavailable and no fallback URL", async () => {
-	vi.mocked(playbackApi.getPlaybackOptions).mockRejectedValue(
-		new Error("Inspection unavailable"),
-	);
+test("resource changes re-resolve a blocked intent and then preserve the active binding", async () => {
+	vi.mocked(playbackApi.selectPlayback)
+		.mockResolvedValueOnce(selection(null))
+		.mockResolvedValueOnce(selection());
 	const { result } = renderHook(() =>
 		usePlaybackSelection("file", undefined, "root"),
 	);
-	await waitFor(() => expect(result.current.error).toBeTruthy());
-	act(() => result.current.tryDirect());
-	await waitFor(() =>
-		expect(result.current.selection?.plan.mode).toBe("direct"),
+	await waitFor(() => expect(result.current.selection).toBeTruthy());
+	await act(async () => {
+		await queryClient.invalidateQueries({ queryKey: ["playback-selection"] });
+	});
+	await waitFor(() => expect(result.current.selection?.active).toBeTruthy());
+	const active = result.current.selection?.active;
+	await act(async () => {
+		await queryClient.invalidateQueries({ queryKey: ["playback-selection"] });
+	});
+	expect(result.current.selection?.active).toBe(active);
+	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(2);
+});
+test("explicit original trial still negotiates a server-returned binding", async () => {
+	vi.mocked(playbackApi.selectPlayback).mockResolvedValue(
+		selection(originalActive),
 	);
-	expect(playbackApi.selectPlayback).toHaveBeenCalledWith(
-		expect.objectContaining({ tryOriginal: true, candidates: [] }),
+	const { result } = renderHook(() =>
+		usePlaybackSelection("file", undefined, "root", undefined, true, "file"),
+	);
+	await waitFor(() =>
+		expect(result.current.selection?.active?.asset.kind).toBe("original"),
+	);
+	expect(playbackApi.selectPlayback).toHaveBeenLastCalledWith(
+		expect.objectContaining({ assetId: "file", allowUnverified: true }),
 		expect.anything(),
 	);
-	expect(playbackApi.getPlaybackOptions).toHaveBeenCalledTimes(1);
 });
-test("late cancelled selection cannot replace a new audio intent", async () => {
+test("late cancelled evidence cannot replace a new audio intent", async () => {
 	let complete: (value: PlaybackSelectionResponse) => void = () => {};
 	vi.mocked(playbackApi.selectPlayback).mockImplementationOnce(
 		() =>
@@ -213,65 +152,28 @@ test("late cancelled selection cannot replace a new audio intent", async () => {
 	);
 	const { result, rerender } = renderHook(
 		({ audio }) => usePlaybackSelection("file", undefined, "root", audio),
-		{ initialProps: { audio: [1] } },
+		{ initialProps: { audio: 1 } },
 	);
 	await waitFor(() =>
 		expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(1),
 	);
-	rerender({ audio: [] });
-	await waitFor(() =>
-		expect(result.current.selection?.plan.mode).toBe("direct"),
-	);
-	await act(async () =>
-		complete({ ...direct, plan: { mode: "blocked", reason: "old" } }),
-	);
-	expect(result.current.selection?.plan.mode).toBe("direct");
+	rerender({ audio: 2 });
+	await waitFor(() => expect(result.current.selection?.active).toBeTruthy());
+	await act(async () => complete(selection(null)));
+	expect(result.current.selection?.active).toBeTruthy();
 	expect(playbackApi.selectPlayback).toHaveBeenLastCalledWith(
-		expect.objectContaining({ audioStreamIndices: [] }),
+		expect.objectContaining({ audioStreamIndex: 2 }),
 		expect.anything(),
 	);
 });
-test("StrictMode settles completed negotiation without enqueuing work", async () => {
+test("StrictMode does not turn playback inspection into preparation", async () => {
 	const wrapper = ({ children }: { children: ReactNode }) => (
 		<StrictMode>{children}</StrictMode>
 	);
-	const { result, unmount } = renderHook(
+	const { result } = renderHook(
 		() => usePlaybackSelection("file", undefined, "root"),
 		{ wrapper },
 	);
-	await waitFor(() =>
-		expect(result.current.selection?.plan.mode).toBe("direct"),
-	);
-	unmount();
-	expect(
-		vi.mocked(playbackApi.getPlaybackOptions).mock.calls[0]?.[1]?.signal
-			?.aborted,
-	).toBe(false);
+	await waitFor(() => expect(result.current.selection?.active).toBeTruthy());
 	expect(preparationApi.createPreparation).not.toHaveBeenCalled();
-});
-
-test("new preparation refresh unblocks a waiting player but leaves active resources untouched", async () => {
-	vi.mocked(playbackApi.selectPlayback)
-		.mockResolvedValueOnce({
-			...direct,
-			pending: false,
-			plan: { mode: "blocked", reason: "missing-copy" },
-		})
-		.mockResolvedValueOnce(direct);
-	const { result, rerender } = renderHook(
-		({ revision }) =>
-			usePlaybackSelection("file", undefined, "root", undefined, revision),
-		{ initialProps: { revision: "none" } },
-	);
-	await waitFor(() =>
-		expect(result.current.selection?.plan.mode).toBe("blocked"),
-	);
-	rerender({ revision: "queued" });
-	await waitFor(() =>
-		expect(result.current.selection?.plan.mode).toBe("direct"),
-	);
-	const selection = result.current.selection;
-	rerender({ revision: "ready" });
-	expect(result.current.selection).toBe(selection);
-	expect(playbackApi.selectPlayback).toHaveBeenCalledTimes(2);
 });

@@ -7,12 +7,11 @@ import pino from "pino";
 import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import type {
-	CompatibilityInspection,
 	PlaybackOptionsResponse,
 	PlaybackSelectionResponse,
 	PlaybackSessionResponse,
 } from "../src/contracts/http.js";
-import { createPlaybackCopies } from "../src/modules/media/integration/playback-copies.js";
+import { MediaAssetsApplication } from "../src/modules/media/media-assets/application.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
 import { MediaProcessingApplication } from "../src/modules/media/media-processing/application/processing.js";
@@ -92,6 +91,7 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 			dataDir,
 		});
 		preparation = createPreparationApplication({
+			probe: tools.probe.bind(tools),
 			sources: library.sources,
 			planning: compatibility,
 			processing,
@@ -107,10 +107,13 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 			preparation,
 			playback,
 			playbackSelection: new PlaybackSelectionApplication({
-				sources: library.sources,
-				planning: compatibility,
-				copies: createPlaybackCopies(preparation),
-				selectedProfileId: () => builtinTranscodeProfiles[0]?.id ?? null,
+				assets: new MediaAssetsApplication({
+					inspection,
+					preparation,
+					sources: library.sources,
+					logger,
+				}),
+				logger,
 			}),
 		});
 	}
@@ -256,38 +259,12 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 					fileId: file.id,
 					sourceVersion: source.identity.sourceVersion,
 					failedResourceIds,
+					canSelectAudio: false,
 				},
 			});
 			expect(optionsResponse.statusCode).toBe(200);
 			const options = optionsResponse.json<PlaybackOptionsResponse>();
-			function browserCheck(
-				description: CompatibilityInspection,
-				original = false,
-			) {
-				return {
-					sourceVersion: description.sourceVersion,
-					descriptionId: description.descriptionId,
-					...(original
-						? {}
-						: { audioStreamIndices: description.selectedAudioStreamIndices }),
-					output: description.output
-						? {
-								profileId: description.output.profileId,
-								target: description.output.target,
-							}
-						: null,
-					evidence: description.queries.map((query) => ({
-						id: query.id,
-						status: query.id.startsWith("original")
-							? "unsupported"
-							: "supported",
-						reason: query.id.startsWith("original")
-							? "browser-rejected"
-							: "browser-supported",
-						smooth: null,
-					})),
-				};
-			}
+
 			const selectionResponse = await required(app).inject({
 				method: "POST",
 				url: "/api/playback/selection",
@@ -296,22 +273,30 @@ test("real prepared media covers all processing branches, copy preservation, HTT
 					fileId: file.id,
 					sourceVersion: source.identity.sourceVersion,
 					failedResourceIds,
-					original: browserCheck(options.original, true),
-					candidates: options.candidates.map((candidate) => ({
-						taskId: candidate.taskId,
-						check: browserCheck(candidate.description),
+					canSelectAudio: false,
+					evidence: options.assets.map((inspection) => ({
+						assetId: inspection.asset.id,
+						descriptionId: inspection.descriptionId,
+						evidence: inspection.queries.map((query) => ({
+							id: query.id,
+							status:
+								inspection.asset.kind === "original"
+									? "unsupported"
+									: "supported",
+							reason:
+								inspection.asset.kind === "original"
+									? "browser-rejected"
+									: "browser-supported",
+							smooth: null,
+						})),
 					})),
 				},
 			});
 			expect(selectionResponse.statusCode, selectionResponse.body).toBe(200);
 			const selection = selectionResponse.json<PlaybackSelectionResponse>();
-			expect(selection.plan).toMatchObject({
-				mode: "prepared",
-				artifactId: task.artifactId,
-			});
-			if (selection.plan.mode !== "prepared")
-				throw new Error("Expected prepared playback");
-			expect(selection.plan.resource.url).toBe(task.resource?.url);
+			expect(selection.active?.asset.id).toBe(task.artifactId);
+			expect(selection.active?.asset.kind).toBe("prepared");
+			expect(selection.active?.resource.url).toBe(task.resource?.url);
 			const save = await required(app).inject({
 				method: "PUT",
 				url: `/api/playback/sessions/${progressSession.token}/progress`,

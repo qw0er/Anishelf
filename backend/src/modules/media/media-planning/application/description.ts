@@ -1,8 +1,8 @@
 import type { MediaInfo } from "../../../../platform/media/index.js";
 import { DomainError } from "../../../../shared/errors.js";
+import { describeAudio, describeVideo } from "../../media-inspection/public.js";
 import type { OriginalMediaDescription } from "../domain/model.js";
 import { browserQuery } from "../domain/output-spec.js";
-import { describeAudio, describeVideo } from "../domain/streams.js";
 import type {
 	CompatibilityAudioStream,
 	CompatibilityQuery,

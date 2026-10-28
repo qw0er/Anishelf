@@ -1,9 +1,41 @@
 import { transcodeProfileFingerprint } from "../../../system/public.js";
 import type { PreparationView } from "../domain/model.js";
+import type { PreparedMediaInventory } from "../public.js";
 import type { PreparationArtifacts } from "./artifacts.js";
 import type { PreparationContext } from "./context.js";
 
 export class PreparationQueries {
+	async catalog(fileId: string): Promise<PreparedMediaInventory> {
+		const { tasks } = await this.list(fileId);
+		const result: PreparedMediaInventory = {
+			assets: [],
+			pending: [],
+		};
+		for (const { task, artifact, availability } of tasks) {
+			const source = { ...task.spec.source };
+			const sourceAudioStreamIndices = [
+				...task.spec.settings.audioStreamIndices,
+			];
+			if (["queued", "processing", "cancelling"].includes(task.state.status))
+				result.pending.push({ source, sourceAudioStreamIndices });
+			if (artifact?.info && availability === "ready")
+				result.assets.push({
+					id: artifact.id,
+					source,
+					sourceAudioStreamIndices,
+					profileId: task.profileId,
+					sizeBytes: artifact.sizeBytes,
+					mimeType: artifact.mimeType,
+					info: artifact.info,
+					updatedAtMs: task.state.updatedAtMs,
+				});
+		}
+		result.assets.sort(
+			(a, b) => b.updatedAtMs - a.updatedAtMs || a.id.localeCompare(b.id),
+		);
+		return result;
+	}
+
 	constructor(
 		private readonly services: {
 			context: PreparationContext;
@@ -67,7 +99,11 @@ export class PreparationQueries {
 			]),
 		);
 		for (const row of context.repository.summaries(scope.ids, fileIds)) {
-			if (fingerprints.get(row.profileId) !== row.profileFingerprint) continue;
+			if (
+				row.status !== "ready" &&
+				fingerprints.get(row.profileId) !== row.profileFingerprint
+			)
+				continue;
 			const file = byFile.get(row.fileId);
 			if (!file) continue;
 			let version = file.versions.find(

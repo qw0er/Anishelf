@@ -190,6 +190,11 @@ export class PreparationApplication implements PreparationApi {
 		scheduler.wake();
 		return { task, artifact: null, availability: "unavailable" };
 	}
+	catalog(fileId: string) {
+		return this.track(async () =>
+			(await this.ensure()).queries.catalog(fileId),
+		);
+	}
 	get(id: string): Promise<PreparationView> {
 		return this.track(async () => (await this.ensure()).queries.get(id));
 	}

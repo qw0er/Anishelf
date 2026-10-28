@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
+import type { MediaInfo } from "../../../../platform/media/model.js";
 import { freeze } from "../../../../shared/policy.js";
 import { mediaSources } from "../../../resources/persistence.js";
 import type { SourceRegistry } from "../../../resources/public.js";
@@ -209,6 +210,13 @@ export class PreparationRepository implements PreparationStore {
 			.from(preparedArtifacts)
 			.all()
 			.map((row) => ({ ...row, delivery: "file" }));
+	}
+	saveArtifactInfo(id: string, info: MediaInfo): void {
+		this.store
+			.update(preparedArtifacts)
+			.set({ info })
+			.where(eq(preparedArtifacts.id, id))
+			.run();
 	}
 	removeArtifact(task: PreparationTask): void {
 		this.store.transaction(() => {

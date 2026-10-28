@@ -403,7 +403,7 @@ test("supported media shows compatibility information in a dialog below the play
 		name: "Playback compatibility",
 	});
 	expect(
-		within(dialog).getByText("This browser reports support for this file."),
+		within(dialog).getByRole("region", { name: "Current playback" }),
 	).toBeTruthy();
 	fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
 	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -412,17 +412,20 @@ test("supported media shows compatibility information in a dialog below the play
 test("unsupported media displays a preparation hint without opening a modal or creating work", async () => {
 	appFixture.compatibilityStatus = "unsupported";
 	renderApp("/files/file-1");
-	await screen.findByText("This file is not supported by this browser.");
+	await screen.findByText(
+		"No available version has confirmed playback support for the selected audio. Choose a version to try or prepare a copy.",
+	);
 	expect(screen.queryByRole("dialog")).toBeNull();
 	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
 	const call = fetcher.mock.calls.find(
 		([path, init]) =>
 			path === "/api/playback/selection" && init?.method === "POST",
 	);
-	expect(JSON.parse(String(call?.[1]?.body)).original).toMatchObject({
-		descriptionId: "a".repeat(64),
-		output: null,
+	expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({
 		sourceVersion: "version",
+		evidence: [
+			{ assetId: "file-1", descriptionId: "a".repeat(64), evidence: [] },
+		],
 	});
 	expect(
 		fetcher.mock.calls.some(
@@ -435,7 +438,9 @@ test("unsupported media displays a preparation hint without opening a modal or c
 test("unknown media keeps an explicit original attempt and manual compatibility details", async () => {
 	appFixture.compatibilityStatus = "unknown";
 	renderApp("/files/file-1");
-	await screen.findByText("Playback compatibility could not be confirmed.");
+	await screen.findByText(
+		"No available version has confirmed playback support for the selected audio. Choose a version to try or prepare a copy.",
+	);
 	expect(screen.queryByRole("dialog")).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Try original file" }));
 	await screen.findByLabelText("Video: Episode 01.mp4");
@@ -450,31 +455,11 @@ test("unknown media keeps an explicit original attempt and manual compatibility 
 	await screen.findByRole("dialog", { name: "Playback compatibility" });
 });
 
-test("an unavailable compatibility check remains retryable and permits an explicit attempt", async () => {
-	const implementation = fetcher.getMockImplementation();
-	fetcher.mockImplementation((input, init) => {
-		if (String(input).startsWith("/api/playback/options"))
-			return Promise.resolve(
-				json(
-					{
-						error: {
-							code: "MEDIA_INSPECTION_UNAVAILABLE",
-							message: "Unavailable",
-							requestId: "id",
-						},
-					},
-					503,
-				),
-			);
-		if (!implementation) throw new Error("Missing mock");
-		return implementation(input, init);
-	});
+test("unavailable original inspection remains explicitly playable without manufactured codec facts", async () => {
+	appFixture.inspectionAvailable = false;
+	appFixture.compatibilityStatus = "unknown";
 	renderApp("/files/file-1");
-	await screen.findByText(
-		"Compatibility could not be checked. You can retry or try the original file.",
-		undefined,
-		{ timeout: 3000 },
-	);
+	await screen.findByRole("heading", { name: "Unable to play this video" });
 	fireEvent.click(screen.getByRole("button", { name: "Try original file" }));
 	await screen.findByLabelText("Video: Episode 01.mp4");
 });

@@ -36,6 +36,11 @@ export function audioTrackLabel(
 		.join(" · ");
 }
 
+export interface PreparationSource {
+	sourceVersion: string;
+	audioTracks: CompatibilityResult["audioTracks"][number]["stream"][];
+}
+
 /** Missing selection means all source tracks, never an arbitrary prepared subset. */
 export function matchesAudioSelection(
 	task: PreparationTaskResponse,
@@ -54,8 +59,14 @@ export function matchesAudioSelection(
 }
 
 export function preparedWatchPath(task: PreparationTaskResponse): string {
-	const path = `/files/${encodeURIComponent(task.fileId)}`;
-	return task.audioStreamIndices === undefined
-		? path
-		: `${path}?audio=${encodeURIComponent(task.audioStreamIndices.join(","))}`;
+	const query = new URLSearchParams({ version: task.sourceVersion });
+	if (task.artifactId) query.set("asset", task.artifactId);
+	if (task.audioStreamIndices)
+		query.set(
+			"audio",
+			task.audioStreamIndices.length
+				? String(task.audioStreamIndices[0])
+				: "none",
+		);
+	return `/files/${encodeURIComponent(task.fileId)}?${query}`;
 }

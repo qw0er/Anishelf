@@ -1,3 +1,5 @@
+import PQueue from "p-queue";
+import { MediaToolError } from "../../../../platform/media/errors.js";
 import type { MediaExecutionProgress } from "../../../../platform/media/events.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { ResolvedSource } from "../../../resources/public.js";
@@ -16,6 +18,7 @@ import { preparationFailure } from "./failures.js";
 
 /** Only operations on the same artifact serialize. Planning and task control never acquire this gate. */
 export class PreparationArtifacts {
+	private readonly inspections = new PQueue({ concurrency: 1 });
 	private readonly gates = new Map<string, Promise<unknown>>();
 	private readonly borrowers = new Map<
 		string,
@@ -41,7 +44,7 @@ export class PreparationArtifacts {
 		return {
 			task,
 			artifact,
-			availability: artifact
+			availability: artifact?.info
 				? this.context.sources.hasSnapshot
 					? "ready"
 					: "unknown"
@@ -87,10 +90,6 @@ export class PreparationArtifacts {
 	}
 	private async validate(task: PreparationTask): Promise<PreparationTask> {
 		if (task.state.status !== "ready") return task;
-		if (!this.context.profileValid(task)) {
-			await this.discard(task, "profile-changed");
-			return task;
-		}
 		let source: ResolvedSource | undefined;
 		if (this.context.sources.hasSnapshot) {
 			try {
@@ -111,20 +110,41 @@ export class PreparationArtifacts {
 		try {
 			const handle = await this.context.files.open(artifact);
 			await handle.close();
+			if (!artifact.info) {
+				const info = await this.inspections.add(() =>
+					this.context.files.inspect(artifact, this.context.probe),
+				);
+				if (!info)
+					throw new MediaToolError(
+						"TOOL_FAILED",
+						"Prepared media inspection did not return a description.",
+					);
+				this.context.repository.saveArtifactInfo(artifact.id, info);
+				this.context.logger.info(
+					{ event: "preparation.artifact_inspected", artifactId: artifact.id },
+					"Prepared media description recovered from the existing file.",
+				);
+			}
 		} catch (error) {
-			if (
+			if (error instanceof MediaToolError) {
+				this.context.logger.debug(
+					{
+						event: "preparation.artifact_inspection_deferred",
+						artifactId: artifact.id,
+					},
+					"Existing prepared media retained until output inspection is available.",
+				);
+			} else if (
 				!(error instanceof InvalidPreparedMediaError) &&
 				!(error instanceof Error && "code" in error && error.code === "ENOENT")
 			)
 				throw error;
-			await this.discard(task, "cache-missing");
+			else await this.discard(task, "cache-missing");
 		}
 		if (task.state.status === "ready" && source) {
 			try {
 				await this.context.sources.revalidateSource(source);
 				this.context.sources.assertAccessRevision(source.accessRevision);
-				if (!this.context.profileValid(task))
-					throw new PreparationProfileChangedError();
 			} catch (error) {
 				if (!(error instanceof DomainError)) throw error;
 				await this.discard(task, preparationFailure(error));
@@ -276,6 +296,7 @@ export class PreparationArtifacts {
 				delivery: "file",
 				sizeBytes: processed.sizeBytes,
 				mimeType,
+				info: structuredClone(processed.info),
 			});
 			this.context.logger.info(
 				{

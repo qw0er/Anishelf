@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import type { CompatibilityResult } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import {
 	Dialog,
@@ -7,6 +6,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "../../../../shared/components/ui/dialog.js";
+import type { PreparationSource } from "../audio-tracks.js";
 import { audioTrackLabel } from "../audio-tracks.js";
 export function AudioTrackDialog({
 	dialogOpen,
@@ -22,7 +22,7 @@ export function AudioTrackDialog({
 }: {
 	dialogOpen: boolean;
 	onOpenChange(open: boolean): void;
-	tracks: CompatibilityResult["audioTracks"];
+	tracks: PreparationSource["audioTracks"];
 	selection: number[] | undefined;
 	onSelectionChange(selection: number[] | undefined): void;
 	busy: boolean;
@@ -32,7 +32,7 @@ export function AudioTrackDialog({
 	onStart(): void;
 }) {
 	const { t, i18n } = useTranslation();
-	const allTracks = tracks.map(({ stream }) => stream.index);
+	const allTracks = tracks.map((stream) => stream.index);
 	return (
 		<Dialog open={dialogOpen} onOpenChange={onOpenChange}>
 			<DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
@@ -60,7 +60,7 @@ export function AudioTrackDialog({
 				</div>
 				<fieldset className="space-y-3">
 					<legend className="sr-only">{t("audioTracks.label")}</legend>
-					{tracks.map(({ stream, compatibility }, position) => (
+					{tracks.map((stream, position) => (
 						<label
 							key={stream.index}
 							className="flex items-start gap-3 text-sm"
@@ -81,12 +81,7 @@ export function AudioTrackDialog({
 									);
 								}}
 							/>
-							<span>
-								{audioTrackLabel(stream, position, t, i18n.language)}
-								<span className="block text-muted-foreground">
-									{t(`compatibility.states.${compatibility.status}`)}
-								</span>
-							</span>
+							<span>{audioTrackLabel(stream, position, t, i18n.language)}</span>
 						</label>
 					))}
 				</fieldset>

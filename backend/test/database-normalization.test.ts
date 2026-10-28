@@ -526,6 +526,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 					"acquisition_source_downloads",
 					"metadata_works",
 					"media_inspections",
+					"prepared_artifacts",
 					"acquisition_candidates",
 				].includes(config.name),
 			);

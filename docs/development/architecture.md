@@ -20,8 +20,8 @@ can enable Node frontend hosting with `ANISHELF_FRONTEND_DIR`.
 | --- | --- | --- |
 | System | Authentication, sessions, settings, profiles, build identity and update checks | Platform configuration and persistence |
 | Resources | Roots, filesystem monitoring, atomic index, confined source access | System |
-| Media | Inspection, compatibility planning, processing, preparation, subtitles | Resources, System, FFprobe/FFmpeg |
-| Playback | Resource selection, sessions, resume/history, completion observations | Resources, Media, System; injected Anime observation port |
+| Media | Actual asset descriptions, inspection, preparation planning/processing, subtitles | Resources, System, FFprobe/FFmpeg |
+| Playback | Listening intent, actual asset selection, sessions, resume/history, completion observations | Resources, Media; injected Anime observation port |
 | Anime | Metadata, identification, Catalog/Review, Tracking, combined Library, AniList protocol | Resources, System, AniList |
 | Acquisition | Watching creation, Sources, Subscriptions, Downloads, TorrentClients | Anime, Resources, Jackett/RSS, qBittorrent |
 
@@ -234,30 +234,32 @@ refresh preserves playback sessions and versioned compatibility caches.
 
 ## Core collaboration
 
+The [playback asset design](playback.md) separates source identity, actual media
+assets, listening intent, active playback and preparation jobs.
+
 ```mermaid
 flowchart LR
-    Source[Validated source] --> Inspect[Media inspection]
-    Inspect --> Select[Playback selection]
-    Browser[Browser capability evidence] --> Select
-    Copies[Prepared copies] --> Select
-    Select --> Result[Original / prepared / blocked]
-    Inspect --> Prepare[Explicit preparation request]
-    Prepare --> Plan[Planning and execution preflight]
-    Plan --> FFmpeg[FFmpeg and output validation]
-    FFmpeg --> Copies
-    Result --> Player[Range delivery and player]
-    Player --> Progress[Progress and history]
+    Source[Validated original] --> Assets[Actual media asset catalog]
+    Prepare[Explicit preparation] --> Inspect[Validated output inspection]
+    Inspect --> Assets
+    Browser[Browser evidence] --> Select[Playback resolution]
+    Intent[Listening intent] --> Select
+    Assets --> Select
+    Select --> Active[Current asset and track binding]
+    Active --> Player[Range delivery and player]
+    Player --> Progress[Source timeline progress]
 ```
 
 | Concern | Rule |
 | --- | --- |
-| Selection | Read-only; opening playback does not start processing |
-| Preparation | Persistent tasks produce validated reusable copies; cache budget and free space bound output |
-| Modes | Compatibility encodes video/audio; Fast can retain supported streams allowed by the profile |
-| Time | Original source time anchors progress, chapters and subtitles |
-| Subtitles | Independent discovery, preparation, fonts and delivery lifecycle |
-| Reuse | Validate source version before inspection-cache reuse, artifact delivery and restart recovery |
-| Browser cache | Definitive compatibility results persist in bounded IndexedDB; source/browser/rule changes invalidate them |
+| Selection | Read-only; resolves automatic or one source audio track against existing bytes |
+| Preparation | Owns retained-track arrays, encoding plans, bounded jobs and published output inspections |
+| Compatibility | Describes a concrete asset and selected output audio, independently of profile predictions |
+| Runtime | Transport errors and decoder failures do not become a source-wide compatibility verdict |
+| Time | Original source time anchors progress, chapters and subtitles across asset switches |
+| Reuse | Validate source version/access and artifact readability; completed facts survive profile edits |
+| Frontend | Background task updates cannot replace active playback; version inventory refresh is independent |
+| Browser cache | Source/browser/rule changes invalidate compatibility caches; runtime failures remain attempt-local |
 
 FFmpeg/FFprobe discovery runs at startup with a thirty-second timeout. Failed
 discovery retries on demand after a ten-second cooldown, with concurrent callers

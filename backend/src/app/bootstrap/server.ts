@@ -45,7 +45,6 @@ export async function createServer(
 		logger,
 	});
 	const playback = createPlaybackModule({
-		system,
 		completionObserver: anime.completionObserver,
 		resources: resources.api,
 		media: media.api,

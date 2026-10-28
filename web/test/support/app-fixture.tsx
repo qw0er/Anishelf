@@ -27,6 +27,10 @@ import {
 	reviewFixture,
 } from "../fixtures/anime.js";
 import {
+	compatibility as assetCompatibility,
+	preparedAsset,
+} from "../playback-fixture.js";
+import {
 	act,
 	cleanup,
 	fireEvent,
@@ -40,6 +44,7 @@ export const appFixture = {} as {
 	directories: Map<string, DirectoryResponse>;
 	fileError: boolean;
 	compatibilityStatus: "supported" | "unsupported" | "unknown";
+	inspectionAvailable: boolean;
 	settings: SettingsResponse;
 	preparationTasks: PreparationTaskResponse[];
 };
@@ -141,6 +146,11 @@ beforeEach(async () => {
 	]);
 	appFixture.fileError = false;
 	appFixture.compatibilityStatus = "supported";
+	appFixture.inspectionAvailable = true;
+	Object.defineProperties(HTMLVideoElement.prototype, {
+		videoWidth: { configurable: true, get: () => 1920 },
+		videoHeight: { configurable: true, get: () => 1080 },
+	});
 	appFixture.settings = { resourceRoots: ["/media"] };
 	fetcher.mockReset();
 	fetcher.mockImplementation(async (input, init) => {
@@ -296,69 +306,113 @@ beforeEach(async () => {
 				queries: [],
 			});
 		}
-		if (path === "/api/playback/options")
-			return json({
-				original: {
-					sourceVersion: "version",
-					descriptionId: "a".repeat(64),
-					selectedAudioStreamIndices: [],
-					queries: [],
-					output: null,
-				},
-				candidates: [],
-			});
-		if (path === "/api/playback/selection") {
+
+		if (
+			path === "/api/playback/options" ||
+			path === "/api/playback/selection"
+		) {
 			const intent = JSON.parse(String(init?.body));
-			const decision = {
-				status: appFixture.compatibilityStatus,
-				reason:
-					appFixture.compatibilityStatus === "supported"
-						? "browser-supported"
-						: "browser-rejected",
+			const source = {
+				fileId: intent.fileId,
+				sourceVersion: intent.sourceVersion ?? "version",
+				audioTracks: [],
+				defaultAudioStreamIndex: null,
 			};
-			const ready = appFixture.preparationTasks.find(
-				(task) => task.status === "ready" && task.resource,
-			);
-			const resource = {
-				delivery: "file",
-				url: file.originalMediaUrl,
-				mimeType: "video/mp4",
+			const original = {
+				...preparedAsset,
+				id: intent.fileId,
+				kind: "original" as const,
+				inspection: appFixture.inspectionAvailable
+					? ("complete" as const)
+					: ("unavailable" as const),
+				profileId: null,
+				video: appFixture.inspectionAvailable ? preparedAsset.video : null,
+				audioTracks: [],
+				defaultAudioStreamIndex: null,
+				durationMs: null,
 				timeline: {
 					sourceOriginMs: 0,
 					mediaOriginMs: 0,
 					sourceDurationMs: null,
 				},
 			};
+			const ready = appFixture.preparationTasks.filter(
+				(task) => task.status === "ready" && task.resource,
+			);
+			const assets = [
+				original,
+				...ready.map((task) => ({
+					...original,
+					id: task.artifactId ?? "artifact",
+					kind: "prepared" as const,
+					profileId: task.profileId,
+				})),
+			];
+			if (path === "/api/playback/options")
+				return json({
+					source,
+					resolvedAudioStreamIndex: null,
+					pending: false,
+					assets: assets.map((asset, index) => ({
+						asset,
+						descriptionId: (index ? "b" : "a").repeat(64),
+						audio: null,
+						queries: [],
+					})),
+				});
+			const choices = assets.map((asset) => {
+				const decision =
+					asset.kind === "prepared"
+						? { status: "supported" as const, reason: "browser-supported" }
+						: {
+								status: appFixture.compatibilityStatus,
+								reason:
+									appFixture.compatibilityStatus === "supported"
+										? "browser-supported"
+										: appFixture.compatibilityStatus === "unknown"
+											? "browser-uncertain"
+											: "browser-rejected",
+							};
+				return {
+					asset,
+					audio: null,
+					compatibility: { ...assetCompatibility, overall: decision },
+					unavailableReason: intent.failedResourceIds?.includes(asset.id)
+						? "asset-playback-failed"
+						: decision.status === "supported"
+							? null
+							: decision.reason,
+				};
+			});
+			const selected = choices.find(
+				(choice) =>
+					(!intent.assetId || choice.asset.id === intent.assetId) &&
+					!intent.failedResourceIds?.includes(choice.asset.id) &&
+					(choice.compatibility.overall.status === "supported" ||
+						intent.allowUnverified),
+			);
 			return json({
-				sourceVersion: "version",
+				source,
+				resolvedAudioStreamIndex: null,
 				pending: false,
-				compatibility: {
-					fileId: "file-1",
-					sourceVersion: "version",
-					rulesVersion: "4",
-					direct: decision,
-					container: decision,
-					video: decision,
-					audio: decision,
-					selectedVideo: null,
-					defaultAudioStreamIndex: null,
-					selectedAudioStreamIndices: [],
-					audioTracks: [],
-					output: null,
-					warnings: [],
-				},
-				plan: intent.tryOriginal
-					? { mode: "direct", resource }
-					: ready
-						? {
-								mode: "prepared",
-								artifactId: ready.artifactId,
-								resource: ready.resource,
-							}
-						: appFixture.compatibilityStatus === "supported" &&
-								!intent.failedResourceIds?.includes("file-1")
-							? { mode: "direct", resource }
-							: { mode: "blocked", reason: "browser-rejected" },
+				choices,
+				active: selected
+					? {
+							...selected,
+							resource: {
+								delivery: "file",
+								url:
+									selected.asset.kind === "original"
+										? `/api/media/${intent.fileId}`
+										: ready.find(
+												(task) => task.artifactId === selected.asset.id,
+											)?.resource?.url,
+								mimeType: selected.asset.mimeType,
+								timeline: selected.asset.timeline,
+							},
+						}
+					: null,
+				reason: selected ? null : "no-playable-asset",
 			});
 		}
 
@@ -762,3 +816,8 @@ export function requiredFetch(
 	if (!value) throw new Error("Missing fetch mock");
 	return value;
 }
+
+afterEach(() => {
+	Reflect.deleteProperty(HTMLVideoElement.prototype, "videoWidth");
+	Reflect.deleteProperty(HTMLVideoElement.prototype, "videoHeight");
+});

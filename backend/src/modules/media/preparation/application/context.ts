@@ -1,4 +1,5 @@
 import type { Logger } from "pino";
+import type { MediaInfo } from "../../../../platform/media/model.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../../resources/public.js";
@@ -28,6 +29,7 @@ export class PreparationContext {
 		readonly profiles: DeepReadonly<TranscodeProfile[]>,
 		readonly policy: DeepReadonly<PreparationPolicy>,
 		readonly logger: Logger,
+		readonly probe: (path: string) => Promise<MediaInfo>,
 		readonly maximumCacheBytes: () => number = () => policy.maximumCacheBytes,
 	) {}
 	assertOpen(): void {
@@ -56,7 +58,8 @@ export class PreparationContext {
 		);
 	}
 	async source(task: PreparationTask) {
-		if (!this.profileValid(task)) throw new PreparationProfileChangedError();
+		if (task.state.status !== "ready" && !this.profileValid(task))
+			throw new PreparationProfileChangedError();
 		const expected = task.spec.source;
 		const source = await this.sources.resolveSource(
 			expected.fileId,

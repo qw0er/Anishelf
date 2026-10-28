@@ -81,7 +81,7 @@ restart. Network filesystems need deployment-specific watcher checks. See
 | Output profile | Built-in or [custom transcode YAML](../examples/transcode-profiles-example.yaml) |
 
 Playable originals use direct playback. Mode/profile changes affect new requests;
-existing copies remain available and are checked against the playback device.
+existing copies remain available and are checked against the playback device using their actual output descriptions. Automatic audio chooses one source track; it does not require a copy retaining every track. Playback options can select an existing version independently of the default preparation profile.
 Compatibility mode still depends on the device's actual codec support.
 
 ## Subscription settings

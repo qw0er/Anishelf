@@ -3,7 +3,6 @@ export type { PlaybackPolicy } from "./progress/policy.js";
 import type { Logger } from "pino";
 import type { MediaApi } from "../media/public.js";
 import type { ResourcesApi } from "../resources/public.js";
-import type { SystemApi } from "../system/public.js";
 import { registerPlaybackHttp } from "./http.js";
 import type { PlaybackPersistence } from "./persistence.js";
 import { PlaybackSelectionApplication } from "./playback-selection/application/selection.js";
@@ -11,7 +10,6 @@ import { PlaybackApplication } from "./progress/application/playback.js";
 import { playbackPolicy, validatePlaybackPolicy } from "./progress/policy.js";
 import type { PlaybackApi } from "./public.js";
 export function createPlaybackModule(options: {
-	system: SystemApi;
 	resources: ResourcesApi;
 	media: MediaApi;
 	database: PlaybackPersistence;
@@ -31,13 +29,7 @@ export function createPlaybackModule(options: {
 		},
 		"Playback policy validated.",
 	);
-	const {
-		system: configuration,
-		resources: library,
-		media,
-		database,
-		logger,
-	} = options;
+	const { resources: library, media, database, logger } = options;
 	const playback = new PlaybackApplication({
 		completionObserver: options.completionObserver,
 		sources: library.sources,
@@ -46,17 +38,8 @@ export function createPlaybackModule(options: {
 		...(options.policy ? { policy: options.policy } : {}),
 	});
 	const selection = new PlaybackSelectionApplication({
-		sources: library.sources,
-		planning: {
-			inspect: media.inspectCompatibility.bind(media),
-			check: media.checkCompatibility.bind(media),
-		},
-		copies: {
-			list: media.listPlaybackCopies.bind(media),
-			get: media.getPlaybackCopy.bind(media),
-		},
-		selectedProfileId: () =>
-			configuration.snapshot.settings.defaultTranscodeProfileId,
+		assets: { list: media.listPlaybackAssets.bind(media) },
+		logger,
 	});
 	const api: PlaybackApi = {
 		open: playback.open.bind(playback),

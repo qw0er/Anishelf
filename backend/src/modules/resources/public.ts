@@ -9,7 +9,6 @@ export type {
 	ResourceFiles,
 	ResourceScope,
 	SourceIdentity,
-	SourceReference,
 	SourceRegistry,
 } from "./resource-access/public.js";
 export { assertSourceVersion } from "./resource-access/public.js";

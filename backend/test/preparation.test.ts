@@ -10,6 +10,7 @@ import type {
 	CompatibilityCheckRequest,
 	PreparationStartResponse,
 } from "../src/contracts/http.js";
+import { MediaAssetsApplication } from "../src/modules/media/media-assets/application.js";
 import { MediaInspectionApplication } from "../src/modules/media/media-inspection/application.js";
 import { MediaPlanningApplication } from "../src/modules/media/media-planning/application/planning.js";
 import type {
@@ -174,6 +175,7 @@ async function fixture(
 			outputs.delete(id);
 		}),
 	};
+	const probe = vi.fn().mockResolvedValue(info);
 	let playback: PlaybackApplication;
 	let preparation: PreparationApplication;
 	let app: ReturnType<typeof createHttpApp>;
@@ -190,6 +192,7 @@ async function fixture(
 			logger,
 		});
 		preparation = createPreparationApplication({
+			probe,
 			sources: library.sources,
 			planning: compatibility,
 			processing,
@@ -257,6 +260,8 @@ async function fixture(
 		};
 	}
 	return {
+		inspection,
+		probe,
 		input,
 		sourcePath,
 		dataDir,
@@ -591,7 +596,7 @@ test("restart marks interrupted jobs retryable and cleans incomplete output", as
 	expect((await completed(f, id)).status).toBe("ready");
 });
 
-test("source replacement and changed profile invalidate derived media without changing history", async () => {
+test("source replacement invalidates copies while profile edits preserve completed bytes", async () => {
 	const f = await fixture();
 	const task = await completed(
 		f,
@@ -610,9 +615,8 @@ test("source replacement and changed profile invalidate derived media without ch
 	);
 	required(f.profiles[0]).video.maxHeight = 720;
 	await f.restart();
-	expect((await f.preparation.get(fresh.id)).failureReason).toBe(
-		"profile-changed",
-	);
+	expect((await f.preparation.get(fresh.id)).status).toBe("ready");
+	expect((await f.preparation.get(fresh.id)).artifactId).toBe(fresh.artifactId);
 });
 
 test.each([
@@ -1169,7 +1173,9 @@ test("summaries separate source versions and filter the current profile and root
 	profile.copyCompatibleStreams = !profile.copyCompatibleStreams;
 	expect(
 		(await f.application.summaries([ready.fileId])).files[0]?.versions,
-	).toEqual([]);
+	).toEqual([
+		{ sourceVersion: ready.sourceVersion, publishedCopies: 1, pendingTasks: 0 },
+	]);
 	const otherRoot = join(f.dataDir, "other-root");
 	await mkdir(otherRoot, { recursive: true });
 	await updateResourceSettings(f.library, { resourceRoots: [otherRoot] });
@@ -1226,4 +1232,70 @@ test("new preparation attempts read the updated cache budget", async () => {
 	expect(vi.mocked(f.processing.start).mock.calls[1]?.[0].maximumBytes).toBe(
 		100,
 	);
+});
+
+test("published output inspection survives restart and existing cache entries are inspected once", async () => {
+	const f = await fixture();
+	const task = await completed(
+		f,
+		await taskId(f.preparation.create(await f.input())),
+	);
+	const id = required(task.artifactId);
+	expect(f.database.preparation.artifact(id)?.info?.streams[0]?.codec).toBe(
+		"h264",
+	);
+	const raw = new Database(join(f.dataDir, "anishelf.sqlite"));
+	try {
+		raw
+			.prepare("UPDATE prepared_artifacts SET info = NULL WHERE id = ?")
+			.run(id);
+	} finally {
+		raw.close();
+	}
+	f.probe.mockClear();
+	await f.restart();
+	expect((await f.preparation.get(task.id)).status).toBe("ready");
+	expect(f.probe).toHaveBeenCalledTimes(1);
+	await f.preparation.get(task.id);
+	expect(f.probe).toHaveBeenCalledTimes(1);
+	expect(f.database.preparation.artifact(id)?.info?.streams[0]?.codec).toBe(
+		"h264",
+	);
+});
+
+test("asset read model uses stored output facts independently of profiles and excludes private inspection fields", async () => {
+	const f = await fixture();
+	const task = await completed(
+		f,
+		await taskId(f.preparation.create(await f.input())),
+	);
+	const artifact = required(
+		f.database.preparation.artifact(required(task.artifactId)),
+	);
+	const info = required(artifact.info);
+	info.tags = { privatePath: "/private/server/media" };
+	f.database.preparation.saveArtifactInfo(artifact.id, info);
+	const assets = new MediaAssetsApplication({
+		inspection: f.inspection,
+		preparation: f.application,
+		sources: f.library.sources,
+		logger,
+	});
+	const initial = await assets.list(task.fileId, task.sourceVersion);
+	const copy = required(
+		initial.assets.find((asset) => asset.kind === "prepared"),
+	);
+	expect(copy.video?.height).toBe(90);
+	expect(copy.audioTracks[0]?.sourceStreamIndex).toBe(1);
+	expect(JSON.stringify(initial)).not.toContain("/private/server/media");
+	expect(copy).not.toHaveProperty("taskId");
+	required(f.profiles[0]).video.maxHeight = 18;
+	required(copy.video).height = 999;
+	const next = required(
+		(await assets.list(task.fileId, task.sourceVersion)).assets.find(
+			(asset) => asset.kind === "prepared",
+		),
+	);
+	expect(next.video?.height).toBe(90);
+	expect(next.revision).toBe(copy.revision);
 });

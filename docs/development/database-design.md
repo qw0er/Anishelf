@@ -49,7 +49,7 @@ continues to use the disk-backed `openDatabase()` path and its existing logs.
 | `tracking_intent_versions` | Existing composite identity and nonnegative manual version |
 | `tracking_commands` | Existing composite command identity and nonnegative revision |
 | `preparation_tasks` | Immutable encoding specification, execution/encoder parameters and progress columns; ordered audio selections and filters; constrained lifecycle combinations |
-| `prepared_artifacts` | Existing primary/foreign keys, unique task and positive size; no representation change |
+| `prepared_artifacts` | Artifact identity, task provenance, positive size, MIME type and actual output inspection snapshot |
 | `subtitle_assets` | Existing source/track identity and size/state checks, plus valid output-format constraint |
 | `subtitle_font_sets` | Source-bound status and ordered warning records |
 | `subtitle_font_assets` | Existing attachment identity, cascading foreign key and format/size/index checks; no representation change |
@@ -187,3 +187,12 @@ content or artwork URLs. Old source snapshots still project their original issue
 identity, even after an association; new reads resolve the canonical identity.
 Cross-source reconciliation requires explicit verified identity and episode-number
 agreement, never a guessed title match.
+
+
+Migration `0016_prepared_media_descriptions` adds `prepared_artifacts.info` as a
+nullable JSON probe snapshot with a validity constraint. It preserves existing
+rows, files and histories. New publication stores the validated output inspection;
+old copies recover it once on demand. Ordered source audio provenance remains in
+the immutable preparation snapshot and is paired with the actual output stream
+order by the prepared-media catalog. Playback does not inspect execution settings.
+Completed copies retain their original facts when encoding profiles change.
