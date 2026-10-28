@@ -1,4 +1,4 @@
-import { QbittorrentError } from "../../qbittorrent/public.js";
+import { TorrentError } from "../../torrent-clients/public.js";
 import { DownloadError, type DownloadIntent } from "../public.js";
 import type { DownloadTransfers } from "../transfers/application.js";
 import type { DownloadApplicationContext } from "./context.js";
@@ -35,14 +35,14 @@ export class DownloadReconciliation {
 			const code =
 				error instanceof DownloadError
 					? error.code
-					: error instanceof QbittorrentError
+					: error instanceof TorrentError
 						? `downloader_${error.code}`
 						: "verification_unavailable";
 			execution.save({
 				...current,
 				state:
 					current.state === "submitting"
-						? error instanceof QbittorrentError &&
+						? error instanceof TorrentError &&
 							error.outcome !== "unknown" &&
 							error.outcome !== "read"
 							? "pending"

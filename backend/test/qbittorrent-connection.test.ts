@@ -12,14 +12,12 @@ import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
+import { createAcquisitionModule } from "../src/modules/acquisition/create.js";
 import {
-	createAcquisitionModule,
-	createQbittorrentClient,
-} from "../src/modules/acquisition/create.js";
-import {
-	QbittorrentError,
 	type QbittorrentOptions,
+	TorrentError,
 } from "../src/modules/acquisition/public.js";
+import { createQbittorrentClient } from "../src/modules/acquisition/torrent-clients/create.js";
 import { createAuthenticationModule } from "../src/modules/system/create.js";
 
 const cleanup: (() => Promise<unknown>)[] = [];
@@ -33,10 +31,7 @@ const details = {
 };
 const probeResult = {
 	version: "v5.0.5",
-	apiVersion: "2.11.4",
-	defaultSavePath: "/data/media",
-	incompletePathEnabled: true,
-	incompletePath: "/data/incomplete",
+	incompleteDirectory: "/data/incomplete",
 };
 async function fixture(bundled = false) {
 	const dataDir = await mkdtemp(join(tmpdir(), "anishelf-qbt-connection-"));
@@ -190,7 +185,7 @@ test("connection checks report authentication failure without losing credentials
 		...details,
 		generation: f.connection.settings().generation,
 	});
-	f.probe.mockRejectedValueOnce(new QbittorrentError("unauthorized", "read"));
+	f.probe.mockRejectedValueOnce(new TorrentError("unauthorized", "read"));
 	expect(await f.connection.probe(saved.generation)).toMatchObject({
 		available: false,
 		code: "unauthorized",

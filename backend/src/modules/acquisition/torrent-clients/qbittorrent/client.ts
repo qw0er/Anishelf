@@ -1,12 +1,15 @@
 import { QBittorrent, TorrentClientError } from "@ctrl/qbittorrent";
 import {
-	type AddDownload,
-	type DownloadTask,
-	type QbittorrentApi,
-	QbittorrentError,
-	type QbittorrentFailureCode,
-	type QbittorrentOptions,
-} from "./model.js";
+	type TorrentClient,
+	TorrentError,
+	type TorrentFailureCode,
+	type TorrentFile,
+	type TorrentProbe,
+	type TorrentState,
+	type TorrentSubmission,
+	type TorrentTask,
+} from "../public.js";
+import type { QbittorrentOptions } from "./model.js";
 
 function text(value: unknown): value is string {
 	return (
@@ -17,7 +20,7 @@ function text(value: unknown): value is string {
 	);
 }
 
-export class QbittorrentClient implements QbittorrentApi {
+export class QbittorrentClient implements TorrentClient {
 	private readonly sdk: QBittorrent;
 	private readonly shutdown = new AbortController();
 	private readonly pending = new Set<Promise<unknown>>();
@@ -38,26 +41,23 @@ export class QbittorrentClient implements QbittorrentApi {
 		);
 	}
 
-	probe(signal?: AbortSignal) {
+	probe(signal?: AbortSignal): Promise<TorrentProbe> {
 		return this.run("probe", false, signal, async () => {
 			const version = this.sdk.state.version?.version;
 			const apiVersion = await this.sdk.getApiVersion();
-			const defaultSavePath = await this.sdk.getDefaultSavePath();
 			const preferences = await this.sdk.getPreferences();
 			if (
 				!text(version) ||
 				!/^2\.\d+\.\d+$/.test(apiVersion) ||
-				!text(defaultSavePath) ||
 				typeof preferences.temp_path_enabled !== "boolean" ||
 				typeof preferences.temp_path !== "string"
 			)
-				throw new QbittorrentError("invalid-response", "read");
+				throw new TorrentError("invalid-response", "read");
 			return {
 				version,
-				apiVersion,
-				defaultSavePath,
-				incompletePathEnabled: preferences.temp_path_enabled,
-				incompletePath: preferences.temp_path,
+				incompleteDirectory: preferences.temp_path_enabled
+					? preferences.temp_path
+					: null,
 			};
 		});
 	}
@@ -74,11 +74,11 @@ export class QbittorrentClient implements QbittorrentApi {
 					(task) => ![task.hash, task.v1Hash, task.v2Hash].includes(normalized),
 				)
 			)
-				throw new QbittorrentError("invalid-response", "read");
+				throw new TorrentError("invalid-response", "read");
 			return tasks[0] ?? null;
 		});
 	}
-	files(hash: string, signal?: AbortSignal) {
+	files(hash: string, signal?: AbortSignal): Promise<TorrentFile[]> {
 		const normalized = hash.toLowerCase();
 		return this.run("files", false, signal, async () => {
 			const result = await this.sdk.torrentFiles(normalized);
@@ -86,19 +86,19 @@ export class QbittorrentClient implements QbittorrentApi {
 				path: file.name,
 				sizeBytes: file.size,
 				progress: file.progress,
-				priority: file.priority,
+				selected: file.priority > 0,
 			}));
 		});
 	}
-	add(input: AddDownload, signal?: AbortSignal) {
+	add(input: TorrentSubmission, signal?: AbortSignal) {
 		const source =
 			"magnet" in input.source
 				? input.source.magnet
 				: input.source.torrent.slice();
 		const options = {
 			savepath: input.savePath,
-			category: input.category,
-			tags: input.tags.join(","),
+			category: "anishelf",
+			tags: `anishelf-${input.ownerKey}`,
 			paused: input.paused ? ("true" as const) : ("false" as const),
 			useAutoTMM: "false" as const,
 		};
@@ -108,14 +108,14 @@ export class QbittorrentClient implements QbittorrentApi {
 		});
 	}
 
-	private async readTasks(hash?: string): Promise<DownloadTask[]> {
+	private async readTasks(hash?: string): Promise<TorrentTask[]> {
 		const result = await this.sdk.listTorrents(hash ? { hashes: hash } : {});
 		return result.map((task) => ({
 			hash: task.hash.toLowerCase(),
 			v1Hash: task.infohash_v1?.toLowerCase() || null,
 			v2Hash: task.infohash_v2?.toLowerCase() || null,
 			name: task.name,
-			state: task.state,
+			state: this.transferState(task.state),
 			progress: task.progress,
 			remainingBytes: task.amount_left,
 			totalBytes: task.size,
@@ -123,13 +123,25 @@ export class QbittorrentClient implements QbittorrentApi {
 			uploadBytesPerSecond: task.upspeed,
 			savePath: task.save_path,
 			contentPath: task.content_path,
-			category: task.category,
-			tags: task.tags
-				.split(",")
-				.map((tag) => tag.trim())
-				.filter(Boolean),
+			ownerKey: ownerKey(task.category, task.tags),
 		}));
 	}
+	private reportedUnknownState = false;
+	private transferState(value: string): TorrentState {
+		const state = Object.hasOwn(transferStates, value)
+			? transferStates[value]
+			: undefined;
+		if (state) return state;
+		if (!this.reportedUnknownState) {
+			this.reportedUnknownState = true;
+			this.logger.warn(
+				{ event: "qbittorrent.unknown_state" },
+				"Unrecognized transfer state; completed-file import is blocked.",
+			);
+		}
+		return "unknown";
+	}
+
 	private async authenticate() {
 		if (!this.sdk.state.auth) {
 			this.authentication ??= this.sdk
@@ -166,7 +178,7 @@ export class QbittorrentClient implements QbittorrentApi {
 				);
 				return result;
 			} catch (error) {
-				let code: QbittorrentFailureCode = "unavailable";
+				let code: TorrentFailureCode = "unavailable";
 				let status: number | undefined;
 				if (error instanceof TorrentClientError) {
 					status = error.status;
@@ -181,7 +193,7 @@ export class QbittorrentClient implements QbittorrentApi {
 					status = error.statusCode;
 				if (status === 401 || status === 403) code = "unauthorized";
 				else if (status && status >= 400 && status < 500) code = "rejected";
-				if (error instanceof QbittorrentError) code = error.code;
+				if (error instanceof TorrentError) code = error.code;
 				// The SDK wraps fetch timeouts in TorrentClientError/FetchError causes.
 				for (let cause = error; cause instanceof Error; cause = cause.cause) {
 					if (cause.name === "TimeoutError") code = "timeout";
@@ -194,7 +206,7 @@ export class QbittorrentClient implements QbittorrentApi {
 						: code === "unauthorized" || code === "rejected"
 							? "rejected"
 							: "unknown";
-				const failure = new QbittorrentError(code, outcome);
+				const failure = new TorrentError(code, outcome);
 				// SDK errors, URLs, bodies and causes can contain credentials. Retain none.
 				this.logger.warn(
 					{ event: "qbittorrent.failed", operation, code, outcome },
@@ -216,4 +228,47 @@ export class QbittorrentClient implements QbittorrentApi {
 			"qBittorrent adapter stopped.",
 		);
 	}
+}
+
+const transferStates: Readonly<Record<string, TorrentState>> = {
+	downloading: "downloading",
+	forcedDL: "downloading",
+	uploading: "seeding",
+	forcedUP: "seeding",
+	pausedDL: "paused",
+	pausedUP: "paused",
+	stoppedDL: "paused",
+	stoppedUP: "paused",
+	queuedDL: "queued",
+	queuedUP: "queued",
+	stalledDL: "stalled",
+	stalledUP: "stalled",
+	checkingDL: "checking",
+	checkingUP: "checking",
+	checkingResumeData: "checking",
+	moving: "moving",
+	metaDL: "metadata",
+	forcedMetaDL: "metadata",
+	allocating: "checking",
+	error: "error",
+	missingFiles: "missing",
+	unknown: "unknown",
+};
+
+function ownerKey(category: string, tags: string): string | null {
+	if (category !== "anishelf") return null;
+	const identities = [
+		...new Set(
+			tags
+				.split(",")
+				.map((tag) => tag.trim())
+				.filter(
+					(tag) =>
+						tag.startsWith("anishelf-") && tag.length > "anishelf-".length,
+				),
+		),
+	];
+	return identities.length === 1
+		? (identities[0]?.slice("anishelf-".length) ?? null)
+		: null;
 }

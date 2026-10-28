@@ -7,10 +7,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../src/app/bootstrap/database.js";
 import { createHttpApp } from "../src/app/bootstrap/http.js";
 import { rssConstraints } from "../src/contracts/defaults.js";
-import {
-	createAcquisitionModule,
-	createQbittorrentClient,
-} from "../src/modules/acquisition/create.js";
+import { createAcquisitionModule } from "../src/modules/acquisition/create.js";
 import { parseRss } from "../src/modules/acquisition/sources/rss/parser.js";
 import type { FeedTransport } from "../src/modules/acquisition/sources/rss/ports.js";
 import {
@@ -18,6 +15,7 @@ import {
 	RssTransport,
 	rssUrl,
 } from "../src/modules/acquisition/sources/rss/transport.js";
+import { createQbittorrentClient } from "../src/modules/acquisition/torrent-clients/create.js";
 import { AnitomyIdentificationParser } from "../src/modules/anime/identification/infrastructure/parser.js";
 import type { AcquisitionTarget } from "../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../src/modules/anime/release-assessment/application.js";
@@ -368,7 +366,7 @@ test("known downloader hashes exclude alternate versions, while failed snapshots
 			v1Hash: hash,
 			v2Hash: null,
 			name: "Frieren - 03",
-			state: "downloading",
+			state: "downloading" as const,
 			progress: 0.5,
 			remainingBytes: 1,
 			totalBytes: 2,
@@ -376,8 +374,7 @@ test("known downloader hashes exclude alternate versions, while failed snapshots
 			uploadBytesPerSecond: 0,
 			savePath: "/data/media",
 			contentPath: "/data/media/file.mkv",
-			category: "",
-			tags: [] as string[],
+			ownerKey: null,
 		},
 	]);
 	const f = await fixture((options) => {

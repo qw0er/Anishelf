@@ -1,16 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
-import { DomainError } from "../../../shared/errors.js";
+import { DomainError } from "../../../../shared/errors.js";
+import type { TorrentClient } from "../public.js";
 import { readBundledConnection } from "./configuration.js";
 import type {
 	ConnectionInput,
 	ConnectionSettings,
+	QbittorrentOptions,
 	SavedConnection,
-} from "./model.js";
-import {
-	type QbittorrentApi,
-	QbittorrentError,
-	type QbittorrentOptions,
 } from "./model.js";
 import type { ConnectionStore } from "./ports.js";
 import type { QbittorrentConnectionApi } from "./public.js";
@@ -41,7 +38,9 @@ function validCredential(value: string, maximum: number): boolean {
 	return value.length > 0 && value.length <= maximum && !/[\r\n\0]/.test(value);
 }
 
-export class QbittorrentConnection implements QbittorrentConnectionApi {
+export class QbittorrentConfiguration
+	implements Omit<QbittorrentConnectionApi, "probe">
+{
 	private saved: SavedConnection = {
 		version: 1,
 		generation: randomUUID(),
@@ -49,16 +48,15 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 	};
 	private unreadable = false;
 	private closed = false;
-	private checking = false;
 	private writes: Promise<unknown> = Promise.resolve();
-	private client: QbittorrentApi | undefined;
 	private readonly suggestedApiUrl: string | null;
 	constructor(
 		private readonly store: ConnectionStore,
-		private readonly createClient: (
+		private readonly clientFactory: (
 			options: QbittorrentOptions,
-		) => QbittorrentApi,
+		) => TorrentClient,
 		private readonly logger: Logger,
+		private readonly onChanged: () => Promise<void>,
 		suggestedApiUrl?: string,
 		private readonly bundledConnectionFile?: string,
 	) {
@@ -178,7 +176,7 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 			await this.store.write(next);
 			this.saved = next;
 			this.unreadable = false;
-			await this.closeClients();
+			await this.onChanged();
 			this.logger.info(
 				{
 					event: "qbittorrent.configuration_saved",
@@ -200,7 +198,7 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 			await this.store.write(next);
 			this.saved = next;
 			this.unreadable = false;
-			await this.closeClients();
+			await this.onChanged();
 			this.logger.info(
 				{ event: "qbittorrent.configuration_cleared" },
 				"qBittorrent API credentials removed.",
@@ -208,91 +206,21 @@ export class QbittorrentConnection implements QbittorrentConnectionApi {
 			return this.settings();
 		});
 	}
-	async probe(generation: string) {
-		this.assertGeneration(generation);
-		if (this.checking)
-			throw new DomainError(
-				"ACQUISITION_UNAVAILABLE",
-				"A qBittorrent connection test is already running.",
-			);
-		const connection = this.saved.connection;
-		if (!connection || this.unreadable)
-			throw new DomainError(
-				"INVALID_REQUEST",
-				"Save qBittorrent credentials first.",
-			);
-		this.checking = true;
-		try {
-			const result = await this.withClient(generation, (client) =>
-				client.probe(),
-			);
-			this.assertGeneration(generation);
-			return {
-				generation,
-				available: true,
-				checkedAt: Date.now(),
-				version: result.version,
-				code: null,
-			};
-		} catch (error) {
-			this.assertGeneration(generation);
-			if (!(error instanceof QbittorrentError))
-				throw new DomainError(
-					"ACQUISITION_UNAVAILABLE",
-					"qBittorrent connection test failed.",
-				);
-			return {
-				generation,
-				available: false,
-				checkedAt: Date.now(),
-				version: null,
-				code: error.code,
-			};
-		} finally {
-			this.checking = false;
-		}
-	}
-	private async closeClients() {
-		const client = this.client;
-		this.client = undefined;
-		await client?.close();
-	}
-	async withClient<T>(
-		generation: string,
-		operation: (client: QbittorrentApi) => Promise<T>,
-	): Promise<T> {
-		this.assertGeneration(generation);
+
+	createClient(): TorrentClient {
+		this.assertGeneration(this.saved.generation);
 		if (!this.saved.connection || this.unreadable)
 			throw new DomainError(
 				"ACQUISITION_UNAVAILABLE",
 				"Configure qBittorrent first.",
 			);
-		this.client ??= this.createClient({
+		return this.clientFactory({
 			...this.saved.connection,
 			logger: this.logger,
 		});
-		const result = await operation(this.client);
-		this.assertGeneration(generation);
-		return result;
-	}
-	async activeHashes(signal: AbortSignal): Promise<string[] | null> {
-		if (this.unreadable)
-			throw new DomainError(
-				"ACQUISITION_UNAVAILABLE",
-				"Saved qBittorrent credentials could not be loaded.",
-			);
-		if (!this.saved.connection) return null;
-		return this.withClient(this.saved.generation, async (client) =>
-			(await client.tasks(signal)).flatMap((task) => [
-				task.hash,
-				...(task.v1Hash ? [task.v1Hash] : []),
-				...(task.v2Hash ? [task.v2Hash] : []),
-			]),
-		);
 	}
 	async close() {
 		this.closed = true;
 		await this.writes;
-		await this.closeClients();
 	}
 }

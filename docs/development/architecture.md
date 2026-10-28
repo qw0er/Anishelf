@@ -23,7 +23,7 @@ can enable Node frontend hosting with `ANISHELF_FRONTEND_DIR`.
 | Media | Inspection, compatibility planning, processing, preparation, subtitles | Resources, System, FFprobe/FFmpeg |
 | Playback | Resource selection, sessions, resume/history, completion observations | Resources, Media, System; injected Anime observation port |
 | Anime | Metadata, identification, Catalog/Review, Tracking, combined Library, AniList protocol | Resources, System, AniList |
-| Acquisition | Watching creation, Sources, Subscriptions, Downloads, qBittorrent adapter | Anime, Resources, Jackett/RSS, qBittorrent |
+| Acquisition | Watching creation, Sources, Subscriptions, Downloads, TorrentClients | Anime, Resources, Jackett/RSS, qBittorrent |
 
 Module creation and lifecycle stay with each owner. App injects complete modules
 and coordinates shutdown; HTTP handlers validate/project requests and delegate to
@@ -52,7 +52,7 @@ import app; platform/shared cannot import modules. Runtime cycles are rejected b
 `npm run architecture:check` and its dependency fixtures.
 
 Submodules with multiple internal collaborators assemble them in their own
-`create.ts` (Metadata, Tracking, Identification, Preparation, Subtitles and Library).
+`create.ts` (Metadata, Tracking, Identification, Preparation, Subtitles, Library, Sources and TorrentClients).
 These factories receive storage ports, configuration values and collaborator APIs;
 they do not receive an entire parent database or configuration service just to
 extract a field. A single application that already constructs its collaborators
@@ -309,8 +309,9 @@ between read and write remain possible.
 | Watching | Opt-in automatic subscription group, current Watching membership, account-bound permissions and exclusions |
 | Subscriptions | Saved intent, pending discovery, pinned site/feed, starting episode, profile, accepted scope and candidate selection |
 | Sources | RSS/Jackett configuration, transport, cached evidence, backoff, opaque download references |
-| Downloads | Destination, stable directories, reservations, submission, observation, recovery and verified import |
-| qBittorrent adapter | Private account settings, connection generations, SDK/client lifecycle |
+| Downloads | Destination, stable directories, reservations, submission, observation, recovery, completion policy and verified import |
+| TorrentClients | Provider-neutral torrent contracts, connection generations, client acquisition/probing and shutdown; private provider adapters |
+| TorrentClients / qBittorrent | Private account configuration and storage, SDK authentication, protocol translation and HTTP configuration endpoints |
 
 ```mermaid
 flowchart LR
@@ -321,11 +322,65 @@ flowchart LR
     Select -->|atomic source/candidate publication| Sub
     Sub -->|selection and accepted permission| Downloads[Downloads]
     Sources -->|opaque content reference| Downloads
-    Downloads --> QB[qBittorrent]
-    QB -->|completed files| Verify[Resources verification]
+    Downloads --> Clients[TorrentClients]
+    Clients --> QB[qBittorrent adapter]
+    QB -->|normalized task and files| Downloads
+    Downloads -->|completed files| Verify[Resources verification]
     Verify --> Ingest[Anime ingestion and association]
     Ingest --> Library[Local Library or Review]
 ```
+
+### Torrent client boundary
+
+`torrent-clients/public.ts` owns `TorrentClient`, `TorrentConnection` and the
+provider-neutral task/file/submission/probe models from `torrent-clients/domain/model.ts`.
+Downloads imports only this public contract. TorrentClients never imports Downloads,
+Subscriptions, Sources, Anime or Resources. Its `ownerKey` is opaque; it knows nothing
+about subscription permissions, episode reservations or download intent state.
+
+`torrent-clients/create.ts` selects the provider, binds configuration and runtime
+capabilities, and registers the provider's HTTP routes. Acquisition composes this
+submodule through its factory and public API, without importing provider internals.
+The qBittorrent implementation lives entirely in `torrent-clients/qbittorrent/`.
+Its configuration adapter owns private credentials, serialized saves, bundled setup
+and account validation. The shared `application/connection.ts` depends on a
+configuration port, owns client reuse, generation fences, connection checks, active
+hash snapshots and shutdown, and does not import a provider implementation.
+Configuration publication invalidates and drains the previous client. Shutdown stops
+configuration writes and drains the client; late reads cannot acknowledge an old
+connection generation. Lifecycle logs use `torrent_clients.*`; provider protocol and
+credential events retain `qbittorrent.*` without logging secrets.
+
+Downloads' worker pulls accepted selections from Subscriptions; Subscriptions does
+not submit tasks. Downloads retains planning, admission, reservations, uncertain
+submission recovery, completion policy (`downloads/domain/completion.ts`) and
+verified ingestion. Changing an account/client generation still fences old tasks
+and requires explicit recovery.
+
+Adapters normalize transfer states and errors rather than exposing protocol strings.
+Only known stable states with progress 1 and zero remaining bytes allow import;
+checking, moving, metadata, error, missing and unknown states block it. The same
+completion and ownership checks run again before ingestion. Files expose `selected`
+instead of protocol-specific priorities. Probes expose a staging directory or null;
+Downloads verifies isolation from the destination and Resources roots.
+
+A submission carries the durable intent ID as `ownerKey`. Each adapter must persist
+and verify this identity; matching a torrent hash alone never proves ownership.
+qBittorrent translates it to category `anishelf` plus tag `anishelf-<intent-id>`.
+Foreign categories, missing tags and multiple distinct ownership tags return null.
+An adapter without durable ownership or isolated staging support must fail safely,
+rather than claim those guarantees. Existing qBittorrent tasks keep their markers.
+
+`TorrentError` preserves read, not-sent, rejected and unknown outcomes. Unknown
+submissions are reconciled and never automatically resent. qBittorrent retains
+SDK authentication, protocol validation, request cancellation/draining and sanitized
+adapter logs; submission requests log `acquisition.submission_requested`. New unknown
+protocol states log `qbittorrent.unknown_state` once per client without raw payloads.
+
+The current connection UI, credential storage and deployment still configure one
+qBittorrent instance. A new downloader supplies a `TorrentClient` implementation,
+its configuration adapter and TorrentClients composition wiring; it does not change
+Downloads planning, reservations, submission recovery or verified import.
 
 ### Subscription Ownership and Completion
 
@@ -418,7 +473,7 @@ and reuse without logging credentials or private locators.
 | --- | --- |
 | Reserve | Durable episode/hash identities prevent duplicate work across restart |
 | Submit | Persist submitting state before remote add; recheck permission, source, destination and local availability |
-| Own | Category `anishelf` plus tag `anishelf-<intent-id>` identify owned tasks; a matching hash alone is insufficient |
+| Own | Adapter-verified `ownerKey` identifies the durable intent; a matching hash alone is insufficient |
 | Reconcile | Unknown submissions are queried before action; absence does not cause automatic resend |
 | Observe | Outages mean stale status; external pauses/removals require respecting user actions |
 | Import | Require safe completed files, targeted Resources refresh, matching size/version and Anime verification |

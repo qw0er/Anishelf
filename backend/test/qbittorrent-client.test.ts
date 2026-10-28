@@ -6,18 +6,17 @@ import {
 import pino from "pino";
 import { getGlobalDispatcher, MockAgent, setGlobalDispatcher } from "undici";
 import { afterEach, expect, test } from "vitest";
-import { createQbittorrentClient } from "../src/modules/acquisition/create.js";
 import type {
-	QbittorrentApi,
 	QbittorrentOptions,
+	TorrentClient,
 } from "../src/modules/acquisition/public.js";
+import { createQbittorrentClient } from "../src/modules/acquisition/torrent-clients/create.js";
 
 const hash = "0123456789abcdef0123456789abcdef01234567";
 const addInput = {
 	source: { magnet: `magnet:?xt=urn:btih:${hash}` },
 	savePath: "/downloads",
-	category: "anishelf",
-	tags: [],
+	ownerKey: "1",
 };
 const torrent = {
 	hash,
@@ -31,7 +30,7 @@ const torrent = {
 	save_path: "/downloads",
 	content_path: "/downloads/episode.mkv",
 	category: "anishelf",
-	tags: "intent:1, managed",
+	tags: "anishelf-1, managed",
 };
 function defaultResponse(path: string): string {
 	const bodies: Record<string, string> = {
@@ -102,7 +101,7 @@ async function networkFixture(
 	if (!address || typeof address === "string")
 		throw new Error("Missing fixture address.");
 	const url = `http://127.0.0.1:${address.port}/qbt/`;
-	const client: QbittorrentApi = createQbittorrentClient({
+	const client: TorrentClient = createQbittorrentClient({
 		url,
 		username: "user-secret",
 		password: "password-secret",
@@ -180,17 +179,14 @@ test("SDK cookie login is shared by concurrent operations and preserves proxy pr
 	const [probe, tasks] = await Promise.all([client.probe(), client.tasks()]);
 	expect(probe).toEqual({
 		version: "v5.0.5",
-		apiVersion: "2.11.4",
-		defaultSavePath: "/downloads/",
-		incompletePathEnabled: true,
-		incompletePath: "/incomplete",
+		incompleteDirectory: "/incomplete",
 	});
 	expect(tasks[0]).toMatchObject({
 		hash,
 		remainingBytes: 50,
 		downloadBytesPerSecond: 12,
-		state: "stalledDL",
-		tags: ["intent:1", "managed"],
+		state: "stalled",
+		ownerKey: "1",
 	});
 	expect(
 		requests.filter((request) => request.path.endsWith("/auth/login")),
@@ -216,7 +212,7 @@ test("lookup distinguishes absent task from a failed or invalid snapshot", async
 	});
 	expect(await client.task(hash)).toBeNull();
 	expect(await client.files(hash)).toEqual([
-		{ path: "episode.mkv", sizeBytes: 100, progress: 1, priority: 1 },
+		{ path: "episode.mkv", sizeBytes: 100, progress: 1, selected: true },
 	]);
 });
 test("single lookup checks returned identity", async () => {
@@ -233,8 +229,7 @@ test("magnet and torrent multipart fields preserve explicit placement and tags",
 	const { client, requests } = await fixture();
 	const common = {
 		savePath: "/downloads/anime",
-		category: "anishelf",
-		tags: ["intent:42"],
+		ownerKey: "42",
 		paused: true,
 	};
 	await client.add({
@@ -251,7 +246,8 @@ test("magnet and torrent multipart fields preserve explicit placement and tags",
 	expect(writes).toHaveLength(2);
 	for (const request of writes) {
 		expect(request.form?.get("savepath")).toBe("/downloads/anime");
-		expect(request.form?.get("tags")).toBe("intent:42");
+		expect(request.form?.get("tags")).toBe("anishelf-42");
+		expect(request.form?.get("category")).toBe("anishelf");
 		expect(request.form?.get("stopped")).toBe("true");
 		expect(request.form?.get("useAutoTMM")).toBe("false");
 	}
@@ -270,8 +266,7 @@ test("server-rejected adds are distinct from unknown delivery and are never retr
 		client.add({
 			source: { magnet: `magnet:?xt=urn:btih:${hash}` },
 			savePath: "/downloads",
-			category: "anishelf",
-			tags: [],
+			ownerKey: "1",
 		}),
 	).rejects.toMatchObject({ code: "rejected", outcome: "rejected" });
 	expect(
@@ -433,8 +428,7 @@ test("SDK add completion leaves task acceptance to hash reconciliation", async (
 		client.add({
 			source: { torrent: new TextEncoder().encode("fixture") },
 			savePath: "/downloads",
-			category: "anishelf",
-			tags: [],
+			ownerKey: "1",
 		}),
 	).resolves.toBeUndefined();
 	expect(
@@ -467,4 +461,105 @@ test("pre-cancelled mutations never send even authentication requests", async ()
 		},
 	);
 	expect(requests).toHaveLength(0);
+});
+
+test.each([
+	["forcedDL", "downloading"],
+	["uploading", "seeding"],
+	["stoppedDL", "paused"],
+	["pausedUP", "paused"],
+	["queuedUP", "queued"],
+	["stalledUP", "stalled"],
+	["checkingUP", "checking"],
+	["checkingResumeData", "checking"],
+	["allocating", "checking"],
+	["moving", "moving"],
+	["forcedMetaDL", "metadata"],
+	["error", "error"],
+	["missingFiles", "missing"],
+])(
+	"normalizes %s into the torrent contract state %s",
+	async (state, expected) => {
+		const { client } = await fixture((request) =>
+			request.path.includes("/torrents/info")
+				? { body: JSON.stringify([{ ...torrent, state }]) }
+				: false,
+		);
+		expect((await client.task(hash))?.state).toBe(expected);
+	},
+);
+
+test("unknown protocol states block import and log once without raw payloads", async () => {
+	const { client, logs } = await fixture((request) =>
+		request.path.includes("/torrents/info")
+			? {
+					body: JSON.stringify([
+						{ ...torrent, state: "future-state-private-value" },
+					]),
+				}
+			: false,
+	);
+	expect((await client.task(hash))?.state).toBe("unknown");
+	expect((await client.task(hash))?.state).toBe("unknown");
+	expect(
+		logs.filter((line) => line.includes("qbittorrent.unknown_state")),
+	).toHaveLength(1);
+	expect(logs.join("")).not.toContain("future-state-private-value");
+});
+
+test.each([
+	["anishelf", "anishelf-42, unrelated", "42"],
+	["anishelf", "anishelf-42, anishelf-42", "42"],
+	["other", "anishelf-42", null],
+	["anishelf", "unrelated", null],
+	["anishelf", "anishelf-", null],
+	["anishelf", "anishelf-42, anishelf-43", null],
+])(
+	"verifies durable ownership for category %s and tags %s",
+	async (category, tags, expected) => {
+		const { client } = await fixture((request) =>
+			request.path.includes("/torrents/info")
+				? { body: JSON.stringify([{ ...torrent, category, tags }]) }
+				: false,
+		);
+		expect((await client.task(hash))?.ownerKey).toBe(expected);
+	},
+);
+
+test("disabled staging directories are reported as unavailable isolation", async () => {
+	const { client } = await fixture((request) =>
+		request.path.endsWith("/app/preferences")
+			? {
+					body: JSON.stringify({
+						temp_path_enabled: false,
+						temp_path: "/incomplete",
+					}),
+				}
+			: false,
+	);
+	expect((await client.probe()).incompleteDirectory).toBeNull();
+});
+
+test("file priorities become selection flags at the adapter boundary", async () => {
+	const { client } = await fixture((request) =>
+		request.path.includes("/torrents/files")
+			? {
+					body: JSON.stringify(
+						[0, 1, 6, 7].map((priority, index) => ({
+							index,
+							name: `file-${index}.mkv`,
+							size: 100,
+							progress: 1,
+							priority,
+						})),
+					),
+				}
+			: false,
+	);
+	expect((await client.files(hash)).map((file) => file.selected)).toEqual([
+		false,
+		true,
+		true,
+		true,
+	]);
 });

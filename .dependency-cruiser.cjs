@@ -3,6 +3,42 @@ const implementation = `${modulePath}(?:(?:application|infrastructure|http)(?:/|
 module.exports = {
 	forbidden: [
 		{
+			name: "torrent-clients-implementation-is-private",
+			severity: "error",
+			from: { path: "^backend/src/modules/acquisition/(?!torrent-clients/)" },
+			to: {
+				path: "^backend/src/modules/acquisition/torrent-clients/",
+				pathNot:
+					"^backend/src/modules/acquisition/torrent-clients/(?:public|create)\\.ts$",
+			},
+		},
+		{
+			name: "torrent-clients-do-not-import-business-consumers",
+			severity: "error",
+			from: { path: "^backend/src/modules/acquisition/torrent-clients/" },
+			to: {
+				path: "^backend/src/modules/acquisition/(?:downloads|subscriptions|watching|sources)/|^backend/src/modules/(?:anime|resources)/",
+			},
+		},
+		{
+			name: "torrent-connection-uses-configuration-port",
+			severity: "error",
+			from: {
+				path: "^backend/src/modules/acquisition/torrent-clients/(?:application/|domain/|ports\\.ts$)",
+			},
+			to: {
+				path: "^backend/src/modules/acquisition/torrent-clients/qbittorrent/",
+			},
+		},
+		{
+			name: "downloads-do-not-import-downloader-adapters",
+			severity: "error",
+			from: { path: "^backend/src/modules/acquisition/downloads/" },
+			to: {
+				path: "^backend/src/modules/acquisition/torrent-clients/qbittorrent/|(?:^|/)node_modules/@ctrl/qbittorrent/",
+			},
+		},
+		{
 			name: "sources-implementation-is-private",
 			severity: "error",
 			from: { path: "^backend/src/modules/acquisition/(?!sources/)" },
@@ -31,7 +67,7 @@ module.exports = {
 			severity: "error",
 			from: { path: "^backend/src/modules/acquisition/sources/" },
 			to: {
-				path: "^backend/src/modules/acquisition/(?:subscriptions|downloads|watching|qbittorrent)/|^backend/src/modules/(?:anime|resources)/",
+				path: "^backend/src/modules/acquisition/(?:subscriptions|downloads|watching|torrent-clients)/|^backend/src/modules/(?:anime|resources)/",
 			},
 		},
 		{

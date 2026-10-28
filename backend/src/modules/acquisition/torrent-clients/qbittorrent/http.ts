@@ -4,8 +4,8 @@ import {
 	QbittorrentConnectionProbeSchema,
 	QbittorrentConnectionSettingsSchema,
 	QbittorrentConnectionUpdateSchema,
-} from "../../../contracts/schemas/acquisition.js";
-import type { HttpInstance } from "../../../transport/instance.js";
+} from "../../../../contracts/schemas/acquisition.js";
+import type { HttpInstance } from "../../../../transport/instance.js";
 import type { QbittorrentConnectionApi } from "./public.js";
 
 export function registerConnectionRoutes(

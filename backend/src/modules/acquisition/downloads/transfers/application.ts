@@ -2,6 +2,7 @@ import type {
 	DownloadContext,
 	DownloadExecution,
 } from "../application/context.js";
+import { isTorrentComplete } from "../domain/completion.js";
 import { resolveTorrent } from "../infrastructure/torrent.js";
 import type { CompletedDownload, SubmissionAdmission } from "../ports.js";
 import { DownloadSubmission } from "./submission.js";
@@ -55,12 +56,7 @@ export class DownloadTransfers {
 				);
 				if (!observed) return null;
 				const task = observed.task;
-				if (
-					task.progress !== 1 ||
-					task.remainingBytes !== 0 ||
-					/checking|moving|meta|error|missing/i.test(task.state)
-				)
-					return null;
+				if (!isTorrentComplete(task)) return null;
 				const files = await client.files(item.hash, this.context.signal);
 				return {
 					task,
@@ -78,8 +74,9 @@ export class DownloadTransfers {
 									this.context.signal,
 								);
 								return (
-									current?.progress === 1 &&
-									current.remainingBytes === 0 &&
+									current !== null &&
+									isTorrentComplete(current) &&
+									current.ownerKey === item.id &&
 									current.savePath === task.savePath &&
 									JSON.stringify(currentFiles) === JSON.stringify(files)
 								);

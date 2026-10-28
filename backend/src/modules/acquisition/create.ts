@@ -7,13 +7,6 @@ import type { DownloadStore } from "./downloads/public.js";
 import { registerAcquisitionHttp } from "./http.js";
 import type { AcquisitionStore } from "./persistence.js";
 import type { AcquisitionApi } from "./public.js";
-import { QbittorrentConnection } from "./qbittorrent/application.js";
-import { QbittorrentClient } from "./qbittorrent/client.js";
-import { QbittorrentConfigurationFile } from "./qbittorrent/configuration.js";
-import type {
-	QbittorrentApi,
-	QbittorrentOptions,
-} from "./qbittorrent/public.js";
 import {
 	createSourcesModule,
 	type SourcesModuleOptions,
@@ -21,21 +14,18 @@ import {
 import { SubscriptionsApplication } from "./subscriptions/application/application.js";
 import { acquisitionProfileFingerprint } from "./subscriptions/domain/profiles.js";
 import { loadAcquisitionProfiles } from "./subscriptions/infrastructure/profiles.js";
+import {
+	createTorrentClientsModule,
+	type TorrentClientsModuleOptions,
+} from "./torrent-clients/create.js";
 import { WatchingApplication } from "./watching/application/application.js";
 import type { WatchingListPort } from "./watching/public.js";
-
-/** Standalone adapter foundation; no workers or automatic downloads are started. */
-export function createQbittorrentClient(
-	options: QbittorrentOptions,
-): QbittorrentApi {
-	return new QbittorrentClient(options);
-}
 
 export async function createAcquisitionModule(options: {
 	dataDir: string;
 	watching?: WatchingListPort;
 	logger: Logger;
-	createClient?: (options: QbittorrentOptions) => QbittorrentApi;
+	createClient?: TorrentClientsModuleOptions["createClient"];
 	suggestedApiUrl?: string;
 	bundledConnectionFile?: string;
 	bundledSourcesConfigFile?: string;
@@ -65,14 +55,18 @@ export async function createAcquisitionModule(options: {
 		{ event: "acquisition.profiles_loaded", count: profiles.length },
 		"Acquisition profiles loaded.",
 	);
-	const connection = new QbittorrentConnection(
-		new QbittorrentConfigurationFile(options.dataDir),
-		options.createClient ?? createQbittorrentClient,
-		options.logger.child({ module: "acquisition" }),
-		options.suggestedApiUrl,
-		options.bundledConnectionFile,
-	);
-	await connection.initialize();
+
+	const torrentClients = await createTorrentClientsModule({
+		dataDir: options.dataDir,
+		logger: options.logger.child({ module: "acquisition" }),
+		...(options.createClient ? { createClient: options.createClient } : {}),
+		...(options.suggestedApiUrl
+			? { suggestedApiUrl: options.suggestedApiUrl }
+			: {}),
+		...(options.bundledConnectionFile
+			? { bundledConnectionFile: options.bundledConnectionFile }
+			: {}),
+	});
 	const subscriptionStore = options.store;
 	const sources = await createSourcesModule({
 		...(options.bundledSourcesConfigFile
@@ -110,7 +104,7 @@ export async function createAcquisitionModule(options: {
 						validated:
 							destination.validated &&
 							destination.connectionGeneration ===
-								connection.settings().generation,
+								torrentClients.api.connectionGeneration(),
 					}
 				: null;
 		},
@@ -129,7 +123,7 @@ export async function createAcquisitionModule(options: {
 			},
 		},
 		sources: sources.api,
-		downloads: connection.activeHashes.bind(connection),
+		downloads: torrentClients.api.activeHashes,
 		logger: options.logger,
 		...(options.now ? { now: options.now } : {}),
 	});
@@ -150,7 +144,8 @@ export async function createAcquisitionModule(options: {
 						...target,
 						validated:
 							target.validated &&
-							target.connectionGeneration === connection.settings().generation,
+							target.connectionGeneration ===
+								torrentClients.api.connectionGeneration(),
 					}
 				: null;
 		},
@@ -174,12 +169,9 @@ export async function createAcquisitionModule(options: {
 						isCurrent: sources.api.isContentCurrent,
 						close: async () => {},
 					},
-					connectionGeneration: () => connection.settings().generation,
-					initializeBundled: async () => {
-						await connection.initializeBundled();
-						return Boolean(connection.settings().bundled);
-					},
-					withClient: connection.withClient.bind(connection),
+					connectionGeneration: torrentClients.api.connectionGeneration,
+					initializeBundled: torrentClients.runtime.initializeBundled,
+					withClient: torrentClients.api.withClient,
 					logger: options.logger,
 					...(options.now ? { now: options.now } : {}),
 				})
@@ -197,13 +189,7 @@ export async function createAcquisitionModule(options: {
 	const api: AcquisitionApi = {
 		watching,
 		sources: sources.api,
-		connection: {
-			settings: connection.settings.bind(connection),
-			credentials: connection.credentials.bind(connection),
-			save: connection.save.bind(connection),
-			clear: connection.clear.bind(connection),
-			probe: connection.probe.bind(connection),
-		},
+		connection: torrentClients.api.connection,
 		...(downloadApi
 			? {
 					downloads: {
@@ -234,7 +220,12 @@ export async function createAcquisitionModule(options: {
 	return {
 		api,
 		registerHttp: (app: Parameters<typeof registerAcquisitionHttp>[0]) =>
-			registerAcquisitionHttp(app, api, sources.registerHttp),
+			registerAcquisitionHttp(
+				app,
+				api,
+				sources.registerHttp,
+				torrentClients.registerHttp,
+			),
 		close: () => {
 			closing ??= (async () => {
 				watching?.stop();
@@ -243,7 +234,7 @@ export async function createAcquisitionModule(options: {
 				await sources.runtime.close();
 				await closingSubscriptions;
 				await watching?.close();
-				await connection.close();
+				await torrentClients.runtime.close();
 			})();
 			return closing;
 		},

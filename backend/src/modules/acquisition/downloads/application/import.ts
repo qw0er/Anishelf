@@ -13,7 +13,7 @@ export class CompletedDownloadIngestion {
 		let item = execution.current;
 		if (["review", "failed"].includes(item.ingestion)) return;
 		const files = completed.files;
-		const selected = files.filter((file) => file.priority > 0);
+		const selected = files.filter((file) => file.selected);
 		const videos = selected.filter((file) =>
 			/\.(?:mkv|mp4|m4v|webm|avi|mov|ts|m2ts|mpg|mpeg)$/i.test(file.path),
 		);

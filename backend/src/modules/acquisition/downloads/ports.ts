@@ -1,5 +1,11 @@
 import type { DownloadContent } from "../sources/public.js";
+import type {
+	TorrentClient,
+	TorrentFile,
+	TorrentTask,
+} from "../torrent-clients/public.js";
 import type { DownloadDestination, DownloadIntent } from "./domain/model.js";
+
 export interface DownloadStore {
 	destination(): DownloadDestination | null;
 	saveDestination(value: DownloadDestination): void;
@@ -43,14 +49,12 @@ export interface SubmissionAdmission {
 			current: DownloadIntent;
 			save(value: DownloadIntent): DownloadIntent;
 		},
-		client: import("../qbittorrent/public.js").QbittorrentApi,
-		snapshot: import("../qbittorrent/public.js").DownloadTask[],
+		client: TorrentClient,
+		snapshot: TorrentTask[],
 	): Promise<string | null>;
 }
 export interface CompletedDownload {
-	task: import("../qbittorrent/public.js").DownloadTask;
-	files: Awaited<
-		ReturnType<import("../qbittorrent/public.js").QbittorrentApi["files"]>
-	>;
+	task: TorrentTask;
+	files: TorrentFile[];
 	verify(): Promise<boolean>;
 }

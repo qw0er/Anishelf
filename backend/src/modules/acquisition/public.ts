@@ -1,20 +1,20 @@
 import type { SourcesApi } from "./sources/public.js";
 
 export type {
-	QbittorrentApi,
 	QbittorrentOptions,
-} from "./qbittorrent/public.js";
-export { QbittorrentError } from "./qbittorrent/public.js";
+	TorrentClient,
+} from "./torrent-clients/public.js";
+export { TorrentError } from "./torrent-clients/public.js";
 
-import type { QbittorrentConnectionApi } from "./qbittorrent/public.js";
 import type {
 	SaveSubscriptionInput,
 	SubscriptionsApi,
 } from "./subscriptions/public.js";
+import type { TorrentClientsApi } from "./torrent-clients/public.js";
 export interface AcquisitionApi {
 	readonly sources: SourcesApi;
 	readonly watching?: import("./watching/public.js").WatchingApi;
-	readonly connection: QbittorrentConnectionApi;
+	readonly connection: TorrentClientsApi["connection"];
 	readonly subscriptions: SubscriptionApi;
 	readonly downloads?: AcquisitionDownloadsApi;
 }
