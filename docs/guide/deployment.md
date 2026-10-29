@@ -13,7 +13,14 @@ bash <(curl -fsSL https://raw.githubusercontent.com/qw0er/Anishelf/main/package/
 
 The wizard selects Docker Compose or Podman Quadlet, asks for a new deployment
 folder, media storage, access/port and optional qBittorrent/Jackett services.
-Advanced options include image tag, HTTPS origin and SELinux labels.
+Advanced options include image tag, HTTPS origin, additional media directories and
+SELinux labels. Enter additional existing host paths separated by `:`; relative paths resolve from
+the current working directory; the
+primary media directory or managed volume remains in place. The installer mounts
+these directories in Backend at `/data/extra/1`, `/data/extra/2`, and so on, and
+adds them to the initial resource roots for new settings. For an existing installation,
+add those container paths in Settings after reconfiguration. The bundled downloader
+continues to use the primary media location. Host mounts are disabled in `--test` mode.
 Keep the generated folder; failures are recorded in `install.log`.
 
 | Option | Purpose |
@@ -239,7 +246,11 @@ bash package/install.sh --reconfigure "$HOME/anishelf"
 bash package/install.sh --remove "$HOME/anishelf"
 ```
 
-Both require confirmation and GNU `mv`. They archive the entire old folder to a
+Both require confirmation and GNU `mv`. Relative paths, including the deployment
+folder and media directories, resolve from the current working directory. For
+conflicting installed Quadlet unit files, add `--force` to back up each conflicting
+regular file in a sibling `*.quadlet-backup.*` directory before replacing or
+removing it. Symbolic links and unrelated custom units still block the operation. They archive the entire old folder to a
 sibling backup and preserve volumes/media. Reconfiguration keeps the engine and
 method, collects settings afresh and prepares templates before stopping services;
 Quadlet images are pulled first. Enter the same host media path to retain it.
