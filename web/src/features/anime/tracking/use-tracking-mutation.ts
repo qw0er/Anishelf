@@ -39,7 +39,12 @@ export function useTrackingMutation<T>(
 					result,
 				],
 			);
-			reportTrackingOperations(client, identity, [result]);
+			// Report the merged queue, not just this command: unrelated pending work
+			// must keep its state and its notice.
+			const operations = client.getQueryData<TrackingOperationsResponse>(
+				operationsQuery(identity).queryKey,
+			);
+			reportTrackingOperations(client, identity, operations ?? [result]);
 			void invalidateAnimeQueries(client, "viewing");
 		},
 		onError: (error: Error) => {

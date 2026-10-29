@@ -1,6 +1,10 @@
 import { type QueryClient, queryOptions } from "@tanstack/react-query";
 import { request } from "../../../shared/api/client.js";
-import type { TrackingOperationsResponse } from "../../../shared/api/contracts.js";
+import type {
+	TrackingEpisodeTargetResponse,
+	TrackingOperationResponse,
+	TrackingOperationsResponse,
+} from "../../../shared/api/contracts.js";
 import { boundedSignal } from "../../../shared/api/queries.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import i18n from "../../../shared/i18n.js";
@@ -43,6 +47,34 @@ export const operationsQuery = (
 					: 60_000,
 		retry: false,
 	});
+/** Results are announced once and then leave the controls; history is never replayed. */
+export function isResultState(
+	state: TrackingOperationResponse["state"],
+): boolean {
+	return state === "succeeded" || state === "cancelled";
+}
+/** Detail edits apply to the whole work; player commands only to their own episode. */
+export function appliesToEpisode(
+	operation: TrackingOperationResponse,
+	target: Pick<TrackingEpisodeTargetResponse, "fileId" | "sourceVersion">,
+): boolean {
+	return (
+		operation.target === null ||
+		(operation.target.fileId === target.fileId &&
+			operation.target.sourceVersion === target.sourceVersion)
+	);
+}
+function resultTitle(operation: TrackingOperationResponse): string {
+	if (operation.state === "cancelled")
+		return i18n.t("trackingUpdate.states.cancelled");
+	const episode = operation.target?.episode;
+	if (episode !== undefined)
+		return i18n.t("trackingUpdate.results.episode", { episode });
+	const progress = operation.desired.progress ?? operation.remote?.progress;
+	return progress === undefined
+		? i18n.t("trackingUpdate.states.succeeded")
+		: i18n.t("trackingUpdate.results.progress", { progress });
+}
 export function reportTrackingOperations(
 	client: QueryClient,
 	identity: TrackingIdentity,
@@ -63,50 +95,41 @@ export function reportTrackingOperations(
 		}
 	for (const op of operations) {
 		const key = `${identity.generation}:${op.id}`;
-		const state = `${op.revision}:${op.state}:${op.error}`;
+		const observed = `${op.revision}:${op.state}:${op.error}`;
 		const previous = states.get(key);
-		if (previous === state) continue;
-		states.set(key, state);
+		if (previous === observed) continue;
+		states.set(key, observed);
 		const id = `tracking-operation:${op.id}`;
-		if (
-			op.origin === "manual-detail" &&
-			(["pending", "submitting"].includes(op.state) ||
-				(previous && ["succeeded", "cancelled"].includes(op.state)))
-		) {
+		if (op.state === "pending" || op.state === "submitting") {
 			toast.close(id);
+			// An automatic handoff never asks for attention; only commands the user
+			// issued keep an in-flight notice alive.
+			if (op.origin === "automatic") continue;
 			toast.add({
 				id,
-				type:
-					op.state === "succeeded" || op.state === "cancelled"
-						? "success"
-						: "loading",
+				type: "loading",
 				title: i18n.t(`trackingUpdate.states.${op.state}`),
-				...(op.state === "pending" || op.state === "submitting"
-					? { timeout: 0 }
-					: {}),
+				timeout: 0,
 			});
+			continue;
+		}
+		if (isResultState(op.state)) {
+			toast.close(id);
 			if (op.state === "succeeded")
 				void invalidateAnimeQueries(client, "viewing");
+			// Reading stored results on mount is not a new result: stay silent.
+			if (!previous || op.origin === "automatic") continue;
+			console.debug("[Tracking] Operation result notified.", {
+				operationId: op.id,
+				origin: op.origin,
+				state: op.state,
+				revision: op.revision,
+			});
+			toast.add({ id, type: "success", title: resultTitle(op) });
 			continue;
 		}
-		if (op.state === "cancelled") {
-			toast.close(id);
-			continue;
-		}
-		if (op.state === "succeeded" || op.state === "authorization-required") {
+		if (op.state === "authorization-required")
 			void invalidateAnimeQueries(client, "viewing");
-		}
-		if (
-			![
-				"failed",
-				"authorization-required",
-				"conflict",
-				"decision-required",
-			].includes(op.state)
-		) {
-			toast.close(id);
-			continue;
-		}
 		const notice = {
 			id,
 			type: "error" as const,

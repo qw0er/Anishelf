@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { PlayerViewingControl } from "../src/features/anime/tracking/player-viewing-control.js";
 import type { TrackingOperationResponse } from "../src/shared/api/contracts.js";
 import { queryClient } from "../src/shared/api/query-client.js";
+import { toast } from "../src/shared/components/ui/toast.js";
 import {
 	cleanup,
 	fireEvent,
@@ -109,6 +110,7 @@ afterEach(() => {
 	cleanup();
 	queryClient.clear();
 	vi.unstubAllGlobals();
+	vi.restoreAllMocks();
 });
 function mount() {
 	return render(
@@ -117,7 +119,8 @@ function mount() {
 		</MemoryRouter>,
 	);
 }
-test("manual mark creates a Tracking decision, confirms separately and follows the actual operation to success", async () => {
+test("manual mark creates a Tracking decision, confirms separately and reports the result once", async () => {
+	const notify = vi.spyOn(toast, "add");
 	mount();
 	fireEvent.click(
 		await screen.findByRole("button", { name: "Mark as watched" }),
@@ -137,11 +140,20 @@ test("manual mark creates a Tracking decision, confirms separately and follows t
 	fireEvent.click(
 		screen.getByRole("button", { name: "Confirm progress update" }),
 	);
-	await screen.findByText("the tracking service change queued");
+	await screen.findByText("Progress change queued");
 	operation = op("succeeded");
 	confirmed = 7;
 	await queryClient.invalidateQueries({ queryKey: ["tracking", "operations"] });
-	await screen.findByText("the tracking service change confirmed");
+	await waitFor(() =>
+		expect(notify).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "success",
+				title: "Episode 7 marked as watched",
+			}),
+		),
+	);
+	// The completed result leaves the control instead of becoming a static label.
+	expect(screen.queryByRole("status")).toBeNull();
 	await screen.findByRole("button", {
 		name: "Watched on the tracking service",
 	});
@@ -150,6 +162,7 @@ test("manual mark creates a Tracking decision, confirms separately and follows t
 	).toBe(false);
 });
 test("keep then mark again remains actionable and final submission failures offer retry", async () => {
+	const notify = vi.spyOn(toast, "add");
 	mount();
 	fireEvent.click(
 		await screen.findByRole("button", { name: "Mark as watched" }),
@@ -157,22 +170,67 @@ test("keep then mark again remains actionable and final submission failures offe
 	fireEvent.click(
 		await screen.findByRole("button", { name: "Keep current progress" }),
 	);
-	await screen.findByText("Kept the tracking service value");
+	await waitFor(() =>
+		expect(notify).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "success",
+				title: "Kept the previous progress",
+			}),
+		),
+	);
+	expect(screen.queryByRole("status")).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Mark as watched" }));
 	await screen.findByText(/including skipped episodes/);
 	fireEvent.click(
 		screen.getByRole("button", { name: "Confirm progress update" }),
 	);
-	await screen.findByText("the tracking service change queued");
+	await screen.findByText("Progress change queued");
 	operation = { ...op("failed"), error: "unavailable" };
 	await queryClient.invalidateQueries({ queryKey: ["tracking", "operations"] });
-	await screen.findByText("the tracking service submission failed");
+	await screen.findByText("Could not save the progress change");
 	fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 	await waitFor(() =>
 		expect(
 			fetcher.mock.calls.some(([url]) => String(url).endsWith("/retry")),
 		).toBe(true),
 	);
+});
+test("a result stored by an earlier session stays out of the player control", async () => {
+	const notify = vi.spyOn(toast, "add");
+	operation = { ...op("succeeded"), id: "previous-session" };
+	confirmed = 7;
+	mount();
+	await waitFor(() =>
+		expect(
+			queryClient.getQueryData([
+				"tracking",
+				"operations",
+				"anilist:7",
+				"generation",
+			]),
+		).toBeDefined(),
+	);
+	await screen.findByRole("button", {
+		name: "Watched on the tracking service",
+	});
+	expect(screen.queryByRole("status")).toBeNull();
+	expect(notify).not.toHaveBeenCalled();
+	// The stored revision still anchors the next command.
+	fireEvent.click(
+		screen.getByRole("button", { name: "Watched on the tracking service" }),
+	);
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(
+				([url, init]) =>
+					String(url).endsWith("/episode-commands") && init?.method === "POST",
+			),
+		).toBe(true),
+	);
+	const command = fetcher.mock.calls.find(([url]) =>
+		String(url).endsWith("/episode-commands"),
+	);
+	expect(JSON.parse(String(command?.[1]?.body))).toMatchObject({ revision: 1 });
 });
 test("unmapped files show no progress controls", async () => {
 	const original = fetcher.getMockImplementation();

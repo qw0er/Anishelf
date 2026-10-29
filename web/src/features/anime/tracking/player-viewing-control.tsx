@@ -11,7 +11,11 @@ import type {
 import { boundedSignal } from "../../../shared/api/queries.js";
 import { Button } from "../../../shared/components/ui/button.js";
 import { RadioOptions } from "../../../shared/components/ui/radio-options.js";
-import { operationsQuery } from "./operations.js";
+import {
+	appliesToEpisode,
+	isResultState,
+	operationsQuery,
+} from "./operations.js";
 import { accountQuery, trackingIdentity } from "./queries.js";
 import { useTrackingMutation } from "./use-tracking-mutation.js";
 import { useViewingState } from "./use-viewing-state.js";
@@ -91,6 +95,10 @@ function TargetControl({
 	const operation = operations.data?.find(
 		(op) => op.mediaId === target.mediaId,
 	);
+	// Only this episode's open work stays beside the control: a result belongs to the
+	// episode it was made for and has already been announced as a notification.
+	const current =
+		operation && appliesToEpisode(operation, target) ? operation : undefined;
 	const [status, setStatus] = useState<
 		NonNullable<TrackingEpisodeCommandRequest["initialStatus"]>
 	>(viewing.snapshot?.provider.capabilities.statuses[0] ?? "watching");
@@ -156,22 +164,22 @@ function TargetControl({
 			>
 				{t(known ? "player.watched" : "playbackCompletion.mark")}
 			</Button>
-			{operation && (
+			{current && !isResultState(current.state) && (
 				<span role="status" className="text-sm text-muted-foreground">
-					{t(`trackingUpdate.states.${operation.state}`)}
+					{t(`trackingUpdate.states.${current.state}`)}
 				</span>
 			)}
-			{operation?.state === "decision-required" && (
+			{current?.state === "decision-required" && (
 				<>
 					<span>
 						{t(
-							operation.decisionReason === "initial-status-required"
+							current.decisionReason === "initial-status-required"
 								? "playbackCompletion.initial"
 								: "playbackCompletion.advance",
-							{ episode: operation.desired.progress },
+							{ episode: current.desired.progress },
 						)}
 					</span>
-					{operation.decisionReason === "initial-status-required" && (
+					{current.decisionReason === "initial-status-required" && (
 						<RadioOptions<typeof status>
 							legend={t("playbackCompletion.status")}
 							value={status}
@@ -200,7 +208,7 @@ function TargetControl({
 					</Button>
 				</>
 			)}
-			{operation?.state === "failed" && (
+			{current?.state === "failed" && (
 				<Button
 					variant="outline"
 					disabled={mutation.isPending}
@@ -209,7 +217,7 @@ function TargetControl({
 					{t("actions.retry")}
 				</Button>
 			)}
-			{operation?.state === "conflict" && (
+			{current?.state === "conflict" && (
 				<>
 					<Button
 						variant="outline"
@@ -227,7 +235,7 @@ function TargetControl({
 					</Button>
 				</>
 			)}
-			{operation?.state === "authorization-required" && (
+			{current?.state === "authorization-required" && (
 				<span role="alert">{t("trackingList.reconnect")}</span>
 			)}
 			{(mutation.error || operations.error) && (
