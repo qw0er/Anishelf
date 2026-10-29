@@ -8,6 +8,7 @@ import {
 	Button,
 	buttonStyles,
 } from "../../../../shared/components/ui/button.js";
+import { LoadingState } from "../../../../shared/components/ui/loading-state.js";
 import { ErrorMessage } from "../../shared/components/error-message.js";
 import { DecisionBadge } from "./decision-badge.js";
 export function ReviewList({
@@ -43,7 +44,7 @@ export function ReviewList({
 				))}
 			</nav>
 			{query.isPending && !query.error && (
-				<p role="status">{t("anime.loading")}</p>
+				<LoadingState label={t("anime.loading")} />
 			)}
 			{query.error && (
 				<ErrorMessage error={query.error} retry={() => void query.refetch()} />
@@ -51,11 +52,11 @@ export function ReviewList({
 			{query.data && (
 				<>
 					{query.data.items.length ? (
-						<ul className="space-y-3">
+						<ul className="surface-panel divide-y">
 							{query.data.items.map((row) => (
 								<li
 									key={row.id}
-									className="flex min-w-0 flex-col gap-4 rounded-lg border bg-card p-4 transition-colors hover:border-primary/30 sm:flex-row sm:items-center sm:p-5"
+									className="list-row flex flex-col sm:flex-row sm:items-center"
 								>
 									<div className="hidden size-11 shrink-0 items-center justify-center rounded-lg border bg-muted/40 text-muted-foreground sm:flex">
 										<FileVideo className="size-5" aria-hidden="true" />

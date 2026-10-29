@@ -107,7 +107,10 @@ export default function FilePlayer({
 					className="space-y-3 rounded-md border p-6"
 					aria-labelledby="playback-unavailable-title"
 				>
-					<h2 id="playback-unavailable-title" className="text-lg font-semibold">
+					<h2
+						id="playback-unavailable-title"
+						className="section-title-prominent"
+					>
 						{t("player.unavailableTitle")}
 					</h2>
 					<p role="status" className="text-sm text-muted-foreground">

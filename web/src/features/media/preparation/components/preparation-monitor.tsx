@@ -47,8 +47,8 @@ export function PreparationMonitor() {
 				{!collapsed && (
 					<Tooltip content={t("preparation.refresh")}>
 						<Button
+							size="icon"
 							variant="ghost"
-							className="size-8 shrink-0 p-0"
 							aria-label={t("preparation.refresh")}
 							onClick={preparation.refresh}
 						>

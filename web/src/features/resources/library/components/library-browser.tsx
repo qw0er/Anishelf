@@ -103,7 +103,7 @@ export default function LibraryBrowser({
 												: undefined
 										}
 										tabIndex={-1}
-										className="grid scroll-mt-4 grid-cols-[minmax(0,1fr)_auto] items-center py-2 first:pt-0 last:pb-0 target:rounded-md target:bg-accent target:ring-2 target:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										className="grid scroll-mt-4 grid-cols-[minmax(0,1fr)_auto] items-center py-2 first:pt-0 last:pb-0 target:rounded-md target:bg-accent target:ring-2 target:ring-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 									>
 										<Link
 											aria-label={entry.name}

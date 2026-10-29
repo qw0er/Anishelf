@@ -46,10 +46,7 @@ export default function ResourceSettings({
 						/>
 						<div className="flex min-w-0 max-w-sm flex-col gap-2">
 							<div className="flex items-center justify-between gap-2">
-								<label
-									className="text-sm font-medium"
-									htmlFor="transcode-cache-budget"
-								>
+								<label className="field-label" htmlFor="transcode-cache-budget">
 									{t("settingsPage.transcodeCacheBudget")}
 								</label>
 								<FieldHelp
@@ -89,7 +86,7 @@ export default function ResourceSettings({
 						<p className="text-sm">{t("settingsPage.waitForScan")}</p>
 					)}
 					{fetcher.state === "idle" && fetcher.data?.error && (
-						<p className="text-base text-destructive" role="alert">
+						<p className="field-error" role="alert">
 							{t(fetcher.data.error)}
 						</p>
 					)}

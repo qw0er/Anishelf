@@ -77,8 +77,9 @@ export function PreparationTaskCard({
 		<article className="flex min-w-0 items-center gap-2 px-3 py-2">
 			<Tooltip content={details}>
 				<Button
+					size="sm"
 					variant="ghost"
-					className="h-7 min-w-0 flex-1 justify-start gap-2 px-0"
+					className="min-w-0 flex-1 justify-start gap-2 px-0"
 				>
 					{pending ? (
 						<Spinner className="size-4 shrink-0" />
@@ -116,8 +117,9 @@ export function PreparationTaskCard({
 				{pending && (
 					<Tooltip content={t("preparation.cancel")}>
 						<Button
+							size="icon"
 							variant="ghost"
-							className="size-7 p-0 aria-disabled:opacity-50"
+							className="aria-disabled:opacity-50"
 							focusableWhenDisabled
 							aria-label={t("preparation.cancel")}
 							disabled={action.busy || task.status === "cancelling"}
@@ -134,8 +136,9 @@ export function PreparationTaskCard({
 				{(task.status === "failed" || task.status === "cancelled") && (
 					<Tooltip content={t("preparation.retry")}>
 						<Button
+							size="icon"
 							variant="ghost"
-							className="size-7 p-0 aria-disabled:opacity-50"
+							className="aria-disabled:opacity-50"
 							focusableWhenDisabled
 							aria-label={t("preparation.retry")}
 							disabled={action.busy}
@@ -161,8 +164,9 @@ export function PreparationTaskCard({
 						content={t(playing ? "preparation.playing" : "preparation.watch")}
 					>
 						<Button
+							size="icon"
 							variant="ghost"
-							className="size-7 p-0 aria-disabled:opacity-50"
+							className="aria-disabled:opacity-50"
 							focusableWhenDisabled
 							aria-label={t(
 								playing ? "preparation.playing" : "preparation.watch",
@@ -177,8 +181,9 @@ export function PreparationTaskCard({
 				{task.artifactId && (
 					<Tooltip content={t("preparation.delete")}>
 						<Button
+							size="icon"
 							variant="ghost"
-							className="size-7 p-0 aria-disabled:opacity-50"
+							className="aria-disabled:opacity-50"
 							focusableWhenDisabled
 							aria-label={t("preparation.delete")}
 							disabled={action.busy || playing}

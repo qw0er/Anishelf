@@ -91,8 +91,9 @@ export function UnresolvedResources({ workId }: { workId: string }) {
 				</details>
 				<Tooltip content={t("anime.unresolvedCandidatesHint")} openOnClick>
 					<Button
+						size="icon"
 						variant="ghost"
-						className="size-6 shrink-0 p-0 text-muted-foreground"
+						className="text-muted-foreground"
 						aria-label={t("anime.reviewCandidatesInfo")}
 					>
 						<Info className="size-3.5" aria-hidden="true" />

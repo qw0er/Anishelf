@@ -32,7 +32,7 @@ export function ExternalPlayerSettings() {
 			</CardHeader>
 			<CardContent className="space-y-4">
 				{custom.error && (
-					<p role="alert" className="text-sm text-destructive sm:col-span-2">
+					<p role="alert" className="field-error sm:col-span-2">
 						{t("externalPlayers.storageError")}
 					</p>
 				)}
@@ -51,7 +51,7 @@ export function ExternalPlayerSettings() {
 								<Tooltip content={player.template} openOnClick>
 									<button
 										type="button"
-										className="max-w-full truncate rounded text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring"
+										className="max-w-full truncate rounded text-left text-sm font-medium focus-visible:ring-[3px] focus-visible:ring-ring/50"
 									>
 										{player.name}
 									</button>
@@ -101,10 +101,7 @@ export function ExternalPlayerSettings() {
 					}}
 				>
 					<div className="space-y-2">
-						<label
-							htmlFor="external-player-name"
-							className="text-sm font-medium"
-						>
+						<label htmlFor="external-player-name" className="field-label">
 							{t("externalPlayers.name")}
 						</label>
 						<Input
@@ -116,10 +113,7 @@ export function ExternalPlayerSettings() {
 						/>
 					</div>
 					<div className="space-y-2">
-						<label
-							htmlFor="external-player-template"
-							className="text-sm font-medium"
-						>
+						<label htmlFor="external-player-template" className="field-label">
 							{t("externalPlayers.template")}
 						</label>
 						<FieldHelp
@@ -152,7 +146,7 @@ export function ExternalPlayerSettings() {
 						</p>
 					)}
 					{error && (
-						<p role="alert" className="text-sm text-destructive sm:col-span-2">
+						<p role="alert" className="field-error sm:col-span-2">
 							{t(error)}
 						</p>
 					)}

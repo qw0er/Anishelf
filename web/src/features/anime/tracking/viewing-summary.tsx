@@ -1,24 +1,15 @@
 import { Info, Link2, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import type { TrackingEntryResponse } from "../../../shared/api/contracts.js";
 import { Button } from "../../../shared/components/ui/button.js";
 import { Skeleton } from "../../../shared/components/ui/skeleton.js";
+import { StatusBadge } from "../../../shared/components/ui/status-badge.js";
 import { Tooltip } from "../../../shared/components/ui/tooltip.js";
 import { sentenceViewingProgress } from "./progress-format.js";
 import { TrackingRefreshHint } from "./refresh-hint.js";
 import type { ViewingState } from "./use-viewing-state.js";
 import { ViewingEditor } from "./viewing-editor.js";
-
-type ViewingStatus = NonNullable<TrackingEntryResponse["entry"]>["status"];
-const statusStyles: Record<ViewingStatus, string> = {
-	watching: "bg-primary/10 text-primary",
-	planned: "bg-muted text-muted-foreground",
-	completed: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-	paused: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-	dropped: "bg-muted text-muted-foreground",
-	rewatching: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
-};
+import { viewingTone } from "./viewing-tone.js";
 
 export function ViewingSummary({
 	state,
@@ -53,11 +44,9 @@ export function ViewingSummary({
 			</span>
 			{entry ? (
 				<>
-					<span
-						className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles[entry.status]}`}
-					>
+					<StatusBadge tone={viewingTone(entry.status)}>
 						{t(`trackingList.statuses.${entry.status}`)}
-					</span>
+					</StatusBadge>
 					<span className="tabular-nums">
 						{sentenceViewingProgress(
 							{
@@ -70,8 +59,9 @@ export function ViewingSummary({
 					</span>
 					<Tooltip content={t("trackingList.cumulative")} openOnClick>
 						<Button
+							size="icon"
 							variant="ghost"
-							className="size-6 shrink-0 p-0 text-muted-foreground"
+							className="text-muted-foreground"
 							aria-label={t("trackingList.progressInfo")}
 						>
 							<Info className="size-3.5" aria-hidden="true" />
@@ -96,7 +86,7 @@ export function ViewingSummary({
 				<Tooltip content={t("trackingList.reconnect")}>
 					<Link
 						to="/settings"
-						className="inline-flex items-center gap-1 text-xs text-amber-700 underline dark:text-amber-300"
+						className="inline-flex items-center gap-1 text-xs text-warning underline"
 					>
 						<Link2 className="size-3.5" aria-hidden="true" />
 						{t("trackingList.reconnectAction")}
@@ -118,8 +108,8 @@ export function ViewingSummary({
 				}
 			>
 				<Button
+					size="icon"
 					variant="ghost"
-					className="size-6 shrink-0 p-0"
 					aria-label={t(
 						!hasSnapshot && state.error
 							? "actions.retry"

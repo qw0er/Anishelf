@@ -43,7 +43,7 @@ export function EpisodeList({
 	return (
 		<section className="space-y-3">
 			<div className="flex flex-wrap items-center gap-1">
-				<h2 className="text-lg font-semibold">{t("anime.episodes")}</h2>
+				<h2 className="section-title-prominent">{t("anime.episodes")}</h2>
 				<Tooltip
 					openOnClick
 					content={t(
@@ -55,8 +55,9 @@ export function EpisodeList({
 					)}
 				>
 					<Button
+						size="icon"
 						variant="ghost"
-						className="size-6 p-0 text-muted-foreground"
+						className="text-muted-foreground"
 						aria-label={t("anime.episodeNumberingInfo")}
 					>
 						<Info className="size-3.5" aria-hidden="true" />

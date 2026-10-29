@@ -45,7 +45,7 @@ export function FileIdentification({
 				type="button"
 				variant="ghost"
 				aria-label={label}
-				className="inline-flex size-9 shrink-0 p-0 items-center justify-center rounded-md text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				className="inline-flex size-9 shrink-0 p-0 items-center justify-center rounded-md text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 			>
 				<Icon size={16} aria-hidden="true" />
 			</Button>

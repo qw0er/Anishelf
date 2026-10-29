@@ -18,7 +18,7 @@ export function WorkSynopsis({
 	const long = (info.description?.length ?? 0) > 400;
 	return (
 		<div className="surface-panel space-y-3">
-			<h2 className="text-lg font-semibold">{t("anime.synopsis")}</h2>
+			<h2 className="section-title-prominent">{t("anime.synopsis")}</h2>
 			{info.description ? (
 				<div
 					className={`space-y-2 wrap-anywhere [&_a]:underline [&_p]:my-2 ${long && !expanded ? "line-clamp-5" : ""}`}

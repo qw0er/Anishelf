@@ -42,7 +42,7 @@ export function AiringStatus({
 					className="size-4 text-muted-foreground"
 					aria-hidden="true"
 				/>
-				<h2 className="text-base font-semibold">{t("anime.airingSchedule")}</h2>
+				<h2 className="section-title">{t("anime.airingSchedule")}</h2>
 				<span
 					role={query.isPending ? "status" : undefined}
 					className="text-xs text-muted-foreground"
@@ -53,8 +53,9 @@ export function AiringStatus({
 				</span>
 				<Tooltip content={t("anime.airingScopeHint")} openOnClick>
 					<Button
+						size="icon"
 						variant="ghost"
-						className="ml-auto size-6 shrink-0 p-0 text-muted-foreground"
+						className="ml-auto text-muted-foreground"
 						aria-label={t("anime.airingInfo")}
 					>
 						<Info className="size-3.5" aria-hidden="true" />
@@ -150,7 +151,7 @@ export function AiringStatus({
 										</td>
 										<td className="px-2 py-2 whitespace-nowrap">
 											<span
-												className={`inline-block rounded-full px-2 py-0.5 text-[11px] ${upcoming ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+												className={`inline-block rounded-full px-2 py-0.5 text-xs ${upcoming ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
 											>
 												{t(
 													item.stale
@@ -174,8 +175,8 @@ export function AiringStatus({
 						{t("anime.airingPartial")}
 					</p>
 					<Button
+						size="sm"
 						variant="outline"
-						className="h-8 px-3 text-xs"
 						disabled={query.isFetchingNextPage}
 						onClick={() => void query.fetchNextPage()}
 					>
@@ -187,8 +188,8 @@ export function AiringStatus({
 				<div role="alert" className="flex items-center gap-2 text-xs">
 					{t("anime.airingFailed")}
 					<Button
+						size="sm"
 						variant="outline"
-						className="h-8 px-3 text-xs"
 						disabled={query.isFetching}
 						onClick={() => void query.refetch()}
 					>

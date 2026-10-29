@@ -19,6 +19,9 @@
 	--color-accent: var(--accent);
 	--color-accent-foreground: var(--accent-foreground);
 	--color-destructive: var(--destructive);
+	--color-success: var(--success);
+	--color-warning: var(--warning);
+	--color-info: var(--info);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
@@ -46,6 +49,9 @@
 	--accent: oklch(0.97 0 0);
 	--accent-foreground: oklch(0.205 0 0);
 	--destructive: oklch(0.577 0.245 27.325);
+	--success: var(--color-emerald-700);
+	--warning: var(--color-amber-700);
+	--info: var(--color-violet-700);
 	--border: oklch(0.922 0 0);
 	--input: oklch(0.922 0 0);
 	--ring: oklch(0.708 0 0);
@@ -68,6 +74,9 @@
 	--accent: oklch(0.371 0 0);
 	--accent-foreground: oklch(0.985 0 0);
 	--destructive: oklch(0.704 0.191 22.216);
+	--success: var(--color-emerald-300);
+	--warning: var(--color-amber-300);
+	--info: var(--color-violet-300);
 	--border: oklch(1 0 0 / 10%);
 	--input: oklch(1 0 0 / 15%);
 	--ring: oklch(0.556 0 0);
@@ -149,8 +158,59 @@
 		grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
 	}
 }
+@utility form-control {
+	@apply h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50;
+	@variant md {
+		@apply text-sm;
+	}
+}
 @utility form-select {
-	@apply h-9 min-w-0 rounded-md border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+	@apply form-control;
+}
+@utility field-heading {
+	@apply flex min-h-9 items-center gap-1;
+}
+@utility field-label {
+	@apply text-sm font-medium;
+}
+@utility field-error {
+	@apply text-sm text-destructive;
+}
+@utility section-title {
+	@apply text-base font-semibold leading-snug;
+}
+@utility section-title-prominent {
+	@apply text-lg font-semibold leading-snug;
+}
+@utility panel-inset {
+	@apply px-4;
+	@variant sm {
+		@apply px-5;
+	}
+}
+@utility list-row {
+	@apply min-w-0 gap-4 py-4 first:pt-0 last:pb-0;
+}
+@utility icon-control {
+	@apply inline-flex size-9 shrink-0 items-center justify-center p-0;
+}
+/* Touch controls grow in layout, so adjacent targets never overlap. */
+@media (pointer: coarse) {
+	.touch-control,
+	.field-heading,
+	.icon-control,
+	.form-select,
+	.form-control,
+	.responsive-action,
+	.header-nav-link {
+		min-height: 2.75rem;
+	}
+	.touch-control,
+	.icon-control,
+	.responsive-action,
+	.header-nav-link {
+		min-width: 2.75rem;
+	}
 }
 
 .app-header-container {
@@ -205,8 +265,4 @@
 }
 .settings-section {
 	container-type: inline-size;
-}
-.settings-section > [data-slot="card-header"],
-.settings-section > [data-slot="card-content"] {
-	padding-inline: 1rem;
 }

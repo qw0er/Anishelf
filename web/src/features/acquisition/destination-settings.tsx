@@ -117,7 +117,7 @@ export function DownloadDestinationSettings() {
 			) : (
 				<div className="grid gap-4 sm:grid-cols-2">
 					<div className="flex flex-col gap-2">
-						<label className="text-sm font-medium" htmlFor={`${id}-root`}>
+						<label className="field-label" htmlFor={`${id}-root`}>
 							{t("acquisition.destination.resourceDirectory")}
 						</label>
 						<select
@@ -146,7 +146,7 @@ export function DownloadDestinationSettings() {
 						</select>
 					</div>
 					<div className="flex flex-col gap-2">
-						<label className="text-sm font-medium" htmlFor={`${id}-path`}>
+						<label className="field-label" htmlFor={`${id}-path`}>
 							{t("acquisition.destination.completedPath")}
 						</label>
 						<Input
@@ -171,7 +171,7 @@ export function DownloadDestinationSettings() {
 				</p>
 			)}
 			{action.isError && (
-				<p role="alert" className="text-sm text-destructive">
+				<p role="alert" className="field-error">
 					{t("acquisition.destination.updateFailed")}
 				</p>
 			)}

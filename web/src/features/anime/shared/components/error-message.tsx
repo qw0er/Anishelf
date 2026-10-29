@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "../../../../shared/components/ui/button.js";
+import { InlineError } from "../../../../shared/components/ui/inline-error.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 
 export function ErrorMessage({
@@ -11,16 +12,13 @@ export function ErrorMessage({
 }) {
 	const { t } = useTranslation();
 	return (
-		<div
-			role="alert"
-			className="space-y-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm"
-		>
+		<InlineError>
 			<p>{t(getErrorTranslationKey(error) ?? "errors.requestFailed")}</p>
 			{retry && (
 				<Button variant="outline" onClick={retry}>
 					{t("actions.retry")}
 				</Button>
 			)}
-		</div>
+		</InlineError>
 	);
 }

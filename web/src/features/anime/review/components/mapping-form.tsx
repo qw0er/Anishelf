@@ -52,7 +52,7 @@ export function MappingForm({
 		<form
 			key={`${reference.id}:${item.revision}`}
 			ref={mappingRef}
-			className="min-w-0 scroll-mt-6 space-y-4 rounded-lg border bg-card p-4 sm:p-5"
+			className="min-w-0 scroll-mt-6 space-y-4 surface-panel"
 			onChange={clearPreview}
 			onSubmit={(event) => {
 				event.preventDefault();

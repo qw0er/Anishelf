@@ -1,405 +1,343 @@
 # Anishelf Design System
 
-This document owns the shared UI principles, visual conventions, interaction,
-feedback and accessibility rules. [Requirements](../requirements.md) owns product
-scope, [Architecture](architecture.md) retains module boundaries, and
-[Archived anime-library design](../history.md#anime-library-design) records the delivered poster
-wall, work details, Files and Review screens. [History](../history.md#v2-design)
-preserves earlier version-specific implementation design.
+This document owns visual foundations, reusable UI patterns and page-specific
+interaction rules. [Requirements](../requirements.md) owns product scope;
+[Architecture](architecture.md#frontend-ownership) owns data and module boundaries;
+[History](../history.md) records delivered iterations. Keep implementation history
+and backend policy out of this document.
+
+These rules guide new and revised UI; they do not assert that every existing screen
+already conforms. Reuse the current Tailwind, shadcn/Base UI and Vidstack stack.
 
 - [UI principles](#ui-principles)
 - [Visual and interaction conventions](#visual-and-interaction-conventions)
+- [Shared components](#shared-components)
 - [Feedback and interface states](#feedback-and-interface-states)
+- [Page patterns](#page-patterns)
+- [Player layout](#player-layout)
+- [Episode viewing and playback completion](#episode-viewing-and-playback-completion)
+- [Automatic acquisition](#automatic-acquisition)
 - [Accessibility and responsive layouts](#accessibility-and-responsive-layouts)
+- [Maintenance and acceptance](#maintenance-and-acceptance)
 
 ## UI principles
 
-Keep the interface simple and focused on the user's current task. Present the
-information and actions needed to make the next decision; avoid dense screens,
-duplicated status, decorative metrics, and controls for unsupported or unrelated
-features.
-
-Place persistent information in the page structure. Information that users need
-to keep referring to, such as resource details, durable status, validation errors,
-and setup guidance, belongs in the relevant page section or beside its control.
-Present temporary information, such as operation progress, completion results,
-and recoverable operation failures, in nonblocking floating UI such as Toasts or
-floating task panels. Temporary feedback must not occupy page layout space or
-insert banners, rows, or panels into the page structure. Choose placement by how
-long the information remains relevant to the user's task, not by whether its data
-is persisted in storage.
-
-Establish a clear hierarchy. Web playback is the primary workflow, while optional
-actions such as copying a media link remain visually secondary. Show a concise
-summary by default and put diagnostic or less frequently needed detail behind a
-clear, on-demand affordance. Reveal additional controls only when they are relevant
-to the current page, item, or state. Do not hide information required to understand
-an error, status, or consequential action.
-
-Keep the active library workflow available while background preparation runs.
-Show enough task status to understand what is happening and what can be done next;
-avoid making progress monitoring a competing page or interrupting usable browsing
-and playback.
+- **Content first.** Posters, titles and playable episodes lead. Use neutral surfaces,
+  restrained decoration and clear alignment; avoid decorative metrics and nested cards.
+- **One clear next action.** Web playback is primary. Keep secondary commands and
+  diagnostics available on demand without hiding consequential information.
+- **Consistent meaning.** The same kind of status, action or field uses the same
+  presentation. Browsing, dense lists and forms may have different layouts.
+- **Progressive disclosure.** Show the summary needed for a decision first. Expand
+  secondary metadata, configuration and diagnostics only when relevant.
+- **Continuity.** Background work must not interrupt usable browsing, reset input,
+  replace existing content with a skeleton or reset playback/subtitle renderers.
 
 ## Visual and interaction conventions
 
-Use Tailwind defaults, shared shadcn controls and Vidstack's native control styling.
-Keep common page spacing and layout in shared CSS rather than duplicating theme
-values. TanStack Query owns server data, request deduplication, polling and invalidation.
-Routes preload the same query keys and preserve navigation/error UX; they do not own
-a second mutable server snapshot. Components own transient form and player state.
-Cancellation and stale-response guards prevent departed views from publishing results.
+Define shared values in [index.css](../../web/src/index.css); use Tailwind's scale
+instead of introducing isolated values in feature components. The following are
+baseline choices, with purposeful exceptions such as posters and player controls.
 
-Keep lists compact with aligned actions. Truncate long names where needed and make
-the full name available through an accessible Tooltip. Communicate status with shape
-and text as well as color. Give icon-only controls accessible names and visible
-keyboard focus.
+| Foundation | Convention |
+| --- | --- |
+| Page geometry | Shared 72rem maximum container, aligned titles; 16px horizontal padding, 24px from the small breakpoint |
+| Spacing | Prefer 4, 8, 12, 16, 24 and 32px; page sections use 24px gaps, related controls 8px |
+| Typography | Page titles 24px semibold; section titles 16–18px semibold; body 14–16px; supporting labels 12px; avoid smaller arbitrary sizes |
+| Controls | Standard inputs/buttons 36px high; provide at least 44px touch targets on touch layouts |
+| Shape | Shared `rounded-md` controls and `rounded-lg` panels; pills for compact badges; preserve the cover's 2:3 ratio |
+| Surfaces | Neutral page, content and floating surfaces; bordered panels, separators between ordinary list rows; shadows primarily for floating UI |
+| Color | Semantic theme tokens for text, surfaces, emphasis and feedback, with light/dark equivalents; reserve strong emphasis for primary actions and selection |
+| Density | Browse with room for artwork; use compact aligned rows for files/settings; vary layout without redefining controls |
 
-When space allows, label buttons with an icon and text. When space is constrained,
-use an icon-only button with a Tooltip that names the action. The Tooltip must not
-replace the control's accessible name or visible keyboard focus.
-Use short visible verbs such as Save, Edit, Test and Disconnect; retain the specific
-action in the accessible name and Tooltip. Measure the action container, rather
-than only the viewport, so bounded forms and side panels compact correctly.
-Keep busy feedback on the action's existing icon and `aria-busy` state.
+Use shared success, warning, error and information styles rather than repeating
+feature-local color recipes. Business code maps a state to its meaning; shared UI
+owns its visual treatment. Include text or a recognizable shape as well as color.
 
-Labels, units and inputs should explain ordinary fields without repeating their
-meaning in helper paragraphs. Keep non-obvious behavior in keyboard/touch-accessible
-info Tooltips beside the label. Keep errors and required recovery steps visible.
-Use inline native radios for short finite choices, including subscription source modes.
-The viewing progress editor uses a status dropdown and a numeric stepper. Catalog filters use labeled dropdown selectors. Use the shared transcode-style radio
-cards when choices have descriptions. Keep service-populated lists such as source
-sites and resource directories as selectors; do not render an unbounded radio list.
+Use short action verbs such as Save, Edit, Test and Disconnect. Prefer icon and text
+when space permits. Compact to a named icon with a Tooltip based on the action
+container's available width, not only the viewport. Keep busy feedback on the
+existing icon with `aria-busy`; do not add duplicate spinners or status rows.
 
-Use one shared page container (72rem maximum) and title alignment for Library,
-Files, Review, History and Settings. Use the shared page header for title,
-description and page actions; keep scan/stale status beneath it. Settings uses
-full-width section panels with a desktop description column and a bounded form
-column, stacking on mobile. Do not narrow the entire Settings page.
-Section descriptions are optional: omit text that only repeats the heading and
-field labels. All five Settings tabs use the same spacing, concise action controls
-and visible validation rules. Tab navigation retains every destination on narrow
-screens through icons, Tooltips and accessible names.
+## Shared components
 
-Library settings uses 36px read-only directory fields matching the add-path input,
-aligned add/remove actions, a single add-path row and a compact
-cache-budget input. Long paths have a full-value Tooltip; directory rules and cache
-semantics are available through label help. Scan locks and directory limits remain
-visible. Playback lays out descriptive mode and profile cards in two columns when
-space permits, stacking on narrow screens. Custom-player entries use separated rows
-with their templates available on demand; name and template fields share a row on
-wide screens. Keep browser-only storage scope visible.
+Shared primitives live in `web/src/shared/components/ui/`; page-level shared
+components live in `web/src/shared/components/`. Prefer these over new dependencies
+or custom controls, and retain Vidstack's native player control styling.
 
-Account settings places account identity and a concise Connected/Disconnected state
-in the left title/description column, with authorization and credential-preview
-actions together in the form column. Connection-check details use an info Tooltip;
-reconnection requirements and failed connection checks stay visible. Credential instructions
-belong in label help; account replacement consequences stay visible in confirmation.
-Security places current password above a responsive new-password/confirmation pair,
-with equal-height label rows so help icons do not offset the inputs,
-then Change password and Sign out on one action row. Keep password-change consequences
-visible and limits/link-access details available through info controls. Never hide
-validation failures or change credential submission and confirmation semantics.
+| Pattern | Shared responsibility |
+| --- | --- |
+| Page header | Title, optional description and page actions with consistent alignment |
+| Button / action button | Visual priority, size, focus, disabled and busy states; responsive icon labels |
+| Status badge | Fixed typography, padding and semantic tones; feature owns label and state mapping |
+| Section / panel | Heading, optional description, content spacing and action placement |
+| Form field | Label, help affordance, input alignment and visible validation error |
+| Toolbar | Search, filters, sort and actions, including compact layouts |
+| List row | Primary/secondary information, status, aligned trailing actions and separators |
+| Empty / error state | Consistent icon, concise explanation and relevant recovery action |
 
-Downloads orders Watching automation first, then Subscription defaults, Jackett
-sources and qBittorrent. Watching has no independent release-profile selector:
-activation previews use the saved Subscription defaults profile, never an unsaved
-draft or an older automation profile. Discard the visible confirmation when that
-default changes. A preview and explicit confirmation still authorize the captured
-scope; existing subscriptions retain their saved profile and starting episode.
-Show Watching status in the left title/description column as Enabled or Disabled.
-Keep blocking reasons beside that status; do not repeat the state above the form.
-On mobile, the same header summary stacks above the controls. Show the two
-starting-episode choices as the same bordered radio cards used by profile selection,
-side by side where space allows.
-The server accepts only the current subscription default for activation and fences
-both pending confirmations and automatic acquisition when that default changes. The
-existing `profile_changed` state prompts a fresh preview and confirmation.
+Implemented shared foundations include `StatusBadge`, `InlineError`, `LoadingState`,
+Button sizes (`default`, `sm`, `icon`) and the `form-control`, `field-label`,
+`field-error`, `section-title`, `panel-inset` and `list-row` utilities.
+`Card` owns composed sections; `surface-panel` owns a single padded content surface.
+Both use 16px padding on narrow layouts and 20px from the small breakpoint.
+Icon buttons use 36px geometry; coarse-pointer controls have at least 44px targets
+that occupy layout space rather than overlapping adjacent actions.
 
-Jackett and qBittorrent show a compact endpoint/source summary above their shared connection disclosure, field grid and
-Save/Test/Disconnect action styling. Connection settings show a concise
-configured/unconfigured summary. Open first-time
-setup by default and disclose saved connection fields on demand. Connection Save appears only inside the editor; Test and management links remain available while collapsed. Disconnect and bundled-service switching belong in a More menu. Jackett keeps site
-priority and its separate Save sites action available independently of connection editing; adding sites uses a bounded selector instead of a second list. Connection and site saves preserve the other editor’s draft; search
-diagnostics remain collapsed. qBittorrent groups API access, destination and the
-optional browser URL in one panel. Saved destinations show a directory/path summary with Edit and Validate actions; first-time setup opens the fields. Optional browser URL fields remain collapsed while the saved WebUI link stays accessible. Saved credentials remain blank; a short placeholder
-explains keeping them, and label help explains when re-entry is required. Showing,
-hiding and copying bundled credentials retain their existing lifetime and cache
-restrictions. A saved connection is not evidence of successful network access.
-Service-test counts and successful saves use Toasts, without adding persistent
-confirmation rows; unresolved setup and validation failures stay in context.
+The remaining patterns are consolidation targets, not an inventory of already
+implemented components.
+Extract stable repeated patterns as pages are revised. Resolve overlapping `Card`,
+`surface-panel` and hand-built panel uses into clear roles before adding another
+wrapper. Keep feature-specific workflows within their owning feature.
 
-Use 24px section gaps, compact list rows and consistent rounded-lg bordered
-panels. Browsing lists use separators rather than a card around every row.
-Poster grids have two mobile columns and adapt desktop columns to a minimum
-card width. Reserve two title lines and one availability summary; keep cache
-information on detail pages. Whole cards open work details with matching hover
-and keyboard-focus feedback. Cards show format/year, a compact viewing-status
-badge with cumulative progress (for example, `Watching 1 / 12`), and one local
-availability line (`Local 0 / 12`). Unknown totals omit the denominator. Movies
-use a single local-availability slot. Show an additional unwatched-availability
-hint only when its count is positive. Card Tooltips and screen-reader text retain
-the source and full meaning of the compact counts; do not add nested buttons to
-whole-card links or repeat the remote-only availability sentence. When the server
-resolves a next unwatched playback target, show a separate poster-corner Play
-control as a sibling of the card link. Hide it when no target exists. Link directly
-to the player only when the target has one available version; multiple versions
-open the detail version chooser. Never auto-select a version on the card.
+Expose a small set of meaningful variants. Callers control placement and layout;
+shared components control typography, colors, internal spacing and interaction
+states. Repeated style overrides should become a shared rule. Do not build a
+universal component with unrelated boolean options or add variants for one-off use.
 
-Catalog search submits with Enter or its search button. Sorting and discrete
-filters apply immediately and reset pagination. Put secondary filters in an
-expandable panel and show removable applied-filter labels. Preserve URL state,
-return focus and scroll. Restore the last applied Library filters when returning
-to Library in the same tab session; explicit URL filters take precedence. The
-Library defaults its AniList viewing-state filter to Watching and offers All
-viewing states as an explicit choice. The Library toolbar keeps search, Filters,
-sort and the AniList action on one row. Sort opens a compact radio-choice menu with
-the current choice marked; fixed filters use labeled dropdown selectors in the expandable
-panel. Refresh uses an icon button with a Tooltip and an
-accessible name. On narrow screens, compact action icons and a bounded sort
-control preserve search space. AniList account actions share one row when space
-allows and wrap naturally on narrower screens. The application header always stays on one line.
-Navigation measures the full translated content against its available width and uses
-text when it fits, otherwise icons with
-Tooltips and accessible names. If icons still do not fit, scroll only the
-navigation horizontally with its scrollbar hidden; keep the brand visible and preserve keyboard access.
-Omit routine filesystem-monitoring confirmation; retain degraded-monitor warnings.
-
-Work detail prioritizes the header and episode list. Align the cover and core
-information at the top; the cover keeps its 2:3 aspect ratio and does not stretch
-with the information column. Show the title, alternative titles, viewing state and
-a short strip of format/year/release-status badges and inline labeled episode
-counts and known dates. Bound the information column to a readable width; do not
-spread metadata across equal columns spanning the page. Use readable release
-status labels. Keep unknown dates in More metadata instead of empty header cells.
-Place viewing state and the primary playback action together below a short divider;
-the progress edit action is a small tertiary button. Alternative titles use two lines;
-show an expansion control only when the rendered text exceeds that height, and
-remeasure when its width changes. Keep provider attribution/links and secondary
-metadata in More metadata on both local and remote-only details. Label the viewing
-edit action "Edit progress". Long titles and actionable errors may grow the header naturally. AniList viewing state is a
-compact row inside the title/metadata header on both local and remote details.
-Local details place a primary `Play episode N` action directly below that row.
-It targets the first available unwatched episode and opens the version chooser
-when several versions are usable. Disable it with an explanatory Tooltip when
-tracking progress is unavailable, the work is caught up, or no unwatched episode
-is available locally. Remote-only details omit the action.
-Use a status Badge, cumulative progress and the provider's total episode count;
-unknown totals show only the watched count. Keep the cumulative-progress explanation
-in a keyboard/touch-accessible Tooltip. Episode lists do not repeat the header's
-progress summary or its explanatory paragraph. Put a positive unwatched-availability
-count beside the episode heading with its own accessible explanation Tooltip;
-omit zero counts. Episode rows use short Watched/Unwatched labels, with the AniList
-source explained at the list/header level. Keep a fixed-size refresh button in the
-summary and Library toolbar; its Tooltip contains the last update time and, only
-when stale, the saved-data explanation. Refreshing changes only the existing icon
-and aria-busy state, without an extra badge, spinner or cache-feedback row. Show a short loading skeleton until a
-complete list snapshot establishes whether an entry exists. Reconnect guidance and
-initial-read failures remain visible in the row. The summary wraps on narrow screens. An Edit AniList progress action opens a shared
-dialog on local and remote-only details. Keep confirmed remote values and pending
-intent visibly separate. Progress accepts explicit backward corrections; status
-changes are explicit choices. Show revision/validation errors beside the form,
-retry timing and conflict choices in the dialog, and submission lifecycle/results
-in deduplicated app-level Toasts with a work-detail recovery action. Network failure
-must retain editable input and persisted intent.
-
-Anime details keep Web playback as the primary episode action. A single available
-version orders controls as compatibility status, shared Files action menu, then Play.
-Association correction is a menu item targeting the specific file review, composed
-by Anime through the resource-action slot. The same menu includes Show in Files, which resolves the current parent directory
-on demand and scrolls to, focuses and highlights the corresponding file row without
-starting playback. The version chooser uses the same menu;
-unavailable versions retain their correction link without file commands.
-Multiple available versions open the version chooser; each available version has
-its own Play and file-action controls. Unavailable versions expose no file commands.
-The same menu provides external players, original links/downloads/playlists and
-preparation controls, while Anime supplies the association-correction menu item.
-App supplies the cross-feature composition through a typed resource-action slot;
-Anime does not depend on App or Media/Playback UI internals. Compatibility queries
-are bounded, account for resource scope and the selected source version, and known
-source conflicts disable the affected menu. Web playback retains work, episode,
-source-version and Library return context. Existing command feedback and logs apply.
-
-Episode numbering guidance is an info icon beside the episode heading with a
-keyboard/touch-accessible Tooltip. Files to review use a secondary compact disclosure
-below the episode heading, with candidate links and pagination inside. Hide the
-disclosure after a successful empty first-page response; omit page-size counts
-rather than implying a total. Keep loading and errors visible while collapsed,
-and retain pagination when a later page becomes empty. Candidate guidance belongs
-in a Tooltip. Do not add persistent instructional footnotes or global review/Files
-links below the episode list; corrections use the file action menu and
-version chooser, and Files remains accessible through the main navigation.
-
-Provider airing schedules use a compact table in the detail sidebar, beside the
-episode list, with a loaded-record count. Keep the provider numbering explanation
-in an accessible Tooltip. The table shows episode, local date/time and status in
-aligned columns sorted by broadcast time; cap its height and scroll it rather than
-pushing the remaining sidebar sections away. Cached records are unverified;
-pagination must not imply a complete schedule or identify the next broadcast from
-an unordered partial response. Loading, cache markers, partial warnings and read
-failures remain visible in the panel.
-
-Group secondary metadata, synopsis and relationships into on-demand sections; keep
-the airing schedule visible in the sidebar and actionable errors and unresolved
-candidates discoverable. Files identification uses a compact focusable status icon
-with a Tooltip.
-Review and associated work/episode links belong in the file action menu.
-Keep action menus focused on choices and commands; put explanatory guidance in
-Settings and report invocation failures through Toasts.
-Keep compatibility and task status outside action menus. Put shared choices in
-Settings. The preparation panel is a nonblocking active-task monitor, not a dedicated
-page.
-
-Settings ends with an About tab at `/settings?section=about`, using one compact
-Settings panel. Keep the project description, links and license in the left column;
-place the current version and Check action on one row in the right column. Collapse
-separate Web/Backend commits and build dates under Build details, opening them when
-builds differ; keep the mismatch warning visible. Update checks
-are manual; keep the last successful result and its timestamp visible, distinguish
-failed checks from current versions, and use the existing action spinner and Toasts.
-Development, testing and prerelease builds never claim to be the latest stable build.
+Forms use labels and units to explain ordinary fields. Put non-obvious guidance in
+keyboard/touch-accessible label help; keep validation and required recovery visible.
+Use inline native radios for short choices, shared radio cards for descriptive
+choices and selectors for service-populated lists. Avoid unbounded radio lists.
 
 ## Feedback and interface states
 
-Empty page/list states use the shared icon-and-text placeholder, with a relevant
-next action when available. Apply the same presentation to Library, History,
-Files and Review; do not replace failure feedback with an empty-state message.
+Choose placement by how long information matters to the task, not by whether it is
+stored. Durable information belongs in context; temporary operation feedback uses
+nonblocking floating UI and must not insert banners or rows into the page layout.
 
+| Situation | Presentation |
+| --- | --- |
+| Initial load without data | A short skeleton matching the expected content |
+| Confirmed empty result | Shared icon-and-text placeholder, with a next action when available |
+| Initial read failure | Visible error and recovery action; never an empty-state substitute |
+| Validation, unavailable resource, setup blocker or conflict | Beside the relevant field/item, preserving editable input |
+| Background refresh | Keep existing content; indicate activity on the initiating control |
+| Operation result or recoverable transport failure | Deduplicated Toast with a useful retry/recovery action |
+| Ongoing preparation | Nonblocking floating task monitor; actual state, never invented percentages |
+| Persistent scan/monitor issue | In-context status and recovery; omit routine monitoring confirmation |
 
-Use deduplicated Toasts for operation results and recoverable playback or subtitle
-failures. Keep ongoing subtitle-preparation feedback visible until completion,
-failure, or selection cancellation. Reuse existing retry actions.
-Baseline anime identification uses one app-level, deduplicated loading Toast,
-kept visible through matching and admission. Completion or failure updates the
-same Toast with a timed result; page navigation does not restart notifications.
-An idle monitor checks for new background runs without adding page-level text.
-Successful incremental identification stays silent; failures remain visible through
-the same deduplicated feedback. Files shows persistent filesystem-monitoring state
-and recovery guidance. Only observed task states are shown; no synthetic progress
-percentage is used.
+Refresh Tooltips contain the last update time and stale-data explanation only when
+needed. Authorization/reconnection guidance stays visible. Background failures
+notify once per failure identity across polling, filters and navigation; recovery
+clears that identity and explicit retry may report a new failure. Inspect failure
+envelopes even when HTTP succeeds.
 
-Keep form validation, initial page errors, unavailable resources, scan/stale status,
-setup guidance, and empty states in context. Provide useful next actions without
-repeating the same information in multiple places. Do not imply a numeric completion
-percentage when only a task state is known; use an indeterminate state instead.
+Baseline identification uses one app-level loading Toast through matching and
+admission, updated with a timed completion/failure result. Navigation must not restart
+it. Successful incremental identification is silent; failures remain discoverable.
+Subtitle preparation stays visible until completion, failure or selection cancellation.
 
-Manual AniList-list and metadata refresh results, and Review confirmation,
-rejection and removal results use Toasts. Review validation, missing-resource and
-revision-conflict errors remain beside the form; transport and server-operation
-failures use Toasts while retaining the form and its existing retry action.
-A successful association Toast includes an Open anime action. Refresh feedback
-checks failure envelopes even when HTTP succeeds. Cached background-refresh
-failures notify once per failure identity across filters and detail navigation;
-polling the same failure does not repeat notifications. Recovery clears that
-identity, and an explicit retry can report a new result. Refresh buttons and small
-busy indicators show work in progress immediately. Preserve existing content
-during background refresh and transport failures; skeletons and inline read errors
-are reserved for the first load without data. Authorization guidance remains inline;
-stale-cache context belongs in the refresh Tooltip. Background failures use
-deduplicated Toasts. No busy-state delay or selective data-update mechanism is added. The Library connection action is a labeled button that
-opens Settings. Existing backend refresh and Catalog operation logs retain their
-operation outcomes; UI placement changes do not add request payloads to logs.
+Review operations and manual metadata/list refreshes use Toasts; Review validation,
+missing-resource and revision-conflict errors stay inline. Retain input and retry on
+transport failure. Successful association offers an Open anime action.
 
-Unrelated polling must not reset playback or subtitle renderers.
+## Page patterns
 
-## Accessibility and responsive layouts
+### Navigation and Library
 
-Support keyboard navigation, visible focus, accessible control labels, sufficient
-text contrast, and status/error cues that do not rely on color alone. Keep controls
-usable on desktop and narrow/mobile layouts without overlap or page-wide horizontal
-overflow. Validate at 1280 px and 390 px widths, including long and Chinese filenames.
+Use the shared container/header for Library, Files, Review, History and Settings.
+Keep the application header on one line. Measure translated navigation content;
+show text when it fits, otherwise named icons with Tooltips. If necessary, scroll
+only the navigation horizontally, retaining the brand and keyboard access.
 
-Keep labels and feedback in English. Preserve original filenames. Do not show
-placeholder metadata, nonfunctional controls, invented posters, or incomplete
-integrations as completed features.
+Keep search, Filters, sort and the AniList action in one toolbar. Search submits
+with Enter or its button; sort and discrete filters apply immediately and reset
+pagination. Sort uses a radio-choice menu. Secondary filters expand into labeled
+selectors with removable applied-filter labels. Preserve URL state, focus and scroll.
+Restore last applied Library filters within the tab session unless explicit URL
+filters override them. Default viewing state is Watching; provide All viewing states.
+The connection action opens Settings; refresh remains a fixed-size icon button.
 
+Poster grids have two mobile columns and adaptive desktop columns with a minimum
+card width. Reserve two title lines and one local-availability line. Cards show
+format/year, viewing state with cumulative progress and local availability. Omit
+unknown denominators; movies have one local slot. Show unwatched availability only
+when positive. Keep source/count explanations in accessible Tooltips and cache
+information on detail pages.
+
+Whole-card links open details with matching hover/focus feedback. An available next
+unwatched target adds a separate sibling Play control, never a nested button. One
+available version links to playback; multiple versions open the detail chooser.
+Do not auto-select a version or show Play without a resolved target.
+
+### Work details
+
+Prioritize the top-aligned cover, readable title/metadata column and episode list.
+The cover must not stretch with the text. Alternative titles occupy two lines with
+expansion only on actual overflow, remeasured when width changes. Show format/year,
+readable release status, labeled episode counts and known dates. Put unknown dates,
+provider links/attribution, secondary metadata, synopsis and relationships in
+on-demand sections. Long titles and actionable errors may grow the header.
+
+Keep viewing state and playback together below a short divider. Edit progress is a
+tertiary action. Local works offer Play episode N for the first available unwatched
+episode, opening the chooser for multiple versions. Disable with an explanation
+when progress is unavailable, caught up or no unwatched local episode exists;
+remote-only details omit playback. Once authoritative data includes local resources,
+replace the remote route with local details while retaining Library/query context.
+
+Episode rows use compact Watched/Unwatched labels, with AniList source/numbering
+explained at the heading level. Show a positive unwatched-availability count beside
+the heading; do not repeat the header's progress summary. Order single-version
+controls as compatibility, shared file menu, then Play. In a version chooser, each
+available version owns its Play/menu actions. Unavailable versions retain association
+correction but expose no file commands.
+
+The shared file menu offers external players, original links/downloads/playlists and
+preparation. Anime supplies file-specific correction and Show in Files actions through
+app composition. Show in Files resolves the current parent, then scrolls to, focuses
+and highlights the file without playing it. Keep compatibility/task status outside
+menus and disable commands for known source conflicts.
+
+Place files to review in a compact disclosure below the episode heading. Keep loading
+and errors discoverable while collapsed; hide after a successful empty first page.
+Retain pagination when later pages empty and do not imply a total from page size.
+Guidance belongs in accessible help, not persistent footnotes or duplicate navigation.
+
+Show the airing schedule in a sidebar table with episode, local date/time and status,
+sorted by broadcast time, with bounded scrolling and a loaded-record count. Keep
+loading, unverified-cache markers, partial warnings and failures visible. Partial
+pagination must not imply completeness or identify the next broadcast from unordered
+records. Explain provider numbering through accessible help.
+
+### Files, Review and History
+
+Use compact rows, aligned trailing actions, separators and the shared empty/error
+patterns. Truncate long names with accessible full-value Tooltips. Files identification
+uses a focusable status icon; Review and associated work/episode links live in the
+file menu. Keep correction/recovery actions specific to the affected resource.
+
+### Settings
+
+Use full-width section panels with a desktop description column and bounded form
+column, stacking on mobile. Do not narrow the whole page. Omit descriptions that
+repeat labels. All tabs share spacing, validation and action conventions; retain
+every destination on narrow screens through icons, Tooltips and accessible names.
+
+| Section | Specific rules |
+| --- | --- |
+| Library | 36px read-only directory fields aligned with the add-path row; full-path Tooltips, compact cache budget; directory rules in help, locks/limits visible |
+| Playback | Descriptive mode/profile cards in two columns when possible; custom players in separated rows, name/template side by side on wide layouts; templates on demand and browser-only storage scope visible |
+| Account | Identity and Connected/Disconnected state in the description column; authorization/credential actions together; check details in help, failed checks/reconnection visible; replacement consequences in confirmation |
+| Security | Current password above a responsive new-password/confirmation pair; equal label heights; Change password and Sign out on one row; consequences visible, limits/link guidance in help |
+| Downloads | Order Watching, Subscription defaults, Jackett, qBittorrent; keep global source/profile policy here |
+| RSS | One global interval in whole minutes (1–1440, default 30); local draft until Save, unit in label, Toast result, no restart |
+| About | `/settings?section=about`; description/links/license left, version and Check right; build details collapsed unless builds differ, mismatch visible |
+
+Connection panels share a compact endpoint/configuration summary, disclosure, field
+grid and Save/Test/Disconnect styling. Open first-time setup by default; disclose
+saved fields on demand. Save stays inside the editor; Test and management links
+remain outside. Disconnect and bundled-service switching use More. Configuration
+alone never implies successful connectivity.
+
+Jackett site priority and Save sites remain independent of connection editing;
+adding sites uses a bounded selector. Each save preserves the other draft. Keep
+search diagnostics collapsed. qBittorrent groups API access, destination and optional
+browser URL. Saved destinations have a summary with Edit/Validate; first-time fields
+are open. Optional browser URL fields collapse while the saved WebUI link remains.
+Saved credentials stay blank with a keep-existing placeholder and re-entry help;
+preserve bundled credential visibility/copy lifetime and cache restrictions.
+
+Connection-test counts and save success use Toasts; unresolved setup/validation
+failures stay visible. About checks are manual: retain the last successful result
+and timestamp, distinguish failed checks, and never label development/test/prerelease
+builds as the latest stable version.
 
 ## Player layout
 
-Keep the player page focused on the picture. Combine the icon-only Back action and
-an at-most-two-line title in one compact header; preserve its accessible name and
-Tooltip. At mobile widths the video extends to the page edges, while desktop uses
-the normal container. Keep the native Vidstack subtitle and playback controls.
-Below the video, place current-file audio controls and a short More action together.
-Only the active asset supplies audio labels and choices. Show the selected track as
-text when only one track is playable or native audio switching is unavailable.
-Switching audio stays within the current asset. Choose a different file version or
-prepare another copy to access audio absent from the active file; source tracks
-and retained-track checkboxes belong only to preparation.
-Use 44px touch targets without large outlined buttons; allow wrapping when needed.
+Keep the picture primary. Use a compact header with named Back icon and at most two
+title lines. Mobile video extends to page edges; desktop uses the shared container.
+Retain native Vidstack subtitles/controls. Place current-file audio and More together
+below the video, wrapping with 44px touch targets rather than large outlined buttons.
+Only the active asset supplies audio choices; show plain selected-track text when
+switching is unavailable or only one track is playable. Source-track retention
+belongs to preparation, not playback audio selection.
 
-More owns manual playback retry, compatibility information, playback options and
-existing external-player/link commands. Playback options discloses the full filename,
-the current media version, a version selector and the manual preparation action. Compatibility information describes the active resource; original-file facts are disclosed separately. Keep the recovery controls visible
-when playback is unavailable. Routine technical explanations must not occupy the
-normal playback page. Progress editing and unmapped-target explanations use a compact
-Progress disclosure; pending decisions, conflicts, failures and recovery actions remain
-visible. Preserve command logging and log explicit manual playback retries without
-media URLs or credentials.
+More contains manual retry, compatibility, Playback options and existing external
+player/link commands. Playback options discloses the full filename, current version,
+version selector and manual preparation. Compatibility describes the active resource;
+original-file facts are separate. Keep recovery controls visible when playback fails;
+normal playback should not carry routine technical explanations.
+
+Progress editing/unmapped explanations use a compact disclosure. Keep pending decisions,
+conflicts, failures and recovery visible. Preserve playback context and existing command
+logging; log manual retries without media URLs or credentials.
 
 ## Episode Viewing and Playback Completion
 
-Detail episode rows label supported targets as watched/unwatched **based on AniList
-progress**; specials and fractional numbers show unknown. The summary distinguishes
-cumulative watched progress from available unwatched episodes and local playback
-history. Library cards use actual available episode targets for unwatched counts,
-counting multiple resource versions once. Pending intent never changes confirmed
-indicators. Keep these hints within the existing row/card hierarchy.
+Use confirmed AniList cumulative progress for supported episode Watched/Unwatched
+labels; specials/fractional episodes are unknown. Distinguish this from local history
+and available unwatched counts; count each episode target once across file versions.
+Unknown provider totals show only the watched count. Pending intent never changes
+confirmed indicators. A complete initial snapshot must establish entry presence
+before showing an absent state.
 
-Eligible players show a nonblocking Tracking control in the player action row. It
-provides Mark as watched, actual operation state and the same progress editor available
-on details. Decision-required operations explain cumulative cross-gap changes and expose
-explicit Confirm/Keep actions or an initial-status selector. Failures expose Retry;
-conflicts expose Keep AniList value/Submit my change. Confirmed values and pending intent
-stay visually distinct. Player and detail share operation queries, cache updates and
-notifications, and both follow remote confirmation instead of stopping at queued.
-Keep controls wrapping at narrow widths. Unmapped sources show no tracking command.
+Local and remote details share Edit progress; eligible players expose a nonblocking
+Tracking control with Mark as watched, operation state and the same editor. Unmapped
+sources have no tracking command. Support explicit backward corrections and explicit
+status choices. Cross-gap decisions explain cumulative changes with Confirm/Keep or
+an initial-status selector; failures offer Retry, conflicts offer Keep AniList value
+or Submit my change.
+
+Preserve editable input and persisted intent on failure. Keep revision/validation,
+retry timing and conflict choices in the dialog; submission lifecycle/results use
+deduplicated app-level Toasts with detail recovery. Player/detail share queries,
+notifications and confirmed results rather than treating queued intent as success.
 
 ## Automatic Acquisition
 
-The subscription interaction iteration was marked complete on 2026-10-24. Its
-[final design and delivery evidence](../history.md#subscription-interaction-design) are
-archived; this section remains the maintained UI convention.
+Place the subscription summary in the metadata header after viewing/playback: label,
+one primary outcome, Activity and secondary menu. Wrap on mobile; do not duplicate
+it below episodes. Keep an attention indicator when action is needed.
 
-Settings includes a compact RSS section with one global refresh interval in whole
-minutes (1–1440, default 30). Keep edits local until Save, show the unit in the input
-label, and use Toasts for save results. Saving applies without a restart.
+| Situation | Controls and behavior |
+| --- | --- |
+| Manual subscription | Subscribe, Edit, Check updates, Unsubscribe; Pause/Resume in the menu |
+| Automatic subscription | Group state and Watching management link; per-work exclusion; editor explicitly says Convert to manual subscription and explains the consequence |
+| Completed subscription | Completed with explicit Resume; normal automatic pause/resume remains group-managed |
+| Editor | Starting episode and effective-default summary first; profile/source/RSS overrides under More options; specific setup action when destination/sources are missing |
+| Activity | One responsive dialog; active downloads/imports and actionable failures first, finished history secondary; actual progress and concise episode/status/actions |
+| Diagnostics | Lazy-loaded grouped release decisions, full names, source-check times/sites/outcomes, coverage warnings and rejection reasons; resource samples are not required selection |
 
-Place the unified subscription summary inside the work metadata header, after the
-viewing/playback actions. Use the Header row layout: subscription label, one primary
-outcome, an on-demand Activity action and a secondary menu. Permit wrapping on mobile;
-do not place a second subscription panel below the episode list. Normal controls
-are Subscribe, Edit, Check updates and Unsubscribe; existing Pause/Resume stays in
-the manual subscription menu. Automatic subscriptions show their group state and link
-to Watching management; their editor is explicitly labeled Convert to manual subscription
-and explains that saving ends automatic management. Automatic works share a group switch
-and per-work exclusion controls. Completed subscriptions show Completed and expose an
-explicit Resume action; regular automatic pause/resume remains group-managed.
+Watching shows Enabled/Disabled and blocking reasons in the description column,
+stacked above controls on mobile. Use shared descriptive radio cards for starting
+episode choices. Activation previews use saved Subscription defaults, with no
+independent profile selector. Discard confirmation when that default changes; prompt
+fresh preview/confirmation on `profile_changed`. Confirmation authorizes captured
+scope; existing subscriptions retain their saved profile and starting episode.
 
-The editor initially shows only the starting episode and a short effective-defaults
-summary. Put profile/source overrides and RSS entry behind More options. Keep global
-explanations, site order, credentials and refresh policy in Settings. A validated
-destination and configured automatic sources are required, with a specific setup
-message/action when missing. Saving does not require a successful resource search.
+Keep editor input/disclosure stable across background revisions. Capture revision at
+opening, show stale-save conflicts inline and load current values on reopening.
+Saving does not require successful search. Check updates attempts pending discovery
+while respecting transport limits. Offer Settings for configuration failures and
+retry/Review only where applicable. qBittorrent WebUI owns transfer controls.
 
-Open Activity in one responsive dialog. Show active downloads/imports and actionable
-failures first, with actual progress and concise episode/status/action rows. Finished
-history is secondary. Move grouped release decisions and full release names into
-lazy-loaded Diagnostics; do not expose resource samples as a required selection.
-Keep an attention indicator in the collapsed header row. Show Settings only for
-configuration-related failures and acquisition/import retry or Review only when
-appropriate. Use Toasts for operation results; retain form validation/conflicts
-inline without discarding user input. qBittorrent WebUI owns transfer controls.
+## Accessibility and responsive layouts
 
+Provide keyboard operation, visible focus, accessible names, sufficient contrast and
+non-color status/error cues. Tooltips supplement accessible names; they never replace
+visible required recovery information. Help must work with keyboard and touch.
+Avoid overlapping controls and page-wide horizontal overflow.
 
-Keep an open subscription editor's input and disclosure state stable when background
-queries report a new revision. Capture the accepted edit revision at opening; stale
-saves fail inline without discarding input. Closing and reopening loads current values.
-Check updates must attempt pending discovery immediately while respecting service
-transport limits. Diagnostics shows the last source-check time, attempted sites,
-outcomes, coverage warnings and rejection reasons only on demand.
+Keep labels and feedback in English; preserve original filenames. Never present
+placeholder metadata, invented posters, nonfunctional controls or incomplete
+integrations as completed functionality.
 
-When refreshed tracked detail data acquires a local work, replace the remote-only
-route with its local detail route and expose the episode/resource controls immediately.
-Preserve library return filters and query context. A remote-only message must not
-remain visible after the authoritative detail response includes local resources.
+## Maintenance and acceptance
+
+1. Reuse a foundation/component/page pattern before adding a new visual treatment.
+   Document a purposeful exception with its owning pattern; do not copy page-specific
+   implementation history into shared rules.
+2. Validate new shared patterns on Library, a work detail or Settings before broad
+   migration. Maintain a development component showcase as consolidation proceeds;
+   it is a verification aid, not a shipped feature requirement.
+3. Review light/dark screenshots at 390px, 768px and 1280px, including long titles,
+   Chinese filenames, empty/loading/error states and keyboard focus. Compare matching
+   viewport/data states; tests alone do not establish visual acceptance.
+4. Preserve URL/query context, cancellation, form drafts and accessibility. Follow
+   [frontend ownership](architecture.md#frontend-ownership) for state/composition and
+   [logging conventions](README.md#logging-choice) for changed business behavior.
+   Visual-only changes must not add payload/credential logging.
+5. Run Biome for code changes and appropriate interaction checks; report browser
+   verification separately. Update this English document when a shared rule changes.

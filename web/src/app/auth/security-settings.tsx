@@ -93,8 +93,8 @@ export function SecuritySettings() {
 						/>
 					</label>
 					<div className="space-y-2">
-						<div className="flex min-h-6 items-center gap-1">
-							<label htmlFor="new-password" className="text-sm">
+						<div className="field-heading">
+							<label htmlFor="new-password" className="field-label">
 								{t("auth.security.newPassword")}
 							</label>
 							<FieldHelp
@@ -113,8 +113,8 @@ export function SecuritySettings() {
 						/>
 					</div>
 					<div className="space-y-2">
-						<div className="flex min-h-6 items-center">
-							<label htmlFor="confirm-password" className="text-sm">
+						<div className="field-heading">
+							<label htmlFor="confirm-password" className="field-label">
 								{t("auth.security.confirmPassword")}
 							</label>
 						</div>
@@ -129,7 +129,7 @@ export function SecuritySettings() {
 						/>
 					</div>
 					{error && (
-						<p role="alert" className="text-sm text-destructive sm:col-span-2">
+						<p role="alert" className="field-error sm:col-span-2">
 							{error}
 						</p>
 					)}

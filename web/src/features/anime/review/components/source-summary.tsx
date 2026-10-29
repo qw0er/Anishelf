@@ -2,6 +2,7 @@ import { FileVideo } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { CatalogReviewItem } from "../../../../shared/api/contracts.js";
+import { InlineError } from "../../../../shared/components/ui/inline-error.js";
 import { episodeName } from "../../shared/episode-name.js";
 import { DecisionBadge } from "./decision-badge.js";
 
@@ -9,7 +10,7 @@ export function SourceSummary({ item }: { item: CatalogReviewItem }) {
 	const { t } = useTranslation();
 	const existing = item.associations;
 	return (
-		<section className="min-w-0 space-y-4 rounded-lg border bg-card p-4 sm:p-5">
+		<section className="min-w-0 space-y-4 surface-panel">
 			<div className="flex items-center justify-between gap-2">
 				<span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
 					<FileVideo className="size-4" aria-hidden="true" />
@@ -25,14 +26,7 @@ export function SourceSummary({ item }: { item: CatalogReviewItem }) {
 					{item.relativePath}
 				</p>
 			)}
-			{!item.available && (
-				<p
-					role="alert"
-					className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
-				>
-					{t("review.unavailable")}
-				</p>
-			)}
+			{!item.available && <InlineError>{t("review.unavailable")}</InlineError>}
 			{item.recognizedWork && (
 				<p className="rounded-lg bg-muted/40 p-3 text-sm">
 					{t(
