@@ -17,6 +17,8 @@ existing_dir=
 backup_dir=
 stack=anishelf
 test_mode=false
+force=false
+conflict_backup=
 
 log() {
   printf '[anishelf] %s\n' "$*" >&2
@@ -50,6 +52,7 @@ Configure Docker Compose or rootless Podman Quadlet interactively.
 --reconfigure DIRECTORY  Prepare fresh configuration, then stop/archive the saved
                          deployment and start the replacement in the same directory.
                          Both modes preserve all volumes and host media.
+--force          Back up conflicting regular Quadlet unit files before replacing/removing them.
 --ref REF        GitHub branch, tag or commit for deployment templates (default main).
                  Branch/tag names containing slashes are not supported.
 --templates-dir  Use local package/deploy templates instead of GitHub (maintainers).
@@ -87,6 +90,25 @@ valid_path() {
   [[ "$1" == /* && ! "$1" =~ [[:cntrl:]] ]] || return 1
   case "$1" in *:*|*\'*|*\"*|*\\*|*\$*|*\`*|*%*) return 1;; esac
 }
+absolute_input() { case "$1" in /*) printf '%s\n' "$1";; *) printf '%s/%s\n' "$PWD" "$1";; esac; }
+known_unit() {
+  case "${1/#$stack/anishelf}" in
+    anishelf.network|anishelf.target|anishelf-app.volume|anishelf-media.volume|anishelf-qbittorrent-connection.volume|anishelf-qbittorrent-config.volume|anishelf-qbittorrent-incomplete.volume|anishelf-jackett-config.volume|anishelf-backend.container|anishelf-web.container|anishelf-qbittorrent-init.container|anishelf-qbittorrent.container|anishelf-jackett-init.container|anishelf-jackett.container) return 0;;
+    *) return 1;;
+  esac
+}
+backup_conflict() {
+  local source=$1 name=${1##*/}
+  [[ "$force" == true && -f "$source" && ! -L "$source" ]] || die "Existing Quadlet unit is preserved: $source (use --force for regular files)."
+  if [[ -z "$conflict_backup" ]]; then
+    conflict_backup=$(mktemp -d "${deploy_dir:-$existing_dir}.quadlet-backup.XXXXXX")
+    log "Conflicting Quadlet unit backup: $conflict_backup"
+  fi
+  [[ ! -e "$conflict_backup/$name" ]] || die "Conflict already backed up: $name"
+  cp -p -- "$source" "$conflict_backup/$name"
+  cmp -s "$source" "$conflict_backup/$name" || die "Quadlet unit changed during backup: $source"
+  log "Backed up conflicting Quadlet unit: $source"
+}
 valid_ipv4() {
   local octet
   local -a octets
@@ -120,11 +142,12 @@ asset() {
 write_env() { printf "%s='%s'\n" "$1" "$2" >> "$stage_dir/bundle/.env"; }
 unit_value() { printf '"%s"' "$1"; }
 render_unit() {
-  local name=$1 line
+  local name=$1 line extra index=0
   while IFS= read -r line || [[ -n "$line" ]]; do
     case "$name:$line" in
       *:Image=ghcr.io/qw0er/anishelf-backend:*) line="Image=ghcr.io/qw0er/anishelf-backend:$image_tag";;
       *:Image=ghcr.io/qw0er/anishelf-web:*) line="Image=ghcr.io/qw0er/anishelf-web:$image_tag";;
+      anishelf-backend.container:Environment=ANISHELF_INITIAL_RESOURCE_ROOTS=*) line="Environment=ANISHELF_INITIAL_RESOURCE_ROOTS=$initial_roots";;
       *:Environment=ANISHELF_PUBLIC_ORIGIN=*) line="Environment=ANISHELF_PUBLIC_ORIGIN=$public_origin";;
       anishelf-web.container:Environment=\"ANISHELF_WEB_TRUSTED_PROXIES=*) line="Environment=\"ANISHELF_WEB_TRUSTED_PROXIES=$web_trusted_proxies\"";;
       anishelf-web.container:PublishPort=*) line="PublishPort=$bind_address:$app_port:8080";;
@@ -146,6 +169,12 @@ render_unit() {
         case "$line" in *:ro|*:rw) line="$line,z";; *) line="$line:z";; esac;;
     esac
     printf '%s\n' "$line"
+    if [[ "$name" == anishelf-backend.container && "$line" == Volume=*:/data/media:rw* ]]; then
+      for extra in ${extra_paths[@]+"${extra_paths[@]}"}; do
+        index=$((index + 1))
+        printf 'Volume=%s\n' "$(unit_value "$extra:/data/extra/$index:rw$selinux_suffix")"
+      done
+    fi
   done < "$stage_dir/$name" > "$stage_dir/bundle/quadlet/$name"
 }
 detect_engine() {
@@ -197,7 +226,8 @@ preflight() {
     for file in "$quadlet_dir"/"$stack"* "$systemd_dir"/"$stack"*; do
       [[ "$stack" != anishelf || "${file##*/}" != anishelf-test* ]] || continue
       if exists "$file"; then
-        [[ "${1:-}" == replacement && -f "$existing_dir/quadlet/${file##*/}" && ! -L "$file" ]] && cmp -s "$file" "$existing_dir/quadlet/${file##*/}" || die "Existing Anishelf unit is preserved: $file"
+        if [[ "${1:-}" == replacement && -f "$existing_dir/quadlet/${file##*/}" && ! -L "$file" ]] && cmp -s "$file" "$existing_dir/quadlet/${file##*/}"; then continue; fi
+        [[ "$force" == true && -f "$file" && ! -L "$file" ]] && known_unit "${file##*/}" || die "Existing Anishelf unit is preserved: $file"
       fi
     done
   fi
@@ -227,7 +257,10 @@ compose() {
 publish_unit() {
   local source=$1 destination=$2
   # Refuse existing paths, including symlinks; noclobber also fences concurrent writes.
-  exists "$destination" && die "Existing unit is preserved: $destination"
+  if exists "$destination"; then
+    backup_conflict "$destination"
+    rm -- "$destination"
+  fi
   (set -C; cat "$source" > "$destination")
 }
 pull_quadlet_images() {
@@ -246,7 +279,8 @@ pull_quadlet_images() {
 }
 # Manage only a saved installer bundle, never an arbitrary source checkout.
 load_existing() {
-  valid_path "$existing_dir" && [[ -d "$existing_dir" && ! -L "$existing_dir" ]] || die 'Choose a real absolute saved deployment directory.'
+  existing_dir=$(absolute_input "$existing_dir")
+  valid_path "$existing_dir" && [[ -d "$existing_dir" && ! -L "$existing_dir" ]] || die 'Choose a real saved deployment directory.'
   existing_dir=$(cd "$existing_dir" && pwd -P)
   if [[ -f "$existing_dir/.deployment-profile" && ! -L "$existing_dir/.deployment-profile" ]]; then
     local saved_profile
@@ -278,7 +312,9 @@ load_existing() {
       destination="${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd/$name"
       [[ "$name" != "$stack.target" ]] || destination="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$name"
       if exists "$destination"; then
-        [[ -f "$destination" && ! -L "$destination" ]] && cmp -s "$unit" "$destination" || die "Installed unit differs from the bundle; reconcile it first: $destination"
+        if ! { [[ -f "$destination" && ! -L "$destination" ]] && cmp -s "$unit" "$destination"; }; then
+          [[ "$force" == true && -f "$destination" && ! -L "$destination" ]] || die "Installed unit differs from the bundle; reconcile it first or use --force: $destination"
+        fi
       fi
     done
   else die 'Not a recognized saved installer deployment; source checkouts cannot be removed.'; fi
@@ -317,7 +353,7 @@ remove_configuration() {
       destination="${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd/$name"
       [[ "$name" != "$stack.target" ]] || destination="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$name"
       if exists "$destination"; then
-        [[ ! -L "$destination" ]] && cmp -s "$unit" "$destination" || die "Installed unit changed during removal: $destination"
+        if ! { [[ ! -L "$destination" ]] && cmp -s "$unit" "$destination"; }; then backup_conflict "$destination"; fi
         rm -- "$destination"
       fi
     done
@@ -333,6 +369,7 @@ main() {
   while (($#)); do
     case "$1" in
       --test) test_mode=true; stack=anishelf-test; shift;;
+      --force) force=true; shift;;
       --generate-only) generate_only=true; shift;;
       --remove|--reconfigure)
         (($# >= 2)) || die "Missing directory for $1"
@@ -375,9 +412,10 @@ main() {
       [[ "$method" == "$old_method" ]] || die 'Reconfiguration must retain the deployment method to preserve volume identities.'
       deploy_dir=$existing_dir; break
     fi
-    ask 'New deployment directory (absolute path)' "$HOME/$stack"
+    ask 'New deployment directory (absolute or relative path)' "$HOME/$stack"
+    answer=$(absolute_input "$answer")
     if valid_path "$answer" && ! exists "$answer"; then deploy_dir=$answer; break; fi
-    log 'Choose a new absolute directory. Quotes, $, %, backslashes, colons and control characters are unsupported.'
+    log 'Choose a new directory. Quotes, $, %, backslashes, colons and control characters are unsupported.'
   done
   image_tag=latest
   bind_address=127.0.0.1
@@ -394,13 +432,16 @@ main() {
     if [[ "$test_mode" == true ]]; then media_path=; break; fi
     ask 'Existing dedicated media directory; leave blank for a managed volume' ''
     if [[ -z "$answer" ]]; then media_path=; break; fi
+    answer=$(absolute_input "$answer")
     if valid_path "$answer" && [[ -d "$answer" && -r "$answer" && -x "$answer" ]]; then
       media_path=$(cd "$answer" && pwd -P)
       valid_path "$media_path" || die 'Resolved media path contains unsupported configuration characters.'
       break
     fi
-    log 'Choose an existing readable/traversable absolute media directory, or leave blank.'
+    log 'Choose an existing readable/traversable media directory, or leave blank.'
   done
+  local -a extra_paths=()
+  local initial_roots=/data/media extra index
   selinux_suffix=
   selinux_mode=unavailable
   if command -v getenforce >/dev/null 2>&1; then selinux_mode=$(getenforce); fi
@@ -414,7 +455,7 @@ main() {
   port 'Application host port' "$app_port"; app_port=$answer
   yes_no 'Include bundled qBittorrent' no; qbit=$answer
   yes_no 'Include bundled Jackett' no; jackett=$answer
-  yes_no 'Adjust advanced options (image tag, networking, ports and SELinux)' no
+  yes_no 'Adjust advanced options (image tag, networking, ports, additional media and SELinux)' no
   if [[ "$answer" == yes ]]; then
     while :; do
       ask 'Matching Anishelf Web/Backend image tag' "$image_tag"
@@ -436,21 +477,53 @@ main() {
       port 'qBittorrent peer TCP/UDP port' "$peer_port"; peer_port=$answer
     fi
     if [[ "$jackett" == yes ]]; then port 'Jackett WebUI host port (loopback only)' "$jackett_port"; jackett_port=$answer; fi
-    if [[ -n "$media_path" ]]; then
-      yes_no 'Apply shared SELinux :z label to this dedicated media directory' "$relabel_default"
+    if [[ "$test_mode" != true ]]; then
+      while :; do
+        ask 'Additional existing media directories, separated by colon; blank for none' ''
+        extra_paths=()
+        if [[ -z "$answer" ]]; then break; fi
+        if [[ "$answer" == :* || "$answer" == *: || "$answer" == *::* ]]; then
+          log 'Enter non-empty directories separated by colons.'; continue
+        fi
+        local -a candidates=()
+        IFS=: read -r -a candidates <<< "$answer"
+        if (( ${#candidates[@]} > 63 )); then log 'At most 63 additional directories are supported.'; continue; fi
+        local valid=yes candidate resolved previous
+        for candidate in "${candidates[@]}"; do
+          candidate=$(absolute_input "$candidate")
+          if ! valid_path "$candidate" || [[ ! -d "$candidate" || ! -r "$candidate" || ! -x "$candidate" ]]; then valid=no; break; fi
+          resolved=$(cd "$candidate" && pwd -P)
+          if ! valid_path "$resolved"; then valid=no; break; fi
+          if [[ "$resolved" == "$media_path" ]]; then valid=no; break; fi
+          for previous in ${extra_paths[@]+"${extra_paths[@]}"}; do
+            if [[ "$resolved" == "$previous" || "$resolved" == "$previous/"* || "$previous" == "$resolved/"* ]]; then valid=no; break; fi
+          done
+          [[ "$valid" == yes ]] || break
+          extra_paths+=("$resolved")
+        done
+        [[ "$valid" != yes ]] || break
+        log 'Choose distinct existing readable/traversable directories without nested extra directories.'
+      done
+    fi
+    if [[ -n "$media_path" || -n "${extra_paths[0]+yes}" ]]; then
+      yes_no 'Apply shared SELinux :z label to the dedicated host media directories' "$relabel_default"
       if [[ "$answer" == yes ]]; then selinux_suffix=,z; else selinux_suffix=; fi
     fi
   fi
-  if [[ -n "$media_path" && -n "$selinux_suffix" ]]; then
+  if [[ -n "$selinux_suffix" ]]; then
     log "SELinux: $selinux_mode. Shared :z will relabel the selected media tree when containers start."
-    case "$media_path" in /|/home|/root|/etc|/etc/*|/private/etc|/private/etc/*|/usr|/usr/*|/boot|/boot/*|/bin|/bin/*|/sbin|/sbin/*|/lib|/lib/*|/lib64|/lib64/*|/var|/var/*|/sys|/sys/*|/proc|/proc/*|/dev|/dev/*|/run|/run/*)
+    for extra in ${media_path:+"$media_path"} ${extra_paths[@]+"${extra_paths[@]}"}; do
+    case "$extra" in /|/home|/root|/etc|/etc/*|/private/etc|/private/etc/*|/usr|/usr/*|/boot|/boot/*|/bin|/bin/*|/sbin|/sbin/*|/lib|/lib/*|/lib64|/lib64/*|/var|/var/*|/sys|/sys/*|/proc|/proc/*|/dev|/dev/*|/run|/run/*)
       die 'Refusing to relabel a system directory. Choose a dedicated media directory or pre-label it manually.';;
     esac
-    [[ "$media_path" != "$HOME" ]] || die 'Refusing to relabel your entire home directory.'
+    [[ "$extra" != "$HOME" ]] || die 'Refusing to relabel your entire home directory.'
+    done
   fi
   if [[ "$qbit" == yes && -n "$media_path" && ! -w "$media_path" ]]; then
     die 'Bundled qBittorrent requires a writable media directory; permissions will not be changed automatically.'
   fi
+  index=0
+  for extra in ${extra_paths[@]+"${extra_paths[@]}"}; do index=$((index + 1)); initial_roots="$initial_roots:/data/extra/$index"; done
   local ports=" $app_port " selected_port
   for selected_port in $(if [[ "$qbit" == yes ]]; then printf '%s %s ' "$qbit_port" "$peer_port"; fi; if [[ "$jackett" == yes ]]; then printf '%s' "$jackett_port"; fi); do
     [[ "$ports" != *" $selected_port "* ]] || die 'Selected TCP ports must be distinct.'
@@ -460,6 +533,7 @@ main() {
   systemd_dir=${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user
   log "Plan: $engine/$method; directory=$deploy_dir; image=$image_tag; bind=$bind_address:$app_port; origin=${public_origin:-automatic}"
   log "External proxy trust: $web_trusted_proxies"
+  for extra in ${extra_paths[@]+"${extra_paths[@]}"}; do log "Additional media: $extra"; done
   log "Media: ${media_path:-managed volume}; SELinux shared relabel=${selinux_suffix:-no}; qBittorrent=$qbit; Jackett=$jackett"
   if [[ "$generate_only" == true ]]; then
     yes_no 'Write configuration only (no engine or systemd changes)' yes
@@ -491,6 +565,23 @@ main() {
       sed 's|chown "\$\${PUID}:\$\${PGID}" /data/media /data/incomplete|chown "\$\${PUID}:\$\${PGID}" /data/incomplete|' \
         "$stage_dir/bundle/compose.yaml" > "$stage_dir/compose-no-host-chown.yaml"
       mv "$stage_dir/compose-no-host-chown.yaml" "$stage_dir/bundle/compose.yaml"
+    fi
+    if [[ -n "${extra_paths[0]+yes}" ]]; then
+      index=0
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ "$line" == '      ANISHELF_INITIAL_RESOURCE_ROOTS: /data/media' ]]; then
+          printf '      ANISHELF_INITIAL_RESOURCE_ROOTS: %s\n' "$initial_roots"
+        else
+          printf '%s\n' "$line"
+        fi
+        if [[ "$line" == *'${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media:rw'* ]]; then
+          for extra in ${extra_paths[@]+"${extra_paths[@]}"}; do
+            index=$((index + 1))
+            printf '      - "%s:/data/extra/%s:rw%s"\n' "$extra" "$index" "$selinux_suffix"
+          done
+        fi
+      done < "$stage_dir/bundle/compose.yaml" > "$stage_dir/compose-extra.yaml"
+      mv "$stage_dir/compose-extra.yaml" "$stage_dir/bundle/compose.yaml"
     fi
     : > "$stage_dir/bundle/.env"
     write_env ANISHELF_TAG "$image_tag"; write_env ANISHELF_BIND_ADDRESS "$bind_address"

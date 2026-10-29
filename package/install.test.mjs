@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import {
 	mkdir,
 	mkdtemp,
+	readdir,
 	readFile,
 	realpath,
 	rm,
@@ -111,7 +112,8 @@ if(name==='curl') {
 			);
 			if (options.qbit) values.push("8181", "6991");
 			if (options.jackett) values.push("9217");
-			if (options.media) values.push(options.relabel ?? "");
+			if (!options.testMode) values.push(options.extra ?? "");
+			if (options.media || options.extra) values.push(options.relabel ?? "");
 		}
 		values.push(options.confirm ?? "y");
 		return `${values.join("\n")}\n`;
@@ -123,6 +125,7 @@ if(name==='curl') {
 		if (!options.remote) args.push("--templates-dir", templates);
 		return spawnSync("bash", args, {
 			input,
+			cwd: options.cwd,
 			encoding: "utf8",
 			detached: true,
 			timeout: 20000,
@@ -166,6 +169,69 @@ test("Compose generation uses the canonical template and invokes no runtime", as
 		(await f.calls()).map((call) => call.name),
 		["getenforce"],
 	);
+});
+
+test("additional media paths retain the primary mount in Compose and Quadlet", async (t) => {
+	for (const method of ["1", "2"]) {
+		const f = await fixture(t);
+		const primary = join(f.directory, "primary");
+		const first = join(f.directory, "extra one");
+		const second = join(f.directory, "extra two");
+		await Promise.all([primary, first, second].map((path) => mkdir(path)));
+		success(
+			f.run(
+				f.answers({
+					method,
+					media: primary,
+					extra: `${first}:${second}`,
+					relabel: "n",
+				}),
+			),
+		);
+		if (method === "1") {
+			const compose = parse(
+				await readFile(join(f.target, "compose.yaml"), "utf8"),
+			);
+			assert.equal(
+				compose.services.backend.environment.ANISHELF_INITIAL_RESOURCE_ROOTS,
+				"/data/media:/data/extra/1:/data/extra/2",
+			);
+			assert.ok(
+				compose.services.backend.volumes.includes(
+					`${"$"}{ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media:rw`,
+				),
+			);
+			assert.ok(
+				compose.services.backend.volumes.includes(
+					`${await realpath(first)}:/data/extra/1:rw`,
+				),
+			);
+			assert.ok(
+				compose.services.backend.volumes.includes(
+					`${await realpath(second)}:/data/extra/2:rw`,
+				),
+			);
+		} else {
+			const backend = await readFile(
+				join(f.target, "quadlet/anishelf-backend.container"),
+				"utf8",
+			);
+			assert.ok(
+				backend.includes(
+					"Environment=ANISHELF_INITIAL_RESOURCE_ROOTS=/data/media:/data/extra/1:/data/extra/2",
+				),
+			);
+			assert.ok(
+				backend.includes(`Volume="${await realpath(primary)}:/data/media:rw"`),
+			);
+			assert.ok(
+				backend.includes(`Volume="${await realpath(first)}:/data/extra/1:rw"`),
+			);
+			assert.ok(
+				backend.includes(`Volume="${await realpath(second)}:/data/extra/2:rw"`),
+			);
+		}
+	}
 });
 
 test("SELinux Compose bind mounts share z, grant backend media writes and never chown host media", async (t) => {
@@ -635,6 +701,113 @@ test("Quadlet reconfiguration preserves its method and refuses changed installed
 	);
 	assert.ok(
 		!(await f.calls()).slice(before).some((call) => call.args.includes("stop")),
+	);
+});
+
+test("force backs up changed Quadlet units during reconfiguration and removal", async (t) => {
+	const f = await fixture(t, ["podman"]);
+	success(f.run(f.answers({ method: "2", advanced: false }), { start: true }));
+	const unit = join(
+		f.env.XDG_CONFIG_HOME,
+		"containers/systemd/anishelf-backend.container",
+	);
+	await writeFile(unit, "user configuration before reconfigure");
+	success(
+		f.run("\nn\n\nn\nn\nn\ny\n", {
+			start: true,
+			args: ["--force", "--reconfigure", f.target],
+		}),
+	);
+	let backups = (await readdir(f.directory)).filter((name) =>
+		name.startsWith("deployment.quadlet-backup."),
+	);
+	assert.equal(backups.length, 1);
+	assert.equal(
+		await readFile(
+			join(f.directory, backups[0], "anishelf-backend.container"),
+			"utf8",
+		),
+		"user configuration before reconfigure",
+	);
+	await writeFile(unit, "user configuration before removal");
+	success(
+		f.run("y\n", { start: true, args: ["--force", "--remove", f.target] }),
+	);
+	backups = (await readdir(f.directory)).filter((name) =>
+		name.startsWith("deployment.quadlet-backup."),
+	);
+	assert.equal(backups.length, 2);
+	const contents = await Promise.all(
+		backups.map((name) =>
+			readFile(join(f.directory, name, "anishelf-backend.container"), "utf8"),
+		),
+	);
+	assert.ok(contents.includes("user configuration before removal"));
+});
+
+test("force backs up an existing Quadlet unit during installation", async (t) => {
+	const f = await fixture(t, ["podman"]);
+	const unitDir = join(f.env.XDG_CONFIG_HOME, "containers/systemd");
+	await mkdir(unitDir, { recursive: true });
+	const unit = join(unitDir, "anishelf-backend.container");
+	await writeFile(unit, "existing configuration");
+	const rejected = f.run(f.answers({ method: "2", advanced: false }), {
+		start: true,
+	});
+	assert.notEqual(rejected.status, 0);
+	assert.equal(await readFile(unit, "utf8"), "existing configuration");
+	success(
+		f.run(f.answers({ method: "2", advanced: false }), {
+			start: true,
+			args: ["--force"],
+		}),
+	);
+	const backup = (await readdir(f.directory)).find((name) =>
+		name.startsWith("deployment.quadlet-backup."),
+	);
+	assert.ok(backup);
+	assert.equal(
+		await readFile(
+			join(f.directory, backup, "anishelf-backend.container"),
+			"utf8",
+		),
+		"existing configuration",
+	);
+});
+
+test("installer resolves relative deployment and media paths from the working directory", async (t) => {
+	const f = await fixture(t, ["docker"]);
+	await mkdir(join(f.directory, "media"));
+	await mkdir(join(f.directory, "extra"));
+	success(
+		f.run(
+			f.answers({
+				target: "deployment",
+				media: "media",
+				extra: "extra",
+				relabel: "n",
+			}),
+			{ cwd: f.directory },
+		),
+	);
+	const env = await readFile(join(f.target, ".env"), "utf8");
+	assert.ok(
+		env.includes(
+			`ANISHELF_MEDIA_PATH='${await realpath(join(f.directory, "media"))}'`,
+		),
+	);
+	const compose = parse(await readFile(join(f.target, "compose.yaml"), "utf8"));
+	assert.ok(
+		compose.services.backend.volumes.includes(
+			`${await realpath(join(f.directory, "extra"))}:/data/extra/1:rw`,
+		),
+	);
+	success(
+		f.run("y\n", {
+			cwd: f.directory,
+			start: true,
+			args: ["--remove", "deployment"],
+		}),
 	);
 });
 
