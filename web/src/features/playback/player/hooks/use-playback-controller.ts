@@ -11,11 +11,11 @@ import { playbackPolicy } from "../policy.js";
 import { usePlaybackSelection } from "./use-playback-selection.js";
 import { usePlaybackSession } from "./use-playback-session.js";
 
-export function usePlaybackController(data: FileResponse) {
+export function usePlaybackController(data: FileResponse, autoPlay = false) {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const audio = searchParams.get("audio");
 	const parsed = useMemo(() => parseAudioSelection(audio), [audio]);
-	const playback = usePlaybackSession(data.file.id, playbackPolicy);
+	const playback = usePlaybackSession(data.file.id, playbackPolicy, autoPlay);
 	const scope = originalCompatibilityKey(data.file);
 	const selected = usePlaybackSelection(
 		data.file.id,

@@ -224,7 +224,18 @@
 			"unknown": "Playback failed. Retry playback or check the selected media version."
 		},
 		"versionsUnavailable": "Available playback versions could not be refreshed. Current playback is unchanged.",
-		"unavailableTrack": "Requested track unavailable"
+		"unavailableTrack": "Requested track unavailable",
+		"continuation": {
+			"label": "Next episode",
+			"next": "Next: Episode {{number}}",
+			"automatic": "Continue automatically",
+			"choose": "Choose a file version to continue.",
+			"loading": "Finding the next episode…",
+			"retry": "Retry next episode lookup",
+			"countdown_one": "Continuing in {{count}} second…",
+			"countdown_other": "Continuing in {{count}} seconds…",
+			"playBlocked": "Press Play to continue. Your browser could not start playback automatically."
+		}
 	},
 	"actions": {
 		"retry": "Retry",
@@ -1290,5 +1301,10 @@
 			"uncomparable": "This build cannot be compared with stable releases.",
 			"no-release": "No stable release has been published."
 		}
+	},
+	"playbackPreferences": {
+		"title": "Playback preferences",
+		"storageError": "Your playback preference could not be read or saved in this browser. Check browser storage access and try again.",
+		"scope": "Applies to all anime in this browser."
 	}
 }

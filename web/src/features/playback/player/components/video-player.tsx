@@ -1,4 +1,7 @@
-import type { MediaTimeline } from "@anishelf/backend/contracts/media";
+import {
+	type MediaTimeline,
+	sourceTimeMs,
+} from "@anishelf/backend/contracts/media";
 import {
 	isVideoProvider,
 	MediaPlayer,
@@ -40,6 +43,9 @@ export default function VideoPlayer({
 	active,
 	sourceVersion,
 	onMedia,
+	onEndedChange,
+	onFullscreenChange,
+	onContinuationOverlay,
 	onPlaybackFailure,
 	onAudioChange,
 	renderSubtitles,
@@ -48,6 +54,9 @@ export default function VideoPlayer({
 	displayTitle: string;
 	active: ActivePlayback;
 	sourceVersion: string;
+	onEndedChange?(ended: boolean): void;
+	onFullscreenChange?(fullscreen: boolean): void;
+	onContinuationOverlay?(element: HTMLDivElement | null): void;
 	onMedia?(video: HTMLVideoElement | null, timeline: MediaTimeline): void;
 	onPlaybackFailure?(failure: PlaybackFailure): void;
 	onAudioChange?(sourceStreamIndex: number): void;
@@ -55,6 +64,7 @@ export default function VideoPlayer({
 }) {
 	const { t } = useTranslation();
 	const timeline = active.resource.timeline;
+	const played = useRef(false);
 	const videoRef = useRef<HTMLVideoElement | null>(null);
 	const detachAudio = useRef<(() => void) | null>(null);
 	const notified = useRef<string | null>(null);
@@ -89,6 +99,7 @@ export default function VideoPlayer({
 		const signature = `${failure.kind}:${failure.code}`;
 		if (notified.current === signature) return;
 		notified.current = signature;
+		onEndedChange?.(false);
 		console.warn("[playback] Media attempt failed.", {
 			fileId,
 			assetId: active.asset.id,
@@ -161,6 +172,22 @@ export default function VideoPlayer({
 			onProviderSetup={providerChanged}
 			onError={() => failed()}
 			onLoadedMetadata={metadataLoaded}
+			onFullscreenChange={onFullscreenChange}
+			onPlaying={() => {
+				played.current = true;
+			}}
+			onPlay={() => onEndedChange?.(false)}
+			onSeeking={() => onEndedChange?.(false)}
+			onEnded={() => {
+				const video = videoRef.current;
+				if (!video || video.error || !played.current) return;
+				const complete =
+					timeline.sourceDurationMs === null
+						? timeline.sourceOriginMs === 0 && timeline.mediaOriginMs === 0
+						: sourceTimeMs(video.currentTime * 1000, timeline) >=
+							timeline.sourceDurationMs - 1000;
+				onEndedChange?.(complete);
+			}}
 		>
 			<MediaProvider loaders={directVideoLoaders} />
 			<ChapterTracks
@@ -172,6 +199,10 @@ export default function VideoPlayer({
 			<DefaultVideoLayout
 				icons={defaultLayoutIcons}
 				seekStep={playbackInteractionPolicy.seekStepSeconds}
+			/>
+			<div
+				ref={onContinuationOverlay}
+				className="absolute inset-x-4 top-4 z-30 rounded-lg border bg-background/95 p-3 text-foreground empty:hidden"
 			/>
 		</MediaPlayer>
 	);

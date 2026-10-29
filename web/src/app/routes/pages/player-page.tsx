@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useLoaderData, useSearchParams } from "react-router";
+import { useLoaderData, useLocation, useSearchParams } from "react-router";
 import { useAnimePlaybackTitle } from "../../../features/anime/public.js";
 import {
 	clearCapabilityCache,
@@ -17,6 +17,7 @@ import { playbackUiSlots } from "../../composition/playback-ui.js";
 import { useAppRuntime } from "../../runtime/context.js";
 import type { fileLoader } from "../resources-data.js";
 export function PlayerPage() {
+	const location = useLocation();
 	const initial = useLoaderData<typeof fileLoader>();
 	const query = useQuery({
 		...fileQuery(initial.file.id, useQueryScope()),
@@ -38,6 +39,7 @@ export function PlayerPage() {
 			key={JSON.stringify([data.file.id, resources.identity, playerVersion])}
 			data={data}
 			displayTitle={displayTitle}
+			autoPlay={location.state?.autoPlay === true}
 			returnDirectoryId={searchParams.get("directory")}
 			returnTo={animeReturnPath(searchParams)}
 			onRetry={async () => {
