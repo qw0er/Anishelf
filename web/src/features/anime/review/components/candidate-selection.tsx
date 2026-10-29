@@ -37,7 +37,7 @@ export function CandidateSelection({
 		changeSearchPage,
 	} = controller;
 	return (
-		<section className="min-w-0 space-y-5 rounded-lg border bg-card p-4 sm:p-5">
+		<section className="min-w-0 space-y-5 surface-panel">
 			<div className="flex items-center gap-2">
 				<span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
 					1
@@ -82,7 +82,7 @@ export function CandidateSelection({
 									</span>
 								</div>
 								{warnings.length > 0 && (
-									<ul className="space-y-1 rounded-lg bg-amber-500/10 p-2.5 text-xs leading-relaxed text-amber-700 dark:text-amber-400">
+									<ul className="space-y-1 rounded-lg bg-warning/10 p-2.5 text-xs leading-relaxed text-warning">
 										{warnings.map((reason) => (
 											<li className="wrap-anywhere" key={reason}>
 												{reason}

@@ -44,8 +44,9 @@ export function ViewingEditor({
 	return (
 		<>
 			<Button
+				size="sm"
 				variant="ghost"
-				className="h-7 px-2 text-xs text-muted-foreground"
+				className="text-muted-foreground"
 				onClick={() => setOpen(true)}
 			>
 				{t("trackingUpdate.edit")}

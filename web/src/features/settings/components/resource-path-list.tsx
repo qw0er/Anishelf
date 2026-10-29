@@ -122,7 +122,7 @@ export function ResourcePathList({
 				/>
 			</div>
 			{error && (
-				<p role="alert" className="text-sm text-destructive">
+				<p role="alert" className="field-error">
 					{t("settingsPage.duplicatePath")}
 				</p>
 			)}

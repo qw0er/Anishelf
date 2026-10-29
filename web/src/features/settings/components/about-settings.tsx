@@ -128,7 +128,7 @@ export function AboutSettings() {
 					</p>
 				)}
 				{info.isError && (
-					<p className="text-sm text-destructive" role="alert">
+					<p className="field-error" role="alert">
 						Could not load the backend version.{" "}
 						<button
 							type="button"
@@ -140,7 +140,7 @@ export function AboutSettings() {
 					</p>
 				)}
 				{mismatch && (
-					<p role="alert" className="text-sm text-destructive">
+					<p role="alert" className="field-error">
 						Web and Backend builds differ. Deploy matching versions of both
 						components.
 					</p>
@@ -167,7 +167,7 @@ export function AboutSettings() {
 					</div>
 				)}
 				{check.isError && (
-					<p role="alert" className="text-sm text-destructive">
+					<p role="alert" className="field-error">
 						The latest check failed. Any previous result is from the last
 						successful check.
 					</p>

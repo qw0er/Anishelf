@@ -78,7 +78,7 @@ export function QbittorrentSettings() {
 									<div className="flex min-w-0 flex-1 flex-col gap-2">
 										<div className="flex items-center justify-between gap-2">
 											<label
-												className="text-sm font-medium"
+												className="field-label"
 												htmlFor="qbittorrent-webui-url"
 											>
 												{t("acquisition.webui.url")}
@@ -111,7 +111,7 @@ export function QbittorrentSettings() {
 								</div>
 
 								{save.isError && (
-									<p role="alert" className="text-sm text-destructive">
+									<p role="alert" className="field-error">
 										{t("acquisition.webui.saveFailed")}
 									</p>
 								)}

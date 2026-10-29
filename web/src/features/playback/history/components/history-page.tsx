@@ -11,6 +11,7 @@ import {
 	buttonStyles,
 } from "../../../../shared/components/ui/button.js";
 import { Card, CardContent } from "../../../../shared/components/ui/card.js";
+import { Spinner } from "../../../../shared/components/ui/spinner.js";
 import { filePath } from "../../../../shared/navigation.js";
 import { historyQuery } from "../queries.js";
 
@@ -38,7 +39,11 @@ export default function HistoryPage() {
 						aria-busy={query.isFetching}
 						onClick={() => void query.refetch()}
 					>
-						<RefreshCw size={16} aria-hidden="true" />
+						{query.isFetching ? (
+							<Spinner />
+						) : (
+							<RefreshCw size={16} aria-hidden="true" />
+						)}
 						{t("history.refresh")}
 					</Button>
 				}
@@ -77,7 +82,7 @@ export default function HistoryPage() {
 							{history.items.map(({ file, progress }) => (
 								<li
 									key={file.id}
-									className="flex min-w-0 flex-wrap items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
+									className="list-row flex flex-wrap items-center justify-between"
 								>
 									<div className="min-w-0 flex-1 space-y-2">
 										<Link

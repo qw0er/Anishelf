@@ -7,6 +7,7 @@ import {
 	useSearchParams,
 } from "react-router";
 import { Button, buttonStyles } from "../../shared/components/ui/button.js";
+import { InlineError } from "../../shared/components/ui/inline-error.js";
 import { Spinner } from "../../shared/components/ui/spinner.js";
 import { useDelayedPending } from "../../shared/hooks/use-delayed-pending.js";
 import { getErrorTranslationKey } from "../../shared/lib/error-translation.js";
@@ -32,9 +33,9 @@ export default function RouteError({
 			}
 			aria-label={t("errors.pageLabel")}
 		>
-			<p className="text-base text-destructive" role="alert">
+			<InlineError>
 				{t(getErrorTranslationKey(error) ?? "errors.pageLoad")}
-			</p>
+			</InlineError>
 			<div className="action-row">
 				<Button
 					type="button"

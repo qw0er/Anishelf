@@ -1,7 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { TrackingEntryResponse } from "../../../shared/api/contracts.js";
+import { StatusBadge } from "../../../shared/components/ui/status-badge.js";
 import { compactViewingProgress } from "./progress-format.js";
+import { viewingTone } from "./viewing-tone.js";
 export function ViewingBadge({
 	viewing,
 	episodeCount,
@@ -15,9 +17,9 @@ export function ViewingBadge({
 	return (
 		<p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
 			<span className="sr-only">{t("trackingList.provider")}: </span>
-			<span className="rounded-full bg-muted px-2 py-0.5 font-medium">
+			<StatusBadge tone={viewingTone(viewing.status)}>
 				{t(`trackingList.statuses.${viewing.status}`)}
-			</span>
+			</StatusBadge>
 			<span className="tabular-nums text-muted-foreground">
 				{compactViewingProgress(
 					{

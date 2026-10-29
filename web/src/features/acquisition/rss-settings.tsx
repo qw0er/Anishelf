@@ -13,7 +13,9 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../shared/components/ui/card.js";
+import { InlineError } from "../../shared/components/ui/inline-error.js";
 import { Input } from "../../shared/components/ui/input.js";
+import { LoadingState } from "../../shared/components/ui/loading-state.js";
 import {
 	RadioCard,
 	RadioCardGroup,
@@ -151,17 +153,17 @@ export function RssSettings() {
 					</form>
 				)}
 				{profiles.isError && (
-					<p role="alert">
+					<InlineError>
 						{t("acquisition.rss.loadProfilesFailed")}{" "}
 						<Button variant="outline" onClick={() => void profiles.refetch()}>
 							{t("acquisition.rss.retryProfiles")}
 						</Button>
-					</p>
+					</InlineError>
 				)}
 				{configuration.isPending ? (
-					<p role="status">{t("acquisition.rss.loading")}</p>
+					<LoadingState label={t("acquisition.rss.loading")} />
 				) : configuration.isError ? (
-					<div role="alert">
+					<InlineError>
 						{t("acquisition.rss.loadFailed")}{" "}
 						<Button
 							variant="outline"
@@ -171,7 +173,7 @@ export function RssSettings() {
 						>
 							{t("actions.retry")}
 						</Button>
-					</div>
+					</InlineError>
 				) : configuration.data ? (
 					<form
 						className="space-y-3"

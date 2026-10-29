@@ -7,7 +7,7 @@ export function FieldHelp({ label, help }: { label: string; help: string }) {
 			<button
 				type="button"
 				aria-label={label}
-				className="inline-flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				className="icon-control rounded text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 			>
 				<Info size={14} aria-hidden="true" />
 			</button>

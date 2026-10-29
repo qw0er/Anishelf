@@ -105,7 +105,7 @@ function ToastDescription({
 
 function ToastAction({
 	className,
-	render = <Button variant="outline" className="h-8 px-3 text-xs" />,
+	render = <Button size="sm" variant="outline" />,
 	...props
 }: ToastPrimitive.Action.Props) {
 	return (
@@ -121,7 +121,7 @@ function ToastAction({
 function ToastClose({
 	className,
 	children,
-	render = <Button variant="ghost" className="size-7 p-0" />,
+	render = <Button size="icon" variant="ghost" />,
 	...props
 }: ToastPrimitive.Close.Props) {
 	const { t } = useTranslation();

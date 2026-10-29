@@ -159,7 +159,7 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 			</RadioCardGroup>
 			{profiles.isError ||
 			(profiles.data && !profiles.data.selectionAvailable) ? (
-				<p role="alert" className="text-sm text-destructive">
+				<p role="alert" className="field-error">
 					{t("acquisition.rss.loadProfilesFailed")}
 				</p>
 			) : null}

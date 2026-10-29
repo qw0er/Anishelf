@@ -98,7 +98,7 @@ export function AssociationPreview({
 				</div>
 			))}
 			{replacement && (
-				<label className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm leading-relaxed">
+				<label className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm leading-relaxed">
 					<input
 						type="checkbox"
 						checked={replace}

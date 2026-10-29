@@ -289,7 +289,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				>
 					<div className="flex flex-col gap-2 sm:col-span-2">
 						<div className="flex items-center justify-between gap-2">
-							<label className="text-sm font-medium" htmlFor="source-api-url">
+							<label className="field-label" htmlFor="source-api-url">
 								{t("acquisition.sources.apiUrl")}
 							</label>
 							<FieldHelp
@@ -310,7 +310,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					</div>
 					<div className="flex flex-col gap-2">
 						<div className="flex items-center justify-between gap-2">
-							<label className="text-sm font-medium" htmlFor="source-api-key">
+							<label className="field-label" htmlFor="source-api-key">
 								{t("acquisition.sources.apiKey")}
 							</label>
 							<FieldHelp
@@ -336,10 +336,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					</div>
 					<div className="flex flex-col gap-2">
 						<div className="flex items-center justify-between gap-2">
-							<label
-								className="text-sm font-medium"
-								htmlFor="source-management-url"
-							>
+							<label className="field-label" htmlFor="source-management-url">
 								{t("acquisition.sources.managementUrl")}
 							</label>
 							<FieldHelp
@@ -463,8 +460,8 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 									})}
 								>
 									<Button
+										size="icon"
 										variant="ghost"
-										className="size-8 shrink-0 p-0"
 										disabled={busy || index === 0}
 										aria-label={t("acquisition.sources.moveEarlier", {
 											name: id,
@@ -480,8 +477,8 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 									})}
 								>
 									<Button
+										size="icon"
 										variant="ghost"
-										className="size-8 shrink-0 p-0"
 										disabled={busy || index === providers.length - 1}
 										aria-label={t("acquisition.sources.moveLater", {
 											name: id,
@@ -495,9 +492,9 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 									<DropdownMenuTrigger
 										render={
 											<Button
+												size="icon"
 												type="button"
 												variant="ghost"
-												className="size-8 shrink-0 p-0"
 												aria-label={t("acquisition.sources.siteActions", {
 													name: id,
 												})}
@@ -527,7 +524,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				)}
 				{selectableSites.length > 0 && (
 					<div className="flex flex-col gap-2">
-						<label htmlFor="source-add-site" className="text-sm font-medium">
+						<label htmlFor="source-add-site" className="field-label">
 							{t("acquisition.sources.availableSites")}
 						</label>
 						<select
@@ -568,10 +565,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				</summary>
 				<div className="mt-4 flex min-w-0 flex-col gap-4">
 					<div className="flex flex-col gap-2">
-						<label
-							className="text-sm font-medium"
-							htmlFor="source-test-provider"
-						>
+						<label className="field-label" htmlFor="source-test-provider">
 							{t("acquisition.sources.siteToTest")}
 						</label>
 						<select
@@ -622,10 +616,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 						}}
 					>
 						<div className="flex flex-col gap-2">
-							<label
-								className="text-sm font-medium"
-								htmlFor="source-test-title"
-							>
+							<label className="field-label" htmlFor="source-test-title">
 								{t("acquisition.sources.titleToSearch")}
 							</label>
 							<Input
@@ -684,7 +675,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 			</details>
 
 			{error && (
-				<p role="alert" className="text-sm text-destructive">
+				<p role="alert" className="field-error">
 					{t("acquisition.sources.actionFailed")}
 				</p>
 			)}

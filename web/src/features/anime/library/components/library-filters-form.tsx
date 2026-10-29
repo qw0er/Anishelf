@@ -237,9 +237,10 @@ export function LibraryFiltersForm({
 				>
 					{active.map((key) => (
 						<Button
+							size="sm"
 							key={key}
 							variant="secondary"
-							className="h-8 max-w-full text-xs"
+							className="max-w-full"
 							aria-label={t("anime.removeFilter", {
 								filter: t(
 									key === "query"
@@ -272,8 +273,8 @@ export function LibraryFiltersForm({
 						</Button>
 					))}
 					<Button
+						size="sm"
 						variant="ghost"
-						className="h-8 text-xs"
 						onClick={() =>
 							commit(
 								librarySearch({
