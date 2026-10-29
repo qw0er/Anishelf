@@ -48,7 +48,7 @@
 <text x="448" y="507" font-size="20" font-weight="700">Anime</text>
 <text x="448" y="535" font-size="17" fill="#475569">Metadata, Catalog and Review</text>
 <text x="448" y="560" font-size="17" fill="#475569">Identification and Tracking</text>
-<text x="448" y="585" font-size="17" fill="#475569">AniList protocol and Library</text>
+<text x="448" y="585" font-size="17" fill="#475569">Provider protocols and Library</text>
 <rect x="795" y="475" width="345" height="145" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="815" y="507" font-size="20" font-weight="700">Acquisition</text>
 <text x="815" y="535" font-size="17" fill="#475569">Watching and Subscriptions</text>
@@ -75,7 +75,7 @@
 <text x="630" y="795" font-size="14" fill="#475569">Generated copies and assets</text>
 <rect x="895" y="710" width="265" height="130" rx="12" fill="#fff7ed" stroke="#cbd5e1"/>
 <text x="915" y="742" font-size="20" font-weight="700">External services</text>
-<text x="915" y="770" font-size="15" fill="#475569">AniList · RSS / Jackett</text>
+<text x="915" y="770" font-size="15" fill="#475569">AniList · Bangumi · RSS / Jackett</text>
 <text x="915" y="795" font-size="15" fill="#475569">qBittorrent API</text>
 <text x="40" y="880" font-size="16" fill="#475569">Business collaboration uses in-process APIs; flow diagrams in the architecture guide show the main workflows.</text>
 <text x="40" y="907" font-size="14" fill="#64748b">Container topology shown. Source installs may host the SPA directly from Node.</text>
