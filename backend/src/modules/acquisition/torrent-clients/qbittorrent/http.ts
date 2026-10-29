@@ -13,6 +13,11 @@ export function registerConnectionRoutes(
 	connection: QbittorrentConnectionApi,
 ) {
 	const url = "/api/acquisition/qbittorrent";
+	/** Availability is a filesystem fact, so it is refreshed with every view. */
+	const settingsView = async () => ({
+		...connection.settings(),
+		bundledAvailable: await connection.bundledAvailable(),
+	});
 	app.post(
 		`${url}/credentials`,
 		{
@@ -34,7 +39,7 @@ export function registerConnectionRoutes(
 	app.get(
 		url,
 		{ schema: { response: { 200: QbittorrentConnectionSettingsSchema } } },
-		async () => connection.settings(),
+		async () => settingsView(),
 	);
 	app.put(
 		url,
@@ -45,7 +50,10 @@ export function registerConnectionRoutes(
 				response: { 200: QbittorrentConnectionSettingsSchema },
 			},
 		},
-		async (request) => connection.save(request.body),
+		async (request) => {
+			await connection.save(request.body);
+			return settingsView();
+		},
 	);
 	app.delete(
 		url,
@@ -55,7 +63,23 @@ export function registerConnectionRoutes(
 				response: { 200: QbittorrentConnectionSettingsSchema },
 			},
 		},
-		async (request) => connection.clear(request.body.generation),
+		async (request) => {
+			await connection.clear(request.body.generation);
+			return settingsView();
+		},
+	);
+	app.post(
+		`${url}/bundled`,
+		{
+			schema: {
+				body: QbittorrentConnectionCommandSchema,
+				response: { 200: QbittorrentConnectionSettingsSchema },
+			},
+		},
+		async (request) => {
+			await connection.activateBundled(request.body.generation);
+			return settingsView();
+		},
 	);
 	app.post(
 		`${url}/check`,

@@ -245,19 +245,24 @@ every destination on narrow screens through icons, Tooltips and accessible names
 | RSS | One global interval in whole minutes (1–1440, default 30); local draft until Save, unit in label, Toast result, no restart |
 | About | `/settings?section=about`; description/links/license left, version and Check right; build details collapsed unless builds differ, mismatch visible |
 
-Connection panels share a compact endpoint/configuration summary, disclosure, field
-grid and Save/Test/Disconnect styling. Open first-time setup by default; disclose
-saved fields on demand. Save stays inside the editor; Test and management links
-remain outside. Disconnect and bundled-service switching use More. Configuration
-alone never implies successful connectivity.
+Connection panels share one structure: a compact endpoint/configuration summary,
+disclosure, field grid and a single action row inside the editor. That row keeps
+Save, Cancel and Test (where the service supports it) together and places More last
+so secondary service actions never split primary actions. Open first-time setup by
+default; disclose saved fields on demand. External service links stay outside the
+editor. Disconnect, removal and bundled-service switching use More; both Jackett and
+qBittorrent can reselect bundled credentials there when the deployment provides them.
+Configuration alone never implies successful connectivity.
 
-Jackett site priority and Save sites remain independent of connection editing;
-adding sites uses a bounded selector. Each save preserves the other draft. Keep
-search diagnostics collapsed. qBittorrent groups API access, destination and optional
-browser URL. Saved destinations have a summary with Edit/Validate; first-time fields
-are open. Optional browser URL fields collapse while the saved WebUI link remains.
-Saved credentials stay blank with a keep-existing placeholder and re-entry help;
-preserve bundled credential visibility/copy lifetime and cache restrictions.
+Jackett and qBittorrent use the same panel structure and action order. Jackett site
+priority and Save sites remain independent of connection editing; adding sites uses a
+bounded selector. Each save preserves the other draft. Keep search diagnostics
+collapsed. qBittorrent groups API access, destination and optional browser URL. The
+download destination always shows its fields with Save, discard-on-Cancel and
+Validate instead of switching between a summary and an editor. The optional browser
+URL field collapses while the saved WebUI link remains. Saved credentials stay blank
+with a keep-existing placeholder and re-entry help; preserve bundled credential
+visibility/copy lifetime and cache restrictions.
 
 Connection-test counts and save success use Toasts; unresolved setup/validation
 failures stay visible. About checks are manual: retain the last successful result

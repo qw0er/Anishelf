@@ -16,6 +16,11 @@ export const clearQbittorrentConnection = (
 	generation: string,
 ): Promise<QbittorrentConnectionSettings> =>
 	request(url, "DELETE", {}, { generation });
+export const activateBundledQbittorrent = (
+	generation: string,
+): Promise<QbittorrentConnectionSettings> =>
+	request(`${url}/bundled`, "POST", {}, { generation });
+
 export const checkQbittorrentConnection = (
 	generation: string,
 ): Promise<QbittorrentConnectionProbe> =>

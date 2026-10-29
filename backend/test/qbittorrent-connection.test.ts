@@ -363,16 +363,39 @@ test("authenticated HTTP endpoints enforce CSRF, validate inputs and never echo 
 	expect(checked.statusCode).toBe(200);
 	expect(checked.json().available).toBe(true);
 	expect(checked.body).not.toContain(details.password);
+	const cleared = (
+		await app.inject({
+			url,
+			method: "DELETE",
+			headers: mutationHeaders,
+			payload: { generation: saved.json().generation },
+		})
+	).json();
+	expect(cleared.passwordConfigured).toBe(false);
+	expect(cleared.bundledAvailable).toBe(true);
 	expect(
 		(
 			await app.inject({
-				url,
-				method: "DELETE",
-				headers: mutationHeaders,
-				payload: { generation: saved.json().generation },
+				url: `${url}/bundled`,
+				method: "POST",
+				headers: authenticated,
+				payload: { generation: cleared.generation },
 			})
-		).json().passwordConfigured,
-	).toBe(false);
+		).statusCode,
+	).toBe(403);
+	const bundled = await app.inject({
+		url: `${url}/bundled`,
+		method: "POST",
+		headers: mutationHeaders,
+		payload: { generation: cleared.generation },
+	});
+	expect(bundled.statusCode).toBe(200);
+	expect(bundled.json()).toMatchObject({
+		state: "configured",
+		bundled: true,
+		bundledAvailable: true,
+	});
+	expect(bundled.body).not.toContain(details.password);
 	expect(f.logs.join("")).not.toContain(details.password);
 });
 
@@ -506,4 +529,48 @@ test("bundled credentials seed once, remain private, and preserve manual replace
 	await third.close();
 	expect(f.logs.join("\n")).not.toContain(details.password);
 	expect(f.logs.join("\n")).not.toContain("new-webui-password");
+});
+
+test("bundled credentials can be reselected after a manual connection", async () => {
+	const f = await fixture(true);
+	expect(await f.connection.bundledAvailable()).toBe(true);
+	const manual = await f.connection.save({
+		...details,
+		url: "http://external:8080",
+		generation: f.connection.settings().generation,
+	});
+	expect(manual.bundled).toBeUndefined();
+	const activated = await f.connection.activateBundled(manual.generation);
+	expect(activated).toMatchObject({
+		state: "configured",
+		url: "http://qbittorrent:8080/",
+		username: "admin",
+		passwordConfigured: true,
+		bundled: true,
+	});
+	expect(f.connection.credentials(activated.generation)).toEqual({
+		username: details.username,
+		password: details.password,
+	});
+	await expect(
+		f.connection.activateBundled(manual.generation),
+	).rejects.toMatchObject({ code: "ACQUISITION_CONFLICT" });
+	expect(f.logs.join("")).not.toContain(details.password);
+});
+
+test("bundled activation needs a deployment connection file", async () => {
+	const f = await fixture();
+	expect(await f.connection.bundledAvailable()).toBe(false);
+	await expect(
+		f.connection.activateBundled(f.connection.settings().generation),
+	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+	const bundled = await fixture(true);
+	await rm(join(bundled.dataDir, "bundled.json"));
+	expect(await bundled.connection.bundledAvailable()).toBe(false);
+	await expect(
+		bundled.connection.activateBundled(
+			bundled.connection.settings().generation,
+		),
+	).rejects.toMatchObject({ code: "ACQUISITION_UNAVAILABLE" });
+	expect(f.logs.join("")).not.toContain(details.password);
 });

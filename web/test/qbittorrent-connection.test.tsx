@@ -34,6 +34,17 @@ function mockConnection(initial?: Partial<QbittorrentConnectionSettings>) {
 		.mockImplementation(async (path, method, _options, payload) => {
 			if (path.endsWith("/credentials"))
 				return { username: "admin", password: "bundled-secret" };
+			if (path.endsWith("/bundled")) {
+				settings = {
+					...settings,
+					generation: "bundled",
+					state: "configured",
+					bundled: true,
+					url: "http://qbittorrent:8080/",
+					username: "admin",
+					passwordConfigured: true,
+				};
+			}
 			if (path.endsWith("/check"))
 				return {
 					generation: settings.generation,
@@ -138,6 +149,58 @@ test("saved passwords are not populated and changing accounts requires a fresh p
 			}) as HTMLButtonElement
 		).disabled,
 	).toBe(true);
+});
+test("connection actions share one row inside the editor", async () => {
+	mockConnection({
+		state: "configured",
+		url: "http://qbittorrent:8080/",
+		username: "admin",
+		passwordConfigured: true,
+	});
+	render(<QbittorrentApiSettings />);
+	fireEvent.click(await screen.findByLabelText("Edit connection"));
+	const save = await screen.findByRole("button", {
+		name: "Save API connection",
+	});
+	const row = save.parentElement;
+	for (const name of [
+		"Cancel",
+		"Test connection",
+		"More service actions",
+	] as const)
+		expect(screen.getByRole("button", { name }).parentElement).toBe(row);
+	expect(row?.lastElementChild).toBe(
+		screen.getByRole("button", { name: "More service actions" }),
+	);
+});
+test("bundled credentials can be reselected from More", async () => {
+	const { request, notification } = mockConnection({
+		state: "configured",
+		url: "http://external:8080/",
+		username: "admin",
+		passwordConfigured: true,
+		bundledAvailable: true,
+	});
+	render(<QbittorrentApiSettings />);
+	fireEvent.click(await screen.findByLabelText("Edit connection"));
+	fireEvent.click(screen.getByRole("button", { name: "More service actions" }));
+	fireEvent.click(
+		await screen.findByRole("menuitem", { name: "Use bundled qBittorrent" }),
+	);
+	await waitFor(() =>
+		expect(request).toHaveBeenCalledWith(
+			"/api/acquisition/qbittorrent/bundled",
+			"POST",
+			{},
+			{ generation: "one" },
+		),
+	);
+	await screen.findByText("Bundled");
+	expect(notification).toHaveBeenCalledWith(
+		expect.objectContaining({
+			title: "Bundled qBittorrent connection selected.",
+		}),
+	);
 });
 test("tests the saved connection and removes credentials explicitly", async () => {
 	const { request, notification } = mockConnection({

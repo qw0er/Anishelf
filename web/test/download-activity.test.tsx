@@ -175,6 +175,9 @@ test("destination settings separate saving from validation and do not start down
 	expect(request.mock.calls.some((call) => call[0].endsWith("/validate"))).toBe(
 		false,
 	);
+	// The destination editor stays open after saving instead of collapsing to a summary.
+	expect(screen.getByLabelText("qBittorrent completed path")).toBeTruthy();
+	expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Validate destination" }));
 	await screen.findByText(
 		"Mapping configured · File visibility not yet verified",

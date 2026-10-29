@@ -1,5 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Eye, MoreHorizontal, PlugZap, Save } from "lucide-react";
+import {
+	Copy,
+	Eye,
+	MoreHorizontal,
+	Package,
+	PlugZap,
+	Save,
+	Unplug,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { QbittorrentConnectionSettings } from "../../shared/api/contracts.js";
@@ -17,6 +25,7 @@ import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import {
+	activateBundledQbittorrent,
 	checkQbittorrentConnection,
 	clearQbittorrentConnection,
 	getQbittorrentConnection,
@@ -153,6 +162,22 @@ function ConnectionForm({
 			});
 		},
 	});
+	const bundled = useMutation({
+		mutationFn: () => activateBundledQbittorrent(settings.generation),
+		onSuccess: (value) => {
+			saved(value);
+			toast.add({
+				title: t("acquisition.api.bundledSelected"),
+				type: "success",
+			});
+		},
+		onError: () => {
+			toast.add({
+				title: t("acquisition.api.bundledFailed"),
+				type: "error",
+			});
+		},
+	});
 	const check = useMutation({
 		mutationFn: () => checkQbittorrentConnection(settings.generation),
 		onSuccess: (value) => {
@@ -171,7 +196,8 @@ function ConnectionForm({
 			});
 		},
 	});
-	const busy = save.isPending || clear.isPending || check.isPending;
+	const busy =
+		save.isPending || clear.isPending || check.isPending || bundled.isPending;
 	return (
 		<form
 			className="flex flex-col gap-4"
@@ -192,7 +218,7 @@ function ConnectionForm({
 				}}
 				endpoint={settings.url}
 				actions={
-					<div className="action-row">
+					<>
 						<ActionButton
 							icon={Save}
 							label={t("acquisition.api.save")}
@@ -201,7 +227,54 @@ function ConnectionForm({
 							disabled={busy || !changed}
 							aria-busy={save.isPending}
 						/>
-					</div>
+						<ActionButton
+							icon={PlugZap}
+							label={t("acquisition.api.test")}
+							shortLabel={t("actions.test")}
+							type="button"
+							variant="outline"
+							disabled={busy || changed || settings.state !== "configured"}
+							aria-busy={check.isPending}
+							onClick={() => check.mutate()}
+						/>
+					</>
+				}
+				menu={
+					(settings.bundledAvailable || settings.state !== "unconfigured") && (
+						<DropdownMenu>
+							<DropdownMenuTrigger
+								render={
+									<Button
+										type="button"
+										variant="ghost"
+										aria-label={t("acquisition.connection.more")}
+									/>
+								}
+							>
+								<MoreHorizontal size={16} />
+							</DropdownMenuTrigger>
+							<DropdownMenuContent>
+								{settings.bundledAvailable && (
+									<DropdownMenuItem
+										disabled={busy}
+										onClick={() => bundled.mutate()}
+									>
+										<Package size={16} aria-hidden="true" />
+										{t("acquisition.api.useBundled")}
+									</DropdownMenuItem>
+								)}
+								{settings.state !== "unconfigured" && (
+									<DropdownMenuItem
+										disabled={busy}
+										onClick={() => clear.mutate()}
+									>
+										<Unplug size={16} aria-hidden="true" />
+										{t("acquisition.api.remove")}
+									</DropdownMenuItem>
+								)}
+							</DropdownMenuContent>
+						</DropdownMenu>
+					)
 				}
 				configured={settings.state === "configured"}
 				label={t("acquisition.sources.connectionSettings")}
@@ -279,38 +352,6 @@ function ConnectionForm({
 					/>
 				</div>
 			</ConnectionSettings>
-			<div className="action-row">
-				<ActionButton
-					icon={PlugZap}
-					label={t("acquisition.api.test")}
-					shortLabel={t("actions.test")}
-					type="button"
-					variant="outline"
-					disabled={busy || changed || settings.state !== "configured"}
-					aria-busy={check.isPending}
-					onClick={() => check.mutate()}
-				/>
-				{settings.state !== "unconfigured" && (
-					<DropdownMenu>
-						<DropdownMenuTrigger
-							render={
-								<Button
-									type="button"
-									variant="ghost"
-									aria-label={t("acquisition.connection.more")}
-								/>
-							}
-						>
-							<MoreHorizontal size={16} />
-						</DropdownMenuTrigger>
-						<DropdownMenuContent>
-							<DropdownMenuItem disabled={busy} onClick={() => clear.mutate()}>
-								{t("acquisition.api.remove")}
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				)}
-			</div>
 			{settings.bundled && (
 				<details
 					onToggle={(event) => {
