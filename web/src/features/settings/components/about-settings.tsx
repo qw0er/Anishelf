@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { request } from "../../../shared/api/client.js";
 import type { BuildInfo, UpdateCheck } from "../../../shared/api/contracts.js";
 import { ActionButton } from "../../../shared/components/ui/action-button.js";
@@ -21,15 +22,9 @@ declare const __ANISHELF_BUILD__: BuildInfo;
 const webBuild = __ANISHELF_BUILD__;
 const repository = "https://github.com/qw0er/Anishelf";
 const updateKey = ["system", "updates"];
-const statusLabels: Record<UpdateCheck["status"], string> = {
-	available: "A new version is available.",
-	current: "You are up to date.",
-	ahead: "This version is newer than the latest stable release.",
-	uncomparable: "This build cannot be compared with stable releases.",
-	"no-release": "No stable release has been published.",
-};
 
 function BuildDetails({ label, info }: { label: string; info: BuildInfo }) {
+	const { t, i18n } = useTranslation();
 	return (
 		<div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs">
 			<span className="w-14 shrink-0 font-medium text-foreground">{label}</span>
@@ -38,13 +33,18 @@ function BuildDetails({ label, info }: { label: string; info: BuildInfo }) {
 			</span>
 			{info.commit && <code className="break-all">{info.commit}</code>}
 			{info.builtAt && (
-				<span>Built {new Date(info.builtAt).toLocaleString()}</span>
+				<span>
+					{t("about.built", {
+						time: new Date(info.builtAt).toLocaleString(i18n.language),
+					})}
+				</span>
 			)}
 		</div>
 	);
 }
 
 export function AboutSettings() {
+	const { t, i18n } = useTranslation();
 	const client = useQueryClient();
 	const info = useQuery({
 		queryKey: ["system", "info"],
@@ -64,14 +64,14 @@ export function AboutSettings() {
 			toast.add({
 				id: "update-check",
 				type: "info",
-				title: statusLabels[result.status],
+				title: t(`about.status.${result.status}`),
 			});
 		},
 		onError: () => {
 			toast.add({
 				id: "update-check",
 				type: "error",
-				title: "Could not check for updates. Try again later.",
+				title: t("about.checkFailed"),
 			});
 		},
 	});
@@ -85,14 +85,12 @@ export function AboutSettings() {
 		<Card className="settings-section lg:grid">
 			<CardHeader>
 				<CardTitle>Anishelf</CardTitle>
-				<CardDescription>
-					Your anime library, tracking and playback.
-				</CardDescription>
+				<CardDescription>{t("about.description")}</CardDescription>
 				<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
 					{[
-						["Project", repository],
-						["Docs", `${repository}/tree/main/docs/guide`],
-						["Issues", `${repository}/issues`],
+						[t("about.project"), repository],
+						[t("about.docs"), `${repository}/tree/main/docs/guide`],
+						[t("about.issues"), `${repository}/issues`],
 					].map(([label, href]) => (
 						<a
 							key={label}
@@ -119,8 +117,8 @@ export function AboutSettings() {
 					</div>
 					<ActionButton
 						icon={RefreshCw}
-						label="Check for updates"
-						shortLabel="Check"
+						label={t("about.checkUpdates")}
+						shortLabel={t("about.check")}
 						variant="outline"
 						aria-busy={check.isPending}
 						disabled={check.isPending || !info.data}
@@ -129,25 +127,24 @@ export function AboutSettings() {
 				</div>
 				{info.isPending && (
 					<p className="text-sm text-muted-foreground" role="status">
-						Loading backend version…
+						{t("about.loadingBackend")}
 					</p>
 				)}
 				{info.isError && (
 					<p className="field-error" role="alert">
-						Could not load the backend version.{" "}
+						{t("about.backendFailed")}{" "}
 						<button
 							type="button"
 							className="underline"
 							onClick={() => void info.refetch()}
 						>
-							Retry
+							{t("actions.retry")}
 						</button>
 					</p>
 				)}
 				{mismatch && (
 					<p role="alert" className="field-error">
-						Web and Backend builds differ. Deploy matching versions of both
-						components.
+						{t("about.mismatch")}
 					</p>
 				)}
 				{updates.data && (
@@ -155,7 +152,7 @@ export function AboutSettings() {
 						className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm"
 						aria-live="polite"
 					>
-						<span>{statusLabels[updates.data.status]}</span>
+						<span>{t(`about.status.${updates.data.status}`)}</span>
 						{updates.data.latest && (
 							<a
 								className="underline underline-offset-4"
@@ -163,18 +160,21 @@ export function AboutSettings() {
 								target="_blank"
 								rel="noreferrer"
 							>
-								{updates.data.latest.version} · Release notes
+								{updates.data.latest.version} · {t("about.releaseNotes")}
 							</a>
 						)}
 						<span className="text-xs text-muted-foreground">
-							Checked {new Date(updates.data.checkedAt).toLocaleString()}
+							{t("about.checked", {
+								time: new Date(updates.data.checkedAt).toLocaleString(
+									i18n.language,
+								),
+							})}
 						</span>
 					</div>
 				)}
 				{check.isError && (
 					<p role="alert" className="field-error">
-						The latest check failed. Any previous result is from the last
-						successful check.
+						{t("about.lastCheckFailed")}
 					</p>
 				)}
 				<div className="flex flex-wrap items-start gap-x-4 gap-y-2 border-t pt-3 text-sm text-muted-foreground">
@@ -184,12 +184,14 @@ export function AboutSettings() {
 						defaultOpen={mismatch}
 					>
 						<CollapsibleTrigger className="w-fit cursor-pointer hover:text-foreground">
-							Build details
+							{t("about.buildDetails")}
 						</CollapsibleTrigger>
 						<CollapsibleContent keepMounted>
 							<div className="mt-2 space-y-2">
-								<BuildDetails label="Web" info={webBuild} />
-								{info.data && <BuildDetails label="Backend" info={info.data} />}
+								<BuildDetails label={t("about.web")} info={webBuild} />
+								{info.data && (
+									<BuildDetails label={t("about.backend")} info={info.data} />
+								)}
 							</div>
 						</CollapsibleContent>
 					</Collapsible>
@@ -199,7 +201,7 @@ export function AboutSettings() {
 						target="_blank"
 						rel="noreferrer"
 					>
-						Upgrade guide
+						{t("about.upgradeGuide")}
 					</a>
 				</div>
 			</CardContent>
