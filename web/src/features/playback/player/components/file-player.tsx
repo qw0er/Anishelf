@@ -158,6 +158,11 @@ export default function FilePlayer({
 			)}
 			<div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
 				<AudioSelection active={active} selectAudio={selectAudio} />
+				{playback.session &&
+					slots?.renderViewing?.({
+						fileId: data.file.id,
+						sourceVersion: playback.session.sourceVersion,
+					})}
 				<PlaybackActionsMenu
 					key={`actions:${data.file.id}`}
 					fileId={data.file.id}
@@ -207,13 +212,6 @@ export default function FilePlayer({
 				open={compatibilityOpen}
 				setOpen={setCompatibilityOpen}
 			/>
-			<div className="min-w-0">
-				{playback.session &&
-					slots?.renderViewing?.({
-						fileId: data.file.id,
-						sourceVersion: playback.session.sourceVersion,
-					})}
-			</div>
 		</section>
 	);
 }

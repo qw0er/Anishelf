@@ -81,6 +81,7 @@ or custom controls, and retain Vidstack's native player control styling.
 | Form field | Label, help affordance, input alignment and visible validation error |
 | Toolbar | Search, filters, sort and actions, including compact layouts |
 | List row | Primary/secondary information, status, aligned trailing actions and separators |
+| Menu | Consistent leading icon per item, aligned labels, submenu affordance and destructive styling |
 | Empty / error state | Consistent icon, concise explanation and relevant recovery action |
 
 Implemented shared foundations include `StatusBadge`, `InlineError`, `LoadingState`,
@@ -267,11 +268,11 @@ builds as the latest stable version.
 
 Keep the picture primary. Use a compact header with named Back icon and at most two
 title lines. Mobile video extends to page edges; desktop uses the shared container.
-Retain native Vidstack subtitles/controls. Place current-file audio and More together
-below the video, wrapping with 44px touch targets rather than large outlined buttons.
-Only the active asset supplies audio choices; show plain selected-track text when
-switching is unavailable or only one track is playable. Source-track retention
-belongs to preparation, not playback audio selection.
+Retain native Vidstack subtitles/controls. Place current-file audio, the Tracking
+control and More on one action row below the video, wrapping with 44px touch targets
+rather than large outlined buttons. Only the active asset supplies audio choices; show
+plain selected-track text when switching is unavailable or only one track is playable.
+Source-track retention belongs to preparation, not playback audio selection.
 
 More contains manual retry, compatibility, Playback options and existing external
 player/link commands. Playback options discloses the full filename, current version,
@@ -279,9 +280,10 @@ version selector and manual preparation. Compatibility describes the active reso
 original-file facts are separate. Keep recovery controls visible when playback fails;
 normal playback should not carry routine technical explanations.
 
-Progress editing/unmapped explanations use a compact disclosure. Keep pending decisions,
-conflicts, failures and recovery visible. Preserve playback context and existing command
-logging; log manual retries without media URLs or credentials.
+Unmapped explanations use a compact disclosure. Keep pending decisions, conflicts,
+failures and recovery visible. Progress editing stays on details; the player offers no
+progress editor. Preserve playback context and existing command logging; log manual
+retries without media URLs or credentials.
 
 ## Episode Viewing and Playback Completion
 
@@ -293,8 +295,9 @@ confirmed indicators. A complete initial snapshot must establish entry presence
 before showing an absent state.
 
 Local and remote details share Edit progress; eligible players expose a nonblocking
-Tracking control with Mark as watched, operation state and the same editor. The
-player's operation state covers only the current episode's open work: pending
+Tracking control with Mark as watched and operation state. Progress editing is not
+offered in the player: arbitrary progress and status corrections stay on details.
+The player's operation state covers only the current episode's open work: pending
 decisions, conflicts, failures and recovery. A completed result leaves the control,
 is announced once as a notification and is never replayed from stored history.
 Unmapped sources have no tracking command. Support explicit backward corrections and

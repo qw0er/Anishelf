@@ -1,5 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Ellipsis, ExternalLink, Settings } from "lucide-react";
+import {
+	ChevronRight,
+	Ellipsis,
+	ExternalLink,
+	Info,
+	RefreshCw,
+	Settings,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryScope } from "../../../../shared/api/queries.js";
@@ -87,6 +94,7 @@ export function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 							/>
 						}
 					>
+						<ExternalLink size={16} aria-hidden="true" />
 						<span className="min-w-0 break-all">{player.name}</span>
 					</DropdownMenuItem>
 				))}
@@ -95,6 +103,7 @@ export function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 						closeOnClick={false}
 						onClick={() => void media.refetch()}
 					>
+						<RefreshCw size={16} aria-hidden="true" />
 						{t("actions.retry")}
 					</DropdownMenuItem>
 				)}
@@ -136,6 +145,7 @@ export function PlaybackActionsMenu({
 			<DropdownMenuContent>
 				{onCompatibility && (
 					<DropdownMenuItem onClick={onCompatibility}>
+						<Info size={16} aria-hidden="true" />
 						{t("compatibility.showInfo")}
 					</DropdownMenuItem>
 				)}
@@ -147,6 +157,7 @@ export function PlaybackActionsMenu({
 				)}
 				{onRetry && (
 					<DropdownMenuItem onClick={onRetry}>
+						<RefreshCw size={16} aria-hidden="true" />
 						{t("player.retry")}
 					</DropdownMenuItem>
 				)}
