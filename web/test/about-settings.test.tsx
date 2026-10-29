@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import "../src/shared/i18n.js";
 import { afterEach, expect, test, vi } from "vitest";
 import { AboutSettings } from "../src/features/settings/components/about-settings.js";
 import * as api from "../src/shared/api/client.js";

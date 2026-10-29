@@ -7,6 +7,7 @@ import {
 	storeLanguage,
 } from "./config/languages.js";
 import en from "./locales/en.json" with { type: "json" };
+import zhCN from "./locales/zh-CN.json" with { type: "json" };
 
 function syncDocumentLanguage(language: string | undefined): void {
 	if (typeof document === "undefined" || !language) return;
@@ -18,7 +19,7 @@ i18n.on("languageChanged", syncDocumentLanguage);
 void i18n
 	.use(initReactI18next)
 	.init({
-		resources: { en: { translation: en } },
+		resources: { en: { translation: en }, "zh-CN": { translation: zhCN } },
 		lng: readStoredLanguage(),
 		fallbackLng: defaultLanguage,
 		interpolation: { escapeValue: false },

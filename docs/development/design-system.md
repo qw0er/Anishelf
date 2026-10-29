@@ -362,7 +362,7 @@ non-color status/error cues. Tooltips supplement accessible names; they never re
 visible required recovery information. Help must work with keyboard and touch.
 Avoid overlapping controls and page-wide horizontal overflow.
 
-Keep labels and feedback in English; preserve original filenames. Never present
+Localize labels and feedback; preserve original filenames. Never present
 placeholder metadata, invented posters, nonfunctional controls or incomplete
 integrations as completed functionality.
 
