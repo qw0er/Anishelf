@@ -5,8 +5,14 @@ import { useTranslation } from "react-i18next";
 import { boundedSignal } from "../../shared/api/queries.js";
 import { ActionButton } from "../../shared/components/ui/action-button.js";
 import { Button } from "../../shared/components/ui/button.js";
+import { Field } from "../../shared/components/ui/field.js";
 import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
+import { LoadingState } from "../../shared/components/ui/loading-state.js";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../shared/components/ui/native-select.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import {
 	downloadKeys,
@@ -57,7 +63,7 @@ export function DownloadDestinationSettings() {
 		},
 	});
 	if (query.isPending)
-		return <p role="status">{t("acquisition.destination.loading")}</p>;
+		return <LoadingState label={t("acquisition.destination.loading")} />;
 	if (query.isError)
 		return (
 			<p role="alert">
@@ -85,11 +91,11 @@ export function DownloadDestinationSettings() {
 				/>
 			</div>
 			<div className="grid gap-4 sm:grid-cols-2">
-				<div className="flex flex-col gap-2">
+				<Field className="flex flex-col gap-2">
 					<label className="field-label" htmlFor={`${id}-root`}>
 						{t("acquisition.destination.resourceDirectory")}
 					</label>
-					<select
+					<NativeSelect
 						className="form-select"
 						id={`${id}-root`}
 						required
@@ -103,18 +109,18 @@ export function DownloadDestinationSettings() {
 						onChange={(event) => setRoot(event.target.value)}
 					>
 						{!query.data?.roots.length && (
-							<option value="">
+							<NativeSelectOption value="">
 								{t("acquisition.destination.addDirectoryFirst")}
-							</option>
+							</NativeSelectOption>
 						)}
 						{query.data?.roots.map((item) => (
-							<option key={item.scopeId} value={item.scopeId}>
+							<NativeSelectOption key={item.scopeId} value={item.scopeId}>
 								{item.name}
-							</option>
+							</NativeSelectOption>
 						))}
-					</select>
-				</div>
-				<div className="flex flex-col gap-2">
+					</NativeSelect>
+				</Field>
+				<Field className="flex flex-col gap-2">
 					<label className="field-label" htmlFor={`${id}-path`}>
 						{t("acquisition.destination.completedPath")}
 					</label>
@@ -126,7 +132,7 @@ export function DownloadDestinationSettings() {
 						onChange={(event) => setPath(event.target.value)}
 						disabled={action.isPending}
 					/>
-				</div>
+				</Field>
 			</div>
 
 			{destination && (

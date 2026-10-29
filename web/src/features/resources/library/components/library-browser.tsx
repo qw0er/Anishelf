@@ -9,6 +9,7 @@ import { EmptyState } from "../../../../shared/components/empty-state.js";
 import { PageHeader } from "../../../../shared/components/page-header.js";
 import { buttonStyles } from "../../../../shared/components/ui/button.js";
 import { Card, CardContent } from "../../../../shared/components/ui/card.js";
+import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { directoryPath, filePath } from "../../../../shared/navigation.js";
 import {
 	summariesQuery,
@@ -105,37 +106,37 @@ export default function LibraryBrowser({
 										tabIndex={-1}
 										className="grid scroll-mt-4 grid-cols-[minmax(0,1fr)_auto] items-center py-2 first:pt-0 last:pb-0 target:rounded-md target:bg-accent target:ring-2 target:ring-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 									>
-										<Link
-											aria-label={entry.name}
-											className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-md px-2 py-3 sm:grid-cols-[1rem_minmax(0,1fr)_auto] hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-											to={
-												entry.kind === "directory"
-													? directoryPath(entry.id)
-													: filePath(entry.id, listing.directory.id)
-											}
-										>
-											{entry.kind === "directory" ? (
-												<Folder
-													className="mt-1 self-start"
-													size={16}
-													aria-hidden="true"
-												/>
-											) : (
-												<FileVideo
-													className="mt-1 self-start"
-													size={16}
-													aria-hidden="true"
-												/>
-											)}
-											<span className="min-w-0 wrap-break-word">
-												{entry.name}
-											</span>
-											{entry.kind === "file" && (
-												<span className="col-start-2 text-sm tabular-nums sm:col-start-3 text-muted-foreground">
-													{formatFileSize(entry.sizeBytes, i18n.language)}
-												</span>
-											)}
-										</Link>
+										<Tooltip content={entry.name}>
+											<Link
+												aria-label={entry.name}
+												className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-md px-2 py-3 sm:grid-cols-[1rem_minmax(0,1fr)_auto] hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+												to={
+													entry.kind === "directory"
+														? directoryPath(entry.id)
+														: filePath(entry.id, listing.directory.id)
+												}
+											>
+												{entry.kind === "directory" ? (
+													<Folder
+														className="mt-1 self-start"
+														size={16}
+														aria-hidden="true"
+													/>
+												) : (
+													<FileVideo
+														className="mt-1 self-start"
+														size={16}
+														aria-hidden="true"
+													/>
+												)}
+												<span className="min-w-0 truncate">{entry.name}</span>
+												{entry.kind === "file" && (
+													<span className="col-start-2 text-sm tabular-nums sm:col-start-3 text-muted-foreground">
+														{formatFileSize(entry.sizeBytes, i18n.language)}
+													</span>
+												)}
+											</Link>
+										</Tooltip>
 										{entry.kind === "file" && (
 											<div className="flex items-center justify-end gap-1 pl-2">
 												{renderFileActions?.({

@@ -1,5 +1,6 @@
 import type { ComponentProps } from "react";
 import { cn } from "../../lib/utils.js";
+import { Badge } from "./badge.js";
 
 export type StatusTone =
 	| "neutral"
@@ -22,12 +23,9 @@ export function StatusBadge({
 	...props
 }: ComponentProps<"span"> & { tone?: StatusTone }) {
 	return (
-		<span
-			className={cn(
-				"inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium leading-4",
-				tones[tone],
-				className,
-			)}
+		<Badge
+			variant="secondary"
+			className={cn("h-auto min-h-5 leading-4", tones[tone], className)}
 			{...props}
 		/>
 	);

@@ -279,3 +279,15 @@ test("site and connection saves preserve the other editor's draft", async () => 
 	});
 	expect(screen.getByRole("button", { name: "Save sites" })).toBeTruthy();
 });
+
+test("failed background reads preserve editable connection drafts", async () => {
+	const f = fixture();
+	const input = await screen.findByLabelText("API URL");
+	fireEvent.change(input, { target: { value: "http://draft:9117/" } });
+	f.request.mockRejectedValue(new Error("offline"));
+	await queryClient.refetchQueries({
+		queryKey: ["acquisition", "sources", "connector"],
+	});
+	expect(screen.getByLabelText("API URL")).toBe(input);
+	expect((input as HTMLInputElement).value).toBe("http://draft:9117/");
+});

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import type {
 	MediaAsset,
@@ -8,6 +9,10 @@ import {
 	boundedSignal,
 	useQueryScope,
 } from "../../../../shared/api/queries.js";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../../shared/components/ui/native-select.js";
 import { audioTrackLabel } from "../../../media/public.js";
 import { getPlaybackOptions } from "../api.js";
 import { canSelectNativeAudio } from "../runtime.js";
@@ -22,6 +27,7 @@ export function PlaybackVersionSelection({
 	selectedAssetId: string;
 	onSelect(asset: MediaAsset | null): void;
 }) {
+	const selectId = useId();
 	const { t, i18n } = useTranslation();
 	const scope = useQueryScope();
 	const query = useQuery({
@@ -48,9 +54,10 @@ export function PlaybackVersionSelection({
 	});
 	const assets = query.data?.assets.map((inspection) => inspection.asset) ?? [];
 	return (
-		<label className="space-y-1 text-sm">
+		<label htmlFor={selectId} className="space-y-1 text-sm">
 			<span>{t("player.assetSelection")}</span>
-			<select
+			<NativeSelect
+				id={selectId}
 				aria-label={t("player.assetSelection")}
 				className="h-11 w-full rounded-md border bg-background px-2"
 				value={selectedAssetId}
@@ -61,9 +68,11 @@ export function PlaybackVersionSelection({
 					)
 				}
 			>
-				<option value="auto">{t("player.automaticAsset")}</option>
+				<NativeSelectOption value="auto">
+					{t("player.automaticAsset")}
+				</NativeSelectOption>
 				{assets.map((asset) => (
-					<option key={asset.id} value={asset.id}>
+					<NativeSelectOption key={asset.id} value={asset.id}>
 						{t(`player.assets.${asset.kind}`)} ·{" "}
 						{asset.video?.codec?.toUpperCase()} ·{" "}
 						{asset.video?.height ? `${asset.video.height}p · ` : ""}
@@ -81,9 +90,9 @@ export function PlaybackVersionSelection({
 								),
 							)
 							.join(" / ") || t("audioTracks.none")}
-					</option>
+					</NativeSelectOption>
 				))}
-			</select>
+			</NativeSelect>
 			{query.error && (
 				<span role="alert" className="block text-muted-foreground">
 					{t("player.versionsUnavailable")}

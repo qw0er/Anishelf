@@ -10,7 +10,7 @@ export function DropdownMenuRadioItem(props: Menu.RadioItem.Props) {
 		<Menu.RadioItem
 			{...props}
 			closeOnClick
-			className="flex cursor-default items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground"
+			className="touch-control flex cursor-default items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground"
 		>
 			<span
 				aria-hidden="true"
@@ -26,7 +26,7 @@ export function DropdownMenuRadioItem(props: Menu.RadioItem.Props) {
 export function DropdownMenuSubTrigger(props: Menu.SubmenuTrigger.Props) {
 	return (
 		<Menu.SubmenuTrigger
-			className="flex cursor-default items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground"
+			className="touch-control flex cursor-default items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground"
 			{...props}
 		/>
 	);
@@ -57,11 +57,15 @@ export function DropdownMenuContent({
 	);
 }
 
-export function DropdownMenuItem({ className, ...props }: Menu.Item.Props) {
+export function DropdownMenuItem({
+	className,
+	variant = "default",
+	...props
+}: Menu.Item.Props & { variant?: "default" | "destructive" }) {
 	return (
 		<Menu.Item
 			className={(state) =>
-				`flex cursor-default items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50 ${typeof className === "function" ? className(state) : (className ?? "")}`
+				`touch-control flex cursor-default items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50 ${variant === "destructive" ? "text-destructive data-highlighted:text-destructive" : ""} ${typeof className === "function" ? className(state) : (className ?? "")}`
 			}
 			{...props}
 		/>

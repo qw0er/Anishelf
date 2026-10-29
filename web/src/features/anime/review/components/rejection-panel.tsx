@@ -1,6 +1,13 @@
 import { useTranslation } from "react-i18next";
 import type { CatalogReviewItem } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
+import { Checkbox } from "../../../../shared/components/ui/checkbox.js";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../../../../shared/components/ui/collapsible.js";
+import { FieldLabel } from "../../../../shared/components/ui/field.js";
 import { Input } from "../../../../shared/components/ui/input.js";
 import { ErrorMessage } from "../../shared/components/error-message.js";
 import type { ReviewController } from "../use-review-controller.js";
@@ -29,55 +36,65 @@ export function RejectionPanel({
 	} = controller;
 	const existing = item.associations;
 	return (
-		<details className="rounded-lg border p-4 text-sm">
-			<summary className="cursor-pointer font-medium text-muted-foreground">
+		<Collapsible className="rounded-lg border p-4 text-sm">
+			<CollapsibleTrigger className="cursor-pointer font-medium text-muted-foreground">
 				{t(existing.length ? "review.removeAction" : "review.reject")}
-			</summary>
-			<p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-				{t("review.rejectHint")}
-			</p>
-			<form
-				className="mt-4 space-y-3"
-				onChange={() => clearDecisionValidation()}
-				onSubmit={(event) => {
-					event.preventDefault();
-					requestDecision(new FormData(event.currentTarget));
-				}}
-			>
-				<label htmlFor="rejection-reason" className="block space-y-1.5 text-sm">
-					{t(
-						existing.length
-							? "review.rejectionReason"
-							: "review.optionalRejectionReason",
-					)}
-					<Input
-						id="rejection-reason"
-						name="reason"
-						maxLength={500}
-						required={existing.length > 0}
-					/>
-				</label>
-				{existing.length > 0 && (
-					<label className="flex items-start gap-2 text-xs leading-relaxed">
-						<input type="checkbox" name="remove" />
-						{t("review.remove")}
-					</label>
-				)}
-				<Button
-					className="w-full text-destructive"
-					type="submit"
-					variant="outline"
-					disabled={busy}
-				>
-					{t(existing.length ? "review.removeAction" : "review.reject")}
-				</Button>
-			</form>
-			{decisionValidation && (
-				<p role="alert" className="mt-3 text-sm text-destructive">
-					{decisionValidation}
+			</CollapsibleTrigger>
+			<CollapsibleContent keepMounted>
+				<p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+					{t("review.rejectHint")}
 				</p>
-			)}
-			{decisionError && <ErrorMessage error={decisionError} />}
-		</details>
+				<form
+					className="mt-4 space-y-3"
+					onChange={() => clearDecisionValidation()}
+					onSubmit={(event) => {
+						event.preventDefault();
+						requestDecision(new FormData(event.currentTarget));
+					}}
+				>
+					<label
+						htmlFor="rejection-reason"
+						className="block space-y-1.5 text-sm"
+					>
+						{t(
+							existing.length
+								? "review.rejectionReason"
+								: "review.optionalRejectionReason",
+						)}
+						<Input
+							id="rejection-reason"
+							name="reason"
+							maxLength={500}
+							required={existing.length > 0}
+						/>
+					</label>
+					{existing.length > 0 && (
+						<div className="touch-control flex items-start gap-2 text-xs leading-relaxed">
+							<Checkbox id="remove-association" name="remove" />
+							<FieldLabel
+								className="touch-control flex-1"
+								htmlFor="remove-association"
+							>
+								{t("review.remove")}
+							</FieldLabel>
+						</div>
+					)}
+					<Button
+						className="w-full text-destructive"
+						type="submit"
+						variant="outline"
+						disabled={busy}
+					>
+						{t(existing.length ? "review.removeAction" : "review.reject")}
+					</Button>
+				</form>
+				{decisionValidation && (
+					<p role="alert" className="mt-3 text-sm text-destructive">
+						{decisionValidation}
+					</p>
+				)}
+				{decisionError && <ErrorMessage error={decisionError} />}
+			</CollapsibleContent>
+		</Collapsible>
 	);
 }

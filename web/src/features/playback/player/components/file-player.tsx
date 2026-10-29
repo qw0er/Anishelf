@@ -175,7 +175,7 @@ export default function FilePlayer({
 				/>
 			</div>
 			<Dialog open={optionsOpen} onOpenChange={setOptionsOpen}>
-				<DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>{t("player.options")}</DialogTitle>
 					</DialogHeader>

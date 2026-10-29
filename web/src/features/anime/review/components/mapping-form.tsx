@@ -3,7 +3,16 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { CatalogReviewItem } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../../../../shared/components/ui/collapsible.js";
 import { Input } from "../../../../shared/components/ui/input.js";
+import {
+	RadioGroup,
+	RadioGroupItem,
+} from "../../../../shared/components/ui/radio-group.js";
 import { Artwork } from "../../shared/components/artwork.js";
 import { mappingDefaults } from "../mapping-defaults.js";
 import type { ReviewController } from "../use-review-controller.js";
@@ -95,30 +104,41 @@ export function MappingForm({
 					</div>
 				</div>
 				{details.data.data.description && (
-					<details className="text-sm text-muted-foreground">
-						<summary className="cursor-pointer">{t("review.synopsis")}</summary>
-						<p className="mt-2 max-h-40 overflow-y-auto leading-relaxed wrap-anywhere">
-							{details.data.data.description.replace(/<[^>]*>/g, " ")}
-						</p>
-					</details>
+					<Collapsible className="text-sm text-muted-foreground">
+						<CollapsibleTrigger className="cursor-pointer">
+							{t("review.synopsis")}
+						</CollapsibleTrigger>
+						<CollapsibleContent keepMounted>
+							<p className="mt-2 max-h-40 overflow-y-auto leading-relaxed wrap-anywhere">
+								{details.data.data.description.replace(/<[^>]*>/g, " ")}
+							</p>
+						</CollapsibleContent>
+					</Collapsible>
 				)}
 				<div className="grid min-w-0 gap-4 sm:grid-cols-2">
 					<fieldset className="space-y-2">
 						<legend className="text-sm font-medium">{t("review.kind")}</legend>
-						<div className="flex flex-wrap gap-3">
+						<RadioGroup
+							name="kind"
+							defaultValue={defaults.kind}
+							aria-label={t("review.kind")}
+							className="flex flex-wrap gap-3"
+						>
 							{(["regular", "special", "movie"] as const).map((value) => (
-								<label key={value} className="flex items-center gap-2 text-sm">
-									<input
-										type="radio"
-										name="kind"
+								<label
+									key={value}
+									htmlFor={`review-kind-${value}`}
+									className="touch-control flex items-center gap-2 text-sm"
+								>
+									<RadioGroupItem
+										id={`review-kind-${value}`}
 										value={value}
-										defaultChecked={defaults.kind === value}
-										className="accent-primary"
+										className="after:hidden"
 									/>
 									{t(`anime.${value}`)}
 								</label>
 							))}
-						</div>
+						</RadioGroup>
 					</fieldset>
 					<label
 						htmlFor="target-numbers"

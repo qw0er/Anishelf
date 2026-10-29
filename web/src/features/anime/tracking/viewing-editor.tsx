@@ -13,8 +13,13 @@ import {
 	DialogContent,
 	DialogTitle,
 } from "../../../shared/components/ui/dialog.js";
+import { Field } from "../../../shared/components/ui/field.js";
 import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../shared/components/ui/native-select.js";
 import { operationsQuery } from "./operations.js";
 import { useTrackingMutation } from "./use-tracking-mutation.js";
 import type { ViewingState } from "./use-viewing-state.js";
@@ -263,9 +268,9 @@ function ViewingForm({
 					</Button>
 				</div>
 			</div>
-			<div className="grid gap-1">
+			<Field className="grid gap-1">
 				<label htmlFor={statusId}>{t("trackingUpdate.status")}</label>
-				<select
+				<NativeSelect
 					id={statusId}
 					className="form-select w-full"
 					value={status}
@@ -275,12 +280,12 @@ function ViewingForm({
 					}}
 				>
 					{snapshot.provider.capabilities.statuses.map((value) => (
-						<option key={value} value={value}>
+						<NativeSelectOption key={value} value={value}>
 							{t(`trackingList.statuses.${value}`)}
-						</option>
+						</NativeSelectOption>
 					))}
-				</select>
-			</div>
+				</NativeSelect>
+			</Field>
 			{operation &&
 				["conflict", "failed", "authorization-required"].includes(
 					operation.state,

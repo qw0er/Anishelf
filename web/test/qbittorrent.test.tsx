@@ -49,6 +49,9 @@ test("saves a direct browser address and clearing hides the link", async () => {
 			return settings;
 		});
 	render(<QbittorrentSettings />);
+	fireEvent.click(
+		await screen.findByRole("button", { name: "WebUI settings" }),
+	);
 	await screen.findByLabelText("Browser WebUI URL (optional)");
 	expect(screen.queryByRole("link")).toBeNull();
 	const input = screen.getByLabelText("Browser WebUI URL (optional)");

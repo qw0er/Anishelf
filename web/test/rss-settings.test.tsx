@@ -136,7 +136,7 @@ test("profile choice is saved separately from the RSS interval", async () => {
 	);
 	render(<RssSettings />);
 	const general = await screen.findByRole("radio", { name: /General/ });
-	expect((general as HTMLInputElement).checked).toBe(true);
+	expect(general.getAttribute("aria-checked")).toBe("true");
 	const custom = screen.getByRole("radio", { name: /Mine/ });
 	fireEvent.click(custom);
 	expect(request.mock.calls.some((call) => call[1] === "PUT")).toBe(false);

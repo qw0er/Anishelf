@@ -102,9 +102,6 @@ export function reportTrackingOperations(
 		const id = `tracking-operation:${op.id}`;
 		if (op.state === "pending" || op.state === "submitting") {
 			toast.close(id);
-			// An automatic handoff never asks for attention; only commands the user
-			// issued keep an in-flight notice alive.
-			if (op.origin === "automatic") continue;
 			toast.add({
 				id,
 				type: "loading",

@@ -4,11 +4,10 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { CatalogReviewResponse } from "../../../../shared/api/contracts.js";
 import { EmptyState } from "../../../../shared/components/empty-state.js";
-import {
-	Button,
-	buttonStyles,
-} from "../../../../shared/components/ui/button.js";
+import { buttonStyles } from "../../../../shared/components/ui/button.js";
 import { LoadingState } from "../../../../shared/components/ui/loading-state.js";
+import { PaginationControls } from "../../../../shared/components/ui/pagination-controls.js";
+import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { ErrorMessage } from "../../shared/components/error-message.js";
 import { DecisionBadge } from "./decision-badge.js";
 export function ReviewList({
@@ -74,12 +73,15 @@ export function ReviewList({
 											{row.evidence.originalName}
 										</p>
 										{row.relativePath !== row.evidence.originalName && (
-											<p
-												className="truncate text-xs text-muted-foreground"
-												title={row.relativePath}
-											>
-												{row.relativePath}
-											</p>
+											<Tooltip content={row.relativePath} openOnClick>
+												<button
+													type="button"
+													className="touch-control block max-w-full truncate rounded-md focus-visible:outline-2 focus-visible:outline-ring text-xs text-muted-foreground"
+													aria-label={row.relativePath}
+												>
+													{row.relativePath}
+												</button>
+											</Tooltip>
 										)}
 										{row.associations.length ? (
 											<p className="text-sm wrap-anywhere text-muted-foreground">
@@ -119,28 +121,13 @@ export function ReviewList({
 							title={t("review.empty")}
 						/>
 					)}
-					<fieldset
-						className="flex items-center justify-between gap-3 border-t pt-4 text-sm"
-						aria-label={t("anime.pagination")}
-					>
-						<Button
-							variant="outline"
-							disabled={page === 1 || query.isFetching}
-							onClick={() => onPage(page - 1)}
-						>
-							{t("anime.previous")}
-						</Button>
-						<span className="text-muted-foreground">
-							{t("anime.page", { page })}
-						</span>
-						<Button
-							variant="outline"
-							disabled={!query.data.hasNextPage || query.isFetching}
-							onClick={() => onPage(page + 1)}
-						>
-							{t("anime.next")}
-						</Button>
-					</fieldset>
+					<PaginationControls
+						page={page}
+						fetching={query.isFetching}
+						hasNextPage={query.data.hasNextPage}
+						onPage={onPage}
+						label={t("anime.pagination")}
+					/>
 				</>
 			)}
 		</>

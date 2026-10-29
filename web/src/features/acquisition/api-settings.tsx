@@ -14,6 +14,11 @@ import type { QbittorrentConnectionSettings } from "../../shared/api/contracts.j
 import { boundedSignal } from "../../shared/api/queries.js";
 import { ActionButton } from "../../shared/components/ui/action-button.js";
 import { Button } from "../../shared/components/ui/button.js";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../../shared/components/ui/collapsible.js";
 import { ConnectionSettings } from "../../shared/components/ui/connection-settings.js";
 import {
 	DropdownMenu,
@@ -21,9 +26,13 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "../../shared/components/ui/dropdown-menu.js";
+import { Field } from "../../shared/components/ui/field.js";
+import { FieldHeading } from "../../shared/components/ui/field-heading.js";
 import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
+import { LoadingState } from "../../shared/components/ui/loading-state.js";
 import { toast } from "../../shared/components/ui/toast.js";
+import { useRefreshError } from "../../shared/hooks/use-refresh-error.js";
 import {
 	activateBundledQbittorrent,
 	checkQbittorrentConnection,
@@ -43,14 +52,20 @@ export function QbittorrentApiSettings() {
 		queryFn: ({ signal }) =>
 			getQbittorrentConnection({ signal: boundedSignal(signal) }),
 	});
+	useRefreshError(
+		"qbittorrent-settings",
+		query.data ? query.error : null,
+		query.errorUpdatedAt,
+		() => void query.refetch(),
+	);
 	return (
 		<section
 			className="space-y-3"
 			aria-label={t("acquisition.api.ariaConnection")}
 		>
 			{query.isPending ? (
-				<p role="status">{t("acquisition.api.loading")}</p>
-			) : query.isError ? (
+				<LoadingState label={t("acquisition.api.loading")} />
+			) : query.isError && !query.data ? (
 				<div role="alert">
 					{t("acquisition.api.loadFailed")}{" "}
 					<Button variant="outline" onClick={() => void query.refetch()}>
@@ -288,16 +303,12 @@ function ConnectionForm({
 						: t("acquisition.connection.unconfigured")
 				}
 			>
-				<div className="flex flex-col gap-2 sm:col-span-2">
-					<div className="field-heading justify-between">
-						<label className="field-label" htmlFor="qbittorrent-api-url">
-							{t("acquisition.api.url")}
-						</label>
-						<FieldHelp
-							label={`${t("acquisition.api.url")} · ${t("actions.help")}`}
-							help={t("acquisition.api.urlHelp")}
-						/>
-					</div>
+				<Field className="flex flex-col gap-2 sm:col-span-2">
+					<FieldHeading
+						id="qbittorrent-api-url"
+						label={t("acquisition.api.url")}
+						help={t("acquisition.api.urlHelp")}
+					/>
 					<Input
 						id="qbittorrent-api-url"
 						type="url"
@@ -308,7 +319,7 @@ function ConnectionForm({
 						disabled={busy}
 						placeholder="http://qbittorrent:8080"
 					/>
-				</div>
+				</Field>
 				<div className="flex flex-col gap-2">
 					<div className="field-heading justify-between">
 						<label className="field-label" htmlFor="qbittorrent-api-username">
@@ -353,68 +364,70 @@ function ConnectionForm({
 				</div>
 			</ConnectionSettings>
 			{settings.bundled && (
-				<details
-					onToggle={(event) => {
-						if (!event.currentTarget.open) setRevealed(null);
+				<Collapsible
+					onOpenChange={(open) => {
+						if (!open) setRevealed(null);
 					}}
 				>
-					<summary className="cursor-pointer text-sm font-medium">
+					<CollapsibleTrigger className="cursor-pointer text-sm font-medium">
 						{t("acquisition.api.credentials")}
-					</summary>
-					<div className="flex flex-col gap-3 pt-3">
-						<div className="flex flex-wrap items-center gap-2 text-sm">
-							<span>
-								{t("acquisition.api.webuiUsername")}{" "}
-								<strong>{settings.username}</strong>
-							</span>
-							<ActionButton
-								icon={Copy}
-								label={t("acquisition.api.copyUsername")}
-								shortLabel={t("actions.copy")}
-								type="button"
-								variant="outline"
-								onClick={() => void copy(settings.username)}
-							/>
-							<ActionButton
-								icon={Eye}
-								label={t(
-									revealed === null
-										? "acquisition.api.showPassword"
-										: "acquisition.api.hidePassword",
-								)}
-								shortLabel={t(
-									revealed === null
-										? "acquisition.api.showPassword"
-										: "acquisition.api.hidePassword",
-								)}
-								type="button"
-								variant="outline"
-								disabled={revealing}
-								onClick={() =>
-									revealed === null ? void reveal() : setRevealed(null)
-								}
-							/>
-							{revealed !== null && (
+					</CollapsibleTrigger>
+					<CollapsibleContent keepMounted>
+						<div className="flex flex-col gap-3 pt-3">
+							<div className="flex flex-wrap items-center gap-2 text-sm">
+								<span>
+									{t("acquisition.api.webuiUsername")}{" "}
+									<strong>{settings.username}</strong>
+								</span>
 								<ActionButton
 									icon={Copy}
-									label={t("acquisition.api.copyPassword")}
+									label={t("acquisition.api.copyUsername")}
 									shortLabel={t("actions.copy")}
 									type="button"
 									variant="outline"
-									onClick={() => void copy(revealed)}
+									onClick={() => void copy(settings.username)}
+								/>
+								<ActionButton
+									icon={Eye}
+									label={t(
+										revealed === null
+											? "acquisition.api.showPassword"
+											: "acquisition.api.hidePassword",
+									)}
+									shortLabel={t(
+										revealed === null
+											? "acquisition.api.showPassword"
+											: "acquisition.api.hidePassword",
+									)}
+									type="button"
+									variant="outline"
+									disabled={revealing}
+									onClick={() =>
+										revealed === null ? void reveal() : setRevealed(null)
+									}
+								/>
+								{revealed !== null && (
+									<ActionButton
+										icon={Copy}
+										label={t("acquisition.api.copyPassword")}
+										shortLabel={t("actions.copy")}
+										type="button"
+										variant="outline"
+										onClick={() => void copy(revealed)}
+									/>
+								)}
+							</div>
+							{revealed !== null && (
+								<Input
+									aria-label={t("acquisition.api.savedPassword")}
+									readOnly
+									value={revealed}
+									autoComplete="off"
 								/>
 							)}
 						</div>
-						{revealed !== null && (
-							<Input
-								aria-label={t("acquisition.api.savedPassword")}
-								readOnly
-								value={revealed}
-								autoComplete="off"
-							/>
-						)}
-					</div>
-				</details>
+					</CollapsibleContent>
+				</Collapsible>
 			)}
 		</form>
 	);

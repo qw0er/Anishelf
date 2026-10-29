@@ -1,7 +1,12 @@
 import { ChevronDown } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./button.js";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "./collapsible.js";
 
 /**
  * Saved configuration is a summary, never evidence of network availability.
@@ -29,9 +34,10 @@ export function ConnectionSettings({
 	onCancel?: () => void;
 }) {
 	const { t } = useTranslation();
+	const [open, setOpen] = useState(!configured);
 	return (
-		<details open={!configured || undefined} className="group min-w-0">
-			<summary
+		<Collapsible open={open} onOpenChange={setOpen} className="group min-w-0">
+			<CollapsibleTrigger
 				aria-label={label}
 				className="flex cursor-pointer list-none flex-wrap items-center gap-2 rounded-md py-2 text-sm [&::-webkit-details-marker]:hidden"
 			>
@@ -49,30 +55,31 @@ export function ConnectionSettings({
 				<span className="text-muted-foreground">{label}</span>
 				<ChevronDown
 					size={16}
-					className="shrink-0 transition-transform group-open:rotate-180"
+					className="shrink-0 transition-transform group-data-open:rotate-180"
 					aria-hidden="true"
 				/>
-			</summary>
-			<div className="mt-3 grid gap-4 sm:grid-cols-2">{children}</div>
-			{(actions || menu || (configured && onCancel)) && (
-				<div className="action-row mt-4">
-					{actions}
-					{configured && onCancel && (
-						<Button
-							type="button"
-							variant="ghost"
-							onClick={(event) => {
-								onCancel();
-								const details = event.currentTarget.closest("details");
-								if (details) details.open = false;
-							}}
-						>
-							{t("actions.cancel")}
-						</Button>
-					)}
-					{menu}
-				</div>
-			)}
-		</details>
+			</CollapsibleTrigger>
+			<CollapsibleContent keepMounted>
+				<div className="mt-3 grid gap-4 sm:grid-cols-2">{children}</div>
+				{(actions || menu || (configured && onCancel)) && (
+					<div className="action-row mt-4">
+						{actions}
+						{configured && onCancel && (
+							<Button
+								type="button"
+								variant="ghost"
+								onClick={() => {
+									onCancel();
+									setOpen(false);
+								}}
+							>
+								{t("actions.cancel")}
+							</Button>
+						)}
+						{menu}
+					</div>
+				)}
+			</CollapsibleContent>
+		</Collapsible>
 	);
 }

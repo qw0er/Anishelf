@@ -1,5 +1,11 @@
 import type { ReactNode } from "react";
-
+import {
+	Empty,
+	EmptyContent,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "./ui/empty.js";
 export function EmptyState({
 	icon,
 	title,
@@ -10,20 +16,25 @@ export function EmptyState({
 	actions?: ReactNode;
 }) {
 	return (
-		<section
-			className="flex min-w-0 flex-col items-center gap-4 rounded-lg border border-dashed bg-muted/20 px-6 py-10 text-center sm:py-14"
-			aria-label={title}
-		>
-			<div
-				className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground"
-				aria-hidden="true"
+		<section aria-label={title}>
+			<Empty
+				aria-label={title}
+				className="rounded-lg border bg-muted/20 py-10 sm:py-14"
 			>
-				{icon}
-			</div>
-			<h2 className="max-w-lg text-sm font-medium leading-relaxed text-muted-foreground">
-				{title}
-			</h2>
-			{actions && <div className="action-row justify-center">{actions}</div>}
+				<EmptyHeader>
+					<EmptyMedia variant="icon" aria-hidden="true">
+						{icon}
+					</EmptyMedia>
+					<EmptyTitle>
+						<h2>{title}</h2>
+					</EmptyTitle>
+				</EmptyHeader>
+				{actions && (
+					<EmptyContent>
+						<div className="action-row justify-center">{actions}</div>
+					</EmptyContent>
+				)}
+			</Empty>
 		</section>
 	);
 }

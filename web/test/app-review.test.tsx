@@ -118,22 +118,34 @@ test("review removal stays separate from correction and retains explicit consent
 	renderApp(`/review?item=${item.id}&decision=confirmed`);
 	await screen.findByRole("heading", { name: "Choose the anime" });
 	const section = screen
-		.getByText("Remove associations", { selector: "summary" })
-		.closest("details");
-	expect(section?.hasAttribute("open")).toBe(false);
+		.getByText("Remove associations", {
+			selector: "[data-slot=collapsible-trigger]",
+		})
+		.closest("[data-slot=collapsible]");
+	expect(section?.hasAttribute("data-open")).toBe(false);
 	fireEvent.click(
-		screen.getByText("Remove associations", { selector: "summary" }),
+		screen.getByText("Remove associations", {
+			selector: "[data-slot=collapsible-trigger]",
+		}),
 	);
 	fireEvent.change(screen.getByLabelText("Rejection or removal reason"), {
 		target: { value: "Wrong anime" },
 	});
-	fireEvent.click(screen.getByRole("button", { name: "Remove associations" }));
+	fireEvent.click(
+		screen.getByText("Remove associations", {
+			selector: "button[type=submit]",
+		}),
+	);
 	await screen.findByRole("alert");
 	expect(
 		fetcher.mock.calls.some(([path]) => String(path).endsWith("/remove")),
 	).toBe(false);
 	fireEvent.click(screen.getByRole("checkbox", { name: /Explicitly remove/ }));
-	fireEvent.click(screen.getByRole("button", { name: "Remove associations" }));
+	fireEvent.click(
+		screen.getByText("Remove associations", {
+			selector: "button[type=submit]",
+		}),
+	);
 	await waitFor(() => expect(item.decision).toBe("rejected"));
 });
 
@@ -298,12 +310,16 @@ test("Review can reject a pending resource without a reason", async () => {
 	});
 	renderApp(`/review?item=${item.id}`);
 	fireEvent.click(
-		await screen.findByText("Reject resource", { selector: "summary" }),
+		await screen.findByText("Reject resource", {
+			selector: "[data-slot=collapsible-trigger]",
+		}),
 	);
 	expect(
 		screen.getByLabelText("Reason (optional)").hasAttribute("required"),
 	).toBe(false);
-	fireEvent.click(screen.getByRole("button", { name: "Reject resource" }));
+	fireEvent.click(
+		screen.getByText("Reject resource", { selector: "button[type=submit]" }),
+	);
 	await waitFor(() => expect(item.decision).toBe("rejected"));
 });
 
@@ -373,12 +389,16 @@ test("a failed Review rejection uses a Toast, retains the reason and can be retr
 	});
 	renderApp(`/review?item=${item.id}`);
 	fireEvent.click(
-		await screen.findByText("Reject resource", { selector: "summary" }),
+		await screen.findByText("Reject resource", {
+			selector: "[data-slot=collapsible-trigger]",
+		}),
 	);
 	fireEvent.change(screen.getByLabelText("Reason (optional)"), {
 		target: { value: "Keep outside library" },
 	});
-	fireEvent.click(screen.getByRole("button", { name: "Reject resource" }));
+	fireEvent.click(
+		screen.getByText("Reject resource", { selector: "button[type=submit]" }),
+	);
 	await screen.findByText(/Anime catalog is unavailable/, {
 		selector: "[data-slot=toast-title]",
 	});
@@ -390,11 +410,13 @@ test("a failed Review rejection uses a Toast, retains the reason and can be retr
 	await waitFor(() =>
 		expect(
 			screen
-				.getByRole("button", { name: "Reject resource" })
+				.getByText("Reject resource", { selector: "button[type=submit]" })
 				.hasAttribute("disabled"),
 		).toBe(false),
 	);
-	fireEvent.click(screen.getByRole("button", { name: "Reject resource" }));
+	fireEvent.click(
+		screen.getByText("Reject resource", { selector: "button[type=submit]" }),
+	);
 	await screen.findByText("Resource rejected.", {
 		selector: "[data-slot=toast-title]",
 	});

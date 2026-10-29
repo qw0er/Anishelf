@@ -4,6 +4,7 @@ import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { AnimeLibraryResponse } from "../../../../shared/api/contracts.js";
+import { buttonStyles } from "../../../../shared/components/ui/button.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { animePlayerPath } from "../../../../shared/navigation.js";
 import { Artwork } from "../../shared/components/artwork.js";
@@ -139,6 +140,13 @@ export function LibraryResults({
 											{ count: localCount, total },
 										)}
 									</p>
+									{(work.availableUnwatchedEpisodes ?? 0) > 0 && (
+										<p className="text-xs text-muted-foreground">
+											{t("episodeViewing.availableUnwatched", {
+												count: work.availableUnwatchedEpisodes ?? 0,
+											})}
+										</p>
+									)}
 									{work.viewing && (
 										<ViewingBadge
 											viewing={work.viewing}
@@ -164,7 +172,11 @@ export function LibraryResults({
 								<Link
 									to={playHref}
 									aria-label={`${playLabel}: ${work.displayTitle}`}
-									className="absolute top-2 right-2 z-10 inline-flex size-10 items-center justify-center rounded-full border border-border/70 bg-background/90 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+									className={buttonStyles(
+										"outline",
+										"absolute top-2 right-2 z-10 rounded-full bg-background/90 shadow-sm backdrop-blur",
+										"icon",
+									)}
 								>
 									<Play className="size-4 fill-current" aria-hidden="true" />
 								</Link>

@@ -158,3 +158,8 @@ test("a multi-version next playback sends the card to the detail version chooser
 		screen.getByRole("link", { name: "Example" }).getAttribute("href"),
 	).not.toContain("play=");
 });
+
+test("cards expose positive unwatched local availability", () => {
+	show([{ ...work, availableUnwatchedEpisodes: 2 }]);
+	expect(screen.getByText("2 unwatched available")).toBeTruthy();
+});

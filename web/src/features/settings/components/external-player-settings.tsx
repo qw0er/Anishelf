@@ -9,6 +9,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../../shared/components/ui/card.js";
+import { Field } from "../../../shared/components/ui/field.js";
 import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
 import { Tooltip } from "../../../shared/components/ui/tooltip.js";
@@ -100,8 +101,11 @@ export function ExternalPlayerSettings() {
 						}
 					}}
 				>
-					<div className="space-y-2">
-						<label htmlFor="external-player-name" className="field-label">
+					<Field>
+						<label
+							htmlFor="external-player-name"
+							className="field-label flex h-11 items-center"
+						>
 							{t("externalPlayers.name")}
 						</label>
 						<Input
@@ -111,15 +115,17 @@ export function ExternalPlayerSettings() {
 							value={name}
 							onChange={(event) => setName(event.target.value)}
 						/>
-					</div>
-					<div className="space-y-2">
-						<label htmlFor="external-player-template" className="field-label">
-							{t("externalPlayers.template")}
-						</label>
-						<FieldHelp
-							label={t("externalPlayers.templateHelpLabel")}
-							help={t("externalPlayers.templateHelp")}
-						/>
+					</Field>
+					<Field>
+						<div className="flex h-11 items-center gap-1">
+							<label htmlFor="external-player-template" className="field-label">
+								{t("externalPlayers.template")}
+							</label>
+							<FieldHelp
+								label={t("externalPlayers.templateHelpLabel")}
+								help={t("externalPlayers.templateHelp")}
+							/>
+						</div>
 						<Input
 							id="external-player-template"
 							required
@@ -128,7 +134,7 @@ export function ExternalPlayerSettings() {
 							onChange={(event) => setTemplate(event.target.value)}
 							placeholder="infuse://x-callback-url/play?url={urlEncoded}"
 						/>
-					</div>
+					</Field>
 					<div className="action-row sm:col-span-2">
 						<ActionButton
 							icon={Plus}

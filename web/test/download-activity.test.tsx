@@ -92,7 +92,11 @@ function fixture(override: Partial<typeof item> = {}) {
 test("compact activity is collapsed, reports real progress and delegates transfer controls to WebUI", async () => {
 	const request = fixture();
 	await screen.findByText("Downloading 42%");
-	expect(document.querySelector("details")?.open).toBe(false);
+	expect(
+		document
+			.querySelector("[data-slot=collapsible-trigger]")
+			?.getAttribute("aria-expanded"),
+	).toBe("false");
 	expect(
 		screen.getByRole("link", { name: "Open WebUI" }).getAttribute("href"),
 	).toBe("https://downloads.example.org/");

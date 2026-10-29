@@ -174,7 +174,11 @@ test("subscribing saves immediately with automatic source defaults and no prelim
 	const input = await screen.findByLabelText("Starting episode");
 	fireEvent.change(input, { target: { value: "4" } });
 	expect(screen.queryByRole("button", { name: "Find a source" })).toBeNull();
-	expect(document.querySelector("details")?.open).toBe(false);
+	expect(
+		document
+			.querySelector("[data-slot=collapsible-trigger]")
+			?.getAttribute("aria-expanded"),
+	).toBe("false");
 	await waitFor(() =>
 		expect(
 			(screen.getByRole("button", { name: "Subscribe" }) as HTMLButtonElement)
@@ -379,7 +383,11 @@ test("background subscription revisions preserve the open editor and its accepte
 	expect(
 		(screen.getByLabelText("Starting episode") as HTMLInputElement).value,
 	).toBe("9");
-	expect(screen.getByText("More options").closest("details")?.open).toBe(true);
+	expect(
+		screen
+			.getByRole("button", { name: "More options" })
+			.getAttribute("aria-expanded"),
+	).toBe("true");
 	await waitFor(() =>
 		expect(
 			(

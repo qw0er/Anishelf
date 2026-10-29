@@ -1,5 +1,9 @@
 import { useTranslation } from "react-i18next";
 import type { ActivePlayback } from "../../../../shared/api/contracts.js";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../../shared/components/ui/native-select.js";
 import { audioTrackLabel } from "../../../media/public.js";
 import { canSelectNativeAudio } from "../runtime.js";
 export function AudioSelection({
@@ -27,21 +31,21 @@ export function AudioSelection({
 				{t("player.audio")}
 			</span>
 			{tracks.length > 1 && canSelectNativeAudio() ? (
-				<select
+				<NativeSelect
 					className="h-11 min-w-0 max-w-40 rounded-md bg-transparent px-2 text-sm sm:max-w-72"
 					aria-label={t("audioTracks.playback")}
 					value={active.audio ? String(active.audio.sourceStreamIndex) : "none"}
 					onChange={(event) => selectAudio(event.target.value)}
 				>
 					{tracks.map((track, position) => (
-						<option
+						<NativeSelectOption
 							key={track.stream.index}
 							value={String(track.sourceStreamIndex)}
 						>
 							{label(position)}
-						</option>
+						</NativeSelectOption>
 					))}
-				</select>
+				</NativeSelect>
 			) : (
 				<span
 					role="status"

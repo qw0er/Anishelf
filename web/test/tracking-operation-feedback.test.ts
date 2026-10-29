@@ -56,7 +56,7 @@ test("does not replay old completed notices on first read or after account repla
 	client.clear();
 });
 
-test("shows an actionable failure after a silent pending state, and clears it after success", () => {
+test("shows pending feedback and an actionable failure, and clears it after success", () => {
 	const client = new QueryClient();
 	const notify = vi.spyOn(toast, "add").mockReturnValue("notice");
 	const close = vi.spyOn(toast, "close");
@@ -64,7 +64,10 @@ test("shows an actionable failure after a silent pending state, and clears it af
 	reportTrackingOperations(client, identity, [
 		{ ...completed(), state: "pending" },
 	]);
-	expect(notify).not.toHaveBeenCalled();
+	expect(notify).toHaveBeenCalledWith(
+		expect.objectContaining({ type: "loading" }),
+	);
+	notify.mockClear();
 	const failed = {
 		...completed(),
 		state: "failed" as const,

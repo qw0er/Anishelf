@@ -3,6 +3,8 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { CatalogReviewItem } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
+import { Checkbox } from "../../../../shared/components/ui/checkbox.js";
+import { FieldLabel } from "../../../../shared/components/ui/field.js";
 import { episodeName } from "../../shared/episode-name.js";
 import type { ReviewController } from "../use-review-controller.js";
 
@@ -98,14 +100,19 @@ export function AssociationPreview({
 				</div>
 			))}
 			{replacement && (
-				<label className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm leading-relaxed">
-					<input
-						type="checkbox"
+				<div className="touch-control flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm leading-relaxed">
+					<Checkbox
+						id="replace-association"
 						checked={replace}
-						onChange={(event) => allowReplacement(event.target.checked)}
+						onCheckedChange={allowReplacement}
 					/>
-					{t("review.replace")}
-				</label>
+					<FieldLabel
+						className="touch-control flex-1"
+						htmlFor="replace-association"
+					>
+						{t("review.replace")}
+					</FieldLabel>
+				</div>
 			)}
 			<Button
 				disabled={busy || (replacement && !replace) || !item.available}
