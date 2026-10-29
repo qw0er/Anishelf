@@ -293,11 +293,14 @@ confirmed indicators. A complete initial snapshot must establish entry presence
 before showing an absent state.
 
 Local and remote details share Edit progress; eligible players expose a nonblocking
-Tracking control with Mark as watched, operation state and the same editor. Unmapped
-sources have no tracking command. Support explicit backward corrections and explicit
-status choices. Cross-gap decisions explain cumulative changes with Confirm/Keep or
-an initial-status selector; failures offer Retry, conflicts offer Keep AniList value
-or Submit my change.
+Tracking control with Mark as watched, operation state and the same editor. The
+player's operation state covers only the current episode's open work: pending
+decisions, conflicts, failures and recovery. A completed result leaves the control,
+is announced once as a notification and is never replayed from stored history.
+Unmapped sources have no tracking command. Support explicit backward corrections and
+explicit status choices. Cross-gap decisions explain cumulative changes with
+Confirm/Keep or an initial-status selector; failures offer Retry, conflicts offer Keep
+AniList value or Submit my change.
 
 Preserve editable input and persisted intent on failure. Keep revision/validation,
 retry timing and conflict choices in the dialog; submission lifecycle/results use

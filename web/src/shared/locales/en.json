@@ -699,14 +699,18 @@
 		"failure": "Submission needs attention ({{code}}).",
 		"retryAt": "Automatic retry after {{time}}",
 		"states": {
-			"decision-required": "Review the tracking service update",
-			"pending": "the tracking service change queued",
-			"submitting": "Submitting to the tracking service",
-			"failed": "the tracking service submission failed",
-			"conflict": "the tracking service changed remotely. Choose which value to keep.",
-			"authorization-required": "Reconnect the tracking service to continue submission",
-			"succeeded": "the tracking service change confirmed",
-			"cancelled": "Kept the tracking service value"
+			"decision-required": "Review the progress change",
+			"pending": "Progress change queued",
+			"submitting": "Saving progress change…",
+			"failed": "Could not save the progress change",
+			"conflict": "Progress changed remotely. Choose which value to keep.",
+			"authorization-required": "Reconnect to continue saving progress",
+			"succeeded": "Progress change confirmed",
+			"cancelled": "Kept the previous progress"
+		},
+		"results": {
+			"episode": "Episode {{episode}} marked as watched",
+			"progress": "Progress updated to {{progress}}"
 		},
 		"progressHelp": "Episode progress help"
 	},
