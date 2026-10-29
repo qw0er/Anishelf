@@ -119,6 +119,12 @@ function mount() {
 		</MemoryRouter>,
 	);
 }
+test("the player control offers no progress editor", async () => {
+	mount();
+	await screen.findByRole("button", { name: "Mark as watched" });
+	expect(screen.queryByRole("button", { name: "Edit progress" })).toBeNull();
+	expect(screen.queryByText("Progress")).toBeNull();
+});
 test("manual mark creates a Tracking decision, confirms separately and reports the result once", async () => {
 	const notify = vi.spyOn(toast, "add");
 	mount();

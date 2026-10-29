@@ -133,6 +133,37 @@ function page(path = "/files/file") {
 		</MemoryRouter>,
 	);
 }
+test("the tracking control shares the audio and More action row", async () => {
+	const view = render(
+		<MemoryRouter>
+			<PreparationProvider>
+				<FilePlayer
+					slots={{
+						...playbackUiSlots,
+						renderViewing: () => <button type="button">Mark as watched</button>,
+					}}
+					data={{
+						file: {
+							id: "file",
+							kind: "file",
+							name: "Two tracks.mkv",
+							parentId: "root",
+							sizeBytes: 1,
+							modifiedAt: "now",
+							mimeType: "video/x-matroska",
+						},
+						originalMediaUrl: "/api/media/file",
+					}}
+					returnDirectoryId="root"
+					onRetry={vi.fn()}
+				/>
+			</PreparationProvider>
+		</MemoryRouter>,
+	);
+	const watched = await view.findByRole("button", { name: "Mark as watched" });
+	const more = view.getByRole("button", { name: "More playback options" });
+	expect(watched.parentElement).toBe(more.parentElement);
+});
 test("the current Japanese AAC copy never offers original-only English or automatic as audio tracks", async () => {
 	const view = page();
 	await waitFor(() =>

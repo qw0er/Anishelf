@@ -206,6 +206,26 @@ test("storage events refresh consumers and failed writes keep the existing data"
 	expect(consumer.result.current.players).toEqual([entry]);
 });
 
+test("every playback menu item carries a leading icon", async () => {
+	render(
+		<PlaybackActionsMenu
+			fileId="file_123"
+			onCompatibility={() => {}}
+			onOptions={() => {}}
+			onRetry={() => {}}
+		/>,
+	);
+	fireEvent.click(
+		screen.getByRole("button", { name: "More playback options" }),
+	);
+	fireEvent.click(
+		await screen.findByRole("menuitem", { name: "Open in external player" }),
+	);
+	await screen.findByRole("menuitem", { name: "IINA" });
+	for (const item of screen.getAllByRole("menuitem"))
+		expect(item.querySelector("svg"), item.textContent ?? "").not.toBeNull();
+});
+
 test("menu prepares native anchors for detected presets and custom players without progress writes", async () => {
 	localStorage.setItem(
 		externalPlayerPolicy.storageKey,

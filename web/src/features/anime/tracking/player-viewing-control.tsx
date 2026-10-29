@@ -19,7 +19,6 @@ import {
 import { accountQuery, trackingIdentity } from "./queries.js";
 import { useTrackingMutation } from "./use-tracking-mutation.js";
 import { useViewingState } from "./use-viewing-state.js";
-import { ViewingEditor } from "./viewing-editor.js";
 
 /** Tracking owns player actions and their results; Playback only supplies a source identity. */
 export function PlayerViewingControl({
@@ -248,12 +247,6 @@ function TargetControl({
 					)}
 				</p>
 			)}
-			<details className="text-sm">
-				<summary className="cursor-pointer py-3 text-muted-foreground">
-					{t("player.tracking")}
-				</summary>
-				<ViewingEditor mediaId={String(target.mediaId)} state={viewing} />
-			</details>
 		</fieldset>
 	);
 }
