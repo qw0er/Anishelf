@@ -12,6 +12,15 @@ import { Toaster } from "./shared/components/ui/toast.js";
 import "./shared/i18n.js";
 import { libraryRoute } from "./app/routes/library.js";
 
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+	window.addEventListener("load", () => {
+		navigator.serviceWorker.register("/sw.js").then(
+			() => console.info("Service worker registered."),
+			(error) => console.error("Service worker registration failed:", error),
+		);
+	});
+}
+
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing root element.");
 const router = createBrowserRouter([
