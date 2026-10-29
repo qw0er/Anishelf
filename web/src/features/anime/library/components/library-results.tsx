@@ -107,19 +107,21 @@ export function LibraryResults({
 						<Tooltip content={description}>
 							<Link
 								id={`work-${work.id}`}
-								className="group flex h-full min-w-0 flex-col overflow-hidden rounded-lg border bg-card transition-[box-shadow,border-color] hover:border-foreground/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring motion-reduce:transition-none"
+								className="poster-card group"
 								to={detailHref}
 								aria-label={work.displayTitle}
 								aria-describedby={descriptionId}
 							>
-								<Artwork
-									key={work.updatedAt}
-									url={work.coverUrl}
-									title={work.displayTitle}
-								/>
-								<div className="flex flex-1 flex-col gap-1.5 p-3">
+								<div className="poster-artwork">
+									<Artwork
+										key={work.updatedAt}
+										url={work.coverUrl}
+										title={work.displayTitle}
+									/>
+								</div>
+								<div className="poster-caption">
 									<h2
-										className="line-clamp-2 min-h-10 text-sm leading-5 font-medium wrap-anywhere"
+										className="line-clamp-2 min-h-10 text-sm leading-5 font-semibold wrap-anywhere"
 										title={work.displayTitle}
 									>
 										{work.displayTitle}
@@ -128,6 +130,14 @@ export function LibraryResults({
 										{work.format?.replaceAll("_", " ") ??
 											t("anime.unknownFormat")}{" "}
 										· {work.year ?? t("anime.unknownYear")}
+									</p>
+									<p className="text-xs text-muted-foreground">
+										{t(
+											total === null
+												? "anime.localAvailable"
+												: "anime.localAvailableTotal",
+											{ count: localCount, total },
+										)}
 									</p>
 									{work.viewing && (
 										<ViewingBadge

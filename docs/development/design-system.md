@@ -41,7 +41,7 @@ baseline choices, with purposeful exceptions such as posters and player controls
 
 | Foundation | Convention |
 | --- | --- |
-| Page geometry | Shared 72rem maximum container, aligned titles; 16px horizontal padding, 24px from the small breakpoint |
+| Page geometry | Shared 90rem maximum content container; 16px mobile padding, 24px tablet/desktop; desktop shell reserves 11rem for navigation |
 | Spacing | Prefer 4, 8, 12, 16, 24 and 32px; page sections use 24px gaps, related controls 8px |
 | Typography | Page titles 24px semibold; section titles 16–18px semibold; body 14–16px; supporting labels 12px; avoid smaller arbitrary sizes |
 | Controls | Standard inputs/buttons 36px high; provide at least 44px touch targets on touch layouts |
@@ -49,6 +49,12 @@ baseline choices, with purposeful exceptions such as posters and player controls
 | Surfaces | Neutral page, content and floating surfaces; bordered panels, separators between ordinary list rows; shadows primarily for floating UI |
 | Color | Semantic theme tokens for text, surfaces, emphasis and feedback, with light/dark equivalents; reserve strong emphasis for primary actions and selection |
 | Density | Browse with room for artwork; use compact aligned rows for files/settings; vary layout without redefining controls |
+
+Use lightly tinted warm gray surfaces and a muted terracotta accent. Light mode pairs `#F8F7F5`
+backgrounds with `#FFFEFC` content and `#AA5943` primary actions; dark mode pairs
+`#191817` with `#242220` and `#DFA28E`. Navigation shares the page background,
+with neutral selected surfaces and dark/light text rather than accent-filled blocks.
+Keep warning/error colors separate from the brand accent.
 
 Use shared success, warning, error and information styles rather than repeating
 feature-local color recipes. Business code maps a state to its meaning; shared UI
@@ -137,20 +143,22 @@ transport failure. Successful association offers an Open anime action.
 ### Navigation and Library
 
 Use the shared container/header for Library, Files, Review, History and Settings.
-Keep the application header on one line. Measure translated navigation content;
-show text when it fits, otherwise named icons with Tooltips. If necessary, scroll
-only the navigation horizontally, retaining the brand and keyboard access.
+Desktop uses a persistent 11rem sidebar: Library and History first, Files/Review
+separated below, Settings and appearance controls at the bottom. Mobile uses a
+compact brand/preferences row and a separate horizontally scrollable navigation
+row. Retain accessible labels, focus and all destinations at every width.
 
-Keep search, Filters, sort and the AniList action in one toolbar. Search submits
-with Enter or its button; sort and discrete filters apply immediately and reset
-pagination. Sort uses a radio-choice menu. Secondary filters expand into labeled
-selectors with removable applied-filter labels. Preserve URL state, focus and scroll.
-Restore last applied Library filters within the tab session unless explicit URL
-filters override them. Default viewing state is Watching; provide All viewing states.
-The connection action opens Settings; refresh remains a fixed-size icon button.
+The Library has a distinct title area and a search-led toolbar with a bottom
+separator. Search fills a row on mobile; filters, sort and account actions wrap
+below it. On wider screens they share a row. Search submits with Enter or its
+button; sort and discrete filters apply immediately and reset pagination. Preserve
+URL state, focus and scroll, including tab-session filter restoration and explicit
+URL precedence. Default viewing state is Watching with All available. Secondary
+filters expand into labeled selectors and removable applied-filter labels.
 
-Poster grids have two mobile columns and adaptive desktop columns with a minimum
-card width. Reserve two title lines and one local-availability line. Cards show
+Poster grids have two mobile columns and adaptive desktop columns with a 10.5rem
+minimum card width. Use borderless card links, rounded artwork, captions below and
+restrained artwork elevation on hover; respect reduced motion. Reserve two title lines and one local-availability line. Cards show
 format/year, viewing state with cumulative progress and local availability. Omit
 unknown denominators; movies have one local slot. Show unwatched availability only
 when positive. Keep source/count explanations in accessible Tooltips and cache
@@ -164,13 +172,18 @@ Do not auto-select a version or show Play without a resolved target.
 ### Work details
 
 Prioritize the top-aligned cover, readable title/metadata column and episode list.
+Use an optional short banner above a solid information surface: 112px on mobile
+and 176px on larger screens, with a subtle bottom fade. Never place text over the
+image. Missing or failed banners collapse completely.
+On mobile use a small cover beside the information to reduce vertical overhead.
 The cover must not stretch with the text. Alternative titles occupy two lines with
 expansion only on actual overflow, remeasured when width changes. Show format/year,
 readable release status, labeled episode counts and known dates. Put unknown dates,
 provider links/attribution, secondary metadata, synopsis and relationships in
 on-demand sections. Long titles and actionable errors may grow the header.
 
-Keep viewing state and playback together below a short divider. Edit progress is a
+Keep playback first and viewing state next below a short divider, with matching
+visual and keyboard order. Edit progress is a
 tertiary action. Local works offer Play episode N for the first available unwatched
 episode, opening the chooser for multiple versions. Disable with an explanation
 when progress is unavailable, caught up or no unwatched local episode exists;
@@ -210,8 +223,13 @@ file menu. Keep correction/recovery actions specific to the affected resource.
 
 ### Settings
 
-Use full-width section panels with a desktop description column and bounded form
-column, stacking on mobile. Do not narrow the whole page. Omit descriptions that
+Use a sticky 8.5rem left category navigation with a 1rem content gap on desktop and a compact horizontal category
+row on mobile. Bound the content column to 68rem. Separate settings sections with
+dividers rather than repeated card outlines. Stack descriptions above forms on
+narrow content containers; use description/form columns only when the content
+container reaches 52rem. Stretch both regions to their grid tracks; do not mix
+viewport-based flex/grid overrides. Preserve drafts when
+switching categories. Omit descriptions that
 repeat labels. All tabs share spacing, validation and action conventions; retain
 every destination on narrow screens through icons, Tooltips and accessible names.
 

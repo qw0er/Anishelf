@@ -17,7 +17,6 @@ import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { airingQuery } from "../../metadata/public.js";
-import { Artwork } from "../../shared/components/artwork.js";
 import {
 	episodeViewing,
 	useDetailViewing,
@@ -227,13 +226,8 @@ function LocalWorkDetail({
 					{t("anime.stale")}
 				</p>
 			)}
-			<Artwork
-				key={`banner:${metadata.fetchedAt}`}
-				url={data.bannerUrl}
-				title={work.displayTitle}
-				banner
-			/>
 			<WorkMetadataHeader
+				bannerUrl={data.bannerUrl}
 				subscription={renderSubscription?.(
 					workKey(data.detail.reference),
 					status,
@@ -254,7 +248,7 @@ function LocalWorkDetail({
 					/>
 				}
 			/>
-			<div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+			<div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_19rem]">
 				<EpisodeList
 					trackingProgress={viewing.snapshot?.entry?.progress ?? null}
 					data={data}

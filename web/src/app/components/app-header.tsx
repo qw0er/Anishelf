@@ -49,46 +49,47 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 			icon: Settings,
 			active: pathname === "/settings",
 		},
-	];
+	] as const;
 	return (
-		<header className="border-b bg-card" inert={pending}>
-			<div className="page-container app-header-container">
-				<div className="flex min-w-0 items-center gap-3 py-2">
-					<Link
-						className="shrink-0 whitespace-nowrap text-lg font-semibold"
-						to="/"
-					>
-						{t("app.name")}
-					</Link>
-					<nav
-						ref={navigationRef}
-						aria-label={t("app.primaryNavigation")}
-						className="compact-navigation min-w-0 flex-1 overflow-x-auto p-1"
-					>
-						<div className="ml-auto flex w-max flex-nowrap items-center gap-1">
-							{entries.map(({ to, label, icon: Icon, active }) => (
-								<Tooltip key={to} content={label}>
-									<NavLink
-										to={to}
-										end={to === "/"}
-										aria-label={label}
-										className={`${buttonStyles(active ? "secondary" : "ghost")} header-nav-link`}
-									>
-										<Icon
-											size={16}
-											aria-hidden="true"
-											className="header-nav-icon"
-										/>
-										<span className="header-nav-label">{label}</span>
-									</NavLink>
-								</Tooltip>
-							))}
-							<LanguageToggle />
-							<ThemeToggle />
-						</div>
-					</nav>
+		<header className="app-shell-header" inert={pending}>
+			<div className="app-brand-row">
+				<Link className="app-brand" to="/">
+					<Library size={22} aria-hidden="true" />
+					<span>{t("app.name")}</span>
+				</Link>
+				<div className="app-preferences">
+					<LanguageToggle />
+					<ThemeToggle />
 				</div>
 			</div>
+			<nav
+				ref={navigationRef}
+				aria-label={t("app.primaryNavigation")}
+				className="compact-navigation app-navigation"
+			>
+				<div className="app-navigation-items">
+					{[entries[0], entries[3], entries[1], entries[2], entries[4]].map(
+						({ to, label, icon: Icon, active }, index) => (
+							<Tooltip key={to} content={label}>
+								<NavLink
+									to={to}
+									end={to === "/"}
+									aria-label={label}
+									aria-current={active ? "page" : undefined}
+									className={`${buttonStyles("ghost")} header-nav-link app-nav-item ${active ? "app-nav-active" : ""} ${index === 2 ? "app-nav-management" : ""} ${index === 4 ? "app-nav-settings" : ""}`}
+								>
+									<Icon
+										size={18}
+										aria-hidden="true"
+										className="header-nav-icon"
+									/>
+									<span className="header-nav-label">{label}</span>
+								</NavLink>
+							</Tooltip>
+						),
+					)}
+				</div>
+			</nav>
 		</header>
 	);
 }

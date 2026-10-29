@@ -17,7 +17,7 @@ export default function InitialLoading() {
 	const settings = pathname === "/settings";
 
 	return (
-		<div className="min-h-screen bg-background">
+		<div className="app-shell min-h-screen bg-background">
 			<AppHeader pending />
 			<main className="page-container page-content stack-page" aria-busy="true">
 				{visible && (
