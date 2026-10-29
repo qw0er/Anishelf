@@ -85,7 +85,20 @@
 		"showInFiles": "Show in Files",
 		"filesLabel": "Library files",
 		"directoryTitle": "Directory: {{name}}",
-		"emptyDirectory": "This directory is empty. Scan the library to discover video files."
+		"emptyDirectory": "This directory is empty. Scan the library to discover video files.",
+		"search": "Search names in this directory and subfolders",
+		"sort": "Sort files",
+		"noSearchResults": "No names match your search.",
+		"sortOptions": {
+			"default": "Name (natural order)",
+			"name-desc": "Name (reverse order)",
+			"size-asc": "Size (smallest first)",
+			"size-desc": "Size (largest first)",
+			"modified-asc": "Modified (oldest first)",
+			"modified-desc": "Modified (newest first)"
+		},
+		"searching": "Searching files…",
+		"searchFailed": "Could not search files."
 	},
 	"scan": {
 		"title": "Library scan",

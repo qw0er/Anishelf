@@ -85,7 +85,20 @@
 		"showInFiles": "在文件中显示",
 		"filesLabel": "媒体库文件",
 		"directoryTitle": "目录：{{name}}",
-		"emptyDirectory": "此目录为空。扫描媒体库以发现视频文件。"
+		"emptyDirectory": "此目录为空。扫描媒体库以发现视频文件。",
+		"search": "搜索当前目录及子文件夹中的名称",
+		"sort": "文件排序",
+		"noSearchResults": "没有名称与搜索内容匹配。",
+		"sortOptions": {
+			"default": "名称（自然顺序）",
+			"name-desc": "名称（倒序）",
+			"size-asc": "大小（从小到大）",
+			"size-desc": "大小（从大到小）",
+			"modified-asc": "修改时间（从早到晚）",
+			"modified-desc": "修改时间（从晚到早）"
+		},
+		"searching": "正在搜索文件…",
+		"searchFailed": "无法搜索文件。"
 	},
 	"scan": {
 		"title": "媒体库扫描",

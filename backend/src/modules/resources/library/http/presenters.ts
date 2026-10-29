@@ -26,7 +26,7 @@ function directoryDto(directory: DirectoryInfo): DirectoryDto {
 	};
 }
 
-function resourceDto(resource: ResourceInfo): ResourceDto {
+export function resourceDto(resource: ResourceInfo): ResourceDto {
 	return resource.kind === "directory"
 		? directoryDto(resource)
 		: fileDto(resource);

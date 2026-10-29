@@ -1,6 +1,7 @@
 import { type RequestOptions, request } from "../../../shared/api/client.js";
 import type {
 	DirectoryResponse,
+	DirectorySearchResponse,
 	LibraryResponse,
 	ResourceId,
 	ScanResponse,
@@ -8,6 +9,18 @@ import type {
 
 export function getLibrary(options?: RequestOptions): Promise<LibraryResponse> {
 	return request<LibraryResponse>("/api/library", "GET", options);
+}
+
+export function searchDirectory(
+	id: ResourceId,
+	query: string,
+	options?: RequestOptions,
+): Promise<DirectorySearchResponse> {
+	return request<DirectorySearchResponse>(
+		`/api/directories/${encodeURIComponent(id)}/search?${new URLSearchParams({ q: query })}`,
+		"GET",
+		options,
+	);
 }
 
 export function startScan(options?: RequestOptions): Promise<ScanResponse> {

@@ -1,5 +1,7 @@
 import {
 	DirectoryResponseSchema,
+	DirectorySearchQuerySchema,
+	DirectorySearchResponseSchema,
 	EmptyObjectSchema,
 	LibraryResponseSchema,
 	ResourceParamsSchema,
@@ -10,6 +12,7 @@ import type { LibraryApplication } from "../application/library.js";
 import {
 	directoryResponse,
 	libraryResponse,
+	resourceDto,
 	scanStateDto,
 } from "./presenters.js";
 
@@ -35,6 +38,29 @@ export function registerLibraryRoutes(
 		},
 		async (_request, reply) =>
 			reply.code(202).send({ scan: scanStateDto(await library.startScan()) }),
+	);
+	app.get(
+		"/api/directories/:id/search",
+		{
+			schema: {
+				params: ResourceParamsSchema,
+				querystring: DirectorySearchQuerySchema,
+				response: { 200: DirectorySearchResponseSchema },
+			},
+		},
+		async (request) => {
+			const items = library
+				.searchDirectory(request.params.id, request.query.q)
+				.map(({ resource, parentPath }) => ({
+					resource: resourceDto(resource),
+					parentPath,
+				}));
+			request.log.debug(
+				{ event: "library.search_completed", count: items.length },
+				"Directory search completed.",
+			);
+			return { items };
+		},
 	);
 	app.get(
 		"/api/directories/:id",

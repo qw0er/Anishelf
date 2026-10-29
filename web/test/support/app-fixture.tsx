@@ -523,6 +523,37 @@ beforeEach(async () => {
 			appFixture.library = { ...appFixture.library, scan: runningScan };
 			return json({ scan: runningScan }, 202);
 		}
+		if (path.startsWith("/api/directories/") && path.includes("/search?")) {
+			const url = new URL(path, "http://localhost");
+			const id = decodeURIComponent(
+				url.pathname.slice("/api/directories/".length, -"/search".length),
+			);
+			const query = (url.searchParams.get("q") ?? "").toLowerCase();
+			const items: {
+				resource: DirectoryResponse["children"][number];
+				parentPath: string[];
+			}[] = [];
+			const visit = (directoryId: string, parentPath: string[]) => {
+				for (const resource of appFixture.directories.get(directoryId)
+					?.children ?? []) {
+					if (resource.name.toLowerCase().includes(query))
+						items.push({ resource, parentPath });
+					if (resource.kind === "directory")
+						visit(resource.id, [...parentPath, resource.name]);
+				}
+			};
+			visit(id, []);
+			items.sort((a, b) =>
+				a.resource.kind === b.resource.kind
+					? a.resource.name.localeCompare(b.resource.name, "en", {
+							numeric: true,
+						})
+					: a.resource.kind === "directory"
+						? -1
+						: 1,
+			);
+			return json({ items });
+		}
 		if (path.startsWith("/api/directories/")) {
 			const directory = appFixture.directories.get(
 				path.slice("/api/directories/".length),

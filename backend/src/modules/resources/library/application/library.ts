@@ -202,4 +202,12 @@ export class LibraryApplication<
 			children: this.options.index.listChildren(id).map(resourceInfo),
 		};
 	}
+	searchDirectory(id: string, query: string) {
+		return this.options.index
+			.searchDescendants(id, query)
+			.map(({ entry, parentPath }) => ({
+				resource: resourceInfo(entry),
+				parentPath,
+			}));
+	}
 }

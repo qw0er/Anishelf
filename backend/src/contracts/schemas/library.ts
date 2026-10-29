@@ -85,6 +85,21 @@ export const ResourceDtoSchema = Type.Union([
 	DirectoryDtoSchema,
 	FileDtoSchema,
 ]);
+export const DirectorySearchQuerySchema = Type.Object(
+	{ q: Type.String({ minLength: 1, maxLength: 200 }) },
+	{ additionalProperties: false },
+);
+export const DirectorySearchResponseSchema = Type.Object(
+	{
+		items: Type.Array(
+			Type.Object(
+				{ resource: ResourceDtoSchema, parentPath: Type.Array(Type.String()) },
+				{ additionalProperties: false },
+			),
+		),
+	},
+	{ additionalProperties: false },
+);
 export const LibraryResponseSchema = Type.Object(
 	{
 		monitor: Type.Optional(

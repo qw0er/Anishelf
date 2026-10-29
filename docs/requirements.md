@@ -48,7 +48,7 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 
 | ID | Feature | Scope | Implemented in |
 | --- | --- | --- | --- |
-| L05 | Search filenames and choose sorting | Later | — |
+| L05 | Search filenames and choose sorting | Implemented: recursive name search and natural-name, size, or modification-time sorting | Unreleased |
 | L06 | Watch filesystem changes and update the library incrementally | Implemented: native recursive monitoring, path-scoped resource updates, directory-scoped identification and Catalog publications, degraded-state recovery | 0.4.1 |
 | L07 | Parse anime titles, seasons, episode numbers, and release variants from filenames | Implemented: filename/directory extraction with preserved evidence | 0.3.0 |
 | L08 | Review unidentified files and manually link or correct anime and episode associations | Implemented: clear-match automatic admission, manual Review and revision-checked corrections | 0.3.0 |
@@ -68,8 +68,7 @@ beyond the tracking provider's cumulative progress precede other works; each gro
 uses title order. Unknown progress and remote-only works receive no unwatched priority.
 Recently updated uses the local Catalog work update timestamp; remote-only works use
 the provider list-entry update timestamp, falling back to the list fetch time.
-Recently added retains local Catalog creation-time ordering. This poster sorting
-delivery does not complete L05 filename search and sorting in Files.
+Recently added retains local Catalog creation-time ordering. Files search matches names in the current directory and its subdirectories, showing each result’s relative parent path. Directories remain ahead of files; size and modification-time sorting applies to files, with natural name order breaking ties.
 
 #### Multi-root resource management (L12)
 

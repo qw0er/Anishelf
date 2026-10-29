@@ -23,6 +23,7 @@ export type {
 	CompatibilityQuery,
 	CompatibilityResult,
 	DirectoryResponse,
+	DirectorySearchResponse,
 	DownloadActivity,
 	DownloadSettings,
 	FileDto,

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLoaderData, useParams } from "react-router";
 import { fileReviewsQuery } from "../../../features/anime/public.js";
@@ -22,9 +23,12 @@ export function DirectoryPage() {
 	const listing = query.data ?? initial;
 	const scan = useAppRuntime();
 	const { t } = useTranslation();
-	const ids = listing.children
-		.filter((entry) => entry.kind === "file")
-		.map((entry) => entry.id);
+	const [visibleIds, setVisibleIds] = useState<string[] | null>(null);
+	const ids =
+		visibleIds ??
+		listing.children
+			.filter((entry) => entry.kind === "file")
+			.map((entry) => entry.id);
 	const reviews = useQuery({
 		...fileReviewsQuery(ids, useQueryScope()),
 		enabled: ids.length > 0,
@@ -33,6 +37,8 @@ export function DirectoryPage() {
 	if (query.error && !query.data) throw query.error;
 	return (
 		<LibraryBrowser
+			key={listing.directory.id}
+			onFileIdsChange={setVisibleIds}
 			listing={listing}
 			scan={scan}
 			identificationStatus={

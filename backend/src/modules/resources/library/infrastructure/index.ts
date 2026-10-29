@@ -392,4 +392,32 @@ export class LibraryIndex {
 			this.getEntry(id),
 		);
 	}
+
+	searchDescendants(
+		directoryId: ResourceId,
+		query: string,
+	): { entry: LibraryEntry; parentPath: string[] }[] {
+		this.getDirectory(directoryId);
+		const term = query.toLowerCase();
+		const matches: { entry: LibraryEntry; parentPath: string[] }[] = [];
+		const pending = [{ id: directoryId, path: [] as string[] }];
+		while (pending.length) {
+			const current = pending.pop();
+			if (!current) break;
+			for (const entry of this.listChildren(current.id)) {
+				if (entry.name.toLowerCase().includes(term))
+					matches.push({ entry, parentPath: current.path });
+				if (entry.kind === "directory")
+					pending.push({ id: entry.id, path: [...current.path, entry.name] });
+			}
+		}
+		const collator = nameCollator(this.policy);
+		matches.sort(
+			(a, b) =>
+				compareEntries(a.entry, b.entry, this.policy, collator) ||
+				collator.compare(a.parentPath.join("/"), b.parentPath.join("/")) ||
+				a.entry.id.localeCompare(b.entry.id),
+		);
+		return matches;
+	}
 }
