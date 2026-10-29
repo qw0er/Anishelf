@@ -10,6 +10,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../../shared/components/ui/card.js";
+import { LoadingState } from "../../../shared/components/ui/loading-state.js";
 import {
 	RadioCard,
 	RadioCardGroup,
@@ -79,22 +80,26 @@ export function PreparationProfileSettings({
 						}}
 					>
 						<RadioCardGroup
+							name="preparation-mode"
+							value={mode}
+							onValueChange={(value) => setMode(value as "compatible" | "fast")}
 							legend={t("preparation.preparationMode")}
 							className="grid gap-2 space-y-0 sm:grid-cols-2"
 							disabled={action.busy}
 						>
 							{(["compatible", "fast"] as const).map((value) => (
 								<RadioCard
+									value={value}
 									key={value}
-									name="preparation-mode"
-									checked={mode === value}
-									onChange={() => setMode(value)}
 									title={t(`preparation.${value}Mode`)}
 									description={t(`preparation.${value}Description`)}
 								/>
 							))}
 						</RadioCardGroup>
 						<RadioCardGroup
+							name="transcode-profile"
+							value={profileId}
+							onValueChange={setProfileId}
 							legend={t("preparation.chooseProfile")}
 							className="grid gap-2 space-y-0 sm:grid-cols-2"
 							disabled={action.busy}
@@ -102,10 +107,7 @@ export function PreparationProfileSettings({
 							{preparation.catalog.profiles.map((profile) => (
 								<RadioCard
 									key={profile.id}
-									name="transcode-profile"
 									value={profile.id}
-									checked={profileId === profile.id}
-									onChange={() => setProfileId(profile.id)}
 									title={profile.name}
 									meta={t("preparation.profileFormat", {
 										container: profile.container.toUpperCase(),
@@ -144,7 +146,7 @@ export function PreparationProfileSettings({
 						/>
 					</>
 				) : (
-					<p role="status">{t("preparation.loadingProfiles")}</p>
+					<LoadingState label={t("preparation.loadingProfiles")} />
 				)}
 			</CardContent>
 		</Card>

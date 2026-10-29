@@ -369,6 +369,9 @@ test("details distinguish scheduled count-derived slots from manual mappings and
 		return fallback(input, init);
 	});
 	renderApp("/anime/work-1");
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Files to review" }),
+	);
 	await screen.findByRole("link", { name: item.relativePath });
 	await waitFor(() =>
 		expect(document.getElementById("episode-ep-3")?.textContent).toContain(

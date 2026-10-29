@@ -11,7 +11,10 @@ import {
 	buttonStyles,
 } from "../../../../shared/components/ui/button.js";
 import { Card, CardContent } from "../../../../shared/components/ui/card.js";
+import { Progress } from "../../../../shared/components/ui/progress.js";
 import { Spinner } from "../../../../shared/components/ui/spinner.js";
+import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
+import { useRefreshError } from "../../../../shared/hooks/use-refresh-error.js";
 import { filePath } from "../../../../shared/navigation.js";
 import { historyQuery } from "../queries.js";
 
@@ -24,6 +27,12 @@ export default function HistoryPage() {
 	const { t, i18n } = useTranslation();
 	const initial = useLoaderData<HistoryResponse>();
 	const query = useQuery({ ...historyQuery(useQueryScope()) });
+	useRefreshError(
+		"playback-history",
+		query.data ? query.error : null,
+		query.errorUpdatedAt,
+		() => void query.refetch(),
+	);
 	const history = query.data ?? initial;
 	if (query.error && !query.data) throw query.error;
 	return (
@@ -85,12 +94,14 @@ export default function HistoryPage() {
 									className="list-row flex flex-wrap items-center justify-between"
 								>
 									<div className="min-w-0 flex-1 space-y-2">
-										<Link
-											className="font-medium wrap-anywhere underline-offset-4 hover:underline"
-											to={filePath(file.id, file.parentId)}
-										>
-											{file.name}
-										</Link>
+										<Tooltip content={file.name}>
+											<Link
+												className="block truncate font-medium underline-offset-4 hover:underline"
+												to={filePath(file.id, file.parentId)}
+											>
+												{file.name}
+											</Link>
+										</Tooltip>
 										<p className="text-sm text-muted-foreground tabular-nums">
 											{t(
 												progress.durationMs === null
@@ -103,7 +114,7 @@ export default function HistoryPage() {
 											)}
 										</p>
 										{progress.durationMs !== null && (
-											<progress
+											<Progress
 												className="block h-2 w-full accent-primary"
 												aria-label={file.name}
 												max={progress.durationMs}
@@ -123,18 +134,20 @@ export default function HistoryPage() {
 											</time>
 										)}
 									</div>
-									<Link
-										className={[buttonStyles("outline"), "w-28"].join(" ")}
-										to={filePath(file.id, file.parentId)}
-										aria-label={`${t(progress.positionMs > 0 ? "history.resume" : "history.watch")}: ${file.name}`}
-									>
-										<Play size={16} aria-hidden="true" />
-										{t(
-											progress.positionMs > 0
-												? "history.resume"
-												: "history.watch",
-										)}
-									</Link>
+									<Tooltip content={file.name}>
+										<Link
+											className={[buttonStyles("outline"), "w-28"].join(" ")}
+											to={filePath(file.id, file.parentId)}
+											aria-label={`${t(progress.positionMs > 0 ? "history.resume" : "history.watch")}: ${file.name}`}
+										>
+											<Play size={16} aria-hidden="true" />
+											{t(
+												progress.positionMs > 0
+													? "history.resume"
+													: "history.watch",
+											)}
+										</Link>
+									</Tooltip>
 								</li>
 							))}
 						</ul>

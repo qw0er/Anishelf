@@ -4,8 +4,9 @@ import {
 	SlidersHorizontal,
 	X,
 } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ActionButton } from "../../../../shared/components/ui/action-button.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import {
 	DropdownMenu,
@@ -15,6 +16,10 @@ import {
 	DropdownMenuTrigger,
 } from "../../../../shared/components/ui/dropdown-menu.js";
 import { Input } from "../../../../shared/components/ui/input.js";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../../shared/components/ui/native-select.js";
 
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import type { LibraryFilters } from "../api.js";
@@ -62,7 +67,7 @@ export function LibraryFiltersForm({
 		<div className="space-y-3">
 			<fieldset
 				aria-label={t("anime.libraryControls")}
-				className="library-toolbar"
+				className="library-toolbar action-row"
 			>
 				<form
 					className="library-search"
@@ -94,19 +99,14 @@ export function LibraryFiltersForm({
 						</Button>
 					</Tooltip>
 				</form>
-				<Tooltip content={t("anime.filters")}>
-					<Button
-						variant="outline"
-						className="size-9 p-0 sm:h-9 sm:w-auto sm:px-4"
-						aria-label={t("anime.filters")}
-						aria-expanded={expanded}
-						aria-controls="catalog-filters"
-						onClick={() => setExpanded(!expanded)}
-					>
-						<SlidersHorizontal size={16} aria-hidden="true" />
-						<span className="hidden sm:inline">{t("anime.filters")}</span>
-					</Button>
-				</Tooltip>
+				<ActionButton
+					icon={SlidersHorizontal}
+					label={t("anime.filters")}
+					variant="outline"
+					aria-expanded={expanded}
+					aria-controls="catalog-filters"
+					onClick={() => setExpanded(!expanded)}
+				/>
 				<DropdownMenu>
 					<Tooltip content={t("anime.sort")}>
 						<DropdownMenuTrigger
@@ -114,12 +114,12 @@ export function LibraryFiltersForm({
 								<Button
 									variant="outline"
 									aria-label={t("anime.sort")}
-									className="size-9 p-0 sm:w-auto sm:px-3"
+									className="responsive-action"
 								/>
 							}
 						>
 							<ArrowDownWideNarrow size={16} aria-hidden="true" />
-							<span className="hidden sm:inline">
+							<span className="responsive-action-label">
 								{t(
 									`anime.${filters.sort === "unwatched" ? "unwatchedSort" : filters.sort === "updated" ? "updatedSort" : filters.sort === "title" ? "titleSort" : "recentSort"}`,
 								)}
@@ -306,21 +306,26 @@ function FilterSelect({
 	onChange(value: string): void;
 	disabled?: boolean;
 }) {
+	const id = useId();
 	return (
-		<label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
+		<label
+			htmlFor={id}
+			className="flex min-w-0 flex-col gap-2 text-sm font-medium"
+		>
 			{label}
-			<select
+			<NativeSelect
+				id={id}
 				className="form-select w-full font-normal"
 				value={value}
 				disabled={disabled}
 				onChange={(event) => onChange(event.target.value)}
 			>
 				{options.map((option) => (
-					<option key={option.value} value={option.value}>
+					<NativeSelectOption key={option.value} value={option.value}>
 						{option.label}
-					</option>
+					</NativeSelectOption>
 				))}
-			</select>
+			</NativeSelect>
 		</label>
 	);
 }

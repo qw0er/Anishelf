@@ -248,11 +248,13 @@ test("target profile is saved in Settings through the persistent selection API",
 		</Wrapper>,
 	);
 	const profile = await view.findByRole("radio", { name: /Browser copy/ });
-	await waitFor(() => expect((profile as HTMLInputElement).checked).toBe(true));
+	await waitFor(() =>
+		expect(profile.getAttribute("aria-checked")).toBe("true"),
+	);
 	const compatible = view.getByRole("radio", {
 		name: /Compatibility \(default\)/,
 	});
-	expect((compatible as HTMLInputElement).checked).toBe(true);
+	expect(compatible.getAttribute("aria-checked")).toBe("true");
 	fireEvent.click(view.getByRole("radio", { name: /Fast preparation/ }));
 	fireEvent.click(
 		view.getByRole("button", { name: "Save preparation settings" }),
@@ -529,8 +531,8 @@ test.each(["all", "subset", "none"])(
 		fireEvent.click(view.getByRole("button", { name: "Pre-transcode" }));
 		const english = await view.findByRole("checkbox", { name: /English/ });
 		const japanese = view.getByRole("checkbox", { name: /Japanese/ });
-		expect((english as HTMLInputElement).checked).toBe(true);
-		expect((japanese as HTMLInputElement).checked).toBe(true);
+		expect(english.getAttribute("aria-checked")).toBe("true");
+		expect(japanese.getAttribute("aria-checked")).toBe("true");
 		if (selection === "subset") fireEvent.click(english);
 		if (selection === "none")
 			fireEvent.click(view.getByRole("button", { name: "No audio" }));
@@ -688,3 +690,27 @@ function PreparationProfileSettings() {
 		/>
 	);
 }
+
+test("task monitor retains the last failed task and its recovery action", async () => {
+	vi.mocked(preparationApi.getPreparations).mockResolvedValue({
+		tasks: [task],
+	});
+	const view = render(
+		<Wrapper>
+			<PreparationMonitor />
+		</Wrapper>,
+	);
+	const monitor = await view.findByRole("complementary", {
+		name: "Transcoding tasks",
+	});
+	vi.mocked(preparationApi.getPreparations).mockResolvedValue({
+		tasks: [{ ...task, status: "failed", failureReason: "interrupted" }],
+	});
+	fireEvent.click(view.getByRole("button", { name: "Refresh tasks" }));
+	await waitFor(() =>
+		expect(
+			view.getByRole("button", { name: "Retry preparation" }),
+		).toBeTruthy(),
+	);
+	expect(monitor.isConnected).toBe(true);
+});

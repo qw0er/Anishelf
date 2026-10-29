@@ -129,25 +129,17 @@ export function SettingsPage() {
 						className={activeSection === "downloads" ? "stack-page" : "hidden"}
 						data-settings-section="downloads"
 					>
-						{activeSection === "downloads" && (
-							<>
-								<WatchingSettings />
-								<RssSettings />
-								<SourceSettings />
-								<QbittorrentSettings />
-							</>
-						)}
+						<WatchingSettings />
+						<RssSettings />
+						<SourceSettings />
+						<QbittorrentSettings />
 					</div>
 					<div
 						className={activeSection === "account" ? "stack-page" : "hidden"}
 						data-settings-section="account"
 					>
-						{activeSection === "account" && (
-							<>
-								<TrackingAccountSettings />
-								<SecuritySettings />
-							</>
-						)}
+						<TrackingAccountSettings />
+						<SecuritySettings />
 					</div>
 				</div>
 			</div>

@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { cn } from "../../lib/utils.js";
+import { RadioGroup, RadioGroupItem } from "./radio-group.js";
 
 /** Short, finite choices stay visible; descriptive choices use RadioCard instead. */
 export function RadioOptions<T extends string>({
@@ -24,24 +25,29 @@ export function RadioOptions<T extends string>({
 			className={cn("min-w-0 space-y-2", className)}
 		>
 			<legend className="text-sm font-medium">{legend}</legend>
-			<div className="flex flex-wrap gap-x-4 gap-y-2">
+			<RadioGroup
+				name={name}
+				value={value}
+				disabled={disabled}
+				onValueChange={(next) => onChange(next as T)}
+				aria-label={legend}
+				className="flex flex-wrap gap-x-4 gap-y-2"
+			>
 				{options.map((option) => (
 					<label
 						key={option.value}
-						className="flex cursor-pointer items-center gap-2 text-sm has-[:disabled]:opacity-50"
+						htmlFor={`${name}-${option.value}`}
+						className="touch-control flex cursor-pointer items-center gap-2 text-sm has-[:disabled]:opacity-50"
 					>
-						<input
-							type="radio"
-							name={name}
+						<RadioGroupItem
+							id={`${name}-${option.value}`}
 							value={option.value}
-							checked={value === option.value}
-							onChange={() => onChange(option.value)}
-							className="accent-primary"
+							className="after:hidden"
 						/>
 						{option.label}
 					</label>
 				))}
-			</div>
+			</RadioGroup>
 		</fieldset>
 	);
 }

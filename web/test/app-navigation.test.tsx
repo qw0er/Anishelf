@@ -92,6 +92,14 @@ test("settings sections are deep-linked and keep inactive panels mounted", async
 	const nav = await screen.findByRole("navigation", {
 		name: "Settings sections",
 	});
+	const draft = await waitFor(() => {
+		const input = document.getElementById(
+			"source-api-url",
+		) as HTMLInputElement | null;
+		expect(input).toBeTruthy();
+		return input as HTMLInputElement;
+	});
+	fireEvent.change(draft, { target: { value: "http://draft:9117/" } });
 	const downloads = within(nav).getByRole("link", { name: "Downloads" });
 	expect(downloads.getAttribute("aria-current")).toBe("page");
 	expect(await screen.findByText("Jackett sources")).toBeTruthy();
@@ -101,6 +109,10 @@ test("settings sections are deep-linked and keep inactive panels mounted", async
 	).toContain("hidden");
 
 	fireEvent.click(within(nav).getByRole("link", { name: "Library" }));
+	await waitFor(() =>
+		expect(document.getElementById("source-api-url")).toBe(draft),
+	);
+	expect(draft.value).toBe("http://draft:9117/");
 
 	await waitFor(() =>
 		expect(screen.getByTestId("location").textContent).toBe(

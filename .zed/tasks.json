@@ -12,7 +12,8 @@
 		"label": "Run dev",
 		"command": "npm run dev",
 		"hide": "on_success",
-		"save": "all"
+		"save": "all",
+		"reveal_target": "dock"
 	},
 	{
 		"label": "Example task",

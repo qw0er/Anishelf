@@ -2,6 +2,11 @@ import { FileVideo } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { CatalogReviewItem } from "../../../../shared/api/contracts.js";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../../../../shared/components/ui/collapsible.js";
 import { InlineError } from "../../../../shared/components/ui/inline-error.js";
 import { episodeName } from "../../shared/episode-name.js";
 import { DecisionBadge } from "./decision-badge.js";
@@ -83,24 +88,26 @@ export function SourceSummary({ item }: { item: CatalogReviewItem }) {
 					</ul>
 				</section>
 			)}
-			<details className="border-t pt-3 text-xs">
-				<summary className="cursor-pointer font-medium text-muted-foreground">
+			<Collapsible className="border-t pt-3 text-xs">
+				<CollapsibleTrigger className="cursor-pointer font-medium text-muted-foreground">
 					{t("review.evidence")}
-				</summary>
-				<div className="mt-3 space-y-3 leading-relaxed text-muted-foreground">
-					<p className="wrap-anywhere">
-						{item.evidence.titles.join(" · ") || t("review.noMatch")}
-					</p>
-					{item.reason && <p className="wrap-anywhere">{item.reason}</p>}
-					<ul className="space-y-2">
-						{item.unresolved.map((reason) => (
-							<li className="wrap-anywhere" key={reason}>
-								{reason}
-							</li>
-						))}
-					</ul>
-				</div>
-			</details>
+				</CollapsibleTrigger>
+				<CollapsibleContent keepMounted>
+					<div className="mt-3 space-y-3 leading-relaxed text-muted-foreground">
+						<p className="wrap-anywhere">
+							{item.evidence.titles.join(" · ") || t("review.noMatch")}
+						</p>
+						{item.reason && <p className="wrap-anywhere">{item.reason}</p>}
+						<ul className="space-y-2">
+							{item.unresolved.map((reason) => (
+								<li className="wrap-anywhere" key={reason}>
+									{reason}
+								</li>
+							))}
+						</ul>
+					</div>
+				</CollapsibleContent>
+			</Collapsible>
 		</section>
 	);
 }

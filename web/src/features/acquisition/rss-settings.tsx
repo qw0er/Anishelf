@@ -95,6 +95,9 @@ export function RssSettings() {
 						}}
 					>
 						<RadioCardGroup
+							name="acquisition-profile"
+							value={profileDraft ?? profiles.data.selectedProfileId}
+							onValueChange={setProfileDraft}
 							legend={t("acquisition.rss.defaultProfile")}
 							disabled={profileSave.isPending}
 						>
@@ -105,10 +108,8 @@ export function RssSettings() {
 										(profileDraft ?? profiles.data.selectedProfileId),
 								) && (
 									<RadioCard
-										name="acquisition-profile"
-										checked
+										value={profiles.data.selectedProfileId}
 										disabled
-										onChange={() => {}}
 										className="border-dashed"
 										title={t("acquisition.rss.unavailableProfile", {
 											id: profiles.data.selectedProfileId,
@@ -119,13 +120,7 @@ export function RssSettings() {
 							{profiles.data.profiles.map((profile) => (
 								<RadioCard
 									key={profile.id}
-									name="acquisition-profile"
 									value={profile.id}
-									checked={
-										(profileDraft ?? profiles.data.selectedProfileId) ===
-										profile.id
-									}
-									onChange={() => setProfileDraft(profile.id)}
 									title={profile.name}
 									badge={
 										profile.source === "custom"

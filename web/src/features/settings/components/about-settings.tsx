@@ -10,6 +10,11 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../../shared/components/ui/card.js";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../../../shared/components/ui/collapsible.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 
 declare const __ANISHELF_BUILD__: BuildInfo;
@@ -173,18 +178,21 @@ export function AboutSettings() {
 					</p>
 				)}
 				<div className="flex flex-wrap items-start gap-x-4 gap-y-2 border-t pt-3 text-sm text-muted-foreground">
-					<details
+					<Collapsible
 						className="min-w-0 flex-1"
-						open={mismatch ? true : undefined}
+						key={String(mismatch)}
+						defaultOpen={mismatch}
 					>
-						<summary className="w-fit cursor-pointer hover:text-foreground">
+						<CollapsibleTrigger className="w-fit cursor-pointer hover:text-foreground">
 							Build details
-						</summary>
-						<div className="mt-2 space-y-2">
-							<BuildDetails label="Web" info={webBuild} />
-							{info.data && <BuildDetails label="Backend" info={info.data} />}
-						</div>
-					</details>
+						</CollapsibleTrigger>
+						<CollapsibleContent keepMounted>
+							<div className="mt-2 space-y-2">
+								<BuildDetails label="Web" info={webBuild} />
+								{info.data && <BuildDetails label="Backend" info={info.data} />}
+							</div>
+						</CollapsibleContent>
+					</Collapsible>
 					<a
 						className="hover:text-foreground hover:underline"
 						href={`${repository}/blob/main/docs/guide/deployment.md#updates`}

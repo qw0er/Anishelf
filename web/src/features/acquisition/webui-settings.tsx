@@ -13,6 +13,11 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../shared/components/ui/card.js";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../../shared/components/ui/collapsible.js";
 import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
 import { toast } from "../../shared/components/ui/toast.js";
@@ -63,60 +68,62 @@ export function QbittorrentSettings() {
 					</div>
 				) : settings ? (
 					<div className="border-t pt-4">
-						<details>
-							<summary className="cursor-pointer text-sm font-medium">
+						<Collapsible>
+							<CollapsibleTrigger className="cursor-pointer text-sm font-medium">
 								{t("acquisition.webui.settings")}
-							</summary>
-							<form
-								className="flex flex-col gap-3 pt-4"
-								onSubmit={(event) => {
-									event.preventDefault();
-									save.mutate(draft ?? settings.qbittorrentWebUiUrl ?? "");
-								}}
-							>
-								<div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-									<div className="flex min-w-0 flex-1 flex-col gap-2">
-										<div className="flex items-center justify-between gap-2">
-											<label
-												className="field-label"
-												htmlFor="qbittorrent-webui-url"
-											>
-												{t("acquisition.webui.url")}
-											</label>
-											<FieldHelp
-												label={`${t("acquisition.webui.url")} · ${t("actions.help")}`}
-												help={t("acquisition.webui.urlHelp")}
+							</CollapsibleTrigger>
+							<CollapsibleContent keepMounted>
+								<form
+									className="flex flex-col gap-3 pt-4"
+									onSubmit={(event) => {
+										event.preventDefault();
+										save.mutate(draft ?? settings.qbittorrentWebUiUrl ?? "");
+									}}
+								>
+									<div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+										<div className="flex min-w-0 flex-1 flex-col gap-2">
+											<div className="flex items-center justify-between gap-2">
+												<label
+													className="field-label"
+													htmlFor="qbittorrent-webui-url"
+												>
+													{t("acquisition.webui.url")}
+												</label>
+												<FieldHelp
+													label={`${t("acquisition.webui.url")} · ${t("actions.help")}`}
+													help={t("acquisition.webui.urlHelp")}
+												/>
+											</div>
+											<Input
+												id="qbittorrent-webui-url"
+												type="url"
+												maxLength={2048}
+												value={draft ?? settings.qbittorrentWebUiUrl ?? ""}
+												onChange={(event) => {
+													setDraft(event.target.value);
+													save.reset();
+												}}
+												disabled={save.isPending}
+												placeholder="https://downloads.example.com/"
 											/>
 										</div>
-										<Input
-											id="qbittorrent-webui-url"
-											type="url"
-											maxLength={2048}
-											value={draft ?? settings.qbittorrentWebUiUrl ?? ""}
-											onChange={(event) => {
-												setDraft(event.target.value);
-												save.reset();
-											}}
+										<ActionButton
+											icon={Save}
+											label={t("acquisition.webui.save")}
+											shortLabel={t("actions.save")}
+											type="submit"
 											disabled={save.isPending}
-											placeholder="https://downloads.example.com/"
 										/>
 									</div>
-									<ActionButton
-										icon={Save}
-										label={t("acquisition.webui.save")}
-										shortLabel={t("actions.save")}
-										type="submit"
-										disabled={save.isPending}
-									/>
-								</div>
 
-								{save.isError && (
-									<p role="alert" className="field-error">
-										{t("acquisition.webui.saveFailed")}
-									</p>
-								)}
-							</form>
-						</details>
+									{save.isError && (
+										<p role="alert" className="field-error">
+											{t("acquisition.webui.saveFailed")}
+										</p>
+									)}
+								</form>
+							</CollapsibleContent>
+						</Collapsible>
 						{settings.qbittorrentWebUiUrl ? (
 							<div className="flex flex-wrap items-center gap-2">
 								<ActionLink

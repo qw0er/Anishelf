@@ -6,6 +6,12 @@ import type {
 	SubscriptionView,
 } from "../../shared/api/contracts.js";
 import { Button, buttonStyles } from "../../shared/components/ui/button.js";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../../shared/components/ui/collapsible.js";
+import { Progress } from "../../shared/components/ui/progress.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import { Tooltip } from "../../shared/components/ui/tooltip.js";
 import { invalidateAnimeQueries } from "../anime/public.js";
@@ -135,7 +141,7 @@ export function DownloadActivityPanel({
 			{item.progress !== null &&
 				item.state === "bound" &&
 				item.progress < 1 && (
-					<progress
+					<Progress
 						className="h-1 w-full"
 						aria-label={t("acquisition.activity.episodeProgress", {
 							episode: item.episode,
@@ -252,12 +258,14 @@ export function DownloadActivityPanel({
 					</p>
 				)}
 			{tasks.some(historical) && (
-				<details>
-					<summary className="cursor-pointer text-sm">
+				<Collapsible>
+					<CollapsibleTrigger className="cursor-pointer text-sm">
 						{t("acquisition.activity.history")}
-					</summary>
-					{tasks.filter(historical).map(row)}
-				</details>
+					</CollapsibleTrigger>
+					<CollapsibleContent keepMounted>
+						{tasks.filter(historical).map(row)}
+					</CollapsibleContent>
+				</Collapsible>
 			)}
 			{(activity?.total ?? 0) > 20 && (
 				<div className="action-row">
@@ -280,105 +288,109 @@ export function DownloadActivityPanel({
 					</Button>
 				</div>
 			)}
-			<details onToggle={(event) => setDiagnostics(event.currentTarget.open)}>
-				<summary className="cursor-pointer text-sm">
+			<Collapsible onOpenChange={(open) => setDiagnostics(open)}>
+				<CollapsibleTrigger className="cursor-pointer text-sm">
 					{t("acquisition.activity.diagnostics")}
-				</summary>
-				<div className="space-y-3 pt-3">
-					{view.subscription && (
-						<p className="text-sm text-muted-foreground">
-							{view.subscription.source} ·{" "}
-							{t("acquisition.subscription.fromEpisode", {
-								episode: view.subscription.startEpisode,
-							})}
-						</p>
-					)}
-					{releases.data?.discovery && (
-						<div className="space-y-2 text-sm">
-							<p className="text-muted-foreground">
-								{t("acquisition.subscription.lastDiscovery", {
-									time: new Date(
-										releases.data.discovery.checkedAt,
-									).toLocaleString(i18n.language),
+				</CollapsibleTrigger>
+				<CollapsibleContent keepMounted>
+					<div className="space-y-3 pt-3">
+						{view.subscription && (
+							<p className="text-sm text-muted-foreground">
+								{view.subscription.source} ·{" "}
+								{t("acquisition.subscription.fromEpisode", {
+									episode: view.subscription.startEpisode,
 								})}
 							</p>
-							{releases.data.discovery.attempts.map((attempt) => (
-								<div key={attempt.providerId}>
-									<p>
-										{attempt.providerId} ·{" "}
-										{t(`acquisition.subscription.attempt.${attempt.outcome}`)}
-										{attempt.limited &&
-											t("acquisition.subscription.limitedCoverage")}
-									</p>
-									{attempt.reasons.length > 0 && (
-										<p className="text-muted-foreground">
-											{attempt.reasons.map(reason).join(" · ")}
+						)}
+						{releases.data?.discovery && (
+							<div className="space-y-2 text-sm">
+								<p className="text-muted-foreground">
+									{t("acquisition.subscription.lastDiscovery", {
+										time: new Date(
+											releases.data.discovery.checkedAt,
+										).toLocaleString(i18n.language),
+									})}
+								</p>
+								{releases.data.discovery.attempts.map((attempt) => (
+									<div key={attempt.providerId}>
+										<p>
+											{attempt.providerId} ·{" "}
+											{t(`acquisition.subscription.attempt.${attempt.outcome}`)}
+											{attempt.limited &&
+												t("acquisition.subscription.limitedCoverage")}
 										</p>
-									)}
-								</div>
-							))}
-							{releases.data.discovery.attempts.length === 0 && (
-								<p>{t("acquisition.subscription.discoveryUnavailable")}</p>
-							)}
-						</div>
-					)}
-					{releases.isPending ? (
-						<p role="status">{t("acquisition.subscription.loading")}</p>
-					) : releases.isError ? (
-						<p role="alert">
-							{t("acquisition.subscription.unavailable")}{" "}
-							<Button variant="ghost" onClick={() => void releases.refetch()}>
-								{t("acquisition.subscription.retry")}
-							</Button>
-						</p>
-					) : (
-						[...groups].map(([group, entries]) => (
-							<details key={group}>
-								<summary className="cursor-pointer text-sm">
-									{entries[0]?.reasons.length
-										? entries[0].reasons.map(reason).join(" · ")
-										: t("acquisition.activity.selected")}{" "}
-									· {entries.length}
-								</summary>
-								{entries.map((candidate) => (
-									<div className="border-b py-2 text-sm" key={candidate.id}>
-										<Tooltip content={candidate.title} openOnClick>
-											<button
-												type="button"
-												className="block max-w-full truncate text-left"
-												aria-label={candidate.title}
-											>
-												{candidate.title}
-											</button>
-										</Tooltip>
+										{attempt.reasons.length > 0 && (
+											<p className="text-muted-foreground">
+												{attempt.reasons.map(reason).join(" · ")}
+											</p>
+										)}
 									</div>
 								))}
-							</details>
-						))
-					)}
-					{(releases.data?.total ?? 0) > 20 && (
-						<div className="action-row">
-							<Button
-								variant="ghost"
-								disabled={releasePage <= 1}
-								onClick={() => setReleasePage(releasePage - 1)}
-							>
-								{t("acquisition.subscription.previousReleases")}
-							</Button>
-							<span className="text-sm">
-								{t("acquisition.subscription.page", { page: releasePage })}
-							</span>
-							<Button
-								variant="ghost"
-								disabled={releasePage * 20 >= (releases.data?.total ?? 0)}
-								onClick={() => setReleasePage(releasePage + 1)}
-							>
-								{t("acquisition.subscription.nextReleases")}
-							</Button>
-						</div>
-					)}
-				</div>
-			</details>
+								{releases.data.discovery.attempts.length === 0 && (
+									<p>{t("acquisition.subscription.discoveryUnavailable")}</p>
+								)}
+							</div>
+						)}
+						{releases.isPending ? (
+							<p role="status">{t("acquisition.subscription.loading")}</p>
+						) : releases.isError ? (
+							<p role="alert">
+								{t("acquisition.subscription.unavailable")}{" "}
+								<Button variant="ghost" onClick={() => void releases.refetch()}>
+									{t("acquisition.subscription.retry")}
+								</Button>
+							</p>
+						) : (
+							[...groups].map(([group, entries]) => (
+								<Collapsible key={group}>
+									<CollapsibleTrigger className="cursor-pointer text-sm">
+										{entries[0]?.reasons.length
+											? entries[0].reasons.map(reason).join(" · ")
+											: t("acquisition.activity.selected")}{" "}
+										· {entries.length}
+									</CollapsibleTrigger>
+									<CollapsibleContent keepMounted>
+										{entries.map((candidate) => (
+											<div className="border-b py-2 text-sm" key={candidate.id}>
+												<Tooltip content={candidate.title} openOnClick>
+													<button
+														type="button"
+														className="block max-w-full truncate text-left"
+														aria-label={candidate.title}
+													>
+														{candidate.title}
+													</button>
+												</Tooltip>
+											</div>
+										))}
+									</CollapsibleContent>
+								</Collapsible>
+							))
+						)}
+						{(releases.data?.total ?? 0) > 20 && (
+							<div className="action-row">
+								<Button
+									variant="ghost"
+									disabled={releasePage <= 1}
+									onClick={() => setReleasePage(releasePage - 1)}
+								>
+									{t("acquisition.subscription.previousReleases")}
+								</Button>
+								<span className="text-sm">
+									{t("acquisition.subscription.page", { page: releasePage })}
+								</span>
+								<Button
+									variant="ghost"
+									disabled={releasePage * 20 >= (releases.data?.total ?? 0)}
+									onClick={() => setReleasePage(releasePage + 1)}
+								>
+									{t("acquisition.subscription.nextReleases")}
+								</Button>
+							</div>
+						)}
+					</div>
+				</CollapsibleContent>
+			</Collapsible>
 			{settings.data?.qbittorrentWebUiUrl && (
 				<a
 					className={buttonStyles("ghost")}

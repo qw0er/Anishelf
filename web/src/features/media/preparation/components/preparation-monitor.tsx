@@ -20,7 +20,12 @@ export function PreparationMonitor() {
 			task.status === "processing" ||
 			task.status === "cancelling",
 	).length;
-	if (active === 0) return null;
+	if (
+		active === 0 &&
+		!preparation.tasks.some((task) => task.status === "failed") &&
+		!preparation.error
+	)
+		return null;
 	return (
 		<aside
 			aria-label={t("preparation.monitor")}

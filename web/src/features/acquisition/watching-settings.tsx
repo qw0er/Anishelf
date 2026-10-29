@@ -12,9 +12,15 @@ import {
 	CardTitle,
 } from "../../shared/components/ui/card.js";
 import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../../shared/components/ui/collapsible.js";
+import {
 	RadioCard,
 	RadioCardGroup,
 } from "../../shared/components/ui/radio-card.js";
+import { StatusBadge } from "../../shared/components/ui/status-badge.js";
 import { invalidateAnimeQueries } from "../anime/public.js";
 import { acquisitionProfilesQuery } from "./subscriptions-api.js";
 import {
@@ -39,13 +45,13 @@ export function WatchingSettings() {
 				</CardDescription>
 				{query.data && (
 					<div role="status" className="space-y-2 text-sm">
-						<span className="inline-flex rounded-md border px-2 py-1">
+						<StatusBadge>
 							{t(
 								query.data.enabled
 									? "acquisition.watching.enabled"
 									: "acquisition.watching.disabled",
 							)}
-						</span>
+						</StatusBadge>
 						{query.data.reason !== "ready" &&
 							query.data.reason !== "disabled" && (
 								<p className="text-muted-foreground">
@@ -139,6 +145,12 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 	return (
 		<div className="space-y-3">
 			<RadioCardGroup
+				name="watching-backlog"
+				value={backlog}
+				onValueChange={(value) => {
+					setBacklog(value as "progress" | "beginning");
+					preview.reset();
+				}}
 				legend={t("acquisition.watching.backlog")}
 				disabled={busy}
 				className="grid gap-2 space-y-0 sm:grid-cols-2"
@@ -146,14 +158,8 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 				{(["progress", "beginning"] as const).map((value) => (
 					<RadioCard
 						key={value}
-						name="watching-backlog"
 						value={value}
-						checked={backlog === value}
 						title={t(`acquisition.watching.${value}`)}
-						onChange={() => {
-							setBacklog(value);
-							preview.reset();
-						}}
 					/>
 				))}
 			</RadioCardGroup>
@@ -222,27 +228,29 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 								count: preview.data.works.length,
 							})}
 						</p>
-						<details>
-							<summary className="cursor-pointer text-sm">
+						<Collapsible>
+							<CollapsibleTrigger className="cursor-pointer text-sm">
 								{t("acquisition.watching.previewLabel")}
-							</summary>
-							<ul
-								className="max-h-64 overflow-auto text-sm"
-								aria-label={t("acquisition.watching.previewLabel")}
-							>
-								{preview.data.works.map((work) => (
-									<li key={work.workKey}>
-										{work.title} ·{" "}
-										{work.startEpisode === null
-											? t("acquisition.watching.unsupportedStart")
-											: t("acquisition.watching.fromEpisode", {
-													episode: work.startEpisode,
-												})}{" "}
-										· {watchingReason(work.reason)}
-									</li>
-								))}
-							</ul>
-						</details>
+							</CollapsibleTrigger>
+							<CollapsibleContent keepMounted>
+								<ul
+									className="max-h-64 overflow-auto text-sm"
+									aria-label={t("acquisition.watching.previewLabel")}
+								>
+									{preview.data.works.map((work) => (
+										<li key={work.workKey}>
+											{work.title} ·{" "}
+											{work.startEpisode === null
+												? t("acquisition.watching.unsupportedStart")
+												: t("acquisition.watching.fromEpisode", {
+														episode: work.startEpisode,
+													})}{" "}
+											· {watchingReason(work.reason)}
+										</li>
+									))}
+								</ul>
+							</CollapsibleContent>
+						</Collapsible>
 						<ActionButton
 							icon={Play}
 							aria-busy={confirm.isPending}
@@ -254,56 +262,58 @@ function WatchingForm({ status }: { status: WatchingAutomationStatus }) {
 					</div>
 				)}
 			{status.works.some((work) => work.managed || work.excluded) && (
-				<details>
-					<summary>
+				<Collapsible>
+					<CollapsibleTrigger>
 						{t("acquisition.watching.management", {
 							count: status.works.filter(
 								(work) => work.managed || work.excluded,
 							).length,
 						})}
-					</summary>
-					<div className="max-h-96 space-y-3 overflow-auto pt-3">
-						{status.works
-							.filter((work) => work.managed || work.excluded)
-							.map((work) => (
-								<div
-									key={work.workKey}
-									className="space-y-1 border-b pb-2 text-sm"
-								>
-									<p>
-										<a
-											className="underline break-words"
-											href={`/anime/tracked/${encodeURIComponent(work.workKey)}`}
-										>
-											{work.title}
-										</a>
-										{work.startEpisode !== null
-											? ` · ${t("acquisition.watching.fromEpisode", { episode: work.startEpisode })}`
-											: ""}
-									</p>
-									<p>{watchingReason(work.reason)}</p>
-									<div className="action-row">
-										<ActionButton
-											icon={Plus}
-											label={t(
-												work.excluded
-													? "acquisition.watching.include"
-													: "acquisition.watching.exclude",
-											)}
-											shortLabel={t(
-												work.excluded ? "actions.include" : "actions.exclude",
-											)}
-											variant="ghost"
-											disabled={busy || !status.accountId}
-											onClick={() =>
-												override.mutate({ ...work, excluded: !work.excluded })
-											}
-										/>
+					</CollapsibleTrigger>
+					<CollapsibleContent keepMounted>
+						<div className="max-h-96 space-y-3 overflow-auto pt-3">
+							{status.works
+								.filter((work) => work.managed || work.excluded)
+								.map((work) => (
+									<div
+										key={work.workKey}
+										className="space-y-1 border-b pb-2 text-sm"
+									>
+										<p>
+											<a
+												className="underline break-words"
+												href={`/anime/tracked/${encodeURIComponent(work.workKey)}`}
+											>
+												{work.title}
+											</a>
+											{work.startEpisode !== null
+												? ` · ${t("acquisition.watching.fromEpisode", { episode: work.startEpisode })}`
+												: ""}
+										</p>
+										<p>{watchingReason(work.reason)}</p>
+										<div className="action-row">
+											<ActionButton
+												icon={Plus}
+												label={t(
+													work.excluded
+														? "acquisition.watching.include"
+														: "acquisition.watching.exclude",
+												)}
+												shortLabel={t(
+													work.excluded ? "actions.include" : "actions.exclude",
+												)}
+												variant="ghost"
+												disabled={busy || !status.accountId}
+												onClick={() =>
+													override.mutate({ ...work, excluded: !work.excluded })
+												}
+											/>
+										</div>
 									</div>
-								</div>
-							))}
-					</div>
-				</details>
+								))}
+						</div>
+					</CollapsibleContent>
+				</Collapsible>
 			)}
 		</div>
 	);

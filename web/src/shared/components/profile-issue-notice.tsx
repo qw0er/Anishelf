@@ -1,5 +1,10 @@
 import { useTranslation } from "react-i18next";
 import type { ProfileCatalogIssue } from "../api/contracts.js";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "./ui/collapsible.js";
 
 export function ProfileIssueNotice({
 	kind,
@@ -22,14 +27,16 @@ export function ProfileIssueNotice({
 				<code className="break-all">{issue.file}</code>
 			</p>
 			{issue.detail && (
-				<details className="mt-2">
-					<summary className="cursor-pointer text-xs text-muted-foreground">
+				<Collapsible className="mt-2">
+					<CollapsibleTrigger className="cursor-pointer text-xs text-muted-foreground">
 						{t("profileIssue.details")}
-					</summary>
-					<p className="mt-1 break-words text-xs text-muted-foreground">
-						{issue.detail}
-					</p>
-				</details>
+					</CollapsibleTrigger>
+					<CollapsibleContent keepMounted>
+						<p className="mt-1 break-words text-xs text-muted-foreground">
+							{issue.detail}
+						</p>
+					</CollapsibleContent>
+				</Collapsible>
 			)}
 			<p className="mt-2 text-xs text-muted-foreground">
 				{t("profileIssue.fixAndRestart")}

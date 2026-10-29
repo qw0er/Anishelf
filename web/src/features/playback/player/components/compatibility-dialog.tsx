@@ -2,6 +2,11 @@ import { useTranslation } from "react-i18next";
 import type { PlaybackAssetChoice } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../../../../shared/components/ui/collapsible.js";
+import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
@@ -91,7 +96,7 @@ export function CompatibilityDialog({
 	);
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>{t("compatibility.label")}</DialogTitle>
 				</DialogHeader>
@@ -109,24 +114,32 @@ export function CompatibilityDialog({
 							<AssetReport choice={active} />
 						</section>
 						{original && original.asset.id !== active.asset.id && (
-							<details className="text-sm">
-								<summary>{t("player.sourceDetails")}</summary>
-								<div className="mt-3">
-									<AssetReport choice={original} />
-								</div>
-							</details>
+							<Collapsible className="text-sm">
+								<CollapsibleTrigger>
+									{t("player.sourceDetails")}
+								</CollapsibleTrigger>
+								<CollapsibleContent keepMounted>
+									<div className="mt-3">
+										<AssetReport choice={original} />
+									</div>
+								</CollapsibleContent>
+							</Collapsible>
 						)}
 					</>
 				) : (
 					<>
 						<p role="status">{t("player.noMatchingAsset")}</p>
 						{result?.choices.map((choice) => (
-							<details key={choice.asset.id} className="text-sm">
-								<summary>{t(`player.assets.${choice.asset.kind}`)}</summary>
-								<div className="mt-3">
-									<AssetReport choice={choice} />
-								</div>
-							</details>
+							<Collapsible key={choice.asset.id} className="text-sm">
+								<CollapsibleTrigger>
+									{t(`player.assets.${choice.asset.kind}`)}
+								</CollapsibleTrigger>
+								<CollapsibleContent keepMounted>
+									<div className="mt-3">
+										<AssetReport choice={choice} />
+									</div>
+								</CollapsibleContent>
+							</Collapsible>
 						))}
 					</>
 				)}

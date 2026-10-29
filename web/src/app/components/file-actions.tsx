@@ -3,10 +3,7 @@ import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFilePreparations } from "../../features/media/public.js";
 import { PreparationFileMenuItems } from "../../features/media/ui.js";
-import {
-	ExternalPlayerSubmenu,
-	MediaLink,
-} from "../../features/playback/ui.js";
+import { FileLinkMenuItems } from "../../features/playback/ui.js";
 import { CompatibilityStatus } from "../../features/resources/ui.js";
 import type {
 	CompatibilityResult,
@@ -82,10 +79,7 @@ export function FileActions({
 				</Tooltip>
 				<DropdownMenuContent>
 					{identificationMenu}
-					<ExternalPlayerSubmenu fileId={fileId} />
-					<MediaLink fileId={fileId} menuItem />
-					<MediaLink fileId={fileId} menuItem download />
-					<MediaLink fileId={fileId} menuItem playlist />
+					<FileLinkMenuItems fileId={fileId} />
 					<PreparationFileMenuItems
 						fileId={fileId}
 						list={list}

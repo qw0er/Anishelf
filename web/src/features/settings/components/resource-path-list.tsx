@@ -66,7 +66,7 @@ export function ResourcePathList({
 								label={t("settingsPage.removePath", { path })}
 								type="button"
 								variant="ghost"
-								className="shrink-0 px-2"
+								className="w-24 shrink-0"
 								disabled={disabled}
 								onClick={() => {
 									const next = entries.filter((entry) => entry !== path);
@@ -117,6 +117,7 @@ export function ResourcePathList({
 					shortLabel={t("actions.add")}
 					type="button"
 					variant="outline"
+					className="w-24 shrink-0"
 					disabled={disabled || !draft.trim() || entries.length >= 64}
 					onClick={addPath}
 				/>

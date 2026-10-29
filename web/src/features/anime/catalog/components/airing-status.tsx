@@ -6,6 +6,7 @@ import { CalendarDays, Info, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { MetadataAiringResponse } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
+import { StatusBadge } from "../../../../shared/components/ui/status-badge.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 
 export function AiringStatus({
@@ -150,9 +151,7 @@ export function AiringStatus({
 											</time>
 										</td>
 										<td className="px-2 py-2 whitespace-nowrap">
-											<span
-												className={`inline-block rounded-full px-2 py-0.5 text-xs ${upcoming ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
-											>
+											<StatusBadge tone={upcoming ? "primary" : "neutral"}>
 												{t(
 													item.stale
 														? "anime.airingUnverified"
@@ -160,7 +159,7 @@ export function AiringStatus({
 															? "anime.notYetAired"
 															: "anime.aired",
 												)}
-											</span>
+											</StatusBadge>
 										</td>
 									</tr>
 								);

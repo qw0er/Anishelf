@@ -2,7 +2,13 @@ import { Check, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { CatalogReviewItem } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../../../../shared/components/ui/collapsible.js";
 import { Input } from "../../../../shared/components/ui/input.js";
+import { PaginationControls } from "../../../../shared/components/ui/pagination-controls.js";
 import { ErrorMessage } from "../../shared/components/error-message.js";
 import type { ReviewController } from "../use-review-controller.js";
 
@@ -90,24 +96,26 @@ export function CandidateSelection({
 										))}
 									</ul>
 								)}
-								<details className="text-xs text-muted-foreground">
-									<summary className="cursor-pointer">
+								<Collapsible className="text-xs text-muted-foreground">
+									<CollapsibleTrigger className="cursor-pointer">
 										{t("review.matchDetails")}
-									</summary>
-									<ul className="mt-2 space-y-1 leading-relaxed">
-										{[
-											...candidate.reasons,
-											...(candidate.assumptions ?? []),
-										].map((reason) => (
-											<li className="wrap-anywhere" key={reason}>
-												{reason}
-											</li>
-										))}
-									</ul>
-									<p className="mt-2">
-										{t("review.rank", { score: candidate.score })}
-									</p>
-								</details>
+									</CollapsibleTrigger>
+									<CollapsibleContent keepMounted>
+										<ul className="mt-2 space-y-1 leading-relaxed">
+											{[
+												...candidate.reasons,
+												...(candidate.assumptions ?? []),
+											].map((reason) => (
+												<li className="wrap-anywhere" key={reason}>
+													{reason}
+												</li>
+											))}
+										</ul>
+										<p className="mt-2">
+											{t("review.rank", { score: candidate.score })}
+										</p>
+									</CollapsibleContent>
+								</Collapsible>
 								<Button
 									className="mt-auto w-full"
 									variant={selected ? "secondary" : "outline"}
@@ -230,25 +238,13 @@ export function CandidateSelection({
 							{!searchQuery.data.data.items.length && (
 								<p>{t("anime.noResults")}</p>
 							)}
-							<fieldset className="action-row" aria-label={t("review.search")}>
-								<Button
-									variant="outline"
-									disabled={searchPage === 1 || searchQuery.isFetching}
-									onClick={() => changeSearchPage(searchPage - 1)}
-								>
-									{t("anime.previous")}
-								</Button>
-								<span>{t("anime.page", { page: searchPage })}</span>
-								<Button
-									variant="outline"
-									disabled={
-										!searchQuery.data.data.hasNextPage || searchQuery.isFetching
-									}
-									onClick={() => changeSearchPage(searchPage + 1)}
-								>
-									{t("anime.next")}
-								</Button>
-							</fieldset>
+							<PaginationControls
+								page={searchPage}
+								fetching={searchQuery.isFetching}
+								hasNextPage={searchQuery.data.data.hasNextPage}
+								onPage={changeSearchPage}
+								label={t("review.search")}
+							/>
 						</>
 					)}
 				</section>

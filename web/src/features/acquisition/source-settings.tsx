@@ -9,6 +9,7 @@ import {
 	RefreshCw,
 	Save,
 	Search,
+	Trash2,
 	Unplug,
 } from "lucide-react";
 import { useState } from "react";
@@ -29,6 +30,11 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../shared/components/ui/card.js";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../../shared/components/ui/collapsible.js";
 import { ConnectionSettings } from "../../shared/components/ui/connection-settings.js";
 import {
 	DropdownMenu,
@@ -36,10 +42,18 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "../../shared/components/ui/dropdown-menu.js";
+import { Field } from "../../shared/components/ui/field.js";
+import { FieldHeading } from "../../shared/components/ui/field-heading.js";
 import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
+import { LoadingState } from "../../shared/components/ui/loading-state.js";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../shared/components/ui/native-select.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import { Tooltip } from "../../shared/components/ui/tooltip.js";
+import { useRefreshError } from "../../shared/hooks/use-refresh-error.js";
 import {
 	activateBundledSourceConnector,
 	clearSourceConnector,
@@ -64,6 +78,12 @@ export function SourceSettings() {
 		queryFn: ({ signal }) =>
 			getSourceConnector({ signal: boundedSignal(signal) }),
 	});
+	useRefreshError(
+		"source-settings",
+		query.data ? query.error : null,
+		query.errorUpdatedAt,
+		() => void query.refetch(),
+	);
 	return (
 		<Card className="settings-section lg:grid">
 			<CardHeader>
@@ -71,10 +91,8 @@ export function SourceSettings() {
 			</CardHeader>
 			<CardContent className="flex min-w-0 flex-col gap-4 lg:max-w-2xl">
 				{query.isPending ? (
-					<p role="status" className="text-sm text-muted-foreground">
-						{t("acquisition.sources.loading")}
-					</p>
-				) : query.isError ? (
+					<LoadingState label={t("acquisition.sources.loading")} />
+				) : query.isError && !query.data ? (
 					<div role="alert" className="flex flex-col gap-2 text-sm">
 						<p className="text-destructive">
 							{t("acquisition.sources.loadFailed")}
@@ -322,16 +340,12 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					label={t("acquisition.sources.connectionSettings")}
 					status={status}
 				>
-					<div className="flex flex-col gap-2 sm:col-span-2">
-						<div className="field-heading justify-between">
-							<label className="field-label" htmlFor="source-api-url">
-								{t("acquisition.sources.apiUrl")}
-							</label>
-							<FieldHelp
-								label={`${t("acquisition.sources.apiUrl")} · ${t("actions.help")}`}
-								help={t("acquisition.sources.apiUrlHelp")}
-							/>
-						</div>
+					<Field className="flex flex-col gap-2 sm:col-span-2">
+						<FieldHeading
+							id="source-api-url"
+							label={t("acquisition.sources.apiUrl")}
+							help={t("acquisition.sources.apiUrlHelp")}
+						/>
 						<Input
 							id="source-api-url"
 							type="url"
@@ -342,7 +356,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							disabled={busy}
 							onChange={(event) => setUrl(event.target.value)}
 						/>
-					</div>
+					</Field>
 					<div className="flex flex-col gap-2">
 						<div className="field-heading justify-between">
 							<label className="field-label" htmlFor="source-api-key">
@@ -521,6 +535,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 												setProviders(providers.filter((value) => value !== id))
 											}
 										>
+											<Trash2 size={16} aria-hidden="true" />
 											{t("acquisition.sources.removeAria", { name: id })}
 										</DropdownMenuItem>
 									</DropdownMenuContent>
@@ -534,11 +549,11 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					</p>
 				)}
 				{selectableSites.length > 0 && (
-					<div className="flex flex-col gap-2">
+					<Field className="flex flex-col gap-2">
 						<label htmlFor="source-add-site" className="field-label">
 							{t("acquisition.sources.availableSites")}
 						</label>
-						<select
+						<NativeSelect
 							id="source-add-site"
 							className="form-select"
 							value=""
@@ -548,14 +563,16 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 									setProviders([...providers, event.target.value]);
 							}}
 						>
-							<option value="">{t("acquisition.sources.addSite")}</option>
+							<NativeSelectOption value="">
+								{t("acquisition.sources.addSite")}
+							</NativeSelectOption>
 							{selectableSites.map((site) => (
-								<option key={site.id} value={site.id}>
+								<NativeSelectOption key={site.id} value={site.id}>
 									{site.name}
-								</option>
+								</NativeSelectOption>
 							))}
-						</select>
-					</div>
+						</NativeSelect>
+					</Field>
 				)}
 				{sitesChanged && (
 					<div className="action-row">
@@ -570,120 +587,122 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				)}
 			</section>
 
-			<details className="min-w-0 border-t pt-4">
-				<summary className="cursor-pointer text-sm font-medium">
+			<Collapsible className="min-w-0 border-t pt-4">
+				<CollapsibleTrigger className="cursor-pointer text-sm font-medium">
 					{t("acquisition.sources.diagnostics")}
-				</summary>
-				<div className="mt-4 flex min-w-0 flex-col gap-4">
-					<div className="flex flex-col gap-2">
-						<label className="field-label" htmlFor="source-test-provider">
-							{t("acquisition.sources.siteToTest")}
-						</label>
-						<select
-							id="source-test-provider"
-							className="form-select"
-							value={providerId}
-							disabled={busy}
-							onChange={(event) => {
-								setProviderId(event.target.value);
-								probe.reset();
-								search.reset();
-							}}
-						>
-							{!settings.providers.length && (
-								<option value="">
-									{t("acquisition.sources.saveSiteFirst")}
-								</option>
-							)}
-							{settings.providers.map((id) => (
-								<option key={id} value={id}>
-									{id}
-								</option>
-							))}
-						</select>
-					</div>
-					<div className="action-row">
-						<ActionButton
-							icon={PlugZap}
-							label={t("acquisition.sources.checkSupport")}
-							shortLabel={t("acquisition.sources.checkSupport")}
-							variant="outline"
-							disabled={!canTest || !providerId}
-							onClick={() => probe.mutate()}
-						/>
-					</div>
-					{probe.data && !changed && (
-						<p role="status" className="text-sm text-muted-foreground">
-							{probe.data.searchSupported
-								? t("acquisition.sources.searchSupported")
-								: t("acquisition.sources.searchUnsupported")}
-						</p>
-					)}
-					<form
-						className="flex min-w-0 flex-col gap-3"
-						onSubmit={(event) => {
-							event.preventDefault();
-							search.mutate();
-						}}
-					>
-						<div className="flex flex-col gap-2">
-							<label className="field-label" htmlFor="source-test-title">
-								{t("acquisition.sources.titleToSearch")}
+				</CollapsibleTrigger>
+				<CollapsibleContent keepMounted>
+					<div className="mt-4 flex min-w-0 flex-col gap-4">
+						<Field className="flex flex-col gap-2">
+							<label className="field-label" htmlFor="source-test-provider">
+								{t("acquisition.sources.siteToTest")}
 							</label>
-							<Input
-								id="source-test-title"
-								maxLength={256}
-								value={title}
+							<NativeSelect
+								id="source-test-provider"
+								className="form-select"
+								value={providerId}
 								disabled={busy}
 								onChange={(event) => {
-									setTitle(event.target.value);
+									setProviderId(event.target.value);
+									probe.reset();
 									search.reset();
 								}}
-							/>
-						</div>
+							>
+								{!settings.providers.length && (
+									<NativeSelectOption value="">
+										{t("acquisition.sources.saveSiteFirst")}
+									</NativeSelectOption>
+								)}
+								{settings.providers.map((id) => (
+									<NativeSelectOption key={id} value={id}>
+										{id}
+									</NativeSelectOption>
+								))}
+							</NativeSelect>
+						</Field>
 						<div className="action-row">
 							<ActionButton
-								icon={Search}
-								label={t("acquisition.sources.testSearch")}
-								shortLabel={t("acquisition.sources.testSearch")}
-								type="submit"
+								icon={PlugZap}
+								label={t("acquisition.sources.checkSupport")}
+								shortLabel={t("acquisition.sources.checkSupport")}
 								variant="outline"
-								disabled={!canTest || !providerId || !title.trim()}
+								disabled={!canTest || !providerId}
+								onClick={() => probe.mutate()}
 							/>
 						</div>
-					</form>
-					{search.data && !changed && (
-						<div
-							role="status"
-							className="rounded-lg border bg-muted/20 p-3 text-sm"
-						>
-							<p>
-								{search.data.entries.length
-									? t("acquisition.sources.searchReturned", {
-											count: search.data.entries.length,
-										})
-									: t("acquisition.sources.noResults")}
+						{probe.data && !changed && (
+							<p role="status" className="text-sm text-muted-foreground">
+								{probe.data.searchSupported
+									? t("acquisition.sources.searchSupported")
+									: t("acquisition.sources.searchUnsupported")}
 							</p>
-							{search.data.coverage?.limited && (
-								<p className="mt-1 text-muted-foreground">
-									{t("acquisition.sources.limitedCoverage", {
-										reason: search.data.coverage.reason,
-									})}
+						)}
+						<form
+							className="flex min-w-0 flex-col gap-3"
+							onSubmit={(event) => {
+								event.preventDefault();
+								search.mutate();
+							}}
+						>
+							<Field className="flex flex-col gap-2">
+								<label className="field-label" htmlFor="source-test-title">
+									{t("acquisition.sources.titleToSearch")}
+								</label>
+								<Input
+									id="source-test-title"
+									maxLength={256}
+									value={title}
+									disabled={busy}
+									onChange={(event) => {
+										setTitle(event.target.value);
+										search.reset();
+									}}
+								/>
+							</Field>
+							<div className="action-row">
+								<ActionButton
+									icon={Search}
+									label={t("acquisition.sources.testSearch")}
+									shortLabel={t("acquisition.sources.testSearch")}
+									type="submit"
+									variant="outline"
+									disabled={!canTest || !providerId || !title.trim()}
+								/>
+							</div>
+						</form>
+						{search.data && !changed && (
+							<div
+								role="status"
+								className="rounded-lg border bg-muted/20 p-3 text-sm"
+							>
+								<p>
+									{search.data.entries.length
+										? t("acquisition.sources.searchReturned", {
+												count: search.data.entries.length,
+											})
+										: t("acquisition.sources.noResults")}
 								</p>
-							)}
-							{search.data.entries.length > 0 && (
-								<ul className="mt-2 divide-y">
-									{search.data.entries.slice(0, 5).map((entry) => (
-										<li key={entry.id} className="break-all py-1">
-											{entry.title}
-										</li>
-									))}
-								</ul>
-							)}
-						</div>
-					)}
-				</div>
-			</details>
+								{search.data.coverage?.limited && (
+									<p className="mt-1 text-muted-foreground">
+										{t("acquisition.sources.limitedCoverage", {
+											reason: search.data.coverage.reason,
+										})}
+									</p>
+								)}
+								{search.data.entries.length > 0 && (
+									<ul className="mt-2 divide-y">
+										{search.data.entries.slice(0, 5).map((entry) => (
+											<li key={entry.id} className="break-all py-1">
+												{entry.title}
+											</li>
+										))}
+									</ul>
+								)}
+							</div>
+						)}
+					</div>
+				</CollapsibleContent>
+			</Collapsible>
 
 			{error && (
 				<p role="alert" className="field-error">

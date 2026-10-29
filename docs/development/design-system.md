@@ -69,8 +69,14 @@ existing icon with `aria-busy`; do not add duplicate spinners or status rows.
 ## Shared components
 
 Shared primitives live in `web/src/shared/components/ui/`; page-level shared
-components live in `web/src/shared/components/`. Prefer these over new dependencies
-or custom controls, and retain Vidstack's native player control styling.
+components live in `web/src/shared/components/`. Prefer shadcn/ui components using
+our existing Base UI stack for every standard control and presentation pattern.
+Reuse an installed shadcn component first; if it is missing, add the official
+component before considering an independent implementation. Adapt shared tokens,
+control sizes and semantic variants centrally. Business wrappers may compose these
+primitives but must not duplicate their interaction or visual foundations.
+Document a purposeful exception in its owning pattern. Retain Vidstack's native
+player control styling.
 
 | Pattern | Shared responsibility |
 | --- | --- |
@@ -84,11 +90,14 @@ or custom controls, and retain Vidstack's native player control styling.
 | Menu | Consistent leading icon per item, aligned labels, submenu affordance and destructive styling |
 | Empty / error state | Consistent icon, concise explanation and relevant recovery action |
 
-Implemented shared foundations include `StatusBadge`, `InlineError`, `LoadingState`,
+Implemented shared foundations include `FieldHeading`, `PaginationControls`,
+`StatusBadge`, `InlineError`, `LoadingState`,
 Button sizes (`default`, `sm`, `icon`) and the `form-control`, `field-label`,
 `field-error`, `section-title`, `panel-inset` and `list-row` utilities.
 `Card` owns composed sections; `surface-panel` owns a single padded content surface.
 Both use 16px padding on narrow layouts and 20px from the small breakpoint.
+Dialogs share a viewport-bounded scrolling surface. File link menu groups are
+owned by Playback and reused through app composition.
 Icon buttons use 36px geometry; coarse-pointer controls have at least 44px targets
 that occupy layout space rather than overlapping adjacent actions.
 
@@ -105,8 +114,11 @@ universal component with unrelated boolean options or add variants for one-off u
 
 Forms use labels and units to explain ordinary fields. Put non-obvious guidance in
 keyboard/touch-accessible label help; keep validation and required recovery visible.
-Use inline native radios for short choices, shared radio cards for descriptive
-choices and selectors for service-populated lists. Avoid unbounded radio lists.
+Use shadcn/Base UI Radio Group for short choices and as the foundation of shared
+radio cards for descriptive choices. Use shadcn Native Select for ordinary selectors
+and preserve its native browser picker. Independent disclosures use shadcn
+Collapsible with named triggers; keep editable contents mounted while collapsed.
+Avoid unbounded radio lists.
 
 ## Feedback and interface states
 

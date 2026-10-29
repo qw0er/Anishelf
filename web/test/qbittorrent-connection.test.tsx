@@ -265,10 +265,15 @@ test("bundled WebUI credentials are fetched on demand, hidden, and excluded from
 		url: "http://qbittorrent:8080/",
 	});
 	render(<QbittorrentApiSettings />);
+	fireEvent.click(
+		await screen.findByRole("button", { name: "WebUI credentials" }),
+	);
 	const show = await screen.findByRole("button", {
 		name: "Show password",
 	});
-	expect(screen.getByLabelText("API URL").closest("details")?.open).toBe(false);
+	expect(
+		screen.getByLabelText("Edit connection").getAttribute("aria-expanded"),
+	).toBe("false");
 	expect(
 		request.mock.calls.some((call) => call[0].endsWith("/credentials")),
 	).toBe(false);

@@ -10,6 +10,11 @@ import type {
 } from "../../../shared/api/contracts.js";
 import { boundedSignal } from "../../../shared/api/queries.js";
 import { Button } from "../../../shared/components/ui/button.js";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../../../shared/components/ui/collapsible.js";
 import { RadioOptions } from "../../../shared/components/ui/radio-options.js";
 import {
 	appliesToEpisode,
@@ -55,12 +60,14 @@ export function PlayerViewingControl({
 	if (!target.data) return null;
 	if (!target.data.target)
 		return (
-			<details className="text-sm text-muted-foreground">
-				<summary className="cursor-pointer py-3">
+			<Collapsible className="text-sm text-muted-foreground">
+				<CollapsibleTrigger className="cursor-pointer py-3">
 					{t("player.tracking")}
-				</summary>
-				<p>{t(`trackingTarget.${target.data.state}`)}</p>
-			</details>
+				</CollapsibleTrigger>
+				<CollapsibleContent keepMounted>
+					<p>{t(`trackingTarget.${target.data.state}`)}</p>
+				</CollapsibleContent>
+			</Collapsible>
 		);
 	return (
 		<TargetControl
@@ -163,11 +170,14 @@ function TargetControl({
 			>
 				{t(known ? "player.watched" : "playbackCompletion.mark")}
 			</Button>
-			{current && !isResultState(current.state) && (
-				<span role="status" className="text-sm text-muted-foreground">
-					{t(`trackingUpdate.states.${current.state}`)}
-				</span>
-			)}
+			{current &&
+				!isResultState(current.state) &&
+				current.state !== "pending" &&
+				current.state !== "submitting" && (
+					<span role="status" className="text-sm text-muted-foreground">
+						{t(`trackingUpdate.states.${current.state}`)}
+					</span>
+				)}
 			{current?.state === "decision-required" && (
 				<>
 					<span>

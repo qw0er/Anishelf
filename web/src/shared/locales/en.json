@@ -73,6 +73,7 @@
 			"SUBTITLE_TOO_LARGE": "The subtitle exceeds the {{maximumMiB}} MiB limit.",
 			"SUBTITLE_INVALID_ENCODING": "Save the subtitle as UTF-8 or UTF-16 with a byte-order mark.",
 			"MEDIA_INSPECTION_UNAVAILABLE": "Media inspection is unavailable or busy. Retry shortly.",
+			"METADATA_NOT_FOUND": "Metadata is unavailable for this work.",
 			"UPDATE_CHECK_FAILED": "Could not check GitHub for updates. Try again later."
 		},
 		"mediaPictureUnavailable": "This browser could not decode the video picture. Audio alone may still play.",

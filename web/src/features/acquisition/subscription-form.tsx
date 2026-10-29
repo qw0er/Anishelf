@@ -3,6 +3,11 @@ import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { SubscriptionView } from "../../shared/api/contracts.js";
 import { Button } from "../../shared/components/ui/button.js";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../../shared/components/ui/collapsible.js";
 import { Input } from "../../shared/components/ui/input.js";
 import {
 	RadioCard,
@@ -114,86 +119,85 @@ export function SubscriptionForm({
 						)?.name ?? "…",
 				})}
 			</p>
-			<details>
-				<summary className="cursor-pointer text-sm">
+			<Collapsible>
+				<CollapsibleTrigger className="cursor-pointer text-sm">
 					{t("acquisition.subscription.moreOptions")}
-				</summary>
-				<div className="space-y-3 pt-3">
-					<RadioCardGroup
-						legend={t("acquisition.subscription.releaseProfile")}
-						disabled={save.isPending || profiles.isPending}
-					>
-						<RadioCard
-							name={`${id}-profile`}
-							value=""
-							checked={!profileId}
-							onChange={() => setProfileId("")}
-							title={t("acquisition.subscription.followDefault")}
-						/>
-						{profiles.data?.profiles.map((profile) => (
+				</CollapsibleTrigger>
+				<CollapsibleContent keepMounted>
+					<div className="space-y-3 pt-3">
+						<RadioCardGroup
+							name="subscription-profile"
+							value={profileId}
+							onValueChange={setProfileId}
+							legend={t("acquisition.subscription.releaseProfile")}
+							disabled={save.isPending || profiles.isPending}
+						>
 							<RadioCard
-								key={profile.id}
-								name={`${id}-profile`}
-								value={profile.id}
-								checked={profileId === profile.id}
-								onChange={() => setProfileId(profile.id)}
-								title={profile.name}
-								description={profile.description}
+								value=""
+								title={t("acquisition.subscription.followDefault")}
 							/>
-						))}
-					</RadioCardGroup>
-					<RadioOptions<"keep" | "automatic" | "feed">
-						legend={t("acquisition.subscription.source")}
-						value={mode}
-						disabled={save.isPending}
-						onChange={setMode}
-						options={[
-							...(current
-								? [
-										{
-											value: "keep" as const,
-											label: t("acquisition.subscription.keepCurrent"),
-										},
-									]
-								: []),
-							{
-								value: "automatic",
-								label: t("acquisition.subscription.automaticSource"),
-							},
-							{ value: "feed", label: t("acquisition.subscription.rssUrl") },
-						]}
-					/>
-					{mode === "feed" && (
-						<label htmlFor={`${id}-rss`} className="block space-y-1">
-							<span>{t("acquisition.subscription.rssUrl")}</span>
-							<Input
-								id={`${id}-rss`}
-								type="url"
-								required
-								maxLength={4096}
-								value={url}
-								onChange={(event) => setUrl(event.target.value)}
-								disabled={save.isPending}
-							/>
-						</label>
-					)}
-					{current?.management === "watching" && (
-						<p className="text-sm text-muted-foreground">
-							{t("acquisition.watching.manualConsent")}
-						</p>
-					)}
-					{current && (
-						<p className="break-all text-sm text-muted-foreground">
-							{current.source}
-						</p>
-					)}
-					{target && (
-						<p className="break-all text-sm text-muted-foreground">
-							{target.path}
-						</p>
-					)}
-				</div>
-			</details>
+							{profiles.data?.profiles.map((profile) => (
+								<RadioCard
+									key={profile.id}
+									value={profile.id}
+									title={profile.name}
+									description={profile.description}
+								/>
+							))}
+						</RadioCardGroup>
+						<RadioOptions<"keep" | "automatic" | "feed">
+							legend={t("acquisition.subscription.source")}
+							value={mode}
+							disabled={save.isPending}
+							onChange={setMode}
+							options={[
+								...(current
+									? [
+											{
+												value: "keep" as const,
+												label: t("acquisition.subscription.keepCurrent"),
+											},
+										]
+									: []),
+								{
+									value: "automatic",
+									label: t("acquisition.subscription.automaticSource"),
+								},
+								{ value: "feed", label: t("acquisition.subscription.rssUrl") },
+							]}
+						/>
+						{mode === "feed" && (
+							<label htmlFor={`${id}-rss`} className="block space-y-1">
+								<span>{t("acquisition.subscription.rssUrl")}</span>
+								<Input
+									id={`${id}-rss`}
+									type="url"
+									required
+									maxLength={4096}
+									value={url}
+									onChange={(event) => setUrl(event.target.value)}
+									disabled={save.isPending}
+								/>
+							</label>
+						)}
+						{current?.management === "watching" && (
+							<p className="text-sm text-muted-foreground">
+								{t("acquisition.watching.manualConsent")}
+							</p>
+						)}
+						{current && (
+							<p className="break-all text-sm text-muted-foreground">
+								{current.source}
+							</p>
+						)}
+						{target && (
+							<p className="break-all text-sm text-muted-foreground">
+								{target.path}
+							</p>
+						)}
+					</div>
+				</CollapsibleContent>
+			</Collapsible>
 			{(!target?.validated ||
 				profiles.isError ||
 				!validProfile ||

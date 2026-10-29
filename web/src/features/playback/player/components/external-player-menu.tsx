@@ -30,7 +30,7 @@ import {
 import { resolveMediaLink } from "../media-link.js";
 import MediaLink from "./media-link.js";
 
-export function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
+function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const client = useQueryClient();
@@ -161,11 +161,19 @@ export function PlaybackActionsMenu({
 						{t("player.retry")}
 					</DropdownMenuItem>
 				)}
-				<ExternalPlayerSubmenu fileId={fileId} />
-				<MediaLink fileId={fileId} menuItem />
-				<MediaLink fileId={fileId} menuItem download />
-				<MediaLink fileId={fileId} menuItem playlist />
+				<FileLinkMenuItems fileId={fileId} />
 			</DropdownMenuContent>
 		</DropdownMenu>
+	);
+}
+
+export function FileLinkMenuItems({ fileId }: { fileId: string }) {
+	return (
+		<>
+			<ExternalPlayerSubmenu fileId={fileId} />
+			<MediaLink fileId={fileId} menuItem />
+			<MediaLink fileId={fileId} menuItem download />
+			<MediaLink fileId={fileId} menuItem playlist />
+		</>
 	);
 }

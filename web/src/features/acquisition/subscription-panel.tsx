@@ -1,5 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ellipsis, Rss } from "lucide-react";
+import {
+	Ellipsis,
+	Pause,
+	Pencil,
+	Play,
+	RefreshCw,
+	Rss,
+	Settings,
+	Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { SubscriptionView } from "../../shared/api/contracts.js";
@@ -216,12 +225,14 @@ export function SubscriptionPanel({
 											window.location.href = "/settings?section=downloads";
 										}}
 									>
+										<Settings size={16} aria-hidden="true" />
 										{t("acquisition.subscription.manageAutomatic")}
 									</DropdownMenuItem>
 								)}
 								<DropdownMenuItem
 									onClick={() => setEditor({ current: sub ?? null })}
 								>
+									<Pencil size={16} aria-hidden="true" />
 									{t(
 										sub.management === "watching"
 											? "acquisition.subscription.convertToManual"
@@ -236,11 +247,17 @@ export function SubscriptionPanel({
 									}
 									onClick={() => action.mutate("refresh")}
 								>
+									<RefreshCw size={16} aria-hidden="true" />
 									{t("acquisition.subscription.checkNow")}
 								</DropdownMenuItem>
 								{(sub.management !== "watching" ||
 									sub.runState === "completed") && (
 									<DropdownMenuItem onClick={() => action.mutate("toggle")}>
+										{sub.enabled && sub.runState !== "completed" ? (
+											<Pause size={16} aria-hidden="true" />
+										) : (
+											<Play size={16} aria-hidden="true" />
+										)}
 										{t(
 											sub.enabled && sub.runState !== "completed"
 												? "acquisition.subscription.pause"
@@ -249,7 +266,11 @@ export function SubscriptionPanel({
 									</DropdownMenuItem>
 								)}
 								{sub.management !== "watching" && (
-									<DropdownMenuItem onClick={() => action.mutate("remove")}>
+									<DropdownMenuItem
+										variant="destructive"
+										onClick={() => action.mutate("remove")}
+									>
+										<Trash2 size={16} aria-hidden="true" />
 										{t("acquisition.subscription.remove")}
 									</DropdownMenuItem>
 								)}

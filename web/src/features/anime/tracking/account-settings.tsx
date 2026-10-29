@@ -28,6 +28,7 @@ import {
 } from "../../../shared/components/ui/card.js";
 import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
+import { StatusBadge } from "../../../shared/components/ui/status-badge.js";
 
 import { animeLibraryQueryKey } from "../shared/query-keys.js";
 import { accountQuery } from "./queries.js";
@@ -109,9 +110,9 @@ export function TrackingAccountSettings() {
 							</p>
 						)}
 						<div role="status" className="flex flex-wrap items-center gap-1">
-							<span className="rounded-md border px-2 py-1">
+							<StatusBadge>
 								{t(`trackingAccount.states.${current.state}`)}
-							</span>
+							</StatusBadge>
 							{current.account && (
 								<FieldHelp
 									label={t("trackingAccount.connectionStatusHelp")}

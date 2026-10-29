@@ -1,30 +1,37 @@
-import type { ChangeEventHandler, ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { cn } from "../../lib/utils.js";
+import { RadioGroup, RadioGroupItem } from "./radio-group.js";
+import { StatusBadge } from "./status-badge.js";
 
 export function RadioCardGroup({
 	legend,
-	disabled,
 	className,
 	children,
+	...props
 }: {
 	legend: ReactNode;
-	disabled?: boolean;
 	className?: string;
 	children: ReactNode;
+	name: string;
+	value: string;
+	onValueChange(value: string): void;
+	disabled?: boolean;
 }) {
+	const id = useId();
 	return (
-		<fieldset className={cn("space-y-2", className)} disabled={disabled}>
-			<legend className="mb-2 text-sm font-medium">{legend}</legend>
-			{children}
-		</fieldset>
+		<div className="space-y-2">
+			<div id={id} className="text-sm font-medium">
+				{legend}
+			</div>
+			<RadioGroup {...props} aria-labelledby={id} className={className}>
+				{children}
+			</RadioGroup>
+		</div>
 	);
 }
 
 export function RadioCard({
-	name,
 	value,
-	checked,
-	onChange,
 	disabled,
 	className,
 	title,
@@ -32,10 +39,7 @@ export function RadioCard({
 	badge,
 	description,
 }: {
-	name: string;
-	value?: string;
-	checked: boolean;
-	onChange?: ChangeEventHandler<HTMLInputElement>;
+	value: string;
 	disabled?: boolean;
 	className?: string;
 	title: ReactNode;
@@ -43,30 +47,25 @@ export function RadioCard({
 	badge?: ReactNode;
 	description?: ReactNode;
 }) {
+	const id = useId();
 	return (
 		<label
+			htmlFor={id}
 			className={cn(
-				"flex cursor-pointer items-start gap-3 rounded-md border p-3 has-[:checked]:border-primary has-[:checked]:bg-accent/50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50",
+				"touch-control flex cursor-pointer items-start gap-3 rounded-md border p-3 has-[[data-checked]]:border-primary has-[[data-checked]]:bg-accent/50 has-[[data-disabled]]:cursor-not-allowed has-[[data-disabled]]:opacity-50",
 				className,
 			)}
 		>
-			<input
-				type="radio"
-				name={name}
+			<RadioGroupItem
+				id={id}
 				value={value}
-				checked={checked}
-				onChange={onChange}
 				disabled={disabled}
-				className="mt-1 accent-primary"
+				className="mt-1 after:hidden"
 			/>
 			<span className="min-w-0">
 				<span className="flex flex-wrap items-center gap-2 text-sm font-medium">
 					{title}
-					{badge && (
-						<span className="rounded-full border px-2 py-0.5 text-xs font-medium text-muted-foreground">
-							{badge}
-						</span>
-					)}
+					{badge && <StatusBadge>{badge}</StatusBadge>}
 				</span>
 				{meta && (
 					<span className="block text-xs text-muted-foreground">{meta}</span>
