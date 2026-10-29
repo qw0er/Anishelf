@@ -10,6 +10,17 @@ function getInitialTheme(): Theme {
 	return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
+function syncBrowserThemeColor() {
+	const background = getComputedStyle(document.documentElement)
+		.getPropertyValue("--background")
+		.trim();
+	if (!background) return;
+	const meta = document.querySelector<HTMLMetaElement>(
+		'meta[name="theme-color"]',
+	);
+	if (meta) meta.content = background;
+}
+
 export default function ThemeToggle() {
 	const { t } = useTranslation();
 	const [theme, setTheme] = useState<Theme>(getInitialTheme);
@@ -20,6 +31,7 @@ export default function ThemeToggle() {
 		const applyTheme = (next: Theme) => {
 			document.documentElement.classList.toggle("dark", next === "dark");
 			document.documentElement.style.colorScheme = next;
+			syncBrowserThemeColor();
 		};
 		const followSystemTheme = (event: MediaQueryListEvent) => {
 			setTheme(event.matches ? "dark" : "light");

@@ -50,11 +50,12 @@ baseline choices, with purposeful exceptions such as posters and player controls
 | Color | Semantic theme tokens for text, surfaces, emphasis and feedback, with light/dark equivalents; reserve strong emphasis for primary actions and selection |
 | Density | Browse with room for artwork; use compact aligned rows for files/settings; vary layout without redefining controls |
 
-Use lightly tinted warm gray surfaces and a muted terracotta accent. Light mode pairs `#F8F7F5`
-backgrounds with `#FFFEFC` content and `#AA5943` primary actions; dark mode pairs
-`#191817` with `#242220` and `#DFA28E`. Navigation shares the page background,
+Use neutral gray surfaces and a graphite emphasis color. Light mode pairs `#FAFAFA`
+backgrounds with `#FFFFFF` content and `#27272A` primary actions; dark mode pairs
+`#0F0F10` with `#171719` and `#E8E8EA`. Navigation shares the page background,
 with neutral selected surfaces and dark/light text rather than accent-filled blocks.
-Keep warning/error colors separate from the brand accent.
+Poster artwork and semantic success, warning and error colors are the only saturated
+color in the interface; keep warning/error colors separate from the graphite emphasis.
 
 Use shared success, warning, error and information styles rather than repeating
 feature-local color recipes. Business code maps a state to its meaning; shared UI
