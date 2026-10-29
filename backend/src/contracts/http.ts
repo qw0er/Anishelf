@@ -34,6 +34,9 @@ export type UpdateSettingsRequest = Static<
 	typeof schemas.UpdateSettingsRequestSchema
 >;
 export type DirectoryResponse = Static<typeof schemas.DirectoryResponseSchema>;
+export type DirectorySearchResponse = Static<
+	typeof schemas.DirectorySearchResponseSchema
+>;
 export type FileResponse = Static<typeof schemas.FileResponseSchema>;
 export type ChaptersResponse = Static<typeof schemas.ChaptersResponseSchema>;
 export type ApiErrorResponse = Static<typeof schemas.ApiErrorResponseSchema>;

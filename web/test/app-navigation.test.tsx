@@ -14,6 +14,91 @@ import {
 	runningScan,
 } from "./support/app-fixture.js";
 
+test("Files searches the current directory and sorts files while keeping directories first", async () => {
+	const directory = appFixture.directories.get("season-1");
+	if (!directory) throw new Error("Missing test directory");
+	appFixture.directories.set("season-1", {
+		...directory,
+		children: [
+			{ kind: "directory", id: "sub", parentId: "season-1", name: "Folder" },
+			{
+				...file.file,
+				id: "a",
+				name: "Episode 2.mp4",
+				sizeBytes: 200,
+				modifiedAt: "2026-01-02T00:00:00.000Z",
+			},
+			{
+				...file.file,
+				id: "b",
+				name: "Episode 10.mp4",
+				sizeBytes: 100,
+				modifiedAt: "2026-01-01T00:00:00.000Z",
+			},
+		],
+	});
+	appFixture.directories.set("sub", {
+		directory: {
+			kind: "directory",
+			id: "sub",
+			parentId: "season-1",
+			name: "Folder",
+		},
+		children: [
+			{
+				...file.file,
+				id: "nested",
+				parentId: "sub",
+				name: "Nested episode.mp4",
+			},
+		],
+	});
+	renderApp("/directories/season-1");
+	await screen.findByRole("link", { name: "Episode 2.mp4" });
+	const names = () =>
+		Array.from(
+			document.querySelectorAll("li[id^='file-'] a[aria-label]"),
+			(link) => link.getAttribute("aria-label"),
+		);
+	expect(names()).toEqual(["Folder", "Episode 2.mp4", "Episode 10.mp4"]);
+	const sort = screen.getByLabelText("Sort files");
+	fireEvent.change(sort, { target: { value: "size-asc" } });
+	expect(names()).toEqual(["Folder", "Episode 10.mp4", "Episode 2.mp4"]);
+	fireEvent.change(sort, { target: { value: "modified-desc" } });
+	expect(names()).toEqual(["Folder", "Episode 2.mp4", "Episode 10.mp4"]);
+	fireEvent.change(sort, { target: { value: "name-desc" } });
+	expect(names()).toEqual(["Folder", "Episode 10.mp4", "Episode 2.mp4"]);
+	fireEvent.change(sort, { target: { value: "default" } });
+	expect(names()).toEqual(["Folder", "Episode 2.mp4", "Episode 10.mp4"]);
+	const search = screen.getByLabelText(
+		"Search names in this directory and subfolders",
+	);
+	fireEvent.change(search, { target: { value: "EPISODE 10" } });
+	await waitFor(() => expect(names()).toEqual(["Episode 10.mp4"]));
+	fireEvent.change(search, { target: { value: "nested" } });
+	const nested = await screen.findByRole("link", {
+		name: "Nested episode.mp4",
+	});
+	expect(nested.getAttribute("href")).toContain("sub");
+	expect(within(nested).getByText("Folder")).toBeTruthy();
+	fireEvent.change(search, { target: { value: "missing" } });
+	expect(await screen.findByText("No names match your search.")).toBeTruthy();
+	fireEvent.change(search, { target: { value: "Episode" } });
+	fireEvent.change(sort, { target: { value: "size-desc" } });
+	fireEvent.click(screen.getByRole("link", { name: "Parent directory" }));
+	await screen.findByText("Directory: media");
+	expect(
+		(
+			screen.getByLabelText(
+				"Search names in this directory and subfolders",
+			) as HTMLInputElement
+		).value,
+	).toBe("");
+	expect((screen.getByLabelText("Sort files") as HTMLSelectElement).value).toBe(
+		"default",
+	);
+});
+
 test("first-run setup saves the server directory and shows the automatic scan", async () => {
 	appFixture.settings = { resourceRoots: [] };
 	appFixture.library = {

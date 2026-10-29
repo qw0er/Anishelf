@@ -233,7 +233,7 @@ records. Explain provider numbering through accessible help.
 Use compact rows, aligned trailing actions, separators and the shared empty/error
 patterns. Truncate long names with accessible full-value Tooltips. Files identification
 uses a focusable status icon; Review and associated work/episode links live in the
-file menu. Keep correction/recovery actions specific to the affected resource.
+file menu. Files has a search-led toolbar for names in the current directory and its subdirectories, a relative parent path for nested matches, and a labeled sort selector. Keep directories before files; sort files by name, size or modification time. Keep correction/recovery actions specific to the affected resource.
 
 ### Settings
 

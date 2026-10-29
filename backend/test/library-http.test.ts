@@ -78,6 +78,45 @@ test("reports the initial library and empty root without automatically scanning"
 	});
 });
 
+test("searches only descendants and returns relative parent paths", async () => {
+	await mkdir(join(root, "Season"));
+	await mkdir(join(root, "Season", "Extras"));
+	await mkdir(join(root, "Other"));
+	await writeFile(join(root, "Season", "Extras", "Episode 10.mp4"), "ten");
+	await writeFile(join(root, "Season", "Episode 2.mp4"), "two");
+	await writeFile(join(root, "Other", "Episode 1.mp4"), "one");
+	await scan();
+	await libraryApp.waitForCompletion();
+	const season = (await directory()).children.find(
+		(entry) => entry.name === "Season",
+	);
+	if (!season) throw new Error("Season not found");
+	const response = await app.inject({
+		url: `/api/directories/${season.id}/search?q=EPISODE`,
+		headers,
+	});
+	expect(response.statusCode).toBe(200);
+	expect(
+		response
+			.json()
+			.items.map(
+				(item: { resource: { name: string }; parentPath: string[] }) => [
+					item.resource.name,
+					item.parentPath,
+				],
+			),
+	).toEqual([
+		["Episode 2.mp4", []],
+		["Episode 10.mp4", ["Extras"]],
+	]);
+	expect(response.body).not.toContain(root);
+	const missing = await app.inject({
+		url: "/api/directories/missing/search?q=episode",
+		headers,
+	});
+	expect(missing.statusCode).toBe(404);
+});
+
 test("scans, navigates direct children, and reflects repeat/add/remove scans", async () => {
 	await mkdir(join(root, "中文 folder"));
 	await mkdir(join(root, "empty"));
