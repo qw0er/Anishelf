@@ -22,12 +22,13 @@ can enable Node frontend hosting with `ANISHELF_FRONTEND_DIR`.
 | Resources | Roots, filesystem monitoring, atomic index, confined source access | System |
 | Media | Actual asset descriptions, inspection, preparation planning/processing, subtitles | Resources, System, FFprobe/FFmpeg |
 | Playback | Listening intent, actual asset selection, sessions, resume/history, completion observations | Resources, Media; injected Anime observation port |
-| Anime | Metadata, identification, Catalog/Review, Tracking, combined Library, AniList protocol | Resources, System, AniList |
+| Anime | Metadata, identification, Catalog/Review, Tracking, combined Library, AniList and Bangumi protocols | Resources, System, AniList, Bangumi |
 | Acquisition | Watching creation, Sources, Subscriptions, Downloads, TorrentClients | Anime, Resources, Jackett/RSS, qBittorrent |
 
 Module creation and lifecycle stay with each owner. App injects complete modules
 and coordinates shutdown; HTTP handlers validate/project requests and delegate to
 applications. Original media is read-only to Backend; qBittorrent writes downloads.
+AniList supplies metadata and tracking; Bangumi supplies metadata only.
 
 ## Source organization and dependency boundaries
 
