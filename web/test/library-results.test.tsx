@@ -53,7 +53,7 @@ test("cards retain compact counts and accessible meaning without zero-count boil
 	);
 	expect(description?.textContent).toContain("1 / 8 (12) episodes");
 });
-test("unknown totals and movies keep compact viewing counts without local rows", () => {
+test("unknown totals and movies show compact local availability without invented totals", () => {
 	show([
 		{
 			...work,
@@ -74,7 +74,12 @@ test("unknown totals and movies keep compact viewing counts without local rows",
 	]);
 	const unknown = screen.getByRole("link", { name: "Unknown" });
 	expect(within(unknown).getByText("1 / 8")).toBeTruthy();
-	expect(within(unknown).queryByText(/local|unwatched available/i)).toBeNull();
+	expect(within(unknown).getByText("Local 2")).toBeTruthy();
+	expect(
+		within(screen.getByRole("link", { name: "Movie" })).getByText(
+			"Local 1 / 1",
+		),
+	).toBeTruthy();
 	expect(
 		within(screen.getByRole("link", { name: "Movie" })).queryByText(/Aired/),
 	).toBeNull();

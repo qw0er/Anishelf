@@ -105,12 +105,8 @@ function TrackedDetail({
 			<p className="surface-panel">{t("trackingList.noLocal")}</p>
 			{metadata.data && info ? (
 				<>
-					<Artwork
-						url={info.bannerUrl ? artwork("banner") : null}
-						title={title}
-						banner
-					/>
 					<WorkMetadataHeader
+						bannerUrl={info.bannerUrl ? artwork("banner") : null}
 						subscription={renderSubscription?.(mediaId, status)}
 						viewing={
 							<ViewingSummary

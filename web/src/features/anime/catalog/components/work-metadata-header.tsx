@@ -15,7 +15,9 @@ export function WorkMetadataHeader({
 	viewing,
 	action,
 	subscription,
+	bannerUrl,
 }: {
+	bannerUrl?: string | null;
 	viewing?: ReactNode;
 	action?: ReactNode;
 	subscription?: ReactNode;
@@ -65,86 +67,95 @@ export function WorkMetadataHeader({
 	}, [aliasesText]);
 
 	return (
-		<div className="grid min-w-0 items-start gap-5 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-7">
-			<div className="aspect-[2/3] w-32 self-start overflow-hidden rounded-lg sm:w-full">
-				<Artwork
-					key={`cover:${metadata.fetchedAt}`}
-					url={work.coverUrl}
-					title={work.displayTitle}
-				/>
-			</div>
-			<div className="min-w-0 max-w-4xl space-y-4">
-				<h1 className="text-2xl leading-tight font-bold tracking-tight wrap-anywhere sm:text-3xl">
-					{work.displayTitle}
-				</h1>
-				{aliases.length > 0 && (
-					<div className="space-y-1">
-						<p
-							id={aliasesId}
-							ref={aliasesRef}
-							className={`text-sm leading-5 text-muted-foreground wrap-anywhere ${expanded ? "" : "line-clamp-2"}`}
-						>
-							{aliasesText}
-						</p>
-						{overflowing && (
-							<Button
-								variant="ghost"
-								className="h-auto px-0 py-0 text-xs text-muted-foreground"
-								aria-expanded={expanded}
-								aria-controls={aliasesId}
-								onClick={() => {
-									console.debug("[AnimeDetail] Alternative titles toggled.", {
-										expanded: !expanded,
-									});
-									setExpanded(!expanded);
-								}}
+		<div className="work-hero">
+			{bannerUrl && (
+				<div className="work-hero-banner" aria-hidden="true">
+					<Artwork url={bannerUrl} title="" banner />
+				</div>
+			)}
+			<div className="work-hero-content">
+				<div className="work-hero-cover">
+					<Artwork
+						key={`cover:${metadata.fetchedAt}`}
+						url={work.coverUrl}
+						title={work.displayTitle}
+					/>
+				</div>
+				<div className="min-w-0 max-w-3xl space-y-4">
+					<h1 className="text-2xl leading-tight font-semibold tracking-tight wrap-anywhere sm:text-3xl xl:text-4xl">
+						{work.displayTitle}
+					</h1>
+					{aliases.length > 0 && (
+						<div className="space-y-1">
+							<p
+								id={aliasesId}
+								ref={aliasesRef}
+								className={`text-sm leading-5 text-muted-foreground wrap-anywhere ${expanded ? "" : "line-clamp-2"}`}
 							>
-								{t(expanded ? "anime.hideTitles" : "anime.showTitles")}
-							</Button>
-						)}
-					</div>
-				)}
-				<dl className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-					{[
-						["format", work.format?.replaceAll("_", " ")],
-						["year", work.year],
-						[
-							"releaseStatus",
-							info.status
-								? t(`anime.releaseStatuses.${info.status}`, {
-										defaultValue: info.status.replaceAll("_", " "),
-									})
-								: null,
-						],
-					].map(([key, value]) => (
-						<div key={key} className="rounded-md bg-muted/60 px-2.5 py-1">
-							<dt className="sr-only">{t(`anime.${key}`)}</dt>
-							<dd className="font-medium">{value ?? t("anime.unknown")}</dd>
+								{aliasesText}
+							</p>
+							{overflowing && (
+								<Button
+									variant="ghost"
+									className="h-auto px-0 py-0 text-xs text-muted-foreground"
+									aria-expanded={expanded}
+									aria-controls={aliasesId}
+									onClick={() => {
+										console.debug("[AnimeDetail] Alternative titles toggled.", {
+											expanded: !expanded,
+										});
+										setExpanded(!expanded);
+									}}
+								>
+									{t(expanded ? "anime.hideTitles" : "anime.showTitles")}
+								</Button>
+							)}
 						</div>
-					))}
-				</dl>
-				<dl className="flex max-w-3xl flex-wrap gap-x-6 gap-y-2 text-sm">
-					{[
-						["totalEpisodes", work.episodeCount ?? t("anime.unknown")],
-						...(airedValue === null ? [] : [["airedEpisodes", airedValue]]),
-						...(startDate ? [["startDate", startDate]] : []),
-						...(endDate ? [["endDate", endDate]] : []),
-					].map(([key, value]) => (
-						<div key={key} className="flex items-baseline gap-2">
-							<dt className="text-muted-foreground">{t(`anime.${key}`)}</dt>
-							<dd className="font-medium tabular-nums">{value}</dd>
+					)}
+					<dl className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+						{[
+							["format", work.format?.replaceAll("_", " ")],
+							["year", work.year],
+							[
+								"releaseStatus",
+								info.status
+									? t(`anime.releaseStatuses.${info.status}`, {
+											defaultValue: info.status.replaceAll("_", " "),
+										})
+									: null,
+							],
+						].map(([key, value]) => (
+							<div key={key} className="text-muted-foreground">
+								<dt className="sr-only">{t(`anime.${key}`)}</dt>
+								<dd className="font-medium">{value ?? t("anime.unknown")}</dd>
+							</div>
+						))}
+					</dl>
+					<dl className="flex max-w-3xl flex-wrap gap-x-6 gap-y-2 text-sm">
+						{[
+							["totalEpisodes", work.episodeCount ?? t("anime.unknown")],
+							...(airedValue === null ? [] : [["airedEpisodes", airedValue]]),
+							...(startDate ? [["startDate", startDate]] : []),
+							...(endDate ? [["endDate", endDate]] : []),
+						].map(([key, value]) => (
+							<div key={key} className="flex items-baseline gap-2">
+								<dt className="text-muted-foreground">{t(`anime.${key}`)}</dt>
+								<dd className="font-medium tabular-nums">{value}</dd>
+							</div>
+						))}
+					</dl>
+					{(viewing || action) && (
+						<div className="work-primary-actions">
+							{action && (
+								<div className="work-play-action flex flex-wrap items-center gap-2">
+									{action}
+								</div>
+							)}
+							{viewing}
 						</div>
-					))}
-				</dl>
-				{(viewing || action) && (
-					<div className="space-y-3 border-t pt-4">
-						{viewing}
-						{action && (
-							<div className="flex flex-wrap items-center gap-2">{action}</div>
-						)}
-					</div>
-				)}
-				{subscription}
+					)}
+					{subscription}
+				</div>
 			</div>
 		</div>
 	);

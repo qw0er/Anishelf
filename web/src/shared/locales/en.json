@@ -416,6 +416,8 @@
 		"recentSort": "Recently added",
 		"updatedSort": "Recently updated",
 		"unwatchedSort": "Unwatched first",
+		"localAvailable": "Local {{count}}",
+		"localAvailableTotal": "Local {{count}} / {{total}}",
 		"apply": "Apply filters",
 		"clear": "Clear filters",
 		"loading": "Loading anime…",

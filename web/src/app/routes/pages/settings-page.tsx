@@ -68,79 +68,88 @@ export function SettingsPage() {
 	return settings ? (
 		<div className="stack-page">
 			<PageHeader title={t("settingsPage.title")} />
-			<nav
-				ref={navigationRef}
-				aria-label={t("settingsPage.sections.label")}
-				className="compact-navigation overflow-x-auto p-1"
-			>
-				<div className="flex w-max items-center gap-1">
-					{settingsSections.map((section) => {
-						const Icon = sectionIcons[section];
-						return (
-							<Tooltip
-								key={section}
-								content={t(`settingsPage.sections.${section}`)}
-							>
-								<Link
-									aria-label={t(`settingsPage.sections.${section}`)}
-									to={sectionPath(params, section)}
-									aria-current={activeSection === section ? "page" : undefined}
-									className={buttonStyles(
-										activeSection === section ? "secondary" : "ghost",
-										"header-nav-link",
-									)}
+			<div className="settings-layout">
+				<nav
+					ref={navigationRef}
+					aria-label={t("settingsPage.sections.label")}
+					className="compact-navigation settings-navigation"
+				>
+					<div className="settings-navigation-items">
+						{settingsSections.map((section) => {
+							const Icon = sectionIcons[section];
+							return (
+								<Tooltip
+									key={section}
+									content={t(`settingsPage.sections.${section}`)}
 								>
-									<Icon size={16} aria-hidden="true" />
-									<span className="header-nav-label">
-										{t(`settingsPage.sections.${section}`)}
-									</span>
-								</Link>
-							</Tooltip>
-						);
-					})}
+									<Link
+										aria-label={t(`settingsPage.sections.${section}`)}
+										to={sectionPath(params, section)}
+										aria-current={
+											activeSection === section ? "page" : undefined
+										}
+										className={buttonStyles(
+											activeSection === section ? "secondary" : "ghost",
+											"header-nav-link settings-nav-item",
+										)}
+									>
+										<Icon size={16} aria-hidden="true" />
+										<span className="header-nav-label">
+											{t(`settingsPage.sections.${section}`)}
+										</span>
+									</Link>
+								</Tooltip>
+							);
+						})}
+					</div>
+				</nav>
+				<div className="min-w-0 settings-content">
+					{activeSection === "about" && <AboutSettings />}
+					<div
+						className={activeSection === "library" ? "stack-page" : "hidden"}
+						data-settings-section="library"
+					>
+						<ResourceSettings
+							key={JSON.stringify(settings.resourceRoots)}
+							settings={settings}
+							disabled={scanning || scanPending}
+						/>
+					</div>
+					<div
+						className={activeSection === "playback" ? "stack-page" : "hidden"}
+						data-settings-section="playback"
+					>
+						<PreparationProfileSettings
+							preparation={preparation}
+							action={action}
+						/>
+						<ExternalPlayerSettings />
+					</div>
+					<div
+						className={activeSection === "downloads" ? "stack-page" : "hidden"}
+						data-settings-section="downloads"
+					>
+						{activeSection === "downloads" && (
+							<>
+								<WatchingSettings />
+								<RssSettings />
+								<SourceSettings />
+								<QbittorrentSettings />
+							</>
+						)}
+					</div>
+					<div
+						className={activeSection === "account" ? "stack-page" : "hidden"}
+						data-settings-section="account"
+					>
+						{activeSection === "account" && (
+							<>
+								<TrackingAccountSettings />
+								<SecuritySettings />
+							</>
+						)}
+					</div>
 				</div>
-			</nav>
-			{activeSection === "about" && <AboutSettings />}
-			<div
-				className={activeSection === "library" ? "stack-page" : "hidden"}
-				data-settings-section="library"
-			>
-				<ResourceSettings
-					key={JSON.stringify(settings.resourceRoots)}
-					settings={settings}
-					disabled={scanning || scanPending}
-				/>
-			</div>
-			<div
-				className={activeSection === "playback" ? "stack-page" : "hidden"}
-				data-settings-section="playback"
-			>
-				<PreparationProfileSettings preparation={preparation} action={action} />
-				<ExternalPlayerSettings />
-			</div>
-			<div
-				className={activeSection === "downloads" ? "stack-page" : "hidden"}
-				data-settings-section="downloads"
-			>
-				{activeSection === "downloads" && (
-					<>
-						<WatchingSettings />
-						<RssSettings />
-						<SourceSettings />
-						<QbittorrentSettings />
-					</>
-				)}
-			</div>
-			<div
-				className={activeSection === "account" ? "stack-page" : "hidden"}
-				data-settings-section="account"
-			>
-				{activeSection === "account" && (
-					<>
-						<TrackingAccountSettings />
-						<SecuritySettings />
-					</>
-				)}
 			</div>
 		</div>
 	) : (

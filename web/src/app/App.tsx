@@ -22,7 +22,7 @@ export default function App() {
 	return (
 		<QueryScope value={resources.scope}>
 			<PreparationProvider>
-				<div className="min-h-screen bg-background">
+				<div className="app-shell min-h-screen bg-background">
 					<AppHeader />
 					<ScrollRestoration
 						getKey={(location) => `${location.pathname}${location.search}`}

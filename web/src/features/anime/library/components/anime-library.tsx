@@ -90,7 +90,10 @@ export function AnimeLibrary({
 			filters.viewingStatus,
 	);
 	return (
-		<section className="stack-page" aria-label={t("anime.library")}>
+		<section
+			className="stack-page library-page"
+			aria-label={t("anime.library")}
+		>
 			<PageHeader
 				title={t("anime.library")}
 				description={t("anime.libraryHint")}

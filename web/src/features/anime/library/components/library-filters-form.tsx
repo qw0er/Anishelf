@@ -62,10 +62,10 @@ export function LibraryFiltersForm({
 		<div className="space-y-3">
 			<fieldset
 				aria-label={t("anime.libraryControls")}
-				className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto_auto] items-end gap-2 sm:gap-3"
+				className="library-toolbar"
 			>
 				<form
-					className="flex min-w-0 gap-2"
+					className="library-search"
 					onSubmit={(event) => {
 						event.preventDefault();
 						change("query", search);
@@ -86,8 +86,8 @@ export function LibraryFiltersForm({
 					<Tooltip content={t("anime.searchSubmit")}>
 						<Button
 							type="submit"
-							variant="outline"
-							className="size-9 shrink-0 p-0"
+							variant="ghost"
+							className="library-search-submit"
 							aria-label={t("anime.searchSubmit")}
 						>
 							<Search size={16} aria-hidden="true" />
