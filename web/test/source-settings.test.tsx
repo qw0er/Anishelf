@@ -174,6 +174,7 @@ test("uses bundled setup explicitly and preserves selected site order on save", 
 			),
 		).toBe(true),
 	);
+	fireEvent.click(screen.getByLabelText("Edit connection"));
 	fireEvent.click(screen.getByRole("button", { name: "More service actions" }));
 	fireEvent.click(
 		await screen.findByRole("menuitem", { name: "Use bundled Jackett" }),
@@ -208,6 +209,24 @@ test("an existing bundled installation asks for site review without starting set
 	);
 });
 
+test("connection actions share one row inside the editor", async () => {
+	fixture({
+		url: "http://jackett:9117/",
+		origin: "external",
+		hasApiKey: true,
+		providers: ["nyaasi"],
+	});
+	fireEvent.click(await screen.findByLabelText("Edit connection"));
+	const save = await screen.findByRole("button", {
+		name: "Save source settings",
+	});
+	const row = save.parentElement;
+	for (const name of ["Cancel", "More service actions"] as const)
+		expect(screen.getByRole("button", { name }).parentElement).toBe(row);
+	expect(row?.lastElementChild).toBe(
+		screen.getByRole("button", { name: "More service actions" }),
+	);
+});
 test("site and connection saves preserve the other editor's draft", async () => {
 	const { request } = fixture({
 		url: "http://jackett:9117/",

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { stat } from "node:fs/promises";
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { TorrentClient } from "../public.js";
@@ -150,6 +151,55 @@ export class QbittorrentConfiguration
 		const pending = this.writes.then(operation);
 		this.writes = pending.catch(() => {});
 		return pending;
+	}
+	async bundledAvailable() {
+		if (!this.bundledConnectionFile) return false;
+		try {
+			return (await stat(this.bundledConnectionFile)).isFile();
+		} catch {
+			return false;
+		}
+	}
+	activateBundled(generation: string) {
+		return this.enqueue(async () => {
+			this.assertGeneration(generation);
+			if (!this.bundledConnectionFile)
+				throw new DomainError(
+					"INVALID_REQUEST",
+					"Bundled qBittorrent is not available.",
+				);
+			const bundled = await readBundledConnection(this.bundledConnectionFile);
+			if (!bundled?.connection)
+				throw new DomainError(
+					"ACQUISITION_UNAVAILABLE",
+					"Bundled qBittorrent credentials are not available.",
+				);
+			const { connection } = bundled;
+			const url = normalize(connection.url);
+			if (
+				!validCredential(connection.username, 256) ||
+				!validCredential(connection.password, 4096)
+			)
+				throw new DomainError(
+					"INVALID_REQUEST",
+					"Bundled qBittorrent credentials are invalid.",
+				);
+			const next: SavedConnection = {
+				...bundled,
+				generation: randomUUID(),
+				bundled: true,
+				connection: { ...connection, url },
+			};
+			await this.store.write(next);
+			this.saved = next;
+			this.unreadable = false;
+			await this.onChanged();
+			this.logger.info(
+				{ event: "qbittorrent.bundled_selected", generation: next.generation },
+				"Bundled qBittorrent connection selected.",
+			);
+			return this.settings();
+		});
 	}
 	save(input: ConnectionInput) {
 		return this.enqueue(async () => {

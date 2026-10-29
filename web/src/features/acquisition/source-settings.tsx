@@ -4,10 +4,12 @@ import {
 	ArrowUp,
 	ExternalLink,
 	MoreHorizontal,
+	Package,
 	PlugZap,
 	RefreshCw,
 	Save,
 	Search,
+	Unplug,
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -269,16 +271,49 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 						setApiKey("");
 					}}
 					actions={
-						<div className="action-row">
-							<ActionButton
-								icon={Save}
-								label={t("acquisition.sources.save")}
-								shortLabel={t("actions.save")}
-								type="submit"
-								disabled={busy || !connectionChanged}
-								aria-busy={save.isPending}
-							/>
-						</div>
+						<ActionButton
+							icon={Save}
+							label={t("acquisition.sources.save")}
+							shortLabel={t("actions.save")}
+							type="submit"
+							disabled={busy || !connectionChanged}
+							aria-busy={save.isPending}
+						/>
+					}
+					menu={
+						<DropdownMenu>
+							<DropdownMenuTrigger
+								render={
+									<Button
+										type="button"
+										variant="ghost"
+										aria-label={t("acquisition.connection.more")}
+									/>
+								}
+							>
+								<MoreHorizontal size={16} />
+							</DropdownMenuTrigger>
+							<DropdownMenuContent>
+								{settings.bundledAvailable && (
+									<DropdownMenuItem
+										disabled={busy}
+										onClick={() => bundled.mutate(false)}
+									>
+										<Package size={16} aria-hidden="true" />
+										{t("acquisition.sources.useBundled")}
+									</DropdownMenuItem>
+								)}
+								{settings.url && (
+									<DropdownMenuItem
+										disabled={busy}
+										onClick={() => clear.mutate()}
+									>
+										<Unplug size={16} aria-hidden="true" />
+										{t("acquisition.sources.disconnect")}
+									</DropdownMenuItem>
+								)}
+							</DropdownMenuContent>
+						</DropdownMenu>
 					}
 					endpoint={settings.url}
 					configured={
@@ -288,7 +323,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					status={status}
 				>
 					<div className="flex flex-col gap-2 sm:col-span-2">
-						<div className="flex items-center justify-between gap-2">
+						<div className="field-heading justify-between">
 							<label className="field-label" htmlFor="source-api-url">
 								{t("acquisition.sources.apiUrl")}
 							</label>
@@ -309,7 +344,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 						/>
 					</div>
 					<div className="flex flex-col gap-2">
-						<div className="flex items-center justify-between gap-2">
+						<div className="field-heading justify-between">
 							<label className="field-label" htmlFor="source-api-key">
 								{t("acquisition.sources.apiKey")}
 							</label>
@@ -335,7 +370,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 						/>
 					</div>
 					<div className="flex flex-col gap-2">
-						<div className="flex items-center justify-between gap-2">
+						<div className="field-heading justify-between">
 							<label className="field-label" htmlFor="source-management-url">
 								{t("acquisition.sources.managementUrl")}
 							</label>
@@ -360,58 +395,34 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					</div>
 				</ConnectionSettings>
 			</form>
-			<div className="action-row">
-				{settings.managementUrl && (
-					<ActionLink
-						icon={ExternalLink}
-						label={t("acquisition.sources.openManagement")}
-						shortLabel={t("actions.open")}
-						href={settings.managementUrl}
-						target="_blank"
-						rel="noopener noreferrer"
-					/>
-				)}
-				{settings.origin === "bundled" &&
-					settings.bundledSetup === "manual" && (
-						<ActionButton
-							icon={RefreshCw}
-							label={t("acquisition.sources.retrySetup")}
-							shortLabel={t("actions.retry")}
-							type="button"
-							variant="outline"
-							disabled={busy || changed}
-							onClick={() => bundled.mutate(true)}
+			{(settings.managementUrl ||
+				(settings.origin === "bundled" &&
+					settings.bundledSetup === "manual")) && (
+				<div className="action-row">
+					{settings.managementUrl && (
+						<ActionLink
+							icon={ExternalLink}
+							label={t("acquisition.sources.openManagement")}
+							shortLabel={t("actions.open")}
+							href={settings.managementUrl}
+							target="_blank"
+							rel="noopener noreferrer"
 						/>
 					)}
-				<DropdownMenu>
-					<DropdownMenuTrigger
-						render={
-							<Button
+					{settings.origin === "bundled" &&
+						settings.bundledSetup === "manual" && (
+							<ActionButton
+								icon={RefreshCw}
+								label={t("acquisition.sources.retrySetup")}
+								shortLabel={t("actions.retry")}
 								type="button"
-								variant="ghost"
-								aria-label={t("acquisition.connection.more")}
+								variant="outline"
+								disabled={busy || changed}
+								onClick={() => bundled.mutate(true)}
 							/>
-						}
-					>
-						<MoreHorizontal size={16} />
-					</DropdownMenuTrigger>
-					<DropdownMenuContent>
-						{settings.bundledAvailable && (
-							<DropdownMenuItem
-								disabled={busy}
-								onClick={() => bundled.mutate(false)}
-							>
-								{t("acquisition.sources.useBundled")}
-							</DropdownMenuItem>
 						)}
-						{settings.url && (
-							<DropdownMenuItem disabled={busy} onClick={() => clear.mutate()}>
-								{t("acquisition.sources.disconnect")}
-							</DropdownMenuItem>
-						)}
-					</DropdownMenuContent>
-				</DropdownMenu>
-			</div>
+				</div>
+			)}
 
 			<section
 				className="flex min-w-0 flex-col gap-3 border-t pt-4"

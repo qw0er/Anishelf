@@ -12,6 +12,7 @@ export const QbittorrentConnectionSettingsSchema = Type.Object(
 		username: Type.String(),
 		passwordConfigured: Type.Boolean(),
 		bundled: Type.Optional(Type.Boolean()),
+		bundledAvailable: Type.Optional(Type.Boolean()),
 	},
 	{ additionalProperties: false },
 );

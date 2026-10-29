@@ -23,7 +23,6 @@ export function DownloadDestinationSettings() {
 		queryFn: ({ signal }) =>
 			getDownloadSettings({ signal: boundedSignal(signal) }),
 	});
-	const [editing, setEditing] = useState(false);
 	const [root, setRoot] = useState<string | null>(null),
 		[path, setPath] = useState<string | null>(null);
 	const destination = query.data?.destination;
@@ -42,7 +41,6 @@ export function DownloadDestinationSettings() {
 			});
 		},
 		onSuccess: (_, kind) => {
-			setEditing(false);
 			setRoot(null);
 			setPath(null);
 			void client.invalidateQueries({ queryKey: downloadKeys });
@@ -86,80 +84,50 @@ export function DownloadDestinationSettings() {
 					help={t("acquisition.destination.help")}
 				/>
 			</div>
-			{destination && !editing ? (
-				<div className="flex min-w-0 items-start justify-between gap-3">
-					<dl className="min-w-0 space-y-2 text-sm">
-						<div>
-							<dt className="text-muted-foreground">
-								{t("acquisition.destination.resourceDirectory")}
-							</dt>
-							<dd className="truncate">
-								{query.data.roots.find(
-									(item) => item.scopeId === destination.scopeId,
-								)?.name ?? destination.scopeId}
-							</dd>
-						</div>
-						<div>
-							<dt className="text-muted-foreground">
-								{t("acquisition.destination.completedPath")}
-							</dt>
-							<dd className="break-all font-mono">{destination.path}</dd>
-						</div>
-					</dl>
-					<Button
-						type="button"
-						variant="ghost"
-						onClick={() => setEditing(true)}
+			<div className="grid gap-4 sm:grid-cols-2">
+				<div className="flex flex-col gap-2">
+					<label className="field-label" htmlFor={`${id}-root`}>
+						{t("acquisition.destination.resourceDirectory")}
+					</label>
+					<select
+						className="form-select"
+						id={`${id}-root`}
+						required
+						disabled={action.isPending}
+						value={
+							root ??
+							destination?.scopeId ??
+							query.data?.roots[0]?.scopeId ??
+							""
+						}
+						onChange={(event) => setRoot(event.target.value)}
 					>
-						{t("actions.edit")}
-					</Button>
+						{!query.data?.roots.length && (
+							<option value="">
+								{t("acquisition.destination.addDirectoryFirst")}
+							</option>
+						)}
+						{query.data?.roots.map((item) => (
+							<option key={item.scopeId} value={item.scopeId}>
+								{item.name}
+							</option>
+						))}
+					</select>
 				</div>
-			) : (
-				<div className="grid gap-4 sm:grid-cols-2">
-					<div className="flex flex-col gap-2">
-						<label className="field-label" htmlFor={`${id}-root`}>
-							{t("acquisition.destination.resourceDirectory")}
-						</label>
-						<select
-							className="form-select"
-							id={`${id}-root`}
-							required
-							disabled={action.isPending}
-							value={
-								root ??
-								destination?.scopeId ??
-								query.data?.roots[0]?.scopeId ??
-								""
-							}
-							onChange={(event) => setRoot(event.target.value)}
-						>
-							{!query.data?.roots.length && (
-								<option value="">
-									{t("acquisition.destination.addDirectoryFirst")}
-								</option>
-							)}
-							{query.data?.roots.map((item) => (
-								<option key={item.scopeId} value={item.scopeId}>
-									{item.name}
-								</option>
-							))}
-						</select>
-					</div>
-					<div className="flex flex-col gap-2">
-						<label className="field-label" htmlFor={`${id}-path`}>
-							{t("acquisition.destination.completedPath")}
-						</label>
-						<Input
-							id={`${id}-path`}
-							required
-							maxLength={2048}
-							value={path ?? destination?.path ?? "/data/media"}
-							onChange={(event) => setPath(event.target.value)}
-							disabled={action.isPending}
-						/>
-					</div>
+				<div className="flex flex-col gap-2">
+					<label className="field-label" htmlFor={`${id}-path`}>
+						{t("acquisition.destination.completedPath")}
+					</label>
+					<Input
+						id={`${id}-path`}
+						required
+						maxLength={2048}
+						value={path ?? destination?.path ?? "/data/media"}
+						onChange={(event) => setPath(event.target.value)}
+						disabled={action.isPending}
+					/>
 				</div>
-			)}
+			</div>
 
 			{destination && (
 				<p className="text-xs text-muted-foreground" role="status">
@@ -176,30 +144,25 @@ export function DownloadDestinationSettings() {
 				</p>
 			)}
 			<div className="action-row">
-				{(!destination || editing) && (
-					<>
-						<ActionButton
-							icon={Save}
-							label={t("acquisition.destination.save")}
-							shortLabel={t("actions.save")}
-							type="submit"
-							disabled={action.isPending || !query.data?.roots.length}
-						/>
-						{destination && (
-							<Button
-								type="button"
-								variant="ghost"
-								disabled={action.isPending}
-								onClick={() => {
-									setRoot(null);
-									setPath(null);
-									setEditing(false);
-								}}
-							>
-								{t("actions.cancel")}
-							</Button>
-						)}
-					</>
+				<ActionButton
+					icon={Save}
+					label={t("acquisition.destination.save")}
+					shortLabel={t("actions.save")}
+					type="submit"
+					disabled={action.isPending || !query.data?.roots.length}
+				/>
+				{changed && (
+					<Button
+						type="button"
+						variant="ghost"
+						disabled={action.isPending}
+						onClick={() => {
+							setRoot(null);
+							setPath(null);
+						}}
+					>
+						{t("actions.cancel")}
+					</Button>
 				)}
 				<ActionButton
 					icon={Check}

@@ -51,6 +51,8 @@ export async function createTorrentClientsModule(
 			settings: configuration.settings.bind(configuration),
 			credentials: configuration.credentials.bind(configuration),
 			save: configuration.save.bind(configuration),
+			activateBundled: configuration.activateBundled.bind(configuration),
+			bundledAvailable: configuration.bundledAvailable.bind(configuration),
 			clear: configuration.clear.bind(configuration),
 			probe: connection.probe.bind(connection),
 		},

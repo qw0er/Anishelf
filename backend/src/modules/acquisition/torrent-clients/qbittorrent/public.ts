@@ -8,6 +8,8 @@ export interface QbittorrentConnectionApi {
 	settings(): ConnectionSettings;
 	credentials(generation: string): { username: string; password: string };
 	save(input: ConnectionInput): Promise<ConnectionSettings>;
+	activateBundled(generation: string): Promise<ConnectionSettings>;
+	bundledAvailable(): Promise<boolean>;
 	clear(generation: string): Promise<ConnectionSettings>;
 	probe(generation: string): Promise<TorrentConnectionCheck>;
 }

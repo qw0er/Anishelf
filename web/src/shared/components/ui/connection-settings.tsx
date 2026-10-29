@@ -3,7 +3,12 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./button.js";
 
-/** Saved configuration is a summary, never evidence of network availability. */
+/**
+ * Saved configuration is a summary, never evidence of network availability.
+ * Callers pass raw buttons; the panel owns one action row so Save, Cancel, Test
+ * and More share the same line instead of stacking wrappers. The menu stays
+ * last so secondary service actions never sit between primary actions.
+ */
 export function ConnectionSettings({
 	configured,
 	label,
@@ -11,6 +16,7 @@ export function ConnectionSettings({
 	endpoint,
 	children,
 	actions,
+	menu,
 	onCancel,
 }: {
 	configured: boolean;
@@ -19,6 +25,7 @@ export function ConnectionSettings({
 	endpoint?: string | null;
 	children: ReactNode;
 	actions?: ReactNode;
+	menu?: ReactNode;
 	onCancel?: () => void;
 }) {
 	const { t } = useTranslation();
@@ -47,8 +54,8 @@ export function ConnectionSettings({
 				/>
 			</summary>
 			<div className="mt-3 grid gap-4 sm:grid-cols-2">{children}</div>
-			{actions && (
-				<div className="mt-4 flex flex-wrap items-center gap-2">
+			{(actions || menu || (configured && onCancel)) && (
+				<div className="action-row mt-4">
 					{actions}
 					{configured && onCancel && (
 						<Button
@@ -63,6 +70,7 @@ export function ConnectionSettings({
 							{t("actions.cancel")}
 						</Button>
 					)}
+					{menu}
 				</div>
 			)}
 		</details>
