@@ -5,6 +5,7 @@ import { createResourceAccess } from "../resource-access/create.js";
 import { ChangeProcessor } from "./application/change-processor.js";
 import { LibraryApplication } from "./application/library.js";
 import { LibrarySynchronizer } from "./application/library-synchronizer.js";
+import { ResourceCommands } from "./application/mutations.js";
 import { RootMonitorManager } from "./application/root-monitor-manager.js";
 import { ScanRunner } from "./application/scan-runner.js";
 import { ResourceSettingsApplication } from "./application/settings.js";
@@ -74,5 +75,12 @@ export function createLibraryModule(options: {
 		sources: api,
 		synchronizer,
 		settings,
+		commands: new ResourceCommands({
+			index,
+			roots,
+			settings: () => configuration.settings,
+			synchronizer,
+			logger,
+		}),
 	});
 }

@@ -3,6 +3,8 @@ import type {
 	DirectoryResponse,
 	DirectorySearchResponse,
 	LibraryResponse,
+	ResourceCommand,
+	ResourceCommandResult,
 	ResourceId,
 	ScanResponse,
 } from "../../../shared/api/contracts.js";
@@ -36,4 +38,10 @@ export function getDirectory(
 		"GET",
 		options,
 	);
+}
+
+export function executeResource(
+	input: ResourceCommand,
+): Promise<ResourceCommandResult> {
+	return request("/api/resources/execute", "POST", {}, input);
 }

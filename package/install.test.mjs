@@ -168,7 +168,7 @@ test("Compose generation uses the canonical template and invokes no runtime", as
 	);
 });
 
-test("SELinux Compose bind mounts share z, retain backend read-only and never chown host media", async (t) => {
+test("SELinux Compose bind mounts share z, grant backend media writes and never chown host media", async (t) => {
 	const f = await fixture(t),
 		media = join(f.directory, "动画 media");
 	await mkdir(media);
@@ -182,7 +182,7 @@ test("SELinux Compose bind mounts share z, retain backend read-only and never ch
 	assert.ok(
 		config.services.backend.volumes.includes(
 			// biome-ignore lint/suspicious/noTemplateCurlyInString: assert literal Compose interpolation syntax
-			"${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media:ro,z",
+			"${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media:rw,z",
 		),
 	);
 	assert.ok(
@@ -227,7 +227,7 @@ test("Quadlet generation preserves namespaces, quotes media paths and synchroniz
 	);
 	assert.match(backend, /Image=ghcr.io\/qw0er\/anishelf-backend:v0.4.1/);
 	assert.ok(
-		backend.includes(`Volume="${await realpath(media)}:/data/media:ro,z"`),
+		backend.includes(`Volume="${await realpath(media)}:/data/media:rw,z"`),
 	);
 	assert.match(
 		backend,
@@ -315,7 +315,7 @@ test("SELinux refuses system-directory relabeling and honors manual prelabel opt
 	);
 	assert.doesNotMatch(
 		await readFile(join(f.target, "compose.yaml"), "utf8"),
-		/\/data\/media:ro,z/,
+		/\/data\/media:rw,z/,
 	);
 });
 

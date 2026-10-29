@@ -133,8 +133,8 @@ render_unit() {
       anishelf-qbittorrent.container:PublishPort=127.0.0.1:8080:8080) line="PublishPort=127.0.0.1:$qbit_port:8080";;
       anishelf-qbittorrent.container:PublishPort=6881:6881) line="PublishPort=$peer_port:$peer_port";;
       anishelf-qbittorrent.container:PublishPort=6881:6881/udp) line="PublishPort=$peer_port:$peer_port/udp";;
-      *:Volume=anishelf-media.volume:/data/media:ro)
-        if [[ -n "$media_path" ]]; then line="Volume=$(unit_value "$media_path:/data/media:ro$selinux_suffix")"; fi;;
+      *:Volume=anishelf-media.volume:/data/media:rw)
+        if [[ -n "$media_path" ]]; then line="Volume=$(unit_value "$media_path:/data/media:rw$selinux_suffix")"; fi;;
       *:Volume=anishelf-media.volume:/data/media)
         if [[ -n "$media_path" ]]; then line="Volume=$(unit_value "$media_path:/data/media${selinux_suffix:+:z}")"; fi;;
     esac
@@ -143,7 +143,7 @@ render_unit() {
     fi
     case "$selinux_mode:$line" in
       Enforcing:Volume=anishelf-*.volume:*|Permissive:Volume=anishelf-*.volume:*)
-        case "$line" in *:ro) line="$line,z";; *) line="$line:z";; esac;;
+        case "$line" in *:ro|*:rw) line="$line,z";; *) line="$line:z";; esac;;
     esac
     printf '%s\n' "$line"
   done < "$stage_dir/$name" > "$stage_dir/bundle/quadlet/$name"
@@ -483,7 +483,7 @@ main() {
   if [[ "$method" == compose ]]; then
     asset compose.yaml "$stage_dir/bundle/compose.yaml"
     if [[ -n "$selinux_suffix" ]]; then
-      sed -e 's|:/data/media:ro$|:/data/media:ro,z|' -e 's|}:/data/media$|}:/data/media:z|' \
+      sed -e 's|:/data/media:rw$|:/data/media:rw,z|' -e 's|}:/data/media$|}:/data/media:z|' \
         "$stage_dir/bundle/compose.yaml" > "$stage_dir/compose-labeled.yaml"
       mv "$stage_dir/compose-labeled.yaml" "$stage_dir/bundle/compose.yaml"
     fi

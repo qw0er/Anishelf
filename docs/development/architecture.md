@@ -27,7 +27,7 @@ can enable Node frontend hosting with `ANISHELF_FRONTEND_DIR`.
 
 Module creation and lifecycle stay with each owner. App injects complete modules
 and coordinates shutdown; HTTP handlers validate/project requests and delegate to
-applications. Original media is read-only to Backend; qBittorrent writes downloads.
+applications. Backend reads originals and exposes confirmed move/delete commands through Resources; qBittorrent writes downloads.
 AniList supplies metadata and tracking; Bangumi supplies metadata only.
 
 ## Source organization and dependency boundaries
@@ -486,6 +486,27 @@ Task submission, transfer and import states remain separate. A global destinatio
 maps a downloader POSIX prefix to a Resources root; incomplete files stay outside
 watched roots. Work directories retain stable identities when titles change.
 Activity exposes status/recovery; qBittorrent owns transfer controls and deletion.
+
+### Confirmed resource operations
+
+Resources owns file/folder move and permanent recursive deletion. HTTP accepts
+opaque indexed IDs, an action and an existing destination directory ID; it never
+accepts a filesystem path or a replacement name. One authenticated command follows
+the dialog confirmation; there is no preview endpoint or browser confirmation token.
+Under the scan/settings/publication gate, execution validates the current source tree
+and destination, rejects indexed media whose version changed, and checks the tree
+fingerprint again before mutation. Trees above 100,000 entries, symlinks and special
+files are rejected.
+
+Linux procfs directory descriptors pin path ancestors without following symlinks.
+GNU coreutils `mv --no-copy --update=none-fail -T` provides no-replacement moves,
+without a copy fallback across devices. The same mechanism isolates a deletion
+before Node removes it; partial failure attempts to restore the remaining subtree.
+Affected roots are reconciled before releasing the gate, including after failures.
+Reconciliation failure degrades monitoring and returns explicit rescan feedback.
+Commands log start/completion/failure without touching Catalog decisions,
+playback history, Tracking, generated media or download-client tasks. A moved path
+receives ordinary identification rather than an identity-preserving source relink.
 
 ## Authentication boundary
 

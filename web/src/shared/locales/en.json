@@ -75,7 +75,9 @@
 			"SUBTITLE_INVALID_ENCODING": "Save the subtitle as UTF-8 or UTF-16 with a byte-order mark.",
 			"MEDIA_INSPECTION_UNAVAILABLE": "Media inspection is unavailable or busy. Retry shortly.",
 			"METADATA_NOT_FOUND": "Metadata is unavailable for this work.",
-			"UPDATE_CHECK_FAILED": "Could not check GitHub for updates. Try again later."
+			"UPDATE_CHECK_FAILED": "Could not check GitHub for updates. Try again later.",
+			"RESOURCE_CONFLICT": "The resource changed, the destination exists, or the move crosses filesystems. Refresh Files and try again.",
+			"RESOURCE_WRITE_FAILED": "The operation could not finish. Refresh Files and check media write permissions and GNU coreutils support on the server."
 		},
 		"mediaPictureUnavailable": "This browser could not decode the video picture. Audio alone may still play.",
 		"resourcePathsInvalid": "Enter up to 64 distinct resource paths, one per line."
@@ -98,7 +100,19 @@
 			"modified-desc": "Modified (newest first)"
 		},
 		"searching": "Searching files…",
-		"searchFailed": "Could not search files."
+		"searchFailed": "Could not search files.",
+		"operations": {
+			"move": "Move",
+			"delete": "Delete",
+			"actions": "Folder actions",
+			"destination": "Destination folder",
+			"confirmMove": "Confirm move",
+			"confirmDelete": "Delete permanently",
+			"completed": "Operation completed",
+			"refreshRequired": "Files changed. Rescan the library to finish refreshing.",
+			"deleteHelp": "This file will be permanently deleted. This cannot be undone.",
+			"deleteFolderHelp": "This folder and all its contents will be permanently deleted. This cannot be undone."
+		}
 	},
 	"scan": {
 		"title": "Library scan",

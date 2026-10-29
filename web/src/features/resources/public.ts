@@ -12,6 +12,7 @@ import type {
 
 interface FileActionState {
 	fileId: string;
+	managementMenu?: ReactNode;
 	summary?: PreparationSummaryResponse["files"][number] | undefined;
 	loading: boolean;
 	result: CompatibilityResult | null;

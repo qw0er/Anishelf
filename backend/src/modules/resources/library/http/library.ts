@@ -4,6 +4,8 @@ import {
 	DirectorySearchResponseSchema,
 	EmptyObjectSchema,
 	LibraryResponseSchema,
+	ResourceCommandResultSchema,
+	ResourceCommandSchema,
 	ResourceParamsSchema,
 	ScanResponseSchema,
 } from "../../../../contracts/schemas/index.js";
@@ -20,6 +22,16 @@ export function registerLibraryRoutes(
 	app: HttpInstance,
 	library: LibraryApplication,
 ): void {
+	app.post(
+		"/api/resources/execute",
+		{
+			schema: {
+				body: ResourceCommandSchema,
+				response: { 200: ResourceCommandResultSchema },
+			},
+		},
+		async (request) => library.commands.execute(request.body),
+	);
 	app.get(
 		"/api/library",
 		{ schema: { response: { 200: LibraryResponseSchema } } },

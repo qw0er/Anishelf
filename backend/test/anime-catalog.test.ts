@@ -1958,3 +1958,30 @@ test("scoped publications retain unrelated decisions, associations and playback 
 	expect(f.database.catalog.associations(changed.sourceId)).toEqual(previous);
 	expect(f.database.playback.get(changed.sourceId)).toBeDefined();
 });
+
+test.each(["move", "delete"] as const)(
+	"confirmed resource %s preserves Catalog decisions and playback records",
+	async (action) => {
+		const f = await fixture(["Season/Anime - 01.mkv"]);
+		await confirm(f);
+		const review = required((await f.catalog.reviews()).items[0]);
+		f.database.playback.openGeneration(review.sourceId);
+		const associations = f.database.catalog.associations(review.sourceId);
+		const progress = f.database.playback.get(review.sourceId);
+		const input = {
+			id: review.fileId,
+			action,
+			...(action === "move" ? { destinationId: "root" } : {}),
+		};
+		await f.library.commands.execute(input);
+		await f.automatic.waitForCompletion();
+		expect(f.database.catalog.associations(review.sourceId)).toEqual(
+			associations,
+		);
+		expect(f.database.catalog.review(review.id)).toMatchObject({
+			decision: "confirmed",
+			available: false,
+		});
+		expect(f.database.playback.get(review.sourceId)).toEqual(progress);
+	},
+);

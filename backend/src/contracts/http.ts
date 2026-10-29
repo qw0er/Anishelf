@@ -256,3 +256,8 @@ export type ActivePlayback = Static<typeof schemas.ActivePlaybackSchema>;
 export type PlaybackAssetChoice = Static<
 	typeof schemas.PlaybackAssetChoiceSchema
 >;
+
+export type ResourceCommand = Static<typeof schemas.ResourceCommandSchema>;
+export type ResourceCommandResult = Static<
+	typeof schemas.ResourceCommandResultSchema
+>;
