@@ -146,7 +146,21 @@ test("manual mark creates a Tracking decision, confirms separately and reports t
 	fireEvent.click(
 		screen.getByRole("button", { name: "Confirm progress update" }),
 	);
-	await screen.findByText("Progress change queued");
+	await waitFor(() =>
+		expect(notify).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "loading",
+				title: "Progress change queued",
+			}),
+		),
+	);
+	expect(
+		(
+			screen.getByRole("button", {
+				name: "Mark as watched",
+			}) as HTMLButtonElement
+		).disabled,
+	).toBe(true);
 	operation = op("succeeded");
 	confirmed = 7;
 	await queryClient.invalidateQueries({ queryKey: ["tracking", "operations"] });
@@ -190,7 +204,21 @@ test("keep then mark again remains actionable and final submission failures offe
 	fireEvent.click(
 		screen.getByRole("button", { name: "Confirm progress update" }),
 	);
-	await screen.findByText("Progress change queued");
+	await waitFor(() =>
+		expect(notify).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "loading",
+				title: "Progress change queued",
+			}),
+		),
+	);
+	expect(
+		(
+			screen.getByRole("button", {
+				name: "Mark as watched",
+			}) as HTMLButtonElement
+		).disabled,
+	).toBe(true);
 	operation = { ...op("failed"), error: "unavailable" };
 	await queryClient.invalidateQueries({ queryKey: ["tracking", "operations"] });
 	await screen.findByText("Could not save the progress change");

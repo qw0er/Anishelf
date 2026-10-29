@@ -73,9 +73,20 @@ test("a directory uses one metadata batch and no file task/detail requests befor
 		queries: [],
 	} as unknown as CompatibilityInspection);
 	vi.spyOn(mediacompatibilityApi, "checkMediaCompatibility").mockResolvedValue({
+		fileId: "f0",
 		sourceVersion: "v",
+		rulesVersion: "4",
 		direct: { status: "supported", reason: "browser-supported" },
-	} as CompatibilityResult);
+		container: { status: "supported", reason: "browser-supported" },
+		video: { status: "supported", reason: "browser-supported" },
+		audio: { status: "supported", reason: "browser-supported" },
+		selectedVideo: null,
+		defaultAudioStreamIndex: null,
+		selectedAudioStreamIndices: [],
+		audioTracks: [],
+		output: null,
+		warnings: [],
+	} satisfies CompatibilityResult);
 	render(
 		<MemoryRouter>
 			<PreparationProvider>
