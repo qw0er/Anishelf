@@ -118,3 +118,10 @@ No GitHub credential is required. Network/rate-limit failures remain failures,
 while a missing latest Release is shown separately. SemVer comparison applies only
 to stable builds. Upgrade links lead to release notes and the deployment guide;
 checking never changes the running deployment.
+
+Backend media mounts are read-write for confirmed file/folder Move and Delete.
+Installer updates regenerate both Compose and Quadlet mounts; older hand-maintained
+bundles must replace Backend media `:ro` with `:rw` and recreate/restart Backend.
+Credential/configuration mounts remain read-only. Host media ownership is unchanged;
+grant the container user directory write/search access and retain shared SELinux
+labels. See [file operations](../docs/guide/operations.md#move-and-delete-originals).

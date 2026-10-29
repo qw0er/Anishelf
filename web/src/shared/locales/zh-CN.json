@@ -77,7 +77,9 @@
 			"SUBTITLE_INVALID_ENCODING": "请将字幕保存为 UTF-8 或带字节序标记的 UTF-16。",
 			"MEDIA_INSPECTION_UNAVAILABLE": "媒体检查不可用或正忙，请稍后重试。",
 			"METADATA_NOT_FOUND": "此作品的元数据不可用。",
-			"UPDATE_CHECK_FAILED": "无法从 GitHub 检查更新，请稍后重试。"
+			"UPDATE_CHECK_FAILED": "无法从 GitHub 检查更新，请稍后重试。",
+			"RESOURCE_CONFLICT": "资源已改变、目标已存在或移动跨越文件系统。请刷新文件列表后重试。",
+			"RESOURCE_WRITE_FAILED": "操作未能完成。请刷新文件列表，检查媒体目录写入权限及服务器的 GNU coreutils 支持。"
 		}
 	},
 	"library": {
@@ -98,7 +100,19 @@
 			"modified-desc": "修改时间（从晚到早）"
 		},
 		"searching": "正在搜索文件…",
-		"searchFailed": "无法搜索文件。"
+		"searchFailed": "无法搜索文件。",
+		"operations": {
+			"move": "移动",
+			"delete": "删除",
+			"actions": "文件夹操作",
+			"destination": "目标文件夹",
+			"confirmMove": "确认移动",
+			"confirmDelete": "永久删除",
+			"completed": "操作已完成",
+			"refreshRequired": "文件已更改，请重新扫描资源库。",
+			"deleteHelp": "文件将永久删除，无法撤销。",
+			"deleteFolderHelp": "将永久删除此文件夹及其全部内容，无法撤销。"
+		}
 	},
 	"scan": {
 		"title": "媒体库扫描",

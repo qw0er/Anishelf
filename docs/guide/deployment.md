@@ -133,7 +133,7 @@ folder synchronized with installed units before using script maintenance.
 
 ## Storage and optional services
 
-Backend reads media as UID/GID 1000. Bundled qBittorrent also needs write access;
+Backend reads and manages media as UID/GID 1000. Backend and bundled qBittorrent need directory write/search access;
 rootless Podman maps the service account to this identity. Prepare host ownership
 or ACLs before starting. On SELinux hosts, shared media needs `:z` labels; apply
 relabeling only to a dedicated media tree. Use administrator-prepared labels on
@@ -272,7 +272,8 @@ unless intentionally deleting it. Use script removal for installer-managed folde
 
 ## Source installation
 
-With Node.js 24, npm and FFmpeg/FFprobe installed:
+With Node.js 24, npm and FFmpeg/FFprobe installed (Move/Delete additionally
+requires Linux procfs and GNU coreutils 9.5 or later):
 
 ```sh
 npm ci
@@ -282,3 +283,22 @@ npm start
 To update, stop, back up, check out the chosen release and repeat these commands.
 For development containers, use `npm run compose:up` or `npm run compose:up:full`.
 See [Development](../development/README.md).
+
+## Writable media for file management
+
+Backend now mounts `/data/media` read-write in Docker Compose and rootless Podman
+Quadlet so Files can move and permanently delete files/folders. Existing deployments
+must regenerate their bundle with `install.sh --reconfigure DIRECTORY` or edit
+the Backend media mount from `:ro` to `:rw`, then recreate the container/restart
+its Quadlet unit. Run `systemctl --user daemon-reload` after unit edits.
+Changing the image alone does not change an existing mount. Apply the same rule to
+additional configured resource roots. Keeping a root read-only allows playback but
+rejects Move/Delete. Do not change read-only credential/configuration mounts.
+
+Grant the Backend container user write/search permission on managed directories;
+the installer does not recursively chown host media. Rootless Quadlet keeps the
+host user's identity; Compose runs Backend as the image's `node` user (UID 1000).
+Retain shared `z` labels on SELinux host media mounts used by Backend/qBittorrent.
+The Backend image includes GNU coreutils for no-overwrite, same-filesystem moves.
+See [operations](operations.md#move-and-delete-originals) for confirmation,
+preservation and download-client behavior.

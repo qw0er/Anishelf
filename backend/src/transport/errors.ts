@@ -3,6 +3,16 @@ import { MetadataError } from "../modules/anime/public.js";
 import { DomainError, type ErrorCode } from "../shared/errors.js";
 
 const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
+	RESOURCE_CONFLICT: {
+		status: 409,
+		message:
+			"The resource changed, the destination exists, or the move crosses filesystems. Refresh Files and try again.",
+	},
+	RESOURCE_WRITE_FAILED: {
+		status: 403,
+		message:
+			"The operation could not finish. Refresh Files and check media write permissions and GNU coreutils support on the server.",
+	},
 	NETWORK_ORIGIN_REJECTED: {
 		status: 403,
 		message:

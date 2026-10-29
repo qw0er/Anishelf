@@ -17,7 +17,7 @@ services:
       - anishelf-app:/data/app
       - qbittorrent-connection:/run/anishelf-qbittorrent:ro
       - jackett-config:/run/jackett-config:ro
-      - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media:ro
+      - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media:rw
     # Keep the Backend readiness dependency explicit in this deployment.
     healthcheck:
       test:

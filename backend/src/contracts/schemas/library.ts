@@ -212,3 +212,18 @@ export const FileResponseSchema = Type.Object(
 	{ file: FileDtoSchema, originalMediaUrl: Type.String() },
 	{ additionalProperties: false },
 );
+
+export const ResourceCommandSchema = Type.Object(
+	{
+		id: ResourceIdSchema,
+		action: Type.Union([Type.Literal("move"), Type.Literal("delete")]),
+		destinationId: Type.Optional(ResourceIdSchema),
+	},
+	{ additionalProperties: false },
+);
+export const ResourceCommandResultSchema = Type.Object(
+	{
+		refreshRequired: Type.Boolean(),
+	},
+	{ additionalProperties: false },
+);

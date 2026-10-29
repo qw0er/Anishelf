@@ -42,7 +42,7 @@ The retained V2 implementation status remains recorded separately in History.
 | V05 | Basic playback controls | Play, pause, seek, volume, fullscreen, and return to the original directory | 0.1.0 |
 | V06 | Failure feedback | Missing/unreadable resources and unsupported-media or playback errors | 0.1.0 |
 
-V1 includes read-only originals, resource-root confinement, persistent root settings, and visible scan states. Subtitle loading, saved progress, and media preparation are V2 additions.
+Original V1 delivered read-only originals, resource-root confinement, persistent root settings, and visible scan states. L13 adds explicit confirmed moves and deletion. Subtitle loading, saved progress, and media preparation are V2 additions.
 
 ### 2.1 Resource Access and Library
 
@@ -54,9 +54,8 @@ V1 includes read-only originals, resource-root confinement, persistent root sett
 | L08 | Review unidentified files and manually link or correct anime and episode associations | Implemented: clear-match automatic admission, manual Review and revision-checked corrections | 0.3.0 |
 | L09 | Distinguish regular episodes, specials, continuous season numbering, and multi-episode files | Implemented: candidate-specific episode proposals, unresolved ambiguity and confirmed corrections | 0.3.0 |
 | L10 | Associate multiple file versions with an episode and select a version for playback | Implemented: Catalog associations and Web version selection with source-version checks | 0.3.0 |
-| L11 | Relink moved files while preserving viewing history | Later | — |
 | L12 | Configure and manage multiple resource roots | Implemented: up to 64 non-overlapping paths, per-root Files entries, scoped identities, partial scan recovery, legacy settings/history upgrade | 0.4.1 |
-| L13 | Rename, organize, delete, and reclaim storage with preservation rules | Optional | — |
+| L13 | Move and delete files or folders with preservation rules | Implemented: direct confirmed same-filesystem moves and recursive deletion; retained decisions/history and writable deployment | Unreleased |
 | L14 | Download an existing original media file from the Web interface to the user's device | Implemented | 0.2.5 |
 | L15 | Batch Review with shared work selection and episode-number offset previews | Later | — |
 | L16 | Improve matching using representative real-world failure cases | Later | — |
@@ -83,12 +82,36 @@ retain their previous index and report availability/warnings; all-root failure
 must not publish an empty library. Removing a root hides its resources while
 preserving accepted associations and playback history. Restoring it makes those
 records reusable. Legacy single-path settings and durable source records upgrade
-without discarding history. Filesystem watching is delivered separately under L06. Identity-preserving moved-file relinking remains
-future scope under L11.
+without discarding history. Filesystem watching is delivered separately under L06.
+
+#### Move and delete resources (L13)
+
+Files supports moving an indexed media file or folder into an existing directory,
+retaining its name, and permanently deleting a file or an entire folder. Folder
+operations include every descendant, including subtitles and non-media files.
+There is no separate rename, copy, automatic organization or retention-policy UI.
+
+Use one confirmation dialog per command, without an impact preview or separate
+preview request. Choose a destination and confirm Move, or confirm permanent deletion.
+Reject configured roots, symlinks, special files, overwrites, moves into
+the source subtree and moves across filesystems. Moves may use another configured
+root on the same filesystem. Filesystem writes share the scan/settings gate and
+refresh affected paths immediately. Partial deletion failures require reconciliation.
+
+Retain Catalog decisions, viewing history, tracking state, settings and generated
+media caches. Removed sources become unavailable; moved paths are indexed as new
+sources and pass ordinary identification/Review rather than automatically relinking
+old source identities. Deletion has no recycle bin. Hard links, snapshots and open
+handles can retain physical disk space after deletion.
+Document that active download/seeding clients are not controlled by these operations
+in the operator guide; keep dialogs concise with only an irreversible-deletion notice.
+Deployment must grant Backend write access to managed media; read-only mounts may
+still be used for playback but reject these commands. Linux with procfs and GNU
+coreutils supporting `mv --no-copy --update=none-fail` is required for mutations.
 
 #### Filesystem Monitoring and Incremental Updates (L06)
 
-Watch the configured resource root recursively for file and directory additions, modifications, removals and moves. Use these changes to refresh affected library entries automatically, without waiting for a scheduled full scan. Coalesce bursts of events and wait for actively written files to stabilize before identification or media inspection. Preserve resource-root restrictions, manual associations and viewing history; identity-preserving relinking of moved files remains L11.
+Watch the configured resource root recursively for file and directory additions, modifications, removals and moves. Use these changes to refresh affected library entries automatically, without waiting for a scheduled full scan. Coalesce bursts of events and wait for actively written files to stabilize before identification or media inspection. Preserve resource-root restrictions, manual associations and viewing history.
 
 Keep startup scanning and explicit manual rescans for initial discovery and reconciliation. Scheduled full scans are removed; known monitoring failures trigger recovery reconciliation. Detect unavailable monitoring or lost events, report degraded monitoring and provide reconciliation and retry; an inaccessible root must not be treated as an empty library. See [Filesystem monitoring](development/architecture.md#resource-directory-isolation).
 

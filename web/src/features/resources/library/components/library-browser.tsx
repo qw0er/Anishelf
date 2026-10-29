@@ -3,7 +3,11 @@ import { ArrowLeft, FileVideo, Folder } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router";
-import type { DirectoryResponse } from "../../../../shared/api/contracts.js";
+import type {
+	DirectoryResponse,
+	ResourceCommand,
+	ResourceDto,
+} from "../../../../shared/api/contracts.js";
 import {
 	boundedSignal,
 	useQueryScope,
@@ -29,6 +33,12 @@ import { formatFileSize } from "../format-file-size.js";
 import type { LibraryScanState } from "../public.js";
 import LibraryScan, { LibraryScanActions } from "./library-scan.js";
 
+import {
+	ResourceOperationDialog,
+	ResourceOperationItems,
+	ResourceOperationMenu,
+} from "./resource-operations.js";
+
 export default function LibraryBrowser({
 	listing,
 	scan,
@@ -43,6 +53,10 @@ export default function LibraryBrowser({
 	onFileIdsChange?: (ids: string[]) => void;
 }) {
 	const { t, i18n } = useTranslation();
+	const [operation, setOperation] = useState<{
+		entry: ResourceDto;
+		action: ResourceCommand["action"];
+	} | null>(null);
 	const [search, setSearch] = useState("");
 	const [debouncedSearch, setDebouncedSearch] = useState("");
 	const [sort, setSort] = useState("default");
@@ -148,6 +162,13 @@ export default function LibraryBrowser({
 				}
 			/>
 			<LibraryScan {...scan} />
+			{operation && (
+				<ResourceOperationDialog
+					key={`${operation.entry.id}:${operation.action}`}
+					{...operation}
+					onClose={() => setOperation(null)}
+				/>
+			)}
 			{identificationStatus}
 			{!setupRequired && (
 				<div className="space-y-4">
@@ -266,10 +287,29 @@ export default function LibraryBrowser({
 													)}
 												</Link>
 											</Tooltip>
+											{entry.kind === "directory" &&
+												!(
+													listing.directory.id === "root" &&
+													entry.parentId === "root" &&
+													(scan.library?.roots?.length ?? 0) > 1
+												) && (
+													<ResourceOperationMenu
+														onSelect={(action) =>
+															setOperation({ entry, action })
+														}
+													/>
+												)}
 											{entry.kind === "file" && (
 												<div className="flex items-center justify-end gap-1 pl-2">
 													{renderFileActions?.({
 														fileId: entry.id,
+														managementMenu: (
+															<ResourceOperationItems
+																onSelect={(action) =>
+																	setOperation({ entry, action })
+																}
+															/>
+														),
 														summary: summaries.data?.files.find(
 															(file) => file.fileId === entry.id,
 														),

@@ -20,6 +20,7 @@ import type { LibraryIndex } from "../infrastructure/index.js";
 import type { LibraryRuntimePolicy } from "../policy.js";
 import type { LibraryApi } from "../public.js";
 import type { LibrarySynchronizer } from "./library-synchronizer.js";
+import type { ResourceCommands } from "./mutations.js";
 import type { ResourceSettingsApplication } from "./settings.js";
 
 /** Explicit projection prevents new internal fields from leaking into public results. */
@@ -57,6 +58,7 @@ export class LibraryApplication<
 	readonly policy: DeepReadonly<TPolicy>;
 	readonly sources: ResourceAccessApi;
 	readonly settings: ResourceSettingsApplication;
+	readonly commands: ResourceCommands;
 	private readonly synchronizer: LibrarySynchronizer;
 	constructor(
 		private readonly options: {
@@ -66,12 +68,14 @@ export class LibraryApplication<
 			sources: ResourceAccessApi;
 			synchronizer: LibrarySynchronizer;
 			settings: ResourceSettingsApplication;
+			commands: ResourceCommands;
 		},
 	) {
 		this.policy = options.policy;
 		this.sources = options.sources;
 		this.synchronizer = options.synchronizer;
 		this.settings = options.settings;
+		this.commands = options.commands;
 	}
 	get state() {
 		return this.synchronizer.state;

@@ -235,6 +235,16 @@ patterns. Truncate long names with accessible full-value Tooltips. Files identif
 uses a focusable status icon; Review and associated work/episode links live in the
 file menu. Files has a search-led toolbar for names in the current directory and its subdirectories, a relative parent path for nested matches, and a labeled sort selector. Keep directories before files; sort files by name, size or modification time. Keep correction/recovery actions specific to the affected resource.
 
+Files and folders expose Move and Delete in their existing action menus. Configured
+roots have no mutation commands. Move browses existing destination directories;
+it retains the source name. Each dialog has one confirmation action and no preview
+step or file/size summary. Move shows the item and destination picker
+without explanatory paragraphs. Delete adds one short irreversible-deletion notice;
+for folders, it explicitly includes all contents. Keep preservation, storage and
+download-client explanations in operator documentation. Keep source conflicts, permissions
+and destination errors inside the dialog with retryable input. Busy commands keep
+the dialog open; completion uses a Toast and refreshes affected views.
+
 ### Settings
 
 Use a sticky 8.5rem left category navigation with a 1rem content gap on desktop and a compact horizontal category

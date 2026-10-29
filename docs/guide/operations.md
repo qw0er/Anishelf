@@ -61,7 +61,7 @@ Container mounts and Settings must refer to the same files.
 | Save roots | Validate, persist and scan automatically; later changes use filesystem monitoring |
 | Empty list | Setup mode; no scan |
 | Duplicate, nested or symlink-aliased roots | Rejected, as is overlap with app data |
-| Add a container media root | Mount it read-only first, then add its container path in Settings |
+| Add a container media root | Mount it read-write for Move/Delete, then add its container path in Settings |
 | Root unavailable | Preserve its previous index; healthy roots still update |
 | Remove a root | Hide its resources; preserve associations/history and original files |
 | Files missing after mount/network changes | Check access and run a manual scan to reconcile |
@@ -138,3 +138,23 @@ reverting an image alone does not undo migrations.
 | Jackett lists sites but finds no releases | Run title-search diagnostics; connection/capability checks alone do not prove results |
 | Download complete but unavailable | Check shared destination mapping and import/Review outcome |
 | Playback fails | Check actual browser/codecs and preparation output; discovery does not establish playability |
+
+## Move and delete originals
+
+Files menus offer Move and Delete for media files and folders. Move keeps the name
+and uses an existing destination on the same filesystem (including another root).
+Delete permanently removes every descendant, including unlisted non-media files;
+there is no recycle bin. Select the destination and confirm Move, or confirm Delete
+in its dialog; there is no preview step. History, Catalog
+records, settings and prepared media are retained. Moved paths are identified again;
+manual associations are not automatically transferred to a new source identity.
+
+Stop active downloading/seeding in qBittorrent before changing its files. These
+commands do not pause or remove remote tasks, and active clients may recreate files.
+Hard links, snapshots or open file handles can retain disk space after deletion. If an operation or reconciliation fails, refresh Files and run
+a manual scan; inspect `resources.command_*` logs. A partial deletion can leave a
+remaining subtree (or an isolated `.anishelf-delete-*` entry if restoration fails).
+
+Backend needs directory write/search permissions. Read-only mounts remain usable
+for browsing/playback but reject mutation commands. Source installations require
+Linux procfs and GNU coreutils with `mv --no-copy --update=none-fail` (9.5 or later).

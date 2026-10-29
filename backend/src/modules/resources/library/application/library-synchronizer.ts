@@ -38,6 +38,7 @@ export class LibrarySynchronizer {
 	private active: Promise<void> | undefined;
 	private saving: Promise<Readonly<PersistentSettings>> | undefined;
 	private updating: Promise<void> | undefined;
+	private mutating: Promise<unknown> | undefined;
 	private scanController: AbortController | undefined;
 	private updateController: AbortController | undefined;
 	private closed = false;
@@ -65,7 +66,13 @@ export class LibrarySynchronizer {
 	get isBusy(): boolean {
 		return (
 			this.closed ||
-			Boolean(this.active || this.pendingStart || this.saving || this.updating)
+			Boolean(
+				this.active ||
+					this.pendingStart ||
+					this.saving ||
+					this.updating ||
+					this.mutating,
+			)
 		);
 	}
 	private getSettings(): Readonly<PersistentSettings> {
@@ -111,7 +118,7 @@ export class LibrarySynchronizer {
 	async startScan(): Promise<ScanState> {
 		if (this.closed)
 			throw new DomainError("SCAN_FAILED", "The library is shutting down.");
-		if (this.saving)
+		if (this.saving || this.mutating)
 			throw new DomainError("SETTINGS_BUSY", "Settings are being saved.");
 		if (this.pendingStart) return copyState(await this.pendingStart);
 		if (this.active && this.latest) return copyState(this.latest);
@@ -358,6 +365,60 @@ export class LibrarySynchronizer {
 		if (!applied && !this.closed)
 			throw new DomainError("SETTINGS_BUSY", "The library is busy.");
 	}
+	async withMutation<T>(
+		operation: (
+			reconcile: (roots: readonly ResourceRoot[]) => Promise<boolean>,
+		) => Promise<T>,
+	): Promise<T> {
+		if (this.isBusy || this.options.index.scannedAt === null)
+			throw new DomainError(
+				"SETTINGS_BUSY",
+				"The library is busy or has not been scanned.",
+			);
+		const settings = this.getSettings();
+		const controller = new AbortController();
+		const run = Promise.resolve().then(() =>
+			operation(async (roots) => {
+				let healthy = true;
+				for (const root of new Map(
+					roots.map((root) => [root.scopeId, root]),
+				).values()) {
+					try {
+						const entries = await this.options.scans.reconcile(
+							root,
+							settings.resourceRoots.length > 1,
+							controller.signal,
+						);
+						if (
+							entries === null ||
+							!this.publish(settings, controller.signal, () =>
+								this.options.index.replaceScope(root.scopeId, entries),
+							)
+						)
+							throw new Error("Resource reconciliation was interrupted.");
+					} catch (err) {
+						healthy = false;
+						this.options.monitoring.fail(root.scopeId, err);
+						this.options.logger.warn(
+							{
+								event: "resources.command_reconciliation_failed",
+								scopeId: root.scopeId,
+								err,
+							},
+							"Reconcile the library after the resource operation.",
+						);
+					}
+				}
+				return healthy;
+			}),
+		);
+		this.mutating = run;
+		try {
+			return await run;
+		} finally {
+			this.mutating = undefined;
+		}
+	}
 	async withSettingsChange(
 		operation: () => Promise<Readonly<PersistentSettings>>,
 	): Promise<Readonly<PersistentSettings>> {
@@ -395,6 +456,7 @@ export class LibrarySynchronizer {
 			this.options.monitoring.close(),
 			this.cancelScan(),
 			this.saving,
+			this.mutating,
 			this.updating,
 		]).then(() => {});
 		return this.closing;

@@ -23,6 +23,7 @@ export function FileActions({
 	summary,
 	identification,
 	identificationMenu,
+	managementMenu,
 	disabled = false,
 	...compatibility
 }: {
@@ -31,6 +32,7 @@ export function FileActions({
 	disabled?: boolean;
 	identification?: ReactNode;
 	identificationMenu?: ReactNode;
+	managementMenu?: ReactNode;
 	summary?: PreparationSummaryResponse["files"][number] | undefined;
 	loading: boolean;
 	result: CompatibilityResult | null;
@@ -85,6 +87,7 @@ export function FileActions({
 						list={list}
 						{...compatibility}
 					/>
+					{managementMenu}
 				</DropdownMenuContent>
 			</DropdownMenu>
 		</>

@@ -381,3 +381,57 @@ test("retargeting a configured root alias during access cannot cross source scop
 		f.library.getFile(f.files[0]?.id as string),
 	).rejects.toMatchObject({ code: "PLAYBACK_CONFLICT" });
 });
+
+test.each(["move", "delete"] as const)(
+	"resource %s retains durable playback records across roots",
+	async (action) => {
+		const f = await fixture();
+		const file = f.files[0];
+		if (!file) throw new Error("Missing file");
+		const source = await f.library.sources.resolveSource(file.id);
+		const registered = f.database.playback.registerSource(source.identity);
+		const session = await f.playback.open(file.id);
+		await f.playback.save({
+			token: session.token,
+			generation: session.progress.generation,
+			sourceVersion: session.sourceVersion,
+			sequence: 1,
+			positionMs: 20000,
+			durationMs: 60000,
+		});
+		const previous = f.database.playback.get(registered.id);
+		const second = f.roots[1] as string;
+		await mkdir(join(second, "Archive"));
+		await f.scan();
+		const mount = f.library
+			.getDirectory("root")
+			.children.find(
+				(entry) =>
+					entry.id ===
+					createResourceId("directory", "", resourceRootId(second)),
+			);
+		if (!mount) throw new Error("Missing mount");
+		const destination = f.library
+			.getDirectory(mount.id)
+			.children.find((entry) => entry.name === "Archive");
+		if (!destination) throw new Error("Missing destination");
+		const input = {
+			id: file.id,
+			action,
+			...(action === "move" ? { destinationId: destination.id } : {}),
+		};
+		expect(await f.library.commands.execute(input)).toEqual({
+			refreshRequired: false,
+		});
+		expect(f.database.playback.get(registered.id)).toEqual(previous);
+		await expect(f.library.getFile(file.id)).rejects.toBeDefined();
+		if (action === "move")
+			expect(await readFile(join(second, "Archive", file.name), "utf8")).toBe(
+				"video-0",
+			);
+		expect(await readFile(join(second, file.name), "utf8")).toBe("video-1");
+		await expect(
+			f.library.commands.execute({ id: mount.id, action: "delete" }),
+		).rejects.toMatchObject({ code: "RESOURCE_ACCESS_DENIED" });
+	},
+);
