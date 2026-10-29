@@ -7,6 +7,7 @@ import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 // https://vite.dev/config/
 const apiTarget =
@@ -52,6 +53,28 @@ export default defineConfig({
 		},
 	},
 	plugins: [
+		VitePWA({
+			injectRegister: null,
+			manifest: {
+				name: "Anishelf",
+				short_name: "Anishelf",
+				description: "Your local media shelf.",
+				start_url: "/",
+				scope: "/",
+				display: "standalone",
+				background_color: "#fafafa",
+				theme_color: "#fafafa",
+				icons: [
+					{ src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+					{ src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+				],
+			},
+			workbox: {
+				globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+				navigateFallback: "/index.html",
+				navigateFallbackDenylist: [/^\/api(?:\/|$)/],
+			},
+		}),
 		react(),
 		tailwindcss(),
 		babel({ presets: [reactCompilerPreset()] }),
