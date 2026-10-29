@@ -34,52 +34,52 @@
 :root {
 	color-scheme: light;
 	--radius: 0.625rem;
-	--background: #f8f7f5;
-	--foreground: #292522;
-	--card: #fffefc;
-	--card-foreground: #292522;
-	--popover: #fffefc;
-	--popover-foreground: #292522;
-	--primary: #aa5943;
-	--primary-foreground: #fffefc;
-	--secondary: #efebe6;
-	--secondary-foreground: #38312c;
-	--muted: #f1eeea;
-	--muted-foreground: #71665e;
-	--accent: #ede8e2;
-	--accent-foreground: #292522;
+	--background: #fafafa;
+	--foreground: #18181b;
+	--card: #ffffff;
+	--card-foreground: #18181b;
+	--popover: #ffffff;
+	--popover-foreground: #18181b;
+	--primary: #27272a;
+	--primary-foreground: #fafafa;
+	--secondary: #f1f1f1;
+	--secondary-foreground: #27272a;
+	--muted: #f4f4f4;
+	--muted-foreground: #66666b;
+	--accent: #efefef;
+	--accent-foreground: #18181b;
 	--destructive: oklch(0.577 0.245 27.325);
 	--success: var(--color-emerald-700);
 	--warning: var(--color-amber-700);
 	--info: var(--color-violet-700);
-	--border: #e4ddd6;
-	--input: #c4b9ae;
-	--ring: #aa5943;
+	--border: #e4e4e7;
+	--input: #b8b8bd;
+	--ring: #52525b;
 }
 
 .dark {
 	color-scheme: dark;
-	--background: #191817;
-	--foreground: #f2ede7;
-	--card: #242220;
-	--card-foreground: #f2ede7;
-	--popover: #2b2825;
-	--popover-foreground: #f2ede7;
-	--primary: #dfa28e;
-	--primary-foreground: #291b16;
-	--secondary: #302c29;
-	--secondary-foreground: #f2ede7;
-	--muted: #2b2825;
-	--muted-foreground: #b8aca1;
-	--accent: #36312d;
-	--accent-foreground: #f2ede7;
+	--background: #0f0f10;
+	--foreground: #ededef;
+	--card: #171719;
+	--card-foreground: #ededef;
+	--popover: #1d1d20;
+	--popover-foreground: #ededef;
+	--primary: #e8e8ea;
+	--primary-foreground: #141416;
+	--secondary: #232326;
+	--secondary-foreground: #ededef;
+	--muted: #202023;
+	--muted-foreground: #a1a1a8;
+	--accent: #29292d;
+	--accent-foreground: #ededef;
 	--destructive: oklch(0.704 0.191 22.216);
 	--success: var(--color-emerald-300);
 	--warning: var(--color-amber-300);
 	--info: var(--color-violet-300);
-	--border: #3b3530;
-	--input: #78695d;
-	--ring: #dfa28e;
+	--border: #2c2c30;
+	--input: #5a5a61;
+	--ring: #d4d4d8;
 }
 
 @utility page-title {
