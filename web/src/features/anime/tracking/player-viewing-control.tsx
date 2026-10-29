@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Check, CheckCheck } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { request } from "../../../shared/api/client.js";
@@ -160,14 +161,18 @@ function TargetControl({
 			aria-label={t("playbackCompletion.label")}
 		>
 			<Button
-				variant="ghost"
-				className="h-11 px-3"
+				variant={known ? "secondary" : "outline"}
 				aria-label={t(
 					known ? "playbackCompletion.watched" : "playbackCompletion.mark",
 				)}
 				disabled={busy || Boolean(operations.error)}
 				onClick={() => mutation.mutate("mark")}
 			>
+				{known ? (
+					<CheckCheck className="size-4 shrink-0" aria-hidden="true" />
+				) : (
+					<Check className="size-4 shrink-0" aria-hidden="true" />
+				)}
 				{t(known ? "player.watched" : "playbackCompletion.mark")}
 			</Button>
 			{current &&

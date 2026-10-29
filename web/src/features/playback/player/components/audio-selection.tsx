@@ -1,9 +1,12 @@
+import { Headphones } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { ActivePlayback } from "../../../../shared/api/contracts.js";
+import { Button } from "../../../../shared/components/ui/button.js";
 import {
 	NativeSelect,
 	NativeSelectOption,
 } from "../../../../shared/components/ui/native-select.js";
+import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { audioTrackLabel } from "../../../media/public.js";
 import { canSelectNativeAudio } from "../runtime.js";
 export function AudioSelection({
@@ -25,14 +28,30 @@ export function AudioSelection({
 			? audioTrackLabel(track.stream, position, t, i18n.language)
 			: t("audioTracks.none");
 	};
+	const position = selected ? tracks.indexOf(selected) : -1;
+	const summary = selected
+		? audioTrackLabel(
+				{
+					...selected.stream,
+					label: selected.stream.language
+						? null
+						: (selected.stream.label ?? null),
+					default: false,
+				},
+				position,
+				t,
+				i18n.language,
+			)
+		: t("audioTracks.none");
 	return (
-		<div className="flex min-w-0 max-w-full items-center gap-2">
-			<span className="shrink-0 text-sm text-muted-foreground">
-				{t("player.audio")}
-			</span>
+		<div className="mr-auto flex min-h-9 min-w-0 max-w-full items-center gap-2 sm:max-w-80">
+			<Headphones
+				className="size-4 shrink-0 text-muted-foreground"
+				aria-hidden="true"
+			/>
 			{tracks.length > 1 && canSelectNativeAudio() ? (
 				<NativeSelect
-					className="h-11 min-w-0 max-w-40 rounded-md bg-transparent px-2 text-sm sm:max-w-72"
+					className="min-w-0 max-w-56 truncate text-sm"
 					aria-label={t("audioTracks.playback")}
 					value={active.audio ? String(active.audio.sourceStreamIndex) : "none"}
 					onChange={(event) => selectAudio(event.target.value)}
@@ -47,13 +66,15 @@ export function AudioSelection({
 					))}
 				</NativeSelect>
 			) : (
-				<span
-					role="status"
-					className="min-w-0 text-sm"
-					aria-label={t("audioTracks.playback")}
-				>
-					{label(selected ? tracks.indexOf(selected) : -1)}
-				</span>
+				<Tooltip content={label(position)} openOnClick>
+					<Button
+						variant="ghost"
+						className="min-w-0 justify-start px-2"
+						aria-label={t("audioTracks.playback")}
+					>
+						<span className="truncate">{summary}</span>
+					</Button>
+				</Tooltip>
 			)}
 		</div>
 	);

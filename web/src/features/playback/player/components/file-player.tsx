@@ -27,12 +27,14 @@ import VideoPlayer from "./video-player.js";
 export default function FilePlayer({
 	data,
 	displayTitle,
+	autoPlay = false,
 	returnDirectoryId,
 	returnTo,
 	onRetry,
 	slots,
 }: {
 	data: FileResponse;
+	autoPlay?: boolean;
 	displayTitle?: { title: string; sourceVersion: string } | undefined;
 	returnDirectoryId: string | null;
 	returnTo?: string | null;
@@ -53,12 +55,19 @@ export default function FilePlayer({
 		tryOrigin,
 		onAssetsChanged,
 		recheck,
-	} = usePlaybackController(data);
+	} = usePlaybackController(data, autoPlay);
 	const title =
 		displayTitle &&
 		(!source || displayTitle.sourceVersion === source.sourceVersion)
 			? displayTitle.title
 			: data.file.name;
+	const [fullscreen, setFullscreen] = useState(false);
+	const [continuationOverlay, setContinuationOverlay] =
+		useState<HTMLDivElement | null>(null);
+	const [endedAsset, setEndedAsset] = useState<string | null>(null);
+	const activeKey = active
+		? `${active.asset.id}:${active.asset.revision}:${active.audio?.streamIndex ?? "none"}`
+		: null;
 	const blocked = !selection.loading && !active;
 	const [optionsOpen, setOptionsOpen] = useState(false);
 	const [compatibilityOpen, setCompatibilityOpen] = useState(false);
@@ -149,6 +158,9 @@ export default function FilePlayer({
 							active={active}
 							sourceVersion={source.sourceVersion}
 							renderSubtitles={slots?.renderSubtitles}
+							onFullscreenChange={setFullscreen}
+							onContinuationOverlay={setContinuationOverlay}
+							onEndedChange={(ended) => setEndedAsset(ended ? activeKey : null)}
 							onMedia={playback.attach}
 							onPlaybackFailure={selection.failed}
 							onAudioChange={(index) => selectAudio(String(index))}
@@ -156,12 +168,19 @@ export default function FilePlayer({
 					</QueryScope>
 				</div>
 			)}
-			<div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+			<div className="action-row min-w-0">
 				<AudioSelection active={active} selectAudio={selectAudio} />
 				{playback.session &&
 					slots?.renderViewing?.({
 						fileId: data.file.id,
 						sourceVersion: playback.session.sourceVersion,
+					})}
+				{source &&
+					slots?.renderContinuation?.({
+						fileId: data.file.id,
+						sourceVersion: source.sourceVersion,
+						ended: Boolean(activeKey && endedAsset === activeKey),
+						overlayTarget: fullscreen ? continuationOverlay : null,
 					})}
 				<PlaybackActionsMenu
 					key={`actions:${data.file.id}`}
@@ -203,6 +222,7 @@ export default function FilePlayer({
 							onSelect={selectAsset}
 						/>
 					)}
+					{slots?.renderOptions?.()}
 					<div className="action-row">{!blocked && preparationAction}</div>
 				</DialogContent>
 			</Dialog>

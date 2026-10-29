@@ -25,7 +25,11 @@ const initialState: PlaybackSessionState = {
 	error: null,
 };
 
-export function usePlaybackSession(fileId: string, policy: PlaybackPolicy) {
+export function usePlaybackSession(
+	fileId: string,
+	policy: PlaybackPolicy,
+	autoPlay = false,
+) {
 	const { t } = useTranslation();
 	const client = useQueryClient();
 	const {
@@ -52,6 +56,7 @@ export function usePlaybackSession(fileId: string, policy: PlaybackPolicy) {
 		],
 	);
 	const [state, setState] = useState(initialState);
+	const autoPlayAttempted = useRef(false);
 	const controllerRef = useRef<PlaybackSessionController | null>(null);
 	const videoRef = useRef<HTMLVideoElement | null>(null);
 	const timelineRef = useRef<MediaTimeline>(originalTimeline());
@@ -125,6 +130,28 @@ export function usePlaybackSession(fileId: string, policy: PlaybackPolicy) {
 			});
 		};
 	}, [fileId, stablePolicy, t, client]);
+
+	useEffect(() => {
+		const video = videoRef.current;
+		if (!autoPlay || autoPlayAttempted.current || !state.restored || !video)
+			return;
+		autoPlayAttempted.current = true;
+		let cancelled = false;
+		void video.play().catch(() => {
+			if (cancelled) return;
+			console.info("[playback] Continuation requires manual playback.", {
+				fileId,
+			});
+			toast.add({
+				type: "info",
+				title: t("player.continuation.playBlocked"),
+				id: `continuation-play:${fileId}`,
+			});
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [autoPlay, state.restored, fileId, t]);
 
 	const attach = useCallback(
 		(

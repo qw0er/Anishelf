@@ -260,7 +260,7 @@ every destination on narrow screens through icons, Tooltips and accessible names
 | Section | Specific rules |
 | --- | --- |
 | Library | 36px read-only directory fields aligned with the add-path row; full-path Tooltips, compact cache budget; directory rules in help, locks/limits visible |
-| Playback | Descriptive mode/profile cards in two columns when possible; custom players in separated rows, name/template side by side on wide layouts; templates on demand and browser-only storage scope visible |
+| Playback | Browser-local global continuation preference first, using a Switch for the immediately saved setting; descriptive mode/profile cards in two columns when possible; custom players in separated rows, name/template side by side on wide layouts; templates on demand and browser-only storage scope visible |
 | Account | Identity and Connected/Disconnected state in the description column; authorization/credential actions together; check details in help, failed checks/reconnection visible; replacement consequences in confirmation |
 | Security | Current password above a responsive new-password/confirmation pair; equal label heights; Change password and Sign out on one row; consequences visible, limits/link guidance in help |
 | Downloads | Order Watching, Subscription defaults, Jackett, qBittorrent; keep global source/profile policy here |
@@ -295,15 +295,25 @@ builds as the latest stable version.
 
 Keep the picture primary. Use a compact header with named Back icon and at most two
 title lines. Mobile video extends to page edges; desktop uses the shared container.
-Retain native Vidstack subtitles/controls. Place current-file audio, the Tracking
-control and More on one action row below the video, wrapping with 44px touch targets
-rather than large outlined buttons. Only the active asset supplies audio choices; show
-plain selected-track text when switching is unavailable or only one track is playable.
+Retain native Vidstack subtitles/controls. Use one compact, wrapping toolbar below
+the video: current-file audio on the left, followed by Tracking, Next episode and
+More. Use shared 36px controls with 44px touch targets. Give secondary commands
+outline buttons; confirmed Watched uses a check icon and a neutral selected surface.
+Next episode is the primary action when available and an outlined disabled button
+otherwise. Keep consistent 8px gaps and avoid a separate row just for Next episode.
+Use the shared action-row container sizing to compact More to its named icon and
+Tooltip when space is limited; keep Tracking and Next episode labels visible.
+Only the active asset supplies audio choices. For a single/non-switchable track,
+show a headphone icon and a concise language, codec and channel summary. A quiet
+text-style detail trigger reveals the full label in a keyboard/touch-accessible
+Tooltip; switching tracks still uses the native selector. In the summary, omit
+redundant language/title repetitions and the Default marker.
+Bound and truncate long audio labels so they cannot crowd the action buttons.
 Source-track retention belongs to preparation, not playback audio selection.
 
 More contains manual retry, compatibility, Playback options and existing external
 player/link commands. Playback options discloses the full filename, current version,
-version selector and manual preparation. Compatibility describes the active resource;
+version selector, the shared automatic-continuation preference and manual preparation. Compatibility describes the active resource;
 original-file facts are separate. Keep recovery controls visible when playback fails;
 normal playback should not carry routine technical explanations.
 
@@ -311,6 +321,33 @@ Unmapped explanations use a compact disclosure. Keep pending decisions, conflict
 failures and recovery visible. Progress editing stays on details; the player offers no
 progress editor. Preserve playback context and existing command logging; log manual
 retries without media URLs or credentials.
+
+### Next episode and automatic continuation
+
+In the player toolbar, show Next: Episode N for an unambiguous confirmed
+regular-episode source. Put the global Continue automatically checkbox (off by
+default) in Settings → Playback and provide the same control in More → Playback
+options. Explain its browser-only global scope once in Settings; the player shortcut
+shows only the checkbox and label, without countdown, storage or autosave prose.
+Synchronize changes across mounted controls and same-origin browser tabs. Reuse existing saved choices;
+the player action row contains no continuation preference. Advance within the same work to the immediately consecutive integer episode;
+never skip a gap or infer a sequel from metadata relations. A file covering several
+consecutive episodes advances after the last mapped episode and never reopens itself.
+Specials, movies, fractional numbering and ambiguous work/range mappings do not offer
+continuation. This navigation is independent of AniList progress and authorization.
+
+A single available next file opens directly; multiple available versions require
+an explicit choice in a shared Dialog. Represent missing episodes with a disabled
+Next button only; omit a separate local-availability explanation. Lookup failures
+offer Retry without interrupting video.
+After actual playback ends, an enabled preference starts a visible ten-second
+countdown with Play next and Cancel. Keep this prompt inside the player during
+fullscreen playback. Cancelling affects this end event; replaying or
+seeking clears the countdown. Changing the preference after the end does not start
+another countdown. Multiple versions always require manual choice. Navigation
+preserves the Library return context, restores the next file's own progress, then
+attempts playback. If the browser rejects autoplay, show a notification directing the
+user to Play. Keep lifecycle logs free of media URLs and credentials.
 
 ## Episode Viewing and Playback Completion
 

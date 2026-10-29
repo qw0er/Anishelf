@@ -21,6 +21,7 @@ import {
 } from "../../../../shared/components/ui/dropdown-menu.js";
 import { Spinner } from "../../../../shared/components/ui/spinner.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
+import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import {
 	buildPlayerUrl,
 	detectClientPlatform,
@@ -130,18 +131,20 @@ export function PlaybackActionsMenu({
 	const { t } = useTranslation();
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger
-				render={
-					<Button
-						variant="ghost"
-						className="h-11 px-3"
-						aria-label={t("externalPlayers.moreActions")}
-					/>
-				}
-			>
-				<Ellipsis size={16} aria-hidden="true" />
-				{t("player.more")}
-			</DropdownMenuTrigger>
+			<Tooltip content={t("externalPlayers.moreActions")}>
+				<DropdownMenuTrigger
+					render={
+						<Button
+							variant="outline"
+							className="responsive-action"
+							aria-label={t("externalPlayers.moreActions")}
+						/>
+					}
+				>
+					<Ellipsis size={16} className="shrink-0" aria-hidden="true" />
+					<span className="responsive-action-label">{t("player.more")}</span>
+				</DropdownMenuTrigger>
+			</Tooltip>
 			<DropdownMenuContent>
 				{onCompatibility && (
 					<DropdownMenuItem onClick={onCompatibility}>

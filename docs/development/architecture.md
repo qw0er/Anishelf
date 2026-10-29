@@ -6,6 +6,14 @@ stores durable state, and Resources confines access to original media.
 
 [Development](README.md) · [Database](database-design.md) · [UI design](design-system.md) · [Deployment](../guide/deployment.md)
 
+## Document responsibility
+
+[Requirements](../requirements.md) defines product outcomes and acceptance constraints.
+This document records current technical choices and module boundaries. Update design
+when those choices change; retaining product behavior does not require retaining the
+same library, algorithm or internal interface. Future feature designs are selected
+when the feature is scoped, not inferred from delivered implementation details.
+
 ## System structure
 
 ![Anishelf system architecture: browser, Web proxy, six backend modules and infrastructure](architecture.svg)
@@ -104,6 +112,12 @@ Sibling consumers cannot import private children or UI entries. App supplies pla
 and file-action slots. Preserve query scope, cancellation and invalidation across
 changes; do not put server paths or configuration into browser contracts.
 
+Server-state caching uses TanStack Query, shared query definitions and a QueryClient.
+Stable query keys, freshness/retention policies and app-coordinated invalidation
+cover API-backed data; media streams and local player state remain outside this
+cache. Original-file downloads use the original-media route and native browser
+download handling, without buffering the complete file in JavaScript.
+
 ## Resource directory isolation
 
 ```mermaid
@@ -127,6 +141,11 @@ flowchart LR
 | Root changes | Invalidate active references, retain unchanged identities, remount and scan |
 | Failure | Unavailable roots retain previous records; healthy roots can update; monitoring recovery reconciles drift |
 | Removal | Hides resources without deleting accepted Catalog decisions or playback history |
+
+Settings stores `resourceRoots` as absolute server paths, with a current limit of
+64 non-overlapping roots. Validation rejects canonical duplicates, nested roots
+and overlap with application data, including symlink aliases. An empty list returns
+to setup mode. Root order does not participate in durable source identity.
 
 Consumers use bounded directory reads and source capabilities rather than rebuilding
 absolute paths. Durable identities omit process-local access revisions so restart
@@ -156,6 +175,15 @@ flowchart LR
 | Tracking | Account credentials, confirmed list cache, viewing intent, submission/conflicts |
 | Anime Library | Read-only join of Catalog and Tracking with filtering/pagination |
 | Provider protocols | AniList and Bangumi typed clients, response validation, shared pacing and cancellation |
+
+Identification uses consistent title normalization for ranking and admission and
+retains explicit ordinal provenance. The current continuous-number conversion
+policy requires distinct, agreeing filename anchors within the same publication
+directory, season and work. Cross-directory propagation, relation-order offsets
+and conflicting numbering remain unresolved; zero numbering requires explicit
+identity confirmation. Review and the evaluator expose the runtime admission
+blockers. These are current matching-policy choices, subject to revision against
+representative cases while preserving uncertainty and manual-correction guarantees.
 
 Metadata's ordinary content API uses permanent project work IDs (`reference: { id }`).
 Search, detail, relations, schedules, retained snapshots and artwork use this identity.
