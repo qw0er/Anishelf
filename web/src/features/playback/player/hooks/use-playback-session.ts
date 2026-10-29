@@ -10,6 +10,7 @@ import { interactionDefaults } from "../../../../shared/config/interaction-defau
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import type { PlaybackPolicy } from "../policy.js";
 import {
+	isRetryablePlaybackError,
 	PlaybackSessionController,
 	type PlaybackSessionState,
 } from "../session.js";
@@ -27,10 +28,28 @@ const initialState: PlaybackSessionState = {
 export function usePlaybackSession(fileId: string, policy: PlaybackPolicy) {
 	const { t } = useTranslation();
 	const client = useQueryClient();
-	const { progressSaveIntervalMs, requestTimeoutMs } = policy;
+	const {
+		progressSaveIntervalMs,
+		requestTimeoutMs,
+		progressRetryInitialMs,
+		progressRetryMaximumMs,
+		progressSeekDelayMs,
+	} = policy;
 	const stablePolicy = useMemo(
-		() => ({ progressSaveIntervalMs, requestTimeoutMs }),
-		[progressSaveIntervalMs, requestTimeoutMs],
+		() => ({
+			progressSaveIntervalMs,
+			requestTimeoutMs,
+			progressRetryInitialMs,
+			progressRetryMaximumMs,
+			progressSeekDelayMs,
+		}),
+		[
+			progressSaveIntervalMs,
+			requestTimeoutMs,
+			progressRetryInitialMs,
+			progressRetryMaximumMs,
+			progressSeekDelayMs,
+		],
 	);
 	const [state, setState] = useState(initialState);
 	const controllerRef = useRef<PlaybackSessionController | null>(null);
@@ -48,11 +67,15 @@ export function usePlaybackSession(fileId: string, policy: PlaybackPolicy) {
 					notifiedError = null;
 					return;
 				}
-				const key =
-					getErrorTranslationKey(next.error.cause) ??
-					(next.error.operation === "load"
-						? "errors.playbackLoad"
-						: "errors.playbackSave");
+				const retrying =
+					next.error.operation === "save" &&
+					isRetryablePlaybackError(next.error.cause);
+				const key = retrying
+					? "errors.playbackSaveRetrying"
+					: (getErrorTranslationKey(next.error.cause) ??
+						(next.error.operation === "load"
+							? "errors.playbackLoad"
+							: "errors.playbackSave"));
 				const signature = `${next.error.operation}:${key}`;
 				if (signature === notifiedError) return;
 				notifiedError = signature;
@@ -78,9 +101,17 @@ export function usePlaybackSession(fileId: string, policy: PlaybackPolicy) {
 		const hide = () => {
 			void controller.flush(true);
 		};
+		const visibility = () => {
+			if (document.visibilityState === "hidden") hide();
+		};
+		const online = () => controller.reconnect();
 		window.addEventListener("pagehide", hide);
+		window.addEventListener("online", online);
+		document.addEventListener("visibilitychange", visibility);
 		return () => {
 			window.removeEventListener("pagehide", hide);
+			window.removeEventListener("online", online);
+			document.removeEventListener("visibilitychange", visibility);
 			toast.close(notificationId);
 			if (controllerRef.current === controller) controllerRef.current = null;
 			const departure = controller.dispose();

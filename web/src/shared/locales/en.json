@@ -37,6 +37,7 @@
 		"mediaPlayback": "This media could not be played in this browser.",
 		"playbackLoad": "Playback progress could not be loaded. You can keep watching and retry.",
 		"playbackSave": "Playback progress could not be saved. Please retry.",
+		"playbackSaveRetrying": "Playback progress has not synced. Retrying automatically.",
 		"network": "Cannot connect to the server. Check your connection and try again.",
 		"invalidResponse": "The server returned an invalid response. Please try again.",
 		"requestFailed": "The request failed. Please try again.",
