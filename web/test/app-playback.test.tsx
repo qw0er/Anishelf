@@ -198,11 +198,14 @@ test("playback session errors show a Toast and retry without unloading the video
 	expect(screen.getByLabelText("Video: Episode 01.mp4")).toBe(video);
 });
 
-test("progress save failures notify once and retry the pending save", async () => {
+test("progress save failures notify once across online and manual retries until recovery", async () => {
 	const implementation = fetcher.getMockImplementation();
 	const notify = vi.spyOn(toast, "add");
 	let rejectSave = true;
+	let networkFailure = false;
 	fetcher.mockImplementation((input, init) => {
+		if (String(input).endsWith("/progress") && rejectSave && networkFailure)
+			return Promise.reject(new TypeError("Lost connection"));
 		if (String(input).endsWith("/progress") && rejectSave)
 			return Promise.resolve(
 				json(
@@ -229,11 +232,20 @@ test("progress save failures notify once and retry the pending save", async () =
 	video.currentTime = 15;
 	fireEvent.seeked(video);
 	await screen.findByText(
-		"Playback progress could not be loaded or saved. Please retry.",
+		"Playback progress has not synced. Retrying automatically.",
 		{ selector: "[data-slot=toast-title]" },
 	);
 	expect(notify).toHaveBeenCalledTimes(1);
 	fireEvent.pause(video);
+	await act(async () => {});
+	expect(notify).toHaveBeenCalledTimes(1);
+	networkFailure = true;
+	fireEvent(window, new Event("online"));
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.filter(([url]) => String(url).endsWith("/progress")),
+		).toHaveLength(2),
+	);
 	await act(async () => {});
 	expect(notify).toHaveBeenCalledTimes(1);
 	rejectSave = false;
@@ -245,7 +257,7 @@ test("progress save failures notify once and retry the pending save", async () =
 	await waitFor(() =>
 		expect(
 			fetcher.mock.calls.filter(([url]) => String(url).endsWith("/progress")),
-		).toHaveLength(2),
+		).toHaveLength(3),
 	);
 	const writes = fetcher.mock.calls.filter(([url]) =>
 		String(url).endsWith("/progress"),
@@ -256,11 +268,34 @@ test("progress save failures notify once and retry the pending save", async () =
 	await waitFor(() =>
 		expect(
 			screen.queryByText(
-				"Playback progress could not be loaded or saved. Please retry.",
+				"Playback progress has not synced. Retrying automatically.",
 				{ selector: "[data-slot=toast-title]" },
 			),
 		).toBeNull(),
 	);
+	expect(screen.getByLabelText("Video: Episode 01.mp4")).toBe(video);
+});
+
+test("hiding the page flushes current progress with keepalive without replacing the video", async () => {
+	renderApp("/files/file-1");
+	const video = await screen.findByLabelText<HTMLVideoElement>(
+		"Video: Episode 01.mp4",
+	);
+	Object.defineProperty(video, "duration", { value: 100 });
+	fireEvent.loadedMetadata(video);
+	await act(async () => {});
+	video.currentTime = 22;
+	vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+	fireEvent(document, new Event("visibilitychange"));
+	await waitFor(() => {
+		const write = fetcher.mock.calls.find(([url]) =>
+			String(url).endsWith("/progress"),
+		);
+		expect(write?.[1]?.keepalive).toBe(true);
+		expect(JSON.parse(String(write?.[1]?.body))).toMatchObject({
+			positionMs: 22000,
+		});
+	});
 	expect(screen.getByLabelText("Video: Episode 01.mp4")).toBe(video);
 });
 
@@ -295,7 +330,7 @@ test("failed final saves do not show session messages or block navigation", asyn
 	await screen.findByRole("link", { name: "Episode 01.mp4" });
 	expect(
 		screen.queryByText(
-			"Playback progress could not be loaded or saved. Please retry.",
+			"Playback progress has not synced. Retrying automatically.",
 		),
 	).toBeNull();
 	expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();

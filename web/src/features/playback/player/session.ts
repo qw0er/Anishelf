@@ -6,6 +6,7 @@ import {
 } from "@anishelf/backend/contracts/media";
 import {
 	ApiClientError,
+	isRequestCancelled,
 	type RequestOptions,
 } from "../../../shared/api/client.js";
 import type {
@@ -31,6 +32,18 @@ import { PlaybackEvidence } from "./evidence.js";
 
 type Position = Pick<SavePlaybackProgressRequest, "positionMs" | "durationMs">;
 
+export function isRetryablePlaybackError(cause: unknown): boolean {
+	if (isRequestCancelled(cause)) return true;
+	return (
+		cause instanceof ApiClientError &&
+		(cause.kind === "network" ||
+			(cause.kind === "http" &&
+				(cause.status === 408 ||
+					cause.status === 429 ||
+					(cause.status !== null && cause.status >= 500))))
+	);
+}
+
 /** Owns one file's progress lifecycle; React and the media player are adapters. */
 export class PlaybackSessionController {
 	private state: PlaybackSessionState = {
@@ -49,11 +62,15 @@ export class PlaybackSessionController {
 	private position: Position | null = null;
 	private sequence = 0;
 	private pending: SavePlaybackProgressRequest | null = null;
+	private inFlight: SavePlaybackProgressRequest | null = null;
 	private sending: Promise<boolean> | null = null;
 	private opening: Promise<void> | null = null;
 	private closed = false;
 	private keepalive = false;
 	private timer: ReturnType<typeof setInterval> | undefined;
+	private retryTimer: ReturnType<typeof setTimeout> | undefined;
+	private seekTimer: ReturnType<typeof setTimeout> | undefined;
+	private retryDelayMs = 0;
 	private detachEvents: (() => void) | undefined;
 	private lastSaved: SavePlaybackProgressRequest | null = null;
 	private readonly fileId: string;
@@ -74,6 +91,8 @@ export class PlaybackSessionController {
 		this.opening = (async () => {
 			await after;
 			if (this.closed) return;
+			clearTimeout(this.retryTimer);
+			this.retryDelayMs = 0;
 			this.publish({
 				session: null,
 				loading: true,
@@ -111,6 +130,7 @@ export class PlaybackSessionController {
 		this.capture();
 		this.detachEvents?.();
 		clearInterval(this.timer);
+		clearTimeout(this.seekTimer);
 		this.video = video;
 		this.timeline = timeline;
 		this.metadataReady = (video?.readyState ?? 0) >= 1;
@@ -125,7 +145,14 @@ export class PlaybackSessionController {
 			this.playing = !video.paused && !video.ended;
 			this.sampleEvidence();
 			if (!this.state.restored) this.finishRestore();
-			else this.queueSave();
+			else {
+				this.capture();
+				clearTimeout(this.seekTimer);
+				this.seekTimer = setTimeout(
+					() => this.queueSave(),
+					this.policy.progressSeekDelayMs,
+				);
+			}
 		};
 		const sample = () => this.sampleEvidence();
 		const playing = () => {
@@ -186,6 +213,7 @@ export class PlaybackSessionController {
 	}
 
 	async retry(): Promise<void> {
+		if (this.closed) return;
 		const error = this.state.error;
 		if (
 			!this.state.session ||
@@ -195,27 +223,50 @@ export class PlaybackSessionController {
 		) {
 			if (this.state.session) await this.release();
 			await this.open();
-		} else await this.flush();
+		} else {
+			this.queueSave(false, true);
+			await this.sending;
+		}
+	}
+
+	reconnect(): void {
+		if (
+			!this.closed &&
+			this.state.error?.operation === "save" &&
+			isRetryablePlaybackError(this.state.error.cause)
+		)
+			this.queueSave(false, true);
 	}
 
 	async flush(keepalive = false): Promise<boolean> {
+		if (this.closed) return false;
 		this.keepalive ||= keepalive;
 		if (!this.state.session || !this.state.restored) return true;
+		if (this.state.error && !isRetryablePlaybackError(this.state.error.cause))
+			return false;
 		this.queueSave(false, true);
 		return (await this.sending) ?? this.state.error === null;
 	}
 
 	async dispose(): Promise<void> {
+		if (this.closed) return;
 		this.sampleEvidence();
 		this.evidence.reset();
 		this.playing = false;
 		this.capture();
 		this.detachEvents?.();
 		clearInterval(this.timer);
+		clearTimeout(this.retryTimer);
+		clearTimeout(this.seekTimer);
 		this.video = null;
 		this.closed = true;
 		await this.opening;
-		if (this.state.restored && !this.state.error) this.queueSave(false, true);
+		await this.sending;
+		if (
+			this.state.restored &&
+			(!this.state.error || isRetryablePlaybackError(this.state.error.cause))
+		)
+			this.queueSave(false, true);
 		await this.sending;
 		await this.release();
 	}
@@ -228,7 +279,7 @@ export class PlaybackSessionController {
 			!video ||
 			!this.metadataReady ||
 			this.state.restored ||
-			this.state.error ||
+			this.state.error?.operation === "load" ||
 			this.closed
 		)
 			return;
@@ -260,7 +311,7 @@ export class PlaybackSessionController {
 		if (
 			this.state.restored ||
 			!this.state.session ||
-			this.state.error ||
+			this.state.error?.operation === "load" ||
 			this.closed
 		)
 			return;
@@ -301,33 +352,20 @@ export class PlaybackSessionController {
 		};
 	}
 	private queueSave(ended = false, retry = false): void {
+		clearTimeout(this.seekTimer);
 		this.sampleEvidence();
 		this.capture(ended);
 		const session = this.state.session;
-		if (
-			!session ||
-			!this.state.restored ||
-			!this.position ||
-			(this.state.error && !retry)
-		)
-			return;
+		if (!session || !this.state.restored || !this.position) return;
 
-		if (
-			!this.pending &&
-			this.lastSaved?.positionMs === this.position.positionMs &&
-			this.lastSaved.durationMs === this.position.durationMs &&
-			this.lastSaved.normalPlayedMs === this.evidence.normalPlayedMs &&
-			this.lastSaved.naturalEnd === this.naturalEnd &&
-			!this.state.error
-		)
-			return;
 		// Preserve sequence/payload for an ambiguous failed write unless a newer position exists.
+		const latest = this.pending ?? this.inFlight ?? this.lastSaved;
 		if (
-			!this.pending ||
-			this.pending.positionMs !== this.position.positionMs ||
-			this.pending.durationMs !== this.position.durationMs ||
-			this.pending.normalPlayedMs !== this.evidence.normalPlayedMs ||
-			this.pending.naturalEnd !== this.naturalEnd
+			!latest ||
+			latest.positionMs !== this.position.positionMs ||
+			latest.durationMs !== this.position.durationMs ||
+			latest.normalPlayedMs !== this.evidence.normalPlayedMs ||
+			latest.naturalEnd !== this.naturalEnd
 		) {
 			this.pending = {
 				normalPlayedMs: this.evidence.normalPlayedMs,
@@ -338,7 +376,8 @@ export class PlaybackSessionController {
 				...this.position,
 			};
 		}
-		this.publish({ error: null });
+		if (!this.pending || (this.state.error && !retry)) return;
+		clearTimeout(this.retryTimer);
 		if (!this.sending) {
 			this.sending = this.drain().finally(() => {
 				this.sending = null;
@@ -351,21 +390,34 @@ export class PlaybackSessionController {
 			while (this.pending) {
 				const payload = this.pending;
 				this.pending = null;
+				this.inFlight = payload;
 				const session = this.state.session;
 				if (!session) return false;
 				try {
+					if (typeof navigator !== "undefined" && !navigator.onLine)
+						throw new ApiClientError({
+							kind: "network",
+							message: "Browser is offline.",
+						});
 					const result = await this.request((options) =>
 						savePlaybackProgress(session.token, payload, options),
 					);
 					this.lastSaved = payload;
+					if (this.state.error?.operation === "save")
+						console.info("[playback] Progress synchronization recovered.", {
+							fileId: this.fileId,
+						});
+					this.retryDelayMs = 0;
 					this.publish({
 						session: { ...session, progress: result.progress },
 						error: null,
 					});
 				} catch (cause) {
 					this.retainFailed(payload);
-					this.publish({ error: { operation: "save", cause } });
+					this.saveFailed(cause);
 					return false;
+				} finally {
+					this.inFlight = null;
 				}
 			}
 			return true;
@@ -376,9 +428,34 @@ export class PlaybackSessionController {
 	private retainFailed(payload: SavePlaybackProgressRequest) {
 		this.pending ??= payload;
 	}
+	private saveFailed(cause: unknown): void {
+		const retryable = isRetryablePlaybackError(cause);
+		if (!this.state.error || !retryable)
+			console.warn("[playback] Progress synchronization failed.", {
+				fileId: this.fileId,
+				retryable,
+				kind:
+					cause instanceof ApiClientError ? cause.kind : "timeout-or-unknown",
+				status: cause instanceof ApiClientError ? cause.status : null,
+				code: cause instanceof ApiClientError ? cause.code : null,
+				requestId: cause instanceof ApiClientError ? cause.requestId : null,
+			});
+		this.publish({ error: { operation: "save", cause } });
+		if (this.closed || !retryable) return;
+		this.retryDelayMs = Math.min(
+			this.retryDelayMs > 0
+				? this.retryDelayMs * 2
+				: this.policy.progressRetryInitialMs,
+			this.policy.progressRetryMaximumMs,
+		);
+		this.retryTimer = setTimeout(() => {
+			this.queueSave(false, true);
+		}, this.retryDelayMs);
+	}
 	private async release(): Promise<void> {
 		const session = this.state.session;
 		if (!session) return;
+		if (typeof navigator !== "undefined" && !navigator.onLine) return;
 		try {
 			await this.request((options) =>
 				releasePlaybackSession(session.token, options),

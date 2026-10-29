@@ -90,6 +90,31 @@ Progress, chapters and subtitle discovery retain source identity. Media time is
 mapped to source time before progress is saved, preserving resume across asset
 switches and preventing multiple histories for one original file.
 
+### Progress synchronization
+
+Normal-play evidence is sampled from media events independently of network saves.
+During playback, progress is saved every 15 seconds with a 15-second request
+timeout. Seek events are coalesced for 500 milliseconds; pauses, natural ends,
+page hiding and navigation flush the current source-time position immediately.
+Identical in-flight snapshots are not sent twice. Writes remain serialized and
+retain their sequence when retrying an unchanged snapshot after an ambiguous
+failure. A newer position, including a backward seek, replaces the pending snapshot.
+
+Network failures, timeouts, HTTP 408/429 and server errors retain pending progress
+and retry after 5, 10, 20, 40 and then at most every 60 seconds. Media events keep
+capturing the latest position without bypassing the retry delay. Known offline
+state suppresses requests; an online event retries transient save failures.
+One recoverable-failure notification remains deduplicated until a successful save.
+Conflicts, authorization errors and other permanent failures require explicit
+recovery and never silently reopen a session or overwrite a newer generation.
+
+Navigation makes one final save attempt after a transient failure, then releases
+the session without scheduling further retries. Pending progress is held in memory
+for the current page only: closing or refreshing while offline can still lose
+unsynchronized progress. Browser keepalive is best effort, not a delivery guarantee.
+Log synchronization failure and recovery transitions without session tokens,
+media URLs or filesystem paths.
+
 ## Persistence and diagnostics
 
 Migration `0016_prepared_media_descriptions` adds a nullable validated JSON
