@@ -216,7 +216,7 @@ function ConnectionForm({
 				}
 			>
 				<div className="flex flex-col gap-2 sm:col-span-2">
-					<div className="flex items-center justify-between gap-2">
+					<div className="field-heading justify-between">
 						<label className="field-label" htmlFor="qbittorrent-api-url">
 							{t("acquisition.api.url")}
 						</label>
@@ -237,9 +237,11 @@ function ConnectionForm({
 					/>
 				</div>
 				<div className="flex flex-col gap-2">
-					<label className="field-label" htmlFor="qbittorrent-api-username">
-						{t("acquisition.api.username")}
-					</label>
+					<div className="field-heading justify-between">
+						<label className="field-label" htmlFor="qbittorrent-api-username">
+							{t("acquisition.api.username")}
+						</label>
+					</div>
 					<Input
 						id="qbittorrent-api-username"
 						autoComplete="username"
@@ -251,7 +253,7 @@ function ConnectionForm({
 					/>
 				</div>
 				<div className="flex flex-col gap-2">
-					<div className="flex items-center justify-between gap-2">
+					<div className="field-heading justify-between">
 						<label className="field-label" htmlFor="qbittorrent-api-password">
 							{t("acquisition.api.password")}
 						</label>
