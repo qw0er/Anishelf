@@ -189,13 +189,11 @@ bash -n package/install.sh
 npm run test:deployment
 ```
 
-Fixtures use fake engines/network commands. When a local Quadlet generator is
-available, the installer suite also runs its `--user --dryrun` mode and verifies
-media mount arguments, including spaces, Unicode and SELinux options. Set
-`ANISHELF_TEST_QUADLET_BIN` to select a generator explicitly; this regression is
-skipped when none is installed. It starts no containers or systemd services.
-These checks do not prove live Compose or SELinux behavior; run the relevant
-Linux/runtime checks when changing those paths.
+Fixtures use fake engines/network commands and inspect rendered Quadlet templates
+directly, including media paths with spaces, Unicode and SELinux options. The
+installer suite does not discover or invoke a real Quadlet generator. These checks
+do not prove generator compatibility or live Compose or SELinux behavior; run the
+relevant Linux/runtime checks separately when changing those paths.
 
 Quadlet `Volume=` values are literal mount specifications, including paths with
 spaces. Do not surround the value with shell quotes: the generator handles
