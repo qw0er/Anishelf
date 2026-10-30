@@ -60,14 +60,14 @@ Original V1 delivered read-only originals, resource-root confinement, persistent
 
 | ID | Feature | Scope | Implemented in |
 | --- | --- | --- | --- |
-| L05 | Search filenames and choose sorting | Implemented: recursive name search and natural-name, size, or modification-time sorting | Unreleased |
+| L05 | Search filenames and choose sorting | Implemented: recursive name search and natural-name, size, or modification-time sorting | 1.3.0 |
 | L06 | Watch filesystem changes and update the library incrementally | Implemented: automatic updates for affected files and folders, with monitoring failure recovery | 0.4.1 |
 | L07 | Parse anime titles, seasons, episode numbers, and release variants from filenames | Implemented: filename/directory extraction with preserved evidence | 0.3.0 |
 | L08 | Review unidentified files and manually link or correct anime and episode associations | Implemented: clear-match automatic admission, manual Review and protection against conflicting corrections | 0.3.0 |
 | L09 | Distinguish regular episodes, specials, continuous season numbering, and multi-episode files | Implemented: candidate-specific episode proposals, unresolved ambiguity and confirmed corrections | 0.3.0 |
 | L10 | Associate multiple file versions with an episode and select a version for playback | Implemented: episode associations and Web version selection with changed-file protection | 0.3.0 |
 | L12 | Configure and manage multiple resource roots | Implemented: multiple non-overlapping paths, separate Files entries, partial scan recovery and preserved settings/history | 0.4.1 |
-| L13 | Move and delete files or folders with preservation rules | Implemented: direct confirmed same-filesystem moves and recursive deletion; retained decisions/history and writable deployment | Unreleased |
+| L13 | Move and delete files or folders with preservation rules | Implemented: direct confirmed same-filesystem moves and recursive deletion; retained decisions/history and writable deployment | 1.3.0 |
 | L14 | Download an existing original media file from the Web interface to the user's device | Implemented | 0.2.5 |
 | L15 | Batch Review with shared work selection and episode-number offset previews | Later | — |
 | L16 | Improve matching using representative real-world failure cases | Later | — |
