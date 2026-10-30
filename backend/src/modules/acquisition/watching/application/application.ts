@@ -3,6 +3,7 @@ import type { Logger } from "pino";
 import { abortable } from "../../../../shared/abortable.js";
 import { DomainError } from "../../../../shared/errors.js";
 import { workReference } from "../../../../shared/external-reference.js";
+import { isActiveViewing } from "../../../anime/public.js";
 import type { SourcesApi } from "../../sources/public.js";
 import type {
 	SaveSubscriptionInput,
@@ -114,10 +115,15 @@ export class WatchingApplication implements WatchingApi {
 		return this.options.store.member(accountId, key);
 	}
 	private put(row: WatchingMember) {
+		const viewingStatus =
+			this.snapshot().entries.find((entry) => entry.workKey === row.workKey)
+				?.status ?? null;
 		if (this.member(row.accountId, row.workKey)?.reason !== row.reason)
 			this.options.logger.info(
 				{
 					event: "acquisition.watching_decision",
+					viewingStatus,
+					activeViewing: isActiveViewing(viewingStatus),
 					workKey: row.workKey,
 					accountId: row.accountId,
 					reason: row.reason,
@@ -150,7 +156,7 @@ export class WatchingApplication implements WatchingApi {
 		)
 			return "tracking_account_changed";
 		if (
-			snapshot.entries.filter((entry) => entry.status === "watching").length >
+			snapshot.entries.filter((entry) => isActiveViewing(entry.status)).length >
 			500
 		)
 			return "work_limit";
@@ -201,7 +207,8 @@ export class WatchingApplication implements WatchingApi {
 		if (
 			!this.snapshot().entries.some(
 				(entry) =>
-					entry.workKey === subscription.workKey && entry.status === "watching",
+					entry.workKey === subscription.workKey &&
+					isActiveViewing(entry.status),
 			)
 		)
 			return "not_watching";
@@ -244,7 +251,7 @@ export class WatchingApplication implements WatchingApi {
 		const keys = [
 			...new Set([
 				...snapshot.entries
-					.filter((entry) => entry.status === "watching")
+					.filter((entry) => isActiveViewing(entry.status))
 					.map((entry) => entry.workKey),
 				...rows.map((row) => row.workKey),
 			]),
@@ -293,7 +300,7 @@ export class WatchingApplication implements WatchingApi {
 			.update(
 				JSON.stringify(
 					snapshot.entries
-						.filter((entry) => entry.status === "watching")
+						.filter((entry) => isActiveViewing(entry.status))
 						.map((entry) => [
 							entry.workKey,
 							this.options.subscription(entry.workKey)?.revision,
@@ -340,8 +347,8 @@ export class WatchingApplication implements WatchingApi {
 				"Validate a download destination and configure a release profile and source sites first.",
 			);
 		if (revision !== this.policy().revision) conflict();
-		const entries = snapshot.entries.filter(
-			(entry) => entry.status === "watching",
+		const entries = snapshot.entries.filter((entry) =>
+			isActiveViewing(entry.status),
 		);
 		if (entries.length > 500)
 			throw new DomainError(
@@ -405,6 +412,9 @@ export class WatchingApplication implements WatchingApi {
 			{
 				event: "acquisition.watching_previewed",
 				works: entries.length,
+				rewatchingWorks: entries.filter(
+					(entry) => entry.status === "rewatching",
+				).length,
 				profileId: config.profileId,
 				backlog: config.backlog,
 			},
@@ -566,8 +576,8 @@ export class WatchingApplication implements WatchingApi {
 		}
 		let attempted = 0,
 			deferred = false;
-		for (const entry of snapshot.entries.filter(
-			(entry) => entry.status === "watching",
+		for (const entry of snapshot.entries.filter((entry) =>
+			isActiveViewing(entry.status),
 		)) {
 			this.guard(policy, snapshot);
 			const existing = this.options.subscription(entry.workKey);
@@ -633,6 +643,8 @@ export class WatchingApplication implements WatchingApi {
 				this.options.logger.info(
 					{
 						event: "acquisition.watching_subscription_created",
+						viewingStatus: entry.status,
+						activeViewing: isActiveViewing(entry.status),
 						workKey: entry.workKey,
 						grantId: grant.id,
 					},

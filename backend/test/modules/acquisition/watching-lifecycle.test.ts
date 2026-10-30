@@ -16,12 +16,18 @@ test("Watching group gates existing subscriptions while manual takeover and paus
 	await f.watching.tick();
 	await f.subscriptions.resolvePending();
 	const saved = required(f.db.acquisition.subscription(workKey));
-	for (const status of ["paused", "completed", "dropped", "watching"]) {
+	for (const status of [
+		"paused",
+		"completed",
+		"dropped",
+		"watching",
+		"rewatching",
+	]) {
 		required(f.snapshot.entries[0]).status = status;
 		f.snapshot.revision = status;
 		await f.watching.tick();
 		expect(f.subscriptions.selection().subscription(workKey)?.enabled).toBe(
-			status === "watching",
+			status === "watching" || status === "rewatching",
 		);
 	}
 	f.snapshot.fresh = false;
@@ -252,4 +258,58 @@ test("renewal preserves manual priority and repairs managed pending scope after 
 	expect(f.db.acquisition.authorization(workKey)?.destinationRevision).toBe(
 		"new-destination",
 	);
+});
+
+test.each(["watching", "rewatching"])(
+	"%s transitions preserve automatic intent and configuration",
+	async (initial) => {
+		const f = await fixture();
+		const entry = required(f.snapshot.entries[0]);
+		entry.status = initial;
+		await f.enable();
+		await f.watching.tick();
+		await f.subscriptions.resolvePending();
+		const saved = required(f.db.acquisition.subscription(workKey));
+		const authorization = f.db.acquisition.authorization(workKey);
+		for (const status of [
+			"rewatching",
+			"watching",
+			"rewatching",
+			"paused",
+			"completed",
+			"dropped",
+			"planned",
+			"rewatching",
+		]) {
+			entry.status = status;
+			entry.progress = 8;
+			f.snapshot.revision = `${initial}-${status}`;
+			await f.watching.tick();
+			expect(f.db.acquisition.subscription(workKey)).toEqual(saved);
+			expect(f.db.acquisition.authorization(workKey)).toEqual(authorization);
+			expect(f.subscriptions.get(workKey).subscription?.runState).toBe(
+				status === "watching" || status === "rewatching"
+					? "active"
+					: "not_watching",
+			);
+		}
+	},
+);
+
+test("entering Rewatching leaves completed subscriptions completed without new discovery", async () => {
+	const f = await fixture();
+	await f.enable();
+	await f.watching.tick();
+	f.target.work.episodeCount = 3;
+	f.target.availableEpisodes = [3];
+	await f.subscriptions.checkCompletion();
+	const saved = f.db.acquisition.subscription(workKey);
+	required(f.snapshot.entries[0]).status = "rewatching";
+	required(f.snapshot.entries[0]).progress = 0;
+	f.snapshot.revision = "rewatching";
+	await f.watching.tick();
+	await f.subscriptions.resolvePending();
+	expect(f.subscriptions.get(workKey).subscription?.runState).toBe("completed");
+	expect(f.db.acquisition.subscription(workKey)).toEqual(saved);
+	expect(f.search).not.toHaveBeenCalled();
 });

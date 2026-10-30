@@ -1,7 +1,7 @@
 # Subscriptions and Watching
 
 Subscribe manually from a work's details, or opt into automatic creation from your
-AniList Watching list. Manual subscriptions are independent; Watching subscriptions belong to an automatic group. Both share source selection, download and import processing.
+AniList Watching and Rewatching entries. Manual subscriptions are independent; Watching subscriptions belong to an automatic group. Both share source selection, download and import processing.
 
 ## Setup
 
@@ -22,6 +22,14 @@ Watching is off by default. Its preview creates no subscriptions/downloads. Chan
 account/site/profile/target scope requires a new preview. Invalid or fractional
 progress, or progress of at least 10000, cannot create a progress-based subscription.
 
+Watching and Rewatching share active membership, including previews and the 500-work
+limit. Library’s Watching filter includes both; the Rewatching filter stays exact.
+Progress belongs to the current viewing pass: progress 3 selects episode 4 next,
+subject to local availability and version selection. Progress-only synchronization
+preserves Rewatching and never resets progress automatically. Local playback positions
+and history remain independent. Existing files are reused under the usual coverage
+and duplicate-acquisition checks.
+
 ## Everyday behavior
 
 | Action / state | Result |
@@ -36,20 +44,21 @@ progress, or progress of at least 10000, cannot create a progress-based subscrip
 | Convert to manual | Review and save the work editor; automatic management ends and the saved settings take precedence |
 | Unsubscribe | Record a Watching recreation exclusion; submitted transfers/imports continue |
 | Disable Watching | Stop automatic creation, discovery, refresh and new submissions; manual subscriptions and submitted downloads/imports continue |
-| Leave/rejoin Watching | Pause/resume automatic acquisition; preserve the starting episode and saved profile |
+| Leave/rejoin the active group | Pause/resume automatic acquisition; preserve the starting episode and saved profile |
+| Switch between Watching and Rewatching | Keep the same automatic subscription, starting episode, profile and source configuration |
 | Account or accepted scope changes | Stop automatic acquisition until a fresh preview is confirmed; never adopt another account’s subscriptions |
 | Full local coverage | Mark completed and stop acquisition for either subscription type; keep configuration and history |
 
 Watching and pending-source discovery each run every 30 seconds, at most five works
 per pass. Unresolved discovery retries after five minutes; **Check updates** bypasses
 that local wait while respecting transport limits. Source refresh defaults to 30
-minutes. Limits are 64 subscriptions and 500 current Watching works.
+minutes. Limits are 64 subscriptions and 500 current Watching or Rewatching works.
 
 Completion requires every episode from the saved starting episode through a known
 integer total to be verified and locally available. Unknown totals, tracking progress,
 downloading and pending imports do not establish completion. Completed subscriptions
-are not recreated by Watching. **Resume subscription** explicitly resumes acquisition
-without immediately completing the same range again. A later increase in the metadata
+are not recreated or reopened merely by entering Rewatching. **Resume subscription**
+explicitly resumes acquisition without immediately completing the same range again. A later increase in the metadata
 episode total rechecks coverage and can reopen acquisition, subject to manual pause
 and automatic-group controls. Removing files alone does not resume a completed subscription.
 Coverage is checked every 30 seconds using metadata and local availability; completed

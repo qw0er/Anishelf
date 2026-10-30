@@ -1,3 +1,5 @@
+export { isActiveViewing } from "./domain/viewing.js";
+
 import type { TrackingListSnapshot } from "./domain/list.js";
 import type { TrackingPreview, TrackingStatus } from "./domain/model.js";
 import type {
