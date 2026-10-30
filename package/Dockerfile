@@ -43,7 +43,7 @@ ENV NODE_ENV=production \
     ANISHELF_FFMPEG_PATH=/usr/bin/ffmpeg \
     ANISHELF_FFPROBE_PATH=/usr/bin/ffprobe
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg ca-certificates coreutils \
+    && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /data/app /data/media \
     && chown -R node:node /data

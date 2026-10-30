@@ -153,8 +153,9 @@ Stop active downloading/seeding in qBittorrent before changing its files. These
 commands do not pause or remove remote tasks, and active clients may recreate files.
 Hard links, snapshots or open file handles can retain disk space after deletion. If an operation or reconciliation fails, refresh Files and run
 a manual scan; inspect `resources.command_*` logs. A partial deletion can leave a
-remaining subtree (or an isolated `.anishelf-delete-*` entry if restoration fails).
+remaining subtree at its original location.
 
 Backend needs directory write/search permissions. Read-only mounts remain usable
-for browsing/playback but reject mutation commands. Source installations require
-Linux procfs and GNU coreutils with `mv --no-copy --update=none-fail` (9.5 or later).
+for browsing/playback but reject mutation commands. Move/Delete uses Node filesystem APIs and requires no external filesystem tools.
+An existing move destination is rejected before the operation. Avoid concurrent
+changes to the same paths from other applications during these commands.

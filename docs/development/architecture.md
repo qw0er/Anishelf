@@ -521,15 +521,17 @@ Resources owns file/folder move and permanent recursive deletion. HTTP accepts
 opaque indexed IDs, an action and an existing destination directory ID; it never
 accepts a filesystem path or a replacement name. One authenticated command follows
 the dialog confirmation; there is no preview endpoint or browser confirmation token.
-Under the scan/settings/publication gate, execution validates the current source tree
-and destination, rejects indexed media whose version changed, and checks the tree
-fingerprint again before mutation. Trees above 100,000 entries, symlinks and special
-files are rejected.
+Under the scan/settings/publication gate, execution validates the source and
+existing destination directory, rejects indexed media whose version changed,
+and rejects resource-root operations, traversal, symbolic-link paths, special
+source files, self/subtree moves and destinations that already exist.
 
-Linux procfs directory descriptors pin path ancestors without following symlinks.
-GNU coreutils `mv --no-copy --update=none-fail -T` provides no-replacement moves,
-without a copy fallback across devices. The same mechanism isolates a deletion
-before Node removes it; partial failure attempts to restore the remaining subtree.
+Node filesystem APIs perform same-filesystem moves with `rename` and recursive
+deletion with `rm`. Nested symlinks are removed without following their targets.
+There is no recursive fingerprint, descriptor pinning, isolation rename or rollback.
+The destination existence check precedes rename; external concurrent changes
+between validation and mutation are outside the command's guarantees. Moves across
+filesystems fail without copying. No external filesystem tool is required.
 Affected roots are reconciled before releasing the gate, including after failures.
 Reconciliation failure degrades monitoring and returns explicit rescan feedback.
 Commands log start/completion/failure without touching Catalog decisions,

@@ -131,22 +131,6 @@ test("rejects files changed since indexing", async () => {
 	);
 });
 
-test("rejects changed descendants between server validation and execution", async () => {
-	const access = await ResourceMutations.create(root);
-	try {
-		const inspected = await access.inspect("Season");
-		await writeFile(join(root, "Season", "Extras", "sub.srt"), "changed!");
-		await expect(
-			access.execute("Season", inspected.treeToken),
-		).rejects.toMatchObject({ code: "RESOURCE_CONFLICT" });
-		expect(await readFile(join(root, "Season", "episode.mp4"), "utf8")).toBe(
-			"video",
-		);
-	} finally {
-		await access.close();
-	}
-});
-
 test("rejects root operations, subtree moves, overwrites, symlinks and invalid commands", async () => {
 	expect((await command({ id: "root", action: "delete" })).statusCode).toBe(
 		403,
@@ -167,10 +151,7 @@ test("rejects root operations, subtree moves, overwrites, symlinks and invalid c
 		(await command({ id: season.id, action: "move", destinationId: target.id }))
 			.statusCode,
 	).toBe(409);
-	await symlink(fixture, join(root, "Season", "escape"));
-	expect((await command({ id: season.id, action: "delete" })).statusCode).toBe(
-		403,
-	);
+
 	expect((await command({ id: season.id, action: "rename" })).statusCode).toBe(
 		400,
 	);
@@ -202,42 +183,34 @@ test("does not overwrite an existing destination", async () => {
 	).toBe("keep");
 });
 
-test("uses the filesystem no-replacement primitive even when a target appears after validation", async () => {
+test("rejects traversal, symbolic-link parents and symbolic-link targets", async () => {
 	const access = await ResourceMutations.create(root);
-	try {
-		const inspected = await access.inspect("Season");
-		const identity = await access.destination(
-			"Target",
-			"Season",
-			inspected.info.dev,
-		);
-		await mkdir(join(root, "Target", "Season"));
-		await expect(
-			access.execute("Season", inspected.treeToken, {
-				access,
-				path: "Target",
-				identity,
-			}),
-		).rejects.toMatchObject({ code: "RESOURCE_WRITE_FAILED" });
-		expect(await readFile(join(root, "Season", "episode.mp4"), "utf8")).toBe(
-			"video",
-		);
-	} finally {
-		await access.close();
-	}
+	await symlink(fixture, join(root, "escape"));
+	await expect(access.execute("../outside.mp4")).rejects.toMatchObject({
+		code: "RESOURCE_ACCESS_DENIED",
+	});
+	await expect(access.execute("escape/outside.mp4")).rejects.toMatchObject({
+		code: "RESOURCE_ACCESS_DENIED",
+	});
+	await expect(access.execute("escape")).rejects.toMatchObject({
+		code: "RESOURCE_ACCESS_DENIED",
+	});
+	await expect(
+		access.execute("Season", { access, path: "escape" }),
+	).rejects.toMatchObject({
+		code: "RESOURCE_ACCESS_DENIED",
+	});
 });
 
-test("pins directory parents and rejects traversal and symbolic-link parents", async () => {
-	const access = await ResourceMutations.create(root);
-	try {
-		await symlink(fixture, join(root, "escape"));
-		await expect(access.inspect("../outside.mp4")).rejects.toMatchObject({
-			code: "RESOURCE_ACCESS_DENIED",
-		});
-		await expect(access.inspect("escape/outside.mp4")).rejects.toBeDefined();
-	} finally {
-		await access.close();
-	}
+test("recursive deletion removes nested symlinks without deleting their targets", async () => {
+	const outside = join(fixture, "outside");
+	await mkdir(outside);
+	await writeFile(join(outside, "keep.txt"), "keep");
+	await symlink(outside, join(root, "Season", "escape"));
+	expect(
+		(await command({ id: find("Season").id, action: "delete" })).statusCode,
+	).toBe(200);
+	expect(await readFile(join(outside, "keep.txt"), "utf8")).toBe("keep");
 });
 
 test("holds the scan/settings gate until the mutation and reconciliation finish", async () => {

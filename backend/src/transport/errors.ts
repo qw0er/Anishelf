@@ -11,7 +11,7 @@ const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
 	RESOURCE_WRITE_FAILED: {
 		status: 403,
 		message:
-			"The operation could not finish. Refresh Files and check media write permissions and GNU coreutils support on the server.",
+			"The operation could not finish. Refresh Files and check media write permissions on the server.",
 	},
 	NETWORK_ORIGIN_REJECTED: {
 		status: 403,
