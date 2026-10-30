@@ -5,7 +5,6 @@ from __future__ import annotations
 import sys
 import zipfile
 from pathlib import Path
-from typing import Optional
 
 from .errors import InstallerError
 from .log import log
@@ -18,8 +17,8 @@ class AssetSource:
 
     def __init__(self) -> None:
         self.commit = "bundled"
-        self._archive: Optional[zipfile.ZipFile] = None
-        self._root: Optional[Path] = None
+        self._archive: zipfile.ZipFile | None = None
+        self._root: Path | None = None
 
         executable = Path(sys.argv[0]).resolve() if sys.argv and sys.argv[0] else None
         if (

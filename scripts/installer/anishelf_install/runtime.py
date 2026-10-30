@@ -11,7 +11,6 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Optional
 
 from .config import Settings
 from .errors import InstallerError
@@ -53,7 +52,7 @@ def need(command: str) -> None:
 def run(
     args: list[str],
     *,
-    env: Optional[dict[str, str]] = None,
+    env: dict[str, str] | None = None,
     capture: bool = False,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
@@ -77,7 +76,7 @@ def run(
     return completed
 
 
-def detect_engine(explicit: Optional[str]) -> tuple[str, str]:
+def detect_engine(explicit: str | None) -> tuple[str, str]:
     """Return ``(engine, method)`` without prompting.
 
     Auto-detection is unambiguous only when exactly one engine is installed.
@@ -176,7 +175,7 @@ class BackupManager:
 
     def __init__(self, force: bool) -> None:
         self.force = force
-        self.directory: Optional[Path] = None
+        self.directory: Path | None = None
 
     def backup_conflict(self, source: Path, near: Path) -> Path:
         if not self.force or not is_regular_file(source):
@@ -315,11 +314,14 @@ def _check_existing_units(
                 continue
             if not known_unit(path.name, settings.stack):
                 raise InstallerError(f"Existing Anishelf unit is preserved: {path}")
-            if replacement:
-                bundled = deploy_dir / "quadlet" / path.name
-                if is_regular_file(path) and is_regular_file(bundled):
-                    if path.read_bytes() == bundled.read_bytes():
-                        continue
+            bundled = deploy_dir / "quadlet" / path.name
+            if (
+                replacement
+                and is_regular_file(path)
+                and is_regular_file(bundled)
+                and path.read_bytes() == bundled.read_bytes()
+            ):
+                continue
             if force and is_regular_file(path):
                 continue
             raise InstallerError(f"Existing Anishelf unit is preserved: {path}")

@@ -244,7 +244,7 @@ def main(argv: list[str] | None = None) -> int:
     except OSError as error:
         LOG.failure(str(error))
         return 1
-    except Exception as error:  # pragma: no cover - defensive CLI guard
+    except Exception as error:  # noqa: BLE001  # pragma: no cover
         LOG.failure(f"Unexpected failure: {error}")
         traceback.print_exc()
         return 1
