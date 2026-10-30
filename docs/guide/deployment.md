@@ -283,8 +283,7 @@ unless intentionally deleting it. Use script removal for installer-managed folde
 
 ## Source installation
 
-With Node.js 24, npm and FFmpeg/FFprobe installed (Move/Delete additionally
-requires Linux procfs and GNU coreutils 9.5 or later):
+With Node.js 24, npm and FFmpeg/FFprobe installed:
 
 ```sh
 npm ci
@@ -310,6 +309,6 @@ Grant the Backend container user write/search permission on managed directories;
 the installer does not recursively chown host media. Rootless Quadlet keeps the
 host user's identity; Compose runs Backend as the image's `node` user (UID 1000).
 Retain shared `z` labels on SELinux host media mounts used by Backend/qBittorrent.
-The Backend image includes GNU coreutils for no-overwrite, same-filesystem moves.
+Move/Delete uses Node filesystem APIs without an external coreutils dependency.
 See [operations](operations.md#move-and-delete-originals) for confirmation,
 preservation and download-client behavior.

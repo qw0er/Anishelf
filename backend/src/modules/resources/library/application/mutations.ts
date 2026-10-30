@@ -51,64 +51,39 @@ export class ResourceCommands {
 			);
 		const access = await ResourceMutations.create(root.path);
 		let target: ResourceMutations | undefined;
-		try {
-			const inspected = await access.inspect(entry.relativePath);
-			if ((entry.kind === "directory") !== inspected.info.isDirectory())
-				throw new DomainError(
-					"RESOURCE_CONFLICT",
-					"The resource kind changed.",
-				);
-			const destination = input.destinationId
-				? this.options.index.getDirectory(input.destinationId)
-				: undefined;
-			if (destination && !destination.scopeId)
-				throw new DomainError(
-					"INVALID_REQUEST",
-					"Choose a directory within a resource root.",
-				);
-			if (
-				destination?.scopeId === entry.scopeId &&
-				(destination.relativePath === entry.relativePath ||
-					destination.relativePath.startsWith(`${entry.relativePath}${sep}`))
-			)
-				throw new DomainError(
-					"RESOURCE_CONFLICT",
-					"A folder cannot be moved into itself.",
-				);
-			const targetRoot = destination
-				? await this.options.roots.resolve(
-						this.options.settings(),
-						destination.scopeId,
-					)
-				: undefined;
-			if (targetRoot) {
-				await this.options.roots.open(targetRoot);
-				target = await ResourceMutations.create(targetRoot.path);
-			}
-			const destinationIdentity =
-				destination && target
-					? await target.destination(
-							destination.relativePath,
-							entry.name,
-							inspected.info.dev,
-						)
-					: undefined;
-			return {
-				entry,
-				root,
-				access,
-				target,
-				targetRoot,
-				destination,
-				destinationIdentity,
-				inspected,
-			};
-		} catch (error) {
-			await access.close();
-			await target?.close();
-			throw error;
+		const inspected = await access.inspect(entry.relativePath);
+		if ((entry.kind === "directory") !== inspected.info.isDirectory())
+			throw new DomainError("RESOURCE_CONFLICT", "The resource kind changed.");
+		const destination = input.destinationId
+			? this.options.index.getDirectory(input.destinationId)
+			: undefined;
+		if (destination && !destination.scopeId)
+			throw new DomainError(
+				"INVALID_REQUEST",
+				"Choose a directory within a resource root.",
+			);
+		if (
+			destination?.scopeId === entry.scopeId &&
+			(destination.relativePath === entry.relativePath ||
+				destination.relativePath.startsWith(`${entry.relativePath}${sep}`))
+		)
+			throw new DomainError(
+				"RESOURCE_CONFLICT",
+				"A folder cannot be moved into itself.",
+			);
+		const targetRoot = destination
+			? await this.options.roots.resolve(
+					this.options.settings(),
+					destination.scopeId,
+				)
+			: undefined;
+		if (targetRoot) {
+			await this.options.roots.open(targetRoot);
+			target = await ResourceMutations.create(targetRoot.path);
 		}
+		return { entry, root, access, target, targetRoot, destination };
 	}
+
 	private translate(error: unknown): never {
 		if (error instanceof DomainError) throw error;
 		throw new DomainError(
@@ -133,16 +108,11 @@ export class ResourceCommands {
 					},
 					"Resource operation started.",
 				);
-				const { target, destination, destinationIdentity } = prepared;
+				const { target, destination } = prepared;
 				await prepared.access.execute(
 					prepared.entry.relativePath,
-					prepared.inspected.treeToken,
-					target && destination && destinationIdentity
-						? {
-								access: target,
-								path: destination.relativePath,
-								identity: destinationIdentity,
-							}
+					target && destination
+						? { access: target, path: destination.relativePath }
 						: undefined,
 				);
 				const healthy = await reconcile([
@@ -175,9 +145,6 @@ export class ResourceCommands {
 						...(prepared.targetRoot ? [prepared.targetRoot] : []),
 					]);
 				return this.translate(error);
-			} finally {
-				await prepared?.access.close();
-				await prepared?.target?.close();
 			}
 		});
 	}
