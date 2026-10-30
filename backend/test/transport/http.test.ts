@@ -1,0 +1,487 @@
+import pino from "pino";
+import { afterEach, expect, test } from "vitest";
+import { DomainError } from "../../src/shared/errors.js";
+import { createHttpApp } from "../support/http.js";
+
+const apps: ReturnType<typeof createHttpApp>[] = [];
+const headers = { host: "127.0.0.1:3000" };
+function application(
+	development = false,
+	host = "127.0.0.1",
+	publicOrigin?: string,
+	allowedHosts?: readonly string[],
+) {
+	const app = createHttpApp({
+		config: {
+			host,
+			port: 3000,
+			...(publicOrigin === undefined ? {} : { publicOrigin }),
+			...(allowedHosts ? { allowedHosts } : {}),
+		},
+		logger: pino({ enabled: false }),
+		development,
+	});
+	app.post(
+		"/api/test",
+		{
+			schema: {
+				body: {
+					type: "object",
+					additionalProperties: false,
+					required: ["count"],
+					properties: { count: { type: "integer" } },
+				},
+			},
+		},
+		async (request) => request.body,
+	);
+	apps.push(app);
+	return app;
+}
+afterEach(async () => {
+	await Promise.all(apps.splice(0).map((app) => app.close()));
+});
+
+test("health responds with fresh server-generated request IDs", async () => {
+	const app = application();
+	const first = await app.inject({
+		url: "/api/health",
+		headers: { ...headers, "x-request-id": "untrusted-client-id" },
+	});
+	const second = await app.inject({ url: "/api/health", headers });
+	expect(first.statusCode).toBe(200);
+	expect(first.json()).toEqual({ status: "ok" });
+	expect(first.headers["x-request-id"]).toMatch(/^[\da-f-]{36}$/);
+	expect(first.headers["x-request-id"]).not.toBe(
+		second.headers["x-request-id"],
+	);
+});
+
+test("unknown endpoints return the public error contract", async () => {
+	const response = await application().inject({ url: "/missing", headers });
+	expect(response.statusCode).toBe(404);
+	expect(response.json()).toEqual({
+		error: {
+			code: "ROUTE_NOT_FOUND",
+			message: "The requested endpoint was not found.",
+			requestId: response.headers["x-request-id"],
+		},
+	});
+});
+
+test.each(["127.0.0.1:3000@evil.example", "127.0.0.1:3000/path", "["])(
+	"rejects unexpected or malformed Host: %s",
+	async (host) => {
+		const response = await application().inject({
+			url: "/api/health",
+			headers: { host, "x-forwarded-host": headers.host },
+		});
+		expect(response.statusCode).toBe(400);
+		expect(response.json().error.code).toBe("INVALID_REQUEST");
+	},
+);
+
+test.each(["127.0.0.1:3000", "localhost:3000"])(
+	"accepts expected Host: %s",
+	async (host) => {
+		expect(
+			(await application().inject({ url: "/api/health", headers: { host } }))
+				.statusCode,
+		).toBe(200);
+	},
+);
+
+test("accepts configured IPv6 loopback Host", async () => {
+	expect(
+		(
+			await application(false, "::1").inject({
+				url: "/api/health",
+				headers: { host: "[::1]:3000" },
+			})
+		).statusCode,
+	).toBe(200);
+});
+
+test.each([
+	["https://anime.example.com", "anime.example.com"],
+	["https://anime.example.com", "anime.example.com:443"],
+	["https://anime.example.com:8443", "anime.example.com:8443"],
+	["https://anime.example.com:80", "anime.example.com:80"],
+	["http://anime.example.com", "anime.example.com:80"],
+])(
+	"accepts proxy Host and mutation Origin for %s (%s)",
+	async (origin, host) => {
+		const app = application(false, "127.0.0.1", origin);
+		expect(
+			(await app.inject({ url: "/api/health", headers: { host } })).statusCode,
+		).toBe(200);
+		const response = await app.inject({
+			method: "POST",
+			url: "/api/test",
+			headers: {
+				host,
+				origin,
+				"x-forwarded-proto": new URL(origin).protocol.slice(0, -1),
+				"sec-fetch-site": "same-origin",
+			},
+			payload: { count: 1 },
+		});
+		expect(response.statusCode).toBe(200);
+		expect(response.json()).toEqual({ count: 1 });
+		expect((await app.inject({ url: "/api/health", headers })).statusCode).toBe(
+			200,
+		);
+	},
+);
+
+test.each(["evil.example.com", "anime.example.com@evil.example.com"])(
+	"optional Host allowlist ignores forged forwarded headers: %s",
+	async (host) => {
+		const response = await application(
+			false,
+			"127.0.0.1",
+			"https://anime.example.com",
+			["anime.example.com"],
+		).inject({
+			url: "/api/health",
+			headers: {
+				host,
+				"x-forwarded-host": "anime.example.com",
+				"x-forwarded-proto": "https",
+			},
+		});
+		expect(response.statusCode).toBe(400);
+	},
+);
+
+test.each([
+	{ origin: "https://evil.example.com" },
+	{ origin: "http://anime.example.com" },
+	{ origin: "null" },
+	{ origin: "http://127.0.0.1:3000" },
+	{ origin: "https://anime.example.com", "sec-fetch-site": "cross-site" },
+])("rejects untrusted proxy mutation headers: %j", async (mutationHeaders) => {
+	const response = await application(
+		false,
+		"127.0.0.1",
+		"https://anime.example.com",
+	).inject({
+		method: "POST",
+		url: "/api/test",
+		headers: {
+			host: "anime.example.com",
+			"x-forwarded-proto": "https",
+			...mutationHeaders,
+		},
+		payload: { count: 1 },
+	});
+	expect(response.statusCode).toBe(403);
+});
+
+test.each([undefined, "http://127.0.0.1:3000"])(
+	"accepts a mutation with no Origin or the same Origin: %s",
+	async (origin) => {
+		const response = await application().inject({
+			method: "POST",
+			url: "/api/test",
+			headers: { ...headers, ...(origin ? { origin } : {}) },
+			payload: { count: 1 },
+		});
+		expect(response.statusCode).toBe(200);
+		expect(response.json()).toEqual({ count: 1 });
+	},
+);
+
+test.each(["https://evil.example", "null", "http://127.0.0.1:5173"])(
+	"rejects untrusted production mutation Origin: %s",
+	async (origin) => {
+		const response = await application().inject({
+			method: "POST",
+			url: "/api/test",
+			headers: { ...headers, origin },
+			payload: { count: 1 },
+		});
+		expect(response.statusCode).toBe(403);
+		expect(response.json().error.code).toBe("NETWORK_ORIGIN_REJECTED");
+	},
+);
+
+test.each(["http://127.0.0.1:5173", "http://localhost:5173"])(
+	"accepts the fixed development proxy Origin: %s",
+	async (origin) => {
+		expect(
+			(
+				await application(true).inject({
+					method: "POST",
+					url: "/api/test",
+					headers: { ...headers, origin },
+					payload: { count: 1 },
+				})
+			).statusCode,
+		).toBe(200);
+	},
+);
+
+test("rejects browser cross-site mutation metadata even without Origin", async () => {
+	const response = await application().inject({
+		method: "POST",
+		url: "/api/test",
+		headers: { ...headers, "sec-fetch-site": "cross-site" },
+		payload: { count: 1 },
+	});
+	expect(response.statusCode).toBe(403);
+});
+
+test.each([{ count: "1" }, { count: 1, extra: true }, {}])(
+	"validates request bodies without coercing or removing invalid fields: %j",
+	async (payload) => {
+		const response = await application().inject({
+			method: "POST",
+			url: "/api/test",
+			headers,
+			payload,
+		});
+		expect(response.statusCode).toBe(400);
+		expect(response.json().error.code).toBe("INVALID_REQUEST");
+	},
+);
+
+test("malformed JSON and oversized requests use safe errors", async () => {
+	const app = application();
+	for (const [payload, status] of [
+		["{", 400],
+		[JSON.stringify({ secret: "x".repeat(65536) }), 413],
+	] as const) {
+		const response = await app.inject({
+			method: "POST",
+			url: "/api/test",
+			headers: { ...headers, "content-type": "application/json" },
+			payload,
+		});
+		expect(response.statusCode).toBe(status);
+		expect(response.json().error.code).toBe("INVALID_REQUEST");
+		expect(response.json().error.requestId).toBe(
+			response.headers["x-request-id"],
+		);
+	}
+});
+
+test("maps domain and unexpected errors without exposing internal paths", async () => {
+	const app = application();
+	app.get("/api/domain", async () => {
+		throw new DomainError("RESOURCE_MISSING", "/private/media/video.mp4");
+	});
+	app.get("/api/failure", async () => {
+		throw new Error("/private/settings.json secret");
+	});
+	for (const [url, status, code] of [
+		["/api/domain", 404, "RESOURCE_MISSING"],
+		["/api/failure", 500, "INTERNAL_ERROR"],
+	] as const) {
+		const response = await app.inject({ url, headers });
+		expect(response.statusCode).toBe(status);
+		expect(response.json().error.code).toBe(code);
+		expect(response.body).not.toContain("/private");
+		expect(response.body).not.toContain("secret");
+	}
+});
+
+test("bootstrap owns one awaited dependency shutdown", async () => {
+	let closed = 0;
+	let release!: () => void;
+	const cleanup = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const app = createHttpApp({
+		config: { host: "127.0.0.1", port: 3000 },
+		logger: pino({ enabled: false }),
+		closeDependencies: async () => {
+			closed += 1;
+			await cleanup;
+		},
+	});
+	await app.ready();
+	let finished = false;
+	const stopping = app.close().then(() => {
+		finished = true;
+	});
+	try {
+		await new Promise<void>((resolve) => setImmediate(resolve));
+		expect(closed).toBe(1);
+		expect(finished).toBe(false);
+	} finally {
+		release();
+		await stopping;
+	}
+	expect(finished).toBe(true);
+	expect(closed).toBe(1);
+});
+
+test.each(["0.0.0.0", "::"])(
+	"wildcard listener %s accepts custom domains",
+	async (host) => {
+		const app = application(false, host);
+		expect((await app.inject({ url: "/api/health", headers })).statusCode).toBe(
+			200,
+		);
+		expect(
+			(
+				await app.inject({
+					url: "/api/health",
+					headers: { host: "evil.example:3000" },
+				})
+			).statusCode,
+		).toBe(200);
+	},
+);
+
+test("container listener accepts a mapped public port and checks mutation origin", async () => {
+	const app = application(false, "0.0.0.0", "http://localhost:8080");
+	for (const [origin, status] of [
+		["http://localhost:8080", 200],
+		["http://localhost:3000", 403],
+	] as const) {
+		expect(
+			(
+				await app.inject({
+					method: "POST",
+					url: "/api/test",
+					headers: { host: "localhost:8080", origin },
+					payload: { count: 1 },
+				})
+			).statusCode,
+		).toBe(status);
+	}
+});
+
+test("only loopback proxies supply client IP and scheme", async () => {
+	const app = createHttpApp({
+		config: {
+			host: "0.0.0.0",
+			port: 3000,
+			publicOrigin: "https://anime.example.com",
+		},
+		logger: pino({ enabled: false }),
+	});
+	apps.push(app);
+	app.get("/network", async (request) => ({
+		ip: request.ip,
+		protocol: request.protocol,
+	}));
+	for (const remoteAddress of ["127.0.0.1", "172.18.0.2"]) {
+		const response = await app.inject({
+			url: "/network",
+			remoteAddress,
+			headers: {
+				host: "anime.example.com",
+				"x-forwarded-for": "203.0.113.7",
+				"x-forwarded-proto": "https",
+			},
+		});
+		expect(response.statusCode).toBe(200);
+		expect(response.json()).toEqual(
+			remoteAddress === "127.0.0.1"
+				? { ip: "203.0.113.7", protocol: "https" }
+				: { ip: remoteAddress, protocol: "http" },
+		);
+	}
+});
+
+test("wildcard host configuration serves health through injection", async () => {
+	const app = application(false, "0.0.0.0");
+	const response = await app.inject({ url: "/api/health", headers });
+	expect(response.statusCode).toBe(200);
+	expect(response.json()).toEqual({ status: "ok" });
+});
+
+// Host admission must survive container port mapping without accepting public DNS.
+test.each([
+	"192.168.1.20:8787",
+	"10.0.0.5:9999",
+	"[fd00::42]:8787",
+	"[2001:db8::1]:4000",
+	"localhost:9999",
+	"nas:8787",
+	"nas.local:8787",
+	"nas.lan:8787",
+	"nas.home.arpa:8787",
+])("mapped access address %s uses its own Origin", async (host) => {
+	const app = application(false, "0.0.0.0");
+	expect(
+		(await app.inject({ url: "/api/health", headers: { host } })).statusCode,
+	).toBe(200);
+	const response = await app.inject({
+		method: "POST",
+		url: "/api/test",
+		headers: { host, origin: `http://${host}` },
+		payload: { count: 1 },
+	});
+	expect(response.statusCode, response.body).toBe(200);
+	const forged = await app.inject({
+		method: "POST",
+		url: "/api/test",
+		headers: { host, origin: "http://evil.example" },
+		payload: { count: 1 },
+	});
+	expect(forged.statusCode).toBe(403);
+});
+
+test.each([
+	"anime.example.com",
+	"nas.local.evil.example",
+	"nas.home.arpa.evil.example",
+])("custom domain %s works without a public origin", async (host) => {
+	const app = application();
+	expect(
+		(await app.inject({ url: "/api/health", headers: { host } })).statusCode,
+	).toBe(200);
+	const response = await app.inject({
+		method: "POST",
+		url: "/api/test",
+		headers: { host, origin: `http://${host}` },
+		payload: { count: 1 },
+	});
+	expect(response.statusCode).toBe(200);
+});
+
+test("optional Host allowlist restricts every route and is independent of public origin and port", async () => {
+	const app = application(false, "0.0.0.0", "https://unrelated.example", [
+		"anime.example",
+		"127.0.0.1",
+		"[::1]",
+	]);
+	for (const host of ["anime.example:8787", "127.0.0.1:4000", "[::1]:8787"]) {
+		expect(
+			(await app.inject({ url: "/api/health", headers: { host } })).statusCode,
+		).toBe(200);
+	}
+	for (const host of [
+		"evil.example",
+		"unrelated.example",
+		"anime.example.evil.example",
+	]) {
+		const response = await app.inject({
+			url: "/api/health",
+			headers: { host },
+		});
+		expect(response.statusCode).toBe(400);
+		expect(response.json().error.code).toBe("NETWORK_HOST_REJECTED");
+		expect(response.json().error.message).toContain("ANISHELF_ALLOWED_HOSTS");
+	}
+});
+
+// URL default ports must be normalized against the actual trusted protocol.
+test.each([
+	["http", "nas.local:80", "http://nas.local"],
+	["https", "nas.local:443", "https://nas.local"],
+	["https", "nas.local:80", "https://nas.local:80"],
+	["http", "nas.local:443", "http://nas.local:443"],
+])("normalizes %s access through %s", async (protocol, host, origin) => {
+	const response = await application().inject({
+		method: "POST",
+		url: "/api/test",
+		headers: { host, origin, "x-forwarded-proto": protocol },
+		payload: { count: 1 },
+	});
+	expect(response.statusCode, response.body).toBe(200);
+});

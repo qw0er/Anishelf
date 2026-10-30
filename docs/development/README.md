@@ -64,6 +64,41 @@ Ship `backend/migrations/` with `backend/dist`. Startup applies committed migrat
 do not use destructive schema push at runtime. Back up before upgrades; rollback
 requires a matching database backup. See [database design](database-design.md).
 
+## Test organization
+
+Keep tests in each workspace's `test/` directory, grouped by the capability they
+verify. Backend tests use `modules/<owner>/<capability>/`, `platform/`,
+`transport/` and `app/`. Web tests use `features/<owner>/`, `shared/` and `app/`.
+App tests cover routing, composition and workflows spanning several capabilities.
+Do not mirror every internal source layer or divide the entire suite into separate
+unit/integration trees.
+
+Within a capability, name files after the behavior under test, such as
+`confirmation.test.ts`, `cancellation.test.ts` or `recovery.test.ts`. Split broad
+suites by responsibility rather than equal line counts. Around 500 lines is a
+useful review signal; files above 800 lines should normally be split. A cohesive
+scenario or parameterized matrix can justify an exception.
+
+Use a capability-local `support/` for fixture factories and lifecycle helpers.
+Promote a helper to workspace `test/support/` only when unrelated capabilities
+need it. Keep static records and binary samples in `fixtures/`. Fixtures must
+reset mutable state between tests and own cleanup for databases, temporary files,
+routers, timers and processes. Register suite lifecycle explicitly with helpers
+such as `setupTestLifecycle()` or `setupAppTest()`; importing domain fixture data
+must not implicitly register an application-wide test environment. The shared
+query harness deliberately registers cache cleanup and browser CSRF bootstrap.
+
+The Web app harness is in `test/app/support/`: state, default request handling,
+router rendering and Anime/Review/Playback helpers are separate. Feature tests
+should use their own fixtures unless application routing is part of the assertion.
+Keep network access guarded even when a request is expected to fail.
+
+After moving tests, update imports, dynamic imports, sample/migration URLs,
+scripts and documented commands. Compare test inventories and run both suites;
+file counts may change while scenario counts should stay the same. Test-only
+TypeScript configuration disables declaration output checks because fixture
+factories are internal test infrastructure.
+
 ## Test storage
 
 | Test purpose | Storage |
@@ -123,7 +158,7 @@ Normal status reads do not emit business events.
 | Dependency boundaries | `npm run architecture:check` and `npm run architecture:test` |
 | Backend suite | `npm run test --workspace @anishelf/backend` |
 | Web suite | `npm run test --workspace @anishelf/web` |
-| One backend file | `npm run test --workspace @anishelf/backend -- test/anime-detail.test.ts` |
+| One backend file | `npm run test --workspace @anishelf/backend -- test/app/anime-detail.test.ts` |
 | Deployment fixtures | `npm run test:deployment` |
 | Identification corpus | `npm run --silent anime:corpus -- match`; [corpus usage](../../backend/test/fixtures/anime-identification/README.md) |
 
@@ -161,7 +196,7 @@ when changing those paths.
 For the opt-in real TLS/two-Caddy session regression:
 
 ```sh
-ANISHELF_TEST_CADDY_BIN=/absolute/path/to/caddy npm run test --workspace @anishelf/backend -- test/https-proxy.test.ts
+ANISHELF_TEST_CADDY_BIN=/absolute/path/to/caddy npm run test --workspace @anishelf/backend -- test/transport/https-proxy.test.ts
 ```
 
 It needs local sockets and child processes, keeps certificates temporary and does
