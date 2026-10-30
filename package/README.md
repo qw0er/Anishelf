@@ -27,17 +27,23 @@ docker build -f package/Dockerfile --target web -t anishelf-web:local .
 | [Deployment Compose](deploy/compose.yaml) | Pull published images; matching app tags via `ANISHELF_TAG` |
 | [Environment example](deploy/.env.example) | Host paths, ports, profiles and origin |
 | [Quadlet units](deploy/quadlet/) | Rootless systemd stack, managed through `anishelf.target` |
-| [Installer](install.sh) | Render canonical assets into a fresh deployment directory |
+| [Installer](../scripts/install.pyz) | Self-contained Python CLI; renders canonical assets into a fresh deployment directory |
+| [Installer sources](../scripts/installer/) | Standard-library Python implementation and tests |
 
 Keep application data separate from media. Development and production must not use
 the same app volume. Optional qBittorrent writes shared media and private incomplete
 storage; Jackett has config storage only. See [volume ownership](../docs/guide/deployment.md#backup-and-recovery).
 
-## Interactive installation
+## CLI installation
 
-The standalone Bash wizard resolves templates to one GitHub commit, renders a
-private bundle and delegates startup to Docker Compose or rootless Podman Quadlet.
-It does not collect credentials. Ordinary installation never overwrites deployments;
+The standalone Python CLI renders the canonical templates bundled at build time into
+a private bundle and delegates startup to Docker Compose or rootless Podman Quadlet.
+It uses only the Python standard library and never prompts. The distributable is
+[`scripts/install.pyz`](../scripts/install.pyz), a zipapp built from
+[`scripts/installer/`](../scripts/installer/). It does not collect credentials.
+Compose bundles include an executable `manage.sh` whose project and profiles are
+fixed at generation time; it supports only `up` and `down`.
+Ordinary installation never overwrites deployments;
 explicit `--remove DIRECTORY` and `--reconfigure DIRECTORY` actions archive saved
 configuration by renaming the entire old deployment directory to a sibling backup
 and preserve volumes/media. Replacement configuration uses a fresh original path. Reconfiguration retains the deployment
@@ -45,15 +51,19 @@ engine and method, preparing templates before stopping the old services. Generat
 writes configuration without contacting an engine.
 
 Installer options, SELinux and host permissions are in
-[Deployment](../docs/guide/deployment.md#interactive-installer). Maintainer checks:
+[Deployment](../docs/guide/deployment.md#cli-installer). Maintainer checks:
 
 ```sh
-bash -n package/install.sh
+python3 scripts/build-installer.py
+python3 -m unittest discover -s scripts/installer_tests -v
 npm run test:deployment
 ```
 
-Fixtures use fake engine/network commands; live runtime and SELinux validation
-remain separate. Keep service/bootstrap logic in canonical templates and containers.
+Rebuild `scripts/install.pyz` after changing `scripts/installer/` or
+`package/deploy/`; the test suite also verifies that the packaged archive matches
+the sources and templates. Fixtures use fake
+engine/systemd commands; live runtime and SELinux validation remain separate.
+Keep service/bootstrap logic in canonical templates and containers.
 
 ## Publication flow
 

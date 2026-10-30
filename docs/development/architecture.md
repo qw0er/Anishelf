@@ -610,7 +610,7 @@ source access, provider scheduling and persistence outlive their consumers.
 | Tables, constraints, migrations | [Database design](database-design.md), `backend/migrations/`, module persistence entries |
 | App assembly and shutdown | `backend/src/app/bootstrap/server.ts`, `backend/src/app/lifecycle.ts` |
 | Acquisition assembly | `backend/src/modules/acquisition/create.ts` |
-| Installer | `package/install.sh`, canonical `package/deploy/` templates |
+| Installer | `scripts/install.pyz` (zipapp), `scripts/installer/`, canonical `package/deploy/` templates |
 | Historical design and acceptance | [History](../history.md) |
 
 The installer generates a fresh deployment bundle and delegates to the container

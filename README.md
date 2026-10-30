@@ -11,16 +11,17 @@ subscription downloads.
 
 ## Quick start
 
-Start the interactive deployment wizard (Bash and curl required):
+Start the non-interactive deployment CLI (Python 3.9+ required):
 
 ```sh
-bash <(curl -fsSL https://raw.githubusercontent.com/qw0er/Anishelf/main/package/install.sh)
+curl -fsSL https://raw.githubusercontent.com/qw0er/Anishelf/main/scripts/install.pyz -o /tmp/anishelf-install.pyz
+python3 /tmp/anishelf-install.pyz install --engine docker --deploy-dir "$HOME/anishelf"
 ```
 
-Docker or Podman is detected automatically; choose an engine only when both are installed.
-Podman uses rootless Quadlet. See the
-[deployment guide](docs/guide/deployment.md#interactive-installer) for prerequisites,
-SELinux handling and first login.
+`install.pyz` is a self-contained Python 3.9+ zipapp using only the standard library.
+From a source checkout, run `python3 scripts/install.pyz install` instead. See the
+[deployment guide](docs/guide/deployment.md#cli-installer) for media, ports,
+profiles and prerequisites.
 
 ## Updates
 

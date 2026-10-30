@@ -445,7 +445,7 @@ AniList is the viewing-state authority. The delivered scope includes account con
 | O18 | User-editable prepared-media cache budget | Implemented; Settings control, validation and persisted disk-space limit | 0.2.6 |
 | O19 | In-app editor for hand-written configuration files | Later: edit and validate supported custom profile files, including acquisition and transcode profiles | — |
 | O20 | Hot reload acquisition profile configuration | Later: validate and activate acquisition-profiles.yaml changes without restarting Backend; retain the last valid configuration on reload failure | — |
-| O21 | Interactive remote deployment without a repository checkout | Implemented: guided Docker/Podman deployment, optional services and advanced settings, generated configuration and health feedback | 1.0.0; 1.1.0 (deployment refactor) |
+| O21 | Remote deployment without a repository checkout | Implemented: non-interactive flag-driven Docker/Podman deployment, optional services and advanced settings, generated configuration and health feedback | 1.0.0; 1.1.0 (deployment refactor) |
 
 #### User-editable Prepared-media Cache Budget (O18)
 

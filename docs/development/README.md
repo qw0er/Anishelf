@@ -180,20 +180,27 @@ is in [History](../history.md). Correlate HTTP failures using `x-request-id`.
 
 ## Deployment installer maintenance
 
-`package/install.sh` renders canonical `package/deploy/` templates from one resolved
-commit into a fresh private bundle. Keep credential/bootstrap ownership in the
+`scripts/installer/` is a standard-library-only Python implementation that renders
+canonical `package/deploy/` templates bundled at build time into a fresh private
+bundle. Configuration is rendered in memory and written directly to the deployment
+directory. `scripts/install.pyz` is a zipapp of that source and is the distributable
+used by operators. Keep credential/bootstrap ownership in the
 application and service containers; never source `.env` as shell code.
 
 ```sh
-bash -n package/install.sh
+python3 scripts/build-installer.py
+python3 -m unittest discover -s scripts/installer_tests -v
 npm run test:deployment
 ```
 
-Fixtures use fake engines/network commands and inspect rendered Quadlet templates
-directly, including media paths with spaces, Unicode and SELinux options. The
-installer suite does not discover or invoke a real Quadlet generator. These checks
-do not prove generator compatibility or live Compose or SELinux behavior; run the
-relevant Linux/runtime checks separately when changing those paths.
+Rebuild the `.pyz` after changing the installer source or `package/deploy/` templates. The suite rebuilds the
+archive and compares its contents with the committed artifact, so an out-of-date
+package fails the tests. Fixtures use fake engines/systemd commands and inspect
+rendered Quadlet templates directly, including media paths with spaces, Unicode
+and SELinux options. The installer suite does not discover or invoke a real
+Quadlet generator. These checks do not prove generator compatibility or live
+Compose or SELinux behavior; run the relevant Linux/runtime checks separately when
+changing those paths.
 
 Quadlet `Volume=` values are literal mount specifications, including paths with
 spaces. Do not surround the value with shell quotes: the generator handles
