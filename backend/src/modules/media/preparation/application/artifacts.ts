@@ -88,6 +88,60 @@ export class PreparationArtifacts {
 			this.discard(this.context.required(task.id), reason),
 		);
 	}
+	/** Inspect persisted paths so a refreshed catalog cannot hide deleted sources. */
+	async cleanupMissingSources(): Promise<void> {
+		if (this.context.closed || !this.context.sources.hasSnapshot) return;
+		for (const artifact of this.context.repository.artifacts()) {
+			if (this.context.closed) break;
+			try {
+				await this.exclusive(artifact.id, async () => {
+					if (
+						this.context.closed ||
+						!this.context.repository.artifact(artifact.id)
+					)
+						return;
+					const task = this.context.required(artifact.taskId);
+					if (task.state.status !== "ready") return;
+					const expected = {
+						identity: task.spec.source,
+						accessRevision: this.context.sources.accessRevision,
+					};
+					// Root failures must never count as a missing individual file.
+					const resources = await this.context.sources.openResources(expected);
+					try {
+						await resources.inspectVideoFile(task.spec.source.relativePath);
+					} catch (error) {
+						if (
+							!(error instanceof DomainError) ||
+							error.code !== "RESOURCE_MISSING"
+						)
+							throw error;
+						await this.context.sources.openResources(expected);
+						this.context.sources.assertAccessRevision(expected.accessRevision);
+						if (this.context.closed) return;
+						await this.discard(task, "source-changed");
+						this.context.logger.info(
+							{
+								event: "preparation.orphan_cleaned",
+								taskId: task.id,
+								artifactId: artifact.id,
+							},
+							"Prepared copy invalidated because its source file is missing.",
+						);
+					}
+				});
+			} catch (error) {
+				this.context.logger.warn(
+					{
+						event: "preparation.cleanup_deferred",
+						artifactId: artifact.id,
+						errorName: error instanceof Error ? error.name : "unknown",
+					},
+					"Prepared copy cleanup could not complete.",
+				);
+			}
+		}
+	}
 	private async validate(task: PreparationTask): Promise<PreparationTask> {
 		if (task.state.status !== "ready") return task;
 		let source: ResolvedSource | undefined;

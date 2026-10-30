@@ -6,6 +6,7 @@ import {
 } from "../../../shared/policy.js";
 export interface PreparationPolicy {
 	maximumCacheBytes: number;
+	cleanupIntervalMs: number;
 	minimumFreeBytes: number;
 	maximumQueuedTasks: number;
 	listLimit: number;
@@ -14,6 +15,7 @@ export interface PreparationPolicy {
 }
 export const preparationPolicy = freeze<PreparationPolicy>({
 	maximumCacheBytes: preparationConstraints.defaultCacheBudgetGiB * 1024 ** 3,
+	cleanupIntervalMs: 2 * 60 * 60 * 1000,
 	minimumFreeBytes: 64 * 1024 * 1024,
 	maximumQueuedTasks: 100,
 	listLimit: preparationConstraints.listLimit,
