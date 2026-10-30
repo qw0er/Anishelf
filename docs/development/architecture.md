@@ -422,10 +422,15 @@ Downloads planning, reservations, submission recovery or verified import.
 | Select | Apply episode bounds, recognition, profile priority/wait windows, local availability and reservations |
 | Fence | Recheck subscription revision and account/source/profile/destination scope before binding permission |
 | Pause/remove | Fence late discovery; submitted tasks/imports continue independently |
-| Watching | Default off; manages automatic subscriptions together, skips manual subscriptions and pauses works outside the current Watching list |
+| Watching | Default off; manages automatic subscriptions together, skips manual subscriptions and pauses works outside the current Watching/Rewatching active group |
 | Unsubscribe | Records recreation exclusions so Watching cannot immediately recreate the subscription |
 
-Disabling Watching or leaving its current list stops automatic acquisition while
+Tracking owns the shared active-viewing predicate used by Library aggregation and
+Watching previews, limits and reconciliation. Both `watching` and `rewatching` are
+active; exact Rewatching filtering, display and provider writes retain the original
+status. Switching within this group preserves subscriptions and saved configuration.
+
+Disabling Watching or leaving both active statuses stops automatic acquisition while
 manual subscriptions remain independent. Account/scope changes require renewed confirmation. Starting episode is fixed at creation. Check updates can retry pending
 discovery immediately, subject to source limits. Watching activation uses the saved
 subscription-default release profile. A default change fences pending activation

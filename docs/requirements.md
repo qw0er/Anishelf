@@ -276,13 +276,13 @@ arbitrary episode-number conversion. Internal provider boundaries belong in
 | W05 | Show watched counts and available unwatched episodes from AniList progress, alongside local playback history | Implemented: detail indicators/counts and Library available-unwatched counts | 0.4.0 |
 | W06 | Share records across clients and handle duplicate, out-of-order, or concurrent progress updates | Later | — |
 | W07 | Rewatch history, ratings, tags, and personal notes | Optional | — |
-| W08 | Treat rewatching as active viewing across Library and Watching automation | Planned: preserve the distinct tracking status while sharing active-viewing behavior; see requirements below | — |
+| W08 | Treat rewatching as active viewing across Library and Watching automation | Implemented: distinct tracking status with shared active-viewing behavior; see requirements below | — |
 
 #### Rewatching as Active Viewing (W08)
 
-This is a planned extension to W04–W05 and S08/S10–S12, not a claim of delivered
-behavior. Preserve `rewatching` as a distinct tracking status, but treat both
-`watching` and `rewatching` as active viewing wherever current Watching membership
+This extends W04–W05 and S08/S10–S12. Preserve `rewatching` as a distinct tracking
+status, but treat both `watching` and `rewatching` as active viewing wherever current
+Watching membership
 drives Library aggregation or automatic acquisition. This does not require the
 optional rewatch-history feature in W07.
 

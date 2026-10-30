@@ -165,3 +165,118 @@ test("disabling during discovery prevents a late source binding and permission",
 	expect(f.db.acquisition.subscription(workKey)?.feedId).toBeNull();
 	expect(f.db.acquisition.authorization(workKey)).toBeNull();
 });
+
+test("activation includes both active statuses, excludes inactive works and uses current rewatch progress", async () => {
+	const f = await fixture();
+	f.snapshot.entries.push(
+		{
+			workKey: "anilist:anime:2",
+			title: "Rewatch",
+			status: "rewatching",
+			progress: 3,
+		},
+		{
+			workKey: "anilist:anime:3",
+			title: "Done",
+			status: "completed",
+			progress: 12,
+		},
+	);
+	const preview = await f.enable();
+	expect(
+		preview.works.map((work) => [work.workKey, work.startEpisode]),
+	).toEqual([
+		[workKey, 3],
+		["anilist:anime:2", 4],
+	]);
+	expect(f.watching.status().works).toHaveLength(2);
+	await f.watching.tick();
+	expect(f.db.acquisition.subscription("anilist:anime:2")).toMatchObject({
+		startEpisode: 4,
+		createdBy: "watching",
+	});
+	expect(f.db.acquisition.subscription("anilist:anime:3")).toBeNull();
+});
+
+test("the 500-work activation and ongoing limits count Rewatching membership", async () => {
+	const f = await fixture();
+	f.snapshot.entries = Array.from({ length: 500 }, (_, i) => ({
+		workKey: `anilist:anime:${i + 1}`,
+		title: "Rewatch",
+		status: "rewatching",
+		progress: 3,
+	}));
+	const preview = await f.enable();
+	expect(preview.works).toHaveLength(500);
+	f.snapshot.entries.push({
+		workKey: "anilist:anime:501",
+		title: "Watching",
+		status: "watching",
+		progress: 0,
+	});
+	f.snapshot.revision = "over-limit";
+	expect(f.watching.status().reason).toBe("work_limit");
+	await f.watching.tick();
+	expect(f.db.acquisition.subscriptions()).toHaveLength(0);
+	await expect(
+		f.watching.preview("session", f.watching.status().revision, config),
+	).rejects.toThrow(/500/);
+});
+
+test.each([NaN, -1, 3.5, 10000])(
+	"Rewatching does not invent progress for %s",
+	async (progress) => {
+		const f = await fixture();
+		const entry = required(f.snapshot.entries[0]);
+		entry.status = "rewatching";
+		entry.progress = progress;
+		const preview = await f.enable();
+		expect(preview.works[0]).toMatchObject({
+			startEpisode: null,
+			reason: "invalid_progress",
+		});
+		await f.watching.tick();
+		expect(f.db.acquisition.subscription(workKey)).toBeNull();
+	},
+);
+
+test("Rewatching respects subscription capacity and logs active membership decisions", async () => {
+	const f = await fixture();
+	required(f.snapshot.entries[0]).status = "rewatching";
+	const logs = vi.spyOn(f.logger, "info");
+	vi.spyOn(f.subscriptions, "hasCapacity").mockReturnValueOnce(false);
+	await f.enable();
+	await f.watching.tick();
+	expect(f.db.acquisition.subscription(workKey)).toBeNull();
+	expect(f.watching.status().works[0]?.reason).toBe("subscription_limit");
+	expect(logs).toHaveBeenCalledWith(
+		expect.objectContaining({
+			event: "acquisition.watching_decision",
+			viewingStatus: "rewatching",
+			activeViewing: true,
+			reason: "subscription_limit",
+		}),
+		expect.any(String),
+	);
+	await f.watching.tick();
+	expect(f.db.acquisition.subscription(workKey)?.startEpisode).toBe(3);
+	expect(logs).toHaveBeenCalledWith(
+		expect.objectContaining({
+			event: "acquisition.watching_subscription_created",
+			viewingStatus: "rewatching",
+			activeViewing: true,
+		}),
+		expect.any(String),
+	);
+});
+
+test("activation scope fences Rewatching membership changes even without a new list revision", async () => {
+	const f = await fixture();
+	const entry = required(f.snapshot.entries[0]);
+	entry.status = "rewatching";
+	const preview = await f.watching.preview("session", "unconfigured", config);
+	entry.status = "paused";
+	expect(() => f.watching.confirm("session", preview.id)).toThrow(
+		/Preview and confirm/,
+	);
+});

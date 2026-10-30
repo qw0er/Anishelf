@@ -1,4 +1,5 @@
 export { MetadataError } from "./metadata/public.js";
+export { isActiveViewing } from "./tracking/public.js";
 
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
 import type { AnimeLibraryApi } from "./anime-library/public.js";

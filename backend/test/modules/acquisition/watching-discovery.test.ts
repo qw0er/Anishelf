@@ -199,3 +199,36 @@ test("stopping an automatic subscription during assessment still publishes its s
 	);
 	expect(f.subscriptions.activeSourceIds()).toEqual([automatic.feedId]);
 });
+
+test("Rewatching reuses local coverage and retains only missing release candidates", async () => {
+	const f = await fixture();
+	const entry = required(f.snapshot.entries[0]);
+	entry.status = "rewatching";
+	entry.progress = 2;
+	f.target.availableEpisodes = [3];
+	await f.enable();
+	await f.watching.tick();
+	await f.subscriptions.resolvePending();
+	expect(f.db.acquisition.authorization(workKey)).toBeNull();
+	expect(
+		f.subscriptions.get(workKey).discovery?.attempts[0]?.reasons,
+	).toContain("already_available");
+	f.target.availableEpisodes = [];
+	f.advance();
+	await f.subscriptions.resolvePending();
+	expect(f.db.acquisition.authorization(workKey)).not.toBeNull();
+	await f.subscriptions.refreshSource(
+		required(f.db.acquisition.subscription(workKey)?.feedId),
+	);
+	expect(f.subscriptions.selection().candidates(workKey)).toEqual([
+		expect.objectContaining({ episode: 3, status: "selected" }),
+	]);
+	const saved = f.db.acquisition.subscription(workKey);
+	entry.status = "watching";
+	await f.watching.tick();
+	entry.status = "rewatching";
+	await f.watching.tick();
+	await f.subscriptions.resolvePending();
+	expect(f.db.acquisition.subscription(workKey)).toEqual(saved);
+	expect(f.subscriptions.selection().candidates(workKey)).toHaveLength(1);
+});

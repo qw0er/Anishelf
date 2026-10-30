@@ -6,3 +6,8 @@ export type ViewingStatus =
 	| "paused"
 	| "dropped"
 	| "rewatching";
+
+/** Shared membership policy; retain the original status for display and sync. */
+export function isActiveViewing(status: string | null | undefined): boolean {
+	return status === "watching" || status === "rewatching";
+}

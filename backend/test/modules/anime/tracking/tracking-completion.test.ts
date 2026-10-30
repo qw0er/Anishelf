@@ -464,3 +464,25 @@ test("a fresh completion uses current remote progress after an earlier successfu
 	expect(f.current().remote?.progress).toBe(4);
 	expect(f.save).toHaveBeenCalledTimes(2);
 });
+
+test.each(["automatic", "manual"])(
+	"%s progress-only updates preserve the current rewatch pass",
+	async (origin) => {
+		const f = await fixture();
+		f.setRemote({
+			id: "anilist:10",
+			progress: 3,
+			status: "rewatching",
+			updatedAt: 100,
+		});
+		if (origin === "automatic")
+			await f.service.submit(await f.capture(), randomUUID());
+		else await f.service.mark(f.command());
+		expect(f.current().desired).toEqual({ progress: 4 });
+		await f.updates.flush();
+		expect(f.current()).toMatchObject({
+			state: "succeeded",
+			remote: { status: "rewatching", progress: 4 },
+		});
+	},
+);

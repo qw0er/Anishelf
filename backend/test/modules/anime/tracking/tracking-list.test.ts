@@ -568,74 +568,82 @@ test("confirmed writes fence an older in-flight full-list refresh", async () => 
 	await f.reader.close();
 });
 
-test("available-unwatched counts use actual episode numbers rather than availability minus progress", async () => {
-	const f = projection();
-	const indexed = f.index.items[0];
-	if (!indexed) throw new Error("Missing local work");
-	f.cards.mockResolvedValue([
-		{
-			...indexed,
-			displayTitle: indexed.providerTitle,
-			hasCover: false,
-			coverVersion: null,
-			metadataStale: false,
-			availableEpisodes: 4,
-			availableRegularEpisodes: 3,
-			availableEpisodeTargets: [
-				target(1, ["file-1", "v1"]),
-				target(4, ["file-4", "v4"]),
-				target(7, ["file-7", "v7"]),
-			],
-		},
-	]);
-	const [card] = (await f.app.list()).items;
-	expect(card?.availableUnwatchedEpisodes).toBe(2);
-	expect(card?.nextPlayback).toEqual({
-		episodeId: "episode-4",
-		episodeNumber: "4",
-		versionCount: 1,
-		fileId: "file-4",
-		sourceVersion: "v4",
-	});
-	f.snapshot.entries = [];
-	const [untracked] = (await f.app.list()).items;
-	expect(untracked?.availableUnwatchedEpisodes).toBeNull();
-	expect(untracked?.nextPlayback).toBeNull();
-});
+test.each(["watching", "rewatching"] as const)(
+	"%s available-unwatched counts use actual episode numbers rather than availability minus progress",
+	async (status) => {
+		const f = projection();
+		f.snapshot.entries = [{ ...item(), status }];
+		const indexed = f.index.items[0];
+		if (!indexed) throw new Error("Missing local work");
+		f.cards.mockResolvedValue([
+			{
+				...indexed,
+				displayTitle: indexed.providerTitle,
+				hasCover: false,
+				coverVersion: null,
+				metadataStale: false,
+				availableEpisodes: 4,
+				availableRegularEpisodes: 3,
+				availableEpisodeTargets: [
+					target(1, ["file-1", "v1"]),
+					target(4, ["file-4", "v4"]),
+					target(7, ["file-7", "v7"]),
+				],
+			},
+		]);
+		const [card] = (await f.app.list()).items;
+		expect(card?.availableUnwatchedEpisodes).toBe(2);
+		expect(card?.nextPlayback).toEqual({
+			episodeId: "episode-4",
+			episodeNumber: "4",
+			versionCount: 1,
+			fileId: "file-4",
+			sourceVersion: "v4",
+		});
+		f.snapshot.entries = [];
+		const [untracked] = (await f.app.list()).items;
+		expect(untracked?.availableUnwatchedEpisodes).toBeNull();
+		expect(untracked?.nextPlayback).toBeNull();
+	},
+);
 
-test("next playback points at the first available unwatched episode and leaves multi-version choice to the detail page", async () => {
-	const f = projection();
-	const indexed = f.index.items[0];
-	if (!indexed) throw new Error("Missing local work");
-	f.cards.mockResolvedValue([
-		{
-			...indexed,
-			displayTitle: indexed.providerTitle,
-			hasCover: false,
-			coverVersion: null,
-			metadataStale: false,
-			availableEpisodes: 3,
-			availableRegularEpisodes: 3,
-			availableEpisodeTargets: [
-				target(1, ["file-1", "v1"]),
-				target(4, ["file-4a", "v4a"], ["file-4b", "v4b"]),
-				target(8, ["file-8", "v8"]),
-			],
-		},
-	]);
-	const [card] = (await f.app.list()).items;
-	expect(card?.nextPlayback).toEqual({
-		episodeId: "episode-4",
-		episodeNumber: "4",
-		versionCount: 2,
-		fileId: null,
-		sourceVersion: null,
-	});
-	f.snapshot.entries = [{ ...item(), progress: 8 }];
-	const [caughtUp] = (await f.app.list()).items;
-	expect(caughtUp?.nextPlayback).toBeNull();
-	expect(caughtUp?.availableUnwatchedEpisodes).toBe(0);
-});
+test.each(["watching", "rewatching"] as const)(
+	"%s next playback points at the first available unwatched episode and leaves multi-version choice to the detail page",
+	async (status) => {
+		const f = projection();
+		f.snapshot.entries = [{ ...item(), status }];
+		const indexed = f.index.items[0];
+		if (!indexed) throw new Error("Missing local work");
+		f.cards.mockResolvedValue([
+			{
+				...indexed,
+				displayTitle: indexed.providerTitle,
+				hasCover: false,
+				coverVersion: null,
+				metadataStale: false,
+				availableEpisodes: 3,
+				availableRegularEpisodes: 3,
+				availableEpisodeTargets: [
+					target(1, ["file-1", "v1"]),
+					target(4, ["file-4a", "v4a"], ["file-4b", "v4b"]),
+					target(8, ["file-8", "v8"]),
+				],
+			},
+		]);
+		const [card] = (await f.app.list()).items;
+		expect(card?.nextPlayback).toEqual({
+			episodeId: "episode-4",
+			episodeNumber: "4",
+			versionCount: 2,
+			fileId: null,
+			sourceVersion: null,
+		});
+		f.snapshot.entries = [{ ...item(), progress: 8 }];
+		const [caughtUp] = (await f.app.list()).items;
+		expect(caughtUp?.nextPlayback).toBeNull();
+		expect(caughtUp?.availableUnwatchedEpisodes).toBe(0);
+	},
+);
 
 test("unwatched sorting uses all available episode mappings before pagination and batches card reads", async () => {
 	const f = projection();
@@ -752,4 +760,47 @@ test("acquisition reads only complete fresh confirmed snapshots with explicit co
 	} finally {
 		await f.reader.close();
 	}
+});
+
+test("Watching aggregates both active statuses while Rewatching stays exact across local and remote cards", async () => {
+	const { app, snapshot } = projection();
+	snapshot.entries = [
+		{ ...item(1), status: "rewatching" },
+		item(2),
+		{ ...item(3), status: "rewatching" },
+		{ ...item(4), status: "completed" },
+	];
+	const local = await app.list({ viewingStatus: "watching" });
+	expect(local.items.map((card) => card.id)).toEqual(["local"]);
+	expect(local.items[0]?.viewing).toMatchObject({
+		status: "rewatching",
+		progress: 3,
+	});
+	const active = await app.list({
+		scope: "all",
+		viewingStatus: "watching",
+		sort: "title",
+	});
+	expect(active.items.map((card) => card.id)).toEqual([
+		"local",
+		"anilist:anime:2",
+		"anilist:anime:3",
+	]);
+	const repeating = await app.list({
+		scope: "all",
+		viewingStatus: "rewatching",
+		sort: "title",
+	});
+	expect(repeating.items.map((card) => card.id)).toEqual([
+		"local",
+		"anilist:anime:3",
+	]);
+	expect(
+		repeating.items.every((card) => card.viewing?.status === "rewatching"),
+	).toBe(true);
+	expect(
+		(await app.list({ scope: "all", viewingStatus: "completed" })).items.map(
+			(card) => card.id,
+		),
+	).toEqual(["anilist:anime:4"]);
 });

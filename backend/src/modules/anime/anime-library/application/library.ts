@@ -14,6 +14,7 @@ import type {
 	TrackingListEntry,
 	TrackingListsApi,
 } from "../../tracking/public.js";
+import { isActiveViewing } from "../../tracking/public.js";
 import type {
 	AnimeLibraryQuery,
 	LibraryCard,
@@ -150,7 +151,9 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 				!query.viewingStatus ||
 				(query.viewingStatus === "untracked"
 					? card.viewingAvailability === "untracked"
-					: card.viewing?.status === query.viewingStatus),
+					: query.viewingStatus === "watching"
+						? isActiveViewing(card.viewing?.status)
+						: card.viewing?.status === query.viewingStatus),
 		);
 		const hydrated =
 			sort === "unwatched"
@@ -206,6 +209,10 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 		this.options.logger.trace(
 			{
 				event: "anime.library_read",
+				viewingStatus: query.viewingStatus ?? null,
+				activeViewingCount: items.filter((card) =>
+					isActiveViewing(card.viewing?.status),
+				).length,
 				scope: query.scope ?? "local",
 				sort,
 				count: items.length,
