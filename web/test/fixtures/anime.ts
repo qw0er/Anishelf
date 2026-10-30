@@ -5,7 +5,7 @@ import type {
 	LocalWorkDetailResponse,
 	TrackingEntryResponse,
 } from "../../src/shared/api/contracts.js";
-import { trackingProvider } from "../tracking-fixture.js";
+import { trackingProvider } from "../support/tracking-fixture.js";
 
 export function animeFixture(): LocalWorkDetailResponse {
 	const reference = { id: "metadata-work-1" };
