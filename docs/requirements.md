@@ -401,7 +401,23 @@ details. A global download-management page is outside the delivered scope.
 | C04 | Control desktop playback, pause, and seeking from the Web | Later | — |
 | C05 | Continue viewing between Web and desktop using saved positions | Later | — |
 | C06 | Manage multiple devices and transfer playback sessions | Optional | — |
-| C07 | Full desktop, mobile, and TV apps, casting, and offline viewing | Optional | — |
+| C07 | Desktop application for Windows, macOS and Linux, with a complete local library and server or a connection to a remote Anishelf server | Later | — |
+| C08 | Android and iOS applications for connecting to a remote Anishelf server, browsing the library and playing media | Later | — |
+| C09 | Desktop and mobile playback with resume, track and subtitle selection, and progress reporting consistent with Web | Later | — |
+| C10 | Prefer original media when compatible; offer an appropriate compatible version when available and explain playback failures or unavailable options | Later | — |
+| C11 | Mobile picture-in-picture, background playback and offline viewing | Optional | — |
+| C12 | Casting | Optional | — |
+
+Desktop clients should provide library management and acquisition alongside playback;
+mobile clients prioritize touch-friendly browsing and playback. Both require an
+authenticated server connection for server-backed operations. Cross-client progress
+must account for concurrent and delayed updates (W06); native playback integrations
+must report progress before they can support reliable continuation (C05). Offline
+viewing and advanced playback capabilities are not part of the initial client scope.
+A TV application is outside the planned scope.
+
+The proposed implementation and staged validation are in the
+[future client design](development/clients.md).
 
 #### External-Player Media Links (C01)
 
