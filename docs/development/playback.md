@@ -23,6 +23,14 @@ commands; editing or removing a profile does not invalidate completed bytes.
 Source/version/access changes and missing cache files retain their existing
 validation and invalidation rules.
 
+Preparation also checks published copies every two hours, sequentially and
+without overlapping sweeps. It checks each persisted source path through Resources,
+independently of catalog membership, and invalidates copies whose source file is
+confirmed missing. Root unavailability, access errors and configuration changes
+defer cleanup. Active readers retain the file until their last handle is released.
+Shutdown stops the timer and waits for the current sweep. This does not evict valid
+copies by age or cache pressure.
+
 `PreparationApi.catalog` exposes published bytes and pending audio scopes without
 execution plans or mutable task state. `MediaApi.listPlaybackAssets` combines that
 inventory with the original inspection. Playback has no profile-catalog dependency.

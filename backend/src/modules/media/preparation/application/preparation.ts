@@ -32,6 +32,8 @@ export class PreparationApplication implements PreparationApi {
 	private initialization: Promise<void> | undefined;
 	private system: PreparationServices | undefined;
 	private closed = false;
+	private cleanupTimer: ReturnType<typeof setTimeout> | undefined;
+	private cleanupRun: Promise<void> | undefined;
 	private readonly operations = new Set<Promise<unknown>>();
 	constructor(
 		private readonly options: {
@@ -53,8 +55,32 @@ export class PreparationApplication implements PreparationApi {
 			system.context.closed = this.closed;
 			this.system = system;
 			await system.recover();
+			this.scheduleCleanup();
 		});
 		return this.initialization;
+	}
+	private scheduleCleanup(): void {
+		if (this.closed) return;
+		this.cleanupTimer = setTimeout(() => {
+			this.cleanupTimer = undefined;
+			const system = this.options.services;
+			this.cleanupRun = system.artifacts
+				.cleanupMissingSources()
+				.catch((error) => {
+					system.context.logger.warn(
+						{
+							event: "preparation.cleanup_failed",
+							errorName: error instanceof Error ? error.name : "unknown",
+						},
+						"Prepared copy cleanup failed; another sweep will be scheduled.",
+					);
+				})
+				.finally(() => {
+					this.cleanupRun = undefined;
+					this.scheduleCleanup();
+				});
+		}, this.policy.cleanupIntervalMs);
+		this.cleanupTimer.unref();
 	}
 	private async ensure() {
 		if (this.closed)
@@ -320,10 +346,12 @@ export class PreparationApplication implements PreparationApi {
 	}
 	async close(): Promise<void> {
 		this.closed = true;
+		clearTimeout(this.cleanupTimer);
 		if (this.system) this.system.context.closed = true;
 		await this.initialization?.catch(() => {});
 		const results = await Promise.allSettled([
 			this.system?.scheduler.close(),
+			this.cleanupRun,
 			...this.operations,
 		]);
 		const stopped = results[0];
