@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 from .log import log
 
@@ -89,7 +88,7 @@ def deployment_profile(test_mode: bool) -> str:
     return "testing\n" if test_mode else "production\n"
 
 
-def parse_profile(path: Path) -> Optional[str]:
+def parse_profile(path: Path) -> str | None:
     try:
         value = path.read_text(encoding="utf-8").strip()
     except OSError:

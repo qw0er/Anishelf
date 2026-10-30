@@ -6,7 +6,6 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 from .assets import AssetSource
 from .config import Settings, deployment_profile, parse_profile
@@ -78,9 +77,9 @@ class Installer:
         self.generate_only = (
             args.command == "install" and getattr(args, "generate_only", False)
         )
-        self.settings: Optional[Settings] = None
-        self.existing: Optional[dict] = None
-        self.assets: Optional[AssetSource] = None
+        self.settings: Settings | None = None
+        self.existing: dict | None = None
+        self.assets: AssetSource | None = None
         self.bundle: dict[str, str] = {}
         self.bundle_modes: dict[str, int] = {}
         self.backups = BackupManager(args.force)
@@ -290,7 +289,7 @@ class Installer:
         )
 
     @staticmethod
-    def _deployment_directory(value: Optional[str], stack: str) -> Path:
+    def _deployment_directory(value: str | None, stack: str) -> Path:
         raw = value if value is not None else str(Path.home() / stack)
         candidate = absolute_input(raw)
         if not valid_path(candidate):
@@ -327,7 +326,7 @@ class Installer:
     @staticmethod
     def _port(
         label: str,
-        value: Optional[int],
+        value: int | None,
         default: int,
         rootless: bool,
     ) -> int:

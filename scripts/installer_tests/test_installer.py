@@ -23,11 +23,11 @@ ARTIFACT = SCRIPTS / "install.pyz"
 
 sys.path.insert(0, str(SOURCE))
 
-from anishelf_install.assets import AssetSource  # noqa: E402
-from anishelf_install.config import Settings  # noqa: E402
-from anishelf_install.errors import InstallerError  # noqa: E402
-from anishelf_install.render import render_compose, render_quadlet  # noqa: E402
-from anishelf_install.validation import (  # noqa: E402
+from anishelf_install.assets import AssetSource
+from anishelf_install.config import Settings
+from anishelf_install.errors import InstallerError
+from anishelf_install.render import render_compose, render_quadlet
+from anishelf_install.validation import (
     valid_image_tag,
     valid_ipv4,
     valid_origin,
@@ -144,6 +144,7 @@ class Fixture:
         environment.update(env or {})
         return subprocess.run(
             command,
+            check=False,
             stdin=subprocess.DEVNULL,
             text=True,
             cwd=str(cwd or self.directory),
@@ -411,6 +412,7 @@ class InstallerTests(unittest.TestCase):
         }
         result = subprocess.run(
             [str(fixture.target / "manage.sh"), "up"],
+            check=False,
             cwd=str(fixture.target),
             env=environment,
             text=True,
@@ -451,6 +453,7 @@ class InstallerTests(unittest.TestCase):
         }
         result = subprocess.run(
             [str(fixture.target / "manage.sh"), "down"],
+            check=False,
             cwd=str(fixture.target),
             env=environment,
             text=True,
@@ -984,6 +987,7 @@ class InstallerTests(unittest.TestCase):
                 "--output",
                 str(rebuilt),
             ],
+            check=False,
             text=True,
             capture_output=True,
             timeout=60,
@@ -996,6 +1000,7 @@ class InstallerTests(unittest.TestCase):
 
         help_result = subprocess.run(
             [sys.executable, str(ARTIFACT), "--help"],
+            check=False,
             text=True,
             capture_output=True,
             timeout=30,
@@ -1005,6 +1010,7 @@ class InstallerTests(unittest.TestCase):
             self.assertIn(command, help_result.stdout)
         install_help = subprocess.run(
             [sys.executable, str(ARTIFACT), "install", "--help"],
+            check=False,
             text=True,
             capture_output=True,
             timeout=30,

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Optional
 
 
 class InstallerLog:
@@ -12,10 +11,10 @@ class InstallerLog:
 
     def __init__(self) -> None:
         self.phase = "collecting configuration"
-        self._path: Optional[Path] = None
+        self._path: Path | None = None
 
     @property
-    def path(self) -> Optional[Path]:
+    def path(self) -> Path | None:
         return self._path
 
     def set_file(self, path: Path) -> None:

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Optional
 
 # Characters that are unsafe in the generated single-quoted .env file or in
 # Quadlet Volume= values. Control characters are rejected separately.
@@ -19,7 +19,7 @@ _ORIGIN = re.compile(
 _ENV_ESCAPE = re.compile(r"[\x00-\x1f\x7f]")
 
 
-def absolute_input(value: str, cwd: Optional[str] = None) -> str:
+def absolute_input(value: str, cwd: str | None = None) -> str:
     """Resolve a relative operator path against the current directory."""
 
     if os.path.isabs(value):
@@ -87,7 +87,7 @@ def resolve_directory(value: str) -> Path:
     return Path(os.path.realpath(path))
 
 
-def read_single_quoted_env(env_file: Path, key: str) -> Optional[str]:
+def read_single_quoted_env(env_file: Path, key: str) -> str | None:
     """Read exactly our generated ``KEY='value'`` form without sourcing it."""
 
     pattern = re.compile(rf"^{re.escape(key)}='([^']*)'$")

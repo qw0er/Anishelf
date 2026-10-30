@@ -60,14 +60,14 @@ def _valid_compose_generation(text: str) -> bool:
     return "ANISHELF_INITIAL_RESOURCE_ROOTS:" in text and "/data/media" in text
 
 
-def render_quadlet(name: str, template: str, settings: "Settings") -> str:
+def render_quadlet(name: str, template: str, settings: Settings) -> str:
     """Render and optionally namespace one canonical Quadlet unit."""
 
     lines: list[str] = []
     for original in template.splitlines():
         line = _translate_unit_line(name, original, settings)
         if settings.selinux_suffix and line.startswith("Volume=anishelf-"):
-            if line.endswith(":ro") or line.endswith(":rw"):
+            if line.endswith((":ro", ":rw")):
                 line = f"{line},z"
             else:
                 line = f"{line}:z"
@@ -89,7 +89,7 @@ def render_quadlet(name: str, template: str, settings: "Settings") -> str:
     return text
 
 
-def _translate_unit_line(name: str, line: str, settings: "Settings") -> str:
+def _translate_unit_line(name: str, line: str, settings: Settings) -> str:
     if line.startswith("Image=ghcr.io/qw0er/anishelf-backend:"):
         return f"Image=ghcr.io/qw0er/anishelf-backend:{settings.image_tag}"
     if line.startswith("Image=ghcr.io/qw0er/anishelf-web:"):
@@ -176,7 +176,7 @@ def unit_filename(name: str, test_mode: bool) -> str:
     return testing_unit_name(name) if test_mode else name
 
 
-def render_compose_helper(settings: "Settings") -> str:
+def render_compose_helper(settings: Settings) -> str:
     """Render a minimal up/down wrapper with profiles fixed at install time."""
 
     command = [settings.engine, "compose"]
