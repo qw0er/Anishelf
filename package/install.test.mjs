@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import {
 	mkdir,
 	mkdtemp,
@@ -222,15 +223,72 @@ test("additional media paths retain the primary mount in Compose and Quadlet", a
 				),
 			);
 			assert.ok(
-				backend.includes(`Volume="${await realpath(primary)}:/data/media:rw"`),
+				backend.includes(`Volume=${await realpath(primary)}:/data/media:rw`),
 			);
 			assert.ok(
-				backend.includes(`Volume="${await realpath(first)}:/data/extra/1:rw"`),
+				backend.includes(`Volume=${await realpath(first)}:/data/extra/1:rw`),
 			);
 			assert.ok(
-				backend.includes(`Volume="${await realpath(second)}:/data/extra/2:rw"`),
+				backend.includes(`Volume=${await realpath(second)}:/data/extra/2:rw`),
 			);
 		}
+	}
+});
+
+const quadletGenerator =
+	process.env.ANISHELF_TEST_QUADLET_BIN ??
+	[
+		"/usr/lib/systemd/system-generators/podman-system-generator",
+		"/usr/libexec/podman/quadlet",
+	].find(existsSync);
+
+test("real Quadlet generation passes media mounts without literal quotes", {
+	skip: !quadletGenerator,
+}, async (t) => {
+	for (const selinux of ["Disabled", "Enforcing"]) {
+		const f = await fixture(t);
+		const media = join(f.directory, "media");
+		const extra = join(f.directory, "动画 media files");
+		const runtime = join(f.directory, "runtime");
+		await Promise.all([media, extra, runtime].map((path) => mkdir(path)));
+		success(
+			f.run(f.answers({ method: "2", media, extra, qbit: true }), {
+				env: { INSTALL_TEST_SELINUX: selinux },
+			}),
+		);
+		const generated = spawnSync(quadletGenerator, ["--user", "--dryrun"], {
+			encoding: "utf8",
+			timeout: 20000,
+			env: {
+				...process.env,
+				QUADLET_UNIT_DIRS: join(f.target, "quadlet"),
+				XDG_RUNTIME_DIR: runtime,
+			},
+		});
+		success(generated);
+		const output = generated.stdout.replaceAll("\\x20", " ");
+		const backend = output
+			.split("---anishelf-backend.service---")[1]
+			?.split("---")[0];
+		const qbit = output
+			.split("---anishelf-qbittorrent.service---")[1]
+			?.split("---")[0];
+		assert.ok(backend, generated.stdout + generated.stderr);
+		assert.ok(qbit, generated.stdout + generated.stderr);
+		const label = selinux === "Enforcing" ? ",z" : "";
+		assert.ok(
+			backend.includes(`-v ${await realpath(media)}:/data/media:rw${label} `),
+		);
+		assert.ok(
+			backend.includes(
+				`-v "${await realpath(extra)}:/data/extra/1:rw${label}" `,
+			),
+		);
+		assert.ok(
+			qbit.includes(
+				`-v ${await realpath(media)}:/data/media${label ? ":z" : ""} `,
+			),
+		);
 	}
 });
 
@@ -271,7 +329,7 @@ test("SELinux Compose bind mounts share z, grant backend media writes and never 
 	);
 });
 
-test("Quadlet generation preserves namespaces, quotes media paths and synchronizes image/peer ports", async (t) => {
+test("Quadlet generation preserves namespaces, literal media paths and synchronizes image/peer ports", async (t) => {
 	const f = await fixture(t),
 		media = join(f.directory, "media files");
 	await mkdir(media);
@@ -293,13 +351,13 @@ test("Quadlet generation preserves namespaces, quotes media paths and synchroniz
 	);
 	assert.match(backend, /Image=ghcr.io\/qw0er\/anishelf-backend:v0.4.1/);
 	assert.ok(
-		backend.includes(`Volume="${await realpath(media)}:/data/media:rw,z"`),
+		backend.includes(`Volume=${await realpath(media)}:/data/media:rw,z`),
 	);
 	assert.match(
 		backend,
 		/Volume=anishelf-qbittorrent-connection.volume:\/run\/anishelf-qbittorrent:ro,z/,
 	);
-	assert.ok(qbit.includes(`Volume="${await realpath(media)}:/data/media:z"`));
+	assert.ok(qbit.includes(`Volume=${await realpath(media)}:/data/media:z`));
 	assert.match(qbit, /UserNS=keep-id:uid=1000,gid=1000/);
 	assert.match(qbit, /TORRENTING_PORT=6991/);
 	assert.match(qbit, /PublishPort=6991:6991\/udp/);

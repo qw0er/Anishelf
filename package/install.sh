@@ -140,7 +140,7 @@ asset() {
 }
 # No eval, sourcing .env, or shell interpolation of user-provided configuration.
 write_env() { printf "%s='%s'\n" "$1" "$2" >> "$stage_dir/bundle/.env"; }
-unit_value() { printf '"%s"' "$1"; }
+# Quadlet Volume= is literal; the generator quotes the resulting argv.
 render_unit() {
   local name=$1 line extra index=0
   while IFS= read -r line || [[ -n "$line" ]]; do
@@ -157,9 +157,9 @@ render_unit() {
       anishelf-qbittorrent.container:PublishPort=6881:6881) line="PublishPort=$peer_port:$peer_port";;
       anishelf-qbittorrent.container:PublishPort=6881:6881/udp) line="PublishPort=$peer_port:$peer_port/udp";;
       *:Volume=anishelf-media.volume:/data/media:rw)
-        if [[ -n "$media_path" ]]; then line="Volume=$(unit_value "$media_path:/data/media:rw$selinux_suffix")"; fi;;
+        if [[ -n "$media_path" ]]; then line="Volume=$media_path:/data/media:rw$selinux_suffix"; fi;;
       *:Volume=anishelf-media.volume:/data/media)
-        if [[ -n "$media_path" ]]; then line="Volume=$(unit_value "$media_path:/data/media${selinux_suffix:+:z}")"; fi;;
+        if [[ -n "$media_path" ]]; then line="Volume=$media_path:/data/media${selinux_suffix:+:z}"; fi;;
     esac
     if [[ -n "$media_path" && "$name" == anishelf-qbittorrent.container ]]; then
       line=${line//chown 1000:1000 \/data\/media \/data\/incomplete/chown 1000:1000 \/data\/incomplete}
@@ -172,7 +172,7 @@ render_unit() {
     if [[ "$name" == anishelf-backend.container && "$line" == Volume=*:/data/media:rw* ]]; then
       for extra in ${extra_paths[@]+"${extra_paths[@]}"}; do
         index=$((index + 1))
-        printf 'Volume=%s\n' "$(unit_value "$extra:/data/extra/$index:rw$selinux_suffix")"
+        printf 'Volume=%s\n' "$extra:/data/extra/$index:rw$selinux_suffix"
       done
     fi
   done < "$stage_dir/$name" > "$stage_dir/bundle/quadlet/$name"
@@ -606,6 +606,7 @@ main() {
     if [[ "$jackett" == yes ]]; then units+=(anishelf-jackett-init.container anishelf-jackett.container); fi
     local unit
     for unit in "${units[@]}"; do asset "quadlet/$unit" "$stage_dir/$unit"; render_unit "$unit"; done
+    log "Rendered ${#units[@]} Quadlet unit files."
   fi
   if [[ "$test_mode" == true ]]; then
     phase='isolating testing deployment resources'
