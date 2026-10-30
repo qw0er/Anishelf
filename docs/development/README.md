@@ -189,9 +189,18 @@ bash -n package/install.sh
 npm run test:deployment
 ```
 
-Fixtures use fake engines/network commands. They do not prove live Compose,
-Quadlet generation or SELinux behavior; run the relevant Linux/runtime checks
-when changing those paths.
+Fixtures use fake engines/network commands. When a local Quadlet generator is
+available, the installer suite also runs its `--user --dryrun` mode and verifies
+media mount arguments, including spaces, Unicode and SELinux options. Set
+`ANISHELF_TEST_QUADLET_BIN` to select a generator explicitly; this regression is
+skipped when none is installed. It starts no containers or systemd services.
+These checks do not prove live Compose or SELinux behavior; run the relevant
+Linux/runtime checks when changing those paths.
+
+Quadlet `Volume=` values are literal mount specifications, including paths with
+spaces. Do not surround the value with shell quotes: the generator handles
+quoting for the generated Podman command, and literal quotes can become part of
+the mount options.
 
 For the opt-in real TLS/two-Caddy session regression:
 
