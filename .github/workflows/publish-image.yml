@@ -33,6 +33,12 @@ jobs:
         run: |
           node -e 'const p = require("./package.json"); if (process.env.RELEASE_TAG !== `v${p.version}`) throw new Error("Release tag must match package.json");'
 
+      - name: Validate release notes
+        if: github.event_name == 'push'
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/release-notes.mjs "$RELEASE_TAG" "$RUNNER_TEMP/release-notes.md"
+
       - name: Check publication source
         id: check
         shell: bash
@@ -212,6 +218,16 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Prepare release notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/release-notes.mjs "$RELEASE_TAG" "$RUNNER_TEMP/release-notes.md"
+
       - name: Publish GitHub Release after both image manifests
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -221,7 +237,7 @@ jobs:
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             echo "Release already exists."
           elif [[ "$RELEASE_TAG" == *-* ]]; then
-            gh release create "$RELEASE_TAG" --verify-tag --generate-notes --prerelease
+            gh release create "$RELEASE_TAG" --verify-tag --notes-file "$RUNNER_TEMP/release-notes.md" --prerelease
           else
-            gh release create "$RELEASE_TAG" --verify-tag --generate-notes --latest
+            gh release create "$RELEASE_TAG" --verify-tag --notes-file "$RUNNER_TEMP/release-notes.md" --latest
           fi

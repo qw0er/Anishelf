@@ -82,7 +82,11 @@ Deploy matching Web/Backend tags. `testing` moves with manual builds; only an im
 digest identifies exact bytes. Package-version changes do not create release tags,
 and publication does not update running deployments. After both image manifests
 succeed, tagged publications create a GitHub Release (prereleases remain marked as
-such). Existing Releases are preserved on retries.
+such), using the matching section of `CHANGELOG.md` as its notes. Before tagging,
+give that section the heading `## <version> - YYYY-MM-DD` and include its release
+notes; missing, duplicate, undated or empty sections block tagged publication.
+Existing Releases are preserved on retries. Manual test builds do not require a
+release section.
 
 ### Publish a test build
 
