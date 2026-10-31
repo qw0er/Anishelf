@@ -8,6 +8,7 @@
 | Subscribe, enable Watching or recover downloads | [Subscriptions and Watching](watching-automation.md) |
 | Set release preferences | [Acquisition profiles](acquisition-profiles.md) |
 | Customize preparation output | [Transcode YAML example](../examples/transcode-profiles-example.yaml) |
+| Configure external players and custom URL handlers | [External players](external-players.md) |
 
 ## First use
 
