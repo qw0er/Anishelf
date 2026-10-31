@@ -136,8 +136,7 @@ The custom desktop handlers above remove the scheme prefix and pass the remainin
 URL to the player. Use `{url}`, not `{urlEncoded}`, with these handlers.
 For VLC, replace the `mpv` names and scheme in the registration with `vlc`; for
 PotPlayer, use `potplayer`. Set the handler's executable to the installed player.
-Add these templates as custom entries;
-Anishelf's built-in desktop mpv preset currently uses `mpv://{url}`.
+Add these templates as custom entries.
 
 Avoid `mpv://https://...`: browsers can parse `https` as the outer hostname and
 remove the following colon as an empty port separator. `mpv:https://...` preserves
