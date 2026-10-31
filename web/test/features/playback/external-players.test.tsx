@@ -68,10 +68,10 @@ test.each([
 	[
 		{ userAgent: "Macintosh", platform: "MacIntel", maxTouchPoints: 0 },
 		"macos",
-		["IINA", "Infuse", "mpv"],
+		["IINA", "Infuse"],
 	],
-	[{ userAgent: "Linux X11" }, "linux", ["mpv"]],
-	[{ userAgent: "Windows NT 10.0" }, "windows", ["mpv"]],
+	[{ userAgent: "Linux X11" }, "linux", []],
+	[{ userAgent: "Windows NT 10.0" }, "windows", []],
 	[
 		{ userAgent: "Linux Android" },
 		"android",
@@ -117,6 +117,12 @@ test("substitution preserves reserved characters without recursively expanding t
 		"video/mp4",
 	);
 	expect(new URL(result).searchParams.get("url")).toBe(media);
+	const outplayer = presetsForPlatform("ios").find((p) => p.id === "outplayer");
+	expect(
+		new URL(
+			buildPlayerUrl(outplayer?.template ?? "", media, "video/mp4"),
+		).searchParams.get("url"),
+	).toBe(media);
 	expect(buildPlayerUrl("mpv://{url}", media, "video/mp4")).toBe(
 		`mpv://${media}`,
 	);

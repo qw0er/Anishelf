@@ -44,12 +44,6 @@ export const externalPlayerPolicy = {
 			template: "infuse://x-callback-url/play?url={urlEncoded}",
 		},
 		{
-			id: "mpv",
-			name: "mpv",
-			platforms: ["macos", "linux", "windows"],
-			template: "mpv://{url}",
-		},
-		{
 			id: "vlc-android",
 			name: "VLC",
 			platforms: ["android"],
@@ -80,7 +74,7 @@ export const externalPlayerPolicy = {
 			id: "outplayer",
 			name: "Outplayer",
 			platforms: ["ios"],
-			template: "outplayer://{url}",
+			template: "outplayer://x-callback-url/play?url={urlEncoded}",
 		},
 	] as const satisfies readonly ExternalPlayerPreset[],
 };
