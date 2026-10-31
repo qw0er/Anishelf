@@ -33,7 +33,7 @@ acceptance boundaries without selecting their technical solution in advance.
 Completed requirements and detailed designs are retained in [History](history.md).
 The completed anime-library, AniList accounts and automatic-acquisition iterations are archived in History.
 Multi-root resource management (L12) is implemented.
-The repository is at version 1.2.0. Later and Optional items remain future work.
+The repository is at version 1.3.0. Later and Optional items remain future work.
 The retained V2 implementation status remains recorded separately in History.
 
 ## 2. Feature Inventory and Version Tracking
