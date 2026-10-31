@@ -41,7 +41,7 @@
 		"dev:host": "concurrently \"npm run dev:backend\" \"npm run dev --workspace @anishelf/web -- --host 0.0.0.0\"",
 		"package_source": " mkdir -p ./dist && git archive --format=tar --prefix=anishelf/ HEAD | zstd -f -o ./dist/anishelf.tar.zst",
 		"architecture:check": "node scripts/check-architecture.mjs",
-		"architecture:test": "node --test scripts/architecture.test.mjs",
+		"architecture:test": "node --test scripts/architecture.test.mjs scripts/release-notes.test.mjs",
 		"unused:check": "knip --no-progress",
 		"anime:corpus": "node --import tsx scripts/anime-corpus.mts"
 	},
