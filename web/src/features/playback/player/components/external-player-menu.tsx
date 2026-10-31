@@ -108,7 +108,7 @@ function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 						{t("actions.retry")}
 					</DropdownMenuItem>
 				)}
-				<DropdownMenuItem render={<a href="/settings" />}>
+				<DropdownMenuItem render={<a href="/settings?section=playback" />}>
 					<Settings size={16} aria-hidden="true" />
 					{t("externalPlayers.manage")}
 				</DropdownMenuItem>
