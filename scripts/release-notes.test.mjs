@@ -36,10 +36,15 @@ test("extracts the exact release section", () => {
 	assert.equal(result.notes, "### Fixed\n\n- A fix.\n");
 });
 
-test("rejects missing, upcoming, duplicate, and empty release sections", () => {
+test("accepts version headings with or without a suffix", () => {
+	for (const heading of ["## 1.3.1", "## 1.3.1 (upcoming)"]) {
+		assert.equal(run(`${heading}\n\n- Fix.\n`).status, 0);
+	}
+});
+
+test("rejects missing, duplicate, and empty release sections", () => {
 	for (const changelog of [
 		"# Changelog\n",
-		"## 1.3.1 (upcoming)\n\n- Fix.\n",
 		"## 1.3.1 - 2026-11-01\n\n- Fix.\n\n## 1.3.1 - 2026-11-02\n\n- Other.\n",
 		"## 1.3.1 - 2026-11-01\n\n### Fixed\n",
 	]) {

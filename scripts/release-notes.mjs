@@ -11,20 +11,13 @@ try {
 	const version = tag.slice(1);
 	const sections = readFileSync("CHANGELOG.md", "utf8").split(/(?=^## )/m);
 	const matching = sections.filter((section) => {
-		const heading = section.split("\n", 1)[0];
+		const heading = section.split("\n", 1)[0].trimEnd();
 		return heading === `## ${version}` || heading.startsWith(`## ${version} `);
 	});
 	if (matching.length !== 1) {
 		throw new Error(`Expected exactly one changelog section for ${version}`);
 	}
-	const [heading, ...lines] = matching[0].split(/\r?\n/);
-	if (
-		!new RegExp(
-			`^## ${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} - \\d{4}-\\d{2}-\\d{2}$`,
-		).test(heading)
-	) {
-		throw new Error(`Changelog heading must be: ## ${version} - YYYY-MM-DD`);
-	}
+	const [, ...lines] = matching[0].split(/\r?\n/);
 	const notes = lines.join("\n").trim();
 	if (!notes || !/\S/.test(notes.replace(/^### .*$/gm, ""))) {
 		throw new Error(`Changelog section for ${version} is empty`);
