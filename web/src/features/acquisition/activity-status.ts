@@ -37,3 +37,40 @@ export function activityStatus(
 				percent: Math.round(item.progress * 100),
 			});
 }
+
+export function episodeNeedsAttention(
+	item: DownloadActivity["items"][number],
+): boolean {
+	return (
+		!!item.error ||
+		["blocked", "missing", "unknown"].includes(item.state) ||
+		["failed", "review"].includes(item.ingestion) ||
+		/error|missing/i.test(item.transfer ?? "")
+	);
+}
+
+/** Compact row labels; full task details retain transfer and ingestion stages. */
+export function episodeActivityStatus(
+	item: DownloadActivity["items"][number],
+	t: TFunction,
+): string {
+	if (episodeNeedsAttention(item))
+		return t("acquisition.episode.compactAttention");
+	if (item.state === "available") return t("acquisition.episode.viewTask");
+	if (item.state === "discovering")
+		return t("acquisition.episode.compactSearching");
+	if (item.ingestion === "validating" || item.progress === 1)
+		return t("acquisition.episode.compactProcessing");
+	if (/paused|stopped/i.test(item.transfer ?? ""))
+		return t("acquisition.episode.compactPaused");
+	if (/checking|meta/i.test(item.transfer ?? ""))
+		return t("acquisition.episode.compactProcessing");
+	if (
+		["pending", "submitting"].includes(item.state) ||
+		/queued/i.test(item.transfer ?? "")
+	)
+		return t("acquisition.episode.compactWaiting");
+	return item.progress === null
+		? t("acquisition.activity.downloading")
+		: `↓ ${Math.round(item.progress * 100)}%`;
+}

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useParams } from "react-router";
-import { EpisodeDownloadMenu } from "../../../features/acquisition/ui.js";
+import { EpisodeDownloadAction } from "../../../features/acquisition/ui.js";
 import type {
 	AnimeEpisodeActionSlot,
 	AnimeResourceActionSlot,
@@ -60,7 +60,7 @@ export function AnimeDetailPage() {
 		/>
 	);
 	const renderEpisodeAction: AnimeEpisodeActionSlot = (target) => (
-		<EpisodeDownloadMenu
+		<EpisodeDownloadAction
 			key={`${target.workKey}:${target.episode}`}
 			{...target}
 		/>

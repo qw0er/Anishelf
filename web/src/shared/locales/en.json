@@ -1135,7 +1135,7 @@
 			"saveChanges": "Save changes",
 			"subscribed": "Subscribed",
 			"notSubscribed": "Not subscribed",
-			"activity": "Activity",
+			"activity": "Subscription details",
 			"cooldownUntil": "Source rate limited; retry after {{time}}",
 			"waitingForReleases": "Waiting for releases",
 			"findingSource": "Finding a source",
@@ -1272,7 +1272,19 @@
 			"download": "Download this episode",
 			"searching": "Finding a release",
 			"existing": "This episode already has a download. View it in Activity.",
-			"failed": "Could not start this episode download."
+			"failed": "Could not start this episode download.",
+			"compactAttention": "Needs attention",
+			"compactSearching": "Searching",
+			"compactProcessing": "Processing",
+			"compactWaiting": "Waiting",
+			"downloadAction": "Download",
+			"taskTitle": "Episode {{episode}} task",
+			"viewTask": "View task",
+			"downloadLabel": "Download episode {{episode}}",
+			"taskLabel": "Task for episode {{episode}}",
+			"compactPaused": "Paused",
+			"stale": "Stale",
+			"statusUnknown": "Status unknown"
 		}
 	},
 	"profileIssue": {

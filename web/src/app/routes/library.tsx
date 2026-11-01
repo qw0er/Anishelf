@@ -1,5 +1,5 @@
 import type { RouteObject } from "react-router";
-import { EpisodeDownloadMenu } from "../../features/acquisition/ui.js";
+import { EpisodeDownloadAction } from "../../features/acquisition/ui.js";
 import { ReviewPage, TrackedAnimeDetail } from "../../features/anime/ui.js";
 import { HistoryPage } from "../../features/playback/ui.js";
 import App from "../App.js";
@@ -51,7 +51,7 @@ export const libraryRoute: RouteObject = {
 			element: (
 				<TrackedAnimeDetail
 					renderEpisodeAction={(target) => (
-						<EpisodeDownloadMenu
+						<EpisodeDownloadAction
 							key={`${target.workKey}:${target.episode}`}
 							{...target}
 						/>

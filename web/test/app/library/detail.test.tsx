@@ -21,7 +21,7 @@ import { appFixture, fetcher, json, requiredFetch } from "../support/state.js";
 
 setupAppTest();
 
-test("detail renders unknown/missing/unavailable separately and sanitizes provider descriptions", async () => {
+test("detail removes redundant episode labels and sanitizes provider descriptions", async () => {
 	const detail = animeFixture();
 	const titleHeight = vi
 		.spyOn(HTMLElement.prototype, "scrollHeight", "get")
@@ -57,17 +57,10 @@ test("detail renders unknown/missing/unavailable separately and sanitizes provid
 	).toBeNull();
 	expect(document.querySelector('a[href^="javascript:"]')).toBeNull();
 	expect(screen.getByText("Unknown")).toBeTruthy();
-	expect(
-		screen
-			.getByRole("button", { name: "Play: Episode 2" })
-			.hasAttribute("disabled"),
-	).toBe(true);
-	expect(
-		screen
-			.getByRole("button", { name: "Play: Episode 3" })
-			.hasAttribute("disabled"),
-	).toBe(true);
-	expect(screen.getByText(/No associated local file/)).toBeTruthy();
+	expect(screen.queryByRole("button", { name: "Play: Episode 2" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Play: Episode 3" })).toBeNull();
+	expect(screen.queryByText(/No associated local file/)).toBeNull();
+	expect(screen.queryByText(/2 versions/)).toBeNull();
 	expect(screen.queryByText("Hidden spoiler")).toBeNull();
 	fireEvent.click(screen.getByText("More metadata"));
 	fireEvent.click(screen.getByRole("button", { name: "Show spoiler tags" }));
@@ -254,9 +247,7 @@ test("airing pagination retains browsing and omits future episode records", asyn
 	renderApp("/anime/work-1");
 	await screen.findByRole("heading", { name: "Frieren", level: 1 });
 	expect(screen.getByText("Provider airing schedule")).toBeTruthy();
-	expect(document.getElementById("episode-ep-3")?.textContent).toContain(
-		"No associated local file",
-	);
+	expect(document.getElementById("episode-ep-3")).toBeTruthy();
 	fireEvent.click(
 		await screen.findByRole("button", { name: "Load more airing records" }),
 	);
@@ -271,7 +262,7 @@ test("airing pagination retains browsing and omits future episode records", asyn
 	expect(screen.getByRole("button", { name: "Play: Episode 1" })).toBeTruthy();
 });
 
-test("detail loads content and lightweight status once without fetching closed activity", async () => {
+test("detail shares one download status read across missing episode rows", async () => {
 	mockAnime(animeFixture());
 	renderApp("/anime/work-1");
 	await screen.findByRole("heading", { name: "Frieren", level: 1 });
@@ -291,10 +282,12 @@ test("detail loads content and lightweight status once without fetching closed a
 			(path) =>
 				path.startsWith("/api/tracking/entries/") ||
 				path.startsWith("/api/acquisition/subscriptions?") ||
-				path.startsWith("/api/acquisition/downloads?") ||
 				path === "/api/catalog/works/work-1",
 		),
 	).toEqual([]);
+	expect(
+		paths.filter((path) => path.startsWith("/api/acquisition/downloads?")),
+	).toHaveLength(1);
 });
 
 test("a tracked detail refetch switches to local episodes while preserving library context", async () => {
@@ -338,7 +331,7 @@ test("a tracked detail refetch switches to local episodes while preserving libra
 	).toBe(library);
 });
 
-test("missing episode More submits one background request and exposes Activity without a subscription", async () => {
+test("missing episode directly submits one request and opens its own task details", async () => {
 	const detail = animeFixture();
 	mockAnime(detail);
 	const fallback = requiredFetch(fetcher.getMockImplementation());
@@ -371,12 +364,11 @@ test("missing episode More submits one background request and exposes Activity w
 	expect(
 		screen.queryByRole("button", { name: "More actions for episode 1" }),
 	).toBeNull();
-	fireEvent.click(
-		screen.getByRole("button", { name: "More actions for episode 3" }),
-	);
-	fireEvent.click(
-		await screen.findByRole("menuitem", { name: "Download this episode" }),
-	);
+	const download = await screen.findByRole("button", {
+		name: "Download episode 3",
+	});
+	await waitFor(() => expect(download.hasAttribute("disabled")).toBe(false));
+	fireEvent.click(download);
 	await screen.findByText("Finding a release");
 	expect(submitted).toEqual({
 		workKey: "anilist:anime:154587",
@@ -391,7 +383,7 @@ test("missing episode More submits one background request and exposes Activity w
 				init?.method !== "GET",
 		),
 	).toBe(false);
-	fireEvent.click(screen.getByRole("button", { name: "Activity" }));
-	const dialog = await screen.findByRole("dialog", { name: "Activity" });
+	fireEvent.click(screen.getByRole("button", { name: "View task" }));
+	const dialog = await screen.findByRole("dialog", { name: "Episode 3 task" });
 	expect(await within(dialog).findByText("No active downloads.")).toBeTruthy();
 });

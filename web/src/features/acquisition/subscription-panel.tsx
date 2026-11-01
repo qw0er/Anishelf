@@ -67,12 +67,10 @@ export function SubscriptionPanel({
 	const query = status ?? fallback;
 	const view = query.data?.subscription,
 		sub = view?.subscription;
-	const activity = query.data?.downloads;
 	const cooling =
 		sub?.error === "rate_limited" && sub.nextAttemptAt > Date.now();
 	const needsAttention =
 		query.isError ||
-		(activity?.attention ?? 0) > 0 ||
 		!!(
 			sub?.error &&
 			sub.runState !== "completed" &&
@@ -93,8 +91,6 @@ export function SubscriptionPanel({
 			time: new Date(sub.nextAttemptAt).toLocaleString(i18n.language),
 		});
 	else if (needsAttention) summary = t("acquisition.activity.needsAttention");
-	else if (activity?.active)
-		summary = t("acquisition.activity.activeCount", { count: activity.active });
 	else if (sub && !sub.enabled) summary = t("acquisition.subscription.paused");
 	else if (sub?.sourceKind === "automatic")
 		summary = t(
@@ -194,7 +190,7 @@ export function SubscriptionPanel({
 					</span>
 				</div>
 				<div className="flex items-center gap-1">
-					{(sub || (activity?.total ?? 0) > 0 || needsAttention) && (
+					{(sub || needsAttention) && (
 						<Button variant="ghost" onClick={() => setActivityOpen(true)}>
 							{t("acquisition.subscription.activity")}
 							{needsAttention ? " · !" : ""}
@@ -341,6 +337,7 @@ export function SubscriptionPanel({
 					</DialogHeader>
 					{
 						<DownloadActivityPanel
+							subscriptionOnly
 							workKey={workKey}
 							view={view ?? { subscription: null }}
 							onCheckUpdates={() => action.mutate("refresh")}

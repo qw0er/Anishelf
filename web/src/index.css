@@ -191,6 +191,10 @@
 @utility list-row {
 	@apply min-w-0 gap-4 py-4 first:pt-0 last:pb-0;
 }
+/* Episode primary controls share one trailing column across playback and acquisition. */
+@utility episode-primary-action {
+	@apply w-32 shrink-0 overflow-hidden;
+}
 @utility icon-control {
 	@apply inline-flex size-9 shrink-0 items-center justify-center p-0;
 }

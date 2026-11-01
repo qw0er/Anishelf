@@ -66,8 +66,8 @@ test.each([0, 2])(
 		expect(screen.queryByText(/AniList progress: 2 watched/)).toBeNull();
 		expect(screen.queryByText(/0 unwatched available/)).toBeNull();
 		if (progress === 2) {
-			expect(screen.getAllByText("Watched")).toHaveLength(2);
-			expect(screen.getByText("Unwatched")).toBeTruthy();
+			expect(screen.queryByText("Watched")).toBeNull();
+			expect(screen.queryByText("Unwatched")).toBeNull();
 			expect(
 				screen.queryByRole("button", {
 					name: "About available unwatched episodes",
@@ -75,7 +75,7 @@ test.each([0, 2])(
 			).toBeNull();
 		} else {
 			expect(screen.queryByText("Watched")).toBeNull();
-			expect(screen.getAllByText("Unwatched")).toHaveLength(3);
+			expect(screen.queryByText("Unwatched")).toBeNull();
 			const hint = screen.getByRole("button", {
 				name: "About available unwatched episodes",
 			});
