@@ -672,6 +672,28 @@ test("monitor requests a larger task window only after More is clicked", async (
 	);
 });
 
+test("narrow monitor starts collapsed and exposes failed tasks on demand", async () => {
+	vi.spyOn(window, "matchMedia").mockReturnValue({
+		matches: true,
+	} as MediaQueryList);
+	vi.mocked(preparationApi.getPreparations).mockResolvedValue({
+		tasks: [task, { ...task, id: "failed", status: "failed" }],
+	});
+	const view = render(
+		<Wrapper>
+			<PreparationMonitor />
+		</Wrapper>,
+	);
+	const toggle = await view.findByRole("button", {
+		name: "Transcoding tasks · 1 active · 1 failed",
+	});
+	expect(toggle.getAttribute("aria-expanded")).toBe("false");
+	expect(view.queryByRole("button", { name: "Retry preparation" })).toBeNull();
+	fireEvent.click(toggle);
+	expect(toggle.getAttribute("aria-expanded")).toBe("true");
+	expect(view.getByRole("button", { name: "Retry preparation" })).toBeTruthy();
+});
+
 test.each(["remux", "transcode-audio", "transcode-video"] as const)(
 	"compatibility preparation does not reuse a %s copy as a completed full transcode",
 	async (mode) => {

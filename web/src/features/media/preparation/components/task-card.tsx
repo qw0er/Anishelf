@@ -75,7 +75,7 @@ export function PreparationTaskCard({
 	);
 	return (
 		<article className="flex min-w-0 items-center gap-2 px-3 py-2">
-			<Tooltip content={details}>
+			<Tooltip content={details} openOnClick>
 				<Button
 					size="sm"
 					variant="ghost"
