@@ -95,7 +95,15 @@ export function checkExecutionCapabilities(
 	);
 	for (const [kind, index, execution] of [
 		["video", videoStreamIndex, plan.video],
-		...audioStreamIndices.map((index) => ["audio", index, plan.audio] as const),
+		...audioStreamIndices.map(
+			(index) =>
+				[
+					"audio",
+					index,
+					plan.audioTracks?.find((t) => t.sourceIndex === index)?.execution ??
+						plan.audio,
+				] as const,
+		),
 	] as const) {
 		if (index === null || execution.action !== "encode") continue;
 		const stream = info.streams.find(

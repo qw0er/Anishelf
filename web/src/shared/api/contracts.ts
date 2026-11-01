@@ -7,6 +7,7 @@ export type {
 	AnimeStatusResponse,
 	ApiErrorResponse,
 	AssetCompatibility,
+	AutoPreparationCatalog,
 	BuildInfo,
 	CatalogConfirmationRequest,
 	CatalogConfirmationResponse,

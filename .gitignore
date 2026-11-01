@@ -16,6 +16,7 @@ dist-ssr
 # Python
 __pycache__/
 *.pyc
+.ruff_cache
 
 # Editor directories and files
 .vscode/*

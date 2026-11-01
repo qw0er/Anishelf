@@ -6,6 +6,8 @@ export function settingsResponse(
 ): SettingsResponse {
 	return {
 		resourceRoots: settings.resourceRoots,
+		autoPreparationEnabled: settings.autoPreparationEnabled ?? false,
+		autoPreparationPresetId: settings.autoPreparationPresetId ?? "builtin:web",
 		...(settings.defaultAcquisitionProfileId === undefined
 			? {}
 			: { defaultAcquisitionProfileId: settings.defaultAcquisitionProfileId }),

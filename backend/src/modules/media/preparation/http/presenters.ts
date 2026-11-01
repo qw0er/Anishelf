@@ -16,6 +16,8 @@ export function preparationTaskResponse(
 		sourceVersion: task.spec.source.sourceVersion,
 		filename: task.filename,
 		profileId: task.profileId,
+		origin: task.demand?.origin ?? "manual",
+		...(task.demand?.presetId ? { presetId: task.demand.presetId } : {}),
 		audioStreamIndices: [...task.spec.settings.audioStreamIndices],
 		mode: task.spec.settings.mode,
 		reasons: { ...task.spec.settings.reasons },

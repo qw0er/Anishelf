@@ -1309,5 +1309,16 @@
 		"title": "Playback preferences",
 		"storageError": "Your playback preference could not be read or saved in this browser. Check browser storage access and try again.",
 		"scope": "Applies to all anime in this browser."
+	},
+	"automaticPreparation": {
+		"title": "Automatic preparation",
+		"description": "Prepare copies in the background for existing and newly discovered videos. Playback still checks your device’s capabilities.",
+		"enabled": "Enable automatic preparation",
+		"preset": "Playback preset",
+		"saved": "Automatic preparation settings saved",
+		"unavailable": "Selected preset unavailable",
+		"paused": "Automatic preparation is paused until an available preset is selected.",
+		"configIssue": "Could not load custom presets from {{file}}. Built-in presets remain available.",
+		"taskSource": "Automatic · {{preset}}"
 	}
 }

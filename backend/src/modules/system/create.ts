@@ -23,6 +23,9 @@ export async function createSystemModule(
 ) {
 	const service = await ConfigurationService.load(env);
 	const api: SystemApi = {
+		autoPreparationPresets: service.autoPreparationPresets,
+		autoPreparationIssue: service.autoPreparationIssue,
+		onSettingsChanged: service.onSettingsChanged.bind(service),
 		get settings() {
 			return service.settings;
 		},

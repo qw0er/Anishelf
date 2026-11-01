@@ -52,11 +52,21 @@ export function resolveExecutionPlan(
 	if (video.hdr)
 		return { kind: "blocked", reason: "hdr-conversion-unverified" };
 	const resize =
-		profile.video.maxHeight !== undefined &&
-		(video.height === null || video.height > profile.video.maxHeight);
+		(profile.video.maxHeight !== undefined &&
+			(video.height === null || video.height > profile.video.maxHeight)) ||
+		(profile.video.maxWidth !== undefined &&
+			(video.width === null || video.width > profile.video.maxWidth)) ||
+		(profile.video.maxFrameRate !== undefined &&
+			(video.frameRate === null ||
+				video.frameRate > profile.video.maxFrameRate));
 	const stereo =
-		profile.audio.channels === "stereo" &&
-		audios.some((audio) => audio.channels !== 2);
+		((profile.audio.channels === "stereo" ||
+			profile.audio.channelCount !== undefined) &&
+			audios.some(
+				(audio) => audio.channels !== (profile.audio.channelCount ?? 2),
+			)) ||
+		(profile.audio.sampleRate !== undefined &&
+			audios.some((audio) => audio.sampleRate !== profile.audio.sampleRate));
 	const copyCompatibleStreams =
 		mode === "fast" && profile.copyCompatibleStreams;
 	const videoAction =
@@ -86,14 +96,27 @@ export function resolveExecutionPlan(
 	// All conversions, including libavfilter's auto audio conversion, are preflighted.
 	const filters =
 		v === "encode"
-			? ["buffer", "buffersink", "null", "scale", "pad", "format"]
+			? [
+					"buffer",
+					"buffersink",
+					"null",
+					"scale",
+					"pad",
+					"format",
+					...(profile.video.maxFrameRate ? ["fps"] : []),
+				]
 			: [];
 	if (a === "encode" && audio)
 		filters.push("abuffer", "abuffersink", "aresample", "aformat", "anull");
 	const plan: MediaProcessingPlan = {
 		id: fingerprint({
 			version:
-				v === "encode" && profile.video.encoder !== "libx264"
+				v === "encode" &&
+				(profile.video.encoder !== "libx264" ||
+					profile.video.maxWidth !== undefined ||
+					profile.video.maxFrameRate !== undefined ||
+					profile.video.profile !== undefined ||
+					profile.video.level !== undefined)
 					? "preparation-execution:3"
 					: version,
 			fileId: input.fileId,
@@ -131,7 +154,9 @@ export function resolveExecutionPlan(
 			? {
 					videoParameters: structuredClone(profile.video),
 					videoFilters,
-					...(profile.video.encoder === "libx264"
+					...(profile.video.encoder === "libx264" &&
+					!profile.video.profile &&
+					!profile.video.level
 						? { h264Level: "5.1" as const }
 						: {}),
 				}

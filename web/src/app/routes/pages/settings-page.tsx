@@ -14,6 +14,7 @@ import {
 } from "../../../features/media/public.js";
 import {
 	AboutSettings,
+	AutomaticPreparationSettings,
 	ExternalPlayerSettings,
 	PlaybackPreferencesSettings,
 	PreparationProfileSettings,
@@ -125,6 +126,7 @@ export function SettingsPage() {
 							preparation={preparation}
 							action={action}
 						/>
+						<AutomaticPreparationSettings action={action} />
 						<ExternalPlayerSettings />
 					</div>
 					<div

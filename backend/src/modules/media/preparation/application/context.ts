@@ -21,6 +21,7 @@ export class PreparationProfileChangedError extends DomainError {
 /** Per-application dependencies and shutdown guard; no shared global registry. */
 export class PreparationContext {
 	closed = false;
+	automaticGuard?: (task: PreparationTask) => Promise<boolean>;
 	constructor(
 		readonly repository: PreparationStore,
 		readonly sources: ResourceAccessApi,

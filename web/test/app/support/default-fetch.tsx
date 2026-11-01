@@ -80,6 +80,20 @@ export const defaultAppFetch: typeof fetch = async (input, init) => {
 			selectedProfileId: "builtin:general",
 			selectionAvailable: true,
 		});
+	if (path === "/api/auto-preparation-presets")
+		return json({
+			presets: [
+				{
+					id: "builtin:web",
+					name: "Web",
+					description: "Web playback",
+					source: "builtin",
+					available: true,
+				},
+			],
+			selectedPresetId: "builtin:web",
+			selectionAvailable: true,
+		});
 	if (path === "/api/transcode-profiles")
 		return json({
 			profiles: [

@@ -57,6 +57,8 @@ test("first-run HTTP setup persists settings and automatically scans the configu
 	);
 	expect((await app.inject({ url: "/api/settings", headers })).json()).toEqual({
 		resourceRoots: [],
+		autoPreparationEnabled: false,
+		autoPreparationPresetId: "builtin:web",
 	});
 	expect(
 		(await app.inject({ url: "/api/library", headers })).json(),

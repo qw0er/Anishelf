@@ -1289,5 +1289,16 @@
 		"title": "播放偏好",
 		"storageError": "无法在此浏览器中读取或保存播放偏好。请检查浏览器存储权限后重试。",
 		"scope": "适用于当前浏览器中的所有动画。"
+	},
+	"automaticPreparation": {
+		"title": "自动准备",
+		"description": "在后台为已有和新发现的视频准备副本。播放时仍会检测设备能力。",
+		"enabled": "启用自动准备",
+		"preset": "播放预设",
+		"saved": "自动准备设置已保存",
+		"unavailable": "所选预设不可用",
+		"paused": "自动准备已暂停，请选择可用的预设。",
+		"configIssue": "无法从 {{file}} 加载自定义预设，内置预设仍然可用。",
+		"taskSource": "自动 · {{preset}}"
 	}
 }

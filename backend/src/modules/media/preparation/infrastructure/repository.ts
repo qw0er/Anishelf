@@ -10,8 +10,13 @@ import type {
 	PreparedArtifact,
 } from "../domain/model.js";
 import type { PreparationStore, PreparationSummaryRow } from "../ports.js";
+import type { AutomaticDemandRecord } from "../snapshot.js";
 import { readPreparationTasks, writePreparationTasks } from "./records.js";
-import { preparationTasks, preparedArtifacts } from "./schema.js";
+import {
+	automaticPreparationDemands,
+	preparationTasks,
+	preparedArtifacts,
+} from "./schema.js";
 export class PreparationRepository implements PreparationStore {
 	constructor(
 		private readonly store: Store,
@@ -52,6 +57,7 @@ export class PreparationRepository implements PreparationStore {
 		else throw new Error("Invalid persisted preparation state.");
 		return {
 			id: row.task.id,
+			demand: task.demand ?? { origin: "manual" },
 			filename: row.task.filename,
 			profileId: row.task.profileId,
 			createdAtMs: row.task.createdAtMs,
@@ -134,10 +140,58 @@ export class PreparationRepository implements PreparationStore {
 				.get()?.value ?? 0
 		);
 	}
+	findReusable(
+		fileId: string,
+		sourceVersion: string,
+		profileFingerprint: string,
+	): PreparationTask[] {
+		return this.query()
+			.where(
+				and(
+					eq(mediaSources.fileId, fileId),
+					eq(mediaSources.sourceVersion, sourceVersion),
+					eq(preparationTasks.profileFingerprint, profileFingerprint),
+					inArray(preparationTasks.status, ["queued", "processing", "ready"]),
+				),
+			)
+			.all()
+			.map((row) => this.task(row));
+	}
+
+	getAutomaticDemand(id: string): AutomaticDemandRecord | undefined {
+		const row = this.store
+			.select()
+			.from(automaticPreparationDemands)
+			.where(eq(automaticPreparationDemands.id, id))
+			.get();
+		return row
+			? {
+					id: row.id,
+					failures: row.failures,
+					nextAttemptAtMs: row.nextAttemptAtMs,
+					...(row.taskUpdatedAtMs === null
+						? {}
+						: { taskUpdatedAtMs: row.taskUpdatedAtMs }),
+				}
+			: undefined;
+	}
+	saveAutomaticDemand(value: AutomaticDemandRecord): void {
+		const row = { ...value, taskUpdatedAtMs: value.taskUpdatedAtMs ?? null };
+		this.store
+			.insert(automaticPreparationDemands)
+			.values(row)
+			.onConflictDoUpdate({ target: automaticPreparationDemands.id, set: row })
+			.run();
+	}
+
 	nextQueued(): PreparationTask | undefined {
 		const row = this.query()
 			.where(eq(preparationTasks.status, "queued"))
-			.orderBy(asc(preparationTasks.updatedAtMs), asc(preparationTasks.id))
+			.orderBy(
+				sql`case when ${preparationTasks.origin} = 'manual' then 0 else 1 end`,
+				asc(preparationTasks.updatedAtMs),
+				asc(preparationTasks.id),
+			)
 			.limit(1)
 			.get();
 		return row ? this.task(row) : undefined;
@@ -157,6 +211,7 @@ export class PreparationRepository implements PreparationStore {
 			const source = this.sources.registerSource(task.spec.source);
 			writePreparationTasks(this.store, {
 				id: task.id,
+				demand: task.demand ?? { origin: "manual" },
 				sourceId: source.id,
 				executionPlanId: task.spec.executionPlanId,
 				profileFingerprint: task.spec.profileFingerprint,
@@ -175,6 +230,9 @@ export class PreparationRepository implements PreparationStore {
 			.update(preparationTasks)
 			.set({
 				status,
+				origin: task.demand?.origin ?? "manual",
+				presetId: task.demand?.presetId ?? null,
+				presetFingerprint: task.demand?.presetFingerprint ?? null,
 				profileId: task.profileId,
 				failureReason,
 				updatedAtMs,

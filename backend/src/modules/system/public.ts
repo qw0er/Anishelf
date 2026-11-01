@@ -18,6 +18,11 @@ import type {
 	TranscodeProfile,
 } from "./configuration/public.js";
 export interface SystemApi extends SettingsStore {
+	readonly autoPreparationPresets?: DeepReadonly<
+		import("../../contracts/auto-preparation.js").AutoPreparationPreset[]
+	>;
+	readonly autoPreparationIssue?: ProfileCatalogIssue | undefined;
+	onSettingsChanged?(listener: () => void): () => void;
 	readonly deployment: DeepReadonly<DeploymentConfig>;
 	readonly environment: RuntimeEnvironment;
 	readonly transcodeProfiles: DeepReadonly<TranscodeProfile[]>;

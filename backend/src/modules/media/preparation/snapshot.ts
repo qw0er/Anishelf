@@ -10,3 +10,15 @@ export interface PreparationSettingsSnapshot {
 	audioStreamIndices: readonly number[];
 	plan: Omit<DeepReadonly<MediaProcessingPlan>, "id">;
 }
+
+export interface PreparationDemand {
+	origin: "manual" | "automatic";
+	presetId?: string;
+	presetFingerprint?: string;
+}
+export interface AutomaticDemandRecord {
+	id: string;
+	failures: number;
+	nextAttemptAtMs: number;
+	taskUpdatedAtMs?: number;
+}

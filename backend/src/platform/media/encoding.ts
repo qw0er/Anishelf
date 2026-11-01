@@ -1,5 +1,13 @@
 /** Typed encoder settings; transport validates its own representation. */
-type VideoFields = { pixelFormat: string; maxHeight?: number };
+type VideoFields = {
+	pixelFormat: string;
+	maxHeight?: number;
+	maxWidth?: number;
+	maxFrameRate?: number;
+	profile?: string;
+	level?: string;
+	maxBitrateKbps?: number;
+};
 type X26xPreset =
 	| "ultrafast"
 	| "superfast"
@@ -29,7 +37,12 @@ export type VideoEncoding = VideoFields &
 		  }
 		| { encoder: "av1_nvenc" | "av1_qsv"; codec: "av1"; bitrateKbps: number }
 	);
-export type AudioEncoding = { channels: "preserve" | "stereo" } & (
+export type AudioEncoding = {
+	channels: "preserve" | "stereo";
+	channelCount?: number;
+	sampleRate?: number;
+	profile?: string;
+} & (
 	| { encoder: "aac"; codec: "aac"; bitrateKbps: number }
 	| { encoder: "libopus"; codec: "opus"; bitrateKbps: number }
 	| { encoder: "libvorbis"; codec: "vorbis"; bitrateKbps: number }

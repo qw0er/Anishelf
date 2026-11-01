@@ -65,6 +65,10 @@ export const PreparationTaskSchema = Type.Object(
 		filename: Type.String(),
 		sourceVersion: SourceVersionSchema,
 		profileId: Type.String(),
+		origin: Type.Optional(
+			Type.Union([Type.Literal("manual"), Type.Literal("automatic")]),
+		),
+		presetId: Type.Optional(Type.String()),
 		audioStreamIndices: Type.Optional(AudioStreamSelectionSchema),
 		mode: Type.Union([
 			Type.Literal("remux"),

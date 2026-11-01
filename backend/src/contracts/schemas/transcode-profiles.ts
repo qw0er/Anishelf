@@ -8,6 +8,15 @@ const text = () =>
 	Type.String({ minLength: 1, maxLength: 240, pattern: "\\S" });
 const pixelFormat = Type.String({ pattern: "^[a-z][a-z0-9_]{0,63}$" });
 const videoFields = {
+	maxWidth: Type.Optional(
+		Type.Integer({ minimum: 2, maximum: 8192, multipleOf: 2 }),
+	),
+	maxFrameRate: Type.Optional(
+		Type.Number({ exclusiveMinimum: 0, maximum: 1000 }),
+	),
+	profile: Type.Optional(Type.String({ pattern: "^[a-z0-9][a-z0-9-]{0,63}$" })),
+	level: Type.Optional(Type.String({ pattern: "^[0-9]+(\\.[0-9]+)?$" })),
+	maxBitrateKbps: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000000 })),
 	pixelFormat,
 	maxHeight: Type.Optional(
 		Type.Integer({ minimum: 2, maximum: 8192, multipleOf: 2 }),
@@ -151,6 +160,9 @@ export const TranscodeVideoSchema = Type.Union([
 	),
 ]);
 const audioFields = {
+	channelCount: Type.Optional(Type.Integer({ minimum: 1, maximum: 64 })),
+	sampleRate: Type.Optional(Type.Integer({ minimum: 1, maximum: 768000 })),
+	profile: Type.Optional(Type.Literal("lc")),
 	channels: Type.Union([Type.Literal("preserve"), Type.Literal("stereo")]),
 };
 export const TranscodeAudioSchema = Type.Union([

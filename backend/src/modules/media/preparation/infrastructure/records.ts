@@ -9,12 +9,19 @@ export function readPreparationTasks(
 ): PreparationRecord {
 	return {
 		id: row.id,
+		demand: {
+			origin: row.origin,
+			...(row.presetId === null ? {} : { presetId: row.presetId }),
+			...(row.presetFingerprint === null
+				? {}
+				: { presetFingerprint: row.presetFingerprint }),
+		},
 		sourceId: row.sourceId,
 		executionPlanId: row.executionPlanId,
 		profileId: row.profileId,
 		profileFingerprint: row.profileFingerprint,
 		filename: row.filename,
-		snapshot: {
+		snapshot: row.extendedSnapshot ?? {
 			version: row.snapshotVersion,
 			mode: row.snapshotMode,
 			reasons: {
@@ -248,6 +255,10 @@ export function writePreparationTasks(
 		const audioParameters = value.snapshot.plan.audioParameters;
 		const row0 = {
 			id: value?.id,
+			origin: value.demand?.origin ?? "manual",
+			presetId: value.demand?.presetId ?? null,
+			presetFingerprint: value.demand?.presetFingerprint ?? null,
+			extendedSnapshot: value.snapshot,
 			sourceId: value?.sourceId,
 			executionPlanId: value?.executionPlanId,
 			profileId: value?.profileId,

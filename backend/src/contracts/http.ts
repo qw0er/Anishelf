@@ -261,3 +261,7 @@ export type ResourceCommand = Static<typeof schemas.ResourceCommandSchema>;
 export type ResourceCommandResult = Static<
 	typeof schemas.ResourceCommandResultSchema
 >;
+
+export type AutoPreparationCatalog = Static<
+	typeof import("./schemas/auto-preparation.js").AutoPreparationCatalogSchema
+>;

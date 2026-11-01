@@ -101,13 +101,16 @@ export function registerPreparationRoutes(
 			{
 				schema: {
 					params: PreparationTaskParamsSchema,
-					body: CompatibilityCheckRequestSchema,
+					body: Type.Union([
+						CompatibilityCheckRequestSchema,
+						EmptyObjectSchema,
+					]),
 					response: { 200: PreparationTaskSchema },
 				},
 			},
 			async (request) =>
 				preparationTaskResponse(
-					await preparation.retry(request.params.id, request.body),
+					await preparation.retryRequest(request.params.id, request.body),
 				),
 		);
 		scope.delete(

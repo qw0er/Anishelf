@@ -8,6 +8,12 @@ import type {
 	SourceIdentity,
 } from "./domain/model.js";
 export interface PlaybackStore {
+	viewingStates?(
+		sources: readonly SourceIdentity[],
+	): Record<
+		string,
+		import("../../../contracts/auto-preparation.js").ViewingState
+	>;
 	completions(sourceId?: string, pendingOnly?: boolean): CompletionRecord[];
 	saveCompletion(record: CompletionRecord): void;
 	registerSource(identity: SourceIdentity, nowMs?: number): RegisteredSource;

@@ -12,15 +12,37 @@ import type {
 function outputDimensions(
 	source: Pick<CompatibilityVideoStream, "width" | "height">,
 	maxHeight?: number,
+	maxWidth?: number,
 ): { width: number | null; height: number | null } {
 	const { width, height } = source;
 	if (!width || !height) return { width: null, height: null };
-	const resize = maxHeight !== undefined && height > maxHeight;
+	if (maxWidth === undefined) {
+		const resize = maxHeight !== undefined && height > maxHeight;
+		return {
+			width: resize
+				? Math.max(
+						2,
+						Math.round((width * (maxHeight as number)) / height / 2) * 2,
+					)
+				: Math.ceil(width / 2) * 2,
+			height: Math.ceil((resize ? (maxHeight as number) : height) / 2) * 2,
+		};
+	}
+	const ratio = Math.min(
+		1,
+		maxHeight === undefined ? 1 : maxHeight / height,
+		maxWidth === undefined ? 1 : maxWidth / width,
+	);
+	const resize = ratio < 1;
 	return {
 		width: resize
-			? Math.max(2, Math.round((width * maxHeight) / height / 2) * 2)
+			? Math.max(2, Math.floor((width * ratio) / 2) * 2)
 			: Math.ceil(width / 2) * 2,
-		height: Math.ceil((resize ? maxHeight : height) / 2) * 2,
+		height:
+			Math.ceil(
+				(resize ? Math.max(2, Math.floor((height * ratio) / 2) * 2) : height) /
+					2,
+			) * 2,
 	};
 }
 export function encodedVideoSpec(
@@ -29,15 +51,25 @@ export function encodedVideoSpec(
 ): CompatibilityVideoStream {
 	return {
 		...source,
-		...outputDimensions(source, profile.maxHeight),
+		...outputDimensions(source, profile.maxHeight, profile.maxWidth),
 		codec: profile.codec,
 		codecString:
-			profile.encoder === "libx264" && profile.pixelFormat === "yuv420p"
+			profile.encoder === "libx264" &&
+			profile.pixelFormat === "yuv420p" &&
+			!profile.profile &&
+			!profile.level
 				? "avc1.640033"
 				: profile.encoder === "libvpx-vp9" && profile.pixelFormat === "yuv420p"
 					? "vp9"
 					: null,
-		profile: profile.encoder === "libx264" ? "High" : null,
+		profile: profile.profile ?? (profile.encoder === "libx264" ? "High" : null),
+		frameRate:
+			profile.maxFrameRate === undefined
+				? source.frameRate
+				: Math.min(
+						source.frameRate ?? profile.maxFrameRate,
+						profile.maxFrameRate,
+					),
 		pixelFormat: profile.pixelFormat,
 		bitDepth: profile.pixelFormat === "yuv420p" ? 8 : null,
 		hdr: false,
@@ -59,17 +91,31 @@ export function encodedAudioSpec(
 					: null,
 		profile: null,
 		bitrate: "bitrateKbps" in profile ? profile.bitrateKbps * 1000 : null,
-		channels: profile.channels === "stereo" ? 2 : source.channels,
+		channels:
+			profile.channelCount ??
+			(profile.channels === "stereo" ? 2 : source.channels),
+		sampleRate: profile.sampleRate ?? source.sampleRate,
 	};
 }
 export function videoEncodingFilters(
 	source: CompatibilityVideoStream,
 	profile: DeepReadonly<TranscodeProfile["video"]>,
 ): string[] {
+	const dimensions = outputDimensions(
+		source,
+		profile.maxHeight,
+		profile.maxWidth,
+	);
 	return [
-		...(profile.maxHeight !== undefined &&
-		(source.height === null || source.height > profile.maxHeight)
-			? [`scale=w=-2:h=${profile.maxHeight}:flags=lanczos`]
+		...(profile.maxWidth !== undefined && dimensions.width && dimensions.height
+			? [`scale=w=${dimensions.width}:h=${dimensions.height}:flags=lanczos`]
+			: profile.maxHeight !== undefined &&
+					(source.height === null || source.height > profile.maxHeight)
+				? [`scale=w=-2:h=${profile.maxHeight}:flags=lanczos`]
+				: []),
+		...(profile.maxFrameRate !== undefined &&
+		(source.frameRate === null || source.frameRate > profile.maxFrameRate)
+			? [`fps=${profile.maxFrameRate}`]
 			: []),
 		"pad=ceil(iw/2)*2:ceil(ih/2)*2",
 		`format=${profile.pixelFormat}`,
@@ -136,17 +182,22 @@ export function expectedOutputSpec(
 							width: null,
 							height: null,
 						},
-		audios: audios.map((audio) =>
-			plan.audio.action === "copy"
+		audios: audios.map((audio) => {
+			const track = plan.audioTracks?.find(
+				(t) => t.sourceIndex === audio.index,
+			);
+			const action = track?.execution ?? plan.audio;
+			const parameters = track?.parameters ?? plan.audioParameters;
+			return action.action === "copy"
 				? audio
-				: plan.audioParameters
-					? encodedAudioSpec(audio, plan.audioParameters)
+				: parameters
+					? encodedAudioSpec(audio, parameters)
 					: {
 							...audio,
-							codec: plan.audio.codec,
+							codec: action.codec,
 							codecString: null,
 							channels: null,
-						},
-		),
+						};
+		}),
 	};
 }
