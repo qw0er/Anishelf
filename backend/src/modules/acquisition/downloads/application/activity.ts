@@ -4,10 +4,12 @@ import { downloadDefaults as policy } from "../defaults.js";
 import type { DownloadActivity } from "../domain/model.js";
 import type { DownloadApplicationContext } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
+import type { OneOffDownloads } from "./one-off.js";
 export class DownloadActivityQueries {
 	constructor(
 		private readonly context: DownloadApplicationContext,
 		private readonly destination: DownloadDestinationSettings,
+		private readonly oneOff: OneOffDownloads,
 	) {}
 	summary(workKey: string) {
 		this.context.open();
@@ -47,6 +49,15 @@ export class DownloadActivityQueries {
 					: null,
 			items: result.items.map((item) => ({
 				id: item.id,
+				origin: item.origin,
+				canRetryAcquisition:
+					item.origin === "one-off"
+						? this.oneOff.canRetry(item)
+						: Boolean(
+								subscription &&
+									this.destination.authorized(subscription) &&
+									item.source,
+							),
 				revision: item.revision,
 				workKey: item.workKey,
 				candidateId: item.candidateId,

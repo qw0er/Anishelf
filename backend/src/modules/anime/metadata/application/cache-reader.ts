@@ -3,10 +3,12 @@ import type { Logger } from "pino";
 import { detailFreshnessMs, metadataDefaults as policy } from "../defaults.js";
 import { abortable } from "../domain/async.js";
 import {
+	type AiringEpisode,
 	type CachedMetadata,
 	MetadataError,
 	type MetadataFailure,
 	type MetadataSnapshot,
+	type Page,
 	type ReadOptions,
 	type WorkDetails,
 } from "../domain/source-model.js";
@@ -141,13 +143,26 @@ export class MetadataCacheReader {
 		}
 	}
 	private expiresAt(entry: CacheEntry): number {
+		if (entry.kind === "airing") {
+			const next = Math.min(
+				...(entry.data as Page<AiringEpisode>).items
+					.map((item) => item.airingAt * 1000)
+					.filter((time) => time > entry.fetchedAt),
+			);
+			return Math.min(entry.expiresAt, next);
+		}
 		if (entry.kind !== "detail") return entry.expiresAt;
 		// Older snapshots need one refresh to backfill aired progress from nextAiringEpisode.
 		if (!("nextAiringEpisode" in (entry.data as WorkDetails))) return 0;
 		// Apply shorter policy intervals to snapshots persisted before a policy change.
+		const data = entry.data as WorkDetails;
+		const airingAt = data.nextAiringEpisode
+			? data.nextAiringEpisode.airingAt * 1000
+			: Infinity;
 		return Math.min(
 			entry.expiresAt,
-			entry.fetchedAt + detailFreshnessMs((entry.data as WorkDetails).status),
+			entry.fetchedAt + detailFreshnessMs(data.status),
+			airingAt > entry.fetchedAt ? airingAt : Infinity,
 		);
 	}
 	private envelope<T>(entry: CacheEntry): CachedMetadata<T> {

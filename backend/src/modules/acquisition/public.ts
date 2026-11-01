@@ -24,6 +24,11 @@ import type {
 	DownloadDestination,
 } from "./downloads/domain/model.js";
 export interface AcquisitionDownloadsApi {
+	requestEpisode(input: {
+		workKey: string;
+		episode: number;
+		commandId: string;
+	}): Promise<{ accepted: true; intentId: string; existing: boolean }>;
 	settings(): Promise<{
 		destination: DownloadDestination | null;
 		roots: { scopeId: string; name: string }[];

@@ -34,3 +34,9 @@ export type {
 	Subscription,
 	SubscriptionAuthorization,
 } from "./domain/model.js";
+export type { AcquisitionProfile } from "./domain/profiles.js";
+export {
+	acquisitionProfileFingerprint,
+	builtinAcquisitionProfiles,
+	defaultAcquisitionProfileId,
+} from "./domain/profiles.js";

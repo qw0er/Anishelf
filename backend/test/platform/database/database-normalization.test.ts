@@ -115,6 +115,8 @@ test("persists all normalized aggregates, preserves ordered children and survive
 		connectionGeneration: "g1",
 	};
 	const intent = {
+		origin: "subscription",
+		oneOff: null,
 		id: "intent",
 		revision: "i1",
 		workKey: "work",
@@ -520,6 +522,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 			).toBe(
 				[
 					"acquisition_subscriptions",
+					"acquisition_intents",
 					"acquisition_watching_policy",
 					"metadata_snapshots",
 					"acquisition_sources",

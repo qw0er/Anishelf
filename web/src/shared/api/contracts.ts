@@ -27,6 +27,8 @@ export type {
 	DirectorySearchResponse,
 	DownloadActivity,
 	DownloadSettings,
+	EpisodeDownloadRequest,
+	EpisodeDownloadResult,
 	FileDto,
 	FileResponse,
 	HistoryResponse,

@@ -18,13 +18,18 @@ export function AiringStatus({
 	const records = Array.from(
 		new Map(
 			(query.data?.pages ?? []).flatMap((page) =>
-				page.data.items.map(
-					(item) =>
-						[
-							item.id,
-							{ ...item, stale: page.stale || Boolean(page.refreshError) },
-						] as const,
-				),
+				page.data.items
+					.filter(
+						(item) =>
+							item.airingAt * 1000 <= Math.min(Date.now(), page.fetchedAt),
+					)
+					.map(
+						(item) =>
+							[
+								item.id,
+								{ ...item, stale: page.stale || Boolean(page.refreshError) },
+							] as const,
+					),
 			),
 		).values(),
 	).sort((a, b) => a.airingAt - b.airingAt);

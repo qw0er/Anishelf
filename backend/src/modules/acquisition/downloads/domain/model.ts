@@ -8,6 +8,16 @@ export interface DownloadDestination {
 	validated: boolean;
 	visibilityVerified: boolean;
 }
+export interface OneOffAuthorization {
+	/** Retain the publication across explicit retries until its remote binding is confirmed. */
+	uncertainSubmission?: boolean;
+	/** Changed settings cannot authorize a new add while an older submission is uncertain. */
+	reconcileOnly?: boolean;
+	profileId: string;
+	profileFingerprint: string;
+	sourceGeneration: string;
+	discovery: { providerId: string; code: string | null; limited: boolean }[];
+}
 export interface DownloadIntent {
 	id: string;
 	revision: string;
@@ -21,8 +31,11 @@ export interface DownloadIntent {
 	source: string;
 	destination: DownloadDestination;
 	directory: string;
-	subscriptionRevision: string;
+	origin: "subscription" | "one-off";
+	oneOff: OneOffAuthorization | null;
+	subscriptionRevision: string | null;
 	state:
+		| "discovering"
 		| "pending"
 		| "submitting"
 		| "unknown"
@@ -52,8 +65,9 @@ export interface DownloadActivity {
 	planningError?: string | null;
 	authorized: boolean;
 	destination: string | null;
-	items: Omit<
+	items: (Omit<
 		DownloadIntent,
+		| "oneOff"
 		| "source"
 		| "destination"
 		| "directory"
@@ -62,7 +76,7 @@ export interface DownloadActivity {
 		| "lastCommand"
 		| "hash"
 		| "expectedHash"
-	>[];
+	> & { canRetryAcquisition: boolean })[];
 	total: number;
 	active: number;
 	attention: number;

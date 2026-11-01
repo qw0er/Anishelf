@@ -29,6 +29,7 @@ export interface DownloadStore {
 	};
 	lockedCandidates(workKey: string): string[];
 	reservedEpisode(workKey: string, episode: number): boolean;
+	episodeIntent(workKey: string, episode: number): DownloadIntent | null;
 	hashOwner(hash: string, exceptId: string): boolean;
 	workBatch(afterId: string, limit: number, now: number): DownloadIntent[];
 	hasActive(): boolean;
@@ -51,7 +52,7 @@ export interface SubmissionAdmission {
 		},
 		client: TorrentClient,
 		snapshot: TorrentTask[],
-	): Promise<string | null>;
+	): Promise<{ subscriptionRevision: string | null } | null>;
 }
 export interface CompletedDownload {
 	task: TorrentTask;

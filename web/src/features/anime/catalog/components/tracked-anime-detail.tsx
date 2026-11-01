@@ -1,5 +1,5 @@
 import { workKey } from "@anishelf/backend/contracts/references";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useParams, useSearchParams } from "react-router";
@@ -10,18 +10,24 @@ import {
 	buttonStyles,
 } from "../../../../shared/components/ui/button.js";
 import { libraryReturnPath } from "../../../../shared/navigation.js";
+import { airingQuery } from "../../metadata/public.js";
 import { Artwork } from "../../shared/components/artwork.js";
 import { useDetailViewing, ViewingSummary } from "../../tracking/public.js";
-import { airedEpisodeCount } from "../detail-format.js";
 import { animeDetailQuery } from "../detail-query.js";
+import type { AnimeEpisodeActionSlot } from "../resource-actions.js";
 import { type AnimeStatusState, animeStatusQuery } from "../status-query.js";
+import { useEpisodeTimeline } from "../use-episode-timeline.js";
+import { AiringStatus } from "./airing-status.js";
+import { EpisodeRows } from "./episode-rows.js";
 import { WorkMetadataExtras } from "./work-metadata-extras.js";
 import { WorkMetadataHeader } from "./work-metadata-header.js";
 import { WorkSynopsis } from "./work-synopsis.js";
 export function TrackedAnimeDetail({
 	renderSubscription,
+	renderEpisodeAction,
 }: {
 	renderSubscription?: (workKey: string, detail: AnimeStatusState) => ReactNode;
+	renderEpisodeAction?: AnimeEpisodeActionSlot;
 } = {}) {
 	const { mediaId = "" } = useParams();
 	const [params] = useSearchParams();
@@ -51,10 +57,12 @@ export function TrackedAnimeDetail({
 		);
 	return (
 		<TrackedDetail
+			key={workKey(query.data.reference)}
 			data={query.data}
 			retry={() => void query.refetch()}
 			library={params.get("library")}
 			{...(renderSubscription ? { renderSubscription } : {})}
+			{...(renderEpisodeAction ? { renderEpisodeAction } : {})}
 		/>
 	);
 }
@@ -63,14 +71,26 @@ function TrackedDetail({
 	retry,
 	library,
 	renderSubscription,
+	renderEpisodeAction,
 }: {
 	data: AnimeDetailResponse;
 	retry: () => void;
 	library: string | null;
 	renderSubscription?: (workKey: string, detail: AnimeStatusState) => ReactNode;
+	renderEpisodeAction?: AnimeEpisodeActionSlot;
 }) {
 	const { t } = useTranslation();
 	const mediaId = workKey(data.reference);
+	const airing = useInfiniteQuery({
+		...airingQuery(data.metadata?.data.reference.id ?? ""),
+		enabled: Boolean(data.metadata),
+	});
+	const timeline = useEpisodeTimeline(
+		mediaId,
+		data.metadata,
+		[],
+		airing.data?.pages ?? [],
+	);
 	const status = useQuery(animeStatusQuery(mediaId, useQueryScope()));
 	const viewing = useDetailViewing(
 		status.data?.viewing,
@@ -106,13 +126,14 @@ function TrackedDetail({
 			{metadata.data && info ? (
 				<>
 					<WorkMetadataHeader
+						airedCount={timeline.aired}
 						bannerUrl={info.bannerUrl ? artwork("banner") : null}
 						subscription={renderSubscription?.(mediaId, status)}
 						viewing={
 							<ViewingSummary
 								state={viewing}
 								episodeCount={info.episodeCount}
-								airedEpisodeCount={airedEpisodeCount(info)}
+								airedEpisodeCount={timeline.aired}
 							/>
 						}
 						data={{
@@ -126,6 +147,16 @@ function TrackedDetail({
 							metadata: metadata.data,
 						}}
 					/>
+					<section className="space-y-3">
+						<h2 className="section-title-prominent">{t("anime.episodes")}</h2>
+						<EpisodeRows
+							episodes={timeline.episodes}
+							workKey={mediaId}
+							trackingProgress={summary?.progress ?? null}
+							{...(renderEpisodeAction ? { renderEpisodeAction } : {})}
+						/>
+					</section>
+					<AiringStatus query={airing} />
 					<WorkSynopsis data={{ metadata: metadata.data }} />
 					<WorkMetadataExtras data={{ metadata: metadata.data }} />
 				</>

@@ -8,6 +8,7 @@ import {
 	text,
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import type { OneOffAuthorization } from "../domain/model.js";
 
 export const acquisitionDirectories = sqliteTable("acquisition_directories", {
 	workKey: text("work_key").primaryKey(),
@@ -64,9 +65,14 @@ export const acquisitionIntents = sqliteTable(
 			mode: "boolean",
 		}).notNull(),
 		directory: text("directory").notNull(),
-		subscriptionRevision: text("subscription_revision").notNull(),
+		origin: text("origin", { enum: ["subscription", "one-off"] })
+			.notNull()
+			.default("subscription"),
+		oneOff: text("one_off", { mode: "json" }).$type<OneOffAuthorization>(),
+		subscriptionRevision: text("subscription_revision"),
 		state: text("state", {
 			enum: [
+				"discovering",
 				"pending",
 				"submitting",
 				"unknown",
@@ -81,6 +87,7 @@ export const acquisitionIntents = sqliteTable(
 		ingestion: text("ingestion", {
 			enum: [
 				"not-ready",
+				"discovering",
 				"pending",
 				"validating",
 				"review",
@@ -110,6 +117,14 @@ export const acquisitionIntents = sqliteTable(
 		}),
 	},
 	(table) => [
+		check(
+			"acquisition_intents_one_off",
+			sql`${table.oneOff} IS NULL OR json_valid(${table.oneOff})`,
+		),
+		check(
+			"acquisition_intents_origin",
+			sql`${table.origin} IN ('subscription', 'one-off')`,
+		),
 		check("acquisition_intents_episode_0", sql`${table.episode} >= 1`),
 		check(
 			"acquisition_intents_destination_validated_0",
@@ -121,7 +136,7 @@ export const acquisitionIntents = sqliteTable(
 		),
 		check(
 			"acquisition_intents_state_0",
-			sql`${table.state} IN ('pending', 'submitting', 'unknown', 'bound', 'blocked', 'missing', 'available')`,
+			sql`${table.state} IN ('discovering', 'pending', 'submitting', 'unknown', 'bound', 'blocked', 'missing', 'available')`,
 		),
 		check(
 			"acquisition_intents_progress_0",

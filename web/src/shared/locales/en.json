@@ -569,7 +569,8 @@
 		"showSynopsis": "Read full synopsis",
 		"hideSynopsis": "Show less",
 		"airedEpisodes": "Aired episodes",
-		"regularCountWithAired": "{{count}} / {{aired}} ({{total}}) regular episodes available"
+		"regularCountWithAired": "{{count}} / {{aired}} ({{total}}) regular episodes available",
+		"noAiredEpisodes": "No confirmed aired episodes yet."
 	},
 	"review": {
 		"title": "Review",
@@ -959,7 +960,11 @@
 				"source_changed": "The source file changed. Verify the files before retrying import.",
 				"file_size_conflict": "The local file size differs from the completed download.",
 				"task_path_changed": "The task save path changed in qBittorrent. Restore it before retrying.",
-				"incomplete_directory_required": "Configure a separate incomplete directory and validate the destination in Settings."
+				"incomplete_directory_required": "Configure a separate incomplete directory and validate the destination in Settings.",
+				"no_eligible_release": "No single-episode release matches your download preferences. Retry later or adjust your preferences.",
+				"discovery_unavailable": "Release discovery could not complete. Check source sites and the downloader, then retry.",
+				"acquisition_configuration_changed": "Download settings changed. Retry to use the current configuration.",
+				"already_available": "This episode is already available locally."
 			},
 			"episodeProgress": "Episode {{episode}} download progress",
 			"history": "History",
@@ -1261,6 +1266,13 @@
 			"bundled": "Bundled",
 			"external": "External",
 			"unconfigured": "Not configured"
+		},
+		"episode": {
+			"actions": "More actions for episode {{episode}}",
+			"download": "Download this episode",
+			"searching": "Finding a release",
+			"existing": "This episode already has a download. View it in Activity.",
+			"failed": "Could not start this episode download."
 		}
 	},
 	"profileIssue": {

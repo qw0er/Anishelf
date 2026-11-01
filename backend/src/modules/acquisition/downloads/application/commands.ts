@@ -3,11 +3,13 @@ import { DomainError } from "../../../../shared/errors.js";
 import type { DownloadApplicationContext } from "./context.js";
 import { conflict } from "./context.js";
 import type { DownloadDestinationSettings } from "./destination.js";
+import type { OneOffDownloads } from "./one-off.js";
 
 export class DownloadCommands {
 	constructor(
 		private readonly context: DownloadApplicationContext,
 		private readonly destination: DownloadDestinationSettings,
+		private readonly oneOff: OneOffDownloads,
 	) {}
 	retry(
 		id: string,
@@ -24,7 +26,12 @@ export class DownloadCommands {
 			if (item.lastCommand.kind !== kind) conflict();
 			return;
 		}
-		if (!item.source && kind === "acquisition" && !recoveringConnection)
+		if (
+			item.origin === "subscription" &&
+			!item.source &&
+			kind === "acquisition" &&
+			!recoveringConnection
+		)
 			throw new DomainError(
 				"INVALID_REQUEST",
 				"Release evidence expired. Manage this download in the downloader interface.",
@@ -42,53 +49,58 @@ export class DownloadCommands {
 				!(item.state === "pending" && item.error)
 			)
 				conflict();
-			const subscription = this.context.options.selection.subscription(
-				item.workKey,
-			);
-			if (
-				!subscription?.feedId ||
-				!this.destination.authorized(subscription) ||
-				item.state === "available" ||
-				item.state === "bound"
-			)
-				conflict();
-			const choice = this.context.options.selection
-				.candidates(item.workKey)
-				.find(
-					(candidate) =>
-						candidate.episode === item?.episode &&
-						candidate.status === "selected",
+			if (item.origin === "one-off") {
+				item = this.oneOff.prepareRetry(item);
+			} else {
+				const subscription = this.context.options.selection.subscription(
+					item.workKey,
 				);
-			const entry = choice
-				? this.context.options.selection.release(
-						subscription.feedId,
-						choice.entryId,
-					)
-				: null;
-			const destination = this.context.options.store.destination();
-			if (recoveringConnection && destination) item = { ...item, destination };
-			if (
-				choice &&
-				entry?.download &&
-				destination &&
-				(item.state === "missing" ||
-					item.state === "pending" ||
-					item.error === "selection_changed" ||
-					item.hash.startsWith("unresolved:"))
-			) {
-				item = {
-					...item,
-					candidateId: choice.id,
-					title: choice.title.slice(0, 1024),
-					source: entry.download,
-					hash:
-						entry.download === item.source
-							? item.hash
-							: `unresolved:${randomUUID()}`,
-					expectedHash: entry.hash,
-					destination,
-					subscriptionRevision: subscription.revision,
-				};
+				if (
+					!subscription?.feedId ||
+					!this.destination.authorized(subscription) ||
+					item.state === "available" ||
+					item.state === "bound"
+				)
+					conflict();
+				const choice = this.context.options.selection
+					.candidates(item.workKey)
+					.find(
+						(candidate) =>
+							candidate.episode === item?.episode &&
+							candidate.status === "selected",
+					);
+				const entry = choice
+					? this.context.options.selection.release(
+							subscription.feedId,
+							choice.entryId,
+						)
+					: null;
+				const destination = this.context.options.store.destination();
+				if (recoveringConnection && destination)
+					item = { ...item, destination };
+				if (
+					choice &&
+					entry?.download &&
+					destination &&
+					(item.state === "missing" ||
+						item.state === "pending" ||
+						item.error === "selection_changed" ||
+						item.hash.startsWith("unresolved:"))
+				) {
+					item = {
+						...item,
+						candidateId: choice.id,
+						title: choice.title.slice(0, 1024),
+						source: entry.download,
+						hash:
+							entry.download === item.source
+								? item.hash
+								: `unresolved:${randomUUID()}`,
+						expectedHash: entry.hash,
+						destination,
+						subscriptionRevision: subscription.revision,
+					};
+				}
 			}
 		}
 		this.context.options.logger.info(
@@ -106,9 +118,11 @@ export class DownloadCommands {
 			state:
 				kind === "import"
 					? "bound"
-					: recoveringConnection
-						? "unknown"
-						: "pending",
+					: item.origin === "one-off"
+						? item.state
+						: recoveringConnection
+							? "unknown"
+							: "pending",
 			ingestion: kind === "import" ? "pending" : "not-ready",
 			error: null,
 			nextAttemptAt: 0,

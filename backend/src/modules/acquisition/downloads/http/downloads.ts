@@ -6,6 +6,8 @@ import {
 	DownloadSettingsInputSchema,
 	DownloadSettingsSchema,
 	DownloadValidationSchema,
+	EpisodeDownloadRequestSchema,
+	EpisodeDownloadResultSchema,
 } from "../../../../contracts/schemas/downloads.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { AcquisitionDownloadsApi } from "../../public.js";
@@ -14,6 +16,16 @@ export function registerDownloadRoutes(
 	downloads: AcquisitionDownloadsApi,
 ) {
 	const path = "/api/acquisition/downloads";
+	app.post(
+		`${path}/episodes`,
+		{
+			schema: {
+				body: EpisodeDownloadRequestSchema,
+				response: { 200: EpisodeDownloadResultSchema },
+			},
+		},
+		(request) => downloads.requestEpisode(request.body),
+	);
 	app.get(
 		`${path}/settings`,
 		{ schema: { response: { 200: DownloadSettingsSchema } } },

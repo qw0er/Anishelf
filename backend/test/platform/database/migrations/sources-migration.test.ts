@@ -8,7 +8,6 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import pino from "pino";
 import { expect, test } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
-import { writeAcquisitionIntents } from "../../../../src/modules/acquisition/downloads/infrastructure/records.js";
 import { SourceContent } from "../../../../src/modules/acquisition/sources/application/content.js";
 import { writeAcquisitionFeeds } from "../../../../src/modules/acquisition/sources/infrastructure/records.js";
 import { writeAcquisitionCandidates } from "../../../../src/modules/acquisition/subscriptions/infrastructure/records.js";
@@ -96,39 +95,17 @@ test("upgrades the previous lifecycle schema without losing subscriptions, candi
 			["magnet-intent", magnet],
 			["torrent-intent", "https://example.org/private.torrent?key=secret"],
 		] as const) {
-			writeAcquisitionIntents(store, {
-				id,
-				revision: "intent",
-				workKey: "anilist:anime:1",
-				candidateId: "candidate",
-				episode: id === "magnet-intent" ? 3 : 4,
-				title: "Frieren",
-				hash: `unresolved:${id}`,
-				expectedHash: null,
-				source,
-				destination: {
-					revision: "destination",
-					scopeId: "root",
-					path: "/downloads",
-					connectionGeneration: "downloader",
-					validated: true,
-					visibilityVerified: true,
-				},
-				directory: "Frieren",
-				subscriptionRevision: "subscription",
-				state: "pending",
-				transfer: null,
-				progress: null,
-				ingestion: "not-ready",
-				error: null,
-				attempts: 0,
-				nextAttemptAt: 0,
-				observedAt: null,
-				updatedAt: 1000,
-				createdAt: 1000,
-				sourceIdentity: null,
-				lastCommand: null,
-			});
+			// Seed the historical schema directly; current mappers include later authorization fields.
+			raw
+				.prepare(`INSERT INTO acquisition_intents (
+ id, revision, work_key, candidate_id, episode, title, hash, source,
+ destination_revision, destination_scope_id, destination_path, destination_connection_generation,
+ destination_validated, destination_visibility_verified, directory, subscription_revision,
+ state, ingestion, attempts, next_attempt_at, updated_at, created_at, source_identity_present, last_command_present
+ ) VALUES (?, 'intent', 'anilist:anime:1', 'candidate', ?, 'Frieren', ?, ?,
+ 'destination', 'root', '/downloads', 'downloader', 1, 1, 'Frieren', 'subscription',
+ 'pending', 'not-ready', 0, 0, 1000, 1000, 0, 0)`)
+				.run(id, id === "magnet-intent" ? 3 : 4, `unresolved:${id}`, source);
 		}
 		raw.close();
 		database = ApplicationDatabase.open(directory);

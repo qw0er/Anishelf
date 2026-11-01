@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useParams } from "react-router";
-import { SubscriptionPanel } from "../../../features/acquisition/ui.js";
-import type { AnimeResourceActionSlot } from "../../../features/anime/public.js";
+import { EpisodeDownloadMenu } from "../../../features/acquisition/ui.js";
+import type {
+	AnimeEpisodeActionSlot,
+	AnimeResourceActionSlot,
+} from "../../../features/anime/public.js";
 import { localWorkDetailQuery } from "../../../features/anime/public.js";
 import { AnimeDetail } from "../../../features/anime/ui.js";
 import {
@@ -12,6 +15,7 @@ import {
 import { useQueryScope } from "../../../shared/api/queries.js";
 import { queryGate } from "../../../shared/lib/query-gate.js";
 import { AnimeFileActions } from "../../components/anime-file-actions.js";
+import { WorkAcquisitionPanel } from "../../components/work-acquisition-panel.js";
 export function AnimeDetailPage() {
 	const scope = useQueryScope();
 	const { id } = useParams();
@@ -55,11 +59,18 @@ export function AnimeDetailPage() {
 			gate={gate}
 		/>
 	);
+	const renderEpisodeAction: AnimeEpisodeActionSlot = (target) => (
+		<EpisodeDownloadMenu
+			key={`${target.workKey}:${target.episode}`}
+			{...target}
+		/>
+	);
 	return (
 		<AnimeDetail
+			renderEpisodeAction={renderEpisodeAction}
 			renderResourceActions={renderResourceActions}
 			renderSubscription={(workKey, status) => (
-				<SubscriptionPanel key={workKey} workKey={workKey} status={status} />
+				<WorkAcquisitionPanel key={workKey} workKey={workKey} status={status} />
 			)}
 		/>
 	);

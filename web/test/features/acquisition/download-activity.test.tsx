@@ -40,6 +40,8 @@ const view: SubscriptionView = {
 	page: 1,
 };
 const item: DownloadActivity["items"][number] = {
+	origin: "subscription",
+	canRetryAcquisition: true,
 	id: "task",
 	revision: "one",
 	workKey: "anilist:anime:1",
@@ -57,9 +59,9 @@ const item: DownloadActivity["items"][number] = {
 	updatedAt: Date.now(),
 	createdAt: Date.now(),
 };
-function fixture(override: Partial<typeof item> = {}) {
+function fixture(override: Partial<typeof item> = {}, hasSubscription = true) {
 	const activity: DownloadActivity = {
-		authorized: true,
+		authorized: hasSubscription,
 		destination: "/downloads/Anime",
 		items: [{ ...item, ...override }],
 		total: 1,
@@ -81,7 +83,7 @@ function fixture(override: Partial<typeof item> = {}) {
 		<MemoryRouter>
 			<DownloadActivityPanel
 				workKey="anilist:anime:1"
-				view={view}
+				view={hasSubscription ? view : { subscription: null }}
 				reason={(code) => code}
 				onConfigure={() => {}}
 			/>
@@ -194,4 +196,29 @@ test("destination settings separate saving from validation and do not start down
 		"/api/acquisition/downloads/settings",
 		"/api/acquisition/downloads/validate",
 	]);
+});
+
+test("one-off discovery errors expose recovery without subscription permission", async () => {
+	const request = fixture(
+		{
+			origin: "one-off",
+			state: "blocked",
+			progress: null,
+			error: "no_eligible_release",
+			canRetryAcquisition: true,
+		},
+		false,
+	);
+	await screen.findByText(/No single-episode release matches/);
+	const retry = screen.getByRole("button", { name: "Retry acquisition" });
+	expect(retry.hasAttribute("disabled")).toBe(false);
+	fireEvent.click(retry);
+	await waitFor(() =>
+		expect(request).toHaveBeenCalledWith(
+			"/api/acquisition/downloads/task/retry",
+			"POST",
+			{},
+			expect.objectContaining({ revision: "one", kind: "acquisition" }),
+		),
+	);
 });

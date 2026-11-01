@@ -4,3 +4,8 @@ export type AnimeResourceActionSlot = (
 	source: { fileId: string; sourceVersion: string },
 	identificationMenu?: ReactNode,
 ) => ReactNode;
+
+export type AnimeEpisodeActionSlot = (target: {
+	workKey: string;
+	episode: number;
+}) => ReactNode;

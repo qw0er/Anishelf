@@ -37,6 +37,22 @@ export const DownloadRetrySchema = Type.Object(
 	},
 	{ additionalProperties: false },
 );
+export const EpisodeDownloadRequestSchema = Type.Object(
+	{
+		workKey: Type.String({ minLength: 1, maxLength: 1024 }),
+		episode: Type.Integer({ minimum: 1, maximum: 10000 }),
+		commandId: Type.String({
+			pattern:
+				"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+		}),
+	},
+	{ additionalProperties: false },
+);
+export const EpisodeDownloadResultSchema = Type.Object({
+	accepted: Type.Literal(true),
+	intentId: Type.String(),
+	existing: Type.Boolean(),
+});
 export const DownloadActivitySchema = Type.Object({
 	planningError: Type.Optional(nullableString),
 	authorized: Type.Boolean(),
@@ -49,12 +65,18 @@ export const DownloadActivitySchema = Type.Object({
 	items: Type.Array(
 		Type.Object({
 			id: Type.String(),
+			origin: Type.Union([
+				Type.Literal("subscription"),
+				Type.Literal("one-off"),
+			]),
+			canRetryAcquisition: Type.Boolean(),
 			revision,
 			workKey: Type.String(),
 			candidateId: Type.String(),
 			episode: Type.Integer(),
 			title: Type.String(),
 			state: Type.Union([
+				Type.Literal("discovering"),
 				Type.Literal("pending"),
 				Type.Literal("submitting"),
 				Type.Literal("unknown"),
@@ -67,6 +89,7 @@ export const DownloadActivitySchema = Type.Object({
 			progress: nullableNumber,
 			ingestion: Type.Union([
 				Type.Literal("not-ready"),
+				Type.Literal("discovering"),
 				Type.Literal("pending"),
 				Type.Literal("validating"),
 				Type.Literal("review"),

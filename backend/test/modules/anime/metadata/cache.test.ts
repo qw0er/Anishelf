@@ -333,3 +333,26 @@ test("persisted releasing snapshots with the former 24-hour expiry use the new s
 		now + 6 * 60 * 60_000,
 	);
 });
+
+test("detail cache becomes stale at the next known airtime so open details can refresh episode visibility", async () => {
+	let now = 1_000_000;
+	const fetcher = transport();
+	fetcher.mockResolvedValueOnce(
+		Response.json({
+			data: {
+				Media: {
+					...media(),
+					status: "RELEASING",
+					nextAiringEpisode: { episode: 8, airingAt: 1010 },
+				},
+			},
+		}),
+	);
+	const { application } = await setup(fetcher, () => now);
+	const snapshot = await application.get(reference);
+	expect(snapshot.stale).toBe(false);
+	now = 1_010_000;
+	const due = await application.get(reference, { cachedOnly: true });
+	expect(due.stale).toBe(true);
+	expect(due.fetchedAt).toBe(snapshot.fetchedAt);
+});

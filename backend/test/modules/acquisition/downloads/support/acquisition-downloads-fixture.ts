@@ -9,8 +9,12 @@ import { createAcquisitionModule } from "../../../../../src/modules/acquisition/
 import { DownloadsApplication } from "../../../../../src/modules/acquisition/downloads/application/application.js";
 import type { TorrentReader } from "../../../../../src/modules/acquisition/downloads/public.js";
 import { SourceContent } from "../../../../../src/modules/acquisition/sources/application/content.js";
+import { createSourcesModule } from "../../../../../src/modules/acquisition/sources/create.js";
 import type { TorrentClient } from "../../../../../src/modules/acquisition/torrent-clients/public.js";
-import type { AcquisitionTarget } from "../../../../../src/modules/anime/public.js";
+import type {
+	AcquisitionTarget,
+	ReleaseAssessmentApi,
+} from "../../../../../src/modules/anime/public.js";
 
 export const cleanup: (() => Promise<unknown>)[] = [];
 
@@ -55,6 +59,7 @@ export async function fixture(persistent = false, bundled = false) {
 		? ApplicationDatabase.open(dir)
 		: ApplicationDatabase.openMemory();
 	cleanup.push(async () => db.close());
+	let defaultProfileId: string | undefined;
 	let now = 1_000_000,
 		generation = "account-1";
 	const state: { task: Awaited<ReturnType<TorrentClient["task"]>> } = {
@@ -116,12 +121,14 @@ export async function fixture(persistent = false, bundled = false) {
 	};
 	const anime = {
 		target: vi.fn(async () => target),
-		assessReleaseTitle: vi.fn(() => ({
-			episode: 3,
-			eligible: true,
-			reasons: [] as string[],
-			version: "1",
-		})),
+		assessReleaseTitle: vi.fn<ReleaseAssessmentApi["assessReleaseTitle"]>(
+			() => ({
+				episode: 3,
+				eligible: true,
+				reasons: [] as string[],
+				version: "1",
+			}),
+		),
 	};
 	const ingestion = {
 		available: vi.fn(async () => true),
@@ -131,6 +138,14 @@ export async function fixture(persistent = false, bundled = false) {
 		read: vi.fn(async () => new Uint8Array()),
 		close: vi.fn(async () => {}),
 	};
+	let sources = await createSourcesModule({
+		dataDir: dir,
+		logger,
+		store: db.acquisition,
+		torrentTransport: transport,
+		now: () => now,
+	});
+	cleanup.push(() => sources.runtime.close());
 	const sourceDownloads = () =>
 		new SourceContent(
 			db.acquisition,
@@ -144,8 +159,8 @@ export async function fixture(persistent = false, bundled = false) {
 			},
 		);
 	const reader: TorrentReader = {
-		read: (reference, signal) => sourceDownloads().read(reference, signal),
-		isCurrent: (reference) => sourceDownloads().isCurrent(reference),
+		read: (reference, signal) => sources.api.readContent(reference, signal),
+		isCurrent: (reference) => sources.api.isContentCurrent(reference),
 		close: () => transport.close(),
 	};
 	function seed() {
@@ -199,6 +214,8 @@ export async function fixture(persistent = false, bundled = false) {
 	function create() {
 		const worker = new DownloadsApplication({
 			store: db.acquisitionDownloads,
+			sources: sources.api,
+			defaultProfileId: () => defaultProfileId,
 			selection: {
 				subscription: (key) => db.acquisition.subscription(key),
 				subscriptions: () => db.acquisition.subscriptions(),
@@ -269,6 +286,9 @@ export async function fixture(persistent = false, bundled = false) {
 			return worker;
 		},
 		state,
+		setDefaultProfileId: (value: string) => {
+			defaultProfileId = value;
+		},
 		client,
 		probe,
 		add,
@@ -277,6 +297,9 @@ export async function fixture(persistent = false, bundled = false) {
 		ingestion,
 		transport,
 		reader,
+		get sources() {
+			return sources.api;
+		},
 		seed,
 		configure,
 		authorize,
@@ -291,8 +314,16 @@ export async function fixture(persistent = false, bundled = false) {
 			if (!persistent)
 				throw new Error("Restart requires a persistent fixture.");
 			await worker.close();
+			await sources.runtime.close();
 			db.close();
 			db = ApplicationDatabase.open(dir);
+			sources = await createSourcesModule({
+				dataDir: dir,
+				logger,
+				store: db.acquisition,
+				torrentTransport: transport,
+				now: () => now,
+			});
 			worker = create();
 		},
 	};

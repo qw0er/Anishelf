@@ -161,6 +161,9 @@ export async function createAcquisitionModule(options: {
 			? new DownloadsApplication({
 					store: options.downloadStore,
 					selection: subscriptions.selection(),
+					sources: sources.api,
+					profiles,
+					defaultProfileId: () => options.defaultAcquisitionProfileId?.(),
 					resources: options.resources,
 					anime: options.anime,
 					ingestion: options.ingestion,
@@ -193,6 +196,7 @@ export async function createAcquisitionModule(options: {
 		...(downloadApi
 			? {
 					downloads: {
+						requestEpisode: downloadApi.requestEpisode,
 						settings: downloadApi.settings,
 						saveDestination: downloadApi.saveDestination,
 						validate: downloadApi.validate,

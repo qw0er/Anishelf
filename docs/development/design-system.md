@@ -141,6 +141,11 @@ for progress and tracking behavior.
 
 ## Automatic acquisition
 
+Missing regular episode rows expose Download this episode through More. The
+command starts one background acquisition using global preferences, without a
+publication picker. Acceptance uses a Toast with an Activity action; durable
+search, download and recovery state stays in Activity even without a subscription.
+
 Place the subscription summary near the work's viewing and playback actions, with
 one clear primary outcome and an attention indicator when action is needed. Keep
 activity and diagnostics available on demand. Show actual progress and actionable

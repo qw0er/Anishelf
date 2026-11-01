@@ -162,7 +162,7 @@ test("anime version links pin the selected source version and refuse a replaced 
 	expect(screen.getByRole("link", { name: "Back to anime" })).toBeTruthy();
 });
 
-test("details distinguish scheduled count-derived slots from manual mappings and list unresolved candidates", async () => {
+test("details hide upcoming empty episodes while retaining playable files and unresolved candidates", async () => {
 	const detail = animeFixture();
 	const item = reviewFixture();
 	mockAnime(detail);
@@ -202,24 +202,16 @@ test("details distinguish scheduled count-derived slots from manual mappings and
 	);
 	await screen.findByRole("link", { name: item.relativePath });
 	await waitFor(() =>
-		expect(document.getElementById("episode-ep-3")?.textContent).toContain(
-			"Not yet aired",
-		),
+		expect(document.getElementById("episode-ep-3")).toBeNull(),
 	);
-	expect(document.getElementById("episode-ep-2")?.textContent).toContain(
-		"Local files unavailable",
-	);
+	expect(document.getElementById("episode-ep-2")).toBeNull();
 	expect(
 		screen.getByRole("link", { name: item.relativePath }).getAttribute("href"),
 	).toBe(`/review?item=${item.id}`);
-	expect(
-		screen
-			.getByRole("button", { name: "Play: Episode 3" })
-			.hasAttribute("disabled"),
-	).toBe(true);
+	expect(screen.queryByRole("button", { name: "Play: Episode 3" })).toBeNull();
 });
 
-test("airing pagination retains browsing and unknown schedule evidence never marks a slot unaired", async () => {
+test("airing pagination retains browsing and omits future episode records", async () => {
 	mockAnime(animeFixture());
 	const fallback = fetcher.getMockImplementation();
 	fetcher.mockImplementation(async (input, init) => {
@@ -240,6 +232,11 @@ test("airing pagination retains browsing and unknown schedule evidence never mar
 							? []
 							: [
 									{
+										id: "ep2",
+										episode: 2,
+										airingAt: Math.floor(Date.now() / 1000) - 86400,
+									},
+									{
 										id: "ep3",
 										episode: 3,
 										airingAt: Math.floor(Date.now() / 1000) + 86400,
@@ -258,20 +255,19 @@ test("airing pagination retains browsing and unknown schedule evidence never mar
 	await screen.findByRole("heading", { name: "Frieren", level: 1 });
 	expect(screen.getByText("Provider airing schedule")).toBeTruthy();
 	expect(document.getElementById("episode-ep-3")?.textContent).toContain(
-		"Airing information is unknown",
+		"No associated local file",
 	);
 	fireEvent.click(
 		await screen.findByRole("button", { name: "Load more airing records" }),
 	);
 	await waitFor(() =>
-		expect(document.getElementById("episode-ep-3")?.textContent).toContain(
-			"Not yet aired",
-		),
+		expect(document.getElementById("episode-ep-3")).toBeNull(),
 	);
 	const table = await screen.findByRole("table", {
 		name: "Provider airing schedule",
 	});
-	expect(within(table).getByText("Episode 3")).toBeTruthy();
+	expect(within(table).getByText("Episode 2")).toBeTruthy();
+	expect(within(table).queryByText("Episode 3")).toBeNull();
 	expect(screen.getByRole("button", { name: "Play: Episode 1" })).toBeTruthy();
 });
 
@@ -318,7 +314,7 @@ test("a tracked detail refetch switches to local episodes while preserving libra
 		`/anime/tracked/anilist%3Aanime%3A154587?${new URLSearchParams({ library })}`,
 	);
 	await screen.findByText("No local resources are associated with this work.");
-	expect(screen.queryByText("Episode 1")).toBeNull();
+	expect(screen.getByText("Episode 1")).toBeTruthy();
 	// Provider posters are proxied through the backend artwork cache.
 	expect(screen.getByRole("img", { name: "Frieren" }).getAttribute("src")).toBe(
 		"/api/metadata/metadata-work-1/artwork/cover/image",
@@ -340,4 +336,62 @@ test("a tracked detail refetch switches to local episodes while preserving libra
 	expect(
 		screen.getByRole("link", { name: "Back to library" }).getAttribute("href"),
 	).toBe(library);
+});
+
+test("missing episode More submits one background request and exposes Activity without a subscription", async () => {
+	const detail = animeFixture();
+	mockAnime(detail);
+	const fallback = requiredFetch(fetcher.getMockImplementation());
+	let submitted: Record<string, unknown> | undefined;
+	fetcher.mockImplementation(async (input, init) => {
+		const path = String(input);
+		if (path === "/api/acquisition/downloads/episodes") {
+			submitted = JSON.parse(String(init?.body));
+			return json({
+				accepted: true,
+				intentId: submitted?.commandId,
+				existing: false,
+			});
+		}
+		if (path.startsWith("/api/acquisition/downloads?"))
+			return json({
+				authorized: false,
+				destination: null,
+				items: [],
+				total: 0,
+				active: 0,
+				attention: 0,
+				managedCandidateIds: [],
+				page: 1,
+			});
+		return fallback(input, init);
+	});
+	renderApp("/anime/work-1");
+	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+	expect(
+		screen.queryByRole("button", { name: "More actions for episode 1" }),
+	).toBeNull();
+	fireEvent.click(
+		screen.getByRole("button", { name: "More actions for episode 3" }),
+	);
+	fireEvent.click(
+		await screen.findByRole("menuitem", { name: "Download this episode" }),
+	);
+	await screen.findByText("Finding a release");
+	expect(submitted).toEqual({
+		workKey: "anilist:anime:154587",
+		episode: 3,
+		commandId: expect.any(String),
+	});
+	expect(screen.queryByRole("dialog", { name: "Activity" })).toBeNull();
+	expect(
+		fetcher.mock.calls.some(
+			([input, init]) =>
+				String(input) === "/api/acquisition/subscriptions" &&
+				init?.method !== "GET",
+		),
+	).toBe(false);
+	fireEvent.click(screen.getByRole("button", { name: "Activity" }));
+	const dialog = await screen.findByRole("dialog", { name: "Activity" });
+	expect(await within(dialog).findByText("No active downloads.")).toBeTruthy();
 });

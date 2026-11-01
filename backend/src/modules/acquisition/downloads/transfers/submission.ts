@@ -70,19 +70,19 @@ export class DownloadSubmission {
 					this.context.options.transport,
 					this.context.signal,
 				));
-			const subscriptionRevision = await this.admission.authorize(
+			const authorization = await this.admission.authorize(
 				execution,
 				client,
 				snapshot,
 			);
-			if (subscriptionRevision === null) return null;
+			if (authorization === null) return null;
 			if (!this.context.options.transport.isCurrent(item.source))
 				throw new DownloadError("source_changed");
 			item = execution.save({
 				...item,
 				state: "submitting",
 				attempts: item.attempts + 1,
-				subscriptionRevision,
+				subscriptionRevision: authorization.subscriptionRevision,
 				error: null,
 			});
 			this.context.options.logger.info(
@@ -135,6 +135,9 @@ export class DownloadSubmission {
 		item = execution.save({
 			...item,
 			state: "bound",
+			oneOff: item.oneOff
+				? { ...item.oneOff, uncertainSubmission: false, reconcileOnly: false }
+				: null,
 			transfer: task.state,
 			progress: task.progress,
 			observedAt: this.context.now(),
