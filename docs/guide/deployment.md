@@ -31,7 +31,9 @@ If exactly one container engine is installed, the installer detects it. When bot
 Docker and Podman are available, pass `--engine docker` or `--engine podman`.
 Podman uses rootless Quadlet. Defaults are `~/anishelf` (or `~/anishelf-test` with
 `--test`), loopback binding, port `3000`, the `latest` image tag and a managed media
-volume.
+volume. Backend logging defaults to `info`, or `debug` with `--test`; use
+`--log-level` to override it. Reconfiguration applies these defaults again unless
+`--log-level` is supplied.
 
 ```sh
 python3 scripts/install.pyz install \
@@ -86,6 +88,7 @@ additionally accept `--force`.
 | `--deploy-dir DIRECTORY` | New deployment directory; default `~/anishelf` |
 | `--engine docker` / `--engine podman` | Select an engine; required when both are installed |
 | `--image-tag TAG` | Matching Web/Backend image tag; default `latest` |
+| `--log-level LEVEL` | Backend log level: `trace`, `debug`, `info`, `warn`, `error`, `fatal` or `silent`; default `info` (`debug` with `--test`) |
 | `--media DIRECTORY` | Existing primary host media directory; omit for a managed volume |
 | `--extra-media DIRECTORY` | Additional host media directory; repeat for multiple |
 | `--selinux-relabel` / `--no-selinux-relabel` | Override automatic `:z` labeling |
@@ -112,6 +115,7 @@ All settings are optional:
 | `.env` setting | Purpose |
 | --- | --- |
 | `ANISHELF_TAG` | Matching Web/Backend image tag; default `latest` |
+| `ANISHELF_LOG_LEVEL` | Backend log level; default `info` |
 | `ANISHELF_MEDIA_PATH` | Absolute host media directory; omit for a managed volume |
 | `COMPOSE_PROFILES=qbittorrent,jackett` | Include either or both bundled services |
 | `ANISHELF_BIND_ADDRESS=0.0.0.0` | Allow LAN access; default is loopback only |

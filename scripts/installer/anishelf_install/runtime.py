@@ -25,6 +25,7 @@ from .validation import (
 
 _ENV_KEYS_TO_CLEAR = (
     "ANISHELF_TAG",
+    "ANISHELF_LOG_LEVEL",
     "ANISHELF_BIND_ADDRESS",
     "ANISHELF_PORT",
     "ANISHELF_PUBLIC_ORIGIN",

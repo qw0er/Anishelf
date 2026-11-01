@@ -15,6 +15,7 @@ services:
       ANISHELF_ALLOWED_HOSTS: ${ANISHELF_ALLOWED_HOSTS:-}
       # Trust only proxies on this private container network; keep Backend unpublished.
       ANISHELF_TRUSTED_PROXIES: ${ANISHELF_TRUSTED_PROXIES:-loopback,uniquelocal}
+      ANISHELF_LOG_LEVEL: ${ANISHELF_LOG_LEVEL:-info}
       ANISHELF_DATA_DIR: /data/app
       ANISHELF_INITIAL_RESOURCE_ROOTS: /data/media
       ANISHELF_QBITTORRENT_API_URL: http://qbittorrent:8080

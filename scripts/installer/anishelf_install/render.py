@@ -94,6 +94,8 @@ def _translate_unit_line(name: str, line: str, settings: Settings) -> str:
         return f"Image=ghcr.io/qw0er/anishelf-backend:{settings.image_tag}"
     if line.startswith("Image=ghcr.io/qw0er/anishelf-web:"):
         return f"Image=ghcr.io/qw0er/anishelf-web:{settings.image_tag}"
+    if name == "anishelf-backend.container" and line.startswith("Environment=ANISHELF_LOG_LEVEL="):
+        return f"Environment=ANISHELF_LOG_LEVEL={settings.log_level}"
     if (
         name == "anishelf-backend.container"
         and line.startswith("Environment=ANISHELF_INITIAL_RESOURCE_ROOTS=")

@@ -51,6 +51,12 @@ def _add_settings_options(parser: argparse.ArgumentParser) -> None:
         help="matching Anishelf Web/Backend image tag (default: latest, or testing with --test)",
     )
 
+    parser.add_argument(
+        "--log-level",
+        choices=("trace", "debug", "info", "warn", "error", "fatal", "silent"),
+        help="Backend log level (default: info, or debug with --test)",
+    )
+
     networking = parser.add_argument_group("networking")
     networking.add_argument(
         "--bind",
