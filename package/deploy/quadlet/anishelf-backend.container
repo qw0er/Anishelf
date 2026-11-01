@@ -15,6 +15,8 @@ Environment=ANISHELF_PUBLIC_ORIGIN=
 Environment=ANISHELF_ALLOWED_HOSTS=
 # Backend is private; narrow this to the Web network CIDR on custom networks.
 Environment=ANISHELF_TRUSTED_PROXIES=loopback,uniquelocal
+# Backend log level: trace, debug, info, warn, error, fatal or silent.
+Environment=ANISHELF_LOG_LEVEL=info
 # Initial root for new settings only; change existing roots in Settings.
 Environment=ANISHELF_INITIAL_RESOURCE_ROOTS=/data/media
 # Optional API form hint; use Settings for external endpoints and credentials.

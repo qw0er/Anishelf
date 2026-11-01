@@ -274,6 +274,7 @@ class Installer:
             stack=stack,
             test_mode=test_mode,
             image_tag=image_tag,
+            log_level=args.log_level or ("debug" if test_mode else "info"),
             bind_address=bind_address,
             app_port=app_port,
             public_origin=public_origin,
@@ -446,6 +447,7 @@ class Installer:
     def _render_env(settings: Settings) -> str:
         values = [
             ("ANISHELF_TAG", settings.image_tag),
+            ("ANISHELF_LOG_LEVEL", settings.log_level),
             ("ANISHELF_BIND_ADDRESS", settings.bind_address),
             ("ANISHELF_PORT", str(settings.app_port)),
             ("ANISHELF_PUBLIC_ORIGIN", settings.public_origin),

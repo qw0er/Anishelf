@@ -24,6 +24,7 @@ class Settings:
     public_origin: str
     qbit: bool
     jackett: bool
+    log_level: str = "info"
     media_path: str = ""
     extra_paths: list[str] = field(default_factory=list)
     qbit_port: int = 8080
@@ -71,7 +72,7 @@ class Settings:
         log(
             f"Plan: {self.engine}/{self.method}; directory={self.deploy_dir}; "
             f"image={self.image_tag}; bind={self.bind_address}:{self.app_port}; "
-            f"origin={self.public_origin or 'automatic'}"
+            f"origin={self.public_origin or 'automatic'}; log level={self.log_level}"
         )
         log(f"External proxy trust: {self.web_trusted_proxies}")
         for extra in self.extra_paths:

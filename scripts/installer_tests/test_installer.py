@@ -370,6 +370,7 @@ class InstallerTests(unittest.TestCase):
         )
         env = (fixture.target / ".env").read_text(encoding="utf-8")
         self.assertIn("ANISHELF_TAG='latest'", env)
+        self.assertIn("ANISHELF_LOG_LEVEL='info'", env)
         self.assertIn("COMPOSE_PROFILES=''", env)
         self.assertIn("ANISHELF_TRUSTED_PROXIES='loopback,uniquelocal'", env)
         self.assertEqual(
@@ -551,6 +552,8 @@ class InstallerTests(unittest.TestCase):
             "--jackett",
             "--image-tag",
             "v0.4.1",
+            "--log-level",
+            "error",
             "--port",
             "3300",
             "--qbit-port",
@@ -569,6 +572,7 @@ class InstallerTests(unittest.TestCase):
         web = (quadlet / "anishelf-web.container").read_text(encoding="utf-8")
         jackett = (quadlet / "anishelf-jackett.container").read_text(encoding="utf-8")
         self.assertIn("Image=ghcr.io/qw0er/anishelf-backend:v0.4.1", backend)
+        self.assertIn("Environment=ANISHELF_LOG_LEVEL=error", backend)
         self.assertIn(f"Volume={media}:/data/media:rw,z", backend)
         self.assertIn(f"Volume={extra}:/data/extra/1:rw,z", backend)
         self.assertIn("Environment=TORRENTING_PORT=6991", qbit)
@@ -600,6 +604,7 @@ class InstallerTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("Image=ghcr.io/qw0er/anishelf-backend:testing", backend)
+        self.assertIn("Environment=ANISHELF_LOG_LEVEL=debug", backend)
         self.assertIn("Volume=anishelf-test-app.volume:/data/app", backend)
         self.assertEqual(
             (quadlet / "anishelf-test.network").read_text(encoding="utf-8"),
@@ -620,12 +625,32 @@ class InstallerTests(unittest.TestCase):
         self.assertIn("name: anishelf-test-app", compose)
         env = (compose_fixture.target / ".env").read_text(encoding="utf-8")
         self.assertIn("ANISHELF_TAG='testing'", env)
+        self.assertIn("ANISHELF_LOG_LEVEL='debug'", env)
         self.assertIn("ANISHELF_PORT='3001'", env)
         self.assertIn("COMPOSE_PROJECT_NAME='anishelf-test'", env)
         self.assertEqual(
             (compose_fixture.target / ".deployment-profile").read_text(encoding="utf-8"),
             "testing\n",
         )
+
+    def test_log_level_override_and_validation(self) -> None:
+        fixture = Fixture(self)
+        result = self.generate(
+            fixture, "--test", "--engine", "docker", "--deploy-dir",
+            str(fixture.target), "--log-level", "warn",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("ANISHELF_LOG_LEVEL='warn'", (fixture.target / ".env").read_text())
+        self.assertIn("log level=warn", result.stderr)
+
+        invalid = Fixture(self)
+        result = self.generate(
+            invalid, "--engine", "docker", "--deploy-dir", str(invalid.target),
+            "--log-level", "verbose",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("invalid choice", result.stderr)
+        self.assertFalse(invalid.target.exists())
 
     def test_existing_directory_is_not_overwritten(self) -> None:
         fixture = Fixture(self)
