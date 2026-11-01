@@ -591,6 +591,8 @@
 		"configure": "设置转码配置",
 		"monitor": "转码任务",
 		"activeCount_other": "{{count}} 个进行中",
+		"failedCount_other": "{{count}} 个失败",
+		"monitorError": "更新失败",
 		"totalCount_other": "{{count}} 个任务",
 		"preparationMode": "准备模式",
 		"compatibleMode": "兼容性（默认）",

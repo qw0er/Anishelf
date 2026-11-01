@@ -12,7 +12,11 @@ export function PreparationMonitor() {
 	const { t } = useTranslation();
 	const preparation = usePreparationContext();
 	const navigate = useNavigate();
-	const [collapsed, setCollapsed] = useState(false);
+	const [collapsed, setCollapsed] = useState(
+		() =>
+			typeof window !== "undefined" &&
+			window.matchMedia?.("(max-width: 639px)").matches,
+	);
 
 	const active = preparation.tasks.filter(
 		(task) =>
@@ -20,16 +24,14 @@ export function PreparationMonitor() {
 			task.status === "processing" ||
 			task.status === "cancelling",
 	).length;
-	if (
-		active === 0 &&
-		!preparation.tasks.some((task) => task.status === "failed") &&
-		!preparation.error
-	)
-		return null;
+	const failed = preparation.tasks.filter(
+		(task) => task.status === "failed",
+	).length;
+	if (active === 0 && failed === 0 && !preparation.error) return null;
 	return (
 		<aside
 			aria-label={t("preparation.monitor")}
-			className="fixed right-4 bottom-4 z-40 w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-xl border bg-card shadow-lg"
+			className={`fixed right-4 bottom-4 z-40 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border bg-card shadow-lg ${collapsed ? "w-fit sm:w-sm" : "w-[calc(100vw-2rem)] sm:w-sm"}`}
 		>
 			<div className="flex items-center justify-between gap-2 px-3 py-1">
 				<Button
@@ -46,6 +48,10 @@ export function PreparationMonitor() {
 							: t("preparation.totalCount", {
 									count: preparation.tasks.length,
 								})}
+						{failed > 0 &&
+							` · ${t("preparation.failedCount", { count: failed })}`}
+						{preparation.error !== null &&
+							` · ${t("preparation.monitorError")}`}
 					</span>
 					{collapsed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
 				</Button>
@@ -66,7 +72,7 @@ export function PreparationMonitor() {
 				<div
 					hidden={collapsed}
 					id="preparation-monitor-tasks"
-					className="max-h-[min(26rem,60dvh)] divide-y overflow-y-auto border-t"
+					className="max-h-[35dvh] divide-y overflow-y-auto border-t sm:max-h-[min(26rem,60dvh)]"
 				>
 					{preparation.error !== null && (
 						<p role="alert">
