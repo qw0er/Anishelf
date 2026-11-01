@@ -14,6 +14,7 @@ import unittest
 import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "scripts"
@@ -23,6 +24,7 @@ ARTIFACT = SCRIPTS / "install.pyz"
 
 sys.path.insert(0, str(SOURCE))
 
+from anishelf_install import runtime
 from anishelf_install.assets import AssetSource
 from anishelf_install.config import Settings
 from anishelf_install.errors import InstallerError
@@ -97,6 +99,30 @@ FAKE_COMMAND = textwrap.dedent(
     raise SystemExit(0)
     """
 )
+
+
+class DockerPrivilegeTests(unittest.TestCase):
+    def test_socket_denial_requests_sudo_for_docker_commands(self) -> None:
+        denied = subprocess.CompletedProcess([], 1, "", "permission denied accessing /var/run/docker.sock")
+        success = subprocess.CompletedProcess([], 0, "", "")
+        with patch.object(runtime, "_docker_sudo", None), patch.object(
+            runtime.os, "geteuid", return_value=1000
+        ), patch.dict(os.environ, {"DOCKER_HOST": "", "DOCKER_CONTEXT": ""}), patch.object(
+            runtime, "need"
+        ) as need, patch.object(runtime.subprocess, "run", side_effect=[denied, success, success, success, success]) as execute:
+            runtime.run(["docker", "info"], capture=True)
+            runtime.run(["docker", "ps"], capture=True)
+        need.assert_called_once_with("sudo")
+        self.assertEqual(execute.call_args_list[2].args[0], ["sudo", "docker", "info"])
+        self.assertEqual(execute.call_args_list[4].args[0], ["sudo", "docker", "ps"])
+
+    def test_other_failures_do_not_escalate(self) -> None:
+        failure = subprocess.CompletedProcess([], 1, "", "daemon unavailable")
+        with patch.object(runtime, "_docker_sudo", None), patch.object(
+            runtime.subprocess, "run", side_effect=[failure, failure]
+        ) as execute, self.assertRaises(InstallerError):
+            runtime.run(["docker", "info"], capture=True)
+        self.assertEqual(execute.call_args_list[1].args[0], ["docker", "info"])
 
 
 class Fixture:

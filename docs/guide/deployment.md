@@ -19,8 +19,11 @@ library. It bundles the canonical deployment templates, so it does not fetch the
 at runtime. Configuration is rendered in memory and written directly to the
 deployment directory. Only Compose reconfiguration writes a temporary compose/env
 pair to memory-backed `/dev/shm` (falling back to `TMPDIR`) for validation, then
-removes it. The installer is non-interactive and never prompts; every choice is a
-flag. A zipapp must be a seekable file, so it cannot be piped directly into
+removes it. Configuration choices are supplied as flags. If access to the local
+Docker socket is denied, the installer requests administrator authentication via
+`sudo` for Docker commands; non-interactive use requires pre-authorized sudo or
+Docker socket access. Rootless Podman commands continue to run as the service user. A zipapp must be a
+seekable file, so it cannot be piped directly into
 `python3`; the example above uses `mktemp` and removes the archive after the run.
 From a source checkout, use `python3 scripts/install.pyz install`.
 
