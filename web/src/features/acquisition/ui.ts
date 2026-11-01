@@ -1,4 +1,4 @@
-export { EpisodeDownloadMenu } from "./episode-download-menu.js";
+export { EpisodeDownloadAction } from "./episode-download-action.js";
 export { RssSettings } from "./rss-settings.js";
 export { SourceSettings } from "./source-settings.js";
 export { SubscriptionPanel } from "./subscription-panel.js";

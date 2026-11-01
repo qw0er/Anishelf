@@ -47,3 +47,17 @@ export const requestEpisodeDownload = (
 	input: EpisodeDownloadRequest,
 ): Promise<EpisodeDownloadResult> =>
 	request(`${path}/episodes`, "POST", {}, input);
+
+/** Fetch every page so episodes outside the first activity page retain their state. */
+export async function getWorkDownloadActivity(
+	workKey: string,
+	options?: RequestOptions,
+): Promise<DownloadActivity> {
+	const first = await getDownloadActivity(workKey, 1, options);
+	const items = [...first.items];
+	for (let page = 2; (page - 1) * 20 < first.total; page++) {
+		const next = await getDownloadActivity(workKey, page, options);
+		items.push(...next.items);
+	}
+	return { ...first, items };
+}

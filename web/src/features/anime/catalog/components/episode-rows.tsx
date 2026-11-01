@@ -5,7 +5,6 @@ import {
 	Button,
 	buttonStyles,
 } from "../../../../shared/components/ui/button.js";
-import { episodeViewing } from "../../tracking/public.js";
 import type { Episode } from "../detail-format.js";
 import type {
 	AnimeEpisodeActionSlot,
@@ -17,7 +16,6 @@ import { AssociationCorrectionMenuItem } from "./association-correction-menu-ite
 export function EpisodeRows({
 	episodes,
 	workKey,
-	trackingProgress,
 	controller,
 	renderResourceActions,
 	renderEpisodeAction,
@@ -51,29 +49,15 @@ export function EpisodeRows({
 									<li
 										id={`episode-${episode.id}`}
 										key={episode.id}
-										className="flex min-w-0 flex-wrap items-center justify-between gap-3 py-3"
+										className="flex min-w-0 items-center justify-between gap-3 py-2"
 									>
 										<div className="min-w-0 flex-1">
-											<h4 className="font-medium wrap-anywhere">
+											<h4
+												title={episode.label}
+												className="truncate text-sm font-medium"
+											>
 												{episode.label}
 											</h4>
-											{trackingProgress !== null && (
-												<p className="text-xs text-muted-foreground">
-													{episodeViewing(episode, trackingProgress) ===
-													"watched"
-														? t("episodeViewing.watched")
-														: episodeViewing(episode, trackingProgress) ===
-																"unwatched"
-															? t("episodeViewing.unwatched")
-															: t("episodeViewing.unknown")}
-												</p>
-											)}
-											<p className="text-sm text-muted-foreground">
-												{t(`anime.${episode.availability}`)} ·{" "}
-												{t("anime.versionCount", {
-													count: episode.versions.length,
-												})}
-											</p>
 										</div>
 										<div className="flex shrink-0 items-center gap-1">
 											{usable.length === 0 &&
@@ -83,6 +67,14 @@ export function EpisodeRows({
 													workKey,
 													episode: Number(episode.number),
 												})}
+											{usable.length === 0 &&
+												(!renderEpisodeAction ||
+													episode.kind !== "regular" ||
+													!/^[1-9][0-9]*$/.test(episode.number)) && (
+													<span className="episode-primary-action inline-flex min-w-0 items-center justify-center px-3 text-sm text-muted-foreground">
+														{t("anime.unavailable")}
+													</span>
+												)}
 											{usable.length === 1 && usable[0] && controller ? (
 												<div className="flex shrink-0 items-center gap-1">
 													{renderResourceActions?.(
@@ -92,7 +84,10 @@ export function EpisodeRows({
 														/>,
 													)}
 													<Link
-														className={buttonStyles()}
+														className={buttonStyles(
+															"ghost",
+															"episode-primary-action min-w-0 justify-center px-3",
+														)}
 														to={controller.playPath(usable[0], episode)}
 														aria-label={`${t("anime.play")}: ${episode.label}`}
 													>
@@ -100,16 +95,18 @@ export function EpisodeRows({
 														{t("anime.play")}
 													</Link>
 												</div>
-											) : (
+											) : usable.length > 0 ? (
 												<Button
-													disabled={usable.length === 0 || !controller}
+													variant="ghost"
+													className="episode-primary-action min-w-0 justify-center px-3"
+													disabled={!controller}
 													onClick={() => controller?.selectEpisode(episode.id)}
 													aria-label={`${t("anime.play")}: ${episode.label}`}
 												>
 													<Play size={16} aria-hidden="true" />
 													{t("anime.play")}
 												</Button>
-											)}
+											) : null}
 										</div>
 									</li>
 								);

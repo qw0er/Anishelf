@@ -522,19 +522,19 @@ Full season-pack ingestion is not currently supported.
 | D12 | Configure download bandwidth schedules | Not started | Optional | — | — |
 | D13 | Configure download storage policies | Not started | Optional | — | — |
 | D09 | Download an individual episode without creating a subscription | Complete | — | [Single-episode automatic acquisition](#delivery-notes-d) | — |
-| D10 | Obtain and display download progress from the download client | Partial | Later | [Progress in work Activity; episode-level progress outside Activity pending](#delivery-notes-d) | 1.0.0 |
+| D10 | Obtain and display download progress from the download client | Complete | — | [Compact episode progress and scoped task details](#delivery-notes-d) | — |
 
 #### Delivery Notes (D)
 
 - **D01:** Private connection settings, connection test and one root/path mapping with incomplete-directory validation; actual shared visibility verified during import.
 - **D02:** Saved acquisition requests, duplicate prevention, per-anime placement and recovery from uncertain submissions.
-- **D03:** Compact detail Activity; real percentage and import states; speed/seeding details in WebUI.
+- **D03:** Compact episode status and scoped task details; real percentage and import states; speed/seeding details in WebUI.
 - **D04:** Transfer pause/resume/removal delegated to WebUI; scoped acquisition/import retries in Anishelf.
 - **D05:** Safe file verification, library refresh, episode association/Review and independent import retry.
 - **D06:** Stale observations, durable bindings, restart reconciliation and external-removal suppression.
 - **D07:** Task/data deletion in WebUI, Catalog decisions in existing local workflows; deletion never triggers automatic re-adding.
-- **D09:** Missing regular episodes expose Download this episode in their More menu. One explicit request uses global release preferences without waiting, persists independently of subscriptions, and follows verified ingestion. Empty or failed discovery requires explicit retry through Activity.
-- **D10:** **Delivered:** Work-detail Activity shows the reported percentage and import state. **Remaining:** Episode-level progress outside Activity. **Release record:** 1.0.0 (work-detail Activity; partial).
+- **D09:** Missing regular episodes expose a direct Download action. One explicit request uses global release preferences without waiting, persists independently of subscriptions, and follows verified ingestion. Empty or failed discovery requires explicit retry through episode task details.
+- **D10:** Episode rows show actual reported download percentages and compact acquisition states. Scoped task details retain verification/import stages, errors and recovery; subscription details retain discovery and configuration diagnostics.
 
 Users manage transfer pause, resume and removal in qBittorrent WebUI. Anishelf
 provides acquisition status, recovery and verified library ingestion from work
@@ -542,12 +542,12 @@ details. A global download-management page is outside the delivered scope.
 
 #### Individual episode downloads and progress (D09–D10)
 
-Missing regular episodes expose **Download this episode** in their More menu.
+Missing regular episodes expose a direct **Download** action.
 Accept and persist the request before background discovery. Use the global release
 requirements and ranking, bypassing preference waiting periods, to select one
 currently available matching release across configured sites. Do not ask users to
 choose a publication or create, enable or alter a subscription. Completed discovery
-without a usable release stops with an actionable reason and an explicit Activity
+without a usable release stops with an actionable reason and an explicit episode-task
 retry; it does not continuously monitor for new publications. Downloads retain the
 existing deduplication, submission reconciliation and verified-ingestion workflow.
 

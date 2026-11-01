@@ -141,16 +141,35 @@ for progress and tracking behavior.
 
 ## Automatic acquisition
 
-Missing regular episode rows expose Download this episode through More. The
-command starts one background acquisition using global preferences, without a
-publication picker. Acceptance uses a Toast with an Activity action; durable
-search, download and recovery state stays in Activity even without a subscription.
+Episode rows use a single compact line: episode identity, one primary action or
+acquisition status, and relevant secondary actions. Omit per-row viewing labels,
+local availability labels and version counts; viewing progress belongs above the
+list. Available episodes expose a light Play action, opening version selection
+when needed. Missing regular episodes expose Download directly. Preserve playback
+when another version has an acquisition task.
 
-Place the subscription summary near the work's viewing and playback actions, with
-one clear primary outcome and an attention indicator when action is needed. Keep
-activity and diagnostics available on demand. Show actual progress and actionable
-failures, and preserve editor input across background updates. See
-[subscription requirements](../requirements.md#25-subscriptions-and-resource-discovery)
+Align primary actions and acquisition state in the same trailing 8rem column,
+with the icon and label centered together as one group. Center text-only task
+state in that same column. Place file status indicators and More before
+that column, so auxiliary controls never shift Play relative to Download. Rows
+without auxiliary controls retain the primary column position. Truncate long
+labels inside the column while retaining their accessible names.
+
+Show durable acquisition state beside its episode: Searching, Waiting, actual
+reported percentage (Downloading when unknown), Processing, Paused or Needs
+attention. Processing compresses verification and ingestion for the row only;
+task details retain the real stages. Download completion does not imply playback
+availability. Opening the status shows only that episode's tasks, errors and
+recovery actions. Keep rows stable during polling and preserve cached content on
+refresh failures. Do not display an invented percentage or a disabled Play action
+beside a missing episode's download action.
+
+Acceptance uses a deduplicated Toast with a View task action. Keep subscription
+intent near the work's playback actions without download counts or progress.
+Subscription details own discovery, configuration failures, history diagnostics
+and source information; episode task details own transfer and import recovery.
+Keep actionable subscription failures visible and preserve editor input across
+background updates. See [subscription requirements](../requirements.md#25-subscriptions-and-resource-discovery)
 for lifecycle and acquisition behavior.
 
 ## Accessibility and responsive layouts

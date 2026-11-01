@@ -1133,7 +1133,7 @@
 			"saveChanges": "保存更改",
 			"subscribed": "已订阅",
 			"notSubscribed": "未订阅",
-			"activity": "活动",
+			"activity": "订阅详情",
 			"cooldownUntil": "来源已限流；{{time}} 后重试",
 			"waitingForReleases": "等待发布",
 			"findingSource": "正在查找来源",
@@ -1252,7 +1252,19 @@
 			"download": "下载此集",
 			"searching": "正在查找资源",
 			"existing": "该集已有下载任务，可在动态中查看。",
-			"failed": "无法开始获取此集。"
+			"failed": "无法开始获取此集。",
+			"compactAttention": "需处理",
+			"compactSearching": "查找中",
+			"compactProcessing": "处理中",
+			"compactWaiting": "等待中",
+			"downloadAction": "下载",
+			"taskTitle": "第 {{episode}} 集任务",
+			"viewTask": "查看任务",
+			"downloadLabel": "下载第 {{episode}} 集",
+			"taskLabel": "第 {{episode}} 集任务",
+			"compactPaused": "已暂停",
+			"stale": "待更新",
+			"statusUnknown": "状态未知"
 		}
 	},
 	"profileIssue": {

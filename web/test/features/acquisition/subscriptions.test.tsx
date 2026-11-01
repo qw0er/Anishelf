@@ -244,7 +244,7 @@ test("header row hides global instructions and release evidence until Activity d
 	expect(screen.queryByText(selected.title)).toBeNull();
 	expect(screen.queryByText(/Automatic download destination/)).toBeNull();
 	expect(screen.queryByRole("button", { name: "Manage" })).toBeNull();
-	fireEvent.click(screen.getByRole("button", { name: "Activity" }));
+	fireEvent.click(screen.getByRole("button", { name: "Subscription details" }));
 	await screen.findByRole("dialog");
 	expect(
 		request.mock.calls.some((call) => call[0].includes("diagnostics=true")),
@@ -432,7 +432,9 @@ test("source attempts appear only in lazy diagnostics with outcomes and coverage
 		},
 	});
 	render(<SubscriptionPanel workKey={workKey} />);
-	fireEvent.click(await screen.findByRole("button", { name: "Activity" }));
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Subscription details" }),
+	);
 	expect(screen.queryByText(/site-empty/)).toBeNull();
 	fireEvent.click(screen.getByText("Diagnostics"));
 	await screen.findByText(/site-empty · No matching releases/);
@@ -450,7 +452,9 @@ test("a discovery outage offers a direct check instead of generic configuration 
 		},
 	});
 	render(<SubscriptionPanel workKey={workKey} />);
-	fireEvent.click(await screen.findByRole("button", { name: /Activity/ }));
+	fireEvent.click(
+		await screen.findByRole("button", { name: /Subscription details/ }),
+	);
 	fireEvent.click(await screen.findByRole("button", { name: "Check now" }));
 	await waitFor(() =>
 		expect(
