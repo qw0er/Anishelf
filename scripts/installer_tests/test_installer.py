@@ -102,7 +102,7 @@ FAKE_COMMAND = textwrap.dedent(
 class Fixture:
     def __init__(self, case: unittest.TestCase) -> None:
         self.case = case
-        self.directory = Path(tempfile.mkdtemp(prefix="anishelf-installer-test-"))
+        self.directory = Path(tempfile.mkdtemp(prefix="anishelf-installer-test-")).resolve()
         self.bin = self.directory / "bin"
         self.home = self.directory / "home"
         self.config = self.directory / "config"
@@ -786,6 +786,7 @@ class InstallerTests(unittest.TestCase):
             (fixture.target / "install.log").read_text(encoding="utf-8"),
         )
 
+    @unittest.skipUnless(sys.platform == "linux", "Quadlet startup requires Linux")
     @unittest.skipIf(os.geteuid() == 0, "rootless Quadlet requires a non-root user")
     def test_quadlet_install_refuses_existing_units(self) -> None:
         fixture = Fixture(self)
@@ -811,6 +812,7 @@ class InstallerTests(unittest.TestCase):
         )
         self.assertFalse(fixture.target.exists())
 
+    @unittest.skipUnless(sys.platform == "linux", "Quadlet startup requires Linux")
     @unittest.skipIf(os.geteuid() == 0, "rootless Quadlet requires a non-root user")
     def test_quadlet_reconfigure_force_backs_up_changed_units(self) -> None:
         fixture = Fixture(self)
@@ -851,6 +853,7 @@ class InstallerTests(unittest.TestCase):
             "local edits",
         )
 
+    @unittest.skipUnless(sys.platform == "linux", "Quadlet startup requires Linux")
     @unittest.skipIf(os.geteuid() == 0, "rootless Quadlet requires a non-root user")
     def test_quadlet_remove_only_matching_units(self) -> None:
         fixture = Fixture(self)
