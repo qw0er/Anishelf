@@ -17,6 +17,7 @@ export function activityStatus(
 		return t("acquisition.activity.importing");
 	if (item.state === "unknown" || item.state === "submitting")
 		return t("acquisition.activity.confirmingSubmission");
+	if (item.state === "discovering") return t("acquisition.episode.searching");
 	if (item.state === "pending")
 		return t("acquisition.activity.waitingToSubmit");
 	if (/paused|stopped/i.test(item.transfer ?? ""))

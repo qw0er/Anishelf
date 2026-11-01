@@ -111,6 +111,14 @@ export class DownloadRepository implements DownloadStore {
 			.all()
 			.map((row) => row.id);
 	}
+	episodeIntent(workKey: string, episode: number) {
+		const row = this.store
+			.select()
+			.from(intents)
+			.where(and(eq(intents.workKey, workKey), eq(intents.episode, episode)))
+			.get();
+		return row ? readAcquisitionIntents(this.store, row) : null;
+	}
 	reservedEpisode(workKey: string, episode: number) {
 		return Boolean(
 			this.store

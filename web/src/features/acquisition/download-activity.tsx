@@ -25,6 +25,13 @@ import {
 import { getSubscription } from "./subscriptions-api.js";
 
 const errorKeys: Record<string, string> = {
+	no_eligible_release: "acquisition.activity.errors.no_eligible_release",
+	discovery_unavailable: "acquisition.activity.errors.discovery_unavailable",
+	acquisition_configuration_changed:
+		"acquisition.activity.errors.acquisition_configuration_changed",
+	already_available: "acquisition.activity.errors.already_available",
+	destination_changed:
+		"acquisition.activity.errors.acquisition_configuration_changed",
 	downloader_configuration_changed:
 		"acquisition.activity.errors.downloader_configuration_changed",
 	release_evidence_changed:
@@ -174,7 +181,7 @@ export function DownloadActivityPanel({
 					(item.state === "pending" && item.error)) && (
 					<Button
 						variant="outline"
-						disabled={retry.isPending || !activity?.authorized || !item.title}
+						disabled={retry.isPending || !item.canRetryAcquisition}
 						onClick={() => retry.mutate({ item, kind: "acquisition" })}
 					>
 						{t("acquisition.activity.retryAcquisition")}
@@ -183,6 +190,9 @@ export function DownloadActivityPanel({
 				{item.error &&
 					[
 						"downloader_configuration_changed",
+						"no_eligible_release",
+						"discovery_unavailable",
+						"acquisition_configuration_changed",
 						"source_changed",
 						"incomplete_directory_required",
 					].includes(item.error) && (

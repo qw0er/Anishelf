@@ -16,8 +16,10 @@ export function WorkMetadataHeader({
 	action,
 	subscription,
 	bannerUrl,
+	airedCount,
 }: {
 	bannerUrl?: string | null;
+	airedCount?: number | null;
 	viewing?: ReactNode;
 	action?: ReactNode;
 	subscription?: ReactNode;
@@ -41,7 +43,10 @@ export function WorkMetadataHeader({
 	);
 
 	const aliasesText = aliases.join(" · ");
-	const aired = airedEpisodeCount(info);
+	const aired =
+		airedCount === undefined
+			? airedEpisodeCount(info, metadata.fetchedAt)
+			: airedCount;
 	const startDate = fuzzyDate(info.startDate);
 	const endDate = fuzzyDate(info.endDate);
 	const airedValue =

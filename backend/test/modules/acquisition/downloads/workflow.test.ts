@@ -146,6 +146,7 @@ test.each([false, true])(
 			const worker = new DownloadsApplication({
 				store: f.db.acquisitionDownloads,
 				selection: subscriptions.selection(),
+				sources: sources.api,
 				resources: f.resources,
 				anime: f.anime,
 				ingestion: f.ingestion,
@@ -310,6 +311,7 @@ test.each([
 		const worker = new DownloadsApplication({
 			store: f.db.acquisitionDownloads,
 			selection: subscriptions.selection(),
+			sources: sources.api,
 			resources: f.resources,
 			anime: f.anime,
 			ingestion: f.ingestion,

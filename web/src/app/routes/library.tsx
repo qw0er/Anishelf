@@ -1,9 +1,10 @@
 import type { RouteObject } from "react-router";
-import { SubscriptionPanel } from "../../features/acquisition/ui.js";
+import { EpisodeDownloadMenu } from "../../features/acquisition/ui.js";
 import { ReviewPage, TrackedAnimeDetail } from "../../features/anime/ui.js";
 import { HistoryPage } from "../../features/playback/ui.js";
 import App from "../App.js";
 import InitialLoading from "../components/initial-loading.js";
+import { WorkAcquisitionPanel } from "../components/work-acquisition-panel.js";
 import { animeLoader } from "./anime-data.js";
 import RouteError from "./errors.js";
 import { historyLoader } from "./history-data.js";
@@ -49,8 +50,14 @@ export const libraryRoute: RouteObject = {
 			path: "anime/tracked/:mediaId",
 			element: (
 				<TrackedAnimeDetail
+					renderEpisodeAction={(target) => (
+						<EpisodeDownloadMenu
+							key={`${target.workKey}:${target.episode}`}
+							{...target}
+						/>
+					)}
 					renderSubscription={(workKey, status) => (
-						<SubscriptionPanel
+						<WorkAcquisitionPanel
 							key={workKey}
 							workKey={workKey}
 							status={status}

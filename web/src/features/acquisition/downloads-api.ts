@@ -2,6 +2,8 @@ import { type RequestOptions, request } from "../../shared/api/client.js";
 import type {
 	DownloadActivity,
 	DownloadSettings,
+	EpisodeDownloadRequest,
+	EpisodeDownloadResult,
 } from "../../shared/api/contracts.js";
 
 const path = "/api/acquisition/downloads";
@@ -40,3 +42,8 @@ export const retryDownload = (
 		{},
 		{ revision, kind, commandId: crypto.randomUUID() },
 	);
+
+export const requestEpisodeDownload = (
+	input: EpisodeDownloadRequest,
+): Promise<EpisodeDownloadResult> =>
+	request(`${path}/episodes`, "POST", {}, input);

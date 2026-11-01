@@ -80,6 +80,12 @@ manual intent versions and command receipts survive normal process restarts. Ind
 receipts and download intents intentionally do not acquire foreign keys to mutable
 operations or removable subscriptions. Removing a subscription must not remove an
 in-flight task, and pruning an operation must not erase command deduplication.
+Download intents distinguish subscription and one-off authorization. Existing rows
+migrate to subscription origin; one-off rows have no subscription revision and
+persist their profile fingerprint, source generation and discovery diagnostics as
+one validated JSON document. Their discovering state, episode reservation and
+command identity survive restarts before any release has been selected.
+
 Provider-qualified identities remain opaque text. Catalog episode numbers remain
 text because their domain permits more than integer download episode positions.
 

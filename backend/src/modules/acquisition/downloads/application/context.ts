@@ -3,8 +3,9 @@ import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { AnimeApi, ReleaseAssessmentApi } from "../../../anime/public.js";
 import type { AcquisitionResources } from "../../../resources/public.js";
-import type { ReleaseEvidence } from "../../sources/public.js";
+import type { ReleaseEvidence, SourcesApi } from "../../sources/public.js";
 import type {
+	AcquisitionProfile,
 	Candidate,
 	Subscription,
 	SubscriptionAuthorization,
@@ -42,6 +43,9 @@ export interface DownloadApplicationOptions extends DownloadOptions {
 	initializeBundled?: () => Promise<boolean>;
 	store: DownloadStore;
 	selection: DownloadSelection;
+	sources: SourcesApi;
+	profiles?: readonly AcquisitionProfile[];
+	defaultProfileId?: () => string | undefined;
 	resources: AcquisitionResources;
 	anime: ReleaseAssessmentApi;
 	ingestion: NonNullable<AnimeApi["ingestion"]>;

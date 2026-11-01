@@ -112,6 +112,13 @@ Sibling consumers cannot import private children or UI entries. App supplies pla
 and file-action slots. Preserve query scope, cancellation and invalidation across
 changes; do not put server paths or configuration into browser contracts.
 
+Local and remote detail pages share view-only aired-episode derivation. Playable
+local episodes remain visible; empty placeholders require broadcast evidence.
+Cached evidence does not advance with wall-clock time after it becomes stale.
+Known airtimes invalidate the detail and broadcast queries, and metadata detail
+freshness expires at the next scheduled airing. These views do not create Catalog
+records or query release sites merely to build episode rows.
+
 Server-state caching uses TanStack Query, shared query definitions and a QueryClient.
 Stable query keys, freshness/retention policies and app-coordinated invalidation
 cover API-backed data; media streams and local player state remain outside this
@@ -481,7 +488,13 @@ connection generation. Lifecycle logs use `torrent_clients.*`; provider protocol
 credential events retain `qbittorrent.*` without logging secrets.
 
 Downloads' worker pulls accepted selections from Subscriptions; Subscriptions does
-not submit tasks. Downloads retains planning, admission, reservations, uncertain
+not submit tasks. Downloads also accepts durable one-off episode requests through
+`POST /api/acquisition/downloads/episodes`. These reserve the episode before source
+discovery and carry their own authorization, independent of subscription lifecycle.
+Shared pure release ranking preserves subscription wait periods; one-off discovery
+queries all configured sites for exactly one episode and bypasses waiting. Missing
+or unavailable releases stop until an explicit retry. Configuration revisions fence
+new submissions, while uncertain submissions reconcile their accepted identity. Downloads retains planning, admission, reservations, uncertain
 submission recovery, completion policy (`downloads/domain/completion.ts`) and
 verified ingestion. Changing an account/client generation still fences old tasks
 and requires explicit recovery.

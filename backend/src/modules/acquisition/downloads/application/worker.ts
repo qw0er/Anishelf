@@ -9,6 +9,8 @@ export class DownloadWorker {
 	private timer: ReturnType<typeof setTimeout> | undefined;
 	private running: Promise<void> | undefined;
 	private started = false;
+	private loopRunning = false;
+	private wakeRequested = false;
 	constructor(
 		private readonly context: DownloadApplicationContext,
 		private readonly reservations: DownloadPlanning,
@@ -52,23 +54,43 @@ export class DownloadWorker {
 		});
 		return task;
 	}
+	private async run() {
+		if (this.loopRunning || this.context.signal.aborted) return;
+		this.loopRunning = true;
+		this.wakeRequested = false;
+		try {
+			await this.tick();
+		} finally {
+			this.loopRunning = false;
+		}
+		if (this.context.signal.aborted) return;
+		if (this.timer) clearTimeout(this.timer);
+		this.timer = setTimeout(
+			() => {
+				void this.run();
+			},
+			this.wakeRequested
+				? 0
+				: this.context.options.store.hasActive()
+					? policy.activeIntervalMs
+					: policy.idleIntervalMs,
+		);
+		this.timer.unref();
+	}
+	wake() {
+		if (!this.started || this.context.signal.aborted) return;
+		this.wakeRequested = true;
+		if (this.loopRunning) return;
+		if (this.timer) clearTimeout(this.timer);
+		this.timer = setTimeout(() => {
+			void this.run();
+		}, 0);
+		this.timer.unref();
+	}
 	start() {
 		if (this.started || this.context.signal.aborted) return;
 		this.started = true;
-		const run = async () => {
-			await this.tick();
-			if (this.context.signal.aborted) return;
-			this.timer = setTimeout(
-				() => {
-					void run();
-				},
-				this.context.options.store.hasActive()
-					? policy.activeIntervalMs
-					: policy.idleIntervalMs,
-			);
-			this.timer.unref();
-		};
-		void run();
+		void this.run();
 	}
 	async close() {
 		this.context.shutdown.abort();

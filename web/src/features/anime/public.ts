@@ -1,4 +1,7 @@
-export type { AnimeResourceActionSlot } from "./catalog/public.js";
+export type {
+	AnimeEpisodeActionSlot,
+	AnimeResourceActionSlot,
+} from "./catalog/public.js";
 export {
 	localWorkDetailQuery,
 	useAnimePlaybackTitle,

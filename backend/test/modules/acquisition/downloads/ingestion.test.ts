@@ -141,7 +141,9 @@ test("transfer completion returns evidence without invoking resource verificatio
 		withClient: async (_generation, operation) => operation(f.client),
 		logger,
 	});
-	const authorize = vi.fn(async () => item.subscriptionRevision);
+	const authorize = vi.fn(async () => ({
+		subscriptionRevision: item.subscriptionRevision,
+	}));
 	const transfer = new DownloadTransfers(context, { authorize });
 	const completed = await transfer.run(new DownloadExecution(context, item));
 	expect(completed?.files).toHaveLength(1);

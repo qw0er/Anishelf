@@ -82,6 +82,8 @@ export class DownloadPlanning {
 						source: entry.download,
 						destination,
 						directory,
+						origin: "subscription",
+						oneOff: null,
 						subscriptionRevision: subscription.revision,
 						state: "pending",
 						transfer: null,

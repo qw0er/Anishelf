@@ -46,9 +46,13 @@ import { watchingReason } from "./watching-reason.js";
 export function SubscriptionPanel({
 	workKey,
 	status,
+	activityRequested = false,
+	onActivityClose,
 }: {
 	workKey: string;
 	status?: AnimeStatusState;
+	activityRequested?: boolean;
+	onActivityClose?: () => void;
 }) {
 	const { t, i18n } = useTranslation();
 	const client = useQueryClient();
@@ -324,15 +328,21 @@ export function SubscriptionPanel({
 					)}
 				</DialogContent>
 			</Dialog>
-			<Dialog open={activityOpen} onOpenChange={setActivityOpen}>
+			<Dialog
+				open={activityOpen || activityRequested}
+				onOpenChange={(open) => {
+					setActivityOpen(open);
+					if (!open) onActivityClose?.();
+				}}
+			>
 				<DialogContent className="max-h-[85dvh] overflow-y-auto">
 					<DialogHeader>
 						<DialogTitle>{t("acquisition.subscription.activity")}</DialogTitle>
 					</DialogHeader>
-					{view && (
+					{
 						<DownloadActivityPanel
 							workKey={workKey}
-							view={view}
+							view={view ?? { subscription: null }}
 							onCheckUpdates={() => action.mutate("refresh")}
 							checking={action.isPending}
 							reason={(code) =>
@@ -345,7 +355,7 @@ export function SubscriptionPanel({
 								setEditor({ current: sub ?? null });
 							}}
 						/>
-					)}
+					}
 				</DialogContent>
 			</Dialog>
 		</section>

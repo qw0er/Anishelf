@@ -213,6 +213,12 @@ export type TrackingEpisodeResolutionResponse = Static<
 export type DownloadSettings = Static<
 	typeof import("./schemas/downloads.js").DownloadSettingsSchema
 >;
+export type EpisodeDownloadRequest = Static<
+	typeof import("./schemas/downloads.js").EpisodeDownloadRequestSchema
+>;
+export type EpisodeDownloadResult = Static<
+	typeof import("./schemas/downloads.js").EpisodeDownloadResultSchema
+>;
 export type DownloadActivity = Static<
 	typeof import("./schemas/downloads.js").DownloadActivitySchema
 >;

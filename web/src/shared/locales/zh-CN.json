@@ -376,7 +376,8 @@
 		"noUnresolvedResources": "此作品没有待审核的候选文件。",
 		"airingInfo": "关于来源的放送记录",
 		"airingPartial": "还有更多记录。已加载的记录可能不包含下一次放送。",
-		"airingScopeHint": "这是来源的放送时间表。剧集编号可能与文件不同，手动修正不会改变。"
+		"airingScopeHint": "这是来源的放送时间表。剧集编号可能与文件不同，手动修正不会改变。",
+		"noAiredEpisodes": "暂无可确认的已播出剧集。"
 	},
 	"review": {
 		"title": "审核",
@@ -945,7 +946,11 @@
 				"source_changed": "源文件已更改，请在重试导入前验证文件。",
 				"file_size_conflict": "本地文件大小与已完成的下载不一致。",
 				"task_path_changed": "qBittorrent 中的任务保存路径已更改，请恢复后重试。",
-				"incomplete_directory_required": "请配置单独的未完成目录，并在设置中验证目标。"
+				"incomplete_directory_required": "请配置单独的未完成目录，并在设置中验证目标。",
+				"no_eligible_release": "未找到符合下载偏好的单集资源。可稍后重试，或调整下载偏好。",
+				"discovery_unavailable": "资源查找未能完成。请检查资源站和下载客户端，然后重试。",
+				"acquisition_configuration_changed": "下载配置已更改。重试以使用当前配置。",
+				"already_available": "此集已有可用的本地文件。"
 			}
 		},
 		"rss": {
@@ -1241,6 +1246,13 @@
 				"paused": "已暂停",
 				"active": "正在获取发布"
 			}
+		},
+		"episode": {
+			"actions": "第 {{episode}} 集的更多操作",
+			"download": "下载此集",
+			"searching": "正在查找资源",
+			"existing": "该集已有下载任务，可在动态中查看。",
+			"failed": "无法开始获取此集。"
 		}
 	},
 	"profileIssue": {

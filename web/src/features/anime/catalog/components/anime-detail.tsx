@@ -22,11 +22,14 @@ import {
 	useDetailViewing,
 	ViewingSummary,
 } from "../../tracking/public.js";
-import { airedEpisodeCount } from "../detail-format.js";
 import { nextPlayableEpisode } from "../next-playback.js";
 import { localWorkDetailQuery } from "../queries.js";
-import type { AnimeResourceActionSlot } from "../resource-actions.js";
+import type {
+	AnimeEpisodeActionSlot,
+	AnimeResourceActionSlot,
+} from "../resource-actions.js";
 import { type AnimeStatusState, animeStatusQuery } from "../status-query.js";
+import { useEpisodeTimeline } from "../use-episode-timeline.js";
 
 import { useLocalWorkDetail } from "../use-local-work-detail.js";
 import { AiringStatus } from "./airing-status.js";
@@ -40,9 +43,11 @@ import { WorkSynopsis } from "./work-synopsis.js";
 export function AnimeDetail({
 	renderResourceActions,
 	renderSubscription,
+	renderEpisodeAction,
 }: {
 	renderResourceActions: AnimeResourceActionSlot;
 	renderSubscription?: (workKey: string, detail: AnimeStatusState) => ReactNode;
+	renderEpisodeAction?: AnimeEpisodeActionSlot;
 }) {
 	const { id = "" } = useParams();
 	const scope = useQueryScope();
@@ -72,6 +77,7 @@ export function AnimeDetail({
 			data={query.data}
 			renderResourceActions={renderResourceActions}
 			{...(renderSubscription ? { renderSubscription } : {})}
+			{...(renderEpisodeAction ? { renderEpisodeAction } : {})}
 		/>
 	);
 }
@@ -79,12 +85,22 @@ function LocalWorkDetail({
 	data,
 	renderResourceActions,
 	renderSubscription,
+	renderEpisodeAction,
 }: {
 	data: LocalWorkDetailResponse & { detail: AnimeDetailResponse };
 	renderResourceActions: AnimeResourceActionSlot;
 	renderSubscription?: (workKey: string, detail: AnimeStatusState) => ReactNode;
+	renderEpisodeAction?: AnimeEpisodeActionSlot;
 }) {
 	const { t, i18n } = useTranslation();
+	const airing = useInfiniteQuery(airingQuery(data.metadata.data.reference.id));
+	const timeline = useEpisodeTimeline(
+		data.work.id,
+		data.metadata,
+		data.episodes,
+		airing.data?.pages ?? [],
+	);
+	data = { ...data, episodes: timeline.episodes };
 	const controller = useLocalWorkDetail(data);
 	const { libraryPath, refresh } = controller;
 	const { work, metadata } = data;
@@ -102,7 +118,6 @@ function LocalWorkDetail({
 		},
 		status.error,
 	);
-	const airing = useInfiniteQuery(airingQuery(data.metadata.data.reference.id));
 	const progress = viewing.snapshot?.entry?.progress ?? null;
 	const nextEpisode = nextPlayableEpisode(data.episodes, progress);
 	const checkingProgress =
@@ -227,6 +242,7 @@ function LocalWorkDetail({
 				</p>
 			)}
 			<WorkMetadataHeader
+				airedCount={timeline.aired}
 				bannerUrl={data.bannerUrl}
 				subscription={renderSubscription?.(
 					workKey(data.detail.reference),
@@ -244,7 +260,7 @@ function LocalWorkDetail({
 					<ViewingSummary
 						state={viewing}
 						episodeCount={metadata.data.episodeCount}
-						airedEpisodeCount={airedEpisodeCount(metadata.data)}
+						airedEpisodeCount={timeline.aired}
 					/>
 				}
 			/>
@@ -254,7 +270,8 @@ function LocalWorkDetail({
 					data={data}
 					controller={controller}
 					renderResourceActions={renderResourceActions}
-					airing={airing}
+					workKey={workKey(data.detail.reference)}
+					{...(renderEpisodeAction ? { renderEpisodeAction } : {})}
 				/>
 				<aside className="min-w-0 space-y-4">
 					<AiringStatus query={airing} />
