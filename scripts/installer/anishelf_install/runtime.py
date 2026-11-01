@@ -49,6 +49,9 @@ def need(command: str) -> None:
         raise InstallerError(f"Required command is missing: {command}")
 
 
+_docker_sudo: bool | None = None
+
+
 def run(
     args: list[str],
     *,
@@ -56,6 +59,23 @@ def run(
     capture: bool = False,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
+    global _docker_sudo
+    if args[0] == "docker" and args[1:3] != ["compose", "version"]:
+        if _docker_sudo is None:
+            probe = subprocess.run(
+                ["docker", "info"], env=env, text=True,
+                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False,
+            )
+            denied = probe.returncode != 0 and "permission denied" in probe.stderr.lower()
+            local_socket = "/var/run/docker.sock" in probe.stderr.lower()
+            custom_endpoint = any(os.environ.get(key) for key in ("DOCKER_HOST", "DOCKER_CONTEXT"))
+            _docker_sudo = bool(denied and local_socket and not custom_endpoint and os.geteuid() != 0)
+            if _docker_sudo:
+                need("sudo")
+                log("Docker socket access was denied; requesting administrator authorization for Docker commands.")
+        if _docker_sudo:
+            run(["sudo", "-v"])
+            args = ["sudo", *args]
     LOG.log(f"Running: {shlex.join(args)}")
     completed = subprocess.run(
         args,
