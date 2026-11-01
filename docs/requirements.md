@@ -386,10 +386,26 @@ Full season-pack ingestion is not currently supported.
 | D06 | Recover from disconnections, externally removed tasks, and server restarts | Implemented: stale observations, durable bindings, restart reconciliation and external-removal suppression | 1.0.0 |
 | D07 | Distinguish task cancellation, downloaded-data deletion, and library-record removal | Implemented boundary: task/data deletion in WebUI, Catalog decisions in existing local workflows; deletion never triggers automatic re-adding | 1.0.0 |
 | D08 | Multiple download clients, seeding policies, bandwidth schedules, and storage policies | Optional | — |
+| D09 | Provide a dedicated download panel for acquisition tasks across works | Later | — |
+| D10 | Obtain and display download progress from the download client | Later | — |
 
 Users manage transfer pause, resume and removal in qBittorrent WebUI. Anishelf
 provides acquisition status, recovery and verified library ingestion from work
 details. A global download-management page is outside the delivered scope.
+
+#### Dedicated download panel and progress (D09–D10)
+
+Provide a dedicated place to see acquisition tasks across works without opening
+each work's details. Show the associated work, task state, download progress and
+errors, with access to the relevant work details. Make empty, loading and failed
+states clear. This panel is planned separately from the delivered work-detail Activity.
+
+Obtain progress from the download client and keep the displayed information updated
+while downloads are active. Show actual reported progress rather than inferring it
+from elapsed time or acquisition state. If progress is unavailable or the client
+cannot be reached, distinguish unknown or stale information from current progress.
+Distinguish a completed transfer from subsequent verification and library ingestion;
+a completed download alone does not mean the resource is available in the library.
 
 ### 2.7 Desktop and Other Clients
 
