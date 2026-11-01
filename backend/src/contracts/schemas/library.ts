@@ -148,6 +148,8 @@ export function createSettingsSchemas() {
 				maxItems: 64,
 				uniqueItems: true,
 			}),
+			autoPreparationEnabled: Type.Optional(Type.Boolean()),
+			autoPreparationPresetId: Type.Optional(TranscodeProfileIdSchema),
 			rssRefreshIntervalMinutes: Type.Optional(
 				Type.Integer({
 					minimum: rssConstraints.minimumRefreshIntervalMinutes,
@@ -179,6 +181,8 @@ export function createSettingsSchemas() {
 					uniqueItems: true,
 				}),
 			),
+			autoPreparationEnabled: Type.Optional(Type.Boolean()),
+			autoPreparationPresetId: Type.Optional(TranscodeProfileIdSchema),
 			rssRefreshIntervalMinutes: Type.Optional(
 				Type.Integer({
 					minimum: rssConstraints.minimumRefreshIntervalMinutes,

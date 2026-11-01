@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
+import type { MediaProcessingPlan } from "../../../../platform/media/specification.js";
 import { DomainError } from "../../../../shared/errors.js";
+import { fingerprint } from "../../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
 import type {
 	CompatibilityCheckRequest,
@@ -13,10 +15,37 @@ import type {
 import type { PreparationPolicy } from "../policy.js";
 import type { PreparationPlanner } from "../ports.js";
 import type { PreparationApi } from "../public.js";
+import type { PreparationDemand } from "../snapshot.js";
 import type { PreparationArtifacts } from "./artifacts.js";
 import type { PreparationContext } from "./context.js";
 import type { PreparationQueries } from "./queries.js";
 import type { PreparationScheduler } from "./scheduler.js";
+
+function executionFingerprint(
+	plan: DeepReadonly<Omit<MediaProcessingPlan, "id">>,
+	video: number,
+	audios: readonly number[],
+): string {
+	return fingerprint({
+		container: plan.container,
+		delivery: plan.delivery ?? "file",
+		video,
+		videoExecution: plan.video,
+		videoParameters: plan.videoParameters,
+		videoFilters: plan.videoFilters,
+		h264Level: plan.h264Level,
+		audios: audios.map((sourceIndex) => {
+			const track = plan.audioTracks?.find(
+				(t) => t.sourceIndex === sourceIndex,
+			);
+			return {
+				sourceIndex,
+				execution: track?.execution ?? plan.audio,
+				parameters: track ? track.parameters : plan.audioParameters,
+			};
+		}),
+	});
+}
 
 export interface PreparationServices {
 	context: PreparationContext;
@@ -143,12 +172,16 @@ export class PreparationApplication implements PreparationApi {
 		});
 	}
 	private async enqueue(
-		input: CompatibilityCheckRequest & { fileId: string },
+		input: {
+			fileId: string;
+			sourceVersion: string;
+		} & Partial<CompatibilityCheckRequest>,
 		profileId: string,
 		planned: DeepReadonly<
 			Extract<MediaPlanningResult, { kind: "processing-required" }>
 		>,
 		retryExisting = false,
+		demand: PreparationDemand = { origin: "manual" },
 	): Promise<PreparationView> {
 		const { context, artifacts, scheduler } = await this.ensure();
 		const source = await context.sources.resolveSource(
@@ -161,14 +194,62 @@ export class PreparationApplication implements PreparationApi {
 		context.sources.assertAccessRevision(source.accessRevision);
 		scheduler.assertHealthy();
 		// Deduplication, capacity check and insertion are synchronous: no await between them.
-		const existing = context.repository.find(planned.identity.executionPlanId);
+		const existing =
+			context.repository.find(planned.identity.executionPlanId) ??
+			(
+				context.repository.findReusable?.(
+					input.fileId,
+					input.sourceVersion,
+					planned.identity.profileFingerprint,
+				) ?? []
+			).find(
+				(task) =>
+					["queued", "processing", "ready"].includes(task.state.status) &&
+					task.spec.source.sourceVersion === input.sourceVersion &&
+					task.spec.profileFingerprint ===
+						planned.identity.profileFingerprint &&
+					executionFingerprint(
+						task.spec.settings.plan,
+						task.spec.settings.videoStreamIndex,
+						task.spec.settings.audioStreamIndices,
+					) ===
+						executionFingerprint(
+							planned.execution.plan,
+							planned.execution.videoStreamIndex,
+							planned.execution.audioStreamIndices,
+						),
+			);
 		if (existing) {
+			if (demand.origin === "manual") {
+				existing.demand = demand;
+				context.repository.save(existing);
+			}
+			if (
+				demand.origin === "automatic" &&
+				["failed", "cancelled"].includes(existing.state.status)
+			) {
+				if (context.repository.queuedCount() >= this.policy.maximumQueuedTasks)
+					throw new DomainError(
+						"PREPARATION_BUSY",
+						"The preparation queue is full.",
+					);
+				existing.demand = demand;
+				existing.state = {
+					status: "queued",
+					progress: null,
+					failureReason: null,
+					updatedAtMs: Date.now(),
+				};
+				context.repository.save(existing);
+				scheduler.wake();
+				return { task: existing, artifact: null, availability: "unavailable" };
+			}
 			if (
 				retryExisting &&
 				(existing.state.status === "failed" ||
 					existing.state.status === "cancelled")
 			)
-				return this.retry(existing.id, input);
+				return this.retry(existing.id, input as CompatibilityCheckRequest);
 			return artifacts.inspect(existing.id);
 		}
 		if (context.repository.queuedCount() >= this.policy.maximumQueuedTasks)
@@ -180,6 +261,7 @@ export class PreparationApplication implements PreparationApi {
 		const now = Date.now();
 		const task: PreparationTask = {
 			id: randomUUID(),
+			demand,
 			filename: source.file.name,
 			profileId: profileId,
 			createdAtMs: now,
@@ -216,6 +298,42 @@ export class PreparationApplication implements PreparationApi {
 		scheduler.wake();
 		return { task, artifact: null, availability: "unavailable" };
 	}
+	automaticRetry?: (id: string) => Promise<PreparationView>;
+	setAutomaticGuard(guard: (task: PreparationTask) => Promise<boolean>): void {
+		this.options.services.context.automaticGuard = guard;
+	}
+	createAutomatic(
+		fileId: string,
+		sourceVersion: string,
+		profileId: string,
+		planned: DeepReadonly<
+			Extract<MediaPlanningResult, { kind: "processing-required" }>
+		>,
+		demand: PreparationDemand,
+	): Promise<PreparationView> {
+		return this.track(() =>
+			this.enqueue(
+				{ fileId, sourceVersion },
+				profileId,
+				planned,
+				false,
+				demand,
+			),
+		);
+	}
+	async reconcileAutomatic(
+		predicate: (task: PreparationTask) => boolean,
+	): Promise<void> {
+		const { context, scheduler } = await this.ensure();
+		for (const task of context.repository.list())
+			if (
+				task.demand?.origin === "automatic" &&
+				task.state.status === "queued" &&
+				!predicate(task)
+			)
+				await scheduler.cancel(task.id);
+	}
+
 	catalog(fileId: string) {
 		return this.track(async () =>
 			(await this.ensure()).queries.catalog(fileId),
@@ -245,6 +363,20 @@ export class PreparationApplication implements PreparationApi {
 			await scheduler.cancel(id);
 			return artifacts.inspect(id);
 		});
+	}
+	async retryRequest(id: string, input: object): Promise<PreparationView> {
+		const { context } = await this.ensure();
+		if (
+			context.required(id).demand?.origin === "automatic" &&
+			this.automaticRetry
+		)
+			return this.automaticRetry(id);
+		if (!("sourceVersion" in input))
+			throw new DomainError(
+				"INVALID_REQUEST",
+				"Manual retry requires fresh compatibility evidence.",
+			);
+		return this.retry(id, input as CompatibilityCheckRequest);
 	}
 	retry(
 		id: string,

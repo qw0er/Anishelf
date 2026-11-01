@@ -116,3 +116,15 @@ profiles:
       bitrateKbps: 128
       # preserve | stereo
       channels: stereo
+
+# Additional optional typed output controls:
+# video.maxWidth: even integer 2..8192 (combined with maxHeight, never upscale).
+# video.maxFrameRate: positive frame rate ceiling, up to 1000.
+# video.profile: libx264 baseline/main/high/high10/high422/high444;
+#   libx265 main/main10/mainstillpicture; libvpx-vp9 0/1/2/3 as strings.
+# video.level: numeric level string, supported for libx264/libx265.
+# video.maxBitrateKbps: positive integer; encoder VBV limit with 2x buffer.
+# audio.channelCount: integer 1..64; cannot conflict with channels: stereo.
+# audio.sampleRate: integer 1..768000 Hz, validated against actual output.
+# audio.profile: lc (AAC only).
+# Encoder/profile/pixel format combinations still require runtime validation.

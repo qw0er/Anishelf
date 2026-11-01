@@ -56,6 +56,8 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		);
 	for (const key of Object.keys(settings)) {
 		if (
+			key !== "autoPreparationEnabled" &&
+			key !== "autoPreparationPresetId" &&
 			key !== "resourceRoots" &&
 			key !== "resourceRoot" &&
 			key !== "scanIntervalMinutes" &&
@@ -71,6 +73,21 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 				`Unknown persistent setting: ${key}.`,
 			);
 	}
+	const autoPreparationEnabled = settings.autoPreparationEnabled;
+	const autoPreparationPresetId = settings.autoPreparationPresetId;
+	if (
+		autoPreparationEnabled !== undefined &&
+		typeof autoPreparationEnabled !== "boolean"
+	)
+		throw new DomainError(
+			"CONFIG_INVALID",
+			"autoPreparationEnabled must be boolean.",
+		);
+	if (
+		autoPreparationPresetId !== undefined &&
+		!Check(TranscodeProfileIdSchema, autoPreparationPresetId)
+	)
+		throw new DomainError("CONFIG_INVALID", "Invalid autoPreparationPresetId.");
 	const rssInterval = settings.rssRefreshIntervalMinutes;
 	if (
 		rssInterval !== undefined &&
@@ -156,6 +173,12 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		throw new DomainError("CONFIG_INVALID", "Resource paths must be distinct.");
 	return {
 		resourceRoots: [...roots],
+		...(autoPreparationEnabled === undefined
+			? {}
+			: { autoPreparationEnabled: autoPreparationEnabled as boolean }),
+		...(autoPreparationPresetId === undefined
+			? {}
+			: { autoPreparationPresetId: autoPreparationPresetId as string }),
 		...(typeof acquisitionId === "string"
 			? { defaultAcquisitionProfileId: acquisitionId }
 			: {}),

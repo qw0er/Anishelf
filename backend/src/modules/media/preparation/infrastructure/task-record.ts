@@ -3,9 +3,13 @@ import type {
 	PreparationFailureReason,
 	PreparationState,
 } from "../domain/model.js";
-import type { PreparationSettingsSnapshot } from "../snapshot.js";
+import type {
+	PreparationDemand,
+	PreparationSettingsSnapshot,
+} from "../snapshot.js";
 export interface PreparationRecord {
 	id: string;
+	demand?: PreparationDemand;
 	sourceId: string;
 	executionPlanId: string;
 	profileId: string;

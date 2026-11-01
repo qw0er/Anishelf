@@ -42,7 +42,7 @@ export function cancelPreparation(
 }
 export function retryPreparation(
 	id: string,
-	body: CompatibilityCheckRequest,
+	body: CompatibilityCheckRequest | Record<string, never>,
 	options?: RequestOptions,
 ): Promise<PreparationTaskResponse> {
 	return request(

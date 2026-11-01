@@ -87,6 +87,8 @@ test("Configuration validates and persists the direct browser URL", async () => 
 	});
 	expect(saved.statusCode).toBe(200);
 	expect(saved.json()).toEqual({
+		autoPreparationEnabled: false,
+		autoPreparationPresetId: "builtin:web",
 		resourceRoots: [],
 		qbittorrentWebUiUrl: "https://downloads.example.com/qbt/",
 	});

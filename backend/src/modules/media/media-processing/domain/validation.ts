@@ -1,3 +1,8 @@
+import {
+	acceptsStream,
+	codecLevel,
+	normalizeMediaProfile,
+} from "../../../../platform/media/acceptance-policy.js";
 import { MediaToolError } from "../../../../platform/media/errors.js";
 import type {
 	MediaInfo,
@@ -103,6 +108,65 @@ export function validateProcessedMedia(
 			"TOOL_FAILED",
 			"Output does not match encoding constraints.",
 		);
+	if (plan.acceptance) {
+		const accept = plan.acceptance;
+		if (
+			(accept.containers?.length &&
+				!accept.containers.includes(output.container ?? "")) ||
+			acceptsStream(videos[0] as MediaStream, accept.video) !== "accepted" ||
+			audios.some((a) => acceptsStream(a, accept.audio) !== "accepted")
+		)
+			throw new MediaToolError(
+				"TOOL_FAILED",
+				"Output is rejected by the automatic preparation preset.",
+			);
+	}
+	if (
+		plan.videoParameters?.maxFrameRate &&
+		(videos[0]?.framesPerSecond == null ||
+			videos[0].framesPerSecond > plan.videoParameters.maxFrameRate + 0.001)
+	)
+		throw new MediaToolError(
+			"TOOL_FAILED",
+			"Output frame rate exceeds the profile limit.",
+		);
+
+	const videoParameters = plan.videoParameters;
+	if (videoParameters) {
+		const result = videos[0];
+		if (
+			!result ||
+			(videoParameters.profile &&
+				normalizeMediaProfile(result.profile ?? "") !==
+					normalizeMediaProfile(videoParameters.profile)) ||
+			(videoParameters.level &&
+				(codecLevel(result.codec, result.level) === null ||
+					(codecLevel(result.codec, result.level) as number) >
+						Number(videoParameters.level)))
+		)
+			throw new MediaToolError(
+				"TOOL_FAILED",
+				"Output video profile/level does not match encoding settings.",
+			);
+	}
+	for (const [index, result] of audios.entries()) {
+		const parameters =
+			plan.audioTracks?.[index]?.parameters ??
+			(plan.audioTracks ? undefined : plan.audioParameters);
+		if (parameters?.sampleRate && result.sampleRate !== parameters.sampleRate)
+			throw new MediaToolError(
+				"TOOL_FAILED",
+				"Output audio sample rate does not match encoding settings.",
+			);
+		if (
+			parameters?.profile &&
+			normalizeMediaProfile(result.profile ?? "") !== parameters.profile
+		)
+			throw new MediaToolError(
+				"TOOL_FAILED",
+				"Output audio profile does not match encoding settings.",
+			);
+	}
 	const before = video.duration ?? info.duration;
 	const after = videos[0]?.duration ?? output.duration;
 	if (

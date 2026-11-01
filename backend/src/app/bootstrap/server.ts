@@ -51,6 +51,11 @@ export async function createServer(
 		database,
 		logger,
 	});
+	media.startAutomaticPreparation(async (sources) => {
+		if (!playback.api.viewingStates)
+			throw new Error("Viewing state lookup unavailable.");
+		return playback.api.viewingStates(sources);
+	});
 	const acquisition = await createAcquisitionModule({
 		...(anime.api.acquisitionList
 			? { watching: anime.api.acquisitionList }

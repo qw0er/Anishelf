@@ -22,6 +22,14 @@ export class PreparationWorker {
 		let failure: PreparationFailureReason | undefined;
 		try {
 			signal.throwIfAborted();
+			if (
+				task.demand?.origin === "automatic" &&
+				this.context.automaticGuard &&
+				!(await this.context.automaticGuard(task))
+			) {
+				await this.artifacts.finishFailure(task.id, "cancelled", null);
+				return;
+			}
 			await this.context.source(task);
 			const disk =
 				(await this.context.files.availableBytes()) -

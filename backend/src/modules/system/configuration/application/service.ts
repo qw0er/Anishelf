@@ -5,11 +5,13 @@ import {
 import { DomainError } from "../../../../shared/errors.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
 import type { ProfileCatalogIssue } from "../../../../shared/profile-issue.js";
+import type { AutoPreparationPreset } from "../domain/auto-preparation.js";
 import type { DeploymentConfig, PersistentSettings } from "../domain/model.js";
 import {
 	defaultTranscodeProfileId,
 	type TranscodeProfile,
 } from "../domain/transcode-profiles.js";
+import { loadAutoPreparationPresets } from "../infrastructure/auto-preparation.js";
 import { loadDeploymentConfig } from "../infrastructure/deployment.js";
 import { PersistentConfiguration } from "../infrastructure/persistent.js";
 import { loadTranscodeProfiles } from "../infrastructure/transcode-profiles.js";
@@ -24,6 +26,13 @@ export interface EffectiveConfiguration {
 }
 /** The composition root owns one service; consumers receive immutable snapshots. */
 export class ConfigurationService {
+	private readonly listeners = new Set<() => void>();
+	onSettingsChanged(listener: () => void): () => void {
+		this.listeners.add(listener);
+		return () => {
+			this.listeners.delete(listener);
+		};
+	}
 	private current: DeepReadonly<EffectiveConfiguration>;
 	private pendingChange: Promise<void> = Promise.resolve();
 	private constructor(
@@ -32,6 +41,8 @@ export class ConfigurationService {
 		readonly environment: RuntimeEnvironment,
 		readonly transcodeProfiles: DeepReadonly<TranscodeProfile[]>,
 		readonly transcodeProfileIssue: ProfileCatalogIssue | undefined,
+		readonly autoPreparationPresets: DeepReadonly<AutoPreparationPreset[]>,
+		readonly autoPreparationIssue: ProfileCatalogIssue | undefined,
 	) {
 		this.current = this.resolve();
 	}
@@ -45,12 +56,18 @@ export class ConfigurationService {
 			deployment.initialQbittorrentWebUiUrl,
 		);
 		const transcode = await loadTranscodeProfiles(deployment.dataDir);
+		const automatic = await loadAutoPreparationPresets(
+			deployment.dataDir,
+			transcode.profiles,
+		);
 		return new ConfigurationService(
 			deployment,
 			persistent,
 			captureRuntimeEnvironment(env),
 			transcode.profiles,
 			transcode.issue,
+			automatic.presets,
+			automatic.issue,
 		);
 	}
 	get settings(): Readonly<PersistentSettings> {
@@ -107,6 +124,17 @@ export class ConfigurationService {
 				"INVALID_REQUEST",
 				"Select an existing transcode profile.",
 			);
+		if (
+			next.autoPreparationPresetId !== undefined &&
+			next.autoPreparationPresetId !== current.autoPreparationPresetId &&
+			!this.autoPreparationPresets.some(
+				(p) => p.id === next.autoPreparationPresetId,
+			)
+		)
+			throw new DomainError(
+				"INVALID_REQUEST",
+				"Select an existing automatic preparation preset.",
+			);
 		return next;
 	}
 
@@ -116,6 +144,13 @@ export class ConfigurationService {
 		const result = this.pendingChange.then(async () => {
 			const saved = await this.persistent.update(transform(this.settings));
 			this.current = this.resolve();
+			for (const listener of this.listeners) {
+				try {
+					listener();
+				} catch {
+					/* Subscribers cannot undo persisted settings. */
+				}
+			}
 			return saved;
 		});
 		this.pendingChange = result.then(

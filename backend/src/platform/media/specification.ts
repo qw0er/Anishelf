@@ -6,6 +6,17 @@ type MediaStreamExecution =
 	| { action: "encode"; encoder: string; codec: string; pixelFormat?: string };
 export interface MediaProcessingPlan {
 	id: string;
+	audioTracks?: {
+		sourceIndex: number;
+		execution: MediaStreamExecution;
+		parameters?: AudioEncoding;
+		default?: boolean;
+	}[];
+	acceptance?: import("../../shared/policy.js").DeepReadonly<
+		NonNullable<
+			import("../../contracts/auto-preparation.js").AutoPreparationPreset["accept"]
+		>
+	>;
 	/** FFmpeg muxer name; no built-in target or encoder preset. */
 	container: string;
 	/** Completed file or fragmented MP4 suitable for a future MSE delivery adapter. */

@@ -8,6 +8,10 @@ import {
 import { defaultSortingPolicy } from "../../shared/sorting.js";
 import type { ResourcesApi } from "../resources/public.js";
 import type { SystemApi } from "../system/public.js";
+import {
+	AutomaticPreparationApplication,
+	type ViewingReader,
+} from "./automatic-preparation/application.js";
 import { registerMediaHttp } from "./http.js";
 import { MediaAssetsApplication } from "./media-assets/application.js";
 import { MediaInspectionApplication } from "./media-inspection/application.js";
@@ -159,9 +163,27 @@ export async function createMediaModule(options: {
 	const api: MediaApi = { listPlaybackAssets: assets.list.bind(assets) };
 	let stopped: Promise<void> | undefined;
 	let closed: Promise<void> | undefined;
-	const quiesce = () => (stopped ??= preparation.close());
+	let automatic: AutomaticPreparationApplication | undefined;
+	const quiesce = () =>
+		(stopped ??= (async () => {
+			await automatic?.close();
+			await preparation.close();
+		})());
 	return {
 		api,
+		startAutomaticPreparation(viewing: ViewingReader) {
+			automatic = new AutomaticPreparationApplication({
+				system: configuration,
+				resources: library,
+				inspection,
+				preparation,
+				repository: database.preparation,
+				maximumQueuedTasks: policy.preparation.maximumQueuedTasks,
+				viewing,
+				logger,
+			});
+			automatic.start();
+		},
 		registerHttp: (app: import("../../transport/instance.js").HttpInstance) =>
 			registerMediaHttp(app, {
 				inspection,

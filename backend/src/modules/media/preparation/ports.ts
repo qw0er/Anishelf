@@ -4,6 +4,7 @@ import type {
 	CompatibilityCheckRequest,
 	MediaPlanningResult,
 } from "../media-planning/public.js";
+import type { AutomaticDemandRecord } from "./snapshot.js";
 
 /** Preparation only requires a read-only, source-bound planning decision. */
 export interface PreparationPlanner {
@@ -16,6 +17,13 @@ export interface PreparationPlanner {
 import type { PreparationTask, PreparedArtifact } from "./domain/model.js";
 /** Synchronous commits keep deduplication and queue admission atomic within the backend process. */
 export interface PreparationStore {
+	findReusable?(
+		fileId: string,
+		sourceVersion: string,
+		profileFingerprint: string,
+	): PreparationTask[];
+	getAutomaticDemand?(id: string): AutomaticDemandRecord | undefined;
+	saveAutomaticDemand?(value: AutomaticDemandRecord): void;
 	list(limit?: number, fileId?: string): PreparationTask[];
 	summaries(
 		scopeIds: readonly string[],

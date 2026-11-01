@@ -45,6 +45,13 @@ export function PreparationTaskCard({
 				{status} · {t(`preparation.mode.${task.mode}`)}
 			</p>
 			<p>{profileName ?? t("preparation.profile")}</p>
+			{task.origin === "automatic" && (
+				<p>
+					{t("automaticPreparation.taskSource", {
+						preset: task.presetId ?? "",
+					})}
+				</p>
+			)}
 			{task.audioStreamIndices !== undefined && (
 				<p>
 					{task.audioStreamIndices.length
@@ -144,13 +151,16 @@ export function PreparationTaskCard({
 							disabled={action.busy}
 							onClick={() =>
 								void action.run(async (signal) => {
-									const body = await negotiatePreparation(
-										task.fileId,
-										task.profileId,
-										signal,
-										task.sourceVersion,
-										task.audioStreamIndices,
-									);
+									const body =
+										task.origin === "automatic"
+											? {}
+											: await negotiatePreparation(
+													task.fileId,
+													task.profileId,
+													signal,
+													task.sourceVersion,
+													task.audioStreamIndices,
+												);
 									await retryPreparation(task.id, body, { signal });
 								})
 							}

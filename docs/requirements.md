@@ -204,7 +204,7 @@ Available episode versions expose Show in Files through their file action menu. 
 | P14 | Begin playback during conversion, with seeking and synchronized subtitles/progress | Later | — |
 | P15 | Extract, validate and load embedded font attachments | Implemented: validated embedded TTF/OTF fonts for styled subtitles | 0.2.6 |
 | P16 | Extract embedded PGS/VobSub bitmap subtitle assets with explicit unsupported-Web feedback | Later | — |
-| P17 | Automatically prepare full-file Web-compatible copies in the background before playback | Later | — |
+| P17 | Automatically prepare full-file Web-compatible copies in the background before playback | Implemented: preset-based evaluation of existing and new resources, per-track processing, reuse and persistent recovery | Next release |
 | P10 | Select audio tracks, adjust subtitle timing, change playback speed, and use shortcuts | Implemented | 0.2.0 |
 | P11 | Next-episode navigation and automatic continuation | Implemented: consecutive local regular episodes, explicit version choice and opt-in browser-local continuation with cancellable countdown | Next release |
 | P12 | Hardware transcoding, HDR handling, broader browser support, and advanced processing resource controls | Optional | — |
@@ -222,12 +222,49 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 #### Automatic Background Pre-transcoding (P17)
 
-Allow users to opt into background preparation of Web-compatible copies for newly
-scanned or ingested resources under a chosen playback profile. Avoid unnecessary
-conversion and duplicate work, reuse usable completed copies and bound resource use.
-Show queued work, progress and failures; support cancellation, retry and restart
-recovery. Changed originals must not reuse outdated preparation results. Preserve
-originals and playback history. This capability has no assigned release.
+Users can enable automatic preparation and select a playback preset in Settings →
+Playback. It is disabled by default and covers both existing resources and newly
+discovered or changed files. Checks run without an open browser. Preparation must
+not start merely because a user opens playback or replace an active playback asset.
+
+- **Selection:** provide built-in Web and Web · Conservative presets and optional
+  administrator-defined presets. Display them as descriptive radio cards, consistent
+  with the manual preparation profiles. Put the section description below its title.
+  Built-in preset names and descriptions remain English in every interface language;
+  custom text is displayed as authored.
+- **Defaults:** Web accepts MP4/WebM, H.264/VP9 8-bit 4:2:0 SDR video and unrestricted
+  audio formats. Web · Conservative accepts MP4, H.264 8-bit 4:2:0 SDR video in the
+  supported profile set, and AAC LC audio. Both retain all audio tracks and impose
+  no resolution, frame-rate, channel-count or sample-rate ceiling.
+- **Custom policy:** allow filtering by resource root, relative path and file viewing
+  state; selecting all, default, matching-language or no audio; and defining accepted
+  containers and alternative video/audio specifications. Omitted constraints mean
+  unrestricted. Encoding parameters are selected separately from acceptance rules.
+- **Reuse and conversion:** reuse suitable originals, completed copies and equivalent
+  pending work. Otherwise copy accepted streams when packaging allows, encode only
+  the streams requiring conversion, and preserve selected audio order and language
+  mappings. A copy may combine copied and encoded audio tracks. Audio acceptance
+  does not certify that the output container can carry that audio format.
+- **Availability:** the custom file is optional. Invalid custom configuration keeps
+  built-ins usable and exposes a configuration issue. Preserve unavailable saved
+  selections and pause automation rather than silently changing the selected preset.
+- **Lifecycle:** show automatic task provenance, progress and failures in the existing
+  task monitor. Support cancellation and server-planned retry. Manual work takes
+  priority. Disabling automation or switching presets cancels obsolete queued
+  automatic-only work, lets running work finish and retains completed copies.
+  Cancelled tasks and deleted copies remain eligible for a later automatic check.
+- **Recovery and limits:** retry transient failures with persistent backoff, reevaluate
+  incomplete automatic work after restart, fence changed sources and preserve valid
+  completed copies. Honor cache and free-space budgets without silently evicting
+  valid copies. Preserve original files and playback history.
+- **Validation:** defer work when required metadata is unknown and validate actual
+  output before publication. HDR-to-SDR conversion remains blocked without a
+  validated tone-mapping policy. Presets describe preparation requirements; actual
+  playback continues to check the client's capabilities.
+
+See the [architecture](development/architecture.md#automatic-media-preparation) for
+module boundaries and the [operator guide](guide/automatic-preparation.md) for exact
+configuration fields and examples.
 
 #### Subtitles and Embedded Extraction (P03, Partial P08–P09)
 
@@ -461,7 +498,7 @@ AniList is the viewing-state authority. The delivered scope includes account con
 | ID | Feature | Scope | Implemented in |
 | --- | --- | --- | --- |
 | O03 | Dashboard for continued viewing, new episodes, downloads, and exceptions | Later | — |
-| O04 | Unified settings for directories and integrations | Implemented: shared Settings sections for resource roots, playback/preparation, external players, acquisition services, tracking account, security and About | 1.0.3 (settings scope) |
+| O04 | Unified settings for directories and integrations | Implemented: shared Settings sections for resource roots, playback/manual and automatic preparation, external players, acquisition services, tracking account, security and About | 1.0.3 (settings scope) |
 | O05 | Task history, logs, and automation decision explanations | Partial: durable per-anime acquisition activity, decision reasons, safe correlated logs and terminal-detail retention; broader product history remains later | 1.0.0 (acquisition; partial) |
 | O06 | Back up and restore metadata, viewing history, and configuration | Later | — |
 | O07 | LAN access, single-user authentication, and credential protection | Implemented: single-password access, persistent sign-in, protected mutations, login limits, local recovery and 24-hour file-specific media links; secure sessions through an HTTPS proxy | 0.3.3; 1.0.1 (secure proxy sessions) |

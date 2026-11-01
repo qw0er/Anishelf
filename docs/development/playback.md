@@ -140,3 +140,12 @@ source/output audio index mapping, stale evidence and access fencing, actual AAC
 versus original Opus display, prepared-copy restart recovery, unchanged active
 playback during background work, and network failures leaving capability evidence
 intact. Real FFmpeg tests exercise publication, byte seeking and restart reuse.
+
+## Automatic preparation policies
+
+Automatic preparation evaluates old and new sources independently of browser
+negotiation. File viewing filters use Playback's batch progress projection, not
+Tracking state. Copies retain per-track execution and source/output audio mapping.
+Actual output is validated against both encoding parameters and accepted media
+constraints. Background publication never changes the active player binding.
+See [configuration and lifecycle](../guide/automatic-preparation.md).

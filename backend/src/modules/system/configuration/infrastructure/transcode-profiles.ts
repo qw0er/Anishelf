@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { Check, Errors } from "typebox/value";
 import { parseDocument } from "yaml";
 import { TranscodeProfilesFileSchema } from "../../../../contracts/schemas/transcode-profiles.js";
+import { validEncodingOptions } from "../../../../platform/media/encoding-policy.js";
 import { DomainError } from "../../../../shared/errors.js";
 import { freeze } from "../../../../shared/policy.js";
 import type { ProfileCatalogIssue } from "../../../../shared/profile-issue.js";
@@ -36,6 +37,11 @@ export function parseTranscodeProfiles(source: string): TranscodeProfile[] {
 			throw new DomainError(
 				"CONFIG_INVALID",
 				`Profile ${profile.id} must have a unique custom: ID; built-in profiles cannot be overridden.`,
+			);
+		if (!validEncodingOptions(profile.video, profile.audio))
+			throw new DomainError(
+				"CONFIG_INVALID",
+				`Unsupported encoder options in ${profile.id}.`,
 			);
 		ids.add(profile.id);
 	}

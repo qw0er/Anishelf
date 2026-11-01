@@ -14,6 +14,7 @@ import {
 } from "../../../../contracts/schemas/preparation.js";
 import type { MediaInfo } from "../../../../platform/media/model.js";
 import { mediaSources } from "../../../resources/persistence.js";
+import type { PreparationSettingsSnapshot } from "../snapshot.js";
 
 export const preparedArtifacts = sqliteTable(
 	"prepared_artifacts",
@@ -47,6 +48,14 @@ export const preparationTasks = sqliteTable(
 		profileId: text("profile_id").notNull(),
 		profileFingerprint: text("profile_fingerprint").notNull(),
 		filename: text("filename").notNull(),
+		extendedSnapshot: text("extended_snapshot", {
+			mode: "json",
+		}).$type<PreparationSettingsSnapshot>(),
+		origin: text("origin", { enum: ["manual", "automatic"] })
+			.notNull()
+			.default("manual"),
+		presetId: text("preset_id"),
+		presetFingerprint: text("preset_fingerprint"),
 		snapshotVersion: integer("snapshot_version").notNull(),
 		snapshotMode: text("snapshot_mode", {
 			enum: ["remux", "transcode-audio", "transcode-video", "transcode"],
@@ -273,4 +282,14 @@ export const preparationTasksSnapshotPlanVideoFilters = sqliteTable(
 			table.ordinalIndex,
 		),
 	],
+);
+
+export const automaticPreparationDemands = sqliteTable(
+	"automatic_preparation_demands",
+	{
+		id: text("id").primaryKey().notNull(),
+		failures: integer("failures").notNull(),
+		nextAttemptAtMs: integer("next_attempt_at_ms").notNull(),
+		taskUpdatedAtMs: integer("task_updated_at_ms"),
+	},
 );

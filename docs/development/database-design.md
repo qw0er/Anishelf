@@ -4,7 +4,7 @@ SQLite and Drizzle remain the persistence mechanisms. The initial migration
 `0000_relational_schema` creates the original 78 business tables.
 `0001_snapshot_payloads` replaces thirteen metadata collection tables and detail
 columns with a JSON projection and adds durable media inspections. The current
-schema has 69 business tables after migrations through `0011`; Drizzle's journal is infrastructure.
+schema has 71 business tables after migrations through `0017`; Drizzle's journal is infrastructure.
 `0002_anime_work_information` centralizes current work summaries and removes
 the Catalog and per-account Tracking description copies.
 SQLite `user_version = 1` identifies this supported database family.
@@ -196,3 +196,13 @@ old copies recover it once on demand. Ordered source audio provenance remains in
 the immutable preparation snapshot and is paired with the actual output stream
 order by the prepared-media catalog. Playback does not inspect execution settings.
 Completed copies retain their original facts when encoding profiles change.
+
+## Automatic preparation persistence
+
+Migration `0017_automatic_preparation` adds a nullable extended execution snapshot
+and relational demand ownership columns to preparation tasks, plus `automatic_preparation_demands`
+with relational attempt counts, retry deadlines and observed failure revisions. Legacy
+tasks default to manual origin and retain their relational snapshots. Extended
+snapshots preserve individual audio actions and encoding parameters across restart.
+Existing published artifacts are preserved. Demand records distinguish automatic
+preset identity from manual ownership; queue ordering prioritizes manual requests.

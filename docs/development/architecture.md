@@ -28,7 +28,7 @@ can enable Node frontend hosting with `ANISHELF_FRONTEND_DIR`.
 | --- | --- | --- |
 | System | Authentication, sessions, settings, profiles, build identity and update checks | Platform configuration and persistence |
 | Resources | Roots, filesystem monitoring, atomic index, confined source access | System |
-| Media | Actual asset descriptions, inspection, preparation planning/processing, subtitles | Resources, System, FFprobe/FFmpeg |
+| Media | Actual asset descriptions, inspection, manual/automatic preparation planning and processing, subtitles | Resources, System, FFprobe/FFmpeg |
 | Playback | Listening intent, actual asset selection, sessions, resume/history, completion observations | Resources, Media; injected Anime observation port |
 | Anime | Metadata, identification, Catalog/Review, Tracking, combined Library, AniList and Bangumi protocols | Resources, System, AniList, Bangumi |
 | Acquisition | Watching creation, Sources, Subscriptions, Downloads, TorrentClients | Anime, Resources, Jackett/RSS, qBittorrent |
@@ -269,7 +269,9 @@ assets, listening intent, active playback and preparation jobs.
 ```mermaid
 flowchart LR
     Source[Validated original] --> Assets[Actual media asset catalog]
-    Prepare[Explicit preparation] --> Inspect[Validated output inspection]
+    Prepare[Explicit preparation] --> Queue[Shared preparation queue]
+    Auto[Automatic preset evaluation] --> Queue
+    Queue --> Inspect[Validated output inspection]
     Inspect --> Assets
     Browser[Browser evidence] --> Select[Playback resolution]
     Intent[Listening intent] --> Select
@@ -296,6 +298,102 @@ sharing one attempt per tool. Successful discovery remains cached. Recovery
 refreshes the build-capability inventory and execution uses current tool status.
 Detection failures log their underlying error and retry timing; recovery is logged
 separately. Explicit executable overrides never fall back to another PATH entry.
+
+## Automatic media preparation
+
+Media owns background evaluation, source-bound automatic planning and preparation
+execution. System owns the preset catalog, optional YAML loading, saved selection
+and setting-change notifications. Resources supplies snapshot notifications,
+revision-bound file pages and confined source access. Playback exposes a read-only
+batch projection of file viewing states. App injects that capability after Media
+and Playback assembly, avoiding a construction cycle and cross-module table access.
+
+### Configuration and public contracts
+
+`settings.json` stores `autoPreparationEnabled` (default false) and
+`autoPreparationPresetId` (default `builtin:web`) as top-level fields. System loads
+`<dataDir>/auto-preparation-presets.yaml` once at startup and combines valid custom
+presets with immutable built-ins. Missing files are normal; invalid files expose a
+catalog issue and retain built-ins. A saved missing preset ID is preserved and
+pauses automation. Configuration edits require a restart.
+
+`GET /api/auto-preparation-presets` returns display metadata, preset availability,
+selected ID and any custom-file issue. Existing settings endpoints save the switch
+and selection and notify Media after persistence. The settings UI uses the shared
+radio-card group with names and descriptions; built-in text remains English.
+Preparation task projections expose manual/automatic origin and the associated
+preset ID. Automatic retry uses server-side replanning and needs no browser evidence.
+
+A preset separates `match` (roots, relative-path Globs and file viewing states),
+`audio` (retained-track selection), `accept` (container and alternative stream
+specifications), and `transcodeProfileId` (encoding settings). Candidates are OR;
+constraints inside one candidate are AND. Omitted/empty lists are unrestricted.
+Codec-specific profile and level constraints require one explicit codec. Names are
+normalized before comparison. The [operator guide](../guide/automatic-preparation.md)
+owns the complete field reference and built-in definitions.
+
+### Planning and output validation
+
+Automatic planning consumes FFprobe facts and the selected preset directly. Manual
+planning retains browser negotiation; automatic decisions never fabricate browser
+support evidence. Both paths share execution specifications, capability preflight,
+the preparation queue, source/access validation and artifact publication.
+
+Evaluation reuses acceptable originals and completed assets satisfying the selected
+source-audio scope. Otherwise it derives a completed-file plan using the referenced
+transcode profile. The plan records per-source-index audio actions and parameters,
+so one output can copy some tracks while encoding others. Preserve source order,
+language metadata, default flags and the output-to-source audio mapping. Copying
+requires both acceptance and supported packaging, plus the profile's copy permission
+and absence of required transformations. Acceptance does not override profile values.
+
+Encoding profiles provide optional width/frame-rate limits, codec profile/level,
+video bitrate controls, explicit audio channel count and sample rate in addition to
+the existing encoder-specific settings. Reject unsupported declarations and known
+acceptance conflicts. Source-dependent conflicts or required unknown metadata block
+that plan. Untagged conventional 8-bit video is treated as SDR; untagged high-bit-depth
+video remains uncertain. HDR can be copied when accepted and packaging permits it;
+conversion requiring unimplemented tone mapping is blocked.
+
+FFmpeg output is inspected and validated against execution settings and acceptance
+before publication. Actual output descriptions remain authoritative for subsequent
+playback, which still performs client capability negotiation. Background publication
+refreshes available versions without replacing the active player binding.
+
+### Scheduling, persistence and shutdown
+
+Startup, resource publications and settings changes request evaluation. Serial,
+coalesced checks read revision-bound pages of 50 files; a full check is scheduled
+after six hours. Queue saturation retains the cursor and checks capacity again.
+Automatic admission reserves a manual queue slot where capacity permits. Viewing
+filters use current-source-version progress: absent viewing records are unwatched,
+progress at or above Playback's completion ratio is completed, and other viewed
+files are in progress. Lookup failures defer evaluation. Recheck source identity,
+settings and eligibility before admission and again before automatic execution.
+
+The single preparation worker selects manual tasks first without preemption.
+Equivalent manual requests reuse and promote automatic work to manual ownership.
+Disabling automation or switching presets cancels obsolete queued automatic-only
+tasks; running work can finish, and completed artifacts remain. Cancelling a task or
+deleting a copy does not create an exclusion: the next eligible check can recreate it.
+Transient failures persist exponential retry deadlines from one minute to six hours;
+blocked plans are reevaluated on later checks. Restart recovery cleans unfinished
+outputs and lets the automatic evaluator replan while preserving completed copies.
+
+Migration `0017_automatic_preparation` adds relational origin/preset ownership columns,
+a nullable extended execution snapshot for new per-track settings, and relational
+automatic-demand retry records. Legacy task snapshots and published artifacts remain
+readable. Reuse identity includes source version and actual execution parameters;
+renaming a preset does not itself require a new copy. Existing source/access fences,
+cache budgets and free-space limits remain enforced without automatic valid-copy
+eviction. Media shutdown unsubscribes notifications, stops timers and awaits active
+evaluation before closing preparation and processing.
+
+Log evaluation summaries, blocked reasons, admission, failure and recovery through
+the existing structured logger, using source/task/preset identities without full
+filesystem paths, media URLs or credentials. Focused acceptance includes startup
+backfill, stream-level copying, viewing filters, manual promotion, settings changes,
+cancel/delete reconstruction, durable retries and real FFmpeg restart reuse.
 
 ## Playback Completion Observation
 

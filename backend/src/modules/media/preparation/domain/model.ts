@@ -2,7 +2,10 @@ import type { MediaExecutionProgress } from "../../../../platform/media/events.j
 import type { MediaInfo } from "../../../../platform/media/model.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import type { SourceIdentity } from "../../../resources/public.js";
-import type { PreparationSettingsSnapshot } from "../snapshot.js";
+import type {
+	PreparationDemand,
+	PreparationSettingsSnapshot,
+} from "../snapshot.js";
 export type PreparationFailureReason =
 	| "interrupted"
 	| "cancelled"
@@ -47,6 +50,7 @@ export interface PreparationTask {
 	profileId: string;
 	state: PreparationState;
 	readonly createdAtMs: number;
+	demand?: PreparationDemand;
 }
 export interface PreparationView {
 	task: PreparationTask;
