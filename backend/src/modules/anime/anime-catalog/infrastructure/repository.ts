@@ -107,6 +107,9 @@ export class CatalogRepository implements CatalogStore {
 				and(
 					inArray(mediaSources.rootId, [...scopeIds]),
 					decision ? eq(catalogReviews.decision, decision) : undefined,
+					decision === "pending"
+						? eq(catalogReviews.available, true)
+						: undefined,
 					reference
 						? sql`exists (select 1 from ${catalogReviewsResultProposals} where ${catalogReviewsResultProposals.parentId} = ${catalogReviews.id} and ${catalogReviewsResultProposals.candidateWorkReferenceId} = ${reference.id})`
 						: undefined,

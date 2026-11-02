@@ -1,5 +1,6 @@
 import { DomainError } from "../../../../shared/errors.js";
 import type { IdentificationResult } from "../../identification/public.js";
+import { catalogDefaults as policy } from "../defaults.js";
 import { conflict, invalid, text } from "../domain/mapping.js";
 import type { ReviewItem } from "../domain/model.js";
 import type { AnimeCatalogApi } from "../public.js";
@@ -133,6 +134,51 @@ export class ReviewApplication {
 				})()
 			: undefined;
 		const pagination = page(options);
+		if (options.decision === "pending") {
+			// Availability can change after publication. Filter before paging so
+			// missing files cannot leave holes or create an empty next page.
+			const items: ReviewItem[] = [];
+			let offset = (pagination.page - 1) * pagination.perPage;
+			let skippedUnavailable = 0;
+			let hasNextPage = false;
+			batches: for (let batch = 1; ; batch++) {
+				const result = this.context.options.store.reviews(
+					scope.ids,
+					"pending",
+					batch,
+					policy.maximumPageSize,
+					reference,
+				);
+				for (const item of result.items) {
+					if (!(await this.context.available(item, scope.revision))) {
+						skippedUnavailable++;
+						continue;
+					}
+					if (offset > 0) {
+						offset--;
+						continue;
+					}
+					if (items.length === pagination.perPage) {
+						hasNextPage = true;
+						break batches;
+					}
+					items.push(safeReview(item, true, this.associations(item.id)));
+				}
+				if (!result.hasNextPage) break;
+			}
+			this.context.options.sources.assertAccessRevision(scope.revision);
+			this.context.options.logger.debug(
+				{
+					event: "catalog.pending_reviews_filtered",
+					...pagination,
+					skippedUnavailable,
+					returned: items.length,
+					hasNextPage,
+				},
+				"Pending reviews limited to currently available sources.",
+			);
+			return { ...pagination, items, hasNextPage };
+		}
 		const result = this.context.options.store.reviews(
 			scope.ids,
 			options.decision,
