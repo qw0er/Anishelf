@@ -14,7 +14,7 @@ export const builtinAutoPreparationPresets = freeze<AutoPreparationPreset[]>([
 			video: [
 				{
 					codecs: ["h264", "vp9"],
-					pixelFormats: ["yuv420p"],
+					pixelFormats: ["yuv420p", "yuv420p10le", "yuv420p10be"],
 					dynamicRanges: ["sdr"],
 				},
 			],

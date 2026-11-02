@@ -74,6 +74,26 @@ test.each(["h264", "vp9"])(
 		).toBe("playable");
 	},
 );
+test.each(["h264", "vp9"])(
+	"Web accepts 10-bit SDR %s while Conservative requires 8-bit",
+	(codec) => {
+		const media = info("mp4", codec);
+		const video = required(media.streams[0]);
+		video.pixelFormat = "yuv420p10le";
+		video.bitDepth = 10;
+		video.colorTransfer = "bt709";
+		expect(acceptsStream(video, preset.accept?.video)).toBe("accepted");
+		expect(
+			acceptsStream(
+				video,
+				required(builtinAutoPreparationPresets[1]).accept?.video,
+			),
+		).toBe("rejected");
+		expect(planAutomaticPreparation(source, media, preset, profile).kind).toBe(
+			"playable",
+		);
+	},
+);
 test("plans remux with individual audio copy and encoding, independent of browser evidence", () => {
 	const plan = planAutomaticPreparation(source, info(), preset, profile);
 	expect(plan).toMatchObject({

@@ -206,7 +206,7 @@ not start merely because a user opens playback or replace an active playback ass
   with the manual preparation profiles. Put the section description below its title.
   Built-in preset names and descriptions remain English in every interface language;
   custom text is displayed as authored.
-- **Defaults:** Web accepts MP4/WebM, H.264/VP9 8-bit 4:2:0 SDR video and unrestricted
+- **Defaults:** Web accepts MP4/WebM, H.264/VP9 8-bit or 10-bit 4:2:0 SDR video and unrestricted
   audio formats. Web · Conservative accepts MP4, H.264 8-bit 4:2:0 SDR video in the
   supported profile set, and AAC LC audio. Both retain all audio tracks and impose
   no resolution, frame-rate, channel-count or sample-rate ceiling.
