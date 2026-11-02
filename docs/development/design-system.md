@@ -118,6 +118,10 @@ specific to the affected resource. Destructive file operations require a clear
 confirmation; folder deletion must explicitly include its contents. Keep errors and
 retryable input in the dialog.
 
+The pending Review queue and work-detail review candidates include only currently
+available files. Preserve unavailable sources and their decisions as history;
+rediscovering an unchanged file can restore its pending review.
+
 ### Settings
 
 Use category navigation that remains accessible on narrow screens. Separate sections

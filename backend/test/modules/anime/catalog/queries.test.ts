@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
 import { resourceRootId } from "../../../../src/modules/resources/resource-access/domain/identity.js";
@@ -317,4 +317,17 @@ test("work review filters match qualified candidates without admitting them and 
 			})
 		).items,
 	).toHaveLength(1);
+	const candidates = await f.catalog.reviews({
+		workId: confirmed.workId,
+		decision: "pending",
+	});
+	for (const item of candidates.items)
+		await rm(join(f.root, item.relativePath));
+	expect(
+		await f.catalog.reviews({
+			workId: confirmed.workId,
+			decision: "pending",
+			perPage: 1,
+		}),
+	).toMatchObject({ items: [], hasNextPage: false });
 });
