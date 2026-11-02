@@ -184,7 +184,13 @@ flowchart LR
 | Provider protocols | AniList and Bangumi typed clients, response validation, shared pacing and cancellation |
 
 Identification uses consistent title normalization for ranking and admission and
-retains explicit ordinal provenance. The current continuous-number conversion
+retains explicit ordinal provenance. Local filenames, release titles and metadata
+titles all use `anitomy-ng`. The metadata adapter preserves complete names when
+filename parsing classifies title words or numbers as release attributes. A bare
+trailing number remains part of the name; it can corroborate a series season only
+when a matching filename or immediate-directory title supplies the same explicit
+season. Ranking records this interpretation as an assumption. Search queries keep
+the complete metadata titles and aliases. The current continuous-number conversion
 policy requires distinct, agreeing filename anchors within the same publication
 directory, season and work. Cross-directory propagation, relation-order offsets
 and conflicting numbering remain unresolved; zero numbering requires explicit

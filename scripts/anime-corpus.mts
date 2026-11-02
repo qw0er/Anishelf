@@ -7,22 +7,52 @@ import {
 	summarizeCorpus,
 } from "../backend/test/support/anime-corpus.js";
 import { evaluateMatchingCorpus } from "../backend/test/support/anime-matching-corpus.js";
+import {
+	evaluateReportedCorpus,
+	loadReportedCorpus,
+	reportedResources,
+} from "../backend/test/support/anime-reported-corpus.js";
 
 const [command = "summary", argument] = process.argv.slice(2);
 const corpus = await loadCorpus();
+const reported = await loadReportedCorpus();
 switch (command) {
-	case "match":
-		console.log(JSON.stringify(await evaluateMatchingCorpus(), null, 2));
+	case "match": {
+		const [matching, reproduction] = await Promise.all([
+			evaluateMatchingCorpus(),
+			evaluateReportedCorpus(reported),
+		]);
+		console.log(
+			JSON.stringify({ ...matching, reported: reproduction }, null, 2),
+		);
+		if (reproduction.passed !== reproduction.total) process.exitCode = 1;
 		break;
+	}
 	case "summary":
-		console.log(JSON.stringify(summarizeCorpus(corpus), null, 2));
+		console.log(
+			JSON.stringify(
+				{
+					...summarizeCorpus(corpus),
+					reported: {
+						version: reported.version,
+						scenarios: reported.scenarios.length,
+						files: reportedResources(reported).length,
+					},
+				},
+				null,
+				2,
+			),
+		);
 		break;
 	case "generate":
 		if (!argument)
 			throw new Error("Usage: anime:corpus generate <new-directory>");
 		console.log(
 			JSON.stringify(
-				await materializeCorpus(corpus, resolve(argument)),
+				await materializeCorpus(corpus, resolve(argument), {
+					version: reported.version,
+					resources: reportedResources(reported),
+				}),
 				null,
 				2,
 			),

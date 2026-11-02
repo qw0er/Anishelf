@@ -11,7 +11,8 @@ export const normalizeTitle = (value: string) =>
 /** Parse explicit ordinals; bare Roman numerals need a complete-title match. */
 export function titleEvidence(value: string) {
 	const normalized = value.normalize("NFKC");
-	const { title, seasons, parts } = animeNameParser.title(normalized);
+	const { title, seasons, parts, numberedTitle } =
+		animeNameParser.title(normalized);
 	const roman =
 		/(?:^|[\s\p{Script=Han}\p{Script=Katakana}\p{Script=Hiragana}])(II|III|IV|V|VI|VII|VIII|IX|X)(?=$|[\s:：-])/u.exec(
 			normalized,
@@ -23,7 +24,7 @@ export function titleEvidence(value: string) {
 				) + 2,
 			)
 		: null;
-	return { title, seasons, parts, romanSeason };
+	return { title, seasons, parts, romanSeason, numberedTitle };
 }
 
 export function matchingTitle(
@@ -59,6 +60,13 @@ export function matchingTitle(
 	)
 		return false;
 	if (normalizeTitle(input) === normalizeTitle(alias)) return true;
+	if (
+		right.numberedTitle &&
+		expected.length === 1 &&
+		expected[0] === right.numberedTitle.number &&
+		normalizeTitle(left.title) === normalizeTitle(right.numberedTitle.title)
+	)
+		return true;
 	return (
 		Boolean(normalizeTitle(left.title)) &&
 		normalizeTitle(left.title) === normalizeTitle(right.title)

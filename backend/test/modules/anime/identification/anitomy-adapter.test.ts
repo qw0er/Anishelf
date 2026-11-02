@@ -121,3 +121,48 @@ test("cleans language residue only with an explicit dubbed audio tag", () => {
 		]),
 	).toEqual([{ kind: "title", value: "Johnny English", position: 0 }]);
 });
+
+test.each([
+	"86",
+	"3-gatsu no Lion",
+	"Mob Psycho 100",
+	"Johnny English",
+	"[Oshi no Ko]",
+	"Example 2022",
+])(
+	"preserves the complete metadata title despite filename tokenization: %s",
+	(name) => {
+		expect(animeNameParser.title(name).title).toBe(name);
+		expect(animeNameParser.title(name).seasons).toEqual([]);
+	},
+);
+
+test.each(["Example Season II", "Example 2nd Season", "Example (Season 2)"])(
+	"uses library season parsing for metadata title %s",
+	(name) => {
+		expect(animeNameParser.title(name)).toMatchObject({
+			title: "Example",
+			seasons: ["2"],
+		});
+	},
+);
+
+test("preserves subtitles and Unicode positions while retaining conflicting metadata ordinals", () => {
+	expect(animeNameParser.title("🌟 Example Season II: Arc")).toMatchObject({
+		title: "🌟 Example : Arc",
+		seasons: ["2"],
+	});
+	expect(animeNameParser.title("Example Season 2 Season 3").seasons).toEqual([
+		"2",
+		"3",
+	]);
+});
+
+test("retains a library-parsed trailing number as ambiguous metadata title evidence", () => {
+	expect(animeNameParser.title("Cyberpunk: Edgerunners 2")).toMatchObject({
+		title: "Cyberpunk: Edgerunners 2",
+		seasons: [],
+		numberedTitle: { title: "Cyberpunk: Edgerunners", number: "2" },
+	});
+	expect(animeNameParser.title("86").numberedTitle).toBeNull();
+});

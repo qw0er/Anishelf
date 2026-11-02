@@ -27,29 +27,64 @@ export const animeNameParser = {
 	parse,
 	parsePath: parse_path,
 	parseTogether: parse_together,
-	/** Metadata names are titles, not filenames; preserve ordinary numbers/words. */
+	/** Reuse filename parsing, restoring title words and retaining ambiguous numbers. */
 	title(value: string) {
 		const normalized = value.normalize("NFKC");
+		const elements = parse(normalized);
 		const seasons: string[] = [];
 		const parts: string[] = [];
-		let title = normalized.replace(
-			seasonPattern,
-			(match, chinese, japanese) => {
-				const number = ordinal(chinese ?? japanese ?? "");
-				if (!number) return match;
-				seasons.push(number);
-				return " ";
-			},
-		);
-		title = title.replace(
-			/(?:^|[\s:：[(])(?:S(?:eason)?[\s._-]*(\d+)|(\d+)(?:st|nd|rd|th)\s+Season)\b/giu,
-			(match, plain, ordered) => {
-				const number = ordinal(plain ?? ordered ?? "");
-				if (!number) return match;
-				seasons.push(number);
-				return " ";
-			},
-		);
+		let title = normalized;
+		let current = elements;
+		// Reparse after removing an ordinal so a second, contradictory marker
+		// cannot hide behind the first marker's filename interpretation.
+		while (true) {
+			// Parser positions count Unicode codepoints, not JavaScript UTF-16 units.
+			const characters = [...title];
+			for (const element of current) {
+				if (element.kind !== "season" && element.kind !== "part") continue;
+				const number = ordinal(element.value);
+				if (!number) continue;
+				const before = characters.slice(0, element.position).join("");
+				// The library may normalize a Roman ordinal (II) to an Arabic value (2).
+				const token =
+					characters
+						.slice(element.position)
+						.join("")
+						.match(/^(?:\d+|[IVX]+)/iu)?.[0] ?? element.value;
+				const end = element.position + [...token].length;
+				const after = characters.slice(end).join("");
+				const prefix =
+					before.match(
+						element.kind === "season"
+							? /(?:\bS(?:eason)?[\s._-]*|第\s*|シーズン\s*)$/iu
+							: /(?:\b(?:Part|Cour)\s*|第\s*)$/iu,
+					)?.[0] ?? "";
+				const suffix =
+					after.match(
+						element.kind === "season"
+							? /^(?:(?:st|nd|rd|th)\s+Season\b|\s*[季期])/iu
+							: /^\s*部/u,
+					)?.[0] ?? "";
+				if (!prefix && !suffix) continue;
+				(element.kind === "season" ? seasons : parts).push(number);
+				characters.fill(
+					" ",
+					element.position - [...prefix].length,
+					end + [...suffix].length,
+				);
+			}
+			const stripped = characters.join("");
+			if (stripped === title) break;
+			title = stripped;
+			current = parse(title);
+		}
+		// Supplement only localized/part forms the library does not recognize.
+		title = title.replace(seasonPattern, (match, chinese, japanese) => {
+			const number = ordinal(chinese ?? japanese ?? "");
+			if (!number) return match;
+			seasons.push(number);
+			return " ";
+		});
 		title = title.replace(
 			/\b(?:Part|Cour)\s*(\d+)\b|第\s*([0-9]+|[一二两三四五六七八九十])\s*部/giu,
 			(match, plain, chinese) => {
@@ -59,10 +94,33 @@ export const animeNameParser = {
 				return " ";
 			},
 		);
+		const episode = elements.find((element) => element.kind === "episode");
+		const number = episode ? ordinal(episode.value) : null;
+		const prefix = episode
+			? [...normalized].slice(0, episode.position).join("")
+			: "";
+		// A bare trailing episode token in a metadata name is a possible sequel
+		// number, never an episode or a verified season without source evidence.
+		const numberedTitle =
+			episode &&
+			number &&
+			Number(number) > 1 &&
+			elements.filter((element) => element.kind === "episode").length === 1 &&
+			elements.some((element) => element.kind === "title") &&
+			/\s$/u.test(prefix) &&
+			!normalized.slice(prefix.length + episode.value.length).trim() &&
+			!seasons.length &&
+			!parts.length
+				? { title: prefix.trim(), number }
+				: null;
 		return {
-			title: title.replace(/\s+/gu, " ").trim(),
+			title: title
+				.replace(/\(\s*\)|\[\s*\]/gu, " ")
+				.replace(/\s+/gu, " ")
+				.trim(),
 			seasons: [...new Set(seasons)],
 			parts: [...new Set(parts)],
+			numberedTitle,
 		};
 	},
 	/** Distinguish explicit filename syntax; parent batch ranges never map episodes. */

@@ -153,9 +153,15 @@ export class AnitomyIdentificationParser implements IdentificationParser {
 					inputs.flatMap((input) => values(input.elements, "year")),
 				),
 				seasons: unique(
-					adapted.flatMap((elements) => values(elements, "season")),
+					adapted
+						.flatMap((elements) => values(elements, "season"))
+						.map((value) => String(Number(value))),
 				),
-				parts: unique(adapted.flatMap((elements) => values(elements, "part"))),
+				parts: unique(
+					adapted
+						.flatMap((elements) => values(elements, "part"))
+						.map((value) => String(Number(value))),
+				),
 				rawEpisodes,
 				selectedEpisodes: selected.tokens,
 				numbering,

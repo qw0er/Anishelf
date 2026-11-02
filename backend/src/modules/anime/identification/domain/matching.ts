@@ -172,6 +172,32 @@ export function rankCandidates(
 			const titleSeasons = work.titles.flatMap(
 				(title) => titleEvidence(title).seasons,
 			);
+			const inputSeasons = [
+				...new Set(evidence.seasons.map((season) => String(Number(season)))),
+			];
+			const numberedSeasons = work.titles.flatMap((title) => {
+				const numbered = titleEvidence(title).numberedTitle;
+				return numbered &&
+					inputSeasons.length === 1 &&
+					inputSeasons[0] === numbered.number &&
+					sources.some(
+						(source) =>
+							(source.mode === "basename" ||
+								(source.mode === "ancestor" && source.distance === 0)) &&
+							matchingTitle(
+								source.title,
+								title,
+								evidence.seasons,
+								evidence.parts,
+							),
+					)
+					? [numbered.number]
+					: [];
+			});
+			if (numberedSeasons.length)
+				assumptions.push(
+					"A trailing metadata title number is interpreted as a series season using a matching source title and explicit source season evidence.",
+				);
 			const romanSeasons = work.titles.flatMap((title) => {
 				const ordinal = titleEvidence(title).romanSeason;
 				return ordinal && contextualMatch(title) ? [ordinal] : [];
@@ -181,10 +207,8 @@ export function rankCandidates(
 					...(work.season === null ? [] : [String(Number(work.season))]),
 					...titleSeasons,
 					...romanSeasons,
+					...numberedSeasons,
 				]),
-			];
-			const inputSeasons = [
-				...new Set(evidence.seasons.map((season) => String(Number(season)))),
 			];
 			if (inputSeasons.length > 1)
 				hardConflict("Source series season evidence is contradictory.");

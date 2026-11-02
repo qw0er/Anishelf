@@ -5,6 +5,10 @@ import { IdentificationApplication } from "../../../../src/modules/anime/identif
 import { titleEvidence } from "../../../../src/modules/anime/identification/domain/title-evidence.js";
 import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import type { WorkCandidate } from "../../../../src/modules/anime/identification/public.js";
+import {
+	evaluateReportedCorpus,
+	loadReportedCorpus,
+} from "../../../support/anime-reported-corpus.js";
 
 const candidate = (id: string, titles: string[]): WorkCandidate => ({
 	reference: { id },
@@ -209,6 +213,50 @@ test("complete context does not override explicit candidate season conflicts or 
 		(
 			await identify("Example Arc/Example S2 - 13.mkv", [
 				candidate("1", ["Example: Arc"]),
+			])
+		).admitted,
+	).toBeNull();
+});
+
+test("Judas directory titles corroborate a numeric metadata sequel and normalize padded seasons", async () => {
+	const report = await evaluateReportedCorpus(await loadReportedCorpus());
+	expect(report.total).toBe(10);
+	expect(
+		report.rows.some((row) => row.relativePath.endsWith("S02E06..mkv")),
+	).toBe(true);
+	for (const row of report.rows) {
+		expect(row.passed, row.id).toBe(true);
+		expect(row.queries).toContain("Cyberpunk Season 2");
+		expect(row.assumptions.join(" ")).toContain(
+			"trailing metadata title number",
+		);
+	}
+});
+
+test("numeric metadata matching preserves season conflicts, episode limits and candidate ambiguity", async () => {
+	const works = [candidate("sequel", ["Cyberpunk: Edgerunners 2"])];
+	for (const path of [
+		"Cyberpunk Edgerunners S03E01.mkv",
+		"Cyberpunk Edgerunners S02E13.mkv",
+		"Cyberpunk Edgerunners - 01.mkv",
+		"Cyberpunk Edgerunners Season 3/Cyberpunk Edgerunners S02E01.mkv",
+	])
+		expect((await identify(path, works)).admitted, path).toBeNull();
+	expect(
+		(
+			await identify("Cyberpunk Edgerunners S02E01.mkv", [
+				candidate("sequel", [
+					"Cyberpunk: Edgerunners 2",
+					"Cyberpunk: Edgerunners Season 3",
+				]),
+			])
+		).admitted,
+	).toBeNull();
+	expect(
+		(
+			await identify("Cyberpunk Edgerunners S02E01.mkv", [
+				...works,
+				candidate("another-work", ["Cyberpunk: Edgerunners 2"]),
 			])
 		).admitted,
 	).toBeNull();

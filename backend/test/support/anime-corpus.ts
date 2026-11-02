@@ -340,6 +340,7 @@ export async function loadCorpus(): Promise<AnimeCorpus> {
 export async function materializeCorpus(
 	corpus: AnimeCorpus,
 	destination: string,
+	reported?: { version: string; resources: { id: string; path: string }[] },
 ): Promise<{ files: number; destination: string }> {
 	validateCorpus(corpus);
 	const entries = corpus.cases.flatMap((entry, index) =>
@@ -358,6 +359,12 @@ export async function materializeCorpus(
 				id: resource.caseId,
 				path: `scenarios/${scenario.id}/${resource.relativePath}`,
 			});
+	entries.push(...(reported?.resources ?? []));
+	for (const entry of entries) validateResourcePath(entry.path);
+	unique(
+		entries.map((entry) => entry.path.normalize("NFD")),
+		"generated path",
+	);
 	await mkdir(destination);
 	for (const entry of entries) {
 		const path = join(destination, entry.path);
@@ -373,7 +380,12 @@ export async function materializeCorpus(
 	await writeFile(
 		join(destination, "fixture-manifest.json"),
 		JSON.stringify(
-			{ corpusVersion: corpus.version, playable: false, resources: entries },
+			{
+				corpusVersion: corpus.version,
+				reportedCorpusVersion: reported?.version,
+				playable: false,
+				resources: entries,
+			},
 			null,
 			2,
 		),
