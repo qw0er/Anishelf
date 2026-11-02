@@ -41,7 +41,7 @@ export function libraryFilters(params: URLSearchParams): LibraryFilters {
 				? (requestedViewingStatus ?? "watching")
 				: "watching";
 	return {
-		...(params.get("scope") === "all" ? { scope: "all" as const } : {}),
+		scope: params.get("scope") === "local" ? "local" : "all",
 		viewingStatus: viewingStatus as NonNullable<
 			LibraryFilters["viewingStatus"]
 		>,

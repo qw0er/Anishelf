@@ -57,7 +57,14 @@ test("AniList library shows status and remote-only details, keeps filters and re
 			return json({
 				items:
 					params.get("scope") === "all"
-						? [remote]
+						? [
+								remote,
+								{
+									...detail.work,
+									localWorkId: detail.work.id,
+									viewing: { status: "watching", progress: 3, updatedAt: 1 },
+								},
+							]
 						: [
 								{
 									...detail.work,
@@ -127,6 +134,20 @@ test("AniList library shows status and remote-only details, keeps filters and re
 		}),
 	).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+	expect(
+		(
+			screen.getByRole("combobox", {
+				name: "Library scope",
+			}) as HTMLSelectElement
+		).value,
+	).toBe("all");
+	expect(screen.getByRole("link", { name: "Remote work" })).toBeTruthy();
+	fireEvent.change(screen.getByRole("combobox", { name: "Library scope" }), {
+		target: { value: "local" },
+	});
+	await waitFor(() =>
+		expect(screen.queryByRole("link", { name: "Remote work" })).toBeNull(),
+	);
 	fireEvent.change(screen.getByRole("combobox", { name: "Library scope" }), {
 		target: { value: "all" },
 	});
@@ -245,9 +266,13 @@ test("Library filters allow All works before local setup and disable viewing sta
 		name: "the tracking service viewing state",
 	});
 	expect(viewing.hasAttribute("disabled")).toBe(true);
-	fireEvent.change(screen.getByRole("combobox", { name: "Library scope" }), {
-		target: { value: "all" },
-	});
+	expect(
+		(
+			screen.getByRole("combobox", {
+				name: "Library scope",
+			}) as HTMLSelectElement
+		).value,
+	).toBe("all");
 	await waitFor(() =>
 		expect(
 			fetcher.mock.calls.some(([path]) => {
@@ -260,7 +285,6 @@ test("Library filters allow All works before local setup and disable viewing sta
 		).toBe(true),
 	);
 	await screen.findByText(/No anime match these filters/);
-	expect(screen.getByTestId("location").textContent).toContain("scope=all");
 });
 
 test("the Library AniList connection button opens Settings", async () => {
