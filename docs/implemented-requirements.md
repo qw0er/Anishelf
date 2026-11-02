@@ -143,6 +143,7 @@ qBittorrent is a separate capability (D01–D07).
 #### Delivery Notes (M)
 
 - **M01:** AniList and Bangumi search behind permanent project work IDs; external source identifiers retained through associations. **Release record:** 0.3.0 (AniList); 1.0.6 (multi-source).
+- **M02 / WI11:** Broadcast-plan improvements are complete: provider-announced future airtimes appear first, the next broadcast is highlighted, aired history is collapsed, and dates include the local weekday and time zone. Detail metadata supplies the next broadcast when schedule pages are incomplete. Cached plans remain visible; elapsed plans await refreshed confirmation. Unannounced dates are not estimated. **Release record:** Broadcast-plan improvements are not yet released.
 - **M03:** Default poster library, work details, episode/version playback and file-list location from available-version actions. **Release record:** 0.3.0; 1.0.6 (file location).
 - **M05:** Durable metadata/artwork caching, refresh/retry and retained snapshots during outages.
 - **M06:** **Delivered:** AniList/Bangumi search, explicit verified work associations, combined descriptions and permanent ID aliases. **Remaining:** Automatic cross-source matching, association management UI and cross-source episode mappings. **Release record:** 1.0.6 (partial).
@@ -429,10 +430,17 @@ existing deduplication, submission reconciliation and verified-ingestion workflo
 Local and remote details share an aired-episode timeline. Preserve playable local
 files, including specials, but hide other episode placeholders unless metadata or
 broadcast records establish that they have aired. Unknown totals use the confirmed
-aired range; unknown broadcast progress does not create empty slots. Hide future
-per-episode broadcast records as well. Stale or failed refreshes preserve confirmed
-rows without advancing them, and open details refresh at known airtimes. Available
-local episodes do not show the acquisition command.
+aired range; unknown broadcast progress does not create empty slots.
+
+The separate broadcast-plan panel displays provider-announced future airtimes
+first, highlights the next broadcast, and collapses aired history in reverse
+chronological order. Detail metadata supplies the next broadcast even when
+schedule pagination has not reached it. Show local dates, weekdays and times with
+the time zone; never extrapolate unannounced dates. Keep stale plans visible and
+mark elapsed plans awaiting confirmation until a post-airtime snapshot arrives.
+Stale or failed refreshes preserve confirmed episode rows without advancing them,
+and open details refresh at known airtimes. Available local episodes do not show
+the acquisition command.
 
 Obtain progress from the download client and keep the displayed information updated
 while downloads are active. Show actual reported progress rather than inferring it

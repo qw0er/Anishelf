@@ -156,7 +156,7 @@ function TrackedDetail({
 							{...(renderEpisodeAction ? { renderEpisodeAction } : {})}
 						/>
 					</section>
-					<AiringStatus query={airing} />
+					<AiringStatus query={airing} metadata={data.metadata} />
 					<WorkSynopsis data={{ metadata: metadata.data }} />
 					<WorkMetadataExtras data={{ metadata: metadata.data }} />
 				</>

@@ -204,7 +204,7 @@ test("details hide upcoming empty episodes while retaining playable files and un
 	expect(screen.queryByRole("button", { name: "Play: Episode 3" })).toBeNull();
 });
 
-test("airing pagination retains browsing and omits future episode records", async () => {
+test("airing pagination shows future plans while omitting future download rows", async () => {
 	mockAnime(animeFixture());
 	const fallback = fetcher.getMockImplementation();
 	fetcher.mockImplementation(async (input, init) => {
@@ -246,7 +246,7 @@ test("airing pagination retains browsing and omits future episode records", asyn
 	});
 	renderApp("/anime/work-1");
 	await screen.findByRole("heading", { name: "Frieren", level: 1 });
-	expect(screen.getByText("Provider airing schedule")).toBeTruthy();
+	expect(screen.getByRole("heading", { name: "Broadcast plans" })).toBeTruthy();
 	expect(document.getElementById("episode-ep-3")).toBeTruthy();
 	fireEvent.click(
 		await screen.findByRole("button", { name: "Load more airing records" }),
@@ -255,10 +255,18 @@ test("airing pagination retains browsing and omits future episode records", asyn
 		expect(document.getElementById("episode-ep-3")).toBeNull(),
 	);
 	const table = await screen.findByRole("table", {
-		name: "Provider airing schedule",
+		name: "Broadcast plans",
 	});
-	expect(within(table).getByText("Episode 2")).toBeTruthy();
-	expect(within(table).queryByText("Episode 3")).toBeNull();
+	expect(within(table).getByText("Episode 3")).toBeTruthy();
+	expect(within(table).getByText("Next broadcast")).toBeTruthy();
+	expect(within(table).queryByText("Episode 2")).toBeNull();
+	fireEvent.click(
+		screen.getByRole("button", { name: "Aired history (1 episode)" }),
+	);
+	const history = await screen.findByRole("table", {
+		name: "Aired history (1 episode)",
+	});
+	expect(within(history).getByText("Episode 2")).toBeTruthy();
 	expect(screen.getByRole("button", { name: "Play: Episode 1" })).toBeTruthy();
 });
 
