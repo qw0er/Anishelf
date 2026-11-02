@@ -148,7 +148,7 @@ export function LibraryFiltersForm({
 				<div className="surface-panel grid gap-4 sm:grid-cols-2">
 					<FilterSelect
 						label={t("trackingList.scope")}
-						value={filters.scope ?? "local"}
+						value={filters.scope ?? "all"}
 						onChange={(value) => change("scope", value)}
 						options={[
 							{ value: "local", label: t("trackingList.local") },
