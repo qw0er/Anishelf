@@ -33,7 +33,7 @@ acceptance boundaries without selecting their technical solution in advance.
 Completed requirements and detailed designs are retained in [History](history.md).
 The completed anime-library, AniList accounts and automatic-acquisition iterations are archived in History.
 Multi-root resource management (L12) is implemented.
-The repository is at version 1.3.0. Later and Optional items remain future work.
+The repository is at version 1.3.1; 1.4.0 is the planned next release. Later and Optional items remain future work.
 The retained V2 implementation status remains recorded separately in History.
 
 ## 2. Feature Inventory and Version Tracking
@@ -255,12 +255,12 @@ associations or corrections.
 | P14 | Begin playback during conversion, with seeking and synchronized subtitles/progress | Not started | Later | — | — |
 | P15 | Extract, validate and load embedded font attachments | Complete | — | Validated embedded TTF/OTF fonts for styled subtitles | 0.2.6 |
 | P16 | Extract embedded PGS/VobSub bitmap subtitle assets with explicit unsupported-Web feedback | Not started | Later | — | — |
-| P17 | Automatically prepare full-file Web-compatible copies in the background before playback | Complete | — | [Preset-based background preparation and recovery](#delivery-notes-p) | Unreleased |
+| P17 | Automatically prepare full-file Web-compatible copies in the background before playback | Complete | — | [Preset-based background preparation and recovery](#delivery-notes-p) | 1.4.0 |
 | P10 | Select audio tracks | Complete | — | — | 0.2.0 |
 | P23 | Adjust subtitle timing | Complete | — | — | 0.2.0 |
 | P24 | Change playback speed | Complete | — | — | 0.2.0 |
 | P25 | Use playback keyboard shortcuts | Complete | — | — | 0.2.0 |
-| P11 | Next-episode navigation and automatic continuation | Complete | — | [Next-episode navigation and opt-in continuation](#delivery-notes-p) | Unreleased |
+| P11 | Next-episode navigation and automatic continuation | Complete | — | [Next-episode navigation and opt-in continuation](#delivery-notes-p) | 1.3.1 |
 | P12 | Hardware-accelerated transcoding | Partial | Optional | [Hardware encoding profiles supported; broader acceleration optional](#delivery-notes-p) | 0.2.0 |
 | P13 | Chapter navigation | Complete | — | Chapter discovery and navigation aligned with the original timeline | 0.2.6 |
 | P18 | HDR playback and conversion handling | Partial | Optional | [Accepted HDR streams preserved; conversion and broader handling optional](#delivery-notes-p) | Unreleased |
@@ -543,8 +543,8 @@ Full season-pack ingestion is not currently supported.
 | D11 | Configure seeding policies | Not started | Optional | — | — |
 | D12 | Configure download bandwidth schedules | Not started | Optional | — | — |
 | D13 | Configure download storage policies | Not started | Optional | — | — |
-| D09 | Download an individual episode without creating a subscription | Complete | — | [Single-episode automatic acquisition](#delivery-notes-d) | — |
-| D10 | Obtain and display download progress from the download client | Complete | — | [Compact episode progress and scoped task details](#delivery-notes-d) | — |
+| D09 | Download an individual episode without creating a subscription | Complete | — | [Single-episode automatic acquisition](#delivery-notes-d) | 1.4.0 |
+| D10 | Obtain and display download progress from the download client | Complete | — | [Compact episode progress and scoped task details](#delivery-notes-d) | 1.4.0 |
 
 #### Delivery Notes (D)
 
@@ -672,6 +672,7 @@ AniList is the viewing-state authority. The delivered scope includes account con
 | O19 | In-app editor for hand-written configuration files | Not started | Later | [Draft, validate and save supported custom profiles](#delivery-notes-o) | — |
 | O20 | Hot reload acquisition profile configuration | Not started | Later | [Validate and activate acquisition profiles without restart](#delivery-notes-o) | — |
 | O21 | Remote deployment without a repository checkout | Complete | — | [Flag-driven Docker/Podman deployment without checkout](#delivery-notes-o) | 1.0.0 |
+| O22 | View the changelog within the application | Not started | Later | [In-app changelog](#in-app-changelog-o22) | — |
 
 #### Delivery Notes (O)
 
@@ -732,6 +733,14 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 - Keep API field names, error codes, resource IDs, and original filenames unchanged across languages.
 
 The Web interface supports English and Simplified Chinese. A saved browser-local preference takes precedence; otherwise the browser's preferred languages select a supported language, with English as the fallback. Users can change the language from the header. The completed anime-library iteration separately delivers program metadata (M07): preserve available language-tagged titles, aliases and descriptions, original language and stable IDs, using exact locale, base language, original language and deterministic available-value fallback.
+
+#### In-app Changelog (O22)
+
+Let users open the changelog within the application and read release notes grouped
+by version, including the installed version and available earlier releases. The
+display must identify the installed version and make clear when its release notes
+are unavailable. Keep release notes consistent with the project's changelog and
+make them accessible without requiring an external website.
 
 #### Frontend State and Caching (O15)
 
