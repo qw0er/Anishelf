@@ -2,8 +2,10 @@
 
 - [1. Product Goal and Document Scope](#1-product-goal-and-document-scope)
 - [2. Feature Inventory and Version Tracking](#2-feature-inventory-and-version-tracking)
+- [Implemented requirements](implemented-requirements.md)
 - [3. Rules for Future Features](#3-rules-for-future-features)
-- [4. Release Plan and Suggested Evolution](#4-release-plan-and-suggested-evolution)
+- [4. Improvements](#4-improvements)
+- [5. Bugs](#5-bugs)
 - [Completed automatic acquisition requirements and design](history.md#automatic-acquisition-archive-notes)
 - [Completed AniList accounts requirements](history.md#anilist-accounts-requirements)
 - [Completed anime library requirements](history.md#anime-library-requirements)
@@ -18,7 +20,9 @@ Anishelf is a personal animation media library intended to connect:
 Its core value is better Web playback, shared client state, and coordination between tracking and automatic downloading.
 
 This document defines product goals, user-visible behavior, acceptance constraints,
-delivered capabilities and future scope. Requirements describe outcomes; module
+future scope, issues, improvements and work progress. Implemented capabilities are
+recorded in [Implemented requirements](implemented-requirements.md).
+Requirements describe outcomes; module
 ownership, API shapes, persistence mechanisms, libraries and algorithms belong in
 [Architecture](development/architecture.md), [Playback design](development/playback.md)
 and the [Design system](development/design-system.md). Operational prerequisites
@@ -30,131 +34,38 @@ requirements. When implementation and current documents disagree, verify the int
 behavior and update the affected documents together; do not silently treat an old
 implementation choice as a new requirement. Future features specify outcomes and
 acceptance boundaries without selecting their technical solution in advance.
-Completed requirements and detailed designs are retained in [History](history.md).
+Completed requirements are recorded in [Implemented requirements](implemented-requirements.md); archived iterations and detailed designs are in [History](history.md).
 The completed anime-library, AniList accounts and automatic-acquisition iterations are archived in History.
-Multi-root resource management (L12) is implemented.
 The repository is at version 1.3.1; 1.4.0 is the planned next release. Later and Optional items remain future work.
 The retained V2 implementation status remains recorded separately in History.
 
 ## 2. Feature Inventory and Version Tracking
 
-The inventory separates the capability, delivery state, future planning and delivery
-boundary. Keep each table cell brief; put detailed behavior, acceptance constraints
+The inventory lists partial and not-started capabilities; fully implemented capabilities
+are in [Implemented requirements](implemented-requirements.md). It separates capability,
+delivery state, status and delivery boundary. Keep each table cell brief; put detailed behavior, acceptance constraints
 and release extensions in the corresponding notes or requirement sections.
 
-- **Feature** describes the user-visible capability, independently of its delivery state.
-- **Delivery** is `Not started`, `Partial` or `Complete`, measured against the current documented scope. `Complete` does not imply universal compatibility or the absence of documented limitations.
-- **Planning** applies only to remaining work: `Selected` means the next active iteration, `Later` means a subsequent core capability, `Optional` means a possible extension, and `Unassigned` means no planning category is chosen. `—` means no remaining work is planned under the current scope. These categories do not assign a release or make a feature a dependency of selected work.
-- **Coverage / Details** summarizes the delivered boundary or links to detailed notes. For partial delivery, distinguish delivered behavior from remaining work explicitly in the notes.
-- **First release** records the first project release containing any delivered part of the capability, based on the existing release records. `—` means no implementation is recorded; `Unreleased` retains an existing “Next release” record without assigning a release number. Later extensions and release qualifications appear in delivery notes. V1 and V2 are historical iteration names, not project versions.
+- **Item** describes a feature, improvement or reported bug.
+- **Delivery** is `Not started`, `Partial` or `Complete`, measured against the current documented scope. `—` means it has not been assessed or does not apply to the item. `Complete` does not imply universal compatibility or the absence of documented limitations.
+- **Status** combines planning and work progress: `Unassigned` is recorded without a decision to schedule it; `Later` is a future core candidate; `Optional` is a possible extension; `Planned` is selected but not started; `In progress` is active; `Completed` is implemented and awaiting acceptance verification; `Verified` has passed its acceptance checks. `—` means no separate status is recorded or applicable. Record blockers and reopen items when needed. Status does not by itself assign a release.
+- **Details** summarizes the delivered boundary, remaining work, reported behavior or open questions, and links to detailed notes. For partial delivery, distinguish delivered behavior from remaining work explicitly in the notes.
+- **First release** records the first project release containing any delivered part of the capability, based on the existing release records. `—` means no first release is recorded or the field does not apply; `Unreleased` retains an existing “Next release” record without assigning a release number. Later extensions and release qualifications appear in delivery notes. V1 and V2 are historical iteration names, not project versions.
+- Improvements and reported bugs are tracked in [Section 4](#4-improvements) and [Section 5](#5-bugs); feature work is recorded with its feature. `Planned` does not mean work has started.
 - A scope reduction is a requirement decision, not a delivery state. Record excluded guarantees and relevant release history in the notes instead of using `Simplified` as a status. Split remaining work into a new ID only when it needs independent planning and acceptance.
-
-### 2.0 Delivered V1 Foundation
-
-| ID | Feature | Delivery | Planning | Coverage / Details | First release |
-| --- | --- | --- | --- | --- | --- |
-| V01 | Resource directory configuration | Complete | — | [Single-root setup; multi-root support under L12](#delivery-notes-v) | 0.1.0 |
-| V02 | Library scanning | Complete | — | [Startup/manual scans and filesystem updates](#delivery-notes-v) | 0.1.0 |
-| V03 | Resource browsing | Complete | — | Actual directory hierarchy, original filenames, stable natural sorting, and parent navigation | 0.1.0 |
-| V04 | Web playback | Complete | — | Browser playback of supported original media with seeking | 0.1.0 |
-| V05 | Basic playback controls | Complete | — | Play, pause, seek, volume, fullscreen, and return to the original directory | 0.1.0 |
-| V06 | Failure feedback | Complete | — | Missing/unreadable resources and unsupported-media or playback errors | 0.1.0 |
-
-#### Delivery Notes (V)
-
-- **V01:** Original single-root setup; multiple persisted roots and per-root feedback are delivered under L12.
-- **V02:** Automatic scans at startup and after resource-root changes; native filesystem monitoring and manual rescans; recursive video discovery; repeated scans without duplicate paths; additions and removals reflected. **Release record:** 0.1.0; 0.4.1 (filesystem monitoring).
-
-Original V1 delivered read-only originals, resource-root confinement, persistent root settings, and visible scan states. L13 and L19 add explicit confirmed moves and deletion. Subtitle loading, saved progress, and media preparation are V2 additions.
 
 ### 2.1 Resource Access and Library
 
-| ID | Feature | Delivery | Planning | Coverage / Details | First release |
+| ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| L05 | Search filenames recursively | Complete | — | Name search within the current directory and its descendants | 1.3.0 |
-| L18 | Choose file and directory sorting | Complete | — | Natural-name, size, or modification-time sorting | 1.3.0 |
-| L06 | Watch filesystem changes and update the library incrementally | Complete | — | [Incremental updates with monitoring recovery](#delivery-notes-l) | 0.4.1 |
-| L07 | Parse anime titles, seasons, episode numbers, and release variants from filenames | Complete | — | Filename/directory extraction with preserved evidence | 0.3.0 |
-| L08 | Review unidentified files and manually link or correct anime and episode associations | Complete | — | [Automatic admission and protected manual Review](#delivery-notes-l) | 0.3.0 |
-| L09 | Distinguish regular episodes, specials, continuous season numbering, and multi-episode files | Complete | — | [Episode proposals, ambiguity and confirmed corrections](#delivery-notes-l) | 0.3.0 |
-| L10 | Associate multiple file versions with an episode and select a version for playback | Complete | — | Episode associations and Web version selection with changed-file protection | 0.3.0 |
-| L12 | Configure and manage multiple resource roots | Complete | — | [Separate roots with partial-failure recovery](#delivery-notes-l) | 0.4.1 |
-| L13 | Move files or folders with preservation rules | Complete | — | [Confirmed same-filesystem moves; history retained](#delivery-notes-l) | 1.3.0 |
-| L19 | Delete files or folders with preservation rules | Complete | — | [Confirmed recursive deletion; history retained](#delivery-notes-l) | 1.3.0 |
-| L14 | Download an existing original media file from the Web interface to the user's device | Complete | — | — | 0.2.5 |
 | L15 | Batch Review with shared work selection and episode-number offset previews | Not started | Later | — | — |
-| L16 | Improve matching using representative real-world failure cases | Not started | Later | — | — |
 | L17 | Learn scoped matching rules from explicit manual corrections | Not started | Later | — | — |
-
-#### Delivery Notes (L)
-
-- **L06:** Automatic updates for affected files and folders, with monitoring failure recovery.
-- **L08:** Clear-match automatic admission, manual Review and protection against conflicting corrections.
-- **L09:** Candidate-specific episode proposals, unresolved ambiguity and confirmed corrections.
-- **L12:** Multiple non-overlapping paths, separate Files entries, partial scan recovery and preserved settings/history.
-- **L13:** Confirmed same-filesystem moves with retained decisions/history and writable deployment.
-- **L19:** Confirmed recursive deletion with retained decisions/history and writable deployment.
-
-The poster library supports Title, Recently added, Recently updated and Unwatched
-first sorting. Unwatched first is the default: works with locally available episodes
-beyond the tracking provider's cumulative progress precede other works; each group
-uses title order. Unknown progress and remote-only works receive no unwatched priority.
-Recently updated uses the local Catalog work update timestamp; remote-only works use
-the provider list-entry update timestamp, falling back to the list fetch time.
-Recently added retains local Catalog creation-time ordering. Files search matches names in the current directory and its subdirectories, showing each result’s relative parent path. Directories remain ahead of files; size and modification-time sorting applies to files, with natural name order breaking ties.
-
-#### Multi-root resource management (L12)
-
-Users can save multiple absolute server resource paths in Settings; removing all
-roots returns to setup mode. Canonically duplicate or nested roots and overlap with the
-data directory are rejected, including aliases through symlinks. Multiple roots
-are browsed as distinct Files entries. Identical relative filenames remain distinct
-resources, and reordering roots does not change their identities.
-
-Healthy roots continue to update if another root is unavailable. Failed roots
-retain their previous index and report availability/warnings; all-root failure
-must not publish an empty library. Removing a root hides its resources while
-preserving accepted associations and playback history. Restoring it makes those
-records reusable. Legacy single-path settings and durable source records upgrade
-without discarding history. Filesystem watching is delivered separately under L06.
-
-#### Move and delete resources (L13, L19)
-
-Users can move an indexed media file or folder into an existing directory while
-retaining its name, or permanently delete a file or entire folder. Folder operations
-include subtitles and non-media descendants. Separate rename, copy, automatic
-organization and retention-policy controls are outside the delivered scope.
-
-Require explicit confirmation before moving or permanently deleting resources.
-Reject configured roots, symlinks, special files, overwrites, moves into the source
-subtree and moves across filesystems. Moves between configured roots on the same
-filesystem are supported. Reject stale or unsafe operations and refresh affected
-library entries after success or partial failure; report incomplete changes clearly.
-
-Preserve accepted associations, viewing history, tracking state, settings and generated
-media copies. Removed sources become unavailable. Moved files undergo identification
-and Review again; existing source associations are not automatically transferred.
-Deletion has no recycle bin and does not guarantee immediate disk-space recovery.
-Download and seeding clients are not controlled by these operations. Read-only media
-remains playable, but move/delete requires write access and a supported deployment.
-See [resource operation design](development/architecture.md#confirmed-resource-operations)
-for execution constraints and [deployment guidance](guide/deployment.md) for prerequisites.
-
-#### Filesystem Monitoring and Incremental Updates (L06)
-
-Watch the configured resource root recursively for file and directory additions, modifications, removals and moves. Use these changes to refresh affected library entries automatically, without waiting for a scheduled full scan. Avoid treating incomplete, actively written files as ready for identification or playback. Preserve resource-root restrictions, manual associations and viewing history.
-
-Keep startup scanning and explicit manual rescans for initial discovery and reconciliation. Known monitoring failures must trigger recovery and reconciliation. Detect unavailable monitoring or lost events, report degraded monitoring and provide reconciliation and retry; an inaccessible root must not be treated as an empty library. See [Filesystem monitoring](development/architecture.md#resource-directory-isolation).
 
 #### Batch Review (L15)
 
 Select an explicit subset of files for a work, preview each file's existing and proposed episode associations, and apply a shared numbering offset after explicit confirmation. Preserve original parsing evidence and source history, require explicit replacement of existing associations, and reject stale or invalid inputs. Single-file correction and offset previews are delivered in the completed anime-library scope; the multi-file Web workflow is later scope.
 
 After correcting one file, allow the user to find related files, explicitly select the batch scope and preview a shared work assignment and numbering conversion. Show per-file conflicts and exclusions before confirmation; a single correction does not authorize automatic changes to other files. Batch Review must remain usable without learned rules.
-
-#### Matching Improvements from Real Failures (L16)
-
-Collect representative local failure cases with user-confirmed expected works and episode mappings, preserving filename, directory and release provenance. Diagnose extraction, candidate retrieval, ranking, numbering and admission separately. Prioritize recurring failures such as shortened titles, season/part ambiguity, continuous numbering and end-of-series markers; do not lower admission thresholds solely to improve corpus coverage.
 
 #### Learning from Manual Corrections (L17)
 
@@ -164,62 +75,20 @@ Default to narrow scopes using resource root, directory, release batch, title co
 
 Preserve each rule's source confirmations and applicable context, explain its effect on recommendations, and support disabling or deleting rules. Replaced, revoked or stale source evidence must invalidate dependent suggestions until revalidated. Conflicting rules require Review; disabling a rule must not silently undo confirmed associations.
 
-#### Resource Identification (L07–L10)
-
-Identify works and episodes from filenames, directory context and available external
-metadata. Explain proposed matches and conflicts. Similar candidates, unsupported
-numbering assumptions and uncertain episode mappings require Review instead of a
-forced association. Do not assume an unmarked title is season one or infer numbering
-across unrelated works, seasons or releases without supporting evidence.
-
-Preserve original numbering and evidence alongside confirmed associations, including
-specials, continuous numbering and multi-episode files. Review must show the proposed
-work and episode mapping and explain why automatic identification was withheld.
-Manual corrections survive rescans and metadata refresh; reassociation must not
-silently delete playback history. Multiple file versions remain selectable without
-counting as separate episodes. Matching algorithms and admission policy belong in
-[Architecture](development/architecture.md#delivered-anime-library-workflow).
-
-#### Download Existing Media (L14)
-
-- Provide a download action for an individual library file, preserving its original filename and contents.
-- Transfer the existing original file without transcoding or modifying the server copy.
-- Apply the same resource-root restrictions and access controls as playback; report missing or unreadable files.
-- Initially exclude batch downloads, directory archives, and managed offline libraries.
-
-Downloads are available from file actions and playback options. This capability
-transfers an existing file to the user’s device; automatic acquisition through
-qBittorrent is a separate capability (D01–D07).
-
 ### 2.2 Anime Metadata
 
-| ID | Feature | Delivery | Planning | Coverage / Details | First release |
+| ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| M01 | Search external anime metadata and store provider identifiers | Complete | — | [AniList/Bangumi search with stable work identities](#delivery-notes-m) | 0.3.0 |
-| M02 | Display covers, aliases, descriptions, seasons, episode counts, airing information, and available same-provider work relations | Complete | — | Cached details, artwork, available episode data and same-provider relations | 0.3.0 |
-| M03 | Provide anime detail and episode views, organizing the library by title | Complete | — | [Poster library, work details and episode/version actions](#delivery-notes-m) | 0.3.0 |
-| M04 | Manually select, correct, and refresh metadata mappings | Complete | — | Review selection/reassociation, episode corrections and metadata refresh | 0.3.0 |
-| M05 | Cache metadata so external outages do not prevent browsing or playback | Complete | — | [Cached browsing and playback during provider outages](#delivery-notes-m) | 0.3.0 |
-| M07 | Preserve multilingual program titles, aliases and descriptions with language tags, original language and locale-independent IDs | Complete | — | Available provider language information and stable local identities; no invented translations | 0.3.0 |
 | M06 | Multiple metadata providers and cross-provider ID mapping | Partial | Unassigned | [Explicit work associations; automatic mapping and management UI pending](#delivery-notes-m) | 1.0.6 |
-| M08 | Read per-episode metadata and display episode titles on anime detail pages | Not started | Later/Unassigned | [Per-episode metadata and detail-page titles](#per-episode-metadata-m08) | — |
+| M08 | Read per-episode metadata and display episode titles on anime detail pages | Not started | Later | [Per-episode metadata and detail-page titles](#per-episode-metadata-m08); no active iteration assigned | — |
 
 #### Delivery Notes (M)
 
-- **M01:** AniList and Bangumi search behind permanent project work IDs; external source identifiers retained through associations. **Release record:** 0.3.0 (AniList); 1.0.6 (multi-source).
-- **M03:** Default poster library, work details, episode/version playback and file-list location from available-version actions. **Release record:** 0.3.0; 1.0.6 (file location).
-- **M05:** Durable metadata/artwork caching, refresh/retry and retained snapshots during outages.
 - **M06:** **Delivered:** AniList/Bangumi search, explicit verified work associations, combined descriptions and permanent ID aliases. **Remaining:** Automatic cross-source matching, association management UI and cross-source episode mappings. **Release record:** 1.0.6 (partial).
 
 #### External Metadata and Local Catalog (M01–M07)
 
-External anime metadata is a dependency of the delivered identification workflow, not a later tracker integration. Users can search AniList and Bangumi metadata and continue accessing works after verified cross-source association. Retain available aliases, language information, episode data and work relations according to source capabilities. Provider changes must not silently replace confirmed local work or episode associations. Cache fetched metadata with refresh status and preserve user corrections. Outages must not block already-cached browsing or existing file playback; unavailable candidate or episode information remains explicitly unresolved.
-
-Explicit cross-source work association requires confirmation of both work identity and equivalent regular-episode numbering. Existing work references remain usable after association. Associated sources contribute descriptions in stable source order; equal titles alone never establish identity. Associations do not merge local Catalog works, episodes or files, and conflicting existing local works must be reconciled first. Automatic cross-source matching, an association management UI and independent cross-source episode mappings remain unassigned. Bangumi schedules, relations and a canonical episode catalog are not currently supplied.
-
-Provider and parser uncertainty is handled through Review. Provider-required service access is distinct from T01–T05 personal account authorization, personal list access and viewing-state updates; basic identification must not require the user to authorize a personal tracker account.
-
-Available episode versions expose Show in Files through their file action menu. It opens the corresponding file in Files without starting playback. Multiple versions target their own files; unavailable versions expose no file commands. Detailed interaction conventions remain in the [design system](development/design-system.md).
+See [implemented metadata requirements](implemented-requirements.md#external-metadata-and-local-catalog-m01m07) for the current boundary. Automatic cross-source matching, association management and independent cross-source episode mappings remain unassigned.
 
 #### Per-episode Metadata (M08)
 
@@ -244,25 +113,13 @@ associations or corrections.
 
 ### 2.3 Web Playback and Subtitles
 
-| ID | Feature | Delivery | Planning | Coverage / Details | First release |
+| ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| P03 | Select or disable external VTT/SRT/ASS/SSA subtitles | Complete | — | — | 0.2.0 |
-| P05 | Choose a playback strategy based on media and client capabilities | Complete | — | — | 0.2.0 |
-| P06 | Remux media when only the container is incompatible | Complete | — | — | 0.2.0 |
-| P07 | Prepare full-file Web-compatible copies with seeking and avoid unnecessary re-encoding | Complete | — | Completed-file preparation, reuse, cancellation, retry and recovery | 0.2.0 |
 | P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | Partial | Later | [Text subtitles and fonts supported; bitmap extraction pending](#delivery-notes-p) | 0.2.0 |
 | P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | Partial | Unassigned | [Styled ASS/SSA and fonts supported; bitmap compatibility pending](#delivery-notes-p) | 0.2.0 |
 | P14 | Begin playback during conversion, with seeking and synchronized subtitles/progress | Not started | Later | — | — |
-| P15 | Extract, validate and load embedded font attachments | Complete | — | Validated embedded TTF/OTF fonts for styled subtitles | 0.2.6 |
 | P16 | Extract embedded PGS/VobSub bitmap subtitle assets with explicit unsupported-Web feedback | Not started | Later | — | — |
-| P17 | Automatically prepare full-file Web-compatible copies in the background before playback | Complete | — | [Preset-based background preparation and recovery](#delivery-notes-p) | 1.4.0 |
-| P10 | Select audio tracks | Complete | — | — | 0.2.0 |
-| P23 | Adjust subtitle timing | Complete | — | — | 0.2.0 |
-| P24 | Change playback speed | Complete | — | — | 0.2.0 |
-| P25 | Use playback keyboard shortcuts | Complete | — | — | 0.2.0 |
-| P11 | Next-episode navigation and automatic continuation | Complete | — | [Next-episode navigation and opt-in continuation](#delivery-notes-p) | 1.3.1 |
 | P12 | Hardware-accelerated transcoding | Partial | Optional | [Hardware encoding profiles supported; broader acceleration optional](#delivery-notes-p) | 0.2.0 |
-| P13 | Chapter navigation | Complete | — | Chapter discovery and navigation aligned with the original timeline | 0.2.6 |
 | P18 | HDR playback and conversion handling | Partial | Optional | [Accepted HDR streams preserved; conversion and broader handling optional](#delivery-notes-p) | Unreleased |
 | P20 | Configure media preparation task concurrency | Partial | Optional | [Fixed single-worker queue; configurable concurrency optional](#delivery-notes-p) | 0.2.0 |
 | P21 | Limit CPU processing capacity per preparation task | Not started | Optional | — | — |
@@ -272,17 +129,9 @@ associations or corrections.
 
 - **P08:** **Delivered:** Text-track discovery, selection, extraction and delivery; font attachments. **Remaining:** Bitmap subtitle extraction (P16). **Release record:** 0.2.0 (text subtitles); 0.2.6 (embedded fonts).
 - **P09:** **Delivered:** Styled ASS/SSA, fallback fonts and embedded TTF/OTF support. **Remaining:** Bitmap subtitle compatibility; extraction is Later under P16, while rendering, OCR and burn-in remain unassigned. **Release record:** 0.2.0 (styles and fallback fonts); 0.2.6 (embedded fonts).
-- **P17:** Preset-based evaluation of existing and new resources, per-track processing, reuse and persistent recovery.
-- **P11:** Consecutive local regular episodes, explicit version choice and opt-in browser-local continuation with cancellable countdown.
 - **P12:** **Delivered:** Custom preparation profiles support NVENC and QSV for H.264/HEVC/AV1, and VideoToolbox for H.264/HEVC. **Remaining:** Broader hardware acceleration. **Release record:** 0.2.0 (hardware encoding; partial).
 - **P18:** **Delivered:** Automatic preparation can preserve explicitly accepted HDR streams when packaging permits. **Remaining:** Validated HDR-to-SDR conversion and broader HDR handling. **Release record:** Next release (HDR stream preservation; partial).
 - **P20:** **Delivered:** A fixed single-worker queue. **Remaining:** Configurable task concurrency. **Release record:** 0.2.0 (single-worker queue; partial).
-
-The player prioritizes video and common playback controls on desktop and narrow screens.
-Secondary commands and routine technical explanations are available on demand through
-More and playback options; unavailable-playback recovery and consequential tracking
-decisions remain discoverable. Subtitle controls remain accessible within the player.
-See the [player layout conventions](development/design-system.md#player-layout).
 
 #### Media Processing Resource Controls (P20–P22)
 
@@ -305,63 +154,13 @@ and runtime and require separate feasibility validation. These controls extend t
 existing single-worker queue and storage budgets; they are not required for basic
 preparation.
 
-#### Full-file Preparation (P05–P07)
-
-See the [archived V2 requirements and design](history.md#v2-requirements).
-
-#### Automatic Background Pre-transcoding (P17)
-
-Users can enable automatic preparation and select a playback preset in Settings →
-Playback. It is disabled by default and covers both existing resources and newly
-discovered or changed files. Checks run without an open browser. Preparation must
-not start merely because a user opens playback or replace an active playback asset.
-
-- **Selection:** provide built-in Web and Web · Conservative presets and optional
-  administrator-defined presets. Display them as descriptive radio cards, consistent
-  with the manual preparation profiles. Put the section description below its title.
-  Built-in preset names and descriptions remain English in every interface language;
-  custom text is displayed as authored.
-- **Defaults:** Web accepts MP4/WebM, H.264/VP9 8-bit 4:2:0 SDR video and unrestricted
-  audio formats. Web · Conservative accepts MP4, H.264 8-bit 4:2:0 SDR video in the
-  supported profile set, and AAC LC audio. Both retain all audio tracks and impose
-  no resolution, frame-rate, channel-count or sample-rate ceiling.
-- **Custom policy:** allow filtering by resource root, relative path and file viewing
-  state; selecting all, default, matching-language or no audio; and defining accepted
-  containers and alternative video/audio specifications. Omitted constraints mean
-  unrestricted. Encoding parameters are selected separately from acceptance rules.
-- **Reuse and conversion:** reuse suitable originals, completed copies and equivalent
-  pending work. Otherwise copy accepted streams when packaging allows, encode only
-  the streams requiring conversion, and preserve selected audio order and language
-  mappings. A copy may combine copied and encoded audio tracks. Audio acceptance
-  does not certify that the output container can carry that audio format.
-- **Availability:** the custom file is optional. Invalid custom configuration keeps
-  built-ins usable and exposes a configuration issue. Preserve unavailable saved
-  selections and pause automation rather than silently changing the selected preset.
-- **Lifecycle:** show automatic task provenance, progress and failures in the existing
-  task monitor. Support cancellation and server-planned retry. Manual work takes
-  priority. Disabling automation or switching presets cancels obsolete queued
-  automatic-only work, lets running work finish and retains completed copies.
-  Cancelled tasks and deleted copies remain eligible for a later automatic check.
-- **Recovery and limits:** retry transient failures with persistent backoff, reevaluate
-  incomplete automatic work after restart, fence changed sources and preserve valid
-  completed copies. Honor cache and free-space budgets without silently evicting
-  valid copies. Preserve original files and playback history.
-- **Validation:** defer work when required metadata is unknown and validate actual
-  output before publication. HDR-to-SDR conversion remains blocked without a
-  validated tone-mapping policy. Presets describe preparation requirements; actual
-  playback continues to check the client's capabilities.
-
-See the [architecture](development/architecture.md#automatic-media-preparation) for
-module boundaries and the [operator guide](guide/automatic-preparation.md) for exact
-configuration fields and examples.
-
 #### Subtitles and Embedded Extraction (P03, Partial P08–P09)
 
 See the [archived V2 requirements and design](history.md#v2-requirements).
 
 #### Deferred Playback and Subtitle Requirements (P14–P16)
 
-P14 and P16 have no assigned release. P15 is delivered.
+P14 and P16 have no assigned release. See [P15 embedded fonts](implemented-requirements.md#embedded-fonts-p15).
 
 - **P14 Real-time playback:** begin playback before conversion finishes, with pause,
   resume and seeking into portions not yet converted. Keep subtitles and saved
@@ -369,10 +168,6 @@ P14 and P16 have no assigned release. P15 is delivered.
   interrupted work; release unused processing resources and keep resource use
   bounded. Preserve originals and history across cancellation and restart. Delivery
   protocol, processing lifecycle and scheduling are deferred to feature design.
-- **P15 Embedded fonts:** use valid embedded TTF/OTF fonts for ASS/SSA subtitles,
-  including external subtitles and playback of prepared copies. Font failures must
-  preserve usable subtitles with fallback feedback and retry. Exact missing-font
-  diagnosis and broad browser compatibility certification remain unverified.
 - **P16 Bitmap extraction:** extract supported PGS/VobSub subtitles in their native
   format, preserving required paired files and access restrictions. Explain when
   Web playback is unsupported. Rendering, OCR and burn-in remain unassigned.
@@ -383,217 +178,52 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 ### Provider integration boundary
 
-Metadata supports AniList and Bangumi. Tracking supports one AniList account, with
-AniList authoritative for viewing state and cumulative episode progress. Basic
-metadata lookup and identification do not require personal tracker authorization.
 Additional trackers, simultaneous accounts and cross-source episode mappings remain
-Later/Unassigned. Associating metadata works does not enable Bangumi Tracking or
-arbitrary episode-number conversion. Internal provider boundaries belong in
-[Architecture](development/architecture.md#source-organization-and-dependency-boundaries).
+Later/Unassigned. See the [implemented provider boundary](implemented-requirements.md#provider-integration-boundary).
 
 ### 2.4 Viewing History and Tracking
 
-| ID | Feature | Delivery | Planning | Coverage / Details | First release |
+| ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| W01 | Save playback position and duration and resume playback | Complete | — | — | 0.2.0 |
-| W02 | History page with recent viewing records and resume/replay | Complete | — | History covers continue watching | 0.2.0 |
-| W03 | Detect episode completion and submit progress updates or manual corrections to AniList | Complete | — | [Completion detection and manual progress corrections](#delivery-notes-w) | 0.4.0 |
-| W04 | Display and update AniList tracking statuses | Complete | — | Remote display/filters and manual status updates | 0.4.0 |
-| W05 | Show watched counts and available unwatched episodes from AniList progress, alongside local playback history | Complete | — | Detail indicators/counts and Library available-unwatched counts | 0.4.0 |
 | W06 | Share playback history and progress across clients | Partial | Later | [Shared Web records; native client integration pending](#delivery-notes-w) | 0.2.0 |
 | W12 | Handle duplicate, out-of-order, or concurrent playback progress updates | Partial | Later | [Web session ordering protected; broader client handling pending](#delivery-notes-w) | 0.2.0 |
 | W07 | Record separate rewatch history | Not started | Optional | — | — |
 | W09 | Rate works | Not started | Optional | — | — |
 | W10 | Add personal tags to works | Not started | Optional | — | — |
 | W11 | Add personal notes to works | Not started | Optional | — | — |
-| W08 | Treat rewatching as active viewing across Library and Watching automation | Complete | — | [Shared active-viewing behavior; distinct Rewatching status](#delivery-notes-w) | 1.3.1 |
 
 #### Delivery Notes (W)
 
-- **W03:** Unified detail/player commands and 90-percent/natural-end completion with 30-second normal-play minimum.
 - **W06:** **Delivered:** Server-backed playback history and progress shared across Web devices. **Remaining:** Native client integration. **Release record:** 0.2.0 (Web playback history and progress; partial).
 - **W12:** **Delivered:** Duplicate detection, sequence ordering and newer-session precedence. **Remaining:** Broader cross-client and delayed-update handling. **Release record:** 0.2.0 (Web session protection; partial).
-- **W08:** Distinct tracking status with shared active-viewing behavior; see requirements below.
-
-#### Rewatching as Active Viewing (W08)
-
-This extends W04–W05 and S08/S10–S12. Preserve `rewatching` as a distinct tracking
-status, but treat both `watching` and `rewatching` as active viewing wherever current
-Watching membership
-drives Library aggregation or automatic acquisition. This does not require the
-optional rewatch-history feature in W07.
-
-| Scenario | Required behavior |
-| --- | --- |
-| Default Library Watching filter | Include both statuses; retain the Rewatching label on rewatching cards and details |
-| Explicit Rewatching filter | Include only `rewatching` entries |
-| Watching automation | Include rewatching works in activation previews, membership counts and limits, subscription creation and ongoing acquisition under the same accepted policy |
-| Transition between `watching` and `rewatching` | Keep active membership; do not pause or recreate subscriptions, reset their starting episode or replace saved configuration |
-| Transition out of both active statuses | Apply existing leave-Watching behavior to automatic subscriptions; manual subscriptions and submitted transfers/imports remain independent |
-| Progress and next episode | Use confirmed remote progress for the current viewing pass; progress 3 makes episode 4 the next candidate, subject to local availability and existing version-selection rules |
-| Progress-only synchronization | Preserve `rewatching`; do not implicitly change it to `watching` or reset progress because the status denotes a rewatch |
-| Existing local resources | Reuse available files and acquire only eligible missing episodes under existing coverage and deduplication rules; rewatching alone never triggers duplicate downloads |
-
-Keep the original status for display, exact Rewatching filtering and AniList
-synchronization. Use one consistent active-viewing definition across aggregation,
-preview validation, capacity checks and automatic-subscription reconciliation.
-Missing or invalid progress retains existing unavailable/unsupported behavior;
-do not infer a new pass or reset progress from historical completion. Preserve local
-source playback positions and history independently from tracking progress.
-Existing completed subscriptions remain completed under the usual coverage and
-explicit-resume rules; entering rewatching alone does not reopen them.
-
-Acceptance must cover both statuses in the default list and automation preview,
-rewatching-only filtering, subscription continuity in both transition directions,
-leaving the active group, progress-only updates retaining the status, and reuse of
-local coverage without duplicate acquisition. Extend existing structured decision
-logs to make active membership and resulting acquisition decisions diagnosable.
-
-#### Episode Viewing and Tracking (W03–W05)
-
-AniList is the authority for anime viewing status and cumulative episode progress. Display its tracked titles and supported statuses, and submit automatic completion updates and manual progress/status corrections to AniList. Reuse confirmed local work/episode associations and provider identifiers; mapping is already delivered and is not a new implementation requirement. Keep source playback positions and local playback history independent from AniList state. Multiple file versions must not increment progress repeatedly.
-
-AniList cumulative progress does not provide an independent watched/unwatched flag for every episode. Derived episode indicators must be labeled as based on AniList progress, rather than exact local per-episode viewing records. Watching a later episode must not silently imply earlier episodes were watched: noncontiguous completion requires an explicit cumulative-progress decision. The selected automatic policy requires reaching 90 percent of the source timeline or natural source end, plus 30 seconds of normal wall-clock playback in the current session. Seeks, resume restoration, pauses and buffering add no normal time; playback speed does not multiply it. Player manual marks require no telemetry. All entry points report consistent pending, confirmed and failed outcomes; delayed automatic updates must not override explicit manual corrections. Do not introduce a separate authoritative local tracking list or per-episode watched-state store.
 
 ### 2.5 Subscriptions and Resource Discovery
 
-| ID | Feature | Delivery | Planning | Coverage / Details | First release |
+| ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| S01 | Enable or pause RSS discovery from an anime's own page | Complete | — | Download submission separate | 1.0.0 |
-| S02 | Set and preserve a subscription starting episode and backlog scope | Complete | — | [Fixed starting scope and activation preview](#delivery-notes-s) | 1.0.0 |
-| S03 | Configure RSS and discover releases periodically | Complete | — | [Per-anime RSS and configurable recurring discovery](#delivery-notes-s) | 1.0.0 |
-| S04 | Match releases to titles and episodes and explain uncertain matches | Complete | — | Uncertain releases are automatically skipped without review | 1.0.0 |
-| S05 | Filter by subtitle language, release group, resolution, codec, and keywords | Complete | — | [Selection profiles for RSS, search and Watching](#delivery-notes-s) | 1.0.0 |
-| S06 | Deduplicate and exclude existing files, active downloads, and unwanted episodes | Complete | — | [Exclude duplicate releases, local files and active downloads](#delivery-notes-s) | 1.0.0 |
-| S07 | Explain decisions and automatically choose one release per episode | Complete | — | [Automatic release selection with decision explanations](#delivery-notes-s) | 1.0.0 |
-| S08 | Coordinate tracking-status changes with subscriptions and explain their effect on existing tasks | Complete | — | [Group-managed automation; manual work stays independent](#delivery-notes-s) | 1.0.0 |
 | S09 | Search multiple sources for the same acquisition | Partial | Optional | [Ordered discovery supported; multi-source comparison optional](#delivery-notes-s) | 1.0.0 |
 | S13 | Rank releases across sources | Partial | Optional | [Current-source ranking supported; cross-source ranking optional](#delivery-notes-s) | 1.0.0 |
 | S14 | Download and ingest season packs | Not started | Optional | — | — |
 | S15 | Upgrade an existing episode to a preferred release | Not started | Optional | — | — |
-| S10 | Automatically subscribe to anime in AniList Watching | Complete | — | [Opt-in Watching automation with explicit activation scope](#delivery-notes-s) | 1.0.0 |
-| S11 | Find a suitable release source without entering an RSS URL for each anime | Complete | — | [Configured-site discovery with pinned sources](#delivery-notes-s) | 1.0.0 |
-| S12 | Keep manual and automatic subscription management independent | Complete | — | [Independent manual controls and automatic lifecycle](#delivery-notes-s) | 1.0.6 |
 
 #### Delivery Notes (S)
 
-- **S02:** Fixed starting episode and protection against conflicting edits; global Watching activation previews impact.
-- **S03:** One RSS per anime, reliable recurring discovery with a configurable global interval (default 30 minutes).
-- **S05:** For RSS, manual search and opt-in Watching: built-in/custom YAML selection profiles.
-- **S06:** Exclude duplicate releases, available local episodes and already active acquisitions, including across restart.
-- **S07:** Profile levels, persisted waiting, seed-count tie-breaking and skipped reasons; manual selection/dismissal outside the simplified scope.
-- **S08:** Watching controls automatic subscriptions by current list membership; manual subscriptions and submitted transfers/imports remain independent. **Release record:** 1.0.0; 1.0.6 (independent subscriptions).
 - **S09:** **Delivered:** Ordered source discovery. **Remaining:** Searching multiple sources for comparison. **Release record:** 1.0.0 (ordered discovery; partial).
 - **S13:** **Delivered:** Profile-based selection and ranking within the current source. **Remaining:** Cross-source comparison. **Release record:** 1.0.0 (single-source selection; partial).
-- **S10:** Default-off Watching creation with explicit activation preview, fixed starting scope and recreation exclusions; automatic subscriptions remain group-managed; manual subscriptions take precedence.
-- **S11:** Ordered configured-site discovery with Anime identity assessment, S05 profiles, pinned sources and unresolved states.
-- **S12:** Tracking status changes and automation disable stop automatic acquisition; manual controls remain independent and completed ranges stop source polling.
-
-The completed subscription scope is [archived](history.md#automatic-acquisition-requirements).
-RSS selects candidates automatically without per-release approval; accepted scopes
-enable the download worker.
-#### AniList Watching to Automatic Acquisition (S05, S10–S12)
-
-The delivered workflow is: add an anime to AniList Watching, let Anishelf find a suitable resource source and maintain its subscription, then automatically download new episodes through qBittorrent and verify their ingestion into the local library. Users configure resource sites, release preferences, destination and automation scope once; routine additions to Watching should not require finding and entering a per-anime RSS URL or approving every episode.
-
-Manual and automatic subscriptions have independent management behavior. Watching is a default-off automatic group with an explicit activation
-preview, account binding, a group switch and per-work exclusions. Manual subscriptions
-take precedence; saving an automatic subscription in the explicitly labeled work editor
-converts it to manual ownership. Manual pause, resume and cancellation remain independent.
-Disabling the group, excluding a work or leaving Watching stops automatic discovery,
-refresh and new download submissions; submitted transfers/imports continue. List outages
-retain records and suspend automatic acquisition until a fresh complete snapshot returns.
-The starting episode freezes at creation; progress changes never reset it. Account,
-source/profile/target scope changes and late responses must not exceed the user’s
-accepted scope. Unsubscribe records automatic-recreation exclusions. Empty or ambiguous source
-results retain intent without authorizing guessed downloads.
-
-Both management types complete when every episode in the saved range through a known
-total is locally available. Completion preserves records and stops source polling; it does
-not follow tracking progress or pending downloads. Explicit resume overrides the completed
-range, while a larger metadata total rechecks coverage and may reopen acquisition subject
-to the manual pause and automatic group settings. Unknown totals never auto-complete.
-
-Users configure global defaults in Settings and manage individual subscriptions
-from work details, with activity, history and diagnostics available on demand. No source-search/resource-sample step is required before
-subscribing. The user marked this iteration complete on 2026-10-24. See the
-[archived requirements and design](history.md#automatic-acquisition-archive-notes)
-and the maintained [UI conventions](development/design-system.md#automatic-acquisition).
-
-Background subscription updates preserve an open editor's inputs and detect conflicting changes before saving.
-Check now retries pending discovery without its local scheduling delay. Diagnostics
-retains the latest site attempts across restart. Once refreshed detail data includes
-local resources, the page automatically opens local episodes and preserves the
-library's return filters.
-
-Full season-pack ingestion is not currently supported.
 
 ### 2.6 Downloads and Automatic Ingestion
 
-| ID | Feature | Delivery | Planning | Coverage / Details | First release |
+| ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| D01 | Connect to qBittorrent and validate configuration and download-path mappings | Complete | — | [Private client settings and validated path mapping](#delivery-notes-d) | 1.0.0 |
-| D02 | Submit releases, persist task associations, and prevent duplicate submissions | Complete | — | [Durable requests, deduplication and submission recovery](#delivery-notes-d) | 1.0.0 |
-| D03 | Display acquisition state, progress and errors | Complete | — | [Detail Activity; transfer details in qBittorrent WebUI](#delivery-notes-d) | 1.0.0 |
-| D04 | Manage downloads and recover acquisitions | Complete | — | [WebUI transfer controls; Anishelf acquisition recovery](#delivery-notes-d) | 1.0.0 |
-| D05 | Check completed files, scan them, and associate them with episodes | Complete | — | [File verification, association/Review and import retry](#delivery-notes-d) | 1.0.0 |
-| D06 | Recover from disconnections, externally removed tasks, and server restarts | Complete | — | [Restart reconciliation and external-removal suppression](#delivery-notes-d) | 1.0.0 |
-| D07 | Distinguish task cancellation, downloaded-data deletion, and library-record removal | Complete | — | [Separate WebUI task/data deletion and Catalog actions](#delivery-notes-d) | 1.0.0 |
 | D08 | Support multiple download clients | Not started | Optional | — | — |
 | D11 | Configure seeding policies | Not started | Optional | — | — |
 | D12 | Configure download bandwidth schedules | Not started | Optional | — | — |
 | D13 | Configure download storage policies | Not started | Optional | — | — |
-| D09 | Download an individual episode without creating a subscription | Complete | — | [Single-episode automatic acquisition](#delivery-notes-d) | 1.4.0 |
-| D10 | Obtain and display download progress from the download client | Complete | — | [Compact episode progress and scoped task details](#delivery-notes-d) | 1.4.0 |
-
-#### Delivery Notes (D)
-
-- **D01:** Private connection settings, connection test and one root/path mapping with incomplete-directory validation; actual shared visibility verified during import.
-- **D02:** Saved acquisition requests, duplicate prevention, per-anime placement and recovery from uncertain submissions.
-- **D03:** Compact episode status and scoped task details; real percentage and import states; speed/seeding details in WebUI.
-- **D04:** Transfer pause/resume/removal delegated to WebUI; scoped acquisition/import retries in Anishelf.
-- **D05:** Safe file verification, library refresh, episode association/Review and independent import retry.
-- **D06:** Stale observations, durable bindings, restart reconciliation and external-removal suppression.
-- **D07:** Task/data deletion in WebUI, Catalog decisions in existing local workflows; deletion never triggers automatic re-adding.
-- **D09:** Missing regular episodes expose a direct Download action. One explicit request uses global release preferences without waiting, persists independently of subscriptions, and follows verified ingestion. Empty or failed discovery requires explicit retry through episode task details.
-- **D10:** Episode rows show actual reported download percentages and compact acquisition states. Scoped task details retain verification/import stages, errors and recovery; subscription details retain discovery and configuration diagnostics.
-
-Users manage transfer pause, resume and removal in qBittorrent WebUI. Anishelf
-provides acquisition status, recovery and verified library ingestion from work
-details. A global download-management page is outside the delivered scope.
-
-#### Individual episode downloads and progress (D09–D10)
-
-Missing regular episodes expose a direct **Download** action.
-Accept and persist the request before background discovery. Use the global release
-requirements and ranking, bypassing preference waiting periods, to select one
-currently available matching release across configured sites. Do not ask users to
-choose a publication or create, enable or alter a subscription. Completed discovery
-without a usable release stops with an actionable reason and an explicit episode-task
-retry; it does not continuously monitor for new publications. Downloads retain the
-existing deduplication, submission reconciliation and verified-ingestion workflow.
-
-Local and remote details share an aired-episode timeline. Preserve playable local
-files, including specials, but hide other episode placeholders unless metadata or
-broadcast records establish that they have aired. Unknown totals use the confirmed
-aired range; unknown broadcast progress does not create empty slots. Hide future
-per-episode broadcast records as well. Stale or failed refreshes preserve confirmed
-rows without advancing them, and open details refresh at known airtimes. Available
-local episodes do not show the acquisition command.
-
-Obtain progress from the download client and keep the displayed information updated
-while downloads are active. Show actual reported progress rather than inferring it
-from elapsed time or acquisition state. If progress is unavailable or the client
-cannot be reached, distinguish unknown or stale information from current progress.
-Distinguish a completed transfer from subsequent verification and library ingestion;
-a completed download alone does not mean the resource is available in the library.
 
 ### 2.7 Desktop and Other Clients
 
-| ID | Feature | Delivery | Planning | Coverage / Details | First release |
+| ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| C01 | Generate a transferable original-media URL or single-file M3U playlist for manual opening in an external player | Complete | — | [—](#delivery-notes-c) | 0.2.0 |
-| C02 | Invoke platform-compatible external players through browser protocol links; manage browser-local custom URL templates in Settings | Complete | — | — | 0.2.1 |
 | C03 | Read external-player state when the selected integration exposes it, including playing/paused state, position, and playback end | Not started | Optional | Browser invocation reads no native state | — |
 | C04 | Control desktop playback, pause, and seeking from the Web | Not started | Later | — | — |
 | C05 | Continue viewing between Web and desktop using saved positions | Not started | Later | — | — |
@@ -607,10 +237,6 @@ a completed download alone does not mean the resource is available in the librar
 | C14 | Mobile offline viewing | Not started | Optional | — | — |
 | C12 | Casting | Not started | Optional | — | — |
 
-#### Delivery Notes (C)
-
-- **C01:** **Release record:** 0.2.0 (media URL); 0.2.1 (M3U).
-
 Desktop clients should provide library management and acquisition alongside playback;
 mobile clients prioritize touch-friendly browsing and playback. Both require an
 authenticated server connection for server-backed operations. Cross-client progress
@@ -622,77 +248,37 @@ A TV application is outside the planned scope.
 The proposed implementation and staged validation are in the
 [future client design](development/clients.md).
 
-#### External-Player Media Links (C01)
-
-See the [archived V2 requirements and design](history.md#v2-requirements).
-
 ### 2.8 External Tracking Services
 
-| ID | Feature | Delivery | Planning | Coverage / Details | First release |
+| ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| T01 | Authorize AniList, display the connected account, check connectivity, and disconnect | Complete | — | [Account confirmation, private credentials and reconnection](#delivery-notes-t) | 0.4.0 |
-| T02 | Read, cache and refresh the connected account's AniList lists and viewing state | Complete | — | [Account-scoped snapshots and unified Library state](#delivery-notes-t) | 0.4.0 |
-| T03 | Reuse existing work/episode mappings to submit viewing progress and tracking-status updates to AniList | Complete | — | Manual updates and mapped automatic episode completion | 0.4.0 |
-| T04 | Persist pending updates, coalesce superseded updates, retry failures, report expired authorization, and show results | Complete | — | Manual and playback updates retained across failures and restart | 0.4.0 |
-| T05 | Detect remote changes before retrying pending updates and resolve conflicts without silently overwriting newer state | Complete | — | [Conflict checks; upstream read/write race remains](#delivery-notes-t) | 0.4.0 |
 | T06 | Connect and synchronize multiple tracking services | Not started | Optional | — | — |
 | T07 | Synchronize ratings with tracking services | Not started | Optional | — | — |
 | T08 | Support advanced rewatch synchronization | Not started | Optional | — | — |
 
-#### Delivery Notes (T)
-
-- **T01:** Token preview/confirmation, private credentials and safe account reconnection.
-- **T02:** Complete account-scoped snapshots, stale/error feedback, unified local/remote Library and viewing-state details.
-- **T05:** For manual and playback commands; upstream read/write race remains.
-
-#### AniList Accounts: Delivered Scope
-
-AniList is the viewing-state authority. The delivered scope includes account connection, cached list access, progress/status submissions, durable retries and remote-conflict handling. It reuses existing work/episode mappings and keeps local playback history independent. Independent local tracking, list import/export and reimport merging are excluded.
-
-[Archived AniList accounts requirements](history.md#anilist-accounts-requirements) retain the completed scope and consistency rules. Current implementation ownership is maintained in [Architecture](development/architecture.md).
-
 ### 2.9 Interface, Settings, and Maintenance
 
-| ID | Feature | Delivery | Planning | Coverage / Details | First release |
+| ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
 | O03 | Dashboard for continued viewing, new episodes, downloads, and exceptions | Not started | Later | — | — |
-| O04 | Unified settings for directories and integrations | Complete | — | [Shared Settings for resources, playback and integrations](#delivery-notes-o) | 1.0.3 |
 | O05 | Task history, logs, and automation decision explanations | Partial | Later | [Acquisition activity and diagnostics; broader history pending](#delivery-notes-o) | 1.0.0 |
 | O06 | Back up and restore metadata, viewing history, and configuration | Not started | Later | — | — |
-| O07 | LAN access, single-user authentication, and credential protection | Complete | — | [Password access, protected sessions and media links](#delivery-notes-o) | 0.3.3 |
-| O08 | In-app completion and failure feedback | Complete | — | Scan result Toasts and preparation results in the floating task monitor | 0.2.0 |
 | O09 | Support multiple users and permissions | Not started | Optional | — | — |
-| O11 | Log rotation and retention | Complete | — | Size/time rotation and archive retention; live file reopening excluded | 0.2.6 |
-| O12 | Configure diagnostic log output destinations | Complete | — | [stdout, file or both; automatic recovery excluded](#delivery-notes-o) | 0.2.6 |
-| O13 | Write diagnostic logs and close output on shutdown | Complete | — | [Diagnostic output closed on normal shutdown](#delivery-notes-o) | 0.2.6 |
-| O14 | Interface localization and language preferences | Complete | — | [English/Chinese UI with browser-local language preference](#delivery-notes-o) | 0.2.0 |
-| O15 | Keep displayed server data responsive and consistent | Complete | — | — | 0.2.0 |
-| O17 | Unified configuration | Complete | — | Consistent defaults and validated user overrides; built-in cache budget | 0.2.0 |
-| O18 | User-editable prepared-media cache budget | Complete | — | Settings control, validation and persisted disk-space limit | 0.2.6 |
 | O19 | In-app editor for hand-written configuration files | Not started | Later | [Draft, validate and save supported custom profiles](#delivery-notes-o) | — |
 | O20 | Hot reload acquisition profile configuration | Not started | Later | [Validate and activate acquisition profiles without restart](#delivery-notes-o) | — |
-| O21 | Remote deployment without a repository checkout | Complete | — | [Flag-driven Docker/Podman deployment without checkout](#delivery-notes-o) | 1.0.0 |
 | O22 | View the changelog within the application | Not started | Later | [In-app changelog](#in-app-changelog-o22) | — |
+
+#### Proposed feature work
+
+| ID | Item | Delivery | Status | Details | First release |
+| --- | --- | --- | --- | --- | --- |
+| WI07 | Dynamically load configuration | — | Unassigned | Define which configuration is loaded dynamically and when changes take effect. Acquisition profile hot reload is already described under O20; determine whether this proposal extends that scope. | — |
 
 #### Delivery Notes (O)
 
-- **O04:** Shared Settings sections for resource roots, playback/manual and automatic preparation, external players, acquisition services, tracking account, security and About. **Release record:** 1.0.3 (settings scope).
 - **O05:** **Delivered:** Durable per-anime acquisition activity, decision reasons, safe correlated logs and terminal-detail retention. **Remaining:** Broader product history. **Release record:** 1.0.0 (acquisition; partial).
-- **O07:** Single-password access, persistent sign-in, protected mutations, login limits, local recovery and 24-hour file-specific media links; secure sessions through an HTTPS proxy. **Release record:** 0.3.3; 1.0.1 (secure proxy sessions).
-- **O12:** **Delivered:** stdout/file/both routing. **Excluded:** automatic log-output fallback and destination recovery after failure; these are outside the current scope, not planned remainder. **Release record:** 0.2.6; 1.0.0 (simplified).
-- **O13:** **Delivered:** diagnostic log output with normal-shutdown closure. **Excluded:** guaranteed bounded buffering and loss accounting; these are outside the current scope, not planned remainder. **Release record:** 0.2.6; 1.0.0 (simplified; partial).
-- **O14:** English and Simplified Chinese, browser language detection, language selection and browser-local preference. **Release record:** 0.2.0 (English foundation); 1.2.0 (Simplified Chinese and selection).
 - **O19:** Edit and validate supported custom profile files, including acquisition and transcode profiles.
 - **O20:** Validate and activate acquisition-profiles.yaml changes without restarting Backend; retain the last valid configuration on reload failure.
-- **O21:** Non-interactive flag-driven Docker/Podman deployment, optional services and advanced settings, generated configuration and health feedback. **Release record:** 1.0.0; 1.1.0 (deployment refactor).
-
-#### User-editable Prepared-media Cache Budget (O18)
-
-Allow users to configure and persist a disk-space limit for generated media copies
-through Settings. Preserve the choice across upgrades and enforce it for subsequent
-preparation. Account for retained in-use copies and distinguish cache exhaustion
-from insufficient disk space. Lowering the limit must not silently delete existing
-copies; provide explicit cleanup. Preserve originals, history and settings.
 
 #### Configuration File Editor (O19)
 
@@ -722,51 +308,19 @@ reservations and submitted tasks; reloading must not grant acquisition permissio
 or change a subscription's selected source. Preserve existing per-episode waiting
 history when the effective profile policy is unchanged. Current acquisition profiles are loaded only at startup.
 
-#### Unified Configuration (O17)
-
-See the [archived V2 requirements and design](history.md#v2-requirements).
-
-#### Interface Localization (O14)
-
-- Introduce translation resources for interface labels, status messages, and user-facing errors, with English as the default and fallback language.
-- Allow users to select a supported language and persist that preference.
-- Keep API field names, error codes, resource IDs, and original filenames unchanged across languages.
-
-The Web interface supports English and Simplified Chinese. A saved browser-local preference takes precedence; otherwise the browser's preferred languages select a supported language, with English as the fallback. Users can change the language from the header. The completed anime-library iteration separately delivers program metadata (M07): preserve available language-tagged titles, aliases and descriptions, original language and stable IDs, using exact locale, base language, original language and deterministic available-value fallback.
-
 #### In-app Changelog (O22)
 
 Let users open the changelog within the application and read release notes grouped
 by version, including the installed version and available earlier releases. The
 display must identify the installed version and make clear when its release notes
-are unavailable. Keep release notes consistent with the project's changelog and
-make them accessible without requiring an external website.
-
-#### Frontend State and Caching (O15)
-
-Keep resource listings, scan status and settings responsive and consistent after
-changes. Reuse available data where appropriate while showing loading, refresh and
-error feedback. A failed refresh must not present cached data as current. Navigation
-and background refresh must not discard local input or disrupt playback. Cache
-libraries, keys and invalidation mechanisms belong in
-[frontend architecture](development/architecture.md#frontend-ownership).
-
-#### Notification Delivery Boundary (O08)
-
-Provide in-app feedback for scan completion/failure, successful actions and failed
-requests. Preparation work exposes progress and completion/failure results. Feedback
-must remain discoverable without requiring duplicate notifications for one result.
-Presentation follows the [design system](development/design-system.md).
+are unavailable. Fetch release notes from the project's GitHub changelog and display
+them within the application without requiring users to visit an external website.
+Show loading and retrieval failure states and allow retry; if cached notes are shown
+after a failed refresh, identify them as potentially outdated.
 
 #### Logging Maintenance (O11–O13)
 
-Support stdout, file or simultaneous output with configurable log levels, timestamps,
-structured diagnostic context and secret redaction. File output supports rotation
-and retention. Failures must produce an actionable diagnostic. Automatic destination
-recovery, record fallback and guaranteed loss accounting are outside the current scope.
-Library selection, buffering and shutdown behavior belong in
-[development logging](development/README.md#logging-choice); configuration and recovery
-instructions belong in [Operations](guide/operations.md#operational-log-levels).
+See [implemented requirements](implemented-requirements.md#logging-maintenance-o11o13).
 
 ## 3. Rules for Future Features
 
@@ -784,44 +338,61 @@ Unassigned features do not become dependencies of selected work.
 - **Reject stale events:** delayed player updates must not overwrite newer progress or manual corrections.
 - **Validate compatibility:** browser, codec, subtitle, and hardware support must be demonstrated with real media samples.
 
-## 4. Release Plan and Suggested Evolution
+## 4. Improvements
 
-V1 is implemented. The archived V2 scope selected saved progress and resume (W01), History (W02), external/styled subtitles and embedded extraction (P03 and partial P08/P09), FFmpeg pre-transcoding (P05–P07), and transferable external-player media links (C01). Web playback remains the primary path. C02 now provides platform-filtered browser invocation and browser-local custom players; C03 native state reading remains a later requirement; other unselected items remain unassigned. Automatic next-episode playback was outside V2; P11 is now implemented as a separate extension.
+These entries improve existing capabilities. Feature IDs retain their original
+status and delivery information; work IDs track specific proposed changes. All
+item tables use the same columns, with `—` where a value is not recorded or applicable.
+Details and acceptance criteria may be refined as decisions are made.
 
-| Stage | Question to resolve | Priority candidates |
-| --- | --- | --- |
-| Completed: anime library | Confirmed anime and episode library from existing files; requirements complete | L07–L10, M01–M05, M07 archived |
-| Completed: AniList accounts | AniList-owned viewing state, unified progress/status commands and recoverable submission | W03–W05, T01–T05 archived |
-| Completed: automatic acquisition | Watching creates ordinary subscriptions with background discovery, scoped downloads and verified ingestion; compact work-detail UI | S01–S08, S10–S12, D01–D07; requirements/design archived on 2026-10-24; S09 and S13–S15 remain partial or optional |
-| Optional tracking extensions | Are additional tracker capabilities needed? | T06–T08; possible future read-only native-player state reporting (C03) |
+| ID | Item | Delivery | Status | Details | First release |
+| --- | --- | --- | --- | --- | --- |
+| L16 | Improve matching using representative real-world failure cases | Not started | Later | — | — |
+| M09 | Improve Chinese title availability using Bangumi | Not started | Unassigned | [Chinese title fallback](#chinese-title-fallback-m09) | — |
+| P26 | Improve transcoding progress display | Not started | Unassigned | [Transcoding progress](#transcoding-progress-p26) | — |
 
-The anime-library, AniList accounts and automatic-acquisition iterations are complete
-and archived. No next active iteration or next release number is selected. Playback enhancements such as HLS and broader subtitle compatibility remain separate
-candidates. P11 adds navigation within the current confirmed work and opt-in automatic
-continuation, independently of AniList viewing state. Select one independently verifiable user workflow
-before promoting future requirements into an active iteration. AniList remains the
-viewing-state authority; an independent local tracking/import workflow is not selected.
+#### Matching Improvements from Real Failures (L16)
 
-Library automation improvements L15–L17 remain future, unassigned work and do not displace core workflows. Their suggested order is Batch Review, matching improvements from representative real failures, then learning from manual corrections. Batch correction provides immediate user control; broader automatic reuse follows only after its evidence and conflict boundaries are validated.
+Collect representative local failure cases with user-confirmed expected works and episode mappings, preserving filename, directory and release provenance. Diagnose extraction, candidate retrieval, ranking, numbering and admission separately. Prioritize recurring failures such as shortened titles, season/part ambiguity, continuous numbering and end-of-series markers; do not lower admission thresholds solely to improve corpus coverage.
 
-Per-episode metadata and detail-page episode titles (M08) remain Later/Unassigned.
-No active iteration or release version is selected for this capability; existing
-metadata and anime-library delivery records remain unchanged.
+#### Chinese Title Fallback (M09)
 
-### Single-user authentication
+Improve Chinese title presentation when the preferred metadata lacks a Chinese title.
+Obtain an available Chinese title from Bangumi for the same work and display it when
+Chinese is preferred. Reuse confirmed cross-provider associations; a candidate must
+not be treated as the same work solely because its title is similar. If identity is
+uncertain, leave it unresolved rather than displaying another work's title. Preserve
+the original titles, source information and existing user corrections. When Bangumi
+has no Chinese title or is unavailable, use the existing title fallback and keep
+cached browsing and playback available.
 
-Authentication is enabled for every deployment. First-time setup provides a random
-initial password once, without requiring an immediate change. Existing credentials
-are preserved. Invalid credentials or unavailable credential storage fail closed. Users can sign in/out and change the
-password with their current password; local CLI or manual credential replacement
-provides recovery without Web access. All sessions and media links become invalid
-after password change, or after restart for manual edits. Plaintext passwords do
-not enter persistent application logging or settings APIs.
+#### Transcoding Progress (P26)
 
-Application data and media require authorization, including partial media access.
-State-changing actions must be protected against cross-site request forgery. External-player and M3U links authorize only one
-original file version for 24 hours and survive restart. Invalid, expired,
-wrong-file or changed-source links are rejected. Browser logout/expiry clears
-private browser data and exits playback. HTTPS deployment must preserve authentication
-for media access. Technical authentication and proxy design belong in
-[Architecture](development/architecture.md#authentication-boundary).
+Make manual and automatic transcoding progress easy to understand in the task
+monitor. Identify the affected media and show whether the task is queued, running,
+completed, failed or cancelled. While running, show available progress and estimated
+remaining time when reliable; otherwise indicate that progress or the estimate is
+unavailable rather than presenting a misleading value. Keep progress current, show
+failure and recovery information, and retain access to applicable task actions.
+The display must remain usable on desktop and narrow screens.
+
+### Proposed improvement work
+
+| ID | Item | Delivery | Status | Details | First release |
+| --- | --- | --- | --- | --- | --- |
+| WI01 | Review tracking-service completion error feedback | — | Unassigned | For “Could not load or update the tracking service completion.”, decide whether to use a dialog or display the error directly, and consider recovery. | — |
+| WI02 | Restore display of the full episode count for airing works | — | Unassigned | Clarify the affected display and expected behavior when the total count is unavailable. | — |
+| WI03 | Improve download searches with multiple matching results | — | Unassigned | Determine how multiple eligible results should be handled and presented. | — |
+| WI05 | Redesign automatic subscription management interaction | — | Unassigned | Review the existing interaction and define the desired workflow. | — |
+| WI06 | Move the Bundled label below the Settings title | — | Unassigned | Confirm the affected settings view and placement. | — |
+| WI08 | Add a built-in compatibility-first preset for automatic subscription configuration | — | Unassigned | Define preset settings and selection behavior. | — |
+| WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
+
+## 5. Bugs
+
+Reported bugs may require reproduction and confirmation. Record observed and expected
+behavior, impact, reproduction conditions and verification evidence as they become known.
+
+| ID | Item | Delivery | Status | Details | First release |
+| --- | --- | --- | --- | --- | --- |
+| WI04 | Progress is not updated during try playback | — | Unassigned | Reported even when playback succeeds; confirm reproduction and define expected progress behavior. | — |
