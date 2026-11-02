@@ -151,3 +151,36 @@ test("release assessment uses leaf evidence only and skips identity, season, pac
 	);
 	expect(extraction.inputs.map((input) => input.mode)).toEqual(["basename"]);
 });
+
+test("release assessment shares corroborated numeric metadata matching with local identification", () => {
+	const sequel = {
+		...target,
+		work: {
+			...target.work,
+			titles: ["Cyberpunk: Edgerunners 2"],
+			titleVariants: [
+				{
+					value: "Cyberpunk: Edgerunners 2",
+					kind: "primary" as const,
+					language: "en",
+				},
+			],
+			episodeCount: 10,
+		},
+	};
+	expect(
+		assessor.assessReleaseTitle(
+			"[Judas] Cyberpunk Edgerunners - S02E08 [1080p]",
+			sequel,
+		),
+	).toMatchObject({ eligible: true, episode: 8 });
+	for (const title of [
+		"Cyberpunk Edgerunners - S03E08",
+		"Cyberpunk Edgerunners - S02E11",
+		"Cyberpunk Edgerunners - 08",
+		"Other Anime - S02E08",
+	])
+		expect(assessor.assessReleaseTitle(title, sequel).eligible, title).toBe(
+			false,
+		);
+});

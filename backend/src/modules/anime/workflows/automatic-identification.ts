@@ -231,6 +231,22 @@ export class AutomaticIdentificationCoordinator {
 							signal,
 						)),
 					);
+				for (const result of results) {
+					const best = result.proposals[0]?.candidate;
+					this.options.logger.debug(
+						{
+							event: "identification.candidate_evaluated",
+							fileId: result.source.fileId,
+							seasons: result.evidence.seasons,
+							reference: best?.work.reference,
+							score: best?.score,
+							conflicts: best?.conflicts,
+							assumptions: best?.assumptions,
+							matcherVersion: identificationDefaults.matcherVersion,
+						},
+						"Local identification candidate evaluated.",
+					);
+				}
 				parsed += sources.length;
 			}
 			for (const source of sources)
@@ -282,6 +298,10 @@ export class AutomaticIdentificationCoordinator {
 				metadataFailed: publication.filter(
 					(result) => result.metadataStatus === "failed",
 				).length,
+				identityUnresolved: publication.filter(
+					(result) => result.proposals[0]?.candidate.identityUnresolved?.length,
+				).length,
+				matcherVersion: identificationDefaults.matcherVersion,
 				elapsedMs: Math.round(performance.now() - started),
 			},
 			"Automatic local identification completed.",

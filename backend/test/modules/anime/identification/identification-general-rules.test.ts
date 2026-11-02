@@ -74,6 +74,23 @@ test("metadata title grammar preserves numbers and language words", () => {
 	expect(normalizeTitle("夢想的旅程")).toBe(normalizeTitle("梦想的旅程"));
 	expect(matchingTitle("OceanxJourney", "Ocean × Journey")).toBe(true);
 });
+
+test("a metadata trailing number needs both matching title and explicit season evidence", () => {
+	expect(
+		matchingTitle("Cyberpunk Edgerunners", "Cyberpunk: Edgerunners 2", ["02"]),
+	).toBe(true);
+	expect(
+		matchingTitle("Cyberpunk Edgerunners", "Cyberpunk: Edgerunners 2"),
+	).toBe(false);
+	expect(
+		matchingTitle("Cyberpunk Edgerunners", "Cyberpunk: Edgerunners 2", ["3"]),
+	).toBe(false);
+	expect(matchingTitle("Cyberpunk", "Cyberpunk: Edgerunners 2", ["2"])).toBe(
+		false,
+	);
+	expect(matchingTitle("Mob Psycho", "Mob Psycho 100", ["1"])).toBe(false);
+	expect(matchingTitle("Mob Psycho 100", "Mob Psycho 100", ["1"])).toBe(true);
+});
 test("explicit parts match and contradictions remain pending", async () => {
 	const results = await identify(
 		["Ocean Part 2 - 01.mkv"],

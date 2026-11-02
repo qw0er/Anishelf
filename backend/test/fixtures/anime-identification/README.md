@@ -21,14 +21,15 @@ copy, use a new `.anime-corpus.local` directory in the repository; `*.local` is
 already ignored by Git. Point a separate test instance's resource root at the
 output to browse it. Do not change the main instance's root just to run tests.
 
-The generated library has 419 placeholder files: 369 individual file cases and
-50 files in fifteen curated scenario layouts. Thirty-eight release-title cases are text-only
+The generated library has 429 placeholder files: 369 individual file cases,
+50 files in fifteen curated scenario layouts, and 10 user-reported reproduction
+files. Thirty-eight release-title cases are text-only
 inputs and are not materialized. `fixture-manifest.json` maps generated paths to
 case IDs and marks the library `playable: false`.
 
 Three added filename inputs use TS/M2TS extensions. They are retained for
 identification evaluation, but the current scanner whitelist skips them; only
-416 generated video paths are supported by the scanner. Subtitle-only and other ancillary inventory records remain
+426 generated video paths are supported by the scanner. Subtitle-only and other ancillary inventory records remain
 in the Nyaa capture without being materialized as fake videos.
 
 **Placeholders are not videos.** They validate filesystem discovery and naming,
@@ -54,6 +55,12 @@ count. No expected answer filters candidates, no Bangumi aliases are injected,
 and no series ordinal is invented. This measures ranking and admission with a
 fixed candidate universe, not AniList search recall, network behavior, or database
 confirmation. The existing Catalog tests cover persistence separately.
+
+The report also includes a separate `reported` section for the versioned
+[user-reported reproductions](reported-cases.json). These run the same production
+parser, ranking, mapping and admission logic with the candidate metadata captured
+in each report. They are not included in the 419 provider-verified inputs above.
+The command fails if a reported reproduction no longer meets its expectations.
 
 The report includes ranked candidates, scores, conflicts, mapping targets,
 admission blockers, missed matches and unexpected admissions. Bangumi continuous
@@ -85,8 +92,21 @@ evidence and need investigation.
 | Total identification cases | 407 | Each has an ID, expectations, tags, requirements and rationale |
 | Directory scenarios | 15 | Curated layouts and pending application-level acceptance assertions |
 | Provider snapshots | 20 | One projected Bangumi/AniList pair per work |
+| User-reported reproduction files | 10 | One independently versioned terminal/screenshot sample; fixture-local work keys and season-local expectations |
 
 - [corpus.json](corpus.json) owns sources, cases, expected results and scenarios.
+- [reported-cases.json](reported-cases.json), version `2026-11-02.1`, preserves
+  user-reported samples with incomplete provider provenance. The Cyberpunk
+  Edgerunners sample retains the exact Judas directory and all ten `S02E01`–`S02E10`
+  filenames, including `S02E06..mkv`. Candidate names, years and formats come from
+  the supplied Review screenshot. Counts remain unknown; work keys are local to
+  the fixture. Expectations check title/season corroboration and filename-local
+  episode slots, without claiming verified provider IDs, episode catalogs or media
+  contents. Same-title screenshot entries are collapsed for this matching
+  reproduction; production still requires review for tied independent identities.
+  The identification season regression test loads this fixture as one sibling
+  batch. Generation places its files under `reported/<scenario-id>/` and records
+  `reportedCorpusVersion` in the manifest.
 - [Catalog](catalog.md) links each work to both providers and its offline snapshot.
 - `provider-snapshots/*.json` preserve selected public title/alias, language,
   format, date, count, episode and related-work fields. Bangumi and AniList remain
@@ -248,8 +268,8 @@ with no blockers. This is one successful live path, not a live recall benchmark.
 
 ## Directory scenarios and acceptance status
 
-The generator creates isolated `cases/case-<ordinal>/...` paths and
-`scenarios/<scenario-id>/...` layouts. Ordinal wrappers are neutral containers and do not disclose the expected work.
+The generator creates isolated `cases/case-<ordinal>/...`,
+`scenarios/<scenario-id>/...` and `reported/<scenario-id>/...` layouts. Ordinal wrappers are neutral containers and do not disclose the expected work.
 Adapters must use the case input path rather than infer answers from wrappers. Scenario placement is authored test context; preserve the
 individual provenance when a file is placed in a different curated directory.
 
@@ -286,6 +306,10 @@ is raw provenance for review, not an automatically approved expected answer.
    offsets and mark unsupported special/part mappings for review.
 5. Increment `version` when inputs, snapshots or answers change. Preserve case IDs
    for unchanged samples. Run the corpus test, Biome, lint and typecheck.
+
+User-reported additions increment the independent `reported-cases.json` version.
+Preserve the supplied text and describe missing provenance explicitly. Their
+expected local slots must not be presented as verified provider episode sorts.
 
 This is a curated regression corpus with repeated versions of some episodes,
 not a statistically representative random sample. It is also the initial
