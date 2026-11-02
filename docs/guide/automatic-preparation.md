@@ -19,7 +19,7 @@ The two settings are top-level fields in `<dataDir>/settings.json`:
 
 | ID | Accepted media | Encoding profile |
 | --- | --- | --- |
-| `builtin:web` | MP4/WebM; H.264 or VP9, yuv420p SDR; unrestricted audio formats | `builtin:balanced` |
+| `builtin:web` | MP4/WebM; H.264 or VP9, 8-bit or 10-bit YUV 4:2:0 SDR; unrestricted audio formats | `builtin:balanced` |
 | `builtin:web-conservative` | MP4; H.264 Baseline/Constrained Baseline/Main/High, yuv420p SDR; AAC LC | `builtin:balanced` |
 
 Both retain all audio tracks and accept all resources and viewing states. Neither
