@@ -12,6 +12,7 @@ downloads are not supported.
 | `builtin:general` (default) | 1080p/2160p after 60 minutes; 720p after 120 |
 | `builtin:efficient` | HEVC/AV1 at 1080p/2160p after 120 minutes; any codec at those resolutions after 180; 720p after 240 |
 | `builtin:chinese` | Explicit Simplified/Traditional Chinese subtitles required; 1080p/2160p after 60 minutes; 720p after 120 |
+| `builtin:compatible` | H.264/VP9 at 1080p/2160p after 60 minutes; any codec at those resolutions and 720p after 120 |
 
 Waits run from the same episode clock, not consecutively. Values within a level are
 equal preferences: 2160p does not outrank 1080p. Unknown resolution fails these

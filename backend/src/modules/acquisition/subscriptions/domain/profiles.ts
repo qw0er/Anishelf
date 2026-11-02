@@ -84,6 +84,7 @@ export const builtinAcquisitionProfiles: [
 	AcquisitionProfile,
 	AcquisitionProfile,
 	AcquisitionProfile,
+	AcquisitionProfile,
 ] = [
 	{
 		id: defaultAcquisitionProfileId,
@@ -131,6 +132,25 @@ export const builtinAcquisitionProfiles: [
 				match: { resolutions: [720] },
 				acceptAfterMinutes: 120,
 			},
+		],
+	},
+	{
+		id: "builtin:compatible",
+		name: "Compatible codecs preferred",
+		description:
+			"Wait 60 minutes for H.264 / VP9 at 1080p / 2160p; accept other codecs and 720p after 120 minutes.",
+		levels: [
+			{
+				name: "H.264 / VP9",
+				match: { resolutions, videoCodecs: ["avc", "vp9"] },
+				acceptAfterMinutes: 60,
+			},
+			{
+				name: "Other or unknown codecs",
+				match: { resolutions },
+				acceptAfterMinutes: 120,
+			},
+			{ name: "720p", match: { resolutions: [720] }, acceptAfterMinutes: 120 },
 		],
 	},
 ];

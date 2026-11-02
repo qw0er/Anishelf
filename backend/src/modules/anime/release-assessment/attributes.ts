@@ -66,7 +66,11 @@ export function releaseAttributes(
 	if (/\b(?:AVC|H[ ._-]?264|x264)\b/iu.test(terms)) codecs.add("avc");
 	if (/\b(?:HEVC|H[ ._-]?265|x265)\b/iu.test(terms)) codecs.add("hevc");
 	if (/\bAV1\b/iu.test(terms)) codecs.add("av1");
-	if (/\bVP9\b/iu.test(terms)) codecs.add("vp9");
+	if (
+		/\bVP9\b/iu.test(terms) ||
+		annotations.some((value) => /\bVP9\b/iu.test(value))
+	)
+		codecs.add("vp9");
 	if (/\bMPEG[- ]?2\b/iu.test(terms)) codecs.add("mpeg2");
 	if (/\b(?:MPEG[- ]?4|XviD|DivX)\b/iu.test(terms)) codecs.add("mpeg4");
 	const resolutions = values("video_resolution").flatMap((value) => {
