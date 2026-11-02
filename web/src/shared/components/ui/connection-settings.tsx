@@ -26,7 +26,7 @@ export function ConnectionSettings({
 }: {
 	configured: boolean;
 	label: string;
-	status: string;
+	status: ReactNode;
 	endpoint?: string | null;
 	children: ReactNode;
 	actions?: ReactNode;
@@ -39,7 +39,7 @@ export function ConnectionSettings({
 		<Collapsible open={open} onOpenChange={setOpen} className="group min-w-0">
 			<CollapsibleTrigger
 				aria-label={label}
-				className="flex cursor-pointer list-none flex-wrap items-center gap-2 rounded-md py-2 text-sm [&::-webkit-details-marker]:hidden"
+				className="flex cursor-pointer list-none items-start gap-2 rounded-md py-2 text-sm [&::-webkit-details-marker]:hidden"
 			>
 				<span className="min-w-0 flex-1">
 					<span
@@ -52,10 +52,10 @@ export function ConnectionSettings({
 						<span className="text-xs text-muted-foreground">{status}</span>
 					)}
 				</span>
-				<span className="text-muted-foreground">{label}</span>
+				<span className="shrink-0 text-muted-foreground">{label}</span>
 				<ChevronDown
 					size={16}
-					className="shrink-0 transition-transform group-data-open:rotate-180"
+					className="mt-0.5 shrink-0 transition-transform group-data-open:rotate-180"
 					aria-hidden="true"
 				/>
 			</CollapsibleTrigger>

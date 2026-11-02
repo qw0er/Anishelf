@@ -202,6 +202,7 @@ qBittorrent is a separate capability (D01–D07).
 | M05 | Cache metadata so external outages do not prevent browsing or playback | Complete | — | [Cached browsing and playback during provider outages](#delivery-notes-m) | 0.3.0 |
 | M07 | Preserve multilingual program titles, aliases and descriptions with language tags, original language and locale-independent IDs | Complete | — | Available provider language information and stable local identities; no invented translations | 0.3.0 |
 | M06 | Multiple metadata providers and cross-provider ID mapping | Partial | Unassigned | [Explicit work associations; automatic mapping and management UI pending](#delivery-notes-m) | 1.0.6 |
+| M08 | Read per-episode metadata and display episode titles on anime detail pages | Not started | Later/Unassigned | [Per-episode metadata and detail-page titles](#per-episode-metadata-m08) | — |
 
 #### Delivery Notes (M)
 
@@ -219,6 +220,27 @@ Explicit cross-source work association requires confirmation of both work identi
 Provider and parser uncertainty is handled through Review. Provider-required service access is distinct from T01–T05 personal account authorization, personal list access and viewing-state updates; basic identification must not require the user to authorize a personal tracker account.
 
 Available episode versions expose Show in Files through their file action menu. It opens the corresponding file in Files without starting playback. Multiple versions target their own files; unavailable versions expose no file commands. Detailed interaction conventions remain in the [design system](development/design-system.md).
+
+#### Per-episode Metadata (M08)
+
+Read per-episode titles, descriptions, durations and air dates according to source
+capabilities. The initial presentation displays episode titles on anime detail
+pages while retaining episode numbers; when a title is unavailable, preserve the
+existing episode label. Reading other episode fields does not require displaying
+them in the initial detail-page integration.
+
+Bangumi provides a formal episode catalog with episode identities and numbering.
+AniList provides limited streaming-episode titles and airing schedules, without a
+guaranteed reliable mapping between streaming titles and episode numbers. Treat
+missing fields and unsupported capabilities as unavailable rather than inventing
+values or assuming both sources provide equivalent episode data.
+
+Use confirmed work and episode associations when attaching metadata to local
+episodes. Uncertain correspondences remain unresolved; do not infer cross-source
+identity or numbering solely from similar titles. Cache available episode metadata
+and expose refresh status. Provider outages and refresh failures must preserve
+cached browsing and local playback, and metadata refresh must not overwrite manual
+associations or corrections.
 
 ### 2.3 Web Playback and Subtitles
 
@@ -772,6 +794,10 @@ before promoting future requirements into an active iteration. AniList remains t
 viewing-state authority; an independent local tracking/import workflow is not selected.
 
 Library automation improvements L15–L17 remain future, unassigned work and do not displace core workflows. Their suggested order is Batch Review, matching improvements from representative real failures, then learning from manual corrections. Batch correction provides immediate user control; broader automatic reuse follows only after its evidence and conflict boundaries are validated.
+
+Per-episode metadata and detail-page episode titles (M08) remain Later/Unassigned.
+No active iteration or release version is selected for this capability; existing
+metadata and anime-library delivery records remain unchanged.
 
 ### Single-user authentication
 

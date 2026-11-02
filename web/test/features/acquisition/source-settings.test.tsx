@@ -135,7 +135,10 @@ test("saves an external connection without retaining the key in UI caches, then 
 		target: { value: "nyaasi" },
 	});
 	fireEvent.click(screen.getByRole("button", { name: "Save sites" }));
-	fireEvent.click(screen.getByText("Search diagnostics"));
+	fireEvent.click(await screen.findByRole("button", { name: "Test" }));
+	expect(
+		await screen.findByRole("dialog", { name: "Search diagnostics" }),
+	).toBeTruthy();
 	await screen.findByRole("option", { name: "nyaasi" });
 	fireEvent.click(screen.getByText("Check search support"));
 	await screen.findByText(/Run a search to verify upstream access/);
@@ -290,4 +293,43 @@ test("failed background reads preserve editable connection drafts", async () => 
 	});
 	expect(screen.getByLabelText("API URL")).toBe(input);
 	expect((input as HTMLInputElement).value).toBe("http://draft:9117/");
+});
+
+test("unconfigured Jackett hides the empty service menu", async () => {
+	fixture();
+	await screen.findByLabelText("API URL");
+	expect(
+		screen.queryByRole("button", { name: "More service actions" }),
+	).toBeNull();
+	expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+test("WebUI settings save independently of API connection drafts", async () => {
+	const { request } = fixture({
+		url: "http://jackett:9117/",
+		origin: "external",
+		hasApiKey: true,
+		providers: ["nyaasi"],
+	});
+	fireEvent.click(await screen.findByLabelText("Edit connection"));
+	fireEvent.change(screen.getByLabelText("API URL"), {
+		target: { value: "http://draft:9117/" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "WebUI settings" }));
+	fireEvent.change(screen.getByLabelText("Browser URL (optional)"), {
+		target: { value: "https://jackett.example.com/" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Save" }));
+	await waitFor(() =>
+		expect(request.mock.calls.find((call) => call[1] === "PUT")?.[3]).toEqual({
+			generation: "one",
+			url: "http://jackett:9117/",
+			managementUrl: "https://jackett.example.com/",
+			origin: "external",
+			providers: ["nyaasi"],
+		}),
+	);
+	expect(screen.getByLabelText<HTMLInputElement>("API URL").value).toBe(
+		"http://draft:9117/",
+	);
 });

@@ -1030,6 +1030,8 @@
 			"moveLater": "将 {{name}} 后移",
 			"removeAria": "移除 {{name}}",
 			"remove": "移除",
+			"configured": "已配置",
+			"test": "测试",
 			"diagnostics": "搜索诊断",
 			"siteToTest": "要测试的站点",
 			"saveSiteFirst": "请先保存所选站点",
