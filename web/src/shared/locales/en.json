@@ -1026,6 +1026,8 @@
 			"moveLater": "Move {{name}} later",
 			"removeAria": "Remove {{name}}",
 			"remove": "Remove",
+			"configured": "Configured",
+			"test": "Test",
 			"diagnostics": "Search diagnostics",
 			"siteToTest": "Site to test",
 			"saveSiteFirst": "Save a selected site first",

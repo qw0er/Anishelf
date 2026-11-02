@@ -37,6 +37,12 @@ import {
 } from "../../shared/components/ui/collapsible.js";
 import { ConnectionSettings } from "../../shared/components/ui/connection-settings.js";
 import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "../../shared/components/ui/dialog.js";
+import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
@@ -123,10 +129,8 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 	const [available, setAvailable] = useState<SourceProviders>([]);
 	const [providerId, setProviderId] = useState(settings.providers[0] ?? "");
 	const [title, setTitle] = useState("");
-	const connectionChanged =
-		url !== (settings.url ?? "") ||
-		managementUrl !== (settings.managementUrl ?? "") ||
-		Boolean(apiKey);
+	const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+	const connectionChanged = url !== (settings.url ?? "") || Boolean(apiKey);
 	const sitesChanged =
 		JSON.stringify(providers) !== JSON.stringify(settings.providers);
 	const changed = connectionChanged || sitesChanged;
@@ -136,7 +140,6 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 		probe.reset();
 		search.reset();
 		setUrl(value.url ?? "");
-		setManagementUrl(value.managementUrl ?? "");
 		client.setQueryData(sourceSettingsKey, value);
 		toast.add({ type: "success", title: t("acquisition.sources.saved") });
 	};
@@ -145,7 +148,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 			saveSourceConnector({
 				generation: settings.generation,
 				url,
-				managementUrl: managementUrl.trim() || null,
+				managementUrl: settings.managementUrl ?? null,
 				origin:
 					settings.origin === "bundled" && url === settings.url
 						? "bundled"
@@ -177,10 +180,29 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 		},
 	});
 
+	const saveWebui = useMutation({
+		mutationFn: () =>
+			saveSourceConnector({
+				generation: settings.generation,
+				url: settings.url ?? "",
+				managementUrl: managementUrl.trim() || null,
+				origin: settings.origin ?? "external",
+				providers: settings.providers,
+			}),
+		onSuccess: (value) => {
+			setManagementUrl(value.managementUrl ?? "");
+			probe.reset();
+			search.reset();
+			client.setQueryData(sourceSettingsKey, value);
+			toast.add({ type: "success", title: t("acquisition.sources.saved") });
+		},
+	});
+
 	const clear = useMutation({
 		mutationFn: () => clearSourceConnector(settings.generation),
 		onSuccess: (value) => {
 			saved(value);
+			setManagementUrl(value.managementUrl ?? "");
 			setProviders(value.providers);
 		},
 	});
@@ -189,6 +211,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 			activateBundledSourceConnector(settings.generation, initializeSite),
 		onSuccess: (value) => {
 			saved(value);
+			setManagementUrl(value.managementUrl ?? "");
 			setProviders(value.providers);
 		},
 	});
@@ -215,6 +238,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 			}),
 	});
 	const busy =
+		saveWebui.isPending ||
 		save.isPending ||
 		saveSites.isPending ||
 		clear.isPending ||
@@ -223,6 +247,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 		probe.isPending ||
 		search.isPending;
 	const error =
+		saveWebui.isError ||
 		save.isError ||
 		saveSites.isError ||
 		clear.isError ||
@@ -285,7 +310,6 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				<ConnectionSettings
 					onCancel={() => {
 						setUrl(settings.url ?? "");
-						setManagementUrl(settings.managementUrl ?? "");
 						setApiKey("");
 					}}
 					actions={
@@ -299,46 +323,63 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 						/>
 					}
 					menu={
-						<DropdownMenu>
-							<DropdownMenuTrigger
-								render={
-									<Button
-										type="button"
-										variant="ghost"
-										aria-label={t("acquisition.connection.more")}
-									/>
-								}
-							>
-								<MoreHorizontal size={16} />
-							</DropdownMenuTrigger>
-							<DropdownMenuContent>
-								{settings.bundledAvailable && (
-									<DropdownMenuItem
-										disabled={busy}
-										onClick={() => bundled.mutate(false)}
-									>
-										<Package size={16} aria-hidden="true" />
-										{t("acquisition.sources.useBundled")}
-									</DropdownMenuItem>
-								)}
-								{settings.url && (
-									<DropdownMenuItem
-										disabled={busy}
-										onClick={() => clear.mutate()}
-									>
-										<Unplug size={16} aria-hidden="true" />
-										{t("acquisition.sources.disconnect")}
-									</DropdownMenuItem>
-								)}
-							</DropdownMenuContent>
-						</DropdownMenu>
+						settings.bundledAvailable || settings.url ? (
+							<DropdownMenu>
+								<DropdownMenuTrigger
+									render={
+										<Button
+											type="button"
+											variant="ghost"
+											aria-label={t("acquisition.connection.more")}
+										/>
+									}
+								>
+									<MoreHorizontal size={16} />
+								</DropdownMenuTrigger>
+								<DropdownMenuContent>
+									{settings.bundledAvailable && (
+										<DropdownMenuItem
+											disabled={busy}
+											onClick={() => bundled.mutate(false)}
+										>
+											<Package size={16} aria-hidden="true" />
+											{t("acquisition.sources.useBundled")}
+										</DropdownMenuItem>
+									)}
+									{settings.url && (
+										<DropdownMenuItem
+											disabled={busy}
+											onClick={() => clear.mutate()}
+										>
+											<Unplug size={16} aria-hidden="true" />
+											{t("acquisition.sources.disconnect")}
+										</DropdownMenuItem>
+									)}
+								</DropdownMenuContent>
+							</DropdownMenu>
+						) : null
 					}
 					endpoint={settings.url}
 					configured={
 						Boolean(settings.url) && settings.hasApiKey && !settings.error
 					}
 					label={t("acquisition.sources.connectionSettings")}
-					status={status}
+					status={
+						<>
+							<span>{status}</span>
+							{settings.url && (
+								<span>
+									{" "}
+									·{" "}
+									{t(
+										settings.ready
+											? "acquisition.sources.configured"
+											: "acquisition.connection.unconfigured",
+									)}
+								</span>
+							)}
+						</>
+					}
 				>
 					<Field className="flex flex-col gap-2 sm:col-span-2">
 						<FieldHeading
@@ -383,32 +424,58 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							onChange={(event) => setApiKey(event.target.value)}
 						/>
 					</div>
-					<div className="flex flex-col gap-2">
-						<div className="field-heading justify-between">
-							<label className="field-label" htmlFor="source-management-url">
-								{t("acquisition.sources.managementUrl")}
-							</label>
-							<FieldHelp
-								label={
-									t("acquisition.sources.managementUrl") +
-									" · " +
-									t("actions.help")
-								}
-								help={t("acquisition.sources.managementHelp")}
-							/>
-						</div>
-						<Input
-							id="source-management-url"
-							type="url"
-							maxLength={2048}
-							placeholder="http://localhost:9117/"
-							value={managementUrl}
-							disabled={busy}
-							onChange={(event) => setManagementUrl(event.target.value)}
-						/>
-					</div>
 				</ConnectionSettings>
 			</form>
+			<Collapsible className="border-t pt-4">
+				<CollapsibleTrigger className="cursor-pointer text-sm font-medium">
+					{t("acquisition.webui.settings")}
+				</CollapsibleTrigger>
+				<CollapsibleContent keepMounted>
+					<form
+						className="flex flex-col gap-3 pt-4"
+						onSubmit={(event) => {
+							event.preventDefault();
+							saveWebui.mutate();
+						}}
+					>
+						<div className="flex flex-col gap-2">
+							<div className="field-heading justify-between">
+								<label className="field-label" htmlFor="source-management-url">
+									{t("acquisition.sources.managementUrl")}
+								</label>
+								<FieldHelp
+									label={
+										t("acquisition.sources.managementUrl") +
+										" · " +
+										t("actions.help")
+									}
+									help={t("acquisition.sources.managementHelp")}
+								/>
+							</div>
+							<Input
+								id="source-management-url"
+								type="url"
+								maxLength={2048}
+								placeholder="http://localhost:9117/"
+								value={managementUrl}
+								disabled={busy}
+								onChange={(event) => setManagementUrl(event.target.value)}
+							/>
+						</div>
+						<ActionButton
+							icon={Save}
+							label={t("acquisition.webui.save")}
+							type="submit"
+							disabled={
+								busy ||
+								!settings.url ||
+								managementUrl === (settings.managementUrl ?? "")
+							}
+						/>
+					</form>
+				</CollapsibleContent>
+			</Collapsible>
+
 			{(settings.managementUrl ||
 				(settings.origin === "bundled" &&
 					settings.bundledSetup === "manual")) && (
@@ -454,14 +521,23 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							</p>
 						)}
 					</div>
-					<ActionButton
-						icon={RefreshCw}
-						label={t("acquisition.sources.testAndLoad")}
-						shortLabel={t("acquisition.sources.loadSites")}
-						variant="outline"
-						disabled={!canTest}
-						onClick={() => list.mutate()}
-					/>
+					<div className="action-row">
+						<ActionButton
+							icon={PlugZap}
+							label={t("acquisition.sources.test")}
+							variant="outline"
+							disabled={!canTest || !settings.providers.length}
+							onClick={() => setDiagnosticsOpen(true)}
+						/>
+						<ActionButton
+							icon={RefreshCw}
+							label={t("acquisition.sources.testAndLoad")}
+							shortLabel={t("acquisition.sources.loadSites")}
+							variant="outline"
+							disabled={!canTest}
+							onClick={() => list.mutate()}
+						/>
+					</div>
 				</div>
 				{providers.length > 0 ? (
 					<ul
@@ -587,11 +663,11 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				)}
 			</section>
 
-			<Collapsible className="min-w-0 border-t pt-4">
-				<CollapsibleTrigger className="cursor-pointer text-sm font-medium">
-					{t("acquisition.sources.diagnostics")}
-				</CollapsibleTrigger>
-				<CollapsibleContent keepMounted>
+			<Dialog open={diagnosticsOpen} onOpenChange={setDiagnosticsOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{t("acquisition.sources.diagnostics")}</DialogTitle>
+					</DialogHeader>
 					<div className="mt-4 flex min-w-0 flex-col gap-4">
 						<Field className="flex flex-col gap-2">
 							<label className="field-label" htmlFor="source-test-provider">
@@ -701,8 +777,13 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							</div>
 						)}
 					</div>
-				</CollapsibleContent>
-			</Collapsible>
+					{(probe.isError || search.isError) && (
+						<p role="alert" className="field-error">
+							{t("acquisition.sources.actionFailed")}
+						</p>
+					)}
+				</DialogContent>
+			</Dialog>
 
 			{error && (
 				<p role="alert" className="field-error">
