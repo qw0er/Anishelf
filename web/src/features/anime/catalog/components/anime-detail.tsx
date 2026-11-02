@@ -274,7 +274,7 @@ function LocalWorkDetail({
 					{...(renderEpisodeAction ? { renderEpisodeAction } : {})}
 				/>
 				<aside className="min-w-0 space-y-4">
-					<AiringStatus query={airing} />
+					<AiringStatus query={airing} metadata={data.metadata} />
 					<WorkSynopsis data={data} />
 					<WorkMetadataExtras data={data} controller={controller} />
 					<RelatedWorks controller={controller} />

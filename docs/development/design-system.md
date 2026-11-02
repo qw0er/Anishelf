@@ -104,6 +104,12 @@ diagnostics on demand. Show actionable failures near the affected content. Use t
 shared file menu and keep version-specific actions with their version. Preserve the
 Library context when navigating between remote and local details.
 
+The broadcast-plan panel prioritizes announced future airtimes and highlights the
+next broadcast. Keep aired history in an independent collapsed disclosure, newest
+first. Include the local time zone and weekday, preserve cached plans with their
+verification state, and do not infer unannounced future dates. Future plans do not
+create download actions in the episode list.
+
 ### Files, Review and History
 
 Use compact rows, aligned actions, separators and shared empty/error patterns.

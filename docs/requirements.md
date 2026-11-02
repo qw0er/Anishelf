@@ -388,6 +388,7 @@ The display must remain usable on desktop and narrow screens.
 | WI08 | Add a built-in compatibility-first preset for automatic subscription configuration | Complete | Completed | H.264/VP9 at 1080p/2160p after 60 minutes; other codecs at those resolutions and 720p after 120 minutes. | — |
 | WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
 | WI10 | Prevent interface flicker when adding a work | — | Unassigned | Adding a work causes the interface to refresh and visibly flicker; investigate and make the update smooth. | — |
+| WI11 | Prioritize upcoming broadcast plans on work details | Complete | Completed | [Announced future airtimes, next-broadcast highlight, collapsed aired history and local-time display](implemented-requirements.md#delivery-notes-m); retain cached plans and mark elapsed plans awaiting confirmation. | — |
 
 ## 5. Bugs
 
