@@ -256,6 +256,16 @@ test("unknown and stale seed counts stay distinct from reported zero", () => {
 	).toBe(false);
 });
 
+test("compatible profile prefers H.264 and VP9 over other codecs", () => {
+	const profile = immediate(builtinAcquisitionProfiles[3]);
+	const hevc = entry("hevc", "[1080p HEVC]", 100);
+	for (const codec of ["AVC", "VP9"]) {
+		const compatible = entry("compatible", `[1080p ${codec}]`, 1);
+		expect(chosen(select([hevc, compatible], profile))).toEqual(["compatible"]);
+	}
+	expect(chosen(select([hevc], profile))).toEqual(["hevc"]);
+});
+
 test("waiting survives re-evaluation and new candidates; a preferred release still respects its collection window", () => {
 	const profile = builtinAcquisitionProfiles[1];
 	const avc = entry("avc", "[1080p AVC]");
@@ -473,6 +483,7 @@ test("built-in collection windows unlock at their declared thresholds", () => {
 		[60, 120],
 		[120, 180, 240],
 		[60, 120],
+		[60, 120, 120],
 	];
 	for (const [index, profile] of builtinAcquisitionProfiles.entries()) {
 		expect(profile.levels.map((level) => level.acceptAfterMinutes)).toEqual(
@@ -484,7 +495,9 @@ test("built-in collection windows unlock at their declared thresholds", () => {
 					? "[720p AVC][CHS]"
 					: index === 1 && levelIndex === 0
 						? "[1080p HEVC][CHS]"
-						: "[1080p AVC][CHS]";
+						: index === 3 && levelIndex === 1
+							? "[1080p HEVC][CHS]"
+							: "[1080p AVC][CHS]";
 			const entries = [entry("episode", suffix)];
 			const first = select(entries, profile, 1000);
 			expect(chosen(first)).toEqual([]);
