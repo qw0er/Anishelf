@@ -17,5 +17,6 @@ export interface IdentificationApi {
 	identify(
 		sources: readonly SourceIdentity[],
 		signal?: AbortSignal,
+		options?: { refreshMetadata?: boolean },
 	): Promise<IdentificationResult[]>;
 }

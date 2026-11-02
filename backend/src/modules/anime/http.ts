@@ -18,12 +18,9 @@ export function registerAnimeHttp(
 		viewing?: TrackingViewingApi | undefined;
 		library: AnimeLibraryApi;
 		identification?: {
-			getStatus(): {
-				running: boolean;
-				failed: boolean;
-				revision?: number;
-				incremental?: boolean;
-			};
+			reidentify(fileId: string): Promise<void>;
+			reidentifyPending(): void;
+			getStatus(): import("../../contracts/http.js").IdentificationStatusResponse;
 		};
 		metadata: MetadataModule | undefined;
 		catalog: AnimeCatalogApi | undefined;
@@ -47,5 +44,6 @@ export function registerAnimeHttp(
 		registerMetadataRoutes(app, owners.metadata);
 		registerMetadataAssociationRoutes(app, owners.metadata.management);
 	}
-	if (owners.catalog) registerCatalogRoutes(app, owners.catalog);
+	if (owners.catalog)
+		registerCatalogRoutes(app, owners.catalog, owners.identification);
 }

@@ -198,6 +198,21 @@ identity confirmation. Review and the evaluator expose the runtime admission
 blockers. These are current matching-policy choices, subject to revision against
 representative cases while preserving uncertainty and manual-correction guarantees.
 
+Review can explicitly re-identify an available pending source's directory through
+the same serialized identification coordinator. Forced runs bypass directory
+recognition reuse and refresh metadata search through the existing provider
+pacing. Sibling files retain their shared numbering context; publication preserves
+confirmed and rejected decisions. Concurrent requests for one directory share the
+same run, and resource access is revalidated before publishing the new evidence.
+
+Bulk pending-review re-identification captures all available pending pages before
+processing, deduplicates directories and schedules each through the same forced
+path. The command returns immediately; identification status exposes an in-memory
+run and actual processed/outcome counts. Repeated starts reuse the active run.
+Individual directory failures are counted while other directories continue, and
+shutdown drains the run. Restart clears this transient status; no durable job is
+created and saved Catalog decisions remain authoritative.
+
 Metadata's ordinary content API uses permanent project work IDs (`reference: { id }`).
 Search, detail, relations, schedules, retained snapshots and artwork use this identity.
 Search accepts a query and pagination, never a provider selector. Metadata searches

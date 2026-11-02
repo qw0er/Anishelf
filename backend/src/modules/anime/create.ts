@@ -83,6 +83,7 @@ export async function createAnimeModule(options: {
 		...(catalog
 			? {
 					onPublication: catalog.publish,
+					catalog,
 				}
 			: {}),
 	});

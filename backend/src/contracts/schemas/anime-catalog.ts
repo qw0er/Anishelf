@@ -353,4 +353,20 @@ export const IdentificationStatusSchema = Type.Object({
 	failed: Type.Boolean(),
 	revision: Type.Optional(Type.Integer({ minimum: 0 })),
 	incremental: Type.Optional(Type.Boolean()),
+	reviewRun: Type.Optional(
+		Type.Object({
+			id: Type.Integer({ minimum: 1 }),
+			state: Type.Union([
+				Type.Literal("running"),
+				Type.Literal("completed"),
+				Type.Literal("failed"),
+			]),
+			total: Type.Integer({ minimum: 0 }),
+			processed: Type.Integer({ minimum: 0 }),
+			identified: Type.Integer({ minimum: 0 }),
+			pending: Type.Integer({ minimum: 0 }),
+			failed: Type.Integer({ minimum: 0 }),
+			skipped: Type.Integer({ minimum: 0 }),
+		}),
+	),
 });

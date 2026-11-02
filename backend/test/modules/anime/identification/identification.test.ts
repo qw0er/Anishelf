@@ -380,6 +380,98 @@ test("new files invalidate their directory context while other groups are reused
 	).toEqual([["05"], ["06"], ["07"]]);
 });
 
+test("forced identification refreshes unchanged directory evidence and metadata without enumerating unrelated files", async () => {
+	const f = await fixture([
+		"series/Frieren - 01.mkv",
+		"series/Frieren - 02.mkv",
+		"other/Your Name.mkv",
+	]);
+	const search = vi
+		.fn<IdentificationMetadata["search"]>()
+		.mockResolvedValue([]);
+	const engine = new IdentificationApplication({
+		parser,
+		metadata: { search },
+	});
+	const identify = vi.spyOn(engine, "identify");
+	const automatic = coordinator(f, engine);
+	await scan(f, automatic);
+	const first = automatic
+		.getResults()
+		.find((result) => result.source.relativePath === "series/Frieren - 01.mkv");
+	if (!first) throw new Error("Missing source");
+	search.mockClear().mockResolvedValue([work]);
+	identify.mockClear();
+	const enumerate = vi.spyOn(f.library, "readFilePage");
+	await automatic.reidentify(first.source.fileId);
+	expect(enumerate).not.toHaveBeenCalled();
+	expect(identify).toHaveBeenCalledTimes(1);
+	expect(identify.mock.calls[0]?.[0]).toHaveLength(2);
+	expect(search).toHaveBeenCalledWith("Frieren", expect.any(AbortSignal), {
+		refresh: true,
+	});
+	expect(
+		automatic
+			.getResults()
+			.find((result) => result.source.fileId === first.source.fileId)
+			?.proposals[0]?.candidate.work.reference,
+	).toEqual(work.reference);
+	await scan(f, automatic);
+	expect(identify).toHaveBeenCalledTimes(1);
+});
+
+test("concurrent forced requests for siblings share one identification run", async () => {
+	const f = await fixture(["Frieren - 01.mkv", "Frieren - 02.mkv"]);
+	const engine = new IdentificationApplication({ parser });
+	const automatic = coordinator(f, engine);
+	await scan(f, automatic);
+	let release!: () => void;
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const original = engine.identify.bind(engine);
+	const identify = vi
+		.spyOn(engine, "identify")
+		.mockImplementation(async (...args) => {
+			await gate;
+			return original(...args);
+		});
+	const files = automatic.getResults().map((result) => result.source.fileId);
+	const requests = files.map((fileId) => automatic.reidentify(fileId));
+	await expect.poll(() => identify.mock.calls.length).toBe(1);
+	release();
+	await Promise.all(requests);
+	expect(identify).toHaveBeenCalledTimes(1);
+});
+
+test("forcing a directory cancels stale active recognition and publishes the forced result", async () => {
+	const f = await fixture();
+	const engine = new IdentificationApplication({ parser });
+	const automatic = coordinator(f, engine);
+	await scan(f, automatic);
+	const fileId = automatic.getResults()[0]?.source.fileId;
+	if (!fileId) throw new Error("Missing source");
+	const original = engine.identify.bind(engine);
+	const identify = vi
+		.spyOn(engine, "identify")
+		.mockImplementationOnce(async (_sources, signal) => {
+			await new Promise<void>((resolve) =>
+				signal?.addEventListener("abort", () => resolve(), { once: true }),
+			);
+			signal?.throwIfAborted();
+			throw new Error("Expected cancellation");
+		})
+		.mockImplementation(original);
+	await writeFile(join(f.root, "Frieren - 01.mkv"), "changed file version");
+	await f.library.startScan();
+	await f.library.waitForCompletion();
+	await expect.poll(() => identify.mock.calls.length).toBe(1);
+	await automatic.reidentify(fileId);
+	expect(identify.mock.calls[0]?.[1]?.aborted).toBe(true);
+	expect(identify.mock.calls[1]?.[2]).toEqual({ refreshMetadata: true });
+	expect(automatic.getResults()).toHaveLength(1);
+});
+
 test("source replacement produces a new version and deleted files leave the projection", async () => {
 	const f = await fixture();
 	const engine = new IdentificationApplication({ parser });

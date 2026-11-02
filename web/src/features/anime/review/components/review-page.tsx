@@ -6,6 +6,7 @@ import { useQueryScope } from "../../../../shared/api/queries.js";
 import { PageHeader } from "../../../../shared/components/page-header.js";
 import { buttonStyles } from "../../../../shared/components/ui/button.js";
 import { reviewsQuery } from "../queries.js";
+import { ReidentifyAllAction } from "./reidentify-all-action.js";
 import { ReviewEditor } from "./review-editor.js";
 import { ReviewList } from "./review-list.js";
 export function ReviewPage() {
@@ -36,6 +37,12 @@ export function ReviewPage() {
 							<ArrowLeft className="size-4" aria-hidden="true" />
 							{t("review.back")}
 						</Link>
+					) : decision === "pending" ? (
+						<ReidentifyAllAction
+							disabled={
+								!query.data || (page === 1 && query.data.items.length === 0)
+							}
+						/>
 					) : undefined
 				}
 			/>

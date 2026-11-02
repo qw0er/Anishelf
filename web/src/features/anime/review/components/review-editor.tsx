@@ -8,6 +8,7 @@ import { useReviewController } from "../use-review-controller.js";
 import { AssociationPreview } from "./association-preview.js";
 import { CandidateSelection } from "./candidate-selection.js";
 import { MappingForm } from "./mapping-form.js";
+import { ReidentifyAction } from "./reidentify-action.js";
 import { RejectionPanel } from "./rejection-panel.js";
 import { SourceSummary } from "./source-summary.js";
 export function ReviewEditor({ id }: { id: string }) {
@@ -35,7 +36,10 @@ function MappingEditor({ item }: { item: CatalogReviewItem }) {
 	return (
 		<div className="grid min-w-0 items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
 			<aside className="min-w-0 space-y-4 lg:sticky lg:top-6">
-				<SourceSummary item={item} />
+				<SourceSummary
+					item={item}
+					actions={<ReidentifyAction item={item} controller={controller} />}
+				/>
 				<RejectionPanel item={item} controller={controller} />
 			</aside>
 			<div className="min-w-0 space-y-5">

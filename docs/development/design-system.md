@@ -122,6 +122,17 @@ The pending Review queue and work-detail review candidates include only currentl
 available files. Preserve unavailable sources and their decisions as history;
 rediscovering an unchanged file can restore its pending review.
 
+Available pending resources expose Force re-identification beside the source
+summary. Its help text explains that the whole directory is evaluated and clear
+matches are added automatically. Keep progress on the button, disable competing
+review mutations while it runs, refresh suggestions on completion and preserve
+editable input on failure. Report completion through a deduplicated Toast.
+
+The pending Review list header also exposes Re-identify all pending resources.
+It includes every page, runs in the background and retains the list and pagination
+while the button shows activity. Completion reports associated, still-pending,
+failed and skipped resource counts through one Toast, including after navigation.
+
 ### Settings
 
 Use category navigation that remains accessible on narrow screens. Separate sections

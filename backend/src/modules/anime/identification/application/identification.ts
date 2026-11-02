@@ -27,6 +27,7 @@ export class IdentificationApplication implements IdentificationApi {
 	async identify(
 		sources: readonly SourceIdentity[],
 		signal: AbortSignal = new AbortController().signal,
+		options: { refreshMetadata?: boolean } = {},
 	): Promise<IdentificationResult[]> {
 		signal.throwIfAborted();
 		if (sources.length > policy.maximumFiles)
@@ -159,7 +160,12 @@ export class IdentificationApplication implements IdentificationApi {
 							);
 							break;
 						}
-						query = this.search(metadata, title, signal);
+						query = this.search(
+							metadata,
+							title,
+							signal,
+							options.refreshMetadata ?? false,
+						);
 						queries.set(title, query);
 					}
 					try {
@@ -192,6 +198,7 @@ export class IdentificationApplication implements IdentificationApi {
 		metadata: IdentificationMetadata,
 		title: string,
 		parent: AbortSignal,
+		refresh: boolean,
 	): Promise<WorkCandidate[]> {
 		const signal = AbortSignal.any([
 			parent,
@@ -204,7 +211,10 @@ export class IdentificationApplication implements IdentificationApi {
 		});
 		try {
 			signal.throwIfAborted();
-			return await Promise.race([metadata.search(title, signal), cancelled]);
+			return await Promise.race([
+				metadata.search(title, signal, { refresh }),
+				cancelled,
+			]);
 		} finally {
 			signal.removeEventListener("abort", abort);
 		}

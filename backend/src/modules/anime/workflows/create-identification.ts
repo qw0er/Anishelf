@@ -1,5 +1,6 @@
 import type { Logger } from "pino";
 import type { LibraryApi, ResourceAccessApi } from "../../resources/public.js";
+import type { AnimeCatalogApi } from "../anime-catalog/public.js";
 import { createIdentificationApplication } from "../identification/create.js";
 import type {
 	IdentificationMetadata,
@@ -13,6 +14,7 @@ export function createIdentificationModule(options: {
 	sources: ResourceAccessApi;
 	logger: Logger;
 	metadata?: IdentificationMetadata;
+	catalog?: Pick<AnimeCatalogApi, "reviews" | "review">;
 	onPublication?: (
 		results: readonly IdentificationResult[],
 		scopeIds: readonly string[],
@@ -26,6 +28,7 @@ export function createIdentificationModule(options: {
 		sources: options.sources,
 		identification,
 		logger: options.logger,
+		...(options.catalog ? { catalog: options.catalog } : {}),
 		...(options.onPublication ? { onPublication: options.onPublication } : {}),
 	});
 	coordinator.start();

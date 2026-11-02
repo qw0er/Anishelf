@@ -14,8 +14,10 @@ import {
 	CatalogReviewQuerySchema,
 	CatalogReviewSchema,
 	CatalogSourceSchema,
+	IdentificationStatusSchema,
 	LocalWorkDetailSchema,
 } from "../../../../contracts/schemas/anime-catalog.js";
+import { DomainError } from "../../../../shared/errors.js";
 import { sendCachedAsset } from "../../../../transport/cache.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { AnimeCatalogApi } from "../public.js";
@@ -25,6 +27,11 @@ const artworkRoute = "/api/catalog/works/:id/artwork/:kind";
 export function registerCatalogRoutes(
 	app: HttpInstance,
 	catalog: AnimeCatalogApi,
+	identification?: {
+		reidentify(fileId: string): Promise<void>;
+		reidentifyPending(): void;
+		getStatus(): import("../../../../contracts/http.js").IdentificationStatusResponse;
+	},
 ): void {
 	app.addHook("onSend", async (request, reply) => {
 		const route = request.routeOptions.url;
@@ -32,6 +39,45 @@ export function registerCatalogRoutes(
 		if (route?.startsWith("/api/catalog") && route !== artworkRoute)
 			reply.header("Cache-Control", "no-store");
 	});
+	if (identification)
+		app.post(
+			"/api/catalog/reviews/reidentify",
+			{
+				schema: {
+					body: Type.Object({}, { additionalProperties: false }),
+					response: { 202: IdentificationStatusSchema },
+				},
+			},
+			async (_request, reply) => {
+				identification.reidentifyPending();
+				return reply.code(202).send(identification.getStatus());
+			},
+		);
+	if (identification)
+		app.post(
+			"/api/catalog/reviews/:id/reidentify",
+			{
+				schema: {
+					params: CatalogIdParamsSchema,
+					body: CatalogRefreshSchema,
+					response: { 200: CatalogReviewSchema },
+				},
+			},
+			async (request) => {
+				const item = await catalog.review(request.params.id);
+				if (
+					item.revision !== request.body.revision ||
+					item.decision !== "pending" ||
+					!item.available
+				)
+					throw new DomainError(
+						"CATALOG_CONFLICT",
+						"Only the current, available pending review can be re-identified.",
+					);
+				await identification.reidentify(item.fileId);
+				return catalog.review(item.id);
+			},
+		);
 	app.get(
 		artworkRoute,
 		{

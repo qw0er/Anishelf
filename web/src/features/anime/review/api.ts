@@ -6,6 +6,7 @@ import type {
 	CatalogPreviewResponse,
 	CatalogReviewItem,
 	CatalogReviewResponse,
+	IdentificationStatusResponse,
 } from "../../../shared/api/contracts.js";
 
 export const getReviews = (
@@ -23,6 +24,19 @@ export const getReview = (
 	options?: RequestOptions,
 ): Promise<CatalogReviewItem> =>
 	request(`/api/catalog/reviews/${encodeURIComponent(id)}`, "GET", options);
+export const reidentifyReview = (
+	id: string,
+	revision: number,
+): Promise<CatalogReviewItem> =>
+	request(
+		`/api/catalog/reviews/${encodeURIComponent(id)}/reidentify`,
+		"POST",
+		{},
+		{ revision },
+	);
+export const reidentifyPendingReviews =
+	(): Promise<IdentificationStatusResponse> =>
+		request("/api/catalog/reviews/reidentify", "POST", {}, {});
 export const previewMapping = (
 	input: CatalogPreviewRequest,
 ): Promise<CatalogPreviewResponse> =>

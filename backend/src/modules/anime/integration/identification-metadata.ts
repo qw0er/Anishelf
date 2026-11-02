@@ -7,8 +7,11 @@ export function createIdentificationMetadata(
 	metadata: Pick<import("../metadata/public.js").MetadataApi, "search">,
 ): IdentificationMetadata {
 	return {
-		search: async (query, signal) => {
-			const result = await metadata.search({ query }, { signal });
+		search: async (query, signal, options) => {
+			const result = await metadata.search(
+				{ query },
+				{ signal, refresh: options?.refresh ?? false },
+			);
 			return result.data.items.map((work) => {
 				const titles = work.titles.map((title) => title.value);
 				const evidence = titles.map(titleEvidence);
