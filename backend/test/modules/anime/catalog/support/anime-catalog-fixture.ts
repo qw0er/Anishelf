@@ -258,8 +258,9 @@ export async function enableAutomatic(f: Awaited<ReturnType<typeof fixture>>) {
 		metadata: createIdentificationMetadata(
 			createPublicMetadata(f.metadata, f.database.metadata),
 		),
-		onPublication: (results, root, signal) =>
-			f.catalog.publish(results, root, signal),
+		catalog: f.catalog,
+		onPublication: (results, root, signal, fileIds) =>
+			f.catalog.publish(results, root, signal, fileIds),
 	});
 	cleanups.push(() => automatic.close());
 	await automatic.waitForCompletion();

@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import type { IdentificationStatusResponse } from "../../shared/api/contracts.js";
 import { useQueryScope } from "../../shared/api/queries.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import { interactionDefaults } from "../../shared/config/interaction-defaults.js";
@@ -17,12 +18,7 @@ export function IdentificationStatus({
 	const scope = useQueryScope();
 	const client = useQueryClient();
 	const status = useQuery({ ...identificationQuery(scope), enabled });
-	const previous = useRef<{
-		running: boolean;
-		failed: boolean;
-		revision?: number;
-		incremental?: boolean;
-	} | null>(null);
+	const previous = useRef<IdentificationStatusResponse | null>(null);
 	const notificationId = "automatic-identification";
 	useEffect(() => () => toast.close(notificationId), []);
 	useEffect(() => {
@@ -37,6 +33,29 @@ export function IdentificationStatus({
 		previous.current = current;
 		if (last && last.revision !== current.revision) {
 			void invalidateAnimeQueries(client, "local");
+		}
+		const run = current.reviewRun;
+		if (
+			run &&
+			last?.reviewRun?.id === run.id &&
+			last.reviewRun.state === "running" &&
+			run.state !== "running"
+		) {
+			void invalidateAnimeQueries(client, "local");
+			toast.add({
+				id: "pending-review-reidentification",
+				type: run.state === "failed" || run.failed > 0 ? "error" : "success",
+				title: t(
+					run.state === "failed"
+						? "review.reidentifyAllFailed"
+						: "review.reidentifyAllCompleted",
+					{ ...run },
+				),
+			});
+		}
+		if (run?.state === "running" || last?.reviewRun?.state === "running") {
+			toast.close(notificationId);
+			return;
 		}
 		if (last?.running === current.running && last?.failed === current.failed)
 			return;

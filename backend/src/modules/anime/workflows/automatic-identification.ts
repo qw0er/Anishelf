@@ -8,6 +8,7 @@ import type {
 	ResourceAccessApi,
 	SourceIdentity,
 } from "../../resources/public.js";
+import type { AnimeCatalogApi, ReviewItem } from "../anime-catalog/public.js";
 import { identificationDefaults } from "../identification/defaults.js";
 import type {
 	IdentificationApi,
@@ -19,6 +20,16 @@ interface DirectoryResult {
 	results: IdentificationResult[];
 	fileIds: string[];
 	scopeId: string | undefined;
+}
+interface ReviewReidentificationRun {
+	id: number;
+	state: "running" | "completed" | "failed";
+	total: number;
+	processed: number;
+	identified: number;
+	pending: number;
+	failed: number;
+	skipped: number;
 }
 /** Queues directory contexts; unrelated publications never cancel active incremental recognition. */
 export class AutomaticIdentificationCoordinator {
@@ -34,6 +45,10 @@ export class AutomaticIdentificationCoordinator {
 	private incremental = false;
 	private closed = false;
 	private cache = new Map<string, DirectoryResult>();
+	private forcedDirectories = new Set<string>();
+	private forcedRequests = new Map<string, Promise<void>>();
+	private reviewRun: ReviewReidentificationRun | undefined;
+	private reviewTask: Promise<void> | undefined;
 	private retryTimer: ReturnType<typeof setTimeout> | undefined;
 	constructor(
 		private readonly options: {
@@ -41,6 +56,7 @@ export class AutomaticIdentificationCoordinator {
 			sources: ResourceAccessApi;
 			identification: IdentificationApi;
 			logger: Logger;
+			catalog?: Pick<AnimeCatalogApi, "reviews" | "review">;
 			onPublication?: (
 				results: readonly IdentificationResult[],
 				scopeIds: readonly string[],
@@ -71,6 +87,176 @@ export class AutomaticIdentificationCoordinator {
 		this.full = true;
 		this.request();
 	}
+	/** Capture the entire pending queue before publication can change its pagination. */
+	reidentifyPending(): void {
+		if (this.reviewTask) return;
+		const catalog = this.options.catalog;
+		if (this.closed || !catalog)
+			throw new DomainError(
+				"CATALOG_UNAVAILABLE",
+				"Pending review identification is unavailable.",
+			);
+		const run: ReviewReidentificationRun = {
+			id: (this.reviewRun?.id ?? 0) + 1,
+			state: "running",
+			total: 0,
+			processed: 0,
+			identified: 0,
+			pending: 0,
+			failed: 0,
+			skipped: 0,
+		};
+		this.reviewRun = run;
+		this.options.logger.info(
+			{ event: "identification.pending_started", runId: run.id },
+			"Pending review re-identification started.",
+		);
+		this.reviewTask = Promise.resolve()
+			.then(async () => {
+				await this.waitForCompletion();
+				const items: ReviewItem[] = [];
+				for (let page = 1; ; page++) {
+					if (this.closed) throw new Error("Identification is shutting down.");
+					const result = await catalog.reviews({
+						decision: "pending",
+						page,
+						perPage: 50,
+					});
+					items.push(...result.items);
+					if (!result.hasNextPage) break;
+				}
+				// Availability is checked by Catalog and again when resolving each file.
+				const selected = [
+					...new Map(
+						items
+							.filter((item) => item.available && item.decision === "pending")
+							.map((item) => [item.id, item]),
+					).values(),
+				];
+				run.total = selected.length;
+				const directories = new Map<string, ReviewItem[]>();
+				for (const item of selected) {
+					try {
+						const file = await this.options.library.getFile(item.fileId);
+						const siblings = directories.get(file.parentId) ?? [];
+						siblings.push(item);
+						directories.set(file.parentId, siblings);
+					} catch {
+						run.failed++;
+						run.processed++;
+					}
+				}
+				for (const siblings of directories.values()) {
+					if (this.closed) throw new Error("Identification is shutting down.");
+					const current: ReviewItem[] = [];
+					for (const item of siblings) {
+						try {
+							const latest = await catalog.review(item.id);
+							if (latest.available && latest.decision === "pending")
+								current.push(latest);
+							else {
+								run.skipped++;
+								run.processed++;
+							}
+						} catch {
+							run.failed++;
+							run.processed++;
+						}
+					}
+					const first = current[0];
+					if (!first) continue;
+					try {
+						await this.reidentify(first.fileId);
+						for (const item of current) {
+							try {
+								const latest = await catalog.review(item.id);
+								if (!latest.available || latest.metadataStatus === "failed")
+									run.failed++;
+								else if (latest.decision === "confirmed") run.identified++;
+								else if (latest.decision === "pending") run.pending++;
+								else run.skipped++;
+							} catch {
+								run.failed++;
+							}
+						}
+					} catch (err) {
+						run.failed += current.length;
+						this.options.logger.warn(
+							{
+								event: "identification.pending_directory_failed",
+								runId: run.id,
+								fileId: first.fileId,
+								err,
+							},
+							"Pending review directory re-identification failed.",
+						);
+					}
+					run.processed += current.length;
+				}
+				run.state = "completed";
+			})
+			.catch((err: unknown) => {
+				run.state = "failed";
+				this.options.logger.warn(
+					{ event: "identification.pending_failed", runId: run.id, err },
+					"Pending review re-identification could not finish.",
+				);
+			})
+			.finally(() => {
+				this.reviewTask = undefined;
+				this.options.logger.info(
+					{ event: "identification.pending_completed", ...run },
+					"Pending review re-identification finished.",
+				);
+			});
+	}
+	/** Explicit recovery shares the automatic queue and preserves directory evidence. */
+	async reidentify(fileId: string): Promise<void> {
+		const status = await this.options.library.getStatus();
+		if (this.closed || !status.ready || status.stale)
+			throw new DomainError(
+				"CATALOG_UNAVAILABLE",
+				"Wait for a current resource scan before identifying again.",
+			);
+		const epoch = this.options.sources.accessRevision;
+		const file = await this.options.library.getFile(fileId);
+		await this.options.sources.resolveSource(fileId);
+		this.options.sources.assertAccessRevision(epoch);
+		if (this.closed)
+			throw new DomainError(
+				"CATALOG_UNAVAILABLE",
+				"Identification is shutting down.",
+			);
+		const existing = this.forcedRequests.get(file.parentId);
+		if (existing) return existing;
+		const task = this.forceDirectory(file.parentId, fileId);
+		this.forcedRequests.set(file.parentId, task);
+		try {
+			await task;
+		} finally {
+			this.forcedRequests.delete(file.parentId);
+		}
+	}
+	private async forceDirectory(
+		directoryId: string,
+		fileId: string,
+	): Promise<void> {
+		this.forcedDirectories.add(directoryId);
+		// Isolate explicit recovery from a different directory's failed publication.
+		this.pending = new Set([directoryId, ...this.pending]);
+		if (this.activeDirectories.has(directoryId)) this.controller?.abort();
+		this.options.logger.info(
+			{ event: "identification.forced_requested", fileId, directoryId },
+			"Directory re-identification requested.",
+		);
+		this.request();
+		await this.waitForCompletion();
+		if (this.closed || this.forcedDirectories.has(directoryId))
+			throw new DomainError(
+				"CATALOG_UNAVAILABLE",
+				"Re-identification did not finish. Retry shortly.",
+			);
+	}
 	private request(): void {
 		if (this.closed || this.active) return;
 		clearTimeout(this.retryTimer);
@@ -78,11 +264,14 @@ export class AutomaticIdentificationCoordinator {
 		this.active = Promise.resolve()
 			.then(async () => {
 				while ((this.full || this.pending.size) && !this.closed) {
-					const full = this.full;
+					const forced = [...this.pending].find((id) =>
+						this.forcedDirectories.has(id),
+					);
+					const full = !forced && this.full;
 					this.incremental = !full;
-					this.full = false;
-					const directories = [...this.pending];
-					this.pending.clear();
+					if (full) this.full = false;
+					const directories = forced ? [forced] : [...this.pending];
+					for (const id of directories) this.pending.delete(id);
 					this.activeDirectories = new Set(directories);
 					const controller = new AbortController();
 					this.controller = controller;
@@ -169,6 +358,7 @@ export class AutomaticIdentificationCoordinator {
 		let parsed = 0;
 		const publication: IdentificationResult[] = [];
 		const affectedFiles = new Set<string>();
+		const forcedCompleted = new Set<string>();
 		this.options.logger.info(
 			{
 				event: "identification.automatic_started",
@@ -178,6 +368,7 @@ export class AutomaticIdentificationCoordinator {
 			"Automatic local identification started.",
 		);
 		groupsLoop: for (const [id, files] of groups) {
+			const forced = this.forcedDirectories.has(id);
 			const sources: SourceIdentity[] = [];
 			files.sort(
 				(a, b) =>
@@ -214,7 +405,8 @@ export class AutomaticIdentificationCoordinator {
 				.digest("hex");
 			const cached = this.cache.get(id);
 			let results: IdentificationResult[];
-			if (cached?.fingerprint === fingerprint) results = cached.results;
+			if (!forced && cached?.fingerprint === fingerprint)
+				results = cached.results;
 			else {
 				results = [];
 				for (
@@ -229,6 +421,7 @@ export class AutomaticIdentificationCoordinator {
 								start + identificationDefaults.parserGroupSize,
 							),
 							signal,
+							{ refreshMetadata: forced },
 						)),
 					);
 				for (const result of results) {
@@ -257,6 +450,7 @@ export class AutomaticIdentificationCoordinator {
 			signal.throwIfAborted();
 			this.options.sources.assertAccessRevision(epoch);
 			publication.push(...results);
+			if (forced) forcedCompleted.add(id);
 			// Failed provider results are retained for Review but not reused on retry.
 			next.set(id, {
 				fingerprint: results.some(
@@ -281,6 +475,7 @@ export class AutomaticIdentificationCoordinator {
 		this.options.sources.assertAccessRevision(epoch);
 		this.revision++;
 		this.cache = next;
+		for (const id of forcedCompleted) this.forcedDirectories.delete(id);
 		this.retryDirectories = new Set(
 			[...next]
 				.filter(([, entry]) => entry.fingerprint === "")
@@ -302,6 +497,7 @@ export class AutomaticIdentificationCoordinator {
 					(result) => result.proposals[0]?.candidate.identityUnresolved?.length,
 				).length,
 				matcherVersion: identificationDefaults.matcherVersion,
+				forcedDirectories: forcedCompleted.size,
 				elapsedMs: Math.round(performance.now() - started),
 			},
 			"Automatic local identification completed.",
@@ -309,10 +505,11 @@ export class AutomaticIdentificationCoordinator {
 	}
 	getStatus() {
 		return {
-			running: Boolean(this.active),
+			running: Boolean(this.active || this.reviewTask),
 			failed: this.failed,
 			revision: this.revision,
-			incremental: this.incremental,
+			incremental: this.reviewTask ? true : this.incremental,
+			...(this.reviewRun ? { reviewRun: { ...this.reviewRun } } : {}),
 		};
 	}
 	getResults(): IdentificationResult[] {
@@ -321,7 +518,7 @@ export class AutomaticIdentificationCoordinator {
 		);
 	}
 	async waitForCompletion(): Promise<void> {
-		await this.active;
+		while (this.active) await this.active;
 	}
 	async close(): Promise<void> {
 		this.closed = true;
@@ -329,6 +526,8 @@ export class AutomaticIdentificationCoordinator {
 		this.unsubscribe?.();
 		this.controller?.abort();
 		await this.active;
+		await this.reviewTask;
 		this.cache.clear();
+		this.forcedDirectories.clear();
 	}
 }

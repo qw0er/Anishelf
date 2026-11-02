@@ -28,6 +28,10 @@ import { createSubtitleApplication } from "./subtitles.js";
 export function createHttpApp(options: {
 	metadata?: MetadataApi;
 	catalog?: AnimeCatalogApi;
+	identification?: Pick<
+		import("../../src/modules/anime/workflows/automatic-identification.js").AutomaticIdentificationCoordinator,
+		"reidentify" | "reidentifyPending" | "getStatus"
+	>;
 	playbackSelection?: PlaybackSelectionApi;
 	config: Pick<
 		DeploymentConfig,
@@ -61,7 +65,8 @@ export function createHttpApp(options: {
 		registrations: [
 			(app) => {
 				if (options.metadata) registerMetadataRoutes(app, options.metadata);
-				if (options.catalog) registerCatalogRoutes(app, options.catalog);
+				if (options.catalog)
+					registerCatalogRoutes(app, options.catalog, options.identification);
 				if (options.library) {
 					const library = options.library;
 

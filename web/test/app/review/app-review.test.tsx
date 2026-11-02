@@ -19,6 +19,179 @@ import { fetcher, json, requiredFetch } from "../support/state.js";
 
 setupAppTest();
 
+test("pending Review starts one background run for all pages and reports completion after navigation", async () => {
+	mockReview();
+	const fallback = requiredFetch(fetcher.getMockImplementation());
+	let status = {
+		running: false,
+		failed: false,
+		revision: 1,
+		incremental: true,
+		reviewRun: {
+			id: 1,
+			state: "running" as "running" | "completed",
+			total: 3,
+			processed: 0,
+			identified: 0,
+			pending: 0,
+			failed: 0,
+			skipped: 0,
+		},
+	};
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === "/api/catalog/reviews/reidentify") {
+			status = { ...status, running: true };
+			return json(status, 202);
+		}
+		if (String(input) === "/api/anime/identification")
+			return json(
+				status.running || status.reviewRun.state === "completed"
+					? status
+					: { ...status, reviewRun: undefined },
+			);
+		return fallback(input, init);
+	});
+	const { router } = renderApp("/review?decision=pending&page=3");
+	const button = await screen.findByRole("button", {
+		name: "Re-identify all pending resources",
+	});
+	await waitFor(() => expect(button.hasAttribute("disabled")).toBe(false));
+	fireEvent.click(button);
+	const busy = await screen.findByRole("button", { name: "Re-identifying…" });
+	expect(busy.hasAttribute("disabled")).toBe(true);
+	fireEvent.click(busy);
+	const calls = fetcher.mock.calls.filter(
+		([path]) => path === "/api/catalog/reviews/reidentify",
+	);
+	expect(calls).toHaveLength(1);
+	expect(JSON.parse(String(calls[0]?.[1]?.body))).toEqual({});
+	expect(router.state.location.search).toBe("?decision=pending&page=3");
+	fireEvent.click(
+		within(
+			screen.getByRole("navigation", { name: "Show decisions" }),
+		).getByRole("link", { name: "Associated" }),
+	);
+	await waitFor(() =>
+		expect(router.state.location.search).toBe("?decision=confirmed"),
+	);
+	await act(async () => {
+		status = {
+			...status,
+			running: false,
+			revision: 2,
+			reviewRun: {
+				...status.reviewRun,
+				state: "completed",
+				processed: 3,
+				identified: 2,
+				pending: 1,
+			},
+		};
+		for (const query of queryClient
+			.getQueryCache()
+			.findAll({ queryKey: ["identification"] }))
+			queryClient.setQueryData(query.queryKey, status);
+	});
+	await screen.findByText(
+		"Processed 3 resources: 2 associated, 1 need review, 0 failed, 0 skipped.",
+		{ selector: "[data-slot=toast-title]" },
+	);
+	expect(
+		screen.queryByRole("button", { name: "Re-identify all pending resources" }),
+	).toBeNull();
+});
+
+test("pending Review can force directory identification, blocks duplicate clicks and updates the result", async () => {
+	const item = mockReview();
+	const fallback = requiredFetch(fetcher.getMockImplementation());
+	let release!: () => void;
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === `/api/catalog/reviews/${item.id}/reidentify`) {
+			await gate;
+			item.revision++;
+			item.metadataStatus = "searched";
+			item.unresolved = [];
+			return json(item);
+		}
+		return fallback(input, init);
+	});
+	renderApp(`/review?item=${item.id}`);
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Force re-identification" }),
+	);
+	const pending = await screen.findByRole("button", {
+		name: "Re-identifying…",
+	});
+	expect(pending.getAttribute("aria-busy")).toBe("true");
+	expect(pending.hasAttribute("disabled")).toBe(true);
+	fireEvent.click(pending);
+	release();
+	await screen.findByText(
+		"Re-identification finished. Review the updated suggestions.",
+		{ selector: "[data-slot=toast-title]" },
+	);
+	const calls = fetcher.mock.calls.filter(([path]) =>
+		String(path).endsWith("/reidentify"),
+	);
+	expect(calls).toHaveLength(1);
+	expect(JSON.parse(String(calls[0]?.[1]?.body))).toEqual({ revision: 1 });
+	expect(
+		(
+			await screen.findByRole("button", { name: "Force re-identification" })
+		).hasAttribute("disabled"),
+	).toBe(false);
+});
+
+test("failed re-identification preserves correction input and allows a retry", async () => {
+	const item = mockReview();
+	const fallback = requiredFetch(fetcher.getMockImplementation());
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input).endsWith("/reidentify"))
+			return json(
+				{
+					error: {
+						code: "CATALOG_UNAVAILABLE",
+						message: "Try again",
+						requestId: "reidentify",
+					},
+				},
+				503,
+			);
+		return fallback(input, init);
+	});
+	renderApp(`/review?item=${item.id}`);
+	await selectReviewWork();
+	fireEvent.change(screen.getByLabelText("Episode numbers"), {
+		target: { value: "3" },
+	});
+	fireEvent.click(
+		screen.getByRole("button", { name: "Force re-identification" }),
+	);
+	await screen.findByText(/Anime catalog is unavailable/, {
+		selector: "[data-slot=toast-title]",
+	});
+	expect(
+		(screen.getByLabelText("Episode numbers") as HTMLInputElement).value,
+	).toBe("3");
+	expect(
+		screen
+			.getByRole("button", { name: "Force re-identification" })
+			.hasAttribute("disabled"),
+	).toBe(false);
+});
+
+test("confirmed resources do not expose automatic re-identification", async () => {
+	const item = mockReview(true);
+	renderApp(`/review?item=${item.id}`);
+	await screen.findByRole("heading", { name: "Choose the anime" });
+	expect(
+		screen.queryByRole("button", { name: "Force re-identification" }),
+	).toBeNull();
+});
+
 test("Review displays explicit local numbering and previews that number instead of both raw tokens", async () => {
 	const item = mockReview();
 	item.evidence.rawEpisodes = ["29", "01"];

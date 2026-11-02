@@ -6,6 +6,7 @@ import type {
 	CatalogPreviewResponse,
 	CatalogReviewItem,
 } from "../../../shared/api/contracts.js";
+import { useQueryScope } from "../../../shared/api/queries.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import {
 	metadataDetailQuery,
@@ -13,12 +14,19 @@ import {
 	resolveMetadataReference,
 } from "../metadata/public.js";
 import { invalidateAnimeQueries } from "../shared/query-keys.js";
-import { confirmMapping, decideReview, previewMapping } from "./api.js";
+import {
+	confirmMapping,
+	decideReview,
+	previewMapping,
+	reidentifyReview,
+} from "./api.js";
 import { inlineReviewError, reportReviewFailure } from "./feedback.js";
 import { parseMapping } from "./mapping.js";
+import { reviewQuery } from "./queries.js";
 export function useReviewController(item: CatalogReviewItem) {
 	const { t } = useTranslation();
 	const client = useQueryClient();
+	const scope = useQueryScope();
 	const navigate = useNavigate();
 	const noticeId = `review-operation:${item.id}`;
 	const [reference, setReference] = useState<{
@@ -106,6 +114,35 @@ export function useReviewController(item: CatalogReviewItem) {
 			await invalidate();
 		},
 	});
+	const reidentifyAction = useMutation({
+		onMutate: () => toast.close(noticeId),
+		mutationFn: () => reidentifyReview(item.id, item.revision),
+		onError: (error) => reportReviewFailure(noticeId, error),
+		onSuccess: async (value) => {
+			setPreview(null);
+			setValidation(null);
+			setReference(
+				value.associations[0]?.reference ??
+					value.recognizedWork?.reference ??
+					null,
+			);
+			const key = reviewQuery(item.id, scope).queryKey;
+			await client.cancelQueries({ queryKey: key });
+			client.setQueryData(key, value);
+			toast.add({
+				id: noticeId,
+				type: value.metadataStatus === "failed" ? "error" : "success",
+				title: t(
+					value.metadataStatus === "failed"
+						? "review.reidentifyFailed"
+						: value.decision === "confirmed"
+							? "review.reidentifyAdded"
+							: "review.reidentifyCompleted",
+				),
+			});
+			await invalidate();
+		},
+	});
 	const lookup = useMutation({
 		mutationFn: (value: string) => resolveMetadataReference(value),
 		onSuccess: selectWork,
@@ -115,7 +152,8 @@ export function useReviewController(item: CatalogReviewItem) {
 		lookup.isPending ||
 		previewAction.isPending ||
 		confirmAction.isPending ||
-		decisionAction.isPending;
+		decisionAction.isPending ||
+		reidentifyAction.isPending;
 	function clearPreview() {
 		setPreview(null);
 		setValidation(null);
@@ -172,6 +210,9 @@ export function useReviewController(item: CatalogReviewItem) {
 		previewError: inlineReviewError(previewAction.error),
 		confirmError: inlineReviewError(confirmAction.error),
 		decisionError: inlineReviewError(decisionAction.error),
+		reidentifyPending: reidentifyAction.isPending,
+		reidentifyError: inlineReviewError(reidentifyAction.error),
+		reidentify: () => reidentifyAction.mutate(),
 		selectWork,
 		searchWorks,
 		lookupWork,

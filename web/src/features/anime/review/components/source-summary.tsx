@@ -1,4 +1,5 @@
 import { FileVideo } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { CatalogReviewItem } from "../../../../shared/api/contracts.js";
@@ -11,7 +12,13 @@ import { InlineError } from "../../../../shared/components/ui/inline-error.js";
 import { episodeName } from "../../shared/episode-name.js";
 import { DecisionBadge } from "./decision-badge.js";
 
-export function SourceSummary({ item }: { item: CatalogReviewItem }) {
+export function SourceSummary({
+	item,
+	actions,
+}: {
+	item: CatalogReviewItem;
+	actions?: ReactNode;
+}) {
 	const { t } = useTranslation();
 	const existing = item.associations;
 	return (
@@ -32,6 +39,7 @@ export function SourceSummary({ item }: { item: CatalogReviewItem }) {
 				</p>
 			)}
 			{!item.available && <InlineError>{t("review.unavailable")}</InlineError>}
+			{actions}
 			{item.recognizedWork && (
 				<p className="rounded-lg bg-muted/40 p-3 text-sm">
 					{t(
