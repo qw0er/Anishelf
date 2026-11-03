@@ -746,14 +746,12 @@ source access, provider scheduling and persistence outlive their consumers.
 | Historical design and acceptance | [History](../history.md) |
 
 The installer generates a fresh deployment bundle and delegates to the container
-runtime/systemd. A versioned `deployment.json` owns installer configuration, while
-Compose/env files and Quadlet units are generated outputs with recorded checksums.
-Reconfiguration inherits saved settings and applies explicit overrides. Both engines
-use the same bundled Python lifecycle CLI through `manage.sh`; updates preserve the
-selected tag and target Backend/Web unless optional-service updates are requested.
-Generated-file drift is rejected before runtime changes. Application bootstrap owns
-settings and credentials. Exact fields,
-routes and defaults remain defined by source contracts and policy.
+runtime/systemd. `deployment.json` saves installation choices for reconfiguration;
+explicit flags override those defaults. Both engines receive a thin `manage.sh`
+that calls native commands for startup, shutdown and image updates. Updates use
+current runtime configuration and target Backend/Web unless optional-service
+updates are requested. Application bootstrap owns settings and credentials. Exact
+fields, routes and defaults remain defined by source contracts and policy.
 
 Bundled Jackett starts after a one-shot initializer. Only an empty config volume
 receives `/config/.anishelf-bootstrap.json` authorizing first-run Nyaa.si setup.

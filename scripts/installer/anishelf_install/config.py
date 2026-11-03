@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 
+from .errors import InstallerError
 from .log import log
 
 
@@ -96,3 +98,53 @@ def parse_profile(path: Path) -> str | None:
     except OSError:
         return None
     return value or None
+
+
+# CLI option -> validated installation setting. Only user choices are persisted.
+_SAVED_OPTIONS = {
+    "image_tag": "image_tag", "log_level": "log_level", "bind": "bind_address",
+    "port": "app_port", "public_origin": "public_origin", "qbit": "qbit",
+    "jackett": "jackett", "qbit_port": "qbit_port", "peer_port": "peer_port",
+    "jackett_port": "jackett_port", "media": "media_path", "extra_media": "extra_paths",
+    "selinux_relabel": "selinux_relabel",
+}
+
+
+def saved_configuration(settings: Settings) -> str:
+    return json.dumps({
+        "engine": settings.engine,
+        "method": settings.method,
+        "stack": settings.stack,
+        "test_mode": settings.test_mode,
+        "settings": {name: getattr(settings, name) for name in _SAVED_OPTIONS.values()},
+    }, indent=2) + "\n"
+
+
+def inherit_configuration(args, directory: Path) -> None:
+    """Use saved choices as defaults; normal collection validates the result."""
+    path = directory / "deployment.json"
+    if not path.exists():
+        log("No saved installation parameters; unspecified settings use defaults.")
+        return
+    try:
+        values = json.loads(path.read_text(encoding="utf-8"))["settings"]
+        if not isinstance(values, dict):
+            raise ValueError("settings must be an object")
+        annotations = {field.name: field.type for field in fields(Settings)}
+        types = {"str": str, "int": int, "bool": bool, "list[str]": list}
+        for option, name in _SAVED_OPTIONS.items():
+            if name not in values or getattr(args, option) is not None:
+                continue
+            value = values[name]
+            annotation = annotations[name]
+            if annotation == "bool | None":
+                if value is not None and type(value) is not bool:
+                    raise ValueError(f"invalid {name}")
+            elif type(value) is not types[annotation]:
+                raise ValueError(f"invalid {name}")
+            if isinstance(value, list) and any(type(item) is not str for item in value):
+                raise ValueError(f"invalid {name}")
+            setattr(args, option, value)
+    except (ValueError, KeyError, TypeError) as error:
+        raise InstallerError(f"Invalid saved installation parameters: {error}") from error
+    log("Loaded saved installation parameters; explicit flags take precedence.")

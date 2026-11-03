@@ -56,10 +56,9 @@ SELinux shared labels are automatic when SELinux is enforcing or permissive and
 host media is selected. Use `--selinux-relabel` or `--no-selinux-relabel` to
 override that decision.
 
-Both deployment methods include an executable `manage.sh` and a self-contained
-`manage.pyz` in the deployment folder. Python 3.9+ remains required. Keep both files
-with `deployment.json` and the generated configuration; the helper works from any
-working directory:
+Both deployment methods include a small executable `manage.sh` in the deployment
+folder. It calls the native container/systemd commands directly and works from any
+working directory. Daily management does not require Python:
 
 ```sh
 ./manage.sh up
@@ -73,47 +72,35 @@ volumes/media. Compose uses `down --remove-orphans`; Quadlet stops its systemd u
 target without disabling boot startup. `update` pulls and replaces only Backend/Web;
 `--all` also updates the enabled qBittorrent/Jackett services. All selected images
 are pulled before replacement begins, so a pull failure leaves running containers
-in place. Application-only updates leave optional services running. Successful
-start/update commands check local application HTTP health; failures return a
-nonzero status. Engine/systemd output remains visible, and commands and results
-are recorded in `manage.log`.
+in place. The helper prints the action and native command output, and exits on
+command failure. Run it with native Docker access, or as the Quadlet service user.
 
-Updates retain the configured image tag. Moving tags such as `latest` and `testing`
-can resolve to new images; a pinned release stays pinned. To select another tag,
-use the current installer, for example `python3 install.pyz reconfigure
-"$HOME/anishelf" --image-tag v1.4.2`. Back up application data before updating.
-Image updates do not upgrade deployment templates; use a newer installer and
-`reconfigure` when a release requires template changes. Updates are not atomic
-across services and do not automatically roll back images or database migrations.
+The helper uses the current `.env`/Compose configuration or the installed Quadlet
+units, including manual edits. Moving tags such as `latest` and `testing` can resolve
+to new images; a pinned release stays pinned. Back up application data before
+updating. Image updates do not upgrade deployment templates; use a newer installer
+and `reconfigure` when a release requires template changes.
 
-### Saved deployment configuration
+### Saved installation parameters
 
-`deployment.json` is the installer-managed source of configuration. It records a
-schema version, installer version, engine/method, namespace, testing mode, image
-tag, optional services, networking, storage and logging choices. Rootless Quadlet
-also records the owning UID and systemd configuration location. It contains no
-application passwords. The file and generated configuration are private to the
-installation user.
+`deployment.json` records installation choices: engine/method, namespace, testing
+mode, image tag, optional services, networking, storage and logging options. It is
+only used to supply defaults during reconfiguration; runtime configuration remains
+in `.env`/Compose or the installed Quadlet units. Manual configuration edits are
+allowed, but are not imported back into the saved parameters. When reconfiguring,
+pass flags for manual changes you want to preserve.
 
-`reconfigure DIRECTORY` inherits saved settings, then applies explicit flags and
+`reconfigure DIRECTORY` inherits saved parameters, then applies explicit flags and
 validates the replacement before stopping the old stack. Use `--no-qbit` or
 `--no-jackett` to disable an optional service, `--managed-media` to replace a host
 media mount with the managed volume, `--clear-extra-media` to remove additional
 mounts, and `--public-origin ''` to clear a fixed origin. Repeated `--extra-media`
 flags replace the saved list. Changing media mounts does not move existing files.
 
-Generated files have recorded checksums. Management and reconfiguration refuse
-changed or missing generated files; Quadlet also checks the installed units.
-Restore the generated files and express changes through reconfiguration, or manage
-a customized deployment with native commands. `--force` can archive conflicting
-installed Quadlet units during reconfiguration/removal, but does not bypass bundle
-checksum checks. Do not edit `deployment.json` or its checksums manually.
-
-Older bundles without `deployment.json` remain manually manageable/removable;
-configuration inheritance and the new lifecycle commands require a newly generated
-bundle. Rootless commands must run as the original service user with the same
-`XDG_CONFIG_HOME`. Generation-only Quadlet bundles must be installed before using
-`manage.sh`; Compose bundles can be started directly.
+Older bundles without `deployment.json` can still be reconfigured; unspecified
+settings use installer defaults. Review and supply the desired settings explicitly
+for these bundles. Generation-only Quadlet bundles must have their units installed
+before using `manage.sh`; Compose bundles can be started directly.
 
 Commands:
 
@@ -122,8 +109,6 @@ Commands:
 | `install` | Configure and start a new deployment |
 | `reconfigure DIRECTORY` | Archive a saved deployment and start replacement settings in place |
 | `remove DIRECTORY` | Stop a saved deployment and archive/remove its active configuration |
-| `up DIRECTORY` / `down DIRECTORY` | Start/stop a saved deployment |
-| `update DIRECTORY [--all]` | Update application images, optionally including enabled services |
 
 `install` and `reconfigure` accept the settings options below. `install` always
 refuses to overwrite existing Quadlet units. `reconfigure` and `remove`

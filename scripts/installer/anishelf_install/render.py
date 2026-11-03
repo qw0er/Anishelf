@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shlex
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -178,19 +179,70 @@ def unit_filename(name: str, test_mode: bool) -> str:
     return testing_unit_name(name) if test_mode else name
 
 
-def render_management_helper() -> str:
-    """Use the bundled CLI for both engines, from any working directory."""
-    return """#!/bin/sh
+def render_management_helper(settings: Settings) -> str:
+    """Render a thin native-command wrapper; daily management needs no Python."""
+    header = """#!/bin/sh
 set -eu
 cd "$(dirname "$0")"
-if [ "$#" -eq 0 ]; then
-    echo "Usage: $0 up|down|update [--all]" >&2
-    exit 2
-fi
-command="$1"
-shift
-case "$command" in
-    up|down|update) exec python3 ./manage.pyz "$command" "$PWD" "$@" ;;
+case "$*" in
+    up|down|update|'update --all') ;;
     *) echo "Usage: $0 up|down|update [--all]" >&2; exit 2 ;;
+esac
+echo "[anishelf] $*"
+"""
+    if settings.method == "compose":
+        command = [
+            settings.engine, "compose", "--project-name", settings.stack,
+            "--env-file", ".env", "-f", "compose.yaml",
+        ]
+        if settings.qbit:
+            command.extend(["--profile", "qbittorrent"])
+        if settings.jackett:
+            command.extend(["--profile", "jackett"])
+        return header + f"""
+compose() {{ {shlex.join(command)} "$@"; }}
+case "$1" in
+    up) compose up -d ;;
+    down) compose down --remove-orphans ;;
+    update)
+        if [ "${{2:-}}" = --all ]; then
+            compose pull
+            compose up -d
+        else
+            compose pull backend web
+            compose up -d --no-deps backend web
+        fi
+        ;;
+esac
+"""
+
+    optional = []
+    if settings.qbit:
+        optional.append(f"{settings.stack}-qbittorrent")
+    if settings.jackett:
+        optional.append(f"{settings.stack}-jackett")
+    return header + f"""
+case "$1" in
+    up) systemctl --user start {settings.stack}.target ;;
+    down) systemctl --user stop {settings.stack}.target ;;
+    update)
+        services='{settings.stack}-backend {settings.stack}-web'
+        if [ "${{2:-}}" = --all ]; then
+            services="$services {' '.join(optional)}"
+        fi
+        # Read current images from the installed units, including manual tag edits.
+        for service in $services; do
+            image=$(sed -n 's/^Image=//p' {shlex.quote(str(settings.quadlet_dir))}/"$service.container")
+            if [ -z "$image" ]; then
+                echo "[anishelf] Missing Image= in $service.container" >&2
+                exit 1
+            fi
+            podman pull "$image"
+        done
+        # Finish all pulls before restarting any service.
+        set --
+        for service in $services; do set -- "$@" "$service.service"; done
+        systemctl --user restart "$@"
+        ;;
 esac
 """
