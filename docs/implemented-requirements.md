@@ -45,7 +45,7 @@ Original V1 delivered read-only originals, resource-root confinement, persistent
 #### Delivery Notes (L)
 
 - **L06:** Automatic updates for affected files and folders, with monitoring failure recovery.
-- **L08:** Clear-match automatic admission, manual Review and protection against conflicting corrections.
+- **L08:** Clear-match automatic admission, manual Review and protection against conflicting corrections. Since 1.4.1, Review can re-identify an available pending resource's directory or all pending resources in the background, preserving confirmed and rejected decisions. Unavailable resources are excluded from pending Review but retain their history.
 - **L09:** Candidate-specific episode proposals, unresolved ambiguity and confirmed corrections.
 - **L12:** Multiple non-overlapping paths, separate Files entries, partial scan recovery and preserved settings/history.
 - **L13:** Confirmed same-filesystem moves with retained decisions/history and writable deployment.
@@ -137,13 +137,14 @@ qBittorrent is a separate capability (D01–D07).
 | M02 | Display covers, aliases, descriptions, seasons, episode counts, airing information, and available same-provider work relations | Complete | — | Cached details, artwork, available episode data and same-provider relations | 0.3.0 |
 | M03 | Provide anime detail and episode views, organizing the library by title | Complete | — | [Poster library, work details and episode/version actions](#delivery-notes-m) | 0.3.0 |
 | M04 | Manually select, correct, and refresh metadata mappings | Complete | — | Review selection/reassociation, episode corrections and metadata refresh | 0.3.0 |
+| WI11 | Prioritize upcoming broadcast plans on work details | Complete | Completed | [Announced future airtimes and next-broadcast highlight](#delivery-notes-m) | 1.4.1 |
 | M05 | Cache metadata so external outages do not prevent browsing or playback | Complete | — | [Cached browsing and playback during provider outages](#delivery-notes-m) | 0.3.0 |
 | M07 | Preserve multilingual program titles, aliases and descriptions with language tags, original language and locale-independent IDs | Complete | — | Available provider language information and stable local identities; no invented translations | 0.3.0 |
 
 #### Delivery Notes (M)
 
 - **M01:** AniList and Bangumi search behind permanent project work IDs; external source identifiers retained through associations. **Release record:** 0.3.0 (AniList); 1.0.6 (multi-source).
-- **M02 / WI11:** Broadcast-plan improvements are complete: provider-announced future airtimes appear first, the next broadcast is highlighted, aired history is collapsed, and dates include the local weekday and time zone. Detail metadata supplies the next broadcast when schedule pages are incomplete. Cached plans remain visible; elapsed plans await refreshed confirmation. Unannounced dates are not estimated. **Release record:** Broadcast-plan improvements are not yet released.
+- **M02 / WI11:** Broadcast-plan improvements are complete: provider-announced future airtimes appear first, the next broadcast is highlighted, aired history is collapsed, and dates include the local weekday and time zone. Detail metadata supplies the next broadcast when schedule pages are incomplete. Cached plans remain visible; elapsed plans await refreshed confirmation. Unannounced dates are not estimated. **Release record:** 1.4.1 (broadcast-plan improvements).
 - **M03:** Default poster library, work details, episode/version playback and file-list location from available-version actions. **Release record:** 0.3.0; 1.0.6 (file location).
 - **M05:** Durable metadata/artwork caching, refresh/retry and retained snapshots during outages.
 - **M06:** **Delivered:** AniList/Bangumi search, explicit verified work associations, combined descriptions and permanent ID aliases. **Remaining:** Automatic cross-source matching, association management UI and cross-source episode mappings. **Release record:** 1.0.6 (partial).
@@ -179,10 +180,10 @@ Available episode versions expose Show in Files through their file action menu. 
 
 - **P08:** **Delivered:** Text-track discovery, selection, extraction and delivery; font attachments. **Remaining:** Bitmap subtitle extraction (P16). **Release record:** 0.2.0 (text subtitles); 0.2.6 (embedded fonts).
 - **P09:** **Delivered:** Styled ASS/SSA, fallback fonts and embedded TTF/OTF support. **Remaining:** Bitmap subtitle compatibility; extraction is Later under P16, while rendering, OCR and burn-in remain unassigned. **Release record:** 0.2.0 (styles and fallback fonts); 0.2.6 (embedded fonts).
-- **P17:** Preset-based evaluation of existing and new resources, per-track processing, reuse and persistent recovery.
+- **P17:** Preset-based evaluation of existing and new resources, per-track processing, reuse and persistent recovery. **Release record:** 1.4.0; 1.4.1 (10-bit SDR video in the Web preset).
 - **P11:** Consecutive local regular episodes, explicit version choice and opt-in browser-local continuation with cancellable countdown.
 - **P12:** **Delivered:** Custom preparation profiles support NVENC and QSV for H.264/HEVC/AV1, and VideoToolbox for H.264/HEVC. **Remaining:** Broader hardware acceleration. **Release record:** 0.2.0 (hardware encoding; partial).
-- **P18:** **Delivered:** Automatic preparation can preserve explicitly accepted HDR streams when packaging permits. **Remaining:** Validated HDR-to-SDR conversion and broader HDR handling. **Release record:** Next release (HDR stream preservation; partial).
+- **P18:** **Delivered:** Automatic preparation can preserve explicitly accepted HDR streams when packaging permits. **Remaining:** Validated HDR-to-SDR conversion and broader HDR handling. **Release record:** 1.4.0 (HDR stream preservation; partial).
 - **P20:** **Delivered:** A fixed single-worker queue. **Remaining:** Configurable task concurrency. **Release record:** 0.2.0 (single-worker queue; partial).
 
 The player prioritizes video and common playback controls on desktop and narrow screens.
@@ -332,12 +333,14 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | S10 | Automatically subscribe to anime in AniList Watching | Complete | — | [Opt-in Watching automation with explicit activation scope](#delivery-notes-s) | 1.0.0 |
 | S11 | Find a suitable release source without entering an RSS URL for each anime | Complete | — | [Configured-site discovery with pinned sources](#delivery-notes-s) | 1.0.0 |
 | S12 | Keep manual and automatic subscription management independent | Complete | — | [Independent manual controls and automatic lifecycle](#delivery-notes-s) | 1.0.6 |
+| WI08 | Add a built-in compatibility-first preset for automatic subscription configuration | Complete | Completed | [H.264/VP9 preferred with fallback](#delivery-notes-s) | 1.4.1 |
 
 #### Delivery Notes (S)
 
 - **S02:** Fixed starting episode and protection against conflicting edits; global Watching activation previews impact.
 - **S03:** One RSS per anime, reliable recurring discovery with a configurable global interval (default 30 minutes).
 - **S05:** For RSS, manual search and opt-in Watching: built-in/custom YAML selection profiles.
+- **WI08:** The built-in compatibility-first profile accepts H.264/VP9 at 1080p/2160p after 60 minutes, and any codec at those resolutions or 720p after 120 minutes. **Release record:** 1.4.1.
 - **S06:** Exclude duplicate releases, available local episodes and already active acquisitions, including across restart.
 - **S07:** Profile levels, persisted waiting, seed-count tie-breaking and skipped reasons; manual selection/dismissal outside the simplified scope.
 - **S08:** Watching controls automatic subscriptions by current list membership; manual subscriptions and submitted transfers/imports remain independent. **Release record:** 1.0.0; 1.0.6 (independent subscriptions).

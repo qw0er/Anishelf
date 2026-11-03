@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.4.1
+
+### Added
+
+- Re-identify an individual pending resource or all pending resources from Review.
+  Directory-wide identification refreshes suggestions while preserving confirmed and
+  rejected decisions; the bulk action runs in the background and reports outcomes.
+- Add a compatibility-first acquisition profile that prefers H.264 and VP9 releases.
+
+### Changed
+
+- Prioritize announced upcoming broadcasts on work details, highlight the next
+  broadcast and collapse aired history.
+- Accept 10-bit SDR H.264 and VP9 video in the automatic preparation Web preset.
+
+### Fixed
+
+- Improve metadata title matching using the same filename parser used for resources.
+- Exclude unavailable resources from pending Review while preserving their history.
+
 ## 1.4.0
 
 ### Added
