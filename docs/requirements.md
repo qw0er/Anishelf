@@ -387,6 +387,25 @@ The display must remain usable on desktop and narrow screens.
 | WI06 | Move the Bundled label below the Settings title | — | Unassigned | Confirm the affected settings view and placement. | — |
 | WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
 | WI10 | Prevent interface flicker when adding a work | — | Unassigned | Adding a work causes the interface to refresh and visibly flicker; investigate and make the update smooth. | — |
+| WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12wi14) | — |
+| WI13 | Combine results from multiple search keywords for unified matching | Not started | Unassigned | [Combined keyword results](#resource-search-improvements-wi12wi14) | — |
+| WI14 | Improve Chinese resource searches using available Chinese titles | Not started | Unassigned | [Chinese search optimization](#resource-search-improvements-wi12wi14); depends on Chinese title availability (M09) | — |
+
+#### Resource Search Improvements (WI12–WI14)
+
+- **WI12:** Improve matching between a work's titles and resource-search results.
+  Explain whether results matched or were rejected and provide useful reasons for
+  uncertain or unsuccessful searches. Preserve the distinction between a candidate
+  and a confirmed match; do not accept uncertain results solely to increase matches.
+- **WI13:** Combine results returned for multiple keywords before assessing matches,
+  deduplicate equivalent results and evaluate them consistently. Preserve enough
+  source and keyword context to explain the outcome. Define how partial search
+  failures affect the combined results and feedback.
+- **WI14:** Improve searches for Chinese resources using available Chinese titles
+  and aliases. This depends on reliable Chinese title availability, including the
+  Bangumi fallback proposed in M09. Use confirmed work associations, retain existing
+  search behavior when Chinese titles are unavailable, and avoid treating similar
+  titles alone as proof of work identity.
 
 ## 5. Bugs
 
