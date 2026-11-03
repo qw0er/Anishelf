@@ -219,3 +219,9 @@ integrations as completed functionality.
    Visual-only changes must not add payload or credential logging.
 5. Run Biome for code changes and appropriate interaction checks; report browser
    verification separately. Update this English document when a shared rule changes.
+
+## Work titles
+
+Work headers show the selected primary title and source. Alternative titles remain
+internal matching/search evidence and are not listed or exposed through a title
+expansion control.

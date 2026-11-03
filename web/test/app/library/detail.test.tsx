@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 import { queryClient } from "../../../src/shared/api/query-client.js";
 import {
 	animeDetailFixture,
@@ -23,14 +23,6 @@ setupAppTest();
 
 test("detail removes redundant episode labels and sanitizes provider descriptions", async () => {
 	const detail = animeFixture();
-	const titleHeight = vi
-		.spyOn(HTMLElement.prototype, "scrollHeight", "get")
-		.mockImplementation(function (this: HTMLElement) {
-			return this.textContent ===
-				"An alternative title long enough to wrap on narrow screens"
-				? 80
-				: 0;
-		});
 	detail.metadata.data.titles.push({
 		value: "An alternative title long enough to wrap on narrow screens",
 		language: "en",
@@ -39,16 +31,12 @@ test("detail removes redundant episode labels and sanitizes provider description
 	mockAnime(detail);
 	renderApp("/anime/work-1");
 	await screen.findByRole("heading", { name: "Frieren", level: 1 });
-	const expandTitles = screen.getByRole("button", { name: "Show all titles" });
-	expect(expandTitles.getAttribute("aria-expanded")).toBe("false");
-	fireEvent.click(expandTitles);
+	expect(screen.queryByRole("button", { name: "Show all titles" })).toBeNull();
 	expect(
-		screen
-			.getByRole("button", { name: "Collapse titles" })
-			.getAttribute("aria-expanded"),
-	).toBe("true");
-	fireEvent.click(screen.getByRole("button", { name: "Collapse titles" }));
-	titleHeight.mockRestore();
+		screen.queryByText(
+			"An alternative title long enough to wrap on narrow screens",
+		),
+	).toBeNull();
 
 	expect(screen.getByText("Safe synopsis").tagName).toBe("B");
 	expect(document.querySelector("main script")).toBeNull();

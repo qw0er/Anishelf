@@ -12,6 +12,7 @@ import { projectDetails, projectSummary } from "../domain/projection.js";
 import type * as Source from "../domain/source-model.js";
 import type { SourceMetadataApi } from "../ports.js";
 import type { MetadataIdentities } from "./identities.js";
+import type { MetadataNameEnrichment } from "./name-enrichment.js";
 import { readMetadata } from "./operations.js";
 import { combineResults, projectEnvelope, projectPage } from "./results.js";
 import type { MetadataSnapshots } from "./snapshots.js";
@@ -27,6 +28,7 @@ export class MetadataWorkReader {
 			"references" | "referenceForExternal"
 		>,
 		private readonly snapshots: Pick<MetadataSnapshots, "save">,
+		private readonly names?: MetadataNameEnrichment,
 	) {}
 	private sourceReference(reference: WorkReference) {
 		const [source] = this.identities.references(reference);
@@ -60,11 +62,13 @@ export class MetadataWorkReader {
 		const value = await readMetadata(() =>
 			this.source.get(this.sourceReference(reference), options),
 		);
-		return this.project(value);
+		return this.project(
+			this.names ? await this.names.enrich(value, options) : value,
+		);
 	}
 	current(reference: WorkReference): CachedMetadata<WorkDetails> | null {
 		const value = this.source.current(this.sourceReference(reference));
-		return value ? this.project(value) : null;
+		return value ? this.project(this.names?.cached(value) ?? value) : null;
 	}
 
 	private relatedReference(

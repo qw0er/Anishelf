@@ -1,6 +1,7 @@
 import type { Logger } from "pino";
 import { MetadataArtworkReader } from "./application/artwork.js";
 import { MetadataIdentities } from "./application/identities.js";
+import { MetadataNameEnrichment } from "./application/name-enrichment.js";
 import { MetadataSearch } from "./application/search.js";
 import { MetadataSnapshots } from "./application/snapshots.js";
 import { SourceMetadataApplication } from "./application/source-metadata.js";
@@ -56,13 +57,15 @@ export function createMetadataApplication(
 ): MetadataModule {
 	const identities = new MetadataIdentities(source, store, logger);
 	const snapshots = new MetadataSnapshots(source, store, identities, logger);
-	const works = new MetadataWorkReader(source, identities, snapshots);
+	const names = new MetadataNameEnrichment(source, logger);
+	const works = new MetadataWorkReader(source, identities, snapshots, names);
 	const search = new MetadataSearch(
 		source,
 		identities,
 		snapshots,
 		logger,
 		defaultSearchProvider,
+		names,
 	);
 	const artwork = new MetadataArtworkReader(
 		source,
